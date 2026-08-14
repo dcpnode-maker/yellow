@@ -3,10 +3,10 @@
 Use this instead of `START-HERE.md` if you're on Windows. Same nine steps, Windows
 mechanics. Budget ~40 minutes, most of it installers and one reboot.
 
-## Which path: WSL2 (recommended) or native Windows
+## Supported path: WSL2
 
-Claude Code runs natively on Windows now, so this is a real choice — but for **this**
-project WSL2 wins clearly, and the reasons are specific rather than aesthetic:
+Claude Code runs natively on Windows, but **this project's supported path is WSL2**.
+It is the only full setup path exercised by CI, for reasons specific to this stack:
 
 - Our stack is Linux-native: Docker Postgres, bash scripts (`setup.sh`), a Linux
   toolchain. Run the agent where the project actually runs.
@@ -15,10 +15,15 @@ project WSL2 wins clearly, and the reasons are specific rather than aesthetic:
 - Claude Code's sandboxed execution works on WSL2 and **not** on native Windows.
 - Your co-founder's Mac and your PC then run identical commands — one set of docs.
 
-Native Windows is supported for the database baseline through `setup.ps1`; WSL2 is
-still recommended for Bun, Node-based MCP servers, and parity with Linux CI.
-Everything below assumes WSL2. If you stay native, use `./setup.ps1` and
-`./state.ps1` from PowerShell; install Node before enabling the bundled MCP servers.
+Everything below assumes WSL2. Native `setup.ps1` remains available as a best-effort,
+unverified convenience, not a supported path. GitHub's Windows runners cannot run the
+Linux containers its database proof requires; a green job that skipped that proof would
+be more misleading than no job. If `setup.ps1` fails, use WSL2 rather than opening a
+support request for the native path.
+
+`state.ps1` is different: it needs only Git and the filesystem, so CI executes its
+open-work transition test in the `windows-state` job. That coverage does not extend to
+`setup.ps1`.
 
 ---
 
