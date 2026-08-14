@@ -3,6 +3,7 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "boundaries": "bun scripts/check-import-boundaries.ts",
     "dev": "bun --watch src/server.ts",
     "license-check": "bun scripts/license-check.ts",
     "start": "bun src/server.ts",
