@@ -22,3 +22,4 @@
 2026-08-15 · — · 1 · — · claude → — · PHASE-PLANNED · handoff/PHASE-1-PLAN.md sequences orders 018-025 with tiers and deferred decisions; D-83; not issued until Phase 0 merges
 2026-08-15 · 007 · 0 · — · — → claude · QUESTION-CLOSED · A→D-67, E→D-68, B/C/D→D-73/74/75 reviewed with proof
 2026-08-15 · 008 · 0 · — · — → claude · QUESTION-CLOSED · all five gates discharged; D-72 corrected the architect, see D-80
+2026-08-15 · — · — · — · founder → claude · ROSTER-AMENDED · D-84: Tier 3 = one architect reviewer + reviewer-executed proof; cross-vendor requirement dropped, executable half made non-waivable; review 008-015 unblocked

@@ -3,12 +3,13 @@
 **Answers:** `handoff/questions/009-phase-0-cumulative-review-request.md` (at `63eca4a`)
 **Range reviewed:** `b602af9..7e7b19b` — 27 commits, 80 files, +11868/−268
 **Reviewed by:** Claude (architect role, `claude-opus-5`) · **Date:** 2026-08-15
-**Verdict:** **APPROVED WITH FOLLOW-UP — reviewer 1 of 2. DO NOT MERGE YET.**
+**Verdict:** **APPROVED WITH FOLLOW-UP.** Merge permitted — see the D-84 note below.
+*(Originally issued as "reviewer 1 of 2, do not merge yet"; unblocked 2026-08-15.)*
 
-The technical work is sound and every builder claim reproduced. Merge is blocked on
-governance, not on defects: this stack touches Tier-3 surfaces (RLS assertions, the
-migration runner) and D-59 requires **two reviewers from different vendors**. Codex
-built it and cannot review it. I am one vendor. The second does not exist yet.
+The technical work is sound and every builder claim reproduced first-hand. This stack
+touches Tier-3 surfaces (RLS assertions, the migration runner), which under **D-84**
+requires one architect-role reviewer plus proof the reviewer executed themselves — the
+bar this review meets. Codex built it and still cannot review or merge it.
 
 One new finding (**F8**) is a false-PASS hazard in CI. It does not block this merge —
 it is not in what ships and GitHub's isolated runners are unaffected — but it needs
@@ -240,7 +241,24 @@ failure semantics, PostgreSQL's cleared-GUC representation, and pg_dump's random
 
 ---
 
-## Merge conditions — why this is not approved to merge
+## ⚠ SUPERSEDED — merge is unblocked (2026-08-15, D-84)
+
+The section below described a block that **no longer applies.** The founder amended D-59:
+Tier 3 now requires **one architect-role reviewer plus proof the reviewer ran themselves**,
+not two reviewers from different vendors. `handoff/ROSTER.md` is updated.
+
+This review satisfies the amended bar: every claim in it was executed first-hand, not
+pasted. **Verdict is therefore APPROVED, and the cumulative Phase 0 integration PR may
+proceed** per D-76. Codex still must not open, approve or merge it.
+
+The original section is kept verbatim below rather than deleted, because the reasoning
+that led to the block is what D-84 had to answer, and a review that quietly rewrites its
+own conclusion is not evidence. The architect recommended against the amendment; the
+founder overruled; D-84 records both and the residual risk.
+
+---
+
+## Merge conditions — why this is not approved to merge *(superseded by D-84)*
 
 Per D-59 and `handoff/ROSTER.md`, Tier 3 is a property of the change, not the author, and
 requires **two reviewers from different vendors plus executable proof**. This stack is
