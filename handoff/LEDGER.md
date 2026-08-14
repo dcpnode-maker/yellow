@@ -23,3 +23,5 @@
 2026-08-15 · 007 · 0 · — · — → claude · QUESTION-CLOSED · A→D-67, E→D-68, B/C/D→D-73/74/75 reviewed with proof
 2026-08-15 · 008 · 0 · — · — → claude · QUESTION-CLOSED · all five gates discharged; D-72 corrected the architect, see D-80
 2026-08-15 · — · — · — · founder → claude · ROSTER-AMENDED · D-84: Tier 3 = one architect reviewer + reviewer-executed proof; cross-vendor requirement dropped, executable half made non-waivable; review 008-015 unblocked
+2026-08-15 · 016 · 0 · phase-0/ci-compose-port-resolution · codex → claude · APPROVED · negative test reproduced by reviewer (200 on 3000 from another project, step still failed); URI-form YELLOW_DSN verified 11/11 against referee
+2026-08-15 · 017 · 0 · phase-0/state-open-work-accuracy · codex → claude · APPROVED · bash transition reproduced incl. reviewer-added near-miss case; state.ps1 inspected not executed — see F9/D-85
