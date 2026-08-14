@@ -3,7 +3,7 @@
 Use this instead of `START-HERE.md` if you're on Windows. Same nine steps, Windows
 mechanics. Budget ~40 minutes, most of it installers and one reboot.
 
-## Which path: WSL2, not native Windows
+## Which path: WSL2 (recommended) or native Windows
 
 Claude Code runs natively on Windows now, so this is a real choice — but for **this**
 project WSL2 wins clearly, and the reasons are specific rather than aesthetic:
@@ -15,8 +15,10 @@ project WSL2 wins clearly, and the reasons are specific rather than aesthetic:
 - Claude Code's sandboxed execution works on WSL2 and **not** on native Windows.
 - Your co-founder's Mac and your PC then run identical commands — one set of docs.
 
-Native Windows is the right call only if your machine forbids Hyper-V (locked-down
-corporate policy). Everything below assumes WSL2.
+Native Windows is supported for the database baseline through `setup.ps1`; WSL2 is
+still recommended for Bun, Node-based MCP servers, and parity with Linux CI.
+Everything below assumes WSL2. If you stay native, use `./setup.ps1` and
+`./state.ps1` from PowerShell; install Node before enabling the bundled MCP servers.
 
 ---
 

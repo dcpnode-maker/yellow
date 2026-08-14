@@ -68,7 +68,7 @@ exc, beds = cur.fetchone(); c.close()
 check("TC-12.2", "private vs beds never coexist", not (exc > 0 and beds > 0), f"exclusive={exc} beds={beds}")
 
 # R3 / TC-12.3 — capacity race: clear dorm, 40 threads for 6 beds
-c, cur = conn(); cur.execute("SET ROLE postgres")
+c, cur = conn()
 cur.execute("DELETE FROM space_occupancy WHERE space_id=%s", (DORM,)); c.commit(); c.close()
 caps = []
 ths = [threading.Thread(target=record, args=(DORM, False, PERIOD, caps)) for _ in range(40)]
