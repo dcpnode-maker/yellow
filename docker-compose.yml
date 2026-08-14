@@ -1,6 +1,28 @@
 ﻿# Local development services. Phase 0 extends this file with the app service;
 # NATS stays out until the Phase-1 decision gate says otherwise (DECISIONS.log).
 services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: yellow-app
+    environment:
+      NODE_ENV: production
+      PORT: "3000"
+    ports: ["3000:3000"]
+    healthcheck:
+      test:
+        - CMD
+        - bun
+        - -e
+        - >-
+          const response = await fetch("http://127.0.0.1:3000/health");
+          const body = await response.json();
+          if (response.status !== 200 || JSON.stringify(body) !== '{"status":"ok"}') process.exit(1);
+      interval: 3s
+      timeout: 3s
+      retries: 20
+
   postgres:
     image: postgres:16-alpine
     container_name: yellow-postgres
