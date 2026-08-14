@@ -27,13 +27,6 @@ jobs:
         shell: pwsh
         run: |
           $ErrorActionPreference = 'Stop'
-          $stateScript = Get-Content -LiteralPath '.\state.ps1' -Raw
-          $weakenedStateScript = $stateScript.Replace("'^## RESOLVED','^## RATIFIED'", "'## RESOLVED','## RATIFIED'")
-          if ($weakenedStateScript -eq $stateScript) {
-            throw 'red-proof setup diverged: state.ps1 marker pattern was not found'
-          }
-          Set-Content -LiteralPath '.\state.ps1' -Value $weakenedStateScript -NoNewline
-
           $probePath = 'handoff/questions/zz-ci-windows-state-probe.md'
           $probeListing = "  $($probePath -replace '\\', '/')"
 
