@@ -8,7 +8,7 @@ import {
   type SourceFile,
   SyntaxKind,
 } from "typescript/unstable/ast";
-import { API } from "typescript/unstable/sync";
+import { API } from "typescript/unstable/async";
 
 export interface BoundaryViolation {
   readonly sourceFile: string;
@@ -154,12 +154,12 @@ export async function checkImportBoundaries(projectRoot = process.cwd()): Promis
   const violations: BoundaryViolation[] = [];
 
   try {
-    const snapshot = api.updateSnapshot({ openFiles: files });
+    const snapshot = await api.updateSnapshot({ openFiles: files });
 
     try {
       for (const file of files) {
-        const project = snapshot.getDefaultProjectForFile(file);
-        const sourceFile = project?.program.getSourceFile(file);
+        const project = await snapshot.getDefaultProjectForFile(file);
+        const sourceFile = project ? await project.program.getSourceFile(file) : undefined;
         if (!sourceFile) {
           throw new Error(`TypeScript could not parse ${relative(resolvedRoot, file)}`);
         }
@@ -170,10 +170,10 @@ export async function checkImportBoundaries(projectRoot = process.cwd()): Promis
         }
       }
     } finally {
-      snapshot.dispose();
+      await snapshot.dispose();
     }
   } finally {
-    api.close();
+    await api.close();
   }
 
   violations.sort(
