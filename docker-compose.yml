@@ -1,4 +1,4 @@
-﻿# Local development services. Phase 0 extends this file with the app service;
+# Local development services. Phase 0 extends this file with the app service;
 # NATS stays out until the Phase-1 decision gate says otherwise (DECISIONS.log).
 services:
   app:

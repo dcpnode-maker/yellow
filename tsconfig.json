@@ -10,11 +10,7 @@
     "noEmit": true,
     "skipLibCheck": true
   },
-  "include": [
-    "src/**/*.ts",
-    "scripts/**/*.ts",
-    "tests/health.test.ts",
-    "tests/license-check.test.ts",
-    "tests/security-headers.test.ts"
-  ]
+  "include": ["src/**/*.ts", "scripts/**/*.ts", "tests/**/*.ts"],
+  // The Phase 2 occupancy-stress activation order must remove this exclusion in both tsconfig.json and bunfig.toml.
+  "exclude": ["tests/occupancy-stress.test.ts"]
 }

@@ -9,6 +9,7 @@ import {
   extractLicenseExpressions,
   isAllowedLicenseExpression,
   isPackageRootManifestPath,
+  resolveAllowedLicenseExpression,
 } from "../scripts/license-check";
 
 describe("dependency license policy", () => {
@@ -18,9 +19,14 @@ describe("dependency license policy", () => {
     }
   });
 
-  it("accepts compound expressions only when every identifier is allowed", () => {
-    expect(isAllowedLicenseExpression("MIT OR (Apache-2.0 AND BSD-3-Clause)")).toBeTrue();
-    expect(isAllowedLicenseExpression("MIT OR GPL-3.0-only")).toBeFalse();
+  it("uses SPDX choice semantics for OR and conjunction semantics for AND", () => {
+    expect(isAllowedLicenseExpression("MIT OR GPL-3.0-only")).toBeTrue();
+    expect(resolveAllowedLicenseExpression("MIT OR GPL-3.0-only")).toEqual({
+      acceptedExpression: "MIT",
+      choseAlternative: true,
+    });
+    expect(isAllowedLicenseExpression("MIT AND GPL-3.0-only")).toBeFalse();
+    expect(isAllowedLicenseExpression("(MIT OR ISC) AND BSD-3-Clause")).toBeTrue();
   });
 
   it.each([
@@ -40,6 +46,7 @@ describe("dependency license policy", () => {
 
   it("extracts current and usable deprecated declarations", () => {
     expect(extractLicenseExpressions({ license: " MIT " })).toEqual(["MIT"]);
+    expect(extractLicenseExpressions({ license: { type: " MIT " } })).toEqual(["MIT"]);
     expect(
       extractLicenseExpressions({
         licenses: ["Apache-2.0", { type: "BSD-3-Clause" }, { type: "" }, {}],
@@ -73,6 +80,14 @@ describe("dependency license policy", () => {
         ],
         ["node_modules/copyleft/package.json", { name: "copyleft", version: "2.0.0", license: "AGPL-3.0-only" }],
         ["node_modules/unlicensed/package.json", { name: "unlicensed", version: "3.0.0" }],
+        [
+          "node_modules/dual/package.json",
+          { name: "dual", version: "4.0.0", licenses: ["AGPL-3.0-only", "MIT"] },
+        ],
+        [
+          "node_modules/legacy/package.json",
+          { name: "legacy", version: "5.0.0", license: { type: "MIT" } },
+        ],
       ]);
 
       for (const [relativePath, manifest] of manifests) {
@@ -83,11 +98,19 @@ describe("dependency license policy", () => {
 
       const result = await auditInstalledPackages(root);
 
-      expect(result.packageCount).toBe(1);
+      expect(result.packageCount).toBe(3);
       expect(result.failures).toHaveLength(2);
       expect(result.failures.map(({ reason }) => reason)).toEqual([
         "copyleft@2.0.0: rejected license AGPL-3.0-only",
         "unlicensed@3.0.0: missing license",
+      ]);
+      expect(result.choices).toEqual([
+        {
+          packagePath: join("node_modules", "dual", "package.json"),
+          packageName: "dual@4.0.0",
+          declaredExpression: "AGPL-3.0-only OR MIT",
+          acceptedExpression: "MIT",
+        },
       ]);
     } finally {
       await rm(root, { recursive: true, force: true });

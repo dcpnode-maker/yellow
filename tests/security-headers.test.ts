@@ -1,18 +1,49 @@
 import { describe, expect, it } from "bun:test";
 
-import { app } from "../src/app";
+import { app, createApp } from "../src/app";
 import { SECURITY_HEADERS } from "../src/http/security-headers";
+
+function expectCompleteSecurityHeaderPolicy(response: Response): void {
+  for (const [name, value] of Object.entries(SECURITY_HEADERS)) {
+    expect(response.headers.get(name)).toBe(value);
+  }
+}
 
 describe("application security headers", () => {
   it("applies the complete policy to the actual health response", async () => {
     const response = await app.handle(new Request("http://localhost/health"));
 
-    for (const [name, value] of Object.entries(SECURITY_HEADERS)) {
-      expect(response.headers.get(name)).toBe(value);
-    }
-
+    expectCompleteSecurityHeaderPolicy(response);
     expect(response.status).toBe(200);
     expect(await response.json()).toEqual({ status: "ok" });
+  });
+
+  it("applies the complete policy to an unmatched response", async () => {
+    const response = await app.handle(new Request("http://localhost/not-found"));
+
+    expectCompleteSecurityHeaderPolicy(response);
+    expect(response.status).toBe(404);
+  });
+
+  it("applies the complete policy to a wrong-method response", async () => {
+    const response = await app.handle(
+      new Request("http://localhost/health", { method: "POST" }),
+    );
+
+    expectCompleteSecurityHeaderPolicy(response);
+    expect(response.status).toBe(404);
+  });
+
+  it("applies the complete policy when a handler throws", async () => {
+    const errorPath = "/__security-header-test-error";
+    const errorApp = createApp().get(errorPath, () => {
+      throw new Error("security header error-path probe");
+    });
+
+    const response = await errorApp.handle(new Request(`http://localhost${errorPath}`));
+
+    expectCompleteSecurityHeaderPolicy(response);
+    expect(response.status).toBe(500);
   });
 
   it("allows no third-party or executable CSP source", () => {

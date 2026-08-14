@@ -1,3 +1,3 @@
 [test]
-# Remove this exclusion when Phase 2 supplies ../db and activates the occupancy stress test.
+# The Phase 2 occupancy-stress activation order must remove this exclusion in both tsconfig.json and bunfig.toml.
 pathIgnorePatterns = ["tests/occupancy-stress.test.ts"]

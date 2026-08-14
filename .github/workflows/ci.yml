@@ -21,6 +21,23 @@ jobs:
       - name: Check out repository
         uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
 
+      - name: Reject UTF-8 BOMs
+        shell: bash
+        run: |
+          set -euo pipefail
+          tracked_files="$(mktemp)"
+          trap 'rm -f "$tracked_files"' EXIT
+          git ls-files -z > "$tracked_files"
+
+          found=0
+          while IFS= read -r -d '' file; do
+            if [[ -f "$file" ]] && [[ "$(head -c 3 "$file" | od -An -tx1 | tr -d ' \n')" == "efbbbf" ]]; then
+              echo "UTF-8 BOM: $file"
+              found=1
+            fi
+          done < "$tracked_files"
+          exit "$found"
+
       - name: Set up Bun
         uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2
         with:
