@@ -56,13 +56,11 @@ chmod +x setup.sh bootstrap.sh    # if you get "Permission denied"
 ./setup.sh                        # or: bash setup.sh
 ```
 
-It will, in order: check prerequisites → `git init` and commit all 33 files →
-create a **private** GitHub repo called `yellow` and push (prompting `gh auth login`
-if needed) → start `yellow-postgres` and `yellow-valkey` → load the schema and
-fixture into `yellow_test` → run the invariant battery.
+It will, in order: check prerequisites → start PostgreSQL and Valkey → migrate and
+seed `yellow_dev` → recreate `yellow_test` through the production runner → load only
+the two-tenant fixture → run the invariant battery → verify application health.
 
-Options: `--no-github` (skip the repo step) · `--db-only` (rebuild database and
-re-run tests; use this any time later).
+Option: `--db-only` runs the database path without starting/verifying the app.
 
 ## Step 5 — Confirm the gate **[you]**
 
@@ -81,12 +79,18 @@ they'll fail louder in production.
 ## Step 6 — Sanity-check the database **[you]**
 
 ```bash
-docker exec -it yellow-postgres psql -U yellow -d yellow_test \
+docker compose exec postgres psql -U yellow -d yellow_test \
   -c "SELECT count(*) FROM pg_tables WHERE schemaname='public';"
 ```
 
-Expect **80**. (Ports are 5442 for Postgres and 6389 for Valkey — deliberately not
-the defaults, so nothing else on your machine collides.)
+Expect **81**: 80 immutable baseline tables plus `schema_migration`.
+
+For a second worktree, select a distinct Compose project and host-port triplet:
+
+```bash
+COMPOSE_PROJECT_NAME=yellow-review YELLOW_APP_PORT=3100 \
+YELLOW_POSTGRES_PORT=5542 YELLOW_VALKEY_PORT=6489 ./setup.sh --db-only
+```
 
 ## Step 7 — Open Claude Code **[you]**
 
@@ -118,7 +122,7 @@ Choose **Fable 5** for the Phase 0 kickoff — it's a schema-and-foundations pha
 implementation work and Sonnet 5 for tests and docs. The escalation rule in
 `CLAUDE.md` governs when to switch back up.
 
-## Step 9 — Start Phase 0 **[you]**
+## Step 9 — Start the current ordered work **[you]**
 
 First, see where you stand — this is the command every agent runs at the start of
 every session, and it prints the same ground truth for all of them:
@@ -131,9 +135,8 @@ every session, and it prints the same ground truth for all of them:
 Paste exactly this:
 
 ```
-Read PROJECT.md, then CLAUDE.md and BUILD-PLAN.md. Execute Phase 0.
-The invariant battery in tests/ must stay green from Phase 2 onward.
-Log any decision you make in DECISIONS.log before moving on.
+Read PROJECT.md, then your role adapter and BUILD-PLAN.md. Run ./state.sh and work
+only from the current reviewed order. Keep the invariant battery green.
 ```
 
 Phase 0 is done when: `bun test` is green in CI · a fresh clone can
@@ -162,7 +165,7 @@ the schema-drift check (dump vs `migrations/0001_init.sql`) is empty.
 | `README.md` | Package map and the honest statement of what's not built yet. |
 | `setup.sh` | One-command setup; `--db-only` to rebuild and retest. |
 | `bootstrap.sh` | Git + GitHub only (subset of setup.sh). |
-| `docker-compose.yml` | `yellow-postgres` (5442) and `yellow-valkey` (6389). |
+| `docker-compose.yml` | App/PostgreSQL/Valkey with configurable host ports and Compose-project isolation. |
 | `.mcp.json` | postgres + github + context7 for Claude Code. |
 | `.claude/settings.json` | PostToolUse hook: format and typecheck after edits. |
 | `.claude/skills/yellow-*` | Three project skills, shared via git so both founders get identical behaviour. |

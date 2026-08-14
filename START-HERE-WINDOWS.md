@@ -126,9 +126,9 @@ chmod +x setup.sh bootstrap.sh    # if you get "Permission denied"
 ./setup.sh                        # or: bash setup.sh
 ```
 
-Commits 37 files → creates the private GitHub repo `yellow` and pushes → starts
-`yellow-postgres` (port 5442) and `yellow-valkey` (6389) → loads schema and fixture
-→ runs the invariant battery.
+Starts PostgreSQL (default port 5442) and Valkey (6389) → migrates and seeds
+`yellow_dev` → recreates `yellow_test` through the production runner → loads only the
+two-tenant fixture → runs the invariant battery → verifies application health.
 
 **The gate:** it must end with `RESULT: 11 passed, 0 failed of 11`. Don't continue
 if it's red.
@@ -136,12 +136,12 @@ if it's red.
 Sanity check:
 
 ```bash
-docker exec -it yellow-postgres psql -U yellow -d yellow_test \
-  -c "SELECT count(*) FROM pg_tables WHERE schemaname='public';"   # expect 80
+docker compose exec postgres psql -U yellow -d yellow_test \
+  -c "SELECT count(*) FROM pg_tables WHERE schemaname='public';"   # expect 81
 ```
 
-WSL2 forwards localhost, so `localhost:5442` also works from Windows-side tools
-(pgAdmin, DBeaver, a browser) if you want a GUI.
+WSL2 forwards localhost, so `localhost:$YELLOW_POSTGRES_PORT` (default 5442) also
+works from Windows-side tools (pgAdmin, DBeaver) if you want a GUI.
 
 ## Step 8 — Open Claude Code **[you]**
 
@@ -157,7 +157,7 @@ down, `GITHUB_TOKEN` isn't exported in this shell.
 Then `/model` → **Fable 5** for the Phase 0 kickoff (`CLAUDE.md` routes foundations
 work to Fable; switch to Opus 5 for implementation afterwards).
 
-## Step 9 — Start Phase 0 **[you]**
+## Step 9 — Start the current ordered work **[you]**
 
 First, see where you stand — this is the command every agent runs at the start of
 every session, and it prints the same ground truth for all of them:
@@ -168,9 +168,8 @@ every session, and it prints the same ground truth for all of them:
 
 
 ```
-Read PROJECT.md, then CLAUDE.md and BUILD-PLAN.md. Execute Phase 0.
-The invariant battery in tests/ must stay green from Phase 2 onward.
-Log any decision you make in DECISIONS.log before moving on.
+Read PROJECT.md, then your role adapter and BUILD-PLAN.md. Run ./state.sh and work
+only from the current reviewed order. Keep the invariant battery green.
 ```
 
 ---

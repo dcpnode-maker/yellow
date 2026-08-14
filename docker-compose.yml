@@ -5,11 +5,10 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: yellow-app
     environment:
       NODE_ENV: production
       PORT: "3000"
-    ports: ["3000:3000"]
+    ports: ["${YELLOW_APP_PORT:-3000}:3000"]
     healthcheck:
       test:
         - CMD
@@ -50,12 +49,11 @@ services:
 
   postgres:
     image: postgres:16.15-alpine@sha256:ab5c955e9e57ae9879d4411ab49a912be9d162455676f7bf56e951b11ac73785
-    container_name: yellow-postgres
     environment:
       POSTGRES_USER: yellow
       POSTGRES_PASSWORD: yellow
       POSTGRES_DB: yellow_dev
-    ports: ["5442:5432"]
+    ports: ["${YELLOW_POSTGRES_PORT:-5442}:5432"]
     volumes:
       - yellow-pgdata:/var/lib/postgresql/data
     command: >
@@ -71,8 +69,7 @@ services:
 
   valkey:
     image: valkey/valkey:8-alpine
-    container_name: yellow-valkey
-    ports: ["6389:6379"]
+    ports: ["${YELLOW_VALKEY_PORT:-6389}:6379"]
     command: valkey-server --save "" --appendonly no
     healthcheck:
       test: ["CMD", "valkey-cli", "ping"]

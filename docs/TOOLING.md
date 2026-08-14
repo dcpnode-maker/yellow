@@ -19,9 +19,9 @@ run `/mcp`, and all three should read **connected**.
 ### Two things you must do
 1. **GitHub token** — create a fine-grained PAT (repo scope, this repo only), then
    `export GITHUB_TOKEN=ghp_...` in your shell profile. Least scope, revocable.
-2. **Database running** — `./setup.sh` or `docker compose up -d`. `yellow_dev` stays
-   empty until Phase 0's migration runner applies `0001_init.sql`; `yellow_test`
-   (schema + fixture) is there meanwhile if you want to inspect anything.
+2. **Database running** — `./setup.sh` applies the runner and demo seed to
+   `yellow_dev`, then uses the runner plus the separate fixture for `yellow_test`.
+   `docker compose up -d postgres` only starts the service; it does not migrate it.
 
 ## Add later, at the phase that needs it
 

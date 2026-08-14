@@ -2,9 +2,8 @@
 
 **Yellow** is the codename for this project: a multi-tenant hospitality ERP built as a
 modular monolith on TypeScript/Bun/Elysia over PostgreSQL 16. It is deliberately
-isolated from any other project on your machine — its own containers, its own ports
-(5442 / 6389), its own databases, its own skills. Nothing here touches your existing
-PMS work.
+isolated by its Compose project, databases, and configurable host ports (defaults:
+app 3000, PostgreSQL 5442, Valkey 6389).
 
 ---
 
@@ -12,19 +11,19 @@ PMS work.
 
 ```bash
 unzip yellow.zip && cd yellow
-export GITHUB_TOKEN=ghp_...        # fine-grained PAT, this repo only
 ./setup.sh
 ```
 
-What it does: checks prerequisites → commits everything → creates a **private GitHub
-repo named `yellow`** and pushes → starts `yellow-postgres` and `yellow-valkey` →
-loads the schema and fixture into `yellow_test` → **runs the invariant battery on
-your machine.**
+What it does: checks prerequisites → starts PostgreSQL and Valkey → runs the
+production migration and deterministic demo seed on `yellow_dev` → recreates
+`yellow_test` through the same runner → loads only the two-tenant fixture → runs the
+invariant battery. Full setup also verifies exact application health.
 
 You are ready when you see `RESULT: 11 passed, 0 failed`. If you don't, stop and fix
 that first — those eleven tests are the floor the whole system stands on.
 
-Flags: `--no-github` (local only) · `--db-only` (rebuild database, re-run tests).
+`--db-only` runs the database path without starting/verifying the app. Setup never
+creates external accounts or repositories.
 
 ## 2. Daily loop
 
@@ -44,8 +43,8 @@ In Claude Code, first session of the day:
 Then work one phase at a time:
 
 ```
-Read PROJECT.md, then CLAUDE.md and BUILD-PLAN.md. Execute Phase 0.
-Do not stop until every DoD check passes.
+Read PROJECT.md, then your role adapter and BUILD-PLAN.md. Run state.sh and work only
+from the current reviewed order.
 ```
 
 A phase can run for hours largely unattended — writing code, running tests, fixing
@@ -75,7 +74,7 @@ failures. Check in, answer questions, let it work.
 | Symptom | Do this |
 |---|---|
 | Tests fail after a change | `./setup.sh --db-only` — rebuilds and re-runs. If still red, the change broke an invariant; that's the test doing its job. |
-| Port already in use | Something else holds 5442/6389. Change the left-hand number in `docker-compose.yml`, and the DSNs in `.mcp.json` and `.env`. |
+| Port already in use | Set `YELLOW_APP_PORT`, `YELLOW_POSTGRES_PORT`, and `YELLOW_VALKEY_PORT`; do not edit Compose or stop another worktree. |
 | `/mcp` shows postgres disconnected | Containers down (`docker compose up -d`) or DSN mismatch with `docker-compose.yml`. |
 | `/mcp` shows github disconnected | `GITHUB_TOKEN` not exported in the shell that launched Claude Code. |
 | Claude Code writes code against an outdated API | Ask it to check Context7 — that's exactly what that server is for. |
@@ -89,7 +88,7 @@ yellow/
 ├── BUILD-PLAN.md          13 phases, each with a Definition of Done
 ├── DECISIONS.log          43 locked decisions; append forever
 ├── setup.sh               one-command setup / --db-only rebuild
-├── docker-compose.yml     yellow-postgres (5442), yellow-valkey (6389)
+├── docker-compose.yml     app/PostgreSQL/Valkey, isolated by Compose project
 ├── .mcp.json              postgres + github + context7
 ├── .claude/skills/        three Yellow-specific skills, shared via git
 ├── migrations/0001_init.sql   the validated schema (80 tables) — never edit
@@ -123,4 +122,4 @@ ASP vendor. Those gate Phases 8, 9, and 12.
 
 ---
 
-**Next command:** `./setup.sh`, then open Claude Code and execute Phase 0.
+**Next command:** `./setup.sh`, then `./state.sh` and the current reviewed order.

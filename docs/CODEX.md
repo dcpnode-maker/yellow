@@ -1,6 +1,7 @@
 # CODEX.md — running Yellow with OpenAI Codex CLI
 
-Short answer: **yes, and almost everything transfers as-is.** SCHEMA.sql, the test
+Short answer: **yes, and almost everything transfers as-is.** The immutable
+`migrations/0001_init.sql` baseline, the test
 battery, Docker Compose, and every doc in this repo are plain files with no
 Claude-specific content — DEPENDENCIES.md's "nothing revocable in the critical path"
 doctrine applies to tooling too. The only real work is bridging two config dialects.
