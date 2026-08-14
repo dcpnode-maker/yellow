@@ -1,0 +1,112 @@
+# RESPONSE TO QUESTION 008 — temporary Phase 0 architect decisions
+
+**By:** OpenAI Codex, acting as temporary architect by founder authorization
+**Date:** 2026-08-15
+**Status:** Orders may be implemented in sequence; Claude ratification remains required before integration
+
+## Authority and review posture
+
+The founder explicitly authorized Codex to perform Claude's architect function until
+Claude returns on 2026-08-16. D-71 records the exception. Attribution remains
+truthful: these are OpenAI decisions and orders, not Claude output. They supply the
+OpenAI side of the Tier-3 challenge, but they do not allow Codex to approve or merge
+its own later implementation. Claude must independently inspect the cumulative diff,
+the executable evidence, and these decisions before anything reaches `main`.
+
+## Gate decisions
+
+| Gate | Decision | Recorded |
+|---|---|---|
+| 1 — F6 | Accept with the unfiltered-identity check; include TC-12.5 monotonic timing in the same battery-integrity order | D-72 |
+| 2 — migration runner | Accept reserved connection + session lock + per-file transactions; reject a brittle SQL keyword scanner and contiguous-number requirement | D-73 |
+| 3 — seed | Accept transaction-local app-role seed and UUIDv5; adopt exact-match idempotency and separate demo seed from two-tenant fixture | D-74 |
+| 4 — CI/RLS/drift | Accept the two-contract model; use Compose PostgreSQL only, keep one Python oracle, pin PG and the hidden Python dependency | D-75 |
+| 5 — DoD/integration | Reconcile stale Phase-0 text and use one final cumulative integration PR | D-76 |
+
+## Gate 1 — F6
+
+Accepted with Question 008's correction. A SELECT count is trustworthy only after the
+same connection has proved `row_security_active(...) = false`. The current `yellow`
+role is superuser and BYPASSRLS, so it already satisfies that condition; the explicit
+assertion turns an environmental assumption into executable evidence. Order 008 also
+changes TC-12.5 from wall-clock `time.time()` to monotonic `time.perf_counter()` and
+requires positive duration, closing the observed impossible negative-throughput pass.
+
+## Gate 2 — migration runner
+
+The session lock must span discovery, ledger validation, every pending file, and final
+ledger validation on one `sql.reserve()` connection. Bun 1.3.14 was probed against
+PostgreSQL: `reserved.begin()` kept the same backend PID and `unsafe()` executed a
+multi-statement SQL string inside the reserved transaction. Order 010 nevertheless
+requires a backend-PID integration proof so a future Bun change cannot silently break
+connection affinity.
+
+One transaction per file is retained. PostgreSQL, not a home-grown regex, decides
+whether SQL is transaction-compatible: an incompatible statement fails the file,
+rolls back earlier statements in that file, and records no ledger row. Phase 0 has no
+`--force` and no nontransactional mode.
+
+The runner-created `schema_migration` table is unavoidable bootstrap metadata. It is
+not tenant data and receives no RLS. Because migration 0001 grants privileges on all
+then-existing tables when it creates `app_role`, the runner must revoke all privileges
+from `app_role` after every applied file, inside that file's transaction, and verify
+the effective privileges afterward.
+
+## Gate 3 — bootstrap seed
+
+The seed is explicitly a deterministic demo/bootstrap seed for fresh-clone and CI
+proof, not a production tenant-onboarding interface. It runs through the application
+role inside a deployment connection's transaction. `SET LOCAL ROLE app_role` happens
+before writes; tenant context is set with transaction-local `set_config` before the
+tenant-scoped property insert.
+
+An identical rerun is a no-op. A conflicting row is a hard failure: “idempotent” does
+not mean silently accepting drift. UUIDv5 is implemented with Web Crypto and tested
+against the standard DNS namespace + `www.example.com` vector
+`2ed6657d-e927-568b-95e1-2665a8aea6a2`.
+
+## Gate 4 — CI, RLS, and schema drift
+
+The prior preference for a GitHub service container is amended. Starting only the
+repository's Compose `postgres` service avoids Valkey/app overhead while making the
+exact image, preload settings, healthcheck, and local configuration the same in CI.
+
+There remain two databases and one oracle:
+
+1. A deployment database proves runner → demo seed → exact rows → health.
+2. An invariant database proves runner → test fixture → the existing Python 11-test
+   referee, including table and view isolation.
+
+The deployment checks do not reimplement occupancy, ledger, fiscal, or RLS domain
+rules. TC-13.1 and TC-13.4 themselves gain the catalog assertions, preserving the
+single-oracle rule. The schema snapshot is generated from the pinned PostgreSQL
+container and is compared byte-for-byte after deterministic normalization.
+
+## Gate 5 — Phase 0 truth and merge topology
+
+BUILD-PLAN is corrected only after implementation proves the replacement wording:
+
+- NATS is deferred under D-14.
+- `migrations/0001_init.sql` is the immutable input; the reviewed normalized dump is
+  drift truth.
+- Bun.password, WS/SSE, and S3 are technology locks for their first real consumers,
+  not empty Phase-0 wrappers.
+
+Implementation stays stacked above PR #10. Nothing merges individually. After Order
+013 is reviewed, a final cumulative PR from its head to `main` receives full CI,
+battery output, a requirement-by-requirement Phase-0 evidence table, and Claude's
+independent approval. Only then may lower PRs be closed as superseded.
+
+## Issued order sequence
+
+| Order | Subject | Tier | Must start from |
+|---|---|---|---|
+| 008 | invariant-battery harness integrity | 3 | temporary architect artifact head |
+| 009 | context/kernel layout and import boundaries | 2 | reviewed Order 008 head |
+| 010 | Bun SQL migration runner | 3 | reviewed Order 009 head |
+| 011 | deterministic app-role bootstrap seed | 3 | reviewed Order 010 head |
+| 012 | fresh-DB CI, RLS catalog proof, schema drift | 3 | reviewed Order 011 head |
+| 013 | portable local loop and Phase-0 DoD reconciliation | 2 | reviewed Order 012 head |
+
+The next builder action is Order 008 only. Do not combine orders into one code commit
+or skip their executable gates.
