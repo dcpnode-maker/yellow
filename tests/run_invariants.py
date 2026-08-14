@@ -69,7 +69,24 @@ check("TC-12.2", "private vs beds never coexist", not (exc > 0 and beds > 0), f"
 
 # R3 / TC-12.3 — capacity race: clear dorm, 40 threads for 6 beds
 c, cur = conn()
-cur.execute("DELETE FROM space_occupancy WHERE space_id=%s", (DORM,)); c.commit(); c.close()
+cur.execute("SELECT row_security_active('public.space_occupancy'::regclass)")
+rls_active = cur.fetchone()[0]
+cur.execute("SELECT has_table_privilege(current_user, 'public.space_occupancy', 'DELETE')")
+can_delete = cur.fetchone()[0]
+if rls_active or not can_delete:
+    c.close()
+    raise RuntimeError(
+        "TC-12.3 harness configuration invalid: cleanup connection must bypass RLS "
+        f"and have DELETE privilege (row_security_active={rls_active}, can_delete={can_delete})"
+    )
+cur.execute("DELETE FROM space_occupancy WHERE space_id=%s", (DORM,))
+c.commit()
+cur.execute("SELECT count(*) FROM space_occupancy WHERE space_id=%s", (DORM,))
+remaining = cur.fetchone()[0]
+if remaining != 0:
+    c.close()
+    raise RuntimeError(f"TC-12.3 harness cleanup failed: dorm still holds {remaining} rows")
+c.close()
 caps = []
 ths = [threading.Thread(target=record, args=(DORM, False, PERIOD, caps)) for _ in range(40)]
 [t.start() for t in ths]; [t.join() for t in ths]
@@ -87,7 +104,7 @@ except psycopg2.Error as e:
 c.close()
 
 # R5 / TC-12.5 — throughput: 500 sequential commits on distinct future periods
-c, cur = conn(); t0 = time.time()
+c, cur = conn()
 for i in range(500):
     d = f"[2027-01-{(i%27)+1:02d} 14:00+04,2027-01-{(i%27)+1:02d} 18:00+04)"
     cur.execute("SELECT record_occupancy(%s,%s,%s::tstzrange,%s,%s,%s)",
@@ -108,10 +125,12 @@ def burst(n, out):
         except Exception:
             c.rollback()
     c.close(); out.append(ok)
-t0 = time.time(); outs = []
+t0 = time.perf_counter(); outs = []
 ths = [threading.Thread(target=burst, args=(50, outs)) for _ in range(8)]
 [t.start() for t in ths]; [t.join() for t in ths]
-dt = time.time() - t0; done = sum(outs)
+dt = time.perf_counter() - t0; done = sum(outs)
+if dt <= 0:
+    raise RuntimeError(f"TC-12.5 harness clock invalid: elapsed time must be positive, got {dt}")
 check("TC-12.5", "concurrent commit throughput", done > 0, f"{done} commits in {dt:.2f}s = {done/dt:.0f}/s")
 
 # R6 / TC-5.6 — unbalanced journal rejected AT COMMIT by deferred trigger
