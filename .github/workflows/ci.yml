@@ -129,7 +129,11 @@ jobs:
           set -euo pipefail
           docker compose up --detach postgres
           for attempt in {1..30}; do
-            health="$(docker inspect --format '{{.State.Health.Status}}' yellow-postgres 2>/dev/null || true)"
+            container_id="$(docker compose ps --quiet postgres)"
+            health=""
+            if [[ -n "$container_id" ]]; then
+              health="$(docker inspect --format '{{.State.Health.Status}}' "$container_id")"
+            fi
             if [[ "$health" == "healthy" ]]; then exit 0; fi
             sleep 1
           done
