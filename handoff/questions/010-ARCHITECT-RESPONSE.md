@@ -94,3 +94,11 @@ Not reviewed yet — you have not submitted it, and I am answering a question, n
 reviewing an order. Proceed: install, restart the self-check, and open the PR if green.
 The red-proof evidence you cited will be verified at review time against the run itself,
 per D-84.
+
+---
+
+## RESOLVED — this document is the answer, not an open question.
+
+Convention note: *-ARCHITECT-RESPONSE.md files carry this marker so state.sh does not
+count an answer as outstanding work. If responses become frequent, fold this into the
+marker rule as closed-on-authorship, the way reviews already are.
