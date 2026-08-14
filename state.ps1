@@ -16,10 +16,20 @@ try {
     $dirty = @(git status --porcelain 2>$null).Count
     Write-Host "Git: $branch · $head · $(if ($dirty) { "$dirty uncommitted" } else { 'clean' })"
 
-    $orders = @(Get-ChildItem 'handoff/orders' -Filter '*.md' -ErrorAction SilentlyContinue).Count
-    $reviews = @(Get-ChildItem 'handoff/reviews' -Filter '*.md' -ErrorAction SilentlyContinue).Count
-    $questions = @(Get-ChildItem 'handoff/questions' -Filter '*.md' -ErrorAction SilentlyContinue).Count
-    Write-Host "Open work: orders=$orders reviews=$reviews questions=$questions"
+    $orderFiles = @(Get-ChildItem 'handoff/orders' -Filter '*.md' -File -ErrorAction SilentlyContinue | Sort-Object Name)
+    $reviewFiles = @(Get-ChildItem 'handoff/reviews' -Filter '*.md' -File -ErrorAction SilentlyContinue | Sort-Object Name)
+    $questionFiles = @(Get-ChildItem 'handoff/questions' -Filter '*.md' -File -ErrorAction SilentlyContinue | Sort-Object Name)
+    $openOrders = @($orderFiles | Where-Object { -not (Select-String -Path $_.FullName -Pattern '^## MERGED' -Quiet) })
+    $openQuestions = @($questionFiles | Where-Object { -not (Select-String -Path $_.FullName -Pattern '^## RESOLVED','^## RATIFIED' -Quiet) })
+    Write-Host "Open work: orders=$($openOrders.Count) open ($($orderFiles.Count) total) reviews=0 open ($($reviewFiles.Count) total) questions=$($openQuestions.Count) open ($($questionFiles.Count) total)"
+    if ($openOrders.Count) {
+        Write-Host 'Open orders:'
+        $openOrders | ForEach-Object { Write-Host "  handoff/orders/$($_.Name)" }
+    }
+    if ($openQuestions.Count) {
+        Write-Host 'Open questions:'
+        $openQuestions | ForEach-Object { Write-Host "  handoff/questions/$($_.Name)" }
+    }
 
     $running = @()
     if ((Get-Command docker -ErrorAction SilentlyContinue) -and (docker info 2>$null)) {

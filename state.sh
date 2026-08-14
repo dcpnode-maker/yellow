@@ -17,10 +17,38 @@ dirty=$("${GIT[@]}" status --porcelain 2>/dev/null | tr -d '\r' | wc -l | tr -d 
 if [ "$dirty" -eq 0 ]; then dirty_text=clean; else dirty_text="$dirty uncommitted"; fi
 printf 'Git: %s · %s · %s\n' "$branch" "$head" "$dirty_text"
 
-orders=$(find handoff/orders -maxdepth 1 -name '*.md' -type f 2>/dev/null | wc -l | tr -d ' ')
-reviews=$(find handoff/reviews -maxdepth 1 -name '*.md' -type f 2>/dev/null | wc -l | tr -d ' ')
-questions=$(find handoff/questions -maxdepth 1 -name '*.md' -type f 2>/dev/null | wc -l | tr -d ' ')
-printf 'Open work: orders=%s reviews=%s questions=%s\n' "$orders" "$reviews" "$questions"
+orders_total=0
+orders_open=()
+for file in handoff/orders/*.md; do
+  [ -f "$file" ] || continue
+  ((orders_total += 1))
+  if ! grep -q '^## MERGED' "$file"; then orders_open+=("$file"); fi
+done
+
+reviews_total=0
+for file in handoff/reviews/*.md; do
+  [ -f "$file" ] || continue
+  ((reviews_total += 1))
+done
+
+questions_total=0
+questions_open=()
+for file in handoff/questions/*.md; do
+  [ -f "$file" ] || continue
+  ((questions_total += 1))
+  if ! grep -Eq '^## (RESOLVED|RATIFIED)' "$file"; then questions_open+=("$file"); fi
+done
+
+printf 'Open work: orders=%s open (%s total) reviews=0 open (%s total) questions=%s open (%s total)\n' \
+  "${#orders_open[@]}" "$orders_total" "$reviews_total" "${#questions_open[@]}" "$questions_total"
+if [ "${#orders_open[@]}" -gt 0 ]; then
+  printf 'Open orders:\n'
+  printf '  %s\n' "${orders_open[@]}"
+fi
+if [ "${#questions_open[@]}" -gt 0 ]; then
+  printf 'Open questions:\n'
+  printf '  %s\n' "${questions_open[@]}"
+fi
 
 running=''
 if command -v docker >/dev/null 2>&1 && docker info >/dev/null 2>&1; then
