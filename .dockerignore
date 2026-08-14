@@ -9,7 +9,6 @@ coverage
 dist
 docs
 handoff
-migrations
 prototype
 tests
 *.log

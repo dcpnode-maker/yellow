@@ -4,9 +4,11 @@
   "type": "module",
   "scripts": {
     "boundaries": "bun scripts/check-import-boundaries.ts",
+    "db:migrate": "bun scripts/migrate.ts",
     "dev": "bun --watch src/server.ts",
     "license-check": "bun scripts/license-check.ts",
     "start": "bun src/server.ts",
+    "test:db:migrate": "YELLOW_REQUIRE_MIGRATION_DB=1 bun test tests/migrate.integration.test.ts",
     "typecheck": "tsc --noEmit",
     "test": "bun test"
   },

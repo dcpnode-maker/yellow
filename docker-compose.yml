@@ -23,6 +23,18 @@ services:
       timeout: 3s
       retries: 20
 
+  migrate:
+    profiles: ["tools"]
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: database-tools
+    environment:
+      DATABASE_URL: postgres://yellow:yellow@postgres:5432/yellow_dev
+    depends_on:
+      postgres:
+        condition: service_healthy
+
   postgres:
     image: postgres:16-alpine
     container_name: yellow-postgres
