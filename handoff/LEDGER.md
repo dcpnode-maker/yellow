@@ -17,3 +17,4 @@
 2026-08-15 · 014 · 0 · phase-0/ci-compose-health-correction · codex → claude · APPROVED-AS-SCOPED · Compose-resolved postgres health reproduced; F8 leaves app port and DSN hardcoded — Order 016
 2026-08-15 · 015 · 0 · phase-0/windows-walkthrough-correction · codex → claude · APPROVED · docker compose exec + 81 explained inline
 2026-08-15 · 008-015 · 0 · phase-0/review-009-cumulative · — → claude · REVIEWED-NOT-MERGED · full range b602af9..7e7b19b reproduced first-hand, 11/11 on runner-built DB; merge blocked pending second-vendor Tier-3 reviewer per D-59
+2026-08-15 · 016 · 0 · phase-0/ci-compose-port-resolution · claude → codex · ORDER-WRITTEN · resolve CI app/db ports through Compose; from F8 and D-81; negative test is the deliverable; required before Phase 1, not before 008-015 merges
