@@ -198,14 +198,45 @@ check("TC-8.2", "100 concurrent invoice numbers gapless", gapless, f"issued={len
 # R9 / TC-13.1 (fixed) — RLS on TABLES via app_role
 c, cur = conn(role_app=True, tenant=T_A); cur.execute("SELECT count(*) FROM space"); a = cur.fetchone()[0]; c.close()
 c, cur = conn(role_app=True, tenant=T_B); cur.execute("SELECT count(*) FROM space"); b = cur.fetchone()[0]; c.close()
-check("TC-13.1", "table RLS: A sees 16, B sees 0", a == 16 and b == 0, f"A={a} B={b}")
+c, cur = conn()
+cur.execute("""
+    SELECT count(*)::int,
+           count(*) FILTER (WHERE cls.relrowsecurity)::int,
+           count(*) FILTER (WHERE EXISTS (
+               SELECT 1 FROM pg_policy pol
+                WHERE pol.polrelid = cls.oid AND pol.polname = 'tenant_isolation'
+           ))::int
+      FROM information_schema.columns col
+      JOIN information_schema.tables tbl
+        ON tbl.table_schema = col.table_schema AND tbl.table_name = col.table_name
+       AND tbl.table_type = 'BASE TABLE'
+      JOIN pg_namespace ns ON ns.nspname = col.table_schema
+      JOIN pg_class cls ON cls.relnamespace = ns.oid AND cls.relname = col.table_name
+     WHERE col.table_schema = 'public' AND col.column_name = 'tenant_id'
+""")
+tenant_tables, rls_tables, policy_tables = cur.fetchone(); c.close()
+table_catalog_ok = tenant_tables > 0 and rls_tables == tenant_tables and policy_tables == tenant_tables
+check("TC-13.1", "table RLS: A sees 16, B sees 0", a == 16 and b == 0 and table_catalog_ok,
+      f"A={a} B={b} tenant_tables={tenant_tables} rls={rls_tables} policies={policy_tables}")
 
 # R10 / TC-13.4 (NEW) — RLS through VIEWS (the proven leak class)
 c, cur = conn(role_app=True, tenant=T_A)
-cur.execute("SELECT count(DISTINCT tenant_id) , count(*) FROM current_rate_price"); ta, ra = cur.fetchone(); c.close()
+cur.execute("SELECT tenant_id::text FROM current_rate_price"); rows_a = [row[0] for row in cur.fetchall()]; c.close()
 c, cur = conn(role_app=True, tenant=T_B)
-cur.execute("SELECT count(DISTINCT tenant_id), count(*) FROM current_rate_price"); tb, rb = cur.fetchone(); c.close()
-check("TC-13.4", "view RLS: each tenant sees only itself", ta == 1 and tb == 1, f"A:{ra}rows B:{rb}rows")
+cur.execute("SELECT tenant_id::text FROM current_rate_price"); rows_b = [row[0] for row in cur.fetchall()]; c.close()
+c, cur = conn()
+cur.execute("""
+    SELECT count(*)::int,
+           count(*) FILTER (WHERE COALESCE(cls.reloptions, ARRAY[]::text[]) @> ARRAY['security_invoker=true'])::int
+      FROM pg_class cls
+      JOIN pg_namespace ns ON ns.oid = cls.relnamespace
+     WHERE ns.nspname = 'public' AND cls.relkind = 'v'
+""")
+view_count, invoker_views = cur.fetchone(); c.close()
+view_behavior_ok = bool(rows_a) and bool(rows_b) and all(t == T_A for t in rows_a) and all(t == T_B for t in rows_b)
+view_catalog_ok = view_count > 0 and invoker_views == view_count
+check("TC-13.4", "view RLS: each tenant sees only itself", view_behavior_ok and view_catalog_ok,
+      f"A:{len(rows_a)}rows B:{len(rows_b)}rows views={view_count} security_invoker={invoker_views}")
 
 print("\n" + "=" * 60)
 p = sum(1 for r in results if r[2]); f = len(results) - p

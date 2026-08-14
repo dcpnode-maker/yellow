@@ -49,7 +49,7 @@ services:
         condition: service_completed_successfully
 
   postgres:
-    image: postgres:16-alpine
+    image: postgres:16.15-alpine@sha256:ab5c955e9e57ae9879d4411ab49a912be9d162455676f7bf56e951b11ac73785
     container_name: yellow-postgres
     environment:
       POSTGRES_USER: yellow

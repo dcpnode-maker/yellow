@@ -8,9 +8,12 @@
     "db:seed": "bun scripts/seed.ts",
     "dev": "bun --watch src/server.ts",
     "license-check": "bun scripts/license-check.ts",
+    "schema:check": "bun scripts/schema-drift.ts --check",
+    "schema:print": "bun scripts/schema-drift.ts --print",
     "start": "bun src/server.ts",
     "test:db:migrate": "YELLOW_REQUIRE_MIGRATION_DB=1 bun test tests/migrate.integration.test.ts",
     "test:db:seed": "YELLOW_REQUIRE_SEED_DB=1 bun test tests/seed.integration.test.ts",
+    "test:database": "YELLOW_REQUIRE_DATABASE_ACCEPTANCE=1 bun test tests/database-acceptance.integration.test.ts",
     "typecheck": "tsc --noEmit",
     "test": "bun test"
   },

@@ -94,3 +94,107 @@ jobs:
       - name: Remove smoke-test container
         if: always()
         run: docker rm --force yellow-ci-health || true
+
+  database:
+    needs: quality
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    env:
+      COMPOSE_PROJECT_NAME: yellow-ci-database
+      ADMIN_URL: postgres://yellow:yellow@127.0.0.1:5442/postgres
+      DEPLOYMENT_URL: postgres://yellow:yellow@127.0.0.1:5442/yellow_ci_deployment
+      INVARIANT_URL: postgres://yellow:yellow@127.0.0.1:5442/yellow_ci_invariant
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2
+        with:
+          bun-version: 1.3.14
+
+      - name: Set up Python
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6.3.0
+        with:
+          python-version: "3.12"
+
+      - name: Install frozen dependencies
+        run: |
+          bun install --frozen-lockfile
+          python -m pip install --require-hashes --only-binary=:all: -r requirements-ci.txt
+
+      - name: Start pinned PostgreSQL
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker compose up --detach postgres
+          for attempt in {1..30}; do
+            health="$(docker inspect --format '{{.State.Health.Status}}' yellow-postgres 2>/dev/null || true)"
+            if [[ "$health" == "healthy" ]]; then exit 0; fi
+            sleep 1
+          done
+          exit 1
+
+      - name: Run migration integration suite
+        env:
+          YELLOW_MIGRATION_TEST_ADMIN_URL: ${{ env.ADMIN_URL }}
+        run: bun run test:db:migrate
+
+      - name: Run seed integration suite
+        env:
+          YELLOW_SEED_TEST_ADMIN_URL: ${{ env.ADMIN_URL }}
+        run: bun run test:db:seed
+
+      - name: Create fresh acceptance databases
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker compose exec -T postgres psql --username yellow --dbname postgres --set ON_ERROR_STOP=1 <<'SQL'
+          DROP DATABASE IF EXISTS yellow_ci_deployment WITH (FORCE);
+          CREATE DATABASE yellow_ci_deployment;
+          DROP DATABASE IF EXISTS yellow_ci_invariant WITH (FORCE);
+          CREATE DATABASE yellow_ci_invariant;
+          SQL
+
+      - name: Prove deployment migration and seed
+        env:
+          DATABASE_URL: ${{ env.DEPLOYMENT_URL }}
+          YELLOW_DATABASE_ACCEPTANCE_URL: ${{ env.DEPLOYMENT_URL }}
+          YELLOW_SCHEMA_DATABASE: yellow_ci_deployment
+        run: |
+          bun run db:migrate
+          bun run db:seed
+          bun run test:database
+          bun run schema:check
+
+      - name: Start application and verify exact health
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker compose up --detach app
+          for attempt in {1..30}; do
+            status="$(curl --silent --show-error --output /tmp/yellow-health-body --write-out '%{http_code}' http://127.0.0.1:3000/health || true)"
+            body="$(cat /tmp/yellow-health-body 2>/dev/null || true)"
+            if [[ "$status" == "200" && "$body" == '{"status":"ok"}' ]]; then exit 0; fi
+            sleep 1
+          done
+          exit 1
+
+      - name: Prove invariant database through canonical referee
+        shell: bash
+        env:
+          DATABASE_URL: ${{ env.INVARIANT_URL }}
+          YELLOW_DSN: dbname=yellow_ci_invariant user=yellow password=yellow host=127.0.0.1 port=5442
+        run: |
+          set -euo pipefail
+          bun run db:migrate
+          docker compose exec -T postgres psql --username yellow --dbname yellow_ci_invariant --set ON_ERROR_STOP=1 < tests/seed_fixture.sql
+          python tests/run_invariants.py yellow_ci_invariant
+
+      - name: Print database logs on failure
+        if: failure()
+        run: docker compose logs --no-color postgres app
+
+      - name: Remove database stack and volumes
+        if: always()
+        run: docker compose down --volumes --remove-orphans
