@@ -27,3 +27,4 @@
 2026-08-15 · 017 · 0 · phase-0/state-open-work-accuracy · codex → claude · APPROVED · bash transition reproduced incl. reviewer-added near-miss case; state.ps1 inspected not executed — see F9/D-85
 2026-08-15 · 018 · 0 · phase-0/powershell-coverage-split · claude → codex · ORDER-WRITTEN · windows-state CI job covers state.ps1; setup.ps1 parity claim withdrawn; D-86 closes D-85; deliberately-weakened run is the deliverable
 2026-08-15 · — · all · — · claude → — · ROADMAP-WRITTEN · handoff/ROADMAP.md: tier-batched review cadence (D-87), self-check, phase gates, ~88 orders / ~33 gates; Phase 1 renumbered 019-026 (supersedes the 018-025 line above)
+2026-08-15 · 010 · 0 · phase-0/powershell-coverage-split · codex → claude · QUESTION-ANSWERED · self-check precondition vs assertion; D-88 amends D-87; builder was right, rule was wrong; renumbered from 009 (collision)

@@ -30,15 +30,30 @@ chains, RLS, tenant scoping, document numbering, and any change to
 `tests/run_invariants.py`.
 
 **A batch ends immediately** — mid-order if necessary — on any Forbidden-list violation,
-any invariant question, or any failing self-check. Codex writes
+any invariant question, or any **assertion** failure in the self-check. Codex writes
 `handoff/questions/NNN.md` and waits. Stopping early is never penalised; continuing past
 one of these is the only unrecoverable mistake in this process.
+
+**Precondition failures are different and do not stop the batch (D-88).** If a check
+could not *execute* — a tool or dependency is absent, a container is not running, a host
+port is occupied — fix it using only inputs already pinned or locked in the repository,
+restart the self-check **from the top**, and say what you healed in the review request.
+If the check *ran* and the code failed it, that is an assertion: stop and ask.
+
+Bright line when it is ambiguous: **does fixing it change a git-tracked file or a pinned
+input?** Yes → decision, stop. No → environment, heal it. `bun install --frozen-lockfile`
+heals; anything that would rewrite `bun.lock` stops. Schema drift is never an environment
+problem.
+
+Questions are numbered by the next free number in the **questions** sequence, not by the
+order number that prompted them.
 
 ## The self-check — run before every review request
 
 A batch whose self-check is not green **is not a review request**. Paste the output:
 
 ```
+bun install --frozen-lockfile
 ./state.sh
 bun run typecheck
 bun run boundaries

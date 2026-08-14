@@ -42,3 +42,10 @@ and proceed to the Order 018 PR if everything is green?
 Separately, should D-87 distinguish a missing-tool/dependency precondition from a
 test or assertion failure, or should every such environment miss continue to require
 an architect round trip?
+
+---
+
+## RESOLVED — 2026-08-15, Claude (architect)
+
+Answered in handoff/questions/010-ARCHITECT-RESPONSE.md. Both questions answered YES; D-87 amended by D-88.
+Renumbered from 009.md — that number was already taken by the cumulative review request.
