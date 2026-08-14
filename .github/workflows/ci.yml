@@ -73,15 +73,31 @@ jobs:
         run: >-
           docker run --detach
           --name yellow-ci-health
-          --publish 3000:3000
+          --publish 127.0.0.1::3000
           yellow-ci-app:${{ github.sha }}
 
       - name: Verify exact health response
         shell: bash
         run: |
+          set -euo pipefail
+          if ! app_address="$(docker port yellow-ci-health 3000/tcp 2>/dev/null)"; then
+            echo "yellow-ci-health has no published application address" >&2
+            exit 1
+          fi
+          if [[ -z "$app_address" ]]; then
+            echo "yellow-ci-health has no published application address" >&2
+            exit 1
+          fi
+
           for attempt in {1..30}; do
-            status="$(curl --silent --show-error --output /tmp/yellow-health-body --write-out '%{http_code}' http://127.0.0.1:3000/health || true)"
-            body="$(cat /tmp/yellow-health-body 2>/dev/null || true)"
+            status=""
+            if ! status="$(curl --silent --show-error --output /tmp/yellow-health-body --write-out '%{http_code}' "http://${app_address}/health")"; then
+              status=""
+            fi
+            body=""
+            if [[ -f /tmp/yellow-health-body ]]; then
+              body="$(cat /tmp/yellow-health-body)"
+            fi
             if [[ "$status" == "200" && "$body" == '{"status":"ok"}' ]]; then
               exit 0
             fi
@@ -101,9 +117,6 @@ jobs:
     timeout-minutes: 20
     env:
       COMPOSE_PROJECT_NAME: yellow-ci-database
-      ADMIN_URL: postgres://yellow:yellow@127.0.0.1:5442/postgres
-      DEPLOYMENT_URL: postgres://yellow:yellow@127.0.0.1:5442/yellow_ci_deployment
-      INVARIANT_URL: postgres://yellow:yellow@127.0.0.1:5442/yellow_ci_invariant
     steps:
       - name: Check out repository
         uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
@@ -139,14 +152,31 @@ jobs:
           done
           exit 1
 
+      - name: Resolve PostgreSQL address through Compose
+        shell: bash
+        run: |
+          set -euo pipefail
+          if ! postgres_address="$(docker compose port postgres 5432 2>/dev/null)"; then
+            echo "postgres service has no published database address" >&2
+            exit 1
+          fi
+          if [[ -z "$postgres_address" ]]; then
+            echo "postgres service has no published database address" >&2
+            exit 1
+          fi
+
+          {
+            echo "ADMIN_URL=postgres://yellow:yellow@${postgres_address}/postgres"
+            echo "DEPLOYMENT_URL=postgres://yellow:yellow@${postgres_address}/yellow_ci_deployment"
+            echo "INVARIANT_URL=postgres://yellow:yellow@${postgres_address}/yellow_ci_invariant"
+            echo "YELLOW_MIGRATION_TEST_ADMIN_URL=postgres://yellow:yellow@${postgres_address}/postgres"
+            echo "YELLOW_SEED_TEST_ADMIN_URL=postgres://yellow:yellow@${postgres_address}/postgres"
+          } >> "$GITHUB_ENV"
+
       - name: Run migration integration suite
-        env:
-          YELLOW_MIGRATION_TEST_ADMIN_URL: ${{ env.ADMIN_URL }}
         run: bun run test:db:migrate
 
       - name: Run seed integration suite
-        env:
-          YELLOW_SEED_TEST_ADMIN_URL: ${{ env.ADMIN_URL }}
         run: bun run test:db:seed
 
       - name: Create fresh acceptance databases
@@ -161,11 +191,10 @@ jobs:
           SQL
 
       - name: Prove deployment migration and seed
-        env:
-          DATABASE_URL: ${{ env.DEPLOYMENT_URL }}
-          YELLOW_DATABASE_ACCEPTANCE_URL: ${{ env.DEPLOYMENT_URL }}
-          YELLOW_SCHEMA_DATABASE: yellow_ci_deployment
         run: |
+          export DATABASE_URL="$DEPLOYMENT_URL"
+          export YELLOW_DATABASE_ACCEPTANCE_URL="$DEPLOYMENT_URL"
+          export YELLOW_SCHEMA_DATABASE=yellow_ci_deployment
           bun run db:migrate
           bun run db:seed
           bun run test:database
@@ -176,9 +205,24 @@ jobs:
         run: |
           set -euo pipefail
           docker compose up --detach app
+          if ! app_address="$(docker compose port app 3000 2>/dev/null)"; then
+            echo "app service has no published application address" >&2
+            exit 1
+          fi
+          if [[ -z "$app_address" ]]; then
+            echo "app service has no published application address" >&2
+            exit 1
+          fi
+
           for attempt in {1..30}; do
-            status="$(curl --silent --show-error --output /tmp/yellow-health-body --write-out '%{http_code}' http://127.0.0.1:3000/health || true)"
-            body="$(cat /tmp/yellow-health-body 2>/dev/null || true)"
+            status=""
+            if ! status="$(curl --silent --show-error --output /tmp/yellow-health-body --write-out '%{http_code}' "http://${app_address}/health")"; then
+              status=""
+            fi
+            body=""
+            if [[ -f /tmp/yellow-health-body ]]; then
+              body="$(cat /tmp/yellow-health-body)"
+            fi
             if [[ "$status" == "200" && "$body" == '{"status":"ok"}' ]]; then exit 0; fi
             sleep 1
           done
@@ -186,11 +230,10 @@ jobs:
 
       - name: Prove invariant database through canonical referee
         shell: bash
-        env:
-          DATABASE_URL: ${{ env.INVARIANT_URL }}
-          YELLOW_DSN: dbname=yellow_ci_invariant user=yellow password=yellow host=127.0.0.1 port=5442
         run: |
           set -euo pipefail
+          export DATABASE_URL="$INVARIANT_URL"
+          export YELLOW_DSN="$INVARIANT_URL"
           bun run db:migrate
           docker compose exec -T postgres psql --username yellow --dbname yellow_ci_invariant --set ON_ERROR_STOP=1 < tests/seed_fixture.sql
           python tests/run_invariants.py yellow_ci_invariant
