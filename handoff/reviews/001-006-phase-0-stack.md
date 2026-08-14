@@ -2,7 +2,7 @@
 
 **Orders:** 001, 002, 003, 004, 005, 006 · **Branches:** 8, stacked linearly (see *Evidence limits*)
 **Reviewed by:** Claude (architect role) — pass 1 `claude-haiku-4-5-20251001`, pass 2 `claude-opus-5` · **Date:** 2026-08-14
-**Verdict:** **CHANGES-REQUIRED** (6 defects, all Tier 1, all with executable proof)
+**Verdict:** **CHANGES-REQUIRED** (7 defects, all Tier 1, all with executable proof)
 
 ---
 
@@ -56,10 +56,17 @@ was read from `.git/refs/heads/`; the parent chain was reconstructed from
   (`687ccc8`) hold the pre-cherry-pick versions of Orders 001–002. Nothing was lost.
   These three `backup/*` branches are local-only and are not on origin.
 
-### Now verified (pass 3 — Appendix A executed by the founder)
+### Now verified (pass 3 — Appendix A executed, then re-executed by the reviewer)
+
+**Pass 3a:** the founder ran Appendix A by hand and pasted the output.
+**Pass 3b:** a shell became available to the reviewer (Desktop Commander → WSL2) and
+**every command below was re-run first-hand.** CLAUDE.md forbids approving on a pasted
+result; nothing here rests on one. The two runs agree, and they are demonstrably
+separate runs — throughput differed (154/s vs 165/s) and the journal UUIDs differed,
+which is what distinguishes a fresh execution from a replayed transcript.
 
 Run in WSL2 Ubuntu-24.04 against `~/projects/yellow` (Linux filesystem, per D-49) on
-`cd985da`, with Docker 29.7.2, Bun 1.3.14, Python 3.12.3, git 2.43.0.
+`cd985da` / `8d9eb91`, with Docker 29.7.2, Bun 1.3.14, Python 3.12.3, git 2.43.0.
 
 - **THE BATTERY PASSED.** `./setup.sh --db-only` → **`RESULT: 11 passed, 0 failed of 11`**,
   against a freshly loaded schema (80 tables) and fixture (2 tenants, 16 spaces incl. a
@@ -90,6 +97,25 @@ Run in WSL2 Ubuntu-24.04 against `~/projects/yellow` (Linux filesystem, per D-49
 - **Scope discipline is diff-verified, not asserted.** Every PR touches only files
   inside its order's Scope list. No PR touches `migrations/`. Pass 1 claimed this from
   the working tree; it now holds against the diffs.
+- **F1–F4 confirmed in the diff text, not just the file list.** `src/app.ts` really does
+  attach the header map via `.onBeforeHandle` (F1). `package.json` really does carry
+  `"typecheck": "bun x tsc --noEmit"` with `@types/bun` as the only devDependency and no
+  `typescript` entry (F2). `tsconfig.json` really does ship
+  `include: ["src/**/*.ts", "tests/health.test.ts"]` — enumerated by name (F3). The BOM
+  scan over every tracked file returns exactly one hit, `docker-compose.yml`, so F4's
+  scope is one file and no wider.
+- **F5 confirmed at source, not only by sandbox execution.** In
+  `scripts/license-check.ts`, `parseOr` returns `false` unless *every* `OR` operand
+  parses as allowed — literal AND semantics, so `MIT OR GPL-3.0` is rejected.
+  `extractLicenseExpressions` accepts the `{type}` object form for entries inside the
+  `licenses` array but requires a bare string for the singular `license` field, so the
+  legacy `{"license":{"type":"MIT"}}` yields `[]` and is then mislabelled *missing
+  licence*. `tests/license-check.test.ts:23` asserts the wrong behaviour
+  (`MIT OR GPL-3.0-only` → `toBeFalse()`) and must change with the fix.
+  `docs/licence-exceptions.md` does not exist, confirming F5(a).
+- **`./state.sh` runs clean.** Branch `phase-0/architect-gate-brief`, head `8d9eb91`,
+  working tree clean, `yellow-postgres` and `yellow-valkey` both up, `yellow_test`
+  reports 80 tables, DECISIONS.log at 64 entries. Ground truth, not assumed.
 - **Working tree clean**, `main` at `b602af9` tracking `origin/main`, all eight branches
   fetched and in sync.
 
@@ -102,10 +128,11 @@ Run in WSL2 Ubuntu-24.04 against `~/projects/yellow` (Linux filesystem, per D-49
 Every row pass 1 and pass 2 left open has been closed by execution. This review is now
 evidence-based end to end.
 
-**Consequence:** the battery no longer blocks. **F1–F6 still do** — a green battery
+**Consequence:** the battery no longer blocks. **F1–F7 still do** — a green battery
 proves the database invariants hold; it says nothing about a 404 without security
-headers, an unpinned compiler, or a test whose precondition can fail silently. Verdict
-stands at CHANGES-REQUIRED, now six findings.
+headers, an unpinned compiler, a test whose precondition can fail silently, or a
+decision log that was never in the repository. Verdict stands at CHANGES-REQUIRED, now
+seven findings.
 
 ---
 
@@ -120,6 +147,7 @@ stands at CHANGES-REQUIRED, now six findings.
 | 005 | Security header / CSP gate | CHANGES-REQUIRED | **F1** |
 | 006 | Dependency audit gate | APPROVED (as scoped) | — |
 | — | `codex/windows-support` (no order) | CHANGES-REQUIRED | **F6** |
+| — | repository-wide (predates all branches) | CHANGES-REQUIRED | **F7** |
 
 ---
 
@@ -431,6 +459,61 @@ nobody noticed is that this particular change happened to stay green. Add it:
 **`tests/run_invariants.py` is architect-only, same tier as `migrations/`.** Any change
 to it requires an order, and the order must state what the change does to each affected
 TC's guarantees.
+
+---
+
+### F7 — `DECISIONS.log` was never tracked by git (repository-wide) · **most serious after F1**
+
+**Found in pass 3b**, while trying to commit an appended decision:
+
+```
+$ git add DECISIONS.log
+The following paths are ignored by one of your .gitignore files:
+DECISIONS.log
+$ git ls-files DECISIONS.log          # (no output — not tracked)
+$ git check-ignore -v DECISIONS.log
+.gitignore:5:*.log      DECISIONS.log
+```
+
+The `*.log` glob on line 5 of `.gitignore` — intended for log output — silently
+swallowed the project's canonical decision record. It has **never been under version
+control, on any branch, since the repository was created.** 69 entries, including every
+D-63…D-68 decision this review depends on.
+
+**The contradiction that proves it was accidental.** `.gitattributes:13` reads
+`DECISIONS.log merge=union` — a merge strategy configured for a file git was not
+tracking. D-55 explains why that line exists: *"so parallel appends don't conflict."*
+Two agents were given a concurrency strategy for a file neither could commit.
+
+**What was actually broken.**
+
+1. **It existed only in whichever working tree last wrote it.** It survived this session
+   by luck — it was hand-copied from the Windows tree into `~/projects/yellow`. Earlier
+   in this same session the reviewer recommended abandoning the Windows folder. Had that
+   happened before the copy, entries would simply have been gone, with no diff, no
+   history, and nothing to restore from.
+2. **The two-agent handoff model did not work for its most important file.** D-53
+   declares DECISIONS.log *"explicitly SHARED between both agents — check it before
+   deciding, not after."* `handoff/README.md` promises *"these files ARE the shared
+   memory, and they're versioned with the code."* Codex, cloning the repo, would have
+   received orders, reviews, questions and the ledger — and no decisions at all.
+3. **`./state.sh` reported unreproducible ground truth.** It prints "full history:
+   DECISIONS.log (64 entries)" read from the working tree. No fresh clone could produce
+   that number, and `state.sh` is the script every session is told to trust first.
+
+**Why this is more than hygiene.** Every other protection in this project assumes the
+decision record is durable and shared: the Tier-3 cross-vendor rule, "check it before
+deciding, not after", the union-merge strategy, the escalation rule that says a cheap
+session must record an invariant decision before switching back. All of them route
+through a file that lived on one laptop.
+
+**Fixed in this commit** — `!DECISIONS.log` negation added to `.gitignore` with a comment
+explaining why, and the file committed. Recorded as **D-70**.
+
+**Worth a follow-up check by whoever picks this up:** confirm nothing else meant to be
+durable is caught by a broad glob. `*.log` was the one that bit; `dist/` and `coverage/`
+are correct, but the class of error — an intent expressed in `.gitattributes` that
+`.gitignore` quietly overrides — is worth one deliberate pass.
 
 ---
 
