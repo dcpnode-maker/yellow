@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Yellow — UI Mockups v1</title>
+<style>
+:root{
+  --bg:#0e1116; --surface:#161b22; --raised:#1d242e; --line:#2a323d;
+  --text:#e8edf2; --muted:#8b97a5; --dim:#5c6672;
+  --arrive:#2dd4bf; --inhouse:#5b9dff; --depart:#f0b429; --dirty:#f47174;
+  --clean:#3ecf8e; --ooo:#6b7280; --hold:#a78bfa;
+  --mono:ui-monospace,'SF Mono','Cascadia Mono','DejaVu Sans Mono',Menlo,monospace;
+}
+*{margin:0;box-sizing:border-box}
+html{scroll-behavior:smooth}
+@media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
+body{background:var(--bg);color:var(--text);font:15px/1.55 system-ui,-apple-system,'Segoe UI',Roboto,'Helvetica Neue',sans-serif;padding-bottom:80px}
+kbd{font:11px/1 var(--mono);background:var(--raised);border:1px solid var(--line);border-bottom-width:2px;border-radius:4px;padding:2px 5px;color:var(--muted);white-space:nowrap}
+.money,.roomno,.dt{font-family:var(--mono)}
+a{color:var(--inhouse)}
+h1{font-weight:700;font-size:clamp(26px,5vw,40px);letter-spacing:-.02em}
+.intro{max-width:920px;margin:0 auto;padding:48px 20px 8px}
+.intro p{color:var(--muted);max-width:640px;margin-top:12px}
+.legend{display:flex;gap:14px;flex-wrap:wrap;margin-top:18px;font-size:12px;color:var(--muted)}
+.legend span{display:flex;align-items:center;gap:6px}
+.dotc{width:10px;height:10px;border-radius:3px;display:inline-block}
+.jump{position:sticky;top:0;z-index:50;background:rgba(14,17,22,.92);backdrop-filter:blur(6px);border-bottom:1px solid var(--line);display:flex;gap:4px;overflow-x:auto;padding:10px 16px;font-size:13px}
+.jump a{color:var(--muted);text-decoration:none;padding:6px 12px;border-radius:6px;white-space:nowrap}
+.jump a:hover,.jump a:focus-visible{color:var(--text);background:var(--raised);outline:none}
+.shot{max-width:1080px;margin:56px auto;padding:0 16px}
+.shot h2{font-size:13px;text-transform:uppercase;letter-spacing:.14em;color:var(--muted);margin-bottom:6px}
+.shot .cap{color:var(--muted);font-size:13.5px;margin-bottom:14px;max-width:680px}
+.frame{background:var(--surface);border:1px solid var(--line);border-radius:12px;overflow:hidden;box-shadow:0 18px 60px rgba(0,0,0,.45)}
+.titlebar{display:flex;align-items:center;gap:10px;background:#10151b;border-bottom:1px solid var(--line);padding:9px 14px;font-size:12.5px;color:var(--muted)}
+.dots{display:flex;gap:5px}.dots i{width:9px;height:9px;border-radius:50%;background:#2c333d;display:block}
+.url{font-family:var(--mono);font-size:11.5px;background:var(--raised);border:1px solid var(--line);border-radius:6px;padding:3px 10px;color:var(--dim);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.appbar{display:flex;align-items:center;gap:12px;padding:10px 16px;border-bottom:1px solid var(--line);font-size:13px;flex-wrap:wrap}
+.brand{font-weight:700;letter-spacing:-.01em}
+.brand b{color:var(--arrive)}
+.chip{border:1px solid var(--line);background:var(--raised);border-radius:99px;padding:3px 10px;font-size:12px;color:var(--muted)}
+.chip.open{color:var(--clean);border-color:rgba(62,207,142,.35)}
+.spacer{flex:1}
+.cmdk{display:flex;align-items:center;gap:8px;color:var(--dim);font-size:12.5px}
+.layout{display:flex;min-height:430px}
+.rail{width:150px;border-right:1px solid var(--line);padding:12px 8px;display:flex;flex-direction:column;gap:2px;font-size:13px;flex-shrink:0}
+.rail a{display:flex;justify-content:space-between;align-items:center;color:var(--muted);text-decoration:none;padding:7px 10px;border-radius:7px}
+.rail a.on{background:var(--raised);color:var(--text)}
+.rail a:hover{color:var(--text)}
+.main{flex:1;padding:16px;min-width:0;overflow-x:auto}
+.tabs{display:flex;gap:4px;margin-bottom:12px;font-size:13px}
+.tabs span{padding:6px 12px;border-radius:7px;color:var(--muted)}
+.tabs .on{background:var(--raised);color:var(--text)}
+table{width:100%;border-collapse:collapse;font-size:13.5px;min-width:560px}
+th{font-size:11px;text-transform:uppercase;letter-spacing:.1em;color:var(--dim);text-align:left;padding:6px 10px;border-bottom:1px solid var(--line);font-weight:600}
+td{padding:9px 10px;border-bottom:1px solid #1a212b;vertical-align:middle}
+tr.sel{background:#1a222d;outline:1px solid #26405e}
+.tag{font-size:11px;border-radius:5px;padding:2px 8px;font-weight:600}
+.t-ar{background:rgba(45,212,191,.14);color:var(--arrive)}
+.t-in{background:rgba(91,157,255,.14);color:var(--inhouse)}
+.t-vip{background:rgba(240,180,41,.14);color:var(--depart)}
+.t-miss{background:rgba(244,113,116,.15);color:var(--dirty)}
+.btn{border:1px solid var(--line);background:var(--raised);color:var(--text);border-radius:7px;padding:7px 13px;font-size:13px;font-weight:600;display:inline-flex;gap:8px;align-items:center}
+.btn.pri{background:var(--arrive);border-color:var(--arrive);color:#04231f}
+.btn.dis{opacity:.45}
+.btn.warn{color:var(--depart);border-color:rgba(240,180,41,.4)}
+.peek{position:relative;background:var(--raised);border:1px solid #33404f;border-radius:10px;padding:12px 14px;width:280px;box-shadow:0 14px 40px rgba(0,0,0,.5);font-size:13px;margin:10px 0 4px 40px}
+.peek:before{content:"";position:absolute;top:-6px;left:26px;width:10px;height:10px;background:var(--raised);border-left:1px solid #33404f;border-top:1px solid #33404f;transform:rotate(45deg)}
+.peek h4{font-size:14px;margin-bottom:4px}
+.peek .row{display:flex;justify-content:space-between;color:var(--muted);padding:2px 0}
+.peek .row b{color:var(--text);font-weight:600}
+.hint{font-size:11.5px;color:var(--dim);margin-top:8px;display:flex;gap:10px;flex-wrap:wrap}
+/* tape chart */
+.grid{display:grid;grid-template-columns:88px repeat(7,minmax(72px,1fr));font-size:12px;min-width:640px}
+.grid .h{padding:7px 6px;color:var(--dim);border-bottom:1px solid var(--line);font-family:var(--mono);font-size:11px;text-transform:uppercase}
+.grid .rm{padding:8px 8px;border-bottom:1px solid #1a212b;color:var(--muted);display:flex;gap:7px;align-items:center;font-family:var(--mono)}
+.cell{border-bottom:1px solid #1a212b;border-left:1px solid #161c24;position:relative;min-height:34px}
+.bar{position:absolute;inset:5px 3px;border-radius:6px;font-size:11px;display:flex;align-items:center;padding:0 8px;color:#08131c;font-weight:600;overflow:hidden;white-space:nowrap}
+.b-in{background:var(--inhouse)}.b-ar{background:var(--arrive)}.b-hold{background:var(--hold)}
+.b-ooo{background:repeating-linear-gradient(45deg,#2a323d,#2a323d 6px,#222933 6px,#222933 12px);color:var(--muted)}
+.bedlbl{color:var(--dim);font-size:10.5px;padding-left:22px}
+.dot{width:8px;height:8px;border-radius:3px;display:inline-block}
+.d-cl{background:var(--clean)}.d-di{background:var(--dirty)}.d-in{background:var(--inhouse)}
+/* drawer */
+.scrim{position:relative}
+.drawer{position:absolute;top:0;right:0;bottom:0;width:min(360px,86%);background:var(--raised);border-left:1px solid #33404f;box-shadow:-24px 0 60px rgba(0,0,0,.5);padding:16px;font-size:13.5px;display:flex;flex-direction:column;gap:12px}
+.drawer h3{font-size:16px}
+.kv{display:grid;grid-template-columns:110px 1fr;gap:5px 10px;color:var(--muted)}
+.kv b{color:var(--text);font-weight:600}
+.acts{display:flex;flex-wrap:wrap;gap:8px;margin-top:auto}
+.reason{font-size:11.5px;color:var(--dim)}
+.audit{font-size:11.5px;color:var(--dim);border-top:1px dashed var(--line);padding-top:8px}
+.audit b{color:var(--muted)}
+/* folio */
+.ftabs{display:flex;gap:4px;font-size:12.5px;margin-bottom:10px}
+.ftabs span{border:1px solid var(--line);border-radius:7px 7px 0 0;padding:6px 12px;color:var(--muted);border-bottom:none}
+.ftabs .on{background:var(--raised);color:var(--text)}
+td.neg{color:var(--clean)}
+.balance{display:flex;justify-content:flex-end;gap:24px;padding:12px 10px;font-size:14px}
+.balance b{font-family:var(--mono)}
+.lock{color:var(--dim);font-size:11px}
+/* readiness */
+.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;margin-bottom:16px}
+.tile{background:var(--raised);border:1px solid var(--line);border-radius:10px;padding:14px}
+.tile h4{font-size:12px;color:var(--muted);font-weight:600;margin-bottom:6px}
+.tile .v{font-size:22px;font-weight:700;font-family:var(--mono)}
+.ok{border-color:rgba(62,207,142,.35)}.ok .v{color:var(--clean)}
+.bad{border-color:rgba(244,113,116,.4)}.bad .v{color:var(--dirty)}
+.tile .sub{font-size:11.5px;color:var(--dim);margin-top:4px}
+.sealrow{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+footer{max-width:920px;margin:64px auto 0;padding:0 20px;color:var(--dim);font-size:12.5px}
+@media(max-width:640px){.rail{display:none}}
+</style>
+</head>
+<body>
+
+<div class="intro">
+  <h1>This is what the front desk sees.</h1>
+  <p>Five screens from UI-SPEC.md, rendered with real fixture data — Acme Downtown Dubai, 20 Sep 2026, the same rooms and rates the test suite runs against. Static mockups; Phase 10 makes them breathe.</p>
+  <div class="legend">
+    <span><i class="dotc" style="background:var(--arrive)"></i>arrival</span>
+    <span><i class="dotc" style="background:var(--inhouse)"></i>in-house</span>
+    <span><i class="dotc" style="background:var(--depart)"></i>departure / attention</span>
+    <span><i class="dotc" style="background:var(--dirty)"></i>dirty / blocked</span>
+    <span><i class="dotc" style="background:var(--clean)"></i>clean / ok</span>
+    <span><i class="dotc" style="background:var(--hold)"></i>hold</span>
+  </div>
+</div>
+
+<nav class="jump">
+  <a href="#s1">1 · Arrivals + Peek</a><a href="#s2">2 · Tape chart</a><a href="#s3">3 · Drawer</a><a href="#s4">4 · Folio workbench</a><a href="#s5">5 · Day-close</a>
+</nav>
+
+<!-- ============ 1 · ARRIVALS + PEEK ============ -->
+<section class="shot" id="s1">
+  <h2>Screen 1 — Arrivals board · PEEK tier</h2>
+  <p class="cap">Home screen. <kbd>j</kbd>/<kbd>k</kbd> moves the row cursor; resting on a row opens a read-only peek in 150&nbsp;ms. Statutory badge blocks check-in until identity fields are complete — Alloggiati-style rules, per property country.</p>
+  <div class="frame">
+    <div class="titlebar"><span class="dots"><i></i><i></i><i></i></span><span class="url">pms.acme.app/p/dxb-downtown/arrivals?date=2026-09-20</span></div>
+    <div class="appbar">
+      <span class="brand">acme<b>·</b>pms</span>
+      <span class="chip">Acme Downtown · DXB</span>
+      <span class="chip open">Day open · <span class="dt">Sat 20 Sep</span></span>
+      <span class="spacer"></span>
+      <span class="cmdk"><kbd>⌘K</kbd> command · <kbd>?</kbd> keys</span>
+    </div>
+    <div class="layout">
+      <nav class="rail">
+        <a class="on">Arrivals <kbd>g a</kbd></a><a>Departures <kbd>g d</kbd></a><a>In-house <kbd>g i</kbd></a>
+        <a>Grid <kbd>g g</kbd></a><a>Housekeeping <kbd>g h</kbd></a><a>Rates <kbd>g r</kbd></a><a>Day close <kbd>g c</kbd></a>
+      </nav>
+      <div class="main">
+        <div class="tabs"><span class="on">Today · 12</span><span>Tomorrow · 9</span><span>No-shows · 1</span></div>
+        <table>
+          <tr><th>Guest</th><th>Room</th><th>Nights</th><th>Rate</th><th>Balance</th><th>Flags</th></tr>
+          <tr><td>Fatima Al-Rashid</td><td class="roomno">201 · DLX</td><td>3</td><td class="money">AED 750.00</td><td class="money">0.00</td><td><span class="tag t-vip">VIP</span></td></tr>
+          <tr class="sel"><td>Rohan Sharma</td><td class="roomno">104 · STD</td><td>2</td><td class="money">AED 500.00</td><td class="money">500.00</td><td><span class="tag t-ar">deposit paid</span></td></tr>
+          <tr><td>Elena Petrova</td><td class="roomno">D101 · bed 3</td><td>4</td><td class="money">AED 90.00</td><td class="money">0.00</td><td></td></tr>
+          <tr><td>James Whitfield</td><td class="roomno">108 · STD</td><td>1</td><td class="money">AED 500.00</td><td class="money">500.00</td><td><span class="tag t-miss">ID missing</span></td></tr>
+        </table>
+        <div class="peek">
+          <h4>Rohan Sharma <span class="tag t-ar" style="float:right">due in</span></h4>
+          <div class="row"><span>Stay</span><b class="dt">20 → 22 Sep · 2 n</b></div>
+          <div class="row"><span>Rate plan</span><b>BAR · flex 24h</b></div>
+          <div class="row"><span>Folio</span><b class="money">AED 500.00 dep.</b></div>
+          <div class="row"><span>Notes</span><b>High floor pref.</b></div>
+          <div class="hint"><span><kbd>Enter</kbd> drawer</span><span><kbd>⇧Enter</kbd> workbench</span><span><kbd>c</kbd> check-in</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 2 · TAPE CHART ============ -->
+<section class="shot" id="s2">
+  <h2>Screen 2 — Grid (tape chart) · dorm expanded</h2>
+  <p class="cap">Spaces × days. Drag a bar to move a stay — the UI calls the same API as everyone else and a move is a new segment. Dorm <span class="roomno">D101</span> expands to its 6 bed positions; the violet hold spans <em>all</em> beds because a private-room sale claims the whole space — the claim-range design, visible.</p>
+  <div class="frame">
+    <div class="titlebar"><span class="dots"><i></i><i></i><i></i></span><span class="url">pms.acme.app/p/dxb-downtown/grid?date=2026-09-20</span></div>
+    <div class="main" style="padding:16px">
+      <div class="grid">
+        <div class="h">Space</div><div class="h">Sat 20</div><div class="h">Sun 21</div><div class="h">Mon 22</div><div class="h">Tue 23</div><div class="h">Wed 24</div><div class="h">Thu 25</div><div class="h">Fri 26</div>
+        <div class="rm"><span class="dot d-cl"></span>101</div>
+        <div class="cell" style="grid-column:2/5"><span class="bar b-in">Chen · 3n</span></div><div class="cell"></div><div class="cell"></div><div class="cell"></div>
+        <div class="rm"><span class="dot d-di"></span>104</div>
+        <div class="cell" style="grid-column:2/4"><span class="bar b-ar">Sharma · 2n</span></div><div class="cell"></div><div class="cell" style="grid-column:5/8"><span class="bar b-in">Okafor · 3n</span></div>
+        <div class="rm"><span class="dot d-cl"></span>108</div>
+        <div class="cell" style="grid-column:2/3"><span class="bar b-ar">Whitfield</span></div><div class="cell" style="grid-column:3/6"><span class="bar b-hold">HOLD · exp 18:42</span></div><div class="cell"></div><div class="cell"></div>
+        <div class="rm"><span class="dot d-in"></span>201</div>
+        <div class="cell" style="grid-column:2/6"><span class="bar b-in">Al-Rashid · VIP</span></div><div class="cell"></div><div class="cell"></div>
+        <div class="rm"><span class="dot d-cl"></span>205</div>
+        <div class="cell" style="grid-column:2/8"><span class="bar b-ooo">OOO · AC repair → 26 Sep</span></div>
+        <div class="rm" style="border-bottom:none">▾ D101</div><div class="cell" style="grid-column:2/8;border-bottom:none"></div>
+        <div class="rm bedlbl">bed 1</div><div class="cell" style="grid-column:2/6"><span class="bar b-in">Nakamura</span></div><div class="cell"></div><div class="cell"></div>
+        <div class="rm bedlbl">bed 2</div><div class="cell"></div><div class="cell" style="grid-column:3/7"><span class="bar b-ar">Costa</span></div><div class="cell"></div>
+        <div class="rm bedlbl">bed 3</div><div class="cell" style="grid-column:2/6"><span class="bar b-ar">Petrova · 4n</span></div><div class="cell"></div><div class="cell"></div>
+        <div class="rm bedlbl">beds 4–6</div><div class="cell" style="grid-column:2/5"></div><div class="cell" style="grid-column:5/8"><span class="bar b-hold">PRIVATE SALE · claims all beds</span></div>
+      </div>
+      <div class="hint" style="margin-top:10px"><span><kbd>←→</kbd> pan dates</span><span><kbd>Enter</kbd> open stay</span><span>drag = move (new segment)</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 3 · DRAWER ============ -->
+<section class="shot" id="s3">
+  <h2>Screen 3 — Reservation DRAWER over the board</h2>
+  <p class="cap">One entity, common edits; the board behind stays live. Action buttons render from the state machine — a disabled action always says why. <kbd>Esc</kbd> climbs one tier, never loses state.</p>
+  <div class="frame">
+    <div class="titlebar"><span class="dots"><i></i><i></i><i></i></span><span class="url">pms.acme.app/p/dxb-downtown/res/8f3a…c21e</span></div>
+    <div class="scrim">
+      <div class="layout" style="filter:brightness(.55)">
+        <nav class="rail"><a class="on">Arrivals <kbd>g a</kbd></a><a>Departures</a><a>Grid</a></nav>
+        <div class="main"><table>
+          <tr><th>Guest</th><th>Room</th><th>Rate</th></tr>
+          <tr><td>Fatima Al-Rashid</td><td class="roomno">201</td><td class="money">750.00</td></tr>
+          <tr class="sel"><td>Rohan Sharma</td><td class="roomno">104</td><td class="money">500.00</td></tr>
+          <tr><td>Elena Petrova</td><td class="roomno">D101·3</td><td class="money">90.00</td></tr>
+        </table></div>
+      </div>
+      <aside class="drawer">
+        <h3>Rohan Sharma <span class="tag t-ar" style="float:right">confirmed</span></h3>
+        <div class="kv">
+          <span>Stay</span><b class="dt">20 → 22 Sep 2026</b>
+          <span>Space</span><b class="roomno">104 · STD · dirty</b>
+          <span>Rate</span><b>BAR · <span class="money">AED 500.00</span>/n · flex 24h</b>
+          <span>Guests</span><b>1 adult · ID verified ✓</b>
+          <span>Deposit</span><b class="money">AED 500.00 held</b>
+        </div>
+        <div class="audit">Rate <b>520.00 → 500.00</b> · corp match · priya@acme · 14:02 · <u>field history</u></div>
+        <div class="acts">
+          <span class="btn pri">Check in <kbd style="border-color:#0b6e63;color:#04231f">c</kbd></span>
+          <span class="btn">Folio <kbd>o</kbd></span>
+          <span class="btn">Move <kbd>m</kbd></span>
+          <span class="btn dis">Cancel <kbd>x</kbd></span>
+        </div>
+        <div class="reason">Check-in enabled when housekeeping marks 104 clean — or override with supervisor approval. Cancel disabled: inside 24 h window (penalty flow instead).</div>
+        <div class="hint"><span><kbd>Esc</kbd> close</span><span><kbd>⇧Enter</kbd> full workbench</span></div>
+      </aside>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 4 · FOLIO WORKBENCH ============ -->
+<section class="shot" id="s4">
+  <h2>Screen 4 — Folio WORKBENCH · the three verbs</h2>
+  <p class="cap">Deep financial work gets the full screen. Ledger rows are immutable — the lock column means it. Three verbs, never conflated: <b>Undo</b> (pre-commit), <b>Correction</b> (non-financial), <b>Reversal</b> (guided contra-journal).</p>
+  <div class="frame">
+    <div class="titlebar"><span class="dots"><i></i><i></i><i></i></span><span class="url">pms.acme.app/p/dxb-downtown/folio/2043?tab=postings</span></div>
+    <div class="main" style="padding:16px">
+      <div class="ftabs"><span class="on">Guest folio · Sharma</span><span>Company window · Acme Corp</span><span>+ window</span></div>
+      <table>
+        <tr><th></th><th>Date</th><th>Code</th><th>Description</th><th style="text-align:right">Amount</th></tr>
+        <tr><td class="lock">🔒</td><td class="dt">20 Sep</td><td class="roomno">ROOM</td><td>Room charge · 104 · n1</td><td class="money" style="text-align:right">500.00</td></tr>
+        <tr><td class="lock">🔒</td><td class="dt">20 Sep</td><td class="roomno">VAT</td><td>VAT 5%</td><td class="money" style="text-align:right">25.00</td></tr>
+        <tr><td class="lock">🔒</td><td class="dt">20 Sep</td><td class="roomno">FNB</td><td>Rooftop dinner · chk 118</td><td class="money" style="text-align:right">210.00</td></tr>
+        <tr><td class="lock">🔒</td><td class="dt">21 Sep</td><td class="roomno">FNB</td><td><s style="color:var(--dim)">Minibar · posted in error</s></td><td class="money" style="text-align:right;color:var(--dim)">45.00</td></tr>
+        <tr><td class="lock">🔒</td><td class="dt">21 Sep</td><td class="roomno">FNB⤺</td><td>Reversal of chk 121 · “wrong room” · approved priya</td><td class="money neg" style="text-align:right">−45.00</td></tr>
+        <tr><td class="lock">🔒</td><td class="dt">20 Sep</td><td class="roomno">DEP</td><td>Deposit applied</td><td class="money neg" style="text-align:right">−500.00</td></tr>
+      </table>
+      <div class="balance"><span style="color:var(--muted)">Balance due</span><b class="money">AED 235.00</b></div>
+      <div class="acts" style="margin-top:4px">
+        <span class="btn pri">Settle <kbd style="border-color:#0b6e63;color:#04231f">s</kbd></span>
+        <span class="btn">Post charge <kbd>p</kbd></span>
+        <span class="btn">Transfer <kbd>t</kbd></span>
+        <span class="btn warn">Reversal… <kbd>r</kbd></span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 5 · DAY-CLOSE ============ -->
+<section class="shot" id="s5">
+  <h2>Screen 5 — Day-close readiness · continuous close</h2>
+  <p class="cap">No blocking night audit. The day rolled itself at 04:00; sealing is async and this dashboard is the checklist, live. Seal stays disabled until green — or carry the discrepancy forward with approval and seal anyway.</p>
+  <div class="frame">
+    <div class="titlebar"><span class="dots"><i></i><i></i><i></i></span><span class="url">pms.acme.app/p/dxb-downtown/close?date=2026-09-19</span></div>
+    <div class="main" style="padding:16px">
+      <div class="tabs"><span>Sealing: <b class="dt" style="color:var(--text)">Fri 19 Sep</b></span><span class="chip open">Current day open: Sat 20 Sep</span></div>
+      <div class="tiles">
+        <div class="tile ok"><h4>Cashier sessions</h4><div class="v">0 open</div><div class="sub">last closed 23:58 · balanced</div></div>
+        <div class="tile ok"><h4>Due in / due out</h4><div class="v">0</div><div class="sub">1 no-show processed → penalty posted</div></div>
+        <div class="tile bad"><h4>Discrepancies</h4><div class="v">1</div><div class="sub">104 skip — HK says vacant, system says occupied</div></div>
+        <div class="tile ok"><h4>Outbox lag</h4><div class="v">0.2 s</div><div class="sub">projection in sync</div></div>
+        <div class="tile ok"><h4>Interfaces</h4><div class="v">drained</div><div class="sub">OTA queue 0 · ARI cursor current</div></div>
+        <div class="tile ok"><h4>Trial balance</h4><div class="v">0.00</div><div class="sub">journals balanced at commit — always</div></div>
+      </div>
+      <div class="sealrow">
+        <span class="btn dis">Seal Fri 19 Sep <kbd>⇧S</kbd></span>
+        <span class="btn warn">Carry discrepancy forward… <kbd>f</kbd></span>
+        <span class="reason">Sealing blocked by 1 discrepancy. Carry-forward requires supervisor approval and is logged.</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  Mockups v1 · derived from UI-SPEC.md · data = tests/seed_fixture.sql (Acme Downtown, DXB) · dark console theme continues Architecture v3 · Phase 10 builds the real thing, keyboard-first, offline-capable, p99&nbsp;&lt;&nbsp;50&nbsp;ms.
+</footer>
+</body>
+</html>

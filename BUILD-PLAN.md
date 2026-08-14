@@ -1,0 +1,177 @@
+# BUILD-PLAN.md — phased delivery for Claude Code
+
+Rules of engagement: one phase at a time · a phase is DONE only when its DoD checks
+pass in CI · every session starts with the ritual below · no phase may modify a prior
+phase's public surface without a written note in `DECISIONS.log`.
+
+## Session ritual (every Claude Code session)
+
+1. Read `CLAUDE.md`, then this file's current phase section only.
+2. `git log --oneline -10` + read `DECISIONS.log` tail — know what changed.
+3. State the session goal in one sentence. If it spans phases, stop and re-scope.
+4. Work. Tests alongside code, not after.
+5. End: update `DECISIONS.log` if anything was decided; leave the tree green.
+
+## Phase 0 — Bootstrap (repo that proves the loop)
+
+Scaffold: Bun + Elysia + TypeScript strict; `src/contexts/<ctx>/index.ts` layout;
+Drizzle or raw-SQL migration runner (forward-only, numbered); docker-compose with
+PG 16 + Valkey + NATS; CI = typecheck + test + fresh-DB migrate + RLS smoke test;
+load `SCHEMA.sql` as migration 0001; seed script for one tenant + one property.
+**DoD**: `bun test` green in CI · fresh clone → `docker compose up` → migrate → seed →
+health endpoint 200 · RLS smoke test proves cross-tenant read = 0 rows **on tables AND
+through views** (views bypass RLS without security_invoker — proven leak class) ·
+schema-drift check (dump vs SCHEMA.sql) empty.
+**Free wins to wire in at this phase (all zero-dependency):** Bun-native everywhere —
+`Bun.sql` as the Postgres driver, `Bun.password` (argon2id built in, no bcrypt dep),
+Bun's built-in WebSocket/SSE for live front-desk updates, `Bun.S3Client` for R2 backup
+pushes · `pg_stat_statements` in postgres compose config from day one ·
+commit `.claude/` into the repo (CLAUDE.md, hooks: format+typecheck PostToolUse,
+postgres+github MCP config) so both founders share one Claude Code setup ·
+`license-check` CI gate (permissive-only allowlist, see DEPENDENCIES.md) + CSP test
+asserting zero third-party origins + Forgejo mirror remote as GitHub insurance ·
+Cloudflare Tunnel for the OCI boxes (no exposed ports, no firewall roulette).
+
+## Phase 1 — Kernel (tenancy, extension registry, outbox, fact_log)
+
+Tenant/org/app_user/role auth (JWT w/ tenant + scopes); `set_config` tx-local tenant
+context middleware; extension_type + extension CRUD with JSON-Schema validation
+(load EXTENSIONS.md schemas + launch instances as seed); outbox relay worker
+(poll 100–250 ms → NATS JetStream, at-least-once, `published_at` update); fact_log
+write helper; approval_request primitive; audit envelope on every mutation.
+**DoD**: register a new extension_type at runtime via API and store a validated
+instance · kill relay mid-batch, restart, no event lost or duplicated (dedupe on id) ·
+org ltree queries (property under brand under chain) correct.
+**Decision gate (DECISIONS.log) — defer NATS?** In a modular monolith every EVENTS.md
+consumer is in-process; they can read the outbox directly by `seq` with a per-consumer
+cursor row (the pattern §9 push_cursor already uses) instead of looping through an
+external broker. Default: start PG-outbox-bus behind one `EventBus` interface;
+introduce NATS JetStream when the first out-of-process consumer or second app node
+appears. Subjects in EVENTS.md map 1:1 either way, so the swap is a config change —
+and day-one compose drops another stateful service. Also consider `pg_cron` for the
+pure-SQL jobs (expire_holds, prune_outbox) so their timing can't die with an app worker.
+
+## Phase 2 — Inventory & Occupancy (the choke point goes live)
+
+Space/unit_type/sellable_unit CRUD honouring vertical_profile defaults; port the
+prototype: `record_occupancy`/`release_occupancy` as the ONLY write path (REVOKE
+verified by test); holds with TTL + `expire_holds` worker; offline lease pool;
+restrictions, OOO/OOS, overbooking_limit; availability_projection rebuilder consuming
+occupancy events; Valkey cache + invalidator.
+**DoD**: prototype tests T1–T5 re-pass as integration tests in TypeScript ·
+projection rebuilt from zero matches truth · availability:search p99 < 50 ms on
+seeded 500-space dataset · direct INSERT to space_occupancy fails 42501.
+**Decision gate (DECISIONS.log)**: run the p99 benchmark against BOTH Valkey and
+NATS JetStream KV as the projection cache. If NATS KV meets the 50 ms budget,
+drop the Valkey container (one less service); if not, Valkey stays. Cache access
+goes behind one interface either way, so the loser is a config change.
+
+## Phase 3 — Rates & Policies
+
+rate_plan (+derivation), rate_price insert-only bitemporal writes + `current_rate_price`
+reads; packages/elements with allowance math; promotions; negotiated_rate resolution
+order (negotiated > promo > derived > base); policy engine evaluating EXTENSIONS §3
+shapes at quote time.
+**DoD**: derived plan follows parent change · "price as of last Tuesday as known then"
+bitemporal query returns the historically correct number · policy penalties compute
+correctly across timezones (property-local cutoffs).
+
+## Phase 4 — Reservations (search → hold → commit honest end-to-end)
+
+availability:search/hold/commit per CONTRACTS §2 with Idempotency-Key store;
+reservation lifecycle per STATE-MACHINES (create/modify diff/cancel/reinstate/
+move = new segment); reservation_guest incl. share_pct; alerts, waitlist w/ offer
+window; every transition emits its event.
+**DoD**: two racing commits on last unit → exactly one 201, one 409
+conflict/occupancy · modify dates re-arbitrates through the choke · state-machine
+table in code equals STATE-MACHINES.md (generated test).
+
+## Phase 5 — Financials (the ledger)
+
+account/folio(window)/tx_code(usali_line) ; postCharge/transfer/adjust(reversal)/
+settle; journal + posting_line with deferred balance trigger; business_day +
+seal_business_day + assert_day_open; cashier_session; payment state machine w/
+token-only instruments; deposit schedules via automation; trust role behaviour;
+folio statement + `folio_balance`.
+**DoD**: unbalanced journal rejected AT COMMIT · posting to sealed day rejected ·
+1,000-posting concurrency run: trial balance = 0 drift · adjustment creates reversal
+journal, original untouched · trust account negative-guard requires approval.
+
+## Phase 6 — Stay ops & Housekeeping
+
+check_in (statutory field gate) / check_out (settlement) flows; travel_detail capture
++ pickup automation (ETA → transfer task); vehicle register + plate search + parking
+slot assignment (parking spaces go through the normal occupancy choke point); unit_condition
+lifecycle; task_sheets generation per housekeeping_cadence; discrepancy (skip/sleep);
+queue_entry; message primitive + send_message action.
+**DoD**: checkout with open balance blocks with actionable error · HK task sheet
+matches occupancy + cadence config · discrepancy report correct on seeded divergence.
+
+## Phase 7 — Tax engine + India IRP
+
+tax_assignment evaluation (percent/fixed/slab, compound, line-vs-document rounding)
+from EXTENSIONS §2; India GST slab per room-night; document issue path: series →
+gapless number → hash chain → document; IRP reporting adapter (sandbox), IRN + QR
+stored on document; fiscal_submission log.
+**DoD**: golden-file tax tests for IN slabs (999 / 1,001 / 7,500 / 7,501 boundaries) ·
+KSA/AE flat VAT · document numbers gapless under 100 concurrent issues · IRP sandbox
+round-trip stores IRN.
+
+## Phase 8 — Statutory registration + ZATCA
+
+Statutory scheduler consuming check-in events; adapters: it-alloggiati (168-char),
+pt-siba, in-form-c, hr-evisitor behind StatutoryAdapter port; ZATCA Phase 2:
+UBL 2.1 + XAdES signing, PIH chain, TLV QR, sandbox clearance flow;
+statutory_submission + receipts; failure alerting via Uptime-Kuma webhook.
+**DoD**: Alloggiati record byte-exact vs fixture · ZATCA sandbox clears a chained
+pair (PIH verified) · missing identity field blocks check-in for IT property only.
+
+## Phase 9 — Distribution (direct OTA first)
+
+channel + channel_map; inbound_message idempotent consume (booking.com + expedia
+sandbox adapters behind one port); reservation delta → ARI push_cursor loop;
+rate/availability push on relevant events; error queue + replay tool.
+**DoD**: sandbox reservation lands as PMS reservation with correct folio · ARI push
+converges after burst of 500 rate changes (cursor, no thundering herd) · duplicate
+inbound message is a no-op.
+
+## Phase 10 — PWA (seven surfaces, one codebase)
+
+Front desk workbench (peek/drawer/workbench tiers, keyboard-first, deep links);
+reports screen (v1 set incl. Security/Vehicles, server-rendered PDF); property setup
+workbench with bulk room create (range+prefix+zero-pad OR pasted list); property
+switcher preserving screen+date;
+kiosk mode; HK mobile view; owner portal read surface; command palette; offline
+front-desk with pre-leased hold pool + sync; auth surfaces per Grants.
+**DoD**: check-in fully by keyboard · offline: create walk-in on leased hold, sync
+resolves · Lighthouse PWA pass · owner sees only owner-scoped data (RLS + Grants test).
+**Free wins at this phase:** **ALTCHA** (MIT, self-hosted, Argon2id proof-of-work) on
+the public booking engine — kills card-testing bots, a real hospitality plague, with
+no third-party call and no GDPR exposure · Web Push API
+for staff notifications (HK task assigned, arrival alerts) — free, PWA-native,
+works on installed iOS PWAs, replaces any paid push service.
+
+## Phase 11 — Groups & Blocks
+
+reservation_group kinds linked/block/share end-to-end; block_status_def deducts
+config; allotment pickup/release/wash; rooming list bulk import; group billing
+routing via automation.
+**DoD**: pickup decrements allotment not house inventory until deduct status ·
+wash releases at cutoff · rooming list of 200 commits in one idempotent batch.
+
+## Phase 12 — UAE ASP + AR + migration tooling
+
+FiscalDocumentProvider `provider_routed` implementation against chosen `ae-asp:<vendor>`
+sandbox; AR module (ar_control accounts, ar_allocation, statements, aging);
+migration importer (CSV mappings for parties/reservations/folios balances) +
+dry-run report; go-live checklist generator.
+**DoD**: PINT AE doc round-trips ASP sandbox · aging report ties to GL ·
+dry-run import of 1k-reservation fixture reconciles to the rupee/fils.
+
+## Parked (post-v1, triggers in Architecture v3 §13)
+
+Marina/campground/coworking profiles · OR-Tools matching sidecar · ClickHouse ·
+Peppol · payroll/inventory-procurement ERP edges · native apps (Tauri wrap exists) ·
+multi-currency folio settlement (schema is ready: single-currency journals + kind
+`fx` for gain/loss pairs; v1 settles in property currency, acquirer converts —
+trigger: first tenant contractually needing cross-currency folios).

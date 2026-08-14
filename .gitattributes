@@ -1,0 +1,9 @@
+# Force LF endings — Windows editors otherwise write CRLF and bash fails
+# with "bad interpreter: /bin/bash^M". This is not optional on a mixed team.
+* text=auto eol=lf
+*.sh text eol=lf
+*.sql text eol=lf
+*.py text eol=lf
+*.md text eol=lf
+*.json text eol=lf
+*.yml text eol=lf

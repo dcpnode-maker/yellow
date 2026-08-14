@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Yellow — Package Manifest &amp; Cost Strategy</title>
+<style>
+:root{
+  --bg:#0e1116; --panel:#161b22; --raised:#1d242e; --line:#2a323d;
+  --text:#e8edf2; --muted:#8b97a5; --dim:#5c6672;
+  --good:#3ecf8e; --warn:#f0b429; --bad:#f47174; --cool:#5b9dff; --mint:#2dd4bf;
+  --mono:ui-monospace,'SF Mono','Cascadia Mono','DejaVu Sans Mono',Menlo,monospace;
+}
+*{margin:0;box-sizing:border-box}
+body{background:var(--bg);color:var(--text);
+  font:15.5px/1.6 system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;padding-bottom:90px}
+.wrap{max-width:960px;margin:0 auto;padding:0 20px}
+header{padding:60px 0 30px;border-bottom:1px solid var(--line)}
+.eyebrow{font-family:var(--mono);font-size:12px;letter-spacing:.16em;text-transform:uppercase;color:var(--mint)}
+h1{font-size:clamp(28px,5vw,42px);letter-spacing:-.025em;line-height:1.1;margin:12px 0}
+.sub{color:var(--muted);max-width:640px}
+.statbar{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:1px;background:var(--line);
+  border:1px solid var(--line);border-radius:10px;overflow:hidden;margin:28px 0 0}
+.statbar div{background:var(--panel);padding:14px 16px}
+.statbar .n{font-family:var(--mono);font-size:21px;font-weight:600}
+.statbar .l{font-size:11.5px;color:var(--dim);text-transform:uppercase;letter-spacing:.08em;margin-top:3px}
+h2{font-size:24px;letter-spacing:-.015em;margin:52px 0 6px;padding-top:14px}
+h2 .num{font-family:var(--mono);font-size:13px;color:var(--mint);display:block;margin-bottom:6px;letter-spacing:.1em}
+h3{font-size:16.5px;margin:30px 0 8px;color:var(--text)}
+p{margin:10px 0;color:#cbd5e0}
+p.lead{color:var(--muted)}
+table{width:100%;border-collapse:collapse;margin:14px 0;font-size:14px}
+th{text-align:left;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--dim);
+  padding:8px 10px;border-bottom:1px solid var(--line)}
+td{padding:9px 10px;border-bottom:1px solid #1a212b;vertical-align:top;color:#cbd5e0}
+td.f{font-family:var(--mono);font-size:12.5px;color:var(--text);white-space:nowrap}
+tr:hover td{background:#141a22}
+.grp td{background:#11161d;color:var(--mint);font-family:var(--mono);font-size:11.5px;
+  letter-spacing:.1em;text-transform:uppercase;padding:7px 10px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:18px 20px;margin:16px 0}
+.card.good{border-left:3px solid var(--good)}
+.card.warn{border-left:3px solid var(--warn)}
+.card.bad{border-left:3px solid var(--bad)}
+.card h4{font-size:14.5px;margin-bottom:6px}
+.money{font-family:var(--mono);white-space:nowrap}
+.big{font-family:var(--mono);font-size:19px;font-weight:600}
+.g{color:var(--good)}.w{color:var(--warn)}.b{color:var(--bad)}.c{color:var(--cool)}
+ul{margin:10px 0 10px 20px;color:#cbd5e0}li{margin:5px 0}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+@media(max-width:720px){.two{grid-template-columns:1fr}}
+code{font-family:var(--mono);font-size:12.5px;background:var(--raised);padding:1px 5px;border-radius:4px;color:#d6e0ea}
+.rule{height:1px;background:var(--line);margin:44px 0}
+footer{color:var(--dim);font-size:12.5px;border-top:1px solid var(--line);margin-top:56px;padding-top:20px}
+.tri{display:flex;gap:10px;align-items:flex-start;padding:10px 0;border-bottom:1px solid #1a212b}
+.tri .amt{font-family:var(--mono);color:var(--warn);white-space:nowrap;min-width:112px;font-size:13px}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <div class="eyebrow">Build package v1.5 · 14 Aug 2026</div>
+  <h1>What we built, and why it costs almost nothing to run.</h1>
+  <p class="sub">Twenty-three files that turn a hospitality ERP from an idea into an executable specification — plus the cost doctrine that keeps the build under ₹30k/month and the running system under ₹4k.</p>
+  <div class="statbar">
+    <div><div class="n">23</div><div class="l">files</div></div>
+    <div><div class="n">80</div><div class="l">tables, validated</div></div>
+    <div><div class="n">11/11</div><div class="l">invariants passing</div></div>
+    <div><div class="n g">₹0–4k</div><div class="l">run cost / month</div></div>
+    <div><div class="n c">13</div><div class="l">build phases</div></div>
+  </div>
+</header>
+
+<h2><span class="num">PART ONE</span>The package</h2>
+<p class="lead">Five groups. Every file exists because something would break, drift, or get re-litigated without it.</p>
+
+<table>
+<tr><th>File</th><th>What it does</th></tr>
+
+<tr class="grp"><td colspan="2">Governance — what stops drift across 100+ sessions</td></tr>
+<tr><td class="f">CLAUDE.md</td><td>The constitution Claude Code reads every session: Ten Invariants, module boundaries, branded types, the never-do list — and the model policy (Fable for schema/ledger/fiscal decisions, Opus for implementation, Sonnet for scaffolding).</td></tr>
+<tr><td class="f">DECISIONS.log</td><td>43 locked decisions <em>with the alternatives rejected and why</em>. Ships seeded, appended forever. This is what stops the same question costing tokens twice.</td></tr>
+<tr><td class="f">BUILD-PLAN.md</td><td>13 phases, each with a testable definition of done, plus decision gates (defer NATS? Valkey vs NATS-KV?) that get settled by measurement, not opinion.</td></tr>
+<tr><td class="f">README.md</td><td>Package map, 10-minute setup, and an honest statement of the remaining 30%.</td></tr>
+
+<tr class="grp"><td colspan="2">Specification — the system, described precisely enough to derive</td></tr>
+<tr><td class="f">SCHEMA.sql</td><td>The ERD, executable. 1,082 lines, 80 tables, 13 bounded contexts, RLS on every tenant table, choke-point functions, hardening. Loads clean into a fresh PostgreSQL 16.</td></tr>
+<tr><td class="f">CONTRACTS.md</td><td>API conventions, the availability contract (search → hold → commit), module surfaces, provider ports for payments and fiscal.</td></tr>
+<tr><td class="f">STATE-MACHINES.md</td><td>Every status column's legal transitions, guards, and emitted events. If a transition isn't here, code may not perform it.</td></tr>
+<tr><td class="f">EVENTS.md</td><td>Event envelope, subject scheme, full v1 catalogue, consumer registry.</td></tr>
+<tr><td class="f">EXTENSIONS.md</td><td>JSON Schemas for everything configurable — four launch verticals, tax jurisdictions (incl. India GST slabs), policies, statutory adapters, fiscal providers, automation actions. New country = data, not code.</td></tr>
+<tr><td class="f">SECURITY.md</td><td>Threat model for a system holding passports and payment tokens: auth, two-layer authorization, PII handling, incident basics.</td></tr>
+<tr><td class="f">DEPENDENCIES.md</td><td>Vendor risk register — Class A eliminate / B replaceable / C irreducible — with named open-source swaps and CI licence gates.</td></tr>
+
+<tr class="grp"><td colspan="2">Design — the surface that displaces the incumbent</td></tr>
+<tr><td class="f">UI-SPEC.md</td><td>Three-tier surface model (peek / drawer / workbench) replacing modal stacks, 12 screens, keyboard grammar, three undo verbs, offline front desk, performance budgets.</td></tr>
+<tr><td class="f">docs-mockups-ui-v1.html</td><td>Five screens rendered from real fixture data: arrivals + peek, tape chart with dorm beds, reservation drawer, folio workbench, day-close readiness.</td></tr>
+
+<tr class="grp"><td colspan="2">Proof — the part that has already paid for itself</td></tr>
+<tr><td class="f">tests/run_invariants.py</td><td>Executable battery. Races the choke point, breaks the ledger on purpose, hammers invoice numbering, attacks tenant isolation through tables <em>and</em> views. Must stay green from Phase 2 on.</td></tr>
+<tr><td class="f">tests/PMS_QA_Test_Suite.md</td><td>56 test cases across the full guest journey, mapped to build phases, with validation SQL per case.</td></tr>
+<tr><td class="f">tests/seed_fixture.sql</td><td>Two tenants, 16 spaces incl. a 6-bed dorm, rates, accounts, business days, document series — the data every test runs against.</td></tr>
+<tr><td class="f">tests/RUN-RESULTS.md</td><td>The evidence record: 11/11 pass, with the three defects that only execution found.</td></tr>
+<tr><td class="f">tests/occupancy-stress.test.ts</td><td>TypeScript port of the stress test for the Bun suite in Phase 2.</td></tr>
+<tr><td class="f">prototype/*</td><td>The original Python stress test and results — the run that found the double-sell.</td></tr>
+
+<tr class="grp"><td colspan="2">Skills — context compression, loaded only when relevant</td></tr>
+<tr><td class="f">yellow-entity-patterns</td><td>The decision ladder: config → extension type → automation → party role → account → hot column → (only then) new table. Stops schema sprawl.</td></tr>
+<tr><td class="f">yellow-postgres-patterns</td><td>Claim-range occupancy, RLS under PgBouncer, views bypass RLS, insert-only rules, outbox mechanics, index rules.</td></tr>
+<tr><td class="f">yellow-compliance-rules</td><td>Fiscal chains, ZATCA/IRP/UAE-ASP modes, statutory registration, trust accounting, GDPR erasure, day close.</td></tr>
+</table>
+
+<div class="rule"></div>
+
+<h2><span class="num">PART TWO</span>Three cost ledgers</h2>
+<p class="lead">Cost shows up in three places. Most teams optimise the smallest one.</p>
+
+<div class="two">
+  <div class="card good">
+    <h4>1 · Run cost — <span class="big g">₹0–4,000</span>/month</h4>
+    <p>Oracle Cloud Always Free across two founder tenancies (primary + replica), encrypted backups off-provider, Caddy, Valkey, self-hosted monitoring. Only PostgreSQL is stateful; everything else is derived and rebuildable.</p>
+    <p style="color:var(--muted);font-size:13.5px">Projected at 500 properties: <span class="money">$0.28–2.00</span> per property/month against competitor pricing of <span class="money">$50–300</span>. That gap is the moat.</p>
+  </div>
+  <div class="card warn">
+    <h4>2 · Build cost — <span class="big w">₹21–28k</span>/month</h4>
+    <p>Subscriptions, not credits. Max 20x for the primary builder, a smaller plan for the second founder, and a tiny credit float as an overflow valve only.</p>
+    <p style="color:var(--muted);font-size:13.5px">The same token volume through prepaid API credits would run <span class="money">₹15L+</span>. Subscription pricing is the single largest cost decision in the project.</p>
+  </div>
+</div>
+
+<div class="card bad">
+  <h4>3 · Avoided cost — the ledger nobody writes down</h4>
+  <p>Design defects get exponentially more expensive with time. Four were caught before a line of application code existed:</p>
+  <div class="tri"><span class="amt">months → hours</span><span><b>Double-sell under load.</b> The occupancy constraint we'd settled on paper allowed a private room to be sold over live bed sales. Found by a 50-thread stress test. After launch this corrupts reservations, revenue, and trust simultaneously.</span></div>
+  <div class="tri"><span class="amt">breach → 1 line</span><span><b>Cross-tenant leak through views.</b> PostgreSQL views bypass row-level security by default; one hotel could read a competitor's rates. Missed by my review <em>and</em> a second model's. Found by a two-tenant fixture.</span></div>
+  <div class="tri"><span class="amt">ledger migration</span><span><b>Folio ownership.</b> Folios belong to accounts, not reservations — caught in research round one. Wrong, it's a financial-history migration under live data.</span></div>
+  <div class="tri"><span class="amt">days each</span><span><b>Fixture and test defects.</b> Truncated JSON schema, a non-existent column, a wrong CHECK value — the database rejected its own author twice.</span></div>
+  <p style="margin-top:12px">Nine research rounds and one afternoon of stress testing converted an expensive class of surprise into a cheap one. That is what the package bought.</p>
+</div>
+
+<div class="rule"></div>
+
+<h2><span class="num">PART THREE</span>The mechanisms that keep it cheap</h2>
+
+<h3>Model routing — the biggest lever on build cost</h3>
+<p>Fable 5 costs several times more per finished task than Opus 5. It earns that on ambiguous problems; nine rounds of research exist precisely to remove ambiguity from the rest.</p>
+<table>
+<tr><th>Model</th><th>Where it runs</th></tr>
+<tr><td class="f">Fable 5</td><td>Phase kickoff and end-of-phase gates · anything touching schema, occupancy claims, ledger, fiscal chains, RLS · concurrency debugging · decisions logged</td></tr>
+<tr><td class="f">Opus 5</td><td>Default working model — feature implementation, adapters, refactors, API handlers</td></tr>
+<tr><td class="f">Sonnet 5</td><td>Scaffolding, tests from specs, docs, seed data, first-pass log triage</td></tr>
+</table>
+<p>The escalation rule matters more than the split: if a cheap session hits an invariant question, it <em>stops</em>, states the question, switches to Fable, decides, logs it, and switches back. No cheap session ever quietly decides an expensive thing.</p>
+
+<h3>Spend triggers — nothing is bought before it's needed</h3>
+<p>Every dropped service has a named condition that turns it back on, so cost tracks revenue rather than anxiety:</p>
+<ul>
+<li><span class="money">₹4k/mo</span> Hetzner — once properties are paying</li>
+<li>Managed PostgreSQL — if ops exceeds budget two months running</li>
+<li>Fiscal provider — at jurisdiction #3 (UAE already forces one legally)</li>
+<li>Channel manager — when the OTA long tail matters more than the fee</li>
+<li>ClickHouse — when DuckDB queries take seconds</li>
+<li>Failover + SSO/SAML — at the first enterprise SLA</li>
+</ul>
+
+<h3>Dependency discipline — cost that arrives as a surprise later</h3>
+<p>MinIO was open source (AGPLv3) the entire time and still stripped its community console, stopped shipping binaries, and archived the repo in early 2026. Licence text was never the protection. Ours is: permissive licences for anything embedded, governance that isn't a single company, and standard protocols so a vendor is a config line — S3, SQL, OCI images, WireGuard, VAPID. Class C dependencies (a physical host, OTA marketplaces, payment rails, government endpoints) are accepted honestly rather than chased.</p>
+
+<h3>Architecture choices that are also cost choices</h3>
+<ul>
+<li><b>One precious datastore.</b> PostgreSQL does queueing (outbox), constraints (occupancy), search (FTS), and time travel (fact log) — services we'd otherwise run, patch, and pay for.</li>
+<li><b>Modular monolith.</b> Thirteen contexts, one deployable. No inter-service network, no distributed transactions, no orchestration bill.</li>
+<li><b>Data over code.</b> Verticals, tax regimes, policies, and statutory rules are extension rows. A new country is usually a row, not a release.</li>
+<li><b>One PWA, seven surfaces.</b> Front desk, kiosk, housekeeping mobile, owner portal — one codebase, no app stores, no native duplication.</li>
+</ul>
+
+<div class="rule"></div>
+
+<h2><span class="num">PART FOUR</span>How we know it's right</h2>
+<p class="lead">Not because it was reviewed. Because it was run.</p>
+<table>
+<tr><th>Claim</th><th>Evidence</th></tr>
+<tr><td>Schema is coherent and loadable</td><td class="f">80 tables · fresh PG16 · 0 errors</td></tr>
+<tr><td>No double-booking under concurrency</td><td class="f">50 threads → 1 winner; 40 → exactly 6 beds</td></tr>
+<tr><td>Occupancy writes can't be bypassed</td><td class="f">direct INSERT → SQLSTATE 42501</td></tr>
+<tr><td>Ledger cannot drift</td><td class="f">unbalanced journal rejected at COMMIT</td></tr>
+<tr><td>Sealed days are immutable</td><td class="f">posting to sealed day rejected</td></tr>
+<tr><td>Invoice numbering is gapless under load</td><td class="f">100 concurrent → 1..100, no duplicates</td></tr>
+<tr><td>Tenants cannot see each other</td><td class="f">tables and views · both directions</td></tr>
+<tr><td>Throughput is adequate</td><td class="f">1,409/s multi-space · 355/s single contended space</td></tr>
+</table>
+<p>Three independent reviews contributed — a second model's architecture critique, a third's QA suite, and my own audit. Each found something real. Each also <em>missed</em> the view leak, which only a two-tenant fixture caught. That's the whole methodology in one sentence: <b>confidence is not verification, and only execution settles it.</b></p>
+
+<div class="rule"></div>
+
+<h2><span class="num">PART FIVE</span>What still costs money</h2>
+<p class="lead">Honesty is cheaper than optimism.</p>
+<ul>
+<li><b>Certifications take calendar time, not money</b> — Booking.com and Expedia partner programmes, ZATCA sandbox, India IRP access, a UAE ASP vendor. Start them now; they gate Phases 8–9 and 12.</li>
+<li><b>The free tier has no SLA.</b> Oracle can reclaim idle instances. That's why backups live off-provider, why there are two tenancies, and why monthly restore drills are doctrine rather than aspiration.</li>
+<li><b>Self-hosting trades vendor cost for founder hours.</b> Correct at zero revenue; the trigger list is what stops it becoming permanent.</li>
+<li><b>The remaining 30% is code.</b> The package makes it derivable; Phases 0–12 derive it. No document shortens that work — it only stops it being done twice.</li>
+</ul>
+
+<footer>
+  Yellow · build package v1.5 · schema validated 14 Aug 2026 (80 tables, 0 errors) · invariant battery 11/11 ·
+  clean-room provenance: USALI 12th, HTNG/OpenTravel, public modern-PMS APIs · next action: <code>./bootstrap.sh</code>, then Phase 0.
+</footer>
+
+</div>
+</body>
+</html>

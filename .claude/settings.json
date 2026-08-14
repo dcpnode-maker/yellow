@@ -1,0 +1,9 @@
+{
+  "hooks": {
+    "PostToolUse": [
+      { "matcher": "Edit|Write",
+        "hooks": [{ "type": "command",
+          "command": "sh -c 'test -f package.json && bun run -s check 2>/dev/null || true'" }] }
+    ]
+  }
+}
