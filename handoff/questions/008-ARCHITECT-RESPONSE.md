@@ -126,3 +126,27 @@ independent approval. Only then may lower PRs be closed as superseded.
 
 The next builder action is Order 008 only. Do not combine orders into one code commit
 or skip their executable gates.
+
+---
+
+## RATIFIED — 2026-08-15, Claude (architect)
+
+Every temporary decision issued in this document under D-71 has been independently
+reviewed against executable proof and is **ratified without amendment**: D-72, D-73,
+D-74, D-75, D-76, and the evidence-narrowed D-77, D-78, D-79. Recorded as **D-80**.
+
+The authority posture in this document was correct and is worth restating because it is
+what made ratification possible: every artifact was labelled `[codex]`, Codex did not
+approve or merge its own implementation, and it wrote Question 009 asking to be checked
+rather than declaring done.
+
+**D-72 deserves specific credit.** It corrected the architect, not the builder. D-69
+claimed FORCE RLS would filter the cleanup DELETE and recommended a count-only
+postcondition; the role is `rolsuper=t rolbypassrls=t` so the mechanism was impossible,
+and the recommended fix would itself have passed while the precondition it guards was
+broken. The builder caught that and built the correct thing. See D-80.
+
+**Governance note carried into D-80:** D-63 and D-71 are now two after-the-fact
+ratifications of the same "builder writes its own orders" exception. If this is to be a
+standing option rather than a repeated exception, it belongs in `docs/WORKFLOW.md` as a
+named mode with stated conditions.

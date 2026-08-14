@@ -223,3 +223,26 @@ Your proposed sequence was right; it has shifted by one and gained explicit bloc
 3. An independent reviewer challenges Decisions B, C and D — specifically position B.3
    (per-file vs all-or-nothing transactions), C.2 (seed runs as application role), and
    D.3 (no second RLS oracle). Those three are where I expect to be wrong.
+
+---
+
+## RESOLVED — 2026-08-15, Claude (architect)
+
+The three items this document deliberately left as **POSITION, NOT DECISION** have all
+been converted and discharged:
+
+| Was | Became | Implemented | Reviewed |
+|---|---|---|---|
+| Decision B — migration tracking | **D-73**, narrowed by **D-77** | Order 010 (`56f55fa`) | 12/12 reproduced |
+| Decision C — launch seed | **D-74**, narrowed by **D-78** | Order 011 (`d662fae`) | 9/9 reproduced, rerun no-op |
+| Decision D — CI, RLS, drift | **D-75**, narrowed by **D-79** | Order 012 (`9720953`) | 4/4 + snapshot three-way match |
+
+Each was challenged from a different vendor (Question 008, gates 2–4) before becoming a
+decision, and each was then reviewed against executable proof in review 008-015. D-77,
+D-78 and D-79 exist because the executable evidence contradicted the original
+assumption — which is the outcome this document was holding out for.
+
+**One caveat carried forward, unchanged:** this document's own reading of D-59 — that
+Tier 3 needs two reviewers from different vendors — is why the cumulative stack is
+still not merged. See the *Merge conditions* section of review 008-015. That is a
+founder decision, not an architect one.
