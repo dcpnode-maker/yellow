@@ -32,6 +32,9 @@ jobs:
       - name: Check dependency licenses
         run: bun run license-check
 
+      - name: Audit dependency vulnerabilities
+        run: bun audit
+
       - name: Typecheck
         run: bun run typecheck
 
