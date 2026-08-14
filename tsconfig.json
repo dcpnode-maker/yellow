@@ -10,5 +10,11 @@
     "noEmit": true,
     "skipLibCheck": true
   },
-  "include": ["src/**/*.ts", "scripts/**/*.ts", "tests/health.test.ts", "tests/license-check.test.ts"]
+  "include": [
+    "src/**/*.ts",
+    "scripts/**/*.ts",
+    "tests/health.test.ts",
+    "tests/license-check.test.ts",
+    "tests/security-headers.test.ts"
+  ]
 }
