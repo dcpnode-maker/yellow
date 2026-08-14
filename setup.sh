@@ -88,7 +88,7 @@ for i in $(seq 1 40); do
   printf "."; sleep 1
   [ "$i" -eq 40 ] && { echo; die "postgres did not become ready — check: $DC logs postgres"; }
 done
-echo; ok "Database up on localhost:5432 (user pms / db yellow_dev)"
+echo; ok "Database up on localhost:5442 (user yellow / db yellow_dev)"
 
 say "Loading schema and test fixture into a clean yellow_test database"
 docker exec -i yellow-postgres psql -U yellow -d yellow_dev -q \
@@ -104,7 +104,7 @@ ok "Fixture loaded (2 tenants, 16 spaces incl. 6-bed dorm)"
 if python3 -c "import psycopg2" 2>/dev/null; then
   say "Running the invariant battery against YOUR machine"
   echo
-  YELLOW_DSN="dbname=yellow_test user=pms password=pms host=127.0.0.1 port=5432" \
+  YELLOW_DSN="dbname=yellow_test user=yellow password=yellow host=127.0.0.1 port=5442" \
     python3 tests/run_invariants.py yellow_test || die "invariants failed — do not start Phase 0 until green"
   echo
   ok "All invariants green on this machine"

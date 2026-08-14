@@ -12,7 +12,7 @@
     },
     "context7": {
       "command": "npx",
-      "args": ["-y", "@upstash/context7-mcp@latest"]
+      "args": ["-y", "-p", "node@22", "-p", "@upstash/context7-mcp@latest", "context7-mcp"]
     }
   }
 }
