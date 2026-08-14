@@ -72,7 +72,7 @@ expected literals without deriving them.
 `scripts/seed.ts` must export a testable function and provide a direct CLI that
 requires `DATABASE_URL`. It must:
 
-1. Reserve one Bun SQL connection and begin one transaction on it.
+1. Reserve one Bun SQL connection and send an explicit `BEGIN` on it.
 2. Execute `SET LOCAL ROLE app_role` before any seed write.
 3. Assert `current_user = 'app_role'` inside the transaction.
 4. Insert or inspect the global `tenant` row.
@@ -80,10 +80,17 @@ requires `DATABASE_URL`. It must:
    transaction sees that exact value.
 6. Insert or inspect the tenant-scoped property row.
 7. Validate exact canonical values for both rows before commit.
-8. Commit both or roll back both.
+8. Send `COMMIT` for success. On any error, send `ROLLBACK` on the same reservation,
+   prove the connection remains usable, and rethrow the original error.
 9. After commit, on the same reserved connection but outside that transaction, prove
-   both `current_user` and `app.tenant_id` returned to their pre-transaction state.
-10. Release/close in `finally` and redact credentials from errors.
+   `current_user` returned to the deployment role and the tenant UUID did not survive.
+   PostgreSQL may represent a cleared custom GUC as either NULL or empty string after
+   first use; require `NULLIF(current_setting('app.tenant_id', true), '') IS NULL`.
+10. Release/close in `finally`, redact credentials from errors, and preserve
+    PostgreSQL SQLSTATE from Bun's `PostgresError.errno` when present.
+
+Do not use Bun 1.3.14 `reserved.begin(callback)`; D-73's executable failure-path
+finding applies here too.
 
 The deployment connection must be able to `SET ROLE app_role`; local Compose's
 `yellow` superuser satisfies this. Production provisioning is external and out of
@@ -122,17 +129,19 @@ On uniquely named temporary databases created through the explicit admin-test UR
 4. Mutating each canonical collision class causes a hard failure and no partial write.
 5. A forced failure after tenant handling but before property completion rolls back
    both new rows.
-6. Tenant context and local role disappear after commit.
-7. Tenant context and local role disappear after rollback.
+6. Local role resets and normalized tenant context is cleared after commit.
+7. Local role resets and normalized tenant context is cleared after rollback.
 8. Reusing the same pooled/reserved backend does not expose the prior tenant context.
 9. The two-tenant `tests/seed_fixture.sql` remains unchanged and separate.
+10. A caught seed failure yields one controlled rejection without an unhandled Bun
+    error and leaves the reserved connection usable after explicit rollback.
 
 Tests must clean databases and OS temporary files in `finally`.
 
 ## Definition of done
 
 - [ ] UUIDv5 vector and exact Yellow IDs pass.
-- [ ] All nine seed integration proofs pass on PostgreSQL 16.
+- [ ] All ten seed integration proofs pass on PostgreSQL 16.
 - [ ] `bun run db:seed` is exact-no-op idempotent.
 - [ ] Compose seed service works twice after migrate.
 - [ ] `bun run typecheck` and default `bun test` pass.
@@ -146,6 +155,7 @@ Tests must clean databases and OS temporary files in `finally`.
 - Adding extensions, roles, credentials, tables, policies, states, or events.
 - Seeding a second tenant or any domain data beyond the two exact rows.
 - Random UUIDs, hardcoded-return UUID helpers, silent updates, or force flags.
+- Bun `reserved.begin(callback)` in seed or failure-test paths.
 - Adding a dependency or implementing Orders 012–013.
 
 ## Review requirement

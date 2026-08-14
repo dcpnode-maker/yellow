@@ -48,7 +48,8 @@ migration file is authorized by this order.
 - default the directory to repository `migrations/`, with a test-only explicit
   override argument/environment accepted by the exported function;
 - print one deterministic line per applied file and a final applied/no-op summary;
-- redact credentials from every error and log line;
+- redact credentials from every error and log line; preserve PostgreSQL SQLSTATE from
+  Bun's `PostgresError.errno` when present (`code` is Bun's generic error code);
 - return/exit nonzero on every validation or database failure.
 
 Add package script `db:migrate` and a dedicated integration script
@@ -79,7 +80,9 @@ when its explicit admin-test URL is absent; the dedicated script must never skip
    bootstrapping or reading migration history.
 3. Hold the session lock across discovery validation, ledger validation, all pending
    files, and final validation.
-4. Apply every file in its own transaction on that same reserved connection.
+4. Apply every file in its own explicit manual transaction on that same reserved
+   connection: send `BEGIN`, execute, then `COMMIT`; on any error send `ROLLBACK`
+   before rethrowing.
 5. In `finally`, attempt `pg_advisory_unlock`, release the reservation, and close the
    pool. Connection death is also a valid lock release.
 
@@ -113,12 +116,17 @@ privilege on `schema_migration`. Do not enable RLS on this platform metadata tab
 
 For each pending file:
 
-1. Begin one transaction through the reserved connection.
+1. Send `BEGIN` through the reserved connection.
 2. Capture and retain `pg_backend_pid()` for connection-affinity diagnostics.
 3. Execute the complete exact text using Bun SQL's unsafe/raw multi-statement API.
 4. Revoke `app_role` privileges as above when the role exists.
 5. Insert the version, filename, and checksum ledger row.
-6. Commit. Any error rolls back both schema work and ledger row.
+6. Send `COMMIT`. On any error, send `ROLLBACK` on the same reservation and rethrow the
+   original error. Prove the connection remains usable after rollback.
+
+Do not call Bun 1.3.14 `reserved.begin(callback)`. Its callback-failure path was
+executably observed to surface a caught rejection as a fatal process error. Manual
+transaction control is required until a future reviewed Bun upgrade proves otherwise.
 
 PostgreSQL is the parser. Do not add a keyword regex that claims to recognize every
 nontransactional statement. A transaction-incompatible statement must fail loudly,
@@ -169,13 +177,16 @@ Prove all of the following:
    runner then completes.
 10. `app_role` has no privilege on `schema_migration` after baseline application.
 11. The table is owned by the migration connection's current user and has no RLS.
+12. A caught file failure produces one controlled rejection without an unhandled Bun
+    error; the reserved connection remains usable after explicit rollback, and an
+    actual database error retains its SQLSTATE via `errno`.
 
 Synthetic migration directories belong in OS temporary directories and must be
 removed. Never edit/copy over the repository baseline in place.
 
 ## Definition of done
 
-- [ ] All eleven migration proofs pass against PostgreSQL 16.
+- [ ] All twelve migration proofs pass against PostgreSQL 16.
 - [ ] `bun run db:migrate` works on a fresh target and is a no-op on repeat.
 - [ ] The Compose tools service applies the same runner.
 - [ ] The application image contains neither `migrations/` nor `scripts/migrate.ts`.
@@ -191,6 +202,7 @@ removed. Never edit/copy over the repository baseline in place.
 - Tenant/RLS behavior, occupancy, journal, fiscal, state, event, or seed changes.
 - Whole-set transactions, transaction-level advisory locks, force flags, down
   migrations, checksum repair, or a nontransactional escape hatch.
+- Bun `reserved.begin(callback)` in migration or failure-test paths.
 - Adding Drizzle, node-postgres, postgres.js, or any dependency; use Bun SQL.
 - Implementing Orders 011–013.
 

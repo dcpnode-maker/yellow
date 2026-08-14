@@ -116,20 +116,24 @@ behavior. Those remain exclusively in the Python referee.
 - invoke the pinned Compose Postgres container's `pg_dump`, never a host/floating
   client;
 - accept a validated database name through an explicit environment variable;
-- use `--schema-only --no-owner --no-comments` and a fixed restrict key; retain ACLs,
-  security labels, and table access methods as drift signal;
+- use `--schema-only --no-owner --no-comments`; do not supply `--restrict-key`—let
+  `pg_dump` generate its unpredictable safety key, then normalize only its wrapper
+  lines; retain ACLs, security labels, and table access methods as drift signal;
 - normalize CRLF to LF;
-- remove generated dump header/footer comments, blank-edge noise, `\restrict` /
-  `\unrestrict`, and the documented session `SET`/`set_config` preamble only;
-- do not sort statements or rewrite SQL bodies;
+- remove only exact anchored `\restrict <alphanumeric-token>` and
+  `\unrestrict <same-token>` wrapper lines, require both tokens to match, and ensure
+  exactly one final LF;
+- retain generated headers/footers, session `SET`/`set_config` preamble, ACLs, object
+  order, and SQL bodies; do not sort or otherwise rewrite them;
 - `--print` writes normalized output to stdout;
 - `--check` compares byte-for-byte with `tests/schema/expected.sql`, prints a useful
   diff summary, and exits nonzero on mismatch;
 - never overwrite the snapshot automatically.
 
 `tests/schema-drift.test.ts` proves normalization is deterministic/idempotent, retains
-object order and bodies, removes only documented noise, and reports a controlled
-mismatch.
+headers, session settings, ACLs, object order and bodies, rejects mismatched/malformed
+restrict wrappers, removes only the two valid random-key lines, and reports a
+controlled mismatch.
 
 Generate `tests/schema/expected.sql` through the Order 010 runner on an empty database
 before seed. It must include `schema_migration`, all baseline objects, functions,

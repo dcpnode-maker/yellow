@@ -36,10 +36,12 @@ requires positive duration, closing the observed impossible negative-throughput 
 
 The session lock must span discovery, ledger validation, every pending file, and final
 ledger validation on one `sql.reserve()` connection. Bun 1.3.14 was probed against
-PostgreSQL: `reserved.begin()` kept the same backend PID and `unsafe()` executed a
-multi-statement SQL string inside the reserved transaction. Order 010 nevertheless
-requires a backend-PID integration proof so a future Bun change cannot silently break
-connection affinity.
+PostgreSQL: successful `reserved.begin()` kept the same backend PID and `unsafe()`
+executed a multi-statement SQL string. A failure-path probe then found that a rejected
+`reserved.begin()` callback is still emitted as fatal and exits 1 after the caller
+catches it. Explicit `BEGIN`/`COMMIT`/`ROLLBACK` on the reservation stayed on the same
+PID, rolled back, remained usable, and exited 0. Orders 010–011 therefore require
+manual transaction control plus backend-PID proof and forbid `reserved.begin()`.
 
 One transaction per file is retained. PostgreSQL, not a home-grown regex, decides
 whether SQL is transaction-compatible: an incompatible statement fails the file,
@@ -65,6 +67,11 @@ not mean silently accepting drift. UUIDv5 is implemented with Web Crypto and tes
 against the standard DNS namespace + `www.example.com` vector
 `2ed6657d-e927-568b-95e1-2665a8aea6a2`.
 
+Executable probing added one representation detail: after transaction-local
+`set_config`, PostgreSQL can expose the cleared custom GUC as `''` even when it was
+`NULL` before first use. The contract is therefore no surviving tenant UUID
+(`NULLIF(value, '') IS NULL`), not byte-equality with the pre-transaction value.
+
 ## Gate 4 — CI, RLS, and schema drift
 
 The prior preference for a GitHub service container is amended. Starting only the
@@ -81,6 +88,15 @@ The deployment checks do not reimplement occupancy, ledger, fiscal, or RLS domai
 rules. TC-13.1 and TC-13.4 themselves gain the catalog assertions, preserving the
 single-oracle rule. The schema snapshot is generated from the pinned PostgreSQL
 container and is compared byte-for-byte after deterministic normalization.
+
+A disposable full-baseline probe validated the shape before ordering implementation:
+the reserved lock/file transaction used one backend PID, produced 81 public tables,
+recorded one ledger row owned by `yellow` with RLS off, and left `app_role` with no
+SELECT/INSERT privilege. The app-role seed produced exactly one tenant/property on the
+same backend and reset the role; its local tenant GUC cleared to the documented empty
+sentinel. Two independent pg_dump runs had different random restrict keys but became
+byte-identical after removing only the matched wrapper lines; the result retained 92
+ACL lines, both security-invoker view definitions, and migration metadata.
 
 ## Gate 5 — Phase 0 truth and merge topology
 
