@@ -10,7 +10,7 @@ import os, sys, threading, time, uuid
 import psycopg2
 
 DB = sys.argv[1] if len(sys.argv) > 1 else "yellow_test"
-DSN = os.environ.get("YELLOW_DSN") or f"dbname={DB} user=postgres password=qa host=127.0.0.1"
+DSN = os.environ.get("YELLOW_DSN") or f"dbname={DB} user=yellow password=yellow host=127.0.0.1 port=5442"
 T_A = "00000000-0000-0000-0000-000000000001"
 T_B = "00000000-0000-0000-0000-000000000002"
 PROP = "00000000-0000-0000-0000-000000000012"
@@ -34,7 +34,11 @@ def conn(role_app=False, tenant=None):
     return c, cur
 
 def record(space, exclusive, period=PERIOD, out=None):
-    c, cur = conn()
+    try:
+        c, cur = conn()
+    except psycopg2.Error as e:          # can't connect → a failed claim, not a traceback wall
+        if out is not None: out.append(False)
+        return False
     try:
         cur.execute("SELECT record_occupancy(%s,%s,%s::tstzrange,%s,%s,%s)",
                     (T_A, space, period, str(uuid.uuid4()), "segment", exclusive))
@@ -64,7 +68,7 @@ exc, beds = cur.fetchone(); c.close()
 check("TC-12.2", "private vs beds never coexist", not (exc > 0 and beds > 0), f"exclusive={exc} beds={beds}")
 
 # R3 / TC-12.3 — capacity race: clear dorm, 40 threads for 6 beds
-c, cur = conn()
+c, cur = conn(); cur.execute("SET ROLE postgres")
 cur.execute("DELETE FROM space_occupancy WHERE space_id=%s", (DORM,)); c.commit(); c.close()
 caps = []
 ths = [threading.Thread(target=record, args=(DORM, False, PERIOD, caps)) for _ in range(40)]

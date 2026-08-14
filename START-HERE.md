@@ -52,7 +52,8 @@ ls                       # you should see CLAUDE.md, setup.sh, migrations/, test
 ## Step 4 — Run setup **[auto]**
 
 ```bash
-./setup.sh
+chmod +x setup.sh bootstrap.sh    # if you get "Permission denied"
+./setup.sh                        # or: bash setup.sh
 ```
 
 It will, in order: check prerequisites → `git init` and commit all 33 files →
@@ -119,10 +120,18 @@ implementation work and Sonnet 5 for tests and docs. The escalation rule in
 
 ## Step 9 — Start Phase 0 **[you]**
 
+First, see where you stand — this is the command every agent runs at the start of
+every session, and it prints the same ground truth for all of them:
+
+```bash
+./state.sh
+```
+
+
 Paste exactly this:
 
 ```
-Read CLAUDE.md and BUILD-PLAN.md. Execute Phase 0.
+Read PROJECT.md, then CLAUDE.md and BUILD-PLAN.md. Execute Phase 0.
 The invariant battery in tests/ must stay green from Phase 2 onward.
 Log any decision you make in DECISIONS.log before moving on.
 ```
@@ -139,6 +148,13 @@ the schema-drift check (dump vs `migrations/0001_init.sql`) is empty.
 | File | Role |
 |---|---|
 | `START-HERE.md` | This checklist. Day one only. |
+| `PROJECT.md` | **The canonical constitution — every agent reads this first.** Invariants, boundaries, standards, session ritual. |
+| `state.sh` | Ground truth for any agent: phase, last decisions, open work, service status. |
+| `AGENTS.md` | Adapter for Codex (builder role). `CLAUDE.md` is the Claude adapter (architect/reviewer). |
+| `handoff/` | How the agents talk: orders, reviews, questions, LEDGER, ROSTER. |
+| `docs/WORKFLOW.md` | Build→review loop and git conventions. |
+| `docs/CODEX.md` | Running Codex alongside Claude Code. |
+| `docs/MERGE-PLAN.md` | Combining Yellow with your existing PMS. |
 | `USAGE.md` | Operating manual: daily loop, rules, troubleshooting. |
 | `CLAUDE.md` | The constitution Claude Code reads every session — invariants, boundaries, model policy. |
 | `BUILD-PLAN.md` | 13 phases, each with a Definition of Done and decision gates. |

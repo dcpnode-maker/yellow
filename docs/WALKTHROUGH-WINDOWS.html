@@ -140,7 +140,11 @@ Answer the prompts with the arrow keys + Enter: <span class="click">GitHub.com</
 <ol>
 <li><label><input type="checkbox"><span>From <code>~/projects/yellow</code>:
 <pre>./setup.sh</pre>
-It commits everything, creates the private repo <b>yellow</b> and pushes, starts Postgres + Valkey, loads the schema and fixture, then runs the tests.</span></label></li>
+It commits everything, creates the private repo <b>yellow</b> and pushes, starts Postgres + Valkey, loads the schema and fixture, then runs the tests.
+<div class="note bad">If you see <b>"Permission denied"</b>, the execute bit was lost in transit. Fix and rerun:
+<pre>chmod +x setup.sh bootstrap.sh
+./setup.sh</pre>
+Or just run <code>bash setup.sh</code> — that ignores the execute bit entirely.</div></span></label></li>
 <li><label><input type="checkbox"><span>Read the last line.
 <div class="note good"><b>RESULT: 11 passed, 0 failed of 11</b> — you're through the gate.</div>
 <div class="note bad">Anything else: <b>stop here</b> and send me the output. Those eleven tests are the floor the whole system stands on — no double-booking, unbreakable ledger, sealed days, gapless invoices, tenant isolation.</div></span></label></li>
@@ -170,13 +174,14 @@ source ~/.bashrc</pre></span></label></li>
 <ol>
 <li><label><input type="checkbox"><span>Open <b>Windows Terminal</b> (Start → "Terminal"), click the <span class="click">⌄</span> arrow next to the + tab → choose <span class="click">Ubuntu-24.04</span>. Then:
 <pre>cd ~/projects/yellow
+./state.sh      # ground truth — run this first, every session
 claude</pre></span></label></li>
 <li><label><input type="checkbox"><span>Type <code>/mcp</code> and press Enter.
 <div class="expect">Want: <b>postgres</b>, <b>github</b>, <b>context7</b> — all "connected".</div>
 <div class="note">postgres down → <code>docker compose up -d</code> · github down → GITHUB_TOKEN not exported in this window (close and reopen Ubuntu).</div></span></label></li>
 <li><label><input type="checkbox"><span>Type <code>/model</code> → choose <b>Fable 5</b>. Phase 0 is foundations work, which CLAUDE.md routes to Fable. You'll switch to Opus 5 for ordinary implementation later.</span></label></li>
 <li><label><input type="checkbox"><span>Paste this exactly:
-<pre>Read CLAUDE.md and BUILD-PLAN.md. Execute Phase 0.
+<pre>Read PROJECT.md, then CLAUDE.md and BUILD-PLAN.md. Execute Phase 0.
 The invariant battery in tests/ must stay green from Phase 2 onward.
 Log any decision you make in DECISIONS.log before moving on.</pre>
 Then let it work. Answer its questions; it will write code, run tests, and fix failures.</span></label></li>

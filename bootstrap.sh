@@ -12,4 +12,4 @@ else
   echo "gh CLI not found. Create an empty private repo on github.com, then:"
   echo "  git remote add origin git@github.com:<you>/yellow.git && git push -u origin main"
 fi
-echo "Next: open Claude Code here -> 'Read CLAUDE.md and BUILD-PLAN.md. Execute Phase 0.'"
+echo "Next: ./state.sh, then open Claude Code here -> 'Read PROJECT.md, then CLAUDE.md and BUILD-PLAN.md. Execute Phase 0.'"

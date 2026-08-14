@@ -116,10 +116,13 @@ fi
 cat <<'EOF'
 
 ────────────────────────────────────────────────────────────
-Setup complete. Open Claude Code in this folder, run /mcp to confirm
-postgres + github + context7 are connected, then paste:
+Setup complete. Then:
+  ./state.sh    ← ground truth for any agent, run this first every session
 
-  Read CLAUDE.md and BUILD-PLAN.md. Execute Phase 0.
+Open Claude Code in this folder, run /mcp to confirm postgres + github +
+context7 are connected, then paste:
+
+  Read PROJECT.md, then CLAUDE.md and BUILD-PLAN.md. Execute Phase 0.
   The invariant battery in tests/ must stay green from Phase 2 on.
 
 Useful:

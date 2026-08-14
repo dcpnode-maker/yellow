@@ -30,6 +30,7 @@ Flags: `--no-github` (local only) · `--db-only` (rebuild database, re-run tests
 
 ```bash
 cd yellow
+./state.sh                         # ground truth: phase, decisions, open work
 docker compose up -d               # if not already running
 claude                             # open Claude Code here
 ```
@@ -43,7 +44,7 @@ In Claude Code, first session of the day:
 Then work one phase at a time:
 
 ```
-Read CLAUDE.md and BUILD-PLAN.md. Execute Phase 0.
+Read PROJECT.md, then CLAUDE.md and BUILD-PLAN.md. Execute Phase 0.
 Do not stop until every DoD check passes.
 ```
 
@@ -52,6 +53,10 @@ failures. Check in, answer questions, let it work.
 
 ## 3. The rules that keep it coherent
 
+- **Run `./state.sh` first.** Every agent, every session — it prints identical
+  ground truth so nobody starts from a stale picture.
+- **`PROJECT.md` is the constitution.** `CLAUDE.md` and `AGENTS.md` are thin
+  adapters that add only a role. If they ever disagree, PROJECT.md wins.
 - **One phase per session.** If a session spans phases, stop and re-scope.
 - **Green before moving on.** A phase is done when its Definition of Done passes in
   CI — not when the code "looks right."

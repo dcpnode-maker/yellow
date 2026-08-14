@@ -120,10 +120,11 @@ source ~/.bashrc
 ## Step 7 — Run setup **[auto]**
 
 ```bash
-./setup.sh
+chmod +x setup.sh bootstrap.sh    # if you get "Permission denied"
+./setup.sh                        # or: bash setup.sh
 ```
 
-Commits 35 files → creates the private GitHub repo `yellow` and pushes → starts
+Commits 37 files → creates the private GitHub repo `yellow` and pushes → starts
 `yellow-postgres` (port 5442) and `yellow-valkey` (6389) → loads schema and fixture
 → runs the invariant battery.
 
@@ -156,8 +157,16 @@ work to Fable; switch to Opus 5 for implementation afterwards).
 
 ## Step 9 — Start Phase 0 **[you]**
 
+First, see where you stand — this is the command every agent runs at the start of
+every session, and it prints the same ground truth for all of them:
+
+```bash
+./state.sh
 ```
-Read CLAUDE.md and BUILD-PLAN.md. Execute Phase 0.
+
+
+```
+Read PROJECT.md, then CLAUDE.md and BUILD-PLAN.md. Execute Phase 0.
 The invariant battery in tests/ must stay green from Phase 2 onward.
 Log any decision you make in DECISIONS.log before moving on.
 ```

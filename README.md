@@ -17,6 +17,8 @@ The thinking is done; this package is the thinking, made executable.
 | `UI-SPEC.md` | The seven surfaces: three-tier model, screen inventory, keyboard grammar, offline. | repo `docs/` |
 | `SECURITY.md` | Threat model & controls: auth, RLS layers, PII/token handling, incident basics. | repo `docs/` |
 | `DEPENDENCIES.md` | Vendor risk register: Class A/B/C, OSS replacements, licence policy, CI gates. | repo `docs/` |
+| `docs/ARCHITECTURE-v3.html` | The zero-cost architecture: doctrines, primitives, cost model, spend triggers. |
+| `docs/research/` | The four analysis rounds behind every locked decision. |
 | `docs-mockups-ui-v1.html` | Five-screen UI mockups rendered from fixture data. | repo `docs/mockups/` |
 | `DECISIONS.log` | Seeded with every locked decision + rejected alternative. Append-only. | repo root |
 | `tests/` | 56-case QA suite (v1.1), repaired seed fixture, TS stress port, executable invariant battery + 11/11 run results. | repo `tests/` |
@@ -49,7 +51,7 @@ Flags: `--no-github` (local only) · `--db-only` (rebuild db + re-run tests).
 4. MCP servers for Claude Code: **postgres** (point at the dev compose DB — lets
    Claude inspect real schema/data while coding) and **github** (PRs, issues).
 5. `DECISIONS.log` ships seeded — keep appending.
-6. Open Claude Code: *"Read CLAUDE.md and BUILD-PLAN.md. Execute Phase 0."*
+6. Open Claude Code: *"Read PROJECT.md, then CLAUDE.md and BUILD-PLAN.md. Execute Phase 0."*
 
 ## What this package is NOT (the honest 30%)
 
@@ -79,3 +81,12 @@ The occupancy prototype's naive constraint design **failed** under concurrency
 SCHEMA.sql is the fix, proven at 1,409 commits/sec with zero conflicts admitted.
 That failure cost one afternoon on paper. In production it would have cost the
 company. That is what this package is for.
+
+
+## Using Codex instead of (or alongside) Claude Code
+
+See `docs/CODEX.md` — `AGENTS.md` and `.codex/config.toml` are already wired.
+
+## Two agents, one repo
+`docs/WORKFLOW.md` — Codex builds, Claude Fable reviews. Handoff files in `handoff/`.
+`docs/CODEX.md` — Codex setup. `docs/MERGE-PLAN.md` — combining with the existing PMS.

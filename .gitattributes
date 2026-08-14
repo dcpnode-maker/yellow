@@ -7,3 +7,8 @@
 *.md text eol=lf
 *.json text eol=lf
 *.yml text eol=lf
+
+# Append-only logs: union merge prevents conflicts when Codex and Claude both
+# append on different branches. Without this, every parallel session collides here.
+DECISIONS.log merge=union
+handoff/LEDGER.md merge=union
