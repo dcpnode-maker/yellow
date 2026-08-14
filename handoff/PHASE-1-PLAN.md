@@ -24,14 +24,14 @@ event can be published. It is the first phase whose output a person could intera
 
 | # | Order | Tier | Depends on | Why this position |
 |---|---|---|---|---|
-| 018 | Transaction-local tenant context middleware | **3** | Phase 0 merged | Every later order writes through it. If it is wrong, every RLS guarantee in the schema is decorative. Goes first and gets Fable. |
-| 019 | `app_user` / role / JWT auth with tenant + scopes | **3** | 018 | `Bun.password` argon2id (D-16). Establishes who the tenant context comes *from*. |
-| 020 | `fact_log` write helper + audit envelope on every mutation | 2 | 018 | Insert-only invariant. Must exist before anything mutates, or the first mutations are unaudited and get retrofitted. |
-| 021 | `EventBus` interface + in-process outbox consumer (cursor rows) | 2 | 020 | D-14 defers NATS; the interface is what makes that a config change later. |
-| 022 | Outbox relay worker, at-least-once, crash/restart dedupe | **3** | 021 | Carries the phase's hardest DoD line: kill mid-batch, restart, nothing lost or duplicated. |
-| 023 | `extension_type` + `extension` CRUD with JSON-Schema validation | 2 | 019, 020 | Runtime registration is a DoD line; needs auth and audit already in place. |
-| 024 | `approval_request` primitive | 2 | 020 | Referenced by D-06 (day-close discrepancies) and trust accounting. Small, but it unblocks Phase 5. |
-| 025 | Org `ltree` queries — property under brand under chain | 2 | 018 | Third DoD line. Independent of the outbox chain, so it can run in parallel with 021–022 if you want two tracks. |
+| 019 | Transaction-local tenant context middleware | **3** | Phase 0 merged | Every later order writes through it. If it is wrong, every RLS guarantee in the schema is decorative. Goes first and gets Fable. |
+| 020 | `app_user` / role / JWT auth with tenant + scopes | **3** | 019 | `Bun.password` argon2id (D-16). Establishes who the tenant context comes *from*. |
+| 021 | `fact_log` write helper + audit envelope on every mutation | 2 | 019 | Insert-only invariant. Must exist before anything mutates, or the first mutations are unaudited and get retrofitted. |
+| 022 | `EventBus` interface + in-process outbox consumer (cursor rows) | 2 | 021 | D-14 defers NATS; the interface is what makes that a config change later. |
+| 023 | Outbox relay worker, at-least-once, crash/restart dedupe | **3** | 022 | Carries the phase's hardest DoD line: kill mid-batch, restart, nothing lost or duplicated. |
+| 024 | `extension_type` + `extension` CRUD with JSON-Schema validation | 2 | 019, 020 | Runtime registration is a DoD line; needs auth and audit already in place. |
+| 025 | `approval_request` primitive | 2 | 021 | Referenced by D-06 (day-close discrepancies) and trust accounting. Small, but it unblocks Phase 5. |
+| 026 | Org `ltree` queries — property under brand under chain | 2 | 019 | Third DoD line. Independent of the outbox chain, so it can run in parallel with 021–022 if you want two tracks. |
 
 ## Decisions needed before specific orders
 
