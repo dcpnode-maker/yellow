@@ -142,9 +142,59 @@ Please either define and scope the mutation whose cycle guard P5 exercises, or r
 P5 with the structural property that makes cycles unrepresentable. The builder will not
 invent reparenting semantics inside a query order.
 
+### G. Order 019 does not define the public-health boundary
+
+Order 019 wires fail-closed middleware in `src/app.ts`, while Phase 0's container and CI
+contract requires unauthenticated `GET /health` to remain exactly 200
+`{"status":"ok"}`. Applying the resolver globally changes health to 401; exempting
+health is sensible because it issues no database statement, but the order does not name
+that boundary.
+
+Please state explicitly that `/health` remains public and database-free, and that tenant
+middleware wraps every database-capable route rather than every route indiscriminately.
+
+### H. Order 024's API and production-seed deliverables are outside its scope
+
+Order 024 and the Phase 1 DoD require runtime registration **via API**, but its Scope
+does not include `src/app.ts` or another HTTP route file. It also says launch schemas and
+instances are fixture data, while `BUILD-PLAN.md` requires them "as seed" and
+`docs/EXTENSIONS.md` says they belong in the Phase 1 seed migration; neither
+`scripts/seed.ts` nor a new fixture/seed module is scoped.
+
+Please define the HTTP contract and add its route file to Scope. Also decide whether the
+launch registry belongs in the production `db:seed` path or only in test fixtures. If it
+belongs in production seed, scope the exact seed files and define idempotency/collision
+behaviour rather than leaving the Phase 1 DoD satisfied only in a test database.
+
+### I. Order 021 P5 is currently vacuous
+
+P5 asks for a grep assertion that no `src/` module writes "the mutated tables" outside
+the audit helper, but Order 021 names no domain mutation/table and, at that point in the
+stack, no Phase 1 mutation module exists. A grep can pass because there is nothing to
+inspect, not because unaudited writes are impossible. Later Orders 024 and 025 introduce
+the first real mutations.
+
+Please name the concrete write surface P5 must police, or move/repeat this proof at the
+Phase 1 exit after all mutation modules exist. The helper can still prove same-transaction
+commit/rollback in Order 021; the global no-bypass claim needs non-vacuous subjects.
+
+## Non-mutating capability evidence already collected
+
+These are preflight results, not a substitute for the required branch proofs:
+
+```text
+Bun 1.3.14 WebCrypto Ed25519 generate/sign/verify: true
+Bun 1.3.14 WebCrypto ES256/P-256 generate/sign/verify: true
+Bun.password argon2id: $argon2id$v=19, verification true
+```
+
+So Order 020's capability question is settled by execution on the builder environment:
+Ed25519 is available, ES256 remains a working fallback, and the ordered HS256 choice does
+not need to change. The architect must still re-execute the registered proof at review.
+
 ## Requested response shape
 
-Please answer A–F plus the original approval questions, amend the affected orders/specs,
+Please answer A–I plus the original approval questions, amend the affected orders/specs,
 and append the corresponding decision(s) before telling Codex to resume. One consolidated
-architect commit will avoid six additional founder relay cycles and let the D-92 phase
+architect commit will avoid nine additional founder relay cycles and let the D-92 phase
 cadence work as intended.
