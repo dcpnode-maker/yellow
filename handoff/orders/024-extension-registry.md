@@ -1,4 +1,6 @@
-> **AMENDED by `handoff/questions/011-ARCHITECT-RESPONSE.md` (D-94) — read it first.**
+> **AMENDED by `handoff/questions/011-ARCHITECT-RESPONSE.md` (D-94) and
+> `handoff/questions/019-ARCHITECT-RESPONSE.md` (D-102), and
+> `handoff/questions/020-ARCHITECT-RESPONSE.md` (D-103) — read all three first.**
 > **E:** `extension_type` stays platform-global. **P3 proves isolation for `extension`
 > instances only**, including that both tenants can read `tenant_id IS NULL` instances.
 > New **P6:** registering a type requires platform authority. The column is `json_schema`;
@@ -22,6 +24,9 @@ against its JSON Schema.
 `src/contexts/identity/` or a new `src/kernel/extension.ts` — decide and justify in the
 PR body; `src/kernel/index.ts`; `tests/extension.integration.test.ts`; seed the
 EXTENSIONS.md schemas and launch instances as fixture data, not as a migration.
+API composition scope: `src/app.ts`, `src/http/extensions.ts`,
+`src/kernel/tenant-context.ts`, and `src/contexts/identity/resolver.ts`.
+Default-token correction scope: `src/contexts/identity/token.ts` and `tests/token.test.ts`.
 `extension_type` and `extension` are baseline tables — **no migration**.
 
 ## Required behaviour
