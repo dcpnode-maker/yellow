@@ -11,6 +11,10 @@
 > `FOR UPDATE SKIP LOCKED` on shared outbox rows is withdrawn. Serialize instances of
 > the same named consumer by locking that consumer's cursor row `FOR UPDATE`; read
 > outbox rows without row locks so different named consumers each receive every event.
+> **AMENDED by `handoff/questions/016-ARCHITECT-RESPONSE.md` (D-99).** PostgreSQL
+> identity allocation is not commit-ordered. `publish()` must take the fixed outbox
+> transaction advisory lock before inserting, so no later seq can commit before an
+> earlier uncommitted seq and become invisible behind a durable cursor.
 
 # ORDER 022 — EventBus port and in-process outbox consumer
 
@@ -55,6 +59,7 @@ Amended Scope under D-94/D-97: `migrations/0002_kernel_consumer_cursor.sql`,
 | P3 | Cursor durability | consumer restarted mid-stream resumes at its cursor, no gap, no repeat |
 | P4 | Port is honoured | a compile-time or test-time assertion that no consumer imports the Postgres module directly |
 | P5 | Named consumers do not steal | two different consumers run concurrently and each observes the same complete ordered event set |
+| P6 | Seq cannot commit out of order | publisher B remains blocked after publisher A inserts but before A commits; after release, durable seq order matches commit order |
 
 ## Forbidden
 
