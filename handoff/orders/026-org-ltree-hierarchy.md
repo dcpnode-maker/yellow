@@ -1,3 +1,9 @@
+> **AMENDED by `handoff/questions/011-ARCHITECT-RESPONSE.md` (D-94) — read it first.**
+> **F:** P5's cycle guard is **replaced** by a path well-formedness proof — every node's
+> `path` ends with its own label, and every proper prefix exists as an `org_node` row in
+> the same tenant. `org_node` has no parent edge, so no operation in this order can create
+> a cycle. Do not invent reparenting semantics here.
+
 # ORDER 026 — org ltree hierarchy queries
 
 **Phase:** 1 · **Branch:** `phase-1/org-ltree` · **Tier:** 2

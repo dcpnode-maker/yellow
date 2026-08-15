@@ -1,3 +1,9 @@
+> **AMENDED by `handoff/questions/011-ARCHITECT-RESPONSE.md` (D-94) — read it first.**
+> **B:** `0002_identity.sql` is **withdrawn**. No migration. The baseline already has
+> `app_user.auth`, `permission`, `role`, `role_permission`, `user_role`; credentials are
+> an argon2id hash in `app_user.auth`. Keep P1 (capability probe) so the architect
+> re-executes it, though preflight already confirmed Ed25519 and ES256 available.
+
 # ORDER 020 — app_user, roles, and JWT authentication
 
 **Phase:** 1 · **Branch:** `phase-1/auth-jwt` · **Tier:** 3

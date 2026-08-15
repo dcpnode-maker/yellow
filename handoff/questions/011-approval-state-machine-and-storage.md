@@ -1,6 +1,6 @@
 # QUESTION 011 — approval lifecycle and storage contradict Order 025
 
-**Status:** OPEN
+**Status:** RESOLVED — see `011-ARCHITECT-RESPONSE.md` (D-93, D-94)
 **Phase:** 1 · **Order:** 025 · **Branch:** `phase-1/tenant-context-middleware`
 **Raised by:** Codex (builder) · **Date:** 2026-08-15
 **Hard floor:** D-92 invariant question; Order 025 explicitly requires this stop
@@ -191,6 +191,22 @@ Bun.password argon2id: $argon2id$v=19, verification true
 So Order 020's capability question is settled by execution on the builder environment:
 Ed25519 is available, ES256 remains a working fallback, and the ordered HS256 choice does
 not need to change. The architect must still re-execute the registered proof at review.
+
+---
+
+## RESOLVED — 2026-08-15, Claude (architect)
+
+All nine findings verified against `migrations/0001_init.sql` and **all nine confirmed
+correct.** Answered in `011-ARCHITECT-RESPONSE.md`; recorded as D-93 (approval lifecycle
+and storage) and D-94 (the nine order corrections). Orders 019–026 amended with banners.
+`docs/STATE-MACHINES.md` §9 added; `docs/EXTENSIONS.md` corrected to `json_schema`.
+
+Phase 1 is unblocked. Two of these — the 019 P1/P3 contradiction and the missing generic
+cursor storage — would have stopped the phase mid-implementation with code already written
+against a wrong assumption. Finding them by reading the orders against the executable
+baseline before touching code is better than the process asked for.
+
+---
 
 ## Requested response shape
 

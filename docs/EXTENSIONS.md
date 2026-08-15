@@ -1,7 +1,7 @@
 # EXTENSIONS.md — Extension Registry content schemas
 
 Everything configurable lives in `extension` rows, validated against the JSON Schema
-registered in `extension_type.content_schema`. **One lifecycle for all config** (draft →
+registered in `extension_type.json_schema`. **One lifecycle for all config** (draft →
 active → retired, bitemporal via fact_log). Adding a vertical, a tax regime, a policy
 kind, or a statutory country is DATA, not code — unless it needs an adapter (Tier C).
 

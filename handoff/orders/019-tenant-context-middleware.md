@@ -1,3 +1,9 @@
+> **AMENDED by `handoff/questions/011-ARCHITECT-RESPONSE.md` (D-94) — read it first.**
+> **A:** P3 is rewritten; its observer is a separate test-harness checkout of the same
+> single-connection pool, taken after the 401. P1 is unchanged and not weakened.
+> **G:** `GET /health` stays public, database-free and exactly `200 {"status":"ok"}`;
+> tenant middleware wraps database-capable routes only. New **P7** proves it.
+
 # ORDER 019 — transaction-local tenant context middleware
 
 **Phase:** 1 · **Branch:** `phase-1/tenant-context-middleware`

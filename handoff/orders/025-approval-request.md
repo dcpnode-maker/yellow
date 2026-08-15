@@ -1,3 +1,12 @@
+> **AMENDED by `handoff/questions/011-ARCHITECT-RESPONSE.md` (D-93) — read it first.**
+> The insert-only / no-UPDATE-path / P4 language in this order was **wrong and is
+> withdrawn.** Storage is a **mutable `approval_request` head + append-only `fact_log`
+> history**, no migration. The decision is a **guarded update**
+> `... WHERE id=$1 AND status='pending'`; a zero-row update is a conflict, never a retry.
+> Lifecycle is now `docs/STATE-MACHINES.md` §9: `pending → approved | rejected | expired`,
+> all terminal. `approval.requested` and `approval.decided` are **required** via the
+> Order 022 `EventBus` port, same transaction. Scope gains that port import.
+
 # ORDER 025 — approval_request primitive
 
 **Phase:** 1 · **Branch:** `phase-1/approval-request` · **Tier:** 2

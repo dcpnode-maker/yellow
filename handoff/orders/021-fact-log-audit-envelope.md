@@ -1,3 +1,11 @@
+> **AMENDED by `handoff/questions/011-ARCHITECT-RESPONSE.md` (D-94) — read it first.**
+> **C:** the helper takes `propertyNode` and derives `business_date` transactionally from
+> `org_node.timezone`. `valid_from` is also `NOT NULL` — set it to the transaction
+> timestamp. Mapping: operation→`fact_type`, actor→`actor_id`, request id→`payload`,
+> timestamp→`recorded_at`, entity→`entity_type`/`entity_id`. Tenant-level facts with no
+> property are out of scope for Phase 1 — stop and ask.
+> **I:** **P5 is removed** from this order and becomes a Phase 1 exit-gate proof. Keep P1–P4.
+
 # ORDER 021 — fact_log write helper and audit envelope
 
 **Phase:** 1 · **Branch:** `phase-1/fact-log-audit` · **Tier:** 2

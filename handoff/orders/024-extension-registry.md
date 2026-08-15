@@ -1,3 +1,12 @@
+> **AMENDED by `handoff/questions/011-ARCHITECT-RESPONSE.md` (D-94) — read it first.**
+> **E:** `extension_type` stays platform-global. **P3 proves isolation for `extension`
+> instances only**, including that both tenants can read `tenant_id IS NULL` instances.
+> New **P6:** registering a type requires platform authority. The column is `json_schema`;
+> `docs/EXTENSIONS.md` has been corrected.
+> **H:** Scope gains the **HTTP route file** and **`scripts/seed.ts`**. The launch registry
+> ships in the production `db:seed` path, with D-74 idempotency — exact rerun is a no-op,
+> divergent content hard-fails.
+
 # ORDER 024 — extension_type and extension CRUD with JSON-Schema validation
 
 **Phase:** 1 · **Branch:** `phase-1/extension-registry` · **Tier:** 2

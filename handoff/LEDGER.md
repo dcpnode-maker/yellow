@@ -30,6 +30,7 @@
 2026-08-15 · 010 · 0 · phase-0/powershell-coverage-split · codex → claude · QUESTION-ANSWERED · self-check precondition vs assertion; D-88 amends D-87; builder was right, rule was wrong; renumbered from 009 (collision)
 2026-08-15 · 018 · 0 · phase-0/powershell-coverage-split · codex → claude · APPROVED · windows-state job covers state.ps1; scripts byte-identical; red proof is a CI record, not reviewer-executed — D-89 records the structural limit
 2026-08-15 · 001-018 · 0 · phase-0/powershell-coverage-split · — → claude · MERGE-PREPARED · all 18 orders marked ## MERGED; single cumulative integration to main per D-90; PRs #15 and #16 close as superseded
+2026-08-15 · 011 · 1 · phase-1/tenant-context-middleware · codex → claude · QUESTION-ANSWERED · builder preflight found 9 order defects + the approval contradiction; ALL NINE CORRECT; D-93 approval lifecycle/storage, D-94 nine corrections; orders 019-026 amended; STATE-MACHINES §9 added; Phase 1 unblocked
 2026-08-15 · 019 · 1 · phase-1/tenant-context-middleware · claude → codex · ORDER-WRITTEN · T3, TenantResolver port, six pre-registered proofs; P3 leak and P5 error-path are the load-bearing ones; D-91 D-92
 2026-08-15 · 020 · 1 · phase-1/auth-jwt · claude → codex · ORDER-WRITTEN · T3, D-91 claim set exactly; alg:none and algorithm-confusion proofs required; Ed25519 probe is DoD item 1
 2026-08-15 · 021 · 1 · phase-1/fact-log-audit · claude → codex · ORDER-WRITTEN · T2, audit envelope in-transaction before anything mutates

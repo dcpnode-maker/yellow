@@ -1,3 +1,11 @@
+> **AMENDED by `handoff/questions/011-ARCHITECT-RESPONSE.md` (D-94) — read it first.**
+> **D:** dedupe lives in `consumer_processed` (authorized in `0002_kernel_consumer_cursor.sql`),
+> **not** in `published_at` — that is precisely what closes P3's committed-but-unpublished
+> window. Claim with `FOR UPDATE SKIP LOCKED`, which is also how P5 is satisfied. Consumer
+> effect + `consumer_processed` insert + cursor update commit in **one** transaction. Add a
+> prune of `consumer_processed` alongside `prune_outbox` and prove it never deletes rows
+> for still-unpublished events.
+
 # ORDER 023 — outbox relay worker, at-least-once, crash-safe
 
 **Phase:** 1 · **Branch:** `phase-1/outbox-relay` · **Tier:** 3

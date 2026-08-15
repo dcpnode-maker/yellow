@@ -1,3 +1,8 @@
+> **AMENDED by `handoff/questions/011-ARCHITECT-RESPONSE.md` (D-94) — read it first.**
+> **D:** the "no migration" line is **withdrawn**. `migrations/0002_kernel_consumer_cursor.sql`
+> is authorized and its exact DDL and semantics are specified in the response.
+> `push_cursor` is **not** repurposed. `0001_init.sql` remains untouched.
+
 # ORDER 022 — EventBus port and in-process outbox consumer
 
 **Phase:** 1 · **Branch:** `phase-1/eventbus-outbox` · **Tier:** 2

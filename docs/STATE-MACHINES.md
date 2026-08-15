@@ -56,3 +56,31 @@ Every phase change lands a `payment` row + journal on success (card_clearing leg
 ## 8. Document (fiscal) — draft → issued (number+hash assigned, series advanced,
 prev_hash chained) → cleared|rejected (fiscal_submission) ; issued→void only where
 jurisdiction permits, else credit-note document. Emits document.issued / .cleared.
+
+## 9. Approval (`approval_request.status`) — added by D-93 (Question 011)
+
+```
+pending ──approve──▶ approved   (terminal)
+pending ──reject───▶ rejected   (terminal)
+pending ──expire───▶ expired    (terminal)
+```
+
+Exhaustive. All three terminal states are final: no reopen, no transition out of a
+terminal state, no `pending → pending`. Reversing a decision creates a **new**
+`approval_request` against the same `(subject_type, subject_id)`.
+
+`expire` is **system-driven** and carries no `decided_by`; `approve` and `reject` require
+one, and `requested_by <> decided_by` is enforced at the primitive — a requester may never
+approve their own request.
+
+**Storage:** mutable head row + append-only `fact_log` history. `approval_request` is
+deliberately absent from the baseline's R4 insert-only list, and D-05's insert-only rule
+scopes to financials, rates, occupancy and config — not to this table.
+
+**Concurrency:** the decision is a guarded update,
+`UPDATE approval_request SET status=$2, decided_by=$3, decided_at=now() WHERE id=$1 AND status='pending'`.
+Two simultaneous decisions cannot both win; a zero-row update is a conflict and is
+reported as one, never retried into success.
+
+Emits `approval.requested` on creation and `approval.decided` on any terminal transition,
+through the `EventBus` port, in the same transaction as the state change.
