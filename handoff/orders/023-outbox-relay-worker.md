@@ -1,4 +1,5 @@
-> **AMENDED by `handoff/questions/011-ARCHITECT-RESPONSE.md` (D-94) — read it first.**
+> **AMENDED by `handoff/questions/011-ARCHITECT-RESPONSE.md` (D-94) and
+> `handoff/questions/018-ARCHITECT-RESPONSE.md` (D-101) — read both first.**
 > **D:** dedupe lives in `consumer_processed` (authorized in `0002_kernel_consumer_cursor.sql`),
 > **not** in `published_at` — that is precisely what closes P3's committed-but-unpublished
 > window. Claim with `FOR UPDATE SKIP LOCKED`, which is also how P5 is satisfied. Consumer
@@ -32,7 +33,7 @@ achievable and pretending otherwise pushes the failure somewhere less visible.
 
 ## Scope
 
-`src/kernel/relay.ts`, `src/kernel/index.ts`, `tests/relay.integration.test.ts`,
+`src/kernel/relay.ts`, `src/kernel/outbox.ts`, `src/kernel/index.ts`, `tests/relay.integration.test.ts`,
 `docker-compose.yml` (only if the relay needs its own service — justify it in the PR).
 **No migration** — `published_at` is in the baseline.
 
