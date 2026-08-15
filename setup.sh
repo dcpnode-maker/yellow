@@ -1,133 +1,72 @@
 #!/usr/bin/env bash
-# ============================================================================
-# Yellow — one-command laptop setup.
-#   ./setup.sh              full setup (git + github + db + schema + tests)
-#   ./setup.sh --no-github  skip repo creation (local only)
-#   ./setup.sh --db-only    just rebuild the database and re-run the tests
-# Safe to re-run. Nothing here is destructive except --db-only's DROP DATABASE.
-# ============================================================================
 set -euo pipefail
 cd "$(dirname "$0")"
 
-BLUE='\033[0;34m'; GREEN='\033[0;32m'; YELLOW='\033[0;33m'; RED='\033[0;31m'; NC='\033[0m'
-say()  { printf "${BLUE}▸ %s${NC}\n" "$1"; }
-ok()   { printf "${GREEN}✔ %s${NC}\n" "$1"; }
-warn() { printf "${YELLOW}! %s${NC}\n" "$1"; }
-die()  { printf "${RED}✖ %s${NC}\n" "$1"; exit 1; }
-
-GITHUB=1; DB_ONLY=0
-for a in "$@"; do
-  case "$a" in
-    --no-github) GITHUB=0 ;;
-    --db-only)   DB_ONLY=1; GITHUB=0 ;;
-    *) die "unknown option: $a" ;;
+DB_ONLY=0
+for argument in "$@"; do
+  case "$argument" in
+    --db-only) DB_ONLY=1 ;;
+    *) printf 'Unknown option: %s\n' "$argument" >&2; exit 1 ;;
   esac
 done
 
-# ---------------------------------------------------------------- 1. tooling
-say "Checking prerequisites"
-MISSING=""
-need() { command -v "$1" >/dev/null 2>&1 || MISSING="$MISSING $1"; }
-need git; need docker; need python3
-[ -n "$MISSING" ] && die "missing:$MISSING
-  macOS:  brew install git python3 && install Docker Desktop or colima
-  Ubuntu: sudo apt install -y git python3 docker.io docker-compose-plugin"
-docker info >/dev/null 2>&1 || die "Docker is installed but not running — start it and re-run."
-command -v bun >/dev/null 2>&1 || warn "bun not found — needed from Phase 0 (curl -fsSL https://bun.sh/install | bash)"
-command -v npx >/dev/null 2>&1 || warn "node/npx not found — the three MCP servers need it (brew install node)"
-command -v gh  >/dev/null 2>&1 || warn "gh CLI not found — GitHub step will print manual commands instead"
-[ -n "${GITHUB_TOKEN:-}" ] || warn "GITHUB_TOKEN not set — the github MCP server needs it (see docs/TOOLING.md)"
-python3 -c "import psycopg2" 2>/dev/null || {
-  say "Installing psycopg2-binary (test runner dependency)"
-  python3 -m pip install --quiet --user psycopg2-binary 2>/dev/null \
-    || python3 -m pip install --quiet --break-system-packages psycopg2-binary \
-    || warn "could not install psycopg2 — invariant battery will be skipped"
+need() { command -v "$1" >/dev/null 2>&1 || { printf 'Missing %s. %s\n' "$1" "$2" >&2; exit 1; }; }
+need docker 'Install Docker Engine/Desktop with the Compose plugin.'
+need bun 'Install Bun 1.3.14 from https://bun.sh/docs/installation.'
+need python3 'Install CPython 3.12+.'
+docker compose version >/dev/null 2>&1 || { echo 'Missing Docker Compose plugin.' >&2; exit 1; }
+docker info >/dev/null 2>&1 || { echo 'Docker is not running.' >&2; exit 1; }
+python3 -c 'import psycopg2' >/dev/null 2>&1 || {
+  echo 'Missing psycopg2. Install psycopg2-binary==2.9.12 for the Python invariant referee.' >&2
+  exit 1
 }
-ok "Prerequisites present"
 
-# ------------------------------------------------------------------ 2. git
-if [ "$DB_ONLY" -eq 0 ]; then
-  if [ -d .git ]; then
-    ok "Git repo already initialised"
-  else
-    say "Initialising git repository"
-    git init -b main >/dev/null
-    git add -A
-    git -c user.email="${GIT_EMAIL:-founder@localhost}" \
-        -c user.name="${GIT_NAME:-Founder}" \
-        commit -qm "PMS build package v1.6 — schema (80 tables, validated), specs, tests (11/11), mockups"
-    ok "Committed $(git ls-files | wc -l | tr -d ' ') files"
-  fi
-fi
+default_project=$(basename "$PWD" | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9_-]/-/g')
+export COMPOSE_PROJECT_NAME="${COMPOSE_PROJECT_NAME:-$default_project}"
+export YELLOW_APP_PORT="${YELLOW_APP_PORT:-3000}"
+export YELLOW_POSTGRES_PORT="${YELLOW_POSTGRES_PORT:-5442}"
+export YELLOW_VALKEY_PORT="${YELLOW_VALKEY_PORT:-6389}"
+printf 'Compose project %s · ports app=%s postgres=%s valkey=%s\n' \
+  "$COMPOSE_PROJECT_NAME" "$YELLOW_APP_PORT" "$YELLOW_POSTGRES_PORT" "$YELLOW_VALKEY_PORT"
 
-# --------------------------------------------------------------- 3. github
-if [ "$GITHUB" -eq 1 ]; then
-  if git remote get-url origin >/dev/null 2>&1; then
-    say "Pushing to existing remote"
-    git push -u origin main && ok "Pushed to $(git remote get-url origin)"
-  elif command -v gh >/dev/null 2>&1; then
-    say "Creating private GitHub repository"
-    gh auth status >/dev/null 2>&1 || gh auth login
-    gh repo create yellow --private --source=. --push \
-      && ok "Pushed to github.com/$(gh api user -q .login)/yellow"
-    warn "Insurance: add a second remote later (Forgejo mirror) — see docs/DEPENDENCIES.md"
-  else
-    warn "No gh CLI. Create an empty PRIVATE repo on github.com, then run:"
-    echo "    git remote add origin git@github.com:<you>/yellow.git"
-    echo "    git push -u origin main"
-  fi
-fi
-
-# ------------------------------------------------------------- 4. database
-say "Starting PostgreSQL 16 + Valkey"
-if docker compose version >/dev/null 2>&1; then DC="docker compose"; else DC="docker-compose"; fi
-$DC up -d >/dev/null
-printf "  waiting for postgres"
-for i in $(seq 1 40); do
-  if docker exec yellow-postgres pg_isready -U yellow -d yellow_dev >/dev/null 2>&1; then break; fi
-  printf "."; sleep 1
-  [ "$i" -eq 40 ] && { echo; die "postgres did not become ready — check: $DC logs postgres"; }
+docker compose up -d postgres valkey
+ready=0
+for _ in $(seq 1 40); do
+  if docker compose exec -T postgres pg_isready -U yellow -d yellow_dev >/dev/null 2>&1; then ready=1; break; fi
+  sleep 1
 done
-echo; ok "Database up on localhost:5442 (user yellow / db yellow_dev)"
+[ "$ready" -eq 1 ] || { echo 'PostgreSQL did not become ready. Run: docker compose logs postgres' >&2; exit 1; }
 
-say "Loading schema and test fixture into a clean yellow_test database"
-docker exec -i yellow-postgres psql -U yellow -d yellow_dev -q \
-  -c "DROP DATABASE IF EXISTS yellow_test;" -c "CREATE DATABASE yellow_test;" >/dev/null
-docker exec -i yellow-postgres psql -U yellow -d yellow_test -q -v ON_ERROR_STOP=1 < migrations/0001_init.sql >/dev/null
-TABLES=$(docker exec -i yellow-postgres psql -U yellow -d yellow_test -tAc \
-  "SELECT count(*) FROM pg_tables WHERE schemaname='public';")
-ok "Schema loaded — $TABLES tables"
-docker exec -i yellow-postgres psql -U yellow -d yellow_test -q -v ON_ERROR_STOP=1 < tests/seed_fixture.sql >/dev/null
-ok "Fixture loaded (2 tenants, 16 spaces incl. 6-bed dorm)"
+dev_url="postgres://yellow:yellow@127.0.0.1:${YELLOW_POSTGRES_PORT}/yellow_dev"
+test_url="postgres://yellow:yellow@127.0.0.1:${YELLOW_POSTGRES_PORT}/yellow_test"
+DATABASE_URL="$dev_url" bun scripts/migrate.ts
+DATABASE_URL="$dev_url" bun scripts/seed.ts
 
-# ---------------------------------------------------------------- 5. proof
-if python3 -c "import psycopg2" 2>/dev/null; then
-  say "Running the invariant battery against YOUR machine"
-  echo
-  YELLOW_DSN="dbname=yellow_test user=yellow password=yellow host=127.0.0.1 port=5442" \
-    python3 tests/run_invariants.py yellow_test || die "invariants failed — do not start Phase 0 until green"
-  echo
-  ok "All invariants green on this machine"
-else
-  warn "Skipped invariant battery (psycopg2 unavailable)"
+docker compose exec -T postgres psql -U yellow -d postgres -v ON_ERROR_STOP=1 \
+  -c 'DROP DATABASE IF EXISTS yellow_test WITH (FORCE)' -c 'CREATE DATABASE yellow_test'
+DATABASE_URL="$test_url" bun scripts/migrate.ts
+docker compose exec -T postgres psql -U yellow -d yellow_test -v ON_ERROR_STOP=1 < tests/seed_fixture.sql
+
+tables=$(docker compose exec -T postgres psql -U yellow -d yellow_test -tAc \
+  "SELECT count(*) FROM pg_tables WHERE schemaname='public';" | tr -d '[:space:]')
+[ "$tables" = '81' ] || { printf 'yellow_test has %s public tables; expected 81 (80 baseline + schema_migration).\n' "$tables" >&2; exit 1; }
+echo 'yellow_test tables: 81 (80 baseline + schema_migration)'
+
+YELLOW_DSN="dbname=yellow_test user=yellow password=yellow host=127.0.0.1 port=${YELLOW_POSTGRES_PORT}" \
+PYTHONIOENCODING=utf-8 python3 tests/run_invariants.py yellow_test
+
+if [ "$DB_ONLY" -eq 0 ]; then
+  need curl 'Install curl to run the application health check.'
+  docker compose up -d app
+  healthy=0
+  for _ in $(seq 1 30); do
+    status=$(curl -sS -o /tmp/yellow-health-body -w '%{http_code}' "http://127.0.0.1:${YELLOW_APP_PORT}/health" || true)
+    body=$(cat /tmp/yellow-health-body 2>/dev/null || true)
+    if [ "$status" = '200' ] && [ "$body" = '{"status":"ok"}' ]; then healthy=1; break; fi
+    sleep 1
+  done
+  [ "$healthy" -eq 1 ] || { printf 'Application health failed on port %s.\n' "$YELLOW_APP_PORT" >&2; exit 1; }
+  echo 'app health: 200 {"status":"ok"}'
 fi
 
-# ----------------------------------------------------------------- 6. next
-cat <<'EOF'
-
-────────────────────────────────────────────────────────────
-Setup complete. Then:
-  ./state.sh    ← ground truth for any agent, run this first every session
-
-Open Claude Code in this folder, run /mcp to confirm postgres + github +
-context7 are connected, then paste:
-
-  Read PROJECT.md, then CLAUDE.md and BUILD-PLAN.md. Execute Phase 0.
-  The invariant battery in tests/ must stay green from Phase 2 on.
-
-Useful:
-  ./setup.sh --db-only     rebuild db + re-run invariants
-  docker compose down      stop services (data persists)
-  docker compose down -v   stop and DELETE the data volume
-────────────────────────────────────────────────────────────
-EOF
+echo 'Setup complete. Start each agent session with: ./state.sh'

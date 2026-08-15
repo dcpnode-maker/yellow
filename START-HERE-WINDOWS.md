@@ -3,10 +3,10 @@
 Use this instead of `START-HERE.md` if you're on Windows. Same nine steps, Windows
 mechanics. Budget ~40 minutes, most of it installers and one reboot.
 
-## Which path: WSL2, not native Windows
+## Supported path: WSL2
 
-Claude Code runs natively on Windows now, so this is a real choice — but for **this**
-project WSL2 wins clearly, and the reasons are specific rather than aesthetic:
+Claude Code runs natively on Windows, but **this project's supported path is WSL2**.
+It is the only full setup path exercised by CI, for reasons specific to this stack:
 
 - Our stack is Linux-native: Docker Postgres, bash scripts (`setup.sh`), a Linux
   toolchain. Run the agent where the project actually runs.
@@ -15,8 +15,15 @@ project WSL2 wins clearly, and the reasons are specific rather than aesthetic:
 - Claude Code's sandboxed execution works on WSL2 and **not** on native Windows.
 - Your co-founder's Mac and your PC then run identical commands — one set of docs.
 
-Native Windows is the right call only if your machine forbids Hyper-V (locked-down
-corporate policy). Everything below assumes WSL2.
+Everything below assumes WSL2. Native `setup.ps1` remains available as a best-effort,
+unverified convenience, not a supported path. GitHub's Windows runners cannot run the
+Linux containers its database proof requires; a green job that skipped that proof would
+be more misleading than no job. If `setup.ps1` fails, use WSL2 rather than opening a
+support request for the native path.
+
+`state.ps1` is different: it needs only Git and the filesystem, so CI executes its
+open-work transition test in the `windows-state` job. That coverage does not extend to
+`setup.ps1`.
 
 ---
 
@@ -124,9 +131,9 @@ chmod +x setup.sh bootstrap.sh    # if you get "Permission denied"
 ./setup.sh                        # or: bash setup.sh
 ```
 
-Commits 37 files → creates the private GitHub repo `yellow` and pushes → starts
-`yellow-postgres` (port 5442) and `yellow-valkey` (6389) → loads schema and fixture
-→ runs the invariant battery.
+Starts PostgreSQL (default port 5442) and Valkey (6389) → migrates and seeds
+`yellow_dev` → recreates `yellow_test` through the production runner → loads only the
+two-tenant fixture → runs the invariant battery → verifies application health.
 
 **The gate:** it must end with `RESULT: 11 passed, 0 failed of 11`. Don't continue
 if it's red.
@@ -134,12 +141,12 @@ if it's red.
 Sanity check:
 
 ```bash
-docker exec -it yellow-postgres psql -U yellow -d yellow_test \
-  -c "SELECT count(*) FROM pg_tables WHERE schemaname='public';"   # expect 80
+docker compose exec postgres psql -U yellow -d yellow_test \
+  -c "SELECT count(*) FROM pg_tables WHERE schemaname='public';"   # expect 81
 ```
 
-WSL2 forwards localhost, so `localhost:5442` also works from Windows-side tools
-(pgAdmin, DBeaver, a browser) if you want a GUI.
+WSL2 forwards localhost, so `localhost:$YELLOW_POSTGRES_PORT` (default 5442) also
+works from Windows-side tools (pgAdmin, DBeaver) if you want a GUI.
 
 ## Step 8 — Open Claude Code **[you]**
 
@@ -155,7 +162,7 @@ down, `GITHUB_TOKEN` isn't exported in this shell.
 Then `/model` → **Fable 5** for the Phase 0 kickoff (`CLAUDE.md` routes foundations
 work to Fable; switch to Opus 5 for implementation afterwards).
 
-## Step 9 — Start Phase 0 **[you]**
+## Step 9 — Start the current ordered work **[you]**
 
 First, see where you stand — this is the command every agent runs at the start of
 every session, and it prints the same ground truth for all of them:
@@ -166,9 +173,8 @@ every session, and it prints the same ground truth for all of them:
 
 
 ```
-Read PROJECT.md, then CLAUDE.md and BUILD-PLAN.md. Execute Phase 0.
-The invariant battery in tests/ must stay green from Phase 2 onward.
-Log any decision you make in DECISIONS.log before moving on.
+Read PROJECT.md, then your role adapter and BUILD-PLAN.md. Run ./state.sh and work
+only from the current reviewed order. Keep the invariant battery green.
 ```
 
 ---

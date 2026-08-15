@@ -7,7 +7,7 @@ The thinking is done; this package is the thinking, made executable.
 
 | File | What it is | Where it goes |
 |---|---|---|
-| `SCHEMA.sql` | The ERD, executable. 78 tables, 13 contexts, RLS, choke-point functions, hardening. **Validated: loads clean into fresh PostgreSQL 16.** | repo `migrations/0001_init.sql` |
+| `migrations/0001_init.sql` | Immutable executable baseline: 80 tables, 13 contexts, RLS, choke points, hardening. The runner adds `schema_migration` for 81 public tables. |
 | `CLAUDE.md` | The constitution Claude Code reads every session: Ten Invariants, module boundaries, branded types, never-do list. | repo root |
 | `STATE-MACHINES.md` | Every status column's legal transitions + guards + emitted events. | repo `docs/` |
 | `EVENTS.md` | Event envelope, subject scheme, full catalogue v1, consumer registry. | repo `docs/` |
@@ -37,26 +37,26 @@ unzip yellow.zip && cd yellow
 ./setup.sh
 ```
 
-Checks prerequisites → commits → creates a private GitHub repo (via `gh`) → starts
-PostgreSQL 16 + Valkey → loads the schema and fixture → **runs the invariant battery
-on your machine**. If it doesn't print 11/11, don't start Phase 0.
-Flags: `--no-github` (local only) · `--db-only` (rebuild db + re-run tests).
+Checks prerequisites → starts PostgreSQL 16 + Valkey → runs the production migration
+and deterministic demo seed → builds a separate invariant database through the same
+runner → **runs the 11/11 battery on your machine**. Full setup also verifies health.
+It never creates accounts or repositories. `--db-only` runs the database path only.
 
 ## Setup (manual, if you prefer)
 
 1. `mkdir yellow && cd $_ && git init`
-2. Copy `CLAUDE.md`, `BUILD-PLAN.md` to repo root; `SCHEMA.sql` to
-   `migrations/0001_init.sql`; the four docs to `docs/`; `prototype/` to `prototype/`.
+2. Keep `PROJECT.md`, the role adapters, `BUILD-PLAN.md`, the immutable
+   `migrations/0001_init.sql`, and `docs/` together in the repository.
 3. Copy the three skill folders into `~/.claude/skills/`.
 4. MCP servers for Claude Code: **postgres** (point at the dev compose DB — lets
    Claude inspect real schema/data while coding) and **github** (PRs, issues).
 5. `DECISIONS.log` ships seeded — keep appending.
-6. Open Claude Code: *"Read PROJECT.md, then CLAUDE.md and BUILD-PLAN.md. Execute Phase 0."*
+6. Run `./state.sh`, then open your agent on the current reviewed work order.
 
 ## What this package is NOT (the honest 30%)
 
-- **Code.** Zero application TypeScript exists. The package makes the code
-  *derivable*; Phases 0–12 are the derivation.
+- **Domain implementation.** Phase 0 supplies the health scaffold and verified
+  platform loop; the hospitality contexts are built in later phases.
 - **Credentials & certifications.** ZATCA sandbox onboarding, India IRP GSP access,
   Booking.com/Expedia partner certification (start now — calendar-gated), UAE ASP
   vendor selection. Only you can sign up.
@@ -78,7 +78,8 @@ test are archived in the project outputs (`differential-analysis-round-*.md`,
 
 The occupancy prototype's naive constraint design **failed** under concurrency
 (double-sold a private room over live bed sales). The claim-range redesign in
-SCHEMA.sql is the fix, proven at 1,409 commits/sec with zero conflicts admitted.
+`migrations/0001_init.sql` contains the fix, proven at 1,409 commits/sec with zero
+conflicts admitted.
 That failure cost one afternoon on paper. In production it would have cost the
 company. That is what this package is for.
 

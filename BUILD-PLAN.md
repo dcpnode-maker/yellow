@@ -15,22 +15,26 @@ phase's public surface without a written note in `DECISIONS.log`.
 ## Phase 0 — Bootstrap (repo that proves the loop)
 
 Scaffold: Bun + Elysia + TypeScript strict; `src/contexts/<ctx>/index.ts` layout;
-Drizzle or raw-SQL migration runner (forward-only, numbered); docker-compose with
-PG 16 + Valkey + NATS; CI = typecheck + test + fresh-DB migrate + RLS smoke test;
-load `SCHEMA.sql` as migration 0001; seed script for one tenant + one property.
+raw-SQL Bun migration runner (forward-only, numbered); Docker Compose with pinned
+PostgreSQL 16 + Valkey (NATS deferred by D-14 until the first out-of-process consumer
+or second app node); CI = typecheck + test + fresh-DB migrate + canonical RLS referee;
+apply immutable `migrations/0001_init.sql` (80 baseline tables) only through the
+runner, which adds `schema_migration` (81 public tables); seed deterministic
+`yellow-demo` tenant + property separately from the two-tenant invariant fixture.
 **DoD**: `bun test` green in CI · fresh clone → `docker compose up` → migrate → seed →
 health endpoint 200 · RLS smoke test proves cross-tenant read = 0 rows **on tables AND
 through views** (views bypass RLS without security_invoker — proven leak class) ·
-schema-drift check (dump vs SCHEMA.sql) empty.
+schema-drift check (normalized dump vs `tests/schema/expected.sql`) empty.
 **Free wins to wire in at this phase (all zero-dependency):** Bun-native everywhere —
-`Bun.sql` as the Postgres driver, `Bun.password` (argon2id built in, no bcrypt dep),
-Bun's built-in WebSocket/SSE for live front-desk updates, `Bun.S3Client` for R2 backup
-pushes · `pg_stat_statements` in postgres compose config from day one ·
+`Bun.sql` as the exercised Postgres driver. `Bun.password` (argon2id), Bun's built-in
+WebSocket/SSE, and `Bun.S3Client` remain mandatory zero-dependency choices and gain
+executable coverage with their first real consumers · `pg_stat_statements` in
+Postgres Compose config from day one ·
 commit `.claude/` into the repo (CLAUDE.md, hooks: format+typecheck PostToolUse,
 postgres+github MCP config) so both founders share one Claude Code setup ·
 `license-check` CI gate (permissive-only allowlist, see DEPENDENCIES.md) + CSP test
-asserting zero third-party origins + Forgejo mirror remote as GitHub insurance ·
-Cloudflare Tunnel for the OCI boxes (no exposed ports, no firewall roulette).
+asserting zero third-party origins. Forgejo mirroring is pre-deployment founder work;
+Cloudflare Tunnel waits for OCI hosts (D-68). Neither blocks repository Phase 0.
 
 ## Phase 1 — Kernel (tenancy, extension registry, outbox, fact_log)
 

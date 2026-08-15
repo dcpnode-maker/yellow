@@ -93,9 +93,13 @@ faster, safer, and cheaper — the rule is "own what differentiates," not "own e
 
 ## Enforcement (Phase 0 CI gates)
 
+- `psycopg2-binary==2.9.12` (LGPL) is a pinned, hashed, CI-only dependency of
+  the already-canonical Python invariant referee, approved by D-75. It is not
+  installed in or shipped with the application image or runtime.
+
 - `license-check` job fails the build on any dependency outside
-  {MIT, Apache-2.0, BSD-2/3, ISC, PostgreSQL, MPL-2.0} unless listed in
-  `docs/licence-exceptions.md` with a reason.
+  {MIT, Apache-2.0, BSD-2/3, ISC, PostgreSQL, MPL-2.0}. An exception requires
+  an architect decision recorded in `DECISIONS.log` and an approved order.
 - AGPL tools are permitted only as **standalone, unmodified, internal** services
   (never linked into our shipped code); each is listed with its swap target above.
 - Lockfile committed; Renovate PRs; `bun audit` in CI.

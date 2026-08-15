@@ -1,14 +1,59 @@
-﻿# Local development services. Phase 0 extends this file with the app service;
+# Local development services. Phase 0 extends this file with the app service;
 # NATS stays out until the Phase-1 decision gate says otherwise (DECISIONS.log).
 services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    environment:
+      NODE_ENV: production
+      PORT: "3000"
+    ports: ["${YELLOW_APP_PORT:-3000}:3000"]
+    healthcheck:
+      test:
+        - CMD
+        - bun
+        - -e
+        - >-
+          const response = await fetch("http://127.0.0.1:3000/health");
+          const body = await response.json();
+          if (response.status !== 200 || JSON.stringify(body) !== '{"status":"ok"}') process.exit(1);
+      interval: 3s
+      timeout: 3s
+      retries: 20
+
+  migrate:
+    profiles: ["tools"]
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: database-tools
+    environment:
+      DATABASE_URL: postgres://yellow:yellow@postgres:5432/yellow_dev
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  seed:
+    profiles: ["tools"]
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: database-tools
+    command: ["bun", "scripts/seed.ts"]
+    environment:
+      DATABASE_URL: postgres://yellow:yellow@postgres:5432/yellow_dev
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+
   postgres:
-    image: postgres:16-alpine
-    container_name: yellow-postgres
+    image: postgres:16.15-alpine@sha256:ab5c955e9e57ae9879d4411ab49a912be9d162455676f7bf56e951b11ac73785
     environment:
       POSTGRES_USER: yellow
       POSTGRES_PASSWORD: yellow
       POSTGRES_DB: yellow_dev
-    ports: ["5442:5432"]
+    ports: ["${YELLOW_POSTGRES_PORT:-5442}:5432"]
     volumes:
       - yellow-pgdata:/var/lib/postgresql/data
     command: >
@@ -24,8 +69,7 @@ services:
 
   valkey:
     image: valkey/valkey:8-alpine
-    container_name: yellow-valkey
-    ports: ["6389:6379"]
+    ports: ["${YELLOW_VALKEY_PORT:-6389}:6379"]
     command: valkey-server --save "" --appendonly no
     healthcheck:
       test: ["CMD", "valkey-cli", "ping"]

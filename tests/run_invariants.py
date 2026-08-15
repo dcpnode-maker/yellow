@@ -68,8 +68,25 @@ exc, beds = cur.fetchone(); c.close()
 check("TC-12.2", "private vs beds never coexist", not (exc > 0 and beds > 0), f"exclusive={exc} beds={beds}")
 
 # R3 / TC-12.3 — capacity race: clear dorm, 40 threads for 6 beds
-c, cur = conn(); cur.execute("SET ROLE postgres")
-cur.execute("DELETE FROM space_occupancy WHERE space_id=%s", (DORM,)); c.commit(); c.close()
+c, cur = conn()
+cur.execute("SELECT row_security_active('public.space_occupancy'::regclass)")
+rls_active = cur.fetchone()[0]
+cur.execute("SELECT has_table_privilege(current_user, 'public.space_occupancy', 'DELETE')")
+can_delete = cur.fetchone()[0]
+if rls_active or not can_delete:
+    c.close()
+    raise RuntimeError(
+        "TC-12.3 harness configuration invalid: cleanup connection must bypass RLS "
+        f"and have DELETE privilege (row_security_active={rls_active}, can_delete={can_delete})"
+    )
+cur.execute("DELETE FROM space_occupancy WHERE space_id=%s", (DORM,))
+c.commit()
+cur.execute("SELECT count(*) FROM space_occupancy WHERE space_id=%s", (DORM,))
+remaining = cur.fetchone()[0]
+if remaining != 0:
+    c.close()
+    raise RuntimeError(f"TC-12.3 harness cleanup failed: dorm still holds {remaining} rows")
+c.close()
 caps = []
 ths = [threading.Thread(target=record, args=(DORM, False, PERIOD, caps)) for _ in range(40)]
 [t.start() for t in ths]; [t.join() for t in ths]
@@ -87,7 +104,7 @@ except psycopg2.Error as e:
 c.close()
 
 # R5 / TC-12.5 — throughput: 500 sequential commits on distinct future periods
-c, cur = conn(); t0 = time.time()
+c, cur = conn()
 for i in range(500):
     d = f"[2027-01-{(i%27)+1:02d} 14:00+04,2027-01-{(i%27)+1:02d} 18:00+04)"
     cur.execute("SELECT record_occupancy(%s,%s,%s::tstzrange,%s,%s,%s)",
@@ -108,10 +125,12 @@ def burst(n, out):
         except Exception:
             c.rollback()
     c.close(); out.append(ok)
-t0 = time.time(); outs = []
+t0 = time.perf_counter(); outs = []
 ths = [threading.Thread(target=burst, args=(50, outs)) for _ in range(8)]
 [t.start() for t in ths]; [t.join() for t in ths]
-dt = time.time() - t0; done = sum(outs)
+dt = time.perf_counter() - t0; done = sum(outs)
+if dt <= 0:
+    raise RuntimeError(f"TC-12.5 harness clock invalid: elapsed time must be positive, got {dt}")
 check("TC-12.5", "concurrent commit throughput", done > 0, f"{done} commits in {dt:.2f}s = {done/dt:.0f}/s")
 
 # R6 / TC-5.6 — unbalanced journal rejected AT COMMIT by deferred trigger
@@ -179,14 +198,45 @@ check("TC-8.2", "100 concurrent invoice numbers gapless", gapless, f"issued={len
 # R9 / TC-13.1 (fixed) — RLS on TABLES via app_role
 c, cur = conn(role_app=True, tenant=T_A); cur.execute("SELECT count(*) FROM space"); a = cur.fetchone()[0]; c.close()
 c, cur = conn(role_app=True, tenant=T_B); cur.execute("SELECT count(*) FROM space"); b = cur.fetchone()[0]; c.close()
-check("TC-13.1", "table RLS: A sees 16, B sees 0", a == 16 and b == 0, f"A={a} B={b}")
+c, cur = conn()
+cur.execute("""
+    SELECT count(*)::int,
+           count(*) FILTER (WHERE cls.relrowsecurity)::int,
+           count(*) FILTER (WHERE EXISTS (
+               SELECT 1 FROM pg_policy pol
+                WHERE pol.polrelid = cls.oid AND pol.polname = 'tenant_isolation'
+           ))::int
+      FROM information_schema.columns col
+      JOIN information_schema.tables tbl
+        ON tbl.table_schema = col.table_schema AND tbl.table_name = col.table_name
+       AND tbl.table_type = 'BASE TABLE'
+      JOIN pg_namespace ns ON ns.nspname = col.table_schema
+      JOIN pg_class cls ON cls.relnamespace = ns.oid AND cls.relname = col.table_name
+     WHERE col.table_schema = 'public' AND col.column_name = 'tenant_id'
+""")
+tenant_tables, rls_tables, policy_tables = cur.fetchone(); c.close()
+table_catalog_ok = tenant_tables > 0 and rls_tables == tenant_tables and policy_tables == tenant_tables
+check("TC-13.1", "table RLS: A sees 16, B sees 0", a == 16 and b == 0 and table_catalog_ok,
+      f"A={a} B={b} tenant_tables={tenant_tables} rls={rls_tables} policies={policy_tables}")
 
 # R10 / TC-13.4 (NEW) — RLS through VIEWS (the proven leak class)
 c, cur = conn(role_app=True, tenant=T_A)
-cur.execute("SELECT count(DISTINCT tenant_id) , count(*) FROM current_rate_price"); ta, ra = cur.fetchone(); c.close()
+cur.execute("SELECT tenant_id::text FROM current_rate_price"); rows_a = [row[0] for row in cur.fetchall()]; c.close()
 c, cur = conn(role_app=True, tenant=T_B)
-cur.execute("SELECT count(DISTINCT tenant_id), count(*) FROM current_rate_price"); tb, rb = cur.fetchone(); c.close()
-check("TC-13.4", "view RLS: each tenant sees only itself", ta == 1 and tb == 1, f"A:{ra}rows B:{rb}rows")
+cur.execute("SELECT tenant_id::text FROM current_rate_price"); rows_b = [row[0] for row in cur.fetchall()]; c.close()
+c, cur = conn()
+cur.execute("""
+    SELECT count(*)::int,
+           count(*) FILTER (WHERE COALESCE(cls.reloptions, ARRAY[]::text[]) @> ARRAY['security_invoker=true'])::int
+      FROM pg_class cls
+      JOIN pg_namespace ns ON ns.oid = cls.relnamespace
+     WHERE ns.nspname = 'public' AND cls.relkind = 'v'
+""")
+view_count, invoker_views = cur.fetchone(); c.close()
+view_behavior_ok = bool(rows_a) and bool(rows_b) and all(t == T_A for t in rows_a) and all(t == T_B for t in rows_b)
+view_catalog_ok = view_count > 0 and invoker_views == view_count
+check("TC-13.4", "view RLS: each tenant sees only itself", view_behavior_ok and view_catalog_ok,
+      f"A:{len(rows_a)}rows B:{len(rows_b)}rows views={view_count} security_invoker={invoker_views}")
 
 print("\n" + "=" * 60)
 p = sum(1 for r in results if r[2]); f = len(results) - p

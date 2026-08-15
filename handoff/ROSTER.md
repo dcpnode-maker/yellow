@@ -27,18 +27,31 @@ transition, projection logic, anything touching money display or tax computation
 
 **Tier 3 — foundational.** Migrations, occupancy claim logic, journal/posting,
 fiscal chains, RLS, tenant scoping, document numbering.
-→ **Two reviewers from different vendors** + an executable proof (a test that fails
-before the change and passes after, or a battery run on the branch). Decision
-appended to `DECISIONS.log` by the deciding architect.
+→ **One architect-role reviewer (Claude)** + an executable proof that the **reviewer
+runs themselves** — a test that fails before the change and passes after, or a battery
+run on the branch. A pasted result from the builder is not proof. Decision appended to
+`DECISIONS.log` by the deciding architect. **Amended by D-84 (2026-08-15)** from the
+original two-different-vendor requirement.
 
-### Why Tier 3 requires cross-vendor review
+### Why Tier 3 requires reviewer-executed proof
 
 This isn't ceremony. In this project's own history, a cross-tenant leak through
 Postgres views was reviewed and missed by two separate models on paper — because
 models trained on similar material share blind spots, and a second opinion from the
 same family often agrees for the same wrong reason. It was caught by a two-tenant
-fixture that actually ran. So Tier 3 requires **both** a different-vendor reader
-and something executable. Diversity of reviewer plus execution beats either alone.
+fixture that actually ran.
+
+Read the incident precisely: **execution caught it; the second reader did not.** That
+is why D-84 could drop the second vendor without dropping the protection, and why it
+simultaneously made the executable half **non-waivable and reviewer-run**. The half that
+was load-bearing is now stricter, not looser.
+
+What was genuinely lost is the diversity check on the *reviewer's own* blind spots —
+nobody is positioned to catch the reviewer reading a diff wrong. Two things stand in for
+it, and both are real rather than nominal: the builder challenges the architect's
+positions in writing (Question 008 did exactly this, and D-72 corrected the architect's
+own D-69), and every Tier-3 claim must be reproduced from a command, not asserted.
+Recorded so the residual risk is a known cost, not an oversight.
 
 ## Adding a new agent (the whole procedure)
 

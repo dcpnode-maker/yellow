@@ -17,14 +17,16 @@ founding team; AI agents write essentially all code; a founder reviews every
 critical-path change. Stack: **TypeScript (strict) · Bun · Elysia · PostgreSQL 16 ·
 modular monolith**. Zero-cost doctrine: runs on free/OSS infrastructure.
 
-**Current state:** schema validated (80 tables, loads clean), invariant battery
-green (11/11), no application code yet. Phase 0 is next.
+**Current state:** the immutable 80-table baseline is applied by the production
+runner, which adds `schema_migration` (81 public tables total); deterministic demo
+seed, schema drift, health, and the 11/11 invariant battery are Phase-0 gates.
 
 ## The Ten Invariants (violating any is never acceptable)
 
 1. **`space_occupancy` is written only via `record_occupancy()` / `release_occupancy()`.**
    Never INSERT/UPDATE/DELETE directly — grants forbid it and the battery asserts the
-   denial (SQLSTATE 42501). Claim-range design, SCHEMA.sql §4, prototype finding P1.
+   denial (SQLSTATE 42501). Claim-range design, `migrations/0001_init.sql` §4,
+   prototype finding P1.
 2. **PostgreSQL is authoritative for every sellability decision.** Valkey/projections
    are read-only caches; a booking is legal only when the constraint accepts the write.
 3. **Insert-only tables stay insert-only**: `journal`, `posting_line`, `fact_log`,
@@ -52,7 +54,8 @@ green (11/11), no application code yet. Phase 0 is next.
 
 ## Module boundaries
 
-13 bounded contexts (SCHEMA.sql §1–§11). Layout `src/contexts/<context>/…` with
+13 bounded contexts (`migrations/0001_init.sql` §1–§11). Layout
+`src/contexts/<context>/…` with
 `index.ts` as the ONLY import surface. Cross-context reads go through that surface;
 cross-context effects go through outbox events. If a change spans contexts, write the
 event first.
@@ -105,7 +108,7 @@ invariants 4 or 7; hand-write availability math outside the projection rebuilder
 | What are we building next? | `BUILD-PLAN.md` |
 | Who does what? | `docs/WORKFLOW.md`, `handoff/ROSTER.md` |
 | What just happened? | `handoff/LEDGER.md` |
-| Is it still correct? | `./setup.sh --db-only` → 11/11 |
+| Is it still correct? | `./setup.sh --db-only` → 81 tables and 11/11 |
 
 ## The referee
 
