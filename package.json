@@ -15,6 +15,7 @@
     "test:db:seed": "YELLOW_REQUIRE_SEED_DB=1 bun test tests/seed.integration.test.ts",
     "test:database": "YELLOW_REQUIRE_DATABASE_ACCEPTANCE=1 bun test tests/database-acceptance.integration.test.ts",
     "test:fact-log": "YELLOW_REQUIRE_FACT_LOG=1 bun test tests/fact-log.integration.test.ts",
+    "test:outbox": "YELLOW_REQUIRE_OUTBOX=1 bun test tests/outbox.integration.test.ts",
     "test:auth": "YELLOW_REQUIRE_AUTH=1 bun test tests/auth.integration.test.ts tests/token.test.ts",
     "test:tenant-context": "YELLOW_REQUIRE_TENANT_CONTEXT=1 bun test tests/tenant-context.integration.test.ts",
     "typecheck": "tsc --noEmit",

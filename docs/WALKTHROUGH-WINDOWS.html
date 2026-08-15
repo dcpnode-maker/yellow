@@ -151,7 +151,7 @@ Or just run <code>bash setup.sh</code> — that ignores the execute bit entirely
 <li><label><input type="checkbox"><span>Sanity check the database:
 <pre>docker compose exec postgres psql -U yellow -d yellow_test \
   -c "SELECT count(*) FROM pg_tables WHERE schemaname='public';"</pre>
-<div class="expect">Want: <b>81</b> (80 baseline tables + <code>schema_migration</code>)</div></span></label></li>
+<div class="expect">Want: <b>83</b> (80 baseline tables + 2 kernel consumer tables + <code>schema_migration</code>)</div></span></label></li>
 </ol>
 </div>
 

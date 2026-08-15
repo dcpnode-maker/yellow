@@ -61,7 +61,7 @@ done
 if printf '%s\n' "$running" | grep -qx postgres; then
   tables=$(docker compose exec -T postgres psql -U yellow -d yellow_test -tAc \
     "SELECT count(*) FROM pg_tables WHERE schemaname='public';" 2>/dev/null | tr -d '[:space:]' || true)
-  [ -n "$tables" ] && printf 'yellow_test tables: %s (80 baseline + schema_migration; expected 81)\n' "$tables"
+  [ -n "$tables" ] && printf 'yellow_test tables: %s (80 baseline + 2 kernel consumer + schema_migration; expected 83)\n' "$tables"
 fi
 
 echo 'Phase: 0 · cumulative review pending'

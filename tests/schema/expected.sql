@@ -436,6 +436,28 @@ CREATE TABLE public.consent (
 
 
 --
+-- Name: consumer_cursor; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.consumer_cursor (
+    consumer text NOT NULL,
+    last_seq bigint DEFAULT 0 NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+
+--
+-- Name: consumer_processed; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.consumer_processed (
+    consumer text NOT NULL,
+    outbox_id uuid NOT NULL,
+    processed_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+
+--
 -- Name: contact_point; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -1711,6 +1733,22 @@ ALTER TABLE ONLY public.consent
 
 
 --
+-- Name: consumer_cursor consumer_cursor_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.consumer_cursor
+    ADD CONSTRAINT consumer_cursor_pkey PRIMARY KEY (consumer);
+
+
+--
+-- Name: consumer_processed consumer_processed_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.consumer_processed
+    ADD CONSTRAINT consumer_processed_pkey PRIMARY KEY (consumer, outbox_id);
+
+
+--
 -- Name: contact_point contact_point_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -2387,6 +2425,13 @@ ALTER TABLE ONLY public.waitlist_entry
 --
 
 CREATE INDEX account_party ON public.account USING btree (tenant_id, party_id) WHERE (party_id IS NOT NULL);
+
+
+--
+-- Name: consumer_processed_age; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX consumer_processed_age ON public.consumer_processed USING brin (processed_at);
 
 
 --

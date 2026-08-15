@@ -61,8 +61,8 @@ try {
     $tables = docker compose exec -T postgres psql -U yellow -d yellow_test -tAc "SELECT count(*) FROM pg_tables WHERE schemaname='public';"
     Assert-Exit 'Counting public tables'
     $tables = $tables.Trim()
-    if ($tables -ne '81') { throw "yellow_test has $tables public tables; expected 81 (80 baseline + schema_migration)." }
-    Write-Host 'yellow_test tables: 81 (80 baseline + schema_migration)'
+    if ($tables -ne '83') { throw "yellow_test has $tables public tables; expected 83 (80 baseline + 2 kernel consumer + schema_migration)." }
+    Write-Host 'yellow_test tables: 83 (80 baseline + 2 kernel consumer + schema_migration)'
 
     $env:YELLOW_DSN = "dbname=yellow_test user=yellow password=yellow host=127.0.0.1 port=$($env:YELLOW_POSTGRES_PORT)"
     $env:PYTHONIOENCODING = 'utf-8'
