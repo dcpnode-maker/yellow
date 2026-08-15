@@ -33,6 +33,10 @@ interface OutboxRow {
   readonly payload: Record<string, unknown>;
 }
 
+export interface ConsumedOutboxBatch extends ConsumeBatchResult {
+  readonly events: readonly OutboxEvent[];
+}
+
 function requiredUuid(name: string, value: string): void {
   if (!UUID.test(value)) throw new Error(`${name} must be a UUID`);
 }
@@ -258,6 +262,175 @@ export class PostgresEventBus implements EventBus {
           // Preserve the consumer or handler failure; the broken reservation is discarded.
         }
       }
+      throw error;
+    } finally {
+      connection.release();
+    }
+  }
+
+  /**
+   * Processes rows that have not yet been acknowledged by the relay. The consumer
+   * transaction deliberately does not set published_at: a crash after this method
+   * commits is recovered by selecting the same unpublished rows and applying the
+   * consumer_processed dedupe marker.
+   */
+  async consumeUnpublishedBatch(
+    consumer: string,
+    handler: EventHandler,
+    options: ConsumeBatchOptions = {},
+  ): Promise<ConsumedOutboxBatch> {
+    if (!CONSUMER_NAME.test(consumer)) throw new Error("consumer must be a stable lowercase name");
+    const limit = batchSize(options);
+    const connection = await this.#pool.reserve();
+    let began = false;
+
+    try {
+      await connection.unsafe("BEGIN");
+      began = true;
+      await connection`
+        INSERT INTO consumer_cursor (consumer, last_seq)
+        VALUES (${consumer}, 0)
+        ON CONFLICT (consumer) DO NOTHING
+      `;
+      const cursorRows = await connection<Array<{ last_seq: number | bigint }>>`
+        SELECT last_seq
+        FROM consumer_cursor
+        WHERE consumer = ${consumer}
+        FOR UPDATE
+      `;
+      const initialLastSeq = Number(cursorRows[0]?.last_seq ?? 0);
+      if (!Number.isSafeInteger(initialLastSeq) || initialLastSeq < 0) {
+        throw new Error("Consumer cursor is outside the supported sequence range");
+      }
+
+      const rows = await connection<OutboxRow[]>`
+        SELECT
+          seq,
+          id,
+          tenant_id,
+          property_node,
+          business_date::text,
+          aggregate_type,
+          aggregate_id,
+          event_type,
+          event_version,
+          actor_id,
+          correlation_id,
+          causation_id,
+          created_at,
+          payload
+        FROM outbox
+        WHERE published_at IS NULL
+        ORDER BY seq
+        LIMIT ${limit}
+      `;
+
+      let processed = 0;
+      let lastSeq = initialLastSeq;
+      const events: OutboxEvent[] = [];
+      for (const row of rows) {
+        const event = toEvent(row);
+        events.push(event);
+        const inserted = await connection<Array<{ consumer: string }>>`
+          INSERT INTO consumer_processed (consumer, outbox_id)
+          VALUES (${consumer}, ${event.id}::uuid)
+          ON CONFLICT (consumer, outbox_id) DO NOTHING
+          RETURNING consumer
+        `;
+        if (inserted.length === 1) {
+          await runHandlerAsTenant(connection, event, handler);
+          processed += 1;
+        }
+        lastSeq = Math.max(lastSeq, event.seq);
+      }
+
+      if (lastSeq !== initialLastSeq) {
+        await connection`
+          UPDATE consumer_cursor
+          SET last_seq = ${lastSeq}, updated_at = now()
+          WHERE consumer = ${consumer}
+        `;
+      }
+      await connection.unsafe("COMMIT");
+      began = false;
+      return { consumer, examined: rows.length, processed, lastSeq, events };
+    } catch (error) {
+      if (began) {
+        try {
+          await connection.unsafe("ROLLBACK");
+        } catch {
+          // Preserve the consumer or handler failure; the broken reservation is discarded.
+        }
+      }
+      throw error;
+    } finally {
+      connection.release();
+    }
+  }
+
+  async markPublished(eventIds: readonly string[]): Promise<number> {
+    if (eventIds.length === 0) return 0;
+    for (const eventId of eventIds) requiredUuid("eventId", eventId);
+    const encodedIds = JSON.stringify(eventIds);
+    const connection = await this.#pool.reserve();
+    let began = false;
+    try {
+      await connection.unsafe("BEGIN");
+      began = true;
+      const result = await connection<Array<{ count: number }>>`
+        WITH ids AS (
+          SELECT value::uuid AS id
+          FROM jsonb_array_elements_text(${encodedIds}::text::jsonb)
+        ), marked AS (
+          UPDATE outbox
+          SET published_at = COALESCE(published_at, now())
+          WHERE id IN (SELECT id FROM ids)
+          RETURNING 1
+        )
+        SELECT count(*)::int AS count FROM marked
+      `;
+      await connection.unsafe("COMMIT");
+      began = false;
+      return result[0]?.count ?? 0;
+    } catch (error) {
+      if (began) await connection.unsafe("ROLLBACK");
+      throw error;
+    } finally {
+      connection.release();
+    }
+  }
+
+  async prunePublished(retentionSeconds: number): Promise<{ processed: number; outbox: number }> {
+    if (!Number.isSafeInteger(retentionSeconds) || retentionSeconds < 0) {
+      throw new Error("retentionSeconds must be a non-negative integer");
+    }
+    const connection = await this.#pool.reserve();
+    let began = false;
+    try {
+      await connection.unsafe("BEGIN");
+      began = true;
+      const processedRows = await connection<Array<{ count: number }>>`
+        WITH gone AS (
+          DELETE FROM consumer_processed AS processed
+          USING outbox AS event
+          WHERE processed.outbox_id = event.id
+            AND event.published_at IS NOT NULL
+            AND event.published_at < now() - make_interval(secs => ${retentionSeconds})
+          RETURNING 1
+        )
+        SELECT count(*)::int AS count FROM gone
+      `;
+      const outboxRows = await connection<Array<{ count: number | bigint }>>`
+        SELECT prune_outbox(make_interval(secs => ${retentionSeconds})) AS count
+      `;
+      await connection.unsafe("COMMIT");
+      began = false;
+      return {
+        processed: processedRows[0]?.count ?? 0,
+        outbox: Number(outboxRows[0]?.count ?? 0),
+      };
+    } catch (error) {
+      if (began) await connection.unsafe("ROLLBACK");
       throw error;
     } finally {
       connection.release();

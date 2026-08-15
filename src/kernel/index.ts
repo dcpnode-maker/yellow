@@ -13,6 +13,14 @@ export type {
   PublishEventInput,
 } from "./event-bus";
 export { PostgresEventBus } from "./outbox";
+export type { ConsumedOutboxBatch } from "./outbox";
+export { OutboxRelay } from "./relay";
+export type {
+  OutboxRelayOptions,
+  RelayBatchHooks,
+  RelayBatchResult,
+  RelayRunOptions,
+} from "./relay";
 export {
   failClosedTenantResolver,
   TenantContextMiddleware,
