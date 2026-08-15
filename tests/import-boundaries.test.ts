@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { mkdir, mkdtemp, readFile, readdir, rm, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readdir, rm, stat, writeFile } from "node:fs/promises";
 import { dirname, join, resolve } from "node:path";
 import { tmpdir } from "node:os";
 import { checkImportBoundaries } from "../scripts/check-import-boundaries";
@@ -41,8 +41,23 @@ async function withFixture<T>(
   }
 }
 
+async function countTypeScriptFiles(root: string): Promise<number> {
+  let count = 0;
+
+  for (const entry of await readdir(root, { withFileTypes: true })) {
+    const path = resolve(root, entry.name);
+    if (entry.isDirectory()) {
+      count += await countTypeScriptFiles(path);
+    } else if (entry.isFile() && entry.name.endsWith(".ts")) {
+      count += 1;
+    }
+  }
+
+  return count;
+}
+
 describe("context layout", () => {
-  test("contains exactly 13 empty context indices and one empty kernel index", async () => {
+  test("contains exactly 13 canonical context indices and one kernel index", async () => {
     const contextRoot = resolve(PROJECT_ROOT, "src", "contexts");
     const contextDirectories = (await readdir(contextRoot, { withFileTypes: true }))
       .filter((entry) => entry.isDirectory())
@@ -52,16 +67,19 @@ describe("context layout", () => {
     expect(contextDirectories).toEqual([...EXPECTED_CONTEXTS]);
 
     for (const context of EXPECTED_CONTEXTS) {
-      expect(await readFile(resolve(contextRoot, context, "index.ts"), "utf8")).toBe("");
+      expect((await stat(resolve(contextRoot, context, "index.ts"))).isFile()).toBe(true);
     }
 
-    expect(await readFile(resolve(PROJECT_ROOT, "src", "kernel", "index.ts"), "utf8")).toBe("");
+    expect((await stat(resolve(PROJECT_ROOT, "src", "kernel", "index.ts"))).isFile()).toBe(true);
   });
 
   test("the real source tree obeys the boundary rule", async () => {
     const result = await checkImportBoundaries(PROJECT_ROOT);
+    const expectedFilesScanned =
+      await countTypeScriptFiles(resolve(PROJECT_ROOT, "src", "contexts")) +
+      await countTypeScriptFiles(resolve(PROJECT_ROOT, "src", "kernel"));
 
-    expect(result.filesScanned).toBe(14);
+    expect(result.filesScanned).toBe(expectedFilesScanned);
     expect(result.violations).toEqual([]);
   });
 });
