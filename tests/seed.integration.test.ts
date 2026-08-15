@@ -125,7 +125,11 @@ databaseDescribe("deterministic app-role bootstrap seed", () => {
       ]);
 
       const tenants = await sql`SELECT id, slug, name, tier, residency, status FROM tenant`;
-      const properties = await sql`SELECT id, tenant_id, path::text AS path, kind, name, timezone, currency, config FROM org_node`;
+      const properties = await sql`
+        SELECT id, tenant_id, path::text AS path, kind, name, timezone, currency,
+               config, jsonb_typeof(config) AS config_type
+        FROM org_node
+      `;
       expect(tenants).toEqual([SEED_TENANT]);
       expect(properties).toEqual([{
         id: SEED_PROPERTY.id,
@@ -135,7 +139,8 @@ databaseDescribe("deterministic app-role bootstrap seed", () => {
         name: SEED_PROPERTY.name,
         timezone: SEED_PROPERTY.timezone,
         currency: SEED_PROPERTY.currency,
-        config: "{}",
+        config: {},
+        config_type: "object",
       }]);
     });
   }, 60_000);

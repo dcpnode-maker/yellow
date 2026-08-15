@@ -135,7 +135,6 @@ function publicError(error: unknown, databaseUrl: string): SeedError {
 }
 
 function sameConfig(value: unknown): boolean {
-  if (value === "{}") return true;
   return typeof value === "object" && value !== null && !Array.isArray(value) && Object.keys(value).length === 0;
 }
 
@@ -207,7 +206,7 @@ async function handleProperty(connection: ReservedSQL): Promise<SeedResult["prop
   if (rows.length === 0) {
     rows = await connection<PropertyRow[]>`
       INSERT INTO public.org_node (id, tenant_id, path, kind, name, timezone, currency, config)
-      VALUES (${SEED_PROPERTY.id}, ${SEED_PROPERTY.tenantId}, ${SEED_PROPERTY.path}::ltree, ${SEED_PROPERTY.kind}, ${SEED_PROPERTY.name}, ${SEED_PROPERTY.timezone}, ${SEED_PROPERTY.currency}, ${JSON.stringify(SEED_PROPERTY.config)}::jsonb)
+      VALUES (${SEED_PROPERTY.id}, ${SEED_PROPERTY.tenantId}, ${SEED_PROPERTY.path}::ltree, ${SEED_PROPERTY.kind}, ${SEED_PROPERTY.name}, ${SEED_PROPERTY.timezone}, ${SEED_PROPERTY.currency}, ${JSON.stringify(SEED_PROPERTY.config)}::text::jsonb)
       RETURNING id, tenant_id, path::text AS path, kind, name, timezone, currency, config
     `;
     if (rows.length !== 1 || !rows[0] || !propertyIsExact(rows[0])) throw new Error("Inserted property is not canonical");
