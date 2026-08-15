@@ -30,3 +30,11 @@
 2026-08-15 · 010 · 0 · phase-0/powershell-coverage-split · codex → claude · QUESTION-ANSWERED · self-check precondition vs assertion; D-88 amends D-87; builder was right, rule was wrong; renumbered from 009 (collision)
 2026-08-15 · 018 · 0 · phase-0/powershell-coverage-split · codex → claude · APPROVED · windows-state job covers state.ps1; scripts byte-identical; red proof is a CI record, not reviewer-executed — D-89 records the structural limit
 2026-08-15 · 001-018 · 0 · phase-0/powershell-coverage-split · — → claude · MERGE-PREPARED · all 18 orders marked ## MERGED; single cumulative integration to main per D-90; PRs #15 and #16 close as superseded
+2026-08-15 · 019 · 1 · phase-1/tenant-context-middleware · claude → codex · ORDER-WRITTEN · T3, TenantResolver port, six pre-registered proofs; P3 leak and P5 error-path are the load-bearing ones; D-91 D-92
+2026-08-15 · 020 · 1 · phase-1/auth-jwt · claude → codex · ORDER-WRITTEN · T3, D-91 claim set exactly; alg:none and algorithm-confusion proofs required; Ed25519 probe is DoD item 1
+2026-08-15 · 021 · 1 · phase-1/fact-log-audit · claude → codex · ORDER-WRITTEN · T2, audit envelope in-transaction before anything mutates
+2026-08-15 · 022 · 1 · phase-1/eventbus-outbox · claude → codex · ORDER-WRITTEN · T2, EventBus port so D-14's NATS swap stays a config change
+2026-08-15 · 023 · 1 · phase-1/outbox-relay · claude → codex · ORDER-WRITTEN · T3, SIGKILL mid-batch proof; dedupe key = outbox row id, at-least-once never exactly-once
+2026-08-15 · 024 · 1 · phase-1/extension-registry · claude → codex · ORDER-WRITTEN · T2, runtime type registration + JSON-Schema validation before write
+2026-08-15 · 025 · 1 · phase-1/approval-request · claude → codex · ORDER-WRITTEN · T2, insert-only, self-approval rejected at the primitive
+2026-08-15 · 026 · 1 · phase-1/org-ltree · claude → codex · ORDER-WRITTEN · T2, GiST index proof + tenant-scoped paths; completes Phase 1

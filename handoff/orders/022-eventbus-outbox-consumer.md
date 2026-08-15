@@ -1,0 +1,51 @@
+# ORDER 022 — EventBus port and in-process outbox consumer
+
+**Phase:** 1 · **Branch:** `phase-1/eventbus-outbox` · **Tier:** 2
+**Written by:** Claude (architect) · **Date:** 2026-08-15 · **Decisions:** D-13, D-14
+
+## Goal
+
+Cross-context effects are published through one `EventBus` interface backed by the
+transactional outbox, with in-process consumers reading by `seq` from a cursor row.
+
+## Why this shape
+
+D-14 defers NATS until the first out-of-process consumer or second node, and says the
+swap must be a config change. That is only true if nothing imports the transport. The
+interface is the deliverable; the Postgres implementation is behind it.
+
+## Scope
+
+`src/kernel/event-bus.ts` (port), `src/kernel/outbox.ts` (Postgres implementation and
+cursor consumer), `src/kernel/index.ts`, `tests/outbox.integration.test.ts`.
+`outbox` and the push_cursor pattern exist in the baseline — **no migration**.
+
+## Required behaviour
+
+1. Publishing writes an outbox row **in the caller's transaction**. An event whose
+   transaction rolls back was never published — that is the whole point of an outbox.
+2. Consumers read by `seq` with a per-consumer cursor row, per §9's existing pattern.
+3. No consumer imports anything Postgres-specific; they take the port.
+4. Subjects map 1:1 to EVENTS.md so the NATS swap stays a config change.
+
+## Pre-registered proofs
+
+| # | Proves | Must show |
+|---|---|---|
+| P1 | Atomic with the write | mutation + event commit together; rollback publishes nothing |
+| P2 | Ordering | consumer observes events in `seq` order under concurrent publishers |
+| P3 | Cursor durability | consumer restarted mid-stream resumes at its cursor, no gap, no repeat |
+| P4 | Port is honoured | a compile-time or test-time assertion that no consumer imports the Postgres module directly |
+
+## Forbidden
+
+`LISTEN`/`NOTIFY` as the delivery mechanism (D-13: PgBouncer) · adding NATS, a broker, or
+any dependency · publishing outside the caller's transaction · deleting outbox rows
+(pruning is `prune_outbox`, already in the baseline) · editing `migrations/` or
+`tests/run_invariants.py` · merging.
+
+## Note for Order 023
+
+Order 023 carries the phase's hardest DoD line — kill the relay mid-batch, restart,
+nothing lost or duplicated. Design the cursor here with that test in mind; if you find
+yourself wanting at-most-once semantics to make it easier, stop and ask.
