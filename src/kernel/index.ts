@@ -1,5 +1,19 @@
 export { createAuditEnvelope } from "./audit";
 export type { AuditEnvelope, AuditEnvelopeInput } from "./audit";
+export {
+  APPROVAL_STATUSES,
+  APPROVAL_TRANSITIONS,
+  ApprovalConflictError,
+  ApprovalService,
+  isDeclaredApprovalTransition,
+} from "./approval";
+export type {
+  ApprovalDecision,
+  ApprovalRequest,
+  ApprovalStatus,
+  DecideApprovalInput,
+  RequestApprovalInput,
+} from "./approval";
 export { Database } from "./db";
 export type { ConnectionPool, DatabaseOptions, Tx } from "./db";
 export { ExtensionRegistry, ExtensionValidationError, validateJsonSchema } from "./extension";
