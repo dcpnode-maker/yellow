@@ -5,6 +5,11 @@
 > timestamp→`recorded_at`, entity→`entity_type`/`entity_id`. Tenant-level facts with no
 > property are out of scope for Phase 1 — stop and ask.
 > **I:** **P5 is removed** from this order and becomes a Phase 1 exit-gate proof. Keep P1–P4.
+> **AMENDED by `handoff/questions/013-ARCHITECT-RESPONSE.md` (D-96).** Bun 1.3.14
+> JSONB parameter encoding exposed an existing seed defect while P1 ran. Scope gains
+> `scripts/seed.ts` and `tests/seed.integration.test.ts` only for the shared
+> pre-stringified-JSON correction and its object-type regression proof. P1–P4 are not
+> weakened; P3 reads PostgreSQL SQLSTATE from Bun's `errno` field.
 
 # ORDER 021 — fact_log write helper and audit envelope
 
@@ -26,6 +31,9 @@ position three of the phase so that no mutation in Yellow's history is ever unau
 `src/kernel/fact-log.ts`, `src/kernel/audit.ts`, `src/kernel/index.ts`,
 `tests/fact-log.integration.test.ts`. `fact_log` already exists in the baseline schema
 (§2 kernel primitives) — read it before designing; **no migration**.
+
+Correction-only additions under D-96: `scripts/seed.ts` and
+`tests/seed.integration.test.ts`. No other Phase 0 file is in Scope.
 
 ## Required behaviour
 
