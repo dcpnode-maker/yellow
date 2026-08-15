@@ -7,6 +7,10 @@
 > generated schema snapshot, setup/state table-count text on both supported paths, and
 > the Windows walkthrough's derived count. The exact result is 83 public tables:
 > 80 baseline + 2 kernel consumer tables + `schema_migration`.
+> **AMENDED by `handoff/questions/015-ARCHITECT-RESPONSE.md` (D-98).** D-94's
+> `FOR UPDATE SKIP LOCKED` on shared outbox rows is withdrawn. Serialize instances of
+> the same named consumer by locking that consumer's cursor row `FOR UPDATE`; read
+> outbox rows without row locks so different named consumers each receive every event.
 
 # ORDER 022 — EventBus port and in-process outbox consumer
 
@@ -50,6 +54,7 @@ Amended Scope under D-94/D-97: `migrations/0002_kernel_consumer_cursor.sql`,
 | P2 | Ordering | consumer observes events in `seq` order under concurrent publishers |
 | P3 | Cursor durability | consumer restarted mid-stream resumes at its cursor, no gap, no repeat |
 | P4 | Port is honoured | a compile-time or test-time assertion that no consumer imports the Postgres module directly |
+| P5 | Named consumers do not steal | two different consumers run concurrently and each observes the same complete ordered event set |
 
 ## Forbidden
 
