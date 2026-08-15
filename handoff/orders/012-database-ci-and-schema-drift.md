@@ -198,3 +198,10 @@ Credentials remain local CI values. No external account or service is used.
 Tier 3. Claude must independently inspect the battery diff, privilege assertions,
 snapshot contents/normalizer, and a full clean GitHub Actions run before cumulative
 integration. The builder may not approve or merge.
+
+---
+
+## MERGED
+
+Merged into `main` by the cumulative Phase 0 integration PR (head `7f1d7c3`).
+Reviewed in `handoff/reviews/` before merge; see `handoff/LEDGER.md` for the verdict line.

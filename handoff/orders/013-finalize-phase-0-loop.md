@@ -182,3 +182,10 @@ After this order's branch is independently reviewed and green:
 Tier 2 because this rewires the verification/bootstrap path around already-reviewed
 Tier-3 tools. Claude must review both platform outputs and the requirement/evidence
 table before integration.
+
+---
+
+## MERGED
+
+Merged into `main` by the cumulative Phase 0 integration PR (head `7f1d7c3`).
+Reviewed in `handoff/reviews/` before merge; see `handoff/LEDGER.md` for the verdict line.

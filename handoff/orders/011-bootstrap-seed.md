@@ -163,3 +163,10 @@ Tests must clean databases and OS temporary files in `finally`.
 Tier 3 tenancy change. Claude must independently review the SQL identity/context path,
 collision tests, and pool-leak proofs before cumulative integration. The builder must
 not approve or merge it.
+
+---
+
+## MERGED
+
+Merged into `main` by the cumulative Phase 0 integration PR (head `7f1d7c3`).
+Reviewed in `handoff/reviews/` before merge; see `handoff/LEDGER.md` for the verdict line.

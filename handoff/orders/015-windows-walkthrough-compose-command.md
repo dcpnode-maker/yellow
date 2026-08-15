@@ -62,3 +62,10 @@ In the existing Part 7 database sanity check only:
 
 Claude reviews this Tier-1 onboarding correction with the cumulative Phase-0 stack.
 The builder does not merge.
+
+---
+
+## MERGED
+
+Merged into `main` by the cumulative Phase 0 integration PR (head `7f1d7c3`).
+Reviewed in `handoff/reviews/` before merge; see `handoff/LEDGER.md` for the verdict line.

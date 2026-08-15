@@ -149,3 +149,10 @@ Implement the guard with Bun or POSIX shell — no new dependency.
 > A: Yes. SPDX `OR` means the licensee chooses; we choose MIT, which satisfies
 > DEPENDENCIES.md test #1. Printing the accepted operand is what makes the choice
 > auditable rather than implicit. (D-65)
+
+---
+
+## MERGED
+
+Merged into `main` by the cumulative Phase 0 integration PR (head `7f1d7c3`).
+Reviewed in `handoff/reviews/` before merge; see `handoff/LEDGER.md` for the verdict line.

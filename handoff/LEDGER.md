@@ -28,3 +28,5 @@
 2026-08-15 · 018 · 0 · phase-0/powershell-coverage-split · claude → codex · ORDER-WRITTEN · windows-state CI job covers state.ps1; setup.ps1 parity claim withdrawn; D-86 closes D-85; deliberately-weakened run is the deliverable
 2026-08-15 · — · all · — · claude → — · ROADMAP-WRITTEN · handoff/ROADMAP.md: tier-batched review cadence (D-87), self-check, phase gates, ~88 orders / ~33 gates; Phase 1 renumbered 019-026 (supersedes the 018-025 line above)
 2026-08-15 · 010 · 0 · phase-0/powershell-coverage-split · codex → claude · QUESTION-ANSWERED · self-check precondition vs assertion; D-88 amends D-87; builder was right, rule was wrong; renumbered from 009 (collision)
+2026-08-15 · 018 · 0 · phase-0/powershell-coverage-split · codex → claude · APPROVED · windows-state job covers state.ps1; scripts byte-identical; red proof is a CI record, not reviewer-executed — D-89 records the structural limit
+2026-08-15 · 001-018 · 0 · phase-0/powershell-coverage-split · — → claude · MERGE-PREPARED · all 18 orders marked ## MERGED; single cumulative integration to main per D-90; PRs #15 and #16 close as superseded

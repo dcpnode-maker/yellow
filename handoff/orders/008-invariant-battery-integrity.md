@@ -104,3 +104,10 @@ The builder must not approve or merge it.
 > Q: Does FORCE RLS filter the current Compose role?
 > A: No. `yellow` is currently superuser+BYPASSRLS. The explicit check protects a
 > future harness identity change without relying on that implementation detail.
+
+---
+
+## MERGED
+
+Merged into `main` by the cumulative Phase 0 integration PR (head `7f1d7c3`).
+Reviewed in `handoff/reviews/` before merge; see `handoff/LEDGER.md` for the verdict line.

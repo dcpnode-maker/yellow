@@ -137,3 +137,10 @@ two-line correction becomes an unreviewable diff.
 
 Tier 2: one architect approval plus a test that would fail if the property broke. The
 negative test in the Definition of Done is that test. The builder does not merge.
+
+---
+
+## MERGED
+
+Merged into `main` by the cumulative Phase 0 integration PR (head `7f1d7c3`).
+Reviewed in `handoff/reviews/` before merge; see `handoff/LEDGER.md` for the verdict line.

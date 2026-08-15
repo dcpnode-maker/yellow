@@ -112,3 +112,10 @@ Add a package script named `boundaries` that runs the real-tree checker.
 
 Tier 2: Claude reviews the directory map and must see the deliberately illegal import
 fixture fail before the cumulative integration PR merges.
+
+---
+
+## MERGED
+
+Merged into `main` by the cumulative Phase 0 integration PR (head `7f1d7c3`).
+Reviewed in `handoff/reviews/` before merge; see `handoff/LEDGER.md` for the verdict line.

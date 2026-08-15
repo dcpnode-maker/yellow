@@ -65,3 +65,10 @@ Anything not listed here is OUT of scope. If another file is required, STOP and 
 ## Deferred review protocol
 
 Claude may review after the temporary spend limit clears. Review Order 001 first, then review this order's isolated commit range. If Order 001 requires changes, rebase or rebuild this dependent branch only after Order 001 is corrected; do not merge stacked branches out of order.
+
+---
+
+## MERGED
+
+Merged into `main` by the cumulative Phase 0 integration PR (head `7f1d7c3`).
+Reviewed in `handoff/reviews/` before merge; see `handoff/LEDGER.md` for the verdict line.

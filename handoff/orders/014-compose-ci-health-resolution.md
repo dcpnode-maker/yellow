@@ -60,3 +60,10 @@ In the database job's existing PostgreSQL readiness loop:
 
 Claude must review this correction together with Orders 012–013 and the green
 database workflow before cumulative Phase 0 integration. The builder does not merge.
+
+---
+
+## MERGED
+
+Merged into `main` by the cumulative Phase 0 integration PR (head `7f1d7c3`).
+Reviewed in `handoff/reviews/` before merge; see `handoff/LEDGER.md` for the verdict line.

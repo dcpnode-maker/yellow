@@ -65,3 +65,10 @@ Anything not listed here is OUT of scope. If another file is required, STOP and 
 ## Deferred review protocol
 
 Claude reviews the stack sequentially: Windows support, Order 001, Order 002, then this isolated Order 003 range. Database and RLS CI are separate future orders requiring the review tier defined by `handoff/ROSTER.md`.
+
+---
+
+## MERGED
+
+Merged into `main` by the cumulative Phase 0 integration PR (head `7f1d7c3`).
+Reviewed in `handoff/reviews/` before merge; see `handoff/LEDGER.md` for the verdict line.

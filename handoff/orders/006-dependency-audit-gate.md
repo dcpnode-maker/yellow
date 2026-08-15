@@ -43,3 +43,10 @@ Anything not listed here is OUT of scope. If another file is required, STOP and 
 ## Deferred review protocol
 
 Claude reviews this isolated CI-only range after Orders 001–005. Any future advisory suppression requires a separate architect decision with documented evidence and expiry.
+
+---
+
+## MERGED
+
+Merged into `main` by the cumulative Phase 0 integration PR (head `7f1d7c3`).
+Reviewed in `handoff/reviews/` before merge; see `handoff/LEDGER.md` for the verdict line.

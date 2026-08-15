@@ -110,3 +110,10 @@ advertised as equal.
 Tier 2: architect approval plus a test that would fail if the property broke. The
 deliberately-weakened run in the DoD is that test, and it is the deliverable — not the
 green one.
+
+---
+
+## MERGED
+
+Merged into `main` by the cumulative Phase 0 integration PR (head `7f1d7c3`).
+Reviewed in `handoff/reviews/` before merge; see `handoff/LEDGER.md` for the verdict line.

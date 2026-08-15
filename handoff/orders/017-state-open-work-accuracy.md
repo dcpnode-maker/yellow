@@ -76,3 +76,10 @@ stop and write `handoff/questions/017.md`. Do not invent a second convention.
 
 Tier 1: one architect approval plus a green battery. The open→closed→open transition in
 the PR body is the test.
+
+---
+
+## MERGED
+
+Merged into `main` by the cumulative Phase 0 integration PR (head `7f1d7c3`).
+Reviewed in `handoff/reviews/` before merge; see `handoff/LEDGER.md` for the verdict line.

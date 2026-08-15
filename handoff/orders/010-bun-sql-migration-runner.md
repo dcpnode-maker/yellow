@@ -211,3 +211,10 @@ removed. Never edit/copy over the repository baseline in place.
 Tier 3. This order embodies the OpenAI cross-vendor challenge; Claude must inspect the
 implementation and executable concurrency/failure proof independently before the
 cumulative integration PR merges. A reviewer must compare the baseline hash directly.
+
+---
+
+## MERGED
+
+Merged into `main` by the cumulative Phase 0 integration PR (head `7f1d7c3`).
+Reviewed in `handoff/reviews/` before merge; see `handoff/LEDGER.md` for the verdict line.

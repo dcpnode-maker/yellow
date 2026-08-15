@@ -69,3 +69,10 @@ Anything not listed here is OUT of scope. If another file is required, STOP and 
 ## Deferred review protocol
 
 Claude reviews this order only after Orders 001–003. Any proposed license exception is a separate architect decision and must be documented in `docs/licence-exceptions.md`; this order authorizes no exceptions.
+
+---
+
+## MERGED
+
+Merged into `main` by the cumulative Phase 0 integration PR (head `7f1d7c3`).
+Reviewed in `handoff/reviews/` before merge; see `handoff/LEDGER.md` for the verdict line.

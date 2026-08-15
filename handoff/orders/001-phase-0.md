@@ -86,3 +86,10 @@ No domain contract, state machine, entity-pattern skill, or event contract is in
 
 > Q: May this order add `bunfig.toml` so plain `bun test` does not execute the future Phase 2 occupancy stress test before its database module exists?
 > A: Yes. Founder approved the scope expansion on 2026-08-14. Ignore only `tests/occupancy-stress.test.ts`, and require its Phase 2 activation order to remove the exclusion.
+
+---
+
+## MERGED
+
+Merged into `main` by the cumulative Phase 0 integration PR (head `7f1d7c3`).
+Reviewed in `handoff/reviews/` before merge; see `handoff/LEDGER.md` for the verdict line.

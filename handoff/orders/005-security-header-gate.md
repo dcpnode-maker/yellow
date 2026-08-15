@@ -64,3 +64,10 @@ Anything not listed here is OUT of scope. If another file is required, STOP and 
 ## Deferred review protocol
 
 Claude reviews this order after Orders 001–004. Future kiosk framing or external connection requirements must change CSP through a separate reviewed order rather than weakening this launch baseline ad hoc.
+
+---
+
+## MERGED
+
+Merged into `main` by the cumulative Phase 0 integration PR (head `7f1d7c3`).
+Reviewed in `handoff/reviews/` before merge; see `handoff/LEDGER.md` for the verdict line.
