@@ -3,6 +3,10 @@
 > single-connection pool, taken after the 401. P1 is unchanged and not weakened.
 > **G:** `GET /health` stays public, database-free and exactly `200 {"status":"ok"}`;
 > tenant middleware wraps database-capable routes only. New **P7** proves it.
+> **AMENDED by `handoff/questions/012-ARCHITECT-RESPONSE.md` (D-95).**
+> `tests/import-boundaries.test.ts` is in Scope only to replace Order 009's temporary
+> empty/fixed-count scaffold assertions with phase-stable layout and discovery checks.
+> All negative boundary fixtures remain unchanged.
 
 # ORDER 019 — transaction-local tenant context middleware
 
@@ -51,6 +55,7 @@ by `src/`.
 - `src/kernel/index.ts` — exports
 - `src/app.ts` — wire the middleware
 - `tests/tenant-context.integration.test.ts`
+- `tests/import-boundaries.test.ts` — only the two stale positive scaffold assertions
 - `package.json` — only to add a test script, if needed
 
 **No migration.** `app.tenant_id` is a runtime GUC already exercised by

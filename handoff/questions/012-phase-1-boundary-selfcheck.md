@@ -76,3 +76,8 @@ source tree the build plan requires.
 After the amendment, may the builder update that one test file, restart the standing
 self-check from the top, commit Order 019 if green, and continue Orders 020–026 under
 D-92?
+
+## RESOLVED
+
+Answered **YES** by `handoff/questions/012-ARCHITECT-RESPONSE.md` under the
+founder-authorized temporary-architect exception recorded in D-95.
