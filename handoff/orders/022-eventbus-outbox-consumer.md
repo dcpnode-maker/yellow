@@ -2,6 +2,11 @@
 > **D:** the "no migration" line is **withdrawn**. `migrations/0002_kernel_consumer_cursor.sql`
 > is authorized and its exact DDL and semantics are specified in the response.
 > `push_cursor` is **not** repurposed. `0001_init.sql` remains untouched.
+> **AMENDED by `handoff/questions/014-ARCHITECT-RESPONSE.md` (D-97).** The authorized
+> migration changes executable schema accounting. Scope gains only the migration,
+> generated schema snapshot, setup/state table-count text on both supported paths, and
+> the Windows walkthrough's derived count. The exact result is 83 public tables:
+> 80 baseline + 2 kernel consumer tables + `schema_migration`.
 
 # ORDER 022 — EventBus port and in-process outbox consumer
 
@@ -25,6 +30,10 @@ interface is the deliverable; the Postgres implementation is behind it.
 cursor consumer), `src/kernel/index.ts`, `tests/outbox.integration.test.ts`.
 `outbox` and the push_cursor pattern exist in the baseline — **no migration**.
 
+Amended Scope under D-94/D-97: `migrations/0002_kernel_consumer_cursor.sql`,
+`tests/schema/expected.sql` (runner-generated), `setup.sh`, `setup.ps1`, `state.sh`,
+`state.ps1`, and `docs/WALKTHROUGH-WINDOWS.html` only for the 83-table accounting.
+
 ## Required behaviour
 
 1. Publishing writes an outbox row **in the caller's transaction**. An event whose
@@ -46,7 +55,8 @@ cursor consumer), `src/kernel/index.ts`, `tests/outbox.integration.test.ts`.
 
 `LISTEN`/`NOTIFY` as the delivery mechanism (D-13: PgBouncer) · adding NATS, a broker, or
 any dependency · publishing outside the caller's transaction · deleting outbox rows
-(pruning is `prune_outbox`, already in the baseline) · editing `migrations/` or
+(pruning is `prune_outbox`, already in the baseline) · editing any migration other than
+the authorized new `0002_kernel_consumer_cursor.sql` or
 `tests/run_invariants.py` · merging.
 
 ## Note for Order 023
