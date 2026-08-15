@@ -2,6 +2,14 @@ export { createAuditEnvelope } from "./audit";
 export type { AuditEnvelope, AuditEnvelopeInput } from "./audit";
 export { Database } from "./db";
 export type { ConnectionPool, DatabaseOptions, Tx } from "./db";
+export { ExtensionRegistry, ExtensionValidationError, validateJsonSchema } from "./extension";
+export type {
+  CompatibilityFailure,
+  CreateExtensionInput,
+  ExtensionInstance,
+  RegisterExtensionTypeInput,
+  ValidationIssue,
+} from "./extension";
 export { recordFact } from "./fact-log";
 export type { FactSubject, RecordedFact, RecordFactInput } from "./fact-log";
 export type {

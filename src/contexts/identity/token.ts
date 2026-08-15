@@ -175,7 +175,7 @@ export class Hs256TokenSigner implements TokenSigner {
 
     this.#algorithm = options.algorithm ?? JWT_ALGORITHM;
     this.#now = options.now ?? (() => Math.floor(Date.now() / 1_000));
-    this.#jtiFactory = options.jtiFactory ?? crypto.randomUUID;
+    this.#jtiFactory = options.jtiFactory ?? (() => crypto.randomUUID());
     this.#key = crypto.subtle.importKey(
       "raw",
       ownedArrayBuffer(secretBytes),

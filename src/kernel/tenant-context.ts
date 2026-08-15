@@ -3,6 +3,8 @@ import { Database } from "./db";
 
 export interface TenantIdentity {
   readonly tenantId: string;
+  readonly actorId?: string;
+  readonly scopes?: readonly string[];
 }
 
 export interface TenantResolver {
@@ -12,6 +14,7 @@ export interface TenantResolver {
 export interface TenantRequestContext {
   readonly request: Request;
   readonly tenantId: string;
+  readonly identity: TenantIdentity;
   readonly tx: Tx;
 }
 
@@ -40,7 +43,7 @@ export class TenantContextMiddleware {
     }
 
     return this.#database.withTenantTransaction(identity.tenantId, (tx) =>
-      handler({ request, tenantId: identity.tenantId, tx })
+      handler({ request, tenantId: identity.tenantId, identity, tx })
     );
   }
 }

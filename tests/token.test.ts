@@ -53,6 +53,12 @@ async function issuedToken(tokens = signer()): Promise<string> {
 }
 
 describe("Order 020 token policy", () => {
+  test("production default JTI factory remains bound to Crypto", async () => {
+    const signer = new Hs256TokenSigner(SECRET);
+    const token = await signer.issue({ userId: USER_ID, tenantId: TENANT_ID, scopes: [] });
+    const claims = await signer.verify(token);
+    expect(claims?.jti).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/);
+  });
   test("P1: Bun WebCrypto supports Ed25519; fallback order is Ed25519 then ES256", async () => {
     const ed25519 = await crypto.subtle.generateKey({ name: "Ed25519" }, true, ["sign", "verify"]);
     const es256 = await crypto.subtle.generateKey(

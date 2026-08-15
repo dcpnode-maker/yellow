@@ -3,7 +3,14 @@ import { randomUUID } from "node:crypto";
 import { resolve } from "node:path";
 import { SQL, type Subprocess } from "bun";
 import { runMigrations } from "../scripts/migrate";
-import { runSeed, SEED_PROPERTY, SEED_TENANT, SeedError } from "../scripts/seed";
+import {
+  LAUNCH_EXTENSIONS,
+  LAUNCH_EXTENSION_TYPES,
+  runSeed,
+  SEED_PROPERTY,
+  SEED_TENANT,
+  SeedError,
+} from "../scripts/seed";
 
 const PROJECT_ROOT = resolve(import.meta.dir, "..");
 const SEED_SCRIPT = resolve(PROJECT_ROOT, "scripts", "seed.ts");
@@ -114,6 +121,7 @@ databaseDescribe("deterministic app-role bootstrap seed", () => {
       const result = await runSeed({ databaseUrl: targetUrl, logger: (line) => lines.push(line) });
       expect(result.tenant).toBe("inserted");
       expect(result.property).toBe("inserted");
+      expect(result.registry).toBe("inserted");
       expect(result.writeRole).toBe("app_role");
       expect(result.roleReset).toBe(true);
       expect(result.tenantContextCleared).toBe(true);
@@ -142,6 +150,12 @@ databaseDescribe("deterministic app-role bootstrap seed", () => {
         config: {},
         config_type: "object",
       }]);
+      expect(Number((await sql`SELECT count(*)::int AS count FROM extension_type`)[0]?.count)).toBe(LAUNCH_EXTENSION_TYPES.length);
+      expect(Number((await sql`SELECT count(*)::int AS count FROM extension WHERE tenant_id IS NULL`)[0]?.count)).toBe(LAUNCH_EXTENSIONS.length);
+      expect(Number((await sql`
+        SELECT count(*)::int AS count FROM fact_log
+        WHERE fact_type IN ('extension_type.registered', 'extension.seeded')
+      `)[0]?.count)).toBe(LAUNCH_EXTENSION_TYPES.length + LAUNCH_EXTENSIONS.length);
     });
   }, 60_000);
 
@@ -153,9 +167,31 @@ databaseDescribe("deterministic app-role bootstrap seed", () => {
       const after = await sql`SELECT created_at FROM tenant WHERE id = ${SEED_TENANT.id}`;
       expect(second.tenant).toBe("already exact");
       expect(second.property).toBe("already exact");
+      expect(second.registry).toBe("already exact");
       expect(after).toEqual(before);
       expect(Number((await sql`SELECT count(*)::int AS count FROM tenant`)[0]?.count)).toBe(1);
       expect(Number((await sql`SELECT count(*)::int AS count FROM org_node`)[0]?.count)).toBe(1);
+      expect(Number((await sql`SELECT count(*)::int AS count FROM extension_type`)[0]?.count)).toBe(LAUNCH_EXTENSION_TYPES.length);
+      expect(Number((await sql`SELECT count(*)::int AS count FROM extension`)[0]?.count)).toBe(LAUNCH_EXTENSIONS.length);
+      expect(Number((await sql`SELECT count(*)::int AS count FROM fact_log`)[0]?.count)).toBe(
+        LAUNCH_EXTENSION_TYPES.length + LAUNCH_EXTENSIONS.length,
+      );
+    });
+  }, 60_000);
+
+  test("divergent launch registry content hard-fails without partial repair", async () => {
+    await withDatabase(async (targetUrl, sql) => {
+      await runSeed({ databaseUrl: targetUrl, logger: () => undefined });
+      await sql`
+        UPDATE extension_type
+        SET json_schema = '{"type":"string"}'::jsonb
+        WHERE type = 'vertical_profile'
+      `;
+      const before = Number((await sql`SELECT count(*)::int AS count FROM fact_log`)[0]?.count);
+      const error = await seedFailure(() => runSeed({ databaseUrl: targetUrl, logger: () => undefined }));
+      expect(error.message).toContain("Extension type seed collision for vertical_profile");
+      expect(Number((await sql`SELECT count(*)::int AS count FROM fact_log`)[0]?.count)).toBe(before);
+      expect((await sql`SELECT json_schema FROM extension_type WHERE type = 'vertical_profile'`)[0]?.json_schema).toEqual({ type: "string" });
     });
   }, 60_000);
 

@@ -15,6 +15,10 @@ export class BearerTenantResolver implements TenantResolver {
     if (!match?.[1]) return null;
 
     const claims = await this.#tokens.verify(match[1]);
-    return claims === null ? null : { tenantId: claims.tid };
+    return claims === null ? null : {
+      tenantId: claims.tid,
+      actorId: claims.sub,
+      scopes: claims.scp === "" ? [] : claims.scp.split(" "),
+    };
   }
 }
