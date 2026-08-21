@@ -74,6 +74,43 @@ jobs:
             }
           }
 
+          $originalPath = $env:PATH
+          $childPowerShell = (Get-Process -Id $PID).Path
+          $startInfo = [System.Diagnostics.ProcessStartInfo]::new()
+          $startInfo.FileName = $childPowerShell
+          $startInfo.WorkingDirectory = (Get-Location).Path
+          $startInfo.UseShellExecute = $false
+          $startInfo.RedirectStandardOutput = $true
+          $startInfo.RedirectStandardError = $true
+          $startInfo.ArgumentList.Add('-NoProfile')
+          $startInfo.ArgumentList.Add('-ExecutionPolicy')
+          $startInfo.ArgumentList.Add('Bypass')
+          $startInfo.ArgumentList.Add('-File')
+          $startInfo.ArgumentList.Add((Resolve-Path .\state.ps1).Path)
+          $startInfo.Environment['PATH'] = [Environment]::SystemDirectory
+
+          $failedReportProcess = [System.Diagnostics.Process]::Start($startInfo)
+          $failedReportStdout = $failedReportProcess.StandardOutput.ReadToEnd()
+          $failedReportStderr = $failedReportProcess.StandardError.ReadToEnd()
+          $failedReportProcess.WaitForExit()
+          $failedReportExit = $failedReportProcess.ExitCode
+          $failedReportText = "$failedReportStdout`n$failedReportStderr"
+
+          if ($env:PATH -ne $originalPath) {
+            throw 'missing-Git report diverged: parent PATH changed'
+          }
+          if ($failedReportExit -eq 0) {
+            throw 'missing-Git report diverged: incomplete child report returned exit 0'
+          }
+          if ($failedReportText -match '(?m)^Referee:') {
+            throw 'missing-Git report diverged: incomplete child emitted the completion footer'
+          }
+          if ($failedReportText -notmatch 'YELLOW state report failed:') {
+            throw 'missing-Git report diverged: labelled failure was absent'
+          }
+
+          $afterFailedReport = Get-StateSnapshot 'missing-Git environment restoration'
+
           if (Test-Path -LiteralPath $probePath) {
             throw "baseline diverged: probe already exists at $probePath"
           }

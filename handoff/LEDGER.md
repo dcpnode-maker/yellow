@@ -59,3 +59,7 @@
 2026-08-22 · 043 · 2 · phase-2/local-service-loopback-hardening · codex → — · BUILT-UNREVIEWED · 9839c27; loopback-only local data services; PR #24
 2026-08-22 · 044 · 2 · phase-2/handoff-state-accuracy · codex → codex · ORDER-WRITTEN · accurate phase/review-debt reporting and ledger backfill
 2026-08-22 · 048 · 2 · phase-2/handoff-state-accuracy · codex → codex · QUESTION-ANSWERED · live app exhausted referee connection headroom; D-160 requires isolated unchanged rerun
+2026-08-22 · 019–026 · 1 · review/architect-019-044 · codex → claude · APPROVED · 52 reviewer-executed proofs, zero failures; review fd2b9cf
+2026-08-22 · 027–044 · 2 · review/architect-019-044 · codex → claude · CHANGES-REQUIRED · 81 reviewer-executed proofs green; F10 Windows state partial-report success blocks integration
+2026-08-22 · D-95–D-160 · cross-phase · review/architect-019-044 · codex → claude · RATIFIED-WITH-AMENDMENTS · D-89 narrowed and D-152 amended; review fd2b9cf
+2026-08-22 · 045 · 2 · phase-2/windows-state-fail-closed · codex → claude · ORDER-WRITTEN · correct F10 with real missing-Git Windows proof; independent correction review deferred

@@ -8,6 +8,7 @@ $defaultProject = ($folderName -replace '[^a-z0-9_-]', '-')
 $projectName = if ($env:COMPOSE_PROJECT_NAME) { $env:COMPOSE_PROJECT_NAME } else { $defaultProject }
 $previousProject = $env:COMPOSE_PROJECT_NAME
 $env:COMPOSE_PROJECT_NAME = $projectName
+$reportComplete = $false
 
 try {
     Write-Host "YELLOW state · Compose project $projectName"
@@ -64,10 +65,16 @@ try {
     }
     Write-Host 'Reading: PROJECT.md -> AGENTS.md -> BUILD-PLAN.md -> handoff/ROSTER.md -> docs/WORKFLOW.md'
     Write-Host 'Referee: .\setup.ps1 -DbOnly -> 11 passed, 0 failed of 11'
+    $reportComplete = $true
+} catch {
+    Write-Error -Message "YELLOW state report failed: $($_.Exception.Message)" -ErrorAction Continue
+    throw
 } finally {
     $env:COMPOSE_PROJECT_NAME = $previousProject
 }
 
 # Optional native probes (for example, Docker installed without a running daemon)
 # must not leak their status from an otherwise successful report to the caller.
-$global:LASTEXITCODE = 0
+if ($reportComplete) {
+    $global:LASTEXITCODE = 0
+}
