@@ -26,3 +26,10 @@ export type {
   RestrictionFilter,
   RestrictionKind,
 } from "./restrictions";
+export { OperationalBlockConflictError, OperationalBlockService } from "./operational-blocks";
+export type {
+  CloseOperationalBlockInput,
+  OpenOperationalBlockInput,
+  OperationalBlock,
+  OperationalBlockKind,
+} from "./operational-blocks";
