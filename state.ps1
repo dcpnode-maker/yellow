@@ -49,3 +49,7 @@ try {
 } finally {
     $env:COMPOSE_PROJECT_NAME = $previousProject
 }
+
+# Optional native probes (for example, Docker installed without a running daemon)
+# must not leak their status from an otherwise successful report to the caller.
+$global:LASTEXITCODE = 0
