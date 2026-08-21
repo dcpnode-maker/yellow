@@ -255,6 +255,29 @@ CREATE TABLE public.api_client (
 
 
 --
+-- Name: api_idempotency; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.api_idempotency (
+    tenant_id uuid NOT NULL,
+    operation text NOT NULL,
+    key_hash character(64) NOT NULL,
+    request_hash character(64) NOT NULL,
+    response_status smallint,
+    response_body jsonb,
+    created_at timestamp with time zone NOT NULL,
+    completed_at timestamp with time zone,
+    expires_at timestamp with time zone NOT NULL,
+    CONSTRAINT api_idempotency_check CHECK ((expires_at = (created_at + '24:00:00'::interval))),
+    CONSTRAINT api_idempotency_check1 CHECK ((((completed_at IS NULL) AND (response_status IS NULL) AND (response_body IS NULL)) OR ((completed_at IS NOT NULL) AND (response_status IS NOT NULL) AND (response_body IS NOT NULL) AND (completed_at >= created_at) AND (completed_at <= expires_at)))),
+    CONSTRAINT api_idempotency_key_hash_check CHECK ((key_hash ~ '^[0-9a-f]{64}$'::text)),
+    CONSTRAINT api_idempotency_operation_check CHECK ((operation ~ '^[a-z][a-z0-9_.-]{0,127}$'::text)),
+    CONSTRAINT api_idempotency_request_hash_check CHECK ((request_hash ~ '^[0-9a-f]{64}$'::text)),
+    CONSTRAINT api_idempotency_response_status_check CHECK (((response_status >= 200) AND (response_status <= 299)))
+);
+
+
+--
 -- Name: app_user; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -1629,6 +1652,14 @@ ALTER TABLE ONLY public.api_client
 
 
 --
+-- Name: api_idempotency api_idempotency_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.api_idempotency
+    ADD CONSTRAINT api_idempotency_pkey PRIMARY KEY (tenant_id, operation, key_hash);
+
+
+--
 -- Name: app_user app_user_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -2428,6 +2459,13 @@ CREATE INDEX account_party ON public.account USING btree (tenant_id, party_id) W
 
 
 --
+-- Name: api_idempotency_expiry; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX api_idempotency_expiry ON public.api_idempotency USING btree (expires_at);
+
+
+--
 -- Name: consumer_processed_age; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -2654,6 +2692,14 @@ ALTER TABLE ONLY public.api_client
 
 ALTER TABLE ONLY public.api_client
     ADD CONSTRAINT api_client_tenant_id_fkey FOREIGN KEY (tenant_id) REFERENCES public.tenant(id);
+
+
+--
+-- Name: api_idempotency api_idempotency_tenant_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.api_idempotency
+    ADD CONSTRAINT api_idempotency_tenant_id_fkey FOREIGN KEY (tenant_id) REFERENCES public.tenant(id);
 
 
 --
@@ -3561,6 +3607,12 @@ ALTER TABLE public.alert ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.api_client ENABLE ROW LEVEL SECURITY;
 
 --
+-- Name: api_idempotency; Type: ROW SECURITY; Schema: public; Owner: -
+--
+
+ALTER TABLE public.api_idempotency ENABLE ROW LEVEL SECURITY;
+
+--
 -- Name: app_user; Type: ROW SECURITY; Schema: public; Owner: -
 --
 
@@ -3964,6 +4016,13 @@ CREATE POLICY tenant_isolation ON public.alert USING ((tenant_id = (current_sett
 --
 
 CREATE POLICY tenant_isolation ON public.api_client USING ((tenant_id = (current_setting('app.tenant_id'::text, true))::uuid)) WITH CHECK ((tenant_id = (current_setting('app.tenant_id'::text, true))::uuid));
+
+
+--
+-- Name: api_idempotency tenant_isolation; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY tenant_isolation ON public.api_idempotency USING ((tenant_id = (current_setting('app.tenant_id'::text, true))::uuid)) WITH CHECK ((tenant_id = (current_setting('app.tenant_id'::text, true))::uuid));
 
 
 --
@@ -4555,6 +4614,13 @@ GRANT SELECT,INSERT,UPDATE ON TABLE public.alert TO app_role;
 --
 
 GRANT SELECT,INSERT,UPDATE ON TABLE public.api_client TO app_role;
+
+
+--
+-- Name: TABLE api_idempotency; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT SELECT,INSERT,UPDATE ON TABLE public.api_idempotency TO app_role;
 
 
 --

@@ -64,3 +64,6 @@
 2026-08-22 · D-95–D-160 · cross-phase · review/architect-019-044 · codex → claude · RATIFIED-WITH-AMENDMENTS · D-89 narrowed and D-152 amended; review fd2b9cf
 2026-08-22 · 045 · 2 · phase-2/windows-state-fail-closed · codex → claude · ORDER-WRITTEN · correct F10 with real missing-Git Windows proof; independent correction review deferred
 2026-08-22 · 046 · 2 · phase-2/local-review-demo-inventory · codex → — · ORDER-WRITTEN · deterministic local review user and audited real inventory; independent review debt explicit
+2026-08-22 · 047 · 2 · phase-2/api-idempotency-foundation · codex → — · ORDER-WRITTEN · durable tenant-scoped 24-hour command replay foundation before operator inventory writes; independent review debt explicit
+2026-08-22 · 050 · 2 · phase-2/api-idempotency-foundation · codex → codex · QUESTION-ANSWERED · P3 probe corrected from nonexistent id to key_hash; full proof restart required by D-166
+2026-08-22 · 051 · 2 · phase-2/api-idempotency-foundation · codex → codex · QUESTION-ANSWERED · corrected nonexistent schema snapshot path to tests/schema/expected.sql before generation

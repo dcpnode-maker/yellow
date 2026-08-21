@@ -4,8 +4,10 @@
 Base `/api/v1`. Auth: bearer (staff JWT w/ tenant+scopes | api_client). Server derives
 `tenant_id` from the token — never from the body. JSON: money `{amount_minor,currency}`,
 instants ISO-8601 with offset, stay periods `{from,to}` half-open, ids uuid.
-**Idempotency-Key header required on every mutating POST**; server stores hash→response
-24 h. Errors: `{type,title,status,detail,errors?[],correlation_id}` with stable `type`
+**Idempotency-Key header required on every mutating POST**; the kernel stores
+tenant+operation+key-hash → canonical request-hash+exact successful JSON response for
+24 h in the command transaction. Exact retries replay; changed requests conflict.
+Errors: `{type,title,status,detail,errors?[],correlation_id}` with stable `type`
 slugs (`availability/no_fit`, `finance/journal_unbalanced`, `auth/scope_missing`,
 `conflict/occupancy`, …). Pagination: cursor `?after=<opaque>&limit≤200`. Filtering:
 whitelisted params only. Every response carries `X-Correlation-Id`.

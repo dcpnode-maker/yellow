@@ -169,6 +169,10 @@ Rules:
 - external success followed by local failure requires reconciliation/compensation design;
 - retries return the original outcome for the same idempotency key and reject changed
   payloads;
+- API command idempotency borrows the business transaction: the hashed key claim,
+  mutation, facts/events, and stored successful JSON outcome commit or roll back
+  together. Records are tenant+operation scoped, retain no raw key, and expire after
+  24 hours; concurrent exact requests serialize on the record.
 - all error responses identify whether anything committed and what the user can do next.
 
 ## Read path and operational zoom

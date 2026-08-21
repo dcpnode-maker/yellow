@@ -26,6 +26,19 @@ export type {
 } from "./extension";
 export { recordFact } from "./fact-log";
 export type { FactSubject, RecordedFact, RecordFactInput } from "./fact-log";
+export {
+  IdempotencyConflictError,
+  IdempotencyValidationError,
+  PostgresIdempotency,
+} from "./idempotency";
+export type {
+  IdempotencyCommandResult,
+  IdempotencyInput,
+  IdempotencyResult,
+  JsonPrimitive,
+  JsonValue,
+  PostgresIdempotencyOptions,
+} from "./idempotency";
 export type {
   ConsumeBatchOptions,
   ConsumeBatchResult,
