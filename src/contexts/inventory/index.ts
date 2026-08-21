@@ -18,3 +18,11 @@ export { HoldConflictError, HoldService } from "./holds";
 export type { CartHold, HoldStatus, PlaceCartHoldInput, TransitionHoldInput } from "./holds";
 export { AvailabilityService } from "./availability";
 export type { AvailabilityOption, SearchAvailabilityInput } from "./availability";
+export { RestrictionService } from "./restrictions";
+export type {
+  CreateRestrictionBatchInput,
+  Restriction,
+  RestrictionDraft,
+  RestrictionFilter,
+  RestrictionKind,
+} from "./restrictions";
