@@ -4496,7 +4496,7 @@ GRANT USAGE ON SCHEMA public TO app_role;
 -- Name: FUNCTION expire_holds(); Type: ACL; Schema: public; Owner: -
 --
 
-GRANT ALL ON FUNCTION public.expire_holds() TO app_role;
+REVOKE ALL ON FUNCTION public.expire_holds() FROM PUBLIC;
 
 
 --

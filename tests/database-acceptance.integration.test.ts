@@ -4,7 +4,23 @@ import { SEED_PROPERTY, SEED_TENANT } from "../scripts/seed";
 
 const DATABASE_URL = process.env.YELLOW_DATABASE_ACCEPTANCE_URL;
 const REQUIRE_DATABASE = process.env.YELLOW_REQUIRE_DATABASE_ACCEPTANCE === "1";
-const BASELINE_SHA256 = "fe2a9fc949c6bacded3f8d3fc4d14fc596a83ebde9aeb043eb10845f07b30923";
+const EXPECTED_MIGRATIONS = [
+  {
+    version: 1,
+    filename: "0001_init.sql",
+    checksum_sha256: "fe2a9fc949c6bacded3f8d3fc4d14fc596a83ebde9aeb043eb10845f07b30923",
+  },
+  {
+    version: 2,
+    filename: "0002_kernel_consumer_cursor.sql",
+    checksum_sha256: "0ace078c04196ccff2d066b0483fce17fddbc1ef592effb25dd57c2ce996c3f4",
+  },
+  {
+    version: 3,
+    filename: "0003_revoke_legacy_expire_holds.sql",
+    checksum_sha256: "a9564092d14367d37fe7f79eee65a97fdf2dbd1c359536d1b807006540d6251b",
+  },
+];
 
 if (REQUIRE_DATABASE && !DATABASE_URL) {
   throw new Error("YELLOW_DATABASE_ACCEPTANCE_URL is required by bun run test:database");
@@ -12,6 +28,12 @@ if (REQUIRE_DATABASE && !DATABASE_URL) {
 
 let sql: SQL | undefined;
 const databaseDescribe = DATABASE_URL ? describe.serial : describe.skip;
+
+interface MigrationLedgerRow {
+  readonly version: number | bigint;
+  readonly filename: string;
+  readonly checksum_sha256: string;
+}
 
 databaseDescribe("fresh deployment database acceptance", () => {
   beforeAll(() => { sql = new SQL(DATABASE_URL!); });
@@ -26,12 +48,17 @@ databaseDescribe("fresh deployment database acceptance", () => {
     expect(rows).toEqual([{ version: "16.15", preload: "pg_stat_statements", available: true }]);
   });
 
-  test("has exact immutable baseline ledger owned and isolated from app/public roles", async () => {
-    const ledger = await sql!`SELECT version, filename, checksum_sha256 FROM public.schema_migration ORDER BY version`;
-    expect(ledger).toHaveLength(1);
-    expect(Number(ledger[0]?.version)).toBe(1);
-    expect(ledger[0]?.filename).toBe("0001_init.sql");
-    expect(ledger[0]?.checksum_sha256).toBe(BASELINE_SHA256);
+  test("has the exact migration ledger owned and isolated from app/public roles", async () => {
+    const ledger = await sql!<MigrationLedgerRow[]>`
+      SELECT version, filename, checksum_sha256
+      FROM public.schema_migration
+      ORDER BY version
+    `;
+    expect(ledger.map((row) => ({
+      version: Number(row.version),
+      filename: row.filename,
+      checksum_sha256: row.checksum_sha256,
+    }))).toEqual(EXPECTED_MIGRATIONS);
 
     const relation = await sql!<{ owner_matches: boolean; relrowsecurity: boolean; public_privileges: number; app_privileges: number }[]>`
       SELECT pg_get_userbyid(c.relowner) = current_user AS owner_matches,
@@ -88,7 +115,7 @@ databaseDescribe("fresh deployment database acceptance", () => {
       name: SEED_PROPERTY.name,
       timezone: SEED_PROPERTY.timezone,
       currency: SEED_PROPERTY.currency,
-      config: "{}",
+      config: {},
     }]);
   });
 });
