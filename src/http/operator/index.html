@@ -62,35 +62,108 @@
       <section class="workbench" id="workbench-view" hidden aria-labelledby="workbench-title">
         <div class="workbench-head">
           <div>
-            <p class="eyebrow">Inventory truth</p>
+            <p class="eyebrow">Property workbench</p>
             <h1 id="workbench-title">Availability</h1>
             <p class="muted" id="operator-name"></p>
           </div>
           <button class="quiet" id="sign-out" type="button">Sign out</button>
         </div>
 
-        <form class="search-bar card" id="availability-form">
+        <div class="domain-bar card">
+          <nav class="domain-nav" aria-label="Workbench domains">
+            <button class="domain-tab is-active" id="nav-availability" type="button" data-view="availability">Availability</button>
+            <button class="domain-tab" id="nav-inventory" type="button" data-view="inventory">Inventory setup</button>
+          </nav>
           <label>Property
             <select name="property" id="property-select" required></select>
           </label>
-          <label>Stay starts
-            <input name="from" type="datetime-local" required>
-          </label>
-          <label>Stay ends
-            <input name="to" type="datetime-local" required>
-          </label>
-          <label>Guests
-            <input name="partySize" type="number" min="1" max="32767" value="1" required>
-          </label>
-          <button class="primary search-button" type="submit">Search availability</button>
-          <p class="timezone-note">Times are converted from this browser to exact UTC instants. Property stay-date policy is not implemented yet.</p>
-        </form>
-
-        <div class="summary-row" aria-live="polite">
-          <p id="result-summary">Choose a stay and search.</p>
-          <span class="legend"><i class="dot available"></i> Bookable <i class="dot blocked"></i> Blocked <i class="dot warning"></i> Warning</span>
         </div>
-        <div class="result-grid" id="results"></div>
+
+        <section id="availability-view" aria-labelledby="availability-title">
+          <h2 class="visually-hidden" id="availability-title">Availability search</h2>
+          <form class="search-bar card" id="availability-form">
+            <label>Stay starts
+              <input name="from" type="datetime-local" required>
+            </label>
+            <label>Stay ends
+              <input name="to" type="datetime-local" required>
+            </label>
+            <label>Guests
+              <input name="partySize" type="number" min="1" max="32767" value="1" required>
+            </label>
+            <button class="primary search-button" type="submit">Search availability</button>
+            <p class="timezone-note">Times are converted from this browser to exact UTC instants. Property stay-date policy is not implemented yet.</p>
+          </form>
+
+          <div class="summary-row" aria-live="polite">
+            <p id="result-summary">Choose a stay and search.</p>
+            <span class="legend"><i class="dot available"></i> Bookable <i class="dot blocked"></i> Blocked <i class="dot warning"></i> Warning</span>
+          </div>
+          <div class="result-grid" id="results"></div>
+        </section>
+
+        <section id="inventory-view" hidden aria-labelledby="inventory-title">
+          <div class="section-heading">
+            <div>
+              <p class="eyebrow">Configuration</p>
+              <h2 id="inventory-title">Rooms and sellable inventory</h2>
+              <p class="muted">Build in order: room type, physical space, then sellable unit. Every save is audited and safe to retry.</p>
+            </div>
+            <button class="quiet" id="refresh-inventory" type="button">Refresh</button>
+          </div>
+
+          <div class="metric-grid" id="inventory-metrics" aria-live="polite">
+            <div class="metric"><strong id="unit-type-count">—</strong><span>Room types</span></div>
+            <div class="metric"><strong id="space-count">—</strong><span>Physical spaces</span></div>
+            <div class="metric"><strong id="sellable-count">—</strong><span>Sellable units</span></div>
+          </div>
+
+          <div class="inventory-columns">
+            <section class="inventory-panel card" aria-labelledby="unit-types-heading">
+              <h3 id="unit-types-heading">Room types</h3>
+              <div class="inventory-list" id="unit-type-list"></div>
+            </section>
+            <section class="inventory-panel card" aria-labelledby="spaces-heading">
+              <h3 id="spaces-heading">Physical spaces</h3>
+              <div class="inventory-list" id="space-list"></div>
+            </section>
+            <section class="inventory-panel card" aria-labelledby="sellables-heading">
+              <h3 id="sellables-heading">Sellable units</h3>
+              <div class="inventory-list" id="sellable-list"></div>
+            </section>
+          </div>
+
+          <div class="configuration-grid">
+            <form class="configuration-form card" id="unit-type-form">
+              <p class="step">Step 1</p><h3>Create room type</h3>
+              <label>Code<input name="code" required maxlength="64" placeholder="KING"></label>
+              <label>Name<input name="name" required maxlength="200" placeholder="King Room"></label>
+              <label>Base guests<input name="baseOccupancy" type="number" min="1" max="32767" value="2" required></label>
+              <label>Maximum guests<input name="maxOccupancy" type="number" min="1" max="32767" value="2" required></label>
+              <button class="primary" type="submit">Create room type</button>
+              <p class="form-message" role="status" aria-live="polite"></p>
+            </form>
+
+            <form class="configuration-form card" id="space-form">
+              <p class="step">Step 2</p><h3>Create physical space</h3>
+              <label>Room or space code<input name="code" required maxlength="64" placeholder="301"></label>
+              <label>Floor<input name="floor" maxlength="64" placeholder="3"></label>
+              <label>Capacity<input name="capacity" type="number" min="1" max="32767" value="1" required></label>
+              <button class="primary" type="submit">Create space</button>
+              <p class="form-message" role="status" aria-live="polite"></p>
+            </form>
+
+            <form class="configuration-form card" id="sellable-unit-form">
+              <p class="step">Step 3</p><h3>Make space sellable</h3>
+              <label>Room type<select name="unitTypeId" id="sellable-unit-type" required></select></label>
+              <label>Physical space<select name="spaceId" id="sellable-space" required></select></label>
+              <label>Guest-facing name<input name="name" required maxlength="200" placeholder="Room 301"></label>
+              <button class="primary" type="submit">Create sellable unit</button>
+              <p class="form-message" role="status" aria-live="polite"></p>
+            </form>
+          </div>
+          <p class="inventory-status" id="inventory-status" role="status" aria-live="polite">Open Inventory setup to load live configuration.</p>
+        </section>
       </section>
     </main>
   </body>

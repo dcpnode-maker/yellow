@@ -67,13 +67,14 @@ export function createApp(options: AppOptions = {}) {
       try {
         const response = await tenantContext.handle(request, handler) as Response;
         return response.status === 401 ? operator.unauthorized(request) : response;
-      } catch {
-        return operator.unavailable(request);
+      } catch (error) {
+        return operator.failure(request, error);
       }
     };
     app
       .get("/", () => operatorAssets.html())
       .get("/p/:property/availability", () => operatorAssets.html())
+      .get("/p/:property/inventory", () => operatorAssets.html())
       .get("/assets/operator.css", () => operatorAssets.css())
       .get("/assets/operator.js", () => operatorAssets.js())
       .post("/api/v1/auth/local:login", ({ request, body }) => operator.login(request, body))
@@ -82,6 +83,18 @@ export function createApp(options: AppOptions = {}) {
       )
       .post("/api/v1/properties/:property/availability:search", ({ request, params, body, tenantContext }) =>
         withOperatorTenant(request, (context) => operator.search(context, params.property, body))
+      )
+      .get("/api/v1/properties/:property/inventory", ({ request, params, tenantContext }) =>
+        withOperatorTenant(request, (context) => operator.inventory(context, params.property))
+      )
+      .post("/api/v1/properties/:property/inventory/unit-types", ({ request, params, body, tenantContext }) =>
+        withOperatorTenant(request, (context) => operator.createUnitType(context, params.property, body))
+      )
+      .post("/api/v1/properties/:property/inventory/spaces", ({ request, params, body, tenantContext }) =>
+        withOperatorTenant(request, (context) => operator.createSpace(context, params.property, body))
+      )
+      .post("/api/v1/properties/:property/inventory/sellable-units", ({ request, params, body, tenantContext }) =>
+        withOperatorTenant(request, (context) => operator.createSellableUnit(context, params.property, body))
       );
   }
 

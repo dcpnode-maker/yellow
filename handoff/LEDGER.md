@@ -68,3 +68,5 @@
 2026-08-22 · 050 · 2 · phase-2/api-idempotency-foundation · codex → codex · QUESTION-ANSWERED · P3 probe corrected from nonexistent id to key_hash; full proof restart required by D-166
 2026-08-22 · 051 · 2 · phase-2/api-idempotency-foundation · codex → codex · QUESTION-ANSWERED · corrected nonexistent schema snapshot path to tests/schema/expected.sql before generation
 2026-08-22 · 052 · 2 · phase-2/api-idempotency-foundation · codex → codex · QUESTION-ANSWERED · CI exact-ledger failure adds only 0004 checksum to database acceptance; full restart required
+2026-08-22 · 048 · 2 · phase-2/operator-inventory-management · codex → — · ORDER-WRITTEN · authenticated idempotent inventory snapshot/create workbench; independent review debt explicit
+2026-08-22 · 053 · 2 · phase-2/operator-inventory-management · codex → codex · QUESTION-ANSWERED · mutation failure must escape for rollback; browser SQL probe narrowed; focused restart required

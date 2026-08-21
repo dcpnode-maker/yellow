@@ -2,9 +2,9 @@ import { SQL } from "bun";
 
 import { app, createApp } from "./app";
 import { BearerTenantResolver, Hs256TokenSigner, LocalLoginService } from "./contexts/identity";
-import { AvailabilityService } from "./contexts/inventory";
+import { AvailabilityService, InventoryService } from "./contexts/inventory";
 import { OperatorHttpApi } from "./http/operator";
-import { Database } from "./kernel";
+import { Database, PostgresEventBus, PostgresIdempotency } from "./kernel";
 
 const port = Bun.env.PORT === undefined ? 3000 : Number(Bun.env.PORT);
 const workbenchEnabled = Bun.env.YELLOW_OPERATOR_WORKBENCH === "1";
@@ -32,11 +32,13 @@ function runtimeApp() {
   const tokens = new Hs256TokenSigner(required("YELLOW_TOKEN_SECRET"));
   const database = Database.connect(databaseUrl, { maxConnections: 12 });
   const loginPool = new SQL(databaseUrl, { max: 4 });
+  const eventPool = new SQL(databaseUrl, { max: 4 });
   const login = new LocalLoginService(loginPool, tokens);
+  const inventory = new InventoryService(new PostgresEventBus(eventPool));
   return createApp({
     database,
     tenantResolver: new BearerTenantResolver(tokens),
-    operatorApi: new OperatorHttpApi(login, new AvailabilityService()),
+    operatorApi: new OperatorHttpApi(login, new AvailabilityService(), inventory, new PostgresIdempotency()),
   });
 }
 

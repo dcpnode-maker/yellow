@@ -10,7 +10,11 @@ export const REVIEW_EMAIL = "operator@yellow.local";
 export const REVIEW_DISPLAY_NAME = "Yellow Review Operator";
 export const REVIEW_ROLE_NAME = "Local Availability Reviewer";
 export const REVIEW_PERMISSION = "inventory.availability:read";
-const REVIEW_PERMISSION_DESCRIPTION = "Read tenant-scoped truth availability";
+export const REVIEW_PERMISSIONS = Object.freeze([
+  { code: REVIEW_PERMISSION, description: "Read tenant-scoped truth availability" },
+  { code: "inventory.configuration:read", description: "Read tenant-scoped inventory configuration" },
+  { code: "inventory.configuration:write", description: "Create tenant-scoped inventory configuration" },
+]);
 const REVIEW_USER_NAME = `${TENANT_NAME}/review-user/${REVIEW_EMAIL}`;
 const REVIEW_ROLE_NAME_UUID = `${TENANT_NAME}/review-role/availability`;
 
@@ -125,13 +129,15 @@ async function provisionIdentity(connection: ReservedSQL, password: string, user
     throw new Error("Canonical launch seed is absent; run bun run db:seed first");
   }
 
-  const permissions = await connection<Array<{ code: string; description: string }>>`
-    SELECT code, description FROM permission WHERE code = ${REVIEW_PERMISSION}
-  `;
-  if (permissions.length === 0) {
-    await connection`INSERT INTO permission (code, description) VALUES (${REVIEW_PERMISSION}, ${REVIEW_PERMISSION_DESCRIPTION})`;
-  } else {
-    exact(permissions[0], { code: REVIEW_PERMISSION, description: REVIEW_PERMISSION_DESCRIPTION }, "Review permission");
+  for (const permission of REVIEW_PERMISSIONS) {
+    const permissions = await connection<Array<{ code: string; description: string }>>`
+      SELECT code, description FROM permission WHERE code = ${permission.code}
+    `;
+    if (permissions.length === 0) {
+      await connection`INSERT INTO permission (code, description) VALUES (${permission.code}, ${permission.description})`;
+    } else {
+      exact(permissions[0], permission, `Review permission ${permission.code}`);
+    }
   }
 
   const users = await connection<IdentityRow[]>`
@@ -173,17 +179,19 @@ async function provisionIdentity(connection: ReservedSQL, password: string, user
     if (roles.length !== 1) throw new Error("Review role collides with non-canonical local-review data");
   }
 
-  const rolePermissions = await connection<Array<{ role_id: string; permission_code: string }>>`
-    SELECT role_id, permission_code FROM role_permission
-    WHERE role_id = ${roleId}::uuid AND permission_code = ${REVIEW_PERMISSION}
-  `;
-  if (rolePermissions.length === 0) {
-    await connection`
-      INSERT INTO role_permission (role_id, permission_code)
-      VALUES (${roleId}::uuid, ${REVIEW_PERMISSION})
+  for (const permission of REVIEW_PERMISSIONS) {
+    const rolePermissions = await connection<Array<{ role_id: string; permission_code: string }>>`
+      SELECT role_id, permission_code FROM role_permission
+      WHERE role_id = ${roleId}::uuid AND permission_code = ${permission.code}
     `;
-  } else if (rolePermissions.length !== 1) {
-    throw new Error("Review role permission is not canonical");
+    if (rolePermissions.length === 0) {
+      await connection`
+        INSERT INTO role_permission (role_id, permission_code)
+        VALUES (${roleId}::uuid, ${permission.code})
+      `;
+    } else if (rolePermissions.length !== 1) {
+      throw new Error(`Review role permission ${permission.code} is not canonical`);
+    }
   }
 
   const grants = await connection<Array<{ tenant_id: string; user_id: string; role_id: string; scope_node: string }>>`
