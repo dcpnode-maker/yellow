@@ -20,6 +20,14 @@ export interface AppliedRestriction {
   readonly blocks: boolean;
 }
 
+export interface AppliedOperationalBlock {
+  readonly id: string;
+  readonly spaceId: string;
+  readonly kind: "ooo" | "oos";
+  readonly reason: string | null;
+  readonly blocks: boolean;
+}
+
 export interface AvailabilityOption {
   readonly sellableUnitId: string;
   readonly sellableUnitName: string;
@@ -31,6 +39,7 @@ export interface AvailabilityOption {
   readonly availableCount: number;
   readonly bookable: boolean;
   readonly restrictionsApplied: readonly AppliedRestriction[];
+  readonly operationalBlocksApplied: readonly AppliedOperationalBlock[];
 }
 
 interface AvailabilityRow {
@@ -44,6 +53,11 @@ interface AvailabilityRow {
   readonly available_count: number;
   readonly bookable: boolean;
   readonly restrictions_applied: string;
+  readonly operational_blocks_applied: string;
+}
+
+interface PropertyPolicyRow {
+  readonly oos_sellability: "blocked" | "allowed" | null;
 }
 
 function validate(input: SearchAvailabilityInput): number {
@@ -72,9 +86,46 @@ function parseRestrictions(value: string): readonly AppliedRestriction[] {
   return parsed as AppliedRestriction[];
 }
 
+function parseOperationalBlocks(value: string): readonly AppliedOperationalBlock[] {
+  const parsed: unknown = JSON.parse(value);
+  if (!Array.isArray(parsed)) throw new Error("PostgreSQL returned invalid operational-block evidence");
+  for (const block of parsed) {
+    if (typeof block !== "object" || block === null ||
+        !("id" in block) || typeof block.id !== "string" || !UUID.test(block.id) ||
+        !("spaceId" in block) || typeof block.spaceId !== "string" || !UUID.test(block.spaceId) ||
+        !("kind" in block) || (block.kind !== "ooo" && block.kind !== "oos") ||
+        !("reason" in block) || (block.reason !== null && typeof block.reason !== "string") ||
+        !("blocks" in block) || typeof block.blocks !== "boolean") {
+      throw new Error("PostgreSQL returned invalid operational-block evidence");
+    }
+  }
+  return parsed as AppliedOperationalBlock[];
+}
+
 export class AvailabilityService {
   async search(tx: Tx, input: SearchAvailabilityInput): Promise<readonly AvailabilityOption[]> {
     const partySize = validate(input);
+    const policies = await tx.unsafe<PropertyPolicyRow[]>(`
+      SELECT CASE
+        WHEN jsonb_typeof(config) <> 'object' THEN NULL
+        WHEN config ? 'inventory' AND jsonb_typeof(config -> 'inventory') <> 'object' THEN NULL
+        WHEN NOT (COALESCE(config -> 'inventory', '{}'::jsonb) ? 'oos_sellability') THEN 'blocked'
+        WHEN jsonb_typeof(config #> '{inventory,oos_sellability}') = 'string'
+          AND config #>> '{inventory,oos_sellability}' IN ('blocked', 'allowed')
+          THEN config #>> '{inventory,oos_sellability}'
+        ELSE NULL
+      END AS oos_sellability
+      FROM org_node
+      WHERE id = $1::uuid
+        AND tenant_id = current_setting('app.tenant_id', true)::uuid
+        AND kind = 'property'
+    `, [input.propertyNode]);
+    const propertyPolicy = policies[0];
+    if (!propertyPolicy) return [];
+    if (propertyPolicy.oos_sellability === null) {
+      throw new Error("Property has invalid inventory.oos_sellability policy");
+    }
+
     const rows = await tx.unsafe<AvailabilityRow[]>(`
       WITH property_context AS (
         SELECT
@@ -156,6 +207,29 @@ export class AvailabilityService {
           AND ut.property_node = $1::uuid
           AND ut.max_occupancy >= $4::int
       ),
+      operational_block_evidence AS MATERIALIZED (
+        SELECT
+          mapping.sellable_unit_id,
+          jsonb_agg(
+            jsonb_build_object(
+              'id', block.id,
+              'spaceId', block.space_id,
+              'kind', block.kind,
+              'reason', block.reason,
+              'blocks', block.kind = 'ooo' OR $7::text = 'blocked'
+            ) ORDER BY block.kind, block.space_id, block.id
+          ) AS operational_blocks,
+          bool_or(block.kind = 'ooo' OR $7::text = 'blocked') AS any_blocks
+        FROM sellable_mappings AS mapping
+        JOIN ooo_oos AS block
+          ON block.tenant_id = mapping.tenant_id
+         AND block.space_id = mapping.space_id
+        WHERE block.tenant_id = current_setting('app.tenant_id', true)::uuid
+          AND NOT isempty(block.period)
+          AND upper(block.period) > transaction_timestamp()
+          AND block.period && tstzrange($2::timestamptz, $3::timestamptz, '[)')
+        GROUP BY mapping.sellable_unit_id
+      ),
       mapping_capacity AS (
         SELECT
           mapping.sellable_unit_id,
@@ -226,11 +300,16 @@ export class AvailabilityService {
         physical.profile_key,
         physical.max_occupancy,
         physical.available_count,
-        (physical.available_count > 0 AND NOT COALESCE(evidence.any_blocks, false)) AS bookable,
-        COALESCE(evidence.restrictions, '[]'::jsonb)::text AS restrictions_applied
+        (physical.available_count > 0
+          AND NOT COALESCE(evidence.any_blocks, false)
+          AND NOT COALESCE(operational.any_blocks, false)) AS bookable,
+        COALESCE(evidence.restrictions, '[]'::jsonb)::text AS restrictions_applied,
+        COALESCE(operational.operational_blocks, '[]'::jsonb)::text AS operational_blocks_applied
       FROM physical_options AS physical
       CROSS JOIN property_context AS property
       LEFT JOIN restriction_evidence AS evidence ON evidence.unit_type_id = physical.unit_type_id
+      LEFT JOIN operational_block_evidence AS operational
+        ON operational.sellable_unit_id = physical.sellable_unit_id
       ORDER BY physical.sort_order, physical.unit_type_code,
                physical.sellable_unit_name, physical.sellable_unit_id
     `, [
@@ -240,6 +319,7 @@ export class AvailabilityService {
       partySize,
       input.ratePlanId ?? null,
       input.channelCode ?? null,
+      propertyPolicy.oos_sellability,
     ]);
     return rows.map((row) => ({
       sellableUnitId: row.sellable_unit_id,
@@ -252,6 +332,7 @@ export class AvailabilityService {
       availableCount: row.available_count,
       bookable: row.bookable,
       restrictionsApplied: parseRestrictions(row.restrictions_applied),
+      operationalBlocksApplied: parseOperationalBlocks(row.operational_blocks_applied),
     }));
   }
 }
