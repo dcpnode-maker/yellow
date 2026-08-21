@@ -40,3 +40,22 @@
 2026-08-15 · 025 · 1 · phase-1/approval-request · claude → codex · ORDER-WRITTEN · T2, insert-only, self-approval rejected at the primitive
 2026-08-15 · 026 · 1 · phase-1/org-ltree · claude → codex · ORDER-WRITTEN · T2, GiST index proof + tenant-scoped paths; completes Phase 1
 2026-08-22 · 043 · 2 · phase-2/local-service-loopback-hardening · codex → codex · ORDER-WRITTEN · bind local PostgreSQL and Valkey host ports to IPv4 loopback; independent review deferred under D-115
+2026-08-22 · 027 · 1 · phase-1/constitution-assessment · codex → — · BUILT-UNREVIEWED · a055d4b; constitutional assessment; review debt recorded by Claude at a113ca8
+2026-08-22 · 028 · 2 · phase-2/inventory-commands · codex → — · BUILT-UNREVIEWED · a241ab1; tenant-safe inventory configuration; D-115 review debt
+2026-08-22 · 029 · 2 · phase-2/hold-expiry-hardening · codex → — · BUILT-UNREVIEWED · b4717ab; legacy expiry privilege hardening; D-115 review debt
+2026-08-22 · 030 · 2 · phase-2/audited-holds · codex → — · BUILT-UNREVIEWED · 22d2b2d; audited cart-hold lifecycle; D-115 review debt
+2026-08-22 · 031 · 2 · phase-2/truth-availability · codex → — · BUILT-UNREVIEWED · f00fe4e; PostgreSQL-truth availability; D-115 review debt
+2026-08-22 · 032 · 2 · phase-2/rate-configuration · codex → — · BUILT-UNREVIEWED · f1bfb11; audited policy/rate-plan configuration; D-115 review debt
+2026-08-22 · 033 · 2 · phase-2/rate-prices · codex → — · BUILT-UNREVIEWED · 2bef22b; exact bigint rate prices; D-115 review debt
+2026-08-22 · 034 · 2 · phase-2/rate-price-supersession · codex → — · BUILT-UNREVIEWED · a87a687; race-safe price supersession; D-115 review debt
+2026-08-22 · 035 · 2 · phase-2/inventory-controls · codex → — · BUILT-UNREVIEWED · 0bd9585; atomic restriction configuration; D-115 review debt
+2026-08-22 · 036 · 2 · phase-2/restriction-evaluation · codex → — · BUILT-UNREVIEWED · fb4d014; restriction evaluation; Question 041 remains open
+2026-08-22 · 037 · 2 · phase-2/ooo-oos-lifecycle · codex → — · BUILT-UNREVIEWED · def27b8; audited OOO/OOS lifecycle; D-115 review debt
+2026-08-22 · 038 · 2 · phase-2/oos-sellability-policy · codex → — · BUILT-UNREVIEWED · 2d370be; configurable OOS policy; D-115 review debt
+2026-08-22 · 039 · 2 · phase-2/oos-sellability-policy · codex → — · BUILT-UNREVIEWED · 2d370be; deadlock classification correction in same bounded commit
+2026-08-22 · 040 · 2 · phase-2/operational-block-availability · codex → — · BUILT-UNREVIEWED · ec3e6b3; operational blocks composed into availability
+2026-08-22 · 041 · 2 · phase-2/operational-block-availability · codex → — · BUILT-UNREVIEWED · aabf113; PowerShell state exit isolation
+2026-08-22 · 042 · 2 · phase-2/operator-login-availability · codex → — · BUILT-UNREVIEWED · 6003c7d; authenticated themed local operator workbench; PR #23
+2026-08-22 · 043 · 2 · phase-2/local-service-loopback-hardening · codex → — · BUILT-UNREVIEWED · 9839c27; loopback-only local data services; PR #24
+2026-08-22 · 044 · 2 · phase-2/handoff-state-accuracy · codex → codex · ORDER-WRITTEN · accurate phase/review-debt reporting and ledger backfill
+2026-08-22 · 048 · 2 · phase-2/handoff-state-accuracy · codex → codex · QUESTION-ANSWERED · live app exhausted referee connection headroom; D-160 requires isolated unchanged rerun

@@ -20,7 +20,14 @@ try {
     $reviewFiles = @(Get-ChildItem 'handoff/reviews' -Filter '*.md' -File -ErrorAction SilentlyContinue | Sort-Object Name)
     $questionFiles = @(Get-ChildItem 'handoff/questions' -Filter '*.md' -File -ErrorAction SilentlyContinue | Sort-Object Name)
     $openOrders = @($orderFiles | Where-Object { -not (Select-String -Path $_.FullName -Pattern '^## MERGED' -Quiet) })
-    $openQuestions = @($questionFiles | Where-Object { -not (Select-String -Path $_.FullName -Pattern '^## RESOLVED','^## RATIFIED' -Quiet) })
+    $openQuestions = @($questionFiles | Where-Object {
+        $isResponse = $_.Name -match '^\d+-ARCHITECT-RESPONSE\.md$'
+        $number = $_.BaseName.Split('-')[0]
+        $response = Join-Path 'handoff/questions' "$number-ARCHITECT-RESPONSE.md"
+        -not $isResponse -and
+            -not (Select-String -Path $_.FullName -Pattern '^## RESOLVED','^## RATIFIED' -Quiet) -and
+            -not (Test-Path -LiteralPath $response)
+    })
     Write-Host "Open work: orders=$($openOrders.Count) open ($($orderFiles.Count) total) reviews=0 open ($($reviewFiles.Count) total) questions=$($openQuestions.Count) open ($($questionFiles.Count) total)"
     if ($openOrders.Count) {
         Write-Host 'Open orders:'
@@ -43,7 +50,18 @@ try {
         if ($LASTEXITCODE -eq 0) { Write-Host "yellow_test tables: $($tables.Trim()) (80 baseline + 2 kernel consumer + schema_migration; expected 83)" }
     }
 
-    Write-Host 'Phase: 0 · cumulative review pending'
+    $phase = 0
+    foreach ($orderFile in $orderFiles) {
+        $match = Select-String -Path $orderFile.FullName -Pattern '^\*\*Phase:\*\*\s*(\d+)' | Select-Object -First 1
+        if ($match -and [int]$match.Matches[0].Groups[1].Value -gt $phase) {
+            $phase = [int]$match.Matches[0].Groups[1].Value
+        }
+    }
+    if ($phase -eq 0 -and $openOrders.Count -eq 0) {
+        Write-Host 'Phase: 0 · merged baseline'
+    } else {
+        Write-Host "Phase: $phase · descendant stack pending independent review"
+    }
     Write-Host 'Reading: PROJECT.md -> AGENTS.md -> BUILD-PLAN.md -> handoff/ROSTER.md -> docs/WORKFLOW.md'
     Write-Host 'Referee: .\setup.ps1 -DbOnly -> 11 passed, 0 failed of 11'
 } finally {

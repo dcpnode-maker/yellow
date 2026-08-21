@@ -36,7 +36,14 @@ questions_open=()
 for file in handoff/questions/*.md; do
   [ -f "$file" ] || continue
   ((questions_total += 1))
-  if ! grep -Eq '^## (RESOLVED|RATIFIED)' "$file"; then questions_open+=("$file"); fi
+  name=$(basename "$file")
+  number=${name%%-*}
+  response="handoff/questions/${number}-ARCHITECT-RESPONSE.md"
+  if [[ "$name" != *-ARCHITECT-RESPONSE.md ]] &&
+     ! grep -Eq '^## (RESOLVED|RATIFIED)' "$file" &&
+     [ ! -f "$response" ]; then
+    questions_open+=("$file")
+  fi
 done
 
 printf 'Open work: orders=%s open (%s total) reviews=0 open (%s total) questions=%s open (%s total)\n' \
@@ -64,6 +71,16 @@ if printf '%s\n' "$running" | grep -qx postgres; then
   [ -n "$tables" ] && printf 'yellow_test tables: %s (80 baseline + 2 kernel consumer + schema_migration; expected 83)\n' "$tables"
 fi
 
-echo 'Phase: 0 · cumulative review pending'
+phase=0
+for file in handoff/orders/*.md; do
+  [ -f "$file" ] || continue
+  candidate=$(sed -nE 's/^\*\*Phase:\*\*[[:space:]]*([0-9]+).*/\1/p' "$file" | head -n 1)
+  if [ -n "$candidate" ] && [ "$candidate" -gt "$phase" ]; then phase=$candidate; fi
+done
+if [ "$phase" -eq 0 ] && [ "${#orders_open[@]}" -eq 0 ]; then
+  echo 'Phase: 0 · merged baseline'
+else
+  printf 'Phase: %s · descendant stack pending independent review\n' "$phase"
+fi
 echo 'Reading: PROJECT.md -> AGENTS.md -> BUILD-PLAN.md -> handoff/ROSTER.md -> docs/WORKFLOW.md'
 echo 'Referee: ./setup.sh --db-only -> 11 passed, 0 failed of 11'
