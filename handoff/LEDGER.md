@@ -39,3 +39,4 @@
 2026-08-15 · 024 · 1 · phase-1/extension-registry · claude → codex · ORDER-WRITTEN · T2, runtime type registration + JSON-Schema validation before write
 2026-08-15 · 025 · 1 · phase-1/approval-request · claude → codex · ORDER-WRITTEN · T2, insert-only, self-approval rejected at the primitive
 2026-08-15 · 026 · 1 · phase-1/org-ltree · claude → codex · ORDER-WRITTEN · T2, GiST index proof + tenant-scoped paths; completes Phase 1
+2026-08-22 · 043 · 2 · phase-2/local-service-loopback-hardening · codex → codex · ORDER-WRITTEN · bind local PostgreSQL and Valkey host ports to IPv4 loopback; independent review deferred under D-115

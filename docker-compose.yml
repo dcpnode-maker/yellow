@@ -58,7 +58,7 @@ services:
       POSTGRES_USER: yellow
       POSTGRES_PASSWORD: yellow
       POSTGRES_DB: yellow_dev
-    ports: ["${YELLOW_POSTGRES_PORT:-5442}:5432"]
+    ports: ["127.0.0.1:${YELLOW_POSTGRES_PORT:-5442}:5432"]
     volumes:
       - yellow-pgdata:/var/lib/postgresql/data
     command: >
@@ -74,7 +74,7 @@ services:
 
   valkey:
     image: valkey/valkey:8-alpine
-    ports: ["${YELLOW_VALKEY_PORT:-6389}:6379"]
+    ports: ["127.0.0.1:${YELLOW_VALKEY_PORT:-6389}:6379"]
     command: valkey-server --save "" --appendonly no
     healthcheck:
       test: ["CMD", "valkey-cli", "ping"]
