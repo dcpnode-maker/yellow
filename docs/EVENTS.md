@@ -29,7 +29,7 @@ outbox by `seq` (SQL) or JetStream by offset.
 **inventory** · space.created · unit_type.created · sellable_unit.created {unit_type_id,space_claims[{space_id,claim_mode}]} · occupancy.recorded {slot_kind,space_id,period,claim} · occupancy.released · hold.created/.consumed/.expired/.released · restriction.changed · ooo.opened/.closed
 → availability-projection rebuilder, ARI push, Valkey invalidator
 
-**rates** · policy.created {kind} · rate_plan.created {code,currency,policy_ids}
+**rates** · policy.created {kind} · rate_plan.created {code,currency,policy_ids} · rate_price.created {rate_plan_id,unit_type_id,stay_dates,dow_mask,currency}
 → quote versioning, direct-booking cache invalidation, distribution ARI
 
 **reservations** · reservation.confirmed {segments[{unit_type,period,rate_plan}],channel} · .modified {diff} · .cancelled {reason,penalty_journal?} · .no_show · .checked_in {segment,space} · .checked_out · .reinstated · .due_in/.due_out · segment.moved {from_space,to_space} · group.status_changed {deducts_delta} · block.rooms_released

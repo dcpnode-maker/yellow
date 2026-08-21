@@ -17,3 +17,12 @@ export type {
   PolicyKind,
   RatePlan,
 } from "./configuration";
+export { RatePricingService } from "./pricing";
+export type {
+  ChildRateInput,
+  CreateRatePriceInput,
+  FindCurrentRatePriceInput,
+  RatePrice,
+  RatePricing,
+  RatePricingInput,
+} from "./pricing";
