@@ -25,4 +25,5 @@ export type {
   RatePrice,
   RatePricing,
   RatePricingInput,
+  SupersedeRatePriceInput,
 } from "./pricing";

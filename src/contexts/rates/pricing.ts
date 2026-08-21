@@ -1,6 +1,6 @@
 import type { AuditEnvelope, EventBus, Tx } from "../../kernel";
 import { recordFact } from "../../kernel";
-import { RateNotFoundError, RateValidationError } from "./configuration";
+import { RateConflictError, RateNotFoundError, RateValidationError } from "./configuration";
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 const DATE = /^\d{4}-\d{2}-\d{2}$/;
@@ -54,6 +54,12 @@ export interface FindCurrentRatePriceInput {
   readonly ratePlanId: string;
   readonly unitTypeId: string;
   readonly stayDate: string;
+}
+
+export interface SupersedeRatePriceInput {
+  readonly ratePriceId: string;
+  readonly pricing: RatePricingInput;
+  readonly envelope: AuditEnvelope;
 }
 
 interface RatePriceRow {
@@ -157,9 +163,9 @@ function encodePricing(pricing: RatePricing): string {
   return `{${parts.join(",")}}`;
 }
 
-function requireOperation(envelope: AuditEnvelope): void {
-  if (envelope.operation !== "rate_price.created") {
-    throw new RateValidationError("audit operation must be rate_price.created");
+function requireOperation(envelope: AuditEnvelope, expected: string): void {
+  if (envelope.operation !== expected) {
+    throw new RateValidationError(`audit operation must be ${expected}`);
   }
 }
 
@@ -255,7 +261,7 @@ export class RatePricingService {
   }
 
   async create(tx: Tx, input: CreateRatePriceInput): Promise<RatePrice> {
-    requireOperation(input.envelope);
+    requireOperation(input.envelope, "rate_price.created");
     requireUuid("ratePlanId", input.ratePlanId);
     requireUuid("unitTypeId", input.unitTypeId);
     requireDate("stayStart", input.stayStart);
@@ -316,6 +322,93 @@ export class RatePricingService {
     });
     const result = (await attachPricing(tx, [row]))[0];
     if (!result) throw new Error("Created rate price could not be read back");
+    return result;
+  }
+
+  async supersede(tx: Tx, input: SupersedeRatePriceInput): Promise<RatePrice> {
+    requireOperation(input.envelope, "rate_price.superseded");
+    requireUuid("ratePriceId", input.ratePriceId);
+    const pricing = normalizePricing(input.pricing);
+    const existingRows = await tx<RatePriceRow[]>`
+      SELECT rp.id, rp.tenant_id, plan.property_node, rp.rate_plan_id, rp.unit_type_id,
+             lower(rp.stay_dates)::text AS stay_start,
+             upper(rp.stay_dates)::text AS stay_end, rp.dow_mask,
+             plan.currency::text AS currency,
+             rp.pricing->>'extra_adult' AS extra_adult_minor,
+             rp.recorded_at, rp.superseded_by
+      FROM rate_price AS rp
+      JOIN rate_plan AS plan ON plan.id = rp.rate_plan_id AND plan.tenant_id = rp.tenant_id
+      WHERE rp.id = ${input.ratePriceId}::uuid
+        AND rp.tenant_id = ${input.envelope.tenantId}::uuid
+        AND rp.tenant_id = current_setting('app.tenant_id', true)::uuid
+        AND plan.property_node = ${input.envelope.propertyNode}::uuid
+        AND rp.superseded_by IS NULL
+      FOR UPDATE OF rp
+    `;
+    const existing = existingRows[0];
+    if (!existing) {
+      throw new RateConflictError("Current rate price was not found or was already superseded");
+    }
+    const successorRows = await tx<RatePriceRow[]>`
+      INSERT INTO rate_price (
+        tenant_id, rate_plan_id, unit_type_id, stay_dates, dow_mask, pricing
+      ) VALUES (
+        ${existing.tenant_id}::uuid, ${existing.rate_plan_id}::uuid, ${existing.unit_type_id}::uuid,
+        daterange(${existing.stay_start}::date, ${existing.stay_end}::date, '[)'),
+        ${existing.dow_mask}, ${encodePricing(pricing)}::text::jsonb
+      )
+      RETURNING id, tenant_id, ${existing.property_node}::uuid AS property_node,
+                rate_plan_id, unit_type_id, lower(stay_dates)::text AS stay_start,
+                upper(stay_dates)::text AS stay_end, dow_mask, ${existing.currency}::text AS currency,
+                pricing->>'extra_adult' AS extra_adult_minor, recorded_at, superseded_by
+    `;
+    const successor = successorRows[0];
+    if (!successor) throw new Error("PostgreSQL did not return the successor rate price");
+    const linked = await tx<Array<{ id: string }>>`
+      UPDATE rate_price
+      SET superseded_by = ${successor.id}::uuid
+      WHERE id = ${existing.id}::uuid
+        AND tenant_id = current_setting('app.tenant_id', true)::uuid
+        AND superseded_by IS NULL
+      RETURNING id
+    `;
+    if (!linked[0]) throw new RateConflictError("Rate price was superseded concurrently");
+
+    const evidence = {
+      old_rate_price_id: existing.id,
+      new_rate_price_id: successor.id,
+      rate_plan_id: existing.rate_plan_id,
+      unit_type_id: existing.unit_type_id,
+      stay_start: existing.stay_start,
+      stay_end: existing.stay_end,
+      dow_mask: existing.dow_mask,
+      currency: existing.currency,
+    };
+    const oldFact = await recordFact(tx, {
+      entityType: "rate_price",
+      entityId: existing.id,
+      envelope: input.envelope,
+      payload: evidence,
+    });
+    await recordFact(tx, {
+      entityType: "rate_price",
+      entityId: successor.id,
+      envelope: input.envelope,
+      payload: { ...evidence, supersedes: existing.id },
+    });
+    await this.#events.publish(tx, {
+      tenantId: existing.tenant_id,
+      propertyNode: existing.property_node,
+      businessDate: oldFact.businessDate,
+      aggregateType: "rate_price",
+      aggregateId: successor.id,
+      eventType: "rate_price.superseded",
+      actorId: input.envelope.actorId,
+      correlationId: input.envelope.requestId,
+      payload: evidence,
+    });
+    const result = (await attachPricing(tx, [successor]))[0];
+    if (!result) throw new Error("Successor rate price could not be read back");
     return result;
   }
 
