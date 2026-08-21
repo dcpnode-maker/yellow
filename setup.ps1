@@ -32,8 +32,11 @@ docker compose up -d postgres valkey | Out-Host; Assert-Exit 'Starting PostgreSQ
 
 $ready = $false
 foreach ($attempt in 1..40) {
+    $postmaster = docker compose exec -T postgres cat /proc/1/comm 2> $null
+    $finalPostmaster = $LASTEXITCODE -eq 0 -and $postmaster.Trim() -eq 'postgres'
     docker compose exec -T postgres pg_isready -U yellow -d yellow_dev *> $null
-    if ($LASTEXITCODE -eq 0) { $ready = $true; break }
+    $databaseReady = $LASTEXITCODE -eq 0
+    if ($databaseReady -and $finalPostmaster) { $ready = $true; break }
     Start-Sleep -Seconds 1
 }
 if (-not $ready) { throw 'PostgreSQL did not become ready. Run: docker compose logs postgres' }

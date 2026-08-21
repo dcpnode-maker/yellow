@@ -32,7 +32,12 @@ printf 'Compose project %s · ports app=%s postgres=%s valkey=%s\n' \
 docker compose up -d postgres valkey
 ready=0
 for _ in $(seq 1 40); do
-  if docker compose exec -T postgres pg_isready -U yellow -d yellow_dev >/dev/null 2>&1; then ready=1; break; fi
+  postmaster=$(docker compose exec -T postgres cat /proc/1/comm 2>/dev/null | tr -d '\r\n' || true)
+  if [ "$postmaster" = 'postgres' ] \
+    && docker compose exec -T postgres pg_isready -U yellow -d yellow_dev >/dev/null 2>&1; then
+    ready=1
+    break
+  fi
   sleep 1
 done
 [ "$ready" -eq 1 ] || { echo 'PostgreSQL did not become ready. Run: docker compose logs postgres' >&2; exit 1; }

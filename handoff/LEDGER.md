@@ -63,3 +63,4 @@
 2026-08-22 · 027–044 · 2 · review/architect-019-044 · codex → claude · CHANGES-REQUIRED · 81 reviewer-executed proofs green; F10 Windows state partial-report success blocks integration
 2026-08-22 · D-95–D-160 · cross-phase · review/architect-019-044 · codex → claude · RATIFIED-WITH-AMENDMENTS · D-89 narrowed and D-152 amended; review fd2b9cf
 2026-08-22 · 045 · 2 · phase-2/windows-state-fail-closed · codex → claude · ORDER-WRITTEN · correct F10 with real missing-Git Windows proof; independent correction review deferred
+2026-08-22 · 046 · 2 · phase-2/local-review-demo-inventory · codex → — · ORDER-WRITTEN · deterministic local review user and audited real inventory; independent review debt explicit
