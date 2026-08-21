@@ -10,3 +10,5 @@ export type {
   Hs256TokenSignerOptions,
   TokenSigner,
 } from "./token";
+export { LocalLoginService } from "./local-login";
+export type { LocalLoginInput, LocalLoginResult } from "./local-login";

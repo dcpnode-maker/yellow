@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="en" data-theme="apple">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="color-scheme" content="light">
+    <title>Yellow · Operator Workbench</title>
+    <link rel="stylesheet" href="/assets/operator.css">
+    <script src="/assets/operator.js" defer></script>
+  </head>
+  <body>
+    <a class="skip-link" href="#main">Skip to workbench</a>
+    <header class="app-bar">
+      <div class="brand" aria-label="Yellow Hospitality OS">
+        <span class="brand-mark" aria-hidden="true">Y</span>
+        <span><strong>Yellow</strong><small>Operator Workbench</small></span>
+      </div>
+      <div class="app-actions">
+        <label class="theme-control"><span>Appearance</span>
+          <select id="theme-select" aria-label="Appearance">
+            <option value="apple">Apple calm</option>
+            <option value="pixel">Pixel expressive</option>
+          </select>
+        </label>
+        <div class="session-state" id="session-state">Local review · signed out</div>
+      </div>
+    </header>
+
+    <main id="main">
+      <section class="login-layout" id="login-view" aria-labelledby="login-title">
+        <div class="welcome-panel">
+          <p class="eyebrow">Hospitality operations, without the maze</p>
+          <h1 id="login-title">See what can sell—and why.</h1>
+          <p class="lede">This local workbench reads Yellow’s real PostgreSQL inventory truth. It never invents availability or hides a blocker.</p>
+          <ul class="truth-list">
+            <li><span>01</span> Physical capacity stays distinct from commercial rules.</li>
+            <li><span>02</span> Restrictions and maintenance causes remain visible.</li>
+            <li><span>03</span> Every request runs inside the authenticated tenant boundary.</li>
+          </ul>
+        </div>
+
+        <form class="card login-card" id="login-form">
+          <div>
+            <p class="eyebrow">Staff access</p>
+            <h2>Sign in</h2>
+            <p class="muted">Local review only. Reloading signs you out.</p>
+          </div>
+          <label>Hotel account
+            <input name="tenant" autocomplete="organization" required maxlength="63" placeholder="yellow-demo">
+          </label>
+          <label>Email
+            <input name="email" type="email" autocomplete="username" required maxlength="254" placeholder="operator@yellow.local">
+          </label>
+          <label>Password
+            <input name="password" type="password" autocomplete="current-password" required maxlength="1024">
+          </label>
+          <button class="primary" type="submit">Enter workbench</button>
+          <p class="form-message" id="login-message" role="status" aria-live="polite"></p>
+        </form>
+      </section>
+
+      <section class="workbench" id="workbench-view" hidden aria-labelledby="workbench-title">
+        <div class="workbench-head">
+          <div>
+            <p class="eyebrow">Inventory truth</p>
+            <h1 id="workbench-title">Availability</h1>
+            <p class="muted" id="operator-name"></p>
+          </div>
+          <button class="quiet" id="sign-out" type="button">Sign out</button>
+        </div>
+
+        <form class="search-bar card" id="availability-form">
+          <label>Property
+            <select name="property" id="property-select" required></select>
+          </label>
+          <label>Stay starts
+            <input name="from" type="datetime-local" required>
+          </label>
+          <label>Stay ends
+            <input name="to" type="datetime-local" required>
+          </label>
+          <label>Guests
+            <input name="partySize" type="number" min="1" max="32767" value="1" required>
+          </label>
+          <button class="primary search-button" type="submit">Search availability</button>
+          <p class="timezone-note">Times are converted from this browser to exact UTC instants. Property stay-date policy is not implemented yet.</p>
+        </form>
+
+        <div class="summary-row" aria-live="polite">
+          <p id="result-summary">Choose a stay and search.</p>
+          <span class="legend"><i class="dot available"></i> Bookable <i class="dot blocked"></i> Blocked <i class="dot warning"></i> Warning</span>
+        </div>
+        <div class="result-grid" id="results"></div>
+      </section>
+    </main>
+  </body>
+</html>

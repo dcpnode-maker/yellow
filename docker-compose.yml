@@ -7,8 +7,13 @@ services:
       dockerfile: Dockerfile
     environment:
       NODE_ENV: production
+      HOST: "0.0.0.0"
       PORT: "3000"
-    ports: ["${YELLOW_APP_PORT:-3000}:3000"]
+      YELLOW_OPERATOR_ALLOW_NON_LOOPBACK: "1"
+      YELLOW_OPERATOR_WORKBENCH: "${YELLOW_OPERATOR_WORKBENCH:-0}"
+      DATABASE_URL: "${YELLOW_APP_DATABASE_URL:-postgres://yellow:yellow@postgres:5432/yellow_dev}"
+      YELLOW_TOKEN_SECRET: "${YELLOW_TOKEN_SECRET:-yellow-local-development-token-secret-change-before-deployment}"
+    ports: ["127.0.0.1:${YELLOW_APP_PORT:-3000}:3000"]
     healthcheck:
       test:
         - CMD
