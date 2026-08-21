@@ -23,6 +23,8 @@ changed-request key reuse conflicts; the claim and business mutation are atomic.
 - `handoff/questions/050-order-047-proof-column-name.md`
 - `handoff/questions/051-ARCHITECT-RESPONSE.md`
 - `handoff/questions/051-order-047-schema-snapshot-path.md`
+- `handoff/questions/052-ARCHITECT-RESPONSE.md`
+- `handoff/questions/052-order-047-acceptance-ledger.md`
 - `migrations/0004_api_idempotency.sql`
 - `tests/schema/expected.sql`
 - `setup.ps1`
@@ -31,6 +33,7 @@ changed-request key reuse conflicts; the claim and business mutation are atomic.
 - `src/kernel/index.ts`
 - `state.ps1`
 - `state.sh`
+- `tests/database-acceptance.integration.test.ts`
 - `tests/idempotency.integration.test.ts`
 
 ## Required behavior
@@ -84,3 +87,5 @@ Question 050 authorizes only changing P3's nonexistent `id` projection to `key_h
 then restarting the entire proof file.
 Question 051 corrects the nonexistent snapshot path to the generator's canonical
 `tests/schema/expected.sql` before that file is regenerated.
+Question 052 adds only the exact 0004 ledger row to fresh-deployment acceptance and
+requires every proof to restart from the top.

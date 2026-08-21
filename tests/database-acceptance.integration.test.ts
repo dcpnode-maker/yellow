@@ -20,6 +20,11 @@ const EXPECTED_MIGRATIONS = [
     filename: "0003_revoke_legacy_expire_holds.sql",
     checksum_sha256: "a9564092d14367d37fe7f79eee65a97fdf2dbd1c359536d1b807006540d6251b",
   },
+  {
+    version: 4,
+    filename: "0004_api_idempotency.sql",
+    checksum_sha256: "f08fcc6be6c6a2cd631da8c4e2d08bf5d2139de24ba2b1ca6ec1554ab2590ab2",
+  },
 ];
 
 if (REQUIRE_DATABASE && !DATABASE_URL) {
