@@ -33,3 +33,9 @@ export type {
   OperationalBlock,
   OperationalBlockKind,
 } from "./operational-blocks";
+export { InventoryPolicyService } from "./inventory-policy";
+export type {
+  InventoryPolicy,
+  OosSellability,
+  SetOosSellabilityInput,
+} from "./inventory-policy";

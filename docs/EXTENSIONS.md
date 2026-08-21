@@ -1,9 +1,15 @@
 # EXTENSIONS.md — Extension Registry content schemas
 
-Everything configurable lives in `extension` rows, validated against the JSON Schema
-registered in `extension_type.json_schema`. **One lifecycle for all config** (draft →
-active → retired, bitemporal via fact_log). Adding a vertical, a tax regime, a policy
-kind, or a statutory country is DATA, not code — unless it needs an adapter (Tier C).
+Extensible configuration types and instances live in `extension` rows, validated
+against the JSON Schema registered in `extension_type.json_schema`. **One lifecycle for
+extension config** (draft → active → retired, bitemporal via fact_log). Adding a
+vertical, a tax regime, a policy kind, or a statutory country is DATA, not code — unless
+it needs an adapter (Tier C).
+
+Core property runtime choices that are attributes of the property itself remain in the
+typed `org_node.config` envelope and are changed only through audited domain commands;
+they are not plugin instances. Inventory currently defines
+`inventory.oos_sellability` as `blocked | allowed`, defaulting to `blocked` when absent.
 
 Schemas below are the launch set. Claude Code: when implementing, load these into
 `extension_type` in the Phase-1 seed migration, exactly as written.

@@ -86,7 +86,7 @@ function normalizeReason(value: string): string {
 
 function isOccupancyConflict(error: unknown): boolean {
   if (typeof error !== "object" || error === null || !("errno" in error)) return false;
-  return error.errno === "23P01" || error.errno === "P0002";
+  return error.errno === "23P01" || error.errno === "40P01" || error.errno === "P0002";
 }
 
 function toBlock(row: BlockRow): OperationalBlock {
