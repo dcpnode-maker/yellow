@@ -14,3 +14,5 @@ export type {
   Space,
   UnitType,
 } from "./inventory";
+export { HoldConflictError, HoldService } from "./holds";
+export type { CartHold, HoldStatus, PlaceCartHoldInput, TransitionHoldInput } from "./holds";
