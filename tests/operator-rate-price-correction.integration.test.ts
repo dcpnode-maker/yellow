@@ -9,6 +9,7 @@ import { OperatorHttpApi } from "../src/http/operator";
 import { createAuditEnvelope, Database, PostgresEventBus, PostgresIdempotency } from "../src/kernel";
 import { runReviewSeed, REVIEW_EMAIL } from "../scripts/seed-review";
 import { runSeed, SEED_PROPERTY, SEED_TENANT } from "../scripts/seed";
+import { BROWSER_SQL_SYNTAX } from "./helpers/browser-asset-security";
 
 const DATABASE_URL = process.env.YELLOW_OPERATOR_CORRECTION_URL;
 const PASSWORD = process.env.YELLOW_OPERATOR_CORRECTION_PASSWORD;
@@ -260,7 +261,7 @@ databaseDescribe("Order 052 operator rate-price correction", () => {
     expect(js).toContain("loadPriceCorrection");
     expect(js).not.toMatch(/parseFloat|Number\([^)]*(?:amount|price)/i);
     expect(js).not.toMatch(/localStorage|sessionStorage|document\.cookie/);
-    expect(js).not.toMatch(/\b(?:SELECT|INSERT|UPDATE|DELETE)\s/i);
+    expect(js).not.toMatch(BROWSER_SQL_SYNTAX);
     expect(js).not.toMatch(/postgres(?:ql)?:\/\//i);
   });
 });

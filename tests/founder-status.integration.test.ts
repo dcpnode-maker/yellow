@@ -7,6 +7,8 @@ import { AvailabilityService } from "../src/contexts/inventory";
 import { OperatorHttpApi } from "../src/http/operator";
 import { Database, PostgresIdempotency } from "../src/kernel";
 import { PROJECT_BUILD_SNAPSHOT, type OperatorRuntimeStatus } from "../src/project-status";
+import { APPROVED_REVIEW_FILES, INDEPENDENTLY_REVIEWED_THROUGH_ORDER } from "../src/generated/review-coverage";
+import { deriveIndependentReviewCoverage } from "../scripts/derive-review-coverage";
 import { REVIEW_EMAIL } from "../scripts/seed-review";
 import { SEED_PROPERTY, SEED_TENANT } from "../scripts/seed";
 
@@ -56,24 +58,10 @@ function manifestRows(source: string): Array<{ order: number; status: string }> 
   });
 }
 
-async function approvedReviewCoverage(): Promise<number> {
-  const reviewDirectory = new URL("../handoff/reviews/", import.meta.url);
-  const reviewFiles = new Bun.Glob("*.md");
-  let throughOrder = 0;
-  for await (const fileName of reviewFiles.scan({ cwd: reviewDirectory.pathname, onlyFiles: true })) {
-    const source = await Bun.file(new URL(fileName, reviewDirectory)).text();
-    if (!/^\*\*Reviewed by:\*\*.*architect role/im.test(source)) continue;
-    if (!/^\*\*Verdict:\*\*\s*\*\*APPROVED\b/im.test(source)) continue;
-    const range = source.match(/^# REVIEW\s+\d{3}(?:[–-](\d{3}))?/m);
-    const end = Number(range?.[1] ?? source.match(/^# REVIEW\s+(\d{3})/m)?.[1]);
-    if (Number.isSafeInteger(end)) throughOrder = Math.max(throughOrder, end);
-  }
-  return throughOrder;
-}
-
 describe("Order 064 recorded build snapshot", () => {
   test("P3: runtime snapshot is exact to the committed Gate-3 manifest", async () => {
     const manifest = await Bun.file(new URL("../handoff/GATE-3-MANIFEST.md", import.meta.url)).text();
+    const reviewCoverage = await deriveIndependentReviewCoverage();
     const rows = manifestRows(manifest);
     expect(rows.length).toBeGreaterThan(0);
     expect(Number(PROJECT_BUILD_SNAPSHOT.roadmap.latestBuiltOrder)).toBe(Math.max(...rows.map(({ order }) => order)));
@@ -81,7 +69,11 @@ describe("Order 064 recorded build snapshot", () => {
     expect(PROJECT_BUILD_SNAPSHOT.roadmap.currentOrder).toBe(73);
     expect(PROJECT_BUILD_SNAPSHOT.roadmap.activePhase).toBe(3);
     expect(PROJECT_BUILD_SNAPSHOT.roadmap.phaseCount).toBe(13);
-    expect(PROJECT_BUILD_SNAPSHOT.review.independentlyReviewedThroughOrder).toBe(await approvedReviewCoverage());
+    expect(reviewCoverage.throughOrder).toBe(44);
+    expect(reviewCoverage.approvedReviewFiles).not.toContain("045-073-gate-3.md");
+    expect(JSON.stringify(APPROVED_REVIEW_FILES)).toBe(JSON.stringify(reviewCoverage.approvedReviewFiles));
+    expect(Number(INDEPENDENTLY_REVIEWED_THROUGH_ORDER)).toBe(reviewCoverage.throughOrder);
+    expect(Number(PROJECT_BUILD_SNAPSHOT.review.independentlyReviewedThroughOrder)).toBe(Number(reviewCoverage.throughOrder));
     expect(PROJECT_BUILD_SNAPSHOT.referee).toEqual({ requiredPasses: 11, requiredFailures: 0 });
     expect(PROJECT_BUILD_SNAPSHOT.phases).toHaveLength(13);
     expect(PROJECT_BUILD_SNAPSHOT.phases.map(({ number }) => Number(number))).toEqual([...Array(13).keys()]);

@@ -1,3 +1,5 @@
+import { INDEPENDENTLY_REVIEWED_THROUGH_ORDER } from "./generated/review-coverage";
+
 export type PhaseBuildState = "reviewed" | "built_unverified" | "active" | "planned";
 
 export interface ProjectPhaseSnapshot {
@@ -31,15 +33,15 @@ export const PROJECT_BUILD_SNAPSHOT = Object.freeze({
     activePhase: 3,
   }),
   review: Object.freeze({
-    independentlyReviewedThroughOrder: 18,
+    independentlyReviewedThroughOrder: INDEPENDENTLY_REVIEWED_THROUGH_ORDER,
     gate3Debt: 29,
     state: "UNVERIFIED" as const,
   }),
   referee: Object.freeze({ requiredPasses: 11, requiredFailures: 0 }),
   phases: Object.freeze([
     Object.freeze({ number: 0, name: "Bootstrap", state: "reviewed" as const }),
-    Object.freeze({ number: 1, name: "Kernel", state: "built_unverified" as const }),
-    Object.freeze({ number: 2, name: "Inventory & occupancy", state: "built_unverified" as const }),
+    Object.freeze({ number: 1, name: "Kernel", state: INDEPENDENTLY_REVIEWED_THROUGH_ORDER >= 26 ? "reviewed" as const : "built_unverified" as const }),
+    Object.freeze({ number: 2, name: "Inventory & occupancy", state: INDEPENDENTLY_REVIEWED_THROUGH_ORDER >= 44 ? "reviewed" as const : "built_unverified" as const }),
     Object.freeze({ number: 3, name: "Rates & policies", state: "active" as const }),
     Object.freeze({ number: 4, name: "Reservations", state: "planned" as const }),
     Object.freeze({ number: 5, name: "Financials", state: "planned" as const }),

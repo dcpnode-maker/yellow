@@ -9,6 +9,7 @@ import { OperatorHttpApi } from "../src/http/operator";
 import { Database, PostgresEventBus, PostgresIdempotency } from "../src/kernel";
 import { runReviewSeed, REVIEW_EMAIL } from "../scripts/seed-review";
 import { runSeed, SEED_PROPERTY, SEED_TENANT } from "../scripts/seed";
+import { BROWSER_SQL_SYNTAX } from "./helpers/browser-asset-security";
 
 const DATABASE_URL = process.env.YELLOW_OPERATOR_RATE_URL;
 const PASSWORD = process.env.YELLOW_OPERATOR_RATE_PASSWORD;
@@ -264,7 +265,7 @@ databaseDescribe("Order 050 operator rate-plan management", () => {
     expect(css).toContain(':root[data-theme="pixel"]');
     expect(js).toContain('"rates"');
     expect(js).not.toMatch(/localStorage|sessionStorage|document\.cookie/);
-    expect(js).not.toMatch(/\b(?:SELECT|INSERT|UPDATE|DELETE)\s/i);
+    expect(js).not.toMatch(BROWSER_SQL_SYNTAX);
     expect(js).not.toMatch(/postgres(?:ql)?:\/\//i);
     expect((await tokens.verify(accessToken))?.scp).toBe(
       "inventory.availability:read inventory.blocks:read inventory.blocks:write inventory.configuration:read inventory.configuration:write inventory.holds:read inventory.holds:write inventory.offline_leases:read inventory.offline_leases:write inventory.policy:read inventory.policy:write inventory.restriction:read inventory.restriction:write rates.configuration:read rates.configuration:write rates.pricing:read rates.pricing:write",
