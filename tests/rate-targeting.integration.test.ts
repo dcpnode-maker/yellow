@@ -126,6 +126,13 @@ function commercialSubset(mask: number): RateTargetCommercial {
   )) as RateTargetCommercial;
 }
 
+function permutations<T>(values: readonly T[]): T[][] {
+  if (values.length < 2) return [[...values]];
+  return values.flatMap((value, index) =>
+    permutations([...values.slice(0, index), ...values.slice(index + 1)]).map((tail) => [value, ...tail])
+  );
+}
+
 async function artifactCounts(ratePlanId: string): Promise<{
   rows: number;
   facts: number;
@@ -260,13 +267,8 @@ describe("Order 066 deterministic targeting resolver", () => {
       targetRule("unit", { kind: "unit_type", unitTypeId: UNIT_A1 }, {}, "exclude", 800),
       targetRule("sellable", { kind: "sellable", sellableUnitId: SELLABLE_A1 }, {}, "include", 0),
     ] as const;
-    for (const ordered of [
-      physicalRules,
-      [...physicalRules].reverse(),
-      [physicalRules[2], physicalRules[0], physicalRules[3], physicalRules[1]],
-      [physicalRules[1], physicalRules[3], physicalRules[0], physicalRules[2]],
-    ]) {
-      expect(resolveRateTargetRules(ordered, CONTEXT)).toEqual({
+    for (const ordered of permutations(physicalRules)) {
+      expect(resolveRateTargetRules(ordered, CONTEXT, PROPERTY_A)).toEqual({
         state: "included",
         winningRuleKey: "sellable",
         matchedRuleKeys: ["sellable", "unit", "class", "property"],
@@ -278,13 +280,13 @@ describe("Order 066 deterministic targeting resolver", () => {
       const removedBit = mask & -mask;
       const narrower = targetRule("narrower", { kind: "property" }, commercialSubset(mask));
       const broader = targetRule("broader", { kind: "property" }, commercialSubset(mask ^ removedBit), "exclude", 1000);
-      expect(resolveRateTargetRules([broader, narrower], CONTEXT).winningRuleKey).toBe("narrower");
+      expect(resolveRateTargetRules([broader, narrower], CONTEXT, PROPERTY_A).winningRuleKey).toBe("narrower");
     }
 
     const tied = resolveRateTargetRules([
       targetRule("company", { kind: "property" }, { companyPartyId: COMPANY_A }),
       targetRule("channel", { kind: "property" }, { channelCode: "direct" }),
-    ], CONTEXT);
+    ], CONTEXT, PROPERTY_A);
     expect(tied).toEqual({
       state: "conflict",
       winningRuleKey: null,
@@ -294,13 +296,18 @@ describe("Order 066 deterministic targeting resolver", () => {
     expect(resolveRateTargetRules([
       targetRule("company", { kind: "property" }, { companyPartyId: COMPANY_A }, "exclude", 8),
       targetRule("channel", { kind: "property" }, { channelCode: "direct" }, "include", 9),
-    ], CONTEXT).winningRuleKey).toBe("channel");
+    ], CONTEXT, PROPERTY_A).winningRuleKey).toBe("channel");
     expect(resolveRateTargetRules([
       targetRule("excluded", { kind: "property" }, { marketCode: "RETAIL" }, "exclude"),
-    ], CONTEXT).state).toBe("excluded");
+    ], CONTEXT, PROPERTY_A).state).toBe("excluded");
     expect(resolveRateTargetRules([
       targetRule("needs-company", { kind: "property" }, { companyPartyId: COMPANY_A }),
-    ], { ...CONTEXT, commercial: {} }).state).toBe("not_applicable");
+    ], { ...CONTEXT, commercial: {} }, PROPERTY_A).state).toBe("not_applicable");
+    expect(() => resolveRateTargetRules(
+      [targetRule("property")],
+      { ...CONTEXT, propertyNode: PROPERTY_A2 },
+      PROPERTY_A,
+    )).toThrow(RateValidationError);
   });
 });
 
@@ -339,7 +346,7 @@ databaseDescribe("Order 066 immutable targeting drafts", () => {
         unitTypeIds: [UNIT_A2, UNIT_A1],
       }, { channelCode: "direct", companyPartyId: COMPANY_A }),
     ];
-    const drafts = [];
+    const drafts: RateTargetDraft[] = [];
     for (const mode of ["guided", "expert", "ai"] as const) {
       drafts.push(await database.withTenantTransaction(TENANT_A, (tx) =>
         service.createDraftVersion(tx, draftInput(PLAN_A, sourceRules, mode))
@@ -364,10 +371,20 @@ databaseDescribe("Order 066 immutable targeting drafts", () => {
       { ...valid, rules: [{ ...targetRule("bad-effect"), effect: "prefer" }] },
       { ...valid, rules: [targetRule("empty-class", { kind: "class", classCode: "PREMIUM", unitTypeIds: [] })] },
       { ...valid, rules: [targetRule("duplicate-class", { kind: "class", classCode: "PREMIUM", unitTypeIds: [UNIT_A1, UNIT_A1] })] },
+      { ...valid, rules: [targetRule("large-class", {
+        kind: "class",
+        classCode: "PREMIUM",
+        unitTypeIds: Array.from({ length: 101 }, () => crypto.randomUUID()),
+      })] },
+      { ...valid, rules: [
+        targetRule("class-one", { kind: "class", classCode: "PREMIUM", unitTypeIds: [UNIT_A1] }),
+        targetRule("class-two", { kind: "class", classCode: "PREMIUM", unitTypeIds: [UNIT_A2] }),
+      ] },
       { ...valid, rules: [targetRule("bad-class", { kind: "class", classCode: "lower", unitTypeIds: [UNIT_A1] })] },
       { ...valid, rules: [{ ...targetRule("physical-extra"), physical: { kind: "property", unitTypeId: UNIT_A1 } }] },
       { ...valid, rules: [{ ...targetRule("commercial-extra"), commercial: { unknown: "X" } }] },
       { ...valid, rules: [targetRule("bad-code", { kind: "property" }, { marketCode: "retail" })] },
+      { ...valid, rules: [targetRule("bad-channel", { kind: "property" }, { channelCode: "Direct" })] },
       { ...valid, clientVersion: 9 },
     ];
     for (const invalid of invalidInputs) {

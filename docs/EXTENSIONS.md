@@ -306,6 +306,43 @@ Activation, approval, publication and undo use later orders and the existing
 
 ---
 
+## 9. `rate_plan_target` — immutable applicability and commercial targeting
+
+This tenant extension records who and what an existing active rate plan is intended for. It is a
+draft input to later simulation and publication; it does not itself change a price or sellability.
+
+```json
+{
+  "$id": "pms:rate_plan_target:1",
+  "property_node": "uuid",
+  "rate_plan_id": "uuid",
+  "authoring_mode": "guided | expert | ai",
+  "rules": [{
+    "key": "stable-rule-key",
+    "effect": "include | exclude",
+    "priority": 0,
+    "physical": { "kind": "property | class | unit_type | sellable" },
+    "commercial": {}
+  }]
+}
+```
+
+Physical scope is exact: sellable beats unit type, which beats a hotel-defined class snapshot,
+which beats property. A class contains a canonical hotel code and a sorted immutable list of exact
+property-owned unit-type ids; changing membership requires a new draft version. Commercial fields
+are conjunctive and may target company, market group, market, source, channel, segment, agent and
+campaign. Company, agent and source ids are active tenant party roles. The remaining codes are
+bounded case-sensitive hotel vocabulary until a later publish/distribution boundary validates any
+external mapping.
+
+Within one physical rank, more constrained commercial fields win, followed by one uniquely higher
+explicit priority. Equal top rank/count/priority is returned as a conflict, never resolved by row,
+array, JSON-key or rule-key order. Broad `include` plus a narrower `exclude` gives explicit
+inheritance and exceptions. Creation is insert-only, audited, emits no event and stores no price,
+date condition, policy formula or publish state.
+
+---
+
 ## Tier map (recap)
 
 - **Tier A** — most countries: tax_jurisdiction row only, or nothing. No code.

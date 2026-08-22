@@ -41,3 +41,20 @@ export type {
   RateModelDraft,
   RateModelKey,
 } from "./models";
+export {
+  RATE_PLAN_TARGET_EXTENSION_SCHEMA,
+  RATE_TARGET_COMMERCIAL_KEYS,
+  RateTargetService,
+  resolveRateTargetRules,
+} from "./targeting";
+export type {
+  CreateRateTargetDraftInput,
+  RateTargetAuthoringMode,
+  RateTargetCommercial,
+  RateTargetContext,
+  RateTargetDraft,
+  RateTargetPhysical,
+  RateTargetResolution,
+  RateTargetRule,
+  ResolveRateTargetDraftInput,
+} from "./targeting";
