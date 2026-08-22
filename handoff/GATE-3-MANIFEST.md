@@ -24,6 +24,7 @@ Status legend: UNVERIFIED = built, proofs builder-asserted, not executed by the 
 | 059 | 3 | 1b6523b (order 7cc613e) | UNVERIFIED | Order 059 — Durable availability-projection event consumer |
 | 060 | 3 | 5ee75bd (order 40d13f1) | UNVERIFIED | Order 060 — Operator-controlled availability-projection bootstrap |
 | 061 | 2 | b124ee2 (order 318bdc2) | UNVERIFIED | Order 061 — Availability work-scaling proof |
+| 062 | 3 | 27f883c (order 2c90985; red proof cd19191) | UNVERIFIED | Order 062 — Operator-managed offline capacity lease pool |
 
 Protected hashes to re-quote each time:
 
