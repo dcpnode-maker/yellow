@@ -85,16 +85,18 @@ Hotels may not disable or redefine:
 
 | Order | Tier | Deliverable | Founder requirements covered | Pre-registered proof focus |
 |---:|---:|---|---|---|
-| 064 | 3 | Versioned rate-model draft and registered model catalogue | create/name/code, guided/expert foundation, static/derived/dynamic/contract selection | Published versions immutable; invalid/unknown model AST rejected; tenant isolation |
-| 065 | 3 | Applicability and commercial targeting resolver | property/class/type/room; company/market group/market/source/channel/segment/agent/campaign; inheritance/exceptions | Every specificity permutation deterministic; equal-specificity conflict blocks publish |
-| 066 | 3 | Typed pricing model evaluators | calendar, fixed, BAR +/- percent/amount, derived, room matrix, contract, occupancy, LOS, booking window, DOW, floors/ceilings, overrides | Exact bigint/currency, parent change history, N/2N bounded work, timezone boundaries |
-| 067 | 3 | Policy, package and distribution composition | guest mix, promo, package, meal, refund/cancellation, CTA/CTD, min/max stay, distribution | Quote keeps price/policy/restriction evidence separate; package allowance exact; no availability bypass |
-| 068 | 3 | Draft simulation, conflict review, approval, publish and versioned undo | review, warn before publish, bulk edit scope/dates/fields, preview cells/conflicts, approve/publish/undo | No partial bulk publish; stale approval rejected; undo creates a new version; history reproducible |
-| 069 | 3 | Universal quote resolver and approved RMS/API adapter port | final resolution order, approved external recommendation, manual override | Same evidence returns same quote; source/model/version attributable; outage fallback bounded and explicit |
-| 070 | 2 | Guided and expert workbench | simple-to-extreme UI, five-step builder, calendar/matrix/bulk review, theme parity | Both modes emit byte-equivalent commands; accessibility; no hidden auto-publish or browser authority |
-| 071 | 3 | AI intent compiler and explanation boundary | hotel describes desired model; AI says what is possible, impossible or forbidden | Intent compiles only to registered draft schema; confirmation/authority enforced; adversarial prompt cannot bypass guardrails |
+| 065 | 3 | Versioned rate-model draft and registered model catalogue | create/name/code, guided/expert foundation, static/derived/dynamic/contract selection | Published versions immutable; invalid/unknown model AST rejected; tenant isolation |
+| 066 | 3 | Applicability and commercial targeting resolver | property/class/type/room; company/market group/market/source/channel/segment/agent/campaign; inheritance/exceptions | Every specificity permutation deterministic; equal-specificity conflict blocks publish |
+| 067 | 3 | Typed pricing model evaluators | calendar, fixed, BAR +/- percent/amount, derived, room matrix, contract, occupancy, LOS, booking window, DOW, floors/ceilings, overrides | Exact bigint/currency, parent change history, N/2N bounded work, timezone boundaries |
+| 068 | 3 | Policy, package and distribution composition | guest mix, promo, package, meal, refund/cancellation, CTA/CTD, min/max stay, distribution | Quote keeps price/policy/restriction evidence separate; package allowance exact; no availability bypass |
+| 069 | 3 | Draft simulation, conflict review, approval, publish and versioned undo | review, warn before publish, bulk edit scope/dates/fields, preview cells/conflicts, approve/publish/undo | No partial bulk publish; stale approval rejected; undo creates a new version; history reproducible |
+| 070 | 3 | Universal quote resolver and approved RMS/API adapter port | final resolution order, approved external recommendation, manual override | Same evidence returns same quote; source/model/version attributable; outage fallback bounded and explicit |
+| 071 | 2 | Guided and expert workbench | simple-to-extreme UI, five-step builder, calendar/matrix/bulk review, theme parity | Both modes emit byte-equivalent commands; accessibility; no hidden auto-publish or browser authority |
+| 072 | 3 | AI intent compiler and explanation boundary | hotel describes desired model; AI says what is possible, impossible or forbidden | Intent compiles only to registered draft schema; confirmation/authority enforced; adversarial prompt cannot bypass guardrails |
 
-Order numbers are reserved by this plan but are not implementation permission. Write and commit
+Order 064 is the founder-visible project progress and live system-health dashboard that makes
+the long autonomous build inspectable before deeper Phase 3 work. Orders 065–072 are reserved
+by this plan but are not implementation permission. Write and commit
 each exact order immediately before its work, after reading the then-current schema and decisions.
 
 ## Required preflight for every implementation order
@@ -117,4 +119,3 @@ each exact order immediately before its work, after reading the then-current sch
 - Currency/money, timezone, tenant/property, policy/restriction and jurisdiction guardrails remain
   exact under hostile inputs.
 - RMS/API absence cannot erase the last valid governed price or silently remove a floor/ceiling.
-

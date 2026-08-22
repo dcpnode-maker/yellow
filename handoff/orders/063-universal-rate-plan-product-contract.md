@@ -51,7 +51,7 @@ becoming an informal promise that later implementation only partially remembers.
 ## Definition of done
 
 - [ ] `handoff/PHASE-3-PLAN.md` contains a requirement-to-order matrix with no founder item
-  left unmapped.
+  left unmapped across Orders 065–072.
 - [ ] The plan states deterministic equal-specificity conflict behavior and versioned undo.
 - [ ] The plan distinguishes live hotel choices from mandatory system guardrails.
 - [ ] The plan gives every future order a tier, dependency, named proof and stop surface.
@@ -65,4 +65,3 @@ prices, restrictions, market/source fields and progressive forms—but no comple
 model selection, applicability hierarchy, commercial targeting, deterministic conflict review,
 bulk publish/versioned undo or AI intent compilation. The plan's matrix is the proof for this
 documentation-only order; later orders must supply executable domain and UI proofs.
-
