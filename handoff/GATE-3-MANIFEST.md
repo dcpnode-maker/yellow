@@ -36,7 +36,7 @@ Status legend: UNVERIFIED = built, proofs builder-asserted, not executed by the 
 | 071 | 2 | 259d5ec (order 1da7887; red proof 94a9427) | UNVERIFIED | Order 071 — Guided and expert universal rate-plan workbench |
 | 072 | 3 | 3fb6b5b (order 062bac7; red proof dd4af8a) | UNVERIFIED | Order 072 — Secure AI-assisted rate intent |
 | 073 | 3 | cee7897 (order e3b6327; red proof 4cc791c) | UNVERIFIED | Order 073 — Rate applicability rules and versioned bulk preview |
-| 074 | 2 | 7e05497 (order 87ac7fd; red proof de4b90e) | UNVERIFIED | Order 074 — Gate-3 browser-proof and founder-status corrections |
+| 074 | 2 | ccf7a61 (order c06f5af; red proof 3368b96) | UNVERIFIED | Order 074 — Gate-3 browser-proof and founder-status corrections |
 
 Protected hashes to re-quote each time:
 
