@@ -153,7 +153,32 @@ not stopped or reseeded. Refresh Graphify code-only and record its parser/semant
 
 ## Definition of done
 
-- [ ] P0 intentional red evidence is committed before implementation.
-- [ ] P1–P4 prove exact atomic ownership, replay, concurrency, rollback and scope.
-- [ ] P5 is fully green and protected hashes remain exact.
+- [x] P0 intentional red evidence is committed before implementation.
+- [x] P1–P4 prove exact atomic ownership, replay, concurrency, rollback and scope.
+- [x] P5 is fully green and protected hashes remain exact.
 - [ ] Order 081 is pushed as UNVERIFIED review debt on a stacked draft PR; nothing is merged.
+
+## Evidence
+
+- Intentional red `3aea207` failed only because the exported reservation commit command did not
+  exist. Implementation `a25fe0d` owns no schema, HTTP or financial change.
+- After D-278's fixture-only correction and complete database recreation, the Order-080/081 focused
+  gate passed 10/10 with 237 assertions. It includes one open-transaction contender, a twenty-way
+  same-hold race, all six publication failure positions, exact replay/change conflict, kind/lifecycle/
+  tenant/property/reference attacks and a no-claim hold.
+- The inherited Order-030 cart-hold suite passed 9/9 with 32 assertions against its exact canonical
+  fixture. The default suite passed 100 with 0 failures and 1,336 assertions; 306 database-gated
+  cases remained explicit skips under the ordinary command.
+- The reproducible isolated Phase-3 gate passed all eight suites: 60/60 and 1,020 assertions with
+  every temporary database removed. Typecheck, 51-file import boundaries, dependency licences,
+  vulnerability audit and exact schema drift all passed.
+- Fresh `yellow-order-081-referee` `./setup.sh --db-only` ran with the app never started and returned
+  11 passed / 0 failed. Both disposable Docker projects and volumes were removed after exact label
+  verification; the persistent `yellow-phase-1` stack stayed healthy and was never reseeded.
+- Protected hashes remain `fe2a9fc949c6bacded3f8d3fc4d14fc596a83ebde9aeb043eb10845f07b30923`
+  and `3228279bd99a8f9b6af99748f31d4d4b482a8e627e16d92644d9d859ad8befa1`.
+- Graphify's disposable code-only map contains 2,147 nodes, 6,033 directed edges and 106
+  communities, with zero missing, dangling, duplicate or collapsed edges and ten inherited
+  self-loops. It skipped 395 non-code files and semantic labeling, so canonical documents remained
+  executable-test authority. The useful hold→segment/idempotency/fact/outbox query was saved and
+  reflected as derived memory.
