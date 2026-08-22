@@ -2,7 +2,26 @@ import { SQL, type ReservedSQL } from "bun";
 
 import { hashLocalPassword, verifyLocalPassword } from "../src/contexts/identity";
 import { InventoryService, type SellableUnit, type Space, type UnitType } from "../src/contexts/inventory";
-import { createAuditEnvelope, Database, PostgresEventBus } from "../src/kernel";
+import {
+  canonicalRateAuthoringJson,
+  compileRateAuthoringCommand,
+  RateConfigurationService,
+  RateModelService,
+  RatePublicationService,
+  RateTargetService,
+  type CanonicalRateAuthoringCommand,
+  type Policy,
+  type RatePlan,
+  type RatePlanRelease,
+} from "../src/contexts/rates";
+import {
+  ApprovalService,
+  createAuditEnvelope,
+  Database,
+  ExtensionRegistry,
+  PostgresEventBus,
+  type Tx,
+} from "../src/kernel";
 import { PROPERTY_NAME, SEED_PROPERTY, SEED_TENANT, TENANT_NAME, URL_NAMESPACE_UUID } from "./seed";
 import { uuidV5 } from "./lib/uuid-v5";
 
@@ -48,6 +67,61 @@ const ROOMS = Object.freeze([
   { code: "202", unitTypeCode: "DLX", name: "Room 202", floor: "2", areaSqm: 38 },
 ]);
 
+const REVIEW_RATE_POLICIES: readonly Readonly<{
+  kind: Policy["kind"];
+  name: string;
+  content: Readonly<Record<string, unknown>>;
+}>[] = Object.freeze([
+  Object.freeze({
+    kind: "cancellation" as const,
+    name: "Flexible 48 hour cancellation",
+    content: Object.freeze({
+      kind: "cancellation",
+      rules: Object.freeze([Object.freeze({
+        before_hours: 48,
+        penalty: Object.freeze({ basis: "nights", value: 1 }),
+      })]),
+    }),
+  }),
+  Object.freeze({
+    kind: "deposit" as const,
+    name: "First night deposit",
+    content: Object.freeze({
+      kind: "deposit",
+      deposit: Object.freeze({ basis: "first_night", due: "at_booking" }),
+    }),
+  }),
+  Object.freeze({
+    kind: "guarantee" as const,
+    name: "Card guarantee",
+    content: Object.freeze({ kind: "guarantee", guarantee: "card_on_file" }),
+  }),
+  Object.freeze({
+    kind: "no_show" as const,
+    name: "First night no-show",
+    content: Object.freeze({
+      kind: "no_show",
+      no_show_charge: Object.freeze({ basis: "first_night", value: 1 }),
+    }),
+  }),
+]);
+
+const REVIEW_RATE_PLAN = Object.freeze({
+  code: "FLEX",
+  name: "Flexible public rate",
+  currency: "USD",
+  taxInclusive: true,
+  marketCode: "LEISURE",
+  sourceCode: "DIRECT",
+});
+
+const REVIEW_RATE_PREVIEW = Object.freeze({
+  bookingInstant: "2030-01-01T00:00:00.000Z",
+  stayStartInstant: "2030-02-01T15:00:00.000Z",
+  stayEndInstant: "2030-02-02T15:00:00.000Z",
+  nightDate: "2030-02-01",
+});
+
 interface IdentityRow {
   readonly id: string;
   readonly tenant_id: string;
@@ -81,6 +155,12 @@ export interface ReviewSeedResult {
   readonly unitTypes: { created: number; existing: number };
   readonly rooms: { created: number; existing: number };
   readonly sellableUnits: { created: number; existing: number };
+  readonly rate: {
+    readonly ratePlanId: string;
+    readonly activeReleaseId: string;
+    readonly activeReleaseVersion: number;
+    readonly created: boolean;
+  };
 }
 
 async function withIdentityTransaction(pool: SQL, operation: (connection: ReservedSQL) => Promise<void>): Promise<void> {
@@ -296,6 +376,357 @@ function sellableShape(item: SellableUnit, spec: typeof ROOMS[number], unitTypeI
   }, `Sellable unit ${spec.name}`);
 }
 
+function reviewEnvelope(actorId: string, operation: string) {
+  return createAuditEnvelope({
+    actorId,
+    tenantId: SEED_TENANT.id,
+    propertyNode: SEED_PROPERTY.id,
+    requestId: crypto.randomUUID(),
+    operation,
+  });
+}
+
+function requirePolicy(policies: readonly Policy[], kind: Policy["kind"]): Policy {
+  const matches = policies.filter((policy) => policy.kind === kind);
+  const policy = matches[0];
+  if (!policy || matches.length !== 1) throw new Error(`canonical review ${kind} policy is absent or duplicated`);
+  return policy;
+}
+
+function canonicalReviewRateCommand(ratePlanId: string, policies: readonly Policy[]): CanonicalRateAuthoringCommand {
+  return compileRateAuthoringCommand({
+    authoringMode: "guided",
+    ratePlanId,
+    model: { key: "simple-fixed", version: 1, componentModelKeys: [] },
+    target: {
+      rules: [{
+        key: "property-default",
+        effect: "include",
+        priority: 0,
+        physical: { kind: "property" },
+        commercial: {},
+      }],
+    },
+    evaluator: {
+      modelKey: "simple-fixed",
+      currency: "USD",
+      base: { kind: "fixed", amountMinor: "12500" },
+      gate: { stayStart: "2020-01-01", stayEnd: "2100-01-01", dowMask: 127 },
+      rules: [],
+      floorMinor: null,
+      ceilingMinor: null,
+      eligibleTargetRuleKeys: [],
+    },
+    composition: {
+      currency: "USD",
+      guestEligibility: {
+        minAdults: 1,
+        maxAdults: 4,
+        minChildren: 0,
+        maxChildren: 3,
+        minTotalGuests: 1,
+        maxTotalGuests: 7,
+      },
+      package: null,
+      promotions: [],
+      policy: {
+        cancellationPolicyId: requirePolicy(policies, "cancellation").id,
+        depositPolicyId: requirePolicy(policies, "deposit").id,
+        guaranteePolicyId: requirePolicy(policies, "guarantee").id,
+        noShowPolicyId: requirePolicy(policies, "no_show").id,
+        refundTreatment: "policy",
+      },
+      distribution: { mode: "all", channelCodes: [] },
+    },
+    rmsBinding: null,
+  });
+}
+
+function reviewPreviewCell(
+  sellable: SellableUnit,
+  policies: readonly Policy[],
+): Readonly<Record<string, unknown>> {
+  return Object.freeze({
+    key: "local-review-flex-2030-02-01",
+    evaluationContext: Object.freeze({
+      propertyTimeZone: SEED_PROPERTY.timezone,
+      ...REVIEW_RATE_PREVIEW,
+    }),
+    targetContext: Object.freeze({
+      unitTypeId: sellable.unitTypeId,
+      sellableUnitId: sellable.id,
+      commercial: Object.freeze({}),
+    }),
+    guests: Object.freeze({ adults: 1, childAges: Object.freeze([]) }),
+    selectedPromotionCodes: Object.freeze([]),
+    policyEvidence: Object.freeze([
+      Object.freeze({ kind: "cancellation", policyId: requirePolicy(policies, "cancellation").id,
+        evidenceRef: `policy:${requirePolicy(policies, "cancellation").id}` }),
+      Object.freeze({ kind: "deposit", policyId: requirePolicy(policies, "deposit").id,
+        evidenceRef: `policy:${requirePolicy(policies, "deposit").id}` }),
+      Object.freeze({ kind: "guarantee", policyId: requirePolicy(policies, "guarantee").id,
+        evidenceRef: `policy:${requirePolicy(policies, "guarantee").id}` }),
+      Object.freeze({ kind: "no_show", policyId: requirePolicy(policies, "no_show").id,
+        evidenceRef: `policy:${requirePolicy(policies, "no_show").id}` }),
+    ]),
+    mandatoryPolicyEvidence: Object.freeze([]),
+    availabilityEvidence: Object.freeze({
+      sellableUnitId: sellable.id,
+      availableCount: 1,
+      bookable: true,
+      restrictionEvidence: Object.freeze([]),
+      operationalBlockEvidence: Object.freeze([]),
+      evidenceRef: `availability:local-review:${sellable.id}:2030-02-01`,
+    }),
+    channelCode: "direct",
+    channelMappingEvidenceRef: null,
+  });
+}
+
+async function ensureReviewPolicies(
+  tx: Tx,
+  configuration: RateConfigurationService,
+  requesterId: string,
+): Promise<readonly Policy[]> {
+  const policies = [...await configuration.listPolicies(tx)];
+  const canonical: Policy[] = [];
+  for (const spec of REVIEW_RATE_POLICIES) {
+    const matches = policies.filter(({ kind, name }) => kind === spec.kind && name === spec.name);
+    if (matches.length > 1) throw new Error(`${spec.name} collides with duplicated local-review data`);
+    let policy = matches[0];
+    if (policy) {
+      exact(policy.content, spec.content, spec.name);
+    } else {
+      policy = await configuration.createPolicy(tx, {
+        kind: spec.kind,
+        name: spec.name,
+        content: spec.content,
+        envelope: reviewEnvelope(requesterId, "policy.created"),
+      });
+      policies.push(policy);
+    }
+    canonical.push(policy);
+  }
+  return Object.freeze(canonical);
+}
+
+async function ensureReviewRatePlan(
+  tx: Tx,
+  configuration: RateConfigurationService,
+  policies: readonly Policy[],
+  requesterId: string,
+): Promise<RatePlan> {
+  const plans = await configuration.listRatePlans(tx, SEED_PROPERTY.id);
+  const matches = plans.filter(({ code }) => code === REVIEW_RATE_PLAN.code);
+  if (matches.length > 1) throw new Error("FLEX rate plan collides with duplicated local-review data");
+  let plan = matches[0];
+  if (!plan) {
+    plan = await configuration.createRatePlan(tx, {
+      ...REVIEW_RATE_PLAN,
+      cancellationPolicyId: requirePolicy(policies, "cancellation").id,
+      depositPolicyId: requirePolicy(policies, "deposit").id,
+      guaranteePolicyId: requirePolicy(policies, "guarantee").id,
+      envelope: reviewEnvelope(requesterId, "rate_plan.created"),
+    });
+  } else {
+    exact({
+      tenantId: plan.tenantId,
+      propertyNode: plan.propertyNode,
+      code: plan.code,
+      name: plan.name,
+      currency: plan.currency,
+      taxInclusive: plan.taxInclusive,
+      cancellationPolicyId: plan.cancellationPolicyId,
+      depositPolicyId: plan.depositPolicyId,
+      guaranteePolicyId: plan.guaranteePolicyId,
+      parentPlanId: plan.parentPlanId,
+      derivation: plan.derivation,
+      marketCode: plan.marketCode,
+      sourceCode: plan.sourceCode,
+      status: plan.status,
+    }, {
+      tenantId: SEED_TENANT.id,
+      propertyNode: SEED_PROPERTY.id,
+      ...REVIEW_RATE_PLAN,
+      cancellationPolicyId: requirePolicy(policies, "cancellation").id,
+      depositPolicyId: requirePolicy(policies, "deposit").id,
+      guaranteePolicyId: requirePolicy(policies, "guarantee").id,
+      parentPlanId: null,
+      derivation: null,
+      status: "active",
+    }, "FLEX rate plan");
+  }
+  return plan;
+}
+
+type ReviewApprovalView = Awaited<
+  ReturnType<RatePublicationService["listPublicationApprovals"]>
+>["approvals"][number];
+
+async function releaseApprovals(
+  tx: Tx,
+  publication: RatePublicationService,
+  ratePlanId: string,
+  releaseId: string,
+): Promise<readonly ReviewApprovalView[]> {
+  const found: ReviewApprovalView[] = [];
+  let after: string | undefined;
+  for (let pageNumber = 0; pageNumber < 10; pageNumber += 1) {
+    const page = await publication.listPublicationApprovals(tx, {
+      propertyNode: SEED_PROPERTY.id,
+      ratePlanId,
+      limit: 100,
+      ...(after === undefined ? {} : { after }),
+    });
+    found.push(...page.approvals.filter(({ releaseId: candidate }) => candidate === releaseId));
+    if (page.nextCursor === null) return Object.freeze(found);
+    after = page.nextCursor;
+  }
+  throw new Error("local-review approval history exceeds the bounded verification window");
+}
+
+async function verifyActiveReviewRelease(
+  tx: Tx,
+  active: RatePlanRelease,
+  expected: CanonicalRateAuthoringCommand,
+  requesterId: string,
+  approverId: string,
+  models: RateModelService,
+  targets: RateTargetService,
+  publication: RatePublicationService,
+): Promise<void> {
+  const modelMatches = (await models.listDraftVersions(tx, SEED_PROPERTY.id, expected.ratePlanId))
+    .filter(({ id, extensionVersion }) =>
+      id === active.modelDraftId && extensionVersion === active.modelDraftVersion
+    );
+  const targetMatches = (await targets.listDraftVersions(tx, SEED_PROPERTY.id, expected.ratePlanId))
+    .filter(({ id, extensionVersion }) =>
+      id === active.targetDraftId && extensionVersion === active.targetDraftVersion
+    );
+  const model = modelMatches[0];
+  const target = targetMatches[0];
+  if (!model || modelMatches.length !== 1 || !target || targetMatches.length !== 1 ||
+      active.propertyNode !== SEED_PROPERTY.id || active.ratePlanId !== expected.ratePlanId ||
+      active.status !== "active" || active.undoOfVersion !== null) {
+    throw new Error("active FLEX release collides with non-canonical local-review data");
+  }
+  const reconstructed: CanonicalRateAuthoringCommand = Object.freeze({
+    authoringMode: model.authoringMode,
+    ratePlanId: active.ratePlanId,
+    model: Object.freeze({
+      key: model.modelKey,
+      version: model.modelVersion,
+      componentModelKeys: model.componentModelKeys,
+    }),
+    target: Object.freeze({ rules: target.rules }),
+    evaluator: active.evaluatorSpec,
+    composition: active.compositionSpec,
+    rmsBinding: active.rmsBinding,
+  });
+  if (canonicalRateAuthoringJson(reconstructed) !== canonicalRateAuthoringJson(expected)) {
+    throw new Error("active FLEX release collides with non-canonical local-review data");
+  }
+  const approvals = await releaseApprovals(tx, publication, expected.ratePlanId, active.id);
+  const approval = approvals[0];
+  if (!approval || approvals.length !== 1 || approval.status !== "approved" ||
+      approval.releaseStatus !== "active" || approval.releaseVersion !== active.extensionVersion ||
+      approval.requestedBy.id !== requesterId || approval.decidedBy?.id !== approverId) {
+    throw new Error("active FLEX release collides with non-canonical local-review data");
+  }
+}
+
+async function provisionReviewRate(
+  tx: Tx,
+  sellable: SellableUnit,
+  requesterId: string,
+  approverId: string,
+  configuration: RateConfigurationService,
+  models: RateModelService,
+  targets: RateTargetService,
+  publication: RatePublicationService,
+): Promise<ReviewSeedResult["rate"]> {
+  const policies = await ensureReviewPolicies(tx, configuration, requesterId);
+  const plan = await ensureReviewRatePlan(tx, configuration, policies, requesterId);
+  const expected = canonicalReviewRateCommand(plan.id, policies);
+  const releases = await publication.listReleaseVersions(tx, SEED_PROPERTY.id, plan.id);
+  const activeReleases = releases.filter(({ status }) => status === "active");
+  if (activeReleases.length > 1) {
+    throw new Error("active FLEX release collides with non-canonical local-review data");
+  }
+  const existing = activeReleases[0];
+  if (existing) {
+    await verifyActiveReviewRelease(tx, existing, expected, requesterId, approverId, models, targets, publication);
+    return Object.freeze({
+      ratePlanId: plan.id,
+      activeReleaseId: existing.id,
+      activeReleaseVersion: existing.extensionVersion,
+      created: false,
+    });
+  }
+
+  const model = await models.createDraftVersion(tx, {
+    ratePlanId: plan.id,
+    modelKey: expected.model.key,
+    modelVersion: expected.model.version,
+    authoringMode: expected.authoringMode,
+    componentModelKeys: expected.model.componentModelKeys,
+    envelope: reviewEnvelope(requesterId, "rate_plan_model.drafted"),
+  });
+  const target = await targets.createDraftVersion(tx, {
+    ratePlanId: plan.id,
+    authoringMode: expected.authoringMode,
+    rules: expected.target.rules,
+    envelope: reviewEnvelope(requesterId, "rate_plan_target.drafted"),
+  });
+  const draft = await publication.createDraftVersion(tx, {
+    ratePlanId: plan.id,
+    modelDraftVersion: model.extensionVersion,
+    targetDraftVersion: target.extensionVersion,
+    evaluatorSpec: expected.evaluator,
+    compositionSpec: expected.composition,
+    rmsBinding: expected.rmsBinding,
+    envelope: reviewEnvelope(requesterId, "rate_plan_release.drafted"),
+  });
+  const previewCells = Object.freeze([reviewPreviewCell(sellable, policies)]);
+  const requested = await publication.requestPublicationApproval(tx, {
+    releaseId: draft.id,
+    previewCells,
+    requestedBy: requesterId,
+    envelope: reviewEnvelope(requesterId, "rate_plan_release.approval_requested"),
+  });
+  const decided = await publication.decidePublicationApproval(tx, {
+    propertyNode: SEED_PROPERTY.id,
+    ratePlanId: plan.id,
+    approvalId: requested.approval.id,
+    decision: "approved",
+    decidedBy: approverId,
+    envelope: reviewEnvelope(approverId, "rate_plan_release.approval_decided"),
+  });
+  if (decided.status !== "approved") throw new Error("local-review rate approval was not approved");
+  const published = await publication.publishDraft(tx, {
+    releaseId: draft.id,
+    approvalId: requested.approval.id,
+    previewCells,
+    envelope: reviewEnvelope(approverId, "rate_plan_release.published"),
+  });
+  await verifyActiveReviewRelease(
+    tx,
+    published.release,
+    expected,
+    requesterId,
+    approverId,
+    models,
+    targets,
+    publication,
+  );
+  return Object.freeze({
+    ratePlanId: plan.id,
+    activeReleaseId: published.release.id,
+    activeReleaseVersion: published.release.extensionVersion,
+    created: true,
+  });
+}
+
 export async function runReviewSeed(options: ReviewSeedOptions): Promise<ReviewSeedResult> {
   if (!options.databaseUrl) throw new Error("databaseUrl is required");
   if (!options.password) throw new Error("password is required");
@@ -313,7 +744,13 @@ export async function runReviewSeed(options: ReviewSeedOptions): Promise<ReviewS
     await withIdentityTransaction(identityPool, (tx) => provisionIdentity(
       tx, options.password, approverPassword, userId, approverUserId, roleId,
     ));
-    const inventory = new InventoryService(new PostgresEventBus(eventPool));
+    const events = new PostgresEventBus(eventPool);
+    const inventory = new InventoryService(events);
+    const configuration = new RateConfigurationService(events);
+    const registry = new ExtensionRegistry(eventPool);
+    const models = new RateModelService(registry);
+    const targets = new RateTargetService(registry);
+    const publication = new RatePublicationService(registry, new ApprovalService(events), events);
     const counts = {
       unitTypes: { created: 0, existing: 0 },
       rooms: { created: 0, existing: 0 },
@@ -321,6 +758,7 @@ export async function runReviewSeed(options: ReviewSeedOptions): Promise<ReviewS
     };
 
     const unitTypes = new Map<string, UnitType>();
+    const sellableUnits = new Map<string, SellableUnit>();
     await database.withTenantTransaction(SEED_TENANT.id, async (tx) => {
       await tx`SELECT pg_advisory_xact_lock(hashtextextended('yellow.local.review.seed', 0))`;
       const existing = await inventory.listUnitTypes(tx, SEED_PROPERTY.id);
@@ -392,15 +830,33 @@ export async function runReviewSeed(options: ReviewSeedOptions): Promise<ReviewS
           });
           counts.sellableUnits.created += 1;
         }
+        sellableUnits.set(spec.code, item);
       }
+    });
+
+    const previewSellable = sellableUnits.get("101");
+    if (!previewSellable) throw new Error("Review rate preview sellable is missing");
+    const rate = await database.withTenantTransaction(SEED_TENANT.id, async (tx) => {
+      await tx`SELECT pg_advisory_xact_lock(hashtextextended('yellow.local.review.seed', 0))`;
+      return provisionReviewRate(
+        tx,
+        previewSellable,
+        userId,
+        approverUserId,
+        configuration,
+        models,
+        targets,
+        publication,
+      );
     });
 
     logger(`review seed: tenant=${SEED_TENANT.slug} property=${SEED_PROPERTY.name}`);
     logger(`review login: ${REVIEW_EMAIL} (password supplied by YELLOW_REVIEW_PASSWORD)`);
     logger(`review approver: ${REVIEW_APPROVER_EMAIL} (password supplied by YELLOW_REVIEW_APPROVER_PASSWORD)`);
     logger(`review inventory: unit_types=${counts.unitTypes.created}/${counts.unitTypes.existing} rooms=${counts.rooms.created}/${counts.rooms.existing} sellable_units=${counts.sellableUnits.created}/${counts.sellableUnits.existing} created/existing`);
+    logger(`review rate: plan=${rate.ratePlanId} active_release=${rate.activeReleaseId} version=${rate.activeReleaseVersion} state=${rate.created ? "created" : "existing"}`);
     return { tenant: SEED_TENANT.slug, property: SEED_PROPERTY.name, email: REVIEW_EMAIL,
-      userId, approverEmail: REVIEW_APPROVER_EMAIL, approverUserId, roleId, ...counts };
+      userId, approverEmail: REVIEW_APPROVER_EMAIL, approverUserId, roleId, ...counts, rate };
   } finally {
     await database.close();
     await eventPool.close();
