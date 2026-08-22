@@ -56,6 +56,21 @@ function manifestRows(source: string): Array<{ order: number; status: string }> 
   });
 }
 
+async function approvedReviewCoverage(): Promise<number> {
+  const reviewDirectory = new URL("../handoff/reviews/", import.meta.url);
+  const reviewFiles = new Bun.Glob("*.md");
+  let throughOrder = 0;
+  for await (const fileName of reviewFiles.scan({ cwd: reviewDirectory.pathname, onlyFiles: true })) {
+    const source = await Bun.file(new URL(fileName, reviewDirectory)).text();
+    if (!/^\*\*Reviewed by:\*\*.*architect role/im.test(source)) continue;
+    if (!/^\*\*Verdict:\*\*\s*\*\*APPROVED\b/im.test(source)) continue;
+    const range = source.match(/^# REVIEW\s+\d{3}(?:[–-](\d{3}))?/m);
+    const end = Number(range?.[1] ?? source.match(/^# REVIEW\s+(\d{3})/m)?.[1]);
+    if (Number.isSafeInteger(end)) throughOrder = Math.max(throughOrder, end);
+  }
+  return throughOrder;
+}
+
 describe("Order 064 recorded build snapshot", () => {
   test("P3: runtime snapshot is exact to the committed Gate-3 manifest", async () => {
     const manifest = await Bun.file(new URL("../handoff/GATE-3-MANIFEST.md", import.meta.url)).text();
@@ -66,13 +81,13 @@ describe("Order 064 recorded build snapshot", () => {
     expect(PROJECT_BUILD_SNAPSHOT.roadmap.currentOrder).toBe(73);
     expect(PROJECT_BUILD_SNAPSHOT.roadmap.activePhase).toBe(3);
     expect(PROJECT_BUILD_SNAPSHOT.roadmap.phaseCount).toBe(13);
-    expect(PROJECT_BUILD_SNAPSHOT.review.independentlyReviewedThroughOrder).toBe(18);
+    expect(PROJECT_BUILD_SNAPSHOT.review.independentlyReviewedThroughOrder).toBe(await approvedReviewCoverage());
     expect(PROJECT_BUILD_SNAPSHOT.referee).toEqual({ requiredPasses: 11, requiredFailures: 0 });
     expect(PROJECT_BUILD_SNAPSHOT.phases).toHaveLength(13);
     expect(PROJECT_BUILD_SNAPSHOT.phases.map(({ number }) => Number(number))).toEqual([...Array(13).keys()]);
     expect(PROJECT_BUILD_SNAPSHOT.phases[0]?.state).toBe("reviewed");
-    expect(PROJECT_BUILD_SNAPSHOT.phases[1]?.state).toBe("built_unverified");
-    expect(PROJECT_BUILD_SNAPSHOT.phases[2]?.state).toBe("built_unverified");
+    expect(PROJECT_BUILD_SNAPSHOT.phases[1]?.state).toBe("reviewed");
+    expect(PROJECT_BUILD_SNAPSHOT.phases[2]?.state).toBe("reviewed");
     expect(PROJECT_BUILD_SNAPSHOT.phases[3]?.state).toBe("active");
     expect(PROJECT_BUILD_SNAPSHOT.phases.slice(4).every(({ state }) => state === "planned")).toBe(true);
   });
