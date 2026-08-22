@@ -222,6 +222,13 @@ independently re-reviewed.
   semantic-ID collisions, and 41 no-output semantic files deliberately requeued for a future pass.
   Subagent token counts were not exposed by the runtime, so the cost record marks that run's count
   unavailable instead of inventing a number.
+- **P6 deployment-ledger correction:** PR 58's first database job correctly applied migration 0006
+  but exposed a stale exact-ledger acceptance array ending at migration 0005. Question 127/D-269
+  authorized only the exact version/filename/checksum entry in
+  `tests/database-acceptance.integration.test.ts`. A fresh isolated database then applied all six
+  migrations, seeded from zero and passed 4/4 deployment-acceptance tests with 10 assertions before
+  its project and volume were removed. The pushed descendant must have all four CI jobs green before
+  it is reviewable.
 - **Protected hashes:** `migrations/0001_init.sql`
   `fe2a9fc949c6bacded3f8d3fc4d14fc596a83ebde9aeb043eb10845f07b30923`;
   `tests/run_invariants.py`
