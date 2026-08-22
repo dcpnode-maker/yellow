@@ -171,7 +171,35 @@ reseed/restart. Refresh Graphify code-only and record parser/semantic limitation
 
 ## Definition of done
 
-- [ ] P0 intentional red evidence is committed before implementation.
-- [ ] P1–P4 prove exact HTTP, arbitration, bounded retry, authorization and rollback behavior.
-- [ ] P5 is fully green and protected hashes remain exact.
+- [x] P0 intentional red evidence is committed before implementation.
+- [x] P1–P4 prove exact HTTP, arbitration, bounded retry, authorization and rollback behavior.
+- [x] P5 is fully green and protected hashes remain exact.
 - [ ] Order 082 is pushed as `UNVERIFIED` review debt on a stacked draft PR; nothing is merged.
+
+## Evidence
+
+- Intentional red `bc12a70` failed only because `ReservationOccupancyService` was absent. Order
+  `403b962` pre-registered the complete direct/held HTTP, authorization, race, retry and rollback
+  contract before implementation `da9c3bd`.
+- The first implemented run stopped on two exact contract defects: replayed `jsonb` returned a
+  different key order, and the last-unit race exposed PostgreSQL `40P01` during mutual exclusion
+  checks as generic `503`. D-279 canonicalizes both response paths and classifies that exact
+  occupancy-arbitration result as `409` without retrying exclusive claims. A freshly recreated
+  database then passed the complete Order-082 proof 5/5 with 61 assertions.
+- A second fresh restart passed Orders 080–082 together 15/15 with 298 assertions. The inherited
+  Order-081 held-commit suite independently remained green 5/5 with 106 assertions after both paths
+  moved to the shared `reservation.commit` namespace.
+- Frozen install made no changes; typecheck and 52-file import boundaries passed. The default suite
+  passed 100 with 0 failures and 1,336 assertions, while 311 database-gated cases remained explicit
+  skips under the ordinary command. Licences passed for 23 packages, audit found no vulnerabilities,
+  and schema drift matched the exact generated snapshot after supplying its required isolated
+  Compose database-name precondition.
+- The reproducible isolated Phase-3 gate passed all eight suites: 60/60 and 1,020 assertions with
+  every temporary database removed. Fresh project `yellow-order-082-referee` ran
+  `./setup.sh --db-only` with no app container and returned 11 passed / 0 failed.
+- Protected hashes remain `fe2a9fc949c6bacded3f8d3fc4d14fc596a83ebde9aeb043eb10845f07b30923`
+  and `3228279bd99a8f9b6af99748f31d4d4b482a8e627e16d92644d9d859ad8befa1`.
+- Graphify's disposable code-only map contains 2,187 nodes, 5,894 directed edges and 117
+  communities, with zero missing, dangling, duplicate or collapsed edges and ten inherited
+  self-loops. It skipped 397 non-code files and semantic labeling; the useful HTTP → reservation →
+  inventory-claim query was saved and reflected only as derived memory.

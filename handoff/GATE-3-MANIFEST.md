@@ -44,6 +44,7 @@ Status legend: UNVERIFIED = built, proofs builder-asserted, not executed by the 
 | 079 | 2 | f4ea9ad (order 4ab92a8; red proof 02a2585; evidence f720e2a) | UNVERIFIED | Order 079 — Reproducible Phase-3 and Gate-3 database proofs |
 | 080 | 2 | 0c02a6a (order b7e62e3; red proof 1cc620e) | UNVERIFIED | Order 080 — Executable reservation state contract |
 | 081 | 3 | a25fe0d (order 2dfec6a; red proof 3aea207) | UNVERIFIED | Order 081 — Atomic cart-hold to reservation commit |
+| 082 | 3 | da9c3bd (order 403b962; red proof bc12a70) | UNVERIFIED | Order 082 — Direct reservation commit and racing HTTP contract |
 
 Protected hashes to re-quote each time:
 
