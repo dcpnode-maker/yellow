@@ -4,7 +4,7 @@
 `docs/STATE-MACHINES.md` §1/§6  
 **Baseline entering this phase:** Orders 028–031 provide the canonical inventory graph, audited
 holds and PostgreSQL truth search. Orders 047 and 070 provide durable HTTP idempotency and
-reproducible stay quotes. Orders 045–079 remain explicit Gate-3 review debt; Phase 4 builds on
+reproducible stay quotes. Orders 045–082 remain explicit Gate-3 review debt; Phase 4 builds on
 their preserved contracts without claiming independent approval.
 
 ## Product promise
@@ -50,11 +50,12 @@ crosses that envelope must be rejected with a clear reason rather than silently 
 | 080 | 2 | Executable reservation state contract | Exact statuses, transitions, guards and events from `STATE-MACHINES.md` | Markdown-to-code equality; all unlisted pairs fail closed |
 | 081 | 3 | Atomic hold-to-reservation commit service | Active hold consumption, reservation/segment/guest creation, occupancy transfer, exact idempotency | Rollback at every injected boundary; hold and segment can never both own the claim |
 | 082 | 3 | Direct commit and racing-commit HTTP contract | `POST /reservations:commit`, 201/409, positional bounded retry, tenant/property authorization | Last-unit race yields exactly one 201; no partial reservation/fact/event on losers |
-| 083 | 3 | Complete availability offer search | Contract §2 option shape with published rate, policy, restriction and truth availability evidence | Search cannot promise inventory; stale projection/cache cannot authorize commit |
-| 084 | 3 | Modify, cancel and reinstate commands | Diff evidence, policy/approval boundary, occupancy release/re-arbitration, exact events | Invalid transitions and failed re-arbitration roll back; reinstate cannot overbook |
-| 085 | 3 | Segment move, extend and shorten | Move creates next segment; same-unit date change releases/re-records atomically | No gap/double claim; failed destination leaves original segment untouched |
-| 086 | 2 | Guests, shares, alerts and waitlist offers | `reservation_guest`, bounded `share_pct`, alerts, explicit offer window | Shares validate exactly; an expired/declined offer never creates a reservation |
-| 087 | 3 | Founder reservation workbench and reproducible Phase-4 gate | Search → hold → commit → lifecycle inspection using canonical services | Clean-checkout database gate, hostile browser inputs, accessibility, no client authority |
+| 083 | 2 | Review-seed fixture isolation and inherited Gate-3 coverage | Preserve founder demo data while legacy proofs request only their explicit fixture; run all five inherited suites in isolated CI | Order 050 empty-state proof restored; thirteen suites migrate/run/clean independently |
+| 084 | 3 | Complete availability offer search | Contract §2 option shape with published rate, policy, restriction and truth availability evidence | Search cannot promise inventory; stale projection/cache cannot authorize commit |
+| 085 | 3 | Modify, cancel and reinstate commands | Diff evidence, policy/approval boundary, occupancy release/re-arbitration, exact events | Invalid transitions and failed re-arbitration roll back; reinstate cannot overbook |
+| 086 | 3 | Segment move, extend and shorten | Move creates next segment; same-unit date change releases/re-records atomically | No gap/double claim; failed destination leaves original segment untouched |
+| 087 | 2 | Guests, shares, alerts and waitlist offers | `reservation_guest`, bounded `share_pct`, alerts, explicit offer window | Shares validate exactly; an expired/declined offer never creates a reservation |
+| 088 | 3 | Founder reservation workbench and reproducible Phase-4 gate | Search → hold → commit → lifecycle inspection using canonical services | Clean-checkout database gate, hostile browser inputs, accessibility, no client authority |
 
 The order numbers reserve sequence only. Each order requires a fresh schema/decision preflight,
 an exact Scope and Forbidden section, an intentional red proof, and a Natural-Solution Test before
@@ -83,4 +84,3 @@ it authorizes implementation.
 - The complete Phase-4 gate runs from a clean checkout against fresh isolated databases, while the
   founder can inspect the same capabilities at localhost without that persistent stack becoming
   proof authority.
-
