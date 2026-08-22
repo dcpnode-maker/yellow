@@ -155,3 +155,24 @@ focused database and restart the complete focused suite after every correction. 
 before the manifest row, advance only exact founder-status counters, run the full standing gate and
 fresh isolated `./setup.sh --db-only` with app never created, refresh Graphify structurally, push a
 draft PR stacked on Order 069 and do not approve or merge. Do not rebuild/reseed the founder stack.
+
+## Preserved P0 red proof
+
+Executed after order commit `d2c78a1` and before production edits:
+
+```text
+bun test v1.3.14 (0d9b296a)
+
+tests/rate-quote.integration.test.ts:
+
+# Unhandled error between tests
+-------------------------------
+SyntaxError: Export named 'RateQuoteService' not found in module '/home/astha/projects/yellow-phase-1/src/contexts/rates/index.ts'.
+-------------------------------
+
+
+ 0 pass
+ 1 fail
+ 1 error
+Ran 1 test across 1 file. [81.00ms]
+```
