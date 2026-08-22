@@ -88,6 +88,12 @@ function targetResolution(effect: "include" | "exclude" = "include") {
 
 describe("Order 067 typed exact-money evaluators", () => {
   test("P1: bigint arithmetic, basis-point rounding and guards remain exact", () => {
+    const normalized = normalizeRateEvaluatorSpec(fixedSpec());
+    expect(evaluateRateModel(normalized, evaluationContext())).toMatchObject({
+      state: "priced",
+      amountMinor: 10_000n,
+      appliedGuards: [],
+    });
     expect(evaluateRateModel(fixedSpec(MAX_BIGINT), evaluationContext())).toMatchObject({
       state: "priced",
       amountMinor: MAX_BIGINT,

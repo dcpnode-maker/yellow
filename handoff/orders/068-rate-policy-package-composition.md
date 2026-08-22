@@ -26,8 +26,10 @@ restriction, occupancy or availability state.
 
 - `src/contexts/rates/composition.ts`
 - `src/contexts/rates/index.ts`
+- `src/contexts/rates/evaluators.ts` only for Question 113's explicit-null idempotence correction
 - `docs/CONTRACTS.md`
 - `tests/rate-composition.test.ts`
+- `tests/rate-evaluators.test.ts` only for Question 113's normalized-input regression assertion
 - `src/project-status.ts` only for the exact completed-order and Gate-3 debt counters
 - `tests/founder-status.integration.test.ts` only for the exact current-order assertion
 - `handoff/orders/068-rate-policy-package-composition.md`

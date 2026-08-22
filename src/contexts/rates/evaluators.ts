@@ -477,8 +477,12 @@ export function normalizeRateEvaluatorSpec(value: unknown): RateEvaluatorSpec {
   if (new Set(eligibleTargetRuleKeys).size !== eligibleTargetRuleKeys.length) {
     throw new RateEvaluationError("eligibleTargetRuleKeys must be unique");
   }
-  const floorMinor = Object.hasOwn(source, "floorMinor") ? requireAmount("floorMinor", source.floorMinor) : null;
-  const ceilingMinor = Object.hasOwn(source, "ceilingMinor") ? requireAmount("ceilingMinor", source.ceilingMinor) : null;
+  const floorMinor = !Object.hasOwn(source, "floorMinor") || source.floorMinor === null
+    ? null
+    : requireAmount("floorMinor", source.floorMinor);
+  const ceilingMinor = !Object.hasOwn(source, "ceilingMinor") || source.ceilingMinor === null
+    ? null
+    : requireAmount("ceilingMinor", source.ceilingMinor);
   if (floorMinor !== null && ceilingMinor !== null && floorMinor > ceilingMinor) {
     throw new RateEvaluationError("floorMinor cannot exceed ceilingMinor");
   }

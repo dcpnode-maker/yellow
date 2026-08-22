@@ -152,3 +152,7 @@
 2026-08-22 · 067 · 3 · phase-3/typed-rate-evaluators · codex → Gate-3 reviewer · BUILT-UNREVIEWED · 6eab980 (order f746dd7; red proof 3acb405); focused 7/7 and 97 assertions, standing 60/0, schema exact, fresh app-never-started referee 11/11; protected hashes unchanged
 2026-08-22 · 110 · 3 · phase-3/rate-policy-package-composition · codex → codex · QUESTION-ANSWERED · pure bigint package/promotion and guest/policy/distribution composition authorized over immutable price and availability evidence
 2026-08-22 · 068 · 3 · phase-3/rate-policy-package-composition · codex → — · ORDER-WRITTEN · preserve restriction/operational/mandatory-policy evidence while composing package, meal, promotion, guest and channel choices
+2026-08-22 · 111 · 3 · phase-3/rate-policy-package-composition · codex → codex · QUESTION-ANSWERED · type only two focused evidence arrays after literal-kind widening stopped the first compiler gate
+2026-08-22 · 112 · 3 · phase-3/rate-policy-package-composition · codex → codex · QUESTION-ANSWERED · compare whole availability output to canonical derived evidence instead of the deliberately broad raw helper
+2026-08-22 · 113 · 3 · phase-3/rate-policy-package-composition · codex → codex · QUESTION-ANSWERED · make Order 067 nullable normalized guards idempotent rather than weaken composition provenance
+2026-08-22 · 114 · 3 · phase-3/rate-policy-package-composition · codex → codex · QUESTION-ANSWERED · correct P6 to the inherited `gate_unmatched` reason and preserve exact producer evidence

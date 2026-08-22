@@ -104,3 +104,24 @@ Occupancy-responsive pricing consumes a bounded basis-point metric with an evide
 never reads, creates or releases occupancy. Matrix and contract evaluation consume the frozen
 Order 066 targeting result and never recalculate its physical/commercial precedence. Package/policy,
 approval/publication and governed RMS/API binding remain later contracts.
+
+## 9. Pure rate quote composition
+
+Order 068 composes one authenticated Order 067 result with hotel-selectable guest bounds, a
+versioned package, explicitly selected promotions, refund treatment, policy references and channel
+eligibility. It is an in-process draft/simulation primitive: no database read, publication,
+reservation, distribution write, tax calculation, allowance posting or refund execution occurs.
+
+Package and promotion money is exact signed-range `bigint` minor units in one currency. Package
+elements support per-stay, per-night, per-person and per-person-night rhythms. Included allocation
+is disclosed separately and cannot exceed the room amount; extra package value is added. Promotions
+are discounts only, run in explicit stages 1–8 and require one unique highest-priority selected
+promotion per stage. Equal winners produce a conflict; totals never become negative.
+
+Availability, CTA/CTD, stay/advance restrictions, OOO/OOS blocks and mandatory policy evidence are
+separate runtime-owned inputs and separate output fields. Zero capacity or any blocker makes the
+result blocked regardless of hotel pricing configuration. Non-direct channels require attributable
+mapping evidence. Order 068 checks that evidence is frozen, typed and internally consistent; the
+tenant-scoped database origin of each reference remains the responsibility of Order 070's quote
+binder. Tax is deliberately absent from the pre-tax result. Approval, publication and versioned
+undo remain Order 069.

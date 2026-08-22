@@ -2,6 +2,8 @@ import { describe, expect, test } from "bun:test";
 
 import {
   RateCompositionError,
+  type RateOperationalBlockEvidence,
+  type RateRestrictionEvidence,
   composeRateQuote,
   deriveRateCompositionContext,
   deriveRateEvaluationContext,
@@ -294,7 +296,7 @@ describe("Order 068 rate policy and package composition", () => {
   });
 
   test("P4: restrictions and operational blockers remain authoritative evidence", () => {
-    const restrictionEvidence = [
+    const restrictionEvidence: readonly RateRestrictionEvidence[] = [
       { key: "advance", kind: "min_advance", blocked: false, evidenceRef: "restriction:advance-v3" },
       { key: "closed", kind: "closed", blocked: true, evidenceRef: "restriction:closed-v8" },
       { key: "cta", kind: "cta", blocked: true, evidenceRef: "restriction:cta-v5" },
@@ -302,7 +304,7 @@ describe("Order 068 rate policy and package composition", () => {
       { key: "max-stay", kind: "max_stay", blocked: false, evidenceRef: "restriction:max-stay-v2" },
       { key: "min-stay", kind: "min_stay", blocked: false, evidenceRef: "restriction:min-stay-v2" },
     ];
-    const operationalBlockEvidence = [
+    const operationalBlockEvidence: readonly RateOperationalBlockEvidence[] = [
       { key: "ooo-42", kind: "out_of_order", blocked: true, evidenceRef: "occupancy:ooo-v4" },
       { key: "oos-18", kind: "out_of_service", blocked: false, evidenceRef: "occupancy:oos-v1" },
     ];
@@ -311,17 +313,18 @@ describe("Order 068 rate policy and package composition", () => {
       restrictionEvidence,
       operationalBlockEvidence,
     });
-    const blocked = compose({
+    const blockedContext = compositionContext({ availabilityEvidence: blockedAvailability });
+    const blocked = composeRateQuote(normalizeRateCompositionSpec(compositionSpec({
       package: packageSpec(false),
       promotions: [promotion("FREE", 1, 1, "room_and_extras", { kind: "basis_points", basisPoints: 10_000 })],
-    }, {
+    })), deriveRateCompositionContext({
+      ...blockedContext,
       selectedPromotionCodes: ["FREE"],
-      availabilityEvidence: blockedAvailability,
-    });
+    }));
     expect(blocked).toMatchObject({ state: "blocked", reason: "availability_blocked" });
     expect(blocked.restrictionEvidence).toEqual(restrictionEvidence);
     expect(blocked.operationalBlockEvidence).toEqual(operationalBlockEvidence);
-    expect(blocked.availabilityEvidence).toEqual(blockedAvailability);
+    expect(blocked.availabilityEvidence).toEqual(blockedContext.availabilityEvidence);
 
     expect(compose({}, { availabilityEvidence: availability({ availableCount: 0, bookable: false }) })).toMatchObject({
       state: "blocked",
@@ -375,7 +378,7 @@ describe("Order 068 rate policy and package composition", () => {
       rateEvaluatorSpec: unpricedRate.evaluatorSpec,
       rateEvaluationContext: unpricedRate.evaluationContext,
       rateEvaluationResult: unpricedRate.evaluationResult,
-    }))).toMatchObject({ state: "unpriced", reason: "rate:gate_ineligible" });
+    }))).toMatchObject({ state: "unpriced", reason: "rate:gate_unmatched" });
 
     const conflictRate = rateBundle({
       modelKey: "expert-composition",
