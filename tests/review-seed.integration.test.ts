@@ -4,8 +4,14 @@ import { SQL } from "bun";
 import { createApp } from "../src/app";
 import { BearerTenantResolver, Hs256TokenSigner, LocalLoginService, verifyLocalPassword } from "../src/contexts/identity";
 import { AvailabilityService } from "../src/contexts/inventory";
+import {
+  RateModelService,
+  RatePublicationService,
+  RateQuoteService,
+  RateTargetService,
+} from "../src/contexts/rates";
 import { OperatorHttpApi } from "../src/http/operator";
-import { Database } from "../src/kernel";
+import { ApprovalService, Database, ExtensionRegistry, PostgresEventBus } from "../src/kernel";
 import { runReviewSeed, REVIEW_APPROVER_EMAIL, REVIEW_EMAIL } from "../scripts/seed-review";
 import { runSeed, SEED_PROPERTY, SEED_TENANT } from "../scripts/seed";
 
@@ -22,13 +28,22 @@ if (REQUIRE_DATABASE && (!DATABASE_URL || !PASSWORD)) {
 const databaseDescribe = DATABASE_URL && PASSWORD ? describe.serial : describe.skip;
 let admin: SQL;
 let loginPool: SQL;
+let platformPool: SQL;
+let eventPool: SQL;
 let database: Database;
+let models: RateModelService;
+let targets: RateTargetService;
+let publication: RatePublicationService;
+let quote: RateQuoteService;
 let first: Awaited<ReturnType<typeof runReviewSeed>>;
 
 async function counts() {
   const rows = await admin<Array<{
     users: number; roles: number; grants: number; unit_types: number;
-    spaces: number; sellables: number; facts: number; events: number;
+    spaces: number; sellables: number; requester_facts: number; requester_events: number;
+    approver_facts: number; approver_events: number; policies: number; rate_plans: number;
+    model_versions: number; target_versions: number; release_versions: number;
+    active_releases: number; approvals: number; approved_approvals: number;
   }>>`
     SELECT
       (SELECT count(*)::int FROM app_user WHERE id IN (${first.userId}::uuid, ${first.approverUserId}::uuid)) AS users,
@@ -38,12 +53,89 @@ async function counts() {
       (SELECT count(*)::int FROM space WHERE tenant_id = ${SEED_TENANT.id}::uuid AND attrs @> '{"source":"local-review"}') AS spaces,
       (SELECT count(*)::int FROM sellable_unit AS su JOIN unit_type AS ut ON ut.id = su.unit_type_id
         WHERE su.tenant_id = ${SEED_TENANT.id}::uuid AND ut.attrs @> '{"source":"local-review"}') AS sellables,
-      (SELECT count(*)::int FROM fact_log WHERE actor_id = ${first.userId}::uuid) AS facts,
-      (SELECT count(*)::int FROM outbox WHERE actor_id = ${first.userId}::uuid) AS events
+      (SELECT count(*)::int FROM fact_log WHERE actor_id = ${first.userId}::uuid) AS requester_facts,
+      (SELECT count(*)::int FROM outbox WHERE actor_id = ${first.userId}::uuid) AS requester_events,
+      (SELECT count(*)::int FROM fact_log WHERE actor_id = ${first.approverUserId}::uuid) AS approver_facts,
+      (SELECT count(*)::int FROM outbox WHERE actor_id = ${first.approverUserId}::uuid) AS approver_events,
+      (SELECT count(*)::int FROM policy WHERE tenant_id = ${SEED_TENANT.id}::uuid) AS policies,
+      (SELECT count(*)::int FROM rate_plan WHERE tenant_id = ${SEED_TENANT.id}::uuid
+        AND property_node = ${SEED_PROPERTY.id}::uuid AND code = 'FLEX') AS rate_plans,
+      (SELECT count(*)::int FROM extension WHERE tenant_id = ${SEED_TENANT.id}::uuid
+        AND type = 'rate_plan_model' AND key LIKE 'rate-plan:%') AS model_versions,
+      (SELECT count(*)::int FROM extension WHERE tenant_id = ${SEED_TENANT.id}::uuid
+        AND type = 'rate_plan_target' AND key LIKE 'rate-plan:%') AS target_versions,
+      (SELECT count(*)::int FROM extension WHERE tenant_id = ${SEED_TENANT.id}::uuid
+        AND type = 'rate_plan_release' AND key LIKE 'rate-plan:%') AS release_versions,
+      (SELECT count(*)::int FROM extension WHERE tenant_id = ${SEED_TENANT.id}::uuid
+        AND type = 'rate_plan_release' AND key LIKE 'rate-plan:%' AND status = 'active') AS active_releases,
+      (SELECT count(*)::int FROM approval_request WHERE tenant_id = ${SEED_TENANT.id}::uuid
+        AND kind = 'rate_plan_release') AS approvals,
+      (SELECT count(*)::int FROM approval_request WHERE tenant_id = ${SEED_TENANT.id}::uuid
+        AND kind = 'rate_plan_release' AND status = 'approved') AS approved_approvals
   `;
   const row = rows[0];
   if (!row) throw new Error("Order 046 count probe returned no row");
   return row;
+}
+
+async function canonicalRateRows() {
+  const policies = await admin<Array<{ id: string; kind: string; name: string; content: unknown }>>`
+    SELECT id, kind, name, content
+    FROM policy
+    WHERE tenant_id = ${SEED_TENANT.id}::uuid
+    ORDER BY kind, name, id
+  `;
+  const plans = await admin<Array<{
+    id: string; code: string; name: string; currency: string; tax_inclusive: boolean;
+    cancellation_policy: string | null; guarantee_policy: string | null; deposit_policy: string | null;
+    parent_plan: string | null; derivation: unknown; market_code: string | null;
+    source_code: string | null; status: string;
+  }>>`
+    SELECT id, code, name, currency::text, tax_inclusive, cancellation_policy,
+           guarantee_policy, deposit_policy, parent_plan, derivation, market_code, source_code, status
+    FROM rate_plan
+    WHERE tenant_id = ${SEED_TENANT.id}::uuid
+      AND property_node = ${SEED_PROPERTY.id}::uuid
+      AND code = 'FLEX'
+    ORDER BY id
+  `;
+  return { policies, plans };
+}
+
+function requirePolicyId(policies: readonly { id: string; kind: string }[], kind: string): string {
+  const matches = policies.filter((policy) => policy.kind === kind);
+  const policy = matches[0];
+  if (!policy || matches.length !== 1) throw new Error(`canonical ${kind} policy is absent or duplicated`);
+  return policy.id;
+}
+
+async function rateSnapshot() {
+  const extensions = await admin<Array<Record<string, unknown>>>`
+    SELECT id, type, key, version, content, status
+    FROM extension
+    WHERE tenant_id = ${SEED_TENANT.id}::uuid
+      AND type IN ('rate_plan_model', 'rate_plan_target', 'rate_plan_release')
+    ORDER BY type, key, version, id
+  `;
+  const approvals = await admin<Array<Record<string, unknown>>>`
+    SELECT id, kind, subject_type, subject_id, requested_by, payload, status, decided_by, decided_at, created_at
+    FROM approval_request
+    WHERE tenant_id = ${SEED_TENANT.id}::uuid AND kind = 'rate_plan_release'
+    ORDER BY id
+  `;
+  const evidence = await admin<Array<Record<string, unknown>>>`
+    SELECT 'fact' AS source, id, actor_id, entity_type AS kind, entity_id AS subject_id,
+           operation AS name, payload
+    FROM fact_log
+    WHERE actor_id IN (${first.userId}::uuid, ${first.approverUserId}::uuid)
+    UNION ALL
+    SELECT 'event' AS source, id, actor_id, aggregate_type AS kind, aggregate_id AS subject_id,
+           event_type AS name, payload
+    FROM outbox
+    WHERE actor_id IN (${first.userId}::uuid, ${first.approverUserId}::uuid)
+    ORDER BY source, id
+  `;
+  return { ...(await canonicalRateRows()), extensions, approvals, evidence };
 }
 
 beforeAll(async () => {
@@ -53,12 +145,22 @@ beforeAll(async () => {
     approverPassword: APPROVER_PASSWORD!, logger: () => undefined });
   admin = new SQL(DATABASE_URL, { max: 4 });
   loginPool = new SQL(DATABASE_URL, { max: 4 });
+  platformPool = new SQL(DATABASE_URL, { max: 4 });
+  eventPool = new SQL(DATABASE_URL, { max: 4 });
   database = Database.connect(DATABASE_URL, { maxConnections: 8 });
+  const registry = new ExtensionRegistry(platformPool);
+  const events = new PostgresEventBus(eventPool);
+  models = new RateModelService(registry);
+  targets = new RateTargetService(registry);
+  publication = new RatePublicationService(registry, new ApprovalService(events), events);
+  quote = new RateQuoteService(publication);
 });
 
 afterAll(async () => {
   if (!DATABASE_URL || !PASSWORD) return;
   await database.close();
+  await eventPool.close();
+  await platformPool.close();
   await loginPool.close();
   await admin.close();
 });
@@ -78,7 +180,7 @@ databaseDescribe("Order 046 reproducible local-review seed", () => {
     ]);
   });
 
-  test("P1: provisions the exact local identity and five-room inventory", async () => {
+  test("P1: provisions exact identities, five-room inventory and governed rate evidence", async () => {
     expect(first).toMatchObject({
       tenant: "yellow-demo",
       property: "Yellow Demo Property",
@@ -90,7 +192,10 @@ databaseDescribe("Order 046 reproducible local-review seed", () => {
     });
     expect(await counts()).toEqual({
       users: 2, roles: 1, grants: 2, unit_types: 2, spaces: 5,
-      sellables: 5, facts: 12, events: 12,
+      sellables: 5, requester_facts: 21, requester_events: 18,
+      approver_facts: 2, approver_events: 2, policies: 4, rate_plans: 1,
+      model_versions: 1, target_versions: 1, release_versions: 1,
+      active_releases: 1, approvals: 1, approved_approvals: 1,
     });
   });
 
@@ -216,5 +321,197 @@ databaseDescribe("Order 046 reproducible local-review seed", () => {
       "Room 101", "Room 102", "Room 103", "Room 201", "Room 202",
     ]);
     expect(body.options.every(({ bookable }) => bookable)).toBe(true);
+  });
+
+  test("Order 078 P0/P1: canonical FLEX configuration is present exactly once", async () => {
+    const { policies, plans } = await canonicalRateRows();
+    expect(policies.map(({ kind, name, content }) => ({ kind, name, content }))).toEqual([
+      {
+        kind: "cancellation",
+        name: "Flexible 48 hour cancellation",
+        content: { kind: "cancellation", rules: [{ before_hours: 48, penalty: { basis: "nights", value: 1 } }] },
+      },
+      {
+        kind: "deposit",
+        name: "First night deposit",
+        content: { kind: "deposit", deposit: { basis: "first_night", due: "at_booking" } },
+      },
+      {
+        kind: "guarantee",
+        name: "Card guarantee",
+        content: { kind: "guarantee", guarantee: "card_on_file" },
+      },
+      {
+        kind: "no_show",
+        name: "First night no-show",
+        content: { kind: "no_show", no_show_charge: { basis: "first_night", value: 1 } },
+      },
+    ]);
+    expect(plans).toEqual([{
+      id: expect.any(String),
+      code: "FLEX",
+      name: "Flexible public rate",
+      currency: "USD",
+      tax_inclusive: true,
+      cancellation_policy: requirePolicyId(policies, "cancellation"),
+      guarantee_policy: requirePolicyId(policies, "guarantee"),
+      deposit_policy: requirePolicyId(policies, "deposit"),
+      parent_plan: null,
+      derivation: null,
+      market_code: "LEISURE",
+      source_code: "DIRECT",
+      status: "active",
+    }]);
+  });
+
+  test("Order 078 P2: one canonical active release has exact four-eyes approval", async () => {
+    const { policies, plans } = await canonicalRateRows();
+    const plan = plans[0];
+    if (!plan) throw new Error("canonical FLEX plan is absent");
+    const result = await database.withTenantTransaction(SEED_TENANT.id, async (tx) => {
+      const release = await publication.getActiveRelease(tx, SEED_PROPERTY.id, plan.id);
+      const model = (await models.listDraftVersions(tx, SEED_PROPERTY.id, plan.id))
+        .find(({ id, extensionVersion }) => id === release.modelDraftId && extensionVersion === release.modelDraftVersion);
+      const target = (await targets.listDraftVersions(tx, SEED_PROPERTY.id, plan.id))
+        .find(({ id, extensionVersion }) => id === release.targetDraftId && extensionVersion === release.targetDraftVersion);
+      const approvalPage = await publication.listPublicationApprovals(tx, {
+        propertyNode: SEED_PROPERTY.id,
+        ratePlanId: plan.id,
+        limit: 10,
+      });
+      return { release, model, target, approvalPage };
+    });
+    expect(result.model).toMatchObject({
+      modelKey: "simple-fixed", modelVersion: 1, authoringMode: "guided", componentModelKeys: [], status: "draft",
+    });
+    expect(result.target).toMatchObject({
+      authoringMode: "guided",
+      rules: [{ key: "property-default", effect: "include", priority: 0, physical: { kind: "property" }, commercial: {} }],
+      status: "draft",
+    });
+    expect(result.release).toMatchObject({
+      ratePlanId: plan.id,
+      status: "active",
+      evaluatorSpec: {
+        modelKey: "simple-fixed",
+        currency: "USD",
+        base: { kind: "fixed", amountMinor: 12_500n },
+        gate: { stayStart: "2020-01-01", stayEnd: "2100-01-01", dowMask: 127 },
+        rules: [],
+        floorMinor: null,
+        ceilingMinor: null,
+        eligibleTargetRuleKeys: [],
+      },
+      compositionSpec: {
+        currency: "USD",
+        guestEligibility: {
+          minAdults: 1, maxAdults: 4, minChildren: 0, maxChildren: 3,
+          minTotalGuests: 1, maxTotalGuests: 7,
+        },
+        package: null,
+        promotions: [],
+        policy: {
+          cancellationPolicyId: requirePolicyId(policies, "cancellation"),
+          depositPolicyId: requirePolicyId(policies, "deposit"),
+          guaranteePolicyId: requirePolicyId(policies, "guarantee"),
+          noShowPolicyId: requirePolicyId(policies, "no_show"),
+          refundTreatment: "policy",
+        },
+        distribution: { mode: "all", channelCodes: [] },
+      },
+      rmsBinding: null,
+      undoOfVersion: null,
+    });
+    expect(result.approvalPage.nextCursor).toBeNull();
+    expect(result.approvalPage.approvals).toEqual([expect.objectContaining({
+      releaseId: result.release.id,
+      releaseVersion: result.release.extensionVersion,
+      releaseStatus: "active",
+      status: "approved",
+      requestedBy: { id: first.userId, displayName: "Yellow Review Operator" },
+      decidedBy: { id: first.approverUserId, displayName: "Yellow Rate Approver" },
+    })]);
+  });
+
+  test("Order 078 P3: divergent active review rate fails without attempted repair", async () => {
+    const rows = await admin<Array<{
+      id: string;
+      content: {
+        evaluator: { base: { amountMinor: { $minor: string } } };
+      };
+    }>>`
+      SELECT id, content
+      FROM extension
+      WHERE tenant_id = ${SEED_TENANT.id}::uuid AND type = 'rate_plan_release' AND status = 'active'
+    `;
+    const active = rows[0];
+    if (!active || rows.length !== 1) throw new Error("canonical active release is absent");
+    const original = structuredClone(active.content);
+    const divergent = structuredClone(active.content);
+    divergent.evaluator.base.amountMinor.$minor = "12501";
+    await admin`UPDATE extension SET content = ${JSON.stringify(divergent)}::text::jsonb WHERE id = ${active.id}::uuid`;
+    try {
+      const before = await rateSnapshot();
+      await expect(runReviewSeed({ databaseUrl: DATABASE_URL!, password: PASSWORD!,
+        approverPassword: APPROVER_PASSWORD!, logger: () => undefined }))
+        .rejects.toThrow("active FLEX release collides with non-canonical local-review data");
+      expect(await rateSnapshot()).toEqual(before);
+    } finally {
+      await admin`UPDATE extension SET content = ${JSON.stringify(original)}::text::jsonb WHERE id = ${active.id}::uuid`;
+    }
+  });
+
+  test("Order 078 P4: real two-night quote is exact, bookable, no-tax and read-only", async () => {
+    const { plans } = await canonicalRateRows();
+    const plan = plans[0];
+    if (!plan) throw new Error("canonical FLEX plan is absent");
+    const sellables = await admin<Array<{ id: string }>>`
+      SELECT sellable.id
+      FROM sellable_unit AS sellable
+      JOIN unit_type AS unit_type ON unit_type.id = sellable.unit_type_id
+      WHERE sellable.tenant_id = ${SEED_TENANT.id}::uuid
+        AND unit_type.attrs @> '{"source":"local-review"}'
+      ORDER BY sellable.name, sellable.id
+      LIMIT 1
+    `;
+    const sellable = sellables[0];
+    if (!sellable) throw new Error("local-review sellable is absent");
+    const stayStart = new Date(Date.now() + 30 * 86_400_000);
+    stayStart.setUTCHours(15, 0, 0, 0);
+    const stayEnd = new Date(stayStart.getTime() + 2 * 86_400_000);
+    const before = await rateSnapshot();
+    const resolved = await database.withTenantTransaction(SEED_TENANT.id, (tx) => quote.resolve(tx, {
+      propertyNode: SEED_PROPERTY.id,
+      ratePlanId: plan.id,
+      sellableUnitId: sellable.id,
+      stayStart,
+      stayEnd,
+      guests: { adults: 1, childAges: [] },
+      selectedPromotionCodes: [],
+      commercial: {},
+      channelCode: "direct",
+    }));
+    expect(resolved).toMatchObject({
+      propertyNode: SEED_PROPERTY.id,
+      ratePlanId: plan.id,
+      sellableUnitId: sellable.id,
+      taxAssignmentState: "none",
+      result: {
+        state: "quoted",
+        roomAmountMinor: 25_000n,
+        packageExtraMinor: 0n,
+        promotionDiscountMinor: 0n,
+        preTaxSubtotalMinor: 25_000n,
+        availabilityEvidence: { bookable: true },
+      },
+    });
+    expect(resolved.result.rateEvaluations.map(({ evaluationResult }) => evaluationResult.amountMinor))
+      .toEqual([12_500n, 12_500n]);
+    expect(resolved.result.policyEvidence.map(({ kind }) => kind))
+      .toEqual(["cancellation", "deposit", "guarantee", "no_show"]);
+    expect(resolved.taxAssignments.every(({ jurisdictionKey, evidenceRef }) =>
+      jurisdictionKey === null && evidenceRef === null
+    )).toBe(true);
+    expect(await rateSnapshot()).toEqual(before);
   });
 });
