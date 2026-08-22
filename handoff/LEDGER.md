@@ -111,3 +111,4 @@
 2026-08-22 · 084 · 3 · phase-2/availability-projection-consumer · codex → codex · QUESTION-ANSWERED · separate mandatory drain from optional result observer after exact runtime diagnostic; restart all proofs
 2026-08-22 · 085 · 3 · phase-2/availability-projection-consumer · codex → codex · QUESTION-ANSWERED · restore canonical seed precondition for inherited EventBus/relay proofs; restart complete sequence
 2026-08-22 · 086 · 3 · phase-2/availability-projection-consumer · codex → codex · QUESTION-ANSWERED · reject noncanonical event-period bounds and prove rollback; restart focused, standing and referee checks
+2026-08-22 · 087 · 3 · phase-2/availability-projection-consumer · codex → independent reviewer · REVIEW-REQUESTED · Order 059 builder proofs, deployed cursor, referee 11/11, red-to-green corrections and derived-map limitation recorded; no approval or merge
