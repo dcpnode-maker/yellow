@@ -125,7 +125,7 @@ async function rateSnapshot() {
   `;
   const evidence = await admin<Array<Record<string, unknown>>>`
     SELECT 'fact' AS source, id, actor_id, entity_type AS kind, entity_id AS subject_id,
-           operation AS name, payload
+           fact_type AS name, payload
     FROM fact_log
     WHERE actor_id IN (${first.userId}::uuid, ${first.approverUserId}::uuid)
     UNION ALL
@@ -211,6 +211,7 @@ databaseDescribe("Order 046 reproducible local-review seed", () => {
        AND event.aggregate_id = fact.entity_id
        AND event.correlation_id = (fact.payload ->> 'request_id')::uuid
       WHERE fact.actor_id = ${first.userId}::uuid
+        AND fact.entity_type IN ('unit_type', 'space', 'sellable_unit')
       GROUP BY fact.entity_type
       ORDER BY fact.entity_type
     `;
