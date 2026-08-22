@@ -151,7 +151,6 @@ function previewCell(key = "cell-2026-09-10") {
     targetContext: { unitTypeId, sellableUnitId, commercial: {} },
     guests: { adults: 2, childAges: [] },
     selectedPromotionCodes: [],
-    policyEvidence: policyEvidence(),
     mandatoryPolicyEvidence: [{ key: "tax-assignment", evidenceRef: "tax:in-gst-lodging" }],
     availabilityEvidence: {
       sellableUnitId,
@@ -367,10 +366,7 @@ databaseDescribe("Order 071 operator universal rate builder", () => {
   });
 
   test("Order 075 P0: selected-release policy evidence is server-bound, never browser-owned", async () => {
-    const browserCell = Object.fromEntries(
-      Object.entries(previewCell("selected-release-policy-cell"))
-        .filter(([key]) => key !== "policyEvidence"),
-    );
+    const browserCell = previewCell("selected-release-policy-cell");
     const staleBrowser = await request(builderPath(PLANS.main, `/releases/${mainReleaseId}/simulate`), {
       method: "POST", headers: headers(),
       body: JSON.stringify({ previewCells: [{ ...browserCell, policyEvidence: [] }] }),
@@ -383,6 +379,14 @@ databaseDescribe("Order 071 operator universal rate builder", () => {
       body: JSON.stringify({ previewCells: [{ ...browserCell, policyEvidence: policyEvidence() }] }),
     });
     expect([staleBrowser.status, serverBound.status, callerOwned.status]).toEqual([400, 200, 400]);
+    const serverBody = await serverBound.json() as { simulation: { cells: Array<{
+      result: { policyEvidence: unknown };
+    }> } };
+    expect(serverBody.simulation.cells[0]?.result.policyEvidence).toEqual(policyEvidence().map(({ kind, policyId }) => ({
+      kind,
+      policyId,
+      evidenceRef: `rate-release:${mainReleaseId}:${kind}:${policyId}`,
+    })));
   });
 
   test("Order 073: one draft preserves broad inheritance, a commercial include and an exact-room exclusion", async () => {

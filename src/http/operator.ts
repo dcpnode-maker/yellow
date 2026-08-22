@@ -45,6 +45,7 @@ import {
   type CreateRatePriceInput,
   type CreateRatePlanInput,
   type PolicyKind,
+  type RatePlanRelease,
   type RatePricingInput,
 } from "../contexts/rates";
 import {
@@ -321,6 +322,40 @@ interface RateBuilderOperations {
   readonly quote: Pick<RateQuoteService, "resolve">;
   readonly intent?: Pick<RateIntentService, "interpret">;
 }
+
+const RELEASE_POLICY_FIELDS = Object.freeze([
+  ["cancellation", "cancellationPolicyId"],
+  ["deposit", "depositPolicyId"],
+  ["guarantee", "guaranteePolicyId"],
+  ["no_show", "noShowPolicyId"],
+] as const);
+
+function releasePolicyEvidence(release: RatePlanRelease) {
+  const policy = release.compositionSpec.policy;
+  return Object.freeze(RELEASE_POLICY_FIELDS.flatMap(([kind, field]) => {
+    const policyId = policy[field];
+    return policyId ? [Object.freeze({
+    kind,
+    policyId,
+    evidenceRef: `rate-release:${release.id}:${kind}:${policyId}`,
+    })] : [];
+  }));
+}
+
+function bindRateBuilderPreviewCells(
+  release: RatePlanRelease,
+  previewCells: readonly unknown[],
+): readonly Readonly<Record<string, unknown>>[] | null {
+  if (previewCells.length < 1 || previewCells.length > 500) return null;
+  const policyEvidence = releasePolicyEvidence(release);
+  const bound: Readonly<Record<string, unknown>>[] = [];
+  for (const cell of previewCells) {
+    if (!isObject(cell) || Object.prototype.hasOwnProperty.call(cell, "policyEvidence")) return null;
+    bound.push(Object.freeze({ ...cell, policyEvidence }));
+  }
+  return Object.freeze(bound);
+}
+
 type BlockOperations = Pick<OperationalBlockService, "listActive" | "open" | "close">;
 type PolicyOperations = Pick<InventoryPolicyService, "get" | "setOosSellability">;
 type HoldOperations = Pick<HoldService,
@@ -1439,9 +1474,13 @@ export class OperatorHttpApi {
     }
     const authorized = await this.#requireRateBuilder(context, propertyNode, ratePlanId, releaseId, RATE_READ_SCOPE);
     if (authorized instanceof Response) return authorized;
+    const previewCells = bindRateBuilderPreviewCells(authorized.release, body.previewCells);
+    if (!previewCells) {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Rate preview cells are invalid or contain caller policy evidence");
+    }
     const simulation = await this.#rateBuilder!.publication.simulateDraft(context.tx, {
       releaseId,
-      previewCells: body.previewCells,
+      previewCells,
     });
     return apiResponse(context.request, rateBuilderJsonValue({ simulation }));
   }
@@ -1458,10 +1497,14 @@ export class OperatorHttpApi {
     }
     const authorized = await this.#requireRateBuilder(context, propertyNode, ratePlanId, releaseId, RATE_WRITE_SCOPE);
     if (authorized instanceof Response) return authorized;
+    const previewCells = bindRateBuilderPreviewCells(authorized.release, body.previewCells);
+    if (!previewCells) {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Rate approval cells are invalid or contain caller policy evidence");
+    }
     return this.#runRateBuilderWrite(context, authorized.actorId, propertyNode, { ratePlanId, releaseId, body }, "operator.rates.release.approval_request", async (tx, requestId) =>
       this.#rateBuilder!.publication.requestPublicationApproval(tx, {
         releaseId,
-        previewCells: body.previewCells as unknown[],
+        previewCells,
         requestedBy: authorized.actorId,
         envelope: createAuditEnvelope({ actorId: authorized.actorId, tenantId: context.tenantId,
           propertyNode, requestId, operation: "rate_plan_release.approval_requested" }),
@@ -1482,11 +1525,15 @@ export class OperatorHttpApi {
     }
     const authorized = await this.#requireRateBuilder(context, propertyNode, ratePlanId, releaseId, RATE_WRITE_SCOPE);
     if (authorized instanceof Response) return authorized;
+    const previewCells = bindRateBuilderPreviewCells(authorized.release, body.previewCells);
+    if (!previewCells) {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Rate publication cells are invalid or contain caller policy evidence");
+    }
     return this.#runRateBuilderWrite(context, authorized.actorId, propertyNode, { ratePlanId, releaseId, body }, "operator.rates.release.publish", async (tx, requestId) =>
       this.#rateBuilder!.publication.publishDraft(tx, {
         releaseId,
         approvalId: body.approvalId as string,
-        previewCells: body.previewCells as unknown[],
+        previewCells,
         envelope: createAuditEnvelope({ actorId: authorized.actorId, tenantId: context.tenantId,
           propertyNode, requestId, operation: "rate_plan_release.published" }),
       })
@@ -1520,7 +1567,7 @@ export class OperatorHttpApi {
     ratePlanId: string,
     releaseId: string,
     scope: typeof RATE_READ_SCOPE | typeof RATE_WRITE_SCOPE,
-  ): Promise<Readonly<{ actorId: string }> | Response> {
+  ): Promise<Readonly<{ actorId: string; release: RatePlanRelease }> | Response> {
     if (!hasScope(context, scope)) {
       return apiError(context.request, 403, "auth/scope_missing", "Forbidden", "Rate configuration access is not granted");
     }
@@ -1533,10 +1580,11 @@ export class OperatorHttpApi {
       return apiError(context.request, 403, "auth/property_forbidden", "Forbidden", "Property access is not granted");
     }
     const releases = await this.#rateBuilder.publication.listReleaseVersions(context.tx, propertyNode, ratePlanId);
-    if (!releases.some(({ id }) => id === releaseId)) {
+    const release = releases.find(({ id }) => id === releaseId);
+    if (!release) {
       return apiError(context.request, 404, "rates/not_found", "Not found", "Referenced rate release was not found");
     }
-    return Object.freeze({ actorId: context.identity.actorId });
+    return Object.freeze({ actorId: context.identity.actorId, release });
   }
 
   async #runRateBuilderWrite(

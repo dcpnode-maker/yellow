@@ -203,6 +203,12 @@ composition, conflicts and hashes. Publication remains four-eyes and re-simulate
 cells. Undo creates a new draft version. A separate live-quote action resolves the active release
 against current tenant-scoped availability, restriction, policy, tax-assignment and channel evidence.
 
+Preview cells also cannot supply `policyEvidence`. The authenticated operator boundary derives the
+stable cancellation, deposit, guarantee and no-show evidence from the exact selected immutable
+release before simulation, approval request and publication. Current unsaved editor policy choices
+affect only a newly saved release; they cannot change or prevent preview of an existing draft.
+Caller-supplied empty, matching or mismatched policy evidence is invalid.
+
 CTA/CTD, closed-to-sale and minimum/maximum stay or advance rules remain hotel-configurable through
 the Restrictions workspace rather than being duplicated in a rate release. They are authoritative
 inputs to the live quote and cannot be disabled by either authoring mode. AI-assisted authoring is

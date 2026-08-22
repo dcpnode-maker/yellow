@@ -1436,15 +1436,6 @@
     return new Date(guess).toISOString();
   }
 
-  function builderPolicyEvidence() {
-    return [
-      ["cancellation", builderCancellationPolicy.value],
-      ["deposit", builderDepositPolicy.value],
-      ["guarantee", builderGuaranteePolicy.value],
-      ["no_show", builderNoShowPolicy.value],
-    ].flatMap(([kind, policyId]) => policyId ? [{ kind, policyId, evidenceRef: `operator:${kind}:${policyId}` }] : []);
-  }
-
   function builderPreviewCellDates() {
     const dates = trimmed(builderPreviewDates).split(/[\s,]+/).map((date) => date.trim()).filter(Boolean);
     const selected = dates.length > 0 ? dates : [builderStayStart.value];
@@ -1494,7 +1485,6 @@
       targetContext: { unitTypeId, sellableUnitId: sellable.id, commercial },
       guests: { adults: integerValue(builderMinAdults, 1), childAges: [] },
       selectedPromotionCodes: promotionCode ? [promotionCode] : [],
-      policyEvidence: builderPolicyEvidence(),
       mandatoryPolicyEvidence: [],
       availabilityEvidence: {
         sellableUnitId: sellable.id,
