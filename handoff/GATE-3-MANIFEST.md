@@ -32,6 +32,7 @@ Status legend: UNVERIFIED = built, proofs builder-asserted, not executed by the 
 | 067 | 3 | 6eab980 (order f746dd7; red proof 3acb405) | UNVERIFIED | Order 067 — Typed exact-money rate-model evaluators |
 | 068 | 3 | bd62c85 (order 183cad7; red proof b91507a) | UNVERIFIED | Order 068 — Guest, promotion, package, policy and distribution composition |
 | 069 | 3 | 2c925ee + 1857299 correction (order 3228b0c; red proof da22ac9) | UNVERIFIED | Order 069 — Atomic rate draft simulation, approval, publication and versioned undo |
+| 070 | 3 | 32fa632 (order d2c78a1; red proof 1bfb57b) | UNVERIFIED | Order 070 — Universal stay quote resolution and governed RMS/API evidence |
 
 Protected hashes to re-quote each time:
 
