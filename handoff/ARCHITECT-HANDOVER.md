@@ -11,21 +11,24 @@ Everything below is what the next architect needs and cannot reconstruct from th
 
 ## 1. The single most important fact
 
-**Orders 019–044 were independently reviewed at `6bfd2c5`; Orders 045–060 remain
-unverified, and nothing since Phase 0 is on `main`.**
+**Orders 001–044 are independently reviewed. The Gate-3 pass at `d0a2f2a` requires
+corrections, and Orders 045–074 remain unapproved and unmerged. Nothing since Phase 0 is
+on `main`.**
 
 | | Count | State |
 |---|---:|---|
-| Orders written | 60 | 001–018 reviewed and merged; 019–044 reviewed but unmerged; **045–060 built, unverified and unmerged** |
-| Reviews in `handoff/reviews/` | 7 | Phase 0 plus cumulative Orders 019–044 review; Gate 3 is deferred |
-| Decisions in `DECISIONS.log` | D-1 → **D-221** | D-95 → D-160 reviewed under D-161; **D-162 → D-221 await Gate-3 ratification or amendment** |
-| Current Gate-3 manifest | 16 orders | 045–060, linear descendant stack, all explicitly `UNVERIFIED` |
+| Orders written | 74 | 001–018 reviewed and merged; 019–044 reviewed but unmerged; **045–074 unmerged with corrections awaiting re-execution** |
+| Reviews in `handoff/reviews/` | 8 | Phase 0, cumulative Orders 019–044, and Gate-3 CHANGES REQUIRED at `4cc791c` |
+| Decisions in `DECISIONS.log` | D-1 → **D-263** | D-95 → D-160 reviewed under D-161; D-162 → D-262 ratified at Gate 3; D-263 records the correction boundary |
+| Current Gate-3 manifest | 30 orders | 045–074, linear descendant stack, all explicitly `UNVERIFIED` until correction re-execution |
 
 The original 019–036 debt described here was later discharged and extended through Order
-044 by the review recorded in D-161. Current debt begins at Order 045 and is governed by
-`handoff/GATE-3-REVIEW-CONTRACT.md`: it is recorded, non-blocking and never represented as
-approval. Treat every Gate-3 manifest row as builder-asserted until the founder schedules
-that application review.
+044 by the review recorded in D-161. Gate 3 then executed against `4cc791c` and ratified
+D-162 through D-262, but returned F11/F12 with CHANGES REQUIRED. That reviewed tip contains
+Order 073's red pre-proof, not its completed implementation. Order 074 corrects both findings;
+the completed Order 073 and Order 074 still require reviewer execution. Current debt is governed
+by `handoff/GATE-3-REVIEW-CONTRACT.md`: it is recorded, non-blocking and never represented as
+approval.
 
 ---
 
@@ -37,18 +40,24 @@ Verified by a reviewer who executed it (D-84 standard):
   first-hand: `11 passed, 0 failed of 11`. Immutable baseline SHA-256
   `fe2a9fc949c6bacded3f8d3fc4d14fc596a83ebde9aeb043eb10845f07b30923` confirmed identical
   at both ends of the range. Per-PR diffs read. F1–F7 closed with reproduced proofs.
-- **`migrations/0001_init.sql` is untouched** through Phase 0. Fable must re-confirm this
-  across 019–036; it is Invariant-level and cheap to check:
-  `git log --oneline -- migrations/0001_init.sql` should still show only `bc0e492`.
+- **Orders 019–044 and D-95–D-160.** Claude executed 133 pre-registered proofs plus the
+  whole-tree checks and isolated referee at `6bfd2c5`; D-161 discharges that debt. These
+  orders are reviewed but still unmerged.
+- **Gate-3 inspection through the Order-073 red pre-proof.** Claude executed the baseline,
+  operator suites and decision scan at `4cc791c`, ratifying D-162–D-262 and finding F11/F12.
+  This is a changes-required review, not approval of Orders 045 onward.
+- **The protected baseline remains exact** at the Gate-3 review: `migrations/0001_init.sql`
+  still has SHA-256 `fe2a9fc949c6bacded3f8d3fc4d14fc596a83ebde9aeb043eb10845f07b30923`,
+  and `tests/run_invariants.py` is byte-identical to main.
 
-Everything else is assertion.
+The completed Order-073 implementation and Order-074 corrections are builder-asserted until an
+independent reviewer executes them at their descendant tip.
 
 ## 3. Known limits in my own review — inherited, not solved
 
-- **D-89: the `windows-state` CI job cannot be reviewer-executed.** I ordered coverage on
-  a surface no reviewer on this machine can re-run — no `git` on Windows, and a GitHub
-  Windows runner is not reproducible locally. Its red proof is a CI record, not
-  reviewer-executed. If that job ever guards something that matters, the tier is wrong.
+- **D-89 is narrowed.** `state.ps1` itself was later reviewer-executed natively and that
+  execution found F10; only the GitHub-hosted `windows-state` runner remains infrastructure
+  evidence the reviewer cannot reproduce on this machine.
 - **D-84 traded the second vendor for reviewer-executed proof.** Single-reviewer Tier 3 is
   now doctrine. Fable is that reviewer. The executable half is non-waivable — a result
   pasted by the builder is explicitly not proof.
@@ -59,45 +68,34 @@ Everything else is assertion.
 
 ## 4. Where to look first — current Gate-3 blast radius
 
-Orders 019–044 and decisions through D-160 were discharged by D-161. For the current
-045–060 manifest, review in this order:
+Orders 019–044 and decisions through D-160 were discharged by D-161. Gate 3 ratified
+D-162–D-262 but did not approve Orders 045 onward. For the current 045–074 manifest, review
+in this order:
 
-1. **Order 047 — durable API idempotency.** Every later operator mutation relies on its
-   hash-only request identity, atomic claim/command commit, replay and rollback behavior.
-2. **Orders 055–057 — holds, expiry and bulk rooms.** These touch the occupancy choke
-   point or create many sellable mappings atomically; re-run concurrency, rollback and
-   exact-scope proofs before trusting the workbench.
-3. **Orders 058–060 — projection rebuild, durable convergence and operator bootstrap.**
-   Verify projection-safe shape filtering, DST/local-date envelopes, poison-event rollback,
-   deployed cursor movement and the rule that projection data never authorizes a hold or
-   booking.
-4. **Orders 048–054 — operator mutation surfaces.** Read their idempotency, grant, scope,
-   money-string and audit/outbox assertions against the API and themed browser controls.
-5. **The protected floor.** Confirm `migrations/0001_init.sql` and
+1. **Order 074 — F11/F12 corrections.** Re-run the always-on SQL-syntax canaries, all five
+   inherited operator suites and the document-derived status proof. Confirm ordinary UI copy is
+   preserved, real SQL syntax stays red, and CHANGES REQUIRED review files do not advance coverage.
+2. **Order 073 completed implementation.** The previous Gate-3 worktree stopped at its red
+   pre-proof. Execute the final multi-rule compiler, live authenticated include/exclude preview,
+   duplicate refusal, browser cell evidence and both-theme review against the completed commits.
+3. **Orders 045–072 findings baseline.** Gate 3 found no defect in occupancy, money, RLS,
+   tenant context or audit/outbox, but approval remains withheld until F11/F12 are re-executed at
+   the descendant tip.
+4. **The protected floor.** Confirm `migrations/0001_init.sql` and
    `tests/run_invariants.py` against the hashes in `handoff/GATE-3-MANIFEST.md`, then run the
-   isolated 11/11 referee before any Gate-3 approval.
+   isolated 11/11 referee before approval.
 
 ## 5. Housekeeping that has drifted — small, but fix it before it compounds
 
-- **`handoff/LEDGER.md` stops at Order 026.** CLAUDE.md says one line per order, always.
-  Orders 027–036 have none. The ledger is the shared memory; a ten-order gap is the kind
-  of thing nobody notices until they need it.
-- **`./state.sh` prints `Phase: 0 · cumulative review pending`.** Stale since Phase 0
-  merged. Every session reads that line first (D-58), so a wrong one is worse than none.
-- **`orders=18 open (36 total)`** — correct under D-82's marker rule, since nothing since
-  018 has merged. When Phase 1/2 integrate, mark 019–036 `## MERGED` in the same commit,
-  or the counter drifts the other way.
-- **`handoff/questions/011-ARCHITECT-RESPONSE.md` reads as open.** Architect responses
-  have no status marker, so `state.sh` counts an *answer* as outstanding work. Either add
-  `## RESOLVED` to responses or amend D-82 to close `*-ARCHITECT-RESPONSE.md` on
-  authorship the way reviews already are. Cosmetic, but it is the ground-truth script.
-- **Repo copies.** Canonical is `~/projects/yellow` plus Linux-side worktrees. The Windows
-  copies at `C:\Users\astha\Documents\Codex\...\yellow` and `...\yellow-phase-1` should be
-  deleted once you confirm nothing unpushed remains — the second has a `.git` pointing at
-  a `C:/` path that WSL cannot resolve, so it is not a git repository from Linux at all.
-  Measured cost of working on `/mnt/c`: tree walk **2,406 ms vs 20 ms**, and `inotify`
-  produces **no events**, so `bun --watch` is silently dead. D-49 predicted it; it is now
-  measured.
+- **No handoff counter is currently a blocker.** `state.sh` reports Phase 3 and zero open
+  questions; open orders are expected because nothing after Order 018 is merged.
+- **The ledger and Gate-3 manifest are current through Order 074.** Their UNVERIFIED rows
+  are review debt, not approval and not a reason for the builder to wait.
+- **The founder dashboard is now document-derived for review coverage.** Approved architect
+  review files produce Order 044; the 045–073 CHANGES REQUIRED review cannot advance it.
+- **Canonical build work remains in the Linux worktree** `/home/astha/projects/yellow-phase-1`.
+  Avoid `/mnt/c` copies for watch-mode work because the measured filesystem penalty and missing
+  inotify behavior remain real.
 
 ## 6. Recommendations to Codex for the rest of the build
 
@@ -125,29 +123,21 @@ exact failure F6 existed to prevent.
 **Batch by phase, request review at the gate.** D-92 stands. One review request per phase
 with the order/commit table, full self-check output, and every pre-registered proof.
 
-## 7. For Fable — the sequence I would follow
+## 7. For the next independent reviewer
 
-1. **Stop new feature work.** Eighteen unreviewed orders is already more debt than the
-   process was designed to carry.
-2. **Re-run the Phase 0 baseline** to establish that the foundation still holds:
-   `./setup.sh --db-only` → `11 passed, 0 failed of 11`, and the migration SHA check.
-3. **Review Phase 1 (019–026) as one gate**, executing every pre-registered proof
-   yourself. Then Phase 2 (027–036) as a second gate.
-4. **Ratify or amend D-95 → D-141** in one pass, the way I did D-71→D-79 in review
-   008–015. Forty-seven decisions is a lot, but they were made in sequence and most will
-   be routine; the ones to read closely are any that touch occupancy, holds, availability,
-   rates or RLS.
-5. **Then integrate**, one cumulative PR per phase, per D-76 and D-90.
-6. **Only then deploy.** `docs/DEPENDENCIES.md` and D-68 both note that Forgejo mirroring
-   and Cloudflare Tunnel are founder actions requiring credentials — no agent creates
-   accounts or exposes ports.
+1. **Start from the current correction tip, not `4cc791c`.** Confirm it contains Claude's
+   review commit plus the completed Order-073 implementation and Order-074 corrections.
+2. **Re-run Order 074 first.** Execute the always-on SQL-syntax canaries, the five dedicated
+   operator databases, the generated review-coverage check and the founder-status suite.
+3. **Execute Order 073's completed proofs.** Its final work landed after Claude's reviewed tip,
+   so run both the pure compiler/rendering file and live authenticated database suite rather than
+   relying on the earlier intentional red.
+4. **Repeat the protected floor and standing battery.** Require exact protected hashes, fresh
+   app-never-started referee 11/11, schema drift, typecheck, boundaries, licence, audit and full CI.
+5. **Approve or return precise findings.** Builder-green evidence remains unverified until this
+   execution. Integration and deployment remain separate founder-authorized steps.
 
-## 8. Decision to append when the next architect takes over
+## 8. Historical handover decision
 
-Append verbatim to `DECISIONS.log`. I have deliberately not appended it myself: the file
-has uncommitted builder edits in flight, and mixing an architect append into a builder's
-working commit is how a shared append-only log gets tangled.
-
-```
-2026-08-21 · D-142 · Architect role hands over from Claude to Fable; Codex continues as builder. State at handover: 0bd9585 on phase-2/restriction-evaluation, 31 commits ahead of main (61b0fd3), strictly linear. VERIFIED: Phase 0 only — Orders 001-018, four reviews in handoff/reviews/, battery re-run first-hand at 11/11, baseline SHA fe2a9fc9 confirmed unchanged, per-PR diffs read, F1-F7 closed. NOT VERIFIED: Orders 019-036 (18 orders, Phases 1 and 2) and decisions D-95 through D-141 (47 entries) — all builder-asserted, none reviewer-executed, none merged to main. This is review debt, not a defect finding; the incoming architect must discharge it before new feature work, per D-84's rule that a builder-pasted result is not proof. Order of attack recorded in handoff/ARCHITECT-HANDOVER.md §4, highest blast radius first: 019 tenant context (P3 pooled-connection leak and P5 error-path release), 020 auth (alg:none and algorithm confusion), 023 relay (SIGKILL mid-batch), then Phase 2's occupancy and availability surfaces where double-bookings live. Inherited limits carried forward unsolved: D-89's windows-state job cannot be reviewer-executed on any machine this project owns, and D-84's single-vendor Tier 3 makes the executable half non-waivable. Rejected: merging Phases 1 and 2 before review to reduce the backlog, which would put 47 unratified decisions and 18 unreviewed orders on main and make the debt permanent instead of visible; rejected: appending this entry into the builder's in-flight working tree.
-```
+D-142 is already present in `DECISIONS.log`; later D-161, D-221 and D-263 supersede its old
+review-debt counts while preserving its no-self-review and no-self-merge rules.

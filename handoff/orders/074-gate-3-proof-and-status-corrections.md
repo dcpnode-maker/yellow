@@ -139,9 +139,9 @@ open a draft PR stacked on Order 073. Do not merge.
 
 ## Definition of done
 
-- [ ] P0 red evidence is preserved before correction implementation.
-- [ ] P1–P3 pass without changing product/runtime behavior.
-- [ ] P4 shows the correct derived review boundary in the running founder dashboard.
-- [ ] P5 is fully green; persistent localhost remains healthy.
-- [ ] F11 and F12 are corrected and recorded for independent re-execution.
-- [ ] Orders 045–074 remain unmerged; corrections are not represented as self-approved.
+- [x] P0 red evidence is preserved before correction implementation.
+- [x] P1–P3 pass without changing product/runtime behavior.
+- [x] P4 shows the correct derived review boundary in the running founder dashboard.
+- [x] P5 is fully green; persistent localhost remains healthy.
+- [x] F11 and F12 are corrected and recorded for independent re-execution.
+- [x] Orders 045–074 remain unmerged; corrections are not represented as self-approved.
