@@ -39,6 +39,7 @@ Status legend: UNVERIFIED = built, proofs builder-asserted, not executed by the 
 | 074 | 2 | ccf7a61 (order c06f5af; red proof 3368b96) | UNVERIFIED | Order 074 — Gate-3 browser-proof and founder-status corrections |
 | 075 | 3 | a94f2ae (order bf7533f; proof correction b57b40c; red proof a1f1bb7) | UNVERIFIED | Order 075 — Selected-release policy evidence at the operator boundary |
 | 076 | 2 | bb04b21 (order 59bb07c; red proof 53aa58f; captured 5e97ec1) | UNVERIFIED | Order 076 — Immutable rate-release inspection and safe reuse |
+| 077 | 3 | de74b21 (order 7a2dcd0; red proof 172bf70; schema correction 10f2c6c + 7e6c48b) | UNVERIFIED | Order 077 — Two-operator rate-publication approval inbox |
 
 Protected hashes to re-quote each time:
 
