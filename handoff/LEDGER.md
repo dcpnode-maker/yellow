@@ -169,3 +169,4 @@
 2026-08-22 · 071 · 3 · phase-3/guided-expert-rate-workbench · codex → — · ORDER-WRITTEN · five-step Guided/Expert universal rate builder, all ten catalogue models, physical/commercial targeting, bulk server preview and immutable review/publish history
 2026-08-22 · 121 · 3 · phase-3/guided-expert-rate-workbench · codex → codex · QUESTION-ANSWERED · return the server-proven actor principal after async scope/property authorization; no cast, assertion or caller actor authority
 2026-08-22 · 122 · 3 · phase-3/guided-expert-rate-workbench · codex → codex · QUESTION-ANSWERED · explicitly type only the mutable ten-model test fixture; production contracts stay unknown and strict
+2026-08-22 · 123 · 3 · phase-3/guided-expert-rate-workbench · codex → codex · QUESTION-ANSWERED · type the rollback double through the operator's exact injected Pick interface and add only the test helper's property argument
