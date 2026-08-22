@@ -174,7 +174,7 @@ reseed/restart. Refresh Graphify code-only and record parser/semantic limitation
 - [x] P0 intentional red evidence is committed before implementation.
 - [x] P1–P4 prove exact HTTP, arbitration, bounded retry, authorization and rollback behavior.
 - [x] P5 is fully green and protected hashes remain exact.
-- [ ] Order 082 is pushed as `UNVERIFIED` review debt on a stacked draft PR; nothing is merged.
+- [x] Order 082 is pushed as `UNVERIFIED` review debt on a stacked draft PR; nothing is merged.
 
 ## Evidence
 
@@ -207,3 +207,5 @@ reseed/restart. Refresh Graphify code-only and record parser/semantic limitation
   PostgreSQL container id and start time were identical before/after, no seed ran, health returned
   200, and authenticated status reported Order 082 / Phase 4 / reviewed-through 044 / debt 38 with
   app and database operational and both workers configured.
+- Draft PR 63 is stacked on Order 081. GitHub run 32603839911 passed quality, Windows state,
+  container smoke and database. The PR remains `UNVERIFIED`, unapproved and unmerged.
