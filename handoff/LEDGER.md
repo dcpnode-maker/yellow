@@ -97,3 +97,4 @@
 2026-08-22 · 071 · 3 · phase-2/availability-projection-rebuild · codex → codex · QUESTION-ANSWERED · remove invented unit_type status predicate while retaining actual sellable/space activity gates; recreate and restart focused proof
 2026-08-22 · 072 · 3 · phase-2/availability-projection-rebuild · codex → codex · QUESTION-ANSWERED · cast the independent DST probe's generated timestamp to date before adding one day; recreate and restart focused proof
 2026-08-22 · 073 · 3 · phase-2/availability-projection-rebuild · codex → codex · QUESTION-ANSWERED · label the independent DST probe with the projection's exact local date key; recreate and restart focused proof
+2026-08-22 · 074 · 3 · phase-2/availability-projection-rebuild · codex → independent reviewer · REVIEW-REQUESTED · Order 058 builder proofs, referee 11/11, red-to-green corrections and derived-map SQL limitation recorded; no approval or merge
