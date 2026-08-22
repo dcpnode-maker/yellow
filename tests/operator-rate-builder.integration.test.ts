@@ -286,6 +286,7 @@ afterAll(async () => {
 
 databaseDescribe("Order 071 operator universal rate builder", () => {
   let mainReleaseId = "";
+  let reuseReleaseId = "";
   let mainDraftBody: Record<string, unknown> = {};
   const cells = () => [previewCell()];
 
@@ -405,6 +406,7 @@ databaseDescribe("Order 071 operator universal rate builder", () => {
     const drafted = await postDraft(PLANS.reuse, sourceCommand, "order076-source-draft");
     expect(drafted.status).toBe(201);
     const sourceReleaseId = String(((await drafted.json() as Record<string, unknown>).release as Record<string, unknown>).id);
+    reuseReleaseId = sourceReleaseId;
 
     const history = await request(builderPath(PLANS.reuse), { headers: headers() });
     expect(history.status).toBe(200);
@@ -424,6 +426,36 @@ databaseDescribe("Order 071 operator universal rate builder", () => {
     expect(releases.find(({ id }) => id === sourceReleaseId)?.authoringCommand).toEqual(sourceCommand);
     expect(releases.find(({ id }) => id === successorReleaseId)?.authoringCommand).toEqual(successorCommand);
     expect(successorReleaseId).not.toBe(sourceReleaseId);
+  });
+
+  test("Order 076 P1: missing or mismatched stored version joins fail closed", async () => {
+    const missingModel = buildApp({
+      ...rateBuilderOperations(),
+      models: {
+        createDraftVersion: models.createDraftVersion.bind(models),
+        async listDraftVersions() { return []; },
+      },
+    });
+    const mismatchedModel = buildApp({
+      ...rateBuilderOperations(),
+      models: {
+        createDraftVersion: models.createDraftVersion.bind(models),
+        async listDraftVersions(tx, propertyNode, ratePlanId) {
+          return (await models.listDraftVersions(tx, propertyNode, ratePlanId)).map((draft) =>
+            Object.freeze({ ...draft, modelKey: "calendar" as const })
+          );
+        },
+      },
+    });
+    const attempts = await Promise.all([missingModel, mismatchedModel].map((candidate) =>
+      candidate.handle(new Request(`http://yellow.test${builderPath(PLANS.reuse)}`, { headers: headers() }))
+    ));
+    expect(attempts.map(({ status }) => status)).toEqual([404, 400]);
+    for (const attempt of attempts) {
+      const text = await attempt.text();
+      expect(text).not.toContain(reuseReleaseId);
+      expect(text).not.toContain("authoringCommand");
+    }
   });
 
   test("Order 073: one draft preserves broad inheritance, a commercial include and an exact-room exclusion", async () => {

@@ -209,6 +209,19 @@ release before simulation, approval request and publication. Current unsaved edi
 affect only a newly saved release; they cannot change or prevent preview of an existing draft.
 Caller-supplied empty, matching or mismatched policy evidence is invalid.
 
+The authenticated rate-builder read response also attaches one `authoringCommand` to every immutable
+release. The server reconstructs it only by joining the release's exact stored model id/version and
+target id/version in the same tenant, property and rate plan, then re-runs the ordinary strict authoring
+compiler. Missing, duplicate or mismatched references fail closed. Bigint values cross HTTP as canonical
+decimal strings, and the command contains no actor, tenant/property authority, audit envelope, approval,
+result or hash authority.
+
+The workbench may display that command or deep-copy it into Expert mode as an unsaved starting point.
+This is not an edit, undo, selection, approval or publication action. A changed copy becomes durable only
+through the existing explicit Save immutable draft endpoint, after which preview, four-eyes approval and
+publication run unchanged. “Use draft” still selects an existing draft for server preview; “Create undo
+draft” still creates an exact new historical version from an active/retired release.
+
 CTA/CTD, closed-to-sale and minimum/maximum stay or advance rules remain hotel-configurable through
 the Restrictions workspace rather than being duplicated in a rate release. They are authoritative
 inputs to the live quote and cannot be disabled by either authoring mode. AI-assisted authoring is

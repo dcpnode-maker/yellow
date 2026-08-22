@@ -1332,6 +1332,46 @@
     }
   }
 
+  function builderReleaseCommand(release) {
+    const command = release?.authoringCommand;
+    if (!command || typeof command !== "object" || Array.isArray(command) ||
+        command.ratePlanId !== builderPlan.value) {
+      throw new Error("The server could not reconstruct this immutable release for reuse.");
+    }
+    return structuredClone(command);
+  }
+
+  function builderReleaseSummary(command) {
+    const model = rateBuilderData.catalogue.find(({ key, version }) =>
+      key === command.model?.key && version === command.model?.version
+    );
+    const ruleCount = Array.isArray(command.target?.rules) ? command.target.rules.length : 0;
+    const policy = command.composition?.policy || {};
+    const policyCount = [
+      policy.cancellationPolicyId,
+      policy.depositPolicyId,
+      policy.guaranteePolicyId,
+      policy.noShowPolicyId,
+    ].filter(Boolean).length;
+    return `${model?.label || command.model?.key || "Unknown model"} · ${ruleCount} applicability rule${ruleCount === 1 ? "" : "s"} · ${policyCount} linked polic${policyCount === 1 ? "y" : "ies"}`;
+  }
+
+  function loadBuilderReleaseAsStartingPoint(release) {
+    try {
+      const command = builderReleaseCommand(release);
+      resetBuilderAiProposal("A saved release was copied for deliberate editing. Interpret AI intent again if needed.");
+      setBuilderMode("expert", false);
+      builderExpertJson.value = JSON.stringify(command, null, 2);
+      builderExpertJsonGroup.open = true;
+      setBuilderStep(4);
+      renderBuilderCommand();
+      builderExpertJson.focus();
+      setBuilderMessage(`Version ${release.extensionVersion} copied into Expert mode as an unsaved starting point. No release was changed or saved.`);
+    } catch (error) {
+      setBuilderMessage(error instanceof Error ? error.message : "This release could not be reused.", true);
+    }
+  }
+
   function renderRateReleaseHistory() {
     if (rateBuilderData.releases.length === 0) {
       emptyList(builderReleaseHistory, "No immutable releases exist for this plan yet.");
@@ -1339,14 +1379,21 @@
     }
     const cards = rateBuilderData.releases.map((release) => {
       const card = document.createElement("article");
-      card.className = "release-item";
+      card.className = "release-row release-item";
+      const state = document.createElement("span");
+      state.className = "release-state";
+      state.textContent = release.status;
       const copy = document.createElement("div");
       const title = document.createElement("strong");
       title.textContent = `Version ${release.extensionVersion} · ${release.status}`;
       const detail = document.createElement("small");
       detail.textContent = `${release.contentHash.slice(0, 12)}${release.undoOfVersion ? ` · undo of v${release.undoOfVersion}` : ""}`;
-      copy.append(title, detail);
+      const command = builderReleaseCommand(release);
+      const commandSummary = document.createElement("small");
+      commandSummary.textContent = builderReleaseSummary(command);
+      copy.append(title, detail, commandSummary);
       const actions = document.createElement("div");
+      actions.className = "release-actions";
       if (release.status === "draft") {
         const use = document.createElement("button");
         use.type = "button";
@@ -1356,6 +1403,12 @@
         use.addEventListener("click", () => selectBuilderRelease(release.id));
         actions.append(use);
       }
+      const reuse = document.createElement("button");
+      reuse.type = "button";
+      reuse.className = "quiet compact";
+      reuse.textContent = "Use as starting point";
+      reuse.addEventListener("click", () => loadBuilderReleaseAsStartingPoint(release));
+      actions.append(reuse);
       if (release.status === "active" || release.status === "retired") {
         const undo = document.createElement("button");
         undo.type = "button";
@@ -1364,7 +1417,15 @@
         undo.addEventListener("click", () => void createBuilderUndo(release.id, undo));
         actions.append(undo);
       }
-      card.append(copy, actions);
+      const inspection = document.createElement("details");
+      inspection.className = "release-inspection";
+      const inspectionTitle = document.createElement("summary");
+      inspectionTitle.textContent = "Inspect exact version";
+      const commandView = document.createElement("pre");
+      commandView.className = "release-command";
+      commandView.textContent = JSON.stringify(command, null, 2);
+      inspection.append(inspectionTitle, commandView);
+      card.append(state, copy, actions, inspection);
       return card;
     });
     builderReleaseHistory.replaceChildren(...cards);

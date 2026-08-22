@@ -44,9 +44,12 @@ import {
   type CreatePolicyInput,
   type CreateRatePriceInput,
   type CreateRatePlanInput,
+  type CanonicalRateAuthoringCommand,
   type PolicyKind,
+  type RateModelDraft,
   type RatePlanRelease,
   type RatePricingInput,
+  type RateTargetDraft,
 } from "../contexts/rates";
 import {
   createAuditEnvelope,
@@ -544,6 +547,55 @@ function rateBuilderJsonValue(value: unknown): JsonValue {
       .map(([key, entry]) => [key, rateBuilderJsonValue(entry)])) as JsonValue;
   }
   return value as JsonValue;
+}
+
+function releaseAuthoringCommand(
+  release: RatePlanRelease,
+  modelDrafts: readonly RateModelDraft[],
+  targetDrafts: readonly RateTargetDraft[],
+): CanonicalRateAuthoringCommand {
+  const matchingModels = modelDrafts.filter(({ id, extensionVersion }) =>
+    id === release.modelDraftId && extensionVersion === release.modelDraftVersion
+  );
+  const matchingTargets = targetDrafts.filter(({ id, extensionVersion }) =>
+    id === release.targetDraftId && extensionVersion === release.targetDraftVersion
+  );
+  if (matchingModels.length !== 1 || matchingTargets.length !== 1) {
+    throw new RatePublicationNotFoundError("Stored rate release references were not found exactly once");
+  }
+  const model = matchingModels[0]!;
+  const target = matchingTargets[0]!;
+  const sameScope = model.tenantId === release.tenantId && target.tenantId === release.tenantId &&
+    model.propertyNode === release.propertyNode && target.propertyNode === release.propertyNode &&
+    model.ratePlanId === release.ratePlanId && target.ratePlanId === release.ratePlanId;
+  if (!sameScope || model.authoringMode !== target.authoringMode ||
+      model.modelKey !== release.evaluatorSpec.modelKey) {
+    throw new RatePublicationError("Stored rate release references do not reconstruct one canonical command");
+  }
+  return compileRateAuthoringCommand(rateBuilderJsonValue({
+    authoringMode: model.authoringMode,
+    ratePlanId: release.ratePlanId,
+    model: {
+      key: model.modelKey,
+      version: model.modelVersion,
+      componentModelKeys: model.componentModelKeys,
+    },
+    target: { rules: target.rules },
+    evaluator: release.evaluatorSpec,
+    composition: release.compositionSpec,
+    rmsBinding: release.rmsBinding,
+  }));
+}
+
+function releasesWithAuthoringCommands(
+  releases: readonly RatePlanRelease[],
+  modelDrafts: readonly RateModelDraft[],
+  targetDrafts: readonly RateTargetDraft[],
+) {
+  return Object.freeze(releases.map((release) => Object.freeze({
+    ...release,
+    authoringCommand: releaseAuthoringCommand(release, modelDrafts, targetDrafts),
+  })));
 }
 
 export class OperatorHttpApi {
@@ -1310,7 +1362,7 @@ export class OperatorHttpApi {
       catalogue: RATE_MODEL_CATALOGUE,
       modelDrafts,
       targetDrafts,
-      releases,
+      releases: releasesWithAuthoringCommands(releases, modelDrafts, targetDrafts),
     }));
   }
 
