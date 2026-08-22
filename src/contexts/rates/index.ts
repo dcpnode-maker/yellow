@@ -58,3 +58,25 @@ export type {
   RateTargetRule,
   ResolveRateTargetDraftInput,
 } from "./targeting";
+export {
+  DIRECT_RATE_EVALUATOR_MODELS,
+  RateEvaluationError,
+  deriveRateEvaluationContext,
+  evaluateRateModel,
+  isDirectRateEvaluatorModel,
+  normalizeRateEvaluatorSpec,
+} from "./evaluators";
+export type {
+  DirectRateEvaluatorModel,
+  RateCalendarCell,
+  RateEvaluationContext,
+  RateEvaluationResult,
+  RateEvaluationState,
+  RateEvaluatorAdjustment,
+  RateEvaluatorBase,
+  RateEvaluatorCondition,
+  RateEvaluatorModel,
+  RateEvaluatorRule,
+  RateEvaluatorSpec,
+  RateReferenceEvidence,
+} from "./evaluators";

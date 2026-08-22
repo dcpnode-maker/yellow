@@ -147,3 +147,5 @@
 2026-08-22 · 066 · 3 · phase-3/rate-targeting-resolver · codex → Gate-3 reviewer · BUILT-UNREVIEWED · c22ed1b (order 3a4e663; red proof 9387c16); focused 6/6 and 626 assertions, inherited extension 6/6 and 25 assertions, standing 53/0, schema exact, fresh app-never-started referee 11/11; protected hashes unchanged
 2026-08-22 · 107 · 3 · phase-3/typed-rate-evaluators · codex → codex · QUESTION-ANSWERED · pure bigint evaluator, attributable occupancy metric, explicit expert stages and deterministic half-up basis-point rounding authorized
 2026-08-22 · 067 · 3 · phase-3/typed-rate-evaluators · codex → — · ORDER-WRITTEN · fixed/calendar/BAR/derived/matrix/occupancy-LOS/contract/expert evaluators with exact guards and evidence; no persistence or active price behavior
+2026-08-22 · 108 · 3 · phase-3/typed-rate-evaluators · codex → codex · QUESTION-ANSWERED · extend only P3's closed-cell fixture through the asserted local night; preserve half-open production validation
+2026-08-22 · 109 · 3 · phase-3/typed-rate-evaluators · codex → codex · QUESTION-ANSWERED · rebuild UTC/timezone-derived evaluator context and reject frozen forged LOS/DOW/window fields

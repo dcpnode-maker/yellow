@@ -85,3 +85,22 @@ prepare(document)→jurisdiction payload (UBL/PINT/IRP-JSON) · submit(payload)�
 {mode, authority_ref?, status} · poll(ref) · qr(document) · chain(document,prev_hash).
 Implement: `sa-zatca` (clearance, XAdES, PIH chain, TLV QR) · `in-irp` (IRN+signed QR) ·
 `ae-asp:<provider>` (PINT AE generate + hand-off; ASP does transmission — UAE law).
+
+## 8. Pure rate-model evaluator
+
+Order 067's in-process evaluator is a draft/simulation primitive, not a database or HTTP contract.
+It accepts one strict model spec and one context derived from canonical UTC instants plus an IANA
+property timezone. Money exists only as signed-range `bigint` minor units. Percentage adjustments
+use integer basis points and exact half-up minor-unit rounding; floats and JavaScript-number money
+are invalid.
+
+Supported direct evaluators are simple fixed, calendar, BAR ladder, derived, room matrix,
+occupancy/LOS and contract/negotiated. Expert composition applies explicit stages 1–8. Each stage
+selects at most one rule by target binding, condition count and explicit priority; an equal top
+tuple returns a conflict. Floors and ceilings guard the final exact amount. A closed calendar cell
+means only that this model returns no price—it does not close inventory or override restrictions.
+
+Occupancy-responsive pricing consumes a bounded basis-point metric with an evidence reference. It
+never reads, creates or releases occupancy. Matrix and contract evaluation consume the frozen
+Order 066 targeting result and never recalculate its physical/commercial precedence. Package/policy,
+approval/publication and governed RMS/API binding remain later contracts.

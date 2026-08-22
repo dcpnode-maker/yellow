@@ -153,6 +153,10 @@ describe("Order 067 typed exact-money evaluators", () => {
       occupancyEvidenceRef: "projection:version-42",
     });
     expect(Object.isFrozen(context)).toBe(true);
+    expect(() => evaluateRateModel(
+      fixedSpec(),
+      Object.freeze({ ...context, losNights: 99 }),
+    )).toThrow(RateEvaluationError);
 
     expect(evaluationContext({
       propertyTimeZone: "Pacific/Kiritimati",
@@ -202,7 +206,10 @@ describe("Order 067 typed exact-money evaluators", () => {
       amountMinor: 12_345n,
       baseEvidence: { kind: "calendar", stayDate: "2026-03-09", state: "open" },
     });
-    expect(evaluateRateModel(calendar, evaluationContext({ nightDate: "2026-03-10" }))).toMatchObject({
+    expect(evaluateRateModel(calendar, evaluationContext({
+      stayEndInstant: "2026-03-11T05:00:00.000Z",
+      nightDate: "2026-03-10",
+    }))).toMatchObject({
       state: "unpriced",
       reason: "calendar_closed",
     });
@@ -307,12 +314,33 @@ describe("Order 067 typed exact-money evaluators", () => {
       { ...fixedSpec(), modelKey: "occupancy-los", rules: [rule("unresponsive", { kind: "delta", amountMinor: 1n })] },
       { ...fixedSpec(), modelKey: "contract-negotiated" },
       { ...fixedSpec(), rules: [rule("late-stage", { kind: "delta", amountMinor: 1n }, { stage: 2 })] },
+      { ...fixedSpec(), rules: [
+        rule("duplicate", { kind: "delta", amountMinor: 1n }),
+        rule("duplicate", { kind: "delta", amountMinor: 2n }),
+      ] },
+      { ...fixedSpec(), rules: Array.from({ length: 201 }, (_, index) =>
+        rule(`large-${index}`, { kind: "delta", amountMinor: 1n })
+      ) },
+      { ...fixedSpec(), gate: { stayStart: "2026-04-01", stayEnd: "2026-03-01" } },
+      { ...fixedSpec(), gate: { bookingWindow: { minDays: 20, maxDays: 10 } } },
+      { ...fixedSpec(), rules: [rule("bad-adjustment", { kind: "basis_points", basisPoints: 100_001 })] },
       { ...fixedSpec(), modelKey: "package" },
       { ...fixedSpec(), modelKey: "rms-api-managed" },
     ];
     for (const invalid of invalidSpecs) {
       expect(() => normalizeRateEvaluatorSpec(invalid)).toThrow(RateEvaluationError);
     }
+    expect(() => normalizeRateEvaluatorSpec({
+      ...calendar,
+      base: {
+        kind: "calendar",
+        cells: Array.from({ length: 732 }, (_, index) => ({
+          stayDate: new Date(Date.UTC(2026, 0, 1 + index)).toISOString().slice(0, 10),
+          state: "open",
+          amountMinor: 1n,
+        })),
+      },
+    })).toThrow(RateEvaluationError);
   });
 
   test("P4: rule order is irrelevant, equal top tuples conflict and stages are numeric", () => {
