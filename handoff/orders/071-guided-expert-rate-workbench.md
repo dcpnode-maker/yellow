@@ -39,7 +39,7 @@ availability, conflict, approval or compliance authority.
 - `docs/CONTRACTS.md`
 - `tests/rate-authoring.test.ts`
 - `tests/operator-rate-builder.integration.test.ts`
-- `tests/founder-status.test.ts`
+- `tests/founder-status.integration.test.ts`
 - `src/project-status.ts`
 - `design-qa.md`
 - `handoff/orders/071-guided-expert-rate-workbench.md`
@@ -162,4 +162,3 @@ then update the manifest/ledger/status counters, commit and push a draft PR. Do 
 - [ ] The persistent `yellow-phase-1` app is restored healthy and the founder can inspect it at
   `http://localhost:3200/p/4518a22f-b455-54c6-a50a-4584383749b9/rates`.
 - [ ] Order 071 is recorded `UNVERIFIED` for later Gate-3 execution.
-
