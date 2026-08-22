@@ -40,6 +40,8 @@ extension type, state, event, permission or publication path is needed.
 - `tests/operator-rate-builder.integration.test.ts`
 - `tests/operator-assets-security.test.ts`
 - `tests/schema/expected.sql` only as the exact generated mirror of migration 0006 per Question 126
+- `tests/database-acceptance.integration.test.ts` only for the exact migration-0006 ledger entry per
+  Question 127
 - `docs/CONTRACTS.md`
 - `docs/UI-SPEC.md`
 - `docs/LOCAL-REVIEW.md`
