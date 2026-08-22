@@ -351,7 +351,7 @@ databaseDescribe("Order 081 atomic cart-hold reservation commit", () => {
         (SELECT array_agg(event_type ORDER BY seq) FROM outbox
           WHERE correlation_id = ${request.envelope.requestId}::uuid) AS event_types,
         (SELECT count(*)::int FROM api_idempotency
-          WHERE tenant_id = ${TENANT_A}::uuid AND operation = 'reservation.commit.held') AS idempotency_claims
+          WHERE tenant_id = ${TENANT_A}::uuid AND operation = 'reservation.commit') AS idempotency_claims
       FROM reservation
       JOIN reservation_segment AS segment ON segment.reservation_id = reservation.id
       JOIN reservation_guest AS guest ON guest.reservation_id = reservation.id
@@ -413,7 +413,7 @@ databaseDescribe("Order 081 atomic cart-hold reservation commit", () => {
         (SELECT count(*)::int FROM space_occupancy WHERE slot_ref = ${result.value.segmentId}::uuid) AS claims,
         (SELECT count(*)::int FROM space_occupancy WHERE slot_ref = ${racedHold.id}::uuid) AS claims_for_hold,
         (SELECT count(*)::int FROM api_idempotency
-          WHERE tenant_id = ${TENANT_A}::uuid AND operation = 'reservation.commit.held'
+          WHERE tenant_id = ${TENANT_A}::uuid AND operation = 'reservation.commit'
             AND response_body->>'holdId' = ${racedHold.id}) AS keys
     `;
     expect(residue).toEqual([{ reservations: 1, claims: 1, claims_for_hold: 0, keys: 1 }]);
@@ -444,7 +444,7 @@ databaseDescribe("Order 081 atomic cart-hold reservation commit", () => {
           (SELECT count(*)::int FROM fact_log WHERE payload @> ${JSON.stringify({ request_id: requestId })}::text::jsonb) AS facts,
           (SELECT count(*)::int FROM outbox WHERE correlation_id = ${requestId}::uuid) AS events,
           (SELECT count(*)::int FROM api_idempotency
-            WHERE tenant_id = ${TENANT_A}::uuid AND operation = 'reservation.commit.held'
+            WHERE tenant_id = ${TENANT_A}::uuid AND operation = 'reservation.commit'
               AND response_body->>'holdId' = ${held.id}) AS keys
       `;
       expect(artifacts).toEqual([{ facts: 0, events: 0, keys: 0 }]);

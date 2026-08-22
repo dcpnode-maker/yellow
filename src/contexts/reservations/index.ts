@@ -12,8 +12,11 @@ export {
   ReservationValidationError,
 } from "./commit";
 export type {
+  CommitDirectReservationInput,
+  CommitDirectReservationResult,
   CommitHeldReservationInput,
   CommitHeldReservationResult,
+  DirectReservationCommit,
   HeldReservationCommit,
   ReservationCommitServiceOptions,
 } from "./commit";

@@ -1,4 +1,9 @@
-import { HoldConflictError, HoldService } from "../inventory";
+import {
+  HoldConflictError,
+  HoldService,
+  InventoryConflictError,
+  ReservationOccupancyService,
+} from "../inventory";
 import {
   createAuditEnvelope,
   recordFact,
@@ -12,9 +17,9 @@ import {
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 const CHANNEL = /^[a-z][a-z0-9._-]{0,63}$/;
 const IDEMPOTENCY_KEY = /^[\x21-\x7e]{8,200}$/;
+const MAX_STAY_MS = 366 * 24 * 60 * 60 * 1_000;
 
-export interface CommitHeldReservationInput {
-  readonly holdId: string;
+interface CommitReservationCommonInput {
   readonly primaryPartyId: string;
   readonly ratePlanId: string;
   readonly adults: number;
@@ -23,12 +28,20 @@ export interface CommitHeldReservationInput {
   readonly idempotencyKey: string;
   readonly envelope: AuditEnvelope;
 }
+export interface CommitHeldReservationInput extends CommitReservationCommonInput {
+  readonly holdId: string;
+}
 
-export interface HeldReservationCommit {
+export interface CommitDirectReservationInput extends CommitReservationCommonInput {
+  readonly sellableUnitId: string;
+  readonly from: Date;
+  readonly to: Date;
+}
+
+interface ReservationCommitBase {
   readonly reservationId: string;
   readonly confirmationNo: string;
   readonly segmentId: string;
-  readonly holdId: string;
   readonly status: "reserved";
   readonly propertyNode: string;
   readonly primaryPartyId: string;
@@ -45,12 +58,26 @@ export interface HeldReservationCommit {
   readonly claimCount: number;
 }
 
+export interface HeldReservationCommit extends ReservationCommitBase {
+  readonly source: "hold";
+  readonly holdId: string;
+}
+
+export interface DirectReservationCommit extends ReservationCommitBase {
+  readonly source: "direct";
+}
+
 export interface CommitHeldReservationResult extends HeldReservationCommit {
+  readonly replayed: boolean;
+}
+
+export interface CommitDirectReservationResult extends DirectReservationCommit {
   readonly replayed: boolean;
 }
 
 export interface ReservationCommitServiceOptions {
   readonly holds: HoldService;
+  readonly occupancy?: ReservationOccupancyService;
   readonly events: EventBus;
   readonly idempotency: PostgresIdempotency;
   readonly idFactory?: () => string;
@@ -63,6 +90,33 @@ interface RatePlanRow {
   readonly market_code: string | null;
   readonly source_code: string | null;
 }
+
+interface NormalizedCommon {
+  readonly primaryPartyId: string;
+  readonly ratePlanId: string;
+  readonly adults: number;
+  readonly childAges: readonly number[];
+  readonly channelCode: string;
+  readonly idempotencyKey: string;
+}
+
+type NormalizedSource = Readonly<
+  { kind: "hold"; holdId: string } |
+  { kind: "direct"; sellableUnitId: string; from: Date; to: Date }
+>;
+
+interface AcquiredInventory {
+  readonly source: "hold" | "direct";
+  readonly holdId?: string;
+  readonly sellableUnitId: string;
+  readonly unitTypeId: string;
+  readonly from: Date;
+  readonly to: Date;
+  readonly claimCount: number;
+}
+
+type CommitBody = HeldReservationCommit | DirectReservationCommit;
+type CommitResult = CommitHeldReservationResult | CommitDirectReservationResult;
 
 export class ReservationValidationError extends Error {
   constructor(message: string) {
@@ -92,15 +146,7 @@ function requireUuid(name: string, value: unknown): string {
   return value;
 }
 
-function normalizeInput(input: CommitHeldReservationInput): Readonly<{
-  holdId: string;
-  primaryPartyId: string;
-  ratePlanId: string;
-  adults: number;
-  childAges: readonly number[];
-  channelCode: string;
-  idempotencyKey: string;
-}> {
+function normalizeCommon(input: CommitReservationCommonInput): NormalizedCommon {
   if (input.envelope.operation !== "reservation.confirmed") {
     throw new ReservationValidationError("audit operation must be reservation.confirmed");
   }
@@ -118,7 +164,6 @@ function normalizeInput(input: CommitHeldReservationInput): Readonly<{
     throw new ReservationValidationError("idempotencyKey must contain 8-200 printable non-space characters");
   }
   return Object.freeze({
-    holdId: requireUuid("holdId", input.holdId),
     primaryPartyId: requireUuid("primaryPartyId", input.primaryPartyId),
     ratePlanId: requireUuid("ratePlanId", input.ratePlanId),
     adults: input.adults,
@@ -128,37 +173,82 @@ function normalizeInput(input: CommitHeldReservationInput): Readonly<{
   });
 }
 
+function normalizeDirectSource(input: CommitDirectReservationInput): NormalizedSource {
+  const from = input.from;
+  const to = input.to;
+  if (!(from instanceof Date) || !(to instanceof Date) ||
+      !Number.isFinite(from.getTime()) || !Number.isFinite(to.getTime()) ||
+      from >= to || to.getTime() - from.getTime() > MAX_STAY_MS) {
+    throw new ReservationValidationError("direct stay must be a positive period of at most 366 days");
+  }
+  return Object.freeze({
+    kind: "direct" as const,
+    sellableUnitId: requireUuid("sellableUnitId", input.sellableUnitId),
+    from: new Date(from),
+    to: new Date(to),
+  });
+}
+
 function confirmationNumber(reservationId: string): string {
   return `Y-${reservationId.replaceAll("-", "").toUpperCase()}`;
 }
 
-function freezeResult(body: HeldReservationCommit, replayed: boolean): CommitHeldReservationResult {
+function freezeResult(body: CommitBody, replayed: boolean): CommitResult {
   return Object.freeze({ ...body, childAges: Object.freeze([...body.childAges]), replayed });
 }
 
 export class ReservationCommitService {
   readonly #holds: HoldService;
+  readonly #occupancy: ReservationOccupancyService;
   readonly #events: EventBus;
   readonly #idempotency: PostgresIdempotency;
   readonly #idFactory: () => string;
 
   constructor(options: ReservationCommitServiceOptions) {
     this.#holds = options.holds;
+    this.#occupancy = options.occupancy ?? new ReservationOccupancyService(options.events);
     this.#events = options.events;
     this.#idempotency = options.idempotency;
     this.#idFactory = options.idFactory ?? (() => crypto.randomUUID());
   }
 
   async commitHeld(tx: Tx, input: CommitHeldReservationInput): Promise<CommitHeldReservationResult> {
-    const normalized = normalizeInput(input);
+    const result = await this.#commit(tx, input, Object.freeze({
+      kind: "hold" as const,
+      holdId: requireUuid("holdId", input.holdId),
+    }));
+    if (result.source !== "hold") throw new Error("Held commit returned a direct result");
+    return result;
+  }
+
+  async commitDirect(tx: Tx, input: CommitDirectReservationInput): Promise<CommitDirectReservationResult> {
+    const result = await this.#commit(tx, input, normalizeDirectSource(input));
+    if (result.source !== "direct") throw new Error("Direct commit returned a held result");
+    return result;
+  }
+
+  async #commit(
+    tx: Tx,
+    input: CommitReservationCommonInput,
+    source: NormalizedSource,
+  ): Promise<CommitResult> {
+    const normalized = normalizeCommon(input);
+    const sourceRequest = source.kind === "hold"
+      ? { kind: source.kind, holdId: source.holdId }
+      : {
+          kind: source.kind,
+          sellableUnitId: source.sellableUnitId,
+          from: source.from.toISOString(),
+          to: source.to.toISOString(),
+        };
     const outcome = await this.#idempotency.execute(tx, {
       tenantId: input.envelope.tenantId,
-      operation: "reservation.commit.held",
+      operation: "reservation.commit",
       key: normalized.idempotencyKey,
       request: {
         actorId: input.envelope.actorId,
         propertyNode: input.envelope.propertyNode,
-        holdId: normalized.holdId,
+        source: sourceRequest,
         primaryPartyId: normalized.primaryPartyId,
         ratePlanId: normalized.ratePlanId,
         adults: normalized.adults,
@@ -197,30 +287,11 @@ export class ReservationCommitService {
       if (reservationId === segmentId) {
         throw new ReservationValidationError("generated reservation and segment ids must differ");
       }
-      const holdEnvelope = createAuditEnvelope({
-        actorId: input.envelope.actorId,
-        tenantId: input.envelope.tenantId,
-        propertyNode: input.envelope.propertyNode,
-        requestId: input.envelope.requestId,
-        operation: "hold.consumed",
-      });
-      let transfer;
-      try {
-        transfer = await this.#holds.consumeForSegment(commandTx, {
-          holdId: normalized.holdId,
-          segmentId,
-          envelope: holdEnvelope,
-        });
-      } catch (error) {
-        if (error instanceof HoldConflictError) {
-          throw new ReservationConflictError("Held inventory is no longer available");
-        }
-        throw error;
-      }
-
-      const from = transfer.hold.from.toISOString();
-      const to = transfer.hold.to.toISOString();
+      const acquired = await this.#acquire(commandTx, input.envelope, source, segmentId);
+      const from = acquired.from.toISOString();
+      const to = acquired.to.toISOString();
       const confirmationNo = confirmationNumber(reservationId);
+
       const insertedReservation = await commandTx<Array<{ id: string }>>`
         INSERT INTO reservation (
           id, tenant_id, property_node, confirmation_no, status, primary_party,
@@ -242,7 +313,7 @@ export class ReservationCommitService {
           period, adults, children, rate_plan_id, status
         ) VALUES (
           ${segmentId}::uuid, ${input.envelope.tenantId}::uuid, ${reservationId}::uuid, 1,
-          ${transfer.unitTypeId}::uuid, ${transfer.hold.sellableUnitId}::uuid,
+          ${acquired.unitTypeId}::uuid, ${acquired.sellableUnitId}::uuid,
           tstzrange(${from}::timestamptz, ${to}::timestamptz, '[)'),
           ${normalized.adults}, ${children}::text::jsonb, ${plan.id}::uuid, 'booked'
         ) RETURNING id
@@ -266,12 +337,12 @@ export class ReservationCommitService {
         envelope: input.envelope,
         payload: {
           status: "reserved",
-          source: "cart_hold",
-          hold_id: normalized.holdId,
+          source: acquired.source === "hold" ? "cart_hold" : "direct",
+          ...(acquired.holdId === undefined ? {} : { hold_id: acquired.holdId }),
           segment_id: segmentId,
           primary_party_id: normalized.primaryPartyId,
-          sellable_unit_id: transfer.hold.sellableUnitId,
-          unit_type_id: transfer.unitTypeId,
+          sellable_unit_id: acquired.sellableUnitId,
+          unit_type_id: acquired.unitTypeId,
           rate_plan_id: plan.id,
           period: { from, to },
           channel: normalized.channelCode,
@@ -289,10 +360,10 @@ export class ReservationCommitService {
         payload: {
           reservation_id: reservationId,
           confirmation_no: confirmationNo,
-          hold_id: normalized.holdId,
+          ...(acquired.holdId === undefined ? {} : { hold_id: acquired.holdId }),
           segments: [{
             segment_id: segmentId,
-            unit_type: transfer.unitTypeId,
+            unit_type: acquired.unitTypeId,
             period: { from, to },
             rate_plan: plan.id,
           }],
@@ -300,16 +371,15 @@ export class ReservationCommitService {
         },
       });
 
-      const body: HeldReservationCommit & JsonValue = Object.freeze({
+      const common = {
         reservationId,
         confirmationNo,
         segmentId,
-        holdId: normalized.holdId,
-        status: "reserved",
+        status: "reserved" as const,
         propertyNode: input.envelope.propertyNode,
         primaryPartyId: normalized.primaryPartyId,
-        sellableUnitId: transfer.hold.sellableUnitId,
-        unitTypeId: transfer.unitTypeId,
+        sellableUnitId: acquired.sellableUnitId,
+        unitTypeId: acquired.unitTypeId,
         ratePlanId: plan.id,
         from,
         to,
@@ -318,10 +388,72 @@ export class ReservationCommitService {
         channelCode: normalized.channelCode,
         currency: plan.currency,
         guaranteePolicyId: plan.guarantee_policy,
-        claimCount: transfer.claimCount,
-      });
+        claimCount: acquired.claimCount,
+      };
+      const body: CommitBody & JsonValue = acquired.source === "hold"
+        ? Object.freeze({ ...common, source: "hold" as const, holdId: acquired.holdId! })
+        : Object.freeze({ ...common, source: "direct" as const });
       return { status: 201, body };
     });
     return freezeResult(outcome.body, outcome.replayed);
+  }
+
+  async #acquire(
+    tx: Tx,
+    envelope: AuditEnvelope,
+    source: NormalizedSource,
+    segmentId: string,
+  ): Promise<AcquiredInventory> {
+    if (source.kind === "hold") {
+      try {
+        const transfer = await this.#holds.consumeForSegment(tx, {
+          holdId: source.holdId,
+          segmentId,
+          envelope: createAuditEnvelope({
+            actorId: envelope.actorId,
+            tenantId: envelope.tenantId,
+            propertyNode: envelope.propertyNode,
+            requestId: envelope.requestId,
+            operation: "hold.consumed",
+          }),
+        });
+        return Object.freeze({
+          source: "hold" as const,
+          holdId: source.holdId,
+          sellableUnitId: transfer.hold.sellableUnitId,
+          unitTypeId: transfer.unitTypeId,
+          from: transfer.hold.from,
+          to: transfer.hold.to,
+          claimCount: transfer.claimCount,
+        });
+      } catch (error) {
+        if (error instanceof HoldConflictError) {
+          throw new ReservationConflictError("Held inventory is no longer available");
+        }
+        throw error;
+      }
+    }
+
+    try {
+      const claim = await this.#occupancy.claimForSegment(tx, {
+        sellableUnitId: source.sellableUnitId,
+        segmentId,
+        from: source.from,
+        to: source.to,
+        envelope: createAuditEnvelope({
+          actorId: envelope.actorId,
+          tenantId: envelope.tenantId,
+          propertyNode: envelope.propertyNode,
+          requestId: envelope.requestId,
+          operation: "occupancy.recorded",
+        }),
+      });
+      return Object.freeze({ source: "direct" as const, ...claim });
+    } catch (error) {
+      if (error instanceof InventoryConflictError) {
+        throw new ReservationConflictError("Direct inventory is no longer available");
+      }
+      throw error;
+    }
   }
 }

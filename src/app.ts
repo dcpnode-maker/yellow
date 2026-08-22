@@ -180,6 +180,9 @@ export function createApp(options: AppOptions = {}) {
       .post("/api/v1/properties/:property/holds/:holdId/release", ({ request, params, body, tenantContext }) =>
         withOperatorTenant(request, (context) => operator.releaseHold(context, params.property, params.holdId, body))
       )
+      .post("/api/v1/reservations:commit", ({ request, body, tenantContext }) =>
+        withOperatorTenant(request, (context) => operator.commitReservation(context, body))
+      )
       .get("/api/v1/properties/:property/offline-leases", ({ request, params, tenantContext }) =>
         withOperatorTenant(request, (context) => operator.activeOfflineLeases(context, params.property))
       )

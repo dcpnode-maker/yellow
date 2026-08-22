@@ -30,8 +30,8 @@ green builder proof records this order as `UNVERIFIED`, never independently appr
 - The immutable `record_occupancy()` function already serializes positional allocation per physical
   space with a transaction advisory lock. The application still honours `CONTRACTS.md` by wrapping
   each positional call in a savepoint and retrying exclusion violation at most three total attempts.
-  Exclusive claims execute once. Capacity exhaustion and final exclusion failure become one bounded
-  inventory conflict.
+  Exclusive claims execute once. Capacity exhaustion, final exclusion failure and PostgreSQL's
+  exclusion-arbitration deadlock outcome become one bounded inventory conflict.
 - Direct commit accepts exact UTC instants, sellable id and existing party/rate references. It does
   not accept tenant, actor, currency, policy, market/source, availability count, space/position,
   confirmation number or occupancy claims. PostgreSQL truth at commit time is final authority.
@@ -70,8 +70,9 @@ green builder proof records this order as `UNVERIFIED`, never independently appr
 2. For every deterministic mapping, call only `record_occupancy()` with the segment id and
    `slot_kind='segment'`. Exclusive claims get one attempt. Each positional call gets a savepoint and
    at most three total attempts on SQLSTATE `23P01`; roll back to and release that savepoint after a
-   failed attempt. SQLSTATE `P0002` or the final exclusion violation is a bounded occupancy conflict.
-   Any other database error escapes and the request transaction rolls back.
+   failed attempt. SQLSTATE `P0002`, the final exclusion violation, or SQLSTATE `40P01` from mutually
+   waiting exclusion checks is a bounded occupancy conflict. `40P01` is never retried here. Any
+   other database error escapes and the request transaction rolls back.
 3. Require every returned claim row to match the requested segment, space, period and exclusivity.
    Record one `occupancy.recorded` segment fact to derive the property business date, then publish
    one existing `occupancy.recorded` event per claim. Return a frozen result containing only the
@@ -174,4 +175,3 @@ reseed/restart. Refresh Graphify code-only and record parser/semantic limitation
 - [ ] P1–P4 prove exact HTTP, arbitration, bounded retry, authorization and rollback behavior.
 - [ ] P5 is fully green and protected hashes remain exact.
 - [ ] Order 082 is pushed as `UNVERIFIED` review debt on a stacked draft PR; nothing is merged.
-

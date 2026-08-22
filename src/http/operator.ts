@@ -52,6 +52,12 @@ import {
   type RateTargetDraft,
 } from "../contexts/rates";
 import {
+  ReservationCommitService,
+  ReservationConflictError,
+  ReservationNotFoundError,
+  ReservationValidationError,
+} from "../contexts/reservations";
+import {
   createAuditEnvelope,
   IdempotencyConflictError,
   IdempotencyValidationError,
@@ -83,6 +89,7 @@ const HOLD_READ_SCOPE = "inventory.holds:read";
 const HOLD_WRITE_SCOPE = "inventory.holds:write";
 const OFFLINE_LEASE_READ_SCOPE = "inventory.offline_leases:read";
 const OFFLINE_LEASE_WRITE_SCOPE = "inventory.offline_leases:write";
+const RESERVATION_WRITE_SCOPE = "reservations.booking:write";
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 const ISO_INSTANT = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(?::\d{2}(?:\.\d{1,3})?)?(?:Z|[+-]\d{2}:\d{2})$/;
 const LOCAL_DATE = /^\d{4}-\d{2}-\d{2}$/;
@@ -179,6 +186,52 @@ function parseHold(body: unknown): { sellableUnitId: string; from: Date; to: Dat
   const from = parseInstant(body.from);
   const to = parseInstant(body.to);
   return from && to && from < to ? { sellableUnitId: body.sellableUnitId, from, to, holderReference: body.holderReference } : null;
+}
+
+type ReservationCommitDraft = Readonly<{
+  propertyNode: string;
+  primaryPartyId: string;
+  ratePlanId: string;
+  adults: number;
+  childAges: readonly number[];
+  channelCode: string;
+} & (
+  { holdId: string } |
+  { direct: { sellableUnitId: string; from: Date; to: Date } }
+)>;
+
+function parseReservationCommit(body: unknown): ReservationCommitDraft | null {
+  if (!isObject(body) || !exactKeys(body, [
+    "propertyNode", "primaryPartyId", "ratePlanId", "adults", "childAges", "channelCode",
+  ], ["holdId", "direct"]) ||
+      typeof body.propertyNode !== "string" || !UUID.test(body.propertyNode) ||
+      typeof body.primaryPartyId !== "string" || !UUID.test(body.primaryPartyId) ||
+      typeof body.ratePlanId !== "string" || !UUID.test(body.ratePlanId) ||
+      typeof body.adults !== "number" || !Number.isSafeInteger(body.adults) ||
+      !Array.isArray(body.childAges) || body.childAges.length > 30 ||
+      body.childAges.some((age) => typeof age !== "number" || !Number.isSafeInteger(age)) ||
+      typeof body.channelCode !== "string" ||
+      (body.holdId === undefined) === (body.direct === undefined)) return null;
+  const common = {
+    propertyNode: body.propertyNode,
+    primaryPartyId: body.primaryPartyId,
+    ratePlanId: body.ratePlanId,
+    adults: body.adults,
+    childAges: Object.freeze([...body.childAges] as number[]),
+    channelCode: body.channelCode,
+  };
+  if (body.holdId !== undefined) {
+    return typeof body.holdId === "string" && UUID.test(body.holdId)
+      ? Object.freeze({ ...common, holdId: body.holdId })
+      : null;
+  }
+  if (!isObject(body.direct) || !exactKeys(body.direct, ["sellableUnitId", "from", "to"]) ||
+      typeof body.direct.sellableUnitId !== "string" || !UUID.test(body.direct.sellableUnitId)) return null;
+  const from = parseInstant(body.direct.from);
+  const to = parseInstant(body.direct.to);
+  return from && to && from < to
+    ? Object.freeze({ ...common, direct: Object.freeze({ sellableUnitId: body.direct.sellableUnitId, from, to }) })
+    : null;
 }
 
 function parseOfflineLease(body: unknown): {
@@ -368,6 +421,7 @@ type HoldOperations = Pick<HoldService,
   "listActive" | "place" | "release" |
   "listActiveOfflineLeases" | "placeOfflineLease" | "releaseOfflineLease"
 >;
+type ReservationOperations = Pick<ReservationCommitService, "commitHeld" | "commitDirect">;
 
 const MAX_MONEY = 9_223_372_036_854_775_807n;
 
@@ -650,6 +704,7 @@ export class OperatorHttpApi {
   readonly #projection?: Pick<AvailabilityProjectionService, "status" | "replaceHorizon">;
   readonly #runtimeStatus: OperatorRuntimeStatus;
   readonly #rateBuilder?: RateBuilderOperations;
+  readonly #reservations?: ReservationOperations;
 
   constructor(
     login: LocalLoginService,
@@ -665,6 +720,7 @@ export class OperatorHttpApi {
     projection?: Pick<AvailabilityProjectionService, "status" | "replaceHorizon">,
     runtimeStatus: OperatorRuntimeStatus = DEFAULT_OPERATOR_RUNTIME_STATUS,
     rateBuilder?: RateBuilderOperations,
+    reservations?: ReservationOperations,
   ) {
     this.#login = login;
     this.#availability = availability;
@@ -679,6 +735,7 @@ export class OperatorHttpApi {
     this.#projection = projection;
     this.#runtimeStatus = runtimeStatus;
     this.#rateBuilder = rateBuilder;
+    this.#reservations = reservations;
   }
 
   unavailable(request: Request): Response {
@@ -690,6 +747,9 @@ export class OperatorHttpApi {
   }
 
   failure(request: Request, error: unknown): Response {
+    if (error instanceof ReservationConflictError) {
+      return apiError(request, 409, "conflict/occupancy", "Inventory conflict", "Requested inventory is no longer available");
+    }
     if (error instanceof IdempotencyConflictError || error instanceof InventoryConflictError ||
         error instanceof OperationalBlockConflictError || error instanceof HoldConflictError) {
       const type = error instanceof IdempotencyConflictError ? "request/idempotency_conflict" : "inventory/conflict";
@@ -702,8 +762,14 @@ export class OperatorHttpApi {
     if (error instanceof IdempotencyValidationError || error instanceof InventoryValidationError) {
       return apiError(request, 400, "request/invalid", "Invalid request", "Inventory input is invalid");
     }
+    if (error instanceof ReservationValidationError) {
+      return apiError(request, 400, "request/invalid", "Invalid request", "Reservation input is invalid");
+    }
     if (error instanceof InventoryNotFoundError) {
       return apiError(request, 404, "inventory/not_found", "Not found", "Referenced inventory was not found");
+    }
+    if (error instanceof ReservationNotFoundError) {
+      return apiError(request, 404, "reservations/not_found", "Not found", "Referenced reservation input was not found");
     }
     if (error instanceof RateValidationError || error instanceof RateAuthoringError || error instanceof RateIntentError ||
         (error instanceof RatePublicationError && !(error instanceof RatePublicationNotFoundError)) ||
@@ -1104,6 +1170,45 @@ export class OperatorHttpApi {
     })) } }));
     return apiResponse(context.request, canonicalJson(outcome.body), outcome.status, {
       "idempotency-replayed": String(outcome.replayed), "x-correlation-id": requestId,
+    });
+  }
+
+  async commitReservation(context: TenantRequestContext, body: unknown): Promise<Response> {
+    const input = parseReservationCommit(body);
+    if (!input) {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Reservation commit input is invalid");
+    }
+    if (!hasScope(context, RESERVATION_WRITE_SCOPE)) {
+      return apiError(context.request, 403, "auth/scope_missing", "Forbidden", "Reservation creation is not granted");
+    }
+    if (!this.#reservations) return this.unavailable(context.request);
+    const grants = await listGrantedProperties(context, RESERVATION_WRITE_SCOPE);
+    if (!grants.some(({ id }) => id === input.propertyNode)) {
+      return apiError(context.request, 403, "auth/property_forbidden", "Forbidden", "Property access is not granted");
+    }
+    const requestId = correlationId(context.request);
+    const common = {
+      primaryPartyId: input.primaryPartyId,
+      ratePlanId: input.ratePlanId,
+      adults: input.adults,
+      childAges: input.childAges,
+      channelCode: input.channelCode,
+      idempotencyKey: context.request.headers.get("idempotency-key") ?? "",
+      envelope: createAuditEnvelope({
+        actorId: context.identity.actorId,
+        tenantId: context.tenantId,
+        propertyNode: input.propertyNode,
+        requestId,
+        operation: "reservation.confirmed",
+      }),
+    };
+    const result = "holdId" in input
+      ? await this.#reservations.commitHeld(context.tx, { ...common, holdId: input.holdId })
+      : await this.#reservations.commitDirect(context.tx, { ...common, ...input.direct });
+    const { replayed, ...reservation } = result;
+    return apiResponse(context.request, canonicalJson({ reservation: jsonValue(reservation) }), 201, {
+      "idempotency-replayed": String(replayed),
+      "x-correlation-id": requestId,
     });
   }
 

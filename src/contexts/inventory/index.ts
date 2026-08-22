@@ -75,3 +75,8 @@ export type {
   OosSellability,
   SetOosSellabilityInput,
 } from "./inventory-policy";
+export { ReservationOccupancyService } from "./reservation-occupancy";
+export type {
+  ClaimReservationSegmentInput,
+  ReservationSegmentClaim,
+} from "./reservation-occupancy";
