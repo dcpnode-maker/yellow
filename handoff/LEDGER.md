@@ -145,3 +145,5 @@
 2026-08-22 · 066 · 3 · phase-3/rate-targeting-resolver · codex → — · ORDER-WRITTEN · property/class/type/sellable and nine commercial dimensions with deterministic inheritance, priority and conflict evidence
 2026-08-22 · 106 · 3 · phase-3/rate-targeting-resolver · codex → codex · QUESTION-ANSWERED · annotate only the focused test's three-mode draft array before restarting the compiler
 2026-08-22 · 066 · 3 · phase-3/rate-targeting-resolver · codex → Gate-3 reviewer · BUILT-UNREVIEWED · c22ed1b (order 3a4e663; red proof 9387c16); focused 6/6 and 626 assertions, inherited extension 6/6 and 25 assertions, standing 53/0, schema exact, fresh app-never-started referee 11/11; protected hashes unchanged
+2026-08-22 · 107 · 3 · phase-3/typed-rate-evaluators · codex → codex · QUESTION-ANSWERED · pure bigint evaluator, attributable occupancy metric, explicit expert stages and deterministic half-up basis-point rounding authorized
+2026-08-22 · 067 · 3 · phase-3/typed-rate-evaluators · codex → — · ORDER-WRITTEN · fixed/calendar/BAR/derived/matrix/occupancy-LOS/contract/expert evaluators with exact guards and evidence; no persistence or active price behavior
