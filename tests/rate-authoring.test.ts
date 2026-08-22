@@ -295,3 +295,17 @@ describe("Order 072 secure AI-assisted authoring surface", () => {
     expect(applyOnly).not.toMatch(/(?:saveBuilderDraft|requestBuilderApproval|publishBuilderRelease)\s*\(/);
   });
 });
+
+describe("Order 073 applicability-rule and bulk-preview workbench", () => {
+  test("P0: the workbench exposes the absent multi-rule editor and server-cell evidence renderer", async () => {
+    const [html, script] = await Promise.all([
+      Bun.file(new URL("../src/http/operator/index.html", import.meta.url)).text(),
+      Bun.file(new URL("../src/http/operator/operator.js", import.meta.url)).text(),
+    ]);
+    expect(html).toContain('id="builder-target-rule-list"');
+    expect(html).toContain('id="builder-add-target-rule"');
+    expect(html).toContain('id="builder-simulation-cells"');
+    expect(script).toContain("renderBuilderTargetRules");
+    expect(script).toContain("renderSimulationCells");
+  });
+});
