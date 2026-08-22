@@ -113,3 +113,6 @@
 2026-08-22 · 086 · 3 · phase-2/availability-projection-consumer · codex → codex · QUESTION-ANSWERED · reject noncanonical event-period bounds and prove rollback; restart focused, standing and referee checks
 2026-08-22 · 087 · 3 · phase-2/availability-projection-consumer · codex → independent reviewer · REVIEW-REQUESTED · Order 059 builder proofs, deployed cursor, referee 11/11, red-to-green corrections and derived-map limitation recorded; no approval or merge
 2026-08-22 · 060 · 3 · phase-2/operator-projection-bootstrap · codex → — · ORDER-WRITTEN · explicit authenticated property-local projection horizon/status through Order 058 service; no booking authority or automatic policy
+2026-08-22 · 088 · 3 · phase-2/operator-projection-bootstrap · codex → codex · QUESTION-ANSWERED · use established strict JSON boundary adapter after compiler rejection; restart compiler and focused proof
+2026-08-22 · 089 · 3 · phase-2/operator-projection-bootstrap · codex → codex · QUESTION-ANSWERED · respect hash-only idempotency schema and self-bootstrap convergence proof; recreate and restart focused file
+2026-08-22 · 090 · 3 · phase-2/operator-projection-bootstrap · codex → codex · QUESTION-ANSWERED · isolate inherited Order 058/059 databases after shared outbox polluted exact counts; rerun unchanged proofs

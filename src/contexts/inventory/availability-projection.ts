@@ -20,6 +20,15 @@ export interface ProjectionRebuildResult {
   readonly unitTypes: number;
 }
 
+export interface AvailabilityProjectionStatus {
+  readonly propertyNode: string;
+  readonly fromDate: string | null;
+  readonly toDate: string | null;
+  readonly rows: number;
+  readonly unitTypes: number;
+  readonly updatedAt: string | null;
+}
+
 interface PropertyRow {
   readonly id: string;
   readonly oos_sellability: "blocked" | "allowed" | null;
@@ -28,6 +37,14 @@ interface PropertyRow {
 interface InsertResultRow {
   readonly rows: number;
   readonly unit_types: number;
+}
+
+interface StatusRow {
+  readonly from_date: string | null;
+  readonly to_date: string | null;
+  readonly rows: number;
+  readonly unit_types: number;
+  readonly updated_at: string | null;
 }
 
 function exactDate(name: string, value: string): number {
@@ -54,6 +71,41 @@ function validate(input: RebuildAvailabilityProjectionInput): void {
 }
 
 export class AvailabilityProjectionService {
+  async status(tx: Tx, propertyNode: string): Promise<AvailabilityProjectionStatus> {
+    if (!UUID.test(propertyNode)) {
+      throw new InventoryValidationError("propertyNode must be a UUID");
+    }
+    const properties = await tx.unsafe<Array<{ id: string }>>(`
+      SELECT id
+      FROM org_node
+      WHERE id = $1::uuid
+        AND tenant_id = current_setting('app.tenant_id', true)::uuid
+        AND kind = 'property'
+    `, [propertyNode]);
+    if (!properties[0]) throw new InventoryNotFoundError("Property was not found in the active tenant");
+    const rows = await tx.unsafe<StatusRow[]>(`
+      SELECT
+        min(stay_date)::text AS from_date,
+        (max(stay_date) + 1)::text AS to_date,
+        count(*)::int AS rows,
+        count(DISTINCT unit_type_id)::int AS unit_types,
+        max(updated_at)::text AS updated_at
+      FROM availability_projection
+      WHERE tenant_id = current_setting('app.tenant_id', true)::uuid
+        AND property_node = $1::uuid
+    `, [propertyNode]);
+    const status = rows[0];
+    if (!status) throw new Error("Projection status did not return evidence");
+    return {
+      propertyNode,
+      fromDate: status.from_date,
+      toDate: status.to_date,
+      rows: status.rows,
+      unitTypes: status.unit_types,
+      updatedAt: status.updated_at,
+    };
+  }
+
   async rebuild(tx: Tx, input: RebuildAvailabilityProjectionInput): Promise<ProjectionRebuildResult> {
     validate(input);
     const properties = await tx.unsafe<PropertyRow[]>(`
@@ -249,5 +301,16 @@ export class AvailabilityProjectionService {
       rows: evidence.rows,
       unitTypes: evidence.unit_types,
     };
+  }
+
+  async replaceHorizon(tx: Tx, input: RebuildAvailabilityProjectionInput): Promise<ProjectionRebuildResult> {
+    const result = await this.rebuild(tx, input);
+    await tx.unsafe(`
+      DELETE FROM availability_projection
+      WHERE tenant_id = current_setting('app.tenant_id', true)::uuid
+        AND property_node = $1::uuid
+        AND (stay_date < $2::date OR stay_date >= $3::date)
+    `, [input.propertyNode, input.fromDate, input.toDate]);
+    return result;
   }
 }

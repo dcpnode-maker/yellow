@@ -90,6 +90,12 @@ export function createApp(options: AppOptions = {}) {
       .get("/api/v1/properties/:property/inventory", ({ request, params, tenantContext }) =>
         withOperatorTenant(request, (context) => operator.inventory(context, params.property))
       )
+      .get("/api/v1/properties/:property/availability-projection", ({ request, params, tenantContext }) =>
+        withOperatorTenant(request, (context) => operator.availabilityProjection(context, params.property))
+      )
+      .post("/api/v1/properties/:property/availability-projection:rebuild", ({ request, params, body, tenantContext }) =>
+        withOperatorTenant(request, (context) => operator.rebuildAvailabilityProjection(context, params.property, body))
+      )
       .get("/api/v1/properties/:property/restrictions", ({ request, params, tenantContext }) =>
         withOperatorTenant(request, (context) => operator.restrictions(context, params.property))
       )

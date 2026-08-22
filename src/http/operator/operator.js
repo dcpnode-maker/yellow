@@ -55,6 +55,9 @@
   const bulkRoomPreview = document.querySelector("#bulk-room-preview");
   const bulkRoomCount = document.querySelector("#bulk-room-count");
   const bulkRoomRefreshPreview = document.querySelector("#bulk-room-refresh-preview");
+  const projectionForm = document.querySelector("#projection-rebuild-form");
+  const projectionSummary = document.querySelector("#projection-summary");
+  const refreshProjection = document.querySelector("#refresh-projection");
   const refreshRestrictions = document.querySelector("#refresh-restrictions");
   const restrictionStatus = document.querySelector("#restriction-status");
   const restrictionList = document.querySelector("#restriction-list");
@@ -340,8 +343,26 @@
       inventoryData = await request(`/api/v1/properties/${encodeURIComponent(property)}/inventory`);
       renderInventory();
       inventoryStatus.textContent = "Inventory is current from tenant-scoped PostgreSQL.";
+      await loadProjectionStatus();
     } catch (error) {
       inventoryStatus.textContent = error instanceof Error ? error.message : "Inventory could not be loaded";
+    }
+  }
+
+  function renderProjectionStatus(status) {
+    projectionSummary.textContent = status.fromDate
+      ? `${status.fromDate} → ${status.toDate} (end not included) · ${status.rows} rows · ${status.unitTypes} room types · updated ${new Date(status.updatedAt).toLocaleString()}`
+      : "No projection horizon exists yet. Choose exact dates below when this hotel is ready.";
+  }
+
+  async function loadProjectionStatus() {
+    const property = propertySelect.value;
+    if (!property) return;
+    projectionSummary.textContent = "Loading projection status…";
+    try {
+      renderProjectionStatus(await request(`/api/v1/properties/${encodeURIComponent(property)}/availability-projection`));
+    } catch (error) {
+      projectionSummary.textContent = error instanceof Error ? error.message : "Projection status could not be loaded";
     }
   }
 
@@ -1059,6 +1080,7 @@
   });
   for (const tab of navigation) tab.addEventListener("click", () => setView(tab.dataset.view));
   refreshInventory.addEventListener("click", () => void loadInventory());
+  refreshProjection.addEventListener("click", () => void loadProjectionStatus());
   bulkRoomForm.addEventListener("input", updateBulkRoomPreview);
   bulkRoomForm.addEventListener("change", updateBulkRoomPreview);
   bulkRoomRefreshPreview.addEventListener("click", updateBulkRoomPreview);
@@ -1086,6 +1108,29 @@
       maxOccupancy: Number(fields.get("maxOccupancy")),
     });
     if (saved) unitTypeForm.elements.code.value = unitTypeForm.elements.name.value = "";
+  });
+  projectionForm.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const fields = new FormData(projectionForm);
+    const body = { fromDate: fields.get("fromDate"), toDate: fields.get("toDate") };
+    const identity = `projection:${propertySelect.value}:${JSON.stringify(body)}`;
+    const key = pendingKeys.get(identity) || crypto.randomUUID();
+    pendingKeys.set(identity, key);
+    const button = projectionForm.querySelector("button[type=submit]");
+    button.disabled = true;
+    formMessage(projectionForm, "Rebuilding the selected disposable read horizon…");
+    try {
+      const status = await request(`/api/v1/properties/${encodeURIComponent(propertySelect.value)}/availability-projection:rebuild`, {
+        method: "POST", headers: { "idempotency-key": key }, body: JSON.stringify(body),
+      });
+      pendingKeys.delete(identity);
+      renderProjectionStatus(status);
+      formMessage(projectionForm, "Projection rebuilt. PostgreSQL occupancy truth remains booking authority.");
+    } catch (error) {
+      formMessage(projectionForm, error instanceof Error ? error.message : "Projection could not be rebuilt", true);
+    } finally {
+      button.disabled = false;
+    }
   });
   spaceForm.addEventListener("submit", async (event) => {
     event.preventDefault();

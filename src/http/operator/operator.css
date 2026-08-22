@@ -207,6 +207,10 @@ input:hover, select:hover { border-color: #8d978c; }
 .pricing-editor-row .remove-row { min-width: 38px; min-height: 42px; padding: .45rem; color: var(--red); }
 .correction-form { grid-column: 1 / -1; }
 .locked-price-key { padding: .85rem; border-radius: 14px; background: var(--amber-soft); color: var(--amber); font-size: .78rem; line-height: 1.5; }
+.projection-panel { margin-bottom: 1rem; padding: 1rem; }
+.projection-summary { margin: .85rem 0; padding: .8rem; border-radius: 14px; background: color-mix(in srgb, var(--accent) 8%, var(--card)); color: var(--muted); font-size: .8rem; line-height: 1.5; }
+.projection-rebuild-form { display: grid; grid-template-columns: minmax(160px, 1fr) minmax(160px, 1fr) auto; gap: .75rem; align-items: end; }
+.projection-rebuild-form .form-message { grid-column: 1 / -1; }
 
 @media (max-width: 900px) {
   .login-layout { grid-template-columns: 1fr; padding-top: 2.5rem; }
@@ -220,6 +224,8 @@ input:hover, select:hover { border-color: #8d978c; }
   .rate-lists, .rate-forms, .pricing-workspace { grid-template-columns: 1fr; }
   .oos-policy-form { grid-template-columns: 1fr; }
   .oos-policy-form .form-message { grid-column: 1; }
+  .projection-rebuild-form { grid-template-columns: 1fr 1fr; }
+  .projection-rebuild-form button, .projection-rebuild-form .form-message { grid-column: 1 / -1; }
 }
 
 @media (max-width: 720px) {
@@ -246,4 +252,6 @@ input:hover, select:hover { border-color: #8d978c; }
   .pricing-editor-row { grid-template-columns: 1fr; }
   .pricing-editor-row .remove-row { width: 100%; }
   .summary-row { align-items: start; flex-direction: column; padding: .9rem 0; }
+  .projection-rebuild-form { grid-template-columns: 1fr; }
+  .projection-rebuild-form button, .projection-rebuild-form .form-message { grid-column: 1; }
 }

@@ -46,8 +46,9 @@ function runtimeApp() {
   const blocks = new OperationalBlockService(events);
   const policy = new InventoryPolicyService(events);
   const holds = new HoldService(events);
+  const projection = new AvailabilityProjectionService();
   if (projectionWorkerEnabled) {
-    const projectionConsumer = new AvailabilityProjectionConsumer(events, new AvailabilityProjectionService());
+    const projectionConsumer = new AvailabilityProjectionConsumer(events, projection);
     projectionConsumer.run({ onError() { console.error("availability projection consumer failed"); } })
       .catch(() => console.error("availability projection consumer stopped unexpectedly"));
   }
@@ -66,7 +67,7 @@ function runtimeApp() {
   return createApp({
     database,
     tenantResolver: new BearerTenantResolver(tokens),
-    operatorApi: new OperatorHttpApi(login, new AvailabilityService(), inventory, new PostgresIdempotency(), restrictions, rates, pricing, blocks, policy, holds),
+    operatorApi: new OperatorHttpApi(login, new AvailabilityService(), inventory, new PostgresIdempotency(), restrictions, rates, pricing, blocks, policy, holds, projection),
   });
 }
 

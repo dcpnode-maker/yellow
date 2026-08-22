@@ -1,6 +1,7 @@
 import { LocalLoginService, type LocalLoginInput } from "../contexts/identity";
 import {
   AvailabilityService,
+  AvailabilityProjectionService,
   HoldConflictError,
   HoldService,
   InventoryConflictError,
@@ -17,6 +18,7 @@ import {
   type RestrictionDraft,
   type RestrictionKind,
   type SearchAvailabilityInput,
+  type RebuildAvailabilityProjectionInput,
 } from "../contexts/inventory";
 import {
   RateConfigurationService,
@@ -57,6 +59,7 @@ const HOLD_READ_SCOPE = "inventory.holds:read";
 const HOLD_WRITE_SCOPE = "inventory.holds:write";
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 const ISO_INSTANT = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(?::\d{2}(?:\.\d{1,3})?)?(?:Z|[+-]\d{2}:\d{2})$/;
+const LOCAL_DATE = /^\d{4}-\d{2}-\d{2}$/;
 
 function isObject(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
@@ -133,6 +136,13 @@ function parseSearch(body: unknown): Omit<SearchAvailabilityInput, "propertyNode
     ...(body.ratePlanId === undefined ? {} : { ratePlanId: body.ratePlanId }),
     ...(body.channelCode === undefined ? {} : { channelCode: body.channelCode }),
   };
+}
+
+function parseProjectionRebuild(body: unknown): Omit<RebuildAvailabilityProjectionInput, "propertyNode"> | null {
+  if (!isObject(body) || !exactKeys(body, ["fromDate", "toDate"])) return null;
+  if (typeof body.fromDate !== "string" || !LOCAL_DATE.test(body.fromDate) ||
+      typeof body.toDate !== "string" || !LOCAL_DATE.test(body.toDate)) return null;
+  return { fromDate: body.fromDate, toDate: body.toDate };
 }
 
 function parseHold(body: unknown): { sellableUnitId: string; from: Date; to: Date; holderReference: string } | null {
@@ -436,6 +446,7 @@ export class OperatorHttpApi {
   readonly #blocks?: BlockOperations;
   readonly #policy?: PolicyOperations;
   readonly #holds?: HoldOperations;
+  readonly #projection?: Pick<AvailabilityProjectionService, "status" | "replaceHorizon">;
 
   constructor(
     login: LocalLoginService,
@@ -448,6 +459,7 @@ export class OperatorHttpApi {
     blocks?: BlockOperations,
     policy?: PolicyOperations,
     holds?: HoldOperations,
+    projection?: Pick<AvailabilityProjectionService, "status" | "replaceHorizon">,
   ) {
     this.#login = login;
     this.#availability = availability;
@@ -459,6 +471,7 @@ export class OperatorHttpApi {
     this.#blocks = blocks;
     this.#policy = policy;
     this.#holds = holds;
+    this.#projection = projection;
   }
 
   unavailable(request: Request): Response {
@@ -572,6 +585,55 @@ export class OperatorHttpApi {
       }
       return apiError(context.request, 503, "service/unavailable", "Service unavailable", "Inventory is temporarily unavailable");
     }
+  }
+
+  async availabilityProjection(context: TenantRequestContext, propertyNode: string): Promise<Response> {
+    if (!hasScope(context, CONFIGURATION_READ_SCOPE)) {
+      return apiError(context.request, 403, "auth/scope_missing", "Forbidden", "Inventory configuration access is not granted");
+    }
+    if (!UUID.test(propertyNode)) {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Property identifier is invalid");
+    }
+    if (!this.#projection) return this.unavailable(context.request);
+    const grants = await listGrantedProperties(context, CONFIGURATION_READ_SCOPE);
+    if (!grants.some(({ id }) => id === propertyNode)) {
+      return apiError(context.request, 403, "auth/property_forbidden", "Forbidden", "Property access is not granted");
+    }
+    return apiResponse(context.request, await this.#projection.status(context.tx, propertyNode));
+  }
+
+  async rebuildAvailabilityProjection(
+    context: TenantRequestContext,
+    propertyNode: string,
+    body: unknown,
+  ): Promise<Response> {
+    const input = parseProjectionRebuild(body);
+    if (!input) return apiError(context.request, 400, "request/invalid", "Invalid request", "Projection range is invalid");
+    if (!hasScope(context, CONFIGURATION_WRITE_SCOPE)) {
+      return apiError(context.request, 403, "auth/scope_missing", "Forbidden", "Inventory configuration changes are not granted");
+    }
+    if (!UUID.test(propertyNode)) {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Property identifier is invalid");
+    }
+    if (!this.#projection) return this.unavailable(context.request);
+    const grants = await listGrantedProperties(context, CONFIGURATION_WRITE_SCOPE);
+    if (!grants.some(({ id }) => id === propertyNode)) {
+      return apiError(context.request, 403, "auth/property_forbidden", "Forbidden", "Property access is not granted");
+    }
+    const requestId = correlationId(context.request);
+    const outcome = await this.#idempotency.execute(context.tx, {
+      tenantId: context.tenantId,
+      operation: "operator.inventory.projection.rebuild",
+      key: context.request.headers.get("idempotency-key") ?? "",
+      request: { propertyNode, body },
+    }, async (tx) => {
+      await this.#projection!.replaceHorizon(tx, { propertyNode, ...input });
+      return { status: 200, body: jsonValue(await this.#projection!.status(tx, propertyNode)) };
+    });
+    return apiResponse(context.request, canonicalJson(outcome.body), outcome.status, {
+      "idempotency-replayed": String(outcome.replayed),
+      "x-correlation-id": requestId,
+    });
   }
 
   async createUnitType(context: TenantRequestContext, propertyNode: string, body: unknown): Promise<Response> {

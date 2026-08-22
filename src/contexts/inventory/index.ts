@@ -34,6 +34,7 @@ export type {
 } from "./availability";
 export { AvailabilityProjectionService } from "./availability-projection";
 export type {
+  AvailabilityProjectionStatus,
   ProjectionRebuildResult,
   RebuildAvailabilityProjectionInput,
 } from "./availability-projection";

@@ -132,6 +132,24 @@
             <div class="metric"><strong id="sellable-count">—</strong><span>Sellable units</span></div>
           </div>
 
+          <section class="card projection-panel" aria-labelledby="projection-heading">
+            <div class="panel-heading">
+              <div>
+                <p class="step">Read acceleration</p>
+                <h3 id="projection-heading">Availability projection horizon</h3>
+                <p class="field-note">Choose the exact dates this hotel wants precomputed. This disposable projection accelerates reads and never authorizes holds or bookings.</p>
+              </div>
+              <button class="quiet compact" id="refresh-projection" type="button">Refresh status</button>
+            </div>
+            <div class="projection-summary" id="projection-summary" aria-live="polite">No status loaded.</div>
+            <form class="projection-rebuild-form" id="projection-rebuild-form">
+              <label>First stay date<input id="projection-from-date" name="fromDate" type="date" required></label>
+              <label>End date (not included)<input id="projection-to-date" name="toDate" type="date" required></label>
+              <button class="secondary" type="submit">Rebuild selected horizon</button>
+              <p class="form-message" role="status" aria-live="polite"></p>
+            </form>
+          </section>
+
           <div class="inventory-columns">
             <section class="inventory-panel card" aria-labelledby="unit-types-heading">
               <h3 id="unit-types-heading">Room types</h3>
