@@ -4655,7 +4655,7 @@ GRANT SELECT,INSERT,UPDATE ON TABLE public.automation TO app_role;
 -- Name: TABLE availability_projection; Type: ACL; Schema: public; Owner: -
 --
 
-GRANT SELECT,INSERT,UPDATE ON TABLE public.availability_projection TO app_role;
+GRANT SELECT,INSERT,DELETE,UPDATE ON TABLE public.availability_projection TO app_role;
 
 
 --

@@ -32,6 +32,11 @@ export type {
   AvailabilityOption,
   SearchAvailabilityInput,
 } from "./availability";
+export { AvailabilityProjectionService } from "./availability-projection";
+export type {
+  ProjectionRebuildResult,
+  RebuildAvailabilityProjectionInput,
+} from "./availability-projection";
 export { RestrictionService } from "./restrictions";
 export type {
   CreateRestrictionBatchInput,

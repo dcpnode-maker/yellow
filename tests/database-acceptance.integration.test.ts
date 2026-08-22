@@ -25,6 +25,11 @@ const EXPECTED_MIGRATIONS = [
     filename: "0004_api_idempotency.sql",
     checksum_sha256: "f08fcc6be6c6a2cd631da8c4e2d08bf5d2139de24ba2b1ca6ec1554ab2590ab2",
   },
+  {
+    version: 5,
+    filename: "0005_projection_replace_privilege.sql",
+    checksum_sha256: "3421cbc8353b51f876701c062ab990eaad3833e3314b5273ed54e17b09fdbd54",
+  },
 ];
 
 if (REQUIRE_DATABASE && !DATABASE_URL) {
