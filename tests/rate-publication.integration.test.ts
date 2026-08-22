@@ -45,6 +45,7 @@ const PLANS = Object.freeze({
   boundary: "00000000-0000-0000-0000-000000006907",
   scaling: "00000000-0000-0000-0000-000000006908",
   foreign: "00000000-0000-0000-0000-000000006909",
+  approvals: "00000000-0000-0000-0000-000000006910",
 });
 
 if (REQUIRE_DATABASE && !DATABASE_URL) {
@@ -290,6 +291,7 @@ beforeAll(async () => {
       (${PLANS.undo}::uuid, ${TENANT}::uuid, ${PROPERTY}::uuid, 'O69-UNDO', 'Order 069 Undo', 'USD', 'active'),
       (${PLANS.boundary}::uuid, ${TENANT}::uuid, ${PROPERTY}::uuid, 'O69-BOUNDARY', 'Order 069 Boundary', 'USD', 'active'),
       (${PLANS.scaling}::uuid, ${TENANT}::uuid, ${PROPERTY}::uuid, 'O69-SCALING', 'Order 069 Scaling', 'USD', 'active'),
+      (${PLANS.approvals}::uuid, ${TENANT}::uuid, ${PROPERTY}::uuid, 'O77-APPROVALS', 'Order 077 Approvals', 'USD', 'active'),
       (${PLANS.foreign}::uuid, ${FOREIGN_TENANT}::uuid, ${FOREIGN_PROPERTY}::uuid, 'O69-FOREIGN', 'Order 069 Foreign', 'USD', 'active')
   `;
 });
@@ -337,6 +339,141 @@ databaseDescribe("Order 069 atomic rate release publication", () => {
     expect(indexes[0]?.indexdef).toContain(
       "WHERE ((kind = 'rate_plan_release'::text) AND (subject_type = 'extension'::text))",
     );
+  });
+
+  test("Order 077 P1/P2: approval pages are bounded and exact decisions retain four-eyes authority", async () => {
+    const requests: Array<{ releaseId: string; approvalId: string }> = [];
+    for (const amount of [17_100n, 17_200n, 17_300n]) {
+      const release = await createRelease(PLANS.approvals, { evaluator: evaluatorSpec(amount) });
+      const requested = await database.withTenantTransaction(TENANT, (tx) =>
+        publication.requestPublicationApproval(tx, {
+          releaseId: release.id,
+          previewCells: [previewCell(`approval-${amount}`)],
+          requestedBy: REQUESTER,
+          envelope: envelope("rate_plan_release.approval_requested"),
+        })
+      );
+      approvalIds.add(requested.approval.id);
+      requests.push({ releaseId: release.id, approvalId: requested.approval.id });
+    }
+    await admin`
+      UPDATE approval_request
+      SET created_at = '2026-08-23T00:00:00.000Z'::timestamptz
+      WHERE id IN ${admin(requests.map(({ approvalId }) => approvalId))}
+    `;
+    const firstPage = await database.withTenantTransaction(TENANT, (tx) =>
+      publication.listPublicationApprovals(tx, {
+        propertyNode: PROPERTY,
+        ratePlanId: PLANS.approvals,
+        limit: 2,
+      })
+    );
+    expect(firstPage.approvals).toHaveLength(2);
+    expect(firstPage.nextCursor).toMatch(/^[A-Za-z0-9_-]+$/);
+    const secondPage = await database.withTenantTransaction(TENANT, (tx) =>
+      publication.listPublicationApprovals(tx, {
+        propertyNode: PROPERTY,
+        ratePlanId: PLANS.approvals,
+        limit: 2,
+        after: firstPage.nextCursor!,
+      })
+    );
+    expect(secondPage.approvals).toHaveLength(1);
+    expect(secondPage.nextCursor).toBeNull();
+    const pageIds = [...firstPage.approvals, ...secondPage.approvals].map(({ id }) => id);
+    expect(pageIds).toEqual(requests.map(({ approvalId }) => approvalId).sort().reverse());
+    expect(new Set(pageIds).size).toBe(3);
+    expect(firstPage.approvals.every(({ requestedBy }) =>
+      requestedBy.id === REQUESTER && requestedBy.displayName === "Order 069 Requester"
+    )).toBe(true);
+    expect([...firstPage.approvals, ...secondPage.approvals].map(({ releaseIsLatest }) => releaseIsLatest)
+      .filter(Boolean)).toHaveLength(1);
+    await expect(database.withTenantTransaction(TENANT, (tx) => publication.listPublicationApprovals(tx, {
+      propertyNode: PROPERTY, ratePlanId: PLANS.approvals, after: "not-a-canonical-cursor", limit: 2,
+    }))).rejects.toBeInstanceOf(RatePublicationError);
+    await expect(database.withTenantTransaction(TENANT, (tx) => publication.listPublicationApprovals(tx, {
+      propertyNode: PROPERTY, ratePlanId: PLANS.approvals, limit: 101,
+    }))).rejects.toBeInstanceOf(RatePublicationError);
+
+    await expect(database.withTenantTransaction(TENANT, (tx) => publication.decidePublicationApproval(tx, {
+      propertyNode: PROPERTY,
+      ratePlanId: PLANS.approvals,
+      approvalId: requests[0]!.approvalId,
+      decision: "approved",
+      decidedBy: REQUESTER,
+      envelope: envelope("rate_plan_release.approval_decided", REQUESTER),
+    }))).rejects.toBeInstanceOf(RatePublicationConflictError);
+    const approved = await database.withTenantTransaction(TENANT, (tx) => publication.decidePublicationApproval(tx, {
+      propertyNode: PROPERTY,
+      ratePlanId: PLANS.approvals,
+      approvalId: requests[0]!.approvalId,
+      decision: "approved",
+      decidedBy: APPROVER,
+      envelope: envelope("rate_plan_release.approval_decided", APPROVER),
+    }));
+    expect(approved).toMatchObject({
+      id: requests[0]!.approvalId,
+      releaseId: requests[0]!.releaseId,
+      status: "approved",
+      decidedBy: { id: APPROVER, displayName: "Order 069 Approver" },
+    });
+    await expect(database.withTenantTransaction(TENANT, (tx) => publication.decidePublicationApproval(tx, {
+      propertyNode: PROPERTY,
+      ratePlanId: PLANS.approvals,
+      approvalId: requests[0]!.approvalId,
+      decision: "rejected",
+      decidedBy: APPROVER,
+      envelope: envelope("rate_plan_release.approval_decided", APPROVER),
+    }))).rejects.toBeInstanceOf(RatePublicationConflictError);
+
+    const contenders = await Promise.allSettled([0, 1].map(() =>
+      database.withTenantTransaction(TENANT, (tx) => publication.decidePublicationApproval(tx, {
+        propertyNode: PROPERTY,
+        ratePlanId: PLANS.approvals,
+        approvalId: requests[1]!.approvalId,
+        decision: "approved",
+        decidedBy: APPROVER,
+        envelope: envelope("rate_plan_release.approval_decided", APPROVER),
+      }))
+    ));
+    expect(contenders.filter(({ status }) => status === "fulfilled")).toHaveLength(1);
+    expect(contenders.filter(({ status }) => status === "rejected")).toHaveLength(1);
+    const rejected = await database.withTenantTransaction(TENANT, (tx) => publication.decidePublicationApproval(tx, {
+      propertyNode: PROPERTY,
+      ratePlanId: PLANS.approvals,
+      approvalId: requests[2]!.approvalId,
+      decision: "rejected",
+      decidedBy: APPROVER,
+      envelope: envelope("rate_plan_release.approval_decided", APPROVER),
+    }));
+    expect(rejected.status).toBe("rejected");
+    await expect(publish(requests[2]!.releaseId, requests[2]!.approvalId,
+      [previewCell("rejected-publication")])).rejects.toBeInstanceOf(RatePublicationConflictError);
+    await expect(database.withTenantTransaction(TENANT, (tx) => publication.decidePublicationApproval(tx, {
+      propertyNode: PROPERTY,
+      ratePlanId: PLANS.main,
+      approvalId: requests[2]!.approvalId,
+      decision: "approved",
+      decidedBy: APPROVER,
+      envelope: envelope("rate_plan_release.approval_decided", APPROVER),
+    }))).rejects.toBeInstanceOf(RatePublicationNotFoundError);
+    await expect(database.withTenantTransaction(FOREIGN_TENANT, (tx) => publication.listPublicationApprovals(tx, {
+      propertyNode: PROPERTY,
+      ratePlanId: PLANS.approvals,
+    }))).rejects.toBeInstanceOf(RatePublicationNotFoundError);
+    const evidence = await admin<Array<{ decisions: number; facts: number; events: number }>>`
+      SELECT
+        count(*) FILTER (WHERE status <> 'pending')::int AS decisions,
+        (SELECT count(*)::int FROM fact_log
+          WHERE entity_id IN ${admin(requests.map(({ approvalId }) => approvalId))}
+            AND fact_type = 'rate_plan_release.approval_decided') AS facts,
+        (SELECT count(*)::int FROM outbox
+          WHERE aggregate_id IN ${admin(requests.map(({ approvalId }) => approvalId))}
+            AND event_type = 'approval.decided') AS events
+      FROM approval_request
+      WHERE id IN ${admin(requests.map(({ approvalId }) => approvalId))}
+    `;
+    expect(evidence).toEqual([{ decisions: 3, facts: 3, events: 3 }]);
   });
 
   test("P1: a draft binds exact inputs and persists only tagged exact money", async () => {

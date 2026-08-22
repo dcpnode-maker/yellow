@@ -127,6 +127,14 @@ export function createApp(options: AppOptions = {}) {
       .get("/api/v1/properties/:property/rate-builder/:ratePlanId", ({ request, params, tenantContext }) =>
         withOperatorTenant(request, (context) => operator.rateBuilder(context, params.property, params.ratePlanId))
       )
+      .get("/api/v1/properties/:property/rate-builder/:ratePlanId/approvals", ({ request, params, tenantContext }) =>
+        withOperatorTenant(request, (context) => operator.rateBuilderApprovals(context, params.property, params.ratePlanId))
+      )
+      .post("/api/v1/properties/:property/rate-builder/:ratePlanId/approvals/:approvalId/decision", ({ request, params, body, tenantContext }) =>
+        withOperatorTenant(request, (context) => operator.decideRateBuilderApproval(
+          context, params.property, params.ratePlanId, params.approvalId, body,
+        ))
+      )
       .post("/api/v1/properties/:property/rate-builder/:ratePlanId/releases", ({ request, params, body, tenantContext }) =>
         withOperatorTenant(request, (context) => operator.createRateBuilderDraft(context, params.property, params.ratePlanId, body))
       )

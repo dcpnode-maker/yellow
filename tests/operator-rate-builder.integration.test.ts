@@ -12,9 +12,7 @@ import {
 } from "../src/contexts/rates";
 import { OperatorHttpApi } from "../src/http/operator";
 import {
-  ApprovalConflictError,
   ApprovalService,
-  createAuditEnvelope,
   Database,
   ExtensionRegistry,
   PostgresEventBus,
@@ -25,9 +23,9 @@ import { runSeed, SEED_PROPERTY, SEED_TENANT } from "../scripts/seed";
 
 const DATABASE_URL = process.env.YELLOW_OPERATOR_RATE_BUILDER_URL;
 const PASSWORD = process.env.YELLOW_OPERATOR_RATE_BUILDER_PASSWORD;
+const APPROVER_PASSWORD = PASSWORD ? `${PASSWORD}-approver` : undefined;
 const REQUIRE_DATABASE = process.env.YELLOW_REQUIRE_OPERATOR_RATE_BUILDER === "1";
 const SECRET = "yellow-order-071-test-token-secret-exactly-long-enough";
-const APPROVER = "00000000-0000-0000-0000-000000007190";
 const FOREIGN_PROPERTY = "00000000-0000-0000-0000-000000007191";
 const POLICY = Object.freeze({
   cancellation: "00000000-0000-0000-0000-000000007161",
@@ -70,6 +68,7 @@ let publication: RatePublicationService;
 let quote: RateQuoteService;
 let app: ReturnType<typeof createApp>;
 let requester = "";
+let approver = "";
 let requesterToken = "";
 let approverToken = "";
 let unitTypeId = "";
@@ -213,8 +212,10 @@ function buildApp(operations: RateBuilderTestOperations = rateBuilderOperations(
 beforeAll(async () => {
   if (!DATABASE_URL || !PASSWORD) return;
   await runSeed({ databaseUrl: DATABASE_URL, logger: () => undefined });
-  const review = await runReviewSeed({ databaseUrl: DATABASE_URL, password: PASSWORD, logger: () => undefined });
+  const review = await runReviewSeed({ databaseUrl: DATABASE_URL, password: PASSWORD,
+    approverPassword: APPROVER_PASSWORD!, logger: () => undefined });
   requester = review.userId;
+  approver = review.approverUserId;
   admin = new SQL(DATABASE_URL, { max: 8 });
   loginPool = new SQL(DATABASE_URL, { max: 4 });
   eventPool = new SQL(DATABASE_URL, { max: 8 });
@@ -240,15 +241,6 @@ beforeAll(async () => {
   unitTypeId = inventory[0]!.unit_type_id;
   sellableUnitId = inventory[0]!.sellable_unit_id;
   await admin`
-    INSERT INTO app_user (id, tenant_id, email, display_name)
-    VALUES (${APPROVER}::uuid, ${SEED_TENANT.id}::uuid, 'order071-approver@yellow.test', 'Order 071 Approver')
-  `;
-  await admin`
-    INSERT INTO user_role (tenant_id, user_id, role_id, scope_node)
-    SELECT tenant_id, ${APPROVER}::uuid, role_id, scope_node
-    FROM user_role WHERE tenant_id = ${SEED_TENANT.id}::uuid AND user_id = ${requester}::uuid
-  `;
-  await admin`
     INSERT INTO policy (id, tenant_id, kind, name, content)
     VALUES
       (${POLICY.cancellation}::uuid, ${SEED_TENANT.id}::uuid, 'cancellation', 'Order 071 cancellation', '{"kind":"cancellation"}'::jsonb),
@@ -271,7 +263,7 @@ beforeAll(async () => {
     VALUES (${SEED_TENANT.id}::uuid, ${SEED_PROPERTY.id}::uuid, 'in-gst-lodging', daterange('2026-09-01', '2026-10-01', '[)'))
   `;
   requesterToken = await tokens.issue({ userId: requester, tenantId: SEED_TENANT.id, scopes: FULL_SCOPES });
-  approverToken = await tokens.issue({ userId: APPROVER, tenantId: SEED_TENANT.id, scopes: FULL_SCOPES });
+  approverToken = await tokens.issue({ userId: approver, tenantId: SEED_TENANT.id, scopes: FULL_SCOPES });
   app = buildApp();
 });
 
@@ -288,6 +280,7 @@ databaseDescribe("Order 071 operator universal rate builder", () => {
   let mainReleaseId = "";
   let reuseReleaseId = "";
   let mainDraftBody: Record<string, unknown> = {};
+  let rejectedApprovalId = "";
   const cells = () => [previewCell()];
 
   test("P2: one idempotent request creates exactly one atomic model/target/release trio", async () => {
@@ -512,25 +505,62 @@ databaseDescribe("Order 071 operator universal rate builder", () => {
     });
     expect(requested.status).toBe(201);
     const approvalId = String(((await requested.json() as Record<string, unknown>).approval as Record<string, unknown>).id);
-    await expect(database.withTenantTransaction(SEED_TENANT.id, (tx) => approvals.decide(tx, {
-      approvalId,
-      decision: "approved",
-      decidedBy: requester,
-      envelope: createAuditEnvelope({ actorId: requester, tenantId: SEED_TENANT.id,
-        propertyNode: SEED_PROPERTY.id, requestId: crypto.randomUUID(), operation: "approval.decided" }),
-    }))).rejects.toBeInstanceOf(ApprovalConflictError);
-    await database.withTenantTransaction(SEED_TENANT.id, (tx) => approvals.decide(tx, {
-      approvalId,
-      decision: "approved",
-      decidedBy: APPROVER,
-      envelope: createAuditEnvelope({ actorId: APPROVER, tenantId: SEED_TENANT.id,
-        propertyNode: SEED_PROPERTY.id, requestId: crypto.randomUUID(), operation: "approval.decided" }),
-    }));
+    const requesterInbox = await request(builderPath(PLANS.main, "/approvals?limit=1"), {
+      headers: headers(requesterToken),
+    });
+    expect(requesterInbox.status).toBe(200);
+    expect(await requesterInbox.json()).toMatchObject({ approvals: [{
+      id: approvalId,
+      releaseId: mainReleaseId,
+      status: "pending",
+      requestedBy: { id: requester, displayName: "Yellow Review Operator" },
+      canDecide: false,
+      canPublish: false,
+    }], nextCursor: null });
+    const selfDecision = await request(builderPath(PLANS.main, `/approvals/${approvalId}/decision`), {
+      method: "POST", headers: headers(requesterToken, "order077-self-decision"),
+      body: JSON.stringify({ decision: "approved" }),
+    });
+    expect(selfDecision.status).toBe(409);
+    const approverInbox = await request(builderPath(PLANS.main, "/approvals?limit=1"), {
+      headers: headers(approverToken),
+    });
+    expect(approverInbox.status).toBe(200);
+    expect(await approverInbox.json()).toMatchObject({ approvals: [{
+      id: approvalId,
+      status: "pending",
+      canDecide: true,
+      canPublish: false,
+    }] });
+    const decisionRequest = {
+      method: "POST",
+      headers: headers(approverToken, "order077-approve-main"),
+      body: JSON.stringify({ decision: "approved" }),
+    };
+    const decision = await request(builderPath(PLANS.main, `/approvals/${approvalId}/decision`), decisionRequest);
+    expect(decision.status).toBe(200);
+    expect(decision.headers.get("idempotency-replayed")).toBe("false");
+    const decisionBody = await decision.json();
+    expect(decisionBody).toMatchObject({ approval: {
+      id: approvalId,
+      status: "approved",
+      decidedBy: { id: approver, displayName: "Yellow Rate Approver" },
+      canDecide: false,
+      canPublish: true,
+    } });
+    const replay = await request(builderPath(PLANS.main, `/approvals/${approvalId}/decision`), decisionRequest);
+    expect(replay.status).toBe(200);
+    expect(replay.headers.get("idempotency-replayed")).toBe("true");
+    expect(await replay.json()).toEqual(decisionBody);
     const selfPublish = await request(builderPath(PLANS.main, `/releases/${mainReleaseId}/publish`), {
       method: "POST", headers: headers(requesterToken, "order071-self-publish"),
       body: JSON.stringify({ approvalId, previewCells: cells() }),
     });
     expect(selfPublish.status).toBe(409);
+    const refreshedPreview = await request(builderPath(PLANS.main, `/releases/${mainReleaseId}/simulate`), {
+      method: "POST", headers: headers(approverToken), body: JSON.stringify({ previewCells: cells() }),
+    });
+    expect(refreshedPreview.status).toBe(200);
     const published = await request(builderPath(PLANS.main, `/releases/${mainReleaseId}/publish`), {
       method: "POST", headers: headers(approverToken, "order071-approved-publish"),
       body: JSON.stringify({ approvalId, previewCells: cells() }),
@@ -563,6 +593,28 @@ databaseDescribe("Order 071 operator universal rate builder", () => {
     expect(await undo.json()).toMatchObject({ status: "draft", undoOfVersion: 1, extensionVersion: 2 });
   });
 
+  test("Order 077 P3: rejection is terminal and cannot publish", async () => {
+    const requested = await request(builderPath(PLANS.reuse, `/releases/${reuseReleaseId}/approval-request`), {
+      method: "POST", headers: headers(requesterToken, "order077-reject-request"),
+      body: JSON.stringify({ previewCells: cells() }),
+    });
+    expect(requested.status).toBe(201);
+    rejectedApprovalId = String(((await requested.json() as Record<string, unknown>).approval as Record<string, unknown>).id);
+    const rejected = await request(builderPath(PLANS.reuse, `/approvals/${rejectedApprovalId}/decision`), {
+      method: "POST", headers: headers(approverToken, "order077-reject-decision"),
+      body: JSON.stringify({ decision: "rejected" }),
+    });
+    expect(rejected.status).toBe(200);
+    expect(await rejected.json()).toMatchObject({ approval: {
+      id: rejectedApprovalId, status: "rejected", canDecide: false, canPublish: false,
+    } });
+    const publishRejected = await request(builderPath(PLANS.reuse, `/releases/${reuseReleaseId}/publish`), {
+      method: "POST", headers: headers(approverToken, "order077-rejected-publish"),
+      body: JSON.stringify({ approvalId: rejectedApprovalId, previewCells: cells() }),
+    });
+    expect(publishRejected.status).toBe(409);
+  });
+
   test("P2/P3: scope, property, route/body and caller-result attacks fail before mutation or leaks", async () => {
     const noScope = await tokens.issue({ userId: requester, tenantId: SEED_TENANT.id, scopes: ["rates.configuration:read"] });
     expect((await postDraft(PLANS.rollback, { ...command(PLANS.rollback), result: { price: 1 } }, "order071-no-scope", noScope)).status).toBe(403);
@@ -574,5 +626,22 @@ databaseDescribe("Order 071 operator universal rate builder", () => {
     expect(forged.status).toBe(400);
     const foreignTenant = await tokens.issue({ userId: requester, tenantId: FOREIGN_PROPERTY, scopes: FULL_SCOPES });
     expect((await request(builderPath(PLANS.main), { headers: headers(foreignTenant) })).status).toBe(403);
+    const readOnly = await tokens.issue({ userId: requester, tenantId: SEED_TENANT.id, scopes: ["rates.configuration:read"] });
+    expect((await request(builderPath(PLANS.main, "/approvals"), { headers: headers(readOnly) })).status).toBe(403);
+    expect((await request(builderPath(PLANS.main, "/approvals?offset=1"), { headers: headers() })).status).toBe(400);
+    expect((await request(builderPath(PLANS.main, "/approvals?limit=01"), { headers: headers() })).status).toBe(400);
+    expect((await request(builderPath(PLANS.main, "/approvals?after=not/a/cursor"), { headers: headers() })).status).toBe(400);
+    expect((await request(builderPath(PLANS.main, `/approvals/${rejectedApprovalId}/decision`), {
+      method: "POST", headers: headers(approverToken, "order077-wrong-plan"),
+      body: JSON.stringify({ decision: "approved" }),
+    })).status).toBe(404);
+    expect((await request(builderPath(PLANS.reuse, `/approvals/${rejectedApprovalId}/decision`), {
+      method: "POST", headers: headers(approverToken, "order077-bad-body"),
+      body: JSON.stringify({ decision: "expired" }),
+    })).status).toBe(400);
+    expect((await request(builderPath(PLANS.reuse, `/approvals/${rejectedApprovalId}/decision`), {
+      method: "POST", headers: headers(approverToken),
+      body: JSON.stringify({ decision: "approved" }),
+    })).status).toBe(400);
   });
 });

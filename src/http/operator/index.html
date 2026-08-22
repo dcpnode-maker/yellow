@@ -601,15 +601,25 @@
                   <label>Preview stay dates<textarea id="builder-preview-dates" rows="2" placeholder="2026-09-10, 2026-09-11"></textarea></label>
                   <button class="secondary" id="builder-run-preview" type="button" disabled>Run server preview</button>
                   <button class="secondary" id="builder-request-approval" type="button" disabled>Request independent approval</button>
-                  <label>Approved request id<input id="builder-approval-id" placeholder="A different operator supplies this"></label>
-                  <button class="primary" id="builder-publish" type="button" disabled>Publish exact approved version</button>
-                  <p class="field-note">The requester cannot approve their own rate. Yellow re-runs the preview before publication; stale approval cannot publish.</p>
+                  <p class="field-note">The requester cannot approve their own rate. A different authorized operator decides from the inbox below.</p>
                 </div>
               </div>
               <div class="simulation-summary" id="builder-simulation" aria-live="polite">No server preview has run.</div>
               <section class="simulation-cell-panel" aria-labelledby="builder-simulation-cells-title">
                 <div class="section-heading compact-heading"><div><h5 id="builder-simulation-cells-title">Server preview cells</h5><p class="muted">Winning, matched and conflicting rules come from the server—not this browser.</p></div></div>
                 <div class="simulation-cell-list" id="builder-simulation-cells"><p class="muted">Run a server preview to inspect each bounded date cell.</p></div>
+              </section>
+              <section class="approval-inbox card-inset" aria-labelledby="builder-approval-inbox-title">
+                <div class="section-heading compact-heading">
+                  <div><h5 id="builder-approval-inbox-title">Independent approval inbox</h5><p class="muted">Pending, approved and rejected requests for this rate plan. Yellow—not the browser—decides which actions each operator may take.</p></div>
+                  <button class="quiet compact" id="builder-refresh-approvals" type="button">Refresh inbox</button>
+                </div>
+                <div class="approval-inbox-list" id="builder-approval-inbox" aria-live="polite"><p class="muted">Choose a base rate plan to load its approval history.</p></div>
+                <button class="quiet compact approval-load-more" id="builder-load-more-approvals" type="button" hidden>Load older requests</button>
+                <div class="approval-publish-bar">
+                  <div><strong id="builder-selected-approval">No approved request selected</strong><small>Only the operator who approved the latest draft may publish it, after running a fresh preview in this session.</small></div>
+                  <button class="primary" id="builder-publish" type="button" disabled>Publish exact approved version</button>
+                </div>
               </section>
               <div class="release-history"><div class="section-heading compact-heading"><div><h5>Immutable release history</h5><p class="muted">Inspect exact server-owned configuration, reuse it as an unsaved Expert starting point, or create an exact undo draft. Old versions never change.</p></div><button class="quiet compact" id="builder-refresh-history" type="button">Refresh</button></div><div id="builder-release-history"></div></div>
               <div class="live-quote-panel card-inset"><h5>Published live quote evidence</h5><div class="builder-form-grid three-up"><label>Sellable<select id="builder-quote-sellable"></select></label><label>Stay start<input id="builder-quote-start" type="datetime-local"></label><label>Stay end<input id="builder-quote-end" type="datetime-local"></label></div><button class="secondary" id="builder-live-quote" type="button">Resolve live quote</button><pre id="builder-quote-result">Publish a release, then resolve a live tenant-scoped quote to see tax, policy, restriction and availability evidence.</pre></div>

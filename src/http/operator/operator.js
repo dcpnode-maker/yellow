@@ -13,6 +13,10 @@
   let builderReleaseId = "";
   let builderPreviewCells = [];
   let builderSimulation = null;
+  let builderSimulationReleaseId = "";
+  let rateApprovalData = [];
+  let rateApprovalNextCursor = null;
+  let selectedRateApprovalId = "";
   let builderSelectedModel = "simple-fixed";
   let builderBookingInstant = "";
   let builderAiInterpretation = null;
@@ -170,7 +174,10 @@
   const builderPreviewDates = document.querySelector("#builder-preview-dates");
   const builderRunPreview = document.querySelector("#builder-run-preview");
   const builderRequestApproval = document.querySelector("#builder-request-approval");
-  const builderApprovalId = document.querySelector("#builder-approval-id");
+  const builderApprovalInbox = document.querySelector("#builder-approval-inbox");
+  const builderRefreshApprovals = document.querySelector("#builder-refresh-approvals");
+  const builderLoadMoreApprovals = document.querySelector("#builder-load-more-approvals");
+  const builderSelectedApproval = document.querySelector("#builder-selected-approval");
   const builderPublish = document.querySelector("#builder-publish");
   const builderSimulationOutput = document.querySelector("#builder-simulation");
   const builderSimulationCells = document.querySelector("#builder-simulation-cells");
@@ -302,6 +309,10 @@
     builderReleaseId = "";
     builderPreviewCells = [];
     builderSimulation = null;
+    builderSimulationReleaseId = "";
+    rateApprovalData = [];
+    rateApprovalNextCursor = null;
+    selectedRateApprovalId = "";
     builderBookingInstant = "";
     builderAiInterpretation = null;
     builderAiAppliedProposal = null;
@@ -1431,19 +1442,160 @@
     builderReleaseHistory.replaceChildren(...cards);
   }
 
+  function selectedRateApproval() {
+    return rateApprovalData.find(({ id }) => id === selectedRateApprovalId) || null;
+  }
+
+  function syncBuilderPublishState() {
+    const approval = selectedRateApproval();
+    const ready = approval?.canPublish === true && approval.releaseId === builderReleaseId &&
+      builderSimulationReleaseId === builderReleaseId && builderSimulation?.conflictCount === 0 &&
+      builderPreviewCells.length > 0;
+    builderPublish.disabled = !ready;
+    builderSelectedApproval.textContent = approval
+      ? `Version ${approval.releaseVersion} · ${approval.status} · ${approval.decidedBy?.displayName || "Awaiting decision"}`
+      : "No approved request selected";
+  }
+
+  function renderRateApprovalInbox() {
+    if (rateApprovalData.length === 0) {
+      emptyList(builderApprovalInbox, "No approval requests exist for this rate plan yet.");
+      builderLoadMoreApprovals.hidden = true;
+      syncBuilderPublishState();
+      return;
+    }
+    const rows = rateApprovalData.map((approval) => {
+      const row = document.createElement("article");
+      row.className = "approval-inbox-row";
+      row.dataset.status = approval.status;
+      const status = document.createElement("span");
+      status.className = "approval-state";
+      status.textContent = approval.status;
+      const copy = document.createElement("div");
+      copy.className = "approval-inbox-copy";
+      const title = document.createElement("strong");
+      title.textContent = `Version ${approval.releaseVersion}${approval.releaseIsLatest ? " · latest" : ""}`;
+      const requested = document.createElement("small");
+      requested.textContent = `Requested by ${approval.requestedBy.displayName} · ${new Date(approval.createdAt).toLocaleString()}`;
+      copy.append(title, requested);
+      if (approval.decidedBy) {
+        const decided = document.createElement("small");
+        decided.textContent = `${approval.status === "approved" ? "Approved" : "Rejected"} by ${approval.decidedBy.displayName}${approval.decidedAt ? ` · ${new Date(approval.decidedAt).toLocaleString()}` : ""}`;
+        copy.append(decided);
+      }
+      const actions = document.createElement("div");
+      actions.className = "approval-inbox-actions";
+      if (approval.canDecide) {
+        for (const [decision, label, className] of [
+          ["approved", "Approve", "secondary compact"],
+          ["rejected", "Reject", "quiet compact"],
+        ]) {
+          const button = document.createElement("button");
+          button.type = "button";
+          button.className = className;
+          button.textContent = label;
+          button.addEventListener("click", () => void decideBuilderApproval(approval.id, decision, button));
+          actions.append(button);
+        }
+      }
+      if (approval.canPublish) {
+        const select = document.createElement("button");
+        select.type = "button";
+        select.className = "secondary compact";
+        select.textContent = approval.id === selectedRateApprovalId ? "Selected for publish" : "Use approved request";
+        select.disabled = approval.id === selectedRateApprovalId;
+        select.addEventListener("click", () => {
+          if (builderReleaseId !== approval.releaseId) selectBuilderRelease(approval.releaseId);
+          selectedRateApprovalId = approval.id;
+          renderRateApprovalInbox();
+          setBuilderMessage("Approved request selected. Run a fresh server preview before publishing.");
+        });
+        actions.append(select);
+      }
+      if (actions.childElementCount === 0) {
+        const note = document.createElement("small");
+        note.className = "approval-inbox-note";
+        note.textContent = approval.status === "pending"
+          ? "Waiting for a different authorized operator"
+          : approval.releaseStatus === "draft" && !approval.releaseIsLatest
+            ? "A newer immutable draft exists"
+            : "Decision recorded";
+        actions.append(note);
+      }
+      row.append(status, copy, actions);
+      return row;
+    });
+    builderApprovalInbox.replaceChildren(...rows);
+    builderLoadMoreApprovals.hidden = !rateApprovalNextCursor;
+    syncBuilderPublishState();
+  }
+
+  async function loadRateApprovals(append = false) {
+    const property = propertySelect.value;
+    const plan = builderPlan.value;
+    if (!property || !plan) {
+      rateApprovalData = [];
+      rateApprovalNextCursor = null;
+      selectedRateApprovalId = "";
+      emptyList(builderApprovalInbox, "Choose a base rate plan to load its approval history.");
+      builderLoadMoreApprovals.hidden = true;
+      syncBuilderPublishState();
+      return;
+    }
+    builderRefreshApprovals.disabled = true;
+    builderLoadMoreApprovals.disabled = true;
+    try {
+      const after = append && rateApprovalNextCursor ? `&after=${encodeURIComponent(rateApprovalNextCursor)}` : "";
+      const body = await request(`/api/v1/properties/${encodeURIComponent(property)}/rate-builder/${encodeURIComponent(plan)}/approvals?limit=50${after}`);
+      const incoming = Array.isArray(body.approvals) ? body.approvals : [];
+      rateApprovalData = append
+        ? [...rateApprovalData, ...incoming.filter(({ id }) => !rateApprovalData.some((approval) => approval.id === id))]
+        : incoming;
+      rateApprovalNextCursor = body.nextCursor || null;
+      if (!rateApprovalData.some(({ id }) => id === selectedRateApprovalId)) selectedRateApprovalId = "";
+      renderRateApprovalInbox();
+    } finally {
+      builderRefreshApprovals.disabled = false;
+      builderLoadMoreApprovals.disabled = false;
+    }
+  }
+
+  async function decideBuilderApproval(approvalId, decision, button) {
+    const payload = { decision };
+    const pending = builderWriteKey(`rate-builder-approval-${decision}`, { approvalId, ...payload });
+    button.disabled = true;
+    setBuilderMessage(`${decision === "approved" ? "Approving" : "Rejecting"} the exact immutable release…`);
+    try {
+      const body = await request(`/api/v1/properties/${encodeURIComponent(propertySelect.value)}/rate-builder/${encodeURIComponent(builderPlan.value)}/approvals/${encodeURIComponent(approvalId)}/decision`, {
+        method: "POST", headers: { "idempotency-key": pending.key }, body: JSON.stringify(payload),
+      });
+      pendingKeys.delete(pending.identity);
+      selectedRateApprovalId = body.approval.canPublish ? body.approval.id : "";
+      await loadRateApprovals();
+      setBuilderMessage(decision === "approved"
+        ? "Approval recorded. Run a fresh server preview before publishing this exact version."
+        : "Rejection recorded. This request cannot publish.");
+    } catch (error) {
+      setBuilderMessage(error instanceof Error ? error.message : "Approval decision failed", true);
+      renderRateApprovalInbox();
+    }
+  }
+
   function selectBuilderRelease(releaseId) {
     builderReleaseId = releaseId;
     builderPreviewCells = [];
     builderSimulation = null;
+    builderSimulationReleaseId = "";
+    if (selectedRateApproval()?.releaseId !== releaseId) selectedRateApprovalId = "";
     builderRunPreview.disabled = !releaseId;
     builderRequestApproval.disabled = true;
-    builderPublish.disabled = !releaseId || !builderApprovalId.value.trim();
     builderSimulationOutput.textContent = releaseId
       ? "Draft selected. Run a fresh server preview before requesting approval."
       : "No draft selected. Save a governed draft to begin the review workflow.";
     builderSimulationCells.replaceChildren();
     emptyList(builderSimulationCells, "Run a server preview to inspect each bounded date cell.");
     renderRateReleaseHistory();
+    renderRateApprovalInbox();
   }
 
   async function loadRateBuilder() {
@@ -1451,8 +1603,12 @@
     const plan = builderPlan.value;
     if (!property || !plan) {
       rateBuilderData = { catalogue: [], modelDrafts: [], targetDrafts: [], releases: [] };
+      rateApprovalData = [];
+      rateApprovalNextCursor = null;
+      selectedRateApprovalId = "";
       renderModelCatalogue();
       renderRateReleaseHistory();
+      await loadRateApprovals();
       setBuilderMessage("Choose a base rate plan to begin.");
       return;
     }
@@ -1464,6 +1620,7 @@
         builderReleaseId = rateBuilderData.releases.find(({ status }) => status === "draft")?.id || "";
       }
       selectBuilderRelease(builderReleaseId);
+      await loadRateApprovals();
       setBuilderMessage(builderReleaseId ? "Draft ready for a fresh server preview." : "Choose a model and save an immutable draft.");
     } catch (error) {
       setBuilderMessage(error instanceof Error ? error.message : "Rate builder could not be loaded", true);
@@ -1663,18 +1820,20 @@
         method: "POST", body: JSON.stringify({ previewCells: builderPreviewCells }),
       });
       builderSimulation = body.simulation;
+      builderSimulationReleaseId = builderReleaseId;
       renderSimulation(body.simulation);
       builderRequestApproval.disabled = body.simulation.conflictCount !== 0;
-      builderPublish.disabled = !builderApprovalId.value.trim() || body.simulation.conflictCount !== 0;
+      syncBuilderPublishState();
       setBuilderMessage(body.simulation.conflictCount === 0
         ? "Preview is conflict-free. Request independent approval when ready."
         : "Resolve the displayed conflict before approval.", body.simulation.conflictCount !== 0);
     } catch (error) {
       builderPreviewCells = [];
       builderSimulation = null;
+      builderSimulationReleaseId = "";
       emptyList(builderSimulationCells, "Preview failed; no server-derived cells are available.");
       builderRequestApproval.disabled = true;
-      builderPublish.disabled = true;
+      syncBuilderPublishState();
       setBuilderMessage(error instanceof Error ? error.message : "Rate preview failed", true);
     } finally {
       builderRunPreview.disabled = !builderReleaseId;
@@ -1694,9 +1853,9 @@
         method: "POST", headers: { "idempotency-key": pending.key }, body: JSON.stringify(payload),
       });
       pendingKeys.delete(pending.identity);
-      builderApprovalId.value = body.approval.id;
-      builderPublish.disabled = false;
+      selectedRateApprovalId = "";
       renderSimulation(body.simulation);
+      await loadRateApprovals();
       setBuilderMessage("Approval requested. A different authorized operator must approve it before publication.");
     } catch (error) {
       setBuilderMessage(error instanceof Error ? error.message : "Approval request failed", true);
@@ -1706,11 +1865,12 @@
   }
 
   async function publishBuilderRelease() {
-    const approvalId = builderApprovalId.value.trim();
-    if (!approvalId || !builderReleaseId || builderPreviewCells.length === 0) {
-      return setBuilderMessage("Provide an independently approved request id for this exact preview.", true);
+    const approval = selectedRateApproval();
+    if (!approval?.canPublish || approval.releaseId !== builderReleaseId ||
+        builderSimulationReleaseId !== builderReleaseId || builderPreviewCells.length === 0) {
+      return setBuilderMessage("Select an approval you decided, then run a fresh preview for that exact release.", true);
     }
-    const payload = { approvalId, previewCells: builderPreviewCells };
+    const payload = { approvalId: approval.id, previewCells: builderPreviewCells };
     const pending = builderWriteKey("rate-builder-publish", payload);
     builderPublish.disabled = true;
     setBuilderMessage("Re-running the approved preview and publishing atomically…");
@@ -1721,13 +1881,14 @@
       pendingKeys.delete(pending.identity);
       renderSimulation(body.simulation);
       builderReleaseId = "";
-      builderApprovalId.value = "";
+      builderSimulationReleaseId = "";
+      selectedRateApprovalId = "";
       await loadRateBuilder();
       setBuilderMessage(`Version ${body.release.extensionVersion} is active. Live quotes now resolve through it.`);
     } catch (error) {
       setBuilderMessage(error instanceof Error ? error.message : "Publication failed", true);
     } finally {
-      builderPublish.disabled = !builderApprovalId.value.trim() || !builderReleaseId;
+      syncBuilderPublishState();
     }
   }
 
@@ -2805,6 +2966,10 @@
     builderReleaseId = "";
     builderPreviewCells = [];
     builderSimulation = null;
+    builderSimulationReleaseId = "";
+    rateApprovalData = [];
+    rateApprovalNextCursor = null;
+    selectedRateApprovalId = "";
     resetBuilderAiProposal("The base plan changed. Interpret the intent again before applying it.");
     void loadRateBuilder();
   });
@@ -2879,10 +3044,13 @@
   builderRequestApproval.addEventListener("click", () => void requestBuilderApproval());
   builderPublish.addEventListener("click", () => void publishBuilderRelease());
   builderRefreshHistory.addEventListener("click", () => void loadRateBuilder());
+  builderRefreshApprovals.addEventListener("click", () => void loadRateApprovals().catch((error) => {
+    setBuilderMessage(error instanceof Error ? error.message : "Approval inbox could not be refreshed", true);
+  }));
+  builderLoadMoreApprovals.addEventListener("click", () => void loadRateApprovals(true).catch((error) => {
+    setBuilderMessage(error instanceof Error ? error.message : "Older approval requests could not be loaded", true);
+  }));
   builderLiveQuote.addEventListener("click", () => void resolveBuilderQuote());
-  builderApprovalId.addEventListener("input", () => {
-    builderPublish.disabled = !builderApprovalId.value.trim() || !builderReleaseId || !builderSimulation || builderSimulation.conflictCount !== 0;
-  });
   document.querySelector("#rate-builder").addEventListener("input", (event) => {
     if (event.target !== builderAiIntent && event.target !== builderExpertJson && builderAiAppliedProposal) {
       resetBuilderAiProposal("A typed rate choice changed. Interpret and apply the proposal again.");

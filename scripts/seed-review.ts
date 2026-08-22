@@ -8,6 +8,8 @@ import { uuidV5 } from "./lib/uuid-v5";
 
 export const REVIEW_EMAIL = "operator@yellow.local";
 export const REVIEW_DISPLAY_NAME = "Yellow Review Operator";
+export const REVIEW_APPROVER_EMAIL = "approver@yellow.local";
+export const REVIEW_APPROVER_DISPLAY_NAME = "Yellow Rate Approver";
 export const REVIEW_ROLE_NAME = "Local Availability Reviewer";
 export const REVIEW_PERMISSION = "inventory.availability:read";
 export const REVIEW_PERMISSIONS = Object.freeze([
@@ -30,6 +32,7 @@ export const REVIEW_PERMISSIONS = Object.freeze([
   { code: "rates.pricing:write", description: "Create tenant-scoped rate pricing" },
 ]);
 const REVIEW_USER_NAME = `${TENANT_NAME}/review-user/${REVIEW_EMAIL}`;
+const REVIEW_APPROVER_USER_NAME = `${TENANT_NAME}/review-user/${REVIEW_APPROVER_EMAIL}`;
 const REVIEW_ROLE_NAME_UUID = `${TENANT_NAME}/review-role/availability`;
 
 const ROOM_TYPES = Object.freeze([
@@ -63,6 +66,7 @@ interface RoleRow {
 export interface ReviewSeedOptions {
   readonly databaseUrl: string;
   readonly password: string;
+  readonly approverPassword?: string;
   readonly logger?: (line: string) => void;
 }
 
@@ -71,6 +75,8 @@ export interface ReviewSeedResult {
   readonly property: string;
   readonly email: string;
   readonly userId: string;
+  readonly approverEmail: string;
+  readonly approverUserId: string;
   readonly roleId: string;
   readonly unitTypes: { created: number; existing: number };
   readonly rooms: { created: number; existing: number };
@@ -110,7 +116,7 @@ function exact(value: unknown, expected: unknown, label: string): void {
   if (stableJson(value) !== stableJson(expected)) throw new Error(`${label} collides with non-canonical local-review data`);
 }
 
-async function canonicalIds(): Promise<{ userId: string; roleId: string }> {
+async function canonicalIds(): Promise<{ userId: string; approverUserId: string; roleId: string }> {
   const derivedTenant = await uuidV5(URL_NAMESPACE_UUID, TENANT_NAME);
   const derivedProperty = await uuidV5(derivedTenant, PROPERTY_NAME);
   if (derivedTenant !== SEED_TENANT.id || derivedProperty !== SEED_PROPERTY.id) {
@@ -118,11 +124,55 @@ async function canonicalIds(): Promise<{ userId: string; roleId: string }> {
   }
   return {
     userId: await uuidV5(SEED_TENANT.id, REVIEW_USER_NAME),
+    approverUserId: await uuidV5(SEED_TENANT.id, REVIEW_APPROVER_USER_NAME),
     roleId: await uuidV5(SEED_TENANT.id, REVIEW_ROLE_NAME_UUID),
   };
 }
 
-async function provisionIdentity(connection: ReservedSQL, password: string, userId: string, roleId: string): Promise<void> {
+interface ReviewUserSpec {
+  readonly id: string;
+  readonly email: string;
+  readonly displayName: string;
+  readonly label: string;
+}
+
+async function provisionReviewUser(
+  connection: ReservedSQL,
+  password: string,
+  spec: ReviewUserSpec,
+): Promise<void> {
+  const users = await connection<IdentityRow[]>`
+    SELECT id, tenant_id, email, display_name, auth, status
+    FROM app_user
+    WHERE id = ${spec.id}::uuid
+       OR (tenant_id = ${SEED_TENANT.id}::uuid AND lower(email) = lower(${spec.email}))
+    ORDER BY id
+  `;
+  if (users.length === 0) {
+    const auth = await hashLocalPassword(password);
+    await connection`
+      INSERT INTO app_user (id, tenant_id, email, display_name, auth, status)
+      VALUES (${spec.id}::uuid, ${SEED_TENANT.id}::uuid, ${spec.email}, ${spec.displayName},
+              ${JSON.stringify(auth)}::text::jsonb, 'active')
+    `;
+    return;
+  }
+  const user = users[0];
+  if (users.length !== 1 || !user || user.id !== spec.id || user.tenant_id !== SEED_TENANT.id ||
+      user.email !== spec.email || user.display_name !== spec.displayName || user.status !== "active" ||
+      !(await verifyLocalPassword(password, user.auth))) {
+    throw new Error(`${spec.label} collides with non-canonical local-review data`);
+  }
+}
+
+async function provisionIdentity(
+  connection: ReservedSQL,
+  password: string,
+  approverPassword: string,
+  userId: string,
+  approverUserId: string,
+  roleId: string,
+): Promise<void> {
   const base = await connection<Array<{ tenant_ok: boolean; property_ok: boolean }>>`
     SELECT
       EXISTS (
@@ -151,29 +201,6 @@ async function provisionIdentity(connection: ReservedSQL, password: string, user
       await connection`INSERT INTO permission (code, description) VALUES (${permission.code}, ${permission.description})`;
     } else {
       exact(permissions[0], permission, `Review permission ${permission.code}`);
-    }
-  }
-
-  const users = await connection<IdentityRow[]>`
-    SELECT id, tenant_id, email, display_name, auth, status
-    FROM app_user
-    WHERE id = ${userId}::uuid
-       OR (tenant_id = ${SEED_TENANT.id}::uuid AND lower(email) = lower(${REVIEW_EMAIL}))
-    ORDER BY id
-  `;
-  if (users.length === 0) {
-    const auth = await hashLocalPassword(password);
-    await connection`
-      INSERT INTO app_user (id, tenant_id, email, display_name, auth, status)
-      VALUES (${userId}::uuid, ${SEED_TENANT.id}::uuid, ${REVIEW_EMAIL}, ${REVIEW_DISPLAY_NAME},
-              ${JSON.stringify(auth)}::text::jsonb, 'active')
-    `;
-  } else {
-    const user = users[0];
-    if (users.length !== 1 || !user || user.id !== userId || user.tenant_id !== SEED_TENANT.id ||
-        user.email !== REVIEW_EMAIL || user.display_name !== REVIEW_DISPLAY_NAME || user.status !== "active" ||
-        !(await verifyLocalPassword(password, user.auth))) {
-      throw new Error("Review user collides with non-canonical local-review data");
     }
   }
 
@@ -208,18 +235,27 @@ async function provisionIdentity(connection: ReservedSQL, password: string, user
     }
   }
 
-  const grants = await connection<Array<{ tenant_id: string; user_id: string; role_id: string; scope_node: string }>>`
-    SELECT tenant_id, user_id, role_id, scope_node FROM user_role
-    WHERE user_id = ${userId}::uuid AND role_id = ${roleId}::uuid AND scope_node = ${SEED_PROPERTY.id}::uuid
-  `;
-  if (grants.length === 0) {
-    await connection`
-      INSERT INTO user_role (tenant_id, user_id, role_id, scope_node)
-      VALUES (${SEED_TENANT.id}::uuid, ${userId}::uuid, ${roleId}::uuid, ${SEED_PROPERTY.id}::uuid)
+  const users = Object.freeze([
+    Object.freeze({ id: userId, email: REVIEW_EMAIL, displayName: REVIEW_DISPLAY_NAME, label: "Review user", password }),
+    Object.freeze({ id: approverUserId, email: REVIEW_APPROVER_EMAIL,
+      displayName: REVIEW_APPROVER_DISPLAY_NAME, label: "Review approver", password: approverPassword }),
+  ]);
+  for (const user of users) {
+    await provisionReviewUser(connection, user.password, user);
+    const grants = await connection<Array<{ tenant_id: string; user_id: string; role_id: string; scope_node: string }>>`
+      SELECT tenant_id, user_id, role_id, scope_node FROM user_role
+      WHERE user_id = ${user.id}::uuid AND role_id = ${roleId}::uuid AND scope_node = ${SEED_PROPERTY.id}::uuid
     `;
-  } else {
-    exact(grants[0], { tenant_id: SEED_TENANT.id, user_id: userId, role_id: roleId, scope_node: SEED_PROPERTY.id }, "Review role grant");
-    if (grants.length !== 1) throw new Error("Review role grant is not canonical");
+    if (grants.length === 0) {
+      await connection`
+        INSERT INTO user_role (tenant_id, user_id, role_id, scope_node)
+        VALUES (${SEED_TENANT.id}::uuid, ${user.id}::uuid, ${roleId}::uuid, ${SEED_PROPERTY.id}::uuid)
+      `;
+    } else {
+      exact(grants[0], { tenant_id: SEED_TENANT.id, user_id: user.id, role_id: roleId,
+        scope_node: SEED_PROPERTY.id }, `${user.label} role grant`);
+      if (grants.length !== 1) throw new Error(`${user.label} role grant is not canonical`);
+    }
   }
 }
 
@@ -263,14 +299,20 @@ function sellableShape(item: SellableUnit, spec: typeof ROOMS[number], unitTypeI
 export async function runReviewSeed(options: ReviewSeedOptions): Promise<ReviewSeedResult> {
   if (!options.databaseUrl) throw new Error("databaseUrl is required");
   if (!options.password) throw new Error("password is required");
+  const approverPassword = options.approverPassword ?? `${options.password}\u0000rate-approver`;
+  if (!approverPassword || approverPassword === options.password) {
+    throw new Error("approverPassword must be distinct from password");
+  }
   const logger = options.logger ?? console.log;
-  const { userId, roleId } = await canonicalIds();
+  const { userId, approverUserId, roleId } = await canonicalIds();
   const identityPool = new SQL(options.databaseUrl, { max: 2 });
   const eventPool = new SQL(options.databaseUrl, { max: 4 });
   const database = Database.connect(options.databaseUrl, { maxConnections: 6 });
 
   try {
-    await withIdentityTransaction(identityPool, (tx) => provisionIdentity(tx, options.password, userId, roleId));
+    await withIdentityTransaction(identityPool, (tx) => provisionIdentity(
+      tx, options.password, approverPassword, userId, approverUserId, roleId,
+    ));
     const inventory = new InventoryService(new PostgresEventBus(eventPool));
     const counts = {
       unitTypes: { created: 0, existing: 0 },
@@ -355,9 +397,10 @@ export async function runReviewSeed(options: ReviewSeedOptions): Promise<ReviewS
 
     logger(`review seed: tenant=${SEED_TENANT.slug} property=${SEED_PROPERTY.name}`);
     logger(`review login: ${REVIEW_EMAIL} (password supplied by YELLOW_REVIEW_PASSWORD)`);
+    logger(`review approver: ${REVIEW_APPROVER_EMAIL} (password supplied by YELLOW_REVIEW_APPROVER_PASSWORD)`);
     logger(`review inventory: unit_types=${counts.unitTypes.created}/${counts.unitTypes.existing} rooms=${counts.rooms.created}/${counts.rooms.existing} sellable_units=${counts.sellableUnits.created}/${counts.sellableUnits.existing} created/existing`);
     return { tenant: SEED_TENANT.slug, property: SEED_PROPERTY.name, email: REVIEW_EMAIL,
-      userId, roleId, ...counts };
+      userId, approverEmail: REVIEW_APPROVER_EMAIL, approverUserId, roleId, ...counts };
   } finally {
     await database.close();
     await eventPool.close();
@@ -368,16 +411,17 @@ export async function runReviewSeed(options: ReviewSeedOptions): Promise<ReviewS
 async function runCli(): Promise<void> {
   const databaseUrl = process.env.DATABASE_URL;
   const password = process.env.YELLOW_REVIEW_PASSWORD;
-  if (!databaseUrl || !password) {
-    console.error("DATABASE_URL and YELLOW_REVIEW_PASSWORD are required");
+  const approverPassword = process.env.YELLOW_REVIEW_APPROVER_PASSWORD;
+  if (!databaseUrl || !password || !approverPassword || password === approverPassword) {
+    console.error("DATABASE_URL, YELLOW_REVIEW_PASSWORD and a distinct YELLOW_REVIEW_APPROVER_PASSWORD are required");
     process.exitCode = 1;
     return;
   }
   try {
-    await runReviewSeed({ databaseUrl, password });
+    await runReviewSeed({ databaseUrl, password, approverPassword });
   } catch (error) {
     const raw = error instanceof Error ? error.message : String(error);
-    console.error(`review seed failed: ${raw.split(password).join("[REDACTED]")}`);
+    console.error(`review seed failed: ${raw.split(password).join("[REDACTED]").split(approverPassword).join("[REDACTED]")}`);
     process.exitCode = 1;
   }
 }

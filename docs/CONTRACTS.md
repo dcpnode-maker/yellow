@@ -270,3 +270,28 @@ Aggregate hashes and bounded work remain server-derived. Preview is not publicat
 independent approval and publish are separate actions, and undo still creates a new immutable
 version. Restrictions, availability, tax and compliance evidence remain outside hotel-authored rate
 rules and cannot be disabled from this workbench.
+
+## 15. Two-operator rate-publication approval inbox
+
+Order 077 exposes the existing `rate_plan_release` approval decision through two authenticated
+property routes:
+
+- `GET /api/v1/properties/{property}/rate-builder/{ratePlanId}/approvals?limit={1..100}&after={cursor}`
+- `POST /api/v1/properties/{property}/rate-builder/{ratePlanId}/approvals/{approvalId}/decision`
+
+Both require `rates.configuration:write` and an exact property grant. The list is newest-first,
+bounded and cursor-paginated. It returns only the approval id, exact release id/version and state,
+requester/decider display identities, timestamps, and server-derived `canDecide` / `canPublish`
+flags. Tenant ids, payload hashes and audit envelopes never cross this browser contract.
+
+The decision body is exactly `{ "decision": "approved" | "rejected" }` and uses the durable
+idempotency boundary. A pending request may be decided once, only by a different active operator.
+The existing `ApprovalService.decide` transition, `approval.decided` event and fact-log audit remain
+the only write path; Order 077 adds no approval state or event. Self-decision, terminal re-decision,
+wrong-plan, wrong-property and foreign-tenant lookup fail closed.
+
+An approval decision is not publication. Only the operator who recorded an approval receives
+`canPublish`, and only while its exact release is still the latest draft. The workbench additionally
+requires that operator to run a fresh server preview in the current in-memory session. Publication
+then revalidates the existing hashes, cells, release state and deciding actor atomically. Rejection
+is terminal and can never publish.

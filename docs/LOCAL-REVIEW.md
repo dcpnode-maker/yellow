@@ -15,6 +15,7 @@ export YELLOW_POSTGRES_PORT=5642
 export YELLOW_VALKEY_PORT=6589
 export YELLOW_OPERATOR_WORKBENCH=1
 export YELLOW_REVIEW_PASSWORD='<choose a local-only password>'
+export YELLOW_REVIEW_APPROVER_PASSWORD='<choose a different local-only password>'
 ./setup.sh --db-only
 DATABASE_URL="postgres://yellow:yellow@127.0.0.1:${YELLOW_POSTGRES_PORT}/yellow_dev" bun run db:seed-review
 docker compose up -d --build app
@@ -26,9 +27,16 @@ Open `http://localhost:3200` and sign in with:
 - Email: `operator@yellow.local`
 - Password: the value supplied through `YELLOW_REVIEW_PASSWORD`
 
-The seeder is safe to rerun with the same password. It verifies exact data and creates
-nothing on an identical rerun. A conflicting user, role, room type, room or sellable
-unit stops the run rather than rewriting hotel data.
+For the independent rate-publication decision, sign out and use:
+
+- Hotel account: `yellow-demo`
+- Email: `approver@yellow.local`
+- Password: the distinct value supplied through `YELLOW_REVIEW_APPROVER_PASSWORD`
+
+The seeder is safe to rerun with the same pair of passwords. It verifies both distinct
+operators and their exact existing property grant, and creates nothing on an identical
+rerun. Shared passwords or conflicting users, roles, room types, rooms or sellable units
+stop the run rather than rewriting hotel data.
 
 ## Current review surface
 
@@ -56,6 +64,9 @@ unit stops the run rather than rewriting hotel data.
   bands, plus current-price lookup using PostgreSQL date/mask/latest precedence;
 - audited price correction by loading the current row and creating an immutable
   successor while its plan, room type, dates, weekdays and currency remain locked;
+- a configurable Guided, Expert and AI-assisted universal rate builder with immutable
+  release history, server preview, a bounded two-operator approval inbox, explicit
+  approve/reject decisions and publication restricted to the operator who approved;
 - real availability for five physical rooms across Standard and Deluxe types;
 - ten-minute audited cart holds placed only from bookable availability, with active-hold
   visibility, explicit release and supervised audited due expiry; a hold protects
@@ -79,7 +90,7 @@ say only whether their explicit runtime flags are configured. Valkey and externa
 
 “Recorded build snapshot” is committed build evidence, not a network query. Its roadmap
 denominator is the 13 named BUILD-PLAN phases, and its independent-review bar distinguishes
-reviewed Orders 001–018 from later builder-green Gate-3 debt. Read current GitHub Actions on
+reviewed Orders 001–044 from later builder-green Gate-3 debt. Read current GitHub Actions on
 the pull request itself; the localhost runtime intentionally carries no GitHub token and does
 not scrape external CI.
 

@@ -6,11 +6,12 @@ import { BearerTenantResolver, Hs256TokenSigner, LocalLoginService, verifyLocalP
 import { AvailabilityService } from "../src/contexts/inventory";
 import { OperatorHttpApi } from "../src/http/operator";
 import { Database } from "../src/kernel";
-import { runReviewSeed, REVIEW_EMAIL } from "../scripts/seed-review";
+import { runReviewSeed, REVIEW_APPROVER_EMAIL, REVIEW_EMAIL } from "../scripts/seed-review";
 import { runSeed, SEED_PROPERTY, SEED_TENANT } from "../scripts/seed";
 
 const DATABASE_URL = process.env.YELLOW_REVIEW_SEED_URL;
 const PASSWORD = process.env.YELLOW_REVIEW_SEED_PASSWORD;
+const APPROVER_PASSWORD = PASSWORD ? `${PASSWORD}-approver` : undefined;
 const REQUIRE_DATABASE = process.env.YELLOW_REQUIRE_REVIEW_SEED === "1";
 const SECRET = "yellow-order-046-test-token-secret-exactly-long-enough";
 
@@ -30,9 +31,9 @@ async function counts() {
     spaces: number; sellables: number; facts: number; events: number;
   }>>`
     SELECT
-      (SELECT count(*)::int FROM app_user WHERE id = ${first.userId}::uuid) AS users,
+      (SELECT count(*)::int FROM app_user WHERE id IN (${first.userId}::uuid, ${first.approverUserId}::uuid)) AS users,
       (SELECT count(*)::int FROM role WHERE id = ${first.roleId}::uuid) AS roles,
-      (SELECT count(*)::int FROM user_role WHERE user_id = ${first.userId}::uuid) AS grants,
+      (SELECT count(*)::int FROM user_role WHERE user_id IN (${first.userId}::uuid, ${first.approverUserId}::uuid)) AS grants,
       (SELECT count(*)::int FROM unit_type WHERE tenant_id = ${SEED_TENANT.id}::uuid AND attrs @> '{"source":"local-review"}') AS unit_types,
       (SELECT count(*)::int FROM space WHERE tenant_id = ${SEED_TENANT.id}::uuid AND attrs @> '{"source":"local-review"}') AS spaces,
       (SELECT count(*)::int FROM sellable_unit AS su JOIN unit_type AS ut ON ut.id = su.unit_type_id
@@ -48,7 +49,8 @@ async function counts() {
 beforeAll(async () => {
   if (!DATABASE_URL || !PASSWORD) return;
   await runSeed({ databaseUrl: DATABASE_URL, logger: () => undefined });
-  first = await runReviewSeed({ databaseUrl: DATABASE_URL, password: PASSWORD, logger: () => undefined });
+  first = await runReviewSeed({ databaseUrl: DATABASE_URL, password: PASSWORD,
+    approverPassword: APPROVER_PASSWORD!, logger: () => undefined });
   admin = new SQL(DATABASE_URL, { max: 4 });
   loginPool = new SQL(DATABASE_URL, { max: 4 });
   database = Database.connect(DATABASE_URL, { maxConnections: 8 });
@@ -67,11 +69,11 @@ databaseDescribe("Order 046 reproducible local-review seed", () => {
       SELECT email
       FROM app_user
       WHERE tenant_id = ${SEED_TENANT.id}::uuid
-        AND email IN (${REVIEW_EMAIL}, 'approver@yellow.local')
+        AND email IN (${REVIEW_EMAIL}, ${REVIEW_APPROVER_EMAIL})
       ORDER BY email
     `;
     expect(reviewers).toEqual([
-      { email: "approver@yellow.local" },
+      { email: REVIEW_APPROVER_EMAIL },
       { email: REVIEW_EMAIL },
     ]);
   });
@@ -81,12 +83,13 @@ databaseDescribe("Order 046 reproducible local-review seed", () => {
       tenant: "yellow-demo",
       property: "Yellow Demo Property",
       email: REVIEW_EMAIL,
+      approverEmail: REVIEW_APPROVER_EMAIL,
       unitTypes: { created: 2, existing: 0 },
       rooms: { created: 5, existing: 0 },
       sellableUnits: { created: 5, existing: 0 },
     });
     expect(await counts()).toEqual({
-      users: 1, roles: 1, grants: 1, unit_types: 2, spaces: 5,
+      users: 2, roles: 1, grants: 2, unit_types: 2, spaces: 5,
       sellables: 5, facts: 12, events: 12,
     });
   });
@@ -115,7 +118,8 @@ databaseDescribe("Order 046 reproducible local-review seed", () => {
 
   test("P3: identical rerun is an exact no-op", async () => {
     const before = await counts();
-    const second = await runReviewSeed({ databaseUrl: DATABASE_URL!, password: PASSWORD!, logger: () => undefined });
+    const second = await runReviewSeed({ databaseUrl: DATABASE_URL!, password: PASSWORD!,
+      approverPassword: APPROVER_PASSWORD!, logger: () => undefined });
     expect(second).toMatchObject({
       unitTypes: { created: 0, existing: 2 },
       rooms: { created: 0, existing: 5 },
@@ -126,13 +130,34 @@ databaseDescribe("Order 046 reproducible local-review seed", () => {
 
   test("P4: same identity with a different password fails without mutation", async () => {
     const before = await counts();
-    await expect(runReviewSeed({ databaseUrl: DATABASE_URL!, password: `${PASSWORD!}-collision`, logger: () => undefined }))
+    await expect(runReviewSeed({ databaseUrl: DATABASE_URL!, password: `${PASSWORD!}-collision`,
+      approverPassword: APPROVER_PASSWORD!, logger: () => undefined }))
       .rejects.toThrow("Review user collides with non-canonical local-review data");
     expect(await counts()).toEqual(before);
     const users = await admin<Array<{ auth: unknown }>>`
       SELECT auth FROM app_user WHERE id = ${first.userId}::uuid
     `;
     expect(await verifyLocalPassword(PASSWORD!, users[0]?.auth)).toBe(true);
+  });
+
+  test("Order 077 P3: a divergent or shared approver secret fails atomically", async () => {
+    const before = await counts();
+    await expect(runReviewSeed({ databaseUrl: DATABASE_URL!, password: PASSWORD!,
+      approverPassword: `${APPROVER_PASSWORD!}-collision`, logger: () => undefined }))
+      .rejects.toThrow("Review approver collides with non-canonical local-review data");
+    await expect(runReviewSeed({ databaseUrl: DATABASE_URL!, password: PASSWORD!,
+      approverPassword: PASSWORD!, logger: () => undefined }))
+      .rejects.toThrow("approverPassword must be distinct from password");
+    expect(await counts()).toEqual(before);
+    const users = await admin<Array<{ id: string; auth: unknown }>>`
+      SELECT id, auth FROM app_user
+      WHERE id IN (${first.userId}::uuid, ${first.approverUserId}::uuid)
+      ORDER BY id
+    `;
+    const requester = users.find(({ id }) => id === first.userId);
+    const approver = users.find(({ id }) => id === first.approverUserId);
+    expect(await verifyLocalPassword(PASSWORD!, requester?.auth)).toBe(true);
+    expect(await verifyLocalPassword(APPROVER_PASSWORD!, approver?.auth)).toBe(true);
   });
 
   test("P5: login is least-scope and availability returns five real options", async () => {
@@ -151,6 +176,20 @@ databaseDescribe("Order 046 reproducible local-review seed", () => {
     const loginBody = await login.json() as { accessToken: string };
     expect(await tokens.verify(loginBody.accessToken)).toMatchObject({
       sub: first.userId,
+      tid: SEED_TENANT.id,
+      scp: "inventory.availability:read inventory.blocks:read inventory.blocks:write inventory.configuration:read inventory.configuration:write inventory.holds:read inventory.holds:write inventory.offline_leases:read inventory.offline_leases:write inventory.policy:read inventory.policy:write inventory.restriction:read inventory.restriction:write rates.configuration:read rates.configuration:write rates.pricing:read rates.pricing:write",
+    });
+    const approverLogin = await app.handle(new Request("http://yellow.test/api/v1/auth/local:login", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ tenant: SEED_TENANT.slug, email: REVIEW_APPROVER_EMAIL,
+        password: APPROVER_PASSWORD }),
+    }));
+    expect(approverLogin.status).toBe(200);
+    const approverLoginBody = await approverLogin.json() as { accessToken: string };
+    expect(approverLoginBody.accessToken).not.toBe(loginBody.accessToken);
+    expect(await tokens.verify(approverLoginBody.accessToken)).toMatchObject({
+      sub: first.approverUserId,
       tid: SEED_TENANT.id,
       scp: "inventory.availability:read inventory.blocks:read inventory.blocks:write inventory.configuration:read inventory.configuration:write inventory.holds:read inventory.holds:write inventory.offline_leases:read inventory.offline_leases:write inventory.policy:read inventory.policy:write inventory.restriction:read inventory.restriction:write rates.configuration:read rates.configuration:write rates.pricing:read rates.pricing:write",
     });

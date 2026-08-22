@@ -42,3 +42,26 @@ test("Order 076 P3: immutable rate history is inspectable and only copied as an 
   expect(script).not.toMatch(/innerHTML|outerHTML|insertAdjacentHTML|localStorage|sessionStorage|document\.cookie/);
   expect(script).not.toMatch(BROWSER_SQL_SYNTAX);
 });
+
+test("Order 077 P4: approval inbox exposes only server-authorized deliberate actions", async () => {
+  const html = await Bun.file(new URL("../src/http/operator/index.html", import.meta.url)).text();
+  const css = await Bun.file(new URL("../src/http/operator/operator.css", import.meta.url)).text();
+  const script = await Bun.file(new URL("../src/http/operator/operator.js", import.meta.url)).text();
+  expect(html).toContain('id="builder-approval-inbox"');
+  expect(html).toContain('id="builder-refresh-approvals"');
+  expect(html).toContain('id="builder-load-more-approvals"');
+  expect(html).toContain('id="builder-selected-approval"');
+  expect(html).toContain("Only the operator who approved the latest draft may publish it");
+  expect(html).not.toContain('id="builder-approval-id"');
+  expect(css).toContain(".approval-inbox-row");
+  expect(css).toContain('.approval-inbox-row[data-status="approved"]');
+  expect(script).toContain("approval.canDecide");
+  expect(script).toContain("approval.canPublish");
+  expect(script).toContain("selectedRateApprovalId");
+  expect(script).toContain("builderSimulationReleaseId === builderReleaseId");
+  expect(script).toContain("/approvals?limit=50");
+  expect(script).toContain("/decision");
+  expect(script).not.toContain("builderApprovalId");
+  expect(script).not.toMatch(/innerHTML|outerHTML|insertAdjacentHTML|localStorage|sessionStorage|document\.cookie|setInterval|EventSource|WebSocket/);
+  expect(script).not.toMatch(BROWSER_SQL_SYNTAX);
+});

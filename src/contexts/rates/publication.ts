@@ -1,8 +1,11 @@
+import { Buffer } from "node:buffer";
+
 import {
   ApprovalService,
   ExtensionRegistry,
   recordFact,
   type ApprovalRequest,
+  type ApprovalStatus,
   type AuditEnvelope,
   type EventBus,
   type ExtensionInstance,
@@ -208,6 +211,40 @@ export interface PublishRatePublicationInput extends SimulateRatePublicationInpu
   readonly envelope: AuditEnvelope;
 }
 
+export interface ListRatePublicationApprovalsInput {
+  readonly propertyNode: string;
+  readonly ratePlanId: string;
+  readonly after?: string;
+  readonly limit?: number;
+}
+
+export interface DecideRatePublicationApprovalInput {
+  readonly propertyNode: string;
+  readonly ratePlanId: string;
+  readonly approvalId: string;
+  readonly decision: "approved" | "rejected";
+  readonly decidedBy: string;
+  readonly envelope: AuditEnvelope;
+}
+
+export interface RatePublicationApprovalView {
+  readonly id: string;
+  readonly releaseId: string;
+  readonly releaseVersion: number;
+  readonly releaseStatus: ReleaseStatus;
+  readonly releaseIsLatest: boolean;
+  readonly status: ApprovalStatus;
+  readonly requestedBy: Readonly<{ id: string; displayName: string }>;
+  readonly decidedBy: Readonly<{ id: string; displayName: string }> | null;
+  readonly createdAt: Date;
+  readonly decidedAt: Date | null;
+}
+
+export interface RatePublicationApprovalPage {
+  readonly approvals: readonly RatePublicationApprovalView[];
+  readonly nextCursor: string | null;
+}
+
 export interface CreateRatePublicationUndoInput {
   readonly sourceReleaseId: string;
   readonly envelope: AuditEnvelope;
@@ -252,6 +289,31 @@ interface ApprovalRow {
   readonly decided_by: string | null;
 }
 
+interface RateApprovalViewRow {
+  readonly id: string;
+  readonly subject_id: string;
+  readonly status: ApprovalStatus;
+  readonly requested_by: string;
+  readonly requested_by_name: string;
+  readonly decided_by: string | null;
+  readonly decided_by_name: string | null;
+  readonly decided_at: Date | null;
+  readonly created_at: Date;
+  readonly release_version: number;
+  readonly release_status: ReleaseStatus;
+  readonly release_is_latest: boolean;
+}
+
+interface RateApprovalDecisionRow extends RateApprovalViewRow {
+  readonly decision_actor_id: string;
+  readonly decision_actor_name: string;
+}
+
+interface RateApprovalCursor {
+  readonly createdAt: Date;
+  readonly id: string;
+}
+
 function isObject(value: unknown): value is JsonObject {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
@@ -292,6 +354,58 @@ function requireOperation(envelope: AuditEnvelope, operation: string): void {
   if (envelope.operation !== operation) {
     throw new RatePublicationError(`audit operation must be ${operation}`);
   }
+}
+
+function encodeApprovalCursor(createdAt: Date, id: string): string {
+  return Buffer.from(JSON.stringify({ createdAt: createdAt.toISOString(), id }), "utf8").toString("base64url");
+}
+
+function decodeApprovalCursor(value: unknown): RateApprovalCursor | null {
+  if (value === undefined) return null;
+  if (typeof value !== "string" || !/^[A-Za-z0-9_-]{1,512}$/.test(value)) {
+    throw new RatePublicationError("approval cursor is invalid");
+  }
+  let decoded: string;
+  try {
+    decoded = Buffer.from(value, "base64url").toString("utf8");
+  } catch {
+    throw new RatePublicationError("approval cursor is invalid");
+  }
+  if (Buffer.from(decoded, "utf8").toString("base64url") !== value) {
+    throw new RatePublicationError("approval cursor is not canonical");
+  }
+  let raw: unknown;
+  try {
+    raw = JSON.parse(decoded);
+  } catch {
+    throw new RatePublicationError("approval cursor is invalid");
+  }
+  const source = requireObject(raw, "approval cursor");
+  requireOnlyKeys(source, ["createdAt", "id"], "approval cursor");
+  requireFields(source, ["createdAt", "id"], "approval cursor");
+  if (typeof source.createdAt !== "string") throw new RatePublicationError("approval cursor timestamp is invalid");
+  const createdAt = new Date(source.createdAt);
+  if (!Number.isFinite(createdAt.getTime()) || createdAt.toISOString() !== source.createdAt) {
+    throw new RatePublicationError("approval cursor timestamp is invalid");
+  }
+  return Object.freeze({ createdAt, id: requireUuid("approval cursor id", source.id) });
+}
+
+function toRateApprovalView(row: RateApprovalViewRow): RatePublicationApprovalView {
+  return Object.freeze({
+    id: row.id,
+    releaseId: row.subject_id,
+    releaseVersion: row.release_version,
+    releaseStatus: row.release_status,
+    releaseIsLatest: row.release_is_latest,
+    status: row.status,
+    requestedBy: Object.freeze({ id: row.requested_by, displayName: row.requested_by_name }),
+    decidedBy: row.decided_by === null || row.decided_by_name === null
+      ? null
+      : Object.freeze({ id: row.decided_by, displayName: row.decided_by_name }),
+    createdAt: row.created_at,
+    decidedAt: row.decided_at,
+  });
 }
 
 function exactJson(value: unknown, subject: string): unknown {
@@ -847,6 +961,217 @@ export class RatePublicationService {
       envelope: input.envelope,
     });
     return Object.freeze({ approval, simulation });
+  }
+
+  async listPublicationApprovals(
+    tx: Tx,
+    input: ListRatePublicationApprovalsInput,
+  ): Promise<RatePublicationApprovalPage> {
+    const source = requireObject(input, "rate publication approval page");
+    requireOnlyKeys(source, ["propertyNode", "ratePlanId", "after", "limit"], "rate publication approval page");
+    requireFields(source, ["propertyNode", "ratePlanId"], "rate publication approval page");
+    const tenantId = await activeTenantId(tx);
+    const propertyNode = requireUuid("propertyNode", source.propertyNode);
+    const ratePlanId = requireUuid("ratePlanId", source.ratePlanId);
+    await requireActivePlan(tx, tenantId, propertyNode, ratePlanId);
+    const limit = source.limit === undefined ? 50 : source.limit;
+    if (!Number.isSafeInteger(limit) || (limit as number) < 1 || (limit as number) > 100) {
+      throw new RatePublicationError("approval page limit must be an integer from 1 to 100");
+    }
+    const cursor = decodeApprovalCursor(source.after);
+    const pageSize = limit as number;
+    const rows = cursor === null
+      ? await tx<RateApprovalViewRow[]>`
+          SELECT
+            approval.id,
+            approval.subject_id,
+            approval.status,
+            approval.requested_by,
+            requester.display_name AS requested_by_name,
+            approval.decided_by,
+            decider.display_name AS decided_by_name,
+            approval.decided_at,
+            approval.created_at,
+            release.version AS release_version,
+            release.status AS release_status,
+            release.version = (
+              SELECT max(candidate.version)::int
+              FROM extension AS candidate
+              WHERE candidate.tenant_id = release.tenant_id
+                AND candidate.type = ${RELEASE_TYPE}
+                AND candidate.key = release.key
+            ) AS release_is_latest
+          FROM approval_request AS approval
+          JOIN extension AS release
+            ON release.tenant_id = approval.tenant_id
+           AND release.id = approval.subject_id
+           AND release.type = ${RELEASE_TYPE}
+           AND release.key = ${`rate-plan:${ratePlanId}`}
+           AND release.content ->> 'property_node' = ${propertyNode}
+           AND release.content ->> 'rate_plan_id' = ${ratePlanId}
+          JOIN app_user AS requester
+            ON requester.tenant_id = approval.tenant_id
+           AND requester.id = approval.requested_by
+          LEFT JOIN app_user AS decider
+            ON decider.tenant_id = approval.tenant_id
+           AND decider.id = approval.decided_by
+          WHERE approval.tenant_id = ${tenantId}::uuid
+            AND approval.tenant_id = current_setting('app.tenant_id', true)::uuid
+            AND approval.kind = ${RELEASE_TYPE}
+            AND approval.subject_type = 'extension'
+            AND approval.payload ->> 'rate_plan_id' = ${ratePlanId}
+          ORDER BY approval.created_at DESC, approval.id DESC
+          LIMIT ${pageSize + 1}
+        `
+      : await tx<RateApprovalViewRow[]>`
+          SELECT
+            approval.id,
+            approval.subject_id,
+            approval.status,
+            approval.requested_by,
+            requester.display_name AS requested_by_name,
+            approval.decided_by,
+            decider.display_name AS decided_by_name,
+            approval.decided_at,
+            approval.created_at,
+            release.version AS release_version,
+            release.status AS release_status,
+            release.version = (
+              SELECT max(candidate.version)::int
+              FROM extension AS candidate
+              WHERE candidate.tenant_id = release.tenant_id
+                AND candidate.type = ${RELEASE_TYPE}
+                AND candidate.key = release.key
+            ) AS release_is_latest
+          FROM approval_request AS approval
+          JOIN extension AS release
+            ON release.tenant_id = approval.tenant_id
+           AND release.id = approval.subject_id
+           AND release.type = ${RELEASE_TYPE}
+           AND release.key = ${`rate-plan:${ratePlanId}`}
+           AND release.content ->> 'property_node' = ${propertyNode}
+           AND release.content ->> 'rate_plan_id' = ${ratePlanId}
+          JOIN app_user AS requester
+            ON requester.tenant_id = approval.tenant_id
+           AND requester.id = approval.requested_by
+          LEFT JOIN app_user AS decider
+            ON decider.tenant_id = approval.tenant_id
+           AND decider.id = approval.decided_by
+          WHERE approval.tenant_id = ${tenantId}::uuid
+            AND approval.tenant_id = current_setting('app.tenant_id', true)::uuid
+            AND approval.kind = ${RELEASE_TYPE}
+            AND approval.subject_type = 'extension'
+            AND approval.payload ->> 'rate_plan_id' = ${ratePlanId}
+            AND (approval.created_at, approval.id) < (${cursor.createdAt}::timestamptz, ${cursor.id}::uuid)
+          ORDER BY approval.created_at DESC, approval.id DESC
+          LIMIT ${pageSize + 1}
+        `;
+    const hasMore = rows.length > pageSize;
+    const visible = rows.slice(0, pageSize);
+    const last = visible.at(-1);
+    return Object.freeze({
+      approvals: Object.freeze(visible.map(toRateApprovalView)),
+      nextCursor: hasMore && last ? encodeApprovalCursor(last.created_at, last.id) : null,
+    });
+  }
+
+  async decidePublicationApproval(
+    tx: Tx,
+    input: DecideRatePublicationApprovalInput,
+  ): Promise<RatePublicationApprovalView> {
+    requireOperation(input.envelope, "rate_plan_release.approval_decided");
+    const source = requireObject(input, "rate publication approval decision");
+    requireOnlyKeys(source, [
+      "propertyNode", "ratePlanId", "approvalId", "decision", "decidedBy", "envelope",
+    ], "rate publication approval decision");
+    requireFields(source, [
+      "propertyNode", "ratePlanId", "approvalId", "decision", "decidedBy", "envelope",
+    ], "rate publication approval decision");
+    if (source.decision !== "approved" && source.decision !== "rejected") {
+      throw new RatePublicationError("human approval decision must be approved or rejected");
+    }
+    const tenantId = await activeTenantId(tx);
+    if (input.envelope.tenantId !== tenantId) {
+      throw new RatePublicationNotFoundError("Audit tenant does not match active tenant");
+    }
+    const propertyNode = requireUuid("propertyNode", source.propertyNode);
+    const ratePlanId = requireUuid("ratePlanId", source.ratePlanId);
+    const approvalId = requireUuid("approvalId", source.approvalId);
+    const decidedBy = requireUuid("decidedBy", source.decidedBy);
+    if (input.envelope.actorId !== decidedBy) {
+      throw new RatePublicationError("approval decider must match the authenticated audit actor");
+    }
+    if (input.envelope.propertyNode !== propertyNode) {
+      throw new RatePublicationNotFoundError("Audit property does not match approval scope");
+    }
+    await requireActivePlan(tx, tenantId, propertyNode, ratePlanId);
+    const rows = await tx<RateApprovalDecisionRow[]>`
+      SELECT
+        approval.id,
+        approval.subject_id,
+        approval.status,
+        approval.requested_by,
+        requester.display_name AS requested_by_name,
+        approval.decided_by,
+        decider.display_name AS decided_by_name,
+        approval.decided_at,
+        approval.created_at,
+        release.version AS release_version,
+        release.status AS release_status,
+        release.version = (
+          SELECT max(candidate.version)::int
+          FROM extension AS candidate
+          WHERE candidate.tenant_id = release.tenant_id
+            AND candidate.type = ${RELEASE_TYPE}
+            AND candidate.key = release.key
+        ) AS release_is_latest,
+        decision_actor.id AS decision_actor_id,
+        decision_actor.display_name AS decision_actor_name
+      FROM approval_request AS approval
+      JOIN extension AS release
+        ON release.tenant_id = approval.tenant_id
+       AND release.id = approval.subject_id
+       AND release.type = ${RELEASE_TYPE}
+       AND release.key = ${`rate-plan:${ratePlanId}`}
+       AND release.content ->> 'property_node' = ${propertyNode}
+       AND release.content ->> 'rate_plan_id' = ${ratePlanId}
+      JOIN app_user AS requester
+        ON requester.tenant_id = approval.tenant_id
+       AND requester.id = approval.requested_by
+      LEFT JOIN app_user AS decider
+        ON decider.tenant_id = approval.tenant_id
+       AND decider.id = approval.decided_by
+      JOIN app_user AS decision_actor
+        ON decision_actor.tenant_id = approval.tenant_id
+       AND decision_actor.id = ${decidedBy}::uuid
+       AND decision_actor.status = 'active'
+      WHERE approval.id = ${approvalId}::uuid
+        AND approval.tenant_id = ${tenantId}::uuid
+        AND approval.tenant_id = current_setting('app.tenant_id', true)::uuid
+        AND approval.kind = ${RELEASE_TYPE}
+        AND approval.subject_type = 'extension'
+        AND approval.payload ->> 'rate_plan_id' = ${ratePlanId}
+      FOR UPDATE OF approval
+    `;
+    const row = rows[0];
+    if (!row) throw new RatePublicationNotFoundError("Rate publication approval was not found");
+    if (row.status !== "pending") {
+      throw new RatePublicationConflictError(`Illegal approval transition ${row.status} -> ${source.decision}`);
+    }
+    if (row.requested_by === decidedBy) throw new RatePublicationConflictError("Self-approval is forbidden");
+    const decided = await this.#approvals.decide(tx, {
+      approvalId,
+      decision: source.decision,
+      decidedBy,
+      envelope: input.envelope,
+    });
+    return toRateApprovalView({
+      ...row,
+      status: decided.status,
+      decided_by: decided.decidedBy,
+      decided_by_name: row.decision_actor_name,
+      decided_at: decided.decidedAt,
+    });
   }
 
   async publishDraft(

@@ -320,11 +320,14 @@ interface RateBuilderOperations {
   readonly targets: Pick<RateTargetService, "createDraftVersion" | "listDraftVersions">;
   readonly publication: Pick<RatePublicationService,
     "createDraftVersion" | "simulateDraft" | "requestPublicationApproval" |
+    "listPublicationApprovals" | "decidePublicationApproval" |
     "publishDraft" | "createUndoDraftVersion" | "listReleaseVersions"
   >;
   readonly quote: Pick<RateQuoteService, "resolve">;
   readonly intent?: Pick<RateIntentService, "interpret">;
 }
+
+type RatePublicationApprovalView = Awaited<ReturnType<RatePublicationService["listPublicationApprovals"]>>["approvals"][number];
 
 const RELEASE_POLICY_FIELDS = Object.freeze([
   ["cancellation", "cancellationPolicyId"],
@@ -547,6 +550,41 @@ function rateBuilderJsonValue(value: unknown): JsonValue {
       .map(([key, entry]) => [key, rateBuilderJsonValue(entry)])) as JsonValue;
   }
   return value as JsonValue;
+}
+
+function parseRateApprovalPage(request: Request): { after?: string; limit?: number } | null {
+  const query = new URL(request.url).searchParams;
+  const allowed = new Set(["after", "limit"]);
+  if ([...query.keys()].some((key) => !allowed.has(key)) ||
+      [...allowed].some((key) => query.getAll(key).length > 1)) return null;
+  const after = query.get("after");
+  const rawLimit = query.get("limit");
+  if (after !== null && !/^[A-Za-z0-9_-]{1,512}$/.test(after)) return null;
+  if (rawLimit !== null && !/^(?:[1-9]|[1-9][0-9]|100)$/.test(rawLimit)) return null;
+  return {
+    ...(after === null ? {} : { after }),
+    ...(rawLimit === null ? {} : { limit: Number(rawLimit) }),
+  };
+}
+
+function rateApprovalJson(approval: RatePublicationApprovalView, actorId: string): JsonValue {
+  const canDecide = approval.status === "pending" && approval.requestedBy.id !== actorId;
+  const canPublish = approval.status === "approved" && approval.decidedBy?.id === actorId &&
+    approval.releaseStatus === "draft" && approval.releaseIsLatest;
+  return rateBuilderJsonValue({
+    id: approval.id,
+    releaseId: approval.releaseId,
+    releaseVersion: approval.releaseVersion,
+    releaseStatus: approval.releaseStatus,
+    releaseIsLatest: approval.releaseIsLatest,
+    status: approval.status,
+    requestedBy: approval.requestedBy,
+    decidedBy: approval.decidedBy,
+    createdAt: approval.createdAt,
+    decidedAt: approval.decidedAt,
+    canDecide,
+    canPublish,
+  });
 }
 
 function releaseAuthoringCommand(
@@ -1564,6 +1602,82 @@ export class OperatorHttpApi {
     );
   }
 
+  async rateBuilderApprovals(
+    context: TenantRequestContext,
+    propertyNode: string,
+    ratePlanId: string,
+  ): Promise<Response> {
+    if (!hasScope(context, RATE_WRITE_SCOPE)) {
+      return apiError(context.request, 403, "auth/scope_missing", "Forbidden", "Rate configuration changes are not granted");
+    }
+    if (!UUID.test(propertyNode) || !UUID.test(ratePlanId)) {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Property or rate-plan identifier is invalid");
+    }
+    const pageInput = parseRateApprovalPage(context.request);
+    if (!pageInput) {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Approval page query is invalid");
+    }
+    if (!this.#rateBuilder) return this.unavailable(context.request);
+    const grants = await listGrantedProperties(context, RATE_WRITE_SCOPE);
+    if (!grants.some(({ id }) => id === propertyNode)) {
+      return apiError(context.request, 403, "auth/property_forbidden", "Forbidden", "Property access is not granted");
+    }
+    const page = await this.#rateBuilder.publication.listPublicationApprovals(context.tx, {
+      propertyNode,
+      ratePlanId,
+      ...pageInput,
+    });
+    return apiResponse(context.request, {
+      approvals: page.approvals.map((approval) => rateApprovalJson(approval, context.identity.actorId)),
+      nextCursor: page.nextCursor,
+    });
+  }
+
+  async decideRateBuilderApproval(
+    context: TenantRequestContext,
+    propertyNode: string,
+    ratePlanId: string,
+    approvalId: string,
+    body: unknown,
+  ): Promise<Response> {
+    if (!isObject(body) || !exactKeys(body, ["decision"]) ||
+        (body.decision !== "approved" && body.decision !== "rejected")) {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Approval decision input is invalid");
+    }
+    if (!hasScope(context, RATE_WRITE_SCOPE)) {
+      return apiError(context.request, 403, "auth/scope_missing", "Forbidden", "Rate configuration changes are not granted");
+    }
+    if (!UUID.test(propertyNode) || !UUID.test(ratePlanId) || !UUID.test(approvalId)) {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Property, rate-plan or approval identifier is invalid");
+    }
+    if (!this.#rateBuilder) return this.unavailable(context.request);
+    const grants = await listGrantedProperties(context, RATE_WRITE_SCOPE);
+    if (!grants.some(({ id }) => id === propertyNode)) {
+      return apiError(context.request, 403, "auth/property_forbidden", "Forbidden", "Property access is not granted");
+    }
+    const actorId = context.identity.actorId;
+    return this.#runRateBuilderWrite(
+      context,
+      actorId,
+      propertyNode,
+      { ratePlanId, approvalId, body },
+      "operator.rates.release.approval_decision",
+      async (tx, requestId) => ({ approval: rateApprovalJson(
+        await this.#rateBuilder!.publication.decidePublicationApproval(tx, {
+          propertyNode,
+          ratePlanId,
+          approvalId,
+          decision: body.decision as "approved" | "rejected",
+          decidedBy: actorId,
+          envelope: createAuditEnvelope({ actorId, tenantId: context.tenantId,
+            propertyNode, requestId, operation: "rate_plan_release.approval_decided" }),
+        }),
+        actorId,
+      ) }),
+      200,
+    );
+  }
+
   async publishRateBuilderDraft(
     context: TenantRequestContext,
     propertyNode: string,
@@ -1646,6 +1760,7 @@ export class OperatorHttpApi {
     requestBody: unknown,
     operation: string,
     command: (tx: Tx, requestId: string, actorId: string) => Promise<unknown>,
+    successStatus = 201,
   ): Promise<Response> {
     const requestId = correlationId(context.request);
     const outcome = await this.#idempotency.execute(context.tx, {
@@ -1653,7 +1768,7 @@ export class OperatorHttpApi {
       operation,
       key: context.request.headers.get("idempotency-key") ?? "",
       request: { propertyNode, body: requestBody },
-    }, async (tx) => ({ status: 201, body: rateBuilderJsonValue(await command(tx, requestId, actorId)) }));
+    }, async (tx) => ({ status: successStatus, body: rateBuilderJsonValue(await command(tx, requestId, actorId)) }));
     return apiResponse(context.request, outcome.body, outcome.status, {
       "idempotency-replayed": String(outcome.replayed),
       "x-correlation-id": requestId,
