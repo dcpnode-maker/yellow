@@ -144,9 +144,11 @@ PR and do not merge.
   fresh app-never-started referee 11/11. Protected hashes remain
   `fe2a9fc949c6bacded3f8d3fc4d14fc596a83ebde9aeb043eb10845f07b30923` and
   `3228279bd99a8f9b6af99748f31d4d4b482a8e627e16d92644d9d859ad8befa1`.
-- Graphify refreshed code-only with zero token/API cost to 4,737 nodes, 8,347 directed edges and
+- Graphify refreshed code-only with zero token/API cost to 4,738 nodes, 8,348 directed edges and
   517 communities. Diagnostics report zero missing/dangling endpoints, duplicates or collapsed
   directed pairs; ten inherited self-loops remain visible as a parser limitation.
+- Draft PR #64 run `32605943315` passed quality, Windows state, container smoke and the expanded
+  database job at `939bb14`; the database job completed in 1m58s. This evidence remains UNVERIFIED.
 - Independent review remains exact through Order 044. Order 083 and every later builder result are
   recorded `UNVERIFIED`; this correction is neither self-review nor approval.
 
