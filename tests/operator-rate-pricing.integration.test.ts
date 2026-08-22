@@ -237,6 +237,8 @@ databaseDescribe("Order 051 operator rate-price management", () => {
     const js = await (await request("/assets/operator.js")).text();
     expect(html).toContain('id="rate-price-form"');
     expect(html).toContain('id="current-price-form"');
+    expect(html).toContain('id="create-tier-list"');
+    expect(html).toContain('id="add-create-tier"');
     expect(html).toContain("Exact minor units");
     expect(css).toContain(':root[data-theme="pixel"]');
     expect(js).toContain("BigInt");

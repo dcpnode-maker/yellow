@@ -23,6 +23,7 @@ import {
   type CreateRatePriceInput,
   type CreateRatePlanInput,
   type PolicyKind,
+  type RatePricingInput,
 } from "../contexts/rates";
 import {
   createAuditEnvelope,
@@ -195,7 +196,7 @@ type RateOperations = Pick<RateConfigurationService,
   "listPolicies" | "listRatePlans" | "createPolicy" | "createRatePlan"
 >;
 
-type PricingOperations = Pick<RatePricingService, "create" | "findCurrent">;
+type PricingOperations = Pick<RatePricingService, "create" | "findCurrent" | "supersede">;
 
 const MAX_MONEY = 9_223_372_036_854_775_807n;
 
@@ -205,15 +206,11 @@ function parseAmount(value: unknown): bigint | null {
   return amount <= MAX_MONEY ? amount : null;
 }
 
-function parsePricing(body: unknown): Omit<CreateRatePriceInput, "envelope"> | null {
-  if (!isObject(body) || !exactKeys(body, ["ratePlanId", "unitTypeId", "stayStart", "stayEnd", "pricing"], ["dowMask"]) ||
-      typeof body.ratePlanId !== "string" || typeof body.unitTypeId !== "string" ||
-      typeof body.stayStart !== "string" || typeof body.stayEnd !== "string" ||
-      (body.dowMask !== undefined && !Number.isInteger(body.dowMask)) || !isObject(body.pricing) ||
-      !exactKeys(body.pricing, ["occupancy"], ["extraAdultMinor", "extraChildren"]) ||
-      !Array.isArray(body.pricing.occupancy) || body.pricing.occupancy.length === 0) return null;
+function parsePricingValue(value: unknown): RatePricingInput | null {
+  if (!isObject(value) || !exactKeys(value, ["occupancy"], ["extraAdultMinor", "extraChildren"]) ||
+      !Array.isArray(value.occupancy) || value.occupancy.length === 0) return null;
   const occupancy: Record<string, bigint> = {};
-  for (const tier of body.pricing.occupancy) {
+  for (const tier of value.occupancy) {
     if (!isObject(tier) || !exactKeys(tier, ["adults", "amountMinor"]) ||
         !Number.isInteger(tier.adults) || (tier.adults as number) < 1 || (tier.adults as number) > 100 ||
         occupancy[String(tier.adults)] !== undefined) return null;
@@ -221,9 +218,9 @@ function parsePricing(body: unknown): Omit<CreateRatePriceInput, "envelope"> | n
     if (amount === null) return null;
     occupancy[String(tier.adults)] = amount;
   }
-  const extraAdultMinor = body.pricing.extraAdultMinor === undefined ? undefined : parseAmount(body.pricing.extraAdultMinor);
+  const extraAdultMinor = value.extraAdultMinor === undefined ? undefined : parseAmount(value.extraAdultMinor);
   if (extraAdultMinor === null) return null;
-  const rawChildren = body.pricing.extraChildren ?? [];
+  const rawChildren = value.extraChildren ?? [];
   if (!Array.isArray(rawChildren)) return null;
   const extraChildren: Array<{ maxAge: number; amountMinor: bigint }> = [];
   for (const child of rawChildren) {
@@ -232,18 +229,19 @@ function parsePricing(body: unknown): Omit<CreateRatePriceInput, "envelope"> | n
     if (amountMinor === null) return null;
     extraChildren.push({ maxAge: child.maxAge as number, amountMinor });
   }
-  return {
-    ratePlanId: body.ratePlanId,
-    unitTypeId: body.unitTypeId,
-    stayStart: body.stayStart,
-    stayEnd: body.stayEnd,
-    ...(body.dowMask === undefined ? {} : { dowMask: body.dowMask as number }),
-    pricing: {
-      occupancy,
-      ...(extraAdultMinor === undefined ? {} : { extraAdultMinor }),
-      ...(body.pricing.extraChildren === undefined ? {} : { extraChildren }),
-    },
-  };
+  return { occupancy, ...(extraAdultMinor === undefined ? {} : { extraAdultMinor }),
+    ...(value.extraChildren === undefined ? {} : { extraChildren }) };
+}
+
+function parsePricing(body: unknown): Omit<CreateRatePriceInput, "envelope"> | null {
+  if (!isObject(body) || !exactKeys(body, ["ratePlanId", "unitTypeId", "stayStart", "stayEnd", "pricing"], ["dowMask"]) ||
+      typeof body.ratePlanId !== "string" || typeof body.unitTypeId !== "string" ||
+      typeof body.stayStart !== "string" || typeof body.stayEnd !== "string" ||
+      (body.dowMask !== undefined && !Number.isInteger(body.dowMask))) return null;
+  const pricing = parsePricingValue(body.pricing);
+  if (!pricing) return null;
+  return { ratePlanId: body.ratePlanId, unitTypeId: body.unitTypeId, stayStart: body.stayStart,
+    stayEnd: body.stayEnd, ...(body.dowMask === undefined ? {} : { dowMask: body.dowMask as number }), pricing };
 }
 
 function ratePriceJson(price: Awaited<ReturnType<RatePricingService["findCurrent"]>>): JsonValue {
@@ -661,6 +659,40 @@ export class OperatorHttpApi {
           propertyNode, requestId, operation: "rate_price.created" }),
       })) },
     }));
+    return apiResponse(context.request, canonicalJson(outcome.body), outcome.status, {
+      "idempotency-replayed": String(outcome.replayed), "x-correlation-id": requestId,
+    });
+  }
+
+  async supersedeRatePrice(context: TenantRequestContext, propertyNode: string, ratePriceId: string, body: unknown): Promise<Response> {
+    if (!isObject(body) || !exactKeys(body, ["pricing"])) {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Rate correction input is invalid");
+    }
+    const correctedPricing = parsePricingValue(body.pricing);
+    if (!correctedPricing) return apiError(context.request, 400, "request/invalid", "Invalid request", "Rate correction input is invalid");
+    if (!hasScope(context, PRICING_WRITE_SCOPE)) {
+      return apiError(context.request, 403, "auth/scope_missing", "Forbidden", "Rate pricing changes are not granted");
+    }
+    if (!UUID.test(propertyNode) || !UUID.test(ratePriceId)) {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Property or rate-price identifier is invalid");
+    }
+    if (!this.#pricing) return this.unavailable(context.request);
+    const grants = await listGrantedProperties(context, PRICING_WRITE_SCOPE);
+    if (!grants.some(({ id }) => id === propertyNode)) {
+      return apiError(context.request, 403, "auth/property_forbidden", "Forbidden", "Property access is not granted");
+    }
+    const requestId = correlationId(context.request);
+    const outcome = await this.#idempotency.execute(context.tx, {
+      tenantId: context.tenantId, operation: "operator.rates.price.supersede",
+      key: context.request.headers.get("idempotency-key") ?? "",
+      request: { propertyNode, ratePriceId, body },
+    }, async (tx) => ({ status: 201, body: {
+      ratePrice: ratePriceJson(await this.#pricing!.supersede(tx, {
+        ratePriceId, pricing: correctedPricing,
+        envelope: createAuditEnvelope({ actorId: context.identity.actorId, tenantId: context.tenantId,
+          propertyNode, requestId, operation: "rate_price.superseded" }),
+      })),
+    } }));
     return apiResponse(context.request, canonicalJson(outcome.body), outcome.status, {
       "idempotency-replayed": String(outcome.replayed), "x-correlation-id": requestId,
     });

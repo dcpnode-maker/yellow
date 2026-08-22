@@ -110,6 +110,9 @@ export function createApp(options: AppOptions = {}) {
       .post("/api/v1/properties/:property/rate-prices", ({ request, params, body, tenantContext }) =>
         withOperatorTenant(request, (context) => operator.createRatePrice(context, params.property, body))
       )
+      .post("/api/v1/properties/:property/rate-prices/:ratePriceId/supersede", ({ request, params, body, tenantContext }) =>
+        withOperatorTenant(request, (context) => operator.supersedeRatePrice(context, params.property, params.ratePriceId, body))
+      )
       .post("/api/v1/properties/:property/inventory/unit-types", ({ request, params, body, tenantContext }) =>
         withOperatorTenant(request, (context) => operator.createUnitType(context, params.property, body))
       )

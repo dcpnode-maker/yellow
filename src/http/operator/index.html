@@ -333,15 +333,18 @@
                 <label><input type="checkbox" name="weekday" value="32" checked> Sat</label>
                 <label><input type="checkbox" name="weekday" value="64" checked> Sun</label>
               </fieldset>
-              <div class="occupancy-tier"><label>Adults<input name="adults1" value="1" readonly></label><label>Exact minor units<input name="amount1" inputmode="numeric" pattern="0|[1-9][0-9]*" required placeholder="12500"></label></div>
-              <div class="occupancy-tier"><label>Adults<input name="adults2" type="number" min="2" max="100" value="2"></label><label>Second tier (optional)<input name="amount2" inputmode="numeric" pattern="0|[1-9][0-9]*" placeholder="15000"></label></div>
-              <label class="check-field"><input id="price-advanced-toggle" type="checkbox"> Add extra-person pricing</label>
-              <fieldset class="progressive-fields" id="price-advanced-fields" hidden>
-                <legend>Optional extras</legend>
-                <label>Extra adult · minor units<input name="extraAdultMinor" inputmode="numeric" pattern="0|[1-9][0-9]*"></label>
-                <div class="occupancy-tier"><label>Child maximum age<input name="childMaxAge" type="number" min="0" max="17"></label><label>Child · minor units<input name="childAmountMinor" inputmode="numeric" pattern="0|[1-9][0-9]*"></label></div>
+              <fieldset class="progressive-fields pricing-editor">
+                <legend>Occupancy tiers</legend>
+                <div class="pricing-row-list" id="create-tier-list"></div>
+                <button class="quiet compact" id="add-create-tier" type="button">Add occupancy tier</button>
               </fieldset>
-              <p class="field-note">This creates new history. Corrections and supersession are deliberately unavailable in this step.</p>
+              <label>Extra adult · minor units (optional)<input id="create-extra-adult" inputmode="numeric" pattern="0|[1-9][0-9]*"></label>
+              <fieldset class="progressive-fields pricing-editor">
+                <legend>Child age bands (optional)</legend>
+                <div class="pricing-row-list" id="create-child-list"></div>
+                <button class="quiet compact" id="add-create-child" type="button">Add child band</button>
+              </fieldset>
+              <p class="field-note">This form creates new history. To correct an existing price, find its current row below and create a locked successor.</p>
               <button class="primary" type="submit">Create exact price</button>
               <p class="form-message" role="status" aria-live="polite"></p>
             </form>
@@ -354,6 +357,26 @@
               <label>Stay date<input name="stayDate" type="date" required></label>
               <button class="secondary" type="submit">Find current price</button>
               <div class="current-price-result" id="current-price-result" aria-live="polite">Choose a plan, room type and stay date.</div>
+              <button class="quiet" id="load-price-correction" type="button" hidden>Correct this current price</button>
+              <p class="form-message" role="status" aria-live="polite"></p>
+            </form>
+
+            <form class="configuration-form card correction-form" id="rate-correction-form" hidden>
+              <p class="step">Audited correction</p><h3>Create immutable successor</h3>
+              <p class="field-note">This creates new history and locks the source price’s plan, room type, dates, weekdays and currency. The existing row is never edited.</p>
+              <div class="locked-price-key" id="correction-key-summary"></div>
+              <fieldset class="progressive-fields pricing-editor">
+                <legend>Replacement occupancy tiers</legend>
+                <div class="pricing-row-list" id="correction-tier-list"></div>
+                <button class="quiet compact" id="add-correction-tier" type="button">Add occupancy tier</button>
+              </fieldset>
+              <label>Extra adult · minor units (optional)<input id="correction-extra-adult" inputmode="numeric" pattern="0|[1-9][0-9]*"></label>
+              <fieldset class="progressive-fields pricing-editor">
+                <legend>Replacement child age bands</legend>
+                <div class="pricing-row-list" id="correction-child-list"></div>
+                <button class="quiet compact" id="add-correction-child" type="button">Add child band</button>
+              </fieldset>
+              <button class="primary" type="submit">Create corrected successor</button>
               <p class="form-message" role="status" aria-live="polite"></p>
             </form>
           </div>

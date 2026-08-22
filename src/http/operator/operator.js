@@ -7,6 +7,8 @@
   let inventoryData = { unitTypes: [], spaces: [], sellableUnits: [] };
   let restrictionsData = [];
   let rateData = { policies: [], ratePlans: [] };
+  let currentRatePrice = null;
+  let pricingRowSequence = 0;
   const pendingKeys = new Map();
 
   const loginView = document.querySelector("#login-view");
@@ -76,9 +78,20 @@
   const priceUnitType = document.querySelector("#price-unit-type");
   const currentPricePlan = document.querySelector("#current-price-plan");
   const currentPriceUnitType = document.querySelector("#current-price-unit-type");
-  const priceAdvancedToggle = document.querySelector("#price-advanced-toggle");
-  const priceAdvancedFields = document.querySelector("#price-advanced-fields");
+  const createTierList = document.querySelector("#create-tier-list");
+  const addCreateTier = document.querySelector("#add-create-tier");
+  const createExtraAdult = document.querySelector("#create-extra-adult");
+  const createChildList = document.querySelector("#create-child-list");
+  const addCreateChild = document.querySelector("#add-create-child");
   const currentPriceResult = document.querySelector("#current-price-result");
+  const loadPriceCorrectionButton = document.querySelector("#load-price-correction");
+  const rateCorrectionForm = document.querySelector("#rate-correction-form");
+  const correctionKeySummary = document.querySelector("#correction-key-summary");
+  const correctionTierList = document.querySelector("#correction-tier-list");
+  const addCorrectionTier = document.querySelector("#add-correction-tier");
+  const correctionExtraAdult = document.querySelector("#correction-extra-adult");
+  const correctionChildList = document.querySelector("#correction-child-list");
+  const addCorrectionChild = document.querySelector("#add-correction-child");
   const MAX_MINOR = BigInt("9223372036854775807");
 
   function applyTheme(theme) {
@@ -134,6 +147,9 @@
     inventoryData = { unitTypes: [], spaces: [], sellableUnits: [] };
     restrictionsData = [];
     rateData = { policies: [], ratePlans: [] };
+    currentRatePrice = null;
+    loadPriceCorrectionButton.hidden = true;
+    rateCorrectionForm.hidden = true;
     pendingKeys.clear();
     history.replaceState(null, "", "/");
     loginForm.elements.password.value = "";
@@ -513,6 +529,97 @@
     return text;
   }
 
+  function pricingEditorRow(kind, firstValue = "", amountValue = "") {
+    pricingRowSequence += 1;
+    const row = document.createElement("div");
+    row.className = "pricing-editor-row";
+    row.dataset.kind = kind;
+
+    const firstLabel = document.createElement("label");
+    const firstText = kind === "tier" ? "Adults" : "Maximum child age";
+    firstLabel.textContent = firstText;
+    const first = document.createElement("input");
+    first.type = "number";
+    first.required = true;
+    first.min = kind === "tier" ? "1" : "0";
+    first.max = kind === "tier" ? "100" : "17";
+    first.step = "1";
+    first.value = String(firstValue);
+    first.dataset.field = kind === "tier" ? "adults" : "maxAge";
+    first.setAttribute("aria-label", `${firstText} row ${pricingRowSequence}`);
+    firstLabel.append(first);
+
+    const amountLabel = document.createElement("label");
+    amountLabel.textContent = "Exact minor units";
+    const amount = document.createElement("input");
+    amount.required = true;
+    amount.inputMode = "numeric";
+    amount.pattern = "0|[1-9][0-9]*";
+    amount.value = String(amountValue);
+    amount.dataset.field = "amountMinor";
+    amount.setAttribute("aria-label", `Exact minor units row ${pricingRowSequence}`);
+    amountLabel.append(amount);
+
+    const remove = document.createElement("button");
+    remove.type = "button";
+    remove.className = "quiet remove-pricing-row";
+    remove.textContent = "Remove";
+    remove.setAttribute("aria-label", `Remove ${kind === "tier" ? "occupancy tier" : "child band"} row ${pricingRowSequence}`);
+    remove.addEventListener("click", () => row.remove());
+    row.append(firstLabel, amountLabel, remove);
+    return row;
+  }
+
+  function addTier(container, adults = "", amountMinor = "") {
+    if (container.children.length >= 100) throw new Error("At most 100 occupancy tiers are allowed");
+    container.append(pricingEditorRow("tier", adults, amountMinor));
+  }
+
+  function addChildBand(container, maxAge = "", amountMinor = "") {
+    if (container.children.length >= 20) throw new Error("At most 20 child age bands are allowed");
+    container.append(pricingEditorRow("child", maxAge, amountMinor));
+  }
+
+  function readPricingEditor(tierList, extraAdultInput, childList) {
+    const tierRows = [...tierList.querySelectorAll('[data-kind="tier"]')];
+    if (tierRows.length < 1 || tierRows.length > 100) throw new Error("Provide between 1 and 100 occupancy tiers");
+    const seenAdults = new Set();
+    const occupancy = tierRows.map((row) => {
+      const adults = Number(row.querySelector('[data-field="adults"]').value);
+      if (!Number.isInteger(adults) || adults < 1 || adults > 100 || seenAdults.has(adults)) {
+        throw new Error("Occupancy adults must be unique whole numbers from 1 to 100");
+      }
+      seenAdults.add(adults);
+      return { adults, amountMinor: canonicalMinor(row.querySelector('[data-field="amountMinor"]').value, `Price for ${adults} adults`) };
+    });
+
+    const childRows = [...childList.querySelectorAll('[data-kind="child"]')];
+    if (childRows.length > 20) throw new Error("At most 20 child age bands are allowed");
+    let previousAge = -1;
+    const extraChildren = childRows.map((row) => {
+      const maxAge = Number(row.querySelector('[data-field="maxAge"]').value);
+      if (!Number.isInteger(maxAge) || maxAge < 0 || maxAge > 17 || maxAge <= previousAge) {
+        throw new Error("Child maximum ages must be whole numbers from 0 to 17 in strictly increasing order");
+      }
+      previousAge = maxAge;
+      return { maxAge, amountMinor: canonicalMinor(row.querySelector('[data-field="amountMinor"]').value, `Child price through age ${maxAge}`) };
+    });
+    const extraAdultMinor = canonicalMinor(extraAdultInput.value, "Extra-adult price", true);
+    return {
+      occupancy,
+      ...(extraAdultMinor === undefined ? {} : { extraAdultMinor }),
+      ...(extraChildren.length === 0 ? {} : { extraChildren }),
+    };
+  }
+
+  function setPricingEditor(tierList, extraAdultInput, childList, pricing) {
+    tierList.replaceChildren();
+    for (const [adults, amountMinor] of Object.entries(pricing.occupancy)) addTier(tierList, adults, amountMinor);
+    extraAdultInput.value = pricing.extraAdultMinor ?? "";
+    childList.replaceChildren();
+    for (const child of pricing.extraChildren || []) addChildBand(childList, child.maxAge, child.amountMinor);
+  }
+
   async function submitPrice(body) {
     const button = ratePriceForm.querySelector("button[type=submit]");
     const identity = `rate-price:${JSON.stringify(body)}`;
@@ -539,12 +646,24 @@
   }
 
   function renderCurrentPrice(price) {
+    currentRatePrice = price;
     const plan = rateData.ratePlans.find(({ id }) => id === price.ratePlanId);
     const unit = inventoryData.unitTypes.find(({ id }) => id === price.unitTypeId);
     const tiers = Object.entries(price.pricing.occupancy).map(([adults, amount]) => `${adults} adult${adults === "1" ? "" : "s"}: ${amount} minor units`);
     if (price.pricing.extraAdultMinor !== null) tiers.push(`Extra adult: ${price.pricing.extraAdultMinor} minor units`);
     for (const child of price.pricing.extraChildren) tiers.push(`Child through age ${child.maxAge}: ${child.amountMinor} minor units`);
     currentPriceResult.textContent = `${plan?.code || "Plan"} · ${unit?.code || "Room type"} · ${price.currency}\n${price.stayStart} → ${price.stayEnd} (end exclusive)\n${tiers.join("\n")}`;
+    loadPriceCorrectionButton.hidden = false;
+  }
+
+  function loadPriceCorrection(price) {
+    currentRatePrice = price;
+    const plan = rateData.ratePlans.find(({ id }) => id === price.ratePlanId);
+    const unit = inventoryData.unitTypes.find(({ id }) => id === price.unitTypeId);
+    correctionKeySummary.textContent = `${plan?.code || price.ratePlanId} · ${unit?.code || price.unitTypeId} · ${price.stayStart} → ${price.stayEnd} · weekday mask ${price.dowMask} · ${price.currency}`;
+    setPricingEditor(correctionTierList, correctionExtraAdult, correctionChildList, price.pricing);
+    rateCorrectionForm.hidden = false;
+    rateCorrectionForm.querySelector("h3").focus?.();
   }
 
   function causeNode(cause, type) {
@@ -679,8 +798,12 @@
   policyKind.addEventListener("change", updatePolicyFields);
   depositBasis.addEventListener("change", updateDepositFields);
   depositDue.addEventListener("change", updateDepositFields);
-  priceAdvancedToggle.addEventListener("change", () => {
-    priceAdvancedFields.hidden = !priceAdvancedToggle.checked;
+  addCreateTier.addEventListener("click", () => addTier(createTierList));
+  addCreateChild.addEventListener("click", () => addChildBand(createChildList));
+  addCorrectionTier.addEventListener("click", () => addTier(correctionTierList));
+  addCorrectionChild.addEventListener("click", () => addChildBand(correctionChildList));
+  loadPriceCorrectionButton.addEventListener("click", () => {
+    if (currentRatePrice) loadPriceCorrection(currentRatePrice);
   });
   unitTypeForm.addEventListener("submit", async (event) => {
     event.preventDefault();
@@ -783,17 +906,11 @@
     event.preventDefault();
     try {
       const fields = new FormData(ratePriceForm);
-      const occupancy = [{ adults: 1, amountMinor: canonicalMinor(fields.get("amount1"), "One-adult price") }];
-      const amount2 = canonicalMinor(fields.get("amount2"), "Second occupancy tier", true);
-      if (amount2 !== undefined) occupancy.push({ adults: Number(fields.get("adults2")), amountMinor: amount2 });
-      const extraAdultMinor = canonicalMinor(fields.get("extraAdultMinor"), "Extra-adult price", true);
-      const childAmountMinor = canonicalMinor(fields.get("childAmountMinor"), "Child price", true);
-      const extraChildren = childAmountMinor === undefined ? [] : [{ maxAge: Number(fields.get("childMaxAge")), amountMinor: childAmountMinor }];
       const dowMask = fields.getAll("weekday").reduce((mask, value) => mask + Number(value), 0);
       await submitPrice({
         ratePlanId: fields.get("ratePlanId"), unitTypeId: fields.get("unitTypeId"),
         stayStart: fields.get("stayStart"), stayEnd: fields.get("stayEnd"), dowMask,
-        pricing: { occupancy, ...(extraAdultMinor === undefined ? {} : { extraAdultMinor }), ...(extraChildren.length ? { extraChildren } : {}) },
+        pricing: readPricingEditor(createTierList, createExtraAdult, createChildList),
       });
     } catch (error) {
       formMessage(ratePriceForm, error instanceof Error ? error.message : "Price input is invalid", true);
@@ -813,8 +930,38 @@
       renderCurrentPrice(body.ratePrice);
       formMessage(currentPriceForm, "Current applicable row returned.");
     } catch (error) {
+      currentRatePrice = null;
+      loadPriceCorrectionButton.hidden = true;
+      rateCorrectionForm.hidden = true;
       currentPriceResult.textContent = "No current price returned.";
       formMessage(currentPriceForm, error instanceof Error ? error.message : "Current price lookup failed", true);
+    } finally {
+      button.disabled = false;
+    }
+  });
+  rateCorrectionForm.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const button = rateCorrectionForm.querySelector("button[type=submit]");
+    if (!currentRatePrice) {
+      formMessage(rateCorrectionForm, "Load a current price before creating a correction", true);
+      return;
+    }
+    try {
+      const pricing = readPricingEditor(correctionTierList, correctionExtraAdult, correctionChildList);
+      const identity = `rate-price-correction:${currentRatePrice.id}:${JSON.stringify({ pricing })}`;
+      const key = pendingKeys.get(identity) || crypto.randomUUID();
+      pendingKeys.set(identity, key);
+      button.disabled = true;
+      formMessage(rateCorrectionForm, "Creating an immutable audited successor…");
+      const body = await request(`/api/v1/properties/${encodeURIComponent(propertySelect.value)}/rate-prices/${encodeURIComponent(currentRatePrice.id)}/supersede`, {
+        method: "POST", headers: { "idempotency-key": key }, body: JSON.stringify({ pricing }),
+      });
+      pendingKeys.delete(identity);
+      renderCurrentPrice(body.ratePrice);
+      loadPriceCorrection(body.ratePrice);
+      formMessage(rateCorrectionForm, "Corrected successor created. The prior price remains immutable history.");
+    } catch (error) {
+      formMessage(rateCorrectionForm, error instanceof Error ? error.message : "Price correction failed", true);
     } finally {
       button.disabled = false;
     }
@@ -823,6 +970,8 @@
   signOutButton.addEventListener("click", showLogin);
   applyTheme(themeSelect.value);
   initializeDates();
+  addTier(createTierList, 1, "");
+  addTier(createTierList, 2, "");
   updateRestrictionFields();
   updatePolicyFields();
   const initialView = location.pathname.endsWith("/inventory") ? "inventory" :
