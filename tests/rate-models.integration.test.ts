@@ -20,13 +20,15 @@ import {
   LAUNCH_EXTENSIONS,
   LAUNCH_EXTENSION_TYPES,
   runSeed,
+  SEED_PROPERTY,
+  SEED_TENANT,
   SeedError,
 } from "../scripts/seed";
 
 const DATABASE_URL = process.env.YELLOW_RATE_MODELS_URL;
 const REQUIRE_DATABASE = process.env.YELLOW_REQUIRE_RATE_MODELS === "1";
-const TENANT_A = "00000000-0000-0000-0000-000000000001";
-const PROPERTY_A = "00000000-0000-0000-0000-000000000012";
+const TENANT_A = SEED_TENANT.id;
+const PROPERTY_A = SEED_PROPERTY.id;
 const PROPERTY_A2 = "00000000-0000-0000-0000-000000006512";
 const TENANT_B = "00000000-0000-0000-0000-000000006502";
 const PROPERTY_B = "00000000-0000-0000-0000-000000006522";
@@ -62,7 +64,11 @@ let registry: ExtensionRegistry;
 let service: RateModelService;
 const createdDrafts: RateModelDraft[] = [];
 
-function envelope(tenantId = TENANT_A, propertyNode = PROPERTY_A, actorId = ACTOR_A) {
+function envelope(
+  tenantId: string = TENANT_A,
+  propertyNode: string = PROPERTY_A,
+  actorId: string = ACTOR_A,
+) {
   return createAuditEnvelope({
     tenantId,
     propertyNode,
@@ -168,7 +174,7 @@ describe("Order 065 registered rate-model catalogue", () => {
   test("P2: catalogue keys, versions and capabilities are exact and schema-valid", () => {
     expect(RATE_MODEL_KEYS).toEqual(EXPECTED_KEYS);
     expect(RATE_MODEL_CATALOGUE).toHaveLength(10);
-    expect(RATE_MODEL_CATALOGUE.map(({ key }) => key)).toEqual(EXPECTED_KEYS);
+    expect(RATE_MODEL_CATALOGUE.map(({ key }) => key)).toEqual([...EXPECTED_KEYS]);
     expect(RATE_MODEL_CATALOGUE.every(({ version, label, description, capabilities }) =>
       version === 1 &&
       label.trim() === label &&
@@ -183,7 +189,7 @@ describe("Order 065 registered rate-model catalogue", () => {
     if (!type) throw new Error("rate_model launch schema missing");
     const rows = LAUNCH_EXTENSIONS.filter(({ type }) => type === "rate_model");
     expect(rows).toHaveLength(10);
-    expect(rows.map(({ key }) => key)).toEqual(EXPECTED_KEYS);
+    expect(rows.map(({ key }) => key)).toEqual([...EXPECTED_KEYS]);
     expect(rows.map(({ content }) => content)).toEqual(
       RATE_MODEL_CATALOGUE.map(({ key: _key, ...content }) => content),
     );
@@ -315,6 +321,44 @@ databaseDescribe("Order 065 immutable tenant rate-model selections", () => {
     );
     const evidence = await countDraftArtifacts(PLAN_A);
     expect(evidence).toEqual({ rows: after.length, facts: after.length, events: 0 });
+    const facts = await admin<Array<{
+      version: number;
+      property_node: string;
+      rate_plan_id: string;
+      model_key: string;
+      model_version: string;
+      authoring_mode: string;
+      payload_version: string;
+      content_model_key: string;
+      content_authoring_mode: string;
+    }>>`
+      SELECT
+        extension.version,
+        fact.payload->>'property_node' AS property_node,
+        fact.payload->>'rate_plan_id' AS rate_plan_id,
+        fact.payload->>'model_key' AS model_key,
+        fact.payload->>'model_version' AS model_version,
+        fact.payload->>'authoring_mode' AS authoring_mode,
+        fact.payload->>'version' AS payload_version,
+        extension.content->>'model_key' AS content_model_key,
+        extension.content->>'authoring_mode' AS content_authoring_mode
+      FROM fact_log AS fact
+      JOIN extension ON extension.id = fact.entity_id
+      WHERE fact.tenant_id = ${TENANT_A}::uuid
+        AND fact.entity_type = 'extension'
+        AND fact.fact_type = 'rate_plan_model.drafted'
+        AND fact.payload->>'rate_plan_id' = ${PLAN_A}
+      ORDER BY extension.version
+    `;
+    expect(facts).toHaveLength(after.length);
+    expect(facts.every((fact) =>
+      fact.property_node === PROPERTY_A &&
+      fact.rate_plan_id === PLAN_A &&
+      fact.model_key === fact.content_model_key &&
+      fact.model_version === "1" &&
+      fact.authoring_mode === fact.content_authoring_mode &&
+      fact.payload_version === String(fact.version)
+    )).toBeTrue();
   });
 
   test("P5: twenty concurrent drafts produce gapless versions and no events", async () => {

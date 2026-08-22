@@ -136,3 +136,7 @@
 2026-08-22 · 099 · 3 · phase-3/versioned-rate-model-catalogue · codex → codex · QUESTION-ANSWERED · extension primitive selected for non-monetary model drafts; no migration/event/transition; exact evaluators and publish remain Orders 067/069
 2026-08-22 · 065 · 3 · phase-3/versioned-rate-model-catalogue · codex → — · ORDER-WRITTEN · exact ten-model catalogue plus immutable transaction-locked tenant draft versions; no active price behavior
 2026-08-22 · 100 · 3 · phase-3/versioned-rate-model-catalogue · codex → codex · QUESTION-ANSWERED · inherited Order 024 catalogue assertion stays exact and changes only from 6/30 to 8/40
+2026-08-22 · 101 · 3 · phase-3/versioned-rate-model-catalogue · codex → codex · QUESTION-ANSWERED · explicit undefined narrowing and mutable expected tuple copies only; exact catalogue contract unchanged
+2026-08-22 · 102 · 3 · phase-3/versioned-rate-model-catalogue · codex → codex · QUESTION-ANSWERED · focused proof now derives canonical production seed tenant/property instead of mixing invariant-fixture UUIDs
+2026-08-22 · 103 · 3 · phase-3/versioned-rate-model-catalogue · codex → codex · QUESTION-ANSWERED · widen only test-helper parameter types so frozen seed literals retain foreign-tenant proof
+2026-08-22 · 104 · 3 · phase-3/versioned-rate-model-catalogue · codex → codex · QUESTION-ANSWERED · advance only exact founder-status order/debt counters after the required Order 065 manifest row

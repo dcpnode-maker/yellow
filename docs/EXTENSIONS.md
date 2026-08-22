@@ -253,6 +253,59 @@ actions by registering rows + one handler module.
 
 ---
 
+## 7. `rate_model` — registered pricing-model catalogue
+
+`rate_model` is platform-global product configuration. It tells guided, expert and future AI
+authoring which model families exist; it does not calculate or publish a price.
+
+```json
+{ "$id":"pms:rate_model:1", "type":"object",
+  "required":["version","label","description","capabilities"],
+  "additionalProperties":false,
+  "properties":{
+    "version":{"type":"integer","minimum":1},
+    "label":{"type":"string"},
+    "description":{"type":"string"},
+    "capabilities":{"type":"array","items":{"type":"string"}}
+  } }
+```
+
+Launch keys are exact: `simple-fixed`, `calendar`, `bar-ladder`, `derived`,
+`room-matrix`, `occupancy-los`, `contract-negotiated`, `package`, `rms-api-managed`
+and `expert-composition`. Catalogue entries are active platform rows at version 1. Adding a key
+does not add an evaluator; executable behavior remains a separately reviewed rates-context change.
+
+---
+
+## 8. `rate_plan_model` — immutable tenant draft selection
+
+This tenant extension attaches a versioned, non-monetary model choice to an existing active
+`rate_plan`. The key is always server-derived as `rate-plan:<rate-plan-uuid>`.
+
+```json
+{ "$id":"pms:rate_plan_model:1", "type":"object",
+  "required":["property_node","rate_plan_id","model_key","model_version",
+    "authoring_mode","component_model_keys"],
+  "additionalProperties":false,
+  "properties":{
+    "property_node":{"type":"string","pattern":"^[0-9a-f-]{36}$"},
+    "rate_plan_id":{"type":"string","pattern":"^[0-9a-f-]{36}$"},
+    "model_key":{"enum":["simple-fixed","calendar","bar-ladder","derived",
+      "room-matrix","occupancy-los","contract-negotiated","package",
+      "rms-api-managed","expert-composition"]},
+    "model_version":{"type":"integer","minimum":1},
+    "authoring_mode":{"enum":["guided","expert","ai"]},
+    "component_model_keys":{"type":"array","items":{"type":"string"}}
+  } }
+```
+
+Order 065 creates only `draft` rows and one fact per version. It stores no amount, percentage,
+date rule, target or formula. Expert composition is a bounded list of registered non-expert keys.
+Activation, approval, publication and undo use later orders and the existing
+`extension.activated` event.
+
+---
+
 ## Tier map (recap)
 
 - **Tier A** — most countries: tax_jurisdiction row only, or nothing. No code.

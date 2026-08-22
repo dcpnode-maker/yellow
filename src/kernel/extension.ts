@@ -49,6 +49,10 @@ export interface CreateExtensionInput {
   readonly envelope: AuditEnvelope;
 }
 
+export interface CreateExtensionVersionInput extends CreateExtensionInput {
+  readonly factPayload?: Readonly<JsonObject>;
+}
+
 export interface ExtensionInstance {
   readonly id: string;
   readonly tenantId: string | null;
@@ -294,6 +298,60 @@ export class ExtensionRegistry {
       entityId: row.id,
       envelope: input.envelope,
       payload: { type: row.type, key: row.key, version: row.version, content: row.content, status: row.status },
+    });
+    return toInstance(row);
+  }
+
+  async createVersion(tx: Tx, input: CreateExtensionVersionInput): Promise<ExtensionInstance> {
+    if (input.envelope.tenantId === "") throw new Error("tenant audit envelope is required");
+    if (!TYPE_NAME.test(input.type)) throw new Error("extension type must be a stable lowercase identifier");
+    if (!INSTANCE_KEY.test(input.key)) throw new Error("extension key must be stable lowercase text");
+    const schemas = await tx<Array<{ json_schema: JsonObject }>>`
+      SELECT json_schema FROM extension_type WHERE type = ${input.type}
+    `;
+    if (!schemas[0]) throw new Error(`unknown extension type ${input.type}`);
+    const issues = validateJsonSchema(schemas[0].json_schema, input.content);
+    if (issues.length > 0) throw new ExtensionValidationError(issues);
+
+    const lockKey = `extension-version:${input.envelope.tenantId}:${input.type}:${input.key}`;
+    await tx`SELECT pg_advisory_xact_lock(hashtextextended(${lockKey}, 0))`;
+    const versions = await tx<Array<{ version: number }>>`
+      SELECT (COALESCE(max(version), 0) + 1)::int AS version
+      FROM extension
+      WHERE tenant_id = ${input.envelope.tenantId}::uuid
+        AND tenant_id = current_setting('app.tenant_id', true)::uuid
+        AND type = ${input.type}
+        AND key = ${input.key}
+    `;
+    const version = versions[0]?.version;
+    if (version === undefined || !Number.isInteger(version) || version < 1) {
+      throw new Error("PostgreSQL did not derive the next extension version");
+    }
+    const rows = await tx<ExtensionRow[]>`
+      INSERT INTO extension (tenant_id, type, key, version, content, status)
+      VALUES (
+        ${input.envelope.tenantId}::uuid,
+        ${input.type},
+        ${input.key},
+        ${version},
+        ${JSON.stringify(input.content)}::text::jsonb,
+        ${input.status ?? "draft"}
+      )
+      RETURNING id, tenant_id, type, key, version, content, status
+    `;
+    const row = rows[0];
+    if (!row) throw new Error("PostgreSQL did not return the versioned extension instance");
+    await recordFact(tx, {
+      entityType: "extension",
+      entityId: row.id,
+      envelope: input.envelope,
+      payload: {
+        ...input.factPayload,
+        type: row.type,
+        key: row.key,
+        version: row.version,
+        status: row.status,
+      },
     });
     return toInstance(row);
   }

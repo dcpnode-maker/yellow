@@ -27,3 +27,17 @@ export type {
   RatePricingInput,
   SupersedeRatePriceInput,
 } from "./pricing";
+export {
+  RATE_MODEL_CATALOGUE,
+  RATE_MODEL_EXTENSION_SCHEMA,
+  RATE_MODEL_KEYS,
+  RATE_PLAN_MODEL_EXTENSION_SCHEMA,
+  RateModelService,
+} from "./models";
+export type {
+  CreateRateModelDraftInput,
+  RateModelAuthoringMode,
+  RateModelCatalogueEntry,
+  RateModelDraft,
+  RateModelKey,
+} from "./models";

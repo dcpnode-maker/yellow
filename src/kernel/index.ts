@@ -20,6 +20,7 @@ export { ExtensionRegistry, ExtensionValidationError, validateJsonSchema } from 
 export type {
   CompatibilityFailure,
   CreateExtensionInput,
+  CreateExtensionVersionInput,
   ExtensionInstance,
   RegisterExtensionTypeInput,
   ValidationIssue,

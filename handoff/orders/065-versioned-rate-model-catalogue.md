@@ -32,11 +32,15 @@ is authorized.
 - `tests/rate-models.integration.test.ts`
 - `tests/extension.integration.test.ts` only for Question 100's exact launch totals and wording
 - `tests/seed.integration.test.ts` only if an exact inherited assertion requires an explicit update
+- `src/project-status.ts` only for Question 104's exact Order/debt snapshot counters
+- `tests/founder-status.integration.test.ts` only for Question 104's exact current-order assertion
 - `handoff/orders/065-versioned-rate-model-catalogue.md`
 - `handoff/questions/099-order-065-rate-model-persistence.md`
 - `handoff/questions/099-ARCHITECT-RESPONSE.md`
 - `handoff/questions/100-order-065-inherited-extension-catalogue.md`
 - `handoff/questions/100-ARCHITECT-RESPONSE.md`
+- `handoff/questions/104-order-065-founder-status-counters.md`
+- `handoff/questions/104-ARCHITECT-RESPONSE.md`
 - `DECISIONS.log`
 - `handoff/LEDGER.md`
 - `handoff/GATE-3-MANIFEST.md`

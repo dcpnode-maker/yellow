@@ -1,4 +1,9 @@
 import { SQL, type ReservedSQL } from "bun";
+import {
+  RATE_MODEL_CATALOGUE,
+  RATE_MODEL_EXTENSION_SCHEMA,
+  RATE_PLAN_MODEL_EXTENSION_SCHEMA,
+} from "../src/contexts/rates/models";
 import { uuidV5 } from "./lib/uuid-v5";
 
 export const URL_NAMESPACE_UUID = "6ba7b811-9dad-11d1-80b4-00c04fd430c8";
@@ -108,6 +113,14 @@ export const LAUNCH_EXTENSION_TYPES = Object.freeze([
       allowed_triggers: { type: "array", items: { type: "string" } },
     } },
   },
+  {
+    type: "rate_model",
+    jsonSchema: RATE_MODEL_EXTENSION_SCHEMA,
+  },
+  {
+    type: "rate_plan_model",
+    jsonSchema: RATE_PLAN_MODEL_EXTENSION_SCHEMA,
+  },
 ] as const);
 
 const verticalFeatures = Object.freeze({ dorm_beds: false, hourly_slots: false, long_stay_billing: false, owner_statements: false, kiosk_checkin: true, meal_plans: false });
@@ -144,6 +157,11 @@ export const LAUNCH_EXTENSIONS = Object.freeze([
     type: "automation_action",
     key: action as string,
     content: { action, params_schema: { type: "object" }, idempotent: true, allowed_triggers: allowedTriggers },
+  })),
+  ...RATE_MODEL_CATALOGUE.map(({ key, ...content }) => ({
+    type: "rate_model",
+    key,
+    content,
   })),
 ]);
 
