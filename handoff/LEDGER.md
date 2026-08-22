@@ -116,3 +116,4 @@
 2026-08-22 · 088 · 3 · phase-2/operator-projection-bootstrap · codex → codex · QUESTION-ANSWERED · use established strict JSON boundary adapter after compiler rejection; restart compiler and focused proof
 2026-08-22 · 089 · 3 · phase-2/operator-projection-bootstrap · codex → codex · QUESTION-ANSWERED · respect hash-only idempotency schema and self-bootstrap convergence proof; recreate and restart focused file
 2026-08-22 · 090 · 3 · phase-2/operator-projection-bootstrap · codex → codex · QUESTION-ANSWERED · isolate inherited Order 058/059 databases after shared outbox polluted exact counts; rerun unchanged proofs
+2026-08-22 · 061 · 2 · phase-2/availability-scaling-proof · codex → — · ORDER-WRITTEN · retain the 1000 ms catastrophic guard and prove production availability logical work stays sub-quadratic from 250 to 500 spaces; independent review debt explicit
