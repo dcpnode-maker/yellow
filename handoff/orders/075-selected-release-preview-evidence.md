@@ -123,3 +123,29 @@ complete standing gate and fresh isolated `./setup.sh --db-only` with the app ne
 then replace the founder app container without reseeding, verify the live selected-draft preview and
 all three service health checks, refresh Graphify as a derived map, push a stacked draft PR, and do
 not approve or merge.
+
+## Builder evidence
+
+- Focused disposable PostgreSQL proof: `7 pass`, `0 fail`, `38 expect() calls`; simulation,
+  four-eyes approval, separately approved publication and immutable undo all reran with browser
+  policy evidence absent.
+- Standing gate: frozen install unchanged; typecheck and 49-file import boundary scan green;
+  `87 pass`, `0 fail`, `1,102 expect() calls`; licence policy green; `bun audit` found no
+  vulnerabilities; schema snapshot exact.
+- Fresh isolated `yellow-order-075-referee` project, app never created: `11 passed, 0 failed of 11`.
+- Persistent founder stack was not reseeded. Live selected Release v1 returned exact status vector
+  `[400, 200, 400]` and four server-derived release policy evidence items; `/health` and authenticated
+  `/system-status` returned 200 with app/database operational and Order 075 / 31 UNVERIFIED debt.
+- Browser limitation: the in-app browser rejected new localhost navigation with
+  `ERR_BLOCKED_BY_CLIENT`, so the agent did not claim a rendered click proof. The exact browser asset
+  proof is green and the deployed same-origin request was executed through the live HTTP boundary;
+  founder visual confirmation remains useful review, not a hidden approval substitute.
+- Protected hashes remained exact:
+  `migrations/0001_init.sql` =
+  `fe2a9fc949c6bacded3f8d3fc4d14fc596a83ebde9aeb043eb10845f07b30923`;
+  `tests/run_invariants.py` =
+  `3228279bd99a8f9b6af99748f31d4d4b482a8e627e16d92644d9d859ad8befa1`.
+- Graphify's disposable structural map refreshed to 4,608 nodes / 7,655 edges / 502 communities,
+  with zero missing, dangling, duplicate or collapsed endpoints. Five known self-loops remain;
+  three SQL files still lack \`tree_sitter_sql\`; 202 changed semantic documents remain deliberately
+  unstamped for later LLM extraction rather than being falsely marked current.
