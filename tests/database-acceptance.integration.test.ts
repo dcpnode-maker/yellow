@@ -30,6 +30,11 @@ const EXPECTED_MIGRATIONS = [
     filename: "0005_projection_replace_privilege.sql",
     checksum_sha256: "3421cbc8353b51f876701c062ab990eaad3833e3314b5273ed54e17b09fdbd54",
   },
+  {
+    version: 6,
+    filename: "0006_rate_release_approval_lookup.sql",
+    checksum_sha256: "72a938e1a9d5c862d873ce987c0cdb36247008d8b5d4b76aeec1aeabf6aa1c11",
+  },
 ];
 
 if (REQUIRE_DATABASE && !DATABASE_URL) {
