@@ -150,6 +150,31 @@ extension type, state, event, permission or publication path is needed.
   licence audit, dependency audit, schema drift, protected hashes and fresh isolated app-never-started
   referee all remain green. Refresh Graphify as a derived map and report parser/semantic limits.
 
+## Captured P0
+
+Three separate freshly migrated databases in Compose project `yellow-order-077-red`, before any
+production or migration edit:
+
+```text
+rate-publication: approval_request_rate_release_plan_cursor
+Expected length: 1
+Received length: 0
+9 pass, 1 fail, 64 expect() calls
+
+review-seed: [approver@yellow.local, operator@yellow.local]
+Received: [operator@yellow.local]
+5 pass, 1 fail, 15 expect() calls
+
+operator-rate-builder: GET .../approvals
+Expected status: 200
+Received status: 404
+9 pass, 1 fail, 52 expect() calls
+```
+
+The failed migration role race during parallel disposable-database preparation was a healed setup
+precondition: the two affected untouched databases were migrated sequentially from the top before
+the tests above. No assertion, expected value, production file or migration was changed.
+
 ## Standing and handoff
 
 Commit this order and D-267 before writing P0. Commit the failing proof without production changes,
@@ -159,4 +184,3 @@ proof. Do not touch the persistent founder database until P1–P4 are green. Fin
 referee project whose app is never created, then migrate/seed the persistent stack in place, perform
 the two-account browser proof without publication, refresh Graphify, push a stacked draft PR based on
 Order 076's branch, and do not approve or merge.
-

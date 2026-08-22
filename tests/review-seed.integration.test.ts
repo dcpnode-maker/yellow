@@ -62,6 +62,20 @@ afterAll(async () => {
 });
 
 databaseDescribe("Order 046 reproducible local-review seed", () => {
+  test("Order 077 P0: provisions two deterministic property-scoped review identities", async () => {
+    const reviewers = await admin<Array<{ email: string }>>`
+      SELECT email
+      FROM app_user
+      WHERE tenant_id = ${SEED_TENANT.id}::uuid
+        AND email IN (${REVIEW_EMAIL}, 'approver@yellow.local')
+      ORDER BY email
+    `;
+    expect(reviewers).toEqual([
+      { email: "approver@yellow.local" },
+      { email: REVIEW_EMAIL },
+    ]);
+  });
+
   test("P1: provisions the exact local identity and five-room inventory", async () => {
     expect(first).toMatchObject({
       tenant: "yellow-demo",

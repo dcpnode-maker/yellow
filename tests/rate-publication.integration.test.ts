@@ -322,6 +322,23 @@ describe("Order 069 launch release schema", () => {
 });
 
 databaseDescribe("Order 069 atomic rate release publication", () => {
+  test("Order 077 P0: rate-release approval lookup has the exact tenant-leading cursor index", async () => {
+    const indexes = await admin<Array<{ indexdef: string }>>`
+      SELECT indexdef
+      FROM pg_indexes
+      WHERE schemaname = 'public'
+        AND tablename = 'approval_request'
+        AND indexname = 'approval_request_rate_release_plan_cursor'
+    `;
+    expect(indexes).toHaveLength(1);
+    expect(indexes[0]?.indexdef).toContain(
+      "(tenant_id, ((payload ->> 'rate_plan_id'::text)), created_at DESC, id DESC)",
+    );
+    expect(indexes[0]?.indexdef).toContain(
+      "WHERE ((kind = 'rate_plan_release'::text) AND (subject_type = 'extension'::text))",
+    );
+  });
+
   test("P1: a draft binds exact inputs and persists only tagged exact money", async () => {
     const first = await createRelease(PLANS.main);
     expect(first).toMatchObject({

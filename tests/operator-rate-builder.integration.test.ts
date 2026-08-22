@@ -312,6 +312,14 @@ databaseDescribe("Order 071 operator universal rate builder", () => {
     expect(await replay.json()).toEqual(mainDraftBody);
   });
 
+  test("Order 077 P0: approval inbox route is available before a decision", async () => {
+    const inbox = await request(builderPath(PLANS.main, "/approvals"), {
+      headers: headers(requesterToken),
+    });
+    expect(inbox.status).toBe(200);
+    expect(await inbox.json()).toEqual({ approvals: [], nextCursor: null });
+  });
+
   test("P2: an injected middle-step failure rolls back the model draft and idempotency claim", async () => {
     const before = await admin<Array<{ extensions: number; claims: number }>>`
       SELECT
