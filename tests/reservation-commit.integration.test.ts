@@ -31,6 +31,7 @@ const TENANT_A = "00000000-0000-0000-0000-000000008101";
 const TENANT_B = "00000000-0000-0000-0000-000000008102";
 const PROPERTY_A = "00000000-0000-0000-0000-000000008111";
 const PROPERTY_B = "00000000-0000-0000-0000-000000008112";
+const PROPERTY_A2 = "00000000-0000-0000-0000-000000008113";
 const ACTOR_A = "00000000-0000-0000-0000-000000008120";
 const PARTY_A = "00000000-0000-0000-0000-000000008131";
 const PARTY_MERGED = "00000000-0000-0000-0000-000000008132";
@@ -39,6 +40,7 @@ const GUARANTEE_A = "00000000-0000-0000-0000-000000008141";
 const RATE_A = "00000000-0000-0000-0000-000000008151";
 const RATE_INACTIVE = "00000000-0000-0000-0000-000000008152";
 const RATE_B = "00000000-0000-0000-0000-000000008153";
+const RATE_A2 = "00000000-0000-0000-0000-000000008154";
 const UNIT_TYPE_A = "00000000-0000-0000-0000-000000008161";
 const UNIT_TYPE_B = "00000000-0000-0000-0000-000000008162";
 const SPACE_COMPOSITE_A = "00000000-0000-0000-0000-000000008171";
@@ -49,6 +51,7 @@ const SELLABLE_COMPOSITE = "00000000-0000-0000-0000-000000008181";
 const SELLABLE_EXCLUSIVE = "00000000-0000-0000-0000-000000008182";
 const SELLABLE_B = "00000000-0000-0000-0000-000000008183";
 const MANUAL_HOLD = "00000000-0000-0000-0000-000000008191";
+const NOCLAIM_HOLD = "00000000-0000-0000-0000-000000008192";
 
 if (REQUIRE_DATABASE && !DATABASE_URL) {
   throw new Error("YELLOW_RESERVATION_COMMIT_URL is required by the Order 081 proof");
@@ -105,7 +108,7 @@ function commitInput(
     adults?: number;
     childAges?: readonly number[];
     channelCode?: string;
-    requestId?: string;
+    requestId?: ReturnType<typeof crypto.randomUUID>;
   }> = {},
 ) {
   return {
@@ -220,7 +223,8 @@ beforeAll(async () => {
     INSERT INTO org_node (id, tenant_id, path, kind, name, timezone, currency)
     VALUES
       (${PROPERTY_A}::uuid, ${TENANT_A}::uuid, 'order081_a', 'property', 'Order 081 A', 'UTC', 'USD'),
-      (${PROPERTY_B}::uuid, ${TENANT_B}::uuid, 'order081_b', 'property', 'Order 081 B', 'UTC', 'EUR')
+      (${PROPERTY_B}::uuid, ${TENANT_B}::uuid, 'order081_b', 'property', 'Order 081 B', 'UTC', 'EUR'),
+      (${PROPERTY_A2}::uuid, ${TENANT_A}::uuid, 'order081_a2', 'property', 'Order 081 A2', 'UTC', 'USD')
   `;
   await admin`
     INSERT INTO party (id, tenant_id, kind, display_name, status, merged_into)
@@ -273,7 +277,9 @@ beforeAll(async () => {
       (${RATE_INACTIVE}::uuid, ${TENANT_A}::uuid, ${PROPERTY_A}::uuid, 'O81I', 'Order 081 Inactive', 'USD',
         NULL, NULL, NULL, 'inactive'),
       (${RATE_B}::uuid, ${TENANT_B}::uuid, ${PROPERTY_B}::uuid, 'O81B', 'Order 081 Foreign', 'EUR',
-        NULL, NULL, NULL, 'active')
+        NULL, NULL, NULL, 'active'),
+      (${RATE_A2}::uuid, ${TENANT_A}::uuid, ${PROPERTY_A2}::uuid, 'O81A2', 'Order 081 A2', 'USD',
+        ${GUARANTEE_A}::uuid, NULL, NULL, 'active')
   `;
 });
 
@@ -415,7 +421,7 @@ databaseDescribe("Order 081 atomic cart-hold reservation commit", () => {
 
   test("P3: every publication failure restores the original hold and exact retry", async () => {
     for (let failAt = 1; failAt <= 6; failAt += 1) {
-      const held = await place(30 + failAt);
+      const held = await place(100 + (failAt * 3));
       const before = await claimSnapshot(held.id);
       const claims = await admin!<Array<{ space_id: string; period: string; claim: string }>>`
         SELECT space_id, period::text, claim::text
@@ -449,30 +455,33 @@ databaseDescribe("Order 081 atomic cart-hold reservation commit", () => {
   }, 30_000);
 
   test("P4: hold kind, lifecycle, tenant, property and references fail closed", async () => {
-    const rejected: Array<Promise<unknown>> = [];
+    const rejected: Array<() => Promise<unknown>> = [];
 
-    const expired = await place(50);
+    const expired = await place(200);
     await admin!`UPDATE hold SET expires_at = transaction_timestamp() - interval '1 second' WHERE id = ${expired.id}::uuid`;
-    rejected.push(commit(commitInput(expired.id, "order081-expired")));
+    rejected.push(() => commit(commitInput(expired.id, "order081-expired")));
 
-    const released = await place(51);
+    const released = await place(203);
     await database!.withTenantTransaction(TENANT_A, (tx) => holds!.release(tx, {
       holdId: released.id,
       envelope: envelope("hold.released"),
     }));
-    rejected.push(commit(commitInput(released.id, "order081-released")));
+    rejected.push(() => commit(commitInput(released.id, "order081-released")));
 
-    const consumed = await place(52);
+    const consumed = await place(206);
     await commit(commitInput(consumed.id, "order081-consumed-first"));
-    rejected.push(commit(commitInput(consumed.id, "order081-consumed-second")));
+    rejected.push(() => commit(commitInput(consumed.id, "order081-consumed-second")));
 
-    rejected.push(commit(commitInput("00000000-0000-0000-0000-000000008199", "order081-missing")));
+    rejected.push(() => commit(commitInput("00000000-0000-0000-0000-000000008199", "order081-missing")));
 
-    const wrongProperty = await place(53);
-    rejected.push(commit(commitInput(wrongProperty.id, "order081-property", { propertyNode: PROPERTY_B })));
+    const wrongProperty = await place(209);
+    rejected.push(() => commit(commitInput(wrongProperty.id, "order081-property", {
+      propertyNode: PROPERTY_A2,
+      ratePlanId: RATE_A2,
+    })));
 
-    const wrongTenant = await place(54);
-    rejected.push(commit(commitInput(wrongTenant.id, "order081-tenant", {
+    const wrongTenant = await place(212);
+    rejected.push(() => commit(commitInput(wrongTenant.id, "order081-tenant", {
       tenantId: TENANT_B,
       propertyNode: PROPERTY_B,
       primaryPartyId: PARTY_B,
@@ -481,34 +490,50 @@ databaseDescribe("Order 081 atomic cart-hold reservation commit", () => {
 
     const offline = await database!.withTenantTransaction(TENANT_A, (tx) => holds!.placeOfflineLease(tx, {
       sellableUnitId: SELLABLE_COMPOSITE,
-      ...stay(55),
+      ...stay(215),
       ttlSeconds: 3_600,
       deviceId: "order081-device",
       envelope: envelope("hold.created"),
     }));
-    rejected.push(commit(commitInput(offline.id, "order081-offline")));
+    rejected.push(() => commit(commitInput(offline.id, "order081-offline")));
 
     await admin!`
       INSERT INTO hold (id, tenant_id, property_node, sellable_unit_id, period, kind, holder, expires_at)
       VALUES (${MANUAL_HOLD}::uuid, ${TENANT_A}::uuid, ${PROPERTY_A}::uuid, ${SELLABLE_EXCLUSIVE}::uuid,
-        tstzrange(${stay(56).from.toISOString()}::timestamptz, ${stay(56).to.toISOString()}::timestamptz, '[)'),
+        tstzrange(${stay(218).from.toISOString()}::timestamptz, ${stay(218).to.toISOString()}::timestamptz, '[)'),
         'manual', '{}'::jsonb, transaction_timestamp() + interval '1 hour')
     `;
     await admin!`SELECT record_occupancy(${TENANT_A}::uuid, ${SPACE_EXCLUSIVE}::uuid,
-      tstzrange(${stay(56).from.toISOString()}::timestamptz, ${stay(56).to.toISOString()}::timestamptz, '[)'),
+      tstzrange(${stay(218).from.toISOString()}::timestamptz, ${stay(218).to.toISOString()}::timestamptz, '[)'),
       ${MANUAL_HOLD}::uuid, 'hold', true)`;
-    rejected.push(commit(commitInput(MANUAL_HOLD, "order081-manual")));
+    rejected.push(() => commit(commitInput(MANUAL_HOLD, "order081-manual")));
 
-    const mergedParty = await place(57);
-    rejected.push(commit(commitInput(mergedParty.id, "order081-merged-party", { primaryPartyId: PARTY_MERGED })));
-    const foreignParty = await place(58);
-    rejected.push(commit(commitInput(foreignParty.id, "order081-foreign-party", { primaryPartyId: PARTY_B })));
-    const inactiveRate = await place(59);
-    rejected.push(commit(commitInput(inactiveRate.id, "order081-inactive-rate", { ratePlanId: RATE_INACTIVE })));
-    const foreignRate = await place(60);
-    rejected.push(commit(commitInput(foreignRate.id, "order081-foreign-rate", { ratePlanId: RATE_B })));
+    await admin!`
+      INSERT INTO hold (id, tenant_id, property_node, sellable_unit_id, period, kind, holder, expires_at)
+      VALUES (${NOCLAIM_HOLD}::uuid, ${TENANT_A}::uuid, ${PROPERTY_A}::uuid, ${SELLABLE_EXCLUSIVE}::uuid,
+        tstzrange(${stay(219).from.toISOString()}::timestamptz, ${stay(219).to.toISOString()}::timestamptz, '[)'),
+        'cart', '{}'::jsonb, transaction_timestamp() + interval '1 hour')
+    `;
+    rejected.push(() => commit(commitInput(NOCLAIM_HOLD, "order081-no-claim")));
 
-    const results = await Promise.allSettled(rejected);
+    const mergedParty = await place(221);
+    rejected.push(() => commit(commitInput(mergedParty.id, "order081-merged-party", { primaryPartyId: PARTY_MERGED })));
+    const foreignParty = await place(224);
+    rejected.push(() => commit(commitInput(foreignParty.id, "order081-foreign-party", { primaryPartyId: PARTY_B })));
+    const inactiveRate = await place(227);
+    rejected.push(() => commit(commitInput(inactiveRate.id, "order081-inactive-rate", { ratePlanId: RATE_INACTIVE })));
+    const foreignRate = await place(230);
+    rejected.push(() => commit(commitInput(foreignRate.id, "order081-foreign-rate", { ratePlanId: RATE_B })));
+    const missingParty = await place(233);
+    rejected.push(() => commit(commitInput(missingParty.id, "order081-missing-party", {
+      primaryPartyId: "00000000-0000-0000-0000-000000008139",
+    })));
+    const missingRate = await place(236);
+    rejected.push(() => commit(commitInput(missingRate.id, "order081-missing-rate", {
+      ratePlanId: "00000000-0000-0000-0000-000000008159",
+    })));
+
+    const results = await Promise.allSettled(rejected.map((attempt) => attempt()));
     expect(results.every((result) => result.status === "rejected")).toBe(true);
     for (const result of results) {
       if (result.status !== "rejected") continue;
@@ -523,7 +548,7 @@ databaseDescribe("Order 081 atomic cart-hold reservation commit", () => {
   }, 30_000);
 
   test("P4: hostile values and generated identities leave a valid hold retryable", async () => {
-    const held = await place(70);
+    const held = await place(300);
     const invalid = [
       commitInput("not-a-uuid", "order081-invalid-hold"),
       commitInput(held.id, "order081-invalid-party", { primaryPartyId: "not-a-uuid" }),

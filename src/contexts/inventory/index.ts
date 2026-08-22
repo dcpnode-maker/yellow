@@ -17,6 +17,8 @@ export type {
 export { HoldConflictError, HoldService } from "./holds";
 export type {
   CartHold,
+  ConsumeCartHoldInput,
+  ConsumedCartHold,
   HoldKind,
   HoldStatus,
   PlaceCartHoldInput,

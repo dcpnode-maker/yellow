@@ -44,6 +44,17 @@ export interface TransitionHoldInput {
   readonly envelope: AuditEnvelope;
 }
 
+export interface ConsumeCartHoldInput extends TransitionHoldInput {
+  readonly segmentId: string;
+}
+
+export interface ConsumedCartHold {
+  readonly hold: CartHold;
+  readonly segmentId: string;
+  readonly unitTypeId: string;
+  readonly claimCount: number;
+}
+
 interface HoldRow {
   readonly id: string;
   readonly tenant_id: string;
@@ -71,6 +82,18 @@ interface OccupancyRow {
   readonly period: string;
   readonly claim: string;
   readonly exclusive: boolean;
+}
+
+interface ConsumableHoldRow extends HoldRow {
+  readonly unit_type_id: string;
+}
+
+interface OccupancyEventSlot {
+  readonly slotRef: string;
+  readonly slotKind: "hold" | "segment";
+  readonly holdId?: string;
+  readonly holdKind?: HoldKind;
+  readonly segmentId?: string;
 }
 
 export class HoldConflictError extends Error {
@@ -313,7 +336,12 @@ export class HoldService {
       },
     });
     for (const occupancy of occupancies) {
-      await this.#publishOccupancy(tx, input.envelope, fact.businessDate, row, "occupancy.recorded", occupancy);
+      await this.#publishOccupancy(tx, input.envelope, fact.businessDate, {
+        slotRef: row.id,
+        slotKind: "hold",
+        holdId: row.id,
+        holdKind: row.kind,
+      }, "occupancy.recorded", occupancy);
     }
     return toHold(row);
   }
@@ -363,6 +391,147 @@ export class HoldService {
   releaseOfflineLease(tx: Tx, input: TransitionHoldInput): Promise<CartHold> {
     requireOperation(input.envelope, "hold.released");
     return this.#transition(tx, input, "released", "offline_lease");
+  }
+
+  async consumeForSegment(tx: Tx, input: ConsumeCartHoldInput): Promise<ConsumedCartHold> {
+    requireOperation(input.envelope, "hold.consumed");
+    requireUuid("holdId", input.holdId);
+    requireUuid("segmentId", input.segmentId);
+
+    const rows = await tx.unsafe<ConsumableHoldRow[]>(`
+      SELECT
+        h.id, h.tenant_id, h.property_node, h.sellable_unit_id,
+        lower(h.period) AS from_at, upper(h.period) AS to_at,
+        h.holder, h.expires_at, h.kind, h.status,
+        su.unit_type_id
+      FROM hold AS h
+      JOIN sellable_unit AS su
+        ON su.id = h.sellable_unit_id
+       AND su.tenant_id = h.tenant_id
+      WHERE h.tenant_id = $1::uuid
+        AND h.tenant_id = current_setting('app.tenant_id', true)::uuid
+        AND h.property_node = $2::uuid
+        AND h.id = $3::uuid
+        AND h.kind = 'cart'
+        AND h.status = 'active'
+        AND h.expires_at > transaction_timestamp()
+      FOR UPDATE OF h
+    `, [input.envelope.tenantId, input.envelope.propertyNode, input.holdId]);
+    const existing = rows[0];
+    if (!existing) throw new HoldConflictError("Active unexpired cart hold was not found");
+
+    const occupancies = await occupancyRows(tx, existing.id);
+    if (occupancies.length === 0) {
+      throw new HoldConflictError("Active cart hold has no occupancy claims");
+    }
+    const released = await tx<Array<{ count: number }>>`
+      SELECT release_occupancy(${existing.tenant_id}::uuid, ${existing.id}::uuid) AS count
+    `;
+    if (Number(released[0]?.count) !== occupancies.length) {
+      throw new Error("Occupancy release count did not match the hold's captured claims");
+    }
+
+    const replacements: OccupancyRow[] = [];
+    try {
+      for (const occupancy of occupancies) {
+        const result = await tx<Array<{ id: string }>>`
+          SELECT record_occupancy(
+            ${existing.tenant_id}::uuid,
+            ${occupancy.space_id}::uuid,
+            ${occupancy.period}::tstzrange,
+            ${input.segmentId}::uuid,
+            'segment',
+            ${occupancy.exclusive}
+          ) AS id
+        `;
+        const occupancyId = result[0]?.id;
+        if (!occupancyId) throw new Error("PostgreSQL did not return the transferred occupancy id");
+        const created = await tx<OccupancyRow[]>`
+          SELECT id, space_id, period::text AS period, claim::text AS claim, exclusive
+          FROM space_occupancy
+          WHERE id = ${occupancyId}::uuid
+            AND tenant_id = ${existing.tenant_id}::uuid
+            AND slot_ref = ${input.segmentId}::uuid
+            AND slot_kind = 'segment'
+        `;
+        const claim = created[0];
+        if (!claim) throw new Error("PostgreSQL did not return the transferred occupancy claim");
+        replacements.push(claim);
+      }
+    } catch (error) {
+      if (isOccupancyConflict(error)) {
+        throw new HoldConflictError("Held inventory could not be transferred to the reservation segment");
+      }
+      throw error;
+    }
+    if (replacements.length !== occupancies.length) {
+      throw new Error("Transferred occupancy count did not match the hold's captured claims");
+    }
+
+    const updated = await tx.unsafe<HoldRow[]>(`
+      UPDATE hold
+      SET status = 'consumed'
+      WHERE id = $1::uuid
+        AND tenant_id = $2::uuid
+        AND status = 'active'
+      RETURNING ${HOLD_COLUMNS}
+    `, [existing.id, existing.tenant_id]);
+    const row = updated[0];
+    if (!row) throw new HoldConflictError("Hold changed concurrently");
+
+    const fact = await recordFact(tx, {
+      entityType: "hold",
+      entityId: row.id,
+      envelope: input.envelope,
+      payload: {
+        kind: row.kind,
+        previous_status: "active",
+        status: "consumed",
+        segment_id: input.segmentId,
+        transferred_claims: replacements.length,
+      },
+    });
+    await this.#events.publish(tx, {
+      tenantId: row.tenant_id,
+      propertyNode: row.property_node,
+      businessDate: fact.businessDate,
+      aggregateType: "hold",
+      aggregateId: row.id,
+      eventType: "hold.consumed",
+      actorId: input.envelope.actorId,
+      correlationId: input.envelope.requestId,
+      payload: {
+        hold_id: row.id,
+        kind: row.kind,
+        previous_status: "active",
+        status: "consumed",
+        segment_id: input.segmentId,
+      },
+    });
+    for (const occupancy of occupancies) {
+      await this.#publishOccupancy(tx, input.envelope, fact.businessDate, {
+        slotRef: row.id,
+        slotKind: "hold",
+        holdId: row.id,
+        holdKind: row.kind,
+      }, "occupancy.released", occupancy);
+    }
+    for (const occupancy of replacements) {
+      await this.#publishOccupancy(tx, input.envelope, fact.businessDate, {
+        slotRef: input.segmentId,
+        slotKind: "segment",
+        holdId: row.id,
+        holdKind: row.kind,
+        segmentId: input.segmentId,
+      }, "occupancy.recorded", occupancy);
+    }
+
+    return Object.freeze({
+      hold: Object.freeze(toHold(row)),
+      segmentId: input.segmentId,
+      unitTypeId: existing.unit_type_id,
+      claimCount: replacements.length,
+    });
   }
 
   async expireDue(tx: Tx, envelope: AuditEnvelope, limit = 100): Promise<readonly CartHold[]> {
@@ -447,7 +616,12 @@ export class HoldService {
       payload: { hold_id: row.id, kind: row.kind, previous_status: "active", status },
     });
     for (const occupancy of occupancies) {
-      await this.#publishOccupancy(tx, input.envelope, fact.businessDate, row, "occupancy.released", occupancy);
+      await this.#publishOccupancy(tx, input.envelope, fact.businessDate, {
+        slotRef: row.id,
+        slotKind: "hold",
+        holdId: row.id,
+        holdKind: row.kind,
+      }, "occupancy.released", occupancy);
     }
     return toHold(row);
   }
@@ -456,7 +630,7 @@ export class HoldService {
     tx: Tx,
     envelope: AuditEnvelope,
     businessDate: string,
-    hold: Pick<HoldRow, "id" | "kind">,
+    slot: OccupancyEventSlot,
     eventType: "occupancy.recorded" | "occupancy.released",
     occupancy: OccupancyRow,
   ): Promise<void> {
@@ -471,9 +645,11 @@ export class HoldService {
       correlationId: envelope.requestId,
       payload: {
         occupancy_id: occupancy.id,
-        hold_id: hold.id,
-        kind: hold.kind,
-        slot_kind: "hold",
+        slot_ref: slot.slotRef,
+        slot_kind: slot.slotKind,
+        ...(slot.holdId === undefined ? {} : { hold_id: slot.holdId }),
+        ...(slot.holdKind === undefined ? {} : { kind: slot.holdKind }),
+        ...(slot.segmentId === undefined ? {} : { segment_id: slot.segmentId }),
         space_id: occupancy.space_id,
         period: occupancy.period,
         claim: occupancy.claim,
