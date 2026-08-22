@@ -2466,6 +2466,13 @@ CREATE INDEX api_idempotency_expiry ON public.api_idempotency USING btree (expir
 
 
 --
+-- Name: approval_request_rate_release_plan_cursor; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX approval_request_rate_release_plan_cursor ON public.approval_request USING btree (tenant_id, ((payload ->> 'rate_plan_id'::text)), created_at DESC, id DESC) WHERE ((kind = 'rate_plan_release'::text) AND (subject_type = 'extension'::text));
+
+
+--
 -- Name: consumer_processed_age; Type: INDEX; Schema: public; Owner: -
 --
 
