@@ -91,3 +91,4 @@
 2026-08-22 · 066 · 3 · phase-2/operator-bulk-room-creation · codex → codex · QUESTION-ANSWERED · inherit selected fixture occupancy and make publisher rollback idempotency probe order-independent; full focused restart required
 2026-08-22 · 067 · 3 · phase-2/operator-bulk-room-creation · codex → codex · QUESTION-ANSWERED · annotate malformed-property POST helper after compiler literal inference; D-197 readback correction; focused/compiler restart required
 2026-08-22 · 068 · 3 · phase-2/operator-bulk-room-creation · codex → codex · QUESTION-ANSWERED · update stale review-seed exact scope expectation to established fifteen-scope role; inherited restart required
+2026-08-22 · 069 · 3 · phase-2/operator-bulk-room-creation · codex → independent reviewer · REVIEW-REQUESTED · Order 057 builder proofs, 11/11 referee, browser evidence and derived-map limitation recorded; no approval or merge
