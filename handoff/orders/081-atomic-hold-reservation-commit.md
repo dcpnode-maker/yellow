@@ -156,7 +156,7 @@ not stopped or reseeded. Refresh Graphify code-only and record its parser/semant
 - [x] P0 intentional red evidence is committed before implementation.
 - [x] P1–P4 prove exact atomic ownership, replay, concurrency, rollback and scope.
 - [x] P5 is fully green and protected hashes remain exact.
-- [ ] Order 081 is pushed as UNVERIFIED review debt on a stacked draft PR; nothing is merged.
+- [x] Order 081 is pushed as UNVERIFIED review debt on a stacked draft PR; nothing is merged.
 
 ## Evidence
 
@@ -182,3 +182,5 @@ not stopped or reseeded. Refresh Graphify code-only and record its parser/semant
   self-loops. It skipped 395 non-code files and semantic labeling, so canonical documents remained
   executable-test authority. The useful hold→segment/idempotency/fact/outbox query was saved and
   reflected as derived memory.
+- Draft PR 62 is stacked on Order 080. GitHub run 32602053939 passed quality, Windows state,
+  container smoke and the database job. The PR remains UNVERIFIED and unmerged.
