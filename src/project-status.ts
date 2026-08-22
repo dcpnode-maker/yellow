@@ -26,13 +26,13 @@ export const PROJECT_BUILD_SNAPSHOT = Object.freeze({
   label: "Recorded build snapshot",
   roadmap: Object.freeze({
     phaseCount: 13,
-    latestBuiltOrder: 63,
+    latestBuiltOrder: 64,
     currentOrder: 64,
     activePhase: 3,
   }),
   review: Object.freeze({
     independentlyReviewedThroughOrder: 18,
-    gate3Debt: 19,
+    gate3Debt: 20,
     state: "UNVERIFIED" as const,
   }),
   referee: Object.freeze({ requiredPasses: 11, requiredFailures: 0 }),
