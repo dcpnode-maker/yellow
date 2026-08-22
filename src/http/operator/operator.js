@@ -8,6 +8,7 @@
   let restrictionsData = [];
   let rateData = { policies: [], ratePlans: [] };
   let operationalBlocksData = [];
+  let inventoryPolicyData = { oosSellability: "blocked" };
   let currentRatePrice = null;
   let pricingRowSequence = 0;
   const pendingKeys = new Map();
@@ -101,6 +102,8 @@
   const operationalBlockForm = document.querySelector("#operational-block-form");
   const operationalBlockSpace = document.querySelector("#operational-block-space");
   const operationalBlockKind = document.querySelector("#operational-block-kind");
+  const oosPolicyForm = document.querySelector("#oos-policy-form");
+  const oosSellability = document.querySelector("#oos-sellability");
   const MAX_MINOR = BigInt("9223372036854775807");
 
   function applyTheme(theme) {
@@ -159,6 +162,7 @@
     restrictionsData = [];
     rateData = { policies: [], ratePlans: [] };
     operationalBlocksData = [];
+    inventoryPolicyData = { oosSellability: "blocked" };
     currentRatePrice = null;
     loadPriceCorrectionButton.hidden = true;
     rateCorrectionForm.hidden = true;
@@ -315,6 +319,7 @@
       const [blocks, inventory] = await Promise.all([
         request(`/api/v1/properties/${encodeURIComponent(property)}/operational-blocks`),
         request(`/api/v1/properties/${encodeURIComponent(property)}/inventory`),
+        loadInventoryPolicy(),
       ]);
       operationalBlocksData = blocks.operationalBlocks;
       inventoryData = inventory;
@@ -323,6 +328,15 @@
     } catch (error) {
       operationalBlockStatus.textContent = error instanceof Error ? error.message : "Operational causes could not be loaded";
     }
+  }
+
+  async function loadInventoryPolicy() {
+    const property = propertySelect.value;
+    if (!property) return;
+    const body = await request(`/api/v1/properties/${encodeURIComponent(property)}/inventory-policy`);
+    inventoryPolicyData = body.inventoryPolicy;
+    oosSellability.value = inventoryPolicyData.oosSellability;
+    formMessage(oosPolicyForm, `Current PostgreSQL policy: ${inventoryPolicyData.oosSellability === "allowed" ? "allowed with warning" : "blocked from sale"}.`);
   }
 
   async function closeOperationalBlock(block, button) {
@@ -960,6 +974,29 @@
       await loadOperationalBlocks();
     } catch (error) {
       formMessage(operationalBlockForm, error instanceof Error ? error.message : "Cause could not be opened", true);
+    } finally {
+      button.disabled = false;
+    }
+  });
+  oosPolicyForm.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const body = { oosSellability: oosSellability.value };
+    const identity = `oos-policy:${propertySelect.value}:${JSON.stringify(body)}`;
+    const key = pendingKeys.get(identity) || crypto.randomUUID();
+    pendingKeys.set(identity, key);
+    const button = oosPolicyForm.querySelector("button[type=submit]");
+    button.disabled = true;
+    formMessage(oosPolicyForm, "Saving audited hotel policy…");
+    try {
+      const result = await request(`/api/v1/properties/${encodeURIComponent(propertySelect.value)}/inventory-policy/oos-sellability`, {
+        method: "POST", headers: { "idempotency-key": key }, body: JSON.stringify(body),
+      });
+      pendingKeys.delete(identity);
+      inventoryPolicyData = result.inventoryPolicy;
+      oosSellability.value = inventoryPolicyData.oosSellability;
+      formMessage(oosPolicyForm, `Saved: OOS is ${inventoryPolicyData.oosSellability === "allowed" ? "allowed with warning" : "blocked from sale"}. OOO physical removal is unchanged.`);
+    } catch (error) {
+      formMessage(oosPolicyForm, error instanceof Error ? error.message : "OOS policy could not be saved", true);
     } finally {
       button.disabled = false;
     }

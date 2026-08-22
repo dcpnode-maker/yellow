@@ -123,6 +123,12 @@ export function createApp(options: AppOptions = {}) {
       .post("/api/v1/properties/:property/operational-blocks/:blockId/close", ({ request, params, body, tenantContext }) =>
         withOperatorTenant(request, (context) => operator.closeOperationalBlock(context, params.property, params.blockId, body))
       )
+      .get("/api/v1/properties/:property/inventory-policy", ({ request, params, tenantContext }) =>
+        withOperatorTenant(request, (context) => operator.inventoryPolicy(context, params.property))
+      )
+      .post("/api/v1/properties/:property/inventory-policy/oos-sellability", ({ request, params, body, tenantContext }) =>
+        withOperatorTenant(request, (context) => operator.setOosSellability(context, params.property, body))
+      )
       .post("/api/v1/properties/:property/inventory/unit-types", ({ request, params, body, tenantContext }) =>
         withOperatorTenant(request, (context) => operator.createUnitType(context, params.property, body))
       )

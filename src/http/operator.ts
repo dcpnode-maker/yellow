@@ -3,6 +3,7 @@ import {
   AvailabilityService,
   InventoryConflictError,
   InventoryNotFoundError,
+  InventoryPolicyService,
   InventoryService,
   InventoryValidationError,
   OperationalBlockConflictError,
@@ -48,6 +49,8 @@ const PRICING_READ_SCOPE = "rates.pricing:read";
 const PRICING_WRITE_SCOPE = "rates.pricing:write";
 const BLOCK_READ_SCOPE = "inventory.blocks:read";
 const BLOCK_WRITE_SCOPE = "inventory.blocks:write";
+const POLICY_READ_SCOPE = "inventory.policy:read";
+const POLICY_WRITE_SCOPE = "inventory.policy:write";
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 const ISO_INSTANT = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(?::\d{2}(?:\.\d{1,3})?)?(?:Z|[+-]\d{2}:\d{2})$/;
 
@@ -202,6 +205,7 @@ type RateOperations = Pick<RateConfigurationService,
 
 type PricingOperations = Pick<RatePricingService, "create" | "findCurrent" | "supersede">;
 type BlockOperations = Pick<OperationalBlockService, "listActive" | "open" | "close">;
+type PolicyOperations = Pick<InventoryPolicyService, "get" | "setOosSellability">;
 
 const MAX_MONEY = 9_223_372_036_854_775_807n;
 
@@ -383,6 +387,7 @@ export class OperatorHttpApi {
   readonly #rates?: RateOperations;
   readonly #pricing?: PricingOperations;
   readonly #blocks?: BlockOperations;
+  readonly #policy?: PolicyOperations;
 
   constructor(
     login: LocalLoginService,
@@ -393,6 +398,7 @@ export class OperatorHttpApi {
     rates?: RateOperations,
     pricing?: PricingOperations,
     blocks?: BlockOperations,
+    policy?: PolicyOperations,
   ) {
     this.#login = login;
     this.#availability = availability;
@@ -402,6 +408,7 @@ export class OperatorHttpApi {
     this.#rates = rates;
     this.#pricing = pricing;
     this.#blocks = blocks;
+    this.#policy = policy;
   }
 
   unavailable(request: Request): Response {
@@ -600,6 +607,47 @@ export class OperatorHttpApi {
     }, async (tx) => ({ status: 200, body: { operationalBlock: jsonValue(await this.#blocks!.close(tx, {
       blockId, envelope: createAuditEnvelope({ actorId: context.identity.actorId, tenantId: context.tenantId,
         propertyNode, requestId, operation: "ooo.closed" }),
+    })) } }));
+    return apiResponse(context.request, canonicalJson(outcome.body), outcome.status, {
+      "idempotency-replayed": String(outcome.replayed), "x-correlation-id": requestId,
+    });
+  }
+
+  async inventoryPolicy(context: TenantRequestContext, propertyNode: string): Promise<Response> {
+    if (!hasScope(context, POLICY_READ_SCOPE)) {
+      return apiError(context.request, 403, "auth/scope_missing", "Forbidden", "Inventory-policy access is not granted");
+    }
+    if (!UUID.test(propertyNode)) return apiError(context.request, 400, "request/invalid", "Invalid request", "Property identifier is invalid");
+    if (!this.#policy) return this.unavailable(context.request);
+    const grants = await listGrantedProperties(context, POLICY_READ_SCOPE);
+    if (!grants.some(({ id }) => id === propertyNode)) {
+      return apiError(context.request, 403, "auth/property_forbidden", "Forbidden", "Property access is not granted");
+    }
+    return apiResponse(context.request, { inventoryPolicy: await this.#policy.get(context.tx, propertyNode) });
+  }
+
+  async setOosSellability(context: TenantRequestContext, propertyNode: string, body: unknown): Promise<Response> {
+    if (!isObject(body) || !exactKeys(body, ["oosSellability"]) ||
+        (body.oosSellability !== "blocked" && body.oosSellability !== "allowed")) {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "OOS sellability input is invalid");
+    }
+    if (!hasScope(context, POLICY_WRITE_SCOPE)) {
+      return apiError(context.request, 403, "auth/scope_missing", "Forbidden", "Inventory-policy changes are not granted");
+    }
+    if (!UUID.test(propertyNode)) return apiError(context.request, 400, "request/invalid", "Invalid request", "Property identifier is invalid");
+    if (!this.#policy) return this.unavailable(context.request);
+    const grants = await listGrantedProperties(context, POLICY_WRITE_SCOPE);
+    if (!grants.some(({ id }) => id === propertyNode)) {
+      return apiError(context.request, 403, "auth/property_forbidden", "Forbidden", "Property access is not granted");
+    }
+    const requestId = correlationId(context.request);
+    const outcome = await this.#idempotency.execute(context.tx, {
+      tenantId: context.tenantId, operation: "operator.inventory.policy.oos_sellability",
+      key: context.request.headers.get("idempotency-key") ?? "", request: { propertyNode, body },
+    }, async (tx) => ({ status: 200, body: { inventoryPolicy: jsonValue(await this.#policy!.setOosSellability(tx, {
+      value: body.oosSellability as "blocked" | "allowed",
+      envelope: createAuditEnvelope({ actorId: context.identity.actorId, tenantId: context.tenantId,
+        propertyNode, requestId, operation: "inventory.policy.changed" }),
     })) } }));
     return apiResponse(context.request, canonicalJson(outcome.body), outcome.status, {
       "idempotency-replayed": String(outcome.replayed), "x-correlation-id": requestId,

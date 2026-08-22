@@ -14,6 +14,8 @@ export const REVIEW_PERMISSIONS = Object.freeze([
   { code: REVIEW_PERMISSION, description: "Read tenant-scoped truth availability" },
   { code: "inventory.blocks:read", description: "Read tenant-scoped operational blocks" },
   { code: "inventory.blocks:write", description: "Open and close tenant-scoped operational blocks" },
+  { code: "inventory.policy:read", description: "Read tenant-scoped inventory policy" },
+  { code: "inventory.policy:write", description: "Change tenant-scoped inventory policy" },
   { code: "inventory.configuration:read", description: "Read tenant-scoped inventory configuration" },
   { code: "inventory.configuration:write", description: "Create tenant-scoped inventory configuration" },
   { code: "inventory.restriction:read", description: "Read tenant-scoped restriction configuration" },

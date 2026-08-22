@@ -150,6 +150,9 @@ input:hover, select:hover { border-color: #8d978c; }
 .inventory-status { margin: 1rem 0 0; color: var(--muted); font-size: .82rem; }
 .restriction-layout { display: grid; grid-template-columns: minmax(0, 1.45fr) minmax(300px, .75fr); gap: 1rem; align-items: start; }
 .operations-layout { display: grid; grid-template-columns: minmax(0, 1.35fr) minmax(300px, .65fr); gap: 1rem; align-items: start; }
+.oos-policy-form { display: grid; grid-template-columns: minmax(0, 1fr) minmax(220px, .35fr) auto; gap: 1rem; align-items: end; margin-bottom: 1rem; padding: 1rem; }
+.oos-policy-form h3, .oos-policy-form p { margin-bottom: .25rem; }
+.oos-policy-form .form-message { grid-column: 1 / -1; margin: 0; }
 .restriction-panel, .restriction-form { border-radius: calc(var(--card-radius) - 4px); padding: 1rem; }
 .panel-heading { display: flex; justify-content: space-between; align-items: start; gap: 1rem; padding-bottom: .8rem; border-bottom: 1px solid var(--line); }
 .panel-heading h3, .panel-heading p { margin-bottom: .2rem; }
@@ -200,6 +203,8 @@ input:hover, select:hover { border-color: #8d978c; }
   .inventory-columns, .configuration-grid { grid-template-columns: 1fr; }
   .restriction-layout { grid-template-columns: 1fr; }
   .rate-lists, .rate-forms, .pricing-workspace { grid-template-columns: 1fr; }
+  .oos-policy-form { grid-template-columns: 1fr; }
+  .oos-policy-form .form-message { grid-column: 1; }
 }
 
 @media (max-width: 720px) {

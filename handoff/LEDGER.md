@@ -77,3 +77,6 @@
 2026-08-22 · 053 · 2 · phase-2/operator-operational-block-management · codex → — · ORDER-WRITTEN · authenticated idempotent OOO/OOS lifecycle through the existing occupancy choke point; independent review debt explicit
 2026-08-22 · 057 · 2 · phase-2/operator-operational-block-management · codex → codex · QUESTION-ANSWERED · correct two nonexistent proof-query columns without weakening event or permission assertions; full focused restart required
 2026-08-22 · 058 · 2 · phase-2/operator-operational-block-management · codex → codex · QUESTION-ANSWERED · inherited operator files require recreated databases because their canonical fixtures mutate; no code or assertion change
+2026-08-22 · 054 · 2 · phase-2/operator-oos-sellability-policy · codex → — · ORDER-WRITTEN · authenticated per-property OOS sellability selection through existing audited policy service; OOO remains immutable physical truth
+2026-08-22 · 059 · 2 · phase-2/operator-oos-sellability-policy · codex → codex · QUESTION-ANSWERED · correct whole-payload and all-claim proof queries without changing product behavior; full focused restart required
+2026-08-22 · 060 · 2 · phase-2/operator-oos-sellability-policy · codex → codex · QUESTION-ANSWERED · use established strict JSON boundary adapter after compiler rejection; restart standing check from top

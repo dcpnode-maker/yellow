@@ -177,6 +177,18 @@
             </div>
             <button class="quiet" id="refresh-operational-blocks" type="button">Refresh</button>
           </div>
+          <form class="card oos-policy-form" id="oos-policy-form">
+            <div>
+              <p class="step">Hotel policy</p><h3>When a room is out of service</h3>
+              <p class="field-note">The default is blocked. Allowed means the room can remain sellable with a visible warning. Out of order is always physical removal and cannot be made sellable here.</p>
+            </div>
+            <label>OOS sellability<select name="oosSellability" id="oos-sellability" required>
+              <option value="blocked">Blocked from sale</option>
+              <option value="allowed">Allowed with warning</option>
+            </select></label>
+            <button class="secondary" type="submit">Save OOS policy</button>
+            <p class="form-message" role="status" aria-live="polite"></p>
+          </form>
           <div class="operations-layout">
             <section class="restriction-panel card" aria-labelledby="active-blocks-heading">
               <div class="panel-heading">
