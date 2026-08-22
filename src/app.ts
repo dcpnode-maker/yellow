@@ -146,6 +146,9 @@ export function createApp(options: AppOptions = {}) {
       )
       .post("/api/v1/properties/:property/inventory/sellable-units", ({ request, params, body, tenantContext }) =>
         withOperatorTenant(request, (context) => operator.createSellableUnit(context, params.property, body))
+      )
+      .post("/api/v1/properties/:property/inventory/rooms:bulk", ({ request, params, body, tenantContext }) =>
+        withOperatorTenant(request, (context) => operator.createBulkRooms(context, params.property, body))
       );
   }
 

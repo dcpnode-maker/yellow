@@ -356,8 +356,12 @@ databaseDescribe("Order 042 authenticated operator workbench", () => {
     expect(html).toContain('id="theme-select"');
     expect(html).toContain('value="apple"');
     expect(html).toContain('value="pixel"');
+    expect(html).toContain('id="bulk-room-form"');
+    expect(html).toContain('id="bulk-room-preview"');
     expect(css).toContain(':root[data-theme="pixel"]');
+    expect(css).toContain(".bulk-room-preview");
     expect(js).toContain("document.documentElement.dataset.theme");
+    expect(js).toContain('"rooms:bulk"');
     expect(js).not.toMatch(/fetch\([^)]*theme|\/api\/[^\s"'`]*theme/);
     const server = await Bun.file(new URL("../src/server.ts", import.meta.url)).text();
     expect(server).toContain('return requested ?? "127.0.0.1"');

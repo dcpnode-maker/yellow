@@ -87,3 +87,7 @@
 2026-08-22 · 064 · 3 · phase-2/operator-cart-hold-management · codex → codex · QUESTION-ANSWERED · isolate immutable 100-client referee from the persistent ten-connection app pool; full setup restart required
 2026-08-22 · 056 · 3 · phase-2/audited-hold-expiry-worker · codex → — · ORDER-WRITTEN · supervised bounded due-scope discovery with audited tenant-local HoldService expiry; independent review debt explicit
 2026-08-22 · 065 · 3 · phase-2/audited-hold-expiry-worker · codex → codex · QUESTION-ANSWERED · complete cross-tenant helper and SQL result types after compiler stop; full focused/compiler restart required
+2026-08-22 · 057 · 3 · phase-2/operator-bulk-room-creation · codex → — · ORDER-WRITTEN · atomic idempotent 1–200 exclusive-room setup through existing InventoryService commands; independent review debt explicit
+2026-08-22 · 066 · 3 · phase-2/operator-bulk-room-creation · codex → codex · QUESTION-ANSWERED · inherit selected fixture occupancy and make publisher rollback idempotency probe order-independent; full focused restart required
+2026-08-22 · 067 · 3 · phase-2/operator-bulk-room-creation · codex → codex · QUESTION-ANSWERED · annotate malformed-property POST helper after compiler literal inference; D-197 readback correction; focused/compiler restart required
+2026-08-22 · 068 · 3 · phase-2/operator-bulk-room-creation · codex → codex · QUESTION-ANSWERED · update stale review-seed exact scope expectation to established fifteen-scope role; inherited restart required

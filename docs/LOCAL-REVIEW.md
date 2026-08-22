@@ -37,6 +37,8 @@ unit stops the run rather than rewriting hotel data.
 - Apple-calm and Pixel-expressive interchangeable visual skins;
 - real inventory configuration lists for room types, physical spaces and sellable units;
 - idempotent, audited creation of room types, spaces and their sellable mappings;
+- atomic creation of 1–200 ordinary exclusive hotel rooms from a reviewed range or pasted
+  code preview, with one physical space and one sellable mapping committed per room;
 - active OOO/OOS cause listing plus idempotent audited open and close actions, with OOO
   clearly identified as physical removal and OOS as commercial unavailability;
 - audited per-property OOS sellability choice between blocked and allowed-with-warning,
@@ -59,9 +61,9 @@ unit stops the run rather than rewriting hotel data.
 
 The browser keeps its bearer token, appearance choice and generated idempotency keys in
 memory only. Inventory, restriction, rate-configuration and rate-pricing writes call the same tenant-scoped domain services,
-audit log, outbox and durable replay primitive as any future production client. Update/delete/bulk
-inventory, restriction update/delete, tax/FX calculation, hold consumption and reservations
-require later scoped API/UI orders;
+audit log, outbox and durable replay primitive as any future production client. General
+inventory import, positional dorm/bed generation, inventory update/delete, restriction
+update/delete, tax/FX calculation, hold consumption and reservations require later scoped API/UI orders;
 no direct browser-to-table shortcut is permitted.
 
 The app is deliberately disabled unless `YELLOW_OPERATOR_WORKBENCH=1` is explicit.

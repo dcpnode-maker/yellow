@@ -150,6 +150,17 @@ input:hover, select:hover { border-color: #8d978c; }
 .configuration-form { display: grid; gap: .8rem; }
 .configuration-form .step { margin: 0; color: var(--accent); font-size: .7rem; font-weight: 850; letter-spacing: .12em; text-transform: uppercase; }
 .configuration-form .form-message { margin-top: -.15rem; }
+.bulk-room-form { margin-top: 1rem; padding: 1rem; display: grid; gap: .9rem; }
+.bulk-room-heading { display: flex; justify-content: space-between; align-items: start; gap: 1rem; }
+.bulk-room-heading h3, .bulk-room-heading p { margin-bottom: .25rem; }
+.bulk-room-heading .step { margin: 0; color: var(--accent); font-size: .7rem; font-weight: 850; letter-spacing: .12em; text-transform: uppercase; }
+.bulk-room-controls { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .8rem; }
+.bulk-range-fields { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.bulk-room-preview { min-height: 4.6rem; max-height: 9rem; overflow: auto; padding: .85rem; border: 1px dashed var(--line); border-radius: 14px; background: color-mix(in srgb, var(--paper) 72%, var(--card)); color: var(--muted); font: 700 .76rem/1.55 ui-monospace, monospace; overflow-wrap: anywhere; }
+.bulk-room-preview.is-valid { color: var(--ink); border-style: solid; }
+.bulk-room-preview.is-error { color: var(--red); border-color: color-mix(in srgb, var(--red) 55%, var(--line)); }
+.bulk-room-actions { display: flex; justify-content: flex-end; flex-wrap: wrap; gap: .7rem; }
+.bulk-room-form .form-message { margin: 0; }
 .inventory-status { margin: 1rem 0 0; color: var(--muted); font-size: .82rem; }
 .restriction-layout { display: grid; grid-template-columns: minmax(0, 1.45fr) minmax(300px, .75fr); gap: 1rem; align-items: start; }
 .operations-layout { display: grid; grid-template-columns: minmax(0, 1.35fr) minmax(300px, .65fr); gap: 1rem; align-items: start; }
@@ -204,6 +215,7 @@ input:hover, select:hover { border-color: #8d978c; }
   .search-bar { grid-template-columns: 1fr 1fr; }
   .search-button, .timezone-note { grid-column: 1 / -1; }
   .inventory-columns, .configuration-grid { grid-template-columns: 1fr; }
+  .bulk-room-controls, .bulk-range-fields { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .restriction-layout { grid-template-columns: 1fr; }
   .rate-lists, .rate-forms, .pricing-workspace { grid-template-columns: 1fr; }
   .oos-policy-form { grid-template-columns: 1fr; }
@@ -223,6 +235,8 @@ input:hover, select:hover { border-color: #8d978c; }
   .domain-bar > label { width: 100%; }
   .domain-nav { display: grid; grid-template-columns: repeat(2, 1fr); }
   .domain-tab { padding-inline: .55rem; font-size: .76rem; }
+  .bulk-room-controls, .bulk-range-fields { grid-template-columns: 1fr; }
+  .bulk-room-actions > button { width: 100%; }
   .search-bar { grid-template-columns: 1fr; }
   .search-bar > * { grid-column: 1 !important; }
   .metric-grid { grid-template-columns: 1fr; }

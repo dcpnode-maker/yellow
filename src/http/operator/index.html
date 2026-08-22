@@ -147,6 +147,45 @@
             </section>
           </div>
 
+          <form class="card bulk-room-form" id="bulk-room-form">
+            <div class="bulk-room-heading">
+              <div>
+                <p class="step">Fast hotel setup</p>
+                <h3>Create many ordinary rooms</h3>
+                <p class="field-note">Preview 1–200 explicit room codes, then create one physical room and one exclusive sellable unit for each. Dorm beds, parking and composite inventory use the individual controls below.</p>
+              </div>
+              <span class="restriction-count" id="bulk-room-count" aria-label="Rooms in preview">0</span>
+            </div>
+            <div class="bulk-room-controls">
+              <label>Room type<select name="unitTypeId" id="bulk-room-unit-type" required></select></label>
+              <label>Build list by<select name="mode" id="bulk-room-mode" required>
+                <option value="range">Number range</option>
+                <option value="paste">Paste room codes</option>
+              </select></label>
+              <label>Common floor (optional)<input name="floor" maxlength="64" placeholder="3"></label>
+            </div>
+            <fieldset class="progressive-fields bulk-range-fields" id="bulk-room-range-fields">
+              <legend>Range preview</legend>
+              <label>Prefix<input name="prefix" maxlength="56" placeholder="A"></label>
+              <label>Start<input name="start" type="number" min="0" max="999999" value="301" required></label>
+              <label>End<input name="end" type="number" min="0" max="999999" value="310" required></label>
+              <label>Zero-pad width<input name="pad" type="number" min="1" max="6" value="3" required></label>
+            </fieldset>
+            <fieldset class="progressive-fields" id="bulk-room-paste-fields" hidden>
+              <legend>Pasted explicit codes</legend>
+              <label>Room codes<textarea name="codes" rows="4" maxlength="13000" placeholder="A301&#10;A302&#10;A303"></textarea></label>
+              <p class="field-note">Use a new line, comma or space between codes. Duplicates and invalid identifiers are rejected before submission.</p>
+            </fieldset>
+            <div class="bulk-room-preview" id="bulk-room-preview" role="status" aria-live="polite">
+              Enter a valid range or pasted list to preview the exact rooms.
+            </div>
+            <div class="bulk-room-actions">
+              <button class="secondary" id="bulk-room-refresh-preview" type="button">Refresh preview</button>
+              <button class="primary" type="submit" disabled>Create previewed rooms</button>
+            </div>
+            <p class="form-message" role="status" aria-live="polite"></p>
+          </form>
+
           <div class="configuration-grid">
             <form class="configuration-form card" id="unit-type-form">
               <p class="step">Step 1</p><h3>Create room type</h3>

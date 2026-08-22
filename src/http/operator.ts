@@ -179,8 +179,40 @@ async function listGrantedProperties(context: TenantRequestContext & {
 
 type InventoryOperations = Pick<InventoryService,
   "createUnitType" | "createSpace" | "createSellableUnit" |
-  "listUnitTypes" | "listSpaces" | "listSellableUnits"
+  "getUnitType" | "listUnitTypes" | "listSpaces" | "listSellableUnits"
 >;
+
+interface BulkRoomDraft {
+  readonly code: string;
+  readonly name?: string;
+  readonly floor?: string;
+}
+
+function parseBulkRooms(body: unknown): { unitTypeId: string; rooms: readonly BulkRoomDraft[] } | null {
+  if (!isObject(body) || !exactKeys(body, ["unitTypeId", "rooms"]) ||
+      typeof body.unitTypeId !== "string" || !UUID.test(body.unitTypeId) ||
+      !Array.isArray(body.rooms) || body.rooms.length < 1 || body.rooms.length > 200) return null;
+  const rooms: BulkRoomDraft[] = [];
+  const codes = new Set<string>();
+  for (const item of body.rooms) {
+    if (!isObject(item) || !exactKeys(item, ["code"], ["name", "floor"]) ||
+        typeof item.code !== "string" ||
+        (item.name !== undefined && typeof item.name !== "string") ||
+        (item.floor !== undefined && typeof item.floor !== "string")) return null;
+    if (item.name !== undefined &&
+        (item.name !== item.name.trim() || item.name.length < 1 || item.name.length > 200)) return null;
+    if (item.floor !== undefined &&
+        (item.floor !== item.floor.trim() || item.floor.length < 1 || item.floor.length > 64)) return null;
+    if (codes.has(item.code)) return null;
+    codes.add(item.code);
+    rooms.push({
+      code: item.code,
+      ...(item.name === undefined ? {} : { name: item.name }),
+      ...(item.floor === undefined ? {} : { floor: item.floor }),
+    });
+  }
+  return { unitTypeId: body.unitTypeId, rooms };
+}
 
 type RestrictionOperations = Pick<RestrictionService, "list" | "createBatch">;
 const RESTRICTION_KINDS: readonly RestrictionKind[] = [
@@ -561,6 +593,71 @@ export class OperatorHttpApi {
     if (!input) return apiError(context.request, 400, "request/invalid", "Invalid request", "Sellable unit input is invalid");
     return this.#create(context, propertyNode, body, "operator.inventory.sellable_unit.create", "sellable_unit.created",
       (tx, envelope) => this.#inventory!.createSellableUnit(tx, { ...input, envelope }));
+  }
+
+  async createBulkRooms(context: TenantRequestContext, propertyNode: string, body: unknown): Promise<Response> {
+    const input = parseBulkRooms(body);
+    if (!input) {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Bulk room input is invalid");
+    }
+    if (!hasScope(context, CONFIGURATION_WRITE_SCOPE)) {
+      return apiError(context.request, 403, "auth/scope_missing", "Forbidden", "Inventory configuration changes are not granted");
+    }
+    if (!UUID.test(propertyNode)) {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Property identifier is invalid");
+    }
+    if (!this.#inventory) return this.unavailable(context.request);
+    const grants = await listGrantedProperties(context, CONFIGURATION_WRITE_SCOPE);
+    if (!grants.some(({ id }) => id === propertyNode)) {
+      return apiError(context.request, 403, "auth/property_forbidden", "Forbidden", "Property access is not granted");
+    }
+    const requestId = correlationId(context.request);
+    const outcome = await this.#idempotency.execute(context.tx, {
+      tenantId: context.tenantId,
+      operation: "operator.inventory.rooms.bulk",
+      key: context.request.headers.get("idempotency-key") ?? "",
+      request: { propertyNode, body },
+    }, async (tx) => {
+      const unitType = await this.#inventory!.getUnitType(tx, propertyNode, input.unitTypeId);
+      if (unitType.profileKey !== "hotel") {
+        throw new InventoryValidationError("Bulk room creation requires a hotel room type");
+      }
+      const rooms = [];
+      for (const room of input.rooms) {
+        const space = await this.#inventory!.createSpace(tx, {
+          code: room.code,
+          profileKey: unitType.profileKey,
+          capacity: 1,
+          maxOccupancy: unitType.maxOccupancy,
+          ...(room.floor === undefined ? {} : { floor: room.floor }),
+          envelope: createAuditEnvelope({
+            actorId: context.identity.actorId,
+            tenantId: context.tenantId,
+            propertyNode,
+            requestId,
+            operation: "space.created",
+          }),
+        });
+        const sellableUnit = await this.#inventory!.createSellableUnit(tx, {
+          unitTypeId: unitType.id,
+          name: room.name ?? `Room ${room.code}`,
+          spaces: [{ spaceId: space.id, claimMode: "exclusive" }],
+          envelope: createAuditEnvelope({
+            actorId: context.identity.actorId,
+            tenantId: context.tenantId,
+            propertyNode,
+            requestId,
+            operation: "sellable_unit.created",
+          }),
+        });
+        rooms.push({ space, sellableUnit });
+      }
+      return { status: 201, body: { rooms: jsonValue(rooms) } };
+    });
+    return apiResponse(context.request, canonicalJson(outcome.body), outcome.status, {
+      "idempotency-replayed": String(outcome.replayed),
+      "x-correlation-id": requestId,
+    });
   }
 
   async operationalBlocks(context: TenantRequestContext, propertyNode: string): Promise<Response> {

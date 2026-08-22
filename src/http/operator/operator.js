@@ -12,6 +12,7 @@
   let activeHoldsData = [];
   let currentRatePrice = null;
   let pricingRowSequence = 0;
+  let bulkRoomDraft = [];
   const pendingKeys = new Map();
 
   const loginView = document.querySelector("#login-view");
@@ -46,6 +47,14 @@
   const sellableForm = document.querySelector("#sellable-unit-form");
   const sellableUnitType = document.querySelector("#sellable-unit-type");
   const sellableSpace = document.querySelector("#sellable-space");
+  const bulkRoomForm = document.querySelector("#bulk-room-form");
+  const bulkRoomUnitType = document.querySelector("#bulk-room-unit-type");
+  const bulkRoomMode = document.querySelector("#bulk-room-mode");
+  const bulkRoomRangeFields = document.querySelector("#bulk-room-range-fields");
+  const bulkRoomPasteFields = document.querySelector("#bulk-room-paste-fields");
+  const bulkRoomPreview = document.querySelector("#bulk-room-preview");
+  const bulkRoomCount = document.querySelector("#bulk-room-count");
+  const bulkRoomRefreshPreview = document.querySelector("#bulk-room-refresh-preview");
   const refreshRestrictions = document.querySelector("#refresh-restrictions");
   const restrictionStatus = document.querySelector("#restriction-status");
   const restrictionList = document.querySelector("#restriction-list");
@@ -269,7 +278,58 @@
     if (inventoryData.sellableUnits.length === 0) emptyList(sellableList, "No sellable units yet.");
     populateSelect(sellableUnitType, inventoryData.unitTypes, "room type", (item) => `${item.code} · ${item.name}`);
     populateSelect(sellableSpace, inventoryData.spaces, "physical space", (item) => item.code);
+    populateSelect(bulkRoomUnitType, inventoryData.unitTypes.filter(({ profileKey }) => profileKey === "hotel"),
+      "hotel room type", (item) => `${item.code} · ${item.name}`);
+    updateBulkRoomPreview();
     populatePricingSelects();
+  }
+
+  function updateBulkRoomPreview() {
+    const fields = new FormData(bulkRoomForm);
+    const mode = String(fields.get("mode"));
+    bulkRoomRangeFields.hidden = mode !== "range";
+    bulkRoomPasteFields.hidden = mode !== "paste";
+    const floor = String(fields.get("floor") || "");
+    let codes = [];
+    let problem = "";
+
+    if (floor !== floor.trim() || floor.length > 64) {
+      problem = "Floor must be a trimmed value of at most 64 characters.";
+    } else if (mode === "range") {
+      const prefix = String(fields.get("prefix") || "");
+      const start = Number(fields.get("start"));
+      const end = Number(fields.get("end"));
+      const pad = Number(fields.get("pad"));
+      if (!Number.isInteger(start) || !Number.isInteger(end) || !Number.isInteger(pad) ||
+          start < 0 || end < start || end > 999999 || pad < 1 || pad > 6) {
+        problem = "Use a valid ascending range and a zero-pad width from 1 to 6.";
+      } else if (end - start + 1 > 200) {
+        problem = "A single batch can contain at most 200 rooms.";
+      } else {
+        codes = Array.from({ length: end - start + 1 }, (_, index) =>
+          `${prefix}${String(start + index).padStart(pad, "0")}`
+        );
+      }
+    } else {
+      codes = String(fields.get("codes") || "").split(/[\s,]+/u).filter(Boolean);
+      if (codes.length > 200) problem = "A single batch can contain at most 200 rooms.";
+    }
+
+    const stableCode = /^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$/;
+    if (!problem && (codes.length < 1 || codes.some((code) => !stableCode.test(code)))) {
+      problem = "Enter 1–200 room codes using letters, numbers, dots, underscores or hyphens.";
+    }
+    if (!problem && new Set(codes).size !== codes.length) problem = "Every room code must be unique in the preview.";
+
+    bulkRoomDraft = problem ? [] : codes.map((code) => ({ code, ...(floor ? { floor } : {}) }));
+    bulkRoomCount.textContent = String(bulkRoomDraft.length);
+    bulkRoomPreview.classList.toggle("is-error", Boolean(problem));
+    bulkRoomPreview.classList.toggle("is-valid", !problem && bulkRoomDraft.length > 0);
+    bulkRoomPreview.textContent = problem || (bulkRoomDraft.length > 0
+      ? `${bulkRoomDraft.length} explicit room${bulkRoomDraft.length === 1 ? "" : "s"}: ${codes.join(", ")}`
+      : "Enter a valid range or pasted list to preview the exact rooms.");
+    bulkRoomForm.querySelector("button[type=submit]").disabled =
+      bulkRoomDraft.length < 1 || !bulkRoomUnitType.value;
   }
 
   async function loadInventory() {
@@ -999,6 +1059,9 @@
   });
   for (const tab of navigation) tab.addEventListener("click", () => setView(tab.dataset.view));
   refreshInventory.addEventListener("click", () => void loadInventory());
+  bulkRoomForm.addEventListener("input", updateBulkRoomPreview);
+  bulkRoomForm.addEventListener("change", updateBulkRoomPreview);
+  bulkRoomRefreshPreview.addEventListener("click", updateBulkRoomPreview);
   refreshRestrictions.addEventListener("click", () => void loadRestrictions());
   refreshRates.addEventListener("click", () => void loadRates());
   refreshOperationalBlocks.addEventListener("click", () => void loadOperationalBlocks());
@@ -1043,6 +1106,20 @@
       spaces: [{ spaceId: fields.get("spaceId"), claimMode: "exclusive" }],
     });
     if (saved) sellableForm.elements.name.value = "";
+  });
+  bulkRoomForm.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    updateBulkRoomPreview();
+    if (bulkRoomDraft.length < 1 || !bulkRoomUnitType.value) {
+      formMessage(bulkRoomForm, "Create a valid explicit preview and choose a hotel room type first.", true);
+      return;
+    }
+    const rooms = bulkRoomDraft.map((room) => ({ ...room }));
+    const saved = await submitInventory(bulkRoomForm, "rooms:bulk", {
+      unitTypeId: bulkRoomUnitType.value,
+      rooms,
+    });
+    if (saved) formMessage(bulkRoomForm, `${rooms.length} room${rooms.length === 1 ? "" : "s"} committed atomically with audit facts and events.`);
   });
   restrictionForm.addEventListener("submit", async (event) => {
     event.preventDefault();
