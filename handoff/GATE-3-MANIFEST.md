@@ -34,6 +34,7 @@ Status legend: UNVERIFIED = built, proofs builder-asserted, not executed by the 
 | 069 | 3 | 2c925ee + 1857299 correction (order 3228b0c; red proof da22ac9) | UNVERIFIED | Order 069 — Atomic rate draft simulation, approval, publication and versioned undo |
 | 070 | 3 | 32fa632 (order d2c78a1; red proof 1bfb57b) | UNVERIFIED | Order 070 — Universal stay quote resolution and governed RMS/API evidence |
 | 071 | 2 | 259d5ec (order 1da7887; red proof 94a9427) | UNVERIFIED | Order 071 — Guided and expert universal rate-plan workbench |
+| 072 | 3 | 3fb6b5b (order 062bac7; red proof dd4af8a) | UNVERIFIED | Order 072 — Secure AI-assisted rate intent |
 
 Protected hashes to re-quote each time:
 

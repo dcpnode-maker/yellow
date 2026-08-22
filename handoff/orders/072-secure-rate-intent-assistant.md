@@ -145,10 +145,10 @@ commit, push and open a draft PR. Do not merge.
 
 ## Definition of done
 
-- [ ] P0 is preserved before production code.
-- [ ] P1–P5 pass without weakening Order 071, the referee or protected files.
-- [ ] AI-assisted produces only a strict reviewable proposal and cannot mutate by itself.
-- [ ] Local founder review works without a provider key or paid service.
-- [ ] Ambiguous/impossible/forbidden requests explain the boundary instead of guessing.
-- [ ] The persistent localhost stack is restored healthy and left on the rate builder.
-- [ ] Order 072 is recorded UNVERIFIED for later independent Gate-3 execution.
+- [x] P0 is preserved before production code.
+- [x] P1–P5 pass without weakening Order 071, the referee or protected files.
+- [x] AI-assisted produces only a strict reviewable proposal and cannot mutate by itself.
+- [x] Local founder review works without a provider key or paid service.
+- [x] Ambiguous/impossible/forbidden requests explain the boundary instead of guessing.
+- [x] The persistent localhost stack is restored healthy and left on the rate builder.
+- [x] Order 072 is recorded UNVERIFIED for later independent Gate-3 execution.
