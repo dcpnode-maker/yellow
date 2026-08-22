@@ -27,6 +27,7 @@ Status legend: UNVERIFIED = built, proofs builder-asserted, not executed by the 
 | 062 | 3 | 27f883c (order 2c90985; red proof cd19191) | UNVERIFIED | Order 062 — Operator-managed offline capacity lease pool |
 | 063 | 1 | 5e7591f | UNVERIFIED | Order 063 — Universal rate-plan product contract |
 | 064 | 2 | 4b34b42 (order 25c093e; red proof 58927f7) | UNVERIFIED | Order 064 — Founder project progress and live system-health dashboard |
+| 065 | 3 | b98f7c8 (order 148d65e; red proof 8f7fb47) | UNVERIFIED | Order 065 — Versioned rate-model catalogue and draft selection |
 
 Protected hashes to re-quote each time:
 

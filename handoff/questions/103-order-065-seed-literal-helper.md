@@ -2,7 +2,7 @@
 
 ## ANSWERED — TEMPORARY ARCHITECT
 
-**Order:** 065  
+**Order:** 065
 **Observed:** after Question 102 switched to frozen production seed constants, TypeScript inferred
 the `envelope()` default tenant parameter as the exact canonical UUID literal and rejected the
 required tenant-B call.
@@ -14,4 +14,3 @@ same defaults and all foreign-tenant inputs, then restart typecheck?
 
 Yes. This is a test-helper boundary only. Do not cast the tenant-B call or widen production seed
 constants.
-

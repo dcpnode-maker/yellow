@@ -140,3 +140,4 @@
 2026-08-22 · 102 · 3 · phase-3/versioned-rate-model-catalogue · codex → codex · QUESTION-ANSWERED · focused proof now derives canonical production seed tenant/property instead of mixing invariant-fixture UUIDs
 2026-08-22 · 103 · 3 · phase-3/versioned-rate-model-catalogue · codex → codex · QUESTION-ANSWERED · widen only test-helper parameter types so frozen seed literals retain foreign-tenant proof
 2026-08-22 · 104 · 3 · phase-3/versioned-rate-model-catalogue · codex → codex · QUESTION-ANSWERED · advance only exact founder-status order/debt counters after the required Order 065 manifest row
+2026-08-22 · 065 · 3 · phase-3/versioned-rate-model-catalogue · codex → Gate-3 reviewer · BUILT-UNREVIEWED · b98f7c8 (order 148d65e; red proof 8f7fb47); focused 6/6 and 58 assertions, inherited extension 6/6 and 25 assertions, standing 52/0, schema exact, fresh app-never-started referee 11/11; protected hashes unchanged

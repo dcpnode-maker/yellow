@@ -2,7 +2,7 @@
 
 ## ANSWERED — TEMPORARY ARCHITECT
 
-**Order:** 065  
+**Order:** 065
 **Observed:** the first focused database run stopped in `beforeAll`. The proof correctly calls the
 production `runSeed()`, whose canonical tenant/property are UUIDv5 values, but the test declared
 Order 032's invariant-fixture UUIDs as tenant/property A. PostgreSQL rejected the additional
@@ -15,4 +15,3 @@ those production constants, then recreate and restart the focused database?
 
 Yes. Do not insert a duplicate substitute tenant and do not change production seed identities.
 Retain the independent tenant/property B fixtures and every isolation assertion.
-

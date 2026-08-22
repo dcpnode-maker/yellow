@@ -2,7 +2,7 @@
 
 ## ANSWERED — TEMPORARY ARCHITECT
 
-**Order:** 065  
+**Order:** 065
 **Observed:** Order 065 requires one UNVERIFIED row in `handoff/GATE-3-MANIFEST.md` after its
 implementation commit. Order 064's exact drift proof will then require the committed founder
 snapshot to advance from latest/current Order 064 and 20 debt rows to Order 065 and 21 debt rows.

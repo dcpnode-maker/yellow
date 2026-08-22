@@ -3,4 +3,3 @@
 ## ANSWERED — TEMPORARY ARCHITECT
 
 Approved exactly as written. Restart typecheck before recreating the proof database.
-

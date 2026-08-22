@@ -2,7 +2,7 @@
 
 ## ANSWERED — TEMPORARY ARCHITECT
 
-**Order:** 065  
+**Order:** 065
 **Observed:** the first implemented `tsc --noEmit` stopped before database proof. Optional row
 access leaves the derived extension version typed `number | undefined`; `Number.isInteger()`
 does not narrow that union. Two Bun `toEqual` overloads also reject a readonly tuple as the
@@ -15,4 +15,3 @@ arrays with mutable `[...EXPECTED_KEYS]` copies, then restart typecheck from the
 
 Yes. Change only those three compile boundaries. Do not assert, cast or widen the production
 version, and do not weaken exact catalogue equality.
-
