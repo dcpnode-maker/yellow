@@ -97,8 +97,22 @@ Refresh the disposable Graphify code map and record its parser/semantic limits.
 
 ## Definition of done
 
-- [ ] P0 intentional red evidence is committed before implementation.
-- [ ] P1 proves one exact executable lifecycle and exhaustive fail-closed lookup.
-- [ ] P2 is fully green and protected hashes remain exact.
-- [ ] Phase 4 is active, while independent review remains truthfully bounded at Order 044.
+- [x] P0 intentional red evidence is committed before implementation.
+- [x] P1 proves one exact executable lifecycle and exhaustive fail-closed lookup.
+- [x] P2 is fully green and protected hashes remain exact.
+- [x] Phase 4 is active, while independent review remains truthfully bounded at Order 044.
 
+## Evidence
+
+- Intentional red `1cc620e`: test runner failed only on the absent executable module.
+- Implementation `0c02a6a`: focused 5/5 with 131 assertions; TypeScript and 50-file import
+  boundaries clean after the D-276 proof-parser correction.
+- Standing gate: 100 pass / 0 fail / 1,336 assertions; exact isolated Phase-3 gate 60/60 and 1,020
+  assertions; dependency licences and audit clean; schema exact; no leftover Phase-3 databases.
+- Fresh isolated `yellow-order-080` referee: 11 passed / 0 failed, app never started.
+- Protected hashes remain `fe2a9fc949c6bacded3f8d3fc4d14fc596a83ebde9aeb043eb10845f07b30923`
+  and `3228279bd99a8f9b6af99748f31d4d4b482a8e627e16d92644d9d859ad8befa1`.
+- Graphify's disposable code-only map contains 2,106 nodes, 5,906 edges and 104 communities,
+  with zero missing, dangling, duplicate or collapsed edges and ten inherited self-loops. Its
+  explicit limitation is that 394 non-code documents and semantic labeling were skipped; the
+  canonical Markdown was therefore validated by the executable proof, not by the graph.

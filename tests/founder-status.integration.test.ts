@@ -66,8 +66,8 @@ describe("Order 064 recorded build snapshot", () => {
     expect(rows.length).toBeGreaterThan(0);
     expect(Number(PROJECT_BUILD_SNAPSHOT.roadmap.latestBuiltOrder)).toBe(Math.max(...rows.map(({ order }) => order)));
     expect(Number(PROJECT_BUILD_SNAPSHOT.review.gate3Debt)).toBe(rows.filter(({ status }) => status === "UNVERIFIED").length);
-    expect(PROJECT_BUILD_SNAPSHOT.roadmap.currentOrder).toBe(79);
-    expect(PROJECT_BUILD_SNAPSHOT.roadmap.activePhase).toBe(3);
+    expect(PROJECT_BUILD_SNAPSHOT.roadmap.currentOrder).toBe(80);
+    expect(PROJECT_BUILD_SNAPSHOT.roadmap.activePhase).toBe(4);
     expect(PROJECT_BUILD_SNAPSHOT.roadmap.phaseCount).toBe(13);
     expect(reviewCoverage.throughOrder).toBe(44);
     expect(reviewCoverage.approvedReviewFiles).not.toContain("045-073-gate-3.md");
@@ -80,8 +80,9 @@ describe("Order 064 recorded build snapshot", () => {
     expect(PROJECT_BUILD_SNAPSHOT.phases[0]?.state).toBe("reviewed");
     expect(PROJECT_BUILD_SNAPSHOT.phases[1]?.state).toBe("reviewed");
     expect(PROJECT_BUILD_SNAPSHOT.phases[2]?.state).toBe("reviewed");
-    expect(PROJECT_BUILD_SNAPSHOT.phases[3]?.state).toBe("active");
-    expect(PROJECT_BUILD_SNAPSHOT.phases.slice(4).every(({ state }) => state === "planned")).toBe(true);
+    expect(PROJECT_BUILD_SNAPSHOT.phases[3]?.state).toBe("built_unverified");
+    expect(PROJECT_BUILD_SNAPSHOT.phases[4]?.state).toBe("active");
+    expect(PROJECT_BUILD_SNAPSHOT.phases.slice(5).every(({ state }) => state === "planned")).toBe(true);
   });
 
   test("P4/P5: health stays exact and assets contain honest same-origin status UI", async () => {
