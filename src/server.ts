@@ -6,6 +6,7 @@ import { AvailabilityProjectionConsumer, AvailabilityProjectionService, Availabi
 import { RateConfigurationService, RatePricingService } from "./contexts/rates";
 import { OperatorHttpApi } from "./http/operator";
 import { Database, PostgresEventBus, PostgresIdempotency } from "./kernel";
+import type { OperatorRuntimeStatus } from "./project-status";
 import { PostgresDueHoldScopeSource } from "./workers/postgres-due-hold-scopes";
 
 const port = Bun.env.PORT === undefined ? 3000 : Number(Bun.env.PORT);
@@ -13,6 +14,7 @@ const workbenchEnabled = Bun.env.YELLOW_OPERATOR_WORKBENCH === "1";
 const holdExpiryEnabled = workbenchEnabled && Bun.env.YELLOW_HOLD_EXPIRY_WORKER === "1";
 const projectionWorkerEnabled = workbenchEnabled && Bun.env.YELLOW_AVAILABILITY_PROJECTION_WORKER === "1";
 const maxRequestBodySize = 16 * 1024;
+const processStartedAt = new Date().toISOString();
 
 function runtimeHostname(): string {
   const requested = Bun.env.HOST;
@@ -47,6 +49,12 @@ function runtimeApp() {
   const policy = new InventoryPolicyService(events);
   const holds = new HoldService(events);
   const projection = new AvailabilityProjectionService();
+  const runtimeStatus: OperatorRuntimeStatus = {
+    workbenchEnabled,
+    holdExpiryWorkerEnabled: holdExpiryEnabled,
+    availabilityProjectionWorkerEnabled: projectionWorkerEnabled,
+    processStartedAt,
+  };
   if (projectionWorkerEnabled) {
     const projectionConsumer = new AvailabilityProjectionConsumer(events, projection);
     projectionConsumer.run({ onError() { console.error("availability projection consumer failed"); } })
@@ -67,7 +75,7 @@ function runtimeApp() {
   return createApp({
     database,
     tenantResolver: new BearerTenantResolver(tokens),
-    operatorApi: new OperatorHttpApi(login, new AvailabilityService(), inventory, new PostgresIdempotency(), restrictions, rates, pricing, blocks, policy, holds, projection),
+    operatorApi: new OperatorHttpApi(login, new AvailabilityService(), inventory, new PostgresIdempotency(), restrictions, rates, pricing, blocks, policy, holds, projection, runtimeStatus),
   });
 }
 

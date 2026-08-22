@@ -34,6 +34,7 @@
   const restrictionsView = document.querySelector("#restrictions-view");
   const ratesView = document.querySelector("#rates-view");
   const operationsView = document.querySelector("#operations-view");
+  const statusView = document.querySelector("#status-view");
   const navigation = document.querySelectorAll(".domain-tab");
   const refreshInventory = document.querySelector("#refresh-inventory");
   const inventoryStatus = document.querySelector("#inventory-status");
@@ -126,6 +127,19 @@
   const offlineLeaseList = document.querySelector("#offline-lease-list");
   const offlineLeaseStatus = document.querySelector("#offline-lease-status");
   const refreshOfflineLeases = document.querySelector("#refresh-offline-leases");
+  const refreshStatus = document.querySelector("#refresh-status");
+  const roadmapProgress = document.querySelector("#roadmap-progress");
+  const reviewProgress = document.querySelector("#review-progress");
+  const statusOrder = document.querySelector("#status-order");
+  const statusDebt = document.querySelector("#status-debt");
+  const statusReferee = document.querySelector("#status-referee");
+  const statusRecordedAt = document.querySelector("#status-recorded-at");
+  const statusRoadmapCopy = document.querySelector("#status-roadmap-copy");
+  const statusReviewCopy = document.querySelector("#status-review-copy");
+  const statusPhaseList = document.querySelector("#status-phase-list");
+  const statusHealthGrid = document.querySelector("#status-health-grid");
+  const statusMessage = document.querySelector("#status-message");
+  const SYSTEM_STATUS_SUFFIX = "/system-status";
   const MAX_MINOR = BigInt("9223372036854775807");
 
   function applyTheme(theme) {
@@ -213,7 +227,7 @@
       propertySelect.disabled = true;
     } else {
       propertySelect.disabled = false;
-      const pathProperty = location.pathname.match(/^\/p\/([0-9a-f-]+)\/(?:availability|inventory|operations|restrictions|rates)$/)?.[1];
+      const pathProperty = location.pathname.match(/^\/p\/([0-9a-f-]+)\/(?:availability|inventory|operations|restrictions|rates|status)$/)?.[1];
       if (pathProperty && body.properties.some(({ id }) => id === pathProperty)) propertySelect.value = pathProperty;
     }
   }
@@ -593,6 +607,95 @@
     }
   }
 
+  function readableState(state) {
+    return ({
+      reviewed: "Independently reviewed",
+      built_unverified: "Built · review pending",
+      active: "Active build phase",
+      planned: "Planned",
+      operational: "Operational",
+      configured: "Configured",
+      disabled: "Disabled",
+      not_connected: "Not connected",
+    })[state] || "Unknown";
+  }
+
+  function healthCard(name, state, detail) {
+    const card = document.createElement("article");
+    card.className = "card status-health-card";
+    const dot = document.createElement("span");
+    dot.className = `status-dot ${state}`;
+    dot.setAttribute("aria-hidden", "true");
+    const copy = document.createElement("div");
+    const title = document.createElement("strong");
+    title.textContent = `${name} · ${readableState(state)}`;
+    const explanation = document.createElement("p");
+    explanation.textContent = detail;
+    copy.append(title, explanation);
+    card.append(dot, copy);
+    return card;
+  }
+
+  function renderSystemStatus(body) {
+    const { snapshot, live } = body;
+    const reached = snapshot.roadmap.activePhase + 1;
+    statusOrder.textContent = `Order ${snapshot.roadmap.latestBuiltOrder} built`;
+    statusRoadmapCopy.textContent = `Phase ${snapshot.roadmap.activePhase} of ${snapshot.roadmap.phaseCount - 1} is active; ${reached} of ${snapshot.roadmap.phaseCount} named phases have been reached.`;
+    roadmapProgress.max = snapshot.roadmap.phaseCount;
+    roadmapProgress.value = reached;
+    roadmapProgress.textContent = `${reached} of ${snapshot.roadmap.phaseCount} phases reached`;
+    statusDebt.textContent = `${snapshot.review.gate3Debt} orders`;
+    statusReviewCopy.textContent = `Orders 1–${snapshot.review.independentlyReviewedThroughOrder} are independently reviewed. Later builder evidence remains ${snapshot.review.state}.`;
+    reviewProgress.max = snapshot.roadmap.latestBuiltOrder;
+    reviewProgress.value = snapshot.review.independentlyReviewedThroughOrder;
+    reviewProgress.textContent = `${snapshot.review.independentlyReviewedThroughOrder} of ${snapshot.roadmap.latestBuiltOrder} orders independently reviewed`;
+    statusReferee.textContent = `${snapshot.referee.requiredPasses}/${snapshot.referee.requiredPasses} required`;
+    statusRecordedAt.textContent = `Snapshot date ${snapshot.recordedAt} · current order ${snapshot.roadmap.currentOrder}`;
+
+    const phases = snapshot.phases.map((phase) => {
+      const item = document.createElement("li");
+      item.className = "status-phase-item";
+      item.dataset.state = phase.state;
+      const number = document.createElement("b");
+      number.textContent = String(phase.number);
+      const copy = document.createElement("span");
+      const name = document.createElement("span");
+      name.textContent = phase.name;
+      const state = document.createElement("small");
+      state.textContent = readableState(phase.state);
+      copy.append(name, state);
+      item.append(number, copy);
+      return item;
+    });
+    statusPhaseList.replaceChildren(...phases);
+
+    const appChecked = new Date(live.app.checkedAt).toLocaleString();
+    const databaseChecked = new Date(live.database.checkedAt).toLocaleString();
+    statusHealthGrid.replaceChildren(
+      healthCard("Application", live.app.state, `Responded at ${appChecked}; process started ${new Date(live.app.processStartedAt).toLocaleString()}.`),
+      healthCard("PostgreSQL", live.database.state, `Tenant context confirmed: ${live.database.tenantContext ? "yes" : "no"}. Checked at ${databaseChecked}.`),
+      healthCard("Hold-expiry worker", live.workers.holdExpiry, "Configured means the runtime flag is enabled; this card does not claim a successful poll."),
+      healthCard("Projection worker", live.workers.availabilityProjection, "Configured means the runtime flag is enabled; projection remains disposable acceleration."),
+      healthCard("Valkey", live.valkey.state, live.valkey.detail),
+      healthCard("External CI", live.ci.state, live.ci.detail),
+    );
+    statusMessage.textContent = "Live checks refreshed through the authenticated tenant transaction.";
+  }
+
+  async function loadSystemStatus() {
+    const property = propertySelect.value;
+    if (!property) return;
+    refreshStatus.disabled = true;
+    statusMessage.textContent = "Checking the local process and tenant-scoped PostgreSQL…";
+    try {
+      renderSystemStatus(await request(`/api/v1/properties/${encodeURIComponent(property)}${SYSTEM_STATUS_SUFFIX}`));
+    } catch (error) {
+      statusMessage.textContent = error instanceof Error ? error.message : "System status could not be loaded";
+    } finally {
+      refreshStatus.disabled = false;
+    }
+  }
+
   function updatePolicyFields() {
     const kind = policyKind.value;
     cancellationPolicyFields.hidden = kind !== "cancellation";
@@ -610,15 +713,16 @@
   }
 
   function setView(view, updateHistory = true) {
-    activeView = ["availability", "inventory", "operations", "restrictions", "rates"].includes(view) ? view : "availability";
+    activeView = ["availability", "inventory", "operations", "restrictions", "rates", "status"].includes(view) ? view : "availability";
     availabilityView.hidden = activeView !== "availability";
     inventoryView.hidden = activeView !== "inventory";
     restrictionsView.hidden = activeView !== "restrictions";
     ratesView.hidden = activeView !== "rates";
     operationsView.hidden = activeView !== "operations";
+    statusView.hidden = activeView !== "status";
     workbenchTitle.textContent = activeView === "inventory" ? "Inventory setup" :
       activeView === "operations" ? "Operations" : activeView === "restrictions" ? "Restrictions" :
-        activeView === "rates" ? "Rates" : "Availability";
+        activeView === "rates" ? "Rates" : activeView === "status" ? "Project status" : "Availability";
     for (const tab of navigation) {
       const selected = tab.dataset.view === activeView;
       tab.classList.toggle("is-active", selected);
@@ -635,6 +739,8 @@
     if (activeView === "operations") void loadOperationalBlocks();
     if (activeView === "restrictions") void loadRestrictions();
     if (activeView === "rates") void loadRates();
+    if (activeView === "status") void loadSystemStatus();
+    if (activeView === "status") void loadSystemStatus();
   }
 
   function formMessage(form, message, isError = false) {
@@ -1177,6 +1283,7 @@
   refreshOperationalBlocks.addEventListener("click", () => void loadOperationalBlocks());
   refreshHolds.addEventListener("click", () => void loadActiveHolds());
   refreshOfflineLeases.addEventListener("click", () => void loadOfflineLeases());
+  refreshStatus.addEventListener("click", () => void loadSystemStatus());
   restrictionKind.addEventListener("change", updateRestrictionFields);
   policyKind.addEventListener("change", updatePolicyFields);
   depositBasis.addEventListener("change", updateDepositFields);
@@ -1482,6 +1589,7 @@
   const initialView = location.pathname.endsWith("/inventory") ? "inventory" :
     location.pathname.endsWith("/operations") ? "operations" :
     location.pathname.endsWith("/restrictions") ? "restrictions" :
-    location.pathname.endsWith("/rates") ? "rates" : "availability";
+    location.pathname.endsWith("/rates") ? "rates" :
+    location.pathname.endsWith("/status") ? "status" : "availability";
   setView(initialView, false);
 })();

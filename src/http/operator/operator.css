@@ -216,6 +216,36 @@ input:hover, select:hover { border-color: #8d978c; }
 .projection-summary { margin: .85rem 0; padding: .8rem; border-radius: 14px; background: color-mix(in srgb, var(--accent) 8%, var(--card)); color: var(--muted); font-size: .8rem; line-height: 1.5; }
 .projection-rebuild-form { display: grid; grid-template-columns: minmax(160px, 1fr) minmax(160px, 1fr) auto; gap: .75rem; align-items: end; }
 .projection-rebuild-form .form-message { grid-column: 1 / -1; }
+.status-heading { margin-top: 1.4rem; }
+.status-summary-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1rem; }
+.status-progress-card, .status-phase-panel, .status-health-card { border-radius: calc(var(--card-radius) - 4px); }
+.status-progress-card { padding: 1.1rem; }
+.status-progress-card h3 { margin: 0 0 .8rem; font-size: 1rem; }
+.status-source { margin: 0 0 .35rem; color: var(--accent-strong); font-size: .68rem; font-weight: 850; letter-spacing: .1em; text-transform: uppercase; }
+.status-number { display: block; margin-bottom: .35rem; font-size: clamp(1.8rem, 4vw, 2.7rem); letter-spacing: -.05em; }
+.status-progress-card progress { width: 100%; height: .75rem; overflow: hidden; border: 0; border-radius: 999px; background: color-mix(in srgb, var(--line) 72%, var(--card)); }
+.status-progress-card progress::-webkit-progress-bar { border-radius: 999px; background: color-mix(in srgb, var(--line) 72%, var(--card)); }
+.status-progress-card progress::-webkit-progress-value { border-radius: 999px; background: var(--accent); }
+.status-progress-card progress::-moz-progress-bar { border-radius: 999px; background: var(--accent); }
+.status-denominator { margin: .65rem 0 0; color: var(--muted); font-size: .72rem; line-height: 1.45; }
+.status-phase-panel { margin-top: 1rem; padding: 1rem; }
+.status-phase-list { list-style: none; margin: 0; padding: 1rem 0 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: .65rem; }
+.status-phase-item { display: flex; align-items: center; gap: .65rem; padding: .75rem; border: 1px solid var(--line); border-radius: 13px; background: color-mix(in srgb, var(--paper) 65%, var(--card)); }
+.status-phase-item b { display: grid; place-items: center; width: 2rem; height: 2rem; flex: none; border-radius: 10px; background: color-mix(in srgb, var(--accent) 12%, var(--card)); color: var(--accent-strong); }
+.status-phase-item span, .status-phase-item small { display: block; }
+.status-phase-item small { margin-top: .15rem; color: var(--muted); font-size: .68rem; text-transform: uppercase; }
+.status-phase-item[data-state="reviewed"] { border-color: color-mix(in srgb, var(--green) 45%, var(--line)); }
+.status-phase-item[data-state="active"] { border-color: color-mix(in srgb, var(--accent) 55%, var(--line)); box-shadow: inset 3px 0 0 var(--accent); }
+.status-phase-item[data-state="built_unverified"] { border-color: color-mix(in srgb, var(--amber) 40%, var(--line)); }
+.compact-heading { margin-bottom: .8rem; }
+.status-health-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(225px, 1fr)); gap: .8rem; }
+.status-health-card { min-height: 112px; padding: 1rem; display: flex; align-items: start; gap: .75rem; }
+.status-health-card strong, .status-health-card p { display: block; }
+.status-health-card p { margin: .3rem 0 0; color: var(--muted); font-size: .75rem; line-height: 1.45; }
+.status-dot { width: .72rem; height: .72rem; margin-top: .22rem; flex: none; border-radius: 999px; background: var(--muted); box-shadow: 0 0 0 4px color-mix(in srgb, var(--muted) 12%, transparent); }
+.status-dot.operational { background: var(--green); box-shadow: 0 0 0 4px var(--green-soft); }
+.status-dot.configured { background: var(--accent); box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent) 14%, transparent); }
+.status-dot.disabled, .status-dot.not_connected, .status-dot.unknown { background: var(--muted); }
 
 @media (max-width: 900px) {
   .login-layout { grid-template-columns: 1fr; padding-top: 2.5rem; }
@@ -233,6 +263,7 @@ input:hover, select:hover { border-color: #8d978c; }
   .projection-rebuild-form button, .projection-rebuild-form .form-message { grid-column: 1 / -1; }
   .offline-lease-form { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .offline-lease-form button, .offline-lease-form .form-message { grid-column: 1 / -1; }
+  .status-summary-grid { grid-template-columns: 1fr; }
 }
 
 @media (max-width: 720px) {

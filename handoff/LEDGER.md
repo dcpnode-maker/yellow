@@ -130,3 +130,5 @@
 2026-08-22 · 063 · 1 · phase-3/universal-rate-plan-contract · codex → Gate-3 reviewer · BUILT-UNREVIEWED · 5e7591f; exact founder-requirement matrix maps every model, target, advanced rule, conflict, bulk-publish and AI boundary to Orders 064–071; protected hashes unchanged
 2026-08-22 · 063 · 1 · phase-3/universal-rate-plan-contract · codex → Gate-3 reviewer · RECORD-CORRECTED · D-231 reserves founder progress/system health as Order 064 and shifts the unchanged universal-rate implementation map to Orders 065–072
 2026-08-22 · 064 · 2 · phase-3/founder-status-dashboard · codex → — · ORDER-WRITTEN · authenticated graphical live-vs-recorded project status; manifest drift proof; no fake cache, worker, CI or review health
+2026-08-22 · 097 · 2 · phase-3/founder-status-dashboard · codex → codex · QUESTION-ANSWERED · normalize immutable snapshot literals only at three exact manifest assertion boundaries; restart compiler and focused proof
+2026-08-22 · 098 · 2 · phase-3/founder-status-dashboard · codex → codex · QUESTION-ANSWERED · invalidate first counter canaries after restoration hash mismatch; rebaseline only after green and repeat both with exact final SHA-256

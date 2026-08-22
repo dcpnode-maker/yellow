@@ -76,11 +76,70 @@
             <button class="domain-tab" id="nav-operations" type="button" data-view="operations">Operations</button>
             <button class="domain-tab" id="nav-restrictions" type="button" data-view="restrictions">Restrictions</button>
             <button class="domain-tab" id="nav-rates" type="button" data-view="rates">Rates</button>
+            <button class="domain-tab" id="nav-status" type="button" data-view="status">Project status</button>
           </nav>
           <label>Property
             <select name="property" id="property-select" required></select>
           </label>
         </div>
+
+        <section id="status-view" hidden aria-labelledby="status-title">
+          <div class="section-heading status-heading">
+            <div>
+              <p class="eyebrow">Founder visibility</p>
+              <h2 id="status-title">Project progress and system health</h2>
+              <p class="muted">Recorded delivery evidence and live local checks are deliberately separate.</p>
+            </div>
+            <button class="quiet" id="refresh-status" type="button">Refresh live checks</button>
+          </div>
+
+          <div class="status-summary-grid">
+            <section class="card status-progress-card" aria-labelledby="roadmap-progress-title">
+              <p class="status-source">Recorded build snapshot</p>
+              <h3 id="roadmap-progress-title">Roadmap position</h3>
+              <strong class="status-number" id="status-order">—</strong>
+              <p class="muted" id="status-roadmap-copy">Loading committed phase evidence…</p>
+              <progress id="roadmap-progress" max="13" value="0">0 of 13 phases reached</progress>
+              <p class="status-denominator">Position is measured against 13 named BUILD-PLAN phases—not a subjective completion estimate.</p>
+            </section>
+            <section class="card status-progress-card" aria-labelledby="review-progress-title">
+              <p class="status-source">Recorded independent review</p>
+              <h3 id="review-progress-title">Review coverage</h3>
+              <strong class="status-number" id="status-debt">—</strong>
+              <p class="muted" id="status-review-copy">Loading Gate-3 debt evidence…</p>
+              <progress id="review-progress" max="64" value="0">0 of 64 orders independently reviewed</progress>
+              <p class="status-denominator">Builder-green work stays UNVERIFIED until the independent reviewer executes its proofs.</p>
+            </section>
+            <section class="card status-progress-card" aria-labelledby="proof-gate-title">
+              <p class="status-source">Required executable gate</p>
+              <h3 id="proof-gate-title">Invariant referee</h3>
+              <strong class="status-number" id="status-referee">—</strong>
+              <p class="muted">The dashboard records the required result. It does not run or silently claim the referee itself.</p>
+              <p class="status-denominator" id="status-recorded-at">Snapshot date —</p>
+            </section>
+          </div>
+
+          <section class="card status-phase-panel" aria-labelledby="phase-map-title">
+            <div class="panel-heading">
+              <div><h3 id="phase-map-title">Phase map</h3><p class="muted">Reviewed, builder-unverified, active and planned are different states.</p></div>
+            </div>
+            <ol class="status-phase-list" id="status-phase-list"></ol>
+          </section>
+
+          <section aria-labelledby="live-health-title">
+            <div class="section-heading compact-heading">
+              <div>
+                <p class="eyebrow">Live service checks</p>
+                <h2 id="live-health-title">This localhost process</h2>
+                <p class="muted">Green here proves reachability now; it does not prove every feature or deferred review.</p>
+              </div>
+            </div>
+            <div class="status-health-grid" id="status-health-grid" aria-live="polite">
+              <article class="card status-health-card"><span class="status-dot unknown"></span><div><strong>Not checked</strong><p>Choose a property and refresh.</p></div></article>
+            </div>
+            <p class="inventory-status" id="status-message" role="status" aria-live="polite">Open Project status to run authenticated live checks.</p>
+          </section>
+        </section>
 
         <section id="availability-view" aria-labelledby="availability-title">
           <h2 class="visually-hidden" id="availability-title">Availability search</h2>

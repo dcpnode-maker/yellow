@@ -61,15 +61,15 @@ describe("Order 064 recorded build snapshot", () => {
     const manifest = await Bun.file(new URL("../handoff/GATE-3-MANIFEST.md", import.meta.url)).text();
     const rows = manifestRows(manifest);
     expect(rows.length).toBeGreaterThan(0);
-    expect(PROJECT_BUILD_SNAPSHOT.roadmap.latestBuiltOrder).toBe(Math.max(...rows.map(({ order }) => order)));
-    expect(PROJECT_BUILD_SNAPSHOT.review.gate3Debt).toBe(rows.filter(({ status }) => status === "UNVERIFIED").length);
+    expect(Number(PROJECT_BUILD_SNAPSHOT.roadmap.latestBuiltOrder)).toBe(Math.max(...rows.map(({ order }) => order)));
+    expect(Number(PROJECT_BUILD_SNAPSHOT.review.gate3Debt)).toBe(rows.filter(({ status }) => status === "UNVERIFIED").length);
     expect(PROJECT_BUILD_SNAPSHOT.roadmap.currentOrder).toBe(64);
     expect(PROJECT_BUILD_SNAPSHOT.roadmap.activePhase).toBe(3);
     expect(PROJECT_BUILD_SNAPSHOT.roadmap.phaseCount).toBe(13);
     expect(PROJECT_BUILD_SNAPSHOT.review.independentlyReviewedThroughOrder).toBe(18);
     expect(PROJECT_BUILD_SNAPSHOT.referee).toEqual({ requiredPasses: 11, requiredFailures: 0 });
     expect(PROJECT_BUILD_SNAPSHOT.phases).toHaveLength(13);
-    expect(PROJECT_BUILD_SNAPSHOT.phases.map(({ number }) => number)).toEqual([...Array(13).keys()]);
+    expect(PROJECT_BUILD_SNAPSHOT.phases.map(({ number }) => Number(number))).toEqual([...Array(13).keys()]);
     expect(PROJECT_BUILD_SNAPSHOT.phases[0]?.state).toBe("reviewed");
     expect(PROJECT_BUILD_SNAPSHOT.phases[1]?.state).toBe("built_unverified");
     expect(PROJECT_BUILD_SNAPSHOT.phases[2]?.state).toBe("built_unverified");
@@ -212,4 +212,3 @@ databaseDescribe("Order 064 authenticated founder status", () => {
     expect(await failed.text()).not.toContain("database-secret-detail");
   });
 });
-

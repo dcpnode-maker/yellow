@@ -41,6 +41,11 @@ import {
   type TenantRequestContext,
   type Tx,
 } from "../kernel";
+import {
+  DEFAULT_OPERATOR_RUNTIME_STATUS,
+  PROJECT_BUILD_SNAPSHOT,
+  type OperatorRuntimeStatus,
+} from "../project-status";
 
 const AVAILABILITY_SCOPE = "inventory.availability:read";
 const CONFIGURATION_READ_SCOPE = "inventory.configuration:read";
@@ -481,6 +486,7 @@ export class OperatorHttpApi {
   readonly #policy?: PolicyOperations;
   readonly #holds?: HoldOperations;
   readonly #projection?: Pick<AvailabilityProjectionService, "status" | "replaceHorizon">;
+  readonly #runtimeStatus: OperatorRuntimeStatus;
 
   constructor(
     login: LocalLoginService,
@@ -494,6 +500,7 @@ export class OperatorHttpApi {
     policy?: PolicyOperations,
     holds?: HoldOperations,
     projection?: Pick<AvailabilityProjectionService, "status" | "replaceHorizon">,
+    runtimeStatus: OperatorRuntimeStatus = DEFAULT_OPERATOR_RUNTIME_STATUS,
   ) {
     this.#login = login;
     this.#availability = availability;
@@ -506,6 +513,7 @@ export class OperatorHttpApi {
     this.#policy = policy;
     this.#holds = holds;
     this.#projection = projection;
+    this.#runtimeStatus = runtimeStatus;
   }
 
   unavailable(request: Request): Response {
@@ -565,6 +573,59 @@ export class OperatorHttpApi {
     } catch {
       return apiError(context.request, 503, "service/unavailable", "Service unavailable", "Property access is temporarily unavailable");
     }
+  }
+
+  async systemStatus(context: TenantRequestContext, propertyNode: string): Promise<Response> {
+    if (!hasAvailabilityScope(context)) {
+      return apiError(context.request, 403, "auth/scope_missing", "Forbidden", "Project status access is not granted");
+    }
+    if (!UUID.test(propertyNode)) {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Property identifier is invalid");
+    }
+    const grants = await listGrantedProperties(context);
+    if (!grants.some(({ id }) => id === propertyNode)) {
+      return apiError(context.request, 403, "auth/property_forbidden", "Forbidden", "Property access is not granted");
+    }
+    const rows = await context.tx<Array<{
+      checked_at: Date;
+      database_name: string;
+      tenant_context: boolean;
+    }>>`
+      SELECT
+        transaction_timestamp() AS checked_at,
+        current_database() AS database_name,
+        current_setting('app.tenant_id', true) = ${context.tenantId} AS tenant_context
+    `;
+    const database = rows[0];
+    if (!database) throw new Error("PostgreSQL status probe returned no row");
+    return apiResponse(context.request, {
+      snapshot: PROJECT_BUILD_SNAPSHOT,
+      live: {
+        app: {
+          state: "operational",
+          checkedAt: new Date().toISOString(),
+          processStartedAt: this.#runtimeStatus.processStartedAt,
+        },
+        database: {
+          state: "operational",
+          checkedAt: database.checked_at.toISOString(),
+          tenantContext: database.tenant_context,
+          database: database.database_name,
+        },
+        workers: {
+          holdExpiry: this.#runtimeStatus.holdExpiryWorkerEnabled ? "configured" : "disabled",
+          availabilityProjection: this.#runtimeStatus.availabilityProjectionWorkerEnabled ? "configured" : "disabled",
+        },
+        valkey: {
+          state: "not_connected",
+          detail: "Valkey is present in local Compose but is not an application dependency yet.",
+        },
+        ci: {
+          state: "not_connected",
+          detail: "External CI is not queried by the local runtime; use the linked GitHub pull request evidence.",
+        },
+      },
+    });
   }
 
   async search(context: TenantRequestContext, propertyNode: string, body: unknown): Promise<Response> {

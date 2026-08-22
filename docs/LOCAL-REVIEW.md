@@ -35,6 +35,9 @@ unit stops the run rather than rewriting hotel data.
 - local database-backed staff login;
 - property grant enforcement;
 - Apple-calm and Pixel-expressive interchangeable visual skins;
+- a Project status page with graphical roadmap/review progress, a committed snapshot
+  drift-checked against the Gate-3 manifest, and authenticated live app/database/runtime
+  configuration checks;
 - real inventory configuration lists for room types, physical spaces and sellable units;
 - idempotent, audited creation of room types, spaces and their sellable mappings;
 - atomic creation of 1–200 ordinary exclusive hotel rooms from a reviewed range or pasted
@@ -65,6 +68,20 @@ audit log, outbox and durable replay primitive as any future production client. 
 inventory import, positional dorm/bed generation, inventory update/delete, restriction
 update/delete, tax/FX calculation, hold consumption and reservations require later scoped API/UI orders;
 no direct browser-to-table shortcut is permitted.
+
+## Reading Project status correctly
+
+Open **Project status** after signing in. “Live service checks” come from the running
+process and the active tenant-scoped PostgreSQL transaction. A green app/database card
+means those services answered that request; it does not prove every feature. Worker cards
+say only whether their explicit runtime flags are configured. Valkey and external CI remain
+`not_connected` until governed application integrations exist, so the page never guesses.
+
+“Recorded build snapshot” is committed build evidence, not a network query. Its roadmap
+denominator is the 13 named BUILD-PLAN phases, and its independent-review bar distinguishes
+reviewed Orders 001–018 from later builder-green Gate-3 debt. Read current GitHub Actions on
+the pull request itself; the localhost runtime intentionally carries no GitHub token and does
+not scrape external CI.
 
 The app is deliberately disabled unless `YELLOW_OPERATOR_WORKBENCH=1` is explicit.
 Hold expiry is independently explicit with `YELLOW_HOLD_EXPIRY_WORKER=1` and starts only

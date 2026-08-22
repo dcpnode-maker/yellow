@@ -358,10 +358,17 @@ databaseDescribe("Order 042 authenticated operator workbench", () => {
     expect(html).toContain('value="pixel"');
     expect(html).toContain('id="bulk-room-form"');
     expect(html).toContain('id="bulk-room-preview"');
+    expect(html).toContain('data-view="status"');
+    expect(html).toContain('id="status-view"');
+    expect(html).toContain("Recorded build snapshot");
+    expect(html).toContain("Live service checks");
     expect(css).toContain(':root[data-theme="pixel"]');
     expect(css).toContain(".bulk-room-preview");
+    expect(css).toContain(".status-health-grid");
     expect(js).toContain("document.documentElement.dataset.theme");
     expect(js).toContain('"rooms:bulk"');
+    expect(js).toContain("loadSystemStatus");
+    expect(js).not.toMatch(/setInterval|EventSource|WebSocket|api\.github|github\.com/i);
     expect(js).not.toMatch(/fetch\([^)]*theme|\/api\/[^\s"'`]*theme/);
     const server = await Bun.file(new URL("../src/server.ts", import.meta.url)).text();
     expect(server).toContain('return requested ?? "127.0.0.1"');

@@ -78,11 +78,15 @@ export function createApp(options: AppOptions = {}) {
       .get("/p/:property/restrictions", () => operatorAssets.html())
       .get("/p/:property/rates", () => operatorAssets.html())
       .get("/p/:property/operations", () => operatorAssets.html())
+      .get("/p/:property/status", () => operatorAssets.html())
       .get("/assets/operator.css", () => operatorAssets.css())
       .get("/assets/operator.js", () => operatorAssets.js())
       .post("/api/v1/auth/local:login", ({ request, body }) => operator.login(request, body))
       .get("/api/v1/me/properties", ({ request, tenantContext }) =>
         withOperatorTenant(request, (context) => operator.properties(context))
+      )
+      .get("/api/v1/properties/:property/system-status", ({ request, params, tenantContext }) =>
+        withOperatorTenant(request, (context) => operator.systemStatus(context, params.property))
       )
       .post("/api/v1/properties/:property/availability:search", ({ request, params, body, tenantContext }) =>
         withOperatorTenant(request, (context) => operator.search(context, params.property, body))
