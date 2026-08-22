@@ -131,3 +131,40 @@ publication sequence. Commit implementation before manifest/status bookkeeping. 
 standing gate and a fresh isolated `./setup.sh --db-only` with the app never created. Only afterward replace
 the founder app container without reseeding, verify all three services, refresh Graphify, push a stacked
 draft PR based on Order 075's branch, and do not approve or merge.
+
+## Builder evidence
+
+- **P0 red:** fresh `yellow-order-076-red` database returned `authoringCommand: undefined` for the
+  exact 72-line expected command: 7 passed, 1 failed, 41 assertions. The red project and volume were
+  removed before implementation.
+- **P1/P2 green:** fresh `yellow-order-076-green` database passed the complete rate-builder file at
+  9/9 with 51 assertions. It proves exact same-scope version joins, fail-closed missing/mismatched
+  references, canonical reconstruction, deep-copy modification through the existing endpoint, an
+  unchanged source release and one distinct immutable successor.
+- **P3 green:** the always-on asset suite passed 2/2 with 24 assertions, including safe text output,
+  the three distinct release actions, no browser storage/authority and the Order-074 SQL-syntax guard.
+- **Snapshot/standing green:** founder status passed 4/4 with 60 assertions. From the top, frozen
+  install, state, typecheck, 49-file boundaries, default tests (88 passed, 291 skipped, 0 failed,
+  1,116 assertions), licence policy, dependency audit and schema drift all passed.
+- **Referee/protected files:** fresh `yellow-order-076-referee` used ports 3279/5479/6429; its app
+  service was never created and the result was 11 passed, 0 failed. SHA-256 remained
+  `fe2a9fc949c6bacded3f8d3fc4d14fc596a83ebde9aeb043eb10845f07b30923` for
+  `migrations/0001_init.sql` and
+  `3228279bd99a8f9b6af99748f31d4d4b482a8e627e16d92644d9d859ad8befa1` for
+  `tests/run_invariants.py`.
+- **P4 deployed:** only the persistent app container was rebuilt; PostgreSQL and Valkey were neither
+  recreated nor reseeded. All three containers are healthy. Authenticated Release v1 inspection
+  showed the exact guided command at `12500`, four policies and one rule. Copying it displayed the
+  explicit unsaved notice, Expert review displayed a browser-only `14200`, and a fresh server read
+  still returned four releases with v1 guided and unchanged at `12500`. No save, preview, approval or
+  publication occurred; browser warnings/errors were empty.
+- **Graphify:** structural code map refreshed to 4,640 nodes, 7,903 edges and 510 communities with no
+  missing, dangling, duplicate or collapsed endpoints. Five inherited self-loops remain; three SQL
+  files remain omitted because `tree_sitter_sql` is unavailable. Changed semantic documents were not
+  falsely relabelled without a supported LLM key; the map remains derived and disposable.
+
+## Completion
+
+- [x] P0 was committed red before production edits.
+- [x] P1–P5 pass and the persistent founder workbench is healthy.
+- [x] Manifest/status record Order 076 as `UNVERIFIED`; independent review and merge remain pending.
