@@ -109,6 +109,17 @@ function requirePolicyId(policies: readonly { id: string; kind: string }[], kind
   return policy.id;
 }
 
+function compareEvidenceRows(
+  left: Readonly<{ actor_id: string; name: string }>,
+  right: Readonly<{ actor_id: string; name: string }>,
+): number {
+  if (left.actor_id < right.actor_id) return -1;
+  if (left.actor_id > right.actor_id) return 1;
+  if (left.name < right.name) return -1;
+  if (left.name > right.name) return 1;
+  return 0;
+}
+
 async function rateSnapshot() {
   const extensions = await admin<Array<Record<string, unknown>>>`
     SELECT id, type, key, version, content, status
@@ -189,6 +200,12 @@ databaseDescribe("Order 046 reproducible local-review seed", () => {
       unitTypes: { created: 2, existing: 0 },
       rooms: { created: 5, existing: 0 },
       sellableUnits: { created: 5, existing: 0 },
+      rate: {
+        ratePlanId: expect.any(String),
+        activeReleaseId: expect.any(String),
+        activeReleaseVersion: 1,
+        created: true,
+      },
     });
     expect(await counts()).toEqual({
       users: 2, roles: 1, grants: 2, unit_types: 2, spaces: 5,
@@ -230,6 +247,12 @@ databaseDescribe("Order 046 reproducible local-review seed", () => {
       unitTypes: { created: 0, existing: 2 },
       rooms: { created: 0, existing: 5 },
       sellableUnits: { created: 0, existing: 5 },
+      rate: {
+        ratePlanId: first.rate.ratePlanId,
+        activeReleaseId: first.rate.activeReleaseId,
+        activeReleaseVersion: first.rate.activeReleaseVersion,
+        created: false,
+      },
     });
     expect(await counts()).toEqual(before);
   });
@@ -363,6 +386,47 @@ databaseDescribe("Order 046 reproducible local-review seed", () => {
       source_code: "DIRECT",
       status: "active",
     }]);
+    const facts = await admin<Array<{ actor_id: string; name: string; count: number }>>`
+      SELECT actor_id, fact_type AS name, count(*)::int AS count
+      FROM fact_log
+      WHERE actor_id IN (${first.userId}::uuid, ${first.approverUserId}::uuid)
+        AND fact_type IN (
+          'policy.created', 'rate_plan.created', 'rate_plan_model.drafted',
+          'rate_plan_target.drafted', 'rate_plan_release.drafted',
+          'rate_plan_release.approval_requested', 'rate_plan_release.approval_decided',
+          'rate_plan_release.published'
+        )
+      GROUP BY actor_id, fact_type
+      ORDER BY actor_id, fact_type COLLATE "C"
+    `;
+    const expectedFacts = [
+      { actor_id: first.userId, name: "policy.created", count: 4 },
+      { actor_id: first.userId, name: "rate_plan.created", count: 1 },
+      { actor_id: first.userId, name: "rate_plan_model.drafted", count: 1 },
+      { actor_id: first.userId, name: "rate_plan_release.approval_requested", count: 1 },
+      { actor_id: first.userId, name: "rate_plan_release.drafted", count: 1 },
+      { actor_id: first.userId, name: "rate_plan_target.drafted", count: 1 },
+      { actor_id: first.approverUserId, name: "rate_plan_release.approval_decided", count: 1 },
+      { actor_id: first.approverUserId, name: "rate_plan_release.published", count: 1 },
+    ].sort(compareEvidenceRows);
+    expect(facts).toEqual(expectedFacts);
+    const events = await admin<Array<{ actor_id: string; name: string; count: number }>>`
+      SELECT actor_id, event_type AS name, count(*)::int AS count
+      FROM outbox
+      WHERE actor_id IN (${first.userId}::uuid, ${first.approverUserId}::uuid)
+        AND event_type IN ('policy.created', 'rate_plan.created', 'approval.requested',
+                           'approval.decided', 'extension.activated')
+      GROUP BY actor_id, event_type
+      ORDER BY actor_id, event_type COLLATE "C"
+    `;
+    const expectedEvents = [
+      { actor_id: first.userId, name: "policy.created", count: 4 },
+      { actor_id: first.userId, name: "rate_plan.created", count: 1 },
+      { actor_id: first.userId, name: "approval.requested", count: 1 },
+      { actor_id: first.approverUserId, name: "approval.decided", count: 1 },
+      { actor_id: first.approverUserId, name: "extension.activated", count: 1 },
+    ].sort(compareEvidenceRows);
+    expect(events).toEqual(expectedEvents);
   });
 
   test("Order 078 P2: one canonical active release has exact four-eyes approval", async () => {
