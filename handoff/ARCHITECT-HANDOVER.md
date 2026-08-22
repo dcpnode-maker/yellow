@@ -11,22 +11,21 @@ Everything below is what the next architect needs and cannot reconstruct from th
 
 ## 1. The single most important fact
 
-**Orders 019–036 have never been reviewed, and nothing since Phase 0 is on `main`.**
+**Orders 019–044 were independently reviewed at `6bfd2c5`; Orders 045–060 remain
+unverified, and nothing since Phase 0 is on `main`.**
 
 | | Count | State |
 |---|---:|---|
-| Orders written | 36 | 001–018 reviewed and merged; **019–036 built, unreviewed, unmerged** |
-| Reviews in `handoff/reviews/` | 4 | all Phase 0 |
-| Decisions in `DECISIONS.log` | D-1 → **D-141** | **D-95 → D-141 (47) never ratified by a reviewer** |
-| Commits ahead of `main` | 31 | linear, so one integration is possible |
+| Orders written | 60 | 001–018 reviewed and merged; 019–044 reviewed but unmerged; **045–060 built, unverified and unmerged** |
+| Reviews in `handoff/reviews/` | 7 | Phase 0 plus cumulative Orders 019–044 review; Gate 3 is deferred |
+| Decisions in `DECISIONS.log` | D-1 → **D-221** | D-95 → D-160 reviewed under D-161; **D-162 → D-221 await Gate-3 ratification or amendment** |
+| Current Gate-3 manifest | 16 orders | 045–060, linear descendant stack, all explicitly `UNVERIFIED` |
 
-That is not a criticism of the work. Codex's preflight discipline has been excellent —
-Question 011 alone found nine real defects in my own orders, and D-138 through D-141 show
-it iterating honestly against failing proofs rather than weakening them. But **my role was
-verification, and 18 orders of it did not happen.** Treat every claim in D-95→D-141 and in
-Orders 019–036 as builder-asserted, not architect-verified, per D-84.
-
-**Fable: this is the debt. It is the first thing to attack, before any new code.**
+The original 019–036 debt described here was later discharged and extended through Order
+044 by the review recorded in D-161. Current debt begins at Order 045 and is governed by
+`handoff/GATE-3-REVIEW-CONTRACT.md`: it is recorded, non-blocking and never represented as
+approval. Treat every Gate-3 manifest row as builder-asserted until the founder schedules
+that application review.
 
 ---
 
@@ -58,26 +57,25 @@ Everything else is assertion.
   incomplete Scope list. All three were caught by Codex reading before building. If Fable
   writes orders, front-load the proof spec and expect the builder to audit it.
 
-## 4. Where to look first — highest blast radius
+## 4. Where to look first — current Gate-3 blast radius
 
-In this order. Each is Tier 3 by the nature of the surface.
+Orders 019–044 and decisions through D-160 were discharged by D-161. For the current
+045–060 manifest, review in this order:
 
-1. **Order 019 — tenant context middleware.** Everything writes through it. If it is
-   wrong, all 73 tenant tables keep correct RLS policies that protect nothing. The two
-   proofs that matter: **P3** (context does not survive on a pooled connection — must
-   assert `NULLIF(current_setting('app.tenant_id', true), '') IS NULL`, because Postgres
-   clears a custom GUC to empty string and a byte-equality assertion passes *while
-   leaking*) and **P5** (a handler that throws still releases context — the error path is
-   where the forgotten hook lives, which is exactly how F1 happened).
-2. **Order 020 — auth.** `alg:none` and algorithm-confusion rejection. Both are the
-   classic JWT vulnerabilities and both are invisible unless tested directly.
-3. **Order 023 — outbox relay.** SIGKILL mid-batch, restart, nothing lost *or* duplicated.
-   SIGKILL, not SIGTERM — a graceful shutdown proves the easy case.
-4. **Orders 028–036 — inventory, holds, availability, rates, restrictions.** This is
-   Phase 2, the occupancy choke point, and it is where double-bookings live. I have
-   reviewed none of it. `tests/run_invariants.py` TC-12.1 through TC-12.5 are the oracle.
-5. **The referee itself.** `tests/run_invariants.py` is architect-only (D-69). Confirm no
-   order since 018 modified it: `git log --oneline -- tests/run_invariants.py`.
+1. **Order 047 — durable API idempotency.** Every later operator mutation relies on its
+   hash-only request identity, atomic claim/command commit, replay and rollback behavior.
+2. **Orders 055–057 — holds, expiry and bulk rooms.** These touch the occupancy choke
+   point or create many sellable mappings atomically; re-run concurrency, rollback and
+   exact-scope proofs before trusting the workbench.
+3. **Orders 058–060 — projection rebuild, durable convergence and operator bootstrap.**
+   Verify projection-safe shape filtering, DST/local-date envelopes, poison-event rollback,
+   deployed cursor movement and the rule that projection data never authorizes a hold or
+   booking.
+4. **Orders 048–054 — operator mutation surfaces.** Read their idempotency, grant, scope,
+   money-string and audit/outbox assertions against the API and themed browser controls.
+5. **The protected floor.** Confirm `migrations/0001_init.sql` and
+   `tests/run_invariants.py` against the hashes in `handoff/GATE-3-MANIFEST.md`, then run the
+   isolated 11/11 referee before any Gate-3 approval.
 
 ## 5. Housekeeping that has drifted — small, but fix it before it compounds
 
