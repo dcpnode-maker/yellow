@@ -170,6 +170,14 @@ input:hover, select:hover { border-color: #8d978c; }
 .progressive-fields legend { padding: 0 .35rem; color: var(--accent-strong); font-size: .76rem; font-weight: 800; }
 .check-field { display: flex; align-items: center; gap: .65rem; min-height: 42px; }
 .check-field input { width: 1.1rem; height: 1.1rem; accent-color: var(--accent); }
+.pricing-workspace { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(280px, .75fr); gap: 1rem; margin-top: 1rem; align-items: start; }
+.pricing-workspace > form { border-radius: calc(var(--card-radius) - 4px); padding: 1rem; }
+.weekday-fields { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.weekday-fields legend { grid-column: 1 / -1; }
+.weekday-fields label { display: flex; align-items: center; gap: .35rem; font-size: .72rem; }
+.weekday-fields input { width: 1rem; height: 1rem; accent-color: var(--accent); }
+.occupancy-tier { display: grid; grid-template-columns: minmax(80px, .35fr) minmax(0, 1fr); gap: .7rem; }
+.current-price-result { min-height: 7rem; padding: .9rem; border: 1px dashed var(--line); border-radius: 14px; background: color-mix(in srgb, var(--paper) 72%, var(--card)); color: var(--muted); line-height: 1.55; white-space: pre-line; }
 
 @media (max-width: 900px) {
   .login-layout { grid-template-columns: 1fr; padding-top: 2.5rem; }
@@ -179,7 +187,7 @@ input:hover, select:hover { border-color: #8d978c; }
   .search-button, .timezone-note { grid-column: 1 / -1; }
   .inventory-columns, .configuration-grid { grid-template-columns: 1fr; }
   .restriction-layout { grid-template-columns: 1fr; }
-  .rate-lists, .rate-forms { grid-template-columns: 1fr; }
+  .rate-lists, .rate-forms, .pricing-workspace { grid-template-columns: 1fr; }
 }
 
 @media (max-width: 560px) {
@@ -195,5 +203,7 @@ input:hover, select:hover { border-color: #8d978c; }
   .search-bar > * { grid-column: 1 !important; }
   .metric-grid { grid-template-columns: 1fr; }
   .date-pair { grid-template-columns: 1fr; }
+  .weekday-fields { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .occupancy-tier { grid-template-columns: 1fr; }
   .summary-row { align-items: start; flex-direction: column; padding: .9rem 0; }
 }

@@ -138,7 +138,7 @@ databaseDescribe("Order 046 reproducible local-review seed", () => {
     expect(await tokens.verify(loginBody.accessToken)).toMatchObject({
       sub: first.userId,
       tid: SEED_TENANT.id,
-      scp: "inventory.availability:read inventory.configuration:read inventory.configuration:write inventory.restriction:read inventory.restriction:write rates.configuration:read rates.configuration:write",
+      scp: "inventory.availability:read inventory.configuration:read inventory.configuration:write inventory.restriction:read inventory.restriction:write rates.configuration:read rates.configuration:write rates.pricing:read rates.pricing:write",
     });
 
     const headers = { "content-type": "application/json", authorization: `Bearer ${loginBody.accessToken}` };

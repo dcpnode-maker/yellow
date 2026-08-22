@@ -42,12 +42,15 @@ unit stops the run rather than rewriting hotel data.
   stay dates and progressive value guidance for length-of-stay and advance rules;
 - validated cancellation, deposit, guarantee and no-show policy authoring;
 - base rate-plan composition with currency, tax treatment, market/source and exact-kind
-  policy choices, while money-bearing prices and derived plans remain separate;
+  policy choices;
+- append-only exact-minor-unit price creation by room type, half-open stay dates and
+  weekdays, plus current-price lookup using PostgreSQL date/mask/latest precedence;
 - real availability for five physical rooms across Standard and Deluxe types;
 - visible restriction and operational-block evidence when those domain commands add it.
 
 The browser keeps its bearer token, appearance choice and generated idempotency keys in
-memory only. Inventory, restriction and rate-configuration writes call the same tenant-scoped domain services,
+memory only. Inventory, restriction, rate-configuration and rate-pricing writes call the same tenant-scoped domain services,
 audit log, outbox and durable replay primitive as any future production client. Update/delete/bulk
-inventory, restriction update/delete, operational blocks and holds require later scoped API/UI orders;
+inventory, restriction update/delete, rate-price correction/supersession, tax/FX calculation,
+operational blocks and holds require later scoped API/UI orders;
 no direct browser-to-table shortcut is permitted.

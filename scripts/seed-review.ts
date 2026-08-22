@@ -18,6 +18,8 @@ export const REVIEW_PERMISSIONS = Object.freeze([
   { code: "inventory.restriction:write", description: "Create tenant-scoped restriction configuration" },
   { code: "rates.configuration:read", description: "Read tenant-scoped rate configuration" },
   { code: "rates.configuration:write", description: "Create tenant-scoped rate configuration" },
+  { code: "rates.pricing:read", description: "Read tenant-scoped rate pricing" },
+  { code: "rates.pricing:write", description: "Create tenant-scoped rate pricing" },
 ]);
 const REVIEW_USER_NAME = `${TENANT_NAME}/review-user/${REVIEW_EMAIL}`;
 const REVIEW_ROLE_NAME_UUID = `${TENANT_NAME}/review-role/availability`;

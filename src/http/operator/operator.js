@@ -70,6 +70,16 @@
   const planCancellationPolicy = document.querySelector("#plan-cancellation-policy");
   const planGuaranteePolicy = document.querySelector("#plan-guarantee-policy");
   const planDepositPolicy = document.querySelector("#plan-deposit-policy");
+  const ratePriceForm = document.querySelector("#rate-price-form");
+  const currentPriceForm = document.querySelector("#current-price-form");
+  const priceRatePlan = document.querySelector("#price-rate-plan");
+  const priceUnitType = document.querySelector("#price-unit-type");
+  const currentPricePlan = document.querySelector("#current-price-plan");
+  const currentPriceUnitType = document.querySelector("#current-price-unit-type");
+  const priceAdvancedToggle = document.querySelector("#price-advanced-toggle");
+  const priceAdvancedFields = document.querySelector("#price-advanced-fields");
+  const currentPriceResult = document.querySelector("#current-price-result");
+  const MAX_MINOR = BigInt("9223372036854775807");
 
   function applyTheme(theme) {
     document.documentElement.dataset.theme = theme === "pixel" ? "pixel" : "apple";
@@ -90,6 +100,9 @@
     availabilityForm.elements.to.value = localInputValue(to);
     restrictionForm.elements.stayStart.value = localInputValue(from).slice(0, 10);
     restrictionForm.elements.stayEnd.value = localInputValue(to).slice(0, 10);
+    ratePriceForm.elements.stayStart.value = localInputValue(from).slice(0, 10);
+    ratePriceForm.elements.stayEnd.value = localInputValue(to).slice(0, 10);
+    currentPriceForm.elements.stayDate.value = localInputValue(from).slice(0, 10);
   }
 
   async function request(path, options = {}) {
@@ -219,6 +232,7 @@
     if (inventoryData.sellableUnits.length === 0) emptyList(sellableList, "No sellable units yet.");
     populateSelect(sellableUnitType, inventoryData.unitTypes, "room type", (item) => `${item.code} · ${item.name}`);
     populateSelect(sellableSpace, inventoryData.spaces, "physical space", (item) => item.code);
+    populatePricingSelects();
   }
 
   async function loadInventory() {
@@ -347,6 +361,14 @@
     populatePolicySelect(planCancellationPolicy, "cancellation", "Cancellation");
     populatePolicySelect(planGuaranteePolicy, "guarantee", "Guarantee");
     populatePolicySelect(planDepositPolicy, "deposit", "Deposit");
+    populatePricingSelects();
+  }
+
+  function populatePricingSelects() {
+    populateSelect(priceRatePlan, rateData.ratePlans, "base rate plan", (item) => `${item.code} · ${item.name} · ${item.currency}`);
+    populateSelect(currentPricePlan, rateData.ratePlans, "base rate plan", (item) => `${item.code} · ${item.name} · ${item.currency}`);
+    populateSelect(priceUnitType, inventoryData.unitTypes, "room type", (item) => `${item.code} · ${item.name}`);
+    populateSelect(currentPriceUnitType, inventoryData.unitTypes, "room type", (item) => `${item.code} · ${item.name}`);
   }
 
   async function loadRates() {
@@ -354,7 +376,13 @@
     if (!property) return;
     ratesStatus.textContent = "Loading live rate configuration…";
     try {
-      rateData = await request(`/api/v1/properties/${encodeURIComponent(property)}/rate-configuration`);
+      const [rates, inventory] = await Promise.all([
+        request(`/api/v1/properties/${encodeURIComponent(property)}/rate-configuration`),
+        request(`/api/v1/properties/${encodeURIComponent(property)}/inventory`),
+      ]);
+      rateData = rates;
+      inventoryData = inventory;
+      renderInventory();
       renderRates();
       ratesStatus.textContent = "Policies and plans are current from tenant-scoped PostgreSQL.";
     } catch (error) {
@@ -474,6 +502,49 @@
     } finally {
       button.disabled = false;
     }
+  }
+
+  function canonicalMinor(value, label, optional = false) {
+    const text = String(value ?? "");
+    if (optional && text === "") return undefined;
+    if (!/^(?:0|[1-9]\d*)$/.test(text) || BigInt(text) > MAX_MINOR) {
+      throw new Error(`${label} must be exact non-negative minor units without signs, decimals or leading zeros`);
+    }
+    return text;
+  }
+
+  async function submitPrice(body) {
+    const button = ratePriceForm.querySelector("button[type=submit]");
+    const identity = `rate-price:${JSON.stringify(body)}`;
+    const key = pendingKeys.get(identity) || crypto.randomUUID();
+    pendingKeys.set(identity, key);
+    button.disabled = true;
+    formMessage(ratePriceForm, "Saving exact money through the audited pricing service…");
+    try {
+      const result = await request(`/api/v1/properties/${encodeURIComponent(propertySelect.value)}/rate-prices`, {
+        method: "POST", headers: { "idempotency-key": key }, body: JSON.stringify(body),
+      });
+      pendingKeys.delete(identity);
+      formMessage(ratePriceForm, `Saved ${result.ratePrice.currency} price. Audit fact and event committed.`);
+      currentPriceForm.elements.ratePlanId.value = body.ratePlanId;
+      currentPriceForm.elements.unitTypeId.value = body.unitTypeId;
+      currentPriceForm.elements.stayDate.value = body.stayStart;
+      return true;
+    } catch (error) {
+      formMessage(ratePriceForm, error instanceof Error ? error.message : "Price save failed", true);
+      return false;
+    } finally {
+      button.disabled = false;
+    }
+  }
+
+  function renderCurrentPrice(price) {
+    const plan = rateData.ratePlans.find(({ id }) => id === price.ratePlanId);
+    const unit = inventoryData.unitTypes.find(({ id }) => id === price.unitTypeId);
+    const tiers = Object.entries(price.pricing.occupancy).map(([adults, amount]) => `${adults} adult${adults === "1" ? "" : "s"}: ${amount} minor units`);
+    if (price.pricing.extraAdultMinor !== null) tiers.push(`Extra adult: ${price.pricing.extraAdultMinor} minor units`);
+    for (const child of price.pricing.extraChildren) tiers.push(`Child through age ${child.maxAge}: ${child.amountMinor} minor units`);
+    currentPriceResult.textContent = `${plan?.code || "Plan"} · ${unit?.code || "Room type"} · ${price.currency}\n${price.stayStart} → ${price.stayEnd} (end exclusive)\n${tiers.join("\n")}`;
   }
 
   function causeNode(cause, type) {
@@ -608,6 +679,9 @@
   policyKind.addEventListener("change", updatePolicyFields);
   depositBasis.addEventListener("change", updateDepositFields);
   depositDue.addEventListener("change", updateDepositFields);
+  priceAdvancedToggle.addEventListener("change", () => {
+    priceAdvancedFields.hidden = !priceAdvancedToggle.checked;
+  });
   unitTypeForm.addEventListener("submit", async (event) => {
     event.preventDefault();
     const fields = new FormData(unitTypeForm);
@@ -703,6 +777,46 @@
     if (saved) {
       ratePlanForm.elements.code.value = ratePlanForm.elements.name.value = "";
       ratePlanForm.elements.marketCode.value = ratePlanForm.elements.sourceCode.value = "";
+    }
+  });
+  ratePriceForm.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    try {
+      const fields = new FormData(ratePriceForm);
+      const occupancy = [{ adults: 1, amountMinor: canonicalMinor(fields.get("amount1"), "One-adult price") }];
+      const amount2 = canonicalMinor(fields.get("amount2"), "Second occupancy tier", true);
+      if (amount2 !== undefined) occupancy.push({ adults: Number(fields.get("adults2")), amountMinor: amount2 });
+      const extraAdultMinor = canonicalMinor(fields.get("extraAdultMinor"), "Extra-adult price", true);
+      const childAmountMinor = canonicalMinor(fields.get("childAmountMinor"), "Child price", true);
+      const extraChildren = childAmountMinor === undefined ? [] : [{ maxAge: Number(fields.get("childMaxAge")), amountMinor: childAmountMinor }];
+      const dowMask = fields.getAll("weekday").reduce((mask, value) => mask + Number(value), 0);
+      await submitPrice({
+        ratePlanId: fields.get("ratePlanId"), unitTypeId: fields.get("unitTypeId"),
+        stayStart: fields.get("stayStart"), stayEnd: fields.get("stayEnd"), dowMask,
+        pricing: { occupancy, ...(extraAdultMinor === undefined ? {} : { extraAdultMinor }), ...(extraChildren.length ? { extraChildren } : {}) },
+      });
+    } catch (error) {
+      formMessage(ratePriceForm, error instanceof Error ? error.message : "Price input is invalid", true);
+    }
+  });
+  currentPriceForm.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const button = currentPriceForm.querySelector("button[type=submit]");
+    button.disabled = true;
+    formMessage(currentPriceForm, "Reading current PostgreSQL truth…");
+    try {
+      const fields = new FormData(currentPriceForm);
+      const query = new URLSearchParams({
+        ratePlanId: String(fields.get("ratePlanId")), unitTypeId: String(fields.get("unitTypeId")), stayDate: String(fields.get("stayDate")),
+      });
+      const body = await request(`/api/v1/properties/${encodeURIComponent(propertySelect.value)}/rate-prices/current?${query}`);
+      renderCurrentPrice(body.ratePrice);
+      formMessage(currentPriceForm, "Current applicable row returned.");
+    } catch (error) {
+      currentPriceResult.textContent = "No current price returned.";
+      formMessage(currentPriceForm, error instanceof Error ? error.message : "Current price lookup failed", true);
+    } finally {
+      button.disabled = false;
     }
   });
   themeSelect.addEventListener("change", () => applyTheme(themeSelect.value));

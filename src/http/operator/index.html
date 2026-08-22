@@ -235,7 +235,7 @@
           <div class="metric-grid rate-metrics" aria-live="polite">
             <div class="metric"><strong id="policy-count">—</strong><span>Policies</span></div>
             <div class="metric"><strong id="rate-plan-count">—</strong><span>Base rate plans</span></div>
-            <div class="metric"><strong>0</strong><span>Prices in this step</span></div>
+            <div class="metric"><strong id="price-step-state">Exact</strong><span>Minor-unit pricing</span></div>
           </div>
 
           <div class="rate-lists">
@@ -309,6 +309,51 @@
               </div>
               <p class="field-note">Prices and derived plans are separate steps. This form cannot carry money or derivation rules.</p>
               <button class="primary" type="submit">Create rate plan</button>
+              <p class="form-message" role="status" aria-live="polite"></p>
+            </form>
+          </div>
+
+          <div class="pricing-workspace">
+            <form class="configuration-form card" id="rate-price-form">
+              <p class="step">Step 3 · exact money</p><h3>Create append-only price</h3>
+              <p class="field-note">Exact minor units only: for a two-decimal currency, 12500 represents 125.00. Currency comes from the selected plan.</p>
+              <label>Rate plan<select name="ratePlanId" id="price-rate-plan" required></select></label>
+              <label>Room type<select name="unitTypeId" id="price-unit-type" required></select></label>
+              <div class="date-pair">
+                <label>Stay start<input name="stayStart" type="date" required></label>
+                <label>Stay end (exclusive)<input name="stayEnd" type="date" required></label>
+              </div>
+              <fieldset class="progressive-fields weekday-fields">
+                <legend>Applies on</legend>
+                <label><input type="checkbox" name="weekday" value="1" checked> Mon</label>
+                <label><input type="checkbox" name="weekday" value="2" checked> Tue</label>
+                <label><input type="checkbox" name="weekday" value="4" checked> Wed</label>
+                <label><input type="checkbox" name="weekday" value="8" checked> Thu</label>
+                <label><input type="checkbox" name="weekday" value="16" checked> Fri</label>
+                <label><input type="checkbox" name="weekday" value="32" checked> Sat</label>
+                <label><input type="checkbox" name="weekday" value="64" checked> Sun</label>
+              </fieldset>
+              <div class="occupancy-tier"><label>Adults<input name="adults1" value="1" readonly></label><label>Exact minor units<input name="amount1" inputmode="numeric" pattern="0|[1-9][0-9]*" required placeholder="12500"></label></div>
+              <div class="occupancy-tier"><label>Adults<input name="adults2" type="number" min="2" max="100" value="2"></label><label>Second tier (optional)<input name="amount2" inputmode="numeric" pattern="0|[1-9][0-9]*" placeholder="15000"></label></div>
+              <label class="check-field"><input id="price-advanced-toggle" type="checkbox"> Add extra-person pricing</label>
+              <fieldset class="progressive-fields" id="price-advanced-fields" hidden>
+                <legend>Optional extras</legend>
+                <label>Extra adult · minor units<input name="extraAdultMinor" inputmode="numeric" pattern="0|[1-9][0-9]*"></label>
+                <div class="occupancy-tier"><label>Child maximum age<input name="childMaxAge" type="number" min="0" max="17"></label><label>Child · minor units<input name="childAmountMinor" inputmode="numeric" pattern="0|[1-9][0-9]*"></label></div>
+              </fieldset>
+              <p class="field-note">This creates new history. Corrections and supersession are deliberately unavailable in this step.</p>
+              <button class="primary" type="submit">Create exact price</button>
+              <p class="form-message" role="status" aria-live="polite"></p>
+            </form>
+
+            <form class="configuration-form card" id="current-price-form">
+              <p class="step">PostgreSQL truth</p><h3>Find current price</h3>
+              <p class="field-note">This checks date, weekday and latest unsuperseded precedence. It is configuration truth—not a guest quote, tax calculation or availability promise.</p>
+              <label>Rate plan<select name="ratePlanId" id="current-price-plan" required></select></label>
+              <label>Room type<select name="unitTypeId" id="current-price-unit-type" required></select></label>
+              <label>Stay date<input name="stayDate" type="date" required></label>
+              <button class="secondary" type="submit">Find current price</button>
+              <div class="current-price-result" id="current-price-result" aria-live="polite">Choose a plan, room type and stay date.</div>
               <p class="form-message" role="status" aria-live="polite"></p>
             </form>
           </div>
