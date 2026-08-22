@@ -1,9 +1,9 @@
 # Order 074 — Gate-3 browser-proof and founder-status corrections
 
-**Phase:** 3 · Gate-3 correction  
-**Branch:** `phase-3/gate-3-corrections`  
-**Tier:** 2 — proof fidelity and derived founder reporting; no product-domain behavior  
-**Written by:** OpenAI Codex, autonomous temporary architect under D-95/D-115/D-221  
+**Phase:** 3 · Gate-3 correction
+**Branch:** `phase-3/gate-3-corrections`
+**Tier:** 2 — proof fidelity and derived founder reporting; no product-domain behavior
+**Written by:** OpenAI Codex, autonomous temporary architect under D-95/D-115/D-221
 **Findings:** F11 and F12 in `handoff/reviews/045-073-gate-3.md` at `d0a2f2a`
 
 ## Outcome
