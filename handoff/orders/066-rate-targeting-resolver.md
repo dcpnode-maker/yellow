@@ -1,8 +1,8 @@
 # Order 066 — Versioned rate applicability and commercial targeting resolver
 
-**Phase:** 3 · Universal rate plans  
-**Branch:** `phase-3/rate-targeting-resolver`  
-**Tier:** 3 — deterministic tenant targeting that later price resolution and publish will trust  
+**Phase:** 3 · Universal rate plans
+**Branch:** `phase-3/rate-targeting-resolver`
+**Tier:** 3 — deterministic tenant targeting that later price resolution and publish will trust
 **Written by:** OpenAI Codex, autonomous temporary architect under D-95/D-115/D-221/D-240
 
 ## Outcome
