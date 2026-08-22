@@ -5,6 +5,7 @@
   let operator = null;
   let activeView = "availability";
   let inventoryData = { unitTypes: [], spaces: [], sellableUnits: [] };
+  let restrictionsData = [];
   const pendingKeys = new Map();
 
   const loginView = document.querySelector("#login-view");
@@ -22,6 +23,7 @@
   const workbenchTitle = document.querySelector("#workbench-title");
   const availabilityView = document.querySelector("#availability-view");
   const inventoryView = document.querySelector("#inventory-view");
+  const restrictionsView = document.querySelector("#restrictions-view");
   const navigation = document.querySelectorAll(".domain-tab");
   const refreshInventory = document.querySelector("#refresh-inventory");
   const inventoryStatus = document.querySelector("#inventory-status");
@@ -36,6 +38,16 @@
   const sellableForm = document.querySelector("#sellable-unit-form");
   const sellableUnitType = document.querySelector("#sellable-unit-type");
   const sellableSpace = document.querySelector("#sellable-space");
+  const refreshRestrictions = document.querySelector("#refresh-restrictions");
+  const restrictionStatus = document.querySelector("#restriction-status");
+  const restrictionList = document.querySelector("#restriction-list");
+  const restrictionCount = document.querySelector("#restriction-count");
+  const restrictionForm = document.querySelector("#restriction-form");
+  const restrictionKind = document.querySelector("#restriction-kind");
+  const restrictionValueField = document.querySelector("#restriction-value-field");
+  const restrictionValueLabel = document.querySelector("#restriction-value-label");
+  const restrictionUnitType = document.querySelector("#restriction-unit-type");
+  const restrictionSemantics = document.querySelector("#restriction-semantics");
 
   function applyTheme(theme) {
     document.documentElement.dataset.theme = theme === "pixel" ? "pixel" : "apple";
@@ -54,6 +66,8 @@
     to.setDate(to.getDate() + 2);
     availabilityForm.elements.from.value = localInputValue(from);
     availabilityForm.elements.to.value = localInputValue(to);
+    restrictionForm.elements.stayStart.value = localInputValue(from).slice(0, 10);
+    restrictionForm.elements.stayEnd.value = localInputValue(to).slice(0, 10);
   }
 
   async function request(path, options = {}) {
@@ -83,6 +97,7 @@
     sessionState.textContent = "Local review · signed out";
     results.replaceChildren();
     inventoryData = { unitTypes: [], spaces: [], sellableUnits: [] };
+    restrictionsData = [];
     pendingKeys.clear();
     history.replaceState(null, "", "/");
     loginForm.elements.password.value = "";
@@ -106,7 +121,7 @@
       propertySelect.disabled = true;
     } else {
       propertySelect.disabled = false;
-      const pathProperty = location.pathname.match(/^\/p\/([0-9a-f-]+)\/(?:availability|inventory)$/)?.[1];
+      const pathProperty = location.pathname.match(/^\/p\/([0-9a-f-]+)\/(?:availability|inventory|restrictions)$/)?.[1];
       if (pathProperty && body.properties.some(({ id }) => id === pathProperty)) propertySelect.value = pathProperty;
     }
   }
@@ -196,11 +211,89 @@
     }
   }
 
+  function restrictionKindLabel(kind) {
+    return ({
+      closed: "Closed to sale", cta: "Closed to arrival", ctd: "Closed to departure",
+      min_los: "Minimum stay", max_los: "Maximum stay",
+      min_adv: "Minimum advance", max_adv: "Maximum advance",
+    })[kind] || kind;
+  }
+
+  function renderRestrictions() {
+    restrictionCount.textContent = String(restrictionsData.length);
+    restrictionList.replaceChildren(...restrictionsData.map((item) => {
+      const card = document.createElement("article");
+      card.className = "restriction-item";
+      const copy = document.createElement("div");
+      const title = document.createElement("strong");
+      title.textContent = restrictionKindLabel(item.kind);
+      const detail = document.createElement("span");
+      const roomType = inventoryData.unitTypes.find(({ id }) => id === item.unitTypeId);
+      const scope = roomType ? `${roomType.code} · ${roomType.name}` : "All room types";
+      detail.textContent = `${item.stayStart} → ${item.stayEnd} (end exclusive) · ${scope}${item.channelCode ? ` · ${item.channelCode}` : ""}`;
+      copy.append(title, detail);
+      const badge = document.createElement("span");
+      badge.className = "mini-badge restriction-badge";
+      badge.textContent = item.value === null ? "Active" : String(item.value);
+      card.append(copy, badge);
+      return card;
+    }));
+    if (restrictionsData.length === 0) emptyList(restrictionList, "No manual restrictions yet.");
+  }
+
+  function populateRestrictionUnitTypes() {
+    const current = restrictionUnitType.value;
+    restrictionUnitType.replaceChildren(new Option("All room types", ""));
+    for (const item of inventoryData.unitTypes) {
+      restrictionUnitType.append(new Option(`${item.code} · ${item.name}`, item.id));
+    }
+    if ([...restrictionUnitType.options].some(({ value }) => value === current)) restrictionUnitType.value = current;
+  }
+
+  async function loadRestrictions() {
+    const property = propertySelect.value;
+    if (!property) return;
+    restrictionStatus.textContent = "Loading live restrictions…";
+    try {
+      const [restrictionBody, inventoryBody] = await Promise.all([
+        request(`/api/v1/properties/${encodeURIComponent(property)}/restrictions`),
+        request(`/api/v1/properties/${encodeURIComponent(property)}/inventory`),
+      ]);
+      restrictionsData = restrictionBody.restrictions;
+      inventoryData = inventoryBody;
+      populateRestrictionUnitTypes();
+      renderRestrictions();
+      restrictionStatus.textContent = "Restrictions are current from tenant-scoped PostgreSQL.";
+    } catch (error) {
+      restrictionStatus.textContent = error instanceof Error ? error.message : "Restrictions could not be loaded";
+    }
+  }
+
+  function updateRestrictionFields() {
+    const kind = restrictionKind.value;
+    const valued = ["min_los", "max_los", "min_adv", "max_adv"].includes(kind);
+    restrictionValueField.hidden = !valued;
+    restrictionForm.elements.value.required = valued;
+    if (!valued) restrictionForm.elements.value.value = "";
+    const advance = kind === "min_adv" || kind === "max_adv";
+    restrictionValueLabel.textContent = advance ? "Days before arrival" : "Nights";
+    restrictionSemantics.textContent = ({
+      closed: "Closed to sale blocks overlapping stays for the chosen scope.",
+      cta: "Closed to arrival blocks check-in on dates inside this range.",
+      ctd: "Closed to departure blocks check-out on dates inside this range.",
+      min_los: "Minimum length of stay requires at least this many nights.",
+      max_los: "Maximum length of stay permits no more than this many nights.",
+      min_adv: "Minimum advance requires booking at least this many days before arrival.",
+      max_adv: "Maximum advance prevents booking more than this many days before arrival.",
+    })[kind];
+  }
+
   function setView(view, updateHistory = true) {
-    activeView = view === "inventory" ? "inventory" : "availability";
+    activeView = ["availability", "inventory", "restrictions"].includes(view) ? view : "availability";
     availabilityView.hidden = activeView !== "availability";
     inventoryView.hidden = activeView !== "inventory";
-    workbenchTitle.textContent = activeView === "inventory" ? "Inventory setup" : "Availability";
+    restrictionsView.hidden = activeView !== "restrictions";
+    workbenchTitle.textContent = activeView === "inventory" ? "Inventory setup" : activeView === "restrictions" ? "Restrictions" : "Availability";
     for (const tab of navigation) {
       const selected = tab.dataset.view === activeView;
       tab.classList.toggle("is-active", selected);
@@ -210,6 +303,7 @@
       history.pushState(null, "", `/p/${propertySelect.value}/${activeView}`);
     }
     if (activeView === "inventory") void loadInventory();
+    if (activeView === "restrictions") void loadRestrictions();
   }
 
   function formMessage(form, message, isError = false) {
@@ -237,6 +331,29 @@
       return true;
     } catch (error) {
       formMessage(form, error instanceof Error ? error.message : "Save failed", true);
+      return false;
+    } finally {
+      button.disabled = false;
+    }
+  }
+
+  async function submitRestriction(body) {
+    const button = restrictionForm.querySelector("button[type=submit]");
+    const identity = `restrictions:${JSON.stringify(body)}`;
+    const key = pendingKeys.get(identity) || crypto.randomUUID();
+    pendingKeys.set(identity, key);
+    button.disabled = true;
+    formMessage(restrictionForm, "Saving through the audited restriction service…");
+    try {
+      await request(`/api/v1/properties/${encodeURIComponent(propertySelect.value)}/restrictions`, {
+        method: "POST", headers: { "idempotency-key": key }, body: JSON.stringify(body),
+      });
+      pendingKeys.delete(identity);
+      formMessage(restrictionForm, "Saved. Audit fact and event committed.");
+      await loadRestrictions();
+      return true;
+    } catch (error) {
+      formMessage(restrictionForm, error instanceof Error ? error.message : "Save failed", true);
       return false;
     } finally {
       button.disabled = false;
@@ -364,9 +481,12 @@
   propertySelect.addEventListener("change", () => {
     if (propertySelect.value) history.replaceState(null, "", `/p/${propertySelect.value}/${activeView}`);
     if (activeView === "inventory") void loadInventory();
+    if (activeView === "restrictions") void loadRestrictions();
   });
   for (const tab of navigation) tab.addEventListener("click", () => setView(tab.dataset.view));
   refreshInventory.addEventListener("click", () => void loadInventory());
+  refreshRestrictions.addEventListener("click", () => void loadRestrictions());
+  restrictionKind.addEventListener("change", updateRestrictionFields);
   unitTypeForm.addEventListener("submit", async (event) => {
     event.preventDefault();
     const fields = new FormData(unitTypeForm);
@@ -397,10 +517,28 @@
     });
     if (saved) sellableForm.elements.name.value = "";
   });
+  restrictionForm.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const fields = new FormData(restrictionForm);
+    const kind = String(fields.get("kind"));
+    const valued = ["min_los", "max_los", "min_adv", "max_adv"].includes(kind);
+    const unitTypeId = String(fields.get("unitTypeId") || "");
+    const channelCode = String(fields.get("channelCode") || "");
+    const restriction = {
+      kind, stayStart: fields.get("stayStart"), stayEnd: fields.get("stayEnd"),
+      ...(valued ? { value: Number(fields.get("value")) } : {}),
+      ...(unitTypeId ? { unitTypeId } : {}),
+      ...(channelCode ? { channelCode } : {}),
+    };
+    const saved = await submitRestriction({ restrictions: [restriction] });
+    if (saved) restrictionForm.elements.channelCode.value = "";
+  });
   themeSelect.addEventListener("change", () => applyTheme(themeSelect.value));
   signOutButton.addEventListener("click", showLogin);
   applyTheme(themeSelect.value);
   initializeDates();
-  const initialView = location.pathname.endsWith("/inventory") ? "inventory" : "availability";
+  updateRestrictionFields();
+  const initialView = location.pathname.endsWith("/inventory") ? "inventory" :
+    location.pathname.endsWith("/restrictions") ? "restrictions" : "availability";
   setView(initialView, false);
 })();

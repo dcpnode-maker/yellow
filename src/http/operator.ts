@@ -5,9 +5,12 @@ import {
   InventoryNotFoundError,
   InventoryService,
   InventoryValidationError,
+  RestrictionService,
   type CreateSellableUnitInput,
   type CreateSpaceInput,
   type CreateUnitTypeInput,
+  type RestrictionDraft,
+  type RestrictionKind,
   type SearchAvailabilityInput,
 } from "../contexts/inventory";
 import {
@@ -23,6 +26,8 @@ import {
 const AVAILABILITY_SCOPE = "inventory.availability:read";
 const CONFIGURATION_READ_SCOPE = "inventory.configuration:read";
 const CONFIGURATION_WRITE_SCOPE = "inventory.configuration:write";
+const RESTRICTION_READ_SCOPE = "inventory.restriction:read";
+const RESTRICTION_WRITE_SCOPE = "inventory.restriction:write";
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 const ISO_INSTANT = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(?::\d{2}(?:\.\d{1,3})?)?(?:Z|[+-]\d{2}:\d{2})$/;
 
@@ -140,6 +145,37 @@ type InventoryOperations = Pick<InventoryService,
   "listUnitTypes" | "listSpaces" | "listSellableUnits"
 >;
 
+type RestrictionOperations = Pick<RestrictionService, "list" | "createBatch">;
+const RESTRICTION_KINDS: readonly RestrictionKind[] = [
+  "closed", "cta", "ctd", "min_los", "max_los", "min_adv", "max_adv",
+];
+
+function parseRestrictionBatch(body: unknown): readonly RestrictionDraft[] | null {
+  if (!isObject(body) || !exactKeys(body, ["restrictions"]) || !Array.isArray(body.restrictions)) return null;
+  const restrictions: RestrictionDraft[] = [];
+  for (const item of body.restrictions) {
+    if (!isObject(item) || !exactKeys(item, ["kind", "stayStart", "stayEnd"], [
+      "value", "unitTypeId", "ratePlanId", "channelCode",
+    ])) return null;
+    if (typeof item.kind !== "string" || !RESTRICTION_KINDS.includes(item.kind as RestrictionKind) ||
+        typeof item.stayStart !== "string" || typeof item.stayEnd !== "string") return null;
+    if (item.value !== undefined && item.value !== null && typeof item.value !== "number") return null;
+    if (item.unitTypeId !== undefined && item.unitTypeId !== null && typeof item.unitTypeId !== "string") return null;
+    if (item.ratePlanId !== undefined && item.ratePlanId !== null && typeof item.ratePlanId !== "string") return null;
+    if (item.channelCode !== undefined && item.channelCode !== null && typeof item.channelCode !== "string") return null;
+    restrictions.push({
+      kind: item.kind as RestrictionKind,
+      stayStart: item.stayStart,
+      stayEnd: item.stayEnd,
+      ...(item.value === undefined ? {} : { value: item.value as number | null }),
+      ...(item.unitTypeId === undefined ? {} : { unitTypeId: item.unitTypeId as string | null }),
+      ...(item.ratePlanId === undefined ? {} : { ratePlanId: item.ratePlanId as string | null }),
+      ...(item.channelCode === undefined ? {} : { channelCode: item.channelCode as string | null }),
+    });
+  }
+  return restrictions;
+}
+
 function parseUnitType(body: unknown): Omit<CreateUnitTypeInput, "envelope"> | null {
   if (!isObject(body) || !exactKeys(body, ["code", "name", "profileKey"], [
     "baseOccupancy", "maxOccupancy", "attrs", "sortOrder",
@@ -205,17 +241,20 @@ export class OperatorHttpApi {
   readonly #availability: Pick<AvailabilityService, "search">;
   readonly #inventory?: InventoryOperations;
   readonly #idempotency: PostgresIdempotency;
+  readonly #restrictions?: RestrictionOperations;
 
   constructor(
     login: LocalLoginService,
     availability: Pick<AvailabilityService, "search"> = new AvailabilityService(),
     inventory?: InventoryOperations,
     idempotency = new PostgresIdempotency(),
+    restrictions?: RestrictionOperations,
   ) {
     this.#login = login;
     this.#availability = availability;
     this.#inventory = inventory;
     this.#idempotency = idempotency;
+    this.#restrictions = restrictions;
   }
 
   unavailable(request: Request): Response {
@@ -340,6 +379,69 @@ export class OperatorHttpApi {
     if (!input) return apiError(context.request, 400, "request/invalid", "Invalid request", "Sellable unit input is invalid");
     return this.#create(context, propertyNode, body, "operator.inventory.sellable_unit.create", "sellable_unit.created",
       (tx, envelope) => this.#inventory!.createSellableUnit(tx, { ...input, envelope }));
+  }
+
+  async restrictions(context: TenantRequestContext, propertyNode: string): Promise<Response> {
+    if (!hasScope(context, RESTRICTION_READ_SCOPE)) {
+      return apiError(context.request, 403, "auth/scope_missing", "Forbidden", "Restriction access is not granted");
+    }
+    if (!UUID.test(propertyNode)) {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Property identifier is invalid");
+    }
+    if (!this.#restrictions) return this.unavailable(context.request);
+    try {
+      const grants = await listGrantedProperties(context, RESTRICTION_READ_SCOPE);
+      if (!grants.some(({ id }) => id === propertyNode)) {
+        return apiError(context.request, 403, "auth/property_forbidden", "Forbidden", "Property access is not granted");
+      }
+      return apiResponse(context.request, { restrictions: await this.#restrictions.list(context.tx, propertyNode) });
+    } catch (error) {
+      if (error instanceof InventoryValidationError) {
+        return apiError(context.request, 400, "request/invalid", "Invalid request", "Restriction request is invalid");
+      }
+      return apiError(context.request, 503, "service/unavailable", "Service unavailable", "Restrictions are temporarily unavailable");
+    }
+  }
+
+  async createRestrictions(context: TenantRequestContext, propertyNode: string, body: unknown): Promise<Response> {
+    const restrictions = parseRestrictionBatch(body);
+    if (!restrictions) {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Restriction input is invalid");
+    }
+    if (!hasScope(context, RESTRICTION_WRITE_SCOPE)) {
+      return apiError(context.request, 403, "auth/scope_missing", "Forbidden", "Restriction changes are not granted");
+    }
+    if (!UUID.test(propertyNode)) {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Property identifier is invalid");
+    }
+    if (!this.#restrictions) return this.unavailable(context.request);
+    const grants = await listGrantedProperties(context, RESTRICTION_WRITE_SCOPE);
+    if (!grants.some(({ id }) => id === propertyNode)) {
+      return apiError(context.request, 403, "auth/property_forbidden", "Forbidden", "Property access is not granted");
+    }
+    const requestId = correlationId(context.request);
+    const outcome = await this.#idempotency.execute(context.tx, {
+      tenantId: context.tenantId,
+      operation: "operator.inventory.restriction.create",
+      key: context.request.headers.get("idempotency-key") ?? "",
+      request: { propertyNode, body },
+    }, async (tx) => ({
+      status: 201,
+      body: { restrictions: jsonValue(await this.#restrictions!.createBatch(tx, {
+        restrictions,
+        envelope: createAuditEnvelope({
+          actorId: context.identity.actorId,
+          tenantId: context.tenantId,
+          propertyNode,
+          requestId,
+          operation: "restriction.created",
+        }),
+      })) },
+    }));
+    return apiResponse(context.request, outcome.body, outcome.status, {
+      "idempotency-replayed": String(outcome.replayed),
+      "x-correlation-id": requestId,
+    });
   }
 
   async #create(

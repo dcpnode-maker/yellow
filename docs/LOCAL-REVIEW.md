@@ -37,11 +37,14 @@ unit stops the run rather than rewriting hotel data.
 - Apple-calm and Pixel-expressive interchangeable visual skins;
 - real inventory configuration lists for room types, physical spaces and sellable units;
 - idempotent, audited creation of room types, spaces and their sellable mappings;
+- deterministic listing and idempotent, audited creation of manual restrictions;
+- configurable property-wide or room-type/channel restriction scope, with half-open
+  stay dates and progressive value guidance for length-of-stay and advance rules;
 - real availability for five physical rooms across Standard and Deluxe types;
 - visible restriction and operational-block evidence when those domain commands add it.
 
 The browser keeps its bearer token, appearance choice and generated idempotency keys in
-memory only. Inventory writes call the same tenant-scoped domain service, audit log,
-outbox and durable replay primitive as any future production client. Update/delete/bulk
-inventory, operational blocks, restrictions and holds require later scoped API/UI orders;
+memory only. Inventory and restriction writes call the same tenant-scoped domain services,
+audit log, outbox and durable replay primitive as any future production client. Update/delete/bulk
+inventory, restriction update/delete, operational blocks and holds require later scoped API/UI orders;
 no direct browser-to-table shortcut is permitted.

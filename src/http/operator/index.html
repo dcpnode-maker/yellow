@@ -73,6 +73,7 @@
           <nav class="domain-nav" aria-label="Workbench domains">
             <button class="domain-tab is-active" id="nav-availability" type="button" data-view="availability">Availability</button>
             <button class="domain-tab" id="nav-inventory" type="button" data-view="inventory">Inventory setup</button>
+            <button class="domain-tab" id="nav-restrictions" type="button" data-view="restrictions">Restrictions</button>
           </nav>
           <label>Property
             <select name="property" id="property-select" required></select>
@@ -163,6 +164,61 @@
             </form>
           </div>
           <p class="inventory-status" id="inventory-status" role="status" aria-live="polite">Open Inventory setup to load live configuration.</p>
+        </section>
+
+        <section id="restrictions-view" hidden aria-labelledby="restrictions-title">
+          <div class="section-heading">
+            <div>
+              <p class="eyebrow">Sellability controls</p>
+              <h2 id="restrictions-title">Manual restrictions</h2>
+              <p class="muted">Choose when a room can be sold, arrived into, departed from, or subject to a length-of-stay or advance-booking rule.</p>
+            </div>
+            <button class="quiet" id="refresh-restrictions" type="button">Refresh</button>
+          </div>
+
+          <div class="restriction-layout">
+            <section class="restriction-panel card" aria-labelledby="active-restrictions-heading">
+              <div class="panel-heading">
+                <div><h3 id="active-restrictions-heading">Active rules</h3><p class="muted">Current tenant-scoped PostgreSQL truth.</p></div>
+                <span class="restriction-count" id="restriction-count">—</span>
+              </div>
+              <div class="restriction-list" id="restriction-list"></div>
+            </section>
+
+            <form class="configuration-form restriction-form card" id="restriction-form">
+              <p class="step">New manual rule</p>
+              <h3>Control sellability</h3>
+              <label>Rule
+                <select name="kind" id="restriction-kind" required>
+                  <option value="closed">Closed to sale</option>
+                  <option value="cta">Closed to arrival</option>
+                  <option value="ctd">Closed to departure</option>
+                  <option value="min_los">Minimum length of stay</option>
+                  <option value="max_los">Maximum length of stay</option>
+                  <option value="min_adv">Minimum advance booking</option>
+                  <option value="max_adv">Maximum advance booking</option>
+                </select>
+              </label>
+              <div class="date-pair">
+                <label>Start date<input name="stayStart" type="date" required></label>
+                <label>End date<input name="stayEnd" type="date" required></label>
+              </div>
+              <p class="field-note">End date is exclusive: a rule ending 14 June applies through 13 June.</p>
+              <label id="restriction-value-field" hidden><span id="restriction-value-label">Value</span>
+                <input name="value" type="number" min="1" max="2147483647" inputmode="numeric">
+              </label>
+              <label>Room type (optional)
+                <select name="unitTypeId" id="restriction-unit-type"><option value="">All room types</option></select>
+              </label>
+              <label>Channel (optional)
+                <input name="channelCode" maxlength="64" pattern="[A-Za-z0-9][A-Za-z0-9._-]{0,63}" placeholder="DIRECT">
+              </label>
+              <p class="field-note" id="restriction-semantics">Closed to sale blocks overlapping stays for the chosen scope.</p>
+              <button class="primary" type="submit">Create restriction</button>
+              <p class="form-message" role="status" aria-live="polite"></p>
+            </form>
+          </div>
+          <p class="inventory-status" id="restriction-status" role="status" aria-live="polite">Open Restrictions to load live rules.</p>
         </section>
       </section>
     </main>

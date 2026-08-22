@@ -14,6 +14,8 @@ export const REVIEW_PERMISSIONS = Object.freeze([
   { code: REVIEW_PERMISSION, description: "Read tenant-scoped truth availability" },
   { code: "inventory.configuration:read", description: "Read tenant-scoped inventory configuration" },
   { code: "inventory.configuration:write", description: "Create tenant-scoped inventory configuration" },
+  { code: "inventory.restriction:read", description: "Read tenant-scoped restriction configuration" },
+  { code: "inventory.restriction:write", description: "Create tenant-scoped restriction configuration" },
 ]);
 const REVIEW_USER_NAME = `${TENANT_NAME}/review-user/${REVIEW_EMAIL}`;
 const REVIEW_ROLE_NAME_UUID = `${TENANT_NAME}/review-role/availability`;
