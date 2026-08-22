@@ -109,6 +109,20 @@ existing Expert editor for changes. No migration, extension, event or mutable hi
   audit, dependency audit, schema drift, protected hashes and fresh isolated app-never-started referee all
   remain green. Refresh Graphify as a derived map and record parser/semantic limitations honestly.
 
+## Captured P0
+
+Fresh migrated disposable Compose project `yellow-order-076-red`, before production edits:
+
+```text
+expect(source?.authoringCommand).toEqual(sourceCommand);
+Expected: the complete 72-line canonical guided command
+Received: undefined
+7 pass
+1 fail
+41 expect() calls
+Ran 8 tests across 1 file.
+```
+
 ## Standing and handoff
 
 Commit this order before adding P0. Preserve the exact red result before production edits. Run the entire
