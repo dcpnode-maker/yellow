@@ -136,6 +136,6 @@ on Order 078. Do not merge.
 - [x] P0 green-with-skips and intentional red evidence are preserved before implementation.
 - [x] P1 proves the runner contract without a database.
 - [x] P2 executes all eight existing database suites on separate migrated databases with no skip.
-- [ ] P3 is green on GitHub Actions using the same package command.
-- [ ] P4 is fully green and protected hashes remain exact.
-- [ ] Order 079 remains builder-verified and UNVERIFIED pending independent Gate-3 execution.
+- [x] P3 is green on GitHub Actions using the same package command.
+- [x] P4 is fully green and protected hashes remain exact.
+- [x] Order 079 remains builder-verified and UNVERIFIED pending independent Gate-3 execution.
