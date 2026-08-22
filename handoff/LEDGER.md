@@ -150,3 +150,5 @@
 2026-08-22 · 108 · 3 · phase-3/typed-rate-evaluators · codex → codex · QUESTION-ANSWERED · extend only P3's closed-cell fixture through the asserted local night; preserve half-open production validation
 2026-08-22 · 109 · 3 · phase-3/typed-rate-evaluators · codex → codex · QUESTION-ANSWERED · rebuild UTC/timezone-derived evaluator context and reject frozen forged LOS/DOW/window fields
 2026-08-22 · 067 · 3 · phase-3/typed-rate-evaluators · codex → Gate-3 reviewer · BUILT-UNREVIEWED · 6eab980 (order f746dd7; red proof 3acb405); focused 7/7 and 97 assertions, standing 60/0, schema exact, fresh app-never-started referee 11/11; protected hashes unchanged
+2026-08-22 · 110 · 3 · phase-3/rate-policy-package-composition · codex → codex · QUESTION-ANSWERED · pure bigint package/promotion and guest/policy/distribution composition authorized over immutable price and availability evidence
+2026-08-22 · 068 · 3 · phase-3/rate-policy-package-composition · codex → — · ORDER-WRITTEN · preserve restriction/operational/mandatory-policy evidence while composing package, meal, promotion, guest and channel choices
