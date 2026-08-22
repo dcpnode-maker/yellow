@@ -101,6 +101,19 @@ duplicate the composition validator.
 - **P6:** frozen install, typecheck, boundaries, complete default tests, licence audit, schema drift,
   protected hashes and fresh isolated app-never-started referee remain green.
 
+## Captured P0
+
+Fresh migrated disposable database `yellow_order075`, before production edits:
+
+```text
+expect([staleBrowser.status, serverBound.status, callerOwned.status]).toEqual([400, 200, 400]);
+Received: [503, 400, 200]
+6 pass
+1 fail
+37 expect() calls
+Ran 7 tests across 1 file.
+```
+
 ## Standing and handoff
 
 Commit this order before the test. Preserve P0 before production edits. Use a disposable focused

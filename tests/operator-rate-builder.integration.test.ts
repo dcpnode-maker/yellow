@@ -366,6 +366,25 @@ databaseDescribe("Order 071 operator universal rate builder", () => {
     expect(approval.status).toBe(409);
   });
 
+  test("Order 075 P0: selected-release policy evidence is server-bound, never browser-owned", async () => {
+    const browserCell = Object.fromEntries(
+      Object.entries(previewCell("selected-release-policy-cell"))
+        .filter(([key]) => key !== "policyEvidence"),
+    );
+    const staleBrowser = await request(builderPath(PLANS.main, `/releases/${mainReleaseId}/simulate`), {
+      method: "POST", headers: headers(),
+      body: JSON.stringify({ previewCells: [{ ...browserCell, policyEvidence: [] }] }),
+    });
+    const serverBound = await request(builderPath(PLANS.main, `/releases/${mainReleaseId}/simulate`), {
+      method: "POST", headers: headers(), body: JSON.stringify({ previewCells: [browserCell] }),
+    });
+    const callerOwned = await request(builderPath(PLANS.main, `/releases/${mainReleaseId}/simulate`), {
+      method: "POST", headers: headers(),
+      body: JSON.stringify({ previewCells: [{ ...browserCell, policyEvidence: policyEvidence() }] }),
+    });
+    expect([staleBrowser.status, serverBound.status, callerOwned.status]).toEqual([400, 200, 400]);
+  });
+
   test("Order 073: one draft preserves broad inheritance, a commercial include and an exact-room exclusion", async () => {
     const drafted = await postDraft(PLANS.targeting, command(PLANS.targeting, [
       { key: "property-default", effect: "include", priority: 0, physical: { kind: "property" }, commercial: {} },
