@@ -79,6 +79,41 @@ export const PHASE_3_DATABASE_PROOFS: readonly Phase3DatabaseProof[] = Object.fr
     urlEnv: "YELLOW_FOUNDER_STATUS_URL",
     passwordEnv: null,
   },
+  {
+    databaseName: "yellow_ci_p2_operator_inventory",
+    testFile: "tests/operator-inventory.integration.test.ts",
+    requireEnv: "YELLOW_REQUIRE_OPERATOR_INVENTORY",
+    urlEnv: "YELLOW_OPERATOR_INVENTORY_URL",
+    passwordEnv: "YELLOW_OPERATOR_INVENTORY_PASSWORD",
+  },
+  {
+    databaseName: "yellow_ci_p2_operator_rate",
+    testFile: "tests/operator-rate-configuration.integration.test.ts",
+    requireEnv: "YELLOW_REQUIRE_OPERATOR_RATE",
+    urlEnv: "YELLOW_OPERATOR_RATE_URL",
+    passwordEnv: "YELLOW_OPERATOR_RATE_PASSWORD",
+  },
+  {
+    databaseName: "yellow_ci_p2_operator_pricing",
+    testFile: "tests/operator-rate-pricing.integration.test.ts",
+    requireEnv: "YELLOW_REQUIRE_OPERATOR_PRICING",
+    urlEnv: "YELLOW_OPERATOR_PRICING_URL",
+    passwordEnv: "YELLOW_OPERATOR_PRICING_PASSWORD",
+  },
+  {
+    databaseName: "yellow_ci_p2_operator_correction",
+    testFile: "tests/operator-rate-price-correction.integration.test.ts",
+    requireEnv: "YELLOW_REQUIRE_OPERATOR_CORRECTION",
+    urlEnv: "YELLOW_OPERATOR_CORRECTION_URL",
+    passwordEnv: "YELLOW_OPERATOR_CORRECTION_PASSWORD",
+  },
+  {
+    databaseName: "yellow_ci_p2_operator_bulk_rooms",
+    testFile: "tests/operator-bulk-rooms.integration.test.ts",
+    requireEnv: "YELLOW_REQUIRE_OPERATOR_BULK_ROOMS",
+    urlEnv: "YELLOW_OPERATOR_BULK_ROOMS_URL",
+    passwordEnv: "YELLOW_OPERATOR_BULK_ROOMS_PASSWORD",
+  },
 ]);
 
 const DATABASE_NAME = /^[a-z][a-z0-9_]{0,62}$/;
@@ -217,7 +252,7 @@ export async function runPhase3Gate(input: {
     if (primaryError) throw primaryError;
   }
 
-  console.log(`\n[phase3-gate] ${PHASE_3_DATABASE_PROOFS.length}/8 suites passed with isolated databases`);
+  console.log(`\n[phase3-gate] ${PHASE_3_DATABASE_PROOFS.length}/${PHASE_3_DATABASE_PROOFS.length} suites passed with isolated databases`);
 }
 
 export async function main(): Promise<void> {

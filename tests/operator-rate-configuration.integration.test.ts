@@ -96,7 +96,12 @@ function canonicalPlanBody(): Record<string, unknown> {
 beforeAll(async () => {
   if (!DATABASE_URL || !PASSWORD) return;
   await runSeed({ databaseUrl: DATABASE_URL, logger: () => undefined });
-  const review = await runReviewSeed({ databaseUrl: DATABASE_URL, password: PASSWORD, logger: () => undefined });
+  const review = await runReviewSeed({
+    databaseUrl: DATABASE_URL,
+    password: PASSWORD,
+    mode: "identity_inventory",
+    logger: () => undefined,
+  });
   userId = review.userId;
   admin = new SQL(DATABASE_URL, { max: 4 });
   loginPool = new SQL(DATABASE_URL, { max: 4 });
@@ -133,6 +138,30 @@ databaseDescribe("Order 050 operator rate-plan management", () => {
     const response = await request(ratePath(), { headers: headers() });
     expect(response.status).toBe(200);
     expect(await response.json()).toEqual({ policies: [], ratePlans: [] });
+    const fixtureRows = await admin<Array<{
+      policies: number;
+      rate_plans: number;
+      model_versions: number;
+      target_versions: number;
+      release_versions: number;
+      approvals: number;
+    }>>`
+      SELECT
+        (SELECT count(*)::int FROM policy) AS policies,
+        (SELECT count(*)::int FROM rate_plan) AS rate_plans,
+        (SELECT count(*)::int FROM extension WHERE type = 'yellow.rate.model') AS model_versions,
+        (SELECT count(*)::int FROM extension WHERE type = 'yellow.rate.target') AS target_versions,
+        (SELECT count(*)::int FROM extension WHERE type = 'yellow.rate.release') AS release_versions,
+        (SELECT count(*)::int FROM approval_request) AS approvals
+    `;
+    expect(fixtureRows).toEqual([{
+      policies: 0,
+      rate_plans: 0,
+      model_versions: 0,
+      target_versions: 0,
+      release_versions: 0,
+      approvals: 0,
+    }]);
     expect((await request(ratePath("", FOREIGN_PROPERTY), { headers: headers() })).status).toBe(403);
   });
 

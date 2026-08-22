@@ -28,8 +28,8 @@ function fakeHarness(exitFor: (process: Phase3GateProcess) => number = () => 0) 
   return { events, harness };
 }
 
-describe("Order 079 reproducible Phase-3 proof runner", () => {
-  test("P1: matrix pins every database-gated Phase-3 proof and exact environment mapping", () => {
+describe("Orders 079/083 reproducible Phase-3 and inherited proof runner", () => {
+  test("P1: matrix pins every Phase-3 and inherited F11 database proof with exact environment mapping", () => {
     expect(PHASE_3_DATABASE_PROOFS).toEqual([
       {
         databaseName: "yellow_ci_p3_models",
@@ -87,8 +87,43 @@ describe("Order 079 reproducible Phase-3 proof runner", () => {
         urlEnv: "YELLOW_FOUNDER_STATUS_URL",
         passwordEnv: null,
       },
+      {
+        databaseName: "yellow_ci_p2_operator_inventory",
+        testFile: "tests/operator-inventory.integration.test.ts",
+        requireEnv: "YELLOW_REQUIRE_OPERATOR_INVENTORY",
+        urlEnv: "YELLOW_OPERATOR_INVENTORY_URL",
+        passwordEnv: "YELLOW_OPERATOR_INVENTORY_PASSWORD",
+      },
+      {
+        databaseName: "yellow_ci_p2_operator_rate",
+        testFile: "tests/operator-rate-configuration.integration.test.ts",
+        requireEnv: "YELLOW_REQUIRE_OPERATOR_RATE",
+        urlEnv: "YELLOW_OPERATOR_RATE_URL",
+        passwordEnv: "YELLOW_OPERATOR_RATE_PASSWORD",
+      },
+      {
+        databaseName: "yellow_ci_p2_operator_pricing",
+        testFile: "tests/operator-rate-pricing.integration.test.ts",
+        requireEnv: "YELLOW_REQUIRE_OPERATOR_PRICING",
+        urlEnv: "YELLOW_OPERATOR_PRICING_URL",
+        passwordEnv: "YELLOW_OPERATOR_PRICING_PASSWORD",
+      },
+      {
+        databaseName: "yellow_ci_p2_operator_correction",
+        testFile: "tests/operator-rate-price-correction.integration.test.ts",
+        requireEnv: "YELLOW_REQUIRE_OPERATOR_CORRECTION",
+        urlEnv: "YELLOW_OPERATOR_CORRECTION_URL",
+        passwordEnv: "YELLOW_OPERATOR_CORRECTION_PASSWORD",
+      },
+      {
+        databaseName: "yellow_ci_p2_operator_bulk_rooms",
+        testFile: "tests/operator-bulk-rooms.integration.test.ts",
+        requireEnv: "YELLOW_REQUIRE_OPERATOR_BULK_ROOMS",
+        urlEnv: "YELLOW_OPERATOR_BULK_ROOMS_URL",
+        passwordEnv: "YELLOW_OPERATOR_BULK_ROOMS_PASSWORD",
+      },
     ]);
-    expect(new Set(PHASE_3_DATABASE_PROOFS.map(({ databaseName }) => databaseName)).size).toBe(8);
+    expect(new Set(PHASE_3_DATABASE_PROOFS.map(({ databaseName }) => databaseName)).size).toBe(13);
   });
 
   test("P1: inputs fail closed before orchestration", () => {

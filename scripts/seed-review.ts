@@ -137,14 +137,24 @@ interface RoleRow {
   readonly name: string;
 }
 
-export interface ReviewSeedOptions {
+interface ReviewSeedBaseOptions {
   readonly databaseUrl: string;
   readonly password: string;
   readonly approverPassword?: string;
   readonly logger?: (line: string) => void;
 }
 
-export interface ReviewSeedResult {
+export interface PublishedReviewSeedOptions extends ReviewSeedBaseOptions {
+  readonly mode?: "published";
+}
+
+export interface IdentityInventoryReviewSeedOptions extends ReviewSeedBaseOptions {
+  readonly mode: "identity_inventory";
+}
+
+export type ReviewSeedOptions = PublishedReviewSeedOptions | IdentityInventoryReviewSeedOptions;
+
+interface ReviewSeedBaseResult {
   readonly tenant: string;
   readonly property: string;
   readonly email: string;
@@ -155,13 +165,26 @@ export interface ReviewSeedResult {
   readonly unitTypes: { created: number; existing: number };
   readonly rooms: { created: number; existing: number };
   readonly sellableUnits: { created: number; existing: number };
-  readonly rate: {
-    readonly ratePlanId: string;
-    readonly activeReleaseId: string;
-    readonly activeReleaseVersion: number;
-    readonly created: boolean;
-  };
 }
+
+interface ReviewSeedRateResult {
+  readonly ratePlanId: string;
+  readonly activeReleaseId: string;
+  readonly activeReleaseVersion: number;
+  readonly created: boolean;
+}
+
+export interface PublishedReviewSeedResult extends ReviewSeedBaseResult {
+  readonly mode: "published";
+  readonly rate: ReviewSeedRateResult;
+}
+
+export interface IdentityInventoryReviewSeedResult extends ReviewSeedBaseResult {
+  readonly mode: "identity_inventory";
+  readonly rate: null;
+}
+
+export type ReviewSeedResult = PublishedReviewSeedResult | IdentityInventoryReviewSeedResult;
 
 async function withIdentityTransaction(pool: SQL, operation: (connection: ReservedSQL) => Promise<void>): Promise<void> {
   const connection = await pool.reserve();
@@ -644,7 +667,7 @@ async function provisionReviewRate(
   models: RateModelService,
   targets: RateTargetService,
   publication: RatePublicationService,
-): Promise<ReviewSeedResult["rate"]> {
+): Promise<ReviewSeedRateResult> {
   const policies = await ensureReviewPolicies(tx, configuration, requesterId);
   const plan = await ensureReviewRatePlan(tx, configuration, policies, requesterId);
   const expected = canonicalReviewRateCommand(plan.id, policies);
@@ -727,9 +750,12 @@ async function provisionReviewRate(
   });
 }
 
+export function runReviewSeed(options: IdentityInventoryReviewSeedOptions): Promise<IdentityInventoryReviewSeedResult>;
+export function runReviewSeed(options: PublishedReviewSeedOptions): Promise<PublishedReviewSeedResult>;
 export async function runReviewSeed(options: ReviewSeedOptions): Promise<ReviewSeedResult> {
   if (!options.databaseUrl) throw new Error("databaseUrl is required");
   if (!options.password) throw new Error("password is required");
+  const mode = options.mode ?? "published";
   const approverPassword = options.approverPassword ?? `${options.password}\u0000rate-approver`;
   if (!approverPassword || approverPassword === options.password) {
     throw new Error("approverPassword must be distinct from password");
@@ -746,11 +772,6 @@ export async function runReviewSeed(options: ReviewSeedOptions): Promise<ReviewS
     ));
     const events = new PostgresEventBus(eventPool);
     const inventory = new InventoryService(events);
-    const configuration = new RateConfigurationService(events);
-    const registry = new ExtensionRegistry(eventPool);
-    const models = new RateModelService(registry);
-    const targets = new RateTargetService(registry);
-    const publication = new RatePublicationService(registry, new ApprovalService(events), events);
     const counts = {
       unitTypes: { created: 0, existing: 0 },
       rooms: { created: 0, existing: 0 },
@@ -834,8 +855,24 @@ export async function runReviewSeed(options: ReviewSeedOptions): Promise<ReviewS
       }
     });
 
+    logger(`review seed: tenant=${SEED_TENANT.slug} property=${SEED_PROPERTY.name}`);
+    logger(`review login: ${REVIEW_EMAIL} (password supplied by YELLOW_REVIEW_PASSWORD)`);
+    logger(`review approver: ${REVIEW_APPROVER_EMAIL} (password supplied by YELLOW_REVIEW_APPROVER_PASSWORD)`);
+    logger(`review inventory: unit_types=${counts.unitTypes.created}/${counts.unitTypes.existing} rooms=${counts.rooms.created}/${counts.rooms.existing} sellable_units=${counts.sellableUnits.created}/${counts.sellableUnits.existing} created/existing`);
+    const common = { tenant: SEED_TENANT.slug, property: SEED_PROPERTY.name, email: REVIEW_EMAIL,
+      userId, approverEmail: REVIEW_APPROVER_EMAIL, approverUserId, roleId, ...counts };
+    if (mode === "identity_inventory") {
+      logger("review rate: omitted by explicit identity_inventory fixture mode");
+      return { ...common, mode, rate: null };
+    }
+
     const previewSellable = sellableUnits.get("101");
     if (!previewSellable) throw new Error("Review rate preview sellable is missing");
+    const configuration = new RateConfigurationService(events);
+    const registry = new ExtensionRegistry(eventPool);
+    const models = new RateModelService(registry);
+    const targets = new RateTargetService(registry);
+    const publication = new RatePublicationService(registry, new ApprovalService(events), events);
     const rate = await database.withTenantTransaction(SEED_TENANT.id, async (tx) => {
       await tx`SELECT pg_advisory_xact_lock(hashtextextended('yellow.local.review.seed', 0))`;
       return provisionReviewRate(
@@ -850,13 +887,8 @@ export async function runReviewSeed(options: ReviewSeedOptions): Promise<ReviewS
       );
     });
 
-    logger(`review seed: tenant=${SEED_TENANT.slug} property=${SEED_PROPERTY.name}`);
-    logger(`review login: ${REVIEW_EMAIL} (password supplied by YELLOW_REVIEW_PASSWORD)`);
-    logger(`review approver: ${REVIEW_APPROVER_EMAIL} (password supplied by YELLOW_REVIEW_APPROVER_PASSWORD)`);
-    logger(`review inventory: unit_types=${counts.unitTypes.created}/${counts.unitTypes.existing} rooms=${counts.rooms.created}/${counts.rooms.existing} sellable_units=${counts.sellableUnits.created}/${counts.sellableUnits.existing} created/existing`);
     logger(`review rate: plan=${rate.ratePlanId} active_release=${rate.activeReleaseId} version=${rate.activeReleaseVersion} state=${rate.created ? "created" : "existing"}`);
-    return { tenant: SEED_TENANT.slug, property: SEED_PROPERTY.name, email: REVIEW_EMAIL,
-      userId, approverEmail: REVIEW_APPROVER_EMAIL, approverUserId, roleId, ...counts, rate };
+    return { ...common, mode, rate };
   } finally {
     await database.close();
     await eventPool.close();
