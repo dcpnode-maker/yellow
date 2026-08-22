@@ -23,6 +23,7 @@ Status legend: UNVERIFIED = built, proofs builder-asserted, not executed by the 
 | 058 | 3 | af34ebc (order 7a72dbe) | UNVERIFIED | Order 058 — Truth-derived availability projection rebuild |
 | 059 | 3 | 1b6523b (order 7cc613e) | UNVERIFIED | Order 059 — Durable availability-projection event consumer |
 | 060 | 3 | 5ee75bd (order 40d13f1) | UNVERIFIED | Order 060 — Operator-controlled availability-projection bootstrap |
+| 061 | 2 | b124ee2 (order 318bdc2) | UNVERIFIED | Order 061 — Availability work-scaling proof |
 
 Protected hashes to re-quote each time:
 
