@@ -66,7 +66,7 @@ describe("Order 064 recorded build snapshot", () => {
     expect(rows.length).toBeGreaterThan(0);
     expect(Number(PROJECT_BUILD_SNAPSHOT.roadmap.latestBuiltOrder)).toBe(Math.max(...rows.map(({ order }) => order)));
     expect(Number(PROJECT_BUILD_SNAPSHOT.review.gate3Debt)).toBe(rows.filter(({ status }) => status === "UNVERIFIED").length);
-    expect(PROJECT_BUILD_SNAPSHOT.roadmap.currentOrder).toBe(75);
+    expect(PROJECT_BUILD_SNAPSHOT.roadmap.currentOrder).toBe(76);
     expect(PROJECT_BUILD_SNAPSHOT.roadmap.activePhase).toBe(3);
     expect(PROJECT_BUILD_SNAPSHOT.roadmap.phaseCount).toBe(13);
     expect(reviewCoverage.throughOrder).toBe(44);
