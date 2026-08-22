@@ -79,10 +79,11 @@ duplicate the composition validator.
 
 ## Pre-registered proof
 
-- **P0 (red first):** add a live operator test that submits an otherwise valid selected-release
-  preview cell with `policyEvidence` omitted and expects 200, then submits caller policy evidence and
-  expects 400. Before production edits the first request returns the captured red 503 because the
-  composition boundary cannot match absent browser evidence. Preserve the exact red output in git.
+- **P0 (red first, amended by Question 125):** assert the exact status vector `[400, 200, 400]` for
+  the legacy live payload with `policyEvidence: []`, the corrected browser payload with the field
+  omitted, and a caller payload with matching evidence. Before production edits the captured vector
+  is `[503, 400, 200]`: live mismatch leaks as unavailable, omission is rejected, and caller evidence
+  is still accepted. Preserve that exact red output in git.
 - **P1:** a selected draft containing all four policy references simulates successfully while the
   browser payload contains no policy evidence; returned composition evidence names the stored
   release policies in stable order and not any current form selection.
