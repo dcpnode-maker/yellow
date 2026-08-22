@@ -94,8 +94,11 @@
             <label>Guests
               <input name="partySize" type="number" min="1" max="32767" value="1" required>
             </label>
+            <label>Holder reference
+              <input name="holderReference" maxlength="120" placeholder="Walk-in guest or cart reference">
+            </label>
             <button class="primary search-button" type="submit">Search availability</button>
-            <p class="timezone-note">Times are converted from this browser to exact UTC instants. Property stay-date policy is not implemented yet.</p>
+            <p class="timezone-note">Times are converted from this browser to exact UTC instants. A ten-minute hold protects inventory temporarily; it is not a reservation.</p>
           </form>
 
           <div class="summary-row" aria-live="polite">
@@ -103,6 +106,14 @@
             <span class="legend"><i class="dot available"></i> Bookable <i class="dot blocked"></i> Blocked <i class="dot warning"></i> Warning</span>
           </div>
           <div class="result-grid" id="results"></div>
+          <section class="card active-holds-panel" aria-labelledby="active-holds-heading">
+            <div class="panel-heading">
+              <div><h2 id="active-holds-heading">Active holds</h2><p class="muted">Live temporary inventory protection for this property.</p></div>
+              <button class="quiet compact" id="refresh-holds" type="button">Refresh</button>
+            </div>
+            <div class="restriction-list" id="active-hold-list"></div>
+            <p class="inventory-status" id="hold-status" role="status" aria-live="polite">Search availability or refresh to load active holds.</p>
+          </section>
         </section>
 
         <section id="inventory-view" hidden aria-labelledby="inventory-title">

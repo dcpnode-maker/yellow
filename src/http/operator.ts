@@ -1,6 +1,8 @@
 import { LocalLoginService, type LocalLoginInput } from "../contexts/identity";
 import {
   AvailabilityService,
+  HoldConflictError,
+  HoldService,
   InventoryConflictError,
   InventoryNotFoundError,
   InventoryPolicyService,
@@ -51,6 +53,8 @@ const BLOCK_READ_SCOPE = "inventory.blocks:read";
 const BLOCK_WRITE_SCOPE = "inventory.blocks:write";
 const POLICY_READ_SCOPE = "inventory.policy:read";
 const POLICY_WRITE_SCOPE = "inventory.policy:write";
+const HOLD_READ_SCOPE = "inventory.holds:read";
+const HOLD_WRITE_SCOPE = "inventory.holds:write";
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 const ISO_INSTANT = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(?::\d{2}(?:\.\d{1,3})?)?(?:Z|[+-]\d{2}:\d{2})$/;
 
@@ -131,6 +135,16 @@ function parseSearch(body: unknown): Omit<SearchAvailabilityInput, "propertyNode
   };
 }
 
+function parseHold(body: unknown): { sellableUnitId: string; from: Date; to: Date; holderReference: string } | null {
+  if (!isObject(body) || !exactKeys(body, ["sellableUnitId", "from", "to", "holderReference"]) ||
+      typeof body.sellableUnitId !== "string" || !UUID.test(body.sellableUnitId) ||
+      typeof body.holderReference !== "string" || body.holderReference !== body.holderReference.trim() ||
+      !/^[^\u0000-\u001f\u007f]{1,120}$/u.test(body.holderReference)) return null;
+  const from = parseInstant(body.from);
+  const to = parseInstant(body.to);
+  return from && to && from < to ? { sellableUnitId: body.sellableUnitId, from, to, holderReference: body.holderReference } : null;
+}
+
 interface PropertyRow {
   readonly id: string;
   readonly name: string;
@@ -206,6 +220,7 @@ type RateOperations = Pick<RateConfigurationService,
 type PricingOperations = Pick<RatePricingService, "create" | "findCurrent" | "supersede">;
 type BlockOperations = Pick<OperationalBlockService, "listActive" | "open" | "close">;
 type PolicyOperations = Pick<InventoryPolicyService, "get" | "setOosSellability">;
+type HoldOperations = Pick<HoldService, "listActive" | "place" | "release">;
 
 const MAX_MONEY = 9_223_372_036_854_775_807n;
 
@@ -388,6 +403,7 @@ export class OperatorHttpApi {
   readonly #pricing?: PricingOperations;
   readonly #blocks?: BlockOperations;
   readonly #policy?: PolicyOperations;
+  readonly #holds?: HoldOperations;
 
   constructor(
     login: LocalLoginService,
@@ -399,6 +415,7 @@ export class OperatorHttpApi {
     pricing?: PricingOperations,
     blocks?: BlockOperations,
     policy?: PolicyOperations,
+    holds?: HoldOperations,
   ) {
     this.#login = login;
     this.#availability = availability;
@@ -409,6 +426,7 @@ export class OperatorHttpApi {
     this.#pricing = pricing;
     this.#blocks = blocks;
     this.#policy = policy;
+    this.#holds = holds;
   }
 
   unavailable(request: Request): Response {
@@ -421,7 +439,7 @@ export class OperatorHttpApi {
 
   failure(request: Request, error: unknown): Response {
     if (error instanceof IdempotencyConflictError || error instanceof InventoryConflictError ||
-        error instanceof OperationalBlockConflictError) {
+        error instanceof OperationalBlockConflictError || error instanceof HoldConflictError) {
       const type = error instanceof IdempotencyConflictError ? "request/idempotency_conflict" : "inventory/conflict";
       return apiError(request, 409, type, "Conflict", "The inventory request conflicts with existing state");
     }
@@ -624,6 +642,74 @@ export class OperatorHttpApi {
       return apiError(context.request, 403, "auth/property_forbidden", "Forbidden", "Property access is not granted");
     }
     return apiResponse(context.request, { inventoryPolicy: await this.#policy.get(context.tx, propertyNode) });
+  }
+
+  async activeHolds(context: TenantRequestContext, propertyNode: string): Promise<Response> {
+    if (!hasScope(context, HOLD_READ_SCOPE)) {
+      return apiError(context.request, 403, "auth/scope_missing", "Forbidden", "Cart-hold access is not granted");
+    }
+    if (!UUID.test(propertyNode)) return apiError(context.request, 400, "request/invalid", "Invalid request", "Property identifier is invalid");
+    if (!this.#holds) return this.unavailable(context.request);
+    const grants = await listGrantedProperties(context, HOLD_READ_SCOPE);
+    if (!grants.some(({ id }) => id === propertyNode)) {
+      return apiError(context.request, 403, "auth/property_forbidden", "Forbidden", "Property access is not granted");
+    }
+    return apiResponse(context.request, { holds: jsonValue(await this.#holds.listActive(context.tx, propertyNode)) });
+  }
+
+  async placeHold(context: TenantRequestContext, propertyNode: string, body: unknown): Promise<Response> {
+    const input = parseHold(body);
+    if (!input) return apiError(context.request, 400, "request/invalid", "Invalid request", "Cart-hold input is invalid");
+    if (!hasScope(context, HOLD_WRITE_SCOPE)) {
+      return apiError(context.request, 403, "auth/scope_missing", "Forbidden", "Cart-hold changes are not granted");
+    }
+    if (!UUID.test(propertyNode)) return apiError(context.request, 400, "request/invalid", "Invalid request", "Property identifier is invalid");
+    if (!this.#holds) return this.unavailable(context.request);
+    const grants = await listGrantedProperties(context, HOLD_WRITE_SCOPE);
+    if (!grants.some(({ id }) => id === propertyNode)) {
+      return apiError(context.request, 403, "auth/property_forbidden", "Forbidden", "Property access is not granted");
+    }
+    const requestId = correlationId(context.request);
+    const outcome = await this.#idempotency.execute(context.tx, {
+      tenantId: context.tenantId, operation: "operator.inventory.holds.place",
+      key: context.request.headers.get("idempotency-key") ?? "", request: { propertyNode, body },
+    }, async (tx) => ({ status: 201, body: { hold: jsonValue(await this.#holds!.place(tx, {
+      sellableUnitId: input.sellableUnitId, from: input.from, to: input.to, ttlSeconds: 600,
+      holder: { reference: input.holderReference },
+      envelope: createAuditEnvelope({ actorId: context.identity.actorId, tenantId: context.tenantId,
+        propertyNode, requestId, operation: "hold.created" }),
+    })) } }));
+    return apiResponse(context.request, canonicalJson(outcome.body), outcome.status, {
+      "idempotency-replayed": String(outcome.replayed), "x-correlation-id": requestId,
+    });
+  }
+
+  async releaseHold(context: TenantRequestContext, propertyNode: string, holdId: string, body: unknown): Promise<Response> {
+    if (!isObject(body) || !exactKeys(body, [])) {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Cart-hold release input must be empty");
+    }
+    if (!hasScope(context, HOLD_WRITE_SCOPE)) {
+      return apiError(context.request, 403, "auth/scope_missing", "Forbidden", "Cart-hold changes are not granted");
+    }
+    if (!UUID.test(propertyNode) || !UUID.test(holdId)) {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Property or hold identifier is invalid");
+    }
+    if (!this.#holds) return this.unavailable(context.request);
+    const grants = await listGrantedProperties(context, HOLD_WRITE_SCOPE);
+    if (!grants.some(({ id }) => id === propertyNode)) {
+      return apiError(context.request, 403, "auth/property_forbidden", "Forbidden", "Property access is not granted");
+    }
+    const requestId = correlationId(context.request);
+    const outcome = await this.#idempotency.execute(context.tx, {
+      tenantId: context.tenantId, operation: "operator.inventory.holds.release",
+      key: context.request.headers.get("idempotency-key") ?? "", request: { propertyNode, holdId, body },
+    }, async (tx) => ({ status: 200, body: { hold: jsonValue(await this.#holds!.release(tx, {
+      holdId, envelope: createAuditEnvelope({ actorId: context.identity.actorId, tenantId: context.tenantId,
+        propertyNode, requestId, operation: "hold.released" }),
+    })) } }));
+    return apiResponse(context.request, canonicalJson(outcome.body), outcome.status, {
+      "idempotency-replayed": String(outcome.replayed), "x-correlation-id": requestId,
+    });
   }
 
   async setOosSellability(context: TenantRequestContext, propertyNode: string, body: unknown): Promise<Response> {

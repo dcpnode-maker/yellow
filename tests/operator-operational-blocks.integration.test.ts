@@ -243,7 +243,8 @@ databaseDescribe("Order 053 operator operational blocks", () => {
     `;
     expect(permissions.map(({ code }) => code)).toEqual([
       "inventory.availability:read", "inventory.blocks:read", "inventory.blocks:write",
-      "inventory.configuration:read", "inventory.configuration:write", "inventory.policy:read",
+      "inventory.configuration:read", "inventory.configuration:write", "inventory.holds:read",
+      "inventory.holds:write", "inventory.policy:read",
       "inventory.policy:write", "inventory.restriction:read",
       "inventory.restriction:write", "rates.configuration:read", "rates.configuration:write",
       "rates.pricing:read", "rates.pricing:write",

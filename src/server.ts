@@ -2,7 +2,7 @@ import { SQL } from "bun";
 
 import { app, createApp } from "./app";
 import { BearerTenantResolver, Hs256TokenSigner, LocalLoginService } from "./contexts/identity";
-import { AvailabilityService, InventoryPolicyService, InventoryService, OperationalBlockService, RestrictionService } from "./contexts/inventory";
+import { AvailabilityService, HoldService, InventoryPolicyService, InventoryService, OperationalBlockService, RestrictionService } from "./contexts/inventory";
 import { RateConfigurationService, RatePricingService } from "./contexts/rates";
 import { OperatorHttpApi } from "./http/operator";
 import { Database, PostgresEventBus, PostgresIdempotency } from "./kernel";
@@ -42,10 +42,11 @@ function runtimeApp() {
   const pricing = new RatePricingService(events);
   const blocks = new OperationalBlockService(events);
   const policy = new InventoryPolicyService(events);
+  const holds = new HoldService(events);
   return createApp({
     database,
     tenantResolver: new BearerTenantResolver(tokens),
-    operatorApi: new OperatorHttpApi(login, new AvailabilityService(), inventory, new PostgresIdempotency(), restrictions, rates, pricing, blocks, policy),
+    operatorApi: new OperatorHttpApi(login, new AvailabilityService(), inventory, new PostgresIdempotency(), restrictions, rates, pricing, blocks, policy, holds),
   });
 }
 

@@ -98,7 +98,7 @@ input:hover, select:hover { border-color: #8d978c; }
 .domain-nav { display: flex; align-items: center; gap: .4rem; }
 .domain-tab { border: 0; background: transparent; color: var(--muted); padding: .72rem .9rem; font-weight: 800; }
 .domain-tab.is-active { background: color-mix(in srgb, var(--accent) 12%, var(--card)); color: var(--accent-strong); }
-.search-bar { padding: 1rem; border-radius: var(--card-radius); display: grid; grid-template-columns: repeat(3, 1fr) auto; gap: .8rem; align-items: end; }
+.search-bar { padding: 1rem; border-radius: var(--card-radius); display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)) auto; gap: .8rem; align-items: end; }
 .search-button { min-height: 43px; }
 .timezone-note { grid-column: 1 / -1; margin: .2rem .2rem 0; font-size: .78rem; }
 .summary-row { min-height: 58px; display: flex; align-items: center; justify-content: space-between; gap: 1rem; color: var(--muted); }
@@ -113,6 +113,9 @@ input:hover, select:hover { border-color: #8d978c; }
 .option-card.is-blocked { border-color: #e4b8af; }
 .option-head { display: flex; align-items: start; justify-content: space-between; gap: 1rem; }
 .option-head h2 { margin-bottom: .2rem; font-size: 1.16rem; }
+.option-actions { display: flex; justify-content: flex-end; margin-top: 1rem; }
+.active-holds-panel { margin-top: 1rem; padding: 1rem; }
+.active-holds-panel .inventory-status { margin-bottom: 0; }
 .code { color: var(--muted); font: .75rem ui-monospace, monospace; }
 .count { text-align: right; white-space: nowrap; }
 .count strong { display: block; font-size: 1.65rem; line-height: 1; }

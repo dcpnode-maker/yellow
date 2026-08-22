@@ -129,6 +129,15 @@ export function createApp(options: AppOptions = {}) {
       .post("/api/v1/properties/:property/inventory-policy/oos-sellability", ({ request, params, body, tenantContext }) =>
         withOperatorTenant(request, (context) => operator.setOosSellability(context, params.property, body))
       )
+      .get("/api/v1/properties/:property/holds", ({ request, params, tenantContext }) =>
+        withOperatorTenant(request, (context) => operator.activeHolds(context, params.property))
+      )
+      .post("/api/v1/properties/:property/holds", ({ request, params, body, tenantContext }) =>
+        withOperatorTenant(request, (context) => operator.placeHold(context, params.property, body))
+      )
+      .post("/api/v1/properties/:property/holds/:holdId/release", ({ request, params, body, tenantContext }) =>
+        withOperatorTenant(request, (context) => operator.releaseHold(context, params.property, params.holdId, body))
+      )
       .post("/api/v1/properties/:property/inventory/unit-types", ({ request, params, body, tenantContext }) =>
         withOperatorTenant(request, (context) => operator.createUnitType(context, params.property, body))
       )

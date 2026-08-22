@@ -9,6 +9,7 @@
   let rateData = { policies: [], ratePlans: [] };
   let operationalBlocksData = [];
   let inventoryPolicyData = { oosSellability: "blocked" };
+  let activeHoldsData = [];
   let currentRatePrice = null;
   let pricingRowSequence = 0;
   const pendingKeys = new Map();
@@ -104,6 +105,9 @@
   const operationalBlockKind = document.querySelector("#operational-block-kind");
   const oosPolicyForm = document.querySelector("#oos-policy-form");
   const oosSellability = document.querySelector("#oos-sellability");
+  const refreshHolds = document.querySelector("#refresh-holds");
+  const activeHoldList = document.querySelector("#active-hold-list");
+  const holdStatus = document.querySelector("#hold-status");
   const MAX_MINOR = BigInt("9223372036854775807");
 
   function applyTheme(theme) {
@@ -163,6 +167,7 @@
     rateData = { policies: [], ratePlans: [] };
     operationalBlocksData = [];
     inventoryPolicyData = { oosSellability: "blocked" };
+    activeHoldsData = [];
     currentRatePrice = null;
     loadPriceCorrectionButton.hidden = true;
     rateCorrectionForm.hidden = true;
@@ -535,6 +540,7 @@
       history.pushState(null, "", `/p/${propertySelect.value}/${activeView}`);
     }
     if (activeView === "inventory") void loadInventory();
+    if (activeView === "availability") void loadActiveHolds();
     if (activeView === "operations") void loadOperationalBlocks();
     if (activeView === "restrictions") void loadRestrictions();
     if (activeView === "rates") void loadRates();
@@ -776,6 +782,97 @@
     return item;
   }
 
+  function renderActiveHolds() {
+    activeHoldList.replaceChildren(...activeHoldsData.map((hold) => {
+      const item = document.createElement("article");
+      item.className = "restriction-item";
+      const copy = document.createElement("div");
+      const title = document.createElement("strong");
+      title.textContent = typeof hold.holder?.reference === "string"
+        ? hold.holder.reference
+        : "Temporary hold";
+      const detail = document.createElement("span");
+      detail.textContent = `${new Date(hold.from).toLocaleString()} → ${new Date(hold.to).toLocaleString()} · expires ${new Date(hold.expiresAt).toLocaleTimeString()}`;
+      copy.append(title, detail);
+      const release = document.createElement("button");
+      release.type = "button";
+      release.className = "quiet compact";
+      release.textContent = "Release hold";
+      release.addEventListener("click", () => void releaseHold(hold, release));
+      item.append(copy, release);
+      return item;
+    }));
+    if (activeHoldsData.length === 0) emptyList(activeHoldList, "No active cart holds.");
+  }
+
+  async function loadActiveHolds() {
+    const property = propertySelect.value;
+    if (!property) return;
+    holdStatus.textContent = "Loading active holds…";
+    try {
+      const body = await request(`/api/v1/properties/${encodeURIComponent(property)}/holds`);
+      activeHoldsData = body.holds;
+      renderActiveHolds();
+      holdStatus.textContent = `${activeHoldsData.length} active hold${activeHoldsData.length === 1 ? "" : "s"} from tenant-scoped PostgreSQL.`;
+    } catch (error) {
+      holdStatus.textContent = error instanceof Error ? error.message : "Active holds could not be loaded";
+    }
+  }
+
+  async function placeHold(option, button) {
+    if (!availabilityForm.reportValidity()) return;
+    const holderInput = availabilityForm.elements.namedItem("holderReference");
+    if (!(holderInput instanceof HTMLInputElement) || holderInput.value.trim().length === 0) {
+      holdStatus.textContent = "Add a holder or cart reference before placing a hold.";
+      holderInput?.focus();
+      return;
+    }
+    const fields = new FormData(availabilityForm);
+    const body = {
+      sellableUnitId: option.sellableUnitId,
+      from: new Date(String(fields.get("from"))).toISOString(),
+      to: new Date(String(fields.get("to"))).toISOString(),
+      holderReference: holderInput.value.trim(),
+    };
+    const identity = `hold-place:${propertySelect.value}:${JSON.stringify(body)}`;
+    const key = pendingKeys.get(identity) || crypto.randomUUID();
+    pendingKeys.set(identity, key);
+    button.disabled = true;
+    holdStatus.textContent = "Protecting this room for ten minutes…";
+    try {
+      await request(`/api/v1/properties/${encodeURIComponent(propertySelect.value)}/holds`, {
+        method: "POST", headers: { "idempotency-key": key }, body: JSON.stringify(body),
+      });
+      pendingKeys.delete(identity);
+      holdStatus.textContent = "Hold placed. This is temporary inventory protection, not a reservation.";
+      await loadActiveHolds();
+      availabilityForm.requestSubmit();
+    } catch (error) {
+      holdStatus.textContent = error instanceof Error ? error.message : "Hold could not be placed";
+      button.disabled = false;
+    }
+  }
+
+  async function releaseHold(hold, button) {
+    const identity = `hold-release:${hold.id}`;
+    const key = pendingKeys.get(identity) || crypto.randomUUID();
+    pendingKeys.set(identity, key);
+    button.disabled = true;
+    holdStatus.textContent = "Releasing temporary inventory protection…";
+    try {
+      await request(`/api/v1/properties/${encodeURIComponent(propertySelect.value)}/holds/${encodeURIComponent(hold.id)}/release`, {
+        method: "POST", headers: { "idempotency-key": key }, body: "{}",
+      });
+      pendingKeys.delete(identity);
+      holdStatus.textContent = "Hold released. Availability is being refreshed.";
+      await loadActiveHolds();
+      availabilityForm.requestSubmit();
+    } catch (error) {
+      holdStatus.textContent = error instanceof Error ? error.message : "Hold could not be released";
+      button.disabled = false;
+    }
+  }
+
   function renderOptions(options) {
     results.replaceChildren();
     if (options.length === 0) {
@@ -820,6 +917,17 @@
       for (const restriction of option.restrictionsApplied) causes.append(causeNode(restriction, "restriction"));
       for (const block of option.operationalBlocksApplied) causes.append(causeNode(block, "operational"));
       if (causes.childElementCount > 0) card.append(causes);
+      if (option.bookable) {
+        const actions = document.createElement("div");
+        actions.className = "option-actions";
+        const hold = document.createElement("button");
+        hold.type = "button";
+        hold.className = "secondary";
+        hold.textContent = "Hold for 10 minutes";
+        hold.addEventListener("click", () => void placeHold(option, hold));
+        actions.append(hold);
+        card.append(actions);
+      }
       results.append(card);
     }
   }
@@ -884,6 +992,7 @@
   propertySelect.addEventListener("change", () => {
     if (propertySelect.value) history.replaceState(null, "", `/p/${propertySelect.value}/${activeView}`);
     if (activeView === "inventory") void loadInventory();
+    if (activeView === "availability") void loadActiveHolds();
     if (activeView === "operations") void loadOperationalBlocks();
     if (activeView === "restrictions") void loadRestrictions();
     if (activeView === "rates") void loadRates();
@@ -893,6 +1002,7 @@
   refreshRestrictions.addEventListener("click", () => void loadRestrictions());
   refreshRates.addEventListener("click", () => void loadRates());
   refreshOperationalBlocks.addEventListener("click", () => void loadOperationalBlocks());
+  refreshHolds.addEventListener("click", () => void loadActiveHolds());
   restrictionKind.addEventListener("change", updateRestrictionFields);
   policyKind.addEventListener("change", updatePolicyFields);
   depositBasis.addEventListener("change", updateDepositFields);

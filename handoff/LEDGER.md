@@ -80,3 +80,8 @@
 2026-08-22 · 054 · 2 · phase-2/operator-oos-sellability-policy · codex → — · ORDER-WRITTEN · authenticated per-property OOS sellability selection through existing audited policy service; OOO remains immutable physical truth
 2026-08-22 · 059 · 2 · phase-2/operator-oos-sellability-policy · codex → codex · QUESTION-ANSWERED · correct whole-payload and all-claim proof queries without changing product behavior; full focused restart required
 2026-08-22 · 060 · 2 · phase-2/operator-oos-sellability-policy · codex → codex · QUESTION-ANSWERED · use established strict JSON boundary adapter after compiler rejection; restart standing check from top
+2026-08-22 · 055 · 3 · phase-2/operator-cart-hold-management · codex → — · ORDER-WRITTEN · ten-minute place/list/release through existing audited occupancy-backed HoldService; independent review debt explicit
+2026-08-22 · 061 · 3 · phase-2/operator-cart-hold-management · codex → codex · QUESTION-ANSWERED · allow read-only server expiry display while still forbidding client expiry/TTL; full focused restart required
+2026-08-22 · 062 · 3 · phase-2/operator-cart-hold-management · codex → codex · QUESTION-ANSWERED · correct foreign-property test helper literal inference; focused and compiler restart required
+2026-08-22 · 063 · 3 · phase-2/operator-cart-hold-management · codex → codex · QUESTION-ANSWERED · complete foreign-property path-helper string annotation; focused and compiler restart required
+2026-08-22 · 064 · 3 · phase-2/operator-cart-hold-management · codex → codex · QUESTION-ANSWERED · isolate immutable 100-client referee from the persistent ten-connection app pool; full setup restart required
