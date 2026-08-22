@@ -41,6 +41,7 @@ Status legend: UNVERIFIED = built, proofs builder-asserted, not executed by the 
 | 076 | 2 | bb04b21 (order 59bb07c; red proof 53aa58f; captured 5e97ec1) | UNVERIFIED | Order 076 — Immutable rate-release inspection and safe reuse |
 | 077 | 3 | de74b21 (order 7a2dcd0; red proof 172bf70; schema correction 10f2c6c + 7e6c48b; deployment acceptance 4bf7d96 + 7de96e9) | UNVERIFIED | Order 077 — Two-operator rate-publication approval inbox |
 | 078 | 3 | 5c58d36 (order 1ec6309; red proof 48de087; proof corrections cdf358d + af1b4b2) | UNVERIFIED | Order 078 — Reproducible local-review published rate and live quote |
+| 079 | 2 | f4ea9ad (order 4ab92a8; red proof 02a2585; evidence f720e2a) | UNVERIFIED | Order 079 — Reproducible Phase-3 and Gate-3 database proofs |
 
 Protected hashes to re-quote each time:
 
