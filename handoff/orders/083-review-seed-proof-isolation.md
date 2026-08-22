@@ -125,9 +125,33 @@ PR and do not merge.
 
 ## Definition of done
 
-- [ ] P0 red evidence is preserved and this order is committed before implementation.
-- [ ] Order 050 passes without changing its product assertions or the founder seed default.
-- [ ] The five inherited suites and complete thirteen-suite isolated gate are green.
-- [ ] Standing checks, protected hashes and fresh referee are exact.
-- [ ] Persistent localhost is healthy and review debt remains honestly UNVERIFIED.
+## Builder evidence — UNVERIFIED
 
+- P0 was reproduced at the exact Order-082 tip `383c98f` before fixture code changed. Order 050
+  returned 4 pass / 3 fail: the initial snapshot contained four policies and one FLEX plan, and its
+  own plan creation/replay returned 409. Orders 048, 051, 052 and 057 passed in separate fresh
+  databases. The order was committed as `60e88b9` before implementation.
+- P1 passed after the explicit fixture split: Order 050 returned 7 pass / 0 fail and 50 assertions
+  on a fresh database, including zero policy/plan/model/target/release/approval rows before its first
+  command. Its FLEX, status, idempotency, evidence and security assertions were not weakened. The
+  default founder seed still passed all eleven published-rate proofs.
+- P2/P3 passed through the one expanded runner: 13/13 isolated suites, 92 tests and 1,693
+  assertions. Each database was recreated, migrated, executed and force-dropped sequentially; a
+  catalog query found zero `yellow_ci_p*` or `yellow_verify_*` proof databases afterward.
+- P4 passed from frozen dependencies: 100 default tests / 0 fail / 1,371 assertions with 311
+  database-gated skips explicitly covered by the isolated gate; exact typecheck/import boundaries;
+  23-package licence policy; zero dependency vulnerabilities; byte-exact review coverage and schema;
+  fresh app-never-started referee 11/11. Protected hashes remain
+  `fe2a9fc949c6bacded3f8d3fc4d14fc596a83ebde9aeb043eb10845f07b30923` and
+  `3228279bd99a8f9b6af99748f31d4d4b482a8e627e16d92644d9d859ad8befa1`.
+- Graphify refreshed code-only with zero token/API cost to 4,737 nodes, 8,347 directed edges and
+  517 communities. Diagnostics report zero missing/dangling endpoints, duplicates or collapsed
+  directed pairs; ten inherited self-loops remain visible as a parser limitation.
+- Independent review remains exact through Order 044. Order 083 and every later builder result are
+  recorded `UNVERIFIED`; this correction is neither self-review nor approval.
+
+- [x] P0 red evidence is preserved and this order is committed before implementation.
+- [x] Order 050 passes without changing its product assertions or the founder seed default.
+- [x] The five inherited suites and complete thirteen-suite isolated gate are green.
+- [x] Standing checks, protected hashes and fresh referee are exact.
+- [x] Persistent localhost is healthy and review debt remains honestly UNVERIFIED.
