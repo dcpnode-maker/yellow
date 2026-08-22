@@ -25,7 +25,7 @@ Status legend: UNVERIFIED = built, proofs builder-asserted, not executed by the 
 | 060 | 3 | 5ee75bd (order 40d13f1) | UNVERIFIED | Order 060 — Operator-controlled availability-projection bootstrap |
 | 061 | 2 | b124ee2 (order 318bdc2) | UNVERIFIED | Order 061 — Availability work-scaling proof |
 | 062 | 3 | 27f883c (order 2c90985; red proof cd19191) | UNVERIFIED | Order 062 — Operator-managed offline capacity lease pool |
-| 063 | 1 | PENDING | UNVERIFIED | Order 063 — Universal rate-plan product contract |
+| 063 | 1 | 5e7591f | UNVERIFIED | Order 063 — Universal rate-plan product contract |
 
 Protected hashes to re-quote each time:
 
