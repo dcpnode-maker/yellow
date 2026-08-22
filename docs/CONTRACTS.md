@@ -228,3 +228,26 @@ The browser renders every adapter string with text nodes. Interpreting never app
 applying never saves it. An operator must separately Apply, Save draft, Preview, obtain independent
 Approval and Publish. Any future external model implements the same untrusted proposal port and
 inherits these server-owned validations and separate operator actions.
+
+## 14. Applicability-rule authoring and preview evidence
+
+Order 073 exposes the existing Order-066 rule array in Guided mode instead of reducing it to one
+visual target. One immutable target draft contains 1–200 stable include/exclude rules. Each rule
+names an explicit 0–1000 priority, one physical snapshot (property, class with exact room-type
+membership, room type or sellable room), and any combination of the existing company, market group,
+market, source party, source, channel, segment, agent and campaign dimensions. A class is local
+release content, not a global mutable taxonomy.
+
+The browser only compiles these choices into the strict authoring command. The server remains the
+sole authority for specificity (`sellable > room type > class > property`), commercial-dimension
+count, priority, equal-rank conflicts and include/exclude results. One operator-selected rule may
+provide a hypothetical preview context; it does not select the winner. Non-direct preview contexts
+fail before submission until governed channel-mapping evidence is available—the browser never
+invents that evidence.
+
+The existing 1–500-cell simulation response is rendered cell by cell with the server-returned
+target state, winning/matched/conflicting keys, result state and exact pre-tax minor-unit subtotal.
+Aggregate hashes and bounded work remain server-derived. Preview is not publication: save, preview,
+independent approval and publish are separate actions, and undo still creates a new immutable
+version. Restrictions, availability, tax and compliance evidence remain outside hotel-authored rate
+rules and cannot be disabled from this workbench.

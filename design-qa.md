@@ -1,4 +1,4 @@
-# Orders 071–072 design QA — universal rate-plan workbench
+# Orders 071–073 design QA — universal rate-plan workbench
 
 Date: 2026-08-22  
 Reference: founder-supplied “Universal rate plan flow” screenshot  
@@ -75,4 +75,34 @@ Executed browser evidence on the persistent founder stack:
   viewport. The inherited 390 × 844 responsive contract is covered by the one-column CSS rule and
   the previous executed narrow proof; this browser surface did not expose a viewport-resize control
   during the Order 072 pass.
+- Browser error/warning console: 0 entries.
+
+## Order 073 applicability rules and per-cell evidence
+
+The Step-3 single target was replaced by progressive, collapsible rule cards while retaining the
+reference's “Who gets it” stage and Yellow's existing design tokens. Each card keeps its stable key,
+include/exclude state, priority, physical scope and commercial-filter count visible when collapsed.
+Detailed fields cover property, room class with exact membership, room type, sellable room, company,
+market group, market, source party/source, channel, segment, agent and campaign. The selected preview
+context is visibly separate from the server-owned winner.
+
+Executed browser evidence on the persistent founder stack:
+
+- Added a broad `property-default` include plus an exact Room 101 `direct-stop` exclusion with the
+  direct channel dimension. The complete canonical command showed both rules before any save.
+- Saved immutable release version 4. With the exclusion context selected, the server returned
+  0 quoted / 1 unpriced / 0 conflicts / 11 bounded work units; the cell showed `excluded`, winner
+  `direct-stop`, matches `direct-stop, property-default`, no conflicts and `rate:target_excluded`.
+- Re-ran the same stored release with the broad context. The cell showed `quoted`, winner and match
+  `property-default`, exact `USD 12500 minor units`, and nine server work units. The browser merely
+  rendered these returned fields and hashes.
+- Entered duplicate `property-default` keys and pressed Save. The local message named the duplicate,
+  release history stayed at four versions, and no request-created successor appeared.
+- Initial/failed preview placeholders remained readable. The focused live proof separately exercised
+  an equal-rank conflict and exact-room exclusion; approval remained a separate action and no release
+  was published.
+- Apple calm and Pixel expressive both rendered the cards and evidence without clipping. At the
+  available 766px in-app viewport, document scroll width was 752px (no horizontal overflow). The
+  existing 390×844 proof remains the narrow baseline; new rule/evidence grids have explicit one-column
+  rules below 560px because this browser surface does not expose viewport resizing.
 - Browser error/warning console: 0 entries.

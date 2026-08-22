@@ -17,6 +17,7 @@
   let builderBookingInstant = "";
   let builderAiInterpretation = null;
   let builderAiAppliedProposal = null;
+  let builderTargetRuleSequence = 0;
   let operationalBlocksData = [];
   let inventoryPolicyData = { oosSellability: "blocked" };
   let activeHoldsData = [];
@@ -141,25 +142,9 @@
   const builderRmsAge = document.querySelector("#builder-rms-age");
   const builderExpertComponents = document.querySelector("#builder-expert-components");
   const builderComponentGrid = document.querySelector("#builder-component-grid");
-  const builderCompany = document.querySelector("#builder-company");
-  const builderMarketGroup = document.querySelector("#builder-market-group");
-  const builderMarket = document.querySelector("#builder-market");
-  const builderSourceParty = document.querySelector("#builder-source-party");
-  const builderSource = document.querySelector("#builder-source");
-  const builderChannel = document.querySelector("#builder-channel");
-  const builderSegment = document.querySelector("#builder-segment");
-  const builderAgent = document.querySelector("#builder-agent");
-  const builderCampaign = document.querySelector("#builder-campaign");
-  const builderPhysicalKind = document.querySelector("#builder-physical-kind");
-  const builderTargetEffect = document.querySelector("#builder-target-effect");
-  const builderTargetPriority = document.querySelector("#builder-target-priority");
-  const builderTargetKey = document.querySelector("#builder-target-key");
-  const builderClassField = document.querySelector("#builder-class-field");
-  const builderClassCode = document.querySelector("#builder-class-code");
-  const builderUnitTypeField = document.querySelector("#builder-unit-type-field");
-  const builderUnitType = document.querySelector("#builder-unit-type");
-  const builderSellableField = document.querySelector("#builder-sellable-field");
-  const builderSellable = document.querySelector("#builder-sellable");
+  const builderTargetRuleList = document.querySelector("#builder-target-rule-list");
+  const builderTargetRuleCount = document.querySelector("#builder-target-rule-count");
+  const builderAddTargetRule = document.querySelector("#builder-add-target-rule");
   const builderStayStart = document.querySelector("#builder-stay-start");
   const builderStayEnd = document.querySelector("#builder-stay-end");
   const builderMinAdults = document.querySelector("#builder-min-adults");
@@ -188,6 +173,7 @@
   const builderApprovalId = document.querySelector("#builder-approval-id");
   const builderPublish = document.querySelector("#builder-publish");
   const builderSimulationOutput = document.querySelector("#builder-simulation");
+  const builderSimulationCells = document.querySelector("#builder-simulation-cells");
   const builderRefreshHistory = document.querySelector("#builder-refresh-history");
   const builderReleaseHistory = document.querySelector("#builder-release-history");
   const builderQuoteSellable = document.querySelector("#builder-quote-sellable");
@@ -888,68 +874,279 @@
     renderBuilderCommand();
   }
 
-  function updateBuilderPhysicalFields() {
-    const kind = builderPhysicalKind.value;
-    builderClassField.hidden = kind !== "class";
-    builderUnitTypeField.hidden = kind !== "unit_type";
-    builderSellableField.hidden = kind !== "sellable";
-    renderBuilderCommand();
-  }
-
   function replaceSelectPreserving(select, items, label, formatter) {
     const current = select.value;
     populateSelect(select, items, label, formatter);
     if ([...select.options].some(({ value }) => value === current)) select.value = current;
   }
 
+  function builderTargetCards() {
+    return [...builderTargetRuleList.querySelectorAll(".target-rule-card")];
+  }
+
+  function targetField(card, name) {
+    return card.querySelector(`[data-target-field="${name}"]`);
+  }
+
+  function targetInput(labelText, name, value = "", attributes = {}) {
+    const label = document.createElement("label");
+    label.append(document.createTextNode(labelText));
+    const input = document.createElement("input");
+    input.dataset.targetField = name;
+    input.value = value;
+    for (const [key, entry] of Object.entries(attributes)) input.setAttribute(key, String(entry));
+    label.append(input);
+    return label;
+  }
+
+  function targetSelect(labelText, name, options, value = "") {
+    const label = document.createElement("label");
+    label.append(document.createTextNode(labelText));
+    const select = document.createElement("select");
+    select.dataset.targetField = name;
+    for (const [optionValue, optionLabel] of options) {
+      const option = document.createElement("option");
+      option.value = optionValue;
+      option.textContent = optionLabel;
+      select.append(option);
+    }
+    select.value = value;
+    label.append(select);
+    return label;
+  }
+
+  function replaceTargetReferenceSelect(select, items, label, formatter) {
+    const selected = new Set([...select.selectedOptions].map(({ value }) => value));
+    select.replaceChildren();
+    if (!select.multiple) {
+      const placeholder = document.createElement("option");
+      placeholder.value = "";
+      placeholder.textContent = `Choose ${label}`;
+      select.append(placeholder);
+    }
+    for (const item of items) {
+      const option = document.createElement("option");
+      option.value = item.id;
+      option.textContent = formatter(item);
+      option.selected = selected.has(item.id);
+      select.append(option);
+    }
+  }
+
+  function populateBuilderTargetRuleSelects() {
+    for (const card of builderTargetCards()) {
+      replaceTargetReferenceSelect(targetField(card, "unitTypeIds"), inventoryData.unitTypes, "room types", (item) => `${item.code} · ${item.name}`);
+      replaceTargetReferenceSelect(targetField(card, "unitTypeId"), inventoryData.unitTypes, "a room type", (item) => `${item.code} · ${item.name}`);
+      replaceTargetReferenceSelect(targetField(card, "sellableUnitId"), inventoryData.sellableUnits, "a sellable room", (item) => `${item.unitTypeCode} · ${item.name}`);
+    }
+  }
+
+  function updateBuilderTargetPhysicalFields(card) {
+    const kind = targetField(card, "physicalKind").value;
+    for (const field of card.querySelectorAll("[data-target-scope]")) {
+      field.hidden = field.dataset.targetScope !== kind;
+    }
+  }
+
+  function renderBuilderTargetRuleSummary(card) {
+    const key = targetField(card, "key").value.trim() || "unnamed-rule";
+    const effect = targetField(card, "effect").value;
+    const physical = targetField(card, "physicalKind").value.replace("_", " ");
+    const dimensions = [...card.querySelectorAll("[data-target-commercial]")]
+      .filter((input) => input.value.trim()).length;
+    card.querySelector("[data-target-summary-title]").textContent = key;
+    card.querySelector("[data-target-summary-copy]").textContent = `${physical} · ${dimensions} commercial dimension${dimensions === 1 ? "" : "s"}`;
+    const badge = card.querySelector("[data-target-summary-effect]");
+    badge.textContent = effect;
+    badge.dataset.effect = effect;
+  }
+
+  function renderBuilderTargetRules() {
+    const cards = builderTargetCards();
+    builderTargetRuleCount.textContent = `${cards.length} of 200`;
+    builderAddTargetRule.disabled = cards.length >= 200;
+    for (const card of cards) {
+      renderBuilderTargetRuleSummary(card);
+      card.querySelector('[data-target-action="remove"]').disabled = cards.length === 1;
+    }
+  }
+
+  function createBuilderTargetRuleCard(initial = {}) {
+    builderTargetRuleSequence += 1;
+    const sequence = builderTargetRuleSequence;
+    const physical = initial.physical || { kind: "property" };
+    const commercial = initial.commercial || {};
+    const details = document.createElement("details");
+    details.className = "target-rule-card";
+    details.open = builderTargetCards().length === 0;
+
+    const summary = document.createElement("summary");
+    const summaryCopy = document.createElement("span");
+    const summaryTitle = document.createElement("strong");
+    summaryTitle.dataset.targetSummaryTitle = "";
+    const summaryDetail = document.createElement("small");
+    summaryDetail.dataset.targetSummaryCopy = "";
+    summaryCopy.append(summaryTitle, summaryDetail);
+    const effectBadge = document.createElement("b");
+    effectBadge.dataset.targetSummaryEffect = "";
+    summary.append(summaryCopy, effectBadge);
+
+    const body = document.createElement("div");
+    body.className = "target-rule-body";
+    const core = document.createElement("div");
+    core.className = "builder-form-grid four-up target-rule-core";
+    core.append(
+      targetInput("Stable rule key", "key", initial.key || `property-rule-${sequence}`, { maxlength: 64, pattern: "[a-z0-9][a-z0-9._-]{0,63}" }),
+      targetSelect("Effect", "effect", [["include", "Include"], ["exclude", "Exclude"]], initial.effect || "include"),
+      targetInput("Priority", "priority", String(initial.priority ?? 0), { type: "number", min: 0, max: 1000 }),
+      targetSelect("Physical scope", "physicalKind", [["property", "Whole property"], ["class", "Room class"], ["unit_type", "Room type"], ["sellable", "Exact sellable room"]], physical.kind || "property"),
+    );
+
+    const scope = document.createElement("div");
+    scope.className = "builder-form-grid two-up target-scope-fields";
+    const classCode = targetInput("Class code", "classCode", physical.kind === "class" ? physical.classCode || "" : "", { maxlength: 64, placeholder: "DELUXE" });
+    classCode.dataset.targetScope = "class";
+    const classMembership = document.createElement("label");
+    classMembership.dataset.targetScope = "class";
+    classMembership.append(document.createTextNode("Exact room-type membership"));
+    const classSelect = document.createElement("select");
+    classSelect.dataset.targetField = "unitTypeIds";
+    classSelect.multiple = true;
+    classSelect.size = 4;
+    classMembership.append(classSelect);
+    const unitType = targetSelect("Room type", "unitTypeId", [], physical.kind === "unit_type" ? physical.unitTypeId || "" : "");
+    unitType.dataset.targetScope = "unit_type";
+    const sellable = targetSelect("Sellable room", "sellableUnitId", [], physical.kind === "sellable" ? physical.sellableUnitId || "" : "");
+    sellable.dataset.targetScope = "sellable";
+    scope.append(classCode, classMembership, unitType, sellable);
+
+    const commercialDetails = document.createElement("details");
+    commercialDetails.className = "target-commercial-fields";
+    const commercialSummary = document.createElement("summary");
+    commercialSummary.textContent = "Commercial dimensions and exceptions";
+    const commercialGrid = document.createElement("div");
+    commercialGrid.className = "builder-form-grid three-up";
+    const commercialFields = [
+      ["Company party id", "companyPartyId", null, "UUID"],
+      ["Market group", "marketGroupCode", "upper", "CORPORATE"],
+      ["Market", "marketCode", "upper", "BUSINESS"],
+      ["Source party id", "sourcePartyId", null, "UUID"],
+      ["Source", "sourceCode", "upper", "DIRECT"],
+      ["Channel", "channelCode", "lower", "booking-com"],
+      ["Segment", "segmentCode", "upper", "TRANSIENT"],
+      ["Agent party id", "agentPartyId", null, "UUID"],
+      ["Campaign", "campaignCode", "upper", "SUMMER26"],
+    ];
+    for (const [label, name, transform, placeholder] of commercialFields) {
+      const field = targetInput(label, name, commercial[name] || "", { maxlength: 64, placeholder });
+      const input = targetField(field, name);
+      input.dataset.targetCommercial = "";
+      if (transform) input.dataset.targetTransform = transform;
+      commercialGrid.append(field);
+    }
+    commercialDetails.append(commercialSummary, commercialGrid);
+
+    const actions = document.createElement("div");
+    actions.className = "target-rule-actions";
+    const previewLabel = document.createElement("label");
+    previewLabel.className = "preview-rule-choice";
+    const previewRadio = document.createElement("input");
+    previewRadio.type = "radio";
+    previewRadio.name = "builder-preview-target";
+    previewRadio.checked = builderTargetCards().length === 0;
+    previewLabel.append(previewRadio, document.createTextNode("Use this rule's context in server preview"));
+    const duplicate = document.createElement("button");
+    duplicate.type = "button";
+    duplicate.className = "quiet compact";
+    duplicate.dataset.targetAction = "duplicate";
+    duplicate.textContent = "Duplicate";
+    const remove = document.createElement("button");
+    remove.type = "button";
+    remove.className = "quiet compact destructive";
+    remove.dataset.targetAction = "remove";
+    remove.textContent = "Remove";
+    actions.append(previewLabel, duplicate, remove);
+    body.append(core, scope, commercialDetails, actions);
+    details.append(summary, body);
+    builderTargetRuleList.append(details);
+    populateBuilderTargetRuleSelects();
+    if (physical.kind === "class") {
+      const selectedIds = new Set(physical.unitTypeIds || []);
+      for (const option of classSelect.options) option.selected = selectedIds.has(option.value);
+    }
+    if (physical.kind === "unit_type") targetField(details, "unitTypeId").value = physical.unitTypeId || "";
+    if (physical.kind === "sellable") targetField(details, "sellableUnitId").value = physical.sellableUnitId || "";
+    updateBuilderTargetPhysicalFields(details);
+    renderBuilderTargetRules();
+    return details;
+  }
+
+  function readBuilderTargetPhysical(card) {
+    const kind = targetField(card, "physicalKind").value;
+    if (kind === "class") {
+      const classCode = targetField(card, "classCode").value.trim().toUpperCase();
+      const unitTypeIds = [...targetField(card, "unitTypeIds").selectedOptions].map(({ value }) => value).sort();
+      if (!classCode || unitTypeIds.length === 0) throw new Error("Each class rule needs a code and at least one exact room type.");
+      if (unitTypeIds.length > 100) throw new Error("One class snapshot can contain at most 100 room types.");
+      return { kind, classCode, unitTypeIds };
+    }
+    if (kind === "unit_type") {
+      const unitTypeId = targetField(card, "unitTypeId").value;
+      if (!unitTypeId) throw new Error("Each room-type rule needs a room type.");
+      return { kind, unitTypeId };
+    }
+    if (kind === "sellable") {
+      const sellableUnitId = targetField(card, "sellableUnitId").value;
+      if (!sellableUnitId) throw new Error("Each exact-room rule needs a sellable room.");
+      return { kind, sellableUnitId };
+    }
+    return { kind: "property" };
+  }
+
+  function readBuilderTargetCommercial(card) {
+    return Object.fromEntries([...card.querySelectorAll("[data-target-commercial]")].flatMap((input) => {
+      let value = input.value.trim();
+      if (!value) return [];
+      if (input.dataset.targetTransform === "upper") value = value.toUpperCase();
+      if (input.dataset.targetTransform === "lower") value = value.toLowerCase();
+      return [[input.dataset.targetField, value]];
+    }));
+  }
+
+  function readBuilderTargetRule(card) {
+    const key = targetField(card, "key").value.trim();
+    if (!/^[a-z0-9][a-z0-9._-]{0,63}$/.test(key)) throw new Error("Every target rule needs a stable unique lowercase key.");
+    const priority = integerValue(targetField(card, "priority"), -1);
+    if (priority < 0 || priority > 1000) throw new Error("Every target priority must be an integer from 0 to 1000.");
+    return {
+      key,
+      effect: targetField(card, "effect").value,
+      priority,
+      physical: readBuilderTargetPhysical(card),
+      commercial: readBuilderTargetCommercial(card),
+    };
+  }
+
+  function readBuilderTargetRules() {
+    const rules = builderTargetCards().map(readBuilderTargetRule);
+    if (rules.length < 1 || rules.length > 200) throw new Error("Applicability requires 1 to 200 explicit rules.");
+    if (new Set(rules.map(({ key }) => key)).size !== rules.length) throw new Error("Target rule keys must be unique.");
+    return rules;
+  }
+
+  function previewBuilderTargetRule() {
+    const selected = builderTargetRuleList.querySelector('input[name="builder-preview-target"]:checked')?.closest(".target-rule-card");
+    return readBuilderTargetRule(selected || builderTargetCards()[0]);
+  }
+
   function populateBuilderSelects() {
     replaceSelectPreserving(builderPlan, rateData.ratePlans, "base rate plan", (plan) => `${plan.code} · ${plan.name} · ${plan.currency}`);
-    replaceSelectPreserving(builderUnitType, inventoryData.unitTypes, "room type", (item) => `${item.code} · ${item.name}`);
-    replaceSelectPreserving(builderSellable, inventoryData.sellableUnits, "sellable unit", (item) => `${item.unitTypeCode} · ${item.name}`);
+    populateBuilderTargetRuleSelects();
     replaceSelectPreserving(builderQuoteSellable, inventoryData.sellableUnits, "sellable unit", (item) => `${item.unitTypeCode} · ${item.name}`);
     populatePolicySelect(builderCancellationPolicy, "cancellation", "Cancellation");
     populatePolicySelect(builderDepositPolicy, "deposit", "Deposit");
     populatePolicySelect(builderGuaranteePolicy, "guarantee", "Guarantee");
     populatePolicySelect(builderNoShowPolicy, "no_show", "No-show");
-  }
-
-  function builderCommercial() {
-    const mappings = [
-      ["companyPartyId", builderCompany, null],
-      ["marketGroupCode", builderMarketGroup, "upper"],
-      ["marketCode", builderMarket, "upper"],
-      ["sourcePartyId", builderSourceParty, null],
-      ["sourceCode", builderSource, "upper"],
-      ["channelCode", builderChannel, "lower"],
-      ["segmentCode", builderSegment, "upper"],
-      ["agentPartyId", builderAgent, null],
-      ["campaignCode", builderCampaign, "upper"],
-    ];
-    return Object.fromEntries(mappings.flatMap(([key, input, transform]) => {
-      let value = trimmed(input);
-      if (!value) return [];
-      if (transform === "upper") value = value.toUpperCase();
-      if (transform === "lower") value = value.toLowerCase();
-      return [[key, value]];
-    }));
-  }
-
-  function builderPhysical() {
-    if (builderPhysicalKind.value === "class") {
-      const classCode = trimmed(builderClassCode).toUpperCase();
-      if (!classCode) throw new Error("Class scope requires a hotel-defined class code.");
-      if (inventoryData.unitTypes.length === 0) throw new Error("Class scope requires at least one room type.");
-      return { kind: "class", classCode, unitTypeIds: inventoryData.unitTypes.map(({ id }) => id) };
-    }
-    if (builderPhysicalKind.value === "unit_type") {
-      if (!builderUnitType.value) throw new Error("Choose a room type for this scope.");
-      return { kind: "unit_type", unitTypeId: builderUnitType.value };
-    }
-    if (builderPhysicalKind.value === "sellable") {
-      if (!builderSellable.value) throw new Error("Choose an exact sellable unit for this scope.");
-      return { kind: "sellable", sellableUnitId: builderSellable.value };
-    }
-    return { kind: "property" };
   }
 
   function builderGate() {
@@ -1030,7 +1227,9 @@
   function buildGuidedCommand() {
     const plan = rateData.ratePlans.find(({ id }) => id === builderPlan.value);
     if (!plan) throw new Error("Choose a base rate plan first.");
-    const targetKey = trimmed(builderTargetKey) || "property-default";
+    const targetRules = readBuilderTargetRules();
+    const includedTargetKeys = targetRules.filter(({ effect }) => effect === "include").map(({ key }) => key);
+    const primaryTargetKey = includedTargetKeys[0] || targetRules[0].key;
     const modelKey = builderSelectedModel;
     const evaluatorKey = modelKey === "package" ? "simple-fixed" : modelKey;
     const ruleModels = new Set(["bar-ladder", "derived", "room-matrix", "occupancy-los", "contract-negotiated", "expert-composition"]);
@@ -1061,27 +1260,20 @@
     };
     const maxAdults = integerValue(builderMaxAdults, 4);
     const maxChildren = integerValue(builderMaxChildren, 3);
-    const targetRule = {
-      key: targetKey,
-      effect: builderTargetEffect.value,
-      priority: integerValue(builderTargetPriority, 0),
-      physical: builderPhysical(),
-      commercial: builderCommercial(),
-    };
     return {
       authoringMode: "guided",
       ratePlanId: plan.id,
       model: { key: modelKey, version: 1, componentModelKeys },
-      target: { rules: [targetRule] },
+      target: { rules: targetRules },
       evaluator: {
         modelKey: evaluatorKey,
         currency: plan.currency,
         base,
         gate: builderGate(),
-        rules: ruleModels.has(modelKey) ? [builderRule(modelKey, targetKey)] : [],
+        rules: ruleModels.has(modelKey) ? [builderRule(modelKey, primaryTargetKey)] : [],
         floorMinor: trimmed(builderFloor) || null,
         ceilingMinor: trimmed(builderCeiling) || null,
-        eligibleTargetRuleKeys: modelKey === "contract-negotiated" || modelKey === "expert-composition" ? [targetKey] : [],
+        eligibleTargetRuleKeys: modelKey === "contract-negotiated" || modelKey === "expert-composition" ? includedTargetKeys : [],
       },
       composition: {
         currency: plan.currency,
@@ -1188,6 +1380,8 @@
     builderSimulationOutput.textContent = releaseId
       ? "Draft selected. Run a fresh server preview before requesting approval."
       : "No draft selected. Save a governed draft to begin the review workflow.";
+    builderSimulationCells.replaceChildren();
+    emptyList(builderSimulationCells, "Run a server preview to inspect each bounded date cell.");
     renderRateReleaseHistory();
   }
 
@@ -1262,16 +1456,26 @@
   }
 
   function buildPreviewCells() {
-    const sellableId = builderSellable.value || builderQuoteSellable.value || inventoryData.sellableUnits[0]?.id;
+    const previewRule = previewBuilderTargetRule();
+    const physical = previewRule.physical;
+    const physicalUnitTypeId = physical.kind === "unit_type" ? physical.unitTypeId
+      : physical.kind === "class" ? physical.unitTypeIds[0]
+        : null;
+    const sellableId = physical.kind === "sellable" ? physical.sellableUnitId
+      : physicalUnitTypeId ? inventoryData.sellableUnits.find(({ unitTypeId }) => unitTypeId === physicalUnitTypeId)?.id
+        : builderQuoteSellable.value || inventoryData.sellableUnits[0]?.id;
     const sellable = inventoryData.sellableUnits.find(({ id }) => id === sellableId);
     if (!sellable) throw new Error("A sellable room is required for the server preview.");
-    const unitTypeId = sellable.unitTypeId || builderUnitType.value || inventoryData.unitTypes[0]?.id;
+    const unitTypeId = sellable.unitTypeId || physicalUnitTypeId || inventoryData.unitTypes[0]?.id;
     if (!unitTypeId) throw new Error("A room type is required for the server preview.");
     const timeZone = propertyTimeZone();
     if (!builderBookingInstant) builderBookingInstant = new Date().toISOString();
-    const commercial = builderCommercial();
+    const commercial = previewRule.commercial;
     const promotionCode = trimmed(builderPromotionCode).toUpperCase();
-    const channelCode = trimmed(builderChannel).toLowerCase() || "direct";
+    const channelCode = commercial.channelCode || "direct";
+    if (channelCode !== "direct") {
+      throw new Error("Non-direct channel previews require governed channel-mapping evidence. Use a direct preview context until that evidence is configured.");
+    }
     const occupancyPercent = trimmed(builderOccupancy) ? integerValue(builderOccupancy, 0) : null;
     return builderPreviewCellDates().map((nightDate, index) => ({
       key: `cell-${nightDate}-${index + 1}`,
@@ -1313,7 +1517,13 @@
   }
 
   async function saveBuilderDraft() {
-    const command = builderCommand();
+    let command;
+    try {
+      command = builderCommand();
+    } catch (error) {
+      setBuilderMessage(error instanceof Error ? error.message : "Rate choices are incomplete.", true);
+      return;
+    }
     const route = `/api/v1/properties/${encodeURIComponent(propertySelect.value)}/rate-builder/${encodeURIComponent(builderPlan.value)}/releases`;
     const pending = builderWriteKey("rate-builder-draft", command);
     builderSaveDraft.disabled = true;
@@ -1335,6 +1545,47 @@
     }
   }
 
+  function renderSimulationCells(cells) {
+    if (!Array.isArray(cells) || cells.length === 0) {
+      emptyList(builderSimulationCells, "The server returned no preview cells.");
+      return;
+    }
+    const cards = cells.map((cell) => {
+      const card = document.createElement("article");
+      card.className = "simulation-cell-card";
+      card.dataset.state = cell.result.state;
+      const heading = document.createElement("div");
+      heading.className = "simulation-cell-heading";
+      const title = document.createElement("strong");
+      title.textContent = `${cell.evaluationContext.nightDate} · ${cell.key}`;
+      const badge = document.createElement("span");
+      badge.className = "simulation-cell-state";
+      badge.textContent = cell.result.state;
+      heading.append(title, badge);
+
+      const evidence = document.createElement("dl");
+      evidence.className = "simulation-cell-evidence";
+      const rows = [
+        ["Target", cell.targetResolution.state],
+        ["Winner", cell.targetResolution.winningRuleKey || "None"],
+        ["Matched", cell.targetResolution.matchedRuleKeys.length ? cell.targetResolution.matchedRuleKeys.join(", ") : "None"],
+        ["Conflicts", cell.targetResolution.conflictingRuleKeys.length ? cell.targetResolution.conflictingRuleKeys.join(", ") : "None"],
+        ["Pre-tax subtotal", cell.result.preTaxSubtotalMinor === null ? "Not quoted" : `${cell.result.currency} ${cell.result.preTaxSubtotalMinor} minor units`],
+        ["Evidence", cell.result.reason || `${cell.result.workUnits} server work units`],
+      ];
+      for (const [term, description] of rows) {
+        const dt = document.createElement("dt");
+        dt.textContent = term;
+        const dd = document.createElement("dd");
+        dd.textContent = String(description);
+        evidence.append(dt, dd);
+      }
+      card.append(heading, evidence);
+      return card;
+    });
+    builderSimulationCells.replaceChildren(...cards);
+  }
+
   function renderSimulation(simulation) {
     const summary = document.createElement("div");
     summary.className = simulation.conflictCount > 0 ? "simulation-alert error" : "simulation-alert success";
@@ -1348,6 +1599,7 @@
     note.textContent = "Draft preview is pre-tax evidence. Published live quote below resolves current tax, policy, restriction and inventory truth.";
     summary.append(title, detail, hashes, note);
     builderSimulationOutput.replaceChildren(summary);
+    renderSimulationCells(simulation.cells);
   }
 
   async function runBuilderPreview() {
@@ -1369,6 +1621,7 @@
     } catch (error) {
       builderPreviewCells = [];
       builderSimulation = null;
+      emptyList(builderSimulationCells, "Preview failed; no server-derived cells are available.");
       builderRequestApproval.disabled = true;
       builderPublish.disabled = true;
       setBuilderMessage(error instanceof Error ? error.message : "Rate preview failed", true);
@@ -1457,6 +1710,7 @@
     builderLiveQuote.disabled = true;
     builderQuoteResult.textContent = "Resolving the active release against live tax, policy, restriction and inventory truth…";
     try {
+      const previewRule = previewBuilderTargetRule();
       const promotionCode = trimmed(builderPromotionCode).toUpperCase();
       const body = await request(`/api/v1/properties/${encodeURIComponent(propertySelect.value)}/rate-builder/${encodeURIComponent(builderPlan.value)}/quotes:resolve`, {
         method: "POST",
@@ -1466,8 +1720,8 @@
           stayEnd: localDateTimeInProperty(builderQuoteEnd),
           guests: { adults: integerValue(builderMinAdults, 1), childAges: [] },
           selectedPromotionCodes: promotionCode ? [promotionCode] : [],
-          commercial: builderCommercial(),
-          channelCode: trimmed(builderChannel).toLowerCase() || "direct",
+          commercial: previewRule.commercial,
+          channelCode: previewRule.commercial.channelCode || "direct",
         }),
       });
       builderQuoteResult.textContent = JSON.stringify(body.quote, null, 2);
@@ -2514,7 +2768,51 @@
     builderSelectedModel = input.value;
     updateBuilderModelFields();
   });
-  builderPhysicalKind.addEventListener("change", updateBuilderPhysicalFields);
+  builderAddTargetRule.addEventListener("click", () => {
+    if (builderTargetCards().length >= 200) return setBuilderMessage("A target draft can contain at most 200 rules.", true);
+    const card = createBuilderTargetRuleCard();
+    card.open = true;
+    targetField(card, "key").focus();
+    renderBuilderCommand();
+  });
+  builderTargetRuleList.addEventListener("click", (event) => {
+    const button = event.target.closest("[data-target-action]");
+    if (!button) return;
+    const card = button.closest(".target-rule-card");
+    if (button.dataset.targetAction === "remove") {
+      if (builderTargetCards().length === 1) return setBuilderMessage("At least one applicability rule is required.", true);
+      const usedForPreview = card.querySelector('input[name="builder-preview-target"]').checked;
+      card.remove();
+      if (usedForPreview) builderTargetRuleList.querySelector('input[name="builder-preview-target"]')?.click();
+      renderBuilderTargetRules();
+      renderBuilderCommand();
+      return;
+    }
+    if (button.dataset.targetAction === "duplicate") {
+      try {
+        const duplicate = readBuilderTargetRule(card);
+        const suffix = `-copy-${builderTargetRuleSequence + 1}`;
+        duplicate.key = `${duplicate.key.slice(0, 64 - suffix.length)}${suffix}`;
+        const copy = createBuilderTargetRuleCard(duplicate);
+        copy.open = true;
+        targetField(copy, "key").focus();
+        renderBuilderCommand();
+      } catch (error) {
+        setBuilderMessage(error instanceof Error ? error.message : "Complete this rule before duplicating it.", true);
+      }
+    }
+  });
+  builderTargetRuleList.addEventListener("change", (event) => {
+    const card = event.target.closest(".target-rule-card");
+    if (!card) return;
+    if (event.target.dataset.targetField === "physicalKind") updateBuilderTargetPhysicalFields(card);
+    renderBuilderTargetRules();
+    renderBuilderCommand();
+  });
+  builderTargetRuleList.addEventListener("input", (event) => {
+    const card = event.target.closest(".target-rule-card");
+    if (card) renderBuilderTargetRuleSummary(card);
+  });
   for (const button of builderSteps) button.addEventListener("click", () => setBuilderStep(Number(button.dataset.builderStep)));
   builderPrevious.addEventListener("click", () => setBuilderStep(builderStep - 1));
   builderNext.addEventListener("click", () => {
@@ -2549,9 +2847,9 @@
   addTier(createTierList, 2, "");
   updateRestrictionFields();
   updatePolicyFields();
+  createBuilderTargetRuleCard({ key: "property-default", effect: "include", priority: 0, physical: { kind: "property" }, commercial: {} });
   setBuilderStep(1);
   setBuilderMode("guided", false);
-  updateBuilderPhysicalFields();
   const initialView = location.pathname.endsWith("/inventory") ? "inventory" :
     location.pathname.endsWith("/operations") ? "operations" :
     location.pathname.endsWith("/restrictions") ? "restrictions" :

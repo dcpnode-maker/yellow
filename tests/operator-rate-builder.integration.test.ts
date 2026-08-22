@@ -39,6 +39,7 @@ const PLANS = Object.freeze({
   main: "00000000-0000-0000-0000-000000007101",
   conflicts: "00000000-0000-0000-0000-000000007102",
   rollback: "00000000-0000-0000-0000-000000007103",
+  targeting: "00000000-0000-0000-0000-000000007104",
 });
 const FULL_SCOPES = Object.freeze([
   "inventory.availability:read", "inventory.blocks:read", "inventory.blocks:write",
@@ -261,7 +262,8 @@ beforeAll(async () => {
     VALUES
       (${PLANS.main}::uuid, ${SEED_TENANT.id}::uuid, ${SEED_PROPERTY.id}::uuid, 'O71-MAIN', 'Order 071 Main', 'USD', 'active', ${POLICY.cancellation}::uuid, ${POLICY.guarantee}::uuid, ${POLICY.deposit}::uuid),
       (${PLANS.conflicts}::uuid, ${SEED_TENANT.id}::uuid, ${SEED_PROPERTY.id}::uuid, 'O71-CONFLICT', 'Order 071 Conflict', 'USD', 'active', ${POLICY.cancellation}::uuid, ${POLICY.guarantee}::uuid, ${POLICY.deposit}::uuid),
-      (${PLANS.rollback}::uuid, ${SEED_TENANT.id}::uuid, ${SEED_PROPERTY.id}::uuid, 'O71-ROLLBACK', 'Order 071 Rollback', 'USD', 'active', ${POLICY.cancellation}::uuid, ${POLICY.guarantee}::uuid, ${POLICY.deposit}::uuid)
+      (${PLANS.rollback}::uuid, ${SEED_TENANT.id}::uuid, ${SEED_PROPERTY.id}::uuid, 'O71-ROLLBACK', 'Order 071 Rollback', 'USD', 'active', ${POLICY.cancellation}::uuid, ${POLICY.guarantee}::uuid, ${POLICY.deposit}::uuid),
+      (${PLANS.targeting}::uuid, ${SEED_TENANT.id}::uuid, ${SEED_PROPERTY.id}::uuid, 'O73-TARGET', 'Order 073 Targeting', 'USD', 'active', ${POLICY.cancellation}::uuid, ${POLICY.guarantee}::uuid, ${POLICY.deposit}::uuid)
   `;
   await admin`
     INSERT INTO tax_assignment (tenant_id, property_node, jurisdiction_key, effective)
@@ -362,6 +364,45 @@ databaseDescribe("Order 071 operator universal rate builder", () => {
       body: JSON.stringify({ previewCells: cells() }),
     });
     expect(approval.status).toBe(409);
+  });
+
+  test("Order 073: one draft preserves broad inheritance, a commercial include and an exact-room exclusion", async () => {
+    const drafted = await postDraft(PLANS.targeting, command(PLANS.targeting, [
+      { key: "property-default", effect: "include", priority: 0, physical: { kind: "property" }, commercial: {} },
+      { key: "business-room", effect: "include", priority: 10,
+        physical: { kind: "unit_type", unitTypeId }, commercial: { marketCode: "BUSINESS" } },
+      { key: "direct-stop", effect: "exclude", priority: 20,
+        physical: { kind: "sellable", sellableUnitId }, commercial: { channelCode: "direct" } },
+    ]), "order073-target-draft");
+    expect(drafted.status).toBe(201);
+    const releaseId = String(((await drafted.json() as Record<string, unknown>).release as Record<string, unknown>).id);
+    const base = previewCell("business-room-cell");
+    const previewCells = [
+      { ...base, targetContext: { unitTypeId, sellableUnitId, commercial: { marketCode: "BUSINESS" } } },
+      { ...base, key: "direct-stop-cell",
+        targetContext: { unitTypeId, sellableUnitId, commercial: { marketCode: "BUSINESS", channelCode: "direct" } } },
+    ];
+    const preview = await request(builderPath(PLANS.targeting, `/releases/${releaseId}/simulate`), {
+      method: "POST", headers: headers(), body: JSON.stringify({ previewCells }),
+    });
+    expect(preview.status).toBe(200);
+    const body = await preview.json() as { simulation: { cells: Array<{
+      key: string;
+      targetResolution: { state: string; winningRuleKey: string | null; matchedRuleKeys: string[] };
+      result: { state: string; preTaxSubtotalMinor: string | null };
+    }> } };
+    expect(body.simulation.cells[0]).toMatchObject({
+      key: "business-room-cell",
+      targetResolution: { state: "included", winningRuleKey: "business-room",
+        matchedRuleKeys: ["business-room", "property-default"] },
+      result: { state: "quoted", preTaxSubtotalMinor: "12500" },
+    });
+    expect(body.simulation.cells[1]).toMatchObject({
+      key: "direct-stop-cell",
+      targetResolution: { state: "excluded", winningRuleKey: "direct-stop",
+        matchedRuleKeys: ["direct-stop", "business-room", "property-default"] },
+      result: { state: "unpriced", preTaxSubtotalMinor: null },
+    });
   });
 
   test("P4: four-eyes approval publishes once, quote shows tax truth, and undo creates history", async () => {

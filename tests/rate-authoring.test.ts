@@ -246,8 +246,7 @@ describe("Order 071 canonical rate authoring", () => {
       expect(html).toContain(step);
     }
     for (const control of [
-      "builder-company", "builder-market-group", "builder-market", "builder-source", "builder-channel",
-      "builder-segment", "builder-agent", "builder-campaign", "builder-stay-start", "builder-stay-end",
+      "builder-target-rule-list", "builder-add-target-rule", "builder-stay-start", "builder-stay-end",
       "builder-booking-window", "builder-los", "builder-occupancy", "builder-no-show-policy",
       "builder-refund-treatment", "builder-package-code", "builder-promotion-code", "builder-distribution-mode",
     ]) {
@@ -257,6 +256,10 @@ describe("Order 071 canonical rate authoring", () => {
     expect(html).toContain("Minimum / maximum stay");
     expect(html).toContain("The requester cannot approve their own rate");
     expect(script).toContain("buildGuidedCommand");
+    for (const dimension of [
+      "companyPartyId", "marketGroupCode", "marketCode", "sourcePartyId", "sourceCode",
+      "channelCode", "segmentCode", "agentPartyId", "campaignCode",
+    ]) expect(script).toContain(dimension);
     expect(script).toContain("Run a fresh server preview");
     expect(script).not.toMatch(/localStorage|sessionStorage|document\.cookie|console\.(?:log|debug|info)/);
     expect(css).toContain("@media (max-width: 560px)");
@@ -297,6 +300,29 @@ describe("Order 072 secure AI-assisted authoring surface", () => {
 });
 
 describe("Order 073 applicability-rule and bulk-preview workbench", () => {
+  test("multiple explicit include/exclude rules compile without weakening exact target semantics", () => {
+    const command = minimumFixedCommand("guided");
+    command.target.rules = [
+      { key: "property-default", effect: "include", priority: 0, physical: { kind: "property" }, commercial: {} },
+      { key: "business-room", effect: "include", priority: 10,
+        physical: { kind: "unit_type", unitTypeId: PLAN }, commercial: { marketCode: "BUSINESS" } },
+      { key: "opaque-stop", effect: "exclude", priority: 20,
+        physical: { kind: "sellable", sellableUnitId: REFERENCE }, commercial: { channelCode: "opaque" } },
+    ];
+    const compiled = compileRateAuthoringCommand(command);
+    expect(compiled.target.rules.map(({ key, effect }) => ({ key, effect }))).toEqual([
+      { key: "business-room", effect: "include" },
+      { key: "opaque-stop", effect: "exclude" },
+      { key: "property-default", effect: "include" },
+    ]);
+    const duplicate = structuredClone(command);
+    duplicate.target.rules[1]!.key = "property-default";
+    expect(() => compileRateAuthoringCommand(duplicate)).toThrow("target rule keys must be unique");
+    const invalid = structuredClone(command);
+    invalid.target.rules[0]!.priority = 1001;
+    expect(() => compileRateAuthoringCommand(invalid)).toThrow("priority must be an integer from 0 to 1000");
+  });
+
   test("P0: the workbench exposes the absent multi-rule editor and server-cell evidence renderer", async () => {
     const [html, script] = await Promise.all([
       Bun.file(new URL("../src/http/operator/index.html", import.meta.url)).text(),
@@ -307,5 +333,15 @@ describe("Order 073 applicability-rule and bulk-preview workbench", () => {
     expect(html).toContain('id="builder-simulation-cells"');
     expect(script).toContain("renderBuilderTargetRules");
     expect(script).toContain("renderSimulationCells");
+    expect(script).toContain("cell.targetResolution.winningRuleKey");
+    for (const physical of ["property", "class", "unit_type", "sellable"]) expect(script).toContain(`[\"${physical}\"`);
+    for (const action of ["duplicate", "remove"]) expect(script).toContain(`\"${action}\"`);
+    expect(script).toContain("rules.length > 200");
+    expect(script).toContain("priority < 0 || priority > 1000");
+    expect(script).toContain("Non-direct channel previews require governed channel-mapping evidence");
+    expect(script).not.toContain("resolveRateTargetRules");
+    expect(script).not.toMatch(/localStorage|sessionStorage|document\.cookie|innerHTML/);
+    const saveOnly = script.slice(script.indexOf("async function saveBuilderDraft"), script.indexOf("function renderSimulationCells"));
+    expect(saveOnly.indexOf("command = builderCommand()")).toBeLessThan(saveOnly.indexOf("request(route"));
   });
 });

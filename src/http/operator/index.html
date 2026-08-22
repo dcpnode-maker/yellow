@@ -544,34 +544,17 @@
             </div>
 
             <div class="builder-stage" data-builder-panel="3" hidden>
-              <div class="builder-stage-heading"><p class="step">Step 3</p><h4>Choose who gets this rate</h4><p>Leave a dimension blank for broad eligibility. Add exact commercial dimensions when the rate is negotiated, channel-specific or campaign-specific.</p></div>
-              <div class="builder-form-grid three-up">
-                <label>Company party id<input id="builder-company" placeholder="Optional UUID"></label>
-                <label>Market group code<input id="builder-market-group" placeholder="LEISURE"></label>
-                <label>Market code<input id="builder-market" placeholder="RETAIL"></label>
-                <label>Source party id<input id="builder-source-party" placeholder="Optional UUID"></label>
-                <label>Source code<input id="builder-source" placeholder="WEB"></label>
-                <label>Channel code<input id="builder-channel" placeholder="direct"></label>
-                <label>Segment code<input id="builder-segment" placeholder="TRANSIENT"></label>
-                <label>Agent party id<input id="builder-agent" placeholder="Optional UUID"></label>
-                <label>Campaign code<input id="builder-campaign" placeholder="SUMMER26"></label>
+              <div class="builder-stage-heading"><p class="step">Step 3</p><h4>Choose who gets this rate</h4><p>Start with a broad property rule, then add exact class, room-type, sellable or commercial exceptions. Every rule stays visible in the canonical release.</p></div>
+              <div class="target-rule-toolbar">
+                <div><strong>Applicability rules</strong><span id="builder-target-rule-count">1 of 200</span></div>
+                <button class="secondary compact" id="builder-add-target-rule" type="button">Add applicability rule</button>
               </div>
-              <p class="precedence-note"><strong>Deterministic precedence:</strong> exact sellable beats room type, room type beats class, and class beats property. Equal top-ranked rules block publication instead of choosing silently.</p>
+              <div class="target-rule-list" id="builder-target-rule-list" aria-live="polite"></div>
+              <p class="precedence-note"><strong>Deterministic inheritance:</strong> exact sellable beats room type, room type beats class, and class beats property; more commercial dimensions then higher explicit priority win. Equal top-ranked rules block publication instead of choosing silently.</p>
             </div>
 
             <div class="builder-stage" data-builder-panel="4" hidden>
               <div class="builder-stage-heading"><p class="step">Step 4</p><h4>Define where and when it applies</h4><p>Physical scope, stay dates, booking window, LOS, occupancy, guest bounds, policies, packages, promotions and distribution remain explicit.</p></div>
-              <div class="builder-form-grid four-up">
-                <label>Physical scope<select id="builder-physical-kind"><option value="property">Whole property</option><option value="class">Hotel-defined class</option><option value="unit_type">Room type</option><option value="sellable">Exact room / sellable</option></select></label>
-                <label>Effect<select id="builder-target-effect"><option value="include">Include</option><option value="exclude">Exclude exception</option></select></label>
-                <label>Rule priority<input id="builder-target-priority" type="number" min="0" max="1000" value="0"></label>
-                <label>Rule key<input id="builder-target-key" value="property-default" pattern="[a-z0-9][a-z0-9._-]*"></label>
-              </div>
-              <div class="builder-form-grid three-up">
-                <label id="builder-class-field" hidden>Class code<input id="builder-class-code" placeholder="PREMIUM"></label>
-                <label id="builder-unit-type-field" hidden>Room type<select id="builder-unit-type"></select></label>
-                <label id="builder-sellable-field" hidden>Exact sellable<select id="builder-sellable"></select></label>
-              </div>
               <fieldset class="progressive-fields weekday-fields builder-weekdays"><legend>Days of week</legend>
                 <label><input type="checkbox" name="builder-weekday" value="1" checked> Mon</label><label><input type="checkbox" name="builder-weekday" value="2" checked> Tue</label><label><input type="checkbox" name="builder-weekday" value="4" checked> Wed</label><label><input type="checkbox" name="builder-weekday" value="8" checked> Thu</label><label><input type="checkbox" name="builder-weekday" value="16" checked> Fri</label><label><input type="checkbox" name="builder-weekday" value="32" checked> Sat</label><label><input type="checkbox" name="builder-weekday" value="64" checked> Sun</label>
               </fieldset>
@@ -624,6 +607,10 @@
                 </div>
               </div>
               <div class="simulation-summary" id="builder-simulation" aria-live="polite">No server preview has run.</div>
+              <section class="simulation-cell-panel" aria-labelledby="builder-simulation-cells-title">
+                <div class="section-heading compact-heading"><div><h5 id="builder-simulation-cells-title">Server preview cells</h5><p class="muted">Winning, matched and conflicting rules come from the server—not this browser.</p></div></div>
+                <div class="simulation-cell-list" id="builder-simulation-cells"><p class="muted">Run a server preview to inspect each bounded date cell.</p></div>
+              </section>
               <div class="release-history"><div class="section-heading compact-heading"><div><h5>Immutable release history</h5><p class="muted">Undo creates a new draft; it never rewrites an old version.</p></div><button class="quiet compact" id="builder-refresh-history" type="button">Refresh</button></div><div id="builder-release-history"></div></div>
               <div class="live-quote-panel card-inset"><h5>Published live quote evidence</h5><div class="builder-form-grid three-up"><label>Sellable<select id="builder-quote-sellable"></select></label><label>Stay start<input id="builder-quote-start" type="datetime-local"></label><label>Stay end<input id="builder-quote-end" type="datetime-local"></label></div><button class="secondary" id="builder-live-quote" type="button">Resolve live quote</button><pre id="builder-quote-result">Publish a release, then resolve a live tenant-scoped quote to see tax, policy, restriction and availability evidence.</pre></div>
             </div>
