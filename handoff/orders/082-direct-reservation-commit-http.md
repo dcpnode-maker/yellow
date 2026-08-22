@@ -203,3 +203,7 @@ reseed/restart. Refresh Graphify code-only and record parser/semantic limitation
   communities, with zero missing, dangling, duplicate or collapsed edges and ten inherited
   self-loops. It skipped 397 non-code files and semantic labeling; the useful HTTP → reservation →
   inventory-claim query was saved and reflected only as derived memory.
+- Only the persistent `yellow-phase-1` app container was rebuilt from the Order-082 tree. The
+  PostgreSQL container id and start time were identical before/after, no seed ran, health returned
+  200, and authenticated status reported Order 082 / Phase 4 / reviewed-through 044 / debt 38 with
+  app and database operational and both workers configured.
