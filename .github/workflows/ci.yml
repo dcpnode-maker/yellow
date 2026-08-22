@@ -306,6 +306,12 @@ jobs:
             echo "YELLOW_SEED_TEST_ADMIN_URL=postgres://yellow:yellow@${postgres_address}/postgres"
           } >> "$GITHUB_ENV"
 
+      - name: Execute isolated Phase 3 database proofs
+        env:
+          YELLOW_PHASE3_GATE_ADMIN_URL: ${{ env.ADMIN_URL }}
+          YELLOW_PHASE3_GATE_PASSWORD: Order079-CI-Proof-Only!
+        run: bun run test:phase3-gate
+
       - name: Run migration integration suite
         run: bun run test:db:migrate
 

@@ -137,6 +137,19 @@ describe("Order 079 reproducible Phase-3 proof runner", () => {
     expect(events.some((event) => event.includes(PHASE_3_DATABASE_PROOFS[2]!.testFile))).toBeFalse();
   });
 
+  test("P1: a migration failure is labelled and cleaned before any suite assertion runs", async () => {
+    const failedFile = PHASE_3_DATABASE_PROOFS[0]!.testFile;
+    const { events, harness } = fakeHarness((process) => process.kind === "migrate" ? 9 : 0);
+
+    await expect(runPhase3Gate({ adminUrl: ADMIN_URL, password: PASSWORD, harness })).rejects.toThrow(
+      `${failedFile} failed with exit code 9 during migrate`,
+    );
+    expect(events).toHaveLength(3);
+    expect(events[1]).toContain(`run:migrate ${failedFile}`);
+    expect(events[2]).toBe(`drop:${ADMIN_URL}:${PHASE_3_DATABASE_PROOFS[0]!.databaseName}`);
+    expect(events.some((event) => event.startsWith(`run:${failedFile}:bun test`))).toBeFalse();
+  });
+
   test("P1/P3: package and CI use one exact command in the database job", async () => {
     const packageJson = await Bun.file(new URL("../package.json", import.meta.url)).json();
     const workflow = await Bun.file(new URL("../.github/workflows/ci.yml", import.meta.url)).text();

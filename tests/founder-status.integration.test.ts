@@ -9,8 +9,8 @@ import { Database, PostgresIdempotency } from "../src/kernel";
 import { PROJECT_BUILD_SNAPSHOT, type OperatorRuntimeStatus } from "../src/project-status";
 import { APPROVED_REVIEW_FILES, INDEPENDENTLY_REVIEWED_THROUGH_ORDER } from "../src/generated/review-coverage";
 import { deriveIndependentReviewCoverage } from "../scripts/derive-review-coverage";
-import { REVIEW_EMAIL } from "../scripts/seed-review";
-import { SEED_PROPERTY, SEED_TENANT } from "../scripts/seed";
+import { REVIEW_EMAIL, runReviewSeed } from "../scripts/seed-review";
+import { runSeed, SEED_PROPERTY, SEED_TENANT } from "../scripts/seed";
 
 const DATABASE_URL = process.env.YELLOW_FOUNDER_STATUS_URL;
 const REQUIRE_DATABASE = process.env.YELLOW_REQUIRE_FOUNDER_STATUS === "1";
@@ -119,6 +119,13 @@ describe("Order 064 recorded build snapshot", () => {
 
 beforeAll(async () => {
   if (!DATABASE_URL) return;
+  await runSeed({ databaseUrl: DATABASE_URL, logger: () => undefined });
+  await runReviewSeed({
+    databaseUrl: DATABASE_URL,
+    password: PASSWORD,
+    approverPassword: `${PASSWORD}-approver`,
+    logger: () => undefined,
+  });
   loginPool = new SQL(DATABASE_URL, { max: 4 });
   database = Database.connect(DATABASE_URL, { maxConnections: 8 });
   tokens = new Hs256TokenSigner(SECRET);
