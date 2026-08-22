@@ -7,6 +7,7 @@
   let inventoryData = { unitTypes: [], spaces: [], sellableUnits: [] };
   let restrictionsData = [];
   let rateData = { policies: [], ratePlans: [] };
+  let operationalBlocksData = [];
   let currentRatePrice = null;
   let pricingRowSequence = 0;
   const pendingKeys = new Map();
@@ -28,6 +29,7 @@
   const inventoryView = document.querySelector("#inventory-view");
   const restrictionsView = document.querySelector("#restrictions-view");
   const ratesView = document.querySelector("#rates-view");
+  const operationsView = document.querySelector("#operations-view");
   const navigation = document.querySelectorAll(".domain-tab");
   const refreshInventory = document.querySelector("#refresh-inventory");
   const inventoryStatus = document.querySelector("#inventory-status");
@@ -92,6 +94,13 @@
   const correctionExtraAdult = document.querySelector("#correction-extra-adult");
   const correctionChildList = document.querySelector("#correction-child-list");
   const addCorrectionChild = document.querySelector("#add-correction-child");
+  const refreshOperationalBlocks = document.querySelector("#refresh-operational-blocks");
+  const operationalBlockStatus = document.querySelector("#operational-block-status");
+  const operationalBlockCount = document.querySelector("#operational-block-count");
+  const activeBlockList = document.querySelector("#active-block-list");
+  const operationalBlockForm = document.querySelector("#operational-block-form");
+  const operationalBlockSpace = document.querySelector("#operational-block-space");
+  const operationalBlockKind = document.querySelector("#operational-block-kind");
   const MAX_MINOR = BigInt("9223372036854775807");
 
   function applyTheme(theme) {
@@ -116,6 +125,8 @@
     ratePriceForm.elements.stayStart.value = localInputValue(from).slice(0, 10);
     ratePriceForm.elements.stayEnd.value = localInputValue(to).slice(0, 10);
     currentPriceForm.elements.stayDate.value = localInputValue(from).slice(0, 10);
+    operationalBlockForm.elements.from.value = localInputValue(from);
+    operationalBlockForm.elements.to.value = localInputValue(to);
   }
 
   async function request(path, options = {}) {
@@ -147,6 +158,7 @@
     inventoryData = { unitTypes: [], spaces: [], sellableUnits: [] };
     restrictionsData = [];
     rateData = { policies: [], ratePlans: [] };
+    operationalBlocksData = [];
     currentRatePrice = null;
     loadPriceCorrectionButton.hidden = true;
     rateCorrectionForm.hidden = true;
@@ -173,7 +185,7 @@
       propertySelect.disabled = true;
     } else {
       propertySelect.disabled = false;
-      const pathProperty = location.pathname.match(/^\/p\/([0-9a-f-]+)\/(?:availability|inventory|restrictions|rates)$/)?.[1];
+      const pathProperty = location.pathname.match(/^\/p\/([0-9a-f-]+)\/(?:availability|inventory|operations|restrictions|rates)$/)?.[1];
       if (pathProperty && body.properties.some(({ id }) => id === pathProperty)) propertySelect.value = pathProperty;
     }
   }
@@ -261,6 +273,74 @@
       inventoryStatus.textContent = "Inventory is current from tenant-scoped PostgreSQL.";
     } catch (error) {
       inventoryStatus.textContent = error instanceof Error ? error.message : "Inventory could not be loaded";
+    }
+  }
+
+  function renderOperationalBlocks() {
+    operationalBlockCount.textContent = String(operationalBlocksData.length);
+    activeBlockList.replaceChildren(...operationalBlocksData.map((block) => {
+      const item = document.createElement("article");
+      item.className = "restriction-item";
+      const copy = document.createElement("div");
+      const title = document.createElement("strong");
+      const space = inventoryData.spaces.find(({ id }) => id === block.spaceId);
+      title.textContent = `${block.kind === "ooo" ? "Out of order" : "Out of service"} · ${space?.code || block.spaceId}`;
+      const detail = document.createElement("span");
+      detail.textContent = `${new Date(block.from).toLocaleString()} → ${new Date(block.to).toLocaleString()} · ${block.reason}`;
+      copy.append(title, detail);
+      const actions = document.createElement("div");
+      actions.className = "block-actions";
+      const badge = document.createElement("span");
+      badge.className = `mini-badge block-badge-${block.kind}`;
+      badge.textContent = block.kind.toUpperCase();
+      const close = document.createElement("button");
+      close.type = "button";
+      close.className = "quiet";
+      close.textContent = "Close cause";
+      close.setAttribute("aria-label", `Close ${block.kind.toUpperCase()} cause for space ${space?.code || block.spaceId}`);
+      close.addEventListener("click", () => void closeOperationalBlock(block, close));
+      actions.append(badge, close);
+      item.append(copy, actions);
+      return item;
+    }));
+    if (operationalBlocksData.length === 0) emptyList(activeBlockList, "No active operational causes.");
+    populateSelect(operationalBlockSpace, inventoryData.spaces, "active physical space", (item) => `Space ${item.code}`);
+  }
+
+  async function loadOperationalBlocks() {
+    const property = propertySelect.value;
+    if (!property) return;
+    operationalBlockStatus.textContent = "Loading active operational causes…";
+    try {
+      const [blocks, inventory] = await Promise.all([
+        request(`/api/v1/properties/${encodeURIComponent(property)}/operational-blocks`),
+        request(`/api/v1/properties/${encodeURIComponent(property)}/inventory`),
+      ]);
+      operationalBlocksData = blocks.operationalBlocks;
+      inventoryData = inventory;
+      renderOperationalBlocks();
+      operationalBlockStatus.textContent = "Operational causes are current from tenant-scoped PostgreSQL.";
+    } catch (error) {
+      operationalBlockStatus.textContent = error instanceof Error ? error.message : "Operational causes could not be loaded";
+    }
+  }
+
+  async function closeOperationalBlock(block, button) {
+    const identity = `operational-block-close:${block.id}`;
+    const key = pendingKeys.get(identity) || crypto.randomUUID();
+    pendingKeys.set(identity, key);
+    button.disabled = true;
+    operationalBlockStatus.textContent = `Closing ${block.kind.toUpperCase()} cause…`;
+    try {
+      await request(`/api/v1/properties/${encodeURIComponent(propertySelect.value)}/operational-blocks/${encodeURIComponent(block.id)}/close`, {
+        method: "POST", headers: { "idempotency-key": key }, body: "{}",
+      });
+      pendingKeys.delete(identity);
+      operationalBlockStatus.textContent = "Cause closed with exact audit and event evidence.";
+      await loadOperationalBlocks();
+    } catch (error) {
+      operationalBlockStatus.textContent = error instanceof Error ? error.message : "Cause could not be closed";
+      button.disabled = false;
     }
   }
 
@@ -423,13 +503,15 @@
   }
 
   function setView(view, updateHistory = true) {
-    activeView = ["availability", "inventory", "restrictions", "rates"].includes(view) ? view : "availability";
+    activeView = ["availability", "inventory", "operations", "restrictions", "rates"].includes(view) ? view : "availability";
     availabilityView.hidden = activeView !== "availability";
     inventoryView.hidden = activeView !== "inventory";
     restrictionsView.hidden = activeView !== "restrictions";
     ratesView.hidden = activeView !== "rates";
+    operationsView.hidden = activeView !== "operations";
     workbenchTitle.textContent = activeView === "inventory" ? "Inventory setup" :
-      activeView === "restrictions" ? "Restrictions" : activeView === "rates" ? "Rates" : "Availability";
+      activeView === "operations" ? "Operations" : activeView === "restrictions" ? "Restrictions" :
+        activeView === "rates" ? "Rates" : "Availability";
     for (const tab of navigation) {
       const selected = tab.dataset.view === activeView;
       tab.classList.toggle("is-active", selected);
@@ -439,6 +521,7 @@
       history.pushState(null, "", `/p/${propertySelect.value}/${activeView}`);
     }
     if (activeView === "inventory") void loadInventory();
+    if (activeView === "operations") void loadOperationalBlocks();
     if (activeView === "restrictions") void loadRestrictions();
     if (activeView === "rates") void loadRates();
   }
@@ -787,6 +870,7 @@
   propertySelect.addEventListener("change", () => {
     if (propertySelect.value) history.replaceState(null, "", `/p/${propertySelect.value}/${activeView}`);
     if (activeView === "inventory") void loadInventory();
+    if (activeView === "operations") void loadOperationalBlocks();
     if (activeView === "restrictions") void loadRestrictions();
     if (activeView === "rates") void loadRates();
   });
@@ -794,6 +878,7 @@
   refreshInventory.addEventListener("click", () => void loadInventory());
   refreshRestrictions.addEventListener("click", () => void loadRestrictions());
   refreshRates.addEventListener("click", () => void loadRates());
+  refreshOperationalBlocks.addEventListener("click", () => void loadOperationalBlocks());
   restrictionKind.addEventListener("change", updateRestrictionFields);
   policyKind.addEventListener("change", updatePolicyFields);
   depositBasis.addEventListener("change", updateDepositFields);
@@ -850,6 +935,34 @@
     };
     const saved = await submitRestriction({ restrictions: [restriction] });
     if (saved) restrictionForm.elements.channelCode.value = "";
+  });
+  operationalBlockForm.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const fields = new FormData(operationalBlockForm);
+    const body = {
+      spaceId: fields.get("spaceId"), kind: fields.get("kind"),
+      from: new Date(String(fields.get("from"))).toISOString(),
+      to: new Date(String(fields.get("to"))).toISOString(), reason: fields.get("reason"),
+    };
+    const identity = `operational-block-open:${JSON.stringify(body)}`;
+    const key = pendingKeys.get(identity) || crypto.randomUUID();
+    pendingKeys.set(identity, key);
+    const button = operationalBlockForm.querySelector("button[type=submit]");
+    button.disabled = true;
+    formMessage(operationalBlockForm, "Opening an audited operational cause…");
+    try {
+      await request(`/api/v1/properties/${encodeURIComponent(propertySelect.value)}/operational-blocks`, {
+        method: "POST", headers: { "idempotency-key": key }, body: JSON.stringify(body),
+      });
+      pendingKeys.delete(identity);
+      operationalBlockForm.elements.reason.value = "";
+      formMessage(operationalBlockForm, "Cause opened with exact audit and event evidence.");
+      await loadOperationalBlocks();
+    } catch (error) {
+      formMessage(operationalBlockForm, error instanceof Error ? error.message : "Cause could not be opened", true);
+    } finally {
+      button.disabled = false;
+    }
   });
   policyForm.addEventListener("submit", async (event) => {
     event.preventDefault();
@@ -975,6 +1088,7 @@
   updateRestrictionFields();
   updatePolicyFields();
   const initialView = location.pathname.endsWith("/inventory") ? "inventory" :
+    location.pathname.endsWith("/operations") ? "operations" :
     location.pathname.endsWith("/restrictions") ? "restrictions" :
     location.pathname.endsWith("/rates") ? "rates" : "availability";
   setView(initialView, false);

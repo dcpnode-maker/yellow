@@ -5,6 +5,8 @@ import {
   InventoryNotFoundError,
   InventoryService,
   InventoryValidationError,
+  OperationalBlockConflictError,
+  OperationalBlockService,
   RestrictionService,
   type CreateSellableUnitInput,
   type CreateSpaceInput,
@@ -44,6 +46,8 @@ const RATE_READ_SCOPE = "rates.configuration:read";
 const RATE_WRITE_SCOPE = "rates.configuration:write";
 const PRICING_READ_SCOPE = "rates.pricing:read";
 const PRICING_WRITE_SCOPE = "rates.pricing:write";
+const BLOCK_READ_SCOPE = "inventory.blocks:read";
+const BLOCK_WRITE_SCOPE = "inventory.blocks:write";
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 const ISO_INSTANT = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(?::\d{2}(?:\.\d{1,3})?)?(?:Z|[+-]\d{2}:\d{2})$/;
 
@@ -197,6 +201,7 @@ type RateOperations = Pick<RateConfigurationService,
 >;
 
 type PricingOperations = Pick<RatePricingService, "create" | "findCurrent" | "supersede">;
+type BlockOperations = Pick<OperationalBlockService, "listActive" | "open" | "close">;
 
 const MAX_MONEY = 9_223_372_036_854_775_807n;
 
@@ -353,6 +358,18 @@ function parseSellableUnit(body: unknown): Omit<CreateSellableUnitInput, "envelo
   return { unitTypeId: body.unitTypeId, name: body.name, spaces };
 }
 
+function parseOperationalBlock(body: unknown): { spaceId: string; kind: "ooo" | "oos";
+  from: Date; to: Date; reason: string } | null {
+  if (!isObject(body) || !exactKeys(body, ["spaceId", "kind", "from", "to", "reason"]) ||
+      typeof body.spaceId !== "string" || (body.kind !== "ooo" && body.kind !== "oos") ||
+      typeof body.from !== "string" || typeof body.to !== "string" || typeof body.reason !== "string" ||
+      !ISO_INSTANT.test(body.from) || !ISO_INSTANT.test(body.to)) return null;
+  const from = new Date(body.from);
+  const to = new Date(body.to);
+  if (!Number.isFinite(from.getTime()) || !Number.isFinite(to.getTime())) return null;
+  return { spaceId: body.spaceId, kind: body.kind, from, to, reason: body.reason };
+}
+
 function jsonValue(value: unknown): JsonValue {
   return JSON.parse(JSON.stringify(value)) as JsonValue;
 }
@@ -365,6 +382,7 @@ export class OperatorHttpApi {
   readonly #restrictions?: RestrictionOperations;
   readonly #rates?: RateOperations;
   readonly #pricing?: PricingOperations;
+  readonly #blocks?: BlockOperations;
 
   constructor(
     login: LocalLoginService,
@@ -374,6 +392,7 @@ export class OperatorHttpApi {
     restrictions?: RestrictionOperations,
     rates?: RateOperations,
     pricing?: PricingOperations,
+    blocks?: BlockOperations,
   ) {
     this.#login = login;
     this.#availability = availability;
@@ -382,6 +401,7 @@ export class OperatorHttpApi {
     this.#restrictions = restrictions;
     this.#rates = rates;
     this.#pricing = pricing;
+    this.#blocks = blocks;
   }
 
   unavailable(request: Request): Response {
@@ -393,7 +413,8 @@ export class OperatorHttpApi {
   }
 
   failure(request: Request, error: unknown): Response {
-    if (error instanceof IdempotencyConflictError || error instanceof InventoryConflictError) {
+    if (error instanceof IdempotencyConflictError || error instanceof InventoryConflictError ||
+        error instanceof OperationalBlockConflictError) {
       const type = error instanceof IdempotencyConflictError ? "request/idempotency_conflict" : "inventory/conflict";
       return apiError(request, 409, type, "Conflict", "The inventory request conflicts with existing state");
     }
@@ -515,6 +536,74 @@ export class OperatorHttpApi {
     if (!input) return apiError(context.request, 400, "request/invalid", "Invalid request", "Sellable unit input is invalid");
     return this.#create(context, propertyNode, body, "operator.inventory.sellable_unit.create", "sellable_unit.created",
       (tx, envelope) => this.#inventory!.createSellableUnit(tx, { ...input, envelope }));
+  }
+
+  async operationalBlocks(context: TenantRequestContext, propertyNode: string): Promise<Response> {
+    if (!hasScope(context, BLOCK_READ_SCOPE)) {
+      return apiError(context.request, 403, "auth/scope_missing", "Forbidden", "Operational-block access is not granted");
+    }
+    if (!UUID.test(propertyNode)) return apiError(context.request, 400, "request/invalid", "Invalid request", "Property identifier is invalid");
+    if (!this.#blocks) return this.unavailable(context.request);
+    const grants = await listGrantedProperties(context, BLOCK_READ_SCOPE);
+    if (!grants.some(({ id }) => id === propertyNode)) {
+      return apiError(context.request, 403, "auth/property_forbidden", "Forbidden", "Property access is not granted");
+    }
+    return apiResponse(context.request, { operationalBlocks: jsonValue(await this.#blocks.listActive(context.tx, propertyNode)) });
+  }
+
+  async openOperationalBlock(context: TenantRequestContext, propertyNode: string, body: unknown): Promise<Response> {
+    const input = parseOperationalBlock(body);
+    if (!input) return apiError(context.request, 400, "request/invalid", "Invalid request", "Operational-block input is invalid");
+    if (!hasScope(context, BLOCK_WRITE_SCOPE)) {
+      return apiError(context.request, 403, "auth/scope_missing", "Forbidden", "Operational-block changes are not granted");
+    }
+    if (!UUID.test(propertyNode) || !UUID.test(input.spaceId)) {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Property or space identifier is invalid");
+    }
+    if (!this.#blocks) return this.unavailable(context.request);
+    const grants = await listGrantedProperties(context, BLOCK_WRITE_SCOPE);
+    if (!grants.some(({ id }) => id === propertyNode)) {
+      return apiError(context.request, 403, "auth/property_forbidden", "Forbidden", "Property access is not granted");
+    }
+    const requestId = correlationId(context.request);
+    const outcome = await this.#idempotency.execute(context.tx, {
+      tenantId: context.tenantId, operation: "operator.inventory.blocks.open",
+      key: context.request.headers.get("idempotency-key") ?? "", request: { propertyNode, body },
+    }, async (tx) => ({ status: 201, body: { operationalBlock: jsonValue(await this.#blocks!.open(tx, {
+      ...input, envelope: createAuditEnvelope({ actorId: context.identity.actorId, tenantId: context.tenantId,
+        propertyNode, requestId, operation: "ooo.opened" }),
+    })) } }));
+    return apiResponse(context.request, canonicalJson(outcome.body), outcome.status, {
+      "idempotency-replayed": String(outcome.replayed), "x-correlation-id": requestId,
+    });
+  }
+
+  async closeOperationalBlock(context: TenantRequestContext, propertyNode: string, blockId: string, body: unknown): Promise<Response> {
+    if (!isObject(body) || !exactKeys(body, [])) {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Operational-block close input must be empty");
+    }
+    if (!hasScope(context, BLOCK_WRITE_SCOPE)) {
+      return apiError(context.request, 403, "auth/scope_missing", "Forbidden", "Operational-block changes are not granted");
+    }
+    if (!UUID.test(propertyNode) || !UUID.test(blockId)) {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Property or block identifier is invalid");
+    }
+    if (!this.#blocks) return this.unavailable(context.request);
+    const grants = await listGrantedProperties(context, BLOCK_WRITE_SCOPE);
+    if (!grants.some(({ id }) => id === propertyNode)) {
+      return apiError(context.request, 403, "auth/property_forbidden", "Forbidden", "Property access is not granted");
+    }
+    const requestId = correlationId(context.request);
+    const outcome = await this.#idempotency.execute(context.tx, {
+      tenantId: context.tenantId, operation: "operator.inventory.blocks.close",
+      key: context.request.headers.get("idempotency-key") ?? "", request: { propertyNode, blockId, body },
+    }, async (tx) => ({ status: 200, body: { operationalBlock: jsonValue(await this.#blocks!.close(tx, {
+      blockId, envelope: createAuditEnvelope({ actorId: context.identity.actorId, tenantId: context.tenantId,
+        propertyNode, requestId, operation: "ooo.closed" }),
+    })) } }));
+    return apiResponse(context.request, canonicalJson(outcome.body), outcome.status, {
+      "idempotency-replayed": String(outcome.replayed), "x-correlation-id": requestId,
+    });
   }
 
   async restrictions(context: TenantRequestContext, propertyNode: string): Promise<Response> {

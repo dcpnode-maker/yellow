@@ -73,6 +73,7 @@
           <nav class="domain-nav" aria-label="Workbench domains">
             <button class="domain-tab is-active" id="nav-availability" type="button" data-view="availability">Availability</button>
             <button class="domain-tab" id="nav-inventory" type="button" data-view="inventory">Inventory setup</button>
+            <button class="domain-tab" id="nav-operations" type="button" data-view="operations">Operations</button>
             <button class="domain-tab" id="nav-restrictions" type="button" data-view="restrictions">Restrictions</button>
             <button class="domain-tab" id="nav-rates" type="button" data-view="rates">Rates</button>
           </nav>
@@ -165,6 +166,46 @@
             </form>
           </div>
           <p class="inventory-status" id="inventory-status" role="status" aria-live="polite">Open Inventory setup to load live configuration.</p>
+        </section>
+
+        <section id="operations-view" hidden aria-labelledby="operations-title">
+          <div class="section-heading">
+            <div>
+              <p class="eyebrow">Room operations</p>
+              <h2 id="operations-title">Out of order and out of service</h2>
+              <p class="muted">Protect physical truth without hiding why a room cannot sell.</p>
+            </div>
+            <button class="quiet" id="refresh-operational-blocks" type="button">Refresh</button>
+          </div>
+          <div class="operations-layout">
+            <section class="restriction-panel card" aria-labelledby="active-blocks-heading">
+              <div class="panel-heading">
+                <div><h3 id="active-blocks-heading">Active causes</h3><p class="muted">Current tenant-scoped PostgreSQL truth.</p></div>
+                <span class="restriction-count" id="operational-block-count">—</span>
+              </div>
+              <div class="restriction-list" id="active-block-list"></div>
+            </section>
+            <form class="configuration-form card" id="operational-block-form">
+              <p class="step">New operational cause</p><h3>Take one space out of sale</h3>
+              <label>Physical space<select name="spaceId" id="operational-block-space" required></select></label>
+              <label>Cause type<select name="kind" id="operational-block-kind" required>
+                <option value="ooo">Out of order · physically unavailable</option>
+                <option value="oos">Out of service · commercially unavailable</option>
+              </select></label>
+              <div class="cause-explainer" id="operational-block-explainer">
+                <strong>Out of order</strong> removes the physical room for the exact interval. <strong>Out of service</strong> records a commercial cause without changing physical capacity.
+              </div>
+              <div class="date-pair">
+                <label>Starts<input name="from" type="datetime-local" required></label>
+                <label>Ends (exclusive)<input name="to" type="datetime-local" required></label>
+              </div>
+              <label>Reason<textarea name="reason" required maxlength="500" rows="3" placeholder="Bathroom repair"></textarea></label>
+              <p class="field-note">Closing ends this one cause only. This view does not create maintenance tasks or change OOS policy.</p>
+              <button class="primary" type="submit">Open operational cause</button>
+              <p class="form-message" role="status" aria-live="polite"></p>
+            </form>
+          </div>
+          <p class="inventory-status" id="operational-block-status" role="status" aria-live="polite">Open Operations to load active causes.</p>
         </section>
 
         <section id="restrictions-view" hidden aria-labelledby="restrictions-title">

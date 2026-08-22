@@ -77,6 +77,7 @@ export function createApp(options: AppOptions = {}) {
       .get("/p/:property/inventory", () => operatorAssets.html())
       .get("/p/:property/restrictions", () => operatorAssets.html())
       .get("/p/:property/rates", () => operatorAssets.html())
+      .get("/p/:property/operations", () => operatorAssets.html())
       .get("/assets/operator.css", () => operatorAssets.css())
       .get("/assets/operator.js", () => operatorAssets.js())
       .post("/api/v1/auth/local:login", ({ request, body }) => operator.login(request, body))
@@ -112,6 +113,15 @@ export function createApp(options: AppOptions = {}) {
       )
       .post("/api/v1/properties/:property/rate-prices/:ratePriceId/supersede", ({ request, params, body, tenantContext }) =>
         withOperatorTenant(request, (context) => operator.supersedeRatePrice(context, params.property, params.ratePriceId, body))
+      )
+      .get("/api/v1/properties/:property/operational-blocks", ({ request, params, tenantContext }) =>
+        withOperatorTenant(request, (context) => operator.operationalBlocks(context, params.property))
+      )
+      .post("/api/v1/properties/:property/operational-blocks", ({ request, params, body, tenantContext }) =>
+        withOperatorTenant(request, (context) => operator.openOperationalBlock(context, params.property, body))
+      )
+      .post("/api/v1/properties/:property/operational-blocks/:blockId/close", ({ request, params, body, tenantContext }) =>
+        withOperatorTenant(request, (context) => operator.closeOperationalBlock(context, params.property, params.blockId, body))
       )
       .post("/api/v1/properties/:property/inventory/unit-types", ({ request, params, body, tenantContext }) =>
         withOperatorTenant(request, (context) => operator.createUnitType(context, params.property, body))

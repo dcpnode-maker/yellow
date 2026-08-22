@@ -12,6 +12,8 @@ export const REVIEW_ROLE_NAME = "Local Availability Reviewer";
 export const REVIEW_PERMISSION = "inventory.availability:read";
 export const REVIEW_PERMISSIONS = Object.freeze([
   { code: REVIEW_PERMISSION, description: "Read tenant-scoped truth availability" },
+  { code: "inventory.blocks:read", description: "Read tenant-scoped operational blocks" },
+  { code: "inventory.blocks:write", description: "Open and close tenant-scoped operational blocks" },
   { code: "inventory.configuration:read", description: "Read tenant-scoped inventory configuration" },
   { code: "inventory.configuration:write", description: "Create tenant-scoped inventory configuration" },
   { code: "inventory.restriction:read", description: "Read tenant-scoped restriction configuration" },

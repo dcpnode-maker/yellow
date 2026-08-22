@@ -74,3 +74,6 @@
 2026-08-22 · 050 · 2 · phase-2/operator-rate-plan-management · codex → — · ORDER-WRITTEN · validated idempotent policy/base-plan workbench; prices and derivation remain separate
 2026-08-22 · 051 · 2 · phase-2/operator-rate-price-management · codex → — · ORDER-WRITTEN · exact bigint-safe price creation and current lookup workbench; correction remains separate
 2026-08-22 · 052 · 2 · phase-2/operator-rate-price-correction · codex → — · ORDER-WRITTEN · race-safe immutable price correction with dynamic typed editor; independent review debt explicit
+2026-08-22 · 053 · 2 · phase-2/operator-operational-block-management · codex → — · ORDER-WRITTEN · authenticated idempotent OOO/OOS lifecycle through the existing occupancy choke point; independent review debt explicit
+2026-08-22 · 057 · 2 · phase-2/operator-operational-block-management · codex → codex · QUESTION-ANSWERED · correct two nonexistent proof-query columns without weakening event or permission assertions; full focused restart required
+2026-08-22 · 058 · 2 · phase-2/operator-operational-block-management · codex → codex · QUESTION-ANSWERED · inherited operator files require recreated databases because their canonical fixtures mutate; no code or assertion change
