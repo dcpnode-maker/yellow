@@ -35,8 +35,11 @@ For the independent rate-publication decision, sign out and use:
 
 The seeder is safe to rerun with the same pair of passwords. It verifies both distinct
 operators and their exact existing property grant, and creates nothing on an identical
-rerun. Shared passwords or conflicting users, roles, room types, rooms or sellable units
-stop the run rather than rewriting hotel data.
+rerun. It also creates or exactly verifies four review policies and one `FLEX` / Flexible
+public rate at USD 125.00 per night. A fresh rate is requested by the operator, approved
+by the distinct approver and published through the normal immutable publication path.
+Shared passwords or conflicting users, roles, inventory, policy, plan or active-release
+data stop the run rather than rewriting hotel configuration.
 
 ## Current review surface
 
@@ -67,6 +70,8 @@ stop the run rather than rewriting hotel data.
 - a configurable Guided, Expert and AI-assisted universal rate builder with immutable
   release history, server preview, a bounded two-operator approval inbox, explicit
   approve/reject decisions and publication restricted to the operator who approved;
+- one reproducible active local-review `FLEX` release over the five seeded rooms, with a
+  real two-night quote at USD 125.00 per night and all four review policies attached;
 - real availability for five physical rooms across Standard and Deluxe types;
 - ten-minute audited cart holds placed only from bookable availability, with active-hold
   visibility, explicit release and supervised audited due expiry; a hold protects
@@ -79,6 +84,11 @@ audit log, outbox and durable replay primitive as any future production client. 
 inventory import, positional dorm/bed generation, inventory update/delete, restriction
 update/delete, tax/FX calculation, hold consumption and reservations require later scoped API/UI orders;
 no direct browser-to-table shortcut is permitted.
+
+The local `FLEX` quote deliberately reports `taxAssignmentState: none`. Its USD 250.00
+two-night subtotal is pre-tax review evidence, not a final payable amount. This does not
+constrain hotel-configurable tax treatment or pricing models; tax calculation and each
+country's non-disableable compliance rules remain later governed work.
 
 ## Reading Project status correctly
 

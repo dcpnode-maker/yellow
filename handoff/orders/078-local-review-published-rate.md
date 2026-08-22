@@ -143,8 +143,33 @@ after every builder proof passes.
 
 ## Definition of done
 
-- [ ] The P0 failure is committed before implementation.
-- [ ] P1–P4 pass on a fresh migrated database.
-- [ ] P5 leaves localhost healthy with one quote-capable canonical FLEX release.
-- [ ] P6 is fully green and Graphify is refreshed.
-- [ ] Order 078 is pushed as UNVERIFIED and nothing is merged.
+## Builder evidence — UNVERIFIED
+
+- P0 was committed at `48de087` before production changed: the fresh-database run returned
+  6 pass / 5 fail and 24 assertions, with zero review policies, plans, models, targets,
+  releases, active releases or rate approvals.
+- P1–P4 restarted from fresh databases after Questions 128 and 129. The final run returned
+  11 pass / 0 fail and 39 assertions: exact canonical content, distinct requester/approver
+  evidence, byte-equivalent rerun, collision refusal and a read-only two-night quote.
+- P5 preserved the founder database. Rerun reported `state=existing`; FLEX releases 1–4
+  remain draft, release 5 remains the sole active release, and the active approval names
+  `operator@yellow.local` as requester and `approver@yellow.local` as decider. The rebuilt
+  localhost returned a bookable two-night USD 25000-minor-unit pre-tax quote with four
+  policy kinds and `taxAssignmentState: none`; app, database and tenant context stayed green.
+- P6 returned 89 pass / 0 fail and 1,133 assertions in the default suite, 4 pass / 0 fail
+  and 60 assertions in the database-backed founder-status proof, exact schema drift, clean
+  licence/dependency audits and a fresh isolated app-never-started referee at 11/11. The
+  protected hashes remain `fe2a9fc949c6bacded3f8d3fc4d14fc596a83ebde9aeb043eb10845f07b30923`
+  and `3228279bd99a8f9b6af99748f31d4d4b482a8e627e16d92644d9d859ad8befa1`.
+- Graphify was refreshed to 5,026 nodes, 8,359 directed edges and 601 communities, with no
+  missing/dangling endpoints, exact duplicate edges or directed collapsed pairs. Its ten
+  self-loops, four undirected-only collapses and one Order-078 AST/semantic ID collision are
+  recorded limitations; subagent token accounting was unavailable and therefore remains zero.
+- Independent review remains complete through Order 044. This evidence and Order 078 remain
+  builder-asserted `UNVERIFIED` Gate-3 debt.
+
+- [x] The P0 failure is committed before implementation.
+- [x] P1–P4 pass on a fresh migrated database.
+- [x] P5 leaves localhost healthy with one quote-capable canonical FLEX release.
+- [x] P6 is fully green and Graphify is refreshed.
+- [x] Order 078 is pushed as UNVERIFIED and nothing is merged.
