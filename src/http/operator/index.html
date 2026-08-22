@@ -74,6 +74,7 @@
             <button class="domain-tab is-active" id="nav-availability" type="button" data-view="availability">Availability</button>
             <button class="domain-tab" id="nav-inventory" type="button" data-view="inventory">Inventory setup</button>
             <button class="domain-tab" id="nav-restrictions" type="button" data-view="restrictions">Restrictions</button>
+            <button class="domain-tab" id="nav-rates" type="button" data-view="rates">Rates</button>
           </nav>
           <label>Property
             <select name="property" id="property-select" required></select>
@@ -219,6 +220,99 @@
             </form>
           </div>
           <p class="inventory-status" id="restriction-status" role="status" aria-live="polite">Open Restrictions to load live rules.</p>
+        </section>
+
+        <section id="rates-view" hidden aria-labelledby="rates-title">
+          <div class="section-heading">
+            <div>
+              <p class="eyebrow">Commercial setup</p>
+              <h2 id="rates-title">Policies and rate plans</h2>
+              <p class="muted">Start simply, then compose validated cancellation, guarantee and deposit choices into each base plan.</p>
+            </div>
+            <button class="quiet" id="refresh-rates" type="button">Refresh</button>
+          </div>
+
+          <div class="metric-grid rate-metrics" aria-live="polite">
+            <div class="metric"><strong id="policy-count">—</strong><span>Policies</span></div>
+            <div class="metric"><strong id="rate-plan-count">—</strong><span>Base rate plans</span></div>
+            <div class="metric"><strong>0</strong><span>Prices in this step</span></div>
+          </div>
+
+          <div class="rate-lists">
+            <section class="rate-panel card" aria-labelledby="policies-heading">
+              <h3 id="policies-heading">Policy library</h3>
+              <div class="rate-list" id="policy-list"></div>
+            </section>
+            <section class="rate-panel card" aria-labelledby="rate-plans-heading">
+              <h3 id="rate-plans-heading">Base rate plans</h3>
+              <div class="rate-list" id="rate-plan-list"></div>
+            </section>
+          </div>
+
+          <div class="rate-forms">
+            <form class="configuration-form card" id="policy-form">
+              <p class="step">Step 1 · reusable choice</p><h3>Create policy</h3>
+              <label>Policy type
+                <select name="kind" id="policy-kind" required>
+                  <option value="cancellation">Cancellation</option>
+                  <option value="deposit">Deposit</option>
+                  <option value="guarantee">Guarantee</option>
+                  <option value="no_show">No show</option>
+                </select>
+              </label>
+              <label>Policy name<input name="name" required maxlength="200" placeholder="Flexible 48 hour cancellation"></label>
+
+              <fieldset class="progressive-fields" id="cancellation-policy-fields">
+                <legend>Cancellation rule</legend>
+                <label>Hours before arrival<input name="beforeHours" type="number" min="0" max="2147483647" value="48"></label>
+                <label>Penalty basis<select name="cancellationBasis"><option value="nights">Nights</option><option value="percent">Percent</option></select></label>
+                <label>Penalty value<input name="cancellationValue" type="number" min="0" value="1"></label>
+                <p class="field-note">This simple path creates one rule. The API already supports an ordered multi-rule policy for future expert mode.</p>
+              </fieldset>
+
+              <fieldset class="progressive-fields" id="deposit-policy-fields" hidden>
+                <legend>Deposit terms</legend>
+                <label>Deposit basis<select name="depositBasis" id="deposit-basis"><option value="first_night">First night</option><option value="percent">Percent</option><option value="one_month">One month</option></select></label>
+                <label id="deposit-value-field" hidden>Deposit percent<input name="depositValue" type="number" min="0" max="100" value="30"></label>
+                <label>Due<select name="depositDue" id="deposit-due"><option value="at_booking">At booking</option><option value="days_before_arrival">Days before arrival</option></select></label>
+                <label id="deposit-days-field" hidden>Days before arrival<input name="depositDays" type="number" min="0" max="2147483647" value="7"></label>
+              </fieldset>
+
+              <fieldset class="progressive-fields" id="guarantee-policy-fields" hidden>
+                <legend>Guarantee terms</legend>
+                <label>Guarantee<select name="guarantee"><option value="card_on_file">Card on file</option><option value="deposit_paid">Deposit paid</option><option value="company_letter">Company letter</option><option value="none">None</option></select></label>
+              </fieldset>
+
+              <fieldset class="progressive-fields" id="no-show-policy-fields" hidden>
+                <legend>No-show charge</legend>
+                <label>Charge basis<select name="noShowBasis"><option value="first_night">First night</option><option value="full_stay">Full stay</option></select></label>
+              </fieldset>
+
+              <button class="primary" type="submit">Create policy</button>
+              <p class="form-message" role="status" aria-live="polite"></p>
+            </form>
+
+            <form class="configuration-form card" id="rate-plan-form">
+              <p class="step">Step 2 · sellable identity</p><h3>Create base rate plan</h3>
+              <div class="date-pair">
+                <label>Code<input name="code" required maxlength="32" pattern="[A-Z0-9][A-Z0-9._-]{0,31}" placeholder="FLEX"></label>
+                <label>Currency<input name="currency" required maxlength="3" pattern="[A-Z]{3}" value="USD"></label>
+              </div>
+              <label>Guest-facing name<input name="name" required maxlength="200" placeholder="Flexible rate"></label>
+              <label class="check-field"><input name="taxInclusive" type="checkbox" checked> Taxes included in displayed rate</label>
+              <label>Cancellation policy<select name="cancellationPolicyId" id="plan-cancellation-policy"><option value="">None</option></select></label>
+              <label>Guarantee policy<select name="guaranteePolicyId" id="plan-guarantee-policy"><option value="">None</option></select></label>
+              <label>Deposit policy<select name="depositPolicyId" id="plan-deposit-policy"><option value="">None</option></select></label>
+              <div class="date-pair">
+                <label>Market code (optional)<input name="marketCode" maxlength="64" placeholder="LEISURE"></label>
+                <label>Source code (optional)<input name="sourceCode" maxlength="64" placeholder="DIRECT"></label>
+              </div>
+              <p class="field-note">Prices and derived plans are separate steps. This form cannot carry money or derivation rules.</p>
+              <button class="primary" type="submit">Create rate plan</button>
+              <p class="form-message" role="status" aria-live="polite"></p>
+            </form>
+          </div>
+          <p class="inventory-status" id="rates-status" role="status" aria-live="polite">Open Rates to load live configuration.</p>
         </section>
       </section>
     </main>

@@ -14,6 +14,15 @@ import {
   type SearchAvailabilityInput,
 } from "../contexts/inventory";
 import {
+  RateConfigurationService,
+  RateConflictError,
+  RateNotFoundError,
+  RateValidationError,
+  type CreatePolicyInput,
+  type CreateRatePlanInput,
+  type PolicyKind,
+} from "../contexts/rates";
+import {
   createAuditEnvelope,
   IdempotencyConflictError,
   IdempotencyValidationError,
@@ -28,6 +37,8 @@ const CONFIGURATION_READ_SCOPE = "inventory.configuration:read";
 const CONFIGURATION_WRITE_SCOPE = "inventory.configuration:write";
 const RESTRICTION_READ_SCOPE = "inventory.restriction:read";
 const RESTRICTION_WRITE_SCOPE = "inventory.restriction:write";
+const RATE_READ_SCOPE = "rates.configuration:read";
+const RATE_WRITE_SCOPE = "rates.configuration:write";
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 const ISO_INSTANT = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(?::\d{2}(?:\.\d{1,3})?)?(?:Z|[+-]\d{2}:\d{2})$/;
 
@@ -176,6 +187,39 @@ function parseRestrictionBatch(body: unknown): readonly RestrictionDraft[] | nul
   return restrictions;
 }
 
+type RateOperations = Pick<RateConfigurationService,
+  "listPolicies" | "listRatePlans" | "createPolicy" | "createRatePlan"
+>;
+
+function parsePolicy(body: unknown): Omit<CreatePolicyInput, "envelope"> | null {
+  if (!isObject(body) || !exactKeys(body, ["kind", "name", "content"]) ||
+      typeof body.kind !== "string" || !(["cancellation", "deposit", "guarantee", "no_show"] as const)
+        .includes(body.kind as PolicyKind) ||
+      typeof body.name !== "string" || !isObject(body.content)) return null;
+  return { kind: body.kind as PolicyKind, name: body.name, content: body.content };
+}
+
+function parseRatePlan(body: unknown): Omit<CreateRatePlanInput, "envelope"> | null {
+  if (!isObject(body) || !exactKeys(body, ["code", "name", "currency"], [
+    "taxInclusive", "cancellationPolicyId", "guaranteePolicyId", "depositPolicyId", "marketCode", "sourceCode",
+  ]) || typeof body.code !== "string" || typeof body.name !== "string" || typeof body.currency !== "string") return null;
+  if (body.taxInclusive !== undefined && typeof body.taxInclusive !== "boolean") return null;
+  for (const key of ["cancellationPolicyId", "guaranteePolicyId", "depositPolicyId", "marketCode", "sourceCode"] as const) {
+    if (body[key] !== undefined && body[key] !== null && typeof body[key] !== "string") return null;
+  }
+  return {
+    code: body.code,
+    name: body.name,
+    currency: body.currency,
+    ...(body.taxInclusive === undefined ? {} : { taxInclusive: body.taxInclusive }),
+    ...(body.cancellationPolicyId === undefined ? {} : { cancellationPolicyId: body.cancellationPolicyId as string | null }),
+    ...(body.guaranteePolicyId === undefined ? {} : { guaranteePolicyId: body.guaranteePolicyId as string | null }),
+    ...(body.depositPolicyId === undefined ? {} : { depositPolicyId: body.depositPolicyId as string | null }),
+    ...(body.marketCode === undefined ? {} : { marketCode: body.marketCode as string | null }),
+    ...(body.sourceCode === undefined ? {} : { sourceCode: body.sourceCode as string | null }),
+  };
+}
+
 function parseUnitType(body: unknown): Omit<CreateUnitTypeInput, "envelope"> | null {
   if (!isObject(body) || !exactKeys(body, ["code", "name", "profileKey"], [
     "baseOccupancy", "maxOccupancy", "attrs", "sortOrder",
@@ -242,6 +286,7 @@ export class OperatorHttpApi {
   readonly #inventory?: InventoryOperations;
   readonly #idempotency: PostgresIdempotency;
   readonly #restrictions?: RestrictionOperations;
+  readonly #rates?: RateOperations;
 
   constructor(
     login: LocalLoginService,
@@ -249,12 +294,14 @@ export class OperatorHttpApi {
     inventory?: InventoryOperations,
     idempotency = new PostgresIdempotency(),
     restrictions?: RestrictionOperations,
+    rates?: RateOperations,
   ) {
     this.#login = login;
     this.#availability = availability;
     this.#inventory = inventory;
     this.#idempotency = idempotency;
     this.#restrictions = restrictions;
+    this.#rates = rates;
   }
 
   unavailable(request: Request): Response {
@@ -270,11 +317,20 @@ export class OperatorHttpApi {
       const type = error instanceof IdempotencyConflictError ? "request/idempotency_conflict" : "inventory/conflict";
       return apiError(request, 409, type, "Conflict", "The inventory request conflicts with existing state");
     }
+    if (error instanceof RateConflictError) {
+      return apiError(request, 409, "rates/conflict", "Conflict", "The rate configuration conflicts with existing state");
+    }
     if (error instanceof IdempotencyValidationError || error instanceof InventoryValidationError) {
       return apiError(request, 400, "request/invalid", "Invalid request", "Inventory input is invalid");
     }
     if (error instanceof InventoryNotFoundError) {
       return apiError(request, 404, "inventory/not_found", "Not found", "Referenced inventory was not found");
+    }
+    if (error instanceof RateValidationError) {
+      return apiError(request, 400, "request/invalid", "Invalid request", "Rate configuration input is invalid");
+    }
+    if (error instanceof RateNotFoundError) {
+      return apiError(request, 404, "rates/not_found", "Not found", "Referenced rate configuration was not found");
     }
     return this.unavailable(request);
   }
@@ -437,6 +493,80 @@ export class OperatorHttpApi {
           operation: "restriction.created",
         }),
       })) },
+    }));
+    return apiResponse(context.request, outcome.body, outcome.status, {
+      "idempotency-replayed": String(outcome.replayed),
+      "x-correlation-id": requestId,
+    });
+  }
+
+  async rateConfiguration(context: TenantRequestContext, propertyNode: string): Promise<Response> {
+    if (!hasScope(context, RATE_READ_SCOPE)) {
+      return apiError(context.request, 403, "auth/scope_missing", "Forbidden", "Rate configuration access is not granted");
+    }
+    if (!UUID.test(propertyNode)) {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Property identifier is invalid");
+    }
+    if (!this.#rates) return this.unavailable(context.request);
+    const grants = await listGrantedProperties(context, RATE_READ_SCOPE);
+    if (!grants.some(({ id }) => id === propertyNode)) {
+      return apiError(context.request, 403, "auth/property_forbidden", "Forbidden", "Property access is not granted");
+    }
+    const [policies, ratePlans] = await Promise.all([
+      this.#rates.listPolicies(context.tx),
+      this.#rates.listRatePlans(context.tx, propertyNode),
+    ]);
+    return apiResponse(context.request, { policies, ratePlans });
+  }
+
+  async createPolicy(context: TenantRequestContext, propertyNode: string, body: unknown): Promise<Response> {
+    const input = parsePolicy(body);
+    if (!input) return apiError(context.request, 400, "request/invalid", "Invalid request", "Policy input is invalid");
+    return this.#createRate(context, propertyNode, body, "operator.rates.policy.create", "policy.created",
+      async (tx, envelope) => ({ policy: jsonValue(await this.#rates!.createPolicy(tx, { ...input, envelope })) }));
+  }
+
+  async createRatePlan(context: TenantRequestContext, propertyNode: string, body: unknown): Promise<Response> {
+    const input = parseRatePlan(body);
+    if (!input) return apiError(context.request, 400, "request/invalid", "Invalid request", "Rate plan input is invalid");
+    return this.#createRate(context, propertyNode, body, "operator.rates.rate_plan.create", "rate_plan.created",
+      async (tx, envelope) => ({ ratePlan: jsonValue(await this.#rates!.createRatePlan(tx, { ...input, envelope })) }));
+  }
+
+  async #createRate(
+    context: TenantRequestContext,
+    propertyNode: string,
+    requestBody: unknown,
+    idempotencyOperation: string,
+    auditOperation: "policy.created" | "rate_plan.created",
+    command: (tx: Tx, envelope: ReturnType<typeof createAuditEnvelope>) => Promise<JsonValue>,
+  ): Promise<Response> {
+    if (!hasScope(context, RATE_WRITE_SCOPE)) {
+      return apiError(context.request, 403, "auth/scope_missing", "Forbidden", "Rate configuration changes are not granted");
+    }
+    if (!UUID.test(propertyNode)) {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Property identifier is invalid");
+    }
+    if (!this.#rates) return this.unavailable(context.request);
+    const grants = await listGrantedProperties(context, RATE_WRITE_SCOPE);
+    if (!grants.some(({ id }) => id === propertyNode)) {
+      return apiError(context.request, 403, "auth/property_forbidden", "Forbidden", "Property access is not granted");
+    }
+    const requestId = correlationId(context.request);
+    const outcome = await this.#idempotency.execute(context.tx, {
+      tenantId: context.tenantId,
+      operation: idempotencyOperation,
+      key: context.request.headers.get("idempotency-key") ?? "",
+      request: { propertyNode, body: requestBody },
+    }, async (tx) => ({
+      status: 201,
+      body: await command(tx, createAuditEnvelope({
+        actorId: context.identity.actorId,
+        tenantId: context.tenantId,
+        propertyNode,
+        requestId,
+        operation: auditOperation,
+      })),
     }));
     return apiResponse(context.request, outcome.body, outcome.status, {
       "idempotency-replayed": String(outcome.replayed),

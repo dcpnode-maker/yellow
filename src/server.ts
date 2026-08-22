@@ -3,6 +3,7 @@ import { SQL } from "bun";
 import { app, createApp } from "./app";
 import { BearerTenantResolver, Hs256TokenSigner, LocalLoginService } from "./contexts/identity";
 import { AvailabilityService, InventoryService, RestrictionService } from "./contexts/inventory";
+import { RateConfigurationService } from "./contexts/rates";
 import { OperatorHttpApi } from "./http/operator";
 import { Database, PostgresEventBus, PostgresIdempotency } from "./kernel";
 
@@ -37,10 +38,11 @@ function runtimeApp() {
   const events = new PostgresEventBus(eventPool);
   const inventory = new InventoryService(events);
   const restrictions = new RestrictionService(events);
+  const rates = new RateConfigurationService(events);
   return createApp({
     database,
     tenantResolver: new BearerTenantResolver(tokens),
-    operatorApi: new OperatorHttpApi(login, new AvailabilityService(), inventory, new PostgresIdempotency(), restrictions),
+    operatorApi: new OperatorHttpApi(login, new AvailabilityService(), inventory, new PostgresIdempotency(), restrictions, rates),
   });
 }
 

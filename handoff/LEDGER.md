@@ -71,3 +71,4 @@
 2026-08-22 · 048 · 2 · phase-2/operator-inventory-management · codex → — · ORDER-WRITTEN · authenticated idempotent inventory snapshot/create workbench; independent review debt explicit
 2026-08-22 · 053 · 2 · phase-2/operator-inventory-management · codex → codex · QUESTION-ANSWERED · mutation failure must escape for rollback; browser SQL probe narrowed; focused restart required
 2026-08-22 · 049 · 2 · phase-2/operator-restriction-management · codex → — · ORDER-WRITTEN · authenticated idempotent restriction read/create workbench; independent review debt explicit
+2026-08-22 · 050 · 2 · phase-2/operator-rate-plan-management · codex → — · ORDER-WRITTEN · validated idempotent policy/base-plan workbench; prices and derivation remain separate

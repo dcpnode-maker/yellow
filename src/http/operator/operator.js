@@ -6,6 +6,7 @@
   let activeView = "availability";
   let inventoryData = { unitTypes: [], spaces: [], sellableUnits: [] };
   let restrictionsData = [];
+  let rateData = { policies: [], ratePlans: [] };
   const pendingKeys = new Map();
 
   const loginView = document.querySelector("#login-view");
@@ -24,6 +25,7 @@
   const availabilityView = document.querySelector("#availability-view");
   const inventoryView = document.querySelector("#inventory-view");
   const restrictionsView = document.querySelector("#restrictions-view");
+  const ratesView = document.querySelector("#rates-view");
   const navigation = document.querySelectorAll(".domain-tab");
   const refreshInventory = document.querySelector("#refresh-inventory");
   const inventoryStatus = document.querySelector("#inventory-status");
@@ -48,6 +50,26 @@
   const restrictionValueLabel = document.querySelector("#restriction-value-label");
   const restrictionUnitType = document.querySelector("#restriction-unit-type");
   const restrictionSemantics = document.querySelector("#restriction-semantics");
+  const refreshRates = document.querySelector("#refresh-rates");
+  const ratesStatus = document.querySelector("#rates-status");
+  const policyCount = document.querySelector("#policy-count");
+  const ratePlanCount = document.querySelector("#rate-plan-count");
+  const policyList = document.querySelector("#policy-list");
+  const ratePlanList = document.querySelector("#rate-plan-list");
+  const policyForm = document.querySelector("#policy-form");
+  const ratePlanForm = document.querySelector("#rate-plan-form");
+  const policyKind = document.querySelector("#policy-kind");
+  const cancellationPolicyFields = document.querySelector("#cancellation-policy-fields");
+  const depositPolicyFields = document.querySelector("#deposit-policy-fields");
+  const guaranteePolicyFields = document.querySelector("#guarantee-policy-fields");
+  const noShowPolicyFields = document.querySelector("#no-show-policy-fields");
+  const depositBasis = document.querySelector("#deposit-basis");
+  const depositDue = document.querySelector("#deposit-due");
+  const depositValueField = document.querySelector("#deposit-value-field");
+  const depositDaysField = document.querySelector("#deposit-days-field");
+  const planCancellationPolicy = document.querySelector("#plan-cancellation-policy");
+  const planGuaranteePolicy = document.querySelector("#plan-guarantee-policy");
+  const planDepositPolicy = document.querySelector("#plan-deposit-policy");
 
   function applyTheme(theme) {
     document.documentElement.dataset.theme = theme === "pixel" ? "pixel" : "apple";
@@ -98,6 +120,7 @@
     results.replaceChildren();
     inventoryData = { unitTypes: [], spaces: [], sellableUnits: [] };
     restrictionsData = [];
+    rateData = { policies: [], ratePlans: [] };
     pendingKeys.clear();
     history.replaceState(null, "", "/");
     loginForm.elements.password.value = "";
@@ -121,7 +144,7 @@
       propertySelect.disabled = true;
     } else {
       propertySelect.disabled = false;
-      const pathProperty = location.pathname.match(/^\/p\/([0-9a-f-]+)\/(?:availability|inventory|restrictions)$/)?.[1];
+      const pathProperty = location.pathname.match(/^\/p\/([0-9a-f-]+)\/(?:availability|inventory|restrictions|rates)$/)?.[1];
       if (pathProperty && body.properties.some(({ id }) => id === pathProperty)) propertySelect.value = pathProperty;
     }
   }
@@ -288,12 +311,81 @@
     })[kind];
   }
 
+  function policyKindLabel(kind) {
+    return ({ cancellation: "Cancellation", deposit: "Deposit", guarantee: "Guarantee", no_show: "No show" })[kind] || kind;
+  }
+
+  function policySummary(policy) {
+    if (policy.kind === "cancellation") {
+      return `${policy.content.rules.length} rule${policy.content.rules.length === 1 ? "" : "s"}`;
+    }
+    if (policy.kind === "deposit") return `${policy.content.deposit.basis.replaceAll("_", " ")} · ${policy.content.deposit.due.replaceAll("_", " ")}`;
+    if (policy.kind === "guarantee") return policy.content.guarantee.replaceAll("_", " ");
+    return policy.content.no_show_charge.basis.replaceAll("_", " ");
+  }
+
+  function populatePolicySelect(select, kind, label) {
+    const current = select.value;
+    select.replaceChildren(new Option(`No ${label.toLowerCase()} policy`, ""));
+    for (const policy of rateData.policies.filter((item) => item.kind === kind)) {
+      select.append(new Option(policy.name, policy.id));
+    }
+    if ([...select.options].some(({ value }) => value === current)) select.value = current;
+  }
+
+  function renderRates() {
+    policyCount.textContent = String(rateData.policies.length);
+    ratePlanCount.textContent = String(rateData.ratePlans.length);
+    policyList.replaceChildren(...rateData.policies.map((policy) =>
+      inventoryItem(policy.name, policySummary(policy), policyKindLabel(policy.kind))
+    ));
+    ratePlanList.replaceChildren(...rateData.ratePlans.map((plan) =>
+      inventoryItem(plan.name, `${plan.currency} · ${plan.taxInclusive ? "tax inclusive" : "tax exclusive"}${plan.marketCode ? ` · ${plan.marketCode}` : ""}`, plan.code)
+    ));
+    if (rateData.policies.length === 0) emptyList(policyList, "No reusable policies yet.");
+    if (rateData.ratePlans.length === 0) emptyList(ratePlanList, "No base rate plans yet.");
+    populatePolicySelect(planCancellationPolicy, "cancellation", "Cancellation");
+    populatePolicySelect(planGuaranteePolicy, "guarantee", "Guarantee");
+    populatePolicySelect(planDepositPolicy, "deposit", "Deposit");
+  }
+
+  async function loadRates() {
+    const property = propertySelect.value;
+    if (!property) return;
+    ratesStatus.textContent = "Loading live rate configuration…";
+    try {
+      rateData = await request(`/api/v1/properties/${encodeURIComponent(property)}/rate-configuration`);
+      renderRates();
+      ratesStatus.textContent = "Policies and plans are current from tenant-scoped PostgreSQL.";
+    } catch (error) {
+      ratesStatus.textContent = error instanceof Error ? error.message : "Rate configuration could not be loaded";
+    }
+  }
+
+  function updatePolicyFields() {
+    const kind = policyKind.value;
+    cancellationPolicyFields.hidden = kind !== "cancellation";
+    depositPolicyFields.hidden = kind !== "deposit";
+    guaranteePolicyFields.hidden = kind !== "guarantee";
+    noShowPolicyFields.hidden = kind !== "no_show";
+    updateDepositFields();
+  }
+
+  function updateDepositFields() {
+    depositValueField.hidden = depositBasis.value !== "percent";
+    depositPolicyFields.querySelector('input[name="depositValue"]').required = depositBasis.value === "percent";
+    depositDaysField.hidden = depositDue.value !== "days_before_arrival";
+    depositPolicyFields.querySelector('input[name="depositDays"]').required = depositDue.value === "days_before_arrival";
+  }
+
   function setView(view, updateHistory = true) {
-    activeView = ["availability", "inventory", "restrictions"].includes(view) ? view : "availability";
+    activeView = ["availability", "inventory", "restrictions", "rates"].includes(view) ? view : "availability";
     availabilityView.hidden = activeView !== "availability";
     inventoryView.hidden = activeView !== "inventory";
     restrictionsView.hidden = activeView !== "restrictions";
-    workbenchTitle.textContent = activeView === "inventory" ? "Inventory setup" : activeView === "restrictions" ? "Restrictions" : "Availability";
+    ratesView.hidden = activeView !== "rates";
+    workbenchTitle.textContent = activeView === "inventory" ? "Inventory setup" :
+      activeView === "restrictions" ? "Restrictions" : activeView === "rates" ? "Rates" : "Availability";
     for (const tab of navigation) {
       const selected = tab.dataset.view === activeView;
       tab.classList.toggle("is-active", selected);
@@ -304,6 +396,7 @@
     }
     if (activeView === "inventory") void loadInventory();
     if (activeView === "restrictions") void loadRestrictions();
+    if (activeView === "rates") void loadRates();
   }
 
   function formMessage(form, message, isError = false) {
@@ -354,6 +447,29 @@
       return true;
     } catch (error) {
       formMessage(restrictionForm, error instanceof Error ? error.message : "Save failed", true);
+      return false;
+    } finally {
+      button.disabled = false;
+    }
+  }
+
+  async function submitRate(form, route, body) {
+    const button = form.querySelector("button[type=submit]");
+    const identity = `rate-configuration:${route}:${JSON.stringify(body)}`;
+    const key = pendingKeys.get(identity) || crypto.randomUUID();
+    pendingKeys.set(identity, key);
+    button.disabled = true;
+    formMessage(form, "Saving through the audited rate configuration service…");
+    try {
+      await request(`/api/v1/properties/${encodeURIComponent(propertySelect.value)}/rate-configuration/${route}`, {
+        method: "POST", headers: { "idempotency-key": key }, body: JSON.stringify(body),
+      });
+      pendingKeys.delete(identity);
+      formMessage(form, "Saved. Audit fact and event committed.");
+      await loadRates();
+      return true;
+    } catch (error) {
+      formMessage(form, error instanceof Error ? error.message : "Save failed", true);
       return false;
     } finally {
       button.disabled = false;
@@ -482,11 +598,16 @@
     if (propertySelect.value) history.replaceState(null, "", `/p/${propertySelect.value}/${activeView}`);
     if (activeView === "inventory") void loadInventory();
     if (activeView === "restrictions") void loadRestrictions();
+    if (activeView === "rates") void loadRates();
   });
   for (const tab of navigation) tab.addEventListener("click", () => setView(tab.dataset.view));
   refreshInventory.addEventListener("click", () => void loadInventory());
   refreshRestrictions.addEventListener("click", () => void loadRestrictions());
+  refreshRates.addEventListener("click", () => void loadRates());
   restrictionKind.addEventListener("change", updateRestrictionFields);
+  policyKind.addEventListener("change", updatePolicyFields);
+  depositBasis.addEventListener("change", updateDepositFields);
+  depositDue.addEventListener("change", updateDepositFields);
   unitTypeForm.addEventListener("submit", async (event) => {
     event.preventDefault();
     const fields = new FormData(unitTypeForm);
@@ -533,12 +654,65 @@
     const saved = await submitRestriction({ restrictions: [restriction] });
     if (saved) restrictionForm.elements.channelCode.value = "";
   });
+  policyForm.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const fields = new FormData(policyForm);
+    const kind = String(fields.get("kind"));
+    let content;
+    if (kind === "cancellation") {
+      content = { kind, rules: [{
+        before_hours: Number(fields.get("beforeHours")),
+        penalty: { basis: fields.get("cancellationBasis"), value: Number(fields.get("cancellationValue")) },
+      }] };
+    } else if (kind === "deposit") {
+      const basis = String(fields.get("depositBasis"));
+      const due = String(fields.get("depositDue"));
+      content = { kind, deposit: {
+        basis,
+        ...(basis === "percent" ? { value: Number(fields.get("depositValue")) } : {}),
+        due,
+        ...(due === "days_before_arrival" ? { days_before: Number(fields.get("depositDays")) } : {}),
+      } };
+    } else if (kind === "guarantee") {
+      content = { kind, guarantee: fields.get("guarantee") };
+    } else {
+      const basis = String(fields.get("noShowBasis"));
+      content = { kind, no_show_charge: { basis, ...(basis === "first_night" ? { value: 1 } : {}) } };
+    }
+    const saved = await submitRate(policyForm, "policies", { kind, name: fields.get("name"), content });
+    if (saved) policyForm.elements.name.value = "";
+  });
+  ratePlanForm.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const fields = new FormData(ratePlanForm);
+    const cancellationPolicyId = String(fields.get("cancellationPolicyId") || "");
+    const guaranteePolicyId = String(fields.get("guaranteePolicyId") || "");
+    const depositPolicyId = String(fields.get("depositPolicyId") || "");
+    const marketCode = String(fields.get("marketCode") || "");
+    const sourceCode = String(fields.get("sourceCode") || "");
+    const body = {
+      code: fields.get("code"), name: fields.get("name"), currency: fields.get("currency"),
+      taxInclusive: ratePlanForm.elements.taxInclusive.checked,
+      ...(cancellationPolicyId ? { cancellationPolicyId } : {}),
+      ...(guaranteePolicyId ? { guaranteePolicyId } : {}),
+      ...(depositPolicyId ? { depositPolicyId } : {}),
+      ...(marketCode ? { marketCode } : {}),
+      ...(sourceCode ? { sourceCode } : {}),
+    };
+    const saved = await submitRate(ratePlanForm, "rate-plans", body);
+    if (saved) {
+      ratePlanForm.elements.code.value = ratePlanForm.elements.name.value = "";
+      ratePlanForm.elements.marketCode.value = ratePlanForm.elements.sourceCode.value = "";
+    }
+  });
   themeSelect.addEventListener("change", () => applyTheme(themeSelect.value));
   signOutButton.addEventListener("click", showLogin);
   applyTheme(themeSelect.value);
   initializeDates();
   updateRestrictionFields();
+  updatePolicyFields();
   const initialView = location.pathname.endsWith("/inventory") ? "inventory" :
-    location.pathname.endsWith("/restrictions") ? "restrictions" : "availability";
+    location.pathname.endsWith("/restrictions") ? "restrictions" :
+    location.pathname.endsWith("/rates") ? "rates" : "availability";
   setView(initialView, false);
 })();

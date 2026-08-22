@@ -40,11 +40,14 @@ unit stops the run rather than rewriting hotel data.
 - deterministic listing and idempotent, audited creation of manual restrictions;
 - configurable property-wide or room-type/channel restriction scope, with half-open
   stay dates and progressive value guidance for length-of-stay and advance rules;
+- validated cancellation, deposit, guarantee and no-show policy authoring;
+- base rate-plan composition with currency, tax treatment, market/source and exact-kind
+  policy choices, while money-bearing prices and derived plans remain separate;
 - real availability for five physical rooms across Standard and Deluxe types;
 - visible restriction and operational-block evidence when those domain commands add it.
 
 The browser keeps its bearer token, appearance choice and generated idempotency keys in
-memory only. Inventory and restriction writes call the same tenant-scoped domain services,
+memory only. Inventory, restriction and rate-configuration writes call the same tenant-scoped domain services,
 audit log, outbox and durable replay primitive as any future production client. Update/delete/bulk
 inventory, restriction update/delete, operational blocks and holds require later scoped API/UI orders;
 no direct browser-to-table shortcut is permitted.

@@ -160,6 +160,16 @@ input:hover, select:hover { border-color: #8d978c; }
 .restriction-badge { background: var(--amber-soft); color: var(--amber); }
 .date-pair { display: grid; grid-template-columns: 1fr 1fr; gap: .7rem; }
 .field-note { margin: -.2rem 0 .1rem; color: var(--muted); font-size: .76rem; line-height: 1.45; }
+.rate-metrics { grid-template-columns: repeat(3, 1fr); }
+.rate-lists, .rate-forms { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; }
+.rate-panel, .rate-forms > form { border-radius: calc(var(--card-radius) - 4px); padding: 1rem; }
+.rate-panel h3 { margin: 0 0 .8rem; }
+.rate-list { display: grid; gap: .55rem; max-height: 300px; overflow: auto; }
+.rate-forms { margin-top: 1rem; align-items: start; }
+.progressive-fields { margin: 0; padding: .85rem; display: grid; gap: .75rem; border: 1px solid var(--line); border-radius: 14px; }
+.progressive-fields legend { padding: 0 .35rem; color: var(--accent-strong); font-size: .76rem; font-weight: 800; }
+.check-field { display: flex; align-items: center; gap: .65rem; min-height: 42px; }
+.check-field input { width: 1.1rem; height: 1.1rem; accent-color: var(--accent); }
 
 @media (max-width: 900px) {
   .login-layout { grid-template-columns: 1fr; padding-top: 2.5rem; }
@@ -169,6 +179,7 @@ input:hover, select:hover { border-color: #8d978c; }
   .search-button, .timezone-note { grid-column: 1 / -1; }
   .inventory-columns, .configuration-grid { grid-template-columns: 1fr; }
   .restriction-layout { grid-template-columns: 1fr; }
+  .rate-lists, .rate-forms { grid-template-columns: 1fr; }
 }
 
 @media (max-width: 560px) {
@@ -178,7 +189,7 @@ input:hover, select:hover { border-color: #8d978c; }
   .theme-control select { min-width: 8.7rem; }
   .domain-bar { align-items: stretch; flex-direction: column; }
   .domain-bar > label { width: 100%; }
-  .domain-nav { display: grid; grid-template-columns: repeat(3, 1fr); }
+  .domain-nav { display: grid; grid-template-columns: repeat(2, 1fr); }
   .domain-tab { padding-inline: .55rem; font-size: .76rem; }
   .search-bar { grid-template-columns: 1fr; }
   .search-bar > * { grid-column: 1 !important; }

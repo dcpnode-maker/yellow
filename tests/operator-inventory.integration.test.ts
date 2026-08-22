@@ -248,7 +248,7 @@ databaseDescribe("Order 048 operator inventory management", () => {
     expect(js).not.toMatch(/\b(?:SELECT|INSERT|UPDATE|DELETE)\s/i);
     expect(js).not.toMatch(/postgres(?:ql)?:\/\//i);
     expect((await tokens.verify(accessToken))?.scp).toBe(
-      "inventory.availability:read inventory.configuration:read inventory.configuration:write inventory.restriction:read inventory.restriction:write",
+      "inventory.availability:read inventory.configuration:read inventory.configuration:write inventory.restriction:read inventory.restriction:write rates.configuration:read rates.configuration:write",
     );
   });
 });

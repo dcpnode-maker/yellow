@@ -76,6 +76,7 @@ export function createApp(options: AppOptions = {}) {
       .get("/p/:property/availability", () => operatorAssets.html())
       .get("/p/:property/inventory", () => operatorAssets.html())
       .get("/p/:property/restrictions", () => operatorAssets.html())
+      .get("/p/:property/rates", () => operatorAssets.html())
       .get("/assets/operator.css", () => operatorAssets.css())
       .get("/assets/operator.js", () => operatorAssets.js())
       .post("/api/v1/auth/local:login", ({ request, body }) => operator.login(request, body))
@@ -93,6 +94,15 @@ export function createApp(options: AppOptions = {}) {
       )
       .post("/api/v1/properties/:property/restrictions", ({ request, params, body, tenantContext }) =>
         withOperatorTenant(request, (context) => operator.createRestrictions(context, params.property, body))
+      )
+      .get("/api/v1/properties/:property/rate-configuration", ({ request, params, tenantContext }) =>
+        withOperatorTenant(request, (context) => operator.rateConfiguration(context, params.property))
+      )
+      .post("/api/v1/properties/:property/rate-configuration/policies", ({ request, params, body, tenantContext }) =>
+        withOperatorTenant(request, (context) => operator.createPolicy(context, params.property, body))
+      )
+      .post("/api/v1/properties/:property/rate-configuration/rate-plans", ({ request, params, body, tenantContext }) =>
+        withOperatorTenant(request, (context) => operator.createRatePlan(context, params.property, body))
       )
       .post("/api/v1/properties/:property/inventory/unit-types", ({ request, params, body, tenantContext }) =>
         withOperatorTenant(request, (context) => operator.createUnitType(context, params.property, body))
