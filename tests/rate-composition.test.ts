@@ -5,7 +5,9 @@ import {
   type RateOperationalBlockEvidence,
   type RateRestrictionEvidence,
   composeRateQuote,
+  composeRateStayQuote,
   deriveRateCompositionContext,
+  deriveRateStayCompositionContext,
   deriveRateEvaluationContext,
   evaluateRateModel,
   normalizeRateCompositionSpec,
@@ -433,5 +435,66 @@ describe("Order 068 rate policy and package composition", () => {
     const second = compose({ promotions: promo50 }, { selectedPromotionCodes: promo50.map(({ code }) => code) });
     expect(second.workUnits).toBeGreaterThan(first.workUnits);
     expect(second.workUnits).toBeLessThan(first.workUnits * 2.2);
+  });
+
+  test("Order 070 P1: whole-stay composition sums nights and applies stay choices once", () => {
+    const evaluatorSpec = normalizeRateEvaluatorSpec({
+      modelKey: "simple-fixed",
+      currency: "USD",
+      base: { kind: "fixed", amountMinor: 10_000n },
+      gate: {},
+      rules: [],
+    });
+    const contexts = ["2026-03-08", "2026-03-09"].map((nightDate) => deriveRateEvaluationContext({
+      propertyTimeZone: "America/New_York",
+      bookingInstant: "2026-03-07T23:30:00.000Z",
+      stayStartInstant: "2026-03-08T06:30:00.000Z",
+      stayEndInstant: "2026-03-10T05:00:00.000Z",
+      nightDate,
+    }));
+    const rateEvaluations = contexts.map((evaluationContext) => ({
+      nightDate: evaluationContext.nightDate,
+      evaluationContext,
+      evaluationResult: evaluateRateModel(evaluatorSpec, evaluationContext),
+    }));
+    const spec = normalizeRateCompositionSpec(compositionSpec({
+      package: packageSpec(false),
+      promotions: [promotion("ONCE", 1, 1, "room_and_extras", { kind: "amount", amountMinor: 100n })],
+    }));
+    const context = deriveRateStayCompositionContext({
+      rateEvaluatorSpec: evaluatorSpec,
+      rateEvaluations: [...rateEvaluations].reverse(),
+      guests: { adults: 2, childAges: [7] },
+      selectedPromotionCodes: ["ONCE"],
+      policyEvidence: policyEvidence(),
+      mandatoryPolicyEvidence: [
+        { key: "jurisdiction-registration", evidenceRef: "compliance:registration-v5" },
+      ],
+      availabilityEvidence: availability(),
+      channelCode: "direct",
+      channelMappingEvidenceRef: null,
+    });
+    const result = composeRateStayQuote(spec, context);
+    expect(result).toMatchObject({
+      state: "quoted",
+      roomAmountMinor: 20_000n,
+      packageExtraMinor: 3_800n,
+      promotionDiscountMinor: 100n,
+      preTaxSubtotalMinor: 23_700n,
+      appliedPromotionCodes: ["ONCE"],
+    });
+    expect(result.rateEvaluations.map(({ nightDate, evaluationResult }) => ({
+      nightDate,
+      amountMinor: evaluationResult.amountMinor,
+    }))).toEqual([
+      { nightDate: "2026-03-08", amountMinor: 10_000n },
+      { nightDate: "2026-03-09", amountMinor: 10_000n },
+    ]);
+    expect(() => deriveRateStayCompositionContext({ ...context, rateEvaluations: rateEvaluations.slice(0, 1) }))
+      .toThrow(RateCompositionError);
+    expect(() => deriveRateStayCompositionContext({
+      ...context,
+      rateEvaluations: [rateEvaluations[0], rateEvaluations[0]],
+    })).toThrow(RateCompositionError);
   });
 });

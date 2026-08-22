@@ -103,7 +103,7 @@ means only that this model returns no price—it does not close inventory or ove
 Occupancy-responsive pricing consumes a bounded basis-point metric with an evidence reference. It
 never reads, creates or releases occupancy. Matrix and contract evaluation consume the frozen
 Order 066 targeting result and never recalculate its physical/commercial precedence. Package/policy,
-approval/publication and governed RMS/API binding remain later contracts.
+approval/publication and governed RMS/API binding are bound by the contracts below.
 
 ## 9. Pure rate quote composition
 
@@ -147,6 +147,42 @@ is never mutated. RMS/API binding, HTTP routes, tax calculation and reservation 
 separate later contracts.
 
 The release schema reserves a required nullable `rms_binding` so the immutable extension type does
-not need a divergent schema after deployment. Order 069 always stores `null`. The strict future
-object names only adapter key/version, a recommendation-age ceiling and local-evaluator outage
-fallback; Order 070 must prove that path before any non-null value is accepted.
+not need a divergent schema after deployment. The strict object names only adapter key/version, a
+recommendation-age ceiling and local-evaluator outage fallback. Order 070 permits a non-null value
+only for the matching RMS/API model and evaluator with explicit floor and ceiling guards.
+
+## 11. Universal stay quote and governed recommendation port
+
+Order 070 binds one active immutable release to live tenant-scoped PostgreSQL evidence. The internal
+quote query accepts only property, active plan, exact sellable, UTC stay instants, guest mix,
+selected promotions, Order 066 commercial identity and channel. Tenant, transaction time, target
+winner, availability, restrictions, occupancy signal, policy records, channel mappings, tax
+assignments, reference prices and RMS evidence are server-derived and cannot be supplied by callers.
+
+Every property-local night is evaluated once. Fixed/calendar, BAR/parent, matrix, occupancy/LOS,
+contract and expert rules use the published target and evaluator versions. BAR and parent bases name
+an exact published release id/version in the same property and currency; retired versions remain
+readable for reproducibility, while drafts, cycles and chains deeper than 16 fail closed. The room
+nights are summed with exact bigint arithmetic before package rhythms and selected promotions are
+applied once to the complete stay.
+
+`availability_projection` contributes an attributable occupancy signal only; canonical physical
+availability, restriction and OOO/OOS evaluation still decides bookability. Quote evidence retains
+the full projection row signal for every night. Policy ids, the exact pair of non-direct channel
+mappings and a configured/partial/none tax-assignment result for every night stay visible. The
+result remains pre-tax: an assignment is evidence of configuration, never an invented calculation.
+
+RMS/API-managed releases name one exact registered adapter key/version, maximum evidence age and
+local-evaluator outage fallback. A response must repeat the complete quote scope and provide exact
+bigint money plus its observation and evidence identity. Missing, unavailable, thrown or stale
+recommendations visibly fall back to the governed local evaluator. Malformed, future or mismatched
+responses fail. Accepted recommendations replace only the base; hotel-authored rules, manual
+`replace` rules, floor and ceiling still run afterward.
+
+Hotels choose one catalogue model—simple fixed, calendar, BAR ladder, derived, room matrix,
+occupancy/LOS, contract, package, RMS/API or bounded expert composition—and author it in Guided,
+Expert or AI-assisted mode. Those modes are different editors over the same typed draft, preview,
+four-eyes publication and immutable version history. Hotels can configure commercial targeting,
+date/DOW/booking-window/LOS/occupancy rules, guest/package/promotion/policy/distribution choices and
+explicit priorities. They cannot disable tenant isolation, authoritative availability/restrictions,
+exact money, audit/publication history, tax/fiscal evidence boundaries or statutory safeguards.

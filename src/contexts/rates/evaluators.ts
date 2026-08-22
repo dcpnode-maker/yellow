@@ -1,4 +1,8 @@
 import type { RateModelKey } from "./models";
+import type {
+  RateRecommendationFallbackReason,
+  RateRecommendationResolution,
+} from "./recommendations";
 import type { RateTargetResolution } from "./targeting";
 
 const MAX_BIGINT = 9_223_372_036_854_775_807n;
@@ -23,7 +27,7 @@ export const DIRECT_RATE_EVALUATOR_MODELS = Object.freeze([
 ] as const);
 
 export type DirectRateEvaluatorModel = (typeof DIRECT_RATE_EVALUATOR_MODELS)[number];
-export type RateEvaluatorModel = DirectRateEvaluatorModel | "expert-composition";
+export type RateEvaluatorModel = DirectRateEvaluatorModel | "expert-composition" | "rms-api-managed";
 
 export class RateEvaluationError extends Error {
   constructor(message: string) {
@@ -120,6 +124,7 @@ export interface RateEvaluationContext {
   readonly occupancyEvidenceRef: string | null;
   readonly barLevel: string | null;
   readonly reference: RateReferenceEvidence | null;
+  readonly recommendation: RateRecommendationResolution | null;
   readonly targetResolution: RateTargetResolution | null;
 }
 
@@ -396,10 +401,11 @@ function normalizeRules(value: unknown): readonly RateEvaluatorRule[] {
 
 function requireModel(value: unknown): RateEvaluatorModel {
   if (typeof value !== "string") throw new RateEvaluationError("modelKey must be a supported evaluator model");
-  if (value === "package" || value === "rms-api-managed") {
+  if (value === "package") {
     throw new RateEvaluationError(`${value} evaluation is deferred to a later order`);
   }
-  if (!DIRECT_RATE_EVALUATOR_MODELS.includes(value as DirectRateEvaluatorModel) && value !== "expert-composition") {
+  if (!DIRECT_RATE_EVALUATOR_MODELS.includes(value as DirectRateEvaluatorModel) &&
+      value !== "expert-composition" && value !== "rms-api-managed") {
     throw new RateEvaluationError("modelKey must be a supported evaluator model");
   }
   return value as RateEvaluatorModel;
@@ -446,6 +452,9 @@ function validateModelContract(spec: RateEvaluatorSpec): void {
   }
   if (modelKey === "contract-negotiated" && eligibleTargetRuleKeys.length < 1) {
     throw new RateEvaluationError("contract-negotiated requires eligible target rule keys");
+  }
+  if (modelKey === "rms-api-managed" && (spec.floorMinor === null || spec.ceilingMinor === null)) {
+    throw new RateEvaluationError("rms-api-managed requires explicit floorMinor and ceilingMinor guards");
   }
   if (modelKey !== "contract-negotiated" && modelKey !== "expert-composition" && eligibleTargetRuleKeys.length > 0) {
     throw new RateEvaluationError("eligible target rule keys are only valid for contract or expert models");
@@ -546,6 +555,59 @@ function normalizeReference(value: unknown): RateReferenceEvidence {
   });
 }
 
+function normalizeRecommendation(value: unknown): RateRecommendationResolution {
+  if (!Object.isFrozen(value)) {
+    throw new RateEvaluationError("recommendation must be a frozen governed adapter result");
+  }
+  const source = requireObject(value, "rate recommendation evidence");
+  if (source.state === "fallback") {
+    requireOnlyKeys(source, ["state", "adapterKey", "adapterVersion", "reason"], "rate recommendation fallback");
+    const reasons = ["adapter_missing", "adapter_unavailable", "adapter_error", "stale"];
+    if (typeof source.reason !== "string" || !reasons.includes(source.reason)) {
+      throw new RateEvaluationError("rate recommendation fallback reason is invalid");
+    }
+    return Object.freeze({
+      state: "fallback",
+      adapterKey: requireStableKey("recommendation.adapterKey", source.adapterKey),
+      adapterVersion: requireInteger("recommendation.adapterVersion", source.adapterVersion, 1, Number.MAX_SAFE_INTEGER),
+      reason: source.reason as RateRecommendationFallbackReason,
+    }) as RateRecommendationResolution;
+  }
+  if (source.state !== "accepted") {
+    throw new RateEvaluationError("rate recommendation state must be accepted or fallback");
+  }
+  const fields = [
+    "state", "adapterKey", "adapterVersion", "recommendationId", "recommendationVersion", "observedAt",
+    "tenantId", "propertyNode", "ratePlanId", "releaseId", "releaseVersion", "sellableUnitId",
+    "unitTypeId", "nightDate", "currency", "amountMinor", "evidenceRef",
+  ];
+  requireOnlyKeys(source, fields, "accepted rate recommendation");
+  return Object.freeze({
+    state: "accepted",
+    adapterKey: requireStableKey("recommendation.adapterKey", source.adapterKey),
+    adapterVersion: requireInteger("recommendation.adapterVersion", source.adapterVersion, 1, Number.MAX_SAFE_INTEGER),
+    recommendationId: requireStableKey("recommendation.recommendationId", source.recommendationId),
+    recommendationVersion: requireInteger(
+      "recommendation.recommendationVersion",
+      source.recommendationVersion,
+      1,
+      Number.MAX_SAFE_INTEGER,
+    ),
+    observedAt: requireInstant("recommendation.observedAt", source.observedAt).text,
+    tenantId: requireUuid("recommendation.tenantId", source.tenantId),
+    propertyNode: requireUuid("recommendation.propertyNode", source.propertyNode),
+    ratePlanId: requireUuid("recommendation.ratePlanId", source.ratePlanId),
+    releaseId: requireUuid("recommendation.releaseId", source.releaseId),
+    releaseVersion: requireInteger("recommendation.releaseVersion", source.releaseVersion, 1, Number.MAX_SAFE_INTEGER),
+    sellableUnitId: requireUuid("recommendation.sellableUnitId", source.sellableUnitId),
+    unitTypeId: requireUuid("recommendation.unitTypeId", source.unitTypeId),
+    nightDate: requireDate("recommendation.nightDate", source.nightDate),
+    currency: requireCurrency(source.currency),
+    amountMinor: requireAmount("recommendation.amountMinor", source.amountMinor),
+    evidenceRef: requireStableKey("recommendation.evidenceRef", source.evidenceRef),
+  });
+}
+
 function normalizeTargetResolution(value: unknown): RateTargetResolution {
   if (!Object.isFrozen(value)) {
     throw new RateEvaluationError("targetResolution must be a frozen Order 066 result");
@@ -614,6 +676,7 @@ export function deriveRateEvaluationContext(value: unknown): RateEvaluationConte
     "occupancyEvidenceRef",
     "barLevel",
     "reference",
+    "recommendation",
     "targetResolution",
   ], "rate evaluation context");
   if (typeof source.propertyTimeZone !== "string" || source.propertyTimeZone.length < 1 || source.propertyTimeZone.length > 100) {
@@ -657,6 +720,7 @@ export function deriveRateEvaluationContext(value: unknown): RateEvaluationConte
   const nightDay = new Date(`${nightDate}T00:00:00.000Z`).getUTCDay();
   const nightDowMask = nightDay === 0 ? 64 : 1 << (nightDay - 1);
   const reference = source.reference === undefined ? null : normalizeReference(source.reference);
+  const recommendation = source.recommendation === undefined ? null : normalizeRecommendation(source.recommendation);
   const targetResolution = source.targetResolution === undefined ? null : normalizeTargetResolution(source.targetResolution);
   return Object.freeze({
     propertyTimeZone: source.propertyTimeZone,
@@ -674,6 +738,7 @@ export function deriveRateEvaluationContext(value: unknown): RateEvaluationConte
     occupancyEvidenceRef,
     barLevel: source.barLevel === undefined ? null : requireBarLevel(source.barLevel),
     reference,
+    recommendation,
     targetResolution,
   });
 }
@@ -757,6 +822,7 @@ function requireEvaluationContext(value: unknown): RateEvaluationContext {
     "occupancyEvidenceRef",
     "barLevel",
     "reference",
+    "recommendation",
     "targetResolution",
   ], "derived rate evaluation context");
   const raw: JsonObject = {
@@ -772,6 +838,7 @@ function requireEvaluationContext(value: unknown): RateEvaluationContext {
   }
   if (value.barLevel !== null) raw.barLevel = value.barLevel;
   if (value.reference !== null) raw.reference = value.reference;
+  if (value.recommendation !== null) raw.recommendation = value.recommendation;
   if (value.targetResolution !== null) raw.targetResolution = value.targetResolution;
   const rebuilt = deriveRateEvaluationContext(raw);
   for (const field of [
@@ -790,12 +857,57 @@ function requireEvaluationContext(value: unknown): RateEvaluationContext {
 }
 
 function resolveBase(
+  spec: RateEvaluatorSpec,
+  context: RateEvaluationContext,
+  work: { units: number },
+): { amountMinor: bigint; evidence: Readonly<Record<string, unknown>> } | { reason: string } {
+  const { base, currency } = spec;
+  work.units += 1;
+  if (spec.modelKey === "rms-api-managed") {
+    const recommendation = context.recommendation;
+    if (!recommendation) throw new RateEvaluationError("rms-api-managed requires governed recommendation evidence");
+    if (recommendation.state === "accepted") {
+      if (recommendation.currency !== currency || recommendation.nightDate !== context.nightDate) {
+        throw new RateEvaluationError("accepted recommendation does not match evaluator currency and night");
+      }
+      return {
+        amountMinor: recommendation.amountMinor,
+        evidence: Object.freeze({
+          kind: "external_recommendation",
+          adapterKey: recommendation.adapterKey,
+          adapterVersion: recommendation.adapterVersion,
+          recommendationId: recommendation.recommendationId,
+          recommendationVersion: recommendation.recommendationVersion,
+          observedAt: recommendation.observedAt,
+          evidenceRef: recommendation.evidenceRef,
+        }),
+      };
+    }
+    const local = resolveLocalBase(base, currency, context, work);
+    if ("reason" in local) return local;
+    return {
+      amountMinor: local.amountMinor,
+      evidence: Object.freeze({
+        kind: "local_evaluator_fallback",
+        adapterKey: recommendation.adapterKey,
+        adapterVersion: recommendation.adapterVersion,
+        reason: recommendation.reason,
+        local: local.evidence,
+      }),
+    };
+  }
+  if (context.recommendation !== null) {
+    throw new RateEvaluationError("recommendation evidence is only valid for rms-api-managed");
+  }
+  return resolveLocalBase(base, currency, context, work);
+}
+
+function resolveLocalBase(
   base: RateEvaluatorBase,
   currency: string,
   context: RateEvaluationContext,
   work: { units: number },
 ): { amountMinor: bigint; evidence: Readonly<Record<string, unknown>> } | { reason: string } {
-  work.units += 1;
   if (base.kind === "fixed") {
     return { amountMinor: base.amountMinor, evidence: Object.freeze({ kind: "fixed" }) };
   }
@@ -877,7 +989,7 @@ export function evaluateRateModel(specValue: unknown, contextValue: unknown): Ra
       targetRuleKey: winningTargetKey,
     });
   }
-  const base = resolveBase(spec.base, spec.currency, context, work);
+  const base = resolveBase(spec, context, work);
   if ("reason" in base) {
     return result("unpriced", spec.currency, work.units, {
       reason: base.reason,

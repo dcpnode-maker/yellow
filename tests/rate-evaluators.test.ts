@@ -2,6 +2,8 @@ import { describe, expect, test } from "bun:test";
 
 import {
   RateEvaluationError,
+  RateRecommendationError,
+  RateRecommendationRegistry,
   deriveRateEvaluationContext,
   evaluateRateModel,
   normalizeRateEvaluatorSpec,
@@ -14,6 +16,9 @@ const UNIT_TYPE = "00000000-0000-0000-0000-000000006701";
 const SELLABLE = "00000000-0000-0000-0000-000000006702";
 const PARENT_PLAN = "00000000-0000-0000-0000-000000006703";
 const BAR_SOURCE = "00000000-0000-0000-0000-000000006704";
+const TENANT = "00000000-0000-0000-0000-000000006705";
+const RATE_PLAN = "00000000-0000-0000-0000-000000006706";
+const RELEASE = "00000000-0000-0000-0000-000000006707";
 
 function evaluationContext(overrides: Record<string, unknown> = {}) {
   return deriveRateEvaluationContext({
@@ -540,5 +545,113 @@ describe("Order 067 typed exact-money evaluators", () => {
     expect(second.state).toBe("priced");
     expect(second.workUnits).toBeLessThan(first.workUnits * 2.2);
     expect(second.workUnits).toBeGreaterThan(first.workUnits);
+  });
+
+  test("Order 070 P4: governed RMS evidence cannot bypass local rules or guards", async () => {
+    const request = Object.freeze({
+      tenantId: TENANT,
+      propertyNode: PROPERTY,
+      ratePlanId: RATE_PLAN,
+      releaseId: RELEASE,
+      releaseVersion: 4,
+      sellableUnitId: SELLABLE,
+      unitTypeId: UNIT_TYPE,
+      nightDate: "2026-03-09",
+      currency: "USD",
+      bookingInstant: "2026-03-07T23:30:00.000Z",
+    });
+    const binding = Object.freeze({
+      adapterKey: "trusted-rms",
+      adapterVersion: 3,
+      maximumAgeSeconds: 300,
+      outageFallback: "local_evaluator" as const,
+    });
+    const registry = new RateRecommendationRegistry([{
+      adapterKey: "trusted-rms",
+      adapterVersion: 3,
+      async recommend(scope) {
+        const { bookingInstant: _bookingInstant, ...responseScope } = scope;
+        return {
+          ...responseScope,
+          adapterKey: "trusted-rms",
+          adapterVersion: 3,
+          recommendationId: "recommendation-42",
+          recommendationVersion: 7,
+          observedAt: scope.bookingInstant,
+          amountMinor: 15_000n,
+          evidenceRef: "rms:recommendation-42-v7",
+        };
+      },
+    }]);
+    const accepted = await registry.resolve(binding, request);
+    const guardedSpec = normalizeRateEvaluatorSpec({
+      modelKey: "rms-api-managed",
+      currency: "USD",
+      base: { kind: "fixed", amountMinor: 7_000n },
+      gate: {},
+      rules: [rule("hotel-uplift", { kind: "delta", amountMinor: 1_000n })],
+      floorMinor: 9_000n,
+      ceilingMinor: 12_000n,
+    });
+    expect(evaluateRateModel(guardedSpec, evaluationContext({ recommendation: accepted }))).toMatchObject({
+      state: "priced",
+      amountMinor: 12_000n,
+      appliedRuleKeys: ["hotel-uplift"],
+      appliedGuards: ["ceiling"],
+      baseEvidence: {
+        kind: "external_recommendation",
+        adapterKey: "trusted-rms",
+        adapterVersion: 3,
+        recommendationId: "recommendation-42",
+        recommendationVersion: 7,
+      },
+    });
+
+    const manualSpec = normalizeRateEvaluatorSpec({
+      ...guardedSpec,
+      rules: [rule("manual-replace", { kind: "replace", amountMinor: 11_000n })],
+    });
+    expect(evaluateRateModel(manualSpec, evaluationContext({ recommendation: accepted }))).toMatchObject({
+      amountMinor: 11_000n,
+      appliedRuleKeys: ["manual-replace"],
+      appliedGuards: [],
+    });
+
+    const fallback = await new RateRecommendationRegistry().resolve(binding, request);
+    expect(evaluateRateModel(guardedSpec, evaluationContext({ recommendation: fallback }))).toMatchObject({
+      amountMinor: 9_000n,
+      appliedRuleKeys: ["hotel-uplift"],
+      appliedGuards: ["floor"],
+      baseEvidence: {
+        kind: "local_evaluator_fallback",
+        reason: "adapter_missing",
+      },
+    });
+    expect(() => evaluateRateModel(fixedSpec(), evaluationContext({ recommendation: accepted })))
+      .toThrow(RateEvaluationError);
+    expect(() => normalizeRateEvaluatorSpec({
+      ...guardedSpec,
+      floorMinor: null,
+    })).toThrow(RateEvaluationError);
+
+    const forged = new RateRecommendationRegistry([{
+      adapterKey: "trusted-rms",
+      adapterVersion: 3,
+      async recommend(scope) {
+        const { bookingInstant: _bookingInstant, ...responseScope } = scope;
+        return {
+          ...responseScope,
+          tenantId: crypto.randomUUID(),
+          adapterKey: "trusted-rms",
+          adapterVersion: 3,
+          recommendationId: "forged",
+          recommendationVersion: 1,
+          observedAt: scope.bookingInstant,
+          amountMinor: 1n,
+          evidenceRef: "rms:forged",
+        };
+      },
+    }]);
+    await expect(forged.resolve(binding, request)).rejects.toBeInstanceOf(RateRecommendationError);
   });
 });

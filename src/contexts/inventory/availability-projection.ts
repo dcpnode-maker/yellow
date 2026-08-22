@@ -29,6 +29,18 @@ export interface AvailabilityProjectionStatus {
   readonly updatedAt: string | null;
 }
 
+export interface AvailabilityOccupancySignal {
+  readonly propertyNode: string;
+  readonly unitTypeId: string;
+  readonly stayDate: string;
+  readonly basisPoints: number;
+  readonly sellableCapacity: number;
+  readonly sold: number;
+  readonly held: number;
+  readonly updatedAt: string;
+  readonly evidenceRef: string;
+}
+
 interface PropertyRow {
   readonly id: string;
   readonly oos_sellability: "blocked" | "allowed" | null;
@@ -45,6 +57,15 @@ interface StatusRow {
   readonly rows: number;
   readonly unit_types: number;
   readonly updated_at: string | null;
+}
+
+interface OccupancySignalRow {
+  readonly physical: number;
+  readonly sold: number;
+  readonly held: number;
+  readonly blocked: number;
+  readonly ooo: number;
+  readonly updated_at: Date;
 }
 
 function exactDate(name: string, value: string): number {
@@ -71,6 +92,48 @@ function validate(input: RebuildAvailabilityProjectionInput): void {
 }
 
 export class AvailabilityProjectionService {
+  async occupancySignal(
+    tx: Tx,
+    propertyNode: string,
+    unitTypeId: string,
+    stayDate: string,
+  ): Promise<AvailabilityOccupancySignal | null> {
+    if (!UUID.test(propertyNode)) throw new InventoryValidationError("propertyNode must be a UUID");
+    if (!UUID.test(unitTypeId)) throw new InventoryValidationError("unitTypeId must be a UUID");
+    exactDate("stayDate", stayDate);
+    const rows = await tx.unsafe<OccupancySignalRow[]>(`
+      SELECT physical, sold, held, blocked, ooo, updated_at
+      FROM availability_projection
+      WHERE tenant_id = current_setting('app.tenant_id', true)::uuid
+        AND property_node = $1::uuid
+        AND unit_type_id = $2::uuid
+        AND stay_date = $3::date
+    `, [propertyNode, unitTypeId, stayDate]);
+    const row = rows[0];
+    if (!row) return null;
+    const counts = [row.physical, row.sold, row.held, row.blocked, row.ooo];
+    if (counts.some((value) => !Number.isSafeInteger(value) || value < 0) ||
+        !(row.updated_at instanceof Date) || !Number.isFinite(row.updated_at.getTime())) {
+      throw new Error("Availability projection returned invalid occupancy signal evidence");
+    }
+    const sellableCapacity = Math.max(row.physical - row.blocked - row.ooo, 0);
+    const basisPoints = sellableCapacity === 0
+      ? 10_000
+      : Math.min(10_000, Math.floor(((row.sold + row.held) * 10_000) / sellableCapacity));
+    const updatedAt = row.updated_at.toISOString();
+    return Object.freeze({
+      propertyNode,
+      unitTypeId,
+      stayDate,
+      basisPoints,
+      sellableCapacity,
+      sold: row.sold,
+      held: row.held,
+      updatedAt,
+      evidenceRef: `projection:${unitTypeId}:${stayDate}:${row.updated_at.getTime()}`,
+    });
+  }
+
   async status(tx: Tx, propertyNode: string): Promise<AvailabilityProjectionStatus> {
     if (!UUID.test(propertyNode)) {
       throw new InventoryValidationError("propertyNode must be a UUID");

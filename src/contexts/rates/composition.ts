@@ -201,6 +201,28 @@ export interface RateCompositionResult {
   readonly workUnits: number;
 }
 
+export interface RateStayNightEvaluation {
+  readonly nightDate: string;
+  readonly evaluationContext: RateEvaluationContext;
+  readonly evaluationResult: RateEvaluationResult;
+}
+
+export interface RateStayCompositionContext {
+  readonly rateEvaluatorSpec: RateEvaluatorSpec;
+  readonly rateEvaluations: readonly RateStayNightEvaluation[];
+  readonly guests: RateGuestMix;
+  readonly selectedPromotionCodes: readonly string[];
+  readonly policyEvidence: readonly RatePolicyEvidence[];
+  readonly mandatoryPolicyEvidence: readonly RateMandatoryPolicyEvidence[];
+  readonly availabilityEvidence: RateAvailabilityEvidence;
+  readonly channelCode: string;
+  readonly channelMappingEvidenceRef: string | null;
+}
+
+export interface RateStayCompositionResult extends Omit<RateCompositionResult, "rateEvaluation"> {
+  readonly rateEvaluations: readonly RateStayNightEvaluation[];
+}
+
 type JsonObject = Record<string, unknown>;
 
 function isObject(value: unknown): value is JsonObject {
@@ -492,6 +514,7 @@ function canonicalRateEvaluationContext(value: unknown): RateEvaluationContext {
     "occupancyEvidenceRef",
     "barLevel",
     "reference",
+    "recommendation",
     "targetResolution",
   ], "rateEvaluationContext");
   const raw: JsonObject = {
@@ -507,6 +530,7 @@ function canonicalRateEvaluationContext(value: unknown): RateEvaluationContext {
   }
   if (source.barLevel !== null) raw.barLevel = source.barLevel;
   if (source.reference !== null) raw.reference = source.reference;
+  if (source.recommendation !== null) raw.recommendation = source.recommendation;
   if (source.targetResolution !== null) raw.targetResolution = source.targetResolution;
   const canonical = deriveRateEvaluationContext(raw);
   if (!exactEqual(canonical, source)) {
@@ -956,4 +980,193 @@ export function composeRateQuote(specValue: unknown, contextValue: unknown): Rat
     appliedPromotionCodes: Object.freeze(appliedPromotionCodes),
     packageEvidence: packageResult.evidence,
   });
+}
+
+function addLocalDays(value: string, days: number): string {
+  const next = new Date(`${value}T00:00:00.000Z`);
+  next.setUTCDate(next.getUTCDate() + days);
+  return next.toISOString().slice(0, 10);
+}
+
+export function deriveRateStayCompositionContext(value: unknown): RateStayCompositionContext {
+  const source = requireObject(value, "rate stay composition context");
+  const fields = [
+    "rateEvaluatorSpec",
+    "rateEvaluations",
+    "guests",
+    "selectedPromotionCodes",
+    "policyEvidence",
+    "mandatoryPolicyEvidence",
+    "availabilityEvidence",
+    "channelCode",
+    "channelMappingEvidenceRef",
+  ];
+  requireOnlyKeys(source, fields, "rate stay composition context");
+  requireFields(source, fields, "rate stay composition context");
+  if (!Array.isArray(source.rateEvaluations) || source.rateEvaluations.length < 1 ||
+      source.rateEvaluations.length > 730) {
+    throw new RateCompositionError("rateEvaluations must contain 1 to 730 room-nights");
+  }
+  const canonicalNights = source.rateEvaluations.map((value, index) => {
+    const night = requireObject(value, `rateEvaluations ${index}`);
+    requireOnlyKeys(night, ["nightDate", "evaluationContext", "evaluationResult"], `rateEvaluations ${index}`);
+    requireFields(night, ["nightDate", "evaluationContext", "evaluationResult"], `rateEvaluations ${index}`);
+    const canonical = deriveRateCompositionContext({
+      rateEvaluatorSpec: source.rateEvaluatorSpec,
+      rateEvaluationContext: night.evaluationContext,
+      rateEvaluationResult: night.evaluationResult,
+      guests: source.guests,
+      selectedPromotionCodes: source.selectedPromotionCodes,
+      policyEvidence: source.policyEvidence,
+      mandatoryPolicyEvidence: source.mandatoryPolicyEvidence,
+      availabilityEvidence: source.availabilityEvidence,
+      channelCode: source.channelCode,
+      channelMappingEvidenceRef: source.channelMappingEvidenceRef,
+    });
+    if (typeof night.nightDate !== "string" || night.nightDate !== canonical.rateEvaluationContext.nightDate) {
+      throw new RateCompositionError(`rateEvaluations ${index}.nightDate must match its canonical evaluation context`);
+    }
+    return Object.freeze({
+      nightDate: night.nightDate,
+      evaluationContext: canonical.rateEvaluationContext,
+      evaluationResult: canonical.rateEvaluationResult,
+      common: canonical,
+    });
+  }).sort((left, right) => left.nightDate.localeCompare(right.nightDate));
+  if (new Set(canonicalNights.map(({ nightDate }) => nightDate)).size !== canonicalNights.length) {
+    throw new RateCompositionError("rateEvaluations nightDate values must be unique");
+  }
+  const first = canonicalNights[0]!;
+  const expectedNights = first.evaluationContext.losNights;
+  if (canonicalNights.length !== expectedNights) {
+    throw new RateCompositionError("rateEvaluations must cover the complete property-local LOS");
+  }
+  for (let index = 0; index < canonicalNights.length; index += 1) {
+    const current = canonicalNights[index]!;
+    if (current.nightDate !== addLocalDays(first.evaluationContext.stayStartDate, index)) {
+      throw new RateCompositionError("rateEvaluations must be consecutive from stay start through stay end");
+    }
+    for (const field of [
+      "propertyTimeZone",
+      "bookingInstant",
+      "stayStartInstant",
+      "stayEndInstant",
+      "stayStartDate",
+      "stayEndDate",
+      "bookingDate",
+      "bookingWindowDays",
+      "losNights",
+    ] as const) {
+      if (current.evaluationContext[field] !== first.evaluationContext[field]) {
+        throw new RateCompositionError(`rateEvaluations must share canonical ${field}`);
+      }
+    }
+  }
+  return Object.freeze({
+    rateEvaluatorSpec: first.common.rateEvaluatorSpec,
+    rateEvaluations: Object.freeze(canonicalNights.map(({ common: _common, ...night }) => Object.freeze(night))),
+    guests: first.common.guests,
+    selectedPromotionCodes: first.common.selectedPromotionCodes,
+    policyEvidence: first.common.policyEvidence,
+    mandatoryPolicyEvidence: first.common.mandatoryPolicyEvidence,
+    availabilityEvidence: first.common.availabilityEvidence,
+    channelCode: first.common.channelCode,
+    channelMappingEvidenceRef: first.common.channelMappingEvidenceRef,
+  });
+}
+
+function stayNightContext(
+  context: RateStayCompositionContext,
+  night: RateStayNightEvaluation,
+): RateCompositionContext {
+  return deriveRateCompositionContext({
+    rateEvaluatorSpec: context.rateEvaluatorSpec,
+    rateEvaluationContext: night.evaluationContext,
+    rateEvaluationResult: night.evaluationResult,
+    guests: context.guests,
+    selectedPromotionCodes: context.selectedPromotionCodes,
+    policyEvidence: context.policyEvidence,
+    mandatoryPolicyEvidence: context.mandatoryPolicyEvidence,
+    availabilityEvidence: context.availabilityEvidence,
+    channelCode: context.channelCode,
+    channelMappingEvidenceRef: context.channelMappingEvidenceRef,
+  });
+}
+
+function stayResult(
+  result: RateCompositionResult,
+  nights: readonly RateStayNightEvaluation[],
+): RateStayCompositionResult {
+  const { rateEvaluation: _rateEvaluation, ...values } = result;
+  const nightlyWork = nights.reduce((total, night) => total + night.evaluationResult.workUnits, 0);
+  return Object.freeze({
+    ...values,
+    workUnits: result.workUnits + nightlyWork,
+    rateEvaluations: nights,
+  });
+}
+
+export function composeRateStayQuote(
+  specValue: unknown,
+  contextValue: unknown,
+): RateStayCompositionResult {
+  if (!Object.isFrozen(contextValue)) {
+    throw new RateCompositionError("stay context must come from deriveRateStayCompositionContext");
+  }
+  const context = deriveRateStayCompositionContext(contextValue);
+  if (!exactEqual(context, contextValue)) {
+    throw new RateCompositionError("stay context does not match its canonical derived form");
+  }
+  const spec = canonicalCompositionSpec(specValue);
+  const first = context.rateEvaluations[0]!;
+  if (!context.availabilityEvidence.bookable) {
+    return stayResult(composeRateQuote(spec, stayNightContext(context, first)), context.rateEvaluations);
+  }
+  const conflict = context.rateEvaluations.find(({ evaluationResult }) => evaluationResult.state === "conflict");
+  if (conflict) {
+    return stayResult(composeRateQuote(spec, stayNightContext(context, conflict)), context.rateEvaluations);
+  }
+  const unpriced = context.rateEvaluations.find(({ evaluationResult }) => evaluationResult.state === "unpriced");
+  if (unpriced) {
+    return stayResult(composeRateQuote(spec, stayNightContext(context, unpriced)), context.rateEvaluations);
+  }
+  let roomTotal = 0n;
+  for (const night of context.rateEvaluations) {
+    const amount = night.evaluationResult.amountMinor;
+    if (typeof amount !== "bigint" || amount < 0n) {
+      throw new RateCompositionError("priced stay room-night requires exact non-negative bigint money");
+    }
+    roomTotal = safeAdd(roomTotal, amount, "stay room total");
+  }
+  const aggregateSpec = normalizeRateEvaluatorSpec({
+    modelKey: "simple-fixed",
+    currency: context.rateEvaluatorSpec.currency,
+    base: { kind: "fixed", amountMinor: roomTotal },
+    gate: {},
+    rules: [],
+    floorMinor: null,
+    ceilingMinor: null,
+    eligibleTargetRuleKeys: [],
+  });
+  const aggregateContext = deriveRateEvaluationContext({
+    propertyTimeZone: first.evaluationContext.propertyTimeZone,
+    bookingInstant: first.evaluationContext.bookingInstant,
+    stayStartInstant: first.evaluationContext.stayStartInstant,
+    stayEndInstant: first.evaluationContext.stayEndInstant,
+    nightDate: first.nightDate,
+  });
+  const aggregateResult = evaluateRateModel(aggregateSpec, aggregateContext);
+  const aggregateCompositionContext = deriveRateCompositionContext({
+    rateEvaluatorSpec: aggregateSpec,
+    rateEvaluationContext: aggregateContext,
+    rateEvaluationResult: aggregateResult,
+    guests: context.guests,
+    selectedPromotionCodes: context.selectedPromotionCodes,
+    policyEvidence: context.policyEvidence,
+    mandatoryPolicyEvidence: context.mandatoryPolicyEvidence,
+    availabilityEvidence: context.availabilityEvidence,
+    channelCode: context.channelCode,
+    channelMappingEvidenceRef: context.channelMappingEvidenceRef,
+  });
+  return stayResult(composeRateQuote(spec, aggregateCompositionContext), context.rateEvaluations);
 }

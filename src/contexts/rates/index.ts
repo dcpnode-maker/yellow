@@ -83,7 +83,9 @@ export type {
 export {
   RateCompositionError,
   composeRateQuote,
+  composeRateStayQuote,
   deriveRateCompositionContext,
+  deriveRateStayCompositionContext,
   normalizeRateCompositionSpec,
 } from "./composition";
 export type {
@@ -112,7 +114,23 @@ export type {
   RatePromotionSpec,
   RateRestrictionEvidence,
   RateRestrictionEvidenceKind,
+  RateStayCompositionContext,
+  RateStayCompositionResult,
+  RateStayNightEvaluation,
 } from "./composition";
+export {
+  RateRecommendationError,
+  RateRecommendationRegistry,
+} from "./recommendations";
+export type {
+  AcceptedRateRecommendation,
+  FallbackRateRecommendation,
+  RateRecommendationAdapter,
+  RateRecommendationBinding,
+  RateRecommendationFallbackReason,
+  RateRecommendationRequest,
+  RateRecommendationResolution,
+} from "./recommendations";
 export {
   RATE_PLAN_RELEASE_EXTENSION_SCHEMA,
   RatePublicationConflictError,
@@ -123,12 +141,27 @@ export {
 export type {
   CreateRatePublicationDraftInput,
   CreateRatePublicationUndoInput,
+  EvaluateRateReleaseNightInput,
   PublishRatePublicationInput,
   RatePlanRelease,
   RatePublicationCellResult,
   RatePublicationPreviewCell,
   RatePublicationSimulation,
+  RateReleaseNightEvaluation,
   RateRmsBinding,
   RequestRatePublicationApprovalInput,
   SimulateRatePublicationInput,
 } from "./publication";
+export {
+  RateQuoteConflictError,
+  RateQuoteError,
+  RateQuoteNotFoundError,
+  RateQuoteService,
+} from "./quote";
+export type {
+  RateQuote,
+  RateQuoteGuestMixInput,
+  RateQuoteNightOccupancyEvidence,
+  RateQuoteTaxAssignmentEvidence,
+  ResolveRateQuoteInput,
+} from "./quote";

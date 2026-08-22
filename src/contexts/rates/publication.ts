@@ -25,6 +25,10 @@ import {
 } from "./evaluators";
 import { RateModelService, type RateModelDraft } from "./models";
 import {
+  RateRecommendationRegistry,
+  type RateRecommendationBinding,
+} from "./recommendations";
+import {
   RateTargetService,
   type RateTargetCommercial,
   type RateTargetResolution,
@@ -107,6 +111,7 @@ export interface CreateRatePublicationDraftInput {
   readonly targetDraftVersion: number;
   readonly evaluatorSpec: unknown;
   readonly compositionSpec: unknown;
+  readonly rmsBinding?: unknown;
   readonly envelope: AuditEnvelope;
 }
 
@@ -122,16 +127,35 @@ export interface RatePlanRelease {
   readonly evaluatorSpec: RateEvaluatorSpec;
   readonly compositionSpec: RateCompositionSpec;
   readonly rmsBinding: RateRmsBinding | null;
+  readonly contentHash: string;
   readonly extensionVersion: number;
   readonly status: ReleaseStatus;
   readonly undoOfVersion: number | null;
 }
 
-export interface RateRmsBinding {
-  readonly adapterKey: string;
-  readonly adapterVersion: number;
-  readonly maximumAgeSeconds: number;
-  readonly outageFallback: "local_evaluator";
+export interface RateRmsBinding extends RateRecommendationBinding {}
+
+export interface EvaluateRateReleaseNightInput {
+  readonly propertyTimeZone: string;
+  readonly bookingInstant: string;
+  readonly stayStartInstant: string;
+  readonly stayEndInstant: string;
+  readonly nightDate: string;
+  readonly occupancyBasisPoints?: number;
+  readonly occupancyEvidenceRef?: string;
+  readonly barLevel?: string;
+  readonly targetContext: Readonly<{
+    unitTypeId: string;
+    sellableUnitId: string | null;
+    commercial: RateTargetCommercial;
+  }>;
+}
+
+export interface RateReleaseNightEvaluation {
+  readonly release: RatePlanRelease;
+  readonly targetResolution: RateTargetResolution;
+  readonly evaluationContext: RateEvaluationContext;
+  readonly result: ReturnType<typeof evaluateRateModel>;
 }
 
 export interface RatePublicationPreviewCell {
@@ -359,6 +383,30 @@ function parseRmsBinding(value: unknown): RateRmsBinding | null {
   });
 }
 
+function normalizeRmsBinding(value: unknown): RateRmsBinding | null {
+  if (value === undefined || value === null) return null;
+  const source = requireObject(value, "RMS binding");
+  const fields = ["adapterKey", "adapterVersion", "maximumAgeSeconds", "outageFallback"];
+  requireOnlyKeys(source, fields, "RMS binding");
+  requireFields(source, fields, "RMS binding");
+  if (typeof source.adapterKey !== "string" || !STABLE_KEY.test(source.adapterKey)) {
+    throw new RatePublicationError("RMS adapterKey must be bounded stable lowercase text");
+  }
+  const maximumAgeSeconds = requireVersion("RMS maximumAgeSeconds", source.maximumAgeSeconds);
+  if (maximumAgeSeconds > 86_400) {
+    throw new RatePublicationError("RMS maximumAgeSeconds must not exceed 86400");
+  }
+  if (source.outageFallback !== "local_evaluator") {
+    throw new RatePublicationError("RMS outageFallback must be local_evaluator");
+  }
+  return Object.freeze({
+    adapterKey: source.adapterKey,
+    adapterVersion: requireVersion("RMS adapterVersion", source.adapterVersion),
+    maximumAgeSeconds,
+    outageFallback: "local_evaluator",
+  });
+}
+
 function parseReleaseContent(value: unknown): ReleaseContent {
   const source = requireObject(value, "stored rate release");
   const fields = [
@@ -434,6 +482,7 @@ function toRelease(row: ReleaseRow, content: ReleaseContent): RatePlanRelease {
     evaluatorSpec: content.evaluatorSpec,
     compositionSpec: content.compositionSpec,
     rmsBinding: content.rmsBinding,
+    contentHash: hashJson(content.encoded),
     extensionVersion: row.version,
     status: row.status,
     undoOfVersion: content.undoOfVersion,
@@ -495,7 +544,6 @@ function normalizePreviewCell(value: unknown, index: number): RatePublicationPre
     "occupancyBasisPoints",
     "occupancyEvidenceRef",
     "barLevel",
-    "reference",
   ], `preview cell ${index}.evaluationContext`);
   const target = requireObject(source.targetContext, `preview cell ${index}.targetContext`);
   requireOnlyKeys(target, ["unitTypeId", "sellableUnitId", "commercial"], `preview cell ${index}.targetContext`);
@@ -529,6 +577,60 @@ function normalizePreviewCells(value: unknown): readonly RatePublicationPreviewC
     throw new RatePublicationError("preview cell keys must be unique");
   }
   return Object.freeze([...cells].sort((left, right) => left.key.localeCompare(right.key)));
+}
+
+function normalizeReleaseNightInput(value: unknown): EvaluateRateReleaseNightInput {
+  const source = requireObject(value, "rate release night input");
+  const fields = [
+    "propertyTimeZone",
+    "bookingInstant",
+    "stayStartInstant",
+    "stayEndInstant",
+    "nightDate",
+    "occupancyBasisPoints",
+    "occupancyEvidenceRef",
+    "barLevel",
+    "targetContext",
+  ];
+  requireOnlyKeys(source, fields, "rate release night input");
+  requireFields(source, [
+    "propertyTimeZone", "bookingInstant", "stayStartInstant", "stayEndInstant", "nightDate", "targetContext",
+  ], "rate release night input");
+  const rawContext: JsonObject = {
+    propertyTimeZone: source.propertyTimeZone,
+    bookingInstant: source.bookingInstant,
+    stayStartInstant: source.stayStartInstant,
+    stayEndInstant: source.stayEndInstant,
+    nightDate: source.nightDate,
+  };
+  if (Object.hasOwn(source, "occupancyBasisPoints") || Object.hasOwn(source, "occupancyEvidenceRef")) {
+    rawContext.occupancyBasisPoints = source.occupancyBasisPoints;
+    rawContext.occupancyEvidenceRef = source.occupancyEvidenceRef;
+  }
+  if (Object.hasOwn(source, "barLevel")) rawContext.barLevel = source.barLevel;
+  const context = deriveRateEvaluationContext(rawContext);
+  const target = requireObject(source.targetContext, "rate release night targetContext");
+  requireOnlyKeys(target, ["unitTypeId", "sellableUnitId", "commercial"], "rate release night targetContext");
+  requireFields(target, ["unitTypeId", "sellableUnitId", "commercial"], "rate release night targetContext");
+  return Object.freeze({
+    propertyTimeZone: context.propertyTimeZone,
+    bookingInstant: context.bookingInstant,
+    stayStartInstant: context.stayStartInstant,
+    stayEndInstant: context.stayEndInstant,
+    nightDate: context.nightDate,
+    ...(context.occupancyBasisPoints === null ? {} : {
+      occupancyBasisPoints: context.occupancyBasisPoints,
+      occupancyEvidenceRef: context.occupancyEvidenceRef!,
+    }),
+    ...(context.barLevel === null ? {} : { barLevel: context.barLevel }),
+    targetContext: Object.freeze({
+      unitTypeId: requireUuid("targetContext.unitTypeId", target.unitTypeId),
+      sellableUnitId: target.sellableUnitId === null
+        ? null
+        : requireUuid("targetContext.sellableUnitId", target.sellableUnitId),
+      commercial: requireObject(target.commercial, "targetContext.commercial") as RateTargetCommercial,
+    }),
+  });
 }
 
 async function activeTenantId(tx: Tx): Promise<string> {
@@ -591,10 +693,16 @@ function validateModelCompatibility(
   rmsBinding: RateRmsBinding | null,
 ): void {
   if (model.modelKey === "rms-api-managed") {
-    throw new RatePublicationError("RMS/API managed publication is deferred to Order 070");
+    if (evaluator.modelKey !== "rms-api-managed" || rmsBinding === null) {
+      throw new RatePublicationError("RMS/API managed publication requires its exact evaluator and RMS binding");
+    }
+    if (evaluator.floorMinor === null || evaluator.ceilingMinor === null) {
+      throw new RatePublicationError("RMS/API managed publication requires explicit floor and ceiling guards");
+    }
+    return;
   }
   if (rmsBinding !== null) {
-    throw new RatePublicationError("RMS binding is reserved for Order 070");
+    throw new RatePublicationError("RMS binding is only valid for the RMS/API managed model");
   }
   if (model.modelKey === "package") {
     if (composition.package === null) throw new RatePublicationError("package model requires a package composition");
@@ -617,13 +725,20 @@ export class RatePublicationService {
   readonly #events: EventBus;
   readonly #models: RateModelService;
   readonly #targets: RateTargetService;
+  readonly #recommendations: RateRecommendationRegistry;
 
-  constructor(registry: ExtensionRegistry, approvals: ApprovalService, events: EventBus) {
+  constructor(
+    registry: ExtensionRegistry,
+    approvals: ApprovalService,
+    events: EventBus,
+    recommendations: RateRecommendationRegistry = new RateRecommendationRegistry(),
+  ) {
     this.#registry = registry;
     this.#approvals = approvals;
     this.#events = events;
     this.#models = new RateModelService(registry);
     this.#targets = new RateTargetService(registry);
+    this.#recommendations = recommendations;
   }
 
   async createDraftVersion(tx: Tx, input: CreateRatePublicationDraftInput): Promise<RatePlanRelease> {
@@ -635,6 +750,7 @@ export class RatePublicationService {
       "targetDraftVersion",
       "evaluatorSpec",
       "compositionSpec",
+      "rmsBinding",
       "envelope",
     ], "rate release draft");
     const tenantId = await activeTenantId(tx);
@@ -652,7 +768,19 @@ export class RatePublicationService {
     if (!target) throw new RatePublicationNotFoundError("Exact rate-target draft version was not found");
     const evaluatorSpec = normalizeRateEvaluatorSpec(source.evaluatorSpec);
     const compositionSpec = normalizeRateCompositionSpec(source.compositionSpec);
-    validateModelCompatibility(model, evaluatorSpec, compositionSpec, null);
+    const rmsBinding = normalizeRmsBinding(source.rmsBinding);
+    validateModelCompatibility(model, evaluatorSpec, compositionSpec, rmsBinding);
+    if (evaluatorSpec.base.kind === "reference") {
+      const referenced = await this.#loadRelease(tx, evaluatorSpec.base.sourceId, false);
+      if (referenced.release.status === "draft" ||
+          referenced.release.extensionVersion !== evaluatorSpec.base.sourceVersion ||
+          referenced.release.propertyNode !== propertyNode ||
+          referenced.release.evaluatorSpec.currency !== plan.currency) {
+        throw new RatePublicationConflictError(
+          "Rate reference must name an exact published release in the same property and currency",
+        );
+      }
+    }
     if (evaluatorSpec.currency !== plan.currency || compositionSpec.currency !== plan.currency) {
       throw new RatePublicationError("release currencies must match the active rate plan currency");
     }
@@ -666,7 +794,7 @@ export class RatePublicationService {
       targetDraftVersion,
       evaluatorSpec,
       compositionSpec,
-      rmsBinding: null,
+      rmsBinding,
       undoOfVersion: null,
     };
     const encoded = encodeReleaseContent(content);
@@ -876,6 +1004,15 @@ export class RatePublicationService {
     return toRelease(rowFromInstance(instance), parseReleaseContent(instance.content));
   }
 
+  async evaluateReleaseNight(
+    tx: Tx,
+    releaseId: string,
+    input: EvaluateRateReleaseNightInput,
+  ): Promise<RateReleaseNightEvaluation> {
+    const loaded = await this.#loadRelease(tx, requireUuid("releaseId", releaseId), false);
+    return this.#evaluateLoadedNight(tx, loaded, normalizeReleaseNightInput(input), new Set(), 0);
+  }
+
   async listReleaseVersions(tx: Tx, propertyNode: string, ratePlanId: string): Promise<readonly RatePlanRelease[]> {
     const tenantId = await activeTenantId(tx);
     const property = requireUuid("propertyNode", propertyNode);
@@ -949,6 +1086,83 @@ export class RatePublicationService {
     return Object.freeze({ release: toRelease(row, content), encoded: content.encoded });
   }
 
+  async #evaluateLoadedNight(
+    tx: Tx,
+    loaded: LoadedRelease,
+    input: EvaluateRateReleaseNightInput,
+    ancestors: ReadonlySet<string>,
+    depth: number,
+  ): Promise<RateReleaseNightEvaluation> {
+    if (depth >= 16) throw new RatePublicationConflictError("Rate release reference depth exceeds 16");
+    if (ancestors.has(loaded.release.id)) throw new RatePublicationConflictError("Rate release reference cycle detected");
+    const nextAncestors = new Set(ancestors);
+    nextAncestors.add(loaded.release.id);
+    const targetResolution = await this.#targets.resolveDraftVersion(tx, {
+      propertyNode: loaded.release.propertyNode,
+      ratePlanId: loaded.release.ratePlanId,
+      extensionVersion: loaded.release.targetDraftVersion,
+      unitTypeId: input.targetContext.unitTypeId,
+      sellableUnitId: input.targetContext.sellableUnitId,
+      commercial: input.targetContext.commercial,
+    });
+    const rawContext: JsonObject = {
+      propertyTimeZone: input.propertyTimeZone,
+      bookingInstant: input.bookingInstant,
+      stayStartInstant: input.stayStartInstant,
+      stayEndInstant: input.stayEndInstant,
+      nightDate: input.nightDate,
+      targetResolution,
+    };
+    if (input.occupancyBasisPoints !== undefined || input.occupancyEvidenceRef !== undefined) {
+      rawContext.occupancyBasisPoints = input.occupancyBasisPoints;
+      rawContext.occupancyEvidenceRef = input.occupancyEvidenceRef;
+    }
+    if (input.barLevel !== undefined) rawContext.barLevel = input.barLevel;
+    const base = loaded.release.evaluatorSpec.base;
+    if (base.kind === "reference") {
+      const referenced = await this.#loadRelease(tx, base.sourceId, false);
+      if (referenced.release.status === "draft" || referenced.release.extensionVersion !== base.sourceVersion) {
+        throw new RatePublicationConflictError("Rate reference must name an exact published release version");
+      }
+      if (referenced.release.propertyNode !== loaded.release.propertyNode ||
+          referenced.release.evaluatorSpec.currency !== loaded.release.evaluatorSpec.currency) {
+        throw new RatePublicationConflictError("Rate reference must remain in the same property and currency");
+      }
+      const reference = await this.#evaluateLoadedNight(tx, referenced, input, nextAncestors, depth + 1);
+      if (reference.result.state !== "priced" || reference.result.amountMinor === null) {
+        throw new RatePublicationConflictError("Referenced release did not produce one exact room-night price");
+      }
+      rawContext.reference = Object.freeze({
+        sourceKind: base.sourceKind,
+        sourceId: referenced.release.id,
+        sourceVersion: referenced.release.extensionVersion,
+        currency: referenced.release.evaluatorSpec.currency,
+        amountMinor: reference.result.amountMinor,
+      });
+    }
+    if (loaded.release.evaluatorSpec.modelKey === "rms-api-managed") {
+      const binding = loaded.release.rmsBinding;
+      if (binding === null || input.targetContext.sellableUnitId === null) {
+        throw new RatePublicationError("RMS evaluation requires a published binding and exact sellable unit");
+      }
+      rawContext.recommendation = await this.#recommendations.resolve(binding, {
+        tenantId: loaded.release.tenantId,
+        propertyNode: loaded.release.propertyNode,
+        ratePlanId: loaded.release.ratePlanId,
+        releaseId: loaded.release.id,
+        releaseVersion: loaded.release.extensionVersion,
+        sellableUnitId: input.targetContext.sellableUnitId,
+        unitTypeId: input.targetContext.unitTypeId,
+        nightDate: input.nightDate,
+        currency: loaded.release.evaluatorSpec.currency,
+        bookingInstant: input.bookingInstant,
+      });
+    }
+    const evaluationContext = deriveRateEvaluationContext(rawContext);
+    const result = evaluateRateModel(loaded.release.evaluatorSpec, evaluationContext);
+    return Object.freeze({ release: loaded.release, targetResolution, evaluationContext, result });
+  }
+
   #requireEnvelopeScope(envelope: AuditEnvelope, release: RatePlanRelease): void {
     if (envelope.tenantId !== release.tenantId || envelope.propertyNode !== release.propertyNode) {
       throw new RatePublicationNotFoundError("Audit envelope does not match the rate release scope");
@@ -960,23 +1174,14 @@ export class RatePublicationService {
     const results: RatePublicationCellResult[] = [];
     let workUnits = 0;
     for (const cell of cells) {
-      const targetResolution = await this.#targets.resolveDraftVersion(tx, {
-        propertyNode: loaded.release.propertyNode,
-        ratePlanId: loaded.release.ratePlanId,
-        extensionVersion: loaded.release.targetDraftVersion,
-        unitTypeId: cell.targetContext.unitTypeId,
-        sellableUnitId: cell.targetContext.sellableUnitId,
-        commercial: cell.targetContext.commercial,
-      });
-      const evaluationContext = deriveRateEvaluationContext({
+      const evaluation = await this.#evaluateLoadedNight(tx, loaded, normalizeReleaseNightInput({
         ...cell.evaluationContext,
-        targetResolution,
-      });
-      const rateEvaluationResult = evaluateRateModel(loaded.release.evaluatorSpec, evaluationContext);
+        targetContext: cell.targetContext,
+      }), new Set(), 0);
       const compositionContext = deriveRateCompositionContext({
         rateEvaluatorSpec: loaded.release.evaluatorSpec,
-        rateEvaluationContext: evaluationContext,
-        rateEvaluationResult,
+        rateEvaluationContext: evaluation.evaluationContext,
+        rateEvaluationResult: evaluation.result,
         guests: cell.guests,
         selectedPromotionCodes: cell.selectedPromotionCodes,
         policyEvidence: cell.policyEvidence,
@@ -986,9 +1191,14 @@ export class RatePublicationService {
         channelMappingEvidenceRef: cell.channelMappingEvidenceRef,
       });
       const result = composeRateQuote(loaded.release.compositionSpec, compositionContext);
-      workUnits += result.workUnits + targetResolution.matchedRuleKeys.length +
-        targetResolution.conflictingRuleKeys.length + 1;
-      results.push(Object.freeze({ key: cell.key, targetResolution, evaluationContext, result }));
+      workUnits += result.workUnits + evaluation.targetResolution.matchedRuleKeys.length +
+        evaluation.targetResolution.conflictingRuleKeys.length + 1;
+      results.push(Object.freeze({
+        key: cell.key,
+        targetResolution: evaluation.targetResolution,
+        evaluationContext: evaluation.evaluationContext,
+        result,
+      }));
     }
     const frozenCells = Object.freeze(results);
     const count = (state: RateCompositionResult["state"]) => results.filter(({ result }) => result.state === state).length;
