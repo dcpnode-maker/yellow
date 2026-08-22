@@ -149,3 +149,4 @@
 2026-08-22 · 067 · 3 · phase-3/typed-rate-evaluators · codex → — · ORDER-WRITTEN · fixed/calendar/BAR/derived/matrix/occupancy-LOS/contract/expert evaluators with exact guards and evidence; no persistence or active price behavior
 2026-08-22 · 108 · 3 · phase-3/typed-rate-evaluators · codex → codex · QUESTION-ANSWERED · extend only P3's closed-cell fixture through the asserted local night; preserve half-open production validation
 2026-08-22 · 109 · 3 · phase-3/typed-rate-evaluators · codex → codex · QUESTION-ANSWERED · rebuild UTC/timezone-derived evaluator context and reject frozen forged LOS/DOW/window fields
+2026-08-22 · 067 · 3 · phase-3/typed-rate-evaluators · codex → Gate-3 reviewer · BUILT-UNREVIEWED · 6eab980 (order f746dd7; red proof 3acb405); focused 7/7 and 97 assertions, standing 60/0, schema exact, fresh app-never-started referee 11/11; protected hashes unchanged

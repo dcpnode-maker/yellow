@@ -29,6 +29,7 @@ Status legend: UNVERIFIED = built, proofs builder-asserted, not executed by the 
 | 064 | 2 | 4b34b42 (order 25c093e; red proof 58927f7) | UNVERIFIED | Order 064 — Founder project progress and live system-health dashboard |
 | 065 | 3 | b98f7c8 (order 148d65e; red proof 8f7fb47) | UNVERIFIED | Order 065 — Versioned rate-model catalogue and draft selection |
 | 066 | 3 | c22ed1b (order 3a4e663; red proof 9387c16) | UNVERIFIED | Order 066 — Versioned rate applicability and commercial targeting resolver |
+| 067 | 3 | 6eab980 (order f746dd7; red proof 3acb405) | UNVERIFIED | Order 067 — Typed exact-money rate-model evaluators |
 
 Protected hashes to re-quote each time:
 
