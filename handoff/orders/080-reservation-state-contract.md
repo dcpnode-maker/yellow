@@ -116,3 +116,5 @@ Refresh the disposable Graphify code map and record its parser/semantic limits.
   with zero missing, dangling, duplicate or collapsed edges and ten inherited self-loops. Its
   explicit limitation is that 394 non-code documents and semantic labeling were skipped; the
   canonical Markdown was therefore validated by the executable proof, not by the graph.
+- Draft PR 61 GitHub run 32600316017 passed quality, Windows state, container smoke and the exact
+  database job. The order remains UNVERIFIED and unmerged.
