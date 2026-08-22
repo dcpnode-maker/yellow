@@ -32,6 +32,10 @@ function canonicalReservationEdges() {
         .split("|")
         .map((cell) => cell.trim().replaceAll("`", ""));
 
+      if (!fromCell || !toCell || !eventCell) {
+        throw new Error(`malformed reservation transition row: ${line}`);
+      }
+
       return fromCell.split("/").map((from) => ({
         from,
         to: toCell,
@@ -54,7 +58,20 @@ function schemaReservationStatuses() {
     throw new Error("reservation status constraint not found in immutable baseline");
   }
 
-  return [...statusConstraint[1].matchAll(/'([^']+)'/g)].map((match) => match[1]);
+  const rawStatuses = statusConstraint[1];
+  if (!rawStatuses) {
+    throw new Error("reservation status constraint has no values");
+  }
+
+  const statuses: string[] = [];
+  for (const match of rawStatuses.matchAll(/'([^']+)'/g)) {
+    const status = match[1];
+    if (!status) {
+      throw new Error("reservation status constraint contains an empty value");
+    }
+    statuses.push(status);
+  }
+  return statuses;
 }
 
 function edgeSort(
@@ -69,16 +86,18 @@ function edgeSort(
 
 describe("reservation state contract", () => {
   test("derives the exact immutable-baseline statuses", () => {
-    expect([...RESERVATION_STATUSES]).toEqual(schemaReservationStatuses());
+    const runtimeStatuses: string[] = [...RESERVATION_STATUSES];
+    expect(runtimeStatuses).toEqual(schemaReservationStatuses());
     expect(Object.isFrozen(RESERVATION_STATUSES)).toBe(true);
   });
 
   test("matches every canonical Markdown transition and event exactly", () => {
-    const runtimeEdges = RESERVATION_TRANSITIONS.map(({ from, to, event }) => ({
+    const runtimeEdges: Array<{ from: string; to: string; event: string }> =
+      RESERVATION_TRANSITIONS.map(({ from, to, event }) => ({
       from,
       to,
       event,
-    })).sort(edgeSort);
+      })).sort(edgeSort);
 
     expect(runtimeEdges).toEqual(canonicalReservationEdges());
     expect(new Set(runtimeEdges.map(({ from, to }) => `${from}->${to}`)).size).toBe(
@@ -120,4 +139,3 @@ describe("reservation state contract", () => {
     expect(findReservationTransition(from, to)).toBeDefined();
   });
 });
-
