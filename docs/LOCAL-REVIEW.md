@@ -53,12 +53,17 @@ unit stops the run rather than rewriting hotel data.
   successor while its plan, room type, dates, weekdays and currency remain locked;
 - real availability for five physical rooms across Standard and Deluxe types;
 - ten-minute audited cart holds placed only from bookable availability, with active-hold
-  visibility and explicit release; a hold protects inventory but is not a reservation;
+  visibility, explicit release and supervised audited due expiry; a hold protects
+  inventory but is not a reservation;
 - visible restriction and operational-block evidence when those domain commands add it.
 
 The browser keeps its bearer token, appearance choice and generated idempotency keys in
 memory only. Inventory, restriction, rate-configuration and rate-pricing writes call the same tenant-scoped domain services,
 audit log, outbox and durable replay primitive as any future production client. Update/delete/bulk
-inventory, restriction update/delete, tax/FX calculation, hold expiry/consumption and reservations
+inventory, restriction update/delete, tax/FX calculation, hold consumption and reservations
 require later scoped API/UI orders;
 no direct browser-to-table shortcut is permitted.
+
+The app is deliberately disabled unless `YELLOW_OPERATOR_WORKBENCH=1` is explicit.
+Hold expiry is independently explicit with `YELLOW_HOLD_EXPIRY_WORKER=1` and starts only
+when the workbench is enabled; local Compose supplies that opt-in.

@@ -16,6 +16,15 @@ export type {
 } from "./inventory";
 export { HoldConflictError, HoldService } from "./holds";
 export type { CartHold, HoldStatus, PlaceCartHoldInput, TransitionHoldInput } from "./holds";
+export { HOLD_EXPIRY_ACTOR_ID, HoldExpiryWorker } from "./hold-expiry-worker";
+export type {
+  DueHoldScope,
+  DueHoldScopeSource,
+  HoldExpiryDrainResult,
+  HoldExpiryFailure,
+  HoldExpiryRunOptions,
+  HoldExpiryWorkerOptions,
+} from "./hold-expiry-worker";
 export { AvailabilityService } from "./availability";
 export type {
   AppliedOperationalBlock,

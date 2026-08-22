@@ -11,6 +11,7 @@ services:
       PORT: "3000"
       YELLOW_OPERATOR_ALLOW_NON_LOOPBACK: "1"
       YELLOW_OPERATOR_WORKBENCH: "${YELLOW_OPERATOR_WORKBENCH:-0}"
+      YELLOW_HOLD_EXPIRY_WORKER: "${YELLOW_HOLD_EXPIRY_WORKER:-1}"
       DATABASE_URL: "${YELLOW_APP_DATABASE_URL:-postgres://yellow:yellow@postgres:5432/yellow_dev}"
       YELLOW_TOKEN_SECRET: "${YELLOW_TOKEN_SECRET:-yellow-local-development-token-secret-change-before-deployment}"
     ports: ["127.0.0.1:${YELLOW_APP_PORT:-3000}:3000"]

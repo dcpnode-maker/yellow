@@ -85,3 +85,5 @@
 2026-08-22 · 062 · 3 · phase-2/operator-cart-hold-management · codex → codex · QUESTION-ANSWERED · correct foreign-property test helper literal inference; focused and compiler restart required
 2026-08-22 · 063 · 3 · phase-2/operator-cart-hold-management · codex → codex · QUESTION-ANSWERED · complete foreign-property path-helper string annotation; focused and compiler restart required
 2026-08-22 · 064 · 3 · phase-2/operator-cart-hold-management · codex → codex · QUESTION-ANSWERED · isolate immutable 100-client referee from the persistent ten-connection app pool; full setup restart required
+2026-08-22 · 056 · 3 · phase-2/audited-hold-expiry-worker · codex → — · ORDER-WRITTEN · supervised bounded due-scope discovery with audited tenant-local HoldService expiry; independent review debt explicit
+2026-08-22 · 065 · 3 · phase-2/audited-hold-expiry-worker · codex → codex · QUESTION-ANSWERED · complete cross-tenant helper and SQL result types after compiler stop; full focused/compiler restart required
