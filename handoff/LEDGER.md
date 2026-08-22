@@ -144,3 +144,4 @@
 2026-08-22 · 105 · 3 · phase-3/rate-targeting-resolver · codex → codex · QUESTION-ANSWERED · immutable targeting extension, class snapshots, typed hotel codes and deterministic conflict precedence authorized
 2026-08-22 · 066 · 3 · phase-3/rate-targeting-resolver · codex → — · ORDER-WRITTEN · property/class/type/sellable and nine commercial dimensions with deterministic inheritance, priority and conflict evidence
 2026-08-22 · 106 · 3 · phase-3/rate-targeting-resolver · codex → codex · QUESTION-ANSWERED · annotate only the focused test's three-mode draft array before restarting the compiler
+2026-08-22 · 066 · 3 · phase-3/rate-targeting-resolver · codex → Gate-3 reviewer · BUILT-UNREVIEWED · c22ed1b (order 3a4e663; red proof 9387c16); focused 6/6 and 626 assertions, inherited extension 6/6 and 25 assertions, standing 53/0, schema exact, fresh app-never-started referee 11/11; protected hashes unchanged
