@@ -156,3 +156,4 @@
 2026-08-22 · 112 · 3 · phase-3/rate-policy-package-composition · codex → codex · QUESTION-ANSWERED · compare whole availability output to canonical derived evidence instead of the deliberately broad raw helper
 2026-08-22 · 113 · 3 · phase-3/rate-policy-package-composition · codex → codex · QUESTION-ANSWERED · make Order 067 nullable normalized guards idempotent rather than weaken composition provenance
 2026-08-22 · 114 · 3 · phase-3/rate-policy-package-composition · codex → codex · QUESTION-ANSWERED · correct P6 to the inherited `gate_unmatched` reason and preserve exact producer evidence
+2026-08-22 · 068 · 3 · phase-3/rate-policy-package-composition · codex → Gate-3 reviewer · BUILT-UNREVIEWED · bd62c85 (order 183cad7; red proof b91507a); focused Order 067/068 14/14 and 145 assertions, standing 67/0 and 916 assertions, schema exact, fresh app-never-started referee 11/11 after documented port precondition repair; protected hashes unchanged
