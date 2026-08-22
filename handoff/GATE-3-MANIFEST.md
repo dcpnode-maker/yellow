@@ -31,6 +31,7 @@ Status legend: UNVERIFIED = built, proofs builder-asserted, not executed by the 
 | 066 | 3 | c22ed1b (order 3a4e663; red proof 9387c16) | UNVERIFIED | Order 066 — Versioned rate applicability and commercial targeting resolver |
 | 067 | 3 | 6eab980 (order f746dd7; red proof 3acb405) | UNVERIFIED | Order 067 — Typed exact-money rate-model evaluators |
 | 068 | 3 | bd62c85 (order 183cad7; red proof b91507a) | UNVERIFIED | Order 068 — Guest, promotion, package, policy and distribution composition |
+| 069 | 3 | 2c925ee (order 3228b0c; red proof da22ac9) | UNVERIFIED | Order 069 — Atomic rate draft simulation, approval, publication and versioned undo |
 
 Protected hashes to re-quote each time:
 
