@@ -40,6 +40,7 @@ const PLANS = Object.freeze({
   conflicts: "00000000-0000-0000-0000-000000007102",
   rollback: "00000000-0000-0000-0000-000000007103",
   targeting: "00000000-0000-0000-0000-000000007104",
+  reuse: "00000000-0000-0000-0000-000000007105",
 });
 const FULL_SCOPES = Object.freeze([
   "inventory.availability:read", "inventory.blocks:read", "inventory.blocks:write",
@@ -262,7 +263,8 @@ beforeAll(async () => {
       (${PLANS.main}::uuid, ${SEED_TENANT.id}::uuid, ${SEED_PROPERTY.id}::uuid, 'O71-MAIN', 'Order 071 Main', 'USD', 'active', ${POLICY.cancellation}::uuid, ${POLICY.guarantee}::uuid, ${POLICY.deposit}::uuid),
       (${PLANS.conflicts}::uuid, ${SEED_TENANT.id}::uuid, ${SEED_PROPERTY.id}::uuid, 'O71-CONFLICT', 'Order 071 Conflict', 'USD', 'active', ${POLICY.cancellation}::uuid, ${POLICY.guarantee}::uuid, ${POLICY.deposit}::uuid),
       (${PLANS.rollback}::uuid, ${SEED_TENANT.id}::uuid, ${SEED_PROPERTY.id}::uuid, 'O71-ROLLBACK', 'Order 071 Rollback', 'USD', 'active', ${POLICY.cancellation}::uuid, ${POLICY.guarantee}::uuid, ${POLICY.deposit}::uuid),
-      (${PLANS.targeting}::uuid, ${SEED_TENANT.id}::uuid, ${SEED_PROPERTY.id}::uuid, 'O73-TARGET', 'Order 073 Targeting', 'USD', 'active', ${POLICY.cancellation}::uuid, ${POLICY.guarantee}::uuid, ${POLICY.deposit}::uuid)
+      (${PLANS.targeting}::uuid, ${SEED_TENANT.id}::uuid, ${SEED_PROPERTY.id}::uuid, 'O73-TARGET', 'Order 073 Targeting', 'USD', 'active', ${POLICY.cancellation}::uuid, ${POLICY.guarantee}::uuid, ${POLICY.deposit}::uuid),
+      (${PLANS.reuse}::uuid, ${SEED_TENANT.id}::uuid, ${SEED_PROPERTY.id}::uuid, 'O76-REUSE', 'Order 076 Reuse', 'USD', 'active', ${POLICY.cancellation}::uuid, ${POLICY.guarantee}::uuid, ${POLICY.deposit}::uuid)
   `;
   await admin`
     INSERT INTO tax_assignment (tenant_id, property_node, jurisdiction_key, effective)
@@ -387,6 +389,41 @@ databaseDescribe("Order 071 operator universal rate builder", () => {
       policyId,
       evidenceRef: `rate-release:${mainReleaseId}:${kind}:${policyId}`,
     })));
+  });
+
+  test("Order 076 P0: immutable history returns a complete reusable command and preserves its source", async () => {
+    const initial = command(PLANS.reuse, [
+      { key: "exact-room", effect: "exclude", priority: 20,
+        physical: { kind: "sellable", sellableUnitId }, commercial: { channelCode: "direct" } },
+      { key: "property-default", effect: "include", priority: 0,
+        physical: { kind: "property" }, commercial: {} },
+    ]);
+    const sourceCommand = {
+      ...initial,
+      evaluator: { ...initial.evaluator, base: { kind: "fixed", amountMinor: "13750" } },
+    };
+    const drafted = await postDraft(PLANS.reuse, sourceCommand, "order076-source-draft");
+    expect(drafted.status).toBe(201);
+    const sourceReleaseId = String(((await drafted.json() as Record<string, unknown>).release as Record<string, unknown>).id);
+
+    const history = await request(builderPath(PLANS.reuse), { headers: headers() });
+    expect(history.status).toBe(200);
+    const source = (await history.json() as { releases: Array<Record<string, unknown>> }).releases
+      .find(({ id }) => id === sourceReleaseId);
+    expect(source?.authoringCommand).toEqual(sourceCommand);
+
+    const successorCommand = structuredClone(source?.authoringCommand) as typeof sourceCommand;
+    successorCommand.evaluator.base.amountMinor = "14200";
+    const copied = await postDraft(PLANS.reuse, successorCommand, "order076-copied-draft");
+    expect(copied.status).toBe(201);
+    const successorReleaseId = String(((await copied.json() as Record<string, unknown>).release as Record<string, unknown>).id);
+
+    const reread = await request(builderPath(PLANS.reuse), { headers: headers() });
+    expect(reread.status).toBe(200);
+    const releases = (await reread.json() as { releases: Array<Record<string, unknown>> }).releases;
+    expect(releases.find(({ id }) => id === sourceReleaseId)?.authoringCommand).toEqual(sourceCommand);
+    expect(releases.find(({ id }) => id === successorReleaseId)?.authoringCommand).toEqual(successorCommand);
+    expect(successorReleaseId).not.toBe(sourceReleaseId);
   });
 
   test("Order 073: one draft preserves broad inheritance, a commercial include and an exact-room exclusion", async () => {
