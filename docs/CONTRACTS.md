@@ -145,3 +145,8 @@ and emits the existing `extension.activated` event in the same transaction. Undo
 active/retired snapshot into a new draft and repeats simulation, approval and publication; history
 is never mutated. RMS/API binding, HTTP routes, tax calculation and reservation quote binding remain
 separate later contracts.
+
+The release schema reserves a required nullable `rms_binding` so the immutable extension type does
+not need a divergent schema after deployment. Order 069 always stores `null`. The strict future
+object names only adapter key/version, a recommendation-age ceiling and local-evaluator outage
+fallback; Order 070 must prove that path before any non-null value is accepted.

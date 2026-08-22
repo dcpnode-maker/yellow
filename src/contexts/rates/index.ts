@@ -128,6 +128,7 @@ export type {
   RatePublicationCellResult,
   RatePublicationPreviewCell,
   RatePublicationSimulation,
+  RateRmsBinding,
   RequestRatePublicationApprovalInput,
   SimulateRatePublicationInput,
 } from "./publication";

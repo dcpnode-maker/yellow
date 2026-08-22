@@ -52,6 +52,7 @@ export const RATE_PLAN_RELEASE_EXTENSION_SCHEMA = Object.freeze({
     "target_draft_version",
     "evaluator",
     "composition",
+    "rms_binding",
     "undo_of_version",
   ],
   additionalProperties: false,
@@ -64,6 +65,17 @@ export const RATE_PLAN_RELEASE_EXTENSION_SCHEMA = Object.freeze({
     target_draft_version: { type: "integer", minimum: 1 },
     evaluator: { type: "object" },
     composition: { type: "object" },
+    rms_binding: {
+      type: ["object", "null"],
+      required: ["adapter_key", "adapter_version", "maximum_age_seconds", "outage_fallback"],
+      additionalProperties: false,
+      properties: {
+        adapter_key: { type: "string", pattern: "^[a-z0-9][a-z0-9._:-]{0,127}$" },
+        adapter_version: { type: "integer", minimum: 1 },
+        maximum_age_seconds: { type: "integer", minimum: 1 },
+        outage_fallback: { enum: ["local_evaluator"] },
+      },
+    },
     undo_of_version: { type: ["integer", "null"], minimum: 1 },
   },
 } as const);
@@ -109,9 +121,17 @@ export interface RatePlanRelease {
   readonly targetDraftVersion: number;
   readonly evaluatorSpec: RateEvaluatorSpec;
   readonly compositionSpec: RateCompositionSpec;
+  readonly rmsBinding: RateRmsBinding | null;
   readonly extensionVersion: number;
   readonly status: ReleaseStatus;
   readonly undoOfVersion: number | null;
+}
+
+export interface RateRmsBinding {
+  readonly adapterKey: string;
+  readonly adapterVersion: number;
+  readonly maximumAgeSeconds: number;
+  readonly outageFallback: "local_evaluator";
 }
 
 export interface RatePublicationPreviewCell {
@@ -187,6 +207,7 @@ interface ReleaseContent {
   readonly targetDraftVersion: number;
   readonly evaluatorSpec: RateEvaluatorSpec;
   readonly compositionSpec: RateCompositionSpec;
+  readonly rmsBinding: RateRmsBinding | null;
   readonly undoOfVersion: number | null;
   readonly encoded: Readonly<JsonObject>;
 }
@@ -314,6 +335,30 @@ function hashJson(value: unknown): string {
   return new Bun.CryptoHasher("sha256").update(stableJson(encoded)).digest("hex");
 }
 
+function parseRmsBinding(value: unknown): RateRmsBinding | null {
+  if (value === null) return null;
+  const source = requireObject(value, "stored RMS binding");
+  const fields = ["adapter_key", "adapter_version", "maximum_age_seconds", "outage_fallback"];
+  requireOnlyKeys(source, fields, "stored RMS binding");
+  requireFields(source, fields, "stored RMS binding");
+  if (typeof source.adapter_key !== "string" || !STABLE_KEY.test(source.adapter_key)) {
+    throw new RatePublicationError("stored RMS adapter_key must be bounded stable lowercase text");
+  }
+  const maximumAgeSeconds = requireVersion("stored RMS maximum_age_seconds", source.maximum_age_seconds);
+  if (maximumAgeSeconds > 86_400) {
+    throw new RatePublicationError("stored RMS maximum_age_seconds must not exceed 86400");
+  }
+  if (source.outage_fallback !== "local_evaluator") {
+    throw new RatePublicationError("stored RMS outage fallback must be local_evaluator");
+  }
+  return Object.freeze({
+    adapterKey: source.adapter_key,
+    adapterVersion: requireVersion("stored RMS adapter_version", source.adapter_version),
+    maximumAgeSeconds,
+    outageFallback: "local_evaluator",
+  });
+}
+
 function parseReleaseContent(value: unknown): ReleaseContent {
   const source = requireObject(value, "stored rate release");
   const fields = [
@@ -325,6 +370,7 @@ function parseReleaseContent(value: unknown): ReleaseContent {
     "target_draft_version",
     "evaluator",
     "composition",
+    "rms_binding",
     "undo_of_version",
   ];
   requireOnlyKeys(source, fields, "stored rate release");
@@ -340,6 +386,7 @@ function parseReleaseContent(value: unknown): ReleaseContent {
     targetDraftVersion: requireVersion("stored target_draft_version", source.target_draft_version),
     evaluatorSpec,
     compositionSpec,
+    rmsBinding: parseRmsBinding(source.rms_binding),
     undoOfVersion: source.undo_of_version === null
       ? null
       : requireVersion("stored undo_of_version", source.undo_of_version),
@@ -361,6 +408,12 @@ function encodeReleaseContent(input: Omit<ReleaseContent, "encoded">): Readonly<
     target_draft_version: input.targetDraftVersion,
     evaluator: exactJson(input.evaluatorSpec, "evaluator"),
     composition: exactJson(input.compositionSpec, "composition"),
+    rms_binding: input.rmsBinding === null ? null : {
+      adapter_key: input.rmsBinding.adapterKey,
+      adapter_version: input.rmsBinding.adapterVersion,
+      maximum_age_seconds: input.rmsBinding.maximumAgeSeconds,
+      outage_fallback: input.rmsBinding.outageFallback,
+    },
     undo_of_version: input.undoOfVersion,
   });
 }
@@ -380,6 +433,7 @@ function toRelease(row: ReleaseRow, content: ReleaseContent): RatePlanRelease {
     targetDraftVersion: content.targetDraftVersion,
     evaluatorSpec: content.evaluatorSpec,
     compositionSpec: content.compositionSpec,
+    rmsBinding: content.rmsBinding,
     extensionVersion: row.version,
     status: row.status,
     undoOfVersion: content.undoOfVersion,
@@ -530,9 +584,17 @@ async function validatePolicyReferences(
   }
 }
 
-function validateModelCompatibility(model: RateModelDraft, evaluator: RateEvaluatorSpec, composition: RateCompositionSpec): void {
+function validateModelCompatibility(
+  model: RateModelDraft,
+  evaluator: RateEvaluatorSpec,
+  composition: RateCompositionSpec,
+  rmsBinding: RateRmsBinding | null,
+): void {
   if (model.modelKey === "rms-api-managed") {
     throw new RatePublicationError("RMS/API managed publication is deferred to Order 070");
+  }
+  if (rmsBinding !== null) {
+    throw new RatePublicationError("RMS binding is reserved for Order 070");
   }
   if (model.modelKey === "package") {
     if (composition.package === null) throw new RatePublicationError("package model requires a package composition");
@@ -590,7 +652,7 @@ export class RatePublicationService {
     if (!target) throw new RatePublicationNotFoundError("Exact rate-target draft version was not found");
     const evaluatorSpec = normalizeRateEvaluatorSpec(source.evaluatorSpec);
     const compositionSpec = normalizeRateCompositionSpec(source.compositionSpec);
-    validateModelCompatibility(model, evaluatorSpec, compositionSpec);
+    validateModelCompatibility(model, evaluatorSpec, compositionSpec, null);
     if (evaluatorSpec.currency !== plan.currency || compositionSpec.currency !== plan.currency) {
       throw new RatePublicationError("release currencies must match the active rate plan currency");
     }
@@ -604,6 +666,7 @@ export class RatePublicationService {
       targetDraftVersion,
       evaluatorSpec,
       compositionSpec,
+      rmsBinding: null,
       undoOfVersion: null,
     };
     const encoded = encodeReleaseContent(content);
@@ -795,6 +858,7 @@ export class RatePublicationService {
       targetDraftVersion: loaded.release.targetDraftVersion,
       evaluatorSpec: loaded.release.evaluatorSpec,
       compositionSpec: loaded.release.compositionSpec,
+      rmsBinding: loaded.release.rmsBinding,
       undoOfVersion: loaded.release.extensionVersion,
     });
     const instance = await this.#registry.createVersion(tx, {
@@ -880,7 +944,7 @@ export class RatePublicationService {
         candidateId === content.targetDraftId && extensionVersion === content.targetDraftVersion
       );
     if (!target) throw new RatePublicationNotFoundError("Stored rate-target draft reference was not found");
-    validateModelCompatibility(model, content.evaluatorSpec, content.compositionSpec);
+    validateModelCompatibility(model, content.evaluatorSpec, content.compositionSpec, content.rmsBinding);
     await validatePolicyReferences(tx, tenantId, content.compositionSpec);
     return Object.freeze({ release: toRelease(row, content), encoded: content.encoded });
   }

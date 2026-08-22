@@ -330,6 +330,7 @@ databaseDescribe("Order 069 atomic rate release publication", () => {
       ratePlanId: PLANS.main,
       extensionVersion: 1,
       status: "draft",
+      rmsBinding: null,
       undoOfVersion: null,
     });
     const before = await admin<Array<{ id: string; version: number; content: string }>>`
@@ -339,6 +340,7 @@ databaseDescribe("Order 069 atomic rate release publication", () => {
     `;
     expect(before).toHaveLength(1);
     expect(before[0]?.content).toContain('"$minor": "10000"');
+    expect(before[0]?.content).toContain('"rms_binding": null');
     expect(before[0]?.content).not.toMatch(/amountMinor"\s*:\s*10000/);
 
     const second = await createRelease(PLANS.main, { evaluator: evaluatorSpec(12_345n, {
@@ -605,6 +607,22 @@ databaseDescribe("Order 069 atomic rate release publication", () => {
       releaseId: release.id,
       previewCells: cells,
     }))).rejects.toBeInstanceOf(RatePublicationNotFoundError);
+    await admin`UPDATE extension SET content = ${original}::text::jsonb WHERE id = ${release.id}::uuid`;
+
+    await admin`
+      UPDATE extension
+      SET content = jsonb_set(content, '{rms_binding}', ${JSON.stringify({
+        adapter_key: "order070-reserved",
+        adapter_version: 1,
+        maximum_age_seconds: 300,
+        outage_fallback: "local_evaluator",
+      })}::text::jsonb)
+      WHERE id = ${release.id}::uuid
+    `;
+    await expect(database.withTenantTransaction(TENANT, (tx) => publication.simulateDraft(tx, {
+      releaseId: release.id,
+      previewCells: cells,
+    }))).rejects.toBeInstanceOf(RatePublicationError);
     await admin`UPDATE extension SET content = ${original}::text::jsonb WHERE id = ${release.id}::uuid`;
 
     await expect(createRelease(PLANS.boundary, { evaluator: evaluatorSpec(10_000.5) })).rejects.toThrow();

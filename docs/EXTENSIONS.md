@@ -15,9 +15,12 @@ Rate authoring uses three related tenant extensions. `rate_plan_model` records t
 expert or AI-authored model family; `rate_plan_target` records physical and commercial applicability;
 and `rate_plan_release` is the only atomic activation unit. Its strict content binds the exact model
 and target draft ids/versions, the canonical evaluator and composition ASTs, and an optional
-`undo_of_version`. Bigint minor units inside the ASTs are JSON encoded as exact tagged decimal
-objects. No release instance is seeded: hotels create tenant drafts, simulate them, obtain approval
-and publish a latest version through the rates context.
+`undo_of_version`. Its required `rms_binding` is nullable; the reserved strict object contains only
+adapter key/version, maximum recommendation age and `local_evaluator` outage fallback. Order 069
+accepts only null, while Order 070 owns every proof required before the object form can be used.
+Bigint minor units inside the ASTs are JSON encoded as exact tagged decimal objects. No release
+instance is seeded: hotels create tenant drafts, simulate them, obtain approval and publish a latest
+version through the rates context.
 
 `rate_plan_release` lifecycle status is operational metadata (`draft → active → retired`); its
 content is immutable. Reverting means copying a prior active or retired snapshot into a newer draft

@@ -49,7 +49,10 @@ read. Extension content never changes; lifecycle status changes are reconstructe
 1. Register one launch extension type `rate_plan_release`. Its strict top-level content contains
    property/rate-plan ids; exact Order 065 model-draft id/version; exact Order 066 target-draft
    id/version; canonical Order 067 evaluator and Order 068 composition specs; and nullable
-   `undo_of_version`. No global release instance is seeded.
+   `undo_of_version`; and required nullable `rms_binding`. The reserved object shape is only adapter
+   key/version, maximum recommendation age and explicit local-evaluator outage fallback. Order 069
+   always persists `null` and does not enable RMS behavior (Question 118 / D-253). No global release
+   instance is seeded.
 2. Persist bigint fields only as exact `{"$minor":"<canonical signed decimal>"}` tagged values,
    excluding `-0` and bounded to signed-bigint range. Readback must decode, run the existing strict
    normalizers, re-encode and byte-compare the canonical JSON shape. Those normalizers retain domain
