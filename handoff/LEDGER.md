@@ -112,3 +112,4 @@
 2026-08-22 · 085 · 3 · phase-2/availability-projection-consumer · codex → codex · QUESTION-ANSWERED · restore canonical seed precondition for inherited EventBus/relay proofs; restart complete sequence
 2026-08-22 · 086 · 3 · phase-2/availability-projection-consumer · codex → codex · QUESTION-ANSWERED · reject noncanonical event-period bounds and prove rollback; restart focused, standing and referee checks
 2026-08-22 · 087 · 3 · phase-2/availability-projection-consumer · codex → independent reviewer · REVIEW-REQUESTED · Order 059 builder proofs, deployed cursor, referee 11/11, red-to-green corrections and derived-map limitation recorded; no approval or merge
+2026-08-22 · 060 · 3 · phase-2/operator-projection-bootstrap · codex → — · ORDER-WRITTEN · explicit authenticated property-local projection horizon/status through Order 058 service; no booking authority or automatic policy
