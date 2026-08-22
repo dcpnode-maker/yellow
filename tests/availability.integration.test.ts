@@ -282,7 +282,7 @@ databaseDescribe("Order 031 PostgreSQL-truth availability", () => {
     expect(otherProperty.map(({ sellableUnitId }) => sellableUnitId)).toEqual([SU_A2]);
   });
 
-  test("P8: validation is fail-fast and 500 spaces remain inside the local budget", async () => {
+  test("P8: catastrophic-regression guard validates input and keeps 500 spaces below 1000 ms", async () => {
     await expect(database!.withTenantTransaction(TENANT_A, (tx) => availability.search(tx, {
       propertyNode: PROPERTY_A,
       from: PERIOD.to,
@@ -319,7 +319,10 @@ databaseDescribe("Order 031 PostgreSQL-truth availability", () => {
       durations.push(performance.now() - started);
     }
     const maxMs = Math.max(...durations);
-    console.log(`Order 031 local 500-space search: options=${performanceOptionCount} max_ms=${maxMs.toFixed(2)}`);
+    console.log(
+      `Order 031 catastrophic-regression guard: options=${performanceOptionCount} ` +
+      `runs=20 max_ms=${maxMs.toFixed(2)} ceiling_ms=1000`,
+    );
     expect(performanceOptionCount).toBe(500);
     expect(maxMs).toBeLessThan(1_000);
   }, 30_000);
