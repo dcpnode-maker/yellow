@@ -341,7 +341,11 @@ databaseDescribe("Order 069 atomic rate release publication", () => {
     expect(before[0]?.content).toContain('"$minor": "10000"');
     expect(before[0]?.content).not.toMatch(/amountMinor"\s*:\s*10000/);
 
-    const second = await createRelease(PLANS.main, { evaluator: evaluatorSpec(12_345n) });
+    const second = await createRelease(PLANS.main, { evaluator: evaluatorSpec(12_345n, {
+      rules: [
+        { key: "signed-discount", stage: 1, priority: 1, when: {}, adjustment: { kind: "delta", amountMinor: -345n } },
+      ],
+    }) });
     expect(second.extensionVersion).toBe(2);
     const after = await admin<Array<{ id: string; version: number; content: string }>>`
       SELECT id, version, content::text AS content FROM extension
@@ -349,6 +353,12 @@ databaseDescribe("Order 069 atomic rate release publication", () => {
         AND key = ${`rate-plan:${PLANS.main}`} ORDER BY version
     `;
     expect(after[0]).toEqual(before[0]);
+    expect(after[1]?.content).toContain('"$minor": "-345"');
+    const signed = await database.withTenantTransaction(TENANT, (tx) => publication.simulateDraft(tx, {
+      releaseId: second.id,
+      previewCells: [previewCell("signed-discount")],
+    }));
+    expect(signed.cells[0]?.result.preTaxSubtotalMinor).toBe(12_000n);
     const evidence = await admin<Array<{ facts: number; activations: number }>>`
       SELECT
         (SELECT count(*)::int FROM fact_log WHERE fact_type = 'rate_plan_release.drafted'
@@ -584,6 +594,17 @@ databaseDescribe("Order 069 atomic rate release publication", () => {
       releaseId: release.id,
       previewCells: cells,
     }))).rejects.toBeInstanceOf(RatePublicationError);
+    await admin`UPDATE extension SET content = ${original}::text::jsonb WHERE id = ${release.id}::uuid`;
+
+    await admin`
+      UPDATE extension
+      SET content = jsonb_set(content, '{model_draft_id}', to_jsonb(${crypto.randomUUID()}::text))
+      WHERE id = ${release.id}::uuid
+    `;
+    await expect(database.withTenantTransaction(TENANT, (tx) => publication.simulateDraft(tx, {
+      releaseId: release.id,
+      previewCells: cells,
+    }))).rejects.toBeInstanceOf(RatePublicationNotFoundError);
     await admin`UPDATE extension SET content = ${original}::text::jsonb WHERE id = ${release.id}::uuid`;
 
     await expect(createRelease(PLANS.boundary, { evaluator: evaluatorSpec(10_000.5) })).rejects.toThrow();

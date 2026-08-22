@@ -113,3 +113,21 @@ export type {
   RateRestrictionEvidence,
   RateRestrictionEvidenceKind,
 } from "./composition";
+export {
+  RATE_PLAN_RELEASE_EXTENSION_SCHEMA,
+  RatePublicationConflictError,
+  RatePublicationError,
+  RatePublicationNotFoundError,
+  RatePublicationService,
+} from "./publication";
+export type {
+  CreateRatePublicationDraftInput,
+  CreateRatePublicationUndoInput,
+  PublishRatePublicationInput,
+  RatePlanRelease,
+  RatePublicationCellResult,
+  RatePublicationPreviewCell,
+  RatePublicationSimulation,
+  RequestRatePublicationApprovalInput,
+  SimulateRatePublicationInput,
+} from "./publication";

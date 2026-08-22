@@ -50,10 +50,12 @@ read. Extension content never changes; lifecycle status changes are reconstructe
    property/rate-plan ids; exact Order 065 model-draft id/version; exact Order 066 target-draft
    id/version; canonical Order 067 evaluator and Order 068 composition specs; and nullable
    `undo_of_version`. No global release instance is seeded.
-2. Persist bigint fields only as exact `{"$minor":"<canonical non-negative decimal>"}` tagged
-   values. Readback must decode, run the existing strict normalizers, re-encode and byte-compare the
-   canonical JSON shape. Unsafe numbers, unknown fields, negative/overflow/noncanonical strings and
-   storage tampering fail closed.
+2. Persist bigint fields only as exact `{"$minor":"<canonical signed decimal>"}` tagged values,
+   excluding `-0` and bounded to signed-bigint range. Readback must decode, run the existing strict
+   normalizers, re-encode and byte-compare the canonical JSON shape. Those normalizers retain domain
+   authority: only Order 067's explicit signed adjustment delta may be negative; prices, package
+   amounts and discounts remain non-negative. Unsafe numbers, unknown fields,
+   overflow/noncanonical strings and storage tampering fail closed (Question 116 / D-251).
 3. Draft creation derives `rate-plan:<id>`, transaction-locks gapless extension versions through the
    existing registry, requires an active tenant/property plan, and binds existing draft model/target
    versions for that exact plan. Direct models must match the selected model; package is a typed

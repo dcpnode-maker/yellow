@@ -5,6 +5,7 @@ import {
   RATE_PLAN_MODEL_EXTENSION_SCHEMA,
 } from "../src/contexts/rates/models";
 import { RATE_PLAN_TARGET_EXTENSION_SCHEMA } from "../src/contexts/rates/targeting";
+import { RATE_PLAN_RELEASE_EXTENSION_SCHEMA } from "../src/contexts/rates/publication";
 import { uuidV5 } from "./lib/uuid-v5";
 
 export const URL_NAMESPACE_UUID = "6ba7b811-9dad-11d1-80b4-00c04fd430c8";
@@ -125,6 +126,10 @@ export const LAUNCH_EXTENSION_TYPES = Object.freeze([
   {
     type: "rate_plan_target",
     jsonSchema: RATE_PLAN_TARGET_EXTENSION_SCHEMA,
+  },
+  {
+    type: "rate_plan_release",
+    jsonSchema: RATE_PLAN_RELEASE_EXTENSION_SCHEMA,
   },
 ] as const);
 

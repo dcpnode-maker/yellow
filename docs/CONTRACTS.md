@@ -125,3 +125,23 @@ mapping evidence. Order 068 checks that evidence is frozen, typed and internally
 tenant-scoped database origin of each reference remains the responsibility of Order 070's quote
 binder. Tax is deliberately absent from the pre-tax result. Approval, publication and versioned
 undo remain Order 069.
+
+## 10. Atomic rate release publication
+
+Order 069 makes one `rate_plan_release` extension version the complete unit of rate review and
+activation. A draft binds exact immutable model and target draft versions plus the canonical
+evaluator and composition ASTs. Minor-unit bigints are stored only as canonical
+`{"$minor":"<signed-decimal>"}` tags and are decoded, normalized and re-encoded before use; storage
+tampering fails closed.
+
+Simulation accepts 1–500 uniquely keyed cells and derives targeting, property-local evaluation and
+composition on the server. It returns sorted cell evidence, state counts, bounded work, a content
+hash and a preview hash. Caller-computed target or price results are not accepted. Conflict-free
+simulation may enter the existing four-eyes approval flow; publication re-simulates and requires the
+latest unchanged draft plus an exact approved subject/version/content/preview binding.
+
+Publication retires at most one prior active release, activates exactly one release, records facts
+and emits the existing `extension.activated` event in the same transaction. Undo copies a historical
+active/retired snapshot into a new draft and repeats simulation, approval and publication; history
+is never mutated. RMS/API binding, HTTP routes, tax calculation and reservation quote binding remain
+separate later contracts.

@@ -11,6 +11,19 @@ typed `org_node.config` envelope and are changed only through audited domain com
 they are not plugin instances. Inventory currently defines
 `inventory.oos_sellability` as `blocked | allowed`, defaulting to `blocked` when absent.
 
+Rate authoring uses three related tenant extensions. `rate_plan_model` records the selected guided,
+expert or AI-authored model family; `rate_plan_target` records physical and commercial applicability;
+and `rate_plan_release` is the only atomic activation unit. Its strict content binds the exact model
+and target draft ids/versions, the canonical evaluator and composition ASTs, and an optional
+`undo_of_version`. Bigint minor units inside the ASTs are JSON encoded as exact tagged decimal
+objects. No release instance is seeded: hotels create tenant drafts, simulate them, obtain approval
+and publish a latest version through the rates context.
+
+`rate_plan_release` lifecycle status is operational metadata (`draft → active → retired`); its
+content is immutable. Reverting means copying a prior active or retired snapshot into a newer draft
+that follows the same approval path. The release does not own availability, restrictions, OOO/OOS,
+tax, fiscal or journal truth, so hotel-selectable pricing cannot disable those controls.
+
 Schemas below are the launch set. Claude Code: when implementing, load these into
 `extension_type` in the Phase-1 seed migration, exactly as written.
 

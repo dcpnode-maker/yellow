@@ -315,7 +315,7 @@ databaseDescribe("Order 066 immutable targeting drafts", () => {
   test("P1: launch seed adds one exact type, replays, and rejects divergent schema atomically", async () => {
     const type = LAUNCH_EXTENSION_TYPES.find(({ type }) => type === "rate_plan_target");
     expect(type?.jsonSchema).toEqual(RATE_PLAN_TARGET_EXTENSION_SCHEMA);
-    expect(LAUNCH_EXTENSION_TYPES).toHaveLength(9);
+    expect(LAUNCH_EXTENSION_TYPES).toHaveLength(10);
     expect(LAUNCH_EXTENSIONS).toHaveLength(40);
     expect((await admin`SELECT type FROM extension_type WHERE type = 'rate_plan_target'`)).toHaveLength(1);
     const beforeFacts = Number((await admin`SELECT count(*)::int AS count FROM fact_log`)[0]?.count);
