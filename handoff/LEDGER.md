@@ -135,3 +135,4 @@
 2026-08-22 · 064 · 2 · phase-3/founder-status-dashboard · codex → Gate-3 reviewer · BUILT-UNREVIEWED · 4b34b42; focused 4/4 and 56 assertions, two exact red drift canaries with byte-identical second restoration, inherited workbench 7/7, live/recorded separation and no fake Valkey/worker/CI health; protected hashes unchanged
 2026-08-22 · 099 · 3 · phase-3/versioned-rate-model-catalogue · codex → codex · QUESTION-ANSWERED · extension primitive selected for non-monetary model drafts; no migration/event/transition; exact evaluators and publish remain Orders 067/069
 2026-08-22 · 065 · 3 · phase-3/versioned-rate-model-catalogue · codex → — · ORDER-WRITTEN · exact ten-model catalogue plus immutable transaction-locked tenant draft versions; no active price behavior
+2026-08-22 · 100 · 3 · phase-3/versioned-rate-model-catalogue · codex → codex · QUESTION-ANSWERED · inherited Order 024 catalogue assertion stays exact and changes only from 6/30 to 8/40

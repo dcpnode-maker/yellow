@@ -30,10 +30,13 @@ is authorized.
 - `scripts/seed.ts`
 - `docs/EXTENSIONS.md`
 - `tests/rate-models.integration.test.ts`
+- `tests/extension.integration.test.ts` only for Question 100's exact launch totals and wording
 - `tests/seed.integration.test.ts` only if an exact inherited assertion requires an explicit update
 - `handoff/orders/065-versioned-rate-model-catalogue.md`
 - `handoff/questions/099-order-065-rate-model-persistence.md`
 - `handoff/questions/099-ARCHITECT-RESPONSE.md`
+- `handoff/questions/100-order-065-inherited-extension-catalogue.md`
+- `handoff/questions/100-ARCHITECT-RESPONSE.md`
 - `DECISIONS.log`
 - `handoff/LEDGER.md`
 - `handoff/GATE-3-MANIFEST.md`
@@ -115,4 +118,3 @@ correction. Then run the complete standing gate and fresh isolated `./setup.sh -
 app never created. Rebuild the persistent localhost only if runtime source changes require it;
 this order adds no UI. Refresh Graphify structurally for code, append one UNVERIFIED Gate-3 row,
 commit `[codex]`, push and open a draft stacked PR against Order 064. Do not approve or merge.
-
