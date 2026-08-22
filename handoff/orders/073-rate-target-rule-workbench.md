@@ -123,10 +123,10 @@ commit, push and open a draft PR. Do not merge.
 
 ## Definition of done
 
-- [ ] P0 is preserved before production changes.
-- [ ] P1–P5 pass without changing the Order-066 resolver or Order-069 publication boundary.
-- [ ] Hotels can author broad inheritance plus explicit exceptions in one canonical release.
-- [ ] Bulk preview evidence is server-derived and visible per cell.
-- [ ] Compliance, occupancy, restriction, audit and four-eyes guards remain non-disableable.
-- [ ] Persistent localhost is healthy and left on the rate builder.
-- [ ] Order 073 is recorded UNVERIFIED for later independent Gate-3 execution.
+- [x] P0 is preserved before production changes.
+- [x] P1–P5 pass without changing the Order-066 resolver or Order-069 publication boundary.
+- [x] Hotels can author broad inheritance plus explicit exceptions in one canonical release.
+- [x] Bulk preview evidence is server-derived and visible per cell.
+- [x] Compliance, occupancy, restriction, audit and four-eyes guards remain non-disableable.
+- [x] Persistent localhost is healthy and left on the rate builder.
+- [x] Order 073 is recorded UNVERIFIED for later independent Gate-3 execution.

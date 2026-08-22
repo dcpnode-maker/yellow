@@ -35,6 +35,7 @@ Status legend: UNVERIFIED = built, proofs builder-asserted, not executed by the 
 | 070 | 3 | 32fa632 (order d2c78a1; red proof 1bfb57b) | UNVERIFIED | Order 070 — Universal stay quote resolution and governed RMS/API evidence |
 | 071 | 2 | 259d5ec (order 1da7887; red proof 94a9427) | UNVERIFIED | Order 071 — Guided and expert universal rate-plan workbench |
 | 072 | 3 | 3fb6b5b (order 062bac7; red proof dd4af8a) | UNVERIFIED | Order 072 — Secure AI-assisted rate intent |
+| 073 | 3 | cee7897 (order e3b6327; red proof 4cc791c) | UNVERIFIED | Order 073 — Rate applicability rules and versioned bulk preview |
 
 Protected hashes to re-quote each time:
 
