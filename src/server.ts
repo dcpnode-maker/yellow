@@ -2,7 +2,7 @@ import { SQL } from "bun";
 
 import { app, createApp } from "./app";
 import { BearerTenantResolver, Hs256TokenSigner, LocalLoginService } from "./contexts/identity";
-import { AvailabilityService, HoldExpiryWorker, HoldService, InventoryPolicyService, InventoryService, OperationalBlockService, RestrictionService } from "./contexts/inventory";
+import { AvailabilityProjectionConsumer, AvailabilityProjectionService, AvailabilityService, HoldExpiryWorker, HoldService, InventoryPolicyService, InventoryService, OperationalBlockService, RestrictionService } from "./contexts/inventory";
 import { RateConfigurationService, RatePricingService } from "./contexts/rates";
 import { OperatorHttpApi } from "./http/operator";
 import { Database, PostgresEventBus, PostgresIdempotency } from "./kernel";
@@ -11,6 +11,7 @@ import { PostgresDueHoldScopeSource } from "./workers/postgres-due-hold-scopes";
 const port = Bun.env.PORT === undefined ? 3000 : Number(Bun.env.PORT);
 const workbenchEnabled = Bun.env.YELLOW_OPERATOR_WORKBENCH === "1";
 const holdExpiryEnabled = workbenchEnabled && Bun.env.YELLOW_HOLD_EXPIRY_WORKER === "1";
+const projectionWorkerEnabled = workbenchEnabled && Bun.env.YELLOW_AVAILABILITY_PROJECTION_WORKER === "1";
 const maxRequestBodySize = 16 * 1024;
 
 function runtimeHostname(): string {
@@ -45,17 +46,22 @@ function runtimeApp() {
   const blocks = new OperationalBlockService(events);
   const policy = new InventoryPolicyService(events);
   const holds = new HoldService(events);
+  if (projectionWorkerEnabled) {
+    const projectionConsumer = new AvailabilityProjectionConsumer(events, new AvailabilityProjectionService());
+    projectionConsumer.run({ onError() { console.error("availability projection consumer failed"); } })
+      .catch(() => console.error("availability projection consumer stopped unexpectedly"));
+  }
   if (holdExpiryEnabled) {
     const discoveryPool = new SQL(databaseUrl, { max: 2 });
     const expiry = new HoldExpiryWorker(database, holds, new PostgresDueHoldScopeSource(discoveryPool));
-    void expiry.run({
+    expiry.run({
       onError() { console.error("hold expiry worker discovery failed"); },
       onResult(result) {
         if (result.failures.length > 0) {
           console.error(`hold expiry worker failed for ${result.failures.length} scope(s)`);
         }
       },
-    });
+    }).catch(() => console.error("hold expiry worker stopped unexpectedly"));
   }
   return createApp({
     database,

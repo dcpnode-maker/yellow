@@ -37,6 +37,12 @@ export type {
   ProjectionRebuildResult,
   RebuildAvailabilityProjectionInput,
 } from "./availability-projection";
+export { AvailabilityProjectionConsumer } from "./availability-projection-consumer";
+export type {
+  AvailabilityProjectionConsumerOptions,
+  AvailabilityProjectionDrainResult,
+  AvailabilityProjectionRunOptions,
+} from "./availability-projection-consumer";
 export { RestrictionService } from "./restrictions";
 export type {
   CreateRestrictionBatchInput,
