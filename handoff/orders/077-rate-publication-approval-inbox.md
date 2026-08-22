@@ -185,3 +185,42 @@ proof. Do not touch the persistent founder database until P1–P4 are green. Fin
 referee project whose app is never created, then migrate/seed the persistent stack in place, perform
 the two-account browser proof without publication, refresh Graphify, push a stacked draft PR based on
 Order 076's branch, and do not approve or merge.
+
+## Builder evidence — UNVERIFIED
+
+This section records builder-executed evidence only. Independent review remains complete through
+Order 044. Claude's Gate-3 review of Orders 045–073 found F11 and F12; Order 074 contains both
+corrections and its focused proofs are green, but the corrected descendant range has not yet been
+independently re-reviewed.
+
+- **P1–P4 focused:** fresh isolated databases produced 11/11 publication tests (86 assertions),
+  7/7 review-seed tests (23 assertions), 11/11 authenticated operator-rate-builder tests
+  (75 assertions), 3/3 always-on asset tests (41 assertions), exact schema drift, green typecheck,
+  and green JavaScript syntax checking. The schema gate first failed because the order omitted the
+  generated schema mirror; Question 126/D-268 added only `tests/schema/expected.sql`, whose inspected
+  delta is the single migration-0006 index, and the entire gate restarted from the top.
+- **P5 deployed workflow:** the persistent PostgreSQL and Valkey container identities were preserved;
+  migration 0006 and the idempotent second-user seed were applied in place. Requester
+  `operator@yellow.local` created approval `413c7d34-8e38-483b-a961-ead3a91e24c9`; self-decision
+  returned 409. Distinct approver `approver@yellow.local` listed and approved it; server authority
+  then reported `canPublish=true` only for the approver and `false` for the requester. Release
+  `7c5b2631-3ef5-47dd-ae43-174a04ec7077` remains `draft` version 4, so the founder proof published
+  nothing. The deployed app is healthy and serves the approval-inbox asset. Codex's bound in-app
+  browser blocks loopback URLs with `ERR_BLOCKED_BY_CLIENT`, so no claim is made for a tool-captured
+  visual/console proof; the production HTTP flow and always-on asset/security proof are green, and
+  the founder can inspect the unchanged persistent localhost stack directly.
+- **P6 standing gate:** `bun install --frozen-lockfile` made no changes; state reported zero open
+  questions; typecheck, 49-file import-boundary scan, complete default suite (89 pass, 297 skip,
+  0 fail, 1,133 assertions), 23-package licence check, dependency audit (zero vulnerabilities),
+  schema drift, and protected hashes were green. Fresh isolated Compose project
+  `yellow-o77-referee` used explicit non-conflicting ports, never created `app`, and returned
+  `11 passed, 0 failed of 11` before its volumes were removed. Graphify was incrementally refreshed
+  to 4,925 nodes, 8,031 directed edges and 574 communities after installing the free SQL parser;
+  diagnostics show zero missing, dangling or directed-collapsed edges, 10 self-loops, 24 surfaced
+  semantic-ID collisions, and 41 no-output semantic files deliberately requeued for a future pass.
+  Subagent token counts were not exposed by the runtime, so the cost record marks that run's count
+  unavailable instead of inventing a number.
+- **Protected hashes:** `migrations/0001_init.sql`
+  `fe2a9fc949c6bacded3f8d3fc4d14fc596a83ebde9aeb043eb10845f07b30923`;
+  `tests/run_invariants.py`
+  `3228279bd99a8f9b6af99748f31d4d4b482a8e627e16d92644d9d859ad8befa1`.
