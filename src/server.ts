@@ -5,6 +5,7 @@ import { BearerTenantResolver, Hs256TokenSigner, LocalLoginService } from "./con
 import { AvailabilityProjectionConsumer, AvailabilityProjectionService, AvailabilityService, HoldExpiryWorker, HoldService, InventoryPolicyService, InventoryService, OperationalBlockService, RestrictionService } from "./contexts/inventory";
 import {
   RateConfigurationService,
+  RateIntentService,
   RateModelService,
   RatePricingService,
   RatePublicationService,
@@ -66,6 +67,7 @@ function runtimeApp() {
     targets: new RateTargetService(registry),
     publication,
     quote: new RateQuoteService(publication, availability, projection),
+    intent: new RateIntentService(),
   };
   const runtimeStatus: OperatorRuntimeStatus = {
     workbenchEnabled,

@@ -207,3 +207,24 @@ CTA/CTD, closed-to-sale and minimum/maximum stay or advance rules remain hotel-c
 the Restrictions workspace rather than being duplicated in a rate release. They are authoritative
 inputs to the live quote and cannot be disabled by either authoring mode. AI-assisted authoring is
 reserved for Order 072 and must compile through this same boundary; it is not a second mutation path.
+
+## 13. Secure AI-assisted rate intent
+
+Order 072 adds `POST /api/v1/properties/:property/rate-builder/:ratePlanId/intents:interpret` as a
+read-scoped, proposal-only boundary. The request contains exactly an intent string and the current
+typed authoring command. Server context supplies tenant, property and actor authority; the adapter
+never receives tokens, approval state or database mutation capabilities. The response has one of
+`ready`, `needs_clarification` or `rejected`, plus bounded plain-text changes, assumptions,
+questions, warnings, rejections and guardrails. A ready response may include one command proposal
+that has already passed the same canonical compiler as Guided and Expert authoring.
+
+The included adapter is deterministic and makes no network call. It supports exact minor-unit
+prices, supported model guidance, commercial codes, guest bounds, refund treatment and channel
+distribution. Ambiguous money, complex model requirements and restriction-owned rules return
+questions instead of guesses. Prompt overrides, secrets, executable instructions, compliance
+bypasses and automatic apply/save/approve/publish requests are rejected before adapter invocation.
+
+The browser renders every adapter string with text nodes. Interpreting never applies the proposal;
+applying never saves it. An operator must separately Apply, Save draft, Preview, obtain independent
+Approval and Publish. Any future external model implements the same untrusted proposal port and
+inherits these server-owned validations and separate operator actions.

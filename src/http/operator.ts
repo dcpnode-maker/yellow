@@ -25,6 +25,8 @@ import {
   RateAuthoringError,
   RateConfigurationService,
   RateConflictError,
+  RateIntentError,
+  RateIntentService,
   RateModelService,
   RateNotFoundError,
   RatePricingService,
@@ -317,6 +319,7 @@ interface RateBuilderOperations {
     "publishDraft" | "createUndoDraftVersion" | "listReleaseVersions"
   >;
   readonly quote: Pick<RateQuoteService, "resolve">;
+  readonly intent?: Pick<RateIntentService, "interpret">;
 }
 type BlockOperations = Pick<OperationalBlockService, "listActive" | "open" | "close">;
 type PolicyOperations = Pick<InventoryPolicyService, "get" | "setOosSellability">;
@@ -577,7 +580,7 @@ export class OperatorHttpApi {
     if (error instanceof InventoryNotFoundError) {
       return apiError(request, 404, "inventory/not_found", "Not found", "Referenced inventory was not found");
     }
-    if (error instanceof RateValidationError || error instanceof RateAuthoringError ||
+    if (error instanceof RateValidationError || error instanceof RateAuthoringError || error instanceof RateIntentError ||
         (error instanceof RatePublicationError && !(error instanceof RatePublicationNotFoundError)) ||
         (error instanceof RateQuoteError && !(error instanceof RateQuoteNotFoundError))) {
       return apiError(request, 400, "request/invalid", "Invalid request", "Rate configuration input is invalid");
@@ -1336,6 +1339,50 @@ export class OperatorHttpApi {
       "idempotency-replayed": String(outcome.replayed),
       "x-correlation-id": requestId,
     });
+  }
+
+  async interpretRateBuilderIntent(
+    context: TenantRequestContext,
+    propertyNode: string,
+    ratePlanId: string,
+    body: unknown,
+  ): Promise<Response> {
+    if (!hasScope(context, RATE_READ_SCOPE)) {
+      return apiError(context.request, 403, "auth/scope_missing", "Forbidden", "Rate configuration access is not granted");
+    }
+    if (!UUID.test(propertyNode) || !UUID.test(ratePlanId)) {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Property or rate-plan identifier is invalid");
+    }
+    if (!isObject(body) || !exactKeys(body, ["intent", "currentCommand"]) || typeof body.intent !== "string") {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Rate intent input is invalid");
+    }
+    if (!this.#rateBuilder?.intent) return this.unavailable(context.request);
+    const grants = await listGrantedProperties(context, RATE_READ_SCOPE);
+    if (!grants.some(({ id }) => id === propertyNode)) {
+      return apiError(context.request, 403, "auth/property_forbidden", "Forbidden", "Property access is not granted");
+    }
+    let current;
+    try {
+      current = compileRateAuthoringCommand(body.currentCommand);
+    } catch {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Rate intent input is invalid");
+    }
+    if (current.ratePlanId !== ratePlanId) {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Rate-plan route and command do not match");
+    }
+    try {
+      await this.#rateBuilder.models.listDraftVersions(context.tx, propertyNode, ratePlanId);
+      const interpretation = await this.#rateBuilder.intent.interpret({
+        intent: body.intent,
+        currentCommand: body.currentCommand,
+      });
+      return apiResponse(context.request, rateBuilderJsonValue({ interpretation }));
+    } catch (error) {
+      if (error instanceof RateIntentError || error instanceof RateAuthoringError) {
+        return apiError(context.request, 400, "request/invalid", "Invalid request", "Rate intent input is invalid");
+      }
+      throw error;
+    }
   }
 
   async resolveRateBuilderQuote(

@@ -263,3 +263,35 @@ describe("Order 071 canonical rate authoring", () => {
     expect(css).toContain(':root[data-theme="pixel"]');
   });
 });
+
+describe("Order 072 secure AI-assisted authoring surface", () => {
+  test("the workbench exposes proposal-only AI controls without browser persistence or automatic authority", async () => {
+    const [html, script] = await Promise.all([
+      Bun.file(new URL("../src/http/operator/index.html", import.meta.url)).text(),
+      Bun.file(new URL("../src/http/operator/operator.js", import.meta.url)).text(),
+    ]);
+    for (const control of [
+      "builder-ai-panel", "builder-ai-intent", "builder-ai-interpret", "builder-ai-apply",
+      "builder-ai-changes", "builder-ai-assumptions", "builder-ai-questions", "builder-ai-warnings",
+      "builder-ai-guardrails",
+    ]) {
+      expect(html).toContain(`id="${control}"`);
+    }
+    expect(html).toContain("Nothing is saved automatically");
+    expect(html).toContain("Apply, Save, Preview, independent Approval and Publish stay separate");
+    expect(script).toContain("interpretBuilderIntent");
+    expect(script).toContain("applyBuilderAiProposal");
+    expect(script).toContain("Applied for review only. Nothing is saved");
+    expect(script).not.toMatch(/localStorage|sessionStorage|document\.cookie|innerHTML|console\.(?:log|debug|info)/);
+    const interpretOnly = script.slice(
+      script.indexOf("async function interpretBuilderIntent"),
+      script.indexOf("function applyBuilderAiProposal"),
+    );
+    const applyOnly = script.slice(
+      script.indexOf("function applyBuilderAiProposal"),
+      script.indexOf("function setBuilderMode"),
+    );
+    expect(interpretOnly).not.toMatch(/(?:saveBuilderDraft|requestBuilderApproval|publishBuilderRelease)\s*\(/);
+    expect(applyOnly).not.toMatch(/(?:saveBuilderDraft|requestBuilderApproval|publishBuilderRelease)\s*\(/);
+  });
+});

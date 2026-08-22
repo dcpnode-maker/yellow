@@ -453,7 +453,7 @@
               <div class="mode-switch" role="radiogroup" aria-label="Authoring mode">
                 <label><input type="radio" name="builder-mode" value="guided" checked><span>Guided</span></label>
                 <label><input type="radio" name="builder-mode" value="expert"><span>Expert</span></label>
-                <span class="mode-future" title="Order 072 adds the secure intent compiler">AI-assisted · next</span>
+                <label><input type="radio" name="builder-mode" value="ai"><span>AI-assisted</span></label>
               </div>
             </div>
 
@@ -469,8 +469,29 @@
               <div class="builder-stage-heading"><p class="step">Step 1</p><h4>Choose the sellable rate identity</h4><p>Rate code, guest-facing name, currency and reusable policies stay on the base plan. This builder versions how that plan prices and applies.</p></div>
               <div class="builder-form-grid two-up">
                 <label>Rate plan<select id="builder-plan" required><option value="">Create a base rate plan below first</option></select></label>
-                <label>Authoring experience<select id="builder-mode-select"><option value="guided">Guided · progressive choices</option><option value="expert">Expert · complete typed command</option></select></label>
+                <label>Authoring experience<select id="builder-mode-select"><option value="guided">Guided · progressive choices</option><option value="expert">Expert · complete typed command</option><option value="ai">AI-assisted · reviewable proposal</option></select></label>
               </div>
+              <section class="ai-intent-panel" id="builder-ai-panel" aria-labelledby="builder-ai-title" hidden>
+                <div class="ai-intent-heading">
+                  <div><p class="eyebrow">Zero-network local assistant</p><h5 id="builder-ai-title">Describe the commercial intent</h5></div>
+                  <span class="ai-adapter-badge" id="builder-ai-adapter">Local · deterministic</span>
+                </div>
+                <p class="field-note">Try: “Use simple fixed pricing at 14500 minor units for segment LEISURE on channel direct. Maximum 2 adults and non-refundable.” Complex or ambiguous requests return a question instead of a guess.</p>
+                <label>Rate-plan intent<textarea id="builder-ai-intent" rows="4" maxlength="2000" placeholder="Describe the exact hotel-controlled rate choices. Do not enter guest data, credentials or payment details."></textarea></label>
+                <div class="ai-intent-actions">
+                  <button class="secondary" id="builder-ai-interpret" type="button">Interpret securely</button>
+                  <button class="primary" id="builder-ai-apply" type="button" disabled>Apply proposal for review</button>
+                </div>
+                <p class="ai-intent-status" id="builder-ai-status" role="status" aria-live="polite">No intent has been interpreted. Nothing is saved automatically.</p>
+                <div class="ai-result-grid" id="builder-ai-results" hidden>
+                  <section><h6>Changes</h6><ul id="builder-ai-changes"></ul></section>
+                  <section><h6>Assumptions</h6><ul id="builder-ai-assumptions"></ul></section>
+                  <section><h6>Questions</h6><ul id="builder-ai-questions"></ul></section>
+                  <section><h6>Warnings</h6><ul id="builder-ai-warnings"></ul></section>
+                  <section class="ai-guardrails"><h6>Always enforced</h6><ul id="builder-ai-guardrails"></ul></section>
+                </div>
+                <p class="field-note">This included assistant is local and deterministic. A future configured model will remain an untrusted proposal source. Apply, Save, Preview, independent Approval and Publish stay separate.</p>
+              </section>
               <div class="guardrail-banner"><strong>Always enforced</strong><span>Exact money and currency</span><span>Tenant and property access</span><span>Immutable history</span><span>Occupancy and restriction truth</span><span>Tax and fiscal safeguards</span></div>
             </div>
 

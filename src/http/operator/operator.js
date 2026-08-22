@@ -15,6 +15,8 @@
   let builderSimulation = null;
   let builderSelectedModel = "simple-fixed";
   let builderBookingInstant = "";
+  let builderAiInterpretation = null;
+  let builderAiAppliedProposal = null;
   let operationalBlocksData = [];
   let inventoryPolicyData = { oosSellability: "blocked" };
   let activeHoldsData = [];
@@ -101,6 +103,18 @@
   const builderPlan = document.querySelector("#builder-plan");
   const builderModeSelect = document.querySelector("#builder-mode-select");
   const builderModeRadios = document.querySelectorAll('input[name="builder-mode"]');
+  const builderAiPanel = document.querySelector("#builder-ai-panel");
+  const builderAiIntent = document.querySelector("#builder-ai-intent");
+  const builderAiInterpret = document.querySelector("#builder-ai-interpret");
+  const builderAiApply = document.querySelector("#builder-ai-apply");
+  const builderAiStatus = document.querySelector("#builder-ai-status");
+  const builderAiResults = document.querySelector("#builder-ai-results");
+  const builderAiAdapter = document.querySelector("#builder-ai-adapter");
+  const builderAiChanges = document.querySelector("#builder-ai-changes");
+  const builderAiAssumptions = document.querySelector("#builder-ai-assumptions");
+  const builderAiQuestions = document.querySelector("#builder-ai-questions");
+  const builderAiWarnings = document.querySelector("#builder-ai-warnings");
+  const builderAiGuardrails = document.querySelector("#builder-ai-guardrails");
   const builderSteps = document.querySelectorAll(".builder-step");
   const builderPanels = document.querySelectorAll("[data-builder-panel]");
   const builderModelCatalogue = document.querySelector("#builder-model-catalogue");
@@ -303,6 +317,8 @@
     builderPreviewCells = [];
     builderSimulation = null;
     builderBookingInstant = "";
+    builderAiInterpretation = null;
+    builderAiAppliedProposal = null;
     operationalBlocksData = [];
     inventoryPolicyData = { oosSellability: "blocked" };
     activeHoldsData = [];
@@ -686,14 +702,112 @@
   }
 
   function selectedBuilderMode() {
-    return builderModeSelect.value === "expert" ? "expert" : "guided";
+    return ["guided", "expert", "ai"].includes(builderModeSelect.value) ? builderModeSelect.value : "guided";
+  }
+
+  function renderBuilderAiList(list, values, emptyMessage) {
+    list.replaceChildren();
+    const items = Array.isArray(values) ? values : [];
+    if (items.length === 0) {
+      const empty = document.createElement("li");
+      empty.className = "ai-empty";
+      empty.textContent = emptyMessage;
+      list.append(empty);
+      return;
+    }
+    for (const value of items) {
+      const item = document.createElement("li");
+      item.textContent = String(value);
+      list.append(item);
+    }
+  }
+
+  function resetBuilderAiProposal(message = "No intent has been interpreted. Nothing is saved automatically.") {
+    builderAiInterpretation = null;
+    builderAiAppliedProposal = null;
+    builderAiApply.disabled = true;
+    builderAiResults.hidden = true;
+    builderAiStatus.textContent = message;
+    builderAiStatus.classList.remove("error");
+    builderAiAdapter.textContent = "Local · deterministic";
+  }
+
+  function renderBuilderAiInterpretation(interpretation) {
+    builderAiInterpretation = interpretation;
+    builderAiAppliedProposal = null;
+    const rejected = interpretation.status === "rejected";
+    const ready = interpretation.status === "ready" && interpretation.proposal;
+    builderAiAdapter.textContent = `${interpretation.adapter.external ? "External" : "Local"} · ${interpretation.adapter.key}`;
+    renderBuilderAiList(builderAiChanges, interpretation.changes, "No changes proposed.");
+    renderBuilderAiList(builderAiAssumptions, interpretation.assumptions, "No assumptions made.");
+    renderBuilderAiList(builderAiQuestions, interpretation.questions, "No questions remain.");
+    renderBuilderAiList(
+      builderAiWarnings,
+      rejected ? interpretation.rejections : interpretation.warnings,
+      rejected ? "The request was rejected without changing state." : "No additional warnings.",
+    );
+    renderBuilderAiList(builderAiGuardrails, interpretation.guardrails, "Server guardrails remain active.");
+    builderAiResults.hidden = false;
+    builderAiApply.disabled = !ready;
+    builderAiStatus.classList.toggle("error", rejected);
+    builderAiStatus.textContent = ready
+      ? "Proposal ready. Review the details, then apply it deliberately. Nothing has been saved."
+      : rejected
+        ? "This request conflicts with Yellow's safety boundary and was rejected. Nothing has been saved."
+        : "More exact information is required. Answer the questions and interpret again.";
+  }
+
+  async function interpretBuilderIntent() {
+    if (!builderPlan.value) {
+      builderAiStatus.textContent = "Choose a base rate plan before interpreting intent.";
+      builderAiStatus.classList.add("error");
+      return;
+    }
+    const intent = builderAiIntent.value.trim();
+    if (!intent) {
+      builderAiStatus.textContent = "Describe the rate-plan intent first.";
+      builderAiStatus.classList.add("error");
+      return;
+    }
+    try {
+      builderAiInterpret.disabled = true;
+      builderAiApply.disabled = true;
+      builderAiStatus.classList.remove("error");
+      builderAiStatus.textContent = "Interpreting against the current typed choices…";
+      const currentCommand = buildGuidedCommand();
+      const body = await request(`/api/v1/properties/${encodeURIComponent(propertySelect.value)}/rate-builder/${encodeURIComponent(builderPlan.value)}/intents:interpret`, {
+        method: "POST",
+        body: JSON.stringify({ intent, currentCommand }),
+      });
+      renderBuilderAiInterpretation(body.interpretation);
+    } catch (error) {
+      resetBuilderAiProposal(error instanceof Error ? error.message : "The rate intent could not be interpreted.");
+      builderAiStatus.classList.add("error");
+    } finally {
+      builderAiInterpret.disabled = false;
+    }
+  }
+
+  function applyBuilderAiProposal() {
+    if (!builderAiInterpretation?.proposal || builderAiInterpretation.status !== "ready") {
+      builderAiStatus.textContent = "Interpret a complete, safe proposal before applying it.";
+      builderAiStatus.classList.add("error");
+      return;
+    }
+    builderAiAppliedProposal = structuredClone(builderAiInterpretation.proposal);
+    builderAiApply.disabled = true;
+    builderAiStatus.classList.remove("error");
+    builderAiStatus.textContent = "Applied for review only. Nothing is saved; Save draft, Preview, Approval and Publish remain separate.";
+    setBuilderStep(5);
+    setBuilderMessage("AI proposal applied to the review step. Nothing has been saved.");
   }
 
   function setBuilderMode(mode, refreshExpert = true) {
-    const normalized = mode === "expert" ? "expert" : "guided";
+    const normalized = ["guided", "expert", "ai"].includes(mode) ? mode : "guided";
     builderModeSelect.value = normalized;
     for (const radio of builderModeRadios) radio.checked = radio.value === normalized;
     builderExpertJsonGroup.hidden = normalized !== "expert";
+    builderAiPanel.hidden = normalized !== "ai";
     if (normalized === "expert" && refreshExpert && builderPlan.value) refreshExpertJson();
     renderBuilderCommand();
   }
@@ -1006,6 +1120,11 @@
 
   function builderCommand() {
     if (selectedBuilderMode() === "guided") return buildGuidedCommand();
+    if (selectedBuilderMode() === "ai") {
+      if (!builderAiAppliedProposal) throw new Error("Interpret and deliberately apply an AI proposal before saving a draft.");
+      if (!builderPlan.value) throw new Error("Choose a base rate plan first.");
+      return { ...builderAiAppliedProposal, authoringMode: "ai", ratePlanId: builderPlan.value };
+    }
     let parsed;
     try { parsed = JSON.parse(builderExpertJson.value); } catch { throw new Error("Expert command must be valid JSON."); }
     if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) throw new Error("Expert command must be a JSON object.");
@@ -2381,6 +2500,7 @@
     builderReleaseId = "";
     builderPreviewCells = [];
     builderSimulation = null;
+    resetBuilderAiProposal("The base plan changed. Interpret the intent again before applying it.");
     void loadRateBuilder();
   });
   builderModeSelect.addEventListener("change", () => setBuilderMode(builderModeSelect.value));
@@ -2390,6 +2510,7 @@
   builderModelCatalogue.addEventListener("change", (event) => {
     const input = event.target.closest('input[name="builder-model"]');
     if (!input) return;
+    resetBuilderAiProposal("The pricing model changed. Interpret the intent again before applying it.");
     builderSelectedModel = input.value;
     updateBuilderModelFields();
   });
@@ -2401,6 +2522,9 @@
     setBuilderStep(builderStep + 1);
   });
   builderRefreshJson.addEventListener("click", refreshExpertJson);
+  builderAiInterpret.addEventListener("click", () => void interpretBuilderIntent());
+  builderAiApply.addEventListener("click", applyBuilderAiProposal);
+  builderAiIntent.addEventListener("input", () => resetBuilderAiProposal("Intent changed. Interpret again; nothing is saved automatically."));
   builderSaveDraft.addEventListener("click", () => void saveBuilderDraft());
   builderRunPreview.addEventListener("click", () => void runBuilderPreview());
   builderRequestApproval.addEventListener("click", () => void requestBuilderApproval());
@@ -2411,6 +2535,9 @@
     builderPublish.disabled = !builderApprovalId.value.trim() || !builderReleaseId || !builderSimulation || builderSimulation.conflictCount !== 0;
   });
   document.querySelector("#rate-builder").addEventListener("input", (event) => {
+    if (event.target !== builderAiIntent && event.target !== builderExpertJson && builderAiAppliedProposal) {
+      resetBuilderAiProposal("A typed rate choice changed. Interpret and apply the proposal again.");
+    }
     if (event.target !== builderExpertJson) renderBuilderCommand();
   });
   builderExpertJson.addEventListener("input", renderBuilderCommand);

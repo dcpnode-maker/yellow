@@ -1,4 +1,4 @@
-# Order 071 design QA — universal rate-plan workbench
+# Orders 071–072 design QA — universal rate-plan workbench
 
 Date: 2026-08-22  
 Reference: founder-supplied “Universal rate plan flow” screenshot  
@@ -48,5 +48,31 @@ Coverage is visible and progressive rather than presented as one dense table:
 
 No unresolved P0, P1 or P2 design/accessibility findings remain. The local draft preview is labelled
 as hypothetical and pre-tax; the separate active-release quote is the only UI claim of current tax,
-policy, restriction and availability evidence. AI-assisted authoring remains visibly marked “next”
-and has no browser mutation path in this order.
+policy, restriction and availability evidence.
+
+## Order 072 AI-assisted extension
+
+The AI-assisted mode now uses the same Step 1 identity and Step 5 canonical review surfaces as
+Guided and Expert. It adds one clearly bounded intent panel with Changes, Assumptions, Questions,
+Warnings and Always enforced evidence. The panel follows the existing tokens in both themes and its
+result grid collapses to one column under the same 560px responsive boundary proven above. Disabled
+actions now have an explicit reduced-opacity, desaturated and non-clickable visual state throughout
+the workbench.
+
+Executed browser evidence on the persistent founder stack:
+
+- An exact request for fixed pricing, `14500` minor units, LEISURE segment, direct channel, maximum
+  two adults and non-refundable treatment produced one ready proposal with all six changes visible.
+- Interpretation left Apply disabled until the proposal was ready. A deliberate Apply moved the
+  canonical `authoringMode: "ai"` command to Step 5 while stating that nothing was saved.
+- A second deliberate action saved immutable release version 2; no preview, approval or publication
+  was triggered automatically.
+- `145 USD` plus minimum stay returned two clarifying questions: exact minor units and the
+  authoritative Restrictions workspace. Apply remained disabled.
+- A prompt-override, tax-bypass and auto-publication request rendered three explicit rejections and
+  no proposal. Apply remained disabled.
+- Apple calm and Pixel expressive rendered without clipping or style drift at the 1280 × 720 review
+  viewport. The inherited 390 × 844 responsive contract is covered by the one-column CSS rule and
+  the previous executed narrow proof; this browser surface did not expose a viewport-resize control
+  during the Order 072 pass.
+- Browser error/warning console: 0 entries.

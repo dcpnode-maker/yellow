@@ -171,3 +171,16 @@ export {
   compileRateAuthoringCommand,
 } from "./authoring";
 export type { CanonicalRateAuthoringCommand } from "./authoring";
+export {
+  LocalRateIntentProposalAdapter,
+  RateIntentError,
+  RateIntentService,
+} from "./intent";
+export type {
+  InterpretRateIntentInput,
+  RateIntentAdapterInput,
+  RateIntentAdapterMetadata,
+  RateIntentProposalAdapter,
+  RateIntentResult,
+  RateIntentStatus,
+} from "./intent";

@@ -130,6 +130,9 @@ export function createApp(options: AppOptions = {}) {
       .post("/api/v1/properties/:property/rate-builder/:ratePlanId/releases", ({ request, params, body, tenantContext }) =>
         withOperatorTenant(request, (context) => operator.createRateBuilderDraft(context, params.property, params.ratePlanId, body))
       )
+      .post("/api/v1/properties/:property/rate-builder/:ratePlanId/intents:interpret", ({ request, params, body, tenantContext }) =>
+        withOperatorTenant(request, (context) => operator.interpretRateBuilderIntent(context, params.property, params.ratePlanId, body))
+      )
       .post("/api/v1/properties/:property/rate-builder/:ratePlanId/quotes:resolve", ({ request, params, body, tenantContext }) =>
         withOperatorTenant(request, (context) => operator.resolveRateBuilderQuote(context, params.property, params.ratePlanId, body))
       )
