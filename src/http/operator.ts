@@ -57,6 +57,8 @@ const POLICY_READ_SCOPE = "inventory.policy:read";
 const POLICY_WRITE_SCOPE = "inventory.policy:write";
 const HOLD_READ_SCOPE = "inventory.holds:read";
 const HOLD_WRITE_SCOPE = "inventory.holds:write";
+const OFFLINE_LEASE_READ_SCOPE = "inventory.offline_leases:read";
+const OFFLINE_LEASE_WRITE_SCOPE = "inventory.offline_leases:write";
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 const ISO_INSTANT = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(?::\d{2}(?:\.\d{1,3})?)?(?:Z|[+-]\d{2}:\d{2})$/;
 const LOCAL_DATE = /^\d{4}-\d{2}-\d{2}$/;
@@ -153,6 +155,35 @@ function parseHold(body: unknown): { sellableUnitId: string; from: Date; to: Dat
   const from = parseInstant(body.from);
   const to = parseInstant(body.to);
   return from && to && from < to ? { sellableUnitId: body.sellableUnitId, from, to, holderReference: body.holderReference } : null;
+}
+
+function parseOfflineLease(body: unknown): {
+  sellableUnitId: string;
+  from: Date;
+  to: Date;
+  deviceId: string;
+  deviceLabel?: string;
+  leaseHours: number;
+} | null {
+  if (!isObject(body) ||
+      !exactKeys(body, ["sellableUnitId", "from", "to", "deviceId", "leaseHours"], ["deviceLabel"]) ||
+      typeof body.sellableUnitId !== "string" || !UUID.test(body.sellableUnitId) ||
+      typeof body.deviceId !== "string" || !/^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$/.test(body.deviceId) ||
+      typeof body.leaseHours !== "number" || !Number.isInteger(body.leaseHours) ||
+      body.leaseHours < 1 || body.leaseHours > 168 ||
+      (body.deviceLabel !== undefined &&
+        (typeof body.deviceLabel !== "string" || body.deviceLabel !== body.deviceLabel.trim() ||
+          !/^[^\u0000-\u001f\u007f]{1,120}$/u.test(body.deviceLabel)))) return null;
+  const from = parseInstant(body.from);
+  const to = parseInstant(body.to);
+  return from && to && from < to ? {
+    sellableUnitId: body.sellableUnitId,
+    from,
+    to,
+    deviceId: body.deviceId,
+    ...(body.deviceLabel === undefined ? {} : { deviceLabel: body.deviceLabel }),
+    leaseHours: body.leaseHours,
+  } : null;
 }
 
 interface PropertyRow {
@@ -262,7 +293,10 @@ type RateOperations = Pick<RateConfigurationService,
 type PricingOperations = Pick<RatePricingService, "create" | "findCurrent" | "supersede">;
 type BlockOperations = Pick<OperationalBlockService, "listActive" | "open" | "close">;
 type PolicyOperations = Pick<InventoryPolicyService, "get" | "setOosSellability">;
-type HoldOperations = Pick<HoldService, "listActive" | "place" | "release">;
+type HoldOperations = Pick<HoldService,
+  "listActive" | "place" | "release" |
+  "listActiveOfflineLeases" | "placeOfflineLease" | "releaseOfflineLease"
+>;
 
 const MAX_MONEY = 9_223_372_036_854_775_807n;
 
@@ -868,6 +902,126 @@ export class OperatorHttpApi {
     })) } }));
     return apiResponse(context.request, canonicalJson(outcome.body), outcome.status, {
       "idempotency-replayed": String(outcome.replayed), "x-correlation-id": requestId,
+    });
+  }
+
+  async activeOfflineLeases(context: TenantRequestContext, propertyNode: string): Promise<Response> {
+    if (!hasScope(context, OFFLINE_LEASE_READ_SCOPE)) {
+      return apiError(context.request, 403, "auth/scope_missing", "Forbidden", "Offline-capacity access is not granted");
+    }
+    if (!UUID.test(propertyNode)) {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Property identifier is invalid");
+    }
+    if (!this.#holds) return this.unavailable(context.request);
+    const grants = await listGrantedProperties(context, OFFLINE_LEASE_READ_SCOPE);
+    if (!grants.some(({ id }) => id === propertyNode)) {
+      return apiError(context.request, 403, "auth/property_forbidden", "Forbidden", "Property access is not granted");
+    }
+    return apiResponse(context.request, {
+      offlineLeases: jsonValue(await this.#holds.listActiveOfflineLeases(context.tx, propertyNode)),
+    });
+  }
+
+  async placeOfflineLease(context: TenantRequestContext, propertyNode: string, body: unknown): Promise<Response> {
+    const input = parseOfflineLease(body);
+    if (!input) {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Offline-capacity input is invalid");
+    }
+    if (!hasScope(context, OFFLINE_LEASE_WRITE_SCOPE)) {
+      return apiError(context.request, 403, "auth/scope_missing", "Forbidden", "Offline-capacity changes are not granted");
+    }
+    if (!UUID.test(propertyNode)) {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Property identifier is invalid");
+    }
+    if (!this.#holds) return this.unavailable(context.request);
+    const grants = await listGrantedProperties(context, OFFLINE_LEASE_WRITE_SCOPE);
+    if (!grants.some(({ id }) => id === propertyNode)) {
+      return apiError(context.request, 403, "auth/property_forbidden", "Forbidden", "Property access is not granted");
+    }
+    const requestId = correlationId(context.request);
+    const outcome = await this.#idempotency.execute(context.tx, {
+      tenantId: context.tenantId,
+      operation: "operator.inventory.offline_leases.place",
+      key: context.request.headers.get("idempotency-key") ?? "",
+      request: { propertyNode, body },
+    }, async (tx) => {
+      const options = await this.#availability.search(tx, {
+        propertyNode,
+        from: input.from,
+        to: input.to,
+        partySize: 1,
+      });
+      const exact = options.find(({ sellableUnitId }) => sellableUnitId === input.sellableUnitId);
+      if (!exact?.bookable) {
+        throw new HoldConflictError("Requested offline capacity is not currently bookable");
+      }
+      return {
+        status: 201,
+        body: { offlineLease: jsonValue(await this.#holds!.placeOfflineLease(tx, {
+        sellableUnitId: input.sellableUnitId,
+        from: input.from,
+        to: input.to,
+        ttlSeconds: input.leaseHours * 3_600,
+        deviceId: input.deviceId,
+        ...(input.deviceLabel === undefined ? {} : { deviceLabel: input.deviceLabel }),
+        envelope: createAuditEnvelope({
+          actorId: context.identity.actorId,
+          tenantId: context.tenantId,
+          propertyNode,
+          requestId,
+          operation: "hold.created",
+        }),
+        })) },
+      };
+    });
+    return apiResponse(context.request, canonicalJson(outcome.body), outcome.status, {
+      "idempotency-replayed": String(outcome.replayed),
+      "x-correlation-id": requestId,
+    });
+  }
+
+  async releaseOfflineLease(
+    context: TenantRequestContext,
+    propertyNode: string,
+    leaseId: string,
+    body: unknown,
+  ): Promise<Response> {
+    if (!isObject(body) || !exactKeys(body, [])) {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Offline-capacity release input must be empty");
+    }
+    if (!hasScope(context, OFFLINE_LEASE_WRITE_SCOPE)) {
+      return apiError(context.request, 403, "auth/scope_missing", "Forbidden", "Offline-capacity changes are not granted");
+    }
+    if (!UUID.test(propertyNode) || !UUID.test(leaseId)) {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Property or lease identifier is invalid");
+    }
+    if (!this.#holds) return this.unavailable(context.request);
+    const grants = await listGrantedProperties(context, OFFLINE_LEASE_WRITE_SCOPE);
+    if (!grants.some(({ id }) => id === propertyNode)) {
+      return apiError(context.request, 403, "auth/property_forbidden", "Forbidden", "Property access is not granted");
+    }
+    const requestId = correlationId(context.request);
+    const outcome = await this.#idempotency.execute(context.tx, {
+      tenantId: context.tenantId,
+      operation: "operator.inventory.offline_leases.release",
+      key: context.request.headers.get("idempotency-key") ?? "",
+      request: { propertyNode, leaseId, body },
+    }, async (tx) => ({
+      status: 200,
+      body: { offlineLease: jsonValue(await this.#holds!.releaseOfflineLease(tx, {
+        holdId: leaseId,
+        envelope: createAuditEnvelope({
+          actorId: context.identity.actorId,
+          tenantId: context.tenantId,
+          propertyNode,
+          requestId,
+          operation: "hold.released",
+        }),
+      })) },
+    }));
+    return apiResponse(context.request, canonicalJson(outcome.body), outcome.status, {
+      "idempotency-replayed": String(outcome.replayed),
+      "x-correlation-id": requestId,
     });
   }
 

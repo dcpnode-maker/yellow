@@ -27,6 +27,7 @@ const REQUIRE_DATABASE = process.env.YELLOW_REQUIRE_OFFLINE_LEASE === "1";
 const SECRET = "yellow-order-062-test-token-secret-exactly-long-enough";
 const FOREIGN_PROPERTY = "00000000-0000-0000-0000-000000006291";
 const TENANT_B = "00000000-0000-0000-0000-000000006292";
+const BLOCKED_RESTRICTION = "00000000-0000-0000-0000-000000006293";
 const FROM = "2047-01-10T12:00:00.000Z";
 const TO = "2047-01-12T12:00:00.000Z";
 
@@ -59,7 +60,7 @@ function request(target: ReturnType<typeof createApp>, path: string, init: Reque
   return target.handle(new Request(`http://yellow.test${path}`, init));
 }
 
-function leasePath(property = SEED_PROPERTY.id, suffix = ""): string {
+function leasePath(property: string = SEED_PROPERTY.id, suffix = ""): string {
   return `/api/v1/properties/${property}/offline-leases${suffix}`;
 }
 
@@ -360,6 +361,27 @@ databaseDescribe("Order 062 operator-managed offline lease pool", () => {
       expect((await place({ ...base, leaseHours: value }, `order062-${key}`)).status).toBe(400);
     }
     expect((await place({ ...base, from: "2047-04-12T12:00:00.000Z" }, "order062-period")).status).toBe(400);
+
+    await admin`
+      INSERT INTO restriction (id, tenant_id, scope_node, unit_type_id, kind, stay_dates, source)
+      SELECT ${BLOCKED_RESTRICTION}::uuid, su.tenant_id, ${SEED_PROPERTY.id}::uuid,
+        su.unit_type_id, 'closed', daterange('2047-04-20','2047-04-22','[)'), 'manual'
+      FROM sellable_unit su WHERE su.id=${sellable}::uuid
+    `;
+    const commerciallyBlocked = leaseBody(
+      sellable,
+      "2047-04-20T12:00:00.000Z",
+      "2047-04-22T12:00:00.000Z",
+      "commercially-blocked-device",
+    );
+    expect((await place(commerciallyBlocked, "order062-commercially-blocked")).status).toBe(409);
+    const blockedArtifacts = await admin<Array<{ holds: number; claims: number }>>`
+      SELECT
+        (SELECT count(*)::int FROM hold WHERE holder @> '{"device_id":"commercially-blocked-device"}'::jsonb) AS holds,
+        (SELECT count(*)::int FROM api_idempotency WHERE operation='operator.inventory.offline_leases.place'
+          AND response_status IS NULL) AS claims
+    `;
+    expect(blockedArtifacts[0]).toEqual({ holds: 0, claims: 0 });
 
     const valid = await place(base, "order062-changed");
     expect(valid.status).toBe(201);

@@ -260,7 +260,7 @@ databaseDescribe("Order 055 operator cart holds", () => {
     expect((await release(holdId, "order055-fail-release")).status).toBe(200);
   });
 
-  test("P7: typed temporary-hold UI and exact fifteen-scope role expose no occupancy shortcut", async () => {
+  test("P7: typed temporary-hold UI and exact seventeen-scope role expose no occupancy shortcut", async () => {
     const html = await Bun.file(new URL("../src/http/operator/index.html", import.meta.url)).text();
     const script = await Bun.file(new URL("../src/http/operator/operator.js", import.meta.url)).text();
     const css = await Bun.file(new URL("../src/http/operator/operator.css", import.meta.url)).text();
@@ -278,7 +278,8 @@ databaseDescribe("Order 055 operator cart holds", () => {
     expect(permissions.map(({ code }) => code)).toEqual([
       "inventory.availability:read", "inventory.blocks:read", "inventory.blocks:write",
       "inventory.configuration:read", "inventory.configuration:write", "inventory.holds:read",
-      "inventory.holds:write", "inventory.policy:read", "inventory.policy:write",
+      "inventory.holds:write", "inventory.offline_leases:read", "inventory.offline_leases:write",
+      "inventory.policy:read", "inventory.policy:write",
       "inventory.restriction:read", "inventory.restriction:write", "rates.configuration:read",
       "rates.configuration:write", "rates.pricing:read", "rates.pricing:write",
     ]);

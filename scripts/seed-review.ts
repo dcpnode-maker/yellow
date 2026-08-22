@@ -20,6 +20,8 @@ export const REVIEW_PERMISSIONS = Object.freeze([
   { code: "inventory.configuration:write", description: "Create tenant-scoped inventory configuration" },
   { code: "inventory.holds:read", description: "Read tenant-scoped active cart holds" },
   { code: "inventory.holds:write", description: "Place and release tenant-scoped cart holds" },
+  { code: "inventory.offline_leases:read", description: "Read tenant-scoped active offline capacity leases" },
+  { code: "inventory.offline_leases:write", description: "Place and release tenant-scoped offline capacity leases" },
   { code: "inventory.restriction:read", description: "Read tenant-scoped restriction configuration" },
   { code: "inventory.restriction:write", description: "Create tenant-scoped restriction configuration" },
   { code: "rates.configuration:read", description: "Read tenant-scoped rate configuration" },

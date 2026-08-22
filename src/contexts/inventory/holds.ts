@@ -5,6 +5,7 @@ import { InventoryNotFoundError, InventoryValidationError } from "./inventory";
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 
 export type HoldStatus = "active" | "consumed" | "expired" | "released";
+export type HoldKind = "cart" | "offline_lease" | "manual";
 
 export interface CartHold {
   readonly id: string;
@@ -15,6 +16,7 @@ export interface CartHold {
   readonly to: Date;
   readonly holder: Readonly<Record<string, unknown>>;
   readonly expiresAt: Date;
+  readonly kind: HoldKind;
   readonly status: HoldStatus;
 }
 
@@ -24,6 +26,16 @@ export interface PlaceCartHoldInput {
   readonly to: Date;
   readonly ttlSeconds: number;
   readonly holder?: Readonly<Record<string, unknown>>;
+  readonly envelope: AuditEnvelope;
+}
+
+export interface PlaceOfflineLeaseInput {
+  readonly sellableUnitId: string;
+  readonly from: Date;
+  readonly to: Date;
+  readonly ttlSeconds: number;
+  readonly deviceId: string;
+  readonly deviceLabel?: string;
   readonly envelope: AuditEnvelope;
 }
 
@@ -41,6 +53,7 @@ interface HoldRow {
   readonly to_at: Date;
   readonly holder: Record<string, unknown>;
   readonly expires_at: Date;
+  readonly kind: HoldKind;
   readonly status: HoldStatus;
 }
 
@@ -98,6 +111,20 @@ function normalizeHolder(value: Readonly<Record<string, unknown>> | undefined): 
   }
 }
 
+function offlineLeaseHolder(deviceId: string, deviceLabel: string | undefined): Record<string, unknown> {
+  if (!/^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$/.test(deviceId)) {
+    throw new InventoryValidationError("deviceId must be a stable 1-128 character device identifier");
+  }
+  if (deviceLabel !== undefined &&
+      (deviceLabel !== deviceLabel.trim() || !/^[^\u0000-\u001f\u007f]{1,120}$/u.test(deviceLabel))) {
+    throw new InventoryValidationError("deviceLabel must be 1-120 printable characters");
+  }
+  return {
+    device_id: deviceId,
+    ...(deviceLabel === undefined ? {} : { device_label: deviceLabel }),
+  };
+}
+
 function validatePeriod(from: Date, to: Date): void {
   if (!(from instanceof Date) || !(to instanceof Date) ||
       !Number.isFinite(from.getTime()) || !Number.isFinite(to.getTime()) || from >= to) {
@@ -120,6 +147,7 @@ function toHold(row: HoldRow): CartHold {
     to: row.to_at,
     holder: row.holder,
     expiresAt: row.expires_at,
+    kind: row.kind,
     status: row.status,
   };
 }
@@ -127,7 +155,7 @@ function toHold(row: HoldRow): CartHold {
 const HOLD_COLUMNS = `
   id, tenant_id, property_node, sellable_unit_id,
   lower(period) AS from_at, upper(period) AS to_at,
-  holder, expires_at, status
+  holder, expires_at, kind, status
 `;
 
 async function occupancyRows(tx: Tx, holdId: string): Promise<OccupancyRow[]> {
@@ -149,13 +177,39 @@ export class HoldService {
   }
 
   async place(tx: Tx, input: PlaceCartHoldInput): Promise<CartHold> {
-    requireOperation(input.envelope, "hold.created");
-    requireUuid("sellableUnitId", input.sellableUnitId);
-    validatePeriod(input.from, input.to);
     if (!Number.isInteger(input.ttlSeconds) || input.ttlSeconds < 1 || input.ttlSeconds > 900) {
       throw new InventoryValidationError("ttlSeconds must be an integer between 1 and 900");
     }
-    const holder = normalizeHolder(input.holder);
+    return this.#place(tx, {
+      ...input,
+      kind: "cart",
+      holder: normalizeHolder(input.holder),
+    });
+  }
+
+  async placeOfflineLease(tx: Tx, input: PlaceOfflineLeaseInput): Promise<CartHold> {
+    if (!Number.isInteger(input.ttlSeconds) || input.ttlSeconds < 3_600 || input.ttlSeconds > 604_800 ||
+        input.ttlSeconds % 3_600 !== 0) {
+      throw new InventoryValidationError("ttlSeconds must represent 1-168 whole hours");
+    }
+    return this.#place(tx, {
+      sellableUnitId: input.sellableUnitId,
+      from: input.from,
+      to: input.to,
+      ttlSeconds: input.ttlSeconds,
+      holder: offlineLeaseHolder(input.deviceId, input.deviceLabel),
+      kind: "offline_lease",
+      envelope: input.envelope,
+    });
+  }
+
+  async #place(tx: Tx, input: PlaceCartHoldInput & {
+    readonly kind: "cart" | "offline_lease";
+    readonly holder: Record<string, unknown>;
+  }): Promise<CartHold> {
+    requireOperation(input.envelope, "hold.created");
+    requireUuid("sellableUnitId", input.sellableUnitId);
+    validatePeriod(input.from, input.to);
     const mappings = await tx<MappingRow[]>`
       SELECT sus.space_id, sus.claim_mode, su.status AS sellable_status,
              s.status AS space_status, s.property_node = ut.property_node AS property_matches
@@ -182,7 +236,7 @@ export class HoldService {
       )
       VALUES (
         $1::uuid, $2::uuid, $3::uuid, tstzrange($4::timestamptz, $5::timestamptz, '[)'),
-        'cart', $6::text::jsonb, transaction_timestamp() + make_interval(secs => $7::int)
+        $6::text, $7::text::jsonb, transaction_timestamp() + make_interval(secs => $8::int)
       )
       RETURNING ${HOLD_COLUMNS}
     `, [
@@ -191,7 +245,8 @@ export class HoldService {
       input.sellableUnitId,
       input.from.toISOString(),
       input.to.toISOString(),
-      JSON.stringify(holder),
+      input.kind,
+      JSON.stringify(input.holder),
       input.ttlSeconds,
     ]);
     const row = rows[0];
@@ -233,9 +288,11 @@ export class HoldService {
       entityId: row.id,
       envelope: input.envelope,
       payload: {
+        kind: row.kind,
         sellable_unit_id: row.sellable_unit_id,
         period: { from: input.from.toISOString(), to: input.to.toISOString() },
         expires_at: row.expires_at.toISOString(),
+        ...(row.kind === "offline_lease" ? { device_id: row.holder.device_id } : {}),
       },
     });
     await this.#events.publish(tx, {
@@ -247,10 +304,16 @@ export class HoldService {
       eventType: "hold.created",
       actorId: input.envelope.actorId,
       correlationId: input.envelope.requestId,
-      payload: { hold_id: row.id, sellable_unit_id: row.sellable_unit_id, expires_at: row.expires_at.toISOString() },
+      payload: {
+        hold_id: row.id,
+        kind: row.kind,
+        sellable_unit_id: row.sellable_unit_id,
+        expires_at: row.expires_at.toISOString(),
+        ...(row.kind === "offline_lease" ? { device_id: row.holder.device_id } : {}),
+      },
     });
     for (const occupancy of occupancies) {
-      await this.#publishOccupancy(tx, input.envelope, fact.businessDate, row.id, "occupancy.recorded", occupancy);
+      await this.#publishOccupancy(tx, input.envelope, fact.businessDate, row, "occupancy.recorded", occupancy);
     }
     return toHold(row);
   }
@@ -271,6 +334,14 @@ export class HoldService {
   }
 
   async listActive(tx: Tx, propertyNode: string): Promise<readonly CartHold[]> {
+    return this.#listActiveKind(tx, propertyNode, "cart");
+  }
+
+  async listActiveOfflineLeases(tx: Tx, propertyNode: string): Promise<readonly CartHold[]> {
+    return this.#listActiveKind(tx, propertyNode, "offline_lease");
+  }
+
+  async #listActiveKind(tx: Tx, propertyNode: string, kind: "cart" | "offline_lease"): Promise<readonly CartHold[]> {
     requireUuid("propertyNode", propertyNode);
     const rows = await tx.unsafe<HoldRow[]>(`
       SELECT ${HOLD_COLUMNS}
@@ -278,14 +349,20 @@ export class HoldService {
       WHERE tenant_id = current_setting('app.tenant_id', true)::uuid
         AND property_node = $1::uuid
         AND status = 'active'
+        AND kind = $2::text
       ORDER BY expires_at, id
-    `, [propertyNode]);
+    `, [propertyNode, kind]);
     return rows.map(toHold);
   }
 
   release(tx: Tx, input: TransitionHoldInput): Promise<CartHold> {
     requireOperation(input.envelope, "hold.released");
-    return this.#transition(tx, input, "released");
+    return this.#transition(tx, input, "released", "cart");
+  }
+
+  releaseOfflineLease(tx: Tx, input: TransitionHoldInput): Promise<CartHold> {
+    requireOperation(input.envelope, "hold.released");
+    return this.#transition(tx, input, "released", "offline_lease");
   }
 
   async expireDue(tx: Tx, envelope: AuditEnvelope, limit = 100): Promise<readonly CartHold[]> {
@@ -316,6 +393,7 @@ export class HoldService {
     tx: Tx,
     input: TransitionHoldInput,
     status: "released" | "expired",
+    expectedKind?: "cart" | "offline_lease",
   ): Promise<CartHold> {
     requireUuid("holdId", input.holdId);
     const duePredicate = status === "expired"
@@ -329,9 +407,10 @@ export class HoldService {
         AND property_node = $2::uuid
         AND id = $3::uuid
         AND status = 'active'
+        AND ($4::text IS NULL OR kind = $4::text)
         ${duePredicate}
       FOR UPDATE
-    `, [input.envelope.tenantId, input.envelope.propertyNode, input.holdId]);
+    `, [input.envelope.tenantId, input.envelope.propertyNode, input.holdId, expectedKind ?? null]);
     const existing = rows[0];
     if (!existing) throw new HoldConflictError(`Active ${status === "expired" ? "due" : "unexpired"} hold was not found`);
     const occupancies = await occupancyRows(tx, existing.id);
@@ -354,7 +433,7 @@ export class HoldService {
       entityType: "hold",
       entityId: row.id,
       envelope: input.envelope,
-      payload: { previous_status: "active", status, released_claims: occupancies.length },
+      payload: { kind: row.kind, previous_status: "active", status, released_claims: occupancies.length },
     });
     await this.#events.publish(tx, {
       tenantId: row.tenant_id,
@@ -365,10 +444,10 @@ export class HoldService {
       eventType,
       actorId: input.envelope.actorId,
       correlationId: input.envelope.requestId,
-      payload: { hold_id: row.id, previous_status: "active", status },
+      payload: { hold_id: row.id, kind: row.kind, previous_status: "active", status },
     });
     for (const occupancy of occupancies) {
-      await this.#publishOccupancy(tx, input.envelope, fact.businessDate, row.id, "occupancy.released", occupancy);
+      await this.#publishOccupancy(tx, input.envelope, fact.businessDate, row, "occupancy.released", occupancy);
     }
     return toHold(row);
   }
@@ -377,7 +456,7 @@ export class HoldService {
     tx: Tx,
     envelope: AuditEnvelope,
     businessDate: string,
-    holdId: string,
+    hold: Pick<HoldRow, "id" | "kind">,
     eventType: "occupancy.recorded" | "occupancy.released",
     occupancy: OccupancyRow,
   ): Promise<void> {
@@ -392,7 +471,8 @@ export class HoldService {
       correlationId: envelope.requestId,
       payload: {
         occupancy_id: occupancy.id,
-        hold_id: holdId,
+        hold_id: hold.id,
+        kind: hold.kind,
         slot_kind: "hold",
         space_id: occupancy.space_id,
         period: occupancy.period,

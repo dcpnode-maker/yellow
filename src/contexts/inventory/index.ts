@@ -15,7 +15,14 @@ export type {
   UnitType,
 } from "./inventory";
 export { HoldConflictError, HoldService } from "./holds";
-export type { CartHold, HoldStatus, PlaceCartHoldInput, TransitionHoldInput } from "./holds";
+export type {
+  CartHold,
+  HoldKind,
+  HoldStatus,
+  PlaceCartHoldInput,
+  PlaceOfflineLeaseInput,
+  TransitionHoldInput,
+} from "./holds";
 export { HOLD_EXPIRY_ACTOR_ID, HoldExpiryWorker } from "./hold-expiry-worker";
 export type {
   DueHoldScope,

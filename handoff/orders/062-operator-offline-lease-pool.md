@@ -33,10 +33,18 @@ indefinite inventory starvation, not a hotel policy default; every issuance is e
 - `tests/offline-leases.integration.test.ts`
 - `tests/operator-holds.integration.test.ts`
 - `tests/review-seed.integration.test.ts`
+- `tests/operator-inventory.integration.test.ts`
+- `tests/operator-restrictions.integration.test.ts`
+- `tests/operator-rate-configuration.integration.test.ts`
+- `tests/operator-rate-pricing.integration.test.ts`
+- `tests/operator-operational-blocks.integration.test.ts`
+- `tests/operator-oos-policy.integration.test.ts`
 - `DECISIONS.log`
 - `handoff/LEDGER.md`
 - `handoff/GATE-3-MANIFEST.md`
 - this order and any numbered question/response files required by D-92
+
+Question 093 adds only the six inherited exact-permission expectation files above.
 
 ## Required implementation
 

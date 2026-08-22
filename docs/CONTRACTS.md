@@ -28,6 +28,16 @@ Served from projection (+Valkey). **Never a promise** — truth is the commit be
 
 `POST /availability:hold` {option_ref | unit_type+stay, ttl_s≤900} → `{hold_id,expires_at}`
 (writes occupancy via choke; this IS the arbitration).
+
+Transitional authenticated operator surface for preparing degraded operation:
+`GET|POST /api/v1/properties/{node}/offline-leases` and
+`POST /api/v1/properties/{node}/offline-leases/{id}/release`. Placement accepts one exact
+currently bookable sellable id, UTC `[from,to)`, stable device id, optional non-guest device
+label, and an explicit integer `leaseHours` from 1–168. PostgreSQL derives expiry and the
+existing hold/occupancy lifecycle arbitrates. This reserves capacity only: offline reservation
+creation, lease consumption, device authentication during sync, and conflict resolution remain
+future reservation/PWA contracts.
+
 `POST /reservations:commit` {hold_id? | direct option, guest{party|inline}, payment{...},
 idempotency} → 201 reservation | 409 `conflict/occupancy` (someone won the race) |
 Positional (bed) claims: on exclusion violation the server retries the next free

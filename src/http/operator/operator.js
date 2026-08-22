@@ -10,6 +10,7 @@
   let operationalBlocksData = [];
   let inventoryPolicyData = { oosSellability: "blocked" };
   let activeHoldsData = [];
+  let offlineLeasesData = [];
   let currentRatePrice = null;
   let pricingRowSequence = 0;
   let bulkRoomDraft = [];
@@ -120,6 +121,11 @@
   const refreshHolds = document.querySelector("#refresh-holds");
   const activeHoldList = document.querySelector("#active-hold-list");
   const holdStatus = document.querySelector("#hold-status");
+  const offlineLeaseForm = document.querySelector("#offline-lease-form");
+  const offlineLeaseSellable = document.querySelector("#offline-lease-sellable");
+  const offlineLeaseList = document.querySelector("#offline-lease-list");
+  const offlineLeaseStatus = document.querySelector("#offline-lease-status");
+  const refreshOfflineLeases = document.querySelector("#refresh-offline-leases");
   const MAX_MINOR = BigInt("9223372036854775807");
 
   function applyTheme(theme) {
@@ -180,6 +186,7 @@
     operationalBlocksData = [];
     inventoryPolicyData = { oosSellability: "blocked" };
     activeHoldsData = [];
+    offlineLeasesData = [];
     currentRatePrice = null;
     loadPriceCorrectionButton.hidden = true;
     rateCorrectionForm.hidden = true;
@@ -621,7 +628,10 @@
       history.pushState(null, "", `/p/${propertySelect.value}/${activeView}`);
     }
     if (activeView === "inventory") void loadInventory();
-    if (activeView === "availability") void loadActiveHolds();
+    if (activeView === "availability") {
+      void loadActiveHolds();
+      void loadOfflineLeases();
+    }
     if (activeView === "operations") void loadOperationalBlocks();
     if (activeView === "restrictions") void loadRestrictions();
     if (activeView === "rates") void loadRates();
@@ -954,8 +964,83 @@
     }
   }
 
+  function renderOfflineLeases() {
+    offlineLeaseList.replaceChildren(...offlineLeasesData.map((lease) => {
+      const item = document.createElement("article");
+      item.className = "restriction-item";
+      const copy = document.createElement("div");
+      const title = document.createElement("strong");
+      title.textContent = typeof lease.holder?.device_label === "string"
+        ? lease.holder.device_label
+        : lease.holder?.device_id || "Offline device";
+      const detail = document.createElement("span");
+      detail.textContent = `${lease.holder?.device_id || "unknown device"} · ${new Date(lease.from).toLocaleString()} → ${new Date(lease.to).toLocaleString()} · lease expires ${new Date(lease.expiresAt).toLocaleString()}`;
+      copy.append(title, detail);
+      const release = document.createElement("button");
+      release.type = "button";
+      release.className = "quiet compact";
+      release.textContent = "Release offline capacity";
+      release.addEventListener("click", () => void releaseOfflineLease(lease, release));
+      item.append(copy, release);
+      return item;
+    }));
+    if (offlineLeasesData.length === 0) emptyList(offlineLeaseList, "No active offline capacity leases.");
+  }
+
+  async function loadOfflineLeases() {
+    const property = propertySelect.value;
+    if (!property) return;
+    offlineLeaseStatus.textContent = "Loading offline capacity…";
+    try {
+      const body = await request(`/api/v1/properties/${encodeURIComponent(property)}/offline-leases`);
+      offlineLeasesData = body.offlineLeases;
+      renderOfflineLeases();
+      offlineLeaseStatus.textContent = `${offlineLeasesData.length} active offline lease${offlineLeasesData.length === 1 ? "" : "s"} from tenant-scoped PostgreSQL.`;
+    } catch (error) {
+      offlineLeaseStatus.textContent = error instanceof Error ? error.message : "Offline capacity could not be loaded";
+    }
+  }
+
+  async function releaseOfflineLease(lease, button) {
+    const identity = `offline-lease-release:${lease.id}`;
+    const key = pendingKeys.get(identity) || crypto.randomUUID();
+    pendingKeys.set(identity, key);
+    button.disabled = true;
+    offlineLeaseStatus.textContent = "Releasing offline capacity…";
+    try {
+      await request(`/api/v1/properties/${encodeURIComponent(propertySelect.value)}/offline-leases/${encodeURIComponent(lease.id)}/release`, {
+        method: "POST", headers: { "idempotency-key": key }, body: "{}",
+      });
+      pendingKeys.delete(identity);
+      offlineLeaseStatus.textContent = "Offline capacity released. PostgreSQL truth is refreshing.";
+      await loadOfflineLeases();
+      availabilityForm.requestSubmit();
+    } catch (error) {
+      offlineLeaseStatus.textContent = error instanceof Error ? error.message : "Offline capacity could not be released";
+      button.disabled = false;
+    }
+  }
+
+  function populateOfflineSellables(options) {
+    const previous = offlineLeaseSellable.value;
+    const choices = options.filter((option) => option.bookable);
+    const placeholder = document.createElement("option");
+    placeholder.value = "";
+    placeholder.textContent = choices.length === 0 ? "No bookable option in this search" : "Choose exact searched capacity";
+    offlineLeaseSellable.replaceChildren(placeholder);
+    for (const option of choices) {
+      const choice = document.createElement("option");
+      choice.value = option.sellableUnitId;
+      choice.textContent = `${option.sellableUnitName} · ${option.unitTypeCode} · ${option.availableCount} free`;
+      offlineLeaseSellable.append(choice);
+    }
+    offlineLeaseSellable.disabled = choices.length === 0;
+    if (choices.some(({ sellableUnitId }) => sellableUnitId === previous)) offlineLeaseSellable.value = previous;
+  }
+
   function renderOptions(options) {
     results.replaceChildren();
+    populateOfflineSellables(options);
     if (options.length === 0) {
       const empty = document.createElement("div");
       empty.className = "empty-state";
@@ -1073,7 +1158,10 @@
   propertySelect.addEventListener("change", () => {
     if (propertySelect.value) history.replaceState(null, "", `/p/${propertySelect.value}/${activeView}`);
     if (activeView === "inventory") void loadInventory();
-    if (activeView === "availability") void loadActiveHolds();
+    if (activeView === "availability") {
+      void loadActiveHolds();
+      void loadOfflineLeases();
+    }
     if (activeView === "operations") void loadOperationalBlocks();
     if (activeView === "restrictions") void loadRestrictions();
     if (activeView === "rates") void loadRates();
@@ -1088,6 +1176,7 @@
   refreshRates.addEventListener("click", () => void loadRates());
   refreshOperationalBlocks.addEventListener("click", () => void loadOperationalBlocks());
   refreshHolds.addEventListener("click", () => void loadActiveHolds());
+  refreshOfflineLeases.addEventListener("click", () => void loadOfflineLeases());
   restrictionKind.addEventListener("change", updateRestrictionFields);
   policyKind.addEventListener("change", updatePolicyFields);
   depositBasis.addEventListener("change", updateDepositFields);
@@ -1128,6 +1217,40 @@
       formMessage(projectionForm, "Projection rebuilt. PostgreSQL occupancy truth remains booking authority.");
     } catch (error) {
       formMessage(projectionForm, error instanceof Error ? error.message : "Projection could not be rebuilt", true);
+    } finally {
+      button.disabled = false;
+    }
+  });
+  offlineLeaseForm.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    if (!availabilityForm.reportValidity() || !offlineLeaseForm.reportValidity()) return;
+    const leaseFields = new FormData(offlineLeaseForm);
+    const availabilityFields = new FormData(availabilityForm);
+    const deviceLabel = String(leaseFields.get("deviceLabel") || "").trim();
+    const body = {
+      sellableUnitId: leaseFields.get("sellableUnitId"),
+      from: new Date(String(availabilityFields.get("from"))).toISOString(),
+      to: new Date(String(availabilityFields.get("to"))).toISOString(),
+      deviceId: String(leaseFields.get("deviceId")),
+      ...(deviceLabel ? { deviceLabel } : {}),
+      leaseHours: Number(leaseFields.get("leaseHours")),
+    };
+    const identity = `offline-lease-place:${propertySelect.value}:${JSON.stringify(body)}`;
+    const key = pendingKeys.get(identity) || crypto.randomUUID();
+    pendingKeys.set(identity, key);
+    const button = offlineLeaseForm.querySelector("button[type=submit]");
+    button.disabled = true;
+    formMessage(offlineLeaseForm, "Prepare offline capacity through PostgreSQL truth…");
+    try {
+      await request(`/api/v1/properties/${encodeURIComponent(propertySelect.value)}/offline-leases`, {
+        method: "POST", headers: { "idempotency-key": key }, body: JSON.stringify(body),
+      });
+      pendingKeys.delete(identity);
+      formMessage(offlineLeaseForm, "Offline capacity prepared for this device. This is not a reservation.");
+      await loadOfflineLeases();
+      availabilityForm.requestSubmit();
+    } catch (error) {
+      formMessage(offlineLeaseForm, error instanceof Error ? error.message : "Offline capacity could not be prepared", true);
     } finally {
       button.disabled = false;
     }

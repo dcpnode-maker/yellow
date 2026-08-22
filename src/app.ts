@@ -144,6 +144,15 @@ export function createApp(options: AppOptions = {}) {
       .post("/api/v1/properties/:property/holds/:holdId/release", ({ request, params, body, tenantContext }) =>
         withOperatorTenant(request, (context) => operator.releaseHold(context, params.property, params.holdId, body))
       )
+      .get("/api/v1/properties/:property/offline-leases", ({ request, params, tenantContext }) =>
+        withOperatorTenant(request, (context) => operator.activeOfflineLeases(context, params.property))
+      )
+      .post("/api/v1/properties/:property/offline-leases", ({ request, params, body, tenantContext }) =>
+        withOperatorTenant(request, (context) => operator.placeOfflineLease(context, params.property, body))
+      )
+      .post("/api/v1/properties/:property/offline-leases/:leaseId/release", ({ request, params, body, tenantContext }) =>
+        withOperatorTenant(request, (context) => operator.releaseOfflineLease(context, params.property, params.leaseId, body))
+      )
       .post("/api/v1/properties/:property/inventory/unit-types", ({ request, params, body, tenantContext }) =>
         withOperatorTenant(request, (context) => operator.createUnitType(context, params.property, body))
       )

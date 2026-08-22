@@ -116,6 +116,11 @@ input:hover, select:hover { border-color: #8d978c; }
 .option-actions { display: flex; justify-content: flex-end; margin-top: 1rem; }
 .active-holds-panel { margin-top: 1rem; padding: 1rem; }
 .active-holds-panel .inventory-status { margin-bottom: 0; }
+.offline-capacity-panel { margin-top: 1rem; padding: 1rem; }
+.offline-lease-form { display: grid; grid-template-columns: 1.25fr 1fr 1fr .7fr auto; gap: .75rem; align-items: end; margin-top: 1rem; }
+.offline-lease-form .form-message { grid-column: 1 / -1; }
+.offline-boundary { margin-top: .8rem; padding: .75rem; border-radius: 12px; background: color-mix(in srgb, var(--amber-soft) 72%, var(--card)); }
+.offline-capacity-panel .inventory-status { margin-bottom: 0; }
 .code { color: var(--muted); font: .75rem ui-monospace, monospace; }
 .count { text-align: right; white-space: nowrap; }
 .count strong { display: block; font-size: 1.65rem; line-height: 1; }
@@ -226,6 +231,8 @@ input:hover, select:hover { border-color: #8d978c; }
   .oos-policy-form .form-message { grid-column: 1; }
   .projection-rebuild-form { grid-template-columns: 1fr 1fr; }
   .projection-rebuild-form button, .projection-rebuild-form .form-message { grid-column: 1 / -1; }
+  .offline-lease-form { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .offline-lease-form button, .offline-lease-form .form-message { grid-column: 1 / -1; }
 }
 
 @media (max-width: 720px) {
@@ -254,4 +261,6 @@ input:hover, select:hover { border-color: #8d978c; }
   .summary-row { align-items: start; flex-direction: column; padding: .9rem 0; }
   .projection-rebuild-form { grid-template-columns: 1fr; }
   .projection-rebuild-form button, .projection-rebuild-form .form-message { grid-column: 1; }
+  .offline-lease-form { grid-template-columns: 1fr; }
+  .offline-lease-form button, .offline-lease-form .form-message { grid-column: 1; }
 }

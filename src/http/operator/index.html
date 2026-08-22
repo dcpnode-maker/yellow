@@ -114,6 +114,37 @@
             <div class="restriction-list" id="active-hold-list"></div>
             <p class="inventory-status" id="hold-status" role="status" aria-live="polite">Search availability or refresh to load active holds.</p>
           </section>
+          <section class="card offline-capacity-panel" aria-labelledby="offline-capacity-heading">
+            <div class="panel-heading">
+              <div>
+                <p class="step">Degraded-operation preparation</p>
+                <h2 id="offline-capacity-heading">Offline capacity</h2>
+                <p class="muted">Explicitly reserve one searched room for a known hotel device before connectivity may fail.</p>
+              </div>
+              <button class="quiet compact" id="refresh-offline-leases" type="button">Refresh</button>
+            </div>
+            <form class="offline-lease-form" id="offline-lease-form">
+              <label>Available configuration
+                <select id="offline-lease-sellable" name="sellableUnitId" required disabled>
+                  <option value="">Search bookable availability first</option>
+                </select>
+              </label>
+              <label>Stable device ID
+                <input name="deviceId" required maxlength="128" pattern="[A-Za-z0-9][A-Za-z0-9._:-]{0,127}" placeholder="front-desk-tablet-01">
+              </label>
+              <label>Device label (optional)
+                <input name="deviceLabel" maxlength="120" placeholder="Front desk tablet">
+              </label>
+              <label>Lease duration (hours)
+                <input name="leaseHours" type="number" min="1" max="168" step="1" value="8" required>
+              </label>
+              <button class="secondary" type="submit">Prepare offline capacity</button>
+              <p class="form-message" role="status" aria-live="polite"></p>
+            </form>
+            <p class="field-note offline-boundary">Reservation creation and offline synchronization are not implemented yet. This only reserves capacity; release it when the device no longer needs protection.</p>
+            <div class="restriction-list" id="offline-lease-list"></div>
+            <p class="inventory-status" id="offline-lease-status" role="status" aria-live="polite">Search availability or refresh to load active offline capacity.</p>
+          </section>
         </section>
 
         <section id="inventory-view" hidden aria-labelledby="inventory-title">
