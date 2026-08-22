@@ -5,8 +5,16 @@
   let operator = null;
   let activeView = "availability";
   let inventoryData = { unitTypes: [], spaces: [], sellableUnits: [] };
+  let propertiesData = [];
   let restrictionsData = [];
   let rateData = { policies: [], ratePlans: [] };
+  let rateBuilderData = { catalogue: [], modelDrafts: [], targetDrafts: [], releases: [] };
+  let builderStep = 1;
+  let builderReleaseId = "";
+  let builderPreviewCells = [];
+  let builderSimulation = null;
+  let builderSelectedModel = "simple-fixed";
+  let builderBookingInstant = "";
   let operationalBlocksData = [];
   let inventoryPolicyData = { oosSellability: "blocked" };
   let activeHoldsData = [];
@@ -90,6 +98,92 @@
   const planCancellationPolicy = document.querySelector("#plan-cancellation-policy");
   const planGuaranteePolicy = document.querySelector("#plan-guarantee-policy");
   const planDepositPolicy = document.querySelector("#plan-deposit-policy");
+  const builderPlan = document.querySelector("#builder-plan");
+  const builderModeSelect = document.querySelector("#builder-mode-select");
+  const builderModeRadios = document.querySelectorAll('input[name="builder-mode"]');
+  const builderSteps = document.querySelectorAll(".builder-step");
+  const builderPanels = document.querySelectorAll("[data-builder-panel]");
+  const builderModelCatalogue = document.querySelector("#builder-model-catalogue");
+  const builderBaseAmount = document.querySelector("#builder-base-amount");
+  const builderFloor = document.querySelector("#builder-floor");
+  const builderCeiling = document.querySelector("#builder-ceiling");
+  const builderCalendarFields = document.querySelector("#builder-calendar-fields");
+  const builderCalendarCells = document.querySelector("#builder-calendar-cells");
+  const builderReferenceFields = document.querySelector("#builder-reference-fields");
+  const builderReferenceId = document.querySelector("#builder-reference-id");
+  const builderReferenceVersion = document.querySelector("#builder-reference-version");
+  const builderRuleFields = document.querySelector("#builder-rule-fields");
+  const builderAdjustmentKind = document.querySelector("#builder-adjustment-kind");
+  const builderAdjustmentValue = document.querySelector("#builder-adjustment-value");
+  const builderRuleStage = document.querySelector("#builder-rule-stage");
+  const builderRulePriority = document.querySelector("#builder-rule-priority");
+  const builderBarLevel = document.querySelector("#builder-bar-level");
+  const builderBookingWindow = document.querySelector("#builder-booking-window");
+  const builderLos = document.querySelector("#builder-los");
+  const builderOccupancy = document.querySelector("#builder-occupancy");
+  const builderRmsFields = document.querySelector("#builder-rms-fields");
+  const builderRmsKey = document.querySelector("#builder-rms-key");
+  const builderRmsVersion = document.querySelector("#builder-rms-version");
+  const builderRmsAge = document.querySelector("#builder-rms-age");
+  const builderExpertComponents = document.querySelector("#builder-expert-components");
+  const builderComponentGrid = document.querySelector("#builder-component-grid");
+  const builderCompany = document.querySelector("#builder-company");
+  const builderMarketGroup = document.querySelector("#builder-market-group");
+  const builderMarket = document.querySelector("#builder-market");
+  const builderSourceParty = document.querySelector("#builder-source-party");
+  const builderSource = document.querySelector("#builder-source");
+  const builderChannel = document.querySelector("#builder-channel");
+  const builderSegment = document.querySelector("#builder-segment");
+  const builderAgent = document.querySelector("#builder-agent");
+  const builderCampaign = document.querySelector("#builder-campaign");
+  const builderPhysicalKind = document.querySelector("#builder-physical-kind");
+  const builderTargetEffect = document.querySelector("#builder-target-effect");
+  const builderTargetPriority = document.querySelector("#builder-target-priority");
+  const builderTargetKey = document.querySelector("#builder-target-key");
+  const builderClassField = document.querySelector("#builder-class-field");
+  const builderClassCode = document.querySelector("#builder-class-code");
+  const builderUnitTypeField = document.querySelector("#builder-unit-type-field");
+  const builderUnitType = document.querySelector("#builder-unit-type");
+  const builderSellableField = document.querySelector("#builder-sellable-field");
+  const builderSellable = document.querySelector("#builder-sellable");
+  const builderStayStart = document.querySelector("#builder-stay-start");
+  const builderStayEnd = document.querySelector("#builder-stay-end");
+  const builderMinAdults = document.querySelector("#builder-min-adults");
+  const builderMaxAdults = document.querySelector("#builder-max-adults");
+  const builderMaxChildren = document.querySelector("#builder-max-children");
+  const builderCancellationPolicy = document.querySelector("#builder-cancellation-policy");
+  const builderDepositPolicy = document.querySelector("#builder-deposit-policy");
+  const builderGuaranteePolicy = document.querySelector("#builder-guarantee-policy");
+  const builderNoShowPolicy = document.querySelector("#builder-no-show-policy");
+  const builderRefundTreatment = document.querySelector("#builder-refund-treatment");
+  const builderPackageCode = document.querySelector("#builder-package-code");
+  const builderPackageAmount = document.querySelector("#builder-package-amount");
+  const builderPackageRhythm = document.querySelector("#builder-package-rhythm");
+  const builderPromotionCode = document.querySelector("#builder-promotion-code");
+  const builderPromotionBps = document.querySelector("#builder-promotion-bps");
+  const builderDistributionMode = document.querySelector("#builder-distribution-mode");
+  const builderDistributionChannels = document.querySelector("#builder-distribution-channels");
+  const builderExpertJsonGroup = document.querySelector("#builder-expert-json-group");
+  const builderExpertJson = document.querySelector("#builder-expert-json");
+  const builderRefreshJson = document.querySelector("#builder-refresh-json");
+  const builderCommandPreview = document.querySelector("#builder-command-preview");
+  const builderSaveDraft = document.querySelector("#builder-save-draft");
+  const builderPreviewDates = document.querySelector("#builder-preview-dates");
+  const builderRunPreview = document.querySelector("#builder-run-preview");
+  const builderRequestApproval = document.querySelector("#builder-request-approval");
+  const builderApprovalId = document.querySelector("#builder-approval-id");
+  const builderPublish = document.querySelector("#builder-publish");
+  const builderSimulationOutput = document.querySelector("#builder-simulation");
+  const builderRefreshHistory = document.querySelector("#builder-refresh-history");
+  const builderReleaseHistory = document.querySelector("#builder-release-history");
+  const builderQuoteSellable = document.querySelector("#builder-quote-sellable");
+  const builderQuoteStart = document.querySelector("#builder-quote-start");
+  const builderQuoteEnd = document.querySelector("#builder-quote-end");
+  const builderLiveQuote = document.querySelector("#builder-live-quote");
+  const builderQuoteResult = document.querySelector("#builder-quote-result");
+  const builderMessage = document.querySelector("#builder-message");
+  const builderPrevious = document.querySelector("#builder-previous");
+  const builderNext = document.querySelector("#builder-next");
   const ratePriceForm = document.querySelector("#rate-price-form");
   const currentPriceForm = document.querySelector("#current-price-form");
   const priceRatePlan = document.querySelector("#price-rate-plan");
@@ -166,6 +260,11 @@
     currentPriceForm.elements.stayDate.value = localInputValue(from).slice(0, 10);
     operationalBlockForm.elements.from.value = localInputValue(from);
     operationalBlockForm.elements.to.value = localInputValue(to);
+    builderStayStart.value = localInputValue(from).slice(0, 10);
+    builderStayEnd.value = localInputValue(to).slice(0, 10);
+    builderPreviewDates.value = localInputValue(from).slice(0, 10);
+    builderQuoteStart.value = localInputValue(from);
+    builderQuoteEnd.value = localInputValue(to);
   }
 
   async function request(path, options = {}) {
@@ -195,8 +294,15 @@
     sessionState.textContent = "Local review · signed out";
     results.replaceChildren();
     inventoryData = { unitTypes: [], spaces: [], sellableUnits: [] };
+    propertiesData = [];
     restrictionsData = [];
     rateData = { policies: [], ratePlans: [] };
+    rateBuilderData = { catalogue: [], modelDrafts: [], targetDrafts: [], releases: [] };
+    builderStep = 1;
+    builderReleaseId = "";
+    builderPreviewCells = [];
+    builderSimulation = null;
+    builderBookingInstant = "";
     operationalBlocksData = [];
     inventoryPolicyData = { oosSellability: "blocked" };
     activeHoldsData = [];
@@ -212,6 +318,7 @@
 
   async function loadProperties() {
     const body = await request("/api/v1/me/properties");
+    propertiesData = body.properties;
     propertySelect.replaceChildren();
     for (const property of body.properties) {
       const option = document.createElement("option");
@@ -564,6 +671,696 @@
     if ([...select.options].some(({ value }) => value === current)) select.value = current;
   }
 
+  function setBuilderMessage(message, isError = false) {
+    builderMessage.textContent = message;
+    builderMessage.classList.toggle("error", isError);
+  }
+
+  function integerValue(input, fallback = 0) {
+    const value = Number(input.value);
+    return Number.isSafeInteger(value) ? value : fallback;
+  }
+
+  function trimmed(input) {
+    return input.value.trim();
+  }
+
+  function selectedBuilderMode() {
+    return builderModeSelect.value === "expert" ? "expert" : "guided";
+  }
+
+  function setBuilderMode(mode, refreshExpert = true) {
+    const normalized = mode === "expert" ? "expert" : "guided";
+    builderModeSelect.value = normalized;
+    for (const radio of builderModeRadios) radio.checked = radio.value === normalized;
+    builderExpertJsonGroup.hidden = normalized !== "expert";
+    if (normalized === "expert" && refreshExpert && builderPlan.value) refreshExpertJson();
+    renderBuilderCommand();
+  }
+
+  function setBuilderStep(step) {
+    builderStep = Math.max(1, Math.min(5, step));
+    for (const panel of builderPanels) panel.hidden = Number(panel.dataset.builderPanel) !== builderStep;
+    for (const button of builderSteps) {
+      const selected = Number(button.dataset.builderStep) === builderStep;
+      button.classList.toggle("is-active", selected);
+      button.setAttribute("aria-current", selected ? "step" : "false");
+    }
+    builderPrevious.disabled = builderStep === 1;
+    builderNext.hidden = builderStep === 5;
+    if (builderStep === 5) renderBuilderCommand();
+  }
+
+  function renderModelCatalogue() {
+    builderModelCatalogue.replaceChildren();
+    builderComponentGrid.replaceChildren();
+    for (const entry of rateBuilderData.catalogue) {
+      const label = document.createElement("label");
+      label.className = "model-choice";
+      const radio = document.createElement("input");
+      radio.type = "radio";
+      radio.name = "builder-model";
+      radio.value = entry.key;
+      radio.checked = entry.key === builderSelectedModel;
+      const copy = document.createElement("span");
+      copy.className = "model-choice-copy";
+      const title = document.createElement("strong");
+      title.textContent = entry.label;
+      const description = document.createElement("small");
+      description.textContent = entry.description;
+      const capabilities = document.createElement("em");
+      capabilities.textContent = entry.capabilities.join(" · ").replaceAll("-", " ");
+      copy.append(title, description, capabilities);
+      label.append(radio, copy);
+      builderModelCatalogue.append(label);
+
+      if (entry.key !== "expert-composition") {
+        const component = document.createElement("label");
+        const check = document.createElement("input");
+        check.type = "checkbox";
+        check.name = "builder-component";
+        check.value = entry.key;
+        check.checked = entry.key === "simple-fixed";
+        component.append(check, document.createTextNode(entry.label));
+        builderComponentGrid.append(component);
+      }
+    }
+    if (rateBuilderData.catalogue.length === 0) {
+      emptyList(builderModelCatalogue, "Choose a base rate plan to load the governed model catalogue.");
+      return;
+    }
+    if (!rateBuilderData.catalogue.some(({ key }) => key === builderSelectedModel)) {
+      builderSelectedModel = rateBuilderData.catalogue[0].key;
+      builderModelCatalogue.querySelector('input[name="builder-model"]')?.click();
+    }
+    updateBuilderModelFields();
+  }
+
+  function updateBuilderModelFields() {
+    const model = builderSelectedModel;
+    builderCalendarFields.hidden = model !== "calendar";
+    builderReferenceFields.hidden = model !== "bar-ladder" && model !== "derived";
+    builderRuleFields.hidden = !["bar-ladder", "derived", "room-matrix", "occupancy-los", "contract-negotiated", "expert-composition"].includes(model);
+    builderRmsFields.hidden = model !== "rms-api-managed";
+    builderExpertComponents.hidden = model !== "expert-composition";
+    if (model === "rms-api-managed") {
+      if (!trimmed(builderFloor)) builderFloor.value = "10000";
+      if (!trimmed(builderCeiling)) builderCeiling.value = "50000";
+    }
+    if (model === "package") {
+      if (!trimmed(builderPackageCode)) builderPackageCode.value = "BREAKFAST";
+      if (!trimmed(builderPackageAmount)) builderPackageAmount.value = "1500";
+    }
+    renderBuilderCommand();
+  }
+
+  function updateBuilderPhysicalFields() {
+    const kind = builderPhysicalKind.value;
+    builderClassField.hidden = kind !== "class";
+    builderUnitTypeField.hidden = kind !== "unit_type";
+    builderSellableField.hidden = kind !== "sellable";
+    renderBuilderCommand();
+  }
+
+  function replaceSelectPreserving(select, items, label, formatter) {
+    const current = select.value;
+    populateSelect(select, items, label, formatter);
+    if ([...select.options].some(({ value }) => value === current)) select.value = current;
+  }
+
+  function populateBuilderSelects() {
+    replaceSelectPreserving(builderPlan, rateData.ratePlans, "base rate plan", (plan) => `${plan.code} · ${plan.name} · ${plan.currency}`);
+    replaceSelectPreserving(builderUnitType, inventoryData.unitTypes, "room type", (item) => `${item.code} · ${item.name}`);
+    replaceSelectPreserving(builderSellable, inventoryData.sellableUnits, "sellable unit", (item) => `${item.unitTypeCode} · ${item.name}`);
+    replaceSelectPreserving(builderQuoteSellable, inventoryData.sellableUnits, "sellable unit", (item) => `${item.unitTypeCode} · ${item.name}`);
+    populatePolicySelect(builderCancellationPolicy, "cancellation", "Cancellation");
+    populatePolicySelect(builderDepositPolicy, "deposit", "Deposit");
+    populatePolicySelect(builderGuaranteePolicy, "guarantee", "Guarantee");
+    populatePolicySelect(builderNoShowPolicy, "no_show", "No-show");
+  }
+
+  function builderCommercial() {
+    const mappings = [
+      ["companyPartyId", builderCompany, null],
+      ["marketGroupCode", builderMarketGroup, "upper"],
+      ["marketCode", builderMarket, "upper"],
+      ["sourcePartyId", builderSourceParty, null],
+      ["sourceCode", builderSource, "upper"],
+      ["channelCode", builderChannel, "lower"],
+      ["segmentCode", builderSegment, "upper"],
+      ["agentPartyId", builderAgent, null],
+      ["campaignCode", builderCampaign, "upper"],
+    ];
+    return Object.fromEntries(mappings.flatMap(([key, input, transform]) => {
+      let value = trimmed(input);
+      if (!value) return [];
+      if (transform === "upper") value = value.toUpperCase();
+      if (transform === "lower") value = value.toLowerCase();
+      return [[key, value]];
+    }));
+  }
+
+  function builderPhysical() {
+    if (builderPhysicalKind.value === "class") {
+      const classCode = trimmed(builderClassCode).toUpperCase();
+      if (!classCode) throw new Error("Class scope requires a hotel-defined class code.");
+      if (inventoryData.unitTypes.length === 0) throw new Error("Class scope requires at least one room type.");
+      return { kind: "class", classCode, unitTypeIds: inventoryData.unitTypes.map(({ id }) => id) };
+    }
+    if (builderPhysicalKind.value === "unit_type") {
+      if (!builderUnitType.value) throw new Error("Choose a room type for this scope.");
+      return { kind: "unit_type", unitTypeId: builderUnitType.value };
+    }
+    if (builderPhysicalKind.value === "sellable") {
+      if (!builderSellable.value) throw new Error("Choose an exact sellable unit for this scope.");
+      return { kind: "sellable", sellableUnitId: builderSellable.value };
+    }
+    return { kind: "property" };
+  }
+
+  function builderGate() {
+    const gate = {};
+    const dowMask = [...document.querySelectorAll('input[name="builder-weekday"]:checked')]
+      .reduce((total, input) => total + Number(input.value), 0);
+    if (dowMask < 1) throw new Error("Choose at least one day of week.");
+    gate.dowMask = dowMask;
+    if (builderStayStart.value || builderStayEnd.value) {
+      if (!builderStayStart.value || !builderStayEnd.value || builderStayStart.value > builderStayEnd.value) {
+        throw new Error("Stay date range must have an increasing first and last date.");
+      }
+      gate.stayStart = builderStayStart.value;
+      gate.stayEnd = builderStayEnd.value;
+    }
+    if (trimmed(builderBookingWindow)) {
+      const days = integerValue(builderBookingWindow, -1);
+      gate.bookingWindow = { minDays: days, maxDays: days };
+    }
+    if (trimmed(builderLos)) {
+      const nights = integerValue(builderLos, -1);
+      gate.los = { minNights: nights, maxNights: nights };
+    }
+    if (trimmed(builderOccupancy)) {
+      const basisPoints = integerValue(builderOccupancy, -1) * 100;
+      gate.occupancy = { minBasisPoints: basisPoints, maxBasisPoints: basisPoints };
+    }
+    return gate;
+  }
+
+  function builderAdjustment() {
+    const kind = builderAdjustmentKind.value;
+    if (kind === "basis_points") return { kind, basisPoints: integerValue(builderAdjustmentValue) };
+    return { kind, amountMinor: trimmed(builderAdjustmentValue) || "0" };
+  }
+
+  function calendarCells() {
+    const cells = trimmed(builderCalendarCells).split(/\r?\n/).map((line) => line.trim()).filter(Boolean).map((line) => {
+      const match = line.match(/^(\d{4}-\d{2}-\d{2})\s*=\s*(closed|-?(?:0|[1-9][0-9]*))$/i);
+      if (!match) throw new Error(`Calendar line is invalid: ${line}`);
+      return match[2].toLowerCase() === "closed"
+        ? { stayDate: match[1], state: "closed" }
+        : { stayDate: match[1], state: "open", amountMinor: match[2] };
+    });
+    if (cells.length === 0) throw new Error("Calendar pricing requires at least one date cell.");
+    return cells;
+  }
+
+  function builderRule(modelKey, targetKey) {
+    const when = {};
+    if (modelKey === "bar-ladder") when.barLevel = trimmed(builderBarLevel) || "BAR1";
+    if (modelKey === "occupancy-los") {
+      if (trimmed(builderBookingWindow)) {
+        const days = integerValue(builderBookingWindow, 0);
+        when.bookingWindow = { minDays: days, maxDays: days };
+      }
+      if (trimmed(builderLos)) {
+        const nights = integerValue(builderLos, 1);
+        when.los = { minNights: nights, maxNights: nights };
+      }
+      if (trimmed(builderOccupancy)) {
+        const basisPoints = integerValue(builderOccupancy, 0) * 100;
+        when.occupancy = { minBasisPoints: basisPoints, maxBasisPoints: basisPoints };
+      }
+      if (Object.keys(when).length === 0) when.los = { minNights: 1, maxNights: 1 };
+    }
+    const targetBound = modelKey === "room-matrix" || modelKey === "contract-negotiated";
+    return {
+      key: `${modelKey}-rule-1`,
+      stage: modelKey === "expert-composition" ? integerValue(builderRuleStage, 1) : 1,
+      priority: integerValue(builderRulePriority, 10),
+      when,
+      adjustment: builderAdjustment(),
+      ...(targetBound ? { targetRuleKey: targetKey } : {}),
+    };
+  }
+
+  function buildGuidedCommand() {
+    const plan = rateData.ratePlans.find(({ id }) => id === builderPlan.value);
+    if (!plan) throw new Error("Choose a base rate plan first.");
+    const targetKey = trimmed(builderTargetKey) || "property-default";
+    const modelKey = builderSelectedModel;
+    const evaluatorKey = modelKey === "package" ? "simple-fixed" : modelKey;
+    const ruleModels = new Set(["bar-ladder", "derived", "room-matrix", "occupancy-los", "contract-negotiated", "expert-composition"]);
+    let base = { kind: "fixed", amountMinor: trimmed(builderBaseAmount) || "0" };
+    if (modelKey === "calendar") base = { kind: "calendar", cells: calendarCells() };
+    if (modelKey === "bar-ladder" || modelKey === "derived") {
+      const sourceId = trimmed(builderReferenceId);
+      if (!sourceId) throw new Error(`${modelKey === "bar-ladder" ? "BAR" : "Derived"} pricing requires a published reference release id.`);
+      base = { kind: "reference", sourceKind: modelKey === "bar-ladder" ? "bar" : "parent", sourceId, sourceVersion: integerValue(builderReferenceVersion, 1) };
+    }
+    const componentModelKeys = modelKey === "expert-composition"
+      ? [...builderComponentGrid.querySelectorAll('input[name="builder-component"]:checked')].map(({ value }) => value)
+      : [];
+    if (modelKey === "expert-composition" && componentModelKeys.length === 0) {
+      throw new Error("Expert composition needs at least one registered component model.");
+    }
+    const packageCode = trimmed(builderPackageCode).toUpperCase();
+    const promotionCode = trimmed(builderPromotionCode).toUpperCase();
+    const distributionMode = builderDistributionMode.value;
+    const distributionChannels = distributionMode === "all" ? [] : trimmed(builderDistributionChannels)
+      .split(/[\s,]+/).map((value) => value.trim().toLowerCase()).filter(Boolean);
+    const policies = {
+      cancellationPolicyId: builderCancellationPolicy.value || null,
+      depositPolicyId: builderDepositPolicy.value || null,
+      guaranteePolicyId: builderGuaranteePolicy.value || null,
+      noShowPolicyId: builderNoShowPolicy.value || null,
+      refundTreatment: builderRefundTreatment.value,
+    };
+    const maxAdults = integerValue(builderMaxAdults, 4);
+    const maxChildren = integerValue(builderMaxChildren, 3);
+    const targetRule = {
+      key: targetKey,
+      effect: builderTargetEffect.value,
+      priority: integerValue(builderTargetPriority, 0),
+      physical: builderPhysical(),
+      commercial: builderCommercial(),
+    };
+    return {
+      authoringMode: "guided",
+      ratePlanId: plan.id,
+      model: { key: modelKey, version: 1, componentModelKeys },
+      target: { rules: [targetRule] },
+      evaluator: {
+        modelKey: evaluatorKey,
+        currency: plan.currency,
+        base,
+        gate: builderGate(),
+        rules: ruleModels.has(modelKey) ? [builderRule(modelKey, targetKey)] : [],
+        floorMinor: trimmed(builderFloor) || null,
+        ceilingMinor: trimmed(builderCeiling) || null,
+        eligibleTargetRuleKeys: modelKey === "contract-negotiated" || modelKey === "expert-composition" ? [targetKey] : [],
+      },
+      composition: {
+        currency: plan.currency,
+        guestEligibility: {
+          minAdults: integerValue(builderMinAdults, 1), maxAdults,
+          minChildren: 0, maxChildren,
+          minTotalGuests: integerValue(builderMinAdults, 1), maxTotalGuests: maxAdults + maxChildren,
+        },
+        package: packageCode ? {
+          key: `package-${packageCode.toLowerCase()}`, version: 1, includedInRate: true,
+          elements: [{ key: `element-${packageCode.toLowerCase()}`, kind: "meal", code: packageCode,
+            rhythm: builderPackageRhythm.value, amountMinor: trimmed(builderPackageAmount) || "0", currency: plan.currency }],
+        } : null,
+        promotions: promotionCode ? [{
+          code: promotionCode, version: 1, stage: 1, priority: 10, scope: "room_and_extras",
+          discount: { kind: "basis_points", basisPoints: integerValue(builderPromotionBps, 0) },
+        }] : [],
+        policy: policies,
+        distribution: { mode: distributionMode, channelCodes: [...new Set(distributionChannels)].sort() },
+      },
+      rmsBinding: modelKey === "rms-api-managed" ? {
+        adapterKey: trimmed(builderRmsKey), adapterVersion: integerValue(builderRmsVersion, 1),
+        maximumAgeSeconds: integerValue(builderRmsAge, 900), outageFallback: "local_evaluator",
+      } : null,
+    };
+  }
+
+  function refreshExpertJson() {
+    try {
+      builderExpertJson.value = JSON.stringify({ ...buildGuidedCommand(), authoringMode: "expert" }, null, 2);
+      setBuilderMessage("Expert JSON refreshed from the visual choices.");
+    } catch (error) {
+      setBuilderMessage(error instanceof Error ? error.message : "Expert command could not be prepared", true);
+    }
+  }
+
+  function builderCommand() {
+    if (selectedBuilderMode() === "guided") return buildGuidedCommand();
+    let parsed;
+    try { parsed = JSON.parse(builderExpertJson.value); } catch { throw new Error("Expert command must be valid JSON."); }
+    if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) throw new Error("Expert command must be a JSON object.");
+    if (!builderPlan.value) throw new Error("Choose a base rate plan first.");
+    return { ...parsed, authoringMode: "expert", ratePlanId: builderPlan.value };
+  }
+
+  function renderBuilderCommand() {
+    try {
+      builderCommandPreview.textContent = JSON.stringify(builderCommand(), null, 2);
+    } catch (error) {
+      builderCommandPreview.textContent = error instanceof Error ? error.message : "Complete the rate choices to preview the command.";
+    }
+  }
+
+  function renderRateReleaseHistory() {
+    if (rateBuilderData.releases.length === 0) {
+      emptyList(builderReleaseHistory, "No immutable releases exist for this plan yet.");
+      return;
+    }
+    const cards = rateBuilderData.releases.map((release) => {
+      const card = document.createElement("article");
+      card.className = "release-item";
+      const copy = document.createElement("div");
+      const title = document.createElement("strong");
+      title.textContent = `Version ${release.extensionVersion} · ${release.status}`;
+      const detail = document.createElement("small");
+      detail.textContent = `${release.contentHash.slice(0, 12)}${release.undoOfVersion ? ` · undo of v${release.undoOfVersion}` : ""}`;
+      copy.append(title, detail);
+      const actions = document.createElement("div");
+      if (release.status === "draft") {
+        const use = document.createElement("button");
+        use.type = "button";
+        use.className = "quiet compact";
+        use.textContent = release.id === builderReleaseId ? "Selected" : "Use draft";
+        use.disabled = release.id === builderReleaseId;
+        use.addEventListener("click", () => selectBuilderRelease(release.id));
+        actions.append(use);
+      }
+      if (release.status === "active" || release.status === "retired") {
+        const undo = document.createElement("button");
+        undo.type = "button";
+        undo.className = "quiet compact";
+        undo.textContent = "Create undo draft";
+        undo.addEventListener("click", () => void createBuilderUndo(release.id, undo));
+        actions.append(undo);
+      }
+      card.append(copy, actions);
+      return card;
+    });
+    builderReleaseHistory.replaceChildren(...cards);
+  }
+
+  function selectBuilderRelease(releaseId) {
+    builderReleaseId = releaseId;
+    builderPreviewCells = [];
+    builderSimulation = null;
+    builderRunPreview.disabled = !releaseId;
+    builderRequestApproval.disabled = true;
+    builderPublish.disabled = !releaseId || !builderApprovalId.value.trim();
+    builderSimulationOutput.textContent = releaseId
+      ? "Draft selected. Run a fresh server preview before requesting approval."
+      : "No draft selected. Save a governed draft to begin the review workflow.";
+    renderRateReleaseHistory();
+  }
+
+  async function loadRateBuilder() {
+    const property = propertySelect.value;
+    const plan = builderPlan.value;
+    if (!property || !plan) {
+      rateBuilderData = { catalogue: [], modelDrafts: [], targetDrafts: [], releases: [] };
+      renderModelCatalogue();
+      renderRateReleaseHistory();
+      setBuilderMessage("Choose a base rate plan to begin.");
+      return;
+    }
+    setBuilderMessage("Loading the governed model catalogue and immutable release history…");
+    try {
+      rateBuilderData = await request(`/api/v1/properties/${encodeURIComponent(property)}/rate-builder/${encodeURIComponent(plan)}`);
+      renderModelCatalogue();
+      if (!rateBuilderData.releases.some(({ id }) => id === builderReleaseId)) {
+        builderReleaseId = rateBuilderData.releases.find(({ status }) => status === "draft")?.id || "";
+      }
+      selectBuilderRelease(builderReleaseId);
+      setBuilderMessage(builderReleaseId ? "Draft ready for a fresh server preview." : "Choose a model and save an immutable draft.");
+    } catch (error) {
+      setBuilderMessage(error instanceof Error ? error.message : "Rate builder could not be loaded", true);
+    }
+  }
+
+  function propertyTimeZone() {
+    return propertiesData.find(({ id }) => id === propertySelect.value)?.timezone || "UTC";
+  }
+
+  function dateAfter(dateText, days = 1) {
+    const date = new Date(`${dateText}T00:00:00.000Z`);
+    date.setUTCDate(date.getUTCDate() + days);
+    return date.toISOString().slice(0, 10);
+  }
+
+  function zonedInstant(dateText, hour, minute, timeZone) {
+    const [year, month, day] = dateText.split("-").map(Number);
+    const wanted = Date.UTC(year, month - 1, day, hour, minute, 0, 0);
+    let guess = wanted;
+    const formatter = new Intl.DateTimeFormat("en-CA", {
+      timeZone, year: "numeric", month: "2-digit", day: "2-digit",
+      hour: "2-digit", minute: "2-digit", second: "2-digit", hourCycle: "h23",
+    });
+    for (let attempt = 0; attempt < 3; attempt += 1) {
+      const parts = Object.fromEntries(formatter.formatToParts(new Date(guess))
+        .filter(({ type }) => type !== "literal").map(({ type, value }) => [type, Number(value)]));
+      const observed = Date.UTC(parts.year, parts.month - 1, parts.day, parts.hour, parts.minute, parts.second);
+      guess += wanted - observed;
+    }
+    return new Date(guess).toISOString();
+  }
+
+  function builderPolicyEvidence() {
+    return [
+      ["cancellation", builderCancellationPolicy.value],
+      ["deposit", builderDepositPolicy.value],
+      ["guarantee", builderGuaranteePolicy.value],
+      ["no_show", builderNoShowPolicy.value],
+    ].flatMap(([kind, policyId]) => policyId ? [{ kind, policyId, evidenceRef: `operator:${kind}:${policyId}` }] : []);
+  }
+
+  function builderPreviewCellDates() {
+    const dates = trimmed(builderPreviewDates).split(/[\s,]+/).map((date) => date.trim()).filter(Boolean);
+    const selected = dates.length > 0 ? dates : [builderStayStart.value];
+    if (selected.length === 0 || selected.some((date) => !/^\d{4}-\d{2}-\d{2}$/.test(date))) {
+      throw new Error("Preview dates must use YYYY-MM-DD, separated by commas.");
+    }
+    if (selected.length > 500) throw new Error("A preview can contain at most 500 stay dates.");
+    return [...new Set(selected)].sort();
+  }
+
+  function buildPreviewCells() {
+    const sellableId = builderSellable.value || builderQuoteSellable.value || inventoryData.sellableUnits[0]?.id;
+    const sellable = inventoryData.sellableUnits.find(({ id }) => id === sellableId);
+    if (!sellable) throw new Error("A sellable room is required for the server preview.");
+    const unitTypeId = sellable.unitTypeId || builderUnitType.value || inventoryData.unitTypes[0]?.id;
+    if (!unitTypeId) throw new Error("A room type is required for the server preview.");
+    const timeZone = propertyTimeZone();
+    if (!builderBookingInstant) builderBookingInstant = new Date().toISOString();
+    const commercial = builderCommercial();
+    const promotionCode = trimmed(builderPromotionCode).toUpperCase();
+    const channelCode = trimmed(builderChannel).toLowerCase() || "direct";
+    const occupancyPercent = trimmed(builderOccupancy) ? integerValue(builderOccupancy, 0) : null;
+    return builderPreviewCellDates().map((nightDate, index) => ({
+      key: `cell-${nightDate}-${index + 1}`,
+      evaluationContext: {
+        propertyTimeZone: timeZone,
+        bookingInstant: builderBookingInstant,
+        stayStartInstant: zonedInstant(nightDate, 15, 0, timeZone),
+        stayEndInstant: zonedInstant(dateAfter(nightDate), 11, 0, timeZone),
+        nightDate,
+        ...(occupancyPercent === null ? {} : {
+          occupancyBasisPoints: occupancyPercent * 100,
+          occupancyEvidenceRef: "operator:review-occupancy",
+        }),
+        ...(trimmed(builderBarLevel) ? { barLevel: trimmed(builderBarLevel) } : {}),
+      },
+      targetContext: { unitTypeId, sellableUnitId: sellable.id, commercial },
+      guests: { adults: integerValue(builderMinAdults, 1), childAges: [] },
+      selectedPromotionCodes: promotionCode ? [promotionCode] : [],
+      policyEvidence: builderPolicyEvidence(),
+      mandatoryPolicyEvidence: [],
+      availabilityEvidence: {
+        sellableUnitId: sellable.id,
+        availableCount: 1,
+        bookable: true,
+        restrictionEvidence: [],
+        operationalBlockEvidence: [],
+        evidenceRef: "operator:rate-builder-preview",
+      },
+      channelCode,
+      channelMappingEvidenceRef: null,
+    }));
+  }
+
+  function builderWriteKey(operation, body) {
+    const identity = `${operation}:${propertySelect.value}:${builderPlan.value}:${JSON.stringify(body)}`;
+    const key = pendingKeys.get(identity) || crypto.randomUUID();
+    pendingKeys.set(identity, key);
+    return { identity, key };
+  }
+
+  async function saveBuilderDraft() {
+    const command = builderCommand();
+    const route = `/api/v1/properties/${encodeURIComponent(propertySelect.value)}/rate-builder/${encodeURIComponent(builderPlan.value)}/releases`;
+    const pending = builderWriteKey("rate-builder-draft", command);
+    builderSaveDraft.disabled = true;
+    setBuilderMessage("Saving one atomic model, target and release draft…");
+    try {
+      const body = await request(route, {
+        method: "POST", headers: { "idempotency-key": pending.key }, body: JSON.stringify(command),
+      });
+      pendingKeys.delete(pending.identity);
+      builderReleaseId = body.release.id;
+      builderPreviewCells = [];
+      builderSimulation = null;
+      await loadRateBuilder();
+      setBuilderMessage(`Immutable release v${body.release.extensionVersion} saved. Run the server preview next.`);
+    } catch (error) {
+      setBuilderMessage(error instanceof Error ? error.message : "Rate draft could not be saved", true);
+    } finally {
+      builderSaveDraft.disabled = false;
+    }
+  }
+
+  function renderSimulation(simulation) {
+    const summary = document.createElement("div");
+    summary.className = simulation.conflictCount > 0 ? "simulation-alert error" : "simulation-alert success";
+    const title = document.createElement("strong");
+    title.textContent = simulation.conflictCount > 0 ? "Conflict blocks publication" : "Server preview completed";
+    const detail = document.createElement("span");
+    detail.textContent = `${simulation.quotedCount} quoted · ${simulation.blockedCount} blocked · ${simulation.unpricedCount} unpriced · ${simulation.conflictCount} conflicts · ${simulation.workUnits} bounded work units`;
+    const hashes = document.createElement("code");
+    hashes.textContent = `content ${simulation.contentHash.slice(0, 12)} · preview ${simulation.previewHash.slice(0, 12)}`;
+    const note = document.createElement("small");
+    note.textContent = "Draft preview is pre-tax evidence. Published live quote below resolves current tax, policy, restriction and inventory truth.";
+    summary.append(title, detail, hashes, note);
+    builderSimulationOutput.replaceChildren(summary);
+  }
+
+  async function runBuilderPreview() {
+    if (!builderReleaseId) return setBuilderMessage("Save or select a draft before previewing.", true);
+    builderRunPreview.disabled = true;
+    setBuilderMessage("Running the exact preview on the server…");
+    try {
+      builderPreviewCells = buildPreviewCells();
+      const body = await request(`/api/v1/properties/${encodeURIComponent(propertySelect.value)}/rate-builder/${encodeURIComponent(builderPlan.value)}/releases/${encodeURIComponent(builderReleaseId)}/simulate`, {
+        method: "POST", body: JSON.stringify({ previewCells: builderPreviewCells }),
+      });
+      builderSimulation = body.simulation;
+      renderSimulation(body.simulation);
+      builderRequestApproval.disabled = body.simulation.conflictCount !== 0;
+      builderPublish.disabled = !builderApprovalId.value.trim() || body.simulation.conflictCount !== 0;
+      setBuilderMessage(body.simulation.conflictCount === 0
+        ? "Preview is conflict-free. Request independent approval when ready."
+        : "Resolve the displayed conflict before approval.", body.simulation.conflictCount !== 0);
+    } catch (error) {
+      builderPreviewCells = [];
+      builderSimulation = null;
+      builderRequestApproval.disabled = true;
+      builderPublish.disabled = true;
+      setBuilderMessage(error instanceof Error ? error.message : "Rate preview failed", true);
+    } finally {
+      builderRunPreview.disabled = !builderReleaseId;
+    }
+  }
+
+  async function requestBuilderApproval() {
+    if (!builderReleaseId || !builderSimulation || builderPreviewCells.length === 0) {
+      return setBuilderMessage("Run a conflict-free server preview first.", true);
+    }
+    const payload = { previewCells: builderPreviewCells };
+    const pending = builderWriteKey("rate-builder-approval", payload);
+    builderRequestApproval.disabled = true;
+    setBuilderMessage("Recording an approval request for the exact preview hashes…");
+    try {
+      const body = await request(`/api/v1/properties/${encodeURIComponent(propertySelect.value)}/rate-builder/${encodeURIComponent(builderPlan.value)}/releases/${encodeURIComponent(builderReleaseId)}/approval-request`, {
+        method: "POST", headers: { "idempotency-key": pending.key }, body: JSON.stringify(payload),
+      });
+      pendingKeys.delete(pending.identity);
+      builderApprovalId.value = body.approval.id;
+      builderPublish.disabled = false;
+      renderSimulation(body.simulation);
+      setBuilderMessage("Approval requested. A different authorized operator must approve it before publication.");
+    } catch (error) {
+      setBuilderMessage(error instanceof Error ? error.message : "Approval request failed", true);
+    } finally {
+      builderRequestApproval.disabled = !builderSimulation || builderSimulation.conflictCount !== 0;
+    }
+  }
+
+  async function publishBuilderRelease() {
+    const approvalId = builderApprovalId.value.trim();
+    if (!approvalId || !builderReleaseId || builderPreviewCells.length === 0) {
+      return setBuilderMessage("Provide an independently approved request id for this exact preview.", true);
+    }
+    const payload = { approvalId, previewCells: builderPreviewCells };
+    const pending = builderWriteKey("rate-builder-publish", payload);
+    builderPublish.disabled = true;
+    setBuilderMessage("Re-running the approved preview and publishing atomically…");
+    try {
+      const body = await request(`/api/v1/properties/${encodeURIComponent(propertySelect.value)}/rate-builder/${encodeURIComponent(builderPlan.value)}/releases/${encodeURIComponent(builderReleaseId)}/publish`, {
+        method: "POST", headers: { "idempotency-key": pending.key }, body: JSON.stringify(payload),
+      });
+      pendingKeys.delete(pending.identity);
+      renderSimulation(body.simulation);
+      builderReleaseId = "";
+      builderApprovalId.value = "";
+      await loadRateBuilder();
+      setBuilderMessage(`Version ${body.release.extensionVersion} is active. Live quotes now resolve through it.`);
+    } catch (error) {
+      setBuilderMessage(error instanceof Error ? error.message : "Publication failed", true);
+    } finally {
+      builderPublish.disabled = !builderApprovalId.value.trim() || !builderReleaseId;
+    }
+  }
+
+  async function createBuilderUndo(sourceReleaseId, button) {
+    const pending = builderWriteKey("rate-builder-undo", { sourceReleaseId });
+    button.disabled = true;
+    setBuilderMessage("Creating a new immutable undo draft…");
+    try {
+      const release = await request(`/api/v1/properties/${encodeURIComponent(propertySelect.value)}/rate-builder/${encodeURIComponent(builderPlan.value)}/releases/${encodeURIComponent(sourceReleaseId)}/undo`, {
+        method: "POST", headers: { "idempotency-key": pending.key }, body: "{}",
+      });
+      pendingKeys.delete(pending.identity);
+      builderReleaseId = release.id;
+      await loadRateBuilder();
+      setBuilderMessage(`Undo draft v${release.extensionVersion} created. History was not rewritten.`);
+    } catch (error) {
+      setBuilderMessage(error instanceof Error ? error.message : "Undo draft could not be created", true);
+    } finally {
+      button.disabled = false;
+    }
+  }
+
+  function localDateTimeInProperty(input) {
+    const match = input.value.match(/^(\d{4}-\d{2}-\d{2})T(\d{2}):(\d{2})$/);
+    if (!match) throw new Error("Choose a complete stay date and time.");
+    return zonedInstant(match[1], Number(match[2]), Number(match[3]), propertyTimeZone());
+  }
+
+  async function resolveBuilderQuote() {
+    if (!builderPlan.value || !builderQuoteSellable.value) return setBuilderMessage("Choose a plan and sellable room for the live quote.", true);
+    builderLiveQuote.disabled = true;
+    builderQuoteResult.textContent = "Resolving the active release against live tax, policy, restriction and inventory truth…";
+    try {
+      const promotionCode = trimmed(builderPromotionCode).toUpperCase();
+      const body = await request(`/api/v1/properties/${encodeURIComponent(propertySelect.value)}/rate-builder/${encodeURIComponent(builderPlan.value)}/quotes:resolve`, {
+        method: "POST",
+        body: JSON.stringify({
+          sellableUnitId: builderQuoteSellable.value,
+          stayStart: localDateTimeInProperty(builderQuoteStart),
+          stayEnd: localDateTimeInProperty(builderQuoteEnd),
+          guests: { adults: integerValue(builderMinAdults, 1), childAges: [] },
+          selectedPromotionCodes: promotionCode ? [promotionCode] : [],
+          commercial: builderCommercial(),
+          channelCode: trimmed(builderChannel).toLowerCase() || "direct",
+        }),
+      });
+      builderQuoteResult.textContent = JSON.stringify(body.quote, null, 2);
+      setBuilderMessage("Live tenant-scoped quote resolved from the active release.");
+    } catch (error) {
+      builderQuoteResult.textContent = error instanceof Error ? error.message : "Live quote failed";
+      setBuilderMessage(builderQuoteResult.textContent, true);
+    } finally {
+      builderLiveQuote.disabled = false;
+    }
+  }
+
   function renderRates() {
     policyCount.textContent = String(rateData.policies.length);
     ratePlanCount.textContent = String(rateData.ratePlans.length);
@@ -579,6 +1376,7 @@
     populatePolicySelect(planGuaranteePolicy, "guarantee", "Guarantee");
     populatePolicySelect(planDepositPolicy, "deposit", "Deposit");
     populatePricingSelects();
+    populateBuilderSelects();
   }
 
   function populatePricingSelects() {
@@ -601,6 +1399,7 @@
       inventoryData = inventory;
       renderInventory();
       renderRates();
+      await loadRateBuilder();
       ratesStatus.textContent = "Policies and plans are current from tenant-scoped PostgreSQL.";
     } catch (error) {
       ratesStatus.textContent = error instanceof Error ? error.message : "Rate configuration could not be loaded";
@@ -1578,6 +2377,43 @@
       button.disabled = false;
     }
   });
+  builderPlan.addEventListener("change", () => {
+    builderReleaseId = "";
+    builderPreviewCells = [];
+    builderSimulation = null;
+    void loadRateBuilder();
+  });
+  builderModeSelect.addEventListener("change", () => setBuilderMode(builderModeSelect.value));
+  for (const radio of builderModeRadios) radio.addEventListener("change", () => {
+    if (radio.checked) setBuilderMode(radio.value);
+  });
+  builderModelCatalogue.addEventListener("change", (event) => {
+    const input = event.target.closest('input[name="builder-model"]');
+    if (!input) return;
+    builderSelectedModel = input.value;
+    updateBuilderModelFields();
+  });
+  builderPhysicalKind.addEventListener("change", updateBuilderPhysicalFields);
+  for (const button of builderSteps) button.addEventListener("click", () => setBuilderStep(Number(button.dataset.builderStep)));
+  builderPrevious.addEventListener("click", () => setBuilderStep(builderStep - 1));
+  builderNext.addEventListener("click", () => {
+    if (builderStep === 1 && !builderPlan.value) return setBuilderMessage("Create or choose a base rate plan before pricing.", true);
+    setBuilderStep(builderStep + 1);
+  });
+  builderRefreshJson.addEventListener("click", refreshExpertJson);
+  builderSaveDraft.addEventListener("click", () => void saveBuilderDraft());
+  builderRunPreview.addEventListener("click", () => void runBuilderPreview());
+  builderRequestApproval.addEventListener("click", () => void requestBuilderApproval());
+  builderPublish.addEventListener("click", () => void publishBuilderRelease());
+  builderRefreshHistory.addEventListener("click", () => void loadRateBuilder());
+  builderLiveQuote.addEventListener("click", () => void resolveBuilderQuote());
+  builderApprovalId.addEventListener("input", () => {
+    builderPublish.disabled = !builderApprovalId.value.trim() || !builderReleaseId || !builderSimulation || builderSimulation.conflictCount !== 0;
+  });
+  document.querySelector("#rate-builder").addEventListener("input", (event) => {
+    if (event.target !== builderExpertJson) renderBuilderCommand();
+  });
+  builderExpertJson.addEventListener("input", renderBuilderCommand);
   themeSelect.addEventListener("change", () => applyTheme(themeSelect.value));
   signOutButton.addEventListener("click", showLogin);
   applyTheme(themeSelect.value);
@@ -1586,6 +2422,9 @@
   addTier(createTierList, 2, "");
   updateRestrictionFields();
   updatePolicyFields();
+  setBuilderStep(1);
+  setBuilderMode("guided", false);
+  updateBuilderPhysicalFields();
   const initialView = location.pathname.endsWith("/inventory") ? "inventory" :
     location.pathname.endsWith("/operations") ? "operations" :
     location.pathname.endsWith("/restrictions") ? "restrictions" :

@@ -165,3 +165,9 @@ export type {
   RateQuoteTaxAssignmentEvidence,
   ResolveRateQuoteInput,
 } from "./quote";
+export {
+  RateAuthoringError,
+  canonicalRateAuthoringJson,
+  compileRateAuthoringCommand,
+} from "./authoring";
+export type { CanonicalRateAuthoringCommand } from "./authoring";

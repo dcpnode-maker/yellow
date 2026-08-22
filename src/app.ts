@@ -124,6 +124,27 @@ export function createApp(options: AppOptions = {}) {
       .post("/api/v1/properties/:property/rate-prices/:ratePriceId/supersede", ({ request, params, body, tenantContext }) =>
         withOperatorTenant(request, (context) => operator.supersedeRatePrice(context, params.property, params.ratePriceId, body))
       )
+      .get("/api/v1/properties/:property/rate-builder/:ratePlanId", ({ request, params, tenantContext }) =>
+        withOperatorTenant(request, (context) => operator.rateBuilder(context, params.property, params.ratePlanId))
+      )
+      .post("/api/v1/properties/:property/rate-builder/:ratePlanId/releases", ({ request, params, body, tenantContext }) =>
+        withOperatorTenant(request, (context) => operator.createRateBuilderDraft(context, params.property, params.ratePlanId, body))
+      )
+      .post("/api/v1/properties/:property/rate-builder/:ratePlanId/quotes:resolve", ({ request, params, body, tenantContext }) =>
+        withOperatorTenant(request, (context) => operator.resolveRateBuilderQuote(context, params.property, params.ratePlanId, body))
+      )
+      .post("/api/v1/properties/:property/rate-builder/:ratePlanId/releases/:releaseId/simulate", ({ request, params, body, tenantContext }) =>
+        withOperatorTenant(request, (context) => operator.simulateRateBuilderDraft(context, params.property, params.ratePlanId, params.releaseId, body))
+      )
+      .post("/api/v1/properties/:property/rate-builder/:ratePlanId/releases/:releaseId/approval-request", ({ request, params, body, tenantContext }) =>
+        withOperatorTenant(request, (context) => operator.requestRateBuilderApproval(context, params.property, params.ratePlanId, params.releaseId, body))
+      )
+      .post("/api/v1/properties/:property/rate-builder/:ratePlanId/releases/:releaseId/publish", ({ request, params, body, tenantContext }) =>
+        withOperatorTenant(request, (context) => operator.publishRateBuilderDraft(context, params.property, params.ratePlanId, params.releaseId, body))
+      )
+      .post("/api/v1/properties/:property/rate-builder/:ratePlanId/releases/:releaseId/undo", ({ request, params, body, tenantContext }) =>
+        withOperatorTenant(request, (context) => operator.createRateBuilderUndo(context, params.property, params.ratePlanId, params.releaseId, body))
+      )
       .get("/api/v1/properties/:property/operational-blocks", ({ request, params, tenantContext }) =>
         withOperatorTenant(request, (context) => operator.operationalBlocks(context, params.property))
       )

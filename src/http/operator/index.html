@@ -443,6 +443,178 @@
             <button class="quiet" id="refresh-rates" type="button">Refresh</button>
           </div>
 
+          <section class="rate-builder-shell card" id="rate-builder" aria-labelledby="rate-builder-title">
+            <div class="rate-builder-hero">
+              <div>
+                <p class="eyebrow">Universal rate plan flow</p>
+                <h3 id="rate-builder-title">From a simple price to a complete commercial model</h3>
+                <p class="muted">One governed builder for fixed, calendar, BAR, derived, matrix, contract, occupancy/LOS, package, RMS/API and expert rates.</p>
+              </div>
+              <div class="mode-switch" role="radiogroup" aria-label="Authoring mode">
+                <label><input type="radio" name="builder-mode" value="guided" checked><span>Guided</span></label>
+                <label><input type="radio" name="builder-mode" value="expert"><span>Expert</span></label>
+                <span class="mode-future" title="Order 072 adds the secure intent compiler">AI-assisted · next</span>
+              </div>
+            </div>
+
+            <ol class="builder-steps" aria-label="Rate plan builder steps">
+              <li><button class="builder-step is-active" type="button" data-builder-step="1"><b>1</b><span>Create rate</span><small>Name, plan and mode</small></button></li>
+              <li><button class="builder-step" type="button" data-builder-step="2"><b>2</b><span>Pricing</span><small>Model and exact money</small></button></li>
+              <li><button class="builder-step" type="button" data-builder-step="3"><b>3</b><span>Who gets it</span><small>Commercial eligibility</small></button></li>
+              <li><button class="builder-step" type="button" data-builder-step="4"><b>4</b><span>Where / when</span><small>Scope, dates and rules</small></button></li>
+              <li><button class="builder-step" type="button" data-builder-step="5"><b>5</b><span>Review</span><small>Preview, approve, publish</small></button></li>
+            </ol>
+
+            <div class="builder-stage" data-builder-panel="1">
+              <div class="builder-stage-heading"><p class="step">Step 1</p><h4>Choose the sellable rate identity</h4><p>Rate code, guest-facing name, currency and reusable policies stay on the base plan. This builder versions how that plan prices and applies.</p></div>
+              <div class="builder-form-grid two-up">
+                <label>Rate plan<select id="builder-plan" required><option value="">Create a base rate plan below first</option></select></label>
+                <label>Authoring experience<select id="builder-mode-select"><option value="guided">Guided · progressive choices</option><option value="expert">Expert · complete typed command</option></select></label>
+              </div>
+              <div class="guardrail-banner"><strong>Always enforced</strong><span>Exact money and currency</span><span>Tenant and property access</span><span>Immutable history</span><span>Occupancy and restriction truth</span><span>Tax and fiscal safeguards</span></div>
+            </div>
+
+            <div class="builder-stage" data-builder-panel="2" hidden>
+              <div class="builder-stage-heading"><p class="step">Step 2</p><h4>Select a pricing model</h4><p>Start with a tested model, then reveal only the controls that model needs. Every option compiles into the same typed release.</p></div>
+              <div class="model-catalogue" id="builder-model-catalogue" role="radiogroup" aria-label="Pricing model"></div>
+              <div class="builder-form-grid three-up">
+                <label>Base amount · minor units<input id="builder-base-amount" inputmode="numeric" pattern="0|[1-9][0-9]*" value="12500"></label>
+                <label>Floor · minor units<input id="builder-floor" inputmode="numeric" pattern="0|[1-9][0-9]*" placeholder="Optional"></label>
+                <label>Ceiling · minor units<input id="builder-ceiling" inputmode="numeric" pattern="0|[1-9][0-9]*" placeholder="Optional"></label>
+              </div>
+              <div class="model-fields" id="builder-calendar-fields" hidden>
+                <label>Calendar cells<textarea id="builder-calendar-cells" rows="5" placeholder="2026-09-10 = 12500&#10;2026-09-11 = closed"></textarea></label>
+                <p class="field-note">One stay date per line. “closed” means this model has no price; it does not change inventory or restrictions.</p>
+              </div>
+              <div class="model-fields" id="builder-reference-fields" hidden>
+                <div class="builder-form-grid two-up">
+                  <label>Published reference release id<input id="builder-reference-id" placeholder="UUID from release history"></label>
+                  <label>Exact reference version<input id="builder-reference-version" type="number" min="1" value="1"></label>
+                </div>
+              </div>
+              <div class="model-fields" id="builder-rule-fields" hidden>
+                <h5>Typed adjustment rule</h5>
+                <div class="builder-form-grid four-up">
+                  <label>Adjustment<select id="builder-adjustment-kind"><option value="delta">Amount +/−</option><option value="basis_points">Percent in basis points</option><option value="replace">Replace amount</option></select></label>
+                  <label>Value<input id="builder-adjustment-value" inputmode="numeric" value="500"></label>
+                  <label>Stage<input id="builder-rule-stage" type="number" min="1" max="8" value="1"></label>
+                  <label>Priority<input id="builder-rule-priority" type="number" min="0" max="1000" value="10"></label>
+                </div>
+                <div class="builder-form-grid four-up">
+                  <label>BAR level<input id="builder-bar-level" maxlength="64" placeholder="BAR1"></label>
+                  <label>Booking window days<input id="builder-booking-window" type="number" min="0" placeholder="Any"></label>
+                  <label>LOS nights<input id="builder-los" type="number" min="1" placeholder="Any"></label>
+                  <label>Occupancy %<input id="builder-occupancy" type="number" min="0" max="100" placeholder="Any"></label>
+                </div>
+              </div>
+              <div class="model-fields" id="builder-rms-fields" hidden>
+                <h5>Governed RMS/API binding</h5>
+                <div class="builder-form-grid three-up">
+                  <label>Adapter key<input id="builder-rms-key" value="review-rms" pattern="[a-z0-9][a-z0-9._:-]*"></label>
+                  <label>Adapter version<input id="builder-rms-version" type="number" min="1" value="1"></label>
+                  <label>Maximum age · seconds<input id="builder-rms-age" type="number" min="1" max="86400" value="900"></label>
+                </div>
+                <p class="field-note">An unavailable or stale recommendation visibly falls back to the local evaluator. RMS never controls availability and cannot bypass floor or ceiling.</p>
+              </div>
+              <div class="model-fields" id="builder-expert-components" hidden>
+                <h5>Expert components · maximum eight</h5>
+                <div class="component-grid" id="builder-component-grid"></div>
+              </div>
+            </div>
+
+            <div class="builder-stage" data-builder-panel="3" hidden>
+              <div class="builder-stage-heading"><p class="step">Step 3</p><h4>Choose who gets this rate</h4><p>Leave a dimension blank for broad eligibility. Add exact commercial dimensions when the rate is negotiated, channel-specific or campaign-specific.</p></div>
+              <div class="builder-form-grid three-up">
+                <label>Company party id<input id="builder-company" placeholder="Optional UUID"></label>
+                <label>Market group code<input id="builder-market-group" placeholder="LEISURE"></label>
+                <label>Market code<input id="builder-market" placeholder="RETAIL"></label>
+                <label>Source party id<input id="builder-source-party" placeholder="Optional UUID"></label>
+                <label>Source code<input id="builder-source" placeholder="WEB"></label>
+                <label>Channel code<input id="builder-channel" placeholder="direct"></label>
+                <label>Segment code<input id="builder-segment" placeholder="TRANSIENT"></label>
+                <label>Agent party id<input id="builder-agent" placeholder="Optional UUID"></label>
+                <label>Campaign code<input id="builder-campaign" placeholder="SUMMER26"></label>
+              </div>
+              <p class="precedence-note"><strong>Deterministic precedence:</strong> exact sellable beats room type, room type beats class, and class beats property. Equal top-ranked rules block publication instead of choosing silently.</p>
+            </div>
+
+            <div class="builder-stage" data-builder-panel="4" hidden>
+              <div class="builder-stage-heading"><p class="step">Step 4</p><h4>Define where and when it applies</h4><p>Physical scope, stay dates, booking window, LOS, occupancy, guest bounds, policies, packages, promotions and distribution remain explicit.</p></div>
+              <div class="builder-form-grid four-up">
+                <label>Physical scope<select id="builder-physical-kind"><option value="property">Whole property</option><option value="class">Hotel-defined class</option><option value="unit_type">Room type</option><option value="sellable">Exact room / sellable</option></select></label>
+                <label>Effect<select id="builder-target-effect"><option value="include">Include</option><option value="exclude">Exclude exception</option></select></label>
+                <label>Rule priority<input id="builder-target-priority" type="number" min="0" max="1000" value="0"></label>
+                <label>Rule key<input id="builder-target-key" value="property-default" pattern="[a-z0-9][a-z0-9._-]*"></label>
+              </div>
+              <div class="builder-form-grid three-up">
+                <label id="builder-class-field" hidden>Class code<input id="builder-class-code" placeholder="PREMIUM"></label>
+                <label id="builder-unit-type-field" hidden>Room type<select id="builder-unit-type"></select></label>
+                <label id="builder-sellable-field" hidden>Exact sellable<select id="builder-sellable"></select></label>
+              </div>
+              <fieldset class="progressive-fields weekday-fields builder-weekdays"><legend>Days of week</legend>
+                <label><input type="checkbox" name="builder-weekday" value="1" checked> Mon</label><label><input type="checkbox" name="builder-weekday" value="2" checked> Tue</label><label><input type="checkbox" name="builder-weekday" value="4" checked> Wed</label><label><input type="checkbox" name="builder-weekday" value="8" checked> Thu</label><label><input type="checkbox" name="builder-weekday" value="16" checked> Fri</label><label><input type="checkbox" name="builder-weekday" value="32" checked> Sat</label><label><input type="checkbox" name="builder-weekday" value="64" checked> Sun</label>
+              </fieldset>
+              <div class="builder-form-grid two-up">
+                <label>First stay date<input id="builder-stay-start" type="date"></label>
+                <label>Last stay date<input id="builder-stay-end" type="date"></label>
+              </div>
+              <div class="builder-form-grid three-up">
+                <label>Minimum adults<input id="builder-min-adults" type="number" min="1" max="99" value="1"></label>
+                <label>Maximum adults<input id="builder-max-adults" type="number" min="1" max="99" value="4"></label>
+                <label>Maximum children<input id="builder-max-children" type="number" min="0" max="30" value="3"></label>
+                <label>Cancellation policy<select id="builder-cancellation-policy"><option value="">None</option></select></label>
+                <label>Deposit policy<select id="builder-deposit-policy"><option value="">None</option></select></label>
+                <label>Guarantee policy<select id="builder-guarantee-policy"><option value="">None</option></select></label>
+                <label>No-show policy<select id="builder-no-show-policy"><option value="">None</option></select></label>
+                <label>Refund treatment<select id="builder-refund-treatment"><option value="policy">Follow selected policies</option><option value="non_refundable">Non-refundable</option></select></label>
+              </div>
+              <div class="guardrail-banner"><strong>Hotel-controlled restrictions</strong><span>CTA / CTD</span><span>Minimum / maximum stay</span><span>Minimum / maximum advance</span><span>Closed to sale</span><span>Configure these in the Restrictions workspace; live quotes always enforce them.</span></div>
+              <details class="advanced-builder-group"><summary>Package, promotion and distribution</summary>
+                <div class="builder-form-grid three-up">
+                  <label>Package code<input id="builder-package-code" placeholder="BREAKFAST"></label>
+                  <label>Package amount · minor units<input id="builder-package-amount" inputmode="numeric" placeholder="1500"></label>
+                  <label>Package rhythm<select id="builder-package-rhythm"><option value="per_stay">Per stay</option><option value="per_night">Per night</option><option value="per_person">Per person</option><option value="per_person_night">Per person per night</option></select></label>
+                  <label>Promotion code<input id="builder-promotion-code" placeholder="EARLYBIRD"></label>
+                  <label>Promotion discount · basis points<input id="builder-promotion-bps" type="number" min="0" max="10000" placeholder="1000"></label>
+                  <label>Distribution<select id="builder-distribution-mode"><option value="all">All channels</option><option value="allowlist">Only listed</option><option value="denylist">All except listed</option></select></label>
+                </div>
+                <label>Distribution channel codes<textarea id="builder-distribution-channels" rows="2" placeholder="booking-com, expedia"></textarea></label>
+              </details>
+              <details class="advanced-builder-group" id="builder-expert-json-group" hidden><summary>Complete typed command</summary>
+                <p class="field-note">Expert mode can edit the same canonical JSON emitted by Guided mode. Arbitrary code, SQL, browser authority and numeric money are rejected by the server.</p>
+                <textarea id="builder-expert-json" rows="18" spellcheck="false"></textarea>
+                <button class="quiet compact" id="builder-refresh-json" type="button">Refresh from visual choices</button>
+              </details>
+            </div>
+
+            <div class="builder-stage" data-builder-panel="5" hidden>
+              <div class="builder-stage-heading"><p class="step">Step 5</p><h4>Review, preview and publish safely</h4><p>Save one immutable draft trio, simulate bulk cells on the server, request independent approval, then publish the exact approved preview.</p></div>
+              <div class="review-grid">
+                <div class="review-command card-inset"><h5>Canonical command</h5><pre id="builder-command-preview">Complete steps 1–4 to preview the command.</pre></div>
+                <div class="review-actions card-inset">
+                  <h5>Release actions</h5>
+                  <button class="primary" id="builder-save-draft" type="button">Save immutable draft</button>
+                  <label>Preview stay dates<textarea id="builder-preview-dates" rows="2" placeholder="2026-09-10, 2026-09-11"></textarea></label>
+                  <button class="secondary" id="builder-run-preview" type="button" disabled>Run server preview</button>
+                  <button class="secondary" id="builder-request-approval" type="button" disabled>Request independent approval</button>
+                  <label>Approved request id<input id="builder-approval-id" placeholder="A different operator supplies this"></label>
+                  <button class="primary" id="builder-publish" type="button" disabled>Publish exact approved version</button>
+                  <p class="field-note">The requester cannot approve their own rate. Yellow re-runs the preview before publication; stale approval cannot publish.</p>
+                </div>
+              </div>
+              <div class="simulation-summary" id="builder-simulation" aria-live="polite">No server preview has run.</div>
+              <div class="release-history"><div class="section-heading compact-heading"><div><h5>Immutable release history</h5><p class="muted">Undo creates a new draft; it never rewrites an old version.</p></div><button class="quiet compact" id="builder-refresh-history" type="button">Refresh</button></div><div id="builder-release-history"></div></div>
+              <div class="live-quote-panel card-inset"><h5>Published live quote evidence</h5><div class="builder-form-grid three-up"><label>Sellable<select id="builder-quote-sellable"></select></label><label>Stay start<input id="builder-quote-start" type="datetime-local"></label><label>Stay end<input id="builder-quote-end" type="datetime-local"></label></div><button class="secondary" id="builder-live-quote" type="button">Resolve live quote</button><pre id="builder-quote-result">Publish a release, then resolve a live tenant-scoped quote to see tax, policy, restriction and availability evidence.</pre></div>
+            </div>
+
+            <div class="builder-footer">
+              <p id="builder-message" role="status" aria-live="polite">Choose a base rate plan to begin.</p>
+              <div><button class="quiet" id="builder-previous" type="button" disabled>Previous</button><button class="primary" id="builder-next" type="button">Continue</button></div>
+            </div>
+          </section>
+
+          <div class="legacy-rate-heading"><div><p class="eyebrow">Existing configuration tools</p><h3>Policies, base plans and append-only price rows</h3></div><p class="muted">These focused tools remain available for direct configuration and audited corrections.</p></div>
+
           <div class="metric-grid rate-metrics" aria-live="polite">
             <div class="metric"><strong id="policy-count">—</strong><span>Policies</span></div>
             <div class="metric"><strong id="rate-plan-count">—</strong><span>Base rate plans</span></div>

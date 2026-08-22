@@ -186,3 +186,24 @@ four-eyes publication and immutable version history. Hotels can configure commer
 date/DOW/booking-window/LOS/occupancy rules, guest/package/promotion/policy/distribution choices and
 explicit priorities. They cannot disable tenant isolation, authoritative availability/restrictions,
 exact money, audit/publication history, tax/fiscal evidence boundaries or statutory safeguards.
+
+## 12. Guided and Expert operator authoring
+
+Order 071 exposes the universal five-step flow in the authenticated operator workbench: select an
+existing rate-plan identity, choose one server-catalogued pricing model, define commercial
+eligibility, define physical/time/policy composition, then review one canonical command. Guided and
+Expert are presentation labels only. Both cross the same strict compiler, which accepts HTTP money
+only as canonical decimal strings and converts it to exact `bigint` before the existing model,
+target, evaluator and composition normalizers run.
+
+One idempotent tenant transaction creates the model, target and release drafts together. The
+browser cannot supply actor, tenant, property, audit envelope, calculated result, conflict or hash.
+It can request an explicit hypothetical preview cell set; the server derives targeting, price,
+composition, conflicts and hashes. Publication remains four-eyes and re-simulates the exact approved
+cells. Undo creates a new draft version. A separate live-quote action resolves the active release
+against current tenant-scoped availability, restriction, policy, tax-assignment and channel evidence.
+
+CTA/CTD, closed-to-sale and minimum/maximum stay or advance rules remain hotel-configurable through
+the Restrictions workspace rather than being duplicated in a rate release. They are authoritative
+inputs to the live quote and cannot be disabled by either authoring mode. AI-assisted authoring is
+reserved for Order 072 and must compile through this same boundary; it is not a second mutation path.

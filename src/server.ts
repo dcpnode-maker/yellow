@@ -3,9 +3,16 @@ import { SQL } from "bun";
 import { app, createApp } from "./app";
 import { BearerTenantResolver, Hs256TokenSigner, LocalLoginService } from "./contexts/identity";
 import { AvailabilityProjectionConsumer, AvailabilityProjectionService, AvailabilityService, HoldExpiryWorker, HoldService, InventoryPolicyService, InventoryService, OperationalBlockService, RestrictionService } from "./contexts/inventory";
-import { RateConfigurationService, RatePricingService } from "./contexts/rates";
+import {
+  RateConfigurationService,
+  RateModelService,
+  RatePricingService,
+  RatePublicationService,
+  RateQuoteService,
+  RateTargetService,
+} from "./contexts/rates";
 import { OperatorHttpApi } from "./http/operator";
-import { Database, PostgresEventBus, PostgresIdempotency } from "./kernel";
+import { ApprovalService, Database, ExtensionRegistry, PostgresEventBus, PostgresIdempotency } from "./kernel";
 import type { OperatorRuntimeStatus } from "./project-status";
 import { PostgresDueHoldScopeSource } from "./workers/postgres-due-hold-scopes";
 
@@ -39,8 +46,11 @@ function runtimeApp() {
   const database = Database.connect(databaseUrl, { maxConnections: 12 });
   const loginPool = new SQL(databaseUrl, { max: 4 });
   const eventPool = new SQL(databaseUrl, { max: 4 });
+  const extensionPool = new SQL(databaseUrl, { max: 4 });
   const login = new LocalLoginService(loginPool, tokens);
   const events = new PostgresEventBus(eventPool);
+  const registry = new ExtensionRegistry(extensionPool);
+  const approvals = new ApprovalService(events);
   const inventory = new InventoryService(events);
   const restrictions = new RestrictionService(events);
   const rates = new RateConfigurationService(events);
@@ -49,6 +59,14 @@ function runtimeApp() {
   const policy = new InventoryPolicyService(events);
   const holds = new HoldService(events);
   const projection = new AvailabilityProjectionService();
+  const availability = new AvailabilityService();
+  const publication = new RatePublicationService(registry, approvals, events);
+  const rateBuilder = {
+    models: new RateModelService(registry),
+    targets: new RateTargetService(registry),
+    publication,
+    quote: new RateQuoteService(publication, availability, projection),
+  };
   const runtimeStatus: OperatorRuntimeStatus = {
     workbenchEnabled,
     holdExpiryWorkerEnabled: holdExpiryEnabled,
@@ -75,7 +93,7 @@ function runtimeApp() {
   return createApp({
     database,
     tenantResolver: new BearerTenantResolver(tokens),
-    operatorApi: new OperatorHttpApi(login, new AvailabilityService(), inventory, new PostgresIdempotency(), restrictions, rates, pricing, blocks, policy, holds, projection, runtimeStatus),
+    operatorApi: new OperatorHttpApi(login, availability, inventory, new PostgresIdempotency(), restrictions, rates, pricing, blocks, policy, holds, projection, runtimeStatus, rateBuilder),
   });
 }
 

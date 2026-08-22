@@ -21,11 +21,24 @@ import {
   type RebuildAvailabilityProjectionInput,
 } from "../contexts/inventory";
 import {
+  RATE_MODEL_CATALOGUE,
+  RateAuthoringError,
   RateConfigurationService,
   RateConflictError,
+  RateModelService,
   RateNotFoundError,
   RatePricingService,
+  RatePublicationConflictError,
+  RatePublicationError,
+  RatePublicationNotFoundError,
+  RatePublicationService,
+  RateQuoteConflictError,
+  RateQuoteError,
+  RateQuoteNotFoundError,
+  RateQuoteService,
+  RateTargetService,
   RateValidationError,
+  compileRateAuthoringCommand,
   type CreatePolicyInput,
   type CreateRatePriceInput,
   type CreateRatePlanInput,
@@ -296,6 +309,15 @@ type RateOperations = Pick<RateConfigurationService,
 >;
 
 type PricingOperations = Pick<RatePricingService, "create" | "findCurrent" | "supersede">;
+interface RateBuilderOperations {
+  readonly models: Pick<RateModelService, "createDraftVersion" | "listDraftVersions">;
+  readonly targets: Pick<RateTargetService, "createDraftVersion" | "listDraftVersions">;
+  readonly publication: Pick<RatePublicationService,
+    "createDraftVersion" | "simulateDraft" | "requestPublicationApproval" |
+    "publishDraft" | "createUndoDraftVersion" | "listReleaseVersions"
+  >;
+  readonly quote: Pick<RateQuoteService, "resolve">;
+}
 type BlockOperations = Pick<OperationalBlockService, "listActive" | "open" | "close">;
 type PolicyOperations = Pick<InventoryPolicyService, "get" | "setOosSellability">;
 type HoldOperations = Pick<HoldService,
@@ -474,6 +496,18 @@ function jsonValue(value: unknown): JsonValue {
   return JSON.parse(JSON.stringify(value)) as JsonValue;
 }
 
+function rateBuilderJsonValue(value: unknown): JsonValue {
+  if (typeof value === "bigint") return value.toString();
+  if (value instanceof Date) return value.toISOString();
+  if (Array.isArray(value)) return value.map(rateBuilderJsonValue);
+  if (value !== null && typeof value === "object") {
+    return Object.fromEntries(Object.entries(value as Record<string, unknown>)
+      .sort(([left], [right]) => left.localeCompare(right))
+      .map(([key, entry]) => [key, rateBuilderJsonValue(entry)])) as JsonValue;
+  }
+  return value as JsonValue;
+}
+
 export class OperatorHttpApi {
   readonly #login: LocalLoginService;
   readonly #availability: Pick<AvailabilityService, "search">;
@@ -487,6 +521,7 @@ export class OperatorHttpApi {
   readonly #holds?: HoldOperations;
   readonly #projection?: Pick<AvailabilityProjectionService, "status" | "replaceHorizon">;
   readonly #runtimeStatus: OperatorRuntimeStatus;
+  readonly #rateBuilder?: RateBuilderOperations;
 
   constructor(
     login: LocalLoginService,
@@ -501,6 +536,7 @@ export class OperatorHttpApi {
     holds?: HoldOperations,
     projection?: Pick<AvailabilityProjectionService, "status" | "replaceHorizon">,
     runtimeStatus: OperatorRuntimeStatus = DEFAULT_OPERATOR_RUNTIME_STATUS,
+    rateBuilder?: RateBuilderOperations,
   ) {
     this.#login = login;
     this.#availability = availability;
@@ -514,6 +550,7 @@ export class OperatorHttpApi {
     this.#holds = holds;
     this.#projection = projection;
     this.#runtimeStatus = runtimeStatus;
+    this.#rateBuilder = rateBuilder;
   }
 
   unavailable(request: Request): Response {
@@ -530,7 +567,8 @@ export class OperatorHttpApi {
       const type = error instanceof IdempotencyConflictError ? "request/idempotency_conflict" : "inventory/conflict";
       return apiError(request, 409, type, "Conflict", "The inventory request conflicts with existing state");
     }
-    if (error instanceof RateConflictError) {
+    if (error instanceof RateConflictError || error instanceof RatePublicationConflictError ||
+        error instanceof RateQuoteConflictError) {
       return apiError(request, 409, "rates/conflict", "Conflict", "The rate configuration conflicts with existing state");
     }
     if (error instanceof IdempotencyValidationError || error instanceof InventoryValidationError) {
@@ -539,10 +577,13 @@ export class OperatorHttpApi {
     if (error instanceof InventoryNotFoundError) {
       return apiError(request, 404, "inventory/not_found", "Not found", "Referenced inventory was not found");
     }
-    if (error instanceof RateValidationError) {
+    if (error instanceof RateValidationError || error instanceof RateAuthoringError ||
+        (error instanceof RatePublicationError && !(error instanceof RatePublicationNotFoundError)) ||
+        (error instanceof RateQuoteError && !(error instanceof RateQuoteNotFoundError))) {
       return apiError(request, 400, "request/invalid", "Invalid request", "Rate configuration input is invalid");
     }
-    if (error instanceof RateNotFoundError) {
+    if (error instanceof RateNotFoundError || error instanceof RatePublicationNotFoundError ||
+        error instanceof RateQuoteNotFoundError) {
       return apiError(request, 404, "rates/not_found", "Not found", "Referenced rate configuration was not found");
     }
     return this.unavailable(request);
@@ -1208,6 +1249,268 @@ export class OperatorHttpApi {
     if (!input) return apiError(context.request, 400, "request/invalid", "Invalid request", "Rate plan input is invalid");
     return this.#createRate(context, propertyNode, body, "operator.rates.rate_plan.create", "rate_plan.created",
       async (tx, envelope) => ({ ratePlan: jsonValue(await this.#rates!.createRatePlan(tx, { ...input, envelope })) }));
+  }
+
+  async rateBuilder(context: TenantRequestContext, propertyNode: string, ratePlanId: string): Promise<Response> {
+    if (!hasScope(context, RATE_READ_SCOPE)) {
+      return apiError(context.request, 403, "auth/scope_missing", "Forbidden", "Rate configuration access is not granted");
+    }
+    if (!UUID.test(propertyNode) || !UUID.test(ratePlanId)) {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Property or rate-plan identifier is invalid");
+    }
+    if (!this.#rateBuilder) return this.unavailable(context.request);
+    const grants = await listGrantedProperties(context, RATE_READ_SCOPE);
+    if (!grants.some(({ id }) => id === propertyNode)) {
+      return apiError(context.request, 403, "auth/property_forbidden", "Forbidden", "Property access is not granted");
+    }
+    const [modelDrafts, targetDrafts, releases] = await Promise.all([
+      this.#rateBuilder.models.listDraftVersions(context.tx, propertyNode, ratePlanId),
+      this.#rateBuilder.targets.listDraftVersions(context.tx, propertyNode, ratePlanId),
+      this.#rateBuilder.publication.listReleaseVersions(context.tx, propertyNode, ratePlanId),
+    ]);
+    return apiResponse(context.request, rateBuilderJsonValue({
+      catalogue: RATE_MODEL_CATALOGUE,
+      modelDrafts,
+      targetDrafts,
+      releases,
+    }));
+  }
+
+  async createRateBuilderDraft(
+    context: TenantRequestContext,
+    propertyNode: string,
+    ratePlanId: string,
+    body: unknown,
+  ): Promise<Response> {
+    if (!hasScope(context, RATE_WRITE_SCOPE)) {
+      return apiError(context.request, 403, "auth/scope_missing", "Forbidden", "Rate configuration changes are not granted");
+    }
+    if (!UUID.test(propertyNode) || !UUID.test(ratePlanId)) {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Property or rate-plan identifier is invalid");
+    }
+    if (!this.#rateBuilder) return this.unavailable(context.request);
+    const grants = await listGrantedProperties(context, RATE_WRITE_SCOPE);
+    if (!grants.some(({ id }) => id === propertyNode)) {
+      return apiError(context.request, 403, "auth/property_forbidden", "Forbidden", "Property access is not granted");
+    }
+    const command = compileRateAuthoringCommand(body);
+    if (command.ratePlanId !== ratePlanId) {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Rate-plan route and command do not match");
+    }
+    const requestId = correlationId(context.request);
+    const outcome = await this.#idempotency.execute(context.tx, {
+      tenantId: context.tenantId,
+      operation: "operator.rates.release.draft",
+      key: context.request.headers.get("idempotency-key") ?? "",
+      request: { propertyNode, ratePlanId, body },
+    }, async (tx) => {
+      const modelDraft = await this.#rateBuilder!.models.createDraftVersion(tx, {
+        ratePlanId: command.ratePlanId,
+        modelKey: command.model.key,
+        modelVersion: command.model.version,
+        authoringMode: command.authoringMode,
+        componentModelKeys: command.model.componentModelKeys,
+        envelope: createAuditEnvelope({ actorId: context.identity.actorId, tenantId: context.tenantId,
+          propertyNode, requestId, operation: "rate_plan_model.drafted" }),
+      });
+      const targetDraft = await this.#rateBuilder!.targets.createDraftVersion(tx, {
+        ratePlanId: command.ratePlanId,
+        authoringMode: command.authoringMode,
+        rules: command.target.rules,
+        envelope: createAuditEnvelope({ actorId: context.identity.actorId, tenantId: context.tenantId,
+          propertyNode, requestId, operation: "rate_plan_target.drafted" }),
+      });
+      const release = await this.#rateBuilder!.publication.createDraftVersion(tx, {
+        ratePlanId: command.ratePlanId,
+        modelDraftVersion: modelDraft.extensionVersion,
+        targetDraftVersion: targetDraft.extensionVersion,
+        evaluatorSpec: command.evaluator,
+        compositionSpec: command.composition,
+        rmsBinding: command.rmsBinding,
+        envelope: createAuditEnvelope({ actorId: context.identity.actorId, tenantId: context.tenantId,
+          propertyNode, requestId, operation: "rate_plan_release.drafted" }),
+      });
+      return { status: 201, body: rateBuilderJsonValue({ modelDraft, targetDraft, release }) };
+    });
+    return apiResponse(context.request, outcome.body, outcome.status, {
+      "idempotency-replayed": String(outcome.replayed),
+      "x-correlation-id": requestId,
+    });
+  }
+
+  async resolveRateBuilderQuote(
+    context: TenantRequestContext,
+    propertyNode: string,
+    ratePlanId: string,
+    body: unknown,
+  ): Promise<Response> {
+    if (!isObject(body) || !exactKeys(body, [
+      "sellableUnitId", "stayStart", "stayEnd", "guests", "selectedPromotionCodes", "commercial", "channelCode",
+    ]) || typeof body.sellableUnitId !== "string" || !UUID.test(body.sellableUnitId) ||
+      !isObject(body.guests) || !exactKeys(body.guests, ["adults", "childAges"]) ||
+      typeof body.guests.adults !== "number" || !Array.isArray(body.guests.childAges) ||
+      !Array.isArray(body.selectedPromotionCodes) || !isObject(body.commercial) ||
+      typeof body.channelCode !== "string") {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Rate quote input is invalid");
+    }
+    const stayStart = parseInstant(body.stayStart);
+    const stayEnd = parseInstant(body.stayEnd);
+    if (!stayStart || !stayEnd || stayStart >= stayEnd || !UUID.test(propertyNode) || !UUID.test(ratePlanId)) {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Rate quote scope or stay is invalid");
+    }
+    if (!hasScope(context, RATE_READ_SCOPE)) {
+      return apiError(context.request, 403, "auth/scope_missing", "Forbidden", "Rate configuration access is not granted");
+    }
+    if (!this.#rateBuilder) return this.unavailable(context.request);
+    const grants = await listGrantedProperties(context, RATE_READ_SCOPE);
+    if (!grants.some(({ id }) => id === propertyNode)) {
+      return apiError(context.request, 403, "auth/property_forbidden", "Forbidden", "Property access is not granted");
+    }
+    const quote = await this.#rateBuilder.quote.resolve(context.tx, {
+      propertyNode,
+      ratePlanId,
+      sellableUnitId: body.sellableUnitId,
+      stayStart,
+      stayEnd,
+      guests: { adults: body.guests.adults, childAges: body.guests.childAges as number[] },
+      selectedPromotionCodes: body.selectedPromotionCodes as string[],
+      commercial: body.commercial,
+      channelCode: body.channelCode,
+    });
+    return apiResponse(context.request, rateBuilderJsonValue({ quote }));
+  }
+
+  async simulateRateBuilderDraft(
+    context: TenantRequestContext,
+    propertyNode: string,
+    ratePlanId: string,
+    releaseId: string,
+    body: unknown,
+  ): Promise<Response> {
+    if (!isObject(body) || !exactKeys(body, ["previewCells"]) || !Array.isArray(body.previewCells)) {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Rate preview input is invalid");
+    }
+    const authorized = await this.#requireRateBuilder(context, propertyNode, ratePlanId, releaseId, RATE_READ_SCOPE);
+    if (authorized instanceof Response) return authorized;
+    const simulation = await this.#rateBuilder!.publication.simulateDraft(context.tx, {
+      releaseId,
+      previewCells: body.previewCells,
+    });
+    return apiResponse(context.request, rateBuilderJsonValue({ simulation }));
+  }
+
+  async requestRateBuilderApproval(
+    context: TenantRequestContext,
+    propertyNode: string,
+    ratePlanId: string,
+    releaseId: string,
+    body: unknown,
+  ): Promise<Response> {
+    if (!isObject(body) || !exactKeys(body, ["previewCells"]) || !Array.isArray(body.previewCells)) {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Rate approval input is invalid");
+    }
+    const authorized = await this.#requireRateBuilder(context, propertyNode, ratePlanId, releaseId, RATE_WRITE_SCOPE);
+    if (authorized instanceof Response) return authorized;
+    return this.#runRateBuilderWrite(context, authorized.actorId, propertyNode, { ratePlanId, releaseId, body }, "operator.rates.release.approval_request", async (tx, requestId) =>
+      this.#rateBuilder!.publication.requestPublicationApproval(tx, {
+        releaseId,
+        previewCells: body.previewCells as unknown[],
+        requestedBy: authorized.actorId,
+        envelope: createAuditEnvelope({ actorId: authorized.actorId, tenantId: context.tenantId,
+          propertyNode, requestId, operation: "rate_plan_release.approval_requested" }),
+      })
+    );
+  }
+
+  async publishRateBuilderDraft(
+    context: TenantRequestContext,
+    propertyNode: string,
+    ratePlanId: string,
+    releaseId: string,
+    body: unknown,
+  ): Promise<Response> {
+    if (!isObject(body) || !exactKeys(body, ["approvalId", "previewCells"]) ||
+        typeof body.approvalId !== "string" || !UUID.test(body.approvalId) || !Array.isArray(body.previewCells)) {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Rate publication input is invalid");
+    }
+    const authorized = await this.#requireRateBuilder(context, propertyNode, ratePlanId, releaseId, RATE_WRITE_SCOPE);
+    if (authorized instanceof Response) return authorized;
+    return this.#runRateBuilderWrite(context, authorized.actorId, propertyNode, { ratePlanId, releaseId, body }, "operator.rates.release.publish", async (tx, requestId) =>
+      this.#rateBuilder!.publication.publishDraft(tx, {
+        releaseId,
+        approvalId: body.approvalId as string,
+        previewCells: body.previewCells as unknown[],
+        envelope: createAuditEnvelope({ actorId: authorized.actorId, tenantId: context.tenantId,
+          propertyNode, requestId, operation: "rate_plan_release.published" }),
+      })
+    );
+  }
+
+  async createRateBuilderUndo(
+    context: TenantRequestContext,
+    propertyNode: string,
+    ratePlanId: string,
+    sourceReleaseId: string,
+    body: unknown,
+  ): Promise<Response> {
+    if (!isObject(body) || !exactKeys(body, [])) {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Rate undo input must be empty");
+    }
+    const authorized = await this.#requireRateBuilder(context, propertyNode, ratePlanId, sourceReleaseId, RATE_WRITE_SCOPE);
+    if (authorized instanceof Response) return authorized;
+    return this.#runRateBuilderWrite(context, authorized.actorId, propertyNode, { ratePlanId, sourceReleaseId, body }, "operator.rates.release.undo", async (tx, requestId) =>
+      this.#rateBuilder!.publication.createUndoDraftVersion(tx, {
+        sourceReleaseId,
+        envelope: createAuditEnvelope({ actorId: authorized.actorId, tenantId: context.tenantId,
+          propertyNode, requestId, operation: "rate_plan_release.undo_drafted" }),
+      })
+    );
+  }
+
+  async #requireRateBuilder(
+    context: TenantRequestContext,
+    propertyNode: string,
+    ratePlanId: string,
+    releaseId: string,
+    scope: typeof RATE_READ_SCOPE | typeof RATE_WRITE_SCOPE,
+  ): Promise<Readonly<{ actorId: string }> | Response> {
+    if (!hasScope(context, scope)) {
+      return apiError(context.request, 403, "auth/scope_missing", "Forbidden", "Rate configuration access is not granted");
+    }
+    if (!UUID.test(propertyNode) || !UUID.test(ratePlanId) || !UUID.test(releaseId)) {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Property, rate-plan or release identifier is invalid");
+    }
+    if (!this.#rateBuilder) return this.unavailable(context.request);
+    const grants = await listGrantedProperties(context, scope);
+    if (!grants.some(({ id }) => id === propertyNode)) {
+      return apiError(context.request, 403, "auth/property_forbidden", "Forbidden", "Property access is not granted");
+    }
+    const releases = await this.#rateBuilder.publication.listReleaseVersions(context.tx, propertyNode, ratePlanId);
+    if (!releases.some(({ id }) => id === releaseId)) {
+      return apiError(context.request, 404, "rates/not_found", "Not found", "Referenced rate release was not found");
+    }
+    return Object.freeze({ actorId: context.identity.actorId });
+  }
+
+  async #runRateBuilderWrite(
+    context: TenantRequestContext,
+    actorId: string,
+    propertyNode: string,
+    requestBody: unknown,
+    operation: string,
+    command: (tx: Tx, requestId: string, actorId: string) => Promise<unknown>,
+  ): Promise<Response> {
+    const requestId = correlationId(context.request);
+    const outcome = await this.#idempotency.execute(context.tx, {
+      tenantId: context.tenantId,
+      operation,
+      key: context.request.headers.get("idempotency-key") ?? "",
+      request: { propertyNode, body: requestBody },
+    }, async (tx) => ({ status: 201, body: rateBuilderJsonValue(await command(tx, requestId, actorId)) }));
+    return apiResponse(context.request, outcome.body, outcome.status, {
+      "idempotency-replayed": String(outcome.replayed),
+      "x-correlation-id": requestId,
+    });
   }
 
   async currentRatePrice(context: TenantRequestContext, propertyNode: string): Promise<Response> {
