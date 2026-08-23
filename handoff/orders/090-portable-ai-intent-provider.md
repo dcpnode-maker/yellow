@@ -150,11 +150,29 @@ Frozen install, typecheck, boundaries, default suite, licence, dependency audit,
 isolated Phase-3 gate, protected hashes and fresh referee all remain green. Graphify remains a
 derived/disposable map and no generated map becomes product authority.
 
+## Builder evidence
+
+- Intentional red is commit `5155003`: the focused file returned 0 pass / 1 fail / 1 error because
+  the provider factory and configuration error export did not exist.
+- The implementation is commit `718503d`: provider-focused proof 7/7 with 59 assertions; complete
+  native-Linux standing suite 113/0 with 1,454 assertions; typecheck, boundaries, licence policy
+  and dependency audit green without an external credential or provider request.
+- Fresh isolated database evidence: Phase-3 gate 13/13 suites, database acceptance 4/4, exact schema
+  match and app-never-started referee result `11 passed, 0 failed of 11`.
+- The inherited cold publication ceiling first returned 22.6s and 20.3s. The unchanged Order-089
+  base and Order-090 tip then passed the same proof at 9.38s and 8.67s, followed by a full unchanged
+  top-of-gate restart passing at 7.81s. No ceiling or structural assertion changed.
+- Protected SHA-256 values remain `fe2a9fc949c6bacded3f8d3fc4d14fc596a83ebde9aeb043eb10845f07b30923`
+  and `3228279bd99a8f9b6af99748f31d4d4b482a8e627e16d92644d9d859ad8befa1`.
+- Disposable code-only Graphify map: 2,229 nodes, 6,403 directed edges and 113 communities, with
+  zero missing/dangling endpoints, self-loops, duplicate edges or directed collapses. The map
+  explicitly skipped 409 semantic files and warns that eight SQL files need `tree_sitter_sql`;
+  it is local reading assistance, not committed evidence or architecture authority.
+
 ## Definition of done
 
-- [ ] P0 is committed red before production code.
-- [ ] P1–P3 are green without external credentials or internet access.
-- [ ] P4 states current versus planned scope without claiming training or RMS completion.
-- [ ] P5 and both protected hashes remain exact.
-- [ ] Order 090 is recorded as UNVERIFIED review debt; no approval or merge is claimed.
-
+- [x] P0 is committed red before production code.
+- [x] P1–P3 are green without external credentials or internet access.
+- [x] P4 states current versus planned scope without claiming training or RMS completion.
+- [x] P5 and both protected hashes remain exact.
+- [x] Order 090 is recorded as UNVERIFIED review debt; no approval or merge is claimed.
