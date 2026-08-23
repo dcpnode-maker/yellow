@@ -183,8 +183,8 @@ debt 41, and leave app/PostgreSQL/Valkey healthy. Push final-tip CI and do not m
 
 ## Builder evidence — UNVERIFIED
 
-- [ ] P0 red evidence is committed before production code.
-- [ ] Booking-time policy, modify, cancellation approval and reinstatement proofs pass.
-- [ ] Failure injection, concurrency, tenant/property and hostile-input proofs pass.
+- [x] P0 red evidence is committed before production code.
+- [x] Booking-time policy, modify, cancellation approval and reinstatement proofs pass.
+- [x] Failure injection, concurrency, tenant/property and hostile-input proofs pass.
 - [ ] Standing checks, protected hashes, Graphify, localhost and final-tip remote CI are green.
-- [ ] Independent review remains exactly through Order 044; Order 085 is not self-approved.
+- [x] Independent review remains exactly through Order 044; Order 085 is not self-approved.
