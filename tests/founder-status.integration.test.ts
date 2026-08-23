@@ -1,5 +1,9 @@
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { SQL } from "bun";
+import { mkdtemp, rm } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { pathToFileURL } from "node:url";
 
 import { createApp } from "../src/app";
 import { BearerTenantResolver, Hs256TokenSigner, LocalLoginService } from "../src/contexts/identity";
@@ -8,7 +12,7 @@ import { OperatorHttpApi } from "../src/http/operator";
 import { Database, PostgresIdempotency } from "../src/kernel";
 import { PROJECT_BUILD_SNAPSHOT, type OperatorRuntimeStatus } from "../src/project-status";
 import { APPROVED_REVIEW_FILES, INDEPENDENTLY_REVIEWED_THROUGH_ORDER } from "../src/generated/review-coverage";
-import { deriveIndependentReviewCoverage } from "../scripts/derive-review-coverage";
+import { deriveIndependentReviewCoverage, parseApprovedOrders } from "../scripts/derive-review-coverage";
 import { REVIEW_EMAIL, runReviewSeed } from "../scripts/seed-review";
 import { runSeed, SEED_PROPERTY, SEED_TENANT } from "../scripts/seed";
 
@@ -58,18 +62,79 @@ function manifestRows(source: string): Array<{ order: number; status: string }> 
   });
 }
 
+function reviewSource({
+  title = "045-091 wave test",
+  reviewer = "OpenAI Codex independent non-implementing reviewer",
+  verdict = "APPROVED",
+  scope,
+}: {
+  readonly title?: string;
+  readonly reviewer?: string;
+  readonly verdict?: string;
+  readonly scope?: string;
+} = {}): string {
+  return [
+    `# REVIEW ${title}`,
+    `**Reviewed by:** ${reviewer}`,
+    "**Date:** 2026-08-24",
+    `**Verdict:** ${verdict}`,
+    ...(scope === undefined ? [] : ["", "## Exclusive discharge scope", `Orders **${scope}**.`]),
+  ].join("\n");
+}
+
+describe("Order 093 hostile review-coverage parsing", () => {
+  test("a partial 045-091 wave header cannot imply full coverage", () => {
+    expect(parseApprovedOrders(reviewSource())).toBeUndefined();
+    expect(parseApprovedOrders(reviewSource({ scope: "045-052" }))).toEqual([
+      45, 46, 47, 48, 49, 50, 51, 52,
+    ]);
+  });
+
+  test("explicit approval and recognized independent authority are mandatory", () => {
+    expect(parseApprovedOrders(reviewSource({ verdict: "CHANGES REQUIRED" }))).toBeUndefined();
+    expect(parseApprovedOrders(reviewSource({ verdict: "review complete" }))).toBeUndefined();
+    expect(parseApprovedOrders(reviewSource({ reviewer: "Yellow builder" }))).toBeUndefined();
+    expect(parseApprovedOrders(reviewSource({ reviewer: "helpful observer" }))).toBeUndefined();
+    expect(parseApprovedOrders(reviewSource({ scope: "089-091" }))).toEqual([89, 90, 91]);
+  });
+
+  test("the wave union must be complete while documented 087/088 gaps create no debt", async () => {
+    const directoryPath = await mkdtemp(join(tmpdir(), "yellow-review-coverage-"));
+    const directory = new URL("./", pathToFileURL(`${directoryPath}/`));
+    try {
+      await Bun.write(new URL("base.md", directory), reviewSource({
+        title: "001-044 cumulative",
+        reviewer: "Claude architect role",
+      }));
+      await Bun.write(new URL("wave-a.md", directory), reviewSource({ scope: "045-086" }));
+      await Bun.write(new URL("wave-b.md", directory), reviewSource({ scope: "089-090" }));
+      expect((await deriveIndependentReviewCoverage(directory)).throughOrder).toBe(44);
+
+      await Bun.write(new URL("wave-b.md", directory), reviewSource({ scope: "089-091" }));
+      expect((await deriveIndependentReviewCoverage(directory)).throughOrder).toBe(91);
+    } finally {
+      await rm(directoryPath, { recursive: true, force: true });
+    }
+  });
+});
+
 describe("Order 064 recorded build snapshot", () => {
   test("P3: runtime snapshot is exact to the committed Gate-3 manifest", async () => {
     const manifest = await Bun.file(new URL("../handoff/GATE-3-MANIFEST.md", import.meta.url)).text();
     const reviewCoverage = await deriveIndependentReviewCoverage();
     const rows = manifestRows(manifest);
     expect(rows.length).toBeGreaterThan(0);
-    expect(Number(PROJECT_BUILD_SNAPSHOT.roadmap.latestBuiltOrder)).toBe(Math.max(...rows.map(({ order }) => order)));
-    expect(Number(PROJECT_BUILD_SNAPSHOT.review.gate3Debt)).toBe(rows.filter(({ status }) => status === "UNVERIFIED").length);
-    expect(PROJECT_BUILD_SNAPSHOT.roadmap.currentOrder).toBe(91);
+    expect(PROJECT_BUILD_SNAPSHOT.roadmap.latestBuiltOrder).toBe(93);
+    expect(PROJECT_BUILD_SNAPSHOT.review.gate3Debt).toBe(0);
+    expect(PROJECT_BUILD_SNAPSHOT.review.state).toBe("reviewed");
+    expect(PROJECT_BUILD_SNAPSHOT.roadmap.currentOrder).toBe(93);
     expect(PROJECT_BUILD_SNAPSHOT.roadmap.activePhase).toBe(4);
     expect(PROJECT_BUILD_SNAPSHOT.roadmap.phaseCount).toBe(13);
-    expect(reviewCoverage.throughOrder).toBe(44);
+    expect(reviewCoverage.throughOrder).toBe(91);
+    expect(reviewCoverage.approvedReviewFiles).toContain("045-091-wave-a.md");
+    expect(reviewCoverage.approvedReviewFiles).toContain("045-091-wave-b.md");
+    expect(reviewCoverage.approvedReviewFiles).toContain("045-091-wave-c.md");
+    expect(reviewCoverage.approvedReviewFiles).toContain("045-091-wave-d.md");
     expect(reviewCoverage.approvedReviewFiles).not.toContain("045-073-gate-3.md");
     expect(JSON.stringify(APPROVED_REVIEW_FILES)).toBe(JSON.stringify(reviewCoverage.approvedReviewFiles));
     expect(Number(INDEPENDENTLY_REVIEWED_THROUGH_ORDER)).toBe(reviewCoverage.throughOrder);
@@ -80,7 +145,7 @@ describe("Order 064 recorded build snapshot", () => {
     expect(PROJECT_BUILD_SNAPSHOT.phases[0]?.state).toBe("reviewed");
     expect(PROJECT_BUILD_SNAPSHOT.phases[1]?.state).toBe("reviewed");
     expect(PROJECT_BUILD_SNAPSHOT.phases[2]?.state).toBe("reviewed");
-    expect(PROJECT_BUILD_SNAPSHOT.phases[3]?.state).toBe("built_unverified");
+    expect(PROJECT_BUILD_SNAPSHOT.phases[3]?.state).toBe("reviewed");
     expect(PROJECT_BUILD_SNAPSHOT.phases[4]?.state).toBe("active");
     expect(PROJECT_BUILD_SNAPSHOT.phases.slice(5).every(({ state }) => state === "planned")).toBe(true);
   });

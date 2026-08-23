@@ -5,5 +5,9 @@ export const APPROVED_REVIEW_FILES = Object.freeze([
   "018-powershell-coverage.md",
   "019-026-phase-1-cumulative.md",
   "027-044-phase-2-cumulative.md",
+  "045-091-wave-a.md",
+  "045-091-wave-b.md",
+  "045-091-wave-c.md",
+  "045-091-wave-d.md",
 ] as const);
-export const INDEPENDENTLY_REVIEWED_THROUGH_ORDER = 44;
+export const INDEPENDENTLY_REVIEWED_THROUGH_ORDER = 91;
