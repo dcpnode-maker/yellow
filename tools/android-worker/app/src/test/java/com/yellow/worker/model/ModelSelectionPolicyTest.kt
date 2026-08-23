@@ -12,7 +12,7 @@ class ModelSelectionPolicyTest {
 
     @Test
     fun `each interrupted candidate advances exactly once`() {
-        ModelCatalog.candidates.indices.dropLast(1).forEach { index ->
+        for (index in 0 until ModelCatalog.candidates.lastIndex) {
             assertEquals(
                 index + 1,
                 ModelSelectionPolicy.candidateIndex(index, interruptedBenchmark = true),
