@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="Theme.YellowWorker" parent="Theme.AppCompat.DayNight.NoActionBar">
+        <item name="colorPrimary">#9A7300</item>
+        <item name="colorPrimaryDark">#5C4500</item>
+        <item name="colorAccent">#D39E00</item>
+        <item name="android:windowActionModeOverlay">true</item>
+    </style>
+</resources>

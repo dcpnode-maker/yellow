@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Yellow Worker</string>
+    <string name="title">Yellow idle worker</string>
+    <string name="subtitle">OnePlus 10R pilot · local native engine</string>
+    <string name="status_label">Current state</string>
+    <string name="status_initial">Loading safe state…</string>
+    <string name="manual_pause_on">Manual pause is ON. Work cannot start.</string>
+    <string name="manual_pause_off">Manual pause is OFF. Android safety constraints still apply.</string>
+    <string name="arm_when_idle">Arm when idle</string>
+    <string name="pause_now">Pause now</string>
+    <string name="resume_when_idle">Resume when idle</string>
+    <string name="safety_summary">Runs only while charging, on unmetered Wi-Fi, battery and storage are healthy, the device is idle, the screen is not in use, and thermal status is below moderate.</string>
+    <string name="foundation_notice">This foundation does not download a model, accept remote jobs, access personal files, or run code.</string>
+    <string name="notification_title">Yellow worker is active</string>
+    <string name="notification_channel_name">Yellow worker activity</string>
+    <string name="notification_channel_description">Visible status and immediate pause control for local Yellow work</string>
+</resources>

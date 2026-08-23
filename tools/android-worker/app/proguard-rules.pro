@@ -1,0 +1,4 @@
+-keep class com.arm.aichat.** { *; }
+-keepclasseswithmembernames class * {
+    native <methods>;
+}

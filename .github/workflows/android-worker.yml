@@ -1,0 +1,100 @@
+name: Android worker
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/android-worker.yml"
+      - ".gitmodules"
+      - "tools/android-worker/**"
+      - "vendor/llama.cpp"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: android-worker-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - name: Check out repository and pinned native engine
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          submodules: recursive
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5
+        with:
+          distribution: temurin
+          java-version: "17"
+          cache: gradle
+
+      - name: Install pinned Android build packages
+        shell: bash
+        run: |
+          set -euo pipefail
+          yes | sdkmanager --licenses >/dev/null || true
+          sdkmanager \
+            "platforms;android-36" \
+            "build-tools;36.0.0" \
+            "ndk;29.0.13113456" \
+            "cmake;3.31.6"
+
+      - name: Verify llama.cpp pin
+        shell: bash
+        run: |
+          set -euo pipefail
+          expected="6657ded4faa3b8450221119fc6b4d002e35104a2"
+          actual="$(git -C vendor/llama.cpp rev-parse HEAD)"
+          test "$actual" = "$expected" || {
+            echo "llama.cpp pin mismatch: expected $expected, got $actual" >&2
+            exit 1
+          }
+
+      - name: Test and assemble native debug APK
+        shell: bash
+        run: |
+          set -euo pipefail
+          chmod +x vendor/llama.cpp/examples/llama.android/gradlew
+          vendor/llama.cpp/examples/llama.android/gradlew \
+            -p tools/android-worker \
+            --no-daemon \
+            :app:testDebugUnitTest \
+            :app:assembleDebug
+
+      - name: Verify APK privacy and ABI
+        shell: bash
+        run: |
+          set -euo pipefail
+          apk="tools/android-worker/app/build/outputs/apk/debug/app-debug.apk"
+          test -f "$apk"
+
+          permissions="$($ANDROID_HOME/cmdline-tools/latest/bin/apkanalyzer manifest permissions "$apk" | sort -u)"
+          while IFS= read -r permission; do
+            case "$permission" in
+              ""|android.permission.ACCESS_NETWORK_STATE|android.permission.FOREGROUND_SERVICE|android.permission.FOREGROUND_SERVICE_DATA_SYNC|android.permission.INTERNET|android.permission.POST_NOTIFICATIONS|android.permission.WAKE_LOCK|com.yellow.worker.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION)
+                ;;
+              *)
+                echo "Unexpected APK permission: $permission" >&2
+                exit 1
+                ;;
+            esac
+          done <<< "$permissions"
+
+          unzip -l "$apk" | grep -q 'lib/arm64-v8a/libai-chat.so'
+          if unzip -l "$apk" | grep -q 'lib/x86_64/'; then
+            echo "APK unexpectedly contains x86_64 native libraries" >&2
+            exit 1
+          fi
+
+      - name: Upload OnePlus 10R debug APK
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: yellow-worker-10r-debug
+          path: tools/android-worker/app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
+          retention-days: 7
