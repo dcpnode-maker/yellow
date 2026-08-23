@@ -48,6 +48,7 @@ Status legend: UNVERIFIED = built, proofs builder-asserted, not executed by the 
 | 083 | 2 | c332846 (order 60e88b9; inherited red at 383c98f) | UNVERIFIED | Order 083 — Review-seed fixture isolation and inherited Gate-3 proof coverage |
 | 084 | 3 | f038629 (order b550c5d; scope correction 4e11efd) | UNVERIFIED | Order 084 — Complete availability offer search |
 | 085 | 3 | 3764f75 (order/red proof 7324c49; scope correction Q131; replay correction D-286) | UNVERIFIED | Order 085 — Reservation modify, cancel and reinstate commands |
+| 086 | 3 | db699a8 (order/red proof 1df6bce) | UNVERIFIED | Order 086 — Atomic reservation segment move, extend and shorten |
 
 Protected hashes to re-quote each time:
 

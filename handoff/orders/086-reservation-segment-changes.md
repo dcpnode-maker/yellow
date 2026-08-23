@@ -170,8 +170,8 @@ CI.
 
 ## Builder evidence — UNVERIFIED
 
-- [ ] P0 red evidence is committed before production code.
-- [ ] Departure-change and immutable move proofs pass.
-- [ ] Conflict, concurrency, tenant/property, hostile-input and rollback proofs pass.
+- [x] P0 red evidence is committed before production code.
+- [x] Departure-change and immutable move proofs pass.
+- [x] Conflict, concurrency, tenant/property, hostile-input and rollback proofs pass.
 - [ ] Standing checks, protected hashes, Graphify, localhost and final-tip remote CI are green.
-- [ ] Independent review remains exactly through Order 044; Order 086 is not self-approved.
+- [x] Independent review remains exactly through Order 044; Order 086 is not self-approved.
