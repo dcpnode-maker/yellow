@@ -13,8 +13,12 @@ Why it's built this way: duplicated rules drift. Two copies survive; four don't.
 
 A full-scope hospitality ERP (PMS + channel manager + booking engine + CRS + CRM +
 native hotel finance) for hotels, hostels, serviced apartments and STR. Two-person
-founding team; AI agents write essentially all code; a founder reviews every
-critical-path change. Stack: **TypeScript (strict) · Bun · Elysia · PostgreSQL 16 ·
+founding team; AI agents write essentially all code and, per founder directive
+(`DECISIONS.log` D-91, `handoff/CODEX-HANDOFF.md`), review each other's high-risk
+changes — an independent agent that did not implement a change personally executes
+its proof before merge; the founder is looped in for credentials, spending,
+legal/business policy, irreversible external actions, and missing product intent, not
+for routine code review. Stack: **TypeScript (strict) · Bun · Elysia · PostgreSQL 16 ·
 modular monolith**. Zero-cost doctrine: runs on free/OSS infrastructure.
 
 **Current state:** the immutable 80-table baseline is applied by the production

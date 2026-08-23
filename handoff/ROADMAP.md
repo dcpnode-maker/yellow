@@ -70,15 +70,25 @@ proves nothing regressed.
 
 ## The review request protocol
 
+**Effective 2026-08-23 (D-91):** this protocol applies only to Tier 2/3 batches. Tier 1
+batches that clear the standing self-check no longer wait on a founder-relayed review
+cycle at all — Codex merges them via a normal reviewed PR (approver just isn't the
+implementer). Full context: `handoff/CODEX-HANDOFF.md`.
+
 1. Codex pushes the branch and writes `handoff/questions/NNN-review-request.md`: the
    order/commit table, the self-check output, and one line per order saying what its DoD
    test proved.
-2. Founder tells Claude: **"review NNN"**. Nothing else — Claude reads the repo.
-3. Claude re-runs the proofs first-hand (D-84), writes the verdict to `handoff/reviews/`,
-   commits, pushes.
-4. Founder tells Codex: **"read review NNN"**.
+2. Codex arranges an independent reviewing agent for the batch — one that did not
+   implement the change. Claude only if the founder explicitly asks for Claude by name;
+   otherwise Codex may coordinate any other independent agent.
+3. The reviewer re-runs the proofs first-hand (D-84, unchanged), writes the verdict to
+   `handoff/reviews/`, commits, pushes.
+4. Codex reads the review and proceeds — merge on APPROVED, back to step 2 of the main
+   loop on CHANGES-REQUIRED. No founder relay required for this step either.
 
-Two short messages per batch instead of two per order.
+The founder is looped in only for what D-91 reserves to the founder: credentials,
+spending, legal/business policy, irreversible external actions, missing product
+intent, or authority outside the directive.
 
 ## What Codex decides alone, and what it must ask
 

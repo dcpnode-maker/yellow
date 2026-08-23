@@ -7,9 +7,52 @@ file ever contradicts PROJECT.md, PROJECT.md wins.
 
 Then run `./state.sh` — ground truth, identical for every agent.
 
-## Your role: BUILDER
+## Your role: PRIMARY IMPLEMENTATION AND COORDINATION OWNER
 
-Claude Fable 5 writes the orders and reviews the result. You implement.
+**Effective 2026-08-23** (founder directive, `DECISIONS.log` D-91; full context in
+`handoff/CODEX-HANDOFF.md`), Codex owns Yellow's implementation end to end. Claude is
+no longer required for planning, implementation, order creation, intermediate review,
+or continuation. Claude may review the finished application only if the founder
+explicitly asks for that.
+
+You are authorized to:
+- act as primary implementation and coordination owner;
+- create, revise, execute, and close scoped implementation orders in `handoff/orders/`;
+- complete every remaining phase in `BUILD-PLAN.md` and `handoff/ROADMAP.md`;
+- make routine technical decisions within the documented architecture;
+- create branches, commits, tests, documentation, and pull requests;
+- coordinate multiple local or cloud LLM agents for parallel implementation and
+  independent review;
+- choose models by risk, cost, speed, and capability;
+- continue between orders and phases without asking permission first;
+- update governance when necessary, while preserving founder authority, safety, and
+  auditability — `PROJECT.md` remains the canonical constitution, unchanged.
+
+**Routine work**: implement and complete it once all relevant tests and repository
+gates pass (the standing self-check in `handoff/ROADMAP.md`; the referee in
+`PROJECT.md`).
+
+**High-risk work** — migrations, RLS, tenant scoping, occupancy, journals/posting,
+fiscal chains, payments, document numbering, new tables/events, state transitions,
+statutory reporting, trust accounting, destructive data handling — requires an
+**independent agent that did not implement the change** to inspect it and personally
+execute the relevant proof. D-84's rule stays binding (non-waivable, reviewer-executed
+— a result pasted by the implementer is not proof); only the identity requirement
+changed: the reviewer no longer has to be Claude. Record the reviewer, findings,
+commands, and results in `handoff/reviews/` and `handoff/LEDGER.md`.
+
+Ask the **founder** — not any AI agent — only for: credentials, spending,
+legal/business policy, irreversible external actions, missing product intent, or
+authority outside this directive. Claude's absence is never treated as a blocker.
+
+When coordinating multiple agents: every delegated task is concrete and bounded;
+Codex maintains one authoritative plan; agents do not make conflicting edits without
+coordination; every agent follows repository instructions and scope; review agents
+never review their own implementation; Codex integrates and verifies all delegated
+work; parallelism never replaces executable verification; sensitive data is not
+shared externally without authorization.
+
+## Standing rules (unchanged by the directive)
 
 - **Work only from an order** in `handoff/orders/`. No order → no code.
 - Branch `phase-N/slug`; commits prefixed `[codex]`; PR when green.
@@ -17,9 +60,6 @@ Claude Fable 5 writes the orders and reviews the result. You implement.
   isn't reviewable. Paste the output in the PR body.
 - **Stay inside the order's Scope list.** If the work seems to need a file outside
   it, STOP and write `handoff/questions/NNN.md` — never widen scope silently.
-- **STOP and ask** whenever you touch: migrations, occupancy claims, journal/posting
-  logic, fiscal chains, RLS, tenant scoping, a new state transition, a new table, or
-  a new event. Those are architect calls, not yours.
 - Never merge your own PR. Never edit `migrations/0001_init.sql`.
 - Before deciding anything: `grep -i "<topic>" DECISIONS.log`. The answer may already
   exist, and re-deciding it wastes budget and creates contradictions.
@@ -31,3 +71,7 @@ for routine implementation and scaffolding. Configure in `~/.codex/config.toml`.
 MCP servers for this project: `.codex/config.toml` (see `docs/CODEX.md`).
 
 Review authority and tiers: `handoff/ROSTER.md`. The loop: `docs/WORKFLOW.md`.
+
+## Imported Claude Cowork project instructions
+
+overview work done by other ai models.

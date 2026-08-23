@@ -6,13 +6,17 @@ for and what its approval is worth.
 
 ## Current roster
 
+**Effective 2026-08-23 (D-91):** Codex is primary implementation and coordination
+owner, not a Tier-1-only builder. Claude is an on-request reviewer, not the default
+architect. Full context: `handoff/CODEX-HANDOFF.md`.
+
 | Agent | Adapter file | Role | May approve | Cost posture |
 |---|---|---|---|---|
-| **Claude Fable 5** | `CLAUDE.md` | Architect · reviewer · decider | Tier 1 · 2 · 3 | Expensive — judgement only |
-| **Claude Opus 5** | `CLAUDE.md` | Implementation, adapters, refactors | Tier 1 | Default working model |
-| **Claude Sonnet 5** | `CLAUDE.md` | Scaffolding, tests-from-spec, docs, log triage | — | Cheapest Claude |
-| **OpenAI Codex** | `AGENTS.md` | Builder — volume implementation from work orders | Tier 1 | Free/cheap — do volume here |
-| *(open slot)* | `<VENDOR>.md` | Second-opinion reviewer | Tier 2 (see below) | — |
+| **OpenAI Codex** | `AGENTS.md` | Primary implementation & coordination owner — writes/revises orders, implements, arranges independent review for high-risk work, closes routine work alone | Owner for all tiers; Tier 2/3 still needs an independent reviewer that did not implement the change | Free/cheap — do volume here |
+| **Claude Fable 5** | `CLAUDE.md` | On-request reviewer only, invoked by the founder | Tier 1 · 2 · 3, only when invoked | Expensive — judgement only, on demand |
+| **Claude Opus 5** | `CLAUDE.md` | Implementation, adapters, refactors, if invoked | Tier 1, if invoked | Not the default builder any more |
+| **Claude Sonnet 5** | `CLAUDE.md` | Scaffolding, tests-from-spec, docs, log triage, if invoked | — | Cheapest Claude |
+| *(open slot)* | `<VENDOR>.md` | Independent reviewer for Tier 2/3 work — any agent that did not implement the change | Tier 2 · 3 | — |
 
 ## Review tiers — how much scrutiny a change needs
 
@@ -27,11 +31,15 @@ transition, projection logic, anything touching money display or tax computation
 
 **Tier 3 — foundational.** Migrations, occupancy claim logic, journal/posting,
 fiscal chains, RLS, tenant scoping, document numbering.
-→ **One architect-role reviewer (Claude)** + an executable proof that the **reviewer
-runs themselves** — a test that fails before the change and passes after, or a battery
-run on the branch. A pasted result from the builder is not proof. Decision appended to
-`DECISIONS.log` by the deciding architect. **Amended by D-84 (2026-08-15)** from the
-original two-different-vendor requirement.
+→ **One independent reviewing agent — any agent that did not implement the change** —
++ an executable proof that the **reviewer runs themselves** — a test that fails before
+the change and passes after, or a battery run on the branch. A pasted result from the
+implementer is not proof. Decision appended to `DECISIONS.log` by the deciding
+reviewer or by Codex, as applicable. **Amended by D-84 (2026-08-15)** from the original
+two-different-vendor requirement to one architect-role (Claude) reviewer, and
+**amended again by D-91 (2026-08-23)** to drop the requirement that the reviewer be
+Claude specifically — the reviewer-executed, non-waivable proof rule from D-84 is
+unchanged and still governs every Tier-3 approval.
 
 ### Why Tier 3 requires reviewer-executed proof
 

@@ -1,6 +1,6 @@
 # REVIEW NNN — <slug>
 
-**PR:** #NN · **Reviewed by:** Claude Fable 5 · **Date:**
+**PR:** #NN · **Reviewed by:** <independent agent that did not implement this change — see `handoff/ROSTER.md`, `handoff/CODEX-HANDOFF.md`> · **Date:**
 **Verdict:** APPROVED | CHANGES-REQUIRED
 
 ## Battery
