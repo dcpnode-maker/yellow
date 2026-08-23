@@ -1,15 +1,15 @@
-# WORKFLOW.md — Codex builds, Fable reviews
+# WORKFLOW.md — Codex owns delivery; independent agents review high risk
 
 Two agents, one repo, one referee (`tests/run_invariants.py`). This file is the
 contract between them. Both `CLAUDE.md` and `AGENTS.md` point here.
 
 ## Roles
 
-| | **Codex** (builder) | **Claude Fable 5** (reviewer/architect) |
-|---|---|---|
-| Does | Implements work orders. Writes code, tests, migrations. Runs the battery. Opens PRs. | Writes work orders. Reviews diffs. Decides invariant questions. Approves merges. Appends DECISIONS.log. |
-| Never | Changes SCHEMA baseline, occupancy claim logic, ledger rules, fiscal chains, or RLS *without an approved work order*. Merges its own PR. | Writes bulk implementation code (that's what the cheap agent is for). |
-| Cost | Free/cheap → do volume here | Expensive → spend only on judgment |
+Codex is the primary implementation and coordination owner: it writes bounded orders,
+implements, proves, integrates review findings and continues between phases. Routine
+work closes when its relevant gates pass. High-risk work requires an independent agent
+that did not implement it to inspect the change and personally execute the relevant
+proof. Claude is optional and participates only if the founder explicitly asks.
 
 The split exists because ambiguity is where money is worth spending. Nine research
 rounds removed ambiguity from most of this build; what's left is execution.
@@ -17,12 +17,12 @@ rounds removed ambiguity from most of this build; what's left is execution.
 ## The loop
 
 ```
-1. ORDER    Fable writes handoff/orders/NNN-slug.md    (scope, files, DoD, forbidden)
+1. ORDER    Codex writes handoff/orders/NNN-slug.md    (scope, files, DoD, forbidden)
 2. BUILD    Codex implements on branch phase-N/slug     (commits [codex] prefix)
 3. PROVE    Codex runs ./setup.sh --db-only             (battery must be 11/11)
 4. PR       Codex opens PR, body references the order + pastes test output
-5. REVIEW   Fable reads diff, writes handoff/reviews/NNN-slug.md
-              → APPROVED         → merge, append DECISIONS.log
+5. REVIEW   independent non-implementer reads diff and writes handoff/reviews/NNN-slug.md
+              → APPROVED         → eligible for integration by someone other than the author
               → CHANGES-REQUIRED → precise directions, back to step 2
 6. LOG      One line in handoff/LEDGER.md, always
 ```
@@ -63,8 +63,7 @@ Rules:
 **Codex decides freely:** variable names, file layout within a context, test
 structure, error message wording, refactors that don't cross a module boundary.
 
-**Codex must STOP and request a decision** (comment on the PR, or write
-`handoff/questions/NNN.md`) when it hits:
+**Codex must ensure independent review** when an order hits:
 - anything touching `migrations/`, occupancy claims, journal/posting logic, fiscal
   chains, RLS, or tenant scoping
 - a state transition not already in `docs/STATE-MACHINES.md`
@@ -72,8 +71,9 @@ structure, error message wording, refactors that don't cross a module boundary.
 - an event not in `docs/EVENTS.md`
 - any moment the answer is "it depends"
 
-That list is deliberately identical to the Fable-escalation rule in `CLAUDE.md`. The
-principle doesn't change because the tool changed.
+If the order and decisions do not already authorize that high-risk surface, stop and
+ask the founder; otherwise continue through the bounded order and route its executable
+proof to a non-implementing reviewer.
 
 ## Reading order for either agent, every session
 

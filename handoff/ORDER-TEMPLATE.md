@@ -1,6 +1,6 @@
 # ORDER NNN — <slug>
 
-**Phase:** N · **Branch:** `phase-N/<slug>` · **Written by:** Claude Fable 5 · **Date:**
+**Phase:** N · **Branch:** `phase-N/<slug>` · **Written by:** acting order owner · **Date:**
 
 ## Goal
 One sentence. If it needs two, split the order.
@@ -33,6 +33,6 @@ listed, STOP and ask (`handoff/questions/NNN.md`) — do not widen scope silentl
 - New status values, events, or tables not named above
 - <order-specific additions>
 
-## Open questions Fable has already answered
+## Open questions already answered
 > Q: …
 > A: …  (also appended to DECISIONS.log)

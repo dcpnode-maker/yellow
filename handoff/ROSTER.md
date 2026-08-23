@@ -8,10 +8,10 @@ for and what its approval is worth.
 
 | Agent | Adapter file | Role | May approve | Cost posture |
 |---|---|---|---|---|
-| **Claude Fable 5** | `CLAUDE.md` | Architect · reviewer · decider | Tier 1 · 2 · 3 | Expensive — judgement only |
+| **Claude Fable 5** | `CLAUDE.md` | Founder-invoked optional reviewer | Tier 1 · 2 · 3 when independent | Expensive — optional |
 | **Claude Opus 5** | `CLAUDE.md` | Implementation, adapters, refactors | Tier 1 | Default working model |
 | **Claude Sonnet 5** | `CLAUDE.md` | Scaffolding, tests-from-spec, docs, log triage | — | Cheapest Claude |
-| **OpenAI Codex** | `AGENTS.md` | Builder — volume implementation from work orders | Tier 1 | Free/cheap — do volume here |
+| **OpenAI Codex** | `AGENTS.md` | Primary implementation and coordination owner | Routine work; high-risk only when not implementer | Default owner |
 | *(open slot)* | `<VENDOR>.md` | Second-opinion reviewer | Tier 2 (see below) | — |
 
 ## Review tiers — how much scrutiny a change needs
@@ -19,18 +19,19 @@ for and what its approval is worth.
 Tier is a property of the **change**, not of who wrote it.
 
 **Tier 1 — routine.** Handlers, adapters, docs, tests, refactors inside one context.
-→ One architect-role agent approves. Battery green.
+→ Codex completes after the relevant battery is green.
 
 **Tier 2 — invariant-adjacent.** New context surface, new event, new state
 transition, projection logic, anything touching money display or tax computation.
-→ Architect-role approval + a test that would fail if the invariant broke.
+→ Independent non-implementing review when the change enters D-91's high-risk list,
+otherwise routine executable verification.
 
 **Tier 3 — foundational.** Migrations, occupancy claim logic, journal/posting,
 fiscal chains, RLS, tenant scoping, document numbering.
-→ **One architect-role reviewer (Claude)** + an executable proof that the **reviewer
+→ **One independent agent that did not implement the change** + an executable proof that the **reviewer
 runs themselves** — a test that fails before the change and passes after, or a battery
 run on the branch. A pasted result from the builder is not proof. Decision appended to
-`DECISIONS.log` by the deciding architect. **Amended by D-84 (2026-08-15)** from the
+`DECISIONS.log` when a durable decision is required. **Amended by D-84 (2026-08-15)** from the
 original two-different-vendor requirement.
 
 ### Why Tier 3 requires reviewer-executed proof

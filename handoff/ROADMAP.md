@@ -89,12 +89,14 @@ proves nothing regressed.
 1. Codex pushes the branch and writes `handoff/questions/NNN-review-request.md`: the
    order/commit table, the self-check output, and one line per order saying what its DoD
    test proved.
-2. Founder tells Claude: **"review NNN"**. Nothing else — Claude reads the repo.
-3. Claude re-runs the proofs first-hand (D-84), writes the verdict to `handoff/reviews/`,
-   commits, pushes.
-4. Founder tells Codex: **"read review NNN"**.
+2. For high-risk work, Codex assigns a concrete review to an independent agent that
+   did not implement the change.
+3. The reviewer re-runs the proofs first-hand (D-84), writes the verdict to
+   `handoff/reviews/`, and records exact commands/results.
+4. Codex repairs findings under a new bounded order or integrates approved work.
 
-Two short messages per batch instead of two per order.
+Routine work does not wait for a review cycle once its relevant gates pass. Claude is
+used only if the founder explicitly invokes Claude.
 
 ## What Codex decides alone, and what it must ask
 

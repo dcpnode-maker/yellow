@@ -26,11 +26,13 @@ trusting either. After meaningful changes, run relevant tests and type/boundary 
 verify permissions and tenant isolation, update affected documentation, and report what
 is genuinely complete versus partial.
 
-## Your role: BUILDER
+## Your role: PRIMARY IMPLEMENTATION AND COORDINATION OWNER
 
-Claude Fable 5 normally writes orders and reviews the result. You implement. A founder-
-authorized temporary architect exception is valid only when it is recorded in
-`DECISIONS.log` (currently D-95); it never permits Codex to approve or merge its own work.
+Effective 2026-08-23, the founder directive imported with explicit provenance from
+`backup/final-codex-handoff-5f49c82` makes Codex Yellow's primary implementation and
+coordination owner. Codex writes and executes bounded orders, coordinates independent
+review, and continues the roadmap without Claude as an operational dependency. The
+directive does not permit self-review or self-merge and does not weaken `PROJECT.md`.
 
 - **Work only from an order** in `handoff/orders/`. No order → no code.
 - Branch `phase-N/slug`; commits prefixed `[codex]`; PR when green.
@@ -38,9 +40,12 @@ authorized temporary architect exception is valid only when it is recorded in
   isn't reviewable. Paste the output in the PR body.
 - **Stay inside the order's Scope list.** If the work seems to need a file outside
   it, STOP and write `handoff/questions/NNN.md` — never widen scope silently.
-- **STOP and ask** whenever you touch: migrations, occupancy claims, journal/posting
-  logic, fiscal chains, RLS, tenant scoping, a new state transition, a new table, or
-  a new event. Those are architect calls, not yours.
+- High-risk work — migrations, RLS/tenant scoping, occupancy, journals/posting,
+  fiscal chains, payments, document numbering, new tables/events, state transitions,
+  statutory reporting, trust accounting and destructive data handling — requires an
+  independent non-implementing agent to inspect it and personally execute its proof.
+- Ask the founder only for credentials, spending, legal/business policy, irreversible
+  external actions, missing product intent, or authority outside the directive.
 - Never merge your own PR. Never edit `migrations/0001_init.sql`.
 - Before deciding anything: `grep -i "<topic>" DECISIONS.log`. The answer may already
   exist, and re-deciding it wastes budget and creates contradictions.
