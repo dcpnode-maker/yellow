@@ -12,7 +12,7 @@
 
 **Date:** 2026-08-24
 
-**Status:** P0 RED READY · production service absent
+**Status:** BUILT · AWAITING INDEPENDENT REVIEW
 
 ## Goal
 
@@ -158,9 +158,30 @@ non-implementing reviewer personally executes the focused proof and returns APPR
 
 - [x] Order written before production code.
 - [x] P0 missing-service red committed before implementation.
-- [ ] P1–P4 pass on fresh PostgreSQL.
-- [ ] Public context exports only the bounded typed command and errors.
-- [ ] Project status honestly reports Order 095 with Phase 4 still active.
-- [ ] Standing, schema, deployment and referee gates pass.
+- [x] P1–P4 pass on fresh PostgreSQL.
+- [x] Public context exports only the bounded typed command and errors.
+- [x] Project status honestly reports Order 095 with Phase 4 still active.
+- [x] Standing, schema, deployment and referee gates pass.
 - [ ] Independent non-implementing reviewer approves personally executed proof.
-- [ ] Scope is exact and pre-existing untracked user material remains untouched.
+- [x] Scope is exact and pre-existing untracked user material remains untouched.
+
+## Builder evidence
+
+On isolated PostgreSQL `yellow-order095`, the corrected P1–P4 suite passed **4/4**
+with 52 assertions: exact replacement/shares, replay/no-op, twenty serialized distinct
+replacements, hostile tenant/property/party/status/primary/share cases, and publication
+rollback. The first database invocation named nonexistent database `yellow` rather than
+setup's declared `yellow_dev`; it reached no setup or assertion. The first corrected run
+then exposed only Question 134's proof-loop key overwrite; after the bounded test-only
+correction, the entire focused suite restarted from P1 and passed twice.
+
+Frozen install made no changes. Native state, typecheck, 59-file import boundaries,
+the **120 pass / 0 fail** default suite with 1,544 assertions, 23-package licence policy,
+zero-vulnerability audit, generated review coverage, exact unchanged schema and deployment
+acceptance **4/4** all pass. Protected SHA-256 values remain
+`fe2a9fc949c6bacded3f8d3fc4d14fc596a83ebde9aeb043eb10845f07b30923`
+for migration 0001 and
+`3228279bd99a8f9b6af99748f31d4d4b482a8e627e16d92644d9d859ad8befa1`
+for the invariant referee. Fresh isolated project `yellow-order095-final` applied exact
+migrations 1–7 and printed **11 passed, 0 failed of 11** with the app never started.
+Builder evidence is not independent approval.

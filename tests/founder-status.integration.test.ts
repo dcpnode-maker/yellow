@@ -140,10 +140,10 @@ describe("Order 064 recorded build snapshot", () => {
     const reviewCoverage = await deriveIndependentReviewCoverage();
     const rows = manifestRows(manifest);
     expect(rows.length).toBeGreaterThan(0);
-    expect(PROJECT_BUILD_SNAPSHOT.roadmap.latestBuiltOrder).toBe(94);
+    expect(PROJECT_BUILD_SNAPSHOT.roadmap.latestBuiltOrder).toBe(95);
     expect(PROJECT_BUILD_SNAPSHOT.review.gate3Debt).toBe(0);
     expect(PROJECT_BUILD_SNAPSHOT.review.state).toBe("reviewed");
-    expect(PROJECT_BUILD_SNAPSHOT.roadmap.currentOrder).toBe(94);
+    expect(PROJECT_BUILD_SNAPSHOT.roadmap.currentOrder).toBe(95);
     expect(PROJECT_BUILD_SNAPSHOT.roadmap.activePhase).toBe(4);
     expect(PROJECT_BUILD_SNAPSHOT.roadmap.phaseCount).toBe(13);
     expect(reviewCoverage.throughOrder).toBe(91);

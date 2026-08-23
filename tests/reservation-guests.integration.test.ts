@@ -306,9 +306,14 @@ databaseDescribe("Order 095 atomic reservation guest/share allocation", () => {
     const invalid: Array<{
       input: unknown;
       error: typeof ReservationGuestValidationError;
+      preserveKey?: boolean;
     }> = [
       { input: { ...base, reservationId: "bad" }, error: ReservationGuestValidationError },
-      { input: { ...base, idempotencyKey: "short" }, error: ReservationGuestValidationError },
+      {
+        input: { ...base, idempotencyKey: "short" },
+        error: ReservationGuestValidationError,
+        preserveKey: true,
+      },
       { input: { ...base, primarySharePct: "50.0", guests: [{ partyId: GUEST_A1, role: "sharer", sharePct: "50.00" }] }, error: ReservationGuestValidationError },
       { input: { ...base, primarySharePct: "50.00", guests: [{ partyId: GUEST_A1, role: "sharer", sharePct: "49.99" }] }, error: ReservationGuestValidationError },
       { input: { ...base, guests: [{ partyId: GUEST_A1, role: "accompanying", sharePct: "1.00" }] }, error: ReservationGuestValidationError },
@@ -323,7 +328,10 @@ databaseDescribe("Order 095 atomic reservation guest/share allocation", () => {
       { input: { ...base, reservationId: RESERVATION_B }, error: ReservationGuestNotFoundError },
     ];
     for (const [index, item] of invalid.entries()) {
-      const input = { ...(item.input as typeof base), idempotencyKey: `order095-invalid-${index}` };
+      const hostile = item.input as typeof base;
+      const input = item.preserveKey
+        ? hostile
+        : { ...hostile, idempotencyKey: `order095-invalid-${index}` };
       await expect(replace(guests!, input)).rejects.toBeInstanceOf(item.error);
       expect(await allocation()).toEqual(before);
     }

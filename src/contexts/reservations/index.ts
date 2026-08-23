@@ -25,6 +25,22 @@ export {
   ReservationOfferSearchTooBroadError,
   ReservationOfferValidationError,
 } from "./offers";
+export {
+  ReservationGuestConflictError,
+  ReservationGuestNotFoundError,
+  ReservationGuestService,
+  ReservationGuestValidationError,
+} from "./guests";
+export type {
+  GuestEditableReservationStatus,
+  ReplaceReservationGuestsInput,
+  ReplaceReservationGuestsResult,
+  RequestedReservationGuest,
+  RequestedReservationGuestRole,
+  ReservationGuestAllocation,
+  ReservationGuestRole,
+  ReservationGuestServiceOptions,
+} from "./guests";
 export { ReservationSegmentService } from "./segments";
 export type {
   ChangeReservationDepartureInput,
