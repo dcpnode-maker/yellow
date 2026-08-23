@@ -330,10 +330,53 @@ function ratioEvidence(value: ExactPerOccupiedRoomNightValue): ExactPerOccupiedR
   });
 }
 
-export function rmsRoomEconomicsEvidence(value: RmsRoomEconomics): RmsRoomEconomicsEvidence {
-  if (!Object.isFrozen(value) || value.schemaVersion !== 1 || value.basis !== RMS_ROOM_ECONOMICS_BASIS) {
-    throw new RmsEconomicsError("evidence input must come from calculateRmsRoomEconomics");
+function recursivelyFrozen(value: unknown): boolean {
+  if (!isObject(value)) return true;
+  if (!Object.isFrozen(value)) return false;
+  return Object.values(value).every(recursivelyFrozen);
+}
+
+function exactStructure(left: unknown, right: unknown): boolean {
+  if (Object.is(left, right)) return true;
+  if (!isObject(left) || !isObject(right)) return false;
+  const leftKeys = Object.keys(left).sort();
+  const rightKeys = Object.keys(right).sort();
+  if (leftKeys.length !== rightKeys.length || leftKeys.some((key, index) => key !== rightKeys[index])) {
+    return false;
   }
+  return leftKeys.every((key) => exactStructure(left[key], right[key]));
+}
+
+function canonicalEvidenceSource(value: RmsRoomEconomics): RmsRoomEconomics {
+  if (!recursivelyFrozen(value) || value.schemaVersion !== 1 || value.basis !== RMS_ROOM_ECONOMICS_BASIS) {
+    throw new RmsEconomicsError("evidence input must be a canonical immutable RMS economics snapshot");
+  }
+  const canonical = calculateRmsRoomEconomics({
+    currency: value.currency,
+    occupiedRoomNights: value.occupiedRoomNights,
+    taxBasis: value.basis.taxBasis,
+    grossBookedRoomRevenueMinor: value.grossBookedRoomRevenueMinor,
+    distributionCosts: {
+      hotelFundedCampaignDiscountMinor: value.distributionCosts.hotelFundedCampaignDiscountMinor,
+      channelCommissionMinor: value.distributionCosts.channelCommissionMinor,
+      transactionPaymentFeesMinor: value.distributionCosts.transactionPaymentFeesMinor,
+      expectedCancellationNoShowRefundCostMinor:
+        value.distributionCosts.expectedCancellationNoShowRefundCostMinor,
+      otherVariableDistributionCostsMinor: value.distributionCosts.otherVariableDistributionCostsMinor,
+    },
+    incrementalServicingCostMinor: value.incrementalServicingCostMinor,
+    displacedContributionMinor: value.displacedContributionMinor,
+    minimumAcceptableContributionPerRoomNightMinor:
+      value.bidPrice?.minimumContributionPerOccupiedRoomNightMinor ?? null,
+  });
+  if (!exactStructure(value, canonical)) {
+    throw new RmsEconomicsError("evidence input does not match the canonical RMS economics calculation");
+  }
+  return canonical;
+}
+
+export function rmsRoomEconomicsEvidence(value: RmsRoomEconomics): RmsRoomEconomicsEvidence {
+  value = canonicalEvidenceSource(value);
   return Object.freeze({
     schemaVersion: 1,
     basis: RMS_ROOM_ECONOMICS_BASIS,

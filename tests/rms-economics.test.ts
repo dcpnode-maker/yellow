@@ -191,5 +191,10 @@ describe("Order 091 canonical RMS room economics", () => {
     });
     expect(JSON.parse(JSON.stringify(evidence)).contributionMinor).toBe("59982");
     expect(JSON.stringify(evidence)).not.toMatch(/\d+\.\d+/);
+
+    const forged = Object.freeze({ ...result, contributionMinor: result.contributionMinor + 1n });
+    expect(() => rmsRoomEconomicsEvidence(forged)).toThrow(RmsEconomicsError);
+    const shallow = Object.freeze({ ...result, distributionCosts: { ...result.distributionCosts } });
+    expect(() => rmsRoomEconomicsEvidence(shallow)).toThrow(RmsEconomicsError);
   });
 });
