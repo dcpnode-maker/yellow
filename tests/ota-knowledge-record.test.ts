@@ -95,7 +95,7 @@ describe("Order 092 OTA research evidence contract", () => {
     expect(OTA_INTEGRATION_PATTERNS).toContain("lead_marketplace");
     expect(OTA_INTEGRATION_PATTERNS).not.toContain("generic_ota");
 
-    const lead = normalizeOtaKnowledgeRecord(nested(nested(nested(record({
+    const leadInput = nested(nested(nested(record({
       recordId: "furnished-finder-lead-2026-08-23",
       channel: { group: "Furnished Finder", brand: "Furnished Finder", role: "other" },
       topic: "other",
@@ -112,7 +112,8 @@ describe("Order 092 OTA research evidence contract", () => {
       certificationRequired: false,
       version: null,
       granularity: ["lead", "listing", "month"],
-    }), "applicability", { scope: "property_type", regions: ["United States"], propertyTypes: ["mid_term_rental"] }));
+    }), "applicability", { scope: "property_type", regions: ["United States"], propertyTypes: ["mid_term_rental"] });
+    const lead = normalizeOtaKnowledgeRecord(leadInput);
     expect(lead.capability.integrationPattern).toBe("lead_marketplace");
     expect(lead.authority.liveExecutionAuthority).toBe(false);
 
@@ -138,8 +139,8 @@ describe("Order 092 OTA research evidence contract", () => {
     expect(normalizeOtaKnowledgeRecord(metasearch).capability.integrationPattern).toBe("metasearch_feed");
 
     const invalid = [
-      nested(lead as unknown as Record<string, unknown>, "capability", { accessClass: "supplier_api_write" }),
-      nested(lead as unknown as Record<string, unknown>, "capability", { documentedWrite: true }),
+      nested(leadInput, "capability", { accessClass: "supplier_api_write" }),
+      nested(leadInput, "capability", { documentedWrite: true }),
       nested(buyer, "capability", { accessClass: "supplier_api_write" }),
       nested(nested(record(), "source", { type: "public_journey" }), "capability", { accessClass: "supplier_api_write" }),
       nested(record({ evidenceState: "inferred" }), "capability", { documentedWrite: true }),
@@ -175,15 +176,42 @@ describe("Order 092 OTA research evidence contract", () => {
   });
 
   test("P4: canonical JSON is stable, complete and materially discriminating", () => {
-    const left = normalizeOtaKnowledgeRecord(record());
+    const leftInput = nested(record(), "capability", { constraints: ["rate_plan", "rate.plan"] });
+    const left = normalizeOtaKnowledgeRecord(leftInput);
     const rightInput = record();
     (rightInput.applicability as Record<string, unknown>).regions = ["Asia", "Global"];
     (rightInput.capability as Record<string, unknown>).granularity = ["rate_plan", "stay_date"];
+    (rightInput.capability as Record<string, unknown>).constraints = ["rate.plan", "rate_plan"];
     (rightInput.rights as Record<string, unknown>).permittedUses = ["product_design", "research", "retrieval"];
     const right = normalizeOtaKnowledgeRecord(rightInput);
     expect(canonicalOtaKnowledgeJson(left)).toBe(canonicalOtaKnowledgeJson(right));
+    expect(left.capability.constraints).toEqual(["rate.plan", "rate_plan"]);
     expect(canonicalOtaKnowledgeJson(left)).not.toBe(canonicalOtaKnowledgeJson(
-      normalizeOtaKnowledgeRecord(record({ claim: "A materially different atomic claim." })),
+      normalizeOtaKnowledgeRecord(nested(
+        record({ claim: "A materially different atomic claim." }),
+        "capability",
+        { constraints: ["rate_plan", "rate.plan"] },
+      )),
+    ));
+    expect(canonicalOtaKnowledgeJson(left)).not.toBe(canonicalOtaKnowledgeJson(
+      normalizeOtaKnowledgeRecord(nested(
+        nested(record(), "source", { url: "https://developers.example.test/connectivity/ari-v2" }),
+        "capability",
+        { constraints: ["rate_plan", "rate.plan"] },
+      )),
+    ));
+    expect(canonicalOtaKnowledgeJson(left)).not.toBe(canonicalOtaKnowledgeJson(
+      normalizeOtaKnowledgeRecord(nested(
+        nested(record(), "capability", {
+          accessClass: "pull_or_ad_feed",
+          integrationPattern: "metasearch_feed",
+          documentedWrite: false,
+          certificationRequired: false,
+          constraints: ["rate_plan", "rate.plan"],
+        }),
+        "source",
+        { type: "official_partner" },
+      )),
     ));
     const parsed = JSON.parse(canonicalOtaKnowledgeJson(left));
     expect(parsed).toMatchObject({
