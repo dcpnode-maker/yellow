@@ -22,7 +22,7 @@ The worker must:
 - never write or merge `main`;
 - erase temporary task source after a result is uploaded or abandoned.
 
-Start with the OnePlus 10R and expand only after measured validation.
+Start with the OnePlus 10R and expand only after measured validation. For the pilot, the founder intends to leave the 10R dedicated to Yellow while the worker is enabled; interaction-triggered and manual pause controls remain mandatory safety behavior.
 
 ## Why the builder stopped
 
@@ -45,12 +45,13 @@ The local model process receives task text and explicitly supplied files only. I
 
 - Native Kotlin Android application rather than an unrestricted shell or accessibility service.
 - `llama.cpp` Android runtime.
-- Initial model: `Qwen2.5-Coder-3B-Instruct-GGUF`, `Q4_K_M` (approximately 2.1 GB).
-- Conservative context window (4K initially; 8K only if memory and thermal measurements permit).
-- One inference job at a time; thread count and batch size established by benchmark rather than assumed.
-- The model file is the only intentionally persistent large artifact.
+- Quality-first first-load candidate: `Qwen2.5-Coder-14B-Instruct-GGUF`, `Q4_K_M` (approximately 8.99 GB of weights).
+- Reliable fallback: `Qwen2.5-Coder-7B-Instruct-GGUF`, `Q6_K` (approximately 6.25 GB of weights); retain 7B `Q4_K_M` (approximately 4.68 GB) only as the lower-memory fallback.
+- Begin the 14B trial with a 2K context and small batch. Admit 4K only after measuring total resident memory, KV-cache growth, Android low-memory behavior and thermals; test larger contexts only on the selected fallback if safe.
+- One inference job at a time; thread count, batch size, CPU affinity and context size are established by benchmark rather than assumed.
+- Persist only the selected model. During the benchmark, download one candidate at a time and delete the rejected candidate before downloading another.
 
-The model choice is provisional and must be replaced if a controlled task benchmark shows excessive review burden or unsafe thermal behavior.
+"Best" means the model/configuration that produces the highest correct, reviewed patch throughput under the safety gates—not the largest file that can barely load. The 14B candidate is provisional: fall back automatically if it causes sustained storage paging, Android low-memory kills, unsafe thermal behavior, unusable token speed or more review burden than the 7B candidate. Newer sparse/MoE coder models whose *total* quantized weights exceed guaranteed physical capacity are not admitted merely because they activate fewer parameters per token.
 
 ### Founder-verified device inventory and provisional roles
 
@@ -58,11 +59,13 @@ The following non-unique capacity details were verified from founder-supplied Ab
 
 | Device | Verified physical hardware | Pilot role | Initial model/storage policy |
 |---|---|---|---|
-| OnePlus 10R 5G (CPH2423) | 12 GB physical RAM; MediaTek Dimensity 8100-MAX; 256 GB storage; 5000 mAh; OxygenOS 15 | First pilot; bounded mechanical code/test/doc tasks | Qwen2.5-Coder-3B Q4_K_M; persistent model about 2.1 GB; total worker budget target <= 3 GB including a <= 512 MB temporary task cache |
-| OnePlus 11R 5G (CPH2487) | 16 GB physical RAM; Snapdragon 8+ Gen 1; 256 GB storage; 5000 mAh; OxygenOS 16 | Candidate deeper patch/review worker after the 10R gate | Benchmark Qwen2.5-Coder-7B Q4_K_M (about 4.68 GB) against the 3B baseline; do not deploy solely because it fits |
-| OnePlus Nord 5 (CPH2707) | 12 GB physical RAM; Snapdragon 8s Gen 3; 256 GB storage; 6800 mAh; OxygenOS 16 | Candidate high-throughput bounded worker/build-helper after the 10R gate | Benchmark 3B vs 7B Q4 for reviewed throughput, pause latency and thermals; size the cache separately from the model |
+| OnePlus 10R 5G (CPH2423) | 12 GB physical RAM; MediaTek Dimensity 8100-MAX; 256 GB storage; 5000 mAh; OxygenOS 15 | First quality-first pilot; founder plans to leave it dedicated while enabled | Trial 14B Q4_K_M (~8.99 GB) first at 2K context; select 7B Q6_K (~6.25 GB) if the 14B gate fails; <= 512 MB temporary task cache |
+| OnePlus 11R 5G (CPH2487) | 16 GB physical RAM; Snapdragon 8+ Gen 1; 256 GB storage; 5000 mAh; OxygenOS 16 | Candidate deeper patch/review worker after the 10R gate | Benchmark 14B Q4_K_M with a larger physical-RAM margin; deploy only if reviewed throughput and thermals beat the selected 10R configuration |
+| OnePlus Nord 5 (CPH2707) | 12 GB physical RAM; Snapdragon 8s Gen 3; 256 GB storage; 6800 mAh; OxygenOS 16 | Candidate high-throughput bounded worker/build-helper after the 10R gate | Benchmark the same 14B-Q4/7B-Q6 ladder; select by reviewed throughput, pause latency, memory behavior and thermals |
 
-All three screenshots show an additional 12 GB RAM Expansion setting. Treat this as storage-backed virtual memory, not physical model capacity. Model admission must use actual available physical memory, leave a conservative foreground-app reserve, and avoid swap-dependent configurations.
+All three screenshots show an additional 12 GB RAM Expansion setting. This is storage-backed virtual memory, not another 12 GB of LPDDR memory. It may remain enabled and may be measured as a short-lived safety overflow, but it is not counted 1:1 when admitting a model. The 10R quality-first trial is admitted because the founder will dedicate the device and accepts a benchmark, not because the worker assumes 24 GB of equivalent RAM.
+
+Published OnePlus specifications list the 10R and 11R storage as UFS 3.1 2@LANE, not UFS 4.x. Regardless of the exact UFS generation, inference repeatedly touches model pages, so sustained storage paging can collapse throughput, increase thermals and add flash writes. Abort or downgrade the model when paging, low-memory kills, latency or write-volume thresholds are exceeded.
 
 The role assignments are provisional. Device-specific benchmark evidence—not advertised chipset or RAM alone—decides final model, threads, batch size, context length and task class.
 
@@ -180,7 +183,8 @@ Run a controlled suite of at least 20 small tasks with known expected outcomes. 
 - tests passed;
 - human/Codex review time added or saved;
 - tokens per second and end-to-end latency;
-- peak memory;
+- peak physical memory, KV-cache growth, Android low-memory kills and major page faults;
+- RAM Expansion/swap use, storage I/O and estimated worker-attributable write volume;
 - model and temporary storage against the per-device hard budget;
 - maximum thermal status and cooldown frequency;
 - pause latency after the device becomes interactive;
@@ -189,12 +193,12 @@ Run a controlled suite of at least 20 small tasks with known expected outcomes. 
 - battery behavior while connected to power;
 - any personal-data permission requested (target: zero).
 
-Expansion is allowed only if the worker produces net-positive reviewed throughput without interfering with normal phone use.
+Expansion is allowed only if the worker produces net-positive reviewed throughput without unsafe thermals, persistent paging/thrashing, unacceptable flash write volume or broken pause controls.
 
 ## Architect decisions requested
 
 1. Should the worker live in this repository under a clearly isolated tools directory, or in a separate repository with Yellow containing only the job contract?
-2. Approve or replace the native Kotlin + llama.cpp + 3B Q4 pilot.
+2. Approve or replace the native Kotlin + llama.cpp quality-first benchmark ladder: 14B Q4_K_M first, 7B Q6_K reliable fallback.
 3. Define the trusted coordinator, GitHub App/token-minting boundary, and signed per-device desired-state control channel for founder-issued pause/resume commands.
 4. Approve the signed job manifest and temporary-context approach.
 5. Approve the initial task allowlist and explicit forbidden list.
