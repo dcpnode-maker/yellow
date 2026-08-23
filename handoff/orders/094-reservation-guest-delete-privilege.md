@@ -6,7 +6,7 @@
 **Base:** Order 093 at `142d19f`  
 **Written by:** Codex primary implementation owner  
 **Date:** 2026-08-24  
-**Status:** BUILT · AWAITING INDEPENDENT REVIEW
+**Status:** COMPLETE · INDEPENDENTLY APPROVED
 
 ## Goal
 
@@ -136,7 +136,7 @@ fresh isolated `./setup.sh --db-only` prints `11 passed, 0 failed of 11`.
 - [x] Deployment acceptance, schema drift and protected privilege comparisons pass.
 - [x] Project status reports Order 094, Phase 4 active and review-through Order 091.
 - [x] Full standing gate and fresh referee pass at 11/11.
-- [ ] Independent non-implementing reviewer personally executes P1/P2 and approves.
+- [x] Independent non-implementing reviewer personally executes P1/P2 and approves.
 - [x] No file outside Scope changes; pre-existing untracked user material is preserved.
 
 ## Builder evidence
@@ -151,3 +151,8 @@ typecheck, 58-file import boundaries, **120/120** default tests with 1,544 asser
 23-package licence policy and zero-vulnerability audit. Fresh isolated Compose project
 `yellow-order094-final` applied migrations 1-7 and the app-never-started referee printed
 **11 passed, 0 failed of 11**. Builder evidence is not independent approval.
+
+Independent review at `d5a686d` reproduced P1/P2 on a separate fresh database,
+verified the exact ACL/schema/ledger and protected hashes, reran the standing suite and
+a second 11/11 referee, and returned **APPROVED**. See
+`handoff/reviews/094-reservation-guest-delete-privilege.md`.
