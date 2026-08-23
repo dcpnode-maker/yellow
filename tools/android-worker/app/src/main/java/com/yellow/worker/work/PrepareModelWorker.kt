@@ -62,8 +62,13 @@ class PrepareModelWorker(
         preferences.beginModel(candidate.id, candidate.preparingStatus())
         report(candidate.preparingStatus())
 
+        val finalModel = File(modelDirectory, candidate.fileName)
         val partial = File(modelDirectory, "${candidate.fileName}.part")
-        val remainingBytes = (candidate.sizeBytes - partial.length()).coerceAtLeast(0)
+        val remainingBytes = if (finalModel.length() == candidate.sizeBytes) {
+            0
+        } else {
+            (candidate.sizeBytes - partial.length()).coerceAtLeast(0)
+        }
         if (!hasStorageFor(remainingBytes)) {
             preferences.recordModelFailure(
                 candidate.id,

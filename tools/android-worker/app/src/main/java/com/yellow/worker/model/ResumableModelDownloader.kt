@@ -32,13 +32,18 @@ class ResumableModelDownloader {
         directory: File,
         onProgress: suspend (ModelDownloadProgress) -> Unit,
     ): File = withContext(Dispatchers.IO) {
+        val activeContext = coroutineContext
         require(ModelCatalog.byId(model.id) == model) { "model is not in the immutable catalog" }
         check(directory.isDirectory || directory.mkdirs()) { "could not create model directory" }
 
         val finalFile = File(directory, model.fileName)
         if (finalFile.exists()) {
             onProgress(ModelDownloadProgress(ModelDownloadStage.VERIFYING, 0, model.sizeBytes))
-            if (ModelIntegrity.matches(finalFile, model.sizeBytes, model.sha256)) {
+            if (
+                ModelIntegrity.matches(finalFile, model.sizeBytes, model.sha256) {
+                    activeContext.ensureActive()
+                }
+            ) {
                 onProgress(
                     ModelDownloadProgress(ModelDownloadStage.COMPLETE, model.sizeBytes, model.sizeBytes),
                 )
@@ -59,7 +64,11 @@ class ResumableModelDownloader {
             throw IOException("download ended at ${partialFile.length()} of ${model.sizeBytes} bytes")
         }
         onProgress(ModelDownloadProgress(ModelDownloadStage.VERIFYING, 0, model.sizeBytes))
-        if (!ModelIntegrity.matches(partialFile, model.sizeBytes, model.sha256)) {
+        if (
+            !ModelIntegrity.matches(partialFile, model.sizeBytes, model.sha256) {
+                activeContext.ensureActive()
+            }
+        ) {
             RandomAccessFile(partialFile, "rw").use { it.setLength(0) }
             throw IOException("model SHA-256 mismatch")
         }
