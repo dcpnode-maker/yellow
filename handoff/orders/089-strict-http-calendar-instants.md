@@ -32,7 +32,9 @@ contract. Orders 087 and 088 remain untouched and keep their existing gates.
 
 - `handoff/orders/089-strict-http-calendar-instants.md`
 - `src/http/operator.ts`
+- `src/project-status.ts` (Question 133 scope correction)
 - `tests/operator-calendar-validation.test.ts`
+- `tests/founder-status.integration.test.ts` (Question 133 scope correction)
 - `handoff/GATE-3-MANIFEST.md` only after all proofs are green
 - `handoff/LEDGER.md` only after all proofs are green
 - `DECISIONS.log` only after all proofs are green
@@ -55,6 +57,8 @@ contract. Orders 087 and 088 remain untouched and keep their existing gates.
    schema drift, protected hashes and a fresh app-never-started `./setup.sh --db-only` at 11/11.
 7. Record the result as UNVERIFIED Gate-3 review debt, refresh the disposable Graphify code map,
    push a stacked draft PR based on Order 086, and do not merge.
+8. After recording that debt, prove the founder snapshot reports Order 089 and 43 UNVERIFIED rows.
+   Question 133 requires the complete self-check to restart after this correction.
 
 ## Forbidden
 
@@ -96,13 +100,19 @@ days and valid month ends.
 Order-082 commit and Order-084 offer HTTP/database proofs remain exact. Default tests, typecheck,
 boundaries, isolated gate, schema drift, protected hashes and fresh referee stay green.
 
+### P5 — honest founder status after manifest mutation
+
+The database-enabled founder-status proof derives the latest built order and debt count from the
+committed manifest and matches the exact Order-089 snapshot. Actions run `32626477045` is the
+pre-correction red proof: expected 89, received 86.
+
 ## Definition of done
 
 ## Builder evidence — UNVERIFIED
 
 - [x] P0 is committed red before production code.
 - [x] P1–P3 pass without reaching a dependency for invalid input.
-- [x] P4 and both protected hashes remain exact.
+- [ ] P4–P5 and both protected hashes remain exact after the Question-133 correction.
 - [x] Gate-3 debt is recorded; no review or merge is claimed.
 
 Evidence captured at production commit `04a0e3f`:
