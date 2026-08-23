@@ -9,8 +9,8 @@ their preserved contracts without claiming independent approval.
 
 **Current status:** Orders 045–091 were independently discharged at D-294; Order 093 reconciled
 the executable founder-status boundary and is independently approved. Orders 087/088 are historical
-sequence gaps under D-293. Order 094 is the Tier-3 solo database prerequisite for exact guest/share
-replacement; product behavior remains a separate later order.
+sequence gaps under D-293. Order 094 independently approved the narrow database prerequisite;
+Order 095 now owns the atomic guest/share product command.
 
 ## Product promise
 
@@ -62,6 +62,7 @@ crosses that envelope must be rejected with a clear reason rather than silently 
 | 087 | 2 | Guests, shares, alerts and waitlist offers | `reservation_guest`, bounded `share_pct`, alerts, explicit offer window | Shares validate exactly; an expired/declined offer never creates a reservation |
 | 088 | 3 | Founder reservation workbench and reproducible Phase-4 gate | Search → hold → commit → lifecycle inspection using canonical services | Clean-checkout database gate, hostile browser inputs, accessibility, no client authority |
 | 094 | 3 | Reservation-guest DELETE privilege solo gate | Forward migration enabling exact non-primary guest replacement through the existing tenant RLS boundary | Exact ACL; app-role tenant A delete cannot affect tenant B; protected DELETE denials unchanged |
+| 095 | 3 | Atomic reservation guest/share command | Preserve primary guest, validate explicit 100.00 share splits and replace bounded non-primary membership through one idempotent audited command | Exact replacement/replay; concurrent lists never mix; tenant/party/share boundaries and publisher rollback are mutation-free |
 
 The order numbers reserve sequence only. Each order requires a fresh schema/decision preflight,
 an exact Scope and Forbidden section, an intentional red proof, and a Natural-Solution Test before
