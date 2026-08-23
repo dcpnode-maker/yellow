@@ -7,6 +7,9 @@ holds and PostgreSQL truth search. Orders 047 and 070 provide durable HTTP idemp
 reproducible stay quotes. Orders 045–082 remain explicit Gate-3 review debt; Phase 4 builds on
 their preserved contracts without claiming independent approval.
 
+**Current status:** Orders 080–084 are built with builder-executed proofs. Independent review ends
+at Order 044; none of the Phase-4 rows is represented as approved or merged.
+
 ## Product promise
 
 A hotel may configure rate, cancellation, deposit, guarantee, assignment and operational policy,

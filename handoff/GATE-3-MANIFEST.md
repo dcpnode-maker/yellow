@@ -46,6 +46,7 @@ Status legend: UNVERIFIED = built, proofs builder-asserted, not executed by the 
 | 081 | 3 | a25fe0d (order 2dfec6a; red proof 3aea207) | UNVERIFIED | Order 081 — Atomic cart-hold to reservation commit |
 | 082 | 3 | da9c3bd (order 403b962; red proof bc12a70) | UNVERIFIED | Order 082 — Direct reservation commit and racing HTTP contract |
 | 083 | 2 | c332846 (order 60e88b9; inherited red at 383c98f) | UNVERIFIED | Order 083 — Review-seed fixture isolation and inherited Gate-3 proof coverage |
+| 084 | 3 | f038629 (order b550c5d; scope correction 4e11efd) | UNVERIFIED | Order 084 — Complete availability offer search |
 
 Protected hashes to re-quote each time:
 
