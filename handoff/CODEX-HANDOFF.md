@@ -13,10 +13,15 @@ once at the start of the first post-handoff session; after that, `DECISIONS.log`
 > worktrees on the founder's own machine — through roughly Order 091, Phases 3–4,
 > dated as recently as the same day as this handoff. It has now been pushed to `origin`
 > as non-destructive `backup/*` branches (nothing on `main` or any pre-existing branch
-> was touched). **§2a is the authoritative account of this. Do not start work from §4's
-> "Order 019" without reading §2a first** — Phases 1 and 2 are almost certainly already
-> done in that lineage, and starting fresh at Order 019 would duplicate real, mostly
-> unreviewed work rather than continue it.
+> was touched). All eight are confirmed **one single linear branch** (no competing
+> lineages to pick between) — `backup/order-091-final-4874f5c` is the tip and already
+> contains everything else. **§2a is the authoritative account of this, including the
+> branch's own primary-source history (D-95, D-161, D-220/221, D-280, D-291) read
+> directly from its `DECISIONS.log`, `ARCHITECT-HANDOVER.md` and
+> `GATE-3-REVIEW-CONTRACT.md`. Do not start work from §4's "Order 019" without reading
+> §2a first** — Phases 1 and 2 are done in that lineage (Phase 4 is well underway), and
+> starting fresh at Order 019 would duplicate real, mostly independently-unreviewed work
+> rather than continue it.
 
 ## 1. Founder directive and effective date
 
@@ -99,33 +104,152 @@ an early Phase-0-era archive given its size and date; not a git repository.)
 Two of the clones (`yellow-order-091` and `yellow-order-091-final-5d3f137`) sit on a
 branch with the *same name* (`phase-4/rms-economic-metric-contract`) but different tips
 12 minutes apart — they are **independent clones**, not linked `git worktree`s (each has
-its own full `.git` directory), so this is not a shared-ref collision, just two snapshots
-of the same in-progress branch taken minutes apart.
+its own full `.git` directory).
 
-**Substance, read from each clone's own `handoff/LEDGER.md` and `handoff/orders/`**
-(not independently verified beyond reading these files — treat as reported, not
-architect-confirmed):
-- Order numbering runs through **091**, on top of the original `BUILD-PLAN.md` phase
-  scheme (branch names `phase-3/…` = Rates, `phase-4/…` = Reservations — consistent
-  with §5's table), meaning **Phase 1 (Kernel) and Phase 2 (Inventory & Occupancy) are
-  almost certainly already complete** in this lineage, not merely planned.
-- A review-tier concept called **"Gate-3 reviewer"** appears throughout these ledgers,
-  distinct from the Tier 1/2/3 language in `handoff/ROSTER.md` as this handoff left it.
-  Whether Gate-3 supersedes, replaces, or sits alongside Tier 1/2/3 is **not
-  determinable from this session** — reconcile by reading the advanced lineage's own
-  `PROJECT.md`/`handoff/ROSTER.md` (they may already differ from the versions on `main`
-  that this handoff edited).
-- Repeated ledger lines read **`BUILT-UNREVIEWED`** and **`REMOTE-CI-GREEN … remains
-  UNVERIFIED and unmerged`**, and multiple entries state **"independent review remains
-  through Order 044"** — i.e., as of Order 091, independent review is reported as
-  outstanding for a large span of orders (044 through at least 091). This is a
-  significant open-review backlog, not a clean, merge-ready branch.
-- Order 091's own ledger line ("establish one exact bigint/rational room-economics
-  language for gross, named distribution deductions, net, contribution, displacement
-  and bid-price comparison") reads as Tier-3/financial-adjacent (money/economics
-  surface) — exactly the kind of change this handoff's §11 requires independent
-  reviewer-executed proof for, and by its own status line (`BUILT-UNREVIEWED`) has not
-  yet received that.
+**Update — fully resolved, not just catalogued.** Fetching all eight `backup/*` refs
+into one clone and running `git merge-base --is-ancestor <each> backup/order-091-final-4874f5c`
+proved every other branch — `backup/phase-1-12ba636`, `backup/phase-4-383c98f`,
+`backup/order-091-51d46f7`, `backup/order-090-956508a`, `backup/order-089-baseline-1cac9b5`,
+`backup/review-d3f6ee4` — **is a strict ancestor of `backup/order-091-final-4874f5c`**.
+There is no divergence and nothing to reconcile between lineages: this is **one single
+linear branch**, and the eight directories were sequential local checkpoints of the same
+ongoing work (matching the founder's own note in that lineage's `ARCHITECT-HANDOVER.md`:
+canonical build work happens in a fresh `~/projects/yellow-<slug>` Linux-filesystem
+worktree per milestone, never `/mnt/c`, per D-49's I/O-penalty finding).
+**`backup/order-091-final-4874f5c` is simply the single furthest tip. Nothing else needs
+picking between.**
+
+### The real history — read from the lineage's own primary sources, not inferred
+
+Two authoritative documents exist *inside that branch* and were read in full — a prior
+Claude architect's handover (`handoff/ARCHITECT-HANDOVER.md`, 2026-08-21) and the
+founder's own standing instruction to Codex (`handoff/GATE-3-REVIEW-CONTRACT.md`,
+2026-08-22). Together they give an exact, primary-sourced timeline that supersedes any
+inference in the rest of this section:
+
+| Date | Event |
+|---|---|
+| 2026-08-14/15 | Phase 0 (Orders 001–018) — identical to this handoff's `main`, merged at `61b0fd3c`. |
+| 2026-08-15 | **D-95** (that branch's own `DECISIONS.log`): founder-authorized *temporary* architect exception — Codex may write/amend orders and implement while Claude is unavailable "for approximately one week." Explicit: "temporary authority is not independent review… all accumulated Phase 1 work still requires Claude's independent exit review." References an *even earlier* D-71 exception. |
+| 2026-08-15 → ~08-21 | Codex builds Orders 019–044 (Phase 1 Kernel *and* apparently Phase 2/3 material folded in — far more than this handoff's `handoff/PHASE-1-PLAN.md`, which only sequenced 019–026) under D-95, accumulating decisions to D-160. |
+| 2026-08-21 | Claude (`claude-opus-5`, architect role) returns, independently executes and discharges the Orders 019–044 / D-95→D-160 debt (**D-161**), then writes `handoff/ARCHITECT-HANDOVER.md` formally stepping back: *"Claude → Codex (build) → Fable (review, test, deploy)."* At handover: 44 orders written, 8 reviews on file, D-1→D-263, Orders 001–018 merged, **019–044 independently reviewed but still unmerged to `main`**. |
+| 2026-08-21→22 | Codex continues Orders 045–073 without per-order blocking. Claude executes a **Gate-3** review at commit `4cc791c`, ratifying decisions D-162–D-262 but returning **CHANGES REQUIRED** (findings F11 and F12 — not a clean pass). Order 074 is written specifically to correct F11/F12. |
+| 2026-08-22 | Founder gives Claude a *new* standing instruction, recorded in `handoff/GATE-3-REVIEW-CONTRACT.md`: *"Claude reviews the application at a later gate. Until then Codex proceeds continuously."* Codified as **D-220**, with Codex's acknowledgment as **D-221** — the order-091 file's "founder-authorized temporary architect/builder under D-95/D-115/D-221" citation refers to exactly this chain. **This is the same shape of instruction as the founder directive behind this handoff's own D-91 — given to a different Claude session, one day earlier, independently.** |
+| 2026-08-22→23 | Codex continues Orders 075–091 under that non-blocking rule, recording each as `UNVERIFIED` review debt in `handoff/GATE-3-MANIFEST.md` rather than waiting — reaching **D-291** by Order 091 (today). |
+
+**F11 was not simply "fixed and done."** `DECISIONS.log` D-280 (2026-08-23, read from the
+same branch) records that re-executing Gate-3 finding F11 *after* Order 082 found a
+**second, different regression** (a fixture/seed issue in Order 050's proof, caused by
+Order 078's changes), corrected in Order 083. Treat F11/F12's status as "corrected at
+least once, re-verify from scratch" rather than "resolved."
+
+### `handoff/GATE-3-MANIFEST.md` — the exact, complete review backlog at Order 091
+
+Copied in full (source: `backup/order-091-final-4874f5c:handoff/GATE-3-MANIFEST.md`).
+Every row is `UNVERIFIED` — "built, proofs builder-asserted, not executed by the
+reviewer." **Orders 087 and 088 do not appear** — not built yet, built under a different
+scheme, or the manifest is behind; this session could not determine which and did not
+guess. Protected hashes (immutable baseline + referee) are re-quoted as unchanged
+throughout: `migrations/0001_init.sql` = `fe2a9fc9…b30923`, `tests/run_invariants.py` =
+`3228279b…befa1` — **identical to the hashes on `main`**, i.e. the immutable baseline
+was never touched by any of this.
+
+| Order | Tier | Title |
+|---|---|---|
+| 045 | 2 | Fail-closed Windows handoff-state reporting |
+| 046 | 3 | Reproducible local-review demo inventory |
+| 047 | 3 | Durable API idempotency foundation |
+| 048 | 3 | Operator inventory management |
+| 049 | 3 | Operator restriction management |
+| 050 | 3 | Operator rate-plan management |
+| 051 | 3 | Operator rate-price management |
+| 052 | 3 | Operator rate-price correction |
+| 053 | 3 | Operator OOO/OOS lifecycle |
+| 054 | 2 | Operator OOS sellability policy |
+| 055 | 3 | Operator cart-hold management |
+| 056 | 3 | Audited hold-expiry worker |
+| 057 | 3 | Operator bulk exclusive-room creation |
+| 058 | 3 | Truth-derived availability projection rebuild |
+| 059 | 3 | Durable availability-projection event consumer |
+| 060 | 3 | Operator-controlled availability-projection bootstrap |
+| 061 | 2 | Availability work-scaling proof |
+| 062 | 3 | Operator-managed offline capacity lease pool |
+| 063 | 1 | Universal rate-plan product contract |
+| 064 | 2 | Founder project progress and live system-health dashboard |
+| 065 | 3 | Versioned rate-model catalogue and draft selection |
+| 066 | 3 | Versioned rate applicability and commercial targeting resolver |
+| 067 | 3 | Typed exact-money rate-model evaluators |
+| 068 | 3 | Guest, promotion, package, policy and distribution composition |
+| 069 | 3 | Atomic rate draft simulation, approval, publication and versioned undo |
+| 070 | 3 | Universal stay quote resolution and governed RMS/API evidence |
+| 071 | 2 | Guided and expert universal rate-plan workbench |
+| 072 | 3 | Secure AI-assisted rate intent |
+| 073 | 3 | Rate applicability rules and versioned bulk preview |
+| 074 | 2 | Gate-3 browser-proof and founder-status corrections (fixes F11/F12) |
+| 075 | 3 | Selected-release policy evidence at the operator boundary |
+| 076 | 2 | Immutable rate-release inspection and safe reuse |
+| 077 | 3 | Two-operator rate-publication approval inbox |
+| 078 | 3 | Reproducible local-review published rate and live quote |
+| 079 | 2 | Reproducible Phase-3 and Gate-3 database proofs |
+| 080 | 2 | Executable reservation state contract |
+| 081 | 3 | Atomic cart-hold to reservation commit |
+| 082 | 3 | Direct reservation commit and racing HTTP contract |
+| 083 | 2 | Review-seed fixture isolation and inherited Gate-3 proof coverage (F11 regression #2) |
+| 084 | 3 | Complete availability offer search |
+| 085 | 3 | Reservation modify, cancel and reinstate commands |
+| 086 | 3 | Atomic reservation segment move, extend and shorten |
+| 089 | 2 | Strict HTTP calendar instants |
+| 090 | 3 | Portable AI intent provider contract |
+| 091 | 3 | Canonical RMS room-economics metric contract |
+
+(Exact impl/order/red-proof commit hashes for every row are in the manifest file itself —
+omitted here for length; fetch `backup/order-091-final-4874f5c` and read
+`handoff/GATE-3-MANIFEST.md` directly rather than trusting a second-hand copy of 47 hashes.)
+
+### `handoff/GATE-3-REVIEW-CONTRACT.md` — the exact rule Codex has been building under
+
+This is the operative, founder-authorized, already-proven-in-use version of what this
+handoff's §11 tries to establish independently. Quoted because it should very likely
+**replace or merge with** this handoff's §11 language rather than compete with it — it
+is more precise and has already governed 47 orders successfully:
+
+> **§3 — The only things that still stop you** (write `handoff/questions/NNN.md` and wait,
+> **only** for these): any edit to an *existing* file under `migrations/` (a new numbered
+> file is not an edit) · any edit to `tests/run_invariants.py` · the referee dropping
+> below `11 passed, 0 failed of 11` · any pre-registered proof that fails and cannot be
+> fixed without weakening an assertion · any Forbidden-list item, any invariant question,
+> any new dependency · anything touching money, occupancy, RLS, tenant context, or the
+> audit/outbox envelope that is not already explicit in an order and `DECISIONS.log`.
+>
+> Everything else is recoverable at a gate. Stopping early has never been penalised;
+> continuing past a floor item is still the only unrecoverable mistake.
+
+And its §2, on what replaces a blocking review request: append one row to
+`handoff/GATE-3-MANIFEST.md` per completed order and keep going — "A completed order
+with green proofs is not [something only an architect can resolve]; it is review debt,
+and review debt is recorded, not awaited."
+
+### Two things that need the founder's or an architect's attention, not Codex's
+
+1. **`DECISIONS.log` numbering collides across the two lineages.** This handoff's `main`
+   copy has `D-1`–`D-90` (Phase 0) then this session's own `D-91` (founder directive) and
+   `D-92` (this WSL discovery). The advanced branch also has `D-1`–`D-90` identical up to
+   the Phase-0 merge, then **diverges** with its *own*, different `D-91` onward (its
+   `D-95` is dated 2026-08-15 and is about the temporary-architect exception, not this
+   handoff's founder directive). **Do not concatenate or fast-forward-merge the two
+   `DECISIONS.log` files without renumbering one side** — the same decision numbers
+   currently mean two different things on the two branches.
+2. **The "Fable" identity is inconsistent and unresolved.** `ARCHITECT-HANDOVER.md`'s
+   title reads "Claude → Codex (build) → Fable (review, test, deploy)" as if Fable were a
+   separate downstream reviewer role, but `GATE-3-REVIEW-CONTRACT.md` (written one day
+   later) has the Gate-3 review executed directly by "Claude Opus 5 (architect role,
+   independent reviewer)" — no separate "Fable" identity appears there. This session
+   could not determine whether "Fable" was a planned-but-unused role, an informal name for
+   Claude's most capable model (matching this handoff's own `CLAUDE.md`/`ROSTER.md` usage
+   of "Claude Fable 5" as a model name, not a separate agent), or something else. Don't
+   silently pick an interpretation — ask.
+
+### What was done (this session, non-destructively)
 
 ### What was done (this session, non-destructively)
 
@@ -160,26 +284,33 @@ git log --oneline origin/backup/order-091-final-4874f5c -20
 
 ### What Codex must do with this before touching Phase 1
 
-1. **Do not issue Order 019.** Read `backup/order-091-final-4874f5c` (the most advanced
-   tip found) and `backup/phase-1-12ba636` / `backup/phase-4-383c98f` (the other
-   lineages) to determine the actual current state of the project — very likely far
-   past Phase 1.
-2. Determine whether these branches share a common recent ancestor with each other and
-   with `main`, and which one (if any) represents the single line of work to continue —
-   this session found them but did not reconcile them; that reconciliation is
-   implementation/architecture work, explicitly out of scope for this governance-only
-   handoff.
-3. Resolve the outstanding independent-review backlog these branches' own ledgers
-   report (Order 044 through 091) under the review rules in §11 before treating any of
-   this work as mergeable — several money/economics-adjacent orders (091 named
-   explicitly) are self-reported as `BUILT-UNREVIEWED`.
-4. Reconcile the "Gate-3 reviewer" terminology found in these branches against
-   `handoff/ROSTER.md`'s Tier 1/2/3 language as this handoff left it — one of the two
-   is stale and it was not possible to determine which from this session alone.
-5. Ask the founder to confirm intent before deciding whether any `backup/*` branch
-   becomes the new basis for `main`, is merged, or is intentionally superseded — that is
-   a product/process decision, not a routine one, per §11's "missing product intent"
-   carve-out.
+1. **Do not issue Order 019.** `backup/order-091-final-4874f5c` already contains
+   everything else found (confirmed by ancestry, see above) — this is not a "which
+   lineage" decision any more, it's the one branch to read.
+2. **Fetch and read `backup/order-091-final-4874f5c` directly** — `handoff/orders/`,
+   `handoff/LEDGER.md`, `DECISIONS.log` (D-95 onward), `handoff/GATE-3-MANIFEST.md`, and
+   both `handoff/ARCHITECT-HANDOVER.md` and `handoff/GATE-3-REVIEW-CONTRACT.md` in full —
+   this section is a summary of primary sources that already exist in that branch, not a
+   replacement for reading them.
+3. **Before doing anything else on that branch, run its own standing self-check
+   yourself** — `./setup.sh --db-only` on a fresh isolated Compose project per
+   `GATE-3-REVIEW-CONTRACT.md` §5.2, full typecheck/boundaries/licence/audit/schema-drift
+   — this handoff did not execute any of it; every "green"/"passed" figure above is
+   builder-asserted, exactly as its own manifest says.
+4. **Do not represent Orders 045–091 as reviewed or mergeable.** They are real,
+   substantial, disciplined work (comprehensive red-first TDD, exact-hash protected
+   floor, explicit Forbidden lists per order) but every one is self-labeled `UNVERIFIED`
+   in its own manifest, and the one Gate-3 pass that did execute (`4cc791c`) returned
+   CHANGES REQUIRED, not approval, on the portion it covered (Orders 045–073).
+5. **Resolve the `DECISIONS.log` numbering collision and the "Fable" identity question**
+   above before any merge is even contemplated — both are landmines for a naive
+   fast-forward or concatenation.
+6. **Ask the founder** which branch is authoritative going forward — `main` (Phase 0
+   only, this handoff's governance changes) or the advanced lineage (`backup/order-091-final-4874f5c`,
+   Phases 1–4 substantially built, D-291, review debt through Order 091) — before treating
+   either as the base for new work. That is a product/process decision (§11's "missing
+   product intent" carve-out), not a routine one, and this handoff deliberately does not
+   make it.
 
 ## 3. Completed and merged work
 
