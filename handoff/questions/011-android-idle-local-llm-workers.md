@@ -52,6 +52,20 @@ The local model process receives task text and explicitly supplied files only. I
 
 The model choice is provisional and must be replaced if a controlled task benchmark shows excessive review burden or unsafe thermal behavior.
 
+### Founder-verified device inventory and provisional roles
+
+The following non-unique capacity details were verified from founder-supplied About Device screenshots. The screenshots themselves, exact firmware build strings, and current personal storage contents must not be committed.
+
+| Device | Verified physical hardware | Pilot role | Initial model/storage policy |
+|---|---|---|---|
+| OnePlus 10R 5G (CPH2423) | 12 GB physical RAM; MediaTek Dimensity 8100-MAX; 256 GB storage; 5000 mAh; OxygenOS 15 | First pilot; bounded mechanical code/test/doc tasks | Qwen2.5-Coder-3B Q4_K_M; persistent model about 2.1 GB; total worker budget target <= 3 GB including a <= 512 MB temporary task cache |
+| OnePlus 11R 5G (CPH2487) | 16 GB physical RAM; Snapdragon 8+ Gen 1; 256 GB storage; 5000 mAh; OxygenOS 16 | Candidate deeper patch/review worker after the 10R gate | Benchmark Qwen2.5-Coder-7B Q4_K_M (about 4.68 GB) against the 3B baseline; do not deploy solely because it fits |
+| OnePlus Nord 5 (CPH2707) | 12 GB physical RAM; Snapdragon 8s Gen 3; 256 GB storage; 6800 mAh; OxygenOS 16 | Candidate high-throughput bounded worker/build-helper after the 10R gate | Benchmark 3B vs 7B Q4 for reviewed throughput, pause latency and thermals; size the cache separately from the model |
+
+All three screenshots show an additional 12 GB RAM Expansion setting. Treat this as storage-backed virtual memory, not physical model capacity. Model admission must use actual available physical memory, leave a conservative foreground-app reserve, and avoid swap-dependent configurations.
+
+The role assignments are provisional. Device-specific benchmark evidence—not advertised chipset or RAM alone—decides final model, threads, batch size, context length and task class.
+
 ### Scheduling and immediate pause
 
 Use WorkManager constraints as the coarse gate:
@@ -84,6 +98,7 @@ Foreground phone use always wins over Yellow work.
 - Release the loaded model/session memory after preemption so YouTube, Chrome, Instagram, Facebook and other foreground apps receive normal memory and CPU priority.
 - Do not collect package names, browsing activity, URLs, watch history or usage history.
 - If non-sensitive platform signals report active media while the screen is off, remain paused; do not request notification-listener or accessibility permissions to identify the media app.
+- Pause when non-sensitive audio-mode signals indicate a call or real-time communication session; never request the phone number, call log, contact identity, audio content or microphone access.
 - After automatic preemption, resume only after charging and all idle/thermal/network gates have remained healthy for a configurable cooldown.
 - A manual pause is sticky across app restarts and device reboots. It must never auto-resume until the founder explicitly selects resume locally or sends a trusted remote resume command.
 
@@ -166,7 +181,7 @@ Run a controlled suite of at least 20 small tasks with known expected outcomes. 
 - human/Codex review time added or saved;
 - tokens per second and end-to-end latency;
 - peak memory;
-- model and temporary storage;
+- model and temporary storage against the per-device hard budget;
 - maximum thermal status and cooldown frequency;
 - pause latency after the device becomes interactive;
 - local notification pause latency, remote-command pause latency, sticky-pause behavior across restart, and model-memory release time;
