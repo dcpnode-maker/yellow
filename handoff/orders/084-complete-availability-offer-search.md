@@ -184,8 +184,9 @@ app/PostgreSQL/Valkey healthy. Commit, push a stacked draft PR and do not merge.
 - [x] Canonical published offers, blocked diagnostics, exact money and read-only evidence pass.
 - [x] Filters, work ceiling, exact-sellable rereads and stale-projection boundaries pass.
 - [x] Canonical HTTP/auth plus legacy compatibility remain exact.
-- [ ] Standing checks, protected hashes, Graphify, localhost and remote CI are green. Local checks
-  are green; remote CI remains pending until the final evidence tip is pushed.
+- [x] Standing checks, protected hashes, Graphify, localhost and remote CI are green. GitHub run
+  `32609014055` passed quality, Windows state, container smoke and database at the evidence-input
+  tip; the sealed final evidence commit requires replacement final-tip CI before handoff.
 - [x] Independent review remains exactly through Order 044; Order 084 is not self-approved.
 
 ### Captured builder evidence
