@@ -4,7 +4,7 @@
 **Tier:** 2  
 **Branch:** `phase-4/reservation-guests-shares`  
 **Base:** `phase-4/reservation-segment-changes` at `c92b096`  
-**Status:** BUILDER-AUTHORED · UNVERIFIED
+**Status:** BLOCKED at D-92 privilege/migration floor · UNVERIFIED
 
 ## Why this order is deliberately narrower than the reserved plan row
 
@@ -129,6 +129,11 @@ final-tip CI.
 ## Definition of done
 
 ## Builder evidence — UNVERIFIED
+
+The first implemented fresh-database run reached PostgreSQL and returned SQLSTATE `42501` because
+`app_role` has no DELETE privilege on `reservation_guest`: `1 pass`, `4 fail`, `35 assertions`.
+Question 132 owns the required architect/security decision. No production implementation is
+committed.
 
 - [x] P0 red evidence is committed before production code.
 - [ ] Exact allocation, validation, concurrency, idempotency and rollback proofs pass.
