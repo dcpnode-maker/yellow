@@ -98,3 +98,47 @@ For each device record model chosen, physical RAM reported by Android, load resu
 prompt-processing and generation throughput, start/end thermal status and elapsed
 time. Until those three records exist, profiles remain provisional and no remote
 job may be enabled.
+
+## Founder amendment — explicit 10R test mode (D-95)
+
+The founder requested that the first OnePlus 10R test respond directly to **Run**
+and **Pause**, with normal idle parameters temporarily held. This amendment is part
+of Order 030 and must be committed before its implementation.
+
+### Additional scope
+
+No new paths are added. The existing `tools/android-worker/**`, documentation and
+append-only ledger/decision scope applies.
+
+### Required behavior
+
+1. Add an explicit **Run model test now** owner action. It schedules preparation
+   without requiring charging, device idle, screen-off or an unmetered network.
+2. Keep a connected network, battery-not-low and storage-not-low as coarse Android
+   constraints. Keep the 8 GiB reserve and every download/integrity rule unchanged.
+3. At runtime, manual test mode still fails closed on sticky pause, unknown thermal
+   state, and `MODERATE` or hotter status. **Pause now** cancels it immediately.
+4. Keep the original constrained idle scheduler intact as the non-test path.
+5. Show determinate download progress in the activity as well as the existing
+   foreground notification. Clearly label the temporary test behavior.
+
+### Additional falsifying tests
+
+- Scheduler tests prove manual test mode requires connected network, healthy battery
+  and storage, but does not require charging or device idle; the original scheduler
+  must still require all five coarse constraints.
+- Runtime-gate tests prove manual test mode permits an interactive, unplugged phone
+  while still rejecting manual pause, unknown thermal state and `MODERATE` heat.
+
+### Additional definition of done
+
+- [ ] The planning amendment commit precedes every test-mode implementation commit.
+- [ ] Existing constrained-mode tests stay green; the override cannot weaken them.
+- [ ] The signed update uses the existing application ID and update certificate so
+      it installs over the founder's current APK without deleting partial weights.
+
+### Still forbidden
+
+- Remote or silent activation, removing the visible pause control, disabling thermal
+  or storage integrity protection, or representing model preparation as Yellow code
+  execution.
