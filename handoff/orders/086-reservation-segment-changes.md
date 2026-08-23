@@ -173,5 +173,6 @@ CI.
 - [x] P0 red evidence is committed before production code.
 - [x] Departure-change and immutable move proofs pass.
 - [x] Conflict, concurrency, tenant/property, hostile-input and rollback proofs pass.
-- [ ] Standing checks, protected hashes, Graphify, localhost and final-tip remote CI are green.
+- [x] Standing checks, protected hashes, Graphify, localhost and remote CI are green; the final
+  evidence commit requires its replacement final-tip run before handoff.
 - [x] Independent review remains exactly through Order 044; Order 086 is not self-approved.
