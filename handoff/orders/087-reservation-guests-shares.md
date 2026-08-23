@@ -112,8 +112,10 @@ snapshots byte-equivalent.
 Two different replacements using the same expected hash race: exactly one succeeds and one returns
 stale conflict; no mixed allocation is visible. Exact retry replays without duplicate evidence.
 Same key with another actor, property or allocation conflicts. Failed first/middle/final publisher
-injection rolls back every guest/fact/outbox/idempotency write, and restoring the publisher lets the
-same key succeed once.
+injection is not a valid shape because this command emits exactly one event. Instead inject one
+failure at each real transaction boundary: guest-row insertion, fact insertion and the single event
+publication. Each rolls back every guest/fact/outbox/idempotency write, and removing the injection
+lets the same key succeed once.
 
 ### P4 — inherited and standing evidence
 
