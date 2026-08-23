@@ -37,8 +37,10 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          sdkmanager="$ANDROID_HOME/cmdline-tools/12.0/bin/sdkmanager"
-          test -x "$sdkmanager"
+          shopt -s nullglob
+          sdkmanagers=("$ANDROID_HOME"/cmdline-tools/*/bin/sdkmanager)
+          test "${#sdkmanagers[@]}" -gt 0
+          sdkmanager="${sdkmanagers[0]}"
           yes | "$sdkmanager" --licenses >/dev/null || true
           "$sdkmanager" \
             "platforms;android-36" \
