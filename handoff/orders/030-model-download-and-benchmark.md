@@ -287,3 +287,47 @@ short manual engine test; it does not authorize continuous production inference 
   is labeled as unavailable rather than shown as zero.
 - APK inspection and the existing permission allowlist must remain green. The 10R screen reading
   and the repaired 1.5B load/benchmark remain the decisive real-device evidence.
+
+## Repaired-engine proof amendment — one-time 7B Q4 promotion (D-100)
+
+The OnePlus 10R has now loaded and benchmarked Qwen2.5 Coder 1.5B Q8_0 through the
+repaired engine. Android reported 11.16 GiB physical RAM, 4.71 GiB available immediately
+before load, `MODERATE→MODERATE` thermal state and 10,939 ms elapsed. The activity then
+correctly blocked additional work at a measured 41.2 °C while retaining the ready model.
+This closes D-98's backend-discovery proof: llama.cpp and a dynamically selected ARM64 CPU
+backend work on the Dimensity 8100-MAX.
+
+The three larger attempt markers were created before the shared backend repair, so they are
+not valid evidence that those model sizes fail on the repaired engine. Do not erase the whole
+ladder or repeat the 14B/7B Q6 downloads. Promote conservatively by testing only 7B Q4_K_M,
+whose 4,683,073,536-byte file is the strongest lower-memory candidate already pinned in the
+catalog, while the proven 1.5B model remains available as fallback.
+
+### Additional required behavior
+
+1. When 1.5B is active and the owner explicitly chooses the stronger-model test, clear only
+   the 7B Q4_K_M pre-repair attempt marker and persist a one-time promotion sentinel. Keep the
+   14B, 7B Q6 and all unrelated markers/files unchanged.
+2. Start preparation at catalog index 2. Do not silently rearm 14B or 7B Q6, and do not create
+   a retry loop if the repaired 7B Q4 load or benchmark fails.
+3. Preserve the active 1.5B GGUF throughout download, load and benchmark. If 7B Q4 fails, delete
+   only its final/partial weight under D-97 and return to the ready 1.5B fallback.
+4. Make the owner action and UI state explicit: show **Test stronger 7B model**, retain visible
+   Pause, show promotion download progress even while a fallback is active, and identify the
+   retained 1.5B fallback during the test.
+5. Include parsed prompt-processing and generation tokens/second in the first visible benchmark
+   evidence line so the 7B result can be compared without logs.
+6. Keep D-99's manual thermal policy unchanged. The 41.2 °C observation remains blocked; the
+   promotion may run only after the measured value is below 40.0 °C and must stop at `SEVERE`.
+7. Bump the update version while preserving package ID, signing identity, app-private state,
+   model integrity pins, permissions and the no-remote-job/no-code-execution boundary.
+
+### Additional falsifying tests and evidence
+
+- Promotion-state tests prove only the 7B Q4 marker is cleared, the 1.5B GGUF and larger markers
+  survive, an inactive/wrong fallback cannot trigger promotion, and a second call cannot rearm.
+- Selection tests prove the promotion begins at index 2 and one caught/interrupted 7B Q4 attempt
+  falls forward to the retained 1.5B candidate without looping.
+- UI/source tests prove promotion progress is visible while 1.5B remains active.
+- Android CI must keep unit, permission, extraction and ARM64/no-x86 assertions green. The next
+  decisive evidence is either a visible 7B Q4 benchmark or a cleaned 7B failure with 1.5B ready.
