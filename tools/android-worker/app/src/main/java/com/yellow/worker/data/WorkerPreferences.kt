@@ -147,6 +147,24 @@ class WorkerPreferences(context: Context) {
         }
     }
 
+    suspend fun recordUpgradeFailure(modelId: String, reason: String) {
+        dataStore.edit { preferences ->
+            preferences[MODEL_FAILURE] = reason.take(MAX_FAILURE_LENGTH)
+            if (preferences[ACTIVE_MODEL_ID] == null) {
+                preferences[PREPARING_MODEL_ID] = modelId
+                preferences[STATUS] = WorkerStatus.MODEL_FAILED.storedValue
+            } else {
+                preferences.remove(PREPARING_MODEL_ID)
+                preferences[MODEL_PROGRESS_PERCENT] = 100
+                preferences[STATUS] = if (preferences[MANUAL_PAUSE] == true) {
+                    WorkerStatus.PAUSED.storedValue
+                } else {
+                    WorkerStatus.MODEL_READY.storedValue
+                }
+            }
+        }
+    }
+
     companion object {
         private val MANUAL_PAUSE = booleanPreferencesKey("manual_pause")
         private val STATUS = stringPreferencesKey("status")

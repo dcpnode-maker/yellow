@@ -44,6 +44,15 @@ still stops at `SEVERE`, an unknown thermal state, or a hot battery, and shows t
 actual platform level and battery reading in the activity. Normal idle mode remains
 blocked at `MODERATE`.
 
+The repaired v0.7 engine then loaded and benchmarked the 1.5B Q8_0 model on the
+Dimensity 8100-MAX in 10,939 ms with 4.71 GiB available before load. v0.8 therefore
+offers one explicit **Test stronger 7B model** promotion. It clears only the old 7B
+Q4_K_M pre-repair marker, preserves the verified 1.5B GGUF throughout the test, and
+uses a sentinel to prevent a second promotion. A failed or interrupted 7B test deletes
+only its own weight and returns to the ready 1.5B fallback. Promotion progress remains
+visible beside the retained fallback, and a passing benchmark exposes prompt and
+generation tokens/second in the activity.
+
 For the first founder-controlled OnePlus 10R measurement, D-95 also exposes an
 explicit **Run model test now** action. It temporarily holds the charging, idle,
 screen-off and unmetered-network gates while retaining connected-network,

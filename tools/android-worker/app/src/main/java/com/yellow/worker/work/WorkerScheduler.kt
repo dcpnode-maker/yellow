@@ -35,9 +35,18 @@ object WorkerScheduler {
         WorkManager.getInstance(context.applicationContext).cancelUniqueWork(UNIQUE_WORK_NAME)
     }
 
-    fun prepareModel(context: Context, candidateIndex: Int = 0) {
+    fun prepareModel(
+        context: Context,
+        candidateIndex: Int = 0,
+        repairedEnginePromotion: Boolean = false,
+    ) {
         val request = OneTimeWorkRequestBuilder<PrepareModelWorker>()
-            .setInputData(workDataOf(PrepareModelWorker.INPUT_CANDIDATE_INDEX to candidateIndex))
+            .setInputData(
+                workDataOf(
+                    PrepareModelWorker.INPUT_CANDIDATE_INDEX to candidateIndex,
+                    PrepareModelWorker.INPUT_REPAIRED_ENGINE_PROMOTION to repairedEnginePromotion,
+                ),
+            )
             .setConstraints(requiredConstraints())
             .setBackoffCriteria(BackoffPolicy.EXPONENTIAL, 1, TimeUnit.MINUTES)
             .addTag(MODEL_WORK_TAG)
@@ -50,12 +59,17 @@ object WorkerScheduler {
         )
     }
 
-    fun prepareModelNow(context: Context, candidateIndex: Int = 0) {
+    fun prepareModelNow(
+        context: Context,
+        candidateIndex: Int = 0,
+        repairedEnginePromotion: Boolean = false,
+    ) {
         val request = OneTimeWorkRequestBuilder<PrepareModelWorker>()
             .setInputData(
                 workDataOf(
                     PrepareModelWorker.INPUT_CANDIDATE_INDEX to candidateIndex,
                     PrepareModelWorker.INPUT_MANUAL_TEST_MODE to true,
+                    PrepareModelWorker.INPUT_REPAIRED_ENGINE_PROMOTION to repairedEnginePromotion,
                 ),
             )
             .setConstraints(manualTestConstraints())

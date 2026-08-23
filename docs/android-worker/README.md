@@ -47,6 +47,16 @@ continue at `MODERATE`, only below Yellow's conservative 40.0 °C diagnostic cei
 `SEVERE`, unknown thermal state, or a hot reading still blocks. The idle scheduler's
 strict below-`MODERATE` rule is unchanged.
 
+That repaired v0.7 path subsequently loaded and benchmarked Qwen2.5 Coder 1.5B Q8_0
+on the 10R's Dimensity 8100-MAX in 10,939 ms, with 4.71 GiB available immediately
+before load. Because the three larger failures predated the shared backend repair,
+v0.8 offers one owner-triggered **Test stronger 7B model** action for only the 4.68 GB
+7B Q4_K_M candidate. The verified 1.5B GGUF stays active and visible during download,
+load and benchmark. A per-device sentinel prevents a second promotion; failure or an
+interrupted load deletes only the 7B final/partial weight and restores the ready 1.5B
+state without looping. A passing result displays parsed prompt and generation
+tokens/second on its first evidence line.
+
 ### Temporary founder-controlled 10R test mode
 
 The explicit **Run model test now** action starts the Order 030 preparation ladder

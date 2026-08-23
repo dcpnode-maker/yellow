@@ -22,6 +22,7 @@ import com.yellow.worker.domain.RunGate
 import com.yellow.worker.domain.SafetyDiagnostic
 import com.yellow.worker.model.BenchmarkAssessment
 import com.yellow.worker.model.BenchmarkGate
+import com.yellow.worker.model.BenchmarkSpeeds
 import com.yellow.worker.model.FailedModelCleanup
 import com.yellow.worker.model.ModelCatalog
 import com.yellow.worker.model.ModelDownloadProgress
@@ -31,6 +32,7 @@ import com.yellow.worker.model.ModelSelectionPolicy
 import com.yellow.worker.model.ModelStoragePolicy
 import com.yellow.worker.model.NativeBackendRepair
 import com.yellow.worker.model.PinnedModel
+import com.yellow.worker.model.RepairedEnginePromotion
 import com.yellow.worker.model.ResumableModelDownloader
 import java.io.File
 import java.io.IOException
@@ -59,8 +61,38 @@ class PrepareModelWorker(
         }
 
         val requestedIndex = inputData.getInt(INPUT_CANDIDATE_INDEX, 0)
+        val promotionRequested = inputData.getBoolean(INPUT_REPAIRED_ENGINE_PROMOTION, false)
+        val compact7BIndex = ModelCatalog.candidates.indexOfFirst {
+            it.id == ModelCatalog.CODER_7B_COMPACT
+        }
+        val promotionMode = promotionRequested &&
+            requestedIndex == compact7BIndex &&
+            savedState.activeModelId == ModelCatalog.CODER_1_5B
+        if (promotionRequested && !promotionMode) {
+            preferences.recordUpgradeFailure(
+                ModelCatalog.CODER_7B_COMPACT,
+                "Stronger-model test requires the verified 1.5B fallback",
+            )
+            return Result.failure()
+        }
+
         val candidateIndex = try {
             NativeBackendRepair.rearmDiagnosticOnce(modelDirectory)
+            if (promotionMode) {
+                val promotion = RepairedEnginePromotion.rearmCompact7BOnce(
+                    modelDirectory,
+                    savedState.activeModelId,
+                )
+                if (
+                    !promotion.applied &&
+                    RepairedEnginePromotion.hasInterruptedAttempt(modelDirectory)
+                ) {
+                    return finishPromotionFailure(
+                        checkNotNull(ModelCatalog.at(compact7BIndex)),
+                        "Stronger 7B model test was interrupted; retained the ready 1.5B fallback",
+                    )
+                }
+            }
             resolveCandidate(requestedIndex)
         } catch (error: IOException) {
             preferences.recordModelFailure(
@@ -77,11 +109,17 @@ class PrepareModelWorker(
         val candidate = checkNotNull(ModelCatalog.at(candidateIndex))
         val marker = benchmarkMarker(candidate)
 
+        if (promotionMode) {
+            preferences.beginModel(candidate.id, candidate.preparingStatus())
+            report(candidate.preparingStatus())
+        }
         val blocked = checkSafety()
         if (blocked != null) return blocked
 
-        preferences.beginModel(candidate.id, candidate.preparingStatus())
-        report(candidate.preparingStatus())
+        if (!promotionMode) {
+            preferences.beginModel(candidate.id, candidate.preparingStatus())
+            report(candidate.preparingStatus())
+        }
 
         val finalModel = File(modelDirectory, candidate.fileName)
         val partial = File(modelDirectory, "${candidate.fileName}.part")
@@ -92,10 +130,12 @@ class PrepareModelWorker(
         }
         if (!hasStorageFor(remainingBytes)) {
             markAttempted(marker)
+            val reason = "Requires the remaining model bytes plus an 8 GiB safety reserve"
+            if (promotionMode) return finishPromotionFailure(candidate, reason)
             val result = handleCandidateFailure(
                 candidateIndex,
                 candidate,
-                "Requires the remaining model bytes plus an 8 GiB safety reserve",
+                reason,
                 terminalStatus = WorkerStatus.MODEL_STORAGE_LOW,
             )
             return finishFailedModelCleanup(candidate, result)
@@ -104,6 +144,7 @@ class PrepareModelWorker(
         var engine: InferenceEngine? = null
         var ramBeforeLoad = RamSnapshot(totalBytes = 0L, availableBytes = 0L)
         var deleteFailedModelOnExit = false
+        var promotionFailureReason: String? = null
         val result = try {
             val modelFile = ResumableModelDownloader().download(
                 model = candidate,
@@ -150,6 +191,7 @@ class PrepareModelWorker(
                         endThermal = endSafety.thermalLevel.name,
                         elapsedMillis = SystemClock.elapsedRealtime() - preparationStartedAt,
                         ram = ramBeforeLoad,
+                        speeds = assessment.speeds,
                     )
                     check(marker.delete() || !marker.exists()) { "could not clear benchmark marker" }
                     preferences.activateModel(candidate.id, evidence)
@@ -160,25 +202,35 @@ class PrepareModelWorker(
             }
         } catch (timeout: TimeoutCancellationException) {
             deleteFailedModelOnExit = marker.exists()
-            handleCandidateFailure(candidateIndex, candidate, "model preparation timed out")
+            val reason = "model preparation timed out"
+            if (promotionMode) {
+                promotionFailureReason = reason
+                Result.success()
+            } else {
+                handleCandidateFailure(candidateIndex, candidate, reason)
+            }
         } catch (error: UnsupportedArchitectureException) {
             deleteFailedModelOnExit = marker.exists()
             val availableBytes = ramBeforeLoad.availableBytes.takeIf { it > 0L }
                 ?: readRamSnapshot().availableBytes
-            handleCandidateFailure(
-                candidateIndex,
-                candidate,
-                ModelLoadDiagnostic.nativeFailure(candidate, availableBytes),
-            )
+            val reason = ModelLoadDiagnostic.nativeFailure(candidate, availableBytes)
+            if (promotionMode) {
+                promotionFailureReason = reason
+                Result.success()
+            } else {
+                handleCandidateFailure(candidateIndex, candidate, reason)
+            }
         } catch (cancelled: CancellationException) {
             throw cancelled
         } catch (error: Exception) {
             deleteFailedModelOnExit = marker.exists()
-            handleCandidateFailure(
-                candidateIndex,
-                candidate,
-                error.message ?: error.javaClass.simpleName,
-            )
+            val reason = error.message ?: error.javaClass.simpleName
+            if (promotionMode) {
+                promotionFailureReason = reason
+                Result.success()
+            } else {
+                handleCandidateFailure(candidateIndex, candidate, reason)
+            }
         } finally {
             engine?.let { inferenceEngine ->
                 if (
@@ -189,10 +241,13 @@ class PrepareModelWorker(
                 }
             }
         }
-        return if (deleteFailedModelOnExit) {
-            finishFailedModelCleanup(candidate, result)
-        } else {
-            result
+        return when {
+            promotionFailureReason != null -> finishPromotionFailure(
+                candidate,
+                checkNotNull(promotionFailureReason),
+            )
+            deleteFailedModelOnExit -> finishFailedModelCleanup(candidate, result)
+            else -> result
         }
     }
 
@@ -228,6 +283,20 @@ class PrepareModelWorker(
             WorkerStatus.ERROR,
         )
         return Result.retry()
+    }
+
+    private suspend fun finishPromotionFailure(candidate: PinnedModel, reason: String): Result {
+        val cleanup = FailedModelCleanup.delete(modelDirectory, candidate)
+        if (!cleanup.complete) {
+            preferences.recordModelFailure(
+                candidate.id,
+                "Could not remove failed 7B model files: ${cleanup.failedFileNames.joinToString()}",
+                WorkerStatus.ERROR,
+            )
+            return Result.retry()
+        }
+        preferences.recordUpgradeFailure(candidate.id, reason)
+        return Result.success()
     }
 
     private suspend fun initializeEngine(): InferenceEngine {
@@ -335,6 +404,7 @@ class PrepareModelWorker(
         endThermal: String,
         elapsedMillis: Long,
         ram: RamSnapshot,
+        speeds: BenchmarkSpeeds,
     ): String {
         return buildString {
             append("device=")
@@ -351,6 +421,10 @@ class PrepareModelWorker(
             append(endThermal)
             append("; elapsedMs=")
             append(elapsedMillis)
+            append("; promptTps=")
+            append("%.2f".format(speeds.promptTokensPerSecond))
+            append("; generationTps=")
+            append("%.2f".format(speeds.generationTokensPerSecond))
             append("; model=")
             append(model.id)
             append('\n')
@@ -400,6 +474,7 @@ class PrepareModelWorker(
     companion object {
         const val INPUT_CANDIDATE_INDEX = "candidate_index"
         const val INPUT_MANUAL_TEST_MODE = "manual_test_mode"
+        const val INPUT_REPAIRED_ENGINE_PROMOTION = "repaired_engine_promotion"
         const val PROGRESS_PERCENT = "progress_percent"
         private const val MODEL_DIRECTORY = "models"
         private const val GIB = 1024L * 1024L * 1024L

@@ -4,6 +4,8 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import com.yellow.worker.data.WorkerPreferences
+import com.yellow.worker.model.ModelCatalog
+import com.yellow.worker.model.ModelUiPolicy
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -26,10 +28,24 @@ class WorkerActionReceiver : BroadcastReceiver() {
                         val state = preferences.current()
                         preferences.arm()
                         if (state.activeModelId == null && state.preparingModelId != null) {
-                            val index = com.yellow.worker.model.ModelCatalog.candidates
+                            val index = ModelCatalog.candidates
                                 .indexOfFirst { it.id == state.preparingModelId }
                                 .takeIf { it >= 0 } ?: 0
                             WorkerScheduler.prepareModel(context, index)
+                        } else if (
+                            ModelUiPolicy.isUpgradeInProgress(
+                                state.preparingModelId,
+                                state.activeModelId,
+                            )
+                        ) {
+                            val index = ModelCatalog.candidates.indexOfFirst {
+                                it.id == ModelCatalog.CODER_7B_COMPACT
+                            }.takeIf { it >= 0 } ?: 0
+                            WorkerScheduler.prepareModel(
+                                context,
+                                candidateIndex = index,
+                                repairedEnginePromotion = true,
+                            )
                         }
                         WorkerScheduler.enqueue(context)
                     }

@@ -16,7 +16,10 @@ import com.yellow.worker.data.WorkerPreferences
 import com.yellow.worker.data.WorkerStatus
 import com.yellow.worker.data.WorkerViewState
 import com.yellow.worker.model.ModelCatalog
+import com.yellow.worker.model.ModelUiPolicy
+import com.yellow.worker.model.RepairedEnginePromotion
 import com.yellow.worker.work.WorkerScheduler
+import java.io.File
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -28,6 +31,7 @@ class MainActivity : AppCompatActivity() {
     private val activityScope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
     private lateinit var preferences: WorkerPreferences
     private var pendingAction: PendingAction? = null
+    private var latestState: WorkerViewState? = null
 
     private val notificationPermission = registerForActivityResult(
         ActivityResultContracts.RequestPermission(),
@@ -64,6 +68,7 @@ class MainActivity : AppCompatActivity() {
 
         activityScope.launch {
             preferences.state.collectLatest { state ->
+                latestState = state
                 statusText.text = state.status.displayText
                 safetyDetailText.text = state.safetySummary.orEmpty()
                 safetyDetailText.visibility = if (state.safetySummary == null) {
@@ -80,13 +85,27 @@ class MainActivity : AppCompatActivity() {
                 )
                 modelStatusText.text = modelStatus(state)
                 modelProgressBar.progress = state.modelProgressPercent
-                modelProgressBar.visibility = if (
-                    state.preparingModelId != null && state.activeModelId == null
-                ) {
+                val upgradeInProgress = ModelUiPolicy.isUpgradeInProgress(
+                    state.preparingModelId,
+                    state.activeModelId,
+                )
+                val showProgress = ModelUiPolicy.shouldShowProgress(
+                    state.preparingModelId,
+                    state.activeModelId,
+                )
+                modelProgressBar.visibility = if (showProgress) {
                     View.VISIBLE
                 } else {
                     View.GONE
                 }
+                prepareModelButton.setText(
+                    if (promotionAvailable(state) || upgradeInProgress) {
+                        R.string.test_stronger_model
+                    } else {
+                        R.string.prepare_best_model
+                    },
+                )
+                prepareModelButton.isEnabled = !upgradeInProgress
                 pauseButton.isEnabled = !state.manuallyPaused
                 resumeButton.isEnabled = state.manuallyPaused
             }
@@ -142,8 +161,21 @@ class MainActivity : AppCompatActivity() {
 
     private fun runModelTestNow() {
         activityScope.launch {
+            val state = latestState ?: preferences.current()
+            val promotion = promotionAvailable(state)
+            val candidateIndex = if (promotion) {
+                ModelCatalog.candidates.indexOfFirst {
+                    it.id == ModelCatalog.CODER_7B_COMPACT
+                }.takeIf { it >= 0 } ?: 0
+            } else {
+                0
+            }
             preferences.arm(WorkerStatus.CHECKING_SAFETY)
-            WorkerScheduler.prepareModelNow(applicationContext, candidateIndex = 0)
+            WorkerScheduler.prepareModelNow(
+                applicationContext,
+                candidateIndex = candidateIndex,
+                repairedEnginePromotion = promotion,
+            )
         }
     }
 
@@ -155,6 +187,20 @@ class MainActivity : AppCompatActivity() {
                 val index = ModelCatalog.candidates.indexOfFirst { it.id == state.preparingModelId }
                     .takeIf { it >= 0 } ?: 0
                 WorkerScheduler.prepareModel(applicationContext, candidateIndex = index)
+            } else if (
+                ModelUiPolicy.isUpgradeInProgress(
+                    state.preparingModelId,
+                    state.activeModelId,
+                )
+            ) {
+                val index = ModelCatalog.candidates.indexOfFirst {
+                    it.id == ModelCatalog.CODER_7B_COMPACT
+                }.takeIf { it >= 0 } ?: 0
+                WorkerScheduler.prepareModel(
+                    applicationContext,
+                    candidateIndex = index,
+                    repairedEnginePromotion = true,
+                )
             }
             WorkerScheduler.enqueue(applicationContext)
         }
@@ -162,6 +208,28 @@ class MainActivity : AppCompatActivity() {
 
     private fun modelStatus(state: WorkerViewState): String {
         val active = ModelCatalog.byId(state.activeModelId)
+        val preparing = ModelCatalog.byId(state.preparingModelId)
+        if (
+            active != null &&
+            preparing != null &&
+            ModelUiPolicy.isUpgradeInProgress(state.preparingModelId, state.activeModelId)
+        ) {
+            return buildString {
+                append("Testing upgrade: ")
+                append(preparing.displayName)
+                append(" — ")
+                append(state.modelProgressPercent)
+                append('%')
+                append('\n')
+                append("Fallback ready: ")
+                append(active.displayName)
+                state.modelFailure?.let { failure ->
+                    append('\n')
+                    append("Last issue: ")
+                    append(failure)
+                }
+            }
+        }
         if (active != null) {
             return buildString {
                 append("Ready: ")
@@ -170,9 +238,13 @@ class MainActivity : AppCompatActivity() {
                     append('\n')
                     append(evidence)
                 }
+                state.modelFailure?.let { failure ->
+                    append('\n')
+                    append("Last stronger-model issue: ")
+                    append(failure)
+                }
             }
         }
-        val preparing = ModelCatalog.byId(state.preparingModelId)
         return buildString {
             if (preparing == null) {
                 append(getString(R.string.model_not_prepared))
@@ -191,6 +263,12 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    private fun promotionAvailable(state: WorkerViewState): Boolean =
+        RepairedEnginePromotion.isAvailable(
+            File(filesDir, MODEL_DIRECTORY),
+            state.activeModelId,
+        )
+
     private fun deviceProfile(): String {
         val memoryInfo = ActivityManager.MemoryInfo()
         getSystemService(ActivityManager::class.java)?.getMemoryInfo(memoryInfo)
@@ -207,5 +285,9 @@ class MainActivity : AppCompatActivity() {
         ARM,
         RUN_MODEL_TEST_NOW,
         RESUME,
+    }
+
+    companion object {
+        private const val MODEL_DIRECTORY = "models"
     }
 }

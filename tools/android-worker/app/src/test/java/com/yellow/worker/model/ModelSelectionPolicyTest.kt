@@ -53,4 +53,31 @@ class ModelSelectionPolicyTest {
         )
         assertNull(ModelSelectionPolicy.fallbackAfter(-1))
     }
+
+    @Test
+    fun `repaired promotion starts at compact 7B and falls forward once`() {
+        val compact7BIndex = ModelCatalog.candidates.indexOfFirst {
+            it.id == ModelCatalog.CODER_7B_COMPACT
+        }
+
+        assertEquals(2, compact7BIndex)
+        assertEquals(
+            compact7BIndex,
+            ModelSelectionPolicy.candidateIndex(
+                requestedIndex = compact7BIndex,
+                interruptedBenchmark = false,
+            ),
+        )
+        val retainedFallbackIndex = ModelSelectionPolicy.candidateIndex(
+            requestedIndex = compact7BIndex,
+            interruptedBenchmark = true,
+        )
+        assertEquals(ModelCatalog.candidates.lastIndex, retainedFallbackIndex)
+        assertNull(
+            ModelSelectionPolicy.candidateIndex(
+                requestedIndex = checkNotNull(retainedFallbackIndex),
+                interruptedBenchmark = true,
+            ),
+        )
+    }
 }

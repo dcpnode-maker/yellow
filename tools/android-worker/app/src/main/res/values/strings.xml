@@ -11,6 +11,7 @@
     <string name="manual_pause_off">Manual pause is OFF. Tap PAUSE NOW to stop.</string>
     <string name="arm_when_idle">Arm when idle</string>
     <string name="prepare_best_model">Run model test now</string>
+    <string name="test_stronger_model">Test stronger 7B model</string>
     <string name="pause_now">Pause now</string>
     <string name="resume_when_idle">Resume when idle</string>
     <string name="model_label">Local model</string>
