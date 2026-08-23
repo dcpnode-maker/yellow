@@ -65,6 +65,11 @@ This proves the narrow grant is sufficient for the current service and that the 
 still hides a foreign tenant in this exact path. It does not approve the migration, settle Claude's
 repository-wide runtime-role findings, or turn builder evidence into independent security review.
 
+The preserved implementation also passes TypeScript, import boundaries (`57` files), and the full
+default suite (`102 pass`, `331 skip`, `0 fail`, `1,376` assertions). The first boundary command used
+an obsolete package-script name and could not execute; Codex corrected the precondition to the
+canonical `bun run boundaries` and restarted typecheck/boundaries/default tests from the top.
+
 ### Preserved state
 
 - Red/order commit: `4f85d9d`
