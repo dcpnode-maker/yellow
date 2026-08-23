@@ -246,3 +246,44 @@ library could initialize while model loading had no discoverable CPU backend.
   new permission appears.
 - The repaired 1.5B GGUF must load and complete the bounded benchmark on the 10R before the
   engine defect is considered closed or any larger candidate is retried there.
+
+## Real-device thermal diagnostic amendment — measured manual override (D-99)
+
+The repaired APK repeatedly reports `MODERATE` through OxygenOS while the founder observes
+that the OnePlus 10R is physically cool. The original manual-test gate therefore prevents the
+engine repair from being tested at all. Android distinguishes `MODERATE` throttling from
+`SEVERE`, where system capacity and user experience are substantially limited, and exposes the
+battery temperature independently through the sticky battery broadcast. This amendment changes
+only the explicit owner-triggered diagnostic profile; normal idle work retains D-95's strict
+below-`MODERATE` rule.
+
+### Additional required behavior
+
+1. Read the battery temperature from Android's `ACTION_BATTERY_CHANGED` snapshot in tenths of a
+   degree Celsius. Treat missing or invalid values as unavailable; never invent a reading.
+2. For **Run model test now**, always reject unknown Android thermal state and `SEVERE` or hotter.
+   Reject any known battery temperature at or above the project diagnostic ceiling of 40.0 °C.
+3. Permit `MODERATE` only when the battery temperature is available and below 40.0 °C. `NONE` or
+   `LIGHT` may continue when the battery temperature is unavailable because the platform thermal
+   state remains the primary fail-closed signal. Apply the same rule to the final benchmark
+   activation check so an allowed manual test is not discarded solely for remaining `MODERATE`.
+4. Keep **Arm when idle** unchanged: `MODERATE` or hotter remains blocked regardless of battery
+   temperature. All pause, network, low-battery, storage, integrity and timeout gates remain.
+5. Persist and display the latest Android thermal level and battery-temperature reading in the
+   app so a real-device block can be diagnosed without guessing. Do not persist a sensor history.
+6. Bump the APK version while preserving the application ID, update certificate, private model
+   files, attempt markers and one-time native-backend repair state.
+
+The 40.0 °C ceiling is a conservative Yellow diagnostic rule, not a claim that Android or every
+OnePlus battery has a universal safe-temperature boundary. It exists only to bound the founder's
+short manual engine test; it does not authorize continuous production inference at `MODERATE`.
+
+### Additional falsifying tests and evidence
+
+- Runtime-gate tests prove idle work still rejects `MODERATE` even with a cool battery.
+- Manual-test tests prove `MODERATE` plus 39.9 °C is allowed, while 40.0 °C, `SEVERE`, unknown
+  platform thermal state and `MODERATE` with an unavailable battery reading are each rejected.
+- Diagnostic-format tests prove a real reading is rendered in Celsius and an unavailable reading
+  is labeled as unavailable rather than shown as zero.
+- APK inspection and the existing permission allowlist must remain green. The 10R screen reading
+  and the repaired 1.5B load/benchmark remain the decisive real-device evidence.

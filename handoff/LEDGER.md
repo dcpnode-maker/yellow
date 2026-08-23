@@ -36,3 +36,4 @@
 2026-08-23 · 029 · 0 · phase-0/android-worker-foundation · codex → founder · ORDER-WRITTEN · one arm64 Yellow Worker APK for the 10R, 11R and Nord 5; per-device inference profiles remain benchmark-gated
 2026-08-23 · 030 · 0 · phase-0/android-worker-foundation · codex → founder · ORDER-WRITTEN · immutable resumable 14B→7B coding-model ladder with exact hashes, app-private storage and per-device benchmark activation
 2026-08-24 · 030 · 0 · phase-0/android-worker-foundation · codex → founder · ENGINE-REPAIR-ORDERED · D-98 traces all four 10R load failures to omitted native-library extraction; v0.6 retries only the 1.5B proof model
+2026-08-24 · 030 · 0 · phase-0/android-worker-foundation · codex → founder · THERMAL-DIAGNOSTIC-ORDERED · D-99 lets only explicit manual tests pass OEM MODERATE with a measured sub-40 °C battery; idle mode remains strict
