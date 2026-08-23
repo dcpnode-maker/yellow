@@ -78,5 +78,7 @@ export type {
 export { ReservationOccupancyService } from "./reservation-occupancy";
 export type {
   ClaimReservationSegmentInput,
+  ReleaseReservationSegmentInput,
   ReservationSegmentClaim,
+  ReservationSegmentRelease,
 } from "./reservation-occupancy";

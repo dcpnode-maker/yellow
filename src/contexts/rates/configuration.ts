@@ -299,6 +299,12 @@ function validatePolicyContent(kind: PolicyKind, value: Readonly<Record<string, 
   return JSON.parse(JSON.stringify(content)) as PolicyContent;
 }
 
+export function parseCancellationPolicyContent(
+  value: Readonly<Record<string, unknown>>,
+): CancellationPolicyContent {
+  return validatePolicyContent("cancellation", value) as CancellationPolicyContent;
+}
+
 function requireOptionalCode(name: string, value: string | null | undefined): string | null {
   if (value === undefined || value === null) return null;
   if (value !== value.trim() || !OPTIONAL_CODE.test(value)) {

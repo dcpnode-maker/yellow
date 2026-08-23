@@ -13,6 +13,10 @@ import {
   type PostgresIdempotency,
   type Tx,
 } from "../../kernel";
+import {
+  freezeCancellationPolicyEvidence,
+  toStoredCancellationPolicyEvidence,
+} from "./policy-evidence";
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 const CHANNEL = /^[a-z][a-z0-9._-]{0,63}$/;
@@ -86,6 +90,8 @@ export interface ReservationCommitServiceOptions {
 interface RatePlanRow {
   readonly id: string;
   readonly currency: string;
+  readonly cancellation_policy: string | null;
+  readonly cancellation_content: Record<string, unknown> | null;
   readonly guarantee_policy: string | null;
   readonly market_code: string | null;
   readonly source_code: string | null;
@@ -266,8 +272,14 @@ export class ReservationCommitService {
       if (!parties[0]) throw new ReservationNotFoundError("Active primary party was not found in the tenant");
 
       const plans = await commandTx<RatePlanRow[]>`
-        SELECT rp.id, rp.currency, rp.guarantee_policy, rp.market_code, rp.source_code
+        SELECT rp.id, rp.currency, rp.cancellation_policy,
+               cancellation.content AS cancellation_content,
+               rp.guarantee_policy, rp.market_code, rp.source_code
         FROM rate_plan AS rp
+        LEFT JOIN policy AS cancellation
+          ON cancellation.id = rp.cancellation_policy
+         AND cancellation.tenant_id = rp.tenant_id
+         AND cancellation.kind = 'cancellation'
         LEFT JOIN policy AS guarantee
           ON guarantee.id = rp.guarantee_policy
          AND guarantee.tenant_id = rp.tenant_id
@@ -277,10 +289,14 @@ export class ReservationCommitService {
           AND rp.tenant_id = current_setting('app.tenant_id', true)::uuid
           AND rp.property_node = ${input.envelope.propertyNode}::uuid
           AND rp.status = 'active'
+          AND (rp.cancellation_policy IS NULL OR cancellation.id IS NOT NULL)
           AND (rp.guarantee_policy IS NULL OR guarantee.id IS NOT NULL)
       `;
       const plan = plans[0];
       if (!plan) throw new ReservationNotFoundError("Active rate plan was not found in the active property");
+      const cancellationPolicy = plan.cancellation_policy === null
+        ? null
+        : freezeCancellationPolicyEvidence(plan.cancellation_policy, plan.cancellation_content ?? {});
 
       const reservationId = requireUuid("generated reservation id", this.#idFactory());
       const segmentId = requireUuid("generated segment id", this.#idFactory());
@@ -344,6 +360,9 @@ export class ReservationCommitService {
           sellable_unit_id: acquired.sellableUnitId,
           unit_type_id: acquired.unitTypeId,
           rate_plan_id: plan.id,
+          cancellation_policy: cancellationPolicy === null
+            ? null
+            : toStoredCancellationPolicyEvidence(cancellationPolicy),
           period: { from, to },
           channel: normalized.channelCode,
         },

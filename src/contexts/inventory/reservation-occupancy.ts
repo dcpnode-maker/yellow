@@ -24,11 +24,21 @@ export interface ClaimReservationSegmentInput {
   readonly envelope: AuditEnvelope;
 }
 
+export interface ReleaseReservationSegmentInput {
+  readonly segmentId: string;
+  readonly envelope: AuditEnvelope;
+}
+
 export interface ReservationSegmentClaim {
   readonly sellableUnitId: string;
   readonly unitTypeId: string;
   readonly from: Date;
   readonly to: Date;
+  readonly claimCount: number;
+}
+
+export interface ReservationSegmentRelease {
+  readonly segmentId: string;
   readonly claimCount: number;
 }
 
@@ -149,6 +159,20 @@ export class ReservationOccupancyService {
     const sellableUnitId = requireUuid("sellableUnitId", input.sellableUnitId);
     const segmentId = requireUuid("segmentId", input.segmentId);
     const period = requirePeriod(input.from, input.to);
+    await tx`
+      SELECT pg_advisory_xact_lock(hashtextextended(${segmentId}::text, 85))
+    `;
+    const existingClaims = await tx<Array<{ count: number }>>`
+      SELECT count(*)::int AS count
+      FROM space_occupancy
+      WHERE tenant_id = ${input.envelope.tenantId}::uuid
+        AND tenant_id = current_setting('app.tenant_id', true)::uuid
+        AND slot_ref = ${segmentId}::uuid
+        AND slot_kind = 'segment'
+    `;
+    if (Number(existingClaims[0]?.count) !== 0) {
+      throw new InventoryConflictError("Reservation segment already owns occupancy claims");
+    }
     const mappings = await tx<MappingRow[]>`
       SELECT
         su.unit_type_id,
@@ -247,5 +271,74 @@ export class ReservationOccupancyService {
       to: new Date(period.to),
       claimCount: occupancies.length,
     });
+  }
+
+  async releaseForSegment(
+    tx: Tx,
+    input: ReleaseReservationSegmentInput,
+  ): Promise<ReservationSegmentRelease> {
+    if (input.envelope.operation !== "occupancy.released") {
+      throw new InventoryValidationError("audit operation must be occupancy.released");
+    }
+    const segmentId = requireUuid("segmentId", input.segmentId);
+    await tx`
+      SELECT pg_advisory_xact_lock(hashtextextended(${segmentId}::text, 85))
+    `;
+    const occupancies = await tx<OccupancyRow[]>`
+      SELECT occupancy.id, occupancy.space_id, occupancy.period::text AS period,
+             occupancy.claim::text AS claim, occupancy.exclusive
+      FROM space_occupancy AS occupancy
+      JOIN reservation_segment AS segment
+        ON segment.id = occupancy.slot_ref
+       AND segment.tenant_id = occupancy.tenant_id
+      JOIN reservation
+        ON reservation.id = segment.reservation_id
+       AND reservation.tenant_id = segment.tenant_id
+      WHERE occupancy.tenant_id = ${input.envelope.tenantId}::uuid
+        AND occupancy.tenant_id = current_setting('app.tenant_id', true)::uuid
+        AND occupancy.slot_ref = ${segmentId}::uuid
+        AND occupancy.slot_kind = 'segment'
+        AND reservation.property_node = ${input.envelope.propertyNode}::uuid
+      ORDER BY occupancy.space_id, occupancy.id
+    `;
+    if (occupancies.length === 0) {
+      throw new InventoryConflictError("Reservation segment has no releasable occupancy claims");
+    }
+    const released = await tx<Array<{ count: number }>>`
+      SELECT release_occupancy(${input.envelope.tenantId}::uuid, ${segmentId}::uuid) AS count
+    `;
+    if (Number(released[0]?.count) !== occupancies.length) {
+      throw new Error("Occupancy release count did not match the segment's captured claims");
+    }
+
+    const fact = await recordFact(tx, {
+      entityType: "reservation_segment",
+      entityId: segmentId,
+      envelope: input.envelope,
+      payload: { segment_id: segmentId, claim_count: occupancies.length },
+    });
+    for (const occupancy of occupancies) {
+      await this.#events.publish(tx, {
+        tenantId: input.envelope.tenantId,
+        propertyNode: input.envelope.propertyNode,
+        businessDate: fact.businessDate,
+        aggregateType: "space_occupancy",
+        aggregateId: occupancy.id,
+        eventType: "occupancy.released",
+        actorId: input.envelope.actorId,
+        correlationId: input.envelope.requestId,
+        payload: {
+          occupancy_id: occupancy.id,
+          slot_ref: segmentId,
+          slot_kind: "segment",
+          segment_id: segmentId,
+          space_id: occupancy.space_id,
+          period: occupancy.period,
+          claim: occupancy.claim,
+          exclusive: occupancy.exclusive,
+        },
+      });
+    }
+    return Object.freeze({ segmentId, claimCount: occupancies.length });
   }
 }

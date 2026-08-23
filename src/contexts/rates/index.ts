@@ -3,6 +3,7 @@ export {
   RateConflictError,
   RateNotFoundError,
   RateValidationError,
+  parseCancellationPolicyContent,
 } from "./configuration";
 export type {
   CancellationPolicyContent,

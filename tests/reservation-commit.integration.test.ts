@@ -338,6 +338,7 @@ databaseDescribe("Order 081 atomic cart-hold reservation commit", () => {
       guest_role: string;
       children: unknown;
       reservation_facts: number;
+      cancellation_policy_evidence: unknown;
       event_types: string[];
       idempotency_claims: number;
     }>>`
@@ -348,6 +349,10 @@ databaseDescribe("Order 081 atomic cart-hold reservation commit", () => {
         segment.children,
         (SELECT count(*)::int FROM fact_log
           WHERE entity_type = 'reservation' AND entity_id = reservation.id) AS reservation_facts,
+        (SELECT payload -> 'cancellation_policy' FROM fact_log
+          WHERE entity_type = 'reservation' AND entity_id = reservation.id
+            AND fact_type = 'reservation.confirmed'
+          ORDER BY recorded_at DESC, id DESC LIMIT 1) AS cancellation_policy_evidence,
         (SELECT array_agg(event_type ORDER BY seq) FROM outbox
           WHERE correlation_id = ${request.envelope.requestId}::uuid) AS event_types,
         (SELECT count(*)::int FROM api_idempotency
@@ -363,6 +368,7 @@ databaseDescribe("Order 081 atomic cart-hold reservation commit", () => {
       guest_role: "primary",
       children: [{ age: 6 }],
       reservation_facts: 1,
+      cancellation_policy_evidence: null,
       event_types: [
         "hold.consumed",
         "occupancy.released",

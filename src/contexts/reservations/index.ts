@@ -25,6 +25,37 @@ export {
   ReservationOfferSearchTooBroadError,
   ReservationOfferValidationError,
 } from "./offers";
+export {
+  ReservationApprovalRequiredError,
+  ReservationLifecycleConflictError,
+  ReservationLifecycleNotFoundError,
+  ReservationLifecycleService,
+  ReservationLifecycleValidationError,
+} from "./lifecycle";
+export type {
+  CancellationApprovalPayload,
+  CancellationPenalty,
+  CancellationPolicyDecision,
+  CancelReservationInput,
+  CancelReservationResult,
+  ModifyReservationInput,
+  ModifyReservationResult,
+  ReinstateReservationInput,
+  ReinstateReservationResult,
+  ReservationFieldDiff,
+  ReservationLifecycleServiceOptions,
+  ReservationMutableFields,
+} from "./lifecycle";
+export {
+  freezeCancellationPolicyEvidence,
+  parseStoredCancellationPolicyEvidence,
+  ReservationPolicyEvidenceError,
+  toStoredCancellationPolicyEvidence,
+} from "./policy-evidence";
+export type {
+  FrozenCancellationPolicyEvidence,
+  StoredCancellationPolicyEvidence,
+} from "./policy-evidence";
 export type {
   ReservationOffer,
   ReservationOfferIssue,

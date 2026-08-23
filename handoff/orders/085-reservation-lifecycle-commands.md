@@ -47,7 +47,8 @@ order as `UNVERIFIED` only.
 - `handoff/orders/085-reservation-lifecycle-commands.md`
 - `src/contexts/rates/configuration.ts` only to export the existing strict cancellation-policy parser
 - `src/contexts/rates/index.ts`
-- `src/contexts/inventory/reservation-occupancy.ts` only for canonical segment release
+- `src/contexts/inventory/reservation-occupancy.ts` only for canonical segment release and an
+  inventory-owned zero-existing-claim guard before segment claim
 - `src/contexts/inventory/index.ts`
 - `src/contexts/reservations/policy-evidence.ts`
 - `src/contexts/reservations/commit.ts` only to freeze cancellation-policy evidence at confirmation
@@ -75,7 +76,8 @@ order as `UNVERIFIED` only.
 3. Add `ReservationOccupancyService.releaseForSegment()`. It locks and captures the exact
    tenant-scoped segment claims, calls only `release_occupancy()`, verifies the count, records one
    `occupancy.released` fact and publishes one existing `occupancy.released` event per captured
-   claim. Zero claims and count drift fail closed.
+   claim. Zero claims and count drift fail closed. Its existing claim command must also reject a
+   segment that already owns any claim before allocation, including positional inventory.
 4. Add an idempotent modify command for only notes, ETA, ETD, market/source/origin codes. Expected
    and changed fields must be the same non-empty set; unknown fields, malformed values, no-ops and
    stale expected values fail. Permit only reserved/due-in/in-house/due-out reservations. Emit one
@@ -89,8 +91,10 @@ order as `UNVERIFIED` only.
 6. Bind a waiver to kind `reservation_cancellation_waiver`, subject type/id, requester actor,
    distinct non-null decider, exact reason and exact generated policy decision payload. Fetch by the
    typed primary-key fields and validate payload bytes in application; do not add an unindexed JSON
-   predicate. Missing/mismatched/pending/rejected/self/foreign approval fails with a structured
-   approval-required error and no mutation.
+   predicate. Treat a waiver as single-use: scan only typed reservation cancellation facts and
+   compare their selected payloads in application, so a cancel -> reinstate -> cancel cycle needs a
+   fresh second-operator decision. Missing/mismatched/pending/rejected/self/foreign/already-used
+   approval fails with a structured approval-required error and no mutation.
 7. Add an idempotent reinstate command. Lock the reservation/segments, require the declared
    cancelled/no-show -> reserved transition, require segments to be cancelled with no existing
    claims, and reclaim every original sellable/period using the inventory public service. Then mark
@@ -147,10 +151,11 @@ Invalid transitions, wrong property/tenant and malformed reason/key produce no m
 ### P3 — non-zero and legacy policy require exact four-eyes waiver
 
 The structured error exposes the canonical waiver payload. Missing, pending, rejected, self,
-foreign, wrong-reason, wrong-policy/hash or wrong-penalty approval cannot cancel. Only an approved
-request made by the command actor and decided by another actor succeeds; evidence names the waiver
-and explicitly records `penalty_journal_id: null` rather than inventing a charge. Legacy unfrozen
-confirmation follows the same explicit waiver path.
+foreign, already-used, wrong-reason, wrong-policy/hash or wrong-penalty approval cannot cancel.
+Only an approved request made by the command actor and decided by another actor succeeds once;
+cancel -> reinstate -> cancel needs a fresh waiver. Evidence names the waiver and explicitly
+records `penalty_journal_id: null` rather than inventing a charge. Legacy unfrozen confirmation
+follows the same explicit waiver path.
 
 ### P4 — reinstate re-arbitrates and cannot overbook
 
