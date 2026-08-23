@@ -37,8 +37,9 @@ export function parseApprovedOrders(source: string): number[] | undefined {
   const exclusiveScopeRaw = source.match(/## Exclusive discharge scope\s+([\s\S]*?)(?:\n##|\n---|$)/i)?.[1];
   if (exclusiveScopeRaw !== undefined) {
     const scopeText = exclusiveScopeRaw;
-    const ordersMatch = scopeText.match(/Orders\s+\*\*?([^*.\n]+)\*\*?/i)?.[1];
-    const targetText = ordersMatch ?? scopeText;
+    const ordersMatch = scopeText.match(/\bOrders\s+\*\*([\s\S]*?)\*\*/i)?.[1];
+    if (ordersMatch === undefined) return undefined;
+    const targetText = ordersMatch;
     const orders = new Set<number>();
     const orderRangeRegex = /(\d{3})(?:\s*[–-]\s*(\d{3}))?/g;
     let match: RegExpExecArray | null;

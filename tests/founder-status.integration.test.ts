@@ -88,6 +88,22 @@ describe("Order 093 hostile review-coverage parsing", () => {
     expect(parseApprovedOrders(reviewSource({ scope: "045-052" }))).toEqual([
       45, 46, 47, 48, 49, 50, 51, 52,
     ]);
+
+    const wrappedScopeWithSupportingOrder = [
+      "# REVIEW 045-091 — Wave hostile",
+      "**Reviewed by:** OpenAI Codex independent non-implementing reviewer",
+      "**Date:** 2026-08-24",
+      "**Verdict:** **APPROVED**",
+      "",
+      "## Exclusive discharge scope",
+      "This review approves only Orders **045-086, 089-090,",
+      "with no other owners**. Supporting evidence from Order 091 is not discharged here.",
+      "",
+      "## Next",
+    ].join("\n");
+    const approvedOrders = parseApprovedOrders(wrappedScopeWithSupportingOrder);
+    expect(approvedOrders).toContain(90);
+    expect(approvedOrders).not.toContain(91);
   });
 
   test("explicit approval and recognized independent authority are mandatory", () => {
