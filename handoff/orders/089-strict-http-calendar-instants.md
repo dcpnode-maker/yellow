@@ -100,7 +100,26 @@ boundaries, isolated gate, schema drift, protected hashes and fresh referee stay
 
 ## Builder evidence — UNVERIFIED
 
-- [ ] P0 is committed red before production code.
-- [ ] P1–P3 pass without reaching a dependency for invalid input.
-- [ ] P4 and both protected hashes remain exact.
-- [ ] Gate-3 debt is recorded; no review or merge is claimed.
+- [x] P0 is committed red before production code.
+- [x] P1–P3 pass without reaching a dependency for invalid input.
+- [x] P4 and both protected hashes remain exact.
+- [x] Gate-3 debt is recorded; no review or merge is claimed.
+
+Evidence captured at production commit `04a0e3f`:
+
+- Intentional red commit `4d13bfa`: 1 pass, 3 fail, 10 assertions. Impossible
+  instants reached the unavailable-service path and returned 503 instead of 400.
+- Corrected focused proof: 4 pass, 0 fail, 16 assertions. TypeScript and all 56
+  import-boundary files pass; the default environment-independent suite is 106 pass,
+  326 database-gated skips, 0 fail and 1,392 assertions.
+- Fresh disposable PostgreSQL proofs: inherited Order 082 is 5/5 with 61 assertions,
+  inherited Order 084 is 6/6 with 76 assertions, and the isolated Phase-3 gate is
+  13/13 suites. Schema, licence and dependency audit checks are green.
+- `yellow-order-089` was a fresh app-never-started Compose project; the referee is
+  11 passed, 0 failed of 11.
+- Protected SHA-256 values remain exact:
+  `fe2a9fc949c6bacded3f8d3fc4d14fc596a83ebde9aeb043eb10845f07b30923` and
+  `3228279bd99a8f9b6af99748f31d4d4b482a8e627e16d92644d9d859ad8befa1`.
+- Disposable Graphify map: 5,508 nodes, 9,490 directed edges and 629 communities at
+  `04a0e3f`, with zero missing/dangling endpoints, duplicates or collapsed directed
+  pairs. Ten inherited self-loops remain visible; community-label refresh is deferred.
