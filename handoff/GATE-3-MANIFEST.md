@@ -53,6 +53,7 @@ Status legend: UNVERIFIED = built, proofs builder-asserted, not executed by the 
 | 090 | 3 | 718503d (order/red proof 5155003) | UNVERIFIED | Order 090 — Portable AI intent provider contract |
 | 091 | 3 | 5d3f137 (implementation 51d46f7; order/red proof 8c863e3) | UNVERIFIED | Order 091 — Canonical RMS room-economics metric contract |
 | 092 | 3 | 0ea6832 (order/red proof 93402dd) | UNVERIFIED | Order 092 — OTA research evidence and integration-archetype contract |
+| 093 | 3 | b9375d5 (order/red proof 99b4031; Windows proof correction c28e095; scope Q134) | UNVERIFIED | Order 093 — Canonical channel booked-value and guest-total contract |
 
 Protected hashes to re-quote each time:
 

@@ -131,8 +131,8 @@ remain green. Graphify stays disposable and localhost changes only its honest or
 
 ## Definition of done
 
-- [ ] P0 is committed red before production code.
-- [ ] P1-P4 are green with exact decomposition and funding classification.
-- [ ] External gross-value mapping and deferred authorities are explicit.
-- [ ] P5 and both protected hashes remain exact.
-- [ ] Order 093 is recorded as UNVERIFIED review debt; no approval or merge is claimed.
+- [x] P0 is committed red before production code.
+- [x] P1-P4 are green with exact decomposition and funding classification.
+- [x] External gross-value mapping and deferred authorities are explicit.
+- [x] P5 and both protected hashes remain exact.
+- [x] Order 093 is recorded as UNVERIFIED review debt; no approval or merge is claimed.
