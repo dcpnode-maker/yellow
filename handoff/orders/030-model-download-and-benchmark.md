@@ -179,3 +179,32 @@ the smaller candidates run on-device.
 - Selection-policy tests prove a persisted marker can walk 14B→7B Q6→7B Q4→1.5B
   without looping, and that interruption of the fourth candidate stops fail-closed.
 - Existing downloader, integrity, scheduler, pause and gate tests remain green.
+
+## Founder amendment — reclaim failed-model storage (D-97)
+
+The founder directed Yellow Worker to delete model weights that the individual phone
+cannot use. This supersedes only D-96's failed-weight retention requirement; catalog,
+attempt-marker and all safety boundaries remain unchanged.
+
+### Additional required behavior
+
+1. Once a candidate has a persisted attempt marker, delete that candidate's exact
+   final GGUF and `.part` path from the app-private model directory before advancing.
+   Keep the marker so an update or restart cannot redownload the failed candidate.
+2. Delete only paths derived from immutable `ModelCatalog` filenames. Never enumerate
+   or delete unrelated files, active-model weights, unattempted candidates or marker
+   files.
+3. After a caught load/benchmark failure, release the native engine before reclaiming
+   the failed weight. Download failures before an attempt marker retain their valid
+   `.part` file for resumability.
+4. Existing 14B and 7B Q6 markers on the 10R must trigger cleanup on the first v0.5
+   model run, reclaiming 15,242,309,056 bytes when both verified files are present.
+5. A candidate that passes activation keeps its GGUF and has its attempt marker
+   removed exactly as before.
+
+### Additional falsifying tests
+
+- Cleanup tests prove only the selected candidate's final/partial files are removed,
+  unrelated files and the marker survive, and the reclaimed-byte count is exact.
+- Selection, integrity and download-resume tests remain green; cleanup must not turn a
+  pre-load network failure into a permanent skip.
