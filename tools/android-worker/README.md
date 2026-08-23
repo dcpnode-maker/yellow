@@ -1,9 +1,9 @@
 # Yellow Android worker
 
-This directory builds the fail-closed OnePlus fleet worker foundation from Orders 028
-and 029. One arm64 APK serves the verified OnePlus 10R, OnePlus 11R and OnePlus Nord 5.
-It embeds the official pinned `llama.cpp` Android library but intentionally does not
-load a model or accept jobs yet.
+This directory builds the fail-closed OnePlus fleet worker from Orders 028–030. One
+arm64 APK serves the verified OnePlus 10R, OnePlus 11R and OnePlus Nord 5. It embeds
+the official pinned `llama.cpp` Android library and can prepare a hash-pinned model,
+but intentionally does not accept remote jobs or run repository code yet.
 
 ## Build
 
@@ -23,4 +23,7 @@ The debug APK is written to
 
 Required build packages are pinned in `.github/workflows/android-worker.yml`. The APK
 contains arm64 native code only and is intended for the three verified OnePlus phones.
-Inference limits remain per-device runtime profiles and are not fixed by packaging.
+The owner can start the 14B→7B preparation ladder from the app. Downloads resume only
+under the idle/charging/Wi-Fi safety constraints, stay in app-private storage, and
+must pass exact byte-count, SHA-256, native-load and thermal benchmark gates. Inference
+limits remain per-device runtime profiles and are not fixed by packaging.

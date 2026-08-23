@@ -26,6 +26,14 @@
             android:textAppearance="@style/TextAppearance.AppCompat.Body1" />
 
         <TextView
+            android:id="@+id/device_profile_text"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="10dp"
+            android:text="@string/device_profile_loading"
+            android:textAppearance="@style/TextAppearance.AppCompat.Caption" />
+
+        <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="28dp"
@@ -57,6 +65,13 @@
             android:text="@string/arm_when_idle" />
 
         <Button
+            android:id="@+id/prepare_model_button"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:text="@string/prepare_best_model" />
+
+        <Button
             android:id="@+id/pause_button"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -69,6 +84,22 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="8dp"
             android:text="@string/resume_when_idle" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="28dp"
+            android:text="@string/model_label"
+            android:textAllCaps="true"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/model_status_text"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="6dp"
+            android:text="@string/model_not_prepared"
+            android:textAppearance="@style/TextAppearance.AppCompat.Body1" />
 
         <TextView
             android:layout_width="match_parent"

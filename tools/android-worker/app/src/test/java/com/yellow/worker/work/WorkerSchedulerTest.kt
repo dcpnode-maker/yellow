@@ -22,5 +22,17 @@ class WorkerSchedulerTest {
     fun `arming replaces only the existing unique Yellow job`() {
         assertEquals(ExistingWorkPolicy.REPLACE, WorkerScheduler.EXISTING_WORK_POLICY)
         assertEquals("yellow-idle-worker", WorkerScheduler.UNIQUE_WORK_NAME)
+        assertEquals("yellow-model-preparation", WorkerScheduler.MODEL_WORK_NAME)
+    }
+
+    @Test
+    fun `model preparation uses the identical coarse constraints`() {
+        val constraints = WorkerScheduler.requiredConstraints()
+
+        assertEquals(NetworkType.UNMETERED, constraints.requiredNetworkType)
+        assertTrue(constraints.requiresCharging())
+        assertTrue(constraints.requiresBatteryNotLow())
+        assertTrue(constraints.requiresStorageNotLow())
+        assertTrue(constraints.requiresDeviceIdle())
     }
 }

@@ -20,10 +20,17 @@ class WorkerActionReceiver : BroadcastReceiver() {
                 when (intent.action) {
                     ACTION_PAUSE -> {
                         preferences.pause()
-                        WorkerScheduler.cancel(context)
+                        WorkerScheduler.cancelAll(context)
                     }
                     ACTION_RESUME -> {
+                        val state = preferences.current()
                         preferences.arm()
+                        if (state.activeModelId == null && state.preparingModelId != null) {
+                            val index = com.yellow.worker.model.ModelCatalog.candidates
+                                .indexOfFirst { it.id == state.preparingModelId }
+                                .takeIf { it >= 0 } ?: 0
+                            WorkerScheduler.prepareModel(context, index)
+                        }
                         WorkerScheduler.enqueue(context)
                     }
                 }

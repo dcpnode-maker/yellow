@@ -1,21 +1,18 @@
 package com.yellow.worker.work
 
 import android.content.Context
-import android.os.BatteryManager
-import android.os.PowerManager
 import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
 import com.arm.aichat.AiChat
 import com.arm.aichat.InferenceEngine
-import com.arm.aichat.isModelLoaded
 import com.yellow.worker.data.WorkerPreferences
 import com.yellow.worker.data.WorkerStatus
 import com.yellow.worker.domain.BlockReason
+import com.yellow.worker.domain.DeviceSafety
 import com.yellow.worker.domain.GateDecision
 import com.yellow.worker.domain.GateSnapshot
 import com.yellow.worker.domain.RunGate
-import com.yellow.worker.domain.ThermalLevel
-import java.io.File
+import com.yellow.worker.model.ModelCatalog
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.flow.first
@@ -63,15 +60,15 @@ class YellowWorker(
             }
 
             report(preferences, WorkerStatus.NATIVE_ENGINE_READY)
-            val model = File(File(applicationContext.filesDir, MODEL_DIRECTORY), ACTIVE_MODEL_NAME)
-            if (!model.isFile) {
+            val activeModel = ModelCatalog.byId(preferences.current().activeModelId)
+            if (activeModel == null) {
                 report(preferences, WorkerStatus.WAITING_FOR_MODEL)
                 return Result.success()
             }
 
-            // Order 028 proves native readiness only. Order 029 must validate and benchmark
-            // a model before any model load or inference is permitted.
-            report(preferences, WorkerStatus.MODEL_PRESENT_NOT_ENABLED)
+            // Order 030 prepares and benchmarks the model. Signed, bounded jobs remain
+            // disabled until Order 031, so ordinary work stops at ready state.
+            report(preferences, WorkerStatus.MODEL_READY)
             return Result.success()
         } catch (timeout: TimeoutCancellationException) {
             preferences.setStatus(WorkerStatus.ERROR)
@@ -82,11 +79,7 @@ class YellowWorker(
             preferences.setStatus(WorkerStatus.ERROR)
             return Result.failure()
         } finally {
-            engine?.let { inferenceEngine ->
-                if (inferenceEngine.state.value.isModelLoaded) {
-                    runCatching { inferenceEngine.cleanUp() }
-                }
-            }
+            engine?.let { inferenceEngine -> runCatching { inferenceEngine.cleanUp() } }
         }
     }
 
@@ -99,25 +92,7 @@ class YellowWorker(
     }
 
     private fun readGateSnapshot(manuallyPaused: Boolean): GateSnapshot {
-        val powerManager = applicationContext.getSystemService(PowerManager::class.java)
-        val batteryManager = applicationContext.getSystemService(BatteryManager::class.java)
-        return GateSnapshot(
-            manuallyPaused = manuallyPaused,
-            deviceInteractive = powerManager?.isInteractive ?: true,
-            charging = batteryManager?.isCharging ?: false,
-            thermalLevel = powerManager?.currentThermalStatus.toThermalLevel(),
-        )
-    }
-
-    private fun Int?.toThermalLevel(): ThermalLevel = when (this) {
-        PowerManager.THERMAL_STATUS_NONE -> ThermalLevel.NONE
-        PowerManager.THERMAL_STATUS_LIGHT -> ThermalLevel.LIGHT
-        PowerManager.THERMAL_STATUS_MODERATE -> ThermalLevel.MODERATE
-        PowerManager.THERMAL_STATUS_SEVERE -> ThermalLevel.SEVERE
-        PowerManager.THERMAL_STATUS_CRITICAL -> ThermalLevel.CRITICAL
-        PowerManager.THERMAL_STATUS_EMERGENCY -> ThermalLevel.EMERGENCY
-        PowerManager.THERMAL_STATUS_SHUTDOWN -> ThermalLevel.SHUTDOWN
-        else -> ThermalLevel.UNKNOWN
+        return DeviceSafety.snapshot(applicationContext, manuallyPaused)
     }
 
     private fun BlockReason.toWorkerStatus(): WorkerStatus = when (this) {
@@ -130,7 +105,5 @@ class YellowWorker(
 
     companion object {
         private const val NATIVE_INIT_TIMEOUT_MS = 60_000L
-        private const val MODEL_DIRECTORY = "models"
-        private const val ACTIVE_MODEL_NAME = "active.gguf"
     }
 }
