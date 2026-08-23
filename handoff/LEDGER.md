@@ -33,3 +33,4 @@
 2026-08-23 · — · all · phase-0/phone-idle-worker-rfc · founder → codex · PRIMARY-LEAD-APPOINTED · D-91 retires Claude dependency; Codex owns architecture, orders, build and evidence; founder retains merge control
 2026-08-23 · 027 · 0 · phase-0/phone-idle-worker-rfc · codex → founder · ORDER-WRITTEN · replace active Claude-dependent governance without weakening order, proof, invariant, PR or no-self-merge controls
 2026-08-23 · 028 · 0 · phase-0/android-worker-foundation · codex → founder · ORDER-WRITTEN · pinned official llama.cpp Android engine, fail-closed safety shell, zero personal-data permissions, native APK CI artifact
+2026-08-23 · 029 · 0 · phase-0/android-worker-foundation · codex → founder · ORDER-WRITTEN · one arm64 Yellow Worker APK for the 10R, 11R and Nord 5; per-device inference profiles remain benchmark-gated
