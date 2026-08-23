@@ -51,6 +51,7 @@ Status legend: UNVERIFIED = built, proofs builder-asserted, not executed by the 
 | 086 | 3 | db699a8 (order/red proof 1df6bce) | UNVERIFIED | Order 086 — Atomic reservation segment move, extend and shorten |
 | 089 | 2 | f4ecae9 (calendar correction 04a0e3f; order/red proof 4d13bfa; status correction Q133) | UNVERIFIED | Order 089 — Strict HTTP calendar instants |
 | 090 | 3 | 718503d (order/red proof 5155003) | UNVERIFIED | Order 090 — Portable AI intent provider contract |
+| 091 | 3 | 5d3f137 (implementation 51d46f7; order/red proof 8c863e3) | UNVERIFIED | Order 091 — Canonical RMS room-economics metric contract |
 
 Protected hashes to re-quote each time:
 

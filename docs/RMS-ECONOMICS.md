@@ -90,3 +90,19 @@ Those future layers may supply exact inputs and cite this versioned evidence. Th
 the component arithmetic, use floating-point money, invent unsupported channel capability, treat a
 model proposal as authority or bypass PostgreSQL sellability, approval, audit, fiscal or tenant
 boundaries.
+
+## Roadmap placement and conflict
+
+This contract is the first safe boundary from the adaptive RMS roadmap retained in
+`docs/AI-ARCHITECTURE.md`. The remaining sequence is deliberately not hidden inside Order 091:
+canonical data readiness; model contract and backtesting; versioned OTA capability and campaign
+economics; net-contribution and bid-price optimization; explanation and approval UX; guarded
+distribution preflight/publication; causal campaign measurement; group displacement and
+profitability; and champion/challenger monitoring each require their own order and proof.
+
+That destination crosses the current Phase-4 reservation plan and later Phase-5 financial,
+Phase-9 distribution and Phase-11 group boundaries. It therefore cannot silently acquire schema,
+event, state-transition, RLS, pricing-history, channel-publication, accounting or group-acceptance
+authority here. Online automation remains subject to future per-action guardrails and proven channel
+capability. Offline negotiated/group business remains management-decided unless a future explicit
+policy and order changes that governance.

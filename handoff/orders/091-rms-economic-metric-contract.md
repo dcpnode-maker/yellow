@@ -153,8 +153,32 @@ except that the honest current built order/debt counters advance after the manif
 
 ## Definition of done
 
-- [ ] P0 is committed red before production code.
-- [ ] P1–P4 are green with exact bigint/rational evidence and no persistence or authority.
-- [ ] Documentation names all inclusions, exclusions and deferred estimation/governance boundaries.
-- [ ] P5 and both protected hashes remain exact.
-- [ ] Order 091 is recorded as UNVERIFIED review debt; no approval or merge is claimed.
+- [x] P0 is committed red before production code.
+- [x] P1–P4 are green with exact bigint/rational evidence and no persistence or authority.
+- [x] Documentation names all inclusions, exclusions and deferred estimation/governance boundaries.
+- [x] P5 and both protected hashes remain exact.
+- [x] Order 091 is recorded as UNVERIFIED review debt; no approval or merge is claimed.
+
+## Builder evidence — UNVERIFIED
+
+- Intentional red commit `8c863e3`: 0 pass, 1 fail and 1 import error because the public RMS
+  economics exports did not exist.
+- Implementation `51d46f7`, hardened at `5d3f137`: P1–P4 pass 4/4 with 74 assertions. Transport
+  evidence recomputes and rejects forged or shallow snapshots before rendering bigint strings.
+- Fresh exact tip `5d3f13772b94426d7b79d040cd42a03cab39326c`: native Linux standing suite 117
+  pass / 0 fail / 326 database skips / 1,528 assertions; typecheck, 58-file import-boundary check,
+  licence policy and `bun audit` are green.
+- A Windows-hosted founder-status attempt hit the inherited Bun glob NUL-path defect before its
+  assertion; the same working tree passed the focused status/economics set 6/6 under native Linux
+  Bun. This platform precondition failure is retained rather than reported as a product test result.
+- Fresh Compose project `yellow-order-091-proof`, with the app never started: schema exact,
+  deployment acceptance 4/4, isolated Phase-3 gate 13/13 suites and referee 11/11. The first schema
+  invocation lacked the Compose project identity and could not run; after declaring the exact
+  precondition, the complete database-proof sequence restarted from its first check.
+- Protected SHA-256 hashes remain exact: `migrations/0001_init.sql`
+  `fe2a9fc949c6bacded3f8d3fc4d14fc596a83ebde9aeb043eb10845f07b30923` and
+  `tests/run_invariants.py` `3228279bd99a8f9b6af99748f31d4d4b482a8e627e16d92644d9d859ad8befa1`.
+- Disposable code-only Graphify map: 2,263 nodes, 6,478 directed edges and 112 communities; zero
+  missing, dangling, self-loop, duplicate or collapsed endpoints. It intentionally omits 411
+  semantic files and eight SQL files because `tree_sitter_sql` is unavailable.
+- This is builder evidence only. Independent review remains through Order 044; no merge is claimed.
