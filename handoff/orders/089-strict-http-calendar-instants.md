@@ -112,10 +112,10 @@ pre-correction red proof: expected 89, received 86.
 
 - [x] P0 is committed red before production code.
 - [x] P1–P3 pass without reaching a dependency for invalid input.
-- [ ] P4–P5 and both protected hashes remain exact after the Question-133 correction.
+- [x] P4–P5 and both protected hashes remain exact after the Question-133 correction.
 - [x] Gate-3 debt is recorded; no review or merge is claimed.
 
-Evidence captured at production commit `04a0e3f`:
+Evidence captured at final production commit `f4ecae9` (calendar correction `04a0e3f`):
 
 - Intentional red commit `4d13bfa`: 1 pass, 3 fail, 10 assertions. Impossible
   instants reached the unavailable-service path and returned 503 instead of 400.
@@ -127,9 +127,15 @@ Evidence captured at production commit `04a0e3f`:
   13/13 suites. Schema, licence and dependency audit checks are green.
 - `yellow-order-089` was a fresh app-never-started Compose project; the referee is
   11 passed, 0 failed of 11.
+- Actions run `32626477045` provided the P5 red proof: the committed manifest expected
+  Order 089 while the status snapshot still returned 86. Question 133 added only the
+  snapshot and its existing exact test; the restarted isolated gate passed 13/13,
+  including founder status 4/4 with 61 assertions. The first inherited-offer attempt
+  could not start without the canonical launch seed, so the pinned seed was installed
+  and the complete self-check restarted from the top under D-88.
 - Protected SHA-256 values remain exact:
   `fe2a9fc949c6bacded3f8d3fc4d14fc596a83ebde9aeb043eb10845f07b30923` and
   `3228279bd99a8f9b6af99748f31d4d4b482a8e627e16d92644d9d859ad8befa1`.
-- Disposable Graphify map: 5,508 nodes, 9,490 directed edges and 629 communities at
-  `04a0e3f`, with zero missing/dangling endpoints, duplicates or collapsed directed
+- Disposable Graphify map: 5,514 nodes, 9,494 directed edges and 643 communities at
+  `f4ecae9`, with zero missing/dangling endpoints, duplicates or collapsed directed
   pairs. Ten inherited self-loops remain visible; community-label refresh is deferred.

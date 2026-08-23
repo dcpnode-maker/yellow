@@ -49,7 +49,7 @@ Status legend: UNVERIFIED = built, proofs builder-asserted, not executed by the 
 | 084 | 3 | f038629 (order b550c5d; scope correction 4e11efd) | UNVERIFIED | Order 084 — Complete availability offer search |
 | 085 | 3 | 3764f75 (order/red proof 7324c49; scope correction Q131; replay correction D-286) | UNVERIFIED | Order 085 — Reservation modify, cancel and reinstate commands |
 | 086 | 3 | db699a8 (order/red proof 1df6bce) | UNVERIFIED | Order 086 — Atomic reservation segment move, extend and shorten |
-| 089 | 2 | 04a0e3f (order/red proof 4d13bfa) | UNVERIFIED | Order 089 — Strict HTTP calendar instants |
+| 089 | 2 | f4ecae9 (calendar correction 04a0e3f; order/red proof 4d13bfa; status correction Q133) | UNVERIFIED | Order 089 — Strict HTTP calendar instants |
 
 Protected hashes to re-quote each time:
 
