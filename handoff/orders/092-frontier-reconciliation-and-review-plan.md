@@ -55,7 +55,7 @@ schema, proof assertion, backup ref, `main`, or user-owned local configuration.
 - [x] Both server-side protected refs and all reported checkpoint ancestry are independently proven.
 - [x] Exact-tip baseline is green, including schema drift and referee 11/11.
 - [x] Governance files reflect D-91 without overwriting advanced lineage history.
-- [x] Collision provenance and the review/repair plan are self-checked; commit pending.
+- [x] Collision provenance and the review/repair plan were committed at `21ae495`.
 
 ## Review-plan correction evidence
 
@@ -63,3 +63,10 @@ Wave B reviewer execution stopped B13 before named assertions because the Order-
 review seed requires the canonical launch seed. The executable matrix now runs
 `bun run db:seed` against the fresh B13 database before the reservation-offers proof.
 No product assertion failed and no Wave-B approval was recorded before this correction.
+
+## Independent review completion
+
+Wave A (`1e422eb`), Wave B (`645b5ca`), Wave C (`a49be76`) and Wave D (`4ff64e5`)
+durably record reviewer-executed approval for exactly one exclusive owner per all 45
+manifest rows. The B13 plan correction is `d50517c`. Orders 087/088 remain absent gaps.
+The historical manifest rows are not rewritten; the four review files are authority.
