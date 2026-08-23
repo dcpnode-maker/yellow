@@ -1,81 +1,49 @@
-# ROSTER.md — who's on the team and who reviews what
+# ROSTER.md — authority and review tiers
 
-Adding an AI agent should be a **config entry, not a redesign**. This file is that
-config. Every agent reads `PROJECT.md` (canonical); this file says what each one is
-for and what its approval is worth.
+Every agent reads `PROJECT.md`; this file defines current operational authority.
 
 ## Current roster
 
-| Agent | Adapter file | Role | May approve | Cost posture |
-|---|---|---|---|---|
-| **Claude Fable 5** | `CLAUDE.md` | Architect · reviewer · decider | Tier 1 · 2 · 3 | Expensive — judgement only |
-| **Claude Opus 5** | `CLAUDE.md` | Implementation, adapters, refactors | Tier 1 | Default working model |
-| **Claude Sonnet 5** | `CLAUDE.md` | Scaffolding, tests-from-spec, docs, log triage | — | Cheapest Claude |
-| **OpenAI Codex** | `AGENTS.md` | Builder — volume implementation from work orders | Tier 1 | Free/cheap — do volume here |
-| *(open slot)* | `<VENDOR>.md` | Second-opinion reviewer | Tier 2 (see below) | — |
+| Agent | Adapter | Role | Authority |
+|---|---|---|---|
+| **OpenAI Codex** | `AGENTS.md` | Primary lead · architect · builder · verifier | May write orders and decisions; may approve Tier 1/2 design evidence; may not merge its own PR |
+| **Founder** | — | Product authority · final merge control | Decides Tier 3/product choices and controls `main` merges |
+| **Claude family** | `CLAUDE.md` | Inactive by D-91 | No order, review, decision, or merge authority |
+| *(optional future reviewer)* | `<VENDOR>.md` | Independent evidence reviewer | Only when explicitly appointed by the founder |
 
-## Review tiers — how much scrutiny a change needs
+## Review tiers
 
-Tier is a property of the **change**, not of who wrote it.
+Tier is a property of the change, not the author.
 
-**Tier 1 — routine.** Handlers, adapters, docs, tests, refactors inside one context.
-→ One architect-role agent approves. Battery green.
+**Tier 1 — routine.** Handlers, adapters, docs, tests, and refactors inside one bounded
+surface. Codex writes the order, implements in a later commit, runs applicable checks,
+and performs a fresh diff review. The founder controls merge.
 
-**Tier 2 — invariant-adjacent.** New context surface, new event, new state
-transition, projection logic, anything touching money display or tax computation.
-→ Architect-role approval + a test that would fail if the invariant broke.
+**Tier 2 — invariant-adjacent or security-boundary work.** New context surfaces,
+events, state transitions, projection logic, money display/tax computation, device
+identity, remote control, credentials, or trust boundaries. Codex records the design
+decision before implementation and supplies a test or experiment that could falsify
+the claim. The founder controls merge.
 
-**Tier 3 — foundational.** Migrations, occupancy claim logic, journal/posting,
-fiscal chains, RLS, tenant scoping, document numbering.
-→ **One architect-role reviewer (Claude)** + an executable proof that the **reviewer
-runs themselves** — a test that fails before the change and passes after, or a battery
-run on the branch. A pasted result from the builder is not proof. Decision appended to
-`DECISIONS.log` by the deciding architect. **Amended by D-84 (2026-08-15)** from the
-original two-different-vendor requirement.
+**Tier 3 — foundational.** Migrations, occupancy claim logic, journal/posting, fiscal
+chains, RLS, tenant scoping, document numbering, and `tests/run_invariants.py`.
+Implementation requires an explicit founder decision first, then executable proof.
+Codex cannot self-merge or waive the proof.
 
-### Why Tier 3 requires reviewer-executed proof
+## Why executable proof remains non-waivable
 
-This isn't ceremony. In this project's own history, a cross-tenant leak through
-Postgres views was reviewed and missed by two separate models on paper — because
-models trained on similar material share blind spots, and a second opinion from the
-same family often agrees for the same wrong reason. It was caught by a two-tenant
-fixture that actually ran.
+Yellow's view-RLS leak and several Phase-0 defects survived paper review and were
+caught only by execution. Removing an unavailable reviewer does not remove that
+evidence. A test that tries to break the guarantee is stronger than another confident
+paragraph, so negative tests and the invariant battery remain the central controls.
 
-Read the incident precisely: **execution caught it; the second reader did not.** That
-is why D-84 could drop the second vendor without dropping the protection, and why it
-simultaneously made the executable half **non-waivable and reviewer-run**. The half that
-was load-bearing is now stricter, not looser.
+## Rules that apply permanently
 
-What was genuinely lost is the diversity check on the *reviewer's own* blind spots —
-nobody is positioned to catch the reviewer reading a diff wrong. Two things stand in for
-it, and both are real rather than nominal: the builder challenges the architect's
-positions in writing (Question 008 did exactly this, and D-72 corrected the architect's
-own D-69), and every Tier-3 claim must be reproduced from a command, not asserted.
-Recorded so the residual risk is a known cost, not an oversight.
-
-## Adding a new agent (the whole procedure)
-
-1. Create `<VENDOR>.md` at repo root — whatever filename that tool auto-loads.
-   Contents: **a pointer to `PROJECT.md` plus its role. Nothing else.** Never copy
-   the invariants; copies drift.
-2. Add a row above: role, approval tier, cost posture.
-3. Mirror MCP config into that tool's dialect if it supports MCP (`.mcp.json` for
-   Claude Code, `.codex/config.toml` for Codex — same three servers).
-4. Pick a commit prefix — `[claude]`, `[codex]`, `[gemini]`, … — and add it here.
-5. First session: run `./state.sh`, read `PROJECT.md`, then a Tier-1 order as a
-   shakedown before anything foundational.
-6. Append one line to `DECISIONS.log` recording the addition and the role.
-
-## Rules that apply to every agent, forever
-
-- **Nobody merges their own work.** The builder and the approver are never the same
-  agent, regardless of vendor.
-- **`DECISIONS.log` is shared and append-only.** Union-merged in `.gitattributes` so
-  parallel appends never conflict. Grep before deciding.
-- **Commit prefixes are mandatory** — `git log --grep="\[codex\]"` must remain able
-  to answer "which agent wrote this?" years later.
-- **No agent edits `migrations/0001_init.sql`.** New migrations only.
-- **Disagreement between agents is a feature.** When two agents disagree on a Tier 2
-  or 3 question, the resolution is not "the more expensive one wins" — it's *write a
-  test that settles it*. If no test can settle it, it's a product decision for the
-  founders, and it goes in `DECISIONS.log` with both positions recorded.
+- `PROJECT.md` and the Ten Invariants remain canonical.
+- An order exists before implementation and contains Scope, Forbidden, DoD, and proof.
+- `DECISIONS.log` and `handoff/LEDGER.md` are append-only.
+- Commit prefix `[codex]` is mandatory for new work.
+- No agent edits `migrations/0001_init.sql`.
+- Codex never merges its own PR; `main` remains protected by human merge control.
+- Testable disagreements are settled by execution. Untestable product choices go to
+  the founder and are recorded.

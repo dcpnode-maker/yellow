@@ -1,6 +1,6 @@
 # Yellow — hospitality ERP build package
 
-Everything Claude Code needs to build the system without re-deciding anything.
+Everything OpenAI Codex needs to build the system without re-deciding anything.
 The thinking is done; this package is the thinking, made executable.
 
 ## What's here
@@ -8,7 +8,7 @@ The thinking is done; this package is the thinking, made executable.
 | File | What it is | Where it goes |
 |---|---|---|
 | `migrations/0001_init.sql` | Immutable executable baseline: 80 tables, 13 contexts, RLS, choke points, hardening. The runner adds `schema_migration` for 81 public tables. |
-| `CLAUDE.md` | The constitution Claude Code reads every session: Ten Invariants, module boundaries, branded types, never-do list. | repo root |
+| `PROJECT.md` + `AGENTS.md` | Canonical constitution plus Codex's primary-lead role adapter. | repo root |
 | `STATE-MACHINES.md` | Every status column's legal transitions + guards + emitted events. | repo `docs/` |
 | `EVENTS.md` | Event envelope, subject scheme, full catalogue v1, consumer registry. | repo `docs/` |
 | `CONTRACTS.md` | API conventions, THE availability contract, module surfaces, provider ports. | repo `docs/` |
@@ -47,9 +47,9 @@ It never creates accounts or repositories. `--db-only` runs the database path on
 1. `mkdir yellow && cd $_ && git init`
 2. Keep `PROJECT.md`, the role adapters, `BUILD-PLAN.md`, the immutable
    `migrations/0001_init.sql`, and `docs/` together in the repository.
-3. Copy the three skill folders into `~/.claude/skills/`.
-4. MCP servers for Claude Code: **postgres** (point at the dev compose DB — lets
-   Claude inspect real schema/data while coding) and **github** (PRs, issues).
+3. Keep the project skills in the repository and load the relevant `SKILL.md` before work.
+4. Configure Codex MCP servers from `.codex/config.toml`: **postgres** (real dev
+   schema/data), **github** (PRs/issues), and **context7** (current library docs).
 5. `DECISIONS.log` ships seeded — keep appending.
 6. Run `./state.sh`, then open your agent on the current reviewed work order.
 
@@ -84,10 +84,11 @@ That failure cost one afternoon on paper. In production it would have cost the
 company. That is what this package is for.
 
 
-## Using Codex instead of (or alongside) Claude Code
+## Using Codex
 
 See `docs/CODEX.md` — `AGENTS.md` and `.codex/config.toml` are already wired.
 
-## Two agents, one repo
-`docs/WORKFLOW.md` — Codex builds, Claude Fable reviews. Handoff files in `handoff/`.
+## One primary lead, evidence-gated
+`docs/WORKFLOW.md` — Codex writes orders, builds, proves, and opens PRs; the founder
+controls merges. Handoff files remain in `handoff/`.
 `docs/CODEX.md` — Codex setup. `docs/MERGE-PLAN.md` — combining with the existing PMS.

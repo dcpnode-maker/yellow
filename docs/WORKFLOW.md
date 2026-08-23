@@ -1,92 +1,83 @@
-# WORKFLOW.md — Codex builds, Fable reviews
+# WORKFLOW.md — Codex leads, evidence reviews
 
-Two agents, one repo, one referee (`tests/run_invariants.py`). This file is the
-contract between them. Both `CLAUDE.md` and `AGENTS.md` point here.
+One primary agent, one repo, one referee (`tests/run_invariants.py`). OpenAI Codex is
+the architect and builder. The founder owns product direction and the final merge.
 
 ## Roles
 
-| | **Codex** (builder) | **Claude Fable 5** (reviewer/architect) |
+| | **OpenAI Codex** | **Founder** |
 |---|---|---|
-| Does | Implements work orders. Writes code, tests, migrations. Runs the battery. Opens PRs. | Writes work orders. Reviews diffs. Decides invariant questions. Approves merges. Appends DECISIONS.log. |
-| Never | Changes SCHEMA baseline, occupancy claim logic, ledger rules, fiscal chains, or RLS *without an approved work order*. Merges its own PR. | Writes bulk implementation code (that's what the cheap agent is for). |
-| Cost | Free/cheap → do volume here | Expensive → spend only on judgment |
+| Does | Writes scoped orders, records architecture decisions, implements, tests, performs a fresh evidence review, and opens PRs. | Sets product direction, approves Tier-3 decisions, and controls merges to `main`. |
+| Never | Silently widens scope, weakens an invariant, treats confidence as proof, or merges its own PR. | Needs to relay work between AI vendors. |
 
-The split exists because ambiguity is where money is worth spending. Nine research
-rounds removed ambiguity from most of this build; what's left is execution.
+The former Claude/Fable role is inactive by founder decision D-91. The useful parts
+of the old split survive as artifacts and gates: the order exists before code, the
+implementation is separately committed, and claims are attached to executable proof.
 
 ## The loop
 
 ```
-1. ORDER    Fable writes handoff/orders/NNN-slug.md    (scope, files, DoD, forbidden)
-2. BUILD    Codex implements on branch phase-N/slug     (commits [codex] prefix)
-3. PROVE    Codex runs ./setup.sh --db-only             (battery must be 11/11)
-4. PR       Codex opens PR, body references the order + pastes test output
-5. REVIEW   Fable reads diff, writes handoff/reviews/NNN-slug.md
-              → APPROVED         → merge, append DECISIONS.log
-              → CHANGES-REQUIRED → precise directions, back to step 2
-6. LOG      One line in handoff/LEDGER.md, always
+1. DECIDE   Codex greps DECISIONS.log and records any new architecture decision
+2. ORDER    Codex writes handoff/orders/NNN-slug.md (scope, DoD, forbidden, evidence)
+3. BUILD    Codex implements on phase-N/slug in later [codex] commit(s)
+4. PROVE    Codex runs the standing self-check plus order-specific negative tests
+5. REVIEW   Codex re-reads the order and diff in a fresh pass and tries to falsify it
+6. PR       Codex opens a PR with order, evidence, residual risk, and rollback notes
+7. MERGE    Founder or an explicitly appointed non-builder merges; never Codex itself
+8. LOG      Codex appends one line to handoff/LEDGER.md
 ```
 
-Never skip step 3. A PR without a green battery is not reviewable — it's a draft.
+Never skip proof. A PR without the applicable green checks is a draft.
 
-## Git conventions (this is the sync)
+## Git conventions
+
+- **`main` is reached only through a reviewed PR.** No direct pushes.
+- **Branch = `phase-N/slug`.** One concern per branch.
+- **Commit prefix `[codex]`.** The order/governance commit precedes implementation.
+- **`DECISIONS.log` and `handoff/LEDGER.md` are append-only.** Never rewrite history.
+- **Pull before starting.** Stale branches create duplicated and contradictory work.
+- **Codex never merges its own PR.** Founder merge control is the independence gate.
+
+## Decision and review tiers
+
+- **Tier 1:** Codex may decide and implement within one bounded surface. Green standing
+  checks and a fresh diff review are required.
+- **Tier 2:** Codex records the architecture decision before code and names a test that
+  would fail if the design were wrong. The PR must include that falsifying evidence.
+- **Tier 3:** Codex stops before implementation for an explicit founder decision.
+  Migrations, occupancy claims, journal/posting, fiscal chains, RLS, tenant scoping,
+  document numbering, and `tests/run_invariants.py` are always Tier 3. Executable proof
+  and founder-controlled merge are non-waivable.
+
+When the answer is genuinely a product choice rather than a testable technical claim,
+Codex presents the smallest concrete decision to the founder and records the result.
+
+## Reading order every session
+
+1. Run `./state.sh`.
+2. Read `PROJECT.md`, then `AGENTS.md`.
+3. Read the current phase in `BUILD-PLAN.md`.
+4. Read the relevant order and the tail of `handoff/LEDGER.md`.
+5. Grep `DECISIONS.log` for the topic before deciding.
+6. Read the relevant `docs/*.md` and skills.
+
+## Standing self-check
+
+Run the checks applicable to the order. Before any product-code PR, the full standing
+check remains:
 
 ```bash
-# Codex starts work
-git checkout main && git pull
-git checkout -b phase-2/occupancy-claims
-
-# Codex commits — prefix makes attribution visible in git log forever
-git commit -m "[codex] implement record_occupancy port + T1-T5 integration tests"
-
-# Fable commits (orders, reviews, decisions)
-git commit -m "[claude] order 004: occupancy claim port"
-
-# Codex opens the PR
-gh pr create --fill --base main
+bun install --frozen-lockfile
+./state.sh
+bun run typecheck
+bun run boundaries
+bun test
+bun run license-check
+bun audit
+bun run schema:check
+./setup.sh --db-only
 ```
 
-Rules:
-- **`main` is only reached through a reviewed PR.** No direct pushes, either agent.
-- **Branch = `phase-N/slug`.** One phase concern per branch; if it spans phases, the
-  order was written wrong.
-- **Commit prefix `[codex]` or `[claude]`.** Six months from now, `git log --grep`
-  answers "which agent wrote this?" — that matters when a bug is found.
-- **`DECISIONS.log` and `handoff/LEDGER.md` use union merge** (`.gitattributes`), so
-  parallel appends from both agents don't conflict. Append at the end, never edit
-  existing lines.
-- **Pull before starting anything.** Both agents work on the same repo; stale
-  branches are the most likely source of duplicated work.
-
-## Who decides what
-
-**Codex decides freely:** variable names, file layout within a context, test
-structure, error message wording, refactors that don't cross a module boundary.
-
-**Codex must STOP and request a decision** (comment on the PR, or write
-`handoff/questions/NNN.md`) when it hits:
-- anything touching `migrations/`, occupancy claims, journal/posting logic, fiscal
-  chains, RLS, or tenant scoping
-- a state transition not already in `docs/STATE-MACHINES.md`
-- a new table, or a new column on a table another context owns
-- an event not in `docs/EVENTS.md`
-- any moment the answer is "it depends"
-
-That list is deliberately identical to the Fable-escalation rule in `CLAUDE.md`. The
-principle doesn't change because the tool changed.
-
-## Reading order for either agent, every session
-
-1. `CLAUDE.md` (Claude) or `AGENTS.md` (Codex) — the constitution
-2. `BUILD-PLAN.md` — current phase only
-3. `handoff/LEDGER.md` tail — what just happened
-4. `grep` `DECISIONS.log` for the topic at hand — **before deciding, not after**
-5. The relevant `docs/*.md` and `.claude/skills/yellow-*/SKILL.md`
-
-## The referee
-
-`./setup.sh --db-only` rebuilds the database and runs the battery. It must print
-`11 passed, 0 failed of 11` before any PR is reviewable and after any merge. If a
-change makes it red, the change is wrong — not the test. Those eleven cover
-double-booking, ledger balance, sealed days, gapless invoice numbers, and tenant
-isolation through tables *and* views.
+The referee must print `11 passed, 0 failed of 11`. If a check executes and fails,
+stop; if a prerequisite is absent, restore it only from repository-pinned inputs and
+restart the check from the top.

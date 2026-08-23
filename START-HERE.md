@@ -46,7 +46,7 @@ This is what the `github` MCP server authenticates with. Least scope, revocable.
 cd ~/projects            # or wherever you keep code
 unzip ~/Downloads/yellow.zip
 cd yellow
-ls                       # you should see CLAUDE.md, setup.sh, migrations/, tests/
+ls                       # you should see PROJECT.md, AGENTS.md, setup.sh, migrations/, tests/
 ```
 
 ## Step 4 — Run setup **[auto]**
@@ -92,10 +92,10 @@ COMPOSE_PROJECT_NAME=yellow-review YELLOW_APP_PORT=3100 \
 YELLOW_POSTGRES_PORT=5542 YELLOW_VALKEY_PORT=6489 ./setup.sh --db-only
 ```
 
-## Step 7 — Open Claude Code **[you]**
+## Step 7 — Open Codex **[you]**
 
 ```bash
-claude
+codex
 ```
 
 from inside `yellow/`. Then:
@@ -104,23 +104,17 @@ from inside `yellow/`. Then:
 /mcp
 ```
 
-All three should read **connected**: `postgres` (reads your real schema while
-coding), `github` (issues and PRs), `context7` (live library docs, so it doesn't
-call a Bun method that was removed two releases ago).
+All three should read **connected**: `postgres` (reads the real schema while coding),
+`github` (issues and PRs), and `context7` (current library docs).
 
 If `postgres` is down → containers aren't running (`docker compose up -d`).
 If `github` is down → `GITHUB_TOKEN` isn't exported in *this* shell.
 
 ## Step 8 — Set the model **[you]**
 
-```
-/model
-```
-
-Choose **Fable 5** for the Phase 0 kickoff — it's a schema-and-foundations phase, and
-`CLAUDE.md` routes those to Fable. After the scaffold is up, switch to Opus 5 for
-implementation work and Sonnet 5 for tests and docs. The escalation rule in
-`CLAUDE.md` governs when to switch back up.
+Use the most capable available Codex model for architecture, security, concurrency,
+and phase gates. Faster models are suitable only for routine work whose order has
+already removed ambiguity. Configure the default in `~/.codex/config.toml`.
 
 ## Step 9 — Start the current ordered work **[you]**
 
@@ -153,20 +147,20 @@ the schema-drift check (dump vs `migrations/0001_init.sql`) is empty.
 | `START-HERE.md` | This checklist. Day one only. |
 | `PROJECT.md` | **The canonical constitution — every agent reads this first.** Invariants, boundaries, standards, session ritual. |
 | `state.sh` | Ground truth for any agent: phase, last decisions, open work, service status. |
-| `AGENTS.md` | Adapter for Codex (builder role). `CLAUDE.md` is the Claude adapter (architect/reviewer). |
+| `AGENTS.md` | Adapter for Codex's primary lead/architect/builder role. |
 | `handoff/` | How the agents talk: orders, reviews, questions, LEDGER, ROSTER. |
 | `docs/WORKFLOW.md` | Build→review loop and git conventions. |
-| `docs/CODEX.md` | Running Codex alongside Claude Code. |
+| `docs/CODEX.md` | Running Yellow with Codex. |
 | `docs/MERGE-PLAN.md` | Combining Yellow with your existing PMS. |
 | `USAGE.md` | Operating manual: daily loop, rules, troubleshooting. |
-| `CLAUDE.md` | The constitution Claude Code reads every session — invariants, boundaries, model policy. |
+| `CLAUDE.md` | Inactive legacy adapter; no operational authority after D-91. |
 | `BUILD-PLAN.md` | 13 phases, each with a Definition of Done and decision gates. |
 | `DECISIONS.log` | 44 locked decisions with rejected alternatives. Append forever. |
 | `README.md` | Package map and the honest statement of what's not built yet. |
 | `setup.sh` | One-command setup; `--db-only` to rebuild and retest. |
 | `bootstrap.sh` | Git + GitHub only (subset of setup.sh). |
 | `docker-compose.yml` | App/PostgreSQL/Valkey with configurable host ports and Compose-project isolation. |
-| `.mcp.json` | postgres + github + context7 for Claude Code. |
+| `.codex/config.toml` | postgres + github + context7 for Codex. |
 | `.claude/settings.json` | PostToolUse hook: format and typecheck after edits. |
 | `.claude/skills/yellow-*` | Three project skills, shared via git so both founders get identical behaviour. |
 | `.env.example` | Copy to `.env` and fill. Never committed. |
@@ -195,5 +189,5 @@ the schema-drift check (dump vs `migrations/0001_init.sql`) is empty.
 Certifications gate Phases 8, 9, and 12, and none of them move faster because you're
 ready: **Booking.com** and **Expedia** partner programmes, **ZATCA** sandbox
 onboarding (Saudi), **India IRP/GSP** access, and choosing a **UAE ASP** vendor.
-Also worth doing while installers run: the Claude for Startups application and AWS
-Activate. See `USAGE.md` §7.
+Also worth doing while installers run: relevant cloud/startup-credit applications.
+See `USAGE.md` §7.

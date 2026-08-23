@@ -30,3 +30,5 @@
 2026-08-15 · 010 · 0 · phase-0/powershell-coverage-split · codex → claude · QUESTION-ANSWERED · self-check precondition vs assertion; D-88 amends D-87; builder was right, rule was wrong; renumbered from 009 (collision)
 2026-08-15 · 018 · 0 · phase-0/powershell-coverage-split · codex → claude · APPROVED · windows-state job covers state.ps1; scripts byte-identical; red proof is a CI record, not reviewer-executed — D-89 records the structural limit
 2026-08-15 · 001-018 · 0 · phase-0/powershell-coverage-split · — → claude · MERGE-PREPARED · all 18 orders marked ## MERGED; single cumulative integration to main per D-90; PRs #15 and #16 close as superseded
+2026-08-23 · — · all · phase-0/phone-idle-worker-rfc · founder → codex · PRIMARY-LEAD-APPOINTED · D-91 retires Claude dependency; Codex owns architecture, orders, build and evidence; founder retains merge control
+2026-08-23 · 027 · 0 · phase-0/phone-idle-worker-rfc · codex → founder · ORDER-WRITTEN · replace active Claude-dependent governance without weakening order, proof, invariant, PR or no-self-merge controls

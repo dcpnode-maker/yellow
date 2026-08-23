@@ -1,6 +1,8 @@
 # PHASE 1 PLAN — Kernel (tenancy, extension registry, outbox, fact_log)
 
-**Written by:** Claude (architect role) · **Date:** 2026-08-15 · **Status:** planned, not issued
+**Originally written by:** Claude (historical architect role) · **Date:** 2026-08-15
+
+**Operational owner:** OpenAI Codex · **Status:** planned, not issued
 
 This is the order *sequence*, not the orders. Orders are issued one at a time, each after
 the previous one is reviewed — that is the loop, and batching it would forfeit the thing
@@ -24,7 +26,7 @@ event can be published. It is the first phase whose output a person could intera
 
 | # | Order | Tier | Depends on | Why this position |
 |---|---|---|---|---|
-| 019 | Transaction-local tenant context middleware | **3** | Phase 0 merged | Every later order writes through it. If it is wrong, every RLS guarantee in the schema is decorative. Goes first and gets Fable. |
+| 019 | Transaction-local tenant context middleware | **3** | Phase 0 merged | Every later order writes through it. If it is wrong, every RLS guarantee in the schema is decorative. Goes first as a solo Tier-3 gate with an explicit founder decision and executable proof. |
 | 020 | `app_user` / role / JWT auth with tenant + scopes | **3** | 019 | `Bun.password` argon2id (D-16). Establishes who the tenant context comes *from*. |
 | 021 | `fact_log` write helper + audit envelope on every mutation | 2 | 019 | Insert-only invariant. Must exist before anything mutates, or the first mutations are unaudited and get retrofitted. |
 | 022 | `EventBus` interface + in-process outbox consumer (cursor rows) | 2 | 021 | D-14 defers NATS; the interface is what makes that a config change later. |

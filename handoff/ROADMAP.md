@@ -1,6 +1,8 @@
 # ROADMAP — how Yellow gets built, and how it gets reviewed
 
-**Written by:** Claude (architect role) · **Date:** 2026-08-15 · **Decisions:** D-87, D-83
+**Originally written by:** Claude (historical architect role) · **Date:** 2026-08-15
+
+**Operational owner:** OpenAI Codex · **Amended:** 2026-08-23 by D-91
 
 `BUILD-PLAN.md` says *what* each phase contains. This file says *how the two agents get
 through it without the founder relaying every cycle by hand.*
@@ -71,14 +73,14 @@ proves nothing regressed.
 ## The review request protocol
 
 1. Codex pushes the branch and writes `handoff/questions/NNN-review-request.md`: the
-   order/commit table, the self-check output, and one line per order saying what its DoD
+   order/commit table, self-check output, and one line per order saying what its DoD
    test proved.
-2. Founder tells Claude: **"review NNN"**. Nothing else — Claude reads the repo.
-3. Claude re-runs the proofs first-hand (D-84), writes the verdict to `handoff/reviews/`,
-   commits, pushes.
-4. Founder tells Codex: **"read review NNN"**.
+2. Codex performs a fresh evidence pass from the written order: inspect scope, re-run
+   the named falsifying proof, and record residual risk in `handoff/reviews/`.
+3. Codex opens the PR. The founder controls merge and does not relay messages between
+   agents.
 
-Two short messages per batch instead of two per order.
+Tier 3 still stops for an explicit founder decision before implementation.
 
 ## What Codex decides alone, and what it must ask
 
@@ -86,11 +88,11 @@ Two short messages per batch instead of two per order.
 message wording, refactors that do not cross a context boundary, anything the order's
 Scope list already permits.
 
-**Must ask (`handoff/questions/NNN.md`, then stop):** anything touching the Ten
-Invariants; any new dependency; any schema change beyond what the order names; any change
-to a Forbidden item; any case where the order's instruction appears wrong. That last one
-is not insubordination — Question 008 and D-72 corrected the architect, and that is the
-single most valuable thing that has happened in this project so far.
+**Must stop for the founder (`handoff/questions/NNN.md`):** Tier-3 work; a product
+choice that cannot be settled by a test; any schema change beyond the order; any change
+to a Forbidden item; or any case where the order appears wrong. Codex records Tier-2
+dependency, security-boundary, event, state-transition, and cross-context decisions
+before implementation and supplies a falsifying test.
 
 ---
 
@@ -146,18 +148,17 @@ only point at which the information to write it exists.
 
 - `migrations/0001_init.sql` is immutable. New schema is `0002_*.sql` upward, through the
   runner, with D-73's checksum discipline.
-- `tests/run_invariants.py` is architect-only (D-69). Phases add tests alongside it.
+- `tests/run_invariants.py` is Tier 3 (D-69/D-91). Editing it requires an explicit
+  founder decision; phases add tests alongside it.
 - The referee stays `11 passed, 0 failed of 11` at every order boundary. From Phase 2 it
   is a hard gate; before then there is still no reason to let it go red.
 - Every order carries a Scope list, a Forbidden list, a numbered DoD, and a deferred
   review protocol. An order without a Forbidden section is written badly.
-- Commit prefixes `[codex]` / `[claude]`. Nobody merges their own work. `main` only via
-  reviewed PR.
+- New commits use `[codex]`. Codex never merges its own work. `main` only via PR.
 
 ## What good looks like from here
 
 Codex should be able to run for a whole batch without asking anything, then produce a
 review request that is boring to read because every claim in it has a command attached.
-The interesting reviews should be the Tier-3 ones. If routine batches start generating
-findings, the orders are underspecified and that is the architect's fault, not the
-builder's.
+The interesting gates should be Tier 3. If routine batches repeatedly generate
+findings, Codex must tighten subsequent orders rather than routing around the evidence.
