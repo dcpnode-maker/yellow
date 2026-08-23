@@ -9,5 +9,6 @@ export const APPROVED_REVIEW_FILES = Object.freeze([
   "045-091-wave-b.md",
   "045-091-wave-c.md",
   "045-091-wave-d.md",
+  "093-founder-status-review-coverage.md",
 ] as const);
 export const INDEPENDENTLY_REVIEWED_THROUGH_ORDER = 91;

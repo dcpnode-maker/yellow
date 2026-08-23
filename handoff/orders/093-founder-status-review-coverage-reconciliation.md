@@ -5,6 +5,7 @@
 **Base:** `phase-4/reconcile-order-091-frontier` at `9a2919a`  
 **Tier:** 2 — proof fidelity, review-coverage derivation, and founder status alignment; no product-domain behavior  
 **Written by:** Google Gemini Antigravity as planning agent under the founder directive  
+**Status:** APPROVED at `af588ff`
 
 ## Outcome
 
@@ -50,6 +51,8 @@ Reconciling founder status and review coverage is the smallest safe Phase 4 cont
    - Fix cross-platform directory resolution using `fileURLToPath` so `Bun.Glob` executes portably on Windows and Linux without `ENOENT` / NUL path errors.
 2. **Regenerate review-coverage module (`src/generated/review-coverage.ts`):**
    - Run `bun scripts/derive-review-coverage.ts --write` to emit `APPROVED_REVIEW_FILES` containing all 8 approved review files (`008-015-phase-0-cumulative.md`, `018-powershell-coverage.md`, `019-026-phase-1-cumulative.md`, `027-044-phase-2-cumulative.md`, `045-091-wave-a.md`, `045-091-wave-b.md`, `045-091-wave-c.md`, `045-091-wave-d.md`) and `INDEPENDENTLY_REVIEWED_THROUGH_ORDER = 91`.
+   - After the independent Order-093 review is recorded, regenerate once more so its
+     review file joins the catalogue without advancing the continuous boundary past 91.
 3. **Reconcile project status snapshot (`src/project-status.ts`):**
    - Update `PROJECT_BUILD_SNAPSHOT.review`:
      - `gate3Debt`: `0` (all 45 Gate-3 manifest rows are approved).
@@ -115,12 +118,23 @@ Reconciling founder status and review coverage is the smallest safe Phase 4 cont
 
 ## Definition of done
 
-- [ ] `scripts/derive-review-coverage.ts` recognizes both `architect role` and `independent non-implementing reviewer` approvals.
-- [ ] `scripts/derive-review-coverage.ts` enforces exact order coverage across wave reviews without inferring full coverage from partial wave titles.
-- [ ] `scripts/derive-review-coverage.ts` resolves review paths portably across Windows and Linux.
-- [ ] `src/generated/review-coverage.ts` is regenerated with `INDEPENDENTLY_REVIEWED_THROUGH_ORDER = 91` and checked in.
-- [ ] `src/project-status.ts` accurately reports 0 Gate-3 debt, Phase 3 as `reviewed`, and Phase 4 as `active`.
-- [ ] `tests/founder-status.integration.test.ts` passes green.
-- [ ] Full standing suite and invariant referee (11/11) pass with zero errors.
-- [ ] `handoff/GATE-3-MANIFEST.md` and `handoff/reviews/` remain unchanged.
-- [ ] No files outside the defined Scope are modified.
+- [x] `scripts/derive-review-coverage.ts` recognizes both `architect role` and `independent non-implementing reviewer` approvals.
+- [x] `scripts/derive-review-coverage.ts` enforces exact order coverage across wave reviews without inferring full coverage from partial wave titles.
+- [x] `scripts/derive-review-coverage.ts` resolves review paths portably across Windows and Linux.
+- [x] `src/generated/review-coverage.ts` is regenerated with `INDEPENDENTLY_REVIEWED_THROUGH_ORDER = 91` and checked in.
+- [x] `src/project-status.ts` accurately reports 0 Gate-3 debt, Phase 3 as `reviewed`, and Phase 4 as `active`.
+- [x] `tests/founder-status.integration.test.ts` passes green.
+- [x] Full standing suite and invariant referee (11/11) pass with zero errors.
+- [x] `handoff/GATE-3-MANIFEST.md` and all pre-existing review evidence remain unchanged.
+- [x] Implementation stayed inside the defined Scope; the required independent review artifact is recorded separately.
+
+## Final evidence
+
+- Implementation: `8e6c6e8`; reviewer correction: `af588ff`.
+- Independent review: `handoff/reviews/093-founder-status-review-coverage.md` — APPROVED.
+- Focused proof: 5 pass, 2 inherited database-gated skips, 0 fail, 54 assertions.
+- Standing default suite: 120 pass, 326 database-gated skips, 0 fail, 1,544 assertions.
+- Schema drift exact; license policy and audit green; protected surfaces unchanged.
+- Generated catalogue contains the eight prior approvals plus this order's review;
+  the continuous independently-reviewed boundary remains Order 091.
+- Fresh isolated referee: `11 passed, 0 failed of 11`.
