@@ -208,3 +208,41 @@ attempt-marker and all safety boundaries remain unchanged.
   unrelated files and the marker survive, and the reclaimed-byte count is exact.
 - Selection, integrity and download-resume tests remain green; cleanup must not turn a
   pre-load network failure into a permanent skip.
+
+## Real-device engine repair amendment — extracted CPU backends (D-98)
+
+The completed 1.5B Q8_0 attempt failed native loading with 5.90 GiB available RAM,
+falsifying memory pressure as the shared cause of all four failures. Source comparison
+then exposed the integration defect: the pinned upstream Android sample declares
+`android:extractNativeLibs="true"` because its JNI initializer enumerates
+`ApplicationInfo.nativeLibraryDir` and dynamically loads the best packaged CPU backend.
+Yellow packaged every backend module but omitted that manifest attribute, so the main JNI
+library could initialize while model loading had no discoverable CPU backend.
+
+### Additional required behavior
+
+1. Declare `android:extractNativeLibs="true"` on Yellow Worker's application without
+   adding a permission or exposing any library outside Android-managed app-private paths.
+2. Keep the pinned llama.cpp commit and its runtime-selected ARM64 CPU variants unchanged;
+   do not substitute a speculative model, engine, GPU path or generic static backend for
+   the evidenced manifest repair.
+3. On the first run of the repaired engine, clear only the persisted 1.5B diagnostic
+   attempt marker and persist a one-time repair sentinel. Keep the 14B and both 7B attempt
+   markers so the 10R downloads only the 1,894,532,160-byte diagnostic model again.
+4. If that repaired 1.5B attempt fails, retain its marker and fail closed; the repair must
+   not create a retry loop. Fresh installs still begin at 14B, and phones without the
+   diagnostic marker are not moved to a smaller candidate.
+5. Bump the update version and preserve the existing application ID and signing identity.
+   All download verification, cleanup, pause, thermal, storage and no-code-execution
+   boundaries remain unchanged.
+
+### Additional falsifying tests and evidence
+
+- A source-manifest test and packaged-APK CI assertion fail unless native-library
+  extraction is explicitly true.
+- A repair-state test proves only the 1.5B marker is removed, all larger-model markers and
+  unrelated files survive, and a second invocation cannot rearm the diagnostic again.
+- APK inspection proves every expected ARM64 CPU backend is packaged and no x86 library or
+  new permission appears.
+- The repaired 1.5B GGUF must load and complete the bounded benchmark on the 10R before the
+  engine defect is considered closed or any larger candidate is retried there.
