@@ -170,6 +170,7 @@ fresh_db yellow_review_082
 YELLOW_REQUIRE_RESERVATION_COMMIT_HTTP=1 YELLOW_RESERVATION_COMMIT_HTTP_URL=postgres://yellow:yellow@127.0.0.1:5442/yellow_review_082 bun test tests/reservation-commit-http.integration.test.ts
 # B13 — Order 084
 fresh_db yellow_review_084
+DATABASE_URL=postgres://yellow:yellow@127.0.0.1:5442/yellow_review_084 bun run db:seed
 YELLOW_REQUIRE_RESERVATION_OFFERS=1 YELLOW_RESERVATION_OFFERS_URL=postgres://yellow:yellow@127.0.0.1:5442/yellow_review_084 YELLOW_RESERVATION_OFFERS_PASSWORD="$proof_password" YELLOW_RESERVATION_OFFERS_APPROVER_PASSWORD="${proof_password}Approver" bun test tests/reservation-offers.integration.test.ts
 # B14 — Order 085
 fresh_db yellow_review_085

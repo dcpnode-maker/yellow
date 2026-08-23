@@ -56,3 +56,10 @@ schema, proof assertion, backup ref, `main`, or user-owned local configuration.
 - [x] Exact-tip baseline is green, including schema drift and referee 11/11.
 - [x] Governance files reflect D-91 without overwriting advanced lineage history.
 - [x] Collision provenance and the review/repair plan are self-checked; commit pending.
+
+## Review-plan correction evidence
+
+Wave B reviewer execution stopped B13 before named assertions because the Order-084
+review seed requires the canonical launch seed. The executable matrix now runs
+`bun run db:seed` against the fresh B13 database before the reservation-offers proof.
+No product assertion failed and no Wave-B approval was recorded before this correction.
