@@ -180,9 +180,45 @@ app/PostgreSQL/Valkey healthy. Commit, push a stacked draft PR and do not merge.
 
 ## Builder evidence — UNVERIFIED
 
-- [ ] P0 red evidence is preserved before production changes.
-- [ ] Canonical published offers, blocked diagnostics, exact money and read-only evidence pass.
-- [ ] Filters, work ceiling, exact-sellable rereads and stale-projection boundaries pass.
-- [ ] Canonical HTTP/auth plus legacy compatibility remain exact.
-- [ ] Standing checks, protected hashes, Graphify, localhost and remote CI are green.
-- [ ] Independent review remains exactly through Order 044; Order 084 is not self-approved.
+- [x] P0 red evidence is preserved before production changes.
+- [x] Canonical published offers, blocked diagnostics, exact money and read-only evidence pass.
+- [x] Filters, work ceiling, exact-sellable rereads and stale-projection boundaries pass.
+- [x] Canonical HTTP/auth plus legacy compatibility remain exact.
+- [ ] Standing checks, protected hashes, Graphify, localhost and remote CI are green. Local checks
+  are green; remote CI remains pending until the final evidence tip is pushed.
+- [x] Independent review remains exactly through Order 044; Order 084 is not self-approved.
+
+### Captured builder evidence
+
+- Intentional red `b550c5d`: `ReservationOfferValidationError` was absent from the public module;
+  `0 pass / 1 fail / 1 error`, with no product implementation present.
+- Scope correction `4e11efd` / Question 130: exact sellable availability is quote-owned and bound
+  into the quote hash/output; no repeated full-property quote scan or copied broad-read authority.
+- Implementation `f038629`: fresh migrated/seeded Order-084 database `6/6`, `76` assertions;
+  inherited quote `8/8`, `48` assertions; inherited availability `7/7`, `20` assertions including
+  the unchanged 500-space catastrophic guard.
+- Standing restart: frozen install unchanged; typecheck; 53-file import boundary; default
+  `101 pass / 316 skip / 0 fail`, `1,374` assertions; independent-review derivation exact;
+  13/13 isolated inherited database suites, `92` tests and `1,693` assertions; licence policy
+  clean; `bun audit` no vulnerabilities; schema exact.
+- Fresh isolated `yellow-order084-referee` ran app-never-started `./setup.sh --db-only` at
+  `11 passed / 0 failed of 11`, then its disposable containers/network/volume were removed.
+- Protected hashes: `migrations/0001_init.sql`
+  `fe2a9fc949c6bacded3f8d3fc4d14fc596a83ebde9aeb043eb10845f07b30923` and
+  `tests/run_invariants.py`
+  `3228279bd99a8f9b6af99748f31d4d4b482a8e627e16d92644d9d859ad8befa1`.
+- Graphify code-only refresh cost no model tokens: 4,808 nodes, 8,519 edges, 524 communities,
+  zero missing/dangling/duplicate/collapsed endpoints and ten inherited self-loops. Saved labels
+  cover 517 communities; new communities use deterministic hub names until a supported LLM label
+  refresh. Documentation and SQL semantic limitations remain advisory; executable sources win.
+- Persistent localhost rebuilt app-only without seeding. PostgreSQL id/start remained
+  `3bf0399634e9759351309124ef6be0c416bb557ea61f155b6e0b379dd967af87` /
+  `2026-08-22T10:48:43.499382459Z`; Valkey id/start also remained exact. Authenticated live search
+  returned seven FLEX offers, seven bookable, zero issues, exact USD `25000` pre-tax minor-unit
+  totals, `promise=false` and commit re-arbitration. Status reports Order 084, review through 044,
+  debt 40, app/database operational and tenant context true. Apple/Pixel phone-width layouts had
+  no horizontal overflow and the browser console had zero warnings/errors.
+- Codex Security preflight passed, but its Windows workbench could not resolve the authoritative
+  WSL Git HEAD. A semantic diff review therefore ran directly against the WSL branch and found no
+  authentication/property, tenant, SQL-injection, browser-XSS, secret, authority or unbounded-work
+  path. This remains builder evidence, not an independent security review.
