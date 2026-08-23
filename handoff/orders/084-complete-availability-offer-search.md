@@ -43,6 +43,8 @@ review debt; green builder evidence records this order as `UNVERIFIED` only.
 
 - `handoff/orders/084-complete-availability-offer-search.md`
 - `src/contexts/inventory/availability.ts`
+- `src/contexts/rates/quote.ts` only to pass the exact sellable predicate and bind the exact
+  returned availability option into the existing quote hash/output
 - `src/contexts/reservations/offers.ts`
 - `src/contexts/reservations/index.ts`
 - `src/http/operator.ts`
@@ -75,9 +77,10 @@ review debt; green builder evidence records this order as `UNVERIFIED` only.
    stable too-broad error. Never truncate. Evaluate deterministically and sequentially inside the
    caller's transaction.
 4. Resolve every pair only through `RateQuoteService`. Its exact availability reread must carry the
-   sellable filter. Channel is server-bound into the commercial context. Do not accept release,
-   price, policy, restriction, tax, availability, projection, target result or evidence from the
-   caller.
+   sellable filter and bind the exact returned raw option into the quote hash/output so the offer
+   adapter never reuses a stale broad-read cause. Channel is server-bound into the commercial
+   context. Do not accept release, price, policy, restriction, tax, availability, projection,
+   target result or evidence from the caller.
 5. Return deterministic offers containing sellable/unit-type and rate-plan identity, active release
    identity/version/content hash, exact stay and property-local dates, party, per-night exact minor
    units, pre-tax total, package/promotion/refund evidence, policy references, tax-assignment
