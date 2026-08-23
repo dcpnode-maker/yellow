@@ -12,7 +12,7 @@
 
 **Date:** 2026-08-24
 
-**Status:** ORDER WRITTEN · P0 NOT YET RECORDED
+**Status:** P0 RED READY · production service absent
 
 ## Goal
 
@@ -115,6 +115,11 @@ Commit this order and a focused database proof before production code exists. Th
 focused run must fail only because `ReservationGuestService` is absent from the public
 reservation context.
 
+Observed before production code: `bun test tests/reservation-guests.integration.test.ts`
+returned **0 pass, 1 fail, 1 import error** because the public reservation context did
+not export `ReservationGuestConflictError`/`ReservationGuestService`. No database setup
+or assertion executed.
+
 ### P1 — exact replacement and shares
 
 Create one reserved reservation with its primary guest. Add accompanying and sharer rows
@@ -152,7 +157,7 @@ non-implementing reviewer personally executes the focused proof and returns APPR
 ## Definition of done
 
 - [x] Order written before production code.
-- [ ] P0 missing-service red committed before implementation.
+- [x] P0 missing-service red committed before implementation.
 - [ ] P1–P4 pass on fresh PostgreSQL.
 - [ ] Public context exports only the bounded typed command and errors.
 - [ ] Project status honestly reports Order 095 with Phase 4 still active.
