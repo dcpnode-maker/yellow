@@ -281,6 +281,9 @@ describe("Order 072 secure AI-assisted authoring surface", () => {
       expect(html).toContain(`id="${control}"`);
     }
     expect(html).toContain("Nothing is saved automatically");
+    expect(html).toContain("Deployment-selected proposal runtime");
+    expect(html).toContain("compatible Azure, cloud or on-prem model");
+    expect(html).toContain("Do not enter guest data, credentials or payment details");
     expect(html).toContain("Apply, Save, Preview, independent Approval and Publish stay separate");
     expect(script).toContain("interpretBuilderIntent");
     expect(script).toContain("applyBuilderAiProposal");

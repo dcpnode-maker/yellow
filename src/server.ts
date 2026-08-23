@@ -5,6 +5,7 @@ import { BearerTenantResolver, Hs256TokenSigner, LocalLoginService } from "./con
 import { AvailabilityProjectionConsumer, AvailabilityProjectionService, AvailabilityService, HoldExpiryWorker, HoldService, InventoryPolicyService, InventoryService, OperationalBlockService, ReservationOccupancyService, RestrictionService } from "./contexts/inventory";
 import { ReservationCommitService, ReservationOfferSearchService } from "./contexts/reservations";
 import {
+  createRateIntentProposalAdapterFromEnvironment,
   RateConfigurationService,
   RateIntentService,
   RateModelService,
@@ -74,7 +75,7 @@ function runtimeApp() {
     targets: new RateTargetService(registry),
     publication,
     quote: new RateQuoteService(publication, availability, projection),
-    intent: new RateIntentService(),
+    intent: new RateIntentService(createRateIntentProposalAdapterFromEnvironment(Bun.env)),
   };
   const reservationOffers = new ReservationOfferSearchService(rates, rateBuilder.quote, availability);
   const runtimeStatus: OperatorRuntimeStatus = {

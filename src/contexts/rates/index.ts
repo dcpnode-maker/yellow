@@ -185,3 +185,8 @@ export type {
   RateIntentResult,
   RateIntentStatus,
 } from "./intent";
+export {
+  createRateIntentProposalAdapterFromEnvironment,
+  RateIntentProviderConfigurationError,
+} from "./intent-provider";
+export type { RateIntentProviderFetch } from "./intent-provider";

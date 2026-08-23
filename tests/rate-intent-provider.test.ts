@@ -160,6 +160,31 @@ describe("Order 090 portable AI intent provider", () => {
     }
   });
 
+  test("P2: api-key authentication stays in its header and never enters the prompt", async () => {
+    let observedHeaders = new Headers();
+    let observedBody = "";
+    const adapter = createRateIntentProposalAdapterFromEnvironment(environment({
+      YELLOW_RATE_INTENT_AUTH: "api-key",
+      YELLOW_RATE_INTENT_DEPLOYMENT_KEY: "azure-review",
+    }), async (_url, init) => {
+      observedHeaders = new Headers(init?.headers);
+      observedBody = String(init?.body);
+      const outbound = JSON.parse(observedBody) as { messages: Array<{ content: string }> };
+      const input = JSON.parse(outbound.messages[1]!.content) as { currentCommand: Record<string, unknown> };
+      return providerResponse({
+        candidate: input.currentCommand,
+        changes: ["Retain the reviewed command."], assumptions: [], questions: [], warnings: [],
+      });
+    });
+    const result = await new RateIntentService(adapter).interpret({
+      intent: "Retain the reviewed command.", currentCommand: currentCommand(),
+    });
+    expect(result.status).toBe("ready");
+    expect(observedHeaders.get("api-key")).toBe(SECRET);
+    expect(observedHeaders.get("authorization")).toBeNull();
+    expect(observedBody).not.toContain(SECRET);
+  });
+
   test("P2/P3: provider failures are generic and never become authority", async () => {
     const cases: Array<() => Promise<Response>> = [
       async () => new Response(`upstream ${SECRET}`, { status: 500, headers: { "content-type": "text/plain" } }),
@@ -179,5 +204,32 @@ describe("Order 090 portable AI intent provider", () => {
       expect(JSON.stringify(result)).not.toContain(SECRET);
     }
   });
-});
 
+  test("P2: the timeout aborts a stalled provider without exposing configuration", async () => {
+    const adapter = createRateIntentProposalAdapterFromEnvironment(environment({
+      YELLOW_RATE_INTENT_TIMEOUT_MS: "500",
+    }), (_url, init) => new Promise<Response>((_resolve, reject) => {
+      init?.signal?.addEventListener("abort", () => reject(new Error(`aborted ${SECRET}`)), { once: true });
+    }));
+    const result = await new RateIntentService(adapter).interpret({
+      intent: "Retain the reviewed command.",
+      currentCommand: currentCommand(),
+    });
+    expect(result.status).toBe("needs_clarification");
+    expect(result.proposal).toBeNull();
+    expect(JSON.stringify(result)).not.toContain(SECRET);
+  });
+
+  test("P4: architecture distinguishes present inference from deferred RMS and training", async () => {
+    const architecture = await Bun.file(new URL("../docs/AI-ARCHITECTURE.md", import.meta.url)).text();
+    expect(architecture).toContain("Inference, retrieval, feedback and training are different");
+    expect(architecture).toContain("Adaptive RMS destination retained for later orders");
+    expect(architecture).toContain("Gross booked ARR/ADR");
+    expect(architecture).toContain("Net ARR/ADR");
+    expect(architecture).toContain("Contribution ARR");
+    expect(architecture).toContain("Displacement-adjusted value");
+    expect(architecture).toContain("Conflict with the current phase plan");
+    expect(architecture).toContain("planned/research-required");
+    expect(architecture).not.toMatch(/adaptive RMS (?:is|has been) implemented/i);
+  });
+});
