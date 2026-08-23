@@ -7,8 +7,10 @@ holds and PostgreSQL truth search. Orders 047 and 070 provide durable HTTP idemp
 reproducible stay quotes. Orders 045–082 remain explicit Gate-3 review debt; Phase 4 builds on
 their preserved contracts without claiming independent approval.
 
-**Current status:** Orders 080–086 are built with builder-executed proofs. Independent review ends
-at Order 044; none of the Phase-4 rows is represented as approved or merged.
+**Current status:** Orders 045–091 were independently discharged at D-294; Order 093 reconciled
+the executable founder-status boundary and is independently approved. Orders 087/088 are historical
+sequence gaps under D-293. Order 094 is the Tier-3 solo database prerequisite for exact guest/share
+replacement; product behavior remains a separate later order.
 
 ## Product promise
 
@@ -59,6 +61,7 @@ crosses that envelope must be rejected with a clear reason rather than silently 
 | 086 | 3 | Segment move, extend and shorten | Move creates next segment; same-unit date change releases/re-records atomically | No gap/double claim; failed destination leaves original segment untouched |
 | 087 | 2 | Guests, shares, alerts and waitlist offers | `reservation_guest`, bounded `share_pct`, alerts, explicit offer window | Shares validate exactly; an expired/declined offer never creates a reservation |
 | 088 | 3 | Founder reservation workbench and reproducible Phase-4 gate | Search → hold → commit → lifecycle inspection using canonical services | Clean-checkout database gate, hostile browser inputs, accessibility, no client authority |
+| 094 | 3 | Reservation-guest DELETE privilege solo gate | Forward migration enabling exact non-primary guest replacement through the existing tenant RLS boundary | Exact ACL; app-role tenant A delete cannot affect tenant B; protected DELETE denials unchanged |
 
 The order numbers reserve sequence only. Each order requires a fresh schema/decision preflight,
 an exact Scope and Forbidden section, an intentional red proof, and a Natural-Solution Test before
