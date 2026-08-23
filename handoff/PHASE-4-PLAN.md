@@ -7,7 +7,10 @@ holds and PostgreSQL truth search. Orders 047 and 070 provide durable HTTP idemp
 reproducible stay quotes. Orders 045–082 remain explicit Gate-3 review debt; Phase 4 builds on
 their preserved contracts without claiming independent approval.
 
-**Current status:** Orders 080–086 are built with builder-executed proofs. Independent review ends
+**Current status:** Orders 080–086 are built with builder-executed proofs. Order 087 is split at the
+D-92 floor: exact reservation guests/shares proceed against the existing schema, while alerts and
+durable waitlist offers remain deferred because no canonical alert lifecycle or offer window exists.
+Independent review ends
 at Order 044; none of the Phase-4 rows is represented as approved or merged.
 
 ## Product promise
@@ -57,8 +60,12 @@ crosses that envelope must be rejected with a clear reason rather than silently 
 | 084 | 3 | Complete availability offer search | Contract §2 option shape with published rate, policy, restriction and truth availability evidence | Search cannot promise inventory; stale projection/cache cannot authorize commit |
 | 085 | 3 | Modify, cancel and reinstate commands | Diff evidence, policy/approval boundary, occupancy release/re-arbitration, exact events | Invalid transitions and failed re-arbitration roll back; reinstate cannot overbook |
 | 086 | 3 | Segment move, extend and shorten | Move creates next segment; same-unit date change releases/re-records atomically | No gap/double claim; failed destination leaves original segment untouched |
-| 087 | 2 | Guests, shares, alerts and waitlist offers | `reservation_guest`, bounded `share_pct`, alerts, explicit offer window | Shares validate exactly; an expired/declined offer never creates a reservation |
+| 087 | 2 | Exact reservation guests and shares | `reservation_guest`, immutable primary identity, bounded exact `share_pct` | Stale/racing replacements cannot mix allocations; sharer hundredths total exactly 10000 |
 | 088 | 3 | Founder reservation workbench and reproducible Phase-4 gate | Search → hold → commit → lifecycle inspection using canonical services | Clean-checkout database gate, hostile browser inputs, accessibility, no client authority |
+
+Alert activation and an expiring/declining waitlist offer remain Phase-4 exit requirements. They
+need a later scoped order after the schema/state decision; Order 087 must not encode them in free
+text, `stay_dates`, event payloads or undeclared status values.
 
 The order numbers reserve sequence only. Each order requires a fresh schema/decision preflight,
 an exact Scope and Forbidden section, an intentional red proof, and a Natural-Solution Test before
