@@ -17,6 +17,36 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  signing-tool:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Set up JDK 17
+        uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Stage pinned APK signing utility
+        shell: bash
+        run: |
+          set -euo pipefail
+          shopt -s nullglob
+          sdkmanagers=("$ANDROID_HOME"/cmdline-tools/*/bin/sdkmanager)
+          test "${#sdkmanagers[@]}" -gt 0
+          "${sdkmanagers[0]}" "build-tools;36.0.0"
+          signing_jar="$RUNNER_TEMP/apksigner-36.0.0.jar"
+          cp "$ANDROID_HOME/build-tools/36.0.0/lib/apksigner.jar" "$signing_jar"
+          echo "YELLOW_APKSIGNER_JAR=$signing_jar" >> "$GITHUB_ENV"
+
+      - name: Upload pinned APK signing utility
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: android-apksigner-36.0.0
+          path: ${{ env.YELLOW_APKSIGNER_JAR }}
+          if-no-files-found: error
+          retention-days: 1
+
   build:
     runs-on: ubuntu-24.04
     timeout-minutes: 45
