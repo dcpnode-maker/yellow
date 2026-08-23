@@ -19,8 +19,10 @@ run repository code.
 | --- | --- | --- | --- | ---: | --- |
 | 1 | `Qwen/Qwen2.5-Coder-14B-Instruct-GGUF` | `d0a692ef765eefbf2fabb130b3cb2e8917e3d225` | `qwen2.5-coder-14b-instruct-q4_k_m.gguf` | 8,988,110,272 | `c1e659736d89ac1065fb495330fb824d94001974a4bfa78e7270e43476a8d940` |
 | 2 | `Qwen/Qwen2.5-Coder-7B-Instruct-GGUF` | `13fb94bfda8c8cf22497dc57b78f391a9acb426a` | `qwen2.5-coder-7b-instruct-q6_k.gguf` | 6,254,198,784 | `46291ddea1bfb608fe63d9a1907eea6918bda87a7626593edc4bf97c5fd73f9d` |
+| 3 | `Qwen/Qwen2.5-Coder-7B-Instruct-GGUF` | `13fb94bfda8c8cf22497dc57b78f391a9acb426a` | `qwen2.5-coder-7b-instruct-q4_k_m.gguf` | 4,683,073,536 | `509287f78cb4d4cf6b3843734733b914b2c158e43e22a7f4bf5e963800894d3c` |
+| 4 | `Qwen/Qwen2.5-Coder-1.5B-Instruct-GGUF` | `2ab9f8f42af02fc212effaef7c4850c885e965f4` | `qwen2.5-coder-1.5b-instruct-q8_0.gguf` | 1,894,532,160 | `507de59046601282ba768a9789900e6ccf60ed93ddf346730b7c68eb0715bc47` |
 
-Both upstream repositories declare Apache-2.0. The APK may request only the two
+All upstream repositories declare Apache-2.0. The APK may request only the four
 literal HTTPS `resolve/<revision>/<file>` resources above; no URL comes from a
 job, intent, clipboard, QR code or editable preference.
 
@@ -49,9 +51,10 @@ job, intent, clipboard, QR code or editable preference.
 7. After verification, initialize the pinned llama.cpp engine, load the candidate
    and run a bounded prompt-processing/text-generation benchmark while the phone
    remains idle, charging and below moderate thermal status.
-8. Activate 14B only after that gate passes. On caught load/benchmark failure—or
-   a retry after an interrupted 14B load—schedule the 7B fallback without looping
-   forever on 14B. A failed candidate never becomes active.
+8. Activate a candidate only after that gate passes. On caught load/benchmark
+   failure—or a retry after an interrupted load—advance exactly once through the
+   ordered catalog without looping forever on any candidate. A failed candidate
+   never becomes active.
 9. Persist only model identifier, preparation status, benchmark text and failure
    reason. Do not persist prompts, personal data, Git credentials or repository
    content.
@@ -65,8 +68,8 @@ job, intent, clipboard, QR code or editable preference.
   restarted from zero by `ResumePlanTest`; it is never appended blindly.
 - A wrong digest or final length cannot produce a ready model in
   `ModelIntegrityTest`.
-- `ModelSelectionPolicyTest` proves first attempt = 14B, interrupted/caught 14B
-  retry = 7B, and no third candidate exists.
+- `ModelSelectionPolicyTest` proves first attempt = 14B, every interrupted/caught
+  attempt advances one position, and no fifth candidate exists.
 - Scheduler tests prove all five Android constraints remain present for both model
   preparation and ordinary work; runtime gate tests remain negative-first.
 - Manifest/APK tests fail on personal-data permissions or a non-arm64 library.
@@ -78,7 +81,8 @@ job, intent, clipboard, QR code or editable preference.
 - [ ] APK permission allowlist and arm64/no-x86 inspection pass.
 - [ ] Catalog literals match official immutable revisions, exact sizes and SHA-256.
 - [ ] Model download is resumable, cancellable, app-private and hash-gated.
-- [ ] 14B failure deterministically reaches 7B; no failed model is marked active.
+- [ ] Every load failure deterministically reaches the next smaller candidate; no
+      failed model is marked active.
 - [ ] Benchmark activation is visible and remains fail-closed on unknown thermal state.
 - [ ] PR remains draft and unmerged pending founder review and real-phone evidence.
 
@@ -142,3 +146,36 @@ append-only ledger/decision scope applies.
 - Remote or silent activation, removing the visible pause control, disabling thermal
   or storage integrity protection, or representing model preparation as Yellow code
   execution.
+
+## Real-device recovery amendment — lower-memory ladder (D-96)
+
+The first OnePlus 10R run downloaded and hash-verified both original candidates but
+the pinned Android engine returned a non-zero result from native model loading for
+each. The wrapper maps every such native load failure to
+`UnsupportedArchitectureException`, so that class name alone is not evidence of an
+unsupported CPU. With only 11.16 GiB total physical RAM reported by Android, memory
+pressure remains the leading hypothesis but must not be represented as proven until
+the smaller candidates run on-device.
+
+### Additional required behavior
+
+1. Preserve the verified 14B Q4_K_M and 7B Q6_K files across the APK update; do not
+   redownload or automatically delete them.
+2. Continue the existing marker chain at 7B Q4_K_M, then use 1.5B Q8_0 as a final
+   engine/CPU diagnostic and bounded coding fallback. Both additions are official,
+   immutable, Apache-2.0 Qwen GGUF resources with exact length and digest pins.
+3. A marker from the installed app must skip its corresponding failed candidate, so
+   **Run model test now** after updating starts at the first unattempted model.
+4. Replace the misleading raw exception name in owner-visible state with a generic
+   native-load failure message that records model-weight size and Android available
+   RAM immediately before load. Do not diagnose memory or CPU architecture as fact.
+5. Record both total physical and available RAM in successful benchmark evidence.
+6. Keep all D-94/D-95 integrity, reserve, pause, thermal, permission and no-code-
+   execution boundaries unchanged.
+
+### Additional falsifying tests
+
+- Catalog fixtures pin all four exact identities, revisions, byte counts and hashes.
+- Selection-policy tests prove a persisted marker can walk 14B→7B Q6→7B Q4→1.5B
+  without looping, and that interruption of the fourth candidate stops fail-closed.
+- Existing downloader, integrity, scheduler, pause and gate tests remain green.
