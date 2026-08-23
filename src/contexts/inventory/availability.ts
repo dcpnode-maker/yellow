@@ -11,7 +11,11 @@ export interface SearchAvailabilityInput {
   readonly partySize?: number;
   readonly ratePlanId?: string;
   readonly channelCode?: string;
+  readonly sellableUnitId?: string;
+  readonly genderPolicy?: AvailabilityGenderPolicy;
 }
+
+export type AvailabilityGenderPolicy = "any" | "female" | "male";
 
 export interface AppliedRestriction {
   readonly id: string;
@@ -76,6 +80,13 @@ function validate(input: SearchAvailabilityInput): number {
   if (input.channelCode !== undefined &&
       (input.channelCode !== input.channelCode.trim() || !CHANNEL.test(input.channelCode))) {
     throw new InventoryValidationError("channelCode must be a trimmed stable identifier");
+  }
+  if (input.sellableUnitId !== undefined && !UUID.test(input.sellableUnitId)) {
+    throw new InventoryValidationError("sellableUnitId must be a UUID");
+  }
+  if (input.genderPolicy !== undefined &&
+      input.genderPolicy !== "any" && input.genderPolicy !== "female" && input.genderPolicy !== "male") {
+    throw new InventoryValidationError("genderPolicy must be any, female, or male");
   }
   return partySize;
 }
@@ -206,6 +217,7 @@ export class AvailabilityService {
         WHERE ut.tenant_id = current_setting('app.tenant_id', true)::uuid
           AND ut.property_node = $1::uuid
           AND ut.max_occupancy >= $4::int
+          AND ($8::uuid IS NULL OR su.id = $8::uuid)
       ),
       operational_block_evidence AS MATERIALIZED (
         SELECT
@@ -244,6 +256,7 @@ export class AvailabilityService {
           s.id AS space_id,
           s.status AS space_status,
           s.property_node = mapping.property_node AS property_matches,
+          ($9::text IS NULL OR s.gender_policy = $9::text) AS gender_matches,
           CASE
             WHEN mapping.claim_mode = 'exclusive' THEN
               CASE WHEN os.space_id IS NULL THEN 1 ELSE 0 END
@@ -270,7 +283,7 @@ export class AvailabilityService {
                  unit_type_id, unit_type_code, unit_type_name, profile_key,
                  max_occupancy, sort_order
         HAVING sellable_status = 'active'
-           AND bool_and(space_status = 'active' AND property_matches)
+           AND bool_and(space_status = 'active' AND property_matches AND gender_matches)
       ),
       restriction_evidence AS MATERIALIZED (
         SELECT
@@ -320,6 +333,8 @@ export class AvailabilityService {
       input.ratePlanId ?? null,
       input.channelCode ?? null,
       propertyPolicy.oos_sellability,
+      input.sellableUnitId ?? null,
+      input.genderPolicy ?? null,
     ]);
     return rows.map((row) => ({
       sellableUnitId: row.sellable_unit_id,

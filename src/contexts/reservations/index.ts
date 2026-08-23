@@ -20,3 +20,17 @@ export type {
   HeldReservationCommit,
   ReservationCommitServiceOptions,
 } from "./commit";
+export {
+  ReservationOfferSearchService,
+  ReservationOfferSearchTooBroadError,
+  ReservationOfferValidationError,
+} from "./offers";
+export type {
+  ReservationOffer,
+  ReservationOfferIssue,
+  ReservationOfferPolicyEvidence,
+  ReservationOfferSearchInput,
+  ReservationOfferSearchOptions,
+  ReservationOfferSearchResult,
+  ReservationOfferSearchSummary,
+} from "./offers";

@@ -3,7 +3,7 @@ import { SQL } from "bun";
 import { app, createApp } from "./app";
 import { BearerTenantResolver, Hs256TokenSigner, LocalLoginService } from "./contexts/identity";
 import { AvailabilityProjectionConsumer, AvailabilityProjectionService, AvailabilityService, HoldExpiryWorker, HoldService, InventoryPolicyService, InventoryService, OperationalBlockService, ReservationOccupancyService, RestrictionService } from "./contexts/inventory";
-import { ReservationCommitService } from "./contexts/reservations";
+import { ReservationCommitService, ReservationOfferSearchService } from "./contexts/reservations";
 import {
   RateConfigurationService,
   RateIntentService,
@@ -76,6 +76,7 @@ function runtimeApp() {
     quote: new RateQuoteService(publication, availability, projection),
     intent: new RateIntentService(),
   };
+  const reservationOffers = new ReservationOfferSearchService(rates, rateBuilder.quote, availability);
   const runtimeStatus: OperatorRuntimeStatus = {
     workbenchEnabled,
     holdExpiryWorkerEnabled: holdExpiryEnabled,
@@ -102,7 +103,7 @@ function runtimeApp() {
   return createApp({
     database,
     tenantResolver: new BearerTenantResolver(tokens),
-    operatorApi: new OperatorHttpApi(login, availability, inventory, new PostgresIdempotency(), restrictions, rates, pricing, blocks, policy, holds, projection, runtimeStatus, rateBuilder, reservations),
+    operatorApi: new OperatorHttpApi(login, availability, inventory, new PostgresIdempotency(), restrictions, rates, pricing, blocks, policy, holds, projection, runtimeStatus, rateBuilder, reservations, reservationOffers),
   });
 }
 

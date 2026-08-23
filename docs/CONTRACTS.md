@@ -16,15 +16,39 @@ whitelisted params only. Every response carries `X-Correlation-Id`.
 
 `POST /api/v1/properties/{node}/availability:search`
 ```json
-{ "stay": {"from":"2026-09-01","to":"2026-09-04"},
+{ "stay": {"from":"2026-09-01T15:00:00+04:00","to":"2026-09-04T11:00:00+04:00"},
   "party": {"adults":2,"children":[{"age":6}]},
   "unit_types": ["DLX"]?, "rate_plans": ["BAR"]?,
   "attributes": {"gender_policy":"female"}?,        // hot-column predicates only
-  "channel": "direct", "currency": "AED"? }
+  "channel": "direct", "currency": "AED"?,
+  "selected_promotion_codes": []?,
+  "commercial": {"company_party_id": "uuid", "market_group_code": "CORP",
+    "market_code": "BUSINESS", "source_party_id": "uuid", "source_code": "DIRECT",
+    "channel_code": "direct", "segment_code": "TRANSIENT", "agent_party_id": "uuid",
+    "campaign_code": "SUMMER"}? }
 ```
-→ options[]: `{unit_type, rate_plan, per_night:[{date,amount_minor}], total, taxes[],
-policies{cancellation,deposit,guarantee}, restrictions_applied[], available_count}`.
-Served from projection (+Valkey). **Never a promise** — truth is the commit below.
+→ `{options,issues,summary}`. Every published pair remains visible as one deterministic option:
+`{option_ref,state,reason,bookable,promise:false,commit_arbitration_required:true,sellable_unit,
+unit_type,rate_plan,release,stay,party,per_night:[{date,amount_minor}],total,taxes[],
+tax_assignment_state,policies{cancellation,deposit,guarantee,no_show},package,
+selected_promotion_codes,applied_promotion_codes,refund_treatment,restrictions_applied[],
+operational_blocks_applied[],available_count,evidence}`. Only `state=bookable` carries nightly
+money and a pre-tax total. Blocked/unpriced/conflicted published pairs retain physical count and
+causes with null total and no offered nightly price. Missing publication/pricing evidence is
+reported through bounded stable issues; more than 1,000 exact sellable/rate pairs is rejected,
+never truncated.
+
+This transitional authenticated surface accepts exact offset instants because property stay-date
+and check-in/out conversion policy is not yet implemented. Returned night dates are derived in the
+property's IANA timezone. Live tenant-scoped PostgreSQL occupancy, restrictions and OOO/OOS are the
+sellability authority. The disposable availability projection may contribute only attributable
+occupancy-responsive **pricing** input; Valkey is not read here. `option_ref` is evidence correlation,
+not a stored or signed capacity token. **Search is never a promise**: hold/direct commit re-runs the
+PostgreSQL choke and may return `409 conflict/occupancy`.
+
+Until the inherited operator diagnostics are migrated, the disjoint legacy authenticated body
+`{from,to,partySize,ratePlanId?,channelCode?}` returns the existing raw truth-availability options.
+It creates no alternate sellability or commit authority.
 
 `POST /availability:hold` {option_ref | unit_type+stay, ttl_s≤900} → `{hold_id,expires_at}`
 (writes occupancy via choke; this IS the arbitration).

@@ -55,7 +55,12 @@ import {
   ReservationCommitService,
   ReservationConflictError,
   ReservationNotFoundError,
+  ReservationOfferSearchService,
+  ReservationOfferSearchTooBroadError,
+  ReservationOfferValidationError,
   ReservationValidationError,
+  type ReservationOfferSearchInput,
+  type ReservationOfferSearchResult,
 } from "../contexts/reservations";
 import {
   createAuditEnvelope,
@@ -168,6 +173,83 @@ function parseSearch(body: unknown): Omit<SearchAvailabilityInput, "propertyNode
     ...(body.partySize === undefined ? {} : { partySize: body.partySize }),
     ...(body.ratePlanId === undefined ? {} : { ratePlanId: body.ratePlanId }),
     ...(body.channelCode === undefined ? {} : { channelCode: body.channelCode }),
+  };
+}
+
+const OFFER_COMMERCIAL_FIELDS = Object.freeze([
+  ["company_party_id", "companyPartyId"],
+  ["market_group_code", "marketGroupCode"],
+  ["market_code", "marketCode"],
+  ["source_party_id", "sourcePartyId"],
+  ["source_code", "sourceCode"],
+  ["channel_code", "channelCode"],
+  ["segment_code", "segmentCode"],
+  ["agent_party_id", "agentPartyId"],
+  ["campaign_code", "campaignCode"],
+] as const);
+
+function isCanonicalOfferSearch(body: unknown): boolean {
+  return isObject(body) && [
+    "stay", "party", "unit_types", "rate_plans", "attributes", "channel", "currency",
+    "selected_promotion_codes", "commercial",
+  ].some((key) => Object.hasOwn(body, key));
+}
+
+function parseOfferSearch(body: unknown): Omit<ReservationOfferSearchInput, "propertyNode"> | null {
+  if (!isObject(body) || !exactKeys(body, ["stay", "party", "channel"], [
+    "unit_types", "rate_plans", "attributes", "currency", "selected_promotion_codes", "commercial",
+  ]) || !isObject(body.stay) || !exactKeys(body.stay, ["from", "to"]) ||
+      !isObject(body.party) || !exactKeys(body.party, ["adults", "children"]) ||
+      typeof body.party.adults !== "number" || !Array.isArray(body.party.children) ||
+      typeof body.channel !== "string") return null;
+  const stayStart = parseInstant(body.stay.from);
+  const stayEnd = parseInstant(body.stay.to);
+  if (!stayStart || !stayEnd) return null;
+  const childAges: number[] = [];
+  for (const child of body.party.children) {
+    if (!isObject(child) || !exactKeys(child, ["age"]) || typeof child.age !== "number") return null;
+    childAges.push(child.age);
+  }
+  const stringArray = (value: unknown): readonly string[] | null =>
+    Array.isArray(value) && value.every((item) => typeof item === "string") ? value : null;
+  const unitTypeCodes = body.unit_types === undefined ? undefined : stringArray(body.unit_types);
+  const ratePlanCodes = body.rate_plans === undefined ? undefined : stringArray(body.rate_plans);
+  const selectedPromotionCodes = body.selected_promotion_codes === undefined
+    ? undefined
+    : stringArray(body.selected_promotion_codes);
+  if (unitTypeCodes === null || ratePlanCodes === null || selectedPromotionCodes === null) return null;
+  let attributes: ReservationOfferSearchInput["attributes"];
+  if (body.attributes !== undefined) {
+    if (!isObject(body.attributes) || !exactKeys(body.attributes, ["gender_policy"]) ||
+        (body.attributes.gender_policy !== "any" && body.attributes.gender_policy !== "female" &&
+         body.attributes.gender_policy !== "male")) return null;
+    attributes = { genderPolicy: body.attributes.gender_policy };
+  }
+  let commercial: Record<string, string> | undefined;
+  if (body.commercial !== undefined) {
+    if (!isObject(body.commercial) || !exactKeys(body.commercial, [], OFFER_COMMERCIAL_FIELDS.map(([external]) => external))) {
+      return null;
+    }
+    commercial = {};
+    for (const [external, internal] of OFFER_COMMERCIAL_FIELDS) {
+      const value = body.commercial[external];
+      if (value === undefined) continue;
+      if (typeof value !== "string") return null;
+      commercial[internal] = value;
+    }
+  }
+  if (body.currency !== undefined && typeof body.currency !== "string") return null;
+  return {
+    stayStart,
+    stayEnd,
+    guests: { adults: body.party.adults, childAges },
+    ...(unitTypeCodes === undefined ? {} : { unitTypeCodes }),
+    ...(ratePlanCodes === undefined ? {} : { ratePlanCodes }),
+    ...(attributes === undefined ? {} : { attributes }),
+    channelCode: body.channel,
+    ...(body.currency === undefined ? {} : { currency: body.currency }),
+    ...(selectedPromotionCodes === undefined ? {} : { selectedPromotionCodes }),
+    ...(commercial === undefined ? {} : { commercial }),
   };
 }
 
@@ -422,6 +504,7 @@ type HoldOperations = Pick<HoldService,
   "listActiveOfflineLeases" | "placeOfflineLease" | "releaseOfflineLease"
 >;
 type ReservationOperations = Pick<ReservationCommitService, "commitHeld" | "commitDirect">;
+type ReservationOfferOperations = Pick<ReservationOfferSearchService, "search">;
 
 const MAX_MONEY = 9_223_372_036_854_775_807n;
 
@@ -606,6 +689,99 @@ function rateBuilderJsonValue(value: unknown): JsonValue {
   return value as JsonValue;
 }
 
+function reservationOfferHttpResult(result: ReservationOfferSearchResult): JsonValue {
+  return rateBuilderJsonValue({
+    options: result.options.map((offer) => ({
+      option_ref: offer.optionRef,
+      state: offer.state,
+      reason: offer.reason,
+      bookable: offer.bookable,
+      promise: offer.promise,
+      commit_arbitration_required: offer.commitArbitrationRequired,
+      sellable_unit: offer.sellableUnit,
+      unit_type: {
+        id: offer.unitType.id,
+        code: offer.unitType.code,
+        name: offer.unitType.name,
+        profile_key: offer.unitType.profileKey,
+        max_occupancy: offer.unitType.maxOccupancy,
+      },
+      rate_plan: {
+        id: offer.ratePlan.id,
+        code: offer.ratePlan.code,
+        name: offer.ratePlan.name,
+        currency: offer.ratePlan.currency,
+        tax_inclusive: offer.ratePlan.taxInclusive,
+      },
+      release: {
+        id: offer.release.id,
+        version: offer.release.version,
+        content_hash: offer.release.contentHash,
+      },
+      stay: {
+        from: offer.stay.from,
+        to: offer.stay.to,
+        local_from: offer.stay.localFrom,
+        local_to: offer.stay.localTo,
+      },
+      party: { adults: offer.party.adults, child_ages: offer.party.childAges },
+      per_night: offer.perNight.map((night) => ({ date: night.date, amount_minor: night.amountMinor })),
+      total: offer.total === null ? null : {
+        amount_minor: offer.total.amountMinor,
+        currency: offer.total.currency,
+        kind: offer.total.kind,
+      },
+      taxes: offer.taxes.map((tax) => ({
+        night_date: tax.nightDate,
+        jurisdiction_key: tax.jurisdictionKey,
+        evidence_ref: tax.evidenceRef,
+      })),
+      tax_assignment_state: offer.taxAssignmentState,
+      policies: Object.fromEntries(Object.entries(offer.policies).map(([kind, policy]) => [
+        kind,
+        policy === null ? null : { policy_id: policy.policyId, evidence_ref: policy.evidenceRef },
+      ])),
+      package: offer.package,
+      selected_promotion_codes: offer.selectedPromotionCodes,
+      applied_promotion_codes: offer.appliedPromotionCodes,
+      refund_treatment: offer.refundTreatment,
+      restrictions_applied: offer.restrictionsApplied,
+      operational_blocks_applied: offer.operationalBlocksApplied.map((block) => ({
+        id: block.id,
+        space_id: block.spaceId,
+        kind: block.kind,
+        reason: block.reason,
+        blocks: block.blocks,
+      })),
+      available_count: offer.availableCount,
+      evidence: {
+        quote_hash: offer.evidence.quoteHash,
+        availability_ref: offer.evidence.availabilityRef,
+        booking_instant: offer.evidence.bookingInstant,
+      },
+    })),
+    issues: result.issues.map((issue) => ({
+      sellable_unit_id: issue.sellableUnitId,
+      unit_type_code: issue.unitTypeCode,
+      rate_plan_id: issue.ratePlanId,
+      rate_plan_code: issue.ratePlanCode,
+      reason: issue.reason,
+    })),
+    summary: {
+      inventory_options: result.summary.inventoryOptions,
+      candidate_pairs: result.summary.candidatePairs,
+      evaluated_pairs: result.summary.evaluatedPairs,
+      bookable: result.summary.bookable,
+      blocked: result.summary.blocked,
+      unpriced: result.summary.unpriced,
+      conflicted: result.summary.conflicted,
+      publication_unavailable: result.summary.publicationUnavailable,
+      pricing_evidence_unavailable: result.summary.pricingEvidenceUnavailable,
+      work_limit: result.summary.workLimit,
+    },
+  });
+}
+
 function parseRateApprovalPage(request: Request): { after?: string; limit?: number } | null {
   const query = new URL(request.url).searchParams;
   const allowed = new Set(["after", "limit"]);
@@ -705,6 +881,7 @@ export class OperatorHttpApi {
   readonly #runtimeStatus: OperatorRuntimeStatus;
   readonly #rateBuilder?: RateBuilderOperations;
   readonly #reservations?: ReservationOperations;
+  readonly #reservationOffers?: ReservationOfferOperations;
 
   constructor(
     login: LocalLoginService,
@@ -721,6 +898,7 @@ export class OperatorHttpApi {
     runtimeStatus: OperatorRuntimeStatus = DEFAULT_OPERATOR_RUNTIME_STATUS,
     rateBuilder?: RateBuilderOperations,
     reservations?: ReservationOperations,
+    reservationOffers?: ReservationOfferOperations,
   ) {
     this.#login = login;
     this.#availability = availability;
@@ -736,6 +914,7 @@ export class OperatorHttpApi {
     this.#runtimeStatus = runtimeStatus;
     this.#rateBuilder = rateBuilder;
     this.#reservations = reservations;
+    this.#reservationOffers = reservationOffers;
   }
 
   unavailable(request: Request): Response {
@@ -762,7 +941,7 @@ export class OperatorHttpApi {
     if (error instanceof IdempotencyValidationError || error instanceof InventoryValidationError) {
       return apiError(request, 400, "request/invalid", "Invalid request", "Inventory input is invalid");
     }
-    if (error instanceof ReservationValidationError) {
+    if (error instanceof ReservationValidationError || error instanceof ReservationOfferValidationError) {
       return apiError(request, 400, "request/invalid", "Invalid request", "Reservation input is invalid");
     }
     if (error instanceof InventoryNotFoundError) {
@@ -870,8 +1049,10 @@ export class OperatorHttpApi {
     if (!UUID.test(propertyNode)) {
       return apiError(context.request, 400, "request/invalid", "Invalid request", "Property identifier is invalid");
     }
-    const input = parseSearch(body);
-    if (!input) {
+    const canonical = isCanonicalOfferSearch(body);
+    const offerInput = canonical ? parseOfferSearch(body) : null;
+    const legacyInput = canonical ? null : parseSearch(body);
+    if ((canonical && !offerInput) || (!canonical && !legacyInput)) {
       return apiError(context.request, 400, "request/invalid", "Invalid request", "Availability search input is invalid");
     }
 
@@ -880,10 +1061,22 @@ export class OperatorHttpApi {
       if (!grants.some(({ id }) => id === propertyNode)) {
         return apiError(context.request, 403, "auth/property_forbidden", "Forbidden", "Property access is not granted");
       }
-      const options = await this.#availability.search(context.tx, { propertyNode, ...input });
+      if (canonical) {
+        if (!offerInput) {
+          return apiError(context.request, 400, "request/invalid", "Invalid request", "Availability search input is invalid");
+        }
+        if (!this.#reservationOffers) return this.unavailable(context.request);
+        const result = await this.#reservationOffers.search(context.tx, { propertyNode, ...offerInput });
+        return apiResponse(context.request, reservationOfferHttpResult(result));
+      }
+      if (!legacyInput) {
+        return apiError(context.request, 400, "request/invalid", "Invalid request", "Availability search input is invalid");
+      }
+      const options = await this.#availability.search(context.tx, { propertyNode, ...legacyInput });
       return apiResponse(context.request, { options });
     } catch (error) {
-      if (error instanceof InventoryValidationError) {
+      if (error instanceof InventoryValidationError || error instanceof ReservationOfferValidationError ||
+          error instanceof ReservationOfferSearchTooBroadError) {
         return apiError(context.request, 400, "request/invalid", "Invalid request", "Availability search input is invalid");
       }
       return apiError(context.request, 503, "service/unavailable", "Service unavailable", "Availability is temporarily unavailable");

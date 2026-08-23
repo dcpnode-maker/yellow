@@ -82,6 +82,7 @@ export interface RateQuote {
   readonly propertyTimeZone: string;
   readonly stayStartDate: string;
   readonly stayEndDate: string;
+  readonly availabilityOption: AvailabilityOption;
   readonly occupancyEvidence: readonly RateQuoteNightOccupancyEvidence[];
   readonly taxAssignmentState: "configured" | "partial" | "none";
   readonly taxAssignments: readonly RateQuoteTaxAssignmentEvidence[];
@@ -364,6 +365,7 @@ export class RateQuoteService {
       partySize: input.guests.adults + input.guests.childAges.length,
       ratePlanId: input.ratePlanId,
       channelCode: input.channelCode,
+      sellableUnitId: input.sellableUnitId,
     });
     const matches = options.filter(({ sellableUnitId }) => sellableUnitId === input.sellableUnitId);
     if (matches.length !== 1) {
@@ -441,6 +443,7 @@ export class RateQuoteService {
       propertyTimeZone: clock.timezone,
       stayStartDate,
       stayEndDate,
+      availabilityOption: option,
       occupancyEvidence: Object.freeze(occupancyEvidence),
       taxAssignmentState: mandatory.state,
       taxAssignments: mandatory.taxAssignments,

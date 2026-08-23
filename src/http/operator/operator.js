@@ -2528,7 +2528,35 @@
     if (choices.some(({ sellableUnitId }) => sellableUnitId === previous)) offlineLeaseSellable.value = previous;
   }
 
-  function renderOptions(options) {
+  function workbenchOption(offer) {
+    return {
+      optionRef: offer.option_ref,
+      state: offer.state,
+      reason: offer.reason,
+      sellableUnitId: offer.sellable_unit.id,
+      sellableUnitName: offer.sellable_unit.name,
+      unitTypeId: offer.unit_type.id,
+      unitTypeCode: offer.unit_type.code,
+      unitTypeName: offer.unit_type.name,
+      profileKey: offer.unit_type.profile_key,
+      maxOccupancy: offer.unit_type.max_occupancy,
+      ratePlanCode: offer.rate_plan.code,
+      ratePlanName: offer.rate_plan.name,
+      currency: offer.rate_plan.currency,
+      perNight: offer.per_night,
+      total: offer.total,
+      policies: offer.policies,
+      availableCount: offer.available_count,
+      bookable: offer.bookable,
+      restrictionsApplied: offer.restrictions_applied,
+      operationalBlocksApplied: offer.operational_blocks_applied.map((block) => ({
+        ...block,
+        spaceId: block.space_id,
+      })),
+    };
+  }
+
+  function renderOptions(options, summary) {
     results.replaceChildren();
     populateOfflineSellables(options);
     if (options.length === 0) {
@@ -2541,7 +2569,7 @@
     }
 
     const bookable = options.filter((option) => option.bookable).length;
-    resultSummary.textContent = `${options.length} option${options.length === 1 ? "" : "s"} · ${bookable} bookable`;
+    resultSummary.textContent = `${options.length} published option${options.length === 1 ? "" : "s"} · ${bookable} bookable · ${summary?.publication_unavailable || 0} awaiting publication`;
     for (const option of options) {
       const card = document.createElement("article");
       card.className = `option-card ${option.bookable ? "" : "is-blocked"}`;
@@ -2567,6 +2595,15 @@
       badge.className = `badge ${option.bookable ? "available" : "blocked"}`;
       badge.textContent = option.bookable ? "Bookable" : "Not bookable";
       card.append(head, badge);
+
+      const rate = document.createElement("div");
+      rate.className = "code";
+      if (option.total) {
+        rate.textContent = `${option.ratePlanCode} · ${option.currency} ${option.total.amount_minor} minor units pre-tax · exact published evidence, commit rechecks inventory`;
+      } else {
+        rate.textContent = `${option.ratePlanCode} · ${option.state}${option.reason ? ` · ${option.reason}` : ""} · no price offered`;
+      }
+      card.append(rate);
 
       const causes = document.createElement("ul");
       causes.className = "cause-list";
@@ -2631,13 +2668,13 @@
       const body = await request(`/api/v1/properties/${encodeURIComponent(property)}/availability:search`, {
         method: "POST",
         body: JSON.stringify({
-          from: from.toISOString(),
-          to: to.toISOString(),
-          partySize: Number(fields.get("partySize")),
+          stay: { from: from.toISOString(), to: to.toISOString() },
+          party: { adults: Number(fields.get("partySize")), children: [] },
+          channel: "direct",
         }),
       });
       history.pushState(null, "", `/p/${property}/availability`);
-      renderOptions(body.options);
+      renderOptions(body.options.map(workbenchOption), body.summary);
     } catch (error) {
       resultSummary.textContent = error instanceof Error ? error.message : "Search failed";
     } finally {
