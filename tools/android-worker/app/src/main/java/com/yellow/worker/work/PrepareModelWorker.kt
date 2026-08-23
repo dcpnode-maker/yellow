@@ -10,6 +10,7 @@ import androidx.work.WorkerParameters
 import androidx.work.workDataOf
 import com.arm.aichat.AiChat
 import com.arm.aichat.InferenceEngine
+import com.arm.aichat.UnsupportedArchitectureException
 import com.arm.aichat.isModelLoaded
 import com.yellow.worker.data.WorkerPreferences
 import com.yellow.worker.data.WorkerStatus
@@ -23,6 +24,7 @@ import com.yellow.worker.model.BenchmarkGate
 import com.yellow.worker.model.ModelCatalog
 import com.yellow.worker.model.ModelDownloadProgress
 import com.yellow.worker.model.ModelDownloadStage
+import com.yellow.worker.model.ModelLoadDiagnostic
 import com.yellow.worker.model.ModelSelectionPolicy
 import com.yellow.worker.model.ModelStoragePolicy
 import com.yellow.worker.model.PinnedModel
@@ -76,20 +78,17 @@ class PrepareModelWorker(
             (candidate.sizeBytes - partial.length()).coerceAtLeast(0)
         }
         if (!hasStorageFor(remainingBytes)) {
-            preferences.recordModelFailure(
-                candidate.id,
+            markAttempted(marker)
+            return handleCandidateFailure(
+                candidateIndex,
+                candidate,
                 "Requires the remaining model bytes plus an 8 GiB safety reserve",
-                WorkerStatus.MODEL_STORAGE_LOW,
+                terminalStatus = WorkerStatus.MODEL_STORAGE_LOW,
             )
-            return if (candidateIndex == 0) {
-                markAttempted(marker)
-                Result.retry()
-            } else {
-                Result.failure()
-            }
         }
 
         var engine: InferenceEngine? = null
+        var ramBeforeLoad = RamSnapshot(totalBytes = 0L, availableBytes = 0L)
         return try {
             val modelFile = ResumableModelDownloader().download(
                 model = candidate,
@@ -104,6 +103,7 @@ class PrepareModelWorker(
             report(WorkerStatus.LOADING_MODEL)
             val inferenceEngine = initializeEngine()
             engine = inferenceEngine
+            ramBeforeLoad = readRamSnapshot()
             withTimeout(MODEL_LOAD_TIMEOUT_MS) {
                 inferenceEngine.loadModel(modelFile.absolutePath)
             }
@@ -133,6 +133,7 @@ class PrepareModelWorker(
                         startThermal = startThermal.name,
                         endThermal = endThermal.name,
                         elapsedMillis = SystemClock.elapsedRealtime() - preparationStartedAt,
+                        ram = ramBeforeLoad,
                     )
                     preferences.activateModel(candidate.id, evidence)
                     check(marker.delete() || !marker.exists()) { "could not clear benchmark marker" }
@@ -143,6 +144,14 @@ class PrepareModelWorker(
             }
         } catch (timeout: TimeoutCancellationException) {
             handleCandidateFailure(candidateIndex, candidate, "model preparation timed out")
+        } catch (error: UnsupportedArchitectureException) {
+            val availableBytes = ramBeforeLoad.availableBytes.takeIf { it > 0L }
+                ?: readRamSnapshot().availableBytes
+            handleCandidateFailure(
+                candidateIndex,
+                candidate,
+                ModelLoadDiagnostic.nativeFailure(candidate, availableBytes),
+            )
         } catch (cancelled: CancellationException) {
             throw cancelled
         } catch (error: Exception) {
@@ -235,14 +244,16 @@ class PrepareModelWorker(
         candidateIndex: Int,
         candidate: PinnedModel,
         reason: String,
+        terminalStatus: WorkerStatus = WorkerStatus.MODEL_FAILED,
     ): Result {
         val fallback = ModelSelectionPolicy.fallbackAfter(candidateIndex)
         return if (benchmarkMarker(candidate).exists() && fallback != null) {
-            preferences.recordModelFailure(candidate.id, reason, WorkerStatus.FALLING_BACK_7B)
+            val nextCandidate = checkNotNull(ModelCatalog.at(fallback))
+            preferences.recordModelFailure(candidate.id, reason, nextCandidate.fallbackStatus())
             Result.retry()
         } else {
             val status = if (benchmarkMarker(candidate).exists()) {
-                WorkerStatus.MODEL_FAILED
+                terminalStatus
             } else {
                 candidate.preparingStatus()
             }
@@ -270,17 +281,17 @@ class PrepareModelWorker(
         startThermal: String,
         endThermal: String,
         elapsedMillis: Long,
+        ram: RamSnapshot,
     ): String {
-        val memoryInfo = ActivityManager.MemoryInfo()
-        applicationContext.getSystemService(ActivityManager::class.java)?.getMemoryInfo(memoryInfo)
-        val physicalMemoryGiB = memoryInfo.totalMem.toDouble() / GIB.toDouble()
         return buildString {
             append("device=")
             append(Build.MANUFACTURER)
             append(' ')
             append(Build.MODEL)
             append("; physicalRamGiB=")
-            append("%.2f".format(physicalMemoryGiB))
+            append("%.2f".format(ram.totalBytes.toDouble() / GIB.toDouble()))
+            append("; availableRamBeforeLoadGiB=")
+            append("%.2f".format(ram.availableBytes.toDouble() / GIB.toDouble()))
             append("; thermal=")
             append(startThermal)
             append("→")
@@ -294,6 +305,15 @@ class PrepareModelWorker(
         }
     }
 
+    private fun readRamSnapshot(): RamSnapshot {
+        val memoryInfo = ActivityManager.MemoryInfo()
+        applicationContext.getSystemService(ActivityManager::class.java)?.getMemoryInfo(memoryInfo)
+        return RamSnapshot(
+            totalBytes = memoryInfo.totalMem,
+            availableBytes = memoryInfo.availMem,
+        )
+    }
+
     private suspend fun report(status: WorkerStatus) {
         preferences.setStatus(status)
         setForeground(WorkerNotification.foregroundInfo(applicationContext, status.displayText))
@@ -301,7 +321,17 @@ class PrepareModelWorker(
 
     private fun PinnedModel.preparingStatus(): WorkerStatus = when (id) {
         ModelCatalog.CODER_14B -> WorkerStatus.PREPARING_14B
-        else -> WorkerStatus.PREPARING_7B
+        ModelCatalog.CODER_7B -> WorkerStatus.PREPARING_7B
+        ModelCatalog.CODER_7B_COMPACT -> WorkerStatus.PREPARING_7B_COMPACT
+        ModelCatalog.CODER_1_5B -> WorkerStatus.PREPARING_1_5B
+        else -> WorkerStatus.MODEL_FAILED
+    }
+
+    private fun PinnedModel.fallbackStatus(): WorkerStatus = when (id) {
+        ModelCatalog.CODER_7B -> WorkerStatus.FALLING_BACK_7B
+        ModelCatalog.CODER_7B_COMPACT -> WorkerStatus.FALLING_BACK_7B_COMPACT
+        ModelCatalog.CODER_1_5B -> WorkerStatus.FALLING_BACK_1_5B
+        else -> WorkerStatus.MODEL_FAILED
     }
 
     private fun BlockReason.toWorkerStatus(): WorkerStatus = when (this) {
@@ -324,4 +354,9 @@ class PrepareModelWorker(
         private const val BENCHMARK_PROMPT_TOKENS = 64
         private const val BENCHMARK_GENERATION_TOKENS = 16
     }
+
+    private data class RamSnapshot(
+        val totalBytes: Long,
+        val availableBytes: Long,
+    )
 }

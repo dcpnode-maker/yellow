@@ -38,10 +38,23 @@ enum class WorkerStatus(val storedValue: String, val displayText: String) {
     WAITING_FOR_MODEL("waiting_for_model", "Waiting for an approved model"),
     PREPARING_14B("preparing_14b", "Preparing Qwen2.5 Coder 14B"),
     PREPARING_7B("preparing_7b", "Preparing Qwen2.5 Coder 7B fallback"),
+    PREPARING_7B_COMPACT(
+        "preparing_7b_compact",
+        "Preparing lower-memory Qwen2.5 Coder 7B",
+    ),
+    PREPARING_1_5B("preparing_1_5b", "Preparing Qwen2.5 Coder 1.5B diagnostic fallback"),
     VERIFYING_MODEL("verifying_model", "Verifying model SHA-256"),
     LOADING_MODEL("loading_model", "Testing whether the model loads safely"),
     BENCHMARKING_MODEL("benchmarking_model", "Benchmarking the model on this phone"),
     FALLING_BACK_7B("falling_back_7b", "14B did not pass — switching to 7B"),
+    FALLING_BACK_7B_COMPACT(
+        "falling_back_7b_compact",
+        "7B Q6 did not load — switching to lower-memory 7B",
+    ),
+    FALLING_BACK_1_5B(
+        "falling_back_1_5b",
+        "7B did not load — testing the 1.5B engine fallback",
+    ),
     MODEL_READY("model_ready", "Local coding model ready"),
     MODEL_STORAGE_LOW("model_storage_low", "Not enough free storage for the model reserve"),
     MODEL_FAILED("model_failed", "No approved model passed preparation"),

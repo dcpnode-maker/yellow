@@ -16,15 +16,22 @@ personal data or allowing arbitrary code execution.
 - rechecks screen use, charging, and thermal state before native work;
 - blocks at thermal status `MODERATE` or above and fails closed when status is unknown;
 - shows a foreground notification with an immediate **Pause now** action;
-- offers one explicit **Prepare best coding model** action;
-- downloads only the two immutable Order 030 Qwen model resources, resuming through
+- offers one explicit **Run model test now** action;
+- downloads only the four immutable Order 030 Qwen model resources, resuming through
   a `.part` file and preserving valid progress when Android stops the work;
 - keeps at least 8 GiB free beyond the remaining download, then verifies exact length
   and SHA-256 before an in-directory rename;
-- attempts Qwen2.5 Coder 14B Q4_K_M first and moves to the 7B Q6_K fallback after an
-  interrupted or failed 14B load/benchmark;
+- attempts Qwen2.5 Coder 14B Q4_K_M first, then advances through 7B Q6_K,
+  lower-memory 7B Q4_K_M and a final 1.5B Q8_0 engine diagnostic after interrupted
+  or failed loads/benchmarks;
 - activates a model only after the pinned native engine loads it and a bounded
   on-device benchmark finishes below `MODERATE` thermal status.
+
+The first 10R measurement hash-verified the original 14B and 7B Q6 files but the
+native loader rejected both. Android's wrapper uses the same exception for every
+native-load failure, so D-96 does not infer an unsupported CPU from that label. The
+smaller additions measure the memory-fit hypothesis while keeping the already
+downloaded files and persisted attempt markers intact across the APK update.
 
 ### Temporary founder-controlled 10R test mode
 

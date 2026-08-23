@@ -23,10 +23,12 @@ The debug APK is written to
 
 Required build packages are pinned in `.github/workflows/android-worker.yml`. The APK
 contains arm64 native code only and is intended for the three verified OnePlus phones.
-The owner can start the 14B→7B preparation ladder from the app. Downloads resume only
-under the idle/charging/Wi-Fi safety constraints, stay in app-private storage, and
-must pass exact byte-count, SHA-256, native-load and thermal benchmark gates. Inference
-limits remain per-device runtime profiles and are not fixed by packaging.
+The owner can start the 14B→7B Q6→7B Q4→1.5B preparation ladder from the app.
+Downloads resume only under the idle/charging/Wi-Fi safety constraints, stay in
+app-private storage, and must pass exact byte-count, SHA-256, native-load and thermal
+benchmark gates. Inference limits remain per-device runtime profiles and are not fixed
+by packaging. Persisted attempt markers skip models that already failed on that phone,
+so an APK update preserves both verified weights and real-device progress.
 
 For the first founder-controlled OnePlus 10R measurement, D-95 also exposes an
 explicit **Run model test now** action. It temporarily holds the charging, idle,

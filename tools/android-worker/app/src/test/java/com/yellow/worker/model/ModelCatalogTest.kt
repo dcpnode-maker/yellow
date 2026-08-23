@@ -7,7 +7,7 @@ import org.junit.Test
 class ModelCatalogTest {
     @Test
     fun `catalog pins exact official model identities`() {
-        assertEquals(2, ModelCatalog.candidates.size)
+        assertEquals(4, ModelCatalog.candidates.size)
         assertEquals(
             PinnedModel(
                 id = ModelCatalog.CODER_14B,
@@ -31,6 +31,30 @@ class ModelCatalogTest {
                 sha256 = "46291ddea1bfb608fe63d9a1907eea6918bda87a7626593edc4bf97c5fd73f9d",
             ),
             ModelCatalog.candidates[1],
+        )
+        assertEquals(
+            PinnedModel(
+                id = ModelCatalog.CODER_7B_COMPACT,
+                displayName = "Qwen2.5 Coder 7B Q4_K_M",
+                repository = "Qwen/Qwen2.5-Coder-7B-Instruct-GGUF",
+                revision = "13fb94bfda8c8cf22497dc57b78f391a9acb426a",
+                fileName = "qwen2.5-coder-7b-instruct-q4_k_m.gguf",
+                sizeBytes = 4_683_073_536L,
+                sha256 = "509287f78cb4d4cf6b3843734733b914b2c158e43e22a7f4bf5e963800894d3c",
+            ),
+            ModelCatalog.candidates[2],
+        )
+        assertEquals(
+            PinnedModel(
+                id = ModelCatalog.CODER_1_5B,
+                displayName = "Qwen2.5 Coder 1.5B Q8_0",
+                repository = "Qwen/Qwen2.5-Coder-1.5B-Instruct-GGUF",
+                revision = "2ab9f8f42af02fc212effaef7c4850c885e965f4",
+                fileName = "qwen2.5-coder-1.5b-instruct-q8_0.gguf",
+                sizeBytes = 1_894_532_160L,
+                sha256 = "507de59046601282ba768a9789900e6ccf60ed93ddf346730b7c68eb0715bc47",
+            ),
+            ModelCatalog.candidates[3],
         )
         assertTrue(ModelCatalog.candidates.all { it.downloadUrl.startsWith("https://huggingface.co/") })
         assertTrue(ModelCatalog.candidates.all { "/resolve/${it.revision}/" in it.downloadUrl })

@@ -11,15 +11,46 @@ class ModelSelectionPolicyTest {
     }
 
     @Test
-    fun `interrupted 14B benchmark moves to 7B`() {
-        assertEquals(1, ModelSelectionPolicy.candidateIndex(0, interruptedBenchmark = true))
-        assertEquals(1, ModelSelectionPolicy.fallbackAfter(0))
+    fun `each interrupted candidate advances exactly once`() {
+        ModelCatalog.candidates.indices.dropLast(1).forEach { index ->
+            assertEquals(
+                index + 1,
+                ModelSelectionPolicy.candidateIndex(index, interruptedBenchmark = true),
+            )
+            assertEquals(index + 1, ModelSelectionPolicy.fallbackAfter(index))
+        }
     }
 
     @Test
-    fun `there is no candidate after 7B`() {
-        assertNull(ModelSelectionPolicy.fallbackAfter(1))
-        assertNull(ModelSelectionPolicy.candidateIndex(2, interruptedBenchmark = false))
-        assertNull(ModelSelectionPolicy.candidateIndex(1, interruptedBenchmark = true))
+    fun `persisted attempts walk the full ladder without looping`() {
+        var selected: Int? = 0
+        repeat(ModelCatalog.candidates.lastIndex) {
+            selected = ModelSelectionPolicy.candidateIndex(
+                requestedIndex = checkNotNull(selected),
+                interruptedBenchmark = true,
+            )
+        }
+
+        assertEquals(ModelCatalog.candidates.lastIndex, selected)
+        assertNull(
+            ModelSelectionPolicy.candidateIndex(
+                requestedIndex = checkNotNull(selected),
+                interruptedBenchmark = true,
+            ),
+        )
+    }
+
+    @Test
+    fun `there is no candidate after final fallback`() {
+        val finalIndex = ModelCatalog.candidates.lastIndex
+        assertNull(ModelSelectionPolicy.fallbackAfter(finalIndex))
+        assertNull(ModelSelectionPolicy.candidateIndex(finalIndex, interruptedBenchmark = true))
+        assertNull(
+            ModelSelectionPolicy.candidateIndex(
+                ModelCatalog.candidates.size,
+                interruptedBenchmark = false,
+            ),
+        )
+        assertNull(ModelSelectionPolicy.fallbackAfter(-1))
     }
 }

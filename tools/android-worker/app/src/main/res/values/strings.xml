@@ -14,7 +14,7 @@
     <string name="pause_now">Pause now</string>
     <string name="resume_when_idle">Resume when idle</string>
     <string name="model_label">Local model</string>
-    <string name="model_not_prepared">No model prepared. The 14B→7B safety ladder has not started.</string>
+    <string name="model_not_prepared">No model prepared. The 14B→7B compact→1.5B safety ladder has not started.</string>
     <string name="model_progress_description">Model download progress</string>
     <string name="safety_summary">Temporary 10R test mode starts immediately on any connected network, even while unplugged or in use. PAUSE NOW stops it. Low battery, low storage, unknown thermal state, or moderate heat still blocks the test. ARM WHEN IDLE retains the full charging, unmetered Wi-Fi and idle gates.</string>
     <string name="foundation_notice">Model weights stay in app-private storage. Remote jobs, Git credentials, repository clones, personal-file access, and code execution remain disabled.</string>
