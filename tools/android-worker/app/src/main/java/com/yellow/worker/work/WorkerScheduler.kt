@@ -50,6 +50,26 @@ object WorkerScheduler {
         )
     }
 
+    fun prepareModelNow(context: Context, candidateIndex: Int = 0) {
+        val request = OneTimeWorkRequestBuilder<PrepareModelWorker>()
+            .setInputData(
+                workDataOf(
+                    PrepareModelWorker.INPUT_CANDIDATE_INDEX to candidateIndex,
+                    PrepareModelWorker.INPUT_MANUAL_TEST_MODE to true,
+                ),
+            )
+            .setConstraints(manualTestConstraints())
+            .setBackoffCriteria(BackoffPolicy.EXPONENTIAL, 1, TimeUnit.MINUTES)
+            .addTag(MODEL_WORK_TAG)
+            .build()
+
+        WorkManager.getInstance(context.applicationContext).enqueueUniqueWork(
+            MODEL_WORK_NAME,
+            EXISTING_WORK_POLICY,
+            request,
+        )
+    }
+
     fun cancelAll(context: Context) {
         val manager = WorkManager.getInstance(context.applicationContext)
         manager.cancelUniqueWork(UNIQUE_WORK_NAME)
@@ -62,5 +82,11 @@ object WorkerScheduler {
         .setRequiresBatteryNotLow(true)
         .setRequiresStorageNotLow(true)
         .setRequiresDeviceIdle(true)
+        .build()
+
+    internal fun manualTestConstraints(): Constraints = Constraints.Builder()
+        .setRequiredNetworkType(NetworkType.CONNECTED)
+        .setRequiresBatteryNotLow(true)
+        .setRequiresStorageNotLow(true)
         .build()
 }

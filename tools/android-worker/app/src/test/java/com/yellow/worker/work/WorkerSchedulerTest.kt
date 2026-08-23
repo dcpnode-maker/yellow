@@ -3,6 +3,7 @@ package com.yellow.worker.work
 import androidx.work.ExistingWorkPolicy
 import androidx.work.NetworkType
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -34,5 +35,16 @@ class WorkerSchedulerTest {
         assertTrue(constraints.requiresBatteryNotLow())
         assertTrue(constraints.requiresStorageNotLow())
         assertTrue(constraints.requiresDeviceIdle())
+    }
+
+    @Test
+    fun `manual model test holds only soft idle constraints`() {
+        val constraints = WorkerScheduler.manualTestConstraints()
+
+        assertEquals(NetworkType.CONNECTED, constraints.requiredNetworkType)
+        assertFalse(constraints.requiresCharging())
+        assertTrue(constraints.requiresBatteryNotLow())
+        assertTrue(constraints.requiresStorageNotLow())
+        assertFalse(constraints.requiresDeviceIdle())
     }
 }

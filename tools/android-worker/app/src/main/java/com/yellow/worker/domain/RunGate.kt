@@ -26,16 +26,26 @@ enum class BlockReason {
     UNKNOWN_THERMAL_STATE,
 }
 
+enum class GateProfile {
+    IDLE_WORK,
+    MANUAL_MODEL_TEST,
+}
+
 sealed interface GateDecision {
     data object Allowed : GateDecision
     data class Blocked(val reason: BlockReason) : GateDecision
 }
 
 object RunGate {
-    fun evaluate(snapshot: GateSnapshot): GateDecision = when {
+    fun evaluate(
+        snapshot: GateSnapshot,
+        profile: GateProfile = GateProfile.IDLE_WORK,
+    ): GateDecision = when {
         snapshot.manuallyPaused -> GateDecision.Blocked(BlockReason.MANUAL_PAUSE)
-        snapshot.deviceInteractive -> GateDecision.Blocked(BlockReason.DEVICE_IN_USE)
-        !snapshot.charging -> GateDecision.Blocked(BlockReason.NOT_CHARGING)
+        profile == GateProfile.IDLE_WORK && snapshot.deviceInteractive ->
+            GateDecision.Blocked(BlockReason.DEVICE_IN_USE)
+        profile == GateProfile.IDLE_WORK && !snapshot.charging ->
+            GateDecision.Blocked(BlockReason.NOT_CHARGING)
         snapshot.thermalLevel == ThermalLevel.UNKNOWN ->
             GateDecision.Blocked(BlockReason.UNKNOWN_THERMAL_STATE)
         snapshot.thermalLevel.severity >= ThermalLevel.MODERATE.severity ->

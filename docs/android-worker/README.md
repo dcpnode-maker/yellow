@@ -26,6 +26,16 @@ personal data or allowing arbitrary code execution.
 - activates a model only after the pinned native engine loads it and a bounded
   on-device benchmark finishes below `MODERATE` thermal status.
 
+### Temporary founder-controlled 10R test mode
+
+The explicit **Run model test now** action starts the Order 030 preparation ladder
+without waiting for charging, screen-off, device-idle or unmetered-network status.
+It is a narrow physical-phone diagnostic authorized by D-95, not the production
+scheduler. It still requires a connected network, healthy battery and storage,
+retains the 8 GiB reserve, fails closed at unknown or `MODERATE` thermal status, and
+can be stopped immediately with **Pause now**. A determinate progress bar mirrors the
+foreground download notification. **Arm when idle** keeps the original full gates.
+
 ## What it cannot do
 
 It cannot read media, storage, contacts, messages, calls, microphone, camera, location,

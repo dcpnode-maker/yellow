@@ -71,10 +71,10 @@ class WorkerPreferences(context: Context) {
 
     suspend fun current(): WorkerViewState = state.first()
 
-    suspend fun arm() {
+    suspend fun arm(status: WorkerStatus = WorkerStatus.WAITING_FOR_CONSTRAINTS) {
         dataStore.edit { preferences ->
             preferences[MANUAL_PAUSE] = false
-            preferences[STATUS] = WorkerStatus.WAITING_FOR_CONSTRAINTS.storedValue
+            preferences[STATUS] = status.storedValue
         }
     }
 

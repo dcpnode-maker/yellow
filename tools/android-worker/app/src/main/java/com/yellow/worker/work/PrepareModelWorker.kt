@@ -16,6 +16,7 @@ import com.yellow.worker.data.WorkerStatus
 import com.yellow.worker.domain.BlockReason
 import com.yellow.worker.domain.DeviceSafety
 import com.yellow.worker.domain.GateDecision
+import com.yellow.worker.domain.GateProfile
 import com.yellow.worker.domain.RunGate
 import com.yellow.worker.model.BenchmarkAssessment
 import com.yellow.worker.model.BenchmarkGate
@@ -39,6 +40,11 @@ class PrepareModelWorker(
 ) : CoroutineWorker(appContext, workerParameters) {
     private val preferences = WorkerPreferences(applicationContext)
     private val modelDirectory = File(applicationContext.filesDir, MODEL_DIRECTORY)
+    private val gateProfile = if (inputData.getBoolean(INPUT_MANUAL_TEST_MODE, false)) {
+        GateProfile.MANUAL_MODEL_TEST
+    } else {
+        GateProfile.IDLE_WORK
+    }
 
     override suspend fun doWork(): Result {
         val savedState = preferences.current()
@@ -211,7 +217,12 @@ class PrepareModelWorker(
 
     private suspend fun checkSafety(): Result? {
         val state = preferences.current()
-        return when (val decision = RunGate.evaluate(DeviceSafety.snapshot(applicationContext, state.manuallyPaused))) {
+        return when (
+            val decision = RunGate.evaluate(
+                DeviceSafety.snapshot(applicationContext, state.manuallyPaused),
+                gateProfile,
+            )
+        ) {
             GateDecision.Allowed -> null
             is GateDecision.Blocked -> {
                 preferences.setStatus(decision.reason.toWorkerStatus())
@@ -303,6 +314,7 @@ class PrepareModelWorker(
 
     companion object {
         const val INPUT_CANDIDATE_INDEX = "candidate_index"
+        const val INPUT_MANUAL_TEST_MODE = "manual_test_mode"
         const val PROGRESS_PERCENT = "progress_percent"
         private const val MODEL_DIRECTORY = "models"
         private const val GIB = 1024L * 1024L * 1024L

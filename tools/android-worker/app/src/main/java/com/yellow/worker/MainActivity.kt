@@ -5,7 +5,9 @@ import android.app.ActivityManager
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
+import android.view.View
 import android.widget.Button
+import android.widget.ProgressBar
 import android.widget.TextView
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
@@ -51,6 +53,7 @@ class MainActivity : AppCompatActivity() {
         val pauseModeText = findViewById<TextView>(R.id.pause_mode_text)
         val deviceProfileText = findViewById<TextView>(R.id.device_profile_text)
         val modelStatusText = findViewById<TextView>(R.id.model_status_text)
+        val modelProgressBar = findViewById<ProgressBar>(R.id.model_progress_bar)
         val armButton = findViewById<Button>(R.id.arm_button)
         val prepareModelButton = findViewById<Button>(R.id.prepare_model_button)
         val pauseButton = findViewById<Button>(R.id.pause_button)
@@ -69,13 +72,23 @@ class MainActivity : AppCompatActivity() {
                     },
                 )
                 modelStatusText.text = modelStatus(state)
+                modelProgressBar.progress = state.modelProgressPercent
+                modelProgressBar.visibility = if (
+                    state.preparingModelId != null && state.activeModelId == null
+                ) {
+                    View.VISIBLE
+                } else {
+                    View.GONE
+                }
                 pauseButton.isEnabled = !state.manuallyPaused
                 resumeButton.isEnabled = state.manuallyPaused
             }
         }
 
         armButton.setOnClickListener { requestPermission(PendingAction.ARM) }
-        prepareModelButton.setOnClickListener { requestPermission(PendingAction.PREPARE_MODEL) }
+        prepareModelButton.setOnClickListener {
+            requestPermission(PendingAction.RUN_MODEL_TEST_NOW)
+        }
         resumeButton.setOnClickListener { requestPermission(PendingAction.RESUME) }
         pauseButton.setOnClickListener { pauseWorker() }
     }
@@ -101,7 +114,7 @@ class MainActivity : AppCompatActivity() {
     private fun perform(action: PendingAction) {
         when (action) {
             PendingAction.ARM -> armWorker()
-            PendingAction.PREPARE_MODEL -> prepareModel()
+            PendingAction.RUN_MODEL_TEST_NOW -> runModelTestNow()
             PendingAction.RESUME -> resumeWorker()
         }
     }
@@ -120,10 +133,10 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun prepareModel() {
+    private fun runModelTestNow() {
         activityScope.launch {
-            preferences.arm()
-            WorkerScheduler.prepareModel(applicationContext, candidateIndex = 0)
+            preferences.arm(WorkerStatus.CHECKING_SAFETY)
+            WorkerScheduler.prepareModelNow(applicationContext, candidateIndex = 0)
         }
     }
 
@@ -185,7 +198,7 @@ class MainActivity : AppCompatActivity() {
 
     private enum class PendingAction {
         ARM,
-        PREPARE_MODEL,
+        RUN_MODEL_TEST_NOW,
         RESUME,
     }
 }

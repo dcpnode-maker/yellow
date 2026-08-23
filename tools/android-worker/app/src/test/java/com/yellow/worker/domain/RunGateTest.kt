@@ -42,8 +42,49 @@ class RunGateTest {
         assertEquals(GateDecision.Allowed, RunGate.evaluate(safeSnapshot()))
     }
 
+    @Test
+    fun `manual test permits an interactive unplugged phone`() {
+        val snapshot = safeSnapshot().copy(deviceInteractive = true, charging = false)
+
+        assertEquals(
+            GateDecision.Allowed,
+            RunGate.evaluate(snapshot, GateProfile.MANUAL_MODEL_TEST),
+        )
+    }
+
+    @Test
+    fun `manual test still blocks manual pause`() {
+        assertBlockedInManualTest(
+            BlockReason.MANUAL_PAUSE,
+            safeSnapshot().copy(manuallyPaused = true, deviceInteractive = true, charging = false),
+        )
+    }
+
+    @Test
+    fun `manual test still blocks moderate heat`() {
+        assertBlockedInManualTest(
+            BlockReason.THERMAL_LIMIT,
+            safeSnapshot().copy(thermalLevel = ThermalLevel.MODERATE),
+        )
+    }
+
+    @Test
+    fun `manual test still fails closed on unknown thermal state`() {
+        assertBlockedInManualTest(
+            BlockReason.UNKNOWN_THERMAL_STATE,
+            safeSnapshot().copy(thermalLevel = ThermalLevel.UNKNOWN),
+        )
+    }
+
     private fun assertBlocked(reason: BlockReason, snapshot: GateSnapshot) {
         assertEquals(GateDecision.Blocked(reason), RunGate.evaluate(snapshot))
+    }
+
+    private fun assertBlockedInManualTest(reason: BlockReason, snapshot: GateSnapshot) {
+        assertEquals(
+            GateDecision.Blocked(reason),
+            RunGate.evaluate(snapshot, GateProfile.MANUAL_MODEL_TEST),
+        )
     }
 
     private fun safeSnapshot() = GateSnapshot(

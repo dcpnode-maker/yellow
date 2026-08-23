@@ -27,3 +27,8 @@ The owner can start the 14B→7B preparation ladder from the app. Downloads resu
 under the idle/charging/Wi-Fi safety constraints, stay in app-private storage, and
 must pass exact byte-count, SHA-256, native-load and thermal benchmark gates. Inference
 limits remain per-device runtime profiles and are not fixed by packaging.
+
+For the first founder-controlled OnePlus 10R measurement, D-95 also exposes an
+explicit **Run model test now** action. It temporarily holds the charging, idle,
+screen-off and unmetered-network gates while retaining connected-network,
+battery/storage health, sticky pause, integrity and fail-closed thermal protection.
