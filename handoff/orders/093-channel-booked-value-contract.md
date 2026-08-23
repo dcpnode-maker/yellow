@@ -40,6 +40,7 @@ receivable, persist a booking, select a channel/campaign, recommend a price or a
 - `docs/CHANNEL-BOOKED-VALUE-CONTRACT.md`
 - `src/project-status.ts`
 - `tests/founder-status.integration.test.ts`
+- `scripts/derive-review-coverage.ts` (Q134 portability correction only)
 - `handoff/GATE-3-MANIFEST.md` only after every proof is green
 - `handoff/LEDGER.md`
 - `DECISIONS.log` only after every proof is green

@@ -1,3 +1,5 @@
+import { fileURLToPath } from "node:url";
+
 export interface IndependentReviewCoverage {
   readonly throughOrder: number;
   readonly approvedReviewFiles: readonly string[];
@@ -27,7 +29,8 @@ export async function deriveIndependentReviewCoverage(
   const approvedReviewFiles: string[] = [];
   let throughOrder = 0;
   const fileNames: string[] = [];
-  for await (const fileName of new Bun.Glob("*.md").scan({ cwd: directory.pathname, onlyFiles: true })) {
+  const reviewDirectoryPath = fileURLToPath(directory);
+  for await (const fileName of new Bun.Glob("*.md").scan({ cwd: reviewDirectoryPath, onlyFiles: true })) {
     fileNames.push(fileName);
   }
   fileNames.sort((left, right) => left.localeCompare(right));
