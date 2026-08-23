@@ -20,6 +20,7 @@ data class WorkerViewState(
     val modelProgressPercent: Int,
     val benchmarkResult: String?,
     val modelFailure: String?,
+    val safetySummary: String?,
 )
 
 enum class WorkerStatus(val storedValue: String, val displayText: String) {
@@ -79,6 +80,7 @@ class WorkerPreferences(context: Context) {
             modelProgressPercent = preferences[MODEL_PROGRESS_PERCENT] ?: 0,
             benchmarkResult = preferences[BENCHMARK_RESULT],
             modelFailure = preferences[MODEL_FAILURE],
+            safetySummary = preferences[SAFETY_SUMMARY],
         )
     }
 
@@ -88,6 +90,7 @@ class WorkerPreferences(context: Context) {
         dataStore.edit { preferences ->
             preferences[MANUAL_PAUSE] = false
             preferences[STATUS] = status.storedValue
+            preferences.remove(SAFETY_SUMMARY)
         }
     }
 
@@ -101,6 +104,12 @@ class WorkerPreferences(context: Context) {
     suspend fun setStatus(status: WorkerStatus) {
         dataStore.edit { preferences ->
             preferences[STATUS] = status.storedValue
+        }
+    }
+
+    suspend fun recordSafetySummary(summary: String) {
+        dataStore.edit { preferences ->
+            preferences[SAFETY_SUMMARY] = summary.take(MAX_SAFETY_SUMMARY_LENGTH)
         }
     }
 
@@ -146,6 +155,8 @@ class WorkerPreferences(context: Context) {
         private val MODEL_PROGRESS_PERCENT = intPreferencesKey("model_progress_percent")
         private val BENCHMARK_RESULT = stringPreferencesKey("benchmark_result")
         private val MODEL_FAILURE = stringPreferencesKey("model_failure")
+        private val SAFETY_SUMMARY = stringPreferencesKey("safety_summary")
         private const val MAX_FAILURE_LENGTH = 240
+        private const val MAX_SAFETY_SUMMARY_LENGTH = 200
     }
 }

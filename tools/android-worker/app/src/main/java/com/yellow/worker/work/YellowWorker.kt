@@ -10,8 +10,10 @@ import com.yellow.worker.data.WorkerStatus
 import com.yellow.worker.domain.BlockReason
 import com.yellow.worker.domain.DeviceSafety
 import com.yellow.worker.domain.GateDecision
+import com.yellow.worker.domain.GateProfile
 import com.yellow.worker.domain.GateSnapshot
 import com.yellow.worker.domain.RunGate
+import com.yellow.worker.domain.SafetyDiagnostic
 import com.yellow.worker.model.ModelCatalog
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.TimeoutCancellationException
@@ -32,7 +34,11 @@ class YellowWorker(
         }
 
         report(preferences, WorkerStatus.CHECKING_SAFETY)
-        when (val decision = RunGate.evaluate(readGateSnapshot(savedState.manuallyPaused))) {
+        val gateSnapshot = readGateSnapshot(savedState.manuallyPaused)
+        preferences.recordSafetySummary(
+            SafetyDiagnostic.summary(gateSnapshot, GateProfile.IDLE_WORK),
+        )
+        when (val decision = RunGate.evaluate(gateSnapshot)) {
             GateDecision.Allowed -> Unit
             is GateDecision.Blocked -> {
                 val status = decision.reason.toWorkerStatus()
@@ -101,6 +107,8 @@ class YellowWorker(
         BlockReason.NOT_CHARGING -> WorkerStatus.BLOCKED_NOT_CHARGING
         BlockReason.THERMAL_LIMIT -> WorkerStatus.COOLING_DOWN
         BlockReason.UNKNOWN_THERMAL_STATE -> WorkerStatus.BLOCKED_UNKNOWN_THERMAL
+        BlockReason.BATTERY_TEMPERATURE_LIMIT -> WorkerStatus.COOLING_DOWN
+        BlockReason.BATTERY_TEMPERATURE_UNAVAILABLE -> WorkerStatus.BLOCKED_UNKNOWN_THERMAL
     }
 
     companion object {

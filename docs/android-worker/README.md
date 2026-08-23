@@ -14,7 +14,8 @@ personal data or allowing arbitrary code execution.
 - schedules one unique job only while charging, on unmetered Wi-Fi, with battery and
   storage healthy, and with Android reporting the device idle;
 - rechecks screen use, charging, and thermal state before native work;
-- blocks at thermal status `MODERATE` or above and fails closed when status is unknown;
+- keeps normal idle work blocked at thermal status `MODERATE` or above and fails closed
+  when status is unknown;
 - shows a foreground notification with an immediate **Pause now** action;
 - offers one explicit **Run model test now** action;
 - downloads only the four immutable Order 030 Qwen model resources, resuming through
@@ -25,7 +26,7 @@ personal data or allowing arbitrary code execution.
   lower-memory 7B Q4_K_M and a final 1.5B Q8_0 engine diagnostic after interrupted
   or failed loads/benchmarks;
 - activates a model only after the pinned native engine loads it and a bounded
-  on-device benchmark finishes below `MODERATE` thermal status.
+  on-device benchmark passes the selected idle/manual thermal profile.
 
 The 10R hash-verified all four candidates, and the fit-safe 1.5B model still failed
 with 5.90 GiB available RAM. That control falsified memory pressure as the common
@@ -38,15 +39,26 @@ weights. If it fails again, the marker remains terminal and cannot loop. Under D
 cleanup stays per-device: a 10R failure does not remove or disqualify a model on the
 11R or Nord 5.
 
+The next 10R run exposed a separate gate issue: OxygenOS repeatedly reported
+`MODERATE` while the founder observed that the phone was cool, preventing the repaired
+engine from being tested. v0.7 records and displays Android's platform thermal level
+and sticky battery-temperature reading. D-99 allows only the explicit manual test to
+continue at `MODERATE`, only below Yellow's conservative 40.0 °C diagnostic ceiling;
+`SEVERE`, unknown thermal state, or a hot reading still blocks. The idle scheduler's
+strict below-`MODERATE` rule is unchanged.
+
 ### Temporary founder-controlled 10R test mode
 
 The explicit **Run model test now** action starts the Order 030 preparation ladder
 without waiting for charging, screen-off, device-idle or unmetered-network status.
 It is a narrow physical-phone diagnostic authorized by D-95, not the production
 scheduler. It still requires a connected network, healthy battery and storage,
-retains the 8 GiB reserve, fails closed at unknown or `MODERATE` thermal status, and
-can be stopped immediately with **Pause now**. A determinate progress bar mirrors the
-foreground download notification. **Arm when idle** keeps the original full gates.
+retains the 8 GiB reserve, fails closed at an unknown thermal status, and can be
+stopped immediately with **Pause now**. At `MODERATE`, it proceeds only with a measured
+battery temperature below 40.0 °C; `SEVERE` or hotter always blocks. A
+determinate progress bar mirrors the foreground download notification, and the screen
+shows the latest thermal level and battery reading. **Arm when idle** keeps the original
+full gates and still blocks at `MODERATE`.
 
 ## What it cannot do
 

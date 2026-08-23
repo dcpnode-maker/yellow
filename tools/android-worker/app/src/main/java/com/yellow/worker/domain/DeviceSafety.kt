@@ -1,6 +1,8 @@
 package com.yellow.worker.domain
 
 import android.content.Context
+import android.content.Intent
+import android.content.IntentFilter
 import android.os.BatteryManager
 import android.os.PowerManager
 
@@ -13,6 +15,7 @@ object DeviceSafety {
             deviceInteractive = powerManager?.isInteractive ?: true,
             charging = batteryManager?.isCharging ?: false,
             thermalLevel = thermalLevel(context),
+            batteryTemperatureCelsius = batteryTemperatureCelsius(context),
         )
     }
 
@@ -29,4 +32,22 @@ object DeviceSafety {
             else -> ThermalLevel.UNKNOWN
         }
     }
+
+    @Suppress("DEPRECATION")
+    fun batteryTemperatureCelsius(context: Context): Double? {
+        val batteryState = context.registerReceiver(
+            null,
+            IntentFilter(Intent.ACTION_BATTERY_CHANGED),
+        ) ?: return null
+        val rawTenths = batteryState.getIntExtra(
+            BatteryManager.EXTRA_TEMPERATURE,
+            Int.MIN_VALUE,
+        )
+        return BatteryTemperature.fromTenthsCelsius(rawTenths)
+    }
+}
+
+object BatteryTemperature {
+    fun fromTenthsCelsius(rawTenths: Int): Double? =
+        rawTenths.takeIf { it in 1..999 }?.div(10.0)
 }

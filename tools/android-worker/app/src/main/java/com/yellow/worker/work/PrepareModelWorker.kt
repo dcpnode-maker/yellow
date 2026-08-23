@@ -19,6 +19,7 @@ import com.yellow.worker.domain.DeviceSafety
 import com.yellow.worker.domain.GateDecision
 import com.yellow.worker.domain.GateProfile
 import com.yellow.worker.domain.RunGate
+import com.yellow.worker.domain.SafetyDiagnostic
 import com.yellow.worker.model.BenchmarkAssessment
 import com.yellow.worker.model.BenchmarkGate
 import com.yellow.worker.model.FailedModelCleanup
@@ -132,11 +133,12 @@ class PrepareModelWorker(
                     nr = 1,
                 )
             }
-            val endThermal = DeviceSafety.thermalLevel(applicationContext)
+            val endSafety = readSafetySnapshot()
             when (
                 val assessment = BenchmarkGate.assess(
                     benchmark,
-                    endThermal,
+                    endSafety,
+                    gateProfile,
                 )
             ) {
                 is BenchmarkAssessment.Failed -> throw IOException(assessment.reason)
@@ -145,7 +147,7 @@ class PrepareModelWorker(
                         model = candidate,
                         benchmark = benchmark,
                         startThermal = startThermal.name,
-                        endThermal = endThermal.name,
+                        endThermal = endSafety.thermalLevel.name,
                         elapsedMillis = SystemClock.elapsedRealtime() - preparationStartedAt,
                         ram = ramBeforeLoad,
                     )
@@ -268,9 +270,11 @@ class PrepareModelWorker(
 
     private suspend fun checkSafety(): Result? {
         val state = preferences.current()
+        val snapshot = DeviceSafety.snapshot(applicationContext, state.manuallyPaused)
+        preferences.recordSafetySummary(SafetyDiagnostic.summary(snapshot, gateProfile))
         return when (
             val decision = RunGate.evaluate(
-                DeviceSafety.snapshot(applicationContext, state.manuallyPaused),
+                snapshot,
                 gateProfile,
             )
         ) {
@@ -280,6 +284,13 @@ class PrepareModelWorker(
                 if (decision.reason == BlockReason.MANUAL_PAUSE) Result.success() else Result.retry()
             }
         }
+    }
+
+    private suspend fun readSafetySnapshot() = DeviceSafety.snapshot(
+        applicationContext,
+        preferences.current().manuallyPaused,
+    ).also { snapshot ->
+        preferences.recordSafetySummary(SafetyDiagnostic.summary(snapshot, gateProfile))
     }
 
     private suspend fun handleCandidateFailure(
@@ -382,6 +393,8 @@ class PrepareModelWorker(
         BlockReason.NOT_CHARGING -> WorkerStatus.BLOCKED_NOT_CHARGING
         BlockReason.THERMAL_LIMIT -> WorkerStatus.COOLING_DOWN
         BlockReason.UNKNOWN_THERMAL_STATE -> WorkerStatus.BLOCKED_UNKNOWN_THERMAL
+        BlockReason.BATTERY_TEMPERATURE_LIMIT -> WorkerStatus.COOLING_DOWN
+        BlockReason.BATTERY_TEMPERATURE_UNAVAILABLE -> WorkerStatus.BLOCKED_UNKNOWN_THERMAL
     }
 
     companion object {

@@ -37,6 +37,13 @@ so llama.cpp could not enumerate its packaged CPU backend modules. v0.6 restores
 setting and rearms only the final 1.5B marker once. An updated 10R therefore downloads
 only the 1,894,532,160-byte diagnostic again; its three larger failure markers remain.
 
+v0.7 corrects a real-device diagnostic gate exposed by OxygenOS reporting `MODERATE`
+while the 10R is cool. Only **Run model test now** may proceed at `MODERATE`, and only
+with an independent Android battery reading below Yellow's 40.0 °C test ceiling. It
+still stops at `SEVERE`, an unknown thermal state, or a hot battery, and shows the
+actual platform level and battery reading in the activity. Normal idle mode remains
+blocked at `MODERATE`.
+
 For the first founder-controlled OnePlus 10R measurement, D-95 also exposes an
 explicit **Run model test now** action. It temporarily holds the charging, idle,
 screen-off and unmetered-network gates while retaining connected-network,

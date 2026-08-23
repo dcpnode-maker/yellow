@@ -1,6 +1,9 @@
 package com.yellow.worker.model
 
-import com.yellow.worker.domain.ThermalLevel
+import com.yellow.worker.domain.GateDecision
+import com.yellow.worker.domain.GateProfile
+import com.yellow.worker.domain.GateSnapshot
+import com.yellow.worker.domain.RunGate
 
 data class BenchmarkSpeeds(
     val promptTokensPerSecond: Double,
@@ -31,11 +34,12 @@ object BenchmarkGate {
     private const val MIN_PROMPT_TOKENS_PER_SECOND = 1.0
     private const val MIN_GENERATION_TOKENS_PER_SECOND = 0.5
 
-    fun assess(raw: String, endThermal: ThermalLevel): BenchmarkAssessment {
-        if (
-            endThermal == ThermalLevel.UNKNOWN ||
-            endThermal.severity >= ThermalLevel.MODERATE.severity
-        ) {
+    fun assess(
+        raw: String,
+        endSafety: GateSnapshot,
+        profile: GateProfile = GateProfile.IDLE_WORK,
+    ): BenchmarkAssessment {
+        if (RunGate.evaluateThermal(endSafety, profile) is GateDecision.Blocked) {
             return BenchmarkAssessment.Failed("phone reached an unsafe thermal state")
         }
         val speeds = BenchmarkResultParser.parse(raw)

@@ -20,8 +20,14 @@ class RunGateTest {
     }
 
     @Test
-    fun `moderate thermal status blocks work`() {
-        assertBlocked(BlockReason.THERMAL_LIMIT, safeSnapshot().copy(thermalLevel = ThermalLevel.MODERATE))
+    fun `moderate thermal status still blocks idle work with a cool battery`() {
+        assertBlocked(
+            BlockReason.THERMAL_LIMIT,
+            safeSnapshot().copy(
+                thermalLevel = ThermalLevel.MODERATE,
+                batteryTemperatureCelsius = 30.0,
+            ),
+        )
     }
 
     @Test
@@ -61,10 +67,46 @@ class RunGateTest {
     }
 
     @Test
-    fun `manual test still blocks moderate heat`() {
+    fun `manual test permits moderate platform status below measured ceiling`() {
+        assertEquals(
+            GateDecision.Allowed,
+            RunGate.evaluate(
+                safeSnapshot().copy(
+                    thermalLevel = ThermalLevel.MODERATE,
+                    batteryTemperatureCelsius = 39.9,
+                ),
+                GateProfile.MANUAL_MODEL_TEST,
+            ),
+        )
+    }
+
+    @Test
+    fun `manual test blocks battery temperature at the measured ceiling`() {
+        assertBlockedInManualTest(
+            BlockReason.BATTERY_TEMPERATURE_LIMIT,
+            safeSnapshot().copy(batteryTemperatureCelsius = 40.0),
+        )
+    }
+
+    @Test
+    fun `manual test blocks severe platform heat even with a cool battery`() {
         assertBlockedInManualTest(
             BlockReason.THERMAL_LIMIT,
-            safeSnapshot().copy(thermalLevel = ThermalLevel.MODERATE),
+            safeSnapshot().copy(
+                thermalLevel = ThermalLevel.SEVERE,
+                batteryTemperatureCelsius = 25.0,
+            ),
+        )
+    }
+
+    @Test
+    fun `manual test requires a battery reading to override moderate status`() {
+        assertBlockedInManualTest(
+            BlockReason.BATTERY_TEMPERATURE_UNAVAILABLE,
+            safeSnapshot().copy(
+                thermalLevel = ThermalLevel.MODERATE,
+                batteryTemperatureCelsius = null,
+            ),
         )
     }
 
@@ -92,5 +134,6 @@ class RunGateTest {
         deviceInteractive = false,
         charging = true,
         thermalLevel = ThermalLevel.LIGHT,
+        batteryTemperatureCelsius = 30.0,
     )
 }

@@ -50,6 +50,7 @@ class MainActivity : AppCompatActivity() {
         preferences = WorkerPreferences(applicationContext)
 
         val statusText = findViewById<TextView>(R.id.status_text)
+        val safetyDetailText = findViewById<TextView>(R.id.safety_detail_text)
         val pauseModeText = findViewById<TextView>(R.id.pause_mode_text)
         val deviceProfileText = findViewById<TextView>(R.id.device_profile_text)
         val modelStatusText = findViewById<TextView>(R.id.model_status_text)
@@ -64,6 +65,12 @@ class MainActivity : AppCompatActivity() {
         activityScope.launch {
             preferences.state.collectLatest { state ->
                 statusText.text = state.status.displayText
+                safetyDetailText.text = state.safetySummary.orEmpty()
+                safetyDetailText.visibility = if (state.safetySummary == null) {
+                    View.GONE
+                } else {
+                    View.VISIBLE
+                }
                 pauseModeText.setText(
                     if (state.manuallyPaused) {
                         R.string.manual_pause_on
