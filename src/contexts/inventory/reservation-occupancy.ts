@@ -35,11 +35,21 @@ export interface ReservationSegmentClaim {
   readonly from: Date;
   readonly to: Date;
   readonly claimCount: number;
+  readonly claims: readonly ReservationSegmentOccupancyClaim[];
 }
 
 export interface ReservationSegmentRelease {
   readonly segmentId: string;
   readonly claimCount: number;
+  readonly claims: readonly ReservationSegmentOccupancyClaim[];
+}
+
+export interface ReservationSegmentOccupancyClaim {
+  readonly id: string;
+  readonly spaceId: string;
+  readonly period: string;
+  readonly claim: string;
+  readonly exclusive: boolean;
 }
 
 interface MappingRow {
@@ -58,6 +68,16 @@ interface OccupancyRow {
   readonly period: string;
   readonly claim: string;
   readonly exclusive: boolean;
+}
+
+function freezeClaims(rows: readonly OccupancyRow[]): readonly ReservationSegmentOccupancyClaim[] {
+  return Object.freeze(rows.map((row) => Object.freeze({
+    id: row.id,
+    spaceId: row.space_id,
+    period: row.period,
+    claim: row.claim,
+    exclusive: row.exclusive,
+  })));
 }
 
 function requireUuid(name: string, value: unknown): string {
@@ -270,6 +290,7 @@ export class ReservationOccupancyService {
       from: new Date(period.from),
       to: new Date(period.to),
       claimCount: occupancies.length,
+      claims: freezeClaims(occupancies),
     });
   }
 
@@ -339,6 +360,10 @@ export class ReservationOccupancyService {
         },
       });
     }
-    return Object.freeze({ segmentId, claimCount: occupancies.length });
+    return Object.freeze({
+      segmentId,
+      claimCount: occupancies.length,
+      claims: freezeClaims(occupancies),
+    });
   }
 }

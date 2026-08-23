@@ -25,6 +25,15 @@ export {
   ReservationOfferSearchTooBroadError,
   ReservationOfferValidationError,
 } from "./offers";
+export { ReservationSegmentService } from "./segments";
+export type {
+  ChangeReservationDepartureInput,
+  ChangeReservationDepartureResult,
+  ExpectedSegmentPeriod,
+  MoveReservationRoomInput,
+  MoveReservationRoomResult,
+  ReservationSegmentServiceOptions,
+} from "./segments";
 export {
   ReservationApprovalRequiredError,
   ReservationLifecycleConflictError,

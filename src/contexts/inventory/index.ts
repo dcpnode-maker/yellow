@@ -80,5 +80,6 @@ export type {
   ClaimReservationSegmentInput,
   ReleaseReservationSegmentInput,
   ReservationSegmentClaim,
+  ReservationSegmentOccupancyClaim,
   ReservationSegmentRelease,
 } from "./reservation-occupancy";
