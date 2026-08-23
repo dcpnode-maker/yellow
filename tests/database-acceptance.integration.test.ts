@@ -35,6 +35,11 @@ const EXPECTED_MIGRATIONS = [
     filename: "0006_rate_release_approval_lookup.sql",
     checksum_sha256: "72a938e1a9d5c862d873ce987c0cdb36247008d8b5d4b76aeec1aeabf6aa1c11",
   },
+  {
+    version: 7,
+    filename: "0007_reservation_guest_delete_privilege.sql",
+    checksum_sha256: "b39b67ed47e83f348f88dfa892dc5c6df75014822b2bf1084c97c51d2c6571db",
+  },
 ];
 
 if (REQUIRE_DATABASE && !DATABASE_URL) {

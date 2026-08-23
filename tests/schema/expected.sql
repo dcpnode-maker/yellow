@@ -5033,7 +5033,7 @@ GRANT SELECT,INSERT,UPDATE ON TABLE public.reservation_group TO app_role;
 -- Name: TABLE reservation_guest; Type: ACL; Schema: public; Owner: -
 --
 
-GRANT SELECT,INSERT,UPDATE ON TABLE public.reservation_guest TO app_role;
+GRANT SELECT,INSERT,DELETE,UPDATE ON TABLE public.reservation_guest TO app_role;
 
 
 --

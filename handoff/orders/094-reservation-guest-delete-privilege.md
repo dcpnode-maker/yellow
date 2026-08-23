@@ -6,7 +6,7 @@
 **Base:** Order 093 at `142d19f`  
 **Written by:** Codex primary implementation owner  
 **Date:** 2026-08-24  
-**Status:** P0 RED RECORDED · migration not implemented
+**Status:** BUILT · AWAITING INDEPENDENT REVIEW
 
 ## Goal
 
@@ -131,10 +131,23 @@ fresh isolated `./setup.sh --db-only` prints `11 passed, 0 failed of 11`.
 ## Definition of done
 
 - [x] Intentional red is committed and records missing privilege/SQLSTATE 42501.
-- [ ] Migration grants only the named privilege and has an exact ledger checksum.
-- [ ] Focused ACL and cross-tenant deletion proof passes on fresh PostgreSQL.
-- [ ] Deployment acceptance, schema drift and protected privilege comparisons pass.
-- [ ] Project status reports Order 094, Phase 4 active and review-through Order 091.
-- [ ] Full standing gate and fresh referee pass at 11/11.
+- [x] Migration grants only the named privilege and has an exact ledger checksum.
+- [x] Focused ACL and cross-tenant deletion proof passes on fresh PostgreSQL.
+- [x] Deployment acceptance, schema drift and protected privilege comparisons pass.
+- [x] Project status reports Order 094, Phase 4 active and review-through Order 091.
+- [x] Full standing gate and fresh referee pass at 11/11.
 - [ ] Independent non-implementing reviewer personally executes P1/P2 and approves.
-- [ ] No file outside Scope changes; pre-existing untracked user material is preserved.
+- [x] No file outside Scope changes; pre-existing untracked user material is preserved.
+
+## Builder evidence
+
+The implementation adds only migration 0007's `reservation_guest` DELETE ACL and its
+derived acceptance/status artifacts. Its SHA-256 is
+`b39b67ed47e83f348f88dfa892dc5c6df75014822b2bf1084c97c51d2c6571db`.
+On disposable PostgreSQL `yellow_order094`, P1/P2 passed **2/2** with three exact
+assertions; deployment acceptance passed **4/4**; schema drift is exact and contains
+only the expected reservation-guest ACL delta. The restarted standing gate passed
+typecheck, 58-file import boundaries, **120/120** default tests with 1,544 assertions,
+23-package licence policy and zero-vulnerability audit. Fresh isolated Compose project
+`yellow-order094-final` applied migrations 1-7 and the app-never-started referee printed
+**11 passed, 0 failed of 11**. Builder evidence is not independent approval.
