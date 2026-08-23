@@ -1,9 +1,9 @@
 # Order 091 — Canonical RMS room-economics metric contract
 
-**Phase:** 4 · Cross-cutting RMS foundation while the reservation privilege/security floor remains open  
-**Branch:** `phase-4/rms-economic-metric-contract`  
-**Base:** `phase-4/portable-ai-provider-contract` at `2eb0305`  
-**Tier:** 3 — canonical commercial-money semantics consumed by future models and decisions  
+**Phase:** 4 · Cross-cutting RMS foundation while the reservation privilege/security floor remains open
+**Branch:** `phase-4/rms-economic-metric-contract`
+**Base:** `phase-4/portable-ai-provider-contract` at `2eb0305`
+**Tier:** 3 — canonical commercial-money semantics consumed by future models and decisions
 **Written by:** OpenAI Codex, founder-authorized temporary architect/builder under D-95/D-115/D-221
 
 ## Outcome

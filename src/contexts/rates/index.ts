@@ -190,3 +190,19 @@ export {
   RateIntentProviderConfigurationError,
 } from "./intent-provider";
 export type { RateIntentProviderFetch } from "./intent-provider";
+export {
+  calculateRmsRoomEconomics,
+  rmsRoomEconomicsEvidence,
+  RMS_ROOM_ECONOMICS_BASIS,
+  RmsEconomicsError,
+} from "./economics";
+export type {
+  ExactPerOccupiedRoomNightEvidence,
+  ExactPerOccupiedRoomNightValue,
+  RmsBidPriceComparison,
+  RmsDistributionCosts,
+  RmsDistributionCostsInput,
+  RmsRoomEconomics,
+  RmsRoomEconomicsEvidence,
+  RmsRoomEconomicsInput,
+} from "./economics";
