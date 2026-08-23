@@ -95,10 +95,10 @@ jobs:
             exit 1
           fi
 
-      - name: Upload OnePlus 10R debug APK
+      - name: Upload OnePlus fleet debug APK
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
-          name: yellow-worker-10r-debug
+          name: yellow-worker-oneplus-arm64-debug
           path: tools/android-worker/app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
           retention-days: 7

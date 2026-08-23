@@ -2,7 +2,7 @@
 <resources>
     <string name="app_name">Yellow Worker</string>
     <string name="title">Yellow idle worker</string>
-    <string name="subtitle">OnePlus 10R pilot · local native engine</string>
+    <string name="subtitle">OnePlus 10R · 11R · Nord 5</string>
     <string name="status_label">Current state</string>
     <string name="status_initial">Loading safe state…</string>
     <string name="manual_pause_on">Manual pause is ON. Work cannot start.</string>

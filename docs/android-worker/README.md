@@ -2,9 +2,10 @@
 
 Status: **foundation only; no model or remote jobs are enabled**.
 
-The OnePlus 10R pilot is a native Kotlin app backed by the official `llama.cpp`
-Android library. It exists to prove that Yellow can package a local engine without
-granting access to personal data or allowing arbitrary code execution.
+The OnePlus fleet worker is one native Kotlin APK for the verified OnePlus 10R,
+OnePlus 11R and OnePlus Nord 5, backed by the official `llama.cpp` Android library.
+It exists to prove that Yellow can package a local engine without granting access to
+personal data or allowing arbitrary code execution.
 
 ## What this APK does
 
@@ -26,7 +27,9 @@ download, or inference path.
 
 The APK uses app-private storage with backup disabled. Future model weights will live
 under the app's private `files/models/` directory; expanded RAM is not treated as real
-memory capacity and model selection requires measurement on the physical 12 GB 10R.
+memory capacity. One package does not mean one performance profile: model, threads and
+context remain benchmark-gated per hardware class, with the physical 12 GB 10R as the
+conservative baseline.
 
 ## Owner controls
 
