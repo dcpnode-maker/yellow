@@ -96,8 +96,8 @@ const OFFLINE_LEASE_READ_SCOPE = "inventory.offline_leases:read";
 const OFFLINE_LEASE_WRITE_SCOPE = "inventory.offline_leases:write";
 const RESERVATION_WRITE_SCOPE = "reservations.booking:write";
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
-const ISO_INSTANT = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(?::\d{2}(?:\.\d{1,3})?)?(?:Z|[+-]\d{2}:\d{2})$/;
-const LOCAL_DATE = /^\d{4}-\d{2}-\d{2}$/;
+const ISO_INSTANT = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})(?::(\d{2})(?:\.(\d{1,3}))?)?(Z|([+-])(\d{2}):(\d{2}))$/;
+const LOCAL_DATE = /^(\d{4})-(\d{2})-(\d{2})$/;
 
 function isObject(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
@@ -152,9 +152,56 @@ function hasScope(context: TenantRequestContext, scope: string): context is Tena
 }
 
 function parseInstant(value: unknown): Date | null {
-  if (typeof value !== "string" || !ISO_INSTANT.test(value)) return null;
+  if (typeof value !== "string") return null;
+  const match = ISO_INSTANT.exec(value);
+  if (!match) return null;
+  const [, yearText, monthText, dayText, hourText, minuteText,
+    secondText = "00", fractionText = "", rawOffset,
+    offsetSign, offsetHourText = "00", offsetMinuteText = "00"] = match;
+  if (!yearText || !monthText || !dayText || !hourText || !minuteText || !rawOffset) return null;
+  const year = Number(yearText);
+  const month = Number(monthText);
+  const day = Number(dayText);
+  const hour = Number(hourText);
+  const minute = Number(minuteText);
+  const second = Number(secondText);
+  const millisecond = Number(fractionText.padEnd(3, "0") || "0");
+  const offsetHour = Number(offsetHourText);
+  const offsetMinute = Number(offsetMinuteText);
+  if (year < 1 || month < 1 || month > 12 || day < 1 || day > 31 || hour > 23 ||
+      minute > 59 || second > 59 || offsetHour > 14 || offsetMinute > 59 ||
+      (offsetHour === 14 && offsetMinute !== 0)) return null;
   const parsed = new Date(value);
-  return Number.isFinite(parsed.getTime()) ? parsed : null;
+  if (!Number.isFinite(parsed.getTime())) return null;
+  const signedOffsetMinutes = rawOffset === "Z"
+    ? 0
+    : (offsetSign === "-" ? -1 : 1) * (offsetHour * 60 + offsetMinute);
+  const local = new Date(parsed.getTime() + signedOffsetMinutes * 60_000);
+  return local.getUTCFullYear() === year && local.getUTCMonth() + 1 === month &&
+      local.getUTCDate() === day && local.getUTCHours() === hour &&
+      local.getUTCMinutes() === minute && local.getUTCSeconds() === second &&
+      local.getUTCMilliseconds() === millisecond
+    ? parsed
+    : null;
+}
+
+function parseLocalDate(value: unknown): string | null {
+  if (typeof value !== "string") return null;
+  const match = LOCAL_DATE.exec(value);
+  if (!match) return null;
+  const [, yearText, monthText, dayText] = match;
+  if (!yearText || !monthText || !dayText) return null;
+  const year = Number(yearText);
+  const month = Number(monthText);
+  const day = Number(dayText);
+  if (year < 1 || month < 1 || month > 12 || day < 1 || day > 31) return null;
+  const date = new Date(0);
+  date.setUTCHours(0, 0, 0, 0);
+  date.setUTCFullYear(year, month - 1, day);
+  return date.getUTCFullYear() === year && date.getUTCMonth() + 1 === month &&
+      date.getUTCDate() === day
+    ? value
+    : null;
 }
 
 function parseSearch(body: unknown): Omit<SearchAvailabilityInput, "propertyNode"> | null {
@@ -255,9 +302,9 @@ function parseOfferSearch(body: unknown): Omit<ReservationOfferSearchInput, "pro
 
 function parseProjectionRebuild(body: unknown): Omit<RebuildAvailabilityProjectionInput, "propertyNode"> | null {
   if (!isObject(body) || !exactKeys(body, ["fromDate", "toDate"])) return null;
-  if (typeof body.fromDate !== "string" || !LOCAL_DATE.test(body.fromDate) ||
-      typeof body.toDate !== "string" || !LOCAL_DATE.test(body.toDate)) return null;
-  return { fromDate: body.fromDate, toDate: body.toDate };
+  const fromDate = parseLocalDate(body.fromDate);
+  const toDate = parseLocalDate(body.toDate);
+  return fromDate && toDate ? { fromDate, toDate } : null;
 }
 
 function parseHold(body: unknown): { sellableUnitId: string; from: Date; to: Date; holderReference: string } | null {
@@ -665,11 +712,10 @@ function parseOperationalBlock(body: unknown): { spaceId: string; kind: "ooo" | 
   from: Date; to: Date; reason: string } | null {
   if (!isObject(body) || !exactKeys(body, ["spaceId", "kind", "from", "to", "reason"]) ||
       typeof body.spaceId !== "string" || (body.kind !== "ooo" && body.kind !== "oos") ||
-      typeof body.from !== "string" || typeof body.to !== "string" || typeof body.reason !== "string" ||
-      !ISO_INSTANT.test(body.from) || !ISO_INSTANT.test(body.to)) return null;
-  const from = new Date(body.from);
-  const to = new Date(body.to);
-  if (!Number.isFinite(from.getTime()) || !Number.isFinite(to.getTime())) return null;
+      typeof body.reason !== "string") return null;
+  const from = parseInstant(body.from);
+  const to = parseInstant(body.to);
+  if (!from || !to) return null;
   return { spaceId: body.spaceId, kind: body.kind, from, to, reason: body.reason };
 }
 
