@@ -28,7 +28,8 @@ Downloads resume only under the idle/charging/Wi-Fi safety constraints, stay in
 app-private storage, and must pass exact byte-count, SHA-256, native-load and thermal
 benchmark gates. Inference limits remain per-device runtime profiles and are not fixed
 by packaging. Persisted attempt markers skip models that already failed on that phone,
-so an APK update preserves both verified weights and real-device progress.
+and v0.5 deletes those failed weights before advancing while retaining the markers so
+they cannot be downloaded again. Active and unattempted model files remain untouched.
 
 For the first founder-controlled OnePlus 10R measurement, D-95 also exposes an
 explicit **Run model test now** action. It temporarily holds the charging, idle,

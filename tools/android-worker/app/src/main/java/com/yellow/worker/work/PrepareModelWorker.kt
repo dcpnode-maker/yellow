@@ -21,6 +21,7 @@ import com.yellow.worker.domain.GateProfile
 import com.yellow.worker.domain.RunGate
 import com.yellow.worker.model.BenchmarkAssessment
 import com.yellow.worker.model.BenchmarkGate
+import com.yellow.worker.model.FailedModelCleanup
 import com.yellow.worker.model.ModelCatalog
 import com.yellow.worker.model.ModelDownloadProgress
 import com.yellow.worker.model.ModelDownloadStage
@@ -56,7 +57,16 @@ class PrepareModelWorker(
         }
 
         val requestedIndex = inputData.getInt(INPUT_CANDIDATE_INDEX, 0)
-        val candidateIndex = resolveCandidate(requestedIndex)
+        val candidateIndex = try {
+            resolveCandidate(requestedIndex)
+        } catch (error: IOException) {
+            preferences.recordModelFailure(
+                savedState.preparingModelId ?: ModelCatalog.CODER_14B,
+                error.message ?: "Could not remove failed model files",
+                WorkerStatus.ERROR,
+            )
+            return Result.retry()
+        }
         if (candidateIndex == null) {
             preferences.setStatus(WorkerStatus.MODEL_FAILED)
             return Result.failure()
@@ -79,17 +89,19 @@ class PrepareModelWorker(
         }
         if (!hasStorageFor(remainingBytes)) {
             markAttempted(marker)
-            return handleCandidateFailure(
+            val result = handleCandidateFailure(
                 candidateIndex,
                 candidate,
                 "Requires the remaining model bytes plus an 8 GiB safety reserve",
                 terminalStatus = WorkerStatus.MODEL_STORAGE_LOW,
             )
+            return finishFailedModelCleanup(candidate, result)
         }
 
         var engine: InferenceEngine? = null
         var ramBeforeLoad = RamSnapshot(totalBytes = 0L, availableBytes = 0L)
-        return try {
+        var deleteFailedModelOnExit = false
+        val result = try {
             val modelFile = ResumableModelDownloader().download(
                 model = candidate,
                 directory = modelDirectory,
@@ -135,16 +147,18 @@ class PrepareModelWorker(
                         elapsedMillis = SystemClock.elapsedRealtime() - preparationStartedAt,
                         ram = ramBeforeLoad,
                     )
-                    preferences.activateModel(candidate.id, evidence)
                     check(marker.delete() || !marker.exists()) { "could not clear benchmark marker" }
+                    preferences.activateModel(candidate.id, evidence)
                     report(WorkerStatus.MODEL_READY)
                     WorkerScheduler.enqueue(applicationContext)
                     Result.success()
                 }
             }
         } catch (timeout: TimeoutCancellationException) {
+            deleteFailedModelOnExit = marker.exists()
             handleCandidateFailure(candidateIndex, candidate, "model preparation timed out")
         } catch (error: UnsupportedArchitectureException) {
+            deleteFailedModelOnExit = marker.exists()
             val availableBytes = ramBeforeLoad.availableBytes.takeIf { it > 0L }
                 ?: readRamSnapshot().availableBytes
             handleCandidateFailure(
@@ -155,6 +169,7 @@ class PrepareModelWorker(
         } catch (cancelled: CancellationException) {
             throw cancelled
         } catch (error: Exception) {
+            deleteFailedModelOnExit = marker.exists()
             handleCandidateFailure(
                 candidateIndex,
                 candidate,
@@ -170,12 +185,26 @@ class PrepareModelWorker(
                 }
             }
         }
+        return if (deleteFailedModelOnExit) {
+            finishFailedModelCleanup(candidate, result)
+        } else {
+            result
+        }
     }
 
     private fun resolveCandidate(requestedIndex: Int): Int? {
         var current = requestedIndex
         repeat(ModelCatalog.candidates.size + 1) {
             val model = ModelCatalog.at(current) ?: return null
+            if (benchmarkMarker(model).exists()) {
+                val cleanup = FailedModelCleanup.delete(modelDirectory, model)
+                if (!cleanup.complete) {
+                    throw IOException(
+                        "Could not remove failed model files: " +
+                            cleanup.failedFileNames.joinToString(),
+                    )
+                }
+            }
             val selected = ModelSelectionPolicy.candidateIndex(
                 requestedIndex = current,
                 interruptedBenchmark = benchmarkMarker(model).exists(),
@@ -184,6 +213,17 @@ class PrepareModelWorker(
             current = selected
         }
         return null
+    }
+
+    private suspend fun finishFailedModelCleanup(candidate: PinnedModel, result: Result): Result {
+        val cleanup = FailedModelCleanup.delete(modelDirectory, candidate)
+        if (cleanup.complete) return result
+        preferences.recordModelFailure(
+            candidate.id,
+            "Could not remove failed model files: ${cleanup.failedFileNames.joinToString()}",
+            WorkerStatus.ERROR,
+        )
+        return Result.retry()
     }
 
     private suspend fun initializeEngine(): InferenceEngine {

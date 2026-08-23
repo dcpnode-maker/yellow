@@ -31,7 +31,10 @@ The first 10R measurement hash-verified the original 14B and 7B Q6 files but the
 native loader rejected both. Android's wrapper uses the same exception for every
 native-load failure, so D-96 does not infer an unsupported CPU from that label. The
 smaller additions measure the memory-fit hypothesis while keeping the already
-downloaded files and persisted attempt markers intact across the APK update.
+recorded attempt markers intact across the APK update. Under the founder's D-97
+storage decision, v0.5 deletes the exact GGUF/partial files behind a failed marker
+before advancing, but retains the marker so the phone cannot redownload them. Cleanup
+is per-device: a 10R failure does not remove or disqualify a model on the 11R or Nord 5.
 
 ### Temporary founder-controlled 10R test mode
 
