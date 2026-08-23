@@ -28,6 +28,7 @@ import com.yellow.worker.model.ModelDownloadStage
 import com.yellow.worker.model.ModelLoadDiagnostic
 import com.yellow.worker.model.ModelSelectionPolicy
 import com.yellow.worker.model.ModelStoragePolicy
+import com.yellow.worker.model.NativeBackendRepair
 import com.yellow.worker.model.PinnedModel
 import com.yellow.worker.model.ResumableModelDownloader
 import java.io.File
@@ -58,6 +59,7 @@ class PrepareModelWorker(
 
         val requestedIndex = inputData.getInt(INPUT_CANDIDATE_INDEX, 0)
         val candidateIndex = try {
+            NativeBackendRepair.rearmDiagnosticOnce(modelDirectory)
             resolveCandidate(requestedIndex)
         } catch (error: IOException) {
             preferences.recordModelFailure(

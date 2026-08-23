@@ -27,14 +27,16 @@ personal data or allowing arbitrary code execution.
 - activates a model only after the pinned native engine loads it and a bounded
   on-device benchmark finishes below `MODERATE` thermal status.
 
-The first 10R measurement hash-verified the original 14B and 7B Q6 files but the
-native loader rejected both. Android's wrapper uses the same exception for every
-native-load failure, so D-96 does not infer an unsupported CPU from that label. The
-smaller additions measure the memory-fit hypothesis while keeping the already
-recorded attempt markers intact across the APK update. Under the founder's D-97
-storage decision, v0.5 deletes the exact GGUF/partial files behind a failed marker
-before advancing, but retains the marker so the phone cannot redownload them. Cleanup
-is per-device: a 10R failure does not remove or disqualify a model on the 11R or Nord 5.
+The 10R hash-verified all four candidates, and the fit-safe 1.5B model still failed
+with 5.90 GiB available RAM. That control falsified memory pressure as the common
+cause. D-98 traced the actual integration defect: Yellow packaged llama.cpp's dynamic
+ARM64 CPU modules but omitted the upstream sample's required native-library extraction
+setting, leaving the JNI engine unable to enumerate a backend. v0.6 restores that
+contract and rearms only the final 1.5B marker once, so the updated 10R downloads just
+1,894,532,160 bytes for the repaired proof instead of retrying the deleted larger
+weights. If it fails again, the marker remains terminal and cannot loop. Under D-97,
+cleanup stays per-device: a 10R failure does not remove or disqualify a model on the
+11R or Nord 5.
 
 ### Temporary founder-controlled 10R test mode
 

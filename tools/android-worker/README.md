@@ -31,6 +31,12 @@ by packaging. Persisted attempt markers skip models that already failed on that 
 and v0.5 deletes those failed weights before advancing while retaining the markers so
 they cannot be downloaded again. Active and unattempted model files remain untouched.
 
+The 10R's fit-safe 1.5B result exposed a shared engine integration defect rather than a
+RAM limit: Yellow had omitted the upstream sample's native-library extraction setting,
+so llama.cpp could not enumerate its packaged CPU backend modules. v0.6 restores that
+setting and rearms only the final 1.5B marker once. An updated 10R therefore downloads
+only the 1,894,532,160-byte diagnostic again; its three larger failure markers remain.
+
 For the first founder-controlled OnePlus 10R measurement, D-95 also exposes an
 explicit **Run model test now** action. It temporarily holds the charging, idle,
 screen-off and unmetered-network gates while retaining connected-network,

@@ -119,7 +119,23 @@ jobs:
             esac
           done <<< "$permissions"
 
-          unzip -l "$apk" | grep -q 'lib/arm64-v8a/libai-chat.so'
+          manifest="$($ANDROID_HOME/cmdline-tools/latest/bin/apkanalyzer manifest print "$apk")"
+          grep -q 'android:extractNativeLibs="true"' <<< "$manifest"
+
+          expected_libraries=(
+            libai-chat.so
+            libggml-cpu-android_armv8.0_1.so
+            libggml-cpu-android_armv8.2_1.so
+            libggml-cpu-android_armv8.2_2.so
+            libggml-cpu-android_armv8.6_1.so
+            libggml-cpu-android_armv9.0_1.so
+            libggml-cpu-android_armv9.2_1.so
+            libggml-cpu-android_armv9.2_2.so
+          )
+          apk_entries="$(unzip -Z1 "$apk")"
+          for library in "${expected_libraries[@]}"; do
+            grep -qx "lib/arm64-v8a/$library" <<< "$apk_entries"
+          done
           if unzip -l "$apk" | grep -q 'lib/x86_64/'; then
             echo "APK unexpectedly contains x86_64 native libraries" >&2
             exit 1

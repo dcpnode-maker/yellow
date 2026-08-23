@@ -42,6 +42,18 @@ class ManifestPrivacyTest {
         assertTrue(receiver!!.value.contains("android:exported=\"false\""))
     }
 
+    @Test
+    fun `native CPU backends are extracted for llama dynamic discovery`() {
+        val manifest = readManifest()
+        val application = Regex(
+            "<application\\b[^>]*>",
+            setOf(RegexOption.DOT_MATCHES_ALL),
+        ).find(manifest)
+
+        assertNotNull("Application declaration missing", application)
+        assertTrue(application!!.value.contains("android:extractNativeLibs=\"true\""))
+    }
+
     private fun readManifest(): String {
         val manifest = listOf(
             File("app/src/main/AndroidManifest.xml"),
