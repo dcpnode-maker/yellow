@@ -206,3 +206,16 @@ export type {
   RmsRoomEconomicsEvidence,
   RmsRoomEconomicsInput,
 } from "./economics";
+export {
+  calculateChannelBookedValue,
+  channelBookedValueEvidence,
+  CHANNEL_BOOKED_VALUE_BASIS,
+  ChannelBookedValueError,
+} from "./channel-value";
+export type {
+  ChannelBookedValue,
+  ChannelBookedValueEvidence,
+  ChannelBookedValueInput,
+  ChannelPerOccupiedRoomNightEvidence,
+  ChannelPerOccupiedRoomNightValue,
+} from "./channel-value";
