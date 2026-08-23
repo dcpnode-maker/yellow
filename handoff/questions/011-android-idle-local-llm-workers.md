@@ -12,6 +12,8 @@ The worker must:
 
 - run only while the device is connected to power, on unmetered networking, and not being used;
 - pause promptly when the device becomes interactive or the user starts using it;
+- protect ordinary personal use including YouTube, Chrome, Instagram and Facebook without inspecting which app is open;
+- provide both an immediate on-device pause/resume control and a trusted remote pause/resume command that the founder can issue through Codex/ChatGPT;
 - pause on unsafe thermal or resource conditions;
 - never inspect or request access to personal applications, messages, contacts, photos, credentials, notifications, microphone, camera, location, or shared storage;
 - avoid a persistent Yellow checkout;
@@ -64,13 +66,37 @@ Use a long-running `CoroutineWorker`/foreground notification for visible, cancel
 
 - do not start until the device has remained non-interactive for a cooldown period;
 - observe `PowerManager.isInteractive()` and screen interactive-state broadcasts;
-- cancel/pause inference immediately on interactive state;
+- cancel/pause inference immediately on interactive state and unload the model from active memory before competing with foreground applications;
 - observe charging state throughout the job;
 - observe thermal status; pause at `THERMAL_STATUS_MODERATE` or above and resume only after a cooldown at `NONE`/`LIGHT`;
-- expose a permanent notification action: **Pause Yellow worker**;
+- expose permanent notification actions: **Pause Yellow worker** and **Resume when idle**;
 - default to no work during calls or media activity if reliable non-sensitive signals are available without privileged permissions.
 
 Android WorkManager explicitly supports charging, unmetered network, storage, battery and device-idle constraints and stops work when constraints become unmet. Android also documents long-running local-ML workers through a managed foreground service.
+
+### User-first pause and remote control
+
+Foreground phone use always wins over Yellow work.
+
+- Screen/interactivity change is a hard preemption signal, not merely a scheduling hint.
+- The inference loop must expose cooperative cancellation at token/batch boundaries.
+- Acceptance target: local interaction pause begins within 500 ms and inference CPU work stops within 2 seconds; measure rather than assume this on the 10R.
+- Release the loaded model/session memory after preemption so YouTube, Chrome, Instagram, Facebook and other foreground apps receive normal memory and CPU priority.
+- Do not collect package names, browsing activity, URLs, watch history or usage history.
+- If non-sensitive platform signals report active media while the screen is off, remain paused; do not request notification-listener or accessibility permissions to identify the media app.
+- After automatic preemption, resume only after charging and all idle/thermal/network gates have remained healthy for a configurable cooldown.
+- A manual pause is sticky across app restarts and device reboots. It must never auto-resume until the founder explicitly selects resume locally or sends a trusted remote resume command.
+
+Remote control is a desired-state channel, not remote phone access:
+
+1. The founder can tell Codex/ChatGPT: **“pause Yellow on 10R”**, **“resume Yellow on 10R”**, or **“pause Yellow on 10R until <time>.”**
+2. Codex updates the trusted coordinator's signed device state (`RUN_WHEN_IDLE`, `PAUSED`, or `PAUSED_UNTIL`).
+3. The worker verifies device ID, signature, monotonic sequence number, expiry and replay protection before applying it.
+4. While a job is active, the control channel must be checked often enough to target remote pause within 30 seconds; local notification pause remains immediate.
+5. Remote pause cancels active inference, prevents new jobs, and preserves only minimal resumable metadata. A paused task cache exceeding its declared TTL is abandoned and deleted.
+6. No command may unlock the phone, open/control another app, inspect personal content, bypass Android permissions, or merge code.
+
+The UI and ongoing notification must always show one clear state: `Running while idle`, `Paused because phone is in use`, `Paused by Ankit`, `Cooling down`, or `Waiting for power/network`.
 
 ### Minimal-storage repository flow
 
@@ -143,6 +169,7 @@ Run a controlled suite of at least 20 small tasks with known expected outcomes. 
 - model and temporary storage;
 - maximum thermal status and cooldown frequency;
 - pause latency after the device becomes interactive;
+- local notification pause latency, remote-command pause latency, sticky-pause behavior across restart, and model-memory release time;
 - abandoned/resumed job correctness;
 - battery behavior while connected to power;
 - any personal-data permission requested (target: zero).
@@ -153,7 +180,7 @@ Expansion is allowed only if the worker produces net-positive reviewed throughpu
 
 1. Should the worker live in this repository under a clearly isolated tools directory, or in a separate repository with Yellow containing only the job contract?
 2. Approve or replace the native Kotlin + llama.cpp + 3B Q4 pilot.
-3. Define the trusted coordinator and GitHub App/token-minting boundary.
+3. Define the trusted coordinator, GitHub App/token-minting boundary, and signed per-device desired-state control channel for founder-issued pause/resume commands.
 4. Approve the signed job manifest and temporary-context approach.
 5. Approve the initial task allowlist and explicit forbidden list.
 6. Issue a tightly scoped implementation order containing files, tests, threat-model requirements, and acceptance criteria.
