@@ -38,6 +38,33 @@ If the security review rejects direct DELETE, choose and order a different durab
 Do not ask Codex to add a SECURITY DEFINER shortcut implicitly; the current review already found
 unfixed definer-function hardening debt.
 
+### Disposable sufficiency probe — builder evidence, not authorization
+
+Codex recreated a fresh six-migration database in Compose project `yellow-order-087-probe`, applied
+`GRANT DELETE ON reservation_guest TO app_role` only inside that disposable database, and restarted
+the complete focused suite. It passed:
+
+```text
+5 pass
+0 fail
+74 expect() calls
+```
+
+The suite includes exact 2/3/4-way shares, immutable primary identity, hostile values, same-tenant
+party validation, terminal/status/property/tenant rejection, two-writer stale-hash arbitration,
+actor/property/body-bound idempotency, guest/fact/event rollback boundaries and PII-free evidence.
+An additional direct role/RLS probe set tenant A, assumed `app_role`, attempted to delete tenant B's
+guest row, and observed:
+
+```text
+cross_tenant_deleted=0
+foreign_row_remains=1
+```
+
+This proves the narrow grant is sufficient for the current service and that the existing policy
+still hides a foreign tenant in this exact path. It does not approve the migration, settle Claude's
+repository-wide runtime-role findings, or turn builder evidence into independent security review.
+
 ### Preserved state
 
 - Red/order commit: `4f85d9d`
