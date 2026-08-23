@@ -206,3 +206,10 @@ Expansion is allowed only if the worker produces net-positive reviewed throughpu
 7. Decide whether successful phone-generated patches may target the Order 014 branch or must always target a separate integration branch.
 
 Until those decisions and an order exist, no Android worker code should be added.
+
+## RESOLVED
+
+Founder decision D-91 appoints Codex as primary lead. D-92 and Order 028 resolve the
+repository/runtime/safety boundary for the first implementation slice. Model download,
+benchmark selection, signed coordinator jobs, and GitHub output remain separately gated
+by Orders 029 and 030.

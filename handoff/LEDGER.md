@@ -32,3 +32,4 @@
 2026-08-15 · 001-018 · 0 · phase-0/powershell-coverage-split · — → claude · MERGE-PREPARED · all 18 orders marked ## MERGED; single cumulative integration to main per D-90; PRs #15 and #16 close as superseded
 2026-08-23 · — · all · phase-0/phone-idle-worker-rfc · founder → codex · PRIMARY-LEAD-APPOINTED · D-91 retires Claude dependency; Codex owns architecture, orders, build and evidence; founder retains merge control
 2026-08-23 · 027 · 0 · phase-0/phone-idle-worker-rfc · codex → founder · ORDER-WRITTEN · replace active Claude-dependent governance without weakening order, proof, invariant, PR or no-self-merge controls
+2026-08-23 · 028 · 0 · phase-0/android-worker-foundation · codex → founder · ORDER-WRITTEN · pinned official llama.cpp Android engine, fail-closed safety shell, zero personal-data permissions, native APK CI artifact
