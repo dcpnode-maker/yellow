@@ -150,8 +150,35 @@ remain green. Graphify stays derived and the localhost app changes only its hone
 
 ## Definition of done
 
-- [ ] P0 is committed red before production code.
-- [ ] P1-P4 are green with strict bounded research-only semantics.
-- [ ] The external taxonomy/money-basis conflicts and future authority planes are explicit.
-- [ ] P5 and both protected hashes remain exact.
-- [ ] Order 092 is recorded as UNVERIFIED review debt; no approval or merge is claimed.
+- [x] P0 is committed red before production code.
+- [x] P1-P4 are green with strict bounded research-only semantics.
+- [x] The external taxonomy/money-basis conflicts and future authority planes are explicit.
+- [x] P5 and both protected hashes remain exact.
+- [x] Order 092 is recorded as UNVERIFIED review debt; no approval or merge is claimed.
+
+## Builder evidence — UNVERIFIED
+
+- Intentional red commit `93402dd`: 0 pass, 1 fail and 1 import error because the Distribution
+  research-contract exports did not exist.
+- Implementation `0ea6832`: P1-P4 pass 4/4 with 57 assertions. Manual review replaced
+  locale-sensitive set ordering with explicit code-point ordering and added claim, source and
+  archetype discrimination proofs before commit.
+- Fresh exact implementation tip `0ea68322822cb3a48028e77a4cf27486682832b3`: native Linux
+  standing suite 121 pass / 0 fail / 326 database skips / 1,585 assertions; typecheck, 59-file
+  import boundaries, licence policy and `bun audit` are green.
+- Windows full-suite and Phase-3 attempts retained the inherited Bun glob NUL-path defect in the
+  founder manifest assertion. No assertion was weakened: a fresh native-Linux checkout passed that
+  manifest proof and the complete 13-suite Phase-3 gate from the top.
+- Fresh Compose project `yellow-order-092-proof`, with the app never started: exact schema,
+  deployment acceptance 4/4, native isolated Phase-3 gate 13/13 suites and referee 11/11. The first
+  setup attempt used the wrong PostgreSQL-port environment variable and started no database; its
+  exact disposable project was removed, the port precondition corrected and the complete database
+  sequence restarted.
+- Protected SHA-256 hashes remain exact: `migrations/0001_init.sql`
+  `fe2a9fc949c6bacded3f8d3fc4d14fc596a83ebde9aeb043eb10845f07b30923` and
+  `tests/run_invariants.py` `3228279bd99a8f9b6af99748f31d4d4b482a8e627e16d92644d9d859ad8befa1`.
+- Disposable Graphify code map: 2,314 nodes, 6,602 directed endpoint pairs and 104 communities.
+  It reports no missing endpoints or self-loops, but 108 dangling edges and 909 same-endpoint
+  collapses; 413 semantic documents and eight SQL files are deliberately absent. It is incomplete
+  navigation evidence, not architecture or correctness authority, and is not committed.
+- This is builder evidence only. Independent review remains through Order 044; no merge is claimed.
