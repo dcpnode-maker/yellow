@@ -134,9 +134,9 @@ PostgreSQL and approves.
 
 - [x] Order exists before implementation.
 - [x] Intentional P0 red is committed before production code.
-- [ ] Search/create routes are strict, least-privilege and tenant/property safe.
-- [ ] Duplicate review is explicit, masked, exact and artifact-free.
-- [ ] Booking receives only a deliberately selected server Party id.
-- [ ] Accessible UI clears stale/sensitive memory and has no client authority.
-- [ ] Standing/referee gates pass and scope is exact.
+- [x] Search/create routes are strict, least-privilege and tenant/property safe.
+- [x] Duplicate review is explicit, masked, exact and artifact-free.
+- [x] Booking receives only a deliberately selected server Party id.
+- [x] Accessible UI clears stale/sensitive memory and has no client authority.
+- [x] Standing/referee gates pass and scope is exact.
 - [ ] Independent reviewer approves executed proof.
