@@ -88,6 +88,22 @@ export type {
   FrozenCancellationPolicyEvidence,
   StoredCancellationPolicyEvidence,
 } from "./policy-evidence";
+export {
+  ReservationDetailConflictError,
+  ReservationDetailNotFoundError,
+  ReservationDetailService,
+  ReservationDetailValidationError,
+} from "./detail";
+export type {
+  FindReservationDetailInput,
+  ReservationDetailAlert,
+  ReservationDetailFact,
+  ReservationDetailFolio,
+  ReservationDetailGuest,
+  ReservationDetailResult,
+  ReservationDetailSegment,
+  ReservationDetailTravel,
+} from "./detail";
 export type {
   ReservationOffer,
   ReservationOfferIssue,
