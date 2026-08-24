@@ -318,6 +318,14 @@ until a later balanced-posting command creates immutable journal lines.
 - retry/idempotency cannot duplicate economic effect;
 - FX uses explicit journals.
 
+Implemented charge foundation: debit is positive and credit negative. One untaxed
+revenue charge creates exactly two immutable lines in one currency/date: the open guest
+account and folio receive `+amount`, while the configured property revenue account
+receives `-amount` without a folio. PostgreSQL binds line tenant, journal, date, currency,
+account and folio ownership; the exact business-day row is locked against sealing.
+`tx_code_route` is tenant/RLS scoped and read-only to the application. Quantity is
+descriptive fixed-scale metadata and never changes the caller-supplied total.
+
 ### Payment aggregate — Financials
 
 **Root:** logical payment operation; persisted state changes in `payment` with tokenized
