@@ -2956,23 +2956,26 @@
 
   async function placeReservationBookingHold() {
     if (!reservationBookingSelection || !reservationBookingDraft) return;
+    const operationGeneration = reservationBookingSearchGeneration;
+    const property = propertySelect.value;
     const body = {
       sellableUnitId: reservationBookingSelection.sellableUnitId,
       from: reservationBookingSelection.stay.from,
       to: reservationBookingSelection.stay.to,
       holderReference: `booking:${reservationBookingDraft.primaryPartyId}`,
     };
-    const identity = `reservation-booking-hold:${propertySelect.value}:${JSON.stringify(body)}`;
+    const identity = `reservation-booking-hold:${property}:${JSON.stringify(body)}`;
     const key = pendingKeys.get(identity) || crypto.randomUUID();
     pendingKeys.set(identity, key);
     reservationBookingHoldAction.disabled = true;
     reservationBookingMessage.classList.remove("error");
     reservationBookingMessage.textContent = "Protecting this offer for ten minutes…";
     try {
-      const result = await request(`/api/v1/properties/${encodeURIComponent(propertySelect.value)}/holds`, {
+      const result = await request(`/api/v1/properties/${encodeURIComponent(property)}/holds`, {
         method: "POST", headers: { "idempotency-key": key }, body: JSON.stringify(body),
       });
       pendingKeys.delete(identity);
+      if (operationGeneration !== reservationBookingSearchGeneration || property !== propertySelect.value) return;
       reservationBookingHold = result.hold;
       reservationBookingHoldText.textContent = `Temporary hold ${result.hold.id} · expires ${result.hold.expiresAt}. This is not a reservation.`;
       reservationBookingHeld.hidden = false;
@@ -2981,6 +2984,7 @@
       reservationBookingMessage.classList.remove("error");
       reservationBookingMessage.textContent = "Temporary protection committed. Complete held reservation before expiry.";
     } catch (error) {
+      if (operationGeneration !== reservationBookingSearchGeneration || property !== propertySelect.value) return;
       reservationBookingMessage.textContent = error instanceof Error ? error.message : "Hold could not be placed";
       reservationBookingMessage.classList.add("error");
     } finally {
@@ -2990,9 +2994,11 @@
 
   async function commitReservationBooking(useHold) {
     if (!reservationBookingSelection || !reservationBookingDraft) return;
+    const operationGeneration = reservationBookingSearchGeneration;
+    const property = propertySelect.value;
     const offer = reservationBookingSelection;
     const body = {
-      propertyNode: propertySelect.value,
+      propertyNode: property,
       primaryPartyId: reservationBookingDraft.primaryPartyId,
       ratePlanId: offer.ratePlanId,
       adults: reservationBookingDraft.adults,
@@ -3014,6 +3020,7 @@
         method: "POST", headers: { "idempotency-key": key }, body: JSON.stringify(body),
       });
       pendingKeys.delete(identity);
+      if (operationGeneration !== reservationBookingSearchGeneration || property !== propertySelect.value) return;
       reservationBookingMessage.classList.remove("error");
       reservationBookingMessage.textContent = "Reservation confirmed by the server. Financial and document workflows remain separate.";
       reservationBookingConfirmation.querySelector("strong").textContent = result.reservation.confirmationNo;
@@ -3026,6 +3033,7 @@
       reservationBookingHeld.hidden = true;
       reservationBookingHoldAction.hidden = true;
     } catch (error) {
+      if (operationGeneration !== reservationBookingSearchGeneration || property !== propertySelect.value) return;
       reservationBookingMessage.textContent = error instanceof Error ? error.message : "Reservation could not be committed";
       reservationBookingMessage.classList.add("error");
     } finally {

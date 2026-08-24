@@ -238,6 +238,7 @@ test("Order 099 P1/P4: booking journey renders server truth without browser prom
   expect(html).toContain('id="reservation-booking-confirmation"');
   expect(html).toContain("Offers are read-only evidence, not promised inventory.");
   expect(html).toContain("Confirmation does not imply payment, tax finalization, a folio, journal or fiscal document.");
+  expect(html).toContain("Party creation/profile merge, deposits and public guest booking remain separate later workflows.");
   expect(css).toContain(".reservation-booking-form input, .reservation-booking-form button, .reservation-booking-commit button { min-height: 44px; }");
   expect(script).toContain("function renderReservationBookingOffers(options, issues)");
   expect(script).toContain("offer.bookable !== true");

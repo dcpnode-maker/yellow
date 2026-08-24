@@ -133,13 +133,13 @@ fresh PostgreSQL and approves.
 
 ## Builder evidence
 
-Focused booking/assets passed 13/13 with 151 assertions; canonical offer search passed
+Focused booking/assets passed 14/14 with 156 assertions; canonical offer search passed
 6/6 with 76; authoritative reservation commit passed 5/5 with 61; and the inherited
 hold suite's six live HTTP/occupancy/replay/rollback cases passed. Its old P7 exact-role
 assertion rejects the six later independently approved Orders 096–098 reservation scopes;
 Question 135 records that out-of-scope proof discrepancy without changing it here.
 
-Typecheck, all 59 import boundaries and standing 130/0 with 1,654 assertions passed.
+Typecheck, all 59 import boundaries and standing 131/0 with 1,659 assertions passed.
 Fresh review seed passed 11/11 with 39 assertions, deployment acceptance passed 4/4
 with 10, normalized schema matched, protected hashes remained exact, and the final
 84-table app-never-started referee passed 11/11. This is builder evidence, not
