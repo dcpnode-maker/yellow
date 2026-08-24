@@ -12,7 +12,7 @@
 
 **Date:** 2026-08-24
 
-**Status:** BUILT · AWAITING INDEPENDENT REVIEW
+**Status:** COMPLETE · INDEPENDENTLY APPROVED
 
 ## Goal
 
@@ -162,7 +162,7 @@ non-implementing reviewer personally executes the focused proof and returns APPR
 - [x] Public context exports only the bounded typed command and errors.
 - [x] Project status honestly reports Order 095 with Phase 4 still active.
 - [x] Standing, schema, deployment and referee gates pass.
-- [ ] Independent non-implementing reviewer approves personally executed proof.
+- [x] Independent non-implementing reviewer approves personally executed proof.
 - [x] Scope is exact and pre-existing untracked user material remains untouched.
 
 ## Builder evidence
@@ -185,3 +185,7 @@ for migration 0001 and
 for the invariant referee. Fresh isolated project `yellow-order095-final` applied exact
 migrations 1–7 and printed **11 passed, 0 failed of 11** with the app never started.
 Builder evidence is not independent approval.
+
+Independent review at `1d173a2` found no issue and personally reproduced P1–P4,
+typecheck, boundaries, schema, protected hashes, the full suite and a pristine 11/11
+referee. See `handoff/reviews/095-reservation-guest-share-command.md`.
