@@ -126,11 +126,10 @@ non-implementing reviewer personally executes P1–P4 on fresh PostgreSQL and ap
 ## Definition of done
 
 - [x] Order exists before implementation.
-- [ ] Intentional P0 red is committed before production or migration code.
+- [x] Intentional P0 red is committed before production or migration code.
 - [ ] Tenant/account/folio constraints fail closed at PostgreSQL.
 - [ ] Primary folio opening is atomic, replayable, minimized and gap-free.
 - [ ] Concurrency and publication failure leave no duplicate or partial artifact.
 - [ ] No money/payment/tax/fiscal/day-close behavior enters this slice.
 - [ ] Standing/referee gates pass and scope is exact.
 - [ ] Independent reviewer approves executed proof.
-
