@@ -128,7 +128,7 @@ fresh PostgreSQL and approves.
 - [x] Occupancy race/replay/rollback proofs pass.
 - [x] Workbench is accessible, responsive and authority-free.
 - [x] Standing/schema/deployment/referee gates pass.
-- [ ] Independent reviewer approves executed proof.
+- [x] Independent reviewer approves executed proof.
 - [x] Scope is exact; user-owned untracked material remains untouched.
 
 ## Builder evidence
