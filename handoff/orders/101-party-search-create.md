@@ -117,9 +117,9 @@ reviewer personally executes P1–P4 on fresh PostgreSQL and approves.
 
 - [x] Order exists before implementation.
 - [x] Intentional P0 red is committed before production code.
-- [ ] Search is bounded, tenant-safe, deterministic and privacy-minimized.
-- [ ] Duplicate acknowledgement is server-recomputed and concurrency-safe.
-- [ ] Creation is atomic, idempotent, audited and emits catalogued non-PII evidence.
-- [ ] Migration/schema/deployment/standing/referee gates pass.
+- [x] Search is bounded, tenant-safe, deterministic and privacy-minimized.
+- [x] Duplicate acknowledgement is server-recomputed and concurrency-safe.
+- [x] Creation is atomic, idempotent, audited and emits catalogued non-PII evidence.
+- [x] Migration/schema/deployment/standing/referee gates pass.
 - [ ] Independent reviewer approves executed proof.
-- [ ] Scope is exact; user-owned untracked material remains untouched.
+- [x] Scope is exact; user-owned untracked material remains untouched.
