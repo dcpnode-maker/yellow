@@ -187,10 +187,22 @@ export function createApp(options: AppOptions = {}) {
       .get("/api/v1/properties/:property/reservation-guests", ({ request, params, tenantContext }) =>
         withOperatorTenant(request, (context) => operator.reservationGuests(context, params.property))
       )
+      .get("/api/v1/properties/:property/reservations", ({ request, params, tenantContext }) =>
+        withOperatorTenant(request, (context) => operator.reservationLifecycle(context, params.property))
+      )
       .put("/api/v1/properties/:property/reservations/:reservation/guests", ({ request, params, body, tenantContext }) =>
         withOperatorTenant(request, (context) => operator.replaceReservationGuests(
           context, params.property, params.reservation, body,
         ))
+      )
+      .patch("/api/v1/properties/:property/reservations/:reservation", ({ request, params, body, tenantContext }) =>
+        withOperatorTenant(request, (context) => operator.modifyReservation(context, params.property, params.reservation, body))
+      )
+      .post("/api/v1/properties/:property/reservations/:reservation/cancel", ({ request, params, body, tenantContext }) =>
+        withOperatorTenant(request, (context) => operator.cancelReservation(context, params.property, params.reservation, body))
+      )
+      .post("/api/v1/properties/:property/reservations/:reservation/reinstate", ({ request, params, body, tenantContext }) =>
+        withOperatorTenant(request, (context) => operator.reinstateReservation(context, params.property, params.reservation, body))
       )
       .get("/api/v1/properties/:property/offline-leases", ({ request, params, tenantContext }) =>
         withOperatorTenant(request, (context) => operator.activeOfflineLeases(context, params.property))

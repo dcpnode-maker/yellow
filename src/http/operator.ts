@@ -58,6 +58,11 @@ import {
   ReservationGuestNotFoundError,
   ReservationGuestService,
   ReservationGuestValidationError,
+  ReservationApprovalRequiredError,
+  ReservationLifecycleConflictError,
+  ReservationLifecycleNotFoundError,
+  ReservationLifecycleService,
+  ReservationLifecycleValidationError,
   ReservationNotFoundError,
   ReservationOfferSearchService,
   ReservationOfferSearchTooBroadError,
@@ -66,6 +71,7 @@ import {
   type ReservationOfferSearchInput,
   type ReservationOfferSearchResult,
   type RequestedReservationGuest,
+  type ReservationMutableFields,
 } from "../contexts/reservations";
 import {
   createAuditEnvelope,
@@ -102,6 +108,8 @@ const OFFLINE_LEASE_WRITE_SCOPE = "inventory.offline_leases:write";
 const RESERVATION_WRITE_SCOPE = "reservations.booking:write";
 const RESERVATION_GUEST_READ_SCOPE = "reservations.guests:read";
 const RESERVATION_GUEST_WRITE_SCOPE = "reservations.guests:write";
+const RESERVATION_LIFECYCLE_READ_SCOPE = "reservations.lifecycle:read";
+const RESERVATION_LIFECYCLE_WRITE_SCOPE = "reservations.lifecycle:write";
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 const ISO_INSTANT = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})(?::(\d{2})(?:\.(\d{1,3}))?)?(Z|([+-])(\d{2}):(\d{2}))$/;
 const LOCAL_DATE = /^(\d{4})-(\d{2})-(\d{2})$/;
@@ -405,6 +413,35 @@ function confirmationQuery(request: Request): string | null {
     : null;
 }
 
+const RESERVATION_MUTABLE_FIELDS = Object.freeze([
+  "notes", "eta", "etd", "marketCode", "sourceCode", "originCode",
+] as const);
+
+function parseReservationMutation(body: unknown): {
+  expected: ReservationMutableFields;
+  changes: ReservationMutableFields;
+} | null {
+  if (!isObject(body) || !exactKeys(body, ["expected", "changes"]) ||
+      !isObject(body.expected) || !isObject(body.changes)) return null;
+  const expected = body.expected;
+  const changes = body.changes;
+  const allowed = new Set<string>(RESERVATION_MUTABLE_FIELDS);
+  const expectedKeys = Object.keys(expected).sort();
+  const changeKeys = Object.keys(changes).sort();
+  if (expectedKeys.length === 0 || expectedKeys.some((key) => !allowed.has(key)) ||
+      expectedKeys.length !== changeKeys.length || expectedKeys.some((key, index) => key !== changeKeys[index])) return null;
+  if (expectedKeys.some((key) => expected[key] !== null && typeof expected[key] !== "string") ||
+      changeKeys.some((key) => changes[key] !== null && typeof changes[key] !== "string")) return null;
+  return Object.freeze({ expected: Object.freeze({ ...expected }), changes: Object.freeze({ ...changes }) });
+}
+
+function parseReservationCancellation(body: unknown): { reason: string; approvalId?: string } | null {
+  if (!isObject(body) || !exactKeys(body, ["reason"], ["approvalId"]) ||
+      typeof body.reason !== "string" ||
+      (body.approvalId !== undefined && (typeof body.approvalId !== "string" || !UUID.test(body.approvalId)))) return null;
+  return Object.freeze({ reason: body.reason, ...(body.approvalId === undefined ? {} : { approvalId: body.approvalId }) });
+}
+
 function parseOfflineLease(body: unknown): {
   sellableUnitId: string;
   from: Date;
@@ -595,6 +632,7 @@ type HoldOperations = Pick<HoldService,
 type ReservationOperations = Pick<ReservationCommitService, "commitHeld" | "commitDirect">;
 type ReservationOfferOperations = Pick<ReservationOfferSearchService, "search">;
 type ReservationGuestOperations = Pick<ReservationGuestService, "findByConfirmation" | "replace">;
+type ReservationLifecycleOperations = Pick<ReservationLifecycleService, "findByConfirmation" | "modify" | "cancel" | "reinstate">;
 
 const MAX_MONEY = 9_223_372_036_854_775_807n;
 
@@ -972,6 +1010,7 @@ export class OperatorHttpApi {
   readonly #reservations?: ReservationOperations;
   readonly #reservationOffers?: ReservationOfferOperations;
   readonly #reservationGuests?: ReservationGuestOperations;
+  readonly #reservationLifecycle?: ReservationLifecycleOperations;
 
   constructor(
     login: LocalLoginService,
@@ -990,6 +1029,7 @@ export class OperatorHttpApi {
     reservations?: ReservationOperations,
     reservationOffers?: ReservationOfferOperations,
     reservationGuests?: ReservationGuestOperations,
+    reservationLifecycle?: ReservationLifecycleOperations,
   ) {
     this.#login = login;
     this.#availability = availability;
@@ -1007,6 +1047,7 @@ export class OperatorHttpApi {
     this.#reservations = reservations;
     this.#reservationOffers = reservationOffers;
     this.#reservationGuests = reservationGuests;
+    this.#reservationLifecycle = reservationLifecycle;
   }
 
   unavailable(request: Request): Response {
@@ -1018,6 +1059,12 @@ export class OperatorHttpApi {
   }
 
   failure(request: Request, error: unknown): Response {
+    if (error instanceof ReservationApprovalRequiredError) {
+      return apiError(request, 409, "reservations/approval_required", "Approval required", "Cancellation requires an approved supervisor waiver");
+    }
+    if (error instanceof ReservationLifecycleConflictError) {
+      return apiError(request, 409, "reservations/lifecycle_conflict", "Conflict", "Reservation lifecycle conflicts with existing state");
+    }
     if (error instanceof ReservationGuestConflictError) {
       return apiError(request, 409, "reservations/conflict", "Conflict", "Reservation guest allocation conflicts with existing state");
     }
@@ -1037,13 +1084,14 @@ export class OperatorHttpApi {
       return apiError(request, 400, "request/invalid", "Invalid request", "Inventory input is invalid");
     }
     if (error instanceof ReservationValidationError || error instanceof ReservationOfferValidationError ||
-        error instanceof ReservationGuestValidationError) {
+        error instanceof ReservationGuestValidationError || error instanceof ReservationLifecycleValidationError) {
       return apiError(request, 400, "request/invalid", "Invalid request", "Reservation input is invalid");
     }
     if (error instanceof InventoryNotFoundError) {
       return apiError(request, 404, "inventory/not_found", "Not found", "Referenced inventory was not found");
     }
-    if (error instanceof ReservationNotFoundError || error instanceof ReservationGuestNotFoundError) {
+    if (error instanceof ReservationNotFoundError || error instanceof ReservationGuestNotFoundError ||
+        error instanceof ReservationLifecycleNotFoundError) {
       return apiError(request, 404, "reservations/not_found", "Not found", "Referenced reservation input was not found");
     }
     if (error instanceof RateValidationError || error instanceof RateAuthoringError || error instanceof RateIntentError ||
@@ -1564,6 +1612,88 @@ export class OperatorHttpApi {
     return apiResponse(context.request, canonicalJson({ reservation: jsonValue(reservation) }), 200, {
       "idempotency-replayed": String(replayed),
       "x-correlation-id": requestId,
+    });
+  }
+
+  async reservationLifecycle(context: TenantRequestContext, propertyNode: string): Promise<Response> {
+    if (!UUID.test(propertyNode)) {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Property identifier is invalid");
+    }
+    const confirmationNo = confirmationQuery(context.request);
+    if (!confirmationNo) {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Confirmation query is invalid");
+    }
+    if (!hasScope(context, RESERVATION_LIFECYCLE_READ_SCOPE)) {
+      return apiError(context.request, 403, "auth/scope_missing", "Forbidden", "Reservation lifecycle access is not granted");
+    }
+    if (!this.#reservationLifecycle) return this.unavailable(context.request);
+    const grants = await listGrantedProperties(context, RESERVATION_LIFECYCLE_READ_SCOPE);
+    if (!grants.some(({ id }) => id === propertyNode)) {
+      return apiError(context.request, 403, "auth/property_forbidden", "Forbidden", "Property access is not granted");
+    }
+    const reservation = await this.#reservationLifecycle.findByConfirmation(context.tx, {
+      tenantId: context.tenantId,
+      propertyNode,
+      confirmationNo,
+    });
+    return apiResponse(context.request, canonicalJson({ reservation: jsonValue(reservation) }));
+  }
+
+  async modifyReservation(context: TenantRequestContext, propertyNode: string, reservationId: string, body: unknown): Promise<Response> {
+    const input = parseReservationMutation(body);
+    return this.runReservationLifecycleMutation(context, propertyNode, reservationId, input, "reservation.modified", async (service, envelope) =>
+      service.modify(context.tx, {
+        reservationId, expected: input!.expected, changes: input!.changes,
+        idempotencyKey: context.request.headers.get("idempotency-key") ?? "", envelope,
+      })
+    );
+  }
+
+  async cancelReservation(context: TenantRequestContext, propertyNode: string, reservationId: string, body: unknown): Promise<Response> {
+    const input = parseReservationCancellation(body);
+    return this.runReservationLifecycleMutation(context, propertyNode, reservationId, input, "reservation.cancelled", async (service, envelope) =>
+      service.cancel(context.tx, {
+        reservationId, reason: input!.reason, ...(input!.approvalId === undefined ? {} : { approvalId: input!.approvalId }),
+        idempotencyKey: context.request.headers.get("idempotency-key") ?? "", envelope,
+      })
+    );
+  }
+
+  async reinstateReservation(context: TenantRequestContext, propertyNode: string, reservationId: string, body: unknown): Promise<Response> {
+    const input = isObject(body) && exactKeys(body, []) ? Object.freeze({}) : null;
+    return this.runReservationLifecycleMutation(context, propertyNode, reservationId, input, "reservation.reinstated", async (service, envelope) =>
+      service.reinstate(context.tx, {
+        reservationId, idempotencyKey: context.request.headers.get("idempotency-key") ?? "", envelope,
+      })
+    );
+  }
+
+  private async runReservationLifecycleMutation(
+    context: TenantRequestContext,
+    propertyNode: string,
+    reservationId: string,
+    input: object | null,
+    operation: "reservation.modified" | "reservation.cancelled" | "reservation.reinstated",
+    execute: (service: ReservationLifecycleOperations, envelope: ReturnType<typeof createAuditEnvelope>) => Promise<unknown>,
+  ): Promise<Response> {
+    if (!UUID.test(propertyNode) || !UUID.test(reservationId) || !input) {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Reservation lifecycle input is invalid");
+    }
+    if (!hasScope(context, RESERVATION_LIFECYCLE_WRITE_SCOPE)) {
+      return apiError(context.request, 403, "auth/scope_missing", "Forbidden", "Reservation lifecycle changes are not granted");
+    }
+    if (!this.#reservationLifecycle) return this.unavailable(context.request);
+    const grants = await listGrantedProperties(context, RESERVATION_LIFECYCLE_WRITE_SCOPE);
+    if (!grants.some(({ id }) => id === propertyNode)) {
+      return apiError(context.request, 403, "auth/property_forbidden", "Forbidden", "Property access is not granted");
+    }
+    const requestId = correlationId(context.request);
+    const result = await execute(this.#reservationLifecycle, createAuditEnvelope({
+      actorId: context.identity.actorId, tenantId: context.tenantId, propertyNode, requestId, operation,
+    })) as Record<string, unknown>;
+    const { replayed, ...reservation } = result;
+    return apiResponse(context.request, canonicalJson({ reservation: jsonValue(reservation) }), 200, {
+      "idempotency-replayed": String(replayed), "x-correlation-id": requestId,
     });
   }
 

@@ -23,6 +23,7 @@ import {
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 const IDEMPOTENCY_KEY = /^[\x21-\x7e]{8,200}$/;
+const CONFIRMATION_NO = /^[\x21-\x7e]{1,120}$/;
 const OPTIONAL_CODE = /^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$/;
 const MUTABLE_FIELDS = Object.freeze([
   "notes",
@@ -114,6 +115,24 @@ export interface ReinstateReservationResult {
   readonly replayed: boolean;
 }
 
+export interface FindReservationLifecycleInput {
+  readonly tenantId: string;
+  readonly propertyNode: string;
+  readonly confirmationNo: string;
+}
+
+export interface ReservationLifecycleLookupResult {
+  readonly reservationId: string;
+  readonly confirmationNo: string;
+  readonly status: ReservationStatus;
+  readonly fields: Readonly<Record<MutableField, MutableValue>>;
+  readonly actions: Readonly<{
+    canModify: boolean;
+    canCancel: boolean;
+    canReinstate: boolean;
+  }>;
+}
+
 export interface ReservationLifecycleServiceOptions {
   readonly events: EventBus;
   readonly idempotency: PostgresIdempotency;
@@ -134,6 +153,10 @@ interface ReservationRow {
   readonly market_code: string | null;
   readonly source_code: string | null;
   readonly origin_code: string | null;
+}
+
+interface ReservationLookupRow extends ReservationRow {
+  readonly confirmation_no: string;
 }
 
 interface SegmentRow {
@@ -555,6 +578,47 @@ export class ReservationLifecycleService {
     this.#idempotency = options.idempotency;
     this.#occupancy = options.occupancy ?? new ReservationOccupancyService(options.events);
     this.#now = options.now ?? (() => new Date());
+  }
+
+  async findByConfirmation(
+    tx: Tx,
+    input: FindReservationLifecycleInput,
+  ): Promise<ReservationLifecycleLookupResult> {
+    const tenantId = requireUuid("tenantId", input.tenantId);
+    const propertyNode = requireUuid("propertyNode", input.propertyNode);
+    if (typeof input.confirmationNo !== "string" || !CONFIRMATION_NO.test(input.confirmationNo)) {
+      throw new ReservationLifecycleValidationError("confirmationNo must contain 1-120 visible characters");
+    }
+    const rows = await tx<ReservationLookupRow[]>`
+      SELECT id, confirmation_no, status, notes, eta::text AS eta, etd::text AS etd,
+             market_code, source_code, origin_code
+      FROM reservation
+      WHERE tenant_id = ${tenantId}::uuid
+        AND tenant_id = current_setting('app.tenant_id', true)::uuid
+        AND property_node = ${propertyNode}::uuid
+        AND confirmation_no = ${input.confirmationNo}
+    `;
+    const reservation = rows[0];
+    if (!reservation) throw new ReservationLifecycleNotFoundError("Reservation was not found in the property");
+    const status = asStatus(reservation.status);
+    return Object.freeze({
+      reservationId: reservation.id,
+      confirmationNo: reservation.confirmation_no,
+      status,
+      fields: Object.freeze({
+        notes: reservation.notes,
+        eta: reservation.eta,
+        etd: reservation.etd,
+        marketCode: reservation.market_code,
+        sourceCode: reservation.source_code,
+        originCode: reservation.origin_code,
+      }),
+      actions: Object.freeze({
+        canModify: MODIFIABLE_STATUSES.has(status),
+        canCancel: status === "reserved" || status === "due_in",
+        canReinstate: status === "cancelled" || status === "no_show",
+      }),
+    });
   }
 
   async modify(tx: Tx, input: ModifyReservationInput): Promise<ModifyReservationResult> {

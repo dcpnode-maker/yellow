@@ -3,7 +3,7 @@ import { SQL } from "bun";
 import { app, createApp } from "./app";
 import { BearerTenantResolver, Hs256TokenSigner, LocalLoginService } from "./contexts/identity";
 import { AvailabilityProjectionConsumer, AvailabilityProjectionService, AvailabilityService, HoldExpiryWorker, HoldService, InventoryPolicyService, InventoryService, OperationalBlockService, ReservationOccupancyService, RestrictionService } from "./contexts/inventory";
-import { ReservationCommitService, ReservationGuestService, ReservationOfferSearchService } from "./contexts/reservations";
+import { ReservationCommitService, ReservationGuestService, ReservationLifecycleService, ReservationOfferSearchService } from "./contexts/reservations";
 import {
   createRateIntentProposalAdapterFromEnvironment,
   RateConfigurationService,
@@ -61,13 +61,17 @@ function runtimeApp() {
   const blocks = new OperationalBlockService(events);
   const policy = new InventoryPolicyService(events);
   const holds = new HoldService(events);
+  const reservationOccupancy = new ReservationOccupancyService(events);
   const reservations = new ReservationCommitService({
     holds,
-    occupancy: new ReservationOccupancyService(events),
+    occupancy: reservationOccupancy,
     events,
     idempotency: new PostgresIdempotency(),
   });
   const reservationGuests = new ReservationGuestService({ events, idempotency: new PostgresIdempotency() });
+  const reservationLifecycle = new ReservationLifecycleService({
+    events, idempotency: new PostgresIdempotency(), occupancy: reservationOccupancy,
+  });
   const projection = new AvailabilityProjectionService();
   const availability = new AvailabilityService();
   const publication = new RatePublicationService(registry, approvals, events);
@@ -105,7 +109,7 @@ function runtimeApp() {
   return createApp({
     database,
     tenantResolver: new BearerTenantResolver(tokens),
-    operatorApi: new OperatorHttpApi(login, availability, inventory, new PostgresIdempotency(), restrictions, rates, pricing, blocks, policy, holds, projection, runtimeStatus, rateBuilder, reservations, reservationOffers, reservationGuests),
+    operatorApi: new OperatorHttpApi(login, availability, inventory, new PostgresIdempotency(), restrictions, rates, pricing, blocks, policy, holds, projection, runtimeStatus, rateBuilder, reservations, reservationOffers, reservationGuests, reservationLifecycle),
   });
 }
 

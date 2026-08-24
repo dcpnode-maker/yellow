@@ -131,11 +131,17 @@ P1–P4 against fresh PostgreSQL and approves.
 ## Definition of done
 
 - [x] Order exists before production code.
-- [ ] Intentional P0 red is committed before implementation.
-- [ ] Lifecycle read/write permissions and strict routes pass.
-- [ ] Modify/cancel/reinstate converge on approved domain commands.
-- [ ] Approval-required and occupancy rollback boundaries pass.
-- [ ] Workbench is accessible, responsive and server-authoritative.
-- [ ] Standing/schema/deployment/referee gates pass.
+- [x] Intentional P0 red is committed before implementation.
+- [x] Lifecycle read/write permissions and strict routes pass.
+- [x] Modify/cancel/reinstate converge on approved domain commands.
+- [x] Approval-required and occupancy rollback boundaries pass.
+- [x] Workbench is accessible, responsive and server-authoritative.
+- [x] Standing/schema/deployment/referee gates pass.
 - [ ] Independent reviewer approves executed proof.
-- [ ] Scope is exact; user-owned untracked material remains untouched.
+- [x] Scope is exact; user-owned untracked material remains untouched.
+
+Builder evidence: focused adapter/assets passed 10/10 and 102 assertions; the approved
+domain lifecycle battery passed 5/5 and 62 assertions; standing passed 124/0 and 1,590
+assertions; review seed 11/11; deployment 4/4; schema and protected hashes exact; licences
+and dependency audit clean; pristine 84-table referee 11/11. This is not independent
+approval.

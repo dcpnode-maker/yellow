@@ -167,9 +167,14 @@ test("Order 097 P0/P4: lifecycle controls expose no browser transition authority
   expect(html).toContain('id="reservation-cancel-form"');
   expect(html).toContain('id="reservation-reinstate"');
   expect(css).toContain(".reservation-lifecycle-editor");
+  expect(css).toContain(".reservation-lifecycle-editor input, .reservation-lifecycle-editor textarea, .reservation-lifecycle-editor button { min-height: 44px; }");
   expect(script).toContain("/reservations?confirmationNo=");
   expect(script).toContain("/cancel");
   expect(script).toContain("/reinstate");
+  expect(script).toContain("reservation.actions.canModify");
+  expect(script).toContain("reservation.actions.canCancel");
+  expect(script).toContain("reservation.actions.canReinstate");
+  expect(script).toContain("reservationLifecycleEditor.focus()");
   expect(script).not.toMatch(/innerHTML|outerHTML|insertAdjacentHTML|localStorage|sessionStorage|document\.cookie/);
   expect(script).not.toMatch(BROWSER_SQL_SYNTAX);
 });

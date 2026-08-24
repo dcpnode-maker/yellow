@@ -30,6 +30,7 @@
   let pricingRowSequence = 0;
   let bulkRoomDraft = [];
   let reservationGuestData = null;
+  let reservationLifecycleData = null;
   const pendingKeys = new Map();
 
   const loginView = document.querySelector("#login-view");
@@ -251,6 +252,15 @@
   const reservationGuestList = document.querySelector("#reservation-guest-list");
   const reservationShareTotal = document.querySelector("#reservation-share-total");
   const addReservationGuest = document.querySelector("#add-reservation-guest");
+  const reservationLifecycleLookupForm = document.querySelector("#reservation-lifecycle-lookup-form");
+  const reservationLifecycleEditor = document.querySelector("#reservation-lifecycle-editor");
+  const lifecycleConfirmation = document.querySelector("#lifecycle-confirmation");
+  const lifecycleStatus = document.querySelector("#lifecycle-status");
+  const lifecycleCommandMessage = document.querySelector("#lifecycle-command-message");
+  const reservationMetadataForm = document.querySelector("#reservation-metadata-form");
+  const reservationCancelForm = document.querySelector("#reservation-cancel-form");
+  const reservationReinstatePanel = document.querySelector("#reservation-reinstate-panel");
+  const reservationReinstate = document.querySelector("#reservation-reinstate");
   const SYSTEM_STATUS_SUFFIX = "/system-status";
   const MAX_MINOR = BigInt("9223372036854775807");
 
@@ -333,7 +343,9 @@
     offlineLeasesData = [];
     currentRatePrice = null;
     reservationGuestData = null;
+    reservationLifecycleData = null;
     reservationGuestForm.hidden = true;
+    reservationLifecycleEditor.hidden = true;
     reservationGuestList.replaceChildren();
     loadPriceCorrectionButton.hidden = true;
     rateCorrectionForm.hidden = true;
@@ -2256,6 +2268,60 @@
     updateReservationShareTotal();
   }
 
+  function lifecycleFieldValue(value) {
+    return value === null ? "" : value;
+  }
+
+  function renderReservationLifecycle(reservation, focus = false) {
+    reservationLifecycleData = reservation;
+    lifecycleConfirmation.textContent = reservation.confirmationNo;
+    lifecycleStatus.textContent = reservation.status.replaceAll("_", " ");
+    for (const name of ["notes", "eta", "etd", "marketCode", "sourceCode", "originCode"]) {
+      reservationMetadataForm.elements[name].value = lifecycleFieldValue(reservation.fields[name]);
+    }
+    reservationMetadataForm.hidden = !reservation.actions.canModify;
+    reservationCancelForm.hidden = !reservation.actions.canCancel;
+    reservationReinstatePanel.hidden = !reservation.actions.canReinstate;
+    reservationLifecycleEditor.hidden = false;
+    if (focus) {
+      reservationLifecycleEditor.tabIndex = -1;
+      reservationLifecycleEditor.focus();
+    }
+  }
+
+  async function loadReservationLifecycle(focus = false) {
+    const confirmationNo = String(new FormData(reservationLifecycleLookupForm).get("confirmationNo") || "");
+    const body = await request(`/api/v1/properties/${encodeURIComponent(propertySelect.value)}/reservations?confirmationNo=${encodeURIComponent(confirmationNo)}`);
+    renderReservationLifecycle(body.reservation, focus);
+  }
+
+  async function submitLifecycleCommand(path, method, body, form, successMessage) {
+    if (!reservationLifecycleData) return false;
+    const identity = `reservation-lifecycle:${path}:${reservationLifecycleData.reservationId}:${JSON.stringify(body)}`;
+    const key = pendingKeys.get(identity) || crypto.randomUUID();
+    pendingKeys.set(identity, key);
+    const button = form.querySelector("button") ?? reservationReinstate;
+    button.disabled = true;
+    lifecycleCommandMessage.textContent = "Applying the audited reservation command…";
+    lifecycleCommandMessage.classList.remove("error");
+    try {
+      await request(`/api/v1/properties/${encodeURIComponent(propertySelect.value)}/reservations/${encodeURIComponent(reservationLifecycleData.reservationId)}${path}`, {
+        method, headers: { "idempotency-key": key }, body: JSON.stringify(body),
+      });
+      pendingKeys.delete(identity);
+      await loadReservationLifecycle(true);
+      lifecycleCommandMessage.textContent = successMessage;
+      lifecycleCommandMessage.classList.remove("error");
+      return true;
+    } catch (error) {
+      lifecycleCommandMessage.textContent = error instanceof Error ? error.message : "Reservation command failed";
+      lifecycleCommandMessage.classList.add("error");
+      return false;
+    } finally {
+      button.disabled = false;
+    }
+  }
+
   async function submitInventory(form, route, body) {
     const button = form.querySelector("button[type=submit]");
     const identity = `${route}:${JSON.stringify(body)}`;
@@ -2805,6 +2871,58 @@
     }
   });
 
+  reservationLifecycleLookupForm.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const button = reservationLifecycleLookupForm.querySelector("button[type=submit]");
+    button.disabled = true;
+    formMessage(reservationLifecycleLookupForm, "Finding exact lifecycle truth…");
+    reservationLifecycleEditor.hidden = true;
+    reservationLifecycleData = null;
+    try {
+      await loadReservationLifecycle(true);
+      formMessage(reservationLifecycleLookupForm, "Reservation found. Actions below come from its server status.");
+    } catch (error) {
+      formMessage(reservationLifecycleLookupForm, error instanceof Error ? error.message : "Reservation could not be found", true);
+    } finally {
+      button.disabled = false;
+    }
+  });
+
+  reservationMetadataForm.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    if (!reservationLifecycleData) return;
+    const expected = {};
+    const changes = {};
+    for (const name of ["notes", "eta", "etd", "marketCode", "sourceCode", "originCode"]) {
+      const before = reservationLifecycleData.fields[name];
+      const raw = reservationMetadataForm.elements[name].value;
+      const after = raw === "" ? null : raw;
+      if (after !== before) {
+        expected[name] = before;
+        changes[name] = after;
+      }
+    }
+    if (Object.keys(changes).length === 0) {
+      formMessage(reservationMetadataForm, "No metadata changed. Nothing was sent or audited.");
+      return;
+    }
+    await submitLifecycleCommand("", "PATCH", { expected, changes }, reservationMetadataForm, "Metadata saved with exact before/after evidence.");
+  });
+
+  reservationCancelForm.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const fields = new FormData(reservationCancelForm);
+    const approvalId = String(fields.get("approvalId") || "");
+    const saved = await submitLifecycleCommand("/cancel", "POST", {
+      reason: fields.get("reason"), ...(approvalId ? { approvalId } : {}),
+    }, reservationCancelForm, "Reservation cancelled and occupancy released.");
+    if (saved) reservationCancelForm.reset();
+  });
+
+  reservationReinstate.addEventListener("click", async () => {
+    await submitLifecycleCommand("/reinstate", "POST", {}, reservationReinstatePanel, "Reservation reinstated after live occupancy re-arbitration.");
+  });
+
   reservationLookupForm.addEventListener("submit", async (event) => {
     event.preventDefault();
     const button = reservationLookupForm.querySelector("button[type=submit]");
@@ -2877,7 +2995,9 @@
     if (activeView === "restrictions") void loadRestrictions();
     if (activeView === "rates") void loadRates();
     reservationGuestData = null;
+    reservationLifecycleData = null;
     reservationGuestForm.hidden = true;
+    reservationLifecycleEditor.hidden = true;
     reservationGuestList.replaceChildren();
   });
   for (const tab of navigation) tab.addEventListener("click", () => setView(tab.dataset.view));

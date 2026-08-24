@@ -63,6 +63,7 @@ export type {
   CancellationApprovalPayload,
   CancellationPenalty,
   CancellationPolicyDecision,
+  FindReservationLifecycleInput,
   CancelReservationInput,
   CancelReservationResult,
   ModifyReservationInput,
@@ -71,6 +72,7 @@ export type {
   ReinstateReservationResult,
   ReservationFieldDiff,
   ReservationLifecycleServiceOptions,
+  ReservationLifecycleLookupResult,
   ReservationMutableFields,
 } from "./lifecycle";
 export {

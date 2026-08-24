@@ -210,11 +210,67 @@
         <section id="reservations-view" hidden aria-labelledby="reservations-title">
           <div class="section-heading">
             <div>
-              <p class="eyebrow">Guest allocation</p>
-              <h2 id="reservations-title">Reservation guests and shares</h2>
-              <p class="muted">Find one reservation by its exact confirmation number. Server-side tenant, property, status and share rules remain authoritative.</p>
+              <p class="eyebrow">Reservation operations</p>
+              <h2 id="reservations-title">Reservation lifecycle and guests</h2>
+              <p class="muted">Find exact server truth before changing metadata, lifecycle state or guest allocation. Every command remains tenant and property scoped.</p>
             </div>
           </div>
+          <section class="reservation-lifecycle-panel" aria-labelledby="reservation-lifecycle-title">
+            <div class="panel-heading"><div>
+              <h3 id="reservation-lifecycle-title">Stay lifecycle</h3>
+              <p class="muted">Modify approved metadata, cancel under frozen booking policy, or reinstate only when PostgreSQL can reclaim occupancy.</p>
+            </div></div>
+            <form class="card reservation-lookup" id="reservation-lifecycle-lookup-form">
+              <label>Confirmation number
+                <input name="confirmationNo" required maxlength="120" autocomplete="off" placeholder="Y-…">
+              </label>
+              <button class="primary" type="submit">Find lifecycle</button>
+              <p class="form-message" role="status" aria-live="polite">Enter the exact confirmation number.</p>
+            </form>
+            <div class="card reservation-lifecycle-editor" id="reservation-lifecycle-editor" hidden>
+              <div class="reservation-summary">
+                <div><span>Confirmation</span><strong id="lifecycle-confirmation">—</strong></div>
+                <div><span>Server status</span><strong id="lifecycle-status">—</strong></div>
+              </div>
+              <p class="form-message lifecycle-command-message" id="lifecycle-command-message" role="status" aria-live="polite"></p>
+              <form id="reservation-metadata-form">
+                <fieldset class="progressive-fields">
+                  <legend>Approved metadata</legend>
+                  <p class="field-note">Only changed fields are sent with their exact loaded values, so a concurrent edit cannot be overwritten silently.</p>
+                  <label>Notes<textarea name="notes" maxlength="4000" rows="3" placeholder="Operational notes"></textarea></label>
+                  <div class="reservation-field-grid">
+                    <label>Arrival time with offset<input name="eta" placeholder="15:00:00+05:30" pattern="[0-9]{2}:[0-9]{2}:[0-9]{2}(?:Z|[+-][0-9]{2}(?::?[0-9]{2})?)"></label>
+                    <label>Departure time with offset<input name="etd" placeholder="11:00:00+05:30" pattern="[0-9]{2}:[0-9]{2}:[0-9]{2}(?:Z|[+-][0-9]{2}(?::?[0-9]{2})?)"></label>
+                    <label>Market code<input name="marketCode" maxlength="64" pattern="[A-Za-z0-9][A-Za-z0-9._-]{0,63}"></label>
+                    <label>Source code<input name="sourceCode" maxlength="64" pattern="[A-Za-z0-9][A-Za-z0-9._-]{0,63}"></label>
+                    <label>Origin code<input name="originCode" maxlength="64" pattern="[A-Za-z0-9][A-Za-z0-9._-]{0,63}"></label>
+                  </div>
+                </fieldset>
+                <button class="primary" type="submit">Save changed metadata</button>
+                <p class="form-message" role="status" aria-live="polite"></p>
+              </form>
+              <form class="reservation-cancel-form" id="reservation-cancel-form">
+                <fieldset class="progressive-fields">
+                  <legend>Cancellation</legend>
+                  <p class="field-note">Yellow evaluates the frozen booking policy. A penalty or legacy booking requires an exact approved waiver from a different operator; this screen cannot approve one.</p>
+                  <label>Cancellation reason<textarea name="reason" required maxlength="500" rows="2"></textarea></label>
+                  <label>Approved waiver ID (only if already approved)<input name="approvalId" pattern="[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}"></label>
+                </fieldset>
+                <button class="secondary" type="submit">Cancel reservation</button>
+                <p class="form-message" role="status" aria-live="polite"></p>
+              </form>
+              <div class="reservation-reinstate-panel" id="reservation-reinstate-panel" hidden>
+                <p>Reinstatement rechecks the original rooms against live occupancy. It can fail if inventory is no longer available.</p>
+                <button class="primary" id="reservation-reinstate" type="button">Reinstate reservation</button>
+                <p class="form-message" role="status" aria-live="polite"></p>
+              </div>
+            </div>
+          </section>
+          <section class="reservation-guests-panel" aria-labelledby="reservation-guests-title">
+          <div class="panel-heading"><div>
+            <h3 id="reservation-guests-title">Guests and shares</h3>
+            <p class="muted">Guest occurrence and exact sharing remain separate from lifecycle and Party identity.</p>
+          </div></div>
           <form class="card reservation-lookup" id="reservation-lookup-form">
             <label>Confirmation number
               <input name="confirmationNo" required maxlength="120" autocomplete="off" placeholder="Y-…">
@@ -247,6 +303,7 @@
             <button class="primary" type="submit">Save guest allocation</button>
             <p class="form-message" role="status" aria-live="polite"></p>
           </form>
+          </section>
         </section>
 
         <section id="inventory-view" hidden aria-labelledby="inventory-title">

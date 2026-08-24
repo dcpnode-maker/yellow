@@ -406,6 +406,15 @@ input:hover, select:hover, textarea:hover { border-color: #8d978c; }
 .reservation-guest-row { display: grid; grid-template-columns: minmax(250px, 1.5fr) minmax(150px, .75fr) minmax(130px, .65fr) auto; gap: .65rem; align-items: end; padding: .75rem; border: 1px solid var(--line); border-radius: 13px; }
 .reservation-guest-row .remove-row { min-height: 44px; color: var(--red); }
 .reservation-share-total { padding: .8rem; border-radius: 13px; background: var(--amber-soft); color: var(--amber); font-size: .8rem; font-weight: 750; }
+.reservation-lifecycle-panel, .reservation-guests-panel { margin-top: 1rem; }
+.reservation-lifecycle-editor { max-width: 980px; margin-top: 1rem; padding: 1rem; display: grid; gap: 1rem; }
+.reservation-lifecycle-editor form { display: grid; gap: .8rem; }
+.reservation-lifecycle-editor input, .reservation-lifecycle-editor textarea, .reservation-lifecycle-editor button { min-height: 44px; }
+.reservation-field-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .75rem; }
+.reservation-cancel-form { padding-top: 1rem; border-top: 1px solid var(--line); }
+.reservation-cancel-form .secondary { justify-self: start; border-color: color-mix(in srgb, var(--red) 55%, var(--line)); color: var(--red); }
+.reservation-reinstate-panel { padding: 1rem; border-radius: 14px; background: color-mix(in srgb, var(--accent) 8%, var(--card)); }
+.reservation-reinstate-panel p { color: var(--muted); line-height: 1.5; }
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
@@ -429,6 +438,7 @@ input:hover, select:hover, textarea:hover { border-color: #8d978c; }
   .offline-lease-form button, .offline-lease-form .form-message { grid-column: 1 / -1; }
   .status-summary-grid { grid-template-columns: 1fr; }
   .reservation-guest-row { grid-template-columns: 1fr 1fr; }
+  .reservation-field-grid { grid-template-columns: 1fr; }
   .builder-steps { grid-template-columns: 1fr; }
   .builder-steps li + li { border-left: 0; border-top: 1px solid var(--line); }
   .builder-step { min-height: 62px; }
