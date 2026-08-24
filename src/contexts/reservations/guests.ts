@@ -9,6 +9,7 @@ import {
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 const IDEMPOTENCY_KEY = /^[\x21-\x7e]{8,200}$/;
+const CONFIRMATION_NO = /^[\x21-\x7e]{1,120}$/;
 const SHARE = /^(?:0\.(?:0[1-9]|[1-9]\d)|[1-9]\d?\.\d{2}|100\.00)$/;
 const MAX_NON_PRIMARY_GUESTS = 99;
 
@@ -44,6 +45,20 @@ export interface ReplaceReservationGuestsResult {
   readonly replayed: boolean;
 }
 
+export interface FindReservationGuestsInput {
+  readonly tenantId: string;
+  readonly propertyNode: string;
+  readonly confirmationNo: string;
+}
+
+export interface ReservationGuestLookupResult {
+  readonly reservationId: string;
+  readonly confirmationNo: string;
+  readonly status: string;
+  readonly primaryPartyId: string;
+  readonly guests: readonly ReservationGuestAllocation[];
+}
+
 type ReplaceReservationGuestsBody = Omit<ReplaceReservationGuestsResult, "replayed"> &
   Readonly<Record<string, JsonValue>>;
 
@@ -56,6 +71,10 @@ interface ReservationRow {
   readonly id: string;
   readonly status: string;
   readonly primary_party: string;
+}
+
+interface ReservationLookupRow extends ReservationRow {
+  readonly confirmation_no: string;
 }
 
 interface GuestRow {
@@ -280,6 +299,43 @@ export class ReservationGuestService {
   constructor(options: ReservationGuestServiceOptions) {
     this.#events = options.events;
     this.#idempotency = options.idempotency;
+  }
+
+  async findByConfirmation(
+    tx: Tx,
+    input: FindReservationGuestsInput,
+  ): Promise<ReservationGuestLookupResult> {
+    const tenantId = requireUuid("tenantId", input.tenantId);
+    const propertyNode = requireUuid("propertyNode", input.propertyNode);
+    if (typeof input.confirmationNo !== "string" || !CONFIRMATION_NO.test(input.confirmationNo)) {
+      throw new ReservationGuestValidationError("confirmationNo must contain 1-120 visible characters");
+    }
+    const reservations = await tx<ReservationLookupRow[]>`
+      SELECT id, confirmation_no, status, primary_party
+      FROM reservation
+      WHERE tenant_id = ${tenantId}::uuid
+        AND tenant_id = current_setting('app.tenant_id', true)::uuid
+        AND property_node = ${propertyNode}::uuid
+        AND confirmation_no = ${input.confirmationNo}
+    `;
+    const reservation = reservations[0];
+    if (!reservation) {
+      throw new ReservationGuestNotFoundError("Reservation was not found in the property");
+    }
+    const rows = await tx<GuestRow[]>`
+      SELECT party_id, role, share_pct::text
+      FROM reservation_guest
+      WHERE tenant_id = ${tenantId}::uuid
+        AND reservation_id = ${reservation.id}::uuid
+      ORDER BY CASE role WHEN 'primary' THEN 0 ELSE 1 END, party_id
+    `;
+    return Object.freeze({
+      reservationId: reservation.id,
+      confirmationNo: reservation.confirmation_no,
+      status: reservation.status,
+      primaryPartyId: reservation.primary_party,
+      guests: validateStoredAllocation(reservation, rows),
+    });
   }
 
   async replace(tx: Tx, input: ReplaceReservationGuestsInput): Promise<ReplaceReservationGuestsResult> {

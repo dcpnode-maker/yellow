@@ -29,6 +29,7 @@
   let currentRatePrice = null;
   let pricingRowSequence = 0;
   let bulkRoomDraft = [];
+  let reservationGuestData = null;
   const pendingKeys = new Map();
 
   const loginView = document.querySelector("#login-view");
@@ -49,6 +50,7 @@
   const restrictionsView = document.querySelector("#restrictions-view");
   const ratesView = document.querySelector("#rates-view");
   const operationsView = document.querySelector("#operations-view");
+  const reservationsView = document.querySelector("#reservations-view");
   const statusView = document.querySelector("#status-view");
   const navigation = document.querySelectorAll(".domain-tab");
   const refreshInventory = document.querySelector("#refresh-inventory");
@@ -240,6 +242,15 @@
   const statusPhaseList = document.querySelector("#status-phase-list");
   const statusHealthGrid = document.querySelector("#status-health-grid");
   const statusMessage = document.querySelector("#status-message");
+  const reservationLookupForm = document.querySelector("#reservation-lookup-form");
+  const reservationGuestForm = document.querySelector("#reservation-guest-form");
+  const reservationConfirmation = document.querySelector("#reservation-confirmation");
+  const reservationStatus = document.querySelector("#reservation-status");
+  const reservationPrimaryParty = document.querySelector("#reservation-primary-party");
+  const reservationPrimaryShare = document.querySelector("#reservation-primary-share");
+  const reservationGuestList = document.querySelector("#reservation-guest-list");
+  const reservationShareTotal = document.querySelector("#reservation-share-total");
+  const addReservationGuest = document.querySelector("#add-reservation-guest");
   const SYSTEM_STATUS_SUFFIX = "/system-status";
   const MAX_MINOR = BigInt("9223372036854775807");
 
@@ -321,6 +332,9 @@
     activeHoldsData = [];
     offlineLeasesData = [];
     currentRatePrice = null;
+    reservationGuestData = null;
+    reservationGuestForm.hidden = true;
+    reservationGuestList.replaceChildren();
     loadPriceCorrectionButton.hidden = true;
     rateCorrectionForm.hidden = true;
     pendingKeys.clear();
@@ -347,7 +361,7 @@
       propertySelect.disabled = true;
     } else {
       propertySelect.disabled = false;
-      const pathProperty = location.pathname.match(/^\/p\/([0-9a-f-]+)\/(?:availability|inventory|operations|restrictions|rates|status)$/)?.[1];
+      const pathProperty = location.pathname.match(/^\/p\/([0-9a-f-]+)\/(?:availability|inventory|operations|reservations|restrictions|rates|status)$/)?.[1];
       if (pathProperty && body.properties.some(({ id }) => id === pathProperty)) propertySelect.value = pathProperty;
     }
   }
@@ -2097,15 +2111,16 @@
   }
 
   function setView(view, updateHistory = true) {
-    activeView = ["availability", "inventory", "operations", "restrictions", "rates", "status"].includes(view) ? view : "availability";
+    activeView = ["availability", "inventory", "operations", "reservations", "restrictions", "rates", "status"].includes(view) ? view : "availability";
     availabilityView.hidden = activeView !== "availability";
     inventoryView.hidden = activeView !== "inventory";
     restrictionsView.hidden = activeView !== "restrictions";
     ratesView.hidden = activeView !== "rates";
     operationsView.hidden = activeView !== "operations";
+    reservationsView.hidden = activeView !== "reservations";
     statusView.hidden = activeView !== "status";
     workbenchTitle.textContent = activeView === "inventory" ? "Inventory setup" :
-      activeView === "operations" ? "Operations" : activeView === "restrictions" ? "Restrictions" :
+      activeView === "operations" ? "Operations" : activeView === "reservations" ? "Reservations" : activeView === "restrictions" ? "Restrictions" :
         activeView === "rates" ? "Rates" : activeView === "status" ? "Project status" : "Availability";
     for (const tab of navigation) {
       const selected = tab.dataset.view === activeView;
@@ -2131,6 +2146,96 @@
     const target = form.querySelector(".form-message");
     target.textContent = message;
     target.classList.toggle("error", isError);
+  }
+
+  function canonicalShare(value) {
+    return /^(?:0\.(?:0[1-9]|[1-9]\d)|[1-9]\d?\.\d{2}|100\.00)$/.test(value) ? value : null;
+  }
+
+  function updateReservationShareTotal() {
+    const rows = [...reservationGuestList.querySelectorAll(".reservation-guest-row")];
+    const sharers = rows.filter((row) => row.querySelector("select").value === "sharer");
+    for (const row of rows) {
+      const share = row.querySelector('input[name="sharePct"]');
+      const isSharer = row.querySelector("select").value === "sharer";
+      share.disabled = !isSharer;
+      share.required = isSharer;
+      if (!isSharer) share.value = "";
+    }
+    reservationPrimaryShare.required = sharers.length > 0;
+    reservationPrimaryShare.disabled = sharers.length === 0;
+    if (sharers.length === 0) {
+      reservationPrimaryShare.value = "";
+      reservationShareTotal.textContent = "No sharers · primary share must stay empty.";
+      return;
+    }
+    const values = [reservationPrimaryShare.value, ...sharers.map((row) => row.querySelector('input[name="sharePct"]').value)];
+    const valid = values.every((value) => canonicalShare(value) !== null);
+    const total = valid ? values.reduce((sum, value) => sum + Math.round(Number(value) * 100), 0) : null;
+    reservationShareTotal.textContent = total === null
+      ? "Enter every share with exactly two decimal places."
+      : `Current total: ${(total / 100).toFixed(2)}%${total === 10000 ? " · ready" : " · must equal 100.00%"}`;
+  }
+
+  function addReservationGuestRow(guest = { partyId: "", role: "accompanying", sharePct: null }) {
+    const row = document.createElement("div");
+    row.className = "reservation-guest-row";
+    const partyLabel = document.createElement("label");
+    partyLabel.textContent = "Party ID";
+    const party = document.createElement("input");
+    party.name = "partyId";
+    party.required = true;
+    party.pattern = "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}";
+    party.value = guest.partyId;
+    partyLabel.append(party);
+    const roleLabel = document.createElement("label");
+    roleLabel.textContent = "Role";
+    const role = document.createElement("select");
+    role.name = "role";
+    for (const value of ["accompanying", "sharer"]) {
+      const option = document.createElement("option");
+      option.value = value;
+      option.textContent = value === "sharer" ? "Sharer" : "Accompanying";
+      role.append(option);
+    }
+    role.value = guest.role;
+    roleLabel.append(role);
+    const shareLabel = document.createElement("label");
+    shareLabel.textContent = "Share (%)";
+    const share = document.createElement("input");
+    share.name = "sharePct";
+    share.inputMode = "decimal";
+    share.pattern = "(?:0\\.(?:0[1-9]|[1-9][0-9])|[1-9][0-9]?\\.[0-9]{2}|100\\.00)";
+    share.placeholder = "40.00";
+    share.value = guest.sharePct ?? "";
+    shareLabel.append(share);
+    const remove = document.createElement("button");
+    remove.type = "button";
+    remove.className = "quiet remove-row";
+    remove.textContent = "Remove";
+    remove.setAttribute("aria-label", `Remove guest ${guest.partyId || "row"}`);
+    remove.addEventListener("click", () => { row.remove(); updateReservationShareTotal(); });
+    role.addEventListener("change", updateReservationShareTotal);
+    share.addEventListener("input", updateReservationShareTotal);
+    row.append(partyLabel, roleLabel, shareLabel, remove);
+    reservationGuestList.append(row);
+    updateReservationShareTotal();
+    if (!guest.partyId) party.focus();
+  }
+
+  function renderReservationGuests(reservation) {
+    reservationGuestData = reservation;
+    reservationConfirmation.textContent = reservation.confirmationNo;
+    reservationStatus.textContent = reservation.status.replaceAll("_", " ");
+    reservationPrimaryParty.value = reservation.primaryPartyId;
+    const primary = reservation.guests.find((guest) => guest.role === "primary");
+    reservationPrimaryShare.value = primary?.sharePct ?? "";
+    reservationGuestList.replaceChildren();
+    for (const guest of reservation.guests) {
+      if (guest.role !== "primary") addReservationGuestRow(guest);
+    }
+    reservationGuestForm.hidden = false;
+    updateReservationShareTotal();
   }
 
   async function submitInventory(form, route, body) {
@@ -2682,6 +2787,67 @@
     }
   });
 
+  reservationLookupForm.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const button = reservationLookupForm.querySelector("button[type=submit]");
+    const confirmationNo = String(new FormData(reservationLookupForm).get("confirmationNo") || "");
+    button.disabled = true;
+    formMessage(reservationLookupForm, "Finding the exact tenant and property reservation…");
+    reservationGuestForm.hidden = true;
+    reservationGuestData = null;
+    try {
+      const body = await request(`/api/v1/properties/${encodeURIComponent(propertySelect.value)}/reservation-guests?confirmationNo=${encodeURIComponent(confirmationNo)}`);
+      renderReservationGuests(body.reservation);
+      formMessage(reservationLookupForm, "Reservation found. Review the complete allocation below.");
+    } catch (error) {
+      formMessage(reservationLookupForm, error instanceof Error ? error.message : "Reservation could not be found", true);
+    } finally {
+      button.disabled = false;
+    }
+  });
+
+  reservationGuestForm.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    if (!reservationGuestData) return;
+    const guests = [...reservationGuestList.querySelectorAll(".reservation-guest-row")].map((row) => {
+      const role = row.querySelector("select").value;
+      return {
+        partyId: row.querySelector('input[name="partyId"]').value,
+        role,
+        sharePct: role === "sharer" ? row.querySelector('input[name="sharePct"]').value : null,
+      };
+    });
+    const primarySharePct = guests.some((guest) => guest.role === "sharer") ? reservationPrimaryShare.value : null;
+    const body = { primarySharePct, guests };
+    const identity = `reservation-guests:${reservationGuestData.reservationId}:${JSON.stringify(body)}`;
+    const key = pendingKeys.get(identity) || crypto.randomUUID();
+    pendingKeys.set(identity, key);
+    const button = reservationGuestForm.querySelector("button[type=submit]");
+    button.disabled = true;
+    formMessage(reservationGuestForm, "Saving through the audited reservation command…");
+    try {
+      const response = await request(`/api/v1/properties/${encodeURIComponent(propertySelect.value)}/reservations/${encodeURIComponent(reservationGuestData.reservationId)}/guests`, {
+        method: "PUT",
+        headers: { "idempotency-key": key },
+        body: JSON.stringify(body),
+      });
+      pendingKeys.delete(identity);
+      renderReservationGuests({ ...reservationGuestData, ...response.reservation });
+      formMessage(reservationGuestForm, response.reservation.changed
+        ? "Guest allocation saved with its audit fact and event."
+        : "Allocation already matched server truth; no evidence was invented.");
+    } catch (error) {
+      formMessage(reservationGuestForm, error instanceof Error ? error.message : "Guest allocation could not be saved", true);
+    } finally {
+      button.disabled = false;
+    }
+  });
+
+  addReservationGuest.addEventListener("click", () => {
+    if (reservationGuestList.childElementCount < 99) addReservationGuestRow();
+  });
+  reservationPrimaryShare.addEventListener("input", updateReservationShareTotal);
+
   propertySelect.addEventListener("change", () => {
     if (propertySelect.value) history.replaceState(null, "", `/p/${propertySelect.value}/${activeView}`);
     if (activeView === "inventory") void loadInventory();
@@ -2692,6 +2858,9 @@
     if (activeView === "operations") void loadOperationalBlocks();
     if (activeView === "restrictions") void loadRestrictions();
     if (activeView === "rates") void loadRates();
+    reservationGuestData = null;
+    reservationGuestForm.hidden = true;
+    reservationGuestList.replaceChildren();
   });
   for (const tab of navigation) tab.addEventListener("click", () => setView(tab.dataset.view));
   refreshInventory.addEventListener("click", () => void loadInventory());
@@ -3108,6 +3277,7 @@
   setBuilderMode("guided", false);
   const initialView = location.pathname.endsWith("/inventory") ? "inventory" :
     location.pathname.endsWith("/operations") ? "operations" :
+    location.pathname.endsWith("/reservations") ? "reservations" :
     location.pathname.endsWith("/restrictions") ? "restrictions" :
     location.pathname.endsWith("/rates") ? "rates" :
     location.pathname.endsWith("/status") ? "status" : "availability";

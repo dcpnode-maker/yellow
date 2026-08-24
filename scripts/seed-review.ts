@@ -49,6 +49,8 @@ export const REVIEW_PERMISSIONS = Object.freeze([
   { code: "rates.configuration:write", description: "Create tenant-scoped rate configuration" },
   { code: "rates.pricing:read", description: "Read tenant-scoped rate pricing" },
   { code: "rates.pricing:write", description: "Create tenant-scoped rate pricing" },
+  { code: "reservations.guests:read", description: "Read tenant-scoped reservation guest allocations" },
+  { code: "reservations.guests:write", description: "Replace tenant-scoped reservation guest allocations" },
 ]);
 const REVIEW_USER_NAME = `${TENANT_NAME}/review-user/${REVIEW_EMAIL}`;
 const REVIEW_APPROVER_USER_NAME = `${TENANT_NAME}/review-user/${REVIEW_APPROVER_EMAIL}`;

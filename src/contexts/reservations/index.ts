@@ -32,12 +32,14 @@ export {
   ReservationGuestValidationError,
 } from "./guests";
 export type {
+  FindReservationGuestsInput,
   GuestEditableReservationStatus,
   ReplaceReservationGuestsInput,
   ReplaceReservationGuestsResult,
   RequestedReservationGuest,
   RequestedReservationGuestRole,
   ReservationGuestAllocation,
+  ReservationGuestLookupResult,
   ReservationGuestRole,
   ReservationGuestServiceOptions,
 } from "./guests";

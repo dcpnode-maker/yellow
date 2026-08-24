@@ -74,6 +74,8 @@ test("Order 096 P0/P4: reservation guest workbench is explicit and browser-autho
   expect(html).toContain('id="reservation-guest-form"');
   expect(html).toContain("Primary guest cannot be removed");
   expect(css).toContain(".reservation-guest-row");
+  expect(css).toContain("min-height: 44px");
+  expect(css).toContain("prefers-reduced-motion: reduce");
   expect(script).toContain("/reservation-guests?confirmationNo=");
   expect(script).toContain("/guests");
   expect(script).toContain("primarySharePct");

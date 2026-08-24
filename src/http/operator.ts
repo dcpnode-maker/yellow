@@ -54,6 +54,10 @@ import {
 import {
   ReservationCommitService,
   ReservationConflictError,
+  ReservationGuestConflictError,
+  ReservationGuestNotFoundError,
+  ReservationGuestService,
+  ReservationGuestValidationError,
   ReservationNotFoundError,
   ReservationOfferSearchService,
   ReservationOfferSearchTooBroadError,
@@ -61,6 +65,7 @@ import {
   ReservationValidationError,
   type ReservationOfferSearchInput,
   type ReservationOfferSearchResult,
+  type RequestedReservationGuest,
 } from "../contexts/reservations";
 import {
   createAuditEnvelope,
@@ -95,6 +100,8 @@ const HOLD_WRITE_SCOPE = "inventory.holds:write";
 const OFFLINE_LEASE_READ_SCOPE = "inventory.offline_leases:read";
 const OFFLINE_LEASE_WRITE_SCOPE = "inventory.offline_leases:write";
 const RESERVATION_WRITE_SCOPE = "reservations.booking:write";
+const RESERVATION_GUEST_READ_SCOPE = "reservations.guests:read";
+const RESERVATION_GUEST_WRITE_SCOPE = "reservations.guests:write";
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 const ISO_INSTANT = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})(?::(\d{2})(?:\.(\d{1,3}))?)?(Z|([+-])(\d{2}):(\d{2}))$/;
 const LOCAL_DATE = /^(\d{4})-(\d{2})-(\d{2})$/;
@@ -363,6 +370,41 @@ function parseReservationCommit(body: unknown): ReservationCommitDraft | null {
     : null;
 }
 
+function parseReservationGuests(body: unknown): {
+  primarySharePct: string | null;
+  guests: readonly RequestedReservationGuest[];
+} | null {
+  if (!isObject(body) || !exactKeys(body, ["primarySharePct", "guests"]) ||
+      (body.primarySharePct !== null && typeof body.primarySharePct !== "string") ||
+      !Array.isArray(body.guests) || body.guests.length > 99) return null;
+  const guests: RequestedReservationGuest[] = [];
+  for (const guest of body.guests) {
+    if (!isObject(guest) || !exactKeys(guest, ["partyId", "role", "sharePct"]) ||
+        typeof guest.partyId !== "string" || !UUID.test(guest.partyId) ||
+        (guest.role !== "accompanying" && guest.role !== "sharer") ||
+        (guest.sharePct !== null && typeof guest.sharePct !== "string")) return null;
+    guests.push(Object.freeze({
+      partyId: guest.partyId,
+      role: guest.role,
+      sharePct: guest.sharePct,
+    }));
+  }
+  return Object.freeze({
+    primarySharePct: body.primarySharePct,
+    guests: Object.freeze(guests),
+  });
+}
+
+function confirmationQuery(request: Request): string | null {
+  const query = new URL(request.url).searchParams;
+  if ([...query.keys()].some((key) => key !== "confirmationNo") ||
+      query.getAll("confirmationNo").length !== 1) return null;
+  const confirmationNo = query.get("confirmationNo");
+  return confirmationNo !== null && /^[\x21-\x7e]{1,120}$/.test(confirmationNo)
+    ? confirmationNo
+    : null;
+}
+
 function parseOfflineLease(body: unknown): {
   sellableUnitId: string;
   from: Date;
@@ -552,6 +594,7 @@ type HoldOperations = Pick<HoldService,
 >;
 type ReservationOperations = Pick<ReservationCommitService, "commitHeld" | "commitDirect">;
 type ReservationOfferOperations = Pick<ReservationOfferSearchService, "search">;
+type ReservationGuestOperations = Pick<ReservationGuestService, "findByConfirmation" | "replace">;
 
 const MAX_MONEY = 9_223_372_036_854_775_807n;
 
@@ -928,6 +971,7 @@ export class OperatorHttpApi {
   readonly #rateBuilder?: RateBuilderOperations;
   readonly #reservations?: ReservationOperations;
   readonly #reservationOffers?: ReservationOfferOperations;
+  readonly #reservationGuests?: ReservationGuestOperations;
 
   constructor(
     login: LocalLoginService,
@@ -945,6 +989,7 @@ export class OperatorHttpApi {
     rateBuilder?: RateBuilderOperations,
     reservations?: ReservationOperations,
     reservationOffers?: ReservationOfferOperations,
+    reservationGuests?: ReservationGuestOperations,
   ) {
     this.#login = login;
     this.#availability = availability;
@@ -961,6 +1006,7 @@ export class OperatorHttpApi {
     this.#rateBuilder = rateBuilder;
     this.#reservations = reservations;
     this.#reservationOffers = reservationOffers;
+    this.#reservationGuests = reservationGuests;
   }
 
   unavailable(request: Request): Response {
@@ -972,6 +1018,9 @@ export class OperatorHttpApi {
   }
 
   failure(request: Request, error: unknown): Response {
+    if (error instanceof ReservationGuestConflictError) {
+      return apiError(request, 409, "reservations/conflict", "Conflict", "Reservation guest allocation conflicts with existing state");
+    }
     if (error instanceof ReservationConflictError) {
       return apiError(request, 409, "conflict/occupancy", "Inventory conflict", "Requested inventory is no longer available");
     }
@@ -987,13 +1036,14 @@ export class OperatorHttpApi {
     if (error instanceof IdempotencyValidationError || error instanceof InventoryValidationError) {
       return apiError(request, 400, "request/invalid", "Invalid request", "Inventory input is invalid");
     }
-    if (error instanceof ReservationValidationError || error instanceof ReservationOfferValidationError) {
+    if (error instanceof ReservationValidationError || error instanceof ReservationOfferValidationError ||
+        error instanceof ReservationGuestValidationError) {
       return apiError(request, 400, "request/invalid", "Invalid request", "Reservation input is invalid");
     }
     if (error instanceof InventoryNotFoundError) {
       return apiError(request, 404, "inventory/not_found", "Not found", "Referenced inventory was not found");
     }
-    if (error instanceof ReservationNotFoundError) {
+    if (error instanceof ReservationNotFoundError || error instanceof ReservationGuestNotFoundError) {
       return apiError(request, 404, "reservations/not_found", "Not found", "Referenced reservation input was not found");
     }
     if (error instanceof RateValidationError || error instanceof RateAuthoringError || error instanceof RateIntentError ||
@@ -1446,6 +1496,72 @@ export class OperatorHttpApi {
       : await this.#reservations.commitDirect(context.tx, { ...common, ...input.direct });
     const { replayed, ...reservation } = result;
     return apiResponse(context.request, canonicalJson({ reservation: jsonValue(reservation) }), 201, {
+      "idempotency-replayed": String(replayed),
+      "x-correlation-id": requestId,
+    });
+  }
+
+  async reservationGuests(context: TenantRequestContext, propertyNode: string): Promise<Response> {
+    if (!UUID.test(propertyNode)) {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Property identifier is invalid");
+    }
+    const confirmationNo = confirmationQuery(context.request);
+    if (!confirmationNo) {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Confirmation query is invalid");
+    }
+    if (!hasScope(context, RESERVATION_GUEST_READ_SCOPE)) {
+      return apiError(context.request, 403, "auth/scope_missing", "Forbidden", "Reservation guest access is not granted");
+    }
+    if (!this.#reservationGuests) return this.unavailable(context.request);
+    const grants = await listGrantedProperties(context, RESERVATION_GUEST_READ_SCOPE);
+    if (!grants.some(({ id }) => id === propertyNode)) {
+      return apiError(context.request, 403, "auth/property_forbidden", "Forbidden", "Property access is not granted");
+    }
+    const reservation = await this.#reservationGuests.findByConfirmation(context.tx, {
+      tenantId: context.tenantId,
+      propertyNode,
+      confirmationNo,
+    });
+    return apiResponse(context.request, canonicalJson({ reservation: jsonValue(reservation) }));
+  }
+
+  async replaceReservationGuests(
+    context: TenantRequestContext,
+    propertyNode: string,
+    reservationId: string,
+    body: unknown,
+  ): Promise<Response> {
+    if (!UUID.test(propertyNode) || !UUID.test(reservationId)) {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Property or reservation identifier is invalid");
+    }
+    const input = parseReservationGuests(body);
+    if (!input) {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Reservation guest input is invalid");
+    }
+    if (!hasScope(context, RESERVATION_GUEST_WRITE_SCOPE)) {
+      return apiError(context.request, 403, "auth/scope_missing", "Forbidden", "Reservation guest changes are not granted");
+    }
+    if (!this.#reservationGuests) return this.unavailable(context.request);
+    const grants = await listGrantedProperties(context, RESERVATION_GUEST_WRITE_SCOPE);
+    if (!grants.some(({ id }) => id === propertyNode)) {
+      return apiError(context.request, 403, "auth/property_forbidden", "Forbidden", "Property access is not granted");
+    }
+    const requestId = correlationId(context.request);
+    const result = await this.#reservationGuests.replace(context.tx, {
+      reservationId,
+      primarySharePct: input.primarySharePct,
+      guests: input.guests,
+      idempotencyKey: context.request.headers.get("idempotency-key") ?? "",
+      envelope: createAuditEnvelope({
+        actorId: context.identity.actorId,
+        tenantId: context.tenantId,
+        propertyNode,
+        requestId,
+        operation: "reservation.modified",
+      }),
+    });
+    const { replayed, ...reservation } = result;
+    return apiResponse(context.request, canonicalJson({ reservation: jsonValue(reservation) }), 200, {
       "idempotency-replayed": String(replayed),
       "x-correlation-id": requestId,
     });

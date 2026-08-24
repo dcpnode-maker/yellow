@@ -24,12 +24,12 @@ export const DEFAULT_OPERATOR_RUNTIME_STATUS: OperatorRuntimeStatus = Object.fre
 
 export const PROJECT_BUILD_SNAPSHOT = Object.freeze({
   schemaVersion: 1,
-  recordedAt: "2026-08-23",
+  recordedAt: "2026-08-24",
   label: "Recorded build snapshot",
   roadmap: Object.freeze({
     phaseCount: 13,
-    latestBuiltOrder: 95,
-    currentOrder: 95,
+    latestBuiltOrder: 96,
+    currentOrder: 96,
     activePhase: 4,
   }),
   review: Object.freeze({

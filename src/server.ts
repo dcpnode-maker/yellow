@@ -3,7 +3,7 @@ import { SQL } from "bun";
 import { app, createApp } from "./app";
 import { BearerTenantResolver, Hs256TokenSigner, LocalLoginService } from "./contexts/identity";
 import { AvailabilityProjectionConsumer, AvailabilityProjectionService, AvailabilityService, HoldExpiryWorker, HoldService, InventoryPolicyService, InventoryService, OperationalBlockService, ReservationOccupancyService, RestrictionService } from "./contexts/inventory";
-import { ReservationCommitService, ReservationOfferSearchService } from "./contexts/reservations";
+import { ReservationCommitService, ReservationGuestService, ReservationOfferSearchService } from "./contexts/reservations";
 import {
   createRateIntentProposalAdapterFromEnvironment,
   RateConfigurationService,
@@ -67,6 +67,7 @@ function runtimeApp() {
     events,
     idempotency: new PostgresIdempotency(),
   });
+  const reservationGuests = new ReservationGuestService({ events, idempotency: new PostgresIdempotency() });
   const projection = new AvailabilityProjectionService();
   const availability = new AvailabilityService();
   const publication = new RatePublicationService(registry, approvals, events);
@@ -104,7 +105,7 @@ function runtimeApp() {
   return createApp({
     database,
     tenantResolver: new BearerTenantResolver(tokens),
-    operatorApi: new OperatorHttpApi(login, availability, inventory, new PostgresIdempotency(), restrictions, rates, pricing, blocks, policy, holds, projection, runtimeStatus, rateBuilder, reservations, reservationOffers),
+    operatorApi: new OperatorHttpApi(login, availability, inventory, new PostgresIdempotency(), restrictions, rates, pricing, blocks, policy, holds, projection, runtimeStatus, rateBuilder, reservations, reservationOffers, reservationGuests),
   });
 }
 

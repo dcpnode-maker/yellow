@@ -78,6 +78,7 @@ export function createApp(options: AppOptions = {}) {
       .get("/p/:property/restrictions", () => operatorAssets.html())
       .get("/p/:property/rates", () => operatorAssets.html())
       .get("/p/:property/operations", () => operatorAssets.html())
+      .get("/p/:property/reservations", () => operatorAssets.html())
       .get("/p/:property/status", () => operatorAssets.html())
       .get("/assets/operator.css", () => operatorAssets.css())
       .get("/assets/operator.js", () => operatorAssets.js())
@@ -182,6 +183,14 @@ export function createApp(options: AppOptions = {}) {
       )
       .post("/api/v1/reservations:commit", ({ request, body, tenantContext }) =>
         withOperatorTenant(request, (context) => operator.commitReservation(context, body))
+      )
+      .get("/api/v1/properties/:property/reservation-guests", ({ request, params, tenantContext }) =>
+        withOperatorTenant(request, (context) => operator.reservationGuests(context, params.property))
+      )
+      .put("/api/v1/properties/:property/reservations/:reservation/guests", ({ request, params, body, tenantContext }) =>
+        withOperatorTenant(request, (context) => operator.replaceReservationGuests(
+          context, params.property, params.reservation, body,
+        ))
       )
       .get("/api/v1/properties/:property/offline-leases", ({ request, params, tenantContext }) =>
         withOperatorTenant(request, (context) => operator.activeOfflineLeases(context, params.property))
