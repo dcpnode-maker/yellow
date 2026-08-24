@@ -138,7 +138,7 @@ Tier-3 reviewer personally executes P1–P5 on fresh PostgreSQL.
 ## Definition of done
 
 - [x] Order exists before implementation.
-- [ ] Intentional P0 red is committed before production/migration code.
+- [x] Intentional P0 red is committed before production/migration code.
 - [ ] PostgreSQL enforces tenant/date/currency/folio-account financial coherence.
 - [ ] Canonical charge signs, balance, routing and bigint evidence are exact.
 - [ ] Replay, rollback, seal races and 1,000-line stress pass without drift.
