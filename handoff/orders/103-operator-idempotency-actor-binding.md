@@ -30,7 +30,13 @@ name, business command, event, state transition or browser behavior is needed.
 
 - `src/http/operator.ts`
 - `tests/operator-idempotency-actor-binding.test.ts`
-- `tests/operator-inventory.integration.test.ts`
+- `tests/offline-leases.integration.test.ts`,
+  `tests/operator-inventory.integration.test.ts`,
+  `tests/operator-oos-policy.integration.test.ts`,
+  `tests/operator-operational-blocks.integration.test.ts`,
+  `tests/operator-rate-configuration.integration.test.ts`,
+  `tests/operator-rate-pricing.integration.test.ts`,
+  `tests/operator-restrictions.integration.test.ts`
 - `docs/SECURITY.md`, `docs/CONTRACTS.md`
 - `src/project-status.ts`, `tests/founder-status.integration.test.ts` only after green
 - this order, `handoff/PHASE-4-PLAN.md`, `handoff/LEDGER.md`, `DECISIONS.log`,
@@ -64,6 +70,9 @@ name, business command, event, state transition or browser behavior is needed.
    operation + hashed key, while actor identity participates in the request hash. Any
    unexpired pre-fix key reused after deployment may fail closed as a conflict; this is
    safer than replaying an identity-unbound response and requires no data rewrite.
+7. Per Questions 137 and 138, repair only the seven stale exact-role proof labels/literals reached
+   by P3. They must require the already canonical sorted 25-scope set; production seed,
+   permission, token and route behavior remain byte-identical.
 
 ## Forbidden
 
@@ -116,9 +125,9 @@ P0's corrected two-actor proof plus P1–P2 on a fresh database before approval.
 ## Definition of done
 
 - [x] Order exists before implementation.
-- [ ] Intentional two-actor P0 red is committed before production code.
-- [ ] All direct operator claims bind the verified actor through one choke point.
-- [ ] Cross-actor key reuse conflicts without response or audit-envelope confusion.
-- [ ] Same-actor replay/rollback and every inherited operator contract remain exact.
-- [ ] Standing/referee gates pass and protected files remain unchanged.
+- [x] Intentional two-actor P0 red is committed before production code.
+- [x] All direct operator claims bind the verified actor through one choke point.
+- [x] Cross-actor key reuse conflicts without response or audit-envelope confusion.
+- [x] Same-actor replay/rollback and every inherited operator contract remain exact.
+- [x] Standing/referee gates pass and protected files remain unchanged.
 - [ ] Independent non-implementing reviewer personally executes and approves the proof.

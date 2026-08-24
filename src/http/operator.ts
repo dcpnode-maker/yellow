@@ -88,6 +88,8 @@ import {
   IdempotencyConflictError,
   IdempotencyValidationError,
   PostgresIdempotency,
+  type IdempotencyCommandResult,
+  type IdempotencyResult,
   type JsonValue,
   type TenantRequestContext,
   type Tx,
@@ -173,6 +175,13 @@ function apiError(
     status,
     headers: { "cache-control": "no-store", "x-correlation-id": correlation },
   });
+}
+
+class OperatorActorContextError extends Error {
+  constructor() {
+    super("authenticated operator actor context is required");
+    this.name = "OperatorActorContextError";
+  }
 }
 
 function hasAvailabilityScope(context: TenantRequestContext): context is TenantRequestContext & {
@@ -1178,6 +1187,24 @@ export class OperatorHttpApi {
     this.#parties = parties;
   }
 
+  async #executeActorBoundIdempotent<T extends JsonValue>(
+    context: TenantRequestContext,
+    operation: string,
+    request: Readonly<Record<string, unknown>>,
+    command: (tx: Tx) => Promise<IdempotencyCommandResult<T>>,
+  ): Promise<IdempotencyResult<T>> {
+    const actorId = context.identity.actorId;
+    if (typeof actorId !== "string" || !UUID.test(actorId)) {
+      throw new OperatorActorContextError();
+    }
+    return this.#idempotency.execute(context.tx, {
+      tenantId: context.tenantId,
+      operation,
+      key: context.request.headers.get("idempotency-key") ?? "",
+      request: { ...request, actorId },
+    }, command);
+  }
+
   unavailable(request: Request): Response {
     return apiError(request, 503, "service/unavailable", "Service unavailable", "Operator service is temporarily unavailable");
   }
@@ -1187,6 +1214,9 @@ export class OperatorHttpApi {
   }
 
   failure(request: Request, error: unknown): Response {
+    if (error instanceof OperatorActorContextError) {
+      return this.unauthorized(request);
+    }
     if (error instanceof PartyDuplicateReviewRequiredError) {
       return apiError(request, 409, "profiles/duplicate_review_required", "Duplicate review required",
         "Review every current possible duplicate before creating a distinct Party",
@@ -1424,12 +1454,8 @@ export class OperatorHttpApi {
       return apiError(context.request, 403, "auth/property_forbidden", "Forbidden", "Property access is not granted");
     }
     const requestId = correlationId(context.request);
-    const outcome = await this.#idempotency.execute(context.tx, {
-      tenantId: context.tenantId,
-      operation: "operator.inventory.projection.rebuild",
-      key: context.request.headers.get("idempotency-key") ?? "",
-      request: { propertyNode, body },
-    }, async (tx) => {
+    const outcome = await this.#executeActorBoundIdempotent(
+      context, "operator.inventory.projection.rebuild", { propertyNode, body }, async (tx) => {
       await this.#projection!.replaceHorizon(tx, { propertyNode, ...input });
       return { status: 200, body: jsonValue(await this.#projection!.status(tx, propertyNode)) };
     });
@@ -1477,12 +1503,8 @@ export class OperatorHttpApi {
       return apiError(context.request, 403, "auth/property_forbidden", "Forbidden", "Property access is not granted");
     }
     const requestId = correlationId(context.request);
-    const outcome = await this.#idempotency.execute(context.tx, {
-      tenantId: context.tenantId,
-      operation: "operator.inventory.rooms.bulk",
-      key: context.request.headers.get("idempotency-key") ?? "",
-      request: { propertyNode, body },
-    }, async (tx) => {
+    const outcome = await this.#executeActorBoundIdempotent(
+      context, "operator.inventory.rooms.bulk", { propertyNode, body }, async (tx) => {
       const unitType = await this.#inventory!.getUnitType(tx, propertyNode, input.unitTypeId);
       if (unitType.profileKey !== "hotel") {
         throw new InventoryValidationError("Bulk room creation requires a hotel room type");
@@ -1553,10 +1575,9 @@ export class OperatorHttpApi {
       return apiError(context.request, 403, "auth/property_forbidden", "Forbidden", "Property access is not granted");
     }
     const requestId = correlationId(context.request);
-    const outcome = await this.#idempotency.execute(context.tx, {
-      tenantId: context.tenantId, operation: "operator.inventory.blocks.open",
-      key: context.request.headers.get("idempotency-key") ?? "", request: { propertyNode, body },
-    }, async (tx) => ({ status: 201, body: { operationalBlock: jsonValue(await this.#blocks!.open(tx, {
+    const outcome = await this.#executeActorBoundIdempotent(
+      context, "operator.inventory.blocks.open", { propertyNode, body },
+      async (tx) => ({ status: 201, body: { operationalBlock: jsonValue(await this.#blocks!.open(tx, {
       ...input, envelope: createAuditEnvelope({ actorId: context.identity.actorId, tenantId: context.tenantId,
         propertyNode, requestId, operation: "ooo.opened" }),
     })) } }));
@@ -1581,10 +1602,9 @@ export class OperatorHttpApi {
       return apiError(context.request, 403, "auth/property_forbidden", "Forbidden", "Property access is not granted");
     }
     const requestId = correlationId(context.request);
-    const outcome = await this.#idempotency.execute(context.tx, {
-      tenantId: context.tenantId, operation: "operator.inventory.blocks.close",
-      key: context.request.headers.get("idempotency-key") ?? "", request: { propertyNode, blockId, body },
-    }, async (tx) => ({ status: 200, body: { operationalBlock: jsonValue(await this.#blocks!.close(tx, {
+    const outcome = await this.#executeActorBoundIdempotent(
+      context, "operator.inventory.blocks.close", { propertyNode, blockId, body },
+      async (tx) => ({ status: 200, body: { operationalBlock: jsonValue(await this.#blocks!.close(tx, {
       blockId, envelope: createAuditEnvelope({ actorId: context.identity.actorId, tenantId: context.tenantId,
         propertyNode, requestId, operation: "ooo.closed" }),
     })) } }));
@@ -1632,10 +1652,9 @@ export class OperatorHttpApi {
       return apiError(context.request, 403, "auth/property_forbidden", "Forbidden", "Property access is not granted");
     }
     const requestId = correlationId(context.request);
-    const outcome = await this.#idempotency.execute(context.tx, {
-      tenantId: context.tenantId, operation: "operator.inventory.holds.place",
-      key: context.request.headers.get("idempotency-key") ?? "", request: { propertyNode, body },
-    }, async (tx) => ({ status: 201, body: { hold: jsonValue(await this.#holds!.place(tx, {
+    const outcome = await this.#executeActorBoundIdempotent(
+      context, "operator.inventory.holds.place", { propertyNode, body },
+      async (tx) => ({ status: 201, body: { hold: jsonValue(await this.#holds!.place(tx, {
       sellableUnitId: input.sellableUnitId, from: input.from, to: input.to, ttlSeconds: 600,
       holder: { reference: input.holderReference },
       envelope: createAuditEnvelope({ actorId: context.identity.actorId, tenantId: context.tenantId,
@@ -2013,10 +2032,9 @@ export class OperatorHttpApi {
       return apiError(context.request, 403, "auth/property_forbidden", "Forbidden", "Property access is not granted");
     }
     const requestId = correlationId(context.request);
-    const outcome = await this.#idempotency.execute(context.tx, {
-      tenantId: context.tenantId, operation: "operator.inventory.holds.release",
-      key: context.request.headers.get("idempotency-key") ?? "", request: { propertyNode, holdId, body },
-    }, async (tx) => ({ status: 200, body: { hold: jsonValue(await this.#holds!.release(tx, {
+    const outcome = await this.#executeActorBoundIdempotent(
+      context, "operator.inventory.holds.release", { propertyNode, holdId, body },
+      async (tx) => ({ status: 200, body: { hold: jsonValue(await this.#holds!.release(tx, {
       holdId, envelope: createAuditEnvelope({ actorId: context.identity.actorId, tenantId: context.tenantId,
         propertyNode, requestId, operation: "hold.released" }),
     })) } }));
@@ -2059,12 +2077,8 @@ export class OperatorHttpApi {
       return apiError(context.request, 403, "auth/property_forbidden", "Forbidden", "Property access is not granted");
     }
     const requestId = correlationId(context.request);
-    const outcome = await this.#idempotency.execute(context.tx, {
-      tenantId: context.tenantId,
-      operation: "operator.inventory.offline_leases.place",
-      key: context.request.headers.get("idempotency-key") ?? "",
-      request: { propertyNode, body },
-    }, async (tx) => {
+    const outcome = await this.#executeActorBoundIdempotent(
+      context, "operator.inventory.offline_leases.place", { propertyNode, body }, async (tx) => {
       const options = await this.#availability.search(tx, {
         propertyNode,
         from: input.from,
@@ -2121,12 +2135,8 @@ export class OperatorHttpApi {
       return apiError(context.request, 403, "auth/property_forbidden", "Forbidden", "Property access is not granted");
     }
     const requestId = correlationId(context.request);
-    const outcome = await this.#idempotency.execute(context.tx, {
-      tenantId: context.tenantId,
-      operation: "operator.inventory.offline_leases.release",
-      key: context.request.headers.get("idempotency-key") ?? "",
-      request: { propertyNode, leaseId, body },
-    }, async (tx) => ({
+    const outcome = await this.#executeActorBoundIdempotent(
+      context, "operator.inventory.offline_leases.release", { propertyNode, leaseId, body }, async (tx) => ({
       status: 200,
       body: { offlineLease: jsonValue(await this.#holds!.releaseOfflineLease(tx, {
         holdId: leaseId,
@@ -2160,10 +2170,9 @@ export class OperatorHttpApi {
       return apiError(context.request, 403, "auth/property_forbidden", "Forbidden", "Property access is not granted");
     }
     const requestId = correlationId(context.request);
-    const outcome = await this.#idempotency.execute(context.tx, {
-      tenantId: context.tenantId, operation: "operator.inventory.policy.oos_sellability",
-      key: context.request.headers.get("idempotency-key") ?? "", request: { propertyNode, body },
-    }, async (tx) => ({ status: 200, body: { inventoryPolicy: jsonValue(await this.#policy!.setOosSellability(tx, {
+    const outcome = await this.#executeActorBoundIdempotent(
+      context, "operator.inventory.policy.oos_sellability", { propertyNode, body },
+      async (tx) => ({ status: 200, body: { inventoryPolicy: jsonValue(await this.#policy!.setOosSellability(tx, {
       value: body.oosSellability as "blocked" | "allowed",
       envelope: createAuditEnvelope({ actorId: context.identity.actorId, tenantId: context.tenantId,
         propertyNode, requestId, operation: "inventory.policy.changed" }),
@@ -2212,12 +2221,8 @@ export class OperatorHttpApi {
       return apiError(context.request, 403, "auth/property_forbidden", "Forbidden", "Property access is not granted");
     }
     const requestId = correlationId(context.request);
-    const outcome = await this.#idempotency.execute(context.tx, {
-      tenantId: context.tenantId,
-      operation: "operator.inventory.restriction.create",
-      key: context.request.headers.get("idempotency-key") ?? "",
-      request: { propertyNode, body },
-    }, async (tx) => ({
+    const outcome = await this.#executeActorBoundIdempotent(
+      context, "operator.inventory.restriction.create", { propertyNode, body }, async (tx) => ({
       status: 201,
       body: { restrictions: jsonValue(await this.#restrictions!.createBatch(tx, {
         restrictions,
@@ -2316,12 +2321,8 @@ export class OperatorHttpApi {
       return apiError(context.request, 400, "request/invalid", "Invalid request", "Rate-plan route and command do not match");
     }
     const requestId = correlationId(context.request);
-    const outcome = await this.#idempotency.execute(context.tx, {
-      tenantId: context.tenantId,
-      operation: "operator.rates.release.draft",
-      key: context.request.headers.get("idempotency-key") ?? "",
-      request: { propertyNode, ratePlanId, body },
-    }, async (tx) => {
+    const outcome = await this.#executeActorBoundIdempotent(
+      context, "operator.rates.release.draft", { propertyNode, ratePlanId, body }, async (tx) => {
       const modelDraft = await this.#rateBuilder!.models.createDraftVersion(tx, {
         ratePlanId: command.ratePlanId,
         modelKey: command.model.key,
@@ -2653,12 +2654,9 @@ export class OperatorHttpApi {
     successStatus = 201,
   ): Promise<Response> {
     const requestId = correlationId(context.request);
-    const outcome = await this.#idempotency.execute(context.tx, {
-      tenantId: context.tenantId,
-      operation,
-      key: context.request.headers.get("idempotency-key") ?? "",
-      request: { propertyNode, body: requestBody },
-    }, async (tx) => ({ status: successStatus, body: rateBuilderJsonValue(await command(tx, requestId, actorId)) }));
+    const outcome = await this.#executeActorBoundIdempotent(
+      context, operation, { propertyNode, body: requestBody },
+      async (tx) => ({ status: successStatus, body: rateBuilderJsonValue(await command(tx, requestId, actorId)) }));
     return apiResponse(context.request, outcome.body, outcome.status, {
       "idempotency-replayed": String(outcome.replayed),
       "x-correlation-id": requestId,
@@ -2698,12 +2696,8 @@ export class OperatorHttpApi {
       return apiError(context.request, 403, "auth/property_forbidden", "Forbidden", "Property access is not granted");
     }
     const requestId = correlationId(context.request);
-    const outcome = await this.#idempotency.execute(context.tx, {
-      tenantId: context.tenantId,
-      operation: "operator.rates.price.create",
-      key: context.request.headers.get("idempotency-key") ?? "",
-      request: { propertyNode, body },
-    }, async (tx) => ({
+    const outcome = await this.#executeActorBoundIdempotent(
+      context, "operator.rates.price.create", { propertyNode, body }, async (tx) => ({
       status: 201,
       body: { ratePrice: ratePriceJson(await this.#pricing!.create(tx, {
         ...input,
@@ -2734,11 +2728,9 @@ export class OperatorHttpApi {
       return apiError(context.request, 403, "auth/property_forbidden", "Forbidden", "Property access is not granted");
     }
     const requestId = correlationId(context.request);
-    const outcome = await this.#idempotency.execute(context.tx, {
-      tenantId: context.tenantId, operation: "operator.rates.price.supersede",
-      key: context.request.headers.get("idempotency-key") ?? "",
-      request: { propertyNode, ratePriceId, body },
-    }, async (tx) => ({ status: 201, body: {
+    const outcome = await this.#executeActorBoundIdempotent(
+      context, "operator.rates.price.supersede", { propertyNode, ratePriceId, body },
+      async (tx) => ({ status: 201, body: {
       ratePrice: ratePriceJson(await this.#pricing!.supersede(tx, {
         ratePriceId, pricing: correctedPricing,
         envelope: createAuditEnvelope({ actorId: context.identity.actorId, tenantId: context.tenantId,
@@ -2770,12 +2762,8 @@ export class OperatorHttpApi {
       return apiError(context.request, 403, "auth/property_forbidden", "Forbidden", "Property access is not granted");
     }
     const requestId = correlationId(context.request);
-    const outcome = await this.#idempotency.execute(context.tx, {
-      tenantId: context.tenantId,
-      operation: idempotencyOperation,
-      key: context.request.headers.get("idempotency-key") ?? "",
-      request: { propertyNode, body: requestBody },
-    }, async (tx) => ({
+    const outcome = await this.#executeActorBoundIdempotent(
+      context, idempotencyOperation, { propertyNode, body: requestBody }, async (tx) => ({
       status: 201,
       body: await command(tx, createAuditEnvelope({
         actorId: context.identity.actorId,
@@ -2811,12 +2799,8 @@ export class OperatorHttpApi {
       return apiError(context.request, 403, "auth/property_forbidden", "Forbidden", "Property access is not granted");
     }
     const requestId = correlationId(context.request);
-    const outcome = await this.#idempotency.execute(context.tx, {
-      tenantId: context.tenantId,
-      operation: idempotencyOperation,
-      key: context.request.headers.get("idempotency-key") ?? "",
-      request: { propertyNode, body: requestBody },
-    }, async (tx) => ({
+    const outcome = await this.#executeActorBoundIdempotent(
+      context, idempotencyOperation, { propertyNode, body: requestBody }, async (tx) => ({
       status: 201,
       body: jsonValue(await command(tx, createAuditEnvelope({
         actorId: context.identity.actorId,
