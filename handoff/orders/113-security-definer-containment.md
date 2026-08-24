@@ -142,4 +142,4 @@ P1–P4 against the immutable implementation SHA, and the app-never-started refe
 - [x] Migration 0011 contains all six current definers with safe resolution and ACLs.
 - [x] P1–P4 pass without changing authorized domain semantics.
 - [x] Cumulative/referee/standing gates pass and protected files stay exact.
-- [ ] Independent reviewer personally approves the immutable tip.
+- [x] Independent reviewer personally approves the immutable tip.
