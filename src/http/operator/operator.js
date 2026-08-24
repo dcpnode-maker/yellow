@@ -37,6 +37,10 @@
   let reservationBookingHold = null;
   let reservationBookingDraft = null;
   let reservationBookingSearchGeneration = 0;
+  let partyProfileGeneration = 0;
+  let partyCreateAttemptKey = "";
+  let partyCreateDraft = null;
+  let partyDuplicateIds = [];
   const pendingKeys = new Map();
 
   const loginView = document.querySelector("#login-view");
@@ -285,6 +289,18 @@
   const reservationBookingHeld = document.querySelector("#reservation-booking-held");
   const reservationBookingMessage = document.querySelector("#reservation-booking-message");
   const reservationBookingConfirmation = document.querySelector("#reservation-booking-confirmation");
+  const partyProfileSearchForm = document.querySelector("#party-profile-search-form");
+  const partyProfileResults = document.querySelector("#party-profile-results");
+  const partyProfileCreate = document.querySelector("#party-profile-create");
+  const partyProfileCreateForm = document.querySelector("#party-profile-create-form");
+  const partyDuplicateReview = document.querySelector("#party-duplicate-review");
+  const partyDuplicateCandidates = document.querySelector("#party-duplicate-candidates");
+  const partyCreateDistinctConfirm = document.querySelector("#party-create-distinct-confirm");
+  const partyCreateDistinct = document.querySelector("#party-create-distinct");
+  const partyDuplicateMessage = document.querySelector("#party-duplicate-message");
+  const partyProfilePicker = document.querySelector("#party-profile-picker");
+  const partyProfileSelected = document.querySelector("#party-profile-selected");
+  const partyProfileClear = document.querySelector("#party-profile-clear");
   const SYSTEM_STATUS_SUFFIX = "/system-status";
   const MAX_MINOR = BigInt("9223372036854775807");
 
@@ -334,7 +350,10 @@
     try { body = await response.json(); } catch { body = null; }
     if (!response.ok) {
       const message = body && typeof body.detail === "string" ? body.detail : "The request could not be completed";
-      throw new Error(message);
+      const error = new Error(message);
+      error.status = response.status;
+      error.problem = body;
+      throw error;
     }
     return body;
   }
@@ -380,6 +399,7 @@
     reservationBookingHold = null;
     reservationBookingDraft = null;
     reservationBookingSearchGeneration += 1;
+    clearPartyProfileState();
     reservationGuestForm.hidden = true;
     reservationLifecycleEditor.hidden = true;
     reservationSegmentEditor.hidden = true;
@@ -2882,6 +2902,190 @@
     };
   }
 
+  function partyContactSummary(contacts) {
+    return (Array.isArray(contacts) ? contacts : [])
+      .map((contact) => `${contact.kind}: ${contact.hint}`)
+      .join(" · ");
+  }
+
+  function clearPartyDuplicateReview() {
+    partyDuplicateIds = [];
+    partyDuplicateCandidates.replaceChildren();
+    partyCreateDistinctConfirm.checked = false;
+    partyCreateDistinct.disabled = true;
+    partyDuplicateReview.hidden = true;
+    partyDuplicateMessage.textContent = "";
+    partyDuplicateMessage.classList.remove("error");
+  }
+
+  function clearPartyProfileState() {
+    partyProfileGeneration += 1;
+    partyCreateAttemptKey = "";
+    partyCreateDraft = null;
+    clearPartyDuplicateReview();
+    partyProfileSearchForm.reset();
+    partyProfileCreateForm.reset();
+    partyProfileResults.replaceChildren();
+    partyProfileCreate.open = false;
+    partyProfilePicker.hidden = false;
+    partyProfileSelected.hidden = true;
+    partyProfileSelected.querySelector("strong").textContent = "";
+    partyProfileSelected.querySelector("small").textContent = "";
+    partyProfileClear.hidden = true;
+    reservationBookingForm.elements.primaryPartyId.value = "";
+    reservationBookingSearchGeneration += 1;
+    reservationBookingOffers = [];
+    reservationBookingDraft = null;
+    reservationBookingOptions.replaceChildren();
+    clearReservationBookingSelection();
+  }
+
+  function selectPartyProfile(profile, masked = false) {
+    partyProfileGeneration += 1;
+    const partyId = String(profile.partyId || "");
+    reservationBookingForm.elements.primaryPartyId.value = partyId;
+    partyProfileSelected.querySelector("strong").textContent = masked
+      ? `${profile.displayNameHint || "Masked Party"} · ${partyId}`
+      : `${profile.displayName || "Party"} · ${partyId}`;
+    const roles = Array.isArray(profile.roles) && profile.roles.length > 0 ? profile.roles.join(", ") : "masked duplicate candidate";
+    const contacts = partyContactSummary(profile.contacts);
+    partyProfileSelected.querySelector("small").textContent = `${roles}${contacts ? ` · ${contacts}` : " · no contact hint returned"}`;
+    partyProfileSearchForm.reset();
+    partyProfileCreateForm.reset();
+    partyProfileResults.replaceChildren();
+    clearPartyDuplicateReview();
+    partyCreateAttemptKey = "";
+    partyCreateDraft = null;
+    partyProfilePicker.hidden = true;
+    partyProfileSelected.hidden = false;
+    partyProfileClear.hidden = false;
+    reservationBookingSearchGeneration += 1;
+    reservationBookingOffers = [];
+    reservationBookingDraft = null;
+    reservationBookingOptions.replaceChildren();
+    clearReservationBookingSelection();
+    partyProfileSelected.focus();
+  }
+
+  function partyProfileCard(profile, masked = false) {
+    const card = document.createElement("article");
+    card.className = "party-profile-result";
+    const copy = document.createElement("div");
+    const name = document.createElement("strong");
+    name.textContent = masked ? profile.displayNameHint : profile.displayName;
+    const details = document.createElement("span");
+    const roles = masked ? (profile.reasons || []).join(", ") : (profile.roles || []).join(", ");
+    details.textContent = `${masked ? "Possible match" : profile.kind} · ${roles || "no role detail"} · Party ${profile.partyId}`;
+    const contacts = document.createElement("small");
+    contacts.textContent = partyContactSummary(profile.contacts) || "No masked contact hint returned";
+    copy.append(name, details, contacts);
+    const use = document.createElement("button");
+    use.type = "button";
+    use.className = "secondary";
+    use.textContent = "Use for reservation";
+    use.addEventListener("click", () => selectPartyProfile(profile, masked));
+    card.append(copy, use);
+    return card;
+  }
+
+  function renderPartyProfiles(profiles) {
+    partyProfileResults.replaceChildren();
+    for (const profile of profiles) partyProfileResults.append(partyProfileCard(profile));
+    if (profiles.length === 0) emptyList(partyProfileResults, "No Parties matched. Refine the search or create a new canonical Party.");
+    partyProfileResults.tabIndex = -1;
+    partyProfileResults.focus();
+  }
+
+  function renderPartyDuplicateReview(candidates) {
+    partyDuplicateIds = candidates.map(({ partyId }) => partyId).sort();
+    partyDuplicateCandidates.replaceChildren();
+    for (const candidate of candidates) partyDuplicateCandidates.append(partyProfileCard(candidate, true));
+    partyCreateDistinctConfirm.checked = false;
+    partyCreateDistinct.disabled = true;
+    partyDuplicateMessage.textContent = `${candidates.length} current masked candidate${candidates.length === 1 ? "" : "s"} require review.`;
+    partyDuplicateMessage.classList.remove("error");
+    partyDuplicateReview.hidden = false;
+    partyDuplicateReview.focus();
+  }
+
+  async function searchPartyProfiles() {
+    const generation = ++partyProfileGeneration;
+    const property = propertySelect.value;
+    const button = partyProfileSearchForm.querySelector("button[type=submit]");
+    button.disabled = true;
+    formMessage(partyProfileSearchForm, "Searching canonical Party profiles…");
+    partyProfileResults.replaceChildren();
+    clearPartyDuplicateReview();
+    partyCreateAttemptKey = "";
+    partyCreateDraft = null;
+    try {
+      const query = String(new FormData(partyProfileSearchForm).get("query") || "");
+      const result = await request(`/api/v1/properties/${encodeURIComponent(property)}/parties:search`, {
+        method: "POST", body: JSON.stringify({ query, limit: 20 }),
+      });
+      if (generation !== partyProfileGeneration || property !== propertySelect.value) return;
+      const profiles = Array.isArray(result.profiles) ? result.profiles : [];
+      renderPartyProfiles(profiles);
+      formMessage(partyProfileSearchForm, `${profiles.length} Party result${profiles.length === 1 ? "" : "s"}. Choose Use for reservation explicitly.`);
+    } catch (error) {
+      if (generation !== partyProfileGeneration || property !== propertySelect.value) return;
+      formMessage(partyProfileSearchForm, error instanceof Error ? error.message : "Party search failed", true);
+    } finally {
+      button.disabled = false;
+    }
+  }
+
+  function partyCreateBody() {
+    const fields = new FormData(partyProfileCreateForm);
+    const contacts = ["email", "phone", "whatsapp"]
+      .map((kind) => ({ kind, value: String(fields.get(kind) || "").trim(), isPrimary: true }))
+      .filter(({ value }) => value !== "");
+    const legalName = String(fields.get("legalName") || "").trim();
+    return {
+      kind: String(fields.get("kind") || "person"),
+      displayName: String(fields.get("displayName") || ""),
+      ...(legalName ? { legalName } : {}),
+      roles: fields.getAll("roles").map(String),
+      contacts,
+      acknowledgedDuplicatePartyIds: [],
+    };
+  }
+
+  async function createPartyProfile(acknowledgedDuplicatePartyIds = []) {
+    if (!partyCreateDraft) return;
+    const generation = ++partyProfileGeneration;
+    const property = propertySelect.value;
+    const button = acknowledgedDuplicatePartyIds.length > 0
+      ? partyCreateDistinct
+      : partyProfileCreateForm.querySelector("button[type=submit]");
+    button.disabled = true;
+    formMessage(partyProfileCreateForm, acknowledgedDuplicatePartyIds.length > 0
+      ? "Creating a distinct canonical Party after explicit review…"
+      : "Checking current duplicate evidence…");
+    try {
+      const result = await request(`/api/v1/properties/${encodeURIComponent(property)}/parties`, {
+        method: "POST",
+        headers: { "idempotency-key": partyCreateAttemptKey },
+        body: JSON.stringify({ ...partyCreateDraft, acknowledgedDuplicatePartyIds }),
+      });
+      if (generation !== partyProfileGeneration || property !== propertySelect.value) return;
+      selectPartyProfile(result.party);
+    } catch (error) {
+      if (generation !== partyProfileGeneration || property !== propertySelect.value) return;
+      const candidates = error?.problem?.type === "profiles/duplicate_review_required"
+        && Array.isArray(error.problem.candidates) ? error.problem.candidates : null;
+      if (candidates) {
+        renderPartyDuplicateReview(candidates);
+        formMessage(partyProfileCreateForm, "Possible duplicates found. No Party was created; review every masked candidate below.", true);
+      } else {
+        formMessage(partyProfileCreateForm, error instanceof Error ? error.message : "Party could not be created", true);
+      }
+    } finally {
+      button.disabled = false;
+      if (button === partyCreateDistinct) button.disabled = !partyCreateDistinctConfirm.checked;
+    }
+  }
+
   function clearReservationBookingSelection() {
     reservationBookingSelection = null;
     reservationBookingHold = null;
@@ -3184,6 +3388,52 @@
     }
   });
 
+  partyProfileSearchForm.addEventListener("submit", (event) => {
+    event.preventDefault();
+    void searchPartyProfiles();
+  });
+  partyProfileSearchForm.elements.query.addEventListener("input", () => {
+    partyProfileGeneration += 1;
+    partyProfileResults.replaceChildren();
+  });
+
+  partyProfileCreateForm.addEventListener("input", () => {
+    partyProfileGeneration += 1;
+    partyCreateAttemptKey = "";
+    partyCreateDraft = null;
+    clearPartyDuplicateReview();
+  });
+  partyProfileCreateForm.addEventListener("change", () => {
+    partyProfileGeneration += 1;
+    partyCreateAttemptKey = "";
+    partyCreateDraft = null;
+    clearPartyDuplicateReview();
+  });
+  partyProfileCreateForm.addEventListener("submit", (event) => {
+    event.preventDefault();
+    partyCreateDraft = partyCreateBody();
+    if (partyCreateDraft.roles.length === 0) {
+      partyCreateDraft = null;
+      formMessage(partyProfileCreateForm, "Choose at least one canonical Party role.", true);
+      partyProfileCreateForm.elements.roles[0].focus();
+      return;
+    }
+    partyCreateAttemptKey = partyCreateAttemptKey || crypto.randomUUID();
+    clearPartyDuplicateReview();
+    void createPartyProfile();
+  });
+  partyCreateDistinctConfirm.addEventListener("change", () => {
+    partyCreateDistinct.disabled = !partyCreateDistinctConfirm.checked;
+  });
+  partyCreateDistinct.addEventListener("click", () => {
+    if (!partyCreateDistinctConfirm.checked || partyDuplicateIds.length === 0) return;
+    void createPartyProfile([...partyDuplicateIds]);
+  });
+  partyProfileClear.addEventListener("click", () => {
+    clearPartyProfileState();
+    partyProfileSearchForm.elements.query.focus();
+  });
+
   reservationBookingForm.addEventListener("submit", async (event) => {
     event.preventDefault();
     const searchGeneration = ++reservationBookingSearchGeneration;
@@ -3203,8 +3453,12 @@
         throw new Error("Choose a valid positive UTC stay period.");
       }
       const childAges = reservationBookingChildAges(String(fields.get("childAges") || ""));
+      const primaryPartyId = String(fields.get("primaryPartyId") || "");
+      if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(primaryPartyId)) {
+        throw new Error("Choose a server Party before searching offers.");
+      }
       reservationBookingDraft = {
-        primaryPartyId: String(fields.get("primaryPartyId") || ""),
+        primaryPartyId,
         adults: Number(fields.get("adults")),
         childAges,
         channelCode: String(fields.get("channelCode") || ""),
@@ -3381,6 +3635,7 @@
 
   propertySelect.addEventListener("change", () => {
     reservationBookingSearchGeneration += 1;
+    clearPartyProfileState();
     if (propertySelect.value) history.replaceState(null, "", `/p/${propertySelect.value}/${activeView}`);
     if (activeView === "inventory") void loadInventory();
     if (activeView === "availability") {

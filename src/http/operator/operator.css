@@ -407,6 +407,28 @@ input:hover, select:hover, textarea:hover { border-color: #8d978c; }
 .reservation-guest-row .remove-row { min-height: 44px; color: var(--red); }
 .reservation-share-total { padding: .8rem; border-radius: 13px; background: var(--amber-soft); color: var(--amber); font-size: .8rem; font-weight: 750; }
 .reservation-booking-panel, .reservation-segments-panel, .reservation-lifecycle-panel, .reservation-guests-panel { margin-top: 1rem; }
+.party-profile-panel { max-width: 980px; margin-bottom: 1rem; padding: 1rem; display: grid; gap: 1rem; }
+.party-profile-heading { display: flex; justify-content: space-between; align-items: start; gap: 1rem; }
+.party-profile-heading h4 { margin: 0 0 .35rem; }
+.party-profile-search-form { display: grid; grid-template-columns: minmax(240px, 1fr) auto; gap: .75rem; align-items: end; }
+.party-profile-search-form .form-message { grid-column: 1 / -1; margin: 0; }
+.party-profile-panel input, .party-profile-panel select, .party-profile-panel button, .party-profile-panel summary { min-height: 44px; }
+.party-profile-results, #party-duplicate-candidates { display: grid; gap: .7rem; margin-top: .8rem; }
+.party-profile-result { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: .8rem; align-items: center; padding: .85rem; border: 1px solid var(--line); border-radius: 13px; background: color-mix(in srgb, var(--paper) 64%, var(--card)); }
+.party-profile-result div { min-width: 0; display: grid; gap: .25rem; }
+.party-profile-result span, .party-profile-result small { color: var(--muted); overflow-wrap: anywhere; }
+.party-profile-create { margin-top: .8rem; padding-top: .8rem; border-top: 1px solid var(--line); }
+.party-profile-create summary { display: flex; align-items: center; cursor: pointer; color: var(--accent-strong); font-weight: 800; }
+.party-profile-create form { padding-top: 1rem; display: grid; gap: 1rem; }
+.party-profile-roles { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: .35rem .75rem; }
+.party-profile-roles label, .party-distinct-confirmation { min-height: 44px; display: flex; align-items: center; gap: .55rem; }
+.party-profile-roles input, .party-distinct-confirmation input { width: 20px; min-height: 20px; flex: none; }
+.party-profile-contacts { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .75rem; }
+.party-profile-contacts legend, .party-profile-contacts .field-note { grid-column: 1 / -1; }
+.party-duplicate-review { margin-top: 1rem; padding: 1rem; border: 1px solid color-mix(in srgb, var(--amber) 55%, var(--line)); border-radius: 14px; background: var(--amber-soft); }
+.party-duplicate-review h5 { margin: 0 0 .35rem; }
+.party-profile-selected { padding: 1rem; border-radius: 14px; background: color-mix(in srgb, var(--green) 10%, var(--card)); display: grid; gap: .25rem; }
+.party-profile-selected span, .party-profile-selected strong, .party-profile-selected small { overflow-wrap: anywhere; }
 .reservation-booking-form, .reservation-booking-commit { max-width: 980px; padding: 1rem; display: grid; gap: 1rem; }
 .reservation-booking-form input, .reservation-booking-form button, .reservation-booking-commit button { min-height: 44px; }
 .reservation-booking-options { max-width: 980px; display: grid; gap: .75rem; margin-top: 1rem; }
@@ -454,6 +476,9 @@ input:hover, select:hover, textarea:hover { border-color: #8d978c; }
   .offline-lease-form button, .offline-lease-form .form-message { grid-column: 1 / -1; }
   .status-summary-grid { grid-template-columns: 1fr; }
   .reservation-guest-row { grid-template-columns: 1fr 1fr; }
+  .party-profile-roles { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .party-profile-contacts { grid-template-columns: 1fr; }
+  .party-profile-contacts legend, .party-profile-contacts .field-note { grid-column: 1; }
   .reservation-field-grid { grid-template-columns: 1fr; }
   .builder-steps { grid-template-columns: 1fr; }
   .builder-steps li + li { border-left: 0; border-top: 1px solid var(--line); }
@@ -511,6 +536,9 @@ input:hover, select:hover, textarea:hover { border-color: #8d978c; }
   .release-row { grid-template-columns: 1fr; }
   .release-actions, .release-actions button { width: 100%; }
   .reservation-lookup, .reservation-summary, .reservation-guest-row { grid-template-columns: 1fr; }
+  .party-profile-search-form, .party-profile-result { grid-template-columns: 1fr; }
+  .party-profile-search-form .form-message { grid-column: 1; }
+  .party-profile-result button { width: 100%; }
   .reservation-lookup .form-message { grid-column: 1; }
   .reservation-guest-row .remove-row { width: 100%; }
 }

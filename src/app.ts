@@ -184,6 +184,12 @@ export function createApp(options: AppOptions = {}) {
       .post("/api/v1/reservations:commit", ({ request, body, tenantContext }) =>
         withOperatorTenant(request, (context) => operator.commitReservation(context, body))
       )
+      .post("/api/v1/properties/:property/parties:search", ({ request, params, body, tenantContext }) =>
+        withOperatorTenant(request, (context) => operator.partyProfiles(context, params.property, body))
+      )
+      .post("/api/v1/properties/:property/parties", ({ request, params, body, tenantContext }) =>
+        withOperatorTenant(request, (context) => operator.createPartyProfile(context, params.property, body))
+      )
       .get("/api/v1/properties/:property/reservation-guests", ({ request, params, tenantContext }) =>
         withOperatorTenant(request, (context) => operator.reservationGuests(context, params.property))
       )

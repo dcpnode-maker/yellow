@@ -276,6 +276,7 @@ databaseDescribe("Order 055 operator cart holds", () => {
         AND role.name='Local Availability Reviewer' ORDER BY permission.code
     `;
     expect(permissions.map(({ code }) => code)).toEqual([
+      "crm.parties:read", "crm.parties:write",
       "inventory.availability:read", "inventory.blocks:read", "inventory.blocks:write",
       "inventory.configuration:read", "inventory.configuration:write", "inventory.holds:read",
       "inventory.holds:write", "inventory.offline_leases:read", "inventory.offline_leases:write",

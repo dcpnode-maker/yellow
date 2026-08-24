@@ -1,5 +1,13 @@
 import { LocalLoginService, type LocalLoginInput } from "../contexts/identity";
 import {
+  PartyDuplicateReviewRequiredError,
+  PartyProfileService,
+  PartyProfileValidationError,
+  type PartyContactInput,
+  type PartyKind,
+  type PartyRole,
+} from "../contexts/crm";
+import {
   AvailabilityService,
   AvailabilityProjectionService,
   HoldConflictError,
@@ -114,6 +122,8 @@ const RESERVATION_LIFECYCLE_READ_SCOPE = "reservations.lifecycle:read";
 const RESERVATION_LIFECYCLE_WRITE_SCOPE = "reservations.lifecycle:write";
 const RESERVATION_SEGMENT_READ_SCOPE = "reservations.segments:read";
 const RESERVATION_SEGMENT_WRITE_SCOPE = "reservations.segments:write";
+const PARTY_READ_SCOPE = "crm.parties:read";
+const PARTY_WRITE_SCOPE = "crm.parties:write";
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 const ISO_INSTANT = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})(?::(\d{2})(?:\.(\d{1,3}))?)?(Z|([+-])(\d{2}):(\d{2}))$/;
 const LOCAL_DATE = /^(\d{4})-(\d{2})-(\d{2})$/;
@@ -150,9 +160,16 @@ function apiResponse(
   });
 }
 
-function apiError(request: Request, status: number, type: string, title: string, detail: string): Response {
+function apiError(
+  request: Request,
+  status: number,
+  type: string,
+  title: string,
+  detail: string,
+  evidence: Readonly<Record<string, unknown>> = {},
+): Response {
   const correlation = correlationId(request);
-  return Response.json({ type, title, status, detail, correlation_id: correlation }, {
+  return Response.json({ type, title, status, detail, ...evidence, correlation_id: correlation }, {
     status,
     headers: { "cache-control": "no-store", "x-correlation-id": correlation },
   });
@@ -417,6 +434,66 @@ function confirmationQuery(request: Request): string | null {
     : null;
 }
 
+function parsePartySearch(body: unknown): { query: string; limit?: number } | null {
+  if (!isObject(body) || !exactKeys(body, ["query"], ["limit"]) ||
+      typeof body.query !== "string" ||
+      (body.limit !== undefined &&
+        (typeof body.limit !== "number" || !Number.isSafeInteger(body.limit) || body.limit < 1 || body.limit > 50))) {
+    return null;
+  }
+  return Object.freeze({ query: body.query, ...(body.limit === undefined ? {} : { limit: body.limit }) });
+}
+
+const PARTY_KINDS: readonly PartyKind[] = ["person", "org"];
+const PARTY_ROLES: readonly PartyRole[] = [
+  "guest", "company", "agent", "source", "vendor", "owner", "staff", "contact",
+];
+const PARTY_CONTACT_KINDS = ["email", "phone", "whatsapp"] as const;
+
+interface PartyCreateDraft {
+  readonly kind: PartyKind;
+  readonly displayName: string;
+  readonly legalName?: string | null;
+  readonly roles: readonly PartyRole[];
+  readonly contacts: readonly PartyContactInput[];
+  readonly acknowledgedDuplicatePartyIds: readonly string[];
+}
+
+function parsePartyCreate(body: unknown): PartyCreateDraft | null {
+  if (!isObject(body) || !exactKeys(body, [
+    "kind", "displayName", "roles", "contacts", "acknowledgedDuplicatePartyIds",
+  ], ["legalName"]) ||
+      typeof body.kind !== "string" || !PARTY_KINDS.includes(body.kind as PartyKind) ||
+      typeof body.displayName !== "string" ||
+      (body.legalName !== undefined && body.legalName !== null && typeof body.legalName !== "string") ||
+      !Array.isArray(body.roles) || body.roles.length < 1 || body.roles.length > PARTY_ROLES.length ||
+      body.roles.some((role) => typeof role !== "string" || !PARTY_ROLES.includes(role as PartyRole)) ||
+      !Array.isArray(body.contacts) || body.contacts.length > 6 ||
+      !Array.isArray(body.acknowledgedDuplicatePartyIds) || body.acknowledgedDuplicatePartyIds.length > 50 ||
+      body.acknowledgedDuplicatePartyIds.some((id) => typeof id !== "string" || !UUID.test(id))) return null;
+  const contacts: PartyContactInput[] = [];
+  for (const contact of body.contacts) {
+    if (!isObject(contact) || !exactKeys(contact, ["kind", "value"], ["isPrimary"]) ||
+        typeof contact.kind !== "string" ||
+        !PARTY_CONTACT_KINDS.includes(contact.kind as typeof PARTY_CONTACT_KINDS[number]) ||
+        typeof contact.value !== "string" ||
+        (contact.isPrimary !== undefined && typeof contact.isPrimary !== "boolean")) return null;
+    contacts.push(Object.freeze({
+      kind: contact.kind as typeof PARTY_CONTACT_KINDS[number],
+      value: contact.value,
+      ...(contact.isPrimary === undefined ? {} : { isPrimary: contact.isPrimary }),
+    }));
+  }
+  return Object.freeze({
+    kind: body.kind as PartyKind,
+    displayName: body.displayName,
+    ...(body.legalName === undefined ? {} : { legalName: body.legalName as string | null }),
+    roles: Object.freeze([...(body.roles as PartyRole[])]),
+    contacts: Object.freeze(contacts),
+    acknowledgedDuplicatePartyIds: Object.freeze([...(body.acknowledgedDuplicatePartyIds as string[])]),
+  });
+}
+
 const RESERVATION_MUTABLE_FIELDS = Object.freeze([
   "notes", "eta", "etd", "marketCode", "sourceCode", "originCode",
 ] as const);
@@ -677,6 +754,7 @@ type ReservationOfferOperations = Pick<ReservationOfferSearchService, "search">;
 type ReservationGuestOperations = Pick<ReservationGuestService, "findByConfirmation" | "replace">;
 type ReservationLifecycleOperations = Pick<ReservationLifecycleService, "findByConfirmation" | "modify" | "cancel" | "reinstate">;
 type ReservationSegmentOperations = Pick<ReservationSegmentService, "findByConfirmation" | "changeDeparture" | "moveRoom">;
+type PartyOperations = Pick<PartyProfileService, "search" | "create">;
 
 const MAX_MONEY = 9_223_372_036_854_775_807n;
 
@@ -1056,6 +1134,7 @@ export class OperatorHttpApi {
   readonly #reservationGuests?: ReservationGuestOperations;
   readonly #reservationLifecycle?: ReservationLifecycleOperations;
   readonly #reservationSegments?: ReservationSegmentOperations;
+  readonly #parties?: PartyOperations;
 
   constructor(
     login: LocalLoginService,
@@ -1076,6 +1155,7 @@ export class OperatorHttpApi {
     reservationGuests?: ReservationGuestOperations,
     reservationLifecycle?: ReservationLifecycleOperations,
     reservationSegments?: ReservationSegmentOperations,
+    parties?: PartyOperations,
   ) {
     this.#login = login;
     this.#availability = availability;
@@ -1095,6 +1175,7 @@ export class OperatorHttpApi {
     this.#reservationGuests = reservationGuests;
     this.#reservationLifecycle = reservationLifecycle;
     this.#reservationSegments = reservationSegments;
+    this.#parties = parties;
   }
 
   unavailable(request: Request): Response {
@@ -1106,6 +1187,11 @@ export class OperatorHttpApi {
   }
 
   failure(request: Request, error: unknown): Response {
+    if (error instanceof PartyDuplicateReviewRequiredError) {
+      return apiError(request, 409, "profiles/duplicate_review_required", "Duplicate review required",
+        "Review every current possible duplicate before creating a distinct Party",
+        { candidates: jsonValue(error.candidates) });
+    }
     if (error instanceof ReservationApprovalRequiredError) {
       return apiError(request, 409, "reservations/approval_required", "Approval required", "Cancellation requires an approved supervisor waiver");
     }
@@ -1129,6 +1215,9 @@ export class OperatorHttpApi {
     }
     if (error instanceof IdempotencyValidationError || error instanceof InventoryValidationError) {
       return apiError(request, 400, "request/invalid", "Invalid request", "Inventory input is invalid");
+    }
+    if (error instanceof PartyProfileValidationError) {
+      return apiError(request, 400, "request/invalid", "Invalid request", "Party profile input is invalid");
     }
     if (error instanceof ReservationValidationError || error instanceof ReservationOfferValidationError ||
         error instanceof ReservationGuestValidationError || error instanceof ReservationLifecycleValidationError) {
@@ -1592,6 +1681,68 @@ export class OperatorHttpApi {
     const { replayed, ...reservation } = result;
     return apiResponse(context.request, canonicalJson({ reservation: jsonValue(reservation) }), 201, {
       "idempotency-replayed": String(replayed),
+      "x-correlation-id": requestId,
+    });
+  }
+
+  async partyProfiles(context: TenantRequestContext, propertyNode: string, body: unknown): Promise<Response> {
+    if (!UUID.test(propertyNode)) {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Property identifier is invalid");
+    }
+    const input = parsePartySearch(body);
+    if (!input) {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Party search query is invalid");
+    }
+    if (!hasScope(context, PARTY_READ_SCOPE)) {
+      return apiError(context.request, 403, "auth/scope_missing", "Forbidden", "Party profile access is not granted");
+    }
+    if (!this.#parties) return this.unavailable(context.request);
+    const grants = await listGrantedProperties(context, PARTY_READ_SCOPE);
+    if (!grants.some(({ id }) => id === propertyNode)) {
+      return apiError(context.request, 403, "auth/property_forbidden", "Forbidden", "Property access is not granted");
+    }
+    const profiles = await this.#parties.search(context.tx, {
+      tenantId: context.tenantId,
+      query: input.query,
+      ...(input.limit === undefined ? {} : { limit: input.limit }),
+    });
+    return apiResponse(context.request, canonicalJson({ profiles: jsonValue(profiles) }));
+  }
+
+  async createPartyProfile(
+    context: TenantRequestContext,
+    propertyNode: string,
+    body: unknown,
+  ): Promise<Response> {
+    if (!UUID.test(propertyNode)) {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Property identifier is invalid");
+    }
+    const input = parsePartyCreate(body);
+    if (!input) {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Party profile input is invalid");
+    }
+    if (!hasScope(context, PARTY_WRITE_SCOPE)) {
+      return apiError(context.request, 403, "auth/scope_missing", "Forbidden", "Party profile creation is not granted");
+    }
+    if (!this.#parties) return this.unavailable(context.request);
+    const grants = await listGrantedProperties(context, PARTY_WRITE_SCOPE);
+    if (!grants.some(({ id }) => id === propertyNode)) {
+      return apiError(context.request, 403, "auth/property_forbidden", "Forbidden", "Property access is not granted");
+    }
+    const requestId = correlationId(context.request);
+    const outcome = await this.#parties.create(context.tx, {
+      ...input,
+      idempotencyKey: context.request.headers.get("idempotency-key") ?? "",
+      envelope: createAuditEnvelope({
+        actorId: context.identity.actorId,
+        tenantId: context.tenantId,
+        propertyNode,
+        requestId,
+        operation: "party.created",
+      }),
+    });
+    return apiResponse(context.request, canonicalJson({ party: jsonValue(outcome.party) }), 201, {
+      "idempotency-replayed": String(outcome.replayed),
       "x-correlation-id": requestId,
     });
   }

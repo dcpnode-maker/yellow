@@ -31,7 +31,8 @@ client store or alternate booking command is needed.
   `src/http/operator/operator.css`
 - `scripts/seed-review.ts`
 - `tests/operator-party-profiles.integration.test.ts`,
-  `tests/operator-assets-security.test.ts`, `tests/operator-holds.integration.test.ts`
+  `tests/operator-assets-security.test.ts`, `tests/operator-holds.integration.test.ts`,
+  `tests/review-seed.integration.test.ts`
 - `docs/CONTRACTS.md`, `docs/research/CAPABILITY-MATRIX.md`
 - `src/project-status.ts`, `tests/founder-status.integration.test.ts` only after green
 - this order, `handoff/PHASE-4-PLAN.md`, `handoff/LEDGER.md`, `DECISIONS.log`,
@@ -39,15 +40,15 @@ client store or alternate booking command is needed.
 
 ## Required work
 
-1. Add exact `profiles.parties:read` and `profiles.parties:write` permissions to the
+1. Add exact `crm.parties:read` and `crm.parties:write` permissions to the
    deterministic local-review role and its exact-role proof. They authorize Party data,
    not reservation, merge, verification, consent, payment or identity-document behavior.
 2. Compose the approved `PartyProfileService` in the production root. Add
-   `GET /api/v1/properties/{property}/parties?query=…&limit=…` and `POST` on the same
+   `POST /api/v1/properties/{property}/parties:search` and `POST` on the Party
    collection. Both require an authenticated actor, the matching scope and an exact
    property grant before the tenant-wide Party operation; tenant comes only from the
-   transaction. Search accepts only `query` plus optional integer limit and returns the
-   Order 101 profile shape with masked contacts.
+   transaction. Search accepts an exact body with `query` plus optional integer limit,
+   keeps PII out of URLs/history, and returns the Order 101 profile shape with masked contacts.
 3. POST accepts only Order 101's kind, normalized names, bounded explicit roles/contacts
    and sorted acknowledged duplicate ids. The idempotency key comes only from the header;
    actor, tenant, property, request id and `party.created` operation are server-derived.
@@ -95,9 +96,9 @@ has no `party-profile-search-form`, result list or create/duplicate-review contr
 ### P1 — strict search adapter
 
 Fresh PostgreSQL proves authorized UUID/name/email/phone search, deterministic limit and
-masked serialization through real HTTP. Missing/wrong read scope, malformed/extra query,
+masked serialization through real HTTP. Missing/wrong read scope, malformed/extra body,
 foreign property and tenant B fail without leaking Party existence. Search writes no fact,
-event or idempotency row.
+event or idempotency row, and no search PII appears in the request URL.
 
 ### P2 — create, duplicate review and replay
 

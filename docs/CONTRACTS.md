@@ -89,8 +89,18 @@ Implemented domain slice: `PartyProfileService.search` performs tenant-bound, bo
 active-Party lookup by UUID, display name, or canonical contact and returns masked
 contact hints. `PartyProfileService.create` normalizes Party roles/contacts, requires
 exact server-recomputed duplicate acknowledgement, and atomically records non-PII
-fact/event/idempotency evidence. HTTP/operator composition, merge/anonymisation,
-addresses, identity documents, consent/preferences and profile editing remain planned.
+fact/event/idempotency evidence.
+
+Implemented operator adapter: `POST /api/v1/properties/{property}/parties:search`
+accepts exactly `{query, limit?}` in the body so identity search terms do not enter URLs;
+`POST /api/v1/properties/{property}/parties` accepts the bounded canonical create shape
+and header-only idempotency key. The routes require distinct `crm.parties:read/write`
+scopes plus an exact grant for the selected property, while tenant and actor come only
+from the authenticated transaction. Duplicate review is `409
+profiles/duplicate_review_required` with masked candidates; exact acknowledgement is
+recomputed by the domain. The operator workbench deliberately selects one returned
+server Party id before the existing booking journey. Merge/anonymisation, addresses,
+identity documents, consent/preferences and profile editing remain planned.
 **distribution**: channels connect · maps CRUD · inbound replay {id} · push status/cursors
 **compliance**: documents issue/get/render · fiscal submit/status · statutory list_due/submit ·
 erasure request/execute

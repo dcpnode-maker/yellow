@@ -252,3 +252,127 @@ test("Order 099 P1/P4: booking journey renders server truth without browser prom
   expect(script).not.toMatch(/innerHTML|outerHTML|insertAdjacentHTML|localStorage|sessionStorage|document\.cookie/);
   expect(script).not.toMatch(BROWSER_SQL_SYNTAX);
 });
+
+test("Order 102 P4: Party journey is accessible, explicit and retains no browser identity authority", async () => {
+  const html = await Bun.file(new URL("../src/http/operator/index.html", import.meta.url)).text();
+  const css = await Bun.file(new URL("../src/http/operator/operator.css", import.meta.url)).text();
+  const script = await Bun.file(new URL("../src/http/operator/operator.js", import.meta.url)).text();
+
+  expect(html).toContain('id="party-profile-search-form"');
+  expect(html).toContain('id="party-profile-results" role="region" aria-label="Party search results" aria-live="polite"');
+  expect(html).toContain('id="party-profile-create-form"');
+  expect(html).toContain('id="party-duplicate-review" hidden aria-labelledby="party-duplicate-title" tabindex="-1"');
+  expect(html).toContain('id="party-duplicate-message" role="status" aria-live="assertive"');
+  expect(html).toContain('id="party-create-distinct-confirm" type="checkbox"');
+  expect(html).toContain('id="party-create-distinct" type="button" disabled');
+  expect(html).toContain('name="primaryPartyId" required readonly');
+  expect(html).toContain("Search terms are sent in the request body and are not saved in this browser.");
+  expect(html).toContain("Choose an existing masked candidate, or acknowledge every candidate");
+  expect(html).toContain("editing, merge, anonymisation, guest 360, consent and verification remain later workflows");
+  expect(html).not.toMatch(/name="(?:dateOfBirth|nationality|document|consent|verified|payment|pan|cvv)"/i);
+
+  expect(css).toContain(".party-profile-panel input, .party-profile-panel select, .party-profile-panel button, .party-profile-panel summary { min-height: 44px; }");
+  expect(css).toContain(".party-distinct-confirmation");
+  expect(css).toContain("prefers-reduced-motion: reduce");
+
+  expect(script).toContain('method: "POST", body: JSON.stringify({ query, limit: 20 })');
+  expect(script).toContain("use.textContent = \"Use for reservation\"");
+  expect(script).toContain("partyDuplicateIds = candidates.map(({ partyId }) => partyId).sort()");
+  expect(script).toContain("if (!partyCreateDistinctConfirm.checked || partyDuplicateIds.length === 0) return");
+  expect(script).toContain("void createPartyProfile([...partyDuplicateIds])");
+  expect(script).toContain("partyCreateAttemptKey = partyCreateAttemptKey || crypto.randomUUID()");
+  expect(script).toContain("reservationBookingForm.elements.primaryPartyId.value = partyId");
+  expect(script).not.toMatch(/localStorage|sessionStorage|document\.cookie|indexedDB|sendBeacon|CacheStorage|caches\.(?:open|put|match)/);
+  expect(script).not.toMatch(/innerHTML|outerHTML|insertAdjacentHTML/);
+  expect(script).not.toMatch(BROWSER_SQL_SYNTAX);
+  const partySurface = script.slice(
+    script.indexOf("  function partyContactSummary(contacts) {"),
+    script.indexOf("  function clearReservationBookingSelection() {"),
+  );
+  expect(partySurface).not.toMatch(/(?:party|contact|duplicate)[A-Za-z]*\.(?:dataset|setAttribute\(\s*["']data-)/i);
+  expect(script).not.toMatch(/acknowledgedDuplicatePartyIds\s*:\s*(?:candidates|partyDuplicateIds)/);
+});
+
+test("Order 102 independent extracted canary: only a selected server Party id fills booking and resets pending evidence", async () => {
+  const script = await Bun.file(new URL("../src/http/operator/operator.js", import.meta.url)).text();
+  const start = script.indexOf("  function selectPartyProfile(profile, masked = false) {");
+  const end = script.indexOf("  function partyProfileCard(profile, masked = false) {", start);
+  expect(start).toBeGreaterThanOrEqual(0);
+  expect(end).toBeGreaterThan(start);
+  const source = script.slice(start, end);
+
+  const primaryPartyId = { value: "caller-owned-before" };
+  const strong = { textContent: "" };
+  const small = { textContent: "" };
+  let selectedFocus = 0;
+  let duplicateClears = 0;
+  let bookingClears = 0;
+  const selected = {
+    hidden: true,
+    querySelector(selector: string) { return selector === "strong" ? strong : small; },
+    focus() { selectedFocus += 1; },
+  };
+  const form = { reset() {} };
+  const list = { replaceChildren() {} };
+  const picker = { hidden: false };
+  const clear = { hidden: true };
+
+  const factory = Function(
+    "reservationBookingForm", "partyProfileSelected", "partyProfileSearchForm", "partyProfileCreateForm",
+    "partyProfileResults", "clearPartyDuplicateReview", "partyProfilePicker", "partyProfileClear",
+    "reservationBookingOptions", "clearReservationBookingSelection", "partyContactSummary",
+    "partyProfileGeneration", "partyCreateAttemptKey", "partyCreateDraft", "reservationBookingSearchGeneration",
+    "reservationBookingOffers", "reservationBookingDraft",
+    `${source}\nreturn selectPartyProfile;`,
+  ) as (...args: unknown[]) => (profile: Record<string, unknown>, masked?: boolean) => void;
+  const select = factory(
+    { elements: { primaryPartyId } }, selected, form, form, list,
+    () => { duplicateClears += 1; }, picker, clear, list,
+    () => { bookingClears += 1; },
+    (contacts: Array<{ kind: string; hint: string }>) => contacts.map(({ kind, hint }) => `${kind}: ${hint}`).join(" · "),
+    0, "pending-key", { raw: "pending" }, 0, [{ stale: true }], { stale: true },
+  );
+
+  const serverPartyId = "00000000-0000-0000-0000-000000010299";
+  select({
+    partyId: serverPartyId,
+    displayName: "Server Party",
+    roles: ["guest"],
+    contacts: [{ kind: "email", hint: "s•••@example.test" }],
+  });
+  expect(primaryPartyId.value).toBe(serverPartyId);
+  expect(strong.textContent).toContain(serverPartyId);
+  expect(small.textContent).toContain("s•••@example.test");
+  expect(picker.hidden).toBeTrue();
+  expect(selected.hidden).toBeFalse();
+  expect(clear.hidden).toBeFalse();
+  expect(selectedFocus).toBe(1);
+  expect(duplicateClears).toBe(1);
+  expect(bookingClears).toBe(1);
+});
+
+test("Order 102 independent canary: property/sign-out clearing and both late-response guards are permanent", async () => {
+  const script = await Bun.file(new URL("../src/http/operator/operator.js", import.meta.url)).text();
+  const searchStart = script.indexOf("  async function searchPartyProfiles() {");
+  const createStart = script.indexOf("  async function createPartyProfile(", searchStart);
+  const nextAfterCreate = script.indexOf("  function clearReservationBookingSelection() {", createStart);
+  const searchBody = script.slice(searchStart, createStart);
+  const createBody = script.slice(createStart, nextAfterCreate);
+  expect(searchBody).toContain("const generation = ++partyProfileGeneration");
+  expect(searchBody.match(/generation !== partyProfileGeneration \|\| property !== propertySelect\.value/g)).toHaveLength(2);
+  expect(createBody).toContain("const generation = ++partyProfileGeneration");
+  expect(createBody.match(/generation !== partyProfileGeneration \|\| property !== propertySelect\.value/g)).toHaveLength(2);
+
+  const propertyChange = script.slice(
+    script.indexOf('propertySelect.addEventListener("change"'),
+    script.indexOf("  for (const tab of navigation)", script.indexOf('propertySelect.addEventListener("change"')),
+  );
+  const showLogin = script.slice(script.indexOf("  function showLogin() {"), script.indexOf("  function showWorkbench() {"));
+  expect(propertyChange).toContain("clearPartyProfileState()");
+  expect(showLogin).toContain("clearPartyProfileState()");
+  expect(showLogin).toContain('accessToken = ""');
+  const clearProfile = script.slice(script.indexOf("  function clearPartyProfileState() {"), script.indexOf("  function selectPartyProfile"));
+  const clearDuplicates = script.slice(script.indexOf("  function clearPartyDuplicateReview() {"), script.indexOf("  function clearPartyProfileState() {"));
+  expect(clearProfile).toMatch(/partyCreateAttemptKey = ""[\s\S]*partyCreateDraft = null[\s\S]*clearPartyDuplicateReview\(\)[\s\S]*primaryPartyId\.value = ""/);
+  expect(clearDuplicates).toContain("partyDuplicateIds = []");
+});
