@@ -255,6 +255,12 @@ databaseDescribe("Order 141 fresh-PostgreSQL reservation detail proof", () => {
     await expect(find()).rejects.toBeInstanceOf(ReservationDetailConflictError);
     await admin!`UPDATE reservation_segment SET children='[{"age":6},{"age":12}]'::jsonb WHERE id=${SEGMENT_A1}::uuid`;
 
+    await admin!`UPDATE reservation_segment
+      SET period=tstzrange(NULL,'2026-08-27T06:30:00Z','()') WHERE id=${SEGMENT_A1}::uuid`;
+    await expect(find()).rejects.toBeInstanceOf(ReservationDetailConflictError);
+    await admin!`UPDATE reservation_segment
+      SET period=tstzrange('2026-08-25T06:30:00Z','2026-08-27T06:30:00Z','[)') WHERE id=${SEGMENT_A1}::uuid`;
+
     const tenantBVisible = await database!.withTenantTransaction(TENANT_B, async (tx) => ({
       parties: (await tx<Array<{ n: number }>>`SELECT count(*)::int n FROM party WHERE tenant_id=${TENANT_A}::uuid`)[0]!.n,
       folios: (await tx<Array<{ n: number }>>`SELECT count(*)::int n FROM folio WHERE tenant_id=${TENANT_A}::uuid`)[0]!.n,

@@ -249,6 +249,14 @@ function requireStoredInstant(name: string, value: string | null): string | null
   return value;
 }
 
+function requireStoredRequiredInstant(name: string, value: string | null): string {
+  const instant = requireStoredInstant(name, value);
+  if (instant === null) {
+    throw new ReservationDetailConflictError(`Stored ${name} is missing`);
+  }
+  return instant;
+}
+
 function freezeJson(value: JsonValue): JsonValue {
   if (Array.isArray(value)) {
     return Object.freeze(value.map((item) => freezeJson(item)));
@@ -444,8 +452,8 @@ export class ReservationDetailService {
         sequence: segment.seq,
         unitTypeId: requireStoredUuid("segment unit type id", segment.unit_type_id)!,
         sellableUnitId: requireStoredUuid("segment sellable unit id", segment.sellable_unit_id),
-        from: requireStoredInstant("segment start", segment.from_at)!,
-        to: requireStoredInstant("segment end", segment.to_at)!,
+        from: requireStoredRequiredInstant("segment start", segment.from_at),
+        to: requireStoredRequiredInstant("segment end", segment.to_at),
         adults: segment.adults,
         childAges: childAges(segment.children),
         ratePlanId: requireStoredUuid("segment rate plan id", segment.rate_plan_id)!,
