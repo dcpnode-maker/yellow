@@ -1,10 +1,10 @@
-# Pre-rebase independent review evidence — Order 112 operator idempotency actor binding
+# Independent review — Order 112 operator idempotency actor binding
 
-**Result:** RE-EXECUTION REQUIRED AT THE REBASED TIP
+**Result:** APPROVED
 
-**Reviewed tip:** `f4bb729`
+**Reviewed tip:** `1ee0928b721c138a3e8269b6caf97e7669330396`
 
-**Implementation base:** `c32b7d7`
+**Implementation base:** `a587a23`
 
 **Rebased implementation commit:** `b2c8465`
 
@@ -54,9 +54,26 @@ Protected SHA-256 values remain exact:
   `3228279bd99a8f9b6af99748f31d4d4b482a8e627e16d92644d9d859ad8befa1`.
 
 The reviewer removed its two containers, network and volume. The repository was clean
-before and after review. This proves the original Order-112 runtime delta at `f4bb729`,
-before concurrent Order 103 added migration 0009 and the security work was rebased.
-It therefore does **not** approve the rebased tip: a non-implementing reviewer must
-repeat P1–P4 and the app-never-started referee against the exact current base. It also
-does not approve any later security finding, deployment change, authorization
-expansion or merge.
+before and after review. That first execution remains pre-rebase evidence only.
+
+Exact-tip approval is completed by two independent executions at `1ee0928`:
+
+- reviewer-triggered GitHub database job `97330755653` checked out the exact SHA and
+  passed the real two-actor operator proof at 7/7 with 57 assertions, all isolated
+  Phase-3 suites, migration/seed/deployment/schema/referee gates and cleanup; its
+  required quality job also passed;
+- a second non-implementing reviewer ran canonical `.\setup.ps1 -DbOnly` from a clean
+  exact-tip checkout through a Windows-to-WSL Docker bridge on unique project
+  `yellow-order112-token-review`. Fresh migrations 0001–0009 produced exactly 84 public
+  tables and the referee reported **11 passed, 0 failed of 11**. Compose contained only
+  PostgreSQL and Valkey, so the app was never created or started. Protected hashes and
+  HEAD remained exact, and the reviewer removed only that disposable project.
+
+Approval is exclusive to Order 112's direct operator actor-bound idempotency repair and
+the seven stale exact-role proof literals named by Questions 137–138. It does not
+approve any later security finding, deployment change, authorization expansion or
+merge.
+
+## Exclusive Order 112 discharge
+
+- 112
