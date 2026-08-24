@@ -6,7 +6,7 @@
 **Risk tier:** 1 — migration-free, read-only context query  
 **Owner:** Codex builder; stop at builder-green/unintegrated  
 **Date:** 2026-08-25  
-**Status:** ORDER WRITTEN · P0 NOT YET RECORDED
+**Status:** BUILT · UNREVIEWED · UNINTEGRATED
 
 ## Outcome
 
@@ -107,3 +107,26 @@ Revert the Order 141 commits. No schema, runtime wiring or persisted data change
 Exact base SHA, executable SHA, file list, focused test command/result, standing gate
 commands/results, protected-surface confirmation and any inherited precondition or risk.
 
+## BUILT — UNREVIEWED
+
+- Base: `952478d17bcebd67e696d5cb76eec37e89cabcf3`.
+- Intentional-red registration: `55f5fbd0b6cb1e223ddd34242c972f3874b7a0c1`;
+  the public export was absent before implementation.
+- Exact executable: `b8d50a0166299964ad3acf1c7a78e4a982ca0474`.
+- Product/test files: `src/contexts/reservations/detail.ts`, the reservations public
+  index, and the focused integration proof only. No schema, migration, permission,
+  route, runtime, UI, dependency, protected referee or financial mutation changed.
+- Fresh PostgreSQL focused proof:
+  `YELLOW_REQUIRE_RESERVATION_DETAIL=1 YELLOW_RESERVATION_DETAIL_URL=... bun test
+  tests/reservation-detail.integration.test.ts` → 5 passed, 0 failed, 37 assertions.
+- Standing gate: frozen install unchanged; typecheck green; 64-file import boundary
+  gate green; `bun test` 150 passed, 397 skipped, 0 failed, 1,832 assertions; licence
+  policy passed for 23 installed packages; audit found no vulnerabilities; schema
+  matches `tests/schema/expected.sql`; fresh Windows DB-only setup applied all eleven
+  migrations to 85 tables and the protected referee passed 11/11.
+- The Unix wrapper stopped before assertions because Git Bash did not expose the
+  installed Bun executable; the repository-equivalent PowerShell setup ran the full
+  fresh-database proof. No assertion was weakened or called green from the stopped run.
+
+Builder work stops here. Independent review, merge, push, deployment, HTTP/UI wiring
+and full-UAT completion are not claimed.
