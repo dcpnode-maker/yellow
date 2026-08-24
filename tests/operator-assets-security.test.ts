@@ -198,8 +198,33 @@ test("Order 098 P0/P4: segment history and commands expose no browser occupancy 
   expect(script).toContain("latest?.actions.canChangeDeparture");
   expect(script).toContain("latest?.actions.canMoveRoom");
   expect(script).toContain("departure.toISOString()");
-  expect(script).toContain("localInstantInputValue(new Date(latest.period.to))");
+  expect(script).toContain("utcInstantInputValue(latest.period.to)");
+  expect(script).toContain('new Date(`${value}Z`)');
+  expect(script).not.toContain("new Date(value)");
   expect(script).toContain("reservationSegmentEditor.focus()");
   expect(script).not.toMatch(/innerHTML|outerHTML|insertAdjacentHTML|localStorage|sessionStorage|document\.cookie/);
   expect(script).not.toMatch(BROWSER_SQL_SYNTAX);
+});
+
+test("Order 098 correction: loaded departure round-trips through a DST fold", async () => {
+  const script = await Bun.file(new URL("../src/http/operator/operator.js", import.meta.url)).text();
+  const start = script.indexOf("  function utcInstantInputValue(instant) {");
+  const end = script.indexOf("  function initializeDates() {", start);
+  expect(start).toBeGreaterThanOrEqual(0);
+  expect(end).toBeGreaterThan(start);
+  const helper = script.slice(start, end);
+  const execute = Function(`${helper}\nreturn { utcInstantInputValue };`) as () => {
+    utcInstantInputValue(instant: string): string;
+  };
+  const priorTimezone = process.env.TZ;
+  process.env.TZ = "America/New_York";
+  try {
+    const serverInstant = "2025-11-02T06:30:00.789Z";
+    const fieldValue = execute().utcInstantInputValue(serverInstant);
+    expect(fieldValue).toBe("2025-11-02T06:30:00.789");
+    expect(new Date(`${fieldValue}Z`).toISOString()).toBe(serverInstant);
+  } finally {
+    if (priorTimezone === undefined) delete process.env.TZ;
+    else process.env.TZ = priorTimezone;
+  }
 });

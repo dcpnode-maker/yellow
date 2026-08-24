@@ -125,7 +125,7 @@ same key succeeds after the publisher is restored.
 Missing/invalid auth, scope, property grant, foreign tenant, malformed/duplicate query,
 path/body/key and forbidden fields return stable generic errors without artifacts.
 Static/runtime browser canaries prove labelled history/departure/move controls,
-latest/server-derived conditional actions, offset conversion, 44px targets, focus/live
+   latest/server-derived conditional actions, timezone-independent UTC conversion, 44px targets, focus/live
 status, safe hostile text and no browser persistence or mutation authority.
 
 ### P5 — standing and independent gate
@@ -147,8 +147,8 @@ P1–P4 against fresh PostgreSQL and approves.
 - [x] Scope is exact; user-owned untracked material remains untouched.
 
 Builder evidence: focused adapter passed 3/3 with 15 assertions; the approved real
-Order 086 domain battery passed 6/6 with 108 assertions; operator assets passed 8/8
-with 106 assertions; standing passed 125/0 with 1,607 assertions; typecheck and 59-file
+Order 086 domain battery passed 6/6 with 108 assertions; operator assets passed 9/9
+with 112 assertions; standing passed 126/0 with 1,615 assertions; typecheck and 59-file
 boundaries passed; fresh review seed passed 11/11; deployment passed 4/4; schema and
 protected hashes were exact; licences and dependency audit were clean; pristine
 app-never-started referee passed 11/11. This is not independent approval.

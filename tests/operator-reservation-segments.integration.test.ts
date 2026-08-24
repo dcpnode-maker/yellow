@@ -57,7 +57,6 @@ async function cleanup() {
   await admin`DELETE FROM user_role WHERE tenant_id=${T}::uuid`; await admin`DELETE FROM role_permission WHERE role_id IN (${R}::uuid,${RR}::uuid)`;
   await admin`DELETE FROM role WHERE id IN (${R}::uuid,${RR}::uuid)`; await admin`DELETE FROM app_user WHERE id IN (${U}::uuid,${UR}::uuid)`;
   await admin`DELETE FROM org_node WHERE id IN (${P}::uuid,${P2}::uuid)`; await admin`DELETE FROM tenant WHERE id=${T}::uuid`;
-  await admin`DELETE FROM permission WHERE code IN ('reservations.segments:read','reservations.segments:write')`;
 }
 
 beforeAll(async () => {
@@ -71,7 +70,8 @@ beforeAll(async () => {
     undefined, undefined, undefined, undefined, mock,
   ) });
   await cleanup(); const auth = JSON.stringify(await hashLocalPassword("order098-correct-password"));
-  await admin`INSERT INTO permission(code,description) VALUES ('reservations.segments:read','read'),('reservations.segments:write','write')`;
+  await admin`INSERT INTO permission(code,description) VALUES ('reservations.segments:read','read'),('reservations.segments:write','write')
+    ON CONFLICT (code) DO NOTHING`;
   await admin`INSERT INTO tenant(id,slug,name,tier,status) VALUES (${T}::uuid,'order098','Order 098','shared','active')`;
   await admin`INSERT INTO org_node(id,tenant_id,path,kind,name,timezone,currency) VALUES
     (${P}::uuid,${T}::uuid,'order098.one','property','One','UTC','USD'),(${P2}::uuid,${T}::uuid,'order098.two','property','Two','UTC','USD')`;

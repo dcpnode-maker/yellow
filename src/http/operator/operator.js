@@ -282,9 +282,10 @@
     return new Date(date.getTime() - offset).toISOString().slice(0, 16);
   }
 
-  function localInstantInputValue(date) {
-    const offset = date.getTimezoneOffset() * 60_000;
-    return new Date(date.getTime() - offset).toISOString().slice(0, 23);
+  function utcInstantInputValue(instant) {
+    const date = new Date(instant);
+    if (!Number.isFinite(date.getTime())) throw new Error("Server returned an invalid segment instant.");
+    return date.toISOString().slice(0, 23);
   }
 
   function initializeDates() {
@@ -2311,7 +2312,7 @@
     reservationDepartureForm.hidden = !latest?.actions.canChangeDeparture;
     reservationRoomMoveForm.hidden = !latest?.actions.canMoveRoom;
     if (latest?.actions.canChangeDeparture) {
-      reservationDepartureForm.elements.newDeparture.value = localInstantInputValue(new Date(latest.period.to));
+      reservationDepartureForm.elements.newDeparture.value = utcInstantInputValue(latest.period.to);
     }
     if (latest?.actions.canMoveRoom) {
       const select = reservationRoomMoveForm.elements.destinationSellableUnitId;
@@ -3019,7 +3020,7 @@
     const latest = reservationSegmentData?.segments.at(-1);
     if (!latest) return;
     const value = reservationDepartureForm.elements.newDeparture.value;
-    const departure = new Date(value);
+    const departure = new Date(`${value}Z`);
     if (!value || !Number.isFinite(departure.getTime())) {
       segmentCommandMessage.textContent = "Choose a valid departure date and time.";
       segmentCommandMessage.classList.add("error");
