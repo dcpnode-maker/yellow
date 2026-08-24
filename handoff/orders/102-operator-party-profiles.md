@@ -139,4 +139,4 @@ PostgreSQL and approves.
 - [x] Booking receives only a deliberately selected server Party id.
 - [x] Accessible UI clears stale/sensitive memory and has no client authority.
 - [x] Standing/referee gates pass and scope is exact.
-- [ ] Independent reviewer approves executed proof.
+- [x] Independent reviewer approves executed proof.
