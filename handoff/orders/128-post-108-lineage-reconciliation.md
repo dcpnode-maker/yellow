@@ -39,6 +39,55 @@ host secrets, or implying completion from plans, schemas, UI, branches or self-r
 - Order numbers 128–140 were unused across all current refs when this order was
   admitted.
 
+## Post-108 evidence map
+
+| Artifacts | Exact evidence | Classification | Remote/current-line treatment |
+|---|---|---|---|
+| Finance planning pack 109–115 | metadata tip `3bce2e1`; diff from `89cd032` is decisions, plan, orders and questions only | Order 109 READY; 110–115 DRAFT/BLOCKED; no product implementation | Local-only. Preserve policy evidence but close this numbered pack as superseded; reissue coherently as 133–139 only when finance execution resumes. |
+| Cyber 116–118 | approved executables `f15e142`, `6fa7744`, `09070d9`; Order-118 approval `ec4c563` | independently approved Tier-3 chain | Local-only and already composed into approved Order 123; do not integrate the side branches separately. |
+| Supply/API 119–121 | approved executables `7ba93e4`, `0ca144b`, `bc27020`; Order-121 approval `87d4ea6` | independently approved Tier-2/3 security chain | Local-only and already composed into approved Order 123; do not replay twice. |
+| Proof maintenance 122/125 | fixture executables `8bdd977` and `2bbf901`; verified in Order-123 matrix | proof-only, no product authority | Local-only; admit only through Order 123. |
+| Cyber integration 123 | executable `be279bb`; independent approval metadata `9f97bd0`; canonical review branch `ebd70b8` | APPROVED integration candidate | Local-only. Primary source candidate for Order 129 after exact composition on merged `origin/main`. |
+| Day-seal authority 124 | executable `b93574d`; builder metadata `8d95c83`; independent review `a978d58` | APPROVED Tier-3 candidate | Local-only. Compose once after Order 123 and rerun the complete current-line proof. |
+| Occupancy caller binding 126 | planning tip `5d7d7f0` | DRAFT/BLOCKED | Exclude from Order 129 until its documented parent-red and independent review exist. |
+| Runtime database authority 127 | planning tip `a1cd58a`, based on obsolete `5f49c82` planning line | DRAFT/BLOCKED | Exclude; rewrite its future order from the eventual approved Order-126/current-line base. |
+| Legacy security-number branches 112/113 | remote-backed `85cc5e7` and `0ec1b77` | historical/superseded by actor-bound Order 121 and current-line SECURITY DEFINER Order 108 | Never import their duplicated order identities into the future finance sequence. Preserve Git history only. |
+
+None of the local-only rows is called durable or merged merely because it is reachable
+from a worktree. Order 129 must push one reviewed current-line candidate and must not
+push every stale side branch as a substitute for reconciliation.
+
+## Reconciliation proposal
+
+1. Close the unimplemented finance planning pack 109–115 as **SUPERSEDED-BY-REISSUE**
+   when Order 129 assembles governance. Preserve its founder-approved policy text and
+   Git history; do not carry seven permanently open order files into `main`.
+2. Reserve 133–139 for the same finance sequence after the delivery-status work. This
+   removes the 112/113 collision and keeps the finance dependency chain contiguous.
+3. Compose only approved Order-123 executable evidence followed by approved Order 124
+   onto exact merged `origin/main`. Exclude Orders 126/127 and all standalone duplicate
+   side branches.
+4. Keep local `main` untouched until Order 129 merges. After its worktree is proven
+   clean and `origin/backup/final-codex-handoff-5f49c82` is reverified, replace—not
+   merge—its checked-out ref/tree with the resulting `origin/main` using a recoverable
+   ref-move procedure approved in Order 129. Never merge `5f49c82` into the current
+   line.
+
+## Required Order-129 proof
+
+- exact ancestry, source-blob and changed-file mapping for every admitted commit;
+- exact-parent hostile security reds for the admitted Cyber findings;
+- focused Orders 116–124 suites, including Order-108 containment and Order-124
+  business-day authority;
+- native-WSL isolated Phase-3/current-line matrix with every mapped suite green;
+- migration integration, database acceptance, founder status and complete standing
+  test suite;
+- TypeScript, import boundaries, licence policy, dependency audit, schema drift and
+  protected hashes;
+- fresh isolated `./setup.sh --db-only` with `11 passed, 0 failed of 11`;
+- independent non-implementing Daybreak-requested security review of the exact composed
+  candidate, with personally executed proof and all host timing/symlink stops disclosed.
+
 ## Scope
 
 1. Produce an exact ancestry and changed-file map for every candidate after Order 108,
@@ -137,12 +186,12 @@ future-workbench artifact is in scope.
 
 ## Definition of done
 
-- [ ] Exact post-108 branch/ref/worktree/remote map is recorded with SHAs.
-- [ ] Each candidate has an evidence-based status and dependency classification.
+- [x] Exact post-108 branch/ref/worktree/remote map is recorded with SHAs.
+- [x] Each candidate has an evidence-based status and dependency classification.
 - [ ] Duplicate 112/113 handling and local-`main` reconciliation are decided explicitly.
 - [x] Order 124 receives independent non-implementing Tier-3 review on its exact frozen
       candidate; Orders 126/127 remain blocked unless their documented gates clear.
-- [ ] A minimal Order-129 integration set and full fresh-proof command list are defined.
+- [x] A minimal Order-129 integration set and full fresh-proof command list are defined.
 - [x] Collision-free Order numbers 128–132 and model roles are reserved.
 - [x] Truthful delivery-status security boundary is defined; model activity remains
       research-required.
