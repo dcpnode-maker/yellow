@@ -3,7 +3,7 @@
 **Phase:** 5
 **Branch:** `phase-5/balanced-charge-posting`
 **Original base:** `01dcddd`
-**Rebased base:** `1ee0928` — includes the separately ordered Order 112 security correction
+**Rebased base:** `85cc5e7` — includes the separately ordered and independently approved Order 112 security correction
 **Risk tier:** 3 — journals, posting integrity, RLS and business-day sealing
 **Owner:** Codex implementation; independent non-implementing reviewer required
 
@@ -29,6 +29,8 @@ and one financial service. It is not a balance cache, tax engine or arbitrary-li
 - `migrations/0010_financial_posting_integrity.sql`
 - `src/contexts/financials/postings.ts`, `src/contexts/financials/index.ts`
 - `tests/financial-postings.integration.test.ts`
+- `scripts/run-phase-3-gate.ts`, `tests/phase-3-gate-runner.test.ts` solely to add
+  the Order 104 focused PostgreSQL proof to the reviewer-runnable cumulative database gate
 - `tests/migrate.integration.test.ts`, `tests/database-acceptance.integration.test.ts`,
   `tests/schema/expected.sql`
 - `setup.sh`, `setup.ps1`, `state.sh`, `state.ps1` for the exact 85-table accounting
@@ -132,9 +134,11 @@ zero tenant-A journals/postings/balances and cannot seal or reference A truth.
 Five hundred distinct bounded-concurrency charges create exactly 500 journals and 1,000
 immutable lines; every journal and global/property/date/currency trial balance is zero,
 guest and revenue sums are exact opposites, and a 500-key replay burst changes nothing.
-Focused proof, migration/deployment, exact schema, typecheck, boundaries, standing,
-licences/audit, protected hashes and pristine 85-table referee pass. A non-implementing
-Tier-3 reviewer personally executes P1–P5 on fresh PostgreSQL.
+The cumulative database gate includes this exact focused proof so a non-implementing
+reviewer can trigger it against the immutable branch SHA. Focused proof,
+migration/deployment, exact schema, typecheck, boundaries, standing, licences/audit,
+protected hashes and pristine 85-table referee pass. A non-implementing Tier-3 reviewer
+personally executes P1–P5 on fresh PostgreSQL.
 
 ## Definition of done
 
