@@ -15,6 +15,8 @@ Order 096 exposes that command through distinct property-scoped operator read/wr
 permissions and an accessible confirmation-driven workbench.
 Order 097 exposes the approved metadata, cancellation and reinstatement commands through
 their own property-scoped lifecycle permissions and the same operator shell.
+Order 098 owns the operator segment-history, departure-change and immediate same-type
+room-move workbench over the approved Order 086 commands.
 
 ## Product promise
 
@@ -69,6 +71,7 @@ crosses that envelope must be rejected with a clear reason rather than silently 
 | 095 | 3 | Atomic reservation guest/share command | Preserve primary guest, validate explicit 100.00 share splits and replace bounded non-primary membership through one idempotent audited command | Exact replacement/replay; concurrent lists never mix; tenant/party/share boundaries and publisher rollback are mutation-free |
 | 096 | 3 | Operator reservation guest/share workbench | Exact confirmation lookup plus property-scoped read/write guest permissions and one accessible server-authoritative editor | HTTP authority/shape/replay/rollback; responsive labelled dynamic form with no client mutation or persisted guest/token data |
 | 097 | 3 | Operator reservation lifecycle workbench | Exact confirmation lookup plus metadata modification, cancellation and occupancy-rearbitrated reinstatement | Strict lifecycle permissions; approval-required cancellation boundary; race/rollback and accessible server-derived actions |
+| 098 | 3 | Operator reservation segment-change workbench | Exact segment history plus departure change and immutable immediate same-type room move | Strict segment permissions; expected-value conflicts; occupancy race/rollback and accessible server-derived actions |
 
 The order numbers reserve sequence only. Each order requires a fresh schema/decision preflight,
 an exact Scope and Forbidden section, an intentional red proof, and a Natural-Solution Test before
