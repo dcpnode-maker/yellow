@@ -20,8 +20,9 @@ room-move workbench over the approved Order 086 commands.
 Order 099 owns the staff-facing complete offer, optional cart hold and held/direct
 reservation commit workbench over the approved Order 055/082/084 HTTP contracts.
 Order 100 repairs the inherited Order 055 exact-role proof after approved reservation
-permissions evolved. Order 101 now owns tenant-safe Party search/create plus duplicate
-review evidence; HTTP/operator integration remains the next bounded adapter order.
+permissions evolved. Order 101 owns the independently approved tenant-safe Party
+search/create domain. Order 102 now owns its strict operator HTTP surface, explicit
+duplicate-review UX and server Party-id handoff into the existing booking journey.
 
 ## Product promise
 
@@ -80,6 +81,7 @@ crosses that envelope must be rejected with a clear reason rather than silently 
 | 099 | 3 | Operator reservation booking workbench | Complete server offer → optional ten-minute hold → held/direct commit | Server-only bookability; last-room race/replay/rollback and honest accessible confirmation |
 | 100 | 1 | Repair inherited hold-role proof | Reconcile Order 055's exact role assertion with approved Orders 096–098 scopes | Exact 23-scope equality; all seven live hold cases; no seed/product mutation |
 | 101 | 3 | Tenant-safe Party search/create | Existing Party/contact/role primitives plus duplicate review and `party.created` | PII-minimized search; concurrent duplicate review; atomic replay/rollback; tenant-leading indexes |
+| 102 | 3 | Operator Party search/create | Strict profile permissions and accessible existing-vs-distinct Party flow into booking | Tenant/property authority; masked duplicate review; replay/rollback; stale-response and no-persistence UI proof |
 
 The order numbers reserve sequence only. Each order requires a fresh schema/decision preflight,
 an exact Scope and Forbidden section, an intentional red proof, and a Natural-Solution Test before
