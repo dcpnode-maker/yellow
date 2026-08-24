@@ -20,3 +20,9 @@ five inherited operator tests named in its amended Scope. Each changed literal m
 match the already-proven current review seed exactly. This repairs evidence drift; it must not
 change seed data, permissions, roles, login/token code, adapters, production assets or
 authorization behavior. The cumulative gate must then exercise the affected suites.
+
+## RESOLVED
+
+D-336 authorized only the stale proof-label/literal correction. The corrected
+twenty-seven-scope proofs ran in the current-line cumulative gate without runtime
+permission, seed, role, token or adapter changes.

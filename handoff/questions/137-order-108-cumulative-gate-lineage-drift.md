@@ -24,3 +24,8 @@ chain repair only: it changes no financial product/test behavior and imports the
 existing `4c2720c` mapping before the reviewed containment mapping. The runner must
 then contain fifteen unique isolated suites and execute both proofs. No other Order-104
 branch change enters current lineage through this resolution.
+
+## RESOLVED
+
+D-334 authorized the exact runner repair, and the current-line builder and independent
+reviewer both executed the resulting fifteen-suite map.

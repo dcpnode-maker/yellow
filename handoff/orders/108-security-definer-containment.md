@@ -129,4 +129,5 @@ immutable current-line implementation SHA.
 - [x] Migration 0011 contains all six definers with safe resolution and ACLs.
 - [x] P1–P4 pass without changing authorized domain semantics.
 - [x] Cumulative/referee/standing gates pass and protected files remain exact.
-- [ ] Independent reviewer personally approves the immutable current-line tip.
+- [x] Independent reviewer personally approves immutable executable SHA
+  `ee4ec0c48d7ebb62328454f2df3c22ed665108a7`.
