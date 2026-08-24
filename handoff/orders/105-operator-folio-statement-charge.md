@@ -150,4 +150,4 @@ personally executes the financial and real-HTTP proof.
 - [x] Workbench has no browser accounting, stale repaint or unsafe ledger controls.
 - [x] Charge path is only approved `ChargeService`; unbuilt tax/payment scope is clear.
 - [x] Standing/referee gates pass and scope is exact.
-- [ ] Independent reviewer approves executed proof.
+- [x] Independent reviewer approves executed proof.
