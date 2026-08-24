@@ -75,6 +75,7 @@ crosses that envelope must be rejected with a clear reason rather than silently 
 | 097 | 3 | Operator reservation lifecycle workbench | Exact confirmation lookup plus metadata modification, cancellation and occupancy-rearbitrated reinstatement | Strict lifecycle permissions; approval-required cancellation boundary; race/rollback and accessible server-derived actions |
 | 098 | 3 | Operator reservation segment-change workbench | Exact segment history plus departure change and immutable immediate same-type room move | Strict segment permissions; expected-value conflicts; occupancy race/rollback and accessible server-derived actions |
 | 099 | 3 | Operator reservation booking workbench | Complete server offer → optional ten-minute hold → held/direct commit | Server-only bookability; last-room race/replay/rollback and honest accessible confirmation |
+| 100 | 1 | Repair inherited hold-role proof | Reconcile Order 055's exact role assertion with approved Orders 096–098 scopes | Exact 23-scope equality; all seven live hold cases; no seed/product mutation |
 
 The order numbers reserve sequence only. Each order requires a fresh schema/decision preflight,
 an exact Scope and Forbidden section, an intentional red proof, and a Natural-Solution Test before
