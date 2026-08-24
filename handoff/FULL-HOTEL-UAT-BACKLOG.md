@@ -1,9 +1,9 @@
 # Full-hotel UAT delivery backlog
 
-**Evidence base:** `docs/FULL-HOTEL-UAT.md` at Order 137 (`285e496`)  
-**Approved product base:** `origin/main` (`952478d`)  
-**Order ceiling observed across refs/worktrees:** 140  
-**Decision ceiling observed on the active advanced lineage:** D-375  
+**Evidence base:** `docs/FULL-HOTEL-UAT.md` at Order 137 (`285e496`)
+**Approved product base:** `origin/main` (`952478d`)
+**Order ceiling observed across refs/worktrees:** 140
+**Decision ceiling observed on the active advanced lineage:** D-375
 
 This backlog does not reserve order numbers after Order 141. Each successor receives the
 next repository-global free number only when admitted, after rechecking every ref/worktree.
@@ -36,4 +36,3 @@ occupancy and journal/posting internals remain excluded from this lane.
 - FH-06 through FH-09 depend on future high-risk commands and cannot honestly start from
   the current approved base. Their UI must display authoritative records, never simulate
   posting, tax, settlement, housekeeping completion or reconciliation.
-

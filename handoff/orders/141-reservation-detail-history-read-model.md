@@ -1,11 +1,11 @@
 # Order 141 — Reservation detail and history read model
 
-**Phase:** 4 — Reservations  
-**Branch:** `phase-4/reservation-detail-read-model`  
-**Base:** approved integration `952478d17bcebd67e696d5cb76eec37e89cabcf3`  
-**Risk tier:** 1 — migration-free, read-only context query  
-**Owner:** Codex builder; stop at builder-green/unintegrated  
-**Date:** 2026-08-25  
+**Phase:** 4 — Reservations
+**Branch:** `phase-4/reservation-detail-read-model`
+**Base:** approved integration `952478d17bcebd67e696d5cb76eec37e89cabcf3`
+**Risk tier:** 1 — migration-free, read-only context query
+**Owner:** Codex builder; stop at builder-green/unintegrated
+**Date:** 2026-08-25
 **Status:** BUILT · UNREVIEWED · UNINTEGRATED
 
 ## Outcome
@@ -112,13 +112,18 @@ commands/results, protected-surface confirmation and any inherited precondition 
 - Base: `952478d17bcebd67e696d5cb76eec37e89cabcf3`.
 - Intentional-red registration: `55f5fbd0b6cb1e223ddd34242c972f3874b7a0c1`;
   the public export was absent before implementation.
-- Exact executable: `b8d50a0166299964ad3acf1c7a78e4a982ca0474`.
+- Initial executable: `b8d50a0166299964ad3acf1c7a78e4a982ca0474`.
+- Corrected executable: `d519cd5f873008ed06eebfa99b56310081b87069`.
+  Independent review found that PostgreSQL permits schema-valid unbounded/empty
+  `tstzrange` values even though the column is non-null; the initial candidate returned
+  a null required segment bound. The correction adds a runtime required-bound guard and
+  a permanent hostile unbounded-range regression. Independent re-review is pending.
 - Product/test files: `src/contexts/reservations/detail.ts`, the reservations public
   index, and the focused integration proof only. No schema, migration, permission,
   route, runtime, UI, dependency, protected referee or financial mutation changed.
 - Fresh PostgreSQL focused proof:
   `YELLOW_REQUIRE_RESERVATION_DETAIL=1 YELLOW_RESERVATION_DETAIL_URL=... bun test
-  tests/reservation-detail.integration.test.ts` → 5 passed, 0 failed, 37 assertions.
+  tests/reservation-detail.integration.test.ts` → 5 passed, 0 failed, 38 assertions.
 - Standing gate: frozen install unchanged; typecheck green; 64-file import boundary
   gate green; `bun test` 150 passed, 397 skipped, 0 failed, 1,832 assertions; licence
   policy passed for 23 installed packages; audit found no vulnerabilities; schema
