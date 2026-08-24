@@ -144,4 +144,4 @@ Tier-3 reviewer personally executes P1–P5 on fresh PostgreSQL.
 - [x] Replay, rollback, seal races and 1,000-line stress pass without drift.
 - [x] No tax/payment/fiscal/trust/settlement/day-roll behavior enters the slice.
 - [x] Standing/referee gates pass and scope is exact.
-- [ ] Independent reviewer approves executed proof.
+- [x] Independent reviewer approves executed proof.
