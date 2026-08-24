@@ -127,9 +127,9 @@ non-implementing reviewer personally executes P1–P4 on fresh PostgreSQL and ap
 
 - [x] Order exists before implementation.
 - [x] Intentional P0 red is committed before production or migration code.
-- [ ] Tenant/account/folio constraints fail closed at PostgreSQL.
-- [ ] Primary folio opening is atomic, replayable, minimized and gap-free.
-- [ ] Concurrency and publication failure leave no duplicate or partial artifact.
-- [ ] No money/payment/tax/fiscal/day-close behavior enters this slice.
-- [ ] Standing/referee gates pass and scope is exact.
+- [x] Tenant/account/folio constraints fail closed at PostgreSQL.
+- [x] Primary folio opening is atomic, replayable, minimized and gap-free.
+- [x] Concurrency and publication failure leave no duplicate or partial artifact.
+- [x] No money/payment/tax/fiscal/day-close behavior enters this slice.
+- [x] Standing/referee gates pass and scope is exact.
 - [ ] Independent reviewer approves executed proof.

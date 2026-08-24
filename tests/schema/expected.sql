@@ -1628,6 +1628,14 @@ ALTER TABLE ONLY public.account
 
 
 --
+-- Name: account account_tenant_id_id_uq; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.account
+    ADD CONSTRAINT account_tenant_id_id_uq UNIQUE (tenant_id, id);
+
+
+--
 -- Name: address address_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -1876,6 +1884,14 @@ ALTER TABLE ONLY public.folio
 
 
 --
+-- Name: folio folio_reservation_window_uq; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.folio
+    ADD CONSTRAINT folio_reservation_window_uq UNIQUE (tenant_id, reservation_id, window_no);
+
+
+--
 -- Name: hold hold_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -1980,6 +1996,14 @@ ALTER TABLE ONLY public.org_node
 
 
 --
+-- Name: org_node org_node_tenant_id_id_uq; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.org_node
+    ADD CONSTRAINT org_node_tenant_id_id_uq UNIQUE (tenant_id, id);
+
+
+--
 -- Name: org_node org_node_tenant_id_path_key; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -2049,6 +2073,14 @@ ALTER TABLE ONLY public.party_relationship
 
 ALTER TABLE ONLY public.party_role
     ADD CONSTRAINT party_role_pkey PRIMARY KEY (party_id, role);
+
+
+--
+-- Name: party party_tenant_id_id_uq; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.party
+    ADD CONSTRAINT party_tenant_id_id_uq UNIQUE (tenant_id, id);
 
 
 --
@@ -2225,6 +2257,14 @@ ALTER TABLE ONLY public.reservation_segment
 
 ALTER TABLE ONLY public.reservation
     ADD CONSTRAINT reservation_tenant_id_confirmation_no_key UNIQUE (tenant_id, confirmation_no);
+
+
+--
+-- Name: reservation reservation_tenant_id_id_uq; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.reservation
+    ADD CONSTRAINT reservation_tenant_id_id_uq UNIQUE (tenant_id, id);
 
 
 --
@@ -2692,6 +2732,22 @@ ALTER TABLE ONLY public.account
 
 
 --
+-- Name: account account_tenant_party_fk; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.account
+    ADD CONSTRAINT account_tenant_party_fk FOREIGN KEY (tenant_id, party_id) REFERENCES public.party(tenant_id, id);
+
+
+--
+-- Name: account account_tenant_property_fk; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.account
+    ADD CONSTRAINT account_tenant_property_fk FOREIGN KEY (tenant_id, property_node) REFERENCES public.org_node(tenant_id, id);
+
+
+--
 -- Name: address address_party_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -2913,6 +2969,22 @@ ALTER TABLE ONLY public.folio
 
 ALTER TABLE ONLY public.folio
     ADD CONSTRAINT folio_reservation_id_fkey FOREIGN KEY (reservation_id) REFERENCES public.reservation(id);
+
+
+--
+-- Name: folio folio_tenant_account_fk; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.folio
+    ADD CONSTRAINT folio_tenant_account_fk FOREIGN KEY (tenant_id, account_id) REFERENCES public.account(tenant_id, id);
+
+
+--
+-- Name: folio folio_tenant_reservation_fk; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.folio
+    ADD CONSTRAINT folio_tenant_reservation_fk FOREIGN KEY (tenant_id, reservation_id) REFERENCES public.reservation(tenant_id, id);
 
 
 --

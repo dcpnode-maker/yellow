@@ -140,11 +140,11 @@ describe("Order 064 recorded build snapshot", () => {
     const reviewCoverage = await deriveIndependentReviewCoverage();
     const rows = manifestRows(manifest);
     expect(rows.length).toBeGreaterThan(0);
-    expect(PROJECT_BUILD_SNAPSHOT.roadmap.latestBuiltOrder).toBe(102);
+    expect(PROJECT_BUILD_SNAPSHOT.roadmap.latestBuiltOrder).toBe(103);
     expect(PROJECT_BUILD_SNAPSHOT.review.gate3Debt).toBe(0);
     expect(PROJECT_BUILD_SNAPSHOT.review.state).toBe("reviewed");
-    expect(PROJECT_BUILD_SNAPSHOT.roadmap.currentOrder).toBe(102);
-    expect(PROJECT_BUILD_SNAPSHOT.roadmap.activePhase).toBe(4);
+    expect(PROJECT_BUILD_SNAPSHOT.roadmap.currentOrder).toBe(103);
+    expect(PROJECT_BUILD_SNAPSHOT.roadmap.activePhase).toBe(5);
     expect(PROJECT_BUILD_SNAPSHOT.roadmap.phaseCount).toBe(13);
     expect(reviewCoverage.throughOrder).toBe(91);
     expect(reviewCoverage.approvedReviewFiles).toContain("045-091-wave-a.md");
@@ -162,8 +162,9 @@ describe("Order 064 recorded build snapshot", () => {
     expect(PROJECT_BUILD_SNAPSHOT.phases[1]?.state).toBe("reviewed");
     expect(PROJECT_BUILD_SNAPSHOT.phases[2]?.state).toBe("reviewed");
     expect(PROJECT_BUILD_SNAPSHOT.phases[3]?.state).toBe("reviewed");
-    expect(PROJECT_BUILD_SNAPSHOT.phases[4]?.state).toBe("active");
-    expect(PROJECT_BUILD_SNAPSHOT.phases.slice(5).every(({ state }) => state === "planned")).toBe(true);
+    expect(PROJECT_BUILD_SNAPSHOT.phases[4]?.state).toBe("built_unverified");
+    expect(PROJECT_BUILD_SNAPSHOT.phases[5]?.state).toBe("active");
+    expect(PROJECT_BUILD_SNAPSHOT.phases.slice(6).every(({ state }) => state === "planned")).toBe(true);
   });
 
   test("P4/P5: health stays exact and assets contain honest same-origin status UI", async () => {

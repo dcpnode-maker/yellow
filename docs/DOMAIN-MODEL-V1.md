@@ -297,6 +297,13 @@ and connect downtime to affected spaces. This requires a context/schema decision
 **Invariants:** reservation links to folio; it does not own it; every window balance is a
 projection of postings; settlement/closure is guarded; corrections do not edit history.
 
+Implemented foundation: a tenant-coherent reservation link can open exactly one primary
+window on an open property/Party/currency guest account. The account is reused only on
+that exact key. PostgreSQL composite foreign keys prevent cross-tenant ownership, and a
+locked non-fiscal property series allocates the human folio reference in the same
+transaction as the folio and minimized evidence. No balance or economic effect exists
+until a later balanced-posting command creates immutable journal lines.
+
 ### Journal aggregate — Financials
 
 **Root:** `journal`.

@@ -28,9 +28,9 @@ export const PROJECT_BUILD_SNAPSHOT = Object.freeze({
   label: "Recorded build snapshot",
   roadmap: Object.freeze({
     phaseCount: 13,
-    latestBuiltOrder: 102,
-    currentOrder: 102,
-    activePhase: 4,
+    latestBuiltOrder: 103,
+    currentOrder: 103,
+    activePhase: 5,
   }),
   review: Object.freeze({
     independentlyReviewedThroughOrder: INDEPENDENTLY_REVIEWED_THROUGH_ORDER,
@@ -43,8 +43,8 @@ export const PROJECT_BUILD_SNAPSHOT = Object.freeze({
     Object.freeze({ number: 1, name: "Kernel", state: INDEPENDENTLY_REVIEWED_THROUGH_ORDER >= 26 ? "reviewed" as const : "built_unverified" as const }),
     Object.freeze({ number: 2, name: "Inventory & occupancy", state: INDEPENDENTLY_REVIEWED_THROUGH_ORDER >= 44 ? "reviewed" as const : "built_unverified" as const }),
     Object.freeze({ number: 3, name: "Rates & policies", state: INDEPENDENTLY_REVIEWED_THROUGH_ORDER >= 79 ? "reviewed" as const : "built_unverified" as const }),
-    Object.freeze({ number: 4, name: "Reservations", state: "active" as const }),
-    Object.freeze({ number: 5, name: "Financials", state: "planned" as const }),
+    Object.freeze({ number: 4, name: "Reservations", state: "built_unverified" as const }),
+    Object.freeze({ number: 5, name: "Financials", state: "active" as const }),
     Object.freeze({ number: 6, name: "Stay operations & housekeeping", state: "planned" as const }),
     Object.freeze({ number: 7, name: "Tax & India IRP", state: "planned" as const }),
     Object.freeze({ number: 8, name: "Statutory reporting & ZATCA", state: "planned" as const }),

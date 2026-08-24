@@ -45,6 +45,11 @@ const EXPECTED_MIGRATIONS = [
     filename: "0008_party_search_indexes.sql",
     checksum_sha256: "88345b7d1cf6d7afbe1154b315bdc9569b7081b0cf5bcd1d864c9bad9b08270e",
   },
+  {
+    version: 9,
+    filename: "0009_account_folio_integrity.sql",
+    checksum_sha256: "56d3d47e2007d9106376459dc77623551f21731c5b6312e43e6ab100150205c2",
+  },
 ];
 
 if (REQUIRE_DATABASE && !DATABASE_URL) {

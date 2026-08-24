@@ -20,6 +20,7 @@ import {
 
 const PROJECT_ROOT = resolve(import.meta.dir, "..");
 const MIGRATE_SCRIPT = resolve(PROJECT_ROOT, "scripts", "migrate.ts");
+const PROJECT_MIGRATIONS = resolve(PROJECT_ROOT, "migrations");
 const BASELINE_PATH = resolve(PROJECT_ROOT, "migrations", "0001_init.sql");
 const BASELINE_BYTES = await readFile(BASELINE_PATH);
 const BASELINE_SHA256 = "fe2a9fc949c6bacded3f8d3fc4d14fc596a83ebde9aeb043eb10845f07b30923";
@@ -260,6 +261,106 @@ databaseDescribe("Bun SQL migration runner", () => {
           `;
           expect(ledgerAfter[0]?.applied_at.getTime()).toBe(ledgerBefore[0]?.applied_at.getTime());
         });
+      });
+    },
+    60_000,
+  );
+
+  test(
+    "applies the exact account-folio integrity migration and rejects tenant-crossing references",
+    async () => {
+      await withDatabase(async ({ databaseUrl: targetUrl, sql }) => {
+        const result = await runMigrations({
+          databaseUrl: targetUrl,
+          migrationsDirectory: PROJECT_MIGRATIONS,
+          logger: () => undefined,
+        });
+        expect(result.appliedFiles.at(-1)).toBe("0009_account_folio_integrity.sql");
+
+        const ledger = await sql<
+          { version: string | bigint; filename: string; checksum_sha256: string }[]
+        >`
+          SELECT version, filename, checksum_sha256
+            FROM schema_migration
+           WHERE version = 9
+        `;
+        expect(ledger.map((row) => ({ ...row, version: Number(row.version) }))).toEqual([{
+          version: 9,
+          filename: "0009_account_folio_integrity.sql",
+          checksum_sha256: "56d3d47e2007d9106376459dc77623551f21731c5b6312e43e6ab100150205c2",
+        }]);
+
+        const tenantA = randomUUID();
+        const tenantB = randomUUID();
+        const propertyA = randomUUID();
+        const propertyB = randomUUID();
+        const partyA = randomUUID();
+        const partyB = randomUUID();
+        const reservationA = randomUUID();
+        const reservationB = randomUUID();
+        const accountA = randomUUID();
+        const accountB = randomUUID();
+
+        await sql`INSERT INTO tenant (id, slug, name) VALUES
+          (${tenantA}::uuid, ${`migration-a-${tenantA}`}, 'Migration A'),
+          (${tenantB}::uuid, ${`migration-b-${tenantB}`}, 'Migration B')`;
+        await sql`INSERT INTO org_node (id, tenant_id, path, kind, name, timezone, currency) VALUES
+          (${propertyA}::uuid, ${tenantA}::uuid, ${`migration_a_${tenantA.replaceAll("-", "")}`}::ltree, 'property', 'A', 'UTC', 'USD'),
+          (${propertyB}::uuid, ${tenantB}::uuid, ${`migration_b_${tenantB.replaceAll("-", "")}`}::ltree, 'property', 'B', 'UTC', 'USD')`;
+        await sql`INSERT INTO party (id, tenant_id, kind, display_name) VALUES
+          (${partyA}::uuid, ${tenantA}::uuid, 'person', 'Party A'),
+          (${partyB}::uuid, ${tenantB}::uuid, 'person', 'Party B')`;
+        await sql`INSERT INTO reservation
+          (id, tenant_id, property_node, confirmation_no, primary_party, currency)
+          VALUES
+          (${reservationA}::uuid, ${tenantA}::uuid, ${propertyA}::uuid, 'MIG-A', ${partyA}::uuid, 'USD'),
+          (${reservationB}::uuid, ${tenantB}::uuid, ${propertyB}::uuid, 'MIG-B', ${partyB}::uuid, 'USD')`;
+        await sql`INSERT INTO account
+          (id, tenant_id, property_node, role, party_id, name, currency)
+          VALUES
+          (${accountA}::uuid, ${tenantA}::uuid, ${propertyA}::uuid, 'guest', ${partyA}::uuid, 'Guest account', 'USD'),
+          (${accountB}::uuid, ${tenantB}::uuid, ${propertyB}::uuid, 'guest', ${partyB}::uuid, 'Guest account', 'USD')`;
+
+        const expectSqlstate = async (operation: () => Promise<unknown>, state: string) => {
+          try {
+            await operation();
+          } catch (error) {
+            expect((error as { errno?: string }).errno).toBe(state);
+            return;
+          }
+          throw new Error(`Expected SQLSTATE ${state}`);
+        };
+
+        await expectSqlstate(
+          () => sql`INSERT INTO account
+            (tenant_id, property_node, role, party_id, name, currency)
+            VALUES (${tenantA}::uuid, ${propertyB}::uuid, 'guest', ${partyA}::uuid, 'Wrong property', 'USD')`,
+          "23503",
+        );
+        await expectSqlstate(
+          () => sql`INSERT INTO account
+            (tenant_id, property_node, role, party_id, name, currency)
+            VALUES (${tenantA}::uuid, ${propertyA}::uuid, 'guest', ${partyB}::uuid, 'Wrong party', 'USD')`,
+          "23503",
+        );
+        await expectSqlstate(
+          () => sql`INSERT INTO folio (tenant_id, account_id, reservation_id, folio_no, window_no)
+            VALUES (${tenantA}::uuid, ${accountB}::uuid, ${reservationA}::uuid, 'MIG-XA', 1)`,
+          "23503",
+        );
+        await expectSqlstate(
+          () => sql`INSERT INTO folio (tenant_id, account_id, reservation_id, folio_no, window_no)
+            VALUES (${tenantA}::uuid, ${accountA}::uuid, ${reservationB}::uuid, 'MIG-XR', 1)`,
+          "23503",
+        );
+
+        await sql`INSERT INTO folio (tenant_id, account_id, reservation_id, folio_no, window_no)
+          VALUES (${tenantA}::uuid, ${accountA}::uuid, ${reservationA}::uuid, 'MIG-1', 1)`;
+        await expectSqlstate(
+          () => sql`INSERT INTO folio (tenant_id, account_id, reservation_id, folio_no, window_no)
+            VALUES (${tenantA}::uuid, ${accountA}::uuid, ${reservationA}::uuid, 'MIG-2', 1)`,
+          "23505",
+        );
       });
     },
     60_000,

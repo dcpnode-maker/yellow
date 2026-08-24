@@ -144,7 +144,7 @@ into a product capability.
 
 | Capability | Status | Repository evidence | Missing before usable |
 |---|---|---|---|
-| Account-owned folios/windows | FOUNDATION EXISTS | schema and locked decision | commands and statements |
+| Account-owned folios/windows | PARTIAL | tenant-coherent schema plus atomic `FolioService.openPrimary`, canonical account reuse, locked non-fiscal numbering and evidence | statement query, additional windows, routing and operator/API surfaces |
 | Balanced journal/posting ledger | FOUNDATION EXISTS | constraints and invariant referee | posting service and authorization |
 | Immutable corrections/reversals | FOUNDATION EXISTS | schema/contracts/invariants | commands and UX |
 | Business day/seal | FOUNDATION EXISTS | table/functions/invariant tests | roll/readiness/exceptions workflow |

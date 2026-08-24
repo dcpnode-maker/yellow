@@ -106,6 +106,16 @@ identity documents, consent/preferences and profile editing remain planned.
 erasure request/execute
 **kernel**: extensions CRUD+activate · automations CRUD+test(dry_run) · approvals decide
 
+Implemented financial foundation: `FolioService.openPrimary(tx, input)` accepts only
+`tenantId`, `reservationId`, `idempotencyKey`, and the audit envelope. It locks and
+derives the eligible reservation's property, primary Party, and currency; reuses the
+exact open guest account keyed by tenant/property/Party/currency; and creates reservation
+window 1 with a locked non-fiscal `document_series(kind='folio')` reference. Account,
+folio, counter increment, minimized `folio.opened` fact/outbox event, and durable
+idempotency are one transaction. An exact existing open window is returned unchanged.
+This slice does not post money or implement statements, extra windows, routing,
+settlement, payments, tax/fiscal behavior, cashiering, day close, AR, HTTP, or UI.
+
 ## 4. Internal context interfaces (in-process, typed)
 Each context exports ONLY: `queries` (pure reads), `commands` (Tx-taking, return Result),
 `events` it emits. Anything else is private. The MCP server (v3 §10) is generated from
