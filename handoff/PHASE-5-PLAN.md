@@ -19,6 +19,7 @@ sealed-day, token-only, trust, tax or fiscal guardrails.
 | 109 | 3 | Cashier sessions | Cash handling opens/closes attributable sessions with exact over/short | One active session, exact counted money, no hidden balancing entry |
 | 110 | 3 | Folio settlement and AR transfer | Every window settles or explicitly transfers under credit authority | Zero-balance/AR guard, credit limits, multi-window completeness, rollback |
 | 111 | 3 | Phase-5 journey and gate | Reservation → folio → charge → payment → settlement runs on pristine PostgreSQL | Non-skipped journey, schema/deployment/referee, hostile money/tenant/role boundaries |
+| 112 | 3 | Operator idempotency actor binding | Urgent cross-cutting security correction binds every direct operator mutation replay claim to the verified staff actor | Two authorized actors, same operation/key/body: second conflicts without cached response or audit confusion; same actor still replays |
 
 Tax evaluation, fiscal documents, statutory submissions, owner/trust payout automation
 and multi-currency FX stay outside this sequence until their dedicated compliance and
@@ -28,3 +29,6 @@ route owner funds without its approval-backed model.
 Every order requires its own Natural-Solution Test, exact Scope and Forbidden list,
 intentional red, fresh PostgreSQL proof and independent non-implementing review.
 
+Order 112 is intentionally recorded after the complete reserved Phase-5 sequence even
+though its urgent correction executes before Orders 104–111. It does not authorize or
+imply any of those planned financial slices.
