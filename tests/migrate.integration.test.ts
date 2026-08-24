@@ -275,7 +275,7 @@ databaseDescribe("Bun SQL migration runner", () => {
           migrationsDirectory: PROJECT_MIGRATIONS,
           logger: () => undefined,
         });
-        expect(result.appliedFiles.at(-1)).toBe("0009_account_folio_integrity.sql");
+        expect(result.appliedFiles).toContain("0009_account_folio_integrity.sql");
 
         const ledger = await sql<
           { version: string | bigint; filename: string; checksum_sha256: string }[]
@@ -361,6 +361,215 @@ databaseDescribe("Bun SQL migration runner", () => {
             VALUES (${tenantA}::uuid, ${accountA}::uuid, ${reservationA}::uuid, 'MIG-2', 1)`,
           "23505",
         );
+      });
+    },
+    60_000,
+  );
+
+  test(
+    "applies exact posting integrity, read-only routes, and authority-safe day sealing",
+    async () => {
+      await withDatabase(async ({ databaseUrl: targetUrl, sql }) => {
+        const result = await runMigrations({
+          databaseUrl: targetUrl,
+          migrationsDirectory: PROJECT_MIGRATIONS,
+          logger: () => undefined,
+        });
+        expect(result.appliedFiles.at(-1)).toBe("0010_financial_posting_integrity.sql");
+
+        const ledger = await sql<
+          { version: string | bigint; filename: string; checksum_sha256: string }[]
+        >`SELECT version, filename, checksum_sha256 FROM schema_migration WHERE version = 10`;
+        expect(ledger.map((row) => ({ ...row, version: Number(row.version) }))).toEqual([{
+          version: 10,
+          filename: "0010_financial_posting_integrity.sql",
+          checksum_sha256: "859bdbbba98d858ac04e24f51751914c2cda10073b26c3c068ff8a27d4698ae3",
+        }]);
+
+        const tableCount = await sql<{ count: number }[]>`
+          SELECT count(*)::int AS count FROM pg_tables WHERE schemaname = 'public'
+        `;
+        expect(tableCount).toEqual([{ count: 85 }]);
+
+        const privileges = await sql<{
+          route_rls: boolean;
+          route_select: boolean;
+          route_insert: boolean;
+          route_update: boolean;
+          route_delete: boolean;
+          code_insert: boolean;
+          code_update: boolean;
+          code_delete: boolean;
+          day_update: boolean;
+          public_seal: boolean;
+          app_seal: boolean;
+        }[]>`
+          SELECT
+            (SELECT relrowsecurity FROM pg_class WHERE oid = 'tx_code_route'::regclass) AS route_rls,
+            has_table_privilege('app_role', 'tx_code_route', 'SELECT') AS route_select,
+            has_table_privilege('app_role', 'tx_code_route', 'INSERT') AS route_insert,
+            has_table_privilege('app_role', 'tx_code_route', 'UPDATE') AS route_update,
+            has_table_privilege('app_role', 'tx_code_route', 'DELETE') AS route_delete,
+            has_table_privilege('app_role', 'tx_code', 'INSERT') AS code_insert,
+            has_table_privilege('app_role', 'tx_code', 'UPDATE') AS code_update,
+            has_table_privilege('app_role', 'tx_code', 'DELETE') AS code_delete,
+            has_table_privilege('app_role', 'business_day', 'UPDATE') AS day_update,
+            has_function_privilege('public', 'seal_business_day(uuid,uuid,date,uuid)', 'EXECUTE') AS public_seal,
+            has_function_privilege('app_role', 'seal_business_day(uuid,uuid,date,uuid)', 'EXECUTE') AS app_seal
+        `;
+        expect(privileges).toEqual([{
+          route_rls: true,
+          route_select: true,
+          route_insert: false,
+          route_update: false,
+          route_delete: false,
+          code_insert: false,
+          code_update: false,
+          code_delete: false,
+          day_update: false,
+          public_seal: false,
+          app_seal: true,
+        }]);
+
+        const tenantA = randomUUID();
+        const tenantB = randomUUID();
+        const propertyA = randomUUID();
+        const propertyB = randomUUID();
+        const guestA = randomUUID();
+        const otherGuestA = randomUUID();
+        const revenueA = randomUUID();
+        const guestB = randomUUID();
+        const folioA = randomUUID();
+        const journalA = randomUUID();
+
+        await sql`INSERT INTO tenant (id, slug, name) VALUES
+          (${tenantA}::uuid, ${`posting-a-${tenantA}`}, 'Posting A'),
+          (${tenantB}::uuid, ${`posting-b-${tenantB}`}, 'Posting B')`;
+        await sql`INSERT INTO org_node (id, tenant_id, path, kind, name, timezone, currency) VALUES
+          (${propertyA}::uuid, ${tenantA}::uuid, ${`posting_a_${tenantA.replaceAll("-", "")}`}::ltree, 'property', 'A', 'UTC', 'USD'),
+          (${propertyB}::uuid, ${tenantB}::uuid, ${`posting_b_${tenantB.replaceAll("-", "")}`}::ltree, 'property', 'B', 'UTC', 'USD')`;
+        await sql`INSERT INTO account (id, tenant_id, property_node, role, name, currency) VALUES
+          (${guestA}::uuid, ${tenantA}::uuid, ${propertyA}::uuid, 'guest', 'Guest A', 'USD'),
+          (${otherGuestA}::uuid, ${tenantA}::uuid, ${propertyA}::uuid, 'guest', 'Other guest A', 'USD'),
+          (${revenueA}::uuid, ${tenantA}::uuid, ${propertyA}::uuid, 'revenue', 'Revenue A', 'USD'),
+          (${guestB}::uuid, ${tenantB}::uuid, ${propertyB}::uuid, 'guest', 'Guest B', 'USD')`;
+        await sql`INSERT INTO folio (id, tenant_id, account_id, folio_no)
+          VALUES (${folioA}::uuid, ${tenantA}::uuid, ${guestA}::uuid, 'POST-1')`;
+        await sql`INSERT INTO business_day (tenant_id, property_node, business_date) VALUES
+          (${tenantA}::uuid, ${propertyA}::uuid, '2026-08-24'),
+          (${tenantB}::uuid, ${propertyB}::uuid, '2026-08-24')`;
+        await sql`INSERT INTO tx_code (code, name, grp, usali_line, default_dr, default_cr)
+          VALUES ('MIGROOM', 'Migration room', 'revenue', 'Rooms', 'guest', 'revenue')`;
+        await sql`INSERT INTO tx_code_route
+          (tenant_id, property_node, currency, tx_code, credit_account_id)
+          VALUES (${tenantA}::uuid, ${propertyA}::uuid, 'USD', 'MIGROOM', ${revenueA}::uuid)`;
+
+        const expectSqlstate = async (operation: () => Promise<unknown>, state: string) => {
+          try {
+            await operation();
+          } catch (error) {
+            expect((error as { errno?: string }).errno).toBe(state);
+            return;
+          }
+          throw new Error(`Expected SQLSTATE ${state}`);
+        };
+
+        const visibleRoutes = await sql.begin(async (tx) => {
+          await tx.unsafe("SET LOCAL ROLE app_role");
+          await tx`SELECT set_config('app.tenant_id', ${tenantA}, true)`;
+          return tx<{ tenant_id: string; tx_code: string }[]>`
+            SELECT tenant_id::text, tx_code FROM tx_code_route ORDER BY tx_code
+          `;
+        });
+        expect(visibleRoutes).toEqual([{ tenant_id: tenantA, tx_code: "MIGROOM" }]);
+
+        await expectSqlstate(
+          () => sql.begin(async (tx) => {
+            await tx.unsafe("SET LOCAL ROLE app_role");
+            await tx`SELECT seal_business_day(${tenantA}::uuid, ${propertyA}::uuid, '2026-08-24', NULL)`;
+          }),
+          "42501",
+        );
+        await expectSqlstate(
+          () => sql.begin(async (tx) => {
+            await tx.unsafe("SET LOCAL ROLE app_role");
+            await tx`SELECT set_config('app.tenant_id', ${tenantB}, true)`;
+            await tx`SELECT seal_business_day(${tenantA}::uuid, ${propertyA}::uuid, '2026-08-24', NULL)`;
+          }),
+          "42501",
+        );
+        await expectSqlstate(
+          () => sql`INSERT INTO journal
+            (tenant_id, property_node, business_date, kind, description, currency)
+            VALUES (${tenantA}::uuid, ${propertyA}::uuid, '2026-08-25', 'charge', 'Missing day', 'USD')`,
+          "P0011",
+        );
+
+        await sql`INSERT INTO journal
+          (id, tenant_id, property_node, business_date, kind, description, currency)
+          VALUES (${journalA}::uuid, ${tenantA}::uuid, ${propertyA}::uuid, '2026-08-24', 'charge', 'Balanced', 'USD')`;
+        await expectSqlstate(
+          () => sql`INSERT INTO posting_line
+            (tenant_id, journal_id, seq, account_id, folio_id, tx_code, amount_minor, business_date, currency)
+            VALUES (${tenantB}::uuid, ${journalA}::uuid, 1, ${guestB}::uuid, NULL, 'MIGROOM', 1, '2026-08-24', 'USD')`,
+          "23503",
+        );
+        await expectSqlstate(
+          () => sql`INSERT INTO posting_line
+            (tenant_id, journal_id, seq, account_id, folio_id, tx_code, amount_minor, business_date, currency)
+            VALUES (${tenantA}::uuid, ${journalA}::uuid, 1, ${otherGuestA}::uuid, ${folioA}::uuid, 'MIGROOM', 1, '2026-08-24', 'USD')`,
+          "23503",
+        );
+        await expectSqlstate(
+          () => sql`INSERT INTO posting_line
+            (tenant_id, journal_id, seq, account_id, folio_id, tx_code, amount_minor, business_date, currency)
+            VALUES (${tenantA}::uuid, ${journalA}::uuid, 1, ${guestA}::uuid, ${folioA}::uuid, 'MIGROOM', 1, '2026-08-23', 'USD')`,
+          "23503",
+        );
+
+        await sql.begin(async (tx) => {
+          await tx`INSERT INTO posting_line
+            (tenant_id, journal_id, seq, account_id, folio_id, tx_code, amount_minor, business_date)
+            VALUES
+            (${tenantA}::uuid, ${journalA}::uuid, 1, ${guestA}::uuid, ${folioA}::uuid, 'MIGROOM', 12345, '2026-08-24'),
+            (${tenantA}::uuid, ${journalA}::uuid, 2, ${revenueA}::uuid, NULL, 'MIGROOM', -12345, '2026-08-24')`;
+        });
+        const derived = await sql<{ currencies: string[]; total: string | bigint }[]>`
+          SELECT array_agg(trim(currency) ORDER BY seq) AS currencies, sum(amount_minor) AS total
+            FROM posting_line WHERE journal_id = ${journalA}::uuid
+        `;
+        expect(derived.map((row) => ({
+          currencies: row.currencies,
+          total: BigInt(row.total),
+        }))).toEqual([{ currencies: ["USD", "USD"], total: 0n }]);
+
+        await expectSqlstate(
+          () => sql.begin(async (tx) => {
+            const id = randomUUID();
+            await tx`INSERT INTO journal
+              (id, tenant_id, property_node, business_date, kind, description, currency)
+              VALUES (${id}::uuid, ${tenantA}::uuid, ${propertyA}::uuid, '2026-08-24', 'charge', 'Unbalanced', 'USD')`;
+            await tx`INSERT INTO posting_line
+              (tenant_id, journal_id, seq, account_id, tx_code, amount_minor, business_date, currency)
+              VALUES (${tenantA}::uuid, ${id}::uuid, 1, ${guestA}::uuid, 'MIGROOM', 1, '2026-08-24', 'USD')`;
+          }),
+          "P0010",
+        );
+
+        await sql.begin(async (tx) => {
+          await tx.unsafe("SET LOCAL ROLE app_role");
+          await tx`SELECT set_config('app.tenant_id', ${tenantA}, true)`;
+          await tx`SELECT seal_business_day(${tenantA}::uuid, ${propertyA}::uuid, '2026-08-24', NULL)`;
+        });
+        await expectSqlstate(
+          () => sql`INSERT INTO journal
+            (tenant_id, property_node, business_date, kind, description, currency)
+            VALUES (${tenantA}::uuid, ${propertyA}::uuid, '2026-08-24', 'charge', 'Late', 'USD')`,
+          "P0011",
+        );
+        await sql`INSERT INTO journal
+          (tenant_id, property_node, business_date, kind, description, currency)
+          VALUES (${tenantA}::uuid, ${propertyA}::uuid, '2026-08-24', 'adjustment', 'Allowed correction path', 'USD')`;
       });
     },
     60_000,

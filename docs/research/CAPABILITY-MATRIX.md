@@ -145,7 +145,7 @@ into a product capability.
 | Capability | Status | Repository evidence | Missing before usable |
 |---|---|---|---|
 | Account-owned folios/windows | PARTIAL | tenant-coherent schema plus atomic `FolioService.openPrimary`, canonical account reuse, locked non-fiscal numbering and evidence | statement query, additional windows, routing and operator/API surfaces |
-| Balanced journal/posting ledger | FOUNDATION EXISTS | constraints and invariant referee | posting service and authorization |
+| Balanced journal/posting ledger | PARTIAL | tenant/date/currency-coherent schema, read-only tx-code routing and atomic untaxed `ChargeService.postCharge` with seal serialization | tax-aware and scheduled charges, corrections/transfers, payments, settlement and operator/API authorization |
 | Immutable corrections/reversals | FOUNDATION EXISTS | schema/contracts/invariants | commands and UX |
 | Business day/seal | FOUNDATION EXISTS | table/functions/invariant tests | roll/readiness/exceptions workflow |
 | Cashier sessions | FOUNDATION EXISTS | table | lifecycle, over/short, permissions |

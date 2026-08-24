@@ -50,6 +50,11 @@ const EXPECTED_MIGRATIONS = [
     filename: "0009_account_folio_integrity.sql",
     checksum_sha256: "56d3d47e2007d9106376459dc77623551f21731c5b6312e43e6ab100150205c2",
   },
+  {
+    version: 10,
+    filename: "0010_financial_posting_integrity.sql",
+    checksum_sha256: "859bdbbba98d858ac04e24f51751914c2cda10073b26c3c068ff8a27d4698ae3",
+  },
 ];
 
 if (REQUIRE_DATABASE && !DATABASE_URL) {

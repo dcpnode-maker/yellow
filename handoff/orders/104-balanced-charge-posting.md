@@ -139,9 +139,9 @@ Tier-3 reviewer personally executes P1–P5 on fresh PostgreSQL.
 
 - [x] Order exists before implementation.
 - [x] Intentional P0 red is committed before production/migration code.
-- [ ] PostgreSQL enforces tenant/date/currency/folio-account financial coherence.
-- [ ] Canonical charge signs, balance, routing and bigint evidence are exact.
-- [ ] Replay, rollback, seal races and 1,000-line stress pass without drift.
-- [ ] No tax/payment/fiscal/trust/settlement/day-roll behavior enters the slice.
-- [ ] Standing/referee gates pass and scope is exact.
+- [x] PostgreSQL enforces tenant/date/currency/folio-account financial coherence.
+- [x] Canonical charge signs, balance, routing and bigint evidence are exact.
+- [x] Replay, rollback, seal races and 1,000-line stress pass without drift.
+- [x] No tax/payment/fiscal/trust/settlement/day-roll behavior enters the slice.
+- [x] Standing/referee gates pass and scope is exact.
 - [ ] Independent reviewer approves executed proof.

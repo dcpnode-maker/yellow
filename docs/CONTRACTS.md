@@ -116,6 +116,17 @@ idempotency are one transaction. An exact existing open window is returned uncha
 This slice does not post money or implement statements, extra windows, routing,
 settlement, payments, tax/fiscal behavior, cashiering, day close, AR, HTTP, or UI.
 
+Implemented posting slice: `ChargeService.postCharge(tx, input)` accepts an open folio,
+governed revenue tx code, canonical positive int64 decimal-string total, optional
+fixed-scale quantity, idempotency key and audit envelope. It server-derives the exact
+property, currency, local calendar business date and read-only `tx_code_route`, then
+atomically posts one debit-positive guest/folio line and equal credit-negative revenue
+line. Journal, immutable lines, minimized `journal.posted` fact/outbox and idempotency
+share one transaction; the business-day latch serializes against sealing. This amount is
+explicitly untaxed and quantity is descriptive, never multiplied. Tax allocation,
+scheduled/nightly charges, statements, route authoring, corrections, transfers,
+payments, settlement, fiscal behavior, API and UI remain planned.
+
 ## 4. Internal context interfaces (in-process, typed)
 Each context exports ONLY: `queries` (pure reads), `commands` (Tx-taking, return Result),
 `events` it emits. Anything else is private. The MCP server (v3 §10) is generated from

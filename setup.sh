@@ -54,8 +54,8 @@ docker compose exec -T postgres psql -U yellow -d yellow_test -v ON_ERROR_STOP=1
 
 tables=$(docker compose exec -T postgres psql -U yellow -d yellow_test -tAc \
   "SELECT count(*) FROM pg_tables WHERE schemaname='public';" | tr -d '[:space:]')
-[ "$tables" = '84' ] || { printf 'yellow_test has %s public tables; expected 84 (80 baseline + 2 kernel consumer + api_idempotency + schema_migration).\n' "$tables" >&2; exit 1; }
-echo 'yellow_test tables: 84 (80 baseline + 2 kernel consumer + api_idempotency + schema_migration)'
+[ "$tables" = '85' ] || { printf 'yellow_test has %s public tables; expected 85 (80 baseline + tx_code_route + 2 kernel consumer + api_idempotency + schema_migration).\n' "$tables" >&2; exit 1; }
+echo 'yellow_test tables: 85 (80 baseline + tx_code_route + 2 kernel consumer + api_idempotency + schema_migration)'
 
 YELLOW_DSN="dbname=yellow_test user=yellow password=yellow host=127.0.0.1 port=${YELLOW_POSTGRES_PORT}" \
 PYTHONIOENCODING=utf-8 python3 tests/run_invariants.py yellow_test
