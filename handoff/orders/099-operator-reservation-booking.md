@@ -37,8 +37,8 @@ reservation promise and re-arbitrates PostgreSQL occupancy.
 ## Required work
 
 1. Add a booking panel under Reservations with canonical stay date/time, adults, bounded
-   child ages, existing primary Party UUID and channel code inputs. Convert visible times
-   through the existing strict property-timezone path and submit the canonical nested
+   child ages, existing primary Party UUID and channel code inputs. Use explicitly labelled
+   UTC inputs to avoid ambiguous local wall times and submit the canonical nested
    availability body already accepted by Order 084.
 2. Render every returned option/issue deterministically with safe text. Only server
    `bookable=true` options may be selected. Show exact server total/currency and policy/
@@ -123,10 +123,24 @@ fresh PostgreSQL and approves.
 
 - [x] Order exists before production code.
 - [x] Intentional P0 red is committed before implementation.
-- [ ] Canonical offer search renders only server truth.
-- [ ] Hold and direct commit converge on approved HTTP commands.
-- [ ] Occupancy race/replay/rollback proofs pass.
-- [ ] Workbench is accessible, responsive and authority-free.
-- [ ] Standing/schema/deployment/referee gates pass.
+- [x] Canonical offer search renders only server truth.
+- [x] Hold and direct commit converge on approved HTTP commands.
+- [x] Occupancy race/replay/rollback proofs pass.
+- [x] Workbench is accessible, responsive and authority-free.
+- [x] Standing/schema/deployment/referee gates pass.
 - [ ] Independent reviewer approves executed proof.
-- [ ] Scope is exact; user-owned untracked material remains untouched.
+- [x] Scope is exact; user-owned untracked material remains untouched.
+
+## Builder evidence
+
+Focused booking/assets passed 13/13 with 151 assertions; canonical offer search passed
+6/6 with 76; authoritative reservation commit passed 5/5 with 61; and the inherited
+hold suite's six live HTTP/occupancy/replay/rollback cases passed. Its old P7 exact-role
+assertion rejects the six later independently approved Orders 096–098 reservation scopes;
+Question 135 records that out-of-scope proof discrepancy without changing it here.
+
+Typecheck, all 59 import boundaries and standing 130/0 with 1,654 assertions passed.
+Fresh review seed passed 11/11 with 39 assertions, deployment acceptance passed 4/4
+with 10, normalized schema matched, protected hashes remained exact, and the final
+84-table app-never-started referee passed 11/11. This is builder evidence, not
+independent approval.

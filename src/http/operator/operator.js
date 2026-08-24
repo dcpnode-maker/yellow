@@ -32,6 +32,11 @@
   let reservationGuestData = null;
   let reservationLifecycleData = null;
   let reservationSegmentData = null;
+  let reservationBookingOffers = [];
+  let reservationBookingSelection = null;
+  let reservationBookingHold = null;
+  let reservationBookingDraft = null;
+  let reservationBookingSearchGeneration = 0;
   const pendingKeys = new Map();
 
   const loginView = document.querySelector("#login-view");
@@ -270,6 +275,16 @@
   const segmentCommandMessage = document.querySelector("#segment-command-message");
   const reservationDepartureForm = document.querySelector("#reservation-departure-form");
   const reservationRoomMoveForm = document.querySelector("#reservation-room-move-form");
+  const reservationBookingForm = document.querySelector("#reservation-booking-form");
+  const reservationBookingOptions = document.querySelector("#reservation-booking-options");
+  const reservationBookingCommit = document.querySelector("#reservation-booking-commit");
+  const reservationBookingSelectionText = document.querySelector("#reservation-booking-selection");
+  const reservationBookingHoldText = document.querySelector("#reservation-booking-hold");
+  const reservationBookingHoldAction = document.querySelector("#reservation-booking-hold-action");
+  const reservationBookingDirect = document.querySelector("#reservation-booking-direct");
+  const reservationBookingHeld = document.querySelector("#reservation-booking-held");
+  const reservationBookingMessage = document.querySelector("#reservation-booking-message");
+  const reservationBookingConfirmation = document.querySelector("#reservation-booking-confirmation");
   const SYSTEM_STATUS_SUFFIX = "/system-status";
   const MAX_MINOR = BigInt("9223372036854775807");
 
@@ -360,9 +375,16 @@
     reservationGuestData = null;
     reservationLifecycleData = null;
     reservationSegmentData = null;
+    reservationBookingOffers = [];
+    reservationBookingSelection = null;
+    reservationBookingHold = null;
+    reservationBookingDraft = null;
+    reservationBookingSearchGeneration += 1;
     reservationGuestForm.hidden = true;
     reservationLifecycleEditor.hidden = true;
     reservationSegmentEditor.hidden = true;
+    reservationBookingCommit.hidden = true;
+    reservationBookingOptions.replaceChildren();
     reservationGuestList.replaceChildren();
     loadPriceCorrectionButton.hidden = true;
     rateCorrectionForm.hidden = true;
@@ -2840,10 +2862,15 @@
       profileKey: offer.unit_type.profile_key,
       maxOccupancy: offer.unit_type.max_occupancy,
       ratePlanCode: offer.rate_plan.code,
+      ratePlanId: offer.rate_plan.id,
       ratePlanName: offer.rate_plan.name,
       currency: offer.rate_plan.currency,
       perNight: offer.per_night,
       total: offer.total,
+      stay: offer.stay,
+      promise: offer.promise,
+      commitArbitrationRequired: offer.commit_arbitration_required,
+      evidence: offer.evidence,
       policies: offer.policies,
       availableCount: offer.available_count,
       bookable: offer.bookable,
@@ -2853,6 +2880,157 @@
         spaceId: block.space_id,
       })),
     };
+  }
+
+  function clearReservationBookingSelection() {
+    reservationBookingSelection = null;
+    reservationBookingHold = null;
+    reservationBookingCommit.hidden = true;
+    reservationBookingHeld.hidden = true;
+    reservationBookingDirect.hidden = false;
+    reservationBookingHoldAction.hidden = false;
+    reservationBookingConfirmation.hidden = true;
+  }
+
+  function selectReservationBookingOffer(offer) {
+    reservationBookingSelection = offer;
+    reservationBookingHold = null;
+    reservationBookingSelectionText.textContent = `${offer.sellableUnitName} · ${offer.ratePlanCode} · ${offer.total.currency} ${offer.total.amount_minor} minor units ${offer.total.kind} · promise=false · commit_arbitration_required=true`;
+    reservationBookingHoldText.textContent = "No hold. Direct commit will re-arbitrate occupancy.";
+    reservationBookingHeld.hidden = true;
+    reservationBookingDirect.hidden = false;
+    reservationBookingHoldAction.hidden = false;
+    reservationBookingMessage.textContent = "Selected from server evidence. Commit remains the inventory promise.";
+    reservationBookingMessage.classList.remove("error");
+    reservationBookingConfirmation.hidden = true;
+    reservationBookingCommit.hidden = false;
+    reservationBookingCommit.tabIndex = -1;
+    reservationBookingCommit.focus();
+  }
+
+  function renderReservationBookingOffers(options, issues) {
+    reservationBookingOffers = options;
+    reservationBookingOptions.replaceChildren();
+    clearReservationBookingSelection();
+    for (const offer of options) {
+      const card = document.createElement("label");
+      card.className = `card booking-offer ${offer.bookable ? "" : "is-blocked"}`;
+      const radio = document.createElement("input");
+      radio.type = "radio";
+      radio.name = "reservationBookingOffer";
+      radio.disabled = offer.bookable !== true || offer.promise !== false || offer.commitArbitrationRequired !== true || offer.total === null;
+      radio.addEventListener("change", () => { if (radio.checked) selectReservationBookingOffer(offer); });
+      const copy = document.createElement("span");
+      copy.className = "booking-offer-copy";
+      const title = document.createElement("strong");
+      title.textContent = `${offer.sellableUnitName} · ${offer.unitTypeCode} · ${offer.ratePlanCode}`;
+      const truth = document.createElement("span");
+      truth.textContent = offer.total
+        ? `${offer.total.currency} ${offer.total.amount_minor} minor units ${offer.total.kind} · ${offer.availableCount} physically free`
+        : `${offer.state}${offer.reason ? ` · ${offer.reason}` : ""} · no price offered`;
+      const evidence = document.createElement("span");
+      evidence.textContent = `promise=${String(offer.promise)} · commit_arbitration_required=${String(offer.commitArbitrationRequired)} · ${offer.evidence?.availability_ref || "no availability evidence"}`;
+      copy.append(title, truth, evidence);
+      card.append(radio, copy);
+      reservationBookingOptions.append(card);
+    }
+    for (const issue of issues) {
+      const item = document.createElement("div");
+      item.className = "card booking-offer is-blocked";
+      item.textContent = `${issue.unit_type_code} · ${issue.rate_plan_code} · ${issue.reason}`;
+      reservationBookingOptions.append(item);
+    }
+    if (options.length === 0 && issues.length === 0) emptyList(reservationBookingOptions, "No server offers matched this search.");
+    reservationBookingOptions.tabIndex = -1;
+    reservationBookingOptions.focus();
+  }
+
+  function reservationBookingChildAges(value) {
+    if (value.trim() === "") return [];
+    const ages = value.split(",").map((part) => Number(part.trim()));
+    if (ages.length > 30 || ages.some((age) => !Number.isSafeInteger(age) || age < 0 || age > 17)) {
+      throw new Error("Child ages must be comma-separated whole numbers from 0 to 17.");
+    }
+    return ages;
+  }
+
+  async function placeReservationBookingHold() {
+    if (!reservationBookingSelection || !reservationBookingDraft) return;
+    const body = {
+      sellableUnitId: reservationBookingSelection.sellableUnitId,
+      from: reservationBookingSelection.stay.from,
+      to: reservationBookingSelection.stay.to,
+      holderReference: `booking:${reservationBookingDraft.primaryPartyId}`,
+    };
+    const identity = `reservation-booking-hold:${propertySelect.value}:${JSON.stringify(body)}`;
+    const key = pendingKeys.get(identity) || crypto.randomUUID();
+    pendingKeys.set(identity, key);
+    reservationBookingHoldAction.disabled = true;
+    reservationBookingMessage.classList.remove("error");
+    reservationBookingMessage.textContent = "Protecting this offer for ten minutes…";
+    try {
+      const result = await request(`/api/v1/properties/${encodeURIComponent(propertySelect.value)}/holds`, {
+        method: "POST", headers: { "idempotency-key": key }, body: JSON.stringify(body),
+      });
+      pendingKeys.delete(identity);
+      reservationBookingHold = result.hold;
+      reservationBookingHoldText.textContent = `Temporary hold ${result.hold.id} · expires ${result.hold.expiresAt}. This is not a reservation.`;
+      reservationBookingHeld.hidden = false;
+      reservationBookingDirect.hidden = true;
+      reservationBookingHoldAction.hidden = true;
+      reservationBookingMessage.classList.remove("error");
+      reservationBookingMessage.textContent = "Temporary protection committed. Complete held reservation before expiry.";
+    } catch (error) {
+      reservationBookingMessage.textContent = error instanceof Error ? error.message : "Hold could not be placed";
+      reservationBookingMessage.classList.add("error");
+    } finally {
+      reservationBookingHoldAction.disabled = false;
+    }
+  }
+
+  async function commitReservationBooking(useHold) {
+    if (!reservationBookingSelection || !reservationBookingDraft) return;
+    const offer = reservationBookingSelection;
+    const body = {
+      propertyNode: propertySelect.value,
+      primaryPartyId: reservationBookingDraft.primaryPartyId,
+      ratePlanId: offer.ratePlanId,
+      adults: reservationBookingDraft.adults,
+      childAges: reservationBookingDraft.childAges,
+      channelCode: reservationBookingDraft.channelCode,
+      ...(useHold
+        ? { holdId: reservationBookingHold?.id || "" }
+        : { direct: { sellableUnitId: offer.sellableUnitId, from: offer.stay.from, to: offer.stay.to } }),
+    };
+    const identity = `reservation-booking-commit:${JSON.stringify(body)}`;
+    const key = pendingKeys.get(identity) || crypto.randomUUID();
+    pendingKeys.set(identity, key);
+    const button = useHold ? reservationBookingHeld : reservationBookingDirect;
+    button.disabled = true;
+    reservationBookingMessage.classList.remove("error");
+    reservationBookingMessage.textContent = "Committing through authoritative occupancy…";
+    try {
+      const result = await request("/api/v1/reservations:commit", {
+        method: "POST", headers: { "idempotency-key": key }, body: JSON.stringify(body),
+      });
+      pendingKeys.delete(identity);
+      reservationBookingMessage.classList.remove("error");
+      reservationBookingMessage.textContent = "Reservation confirmed by the server. Financial and document workflows remain separate.";
+      reservationBookingConfirmation.querySelector("strong").textContent = result.reservation.confirmationNo;
+      reservationBookingConfirmation.querySelector("small").textContent = `Status ${result.reservation.status} · reservation ${result.reservation.reservationId}`;
+      reservationBookingConfirmation.hidden = false;
+      reservationBookingConfirmation.focus();
+      reservationBookingHold = null;
+      reservationBookingSelection = null;
+      reservationBookingDirect.hidden = true;
+      reservationBookingHeld.hidden = true;
+      reservationBookingHoldAction.hidden = true;
+    } catch (error) {
+      reservationBookingMessage.textContent = error instanceof Error ? error.message : "Reservation could not be committed";
+      reservationBookingMessage.classList.add("error");
+    } finally {
+      button.disabled = false;
+    }
   }
 
   function renderOptions(options, summary) {
@@ -2998,6 +3176,56 @@
     }
   });
 
+  reservationBookingForm.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const searchGeneration = ++reservationBookingSearchGeneration;
+    const property = propertySelect.value;
+    const button = reservationBookingForm.querySelector("button[type=submit]");
+    button.disabled = true;
+    formMessage(reservationBookingForm, "Resolving complete server offers…");
+    reservationBookingOptions.replaceChildren();
+    clearReservationBookingSelection();
+    try {
+      const fields = new FormData(reservationBookingForm);
+      const fromValue = String(fields.get("from") || "");
+      const toValue = String(fields.get("to") || "");
+      const from = new Date(`${fromValue}Z`);
+      const to = new Date(`${toValue}Z`);
+      if (!Number.isFinite(from.getTime()) || !Number.isFinite(to.getTime()) || from >= to) {
+        throw new Error("Choose a valid positive UTC stay period.");
+      }
+      const childAges = reservationBookingChildAges(String(fields.get("childAges") || ""));
+      reservationBookingDraft = {
+        primaryPartyId: String(fields.get("primaryPartyId") || ""),
+        adults: Number(fields.get("adults")),
+        childAges,
+        channelCode: String(fields.get("channelCode") || ""),
+      };
+      const result = await request(`/api/v1/properties/${encodeURIComponent(property)}/availability:search`, {
+        method: "POST",
+        body: JSON.stringify({
+          stay: { from: from.toISOString(), to: to.toISOString() },
+          party: { adults: reservationBookingDraft.adults, children: childAges.map((age) => ({ age })) },
+          channel: reservationBookingDraft.channelCode,
+        }),
+      });
+      if (searchGeneration !== reservationBookingSearchGeneration || property !== propertySelect.value) return;
+      const options = result.options.map(workbenchOption);
+      renderReservationBookingOffers(options, result.issues || []);
+      formMessage(reservationBookingForm, `${options.filter(({ bookable }) => bookable).length} bookable server offer(s). Selection is guidance; commit rechecks occupancy.`);
+    } catch (error) {
+      if (searchGeneration !== reservationBookingSearchGeneration || property !== propertySelect.value) return;
+      reservationBookingDraft = null;
+      formMessage(reservationBookingForm, error instanceof Error ? error.message : "Offers could not be resolved", true);
+    } finally {
+      button.disabled = false;
+    }
+  });
+
+  reservationBookingHoldAction.addEventListener("click", () => void placeReservationBookingHold());
+  reservationBookingDirect.addEventListener("click", () => void commitReservationBooking(false));
+  reservationBookingHeld.addEventListener("click", () => void commitReservationBooking(true));
+
   reservationSegmentLookupForm.addEventListener("submit", async (event) => {
     event.preventDefault();
     const button = reservationSegmentLookupForm.querySelector("button[type=submit]");
@@ -3005,6 +3233,10 @@
     formMessage(reservationSegmentLookupForm, "Finding exact segment history…");
     reservationSegmentEditor.hidden = true;
     reservationSegmentData = null;
+    reservationBookingOffers = [];
+    reservationBookingSelection = null;
+    reservationBookingHold = null;
+    reservationBookingDraft = null;
     try {
       await loadReservationSegments(true);
       formMessage(reservationSegmentLookupForm, "Segment history loaded from server truth.");
@@ -3140,6 +3372,7 @@
   reservationPrimaryShare.addEventListener("input", updateReservationShareTotal);
 
   propertySelect.addEventListener("change", () => {
+    reservationBookingSearchGeneration += 1;
     if (propertySelect.value) history.replaceState(null, "", `/p/${propertySelect.value}/${activeView}`);
     if (activeView === "inventory") void loadInventory();
     if (activeView === "availability") {
@@ -3155,6 +3388,12 @@
     reservationGuestForm.hidden = true;
     reservationLifecycleEditor.hidden = true;
     reservationSegmentEditor.hidden = true;
+    reservationBookingCommit.hidden = true;
+    reservationBookingOptions.replaceChildren();
+    reservationBookingOffers = [];
+    reservationBookingSelection = null;
+    reservationBookingHold = null;
+    reservationBookingDraft = null;
     reservationGuestList.replaceChildren();
   });
   for (const tab of navigation) tab.addEventListener("click", () => setView(tab.dataset.view));

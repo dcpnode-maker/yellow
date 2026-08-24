@@ -215,6 +215,42 @@
               <p class="muted">Find exact server truth before changing metadata, lifecycle state or guest allocation. Every command remains tenant and property scoped.</p>
             </div>
           </div>
+          <section class="reservation-booking-panel" aria-labelledby="reservation-booking-title">
+            <div class="panel-heading"><div>
+              <h3 id="reservation-booking-title">New reservation</h3>
+              <p class="muted">Search complete server offers, optionally protect one for ten minutes, then commit through PostgreSQL occupancy. Confirmation does not imply payment, tax finalization, a folio, journal or fiscal document.</p>
+            </div></div>
+            <form class="card reservation-booking-form" id="reservation-booking-form">
+              <fieldset class="progressive-fields">
+                <legend>Stay and existing guest identity</legend>
+                <div class="reservation-field-grid">
+                  <label>Stay starts (UTC)<input name="from" type="datetime-local" step="0.001" required></label>
+                  <label>Stay ends (UTC)<input name="to" type="datetime-local" step="0.001" required></label>
+                  <label>Primary Party ID<input name="primaryPartyId" required pattern="[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}" autocomplete="off"></label>
+                  <label>Adults<input name="adults" type="number" min="1" max="32767" value="1" required></label>
+                  <label>Child ages (comma-separated)<input name="childAges" inputmode="numeric" placeholder="6, 10"></label>
+                  <label>Channel code<input name="channelCode" value="direct" maxlength="64" pattern="[A-Za-z0-9][A-Za-z0-9._-]{0,63}" required></label>
+                </div>
+              </fieldset>
+              <button class="primary" type="submit">Search complete offers</button>
+              <p class="form-message" role="status" aria-live="polite">Offers are read-only evidence, not promised inventory.</p>
+            </form>
+            <div class="reservation-booking-options" id="reservation-booking-options" aria-live="polite"></div>
+            <div class="card reservation-booking-commit" id="reservation-booking-commit" hidden>
+              <h4>Selected server offer</h4>
+              <p id="reservation-booking-selection"></p>
+              <p id="reservation-booking-hold">No hold. Direct commit will re-arbitrate occupancy.</p>
+              <div class="option-actions">
+                <button class="secondary" id="reservation-booking-hold-action" type="button">Hold for 10 minutes</button>
+                <button class="primary" id="reservation-booking-direct" type="button">Commit directly</button>
+                <button class="primary" id="reservation-booking-held" type="button" hidden>Commit held reservation</button>
+              </div>
+              <p class="form-message" id="reservation-booking-message" role="status" aria-live="polite"></p>
+              <div class="booking-confirmation" id="reservation-booking-confirmation" hidden tabindex="-1">
+                <span>Server confirmation</span><strong></strong><small></small>
+              </div>
+            </div>
+          </section>
           <section class="reservation-segments-panel" aria-labelledby="reservation-segments-title">
             <div class="panel-heading"><div>
               <h3 id="reservation-segments-title">Stay segments</h3>

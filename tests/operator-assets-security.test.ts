@@ -228,3 +228,26 @@ test("Order 098 correction: loaded departure round-trips through a DST fold", as
     else process.env.TZ = priorTimezone;
   }
 });
+
+test("Order 099 P1/P4: booking journey renders server truth without browser promise authority", async () => {
+  const html = await Bun.file(new URL("../src/http/operator/index.html", import.meta.url)).text();
+  const css = await Bun.file(new URL("../src/http/operator/operator.css", import.meta.url)).text();
+  const script = await Bun.file(new URL("../src/http/operator/operator.js", import.meta.url)).text();
+  expect(html).toContain('id="reservation-booking-form"');
+  expect(html).toContain('id="reservation-booking-options"');
+  expect(html).toContain('id="reservation-booking-confirmation"');
+  expect(html).toContain("Offers are read-only evidence, not promised inventory.");
+  expect(html).toContain("Confirmation does not imply payment, tax finalization, a folio, journal or fiscal document.");
+  expect(css).toContain(".reservation-booking-form input, .reservation-booking-form button, .reservation-booking-commit button { min-height: 44px; }");
+  expect(script).toContain("function renderReservationBookingOffers(options, issues)");
+  expect(script).toContain("offer.bookable !== true");
+  expect(script).toContain("offer.promise !== false");
+  expect(script).toContain("offer.commitArbitrationRequired !== true");
+  expect(script).toContain("/availability:search");
+  expect(script).toContain("/api/v1/reservations:commit");
+  expect(script).toContain("Temporary hold");
+  expect(script).toContain("result.reservation.confirmationNo");
+  expect(script).not.toMatch(/Math\.round|\.toFixed|parseFloat/);
+  expect(script).not.toMatch(/innerHTML|outerHTML|insertAdjacentHTML|localStorage|sessionStorage|document\.cookie/);
+  expect(script).not.toMatch(BROWSER_SQL_SYNTAX);
+});
