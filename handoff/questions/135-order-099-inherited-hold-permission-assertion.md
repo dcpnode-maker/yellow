@@ -12,3 +12,10 @@ Order 099 forbids seed and out-of-scope test changes. May a later corrective ord
 contract while retaining all original hold permissions and browser-authority checks?
 Order 099 will not silently widen scope; its hold evidence records P1–P6 as green and the
 stale inherited P7 discrepancy explicitly.
+
+## Answer
+
+Yes. Order 100 performed the test-only correction after an intentional fresh-database
+red. The exact equality now requires all original seventeen inventory/rate permissions
+plus the six independently approved guest/lifecycle/segment permissions. All seven
+Order 055 cases pass without production, seed, role or permission changes.

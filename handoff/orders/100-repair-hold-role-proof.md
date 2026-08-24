@@ -23,6 +23,7 @@ production, seed, permissions, migrations and runtime behavior remain byte-equiv
 
 - `tests/operator-holds.integration.test.ts`
 - this order, `handoff/questions/135-order-099-inherited-hold-permission-assertion.md`,
+  `handoff/questions/136-order-100-fresh-hold-proof-database.md`,
   `handoff/PHASE-4-PLAN.md`, `handoff/LEDGER.md`, `DECISIONS.log`
 - `src/project-status.ts` and `tests/founder-status.integration.test.ts` only after green
 
@@ -70,6 +71,13 @@ Focused assets, typecheck, 59-file boundaries, standing, protected hashes and a 
 
 - [x] Order exists before implementation.
 - [x] Intentional P0 red is committed before correction.
-- [ ] Exact current 23-permission role assertion passes.
-- [ ] Complete Order 055 suite and standing gates pass.
-- [ ] Question 135 is answered; scope is exact.
+- [x] Exact current 23-permission role assertion passes.
+- [x] Complete Order 055 suite and standing gates pass.
+- [x] Question 135 is answered; scope is exact.
+
+## Evidence
+
+On distinct fresh PostgreSQL, Order 055 passed 7/7 with 48 assertions. Typecheck,
+59-file boundaries and standing 131/0 with 1,659 assertions passed; the final fresh
+84-table referee passed 11/11. Only the named test assertion and governance/status files
+changed. Migration 0001 and the invariant referee hashes remained exact.
