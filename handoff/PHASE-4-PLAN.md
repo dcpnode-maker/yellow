@@ -1,0 +1,112 @@
+# Phase 4 plan — Honest reservations from search to committed stay
+
+**Product direction:** `BUILD-PLAN.md` Phase 4, `docs/CONTRACTS.md` §2–§4 and
+`docs/STATE-MACHINES.md` §1/§6  
+**Baseline entering this phase:** Orders 028–031 provide the canonical inventory graph, audited
+holds and PostgreSQL truth search. Orders 047 and 070 provide durable HTTP idempotency and
+reproducible stay quotes. Orders 045–082 remain explicit Gate-3 review debt; Phase 4 builds on
+their preserved contracts without claiming independent approval.
+
+**Current status:** Orders 045–091 were independently discharged at D-294; Order 093 reconciled
+the executable founder-status boundary and is independently approved. Orders 087/088 are historical
+sequence gaps under D-293. Order 094 independently approved the narrow database prerequisite;
+Order 095 now owns the atomic guest/share product command.
+Order 096 exposes that command through distinct property-scoped operator read/write
+permissions and an accessible confirmation-driven workbench.
+Order 097 exposes the approved metadata, cancellation and reinstatement commands through
+their own property-scoped lifecycle permissions and the same operator shell.
+Order 098 owns the operator segment-history, departure-change and immediate same-type
+room-move workbench over the approved Order 086 commands.
+Order 099 owns the staff-facing complete offer, optional cart hold and held/direct
+reservation commit workbench over the approved Order 055/082/084 HTTP contracts.
+Order 100 repairs the inherited Order 055 exact-role proof after approved reservation
+permissions evolved. Order 101 owns the independently approved tenant-safe Party
+search/create domain. Order 102 now owns its strict operator HTTP surface, explicit
+duplicate-review UX and server Party-id handoff into the existing booking journey.
+
+## Product promise
+
+A hotel may configure rate, cancellation, deposit, guarantee, assignment and operational policy,
+but a reservation becomes real only when PostgreSQL grants occupancy through the one existing
+choke point. Search is evidence, a hold is temporary arbitration, and commit is the atomic promise.
+No user preference, AI proposal, projection, cache or operator screen can bypass that boundary.
+
+Every reservation keeps stable confirmation identity while stay legs are immutable in meaning:
+room moves create a new segment, and date changes on the same unit release and re-record occupancy
+inside one transaction. Guests and sharers are explicit parties; `share_pct` is configurable but
+validated. Alerts and waitlist offers assist staff without creating hidden booking authority.
+
+## Canonical flow
+
+1. **Search** — return bounded bookable options with rate, policy, restriction and availability
+   evidence. It is never a promise and never reads browser-computed truth.
+2. **Hold** — reserve one exact sellable configuration for at most 900 seconds through the existing
+   `HoldService` and occupancy choke. Expiry/release remain audited and kind-separated.
+3. **Commit** — atomically convert an active hold, or directly arbitrate an exact option, into one
+   reservation and one or more segments. Exact retries replay through the kernel idempotency store.
+4. **Operate** — modify, cancel, reinstate, move, extend and shorten only through the exhaustive
+   state/segment rules, re-arbitrating occupancy where required.
+5. **Assist** — manage guests/shares, alerts and waitlist offers with explicit windows and no
+   implicit confirmation.
+
+## Hotel choices versus mandatory guardrails
+
+Hotels may configure applicable policies, channel/market/source codes, guest/sharer allocation,
+assignment timing, waitlist priority and offer windows, and approval-backed operational overrides.
+The UI and AI layer may propose those values through the same typed commands.
+
+Hotels may not disable or redefine tenant/RLS boundaries, exact idempotency, occupancy arbitration,
+reservation lifecycle legality, immutable audit/outbox evidence, journal balance, statutory guest
+requirements, fiscal/tax obligations or country-required retention. A requested configuration that
+crosses that envelope must be rejected with a clear reason rather than silently approximated.
+
+## Requirement-to-order matrix
+
+| Order | Tier | Deliverable | Canonical requirements | Pre-registered proof focus |
+|---:|---:|---|---|---|
+| 080 | 2 | Executable reservation state contract | Exact statuses, transitions, guards and events from `STATE-MACHINES.md` | Markdown-to-code equality; all unlisted pairs fail closed |
+| 081 | 3 | Atomic hold-to-reservation commit service | Active hold consumption, reservation/segment/guest creation, occupancy transfer, exact idempotency | Rollback at every injected boundary; hold and segment can never both own the claim |
+| 082 | 3 | Direct commit and racing-commit HTTP contract | `POST /reservations:commit`, 201/409, positional bounded retry, tenant/property authorization | Last-unit race yields exactly one 201; no partial reservation/fact/event on losers |
+| 083 | 2 | Review-seed fixture isolation and inherited Gate-3 coverage | Preserve founder demo data while legacy proofs request only their explicit fixture; run all five inherited suites in isolated CI | Order 050 empty-state proof restored; thirteen suites migrate/run/clean independently |
+| 084 | 3 | Complete availability offer search | Contract §2 option shape with published rate, policy, restriction and truth availability evidence | Search cannot promise inventory; stale projection/cache cannot authorize commit |
+| 085 | 3 | Modify, cancel and reinstate commands | Diff evidence, policy/approval boundary, occupancy release/re-arbitration, exact events | Invalid transitions and failed re-arbitration roll back; reinstate cannot overbook |
+| 086 | 3 | Segment move, extend and shorten | Move creates next segment; same-unit date change releases/re-records atomically | No gap/double claim; failed destination leaves original segment untouched |
+| 087 | 2 | Guests, shares, alerts and waitlist offers | `reservation_guest`, bounded `share_pct`, alerts, explicit offer window | Shares validate exactly; an expired/declined offer never creates a reservation |
+| 088 | 3 | Founder reservation workbench and reproducible Phase-4 gate | Search → hold → commit → lifecycle inspection using canonical services | Clean-checkout database gate, hostile browser inputs, accessibility, no client authority |
+| 094 | 3 | Reservation-guest DELETE privilege solo gate | Forward migration enabling exact non-primary guest replacement through the existing tenant RLS boundary | Exact ACL; app-role tenant A delete cannot affect tenant B; protected DELETE denials unchanged |
+| 095 | 3 | Atomic reservation guest/share command | Preserve primary guest, validate explicit 100.00 share splits and replace bounded non-primary membership through one idempotent audited command | Exact replacement/replay; concurrent lists never mix; tenant/party/share boundaries and publisher rollback are mutation-free |
+| 096 | 3 | Operator reservation guest/share workbench | Exact confirmation lookup plus property-scoped read/write guest permissions and one accessible server-authoritative editor | HTTP authority/shape/replay/rollback; responsive labelled dynamic form with no client mutation or persisted guest/token data |
+| 097 | 3 | Operator reservation lifecycle workbench | Exact confirmation lookup plus metadata modification, cancellation and occupancy-rearbitrated reinstatement | Strict lifecycle permissions; approval-required cancellation boundary; race/rollback and accessible server-derived actions |
+| 098 | 3 | Operator reservation segment-change workbench | Exact segment history plus departure change and immutable immediate same-type room move | Strict segment permissions; expected-value conflicts; occupancy race/rollback and accessible server-derived actions |
+| 099 | 3 | Operator reservation booking workbench | Complete server offer → optional ten-minute hold → held/direct commit | Server-only bookability; last-room race/replay/rollback and honest accessible confirmation |
+| 100 | 1 | Repair inherited hold-role proof | Reconcile Order 055's exact role assertion with approved Orders 096–098 scopes | Exact 23-scope equality; all seven live hold cases; no seed/product mutation |
+| 101 | 3 | Tenant-safe Party search/create | Existing Party/contact/role primitives plus duplicate review and `party.created` | PII-minimized search; concurrent duplicate review; atomic replay/rollback; tenant-leading indexes |
+| 102 | 3 | Operator Party search/create | Strict profile permissions and accessible existing-vs-distinct Party flow into booking | Tenant/property authority; masked duplicate review; replay/rollback; stale-response and no-persistence UI proof |
+
+The order numbers reserve sequence only. Each order requires a fresh schema/decision preflight,
+an exact Scope and Forbidden section, an intentional red proof, and a Natural-Solution Test before
+it authorizes implementation.
+
+## Required preflight for every implementation order
+
+1. Re-read the immutable reservation, segment, guest, hold, occupancy, fact and outbox schema.
+2. Search `DECISIONS.log` before choosing any state, event, persistence or arbitration behavior.
+3. Name every transition, event and occupancy effect in the order. A migration, journal/fiscal
+   effect, new state/event or alternate occupancy path hits the D-92 hard floor.
+4. Reuse `HoldService`, `AvailabilityService`, `RateQuoteService`, `PostgresIdempotency`, tenant
+   transactions, facts and outbox. Do not create a reservation-only substitute.
+5. Commit the intentional red before implementation and restart a proof from the top after any
+   assertion or precondition correction.
+
+## Phase exit evidence
+
+- Search → hold → commit returns one durable reservation whose occupancy ownership transfers
+  atomically from hold to segment and whose exact retry does not duplicate anything.
+- Two direct commits racing for the last exclusive unit yield exactly one 201 and one 409
+  `conflict/occupancy`; positional capacity retries only within the documented bound.
+- Modify, cancel, reinstate, move, extend and shorten match the executable state contract and
+  preserve occupancy under rollback and concurrency.
+- Guest/share, alert and waitlist behavior remains tenant-scoped, bounded, audited and explicit.
+- The complete Phase-4 gate runs from a clean checkout against fresh isolated databases, while the
+  founder can inspect the same capabilities at localhost without that persistent stack becoming
+  proof authority.

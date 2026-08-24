@@ -19,20 +19,36 @@ been wrong. F1, F6 and F8 were all the same shape: correct-looking code that not
 exercised, on a surface that mattered. None of them were caught by reviewing routine work
 more often.
 
-## The cadence rule (D-87)
+## The cadence rule (D-92 — supersedes D-87's batching)
 
-**Tier 1 and Tier 2 orders batch — up to five per review gate.** Codex implements them
-consecutively without stopping, then requests one review.
+**Codex implements an entire phase without stopping**, then requests one review at the
+phase exit gate.
 
-**A Tier 3 order is a solo gate.** Nothing batches with it, and nothing after it starts
-until it is reviewed. Tier 3 = migrations, occupancy claim logic, journal/posting, fiscal
-chains, RLS, tenant scoping, document numbering, and any change to
-`tests/run_invariants.py`.
+**Tier 3 no longer blocks mid-phase.** Instead every Tier-3 order carries a
+**pre-registered proof**: the order states in advance the exact executable test that would
+fail if the invariant broke. Codex produces that proof; if it passes and scope held,
+Codex continues. The architect re-executes every pre-registered proof at the exit gate.
 
-**A batch ends immediately** — mid-order if necessary — on any Forbidden-list violation,
-any invariant question, or any **assertion** failure in the self-check. Codex writes
-`handoff/questions/NNN.md` and waits. Stopping early is never penalised; continuing past
-one of these is the only unrecoverable mistake in this process.
+The architect's effort moved from back-loaded review to front-loaded specification. What
+caught F1, F6 and F8 was never review *frequency* — it was someone specifying what
+execution had to prove. Writing that into the order is cheaper than discovering its
+absence afterwards.
+
+### The hard floor — these stop the phase immediately
+
+Write `handoff/questions/NNN.md` and wait:
+
+- any edit to an existing file under `migrations/`
+- any edit to `tests/run_invariants.py`
+- the referee dropping below `11 passed, 0 failed`
+- **any pre-registered proof that fails** — never weaken an assertion to get green
+- any Forbidden-list item, any invariant question, any new dependency
+
+Those are the irreversible or invariant-defining surfaces. Everything else is recoverable
+at a phase gate.
+
+Stopping early is never penalised. Continuing past a floor item is the only
+unrecoverable mistake in this process.
 
 **Precondition failures are different and do not stop the batch (D-88).** If a check
 could not *execute* — a tool or dependency is absent, a container is not running, a host
@@ -73,12 +89,14 @@ proves nothing regressed.
 1. Codex pushes the branch and writes `handoff/questions/NNN-review-request.md`: the
    order/commit table, the self-check output, and one line per order saying what its DoD
    test proved.
-2. Founder tells Claude: **"review NNN"**. Nothing else — Claude reads the repo.
-3. Claude re-runs the proofs first-hand (D-84), writes the verdict to `handoff/reviews/`,
-   commits, pushes.
-4. Founder tells Codex: **"read review NNN"**.
+2. For high-risk work, Codex assigns a concrete review to an independent agent that
+   did not implement the change.
+3. The reviewer re-runs the proofs first-hand (D-84), writes the verdict to
+   `handoff/reviews/`, and records exact commands/results.
+4. Codex repairs findings under a new bounded order or integrates approved work.
 
-Two short messages per batch instead of two per order.
+Routine work does not wait for a review cycle once its relevant gates pass. Claude is
+used only if the founder explicitly invokes Claude.
 
 ## What Codex decides alone, and what it must ask
 

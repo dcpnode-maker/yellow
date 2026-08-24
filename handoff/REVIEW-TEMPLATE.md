@@ -1,6 +1,6 @@
 # REVIEW NNN — <slug>
 
-**PR:** #NN · **Reviewed by:** Claude Fable 5 · **Date:**
+**PR:** #NN · **Reviewed by:** independent non-implementing agent · **Date:**
 **Verdict:** APPROVED | CHANGES-REQUIRED
 
 ## Battery

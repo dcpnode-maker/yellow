@@ -1,0 +1,1110 @@
+<!doctype html>
+<html lang="en" data-theme="apple">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="color-scheme" content="light">
+    <title>Yellow · Operator Workbench</title>
+    <link rel="stylesheet" href="/assets/operator.css">
+    <script src="/assets/operator.js" defer></script>
+  </head>
+  <body>
+    <a class="skip-link" href="#main">Skip to workbench</a>
+    <header class="app-bar">
+      <div class="brand" aria-label="Yellow Hospitality OS">
+        <span class="brand-mark" aria-hidden="true">Y</span>
+        <span><strong>Yellow</strong><small>Operator Workbench</small></span>
+      </div>
+      <div class="app-actions">
+        <label class="theme-control"><span>Appearance</span>
+          <select id="theme-select" aria-label="Appearance">
+            <option value="apple">Apple calm</option>
+            <option value="pixel">Pixel expressive</option>
+          </select>
+        </label>
+        <div class="session-state" id="session-state">Local review · signed out</div>
+      </div>
+    </header>
+
+    <main id="main">
+      <section class="login-layout" id="login-view" aria-labelledby="login-title">
+        <div class="welcome-panel">
+          <p class="eyebrow">Hospitality operations, without the maze</p>
+          <h1 id="login-title">See what can sell—and why.</h1>
+          <p class="lede">This local workbench reads Yellow’s real PostgreSQL inventory truth. It never invents availability or hides a blocker.</p>
+          <ul class="truth-list">
+            <li><span>01</span> Physical capacity stays distinct from commercial rules.</li>
+            <li><span>02</span> Restrictions and maintenance causes remain visible.</li>
+            <li><span>03</span> Every request runs inside the authenticated tenant boundary.</li>
+          </ul>
+        </div>
+
+        <form class="card login-card" id="login-form">
+          <div>
+            <p class="eyebrow">Staff access</p>
+            <h2>Sign in</h2>
+            <p class="muted">Local review only. Reloading signs you out.</p>
+          </div>
+          <label>Hotel account
+            <input name="tenant" autocomplete="organization" required maxlength="63" placeholder="yellow-demo">
+          </label>
+          <label>Email
+            <input name="email" type="email" autocomplete="username" required maxlength="254" placeholder="operator@yellow.local">
+          </label>
+          <label>Password
+            <input name="password" type="password" autocomplete="current-password" required maxlength="1024">
+          </label>
+          <button class="primary" type="submit">Enter workbench</button>
+          <p class="form-message" id="login-message" role="status" aria-live="polite"></p>
+        </form>
+      </section>
+
+      <section class="workbench" id="workbench-view" hidden aria-labelledby="workbench-title">
+        <div class="workbench-head">
+          <div>
+            <p class="eyebrow">Property workbench</p>
+            <h1 id="workbench-title">Availability</h1>
+            <p class="muted" id="operator-name"></p>
+          </div>
+          <button class="quiet" id="sign-out" type="button">Sign out</button>
+        </div>
+
+        <div class="domain-bar card">
+          <nav class="domain-nav" aria-label="Workbench domains">
+            <button class="domain-tab is-active" id="nav-availability" type="button" data-view="availability">Availability</button>
+            <button class="domain-tab" id="nav-inventory" type="button" data-view="inventory">Inventory setup</button>
+            <button class="domain-tab" id="nav-operations" type="button" data-view="operations">Operations</button>
+            <button class="domain-tab" id="nav-reservations" type="button" data-view="reservations">Reservations</button>
+            <button class="domain-tab" id="nav-folios" type="button" data-view="folios">Folios</button>
+            <button class="domain-tab" id="nav-restrictions" type="button" data-view="restrictions">Restrictions</button>
+            <button class="domain-tab" id="nav-rates" type="button" data-view="rates">Rates</button>
+            <button class="domain-tab" id="nav-status" type="button" data-view="status">Project status</button>
+          </nav>
+          <label>Property
+            <select name="property" id="property-select" required></select>
+          </label>
+        </div>
+
+        <section id="status-view" hidden aria-labelledby="status-title">
+          <div class="section-heading status-heading">
+            <div>
+              <p class="eyebrow">Founder visibility</p>
+              <h2 id="status-title">Project progress and system health</h2>
+              <p class="muted">Recorded delivery evidence and live local checks are deliberately separate.</p>
+            </div>
+            <button class="quiet" id="refresh-status" type="button">Refresh live checks</button>
+          </div>
+
+          <div class="status-summary-grid">
+            <section class="card status-progress-card" aria-labelledby="roadmap-progress-title">
+              <p class="status-source">Recorded build snapshot</p>
+              <h3 id="roadmap-progress-title">Roadmap position</h3>
+              <strong class="status-number" id="status-order">—</strong>
+              <p class="muted" id="status-roadmap-copy">Loading committed phase evidence…</p>
+              <progress id="roadmap-progress" max="13" value="0">0 of 13 phases reached</progress>
+              <p class="status-denominator">Position is measured against 13 named BUILD-PLAN phases—not a subjective completion estimate.</p>
+            </section>
+            <section class="card status-progress-card" aria-labelledby="review-progress-title">
+              <p class="status-source">Recorded independent review</p>
+              <h3 id="review-progress-title">Review coverage</h3>
+              <strong class="status-number" id="status-reviewed">—</strong>
+              <p class="muted" id="status-review-copy">Loading independent-review evidence…</p>
+              <progress id="review-progress" max="64" value="0">0 of 64 orders independently reviewed</progress>
+              <p class="status-denominator">Builder-green work stays UNVERIFIED until the independent reviewer executes its proofs.</p>
+            </section>
+            <section class="card status-progress-card" aria-labelledby="proof-gate-title">
+              <p class="status-source">Required executable gate</p>
+              <h3 id="proof-gate-title">Invariant referee</h3>
+              <strong class="status-number" id="status-referee">—</strong>
+              <p class="muted">The dashboard records the required result. It does not run or silently claim the referee itself.</p>
+              <p class="status-denominator" id="status-recorded-at">Snapshot date —</p>
+            </section>
+          </div>
+
+          <section class="card status-phase-panel" aria-labelledby="phase-map-title">
+            <div class="panel-heading">
+              <div><h3 id="phase-map-title">Phase map</h3><p class="muted">Reviewed, builder-unverified, active and planned are different states.</p></div>
+            </div>
+            <ol class="status-phase-list" id="status-phase-list"></ol>
+          </section>
+
+          <section aria-labelledby="live-health-title">
+            <div class="section-heading compact-heading">
+              <div>
+                <p class="eyebrow">Live service checks</p>
+                <h2 id="live-health-title">This localhost process</h2>
+                <p class="muted">Green here proves reachability now; it does not prove every feature or deferred review.</p>
+              </div>
+            </div>
+            <div class="status-health-grid" id="status-health-grid" aria-live="polite">
+              <article class="card status-health-card"><span class="status-dot unknown"></span><div><strong>Not checked</strong><p>Choose a property and refresh.</p></div></article>
+            </div>
+            <p class="inventory-status" id="status-message" role="status" aria-live="polite">Open Project status to run authenticated live checks.</p>
+          </section>
+        </section>
+
+        <section id="availability-view" aria-labelledby="availability-title">
+          <h2 class="visually-hidden" id="availability-title">Availability search</h2>
+          <form class="search-bar card" id="availability-form">
+            <label>Stay starts
+              <input name="from" type="datetime-local" required>
+            </label>
+            <label>Stay ends
+              <input name="to" type="datetime-local" required>
+            </label>
+            <label>Guests
+              <input name="partySize" type="number" min="1" max="32767" value="1" required>
+            </label>
+            <label>Holder reference
+              <input name="holderReference" maxlength="120" placeholder="Walk-in guest or cart reference">
+            </label>
+            <button class="primary search-button" type="submit">Search availability</button>
+            <p class="timezone-note">Times are converted from this browser to exact UTC instants. A ten-minute hold protects inventory temporarily; it is not a reservation.</p>
+          </form>
+
+          <div class="summary-row" aria-live="polite">
+            <p id="result-summary">Choose a stay and search.</p>
+            <span class="legend"><i class="dot available"></i> Bookable <i class="dot blocked"></i> Blocked <i class="dot warning"></i> Warning</span>
+          </div>
+          <div class="result-grid" id="results"></div>
+          <section class="card active-holds-panel" aria-labelledby="active-holds-heading">
+            <div class="panel-heading">
+              <div><h2 id="active-holds-heading">Active holds</h2><p class="muted">Live temporary inventory protection for this property.</p></div>
+              <button class="quiet compact" id="refresh-holds" type="button">Refresh</button>
+            </div>
+            <div class="restriction-list" id="active-hold-list"></div>
+            <p class="inventory-status" id="hold-status" role="status" aria-live="polite">Search availability or refresh to load active holds.</p>
+          </section>
+          <section class="card offline-capacity-panel" aria-labelledby="offline-capacity-heading">
+            <div class="panel-heading">
+              <div>
+                <p class="step">Degraded-operation preparation</p>
+                <h2 id="offline-capacity-heading">Offline capacity</h2>
+                <p class="muted">Explicitly reserve one searched room for a known hotel device before connectivity may fail.</p>
+              </div>
+              <button class="quiet compact" id="refresh-offline-leases" type="button">Refresh</button>
+            </div>
+            <form class="offline-lease-form" id="offline-lease-form">
+              <label>Available configuration
+                <select id="offline-lease-sellable" name="sellableUnitId" required disabled>
+                  <option value="">Search bookable availability first</option>
+                </select>
+              </label>
+              <label>Stable device ID
+                <input name="deviceId" required maxlength="128" pattern="[A-Za-z0-9][A-Za-z0-9._:-]{0,127}" placeholder="front-desk-tablet-01">
+              </label>
+              <label>Device label (optional)
+                <input name="deviceLabel" maxlength="120" placeholder="Front desk tablet">
+              </label>
+              <label>Lease duration (hours)
+                <input name="leaseHours" type="number" min="1" max="168" step="1" value="8" required>
+              </label>
+              <button class="secondary" type="submit">Prepare offline capacity</button>
+              <p class="form-message" role="status" aria-live="polite"></p>
+            </form>
+            <p class="field-note offline-boundary">Reservation creation and offline synchronization are not implemented yet. This only reserves capacity; release it when the device no longer needs protection.</p>
+            <div class="restriction-list" id="offline-lease-list"></div>
+            <p class="inventory-status" id="offline-lease-status" role="status" aria-live="polite">Search availability or refresh to load active offline capacity.</p>
+          </section>
+        </section>
+
+        <section id="reservations-view" hidden aria-labelledby="reservations-title">
+          <div class="section-heading">
+            <div>
+              <p class="eyebrow">Reservation operations</p>
+              <h2 id="reservations-title">Reservation lifecycle and guests</h2>
+              <p class="muted">Find exact server truth before changing metadata, lifecycle state or guest allocation. Every command remains tenant and property scoped.</p>
+            </div>
+          </div>
+          <section class="reservation-booking-panel" aria-labelledby="reservation-booking-title">
+            <div class="panel-heading"><div>
+              <h3 id="reservation-booking-title">New reservation</h3>
+              <p class="muted">Search complete server offers, optionally protect one for ten minutes, then commit through PostgreSQL occupancy. Party creation/profile merge, deposits and public guest booking remain separate later workflows. This workbench now supports canonical Party search and creation only; editing, merge, anonymisation, guest 360, consent and verification remain later workflows. Confirmation does not imply payment, tax finalization, a folio, journal or fiscal document.</p>
+            </div></div>
+            <section class="card party-profile-panel" aria-labelledby="party-profile-title">
+              <div class="party-profile-heading">
+                <div>
+                  <h4 id="party-profile-title">Find or create Party</h4>
+                  <p class="field-note">Search tenant Party truth for this granted property. Contact hints are masked; selecting or creating a Party does not create a reservation.</p>
+                </div>
+                <button class="quiet" id="party-profile-clear" type="button" hidden>Change Party</button>
+              </div>
+              <div id="party-profile-picker">
+                <form id="party-profile-search-form" class="party-profile-search-form">
+                  <label for="party-profile-query">Name, Party ID, email or phone
+                    <input id="party-profile-query" name="query" required minlength="2" maxlength="120" autocomplete="off">
+                  </label>
+                  <button class="secondary" type="submit">Search Parties</button>
+                  <p class="form-message" role="status" aria-live="polite">Search terms are sent in the request body and are not saved in this browser.</p>
+                </form>
+                <div class="party-profile-results" id="party-profile-results" role="region" aria-label="Party search results" aria-live="polite"></div>
+                <details class="party-profile-create" id="party-profile-create">
+                  <summary>Create a new canonical Party</summary>
+                  <form id="party-profile-create-form">
+                    <div class="reservation-field-grid">
+                      <label for="party-profile-kind">Party kind
+                        <select id="party-profile-kind" name="kind" required>
+                          <option value="person">Person</option>
+                          <option value="org">Organisation</option>
+                        </select>
+                      </label>
+                      <label for="party-profile-display-name">Display name
+                        <input id="party-profile-display-name" name="displayName" required maxlength="200" autocomplete="off">
+                      </label>
+                      <label for="party-profile-legal-name">Legal name (optional)
+                        <input id="party-profile-legal-name" name="legalName" maxlength="300" autocomplete="off">
+                      </label>
+                    </div>
+                    <fieldset class="party-profile-roles">
+                      <legend>Roles</legend>
+                      <label><input type="checkbox" name="roles" value="guest" checked> Guest</label>
+                      <label><input type="checkbox" name="roles" value="company"> Company</label>
+                      <label><input type="checkbox" name="roles" value="agent"> Agent</label>
+                      <label><input type="checkbox" name="roles" value="source"> Source</label>
+                      <label><input type="checkbox" name="roles" value="vendor"> Vendor</label>
+                      <label><input type="checkbox" name="roles" value="owner"> Owner</label>
+                      <label><input type="checkbox" name="roles" value="staff"> Staff</label>
+                      <label><input type="checkbox" name="roles" value="contact"> Contact</label>
+                    </fieldset>
+                    <fieldset class="party-profile-contacts">
+                      <legend>Contact details (optional)</legend>
+                      <p class="field-note">These values are sent only to create the Party. Search and duplicate review show masked hints.</p>
+                      <label for="party-profile-email">Email
+                        <input id="party-profile-email" name="email" type="email" maxlength="254" autocomplete="off">
+                      </label>
+                      <label for="party-profile-phone">Phone
+                        <input id="party-profile-phone" name="phone" type="tel" maxlength="16" pattern="\+[1-9][0-9]{6,14}" placeholder="+919876543210" title="Use E.164 format, beginning with plus and country code" autocomplete="off">
+                      </label>
+                      <label for="party-profile-whatsapp">WhatsApp
+                        <input id="party-profile-whatsapp" name="whatsapp" type="tel" maxlength="16" pattern="\+[1-9][0-9]{6,14}" placeholder="+919876543210" title="Use E.164 format, beginning with plus and country code" autocomplete="off">
+                      </label>
+                    </fieldset>
+                    <button class="primary" type="submit">Review and create Party</button>
+                    <p class="form-message" role="status" aria-live="polite">Creation is separate from booking and never merges another profile.</p>
+                  </form>
+                </details>
+                <section class="party-duplicate-review" id="party-duplicate-review" hidden aria-labelledby="party-duplicate-title" tabindex="-1">
+                  <h5 id="party-duplicate-title">Review possible duplicates</h5>
+                  <p>Choose an existing masked candidate, or acknowledge every candidate before deliberately creating a distinct Party.</p>
+                  <div id="party-duplicate-candidates"></div>
+                  <label class="party-distinct-confirmation"><input id="party-create-distinct-confirm" type="checkbox"> I reviewed every current candidate and intend to create a distinct Party.</label>
+                  <button class="secondary" id="party-create-distinct" type="button" disabled>Create distinct Party</button>
+                  <p class="form-message" id="party-duplicate-message" role="status" aria-live="assertive"></p>
+                </section>
+              </div>
+              <div class="party-profile-selected" id="party-profile-selected" hidden tabindex="-1">
+                <span>Selected server Party</span><strong></strong><small></small>
+              </div>
+            </section>
+            <form class="card reservation-booking-form" id="reservation-booking-form">
+              <fieldset class="progressive-fields">
+                <legend>Stay and selected Party</legend>
+                <div class="reservation-field-grid">
+                  <label>Stay starts (UTC)<input name="from" type="datetime-local" step="0.001" required></label>
+                  <label>Stay ends (UTC)<input name="to" type="datetime-local" step="0.001" required></label>
+                  <label>Primary Party ID (server selected)<input name="primaryPartyId" required readonly pattern="[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}" autocomplete="off" aria-describedby="party-profile-title"></label>
+                  <label>Adults<input name="adults" type="number" min="1" max="32767" value="1" required></label>
+                  <label>Child ages (comma-separated)<input name="childAges" inputmode="numeric" placeholder="6, 10"></label>
+                  <label>Channel code<input name="channelCode" value="direct" maxlength="64" pattern="[A-Za-z0-9][A-Za-z0-9._-]{0,63}" required></label>
+                </div>
+              </fieldset>
+              <button class="primary" type="submit">Search complete offers</button>
+              <p class="form-message" role="status" aria-live="polite">Offers are read-only evidence, not promised inventory.</p>
+            </form>
+            <div class="reservation-booking-options" id="reservation-booking-options" aria-live="polite"></div>
+            <div class="card reservation-booking-commit" id="reservation-booking-commit" hidden>
+              <h4>Selected server offer</h4>
+              <p id="reservation-booking-selection"></p>
+              <p id="reservation-booking-hold">No hold. Direct commit will re-arbitrate occupancy.</p>
+              <div class="option-actions">
+                <button class="secondary" id="reservation-booking-hold-action" type="button">Hold for 10 minutes</button>
+                <button class="primary" id="reservation-booking-direct" type="button">Commit directly</button>
+                <button class="primary" id="reservation-booking-held" type="button" hidden>Commit held reservation</button>
+              </div>
+              <p class="form-message" id="reservation-booking-message" role="status" aria-live="polite"></p>
+              <div class="booking-confirmation" id="reservation-booking-confirmation" hidden tabindex="-1">
+                <span>Server confirmation</span><strong></strong><small></small>
+              </div>
+            </div>
+          </section>
+          <section class="reservation-segments-panel" aria-labelledby="reservation-segments-title">
+            <div class="panel-heading"><div>
+              <h3 id="reservation-segments-title">Stay segments</h3>
+              <p class="muted">Inspect immutable stay-leg history, change the latest departure, or move an in-house stay immediately. Server time and PostgreSQL occupancy remain authoritative.</p>
+            </div></div>
+            <form class="card reservation-lookup" id="reservation-segment-lookup-form">
+              <label>Confirmation number
+                <input name="confirmationNo" required maxlength="120" autocomplete="off" placeholder="Y-…">
+              </label>
+              <button class="primary" type="submit">Find segments</button>
+              <p class="form-message" role="status" aria-live="polite">Enter the exact confirmation number.</p>
+            </form>
+            <div class="card reservation-segment-editor" id="reservation-segment-editor" hidden>
+              <div class="reservation-summary">
+                <div><span>Confirmation</span><strong id="segment-confirmation">—</strong></div>
+                <div><span>Server status</span><strong id="segment-reservation-status">—</strong></div>
+              </div>
+              <ol class="reservation-segment-history" id="reservation-segment-history" aria-label="Ordered stay segment history"></ol>
+              <p class="form-message" id="segment-command-message" role="status" aria-live="polite"></p>
+              <form id="reservation-departure-form" hidden>
+                <fieldset class="progressive-fields">
+                  <legend>Change latest departure</legend>
+                  <p class="field-note">Choose the new departure in UTC. Yellow preserves the exact server instant and loaded segment period; a concurrent change will conflict.</p>
+                  <label>New departure date and time (UTC)
+                    <input name="newDeparture" type="datetime-local" step="0.001" required>
+                  </label>
+                </fieldset>
+                <button class="primary" type="submit">Change departure</button>
+              </form>
+              <form id="reservation-room-move-form" hidden>
+                <fieldset class="progressive-fields">
+                  <legend>Move room now</legend>
+                  <p class="field-note">The server chooses the move instant. This list is operator guidance only; the command rechecks same room type, physical shape and live occupancy.</p>
+                  <label>Destination room
+                    <select name="destinationSellableUnitId" required></select>
+                  </label>
+                </fieldset>
+                <button class="secondary" type="submit">Move room now</button>
+              </form>
+            </div>
+          </section>
+          <section class="reservation-lifecycle-panel" aria-labelledby="reservation-lifecycle-title">
+            <div class="panel-heading"><div>
+              <h3 id="reservation-lifecycle-title">Stay lifecycle</h3>
+              <p class="muted">Modify approved metadata, cancel under frozen booking policy, or reinstate only when PostgreSQL can reclaim occupancy.</p>
+            </div></div>
+            <form class="card reservation-lookup" id="reservation-lifecycle-lookup-form">
+              <label>Confirmation number
+                <input name="confirmationNo" required maxlength="120" autocomplete="off" placeholder="Y-…">
+              </label>
+              <button class="primary" type="submit">Find lifecycle</button>
+              <p class="form-message" role="status" aria-live="polite">Enter the exact confirmation number.</p>
+            </form>
+            <div class="card reservation-lifecycle-editor" id="reservation-lifecycle-editor" hidden>
+              <div class="reservation-summary">
+                <div><span>Confirmation</span><strong id="lifecycle-confirmation">—</strong></div>
+                <div><span>Server status</span><strong id="lifecycle-status">—</strong></div>
+              </div>
+              <p class="form-message lifecycle-command-message" id="lifecycle-command-message" role="status" aria-live="polite"></p>
+              <form id="reservation-metadata-form">
+                <fieldset class="progressive-fields">
+                  <legend>Approved metadata</legend>
+                  <p class="field-note">Only changed fields are sent with their exact loaded values, so a concurrent edit cannot be overwritten silently.</p>
+                  <label>Notes<textarea name="notes" maxlength="4000" rows="3" placeholder="Operational notes"></textarea></label>
+                  <div class="reservation-field-grid">
+                    <label>Arrival time with offset<input name="eta" placeholder="15:00:00+05:30" pattern="[0-9]{2}:[0-9]{2}:[0-9]{2}(?:Z|[+-][0-9]{2}(?::?[0-9]{2})?)"></label>
+                    <label>Departure time with offset<input name="etd" placeholder="11:00:00+05:30" pattern="[0-9]{2}:[0-9]{2}:[0-9]{2}(?:Z|[+-][0-9]{2}(?::?[0-9]{2})?)"></label>
+                    <label>Market code<input name="marketCode" maxlength="64" pattern="[A-Za-z0-9][A-Za-z0-9._-]{0,63}"></label>
+                    <label>Source code<input name="sourceCode" maxlength="64" pattern="[A-Za-z0-9][A-Za-z0-9._-]{0,63}"></label>
+                    <label>Origin code<input name="originCode" maxlength="64" pattern="[A-Za-z0-9][A-Za-z0-9._-]{0,63}"></label>
+                  </div>
+                </fieldset>
+                <button class="primary" type="submit">Save changed metadata</button>
+                <p class="form-message" role="status" aria-live="polite"></p>
+              </form>
+              <form class="reservation-cancel-form" id="reservation-cancel-form">
+                <fieldset class="progressive-fields">
+                  <legend>Cancellation</legend>
+                  <p class="field-note">Yellow evaluates the frozen booking policy. A penalty or legacy booking requires an exact approved waiver from a different operator; this screen cannot approve one.</p>
+                  <label>Cancellation reason<textarea name="reason" required maxlength="500" rows="2"></textarea></label>
+                  <label>Approved waiver ID (only if already approved)<input name="approvalId" pattern="[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}"></label>
+                </fieldset>
+                <button class="secondary" type="submit">Cancel reservation</button>
+                <p class="form-message" role="status" aria-live="polite"></p>
+              </form>
+              <div class="reservation-reinstate-panel" id="reservation-reinstate-panel" hidden>
+                <p>Reinstatement rechecks the original rooms against live occupancy. It can fail if inventory is no longer available.</p>
+                <button class="primary" id="reservation-reinstate" type="button">Reinstate reservation</button>
+                <p class="form-message" role="status" aria-live="polite"></p>
+              </div>
+            </div>
+          </section>
+          <section class="reservation-guests-panel" aria-labelledby="reservation-guests-title">
+          <div class="panel-heading"><div>
+            <h3 id="reservation-guests-title">Guests and shares</h3>
+            <p class="muted">Guest occurrence and exact sharing remain separate from lifecycle and Party identity.</p>
+          </div></div>
+          <form class="card reservation-lookup" id="reservation-lookup-form">
+            <label>Confirmation number
+              <input name="confirmationNo" required maxlength="120" autocomplete="off" placeholder="Y-…">
+            </label>
+            <button class="primary" type="submit">Find reservation</button>
+            <p class="form-message" role="status" aria-live="polite">Enter the exact confirmation number.</p>
+          </form>
+          <form class="card reservation-guest-editor" id="reservation-guest-form" hidden>
+            <div class="reservation-summary">
+              <div><span>Confirmation</span><strong id="reservation-confirmation">—</strong></div>
+              <div><span>Status</span><strong id="reservation-status">—</strong></div>
+            </div>
+            <fieldset class="progressive-fields">
+              <legend>Primary guest</legend>
+              <p class="field-note">Primary guest cannot be removed. Enter a percentage only when at least one sharer exists.</p>
+              <label>Party ID
+                <input id="reservation-primary-party" readonly aria-readonly="true">
+              </label>
+              <label>Primary share (%)
+                <input id="reservation-primary-share" inputmode="decimal" placeholder="Example: 60.00" pattern="(?:0\.(?:0[1-9]|[1-9][0-9])|[1-9][0-9]?\.[0-9]{2}|100\.00)">
+              </label>
+            </fieldset>
+            <fieldset class="progressive-fields">
+              <legend>Other guests</legend>
+              <p class="field-note">Accompanying guests have no share. Sharer percentages plus the primary percentage must total exactly 100.00.</p>
+              <div id="reservation-guest-list" class="reservation-guest-list"></div>
+              <button class="quiet compact" id="add-reservation-guest" type="button">Add guest</button>
+            </fieldset>
+            <div class="reservation-share-total" id="reservation-share-total" aria-live="polite">No sharers · primary share must stay empty.</div>
+            <button class="primary" type="submit">Save guest allocation</button>
+            <p class="form-message" role="status" aria-live="polite"></p>
+          </form>
+          </section>
+        </section>
+
+        <section id="folios-view" hidden aria-labelledby="folios-title">
+          <div class="section-heading">
+            <div>
+              <p class="eyebrow">Guest ledger evidence</p>
+              <h2 id="folios-title">Folio statement</h2>
+              <p class="muted">Read immutable guest-side postings and, when authorized, add one governed untaxed charge. This is not tax calculation, invoicing, payment, settlement, fiscalization or checkout.</p>
+            </div>
+          </div>
+
+          <form class="card folio-lookup" id="folio-statement-lookup-form">
+            <label for="folio-reference">Folio reference
+              <input id="folio-reference" name="reference" required maxlength="120" autocomplete="off" placeholder="FOL-…">
+            </label>
+            <button class="primary" type="submit">Find folio</button>
+            <p class="form-message" role="status" aria-live="polite">Enter the exact human-readable folio reference.</p>
+          </form>
+
+          <section class="folio-statement card" id="folio-statement" hidden aria-labelledby="folio-statement-title" tabindex="-1">
+            <div class="folio-summary">
+              <div><span>Reference</span><strong id="folio-statement-title">—</strong></div>
+              <div><span>Window</span><strong id="folio-window">—</strong></div>
+              <div><span>Status</span><strong id="folio-status">—</strong></div>
+              <div><span>Currency</span><strong id="folio-currency">—</strong></div>
+              <div><span>Server balance (minor units)</span><strong id="folio-balance" tabindex="-1">—</strong></div>
+              <div><span>Immutable lines</span><strong id="folio-line-count">—</strong></div>
+            </div>
+
+            <div class="folio-table-wrap" role="region" aria-labelledby="folio-lines-caption" tabindex="0">
+              <table class="folio-lines">
+                <caption id="folio-lines-caption">Immutable folio statement · newest postings first</caption>
+                <thead><tr>
+                  <th scope="col">Business date</th>
+                  <th scope="col">Posted (UTC)</th>
+                  <th scope="col">Kind</th>
+                  <th scope="col">Code</th>
+                  <th scope="col">Description</th>
+                  <th scope="col">Quantity</th>
+                  <th scope="col">Signed amount (minor)</th>
+                  <th scope="col">Running balance (minor)</th>
+                </tr></thead>
+                <tbody id="folio-statement-rows"></tbody>
+              </table>
+            </div>
+            <button class="quiet" id="folio-load-older" type="button" hidden>Load older postings</button>
+            <p class="inventory-status" id="folio-page-status" role="status" aria-live="polite"></p>
+            <p class="form-message error" id="folio-error" role="alert" aria-live="assertive"></p>
+
+            <form class="folio-charge-form" id="folio-charge-form">
+              <fieldset id="folio-charge-fields">
+                <legend>Add an untaxed charge</legend>
+                <p class="field-note" id="folio-charge-availability">Charge availability comes from current server truth.</p>
+                <label for="folio-charge-code">Governed charge code
+                  <select id="folio-charge-code" name="txCode" required></select>
+                </label>
+                <label for="folio-charge-amount">Amount (minor units)
+                  <input id="folio-charge-amount" name="amountMinor" required inputmode="numeric" pattern="[1-9][0-9]*" maxlength="19" autocomplete="off" placeholder="12500">
+                </label>
+                <label for="folio-charge-quantity">Quantity (optional)
+                  <input id="folio-charge-quantity" name="quantity" inputmode="decimal" pattern="[1-9][0-9]*(?:\.[0-9]+)?" maxlength="40" autocomplete="off" placeholder="1">
+                </label>
+                <label class="folio-charge-confirmation"><input id="folio-charge-confirm" type="checkbox"> I understand this irreversibly posts an untaxed charge. Corrections require a new posting.</label>
+                <button class="primary" id="folio-charge-submit" type="submit" disabled>Post untaxed charge</button>
+              </fieldset>
+              <p class="form-message" role="status" aria-live="assertive"></p>
+            </form>
+          </section>
+        </section>
+
+        <section id="inventory-view" hidden aria-labelledby="inventory-title">
+          <div class="section-heading">
+            <div>
+              <p class="eyebrow">Configuration</p>
+              <h2 id="inventory-title">Rooms and sellable inventory</h2>
+              <p class="muted">Build in order: room type, physical space, then sellable unit. Every save is audited and safe to retry.</p>
+            </div>
+            <button class="quiet" id="refresh-inventory" type="button">Refresh</button>
+          </div>
+
+          <div class="metric-grid" id="inventory-metrics" aria-live="polite">
+            <div class="metric"><strong id="unit-type-count">—</strong><span>Room types</span></div>
+            <div class="metric"><strong id="space-count">—</strong><span>Physical spaces</span></div>
+            <div class="metric"><strong id="sellable-count">—</strong><span>Sellable units</span></div>
+          </div>
+
+          <section class="card projection-panel" aria-labelledby="projection-heading">
+            <div class="panel-heading">
+              <div>
+                <p class="step">Read acceleration</p>
+                <h3 id="projection-heading">Availability projection horizon</h3>
+                <p class="field-note">Choose the exact dates this hotel wants precomputed. This disposable projection accelerates reads and never authorizes holds or bookings.</p>
+              </div>
+              <button class="quiet compact" id="refresh-projection" type="button">Refresh status</button>
+            </div>
+            <div class="projection-summary" id="projection-summary" aria-live="polite">No status loaded.</div>
+            <form class="projection-rebuild-form" id="projection-rebuild-form">
+              <label>First stay date<input id="projection-from-date" name="fromDate" type="date" required></label>
+              <label>End date (not included)<input id="projection-to-date" name="toDate" type="date" required></label>
+              <button class="secondary" type="submit">Rebuild selected horizon</button>
+              <p class="form-message" role="status" aria-live="polite"></p>
+            </form>
+          </section>
+
+          <div class="inventory-columns">
+            <section class="inventory-panel card" aria-labelledby="unit-types-heading">
+              <h3 id="unit-types-heading">Room types</h3>
+              <div class="inventory-list" id="unit-type-list"></div>
+            </section>
+            <section class="inventory-panel card" aria-labelledby="spaces-heading">
+              <h3 id="spaces-heading">Physical spaces</h3>
+              <div class="inventory-list" id="space-list"></div>
+            </section>
+            <section class="inventory-panel card" aria-labelledby="sellables-heading">
+              <h3 id="sellables-heading">Sellable units</h3>
+              <div class="inventory-list" id="sellable-list"></div>
+            </section>
+          </div>
+
+          <form class="card bulk-room-form" id="bulk-room-form">
+            <div class="bulk-room-heading">
+              <div>
+                <p class="step">Fast hotel setup</p>
+                <h3>Create many ordinary rooms</h3>
+                <p class="field-note">Preview 1–200 explicit room codes, then create one physical room and one exclusive sellable unit for each. Dorm beds, parking and composite inventory use the individual controls below.</p>
+              </div>
+              <span class="restriction-count" id="bulk-room-count" aria-label="Rooms in preview">0</span>
+            </div>
+            <div class="bulk-room-controls">
+              <label>Room type<select name="unitTypeId" id="bulk-room-unit-type" required></select></label>
+              <label>Build list by<select name="mode" id="bulk-room-mode" required>
+                <option value="range">Number range</option>
+                <option value="paste">Paste room codes</option>
+              </select></label>
+              <label>Common floor (optional)<input name="floor" maxlength="64" placeholder="3"></label>
+            </div>
+            <fieldset class="progressive-fields bulk-range-fields" id="bulk-room-range-fields">
+              <legend>Range preview</legend>
+              <label>Prefix<input name="prefix" maxlength="56" placeholder="A"></label>
+              <label>Start<input name="start" type="number" min="0" max="999999" value="301" required></label>
+              <label>End<input name="end" type="number" min="0" max="999999" value="310" required></label>
+              <label>Zero-pad width<input name="pad" type="number" min="1" max="6" value="3" required></label>
+            </fieldset>
+            <fieldset class="progressive-fields" id="bulk-room-paste-fields" hidden>
+              <legend>Pasted explicit codes</legend>
+              <label>Room codes<textarea name="codes" rows="4" maxlength="13000" placeholder="A301&#10;A302&#10;A303"></textarea></label>
+              <p class="field-note">Use a new line, comma or space between codes. Duplicates and invalid identifiers are rejected before submission.</p>
+            </fieldset>
+            <div class="bulk-room-preview" id="bulk-room-preview" role="status" aria-live="polite">
+              Enter a valid range or pasted list to preview the exact rooms.
+            </div>
+            <div class="bulk-room-actions">
+              <button class="secondary" id="bulk-room-refresh-preview" type="button">Refresh preview</button>
+              <button class="primary" type="submit" disabled>Create previewed rooms</button>
+            </div>
+            <p class="form-message" role="status" aria-live="polite"></p>
+          </form>
+
+          <div class="configuration-grid">
+            <form class="configuration-form card" id="unit-type-form">
+              <p class="step">Step 1</p><h3>Create room type</h3>
+              <label>Code<input name="code" required maxlength="64" placeholder="KING"></label>
+              <label>Name<input name="name" required maxlength="200" placeholder="King Room"></label>
+              <label>Base guests<input name="baseOccupancy" type="number" min="1" max="32767" value="2" required></label>
+              <label>Maximum guests<input name="maxOccupancy" type="number" min="1" max="32767" value="2" required></label>
+              <button class="primary" type="submit">Create room type</button>
+              <p class="form-message" role="status" aria-live="polite"></p>
+            </form>
+
+            <form class="configuration-form card" id="space-form">
+              <p class="step">Step 2</p><h3>Create physical space</h3>
+              <label>Room or space code<input name="code" required maxlength="64" placeholder="301"></label>
+              <label>Floor<input name="floor" maxlength="64" placeholder="3"></label>
+              <label>Capacity<input name="capacity" type="number" min="1" max="32767" value="1" required></label>
+              <button class="primary" type="submit">Create space</button>
+              <p class="form-message" role="status" aria-live="polite"></p>
+            </form>
+
+            <form class="configuration-form card" id="sellable-unit-form">
+              <p class="step">Step 3</p><h3>Make space sellable</h3>
+              <label>Room type<select name="unitTypeId" id="sellable-unit-type" required></select></label>
+              <label>Physical space<select name="spaceId" id="sellable-space" required></select></label>
+              <label>Guest-facing name<input name="name" required maxlength="200" placeholder="Room 301"></label>
+              <button class="primary" type="submit">Create sellable unit</button>
+              <p class="form-message" role="status" aria-live="polite"></p>
+            </form>
+          </div>
+          <p class="inventory-status" id="inventory-status" role="status" aria-live="polite">Open Inventory setup to load live configuration.</p>
+        </section>
+
+        <section id="operations-view" hidden aria-labelledby="operations-title">
+          <div class="section-heading">
+            <div>
+              <p class="eyebrow">Room operations</p>
+              <h2 id="operations-title">Out of order and out of service</h2>
+              <p class="muted">Protect physical truth without hiding why a room cannot sell.</p>
+            </div>
+            <button class="quiet" id="refresh-operational-blocks" type="button">Refresh</button>
+          </div>
+          <form class="card oos-policy-form" id="oos-policy-form">
+            <div>
+              <p class="step">Hotel policy</p><h3>When a room is out of service</h3>
+              <p class="field-note">The default is blocked. Allowed means the room can remain sellable with a visible warning. Out of order is always physical removal and cannot be made sellable here.</p>
+            </div>
+            <label>OOS sellability<select name="oosSellability" id="oos-sellability" required>
+              <option value="blocked">Blocked from sale</option>
+              <option value="allowed">Allowed with warning</option>
+            </select></label>
+            <button class="secondary" type="submit">Save OOS policy</button>
+            <p class="form-message" role="status" aria-live="polite"></p>
+          </form>
+          <div class="operations-layout">
+            <section class="restriction-panel card" aria-labelledby="active-blocks-heading">
+              <div class="panel-heading">
+                <div><h3 id="active-blocks-heading">Active causes</h3><p class="muted">Current tenant-scoped PostgreSQL truth.</p></div>
+                <span class="restriction-count" id="operational-block-count">—</span>
+              </div>
+              <div class="restriction-list" id="active-block-list"></div>
+            </section>
+            <form class="configuration-form card" id="operational-block-form">
+              <p class="step">New operational cause</p><h3>Take one space out of sale</h3>
+              <label>Physical space<select name="spaceId" id="operational-block-space" required></select></label>
+              <label>Cause type<select name="kind" id="operational-block-kind" required>
+                <option value="ooo">Out of order · physically unavailable</option>
+                <option value="oos">Out of service · commercially unavailable</option>
+              </select></label>
+              <div class="cause-explainer" id="operational-block-explainer">
+                <strong>Out of order</strong> removes the physical room for the exact interval. <strong>Out of service</strong> records a commercial cause without changing physical capacity.
+              </div>
+              <div class="date-pair">
+                <label>Starts<input name="from" type="datetime-local" required></label>
+                <label>Ends (exclusive)<input name="to" type="datetime-local" required></label>
+              </div>
+              <label>Reason<textarea name="reason" required maxlength="500" rows="3" placeholder="Bathroom repair"></textarea></label>
+              <p class="field-note">Closing ends this one cause only. This view does not create maintenance tasks or change OOS policy.</p>
+              <button class="primary" type="submit">Open operational cause</button>
+              <p class="form-message" role="status" aria-live="polite"></p>
+            </form>
+          </div>
+          <p class="inventory-status" id="operational-block-status" role="status" aria-live="polite">Open Operations to load active causes.</p>
+        </section>
+
+        <section id="restrictions-view" hidden aria-labelledby="restrictions-title">
+          <div class="section-heading">
+            <div>
+              <p class="eyebrow">Sellability controls</p>
+              <h2 id="restrictions-title">Manual restrictions</h2>
+              <p class="muted">Choose when a room can be sold, arrived into, departed from, or subject to a length-of-stay or advance-booking rule.</p>
+            </div>
+            <button class="quiet" id="refresh-restrictions" type="button">Refresh</button>
+          </div>
+
+          <div class="restriction-layout">
+            <section class="restriction-panel card" aria-labelledby="active-restrictions-heading">
+              <div class="panel-heading">
+                <div><h3 id="active-restrictions-heading">Active rules</h3><p class="muted">Current tenant-scoped PostgreSQL truth.</p></div>
+                <span class="restriction-count" id="restriction-count">—</span>
+              </div>
+              <div class="restriction-list" id="restriction-list"></div>
+            </section>
+
+            <form class="configuration-form restriction-form card" id="restriction-form">
+              <p class="step">New manual rule</p>
+              <h3>Control sellability</h3>
+              <label>Rule
+                <select name="kind" id="restriction-kind" required>
+                  <option value="closed">Closed to sale</option>
+                  <option value="cta">Closed to arrival</option>
+                  <option value="ctd">Closed to departure</option>
+                  <option value="min_los">Minimum length of stay</option>
+                  <option value="max_los">Maximum length of stay</option>
+                  <option value="min_adv">Minimum advance booking</option>
+                  <option value="max_adv">Maximum advance booking</option>
+                </select>
+              </label>
+              <div class="date-pair">
+                <label>Start date<input name="stayStart" type="date" required></label>
+                <label>End date<input name="stayEnd" type="date" required></label>
+              </div>
+              <p class="field-note">End date is exclusive: a rule ending 14 June applies through 13 June.</p>
+              <label id="restriction-value-field" hidden><span id="restriction-value-label">Value</span>
+                <input name="value" type="number" min="1" max="2147483647" inputmode="numeric">
+              </label>
+              <label>Room type (optional)
+                <select name="unitTypeId" id="restriction-unit-type"><option value="">All room types</option></select>
+              </label>
+              <label>Channel (optional)
+                <input name="channelCode" maxlength="64" pattern="[A-Za-z0-9][A-Za-z0-9._-]{0,63}" placeholder="DIRECT">
+              </label>
+              <p class="field-note" id="restriction-semantics">Closed to sale blocks overlapping stays for the chosen scope.</p>
+              <button class="primary" type="submit">Create restriction</button>
+              <p class="form-message" role="status" aria-live="polite"></p>
+            </form>
+          </div>
+          <p class="inventory-status" id="restriction-status" role="status" aria-live="polite">Open Restrictions to load live rules.</p>
+        </section>
+
+        <section id="rates-view" hidden aria-labelledby="rates-title">
+          <div class="section-heading">
+            <div>
+              <p class="eyebrow">Commercial setup</p>
+              <h2 id="rates-title">Policies and rate plans</h2>
+              <p class="muted">Start simply, then compose validated cancellation, guarantee and deposit choices into each base plan.</p>
+            </div>
+            <button class="quiet" id="refresh-rates" type="button">Refresh</button>
+          </div>
+
+          <section class="rate-builder-shell card" id="rate-builder" aria-labelledby="rate-builder-title">
+            <div class="rate-builder-hero">
+              <div>
+                <p class="eyebrow">Universal rate plan flow</p>
+                <h3 id="rate-builder-title">From a simple price to a complete commercial model</h3>
+                <p class="muted">One governed builder for fixed, calendar, BAR, derived, matrix, contract, occupancy/LOS, package, RMS/API and expert rates.</p>
+              </div>
+              <div class="mode-switch" role="radiogroup" aria-label="Authoring mode">
+                <label><input type="radio" name="builder-mode" value="guided" checked><span>Guided</span></label>
+                <label><input type="radio" name="builder-mode" value="expert"><span>Expert</span></label>
+                <label><input type="radio" name="builder-mode" value="ai"><span>AI-assisted</span></label>
+              </div>
+            </div>
+
+            <ol class="builder-steps" aria-label="Rate plan builder steps">
+              <li><button class="builder-step is-active" type="button" data-builder-step="1"><b>1</b><span>Create rate</span><small>Name, plan and mode</small></button></li>
+              <li><button class="builder-step" type="button" data-builder-step="2"><b>2</b><span>Pricing</span><small>Model and exact money</small></button></li>
+              <li><button class="builder-step" type="button" data-builder-step="3"><b>3</b><span>Who gets it</span><small>Commercial eligibility</small></button></li>
+              <li><button class="builder-step" type="button" data-builder-step="4"><b>4</b><span>Where / when</span><small>Scope, dates and rules</small></button></li>
+              <li><button class="builder-step" type="button" data-builder-step="5"><b>5</b><span>Review</span><small>Preview, approve, publish</small></button></li>
+            </ol>
+
+            <div class="builder-stage" data-builder-panel="1">
+              <div class="builder-stage-heading"><p class="step">Step 1</p><h4>Choose the sellable rate identity</h4><p>Rate code, guest-facing name, currency and reusable policies stay on the base plan. This builder versions how that plan prices and applies.</p></div>
+              <div class="builder-form-grid two-up">
+                <label>Rate plan<select id="builder-plan" required><option value="">Create a base rate plan below first</option></select></label>
+                <label>Authoring experience<select id="builder-mode-select"><option value="guided">Guided · progressive choices</option><option value="expert">Expert · complete typed command</option><option value="ai">AI-assisted · reviewable proposal</option></select></label>
+              </div>
+              <section class="ai-intent-panel" id="builder-ai-panel" aria-labelledby="builder-ai-title" hidden>
+                <div class="ai-intent-heading">
+                  <div><p class="eyebrow">Deployment-selected proposal runtime</p><h5 id="builder-ai-title">Describe the commercial intent</h5></div>
+                  <span class="ai-adapter-badge" id="builder-ai-adapter">Local · deterministic</span>
+                </div>
+                <p class="field-note">Try: “Use simple fixed pricing at 14500 minor units for segment LEISURE on channel direct. Maximum 2 adults and non-refundable.” Complex or ambiguous requests return a question instead of a guess.</p>
+                <label>Rate-plan intent<textarea id="builder-ai-intent" rows="4" maxlength="2000" placeholder="Describe the exact hotel-controlled rate choices. Do not enter guest data, credentials or payment details."></textarea></label>
+                <div class="ai-intent-actions">
+                  <button class="secondary" id="builder-ai-interpret" type="button">Interpret securely</button>
+                  <button class="primary" id="builder-ai-apply" type="button" disabled>Apply proposal for review</button>
+                </div>
+                <p class="ai-intent-status" id="builder-ai-status" role="status" aria-live="polite">No intent has been interpreted. Nothing is saved automatically.</p>
+                <div class="ai-result-grid" id="builder-ai-results" hidden>
+                  <section><h6>Changes</h6><ul id="builder-ai-changes"></ul></section>
+                  <section><h6>Assumptions</h6><ul id="builder-ai-assumptions"></ul></section>
+                  <section><h6>Questions</h6><ul id="builder-ai-questions"></ul></section>
+                  <section><h6>Warnings</h6><ul id="builder-ai-warnings"></ul></section>
+                  <section class="ai-guardrails"><h6>Always enforced</h6><ul id="builder-ai-guardrails"></ul></section>
+                </div>
+                <p class="field-note">Yellow defaults to the zero-network local assistant. A deployment may connect a compatible Azure, cloud or on-prem model; the active badge identifies that untrusted proposal source. Do not enter guest data, credentials or payment details. Apply, Save, Preview, independent Approval and Publish stay separate.</p>
+              </section>
+              <div class="guardrail-banner"><strong>Always enforced</strong><span>Exact money and currency</span><span>Tenant and property access</span><span>Immutable history</span><span>Occupancy and restriction truth</span><span>Tax and fiscal safeguards</span></div>
+            </div>
+
+            <div class="builder-stage" data-builder-panel="2" hidden>
+              <div class="builder-stage-heading"><p class="step">Step 2</p><h4>Select a pricing model</h4><p>Start with a tested model, then reveal only the controls that model needs. Every option compiles into the same typed release.</p></div>
+              <div class="model-catalogue" id="builder-model-catalogue" role="radiogroup" aria-label="Pricing model"></div>
+              <div class="builder-form-grid three-up">
+                <label>Base amount · minor units<input id="builder-base-amount" inputmode="numeric" pattern="0|[1-9][0-9]*" value="12500"></label>
+                <label>Floor · minor units<input id="builder-floor" inputmode="numeric" pattern="0|[1-9][0-9]*" placeholder="Optional"></label>
+                <label>Ceiling · minor units<input id="builder-ceiling" inputmode="numeric" pattern="0|[1-9][0-9]*" placeholder="Optional"></label>
+              </div>
+              <div class="model-fields" id="builder-calendar-fields" hidden>
+                <label>Calendar cells<textarea id="builder-calendar-cells" rows="5" placeholder="2026-09-10 = 12500&#10;2026-09-11 = closed"></textarea></label>
+                <p class="field-note">One stay date per line. “closed” means this model has no price; it does not change inventory or restrictions.</p>
+              </div>
+              <div class="model-fields" id="builder-reference-fields" hidden>
+                <div class="builder-form-grid two-up">
+                  <label>Published reference release id<input id="builder-reference-id" placeholder="UUID from release history"></label>
+                  <label>Exact reference version<input id="builder-reference-version" type="number" min="1" value="1"></label>
+                </div>
+              </div>
+              <div class="model-fields" id="builder-rule-fields" hidden>
+                <h5>Typed adjustment rule</h5>
+                <div class="builder-form-grid four-up">
+                  <label>Adjustment<select id="builder-adjustment-kind"><option value="delta">Amount +/−</option><option value="basis_points">Percent in basis points</option><option value="replace">Replace amount</option></select></label>
+                  <label>Value<input id="builder-adjustment-value" inputmode="numeric" value="500"></label>
+                  <label>Stage<input id="builder-rule-stage" type="number" min="1" max="8" value="1"></label>
+                  <label>Priority<input id="builder-rule-priority" type="number" min="0" max="1000" value="10"></label>
+                </div>
+                <div class="builder-form-grid four-up">
+                  <label>BAR level<input id="builder-bar-level" maxlength="64" placeholder="BAR1"></label>
+                  <label>Booking window days<input id="builder-booking-window" type="number" min="0" placeholder="Any"></label>
+                  <label>LOS nights<input id="builder-los" type="number" min="1" placeholder="Any"></label>
+                  <label>Occupancy %<input id="builder-occupancy" type="number" min="0" max="100" placeholder="Any"></label>
+                </div>
+              </div>
+              <div class="model-fields" id="builder-rms-fields" hidden>
+                <h5>Governed RMS/API binding</h5>
+                <div class="builder-form-grid three-up">
+                  <label>Adapter key<input id="builder-rms-key" value="review-rms" pattern="[a-z0-9][a-z0-9._:-]*"></label>
+                  <label>Adapter version<input id="builder-rms-version" type="number" min="1" value="1"></label>
+                  <label>Maximum age · seconds<input id="builder-rms-age" type="number" min="1" max="86400" value="900"></label>
+                </div>
+                <p class="field-note">An unavailable or stale recommendation visibly falls back to the local evaluator. RMS never controls availability and cannot bypass floor or ceiling.</p>
+              </div>
+              <div class="model-fields" id="builder-expert-components" hidden>
+                <h5>Expert components · maximum eight</h5>
+                <div class="component-grid" id="builder-component-grid"></div>
+              </div>
+            </div>
+
+            <div class="builder-stage" data-builder-panel="3" hidden>
+              <div class="builder-stage-heading"><p class="step">Step 3</p><h4>Choose who gets this rate</h4><p>Start with a broad property rule, then add exact class, room-type, sellable or commercial exceptions. Every rule stays visible in the canonical release.</p></div>
+              <div class="target-rule-toolbar">
+                <div><strong>Applicability rules</strong><span id="builder-target-rule-count">1 of 200</span></div>
+                <button class="secondary compact" id="builder-add-target-rule" type="button">Add applicability rule</button>
+              </div>
+              <div class="target-rule-list" id="builder-target-rule-list" aria-live="polite"></div>
+              <p class="precedence-note"><strong>Deterministic inheritance:</strong> exact sellable beats room type, room type beats class, and class beats property; more commercial dimensions then higher explicit priority win. Equal top-ranked rules block publication instead of choosing silently.</p>
+            </div>
+
+            <div class="builder-stage" data-builder-panel="4" hidden>
+              <div class="builder-stage-heading"><p class="step">Step 4</p><h4>Define where and when it applies</h4><p>Physical scope, stay dates, booking window, LOS, occupancy, guest bounds, policies, packages, promotions and distribution remain explicit.</p></div>
+              <fieldset class="progressive-fields weekday-fields builder-weekdays"><legend>Days of week</legend>
+                <label><input type="checkbox" name="builder-weekday" value="1" checked> Mon</label><label><input type="checkbox" name="builder-weekday" value="2" checked> Tue</label><label><input type="checkbox" name="builder-weekday" value="4" checked> Wed</label><label><input type="checkbox" name="builder-weekday" value="8" checked> Thu</label><label><input type="checkbox" name="builder-weekday" value="16" checked> Fri</label><label><input type="checkbox" name="builder-weekday" value="32" checked> Sat</label><label><input type="checkbox" name="builder-weekday" value="64" checked> Sun</label>
+              </fieldset>
+              <div class="builder-form-grid two-up">
+                <label>First stay date<input id="builder-stay-start" type="date"></label>
+                <label>Last stay date<input id="builder-stay-end" type="date"></label>
+              </div>
+              <div class="builder-form-grid three-up">
+                <label>Minimum adults<input id="builder-min-adults" type="number" min="1" max="99" value="1"></label>
+                <label>Maximum adults<input id="builder-max-adults" type="number" min="1" max="99" value="4"></label>
+                <label>Maximum children<input id="builder-max-children" type="number" min="0" max="30" value="3"></label>
+                <label>Cancellation policy<select id="builder-cancellation-policy"><option value="">None</option></select></label>
+                <label>Deposit policy<select id="builder-deposit-policy"><option value="">None</option></select></label>
+                <label>Guarantee policy<select id="builder-guarantee-policy"><option value="">None</option></select></label>
+                <label>No-show policy<select id="builder-no-show-policy"><option value="">None</option></select></label>
+                <label>Refund treatment<select id="builder-refund-treatment"><option value="policy">Follow selected policies</option><option value="non_refundable">Non-refundable</option></select></label>
+              </div>
+              <div class="guardrail-banner"><strong>Hotel-controlled restrictions</strong><span>CTA / CTD</span><span>Minimum / maximum stay</span><span>Minimum / maximum advance</span><span>Closed to sale</span><span>Configure these in the Restrictions workspace; live quotes always enforce them.</span></div>
+              <details class="advanced-builder-group"><summary>Package, promotion and distribution</summary>
+                <div class="builder-form-grid three-up">
+                  <label>Package code<input id="builder-package-code" placeholder="BREAKFAST"></label>
+                  <label>Package amount · minor units<input id="builder-package-amount" inputmode="numeric" placeholder="1500"></label>
+                  <label>Package rhythm<select id="builder-package-rhythm"><option value="per_stay">Per stay</option><option value="per_night">Per night</option><option value="per_person">Per person</option><option value="per_person_night">Per person per night</option></select></label>
+                  <label>Promotion code<input id="builder-promotion-code" placeholder="EARLYBIRD"></label>
+                  <label>Promotion discount · basis points<input id="builder-promotion-bps" type="number" min="0" max="10000" placeholder="1000"></label>
+                  <label>Distribution<select id="builder-distribution-mode"><option value="all">All channels</option><option value="allowlist">Only listed</option><option value="denylist">All except listed</option></select></label>
+                </div>
+                <label>Distribution channel codes<textarea id="builder-distribution-channels" rows="2" placeholder="booking-com, expedia"></textarea></label>
+              </details>
+              <details class="advanced-builder-group" id="builder-expert-json-group" hidden><summary>Complete typed command</summary>
+                <p class="field-note">Expert mode can edit the same canonical JSON emitted by Guided mode. Arbitrary code, SQL, browser authority and numeric money are rejected by the server.</p>
+                <textarea id="builder-expert-json" rows="18" spellcheck="false"></textarea>
+                <button class="quiet compact" id="builder-refresh-json" type="button">Refresh from visual choices</button>
+              </details>
+            </div>
+
+            <div class="builder-stage" data-builder-panel="5" hidden>
+              <div class="builder-stage-heading"><p class="step">Step 5</p><h4>Review, preview and publish safely</h4><p>Save one immutable draft trio, simulate bulk cells on the server, request independent approval, then publish the exact approved preview.</p></div>
+              <div class="review-grid">
+                <div class="review-command card-inset"><h5>Canonical command</h5><pre id="builder-command-preview">Complete steps 1–4 to preview the command.</pre></div>
+                <div class="review-actions card-inset">
+                  <h5>Release actions</h5>
+                  <button class="primary" id="builder-save-draft" type="button">Save immutable draft</button>
+                  <label>Preview stay dates<textarea id="builder-preview-dates" rows="2" placeholder="2026-09-10, 2026-09-11"></textarea></label>
+                  <button class="secondary" id="builder-run-preview" type="button" disabled>Run server preview</button>
+                  <button class="secondary" id="builder-request-approval" type="button" disabled>Request independent approval</button>
+                  <p class="field-note">The requester cannot approve their own rate. A different authorized operator decides from the inbox below.</p>
+                </div>
+              </div>
+              <div class="simulation-summary" id="builder-simulation" aria-live="polite">No server preview has run.</div>
+              <section class="simulation-cell-panel" aria-labelledby="builder-simulation-cells-title">
+                <div class="section-heading compact-heading"><div><h5 id="builder-simulation-cells-title">Server preview cells</h5><p class="muted">Winning, matched and conflicting rules come from the server—not this browser.</p></div></div>
+                <div class="simulation-cell-list" id="builder-simulation-cells"><p class="muted">Run a server preview to inspect each bounded date cell.</p></div>
+              </section>
+              <section class="approval-inbox card-inset" aria-labelledby="builder-approval-inbox-title">
+                <div class="section-heading compact-heading">
+                  <div><h5 id="builder-approval-inbox-title">Independent approval inbox</h5><p class="muted">Pending, approved and rejected requests for this rate plan. Yellow—not the browser—decides which actions each operator may take.</p></div>
+                  <button class="quiet compact" id="builder-refresh-approvals" type="button">Refresh inbox</button>
+                </div>
+                <div class="approval-inbox-list" id="builder-approval-inbox" aria-live="polite"><p class="muted">Choose a base rate plan to load its approval history.</p></div>
+                <button class="quiet compact approval-load-more" id="builder-load-more-approvals" type="button" hidden>Load older requests</button>
+                <div class="approval-publish-bar">
+                  <div><strong id="builder-selected-approval">No approved request selected</strong><small>Only the operator who approved the latest draft may publish it, after running a fresh preview in this session.</small></div>
+                  <button class="primary" id="builder-publish" type="button" disabled>Publish exact approved version</button>
+                </div>
+              </section>
+              <div class="release-history"><div class="section-heading compact-heading"><div><h5>Immutable release history</h5><p class="muted">Inspect exact server-owned configuration, reuse it as an unsaved Expert starting point, or create an exact undo draft. Old versions never change.</p></div><button class="quiet compact" id="builder-refresh-history" type="button">Refresh</button></div><div id="builder-release-history"></div></div>
+              <div class="live-quote-panel card-inset"><h5>Published live quote evidence</h5><div class="builder-form-grid three-up"><label>Sellable<select id="builder-quote-sellable"></select></label><label>Stay start<input id="builder-quote-start" type="datetime-local"></label><label>Stay end<input id="builder-quote-end" type="datetime-local"></label></div><button class="secondary" id="builder-live-quote" type="button">Resolve live quote</button><pre id="builder-quote-result">Publish a release, then resolve a live tenant-scoped quote to see tax, policy, restriction and availability evidence.</pre></div>
+            </div>
+
+            <div class="builder-footer">
+              <p id="builder-message" role="status" aria-live="polite">Choose a base rate plan to begin.</p>
+              <div><button class="quiet" id="builder-previous" type="button" disabled>Previous</button><button class="primary" id="builder-next" type="button">Continue</button></div>
+            </div>
+          </section>
+
+          <div class="legacy-rate-heading"><div><p class="eyebrow">Existing configuration tools</p><h3>Policies, base plans and append-only price rows</h3></div><p class="muted">These focused tools remain available for direct configuration and audited corrections.</p></div>
+
+          <div class="metric-grid rate-metrics" aria-live="polite">
+            <div class="metric"><strong id="policy-count">—</strong><span>Policies</span></div>
+            <div class="metric"><strong id="rate-plan-count">—</strong><span>Base rate plans</span></div>
+            <div class="metric"><strong id="price-step-state">Exact</strong><span>Minor-unit pricing</span></div>
+          </div>
+
+          <div class="rate-lists">
+            <section class="rate-panel card" aria-labelledby="policies-heading">
+              <h3 id="policies-heading">Policy library</h3>
+              <div class="rate-list" id="policy-list"></div>
+            </section>
+            <section class="rate-panel card" aria-labelledby="rate-plans-heading">
+              <h3 id="rate-plans-heading">Base rate plans</h3>
+              <div class="rate-list" id="rate-plan-list"></div>
+            </section>
+          </div>
+
+          <div class="rate-forms">
+            <form class="configuration-form card" id="policy-form">
+              <p class="step">Step 1 · reusable choice</p><h3>Create policy</h3>
+              <label>Policy type
+                <select name="kind" id="policy-kind" required>
+                  <option value="cancellation">Cancellation</option>
+                  <option value="deposit">Deposit</option>
+                  <option value="guarantee">Guarantee</option>
+                  <option value="no_show">No show</option>
+                </select>
+              </label>
+              <label>Policy name<input name="name" required maxlength="200" placeholder="Flexible 48 hour cancellation"></label>
+
+              <fieldset class="progressive-fields" id="cancellation-policy-fields">
+                <legend>Cancellation rule</legend>
+                <label>Hours before arrival<input name="beforeHours" type="number" min="0" max="2147483647" value="48"></label>
+                <label>Penalty basis<select name="cancellationBasis"><option value="nights">Nights</option><option value="percent">Percent</option></select></label>
+                <label>Penalty value<input name="cancellationValue" type="number" min="0" value="1"></label>
+                <p class="field-note">This simple path creates one rule. The API already supports an ordered multi-rule policy for future expert mode.</p>
+              </fieldset>
+
+              <fieldset class="progressive-fields" id="deposit-policy-fields" hidden>
+                <legend>Deposit terms</legend>
+                <label>Deposit basis<select name="depositBasis" id="deposit-basis"><option value="first_night">First night</option><option value="percent">Percent</option><option value="one_month">One month</option></select></label>
+                <label id="deposit-value-field" hidden>Deposit percent<input name="depositValue" type="number" min="0" max="100" value="30"></label>
+                <label>Due<select name="depositDue" id="deposit-due"><option value="at_booking">At booking</option><option value="days_before_arrival">Days before arrival</option></select></label>
+                <label id="deposit-days-field" hidden>Days before arrival<input name="depositDays" type="number" min="0" max="2147483647" value="7"></label>
+              </fieldset>
+
+              <fieldset class="progressive-fields" id="guarantee-policy-fields" hidden>
+                <legend>Guarantee terms</legend>
+                <label>Guarantee<select name="guarantee"><option value="card_on_file">Card on file</option><option value="deposit_paid">Deposit paid</option><option value="company_letter">Company letter</option><option value="none">None</option></select></label>
+              </fieldset>
+
+              <fieldset class="progressive-fields" id="no-show-policy-fields" hidden>
+                <legend>No-show charge</legend>
+                <label>Charge basis<select name="noShowBasis"><option value="first_night">First night</option><option value="full_stay">Full stay</option></select></label>
+              </fieldset>
+
+              <button class="primary" type="submit">Create policy</button>
+              <p class="form-message" role="status" aria-live="polite"></p>
+            </form>
+
+            <form class="configuration-form card" id="rate-plan-form">
+              <p class="step">Step 2 · sellable identity</p><h3>Create base rate plan</h3>
+              <div class="date-pair">
+                <label>Code<input name="code" required maxlength="32" pattern="[A-Z0-9][A-Z0-9._-]{0,31}" placeholder="FLEX"></label>
+                <label>Currency<input name="currency" required maxlength="3" pattern="[A-Z]{3}" value="USD"></label>
+              </div>
+              <label>Guest-facing name<input name="name" required maxlength="200" placeholder="Flexible rate"></label>
+              <label class="check-field"><input name="taxInclusive" type="checkbox" checked> Taxes included in displayed rate</label>
+              <label>Cancellation policy<select name="cancellationPolicyId" id="plan-cancellation-policy"><option value="">None</option></select></label>
+              <label>Guarantee policy<select name="guaranteePolicyId" id="plan-guarantee-policy"><option value="">None</option></select></label>
+              <label>Deposit policy<select name="depositPolicyId" id="plan-deposit-policy"><option value="">None</option></select></label>
+              <div class="date-pair">
+                <label>Market code (optional)<input name="marketCode" maxlength="64" placeholder="LEISURE"></label>
+                <label>Source code (optional)<input name="sourceCode" maxlength="64" placeholder="DIRECT"></label>
+              </div>
+              <p class="field-note">Prices and derived plans are separate steps. This form cannot carry money or derivation rules.</p>
+              <button class="primary" type="submit">Create rate plan</button>
+              <p class="form-message" role="status" aria-live="polite"></p>
+            </form>
+          </div>
+
+          <div class="pricing-workspace">
+            <form class="configuration-form card" id="rate-price-form">
+              <p class="step">Step 3 · exact money</p><h3>Create append-only price</h3>
+              <p class="field-note">Exact minor units only: for a two-decimal currency, 12500 represents 125.00. Currency comes from the selected plan.</p>
+              <label>Rate plan<select name="ratePlanId" id="price-rate-plan" required></select></label>
+              <label>Room type<select name="unitTypeId" id="price-unit-type" required></select></label>
+              <div class="date-pair">
+                <label>Stay start<input name="stayStart" type="date" required></label>
+                <label>Stay end (exclusive)<input name="stayEnd" type="date" required></label>
+              </div>
+              <fieldset class="progressive-fields weekday-fields">
+                <legend>Applies on</legend>
+                <label><input type="checkbox" name="weekday" value="1" checked> Mon</label>
+                <label><input type="checkbox" name="weekday" value="2" checked> Tue</label>
+                <label><input type="checkbox" name="weekday" value="4" checked> Wed</label>
+                <label><input type="checkbox" name="weekday" value="8" checked> Thu</label>
+                <label><input type="checkbox" name="weekday" value="16" checked> Fri</label>
+                <label><input type="checkbox" name="weekday" value="32" checked> Sat</label>
+                <label><input type="checkbox" name="weekday" value="64" checked> Sun</label>
+              </fieldset>
+              <fieldset class="progressive-fields pricing-editor">
+                <legend>Occupancy tiers</legend>
+                <div class="pricing-row-list" id="create-tier-list"></div>
+                <button class="quiet compact" id="add-create-tier" type="button">Add occupancy tier</button>
+              </fieldset>
+              <label>Extra adult · minor units (optional)<input id="create-extra-adult" inputmode="numeric" pattern="0|[1-9][0-9]*"></label>
+              <fieldset class="progressive-fields pricing-editor">
+                <legend>Child age bands (optional)</legend>
+                <div class="pricing-row-list" id="create-child-list"></div>
+                <button class="quiet compact" id="add-create-child" type="button">Add child band</button>
+              </fieldset>
+              <p class="field-note">This form creates new history. To correct an existing price, find its current row below and create a locked successor.</p>
+              <button class="primary" type="submit">Create exact price</button>
+              <p class="form-message" role="status" aria-live="polite"></p>
+            </form>
+
+            <form class="configuration-form card" id="current-price-form">
+              <p class="step">PostgreSQL truth</p><h3>Find current price</h3>
+              <p class="field-note">This checks date, weekday and latest unsuperseded precedence. It is configuration truth—not a guest quote, tax calculation or availability promise.</p>
+              <label>Rate plan<select name="ratePlanId" id="current-price-plan" required></select></label>
+              <label>Room type<select name="unitTypeId" id="current-price-unit-type" required></select></label>
+              <label>Stay date<input name="stayDate" type="date" required></label>
+              <button class="secondary" type="submit">Find current price</button>
+              <div class="current-price-result" id="current-price-result" aria-live="polite">Choose a plan, room type and stay date.</div>
+              <button class="quiet" id="load-price-correction" type="button" hidden>Correct this current price</button>
+              <p class="form-message" role="status" aria-live="polite"></p>
+            </form>
+
+            <form class="configuration-form card correction-form" id="rate-correction-form" hidden>
+              <p class="step">Audited correction</p><h3>Create immutable successor</h3>
+              <p class="field-note">This creates new history and locks the source price’s plan, room type, dates, weekdays and currency. The existing row is never edited.</p>
+              <div class="locked-price-key" id="correction-key-summary"></div>
+              <fieldset class="progressive-fields pricing-editor">
+                <legend>Replacement occupancy tiers</legend>
+                <div class="pricing-row-list" id="correction-tier-list"></div>
+                <button class="quiet compact" id="add-correction-tier" type="button">Add occupancy tier</button>
+              </fieldset>
+              <label>Extra adult · minor units (optional)<input id="correction-extra-adult" inputmode="numeric" pattern="0|[1-9][0-9]*"></label>
+              <fieldset class="progressive-fields pricing-editor">
+                <legend>Replacement child age bands</legend>
+                <div class="pricing-row-list" id="correction-child-list"></div>
+                <button class="quiet compact" id="add-correction-child" type="button">Add child band</button>
+              </fieldset>
+              <button class="primary" type="submit">Create corrected successor</button>
+              <p class="form-message" role="status" aria-live="polite"></p>
+            </form>
+          </div>
+          <p class="inventory-status" id="rates-status" role="status" aria-live="polite">Open Rates to load live configuration.</p>
+        </section>
+      </section>
+    </main>
+  </body>
+</html>

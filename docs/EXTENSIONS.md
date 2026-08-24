@@ -1,9 +1,31 @@
 # EXTENSIONS.md — Extension Registry content schemas
 
-Everything configurable lives in `extension` rows, validated against the JSON Schema
-registered in `extension_type.content_schema`. **One lifecycle for all config** (draft →
-active → retired, bitemporal via fact_log). Adding a vertical, a tax regime, a policy
-kind, or a statutory country is DATA, not code — unless it needs an adapter (Tier C).
+Extensible configuration types and instances live in `extension` rows, validated
+against the JSON Schema registered in `extension_type.json_schema`. **One lifecycle for
+extension config** (draft → active → retired, bitemporal via fact_log). Adding a
+vertical, a tax regime, a policy kind, or a statutory country is DATA, not code — unless
+it needs an adapter (Tier C).
+
+Core property runtime choices that are attributes of the property itself remain in the
+typed `org_node.config` envelope and are changed only through audited domain commands;
+they are not plugin instances. Inventory currently defines
+`inventory.oos_sellability` as `blocked | allowed`, defaulting to `blocked` when absent.
+
+Rate authoring uses three related tenant extensions. `rate_plan_model` records the selected guided,
+expert or AI-authored model family; `rate_plan_target` records physical and commercial applicability;
+and `rate_plan_release` is the only atomic activation unit. Its strict content binds the exact model
+and target draft ids/versions, the canonical evaluator and composition ASTs, and an optional
+`undo_of_version`. Its required `rms_binding` is nullable; the reserved strict object contains only
+adapter key/version, maximum recommendation age and `local_evaluator` outage fallback. Order 069
+accepts only null, while Order 070 owns every proof required before the object form can be used.
+Bigint minor units inside the ASTs are JSON encoded as exact tagged decimal objects. No release
+instance is seeded: hotels create tenant drafts, simulate them, obtain approval and publish a latest
+version through the rates context.
+
+`rate_plan_release` lifecycle status is operational metadata (`draft → active → retired`); its
+content is immutable. Reverting means copying a prior active or retired snapshot into a newer draft
+that follows the same approval path. The release does not own availability, restrictions, OOO/OOS,
+tax, fiscal or journal truth, so hotel-selectable pricing cannot disable those controls.
 
 Schemas below are the launch set. Claude Code: when implementing, load these into
 `extension_type` in the Phase-1 seed migration, exactly as written.
@@ -244,6 +266,96 @@ Launch action set (each row registers one action + its params schema):
 Rules: actions are the ONLY thing automations may do (no arbitrary code); every action
 implementation is idempotent on `(automation_id, trigger_event_id)`; new verticals add
 actions by registering rows + one handler module.
+
+---
+
+## 7. `rate_model` — registered pricing-model catalogue
+
+`rate_model` is platform-global product configuration. It tells guided, expert and future AI
+authoring which model families exist; it does not calculate or publish a price.
+
+```json
+{ "$id":"pms:rate_model:1", "type":"object",
+  "required":["version","label","description","capabilities"],
+  "additionalProperties":false,
+  "properties":{
+    "version":{"type":"integer","minimum":1},
+    "label":{"type":"string"},
+    "description":{"type":"string"},
+    "capabilities":{"type":"array","items":{"type":"string"}}
+  } }
+```
+
+Launch keys are exact: `simple-fixed`, `calendar`, `bar-ladder`, `derived`,
+`room-matrix`, `occupancy-los`, `contract-negotiated`, `package`, `rms-api-managed`
+and `expert-composition`. Catalogue entries are active platform rows at version 1. Adding a key
+does not add an evaluator; executable behavior remains a separately reviewed rates-context change.
+
+---
+
+## 8. `rate_plan_model` — immutable tenant draft selection
+
+This tenant extension attaches a versioned, non-monetary model choice to an existing active
+`rate_plan`. The key is always server-derived as `rate-plan:<rate-plan-uuid>`.
+
+```json
+{ "$id":"pms:rate_plan_model:1", "type":"object",
+  "required":["property_node","rate_plan_id","model_key","model_version",
+    "authoring_mode","component_model_keys"],
+  "additionalProperties":false,
+  "properties":{
+    "property_node":{"type":"string","pattern":"^[0-9a-f-]{36}$"},
+    "rate_plan_id":{"type":"string","pattern":"^[0-9a-f-]{36}$"},
+    "model_key":{"enum":["simple-fixed","calendar","bar-ladder","derived",
+      "room-matrix","occupancy-los","contract-negotiated","package",
+      "rms-api-managed","expert-composition"]},
+    "model_version":{"type":"integer","minimum":1},
+    "authoring_mode":{"enum":["guided","expert","ai"]},
+    "component_model_keys":{"type":"array","items":{"type":"string"}}
+  } }
+```
+
+Order 065 creates only `draft` rows and one fact per version. It stores no amount, percentage,
+date rule, target or formula. Expert composition is a bounded list of registered non-expert keys.
+Activation, approval, publication and undo use later orders and the existing
+`extension.activated` event.
+
+---
+
+## 9. `rate_plan_target` — immutable applicability and commercial targeting
+
+This tenant extension records who and what an existing active rate plan is intended for. It is a
+draft input to later simulation and publication; it does not itself change a price or sellability.
+
+```json
+{
+  "$id": "pms:rate_plan_target:1",
+  "property_node": "uuid",
+  "rate_plan_id": "uuid",
+  "authoring_mode": "guided | expert | ai",
+  "rules": [{
+    "key": "stable-rule-key",
+    "effect": "include | exclude",
+    "priority": 0,
+    "physical": { "kind": "property | class | unit_type | sellable" },
+    "commercial": {}
+  }]
+}
+```
+
+Physical scope is exact: sellable beats unit type, which beats a hotel-defined class snapshot,
+which beats property. A class contains a canonical hotel code and a sorted immutable list of exact
+property-owned unit-type ids; changing membership requires a new draft version. Commercial fields
+are conjunctive and may target company, market group, market, source, channel, segment, agent and
+campaign. Company, agent and source ids are active tenant party roles. The remaining codes are
+bounded case-sensitive hotel vocabulary until a later publish/distribution boundary validates any
+external mapping.
+
+Within one physical rank, more constrained commercial fields win, followed by one uniquely higher
+explicit priority. Equal top rank/count/priority is returned as a conflict, never resolved by row,
+array, JSON-key or rule-key order. Broad `include` plus a narrower `exclude` gives explicit
+inheritance and exceptions. Creation is insert-only, audited, emits no event and stores no price,
+date condition, policy formula or publish state.
 
 ---
 

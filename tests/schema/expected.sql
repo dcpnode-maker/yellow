@@ -50,14 +50,27 @@ CREATE EXTENSION IF NOT EXISTS pgcrypto WITH SCHEMA public;
 --
 
 CREATE FUNCTION public.assert_day_open() RETURNS trigger
-    LANGUAGE plpgsql
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'pg_catalog', 'public', 'pg_temp'
     AS $$
-DECLARE v_sealed timestamptz;
+DECLARE
+  v_sealed timestamptz;
 BEGIN
-  SELECT sealed_at INTO v_sealed FROM business_day
-   WHERE property_node = NEW.property_node AND business_date = NEW.business_date;
-  IF v_sealed IS NOT NULL AND NEW.kind NOT IN ('adjustment','correction') THEN
-    RAISE EXCEPTION 'business date % sealed', NEW.business_date USING ERRCODE='P0011';
+  SELECT sealed_at
+    INTO v_sealed
+    FROM public.business_day
+   WHERE tenant_id = NEW.tenant_id
+     AND property_node = NEW.property_node
+     AND business_date = NEW.business_date
+   FOR SHARE;
+
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'business date % missing', NEW.business_date
+      USING ERRCODE = 'P0011';
+  END IF;
+  IF v_sealed IS NOT NULL AND NEW.kind NOT IN ('adjustment', 'correction') THEN
+    RAISE EXCEPTION 'business date % sealed', NEW.business_date
+      USING ERRCODE = 'P0011';
   END IF;
   RETURN NEW;
 END $$;
@@ -80,19 +93,44 @@ END $$;
 
 
 --
+-- Name: derive_posting_line_currency(); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.derive_posting_line_currency() RETURNS trigger
+    LANGUAGE plpgsql
+    AS $$
+BEGIN
+  IF NEW.currency IS NULL THEN
+    SELECT header.currency
+      INTO NEW.currency
+      FROM journal AS header
+     WHERE header.tenant_id = NEW.tenant_id
+       AND header.id = NEW.journal_id;
+  END IF;
+  RETURN NEW;
+END $$;
+
+
+--
 -- Name: expire_holds(); Type: FUNCTION; Schema: public; Owner: -
 --
 
 CREATE FUNCTION public.expire_holds() RETURNS integer
     LANGUAGE plpgsql SECURITY DEFINER
-    SET search_path TO 'public'
+    SET search_path TO 'pg_catalog', 'public', 'pg_temp'
     AS $$
-DECLARE n int := 0; r record;
+DECLARE
+  n int := 0;
+  r record;
 BEGIN
-  FOR r IN SELECT id, tenant_id FROM hold WHERE status='active' AND expires_at < now()
+  FOR r IN
+    SELECT id, tenant_id
+      FROM public.hold
+     WHERE status = 'active'
+       AND expires_at < pg_catalog.now()
   LOOP
-    PERFORM release_occupancy(r.tenant_id, r.id);
-    UPDATE hold SET status='expired' WHERE id = r.id;
+    PERFORM public.release_occupancy(r.tenant_id, r.id);
+    UPDATE public.hold SET status = 'expired' WHERE id = r.id;
     n := n + 1;
   END LOOP;
   RETURN n;
@@ -104,14 +142,26 @@ END $$;
 --
 
 CREATE FUNCTION public.prune_outbox(p_retain interval DEFAULT '30 days'::interval) RETURNS bigint
-    LANGUAGE sql SECURITY DEFINER
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'pg_catalog', 'public', 'pg_temp'
     AS $$
+DECLARE
+  n bigint;
+BEGIN
+  IF p_retain < interval '0' THEN
+    RAISE EXCEPTION 'outbox retention must be non-negative'
+      USING ERRCODE = '22023';
+  END IF;
+
   WITH gone AS (
-    DELETE FROM outbox
-     WHERE published_at IS NOT NULL AND published_at < now() - p_retain
-    RETURNING 1)
-  SELECT count(*) FROM gone;
-$$;
+    DELETE FROM public.outbox
+     WHERE published_at IS NOT NULL
+       AND published_at < pg_catalog.now() - p_retain
+    RETURNING 1
+  )
+  SELECT pg_catalog.count(*) INTO n FROM gone;
+  RETURN n;
+END $$;
 
 
 --
@@ -120,29 +170,50 @@ $$;
 
 CREATE FUNCTION public.record_occupancy(p_tenant uuid, p_space uuid, p_period tstzrange, p_slot uuid, p_slot_kind text, p_exclusive boolean) RETURNS uuid
     LANGUAGE plpgsql SECURITY DEFINER
-    SET search_path TO 'public'
+    SET search_path TO 'pg_catalog', 'public', 'pg_temp'
     AS $$
-DECLARE v_id uuid; v_cap int; v_pos int;
+DECLARE
+  v_id uuid;
+  v_cap int;
+  v_pos int;
 BEGIN
   IF p_exclusive THEN
-    INSERT INTO space_occupancy (tenant_id, space_id, period, slot_ref, slot_kind, exclusive, claim)
-    VALUES (p_tenant, p_space, p_period, p_slot, p_slot_kind, true, int4range(0, NULL))
+    INSERT INTO public.space_occupancy
+      (tenant_id, space_id, period, slot_ref, slot_kind, exclusive, claim)
+    VALUES
+      (p_tenant, p_space, p_period, p_slot, p_slot_kind, true,
+       pg_catalog.int4range(0, NULL))
     RETURNING id INTO v_id;
   ELSE
-    -- Perf aid, NOT correctness (constraint is the truth). Queue is PER SPACE, so a
-    -- property's spaces don't contend with each other; model mega-dorms as multiple
-    -- physical spaces (they are anyway). On exclusion violation the APP retries the
-    -- next position (bounded) before surfacing 409 — see CONTRACTS §2.
-    PERFORM pg_advisory_xact_lock(hashtextextended(p_space::text, 42));
-    SELECT capacity INTO v_cap FROM space WHERE id = p_space AND tenant_id = p_tenant;
-    SELECT g.p INTO v_pos FROM generate_series(0, v_cap - 1) AS g(p)
-     WHERE NOT EXISTS (SELECT 1 FROM space_occupancy so
-        WHERE so.tenant_id = p_tenant AND so.space_id = p_space
-          AND so.period && p_period AND so.claim && int4range(g.p, g.p + 1))
-     ORDER BY g.p LIMIT 1;
-    IF v_pos IS NULL THEN RAISE EXCEPTION 'capacity_exceeded' USING ERRCODE = 'P0002'; END IF;
-    INSERT INTO space_occupancy (tenant_id, space_id, period, slot_ref, slot_kind, exclusive, claim)
-    VALUES (p_tenant, p_space, p_period, p_slot, p_slot_kind, false, int4range(v_pos, v_pos + 1))
+    PERFORM pg_catalog.pg_advisory_xact_lock(
+      pg_catalog.hashtextextended(p_space::text, 42)
+    );
+    SELECT capacity
+      INTO v_cap
+      FROM public.space
+     WHERE id = p_space
+       AND tenant_id = p_tenant;
+    SELECT g.p
+      INTO v_pos
+      FROM pg_catalog.generate_series(0, v_cap - 1) AS g(p)
+     WHERE NOT EXISTS (
+       SELECT 1
+         FROM public.space_occupancy AS so
+        WHERE so.tenant_id = p_tenant
+          AND so.space_id = p_space
+          AND so.period && p_period
+          AND so.claim && pg_catalog.int4range(g.p, g.p + 1)
+     )
+     ORDER BY g.p
+     LIMIT 1;
+    IF v_pos IS NULL THEN
+      RAISE EXCEPTION 'capacity_exceeded' USING ERRCODE = 'P0002';
+    END IF;
+    INSERT INTO public.space_occupancy
+      (tenant_id, space_id, period, slot_ref, slot_kind, exclusive, claim)
+    VALUES
+      (p_tenant, p_space, p_period, p_slot, p_slot_kind, false,
+       pg_catalog.int4range(v_pos, v_pos + 1))
     RETURNING id INTO v_id;
   END IF;
   RETURN v_id;
@@ -155,12 +226,16 @@ END $$;
 
 CREATE FUNCTION public.release_occupancy(p_tenant uuid, p_slot uuid) RETURNS integer
     LANGUAGE plpgsql SECURITY DEFINER
-    SET search_path TO 'public'
+    SET search_path TO 'pg_catalog', 'public', 'pg_temp'
     AS $$
-DECLARE n int;
+DECLARE
+  n int;
 BEGIN
-  DELETE FROM space_occupancy WHERE tenant_id = p_tenant AND slot_ref = p_slot;
-  GET DIAGNOSTICS n = ROW_COUNT; RETURN n;
+  DELETE FROM public.space_occupancy
+   WHERE tenant_id = p_tenant
+     AND slot_ref = p_slot;
+  GET DIAGNOSTICS n = ROW_COUNT;
+  RETURN n;
 END $$;
 
 
@@ -170,13 +245,29 @@ END $$;
 
 CREATE FUNCTION public.seal_business_day(p_tenant uuid, p_property uuid, p_date date, p_user uuid) RETURNS void
     LANGUAGE plpgsql SECURITY DEFINER
-    SET search_path TO 'public'
+    SET search_path TO 'pg_catalog', 'public', 'pg_temp'
     AS $$
+DECLARE
+  v_authority text := NULLIF(pg_catalog.current_setting('app.tenant_id', true), '');
+  v_invoker_role text := pg_catalog.current_setting('role', true);
 BEGIN
-  UPDATE business_day SET sealed_at = now(), sealed_by = p_user
-   WHERE tenant_id = p_tenant AND property_node = p_property
-     AND business_date = p_date AND sealed_at IS NULL;
-  IF NOT FOUND THEN RAISE EXCEPTION 'day missing or already sealed' USING ERRCODE='P0012'; END IF;
+  IF v_authority IS NULL
+     AND (session_user = 'app_role' OR v_invoker_role = 'app_role') THEN
+    RAISE EXCEPTION 'tenant authority missing' USING ERRCODE = '42501';
+  END IF;
+  IF v_authority IS NOT NULL AND v_authority::uuid <> p_tenant THEN
+    RAISE EXCEPTION 'tenant authority mismatch' USING ERRCODE = '42501';
+  END IF;
+
+  UPDATE public.business_day
+     SET sealed_at = pg_catalog.now(), sealed_by = p_user
+   WHERE tenant_id = p_tenant
+     AND property_node = p_property
+     AND business_date = p_date
+     AND sealed_at IS NULL;
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'day missing or already sealed' USING ERRCODE = 'P0012';
+  END IF;
 END $$;
 
 
@@ -251,6 +342,29 @@ CREATE TABLE public.api_client (
     secret_hash text NOT NULL,
     status text DEFAULT 'active'::text NOT NULL,
     created_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+
+--
+-- Name: api_idempotency; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.api_idempotency (
+    tenant_id uuid NOT NULL,
+    operation text NOT NULL,
+    key_hash character(64) NOT NULL,
+    request_hash character(64) NOT NULL,
+    response_status smallint,
+    response_body jsonb,
+    created_at timestamp with time zone NOT NULL,
+    completed_at timestamp with time zone,
+    expires_at timestamp with time zone NOT NULL,
+    CONSTRAINT api_idempotency_check CHECK ((expires_at = (created_at + '24:00:00'::interval))),
+    CONSTRAINT api_idempotency_check1 CHECK ((((completed_at IS NULL) AND (response_status IS NULL) AND (response_body IS NULL)) OR ((completed_at IS NOT NULL) AND (response_status IS NOT NULL) AND (response_body IS NOT NULL) AND (completed_at >= created_at) AND (completed_at <= expires_at)))),
+    CONSTRAINT api_idempotency_key_hash_check CHECK ((key_hash ~ '^[0-9a-f]{64}$'::text)),
+    CONSTRAINT api_idempotency_operation_check CHECK ((operation ~ '^[a-z][a-z0-9_.-]{0,127}$'::text)),
+    CONSTRAINT api_idempotency_request_hash_check CHECK ((request_hash ~ '^[0-9a-f]{64}$'::text)),
+    CONSTRAINT api_idempotency_response_status_check CHECK (((response_status >= 200) AND (response_status <= 299)))
 );
 
 
@@ -432,6 +546,28 @@ CREATE TABLE public.consent (
     granted boolean NOT NULL,
     at timestamp with time zone DEFAULT now() NOT NULL,
     source text
+);
+
+
+--
+-- Name: consumer_cursor; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.consumer_cursor (
+    consumer text NOT NULL,
+    last_seq bigint DEFAULT 0 NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+
+--
+-- Name: consumer_processed; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.consumer_processed (
+    consumer text NOT NULL,
+    outbox_id uuid NOT NULL,
+    processed_at timestamp with time zone DEFAULT now() NOT NULL
 );
 
 
@@ -664,7 +800,8 @@ CREATE TABLE public.posting_line (
     amount_minor bigint NOT NULL,
     quantity numeric(10,3) DEFAULT 1 NOT NULL,
     tax_detail jsonb,
-    business_date date NOT NULL
+    business_date date NOT NULL,
+    currency character(3) NOT NULL
 );
 
 
@@ -1493,6 +1630,21 @@ CREATE TABLE public.tx_code (
 
 
 --
+-- Name: tx_code_route; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.tx_code_route (
+    tenant_id uuid NOT NULL,
+    property_node uuid NOT NULL,
+    currency character(3) NOT NULL,
+    tx_code text NOT NULL,
+    debit_account_id uuid,
+    credit_account_id uuid,
+    CONSTRAINT tx_code_route_has_side_ck CHECK (((debit_account_id IS NOT NULL) OR (credit_account_id IS NOT NULL)))
+);
+
+
+--
 -- Name: unit_condition; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -1583,6 +1735,30 @@ ALTER TABLE ONLY public.account
 
 
 --
+-- Name: account account_tenant_id_currency_uq; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.account
+    ADD CONSTRAINT account_tenant_id_currency_uq UNIQUE (tenant_id, id, currency);
+
+
+--
+-- Name: account account_tenant_id_id_uq; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.account
+    ADD CONSTRAINT account_tenant_id_id_uq UNIQUE (tenant_id, id);
+
+
+--
+-- Name: account account_tenant_property_currency_id_uq; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.account
+    ADD CONSTRAINT account_tenant_property_currency_id_uq UNIQUE (tenant_id, property_node, currency, id);
+
+
+--
 -- Name: address address_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -1604,6 +1780,14 @@ ALTER TABLE ONLY public.alert
 
 ALTER TABLE ONLY public.api_client
     ADD CONSTRAINT api_client_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: api_idempotency api_idempotency_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.api_idempotency
+    ADD CONSTRAINT api_idempotency_pkey PRIMARY KEY (tenant_id, operation, key_hash);
 
 
 --
@@ -1679,6 +1863,14 @@ ALTER TABLE ONLY public.business_day
 
 
 --
+-- Name: business_day business_day_tenant_property_date_uq; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.business_day
+    ADD CONSTRAINT business_day_tenant_property_date_uq UNIQUE (tenant_id, property_node, business_date);
+
+
+--
 -- Name: cashier_session cashier_session_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -1708,6 +1900,22 @@ ALTER TABLE ONLY public.channel
 
 ALTER TABLE ONLY public.consent
     ADD CONSTRAINT consent_pkey PRIMARY KEY (party_id, purpose);
+
+
+--
+-- Name: consumer_cursor consumer_cursor_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.consumer_cursor
+    ADD CONSTRAINT consumer_cursor_pkey PRIMARY KEY (consumer);
+
+
+--
+-- Name: consumer_processed consumer_processed_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.consumer_processed
+    ADD CONSTRAINT consumer_processed_pkey PRIMARY KEY (consumer, outbox_id);
 
 
 --
@@ -1807,6 +2015,22 @@ ALTER TABLE ONLY public.folio
 
 
 --
+-- Name: folio folio_reservation_window_uq; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.folio
+    ADD CONSTRAINT folio_reservation_window_uq UNIQUE (tenant_id, reservation_id, window_no);
+
+
+--
+-- Name: folio folio_tenant_account_id_uq; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.folio
+    ADD CONSTRAINT folio_tenant_account_id_uq UNIQUE (tenant_id, account_id, id);
+
+
+--
 -- Name: hold hold_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -1852,6 +2076,22 @@ ALTER TABLE ONLY public.inventory_authority
 
 ALTER TABLE ONLY public.journal
     ADD CONSTRAINT journal_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: journal journal_tenant_id_date_currency_uq; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.journal
+    ADD CONSTRAINT journal_tenant_id_date_currency_uq UNIQUE (tenant_id, id, business_date, currency);
+
+
+--
+-- Name: journal journal_tenant_id_uq; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.journal
+    ADD CONSTRAINT journal_tenant_id_uq UNIQUE (tenant_id, id);
 
 
 --
@@ -1908,6 +2148,14 @@ ALTER TABLE ONLY public.ooo_oos
 
 ALTER TABLE ONLY public.org_node
     ADD CONSTRAINT org_node_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: org_node org_node_tenant_id_id_uq; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.org_node
+    ADD CONSTRAINT org_node_tenant_id_id_uq UNIQUE (tenant_id, id);
 
 
 --
@@ -1980,6 +2228,14 @@ ALTER TABLE ONLY public.party_relationship
 
 ALTER TABLE ONLY public.party_role
     ADD CONSTRAINT party_role_pkey PRIMARY KEY (party_id, role);
+
+
+--
+-- Name: party party_tenant_id_id_uq; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.party
+    ADD CONSTRAINT party_tenant_id_id_uq UNIQUE (tenant_id, id);
 
 
 --
@@ -2159,6 +2415,14 @@ ALTER TABLE ONLY public.reservation
 
 
 --
+-- Name: reservation reservation_tenant_id_id_uq; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.reservation
+    ADD CONSTRAINT reservation_tenant_id_id_uq UNIQUE (tenant_id, id);
+
+
+--
 -- Name: restriction restriction_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -2335,6 +2599,14 @@ ALTER TABLE ONLY public.tx_code
 
 
 --
+-- Name: tx_code_route tx_code_route_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.tx_code_route
+    ADD CONSTRAINT tx_code_route_pkey PRIMARY KEY (tenant_id, property_node, currency, tx_code);
+
+
+--
 -- Name: unit_condition unit_condition_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -2387,6 +2659,34 @@ ALTER TABLE ONLY public.waitlist_entry
 --
 
 CREATE INDEX account_party ON public.account USING btree (tenant_id, party_id) WHERE (party_id IS NOT NULL);
+
+
+--
+-- Name: api_idempotency_expiry; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX api_idempotency_expiry ON public.api_idempotency USING btree (expires_at);
+
+
+--
+-- Name: approval_request_rate_release_plan_cursor; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX approval_request_rate_release_plan_cursor ON public.approval_request USING btree (tenant_id, ((payload ->> 'rate_plan_id'::text)), created_at DESC, id DESC) WHERE ((kind = 'rate_plan_release'::text) AND (subject_type = 'extension'::text));
+
+
+--
+-- Name: consumer_processed_age; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX consumer_processed_age ON public.consumer_processed USING brin (processed_at);
+
+
+--
+-- Name: contact_point_tenant_kind_value; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX contact_point_tenant_kind_value ON public.contact_point USING btree (tenant_id, kind, value, party_id);
 
 
 --
@@ -2457,6 +2757,13 @@ CREATE INDEX outbox_unpublished ON public.outbox USING btree (seq) WHERE (publis
 --
 
 CREATE INDEX party_name_trgm ON public.party USING gin (display_name public.gin_trgm_ops);
+
+
+--
+-- Name: party_tenant_status_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX party_tenant_status_id ON public.party USING btree (tenant_id, status, id);
 
 
 --
@@ -2572,6 +2879,13 @@ CREATE TRIGGER journal_day_open BEFORE INSERT ON public.journal FOR EACH ROW EXE
 
 
 --
+-- Name: posting_line posting_line_currency; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER posting_line_currency BEFORE INSERT ON public.posting_line FOR EACH ROW EXECUTE FUNCTION public.derive_posting_line_currency();
+
+
+--
 -- Name: account account_party_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -2585,6 +2899,22 @@ ALTER TABLE ONLY public.account
 
 ALTER TABLE ONLY public.account
     ADD CONSTRAINT account_property_node_fkey FOREIGN KEY (property_node) REFERENCES public.org_node(id);
+
+
+--
+-- Name: account account_tenant_party_fk; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.account
+    ADD CONSTRAINT account_tenant_party_fk FOREIGN KEY (tenant_id, party_id) REFERENCES public.party(tenant_id, id);
+
+
+--
+-- Name: account account_tenant_property_fk; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.account
+    ADD CONSTRAINT account_tenant_property_fk FOREIGN KEY (tenant_id, property_node) REFERENCES public.org_node(tenant_id, id);
 
 
 --
@@ -2609,6 +2939,14 @@ ALTER TABLE ONLY public.api_client
 
 ALTER TABLE ONLY public.api_client
     ADD CONSTRAINT api_client_tenant_id_fkey FOREIGN KEY (tenant_id) REFERENCES public.tenant(id);
+
+
+--
+-- Name: api_idempotency api_idempotency_tenant_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.api_idempotency
+    ADD CONSTRAINT api_idempotency_tenant_id_fkey FOREIGN KEY (tenant_id) REFERENCES public.tenant(id);
 
 
 --
@@ -2681,6 +3019,14 @@ ALTER TABLE ONLY public.block_allotment
 
 ALTER TABLE ONLY public.business_day
     ADD CONSTRAINT business_day_property_node_fkey FOREIGN KEY (property_node) REFERENCES public.org_node(id);
+
+
+--
+-- Name: business_day business_day_tenant_property_fk; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.business_day
+    ADD CONSTRAINT business_day_tenant_property_fk FOREIGN KEY (tenant_id, property_node) REFERENCES public.org_node(tenant_id, id);
 
 
 --
@@ -2804,6 +3150,22 @@ ALTER TABLE ONLY public.folio
 
 
 --
+-- Name: folio folio_tenant_account_fk; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.folio
+    ADD CONSTRAINT folio_tenant_account_fk FOREIGN KEY (tenant_id, account_id) REFERENCES public.account(tenant_id, id);
+
+
+--
+-- Name: folio folio_tenant_reservation_fk; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.folio
+    ADD CONSTRAINT folio_tenant_reservation_fk FOREIGN KEY (tenant_id, reservation_id) REFERENCES public.reservation(tenant_id, id);
+
+
+--
 -- Name: reservation_group group_master_folio_fk; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -2865,6 +3227,30 @@ ALTER TABLE ONLY public.journal
 
 ALTER TABLE ONLY public.journal
     ADD CONSTRAINT journal_reverses_fkey FOREIGN KEY (reverses) REFERENCES public.journal(id);
+
+
+--
+-- Name: journal journal_tenant_business_day_fk; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.journal
+    ADD CONSTRAINT journal_tenant_business_day_fk FOREIGN KEY (tenant_id, property_node, business_date) REFERENCES public.business_day(tenant_id, property_node, business_date);
+
+
+--
+-- Name: journal journal_tenant_property_fk; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.journal
+    ADD CONSTRAINT journal_tenant_property_fk FOREIGN KEY (tenant_id, property_node) REFERENCES public.org_node(tenant_id, id);
+
+
+--
+-- Name: journal journal_tenant_reverses_fk; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.journal
+    ADD CONSTRAINT journal_tenant_reverses_fk FOREIGN KEY (tenant_id, reverses) REFERENCES public.journal(tenant_id, id);
 
 
 --
@@ -3033,6 +3419,30 @@ ALTER TABLE ONLY public.posting_line
 
 ALTER TABLE ONLY public.posting_line
     ADD CONSTRAINT posting_line_journal_id_fkey FOREIGN KEY (journal_id) REFERENCES public.journal(id);
+
+
+--
+-- Name: posting_line posting_line_tenant_account_currency_fk; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.posting_line
+    ADD CONSTRAINT posting_line_tenant_account_currency_fk FOREIGN KEY (tenant_id, account_id, currency) REFERENCES public.account(tenant_id, id, currency);
+
+
+--
+-- Name: posting_line posting_line_tenant_account_folio_fk; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.posting_line
+    ADD CONSTRAINT posting_line_tenant_account_folio_fk FOREIGN KEY (tenant_id, account_id, folio_id) REFERENCES public.folio(tenant_id, account_id, id);
+
+
+--
+-- Name: posting_line posting_line_tenant_journal_date_currency_fk; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.posting_line
+    ADD CONSTRAINT posting_line_tenant_journal_date_currency_fk FOREIGN KEY (tenant_id, journal_id, business_date, currency) REFERENCES public.journal(tenant_id, id, business_date, currency);
 
 
 --
@@ -3404,6 +3814,38 @@ ALTER TABLE ONLY public.travel_detail
 
 
 --
+-- Name: tx_code_route tx_code_route_credit_account_fk; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.tx_code_route
+    ADD CONSTRAINT tx_code_route_credit_account_fk FOREIGN KEY (tenant_id, property_node, currency, credit_account_id) REFERENCES public.account(tenant_id, property_node, currency, id);
+
+
+--
+-- Name: tx_code_route tx_code_route_debit_account_fk; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.tx_code_route
+    ADD CONSTRAINT tx_code_route_debit_account_fk FOREIGN KEY (tenant_id, property_node, currency, debit_account_id) REFERENCES public.account(tenant_id, property_node, currency, id);
+
+
+--
+-- Name: tx_code_route tx_code_route_tenant_property_fk; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.tx_code_route
+    ADD CONSTRAINT tx_code_route_tenant_property_fk FOREIGN KEY (tenant_id, property_node) REFERENCES public.org_node(tenant_id, id);
+
+
+--
+-- Name: tx_code_route tx_code_route_tx_code_fk; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.tx_code_route
+    ADD CONSTRAINT tx_code_route_tx_code_fk FOREIGN KEY (tx_code) REFERENCES public.tx_code(code);
+
+
+--
 -- Name: unit_condition unit_condition_space_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -3514,6 +3956,12 @@ ALTER TABLE public.alert ENABLE ROW LEVEL SECURITY;
 --
 
 ALTER TABLE public.api_client ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: api_idempotency; Type: ROW SECURITY; Schema: public; Owner: -
+--
+
+ALTER TABLE public.api_idempotency ENABLE ROW LEVEL SECURITY;
 
 --
 -- Name: app_user; Type: ROW SECURITY; Schema: public; Owner: -
@@ -3919,6 +4367,13 @@ CREATE POLICY tenant_isolation ON public.alert USING ((tenant_id = (current_sett
 --
 
 CREATE POLICY tenant_isolation ON public.api_client USING ((tenant_id = (current_setting('app.tenant_id'::text, true))::uuid)) WITH CHECK ((tenant_id = (current_setting('app.tenant_id'::text, true))::uuid));
+
+
+--
+-- Name: api_idempotency tenant_isolation; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY tenant_isolation ON public.api_idempotency USING ((tenant_id = (current_setting('app.tenant_id'::text, true))::uuid)) WITH CHECK ((tenant_id = (current_setting('app.tenant_id'::text, true))::uuid));
 
 
 --
@@ -4370,6 +4825,13 @@ CREATE POLICY tenant_isolation ON public.travel_detail USING ((tenant_id = (curr
 
 
 --
+-- Name: tx_code_route tenant_isolation; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY tenant_isolation ON public.tx_code_route USING ((tenant_id = (current_setting('app.tenant_id'::text, true))::uuid)) WITH CHECK ((tenant_id = (current_setting('app.tenant_id'::text, true))::uuid));
+
+
+--
 -- Name: unit_condition tenant_isolation; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -4411,6 +4873,12 @@ CREATE POLICY tenant_isolation ON public.waitlist_entry USING ((tenant_id = (cur
 ALTER TABLE public.travel_detail ENABLE ROW LEVEL SECURITY;
 
 --
+-- Name: tx_code_route; Type: ROW SECURITY; Schema: public; Owner: -
+--
+
+ALTER TABLE public.tx_code_route ENABLE ROW LEVEL SECURITY;
+
+--
 -- Name: unit_condition; Type: ROW SECURITY; Schema: public; Owner: -
 --
 
@@ -4448,17 +4916,24 @@ GRANT USAGE ON SCHEMA public TO app_role;
 
 
 --
+-- Name: FUNCTION assert_day_open(); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.assert_day_open() FROM PUBLIC;
+
+
+--
 -- Name: FUNCTION expire_holds(); Type: ACL; Schema: public; Owner: -
 --
 
-GRANT ALL ON FUNCTION public.expire_holds() TO app_role;
+REVOKE ALL ON FUNCTION public.expire_holds() FROM PUBLIC;
 
 
 --
 -- Name: FUNCTION prune_outbox(p_retain interval); Type: ACL; Schema: public; Owner: -
 --
 
-GRANT ALL ON FUNCTION public.prune_outbox(p_retain interval) TO app_role;
+REVOKE ALL ON FUNCTION public.prune_outbox(p_retain interval) FROM PUBLIC;
 
 
 --
@@ -4481,6 +4956,7 @@ GRANT ALL ON FUNCTION public.release_occupancy(p_tenant uuid, p_slot uuid) TO ap
 -- Name: FUNCTION seal_business_day(p_tenant uuid, p_property uuid, p_date date, p_user uuid); Type: ACL; Schema: public; Owner: -
 --
 
+REVOKE ALL ON FUNCTION public.seal_business_day(p_tenant uuid, p_property uuid, p_date date, p_user uuid) FROM PUBLIC;
 GRANT ALL ON FUNCTION public.seal_business_day(p_tenant uuid, p_property uuid, p_date date, p_user uuid) TO app_role;
 
 
@@ -4510,6 +4986,13 @@ GRANT SELECT,INSERT,UPDATE ON TABLE public.alert TO app_role;
 --
 
 GRANT SELECT,INSERT,UPDATE ON TABLE public.api_client TO app_role;
+
+
+--
+-- Name: TABLE api_idempotency; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT SELECT,INSERT,UPDATE ON TABLE public.api_idempotency TO app_role;
 
 
 --
@@ -4544,7 +5027,7 @@ GRANT SELECT,INSERT,UPDATE ON TABLE public.automation TO app_role;
 -- Name: TABLE availability_projection; Type: ACL; Schema: public; Owner: -
 --
 
-GRANT SELECT,INSERT,UPDATE ON TABLE public.availability_projection TO app_role;
+GRANT SELECT,INSERT,DELETE,UPDATE ON TABLE public.availability_projection TO app_role;
 
 
 --
@@ -4565,7 +5048,7 @@ GRANT SELECT,INSERT,UPDATE ON TABLE public.block_status_def TO app_role;
 -- Name: TABLE business_day; Type: ACL; Schema: public; Owner: -
 --
 
-GRANT SELECT,INSERT,UPDATE ON TABLE public.business_day TO app_role;
+GRANT SELECT,INSERT ON TABLE public.business_day TO app_role;
 
 
 --
@@ -4915,7 +5398,7 @@ GRANT SELECT,INSERT,UPDATE ON TABLE public.reservation_group TO app_role;
 -- Name: TABLE reservation_guest; Type: ACL; Schema: public; Owner: -
 --
 
-GRANT SELECT,INSERT,UPDATE ON TABLE public.reservation_guest TO app_role;
+GRANT SELECT,INSERT,DELETE,UPDATE ON TABLE public.reservation_guest TO app_role;
 
 
 --
@@ -5034,7 +5517,14 @@ GRANT SELECT,INSERT,UPDATE ON TABLE public.travel_detail TO app_role;
 -- Name: TABLE tx_code; Type: ACL; Schema: public; Owner: -
 --
 
-GRANT SELECT,INSERT ON TABLE public.tx_code TO app_role;
+GRANT SELECT ON TABLE public.tx_code TO app_role;
+
+
+--
+-- Name: TABLE tx_code_route; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT SELECT ON TABLE public.tx_code_route TO app_role;
 
 
 --

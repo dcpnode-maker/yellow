@@ -7,8 +7,15 @@ services:
       dockerfile: Dockerfile
     environment:
       NODE_ENV: production
+      HOST: "0.0.0.0"
       PORT: "3000"
-    ports: ["${YELLOW_APP_PORT:-3000}:3000"]
+      YELLOW_OPERATOR_ALLOW_NON_LOOPBACK: "1"
+      YELLOW_OPERATOR_WORKBENCH: "${YELLOW_OPERATOR_WORKBENCH:-0}"
+      YELLOW_HOLD_EXPIRY_WORKER: "${YELLOW_HOLD_EXPIRY_WORKER:-1}"
+      YELLOW_AVAILABILITY_PROJECTION_WORKER: "${YELLOW_AVAILABILITY_PROJECTION_WORKER:-1}"
+      DATABASE_URL: "${YELLOW_APP_DATABASE_URL:-postgres://yellow:yellow@postgres:5432/yellow_dev}"
+      YELLOW_TOKEN_SECRET: "${YELLOW_TOKEN_SECRET:-yellow-local-development-token-secret-change-before-deployment}"
+    ports: ["127.0.0.1:${YELLOW_APP_PORT:-3000}:3000"]
     healthcheck:
       test:
         - CMD
@@ -53,7 +60,7 @@ services:
       POSTGRES_USER: yellow
       POSTGRES_PASSWORD: yellow
       POSTGRES_DB: yellow_dev
-    ports: ["${YELLOW_POSTGRES_PORT:-5442}:5432"]
+    ports: ["127.0.0.1:${YELLOW_POSTGRES_PORT:-5442}:5432"]
     volumes:
       - yellow-pgdata:/var/lib/postgresql/data
     command: >
@@ -69,7 +76,7 @@ services:
 
   valkey:
     image: valkey/valkey:8-alpine
-    ports: ["${YELLOW_VALKEY_PORT:-6389}:6379"]
+    ports: ["127.0.0.1:${YELLOW_VALKEY_PORT:-6389}:6379"]
     command: valkey-server --save "" --appendonly no
     healthcheck:
       test: ["CMD", "valkey-cli", "ping"]

@@ -133,3 +133,19 @@ p99 < 50 ms server-side + skeleton UI; grid renders 500 spaces × 28 days at 60 
 No modal-over-modal · no mouse-only paths · no unsaved-state loss on navigation ·
 no "refresh to see changes" (live via SSE/WebSocket) · no admin screens that
 bypass the API (UI speaks CONTRACTS.md only — same rule as everyone else).
+
+## 10. Rate publication approval inbox
+
+The Rates workbench Step 5 shows a bounded plan-local approval inbox beneath the exact
+server preview. Each row names the immutable release version, pending/approved/rejected
+state, requester, decider and timestamps. It never asks staff to paste an approval UUID.
+
+The requester sees a waiting state and cannot decide. A different property-authorized
+operator receives explicit **Approve** and **Reject** actions. The deciding operator may
+select their approved latest draft for publication, but the publish button stays disabled
+until that operator runs a fresh server preview in the current session. Status and action
+availability come from the server; the browser only adds the stricter fresh-preview gate.
+
+There is no polling, background decision, automatic selection, automatic publication or
+persisted browser authority. Refresh and “Load older requests” are deliberate controls;
+sign-out clears all approval selection and preview evidence from memory.

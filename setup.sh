@@ -32,7 +32,12 @@ printf 'Compose project %s · ports app=%s postgres=%s valkey=%s\n' \
 docker compose up -d postgres valkey
 ready=0
 for _ in $(seq 1 40); do
-  if docker compose exec -T postgres pg_isready -U yellow -d yellow_dev >/dev/null 2>&1; then ready=1; break; fi
+  postmaster=$(docker compose exec -T postgres cat /proc/1/comm 2>/dev/null | tr -d '\r\n' || true)
+  if [ "$postmaster" = 'postgres' ] \
+    && docker compose exec -T postgres pg_isready -U yellow -d yellow_dev >/dev/null 2>&1; then
+    ready=1
+    break
+  fi
   sleep 1
 done
 [ "$ready" -eq 1 ] || { echo 'PostgreSQL did not become ready. Run: docker compose logs postgres' >&2; exit 1; }
@@ -49,8 +54,8 @@ docker compose exec -T postgres psql -U yellow -d yellow_test -v ON_ERROR_STOP=1
 
 tables=$(docker compose exec -T postgres psql -U yellow -d yellow_test -tAc \
   "SELECT count(*) FROM pg_tables WHERE schemaname='public';" | tr -d '[:space:]')
-[ "$tables" = '81' ] || { printf 'yellow_test has %s public tables; expected 81 (80 baseline + schema_migration).\n' "$tables" >&2; exit 1; }
-echo 'yellow_test tables: 81 (80 baseline + schema_migration)'
+[ "$tables" = '85' ] || { printf 'yellow_test has %s public tables; expected 85 (80 baseline + tx_code_route + 2 kernel consumer + api_idempotency + schema_migration).\n' "$tables" >&2; exit 1; }
+echo 'yellow_test tables: 85 (80 baseline + tx_code_route + 2 kernel consumer + api_idempotency + schema_migration)'
 
 YELLOW_DSN="dbname=yellow_test user=yellow password=yellow host=127.0.0.1 port=${YELLOW_POSTGRES_PORT}" \
 PYTHONIOENCODING=utf-8 python3 tests/run_invariants.py yellow_test

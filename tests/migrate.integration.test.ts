@@ -20,6 +20,7 @@ import {
 
 const PROJECT_ROOT = resolve(import.meta.dir, "..");
 const MIGRATE_SCRIPT = resolve(PROJECT_ROOT, "scripts", "migrate.ts");
+const PROJECT_MIGRATIONS = resolve(PROJECT_ROOT, "migrations");
 const BASELINE_PATH = resolve(PROJECT_ROOT, "migrations", "0001_init.sql");
 const BASELINE_BYTES = await readFile(BASELINE_PATH);
 const BASELINE_SHA256 = "fe2a9fc949c6bacded3f8d3fc4d14fc596a83ebde9aeb043eb10845f07b30923";
@@ -260,6 +261,379 @@ databaseDescribe("Bun SQL migration runner", () => {
           `;
           expect(ledgerAfter[0]?.applied_at.getTime()).toBe(ledgerBefore[0]?.applied_at.getTime());
         });
+      });
+    },
+    60_000,
+  );
+
+  test(
+    "applies the exact account-folio integrity migration and rejects tenant-crossing references",
+    async () => {
+      await withDatabase(async ({ databaseUrl: targetUrl, sql }) => {
+        const result = await runMigrations({
+          databaseUrl: targetUrl,
+          migrationsDirectory: PROJECT_MIGRATIONS,
+          logger: () => undefined,
+        });
+        expect(result.appliedFiles).toContain("0009_account_folio_integrity.sql");
+
+        const ledger = await sql<
+          { version: string | bigint; filename: string; checksum_sha256: string }[]
+        >`
+          SELECT version, filename, checksum_sha256
+            FROM schema_migration
+           WHERE version = 9
+        `;
+        expect(ledger.map((row) => ({ ...row, version: Number(row.version) }))).toEqual([{
+          version: 9,
+          filename: "0009_account_folio_integrity.sql",
+          checksum_sha256: "56d3d47e2007d9106376459dc77623551f21731c5b6312e43e6ab100150205c2",
+        }]);
+
+        const tenantA = randomUUID();
+        const tenantB = randomUUID();
+        const propertyA = randomUUID();
+        const propertyB = randomUUID();
+        const partyA = randomUUID();
+        const partyB = randomUUID();
+        const reservationA = randomUUID();
+        const reservationB = randomUUID();
+        const accountA = randomUUID();
+        const accountB = randomUUID();
+
+        await sql`INSERT INTO tenant (id, slug, name) VALUES
+          (${tenantA}::uuid, ${`migration-a-${tenantA}`}, 'Migration A'),
+          (${tenantB}::uuid, ${`migration-b-${tenantB}`}, 'Migration B')`;
+        await sql`INSERT INTO org_node (id, tenant_id, path, kind, name, timezone, currency) VALUES
+          (${propertyA}::uuid, ${tenantA}::uuid, ${`migration_a_${tenantA.replaceAll("-", "")}`}::ltree, 'property', 'A', 'UTC', 'USD'),
+          (${propertyB}::uuid, ${tenantB}::uuid, ${`migration_b_${tenantB.replaceAll("-", "")}`}::ltree, 'property', 'B', 'UTC', 'USD')`;
+        await sql`INSERT INTO party (id, tenant_id, kind, display_name) VALUES
+          (${partyA}::uuid, ${tenantA}::uuid, 'person', 'Party A'),
+          (${partyB}::uuid, ${tenantB}::uuid, 'person', 'Party B')`;
+        await sql`INSERT INTO reservation
+          (id, tenant_id, property_node, confirmation_no, primary_party, currency)
+          VALUES
+          (${reservationA}::uuid, ${tenantA}::uuid, ${propertyA}::uuid, 'MIG-A', ${partyA}::uuid, 'USD'),
+          (${reservationB}::uuid, ${tenantB}::uuid, ${propertyB}::uuid, 'MIG-B', ${partyB}::uuid, 'USD')`;
+        await sql`INSERT INTO account
+          (id, tenant_id, property_node, role, party_id, name, currency)
+          VALUES
+          (${accountA}::uuid, ${tenantA}::uuid, ${propertyA}::uuid, 'guest', ${partyA}::uuid, 'Guest account', 'USD'),
+          (${accountB}::uuid, ${tenantB}::uuid, ${propertyB}::uuid, 'guest', ${partyB}::uuid, 'Guest account', 'USD')`;
+
+        const expectSqlstate = async (operation: () => Promise<unknown>, state: string) => {
+          try {
+            await operation();
+          } catch (error) {
+            expect((error as { errno?: string }).errno).toBe(state);
+            return;
+          }
+          throw new Error(`Expected SQLSTATE ${state}`);
+        };
+
+        await expectSqlstate(
+          () => sql`INSERT INTO account
+            (tenant_id, property_node, role, party_id, name, currency)
+            VALUES (${tenantA}::uuid, ${propertyB}::uuid, 'guest', ${partyA}::uuid, 'Wrong property', 'USD')`,
+          "23503",
+        );
+        await expectSqlstate(
+          () => sql`INSERT INTO account
+            (tenant_id, property_node, role, party_id, name, currency)
+            VALUES (${tenantA}::uuid, ${propertyA}::uuid, 'guest', ${partyB}::uuid, 'Wrong party', 'USD')`,
+          "23503",
+        );
+        await expectSqlstate(
+          () => sql`INSERT INTO folio (tenant_id, account_id, reservation_id, folio_no, window_no)
+            VALUES (${tenantA}::uuid, ${accountB}::uuid, ${reservationA}::uuid, 'MIG-XA', 1)`,
+          "23503",
+        );
+        await expectSqlstate(
+          () => sql`INSERT INTO folio (tenant_id, account_id, reservation_id, folio_no, window_no)
+            VALUES (${tenantA}::uuid, ${accountA}::uuid, ${reservationB}::uuid, 'MIG-XR', 1)`,
+          "23503",
+        );
+
+        await sql`INSERT INTO folio (tenant_id, account_id, reservation_id, folio_no, window_no)
+          VALUES (${tenantA}::uuid, ${accountA}::uuid, ${reservationA}::uuid, 'MIG-1', 1)`;
+        await expectSqlstate(
+          () => sql`INSERT INTO folio (tenant_id, account_id, reservation_id, folio_no, window_no)
+            VALUES (${tenantA}::uuid, ${accountA}::uuid, ${reservationA}::uuid, 'MIG-2', 1)`,
+          "23505",
+        );
+      });
+    },
+    60_000,
+  );
+
+  test(
+    "applies exact posting integrity, read-only routes, and authority-safe day sealing",
+    async () => {
+      await withDatabase(async ({ databaseUrl: targetUrl, sql }) => {
+        const result = await runMigrations({
+          databaseUrl: targetUrl,
+          migrationsDirectory: PROJECT_MIGRATIONS,
+          logger: () => undefined,
+        });
+        expect(result.appliedFiles).toContain("0010_financial_posting_integrity.sql");
+
+        const ledger = await sql<
+          { version: string | bigint; filename: string; checksum_sha256: string }[]
+        >`SELECT version, filename, checksum_sha256 FROM schema_migration WHERE version = 10`;
+        expect(ledger.map((row) => ({ ...row, version: Number(row.version) }))).toEqual([{
+          version: 10,
+          filename: "0010_financial_posting_integrity.sql",
+          checksum_sha256: "859bdbbba98d858ac04e24f51751914c2cda10073b26c3c068ff8a27d4698ae3",
+        }]);
+
+        const tableCount = await sql<{ count: number }[]>`
+          SELECT count(*)::int AS count FROM pg_tables WHERE schemaname = 'public'
+        `;
+        expect(tableCount).toEqual([{ count: 85 }]);
+
+        const privileges = await sql<{
+          route_rls: boolean;
+          route_select: boolean;
+          route_insert: boolean;
+          route_update: boolean;
+          route_delete: boolean;
+          code_insert: boolean;
+          code_update: boolean;
+          code_delete: boolean;
+          day_update: boolean;
+          public_seal: boolean;
+          app_seal: boolean;
+        }[]>`
+          SELECT
+            (SELECT relrowsecurity FROM pg_class WHERE oid = 'tx_code_route'::regclass) AS route_rls,
+            has_table_privilege('app_role', 'tx_code_route', 'SELECT') AS route_select,
+            has_table_privilege('app_role', 'tx_code_route', 'INSERT') AS route_insert,
+            has_table_privilege('app_role', 'tx_code_route', 'UPDATE') AS route_update,
+            has_table_privilege('app_role', 'tx_code_route', 'DELETE') AS route_delete,
+            has_table_privilege('app_role', 'tx_code', 'INSERT') AS code_insert,
+            has_table_privilege('app_role', 'tx_code', 'UPDATE') AS code_update,
+            has_table_privilege('app_role', 'tx_code', 'DELETE') AS code_delete,
+            has_table_privilege('app_role', 'business_day', 'UPDATE') AS day_update,
+            has_function_privilege('public', 'seal_business_day(uuid,uuid,date,uuid)', 'EXECUTE') AS public_seal,
+            has_function_privilege('app_role', 'seal_business_day(uuid,uuid,date,uuid)', 'EXECUTE') AS app_seal
+        `;
+        expect(privileges).toEqual([{
+          route_rls: true,
+          route_select: true,
+          route_insert: false,
+          route_update: false,
+          route_delete: false,
+          code_insert: false,
+          code_update: false,
+          code_delete: false,
+          day_update: false,
+          public_seal: false,
+          app_seal: true,
+        }]);
+
+        const tenantA = randomUUID();
+        const tenantB = randomUUID();
+        const propertyA = randomUUID();
+        const propertyB = randomUUID();
+        const guestA = randomUUID();
+        const otherGuestA = randomUUID();
+        const revenueA = randomUUID();
+        const guestB = randomUUID();
+        const folioA = randomUUID();
+        const journalA = randomUUID();
+
+        await sql`INSERT INTO tenant (id, slug, name) VALUES
+          (${tenantA}::uuid, ${`posting-a-${tenantA}`}, 'Posting A'),
+          (${tenantB}::uuid, ${`posting-b-${tenantB}`}, 'Posting B')`;
+        await sql`INSERT INTO org_node (id, tenant_id, path, kind, name, timezone, currency) VALUES
+          (${propertyA}::uuid, ${tenantA}::uuid, ${`posting_a_${tenantA.replaceAll("-", "")}`}::ltree, 'property', 'A', 'UTC', 'USD'),
+          (${propertyB}::uuid, ${tenantB}::uuid, ${`posting_b_${tenantB.replaceAll("-", "")}`}::ltree, 'property', 'B', 'UTC', 'USD')`;
+        await sql`INSERT INTO account (id, tenant_id, property_node, role, name, currency) VALUES
+          (${guestA}::uuid, ${tenantA}::uuid, ${propertyA}::uuid, 'guest', 'Guest A', 'USD'),
+          (${otherGuestA}::uuid, ${tenantA}::uuid, ${propertyA}::uuid, 'guest', 'Other guest A', 'USD'),
+          (${revenueA}::uuid, ${tenantA}::uuid, ${propertyA}::uuid, 'revenue', 'Revenue A', 'USD'),
+          (${guestB}::uuid, ${tenantB}::uuid, ${propertyB}::uuid, 'guest', 'Guest B', 'USD')`;
+        await sql`INSERT INTO folio (id, tenant_id, account_id, folio_no)
+          VALUES (${folioA}::uuid, ${tenantA}::uuid, ${guestA}::uuid, 'POST-1')`;
+        await sql`INSERT INTO business_day (tenant_id, property_node, business_date) VALUES
+          (${tenantA}::uuid, ${propertyA}::uuid, '2026-08-24'),
+          (${tenantB}::uuid, ${propertyB}::uuid, '2026-08-24')`;
+        await sql`INSERT INTO tx_code (code, name, grp, usali_line, default_dr, default_cr)
+          VALUES ('MIGROOM', 'Migration room', 'revenue', 'Rooms', 'guest', 'revenue')`;
+        await sql`INSERT INTO tx_code_route
+          (tenant_id, property_node, currency, tx_code, credit_account_id)
+          VALUES (${tenantA}::uuid, ${propertyA}::uuid, 'USD', 'MIGROOM', ${revenueA}::uuid)`;
+
+        const expectSqlstate = async (operation: () => Promise<unknown>, state: string) => {
+          try {
+            await operation();
+          } catch (error) {
+            expect((error as { errno?: string }).errno).toBe(state);
+            return;
+          }
+          throw new Error(`Expected SQLSTATE ${state}`);
+        };
+
+        const visibleRoutes = await sql.begin(async (tx) => {
+          await tx.unsafe("SET LOCAL ROLE app_role");
+          await tx`SELECT set_config('app.tenant_id', ${tenantA}, true)`;
+          return tx<{ tenant_id: string; tx_code: string }[]>`
+            SELECT tenant_id::text, tx_code FROM tx_code_route ORDER BY tx_code
+          `;
+        });
+        expect(visibleRoutes).toEqual([{ tenant_id: tenantA, tx_code: "MIGROOM" }]);
+
+        await expectSqlstate(
+          () => sql.begin(async (tx) => {
+            await tx.unsafe("SET LOCAL ROLE app_role");
+            await tx`SELECT seal_business_day(${tenantA}::uuid, ${propertyA}::uuid, '2026-08-24', NULL)`;
+          }),
+          "42501",
+        );
+        await expectSqlstate(
+          () => sql.begin(async (tx) => {
+            await tx.unsafe("SET LOCAL ROLE app_role");
+            await tx`SELECT set_config('app.tenant_id', ${tenantB}, true)`;
+            await tx`SELECT seal_business_day(${tenantA}::uuid, ${propertyA}::uuid, '2026-08-24', NULL)`;
+          }),
+          "42501",
+        );
+        await expectSqlstate(
+          () => sql`INSERT INTO journal
+            (tenant_id, property_node, business_date, kind, description, currency)
+            VALUES (${tenantA}::uuid, ${propertyA}::uuid, '2026-08-25', 'charge', 'Missing day', 'USD')`,
+          "P0011",
+        );
+
+        await sql`INSERT INTO journal
+          (id, tenant_id, property_node, business_date, kind, description, currency)
+          VALUES (${journalA}::uuid, ${tenantA}::uuid, ${propertyA}::uuid, '2026-08-24', 'charge', 'Balanced', 'USD')`;
+        await expectSqlstate(
+          () => sql`INSERT INTO posting_line
+            (tenant_id, journal_id, seq, account_id, folio_id, tx_code, amount_minor, business_date, currency)
+            VALUES (${tenantB}::uuid, ${journalA}::uuid, 1, ${guestB}::uuid, NULL, 'MIGROOM', 1, '2026-08-24', 'USD')`,
+          "23503",
+        );
+        await expectSqlstate(
+          () => sql`INSERT INTO posting_line
+            (tenant_id, journal_id, seq, account_id, folio_id, tx_code, amount_minor, business_date, currency)
+            VALUES (${tenantA}::uuid, ${journalA}::uuid, 1, ${otherGuestA}::uuid, ${folioA}::uuid, 'MIGROOM', 1, '2026-08-24', 'USD')`,
+          "23503",
+        );
+        await expectSqlstate(
+          () => sql`INSERT INTO posting_line
+            (tenant_id, journal_id, seq, account_id, folio_id, tx_code, amount_minor, business_date, currency)
+            VALUES (${tenantA}::uuid, ${journalA}::uuid, 1, ${guestA}::uuid, ${folioA}::uuid, 'MIGROOM', 1, '2026-08-23', 'USD')`,
+          "23503",
+        );
+
+        await sql.begin(async (tx) => {
+          await tx`INSERT INTO posting_line
+            (tenant_id, journal_id, seq, account_id, folio_id, tx_code, amount_minor, business_date)
+            VALUES
+            (${tenantA}::uuid, ${journalA}::uuid, 1, ${guestA}::uuid, ${folioA}::uuid, 'MIGROOM', 12345, '2026-08-24'),
+            (${tenantA}::uuid, ${journalA}::uuid, 2, ${revenueA}::uuid, NULL, 'MIGROOM', -12345, '2026-08-24')`;
+        });
+        const derived = await sql<{ currencies: string[]; total: string | bigint }[]>`
+          SELECT array_agg(trim(currency) ORDER BY seq) AS currencies, sum(amount_minor) AS total
+            FROM posting_line WHERE journal_id = ${journalA}::uuid
+        `;
+        expect(derived.map((row) => ({
+          currencies: row.currencies,
+          total: BigInt(row.total),
+        }))).toEqual([{ currencies: ["USD", "USD"], total: 0n }]);
+
+        await expectSqlstate(
+          () => sql.begin(async (tx) => {
+            const id = randomUUID();
+            await tx`INSERT INTO journal
+              (id, tenant_id, property_node, business_date, kind, description, currency)
+              VALUES (${id}::uuid, ${tenantA}::uuid, ${propertyA}::uuid, '2026-08-24', 'charge', 'Unbalanced', 'USD')`;
+            await tx`INSERT INTO posting_line
+              (tenant_id, journal_id, seq, account_id, tx_code, amount_minor, business_date, currency)
+              VALUES (${tenantA}::uuid, ${id}::uuid, 1, ${guestA}::uuid, 'MIGROOM', 1, '2026-08-24', 'USD')`;
+          }),
+          "P0010",
+        );
+
+        await sql.begin(async (tx) => {
+          await tx.unsafe("SET LOCAL ROLE app_role");
+          await tx`SELECT set_config('app.tenant_id', ${tenantA}, true)`;
+          await tx`SELECT seal_business_day(${tenantA}::uuid, ${propertyA}::uuid, '2026-08-24', NULL)`;
+        });
+        await expectSqlstate(
+          () => sql`INSERT INTO journal
+            (tenant_id, property_node, business_date, kind, description, currency)
+            VALUES (${tenantA}::uuid, ${propertyA}::uuid, '2026-08-24', 'charge', 'Late', 'USD')`,
+          "P0011",
+        );
+        await sql`INSERT INTO journal
+          (tenant_id, property_node, business_date, kind, description, currency)
+          VALUES (${tenantA}::uuid, ${propertyA}::uuid, '2026-08-24', 'adjustment', 'Allowed correction path', 'USD')`;
+      });
+    },
+    60_000,
+  );
+
+  test(
+    "applies exact SECURITY DEFINER containment and least-authority ACLs",
+    async () => {
+      await withDatabase(async ({ databaseUrl: targetUrl, sql }) => {
+        const result = await runMigrations({
+          databaseUrl: targetUrl,
+          migrationsDirectory: PROJECT_MIGRATIONS,
+          logger: () => undefined,
+        });
+        expect(result.appliedFiles.at(-1)).toBe("0011_security_definer_containment.sql");
+
+        const ledger = await sql<
+          { version: string | bigint; filename: string; checksum_sha256: string }[]
+        >`SELECT version, filename, checksum_sha256 FROM schema_migration WHERE version = 11`;
+        expect(ledger.map((row) => ({ ...row, version: Number(row.version) }))).toEqual([{
+          version: 11,
+          filename: "0011_security_definer_containment.sql",
+          checksum_sha256: "6c9af4f72fa6be5a2c0e256624620c7ee8cf61d709c3ca99a37cd126bbe57796",
+        }]);
+
+        const functions = await sql<{
+          count: number;
+          unsafeConfig: number;
+          publicExecute: number;
+          appExecute: number;
+        }[]>`
+          SELECT count(*)::int AS count,
+                 count(*) FILTER (
+                   WHERE p.proconfig <> ARRAY['search_path=pg_catalog, public, pg_temp']::text[]
+                 )::int AS "unsafeConfig",
+                 count(*) FILTER (WHERE EXISTS (
+                   SELECT 1
+                     FROM aclexplode(COALESCE(p.proacl, acldefault('f', p.proowner))) AS acl
+                    WHERE acl.grantee = 0 AND acl.privilege_type = 'EXECUTE'
+                 ))::int AS "publicExecute",
+                 count(*) FILTER (
+                   WHERE has_function_privilege('app_role', p.oid, 'EXECUTE')
+                 )::int AS "appExecute"
+            FROM pg_proc AS p
+            JOIN pg_namespace AS n ON n.oid = p.pronamespace
+           WHERE n.nspname = 'public'
+             AND p.proname = ANY(ARRAY[
+               'record_occupancy', 'release_occupancy', 'expire_holds',
+               'prune_outbox', 'assert_day_open', 'seal_business_day'
+             ]::name[])
+        `;
+        expect(functions).toEqual([{
+          count: 6,
+          unsafeConfig: 0,
+          publicExecute: 0,
+          appExecute: 3,
+        }]);
+
+        try {
+          await sql`SELECT public.prune_outbox(interval '-1 second')`;
+          throw new Error("negative retention unexpectedly succeeded");
+        } catch (error) {
+          expect((error as { errno?: string }).errno).toBe("22023");
+        }
       });
     },
     60_000,

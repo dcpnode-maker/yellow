@@ -1,0 +1,578 @@
+# Domain Model V1
+
+**Status:** Conceptual model for planning; no schema authority.
+**Executable schema authority:** `migrations/0001_init.sql` and forward migrations.
+**Behavior authority:** `docs/CONTRACTS.md`, `docs/STATE-MACHINES.md`,
+`docs/EVENTS.md`, and `DECISIONS.log`.
+**Conflict rule:** `PROJECT.md` wins.
+
+This model reconciles the Yellow product destination with the repository that exists.
+It does not authorize a migration, status, event, or command. Target additions are
+explicitly labelled and require their own reviewed decision/order.
+
+## Modeling principles
+
+1. Hospitality is a connected model, not a set of isolated SaaS modules.
+2. Aggregates own consistency boundaries; references across them are IDs, queries, and
+   events, not shared mutable objects.
+3. PostgreSQL is authoritative for inventory, money, permissions, tax/fiscal state, and
+   every other deterministic business fact.
+4. Every critical mutation passes through a domain command in a transaction.
+5. UI, API, automation, integrations, and AI share those commands.
+6. Head rows answer “now”; append-only facts/events answer “how and why.”
+7. Configuration extends stable primitives; it does not create property-specific forks.
+8. Tenant and property ownership are explicit.
+9. Time distinguishes instant, property-local business date, and half-open stay period.
+10. Schema foundation is not implemented behavior.
+
+## Context map
+
+### Platform kernel
+
+The kernel is not a fourteenth business context and imports none.
+
+Owns capabilities for:
+
+- tenant transaction establishment;
+- audit envelopes and append-only facts;
+- event publication/consumption/relay;
+- approval requests;
+- extension/configuration registry;
+- generic task/automation foundations;
+- migration and schema integrity tooling.
+
+### Canonical bounded contexts
+
+| # | Context | Primary responsibility | Current executable behavior |
+|---:|---|---|---|
+| 1 | Identity | tenant/org/user/role/permission/auth | Password/JWT/resolver/hierarchy reads |
+| 2 | Inventory | spaces, unit types, sellable units, physical claims, holds, restrictions | SQL choke point/proofs only |
+| 3 | Rates | rate plans/prices/packages/promotions/policies | Schema only |
+| 4 | Reservations | reservation lifecycle, segments, guests, waitlist | Schema/contracts only |
+| 5 | Stay Operations | arrival/check-in/out, travel, vehicles, queues/messages | Schema/contracts only |
+| 6 | Housekeeping | conditions, task sheets, discrepancies | Schema/contracts only |
+| 7 | Financials | accounts, folios, journals, payments, day close, AR | Schema/invariant proofs only |
+| 8 | CRM | party identity, contacts, preferences, consent | Schema only |
+| 9 | Groups | linked/share/block/allotment semantics | Schema/contracts only |
+| 10 | Distribution | channels, mapping, inbound, ARI cursors | Schema only |
+| 11 | Tax/Fiscal | tax rules, documents, fiscal submission | Schema/invariant proofs only |
+| 12 | Statutory/Privacy | guest reporting and erasure | Schema only |
+| 13 | Reporting | operational/statistical projections | Schema only |
+
+Owner/asset management is a **target extension/context decision**, not an existing
+canonical context. It may reuse identity/org/space and finance events, but owner
+agreements, owner statements, and payouts must not be forced into guest folios.
+
+## Core identifiers and value objects
+
+| Value object | Meaning and rules |
+|---|---|
+| `TenantId` | UUID; present on every tenant-owned aggregate and leading its access path |
+| `OrgNodeId` | UUID scoped to tenant; property nodes carry valid IANA timezone and currency |
+| `ActorId` | Authenticated human/service/agent identity; never accepted from an untrusted body |
+| `CorrelationId` | UUID tracing one user/system intention across facts/events/integrations |
+| `IdempotencyKey` | Caller key + tenant + command + canonical request hash |
+| `Money` | `amountMinor: bigint` + ISO `currency`; no float or implicit FX |
+| `BusinessDate` | Date derived from the relevant property's timezone |
+| `Instant` | UTC instant with explicit serialized offset at boundaries |
+| `StayPeriod` | Half-open interval `[from,to)`; positive duration |
+| `OccupancyClaim` | Exclusive `[0,∞)` or positional `[p,p+1)` range |
+| `Quantity` | Integer or exact decimal policy; never binary float for money effects |
+| `Percentage` | Validated rational/decimal plus explicit basis and rounding |
+| `PolicyVersion` | Immutable/effective-dated reference to rules used for a decision |
+| `DocumentNumber` | Series-scoped, gapless identity assigned only on issue |
+| `ExternalReference` | Provider + property + external ID + version/message identity |
+| `Scope` | `context.resource:action` plus future property/department conditions |
+| `EvidenceRef` | Source, observed/recorded time, version, freshness, and access classification |
+| `Confidence` | Calibrated value with model/rule provenance; never authority by itself |
+| `LocaleContext` | language, script direction, timezone, date/number/currency format |
+
+Types should be branded at application boundaries when implemented.
+
+## Aggregate catalogue
+
+### Tenant and Organization aggregate — Identity
+
+**Root:** Tenant / organization root.
+**Entities:** `tenant`, `org_node`.
+**Value objects:** org path, node kind, timezone, currency, address target.
+**Invariants:**
+
+- every node belongs to one tenant;
+- every path prefix exists in the same tenant;
+- a property has timezone and default currency;
+- hierarchy queries include tenant equality;
+- reparenting, when introduced, is an explicit versioned command, never raw path update.
+
+**Current commands/queries:** hierarchy reads only.
+**Target commands:** create/rename/reparent property/brand/region/outlet, subject to
+future orders and events.
+
+### User and Access aggregate — Identity
+
+**Root:** `app_user`.
+**Entities:** role, permission, user-role assignment, API client, credential/session
+(target).
+**Invariants:**
+
+- verified identity chooses tenant;
+- authentication and authorization are separate;
+- deactivated/expired identities cannot mint/use sessions;
+- role assignment cannot exceed grantor authority;
+- sensitive actions require explicit scope/policy and audit.
+
+**Current behavior:** password/JWT primitives and bearer resolution.
+**Target:** login/session/revocation/MFA and role administration.
+
+### Configuration aggregate — Kernel
+
+**Roots:** `extension_type` (platform) and `extension` (global/tenant instance).
+**Entities:** schema definition, versioned instance, activation fact.
+**Invariants:**
+
+- instance content validates against its type schema;
+- tenant instance visibility is global plus own tenant only;
+- schema change is compatible with all existing instances or follows a migration plan;
+- active configuration is effective-dated and auditable.
+
+Current code supports registration, creation, list, and compatibility checking; complete
+activation/version lifecycle is target behavior.
+
+### Approval aggregate — Kernel
+
+**Root:** `approval_request`.
+**States:** pending → approved | rejected | expired.
+**Invariants:** terminal decisions are final; requester cannot approve/reject; one
+concurrent winner; mutable head + append-only facts/events.
+
+An approval does not itself perform the protected action. Execution must revalidate
+current state and policy after approval.
+
+### Task/Workflow aggregate — Kernel target behavior
+
+**Root:** `task` or future workflow instance.
+**Entities:** assignment, dependency, evidence, comment/attachment reference, SLA.
+**Target states:** must be decided before implementation; existing generic status text is
+not permission to invent a lifecycle.
+**Invariants:** tenant/entity links, one current owner/team policy, guarded transitions,
+complete audit, idempotent automation actions.
+
+### Space and Sellable Inventory aggregate — Inventory
+
+**Roots:** `space`, `unit_type`, `sellable_unit`.
+**Entities:** space relations, sellable-unit membership, authority, restrictions,
+OOO/OOS, overbooking limit.
+**Value objects:** capacity, claim mode, attributes, availability date range.
+**Invariants:**
+
+- physical space and commercial sellable unit are distinct;
+- composite units cannot create incompatible physical claims;
+- hot availability predicates are typed/indexed;
+- OOO/OOS and maintenance effects are explicit intervals;
+- canonical state is independent of channel representations.
+
+### Occupancy aggregate — Inventory
+
+**Root:** the logical claim identified by `slot_ref`; persisted in
+`space_occupancy` through authorized functions only.
+**Entities:** hold and reservation-segment claims.
+**States:** hold active → consumed | expired | released; segment occupancy lifecycle is
+driven by reservation commands.
+**Invariants:**
+
+- no incompatible claims overlap on a space;
+- direct DML is denied;
+- every write is tenant-scoped and transactional;
+- a room move closes/trims one segment and creates another;
+- PostgreSQL constraint acceptance is the final sellability decision;
+- projection/cache are disposable.
+
+### Availability aggregate/read model — Inventory
+
+Availability is a query/projection, not an authority. It combines unit supply, occupancy,
+restrictions, OOO/OOS, allotments, and overbooking policy. Search returns options, not a
+promise. Hold/commit must re-enter the occupancy aggregate.
+
+### Rate aggregate — Rates
+
+**Root:** `rate_plan`.
+**Entities:** `rate_price`, package, package element, promotion, negotiated rate, policy
+reference.
+**Value objects:** date range, day mask, occupancy, eligibility, market/segment/channel,
+price, restriction, derivation.
+**Invariants:**
+
+- prices are insert-only and bitemporal;
+- supersession is explicit;
+- deterministic precedence is documented and tested;
+- historical “valid then/known then” queries remain possible;
+- policy/tax/currency versions used by a quote are retained.
+
+### Quote aggregate — target application aggregate
+
+A quote is an expiring, reproducible proposal combining availability, nightly prices,
+tax, policies, package elements, and eligibility. It needs stable input/version references
+before public booking work. It does not reserve inventory unless a hold is created.
+
+### Reservation aggregate — Reservations
+
+**Root:** `reservation`.
+**Entities:** segments, reservation guests, alerts, waitlist reference, group link.
+**Value objects:** confirmation number, source/channel/attribution, stay intent,
+guarantee/deposit terms, special requirements.
+**Canonical states:** quote, reserved, due_in, in_house, due_out, checked_out, cancelled,
+no_show, exactly as `STATE-MACHINES.md` defines.
+**Invariants:**
+
+- illegal transitions are rejected;
+- confirmation requires accepted occupancy;
+- segment period/unit changes re-arbitrate through occupancy;
+- cancellation/no-show releases claims and applies versioned policy atomically;
+- reinstatement rechecks availability;
+- attribution concepts are not collapsed;
+- every externally relevant transition emits the existing catalogued event.
+
+### Reservation Group aggregate — Groups
+
+**Root:** `reservation_group`.
+**Entities:** block status definition, allotment, rooming-list batch, member reservation
+references, routing reference.
+**Invariants:**
+
+- deduction is configured on status, not inferred from name;
+- pickup consumes allotment before house inventory when deducting;
+- wash/cutoff releases are idempotent and auditable;
+- member folios remain distinct from group/master account routing;
+- shares and linked bookings do not imply identical financial ownership.
+
+### Party/Guest aggregate — CRM
+
+**Root:** `party`.
+**Entities:** roles, contact points, addresses, identity documents, relationships,
+memberships, preferences, consents.
+**Value objects:** normalized contact, name components, consent purpose/version,
+identity match evidence.
+**Invariants:**
+
+- a person is not the same thing as a reservation guest occurrence;
+- duplicate detection proposes; merge requires authority and evidence;
+- merges retain source identities and audit and must not corrupt active stays/financials;
+- access, retention, export, anonymization, and legal holds follow jurisdiction policy;
+- AI receives only minimized/redacted necessary context.
+
+### Stay aggregate — Stay Operations
+
+The current schema uses reservation/segments plus operational tables rather than a
+separate `stay` table. Conceptually, a stay is the in-house execution of reservation
+segments.
+
+**Entities:** arrival/readiness, travel detail, queue entry, vehicle, room/key/interface
+references, service requests.
+**Invariants:** check-in guards identity/statutory/payment/room readiness; check-out
+guards folio settlement/AR transfer; physical occupancy and financial account lifecycle
+remain separable where policy allows open folio.
+
+Whether a separate persisted Stay root is needed is **research required**; do not add one
+without measured command/query needs.
+
+### Room Condition aggregate — Housekeeping
+
+**Root:** `unit_condition`.
+**Entities:** task sheet, discrepancy, housekeeping task references.
+**Dimensions:** physical occupancy, cleaning condition, and OOO/OOS are orthogonal.
+**Invariants:** condition transitions are guarded; inspection identity/time retained;
+sleep/skip/person discrepancies are explicit; maintenance dependencies can block
+readiness; mobile/offline updates conflict safely.
+
+### Asset/Work Order aggregate — target extension
+
+Baseline `task`, `space`, relations, and OOO/OOS provide foundations, but there is no
+asset registry. A future model should separate asset identity/history from work execution
+and connect downtime to affected spaces. This requires a context/schema decision.
+
+### Account and Folio aggregate — Financials
+
+**Root:** `account`; folio belongs to account.
+**Entities:** folio windows, routing policy references, AR allocations.
+**Invariants:** reservation links to folio; it does not own it; every window balance is a
+projection of postings; settlement/closure is guarded; corrections do not edit history.
+
+Implemented foundation: a tenant-coherent reservation link can open exactly one primary
+window on an open property/Party/currency guest account. The account is reused only on
+that exact key. PostgreSQL composite foreign keys prevent cross-tenant ownership, and a
+locked non-fiscal property series allocates the human folio reference in the same
+transaction as the folio and minimized evidence. No balance or economic effect exists
+until a later balanced-posting command creates immutable journal lines.
+
+Implemented statement query: one tenant/property-scoped PostgreSQL snapshot projects
+the account-owned folio's immutable guest-side lines, signed server balance and
+full-ledger running balances. Pages use an opaque folio-bound keyset cursor and expose
+only governed attributable revenue-code metadata needed by the approved untaxed charge
+command. The query is not a second ledger and creates no fact or event; the browser
+never recomputes money or sees counterparty accounts, routing, source, tax detail or PII.
+
+### Journal aggregate — Financials
+
+**Root:** `journal`.
+**Entities:** `posting_line`.
+**Value objects:** money, business date, journal kind, account/folio/tx-code references.
+**Invariants:**
+
+- one journal balances to zero in one currency at commit;
+- journal/posting lines are insert-only;
+- sealed days accept only approved adjustment/correction kinds;
+- actor/property/business-date/correlation are attributable;
+- retry/idempotency cannot duplicate economic effect;
+- FX uses explicit journals.
+
+Implemented charge foundation: debit is positive and credit negative. One untaxed
+revenue charge creates exactly two immutable lines in one currency/date: the open guest
+account and folio receive `+amount`, while the configured property revenue account
+receives `-amount` without a folio. PostgreSQL binds line tenant, journal, date, currency,
+account and folio ownership; the exact business-day row is locked against sealing.
+`tx_code_route` is tenant/RLS scoped and read-only to the application. Quantity is
+descriptive fixed-scale metadata and never changes the caller-supplied total.
+The operator adapter authorizes statement read and charge write independently, then
+delegates economic mutation only to this command. Its statement and charge workbench is
+not evidence of tax, invoicing, payment, settlement, fiscalization or checkout.
+
+### Payment aggregate — Financials
+
+**Root:** logical payment operation; persisted state changes in `payment` with tokenized
+`payment_instrument`.
+**States:** auth → incremental auth* → capture | void; capture → refund*.
+**Invariants:** PAN/CVV never enter Yellow; callbacks are idempotent; provider and local
+state reconcile; every successful money state has the correct journal; partial amounts,
+disputes, and FX remain explicit.
+
+### Business Day aggregate — Financials
+
+**Root:** property + business date.
+**States:** open → sealed. Roll opens/advances current operation independently of sealing
+previous days.
+**Invariants:** property-local date; readiness exceptions visible; sealing deterministic
+and idempotent; post-seal history is corrected only by new journals/documents.
+
+### Document aggregate — Tax/Fiscal
+
+**Root:** `document` under `document_series`.
+**Entities:** fiscal submission(s), hash chain, rendering/storage reference.
+**States:** draft → issued → cleared | rejected; jurisdiction-governed void/correction.
+**Invariants:** gapless series allocation, immutable issued document, previous-hash chain,
+provider idempotency, exact jurisdiction version, and audit.
+
+### Channel Connection aggregate — Distribution
+
+**Root:** `channel`.
+**Entities:** maps, inbound messages, push cursor, raw provider references, target error
+queue/reconciliation state.
+**Invariants:** canonical Yellow model is separate from provider models; inbound identity
+is idempotent; mapping is property/provider/version scoped; canonical commands apply
+bookings; failures never mutate canonical truth partially; replay is observable.
+
+### Reporting Projection — Reporting
+
+`stats_daily` and future read models are rebuildable from authoritative state/events.
+Each metric requires a definition/version, tenant/property/date scope, completeness
+watermark, and reconciliation proof. Reports never become a second transaction system.
+
+### Owner and Management Agreement aggregate — target, research required
+
+Potential roots: Owner, UnitOwnership, ManagementAgreement, OwnerStatement,
+PayoutInstruction.
+Non-negotiable boundary: guest folios and owner accounting are separate ledgers/claims.
+Agreement and payout rules are effective-dated, consented/approved, and survive
+reservation cancellation as explicit adjustments. No schema is authorized by this model.
+
+### Market Observation and Revenue Decision aggregates — target
+
+**Observation:** source, subject, observed time, received time, value, currency,
+availability semantics, licence/permission, freshness, confidence.
+**Decision:** evidence set, model/rule version, recommendation, constraints, expected
+outcome, approval/execution, actual outcome.
+External absence must distinguish sold out, unavailable, rate limited, and unknown.
+
+### Agent aggregate — target
+
+**Entities:** agent definition, capability grant, autonomy policy, tool budget, task,
+recommendation, approval, execution, outcome/evaluation.
+**Invariants:** agent identity is auditable; tools invoke domain commands; policy and
+normal authorization both apply; context is minimized; retries are idempotent; provider
+failure cannot block core operation; consequential output cites evidence and confidence.
+
+## Relationship map
+
+```text
+Tenant
+ └─ OrgNode (group/brand/region/property/outlet)
+     ├─ Users/Roles scoped to organization/property
+     ├─ Spaces ──< SellableUnit membership
+     │    ├─ Occupancy claims <── Holds / ReservationSegments / OwnerStay target
+     │    ├─ UnitCondition / OOO-OOS
+     │    └─ Assets target ──< WorkOrders
+     ├─ RatePlans ──< RatePrices / Policies / Packages
+     ├─ Reservations ──< Segments ──> Occupancy
+     │    ├─ ReservationGuests ──> Party
+     │    ├─ Group/Block
+     │    └─ links ──> Folios
+     ├─ Accounts ──< Folios ──< PostingLines >── Journals
+     │    ├─ Payments
+     │    ├─ AR
+     │    └─ Documents/FiscalSubmissions
+     ├─ Channels/Maps/Inbound/PushCursors
+     ├─ Tasks/Messages/Approvals/Extensions
+     └─ Reporting projections
+
+Every committed cross-context change ──> FactLog + OutboxEvent
+Automation / Integration / AI ──> authorized Command ──> same aggregates
+```
+
+## State machines
+
+### Canonical now
+
+- Reservation: `STATE-MACHINES.md` `1.
+- Folio: open → settled → closed.
+- Business day: open → sealed.
+- Task: documented lifecycle, but application implementation is absent.
+- Block: configured statuses with `deducts` semantics.
+- Hold: active → consumed | expired | released.
+- Payment: authorization/capture/refund lifecycle.
+- Document: draft/issued/cleared/rejected with jurisdictional correction.
+- Approval: pending → approved | rejected | expired.
+
+### Proposed but not authorized
+
+Owner agreements, work orders/assets, market observations/recommendations, agent tasks,
+conversation delivery, and integration error queues need explicit state-machine decisions
+before schema or code.
+
+## Command model
+
+A command envelope should converge on:
+
+```ts
+interface CommandEnvelope<T> {
+  tenantId: TenantId;          // derived from verified identity
+  propertyNode?: OrgNodeId;
+  actor: ActorRef;             // human, service, or agent
+  correlationId: CorrelationId;
+  idempotencyKey?: IdempotencyKey;
+  expectedVersion?: bigint;
+  reason?: string;
+  input: T;
+}
+```
+
+The exact type is illustrative, not an implementation order.
+
+A command handler:
+
+1. verifies identity/tenant/property/scope/policy;
+2. establishes one transaction-local tenant context;
+3. loads and locks/version-checks aggregate state;
+4. validates deterministic rules;
+5. performs authoritative writes;
+6. appends audit fact and every relevant outbox event in the same transaction;
+7. commits;
+8. lets adapters perform retryable external effects after commit;
+9. returns an outcome with correlation and recovery guidance.
+
+AI and automation do not get a `Tx` or repository directly.
+
+## Command catalogue
+
+### Existing documented commands
+
+Use `docs/CONTRACTS.md` names for availability, reservations, financials, inventory,
+rates, stay/housekeeping, profiles, distribution, compliance, and kernel capabilities.
+
+### Existing executable commands/services
+
+- tenant-scoped transaction handling;
+- extension type registration and instance creation/list;
+- approval request/decision;
+- fact recording;
+- outbox publish/consume/acknowledge/prune;
+- org hierarchy queries;
+- migration and seed operations.
+
+### Candidate future commands
+
+Names in the journey map are planning vocabulary only. Before implementation, each must
+be reconciled with `CONTRACTS.md`, assigned to one owner, and receive an order with
+authorization, idempotency, fact, event, and negative proofs.
+
+## Event model
+
+Existing catalogued events in `docs/EVENTS.md` remain authoritative. A future event must:
+
+- be caused by a committed domain change;
+- have one owning producer;
+- contain facts/deltas, not entity snapshots;
+- use tenant/property/business-date and actor/correlation/causation;
+- be idempotent by event ID;
+- declare version compatibility;
+- identify consumers and replay/rebuild behavior;
+- be added by an approved event order before code.
+
+Candidate events in this document are visibly marked target and are not authorized.
+
+## Domain invariants
+
+The Ten Invariants are inherited without restatement or dilution. Additional product
+invariants for future orders:
+
+1. A quote is not a hold, and a search result is not a promise.
+2. Physical space, room type booked, and room type charged remain distinct.
+3. Guest identity, reservation guest occurrence, and payer/account are distinct.
+4. Source, booking channel, marketing attribution, communication channel, payment
+   source, and market segment are distinct.
+5. Physical departure and financial account closure may differ only through an explicit
+   governed path.
+6. Housekeeping condition, physical occupancy, and OOO/OOS are orthogonal.
+7. Canonical inventory/rate/reservation state is independent of provider representation.
+8. External retries cannot duplicate local business effect.
+9. Configuration and model/rule versions used for consequential decisions remain
+   reconstructible.
+10. Owner accounting is not guest-folio accounting.
+11. AI output is never authoritative state; only accepted commands create state.
+12. A material approval is not an execution authorization forever; current state is
+    revalidated.
+13. A capability is not complete without authorization, failure, audit/event, tests, and
+    an appropriate operational surface.
+14. Legal/compliance behavior is jurisdiction- and effective-date-specific and cannot be
+    inferred from property address alone.
+
+## Open modeling decisions
+
+These need evidence or founder choice before their first order:
+
+1. Separate persisted Stay aggregate versus reservation-segment operational projection.
+2. Owner/asset bounded-context placement and accounting depth.
+3. Quote persistence and exact hold guarantee (inventory only versus price/policy).
+4. Identity merge reversibility and match-evidence thresholds.
+5. Property/department attribute-based permission representation.
+6. Offline command eligibility and conflict/compensation policy.
+7. Configuration lifecycle/effective dating beyond current extension rows.
+8. Work-order and asset state machines.
+9. Recommendation/observation/agent aggregate schemas.
+10. Initial jurisdiction/provider scope.
+
+## Model review checklist
+
+Before any schema change:
+
+- Does an existing aggregate/context already own the rule?
+- Is this identity, mutable head, append-only history, or rebuildable projection?
+- What is the tenant/property ownership path?
+- What state machine and concurrency race exist?
+- What cannot be compensated?
+- Which command is the sole mutation path?
+- Which audit fact and existing/new event are required?
+- What data is PII, payment, statutory, financial, or AI-sensitive?
+- Which indexes follow measured queries?
+- Can configuration express the variation without weakening the model?
+- Is the proposed model proven by the next runnable vertical slice?
+
+If those answers are missing, the next artifact is a question/ADR, not a migration.

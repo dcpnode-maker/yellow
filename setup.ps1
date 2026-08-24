@@ -32,8 +32,11 @@ docker compose up -d postgres valkey | Out-Host; Assert-Exit 'Starting PostgreSQ
 
 $ready = $false
 foreach ($attempt in 1..40) {
+    $postmaster = docker compose exec -T postgres cat /proc/1/comm 2> $null
+    $finalPostmaster = $LASTEXITCODE -eq 0 -and $postmaster.Trim() -eq 'postgres'
     docker compose exec -T postgres pg_isready -U yellow -d yellow_dev *> $null
-    if ($LASTEXITCODE -eq 0) { $ready = $true; break }
+    $databaseReady = $LASTEXITCODE -eq 0
+    if ($databaseReady -and $finalPostmaster) { $ready = $true; break }
     Start-Sleep -Seconds 1
 }
 if (-not $ready) { throw 'PostgreSQL did not become ready. Run: docker compose logs postgres' }
@@ -61,8 +64,8 @@ try {
     $tables = docker compose exec -T postgres psql -U yellow -d yellow_test -tAc "SELECT count(*) FROM pg_tables WHERE schemaname='public';"
     Assert-Exit 'Counting public tables'
     $tables = $tables.Trim()
-    if ($tables -ne '81') { throw "yellow_test has $tables public tables; expected 81 (80 baseline + schema_migration)." }
-    Write-Host 'yellow_test tables: 81 (80 baseline + schema_migration)'
+    if ($tables -ne '85') { throw "yellow_test has $tables public tables; expected 85 (80 baseline + tx_code_route + 2 kernel consumer + api_idempotency + schema_migration)." }
+    Write-Host 'yellow_test tables: 85 (80 baseline + tx_code_route + 2 kernel consumer + api_idempotency + schema_migration)'
 
     $env:YELLOW_DSN = "dbname=yellow_test user=yellow password=yellow host=127.0.0.1 port=$($env:YELLOW_POSTGRES_PORT)"
     $env:PYTHONIOENCODING = 'utf-8'
