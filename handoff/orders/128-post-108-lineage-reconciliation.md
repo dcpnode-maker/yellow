@@ -1,6 +1,6 @@
 # Order 128 — Post-108 lineage reconciliation and model routing
 
-**Status:** ACTIVE — evidence inventory complete; canonical integration selection pending
+**Status:** COMPLETE — governance/design only; no product integration performed
 **Phase:** 5 · delivery control
 **Branch:** `phase-5/post-108-lineage-reconciliation`
 **Base:** `952478d17bcebd67e696d5cb76eec37e89cabcf3` — merged `origin/main`
@@ -57,7 +57,10 @@ None of the local-only rows is called durable or merged merely because it is rea
 from a worktree. Order 129 must push one reviewed current-line candidate and must not
 push every stale side branch as a substitute for reconciliation.
 
-## Reconciliation proposal
+## Reconciliation decision
+
+The following sequence is selected for future execution. It does not itself move a
+branch, alter product code or authorize a self-merge.
 
 1. Close the unimplemented finance planning pack 109–115 as **SUPERSEDED-BY-REISSUE**
    when Order 129 assembles governance. Preserve its founder-approved policy text and
@@ -188,12 +191,19 @@ future-workbench artifact is in scope.
 
 - [x] Exact post-108 branch/ref/worktree/remote map is recorded with SHAs.
 - [x] Each candidate has an evidence-based status and dependency classification.
-- [ ] Duplicate 112/113 handling and local-`main` reconciliation are decided explicitly.
+- [x] Duplicate 112/113 handling and local-`main` reconciliation are decided explicitly.
 - [x] Order 124 receives independent non-implementing Tier-3 review on its exact frozen
       candidate; Orders 126/127 remain blocked unless their documented gates clear.
 - [x] A minimal Order-129 integration set and full fresh-proof command list are defined.
 - [x] Collision-free Order numbers 128–132 and model roles are reserved.
 - [x] Truthful delivery-status security boundary is defined; model activity remains
       research-required.
-- [ ] Only the two Scope files differ from the exact base, and repository state remains
+- [x] Only the two Scope files differ from the exact base, and repository state remains
       clean after commit.
+
+## COMPLETE
+
+Order 128 is complete as a governance and delivery-control artifact. It creates no
+claim that post-108 executables are integrated, that local `main` moved, or that live
+model activity exists. The next writable task begins only when Order 129 is deliberately
+created from the then-current canonical `origin/main`.
