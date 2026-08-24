@@ -1,9 +1,9 @@
 # Order 112 — Operator idempotency actor binding
 
-**Phase:** 5  
-**Branch:** `phase-5/security-hardening`  
-**Base:** `a587a23`  
-**Risk tier:** 3 — authenticated mutation replay and audit attribution  
+**Phase:** 5
+**Branch:** `phase-5/security-hardening`
+**Base:** `a587a23`
+**Risk tier:** 3 — authenticated mutation replay and audit attribution
 **Owner:** Codex implementation; independent non-implementing reviewer required
 
 ## Outcome
@@ -130,4 +130,4 @@ P0's corrected two-actor proof plus P1–P2 on a fresh database before approval.
 - [x] Cross-actor key reuse conflicts without response or audit-envelope confusion.
 - [x] Same-actor replay/rollback and every inherited operator contract remain exact.
 - [x] Standing/referee gates pass and protected files remain unchanged.
-- [ ] Independent non-implementing reviewer personally executes and approves the proof.
+- [ ] Independent non-implementing reviewer personally executes and approves the rebased proof.
