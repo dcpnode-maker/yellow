@@ -79,6 +79,9 @@ test("Order 096 P0/P4: reservation guest workbench is explicit and browser-autho
   expect(script).toContain("/reservation-guests?confirmationNo=");
   expect(script).toContain("/guests");
   expect(script).toContain("primarySharePct");
+  expect(script).toContain("BigInt(whole) * 100n + BigInt(fraction)");
+  expect(script).toContain("focusTarget.focus()");
+  expect(script).not.toMatch(/Math\.round\(Number\(|\.toFixed\(2\)/);
   expect(script).not.toMatch(/innerHTML|outerHTML|insertAdjacentHTML|localStorage|sessionStorage|document\.cookie/);
   expect(script).not.toMatch(BROWSER_SQL_SYNTAX);
 });

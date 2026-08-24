@@ -2152,6 +2152,17 @@
     return /^(?:0\.(?:0[1-9]|[1-9]\d)|[1-9]\d?\.\d{2}|100\.00)$/.test(value) ? value : null;
   }
 
+  function shareBasisPoints(value) {
+    const canonical = canonicalShare(value);
+    if (canonical === null) return null;
+    const [whole, fraction] = canonical.split(".");
+    return BigInt(whole) * 100n + BigInt(fraction);
+  }
+
+  function formatBasisPoints(value) {
+    return `${value / 100n}.${String(value % 100n).padStart(2, "0")}`;
+  }
+
   function updateReservationShareTotal() {
     const rows = [...reservationGuestList.querySelectorAll(".reservation-guest-row")];
     const sharers = rows.filter((row) => row.querySelector("select").value === "sharer");
@@ -2170,11 +2181,12 @@
       return;
     }
     const values = [reservationPrimaryShare.value, ...sharers.map((row) => row.querySelector('input[name="sharePct"]').value)];
-    const valid = values.every((value) => canonicalShare(value) !== null);
-    const total = valid ? values.reduce((sum, value) => sum + Math.round(Number(value) * 100), 0) : null;
+    const basisPoints = values.map(shareBasisPoints);
+    const valid = basisPoints.every((value) => value !== null);
+    const total = valid ? basisPoints.reduce((sum, value) => sum + value, 0n) : null;
     reservationShareTotal.textContent = total === null
       ? "Enter every share with exactly two decimal places."
-      : `Current total: ${(total / 100).toFixed(2)}%${total === 10000 ? " · ready" : " · must equal 100.00%"}`;
+      : `Current total: ${formatBasisPoints(total)}%${total === 10000n ? " · ready" : " · must equal 100.00%"}`;
   }
 
   function addReservationGuestRow(guest = { partyId: "", role: "accompanying", sharePct: null }) {
@@ -2214,7 +2226,13 @@
     remove.className = "quiet remove-row";
     remove.textContent = "Remove";
     remove.setAttribute("aria-label", `Remove guest ${guest.partyId || "row"}`);
-    remove.addEventListener("click", () => { row.remove(); updateReservationShareTotal(); });
+    remove.addEventListener("click", () => {
+      const focusTarget = row.nextElementSibling?.querySelector('input[name="partyId"]') ??
+        row.previousElementSibling?.querySelector('input[name="partyId"]') ?? addReservationGuest;
+      row.remove();
+      updateReservationShareTotal();
+      focusTarget.focus();
+    });
     role.addEventListener("change", updateReservationShareTotal);
     share.addEventListener("input", updateReservationShareTotal);
     row.append(partyLabel, roleLabel, shareLabel, remove);
