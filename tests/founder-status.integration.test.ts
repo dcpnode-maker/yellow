@@ -186,12 +186,16 @@ describe("Order 064 recorded build snapshot", () => {
     expect(html).toContain('id="status-view"');
     expect(html).toContain('id="roadmap-progress"');
     expect(html).toContain('id="review-progress"');
+    expect(html).toContain('id="status-reviewed"');
     expect(html).toContain("Recorded build snapshot");
     expect(html).toContain("Live service checks");
     expect(css).toContain(".status-health-grid");
     expect(css).toContain(':root[data-theme="pixel"]');
     expect(js).toContain('"/system-status"');
     expect(js).toContain("loadSystemStatus");
+    expect(js).toContain('const statusReviewed = document.querySelector("#status-reviewed")');
+    expect(js).toContain('statusReviewed.textContent = `${snapshot.review.independentlyReviewedThroughOrder} orders`;');
+    expect(js).not.toContain('statusDebt.textContent = `${snapshot.review.gate3Debt} orders`;');
     expect(js).not.toMatch(/localStorage|sessionStorage|document\.cookie|setInterval|EventSource|WebSocket/);
     expect(js).not.toMatch(/github\.com|api\.github|docker|compose|child_process|Bun\.spawn|console\.(?:log|debug|info)/i);
     expect(appSource).toContain('/p/:property/status');
