@@ -118,3 +118,9 @@ Refresh the disposable Graphify code map and record its parser/semantic limits.
   canonical Markdown was therefore validated by the executable proof, not by the graph.
 - Draft PR 61 GitHub run 32600316017 passed quality, Windows state, container smoke and the exact
   database job. The order remains UNVERIFIED and unmerged.
+
+---
+
+## MERGED
+
+Prepared for the founder-authorized cumulative integration from exact reviewed frontier `bc22a9d`. This marker becomes true when the cumulative integration PR lands in `main`; review provenance remains in `handoff/reviews/` and `handoff/LEDGER.md`.

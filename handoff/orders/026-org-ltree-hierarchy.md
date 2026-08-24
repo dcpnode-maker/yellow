@@ -59,3 +59,9 @@ Order 026 completes Phase 1. Do not start Phase 2. Write
 D-87 self-check output, and every pre-registered proof from Orders 019–026. The architect
 re-executes them at the exit gate per D-84, then writes Phase 2's plan — that is the point
 at which the information to write it exists.
+
+---
+
+## MERGED
+
+Prepared for the founder-authorized cumulative integration from exact reviewed frontier `bc22a9d`. This marker becomes true when the cumulative integration PR lands in `main`; review provenance remains in `handoff/reviews/` and `handoff/LEDGER.md`.

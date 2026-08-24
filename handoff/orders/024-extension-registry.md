@@ -56,3 +56,9 @@ Adding real columns for extension attributes in this order · a JSON-Schema libr
 fails the DEPENDENCIES.md test — check licence, governance and standard-protocol before
 adding anything, and if in doubt stop and ask · validation after the write · bypassing the
 audit envelope · editing `migrations/` or `tests/run_invariants.py` · merging.
+
+---
+
+## MERGED
+
+Prepared for the founder-authorized cumulative integration from exact reviewed frontier `bc22a9d`. This marker becomes true when the cumulative integration PR lands in `main`; review provenance remains in `handoff/reviews/` and `handoff/LEDGER.md`.

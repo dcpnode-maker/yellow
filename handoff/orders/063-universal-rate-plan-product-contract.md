@@ -65,3 +65,9 @@ prices, restrictions, market/source fields and progressive forms—but no comple
 model selection, applicability hierarchy, commercial targeting, deterministic conflict review,
 bulk publish/versioned undo or AI intent compilation. The plan's matrix is the proof for this
 documentation-only order; later orders must supply executable domain and UI proofs.
+
+---
+
+## MERGED
+
+Prepared for the founder-authorized cumulative integration from exact reviewed frontier `bc22a9d`. This marker becomes true when the cumulative integration PR lands in `main`; review provenance remains in `handoff/reviews/` and `handoff/LEDGER.md`.

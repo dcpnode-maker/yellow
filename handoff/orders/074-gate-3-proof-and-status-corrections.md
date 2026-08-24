@@ -145,3 +145,9 @@ open a draft PR stacked on Order 073. Do not merge.
 - [x] P5 is fully green; persistent localhost remains healthy.
 - [x] F11 and F12 are corrected and recorded for independent re-execution.
 - [x] Orders 045–074 remain unmerged; corrections are not represented as self-approved.
+
+---
+
+## MERGED
+
+Prepared for the founder-authorized cumulative integration from exact reviewed frontier `bc22a9d`. This marker becomes true when the cumulative integration PR lands in `main`; review provenance remains in `handoff/reviews/` and `handoff/LEDGER.md`.

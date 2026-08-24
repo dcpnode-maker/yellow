@@ -121,3 +121,9 @@ green. This documentation-only order requires no independent high-risk approval.
 - [x] Production/prototype boundary and zero-cost launch are clear.
 - [x] No generated dependency/cache or out-of-scope file is copied.
 - [x] Relevant standing gates remain green.
+
+---
+
+## MERGED
+
+Prepared for the founder-authorized cumulative integration from exact reviewed frontier `bc22a9d`. This marker becomes true when the cumulative integration PR lands in `main`; review provenance remains in `handoff/reviews/` and `handoff/LEDGER.md`.

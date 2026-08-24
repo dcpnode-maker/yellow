@@ -174,3 +174,9 @@ PostgreSQL and returns APPROVED.
 Independent review first rejected `ca6d38b`, then approved corrected tip `d9ad13b` after
 executing reviewer-owned BigInt and dynamic-focus canaries plus every required database
 gate. See `handoff/reviews/096-operator-reservation-guests.md` for exact evidence.
+
+---
+
+## MERGED
+
+Prepared for the founder-authorized cumulative integration from exact reviewed frontier `bc22a9d`. This marker becomes true when the cumulative integration PR lands in `main`; review provenance remains in `handoff/reviews/` and `handoff/LEDGER.md`.

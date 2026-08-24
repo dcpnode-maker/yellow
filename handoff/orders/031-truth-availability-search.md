@@ -63,3 +63,9 @@ if every projection/cache value is wrong.
 Run the required Order 031 database proof, typecheck, boundaries, full tests, licence
 policy, dependency audit, schema drift, and `./setup.sh --db-only` from the top. Commit
 and push only if all pass. Do not merge.
+
+---
+
+## MERGED
+
+Prepared for the founder-authorized cumulative integration from exact reviewed frontier `bc22a9d`. This marker becomes true when the cumulative integration PR lands in `main`; review provenance remains in `handoff/reviews/` and `handoff/LEDGER.md`.

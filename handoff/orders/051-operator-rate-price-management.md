@@ -83,3 +83,9 @@ canonical decimal strings at HTTP/browser boundaries and bigint inside the domai
 Run P1-P7 on fresh isolated databases, restart the complete standing gate after any D-92
 stop, perform rendered desktop/responsive review, refresh Graphify, commit `[codex]`, push,
 and open a draft stacked PR. Do not approve or merge; preserve independent review debt.
+
+---
+
+## MERGED
+
+Prepared for the founder-authorized cumulative integration from exact reviewed frontier `bc22a9d`. This marker becomes true when the cumulative integration PR lands in `main`; review provenance remains in `handoff/reviews/` and `handoff/LEDGER.md`.

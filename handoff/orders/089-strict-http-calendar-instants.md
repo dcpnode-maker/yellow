@@ -139,3 +139,9 @@ Evidence captured at final production commit `f4ecae9` (calendar correction `04a
 - Disposable Graphify map: 5,514 nodes, 9,494 directed edges and 643 communities at
   `f4ecae9`, with zero missing/dangling endpoints, duplicates or collapsed directed
   pairs. Ten inherited self-loops remain visible; community-label refresh is deferred.
+
+---
+
+## MERGED
+
+Prepared for the founder-authorized cumulative integration from exact reviewed frontier `bc22a9d`. This marker becomes true when the cumulative integration PR lands in `main`; review provenance remains in `handoff/reviews/` and `handoff/LEDGER.md`.

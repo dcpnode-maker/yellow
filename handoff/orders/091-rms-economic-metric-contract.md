@@ -182,3 +182,9 @@ except that the honest current built order/debt counters advance after the manif
   missing, dangling, self-loop, duplicate or collapsed endpoints. It intentionally omits 411
   semantic files and eight SQL files because `tree_sitter_sql` is unavailable.
 - This is builder evidence only. Independent review remains through Order 044; no merge is claimed.
+
+---
+
+## MERGED
+
+Prepared for the founder-authorized cumulative integration from exact reviewed frontier `bc22a9d`. This marker becomes true when the cumulative integration PR lands in `main`; review provenance remains in `handoff/reviews/` and `handoff/LEDGER.md`.

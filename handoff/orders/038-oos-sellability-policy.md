@@ -64,3 +64,9 @@ with warning, without making physical OOO removal configurable.
 Run the Order 038 database proof plus Order 037 with their required flags; typecheck,
 boundaries, full tests, licence policy, audit, schema drift, and `./setup.sh --db-only`.
 Commit and push only when all are green. Do not merge.
+
+---
+
+## MERGED
+
+Prepared for the founder-authorized cumulative integration from exact reviewed frontier `bc22a9d`. This marker becomes true when the cumulative integration PR lands in `main`; review provenance remains in `handoff/reviews/` and `handoff/LEDGER.md`.

@@ -133,3 +133,9 @@ before adding the manifest row, then advance only exact founder-status counters.
 standing gate and fresh isolated `./setup.sh --db-only` with app never created. Do not rebuild or
 reseed the founder stack. Refresh Graphify structurally, push a draft PR stacked on Order 068 and do
 not approve or merge.
+
+---
+
+## MERGED
+
+Prepared for the founder-authorized cumulative integration from exact reviewed frontier `bc22a9d`. This marker becomes true when the cumulative integration PR lands in `main`; review provenance remains in `handoff/reviews/` and `handoff/LEDGER.md`.

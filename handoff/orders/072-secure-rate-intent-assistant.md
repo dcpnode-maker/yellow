@@ -152,3 +152,9 @@ commit, push and open a draft PR. Do not merge.
 - [x] Ambiguous/impossible/forbidden requests explain the boundary instead of guessing.
 - [x] The persistent localhost stack is restored healthy and left on the rate builder.
 - [x] Order 072 is recorded UNVERIFIED for later independent Gate-3 execution.
+
+---
+
+## MERGED
+
+Prepared for the founder-authorized cumulative integration from exact reviewed frontier `bc22a9d`. This marker becomes true when the cumulative integration PR lands in `main`; review provenance remains in `handoff/reviews/` and `handoff/LEDGER.md`.

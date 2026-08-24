@@ -48,3 +48,9 @@ availability probe reports that no daemon is running.
 
 Run P2/P3 natively, typecheck, boundaries, full tests, and `./setup.sh --db-only`.
 Push the correction to the existing draft PR and wait for all CI jobs. Do not merge.
+
+---
+
+## MERGED
+
+Prepared for the founder-authorized cumulative integration from exact reviewed frontier `bc22a9d`. This marker becomes true when the cumulative integration PR lands in `main`; review provenance remains in `handoff/reviews/` and `handoff/LEDGER.md`.

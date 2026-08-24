@@ -113,3 +113,9 @@ D-191 and restore it afterward. Refresh Graphify after final source changes. Com
 `[codex]`, push, and open a draft stacked PR against Order 057. Do not approve or merge.
 The handoff must label all evidence builder-asserted and call out that an event consumer
 and cache decision are still pending Phase-2 work.
+
+---
+
+## MERGED
+
+Prepared for the founder-authorized cumulative integration from exact reviewed frontier `bc22a9d`. This marker becomes true when the cumulative integration PR lands in `main`; review provenance remains in `handoff/reviews/` and `handoff/LEDGER.md`.

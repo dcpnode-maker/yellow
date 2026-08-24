@@ -70,3 +70,9 @@ Wave A (`1e422eb`), Wave B (`645b5ca`), Wave C (`a49be76`) and Wave D (`4ff64e5`
 durably record reviewer-executed approval for exactly one exclusive owner per all 45
 manifest rows. The B13 plan correction is `d50517c`. Orders 087/088 remain absent gaps.
 The historical manifest rows are not rewritten; the four review files are authority.
+
+---
+
+## MERGED
+
+Prepared for the founder-authorized cumulative integration from exact reviewed frontier `bc22a9d`. This marker becomes true when the cumulative integration PR lands in `main`; review provenance remains in `handoff/reviews/` and `handoff/LEDGER.md`.

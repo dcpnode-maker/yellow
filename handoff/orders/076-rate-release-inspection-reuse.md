@@ -168,3 +168,9 @@ draft PR based on Order 075's branch, and do not approve or merge.
 - [x] P0 was committed red before production edits.
 - [x] P1–P5 pass and the persistent founder workbench is healthy.
 - [x] Manifest/status record Order 076 as `UNVERIFIED`; independent review and merge remain pending.
+
+---
+
+## MERGED
+
+Prepared for the founder-authorized cumulative integration from exact reviewed frontier `bc22a9d`. This marker becomes true when the cumulative integration PR lands in `main`; review provenance remains in `handoff/reviews/` and `handoff/LEDGER.md`.

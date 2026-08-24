@@ -173,3 +173,9 @@ after every builder proof passes.
 - [x] P5 leaves localhost healthy with one quote-capable canonical FLEX release.
 - [x] P6 is fully green and Graphify is refreshed.
 - [x] Order 078 is pushed as UNVERIFIED and nothing is merged.
+
+---
+
+## MERGED
+
+Prepared for the founder-authorized cumulative integration from exact reviewed frontier `bc22a9d`. This marker becomes true when the cumulative integration PR lands in `main`; review provenance remains in `handoff/reviews/` and `handoff/LEDGER.md`.

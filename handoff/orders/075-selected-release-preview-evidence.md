@@ -149,3 +149,9 @@ not approve or merge.
   with zero missing, dangling, duplicate or collapsed endpoints. Five known self-loops remain;
   three SQL files still lack \`tree_sitter_sql\`; 202 changed semantic documents remain deliberately
   unstamped for later LLM extraction rather than being falsely marked current.
+
+---
+
+## MERGED
+
+Prepared for the founder-authorized cumulative integration from exact reviewed frontier `bc22a9d`. This marker becomes true when the cumulative integration PR lands in `main`; review provenance remains in `handoff/reviews/` and `handoff/LEDGER.md`.

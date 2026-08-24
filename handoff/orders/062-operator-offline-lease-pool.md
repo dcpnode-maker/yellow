@@ -126,3 +126,9 @@ standing self-check from the frozen lockfile. Stop the persistent app only for t
 referee when required, restore it with both existing workers enabled, refresh Graphify as an
 ignored derived map, commit `[codex]`, push, and open a draft stacked PR against Order 061.
 Append one UNVERIFIED Gate-3 manifest row with protected hashes. Do not approve or merge.
+
+---
+
+## MERGED
+
+Prepared for the founder-authorized cumulative integration from exact reviewed frontier `bc22a9d`. This marker becomes true when the cumulative integration PR lands in `main`; review provenance remains in `handoff/reviews/` and `handoff/LEDGER.md`.

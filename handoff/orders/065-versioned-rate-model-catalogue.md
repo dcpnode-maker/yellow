@@ -122,3 +122,9 @@ correction. Then run the complete standing gate and fresh isolated `./setup.sh -
 app never created. Rebuild the persistent localhost only if runtime source changes require it;
 this order adds no UI. Refresh Graphify structurally for code, append one UNVERIFIED Gate-3 row,
 commit `[codex]`, push and open a draft stacked PR against Order 064. Do not approve or merge.
+
+---
+
+## MERGED
+
+Prepared for the founder-authorized cumulative integration from exact reviewed frontier `bc22a9d`. This marker becomes true when the cumulative integration PR lands in `main`; review provenance remains in `handoff/reviews/` and `handoff/LEDGER.md`.

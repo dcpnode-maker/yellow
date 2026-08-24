@@ -138,3 +138,9 @@ question, and under D-92's hard floor they stop the phase rather than the order.
 Tier 3 under D-92: pre-registered proofs, produced by the builder and re-executed by the
 architect at the Phase 1 exit gate. Proceed to Order 020 once all six pass — do not wait
 for review. The builder does not merge.
+
+---
+
+## MERGED
+
+Prepared for the founder-authorized cumulative integration from exact reviewed frontier `bc22a9d`. This marker becomes true when the cumulative integration PR lands in `main`; review provenance remains in `handoff/reviews/` and `handoff/LEDGER.md`.

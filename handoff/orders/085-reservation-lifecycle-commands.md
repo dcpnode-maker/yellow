@@ -188,3 +188,9 @@ debt 41, and leave app/PostgreSQL/Valkey healthy. Push final-tip CI and do not m
 - [x] Failure injection, concurrency, tenant/property and hostile-input proofs pass.
 - [x] Standing checks, protected hashes, Graphify, localhost and final-tip remote CI are green.
 - [x] Independent review remains exactly through Order 044; Order 085 is not self-approved.
+
+---
+
+## MERGED
+
+Prepared for the founder-authorized cumulative integration from exact reviewed frontier `bc22a9d`. This marker becomes true when the cumulative integration PR lands in `main`; review provenance remains in `handoff/reviews/` and `handoff/LEDGER.md`.

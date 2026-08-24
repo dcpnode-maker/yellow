@@ -112,3 +112,9 @@ the feature in the browser at Pixel 375 and Apple 1280. Refresh Graphify only af
 changes; it is a derived disposable map. Commit `[codex]`, push, and open a draft stacked
 PR against Order 056. Do not approve or merge. The PR must label all results as builder-
 asserted and preserve independent review debt for Claude or the next advanced model.
+
+---
+
+## MERGED
+
+Prepared for the founder-authorized cumulative integration from exact reviewed frontier `bc22a9d`. This marker becomes true when the cumulative integration PR lands in `main`; review provenance remains in `handoff/reviews/` and `handoff/LEDGER.md`.

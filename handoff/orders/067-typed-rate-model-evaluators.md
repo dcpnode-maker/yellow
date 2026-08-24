@@ -128,3 +128,9 @@ standing gate and a fresh isolated `./setup.sh --db-only` with the app never cre
 or reseed the founder's persistent stack because there is no runtime route/UI. Refresh Graphify
 structurally, append one UNVERIFIED Gate-3 row, advance only the exact founder-status counters, commit
 `[codex]`, push and open a draft stacked PR against Order 066. Do not approve or merge.
+
+---
+
+## MERGED
+
+Prepared for the founder-authorized cumulative integration from exact reviewed frontier `bc22a9d`. This marker becomes true when the cumulative integration PR lands in `main`; review provenance remains in `handoff/reviews/` and `handoff/LEDGER.md`.

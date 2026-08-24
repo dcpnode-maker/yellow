@@ -79,3 +79,9 @@ The wrapper exited 17 only because it detected the defect.
 Run P2–P4 natively, then restart the repository standing self-check from the top.
 Refresh Graphify, commit with `[codex]`, push, and open a draft descendant PR. Do not
 approve or merge.
+
+---
+
+## MERGED
+
+Prepared for the founder-authorized cumulative integration from exact reviewed frontier `bc22a9d`. This marker becomes true when the cumulative integration PR lands in `main`; review provenance remains in `handoff/reviews/` and `handoff/LEDGER.md`.

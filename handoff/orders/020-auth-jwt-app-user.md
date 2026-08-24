@@ -65,3 +65,9 @@ TOTP, or session revocation (each is its own later order) · editing `0001_init.
 
 Stop and write a question if the Ed25519 probe result suggests the HS256 decision should
 change, or if `Bun.password` cannot meet argon2id parameters.
+
+---
+
+## MERGED
+
+Prepared for the founder-authorized cumulative integration from exact reviewed frontier `bc22a9d`. This marker becomes true when the cumulative integration PR lands in `main`; review provenance remains in `handoff/reviews/` and `handoff/LEDGER.md`.

@@ -151,3 +151,9 @@ personally executes the financial and real-HTTP proof.
 - [x] Charge path is only approved `ChargeService`; unbuilt tax/payment scope is clear.
 - [x] Standing/referee gates pass and scope is exact.
 - [x] Independent reviewer approves executed proof.
+
+---
+
+## MERGED
+
+Prepared for the founder-authorized cumulative integration from exact reviewed frontier `bc22a9d`. This marker becomes true when the cumulative integration PR lands in `main`; review provenance remains in `handoff/reviews/` and `handoff/LEDGER.md`.

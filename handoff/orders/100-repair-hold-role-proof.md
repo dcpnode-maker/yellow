@@ -81,3 +81,9 @@ On distinct fresh PostgreSQL, Order 055 passed 7/7 with 48 assertions. Typecheck
 59-file boundaries and standing 131/0 with 1,659 assertions passed; the final fresh
 84-table referee passed 11/11. Only the named test assertion and governance/status files
 changed. Migration 0001 and the invariant referee hashes remained exact.
+
+---
+
+## MERGED
+
+Prepared for the founder-authorized cumulative integration from exact reviewed frontier `bc22a9d`. This marker becomes true when the cumulative integration PR lands in `main`; review provenance remains in `handoff/reviews/` and `handoff/LEDGER.md`.

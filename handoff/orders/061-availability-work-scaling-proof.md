@@ -101,3 +101,9 @@ derived map, append an UNVERIFIED manifest row, commit `[codex]`, push and open 
 PR against Order 060. Do not approve or merge. Independent Gate-3 review must execute the
 focused proof itself and inspect that the intentional negative mutation was absent from the
 commit.
+
+---
+
+## MERGED
+
+Prepared for the founder-authorized cumulative integration from exact reviewed frontier `bc22a9d`. This marker becomes true when the cumulative integration PR lands in `main`; review provenance remains in `handoff/reviews/` and `handoff/LEDGER.md`.

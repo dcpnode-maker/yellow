@@ -144,3 +144,9 @@ Fresh review seed passed 11/11 with 39 assertions, deployment acceptance passed 
 with 10, normalized schema matched, protected hashes remained exact, and the final
 84-table app-never-started referee passed 11/11. This is builder evidence, not
 independent approval.
+
+---
+
+## MERGED
+
+Prepared for the founder-authorized cumulative integration from exact reviewed frontier `bc22a9d`. This marker becomes true when the cumulative integration PR lands in `main`; review provenance remains in `handoff/reviews/` and `handoff/LEDGER.md`.

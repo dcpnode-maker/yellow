@@ -17,3 +17,8 @@ repeat-on-consumed-fixture suite. Recreate a distinct isolated database, restart
 cases from P1, and retain both results. Rejected: deleting P0 artifacts to simulate a fresh
 database; weakening initial-empty or first-publication assertions; claiming the partial
 rerun as product failure.
+
+## RESOLVED
+
+Resolved by Order 100's distinct fresh-database 7/7 proof recorded in
+`handoff/LEDGER.md`; the consumed intentional-red evidence remains preserved.

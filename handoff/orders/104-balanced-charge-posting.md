@@ -145,3 +145,9 @@ Tier-3 reviewer personally executes P1–P5 on fresh PostgreSQL.
 - [x] No tax/payment/fiscal/trust/settlement/day-roll behavior enters the slice.
 - [x] Standing/referee gates pass and scope is exact.
 - [x] Independent reviewer approves executed proof.
+
+---
+
+## MERGED
+
+Prepared for the founder-authorized cumulative integration from exact reviewed frontier `bc22a9d`. This marker becomes true when the cumulative integration PR lands in `main`; review provenance remains in `handoff/reviews/` and `handoff/LEDGER.md`.

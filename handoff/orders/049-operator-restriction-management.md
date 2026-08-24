@@ -78,3 +78,9 @@ the Order 047 replay primitive, and the Order 048 rollback-before-HTTP boundary.
 Run P1-P7 on fresh isolated databases, restart the complete standing gate, perform
 rendered desktop/mobile review, refresh Graphify, commit `[codex]`, push, and open a draft
 stacked PR. Do not approve or merge; preserve independent review debt.
+
+---
+
+## MERGED
+
+Prepared for the founder-authorized cumulative integration from exact reviewed frontier `bc22a9d`. This marker becomes true when the cumulative integration PR lands in `main`; review provenance remains in `handoff/reviews/` and `handoff/LEDGER.md`.

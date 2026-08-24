@@ -176,3 +176,9 @@ derived/disposable map and no generated map becomes product authority.
 - [x] P4 states current versus planned scope without claiming training or RMS completion.
 - [x] P5 and both protected hashes remain exact.
 - [x] Order 090 is recorded as UNVERIFIED review debt; no approval or merge is claimed.
+
+---
+
+## MERGED
+
+Prepared for the founder-authorized cumulative integration from exact reviewed frontier `bc22a9d`. This marker becomes true when the cumulative integration PR lands in `main`; review provenance remains in `handoff/reviews/` and `handoff/LEDGER.md`.

@@ -139,3 +139,9 @@ on Order 078. Do not merge.
 - [x] P3 is green on GitHub Actions using the same package command.
 - [x] P4 is fully green and protected hashes remain exact.
 - [x] Order 079 remains builder-verified and UNVERIFIED pending independent Gate-3 execution.
+
+---
+
+## MERGED
+
+Prepared for the founder-authorized cumulative integration from exact reviewed frontier `bc22a9d`. This marker becomes true when the cumulative integration PR lands in `main`; review provenance remains in `handoff/reviews/` and `handoff/LEDGER.md`.

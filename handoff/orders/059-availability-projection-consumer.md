@@ -96,3 +96,9 @@ standing self-check from the lockfile. Stop the persistent app before the refere
 restore it with both workers enabled, refresh Graphify, commit `[codex]`, push and open a draft
 stacked PR against Order 058. Do not approve or merge. Label all results builder-asserted and
 record the deliberately absent initial horizon/cache/offline/overbooking decisions.
+
+---
+
+## MERGED
+
+Prepared for the founder-authorized cumulative integration from exact reviewed frontier `bc22a9d`. This marker becomes true when the cumulative integration PR lands in `main`; review provenance remains in `handoff/reviews/` and `handoff/LEDGER.md`.

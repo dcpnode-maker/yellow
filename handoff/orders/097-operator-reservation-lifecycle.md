@@ -145,3 +145,9 @@ domain lifecycle battery passed 5/5 and 62 assertions; standing passed 124/0 and
 assertions; review seed 11/11; deployment 4/4; schema and protected hashes exact; licences
 and dependency audit clean; pristine 84-table referee 11/11. This is not independent
 approval.
+
+---
+
+## MERGED
+
+Prepared for the founder-authorized cumulative integration from exact reviewed frontier `bc22a9d`. This marker becomes true when the cumulative integration PR lands in `main`; review provenance remains in `handoff/reviews/` and `handoff/LEDGER.md`.

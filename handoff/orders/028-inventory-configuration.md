@@ -102,3 +102,9 @@ Run from the top after dependencies and database preconditions are available:
 - Scope and forbidden-path checks are clean.
 - One `[codex]` commit is pushed on the ordered branch for deferred independent review.
 - Nothing is merged.
+
+---
+
+## MERGED
+
+Prepared for the founder-authorized cumulative integration from exact reviewed frontier `bc22a9d`. This marker becomes true when the cumulative integration PR lands in `main`; review provenance remains in `handoff/reviews/` and `handoff/LEDGER.md`.

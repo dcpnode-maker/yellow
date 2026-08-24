@@ -162,3 +162,9 @@ then update the manifest/ledger/status counters, commit and push a draft PR. Do 
 - [ ] The persistent `yellow-phase-1` app is restored healthy and the founder can inspect it at
   `http://localhost:3200/p/4518a22f-b455-54c6-a50a-4584383749b9/rates`.
 - [ ] Order 071 is recorded `UNVERIFIED` for later Gate-3 execution.
+
+---
+
+## MERGED
+
+Prepared for the founder-authorized cumulative integration from exact reviewed frontier `bc22a9d`. This marker becomes true when the cumulative integration PR lands in `main`; review provenance remains in `handoff/reviews/` and `handoff/LEDGER.md`.

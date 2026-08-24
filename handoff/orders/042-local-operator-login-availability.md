@@ -113,3 +113,9 @@ typecheck, boundaries, full tests, licence/audit, schema drift, and
 `./setup.sh --db-only`. Build and start the local Compose app against a prepared local
 test identity, verify login and availability through HTTP, refresh Graphify, commit,
 push, and open a draft descendant PR. Do not expose publicly, approve, or merge.
+
+---
+
+## MERGED
+
+Prepared for the founder-authorized cumulative integration from exact reviewed frontier `bc22a9d`. This marker becomes true when the cumulative integration PR lands in `main`; review provenance remains in `handoff/reviews/` and `handoff/LEDGER.md`.

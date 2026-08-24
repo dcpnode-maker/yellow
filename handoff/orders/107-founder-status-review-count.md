@@ -83,3 +83,9 @@ review boundary 91 and Gate-3 debt zero.
 - [x] Debt remains separately and accurately labelled.
 - [x] Snapshot reports Order 107 without changing review truth.
 - [x] Focused, standing and referee gates are green.
+
+---
+
+## MERGED
+
+Prepared for the founder-authorized cumulative integration from exact reviewed frontier `bc22a9d`. This marker becomes true when the cumulative integration PR lands in `main`; review provenance remains in `handoff/reviews/` and `handoff/LEDGER.md`.

@@ -157,3 +157,9 @@ PR and do not merge.
 - [x] The five inherited suites and complete thirteen-suite isolated gate are green.
 - [x] Standing checks, protected hashes and fresh referee are exact.
 - [x] Persistent localhost is healthy and review debt remains honestly UNVERIFIED.
+
+---
+
+## MERGED
+
+Prepared for the founder-authorized cumulative integration from exact reviewed frontier `bc22a9d`. This marker becomes true when the cumulative integration PR lands in `main`; review provenance remains in `handoff/reviews/` and `handoff/LEDGER.md`.

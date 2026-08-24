@@ -74,3 +74,9 @@ the authorized new `0002_kernel_consumer_cursor.sql` or
 Order 023 carries the phase's hardest DoD line — kill the relay mid-batch, restart,
 nothing lost or duplicated. Design the cursor here with that test in mind; if you find
 yourself wanting at-most-once semantics to make it easier, stop and ask.
+
+---
+
+## MERGED
+
+Prepared for the founder-authorized cumulative integration from exact reviewed frontier `bc22a9d`. This marker becomes true when the cumulative integration PR lands in `main`; review provenance remains in `handoff/reviews/` and `handoff/LEDGER.md`.

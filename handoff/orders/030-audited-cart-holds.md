@@ -77,3 +77,9 @@ and occupancy event commits or rolls back together.
 Run the Order 030 database suite with its required flag, typecheck, boundaries, full
 tests, licence policy, dependency audit, schema drift, and `./setup.sh --db-only` from
 the top. Commit and push only when all are green. Do not merge.
+
+---
+
+## MERGED
+
+Prepared for the founder-authorized cumulative integration from exact reviewed frontier `bc22a9d`. This marker becomes true when the cumulative integration PR lands in `main`; review provenance remains in `handoff/reviews/` and `handoff/LEDGER.md`.

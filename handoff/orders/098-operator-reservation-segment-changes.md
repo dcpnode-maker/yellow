@@ -152,3 +152,9 @@ with 112 assertions; standing passed 126/0 with 1,615 assertions; typecheck and 
 boundaries passed; fresh review seed passed 11/11; deployment passed 4/4; schema and
 protected hashes were exact; licences and dependency audit were clean; pristine
 app-never-started referee passed 11/11. This is not independent approval.
+
+---
+
+## MERGED
+
+Prepared for the founder-authorized cumulative integration from exact reviewed frontier `bc22a9d`. This marker becomes true when the cumulative integration PR lands in `main`; review provenance remains in `handoff/reviews/` and `handoff/LEDGER.md`.

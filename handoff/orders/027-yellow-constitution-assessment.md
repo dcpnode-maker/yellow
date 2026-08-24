@@ -65,3 +65,9 @@ Anything else is out of scope.
 - Treating an existing table or empty context index as an implemented capability.
 - Copying proprietary documentation or claiming legal/regulatory compliance.
 - Self-approval or merge.
+
+---
+
+## MERGED
+
+Prepared for the founder-authorized cumulative integration from exact reviewed frontier `bc22a9d`. This marker becomes true when the cumulative integration PR lands in `main`; review provenance remains in `handoff/reviews/` and `handoff/LEDGER.md`.

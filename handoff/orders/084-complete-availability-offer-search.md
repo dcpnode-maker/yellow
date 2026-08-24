@@ -223,3 +223,9 @@ app/PostgreSQL/Valkey healthy. Commit, push a stacked draft PR and do not merge.
   WSL Git HEAD. A semantic diff review therefore ran directly against the WSL branch and found no
   authentication/property, tenant, SQL-injection, browser-XSS, secret, authority or unbounded-work
   path. This remains builder evidence, not an independent security review.
+
+---
+
+## MERGED
+
+Prepared for the founder-authorized cumulative integration from exact reviewed frontier `bc22a9d`. This marker becomes true when the cumulative integration PR lands in `main`; review provenance remains in `handoff/reviews/` and `handoff/LEDGER.md`.

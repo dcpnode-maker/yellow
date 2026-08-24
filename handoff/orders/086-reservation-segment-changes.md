@@ -176,3 +176,9 @@ CI.
 - [x] Standing checks, protected hashes, Graphify, localhost and remote CI are green; the final
   evidence commit requires its replacement final-tip run before handoff.
 - [x] Independent review remains exactly through Order 044; Order 086 is not self-approved.
+
+---
+
+## MERGED
+
+Prepared for the founder-authorized cumulative integration from exact reviewed frontier `bc22a9d`. This marker becomes true when the cumulative integration PR lands in `main`; review provenance remains in `handoff/reviews/` and `handoff/LEDGER.md`.

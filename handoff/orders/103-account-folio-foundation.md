@@ -133,3 +133,9 @@ non-implementing reviewer personally executes P1–P4 on fresh PostgreSQL and ap
 - [x] No money/payment/tax/fiscal/day-close behavior enters this slice.
 - [x] Standing/referee gates pass and scope is exact.
 - [x] Independent reviewer approves executed proof.
+
+---
+
+## MERGED
+
+Prepared for the founder-authorized cumulative integration from exact reviewed frontier `bc22a9d`. This marker becomes true when the cumulative integration PR lands in `main`; review provenance remains in `handoff/reviews/` and `handoff/LEDGER.md`.

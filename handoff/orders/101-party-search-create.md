@@ -123,3 +123,9 @@ reviewer personally executes P1–P4 on fresh PostgreSQL and approves.
 - [x] Migration/schema/deployment/standing/referee gates pass.
 - [x] Independent reviewer approves executed proof.
 - [x] Scope is exact; user-owned untracked material remains untouched.
+
+---
+
+## MERGED
+
+Prepared for the founder-authorized cumulative integration from exact reviewed frontier `bc22a9d`. This marker becomes true when the cumulative integration PR lands in `main`; review provenance remains in `handoff/reviews/` and `handoff/LEDGER.md`.

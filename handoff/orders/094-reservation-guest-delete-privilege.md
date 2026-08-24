@@ -156,3 +156,9 @@ Independent review at `d5a686d` reproduced P1/P2 on a separate fresh database,
 verified the exact ACL/schema/ledger and protected hashes, reran the standing suite and
 a second 11/11 referee, and returned **APPROVED**. See
 `handoff/reviews/094-reservation-guest-delete-privilege.md`.
+
+---
+
+## MERGED
+
+Prepared for the founder-authorized cumulative integration from exact reviewed frontier `bc22a9d`. This marker becomes true when the cumulative integration PR lands in `main`; review provenance remains in `handoff/reviews/` and `handoff/LEDGER.md`.

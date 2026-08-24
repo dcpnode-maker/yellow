@@ -54,3 +54,9 @@ Inventing states not in `docs/STATE-MACHINES.md` · mutating a prior approval ro
 allowing self-approval under any flag · attaching this to a specific domain action (that
 belongs to the phase that needs it) · editing `migrations/` or `tests/run_invariants.py` ·
 merging.
+
+---
+
+## MERGED
+
+Prepared for the founder-authorized cumulative integration from exact reviewed frontier `bc22a9d`. This marker becomes true when the cumulative integration PR lands in `main`; review provenance remains in `handoff/reviews/` and `handoff/LEDGER.md`.

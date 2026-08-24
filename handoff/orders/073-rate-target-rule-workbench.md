@@ -130,3 +130,9 @@ commit, push and open a draft PR. Do not merge.
 - [x] Compliance, occupancy, restriction, audit and four-eyes guards remain non-disableable.
 - [x] Persistent localhost is healthy and left on the rate builder.
 - [x] Order 073 is recorded UNVERIFIED for later independent Gate-3 execution.
+
+---
+
+## MERGED
+
+Prepared for the founder-authorized cumulative integration from exact reviewed frontier `bc22a9d`. This marker becomes true when the cumulative integration PR lands in `main`; review provenance remains in `handoff/reviews/` and `handoff/LEDGER.md`.

@@ -88,3 +88,9 @@ its absent/default `blocked` value because the fixture attempted a nested `jsonb
 without creating the missing `inventory` parent. Question 046 / D-151 authorizes only
 the fixture correction and a full restart; production behavior and expectations remain
 unchanged.
+
+---
+
+## MERGED
+
+Prepared for the founder-authorized cumulative integration from exact reviewed frontier `bc22a9d`. This marker becomes true when the cumulative integration PR lands in `main`; review provenance remains in `handoff/reviews/` and `handoff/LEDGER.md`.

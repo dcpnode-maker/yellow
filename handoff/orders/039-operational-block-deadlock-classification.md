@@ -47,3 +47,9 @@ Question/response 045 are governance artifacts under the D-92 exception.
 Run Order 037 three consecutive times, then Order 038, typecheck, boundaries, full
 tests, licence policy, audit, schema drift, and `./setup.sh --db-only`. Commit and push
 only when all are green. Do not merge.
+
+---
+
+## MERGED
+
+Prepared for the founder-authorized cumulative integration from exact reviewed frontier `bc22a9d`. This marker becomes true when the cumulative integration PR lands in `main`; review provenance remains in `handoff/reviews/` and `handoff/LEDGER.md`.

@@ -131,3 +131,9 @@ immutable current-line implementation SHA.
 - [x] Cumulative/referee/standing gates pass and protected files remain exact.
 - [x] Independent reviewer personally approves immutable executable SHA
   `ee4ec0c48d7ebb62328454f2df3c22ed665108a7`.
+
+---
+
+## MERGED
+
+Prepared for the founder-authorized cumulative integration from exact reviewed frontier `bc22a9d`. This marker becomes true when the cumulative integration PR lands in `main`; review provenance remains in `handoff/reviews/` and `handoff/LEDGER.md`.

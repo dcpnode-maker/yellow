@@ -84,3 +84,9 @@ Run P1-P7 on fresh isolated databases and preserve every D-92 stop. Then run the
 self-check, final `./setup.sh --db-only` at 11/11 with the persistent app stopped per
 D-191, a rendered accelerated-expiry localhost proof, refresh Graphify, commit `[codex]`,
 push, and open a draft stacked PR. Do not approve or merge; preserve independent review debt.
+
+---
+
+## MERGED
+
+Prepared for the founder-authorized cumulative integration from exact reviewed frontier `bc22a9d`. This marker becomes true when the cumulative integration PR lands in `main`; review provenance remains in `handoff/reviews/` and `handoff/LEDGER.md`.

@@ -62,3 +62,9 @@ invisible mistake.
 A second connection or transaction for audit writes · any UPDATE or DELETE path on
 `fact_log` · buffering audit rows for later flush · editing `migrations/` or
 `tests/run_invariants.py` · merging.
+
+---
+
+## MERGED
+
+Prepared for the founder-authorized cumulative integration from exact reviewed frontier `bc22a9d`. This marker becomes true when the cumulative integration PR lands in `main`; review provenance remains in `handoff/reviews/` and `handoff/LEDGER.md`.

@@ -126,3 +126,9 @@ created. This order has no runtime route, so do not reseed or rebuild the founde
 Refresh Graphify structurally for code, append one UNVERIFIED Gate-3 row, advance only the exact
 founder-status counters, commit `[codex]`, push and open a draft stacked PR against Order 065. Do not
 approve or merge.
+
+---
+
+## MERGED
+
+Prepared for the founder-authorized cumulative integration from exact reviewed frontier `bc22a9d`. This marker becomes true when the cumulative integration PR lands in `main`; review provenance remains in `handoff/reviews/` and `handoff/LEDGER.md`.

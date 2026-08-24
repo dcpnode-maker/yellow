@@ -89,3 +89,9 @@ Question 051 corrects the nonexistent snapshot path to the generator's canonical
 `tests/schema/expected.sql` before that file is regenerated.
 Question 052 adds only the exact 0004 ledger row to fresh-deployment acceptance and
 requires every proof to restart from the top.
+
+---
+
+## MERGED
+
+Prepared for the founder-authorized cumulative integration from exact reviewed frontier `bc22a9d`. This marker becomes true when the cumulative integration PR lands in `main`; review provenance remains in `handoff/reviews/` and `handoff/LEDGER.md`.

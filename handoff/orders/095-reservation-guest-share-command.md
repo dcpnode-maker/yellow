@@ -189,3 +189,9 @@ Builder evidence is not independent approval.
 Independent review at `1d173a2` found no issue and personally reproduced P1–P4,
 typecheck, boundaries, schema, protected hashes, the full suite and a pristine 11/11
 referee. See `handoff/reviews/095-reservation-guest-share-command.md`.
+
+---
+
+## MERGED
+
+Prepared for the founder-authorized cumulative integration from exact reviewed frontier `bc22a9d`. This marker becomes true when the cumulative integration PR lands in `main`; review provenance remains in `handoff/reviews/` and `handoff/LEDGER.md`.

@@ -91,3 +91,9 @@ top. Refresh Graphify as a derived map, commit `[codex]`, push, and open a draft
 PR. Do not approve or merge; record independent review debt for Claude or the next model.
 Question 053 requires unexpected mutation failures to escape the transaction before the
 outer generic 503 and narrows only P6's false-positive browser SQL probe; P1-P7 restart.
+
+---
+
+## MERGED
+
+Prepared for the founder-authorized cumulative integration from exact reviewed frontier `bc22a9d`. This marker becomes true when the cumulative integration PR lands in `main`; review provenance remains in `handoff/reviews/` and `handoff/LEDGER.md`.
