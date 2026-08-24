@@ -138,9 +138,8 @@ P1–P4 against the immutable implementation SHA, and the app-never-started refe
 ## Definition of done
 
 - [x] Order and hostile proof are specified before implementation.
-- [ ] P0 reproduces owner-authority execution through attacker `pg_temp` objects.
+- [x] P0 reproduces owner-authority execution through attacker `pg_temp` objects.
 - [ ] Migration 0011 contains all six current definers with safe resolution and ACLs.
 - [ ] P1–P4 pass without changing authorized domain semantics.
 - [ ] Cumulative/referee/standing gates pass and protected files stay exact.
 - [ ] Independent reviewer personally approves the immutable tip.
-
