@@ -163,10 +163,14 @@ PostgreSQL and returns APPROVED.
 ## Definition of done
 
 - [x] Order exists before production code.
-- [ ] Intentional P0 red is committed before implementation.
-- [ ] Exact read/write permissions and property-scoped routes pass.
-- [ ] Workbench is accessible, responsive and server-authoritative.
-- [ ] P1–P4 pass, including rollback and hostile boundaries.
-- [ ] Standing/schema/deployment/referee gates pass.
-- [ ] Independent reviewer approves executed proof.
-- [ ] Scope is exact; user-owned untracked material remains untouched.
+- [x] Intentional P0 red is committed before implementation.
+- [x] Exact read/write permissions and property-scoped routes pass.
+- [x] Workbench is accessible, responsive and server-authoritative.
+- [x] P1–P4 pass, including rollback and hostile boundaries.
+- [x] Standing/schema/deployment/referee gates pass.
+- [x] Independent reviewer approves executed proof.
+- [x] Scope is exact; user-owned untracked material remains untouched.
+
+Independent review first rejected `ca6d38b`, then approved corrected tip `d9ad13b` after
+executing reviewer-owned BigInt and dynamic-focus canaries plus every required database
+gate. See `handoff/reviews/096-operator-reservation-guests.md` for exact evidence.
