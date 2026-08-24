@@ -1,81 +1,90 @@
 # Independent review — Order 104 balanced charge posting
 
-**Result:** PRE-REBASE EVIDENCE — CURRENT TIP PENDING
+**Result:** APPROVED
 
-**Reviewed tip:** `223f3dd` (before the Order 112 rebase)
+**Reviewed executable tip:** `4c2720ce2820003450321ab3f4fc33908b566000`
 
-**Implementation base:** `01dcddd`
+**Approved base:** `85cc5e7585c3031cceec32e5b511cc06ecbf735d`
+
+**Pull request:** #75
 
 **Reviewer:** independent non-implementing Codex Tier-3 reviewer
 
 **Date:** 2026-08-24
 
-This record proves the original Order 104 tip only. It does not approve the rebased
-tip or the subsequent reviewer-requested proof strengthening. A new exact-tip review
-record must discharge the current branch.
+The reviewer did not implement Order 104 and found no remaining implementation or
+scope defect. Approval covers the exact executable tree at `4c2720c`, including the
+two corrections requested after the earlier review: seal-first serialization now
+uses the real `seal_business_day` boundary through transaction-local tenant authority,
+and the 500-charge stress proof requires the route-scoped revenue total to equal the
+exact negative guest total rather than a permissive inequality.
 
-The reviewer did not implement Order 104. The exact `01dcddd..223f3dd` change stays
-inside the order's migration, financial-context command, proof, documentation and
-status scope. It does not edit the immutable baseline or referee and adds no tax,
+The exact delta stays within the amended order: migration 0010, one strict financial
+command, its focused proof and project accounting surfaces, plus the existing
+cumulative database runner and its contract test solely to make P1–P5 independently
+triggerable. It does not edit the immutable baseline or referee and adds no tax,
 payment, deposit, settlement, transfer, correction, trust, fiscal, cashier, AR,
 day-roll, HTTP, UI, worker or automation behavior.
 
-Migration 0010 closes the baseline's single-column financial-reference gaps with
-tenant-leading candidate keys and composite foreign keys. A journal is bound to its
-tenant property and exact business day; a posting is bound to its same-tenant journal,
-date and currency, an account in that currency, and—when present—a folio owned by that
-same account. The deterministic line-currency backfill derives only from the owning
-same-tenant journal and changes no historic amount, account, folio or economics.
-`tx_code_route` has an exact tenant/property/currency/code key, coherent optional
-account references, tenant RLS and app-role SELECT-only access; app role cannot mutate
-the global transaction-code catalogue or business-day rows.
+Migration 0010 closes tenant/property/date/currency/account/folio reference gaps with
+tenant-leading candidate keys and composite foreign keys. `tx_code_route` has exact
+tenant/property/currency/code identity, coherent optional account references, tenant
+RLS and app-role SELECT-only authority. The replacement day-open trigger locks the
+exact day `FOR SHARE`; `seal_business_day` verifies transaction-local tenant authority.
+The executed proof confirms both lock directions and no partial artifact after a
+sealed-day conflict.
 
-The replacement day-open trigger selects the exact tenant/property/date row `FOR
-SHARE`, rejects a missing or sealed ordinary-posting day, and therefore serializes with
-the security-definer seal update. Seal requires transaction-local tenant authority for
-app-role invocation and rejects mismatched tenant arguments. Static inspection and both
-executed race directions confirm that a charge holding the share latch commits before a
-waiting seal, while a seal holding the row update makes a waiting charge observe the
-sealed row and fail without artifacts. Adjustment/correction exceptions remain the
-documented append-only correction path.
+`ChargeService.postCharge` accepts canonical bigint decimal-string money, derives all
+accounting authority from PostgreSQL, and posts exactly guest/folio `+amount` and
+configured revenue `-amount`. Quantity is descriptive fixed-scale metadata and is
+never multiplied into money. Journal, immutable lines, minimized fact/outbox evidence
+and durable idempotency commit or roll back together. Exact replay returns the same
+journal; changed content conflicts.
 
-`ChargeService.postCharge` accepts only the order's strict shape. Money is parsed from
-a canonical positive int64 decimal string into bigint; quantity is positive, bounded to
-the database scale, normalized to three decimals and never multiplied into money. The
-service derives property, currency and transaction-stable property-local date from the
-locked open guest folio/account, requires the exact open day, attributable revenue code
-and exact open revenue route, and never accepts a caller account, route, date, currency
-or journal kind. It writes exactly guest/folio `+amount` and configured revenue
-`-amount` with the same code/date/currency/quantity. Journal, two immutable lines,
-minimized fact/outbox evidence and `financials.charge.post` idempotency commit or roll
-back together. Exact replay returns the stored journal; changed content conflicts.
+## Reviewer-executed evidence
 
-On isolated fresh PostgreSQL 16.15, the reviewer personally executed:
+The reviewer created an isolated native PostgreSQL 16.15 cluster bound only to
+loopback from an exact archive of `4c2720c`, installed dependencies from the lockfile,
+and personally executed:
 
-- migrations 0001–0010 from zero and the focused Order 104 P1–P5 proof — **10 passed,
-  0 failed, 111 assertions**. This included exact signs/routing/date/currency/evidence,
-  balanced and unbalanced commit behavior, replay/conflict, twenty-way same-key
-  convergence, failure after real outbox insertion, both seal-race directions, hostile
-  shapes/configuration/RLS/ACL boundaries, and **500 charges / 1,000 immutable lines**
-  followed by an unchanged 500-key replay burst;
-- canonical `setup.ps1 -DbOnly` on the isolated stack — exact **85 public tables** and
-  **11 passed, 0 failed of 11** referee checks;
-- migration proof — Order 104's exact migration/ACL/authority case passed, as did 12
-  other executable cases. The sole remaining host result was an inherited Windows
-  `EPERM` while the test fixture attempted to create a symlink before any migration
-  assertion; it is an OS privilege limitation and is not counted as product proof;
-- fresh deployment acceptance — **4 passed, 0 failed, 10 assertions**; normalized
-  schema drift matched `tests/schema/expected.sql` exactly;
-- repository standing — **137 passed, 0 failed, 1,720 assertions**; TypeScript
-  typecheck, 62-file import boundaries, the 23-package permissive licence gate and
-  `bun audit` all passed, with no vulnerabilities found.
+- fresh migrations 0001–0010 and Order 104 P1–P5 — **10 passed, 0 failed, 110
+  assertions**. This included exact ACL/constraint guards, signs/routing/date/currency,
+  replay/conflict and twenty-way same-key convergence, rollback after real outbox
+  insertion, both real seal races, hostile input/configuration/RLS boundaries, and
+  **500 charges / 1,000 immutable lines** with exact route-scoped revenue `-125250`
+  followed by replay without drift;
+- a separate app-never-started fresh database — exact **85 public tables** and the
+  canonical referee at **11 passed, 0 failed of 11**;
+- separate deployment acceptance — **4 passed, 0 failed, 10 assertions** — and a
+  normalized `pg_dump` byte-match to `tests/schema/expected.sql`;
+- repository standing — **138 passed, 0 failed, 1,732 assertions** — plus typecheck,
+  62-file import boundaries, 23-package licence policy, `bun audit` with no known
+  vulnerabilities, and `git diff --check`.
+
+The reviewer also personally triggered attempt 2 of GitHub run `32696809132` for the
+exact PR head. Database job `97341132927` passed the 14/14 isolated cumulative suites,
+including Order 104 at 10/10 with 110 assertions, migration integration at 14/14 with
+82 assertions, deployment, exact schema, health, referee 11/11 and destructive cleanup.
+The checkout was GitHub's synthetic PR merge of `4c2720c` into `85cc5e7`; its tree was
+verified byte-equivalent to the reviewed head. Quality, Windows state and container
+smoke were green as well.
+
+The builder's first cumulative run remains disclosed: inherited Order 069 P8 took
+17,245 ms against its unchanged 15,000 ms ceiling on the Windows host. No threshold or
+production behavior was changed. Both hosted exact-SHA attempts passed the unchanged
+ceiling, so this is retained as host-variance provenance rather than an Order 104 defect.
+
+Local reviewer migration execution had two harness-only Windows limitations before
+relevant assertions (trust authentication could not induce the auth-redaction case and
+symlink creation returned EPERM). The reviewer-triggered pinned-Linux job independently
+passed migration 14/14, so neither limitation is misrepresented as local proof.
 
 Protected migration 0001 SHA-256 remains
-`FE2A9FC949C6BACDED3F8D3FC4D14FC596A83EBDE9AEB043EB10845F07B30923`; the referee
+`fe2a9fc949c6bacded3f8d3fc4d14fc596a83ebde9aeb043eb10845f07b30923`; the referee
 SHA-256 remains
-`3228279BD99A8F9B6AF99748F31D4D4B482A8E627E16D92644D9D859AD8BEFA1`.
-User-owned `.agents/`, `.codex/hooks.json` and `handoff/chat-archive/` paths were not
-modified.
+`3228279bd99a8f9b6af99748f31d4d4b482a8e627e16d92644d9d859ad8befa1`.
+All disposable reviewer databases and PostgreSQL infrastructure were removed; founder
+infrastructure was untouched.
 
 Approval is exclusive to Order 104's untaxed two-line revenue-charge foundation,
 migration 0010 and its documentation/proof. It does not represent completion of the
@@ -83,6 +92,6 @@ financial phase or approval of tax allocation, nightly charging, statements,
 corrections, payments, settlement, trust, fiscal documents, cashier, AR, day roll,
 route authoring or any operator/API surface.
 
-## Pre-rebase Order 104 evidence scope
+## Exclusive Order 104 discharge
 
 - 104
