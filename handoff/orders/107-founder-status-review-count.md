@@ -78,9 +78,8 @@ review boundary 91 and Gate-3 debt zero.
 ## Definition of done
 
 - [x] Order exists before implementation.
-- [ ] Intentional asset proof is committed red before production assets change.
-- [ ] Review headline uses independent-review coverage, not debt.
-- [ ] Debt remains separately and accurately labelled.
-- [ ] Snapshot and local runtime report Order 107 without changing review truth.
-- [ ] Focused, standing and referee gates are green.
-
+- [x] Intentional asset proof is committed red before production assets change.
+- [x] Review headline uses independent-review coverage, not debt.
+- [x] Debt remains separately and accurately labelled.
+- [x] Snapshot reports Order 107 without changing review truth.
+- [x] Focused, standing and referee gates are green.

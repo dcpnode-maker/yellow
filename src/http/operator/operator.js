@@ -252,7 +252,7 @@
   const roadmapProgress = document.querySelector("#roadmap-progress");
   const reviewProgress = document.querySelector("#review-progress");
   const statusOrder = document.querySelector("#status-order");
-  const statusDebt = document.querySelector("#status-debt");
+  const statusReviewed = document.querySelector("#status-reviewed");
   const statusReferee = document.querySelector("#status-referee");
   const statusRecordedAt = document.querySelector("#status-recorded-at");
   const statusRoadmapCopy = document.querySelector("#status-roadmap-copy");
@@ -2139,8 +2139,8 @@
     roadmapProgress.max = snapshot.roadmap.phaseCount;
     roadmapProgress.value = reached;
     roadmapProgress.textContent = `${reached} of ${snapshot.roadmap.phaseCount} phases reached`;
-    statusDebt.textContent = `${snapshot.review.gate3Debt} orders`;
-    statusReviewCopy.textContent = `Orders 1–${snapshot.review.independentlyReviewedThroughOrder} are independently reviewed. Later builder evidence remains ${snapshot.review.state}.`;
+    statusReviewed.textContent = `${snapshot.review.independentlyReviewedThroughOrder} orders`;
+    statusReviewCopy.textContent = `Orders 1–${snapshot.review.independentlyReviewedThroughOrder} are independently reviewed. Gate-3 manifest debt: ${snapshot.review.gate3Debt} orders. Later builder evidence remains ${snapshot.review.state}.`;
     reviewProgress.max = snapshot.roadmap.latestBuiltOrder;
     reviewProgress.value = snapshot.review.independentlyReviewedThroughOrder;
     reviewProgress.textContent = `${snapshot.review.independentlyReviewedThroughOrder} of ${snapshot.roadmap.latestBuiltOrder} orders independently reviewed`;
