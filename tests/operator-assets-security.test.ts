@@ -65,3 +65,18 @@ test("Order 077 P4: approval inbox exposes only server-authorized deliberate act
   expect(script).not.toMatch(/innerHTML|outerHTML|insertAdjacentHTML|localStorage|sessionStorage|document\.cookie|setInterval|EventSource|WebSocket/);
   expect(script).not.toMatch(BROWSER_SQL_SYNTAX);
 });
+
+test("Order 096 P0/P4: reservation guest workbench is explicit and browser-authority free", async () => {
+  const html = await Bun.file(new URL("../src/http/operator/index.html", import.meta.url)).text();
+  const css = await Bun.file(new URL("../src/http/operator/operator.css", import.meta.url)).text();
+  const script = await Bun.file(new URL("../src/http/operator/operator.js", import.meta.url)).text();
+  expect(html).toContain('data-view="reservations"');
+  expect(html).toContain('id="reservation-guest-form"');
+  expect(html).toContain("Primary guest cannot be removed");
+  expect(css).toContain(".reservation-guest-row");
+  expect(script).toContain("/reservation-guests?confirmationNo=");
+  expect(script).toContain("/guests");
+  expect(script).toContain("primarySharePct");
+  expect(script).not.toMatch(/innerHTML|outerHTML|insertAdjacentHTML|localStorage|sessionStorage|document\.cookie/);
+  expect(script).not.toMatch(BROWSER_SQL_SYNTAX);
+});
