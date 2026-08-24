@@ -115,10 +115,9 @@ green. This documentation-only order requires no independent high-risk approval.
 ## Definition of done
 
 - [x] Order exists before the repository copy.
-- [ ] Exact standalone page, original handoff and minimal source are preserved.
-- [ ] Repository checksums match the recovered source byte-for-byte.
-- [ ] Exact page serves locally with the original URL filename and title.
-- [ ] Production/prototype boundary and zero-cost launch are clear.
-- [ ] No generated dependency/cache or out-of-scope file is copied.
-- [ ] Relevant standing gates remain green.
-
+- [x] Exact standalone page, original handoff and minimal source are preserved.
+- [x] Repository checksums match the recovered source byte-for-byte.
+- [x] Exact page serves locally with the original URL filename and title.
+- [x] Production/prototype boundary and zero-cost launch are clear.
+- [x] No generated dependency/cache or out-of-scope file is copied.
+- [x] Relevant standing gates remain green.
