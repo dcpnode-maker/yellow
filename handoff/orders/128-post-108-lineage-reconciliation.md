@@ -30,9 +30,12 @@ host secrets, or implying completion from plans, schemas, UI, branches or self-r
 - Historical post-108 lineages reuse Order numbers 112 and 113 for different finance
   and security artifacts. Preserve the evidence; do not silently overwrite, rename,
   or treat either lineage as canonical without an explicit reconciliation decision.
-- Order 124 is a frozen built candidate requiring independent Tier-3 review. Orders
-  126 and 127 remain planning-blocked on their documented prerequisites. Their
-  existence does not prove product completion.
+- Order 124 is independently approved at review commit
+  `a978d581523880ad1d5f89a415b61a7b3f63d6b3`; a separate Daybreak-requested
+  read-only run reached the same APPROVED result after personally reproducing the
+  parent exploit and executing the complete native-WSL proof. Orders 126 and 127
+  remain planning-blocked on their documented prerequisites. Their existence does
+  not prove product completion.
 - Order numbers 128–140 were unused across all current refs when this order was
   admitted.
 
@@ -137,7 +140,7 @@ future-workbench artifact is in scope.
 - [ ] Exact post-108 branch/ref/worktree/remote map is recorded with SHAs.
 - [ ] Each candidate has an evidence-based status and dependency classification.
 - [ ] Duplicate 112/113 handling and local-`main` reconciliation are decided explicitly.
-- [ ] Order 124 receives independent non-implementing Tier-3 review on its exact frozen
+- [x] Order 124 receives independent non-implementing Tier-3 review on its exact frozen
       candidate; Orders 126/127 remain blocked unless their documented gates clear.
 - [ ] A minimal Order-129 integration set and full fresh-proof command list are defined.
 - [x] Collision-free Order numbers 128–132 and model roles are reserved.
@@ -145,4 +148,3 @@ future-workbench artifact is in scope.
       research-required.
 - [ ] Only the two Scope files differ from the exact base, and repository state remains
       clean after commit.
-
