@@ -69,7 +69,7 @@ Focused assets, typecheck, 59-file boundaries, standing, protected hashes and a 
 ## Definition of done
 
 - [x] Order exists before implementation.
-- [ ] Intentional P0 red is committed before correction.
+- [x] Intentional P0 red is committed before correction.
 - [ ] Exact current 23-permission role assertion passes.
 - [ ] Complete Order 055 suite and standing gates pass.
 - [ ] Question 135 is answered; scope is exact.
