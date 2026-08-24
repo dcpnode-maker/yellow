@@ -1,9 +1,10 @@
 # Order 104 — Balanced charge posting
 
-**Phase:** 5  
-**Branch:** `phase-5/balanced-charge-posting`  
-**Base:** `01dcddd`  
-**Risk tier:** 3 — journals, posting integrity, RLS and business-day sealing  
+**Phase:** 5
+**Branch:** `phase-5/balanced-charge-posting`
+**Original base:** `01dcddd`
+**Rebased base:** `1ee0928` — includes the separately ordered Order 112 security correction
+**Risk tier:** 3 — journals, posting integrity, RLS and business-day sealing
 **Owner:** Codex implementation; independent non-implementing reviewer required
 
 ## Outcome
@@ -144,4 +145,4 @@ Tier-3 reviewer personally executes P1–P5 on fresh PostgreSQL.
 - [x] Replay, rollback, seal races and 1,000-line stress pass without drift.
 - [x] No tax/payment/fiscal/trust/settlement/day-roll behavior enters the slice.
 - [x] Standing/referee gates pass and scope is exact.
-- [x] Independent reviewer approves executed proof.
+- [ ] Independent reviewer approves the rebased exact tip and strengthened proof.

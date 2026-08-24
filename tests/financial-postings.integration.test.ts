@@ -297,9 +297,9 @@ dbDescribe("Order 104 fresh-PostgreSQL financial posting proof", () => {
     let markSealed!: () => void; let releaseSeal!: () => void;
     const sealedUncommitted = new Promise<void>((resolve) => { markSealed = resolve; });
     const mayCommit = new Promise<void>((resolve) => { releaseSeal = resolve; });
-    const sealing = admin!.begin(async (tx) => {
-      await tx`UPDATE business_day SET sealed_at=now(),sealed_by=${ACTOR_A}::uuid
-        WHERE tenant_id=${TENANT_A}::uuid AND property_node=${PROPERTY_A}::uuid AND business_date=${day}::date`;
+    const sealing = database!.withTenantTransaction(TENANT_A, async (tx) => {
+      await tx.unsafe("SELECT seal_business_day($1,$2,$3::date,$4)",
+        [TENANT_A, PROPERTY_A, day, ACTOR_A]);
       markSealed(); await mayCommit;
     });
     await sealedUncommitted;
@@ -401,10 +401,14 @@ dbDescribe("Order 104 fresh-PostgreSQL financial posting proof", () => {
       ), groups AS (SELECT property_node,business_date,currency,sum(total) total FROM journal_sums GROUP BY 1,2,3)
       SELECT count(*) FILTER(WHERE total<>0)::int bad,COALESCE(sum(total),0)::text global_sum,
         (SELECT sum(amount_minor)::text FROM posting_line WHERE tenant_id=${TENANT_A}::uuid AND folio_id=${STRESS_FOLIO}::uuid) guest_sum,
-        (SELECT sum(amount_minor)::text FROM posting_line WHERE tenant_id=${TENANT_A}::uuid AND account_id=${REVENUE}::uuid) route_sum,
+        (SELECT sum(route.amount_minor)::text FROM posting_line AS route
+          WHERE route.tenant_id=${TENANT_A}::uuid AND route.account_id=${REVENUE}::uuid
+            AND EXISTS (SELECT 1 FROM posting_line AS guest
+              WHERE guest.tenant_id=route.tenant_id AND guest.journal_id=route.journal_id
+                AND guest.folio_id=${STRESS_FOLIO}::uuid)) route_sum,
         (SELECT count(*)::int FROM groups WHERE total<>0) bad_groups FROM journal_sums`)[0]!;
-    expect(truth).toMatchObject({ bad: 0, global_sum: "0", guest_sum: sum.toString(), bad_groups: 0 });
-    expect(BigInt(truth.route_sum)).toBeLessThanOrEqual(-sum);
+    expect(truth).toEqual({ bad: 0, global_sum: "0", guest_sum: sum.toString(),
+      route_sum: (-sum).toString(), bad_groups: 0 });
     for (let start = 0; start < all.length; start += 25) {
       expect((await Promise.all(all.slice(start, start + 25).map((item) => post(item)))).every((value) => value.replayed)).toBeTrue();
     }

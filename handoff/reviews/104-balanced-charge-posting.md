@@ -1,14 +1,18 @@
 # Independent review — Order 104 balanced charge posting
 
-**Result:** APPROVED
+**Result:** PRE-REBASE EVIDENCE — CURRENT TIP PENDING
 
-**Reviewed tip:** `223f3dd`
+**Reviewed tip:** `223f3dd` (before the Order 112 rebase)
 
 **Implementation base:** `01dcddd`
 
 **Reviewer:** independent non-implementing Codex Tier-3 reviewer
 
 **Date:** 2026-08-24
+
+This record proves the original Order 104 tip only. It does not approve the rebased
+tip or the subsequent reviewer-requested proof strengthening. A new exact-tip review
+record must discharge the current branch.
 
 The reviewer did not implement Order 104. The exact `01dcddd..223f3dd` change stays
 inside the order's migration, financial-context command, proof, documentation and
@@ -79,6 +83,6 @@ financial phase or approval of tax allocation, nightly charging, statements,
 corrections, payments, settlement, trust, fiscal documents, cashier, AR, day roll,
 route authoring or any operator/API surface.
 
-## Exclusive Order 104 discharge
+## Pre-rebase Order 104 evidence scope
 
 - 104
