@@ -143,7 +143,7 @@ P1–P4 against fresh PostgreSQL and approves.
 - [x] Races, incompatible destinations and publication rollback pass.
 - [x] Workbench is accessible, responsive and server-authoritative.
 - [x] Standing/schema/deployment/referee gates pass.
-- [ ] Independent reviewer approves executed proof.
+- [x] Independent reviewer approves executed proof.
 - [x] Scope is exact; user-owned untracked material remains untouched.
 
 Builder evidence: focused adapter passed 3/3 with 15 assertions; the approved real
