@@ -84,6 +84,13 @@ ooo/oos open+close · authority get/set · projection rebuild (admin)
 **hk/stay**: condition set · tasks CRUD/assign/complete/verify · sheets generate ·
 discrepancies · queue · messages send/thread
 **profiles**: parties search(trgm)/create/merge/anonymise · consent · instruments(tokenize via PSP webhook)
+
+Implemented domain slice: `PartyProfileService.search` performs tenant-bound, bounded
+active-Party lookup by UUID, display name, or canonical contact and returns masked
+contact hints. `PartyProfileService.create` normalizes Party roles/contacts, requires
+exact server-recomputed duplicate acknowledgement, and atomically records non-PII
+fact/event/idempotency evidence. HTTP/operator composition, merge/anonymisation,
+addresses, identity documents, consent/preferences and profile editing remain planned.
 **distribution**: channels connect · maps CRUD · inbound replay {id} · push status/cursors
 **compliance**: documents issue/get/render · fiscal submit/status · statutory list_due/submit ·
 erasure request/execute

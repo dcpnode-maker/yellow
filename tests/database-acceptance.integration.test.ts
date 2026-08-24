@@ -40,6 +40,11 @@ const EXPECTED_MIGRATIONS = [
     filename: "0007_reservation_guest_delete_privilege.sql",
     checksum_sha256: "b39b67ed47e83f348f88dfa892dc5c6df75014822b2bf1084c97c51d2c6571db",
   },
+  {
+    version: 8,
+    filename: "0008_party_search_indexes.sql",
+    checksum_sha256: "88345b7d1cf6d7afbe1154b315bdc9569b7081b0cf5bcd1d864c9bad9b08270e",
+  },
 ];
 
 if (REQUIRE_DATABASE && !DATABASE_URL) {

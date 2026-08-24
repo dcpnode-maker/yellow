@@ -113,7 +113,7 @@ into a product capability.
 | Split stays/room moves/shares | FOUNDATION EXISTS | segment/guest model | commands, occupancy transaction, UI |
 | Group blocks/allotments | FOUNDATION EXISTS | group/block tables | status/pickup/wash/rooming-list workflows |
 | Waitlist | FOUNDATION EXISTS | table | offers, expiry, promotion |
-| Durable guest identity | FOUNDATION EXISTS | party/contact/address/identity/preference tables | commands, dedupe/merge, privacy controls |
+| Durable guest identity | PARTIAL | Party domain search/create, normalized contacts/roles, exact duplicate review and tenant/concurrency/privacy proofs | HTTP/operator composition, edit, merge/anonymise, addresses, documents, preferences and consent |
 | Guest 360 | MISSING | UI/product docs | read model and UI |
 | Consent/privacy requests | FOUNDATION EXISTS | consent/erasure tables | purpose enforcement/export/anonymization |
 | Unified communications | FOUNDATION EXISTS | message table/event catalogue | channel adapters, threads, permissions, AI assistance |

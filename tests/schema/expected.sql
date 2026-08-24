@@ -2480,6 +2480,13 @@ CREATE INDEX consumer_processed_age ON public.consumer_processed USING brin (pro
 
 
 --
+-- Name: contact_point_tenant_kind_value; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX contact_point_tenant_kind_value ON public.contact_point USING btree (tenant_id, kind, value, party_id);
+
+
+--
 -- Name: document_subject; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -2547,6 +2554,13 @@ CREATE INDEX outbox_unpublished ON public.outbox USING btree (seq) WHERE (publis
 --
 
 CREATE INDEX party_name_trgm ON public.party USING gin (display_name public.gin_trgm_ops);
+
+
+--
+-- Name: party_tenant_status_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX party_tenant_status_id ON public.party USING btree (tenant_id, status, id);
 
 
 --
