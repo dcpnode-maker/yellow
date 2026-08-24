@@ -35,8 +35,9 @@ separate validated findings.
 - `tests/security-definer-containment.integration.test.ts`
 - `tests/migrate.integration.test.ts`, `tests/database-acceptance.integration.test.ts`,
   `tests/schema/expected.sql`
-- `scripts/run-phase-3-gate.ts`, `tests/phase-3-gate-runner.test.ts` solely to make
-  the hostile proof reviewer-triggerable on an isolated database
+- `scripts/run-phase-3-gate.ts`, `tests/phase-3-gate-runner.test.ts` to restore the
+  omitted inherited Order-104 financial suite documented by Question 137 and make
+  the hostile proof reviewer-triggerable on a separate isolated database
 - `docs/SECURITY.md`, `docs/CONTRACTS.md` only for the exact definer/ACL contract
 - `src/project-status.ts` only after green proof, to record the built order honestly
 - this order, `handoff/PHASE-5-PLAN.md`, `handoff/LEDGER.md`, `DECISIONS.log`, the
@@ -57,8 +58,10 @@ separate validated findings.
    Trigger invocation of `assert_day_open` must continue without a direct app grant.
 5. `prune_outbox` rejects negative retention with SQLSTATE `22023`; zero and positive
    retention retain existing published-row semantics.
-6. Add the hostile suite to the cumulative isolated-database gate so the independent
-   reviewer can personally execute it at an immutable current-line SHA.
+6. Restore the exact already-reviewed financial-postings suite mapping omitted by the
+   canonical lineage, then add the hostile suite. The cumulative runner must contain
+   fifteen unique isolated suites so the independent reviewer can personally execute
+   both inherited financial truth and this fix at an immutable current-line SHA.
 
 ## Forbidden
 
