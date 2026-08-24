@@ -23,6 +23,9 @@ Order 100 repairs the inherited Order 055 exact-role proof after approved reserv
 permissions evolved. Order 101 owns the independently approved tenant-safe Party
 search/create domain. Order 102 now owns its strict operator HTTP surface, explicit
 duplicate-review UX and server Party-id handoff into the existing booking journey.
+Order 103 is a bounded security correction: every direct operator idempotency claim
+must bind the verified staff actor so one actor can never receive another actor's
+cached success under the same key.
 
 ## Product promise
 
@@ -82,6 +85,7 @@ crosses that envelope must be rejected with a clear reason rather than silently 
 | 100 | 1 | Repair inherited hold-role proof | Reconcile Order 055's exact role assertion with approved Orders 096–098 scopes | Exact 23-scope equality; all seven live hold cases; no seed/product mutation |
 | 101 | 3 | Tenant-safe Party search/create | Existing Party/contact/role primitives plus duplicate review and `party.created` | PII-minimized search; concurrent duplicate review; atomic replay/rollback; tenant-leading indexes |
 | 102 | 3 | Operator Party search/create | Strict profile permissions and accessible existing-vs-distinct Party flow into booking | Tenant/property authority; masked duplicate review; replay/rollback; stale-response and no-persistence UI proof |
+| 103 | 3 | Operator idempotency actor binding | One adapter choke point adds verified actor identity to all direct operator mutation request hashes | Two authorized actors, same operation/key/body: second conflicts without cached response or audit confusion; same actor still replays |
 
 The order numbers reserve sequence only. Each order requires a fresh schema/decision preflight,
 an exact Scope and Forbidden section, an intentional red proof, and a Natural-Solution Test before
