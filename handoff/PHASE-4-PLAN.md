@@ -17,6 +17,8 @@ Order 097 exposes the approved metadata, cancellation and reinstatement commands
 their own property-scoped lifecycle permissions and the same operator shell.
 Order 098 owns the operator segment-history, departure-change and immediate same-type
 room-move workbench over the approved Order 086 commands.
+Order 099 owns the staff-facing complete offer, optional cart hold and held/direct
+reservation commit workbench over the approved Order 055/082/084 HTTP contracts.
 
 ## Product promise
 
@@ -72,6 +74,7 @@ crosses that envelope must be rejected with a clear reason rather than silently 
 | 096 | 3 | Operator reservation guest/share workbench | Exact confirmation lookup plus property-scoped read/write guest permissions and one accessible server-authoritative editor | HTTP authority/shape/replay/rollback; responsive labelled dynamic form with no client mutation or persisted guest/token data |
 | 097 | 3 | Operator reservation lifecycle workbench | Exact confirmation lookup plus metadata modification, cancellation and occupancy-rearbitrated reinstatement | Strict lifecycle permissions; approval-required cancellation boundary; race/rollback and accessible server-derived actions |
 | 098 | 3 | Operator reservation segment-change workbench | Exact segment history plus departure change and immutable immediate same-type room move | Strict segment permissions; expected-value conflicts; occupancy race/rollback and accessible server-derived actions |
+| 099 | 3 | Operator reservation booking workbench | Complete server offer → optional ten-minute hold → held/direct commit | Server-only bookability; last-room race/replay/rollback and honest accessible confirmation |
 
 The order numbers reserve sequence only. Each order requires a fresh schema/decision preflight,
 an exact Scope and Forbidden section, an intentional red proof, and a Natural-Solution Test before
