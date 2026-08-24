@@ -121,5 +121,5 @@ reviewer personally executes P1–P4 on fresh PostgreSQL and approves.
 - [x] Duplicate acknowledgement is server-recomputed and concurrency-safe.
 - [x] Creation is atomic, idempotent, audited and emits catalogued non-PII evidence.
 - [x] Migration/schema/deployment/standing/referee gates pass.
-- [ ] Independent reviewer approves executed proof.
+- [x] Independent reviewer approves executed proof.
 - [x] Scope is exact; user-owned untracked material remains untouched.
