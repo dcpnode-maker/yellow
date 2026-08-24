@@ -122,7 +122,7 @@ fresh PostgreSQL and approves.
 ## Definition of done
 
 - [x] Order exists before production code.
-- [ ] Intentional P0 red is committed before implementation.
+- [x] Intentional P0 red is committed before implementation.
 - [ ] Canonical offer search renders only server truth.
 - [ ] Hold and direct commit converge on approved HTTP commands.
 - [ ] Occupancy race/replay/rollback proofs pass.
@@ -130,4 +130,3 @@ fresh PostgreSQL and approves.
 - [ ] Standing/schema/deployment/referee gates pass.
 - [ ] Independent reviewer approves executed proof.
 - [ ] Scope is exact; user-owned untracked material remains untouched.
-
