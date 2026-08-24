@@ -137,7 +137,7 @@ P1–P4 against fresh PostgreSQL and approves.
 ## Definition of done
 
 - [x] Order exists before production code.
-- [ ] Intentional P0 red is committed before implementation.
+- [x] Intentional P0 red is committed before implementation.
 - [ ] Segment read/write permissions and strict routes pass.
 - [ ] Departure and room move converge on approved domain commands.
 - [ ] Races, incompatible destinations and publication rollback pass.
@@ -145,4 +145,3 @@ P1–P4 against fresh PostgreSQL and approves.
 - [ ] Standing/schema/deployment/referee gates pass.
 - [ ] Independent reviewer approves executed proof.
 - [ ] Scope is exact; user-owned untracked material remains untouched.
-
