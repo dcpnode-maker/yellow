@@ -426,7 +426,7 @@ export class PartyProfileService {
     for (const token of identityTokens) {
       await tx`SELECT pg_advisory_xact_lock(hashtextextended(${`${tenantId}:${token}`}, 101))`;
     }
-    const email = normalized.contacts.find(({ kind }) => kind === "email")?.value ?? null;
+    const emailValues = normalized.contacts.filter(({ kind }) => kind === "email").map(({ value }) => value);
     const phoneValues = normalized.contacts.filter(({ kind }) => kind !== "email").map(({ value }) => value);
     const rows = await tx<DuplicateRow[]>`
       SELECT p.id, p.kind, p.display_name, p.legal_name, p.status,
@@ -442,7 +442,9 @@ export class PartyProfileService {
             SELECT 1 FROM contact_point AS cp
             WHERE cp.tenant_id = ${tenantId}::uuid
               AND cp.party_id = p.id
-              AND ((cp.kind = 'email' AND cp.value = ${email})
+              AND ((cp.kind = 'email' AND cp.value IN (
+                  SELECT jsonb_array_elements_text(${JSON.stringify(emailValues)}::text::jsonb)
+                ))
                 OR (cp.kind IN ('phone','whatsapp') AND cp.value IN (
                   SELECT jsonb_array_elements_text(${JSON.stringify(phoneValues)}::text::jsonb)
                 )))
@@ -460,13 +462,13 @@ export class PartyProfileService {
       const reasons = new Set<DuplicateReason>();
       if (row.display_name_match) reasons.add("display_name");
       for (const contact of contacts) {
-        if (contact.kind === "email" && contact.value === email) reasons.add("email");
+        if (contact.kind === "email" && emailValues.includes(contact.value)) reasons.add("email");
         if ((contact.kind === "phone" || contact.kind === "whatsapp") && phoneValues.includes(contact.value)) {
           reasons.add(asContactKind(contact.kind));
         }
       }
       const matchingContacts = contacts.filter((contact) =>
-        (contact.kind === "email" && contact.value === email)
+        (contact.kind === "email" && emailValues.includes(contact.value))
         || ((contact.kind === "phone" || contact.kind === "whatsapp") && phoneValues.includes(contact.value))
       );
       return Object.freeze({

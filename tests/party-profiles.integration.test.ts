@@ -336,6 +336,17 @@ databaseDescribe("Order 101 tenant-safe Party search and create", () => {
 
   test("P2: duplicate review is exact, sorted, masked, tenant-local and leaves no failed artifacts", async () => {
     const before = await artifactCounts();
+    await expect(create(createInput({
+      displayName: "Order 101 Second Email Match",
+      contacts: [
+        { kind: "email", value: "aaa-unique@order101.test" },
+        { kind: "email", value: EMAIL_A },
+      ],
+      idempotencyKey: "order101-second-email-duplicate",
+    }))).rejects.toMatchObject({
+      candidates: [{ partyId: PARTY_A, reasons: ["email"] }],
+    });
+    expect(await artifactCounts()).toEqual(before);
     const requested = createInput({
       displayName: "  ASHA   RAO  ",
       roles: ["guest", "contact"],
