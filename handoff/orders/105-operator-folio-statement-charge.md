@@ -144,10 +144,10 @@ personally executes the financial and real-HTTP proof.
 ## Definition of done
 
 - [x] Order exists before implementation.
-- [ ] Intentional P0 red is committed before production/permission code.
-- [ ] Statement snapshot, pagination, exact strings and 10k proof pass.
-- [ ] Read/write/property/tenant HTTP authority fails closed.
-- [ ] Workbench has no browser accounting, stale repaint or unsafe ledger controls.
-- [ ] Charge path is only approved `ChargeService`; unbuilt tax/payment scope is clear.
-- [ ] Standing/referee gates pass and scope is exact.
+- [x] Intentional P0 red is committed before production/permission code.
+- [x] Statement snapshot, pagination, exact strings and 10k proof pass.
+- [x] Read/write/property/tenant HTTP authority fails closed.
+- [x] Workbench has no browser accounting, stale repaint or unsafe ledger controls.
+- [x] Charge path is only approved `ChargeService`; unbuilt tax/payment scope is clear.
+- [x] Standing/referee gates pass and scope is exact.
 - [ ] Independent reviewer approves executed proof.

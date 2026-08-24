@@ -75,6 +75,7 @@
             <button class="domain-tab" id="nav-inventory" type="button" data-view="inventory">Inventory setup</button>
             <button class="domain-tab" id="nav-operations" type="button" data-view="operations">Operations</button>
             <button class="domain-tab" id="nav-reservations" type="button" data-view="reservations">Reservations</button>
+            <button class="domain-tab" id="nav-folios" type="button" data-view="folios">Folios</button>
             <button class="domain-tab" id="nav-restrictions" type="button" data-view="restrictions">Restrictions</button>
             <button class="domain-tab" id="nav-rates" type="button" data-view="rates">Rates</button>
             <button class="domain-tab" id="nav-status" type="button" data-view="status">Project status</button>
@@ -455,6 +456,74 @@
             <button class="primary" type="submit">Save guest allocation</button>
             <p class="form-message" role="status" aria-live="polite"></p>
           </form>
+          </section>
+        </section>
+
+        <section id="folios-view" hidden aria-labelledby="folios-title">
+          <div class="section-heading">
+            <div>
+              <p class="eyebrow">Guest ledger evidence</p>
+              <h2 id="folios-title">Folio statement</h2>
+              <p class="muted">Read immutable guest-side postings and, when authorized, add one governed untaxed charge. This is not tax calculation, invoicing, payment, settlement, fiscalization or checkout.</p>
+            </div>
+          </div>
+
+          <form class="card folio-lookup" id="folio-statement-lookup-form">
+            <label for="folio-reference">Folio reference
+              <input id="folio-reference" name="reference" required maxlength="120" autocomplete="off" placeholder="FOL-…">
+            </label>
+            <button class="primary" type="submit">Find folio</button>
+            <p class="form-message" role="status" aria-live="polite">Enter the exact human-readable folio reference.</p>
+          </form>
+
+          <section class="folio-statement card" id="folio-statement" hidden aria-labelledby="folio-statement-title" tabindex="-1">
+            <div class="folio-summary">
+              <div><span>Reference</span><strong id="folio-statement-title">—</strong></div>
+              <div><span>Window</span><strong id="folio-window">—</strong></div>
+              <div><span>Status</span><strong id="folio-status">—</strong></div>
+              <div><span>Currency</span><strong id="folio-currency">—</strong></div>
+              <div><span>Server balance (minor units)</span><strong id="folio-balance" tabindex="-1">—</strong></div>
+              <div><span>Immutable lines</span><strong id="folio-line-count">—</strong></div>
+            </div>
+
+            <div class="folio-table-wrap" role="region" aria-labelledby="folio-lines-caption" tabindex="0">
+              <table class="folio-lines">
+                <caption id="folio-lines-caption">Immutable folio statement · newest postings first</caption>
+                <thead><tr>
+                  <th scope="col">Business date</th>
+                  <th scope="col">Posted (UTC)</th>
+                  <th scope="col">Kind</th>
+                  <th scope="col">Code</th>
+                  <th scope="col">Description</th>
+                  <th scope="col">Quantity</th>
+                  <th scope="col">Signed amount (minor)</th>
+                  <th scope="col">Running balance (minor)</th>
+                </tr></thead>
+                <tbody id="folio-statement-rows"></tbody>
+              </table>
+            </div>
+            <button class="quiet" id="folio-load-older" type="button" hidden>Load older postings</button>
+            <p class="inventory-status" id="folio-page-status" role="status" aria-live="polite"></p>
+            <p class="form-message error" id="folio-error" role="alert" aria-live="assertive"></p>
+
+            <form class="folio-charge-form" id="folio-charge-form">
+              <fieldset id="folio-charge-fields">
+                <legend>Add an untaxed charge</legend>
+                <p class="field-note" id="folio-charge-availability">Charge availability comes from current server truth.</p>
+                <label for="folio-charge-code">Governed charge code
+                  <select id="folio-charge-code" name="txCode" required></select>
+                </label>
+                <label for="folio-charge-amount">Amount (minor units)
+                  <input id="folio-charge-amount" name="amountMinor" required inputmode="numeric" pattern="[1-9][0-9]*" maxlength="19" autocomplete="off" placeholder="12500">
+                </label>
+                <label for="folio-charge-quantity">Quantity (optional)
+                  <input id="folio-charge-quantity" name="quantity" inputmode="decimal" pattern="[1-9][0-9]*(?:\.[0-9]+)?" maxlength="40" autocomplete="off" placeholder="1">
+                </label>
+                <label class="folio-charge-confirmation"><input id="folio-charge-confirm" type="checkbox"> I understand this irreversibly posts an untaxed charge. Corrections require a new posting.</label>
+                <button class="primary" id="folio-charge-submit" type="submit" disabled>Post untaxed charge</button>
+              </fieldset>
+              <p class="form-message" role="status" aria-live="assertive"></p>
+            </form>
           </section>
         </section>
 

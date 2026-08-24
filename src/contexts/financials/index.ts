@@ -22,3 +22,17 @@ export type {
   PostChargeInput,
   PostChargeResult,
 } from "./postings";
+
+export {
+  FolioStatementNotFoundError,
+  FolioStatementService,
+  FolioStatementValidationError,
+} from "./statements";
+export type {
+  FolioChargeAvailability,
+  FolioChargeOption,
+  FolioStatementInput,
+  FolioStatementMetadata,
+  FolioStatementResult,
+  FolioStatementRow,
+} from "./statements";

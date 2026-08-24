@@ -304,6 +304,13 @@ locked non-fiscal property series allocates the human folio reference in the sam
 transaction as the folio and minimized evidence. No balance or economic effect exists
 until a later balanced-posting command creates immutable journal lines.
 
+Implemented statement query: one tenant/property-scoped PostgreSQL snapshot projects
+the account-owned folio's immutable guest-side lines, signed server balance and
+full-ledger running balances. Pages use an opaque folio-bound keyset cursor and expose
+only governed attributable revenue-code metadata needed by the approved untaxed charge
+command. The query is not a second ledger and creates no fact or event; the browser
+never recomputes money or sees counterparty accounts, routing, source, tax detail or PII.
+
 ### Journal aggregate — Financials
 
 **Root:** `journal`.
@@ -325,6 +332,9 @@ receives `-amount` without a folio. PostgreSQL binds line tenant, journal, date,
 account and folio ownership; the exact business-day row is locked against sealing.
 `tx_code_route` is tenant/RLS scoped and read-only to the application. Quantity is
 descriptive fixed-scale metadata and never changes the caller-supplied total.
+The operator adapter authorizes statement read and charge write independently, then
+delegates economic mutation only to this command. Its statement and charge workbench is
+not evidence of tax, invoicing, payment, settlement, fiscalization or checkout.
 
 ### Payment aggregate — Financials
 

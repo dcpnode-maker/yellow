@@ -8,6 +8,15 @@ import {
   type PartyRole,
 } from "../contexts/crm";
 import {
+  ChargeConflictError,
+  ChargeNotFoundError,
+  ChargeService,
+  ChargeValidationError,
+  FolioStatementNotFoundError,
+  FolioStatementService,
+  FolioStatementValidationError,
+} from "../contexts/financials";
+import {
   AvailabilityService,
   AvailabilityProjectionService,
   HoldConflictError,
@@ -124,6 +133,8 @@ const RESERVATION_SEGMENT_READ_SCOPE = "reservations.segments:read";
 const RESERVATION_SEGMENT_WRITE_SCOPE = "reservations.segments:write";
 const PARTY_READ_SCOPE = "crm.parties:read";
 const PARTY_WRITE_SCOPE = "crm.parties:write";
+const FOLIO_READ_SCOPE = "financials.folios:read";
+const CHARGE_WRITE_SCOPE = "financials.charges:write";
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 const ISO_INSTANT = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})(?::(\d{2})(?:\.(\d{1,3}))?)?(Z|([+-])(\d{2}):(\d{2}))$/;
 const LOCAL_DATE = /^(\d{4})-(\d{2})-(\d{2})$/;
@@ -136,6 +147,52 @@ function exactKeys(value: Record<string, unknown>, required: readonly string[], 
   const keys = Object.keys(value);
   return required.every((key) => keys.includes(key)) &&
     keys.every((key) => required.includes(key) || optional.includes(key));
+}
+
+const POSITIVE_INT64 = /^[1-9][0-9]*$/;
+const INT64_MAX = 9_223_372_036_854_775_807n;
+const CHARGE_TX_CODE = /^[A-Z0-9][A-Z0-9._-]{0,31}$/;
+const CHARGE_QUANTITY = /^(?:0\.[0-9]{1,3}|[1-9][0-9]{0,6}(?:\.[0-9]{1,3})?)$/;
+const IDEMPOTENCY_KEY = /^[\x21-\x7e]{8,200}$/;
+const FOLIO_REFERENCE = /^[A-Z0-9][A-Z0-9._\/-]{0,63}$/;
+
+function statementQuery(request: Request): { after?: string; limit?: number } | null {
+  const query = new URL(request.url).searchParams;
+  if ([...query.keys()].some((key) => key !== "after" && key !== "limit") ||
+      query.getAll("after").length > 1 || query.getAll("limit").length > 1) return null;
+  const after = query.get("after");
+  const rawLimit = query.get("limit");
+  if (after !== null && (after.length < 1 || after.length > 512 || !/^[A-Za-z0-9_-]+$/.test(after))) return null;
+  if (rawLimit !== null && !/^(?:[1-9]|[1-9][0-9]|100)$/.test(rawLimit)) return null;
+  return Object.freeze({
+    ...(after === null ? {} : { after }),
+    ...(rawLimit === null ? {} : { limit: Number(rawLimit) }),
+  });
+}
+
+interface ChargeDraft {
+  readonly txCode: string;
+  readonly amountMinor: string;
+  readonly quantity?: string;
+  readonly idempotencyKey: string;
+}
+
+function parseCharge(request: Request, body: unknown): ChargeDraft | null {
+  if (!isObject(body) || !exactKeys(body, ["txCode", "amountMinor"], ["quantity"]) ||
+      typeof body.txCode !== "string" || !CHARGE_TX_CODE.test(body.txCode) ||
+      typeof body.amountMinor !== "string" || !POSITIVE_INT64.test(body.amountMinor) ||
+      BigInt(body.amountMinor) > INT64_MAX ||
+      (body.quantity !== undefined &&
+        (typeof body.quantity !== "string" || !CHARGE_QUANTITY.test(body.quantity) ||
+          !/[1-9]/.test(body.quantity)))) return null;
+  const idempotencyKey = request.headers.get("idempotency-key");
+  if (!idempotencyKey || !IDEMPOTENCY_KEY.test(idempotencyKey)) return null;
+  return Object.freeze({
+    txCode: body.txCode,
+    amountMinor: body.amountMinor,
+    ...(body.quantity === undefined ? {} : { quantity: body.quantity }),
+    idempotencyKey,
+  });
 }
 
 function correlationId(request: Request): string {
@@ -755,6 +812,8 @@ type ReservationGuestOperations = Pick<ReservationGuestService, "findByConfirmat
 type ReservationLifecycleOperations = Pick<ReservationLifecycleService, "findByConfirmation" | "modify" | "cancel" | "reinstate">;
 type ReservationSegmentOperations = Pick<ReservationSegmentService, "findByConfirmation" | "changeDeparture" | "moveRoom">;
 type PartyOperations = Pick<PartyProfileService, "search" | "create">;
+type FolioStatementOperations = Pick<FolioStatementService, "get">;
+type ChargeOperations = Pick<ChargeService, "postCharge">;
 
 const MAX_MONEY = 9_223_372_036_854_775_807n;
 
@@ -1135,6 +1194,8 @@ export class OperatorHttpApi {
   readonly #reservationLifecycle?: ReservationLifecycleOperations;
   readonly #reservationSegments?: ReservationSegmentOperations;
   readonly #parties?: PartyOperations;
+  readonly #folioStatements?: FolioStatementOperations;
+  readonly #charges?: ChargeOperations;
 
   constructor(
     login: LocalLoginService,
@@ -1156,6 +1217,8 @@ export class OperatorHttpApi {
     reservationLifecycle?: ReservationLifecycleOperations,
     reservationSegments?: ReservationSegmentOperations,
     parties?: PartyOperations,
+    folioStatements?: FolioStatementOperations,
+    charges?: ChargeOperations,
   ) {
     this.#login = login;
     this.#availability = availability;
@@ -1176,6 +1239,8 @@ export class OperatorHttpApi {
     this.#reservationLifecycle = reservationLifecycle;
     this.#reservationSegments = reservationSegments;
     this.#parties = parties;
+    this.#folioStatements = folioStatements;
+    this.#charges = charges;
   }
 
   unavailable(request: Request): Response {
@@ -1187,6 +1252,15 @@ export class OperatorHttpApi {
   }
 
   failure(request: Request, error: unknown): Response {
+    if (error instanceof FolioStatementValidationError || error instanceof ChargeValidationError) {
+      return apiError(request, 400, "request/invalid", "Invalid request", "Financial input is invalid");
+    }
+    if (error instanceof FolioStatementNotFoundError || error instanceof ChargeNotFoundError) {
+      return apiError(request, 404, "financials/not_found", "Not found", "The requested folio or charge configuration was not found");
+    }
+    if (error instanceof ChargeConflictError) {
+      return apiError(request, 409, "financials/conflict", "Conflict", "The charge conflicts with current financial state");
+    }
     if (error instanceof PartyDuplicateReviewRequiredError) {
       return apiError(request, 409, "profiles/duplicate_review_required", "Duplicate review required",
         "Review every current possible duplicate before creating a distinct Party",
@@ -1319,6 +1393,81 @@ export class OperatorHttpApi {
           detail: "External CI is not queried by the local runtime; use the linked GitHub pull request evidence.",
         },
       },
+    });
+  }
+
+  async folioStatement(
+    context: TenantRequestContext,
+    propertyNode: string,
+    reference: string,
+  ): Promise<Response> {
+    if (!hasScope(context, FOLIO_READ_SCOPE)) {
+      return apiError(context.request, 403, "auth/scope_missing", "Forbidden", "Folio statement access is not granted");
+    }
+    if (!UUID.test(propertyNode)) {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Property identifier is invalid");
+    }
+    if (!UUID.test(reference) && !FOLIO_REFERENCE.test(reference)) {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Folio reference is invalid");
+    }
+    const grants = await listGrantedProperties(context, FOLIO_READ_SCOPE);
+    if (!grants.some(({ id }) => id === propertyNode)) {
+      return apiError(context.request, 403, "auth/property_forbidden", "Forbidden", "Property access is not granted");
+    }
+    const query = statementQuery(context.request);
+    if (!query) {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Folio statement query is invalid");
+    }
+    if (!this.#folioStatements) return this.unavailable(context.request);
+    const statement = await this.#folioStatements.get(context.tx, {
+      tenantId: context.tenantId,
+      propertyNode,
+      reference,
+      ...query,
+    });
+    return apiResponse(context.request, canonicalJson(jsonValue(statement)));
+  }
+
+  async postFolioCharge(
+    context: TenantRequestContext,
+    propertyNode: string,
+    folioId: string,
+    body: unknown,
+  ): Promise<Response> {
+    if (!hasScope(context, CHARGE_WRITE_SCOPE)) {
+      return apiError(context.request, 403, "auth/scope_missing", "Forbidden", "Folio charge posting is not granted");
+    }
+    if (!UUID.test(propertyNode) || !UUID.test(folioId)) {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Property or folio identifier is invalid");
+    }
+    const grants = await listGrantedProperties(context, CHARGE_WRITE_SCOPE);
+    if (!grants.some(({ id }) => id === propertyNode)) {
+      return apiError(context.request, 403, "auth/property_forbidden", "Forbidden", "Property access is not granted");
+    }
+    const input = parseCharge(context.request, body);
+    if (!input) {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Folio charge input is invalid");
+    }
+    if (!this.#charges) return this.unavailable(context.request);
+    const requestId = correlationId(context.request);
+    const result = await this.#charges.postCharge(context.tx, {
+      tenantId: context.tenantId,
+      folioId,
+      txCode: input.txCode,
+      amountMinor: input.amountMinor,
+      ...(input.quantity === undefined ? {} : { quantity: input.quantity }),
+      idempotencyKey: input.idempotencyKey,
+      envelope: createAuditEnvelope({
+        actorId: context.identity.actorId,
+        tenantId: context.tenantId,
+        propertyNode,
+        requestId,
+        operation: "journal.posted",
+      }),
+    });
+    return apiResponse(context.request, canonicalJson(jsonValue(result)), 201, {
+      "idempotency-replayed": String(result.replayed),
+      "x-correlation-id": requestId,
     });
   }
 

@@ -79,6 +79,7 @@ export function createApp(options: AppOptions = {}) {
       .get("/p/:property/rates", () => operatorAssets.html())
       .get("/p/:property/operations", () => operatorAssets.html())
       .get("/p/:property/reservations", () => operatorAssets.html())
+      .get("/p/:property/folios", () => operatorAssets.html())
       .get("/p/:property/status", () => operatorAssets.html())
       .get("/assets/operator.css", () => operatorAssets.css())
       .get("/assets/operator.js", () => operatorAssets.js())
@@ -88,6 +89,16 @@ export function createApp(options: AppOptions = {}) {
       )
       .get("/api/v1/properties/:property/system-status", ({ request, params, tenantContext }) =>
         withOperatorTenant(request, (context) => operator.systemStatus(context, params.property))
+      )
+      .get("/api/v1/properties/:property/folios/:reference/statement", ({ request, params, tenantContext }) =>
+        withOperatorTenant(request, (context) => operator.folioStatement(
+          context, params.property, params.reference,
+        ))
+      )
+      .post("/api/v1/properties/:property/folios/:folioId/charges", ({ request, params, body, tenantContext }) =>
+        withOperatorTenant(request, (context) => operator.postFolioCharge(
+          context, params.property, params.folioId, body,
+        ))
       )
       .post("/api/v1/properties/:property/availability:search", ({ request, params, body, tenantContext }) =>
         withOperatorTenant(request, (context) => operator.search(context, params.property, body))

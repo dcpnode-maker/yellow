@@ -113,8 +113,8 @@ exact open guest account keyed by tenant/property/Party/currency; and creates re
 window 1 with a locked non-fiscal `document_series(kind='folio')` reference. Account,
 folio, counter increment, minimized `folio.opened` fact/outbox event, and durable
 idempotency are one transaction. An exact existing open window is returned unchanged.
-This slice does not post money or implement statements, extra windows, routing,
-settlement, payments, tax/fiscal behavior, cashiering, day close, AR, HTTP, or UI.
+This slice does not post money or implement extra windows, settlement, payments,
+tax/fiscal behavior, cashiering, day close, or AR.
 
 Implemented posting slice: `ChargeService.postCharge(tx, input)` accepts an open folio,
 governed revenue tx code, canonical positive int64 decimal-string total, optional
@@ -124,8 +124,23 @@ atomically posts one debit-positive guest/folio line and equal credit-negative r
 line. Journal, immutable lines, minimized `journal.posted` fact/outbox and idempotency
 share one transaction; the business-day latch serializes against sealing. This amount is
 explicitly untaxed and quantity is descriptive, never multiplied. Tax allocation,
-scheduled/nightly charges, statements, route authoring, corrections, transfers,
-payments, settlement, fiscal behavior, API and UI remain planned.
+scheduled/nightly charges, route authoring, corrections, transfers, payments,
+settlement and fiscal behavior remain planned.
+
+Implemented operator statement slice: `FolioStatementService.get(tx, input)` resolves
+one tenant/property folio by UUID or strict human reference and returns one PostgreSQL
+snapshot containing safe folio metadata, exact signed decimal-string server balance and
+line count, full-ledger running balances, newest-first immutable keyset pages, governed
+revenue-code options and explanatory charge availability. Its strict versioned cursor is
+bound to the property, folio and full ordering tuple. It exposes no counterparty line,
+account/route id, source, tax detail or Party/contact data and writes no evidence.
+`GET /api/v1/properties/{property}/folios/{reference}/statement` and `POST
+/api/v1/properties/{property}/folios/{folioId}/charges` require separate
+`financials.folios:read` and `financials.charges:write` permissions plus an exact
+property grant. POST accepts only a governed code, exact positive int64 string and
+optional quantity, takes idempotency from the header, and delegates to
+`ChargeService.postCharge`. Statement visibility and an untaxed charge do not imply tax
+calculation, invoice/document issue, payment, settlement, fiscalization or checkout.
 
 ## 4. Internal context interfaces (in-process, typed)
 Each context exports ONLY: `queries` (pure reads), `commands` (Tx-taking, return Result),

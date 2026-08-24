@@ -453,6 +453,29 @@ input:hover, select:hover, textarea:hover { border-color: #8d978c; }
 .reservation-cancel-form .secondary { justify-self: start; border-color: color-mix(in srgb, var(--red) 55%, var(--line)); color: var(--red); }
 .reservation-reinstate-panel { padding: 1rem; border-radius: 14px; background: color-mix(in srgb, var(--accent) 8%, var(--card)); }
 .reservation-reinstate-panel p { color: var(--muted); line-height: 1.5; }
+.folio-lookup { max-width: 980px; padding: 1rem; display: grid; grid-template-columns: minmax(240px, 1fr) auto; gap: .8rem; align-items: end; }
+.folio-lookup input, .folio-lookup button, .folio-charge-form input, .folio-charge-form select, .folio-charge-form button, #folio-load-older { min-height: 44px; }
+.folio-lookup .form-message { grid-column: 1 / -1; }
+.folio-statement { margin-top: 1rem; padding: 1rem; display: grid; gap: 1rem; }
+.folio-summary { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .75rem; }
+.folio-summary > div { min-width: 0; padding: .8rem; border-radius: 13px; background: color-mix(in srgb, var(--accent) 8%, var(--card)); }
+.folio-summary span, .folio-summary strong { display: block; overflow-wrap: anywhere; }
+.folio-summary span { color: var(--muted); font-size: .7rem; letter-spacing: .08em; text-transform: uppercase; }
+.folio-summary strong { margin-top: .25rem; font-variant-numeric: tabular-nums; }
+.folio-table-wrap { overflow: auto; border: 1px solid var(--line); border-radius: 14px; }
+.folio-lines { width: 100%; min-width: 900px; border-collapse: collapse; font-size: .8rem; }
+.folio-lines caption { padding: .8rem; text-align: left; color: var(--accent-strong); font-weight: 850; }
+.folio-lines th, .folio-lines td { padding: .7rem .8rem; border-top: 1px solid var(--line); text-align: left; vertical-align: top; }
+.folio-lines th { color: var(--muted); font-size: .68rem; letter-spacing: .06em; text-transform: uppercase; }
+.folio-lines td:nth-last-child(-n+3) { font-variant-numeric: tabular-nums; }
+.folio-lines .folio-empty { padding: 1.2rem; color: var(--muted); text-align: center; }
+.folio-charge-form { padding-top: 1rem; border-top: 1px solid var(--line); }
+.folio-charge-form fieldset { margin: 0; padding: 1rem; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .8rem; border: 1px solid color-mix(in srgb, var(--amber) 45%, var(--line)); border-radius: 14px; background: var(--amber-soft); }
+.folio-charge-form legend { padding: 0 .4rem; color: var(--amber); font-weight: 850; }
+.folio-charge-form .field-note, .folio-charge-confirmation, .folio-charge-form .form-message { grid-column: 1 / -1; }
+.folio-charge-confirmation { min-height: 44px; display: flex; align-items: center; gap: .65rem; line-height: 1.45; }
+.folio-charge-confirmation input { width: 22px; min-height: 22px; flex: none; accent-color: var(--accent); }
+.folio-charge-form button { justify-self: start; }
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
@@ -480,6 +503,7 @@ input:hover, select:hover, textarea:hover { border-color: #8d978c; }
   .party-profile-contacts { grid-template-columns: 1fr; }
   .party-profile-contacts legend, .party-profile-contacts .field-note { grid-column: 1; }
   .reservation-field-grid { grid-template-columns: 1fr; }
+  .folio-summary, .folio-charge-form fieldset { grid-template-columns: 1fr; }
   .builder-steps { grid-template-columns: 1fr; }
   .builder-steps li + li { border-left: 0; border-top: 1px solid var(--line); }
   .builder-step { min-height: 62px; }
@@ -536,6 +560,8 @@ input:hover, select:hover, textarea:hover { border-color: #8d978c; }
   .release-row { grid-template-columns: 1fr; }
   .release-actions, .release-actions button { width: 100%; }
   .reservation-lookup, .reservation-summary, .reservation-guest-row { grid-template-columns: 1fr; }
+  .folio-lookup, .folio-summary, .folio-charge-form fieldset { grid-template-columns: 1fr; }
+  .folio-lookup .form-message, .folio-charge-form .field-note, .folio-charge-confirmation, .folio-charge-form .form-message { grid-column: 1; }
   .party-profile-search-form, .party-profile-result { grid-template-columns: 1fr; }
   .party-profile-search-form .form-message { grid-column: 1; }
   .party-profile-result button { width: 100%; }

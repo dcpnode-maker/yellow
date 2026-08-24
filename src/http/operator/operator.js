@@ -41,6 +41,12 @@
   let partyCreateAttemptKey = "";
   let partyCreateDraft = null;
   let partyDuplicateIds = [];
+  let folioStatementData = null;
+  let folioNextCursor = null;
+  let folioGeneration = 0;
+  let folioIdentity = "";
+  let folioChargeAttemptKey = "";
+  let folioChargeDraft = "";
   const pendingKeys = new Map();
 
   const loginView = document.querySelector("#login-view");
@@ -62,6 +68,7 @@
   const ratesView = document.querySelector("#rates-view");
   const operationsView = document.querySelector("#operations-view");
   const reservationsView = document.querySelector("#reservations-view");
+  const foliosView = document.querySelector("#folios-view");
   const statusView = document.querySelector("#status-view");
   const navigation = document.querySelectorAll(".domain-tab");
   const refreshInventory = document.querySelector("#refresh-inventory");
@@ -301,6 +308,24 @@
   const partyProfilePicker = document.querySelector("#party-profile-picker");
   const partyProfileSelected = document.querySelector("#party-profile-selected");
   const partyProfileClear = document.querySelector("#party-profile-clear");
+  const folioStatementLookupForm = document.querySelector("#folio-statement-lookup-form");
+  const folioStatement = document.querySelector("#folio-statement");
+  const folioStatementTitle = document.querySelector("#folio-statement-title");
+  const folioWindow = document.querySelector("#folio-window");
+  const folioStatus = document.querySelector("#folio-status");
+  const folioCurrency = document.querySelector("#folio-currency");
+  const folioBalance = document.querySelector("#folio-balance");
+  const folioLineCount = document.querySelector("#folio-line-count");
+  const folioStatementRows = document.querySelector("#folio-statement-rows");
+  const folioLoadOlder = document.querySelector("#folio-load-older");
+  const folioPageStatus = document.querySelector("#folio-page-status");
+  const folioError = document.querySelector("#folio-error");
+  const folioChargeForm = document.querySelector("#folio-charge-form");
+  const folioChargeFields = document.querySelector("#folio-charge-fields");
+  const folioChargeCode = document.querySelector("#folio-charge-code");
+  const folioChargeConfirm = document.querySelector("#folio-charge-confirm");
+  const folioChargeSubmit = document.querySelector("#folio-charge-submit");
+  const folioChargeAvailability = document.querySelector("#folio-charge-availability");
   const SYSTEM_STATUS_SUFFIX = "/system-status";
   const MAX_MINOR = BigInt("9223372036854775807");
 
@@ -400,6 +425,7 @@
     reservationBookingDraft = null;
     reservationBookingSearchGeneration += 1;
     clearPartyProfileState();
+    clearFolioState();
     reservationGuestForm.hidden = true;
     reservationLifecycleEditor.hidden = true;
     reservationSegmentEditor.hidden = true;
@@ -432,7 +458,7 @@
       propertySelect.disabled = true;
     } else {
       propertySelect.disabled = false;
-      const pathProperty = location.pathname.match(/^\/p\/([0-9a-f-]+)\/(?:availability|inventory|operations|reservations|restrictions|rates|status)$/)?.[1];
+      const pathProperty = location.pathname.match(/^\/p\/([0-9a-f-]+)\/(?:availability|inventory|operations|reservations|folios|restrictions|rates|status)$/)?.[1];
       if (pathProperty && body.properties.some(({ id }) => id === pathProperty)) propertySelect.value = pathProperty;
     }
   }
@@ -2181,17 +2207,248 @@
     depositPolicyFields.querySelector('input[name="depositDays"]').required = depositDue.value === "days_before_arrival";
   }
 
+  function isCurrentFolioRequest(generation, property, identity, folioId = null) {
+    return generation === folioGeneration && property === propertySelect.value && identity === folioIdentity
+      && (folioId === null || folioStatementData?.folio.id === folioId);
+  }
+
+  function setFolioError(message = "") {
+    folioError.textContent = message;
+  }
+
+  function resetFolioPresentation() {
+    folioStatementData = null;
+    folioNextCursor = null;
+    folioStatement.hidden = true;
+    folioStatementRows.replaceChildren();
+    folioLoadOlder.hidden = true;
+    folioLoadOlder.disabled = false;
+    folioPageStatus.textContent = "";
+    folioChargeCode.replaceChildren();
+    folioChargeAvailability.textContent = "Charge availability comes from current server truth.";
+    folioChargeFields.disabled = true;
+    folioChargeForm.reset();
+    folioChargeAttemptKey = "";
+    folioChargeDraft = "";
+    setFolioError();
+  }
+
+  function clearFolioState() {
+    folioGeneration += 1;
+    folioIdentity = "";
+    resetFolioPresentation();
+    folioStatementLookupForm.reset();
+    formMessage(folioStatementLookupForm, "Enter the exact human-readable folio reference.");
+  }
+
+  function folioCell(text) {
+    const cell = document.createElement("td");
+    cell.textContent = text === null || text === undefined || text === "" ? "—" : String(text);
+    return cell;
+  }
+
+  function exactFolioMinor(value, label) {
+    if (typeof value !== "string" || !/^-?(?:0|[1-9][0-9]*)$/.test(value)) throw new Error(`Server returned an invalid exact ${label}.`);
+    return value;
+  }
+
+  function exactFolioQuantity(value) {
+    if (typeof value !== "string" || !/^(?:0|[1-9][0-9]*)(?:\.[0-9]+)?$/.test(value)) throw new Error("Server returned an invalid exact quantity.");
+    return value;
+  }
+
+  function renderFolioRows(rows, append = false) {
+    const fragment = document.createDocumentFragment();
+    for (const row of rows) {
+      const tableRow = document.createElement("tr");
+      tableRow.append(
+        folioCell(row.businessDate),
+        folioCell(row.postedAt),
+        folioCell(row.reversalJournalId ? `${row.kind} · reversed` : row.kind),
+        folioCell(row.txCode),
+        folioCell(row.description),
+        folioCell(exactFolioQuantity(row.quantity)),
+        folioCell(exactFolioMinor(row.amountMinor, "amount")),
+        folioCell(exactFolioMinor(row.runningBalanceMinor, "running balance")),
+      );
+      tableRow.title = row.reversalJournalId ? `Reversed by journal ${row.reversalJournalId}` : `${row.kind} · journal ${row.journalId}`;
+      fragment.append(tableRow);
+    }
+    if (!append) folioStatementRows.replaceChildren();
+    folioStatementRows.append(fragment);
+    if (!append && rows.length === 0) {
+      const emptyRow = document.createElement("tr");
+      const emptyCell = document.createElement("td");
+      emptyCell.className = "folio-empty";
+      emptyCell.colSpan = 8;
+      emptyCell.textContent = "No immutable guest-side postings were returned.";
+      emptyRow.append(emptyCell);
+      folioStatementRows.append(emptyRow);
+    }
+  }
+
+  function renderFolioChargeOptions(options, availability) {
+    folioChargeCode.replaceChildren();
+    for (const option of options) {
+      const choice = document.createElement("option");
+      choice.value = option.code;
+      choice.textContent = `${option.code} · ${option.name} · USALI ${option.usaliLine}`;
+      folioChargeCode.append(choice);
+    }
+    const allowed = availability.allowed === true && options.length > 0;
+    folioChargeFields.disabled = !allowed;
+    folioChargeConfirm.checked = false;
+    folioChargeSubmit.disabled = true;
+    folioChargeAvailability.textContent = allowed
+      ? "Choose one server-governed revenue code. The server derives property, currency, business date and ledger route."
+      : availability.reason || "No currently governed untaxed charge is available.";
+  }
+
+  function renderFolioStatement(statement, append = false) {
+    folioStatementData = statement;
+    folioNextCursor = statement.nextCursor;
+    folioStatementTitle.textContent = statement.folio.reference || statement.folio.id;
+    folioWindow.textContent = String(statement.folio.windowNo);
+    folioStatus.textContent = statement.folio.status;
+    folioCurrency.textContent = statement.folio.currency;
+    folioBalance.textContent = exactFolioMinor(statement.balanceMinor, "server balance");
+    folioLineCount.textContent = String(statement.lineCount);
+    renderFolioRows(statement.rows, append);
+    renderFolioChargeOptions(statement.chargeOptions, statement.chargeAvailability);
+    folioLoadOlder.hidden = statement.nextCursor === null;
+    folioPageStatus.textContent = statement.nextCursor === null
+      ? `All ${String(statement.lineCount)} immutable lines are represented.`
+      : "More immutable postings are available from the server.";
+    folioStatement.hidden = false;
+  }
+
+  async function lookupFolioStatement() {
+    const reference = String(new FormData(folioStatementLookupForm).get("reference") || "").trim();
+    if (!reference) return;
+    const generation = ++folioGeneration;
+    const property = propertySelect.value;
+    const identity = reference;
+    folioIdentity = identity;
+    resetFolioPresentation();
+    const button = folioStatementLookupForm.querySelector("button[type=submit]");
+    button.disabled = true;
+    formMessage(folioStatementLookupForm, "Reading one immutable server statement…");
+    try {
+      const statement = await request(`/api/v1/properties/${encodeURIComponent(property)}/folios/${encodeURIComponent(reference)}/statement?limit=50`);
+      if (!isCurrentFolioRequest(generation, property, identity)) return;
+      renderFolioStatement(statement);
+      formMessage(folioStatementLookupForm, `Loaded exact folio ${statement.folio.reference || statement.folio.id}.`);
+      folioStatement.focus();
+    } catch (error) {
+      if (!isCurrentFolioRequest(generation, property, identity)) return;
+      resetFolioPresentation();
+      folioIdentity = identity;
+      const message = error instanceof Error ? error.message : "Folio statement could not be loaded";
+      formMessage(folioStatementLookupForm, message, true);
+      setFolioError(message);
+    } finally {
+      if (isCurrentFolioRequest(generation, property, identity)) button.disabled = false;
+    }
+  }
+
+  async function loadOlderFolioRows() {
+    if (!folioStatementData || !folioNextCursor) return;
+    const generation = folioGeneration;
+    const property = propertySelect.value;
+    const identity = folioIdentity;
+    const folioId = folioStatementData.folio.id;
+    const cursor = folioNextCursor;
+    folioLoadOlder.disabled = true;
+    folioPageStatus.textContent = "Loading older immutable postings…";
+    setFolioError();
+    try {
+      const page = await request(`/api/v1/properties/${encodeURIComponent(property)}/folios/${encodeURIComponent(folioId)}/statement?after=${encodeURIComponent(cursor)}&limit=50`);
+      if (!isCurrentFolioRequest(generation, property, identity, folioId)) return;
+      if (page.folio.id !== folioId) throw new Error("The server returned a different folio.");
+      folioNextCursor = page.nextCursor;
+      renderFolioRows(page.rows, true);
+      folioLoadOlder.hidden = page.nextCursor === null;
+      folioPageStatus.textContent = page.nextCursor === null ? "All immutable lines are loaded." : "Older immutable postings remain available.";
+    } catch (error) {
+      if (!isCurrentFolioRequest(generation, property, identity, folioId)) return;
+      const message = error instanceof Error ? error.message : "Older postings could not be loaded";
+      folioPageStatus.textContent = "Older postings were not added.";
+      setFolioError(message);
+    } finally {
+      if (isCurrentFolioRequest(generation, property, identity, folioId)) folioLoadOlder.disabled = false;
+    }
+  }
+
+  function folioChargeBody() {
+    const fields = new FormData(folioChargeForm);
+    const quantity = String(fields.get("quantity") || "").trim();
+    return {
+      txCode: String(fields.get("txCode") || ""),
+      amountMinor: String(fields.get("amountMinor") || ""),
+      ...(quantity ? { quantity } : {}),
+    };
+  }
+
+  function syncFolioChargeConfirmation() {
+    folioChargeSubmit.disabled = folioChargeFields.disabled || !folioChargeConfirm.checked;
+  }
+
+  async function postFolioCharge() {
+    if (!folioStatementData || !folioChargeConfirm.checked) return;
+    const generation = folioGeneration;
+    const property = propertySelect.value;
+    const identity = folioIdentity;
+    const folioId = folioStatementData.folio.id;
+    const body = folioChargeBody();
+    const draft = JSON.stringify(body);
+    if (draft !== folioChargeDraft) {
+      folioChargeDraft = draft;
+      folioChargeAttemptKey = crypto.randomUUID();
+    }
+    const attemptKey = folioChargeAttemptKey;
+    folioChargeSubmit.disabled = true;
+    formMessage(folioChargeForm, "Posting one irreversible untaxed charge through the governed server command…");
+    setFolioError();
+    try {
+      const posted = await request(`/api/v1/properties/${encodeURIComponent(property)}/folios/${encodeURIComponent(folioId)}/charges`, {
+        method: "POST",
+        headers: { "idempotency-key": attemptKey },
+        body: JSON.stringify(body),
+      });
+      if (!isCurrentFolioRequest(generation, property, identity, folioId)) return;
+      if (posted.folioId !== folioId) throw new Error("The server returned a different folio.");
+      const refreshed = await request(`/api/v1/properties/${encodeURIComponent(property)}/folios/${encodeURIComponent(folioId)}/statement?limit=50`);
+      if (!isCurrentFolioRequest(generation, property, identity, folioId)) return;
+      if (refreshed.folio.id !== folioId) throw new Error("The server returned a different folio.");
+      renderFolioStatement(refreshed);
+      folioChargeForm.reset();
+      folioChargeAttemptKey = "";
+      folioChargeDraft = "";
+      syncFolioChargeConfirmation();
+      formMessage(folioChargeForm, posted.replayed ? "The existing charge was confirmed and the server statement was refreshed." : "Charge posted and the server statement was refreshed.");
+      folioBalance.focus();
+    } catch (error) {
+      if (!isCurrentFolioRequest(generation, property, identity, folioId)) return;
+      const message = error instanceof Error ? error.message : "The charge could not be confirmed";
+      formMessage(folioChargeForm, `${message}. Retry keeps the same idempotency key.`, true);
+      setFolioError(message);
+    } finally {
+      if (isCurrentFolioRequest(generation, property, identity, folioId)) syncFolioChargeConfirmation();
+    }
+  }
+
   function setView(view, updateHistory = true) {
-    activeView = ["availability", "inventory", "operations", "reservations", "restrictions", "rates", "status"].includes(view) ? view : "availability";
+    activeView = ["availability", "inventory", "operations", "reservations", "folios", "restrictions", "rates", "status"].includes(view) ? view : "availability";
     availabilityView.hidden = activeView !== "availability";
     inventoryView.hidden = activeView !== "inventory";
     restrictionsView.hidden = activeView !== "restrictions";
     ratesView.hidden = activeView !== "rates";
     operationsView.hidden = activeView !== "operations";
     reservationsView.hidden = activeView !== "reservations";
+    foliosView.hidden = activeView !== "folios";
     statusView.hidden = activeView !== "status";
     workbenchTitle.textContent = activeView === "inventory" ? "Inventory setup" :
-      activeView === "operations" ? "Operations" : activeView === "reservations" ? "Reservations" : activeView === "restrictions" ? "Restrictions" :
+      activeView === "operations" ? "Operations" : activeView === "reservations" ? "Reservations" : activeView === "folios" ? "Folios" : activeView === "restrictions" ? "Restrictions" :
         activeView === "rates" ? "Rates" : activeView === "status" ? "Project status" : "Availability";
     for (const tab of navigation) {
       const selected = tab.dataset.view === activeView;
@@ -3636,6 +3893,7 @@
   propertySelect.addEventListener("change", () => {
     reservationBookingSearchGeneration += 1;
     clearPartyProfileState();
+    clearFolioState();
     if (propertySelect.value) history.replaceState(null, "", `/p/${propertySelect.value}/${activeView}`);
     if (activeView === "inventory") void loadInventory();
     if (activeView === "availability") {
@@ -3660,6 +3918,24 @@
     reservationGuestList.replaceChildren();
   });
   for (const tab of navigation) tab.addEventListener("click", () => setView(tab.dataset.view));
+  folioStatementLookupForm.addEventListener("submit", (event) => {
+    event.preventDefault();
+    void lookupFolioStatement();
+  });
+  folioLoadOlder.addEventListener("click", () => void loadOlderFolioRows());
+  folioChargeConfirm.addEventListener("change", syncFolioChargeConfirmation);
+  folioChargeForm.addEventListener("input", () => {
+    const draft = JSON.stringify(folioChargeBody());
+    if (folioChargeDraft && draft !== folioChargeDraft) {
+      folioChargeAttemptKey = "";
+      folioChargeDraft = "";
+    }
+    syncFolioChargeConfirmation();
+  });
+  folioChargeForm.addEventListener("submit", (event) => {
+    event.preventDefault();
+    void postFolioCharge();
+  });
   refreshInventory.addEventListener("click", () => void loadInventory());
   refreshProjection.addEventListener("click", () => void loadProjectionStatus());
   bulkRoomForm.addEventListener("input", updateBulkRoomPreview);
@@ -4075,6 +4351,7 @@
   const initialView = location.pathname.endsWith("/inventory") ? "inventory" :
     location.pathname.endsWith("/operations") ? "operations" :
     location.pathname.endsWith("/reservations") ? "reservations" :
+    location.pathname.endsWith("/folios") ? "folios" :
     location.pathname.endsWith("/restrictions") ? "restrictions" :
     location.pathname.endsWith("/rates") ? "rates" :
     location.pathname.endsWith("/status") ? "status" : "availability";

@@ -34,6 +34,8 @@ export const REVIEW_PERMISSION = "inventory.availability:read";
 export const REVIEW_PERMISSIONS = Object.freeze([
   { code: "crm.parties:read", description: "Search tenant-scoped Party profiles" },
   { code: "crm.parties:write", description: "Create tenant-scoped Party profiles" },
+  { code: "financials.charges:write", description: "Post governed charges to property folios" },
+  { code: "financials.folios:read", description: "Read property folio statements" },
   { code: REVIEW_PERMISSION, description: "Read tenant-scoped truth availability" },
   { code: "inventory.blocks:read", description: "Read tenant-scoped operational blocks" },
   { code: "inventory.blocks:write", description: "Open and close tenant-scoped operational blocks" },
