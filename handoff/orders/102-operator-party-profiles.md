@@ -132,7 +132,7 @@ PostgreSQL and approves.
 ## Definition of done
 
 - [x] Order exists before implementation.
-- [ ] Intentional P0 red is committed before production code.
+- [x] Intentional P0 red is committed before production code.
 - [ ] Search/create routes are strict, least-privilege and tenant/property safe.
 - [ ] Duplicate review is explicit, masked, exact and artifact-free.
 - [ ] Booking receives only a deliberately selected server Party id.
