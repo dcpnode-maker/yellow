@@ -375,7 +375,7 @@ databaseDescribe("Bun SQL migration runner", () => {
           migrationsDirectory: PROJECT_MIGRATIONS,
           logger: () => undefined,
         });
-        expect(result.appliedFiles.at(-1)).toBe("0010_financial_posting_integrity.sql");
+        expect(result.appliedFiles).toContain("0010_financial_posting_integrity.sql");
 
         const ledger = await sql<
           { version: string | bigint; filename: string; checksum_sha256: string }[]
@@ -570,6 +570,70 @@ databaseDescribe("Bun SQL migration runner", () => {
         await sql`INSERT INTO journal
           (tenant_id, property_node, business_date, kind, description, currency)
           VALUES (${tenantA}::uuid, ${propertyA}::uuid, '2026-08-24', 'adjustment', 'Allowed correction path', 'USD')`;
+      });
+    },
+    60_000,
+  );
+
+  test(
+    "applies exact SECURITY DEFINER containment and least-authority ACLs",
+    async () => {
+      await withDatabase(async ({ databaseUrl: targetUrl, sql }) => {
+        const result = await runMigrations({
+          databaseUrl: targetUrl,
+          migrationsDirectory: PROJECT_MIGRATIONS,
+          logger: () => undefined,
+        });
+        expect(result.appliedFiles.at(-1)).toBe("0011_security_definer_containment.sql");
+
+        const ledger = await sql<
+          { version: string | bigint; filename: string; checksum_sha256: string }[]
+        >`SELECT version, filename, checksum_sha256 FROM schema_migration WHERE version = 11`;
+        expect(ledger.map((row) => ({ ...row, version: Number(row.version) }))).toEqual([{
+          version: 11,
+          filename: "0011_security_definer_containment.sql",
+          checksum_sha256: "6c9af4f72fa6be5a2c0e256624620c7ee8cf61d709c3ca99a37cd126bbe57796",
+        }]);
+
+        const functions = await sql<{
+          count: number;
+          unsafeConfig: number;
+          publicExecute: number;
+          appExecute: number;
+        }[]>`
+          SELECT count(*)::int AS count,
+                 count(*) FILTER (
+                   WHERE p.proconfig <> ARRAY['search_path=pg_catalog, public, pg_temp']::text[]
+                 )::int AS "unsafeConfig",
+                 count(*) FILTER (WHERE EXISTS (
+                   SELECT 1
+                     FROM aclexplode(COALESCE(p.proacl, acldefault('f', p.proowner))) AS acl
+                    WHERE acl.grantee = 0 AND acl.privilege_type = 'EXECUTE'
+                 ))::int AS "publicExecute",
+                 count(*) FILTER (
+                   WHERE has_function_privilege('app_role', p.oid, 'EXECUTE')
+                 )::int AS "appExecute"
+            FROM pg_proc AS p
+            JOIN pg_namespace AS n ON n.oid = p.pronamespace
+           WHERE n.nspname = 'public'
+             AND p.proname = ANY(ARRAY[
+               'record_occupancy', 'release_occupancy', 'expire_holds',
+               'prune_outbox', 'assert_day_open', 'seal_business_day'
+             ]::name[])
+        `;
+        expect(functions).toEqual([{
+          count: 6,
+          unsafeConfig: 0,
+          publicExecute: 0,
+          appExecute: 3,
+        }]);
+
+        try {
+          await sql`SELECT public.prune_outbox(interval '-1 second')`;
+          throw new Error("negative retention unexpectedly succeeded");
+        } catch (error) {
+          expect((error as { errno?: string }).errno).toBe("22023");
+        }
       });
     },
     60_000,

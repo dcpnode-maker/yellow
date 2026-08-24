@@ -82,21 +82,220 @@ dbDescribe("Order 113 SECURITY DEFINER shadow-path containment", () => {
         CREATE TRIGGER hostile_business_day
           BEFORE UPDATE ON pg_temp.business_day
           FOR EACH ROW EXECUTE FUNCTION pg_temp.order113_hostile_trigger();
-
-        SELECT public.prune_outbox(interval '30 days');
-        SELECT public.seal_business_day(
-          '${TENANT}', '${PROPERTY}', DATE '2026-08-24', '${ACTOR}'
-        );
-        RESET ROLE;
       `);
+
+      await connection.unsafe("SAVEPOINT hostile_prune");
+      let pruneState: string | undefined;
+      try {
+        await connection`SELECT public.prune_outbox(interval '30 days')`;
+        await connection.unsafe("RELEASE SAVEPOINT hostile_prune");
+      } catch (error) {
+        pruneState = sqlState(error);
+        await connection.unsafe("ROLLBACK TO SAVEPOINT hostile_prune");
+        await connection.unsafe("RELEASE SAVEPOINT hostile_prune");
+      }
+      await connection.unsafe("SAVEPOINT hostile_seal");
+      let sealState: string | undefined;
+      try {
+        await connection`
+          SELECT public.seal_business_day(
+            ${TENANT}::uuid, ${PROPERTY}::uuid, DATE '2026-08-24', ${ACTOR}::uuid
+          )
+        `;
+        await connection.unsafe("RELEASE SAVEPOINT hostile_seal");
+      } catch (error) {
+        sealState = sqlState(error);
+        await connection.unsafe("ROLLBACK TO SAVEPOINT hostile_seal");
+        await connection.unsafe("RELEASE SAVEPOINT hostile_seal");
+      }
+      await connection.unsafe("RESET ROLE");
 
       const markers = await connection<Array<{ surface: string; observedRole: string }>>`
         SELECT surface, observed_role AS "observedRole"
         FROM public.order113_owner_probe
         ORDER BY surface
       `;
+      const shadowState = await connection<Array<{ outboxRows: number; daySealed: boolean }>>`
+        SELECT
+          (SELECT count(*)::int FROM pg_temp.outbox) AS "outboxRows",
+          (SELECT sealed_at IS NOT NULL FROM pg_temp.business_day) AS "daySealed"
+      `;
 
+      expect(pruneState).toBe("42501");
+      expect(sealState).toBe("P0012");
       expect(markers).toEqual([]);
+      expect(shadowState).toEqual([{ outboxRows: 1, daySealed: false }]);
+    } finally {
+      if (began) await connection.unsafe("ROLLBACK");
+      connection.release();
+    }
+  });
+
+  test("P1/P2: every definer has safe resolution and exact least execution authority", async () => {
+    const functions = await admin!<Array<{
+      signature: string;
+      securityDefiner: boolean;
+      config: string[];
+      source: string;
+      appExecute: boolean;
+      publicDenied: boolean;
+    }>>`
+      SELECT p.oid::regprocedure::text AS signature,
+             p.prosecdef AS "securityDefiner",
+             p.proconfig AS config,
+             p.prosrc AS source,
+             has_function_privilege('app_role', p.oid, 'EXECUTE') AS "appExecute",
+             NOT EXISTS (
+               SELECT 1
+                 FROM aclexplode(COALESCE(p.proacl, acldefault('f', p.proowner))) AS acl
+                WHERE acl.grantee = 0
+                  AND acl.privilege_type = 'EXECUTE'
+             ) AS "publicDenied"
+        FROM pg_proc AS p
+        JOIN pg_namespace AS n ON n.oid = p.pronamespace
+       WHERE n.nspname = 'public'
+         AND p.proname = ANY(ARRAY[
+           'record_occupancy', 'release_occupancy', 'expire_holds',
+           'prune_outbox', 'assert_day_open', 'seal_business_day'
+         ]::name[])
+       ORDER BY signature
+    `;
+
+    expect(functions.map(({ signature, securityDefiner, config, appExecute, publicDenied }) => ({
+      signature, securityDefiner, config, appExecute, publicDenied,
+    }))).toEqual([
+      { signature: "assert_day_open()", securityDefiner: true,
+        config: ["search_path=pg_catalog, public, pg_temp"], appExecute: false, publicDenied: true },
+      { signature: "expire_holds()", securityDefiner: true,
+        config: ["search_path=pg_catalog, public, pg_temp"], appExecute: false, publicDenied: true },
+      { signature: "prune_outbox(interval)", securityDefiner: true,
+        config: ["search_path=pg_catalog, public, pg_temp"], appExecute: false, publicDenied: true },
+      { signature: "record_occupancy(uuid,uuid,tstzrange,uuid,text,boolean)", securityDefiner: true,
+        config: ["search_path=pg_catalog, public, pg_temp"], appExecute: true, publicDenied: true },
+      { signature: "release_occupancy(uuid,uuid)", securityDefiner: true,
+        config: ["search_path=pg_catalog, public, pg_temp"], appExecute: true, publicDenied: true },
+      { signature: "seal_business_day(uuid,uuid,date,uuid)", securityDefiner: true,
+        config: ["search_path=pg_catalog, public, pg_temp"], appExecute: true, publicDenied: true },
+    ]);
+
+    const expectedQualifiedObjects = new Map<string, readonly string[]>([
+      ["assert_day_open()", ["public.business_day"]],
+      ["expire_holds()", ["public.hold", "public.release_occupancy"]],
+      ["prune_outbox(interval)", ["public.outbox"]],
+      ["record_occupancy(uuid,uuid,tstzrange,uuid,text,boolean)",
+        ["public.space_occupancy", "public.space"]],
+      ["release_occupancy(uuid,uuid)", ["public.space_occupancy"]],
+      ["seal_business_day(uuid,uuid,date,uuid)", ["public.business_day"]],
+    ]);
+    for (const definition of functions) {
+      for (const object of expectedQualifiedObjects.get(definition.signature) ?? []) {
+        expect(definition.source).toContain(object);
+      }
+    }
+
+    const connection = await admin!.reserve();
+    let began = false;
+    try {
+      await connection.unsafe("BEGIN; SET LOCAL ROLE app_role");
+      began = true;
+      for (const statement of [
+        "SELECT public.prune_outbox(interval '30 days')",
+        "SELECT public.expire_holds()",
+      ]) {
+        await connection.unsafe("SAVEPOINT denied_call");
+        let state: string | undefined;
+        try {
+          await connection.unsafe(statement);
+        } catch (error) {
+          state = sqlState(error);
+          await connection.unsafe("ROLLBACK TO SAVEPOINT denied_call");
+        }
+        await connection.unsafe("RELEASE SAVEPOINT denied_call");
+        expect(state).toBe("42501");
+      }
+    } finally {
+      if (began) await connection.unsafe("ROLLBACK");
+      connection.release();
+    }
+  });
+
+  test("P3/P4: owner prune validation and app occupancy behavior remain exact", async () => {
+    const connection = await admin!.reserve();
+    let began = false;
+    try {
+      await connection.unsafe("BEGIN");
+      began = true;
+
+      await connection.unsafe("SAVEPOINT negative_prune");
+      let negativeState: string | undefined;
+      try {
+        await connection`SELECT public.prune_outbox(interval '-1 second')`;
+      } catch (error) {
+        negativeState = sqlState(error);
+        await connection.unsafe("ROLLBACK TO SAVEPOINT negative_prune");
+      }
+      await connection.unsafe("RELEASE SAVEPOINT negative_prune");
+      expect(negativeState).toBe("22023");
+
+      await connection.unsafe(`
+        INSERT INTO public.outbox
+          (tenant_id, business_date, aggregate_type, aggregate_id, event_type,
+           correlation_id, payload, published_at)
+        VALUES
+          ('${TENANT}', DATE '2026-08-24', 'order113', gen_random_uuid(),
+           'order113.old', gen_random_uuid(), '{}'::jsonb, now() - interval '60 days'),
+          ('${TENANT}', DATE '2026-08-24', 'order113', gen_random_uuid(),
+           'order113.recent', gen_random_uuid(), '{}'::jsonb, now()),
+          ('${TENANT}', DATE '2026-08-24', 'order113', gen_random_uuid(),
+           'order113.unpublished', gen_random_uuid(), '{}'::jsonb, NULL)
+      `);
+      const pruned = await connection<Array<{ count: number | bigint }>>`
+        SELECT public.prune_outbox(interval '30 days') AS count
+      `;
+      const remaining = await connection<Array<{ eventType: string }>>`
+        SELECT event_type AS "eventType"
+          FROM public.outbox
+         WHERE aggregate_type = 'order113'
+         ORDER BY event_type
+      `;
+      expect(pruned.map(({ count }) => Number(count))).toEqual([1]);
+      expect(remaining).toEqual([
+        { eventType: "order113.recent" },
+        { eventType: "order113.unpublished" },
+      ]);
+
+      await connection.unsafe(`
+        INSERT INTO public.tenant(id, slug, name)
+        VALUES ('${TENANT}', 'order113', 'Order 113');
+        INSERT INTO public.org_node
+          (id, tenant_id, path, kind, name, timezone, currency)
+        VALUES
+          ('${PROPERTY}', '${TENANT}', 'order113.property', 'property',
+           'Order 113 property', 'UTC', 'USD');
+        INSERT INTO public.space
+          (id, tenant_id, property_node, code, profile_key, capacity)
+        VALUES
+          ('00000000-0000-0000-0000-000000011331', '${TENANT}', '${PROPERTY}',
+           'SEC-1', 'room', 1);
+        SET LOCAL ROLE app_role;
+        SELECT set_config('app.tenant_id', '${TENANT}', true);
+      `);
+      const slot = "00000000-0000-0000-0000-000000011341";
+      const claims = await connection<Array<{ id: string }>>`
+        SELECT public.record_occupancy(
+          ${TENANT}::uuid,
+          '00000000-0000-0000-0000-000000011331'::uuid,
+          tstzrange('2026-08-24T12:00:00Z', '2026-08-25T12:00:00Z', '[)'),
+          ${slot}::uuid,
+          'segment',
+          true
+        )::text AS id
+      `;
+      const released = await connection<Array<{ count: number }>>`
+        SELECT public.release_occupancy(${TENANT}::uuid, ${slot}::uuid) AS count
+      `;
+      expect(claims[0]?.id).toMatch(/^[0-9a-f-]{36}$/);
+      expect(released).toEqual([{ count: 1 }]);
     } finally {
       if (began) await connection.unsafe("ROLLBACK");
       connection.release();
