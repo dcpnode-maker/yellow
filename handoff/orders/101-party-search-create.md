@@ -116,7 +116,7 @@ reviewer personally executes P1–P4 on fresh PostgreSQL and approves.
 ## Definition of done
 
 - [x] Order exists before implementation.
-- [ ] Intentional P0 red is committed before production code.
+- [x] Intentional P0 red is committed before production code.
 - [ ] Search is bounded, tenant-safe, deterministic and privacy-minimized.
 - [ ] Duplicate acknowledgement is server-recomputed and concurrency-safe.
 - [ ] Creation is atomic, idempotent, audited and emits catalogued non-PII evidence.
