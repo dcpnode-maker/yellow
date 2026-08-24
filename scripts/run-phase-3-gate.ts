@@ -114,6 +114,20 @@ export const PHASE_3_DATABASE_PROOFS: readonly Phase3DatabaseProof[] = Object.fr
     urlEnv: "YELLOW_OPERATOR_BULK_ROOMS_URL",
     passwordEnv: "YELLOW_OPERATOR_BULK_ROOMS_PASSWORD",
   },
+  {
+    databaseName: "yellow_ci_p5_financial_postings",
+    testFile: "tests/financial-postings.integration.test.ts",
+    requireEnv: "YELLOW_REQUIRE_FINANCIAL_POSTINGS",
+    urlEnv: "YELLOW_FINANCIAL_POSTINGS_URL",
+    passwordEnv: null,
+  },
+  {
+    databaseName: "yellow_ci_p5_security_definer",
+    testFile: "tests/security-definer-containment.integration.test.ts",
+    requireEnv: "YELLOW_REQUIRE_SECURITY_DEFINER",
+    urlEnv: "YELLOW_SECURITY_DEFINER_URL",
+    passwordEnv: null,
+  },
 ]);
 
 const DATABASE_NAME = /^[a-z][a-z0-9_]{0,62}$/;

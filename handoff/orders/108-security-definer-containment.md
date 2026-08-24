@@ -38,6 +38,12 @@ separate validated findings.
 - `scripts/run-phase-3-gate.ts`, `tests/phase-3-gate-runner.test.ts` to restore the
   omitted inherited Order-104 financial suite documented by Question 137 and make
   the hostile proof reviewer-triggerable on a separate isolated database
+- `tests/operator-inventory.integration.test.ts`,
+  `tests/operator-rate-configuration.integration.test.ts`,
+  `tests/operator-rate-pricing.integration.test.ts`,
+  `tests/operator-restrictions.integration.test.ts`, and
+  `tests/operator-oos-policy.integration.test.ts` only to correct Question 138's
+  stale review-role scope labels/literals to the already-proven current seed
 - `docs/SECURITY.md`, `docs/CONTRACTS.md` only for the exact definer/ACL contract
 - `src/project-status.ts` only after green proof, to record the built order honestly
 - this order, `handoff/PHASE-5-PLAN.md`, `handoff/LEDGER.md`, `DECISIONS.log`, the
@@ -62,6 +68,8 @@ separate validated findings.
    canonical lineage, then add the hostile suite. The cumulative runner must contain
    fifteen unique isolated suites so the independent reviewer can personally execute
    both inherited financial truth and this fix at an immutable current-line SHA.
+7. Correct four inherited seventeen-scope proof literals and five stale display labels
+   to the current exact twenty-seven-scope review seed. Do not change runtime authority.
 
 ## Forbidden
 
@@ -116,9 +124,9 @@ immutable current-line implementation SHA.
 ## Definition of done
 
 - [x] Order and hostile proof are specified before current-line implementation.
-- [ ] Separate candidate's final independent review record is received.
-- [ ] P0 reproduces the exploit on exact current parent.
-- [ ] Migration 0011 contains all six definers with safe resolution and ACLs.
-- [ ] P1–P4 pass without changing authorized domain semantics.
-- [ ] Cumulative/referee/standing gates pass and protected files remain exact.
+- [x] Separate candidate's final independent review record is received.
+- [x] P0 reproduces the exploit on exact current parent.
+- [x] Migration 0011 contains all six definers with safe resolution and ACLs.
+- [x] P1–P4 pass without changing authorized domain semantics.
+- [x] Cumulative/referee/standing gates pass and protected files remain exact.
 - [ ] Independent reviewer personally approves the immutable current-line tip.

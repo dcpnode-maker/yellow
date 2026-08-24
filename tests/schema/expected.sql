@@ -51,14 +51,14 @@ CREATE EXTENSION IF NOT EXISTS pgcrypto WITH SCHEMA public;
 
 CREATE FUNCTION public.assert_day_open() RETURNS trigger
     LANGUAGE plpgsql SECURITY DEFINER
-    SET search_path TO 'public'
+    SET search_path TO 'pg_catalog', 'public', 'pg_temp'
     AS $$
 DECLARE
   v_sealed timestamptz;
 BEGIN
   SELECT sealed_at
     INTO v_sealed
-    FROM business_day
+    FROM public.business_day
    WHERE tenant_id = NEW.tenant_id
      AND property_node = NEW.property_node
      AND business_date = NEW.business_date
@@ -117,14 +117,20 @@ END $$;
 
 CREATE FUNCTION public.expire_holds() RETURNS integer
     LANGUAGE plpgsql SECURITY DEFINER
-    SET search_path TO 'public'
+    SET search_path TO 'pg_catalog', 'public', 'pg_temp'
     AS $$
-DECLARE n int := 0; r record;
+DECLARE
+  n int := 0;
+  r record;
 BEGIN
-  FOR r IN SELECT id, tenant_id FROM hold WHERE status='active' AND expires_at < now()
+  FOR r IN
+    SELECT id, tenant_id
+      FROM public.hold
+     WHERE status = 'active'
+       AND expires_at < pg_catalog.now()
   LOOP
-    PERFORM release_occupancy(r.tenant_id, r.id);
-    UPDATE hold SET status='expired' WHERE id = r.id;
+    PERFORM public.release_occupancy(r.tenant_id, r.id);
+    UPDATE public.hold SET status = 'expired' WHERE id = r.id;
     n := n + 1;
   END LOOP;
   RETURN n;
@@ -136,14 +142,26 @@ END $$;
 --
 
 CREATE FUNCTION public.prune_outbox(p_retain interval DEFAULT '30 days'::interval) RETURNS bigint
-    LANGUAGE sql SECURITY DEFINER
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'pg_catalog', 'public', 'pg_temp'
     AS $$
+DECLARE
+  n bigint;
+BEGIN
+  IF p_retain < interval '0' THEN
+    RAISE EXCEPTION 'outbox retention must be non-negative'
+      USING ERRCODE = '22023';
+  END IF;
+
   WITH gone AS (
-    DELETE FROM outbox
-     WHERE published_at IS NOT NULL AND published_at < now() - p_retain
-    RETURNING 1)
-  SELECT count(*) FROM gone;
-$$;
+    DELETE FROM public.outbox
+     WHERE published_at IS NOT NULL
+       AND published_at < pg_catalog.now() - p_retain
+    RETURNING 1
+  )
+  SELECT pg_catalog.count(*) INTO n FROM gone;
+  RETURN n;
+END $$;
 
 
 --
@@ -152,29 +170,50 @@ $$;
 
 CREATE FUNCTION public.record_occupancy(p_tenant uuid, p_space uuid, p_period tstzrange, p_slot uuid, p_slot_kind text, p_exclusive boolean) RETURNS uuid
     LANGUAGE plpgsql SECURITY DEFINER
-    SET search_path TO 'public'
+    SET search_path TO 'pg_catalog', 'public', 'pg_temp'
     AS $$
-DECLARE v_id uuid; v_cap int; v_pos int;
+DECLARE
+  v_id uuid;
+  v_cap int;
+  v_pos int;
 BEGIN
   IF p_exclusive THEN
-    INSERT INTO space_occupancy (tenant_id, space_id, period, slot_ref, slot_kind, exclusive, claim)
-    VALUES (p_tenant, p_space, p_period, p_slot, p_slot_kind, true, int4range(0, NULL))
+    INSERT INTO public.space_occupancy
+      (tenant_id, space_id, period, slot_ref, slot_kind, exclusive, claim)
+    VALUES
+      (p_tenant, p_space, p_period, p_slot, p_slot_kind, true,
+       pg_catalog.int4range(0, NULL))
     RETURNING id INTO v_id;
   ELSE
-    -- Perf aid, NOT correctness (constraint is the truth). Queue is PER SPACE, so a
-    -- property's spaces don't contend with each other; model mega-dorms as multiple
-    -- physical spaces (they are anyway). On exclusion violation the APP retries the
-    -- next position (bounded) before surfacing 409 — see CONTRACTS §2.
-    PERFORM pg_advisory_xact_lock(hashtextextended(p_space::text, 42));
-    SELECT capacity INTO v_cap FROM space WHERE id = p_space AND tenant_id = p_tenant;
-    SELECT g.p INTO v_pos FROM generate_series(0, v_cap - 1) AS g(p)
-     WHERE NOT EXISTS (SELECT 1 FROM space_occupancy so
-        WHERE so.tenant_id = p_tenant AND so.space_id = p_space
-          AND so.period && p_period AND so.claim && int4range(g.p, g.p + 1))
-     ORDER BY g.p LIMIT 1;
-    IF v_pos IS NULL THEN RAISE EXCEPTION 'capacity_exceeded' USING ERRCODE = 'P0002'; END IF;
-    INSERT INTO space_occupancy (tenant_id, space_id, period, slot_ref, slot_kind, exclusive, claim)
-    VALUES (p_tenant, p_space, p_period, p_slot, p_slot_kind, false, int4range(v_pos, v_pos + 1))
+    PERFORM pg_catalog.pg_advisory_xact_lock(
+      pg_catalog.hashtextextended(p_space::text, 42)
+    );
+    SELECT capacity
+      INTO v_cap
+      FROM public.space
+     WHERE id = p_space
+       AND tenant_id = p_tenant;
+    SELECT g.p
+      INTO v_pos
+      FROM pg_catalog.generate_series(0, v_cap - 1) AS g(p)
+     WHERE NOT EXISTS (
+       SELECT 1
+         FROM public.space_occupancy AS so
+        WHERE so.tenant_id = p_tenant
+          AND so.space_id = p_space
+          AND so.period && p_period
+          AND so.claim && pg_catalog.int4range(g.p, g.p + 1)
+     )
+     ORDER BY g.p
+     LIMIT 1;
+    IF v_pos IS NULL THEN
+      RAISE EXCEPTION 'capacity_exceeded' USING ERRCODE = 'P0002';
+    END IF;
+    INSERT INTO public.space_occupancy
+      (tenant_id, space_id, period, slot_ref, slot_kind, exclusive, claim)
+    VALUES
+      (p_tenant, p_space, p_period, p_slot, p_slot_kind, false,
+       pg_catalog.int4range(v_pos, v_pos + 1))
     RETURNING id INTO v_id;
   END IF;
   RETURN v_id;
@@ -187,12 +226,16 @@ END $$;
 
 CREATE FUNCTION public.release_occupancy(p_tenant uuid, p_slot uuid) RETURNS integer
     LANGUAGE plpgsql SECURITY DEFINER
-    SET search_path TO 'public'
+    SET search_path TO 'pg_catalog', 'public', 'pg_temp'
     AS $$
-DECLARE n int;
+DECLARE
+  n int;
 BEGIN
-  DELETE FROM space_occupancy WHERE tenant_id = p_tenant AND slot_ref = p_slot;
-  GET DIAGNOSTICS n = ROW_COUNT; RETURN n;
+  DELETE FROM public.space_occupancy
+   WHERE tenant_id = p_tenant
+     AND slot_ref = p_slot;
+  GET DIAGNOSTICS n = ROW_COUNT;
+  RETURN n;
 END $$;
 
 
@@ -202,11 +245,11 @@ END $$;
 
 CREATE FUNCTION public.seal_business_day(p_tenant uuid, p_property uuid, p_date date, p_user uuid) RETURNS void
     LANGUAGE plpgsql SECURITY DEFINER
-    SET search_path TO 'public'
+    SET search_path TO 'pg_catalog', 'public', 'pg_temp'
     AS $$
 DECLARE
-  v_authority text := NULLIF(current_setting('app.tenant_id', true), '');
-  v_invoker_role text := current_setting('role', true);
+  v_authority text := NULLIF(pg_catalog.current_setting('app.tenant_id', true), '');
+  v_invoker_role text := pg_catalog.current_setting('role', true);
 BEGIN
   IF v_authority IS NULL
      AND (session_user = 'app_role' OR v_invoker_role = 'app_role') THEN
@@ -216,8 +259,8 @@ BEGIN
     RAISE EXCEPTION 'tenant authority mismatch' USING ERRCODE = '42501';
   END IF;
 
-  UPDATE business_day
-     SET sealed_at = now(), sealed_by = p_user
+  UPDATE public.business_day
+     SET sealed_at = pg_catalog.now(), sealed_by = p_user
    WHERE tenant_id = p_tenant
      AND property_node = p_property
      AND business_date = p_date
@@ -4890,7 +4933,7 @@ REVOKE ALL ON FUNCTION public.expire_holds() FROM PUBLIC;
 -- Name: FUNCTION prune_outbox(p_retain interval); Type: ACL; Schema: public; Owner: -
 --
 
-GRANT ALL ON FUNCTION public.prune_outbox(p_retain interval) TO app_role;
+REVOKE ALL ON FUNCTION public.prune_outbox(p_retain interval) FROM PUBLIC;
 
 
 --

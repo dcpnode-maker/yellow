@@ -51,8 +51,14 @@ testable parts.
 ## 5. Tenant isolation failure modes (tested, not assumed)
 
 - RLS through views — regression TC-13.4, permanent.
-- SECURITY DEFINER functions: every one takes explicit p_tenant and filters on
-  it; new definer functions require review against this list.
+- SECURITY DEFINER choke points use the exact fixed search path
+  `pg_catalog, public, pg_temp`, schema-qualify every Yellow relation and helper
+  call, and deny `EXECUTE` to `PUBLIC`. `app_role` may execute only the
+  occupancy record/release and business-day seal entry points; outbox pruning,
+  legacy hold expiry, and day-open assertion remain owner-only. A hostile
+  `pg_temp` proof must show that temporary shadow objects are neither invoked
+  nor modified. These namespace and ACL controls contain definer escalation;
+  they do not replace caller tenant validation or RLS.
 - Cross-tenant IDOR: API handlers must scope EVERY query by session tenant even
   though RLS backstops — belt and braces, and the tests hit both.
 

@@ -69,6 +69,14 @@ position, max 3 attempts, THEN returns 409 — losers of a bed race don't fail w
 other beds remain free. Exclusive claims never retry (the space is simply taken). |
 422 policy/payment. Direct commit without hold attempts the choke write inside the txn.
 
+Database choke points use signature-specific `SECURITY DEFINER` authority. Their
+fixed search path is exactly `pg_catalog, public, pg_temp`, all Yellow relations
+and helper calls are schema-qualified, and `PUBLIC` has no execute privilege.
+The application role can only record/release occupancy and seal a business day;
+outbox pruning, legacy hold expiry, and the day-open assertion are owner-only.
+Negative outbox retention fails with SQLSTATE `22023`. This containment does not
+replace tenant-authority validation or RLS.
+
 ## 3. Module surfaces (names are the contract; bodies follow §1 shapes)
 
 **reservations**: create/commit · get · modify (diff-based) · cancel · reinstate ·

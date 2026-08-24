@@ -185,7 +185,7 @@ databaseDescribe("Order 054 operator OOS sellability policy", () => {
     expect((await setPolicy("allowed", "order054-failure")).status).toBe(200);
   });
 
-  test("P6-P8: typed policy UI and exact seventeen-scope role expose no alternate config path", async () => {
+  test("P6-P8: typed policy UI and exact twenty-seven-scope role expose no alternate config path", async () => {
     const html = await Bun.file(new URL("../src/http/operator/index.html", import.meta.url)).text();
     const js = await Bun.file(new URL("../src/http/operator/operator.js", import.meta.url)).text();
     expect(html).toContain('id="oos-policy-form"'); expect(html).toContain("Allowed with warning");

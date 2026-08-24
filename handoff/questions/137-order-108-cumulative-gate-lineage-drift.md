@@ -1,6 +1,6 @@
 # Question 137 — Order 108 cumulative-gate lineage drift
 
-**Order:** 108 — SECURITY DEFINER shadow-path containment  
+**Order:** 108 — SECURITY DEFINER shadow-path containment
 **Status:** RESOLVED by D-334 before current-line green proof
 
 ## Discrepancy
@@ -24,4 +24,3 @@ chain repair only: it changes no financial product/test behavior and imports the
 existing `4c2720c` mapping before the reviewed containment mapping. The runner must
 then contain fifteen unique isolated suites and execute both proofs. No other Order-104
 branch change enters current lineage through this resolution.
-

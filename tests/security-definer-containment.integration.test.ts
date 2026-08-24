@@ -3,7 +3,7 @@ import { SQL } from "bun";
 
 const URL = process.env.YELLOW_SECURITY_DEFINER_URL;
 if (process.env.YELLOW_REQUIRE_SECURITY_DEFINER === "1" && !URL) {
-  throw new Error("YELLOW_SECURITY_DEFINER_URL is required by the Order 113 proof");
+  throw new Error("YELLOW_SECURITY_DEFINER_URL is required by the Order 108 proof");
 }
 
 const TENANT = "00000000-0000-0000-0000-000000011301";
@@ -24,7 +24,7 @@ afterAll(async () => {
   await admin?.close();
 });
 
-dbDescribe("Order 113 SECURITY DEFINER shadow-path containment", () => {
+dbDescribe("Order 108 SECURITY DEFINER shadow-path containment", () => {
   test("P0: app-owned pg_temp shadows cannot execute with deployment-owner authority", async () => {
     const connection = await admin!.reserve();
     let began = false;
@@ -266,12 +266,12 @@ dbDescribe("Order 113 SECURITY DEFINER shadow-path containment", () => {
 
       await connection.unsafe(`
         INSERT INTO public.tenant(id, slug, name)
-        VALUES ('${TENANT}', 'order113', 'Order 113');
+        VALUES ('${TENANT}', 'order108', 'Order 108');
         INSERT INTO public.org_node
           (id, tenant_id, path, kind, name, timezone, currency)
         VALUES
           ('${PROPERTY}', '${TENANT}', 'order113.property', 'property',
-           'Order 113 property', 'UTC', 'USD');
+           'Order 108 property', 'UTC', 'USD');
         INSERT INTO public.space
           (id, tenant_id, property_node, code, profile_key, capacity)
         VALUES

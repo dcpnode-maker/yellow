@@ -28,7 +28,7 @@ function fakeHarness(exitFor: (process: Phase3GateProcess) => number = () => 0) 
   return { events, harness };
 }
 
-describe("Orders 079/083 reproducible Phase-3 and inherited proof runner", () => {
+describe("Orders 079/083/104/108 reproducible cumulative database proof runner", () => {
   test("P1: matrix pins every Phase-3 and inherited F11 database proof with exact environment mapping", () => {
     expect(PHASE_3_DATABASE_PROOFS).toEqual([
       {
@@ -122,8 +122,22 @@ describe("Orders 079/083 reproducible Phase-3 and inherited proof runner", () =>
         urlEnv: "YELLOW_OPERATOR_BULK_ROOMS_URL",
         passwordEnv: "YELLOW_OPERATOR_BULK_ROOMS_PASSWORD",
       },
+      {
+        databaseName: "yellow_ci_p5_financial_postings",
+        testFile: "tests/financial-postings.integration.test.ts",
+        requireEnv: "YELLOW_REQUIRE_FINANCIAL_POSTINGS",
+        urlEnv: "YELLOW_FINANCIAL_POSTINGS_URL",
+        passwordEnv: null,
+      },
+      {
+        databaseName: "yellow_ci_p5_security_definer",
+        testFile: "tests/security-definer-containment.integration.test.ts",
+        requireEnv: "YELLOW_REQUIRE_SECURITY_DEFINER",
+        urlEnv: "YELLOW_SECURITY_DEFINER_URL",
+        passwordEnv: null,
+      },
     ]);
-    expect(new Set(PHASE_3_DATABASE_PROOFS.map(({ databaseName }) => databaseName)).size).toBe(13);
+    expect(new Set(PHASE_3_DATABASE_PROOFS.map(({ databaseName }) => databaseName)).size).toBe(15);
   });
 
   test("P1: inputs fail closed before orchestration", () => {

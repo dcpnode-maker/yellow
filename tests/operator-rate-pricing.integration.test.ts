@@ -232,7 +232,7 @@ databaseDescribe("Order 051 operator rate-price management", () => {
     expect((await postPrice(body, "order051-rollback")).status).toBe(201);
   });
 
-  test("P6/P7: progressive exact-money UI and exact seventeen-scope login", async () => {
+  test("P6/P7: progressive exact-money UI and exact twenty-seven-scope login", async () => {
     const html = await (await request("/")).text();
     const css = await (await request("/assets/operator.css")).text();
     const js = await (await request("/assets/operator.js")).text();
@@ -248,7 +248,7 @@ databaseDescribe("Order 051 operator rate-price management", () => {
     expect(js).not.toMatch(BROWSER_SQL_SYNTAX);
     expect(js).not.toMatch(/postgres(?:ql)?:\/\//i);
     expect((await tokens.verify(accessToken))?.scp).toBe(
-      "inventory.availability:read inventory.blocks:read inventory.blocks:write inventory.configuration:read inventory.configuration:write inventory.holds:read inventory.holds:write inventory.offline_leases:read inventory.offline_leases:write inventory.policy:read inventory.policy:write inventory.restriction:read inventory.restriction:write rates.configuration:read rates.configuration:write rates.pricing:read rates.pricing:write",
+      "crm.parties:read crm.parties:write financials.charges:write financials.folios:read inventory.availability:read inventory.blocks:read inventory.blocks:write inventory.configuration:read inventory.configuration:write inventory.holds:read inventory.holds:write inventory.offline_leases:read inventory.offline_leases:write inventory.policy:read inventory.policy:write inventory.restriction:read inventory.restriction:write rates.configuration:read rates.configuration:write rates.pricing:read rates.pricing:write reservations.guests:read reservations.guests:write reservations.lifecycle:read reservations.lifecycle:write reservations.segments:read reservations.segments:write",
     );
   });
 });
