@@ -157,3 +157,19 @@ test("Order 096 independent canary: removing first, middle, last and sole rows t
   expect(run("last")).toEqual(["middle"]);
   expect(run("sole")).toEqual(["add"]);
 });
+
+test("Order 097 P0/P4: lifecycle controls expose no browser transition authority", async () => {
+  const html = await Bun.file(new URL("../src/http/operator/index.html", import.meta.url)).text();
+  const css = await Bun.file(new URL("../src/http/operator/operator.css", import.meta.url)).text();
+  const script = await Bun.file(new URL("../src/http/operator/operator.js", import.meta.url)).text();
+  expect(html).toContain('id="reservation-lifecycle-lookup-form"');
+  expect(html).toContain('id="reservation-metadata-form"');
+  expect(html).toContain('id="reservation-cancel-form"');
+  expect(html).toContain('id="reservation-reinstate"');
+  expect(css).toContain(".reservation-lifecycle-editor");
+  expect(script).toContain("/reservations?confirmationNo=");
+  expect(script).toContain("/cancel");
+  expect(script).toContain("/reinstate");
+  expect(script).not.toMatch(/innerHTML|outerHTML|insertAdjacentHTML|localStorage|sessionStorage|document\.cookie/);
+  expect(script).not.toMatch(BROWSER_SQL_SYNTAX);
+});
