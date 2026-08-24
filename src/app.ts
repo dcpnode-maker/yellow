@@ -190,6 +190,9 @@ export function createApp(options: AppOptions = {}) {
       .get("/api/v1/properties/:property/reservations", ({ request, params, tenantContext }) =>
         withOperatorTenant(request, (context) => operator.reservationLifecycle(context, params.property))
       )
+      .get("/api/v1/properties/:property/reservation-segments", ({ request, params, tenantContext }) =>
+        withOperatorTenant(request, (context) => operator.reservationSegments(context, params.property))
+      )
       .put("/api/v1/properties/:property/reservations/:reservation/guests", ({ request, params, body, tenantContext }) =>
         withOperatorTenant(request, (context) => operator.replaceReservationGuests(
           context, params.property, params.reservation, body,
@@ -203,6 +206,16 @@ export function createApp(options: AppOptions = {}) {
       )
       .post("/api/v1/properties/:property/reservations/:reservation/reinstate", ({ request, params, body, tenantContext }) =>
         withOperatorTenant(request, (context) => operator.reinstateReservation(context, params.property, params.reservation, body))
+      )
+      .patch("/api/v1/properties/:property/reservations/:reservation/segments/:segment/departure", ({ request, params, body, tenantContext }) =>
+        withOperatorTenant(request, (context) => operator.changeReservationDeparture(
+          context, params.property, params.reservation, params.segment, body,
+        ))
+      )
+      .post("/api/v1/properties/:property/reservations/:reservation/segments/:segment/move", ({ request, params, body, tenantContext }) =>
+        withOperatorTenant(request, (context) => operator.moveReservationRoom(
+          context, params.property, params.reservation, params.segment, body,
+        ))
       )
       .get("/api/v1/properties/:property/offline-leases", ({ request, params, tenantContext }) =>
         withOperatorTenant(request, (context) => operator.activeOfflineLeases(context, params.property))

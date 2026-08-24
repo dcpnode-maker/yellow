@@ -178,3 +178,28 @@ test("Order 097 P0/P4: lifecycle controls expose no browser transition authority
   expect(script).not.toMatch(/innerHTML|outerHTML|insertAdjacentHTML|localStorage|sessionStorage|document\.cookie/);
   expect(script).not.toMatch(BROWSER_SQL_SYNTAX);
 });
+
+test("Order 098 P0/P4: segment history and commands expose no browser occupancy authority", async () => {
+  const html = await Bun.file(new URL("../src/http/operator/index.html", import.meta.url)).text();
+  const css = await Bun.file(new URL("../src/http/operator/operator.css", import.meta.url)).text();
+  const script = await Bun.file(new URL("../src/http/operator/operator.js", import.meta.url)).text();
+  expect(html).toContain('id="reservation-segment-lookup-form"');
+  expect(html).toContain('id="reservation-segment-editor"');
+  expect(html).toContain('id="reservation-segment-history"');
+  expect(html).toContain('id="reservation-departure-form"');
+  expect(html).toContain('id="reservation-room-move-form"');
+  expect(html).toContain('type="datetime-local" step="0.001"');
+  expect(css).toContain(".reservation-segment-editor");
+  expect(css).toContain(".reservation-segment-history");
+  expect(css).toContain(".reservation-segment-editor input, .reservation-segment-editor select, .reservation-segment-editor button { min-height: 44px; }");
+  expect(script).toContain("/reservation-segments?confirmationNo=");
+  expect(script).toContain('submitSegmentCommand("/departure", "PATCH"');
+  expect(script).toContain('submitSegmentCommand("/move", "POST"');
+  expect(script).toContain("latest?.actions.canChangeDeparture");
+  expect(script).toContain("latest?.actions.canMoveRoom");
+  expect(script).toContain("departure.toISOString()");
+  expect(script).toContain("localInstantInputValue(new Date(latest.period.to))");
+  expect(script).toContain("reservationSegmentEditor.focus()");
+  expect(script).not.toMatch(/innerHTML|outerHTML|insertAdjacentHTML|localStorage|sessionStorage|document\.cookie/);
+  expect(script).not.toMatch(BROWSER_SQL_SYNTAX);
+});

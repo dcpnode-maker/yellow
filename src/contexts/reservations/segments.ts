@@ -18,8 +18,10 @@ import {
   ReservationLifecycleNotFoundError,
   ReservationLifecycleValidationError,
 } from "./lifecycle";
+import { RESERVATION_STATUSES, type ReservationStatus } from "./state-machine";
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
+const CONFIRMATION_NO = /^[\x21-\x7e]{1,120}$/;
 const IDEMPOTENCY_KEY = /^[\x21-\x7e]{8,200}$/;
 const OFFSET_INSTANT = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})(?:\.(\d{3}))?(Z|([+-])(\d{2}):(\d{2}))$/;
 const MAX_STAY_MS = 366 * 24 * 60 * 60 * 1_000;
@@ -89,6 +91,32 @@ export interface ReservationSegmentServiceOptions {
   readonly idFactory?: () => string;
 }
 
+export interface FindReservationSegmentsInput {
+  readonly tenantId: string;
+  readonly propertyNode: string;
+  readonly confirmationNo: string;
+}
+
+export interface ReservationSegmentLookupItem {
+  readonly segmentId: string;
+  readonly sequence: number;
+  readonly status: string;
+  readonly unitTypeId: string;
+  readonly sellableUnitId: string | null;
+  readonly period: ExpectedSegmentPeriod;
+  readonly actions: Readonly<{
+    canChangeDeparture: boolean;
+    canMoveRoom: boolean;
+  }>;
+}
+
+export interface ReservationSegmentLookupResult {
+  readonly reservationId: string;
+  readonly confirmationNo: string;
+  readonly status: ReservationStatus;
+  readonly segments: readonly ReservationSegmentLookupItem[];
+}
+
 type ChangeDepartureBody = Omit<ChangeReservationDepartureResult, "replayed">
   & Readonly<Record<string, JsonValue>>;
 type MoveRoomBody = Omit<MoveReservationRoomResult, "replayed">
@@ -113,11 +141,24 @@ interface SegmentRow {
   readonly status: string;
 }
 
+interface SegmentLookupRow extends SegmentRow {
+  readonly reservation_id: string;
+  readonly confirmation_no: string;
+  readonly reservation_status: string;
+}
+
 function requireUuid(name: string, value: unknown): string {
   if (typeof value !== "string" || !UUID.test(value)) {
     throw new ReservationLifecycleValidationError(`${name} must be a UUID`);
   }
   return value;
+}
+
+function requireReservationStatus(value: string): ReservationStatus {
+  if (!RESERVATION_STATUSES.includes(value as ReservationStatus)) {
+    throw new Error(`Database returned unsupported reservation status ${value}`);
+  }
+  return value as ReservationStatus;
 }
 
 function requireOperation(envelope: AuditEnvelope, operation: string): void {
@@ -343,6 +384,68 @@ export class ReservationSegmentService {
     this.#occupancy = options.occupancy ?? new ReservationOccupancyService(options.events);
     this.#now = options.now ?? (() => new Date());
     this.#idFactory = options.idFactory ?? (() => crypto.randomUUID());
+  }
+
+  async findByConfirmation(
+    tx: Tx,
+    input: FindReservationSegmentsInput,
+  ): Promise<ReservationSegmentLookupResult> {
+    const tenantId = requireUuid("tenantId", input.tenantId);
+    const propertyNode = requireUuid("propertyNode", input.propertyNode);
+    if (typeof input.confirmationNo !== "string" || !CONFIRMATION_NO.test(input.confirmationNo)) {
+      throw new ReservationLifecycleValidationError(
+        "confirmationNo must contain 1-120 visible characters",
+      );
+    }
+    const rows = await tx<SegmentLookupRow[]>`
+      SELECT reservation.id AS reservation_id,
+             reservation.confirmation_no,
+             reservation.status AS reservation_status,
+             segment.id, segment.seq, segment.unit_type_id, segment.sellable_unit_id,
+             lower(segment.period) AS from_at, upper(segment.period) AS to_at,
+             segment.adults, segment.children::text AS children_json,
+             segment.rate_plan_id, segment.price_override::text AS price_override_json,
+             segment.status
+      FROM reservation
+      JOIN reservation_segment AS segment
+        ON segment.tenant_id = reservation.tenant_id
+       AND segment.reservation_id = reservation.id
+      WHERE reservation.tenant_id = ${tenantId}::uuid
+        AND reservation.tenant_id = current_setting('app.tenant_id', true)::uuid
+        AND reservation.property_node = ${propertyNode}::uuid
+        AND reservation.confirmation_no = ${input.confirmationNo}
+      ORDER BY segment.seq, segment.id
+    `;
+    const first = rows[0];
+    if (!first) {
+      throw new ReservationLifecycleNotFoundError("Reservation was not found in the property");
+    }
+    const status = requireReservationStatus(first.reservation_status);
+    const last = rows[rows.length - 1]!;
+    return Object.freeze({
+      reservationId: first.reservation_id,
+      confirmationNo: first.confirmation_no,
+      status,
+      segments: Object.freeze(rows.map((segment) => {
+        const latest = segment.id === last.id && segment.seq === last.seq;
+        return Object.freeze({
+          segmentId: segment.id,
+          sequence: segment.seq,
+          status: segment.status,
+          unitTypeId: segment.unit_type_id,
+          sellableUnitId: segment.sellable_unit_id,
+          period: freezePeriod(segment.from_at, segment.to_at),
+          actions: Object.freeze({
+            canChangeDeparture: latest && (
+              (segment.status === "booked" && (status === "reserved" || status === "due_in")) ||
+              (segment.status === "in_house" && (status === "in_house" || status === "due_out"))
+            ),
+            canMoveRoom: latest && segment.status === "in_house" &&
+              (status === "in_house" || status === "due_out") && segment.sellable_unit_id !== null,
+          }),
+        });
+      })),
+    });
   }
 
   async changeDeparture(

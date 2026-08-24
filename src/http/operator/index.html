@@ -215,6 +215,47 @@
               <p class="muted">Find exact server truth before changing metadata, lifecycle state or guest allocation. Every command remains tenant and property scoped.</p>
             </div>
           </div>
+          <section class="reservation-segments-panel" aria-labelledby="reservation-segments-title">
+            <div class="panel-heading"><div>
+              <h3 id="reservation-segments-title">Stay segments</h3>
+              <p class="muted">Inspect immutable stay-leg history, change the latest departure, or move an in-house stay immediately. Server time and PostgreSQL occupancy remain authoritative.</p>
+            </div></div>
+            <form class="card reservation-lookup" id="reservation-segment-lookup-form">
+              <label>Confirmation number
+                <input name="confirmationNo" required maxlength="120" autocomplete="off" placeholder="Y-…">
+              </label>
+              <button class="primary" type="submit">Find segments</button>
+              <p class="form-message" role="status" aria-live="polite">Enter the exact confirmation number.</p>
+            </form>
+            <div class="card reservation-segment-editor" id="reservation-segment-editor" hidden>
+              <div class="reservation-summary">
+                <div><span>Confirmation</span><strong id="segment-confirmation">—</strong></div>
+                <div><span>Server status</span><strong id="segment-reservation-status">—</strong></div>
+              </div>
+              <ol class="reservation-segment-history" id="reservation-segment-history" aria-label="Ordered stay segment history"></ol>
+              <p class="form-message" id="segment-command-message" role="status" aria-live="polite"></p>
+              <form id="reservation-departure-form" hidden>
+                <fieldset class="progressive-fields">
+                  <legend>Change latest departure</legend>
+                  <p class="field-note">Choose a local date and time. Yellow sends its exact UTC instant with the segment period you loaded; a concurrent change will conflict.</p>
+                  <label>New departure date and time
+                    <input name="newDeparture" type="datetime-local" step="0.001" required>
+                  </label>
+                </fieldset>
+                <button class="primary" type="submit">Change departure</button>
+              </form>
+              <form id="reservation-room-move-form" hidden>
+                <fieldset class="progressive-fields">
+                  <legend>Move room now</legend>
+                  <p class="field-note">The server chooses the move instant. This list is operator guidance only; the command rechecks same room type, physical shape and live occupancy.</p>
+                  <label>Destination room
+                    <select name="destinationSellableUnitId" required></select>
+                  </label>
+                </fieldset>
+                <button class="secondary" type="submit">Move room now</button>
+              </form>
+            </div>
+          </section>
           <section class="reservation-lifecycle-panel" aria-labelledby="reservation-lifecycle-title">
             <div class="panel-heading"><div>
               <h3 id="reservation-lifecycle-title">Stay lifecycle</h3>

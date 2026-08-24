@@ -48,8 +48,11 @@ export type {
   ChangeReservationDepartureInput,
   ChangeReservationDepartureResult,
   ExpectedSegmentPeriod,
+  FindReservationSegmentsInput,
   MoveReservationRoomInput,
   MoveReservationRoomResult,
+  ReservationSegmentLookupItem,
+  ReservationSegmentLookupResult,
   ReservationSegmentServiceOptions,
 } from "./segments";
 export {

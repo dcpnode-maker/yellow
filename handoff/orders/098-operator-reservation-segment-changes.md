@@ -138,10 +138,17 @@ P1–P4 against fresh PostgreSQL and approves.
 
 - [x] Order exists before production code.
 - [x] Intentional P0 red is committed before implementation.
-- [ ] Segment read/write permissions and strict routes pass.
-- [ ] Departure and room move converge on approved domain commands.
-- [ ] Races, incompatible destinations and publication rollback pass.
-- [ ] Workbench is accessible, responsive and server-authoritative.
-- [ ] Standing/schema/deployment/referee gates pass.
+- [x] Segment read/write permissions and strict routes pass.
+- [x] Departure and room move converge on approved domain commands.
+- [x] Races, incompatible destinations and publication rollback pass.
+- [x] Workbench is accessible, responsive and server-authoritative.
+- [x] Standing/schema/deployment/referee gates pass.
 - [ ] Independent reviewer approves executed proof.
-- [ ] Scope is exact; user-owned untracked material remains untouched.
+- [x] Scope is exact; user-owned untracked material remains untouched.
+
+Builder evidence: focused adapter passed 3/3 with 15 assertions; the approved real
+Order 086 domain battery passed 6/6 with 108 assertions; operator assets passed 8/8
+with 106 assertions; standing passed 125/0 with 1,607 assertions; typecheck and 59-file
+boundaries passed; fresh review seed passed 11/11; deployment passed 4/4; schema and
+protected hashes were exact; licences and dependency audit were clean; pristine
+app-never-started referee passed 11/11. This is not independent approval.

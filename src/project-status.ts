@@ -28,8 +28,8 @@ export const PROJECT_BUILD_SNAPSHOT = Object.freeze({
   label: "Recorded build snapshot",
   roadmap: Object.freeze({
     phaseCount: 13,
-    latestBuiltOrder: 97,
-    currentOrder: 97,
+    latestBuiltOrder: 98,
+    currentOrder: 98,
     activePhase: 4,
   }),
   review: Object.freeze({

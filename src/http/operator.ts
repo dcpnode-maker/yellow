@@ -63,6 +63,7 @@ import {
   ReservationLifecycleNotFoundError,
   ReservationLifecycleService,
   ReservationLifecycleValidationError,
+  ReservationSegmentService,
   ReservationNotFoundError,
   ReservationOfferSearchService,
   ReservationOfferSearchTooBroadError,
@@ -72,6 +73,7 @@ import {
   type ReservationOfferSearchResult,
   type RequestedReservationGuest,
   type ReservationMutableFields,
+  type ExpectedSegmentPeriod,
 } from "../contexts/reservations";
 import {
   createAuditEnvelope,
@@ -110,6 +112,8 @@ const RESERVATION_GUEST_READ_SCOPE = "reservations.guests:read";
 const RESERVATION_GUEST_WRITE_SCOPE = "reservations.guests:write";
 const RESERVATION_LIFECYCLE_READ_SCOPE = "reservations.lifecycle:read";
 const RESERVATION_LIFECYCLE_WRITE_SCOPE = "reservations.lifecycle:write";
+const RESERVATION_SEGMENT_READ_SCOPE = "reservations.segments:read";
+const RESERVATION_SEGMENT_WRITE_SCOPE = "reservations.segments:write";
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 const ISO_INSTANT = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})(?::(\d{2})(?:\.(\d{1,3}))?)?(Z|([+-])(\d{2}):(\d{2}))$/;
 const LOCAL_DATE = /^(\d{4})-(\d{2})-(\d{2})$/;
@@ -442,6 +446,45 @@ function parseReservationCancellation(body: unknown): { reason: string; approval
   return Object.freeze({ reason: body.reason, ...(body.approvalId === undefined ? {} : { approvalId: body.approvalId }) });
 }
 
+function parseExpectedSegmentPeriod(value: unknown): ExpectedSegmentPeriod | null {
+  if (!isObject(value) || !exactKeys(value, ["from", "to"]) ||
+      typeof value.from !== "string" || typeof value.to !== "string") return null;
+  const from = parseInstant(value.from);
+  const to = parseInstant(value.to);
+  return from && to && from < to
+    ? Object.freeze({ from: value.from, to: value.to })
+    : null;
+}
+
+function parseSegmentDeparture(body: unknown): {
+  expectedPeriod: ExpectedSegmentPeriod;
+  newDeparture: string;
+} | null {
+  if (!isObject(body) || !exactKeys(body, ["expectedPeriod", "newDeparture"]) ||
+      typeof body.newDeparture !== "string" || !parseInstant(body.newDeparture)) return null;
+  const expectedPeriod = parseExpectedSegmentPeriod(body.expectedPeriod);
+  return expectedPeriod ? Object.freeze({ expectedPeriod, newDeparture: body.newDeparture }) : null;
+}
+
+function parseSegmentMove(body: unknown): {
+  expectedSellableUnitId: string;
+  expectedPeriod: ExpectedSegmentPeriod;
+  destinationSellableUnitId: string;
+} | null {
+  if (!isObject(body) || !exactKeys(body, [
+    "expectedSellableUnitId", "expectedPeriod", "destinationSellableUnitId",
+  ]) || typeof body.expectedSellableUnitId !== "string" ||
+      !UUID.test(body.expectedSellableUnitId) ||
+      typeof body.destinationSellableUnitId !== "string" ||
+      !UUID.test(body.destinationSellableUnitId)) return null;
+  const expectedPeriod = parseExpectedSegmentPeriod(body.expectedPeriod);
+  return expectedPeriod ? Object.freeze({
+    expectedSellableUnitId: body.expectedSellableUnitId,
+    expectedPeriod,
+    destinationSellableUnitId: body.destinationSellableUnitId,
+  }) : null;
+}
+
 function parseOfflineLease(body: unknown): {
   sellableUnitId: string;
   from: Date;
@@ -633,6 +676,7 @@ type ReservationOperations = Pick<ReservationCommitService, "commitHeld" | "comm
 type ReservationOfferOperations = Pick<ReservationOfferSearchService, "search">;
 type ReservationGuestOperations = Pick<ReservationGuestService, "findByConfirmation" | "replace">;
 type ReservationLifecycleOperations = Pick<ReservationLifecycleService, "findByConfirmation" | "modify" | "cancel" | "reinstate">;
+type ReservationSegmentOperations = Pick<ReservationSegmentService, "findByConfirmation" | "changeDeparture" | "moveRoom">;
 
 const MAX_MONEY = 9_223_372_036_854_775_807n;
 
@@ -1011,6 +1055,7 @@ export class OperatorHttpApi {
   readonly #reservationOffers?: ReservationOfferOperations;
   readonly #reservationGuests?: ReservationGuestOperations;
   readonly #reservationLifecycle?: ReservationLifecycleOperations;
+  readonly #reservationSegments?: ReservationSegmentOperations;
 
   constructor(
     login: LocalLoginService,
@@ -1030,6 +1075,7 @@ export class OperatorHttpApi {
     reservationOffers?: ReservationOfferOperations,
     reservationGuests?: ReservationGuestOperations,
     reservationLifecycle?: ReservationLifecycleOperations,
+    reservationSegments?: ReservationSegmentOperations,
   ) {
     this.#login = login;
     this.#availability = availability;
@@ -1048,6 +1094,7 @@ export class OperatorHttpApi {
     this.#reservationOffers = reservationOffers;
     this.#reservationGuests = reservationGuests;
     this.#reservationLifecycle = reservationLifecycle;
+    this.#reservationSegments = reservationSegments;
   }
 
   unavailable(request: Request): Response {
@@ -1647,6 +1694,108 @@ export class OperatorHttpApi {
         idempotencyKey: context.request.headers.get("idempotency-key") ?? "", envelope,
       })
     );
+  }
+
+  async reservationSegments(context: TenantRequestContext, propertyNode: string): Promise<Response> {
+    if (!UUID.test(propertyNode)) {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Property identifier is invalid");
+    }
+    const confirmationNo = confirmationQuery(context.request);
+    if (!confirmationNo) {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Confirmation query is invalid");
+    }
+    if (!hasScope(context, RESERVATION_SEGMENT_READ_SCOPE)) {
+      return apiError(context.request, 403, "auth/scope_missing", "Forbidden", "Reservation segment access is not granted");
+    }
+    if (!this.#reservationSegments) return this.unavailable(context.request);
+    const grants = await listGrantedProperties(context, RESERVATION_SEGMENT_READ_SCOPE);
+    if (!grants.some(({ id }) => id === propertyNode)) {
+      return apiError(context.request, 403, "auth/property_forbidden", "Forbidden", "Property access is not granted");
+    }
+    const reservation = await this.#reservationSegments.findByConfirmation(context.tx, {
+      tenantId: context.tenantId,
+      propertyNode,
+      confirmationNo,
+    });
+    return apiResponse(context.request, canonicalJson({ reservation: jsonValue(reservation) }));
+  }
+
+  async changeReservationDeparture(
+    context: TenantRequestContext,
+    propertyNode: string,
+    reservationId: string,
+    segmentId: string,
+    body: unknown,
+  ): Promise<Response> {
+    const input = parseSegmentDeparture(body);
+    return this.runReservationSegmentMutation(
+      context, propertyNode, reservationId, segmentId, input, "reservation.modified",
+      (service, envelope) => service.changeDeparture(context.tx, {
+        reservationId,
+        segmentId,
+        expectedPeriod: input!.expectedPeriod,
+        newDeparture: input!.newDeparture,
+        idempotencyKey: context.request.headers.get("idempotency-key") ?? "",
+        envelope,
+      }),
+    );
+  }
+
+  async moveReservationRoom(
+    context: TenantRequestContext,
+    propertyNode: string,
+    reservationId: string,
+    segmentId: string,
+    body: unknown,
+  ): Promise<Response> {
+    const input = parseSegmentMove(body);
+    return this.runReservationSegmentMutation(
+      context, propertyNode, reservationId, segmentId, input, "segment.moved",
+      (service, envelope) => service.moveRoom(context.tx, {
+        reservationId,
+        segmentId,
+        expectedSellableUnitId: input!.expectedSellableUnitId,
+        expectedPeriod: input!.expectedPeriod,
+        destinationSellableUnitId: input!.destinationSellableUnitId,
+        idempotencyKey: context.request.headers.get("idempotency-key") ?? "",
+        envelope,
+      }),
+    );
+  }
+
+  private async runReservationSegmentMutation(
+    context: TenantRequestContext,
+    propertyNode: string,
+    reservationId: string,
+    segmentId: string,
+    input: object | null,
+    operation: "reservation.modified" | "segment.moved",
+    execute: (service: ReservationSegmentOperations, envelope: ReturnType<typeof createAuditEnvelope>) => Promise<unknown>,
+  ): Promise<Response> {
+    if (!UUID.test(propertyNode) || !UUID.test(reservationId) || !UUID.test(segmentId) || !input) {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Reservation segment input is invalid");
+    }
+    if (!hasScope(context, RESERVATION_SEGMENT_WRITE_SCOPE)) {
+      return apiError(context.request, 403, "auth/scope_missing", "Forbidden", "Reservation segment changes are not granted");
+    }
+    if (!this.#reservationSegments) return this.unavailable(context.request);
+    const grants = await listGrantedProperties(context, RESERVATION_SEGMENT_WRITE_SCOPE);
+    if (!grants.some(({ id }) => id === propertyNode)) {
+      return apiError(context.request, 403, "auth/property_forbidden", "Forbidden", "Property access is not granted");
+    }
+    const requestId = correlationId(context.request);
+    const result = await execute(this.#reservationSegments, createAuditEnvelope({
+      actorId: context.identity.actorId,
+      tenantId: context.tenantId,
+      propertyNode,
+      requestId,
+      operation,
+    })) as Record<string, unknown>;
+    const { replayed, ...segment } = result;
+    return apiResponse(context.request, canonicalJson({ segment: jsonValue(segment) }), 200, {
+      "idempotency-replayed": String(replayed),
+      "x-correlation-id": requestId,
+    });
   }
 
   async cancelReservation(context: TenantRequestContext, propertyNode: string, reservationId: string, body: unknown): Promise<Response> {

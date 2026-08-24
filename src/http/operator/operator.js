@@ -31,6 +31,7 @@
   let bulkRoomDraft = [];
   let reservationGuestData = null;
   let reservationLifecycleData = null;
+  let reservationSegmentData = null;
   const pendingKeys = new Map();
 
   const loginView = document.querySelector("#login-view");
@@ -261,6 +262,14 @@
   const reservationCancelForm = document.querySelector("#reservation-cancel-form");
   const reservationReinstatePanel = document.querySelector("#reservation-reinstate-panel");
   const reservationReinstate = document.querySelector("#reservation-reinstate");
+  const reservationSegmentLookupForm = document.querySelector("#reservation-segment-lookup-form");
+  const reservationSegmentEditor = document.querySelector("#reservation-segment-editor");
+  const segmentConfirmation = document.querySelector("#segment-confirmation");
+  const segmentReservationStatus = document.querySelector("#segment-reservation-status");
+  const reservationSegmentHistory = document.querySelector("#reservation-segment-history");
+  const segmentCommandMessage = document.querySelector("#segment-command-message");
+  const reservationDepartureForm = document.querySelector("#reservation-departure-form");
+  const reservationRoomMoveForm = document.querySelector("#reservation-room-move-form");
   const SYSTEM_STATUS_SUFFIX = "/system-status";
   const MAX_MINOR = BigInt("9223372036854775807");
 
@@ -271,6 +280,11 @@
   function localInputValue(date) {
     const offset = date.getTimezoneOffset() * 60_000;
     return new Date(date.getTime() - offset).toISOString().slice(0, 16);
+  }
+
+  function localInstantInputValue(date) {
+    const offset = date.getTimezoneOffset() * 60_000;
+    return new Date(date.getTime() - offset).toISOString().slice(0, 23);
   }
 
   function initializeDates() {
@@ -344,8 +358,10 @@
     currentRatePrice = null;
     reservationGuestData = null;
     reservationLifecycleData = null;
+    reservationSegmentData = null;
     reservationGuestForm.hidden = true;
     reservationLifecycleEditor.hidden = true;
+    reservationSegmentEditor.hidden = true;
     reservationGuestList.replaceChildren();
     loadPriceCorrectionButton.hidden = true;
     rateCorrectionForm.hidden = true;
@@ -2272,6 +2288,99 @@
     return value === null ? "" : value;
   }
 
+  function renderReservationSegments(reservation, focus = false) {
+    reservationSegmentData = reservation;
+    segmentConfirmation.textContent = reservation.confirmationNo;
+    segmentReservationStatus.textContent = reservation.status.replaceAll("_", " ");
+    reservationSegmentHistory.replaceChildren(...reservation.segments.map((segment) => {
+      const item = document.createElement("li");
+      const title = document.createElement("strong");
+      title.textContent = `Segment ${segment.sequence} · ${segment.status.replaceAll("_", " ")}`;
+      const period = document.createElement("span");
+      period.className = "segment-meta";
+      period.textContent = `${segment.period.from} → ${segment.period.to}`;
+      const assignment = document.createElement("span");
+      assignment.className = "segment-meta";
+      assignment.textContent = segment.sellableUnitId
+        ? `Sellable ${segment.sellableUnitId} · unit type ${segment.unitTypeId}`
+        : `Unassigned · unit type ${segment.unitTypeId}`;
+      item.append(title, period, assignment);
+      return item;
+    }));
+    const latest = reservation.segments.at(-1);
+    reservationDepartureForm.hidden = !latest?.actions.canChangeDeparture;
+    reservationRoomMoveForm.hidden = !latest?.actions.canMoveRoom;
+    if (latest?.actions.canChangeDeparture) {
+      reservationDepartureForm.elements.newDeparture.value = localInstantInputValue(new Date(latest.period.to));
+    }
+    if (latest?.actions.canMoveRoom) {
+      const select = reservationRoomMoveForm.elements.destinationSellableUnitId;
+      const destinations = inventoryData.sellableUnits.filter((item) =>
+        item.unitTypeId === latest.unitTypeId && item.id !== latest.sellableUnitId
+      );
+      select.replaceChildren();
+      if (destinations.length === 0) {
+        const option = document.createElement("option");
+        option.value = "";
+        option.textContent = "No other same-type room is configured";
+        select.append(option);
+        select.disabled = true;
+      } else {
+        select.disabled = false;
+        for (const destination of destinations) {
+          const option = document.createElement("option");
+          option.value = destination.id;
+          option.textContent = `${destination.unitTypeCode} · ${destination.name}`;
+          select.append(option);
+        }
+      }
+      reservationRoomMoveForm.querySelector("button[type=submit]").disabled = destinations.length === 0;
+    }
+    reservationSegmentEditor.hidden = false;
+    if (focus) {
+      reservationSegmentEditor.tabIndex = -1;
+      reservationSegmentEditor.focus();
+    }
+  }
+
+  async function loadReservationSegments(focus = false) {
+    const confirmationNo = String(new FormData(reservationSegmentLookupForm).get("confirmationNo") || "");
+    const body = await request(`/api/v1/properties/${encodeURIComponent(propertySelect.value)}/reservation-segments?confirmationNo=${encodeURIComponent(confirmationNo)}`);
+    renderReservationSegments(body.reservation, focus);
+  }
+
+  async function submitSegmentCommand(path, method, body, form, successMessage) {
+    const latest = reservationSegmentData?.segments.at(-1);
+    if (!reservationSegmentData || !latest) return false;
+    const identity = `reservation-segment:${path}:${reservationSegmentData.reservationId}:${latest.segmentId}:${JSON.stringify(body)}`;
+    const key = pendingKeys.get(identity) || crypto.randomUUID();
+    pendingKeys.set(identity, key);
+    const button = form.querySelector("button[type=submit]");
+    button.disabled = true;
+    segmentCommandMessage.textContent = "Applying the audited segment command…";
+    segmentCommandMessage.classList.remove("error");
+    try {
+      await request(`/api/v1/properties/${encodeURIComponent(propertySelect.value)}/reservations/${encodeURIComponent(reservationSegmentData.reservationId)}/segments/${encodeURIComponent(latest.segmentId)}${path}`, {
+        method,
+        headers: { "idempotency-key": key },
+        body: JSON.stringify(body),
+      });
+      pendingKeys.delete(identity);
+      await loadReservationSegments(true);
+      segmentCommandMessage.textContent = successMessage;
+      segmentCommandMessage.classList.remove("error");
+      return true;
+    } catch (error) {
+      segmentCommandMessage.textContent = error instanceof Error ? error.message : "Reservation segment command failed";
+      segmentCommandMessage.classList.add("error");
+      return false;
+    } finally {
+      button.disabled = form === reservationRoomMoveForm
+        ? form.elements.destinationSellableUnitId.disabled
+        : false;
+    }
+  }
+
   function renderReservationLifecycle(reservation, focus = false) {
     reservationLifecycleData = reservation;
     lifecycleConfirmation.textContent = reservation.confirmationNo;
@@ -2888,6 +2997,51 @@
     }
   });
 
+  reservationSegmentLookupForm.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const button = reservationSegmentLookupForm.querySelector("button[type=submit]");
+    button.disabled = true;
+    formMessage(reservationSegmentLookupForm, "Finding exact segment history…");
+    reservationSegmentEditor.hidden = true;
+    reservationSegmentData = null;
+    try {
+      await loadReservationSegments(true);
+      formMessage(reservationSegmentLookupForm, "Segment history loaded from server truth.");
+    } catch (error) {
+      formMessage(reservationSegmentLookupForm, error instanceof Error ? error.message : "Reservation segments could not be found", true);
+    } finally {
+      button.disabled = false;
+    }
+  });
+
+  reservationDepartureForm.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const latest = reservationSegmentData?.segments.at(-1);
+    if (!latest) return;
+    const value = reservationDepartureForm.elements.newDeparture.value;
+    const departure = new Date(value);
+    if (!value || !Number.isFinite(departure.getTime())) {
+      segmentCommandMessage.textContent = "Choose a valid departure date and time.";
+      segmentCommandMessage.classList.add("error");
+      return;
+    }
+    await submitSegmentCommand("/departure", "PATCH", {
+      expectedPeriod: latest.period,
+      newDeparture: departure.toISOString(),
+    }, reservationDepartureForm, "Departure changed after live occupancy re-arbitration.");
+  });
+
+  reservationRoomMoveForm.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const latest = reservationSegmentData?.segments.at(-1);
+    if (!latest?.sellableUnitId) return;
+    await submitSegmentCommand("/move", "POST", {
+      expectedSellableUnitId: latest.sellableUnitId,
+      expectedPeriod: latest.period,
+      destinationSellableUnitId: reservationRoomMoveForm.elements.destinationSellableUnitId.value,
+    }, reservationRoomMoveForm, "Room moved at the server-owned instant; immutable segment history reloaded.");
+  });
+
   reservationMetadataForm.addEventListener("submit", async (event) => {
     event.preventDefault();
     if (!reservationLifecycleData) return;
@@ -2996,8 +3150,10 @@
     if (activeView === "rates") void loadRates();
     reservationGuestData = null;
     reservationLifecycleData = null;
+    reservationSegmentData = null;
     reservationGuestForm.hidden = true;
     reservationLifecycleEditor.hidden = true;
+    reservationSegmentEditor.hidden = true;
     reservationGuestList.replaceChildren();
   });
   for (const tab of navigation) tab.addEventListener("click", () => setView(tab.dataset.view));

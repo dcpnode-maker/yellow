@@ -53,6 +53,8 @@ export const REVIEW_PERMISSIONS = Object.freeze([
   { code: "reservations.guests:write", description: "Replace tenant-scoped reservation guest allocations" },
   { code: "reservations.lifecycle:read", description: "Read tenant-scoped reservation lifecycle details" },
   { code: "reservations.lifecycle:write", description: "Modify tenant-scoped reservation lifecycle" },
+  { code: "reservations.segments:read", description: "Read tenant-scoped reservation segment history" },
+  { code: "reservations.segments:write", description: "Change tenant-scoped reservation segments" },
 ]);
 const REVIEW_USER_NAME = `${TENANT_NAME}/review-user/${REVIEW_EMAIL}`;
 const REVIEW_APPROVER_USER_NAME = `${TENANT_NAME}/review-user/${REVIEW_APPROVER_EMAIL}`;

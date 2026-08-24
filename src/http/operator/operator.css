@@ -394,7 +394,7 @@ input:hover, select:hover, textarea:hover { border-color: #8d978c; }
 .status-dot.configured { background: var(--accent); box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent) 14%, transparent); }
 .status-dot.disabled, .status-dot.not_connected, .status-dot.unknown { background: var(--muted); }
 .reservation-lookup { display: grid; grid-template-columns: minmax(220px, 1fr) auto; gap: .8rem; align-items: end; padding: 1rem; }
-.reservation-lookup input, .reservation-lookup button, .reservation-guest-editor input, .reservation-guest-editor select, .reservation-guest-editor button { min-height: 44px; }
+.reservation-lookup input, .reservation-lookup button, .reservation-guest-editor input, .reservation-guest-editor select, .reservation-guest-editor button, .reservation-segment-editor input, .reservation-segment-editor select, .reservation-segment-editor button { min-height: 44px; }
 .reservation-lookup .form-message { grid-column: 1 / -1; }
 .reservation-guest-editor { max-width: 980px; margin-top: 1rem; padding: 1rem; display: grid; gap: 1rem; }
 .reservation-summary { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .8rem; }
@@ -406,7 +406,13 @@ input:hover, select:hover, textarea:hover { border-color: #8d978c; }
 .reservation-guest-row { display: grid; grid-template-columns: minmax(250px, 1.5fr) minmax(150px, .75fr) minmax(130px, .65fr) auto; gap: .65rem; align-items: end; padding: .75rem; border: 1px solid var(--line); border-radius: 13px; }
 .reservation-guest-row .remove-row { min-height: 44px; color: var(--red); }
 .reservation-share-total { padding: .8rem; border-radius: 13px; background: var(--amber-soft); color: var(--amber); font-size: .8rem; font-weight: 750; }
-.reservation-lifecycle-panel, .reservation-guests-panel { margin-top: 1rem; }
+.reservation-segments-panel, .reservation-lifecycle-panel, .reservation-guests-panel { margin-top: 1rem; }
+.reservation-segment-editor { max-width: 980px; margin-top: 1rem; padding: 1rem; display: grid; gap: 1rem; }
+.reservation-segment-editor form { display: grid; gap: .8rem; }
+.reservation-segment-history { display: grid; gap: .7rem; margin: 0; padding: 0; list-style: none; }
+.reservation-segment-history li { padding: .85rem; border: 1px solid var(--line); border-radius: 13px; display: grid; gap: .35rem; }
+.reservation-segment-history strong, .reservation-segment-history span { overflow-wrap: anywhere; }
+.reservation-segment-history .segment-meta { color: var(--muted); font-size: .78rem; }
 .reservation-lifecycle-editor { max-width: 980px; margin-top: 1rem; padding: 1rem; display: grid; gap: 1rem; }
 .reservation-lifecycle-editor form { display: grid; gap: .8rem; }
 .reservation-lifecycle-editor input, .reservation-lifecycle-editor textarea, .reservation-lifecycle-editor button { min-height: 44px; }
