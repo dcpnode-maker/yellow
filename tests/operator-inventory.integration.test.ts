@@ -30,7 +30,9 @@ let database: Database;
 let tokens: Hs256TokenSigner;
 let app: ReturnType<typeof createApp>;
 let accessToken = "";
+let approverToken = "";
 let userId = "";
+let approverUserId = "";
 let createdUnitType: Record<string, unknown>;
 let createdSpace: Record<string, unknown>;
 let createdSellable: Record<string, unknown>;
@@ -65,11 +67,17 @@ beforeAll(async () => {
   await runSeed({ databaseUrl: DATABASE_URL, logger: () => undefined });
   const review = await runReviewSeed({ databaseUrl: DATABASE_URL, password: PASSWORD, logger: () => undefined });
   userId = review.userId;
+  approverUserId = review.approverUserId;
   admin = new SQL(DATABASE_URL, { max: 4 });
   loginPool = new SQL(DATABASE_URL, { max: 4 });
   eventPool = new SQL(DATABASE_URL, { max: 4 });
   database = Database.connect(DATABASE_URL, { maxConnections: 12 });
   tokens = new Hs256TokenSigner(SECRET);
+  approverToken = await tokens.issue({
+    userId: approverUserId,
+    tenantId: SEED_TENANT.id,
+    scopes: ["inventory.configuration:read", "inventory.configuration:write"],
+  });
   const inventory = new InventoryService(new PostgresEventBus(eventPool));
   app = createApp({
     database,
@@ -123,6 +131,39 @@ databaseDescribe("Order 048 operator inventory management", () => {
     expect(body.sellableUnits.map(({ name }) => name)).toEqual([
       "Room 101", "Room 102", "Room 103", "Room 201", "Room 202",
     ]);
+  });
+
+  test("Order 112 P0: a second authorized actor cannot replay the first actor's cached success", async () => {
+    const path = `/api/v1/properties/${SEED_PROPERTY.id}/inventory/unit-types`;
+    const input = {
+      code: "O112", name: "Order 112 Actor Boundary", profileKey: "hotel",
+      baseOccupancy: 1, maxOccupancy: 2, sortOrder: 112,
+    };
+    const key = "order112-cross-actor-key";
+
+    const first = await post(path, input, key);
+    expect(first.status).toBe(201);
+    expect(first.headers.get("idempotency-replayed")).toBe("false");
+    const created = await first.json() as { id: string };
+    expect(await artifactCounts(created.id)).toEqual({ facts: 1, events: 1 });
+
+    const crossActor = await post(path, input, key, approverToken);
+    expect(crossActor.status).toBe(409);
+    expect(crossActor.headers.get("idempotency-replayed")).toBeNull();
+    const problem = await crossActor.json() as Record<string, unknown>;
+    expect(problem).toEqual(expect.objectContaining({ type: "request/idempotency_conflict" }));
+    expect(JSON.stringify(problem)).not.toContain(created.id);
+    expect(await artifactCounts(created.id)).toEqual({ facts: 1, events: 1 });
+    expect(await admin`
+      SELECT id FROM fact_log
+      WHERE entity_id = ${created.id}::uuid AND actor_id = ${approverUserId}::uuid
+    `).toHaveLength(0);
+
+    const sameActorReplay = await post(path, input, key);
+    expect(sameActorReplay.status).toBe(201);
+    expect(sameActorReplay.headers.get("idempotency-replayed")).toBe("true");
+    expect(await sameActorReplay.json()).toEqual(created);
+    expect(await artifactCounts(created.id)).toEqual({ facts: 1, events: 1 });
   });
 
   test("P2: three idempotent POSTs use audited production inventory commands", async () => {
