@@ -45,7 +45,9 @@ testable parts.
   and booking-engine endpoints; Turnstile on public booking engine.
 - Headers: CSP (no inline script), frame-ancestors none (except kiosk origin),
   referrer-policy strict.
-- Idempotency keys stored hashed; replay window 24 h.
+- Idempotency keys stored hashed; replay window 24 h. Authenticated mutation request
+  identity includes the verified actor, so another actor cannot receive the first
+  actor's cached success under the same tenant, operation, key and business body.
 - Dependency hygiene: Renovate + `bun audit` in CI; lockfile committed.
 
 ## 5. Tenant isolation failure modes (tested, not assumed)

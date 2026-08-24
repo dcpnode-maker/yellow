@@ -6,7 +6,9 @@ Base `/api/v1`. Auth: bearer (staff JWT w/ tenant+scopes | api_client). Server d
 instants ISO-8601 with offset, stay periods `{from,to}` half-open, ids uuid.
 **Idempotency-Key header required on every mutating POST**; the kernel stores
 tenant+operation+key-hash → canonical request-hash+exact successful JSON response for
-24 h in the command transaction. Exact retries replay; changed requests conflict.
+24 h in the command transaction. Every authenticated mutation includes the verified
+actor in that canonical request identity: exact same-actor retries replay, while changed
+requests and cross-actor key reuse conflict without returning a cached response.
 Errors: `{type,title,status,detail,errors?[],correlation_id}` with stable `type`
 slugs (`availability/no_fit`, `finance/journal_unbalanced`, `auth/scope_missing`,
 `conflict/occupancy`, …). Pagination: cursor `?after=<opaque>&limit≤200`. Filtering:
