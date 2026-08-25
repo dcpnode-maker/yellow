@@ -1,6 +1,6 @@
 # Question 163 — Order 150 stale-reservation proof fixture
 
-**Status:** OPEN — founder decision required
+**Status:** RESOLVED — D-419
 **Order:** 150
 **Raised:** 2026-08-25
 **Trigger:** post-Q162 continuation of pre-registered P4 matrix
