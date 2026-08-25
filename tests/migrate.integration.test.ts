@@ -28,6 +28,7 @@ const BUSINESS_DAY_SEAL_MIGRATION = await readFile(
 );
 const BASELINE_SHA256 = "fe2a9fc949c6bacded3f8d3fc4d14fc596a83ebde9aeb043eb10845f07b30923";
 const ADMIN_URL = process.env.YELLOW_DEPLOY_DATABASE_URL ?? process.env.YELLOW_MIGRATION_TEST_ADMIN_URL;
+const RUNTIME_URL = process.env.YELLOW_RUNTIME_DATABASE_URL;
 const REQUIRE_DATABASE = process.env.YELLOW_REQUIRE_MIGRATION_DB === "1";
 const FORBIDDEN_DATABASES = new Set(["yellow_dev", "yellow_test"]);
 
@@ -202,6 +203,54 @@ databaseDescribe("Bun SQL migration runner", () => {
     await admin?.close();
     admin = undefined;
   });
+
+  test(
+    "rejects migration 0015 atomically while yellow_runtime is connected, then retries after drain",
+    async () => {
+      if (!RUNTIME_URL) return;
+      await withDatabase(async ({ databaseName, databaseUrl: targetUrl, sql }) => {
+        const runtimeTargetUrl = new URL(RUNTIME_URL);
+        runtimeTargetUrl.pathname = `/${databaseName}`;
+        const blocker = new SQL(runtimeTargetUrl.toString(), { max: 1 });
+        await blocker`SELECT 1`;
+        try {
+          await expect(
+            runMigrations({ databaseUrl: targetUrl, migrationsDirectory: PROJECT_MIGRATIONS, logger: () => undefined }),
+          ).rejects.toThrow(/active session|drain/i);
+
+          const failedLedger = await sql<{ version: string | bigint }[]>`
+            SELECT version FROM public.schema_migration ORDER BY version
+          `;
+          expect(failedLedger.map((row) => Number(row.version))).toEqual(
+            Array.from({ length: 14 }, (_, index) => index + 1),
+          );
+          const ownership = await sql<{ owner: string }[]>`
+            SELECT pg_get_userbyid(c.relowner) AS owner
+              FROM pg_catalog.pg_class c
+             WHERE c.oid = 'public.schema_migration'::regclass
+          `;
+          expect(ownership).toEqual([{ owner: "yellow_deploy" }]);
+        } finally {
+          await blocker.close();
+        }
+
+        const retry = await runMigrations({
+          databaseUrl: targetUrl,
+          migrationsDirectory: PROJECT_MIGRATIONS,
+          logger: () => undefined,
+        });
+        expect(retry.appliedFiles).toContain("0015_runtime_database_authority.sql");
+        const completed = await sql<{ version: string | bigint; filename: string }[]>`
+          SELECT version, filename FROM public.schema_migration WHERE version = 15
+        `;
+        expect(completed.map((row) => ({ ...row, version: Number(row.version) }))).toEqual([{
+          version: 15,
+          filename: "0015_runtime_database_authority.sql",
+        }]);
+      });
+    },
+    120_000,
+  );
 
   test(
     "applies the immutable baseline once, validates metadata, and is a stable no-op",

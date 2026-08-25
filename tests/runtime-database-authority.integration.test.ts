@@ -318,8 +318,8 @@ databaseDescribe("Order 127 runtime database authority (kernel boundary; HTTP P4
         SELECT current_user::text AS current_user, session_user::text AS session_user,
                current_setting('app.tenant_id', true) AS tenant_id,
                current_setting('search_path') AS search_path,
-               to_regclass('pg_temp.${contaminationTempName}') IS NOT NULL AS temp_table_present,
-               EXISTS (SELECT 1 FROM pg_prepared_statements WHERE name = '${contaminationPreparedName}') AS prepared_present
+               to_regclass(${`pg_temp.${contaminationTempName}`}) IS NOT NULL AS temp_table_present,
+               EXISTS (SELECT 1 FROM pg_prepared_statements WHERE name = ${contaminationPreparedName}) AS prepared_present
       `;
       return rows[0];
     });
@@ -398,7 +398,6 @@ databaseDescribe("Order 127 runtime database authority (kernel boundary; HTTP P4
 
   test("P4: provisioning is idempotent, separates secrets, and redacts authority material", async () => {
     const runtimePassword = decodeURIComponent(new URL(RUNTIME_DATABASE_URL!).password);
-    await runtimeSession.close();
     const lines: string[] = [];
     const result = await provisionLocalDatabaseAuthority({
       deployDatabaseUrl: DEPLOY_DATABASE_URL!, runtimePassword, logger: (line) => lines.push(line),
@@ -408,7 +407,6 @@ databaseDescribe("Order 127 runtime database authority (kernel boundary; HTTP P4
     expect(DEPLOY_DATABASE_URL).not.toBe(RUNTIME_DATABASE_URL);
     expect(lines.join("\n")).not.toContain(runtimePassword);
     expect(lines.join("\n")).not.toContain(DEPLOY_DATABASE_URL);
-    runtimeSession = new SQL(RUNTIME_DATABASE_URL!, { max: 1 });
   });
 
   test("P4: incompatible owner is rejected atomically and an exact retry succeeds", async () => {
@@ -429,21 +427,6 @@ databaseDescribe("Order 127 runtime database authority (kernel boundary; HTTP P4
     const retry = await provisionLocalDatabaseAuthority({ deployDatabaseUrl: DEPLOY_DATABASE_URL!, runtimePassword, logger: () => undefined });
     expect(retry).toEqual({ owner: "already exact", runtime: "already exact" });
     runtimeSession = new SQL(RUNTIME_DATABASE_URL!, { max: 1 });
-  });
-
-  test("P4: an active runtime session blocks provisioning, then a drained retry is exact", async () => {
-    const runtimePassword = decodeURIComponent(new URL(RUNTIME_DATABASE_URL!).password);
-    await runtimeSession.close();
-    const blocker = new SQL(RUNTIME_DATABASE_URL!, { max: 1 });
-    try {
-      await blocker`SELECT 1`;
-      await expect(provisionLocalDatabaseAuthority({ deployDatabaseUrl: DEPLOY_DATABASE_URL!, runtimePassword, logger: () => undefined })).rejects.toThrow(/active runtime session|drain/i);
-    } finally {
-      await blocker.close();
-    }
-    runtimeSession = new SQL(RUNTIME_DATABASE_URL!, { max: 1 });
-    const retry = await provisionLocalDatabaseAuthority({ deployDatabaseUrl: DEPLOY_DATABASE_URL!, runtimePassword, logger: () => undefined });
-    expect(retry).toEqual({ owner: "already exact", runtime: "already exact" });
   });
 
 });
