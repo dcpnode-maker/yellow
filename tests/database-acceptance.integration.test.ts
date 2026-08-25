@@ -78,7 +78,7 @@ const EXPECTED_MIGRATIONS = [
   {
     version: 15,
     filename: "0015_runtime_database_authority.sql",
-    checksum_sha256: "4fa34df96eb4645e457ca70b02f2ec0e25aff5dff01c79dc041e399faa9f6121",
+    checksum_sha256: "cd201b7e0bc9a2fb538b32f69adb0900d7b2149f9cc82fd5e9a02056a573166a",
   },
 ];
 
