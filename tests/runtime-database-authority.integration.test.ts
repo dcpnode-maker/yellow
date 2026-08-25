@@ -117,7 +117,10 @@ databaseDescribe("Order 127 runtime database authority (kernel boundary; HTTP P4
         (${partyB}::uuid, ${tenantB}::uuid, 'person', 'Order 127 P0 sentinel B')
     `;
     await admin`
-      INSERT INTO extension_type (type, json_schema) VALUES (${extensionType}, '{"type":"object"}'::jsonb);
+      INSERT INTO extension_type (type, json_schema)
+      VALUES (${extensionType}, '{"type":"object"}'::jsonb)
+    `;
+    await admin`
       INSERT INTO extension (id, tenant_id, type, key, content) VALUES
         (${extensionGlobal}::uuid, NULL, ${extensionType}, 'global', '{}'::jsonb),
         (${extensionA}::uuid, ${tenantA}::uuid, ${extensionType}, 'tenant-a', '{}'::jsonb),
