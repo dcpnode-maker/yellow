@@ -84,4 +84,3 @@ another implementation path is required, stop and write a question.
 - [ ] Founder Party create is successful and searchable in the served app.
 - [ ] Fresh referee is 11/11 and an independent Tier-3 reviewer approves one immutable
       candidate.
-
