@@ -1,7 +1,7 @@
 # Order 127 — Separate runtime database authority from deployment authority
 
-**Status:** READY — D-392, corrected by D-393; governance admitted before
-implementation
+**Status:** CORRECTION READY — D-392, corrected by D-393 and D-394; Question 150
+resolved before executable implementation
 **Phase:** 5 · Cyber remediation
 **Branch:** `phase-5/runtime-database-authority-final`
 **Base:** `8daf34e1f1328e866b0b52ff750631e7d651d0b7` — exact independently
@@ -84,14 +84,27 @@ PUBLIC and `app_role` denied and only `yellow_runtime` granted EXECUTE:
    `runtime_consumer_mark(text,uuid)` and `runtime_consumer_advance(text,bigint)` retain
    existing cursor locking, dedupe, ordering and handler-transaction semantics;
 4. `runtime_mark_outbox_published(uuid[])` and `runtime_prune_outbox(integer)` retain
-   only the approved relay publish/prune behavior.
+   only the approved relay publish/prune behavior;
+5. `runtime_visible_extensions(uuid)` returns only platform-global plus exact-tenant
+   extension instances, while `runtime_extension_compatibility_inputs(text)` returns
+   only id/content for one bounded exact type across the platform catalogue so the
+   existing platform schema-compatibility check cannot ignore another tenant or a
+   global instance.
 
 The runtime gets no generic owner function, arbitrary SQL wrapper, tenant setter,
-raw cross-tenant table grant or maintenance role. Extension registry operations are
-reworked to establish their request tenant and enter existing `app_role`; no global
-extension authority is added. All new functions are owned by `yellow_owner`, use
-qualified catalog/public names and exact `pg_catalog, public, pg_temp` search paths,
-validate bounded inputs before access, preserve transactions and expose no secret.
+raw cross-tenant table grant or maintenance role. Extension registry writes establish
+their request tenant and enter existing `app_role`; only the two D-394 read functions
+may cross strict extension RLS, and only for the exact visible/compatibility surfaces
+above. All new functions are owned by `yellow_owner`, use qualified catalog/public
+names and exact `pg_catalog, public, pg_temp` search paths, validate bounded inputs
+before access, preserve transactions and expose no secret.
+
+After COMMIT or ROLLBACK, a reserved backend may return to the pool only after exact
+runtime-role/null-tenant settlement. If that assertion fails, the adapter must issue
+`DISCARD ALL` outside a transaction and re-verify the exact settlement before release;
+if rollback, discard or re-verification fails, the backend must not be returned to the
+pool. Question 150 records why an assertion followed by unconditional release was not
+containment.
 
 Migration 0015 verifies/provisions only the password-free role/catalogue contract,
 transfers current public object ownership to `yellow_owner`, grants the one exact
@@ -195,7 +208,8 @@ and write exact Question 150 rather than widening.
    reuse ignored database secrets without logging; fail closed on incompatible
    existing roles/volume rather than silently changing identity or credentials.
 6. Preserve error redaction, outbox atomicity/dedupe/order, hold-expiry limits,
-   extension facts, seed idempotency, migration checksum/lock/retry behavior, app-role
+   extension facts and exact global/tenant visibility/compatibility, seed idempotency,
+   migration checksum/lock/retry behavior, app-role
    NOLOGIN, occupancy authority and all protected proof files.
 
 ## Pre-registered proof
@@ -225,7 +239,9 @@ Using the real runtime DSN and a max-one pool, prove tenant A/B isolation, exact
 `session_user=yellow_runtime` and in-callback `current_user=app_role`. After success,
 throw, nested failure, event handler, local login and worker error, reuse the same
 backend and prove current/session user runtime, null tenant setting and no deploy/owner
-reachability. A hostile callback `RESET ROLE` may return only to runtime and still
+reachability. A hostile session-scoped tenant write must be discarded and reverified
+before backend reuse, or the backend must be withheld. A hostile callback `RESET ROLE`
+may return only to runtime and still
 cannot read the other sentinel, bypass RLS, create/alter/drop objects/roles or assume
 owner/deploy.
 
@@ -238,7 +254,9 @@ relay marking and prune counts remain atomic under concurrency while runtime can
 query their backing tables directly. Prove extension register/list/compatibility and
 fact behavior remain tenant-correct without a global raw-table grant. Test every named
 function for PUBLIC/app-role denial, injection inputs, oversized arrays/limits and safe
-temporary-schema resolution.
+temporary-schema resolution. Extension proofs retain exact tenant-own,
+platform-global and platform-wide same-type compatibility results through only the two
+D-394 reads.
 
 ### P4 — distinct DSNs and process/environment boundary
 
