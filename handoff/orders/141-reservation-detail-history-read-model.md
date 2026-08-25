@@ -125,13 +125,19 @@ commands/results, protected-surface confirmation and any inherited precondition 
   left joins, validates reservation, segment, guest and folio reference coherence,
   requires exactly one matching primary guest, and adds permanent hostile regressions
   for both range bounds, empty/`(]` ranges, foreign reservation/guest/segment references
-  and a wrong-property folio account. Independent re-review is pending.
+  and a wrong-property folio account.
+- Final corrected executable: `9b6f344de50ffad3420821673c2936322526312c`.
+  The canonical property-scoped guest-account decision (D-320/Order 103) also requires
+  a reservation folio to reject a null-property account. A final exposed-reference
+  audit added that guard, validates pickup tasks by tenant and property, validates fact
+  predecessors by tenant and subject, and permanently probes null-property accounts,
+  foreign pickup tasks and foreign fact predecessors. Independent re-review is pending.
 - Product/test files: `src/contexts/reservations/detail.ts`, the reservations public
   index, and the focused integration proof only. No schema, migration, permission,
   route, runtime, UI, dependency, protected referee or financial mutation changed.
 - Fresh PostgreSQL focused proof:
   `YELLOW_REQUIRE_RESERVATION_DETAIL=1 YELLOW_RESERVATION_DETAIL_URL=... bun test
-  tests/reservation-detail.integration.test.ts` → 5 passed, 0 failed, 48 assertions.
+  tests/reservation-detail.integration.test.ts` → 5 passed, 0 failed, 51 assertions.
 - Standing gate: frozen install unchanged; typecheck green; 64-file import boundary
   gate green; `bun test` 150 passed, 397 skipped, 0 failed, 1,832 assertions; licence
   policy passed for 23 installed packages; audit found no vulnerabilities; schema
