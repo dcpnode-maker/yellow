@@ -23,4 +23,3 @@ or any unrelated change.
 No inherited file, executable text, product, migration, schema, test, assertion,
 review evidence or ancestry may be rewritten. All stopped-candidate proof is
 diagnostic only; P0–P3 restart on the corrected immutable SHA.
-

@@ -1,6 +1,6 @@
 # Order 148 — Integrate the approved post-127 line
 
-**Status:** CORRECTION READY — Q158/D-410 diff-hygiene boundary resolved
+**Status:** CORRECTION READY — Q158–159 / D-410–D-411 hygiene resolved
 **Phase:** 5 · delivery control
 **Branch:** `phase-5/post127-approved-integration`
 **Base:** `f26e3952cdc0091bab852b3c6b670b84a13cef7c` — closed Order-127
@@ -40,6 +40,7 @@ order proves provenance and integration behavior; it does not implement a featur
 
 - this order;
 - `handoff/questions/158-order148-diff-hygiene-boundary.md`;
+- `handoff/questions/159-order148-question-eof-hygiene.md`;
 - additive D-409 and the Order-148 ledger records;
 - `handoff/reviews/148-post127-approved-integration.md` only when written by the
   independent reviewer; and
