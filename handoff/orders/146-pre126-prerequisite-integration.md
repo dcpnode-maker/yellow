@@ -1,6 +1,6 @@
 # Order 146 — Integrate approved prerequisites before Order 126
 
-**Status:** READY
+**Status:** IMPLEMENTED-NONDB
 **Phase:** 5 · Cyber remediation integration
 **Branch:** `phase-5/pre126-prerequisite-integration`
 **Base:** `2faf5e8db8264af59e65effdfcb5603da628a181` — independently approved
@@ -105,8 +105,44 @@ proof before approval. No source approval substitutes for integration review.
 ## Definition of done
 
 - [x] Exact approved Base and four approved source SHAs are fixed.
-- [ ] Admission is committed before overlays.
-- [ ] Exact latest-owner overlay and governance union are committed separately.
-- [ ] P0-P2 pass on one immutable executable with Docker off.
+- [x] Admission is committed before overlays.
+- [x] Exact latest-owner overlay and governance union are committed separately.
+- [x] P0-P2 pass on one immutable executable with Docker off.
 - [ ] P3 and independent Tier-3 integration review approve that executable.
 - [ ] No migration/Order126/merge/push/deployment/live/Cyber closure is claimed.
+
+## Builder evidence — 2026-08-25
+
+Admission `550fb9960195aa69ff48c22012e742b8c1942bec` precedes immutable
+executable `483d4f18247058374fd427e1d49ef3cb0b3372d4`. Against Base, the
+executable has the exact twelve-path allowlist: this order, the four registered product
+paths, five registered approved governance artifacts and additive `DECISIONS.log` /
+`handoff/LEDGER.md`. All nine registered source/governance blobs match exactly. Base is
+an ancestor of both source executables, and each source executable is an ancestor of its
+named approval metadata. Strict forbidden-path count is zero.
+
+D-382 has zero decision headings; D-383 through D-387 each have exactly one. The exact
+source ledger union contains three Order-144 rows, four Order-145 rows and one Order-146
+admission row. Source decision and ledger rows compare byte-for-byte with their approved
+metadata. `git diff --check` reports only the five intentional two-space Markdown line
+endings already owned by exact approved Order-144 review blob
+`9d3c96aab579505652845343de65cba9ce6c6a6f`; changing them would break provenance.
+
+With database variables unset and Docker down:
+
+- focused composition: 1 passed, 15 skipped, 0 failed; the Order-144
+  parent-before-claim ordering canary is the passing case and all database cases remain
+  explicit skips;
+- standing suite: 174 passed, 422 skipped, 0 failed, 1,983 assertions across 92 files;
+- typecheck passed; import boundaries passed for 64 TypeScript files;
+- frozen install and licence policy passed for 23 packages; dependency audit found no
+  vulnerabilities;
+- all four protected SHA-256 values match the approved frontier: migration 0001
+  `fe2a9fc...0923`, referee `2afa95bb...418d`, seed fixture `bf71d8fc...4c62` and
+  expected schema `a5ffe526...d59a`;
+- `state.ps1` reports this branch clean at the executable and app/PostgreSQL/Valkey down.
+
+`bun run schema:check` correctly stopped with `YELLOW_SCHEMA_DATABASE is required`;
+database schema/referee/combined dynamic proof belongs to P3 and was not attempted while
+Docker was unauthorized. This record is `IMPLEMENTED-NONDB`, not review-ready or
+`BUILT-UNREVIEWED`.
