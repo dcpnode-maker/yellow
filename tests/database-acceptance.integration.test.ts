@@ -75,6 +75,11 @@ const EXPECTED_MIGRATIONS = [
     filename: "0014_bind_occupancy_caller_tenant.sql",
     checksum_sha256: "706806ad3c041d506df1e90f75b19ed219baa3fedb8968471828657ab6c7493a",
   },
+  {
+    version: 15,
+    filename: "0015_runtime_database_authority.sql",
+    checksum_sha256: "f6e34ab54fd4f0ed2a28212d82f69aadfbd85d7091c39b57c9aa495c08bac915",
+  },
 ];
 
 if (REQUIRE_DATABASE && !DATABASE_URL) {

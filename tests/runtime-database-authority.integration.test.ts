@@ -17,6 +17,10 @@ const tenantA = randomUUID();
 const tenantB = randomUUID();
 const partyA = randomUUID();
 const partyB = randomUUID();
+const extensionType = `o127-${randomUUID().slice(0, 8)}`;
+const extensionGlobal = randomUUID();
+const extensionA = randomUUID();
+const extensionB = randomUUID();
 const schemaName = `o127_p0_${randomUUID().replaceAll("-", "")}`;
 const rollbackMarker = new Error("Order 127 P0 probe rollback");
 
@@ -52,10 +56,12 @@ async function captureSqlState(operation: () => Promise<unknown>): Promise<strin
 
 databaseDescribe("Order 127 runtime database authority (kernel boundary; HTTP P4 is separately covered)", () => {
   let admin: SQL;
+  let runtimeSession: SQL;
   let database: Database;
 
   beforeAll(async () => {
     admin = new SQL(DEPLOY_DATABASE_URL!, { max: 1 });
+    runtimeSession = new SQL(RUNTIME_DATABASE_URL!, { max: 1 });
     database = Database.connect(RUNTIME_DATABASE_URL!, { maxConnections: 1 });
     await admin`
       INSERT INTO tenant (id, slug, name)
@@ -69,15 +75,25 @@ databaseDescribe("Order 127 runtime database authority (kernel boundary; HTTP P4
         (${partyA}::uuid, ${tenantA}::uuid, 'person', 'Order 127 P0 sentinel A'),
         (${partyB}::uuid, ${tenantB}::uuid, 'person', 'Order 127 P0 sentinel B')
     `;
+    await admin`
+      INSERT INTO extension_type (type, json_schema) VALUES (${extensionType}, '{"type":"object"}'::jsonb);
+      INSERT INTO extension (id, tenant_id, type, key, content) VALUES
+        (${extensionGlobal}::uuid, NULL, ${extensionType}, 'global', '{}'::jsonb),
+        (${extensionA}::uuid, ${tenantA}::uuid, ${extensionType}, 'tenant-a', '{}'::jsonb),
+        (${extensionB}::uuid, ${tenantB}::uuid, ${extensionType}, 'tenant-b', '{}'::jsonb)
+    `;
   });
 
   afterAll(async () => {
     if (admin) {
       await admin`DELETE FROM party WHERE id IN (${partyA}::uuid, ${partyB}::uuid)`;
+      await admin`DELETE FROM extension WHERE id IN (${extensionGlobal}::uuid, ${extensionA}::uuid, ${extensionB}::uuid)`;
+      await admin`DELETE FROM extension_type WHERE type = ${extensionType}`;
       await admin`DELETE FROM tenant WHERE id IN (${tenantA}::uuid, ${tenantB}::uuid)`;
     }
     await database?.close();
     await admin?.close();
+    await runtimeSession?.close();
   });
 
   test("P0: RESET ROLE must not restore deployment superuser or cross-tenant/DDL authority", async () => {
@@ -260,7 +276,7 @@ databaseDescribe("Order 127 runtime database authority (kernel boundary; HTTP P4
         FROM pg_catalog.pg_class c JOIN pg_catalog.pg_namespace n ON n.oid = c.relnamespace
        WHERE n.nspname = 'public'
     `;
-    expect(rls).toEqual([{ tables: 80, enabled: 75, forced: 0, policies: 75 }]);
+    expect(rls).toEqual([{ tables: 85, enabled: 75, forced: 0, policies: 75 }]);
   });
 
   test("P2: a post-COMMIT contaminated role is rejected, discarded, and cannot poison pool reuse", async () => {
@@ -300,30 +316,50 @@ databaseDescribe("Order 127 runtime database authority (kernel boundary; HTTP P4
     expect(denied.every((row) => !row.public_execute && !row.app_execute)).toBe(true);
 
     await database.withTenantTransaction(tenantA, async (tx) => {
-      expect(await captureSqlState(() => tx`SELECT public.runtime_due_hold_scopes(0)`)).toBe("22023");
-      expect(await captureSqlState(() => tx`SELECT public.runtime_due_hold_scopes(1001)`)).toBe("22023");
-      expect(await captureSqlState(() => tx`SELECT public.runtime_consumer_begin('Bad_Name')`)).toBe("22023");
-      expect(await captureSqlState(() => tx`SELECT public.runtime_consumer_read('x', 0, 0, true)`)).toBe("22023");
-      expect(await captureSqlState(() => tx`SELECT public.runtime_consumer_mark('', NULL::uuid)`)).toBe("22023");
-      expect(await captureSqlState(() => tx`SELECT public.runtime_consumer_advance('x', -1)`)).toBe("22023");
-      expect(await captureSqlState(() => tx`SELECT public.runtime_mark_outbox_published(ARRAY[]::uuid[])`)).toBe("22023");
-      expect(await captureSqlState(() => tx`SELECT public.runtime_prune_outbox(-1)`)).toBe("22023");
-      const unknown = await tx<{ id: string | null }[]>`SELECT public.runtime_resolve_active_tenant('bad'' OR 1=1') AS id`;
-      expect(unknown).toEqual([{ id: null }]);
-      expect(await captureSqlState(() => tx`SELECT public.runtime_extension_compatibility_inputs('')`)).toBe("22023");
-      const visibleA = await tx<{ count: number }[]>`
-        SELECT count(*)::int AS count FROM public.runtime_visible_extensions(${tenantA}::uuid)
-      `;
-      const visibleB = await tx<{ count: number }[]>`
-        SELECT count(*)::int AS count FROM public.runtime_visible_extensions(${tenantB}::uuid)
-      `;
-      expect(visibleA[0]?.count).toBeGreaterThanOrEqual(0);
-      expect(visibleB[0]?.count).toBeGreaterThanOrEqual(0);
-      await tx.unsafe("CREATE TEMP TABLE runtime_visible_extensions (id uuid) ON COMMIT DROP");
-      await tx`SELECT count(*)::int FROM public.runtime_visible_extensions(${tenantA}::uuid)`;
-      await tx.unsafe("CREATE TEMP TABLE runtime_extension_compatibility_inputs (id uuid) ON COMMIT DROP");
-      await tx`SELECT count(*)::int FROM public.runtime_extension_compatibility_inputs('order127-missing')`;
+      expect(await captureSqlState(() => tx`SELECT public.runtime_due_hold_scopes(1)`)).toBe("42501");
+      expect(await captureSqlState(() => tx`SELECT public.runtime_resolve_active_tenant('x')`)).toBe("42501");
+      expect(await captureSqlState(() => tx`SELECT public.runtime_consumer_begin('x')`)).toBe("42501");
+      expect(await captureSqlState(() => tx`SELECT public.runtime_consumer_read('x', 0, 1, true)`)).toBe("42501");
+      expect(await captureSqlState(() => tx`SELECT public.runtime_consumer_mark('x', gen_random_uuid())`)).toBe("42501");
+      expect(await captureSqlState(() => tx`SELECT public.runtime_consumer_advance('x', 0)`)).toBe("42501");
+      expect(await captureSqlState(() => tx`SELECT public.runtime_mark_outbox_published(ARRAY[gen_random_uuid()])`)).toBe("42501");
+      expect(await captureSqlState(() => tx`SELECT public.runtime_prune_outbox(0)`)).toBe("42501");
+      expect(await captureSqlState(() => tx`SELECT public.runtime_visible_extensions(${tenantA}::uuid)`)).toBe("42501");
+      expect(await captureSqlState(() => tx`SELECT public.runtime_extension_compatibility_inputs(${extensionType})`)).toBe("42501");
     });
+
+    const direct = runtimeSession!;
+    expect(await captureSqlState(() => direct`SELECT public.runtime_due_hold_scopes(0)`)).toBe("22023");
+    expect(await captureSqlState(() => direct`SELECT public.runtime_due_hold_scopes(1001)`)).toBe("22023");
+    expect(await captureSqlState(() => direct`SELECT public.runtime_consumer_begin('Bad_Name')`)).toBe("22023");
+    expect(await captureSqlState(() => direct`SELECT public.runtime_consumer_read('x', 0, 0, true)`)).toBe("22023");
+    expect(await captureSqlState(() => direct`SELECT public.runtime_consumer_mark('', NULL::uuid)`)).toBe("22023");
+    expect(await captureSqlState(() => direct`SELECT public.runtime_consumer_advance('x', -1)`)).toBe("22023");
+    expect(await captureSqlState(() => direct`SELECT public.runtime_mark_outbox_published(ARRAY[]::uuid[])`)).toBe("22023");
+    expect(await captureSqlState(() => direct`SELECT public.runtime_prune_outbox(-1)`)).toBe("22023");
+    const unknown = await direct<{ id: string | null }[]>`SELECT public.runtime_resolve_active_tenant('bad'' OR 1=1') AS id`;
+      expect(unknown).toEqual([{ id: null }]);
+    expect(await captureSqlState(() => direct`SELECT public.runtime_extension_compatibility_inputs('')`)).toBe("22023");
+    expect(await captureSqlState(() => direct`SELECT public.runtime_visible_extensions(NULL::uuid)`)).toBe("22023");
+    expect(await captureSqlState(() => direct`SELECT public.runtime_extension_compatibility_inputs(repeat('a', 65))`)).toBe("22023");
+      const visibleA = await direct<{ key: string }[]>`
+        SELECT key FROM public.runtime_visible_extensions(${tenantA}::uuid)
+       ORDER BY key
+      `;
+      const visibleB = await direct<{ key: string }[]>`
+        SELECT key FROM public.runtime_visible_extensions(${tenantB}::uuid)
+       ORDER BY key
+      `;
+      expect(visibleA).toEqual([{ key: "global" }, { key: "tenant-a" }]);
+      expect(visibleB).toEqual([{ key: "global" }, { key: "tenant-b" }]);
+      const compatibility = await direct<{ id: string }[]>`
+        SELECT id FROM public.runtime_extension_compatibility_inputs(${extensionType}) ORDER BY id
+      `;
+      expect(compatibility.map(({ id }) => id)).toEqual([extensionGlobal, extensionA, extensionB].sort());
+    await direct.unsafe("CREATE TEMP TABLE runtime_visible_extensions (id uuid) ON COMMIT DROP");
+    await direct`SELECT count(*)::int FROM public.runtime_visible_extensions(${tenantA}::uuid)`;
+    await direct.unsafe("CREATE TEMP TABLE runtime_extension_compatibility_inputs (id uuid) ON COMMIT DROP");
+    await direct`SELECT count(*)::int FROM public.runtime_extension_compatibility_inputs('order127-missing')`;
   });
 
 });
