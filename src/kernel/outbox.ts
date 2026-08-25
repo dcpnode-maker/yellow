@@ -185,7 +185,10 @@ export class PostgresEventBus implements EventBus {
       try {
         // Start and cache whole-pool shutdown before returning this unusable
         // reservation. Bun can then dispose it instead of making it reusable.
-        closing = close.call(this.#pool, { timeout: 0 });
+        closing = close.call(this.#pool, { timeout: 0 }).catch(() => {
+          // The pool is already irreversibly closing. Normalize immediately so
+          // Bun cannot report a rejection before the held reservation is released.
+        });
         this.#failureClose = closing;
       } catch {
         return;
