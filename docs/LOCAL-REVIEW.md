@@ -131,3 +131,20 @@ These controls are intentionally process-local. Starting another Yellow process 
 another bounded budget. Do not expose a multi-process workbench as though this were a
 shared edge limiter; public/multi-node deployment requires a separately approved shared
 limiter and explicit trusted-proxy topology.
+# Founder UI walkthrough (Order 158)
+
+After starting the local review stack, use the served application rather than direct
+database commands for founder acceptance:
+
+1. Sign in and confirm the selected property is visible in the workspace navigation.
+2. In **Availability**, search a stay and inspect the server-owned bookable, blocked and
+   warning evidence. Place and release a temporary hold when a bookable result exists.
+3. Use **Open reservations** and confirm Party search/create and reservation operations
+   remain visibly distinct from availability and from payment, tax and fiscal work.
+4. Change property while **Project status** is active and confirm live status refreshes
+   once. Sign out when finished; reload must not restore the bearer token or Party data.
+
+Review at 375, 768, 1024 and 1440 CSS-pixel widths, and complete one keyboard-only pass.
+The local surface is an authenticated Phase-5 review application; it is not public or a
+claim that deferred vendor, payment, tax, fiscal, housekeeping or public-booking phases
+exist.

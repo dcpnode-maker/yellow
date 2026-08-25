@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="color-scheme" content="light">
-    <title>Yellow · Operator Workbench</title>
+    <title>Yellow · Hotel Operations</title>
     <link rel="stylesheet" href="/assets/operator.css">
     <script src="/assets/operator.js" defer></script>
   </head>
@@ -13,7 +13,7 @@
     <header class="app-bar">
       <div class="brand" aria-label="Yellow Hospitality OS">
         <span class="brand-mark" aria-hidden="true">Y</span>
-        <span><strong>Yellow</strong><small>Operator Workbench</small></span>
+        <span><strong>Yellow</strong><small>Hotel Operations</small></span>
       </div>
       <div class="app-actions">
         <label class="theme-control"><span>Appearance</span>
@@ -62,28 +62,32 @@
       <section class="workbench" id="workbench-view" hidden aria-labelledby="workbench-title">
         <div class="workbench-head">
           <div>
-            <p class="eyebrow">Property workbench</p>
+            <p class="eyebrow">Live property operations</p>
             <h1 id="workbench-title">Availability</h1>
             <p class="muted" id="operator-name"></p>
           </div>
           <button class="quiet" id="sign-out" type="button">Sign out</button>
         </div>
 
-        <div class="domain-bar card">
+        <aside class="domain-bar card" aria-label="Property workspace">
+          <p class="domain-nav-label">Workspace</p>
           <nav class="domain-nav" aria-label="Workbench domains">
-            <button class="domain-tab is-active" id="nav-availability" type="button" data-view="availability">Availability</button>
-            <button class="domain-tab" id="nav-inventory" type="button" data-view="inventory">Inventory setup</button>
-            <button class="domain-tab" id="nav-operations" type="button" data-view="operations">Operations</button>
-            <button class="domain-tab" id="nav-reservations" type="button" data-view="reservations">Reservations</button>
-            <button class="domain-tab" id="nav-folios" type="button" data-view="folios">Folios</button>
-            <button class="domain-tab" id="nav-restrictions" type="button" data-view="restrictions">Restrictions</button>
-            <button class="domain-tab" id="nav-rates" type="button" data-view="rates">Rates</button>
-            <button class="domain-tab" id="nav-status" type="button" data-view="status">Project status</button>
+            <span class="domain-nav-group">Front desk</span>
+            <button class="domain-tab is-active" id="nav-availability" type="button" data-view="availability" aria-controls="availability-view">Availability</button>
+            <button class="domain-tab" id="nav-reservations" type="button" data-view="reservations" aria-controls="reservations-view">Reservations</button>
+            <button class="domain-tab" id="nav-folios" type="button" data-view="folios" aria-controls="folios-view">Folios</button>
+            <span class="domain-nav-group">Property control</span>
+            <button class="domain-tab" id="nav-operations" type="button" data-view="operations" aria-controls="operations-view">Operations</button>
+            <button class="domain-tab" id="nav-inventory" type="button" data-view="inventory" aria-controls="inventory-view">Inventory setup</button>
+            <button class="domain-tab" id="nav-restrictions" type="button" data-view="restrictions" aria-controls="restrictions-view">Restrictions</button>
+            <button class="domain-tab" id="nav-rates" type="button" data-view="rates" aria-controls="rates-view">Rates</button>
+            <span class="domain-nav-group">System</span>
+            <button class="domain-tab" id="nav-status" type="button" data-view="status" aria-controls="status-view">Project status</button>
           </nav>
-          <label>Property
+          <label class="property-context">Current property
             <select name="property" id="property-select" required></select>
           </label>
-        </div>
+        </aside>
 
         <section id="status-view" hidden aria-labelledby="status-title">
           <div class="section-heading status-heading">
@@ -151,7 +155,14 @@
         </section>
 
         <section id="availability-view" aria-labelledby="availability-title">
-          <h2 class="visually-hidden" id="availability-title">Availability search</h2>
+          <div class="section-heading availability-heading">
+            <div>
+              <p class="eyebrow">Front desk</p>
+              <h2 id="availability-title">Find a stay</h2>
+              <p class="muted">Search live sellability, protect a room temporarily, then continue into the governed reservation journey.</p>
+            </div>
+            <button class="quiet" id="availability-reservation-shortcut" type="button">Open reservations</button>
+          </div>
           <form class="search-bar card" id="availability-form">
             <label>Stay starts
               <input name="from" type="datetime-local" required>
@@ -169,7 +180,7 @@
             <p class="timezone-note">Times are converted from this browser to exact UTC instants. A ten-minute hold protects inventory temporarily; it is not a reservation.</p>
           </form>
 
-          <div class="summary-row" aria-live="polite">
+          <div class="summary-row" aria-live="polite" aria-atomic="true">
             <p id="result-summary">Choose a stay and search.</p>
             <span class="legend"><i class="dot available"></i> Bookable <i class="dot blocked"></i> Blocked <i class="dot warning"></i> Warning</span>
           </div>
@@ -219,7 +230,7 @@
           <div class="section-heading">
             <div>
               <p class="eyebrow">Reservation operations</p>
-              <h2 id="reservations-title">Reservation lifecycle and guests</h2>
+              <h2 id="reservations-title" tabindex="-1">Reservation lifecycle and guests</h2>
               <p class="muted">Find exact server truth before changing metadata, lifecycle state or guest allocation. Every command remains tenant and property scoped.</p>
             </div>
           </div>

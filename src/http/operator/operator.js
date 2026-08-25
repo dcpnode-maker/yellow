@@ -62,6 +62,7 @@
   const signOutButton = document.querySelector("#sign-out");
   const themeSelect = document.querySelector("#theme-select");
   const workbenchTitle = document.querySelector("#workbench-title");
+  const availabilityReservationShortcut = document.querySelector("#availability-reservation-shortcut");
   const availabilityView = document.querySelector("#availability-view");
   const inventoryView = document.querySelector("#inventory-view");
   const restrictionsView = document.querySelector("#restrictions-view");
@@ -2488,7 +2489,6 @@
     if (activeView === "restrictions") void loadRestrictions();
     if (activeView === "rates") void loadRates();
     if (activeView === "status") void loadSystemStatus();
-    if (activeView === "status") void loadSystemStatus();
   }
 
   function formMessage(form, message, isError = false) {
@@ -3924,6 +3924,7 @@
     if (activeView === "operations") void loadOperationalBlocks();
     if (activeView === "restrictions") void loadRestrictions();
     if (activeView === "rates") void loadRates();
+    if (activeView === "status") void loadSystemStatus();
     reservationGuestData = null;
     reservationLifecycleData = null;
     reservationSegmentData = null;
@@ -3939,6 +3940,11 @@
     reservationGuestList.replaceChildren();
   });
   for (const tab of navigation) tab.addEventListener("click", () => setView(tab.dataset.view));
+  availabilityReservationShortcut.addEventListener("click", () => {
+    setView("reservations");
+    document.querySelector("#reservations-title").focus({ preventScroll: true });
+    document.querySelector("#reservations-title").scrollIntoView({ block: "start" });
+  });
   folioStatementLookupForm.addEventListener("submit", (event) => {
     event.preventDefault();
     void lookupFolioStatement();
