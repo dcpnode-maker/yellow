@@ -97,23 +97,27 @@ function batchSize(options: ConsumeBatchOptions): number {
   return limit;
 }
 
-async function runHandlerAsTenant(connection: Tx, event: OutboxEvent, handler: EventHandler): Promise<void> {
+async function enterHandlerTenant(
+  connection: Tx,
+  event: OutboxEvent,
+  activeTenantId: string | null,
+): Promise<string> {
+  if (activeTenantId === event.tenantId) return activeTenantId;
+  if (activeTenantId !== null) await connection.unsafe("RESET ROLE");
   await connection`SELECT set_config('app.tenant_id', ${event.tenantId}, true)`;
   await connection.unsafe("SET LOCAL ROLE app_role");
-  let failure: unknown;
+  return event.tenantId;
+}
 
-  try {
-    await handler(event, connection);
-  } catch (error) {
-    failure = error;
+async function verifyHandlerTenant(connection: Tx, event: OutboxEvent): Promise<void> {
+  const rows = await connection<Array<{ current_role: string; tenant_id: string | null }>>`
+    SELECT current_user AS current_role,
+           current_setting('app.tenant_id', true) AS tenant_id
+  `;
+  const context = rows[0];
+  if (context?.current_role !== "app_role" || context.tenant_id !== event.tenantId) {
+    throw new Error("Outbox handler changed its required database role or tenant context");
   }
-
-  try {
-    await connection.unsafe("RESET ROLE");
-  } catch (resetError) {
-    if (failure === undefined) throw resetError;
-  }
-  if (failure !== undefined) throw failure;
 }
 
 export class PostgresEventBus implements EventBus {
@@ -248,15 +252,22 @@ export class PostgresEventBus implements EventBus {
       const inserted = await this.#markBatch(connection, consumer, rows);
       let processed = 0;
       let lastSeq = initialLastSeq;
+      let activeTenantId: string | null = null;
       for (const [index, row] of rows.entries()) {
         const event = toEvent(row);
         if (inserted[index] === true) {
-          await runHandlerAsTenant(connection, event, handler);
+          activeTenantId = await enterHandlerTenant(connection, event, activeTenantId);
+          await handler(event, connection);
+          await verifyHandlerTenant(connection, event);
           processed += 1;
+        } else if (activeTenantId !== null && activeTenantId !== event.tenantId) {
+          await connection.unsafe("RESET ROLE");
+          activeTenantId = null;
         }
         lastSeq = event.seq;
       }
 
+      await connection.unsafe("RESET ROLE");
       if (lastSeq !== initialLastSeq) {
         await connection`SELECT runtime_consumer_advance(${consumer}, ${lastSeq}::bigint)`;
       }
@@ -327,16 +338,23 @@ export class PostgresEventBus implements EventBus {
       let processed = 0;
       let lastSeq = initialLastSeq;
       const events: OutboxEvent[] = [];
+      let activeTenantId: string | null = null;
       for (const [index, row] of rows.entries()) {
         const event = toEvent(row);
         events.push(event);
         if (inserted[index] === true) {
-          await runHandlerAsTenant(connection, event, handler);
+          activeTenantId = await enterHandlerTenant(connection, event, activeTenantId);
+          await handler(event, connection);
+          await verifyHandlerTenant(connection, event);
           processed += 1;
+        } else if (activeTenantId !== null && activeTenantId !== event.tenantId) {
+          await connection.unsafe("RESET ROLE");
+          activeTenantId = null;
         }
         lastSeq = Math.max(lastSeq, event.seq);
       }
 
+      await connection.unsafe("RESET ROLE");
       if (lastSeq !== initialLastSeq) {
         await connection`SELECT runtime_consumer_advance(${consumer}, ${lastSeq}::bigint)`;
       }
