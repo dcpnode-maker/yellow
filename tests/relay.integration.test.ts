@@ -326,6 +326,7 @@ databaseDescribe("Order 023 crash-safe outbox relay", () => {
   });
 
   test("D399/D402: mixed-tenant order, tamper rollback, and neutralized reuse", async () => {
+    await seedConsumerCursor("order-023-mixed-clean");
     const cleanEvents = await insertMixedEvents();
     const cleanSeen: Array<{ id: string; user: string; tenant: string }> = [];
     const cleanResult = await bus!.consumeBatch("order-023-mixed-clean", async (event, tx) => {
@@ -409,6 +410,7 @@ databaseDescribe("Order 023 crash-safe outbox relay", () => {
     };
 
     const runSameValue = async (consumer: string, consume: Consume, deallocate: boolean) => {
+      await seedConsumerCursor(consumer);
       const events = await insertMixedEvents();
       const candidate = new SQL(RUNTIME_DATABASE_URL!, { max: 1, prepare: false });
       const candidateBus = new PostgresEventBus(candidate);
