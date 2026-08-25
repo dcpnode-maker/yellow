@@ -104,27 +104,82 @@ async function enterHandlerTenant(
 ): Promise<string> {
   if (activeTenantId === event.tenantId) return activeTenantId;
   if (activeTenantId !== null) await connection.unsafe("RESET ROLE");
-  await connection`SELECT set_config('app.tenant_id', ${event.tenantId}, true)`;
+  const rows = await connection.unsafe<Array<{ tenant_id: string }>>(
+    "SELECT set_config('app.tenant_id', $1, true) AS tenant_id",
+    [event.tenantId],
+  );
+  if (rows.length !== 1 || rows[0]?.tenant_id !== event.tenantId) {
+    throw new Error("PostgreSQL did not establish the required outbox handler tenant");
+  }
   await connection.unsafe("SET LOCAL ROLE app_role");
   return event.tenantId;
 }
 
 async function verifyHandlerTenant(connection: Tx, event: OutboxEvent): Promise<void> {
-  const rows = await connection<Array<{ current_role: string; tenant_id: string | null }>>`
-    SELECT current_user AS current_role,
+  const rows = await connection.unsafe<Array<{ current_role: string; tenant_id: string | null }>>(`
+    SELECT current_user::text AS current_role,
            current_setting('app.tenant_id', true) AS tenant_id
-  `;
+  `);
   const context = rows[0];
-  if (context?.current_role !== "app_role" || context.tenant_id !== event.tenantId) {
+  if (rows.length !== 1 || context?.current_role !== "app_role" || context.tenant_id !== event.tenantId) {
     throw new Error("Outbox handler changed its required database role or tenant context");
+  }
+}
+
+async function scrubHandlerSession(connection: Tx): Promise<void> {
+  await connection.unsafe("RESET ROLE");
+  await connection.unsafe("RESET app.tenant_id");
+  const rows = await connection.unsafe<Array<{
+    current_user: string;
+    session_user: string;
+    tenant_reset: boolean;
+  }>>(`
+    SELECT current_user::text AS current_user,
+           session_user::text AS session_user,
+           NULLIF(current_setting('app.tenant_id', true), '') IS NULL AS tenant_reset
+  `);
+  const row = rows[0];
+  if (rows.length !== 1 || row?.current_user !== "yellow_runtime" ||
+      row.session_user !== "yellow_runtime" || row.tenant_reset !== true) {
+    throw new Error("Outbox handler session did not return to the runtime tenant baseline");
   }
 }
 
 export class PostgresEventBus implements EventBus {
   readonly #pool: ConnectionPool;
+  #failureClose: Promise<void> | undefined;
 
   constructor(pool: ConnectionPool) {
     this.#pool = pool;
+  }
+
+  async #assertSettlement(connection: Tx): Promise<void> {
+    const rows = await connection.unsafe<Array<{
+      session_user: string;
+      current_user: string;
+      tenant_reset: boolean;
+      prepared_count: number;
+    }>>(`
+      SELECT session_user::text AS session_user,
+             current_user::text AS current_user,
+             NULLIF(current_setting('app.tenant_id', true), '') IS NULL AS tenant_reset,
+             (SELECT count(*)::int FROM pg_prepared_statements) AS prepared_count
+    `);
+    const row = rows[0];
+    if (rows.length !== 1 || row?.session_user !== "yellow_runtime" ||
+        row.current_user !== "yellow_runtime" || row.tenant_reset !== true || row.prepared_count !== 0) {
+      throw new Error("Outbox connection did not settle to the unprepared runtime identity");
+    }
+  }
+
+  async #discardAndAssertSettlement(connection: Tx): Promise<void> {
+    await connection.unsafe("DISCARD ALL");
+    await this.#assertSettlement(connection);
+  }
+
+  async #failClosePool(): Promise<void> {
+    this.#failureClose ??= this.#pool.close?.({ timeout: 0 }) ?? Promise.resolve();
+    try { await this.#failureClose; } catch { /* Preserve the consumer failure. */ }
   }
 
   async #markBatch(
@@ -214,78 +269,8 @@ export class PostgresEventBus implements EventBus {
     handler: EventHandler,
     options: ConsumeBatchOptions = {},
   ): Promise<ConsumeBatchResult> {
-    if (!CONSUMER_NAME.test(consumer)) throw new Error("consumer must be a stable lowercase name");
-    const limit = batchSize(options);
-    const connection = await this.#pool.reserve();
-    let began = false;
-
-    try {
-      await connection.unsafe("BEGIN");
-      began = true;
-      const cursorRows = await connection<Array<{ last_seq: number | bigint }>>`
-        SELECT runtime_consumer_begin(${consumer}) AS last_seq
-      `;
-      const initialLastSeq = Number(cursorRows[0]?.last_seq ?? 0);
-      if (!Number.isSafeInteger(initialLastSeq) || initialLastSeq < 0) {
-        throw new Error("Consumer cursor is outside the supported sequence range");
-      }
-
-      const rows = await connection<OutboxRow[]>`
-        SELECT
-          seq,
-          id,
-          tenant_id,
-          property_node,
-          business_date::text,
-          aggregate_type,
-          aggregate_id,
-          event_type,
-          event_version,
-          actor_id,
-          correlation_id,
-          causation_id,
-          created_at,
-          payload
-        FROM runtime_consumer_read(${consumer}, ${initialLastSeq}::bigint, ${limit}, false)
-      `;
-
-      const inserted = await this.#markBatch(connection, consumer, rows);
-      let processed = 0;
-      let lastSeq = initialLastSeq;
-      let activeTenantId: string | null = null;
-      for (const [index, row] of rows.entries()) {
-        const event = toEvent(row);
-        if (inserted[index] === true) {
-          activeTenantId = await enterHandlerTenant(connection, event, activeTenantId);
-          await handler(event, connection);
-          await verifyHandlerTenant(connection, event);
-          processed += 1;
-        } else if (activeTenantId !== null && activeTenantId !== event.tenantId) {
-          await connection.unsafe("RESET ROLE");
-          activeTenantId = null;
-        }
-        lastSeq = event.seq;
-      }
-
-      await connection.unsafe("RESET ROLE");
-      if (lastSeq !== initialLastSeq) {
-        await connection`SELECT runtime_consumer_advance(${consumer}, ${lastSeq}::bigint)`;
-      }
-      await connection.unsafe("COMMIT");
-      began = false;
-      return { consumer, examined: rows.length, processed, lastSeq };
-    } catch (error) {
-      if (began) {
-        try {
-          await connection.unsafe("ROLLBACK");
-        } catch {
-          // Preserve the consumer or handler failure; the broken reservation is discarded.
-        }
-      }
-      throw error;
-    } finally {
-      connection.release();
-    }
+    const { events: _events, ...result } = await this.#consume(consumer, handler, options, false);
+    return result;
   }
 
   /**
@@ -299,10 +284,22 @@ export class PostgresEventBus implements EventBus {
     handler: EventHandler,
     options: ConsumeBatchOptions = {},
   ): Promise<ConsumedOutboxBatch> {
+    return this.#consume(consumer, handler, options, true);
+  }
+
+  async #consume(
+    consumer: string,
+    handler: EventHandler,
+    options: ConsumeBatchOptions,
+    unpublished: boolean,
+  ): Promise<ConsumedOutboxBatch> {
     if (!CONSUMER_NAME.test(consumer)) throw new Error("consumer must be a stable lowercase name");
     const limit = batchSize(options);
     const connection = await this.#pool.reserve();
     let began = false;
+    let settled = false;
+    let reusable = false;
+    let mustClosePool = false;
 
     try {
       await connection.unsafe("BEGIN");
@@ -331,7 +328,7 @@ export class PostgresEventBus implements EventBus {
           causation_id,
           created_at,
           payload
-        FROM runtime_consumer_read(${consumer}, ${initialLastSeq}::bigint, ${limit}, true)
+        FROM runtime_consumer_read(${consumer}, ${initialLastSeq}::bigint, ${limit}, ${unpublished})
       `;
 
       const inserted = await this.#markBatch(connection, consumer, rows);
@@ -354,24 +351,56 @@ export class PostgresEventBus implements EventBus {
         lastSeq = Math.max(lastSeq, event.seq);
       }
 
-      await connection.unsafe("RESET ROLE");
-      if (lastSeq !== initialLastSeq) {
-        await connection`SELECT runtime_consumer_advance(${consumer}, ${lastSeq}::bigint)`;
+      try {
+        await scrubHandlerSession(connection);
+      } catch (error) {
+        mustClosePool = true;
+        throw error;
       }
-      await connection.unsafe("COMMIT");
+      if (lastSeq !== initialLastSeq) {
+        await connection.unsafe("SELECT runtime_consumer_advance($1, $2::bigint)", [consumer, lastSeq]);
+      }
+      try {
+        await connection.unsafe("COMMIT");
+      } catch (error) {
+        mustClosePool = true;
+        throw error;
+      }
       began = false;
+      settled = true;
+      await this.#assertSettlement(connection);
+      reusable = true;
       return { consumer, examined: rows.length, processed, lastSeq, events };
     } catch (error) {
       if (began) {
         try {
           await connection.unsafe("ROLLBACK");
+          began = false;
+          settled = true;
+          if (!mustClosePool) {
+            try {
+              await this.#assertSettlement(connection);
+              reusable = true;
+            } catch {
+              // DISCARD ALL and an exact recheck run while the backend remains reserved.
+            }
+          }
         } catch {
-          // Preserve the consumer or handler failure; the broken reservation is discarded.
+          mustClosePool = true;
         }
       }
       throw error;
     } finally {
-      connection.release();
+      if (!reusable && settled && !mustClosePool) {
+        try {
+          await this.#discardAndAssertSettlement(connection);
+          reusable = true;
+        } catch {
+          mustClosePool = true;
+        }
+      }
+      if (!reusable || mustClosePool) await this.#failClosePool();
+      if (reusable && !mustClosePool) connection.release();
     }
   }
 

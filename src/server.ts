@@ -50,7 +50,7 @@ function runtimeApp() {
   const tokens = new Hs256TokenSigner(required("YELLOW_TOKEN_SECRET"));
   const database = Database.connect(databaseUrl, { maxConnections: 12, prepare: false });
   const loginPool = new SQL(databaseUrl, { max: 4 });
-  const eventPool = new SQL(databaseUrl, { max: 4 });
+  const eventPool = new SQL(databaseUrl, { max: 4, prepare: false });
   const extensionPool = new SQL(databaseUrl, { max: 4 });
   const login = new LocalLoginService(loginPool, tokens, new LocalLoginGuard());
   const events = new PostgresEventBus(eventPool);
