@@ -192,6 +192,7 @@ interface TravelRow {
   readonly pickup_requested: boolean;
   readonly pickup_task_id: string | null;
   readonly notes: string | null;
+  readonly visible_pickup_task_id: string | null;
 }
 
 interface FactRow {
@@ -206,6 +207,7 @@ interface FactRow {
   readonly actor_id: string | null;
   readonly payload: JsonValue;
   readonly supersedes: string | null;
+  readonly visible_supersedes_id: string | null;
 }
 
 export class ReservationDetailValidationError extends Error {
@@ -466,14 +468,19 @@ export class ReservationDetailService {
       ORDER BY active DESC, code NULLS LAST, id
     `;
     const travel = await tx<TravelRow[]>`
-      SELECT id, direction, mode, carrier, service_no,
-             CASE WHEN scheduled_at IS NULL THEN NULL ELSE
-               to_char(scheduled_at AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"') END AS scheduled_at,
-             pickup_requested, pickup_task_id, notes
-      FROM travel_detail
-      WHERE tenant_id = ${tenantId}::uuid
-        AND reservation_id = ${reservation.id}::uuid
-      ORDER BY CASE direction WHEN 'arrival' THEN 0 ELSE 1 END, id
+      SELECT travel.id, travel.direction, travel.mode, travel.carrier, travel.service_no,
+             CASE WHEN travel.scheduled_at IS NULL THEN NULL ELSE
+               to_char(travel.scheduled_at AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"') END AS scheduled_at,
+             travel.pickup_requested, travel.pickup_task_id, travel.notes,
+             pickup_task.id AS visible_pickup_task_id
+      FROM travel_detail AS travel
+      LEFT JOIN task AS pickup_task
+        ON pickup_task.tenant_id = travel.tenant_id
+       AND pickup_task.id = travel.pickup_task_id
+       AND pickup_task.property_node = ${propertyNode}::uuid
+      WHERE travel.tenant_id = ${tenantId}::uuid
+        AND travel.reservation_id = ${reservation.id}::uuid
+      ORDER BY CASE travel.direction WHEN 'arrival' THEN 0 ELSE 1 END, travel.id
     `;
     const history = await tx<FactRow[]>`
       SELECT fact.id, fact.entity_type, fact.entity_id, fact.fact_type,
@@ -482,8 +489,13 @@ export class ReservationDetailService {
                to_char(fact.valid_to AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"') END AS valid_to,
              to_char(fact.recorded_at AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"') AS recorded_at,
              fact.business_date::text, fact.actor_id,
-             fact.payload, fact.supersedes
+             fact.payload, fact.supersedes, predecessor.id AS visible_supersedes_id
       FROM fact_log AS fact
+      LEFT JOIN fact_log AS predecessor
+        ON predecessor.tenant_id = fact.tenant_id
+       AND predecessor.id = fact.supersedes
+       AND predecessor.entity_type = fact.entity_type
+       AND predecessor.entity_id = fact.entity_id
       WHERE fact.tenant_id = ${tenantId}::uuid
         AND (
           (fact.entity_type = 'reservation' AND fact.entity_id = ${reservation.id}::uuid)
@@ -530,9 +542,15 @@ export class ReservationDetailService {
     }
     for (const folio of folios) {
       requireCoherentReference("folio account", folio.account_id, folio.visible_account_id);
-      if (folio.account_property_node !== null && folio.account_property_node !== propertyNode) {
+      if (folio.account_property_node !== propertyNode) {
         throw new ReservationDetailConflictError("Stored folio account property is incoherent");
       }
+    }
+    for (const item of travel) {
+      requireCoherentReference("travel pickup task", item.pickup_task_id, item.visible_pickup_task_id);
+    }
+    for (const fact of history) {
+      requireCoherentReference("fact predecessor", fact.supersedes, fact.visible_supersedes_id);
     }
 
     return Object.freeze({

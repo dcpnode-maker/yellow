@@ -45,10 +45,13 @@ const ALERT_B = "00000000-0000-0000-0000-000000014193";
 const TRAVEL_ARRIVAL = "00000000-0000-0000-0000-000000014201";
 const TRAVEL_DEPARTURE = "00000000-0000-0000-0000-000000014202";
 const TRAVEL_B = "00000000-0000-0000-0000-000000014203";
+const TASK_A = "00000000-0000-0000-0000-000000014204";
+const TASK_B = "00000000-0000-0000-0000-000000014205";
 const FACT_RES_1 = "00000000-0000-0000-0000-000000014211";
 const FACT_SEG_1 = "00000000-0000-0000-0000-000000014212";
 const FACT_RES_2 = "00000000-0000-0000-0000-000000014213";
 const FACT_UNRELATED = "00000000-0000-0000-0000-000000014214";
+const FACT_B = "00000000-0000-0000-0000-000000014215";
 const REQUEST_ID = "order-141-request-correlation";
 
 const service = new ReservationDetailService();
@@ -66,7 +69,7 @@ function find(detailInput = input(), contextTenant = detailInput.tenantId) {
 
 async function clean(): Promise<void> {
   if (!admin) return;
-  for (const table of ["fact_log", "travel_detail", "alert", "folio", "account",
+  for (const table of ["fact_log", "travel_detail", "task", "alert", "folio", "account",
     "reservation_guest", "reservation_segment", "reservation", "rate_plan", "unit_type", "party", "org_node"]) {
     await admin.unsafe(`DELETE FROM ${table} WHERE tenant_id IN ($1::uuid,$2::uuid)`, [TENANT_A, TENANT_B]);
   }
@@ -132,15 +135,18 @@ beforeAll(async () => {
     (${ALERT_INACTIVE}::uuid,${TENANT_A}::uuid,'reservation',${RESERVATION_A}::uuid,'OLD','Inactive','checkout',false),
     (${ALERT_ACTIVE}::uuid,${TENANT_A}::uuid,'reservation',${RESERVATION_A}::uuid,'VIP','Active','always',true),
     (${ALERT_B}::uuid,${TENANT_B}::uuid,'reservation',${RESERVATION_B}::uuid,'FOREIGN','Foreign','always',true)`;
+  await admin`INSERT INTO task(id,tenant_id,property_node,kind,status,subject_type,subject_id,payload) VALUES
+    (${TASK_A}::uuid,${TENANT_A}::uuid,${PROPERTY_A}::uuid,'guest_request','open','reservation',${RESERVATION_A}::uuid,'{}'),
+    (${TASK_B}::uuid,${TENANT_B}::uuid,${PROPERTY_B}::uuid,'guest_request','open','reservation',${RESERVATION_B}::uuid,'{}')`;
   await admin`INSERT INTO travel_detail(
-      id,tenant_id,reservation_id,direction,mode,carrier,service_no,scheduled_at,pickup_requested,notes
+      id,tenant_id,reservation_id,direction,mode,carrier,service_no,scheduled_at,pickup_requested,pickup_task_id,notes
     ) VALUES
     (${TRAVEL_DEPARTURE}::uuid,${TENANT_A}::uuid,${RESERVATION_A}::uuid,'departure','car',NULL,NULL,
-      '2026-08-28T05:30:00.654321Z',false,'Guest car'),
+      '2026-08-28T05:30:00.654321Z',false,NULL,'Guest car'),
     (${TRAVEL_ARRIVAL}::uuid,${TENANT_A}::uuid,${RESERVATION_A}::uuid,'arrival','flight','Air India','AI141',
-      '2026-08-25T12:34:56.123456Z',true,'Meet at gate'),
+      '2026-08-25T12:34:56.123456Z',true,${TASK_A}::uuid,'Meet at gate'),
     (${TRAVEL_B}::uuid,${TENANT_B}::uuid,${RESERVATION_B}::uuid,'arrival','train','Foreign Rail','B141',
-      '2026-08-25T10:00:00Z',false,NULL)`;
+      '2026-08-25T10:00:00Z',false,NULL,NULL)`;
   await admin`INSERT INTO fact_log(
       id,tenant_id,entity_type,entity_id,fact_type,valid_from,valid_to,recorded_at,business_date,actor_id,payload,supersedes
     ) VALUES
@@ -154,6 +160,8 @@ beforeAll(async () => {
       '2026-08-25T00:00:00.000003Z',NULL,'2026-08-25T00:00:02.000001Z','2026-08-25',${ACTOR_A}::uuid,
       '{"request_id":"second","notes":{"before":null,"after":"Exact detail"}}',${FACT_RES_1}::uuid),
     (${FACT_UNRELATED}::uuid,${TENANT_A}::uuid,'reservation_segment',${SEGMENT_B}::uuid,'segment.foreign',
+      '2026-08-25T00:00:00Z',NULL,'2026-08-25T00:00:00Z','2026-08-25',NULL,'{}',NULL),
+    (${FACT_B}::uuid,${TENANT_B}::uuid,'reservation',${RESERVATION_B}::uuid,'reservation.foreign',
       '2026-08-25T00:00:00Z',NULL,'2026-08-25T00:00:00Z','2026-08-25',NULL,'{}',NULL)`;
 }, 30_000);
 
@@ -232,7 +240,7 @@ databaseDescribe("Order 141 fresh-PostgreSQL reservation detail proof", () => {
     expect(detail.travel).toEqual([
       { travelId: TRAVEL_ARRIVAL, direction: "arrival", mode: "flight", carrier: "Air India",
         serviceNo: "AI141", scheduledAt: "2026-08-25T12:34:56.123456Z", pickupRequested: true,
-        pickupTaskId: null, notes: "Meet at gate" },
+        pickupTaskId: TASK_A, notes: "Meet at gate" },
       { travelId: TRAVEL_DEPARTURE, direction: "departure", mode: "car", carrier: null,
         serviceNo: null, scheduledAt: "2026-08-28T05:30:00.654321Z", pickupRequested: false,
         pickupTaskId: null, notes: "Guest car" },
@@ -297,7 +305,17 @@ databaseDescribe("Order 141 fresh-PostgreSQL reservation detail proof", () => {
 
     await admin!`UPDATE account SET property_node=${PROPERTY_A2}::uuid WHERE id=${ACCOUNT_A}::uuid`;
     await expect(find()).rejects.toBeInstanceOf(ReservationDetailConflictError);
+    await admin!`UPDATE account SET property_node=NULL WHERE id=${ACCOUNT_A}::uuid`;
+    await expect(find()).rejects.toBeInstanceOf(ReservationDetailConflictError);
     await admin!`UPDATE account SET property_node=${PROPERTY_A}::uuid WHERE id=${ACCOUNT_A}::uuid`;
+
+    await admin!`UPDATE travel_detail SET pickup_task_id=${TASK_B}::uuid WHERE id=${TRAVEL_ARRIVAL}::uuid`;
+    await expect(find()).rejects.toBeInstanceOf(ReservationDetailConflictError);
+    await admin!`UPDATE travel_detail SET pickup_task_id=${TASK_A}::uuid WHERE id=${TRAVEL_ARRIVAL}::uuid`;
+
+    await admin!`UPDATE fact_log SET supersedes=${FACT_B}::uuid WHERE id=${FACT_RES_2}::uuid`;
+    await expect(find()).rejects.toBeInstanceOf(ReservationDetailConflictError);
+    await admin!`UPDATE fact_log SET supersedes=${FACT_RES_1}::uuid WHERE id=${FACT_RES_2}::uuid`;
 
     const tenantBVisible = await database!.withTenantTransaction(TENANT_B, async (tx) => ({
       parties: (await tx<Array<{ n: number }>>`SELECT count(*)::int n FROM party WHERE tenant_id=${TENANT_A}::uuid`)[0]!.n,
