@@ -98,6 +98,20 @@ async function captureSqlState(operation: () => Promise<unknown>): Promise<strin
   return null;
 }
 
+async function closeWithin(database: Database, timeoutMs = 10_000): Promise<void> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  try {
+    await Promise.race([
+      database.close(),
+      new Promise<never>((_, reject) => {
+        timer = setTimeout(() => reject(new Error("Database.close() did not settle")), timeoutMs);
+      }),
+    ]);
+  } finally {
+    if (timer !== undefined) clearTimeout(timer);
+  }
+}
+
 databaseDescribe("Order 127 runtime database authority (kernel boundary; HTTP P4 is separately covered)", () => {
   let admin: SQL;
   let runtimeSession: SQL;
@@ -379,6 +393,10 @@ databaseDescribe("Order 127 runtime database authority (kernel boundary; HTTP P4
       `;
       expect(rows).toEqual([{ current_user: "yellow_runtime", session_user: "yellow_runtime", tenant_clear: true }]);
     } finally { observer.release(); await observerPool.close(); }
+
+    await closeWithin(database);
+    await closeWithin(database);
+    database = Database.connect(RUNTIME_DATABASE_URL!, { maxConnections: 1 });
   });
 
   test("P3: bounded capabilities reject PUBLIC/app_role and malformed or oversized inputs", async () => {
