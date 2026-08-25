@@ -65,6 +65,37 @@ test("Order 086 P0: reservation segment change surface is present", () => {
   expect(ReservationLifecycleConflictError.prototype).toBeInstanceOf(Error);
 });
 
+test("Order 143 P0/P1: segment parents are written before changed-period and new-id claims", async () => {
+  const source = await Bun.file(
+    new URL("../src/contexts/reservations/segments.ts", import.meta.url),
+  ).text();
+  const changeStart = source.indexOf("async changeDeparture(");
+  const moveStart = source.indexOf("async moveRoom(");
+  const change = source.slice(changeStart, moveStart);
+  const move = source.slice(moveStart);
+  const occursBefore = (section: string, first: string, second: string): boolean => {
+    const firstIndex = section.indexOf(first);
+    const secondIndex = section.indexOf(second);
+    return firstIndex >= 0 && secondIndex >= 0 && firstIndex < secondIndex;
+  };
+
+  expect({
+    changedPeriodParentBeforeClaim: occursBefore(
+      change,
+      "const updated = await commandTx",
+      "reclaimed = await this.#occupancy.claimForSegment",
+    ),
+    newMoveParentBeforeClaim: occursBefore(
+      move,
+      "const inserted = await commandTx",
+      "claimed = await this.#occupancy.claimForSegment",
+    ),
+  }).toEqual({
+    changedPeriodParentBeforeClaim: true,
+    newMoveParentBeforeClaim: true,
+  });
+});
+
 const databaseDescribe = DATABASE_URL ? describe.serial : describe.skip;
 let admin: SQL | undefined;
 let eventPool: SQL | undefined;
@@ -181,6 +212,39 @@ async function snapshot(reservationId: string): Promise<unknown> {
       (SELECT count(*)::int FROM api_idempotency) AS keys
   `;
   return JSON.parse(JSON.stringify({ reservation, segments, claims, totals }));
+}
+
+async function parentObservations(segmentId: string): Promise<Array<{
+  sequence: number;
+  tenantId: string;
+  reservationId: string;
+  segmentId: string;
+  propertyNode: string;
+  sellableUnitId: string;
+  unitTypeId: string;
+  spaceId: string;
+  claimMode: string;
+  status: string;
+  from: Date;
+  to: Date;
+}>> {
+  return admin!`
+    SELECT observation_id AS sequence,
+           tenant_id::text AS "tenantId",
+           reservation_id::text AS "reservationId",
+           segment_id::text AS "segmentId",
+           property_node::text AS "propertyNode",
+           sellable_unit_id::text AS "sellableUnitId",
+           unit_type_id::text AS "unitTypeId",
+           space_id::text AS "spaceId",
+           claim_mode AS "claimMode",
+           segment_status AS status,
+           lower(period) AS "from",
+           upper(period) AS "to"
+      FROM order143_parent_observation
+     WHERE segment_id = ${segmentId}::uuid
+     ORDER BY observation_id
+  `;
 }
 
 async function failedArtifacts(requestId: string): Promise<Readonly<{ facts: number; events: number }>> {
@@ -306,9 +370,86 @@ beforeAll(async () => {
       (${TENANT_A}::uuid, ${SELLABLE_POSITIONAL}::uuid, ${SPACE_POSITIONAL}::uuid, 'positional'),
       (${TENANT_B}::uuid, ${SELLABLE_FOREIGN}::uuid, ${SPACE_FOREIGN}::uuid, 'exclusive')
   `;
+  await admin.unsafe(`
+    CREATE TABLE order143_parent_observation (
+      observation_id bigserial PRIMARY KEY,
+      tenant_id uuid NOT NULL,
+      reservation_id uuid NOT NULL,
+      segment_id uuid NOT NULL,
+      property_node uuid NOT NULL,
+      sellable_unit_id uuid NOT NULL,
+      unit_type_id uuid NOT NULL,
+      space_id uuid NOT NULL,
+      claim_mode text NOT NULL,
+      segment_status text NOT NULL,
+      period tstzrange NOT NULL
+    );
+    CREATE FUNCTION order143_require_segment_parent() RETURNS trigger
+    LANGUAGE plpgsql AS $$
+    BEGIN
+      IF NEW.slot_kind <> 'segment' THEN
+        RETURN NEW;
+      END IF;
+
+      INSERT INTO order143_parent_observation (
+        tenant_id, reservation_id, segment_id, property_node,
+        sellable_unit_id, unit_type_id, space_id, claim_mode,
+        segment_status, period
+      )
+      SELECT segment.tenant_id, segment.reservation_id, segment.id,
+             reservation.property_node, segment.sellable_unit_id,
+             segment.unit_type_id, space.id, mapping.claim_mode,
+             segment.status, segment.period
+        FROM reservation_segment AS segment
+        JOIN reservation
+          ON reservation.id = segment.reservation_id
+         AND reservation.tenant_id = segment.tenant_id
+        JOIN sellable_unit
+          ON sellable_unit.id = segment.sellable_unit_id
+         AND sellable_unit.tenant_id = segment.tenant_id
+         AND sellable_unit.unit_type_id = segment.unit_type_id
+         AND sellable_unit.status = 'active'
+        JOIN unit_type
+          ON unit_type.id = segment.unit_type_id
+         AND unit_type.tenant_id = segment.tenant_id
+         AND unit_type.property_node = reservation.property_node
+        JOIN sellable_unit_space AS mapping
+          ON mapping.tenant_id = segment.tenant_id
+         AND mapping.sellable_unit_id = segment.sellable_unit_id
+         AND mapping.space_id = NEW.space_id
+         AND mapping.claim_mode =
+             CASE WHEN NEW.exclusive THEN 'exclusive' ELSE 'positional' END
+        JOIN space
+          ON space.id = mapping.space_id
+         AND space.tenant_id = segment.tenant_id
+         AND space.property_node = reservation.property_node
+         AND space.status = 'active'
+       WHERE segment.id = NEW.slot_ref
+         AND segment.tenant_id = NEW.tenant_id
+         AND segment.status IN ('booked', 'in_house')
+         AND segment.period = NEW.period;
+
+      IF NOT FOUND THEN
+        RAISE EXCEPTION USING
+          ERRCODE = 'P0143',
+          MESSAGE = 'order143 exact segment parent missing before occupancy';
+      END IF;
+      RETURN NEW;
+    END $$;
+    CREATE TRIGGER order143_require_segment_parent
+      BEFORE INSERT ON space_occupancy
+      FOR EACH ROW EXECUTE FUNCTION order143_require_segment_parent();
+  `);
 });
 
 afterAll(async () => {
+  if (admin) {
+    await admin.unsafe(`
+      DROP TRIGGER IF EXISTS order143_require_segment_parent ON space_occupancy;
+      DROP FUNCTION IF EXISTS order143_require_segment_parent();
+      DROP TABLE IF EXISTS order143_parent_observation;
+    `).catch(() => undefined);
+  }
   await database?.close();
   await eventPool?.close();
   await admin?.close();
@@ -368,6 +509,21 @@ databaseDescribe("Order 086 atomic reservation segment changes", () => {
     });
     expect((extensionRows[0]?.from_at as Date).toISOString()).toBe(future.from.toISOString());
     expect((extensionRows[0]?.to_at as Date).toISOString()).toBe(extendedTo.toISOString());
+    const extensionParents = await parentObservations(extension.segmentId);
+    expect(extensionParents).toHaveLength(2);
+    expect(extensionParents.at(-1)).toMatchObject({
+      tenantId: TENANT_A,
+      reservationId: extension.reservationId,
+      segmentId: extension.segmentId,
+      propertyNode: PROPERTY_A,
+      sellableUnitId: SELLABLE_A,
+      unitTypeId: UNIT_TYPE_A,
+      spaceId: SPACE_A,
+      claimMode: "exclusive",
+      status: "booked",
+      from: future.from,
+      to: extendedTo,
+    });
 
     const live = period(10, 4);
     const liveNow = instant(11, 12);
@@ -390,6 +546,21 @@ databaseDescribe("Order 086 atomic reservation segment changes", () => {
       releasedClaimCount: 1,
       reclaimedClaimCount: 1,
       financialJournalId: null,
+    });
+    const shortenedParents = await parentObservations(shortening.segmentId);
+    expect(shortenedParents).toHaveLength(2);
+    expect(shortenedParents.at(-1)).toMatchObject({
+      tenantId: TENANT_A,
+      reservationId: shortening.reservationId,
+      segmentId: shortening.segmentId,
+      propertyNode: PROPERTY_A,
+      sellableUnitId: SELLABLE_A,
+      unitTypeId: UNIT_TYPE_A,
+      spaceId: SPACE_A,
+      claimMode: "exclusive",
+      status: "in_house",
+      from: live.from,
+      to: shortenedTo,
     });
     const exactEvents = await admin!<Array<{ event_type: string }>>`
       SELECT event_type FROM outbox
@@ -476,6 +647,21 @@ databaseDescribe("Order 086 atomic reservation segment changes", () => {
       ORDER BY slot_ref
     `;
     expect(claims).toEqual([{ slot_ref: newSegmentId, space_id: SPACE_B }]);
+    const moveParents = await parentObservations(newSegmentId);
+    expect(moveParents).toHaveLength(1);
+    expect(moveParents[0]).toMatchObject({
+      tenantId: TENANT_A,
+      reservationId: created.reservationId,
+      segmentId: newSegmentId,
+      propertyNode: PROPERTY_A,
+      sellableUnitId: SELLABLE_B,
+      unitTypeId: UNIT_TYPE_A,
+      spaceId: SPACE_B,
+      claimMode: "exclusive",
+      status: "in_house",
+      from: movedAt,
+      to: stay.to,
+    });
     const movedEvents = await admin!<Array<{ payload: Record<string, unknown> }>>`
       SELECT payload FROM outbox
       WHERE correlation_id = ${input.envelope.requestId}::uuid AND event_type = 'segment.moved'
