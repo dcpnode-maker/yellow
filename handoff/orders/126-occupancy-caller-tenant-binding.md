@@ -115,6 +115,7 @@ Governance may change only:
 - `handoff/orders/126-occupancy-caller-tenant-binding.md`;
 - `handoff/reviews/126-occupancy-caller-tenant-binding.md` when written by the
   independent reviewer; and
+- `handoff/questions/149-order126-cancelled-parent-and-derived-proof-scope.md`; and
 - additive Order-126 entries in `DECISIONS.log` and `handoff/LEDGER.md`.
 
 The exact authorized final blobs from `b96101f` are:
