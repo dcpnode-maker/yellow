@@ -1,7 +1,7 @@
 # Order 127 — Separate runtime database authority from deployment authority
 
-**Status:** CORRECTION READY — D-392, corrected by D-393 through D-396;
-Questions 150–152 resolved before corrected executable implementation
+**Status:** CORRECTION READY — D-392, corrected by D-393 through D-397;
+Questions 150–153 resolved before corrected executable implementation
 **Phase:** 5 · Cyber remediation
 **Branch:** `phase-5/runtime-database-authority-final`
 **Base:** `8daf34e1f1328e866b0b52ff750631e7d651d0b7` — exact independently
@@ -83,6 +83,8 @@ PUBLIC and `app_role` denied and only `yellow_runtime` granted EXECUTE:
 3. `runtime_consumer_begin(text)`, `runtime_consumer_read(text,bigint,integer,boolean)`,
    `runtime_consumer_mark(text,uuid)` and `runtime_consumer_advance(text,bigint)` retain
    existing cursor locking, dedupe, ordering and handler-transaction semantics;
+   `runtime_consumer_read` column 4 is exact `property_node uuid`, matching
+   `public.outbox.property_node`, never `ltree`;
 4. `runtime_mark_outbox_published(uuid[])` and `runtime_prune_outbox(integer)` retain
    only the approved relay publish/prune behavior;
 5. `runtime_visible_extensions(uuid)` returns only platform-global plus exact-tenant
@@ -197,7 +199,9 @@ Governance may change only:
 - `handoff/questions/151-order127-bun-pool-containment.md` for the exact resolved Bun
   reserved-connection contract;
 - `handoff/questions/152-order127-repeat-v12-role-transition.md` for the exact resolved
-  cluster-global repeat-database role transition; and
+  cluster-global repeat-database role transition;
+- `handoff/questions/153-order127-outbox-capability-contract.md` for the exact resolved
+  outbox result, owner-oracle and authoritative task-parent fixture contract; and
 - additive Order-127 entries in `DECISIONS.log` and `handoff/LEDGER.md`.
 
 Every other path is forbidden. In particular: never edit migrations 0001–0014,
@@ -277,6 +281,14 @@ function for PUBLIC/app-role denial, injection inputs, oversized arrays/limits a
 temporary-schema resolution. Extension proofs retain exact tenant-own,
 platform-global and platform-wide same-type compatibility results through only the two
 D-394 reads.
+
+The inherited outbox proof must assert exact `yellow_owner` ownership for
+`consumer_cursor` and `consumer_processed` after v15. Its unchanged P1 task/event
+atomicity assertion receives only the exact authoritative `org_node` row required by
+the task's `property_node` foreign key, loaded before the task mutation in the same
+fresh proof database (or equivalently via the canonical governed seed fixture). No
+foreign-key bypass, nullable parent, expected-error change or assertion weakening is
+permitted.
 
 The inherited Order-118 proof retains its parent-to-hardened 0012 transition and,
 after v15, requires exactly one incoming `app_role` membership from `yellow_runtime`,
