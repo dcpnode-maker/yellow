@@ -1,11 +1,11 @@
 # Order 142 — Compose approved post-130 integration on canonical main
 
-**Status:** BUILT-UNREVIEWED  
-**Phase:** 5  
+**Status:** APPROVED
+**Phase:** 5
 **Tier:** 3 — authentication, role/ACL migrations, idempotency, reservation/occupancy
-sequencing and protected-referee composition  
-**Branch:** `phase-5/post130-approved-integration`  
-**Base:** `952478d17bcebd67e696d5cb76eec37e89cabcf3` (`origin/main`)  
+sequencing and protected-referee composition
+**Branch:** `phase-5/post130-approved-integration`
+**Base:** `952478d17bcebd67e696d5cb76eec37e89cabcf3` (`origin/main`)
 **Owner:** Codex integration builder; independent non-implementing Tier-3 review required
 
 ## Admission evidence
@@ -265,3 +265,16 @@ contains inherited trailing whitespace; it is preserved byte-for-byte for proven
 
 Independent non-implementing Tier-3 P0–P5 review remains mandatory. This builder record
 does not authorize merge, push, deployment, live status or Order 126 completion.
+
+## Independent review — 2026-08-25
+
+An independent non-implementing OpenAI Codex Tier-3 reviewer APPROVES exact executable
+`a060d49db570185cd711d850aa7113f58eee359f` at builder evidence parent
+`420b57e5e903ba9739ac78ee0f73950ef6050c5d` with no finding. The reviewer personally
+proved 77/77 final source blobs, the complete 80-path allowlist, all rejected ancestry
+and three-file alternatives, additive governance with canonical D-339 preserved, exact
+protected hashes, focused source proofs, fresh acceptance/schema, a 19/19 isolated
+database matrix, standing 172/0 and an app-never-started 85-table referee 11/11. The
+full command/results and path-level manifest are recorded in
+`handoff/reviews/142-post130-approved-integration.md`. This approval does not merge,
+push, deploy, claim live status, complete Order 126/127 or broaden source-order closure.
