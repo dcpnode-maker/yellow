@@ -1,10 +1,10 @@
 # Question 155 — Order-127 relay handler context
 
-**Status:** RESOLVED BY D-399, D-401 AND D-402 — CORRECTION READY
+**Status:** RESOLVED BY D-399, D-401, D-402 AND D-403 — CORRECTION READY
 **Order:** 127 · runtime database authority
 **Branch:** `phase-5/runtime-database-authority-final`
 **D398 rerun head:** `5255ac2`
-**Related decisions:** D-392, D-395, D-398, D-399, D-401, D-402
+**Related decisions:** D-392, D-395, D-398, D-399, D-401, D-402, D-403
 
 ## RESOLVED
 
@@ -103,3 +103,24 @@ rollback and clean retry after the failed pool is closed. Ordered and unpublishe
 consumers receive parity. The unchanged P6 thresholds and every D-399 ordering,
 transition and atomicity rule remain binding. D-401 is preserved as stopped review
 evidence; D-402 replaces only its impossible detection/eviction proof shape.
+
+## D-403 bounded Bun fail-close correction
+
+Fresh self-termination proof isolated an additional Bun 1.3.14 limitation. With a
+physically dead `ReservedSQL`, releasing the reservation raises an asynchronous
+`ERR_POSTGRES_CONNECTION_CLOSED` outside JavaScript `try/catch`; retaining it while
+awaiting `SQL.close({ timeout: 0 })` leaves that close promise unsettled. Neither path
+can be represented as a cleanly awaited backend disposal. Repeated focused runs proved
+both failures before any cumulative evidence was accepted.
+
+The event adapter must enter an irreversible failed state before initiating best-effort
+whole-pool close. It attaches rejection handling immediately, never releases the dead
+reservation, and does not await the known-unsettled physical close promise on the
+consumer error path. Every later adapter operation that would reserve that owning pool
+must reject synchronously from the failed state, so production cannot reuse the pool.
+Publishing through an already supplied caller transaction remains independent.
+
+Proof asserts transaction rollback, same-adapter rejection without raw-pool probing or
+closing, and clean retry through a newly constructed pool. Process replacement is the
+final resource-reclamation boundary for this terminal pool failure. Ordinary clean
+settlement/reuse, ordered/unpublished parity and every P6 threshold remain unchanged.
