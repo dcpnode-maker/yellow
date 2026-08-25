@@ -1,6 +1,6 @@
 # Order 149 — Show approved post-127 integration status
 
-**Status:** APPROVED — D-414; local workbench active on approved snapshot
+**Status:** APPROVED — D-414; local workbench active; stacked PR #79 open
 **Phase:** 5 · founder visibility
 **Branch:** `phase-5/founder-status-approved-integration`
 **Base:** `4748ded0868a35434bbf9bbfd10b87294dc73301` — closed Order 148; PR #78 open and unmerged
