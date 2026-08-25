@@ -1,6 +1,6 @@
 # Order 143 — Create segment-change parents before occupancy reacquisition
 
-**Status:** READY
+**Status:** IMPLEMENTED-NONDB — DATABASE PROOF PENDING
 **Phase:** 5 · Cyber remediation prerequisite
 **Branch:** `phase-5/reservation-segment-parent-before-occupancy`
 **Base:** `a3c91bc410a4bcc943c57b5ae5d3b89e6a2c29d4` — independently approved
@@ -147,6 +147,27 @@ APPROVE or REJECT. Builder output is not reviewer evidence.
   cleanup in place of rollback, weakening conflicts/concurrency/idempotency/facts/
   outbox assertions, or editing protected referee/fixture files;
 - self-review, self-merge, push, deployment, live-status or Cyber finding closure.
+
+## Builder checkpoint — non-database only
+
+The test-first ordering proof is preserved in exact commit
+`850c36d3815cc5f464bba0468d694c51d0662a7e`: before production edits its focused
+static assertion reported 1 pass, 5 skipped, 1 failure and showed both required
+parent-before-claim predicates as false. The exact executable commit
+`76dfe26dff81d183d3b156becd10685b989d6f93` makes only the two preregistered
+transaction-local reorderings in `segments.ts`.
+
+Without starting Docker, that executable passes:
+
+- focused static proof: 2 passed, 5 skipped, 0 failed, 3 assertions;
+- standing suite: 173 passed, 422 skipped, 0 failed, 1,982 assertions;
+- typecheck, 64-file import-boundary check, frozen 23-package licence check and audit
+  with no vulnerabilities.
+
+The test-only PostgreSQL guard and observations are committed and compile, but P0's
+database red, P1-P4 database behavior, P5, the pristine referee and independent
+Tier-3 review have deliberately not run while Docker remains prohibited. This status
+is therefore neither `BUILT-UNREVIEWED` nor review-ready.
 
 ## Definition of done
 
