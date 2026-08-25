@@ -580,4 +580,3 @@ databaseDescribe("Order 046 reproducible local-review seed", () => {
     expect(await rateSnapshot()).toEqual(before);
   });
 });
-
