@@ -227,26 +227,114 @@
         </section>
 
         <section id="reservations-view" hidden aria-labelledby="reservations-title">
-          <div class="section-heading">
+          <div class="section-heading reservation-heading">
             <div>
-              <p class="eyebrow">Reservation operations</p>
-              <h2 id="reservations-title" tabindex="-1">Reservation lifecycle and guests</h2>
-              <p class="muted">Find exact server truth before changing metadata, lifecycle state or guest allocation. Every command remains tenant and property scoped.</p>
+              <p class="eyebrow">Front desk</p>
+              <h2 id="reservations-title" tabindex="-1">Reservations</h2>
+              <p class="muted">Find a stay, open its complete server record, or create a reservation without leaving this workspace.</p>
             </div>
+            <button class="primary" id="reservation-create-open" type="button">New reservation</button>
           </div>
-          <section class="reservation-booking-panel" aria-labelledby="reservation-booking-title">
-            <div class="panel-heading"><div>
-              <h3 id="reservation-booking-title">New reservation</h3>
-              <p class="muted">Search complete server offers, optionally protect one for ten minutes, then commit through PostgreSQL occupancy. Party creation/profile merge, deposits and public guest booking remain separate later workflows. This workbench now supports canonical Party search and creation only; editing, merge, anonymisation, guest 360, consent and verification remain later workflows. Confirmation does not imply payment, tax finalization, a folio, journal or fiscal document.</p>
-            </div></div>
-            <section class="card party-profile-panel" aria-labelledby="party-profile-title">
-              <div class="party-profile-heading">
-                <div>
-                  <h4 id="party-profile-title">Find or create Party</h4>
-                  <p class="field-note">Search tenant Party truth for this granted property. Contact hints are masked; selecting or creating a Party does not create a reservation.</p>
-                </div>
-                <button class="quiet" id="party-profile-clear" type="button" hidden>Change Party</button>
+
+          <section class="reservation-board" id="reservation-board" aria-labelledby="reservation-board-title">
+            <div class="reservation-board-toolbar">
+              <div>
+                <h3 id="reservation-board-title">Reservation board</h3>
+                <p class="muted" id="reservation-board-summary">Loading current reservations…</p>
               </div>
+              <form id="reservation-board-filters" class="reservation-board-filters">
+                <label>Status
+                  <select name="status">
+                    <option value="">All statuses</option>
+                    <option value="quote">Quote</option>
+                    <option value="reserved">Reserved</option>
+                    <option value="waitlist">Waitlist</option>
+                    <option value="due_in">Due in</option>
+                    <option value="in_house">In house</option>
+                    <option value="due_out">Due out</option>
+                    <option value="checked_out">Checked out</option>
+                    <option value="cancelled">Cancelled</option>
+                    <option value="no_show">No show</option>
+                  </select>
+                </label>
+                <label>Stay overlaps from (UTC)
+                  <input name="from" type="datetime-local" step="0.001">
+                </label>
+                <label>Stay overlaps to (UTC)
+                  <input name="to" type="datetime-local" step="0.001">
+                </label>
+                <div class="reservation-filter-actions">
+                  <button class="secondary" type="submit">Apply filters</button>
+                  <button class="quiet" id="reservation-filters-clear" type="button">Clear</button>
+                </div>
+              </form>
+            </div>
+            <div class="reservation-board-loading" id="reservation-board-loading" aria-hidden="true">
+              <span></span><span></span><span></span><span></span><span></span><span></span>
+            </div>
+            <section class="card reservation-board-error" id="reservation-board-error" hidden role="alert">
+              <strong>Reservations could not be loaded</strong>
+              <p></p>
+              <button class="secondary" id="reservation-board-retry" type="button">Try again</button>
+            </section>
+            <section class="card reservation-board-empty" id="reservation-board-empty" hidden>
+              <h4>No reservations match these filters</h4>
+              <p>Clear the filters to see the full board, or start a new reservation.</p>
+              <div class="option-actions">
+                <button class="secondary" id="reservation-empty-clear" type="button">Clear filters</button>
+                <button class="primary" id="reservation-empty-create" type="button">New reservation</button>
+              </div>
+            </section>
+            <div id="reservation-board-content" hidden>
+              <div class="reservation-board-table-wrap card" role="region" aria-label="Reservations" tabindex="0">
+                <table class="reservation-board-table">
+                  <thead><tr><th class="reservation-board-heading" scope="col">Confirmation</th><th class="reservation-board-heading" scope="col">Guest</th><th class="reservation-board-heading" scope="col">Status</th><th class="reservation-board-heading" scope="col">Stay</th><th class="reservation-board-heading" scope="col">Room</th><th class="reservation-board-heading" scope="col">Rate</th><th class="reservation-board-heading" scope="col">Guests</th><th class="reservation-board-heading" scope="col">Channel</th></tr></thead>
+                  <tbody id="reservation-board-rows"></tbody>
+                </table>
+              </div>
+              <div class="reservation-board-cards" id="reservation-board-cards" aria-label="Reservations"></div>
+              <button class="quiet reservation-board-more" id="reservation-board-more" type="button" hidden>Load older reservations</button>
+            </div>
+            <p class="inventory-status" id="reservation-board-status" role="status" aria-live="polite"></p>
+          </section>
+
+          <section class="reservation-create-shell" id="reservation-create-panel" hidden aria-labelledby="reservation-booking-title">
+            <div class="reservation-create-head">
+              <div><p class="eyebrow">Guided booking</p><h3 id="reservation-booking-title" tabindex="-1">New reservation</h3></div>
+              <button class="quiet" id="reservation-create-cancel" type="button">Close</button>
+            </div>
+            <p class="field-note">Party creation/profile merge, deposits and public guest booking remain separate later workflows. Party editing, merge, anonymisation, guest 360, consent and verification remain later workflows. Confirmation does not imply payment, tax finalization, a folio, journal or fiscal document.</p>
+            <ol class="reservation-stepper" id="reservation-create-steps" aria-label="Reservation steps">
+              <li><button type="button" data-reservation-create-step="1" aria-current="step"><span>1</span>Stay</button></li>
+              <li><button type="button" data-reservation-create-step="2"><span>2</span>Guest</button></li>
+              <li><button type="button" data-reservation-create-step="3"><span>3</span>Offer</button></li>
+              <li><button type="button" data-reservation-create-step="4"><span>4</span>Review &amp; book</button></li>
+            </ol>
+
+            <section class="reservation-create-step" data-reservation-create-panel="1" aria-labelledby="reservation-step-stay-title">
+              <h4 id="reservation-step-stay-title">When are they staying?</h4>
+              <p class="muted">Dates remain editable. Yellow resolves complete server offers only after a guest is selected.</p>
+              <form class="card reservation-booking-form" id="reservation-booking-form">
+                <fieldset class="progressive-fields">
+                  <legend>Stay</legend>
+                  <div class="reservation-field-grid">
+                    <label>Stay starts (UTC)<input name="from" type="datetime-local" step="0.001" required></label>
+                    <label>Stay ends (UTC)<input name="to" type="datetime-local" step="0.001" required></label>
+                    <label>Adults<input name="adults" type="number" min="1" max="32767" value="1" required></label>
+                    <label>Child ages (comma-separated)<input name="childAges" inputmode="numeric" placeholder="6, 10"></label>
+                    <label>Channel code<input name="channelCode" value="direct" maxlength="64" pattern="[A-Za-z0-9][A-Za-z0-9._-]{0,63}" required></label>
+                    <label class="reservation-party-authority">Primary Party ID (server selected)<input name="primaryPartyId" required readonly pattern="[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}" autocomplete="off" aria-describedby="party-profile-title"></label>
+                  </div>
+                </fieldset>
+                <button class="primary" id="reservation-stay-next" type="button">Continue to guest</button>
+                <button class="primary" id="reservation-search-offers" type="submit" hidden>Search complete offers</button>
+                <p class="form-message" role="status" aria-live="polite">Offers are read-only evidence, not promised inventory.</p>
+              </form>
+            </section>
+
+            <section class="reservation-create-step" data-reservation-create-panel="2" hidden aria-labelledby="party-profile-title">
+              <div class="reservation-step-heading"><div><h4 id="party-profile-title">Who is staying?</h4><p class="field-note">Search canonical Party truth. Contact hints stay masked.</p></div><button class="quiet" id="party-profile-clear" type="button" hidden>Change Party</button></div>
+            <section class="card party-profile-panel" aria-labelledby="party-profile-title">
               <div id="party-profile-picker">
                 <form id="party-profile-search-form" class="party-profile-search-form">
                   <label for="party-profile-query">Name, Party ID, email or phone
@@ -314,22 +402,19 @@
                 <span>Selected server Party</span><strong></strong><small></small>
               </div>
             </section>
-            <form class="card reservation-booking-form" id="reservation-booking-form">
-              <fieldset class="progressive-fields">
-                <legend>Stay and selected Party</legend>
-                <div class="reservation-field-grid">
-                  <label>Stay starts (UTC)<input name="from" type="datetime-local" step="0.001" required></label>
-                  <label>Stay ends (UTC)<input name="to" type="datetime-local" step="0.001" required></label>
-                  <label>Primary Party ID (server selected)<input name="primaryPartyId" required readonly pattern="[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}" autocomplete="off" aria-describedby="party-profile-title"></label>
-                  <label>Adults<input name="adults" type="number" min="1" max="32767" value="1" required></label>
-                  <label>Child ages (comma-separated)<input name="childAges" inputmode="numeric" placeholder="6, 10"></label>
-                  <label>Channel code<input name="channelCode" value="direct" maxlength="64" pattern="[A-Za-z0-9][A-Za-z0-9._-]{0,63}" required></label>
-                </div>
-              </fieldset>
-              <button class="primary" type="submit">Search complete offers</button>
-              <p class="form-message" role="status" aria-live="polite">Offers are read-only evidence, not promised inventory.</p>
-            </form>
+              <div class="reservation-step-actions"><button class="quiet" data-reservation-back="1" type="button">Back</button><button class="primary" id="reservation-guest-next" type="button">Find available offers</button></div>
+            </section>
+
+            <section class="reservation-create-step" data-reservation-create-panel="3" hidden aria-labelledby="reservation-offer-title">
+              <h4 id="reservation-offer-title">Choose a server offer</h4>
+              <p class="muted">Availability and price are evidence. Final commit always rechecks PostgreSQL occupancy.</p>
+              <button class="secondary" id="reservation-offer-retry" type="button" hidden>Search current offers again</button>
             <div class="reservation-booking-options" id="reservation-booking-options" aria-live="polite"></div>
+              <div class="reservation-step-actions"><button class="quiet" data-reservation-back="2" type="button">Back to guest</button></div>
+            </section>
+
+            <section class="reservation-create-step" data-reservation-create-panel="4" hidden aria-labelledby="reservation-review-title">
+              <h4 id="reservation-review-title">Review and book</h4>
             <div class="card reservation-booking-commit" id="reservation-booking-commit" hidden>
               <h4>Selected server offer</h4>
               <p id="reservation-booking-selection"></p>
@@ -344,7 +429,13 @@
                 <span>Server confirmation</span><strong></strong><small></small>
               </div>
             </div>
+              <div class="reservation-step-actions"><button class="quiet" data-reservation-back="3" type="button">Back to offers</button></div>
+            </section>
           </section>
+
+          <details class="reservation-tools card" id="reservation-tools">
+            <summary>Advanced reservation changes</summary>
+            <p class="muted">These governed tools reload exact server truth before changing a stay, metadata, lifecycle or guest allocation.</p>
           <section class="reservation-segments-panel" aria-labelledby="reservation-segments-title">
             <div class="panel-heading"><div>
               <h3 id="reservation-segments-title">Stay segments</h3>
@@ -475,6 +566,16 @@
             <p class="form-message" role="status" aria-live="polite"></p>
           </form>
           </section>
+          </details>
+
+          <aside class="reservation-detail-drawer" id="reservation-detail-drawer" hidden aria-labelledby="reservation-detail-title" tabindex="-1">
+            <div class="reservation-detail-head"><div><p class="eyebrow">Reservation</p><h3 id="reservation-detail-title">Loading reservation…</h3></div><button class="quiet" id="reservation-detail-close" type="button" aria-label="Close reservation details">Close</button></div>
+            <div class="reservation-detail-loading" id="reservation-detail-loading" aria-hidden="true"><span></span><span></span><span></span><span></span></div>
+            <section class="reservation-detail-error" id="reservation-detail-error" hidden role="alert"><strong>Reservation details could not be loaded</strong><p></p><button class="secondary" id="reservation-detail-retry" type="button">Try again</button></section>
+            <div class="reservation-detail-content" id="reservation-detail-content" hidden></div>
+            <div class="reservation-detail-actions" id="reservation-detail-actions" hidden></div>
+            <p class="inventory-status" id="reservation-detail-status" role="status" aria-live="polite"></p>
+          </aside>
         </section>
 
         <section id="folios-view" hidden aria-labelledby="folios-title">

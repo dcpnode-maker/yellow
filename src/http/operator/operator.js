@@ -37,6 +37,15 @@
   let reservationBookingHold = null;
   let reservationBookingDraft = null;
   let reservationBookingSearchGeneration = 0;
+  let reservationBoardRows = [];
+  let reservationBoardNextCursor = null;
+  let reservationBoardGeneration = 0;
+  let reservationDetailData = null;
+  let reservationDetailGeneration = 0;
+  let reservationDrawerReturnFocus = null;
+  let reservationCreateStep = 1;
+  let reservationCreateDirty = false;
+  let reservationRouteReservationId = "";
   let partyProfileGeneration = 0;
   let partyCreateAttemptKey = "";
   let partyCreateDraft = null;
@@ -291,6 +300,7 @@
   const reservationBookingForm = document.querySelector("#reservation-booking-form");
   const reservationBookingOptions = document.querySelector("#reservation-booking-options");
   const reservationBookingCommit = document.querySelector("#reservation-booking-commit");
+  const reservationOfferRetry = document.querySelector("#reservation-offer-retry");
   const reservationBookingSelectionText = document.querySelector("#reservation-booking-selection");
   const reservationBookingHoldText = document.querySelector("#reservation-booking-hold");
   const reservationBookingHoldAction = document.querySelector("#reservation-booking-hold-action");
@@ -310,6 +320,40 @@
   const partyProfilePicker = document.querySelector("#party-profile-picker");
   const partyProfileSelected = document.querySelector("#party-profile-selected");
   const partyProfileClear = document.querySelector("#party-profile-clear");
+  const reservationBoard = document.querySelector("#reservation-board");
+  const reservationBoardForm = document.querySelector("#reservation-board-filters");
+  const reservationBoardSummary = document.querySelector("#reservation-board-summary");
+  const reservationBoardLoading = document.querySelector("#reservation-board-loading");
+  const reservationBoardError = document.querySelector("#reservation-board-error");
+  const reservationBoardEmpty = document.querySelector("#reservation-board-empty");
+  const reservationBoardContent = document.querySelector("#reservation-board-content");
+  const reservationBoardRowsTarget = document.querySelector("#reservation-board-rows");
+  const reservationBoardCards = document.querySelector("#reservation-board-cards");
+  const reservationBoardMore = document.querySelector("#reservation-board-more");
+  const reservationBoardStatus = document.querySelector("#reservation-board-status");
+  const reservationBoardRetry = document.querySelector("#reservation-board-retry");
+  const reservationFiltersClear = document.querySelector("#reservation-filters-clear");
+  const reservationEmptyClear = document.querySelector("#reservation-empty-clear");
+  const reservationCreateOpen = document.querySelector("#reservation-create-open");
+  const reservationEmptyCreate = document.querySelector("#reservation-empty-create");
+  const reservationCreatePanel = document.querySelector("#reservation-create-panel");
+  const reservationCreateCancel = document.querySelector("#reservation-create-cancel");
+  const reservationCreateSteps = document.querySelectorAll("[data-reservation-create-step]");
+  const reservationCreatePanels = document.querySelectorAll("[data-reservation-create-panel]");
+  const reservationStayNext = document.querySelector("#reservation-stay-next");
+  const reservationGuestNext = document.querySelector("#reservation-guest-next");
+  const reservationSearchOffers = document.querySelector("#reservation-search-offers");
+  const reservationBackButtons = document.querySelectorAll("[data-reservation-back]");
+  const reservationDetailDrawer = document.querySelector("#reservation-detail-drawer");
+  const reservationDetailTitle = document.querySelector("#reservation-detail-title");
+  const reservationDetailClose = document.querySelector("#reservation-detail-close");
+  const reservationDetailLoading = document.querySelector("#reservation-detail-loading");
+  const reservationDetailError = document.querySelector("#reservation-detail-error");
+  const reservationDetailRetry = document.querySelector("#reservation-detail-retry");
+  const reservationDetailContent = document.querySelector("#reservation-detail-content");
+  const reservationDetailActions = document.querySelector("#reservation-detail-actions");
+  const reservationDetailStatus = document.querySelector("#reservation-detail-status");
+  const reservationTools = document.querySelector("#reservation-tools");
   const folioStatementLookupForm = document.querySelector("#folio-statement-lookup-form");
   const folioStatement = document.querySelector("#folio-statement");
   const folioStatementTitle = document.querySelector("#folio-statement-title");
@@ -428,6 +472,12 @@
     reservationBookingHold = null;
     reservationBookingDraft = null;
     reservationBookingSearchGeneration += 1;
+    reservationBoardGeneration += 1;
+    reservationDetailGeneration += 1;
+    reservationBoardRows = [];
+    reservationBoardNextCursor = null;
+    reservationRouteReservationId = "";
+    reservationCreateDirty = false;
     clearPartyProfileState();
     clearFolioState();
     reservationGuestForm.hidden = true;
@@ -462,7 +512,7 @@
       propertySelect.disabled = true;
     } else {
       propertySelect.disabled = false;
-      const pathProperty = location.pathname.match(/^\/p\/([0-9a-f-]+)\/(?:availability|inventory|operations|reservations|folios|restrictions|rates|status)$/)?.[1];
+      const pathProperty = location.pathname.match(/^\/p\/([0-9a-f-]+)\/(?:availability|inventory|operations|reservations|folios|restrictions|rates|status|res\/[0-9a-f-]+)$/)?.[1];
       if (pathProperty && body.properties.some(({ id }) => id === pathProperty)) propertySelect.value = pathProperty;
     }
   }
@@ -481,6 +531,393 @@
     item.className = "list-empty";
     item.textContent = message;
     container.replaceChildren(item);
+  }
+
+  const reservationStatusLabels = Object.freeze({
+    quote: "Quote", reserved: "Reserved", waitlist: "Waitlist", due_in: "Due in",
+    in_house: "In house", due_out: "Due out", checked_out: "Checked out",
+    cancelled: "Cancelled", no_show: "No show",
+  });
+
+  function reservationRoute() {
+    const detail = location.pathname.match(/^\/p\/([0-9a-f-]+)\/res\/([0-9a-f-]+)$/);
+    if (detail) return { kind: "detail", property: detail[1], reservationId: detail[2] };
+    const board = location.pathname.match(/^\/p\/([0-9a-f-]+)\/reservations$/);
+    if (!board) return { kind: "other" };
+    const query = new URLSearchParams(location.search);
+    const stepNames = ["stay", "guest", "offer", "review"];
+    const requestedStep = stepNames.indexOf(query.get("step") || "stay") + 1;
+    return query.get("new") === "1"
+      ? { kind: "create", property: board[1], step: requestedStep || 1 }
+      : { kind: "board", property: board[1] };
+  }
+
+  function reservationDateTime(value) {
+    const date = new Date(String(value));
+    if (!Number.isFinite(date.getTime())) return "Invalid server date";
+    return new Intl.DateTimeFormat(undefined, {
+      dateStyle: "medium", timeStyle: "short", timeZone: "UTC",
+    }).format(date) + " UTC";
+  }
+
+  function reservationStay(row) {
+    return `${reservationDateTime(row.stayFrom)} – ${reservationDateTime(row.stayTo)}`;
+  }
+
+  function reservationStatusBadge(status) {
+    const badge = document.createElement("span");
+    badge.className = "reservation-status-badge";
+    badge.dataset.status = status;
+    badge.textContent = reservationStatusLabels[status] || "Unknown status";
+    return badge;
+  }
+
+  function reservationOpenButton(row) {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "reservation-row-open";
+    button.dataset.reservationId = row.reservationId;
+    button.textContent = row.confirmationNo;
+    button.setAttribute("aria-label", `Open reservation ${row.confirmationNo} for ${row.primaryGuestDisplayName}`);
+    button.addEventListener("click", () => void openReservationDetail(row.reservationId, { trigger: button }));
+    return button;
+  }
+
+  function reservationTableRow(row) {
+    const tr = document.createElement("tr");
+    const values = [
+      reservationOpenButton(row), row.primaryGuestDisplayName, reservationStatusBadge(row.status),
+      reservationStay(row), row.sellableUnitLabel || row.unitTypeLabel, row.ratePlanLabel,
+      `${row.adults} adult${row.adults === 1 ? "" : "s"}${row.children ? ` · ${row.children} child${row.children === 1 ? "" : "ren"}` : ""}`,
+      row.channelCode,
+    ];
+    for (const value of values) {
+      const td = document.createElement("td");
+      if (value instanceof Node) td.append(value); else td.textContent = value;
+      tr.append(td);
+    }
+    return tr;
+  }
+
+  function reservationCard(row) {
+    const article = document.createElement("article");
+    article.className = "card reservation-board-card";
+    const head = document.createElement("div");
+    head.className = "reservation-board-card-head";
+    head.append(reservationOpenButton(row), reservationStatusBadge(row.status));
+    const guest = document.createElement("strong");
+    guest.textContent = row.primaryGuestDisplayName;
+    const stay = document.createElement("span");
+    stay.textContent = reservationStay(row);
+    const room = document.createElement("span");
+    room.textContent = `${row.sellableUnitLabel || row.unitTypeLabel} · ${row.ratePlanLabel}`;
+    const party = document.createElement("small");
+    party.textContent = `${row.adults} adult${row.adults === 1 ? "" : "s"}${row.children ? ` · ${row.children} child${row.children === 1 ? "" : "ren"}` : ""} · ${row.channelCode}`;
+    article.append(head, guest, stay, room, party);
+    return article;
+  }
+
+  function setReservationBoardState(state, message = "") {
+    reservationBoardLoading.hidden = state !== "loading";
+    reservationBoardError.hidden = state !== "error";
+    reservationBoardEmpty.hidden = state !== "empty";
+    reservationBoardContent.hidden = state !== "ready";
+    reservationBoard.setAttribute("aria-busy", String(state === "loading"));
+    if (state === "error") reservationBoardError.querySelector("p").textContent = message;
+  }
+
+  function reservationBoardQuery(after = "") {
+    const fields = new FormData(reservationBoardForm);
+    const query = new URLSearchParams({ limit: "50" });
+    const status = String(fields.get("status") || "");
+    const fromValue = String(fields.get("from") || "");
+    const toValue = String(fields.get("to") || "");
+    if (status) query.set("status", status);
+    if ((fromValue === "") !== (toValue === "")) throw new Error("Choose both UTC overlap dates, or leave both empty.");
+    if (fromValue && toValue) {
+      const from = new Date(`${fromValue}Z`);
+      const to = new Date(`${toValue}Z`);
+      if (!Number.isFinite(from.getTime()) || !Number.isFinite(to.getTime()) || from >= to) {
+        throw new Error("Choose a valid positive UTC overlap period.");
+      }
+      query.set("from", from.toISOString());
+      query.set("to", to.toISOString());
+    }
+    if (after) query.set("after", after);
+    return query;
+  }
+
+  function renderReservationBoard(page, append = false) {
+    const incoming = Array.isArray(page.reservations) ? page.reservations.slice(0, 100) : [];
+    reservationBoardRows = append ? [...reservationBoardRows, ...incoming] : incoming;
+    reservationBoardNextCursor = typeof page.nextCursor === "string" ? page.nextCursor : null;
+    if (!append) {
+      reservationBoardRowsTarget.replaceChildren();
+      reservationBoardCards.replaceChildren();
+    }
+    for (const row of incoming) {
+      reservationBoardRowsTarget.append(reservationTableRow(row));
+      reservationBoardCards.append(reservationCard(row));
+    }
+    reservationBoardMore.hidden = reservationBoardNextCursor === null;
+    const count = reservationBoardRows.length;
+    reservationBoardSummary.textContent = `${count} reservation${count === 1 ? "" : "s"} loaded from current server truth${reservationBoardNextCursor ? " · older records available" : ""}.`;
+    reservationBoardStatus.textContent = append ? `${incoming.length} older reservation${incoming.length === 1 ? "" : "s"} added.` : `${count} reservation${count === 1 ? "" : "s"} loaded.`;
+    setReservationBoardState(count === 0 ? "empty" : "ready");
+  }
+
+  async function loadReservationBoard({ append = false } = {}) {
+    const generation = ++reservationBoardGeneration;
+    const property = propertySelect.value;
+    if (!property) return;
+    let query;
+    try {
+      query = reservationBoardQuery(append ? reservationBoardNextCursor || "" : "");
+    } catch (error) {
+      setReservationBoardState("error", error instanceof Error ? error.message : "Reservation filters are invalid.");
+      reservationBoardStatus.textContent = "Filters need attention.";
+      return;
+    }
+    if (append && !reservationBoardNextCursor) return;
+    if (!append) setReservationBoardState("loading");
+    reservationBoardMore.disabled = append;
+    reservationBoardStatus.textContent = append ? "Loading older reservations…" : "Loading reservations…";
+    try {
+      const page = await request(`/api/v1/properties/${encodeURIComponent(property)}/reservation-board?${query}`);
+      if (generation !== reservationBoardGeneration || property !== propertySelect.value) return;
+      renderReservationBoard(page, append);
+    } catch (error) {
+      if (generation !== reservationBoardGeneration || property !== propertySelect.value) return;
+      const message = error instanceof Error ? error.message : "The reservation board is unavailable.";
+      if (append && reservationBoardRows.length > 0) {
+        setReservationBoardState("ready");
+        reservationBoardStatus.textContent = `${message} Existing rows remain visible; try loading older reservations again.`;
+      } else {
+        setReservationBoardState("error", message);
+        reservationBoardStatus.textContent = error?.status === 403 ? "Reservation access is not granted." : "Reservation board unavailable.";
+      }
+    } finally {
+      if (generation === reservationBoardGeneration) reservationBoardMore.disabled = false;
+    }
+  }
+
+  function clearReservationBoardFilters() {
+    reservationBoardForm.reset();
+    void loadReservationBoard();
+  }
+
+  function setReservationCreateStep(step, { push = true, focus = true } = {}) {
+    reservationCreateStep = Math.max(1, Math.min(4, Number(step) || 1));
+    for (const button of reservationCreateSteps) {
+      const active = Number(button.dataset.reservationCreateStep) === reservationCreateStep;
+      button.setAttribute("aria-current", active ? "step" : "false");
+      button.disabled = Number(button.dataset.reservationCreateStep) > reservationCreateStep &&
+        (Number(button.dataset.reservationCreateStep) === 3 && reservationBookingOffers.length === 0 ||
+         Number(button.dataset.reservationCreateStep) === 4 && !reservationBookingSelection);
+    }
+    for (const panel of reservationCreatePanels) panel.hidden = Number(panel.dataset.reservationCreatePanel) !== reservationCreateStep;
+    if (push && propertySelect.value) {
+      const name = ["stay", "guest", "offer", "review"][reservationCreateStep - 1];
+      const route = `/p/${propertySelect.value}/reservations?new=1&step=${name}`;
+      if (history.state?.yellowSurface === "reservation-create") history.replaceState({ yellowSurface: "reservation-create" }, "", route);
+      else history.pushState({ yellowSurface: "reservation-create" }, "", route);
+    }
+    if (focus) {
+      const heading = document.querySelector(`[data-reservation-create-panel="${reservationCreateStep}"] h4`);
+      if (heading) { heading.tabIndex = -1; heading.focus(); }
+    }
+  }
+
+  function openReservationCreate({ push = true } = {}) {
+    closeReservationDetail({ history: false, restoreFocus: false });
+    reservationBoard.hidden = true;
+    reservationCreatePanel.hidden = false;
+    reservationCreateDirty = false;
+    setReservationCreateStep(1, { push, focus: false });
+    document.querySelector("#reservation-booking-title").focus();
+  }
+
+  function closeReservationCreate({ history: updateHistory = true, force = false } = {}) {
+    if (reservationCreatePanel.hidden) return true;
+    if (!force && reservationCreateDirty && !confirm("Discard this unfinished reservation? Entered details will be lost.")) return false;
+    reservationCreatePanel.hidden = true;
+    reservationBoard.hidden = false;
+    reservationCreateDirty = false;
+    if (updateHistory && propertySelect.value) {
+      if (history.state?.yellowSurface === "reservation-create") history.back();
+      else history.replaceState(null, "", `/p/${propertySelect.value}/reservations`);
+    }
+    reservationCreateOpen.focus();
+    return true;
+  }
+
+  function detailSection(title, values) {
+    const section = document.createElement("section");
+    section.className = "reservation-detail-section";
+    const heading = document.createElement("h4");
+    heading.textContent = title;
+    const list = document.createElement("dl");
+    for (const [label, value] of values) {
+      const term = document.createElement("dt");
+      term.textContent = label;
+      const detail = document.createElement("dd");
+      detail.textContent = value === null || value === "" ? "Not recorded" : String(value);
+      list.append(term, detail);
+    }
+    section.append(heading, list);
+    return section;
+  }
+
+  function detailCollection(title, items, copy) {
+    const section = document.createElement("section");
+    section.className = "reservation-detail-section";
+    const heading = document.createElement("h4");
+    heading.textContent = title;
+    const list = document.createElement("ul");
+    if (items.length === 0) {
+      const empty = document.createElement("li");
+      empty.textContent = `No ${title.toLowerCase()} recorded.`;
+      list.append(empty);
+    } else {
+      for (const item of items) {
+        const row = document.createElement("li");
+        row.textContent = copy(item);
+        list.append(row);
+      }
+    }
+    section.append(heading, list);
+    return section;
+  }
+
+  function openAdvancedReservation(confirmationNo) {
+    closeReservationDetail({ history: false, restoreFocus: false });
+    history.replaceState(null, "", `/p/${propertySelect.value}/reservations`);
+    reservationTools.open = true;
+    reservationLifecycleLookupForm.elements.confirmationNo.value = confirmationNo;
+    reservationLifecycleLookupForm.requestSubmit();
+    reservationTools.scrollIntoView({ block: "start" });
+  }
+
+  function renderReservationDetail(result) {
+    const reservation = result.reservation;
+    reservationDetailData = result;
+    reservationDetailTitle.textContent = reservation.confirmationNo;
+    reservationDetailContent.replaceChildren();
+    const primary = reservation.guests.find(({ role }) => role === "primary");
+    reservationDetailContent.append(
+      detailSection("Summary", [
+        ["Guest", primary?.displayName || "Not recorded"],
+        ["Status", reservationStatusLabels[reservation.status] || reservation.status],
+        ["Channel", reservation.channelCode], ["Currency", reservation.currency],
+        ["Created", reservationDateTime(reservation.createdAt)], ["Notes", reservation.notes],
+      ]),
+      detailCollection("Stay segments", reservation.segments, (segment) =>
+        `${reservationDateTime(segment.from)} – ${reservationDateTime(segment.to)} · ${segment.adults} adult${segment.adults === 1 ? "" : "s"} · ${segment.status}`),
+      detailCollection("Guests", reservation.guests, (guest) =>
+        `${guest.displayName} · ${guest.role}${guest.sharePct ? ` · ${guest.sharePct}% share` : ""}`),
+      detailCollection("Alerts", reservation.alerts, (alert) =>
+        `${alert.active ? "Active" : "Inactive"} · ${alert.showOn} · ${alert.message}`),
+      detailCollection("Travel", reservation.travel, (travel) =>
+        `${travel.direction} · ${travel.mode || "mode not recorded"}${travel.scheduledAt ? ` · ${reservationDateTime(travel.scheduledAt)}` : ""}${travel.pickupRequested ? " · pickup requested" : ""}`),
+      detailCollection("Folios", reservation.folios, (folio) =>
+        `${folio.folioNo || "Number pending"} · window ${folio.windowNo} · ${folio.status}`),
+      detailCollection("History", reservation.history, (fact) =>
+        `${reservationDateTime(fact.recordedAt)} · ${fact.factType}`),
+    );
+    reservationDetailActions.replaceChildren();
+    if (result.actions?.canModify || result.actions?.canCancel || result.actions?.canReinstate) {
+      const manage = document.createElement("button");
+      manage.type = "button";
+      manage.className = result.actions.canReinstate ? "primary" : "secondary";
+      manage.textContent = result.actions.canReinstate ? "Review reinstatement" : "Manage reservation";
+      manage.addEventListener("click", () => openAdvancedReservation(reservation.confirmationNo));
+      reservationDetailActions.append(manage);
+      reservationDetailActions.hidden = false;
+    } else {
+      reservationDetailActions.hidden = true;
+    }
+    reservationDetailLoading.hidden = true;
+    reservationDetailError.hidden = true;
+    reservationDetailContent.hidden = false;
+    reservationDetailStatus.textContent = "Complete reservation detail loaded from server truth.";
+    reservationDetailDrawer.setAttribute("aria-busy", "false");
+  }
+
+  async function loadReservationDetail(reservationId) {
+    const generation = ++reservationDetailGeneration;
+    const property = propertySelect.value;
+    reservationRouteReservationId = reservationId;
+    reservationDetailTitle.textContent = "Loading reservation…";
+    reservationDetailLoading.hidden = false;
+    reservationDetailError.hidden = true;
+    reservationDetailContent.hidden = true;
+    reservationDetailActions.hidden = true;
+    reservationDetailDrawer.setAttribute("aria-busy", "true");
+    reservationDetailStatus.textContent = "Loading reservation details…";
+    try {
+      const result = await request(`/api/v1/properties/${encodeURIComponent(property)}/reservations/${encodeURIComponent(reservationId)}`);
+      if (generation !== reservationDetailGeneration || property !== propertySelect.value || reservationRouteReservationId !== reservationId) return;
+      renderReservationDetail(result);
+    } catch (error) {
+      if (generation !== reservationDetailGeneration || property !== propertySelect.value || reservationRouteReservationId !== reservationId) return;
+      reservationDetailLoading.hidden = true;
+      reservationDetailError.hidden = false;
+      reservationDetailError.querySelector("p").textContent = error?.status === 404
+        ? "This reservation was not found for the current property."
+        : error?.status === 403 ? "Reservation access is not granted for this property."
+          : error instanceof Error ? error.message : "The reservation is unavailable.";
+      reservationDetailStatus.textContent = error?.status === 404 ? "Reservation not found." : "Reservation detail unavailable.";
+      reservationDetailDrawer.setAttribute("aria-busy", "false");
+    }
+  }
+
+  async function openReservationDetail(reservationId, { push = true, trigger = null } = {}) {
+    closeReservationCreate({ history: false, force: true });
+    reservationDrawerReturnFocus = trigger;
+    reservationDetailDrawer.hidden = false;
+    if (push) history.pushState({ yellowSurface: "reservation-detail" }, "", `/p/${propertySelect.value}/res/${reservationId}`);
+    reservationDetailDrawer.focus();
+    await loadReservationDetail(reservationId);
+  }
+
+  function closeReservationDetail({ history: updateHistory = true, restoreFocus = true } = {}) {
+    if (reservationDetailDrawer.hidden) return;
+    reservationDetailGeneration += 1;
+    reservationRouteReservationId = "";
+    reservationDetailData = null;
+    reservationDetailDrawer.hidden = true;
+    reservationDetailContent.replaceChildren();
+    if (updateHistory && propertySelect.value) {
+      if (history.state?.yellowSurface === "reservation-detail") history.back();
+      else history.replaceState(null, "", `/p/${propertySelect.value}/reservations`);
+    }
+    if (restoreFocus) {
+      const target = reservationDrawerReturnFocus?.isConnected ? reservationDrawerReturnFocus : document.querySelector("#reservations-title");
+      target?.focus();
+    }
+    reservationDrawerReturnFocus = null;
+  }
+
+  function syncReservationRoute() {
+    const route = reservationRoute();
+    if (route.kind === "other" || !propertySelect.value || route.property !== propertySelect.value) return;
+    if (route.kind === "detail") {
+      reservationCreatePanel.hidden = true;
+      reservationBoard.hidden = false;
+      if (reservationRouteReservationId !== route.reservationId || reservationDetailDrawer.hidden) {
+        void openReservationDetail(route.reservationId, { push: false });
+      }
+      return;
+    }
+    closeReservationDetail({ history: false });
+    if (route.kind === "create") {
+      reservationBoard.hidden = true;
+      reservationCreatePanel.hidden = false;
+      setReservationCreateStep(route.step, { push: false, focus: false });
+    } else {
+      reservationCreatePanel.hidden = true;
+      reservationBoard.hidden = false;
+    }
   }
 
   function inventoryItem(titleText, detailText, badgeText) {
@@ -2491,6 +2928,10 @@
     if (activeView === "restrictions") void loadRestrictions();
     if (activeView === "rates") void loadRates();
     if (activeView === "status") void loadSystemStatus();
+    if (activeView === "reservations") {
+      syncReservationRoute();
+      if (reservationBoardRows.length === 0) void loadReservationBoard();
+    }
   }
 
   function formMessage(form, message, isError = false) {
@@ -3244,6 +3685,7 @@
     reservationBookingDraft = null;
     reservationBookingOptions.replaceChildren();
     clearReservationBookingSelection();
+    reservationCreateDirty = true;
     partyProfileSelected.focus();
   }
 
@@ -3388,12 +3830,15 @@
     reservationBookingMessage.classList.remove("error");
     reservationBookingConfirmation.hidden = true;
     reservationBookingCommit.hidden = false;
+    reservationCreateDirty = true;
+    setReservationCreateStep(4);
     reservationBookingCommit.tabIndex = -1;
     reservationBookingCommit.focus();
   }
 
   function renderReservationBookingOffers(options, issues) {
     reservationBookingOffers = options;
+    reservationOfferRetry.hidden = true;
     reservationBookingOptions.replaceChildren();
     clearReservationBookingSelection();
     for (const offer of options) {
@@ -3427,6 +3872,7 @@
     if (options.length === 0 && issues.length === 0) emptyList(reservationBookingOptions, "No server offers matched this search.");
     reservationBookingOptions.tabIndex = -1;
     reservationBookingOptions.focus();
+    setReservationCreateStep(3);
   }
 
   function reservationBookingChildAges(value) {
@@ -3516,10 +3962,29 @@
       reservationBookingDirect.hidden = true;
       reservationBookingHeld.hidden = true;
       reservationBookingHoldAction.hidden = true;
+      reservationCreateDirty = false;
+      void loadReservationBoard();
+      const reservationId = result.reservation.reservationId;
+      if (reservationId) {
+        history.replaceState(null, "", `/p/${propertySelect.value}/reservations`);
+        void openReservationDetail(reservationId, { trigger: reservationCreateOpen });
+      }
     } catch (error) {
       if (operationGeneration !== reservationBookingSearchGeneration || property !== propertySelect.value) return;
       reservationBookingMessage.textContent = error instanceof Error ? error.message : "Reservation could not be committed";
       reservationBookingMessage.classList.add("error");
+      if (error?.status === 409) {
+        reservationBookingSelection = null;
+        reservationBookingHold = null;
+        reservationBookingOffers = [];
+        clearReservationBookingSelection();
+        reservationBookingOptions.replaceChildren();
+        emptyList(reservationBookingOptions, "The previous offers are no longer current.");
+        reservationOfferRetry.hidden = false;
+        reservationBookingMessage.textContent = "Inventory or reservation state changed. Your stay and guest are preserved; search current offers again.";
+        formMessage(reservationBookingForm, "Inventory changed. Search current offers again before booking.", true);
+        setReservationCreateStep(3);
+      }
     } finally {
       button.disabled = false;
     }
@@ -3915,6 +4380,15 @@
 
   propertySelect.addEventListener("change", () => {
     reservationBookingSearchGeneration += 1;
+    reservationBoardGeneration += 1;
+    reservationDetailGeneration += 1;
+    reservationBoardRows = [];
+    reservationBoardNextCursor = null;
+    reservationRouteReservationId = "";
+    reservationDetailDrawer.hidden = true;
+    reservationCreatePanel.hidden = true;
+    reservationBoard.hidden = false;
+    reservationCreateDirty = false;
     clearPartyProfileState();
     clearFolioState();
     if (propertySelect.value) history.replaceState(null, "", `/p/${propertySelect.value}/${activeView}`);
@@ -3940,12 +4414,89 @@
     reservationBookingHold = null;
     reservationBookingDraft = null;
     reservationGuestList.replaceChildren();
+    if (activeView === "reservations") void loadReservationBoard();
   });
   for (const tab of navigation) tab.addEventListener("click", () => setView(tab.dataset.view));
   availabilityReservationShortcut.addEventListener("click", () => {
     setView("reservations");
     document.querySelector("#reservations-title").focus({ preventScroll: true });
     document.querySelector("#reservations-title").scrollIntoView({ block: "start" });
+  });
+  reservationBoardForm.addEventListener("submit", (event) => {
+    event.preventDefault();
+    void loadReservationBoard();
+  });
+  reservationFiltersClear.addEventListener("click", clearReservationBoardFilters);
+  reservationEmptyClear.addEventListener("click", clearReservationBoardFilters);
+  reservationBoardRetry.addEventListener("click", () => void loadReservationBoard());
+  reservationBoardMore.addEventListener("click", () => void loadReservationBoard({ append: true }));
+  reservationCreateOpen.addEventListener("click", () => openReservationCreate());
+  reservationEmptyCreate.addEventListener("click", () => openReservationCreate());
+  reservationCreateCancel.addEventListener("click", () => closeReservationCreate());
+  reservationStayNext.addEventListener("click", () => {
+    const fields = reservationBookingForm.elements;
+    const controls = [fields.from, fields.to, fields.adults, fields.channelCode];
+    for (const control of controls) {
+      if (!control.checkValidity()) { control.reportValidity(); control.focus(); return; }
+    }
+    const from = new Date(`${fields.from.value}Z`);
+    const to = new Date(`${fields.to.value}Z`);
+    if (!Number.isFinite(from.getTime()) || !Number.isFinite(to.getTime()) || from >= to) {
+      formMessage(reservationBookingForm, "Choose a valid positive UTC stay period.", true);
+      fields.from.focus();
+      return;
+    }
+    try { reservationBookingChildAges(fields.childAges.value); }
+    catch (error) { formMessage(reservationBookingForm, error.message, true); fields.childAges.focus(); return; }
+    reservationCreateDirty = true;
+    formMessage(reservationBookingForm, "Stay captured. Select the canonical Party next.");
+    setReservationCreateStep(2);
+  });
+  reservationGuestNext.addEventListener("click", () => {
+    if (!reservationBookingForm.elements.primaryPartyId.value) {
+      formMessage(partyProfileSearchForm, "Choose or create a server Party before finding offers.", true);
+      (partyProfileSelected.hidden ? partyProfileSearchForm.elements.query : partyProfileClear).focus();
+      return;
+    }
+    reservationSearchOffers.click();
+  });
+  reservationOfferRetry.addEventListener("click", () => reservationSearchOffers.click());
+  for (const button of reservationBackButtons) button.addEventListener("click", () => setReservationCreateStep(Number(button.dataset.reservationBack)));
+  for (const button of reservationCreateSteps) button.addEventListener("click", () => {
+    if (!button.disabled) setReservationCreateStep(Number(button.dataset.reservationCreateStep));
+  });
+  reservationCreatePanel.addEventListener("input", () => { reservationCreateDirty = true; });
+  reservationDetailClose.addEventListener("click", () => closeReservationDetail());
+  reservationDetailRetry.addEventListener("click", () => {
+    if (reservationRouteReservationId) void loadReservationDetail(reservationRouteReservationId);
+  });
+  window.addEventListener("popstate", () => {
+    const route = reservationRoute();
+    if (route.kind === "create" && reservationCreateDirty && reservationCreatePanel.hidden === false &&
+        !confirm("Leave this unfinished reservation? Entered details will be lost.")) {
+      history.pushState({ yellowSurface: "reservation-create" }, "", `/p/${propertySelect.value}/reservations?new=1&step=${["stay", "guest", "offer", "review"][reservationCreateStep - 1]}`);
+      return;
+    }
+    syncReservationRoute();
+  });
+  document.addEventListener("keydown", (event) => {
+    if (activeView !== "reservations") return;
+    const editable = event.target.closest?.("input, select, textarea, [contenteditable=true]");
+    if (event.key === "Escape") {
+      if (!reservationDetailDrawer.hidden) { event.preventDefault(); closeReservationDetail(); return; }
+      if (!reservationCreatePanel.hidden) { event.preventDefault(); closeReservationCreate(); }
+      return;
+    }
+    if (editable || !reservationCreatePanel.hidden || !reservationDetailDrawer.hidden || (event.key !== "j" && event.key !== "k")) return;
+    const rows = [...document.querySelectorAll(".reservation-board-table .reservation-row-open")];
+    if (rows.length === 0) return;
+    const current = rows.indexOf(document.activeElement);
+    const forward = event.key === "j";
+    const backwards = event.key === "k";
+    const next = backwards ? Math.max(0, current < 0 ? 0 : current - 1) :
+      forward ? Math.min(rows.length - 1, current + 1) : current;
+    event.preventDefault();
+    rows[next].focus();
   });
   folioStatementLookupForm.addEventListener("submit", (event) => {
     event.preventDefault();
@@ -4379,7 +4930,7 @@
   setBuilderMode("guided", false);
   const initialView = location.pathname.endsWith("/inventory") ? "inventory" :
     location.pathname.endsWith("/operations") ? "operations" :
-    location.pathname.endsWith("/reservations") ? "reservations" :
+    (location.pathname.endsWith("/reservations") || /^\/p\/[0-9a-f-]+\/res\/[0-9a-f-]+$/.test(location.pathname)) ? "reservations" :
     location.pathname.endsWith("/folios") ? "folios" :
     location.pathname.endsWith("/restrictions") ? "restrictions" :
     location.pathname.endsWith("/rates") ? "rates" :
