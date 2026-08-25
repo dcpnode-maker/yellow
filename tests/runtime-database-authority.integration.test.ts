@@ -75,15 +75,18 @@ interface AuthorityEvidence {
   readonly appRoleVictimRows: number;
   readonly currentAfterReset: string;
   readonly resetCanCreateDatabase: boolean;
-  readonly resetVictimRows: number;
+  readonly resetVictimSqlstate: string | null;
   readonly schemaCreateSucceeded: boolean;
   readonly schemaCreateSqlstate: string | null;
   readonly schemaVisibleInProbe: boolean;
 }
 
 function sqlstate(error: unknown): string | null {
-  if (typeof error !== "object" || error === null || !("code" in error)) return null;
-  return typeof error.code === "string" ? error.code : null;
+  if (typeof error !== "object" || error === null) return null;
+  const errno = Reflect.get(error, "errno");
+  if (typeof errno === "string" && errno.length > 0) return errno;
+  const code = Reflect.get(error, "code");
+  return typeof code === "string" && code !== "ERR_POSTGRES_SERVER_ERROR" ? code : null;
 }
 
 async function captureSqlState(operation: () => Promise<unknown>): Promise<string | null> {
@@ -177,15 +180,20 @@ databaseDescribe("Order 127 runtime database authority (kernel boundary; HTTP P4
         const afterReset = await tx<{
           current_user: string;
           can_create_database: boolean;
-          victim_rows: number;
         }[]>`
           SELECT
             current_user::text AS current_user,
-            has_database_privilege(current_user, current_database(), 'CREATE') AS can_create_database,
-            (SELECT count(*)::int FROM party WHERE id = ${partyB}::uuid) AS victim_rows
+            has_database_privilege(current_user, current_database(), 'CREATE') AS can_create_database
         `;
         const reset = afterReset[0];
         if (!reset) throw new Error("PostgreSQL did not return post-reset authority evidence");
+
+        await tx.unsafe("SAVEPOINT order127_p0_direct_read_probe");
+        const resetVictimSqlstate = await captureSqlState(() => tx`
+          SELECT count(*)::int FROM party WHERE id = ${partyB}::uuid
+        `);
+        await tx.unsafe("ROLLBACK TO SAVEPOINT order127_p0_direct_read_probe");
+        await tx.unsafe("RELEASE SAVEPOINT order127_p0_direct_read_probe");
 
         await tx.unsafe("SAVEPOINT order127_p0_authority_probe");
         let schemaCreateSucceeded = false;
@@ -215,7 +223,7 @@ databaseDescribe("Order 127 runtime database authority (kernel boundary; HTTP P4
           appRoleVictimRows: appRoleVictim[0]?.count ?? -1,
           currentAfterReset: reset.current_user,
           resetCanCreateDatabase: reset.can_create_database,
-          resetVictimRows: reset.victim_rows,
+          resetVictimSqlstate,
           schemaCreateSucceeded,
           schemaCreateSqlstate,
           schemaVisibleInProbe,
@@ -227,10 +235,18 @@ databaseDescribe("Order 127 runtime database authority (kernel boundary; HTTP P4
     }
 
     expect(thrown).toBe(rollbackMarker);
-    const residual = await admin<{ schema_exists: boolean }[]>`
-      SELECT to_regnamespace(${schemaName}) IS NOT NULL AS schema_exists
+    const residual = await admin<{ schema_exists: boolean; party_rows: number; party_a_name: string | null; party_b_name: string | null }[]>`
+      SELECT to_regnamespace(${schemaName}) IS NOT NULL AS schema_exists,
+             (SELECT count(*)::int FROM party WHERE id IN (${partyA}::uuid, ${partyB}::uuid)) AS party_rows,
+             (SELECT display_name FROM party WHERE id = ${partyA}::uuid) AS party_a_name,
+             (SELECT display_name FROM party WHERE id = ${partyB}::uuid) AS party_b_name
     `;
-    expect(residual).toEqual([{ schema_exists: false }]);
+    expect(residual).toEqual([{
+      schema_exists: false,
+      party_rows: 2,
+      party_a_name: "Order 127 P0 sentinel A",
+      party_b_name: "Order 127 P0 sentinel B",
+    }]);
 
     expect(evidence).toEqual({
       sessionUser: "yellow_runtime",
@@ -242,7 +258,7 @@ databaseDescribe("Order 127 runtime database authority (kernel boundary; HTTP P4
       appRoleVictimRows: 0,
       currentAfterReset: "yellow_runtime",
       resetCanCreateDatabase: false,
-      resetVictimRows: 0,
+      resetVictimSqlstate: "42501",
       schemaCreateSucceeded: false,
       schemaCreateSqlstate: "42501",
       schemaVisibleInProbe: false,
@@ -305,10 +321,18 @@ databaseDescribe("Order 127 runtime database authority (kernel boundary; HTTP P4
        ORDER BY signature
     `;
     expect(capabilities).toHaveLength(10);
-    expect(capabilities.map(({ signature }) => signature)).toEqual(expect.arrayContaining([
-      "public.runtime_visible_extensions(uuid)",
-      "public.runtime_extension_compatibility_inputs(text)",
-    ]));
+    expect(capabilities.map(({ signature }) => signature).sort()).toEqual([
+      "runtime_consumer_advance(text,bigint)",
+      "runtime_consumer_begin(text)",
+      "runtime_consumer_mark(text,uuid)",
+      "runtime_consumer_read(text,bigint,integer,boolean)",
+      "runtime_due_hold_scopes(integer)",
+      "runtime_extension_compatibility_inputs(text)",
+      "runtime_mark_outbox_published(uuid[])",
+      "runtime_prune_outbox(integer)",
+      "runtime_resolve_active_tenant(text)",
+      "runtime_visible_extensions(uuid)",
+    ]);
     expect(capabilities.every((row) => row.owner === "yellow_owner" && !row.public_execute && !row.app_execute && row.runtime_execute && JSON.stringify(row.config) === JSON.stringify(["search_path=pg_catalog, public, pg_temp"]))).toBe(true);
 
     const rls = await admin!<{ tables: number; enabled: number; forced: number; policies: number }[]>`
