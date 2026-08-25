@@ -1,6 +1,6 @@
 # Independent Tier-3 review — Order 146 prerequisite integration
 
-**Verdict:** CHANGES REQUIRED
+**Verdict:** APPROVED AFTER CORRECTION
 
 **Reviewer:** independent non-implementing OpenAI Codex Tier-3 reviewer
 
@@ -75,3 +75,21 @@ or reconfigured by this review.
 No implementation or source-governance blob should change to fix this finding. No
 D-388 approval is issued. Order 126 remains unapproved and no merge, push, deployment,
 live or Cyber closure is implied.
+
+## Re-review approval at corrected append-only head
+
+Re-review resumed at `c3a0d5ed1e9accc42a07083b39ad1c43cc6e3224`. The invalid SHA
+remains only in the historical finding above and its ledger row; active Order-146
+evidence names real executable `483d4f15375c2d5e963ad75d6b8daacd0971070b`.
+The two historical abbreviated ledger rows are byte-exact to `c2ab2a1`; correction is
+one appended row. Repeated 12-path, nine-owner-blob, ancestry, D-382 exclusion,
+D-383–D-387 uniqueness and forbidden-path checks have no finding.
+
+Reviewer execution passed canonical-0013 and exact strict-0014 combined suites 16/16
+(130 assertions) each; an in-memory unique-prefix matrix 19/19; acceptance 6/6 (13);
+native-WSL migrations 17/17 (95); exact schema; pristine referee 11/11 (85 tables,
+75 RLS); standing 174/422/0 (1,983); typecheck, 64 boundaries, 23 licences, audit and
+protected hashes. The first WSL command used the wrong admin-variable name and stopped
+before any test/database; the corrected command passed. All reviewer/migration
+databases were removed and shared services retained. Order 126 remains separate and
+unapproved; no merge, push, deployment, live or Cyber closure is implied.

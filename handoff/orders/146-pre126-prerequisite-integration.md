@@ -1,6 +1,6 @@
 # Order 146 — Integrate approved prerequisites before Order 126
 
-**Status:** CORRECTED-UNREVIEWED
+**Status:** APPROVED — INDEPENDENT TIER-3 RE-REVIEW COMPLETE
 **Phase:** 5 · Cyber remediation integration
 **Branch:** `phase-5/pre126-prerequisite-integration`
 **Base:** `2faf5e8db8264af59e65effdfcb5603da628a181` — independently approved
@@ -108,7 +108,7 @@ proof before approval. No source approval substitutes for integration review.
 - [x] Admission is committed before overlays.
 - [x] Exact latest-owner overlay and governance union are committed separately.
 - [x] P0-P2 pass on one immutable executable with Docker off.
-- [ ] P3 and independent Tier-3 integration review approve that executable.
+- [x] P3 and independent Tier-3 integration review approve that executable.
 - [x] No migration/Order126/merge/push/deployment/live/Cyber closure is claimed.
 
 ## Builder evidence — 2026-08-25
