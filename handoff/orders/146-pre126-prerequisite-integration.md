@@ -1,6 +1,6 @@
 # Order 146 — Integrate approved prerequisites before Order 126
 
-**Status:** CHANGES REQUIRED — RECORDED EXECUTABLE SHA IS NOT A GIT OBJECT
+**Status:** CORRECTED-UNREVIEWED
 **Phase:** 5 · Cyber remediation integration
 **Branch:** `phase-5/pre126-prerequisite-integration`
 **Base:** `2faf5e8db8264af59e65effdfcb5603da628a181` — independently approved
@@ -114,7 +114,7 @@ proof before approval. No source approval substitutes for integration review.
 ## Builder evidence — 2026-08-25
 
 Admission `550fb9960195aa69ff48c22012e742b8c1942bec` precedes immutable
-executable `483d4f18247058374fd427e1d49ef3cb0b3372d4`. Against Base, the
+executable `483d4f15375c2d5e963ad75d6b8daacd0971070b`. Against Base, the
 executable has the exact twelve-path allowlist: this order, the four registered product
 paths, five registered approved governance artifacts and additive `DECISIONS.log` /
 `handoff/LEDGER.md`. All nine registered source/governance blobs match exactly. Base is
@@ -150,7 +150,7 @@ Docker was unauthorized. This record is `IMPLEMENTED-NONDB`, not review-ready or
 ## Database builder evidence — 2026-08-25
 
 After explicit coordinator authorization, the builder proved the unchanged executable
-`483d4f18247058374fd427e1d49ef3cb0b3372d4` against the shared PostgreSQL 16.15
+`483d4f15375c2d5e963ad75d6b8daacd0971070b` against the shared PostgreSQL 16.15
 service using only isolated `yellow_o146b_*` databases, except the separately authorized
 unchanged migration suite's repository-owned `yellow_migrate_*` prefix. Compose was not
 reconfigured or stopped and no app container was started.
@@ -185,3 +185,29 @@ independently queried after cleanup: zero remained. PostgreSQL and Valkey were l
 healthy for the coordinator. This builder proof advances only to `BUILT-UNREVIEWED`;
 the unchecked P3 item still requires a non-implementing Tier-3 reviewer to personally
 reproduce the exact integration proof.
+
+## Executable provenance correction — 2026-08-25
+
+Independent review commit `c2ab2a1db692bd6e4b6df79e090ceaa5d1fd4f92` found that
+the full executable recorded in both builder-evidence sections was not a Git object.
+That reviewer finding and its exact originally recorded identifier remain preserved in
+the reviewer-owned review and CHANGES-REQUIRED ledger row; this correction does not
+rewrite or conceal them.
+
+The branch itself resolves abbreviated `483d4f1` unambiguously to actual composition
+commit `483d4f15375c2d5e963ad75d6b8daacd0971070b`. Git object and parent inspection proves
+the exact chain:
+
+```text
+550fb9960195aa69ff48c22012e742b8c1942bec  admission
+483d4f15375c2d5e963ad75d6b8daacd0971070b  composition executable
+4c9542ff1a21b0a17fd39f2985f7cd8693197493  non-DB evidence
+8339dc6d1c0db486c6092661f8932873176d0f51  database builder evidence
+c2ab2a1db692bd6e4b6df79e090ceaa5d1fd4f92  independent CHANGES-REQUIRED finding
+```
+
+Both active builder-evidence references and both earlier abbreviated Order-146 ledger
+references now name the actual full executable SHA. No product, source, migration,
+approved-source metadata, decision or registered blob changed. D-388 remains reserved
+for the independent review outcome, so this mechanical correction allocates no decision.
+Status is `CORRECTED-UNREVIEWED`; exact-SHA review must restart before any approval.
