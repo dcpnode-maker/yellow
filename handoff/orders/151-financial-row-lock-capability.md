@@ -112,4 +112,3 @@ Independent Tier-3 review must execute P0–P4 on the immutable candidate.
 - [ ] Full financial behavior/concurrency and hostile authority proofs pass.
 - [ ] Cumulative gates and fresh referee pass.
 - [ ] Independent Tier-3 reviewer approves the immutable executable.
-
