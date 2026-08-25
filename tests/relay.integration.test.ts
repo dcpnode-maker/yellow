@@ -1,7 +1,7 @@
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { SQL } from "bun";
 
-import { OutboxRelay, PostgresEventBus, type OutboxEvent } from "../src/kernel";
+import { OutboxRelay, PostgresEventBus, type OutboxEvent, type Tx } from "../src/kernel";
 
 const DEPLOY_DATABASE_URL = process.env.YELLOW_DEPLOY_DATABASE_URL ?? process.env.YELLOW_OUTBOX_URL;
 const RUNTIME_DATABASE_URL = process.env.YELLOW_RUNTIME_DATABASE_URL ?? process.env.YELLOW_OUTBOX_URL;
@@ -27,8 +27,10 @@ const CONSUMERS = [
   "order-023-canary-unpublished-rollback",
   "order-023-mixed-clean",
   "order-023-mixed-reset",
+  "order-023-mixed-wrong-tenant",
   "order-023-mixed-guc",
   "order-023-mixed-unpublished",
+  "order-023-mixed-unpublished-failure",
 ] as const;
 
 if (REQUIRE_DATABASE && (!DEPLOY_DATABASE_URL || !RUNTIME_DATABASE_URL)) {
@@ -323,7 +325,7 @@ databaseDescribe("Order 023 crash-safe outbox relay", () => {
     expect(unpublishedRetry.processed).toBe(unpublishedRollbackEvents.length);
   });
 
-  test("D399: mixed-tenant handlers are ordered and hostile context tampering rolls back exactly", async () => {
+  test("D399/D402: mixed-tenant order, tamper rollback, and neutralized reuse", async () => {
     const cleanEvents = await insertMixedEvents();
     const cleanSeen: Array<{ id: string; user: string; tenant: string }> = [];
     const cleanResult = await bus!.consumeBatch("order-023-mixed-clean", async (event, tx) => {
@@ -347,7 +349,7 @@ databaseDescribe("Order 023 crash-safe outbox relay", () => {
       expect(rows).toEqual([{ lastSeq: baseline, marks: 0, effects: 0 }]);
     };
 
-    const assertSettled = async (candidate: SQL, backendPid: number) => {
+    const inspectClean = async (candidate: SQL, expectedPid?: number) => {
       const connection = await candidate.reserve();
       try {
         const rows = await connection<{ pid: number; current_user: string; session_user: string; tenant_clear: boolean; prepared_count: number }[]>`
@@ -360,66 +362,82 @@ databaseDescribe("Order 023 crash-safe outbox relay", () => {
           pid: expect.any(Number), current_user: "yellow_runtime", session_user: "yellow_runtime",
           tenant_clear: true, prepared_count: 0,
         }]);
-        expect(rows[0]!.pid).not.toBe(backendPid);
+        if (expectedPid !== undefined) expect(rows[0]!.pid).toBe(expectedPid);
+        return rows[0]!.pid;
       } finally {
         connection.release();
       }
     };
 
-    const runHostile = async (
-      consumer: string,
-      consume: (candidate: PostgresEventBus, handler: (event: OutboxEvent, tx: Parameters<Parameters<PostgresEventBus["consumeBatch"]>[1]>[1]) => Promise<void>) => Promise<unknown>,
-      tamper: (tx: Parameters<Parameters<PostgresEventBus["consumeBatch"]>[1]>[1], event: OutboxEvent) => Promise<void>,
-    ) => {
+    type Consume = (candidate: PostgresEventBus, handler: (event: OutboxEvent, tx: Tx) => Promise<void>) => Promise<unknown>;
+    const runFailure = async (consumer: string, consume: Consume, tamper: (tx: Tx, event: OutboxEvent) => Promise<void>) => {
       const baseline = await seedConsumerCursor(consumer);
       const events = await insertMixedEvents();
-      const hostilePool = new SQL(RUNTIME_DATABASE_URL!, { max: 1, prepare: false });
-      const hostileBus = new PostgresEventBus(hostilePool);
-      const before = await hostilePool.reserve();
-      const beforeRows = await before<{ pid: number }[]>`SELECT pg_backend_pid()::int AS pid`;
-      const backendPid = beforeRows[0]!.pid;
-      before.release();
+      const failedPool = new SQL(RUNTIME_DATABASE_URL!, { max: 1, prepare: false });
+      const failedBus = new PostgresEventBus(failedPool);
       try {
-        await expect(consume(hostileBus, async (event, tx) => {
-          await tx`
-            INSERT INTO task (id, tenant_id, property_node, kind, payload)
+        await expect(consume(failedBus, async (event, tx) => {
+          await tx`INSERT INTO task (id, tenant_id, property_node, kind, payload)
             VALUES (${event.aggregateId}::uuid, ${event.tenantId}::uuid, ${event.propertyNode}::uuid,
-                    'trace', '{"proof":"order-023"}'::jsonb)
-          `;
+                    'trace', '{"proof":"order-023"}'::jsonb)`;
           await tamper(tx, event);
         })).rejects.toThrow(/changed|required|settle|prepared|26000/i);
         await assertRollback(consumer, baseline, events);
-        await assertSettled(hostilePool, backendPid);
+      } finally {
+        // A true settlement failure fail-closes this pool; never rely on PID replacement in place.
+        await failedPool.close();
+      }
+
+      const retryPool = new SQL(RUNTIME_DATABASE_URL!, { max: 1, prepare: false });
+      const retryBus = new PostgresEventBus(retryPool);
+      try {
         const seen: string[] = [];
-        const retryHandler = async (event: OutboxEvent, tx: Parameters<Parameters<PostgresEventBus["consumeBatch"]>[1]>[1]) => {
+        const retry = await consume(retryBus, async (event, tx) => {
           const rows = await tx<{ user: string; tenant: string }[]>`
             SELECT current_user::text AS user, current_setting('app.tenant_id', true) AS tenant
           `;
           expect(rows).toEqual([{ user: "app_role", tenant: event.tenantId }]);
           seen.push(event.id);
-        };
-        const retry = consumer === "order-023-mixed-unpublished"
-          ? await hostileBus.consumeUnpublishedBatch(consumer, retryHandler, { limit: 10 })
-          : await hostileBus.consumeBatch(consumer, retryHandler, { limit: 10 });
+        }) as { processed: number };
         expect(retry.processed).toBe(events.length);
         expect(seen).toEqual(events.map(({ id }) => id));
-        expect(await hostileBus.markPublished(events.map(({ id }) => id))).toBe(events.length);
+        expect(await retryBus.markPublished(events.map(({ id }) => id))).toBe(events.length);
+        await inspectClean(retryPool);
       } finally {
-        await hostilePool.close();
+        await retryPool.close();
       }
     };
 
-    await runHostile("order-023-mixed-reset", (candidate, handler) => candidate.consumeBatch("order-023-mixed-reset", handler, { limit: 10 }), async (tx) => {
+    const runSameValue = async (consumer: string, consume: Consume, deallocate: boolean) => {
+      const events = await insertMixedEvents();
+      const candidate = new SQL(RUNTIME_DATABASE_URL!, { max: 1, prepare: false });
+      const candidateBus = new PostgresEventBus(candidate);
+      const before = await inspectClean(candidate);
+      try {
+        const result = await consume(candidateBus, async (event, tx) => {
+          await tx`SELECT set_config('app.tenant_id', ${event.tenantId}, false)`;
+          if (deallocate) await tx.unsafe("DEALLOCATE ALL");
+        }) as { processed: number };
+        expect(result.processed).toBe(events.length);
+        expect(await candidateBus.markPublished(events.map(({ id }) => id))).toBe(events.length);
+        // Same physical backend is reused, but all role/GUC/prepared state is neutralized.
+        await inspectClean(candidate, before);
+      } finally {
+        await candidate.close();
+      }
+    };
+
+    await runFailure("order-023-mixed-reset", (candidate, handler) => candidate.consumeBatch("order-023-mixed-reset", handler, { limit: 10 }), async (tx) => {
       await tx.unsafe("RESET ROLE");
+    });
+    await runFailure("order-023-mixed-wrong-tenant", (candidate, handler) => candidate.consumeBatch("order-023-mixed-wrong-tenant", handler, { limit: 10 }), async (tx) => {
       await tx`SELECT set_config('app.tenant_id', ${MIXED_TENANT_B}, false)`;
     });
-    await runHostile("order-023-mixed-guc", (candidate, handler) => candidate.consumeBatch("order-023-mixed-guc", handler, { limit: 10 }), async (tx, event) => {
-      await tx`SELECT set_config('app.tenant_id', ${event.tenantId}, false)`;
+    await runSameValue("order-023-mixed-guc", (candidate, handler) => candidate.consumeBatch("order-023-mixed-guc", handler, { limit: 10 }), false);
+    await runFailure("order-023-mixed-unpublished-failure", (candidate, handler) => candidate.consumeUnpublishedBatch("order-023-mixed-unpublished-failure", handler, { limit: 10 }), async (tx) => {
+      await tx`SELECT set_config('app.tenant_id', ${MIXED_TENANT_B}, false)`;
     });
-    await runHostile("order-023-mixed-unpublished", (candidate, handler) => candidate.consumeUnpublishedBatch("order-023-mixed-unpublished", handler, { limit: 10 }), async (tx, event) => {
-      await tx`SELECT set_config('app.tenant_id', ${event.tenantId}, false)`;
-      await tx.unsafe("DEALLOCATE ALL");
-    });
+    await runSameValue("order-023-mixed-unpublished", (candidate, handler) => candidate.consumeUnpublishedBatch("order-023-mixed-unpublished", handler, { limit: 10 }), true);
   });
 
   test("P4: polling starts every 100-250 ms while idle and under load", async () => {
