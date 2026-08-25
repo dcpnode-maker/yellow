@@ -369,6 +369,17 @@ jobs:
           bun run test:database
           bun run schema:check
 
+      - name: Prove invariant database through canonical referee
+        shell: bash
+        run: |
+          set -euo pipefail
+          export YELLOW_DEPLOY_DATABASE_URL="$INVARIANT_URL"
+          export YELLOW_RUNTIME_DATABASE_URL="$INVARIANT_RUNTIME_URL"
+          export YELLOW_DSN="$INVARIANT_URL"
+          bun run db:migrate
+          docker compose exec -T postgres psql --username yellow_deploy --dbname yellow_ci_invariant --set ON_ERROR_STOP=1 < tests/seed_fixture.sql
+          python tests/run_invariants.py yellow_ci_invariant
+
       - name: Start application and verify exact health plus database-backed runtime
         shell: bash
         run: |
@@ -490,17 +501,6 @@ jobs:
             echo "runtime startup did not establish the application and worker database sessions" >&2
             exit 1
           fi
-
-      - name: Prove invariant database through canonical referee
-        shell: bash
-        run: |
-          set -euo pipefail
-          export YELLOW_DEPLOY_DATABASE_URL="$INVARIANT_URL"
-          export YELLOW_RUNTIME_DATABASE_URL="$INVARIANT_RUNTIME_URL"
-          export YELLOW_DSN="$INVARIANT_URL"
-          bun run db:migrate
-          docker compose exec -T postgres psql --username yellow_deploy --dbname yellow_ci_invariant --set ON_ERROR_STOP=1 < tests/seed_fixture.sql
-          python tests/run_invariants.py yellow_ci_invariant
 
       - name: Print database logs on failure
         if: failure()
