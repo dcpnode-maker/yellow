@@ -107,8 +107,11 @@ test("Order 168: deep-linked drawer gates lifecycle actions and follows Back, fo
     actions: { canModify: true, canCancel: true, canReinstate: false },
   });
   const submitLifecycle = functionSource("submitLifecycleCommand");
-  expect(submitLifecycle).toContain("await loadReservationDetail(reservationId)");
-  expect(submitLifecycle).toContain("reservationLifecycleRefreshKind(reservationDetailDrawer.hidden");
+  expect(submitLifecycle).toContain('kind: reservationLifecycleEditor.parentElement === reservationDetailActions ? "drawer" : "legacy"');
+  expect(submitLifecycle).toContain("detailGeneration: reservationDetailGeneration");
+  expect(submitLifecycle).toContain("encodeURIComponent(origin.property)");
+  expect(submitLifecycle).toContain("reservationLifecycleRefreshDecision(origin");
+  expect(submitLifecycle).toContain("dispatchReservationLifecycleRefresh(");
   expect(submitLifecycle).not.toContain("confirmationNo=");
   expect(script).toContain('drawerLifecycleButton("Edit details", reservationMetadataForm)');
   expect(script).toContain('drawerLifecycleButton("Cancel", reservationCancelForm)');
@@ -118,10 +121,25 @@ test("Order 168: deep-linked drawer gates lifecycle actions and follows Back, fo
   expect(command("cancel")).toEqual({ path: "/cancel", method: "POST" });
   expect(command("reinstate")).toEqual({ path: "/reinstate", method: "POST" });
   expect(command("guest")).toBeNull();
-  const refreshKind = executableFunction<(hidden: boolean, routeId: string, reservationId: string) => string>("reservationLifecycleRefreshKind");
-  expect(refreshKind(false, "r-1", "r-1")).toBe("uuid");
-  expect(refreshKind(true, "r-1", "r-1")).toBe("legacy");
-  expect(refreshKind(false, "other", "r-1")).toBe("legacy");
+  const refreshDecision = executableFunction<(origin: Record<string, unknown>, current: Record<string, unknown>) => string>("reservationLifecycleRefreshDecision");
+  const drawerOrigin = { kind: "drawer", property: "p-1", reservationId: "r-1", routeReservationId: "r-1", detailGeneration: 7 };
+  const current = { property: "p-1", routeReservationId: "r-1", detailGeneration: 7, drawerHidden: false };
+  expect(refreshDecision(drawerOrigin, current)).toBe("uuid");
+  expect(refreshDecision(drawerOrigin, { ...current, drawerHidden: true })).toBe("suppress");
+  expect(refreshDecision(drawerOrigin, { ...current, property: "p-2" })).toBe("suppress");
+  expect(refreshDecision(drawerOrigin, { ...current, routeReservationId: "other" })).toBe("suppress");
+  expect(refreshDecision(drawerOrigin, { ...current, detailGeneration: 8 })).toBe("suppress");
+  expect(refreshDecision({ ...drawerOrigin, kind: "legacy" }, current)).toBe("legacy");
+  expect(refreshDecision({ ...drawerOrigin, kind: "legacy" }, { ...current, property: "p-2" })).toBe("suppress");
+  const dispatchRefresh = executableFunction<(decision: string, id: string, uuid: (id: string) => void, legacy: () => void) => void>("dispatchReservationLifecycleRefresh");
+  let uuidGets = 0;
+  let confirmationGets = 0;
+  for (const changed of [{ ...current, drawerHidden: true }, { ...current, property: "p-2" }]) {
+    dispatchRefresh(refreshDecision(drawerOrigin, changed), "r-1", () => { uuidGets += 1; }, () => { confirmationGets += 1; });
+  }
+  expect({ uuidGets, confirmationGets }).toEqual({ uuidGets: 0, confirmationGets: 0 });
+  dispatchRefresh("uuid", "r-1", (id) => { expect(id).toBe("r-1"); uuidGets += 1; }, () => { confirmationGets += 1; });
+  expect({ uuidGets, confirmationGets }).toEqual({ uuidGets: 1, confirmationGets: 0 });
   expect(script).toContain('reservationLifecycleCommand("modify")');
   expect(script).toContain('reservationLifecycleCommand("cancel")');
   expect(script).toContain('reservationLifecycleCommand("reinstate")');

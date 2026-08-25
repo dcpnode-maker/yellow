@@ -3336,13 +3336,32 @@
     return null;
   }
 
-  function reservationLifecycleRefreshKind(drawerHidden, routeReservationId, reservationId) {
-    return drawerHidden === false && routeReservationId === reservationId ? "uuid" : "legacy";
+  function reservationLifecycleRefreshDecision(origin, current) {
+    if (origin.kind === "drawer") {
+      return origin.routeReservationId === origin.reservationId &&
+        current.drawerHidden === false && current.property === origin.property &&
+        current.routeReservationId === origin.reservationId &&
+        current.detailGeneration === origin.detailGeneration ? "uuid" : "suppress";
+    }
+    return current.property === origin.property ? "legacy" : "suppress";
+  }
+
+  function dispatchReservationLifecycleRefresh(decision, reservationId, refreshUuid, refreshLegacy) {
+    if (decision === "uuid") return refreshUuid(reservationId);
+    if (decision === "legacy") return refreshLegacy();
+    return undefined;
   }
 
   async function submitLifecycleCommand(path, method, body, form, successMessage) {
     if (!reservationLifecycleData) return false;
     const reservationId = reservationLifecycleData.reservationId;
+    const origin = {
+      kind: reservationLifecycleEditor.parentElement === reservationDetailActions ? "drawer" : "legacy",
+      property: propertySelect.value,
+      reservationId,
+      routeReservationId: reservationRouteReservationId,
+      detailGeneration: reservationDetailGeneration,
+    };
     const identity = `reservation-lifecycle:${path}:${reservationId}:${JSON.stringify(body)}`;
     const key = pendingKeys.get(identity) || crypto.randomUUID();
     pendingKeys.set(identity, key);
@@ -3351,15 +3370,22 @@
     lifecycleCommandMessage.textContent = "Applying the audited reservation command…";
     lifecycleCommandMessage.classList.remove("error");
     try {
-      await request(`/api/v1/properties/${encodeURIComponent(propertySelect.value)}/reservations/${encodeURIComponent(reservationId)}${path}`, {
+      await request(`/api/v1/properties/${encodeURIComponent(origin.property)}/reservations/${encodeURIComponent(reservationId)}${path}`, {
         method, headers: { "idempotency-key": key }, body: JSON.stringify(body),
       });
       pendingKeys.delete(identity);
-      if (reservationLifecycleRefreshKind(reservationDetailDrawer.hidden, reservationRouteReservationId, reservationId) === "uuid") {
-        await loadReservationDetail(reservationId);
-      } else {
-        await loadReservationLifecycle(true);
-      }
+      const refreshDecision = reservationLifecycleRefreshDecision(origin, {
+        property: propertySelect.value,
+        routeReservationId: reservationRouteReservationId,
+        detailGeneration: reservationDetailGeneration,
+        drawerHidden: reservationDetailDrawer.hidden,
+      });
+      await dispatchReservationLifecycleRefresh(
+        refreshDecision,
+        reservationId,
+        loadReservationDetail,
+        () => loadReservationLifecycle(true),
+      );
       lifecycleCommandMessage.textContent = successMessage;
       lifecycleCommandMessage.classList.remove("error");
       return true;
