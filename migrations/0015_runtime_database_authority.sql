@@ -392,25 +392,47 @@ BEGIN
     RAISE EXCEPTION 'consumer cursor changed or was not begun' USING ERRCODE = '55000';
   END IF;
 
-  RETURN QUERY
-  SELECT o.seq,
-         o.id,
-         o.tenant_id,
-         o.property_node,
-         o.business_date::text,
-         o.aggregate_type,
-         o.aggregate_id,
-         o.event_type,
-         o.event_version,
-         o.actor_id,
-         o.correlation_id,
-         o.causation_id,
-         o.created_at,
-         o.payload
-    FROM public.outbox AS o
-   WHERE CASE WHEN p_unpublished THEN o.published_at IS NULL ELSE o.seq > p_after END
-   ORDER BY o.seq
-   LIMIT p_limit;
+  IF p_unpublished THEN
+    RETURN QUERY
+    SELECT o.seq,
+           o.id,
+           o.tenant_id,
+           o.property_node,
+           o.business_date::text,
+           o.aggregate_type,
+           o.aggregate_id,
+           o.event_type,
+           o.event_version,
+           o.actor_id,
+           o.correlation_id,
+           o.causation_id,
+           o.created_at,
+           o.payload
+      FROM public.outbox AS o
+     WHERE o.published_at IS NULL
+     ORDER BY o.seq
+     LIMIT p_limit;
+  ELSE
+    RETURN QUERY
+    SELECT o.seq,
+           o.id,
+           o.tenant_id,
+           o.property_node,
+           o.business_date::text,
+           o.aggregate_type,
+           o.aggregate_id,
+           o.event_type,
+           o.event_version,
+           o.actor_id,
+           o.correlation_id,
+           o.causation_id,
+           o.created_at,
+           o.payload
+      FROM public.outbox AS o
+     WHERE o.seq > p_after
+     ORDER BY o.seq
+     LIMIT p_limit;
+  END IF;
 END
 $runtime_consumer_read$;
 
