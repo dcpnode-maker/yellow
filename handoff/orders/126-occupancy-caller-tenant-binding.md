@@ -1,6 +1,6 @@
 # Order 126 — Bind occupancy SECURITY DEFINER callers to tenant authority
 
-**Status:** CORRECTION-READY — D-390
+**Status:** BUILT-UNREVIEWED — independent Tier-3 review required
 **Phase:** 5 · Cyber remediation
 **Branch:** `phase-5/occupancy-caller-tenant-binding-approved-final`
 **Base:** `3e387eb6139621354cd7bc5e87370aee0f312b92` — independently approved
@@ -193,6 +193,89 @@ A non-implementing Tier-3 reviewer must personally reproduce P0–P4 on one immu
 executable, inspect signatures/bodies/ACLs, and issue APPROVE or REJECT. Builder output
 is not review evidence.
 
+## Corrected immutable builder evidence
+
+The corrected candidate is one immutable executable. No result from stopped
+`9c1284a1e6e22ff9b7d94450ffe8c626f52b8d41` is reused:
+
+```text
+approved Base             3e387eb6139621354cd7bc5e87370aee0f312b92
+D-390 / Question-149      dd2a0dea396e56d00155d3e0c2f2ca5b752354e7
+cancelled-parent red      a6df5e22361c0df287f4aa55809c27ce7e9b457b
+corrected executable      16b48bdfb559dcc9ce0a417a427f3cc5b5d6b1fb
+path-audit correction     e263c6dd6366139386fa58498be9702ac4a476d5
+migration raw SHA-256     706806ad3c041d506df1e90f75b19ed219baa3fedb8968471828657ab6c7493a
+```
+
+On an exact approved-Base database through 0013, app-role tenant-A context naming
+tenant B reproduced hostile record/release mutation: the hostile count changed 0→1
+and the victim count 1→0. Direct DML remained `42501`, PUBLIC EXECUTE remained absent,
+`app_role` remained NOLOGIN and both function paths remained safe. The database and
+detached worktree were removed before corrected proof.
+
+Fresh serial proof on `16b48bdf...` passed:
+
+```text
+strict tenant/typed-parent focused          7/7, including cancelled P0003/zero mutation
+50-client exclusive race                    exactly one winner, 223 ms
+40-client positional race                   exactly six winners, 322 ms
+availability projection                     6/6, 45 assertions
+Order-143 composite segment changes         7/7, 115 assertions
+Order-144 lifecycle                         6/6, 65 assertions
+Order-145 blocks / containment              7/7 + 3/3, 43 + 22 assertions
+reservation commit / HTTP                   5/5 + 5/5, 106 + 61 assertions
+Order-129 initial parents                   7/7, 45 assertions
+fixture-seeded holds / inventory            9/9 + 6/6, 32 + 30 assertions
+unique-prefix cumulative matrix             19/19
+native-WSL unchanged migration suite        17/17, 95 assertions
+fresh deployment acceptance                 6/6, 13 assertions
+fresh normalized schema                     exact
+app-never-started referee                    11/11, 85 tables / 75 RLS tables
+standing                                    174 pass / 429 skip / 0 fail, 1,983 assertions
+typecheck / 64-file boundaries              PASS / PASS
+licences / audit / image pins               23 / no vulnerabilities / exact digests
+```
+
+The unchanged Windows migration run passed 16/17 with 93 assertions; only the known
+symlink-creation `EPERM` failed before assertions. The complete unchanged suite then
+passed 17/17 under native WSL. `setup.sh --db-only` was not invoked because it
+hard-codes recreation of `yellow_dev`/`yellow_test` and starts Compose, contrary to the
+coordinator's unique-prefix and no-reconfiguration constraints. Its exact database
+core was instead reproduced on fresh `yellow_o126f_referee_final`: migrations through
+0014, canonical fixture, normalized schema and the standalone referee all passed,
+including `11 passed, 0 failed of 11`.
+
+The final Base-to-head allowlist is exactly the six implementation paths plus the
+order, Question 149 and additive decision/ledger governance. The final implementation
+blobs are:
+
+```text
+a9cee230b9ae339e21c87a6f917c39c28ff909ef  migrations/0014_bind_occupancy_caller_tenant.sql
+fb557f8db1105a9689450ba6971ae56749850012  tests/occupancy-caller-tenant.integration.test.ts
+e3c849d938770f4e2a19d2c8f62963080d93026a  tests/availability-projection.integration.test.ts
+e4f8640f43b1466a9fa02e551eac6fc2757bcaca  tests/reservation-segment-changes.integration.test.ts
+3137c9048713f295fa3aac314fa835b497093fd0  tests/schema/expected.sql
+188e4146b6751acc01643d03279571841ec455b5  tests/database-acceptance.integration.test.ts
+```
+
+The acceptance diff is exactly one five-line v14 object. Removing the two authorized
+function sections makes the schema snapshot byte-identical to Base. Migration 0014
+contains exactly the two replacement functions, zero prohibited DDL/grants, zero
+`cancelled` predicates and two exact `booked`/`in_house` predicates. Order-144/145
+overlay blobs and protected files are byte-identical to Base. Protected SHA-256 values
+remain:
+
+```text
+fe2a9fc949c6bacded3f8d3fc4d14fc596a83ebde9aeb043eb10845f07b30923  migrations/0001_init.sql
+bf71d8fc2987126db61ca3105e5d5cb5a4f48b9e2eba09d8b7fc1f3441fd4c62  tests/seed_fixture.sql
+2afa95bb7c02cd9637ffc9c3df00d1ddf7cfc5d8d31c4fd8fad29b950c1a418d  tests/run_invariants.py
+```
+
+Final PostgreSQL inspection found zero `yellow_o126f_*` and zero `yellow_migrate_*`
+databases. The shared PostgreSQL/Valkey services remain healthy and unmodified; no app
+container was started. This builder evidence is not independent review and does not
+authorize merge, push, deployment or Cyber closure.
+
 ## Definition of done
 
 - [x] Orders 129, 130, 142 and 143 are independently approved and present in the
@@ -202,8 +285,9 @@ is not review evidence.
 - [x] D-377 exclusions remain exact; obsolete D-382 is absent; 0014 is next.
 - [x] Question 149 is resolved by D-390's exact two-path, governance-first amendment;
       the cancelled-parent correction and complete fresh proof remain pending.
-- [ ] P0 is freshly reproduced on exact approved Base.
-- [ ] P1–P4 pass on one immutable executable SHA.
+- [x] P0 is freshly reproduced on exact approved Base.
+- [x] Builder P1–P4 pass on immutable executable
+      `16b48bdfb559dcc9ce0a417a427f3cc5b5d6b1fb`.
 - [ ] Independent non-implementing Tier-3 review approves that exact SHA.
 - [ ] Only `occ_2f4ca8c2e6f1d7352ba849c8` is then eligible for discharge; every sibling
       finding remains outside scope.
