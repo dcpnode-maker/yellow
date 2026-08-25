@@ -1,6 +1,6 @@
 # Order 126 — Bind occupancy SECURITY DEFINER callers to tenant authority
 
-**Status:** RESUMED / READY
+**Status:** CORRECTION-READY — D-390
 **Phase:** 5 · Cyber remediation
 **Branch:** `phase-5/occupancy-caller-tenant-binding-approved-final`
 **Base:** `3e387eb6139621354cd7bc5e87370aee0f312b92` — independently approved
@@ -43,6 +43,22 @@ nine-line OOO fixture. The authoritative final `b96101f` tree blob is instead
 `e4f8640f43b1466a9fa02e551eac6fc2757bcaca`; its diff from this approved Base's
 Order-143 composite test is exactly nine added lines and zero deletions, so it
 preserves the approved Order-143 compatibility.
+
+## Static-review correction stop — Question 149
+
+Executable `9c1284a1e6e22ff9b7d94450ffe8c626f52b8d41` is stopped and is not
+review-ready. Migration 0014 still admits a same-tenant `cancelled` reservation segment
+even though approved Order 144 now restores the exact parent to `booked` before claim;
+the focused proof lacks the required cancelled-parent `P0003`/zero-mutation canary.
+In addition, exact schema and acceptance cannot pass because the derived
+`tests/schema/expected.sql` mirror and complete migration ledger in
+`tests/database-acceptance.integration.test.ts` both end before 0014 and are outside
+this admission's exact paths.
+
+Question 149 records the evidence. D-390 adds exactly those two derived-proof paths in
+a governance-first correction while retaining the current availability and composite
+segment fixtures as immutable necessary strict-parent compatibility. No stopped result
+may be promoted to final builder evidence, and P0–P4 must restart after the amendment.
 
 ## Canonical finding and boundary
 
@@ -89,8 +105,10 @@ Implementation may change only:
 
 - `migrations/0014_bind_occupancy_caller_tenant.sql`;
 - `tests/occupancy-caller-tenant.integration.test.ts`;
-- `tests/availability-projection.integration.test.ts`; and
-- `tests/reservation-segment-changes.integration.test.ts`.
+- `tests/availability-projection.integration.test.ts`;
+- `tests/reservation-segment-changes.integration.test.ts`;
+- `tests/schema/expected.sql`; and
+- `tests/database-acceptance.integration.test.ts`.
 
 Governance may change only:
 
@@ -107,6 +125,21 @@ a0bc6670169a5e4dc0aa17af6a666bdd36c23b53  tests/occupancy-caller-tenant.integrat
 e3c849d938770f4e2a19d2c8f62963080d93026a  tests/availability-projection.integration.test.ts
 e4f8640f43b1466a9fa02e551eac6fc2757bcaca  tests/reservation-segment-changes.integration.test.ts
 ```
+
+D-390 retains `e3c849d...` and `e4f8640...` byte-exactly: the approved-Base versions
+fabricate hold/segment and OOO slots without typed parents and fail strict 0014. The
+correction may edit only migration 0014, its focused test, the schema mirror and the
+acceptance manifest. Derived-path parents are:
+
+```text
+04db66de80c8437bf0760b943f8eed6950dbf5a9  tests/schema/expected.sql
+67e70b5fdf52a94069562bc74c0e3c25a1ca1157  tests/database-acceptance.integration.test.ts
+```
+
+The schema mirror must be generated from a fresh database migrated through the final
+corrected 0014, with change limited to the existing record/release bodies. Acceptance
+may append only version 14, its exact filename and final corrected raw SHA-256. Final
+corrected blobs are recorded only after those mechanical proofs pass.
 
 Every other path is forbidden, especially `src/contexts/reservations/segments.ts`,
 `src/contexts/reservations/lifecycle.ts`, the two Order-145 fixture tests,
@@ -166,6 +199,8 @@ is not review evidence.
 - [x] Questions 147 and 148 are resolved by independently approved Orders 143–146
       without a validation bypass.
 - [x] D-377 exclusions remain exact; obsolete D-382 is absent; 0014 is next.
+- [x] Question 149 is resolved by D-390's exact two-path, governance-first amendment;
+      the cancelled-parent correction and complete fresh proof remain pending.
 - [ ] P0 is freshly reproduced on exact approved Base.
 - [ ] P1–P4 pass on one immutable executable SHA.
 - [ ] Independent non-implementing Tier-3 review approves that exact SHA.
