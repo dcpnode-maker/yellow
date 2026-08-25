@@ -26,7 +26,7 @@ export class Database {
   }
 
   static connect(databaseUrl: string, options: DatabaseOptions = {}): Database {
-    const pool = new SQL(databaseUrl, { max: options.maxConnections ?? 10 });
+    const pool = new SQL(databaseUrl, { max: options.maxConnections ?? 10, prepare: false });
     return new Database(pool, true);
   }
 
@@ -42,20 +42,30 @@ export class Database {
 
   async #discardAndAssertRuntimeSettlement(connection: ReservedSQL): Promise<void> {
     await connection.unsafe("DISCARD ALL");
-    const rows = await connection<{
+    const rows = await connection.unsafe<{
       session_user: string;
       current_user: string;
       tenant_reset: boolean;
-    }[]>`
+      prepared_count: number;
+    }[]>(`
       SELECT session_user::text AS session_user,
              current_user::text AS current_user,
-             NULLIF(current_setting('app.tenant_id', true), '') IS NULL AS tenant_reset
-    `;
+             NULLIF(current_setting('app.tenant_id', true), '') IS NULL AS tenant_reset,
+             (SELECT count(*)::int FROM pg_prepared_statements) AS prepared_count
+    `);
     const row = rows[0];
     if (rows.length !== 1 || row?.session_user !== "yellow_runtime" ||
-        row.current_user !== "yellow_runtime" || row.tenant_reset !== true) {
+        row.current_user !== "yellow_runtime" || row.tenant_reset !== true || row.prepared_count !== 0) {
       throw new Error("PostgreSQL connection did not settle to the runtime identity");
     }
+  }
+
+  async #failClose(connection: ReservedSQL): Promise<void> {
+    if (this.#ownsPool) {
+      try { await this.close(); } catch { /* preserve the request failure */ }
+      return;
+    }
+    try { await connection.close({ timeout: 0 }); } catch { /* preserve the request failure */ }
   }
 
   async withTenantTransaction<T>(tenantId: string, operation: (tx: Tx) => Promise<T>): Promise<T> {
@@ -99,15 +109,13 @@ export class Database {
       if (!reusable && settled) {
         try {
           await this.#discardAndAssertRuntimeSettlement(connection);
+          reusable = true;
         } catch {
-          // Preserve the request failure. The reserved backend is closed below.
+          // Preserve the request failure. The pool/connection is fail-closed below.
         }
       }
       if (!reusable) {
-        // DISCARD ALL invalidates PostgreSQL prepared statements while Bun retains
-        // their client-side names. Even a successfully reverified discarded client
-        // must therefore be closed, never released for reuse.
-        try { await connection.close({ timeout: 0 }); } catch { /* preserve the request failure */ }
+        await this.#failClose(connection);
       }
       if (reusable) connection.release();
     }
