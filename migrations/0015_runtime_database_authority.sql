@@ -350,7 +350,7 @@ RETURNS TABLE(
   seq bigint,
   id uuid,
   tenant_id uuid,
-  property_node ltree,
+  property_node uuid,
   business_date text,
   aggregate_type text,
   aggregate_id uuid,
