@@ -184,13 +184,27 @@ databaseDescribe("Order 118 app_role authentication containment", () => {
   test("P1: migration ledger, exact role catalogue and schema/RLS shape are unchanged", async () => {
     expect(await roleState()).toEqual(HARDENED_ROLE);
 
-    const memberships = await admin!<{ incoming: number; outgoing: number }[]>`
-      SELECT
-        count(*) FILTER (WHERE roleid = 'app_role'::regrole)::int AS incoming,
-        count(*) FILTER (WHERE member = 'app_role'::regrole)::int AS outgoing
-      FROM pg_catalog.pg_auth_members
+    const memberships = await admin!<{
+      roleName: string; memberName: string; adminOption: boolean; inheritOption: boolean; setOption: boolean;
+    }[]>`
+      SELECT parent.rolname AS "roleName",
+             member.rolname AS "memberName",
+             m.admin_option AS "adminOption",
+             m.inherit_option AS "inheritOption",
+             m.set_option AS "setOption"
+        FROM pg_catalog.pg_auth_members AS m
+        JOIN pg_catalog.pg_roles AS parent ON parent.oid = m.roleid
+        JOIN pg_catalog.pg_roles AS member ON member.oid = m.member
+       WHERE m.roleid = 'app_role'::regrole OR m.member = 'app_role'::regrole
+       ORDER BY parent.rolname, member.rolname
     `;
-    expect(memberships).toEqual([{ incoming: 0, outgoing: 0 }]);
+    expect(memberships).toEqual([{
+      roleName: "app_role",
+      memberName: "yellow_runtime",
+      adminOption: false,
+      inheritOption: false,
+      setOption: true,
+    }]);
 
     const directSessions = await admin!<{ count: number }[]>`
       SELECT count(*)::int AS count
