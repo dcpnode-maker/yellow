@@ -1,9 +1,9 @@
 # Order 168 — Reservation workspace UI
 
-**Status:** IN PROGRESS — Order166 approval integrated
+**Status:** APPROVED — independent review at `ca024eee`
 **Phase:** 5 · founder-visible operations
 **Branch:** `phase-5/reservation-workspace-ui`
-**Base:** `0e88417` (Order166 immutable candidate; independent verdict pending)
+**Base:** `0e88417` (independently approved Order166 candidate)
 **Risk tier:** 2 — operator UI over existing governed reservation APIs
 **Owner:** Codex implementation; independent UI/accessibility review
 
@@ -65,6 +65,14 @@ check-in/check-out, merge, push or local replacement is in scope.
 ## Definition of done
 
 - [x] Order166 is independently approved and its review evidence is integrated.
-- [ ] The complete reservation board/create/detail human journey works against real APIs.
-- [ ] Accessibility, responsive, performance and full repository gates pass.
-- [ ] Independent review approves the immutable candidate before local promotion.
+- [x] The complete reservation board/create/detail human journey works against real APIs.
+- [x] Accessibility, responsive, performance and full repository gates pass.
+- [x] Independent review approves the immutable candidate before local promotion.
+
+## Independent review
+
+Approved by an independent non-implementing OpenAI Codex reviewer at immutable candidate
+`ca024eeeebe6560e3e7983c155ee2b344beb1c1d`. See
+`handoff/reviews/168-reservation-workspace-ui.md` for exact served, Browser, gate,
+referee, rejected-predecessor and incident evidence. Approval does not authorize merge,
+push, local founder-stack replacement or production deployment.
