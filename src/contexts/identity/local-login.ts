@@ -57,15 +57,12 @@ function normalize(input: LocalLoginInput): NormalizedLogin | null {
 }
 
 async function loadUser(tx: Tx, tenant: string, email: string): Promise<UserRow | null> {
-  await tx.unsafe("SET LOCAL ROLE app_role");
-  const tenants = await tx<{ id: string }[]>`
-    SELECT id
-    FROM tenant
-    WHERE slug = ${tenant}
-      AND status = 'active'
+  const tenants = await tx<{ id: string | null }[]>`
+    SELECT runtime_resolve_active_tenant(${tenant})::text AS id
   `;
   const tenantId = tenants[0]?.id ?? NIL_TENANT;
   await tx`SELECT set_config('app.tenant_id', ${tenantId}, true)`;
+  await tx.unsafe("SET LOCAL ROLE app_role");
 
   const users = await tx<UserRow[]>`
     SELECT

@@ -189,16 +189,8 @@ export class PostgresEventBus implements EventBus {
     try {
       await connection.unsafe("BEGIN");
       began = true;
-      await connection`
-        INSERT INTO consumer_cursor (consumer, last_seq)
-        VALUES (${consumer}, 0)
-        ON CONFLICT (consumer) DO NOTHING
-      `;
       const cursorRows = await connection<Array<{ last_seq: number | bigint }>>`
-        SELECT last_seq
-        FROM consumer_cursor
-        WHERE consumer = ${consumer}
-        FOR UPDATE
+        SELECT runtime_consumer_begin(${consumer}) AS last_seq
       `;
       const initialLastSeq = Number(cursorRows[0]?.last_seq ?? 0);
       if (!Number.isSafeInteger(initialLastSeq) || initialLastSeq < 0) {
@@ -221,23 +213,17 @@ export class PostgresEventBus implements EventBus {
           causation_id,
           created_at,
           payload
-        FROM outbox
-        WHERE seq > ${initialLastSeq}
-        ORDER BY seq
-        LIMIT ${limit}
+        FROM runtime_consumer_read(${consumer}, ${initialLastSeq}::bigint, ${limit}, false)
       `;
 
       let processed = 0;
       let lastSeq = initialLastSeq;
       for (const row of rows) {
         const event = toEvent(row);
-        const inserted = await connection<Array<{ consumer: string }>>`
-          INSERT INTO consumer_processed (consumer, outbox_id)
-          VALUES (${consumer}, ${event.id}::uuid)
-          ON CONFLICT (consumer, outbox_id) DO NOTHING
-          RETURNING consumer
+        const inserted = await connection<Array<{ inserted: boolean }>>`
+          SELECT runtime_consumer_mark(${consumer}, ${event.id}::uuid) AS inserted
         `;
-        if (inserted.length === 1) {
+        if (inserted[0]?.inserted === true) {
           await runHandlerAsTenant(connection, event, handler);
           processed += 1;
         }
@@ -245,11 +231,7 @@ export class PostgresEventBus implements EventBus {
       }
 
       if (lastSeq !== initialLastSeq) {
-        await connection`
-          UPDATE consumer_cursor
-          SET last_seq = ${lastSeq}, updated_at = now()
-          WHERE consumer = ${consumer}
-        `;
+        await connection`SELECT runtime_consumer_advance(${consumer}, ${lastSeq}::bigint)`;
       }
       await connection.unsafe("COMMIT");
       began = false;
@@ -287,16 +269,8 @@ export class PostgresEventBus implements EventBus {
     try {
       await connection.unsafe("BEGIN");
       began = true;
-      await connection`
-        INSERT INTO consumer_cursor (consumer, last_seq)
-        VALUES (${consumer}, 0)
-        ON CONFLICT (consumer) DO NOTHING
-      `;
       const cursorRows = await connection<Array<{ last_seq: number | bigint }>>`
-        SELECT last_seq
-        FROM consumer_cursor
-        WHERE consumer = ${consumer}
-        FOR UPDATE
+        SELECT runtime_consumer_begin(${consumer}) AS last_seq
       `;
       const initialLastSeq = Number(cursorRows[0]?.last_seq ?? 0);
       if (!Number.isSafeInteger(initialLastSeq) || initialLastSeq < 0) {
@@ -319,10 +293,7 @@ export class PostgresEventBus implements EventBus {
           causation_id,
           created_at,
           payload
-        FROM outbox
-        WHERE published_at IS NULL
-        ORDER BY seq
-        LIMIT ${limit}
+        FROM runtime_consumer_read(${consumer}, ${initialLastSeq}::bigint, ${limit}, true)
       `;
 
       let processed = 0;
@@ -331,13 +302,10 @@ export class PostgresEventBus implements EventBus {
       for (const row of rows) {
         const event = toEvent(row);
         events.push(event);
-        const inserted = await connection<Array<{ consumer: string }>>`
-          INSERT INTO consumer_processed (consumer, outbox_id)
-          VALUES (${consumer}, ${event.id}::uuid)
-          ON CONFLICT (consumer, outbox_id) DO NOTHING
-          RETURNING consumer
+        const inserted = await connection<Array<{ inserted: boolean }>>`
+          SELECT runtime_consumer_mark(${consumer}, ${event.id}::uuid) AS inserted
         `;
-        if (inserted.length === 1) {
+        if (inserted[0]?.inserted === true) {
           await runHandlerAsTenant(connection, event, handler);
           processed += 1;
         }
@@ -345,11 +313,7 @@ export class PostgresEventBus implements EventBus {
       }
 
       if (lastSeq !== initialLastSeq) {
-        await connection`
-          UPDATE consumer_cursor
-          SET last_seq = ${lastSeq}, updated_at = now()
-          WHERE consumer = ${consumer}
-        `;
+        await connection`SELECT runtime_consumer_advance(${consumer}, ${lastSeq}::bigint)`;
       }
       await connection.unsafe("COMMIT");
       began = false;
@@ -378,16 +342,12 @@ export class PostgresEventBus implements EventBus {
       await connection.unsafe("BEGIN");
       began = true;
       const result = await connection<Array<{ count: number }>>`
-        WITH ids AS (
-          SELECT value::uuid AS id
-          FROM jsonb_array_elements_text(${encodedIds}::text::jsonb)
-        ), marked AS (
-          UPDATE outbox
-          SET published_at = COALESCE(published_at, now())
-          WHERE id IN (SELECT id FROM ids)
-          RETURNING 1
-        )
-        SELECT count(*)::int AS count FROM marked
+        SELECT runtime_mark_outbox_published(
+          ARRAY(
+            SELECT value::uuid
+            FROM jsonb_array_elements_text(${encodedIds}::text::jsonb)
+          )
+        ) AS count
       `;
       await connection.unsafe("COMMIT");
       began = false;
@@ -409,25 +369,15 @@ export class PostgresEventBus implements EventBus {
     try {
       await connection.unsafe("BEGIN");
       began = true;
-      const processedRows = await connection<Array<{ count: number }>>`
-        WITH gone AS (
-          DELETE FROM consumer_processed AS processed
-          USING outbox AS event
-          WHERE processed.outbox_id = event.id
-            AND event.published_at IS NOT NULL
-            AND event.published_at < now() - make_interval(secs => ${retentionSeconds})
-          RETURNING 1
-        )
-        SELECT count(*)::int AS count FROM gone
-      `;
-      const outboxRows = await connection<Array<{ count: number | bigint }>>`
-        SELECT prune_outbox(make_interval(secs => ${retentionSeconds})) AS count
+      const rows = await connection<Array<{ processed: number; outbox: number | bigint }>>`
+        SELECT processed, outbox
+        FROM runtime_prune_outbox(${retentionSeconds})
       `;
       await connection.unsafe("COMMIT");
       began = false;
       return {
-        processed: processedRows[0]?.count ?? 0,
-        outbox: Number(outboxRows[0]?.count ?? 0),
+        processed: rows[0]?.processed ?? 0,
+        outbox: Number(rows[0]?.outbox ?? 0),
       };
     } catch (error) {
       if (began) await connection.unsafe("ROLLBACK");

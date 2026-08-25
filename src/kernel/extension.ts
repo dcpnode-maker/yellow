@@ -387,12 +387,15 @@ export class ExtensionRegistry {
     });
   }
 
-  async checkCompatibility(type: string, proposedSchema: Readonly<JsonObject>): Promise<readonly CompatibilityFailure[]> {
+  async checkCompatibility(
+    tenantId: string,
+    type: string,
+    proposedSchema: Readonly<JsonObject>,
+  ): Promise<readonly CompatibilityFailure[]> {
     if (!TYPE_NAME.test(type)) throw new Error("extension type must be a stable lowercase identifier");
     const definitionIssues = schemaDefinitionIssues(proposedSchema);
     if (definitionIssues.length > 0) throw new ExtensionValidationError(definitionIssues);
-    const connection = await this.#platformPool.reserve();
-    try {
+    return await withTenantRole(this.#platformPool, tenantId, async (connection) => {
       const rows = await connection<Array<{ id: string; content: JsonObject }>>`
         SELECT id, content FROM extension WHERE type = ${type} ORDER BY id
       `;
@@ -400,8 +403,6 @@ export class ExtensionRegistry {
         const issues = validateJsonSchema(proposedSchema, content);
         return issues.length === 0 ? [] : [{ extensionId: id, issues }];
       });
-    } finally {
-      connection.release();
-    }
+    });
   }
 }
