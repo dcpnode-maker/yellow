@@ -1,6 +1,6 @@
 # Order 150 — Establish positive runtime DML authority
 
-**Status:** READY — D-415
+**Status:** IMPLEMENTING — D-415–D-419; stacked dependencies Orders 151–152 authorized
 **Phase:** 5 · Cyber remediation
 **Branch:** `phase-5/runtime-dml-authority-post127`
 **Base:** `ebce025b496757f6b011c6b071a6fe9287840fc2` — approved Order-149 status tip stacked on closed Order 148
@@ -32,6 +32,10 @@ final reviewer may consider the occurrence discharged.
 - `yellow_runtime` is the only application credential, is non-owner/NOSUPERUSER/
   NOBYPASSRLS and is an exact member of NOLOGIN `app_role`; deploy/owner boundaries
   from D-407 remain immutable here.
+- Q162/D-418 reserves Order 151 for the bounded financial row-lock capability needed
+  by existing folio/posting callers; account/folio direct UPDATE stays absent.
+- Q163–Q164/D-419 reserve Order 152 for exact inherited proof-fixture maintenance;
+  none of those stale fixtures justify restoring runtime mutation.
 
 ## Scope
 
