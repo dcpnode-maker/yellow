@@ -233,7 +233,7 @@ databaseDescribe("Order 048 operator inventory management", () => {
     expect(retry.headers.get("idempotency-replayed")).toBe("false");
   });
 
-  test("P6/P7: assets expose one themed inventory UI and login carries exact twenty-seven scopes", async () => {
+  test("P6/P7: assets expose one themed inventory UI and login carries exact twenty-eight scopes", async () => {
     const html = await (await request("/")).text();
     const css = await (await request("/assets/operator.css")).text();
     const js = await (await request("/assets/operator.js")).text();
@@ -249,7 +249,7 @@ databaseDescribe("Order 048 operator inventory management", () => {
     expect(js).not.toMatch(BROWSER_SQL_SYNTAX);
     expect(js).not.toMatch(/postgres(?:ql)?:\/\//i);
     expect((await tokens.verify(accessToken))?.scp).toBe(
-      "crm.parties:read crm.parties:write financials.charges:write financials.folios:read inventory.availability:read inventory.blocks:read inventory.blocks:write inventory.configuration:read inventory.configuration:write inventory.holds:read inventory.holds:write inventory.offline_leases:read inventory.offline_leases:write inventory.policy:read inventory.policy:write inventory.restriction:read inventory.restriction:write rates.configuration:read rates.configuration:write rates.pricing:read rates.pricing:write reservations.guests:read reservations.guests:write reservations.lifecycle:read reservations.lifecycle:write reservations.segments:read reservations.segments:write",
+      "crm.parties:read crm.parties:write financials.charges:write financials.folios:read inventory.availability:read inventory.blocks:read inventory.blocks:write inventory.configuration:read inventory.configuration:write inventory.holds:read inventory.holds:write inventory.offline_leases:read inventory.offline_leases:write inventory.policy:read inventory.policy:write inventory.restriction:read inventory.restriction:write rates.configuration:read rates.configuration:write rates.pricing:read rates.pricing:write reservations.booking:write reservations.guests:read reservations.guests:write reservations.lifecycle:read reservations.lifecycle:write reservations.segments:read reservations.segments:write",
     );
   });
 });

@@ -53,6 +53,7 @@ export const REVIEW_PERMISSIONS = Object.freeze([
   { code: "rates.configuration:write", description: "Create tenant-scoped rate configuration" },
   { code: "rates.pricing:read", description: "Read tenant-scoped rate pricing" },
   { code: "rates.pricing:write", description: "Create tenant-scoped rate pricing" },
+  { code: "reservations.booking:write", description: "Commit tenant-scoped reservations" },
   { code: "reservations.guests:read", description: "Read tenant-scoped reservation guest allocations" },
   { code: "reservations.guests:write", description: "Replace tenant-scoped reservation guest allocations" },
   { code: "reservations.lifecycle:read", description: "Read tenant-scoped reservation lifecycle details" },

@@ -220,7 +220,7 @@ databaseDescribe("Order 049 operator restriction management", () => {
     expect(retry.headers.get("idempotency-replayed")).toBe("false");
   });
 
-  test("P6/P7: one themed restrictions UI and exact twenty-seven-scope login", async () => {
+  test("P6/P7: one themed restrictions UI and exact twenty-eight-scope login", async () => {
     const html = await (await request("/")).text();
     const css = await (await request("/assets/operator.css")).text();
     const js = await (await request("/assets/operator.js")).text();
@@ -232,7 +232,7 @@ databaseDescribe("Order 049 operator restriction management", () => {
     expect(js).toContain("idempotency-key");
     expect(js).not.toMatch(/localStorage|sessionStorage|document\.cookie/);
     expect((await tokens.verify(accessToken))?.scp).toBe(
-      "crm.parties:read crm.parties:write financials.charges:write financials.folios:read inventory.availability:read inventory.blocks:read inventory.blocks:write inventory.configuration:read inventory.configuration:write inventory.holds:read inventory.holds:write inventory.offline_leases:read inventory.offline_leases:write inventory.policy:read inventory.policy:write inventory.restriction:read inventory.restriction:write rates.configuration:read rates.configuration:write rates.pricing:read rates.pricing:write reservations.guests:read reservations.guests:write reservations.lifecycle:read reservations.lifecycle:write reservations.segments:read reservations.segments:write",
+      "crm.parties:read crm.parties:write financials.charges:write financials.folios:read inventory.availability:read inventory.blocks:read inventory.blocks:write inventory.configuration:read inventory.configuration:write inventory.holds:read inventory.holds:write inventory.offline_leases:read inventory.offline_leases:write inventory.policy:read inventory.policy:write inventory.restriction:read inventory.restriction:write rates.configuration:read rates.configuration:write rates.pricing:read rates.pricing:write reservations.booking:write reservations.guests:read reservations.guests:write reservations.lifecycle:read reservations.lifecycle:write reservations.segments:read reservations.segments:write",
     );
   });
 });

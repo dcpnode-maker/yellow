@@ -250,6 +250,7 @@ databaseDescribe("Order 053 operator operational blocks", () => {
       "inventory.policy:write", "inventory.restriction:read",
       "inventory.restriction:write", "rates.configuration:read", "rates.configuration:write",
       "rates.pricing:read", "rates.pricing:write",
+      "reservations.booking:write",
       "reservations.guests:read", "reservations.guests:write", "reservations.lifecycle:read",
       "reservations.lifecycle:write", "reservations.segments:read", "reservations.segments:write",
     ]);

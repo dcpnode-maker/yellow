@@ -88,13 +88,16 @@ data stop the run rather than rewriting hotel configuration.
 - ten-minute audited cart holds placed only from bookable availability, with active-hold
   visibility, explicit release and supervised audited due expiry; a hold protects
   inventory but is not a reservation;
+- an authenticated founder booking journey that creates or finds a masked Party, searches
+  the server-owned two-night offer, protects it with a ten-minute hold, commits that hold
+  exactly once to a reservation and reads the resulting confirmation;
 - visible restriction and operational-block evidence when those domain commands add it.
 
 The browser keeps its bearer token, appearance choice and generated idempotency keys in
 memory only. Inventory, restriction, rate-configuration and rate-pricing writes call the same tenant-scoped domain services,
 audit log, outbox and durable replay primitive as any future production client. General
 inventory import, positional dorm/bed generation, inventory update/delete, restriction
-update/delete, tax/FX calculation, hold consumption and reservations require later scoped API/UI orders;
+update/delete and tax/FX calculation require later scoped API/UI orders;
 no direct browser-to-table shortcut is permitted.
 
 The local `FLEX` quote deliberately reports `taxAssignmentState: none`. Its USD 250.00
@@ -139,8 +142,9 @@ database commands for founder acceptance:
 1. Sign in and confirm the selected property is visible in the workspace navigation.
 2. In **Availability**, search a stay and inspect the server-owned bookable, blocked and
    warning evidence. Place and release a temporary hold when a bookable result exists.
-3. Use **Open reservations** and confirm Party search/create and reservation operations
-   remain visibly distinct from availability and from payment, tax and fiscal work.
+3. Use **Open reservations** to search for or create a Party, select a server-owned offer,
+   place its temporary hold, commit the reservation and read the resulting confirmation.
+   Verify the completed booking. The flow creates no payment, folio, tax or fiscal artifact.
 4. Change property while **Project status** is active and confirm live status refreshes
    once. Sign out when finished; reload must not restore the bearer token or Party data.
 
