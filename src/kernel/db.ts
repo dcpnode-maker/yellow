@@ -39,9 +39,16 @@ export class Database {
     }
   }
 
+  async #restoreForReuse(connection: ReservedSQL): Promise<void> {
+    await connection.unsafe("RESET ROLE");
+    await connection.unsafe("RESET app.tenant_id");
+    await this.#assertSettlement(connection);
+  }
+
   async withTenantTransaction<T>(tenantId: string, operation: (tx: Tx) => Promise<T>): Promise<T> {
     const connection = await this.#pool.reserve();
     let began = false;
+    let reusable = false;
 
     try {
       await connection.unsafe("BEGIN");
@@ -58,6 +65,7 @@ export class Database {
       await connection.unsafe("COMMIT");
       began = false;
       await this.#assertSettlement(connection);
+      reusable = true;
       return result;
     } catch (error) {
       if (began) {
@@ -65,13 +73,25 @@ export class Database {
           await connection.unsafe("ROLLBACK");
           began = false;
           await this.#assertSettlement(connection);
+          reusable = true;
         } catch {
           // Preserve the request failure; the broken connection is discarded by Bun.
         }
       }
       throw error;
     } finally {
-      connection.release();
+      if (!reusable) {
+        try {
+          await this.#restoreForReuse(connection);
+          reusable = true;
+        } catch {
+          // ReservedSQL has no single-connection destroy operation. Its immediate
+          // close is the documented containment fallback; never release a connection
+          // whose role/context could not be reset and verified.
+          try { await connection.close({ timeout: 0 }); } catch { /* preserve the request failure */ }
+        }
+      }
+      if (reusable) connection.release();
     }
   }
 
