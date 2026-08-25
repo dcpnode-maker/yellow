@@ -480,18 +480,74 @@ function isExactRuntimeRole(role: AuthorityRoleRow | undefined): boolean {
     && role.rolpassword !== null && !role.rolinherit && hasNoElevatedAttributes(role);
 }
 
+type Migration0012GuardFailure =
+  | "unsupported-membership"
+  | "incompatible-role"
+  | "active-runtime-session"
+  | "membership-restore"
+  | "role-restore";
+
+async function raiseMigration0012GuardFailure(
+  connection: ReservedSQL,
+  failure: Migration0012GuardFailure,
+): Promise<never> {
+  switch (failure) {
+    case "unsupported-membership":
+      await connection.unsafe(`DO $migration_0012_guard$
+        BEGIN
+          RAISE EXCEPTION 'migration 0012 encountered an unsupported database-authority membership edge'
+            USING ERRCODE = '55000';
+        END
+      $migration_0012_guard$`);
+      break;
+    case "incompatible-role":
+      await connection.unsafe(`DO $migration_0012_guard$
+        BEGIN
+          RAISE EXCEPTION 'migration 0012 encountered incompatible app_role or yellow_runtime attributes'
+            USING ERRCODE = '55000';
+        END
+      $migration_0012_guard$`);
+      break;
+    case "active-runtime-session":
+      await connection.unsafe(`DO $migration_0012_guard$
+        BEGIN
+          RAISE EXCEPTION 'yellow_runtime has an active session; drain it before migration 0012'
+            USING ERRCODE = '55000';
+        END
+      $migration_0012_guard$`);
+      break;
+    case "membership-restore":
+      await connection.unsafe(`DO $migration_0012_guard$
+        BEGIN
+          RAISE EXCEPTION 'migration 0012 did not restore the exact yellow_runtime to app_role membership'
+            USING ERRCODE = '55000';
+        END
+      $migration_0012_guard$`);
+      break;
+    case "role-restore":
+      await connection.unsafe(`DO $migration_0012_guard$
+        BEGIN
+          RAISE EXCEPTION 'migration 0012 did not produce the exact final database-authority role attributes'
+            USING ERRCODE = '55000';
+        END
+      $migration_0012_guard$`);
+      break;
+  }
+  throw new Error("migration 0012 guard failed to raise SQLSTATE 55000");
+}
+
 async function suspendExactRuntimeAppMembership(connection: ReservedSQL): Promise<boolean> {
   const memberships = await runtimeAppMemberships(connection);
   if (memberships.length === 0) return false;
   if (memberships.length !== 1 || !isExactRuntimeAppMembership(memberships[0])) {
-    throw new Error("migration 0012 encountered an unsupported database-authority membership edge");
+    await raiseMigration0012GuardFailure(connection, "unsupported-membership");
   }
 
   const roles = await authorityRoles(connection);
   const app = roles.find(({ rolname }) => rolname === "app_role");
   const runtime = roles.find(({ rolname }) => rolname === "yellow_runtime");
   if ((!isFinalAppRole(app) && !isPre0012AppRole(app)) || !isExactRuntimeRole(runtime)) {
-    throw new Error("migration 0012 encountered incompatible app_role or yellow_runtime attributes");
+    await raiseMigration0012GuardFailure(connection, "incompatible-role");
   }
 
   const active = await connection<{ active: boolean }[]>`
@@ -501,7 +557,7 @@ async function suspendExactRuntimeAppMembership(connection: ReservedSQL): Promis
     ) AS active
   `;
   if (active[0]?.active === true) {
-    throw new Error("yellow_runtime has an active session; drain it before migration 0012");
+    await raiseMigration0012GuardFailure(connection, "active-runtime-session");
   }
   await connection.unsafe("REVOKE app_role FROM yellow_runtime");
   return true;
@@ -511,13 +567,13 @@ async function restoreExactRuntimeAppMembership(connection: ReservedSQL): Promis
   await connection.unsafe("GRANT app_role TO yellow_runtime");
   const memberships = await runtimeAppMemberships(connection);
   if (memberships.length !== 1 || !isExactRuntimeAppMembership(memberships[0])) {
-    throw new Error("migration 0012 did not restore the exact yellow_runtime to app_role membership");
+    await raiseMigration0012GuardFailure(connection, "membership-restore");
   }
   const roles = await authorityRoles(connection);
   const app = roles.find(({ rolname }) => rolname === "app_role");
   const runtime = roles.find(({ rolname }) => rolname === "yellow_runtime");
   if (!isFinalAppRole(app) || !isExactRuntimeRole(runtime)) {
-    throw new Error("migration 0012 did not produce the exact final database-authority role attributes");
+    await raiseMigration0012GuardFailure(connection, "role-restore");
   }
 }
 
