@@ -82,6 +82,14 @@ import {
   ReservationLifecycleService,
   ReservationLifecycleValidationError,
   ReservationSegmentService,
+  ReservationBoardConflictError,
+  ReservationBoardService,
+  ReservationBoardValidationError,
+  ReservationDetailConflictError,
+  ReservationDetailNotFoundError,
+  ReservationDetailService,
+  ReservationDetailValidationError,
+  RESERVATION_STATUSES,
   ReservationNotFoundError,
   ReservationOfferSearchService,
   ReservationOfferSearchTooBroadError,
@@ -497,6 +505,42 @@ function confirmationQuery(request: Request): string | null {
     : null;
 }
 
+function reservationBoardQuery(request: Request): {
+  status?: (typeof RESERVATION_STATUSES)[number];
+  from?: Date;
+  to?: Date;
+  after?: string;
+  limit?: number;
+} | null {
+  const query = new URL(request.url).searchParams;
+  const allowed = ["status", "from", "to", "after", "limit"];
+  if ([...query.keys()].some((key) => !allowed.includes(key)) ||
+      allowed.some((key) => query.getAll(key).length > 1)) return null;
+  const rawStatus = query.get("status");
+  const status = rawStatus === null
+    ? undefined
+    : RESERVATION_STATUSES.find((candidate) => candidate === rawStatus);
+  if (rawStatus !== null && status === undefined) return null;
+  const rawFrom = query.get("from");
+  const rawTo = query.get("to");
+  if ((rawFrom === null) !== (rawTo === null)) return null;
+  const from = rawFrom === null ? undefined : parseInstant(rawFrom);
+  const to = rawTo === null ? undefined : parseInstant(rawTo);
+  if ((rawFrom !== null && !from) || (rawTo !== null && !to) ||
+      (from && to && (from >= to || to.getTime() - from.getTime() > 366 * 86_400_000))) return null;
+  const after = query.get("after");
+  if (after !== null && !/^[A-Za-z0-9_-]{1,512}$/.test(after)) return null;
+  const rawLimit = query.get("limit");
+  if (rawLimit !== null && !/^(?:[1-9]|[1-9][0-9]|100)$/.test(rawLimit)) return null;
+  return Object.freeze({
+    ...(status === undefined ? {} : { status }),
+    ...(from === undefined || from === null ? {} : { from }),
+    ...(to === undefined || to === null ? {} : { to }),
+    ...(after === null ? {} : { after }),
+    ...(rawLimit === null ? {} : { limit: Number(rawLimit) }),
+  });
+}
+
 function parsePartySearch(body: unknown): { query: string; limit?: number } | null {
   if (!isObject(body) || !exactKeys(body, ["query"], ["limit"]) ||
       typeof body.query !== "string" ||
@@ -817,6 +861,8 @@ type ReservationOfferOperations = Pick<ReservationOfferSearchService, "search">;
 type ReservationGuestOperations = Pick<ReservationGuestService, "findByConfirmation" | "replace">;
 type ReservationLifecycleOperations = Pick<ReservationLifecycleService, "findByConfirmation" | "modify" | "cancel" | "reinstate">;
 type ReservationSegmentOperations = Pick<ReservationSegmentService, "findByConfirmation" | "changeDeparture" | "moveRoom">;
+type ReservationBoardOperations = Pick<ReservationBoardService, "list">;
+type ReservationDetailOperations = Pick<ReservationDetailService, "findById">;
 type PartyOperations = Pick<PartyProfileService, "search" | "create">;
 type FolioStatementOperations = Pick<FolioStatementService, "get">;
 type ChargeOperations = Pick<ChargeService, "postCharge">;
@@ -1199,6 +1245,8 @@ export class OperatorHttpApi {
   readonly #reservationGuests?: ReservationGuestOperations;
   readonly #reservationLifecycle?: ReservationLifecycleOperations;
   readonly #reservationSegments?: ReservationSegmentOperations;
+  readonly #reservationBoard?: ReservationBoardOperations;
+  readonly #reservationDetail?: ReservationDetailOperations;
   readonly #parties?: PartyOperations;
   readonly #folioStatements?: FolioStatementOperations;
   readonly #charges?: ChargeOperations;
@@ -1225,6 +1273,8 @@ export class OperatorHttpApi {
     parties?: PartyOperations,
     folioStatements?: FolioStatementOperations,
     charges?: ChargeOperations,
+    reservationBoard?: ReservationBoardOperations,
+    reservationDetail?: ReservationDetailOperations,
   ) {
     this.#login = login;
     this.#availability = availability;
@@ -1247,6 +1297,8 @@ export class OperatorHttpApi {
     this.#parties = parties;
     this.#folioStatements = folioStatements;
     this.#charges = charges;
+    this.#reservationBoard = reservationBoard;
+    this.#reservationDetail = reservationDetail;
   }
 
   unavailable(request: Request): Response {
@@ -1281,6 +1333,9 @@ export class OperatorHttpApi {
     if (error instanceof ReservationGuestConflictError) {
       return apiError(request, 409, "reservations/conflict", "Conflict", "Reservation guest allocation conflicts with existing state");
     }
+    if (error instanceof ReservationBoardConflictError || error instanceof ReservationDetailConflictError) {
+      return apiError(request, 409, "reservations/read_conflict", "Conflict", "Stored reservation data is incoherent");
+    }
     if (error instanceof ReservationConflictError) {
       return apiError(request, 409, "conflict/occupancy", "Inventory conflict", "Requested inventory is no longer available");
     }
@@ -1300,14 +1355,15 @@ export class OperatorHttpApi {
       return apiError(request, 400, "request/invalid", "Invalid request", "Party profile input is invalid");
     }
     if (error instanceof ReservationValidationError || error instanceof ReservationOfferValidationError ||
-        error instanceof ReservationGuestValidationError || error instanceof ReservationLifecycleValidationError) {
+        error instanceof ReservationGuestValidationError || error instanceof ReservationLifecycleValidationError ||
+        error instanceof ReservationBoardValidationError || error instanceof ReservationDetailValidationError) {
       return apiError(request, 400, "request/invalid", "Invalid request", "Reservation input is invalid");
     }
     if (error instanceof InventoryNotFoundError) {
       return apiError(request, 404, "inventory/not_found", "Not found", "Referenced inventory was not found");
     }
     if (error instanceof ReservationNotFoundError || error instanceof ReservationGuestNotFoundError ||
-        error instanceof ReservationLifecycleNotFoundError) {
+        error instanceof ReservationLifecycleNotFoundError || error instanceof ReservationDetailNotFoundError) {
       return apiError(request, 404, "reservations/not_found", "Not found", "Referenced reservation input was not found");
     }
     if (error instanceof RateValidationError || error instanceof RateAuthoringError || error instanceof RateIntentError ||
@@ -1990,6 +2046,64 @@ export class OperatorHttpApi {
       "idempotency-replayed": String(replayed),
       "x-correlation-id": requestId,
     });
+  }
+
+  async reservationBoard(context: TenantRequestContext, propertyNode: string): Promise<Response> {
+    if (!UUID.test(propertyNode)) {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Property identifier is invalid");
+    }
+    const query = reservationBoardQuery(context.request);
+    if (!query) {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Reservation board query is invalid");
+    }
+    if (!hasScope(context, RESERVATION_LIFECYCLE_READ_SCOPE)) {
+      return apiError(context.request, 403, "auth/scope_missing", "Forbidden", "Reservation access is not granted");
+    }
+    if (!this.#reservationBoard) return this.unavailable(context.request);
+    const grants = await listGrantedProperties(context, RESERVATION_LIFECYCLE_READ_SCOPE);
+    if (!grants.some(({ id }) => id === propertyNode)) {
+      return apiError(context.request, 403, "auth/property_forbidden", "Forbidden", "Property access is not granted");
+    }
+    const page = await this.#reservationBoard.list(context.tx, {
+      tenantId: context.tenantId,
+      propertyNode,
+      ...query,
+    });
+    return apiResponse(context.request, canonicalJson(jsonValue(page)));
+  }
+
+  async reservationDetail(
+    context: TenantRequestContext,
+    propertyNode: string,
+    reservationId: string,
+  ): Promise<Response> {
+    if (!UUID.test(propertyNode) || !UUID.test(reservationId)) {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Property or reservation identifier is invalid");
+    }
+    const query = new URL(context.request.url).searchParams;
+    if ([...query.keys()].length > 0) {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Reservation detail query must be empty");
+    }
+    if (!hasScope(context, RESERVATION_LIFECYCLE_READ_SCOPE)) {
+      return apiError(context.request, 403, "auth/scope_missing", "Forbidden", "Reservation access is not granted");
+    }
+    if (!this.#reservationDetail) return this.unavailable(context.request);
+    const grants = await listGrantedProperties(context, RESERVATION_LIFECYCLE_READ_SCOPE);
+    if (!grants.some(({ id }) => id === propertyNode)) {
+      return apiError(context.request, 404, "reservations/not_found", "Not found", "Referenced reservation input was not found");
+    }
+    const reservation = await this.#reservationDetail.findById(context.tx, {
+      tenantId: context.tenantId,
+      propertyNode,
+      reservationId,
+    });
+    const actions = Object.freeze({
+      canModify: reservation.status === "reserved" || reservation.status === "due_in" ||
+        reservation.status === "in_house" || reservation.status === "due_out",
+      canCancel: reservation.status === "reserved" || reservation.status === "due_in",
+      canReinstate: reservation.status === "cancelled" || reservation.status === "no_show",
+    });
+    return apiResponse(context.request, canonicalJson({ reservation: jsonValue(reservation), actions }));
   }
 
   async reservationLifecycle(context: TenantRequestContext, propertyNode: string): Promise<Response> {

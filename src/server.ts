@@ -5,7 +5,7 @@ import { BearerTenantResolver, Hs256TokenSigner, LocalLoginGuard, LocalLoginServ
 import { PartyProfileService } from "./contexts/crm";
 import { ChargeService, FolioStatementService } from "./contexts/financials";
 import { AvailabilityProjectionConsumer, AvailabilityProjectionService, AvailabilityService, HoldExpiryWorker, HoldService, InventoryPolicyService, InventoryService, OperationalBlockService, ReservationOccupancyService, RestrictionService } from "./contexts/inventory";
-import { ReservationCommitService, ReservationGuestService, ReservationLifecycleService, ReservationOfferSearchService, ReservationSegmentService } from "./contexts/reservations";
+import { ReservationBoardService, ReservationCommitService, ReservationDetailService, ReservationGuestService, ReservationLifecycleService, ReservationOfferSearchService, ReservationSegmentService } from "./contexts/reservations";
 import {
   createRateIntentProposalAdapterFromEnvironment,
   RateConfigurationService,
@@ -117,7 +117,7 @@ function runtimeApp() {
   return createApp({
     database,
     tenantResolver: new BearerTenantResolver(tokens),
-    operatorApi: new OperatorHttpApi(login, availability, inventory, new PostgresIdempotency(), restrictions, rates, pricing, blocks, policy, holds, projection, runtimeStatus, rateBuilder, reservations, reservationOffers, reservationGuests, reservationLifecycle, reservationSegments, parties, folioStatements, charges),
+    operatorApi: new OperatorHttpApi(login, availability, inventory, new PostgresIdempotency(), restrictions, rates, pricing, blocks, policy, holds, projection, runtimeStatus, rateBuilder, reservations, reservationOffers, reservationGuests, reservationLifecycle, reservationSegments, parties, folioStatements, charges, new ReservationBoardService(), new ReservationDetailService()),
   });
 }
 

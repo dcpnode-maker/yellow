@@ -13,6 +13,12 @@ export interface FindReservationDetailInput {
   readonly confirmationNo: string;
 }
 
+export interface FindReservationDetailByIdInput {
+  readonly tenantId: string;
+  readonly propertyNode: string;
+  readonly reservationId: string;
+}
+
 export interface ReservationDetailSegment {
   readonly segmentId: string;
   readonly sequence: number;
@@ -238,13 +244,13 @@ function requireUuid(name: string, value: unknown): string {
   return value;
 }
 
-function requirePlainInput(input: unknown): asserts input is Record<string, unknown> {
+function requirePlainInput(input: unknown, allowedFields: readonly string[]): asserts input is Record<string, unknown> {
   if (typeof input !== "object" || input === null || Array.isArray(input) ||
       (Object.getPrototypeOf(input) !== Object.prototype && Object.getPrototypeOf(input) !== null) ||
       Object.getOwnPropertySymbols(input).length > 0) {
     throw new ReservationDetailValidationError("Reservation detail input must be a plain object");
   }
-  const allowed = new Set(["tenantId", "propertyNode", "confirmationNo"]);
+  const allowed = new Set(allowedFields);
   const unsupported = Object.getOwnPropertyNames(input).filter((key) => !allowed.has(key)).sort();
   if (unsupported.length > 0) {
     throw new ReservationDetailValidationError(
@@ -357,13 +363,31 @@ function requestCorrelation(payload: JsonValue): string | null {
 
 export class ReservationDetailService {
   async findByConfirmation(tx: Tx, input: FindReservationDetailInput): Promise<ReservationDetailResult> {
-    requirePlainInput(input);
+    requirePlainInput(input, ["tenantId", "propertyNode", "confirmationNo"]);
     const tenantId = requireUuid("tenantId", input.tenantId);
     const propertyNode = requireUuid("propertyNode", input.propertyNode);
     if (typeof input.confirmationNo !== "string" || !CONFIRMATION_NO.test(input.confirmationNo)) {
       throw new ReservationDetailValidationError("confirmationNo must contain 1-120 visible characters");
     }
 
+    return this.find(tx, tenantId, propertyNode, null, input.confirmationNo);
+  }
+
+  async findById(tx: Tx, input: FindReservationDetailByIdInput): Promise<ReservationDetailResult> {
+    requirePlainInput(input, ["tenantId", "propertyNode", "reservationId"]);
+    const tenantId = requireUuid("tenantId", input.tenantId);
+    const propertyNode = requireUuid("propertyNode", input.propertyNode);
+    const reservationId = requireUuid("reservationId", input.reservationId);
+    return this.find(tx, tenantId, propertyNode, reservationId, null);
+  }
+
+  private async find(
+    tx: Tx,
+    tenantId: string,
+    propertyNode: string,
+    reservationId: string | null,
+    confirmationNo: string | null,
+  ): Promise<ReservationDetailResult> {
     const reservations = await tx<ReservationRow[]>`
       SELECT reservation.id, reservation.confirmation_no, reservation.status,
              reservation.primary_party, reservation.booker_party, reservation.group_id,
@@ -401,7 +425,8 @@ export class ReservationDetailService {
       WHERE reservation.tenant_id = ${tenantId}::uuid
         AND reservation.tenant_id = current_setting('app.tenant_id', true)::uuid
         AND reservation.property_node = ${propertyNode}::uuid
-        AND reservation.confirmation_no = ${input.confirmationNo}
+        AND ((${reservationId}::uuid IS NOT NULL AND reservation.id = ${reservationId}::uuid)
+          OR (${confirmationNo}::text IS NOT NULL AND reservation.confirmation_no = ${confirmationNo}::text))
     `;
     const reservation = reservations[0];
     if (!reservation) throw new ReservationDetailNotFoundError("Reservation was not found in the property");

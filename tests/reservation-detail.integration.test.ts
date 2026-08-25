@@ -6,6 +6,7 @@ import {
   ReservationDetailNotFoundError,
   ReservationDetailService,
   ReservationDetailValidationError,
+  type FindReservationDetailByIdInput,
   type FindReservationDetailInput,
 } from "../src/contexts/reservations";
 import { Database, type Tx } from "../src/kernel";
@@ -67,6 +68,15 @@ function find(detailInput = input(), contextTenant = detailInput.tenantId) {
   return database!.withTenantTransaction(contextTenant, (tx) => service.findByConfirmation(tx, detailInput));
 }
 
+function findById(
+  detailInput: FindReservationDetailByIdInput = {
+    tenantId: TENANT_A, propertyNode: PROPERTY_A, reservationId: RESERVATION_A,
+  },
+  contextTenant = detailInput.tenantId,
+) {
+  return database!.withTenantTransaction(contextTenant, (tx) => service.findById(tx, detailInput));
+}
+
 async function clean(): Promise<void> {
   if (!admin) return;
   for (const table of ["fact_log", "travel_detail", "task", "alert", "folio", "account",
@@ -78,8 +88,8 @@ async function clean(): Promise<void> {
 
 beforeAll(async () => {
   if (!URL) return;
-  admin = new SQL(URL, { max: 4 });
-  database = Database.connect(URL, { maxConnections: 4 });
+  admin = new SQL(URL, { max: 4, prepare: false });
+  database = Database.connect(URL, { maxConnections: 4, prepare: false });
   await clean();
   await admin`INSERT INTO tenant(id,slug,name,tier,status) VALUES
     (${TENANT_A}::uuid,'order141-a','Order 141 A','shared','active'),
@@ -191,6 +201,20 @@ describe("Order 141 reservation detail/history read model", () => {
     }
     expect(calls).toBe(0);
   });
+
+  test("P2: UUID lookup shape is exact and rejects confirmation or arbitrary search fields", async () => {
+    let calls = 0;
+    const noSql = (() => { calls += 1; return Promise.resolve([]); }) as unknown as Tx;
+    for (const candidate of [
+      { tenantId: TENANT_A, propertyNode: PROPERTY_A, reservationId: "bad" },
+      { tenantId: TENANT_A, propertyNode: PROPERTY_A, reservationId: RESERVATION_A, confirmationNo: "Y-141-A" },
+      { tenantId: TENANT_A, propertyNode: PROPERTY_A, reservationId: RESERVATION_A, guestName: "PII" },
+    ]) {
+      await expect(service.findById(noSql, candidate as FindReservationDetailByIdInput))
+        .rejects.toBeInstanceOf(ReservationDetailValidationError);
+    }
+    expect(calls).toBe(0);
+  });
 });
 
 databaseDescribe("Order 141 fresh-PostgreSQL reservation detail proof", () => {
@@ -204,6 +228,7 @@ databaseDescribe("Order 141 fresh-PostgreSQL reservation detail proof", () => {
       (SELECT count(*)::int FROM outbox WHERE tenant_id=${TENANT_A}::uuid) events`;
     const before = (await counts())[0]!;
     const detail = await find();
+    expect(await findById()).toEqual(detail);
     expect(await find()).toEqual(detail);
     expect((await counts())[0]!).toEqual(before);
     expect(detail).toMatchObject({

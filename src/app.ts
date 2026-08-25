@@ -94,6 +94,7 @@ export function createApp(options: AppOptions = {}) {
       .get("/p/:property/rates", () => operatorAssets.html())
       .get("/p/:property/operations", () => operatorAssets.html())
       .get("/p/:property/reservations", () => operatorAssets.html())
+      .get("/p/:property/res/:reservation", () => operatorAssets.html())
       .get("/p/:property/folios", () => operatorAssets.html())
       .get("/p/:property/status", () => operatorAssets.html())
       .get("/assets/operator.css", () => operatorAssets.css())
@@ -223,6 +224,14 @@ export function createApp(options: AppOptions = {}) {
       )
       .get("/api/v1/properties/:property/reservations", ({ request, params, tenantContext }) =>
         withOperatorTenant(request, (context) => operator.reservationLifecycle(context, params.property))
+      )
+      .get("/api/v1/properties/:property/reservation-board", ({ request, params, tenantContext }) =>
+        withOperatorTenant(request, (context) => operator.reservationBoard(context, params.property))
+      )
+      .get("/api/v1/properties/:property/reservations/:reservation", ({ request, params, tenantContext }) =>
+        withOperatorTenant(request, (context) => operator.reservationDetail(
+          context, params.property, params.reservation,
+        ))
       )
       .get("/api/v1/properties/:property/reservation-segments", ({ request, params, tenantContext }) =>
         withOperatorTenant(request, (context) => operator.reservationSegments(context, params.property))

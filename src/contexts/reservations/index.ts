@@ -26,6 +26,16 @@ export {
   ReservationOfferValidationError,
 } from "./offers";
 export {
+  ReservationBoardConflictError,
+  ReservationBoardService,
+  ReservationBoardValidationError,
+} from "./board";
+export type {
+  ReservationBoardInput,
+  ReservationBoardPage,
+  ReservationBoardRow,
+} from "./board";
+export {
   ReservationGuestConflictError,
   ReservationGuestNotFoundError,
   ReservationGuestService,
@@ -95,6 +105,7 @@ export {
   ReservationDetailValidationError,
 } from "./detail";
 export type {
+  FindReservationDetailByIdInput,
   FindReservationDetailInput,
   ReservationDetailAlert,
   ReservationDetailFact,

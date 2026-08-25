@@ -146,6 +146,18 @@ ooo/oos open+close · authority get/set · projection rebuild (admin)
 discrepancies · queue · messages send/thread
 **profiles**: parties search(trgm)/create/merge/anonymise · consent · instruments(tokenize via PSP webhook)
 
+Reservation operator reads use `reservations.lifecycle:read` plus the caller's granted
+property scope. `GET /api/v1/properties/{property}/reservation-board` returns at most
+100 operational rows (default 50), ordered by `created_at DESC, id DESC`, and accepts
+only `status`, paired ISO-instant `from`/`to` stay overlap (maximum 366 days), canonical
+opaque `after`, and `limit`. OFFSET, guest/contact/search query parameters and contact,
+identity, note, history, payment, tax or inferred-total row fields are not part of the
+contract. `GET /api/v1/properties/{property}/reservations/{reservation UUID}` accepts no
+query parameters and returns the approved reservation aggregate plus server-derived
+`canModify`, `canCancel`, and `canReinstate` actions. Missing, foreign-tenant and
+foreign-property UUID details share one generic reservation not-found response. The
+existing exact `GET .../reservations?confirmationNo=...` lifecycle lookup is unchanged.
+
 Implemented domain slice: `PartyProfileService.search` performs tenant-bound, bounded
 active-Party lookup by UUID, display name, or canonical contact and returns masked
 contact hints. `PartyProfileService.create` normalizes Party roles/contacts, requires
