@@ -1,6 +1,6 @@
 # Order 146 — Integrate approved prerequisites before Order 126
 
-**Status:** BUILT-UNREVIEWED
+**Status:** CHANGES REQUIRED — RECORDED EXECUTABLE SHA IS NOT A GIT OBJECT
 **Phase:** 5 · Cyber remediation integration
 **Branch:** `phase-5/pre126-prerequisite-integration`
 **Base:** `2faf5e8db8264af59e65effdfcb5603da628a181` — independently approved
