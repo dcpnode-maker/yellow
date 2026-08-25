@@ -1,7 +1,7 @@
 # Order 127 — Separate runtime database authority from deployment authority
 
-**Status:** CORRECTION READY — D-392, corrected by D-393 and D-394; Question 150
-resolved before executable implementation
+**Status:** CORRECTION READY — D-392, corrected by D-393, D-394 and D-395;
+Questions 150–151 resolved before corrected executable implementation
 **Phase:** 5 · Cyber remediation
 **Branch:** `phase-5/runtime-database-authority-final`
 **Base:** `8daf34e1f1328e866b0b52ff750631e7d651d0b7` — exact independently
@@ -100,11 +100,14 @@ names and exact `pg_catalog, public, pg_temp` search paths, validate bounded inp
 before access, preserve transactions and expose no secret.
 
 After COMMIT or ROLLBACK, a reserved backend may return to the pool only after exact
-runtime-role/null-tenant settlement. If that assertion fails, the adapter must issue
-`DISCARD ALL` outside a transaction and re-verify the exact settlement before release;
-if rollback, discard or re-verification fails, the backend must not be returned to the
-pool. Question 150 records why an assertion followed by unconditional release was not
-containment.
+runtime-role/null-tenant settlement. Database-owned runtime pools use Bun
+`prepare: false`, so the client has no prepared-name cache for `DISCARD ALL` to
+invalidate. If settlement fails, the adapter must issue `DISCARD ALL` outside a
+transaction, re-verify exact runtime/null-tenant settlement with an unprepared query,
+then release only that clean backend. If rollback, discard or re-verification fails,
+the owning pool fails/closes and the backend is never returned. Ordinary clean paths
+remain unchanged. Database shutdown is bounded and idempotent. Questions 150–151
+record why unconditional release and `ReservedSQL.close()` are each insufficient.
 
 Migration 0015 verifies/provisions only the password-free role/catalogue contract,
 transfers current public object ownership to `yellow_owner`, grants the one exact
@@ -179,7 +182,9 @@ Governance may change only:
 - `handoff/reviews/127-runtime-database-authority.md` when written by the independent
   reviewer;
 - `handoff/questions/150-order127-runtime-authority-scope-stop.md` only if an exact
-  unadmitted dependency is found; and
+  unadmitted dependency is found;
+- `handoff/questions/151-order127-bun-pool-containment.md` for the exact resolved Bun
+  reserved-connection contract; and
 - additive Order-127 entries in `DECISIONS.log` and `handoff/LEDGER.md`.
 
 Every other path is forbidden. In particular: never edit migrations 0001–0014,
@@ -188,7 +193,7 @@ status/dashboard, any domain state/event/table, existing RLS policy text, existi
 security-definer body/ACL except the named runtime calls, broad `app_role` DML grants,
 occupancy/day-seal behavior, Dockerfile/image pins, API/UI, rate/reservation/financial
 logic or a live/shared database. If proof requires another path, stop implementation
-and write exact Question 150 rather than widening.
+and write an exact question rather than widening.
 
 ## Required implementation
 
@@ -238,12 +243,14 @@ catalogues: each fails with no v15 ledger row or partial mutation, then retries 
 Using the real runtime DSN and a max-one pool, prove tenant A/B isolation, exact
 `session_user=yellow_runtime` and in-callback `current_user=app_role`. After success,
 throw, nested failure, event handler, local login and worker error, reuse the same
-backend and prove current/session user runtime, null tenant setting and no deploy/owner
-reachability. A hostile session-scoped tenant write must be discarded and reverified
-before backend reuse, or the backend must be withheld. A hostile callback `RESET ROLE`
+backend and prove current/session user runtime, null tenant setting, an empty
+`pg_prepared_statements` catalogue and no deploy/owner reachability. A hostile
+session-scoped tenant write must be discarded and reverified before backend reuse, or
+the owning pool must fail closed. A hostile callback `RESET ROLE`
 may return only to runtime and still
 cannot read the other sentinel, bypass RLS, create/alter/drop objects/roles or assume
-owner/deploy.
+owner/deploy. The same max-one Database remains reusable after successful containment,
+and repeated `Database.close()` calls settle within the bounded shutdown budget.
 
 ### P3 — bounded pre-tenant and global capabilities
 
