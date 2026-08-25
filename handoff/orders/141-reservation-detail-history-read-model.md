@@ -6,7 +6,7 @@
 **Risk tier:** 1 — migration-free, read-only context query
 **Owner:** Codex builder; stop at builder-green/unintegrated
 **Date:** 2026-08-25
-**Status:** BUILT · UNREVIEWED · UNINTEGRATED
+**Status:** APPROVED · UNINTEGRATED
 
 ## Outcome
 
@@ -131,7 +131,7 @@ commands/results, protected-surface confirmation and any inherited precondition 
   a reservation folio to reject a null-property account. A final exposed-reference
   audit added that guard, validates pickup tasks by tenant and property, validates fact
   predecessors by tenant and subject, and permanently probes null-property accounts,
-  foreign pickup tasks and foreign fact predecessors. Independent re-review is pending.
+  foreign pickup tasks and foreign fact predecessors.
 - Product/test files: `src/contexts/reservations/detail.ts`, the reservations public
   index, and the focused integration proof only. No schema, migration, permission,
   route, runtime, UI, dependency, protected referee or financial mutation changed.
@@ -150,5 +150,18 @@ commands/results, protected-surface confirmation and any inherited precondition 
   installed Bun executable; the repository-equivalent PowerShell setup ran the full
   fresh-database proof. No assertion was weakened or called green from the stopped run.
 
-Builder work stops here. Independent review, merge, push, deployment, HTTP/UI wiring
-and full-UAT completion are not claimed.
+Builder work stops here. Merge, push, deployment, HTTP/UI wiring and full-UAT completion
+are not claimed.
+
+## INDEPENDENT REVIEW — APPROVED
+
+An independent Codex reviewer who did not implement the candidate inspected exact
+executable `9b6f344de50ffad3420821673c2936322526312c` at builder evidence tip
+`d189c83cdba17ebee77ec1462655ebf4155574bf` and found no issues. The reviewer personally
+ran the focused hostile proof (5/5, 51 assertions), standing tests (150 passed, 397 skipped,
+0 failed, 1,832 assertions), typecheck, 64-file boundaries, licences, audit, exact schema,
+diff check, and an isolated pristine 85-table setup/referee (11/11; RLS 75/75). Both prior
+range/reference blockers and the final null-property/pickup/predecessor edges are closed.
+Full commands and results are recorded in
+`handoff/reviews/141-reservation-detail-history-read-model.md`. This approval remains
+unintegrated and does not claim merge, push, deployment, route/UI wiring or full UAT.
