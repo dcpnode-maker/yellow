@@ -123,6 +123,35 @@ export class PostgresEventBus implements EventBus {
     this.#pool = pool;
   }
 
+  async #markBatch(
+    connection: Tx,
+    consumer: string,
+    rows: readonly OutboxRow[],
+  ): Promise<readonly boolean[]> {
+    if (rows.length === 0) return [];
+    const encodedIds = JSON.stringify(rows.map(({ id }) => id));
+    const marked = await connection<Array<{ ordinality: number | bigint; inserted: boolean }>>`
+      WITH input AS MATERIALIZED (
+        SELECT value::uuid AS id, ordinality
+        FROM jsonb_array_elements_text(${encodedIds}::text::jsonb)
+          WITH ORDINALITY AS values(value, ordinality)
+        ORDER BY ordinality
+      ), marked AS MATERIALIZED (
+        SELECT input.ordinality,
+               runtime_consumer_mark(${consumer}, input.id) AS inserted
+        FROM input
+        ORDER BY input.ordinality
+      )
+      SELECT ordinality, inserted
+      FROM marked
+      ORDER BY ordinality
+    `;
+    if (marked.length !== rows.length || marked.some(({ ordinality }, index) => Number(ordinality) !== index + 1)) {
+      throw new Error("PostgreSQL did not return ordered consumer dedupe markers");
+    }
+    return marked.map(({ inserted }) => inserted);
+  }
+
   async publish(tx: Tx, event: PublishEventInput): Promise<OutboxEvent> {
     validateEvent(event);
     await tx`SELECT pg_advisory_xact_lock(${OUTBOX_PUBLISH_LOCK})`;
@@ -216,14 +245,12 @@ export class PostgresEventBus implements EventBus {
         FROM runtime_consumer_read(${consumer}, ${initialLastSeq}::bigint, ${limit}, false)
       `;
 
+      const inserted = await this.#markBatch(connection, consumer, rows);
       let processed = 0;
       let lastSeq = initialLastSeq;
-      for (const row of rows) {
+      for (const [index, row] of rows.entries()) {
         const event = toEvent(row);
-        const inserted = await connection<Array<{ inserted: boolean }>>`
-          SELECT runtime_consumer_mark(${consumer}, ${event.id}::uuid) AS inserted
-        `;
-        if (inserted[0]?.inserted === true) {
+        if (inserted[index] === true) {
           await runHandlerAsTenant(connection, event, handler);
           processed += 1;
         }
@@ -296,16 +323,14 @@ export class PostgresEventBus implements EventBus {
         FROM runtime_consumer_read(${consumer}, ${initialLastSeq}::bigint, ${limit}, true)
       `;
 
+      const inserted = await this.#markBatch(connection, consumer, rows);
       let processed = 0;
       let lastSeq = initialLastSeq;
       const events: OutboxEvent[] = [];
-      for (const row of rows) {
+      for (const [index, row] of rows.entries()) {
         const event = toEvent(row);
         events.push(event);
-        const inserted = await connection<Array<{ inserted: boolean }>>`
-          SELECT runtime_consumer_mark(${consumer}, ${event.id}::uuid) AS inserted
-        `;
-        if (inserted[0]?.inserted === true) {
+        if (inserted[index] === true) {
           await runHandlerAsTenant(connection, event, handler);
           processed += 1;
         }
