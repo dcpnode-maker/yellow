@@ -173,3 +173,7 @@ availability and segment fixture blobs above remain immutable.
 Do not change production source, relax another parent rule, claim BUILT-UNREVIEWED,
 merge, push, deploy or close the Cyber occurrence until the governance amendment is
 committed and the complete corrected proof is green.
+
+## RESOLVED
+
+Resolved by D-390 and its exact six-path correction sequence.

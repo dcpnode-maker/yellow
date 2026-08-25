@@ -127,3 +127,7 @@ authority. The trigger body, production function, parent sequencing, rollback,
 concurrency, expected errors and every assertion remain unchanged. The phase matrix
 must restart from its first suite; earlier partial green output is not cumulative
 evidence. No sibling observation fixture or product path is admitted by this correction.
+
+## RESOLVED
+
+Resolved by D-394, D-404 and the completed Order 127 correction recorded by D-407.

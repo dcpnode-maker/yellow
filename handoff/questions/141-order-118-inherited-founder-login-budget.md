@@ -45,3 +45,7 @@ Order 118 executable SHA `09070d97e1f457a2d3f87a2ab6dc33b558bc3895` and explicit
 forbade widening Order 118. Order 122 alone may implement the test-fixture lifecycle
 correction and must restart all 16 suites. Until that reviewed lineage returns, Order
 118 retains its exact implementation SHA and an honest incomplete P5 cumulative gate.
+
+## RESOLVED
+
+Resolved by the existing fixture-only isolation to Order 122; Order 118 was not widened.

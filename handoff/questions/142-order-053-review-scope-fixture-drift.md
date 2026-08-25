@@ -37,3 +37,7 @@ Order 125 owns a fixture-only correction limited to the one named test's exact i
 permission literal. It must prove the approved 27-scope production seed rather than
 altering production to match stale history. Order 121 records this stopped run and
 continues its nonblocked gates; it does not claim the Order 053 suite green.
+
+## RESOLVED
+
+Resolved by the existing Order 125 fixture-only correction under D-336.

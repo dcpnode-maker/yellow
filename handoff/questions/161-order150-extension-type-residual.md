@@ -22,3 +22,7 @@ compatibility protections to pass through `tests/extension.integration.test.ts`.
 The future approval/extension command-capability order must migrate and then revoke
 this direct global insert. This exception does not authorize any other global or
 tenantless runtime DML.
+
+## RESOLVED
+
+Resolved by D-417's exact residual authority ruling.

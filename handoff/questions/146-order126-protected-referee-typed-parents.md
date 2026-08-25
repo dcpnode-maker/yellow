@@ -67,3 +67,7 @@ On 2026-08-25 the founder explicitly selected option 1. D-371 authorizes only th
 separate Order-130 fixture/referee repair with preserved race strength and independent
 Tier-3 review. It rejects an owner bypass and any weakening of strict typed-parent
 validation. Order 126 remains blocked until Order 130 is independently approved.
+
+## RESOLVED
+
+Resolved by D-371 selecting option 1 and authorizing the bounded Order 130 repair.

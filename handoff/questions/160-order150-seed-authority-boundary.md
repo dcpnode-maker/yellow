@@ -30,3 +30,7 @@ rerun is exact no-op; app-role visibility probe is read-only; collision rollback
 backend/context reset remain exact; setup referee remains 11/11.
 
 No new role, credential, function, table, policy or generic privileged path is allowed.
+
+## RESOLVED
+
+Resolved by D-416's bounded seed authority correction.
