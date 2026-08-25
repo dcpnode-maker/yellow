@@ -1,6 +1,6 @@
 # Order 149 — Show approved post-127 integration status
 
-**Status:** READY — D-413
+**Status:** APPROVED — D-414; local workbench active on approved snapshot
 **Phase:** 5 · founder visibility
 **Branch:** `phase-5/founder-status-approved-integration`
 **Base:** `4748ded0868a35434bbf9bbfd10b87294dc73301` — closed Order 148; PR #78 open and unmerged
@@ -71,9 +71,9 @@ D-407/D-412/PR-78 evidence.
 
 ## Definition of done
 
-- [ ] Exact approved Order-147 presentation blobs are reproduced for HTML/JS only.
-- [ ] Snapshot/test encode D-407, D-412 and open/unmerged PR #78 conservatively.
-- [ ] Focused, standing, static, security and fresh referee proof pass.
-- [ ] Independent reviewer approves the exact candidate.
-- [ ] Local workbench is replaced only after approval and returns HTTP 200 with the
+- [x] Exact approved Order-147 presentation blobs are reproduced for HTML/JS only.
+- [x] Snapshot/test encode D-407, D-412 and open/unmerged PR #78 conservatively.
+- [x] Focused, standing, static, security and fresh referee proof pass.
+- [x] Independent reviewer approves the exact candidate.
+- [x] Local workbench is replaced only after approval and returns HTTP 200 with the
       approved snapshot; disposable proof resources are removed.
