@@ -1,6 +1,6 @@
 # Question 147 — Strict Order-126 segment parents conflict with approved segment-change sequencing
 
-**Status:** OPEN — PREDECESSOR REQUIRED
+**Status:** RESOLVED — D-379/D-380
 **Order:** 126 · occupancy caller tenant binding
 **Branch:** `phase-5/occupancy-caller-tenant-binding-resumed`
 **Approved Base:** `a3c91bc410a4bcc943c57b5ae5d3b89e6a2c29d4`
@@ -77,3 +77,8 @@ under this question alone.
 
 Order 126 is `BLOCKED-PREDECESSOR`. No database-green, independent review, merge, push,
 deployment, live status or Cyber finding closure is claimed.
+
+## RESOLVED
+
+D-379/D-380 resolved the predecessor through Order 143. This canonical marker records
+the existing authority for `state.sh`; it adds no new ruling.
