@@ -45,6 +45,7 @@
   let reservationDrawerReturnFocus = null;
   let reservationCreateStep = 1;
   let reservationCreateDirty = false;
+  let reservationCreateProperty = "";
   let reservationRouteReservationId = "";
   let partyProfileGeneration = 0;
   let partyCreateAttemptKey = "";
@@ -353,7 +354,6 @@
   const reservationDetailContent = document.querySelector("#reservation-detail-content");
   const reservationDetailActions = document.querySelector("#reservation-detail-actions");
   const reservationDetailStatus = document.querySelector("#reservation-detail-status");
-  const reservationTools = document.querySelector("#reservation-tools");
   const folioStatementLookupForm = document.querySelector("#folio-statement-lookup-form");
   const folioStatement = document.querySelector("#folio-statement");
   const folioStatementTitle = document.querySelector("#folio-statement-title");
@@ -412,6 +412,16 @@
     builderPreviewDates.value = localInputValue(from).slice(0, 10);
     builderQuoteStart.value = localInputValue(from);
     builderQuoteEnd.value = localInputValue(to);
+  }
+
+  function resetReservationStayDates() {
+    const from = new Date();
+    from.setDate(from.getDate() + 1);
+    from.setHours(15, 0, 0, 0);
+    const to = new Date(from);
+    to.setDate(to.getDate() + 2);
+    reservationBookingForm.elements.from.value = utcInstantInputValue(from);
+    reservationBookingForm.elements.to.value = utcInstantInputValue(to);
   }
 
   async function request(path, options = {}) {
@@ -647,51 +657,53 @@
     return query;
   }
 
-  function renderReservationBoard(page, append = false) {
-    const incoming = Array.isArray(page.reservations) ? page.reservations.slice(0, 100) : [];
-    reservationBoardRows = append ? [...reservationBoardRows, ...incoming] : incoming;
+  function boundedReservationPage(rows) {
+    return Array.isArray(rows) ? rows.slice(0, 100) : [];
+  }
+
+  function renderReservationBoard(page, older = false) {
+    const incoming = boundedReservationPage(page.reservations);
+    reservationBoardRows = incoming;
     reservationBoardNextCursor = typeof page.nextCursor === "string" ? page.nextCursor : null;
-    if (!append) {
-      reservationBoardRowsTarget.replaceChildren();
-      reservationBoardCards.replaceChildren();
-    }
+    reservationBoardRowsTarget.replaceChildren();
+    reservationBoardCards.replaceChildren();
     for (const row of incoming) {
       reservationBoardRowsTarget.append(reservationTableRow(row));
       reservationBoardCards.append(reservationCard(row));
     }
     reservationBoardMore.hidden = reservationBoardNextCursor === null;
     const count = reservationBoardRows.length;
-    reservationBoardSummary.textContent = `${count} reservation${count === 1 ? "" : "s"} loaded from current server truth${reservationBoardNextCursor ? " · older records available" : ""}.`;
-    reservationBoardStatus.textContent = append ? `${incoming.length} older reservation${incoming.length === 1 ? "" : "s"} added.` : `${count} reservation${count === 1 ? "" : "s"} loaded.`;
+    reservationBoardSummary.textContent = `${count} reservation${count === 1 ? "" : "s"} on this bounded page${reservationBoardNextCursor ? " · older records available" : ""}.`;
+    reservationBoardStatus.textContent = older ? `Showing the next ${count} older reservation${count === 1 ? "" : "s"}; the previous page was replaced.` : `${count} reservation${count === 1 ? "" : "s"} loaded.`;
     setReservationBoardState(count === 0 ? "empty" : "ready");
   }
 
-  async function loadReservationBoard({ append = false } = {}) {
+  async function loadReservationBoard({ older = false } = {}) {
     const generation = ++reservationBoardGeneration;
     const property = propertySelect.value;
     if (!property) return;
     let query;
     try {
-      query = reservationBoardQuery(append ? reservationBoardNextCursor || "" : "");
+      query = reservationBoardQuery(older ? reservationBoardNextCursor || "" : "");
     } catch (error) {
       setReservationBoardState("error", error instanceof Error ? error.message : "Reservation filters are invalid.");
       reservationBoardStatus.textContent = "Filters need attention.";
       return;
     }
-    if (append && !reservationBoardNextCursor) return;
-    if (!append) setReservationBoardState("loading");
-    reservationBoardMore.disabled = append;
-    reservationBoardStatus.textContent = append ? "Loading older reservations…" : "Loading reservations…";
+    if (older && !reservationBoardNextCursor) return;
+    if (!older) setReservationBoardState("loading");
+    reservationBoardMore.disabled = older;
+    reservationBoardStatus.textContent = older ? "Loading the next bounded page…" : "Loading reservations…";
     try {
       const page = await request(`/api/v1/properties/${encodeURIComponent(property)}/reservation-board?${query}`);
       if (generation !== reservationBoardGeneration || property !== propertySelect.value) return;
-      renderReservationBoard(page, append);
+      renderReservationBoard(page, older);
     } catch (error) {
       if (generation !== reservationBoardGeneration || property !== propertySelect.value) return;
       const message = error instanceof Error ? error.message : "The reservation board is unavailable.";
-      if (append && reservationBoardRows.length > 0) {
+      if (older && reservationBoardRows.length > 0) {
         setReservationBoardState("ready");
-        reservationBoardStatus.textContent = `${message} Existing rows remain visible; try loading older reservations again.`;
+        reservationBoardStatus.textContent = `${message} The current page remains visible; try loading the next page again.`;
       } else {
         setReservationBoardState("error", message);
         reservationBoardStatus.textContent = error?.status === 403 ? "Reservation access is not granted." : "Reservation board unavailable.";
@@ -728,11 +740,51 @@
     }
   }
 
+  function emptyReservationJourneyState() {
+    return { offers: [], selection: null, hold: null, draft: null, dirty: false, step: 1 };
+  }
+
+  function reservationExitHistoryAction(state, surface) {
+    return state?.yellowSurface === surface ? "back" : "replace";
+  }
+
+  function shouldConfirmReservationExit(visible, dirty, destinationKind) {
+    return visible && dirty && destinationKind !== "create";
+  }
+
+  function resetReservationCreateJourney() {
+    const empty = emptyReservationJourneyState();
+    reservationBookingSearchGeneration += 1;
+    reservationBookingOffers = empty.offers;
+    reservationBookingSelection = empty.selection;
+    reservationBookingHold = empty.hold;
+    reservationBookingDraft = empty.draft;
+    reservationCreateDirty = empty.dirty;
+    reservationCreateStep = empty.step;
+    reservationCreateProperty = "";
+    reservationBookingForm.reset();
+    resetReservationStayDates();
+    clearPartyProfileState();
+    reservationBookingOptions.replaceChildren();
+    clearReservationBookingSelection();
+    reservationOfferRetry.hidden = true;
+    reservationBookingConfirmation.hidden = true;
+    reservationBookingConfirmation.querySelector("strong").textContent = "";
+    reservationBookingConfirmation.querySelector("small").textContent = "";
+    reservationBookingMessage.textContent = "";
+    reservationBookingMessage.classList.remove("error");
+    formMessage(reservationBookingForm, "Enter the stay, then continue to a server Party.");
+    for (const key of pendingKeys.keys()) {
+      if (key.startsWith("reservation-booking-")) pendingKeys.delete(key);
+    }
+  }
+
   function openReservationCreate({ push = true } = {}) {
     closeReservationDetail({ history: false, restoreFocus: false });
+    resetReservationCreateJourney();
     reservationBoard.hidden = true;
     reservationCreatePanel.hidden = false;
-    reservationCreateDirty = false;
+    reservationCreateProperty = propertySelect.value;
     setReservationCreateStep(1, { push, focus: false });
     document.querySelector("#reservation-booking-title").focus();
   }
@@ -740,11 +792,11 @@
   function closeReservationCreate({ history: updateHistory = true, force = false } = {}) {
     if (reservationCreatePanel.hidden) return true;
     if (!force && reservationCreateDirty && !confirm("Discard this unfinished reservation? Entered details will be lost.")) return false;
+    resetReservationCreateJourney();
     reservationCreatePanel.hidden = true;
     reservationBoard.hidden = false;
-    reservationCreateDirty = false;
     if (updateHistory && propertySelect.value) {
-      if (history.state?.yellowSurface === "reservation-create") history.back();
+      if (reservationExitHistoryAction(history.state, "reservation-create") === "back") history.back();
       else history.replaceState(null, "", `/p/${propertySelect.value}/reservations`);
     }
     reservationCreateOpen.focus();
@@ -789,15 +841,6 @@
     return section;
   }
 
-  function openAdvancedReservation(confirmationNo) {
-    closeReservationDetail({ history: false, restoreFocus: false });
-    history.replaceState(null, "", `/p/${propertySelect.value}/reservations`);
-    reservationTools.open = true;
-    reservationLifecycleLookupForm.elements.confirmationNo.value = confirmationNo;
-    reservationLifecycleLookupForm.requestSubmit();
-    reservationTools.scrollIntoView({ block: "start" });
-  }
-
   function renderReservationDetail(result) {
     const reservation = result.reservation;
     reservationDetailData = result;
@@ -825,17 +868,7 @@
         `${reservationDateTime(fact.recordedAt)} · ${fact.factType}`),
     );
     reservationDetailActions.replaceChildren();
-    if (result.actions?.canModify || result.actions?.canCancel || result.actions?.canReinstate) {
-      const manage = document.createElement("button");
-      manage.type = "button";
-      manage.className = result.actions.canReinstate ? "primary" : "secondary";
-      manage.textContent = result.actions.canReinstate ? "Review reinstatement" : "Manage reservation";
-      manage.addEventListener("click", () => openAdvancedReservation(reservation.confirmationNo));
-      reservationDetailActions.append(manage);
-      reservationDetailActions.hidden = false;
-    } else {
-      reservationDetailActions.hidden = true;
-    }
+    reservationDetailActions.hidden = true;
     reservationDetailLoading.hidden = true;
     reservationDetailError.hidden = true;
     reservationDetailContent.hidden = false;
@@ -888,7 +921,7 @@
     reservationDetailDrawer.hidden = true;
     reservationDetailContent.replaceChildren();
     if (updateHistory && propertySelect.value) {
-      if (history.state?.yellowSurface === "reservation-detail") history.back();
+      if (reservationExitHistoryAction(history.state, "reservation-detail") === "back") history.back();
       else history.replaceState(null, "", `/p/${propertySelect.value}/reservations`);
     }
     if (restoreFocus) {
@@ -902,8 +935,6 @@
     const route = reservationRoute();
     if (route.kind === "other" || !propertySelect.value || route.property !== propertySelect.value) return;
     if (route.kind === "detail") {
-      reservationCreatePanel.hidden = true;
-      reservationBoard.hidden = false;
       if (reservationRouteReservationId !== route.reservationId || reservationDetailDrawer.hidden) {
         void openReservationDetail(route.reservationId, { push: false });
       }
@@ -913,10 +944,10 @@
     if (route.kind === "create") {
       reservationBoard.hidden = true;
       reservationCreatePanel.hidden = false;
+      reservationCreateProperty = propertySelect.value;
       setReservationCreateStep(route.step, { push: false, focus: false });
     } else {
-      reservationCreatePanel.hidden = true;
-      reservationBoard.hidden = false;
+      closeReservationCreate({ history: false, force: true });
     }
   }
 
@@ -3965,8 +3996,9 @@
       reservationCreateDirty = false;
       void loadReservationBoard();
       const reservationId = result.reservation.reservationId;
+      closeReservationCreate({ history: false, force: true });
+      history.replaceState(null, "", `/p/${propertySelect.value}/reservations`);
       if (reservationId) {
-        history.replaceState(null, "", `/p/${propertySelect.value}/reservations`);
         void openReservationDetail(reservationId, { trigger: reservationCreateOpen });
       }
     } catch (error) {
@@ -4379,6 +4411,12 @@
   reservationPrimaryShare.addEventListener("input", updateReservationShareTotal);
 
   propertySelect.addEventListener("change", () => {
+    if (shouldConfirmReservationExit(reservationCreatePanel.hidden === false, reservationCreateDirty, "property") &&
+        !confirm("Discard this unfinished reservation? Entered details will be lost.")) {
+      propertySelect.value = reservationCreateProperty;
+      return;
+    }
+    if (!reservationCreatePanel.hidden) closeReservationCreate({ history: false, force: true });
     reservationBookingSearchGeneration += 1;
     reservationBoardGeneration += 1;
     reservationDetailGeneration += 1;
@@ -4416,7 +4454,10 @@
     reservationGuestList.replaceChildren();
     if (activeView === "reservations") void loadReservationBoard();
   });
-  for (const tab of navigation) tab.addEventListener("click", () => setView(tab.dataset.view));
+  for (const tab of navigation) tab.addEventListener("click", () => {
+    if (tab.dataset.view !== "reservations" && !reservationCreatePanel.hidden && !closeReservationCreate({ history: false })) return;
+    setView(tab.dataset.view);
+  });
   availabilityReservationShortcut.addEventListener("click", () => {
     setView("reservations");
     document.querySelector("#reservations-title").focus({ preventScroll: true });
@@ -4429,7 +4470,7 @@
   reservationFiltersClear.addEventListener("click", clearReservationBoardFilters);
   reservationEmptyClear.addEventListener("click", clearReservationBoardFilters);
   reservationBoardRetry.addEventListener("click", () => void loadReservationBoard());
-  reservationBoardMore.addEventListener("click", () => void loadReservationBoard({ append: true }));
+  reservationBoardMore.addEventListener("click", () => void loadReservationBoard({ older: true }));
   reservationCreateOpen.addEventListener("click", () => openReservationCreate());
   reservationEmptyCreate.addEventListener("click", () => openReservationCreate());
   reservationCreateCancel.addEventListener("click", () => closeReservationCreate());
@@ -4472,7 +4513,7 @@
   });
   window.addEventListener("popstate", () => {
     const route = reservationRoute();
-    if (route.kind === "create" && reservationCreateDirty && reservationCreatePanel.hidden === false &&
+    if (shouldConfirmReservationExit(reservationCreatePanel.hidden === false, reservationCreateDirty, route.kind) &&
         !confirm("Leave this unfinished reservation? Entered details will be lost.")) {
       history.pushState({ yellowSurface: "reservation-create" }, "", `/p/${propertySelect.value}/reservations?new=1&step=${["stay", "guest", "offer", "review"][reservationCreateStep - 1]}`);
       return;
