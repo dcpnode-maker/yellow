@@ -1,6 +1,6 @@
 # Order 169 — Local reservation-workspace promotion
 
-**Status:** BUILT-LOCALLY — independent operational verdict pending
+**Status:** APPROVED-LOCALLY — independent operational review complete
 **Phase:** 5 · local operations
 **Branch:** `phase-5/local-reservation-workspace-promotion`
 **Base:** `5025f37` (independently approved Order168 evidence)
@@ -37,7 +37,7 @@ schema, migration, public bind, merge, push or destructive rollback cleanup is i
 
 - [x] Ports 3000 and 3002 serve exact approved Order168 source.
 - [x] Board/detail/create prerequisite smoke passes on both ports.
-- [ ] Independent operational review approves final local state.
+- [x] Independent operational review approves final local state.
 
 ## Redacted promotion evidence — 2026-08-26
 
@@ -54,3 +54,11 @@ schema, migration, public bind, merge, push or destructive rollback cleanup is i
   remains in two stopped rollback containers.
 - Retained database, Valkey, network, volumes, credentials and application data were
   not modified by this app-only promotion. No secret value was recorded.
+
+## Independent operational verdict
+
+Approved locally by an independent non-operating OpenAI Codex reviewer at exact
+evidence `34422233db21a14fe81cd38e51eda27eb7520c0c`. See
+`handoff/reviews/169-local-reservation-workspace-promotion.md`. Approval is limited to
+the final loopback app state and does not authorize merge, push, public exposure,
+production deployment or destructive rollback cleanup.
