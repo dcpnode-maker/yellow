@@ -1,6 +1,6 @@
 # Order 143 — Create segment-change parents before occupancy reacquisition
 
-**Status:** BUILT-UNREVIEWED — INDEPENDENT TIER-3 REVIEW REQUIRED
+**Status:** APPROVED — INDEPENDENT TIER-3 REVIEW COMPLETE
 **Phase:** 5 · Cyber remediation prerequisite
 **Branch:** `phase-5/reservation-segment-parent-before-occupancy`
 **Base:** `a3c91bc410a4bcc943c57b5ae5d3b89e6a2c29d4` — independently approved
@@ -196,6 +196,6 @@ APPROVE or REJECT. Builder output is not reviewer evidence.
 - [x] P0 is committed separately and reproduces both exact-parent ordering failures.
 - [x] P1–P4 pass on one immutable executable SHA.
 - [x] P5 and pristine referee are green.
-- [ ] Independent non-implementing Tier-3 review approves the exact executable.
+- [x] Independent non-implementing Tier-3 review approves the exact executable.
 - [ ] Only then may Order 126 adopt the approved Order-143 frontier and resume its own
       strict migration proof.
