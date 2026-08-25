@@ -1,10 +1,10 @@
 # Question 155 — Order-127 relay handler context
 
-**Status:** RESOLVED BY D-399 AND D-401 — CORRECTION READY
+**Status:** RESOLVED BY D-399, D-401 AND D-402 — CORRECTION READY
 **Order:** 127 · runtime database authority
 **Branch:** `phase-5/runtime-database-authority-final`
 **D398 rerun head:** `5255ac2`
-**Related decisions:** D-392, D-395, D-398, D-399, D-401
+**Related decisions:** D-392, D-395, D-398, D-399, D-401, D-402
 
 ## RESOLVED
 
@@ -75,3 +75,31 @@ and prove settlement on the exact backend rather than an arbitrary pool checkout
 This correction changes no role, grant, capability, migration, interface, batch size,
 handler ordering, timeout, RSS threshold or allowed path. D-400 belongs exclusively to
 Order 147; D-401 is the unique correction decision for this stopped review.
+
+## D-402 implementable containment correction
+
+Implementation inspection proved two D-401 proof demands impossible through the
+admitted PostgreSQL/Bun interfaces. Inside one transaction, PostgreSQL exposes only a
+custom GUC's effective value; the adapter cannot distinguish its own transaction-local
+tenant UUID from a hostile same-value session-scoped write until commit, when rollback
+of marks/effects/cursor is no longer possible. Bun's pool exposes no safe single-backend
+eviction or replacement primitive; D-395 already proves closing a reservation poisons
+the owning pool. Pretending otherwise, intercepting SQL text or adding an ungoverned
+backend-termination capability is forbidden.
+
+The exact security outcome is prevention and settlement. A non-throwing handler that
+changes role or the effective tenant to a different value remains detectable before
+cursor advance and rolls the transaction back. A same-value session-scoped tenant
+write must be neutralized before commit by restoring the session tenant baseline to
+null after final role reset; failure to scrub rolls the transaction back. After commit
+or rollback, the adapter verifies runtime role, null tenant and no prepared statements
+on the exact still-reserved unprepared backend before release. `DEALLOCATE ALL` must be
+harmless on these `prepare:false` pools and the same clean backend remains reusable.
+
+If rollback, commit, scrub, discard or exact settlement cannot complete, the entire
+owning pool fails/closes and is not reused. Proof must not demand imaginary in-place
+backend replacement: it creates a new explicit pool only to demonstrate durable state
+rollback and clean retry after the failed pool is closed. Ordered and unpublished
+consumers receive parity. The unchanged P6 thresholds and every D-399 ordering,
+transition and atomicity rule remain binding. D-401 is preserved as stopped review
+evidence; D-402 replaces only its impossible detection/eviction proof shape.

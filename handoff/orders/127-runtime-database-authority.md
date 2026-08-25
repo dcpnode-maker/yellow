@@ -1,6 +1,6 @@
 # Order 127 — Separate runtime database authority from deployment authority
 
-**Status:** CORRECTION READY — D-392, corrected by D-393 through D-399 and D-401;
+**Status:** CORRECTION READY — D-392, corrected by D-393 through D-399 and D-401–D-402;
 Questions 150–155 resolved before corrected executable implementation
 **Phase:** 5 · Cyber remediation
 **Branch:** `phase-5/runtime-database-authority-final`
