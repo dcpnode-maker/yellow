@@ -1,6 +1,6 @@
 # Order 168 — Reservation workspace UI
 
-**Status:** READY — implementation may proceed; Order166 approval must be integrated before review
+**Status:** IN PROGRESS — Order166 approval integrated
 **Phase:** 5 · founder-visible operations
 **Branch:** `phase-5/reservation-workspace-ui`
 **Base:** `0e88417` (Order166 immutable candidate; independent verdict pending)
@@ -64,7 +64,7 @@ check-in/check-out, merge, push or local replacement is in scope.
 
 ## Definition of done
 
-- [ ] Order166 is independently approved and its review evidence is integrated.
+- [x] Order166 is independently approved and its review evidence is integrated.
 - [ ] The complete reservation board/create/detail human journey works against real APIs.
 - [ ] Accessibility, responsive, performance and full repository gates pass.
 - [ ] Independent review approves the immutable candidate before local promotion.
