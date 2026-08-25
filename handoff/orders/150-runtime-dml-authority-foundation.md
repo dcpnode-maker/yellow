@@ -46,8 +46,10 @@ final reviewer may consider the occurrence discharged.
   unique Order-150 focused-suite mapping;
 - `docs/SECURITY.md` and `docs/CONTRACTS.md`, only for the exact ACL catalogue and
   named residual command-capability debt;
-- this order, `handoff/questions/160-order150-seed-authority-boundary.md`, additive
-  D-415–D-416/ledger records, and one independent Order-150 review.
+- this order;
+- `handoff/questions/160-order150-seed-authority-boundary.md` and
+  `handoff/questions/161-order150-extension-type-residual.md`;
+- additive D-415–D-417/ledger records and one independent Order-150 review.
 
 No TypeScript production caller other than the exact scoped deployment seed, baseline/applied migration, protected referee,
 table, policy, role, credential, function body, trigger, event, state machine,
@@ -60,7 +62,9 @@ caller or capability-function change stops this order and requires a new order.
    mutation privilege at Base and commit an exact positive registry in the focused
    proof. No blanket/future-table mutation default or view mutation may remain.
 2. Revoke runtime DML from global, tenantless, deploy/tool, immutable and zero-caller
-   relations. Preserve non-request relay/runtime functions from Order 127 exactly.
+   relations except the exact Q161/D-417 current `extension_type INSERT(type,
+   json_schema)` residual. Preserve non-request relay/runtime functions from Order
+   127 exactly.
 3. Preserve constitutional boundaries: occupancy direct DML stays denied; R4
    revocations stay exact; `document` has no runtime mutation; `rate_price` permits
    only `UPDATE (superseded_by)`; insert-only relations receive no UPDATE/DELETE.
@@ -89,7 +93,7 @@ authority, and unchanged PUBLIC/deploy/owner/runtime-role boundaries.
 ### P2 — legitimate flows
 
 Execute each retained mutation family through its real service/HTTP boundary where
-one exists: login, Party, inventory configuration, holds/blocks/projection,
+one exists: login, extension-type registration, Party, inventory configuration, holds/blocks/projection,
 reservation commit/lifecycle/segments/guests, rates/publication, folio/charge,
 facts/outbox/idempotency and relay. Require exact rows/states/facts/events,
 idempotency, rollback and tenant/property isolation.
