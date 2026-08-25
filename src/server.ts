@@ -48,7 +48,7 @@ function runtimeApp() {
   if (!workbenchEnabled) return app;
   const databaseUrl = required("YELLOW_RUNTIME_DATABASE_URL");
   const tokens = new Hs256TokenSigner(required("YELLOW_TOKEN_SECRET"));
-  const database = Database.connect(databaseUrl, { maxConnections: 12 });
+  const database = Database.connect(databaseUrl, { maxConnections: 12, prepare: false });
   const loginPool = new SQL(databaseUrl, { max: 4 });
   const eventPool = new SQL(databaseUrl, { max: 4 });
   const extensionPool = new SQL(databaseUrl, { max: 4 });

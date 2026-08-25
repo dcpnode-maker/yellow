@@ -9,6 +9,7 @@ export interface ConnectionPool {
 
 export interface DatabaseOptions {
   readonly maxConnections?: number;
+  readonly prepare?: boolean;
 }
 
 /**
@@ -26,7 +27,10 @@ export class Database {
   }
 
   static connect(databaseUrl: string, options: DatabaseOptions = {}): Database {
-    const pool = new SQL(databaseUrl, { max: options.maxConnections ?? 10, prepare: false });
+    const pool = new SQL(databaseUrl, {
+      max: options.maxConnections ?? 10,
+      prepare: options.prepare,
+    });
     return new Database(pool, true);
   }
 
