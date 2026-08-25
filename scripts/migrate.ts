@@ -437,6 +437,49 @@ function isExactRuntimeAppMembership(row: RuntimeAppMembershipRow | undefined): 
     && row.set_option;
 }
 
+interface AuthorityRoleRow {
+  readonly rolname: string;
+  readonly rolcanlogin: boolean;
+  readonly rolconnlimit: number;
+  readonly rolpassword: string | null;
+  readonly rolsuper: boolean;
+  readonly rolcreatedb: boolean;
+  readonly rolcreaterole: boolean;
+  readonly rolinherit: boolean;
+  readonly rolreplication: boolean;
+  readonly rolbypassrls: boolean;
+}
+
+async function authorityRoles(connection: ReservedSQL): Promise<readonly AuthorityRoleRow[]> {
+  return await connection<AuthorityRoleRow[]>`
+    SELECT rolname, rolcanlogin, rolconnlimit, rolpassword, rolsuper, rolcreatedb,
+           rolcreaterole, rolinherit, rolreplication, rolbypassrls
+      FROM pg_catalog.pg_authid
+     WHERE rolname IN ('app_role', 'yellow_runtime')
+     ORDER BY rolname
+  `;
+}
+
+function hasNoElevatedAttributes(role: AuthorityRoleRow): boolean {
+  return !role.rolsuper && !role.rolcreatedb && !role.rolcreaterole
+    && !role.rolreplication && !role.rolbypassrls;
+}
+
+function isFinalAppRole(role: AuthorityRoleRow | undefined): boolean {
+  return role !== undefined && !role.rolcanlogin && role.rolconnlimit === 0
+    && role.rolpassword === null && !role.rolinherit && hasNoElevatedAttributes(role);
+}
+
+function isPre0012AppRole(role: AuthorityRoleRow | undefined): boolean {
+  return role !== undefined && role.rolcanlogin && role.rolconnlimit === -1
+    && role.rolpassword === null && role.rolinherit && hasNoElevatedAttributes(role);
+}
+
+function isExactRuntimeRole(role: AuthorityRoleRow | undefined): boolean {
+  return role !== undefined && role.rolcanlogin && role.rolconnlimit === -1
+    && role.rolpassword !== null && !role.rolinherit && hasNoElevatedAttributes(role);
+}
+
 async function suspendExactRuntimeAppMembership(connection: ReservedSQL): Promise<boolean> {
   const memberships = await runtimeAppMemberships(connection);
   if (memberships.length === 0) return false;
@@ -444,33 +487,10 @@ async function suspendExactRuntimeAppMembership(connection: ReservedSQL): Promis
     throw new Error("migration 0012 encountered an unsupported database-authority membership edge");
   }
 
-  const roles = await connection<Array<{
-    rolname: string;
-    rolcanlogin: boolean;
-    rolconnlimit: number;
-    rolpassword: string | null;
-    rolsuper: boolean;
-    rolcreatedb: boolean;
-    rolcreaterole: boolean;
-    rolinherit: boolean;
-    rolreplication: boolean;
-    rolbypassrls: boolean;
-  }>>`
-    SELECT rolname, rolcanlogin, rolconnlimit, rolpassword, rolsuper, rolcreatedb,
-           rolcreaterole, rolinherit, rolreplication, rolbypassrls
-      FROM pg_catalog.pg_authid
-     WHERE rolname IN ('app_role', 'yellow_runtime')
-     ORDER BY rolname
-  `;
+  const roles = await authorityRoles(connection);
   const app = roles.find(({ rolname }) => rolname === "app_role");
   const runtime = roles.find(({ rolname }) => rolname === "yellow_runtime");
-  const appIsExact = app !== undefined && !app.rolcanlogin && app.rolconnlimit === 0
-    && app.rolpassword === null && !app.rolsuper && !app.rolcreatedb && !app.rolcreaterole
-    && !app.rolinherit && !app.rolreplication && !app.rolbypassrls;
-  const runtimeIsExact = runtime !== undefined && runtime.rolcanlogin && runtime.rolconnlimit === -1
-    && runtime.rolpassword !== null && !runtime.rolsuper && !runtime.rolcreatedb && !runtime.rolcreaterole
-    && !runtime.rolinherit && !runtime.rolreplication && !runtime.rolbypassrls;
-  if (!appIsExact || !runtimeIsExact) {
+  if ((!isFinalAppRole(app) && !isPre0012AppRole(app)) || !isExactRuntimeRole(runtime)) {
     throw new Error("migration 0012 encountered incompatible app_role or yellow_runtime attributes");
   }
 
@@ -492,6 +512,12 @@ async function restoreExactRuntimeAppMembership(connection: ReservedSQL): Promis
   const memberships = await runtimeAppMemberships(connection);
   if (memberships.length !== 1 || !isExactRuntimeAppMembership(memberships[0])) {
     throw new Error("migration 0012 did not restore the exact yellow_runtime to app_role membership");
+  }
+  const roles = await authorityRoles(connection);
+  const app = roles.find(({ rolname }) => rolname === "app_role");
+  const runtime = roles.find(({ rolname }) => rolname === "yellow_runtime");
+  if (!isFinalAppRole(app) || !isExactRuntimeRole(runtime)) {
+    throw new Error("migration 0012 did not produce the exact final database-authority role attributes");
   }
 }
 
