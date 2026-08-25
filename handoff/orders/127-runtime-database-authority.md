@@ -1,7 +1,7 @@
 # Order 127 — Separate runtime database authority from deployment authority
 
-**Status:** CORRECTION READY — D-392, corrected by D-393, D-394 and D-395;
-Questions 150–151 resolved before corrected executable implementation
+**Status:** CORRECTION READY — D-392, corrected by D-393 through D-396;
+Questions 150–152 resolved before corrected executable implementation
 **Phase:** 5 · Cyber remediation
 **Branch:** `phase-5/runtime-database-authority-final`
 **Base:** `8daf34e1f1328e866b0b52ff750631e7d651d0b7` — exact independently
@@ -117,6 +117,17 @@ external deployment, never SQL migration text. The migration and runner must fai
 atomically on unexpected role attributes, membership, active runtime session, owner,
 object, ACL, RLS/policy or migration-ledger state.
 
+PostgreSQL role membership is cluster-global while migration ledgers are per database.
+When a later database is still pending unchanged migration 0012 after another database
+has installed 0015, the runner may transaction-locally suspend only the sole exact
+`yellow_runtime`→`app_role` edge. It accepts `app_role` only as either the final
+hardened tuple or 0012's exact known parent tuple: LOGIN, connection limit `-1`, null
+password, INHERIT, and otherwise NOSUPERUSER/NOCREATEDB/NOCREATEROLE/NOREPLICATION/
+NOBYPASSRLS. `yellow_runtime` must already be exact and no runtime session or malformed
+membership may exist. The unchanged 0012 body hardens the role; the same transaction
+re-grants the one edge and verifies the final tuple before its ledger commit. Question
+152 records the affected Order-118 preservation proof.
+
 ## Exact implementation scope
 
 Implementation may change only these product/database paths:
@@ -184,7 +195,9 @@ Governance may change only:
 - `handoff/questions/150-order127-runtime-authority-scope-stop.md` only if an exact
   unadmitted dependency is found;
 - `handoff/questions/151-order127-bun-pool-containment.md` for the exact resolved Bun
-  reserved-connection contract; and
+  reserved-connection contract;
+- `handoff/questions/152-order127-repeat-v12-role-transition.md` for the exact resolved
+  cluster-global repeat-database role transition; and
 - additive Order-127 entries in `DECISIONS.log` and `handoff/LEDGER.md`.
 
 Every other path is forbidden. In particular: never edit migrations 0001–0014,
@@ -264,6 +277,10 @@ function for PUBLIC/app-role denial, injection inputs, oversized arrays/limits a
 temporary-schema resolution. Extension proofs retain exact tenant-own,
 platform-global and platform-wide same-type compatibility results through only the two
 D-394 reads.
+
+The inherited Order-118 proof retains its parent-to-hardened 0012 transition and,
+after v15, requires exactly one incoming `app_role` membership from `yellow_runtime`,
+zero outgoing membership and no other relevant edge.
 
 ### P4 — distinct DSNs and process/environment boundary
 
