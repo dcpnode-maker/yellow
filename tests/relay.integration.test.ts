@@ -329,6 +329,7 @@ databaseDescribe("Order 023 crash-safe outbox relay", () => {
     }, { limit: 10 })).rejects.toThrow("D398 unpublished rollback");
     const unpublishedRetry = await bus!.consumeUnpublishedBatch("order-023-canary-unpublished-rollback", async () => undefined, { limit: 10 });
     expect(unpublishedRetry.processed).toBe(unpublishedRollbackEvents.length);
+    expect(await bus!.markPublished(unpublishedRollbackEvents.map(({ id }) => id))).toBe(unpublishedRollbackEvents.length);
   });
 
   test("D399/D402: mixed-tenant order, tamper rollback, and neutralized reuse", async () => {
