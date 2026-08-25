@@ -1,7 +1,7 @@
 # Order 127 — Separate runtime database authority from deployment authority
 
-**Status:** CORRECTION READY — D-392, corrected by D-393 through D-399 and D-401–D-406;
-Questions 150–157 resolved before final executable review
+**Status:** APPROVED — exact executable `833376bd61570b098855825fa991697fb3242218`;
+independent Tier-3 review D-407; Questions 150–157 resolved
 **Phase:** 5 · Cyber remediation
 **Branch:** `phase-5/runtime-database-authority-final`
 **Base:** `8daf34e1f1328e866b0b52ff750631e7d651d0b7` — exact independently
@@ -366,8 +366,8 @@ admission or builder proof.
       stale Order-127/Q147 artifacts remain excluded.
 - [x] D-392 records the exact role/capability/DSN ruling and closed path list before
       code.
-- [ ] P0 red precedes implementation.
-- [ ] P1–P5 pass on one immutable executable.
-- [ ] Independent non-implementing Tier-3 review approves that exact executable.
-- [ ] Only the stated occurrence is then eligible for discharge; all residuals remain
+- [x] P0 red precedes implementation.
+- [x] P1–P5 pass on one immutable executable.
+- [x] Independent non-implementing Tier-3 review approves that exact executable.
+- [x] Only the stated occurrence is then eligible for discharge; all residuals remain
       open.
