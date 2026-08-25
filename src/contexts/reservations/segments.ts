@@ -506,22 +506,6 @@ export class ReservationSegmentService {
         mapInventoryError(error, "Reservation segment occupancy could not be released");
       }
       requireClaimsPeriod(released.claims, expected.json, "Released segment");
-      let reclaimed;
-      try {
-        reclaimed = await this.#occupancy.claimForSegment(commandTx, {
-          sellableUnitId: target.sellable_unit_id,
-          segmentId,
-          from: expected.from,
-          to: newDeparture,
-          envelope: occupancyEnvelope(input.envelope, "occupancy.recorded"),
-        });
-      } catch (error) {
-        mapInventoryError(error, "Changed departure inventory is not available");
-      }
-      if (reclaimed.unitTypeId !== target.unit_type_id) {
-        throw new ReservationLifecycleConflictError("Assigned sellable unit type changed concurrently");
-      }
-      requireClaimsPeriod(reclaimed.claims, afterPeriod, "Reclaimed segment");
       const updated = await commandTx<Array<{ id: string }>>`
         UPDATE reservation_segment
         SET period = tstzrange(
@@ -546,6 +530,22 @@ export class ReservationSegmentService {
       if (updated[0]?.id !== segmentId) {
         throw new ReservationLifecycleConflictError("Reservation segment changed concurrently");
       }
+      let reclaimed;
+      try {
+        reclaimed = await this.#occupancy.claimForSegment(commandTx, {
+          sellableUnitId: target.sellable_unit_id,
+          segmentId,
+          from: expected.from,
+          to: newDeparture,
+          envelope: occupancyEnvelope(input.envelope, "occupancy.recorded"),
+        });
+      } catch (error) {
+        mapInventoryError(error, "Changed departure inventory is not available");
+      }
+      if (reclaimed.unitTypeId !== target.unit_type_id) {
+        throw new ReservationLifecycleConflictError("Assigned sellable unit type changed concurrently");
+      }
+      requireClaimsPeriod(reclaimed.claims, afterPeriod, "Reclaimed segment");
 
       const evidence = Object.freeze({
         reservation_id: reservationId,
@@ -664,6 +664,23 @@ export class ReservationSegmentService {
       }
       const sourceClaim = requireOneExclusiveClaim(released.claims, "Source sellable unit");
       requireClaimsPeriod(released.claims, expected.json, "Source sellable unit");
+      const activePeriod = freezePeriod(movedAt, expected.to);
+      const inserted = await commandTx<Array<{ id: string }>>`
+        INSERT INTO reservation_segment (
+          id, tenant_id, reservation_id, seq, unit_type_id, sellable_unit_id,
+          period, adults, children, rate_plan_id, price_override, status
+        ) VALUES (
+          ${newSegmentId}::uuid, ${input.envelope.tenantId}::uuid, ${reservationId}::uuid,
+          ${newSequence}, ${target.unit_type_id}::uuid, ${destinationSellableUnitId}::uuid,
+          tstzrange(${movedAt.toISOString()}::timestamptz, ${expected.to.toISOString()}::timestamptz, '[)'),
+          ${target.adults}, ${target.children_json}::text::jsonb, ${target.rate_plan_id}::uuid,
+          ${target.price_override_json}::text::jsonb, 'in_house'
+        )
+        RETURNING id
+      `;
+      if (inserted[0]?.id !== newSegmentId) {
+        throw new Error("PostgreSQL did not return the new reservation segment");
+      }
       let claimed;
       try {
         claimed = await this.#occupancy.claimForSegment(commandTx, {
@@ -677,7 +694,6 @@ export class ReservationSegmentService {
         mapInventoryError(error, "Destination room inventory is not available");
       }
       const destinationClaim = requireOneExclusiveClaim(claimed.claims, "Destination sellable unit");
-      const activePeriod = freezePeriod(movedAt, expected.to);
       requireClaimsPeriod(claimed.claims, activePeriod, "Destination sellable unit");
       if (claimed.unitTypeId !== target.unit_type_id) {
         throw new ReservationLifecycleConflictError("Room move destination must have the same unit type");
@@ -711,22 +727,6 @@ export class ReservationSegmentService {
       `;
       if (updated[0]?.id !== segmentId) {
         throw new ReservationLifecycleConflictError("Reservation segment changed concurrently");
-      }
-      const inserted = await commandTx<Array<{ id: string }>>`
-        INSERT INTO reservation_segment (
-          id, tenant_id, reservation_id, seq, unit_type_id, sellable_unit_id,
-          period, adults, children, rate_plan_id, price_override, status
-        ) VALUES (
-          ${newSegmentId}::uuid, ${input.envelope.tenantId}::uuid, ${reservationId}::uuid,
-          ${newSequence}, ${target.unit_type_id}::uuid, ${destinationSellableUnitId}::uuid,
-          tstzrange(${movedAt.toISOString()}::timestamptz, ${expected.to.toISOString()}::timestamptz, '[)'),
-          ${target.adults}, ${target.children_json}::text::jsonb, ${target.rate_plan_id}::uuid,
-          ${target.price_override_json}::text::jsonb, 'in_house'
-        )
-        RETURNING id
-      `;
-      if (inserted[0]?.id !== newSegmentId) {
-        throw new Error("PostgreSQL did not return the new reservation segment");
       }
 
       const evidence = Object.freeze({
