@@ -907,11 +907,11 @@ export async function runReviewSeed(options: ReviewSeedOptions): Promise<ReviewS
 }
 
 async function runCli(): Promise<void> {
-  const databaseUrl = process.env.DATABASE_URL;
+  const databaseUrl = process.env.YELLOW_DEPLOY_DATABASE_URL;
   const password = process.env.YELLOW_REVIEW_PASSWORD;
   const approverPassword = process.env.YELLOW_REVIEW_APPROVER_PASSWORD;
   if (!databaseUrl || !password || !approverPassword || password === approverPassword) {
-    console.error("DATABASE_URL, YELLOW_REVIEW_PASSWORD and a distinct YELLOW_REVIEW_APPROVER_PASSWORD are required");
+    console.error("YELLOW_DEPLOY_DATABASE_URL, YELLOW_REVIEW_PASSWORD and a distinct YELLOW_REVIEW_APPROVER_PASSWORD are required");
     process.exitCode = 1;
     return;
   }

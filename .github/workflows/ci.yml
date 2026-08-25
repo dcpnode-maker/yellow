@@ -269,6 +269,20 @@ jobs:
           bun install --frozen-lockfile
           python -m pip install --require-hashes --only-binary=:all: -r requirements-ci.txt
 
+      - name: Generate isolated database authority
+        shell: bash
+        run: |
+          set -euo pipefail
+          deploy_password="$(bun -e 'const b=crypto.getRandomValues(new Uint8Array(48));process.stdout.write(Buffer.from(b).toString("base64url"));')"
+          runtime_password="$(bun -e 'const b=crypto.getRandomValues(new Uint8Array(48));process.stdout.write(Buffer.from(b).toString("base64url"));')"
+          if [[ "$deploy_password" == "$runtime_password" ]]; then exit 1; fi
+          echo "::add-mask::$deploy_password"
+          echo "::add-mask::$runtime_password"
+          {
+            echo "YELLOW_DEPLOY_DATABASE_PASSWORD=$deploy_password"
+            echo "YELLOW_RUNTIME_DATABASE_PASSWORD=$runtime_password"
+          } >> "$GITHUB_ENV"
+
       - name: Start pinned PostgreSQL
         shell: bash
         run: |
@@ -299,18 +313,32 @@ jobs:
           fi
 
           {
-            echo "ADMIN_URL=postgres://yellow:yellow@${postgres_address}/postgres"
-            echo "DEPLOYMENT_URL=postgres://yellow:yellow@${postgres_address}/yellow_ci_deployment"
-            echo "INVARIANT_URL=postgres://yellow:yellow@${postgres_address}/yellow_ci_invariant"
-            echo "YELLOW_MIGRATION_TEST_ADMIN_URL=postgres://yellow:yellow@${postgres_address}/postgres"
-            echo "YELLOW_SEED_TEST_ADMIN_URL=postgres://yellow:yellow@${postgres_address}/postgres"
+            echo "POSTGRES_ADDRESS=${postgres_address}"
+            echo "ADMIN_URL=postgres://yellow_deploy:${YELLOW_DEPLOY_DATABASE_PASSWORD}@${postgres_address}/postgres"
+            echo "DEPLOYMENT_URL=postgres://yellow_deploy:${YELLOW_DEPLOY_DATABASE_PASSWORD}@${postgres_address}/yellow_ci_deployment"
+            echo "DEPLOYMENT_RUNTIME_URL=postgres://yellow_runtime:${YELLOW_RUNTIME_DATABASE_PASSWORD}@${postgres_address}/yellow_ci_deployment"
+            echo "INVARIANT_URL=postgres://yellow_deploy:${YELLOW_DEPLOY_DATABASE_PASSWORD}@${postgres_address}/yellow_ci_invariant"
+            echo "INVARIANT_RUNTIME_URL=postgres://yellow_runtime:${YELLOW_RUNTIME_DATABASE_PASSWORD}@${postgres_address}/yellow_ci_invariant"
+            echo "YELLOW_DEPLOY_DATABASE_URL=postgres://yellow_deploy:${YELLOW_DEPLOY_DATABASE_PASSWORD}@${postgres_address}/postgres"
+            echo "YELLOW_MIGRATION_TEST_ADMIN_URL=postgres://yellow_deploy:${YELLOW_DEPLOY_DATABASE_PASSWORD}@${postgres_address}/postgres"
+            echo "YELLOW_SEED_TEST_ADMIN_URL=postgres://yellow_deploy:${YELLOW_DEPLOY_DATABASE_PASSWORD}@${postgres_address}/postgres"
           } >> "$GITHUB_ENV"
 
+      - name: Provision exact database authority roles
+        shell: bash
+        run: |
+          set -euo pipefail
+          postgres_address="$(docker compose port postgres 5432)"
+          YELLOW_DEPLOY_DATABASE_URL="postgres://yellow_deploy:${YELLOW_DEPLOY_DATABASE_PASSWORD}@${postgres_address}/yellow_dev" \
+            bun scripts/provision-local-database-authority.ts
+
       - name: Execute isolated Phase 3 database proofs
-        env:
-          YELLOW_PHASE3_GATE_ADMIN_URL: ${{ env.ADMIN_URL }}
-          YELLOW_PHASE3_GATE_PASSWORD: Order079-CI-Proof-Only!
-        run: bun run test:phase3-gate
+        shell: bash
+        run: |
+          YELLOW_PHASE3_GATE_DEPLOY_URL="$ADMIN_URL" \
+          YELLOW_PHASE3_GATE_RUNTIME_URL="postgres://yellow_runtime:${YELLOW_RUNTIME_DATABASE_PASSWORD}@${POSTGRES_ADDRESS}/postgres" \
+          YELLOW_PHASE3_GATE_PASSWORD='Order079-CI-Proof-Only!' \
+            bun run test:phase3-gate
 
       - name: Run migration integration suite
         run: bun run test:db:migrate
@@ -322,7 +350,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          docker compose exec -T postgres psql --username yellow --dbname postgres --set ON_ERROR_STOP=1 <<'SQL'
+          docker compose exec -T postgres psql --username yellow_deploy --dbname postgres --set ON_ERROR_STOP=1 <<'SQL'
           DROP DATABASE IF EXISTS yellow_ci_deployment WITH (FORCE);
           CREATE DATABASE yellow_ci_deployment;
           DROP DATABASE IF EXISTS yellow_ci_invariant WITH (FORCE);
@@ -331,7 +359,8 @@ jobs:
 
       - name: Prove deployment migration and seed
         run: |
-          export DATABASE_URL="$DEPLOYMENT_URL"
+          export YELLOW_DEPLOY_DATABASE_URL="$DEPLOYMENT_URL"
+          export YELLOW_RUNTIME_DATABASE_URL="$DEPLOYMENT_RUNTIME_URL"
           export YELLOW_DATABASE_ACCEPTANCE_URL="$DEPLOYMENT_URL"
           export YELLOW_SCHEMA_DATABASE=yellow_ci_deployment
           bun run db:migrate
@@ -371,10 +400,11 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          export DATABASE_URL="$INVARIANT_URL"
+          export YELLOW_DEPLOY_DATABASE_URL="$INVARIANT_URL"
+          export YELLOW_RUNTIME_DATABASE_URL="$INVARIANT_RUNTIME_URL"
           export YELLOW_DSN="$INVARIANT_URL"
           bun run db:migrate
-          docker compose exec -T postgres psql --username yellow --dbname yellow_ci_invariant --set ON_ERROR_STOP=1 < tests/seed_fixture.sql
+          docker compose exec -T postgres psql --username yellow_deploy --dbname yellow_ci_invariant --set ON_ERROR_STOP=1 < tests/seed_fixture.sql
           python tests/run_invariants.py yellow_ci_invariant
 
       - name: Print database logs on failure

@@ -6,6 +6,8 @@ const FILE_NAME_PATTERN = /^[0-9]{4}_[a-z0-9][a-z0-9_-]*\.sql$/;
 const BASELINE_FILE = "0001_init.sql";
 const BASELINE_SHA256 = "fe2a9fc949c6bacded3f8d3fc4d14fc596a83ebde9aeb043eb10845f07b30923";
 const ADVISORY_LOCK_KEY = 6_441_674_055_002_974_567n;
+const OWNER_CUTOVER_VERSION = 15;
+const FINAL_OWNER_ROLE = "yellow_owner";
 const DEFAULT_MIGRATIONS_DIRECTORY = resolve(import.meta.dir, "..", "migrations");
 
 interface MigrationRecord {
@@ -228,7 +230,10 @@ async function revokeLedgerPrivileges(connection: ReservedSQL, includePublic: bo
   }
 }
 
-async function validateTrackingTable(connection: ReservedSQL): Promise<void> {
+async function validateTrackingTable(
+  connection: ReservedSQL,
+  expectedOwner: "current" | "current-or-final" | "final" = "current",
+): Promise<void> {
   const tableRows = await connection<
     { relkind: string; owner_name: string; current_name: string; relrowsecurity: boolean; relforcerowsecurity: boolean }[]
   >`
@@ -242,11 +247,15 @@ async function validateTrackingTable(connection: ReservedSQL): Promise<void> {
      WHERE n.nspname = 'public' AND c.relname = 'schema_migration'
   `;
   const table = tableRows[0];
+  const ownerIsValid = table !== undefined && (
+    (expectedOwner !== "final" && table.owner_name === table.current_name)
+    || (expectedOwner !== "current" && table.owner_name === FINAL_OWNER_ROLE)
+  );
   if (
     tableRows.length !== 1 ||
     !table ||
     table.relkind !== "r" ||
-    table.owner_name !== table.current_name ||
+    !ownerIsValid ||
     table.relrowsecurity ||
     table.relforcerowsecurity
   ) {
@@ -362,7 +371,7 @@ async function bootstrapTrackingTable(connection: ReservedSQL): Promise<void> {
         applied_at timestamptz NOT NULL DEFAULT clock_timestamp()
       )
     `);
-    await validateTrackingTable(connection);
+    await validateTrackingTable(connection, "current-or-final");
     await revokeLedgerPrivileges(connection, true);
     await verifyPublicHasNoLedgerPrivileges(connection);
   });
@@ -407,6 +416,9 @@ async function applyMigration(
       );
     }
 
+    if (record.version > OWNER_CUTOVER_VERSION) {
+      await connection.unsafe(`SET LOCAL ROLE ${FINAL_OWNER_ROLE}`);
+    }
     await connection.unsafe(record.sqlText);
     await revokeLedgerPrivileges(connection, false);
     await connection`
@@ -455,7 +467,8 @@ export async function runMigrations(options: MigrationRunOptions): Promise<Migra
 
     const finalLedger = await readLedger(connection);
     validateLedger(records, finalLedger);
-    await validateTrackingTable(connection);
+    const finalHasOwnerCutover = finalLedger.some(({ version }) => Number(version) >= OWNER_CUTOVER_VERSION);
+    await validateTrackingTable(connection, finalHasOwnerCutover ? "final" : "current");
     await verifyPublicHasNoLedgerPrivileges(connection);
     if (await appRoleExists(connection)) {
       await verifyRoleHasNoLedgerPrivileges(connection, "app_role");
@@ -512,9 +525,9 @@ export async function runMigrations(options: MigrationRunOptions): Promise<Migra
 }
 
 async function runCli(): Promise<void> {
-  const databaseUrl = process.env.DATABASE_URL;
+  const databaseUrl = process.env.YELLOW_DEPLOY_DATABASE_URL;
   if (!databaseUrl) {
-    console.error("DATABASE_URL is required");
+    console.error("YELLOW_DEPLOY_DATABASE_URL is required");
     process.exitCode = 1;
     return;
   }

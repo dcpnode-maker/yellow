@@ -547,9 +547,9 @@ export async function runSeed(options: SeedOptions): Promise<SeedResult> {
 }
 
 async function runCli(): Promise<void> {
-  const databaseUrl = process.env.DATABASE_URL;
+  const databaseUrl = process.env.YELLOW_DEPLOY_DATABASE_URL;
   if (!databaseUrl) {
-    console.error("DATABASE_URL is required");
+    console.error("YELLOW_DEPLOY_DATABASE_URL is required");
     process.exitCode = 1;
     return;
   }
