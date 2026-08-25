@@ -1,7 +1,7 @@
 # Order 127 — Separate runtime database authority from deployment authority
 
-**Status:** CORRECTION READY — D-392, corrected by D-393 through D-397;
-Questions 150–153 resolved before corrected executable implementation
+**Status:** CORRECTION READY — D-392, corrected by D-393 through D-398;
+Questions 150–154 resolved before corrected executable implementation
 **Phase:** 5 · Cyber remediation
 **Branch:** `phase-5/runtime-database-authority-final`
 **Base:** `8daf34e1f1328e866b0b52ff750631e7d651d0b7` — exact independently
@@ -84,7 +84,10 @@ PUBLIC and `app_role` denied and only `yellow_runtime` granted EXECUTE:
    `runtime_consumer_mark(text,uuid)` and `runtime_consumer_advance(text,bigint)` retain
    existing cursor locking, dedupe, ordering and handler-transaction semantics;
    `runtime_consumer_read` column 4 is exact `property_node uuid`, matching
-   `public.outbox.property_node`, never `ltree`;
+   `public.outbox.property_node`, never `ltree`. Its unpublished branch is an explicit
+   static `published_at IS NULL` query so PostgreSQL can use the existing partial
+   unpublished index; the cursor branch remains a separate static `seq > p_after`
+   query. Both retain identical validation, cursor lock, order, limit and result shape;
 4. `runtime_mark_outbox_published(uuid[])` and `runtime_prune_outbox(integer)` retain
    only the approved relay publish/prune behavior;
 5. `runtime_visible_extensions(uuid)` returns only platform-global plus exact-tenant
@@ -201,7 +204,9 @@ Governance may change only:
 - `handoff/questions/152-order127-repeat-v12-role-transition.md` for the exact resolved
   cluster-global repeat-database role transition;
 - `handoff/questions/153-order127-outbox-capability-contract.md` for the exact resolved
-  outbox result, owner-oracle and authoritative task-parent fixture contract; and
+  outbox result, owner-oracle and authoritative task-parent fixture contract;
+- `handoff/questions/154-order127-relay-backlog-throughput.md` for the exact resolved
+  relay backlog hot-path contract; and
 - additive Order-127 entries in `DECISIONS.log` and `handoff/LEDGER.md`.
 
 Every other path is forbidden. In particular: never edit migrations 0001–0014,
@@ -289,6 +294,14 @@ the task's `property_node` foreign key, loaded before the task mutation in the s
 fresh proof database (or equivalently via the canonical governed seed fixture). No
 foreign-key bypass, nullable parent, expected-error change or assertion weakening is
 permitted.
+
+For each bounded ordered/unpublished consumer batch, the admitted outbox adapter may
+mark the current rows' IDs with one bounded set-wise statement that invokes the
+existing scalar `runtime_consumer_mark(text,uuid)` in input ordinality and returns each
+inserted flag in original row order. Handlers remain sequential and tenant-scoped in
+the same transaction; cursor advance, publication, rollback, crash recovery and
+dedupe semantics remain unchanged. Batch size remains at most 1000. No new capability,
+grant, table, interface or assertion budget is admitted.
 
 The inherited Order-118 proof retains its parent-to-hardened 0012 transition and,
 after v15, requires exactly one incoming `app_role` membership from `yellow_runtime`,
