@@ -373,7 +373,7 @@ databaseDescribe("Order 023 crash-safe outbox relay", () => {
       consumer: string,
       consume: Consume,
       tamper: (tx: Tx, event: OutboxEvent) => Promise<void>,
-      expectPoolClosed = false,
+      expectAdapterFailed = false,
     ) => {
       const baseline = await seedConsumerCursor(consumer);
       const events = await insertMixedEvents();
@@ -387,12 +387,13 @@ databaseDescribe("Order 023 crash-safe outbox relay", () => {
           await tamper(tx, event);
         })).rejects.toThrow(/changed|required|settle|prepared|26000|connection|closed|terminated|reset/i);
         await assertRollback(consumer, baseline, events);
-        if (expectPoolClosed) {
-          await expect(failedPool.reserve()).rejects.toThrow();
+        if (expectAdapterFailed) {
+          await expect(consume(failedBus, async () => undefined))
+            .rejects.toThrow("Outbox event pool is irreversibly failed");
         }
       } finally {
         // A true settlement failure fail-closes this pool; never rely on PID replacement in place.
-        if (!expectPoolClosed) await failedPool.close();
+        if (!expectAdapterFailed) await failedPool.close();
       }
 
       const retryPool = new SQL(RUNTIME_DATABASE_URL!, { max: 1, prepare: false });

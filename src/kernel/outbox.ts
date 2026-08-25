@@ -147,6 +147,7 @@ async function scrubHandlerSession(connection: Tx): Promise<void> {
 
 export class PostgresEventBus implements EventBus {
   readonly #pool: ConnectionPool;
+  #poolFailure: Error | undefined;
   #failureClose: Promise<void> | undefined;
 
   constructor(pool: ConnectionPool) {
@@ -177,23 +178,28 @@ export class PostgresEventBus implements EventBus {
     await this.#assertSettlement(connection);
   }
 
-  async #failClosePool(): Promise<void> {
-    let closing = this.#failureClose;
-    if (!closing) {
-      const close = this.#pool.close;
-      if (!close) return;
-      try {
-        // Start, normalize, and cache whole-pool shutdown immediately. An
-        // unusable reservation is never released back into Bun's pool.
-        closing = close.call(this.#pool, { timeout: 0 }).catch(() => {
-          // The pool is already irreversibly closing; preserve the consumer error.
-        });
-        this.#failureClose = closing;
-      } catch {
-        return;
-      }
+  #assertPoolUsable(): void {
+    if (this.#poolFailure) throw this.#poolFailure;
+  }
+
+  #failClosePool(): void {
+    if (this.#poolFailure) return;
+    this.#poolFailure = new Error("Outbox event pool is irreversibly failed");
+
+    const close = this.#pool.close;
+    if (!close) return;
+    try {
+      // Bun cannot safely release a dead reservation, and its owning pool may
+      // never finish closing while that reservation is retained. Mark the
+      // adapter failed first, then initiate shutdown without awaiting it.
+      const closing = close.call(this.#pool, { timeout: 0 });
+      this.#failureClose = closing;
+      void closing.catch(() => {
+        // Preserve the consumer failure; the adapter is already fail-closed.
+      });
+    } catch {
+      // Preserve the consumer failure; the adapter is already fail-closed.
     }
-    try { await closing; } catch { /* Preserve the consumer failure. */ }
   }
 
   async #markBatch(
@@ -307,6 +313,7 @@ export class PostgresEventBus implements EventBus {
     options: ConsumeBatchOptions,
     unpublished: boolean,
   ): Promise<ConsumedOutboxBatch> {
+    this.#assertPoolUsable();
     if (!CONSUMER_NAME.test(consumer)) throw new Error("consumer must be a stable lowercase name");
     const limit = batchSize(options);
     const connection = await this.#pool.reserve();
@@ -413,12 +420,13 @@ export class PostgresEventBus implements EventBus {
           mustClosePool = true;
         }
       }
-      if (!reusable || mustClosePool) await this.#failClosePool();
+      if (!reusable || mustClosePool) this.#failClosePool();
       if (reusable && !mustClosePool) connection.release();
     }
   }
 
   async markPublished(eventIds: readonly string[]): Promise<number> {
+    this.#assertPoolUsable();
     if (eventIds.length === 0) return 0;
     for (const eventId of eventIds) requiredUuid("eventId", eventId);
     const encodedIds = JSON.stringify(eventIds);
@@ -447,6 +455,7 @@ export class PostgresEventBus implements EventBus {
   }
 
   async prunePublished(retentionSeconds: number): Promise<{ processed: number; outbox: number }> {
+    this.#assertPoolUsable();
     if (!Number.isSafeInteger(retentionSeconds) || retentionSeconds < 0) {
       throw new Error("retentionSeconds must be a non-negative integer");
     }
