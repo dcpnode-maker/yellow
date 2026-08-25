@@ -803,8 +803,10 @@ input, select, textarea { min-height: 44px; border-color: #bdcbca; background: #
 .reservation-detail-section dt { color: var(--muted); font-size: .72rem; font-weight: 800; text-transform: uppercase; }
 .reservation-detail-section dd { margin: 0; overflow-wrap: anywhere; }
 .reservation-detail-section ul { margin: 0; padding-left: 1.1rem; display: grid; gap: .5rem; }
-.reservation-detail-actions { position: sticky; bottom: -1.1rem; margin: 1rem -1.1rem -1.1rem; padding: .9rem 1.1rem; border-top: 1px solid var(--line); background: var(--card); }
+.reservation-detail-actions { margin: 1rem -1.1rem -1.1rem; padding: .9rem 1.1rem; border-top: 1px solid var(--line); background: var(--card); }
 .reservation-detail-actions button { width: 100%; }
+.reservation-detail-action-menu { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .65rem; }
+.reservation-detail-actions .reservation-lifecycle-editor { max-width: none; margin-top: .8rem; box-shadow: none; }
 
 @media (max-width: 1180px) {
   .reservation-board-toolbar { grid-template-columns: 1fr; }
@@ -840,6 +842,7 @@ input, select, textarea { min-height: 44px; border-color: #bdcbca; background: #
   .reservation-detail-head { margin: -.9rem -.9rem .9rem; padding: .9rem; }
   .reservation-detail-section dl { grid-template-columns: 1fr; gap: .15rem; }
   .reservation-detail-section dd + dt { margin-top: .5rem; }
+  .reservation-detail-action-menu { grid-template-columns: 1fr; }
 }
 
 @media (prefers-reduced-motion: reduce) {

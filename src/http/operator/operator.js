@@ -290,6 +290,7 @@
   const reservationCancelForm = document.querySelector("#reservation-cancel-form");
   const reservationReinstatePanel = document.querySelector("#reservation-reinstate-panel");
   const reservationReinstate = document.querySelector("#reservation-reinstate");
+  const reservationLifecycleHome = reservationLifecycleEditor.parentElement;
   const reservationSegmentLookupForm = document.querySelector("#reservation-segment-lookup-form");
   const reservationSegmentEditor = document.querySelector("#reservation-segment-editor");
   const segmentConfirmation = document.querySelector("#segment-confirmation");
@@ -490,6 +491,7 @@
     reservationCreateDirty = false;
     clearPartyProfileState();
     clearFolioState();
+    clearReservationDrawerLifecycle();
     reservationGuestForm.hidden = true;
     reservationLifecycleEditor.hidden = true;
     reservationSegmentEditor.hidden = true;
@@ -752,6 +754,39 @@
     return visible && dirty && destinationKind !== "create";
   }
 
+  function allowedReservationCreateStep(requestedStep, prerequisites) {
+    const requested = Math.max(1, Math.min(4, Number(requestedStep) || 1));
+    if (!prerequisites.active) return 1;
+    if (!prerequisites.stay) return 1;
+    if (requested === 1) return 1;
+    if (!prerequisites.party) return 2;
+    if (requested < 4) return requested;
+    return prerequisites.offer && prerequisites.draft ? 4 : 3;
+  }
+
+  function reservationStayPrerequisiteValid() {
+    const fields = reservationBookingForm.elements;
+    const controls = [fields.from, fields.to, fields.adults, fields.channelCode];
+    if (controls.some((control) => !control.checkValidity())) return false;
+    const from = new Date(`${fields.from.value}Z`);
+    const to = new Date(`${fields.to.value}Z`);
+    if (!Number.isFinite(from.getTime()) || !Number.isFinite(to.getTime()) || from >= to) return false;
+    try { reservationBookingChildAges(fields.childAges.value); } catch { return false; }
+    return true;
+  }
+
+  function reservationCreatePrerequisites(active) {
+    const partyId = reservationBookingForm.elements.primaryPartyId.value;
+    const party = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(partyId);
+    return {
+      active,
+      stay: active && reservationStayPrerequisiteValid(),
+      party: active && party,
+      offer: active && reservationBookingSelection !== null,
+      draft: active && reservationBookingDraft !== null && reservationBookingDraft.primaryPartyId === partyId,
+    };
+  }
+
   function resetReservationCreateJourney() {
     const empty = emptyReservationJourneyState();
     reservationBookingSearchGeneration += 1;
@@ -841,7 +876,95 @@
     return section;
   }
 
+  function reservationLifecycleFromDetail(result) {
+    const reservation = result.reservation;
+    return {
+      reservationId: reservation.reservationId,
+      confirmationNo: reservation.confirmationNo,
+      status: reservation.status,
+      fields: {
+        notes: reservation.notes,
+        eta: reservation.eta,
+        etd: reservation.etd,
+        marketCode: reservation.marketCode,
+        sourceCode: reservation.sourceCode,
+        originCode: reservation.originCode,
+      },
+      actions: {
+        canModify: result.actions?.canModify === true,
+        canCancel: result.actions?.canCancel === true,
+        canReinstate: result.actions?.canReinstate === true,
+      },
+    };
+  }
+
+  function clearReservationDrawerLifecycle() {
+    reservationLifecycleData = null;
+    reservationMetadataForm.hidden = true;
+    reservationCancelForm.hidden = true;
+    reservationReinstatePanel.hidden = true;
+    reservationMetadataForm.reset();
+    reservationCancelForm.reset();
+    lifecycleCommandMessage.textContent = "";
+    lifecycleCommandMessage.classList.remove("error");
+    reservationLifecycleEditor.hidden = true;
+    if (reservationLifecycleEditor.parentElement !== reservationLifecycleHome) {
+      reservationLifecycleHome.append(reservationLifecycleEditor);
+    }
+    reservationDetailActions.replaceChildren();
+    reservationDetailActions.hidden = true;
+  }
+
+  function drawerLifecycleButton(label, target) {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "secondary";
+    button.textContent = label;
+    button.setAttribute("aria-controls", target.id);
+    button.setAttribute("aria-expanded", "false");
+    button.addEventListener("click", () => {
+      for (const peer of reservationDetailActions.querySelectorAll(".reservation-detail-action-menu button")) {
+        peer.setAttribute("aria-expanded", String(peer === button));
+      }
+      reservationMetadataForm.hidden = target !== reservationMetadataForm;
+      reservationCancelForm.hidden = target !== reservationCancelForm;
+      reservationReinstatePanel.hidden = target !== reservationReinstatePanel;
+      target.hidden = false;
+      target.querySelector("textarea, input, button")?.focus();
+    });
+    return button;
+  }
+
+  function reservationDrawerActionNames(actions) {
+    const names = [];
+    if (actions.canModify === true) names.push("modify");
+    if (actions.canCancel === true) names.push("cancel");
+    if (actions.canReinstate === true) names.push("reinstate");
+    return names;
+  }
+
+  function renderReservationDrawerLifecycle(result) {
+    const lifecycle = reservationLifecycleFromDetail(result);
+    const actionNames = reservationDrawerActionNames(lifecycle.actions);
+    if (actionNames.length === 0) return;
+    renderReservationLifecycle(lifecycle);
+    reservationMetadataForm.hidden = true;
+    reservationCancelForm.hidden = true;
+    reservationReinstatePanel.hidden = true;
+    const menu = document.createElement("div");
+    menu.className = "reservation-detail-action-menu";
+    for (const name of actionNames) {
+      if (name === "modify") menu.append(drawerLifecycleButton("Edit details", reservationMetadataForm));
+      if (name === "cancel") menu.append(drawerLifecycleButton("Cancel", reservationCancelForm));
+      if (name === "reinstate") menu.append(drawerLifecycleButton("Reinstate", reservationReinstatePanel));
+    }
+    reservationDetailActions.append(menu, reservationLifecycleEditor);
+    reservationLifecycleEditor.hidden = false;
+    reservationDetailActions.hidden = false;
+  }
+
   function renderReservationDetail(result) {
+    clearReservationDrawerLifecycle();
     const reservation = result.reservation;
     reservationDetailData = result;
     reservationDetailTitle.textContent = reservation.confirmationNo;
@@ -867,8 +990,7 @@
       detailCollection("History", reservation.history, (fact) =>
         `${reservationDateTime(fact.recordedAt)} · ${fact.factType}`),
     );
-    reservationDetailActions.replaceChildren();
-    reservationDetailActions.hidden = true;
+    renderReservationDrawerLifecycle(result);
     reservationDetailLoading.hidden = true;
     reservationDetailError.hidden = true;
     reservationDetailContent.hidden = false;
@@ -884,7 +1006,7 @@
     reservationDetailLoading.hidden = false;
     reservationDetailError.hidden = true;
     reservationDetailContent.hidden = true;
-    reservationDetailActions.hidden = true;
+    clearReservationDrawerLifecycle();
     reservationDetailDrawer.setAttribute("aria-busy", "true");
     reservationDetailStatus.textContent = "Loading reservation details…";
     try {
@@ -920,6 +1042,7 @@
     reservationDetailData = null;
     reservationDetailDrawer.hidden = true;
     reservationDetailContent.replaceChildren();
+    clearReservationDrawerLifecycle();
     if (updateHistory && propertySelect.value) {
       if (reservationExitHistoryAction(history.state, "reservation-detail") === "back") history.back();
       else history.replaceState(null, "", `/p/${propertySelect.value}/reservations`);
@@ -942,10 +1065,17 @@
     }
     closeReservationDetail({ history: false });
     if (route.kind === "create") {
+      const continuing = reservationCreatePanel.hidden === false && reservationCreateProperty === propertySelect.value;
+      const step = allowedReservationCreateStep(route.step, reservationCreatePrerequisites(continuing));
+      if (!continuing) resetReservationCreateJourney();
       reservationBoard.hidden = true;
       reservationCreatePanel.hidden = false;
       reservationCreateProperty = propertySelect.value;
-      setReservationCreateStep(route.step, { push: false, focus: false });
+      setReservationCreateStep(step, { push: false, focus: false });
+      if (step !== route.step) {
+        const name = ["stay", "guest", "offer", "review"][step - 1];
+        history.replaceState({ yellowSurface: "reservation-create" }, "", `/p/${propertySelect.value}/reservations?new=1&step=${name}`);
+      }
     } else {
       closeReservationCreate({ history: false, force: true });
     }
@@ -3199,9 +3329,21 @@
     renderReservationLifecycle(body.reservation, focus);
   }
 
+  function reservationLifecycleCommand(action) {
+    if (action === "modify") return { path: "", method: "PATCH" };
+    if (action === "cancel") return { path: "/cancel", method: "POST" };
+    if (action === "reinstate") return { path: "/reinstate", method: "POST" };
+    return null;
+  }
+
+  function reservationLifecycleRefreshKind(drawerHidden, routeReservationId, reservationId) {
+    return drawerHidden === false && routeReservationId === reservationId ? "uuid" : "legacy";
+  }
+
   async function submitLifecycleCommand(path, method, body, form, successMessage) {
     if (!reservationLifecycleData) return false;
-    const identity = `reservation-lifecycle:${path}:${reservationLifecycleData.reservationId}:${JSON.stringify(body)}`;
+    const reservationId = reservationLifecycleData.reservationId;
+    const identity = `reservation-lifecycle:${path}:${reservationId}:${JSON.stringify(body)}`;
     const key = pendingKeys.get(identity) || crypto.randomUUID();
     pendingKeys.set(identity, key);
     const button = form.querySelector("button") ?? reservationReinstate;
@@ -3209,11 +3351,15 @@
     lifecycleCommandMessage.textContent = "Applying the audited reservation command…";
     lifecycleCommandMessage.classList.remove("error");
     try {
-      await request(`/api/v1/properties/${encodeURIComponent(propertySelect.value)}/reservations/${encodeURIComponent(reservationLifecycleData.reservationId)}${path}`, {
+      await request(`/api/v1/properties/${encodeURIComponent(propertySelect.value)}/reservations/${encodeURIComponent(reservationId)}${path}`, {
         method, headers: { "idempotency-key": key }, body: JSON.stringify(body),
       });
       pendingKeys.delete(identity);
-      await loadReservationLifecycle(true);
+      if (reservationLifecycleRefreshKind(reservationDetailDrawer.hidden, reservationRouteReservationId, reservationId) === "uuid") {
+        await loadReservationDetail(reservationId);
+      } else {
+        await loadReservationLifecycle(true);
+      }
       lifecycleCommandMessage.textContent = successMessage;
       lifecycleCommandMessage.classList.remove("error");
       return true;
@@ -4332,21 +4478,24 @@
       formMessage(reservationMetadataForm, "No metadata changed. Nothing was sent or audited.");
       return;
     }
-    await submitLifecycleCommand("", "PATCH", { expected, changes }, reservationMetadataForm, "Metadata saved with exact before/after evidence.");
+    const command = reservationLifecycleCommand("modify");
+    await submitLifecycleCommand(command.path, command.method, { expected, changes }, reservationMetadataForm, "Metadata saved with exact before/after evidence.");
   });
 
   reservationCancelForm.addEventListener("submit", async (event) => {
     event.preventDefault();
     const fields = new FormData(reservationCancelForm);
     const approvalId = String(fields.get("approvalId") || "");
-    const saved = await submitLifecycleCommand("/cancel", "POST", {
+    const command = reservationLifecycleCommand("cancel");
+    const saved = await submitLifecycleCommand(command.path, command.method, {
       reason: fields.get("reason"), ...(approvalId ? { approvalId } : {}),
     }, reservationCancelForm, "Reservation cancelled and occupancy released.");
     if (saved) reservationCancelForm.reset();
   });
 
   reservationReinstate.addEventListener("click", async () => {
-    await submitLifecycleCommand("/reinstate", "POST", {}, reservationReinstatePanel, "Reservation reinstated after live occupancy re-arbitration.");
+    const command = reservationLifecycleCommand("reinstate");
+    await submitLifecycleCommand(command.path, command.method, {}, reservationReinstatePanel, "Reservation reinstated after live occupancy re-arbitration.");
   });
 
   reservationLookupForm.addEventListener("submit", async (event) => {
@@ -4424,6 +4573,7 @@
     reservationBoardNextCursor = null;
     reservationRouteReservationId = "";
     reservationDetailDrawer.hidden = true;
+    clearReservationDrawerLifecycle();
     reservationCreatePanel.hidden = true;
     reservationBoard.hidden = false;
     reservationCreateDirty = false;
@@ -4505,6 +4655,17 @@
   for (const button of reservationBackButtons) button.addEventListener("click", () => setReservationCreateStep(Number(button.dataset.reservationBack)));
   for (const button of reservationCreateSteps) button.addEventListener("click", () => {
     if (!button.disabled) setReservationCreateStep(Number(button.dataset.reservationCreateStep));
+  });
+  reservationBookingForm.addEventListener("input", (event) => {
+    if (!["from", "to", "adults", "childAges", "channelCode"].includes(event.target.name)) return;
+    reservationBookingSearchGeneration += 1;
+    reservationBookingOffers = [];
+    reservationBookingSelection = null;
+    reservationBookingHold = null;
+    reservationBookingDraft = null;
+    reservationBookingOptions.replaceChildren();
+    clearReservationBookingSelection();
+    reservationOfferRetry.hidden = true;
   });
   reservationCreatePanel.addEventListener("input", () => { reservationCreateDirty = true; });
   reservationDetailClose.addEventListener("click", () => closeReservationDetail());

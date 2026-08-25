@@ -73,7 +73,7 @@ test("Order 168: create journey is four guided steps over the existing authorita
   expect(script).not.toMatch(/(?:payment|checkIn|checkOut|tax)[A-Za-z]*\s*=\s*(?:true|false)/);
 });
 
-test("Order 168: deep-linked nonmodal drawer is read-only and follows Back, focus and stale-response guards", () => {
+test("Order 168: deep-linked drawer gates lifecycle actions and follows Back, focus and stale-response guards", () => {
   for (const id of [
     "reservation-detail-drawer", "reservation-detail-title", "reservation-detail-close",
     "reservation-detail-loading", "reservation-detail-error", "reservation-detail-retry",
@@ -87,10 +87,44 @@ test("Order 168: deep-linked nonmodal drawer is read-only and follows Back, focu
   expect(script).toContain("reservationDrawerReturnFocus?.isConnected");
   expect(script).toContain("generation !== reservationDetailGeneration");
   expect(script).toContain("property !== propertySelect.value");
-  expect(script).toContain("reservationDetailActions.hidden = true");
   expect(script).not.toContain("openAdvancedReservation");
-  expect(script).not.toContain("manage.addEventListener");
   expect(html).toMatch(/id="reservation-tools" hidden inert aria-hidden="true"/);
+  const actionNames = executableFunction<(actions: Record<string, boolean>) => string[]>("reservationDrawerActionNames");
+  expect(actionNames({ canModify: true, canCancel: false, canReinstate: false })).toEqual(["modify"]);
+  expect(actionNames({ canModify: false, canCancel: true, canReinstate: false })).toEqual(["cancel"]);
+  expect(actionNames({ canModify: false, canCancel: false, canReinstate: true })).toEqual(["reinstate"]);
+  expect(actionNames({ canModify: false, canCancel: false, canReinstate: false })).toEqual([]);
+  const lifecycleFromDetail = executableFunction<(result: Record<string, unknown>) => Record<string, unknown>>("reservationLifecycleFromDetail");
+  expect(lifecycleFromDetail({
+    reservation: {
+      reservationId: "r", confirmationNo: "Y-1", status: "reserved", notes: "n", eta: null, etd: null,
+      marketCode: "M", sourceCode: "S", originCode: "O",
+    },
+    actions: { canModify: true, canCancel: true, canReinstate: false },
+  })).toEqual({
+    reservationId: "r", confirmationNo: "Y-1", status: "reserved",
+    fields: { notes: "n", eta: null, etd: null, marketCode: "M", sourceCode: "S", originCode: "O" },
+    actions: { canModify: true, canCancel: true, canReinstate: false },
+  });
+  const submitLifecycle = functionSource("submitLifecycleCommand");
+  expect(submitLifecycle).toContain("await loadReservationDetail(reservationId)");
+  expect(submitLifecycle).toContain("reservationLifecycleRefreshKind(reservationDetailDrawer.hidden");
+  expect(submitLifecycle).not.toContain("confirmationNo=");
+  expect(script).toContain('drawerLifecycleButton("Edit details", reservationMetadataForm)');
+  expect(script).toContain('drawerLifecycleButton("Cancel", reservationCancelForm)');
+  expect(script).toContain('drawerLifecycleButton("Reinstate", reservationReinstatePanel)');
+  const command = executableFunction<(action: string) => Record<string, string> | null>("reservationLifecycleCommand");
+  expect(command("modify")).toEqual({ path: "", method: "PATCH" });
+  expect(command("cancel")).toEqual({ path: "/cancel", method: "POST" });
+  expect(command("reinstate")).toEqual({ path: "/reinstate", method: "POST" });
+  expect(command("guest")).toBeNull();
+  const refreshKind = executableFunction<(hidden: boolean, routeId: string, reservationId: string) => string>("reservationLifecycleRefreshKind");
+  expect(refreshKind(false, "r-1", "r-1")).toBe("uuid");
+  expect(refreshKind(true, "r-1", "r-1")).toBe("legacy");
+  expect(refreshKind(false, "other", "r-1")).toBe("legacy");
+  expect(script).toContain('reservationLifecycleCommand("modify")');
+  expect(script).toContain('reservationLifecycleCommand("cancel")');
+  expect(script).toContain('reservationLifecycleCommand("reinstate")');
 });
 
 test("Order 168: dirty exit, history and journey reset policies execute at exact boundaries", () => {
@@ -155,6 +189,22 @@ test("Order 168: dirty exit, history and journey reset policies execute at exact
   expect(functionSource("openReservationCreate")).toContain("resetReservationCreateJourney()");
   expect(functionSource("closeReservationCreate")).toContain("resetReservationCreateJourney()");
   expect(script).toContain('shouldConfirmReservationExit(reservationCreatePanel.hidden === false, reservationCreateDirty, route.kind)');
+});
+
+test("Order 168: direct-link and Forward restoration cannot expose impossible create steps", () => {
+  const allowedStep = executableFunction<(step: number, prerequisites: Record<string, boolean>) => number>("allowedReservationCreateStep");
+  const none = { active: false, stay: false, party: false, offer: false, draft: false };
+  for (const requested of [2, 3, 4]) expect(allowedStep(requested, none)).toBe(1);
+  expect(allowedStep(4, { ...none, active: true })).toBe(1);
+  expect(allowedStep(4, { ...none, active: true, stay: true })).toBe(2);
+  expect(allowedStep(4, { ...none, active: true, stay: true, party: true })).toBe(3);
+  expect(allowedStep(4, { active: true, stay: true, party: true, offer: true, draft: true })).toBe(4);
+  expect(allowedStep(3, { active: true, stay: true, party: true, offer: false, draft: false })).toBe(3);
+  const syncRoute = functionSource("syncReservationRoute");
+  expect(syncRoute).toContain("const continuing = reservationCreatePanel.hidden === false");
+  expect(syncRoute).toContain("allowedReservationCreateStep(route.step, reservationCreatePrerequisites(continuing))");
+  expect(syncRoute).toContain("if (!continuing) resetReservationCreateJourney()");
+  expect(syncRoute).toContain("history.replaceState");
 });
 
 test("Order 168: responsive and accessibility contract is present without dependencies or browser authority", () => {
