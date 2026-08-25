@@ -1,6 +1,6 @@
 # Order 169 — Local reservation-workspace promotion
 
-**Status:** READY — guarded founder local update
+**Status:** BUILT-LOCALLY — independent operational verdict pending
 **Phase:** 5 · local operations
 **Branch:** `phase-5/local-reservation-workspace-promotion`
 **Base:** `5025f37` (independently approved Order168 evidence)
@@ -35,6 +35,22 @@ schema, migration, public bind, merge, push or destructive rollback cleanup is i
 
 ## Definition of done
 
-- [ ] Ports 3000 and 3002 serve exact approved Order168 source.
-- [ ] Board/detail/create prerequisite smoke passes on both ports.
+- [x] Ports 3000 and 3002 serve exact approved Order168 source.
+- [x] Board/detail/create prerequisite smoke passes on both ports.
 - [ ] Independent operational review approves final local state.
+
+## Redacted promotion evidence — 2026-08-26
+
+- Approved source: `ca024eeeebe6560e3e7983c155ee2b344beb1c1d` with independent
+  evidence `5025f374e8538e0b0b1ebeba863412e5e43f7c21`.
+- Runtime image: `sha256:acb60c5184255e118472bca3ee36db40f85476db4a864cd0051ba6f1a47e3d65`.
+- Temporary loopback staging on 3103 passed health, exact approved asset markers,
+  local login, one granted property, authenticated status, bounded board (six current
+  records), UUID aggregate detail and five current bookable offers; staging was removed.
+- Guarded 3002 replacement passed the same smoke while 3000 stayed healthy; guarded
+  3000 replacement then passed while 3002 stayed healthy.
+- Final app containers are distinct, healthy, loopback-bound and serve the exact image.
+  The prior Order165 image `sha256:d3615de2f1ff61d233638bebd6814a5ccde394bbce380f79026861962e6d0db7`
+  remains in two stopped rollback containers.
+- Retained database, Valkey, network, volumes, credentials and application data were
+  not modified by this app-only promotion. No secret value was recorded.
