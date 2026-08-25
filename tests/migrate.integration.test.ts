@@ -23,6 +23,9 @@ const MIGRATE_SCRIPT = resolve(PROJECT_ROOT, "scripts", "migrate.ts");
 const PROJECT_MIGRATIONS = resolve(PROJECT_ROOT, "migrations");
 const BASELINE_PATH = resolve(PROJECT_ROOT, "migrations", "0001_init.sql");
 const BASELINE_BYTES = await readFile(BASELINE_PATH);
+const BUSINESS_DAY_SEAL_MIGRATION = await readFile(
+  resolve(PROJECT_ROOT, "migrations", "0013_revoke_app_role_business_day_seal.sql"),
+);
 const BASELINE_SHA256 = "fe2a9fc949c6bacded3f8d3fc4d14fc596a83ebde9aeb043eb10845f07b30923";
 const ADMIN_URL = process.env.YELLOW_MIGRATION_TEST_ADMIN_URL;
 const REQUIRE_DATABASE = process.env.YELLOW_REQUIRE_MIGRATION_DB === "1";
@@ -267,6 +270,132 @@ databaseDescribe("Bun SQL migration runner", () => {
   );
 
   test(
+    "applies the exact app_role internalization migration without schema changes",
+    async () => {
+      await withDatabase(async ({ databaseUrl: targetUrl, sql }) => {
+        const result = await runMigrations({
+          databaseUrl: targetUrl,
+          migrationsDirectory: PROJECT_MIGRATIONS,
+          logger: () => undefined,
+        });
+        expect(result.appliedFiles).toContain("0012_app_role_nonlogin.sql");
+
+        const ledger = await sql<
+          { version: string | bigint; filename: string; checksum_sha256: string }[]
+        >`
+          SELECT version, filename, checksum_sha256
+            FROM public.schema_migration
+           WHERE version = 12
+        `;
+        expect(ledger.map((row) => ({ ...row, version: Number(row.version) }))).toEqual([{
+          version: 12,
+          filename: "0012_app_role_nonlogin.sql",
+          checksum_sha256: "6f377ca182bcbd8ece5c6a0688597b4a4e0fc5129345a80f6f9d31076fb0ed25",
+        }]);
+
+        const role = await sql<Array<{
+          can_login: boolean;
+          connection_limit: number;
+          password_is_null: boolean;
+          safe_attributes: boolean;
+          memberships: number;
+        }>>`
+          SELECT r.rolcanlogin AS can_login,
+                 r.rolconnlimit AS connection_limit,
+                 r.rolpassword IS NULL AS password_is_null,
+                 NOT (r.rolsuper OR r.rolcreatedb OR r.rolcreaterole OR r.rolinherit
+                      OR r.rolreplication OR r.rolbypassrls) AS safe_attributes,
+                 (SELECT count(*)::int
+                    FROM pg_catalog.pg_auth_members
+                   WHERE roleid = r.oid OR member = r.oid) AS memberships
+            FROM pg_catalog.pg_authid AS r
+           WHERE r.rolname = 'app_role'
+        `;
+        expect(role).toEqual([{
+          can_login: false,
+          connection_limit: 0,
+          password_is_null: true,
+          safe_attributes: true,
+          memberships: 0,
+        }]);
+
+        const tableCount = await sql<{ count: number }[]>`
+          SELECT count(*)::int AS count FROM pg_catalog.pg_tables WHERE schemaname = 'public'
+        `;
+        expect(tableCount).toEqual([{ count: 85 }]);
+      });
+    },
+    60_000,
+  );
+
+  test(
+    "applies exact owner-only business-day seal authority and fails if the function is absent",
+    async () => {
+      await withDatabase(async ({ databaseUrl: targetUrl, sql }) => {
+        const result = await runMigrations({
+          databaseUrl: targetUrl,
+          migrationsDirectory: PROJECT_MIGRATIONS,
+          logger: () => undefined,
+        });
+        expect(result.appliedFiles).toContain("0013_revoke_app_role_business_day_seal.sql");
+
+        const ledger = await sql<
+          { version: string | bigint; filename: string; checksum_sha256: string }[]
+        >`
+          SELECT version, filename, checksum_sha256
+            FROM public.schema_migration
+           WHERE version = 13
+        `;
+        expect(ledger.map((row) => ({ ...row, version: Number(row.version) }))).toEqual([{
+          version: 13,
+          filename: "0013_revoke_app_role_business_day_seal.sql",
+          checksum_sha256: "75aef629ebc90a7c2ba3dcf94532295cfce57fc521197d7b5cdc6b6d5a1bf712",
+        }]);
+
+        const authority = await sql<Array<{
+          owner_matches: boolean;
+          owner_execute: boolean;
+          public_execute: boolean;
+          app_execute: boolean;
+        }>>`
+          SELECT pg_get_userbyid(p.proowner) = current_user AS owner_matches,
+                 has_function_privilege(current_user, p.oid, 'EXECUTE') AS owner_execute,
+                 has_function_privilege('public', p.oid, 'EXECUTE') AS public_execute,
+                 has_function_privilege('app_role', p.oid, 'EXECUTE') AS app_execute
+            FROM pg_catalog.pg_proc AS p
+           WHERE p.oid = 'public.seal_business_day(uuid,uuid,date,uuid)'::regprocedure
+        `;
+        expect(authority).toEqual([{
+          owner_matches: true,
+          owner_execute: true,
+          public_execute: false,
+          app_execute: false,
+        }]);
+      });
+
+      await withDatabase(async ({ databaseUrl: targetUrl, sql }) => {
+        await withMigrationDirectory({
+          "0002_remove_business_day_seal.sql":
+            "DROP FUNCTION public.seal_business_day(uuid,uuid,date,uuid);\n",
+          "0013_revoke_app_role_business_day_seal.sql": BUSINESS_DAY_SEAL_MIGRATION,
+        }, async (directory) => {
+          const error = await migrationFailure(() => runMigrations({
+            databaseUrl: targetUrl,
+            migrationsDirectory: directory,
+            logger: () => undefined,
+          }));
+          expect(error.errno).toBe("42883");
+          const ledger = await sql<Array<{ version: number | bigint }>>`
+            SELECT version FROM public.schema_migration ORDER BY version
+          `;
+          expect(ledger.map(({ version }) => Number(version))).toEqual([1, 2]);
+        });
+      });
+    },
+    60_000,
+  );
+
+  test(
     "applies the exact account-folio integrity migration and rejects tenant-crossing references",
     async () => {
       await withDatabase(async ({ databaseUrl: targetUrl, sql }) => {
@@ -428,7 +557,7 @@ databaseDescribe("Bun SQL migration runner", () => {
           code_delete: false,
           day_update: false,
           public_seal: false,
-          app_seal: true,
+          app_seal: false,
         }]);
 
         const tenantA = randomUUID();
@@ -556,11 +685,9 @@ databaseDescribe("Bun SQL migration runner", () => {
           "P0010",
         );
 
-        await sql.begin(async (tx) => {
-          await tx.unsafe("SET LOCAL ROLE app_role");
-          await tx`SELECT set_config('app.tenant_id', ${tenantA}, true)`;
-          await tx`SELECT seal_business_day(${tenantA}::uuid, ${propertyA}::uuid, '2026-08-24', NULL)`;
-        });
+        await sql`
+          SELECT seal_business_day(${tenantA}::uuid, ${propertyA}::uuid, '2026-08-24', NULL)
+        `;
         await expectSqlstate(
           () => sql`INSERT INTO journal
             (tenant_id, property_node, business_date, kind, description, currency)
@@ -584,7 +711,7 @@ databaseDescribe("Bun SQL migration runner", () => {
           migrationsDirectory: PROJECT_MIGRATIONS,
           logger: () => undefined,
         });
-        expect(result.appliedFiles.at(-1)).toBe("0011_security_definer_containment.sql");
+        expect(result.appliedFiles).toContain("0011_security_definer_containment.sql");
 
         const ledger = await sql<
           { version: string | bigint; filename: string; checksum_sha256: string }[]
@@ -625,7 +752,7 @@ databaseDescribe("Bun SQL migration runner", () => {
           count: 6,
           unsafeConfig: 0,
           publicExecute: 0,
-          appExecute: 3,
+          appExecute: 2,
         }]);
 
         try {

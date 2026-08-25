@@ -60,6 +60,16 @@ const EXPECTED_MIGRATIONS = [
     filename: "0011_security_definer_containment.sql",
     checksum_sha256: "6c9af4f72fa6be5a2c0e256624620c7ee8cf61d709c3ca99a37cd126bbe57796",
   },
+  {
+    version: 12,
+    filename: "0012_app_role_nonlogin.sql",
+    checksum_sha256: "6f377ca182bcbd8ece5c6a0688597b4a4e0fc5129345a80f6f9d31076fb0ed25",
+  },
+  {
+    version: 13,
+    filename: "0013_revoke_app_role_business_day_seal.sql",
+    checksum_sha256: "75aef629ebc90a7c2ba3dcf94532295cfce57fc521197d7b5cdc6b6d5a1bf712",
+  },
 ];
 
 if (REQUIRE_DATABASE && !DATABASE_URL) {
@@ -138,6 +148,68 @@ databaseDescribe("fresh deployment database acceptance", () => {
     `;
     expect(functions[0]!.total).toBeGreaterThan(0);
     expect(functions[0]!.wrong_owner).toBe(0);
+  });
+
+  test("keeps app_role as an unassumable internal policy role", async () => {
+    const role = await sql!<Array<{
+      canLogin: boolean;
+      connectionLimit: number;
+      passwordIsNull: boolean;
+      superuser: boolean;
+      createDb: boolean;
+      createRole: boolean;
+      inherit: boolean;
+      replication: boolean;
+      bypassRls: boolean;
+    }>>`
+      SELECT rolcanlogin AS "canLogin", rolconnlimit AS "connectionLimit",
+             rolpassword IS NULL AS "passwordIsNull", rolsuper AS superuser,
+             rolcreatedb AS "createDb", rolcreaterole AS "createRole",
+             rolinherit AS inherit, rolreplication AS replication,
+             rolbypassrls AS "bypassRls"
+        FROM pg_catalog.pg_authid
+       WHERE rolname = 'app_role'
+    `;
+    expect(role).toEqual([{
+      canLogin: false,
+      connectionLimit: 0,
+      passwordIsNull: true,
+      superuser: false,
+      createDb: false,
+      createRole: false,
+      inherit: false,
+      replication: false,
+      bypassRls: false,
+    }]);
+
+    const memberships = await sql!<{ count: number }[]>`
+      SELECT count(*)::int AS count
+        FROM pg_catalog.pg_auth_members
+       WHERE roleid = 'app_role'::regrole OR member = 'app_role'::regrole
+    `;
+    expect(memberships).toEqual([{ count: 0 }]);
+  });
+
+  test("keeps business-day sealing deployment-owner-only", async () => {
+    const authority = await sql!<Array<{
+      ownerMatches: boolean;
+      ownerExecute: boolean;
+      publicExecute: boolean;
+      appExecute: boolean;
+    }>>`
+      SELECT pg_get_userbyid(p.proowner) = current_user AS "ownerMatches",
+             has_function_privilege(current_user, p.oid, 'EXECUTE') AS "ownerExecute",
+             has_function_privilege('public', p.oid, 'EXECUTE') AS "publicExecute",
+             has_function_privilege('app_role', p.oid, 'EXECUTE') AS "appExecute"
+        FROM pg_catalog.pg_proc AS p
+       WHERE p.oid = 'public.seal_business_day(uuid,uuid,date,uuid)'::regprocedure
+    `;
+    expect(authority).toEqual([{
+      ownerMatches: true,
+      ownerExecute: true,
+      publicExecute: false,
+      appExecute: false,
+    }]);
   });
 
   test("contains only the exact canonical demo tenant and property", async () => {

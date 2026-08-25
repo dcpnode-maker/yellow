@@ -1,7 +1,7 @@
 import { SQL } from "bun";
 
 import { app, createApp } from "./app";
-import { BearerTenantResolver, Hs256TokenSigner, LocalLoginService } from "./contexts/identity";
+import { BearerTenantResolver, Hs256TokenSigner, LocalLoginGuard, LocalLoginService } from "./contexts/identity";
 import { PartyProfileService } from "./contexts/crm";
 import { ChargeService, FolioStatementService } from "./contexts/financials";
 import { AvailabilityProjectionConsumer, AvailabilityProjectionService, AvailabilityService, HoldExpiryWorker, HoldService, InventoryPolicyService, InventoryService, OperationalBlockService, ReservationOccupancyService, RestrictionService } from "./contexts/inventory";
@@ -52,7 +52,7 @@ function runtimeApp() {
   const loginPool = new SQL(databaseUrl, { max: 4 });
   const eventPool = new SQL(databaseUrl, { max: 4 });
   const extensionPool = new SQL(databaseUrl, { max: 4 });
-  const login = new LocalLoginService(loginPool, tokens);
+  const login = new LocalLoginService(loginPool, tokens, new LocalLoginGuard());
   const events = new PostgresEventBus(eventPool);
   const registry = new ExtensionRegistry(extensionPool);
   const approvals = new ApprovalService(events);

@@ -122,7 +122,7 @@ dbDescribe("Order 108 SECURITY DEFINER shadow-path containment", () => {
       `;
 
       expect(pruneState).toBe("42501");
-      expect(sealState).toBe("P0012");
+      expect(sealState).toBe("42501");
       expect(markers).toEqual([]);
       expect(shadowState).toEqual([{ outboxRows: 1, daySealed: false }]);
     } finally {
@@ -175,7 +175,7 @@ dbDescribe("Order 108 SECURITY DEFINER shadow-path containment", () => {
       { signature: "release_occupancy(uuid,uuid)", securityDefiner: true,
         config: ["search_path=pg_catalog, public, pg_temp"], appExecute: true, publicDenied: true },
       { signature: "seal_business_day(uuid,uuid,date,uuid)", securityDefiner: true,
-        config: ["search_path=pg_catalog, public, pg_temp"], appExecute: true, publicDenied: true },
+        config: ["search_path=pg_catalog, public, pg_temp"], appExecute: false, publicDenied: true },
     ]);
 
     const expectedQualifiedObjects = new Map<string, readonly string[]>([
@@ -201,6 +201,9 @@ dbDescribe("Order 108 SECURITY DEFINER shadow-path containment", () => {
       for (const statement of [
         "SELECT public.prune_outbox(interval '30 days')",
         "SELECT public.expire_holds()",
+        `SELECT public.seal_business_day(
+          '${TENANT}'::uuid, '${PROPERTY}'::uuid, DATE '2026-08-24', '${ACTOR}'::uuid
+        )`,
       ]) {
         await connection.unsafe("SAVEPOINT denied_call");
         let state: string | undefined;

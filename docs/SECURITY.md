@@ -12,6 +12,11 @@ testable parts.
 - Sessions: short-lived JWT (15 min) + rotating refresh token bound to device;
   refresh reuse detection revokes the family. JWT carries tenant_id + scopes;
   tenant NEVER read from request body (TC-13.3).
+
+The current local workbench issues only the short-lived access token. Its HS256 signing
+secret must be supplied by deployment or generated ephemerally by local setup; enabled
+startup accepts no repository-known fallback. Secret rotation invalidates outstanding
+access tokens and does not modify staff password hashes.
 - MFA: TOTP for roles with financial or config scopes; enforced for owner/admin.
   SSO/SAML = enterprise trigger item (BUILD-PLAN parked).
 - Kiosk: device-bound restricted token, no user session, rate-limited lookups.
@@ -43,6 +48,12 @@ testable parts.
   drivers; no string-built SQL (skill rule + review grep).
 - Rate limiting: per-IP and per-token buckets at Caddy + app for auth, search,
   and booking-engine endpoints; Turnstile on public booking engine.
+- The current loopback staff login implements the app-side portion in each process: a
+  5-attempt source bucket refilling 20/minute, a 3-attempt normalized-account bucket
+  refilling 8/15 minutes, 1/2/4/8/16/32/60-second failure backoff, four concurrent
+  Argon2 verifications with no queue, and bounded 4,096/8,192-entry state. Only Bun TCP
+  peer metadata selects the source; forwarded address headers are not trusted. This is
+  not a shared multi-process or public-edge limiter.
 - Headers: CSP (no inline script), frame-ancestors none (except kiosk origin),
   referrer-policy strict.
 - Idempotency keys stored hashed; replay window 24 h.
@@ -50,12 +61,24 @@ testable parts.
 
 ## 5. Tenant isolation failure modes (tested, not assumed)
 
+- `app_role` is an internal `NOLOGIN` policy/capability role. It has no password,
+  no connection allowance, no explicit memberships and no privileged attributes.
+  Customers, staff, integrations, reporting and BI clients must never authenticate
+  as it or receive membership in it. Yellow's deployment connection establishes a
+  verified transaction-local tenant context and only then uses `SET LOCAL ROLE
+  app_role`; transaction end resets both values. A future direct-database product
+  requires a separately reviewed principal-to-tenant binding and must not toggle
+  `LOGIN` or grant membership to this role.
 - RLS through views — regression TC-13.4, permanent.
 - SECURITY DEFINER choke points use the exact fixed search path
   `pg_catalog, public, pg_temp`, schema-qualify every Yellow relation and helper
   call, and deny `EXECUTE` to `PUBLIC`. `app_role` may execute only the
-  occupancy record/release and business-day seal entry points; outbox pruning,
-  legacy hold expiry, and day-open assertion remain owner-only. A hostile
+  occupancy record/release entry points; business-day sealing, outbox pruning,
+  legacy hold expiry, and day-open assertion remain owner-only. Owner-only day
+  sealing is a temporary least-privilege containment boundary, not the continuous
+  day-close product: a future application path must be an authorized, audited
+  domain command with server-derived actor evidence before it receives narrowly
+  scoped execution authority. A hostile
   `pg_temp` proof must show that temporary shadow objects are neither invoked
   nor modified. These namespace and ACL controls contain definer escalation;
   they do not replace caller tenant validation or RLS.

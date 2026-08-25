@@ -50,6 +50,13 @@ INSERT INTO extension (id, tenant_id, type, key, version, effective, content, st
    '{"country":"IN","price_display":"tax_exclusive","rounding":"document","taxes":[{"code":"GST_ROOM","name":"GST on accommodation","mode":"slab_percent","slab_basis":"transaction_value","applies_to":["room_revenue"],"slabs":[{"upto_minor":100000,"rate":0,"itc_eligible":false},{"upto_minor":750000,"rate":0.05,"itc_eligible":false},{"upto_minor":null,"rate":0.18,"itc_eligible":true}]}]}',
    'active');
 
+-- Deterministic reservation owner for the protected TC-12 occupancy referee.
+INSERT INTO party (id, tenant_id, kind, display_name, status) VALUES
+  ('00000000-0000-0000-0000-00000000d0cf', '00000000-0000-0000-0000-000000000001',
+   'person', 'Invariant Referee Guest', 'active');
+INSERT INTO party_role (tenant_id, party_id, role) VALUES
+  ('00000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-00000000d0cf', 'guest');
+
 -- ============================================================================
 -- SPACES (15 rooms: 10 STD floors 1-2, 5 DLX floor 2)
 -- ============================================================================
@@ -310,10 +317,20 @@ WHERE schemaname = 'public' AND tablename IN (
 -- ============================================================================
 INSERT INTO unit_type (id, tenant_id, property_node, code, name, profile_key, base_occupancy, max_occupancy)
 VALUES ('00000000-0000-0000-0000-00000000d0c0','00000000-0000-0000-0000-000000000001',
-        '00000000-0000-0000-0000-000000000010','DORM6','6-Bed Dorm','hostel',1,1);
+        '00000000-0000-0000-0000-000000000012','DORM6','6-Bed Dorm','hostel',1,1);
 INSERT INTO space (id, tenant_id, property_node, code, profile_key, capacity, max_occupancy, floor, status)
 VALUES ('00000000-0000-0000-0000-00000000d0c1','00000000-0000-0000-0000-000000000001',
         '00000000-0000-0000-0000-000000000012','D101','hostel',6,6,'1','active');
+INSERT INTO sellable_unit (id, tenant_id, unit_type_id, name, status) VALUES
+  ('00000000-0000-0000-0000-00000000d0c2','00000000-0000-0000-0000-000000000001',
+   '00000000-0000-0000-0000-00000000d0c0','DORM6-BED','active'),
+  ('00000000-0000-0000-0000-00000000d0c3','00000000-0000-0000-0000-000000000001',
+   '00000000-0000-0000-0000-00000000d0c0','DORM6-PRIVATE','active');
+INSERT INTO sellable_unit_space (tenant_id, sellable_unit_id, space_id, claim_mode) VALUES
+  ('00000000-0000-0000-0000-000000000001','00000000-0000-0000-0000-00000000d0c2',
+   '00000000-0000-0000-0000-00000000d0c1','positional'),
+  ('00000000-0000-0000-0000-000000000001','00000000-0000-0000-0000-00000000d0c3',
+   '00000000-0000-0000-0000-00000000d0c1','exclusive');
 
 INSERT INTO tenant (id, slug, name) VALUES
   ('00000000-0000-0000-0000-000000000002','tenant-b','Rival Hotels');

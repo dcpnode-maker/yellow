@@ -3,6 +3,8 @@ import {
   HoldService,
   InventoryConflictError,
   ReservationOccupancyService,
+  type PreparedCartHoldForSegment,
+  type PreparedReservationSegmentClaim,
 } from "../inventory";
 import {
   createAuditEnvelope,
@@ -120,6 +122,8 @@ interface AcquiredInventory {
   readonly to: Date;
   readonly claimCount: number;
 }
+
+type PreparedInventory = AcquiredInventory;
 
 type CommitBody = HeldReservationCommit | DirectReservationCommit;
 type CommitResult = CommitHeldReservationResult | CommitDirectReservationResult;
@@ -303,9 +307,9 @@ export class ReservationCommitService {
       if (reservationId === segmentId) {
         throw new ReservationValidationError("generated reservation and segment ids must differ");
       }
-      const acquired = await this.#acquire(commandTx, input.envelope, source, segmentId);
-      const from = acquired.from.toISOString();
-      const to = acquired.to.toISOString();
+      const prepared = await this.#prepare(commandTx, input.envelope, source);
+      const from = prepared.from.toISOString();
+      const to = prepared.to.toISOString();
       const confirmationNo = confirmationNumber(reservationId);
 
       const insertedReservation = await commandTx<Array<{ id: string }>>`
@@ -329,7 +333,7 @@ export class ReservationCommitService {
           period, adults, children, rate_plan_id, status
         ) VALUES (
           ${segmentId}::uuid, ${input.envelope.tenantId}::uuid, ${reservationId}::uuid, 1,
-          ${acquired.unitTypeId}::uuid, ${acquired.sellableUnitId}::uuid,
+          ${prepared.unitTypeId}::uuid, ${prepared.sellableUnitId}::uuid,
           tstzrange(${from}::timestamptz, ${to}::timestamptz, '[)'),
           ${normalized.adults}, ${children}::text::jsonb, ${plan.id}::uuid, 'booked'
         ) RETURNING id
@@ -337,6 +341,8 @@ export class ReservationCommitService {
       if (insertedSegment[0]?.id !== segmentId) {
         throw new Error("PostgreSQL did not return the created reservation segment");
       }
+      const acquired = await this.#acquire(commandTx, input.envelope, source, segmentId);
+      this.#assertAcquiredMatchesPreparation(prepared, acquired);
       const primaryGuests = await commandTx<Array<{ reservation_id: string }>>`
         INSERT INTO reservation_guest (tenant_id, reservation_id, party_id, role, share_pct)
         VALUES (${input.envelope.tenantId}::uuid, ${reservationId}::uuid,
@@ -415,6 +421,72 @@ export class ReservationCommitService {
       return { status: 201, body };
     });
     return freezeResult(outcome.body, outcome.replayed);
+  }
+
+  async #prepare(
+    tx: Tx,
+    envelope: AuditEnvelope,
+    source: NormalizedSource,
+  ): Promise<PreparedInventory> {
+    if (source.kind === "hold") {
+      try {
+        const prepared: PreparedCartHoldForSegment = await this.#holds.prepareForSegment(tx, {
+          holdId: source.holdId,
+          envelope: createAuditEnvelope({
+            actorId: envelope.actorId,
+            tenantId: envelope.tenantId,
+            propertyNode: envelope.propertyNode,
+            requestId: envelope.requestId,
+            operation: "hold.consumed",
+          }),
+        });
+        return Object.freeze({
+          source: "hold" as const,
+          holdId: prepared.holdId,
+          sellableUnitId: prepared.sellableUnitId,
+          unitTypeId: prepared.unitTypeId,
+          from: new Date(prepared.from),
+          to: new Date(prepared.to),
+          claimCount: prepared.claimCount,
+        });
+      } catch (error) {
+        if (error instanceof HoldConflictError) {
+          throw new ReservationConflictError("Held inventory is no longer available");
+        }
+        throw error;
+      }
+    }
+
+    const prepared: PreparedReservationSegmentClaim = await this.#occupancy.prepareClaimForSegment(tx, {
+      sellableUnitId: source.sellableUnitId,
+      from: source.from,
+      to: source.to,
+      envelope: createAuditEnvelope({
+        actorId: envelope.actorId,
+        tenantId: envelope.tenantId,
+        propertyNode: envelope.propertyNode,
+        requestId: envelope.requestId,
+        operation: "occupancy.recorded",
+      }),
+    });
+    return Object.freeze({ source: "direct" as const, ...prepared });
+  }
+
+  #assertAcquiredMatchesPreparation(
+    prepared: PreparedInventory,
+    acquired: AcquiredInventory,
+  ): void {
+    if (
+      acquired.source !== prepared.source ||
+      acquired.holdId !== prepared.holdId ||
+      acquired.sellableUnitId !== prepared.sellableUnitId ||
+      acquired.unitTypeId !== prepared.unitTypeId ||
+      acquired.from.getTime() !== prepared.from.getTime() ||
+      acquired.to.getTime() !== prepared.to.getTime() ||
+      acquired.claimCount !== prepared.claimCount
+    ) {
+      throw new Error("Acquired inventory did not match the frozen reservation preparation");
+    }
   }
 
   async #acquire(

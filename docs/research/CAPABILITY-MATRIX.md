@@ -52,8 +52,8 @@ into a product capability.
 | Shared-schema tenant isolation | IMPLEMENTED | RLS, transaction-local GUC, two-tenant tests | Review/merge Phase 1 and enforce on every future route |
 | Tenant request middleware | IMPLEMENTED | fail-before-checkout, rollback/reuse/interleaving proofs | production composition root |
 | Organization hierarchy reads | IMPLEMENTED | `ltree` ancestor/descendant/sibling queries/tests | org CRUD/reparent commands and authorization |
-| Local password primitive | IMPLEMENTED | Bun Argon2id helpers/tests | login, recovery, credential lifecycle |
-| JWT issue/verify | IMPLEMENTED | exact claims/signature/skew/scope tests | key rotation, revocation, sessions, deployment secret |
+| Local password and loopback login | PARTIAL | Bun Argon2id, database-backed generic login, per-process source/account budgets, capped failure backoff, zero-queue four-slot hash bound, bounded state and authoritative peer-key proofs | shared multi-process/public limiter, trusted-proxy topology, recovery and credential lifecycle |
+| JWT issue/verify | IMPLEMENTED | exact claims/signature/skew/scope tests; enabled runtime rejects repository-known fallback and local setup generates an ephemeral CSPRNG key | key rotation, revocation and sessions |
 | Bearer identity resolution | IMPLEMENTED | resolver + auth integration tests | production wiring |
 | Staff/user administration | FOUNDATION EXISTS | `app_user`/role/permission tables | CRUD, invitations, deactivation, audit, UI |
 | RBAC | FOUNDATION EXISTS | role/permission/user_role schema | evaluation and management |

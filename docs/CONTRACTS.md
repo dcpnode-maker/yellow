@@ -12,6 +12,15 @@ slugs (`availability/no_fit`, `finance/journal_unbalanced`, `auth/scope_missing`
 `conflict/occupancy`, …). Pagination: cursor `?after=<opaque>&limit≤200`. Filtering:
 whitelisted params only. Every response carries `X-Correlation-Id`.
 
+`app_role` is not a credential or external integration contract. It is a `NOLOGIN`,
+passwordless, membership-free capability role entered only after verified identity
+has established transaction-local `app.tenant_id` on the trusted deployment
+connection. Customer/staff login, BI, reporting and integrations must use application
+commands or a separately reviewed direct-database principal design. This boundary
+does not make a custom GUC immutable against arbitrary SQL already executing inside
+the trusted transaction; raw SQL exposure, runtime deployment authority, broad DML
+grants and occupancy-function tenant binding remain separate security risks.
+
 ## 2. THE availability contract (the interface everything hangs off)
 
 `POST /api/v1/properties/{node}/availability:search`
@@ -69,13 +78,25 @@ position, max 3 attempts, THEN returns 409 — losers of a bed race don't fail w
 other beds remain free. Exclusive claims never retry (the space is simply taken). |
 422 policy/payment. Direct commit without hold attempts the choke write inside the txn.
 
+The internal commit command first asks inventory for a frozen, read-only direct-claim or
+locked cart-hold preparation. It inserts the exact reservation and segment parents in the
+same uncommitted transaction, then inventory revalidates and acquires through the existing
+occupancy choke. Acquisition must match every prepared inventory identity, period and claim
+count. Any conflict, stale preparation, mismatch or later audit/event failure rolls the
+provisional parents and idempotency claim back; no provisional reservation is externally
+visible or durable.
+
 Database choke points use signature-specific `SECURITY DEFINER` authority. Their
 fixed search path is exactly `pg_catalog, public, pg_temp`, all Yellow relations
 and helper calls are schema-qualified, and `PUBLIC` has no execute privilege.
-The application role can only record/release occupancy and seal a business day;
+The application role can only record/release occupancy. Business-day sealing,
 outbox pruning, legacy hold expiry, and the day-open assertion are owner-only.
-Negative outbox retention fails with SQLSTATE `22023`. This containment does not
-replace tenant-authority validation or RLS.
+Owner-only sealing is a temporary least-privilege containment boundary, not an
+application contract or completed continuous day-close product. A future close path
+must introduce an authorized, audited domain command with server-derived actor
+evidence before receiving narrowly scoped execution authority. Negative outbox
+retention fails with SQLSTATE `22023`. This containment does not replace
+tenant-authority validation or RLS.
 
 ## 3. Module surfaces (names are the contract; bodies follow §1 shapes)
 

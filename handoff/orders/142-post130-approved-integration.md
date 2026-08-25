@@ -118,7 +118,8 @@ tests/seed_fixture.sql
 ## Exact metadata union
 
 Restore historical order/review/question files without changing their prose from the
-approved tips: Orders/reviews 116–123 from `be279bb`; Order/review 124 and Questions
+approved tips: Orders 116–123 and reviews 116–121 from `be279bb`; review 123 from
+`9f97bd0c7301259f1242003b3e84bf674d238eee`; Order/review 124 and Questions
 141–142 from `ee0cdc5299d88ba0355972482f5fe5aa4a017b02`; Order/review 129 from
 `972d0cfef0b7e4b8499065f70eea3226aeacb187`; Order/review 130, Question 146 and
 `handoff/GATE-3-MANIFEST.md` from `e447eb9903adab3112e862cc52af855a50e5e9ac`.

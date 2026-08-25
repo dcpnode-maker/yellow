@@ -46,6 +46,7 @@ $testUrl = "postgres://yellow:yellow@127.0.0.1:$($env:YELLOW_POSTGRES_PORT)/yell
 $previousDatabaseUrl = $env:DATABASE_URL
 $previousDsn = $env:YELLOW_DSN
 $previousEncoding = $env:PYTHONIOENCODING
+$previousTokenSecret = $env:YELLOW_TOKEN_SECRET
 try {
     $env:DATABASE_URL = $devUrl
     bun scripts/migrate.ts | Out-Host; Assert-Exit 'Migrating yellow_dev'
@@ -72,6 +73,13 @@ try {
     python tests/run_invariants.py yellow_test | Out-Host; Assert-Exit 'Invariant referee'
 
     if (-not $DbOnly) {
+        if (-not $DbOnly -and -not $env:YELLOW_TOKEN_SECRET) {
+            $tokenSecretBytes = New-Object byte[] 48
+            [Security.Cryptography.RandomNumberGenerator]::Fill($tokenSecretBytes)
+            $env:YELLOW_TOKEN_SECRET = [Convert]::ToBase64String($tokenSecretBytes)
+            [Array]::Clear($tokenSecretBytes, 0, $tokenSecretBytes.Length)
+            Write-Host 'Generated an ephemeral local JWT signing secret for this setup invocation.'
+        }
         docker compose up -d app | Out-Host; Assert-Exit 'Starting the application'
         $healthy = $false
         foreach ($attempt in 1..30) {
@@ -88,6 +96,7 @@ try {
     $env:DATABASE_URL = $previousDatabaseUrl
     $env:YELLOW_DSN = $previousDsn
     $env:PYTHONIOENCODING = $previousEncoding
+    $env:YELLOW_TOKEN_SECRET = $previousTokenSecret
 }
 
 Write-Host 'Setup complete. Start each Codex session with: .\state.ps1'

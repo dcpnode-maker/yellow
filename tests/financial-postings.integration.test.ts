@@ -284,8 +284,8 @@ dbDescribe("Order 104 fresh-PostgreSQL financial posting proof", () => {
     const pause = new PausingPublish(events!);
     const chargedPromise = post(request("order104-charge-before-seal", HOSTILE_FOLIO, "17"), makeService(pause));
     await pause.published;
-    const waitingSeal = database!.withTenantTransaction(TENANT_A, (tx) => tx.unsafe(
-      "SELECT seal_business_day($1,$2,$3::date,$4)", [TENANT_A, PROPERTY_A, day, ACTOR_A]));
+    const waitingSeal = admin!.unsafe(
+      "SELECT seal_business_day($1,$2,$3::date,$4)", [TENANT_A, PROPERTY_A, day, ACTOR_A]);
     pause.release(); const charged = await chargedPromise; await waitingSeal;
     expect(charged.replayed).toBeFalse();
     await expect(post(request("order104-after-seal", HOSTILE_FOLIO, "19"))).rejects.toBeInstanceOf(ChargeConflictError);

@@ -62,6 +62,12 @@ PYTHONIOENCODING=utf-8 python3 tests/run_invariants.py yellow_test
 
 if [ "$DB_ONLY" -eq 0 ]; then
   need curl 'Install curl to run the application health check.'
+  if [ "$DB_ONLY" -eq 0 ] && [ -z "${YELLOW_TOKEN_SECRET:-}" ]; then
+    generated_token_secret=$(bun -e 'const bytes = crypto.getRandomValues(new Uint8Array(48)); process.stdout.write(Buffer.from(bytes).toString("base64"));')
+    export YELLOW_TOKEN_SECRET="$generated_token_secret"
+    unset generated_token_secret
+    echo 'Generated an ephemeral local JWT signing secret for this setup invocation.'
+  fi
   docker compose up -d app
   healthy=0
   for _ in $(seq 1 30); do

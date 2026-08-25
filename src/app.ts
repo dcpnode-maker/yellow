@@ -1,4 +1,5 @@
 import { Elysia } from "elysia";
+import { isIP } from "node:net";
 
 import { SECURITY_HEADERS } from "./http/security-headers";
 import { ExtensionHttpApi } from "./http/extensions";
@@ -16,6 +17,20 @@ const unavailablePool = Object.freeze({
     throw new Error("Database is not configured");
   },
 });
+
+interface LoginPeerAddress {
+  readonly address: string;
+  readonly family: "IPv4" | "IPv6";
+}
+
+export function localLoginSourceKey(peer: LoginPeerAddress | null | undefined): string {
+  if (!peer || typeof peer.address !== "string") return "unknown";
+  const version = isIP(peer.address);
+  if ((peer.family === "IPv4" && version !== 4) || (peer.family === "IPv6" && version !== 6)) {
+    return "unknown";
+  }
+  return `${peer.family.toLowerCase()}:${peer.address.toLowerCase()}`;
+}
 
 export interface AppOptions {
   readonly database?: Database;
@@ -83,7 +98,9 @@ export function createApp(options: AppOptions = {}) {
       .get("/p/:property/status", () => operatorAssets.html())
       .get("/assets/operator.css", () => operatorAssets.css())
       .get("/assets/operator.js", () => operatorAssets.js())
-      .post("/api/v1/auth/local:login", ({ request, body }) => operator.login(request, body))
+      .post("/api/v1/auth/local:login", ({ request, body, server }) =>
+        operator.login(request, body, localLoginSourceKey(server?.requestIP(request)))
+      )
       .get("/api/v1/me/properties", ({ request, tenantContext }) =>
         withOperatorTenant(request, (context) => operator.properties(context))
       )

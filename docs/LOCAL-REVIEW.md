@@ -18,8 +18,14 @@ export YELLOW_REVIEW_PASSWORD='<choose a local-only password>'
 export YELLOW_REVIEW_APPROVER_PASSWORD='<choose a different local-only password>'
 ./setup.sh --db-only
 DATABASE_URL="postgres://yellow:yellow@127.0.0.1:${YELLOW_POSTGRES_PORT}/yellow_dev" bun run db:seed-review
+export YELLOW_TOKEN_SECRET="$(bun -e 'const bytes = crypto.getRandomValues(new Uint8Array(48)); process.stdout.write(Buffer.from(bytes).toString("base64"));')"
 docker compose up -d --build app
 ```
+
+The generated signing secret exists only in that shell and is never printed or written
+to the repository. Generate a fresh value after opening a new shell. `./setup.sh` without
+`--db-only` performs the same ephemeral generation automatically; an enabled workbench
+fails closed when no secret is supplied and rejects Yellow's retired legacy placeholder.
 
 Open `http://localhost:3200` and sign in with:
 
@@ -107,3 +113,15 @@ not scrape external CI.
 The app is deliberately disabled unless `YELLOW_OPERATOR_WORKBENCH=1` is explicit.
 Hold expiry is independently explicit with `YELLOW_HOLD_EXPIRY_WORKER=1` and starts only
 when the workbench is enabled; local Compose supplies that opt-in.
+
+Local staff login is guarded inside each Yellow process. A source and normalized hotel
+account each have rolling attempt budgets, failed authentication adds a capped retry
+backoff, and no more than four Argon2 verifications run concurrently; excess work is
+rejected immediately rather than queued. The source is derived only from Bun's TCP peer
+metadata. `Forwarded`, `X-Forwarded-For` and `X-Real-IP` are ignored, while direct test
+handlers without peer metadata share the restrictive `unknown` source.
+
+These controls are intentionally process-local. Starting another Yellow process creates
+another bounded budget. Do not expose a multi-process workbench as though this were a
+shared edge limiter; public/multi-node deployment requires a separately approved shared
+limiter and explicit trusted-proxy topology.

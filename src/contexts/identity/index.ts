@@ -12,3 +12,9 @@ export type {
 } from "./token";
 export { LocalLoginService } from "./local-login";
 export type { LocalLoginInput, LocalLoginResult } from "./local-login";
+export { LocalLoginGuard, LocalLoginLimitedError, localLoginGuardPolicy } from "./login-guard";
+export type {
+  LocalLoginGuardDecision,
+  LocalLoginGuardOptions,
+  LocalLoginVerification,
+} from "./login-guard";

@@ -6,6 +6,7 @@ import {
   BearerTenantResolver,
   hashLocalPassword,
   Hs256TokenSigner,
+  LocalLoginGuard,
   LocalLoginService,
 } from "../src/contexts/identity";
 import { AvailabilityService } from "../src/contexts/inventory";
@@ -48,6 +49,7 @@ let admin: SQL;
 let loginPool: SQL;
 let database: Database;
 let now = ISSUED_AT;
+let loginGuardNow = 0;
 let tokens: Hs256TokenSigner;
 let app: ReturnType<typeof createApp>;
 
@@ -62,7 +64,12 @@ function jsonHeaders(token?: string): HeadersInit {
   };
 }
 
-async function login(email = "ancestor@yellow.test", password = "correct horse battery staple", tenant = "order042-a") {
+async function login(
+  email = "ancestor@yellow.test",
+  password = "correct horse battery staple",
+  tenant = "order042-a",
+) {
+  loginGuardNow += 900_000;
   return request("/api/v1/auth/local:login", {
     method: "POST",
     headers: jsonHeaders(),
@@ -102,7 +109,10 @@ beforeAll(async () => {
   app = createApp({
     database,
     tenantResolver: new BearerTenantResolver(tokens),
-    operatorApi: new OperatorHttpApi(new LocalLoginService(loginPool, tokens), new AvailabilityService()),
+    operatorApi: new OperatorHttpApi(
+      new LocalLoginService(loginPool, tokens, new LocalLoginGuard({ now: () => loginGuardNow })),
+      new AvailabilityService(),
+    ),
   });
 
   await cleanFixtures();
@@ -390,5 +400,80 @@ databaseDescribe("Order 042 authenticated operator workbench", () => {
     expect((await disabled.handle(new Request("http://yellow.test/"))).status).toBe(404);
     expect((await disabled.handle(new Request("http://yellow.test/api/v1/me/properties"))).status).toBe(404);
     expect(reserves).toBe(0);
+  });
+
+  test("Order 117 P4: real identities are uniformly throttled and recover without changing token issuance", async () => {
+    let limitedNow = 0;
+    const guardedLogin = new LocalLoginService(
+      loginPool,
+      tokens,
+      new LocalLoginGuard({ now: () => limitedNow }),
+    );
+    const guardedApp = createApp({
+      database,
+      tenantResolver: new BearerTenantResolver(tokens),
+      operatorApi: new OperatorHttpApi(guardedLogin, new AvailabilityService()),
+    });
+    const attempt = (email: string, password: string, headers: HeadersInit = {}) => guardedApp.handle(new Request(
+      "http://yellow.test/api/v1/auth/local:login",
+      {
+        method: "POST",
+        headers: { "content-type": "application/json", ...headers },
+        body: JSON.stringify({ tenant: "order042-a", email, password }),
+      },
+    ));
+
+    const first = await attempt("ancestor@yellow.test", "wrong");
+    expect(first.status).toBe(401);
+    limitedNow = 1_000;
+    expect((await attempt("ancestor@yellow.test", "wrong")).status).toBe(401);
+    limitedNow = 3_000;
+    expect((await attempt("ancestor@yellow.test", "wrong")).status).toBe(401);
+    limitedNow = 7_000;
+    const limited = await attempt("ancestor@yellow.test", "correct horse battery staple", {
+      forwarded: "for=198.51.100.30",
+      "x-forwarded-for": "198.51.100.31",
+      "x-real-ip": "198.51.100.32",
+    });
+    expect(limited.status).toBe(429);
+    expect(limited.headers.get("cache-control")).toBe("no-store");
+    expect(limited.headers.get("retry-after")).toBe("106");
+    expect(await limited.json()).toEqual(expect.objectContaining({
+      type: "auth/temporarily_limited",
+      title: "Authentication temporarily limited",
+      status: 429,
+      detail: "Try again later",
+    }));
+
+    limitedNow = 112_500;
+    const recovered = await attempt("ancestor@yellow.test", "correct horse battery staple");
+    expect(recovered.status).toBe(200);
+    expect(recovered.headers.get("cache-control")).toBe("no-store");
+    const recoveredBody = await recovered.json() as { accessToken: string; expiresInSeconds: number };
+    expect(recoveredBody.expiresInSeconds).toBe(900);
+    expect(await tokens.verify(recoveredBody.accessToken)).toMatchObject({
+      sub: USER_ANCESTOR,
+      tid: TENANT_A,
+      scp: "inventory.availability:read",
+    });
+
+    const freshWrong = new LocalLoginService(loginPool, tokens, new LocalLoginGuard({ now: () => 0 }));
+    const freshMissing = new LocalLoginService(loginPool, tokens, new LocalLoginGuard({ now: () => 0 }));
+    const wrongResponse = await createApp({ operatorApi: new OperatorHttpApi(freshWrong) }).handle(new Request(
+      "http://yellow.test/api/v1/auth/local:login",
+      { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ tenant: "order042-a", email: "ancestor@yellow.test", password: "wrong" }) },
+    ));
+    const missingResponse = await createApp({ operatorApi: new OperatorHttpApi(freshMissing) }).handle(new Request(
+      "http://yellow.test/api/v1/auth/local:login",
+      { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ tenant: "order042-a", email: "missing@yellow.test", password: "wrong" }) },
+    ));
+    const uniform = async (response: Response) => {
+      expect(response.status).toBe(401);
+      expect(response.headers.get("cache-control")).toBe("no-store");
+      const body = await response.json() as Record<string, unknown>;
+      const { correlation_id: _correlation, ...problem } = body;
+      return problem;
+    };
+    expect(await uniform(wrongResponse)).toEqual(await uniform(missingResponse));
   });
 });

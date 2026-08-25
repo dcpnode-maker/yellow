@@ -24,6 +24,10 @@ Extensions/shortenings on the SAME unit: release + re-record inside one transact
 (after doc issued; reopening forbidden — corrections post to a new folio window).
 
 ## 3. Business day — open → **sealed** via `seal_business_day()`.
+The function is currently deployment-owner-only as a temporary least-privilege
+containment boundary. No application day-close command exists yet. Future application
+execution requires an authorized, audited domain command with server-derived actor
+evidence; owner execution is not the completed continuous day-close product.
 **Roll ≠ seal.** The day ROLLS automatically: a scheduler opens the next business_day
 row at the property-local cutoff and emits `day.rolled` — it never waits for the prior
 day's seal. Operations always target the current OPEN day; multiple unsealed days may

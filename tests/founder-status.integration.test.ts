@@ -1,4 +1,4 @@
-import { afterAll, beforeAll, describe, expect, test } from "bun:test";
+import { afterAll, beforeAll, beforeEach, describe, expect, test } from "bun:test";
 import { SQL } from "bun";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
@@ -36,6 +36,27 @@ let loginPool: SQL | undefined;
 let database: Database | undefined;
 let tokens: Hs256TokenSigner;
 let app: ReturnType<typeof createApp>;
+
+function createFounderStatusApp(): ReturnType<typeof createApp> {
+  return createApp({
+    database,
+    tenantResolver: new BearerTenantResolver(tokens),
+    operatorApi: new OperatorHttpApi(
+      new LocalLoginService(loginPool!, tokens),
+      new AvailabilityService(),
+      undefined,
+      new PostgresIdempotency(),
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      RUNTIME_STATUS,
+    ),
+  });
+}
 
 function request(path: string, token?: string): Promise<Response> {
   return app.handle(new Request(`http://yellow.test${path}`, {
@@ -140,10 +161,10 @@ describe("Order 064 recorded build snapshot", () => {
     const reviewCoverage = await deriveIndependentReviewCoverage();
     const rows = manifestRows(manifest);
     expect(rows.length).toBeGreaterThan(0);
-    expect(PROJECT_BUILD_SNAPSHOT.roadmap.latestBuiltOrder).toBe(108);
+    expect(PROJECT_BUILD_SNAPSHOT.roadmap.latestBuiltOrder).toBe(129);
     expect(PROJECT_BUILD_SNAPSHOT.review.gate3Debt).toBe(0);
     expect(PROJECT_BUILD_SNAPSHOT.review.state).toBe("built_unverified");
-    expect(PROJECT_BUILD_SNAPSHOT.roadmap.currentOrder).toBe(108);
+    expect(PROJECT_BUILD_SNAPSHOT.roadmap.currentOrder).toBe(129);
     expect(PROJECT_BUILD_SNAPSHOT.roadmap.activePhase).toBe(5);
     expect(PROJECT_BUILD_SNAPSHOT.roadmap.phaseCount).toBe(13);
     expect(reviewCoverage.throughOrder).toBe(91);
@@ -216,24 +237,6 @@ beforeAll(async () => {
   loginPool = new SQL(DATABASE_URL, { max: 4 });
   database = Database.connect(DATABASE_URL, { maxConnections: 8 });
   tokens = new Hs256TokenSigner(SECRET);
-  app = createApp({
-    database,
-    tenantResolver: new BearerTenantResolver(tokens),
-    operatorApi: new OperatorHttpApi(
-      new LocalLoginService(loginPool, tokens),
-      new AvailabilityService(),
-      undefined,
-      new PostgresIdempotency(),
-      undefined,
-      undefined,
-      undefined,
-      undefined,
-      undefined,
-      undefined,
-      undefined,
-      RUNTIME_STATUS,
-    ),
-  });
 });
 
 afterAll(async () => {
@@ -242,6 +245,10 @@ afterAll(async () => {
 });
 
 databaseDescribe("Order 064 authenticated founder status", () => {
+  beforeEach(() => {
+    app = createFounderStatusApp();
+  });
+
   test("P1: granted property returns exact live-vs-recorded status without internals", async () => {
     const token = await loginToken();
     const response = await request(`/api/v1/properties/${SEED_PROPERTY.id}/system-status`, token);

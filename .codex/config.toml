@@ -1,17 +1,4 @@
-# Codex CLI project config for Yellow. Lives at .codex/config.toml — Codex resolves
-# this by walking upward from the current working directory, same idea as .mcp.json
-# for Claude Code. Mirrors mcp.json's three servers in Codex's own TOML dialect.
-
-[mcp_servers.postgres]
-command = "npx"
-args = ["-y", "@modelcontextprotocol/server-postgres",
-        "postgresql://yellow:yellow@127.0.0.1:5442/yellow_dev"]
-
-[mcp_servers.github]
-command = "npx"
-args = ["-y", "@modelcontextprotocol/server-github"]
-env = { GITHUB_PERSONAL_ACCESS_TOKEN = "${GITHUB_TOKEN}" }
-
-[mcp_servers.context7]
-command = "npx"
-args = ["-y", "@upstash/context7-mcp@latest"]
+# Codex CLI project config for Yellow. The project intentionally declares no
+# auto-launched MCP servers. Add a server only through a separately reviewed
+# order with exact package provenance and credential scope.
+[mcp_servers]

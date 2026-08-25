@@ -2,33 +2,29 @@
 
 Principle: **a short, well-chosen set beats a long one.** Every server adds tool
 definitions to the agent's context budget, and every credential widens the surface
-you have to trust. Three servers is the starting set; add one only when a phase
-needs it.
+you have to trust. This repository starts with no auto-launched MCP; add one only
+when a phase needs it and a separate order records its provenance.
 
-## Wired in this repo (`.mcp.json`) — nothing to install
+## Project MCP configuration — intentionally empty
 
-| Server | What it gives Claude Code | Auth |
-|---|---|---|
-| **postgres** | Reads your real schema and data while coding — no more guessing column names. Points at `yellow_dev` on localhost. | none (local) |
-| **github** | Issues, PRs, branches, code search. Turns Claude Code into a participant in the repo, not just an editor. | `GITHUB_TOKEN` env var |
-| **context7** | Live, version-specific library docs (MIT, open source). The fix for a model confidently calling a Bun or Elysia method that was removed two releases ago. | none needed; a free key at context7.com/dashboard raises rate limits |
+`.mcp.json` and `.codex/config.toml` retain valid, mirrored empty configurations.
+They do not auto-launch third-party packages, resolve registry tags, or expose a
+database DSN or GitHub token to an MCP process. This is deliberate: the official
+npm pages mark the previously configured Postgres server 0.6.2 and GitHub server
+2025.4.8 as deprecated, and the launch-on-first-use model created unnecessary
+supply-chain and credential surface.
 
-`npx` fetches each on first use — no global install. Open Claude Code in this folder,
-run `/mcp`, and all three should read **connected**.
-
-### Two things you must do
-1. **GitHub token** — create a fine-grained PAT (repo scope, this repo only), then
-   `export GITHUB_TOKEN=ghp_...` in your shell profile. Least scope, revocable.
-2. **Database running** — `./setup.sh` applies the runner and demo seed to
-   `yellow_dev`, then uses the runner plus the separate fixture for `yellow_test`.
-   `docker compose up -d postgres` only starts the service; it does not migrate it.
+Use the existing local `psql`/repository scripts for Postgres, `git` and `gh` for
+GitHub, and the built-in web/documentation tools for current library references.
+These replacements preserve the repository workflows without silently installing
+an external process. A future MCP must be introduced by a separate reviewed order
+with an exact version, provenance/integrity record, and explicit credential scope.
 
 ## Add later, at the phase that needs it
 
-```bash
-# Phase 10 — real-browser tests for keyboard flows and offline sync
-claude mcp add playwright -- npx -y @playwright/mcp@latest
-```
+Future tooling is not pre-wired. A future browser or error-tracking integration
+requires a separate reviewed order with exact package provenance before it may be
+added to either project configuration.
 
 Error tracking gets an MCP once GlitchTip is actually running (Phase 0 ops). Add
 nothing else speculatively — an unused server costs context on every single session.

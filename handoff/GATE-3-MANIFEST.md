@@ -56,4 +56,4 @@ Status legend: UNVERIFIED = built, proofs builder-asserted, not executed by the 
 Protected hashes to re-quote each time:
 
 - `migrations/0001_init.sql` — `fe2a9fc949c6bacded3f8d3fc4d14fc596a83ebde9aeb043eb10845f07b30923`
-- `tests/run_invariants.py` — `3228279bd99a8f9b6af99748f31d4d4b482a8e627e16d92644d9d859ad8befa1`
+- `tests/run_invariants.py` — `2afa95bb7c02cd9637ffc9c3df00d1ddf7cfc5d8d31c4fd8fad29b950c1a418d`

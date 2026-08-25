@@ -4957,7 +4957,6 @@ GRANT ALL ON FUNCTION public.release_occupancy(p_tenant uuid, p_slot uuid) TO ap
 --
 
 REVOKE ALL ON FUNCTION public.seal_business_day(p_tenant uuid, p_property uuid, p_date date, p_user uuid) FROM PUBLIC;
-GRANT ALL ON FUNCTION public.seal_business_day(p_tenant uuid, p_property uuid, p_date date, p_user uuid) TO app_role;
 
 
 --

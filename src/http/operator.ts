@@ -1,4 +1,4 @@
-import { LocalLoginService, type LocalLoginInput } from "../contexts/identity";
+import { LocalLoginLimitedError, LocalLoginService, type LocalLoginInput } from "../contexts/identity";
 import {
   PartyDuplicateReviewRequiredError,
   PartyProfileService,
@@ -224,11 +224,16 @@ function apiError(
   title: string,
   detail: string,
   evidence: Readonly<Record<string, unknown>> = {},
+  extraHeaders: HeadersInit = {},
 ): Response {
   const correlation = correlationId(request);
   return Response.json({ type, title, status, detail, ...evidence, correlation_id: correlation }, {
     status,
-    headers: { "cache-control": "no-store", "x-correlation-id": correlation },
+    headers: {
+      "cache-control": "no-store",
+      "x-correlation-id": correlation,
+      ...Object.fromEntries(new Headers(extraHeaders)),
+    },
   });
 }
 
@@ -1316,18 +1321,29 @@ export class OperatorHttpApi {
     return this.unavailable(request);
   }
 
-  async login(request: Request, body: unknown): Promise<Response> {
+  async login(request: Request, body: unknown, sourceKey = "unknown"): Promise<Response> {
     const hasValidShape = isObject(body) && exactKeys(body, ["tenant", "email", "password"]);
     const input = hasValidShape
       ? body as unknown as LocalLoginInput
       : { tenant: "", email: "", password: "" };
     try {
-      const result = await this.#login.authenticate(input);
+      const result = await this.#login.authenticate(input, sourceKey);
       if (!hasValidShape || !result) {
         return apiError(request, 401, "auth/invalid_credentials", "Authentication failed", "Invalid credentials");
       }
       return apiResponse(request, result);
-    } catch {
+    } catch (error) {
+      if (error instanceof LocalLoginLimitedError) {
+        return apiError(
+          request,
+          429,
+          "auth/temporarily_limited",
+          "Authentication temporarily limited",
+          "Try again later",
+          {},
+          { "retry-after": String(error.retryAfterSeconds) },
+        );
+      }
       return apiError(request, 503, "service/unavailable", "Service unavailable", "Authentication is temporarily unavailable");
     }
   }
@@ -1577,7 +1593,7 @@ export class OperatorHttpApi {
       tenantId: context.tenantId,
       operation: "operator.inventory.projection.rebuild",
       key: context.request.headers.get("idempotency-key") ?? "",
-      request: { propertyNode, body },
+      request: { actorId: context.identity.actorId, propertyNode, body },
     }, async (tx) => {
       await this.#projection!.replaceHorizon(tx, { propertyNode, ...input });
       return { status: 200, body: jsonValue(await this.#projection!.status(tx, propertyNode)) };
@@ -1630,7 +1646,7 @@ export class OperatorHttpApi {
       tenantId: context.tenantId,
       operation: "operator.inventory.rooms.bulk",
       key: context.request.headers.get("idempotency-key") ?? "",
-      request: { propertyNode, body },
+      request: { actorId: context.identity.actorId, propertyNode, body },
     }, async (tx) => {
       const unitType = await this.#inventory!.getUnitType(tx, propertyNode, input.unitTypeId);
       if (unitType.profileKey !== "hotel") {
@@ -1704,7 +1720,8 @@ export class OperatorHttpApi {
     const requestId = correlationId(context.request);
     const outcome = await this.#idempotency.execute(context.tx, {
       tenantId: context.tenantId, operation: "operator.inventory.blocks.open",
-      key: context.request.headers.get("idempotency-key") ?? "", request: { propertyNode, body },
+      key: context.request.headers.get("idempotency-key") ?? "",
+      request: { actorId: context.identity.actorId, propertyNode, body },
     }, async (tx) => ({ status: 201, body: { operationalBlock: jsonValue(await this.#blocks!.open(tx, {
       ...input, envelope: createAuditEnvelope({ actorId: context.identity.actorId, tenantId: context.tenantId,
         propertyNode, requestId, operation: "ooo.opened" }),
@@ -1732,7 +1749,8 @@ export class OperatorHttpApi {
     const requestId = correlationId(context.request);
     const outcome = await this.#idempotency.execute(context.tx, {
       tenantId: context.tenantId, operation: "operator.inventory.blocks.close",
-      key: context.request.headers.get("idempotency-key") ?? "", request: { propertyNode, blockId, body },
+      key: context.request.headers.get("idempotency-key") ?? "",
+      request: { actorId: context.identity.actorId, propertyNode, blockId, body },
     }, async (tx) => ({ status: 200, body: { operationalBlock: jsonValue(await this.#blocks!.close(tx, {
       blockId, envelope: createAuditEnvelope({ actorId: context.identity.actorId, tenantId: context.tenantId,
         propertyNode, requestId, operation: "ooo.closed" }),
@@ -1783,7 +1801,8 @@ export class OperatorHttpApi {
     const requestId = correlationId(context.request);
     const outcome = await this.#idempotency.execute(context.tx, {
       tenantId: context.tenantId, operation: "operator.inventory.holds.place",
-      key: context.request.headers.get("idempotency-key") ?? "", request: { propertyNode, body },
+      key: context.request.headers.get("idempotency-key") ?? "",
+      request: { actorId: context.identity.actorId, propertyNode, body },
     }, async (tx) => ({ status: 201, body: { hold: jsonValue(await this.#holds!.place(tx, {
       sellableUnitId: input.sellableUnitId, from: input.from, to: input.to, ttlSeconds: 600,
       holder: { reference: input.holderReference },
@@ -2164,7 +2183,8 @@ export class OperatorHttpApi {
     const requestId = correlationId(context.request);
     const outcome = await this.#idempotency.execute(context.tx, {
       tenantId: context.tenantId, operation: "operator.inventory.holds.release",
-      key: context.request.headers.get("idempotency-key") ?? "", request: { propertyNode, holdId, body },
+      key: context.request.headers.get("idempotency-key") ?? "",
+      request: { actorId: context.identity.actorId, propertyNode, holdId, body },
     }, async (tx) => ({ status: 200, body: { hold: jsonValue(await this.#holds!.release(tx, {
       holdId, envelope: createAuditEnvelope({ actorId: context.identity.actorId, tenantId: context.tenantId,
         propertyNode, requestId, operation: "hold.released" }),
@@ -2212,7 +2232,7 @@ export class OperatorHttpApi {
       tenantId: context.tenantId,
       operation: "operator.inventory.offline_leases.place",
       key: context.request.headers.get("idempotency-key") ?? "",
-      request: { propertyNode, body },
+      request: { actorId: context.identity.actorId, propertyNode, body },
     }, async (tx) => {
       const options = await this.#availability.search(tx, {
         propertyNode,
@@ -2274,7 +2294,7 @@ export class OperatorHttpApi {
       tenantId: context.tenantId,
       operation: "operator.inventory.offline_leases.release",
       key: context.request.headers.get("idempotency-key") ?? "",
-      request: { propertyNode, leaseId, body },
+      request: { actorId: context.identity.actorId, propertyNode, leaseId, body },
     }, async (tx) => ({
       status: 200,
       body: { offlineLease: jsonValue(await this.#holds!.releaseOfflineLease(tx, {
@@ -2311,7 +2331,8 @@ export class OperatorHttpApi {
     const requestId = correlationId(context.request);
     const outcome = await this.#idempotency.execute(context.tx, {
       tenantId: context.tenantId, operation: "operator.inventory.policy.oos_sellability",
-      key: context.request.headers.get("idempotency-key") ?? "", request: { propertyNode, body },
+      key: context.request.headers.get("idempotency-key") ?? "",
+      request: { actorId: context.identity.actorId, propertyNode, body },
     }, async (tx) => ({ status: 200, body: { inventoryPolicy: jsonValue(await this.#policy!.setOosSellability(tx, {
       value: body.oosSellability as "blocked" | "allowed",
       envelope: createAuditEnvelope({ actorId: context.identity.actorId, tenantId: context.tenantId,
@@ -2365,7 +2386,7 @@ export class OperatorHttpApi {
       tenantId: context.tenantId,
       operation: "operator.inventory.restriction.create",
       key: context.request.headers.get("idempotency-key") ?? "",
-      request: { propertyNode, body },
+      request: { actorId: context.identity.actorId, propertyNode, body },
     }, async (tx) => ({
       status: 201,
       body: { restrictions: jsonValue(await this.#restrictions!.createBatch(tx, {
@@ -2469,7 +2490,7 @@ export class OperatorHttpApi {
       tenantId: context.tenantId,
       operation: "operator.rates.release.draft",
       key: context.request.headers.get("idempotency-key") ?? "",
-      request: { propertyNode, ratePlanId, body },
+      request: { actorId: context.identity.actorId, propertyNode, ratePlanId, body },
     }, async (tx) => {
       const modelDraft = await this.#rateBuilder!.models.createDraftVersion(tx, {
         ratePlanId: command.ratePlanId,
@@ -2806,7 +2827,7 @@ export class OperatorHttpApi {
       tenantId: context.tenantId,
       operation,
       key: context.request.headers.get("idempotency-key") ?? "",
-      request: { propertyNode, body: requestBody },
+      request: { actorId: context.identity.actorId, propertyNode, body: requestBody },
     }, async (tx) => ({ status: successStatus, body: rateBuilderJsonValue(await command(tx, requestId, actorId)) }));
     return apiResponse(context.request, outcome.body, outcome.status, {
       "idempotency-replayed": String(outcome.replayed),
@@ -2851,7 +2872,7 @@ export class OperatorHttpApi {
       tenantId: context.tenantId,
       operation: "operator.rates.price.create",
       key: context.request.headers.get("idempotency-key") ?? "",
-      request: { propertyNode, body },
+      request: { actorId: context.identity.actorId, propertyNode, body },
     }, async (tx) => ({
       status: 201,
       body: { ratePrice: ratePriceJson(await this.#pricing!.create(tx, {
@@ -2886,7 +2907,7 @@ export class OperatorHttpApi {
     const outcome = await this.#idempotency.execute(context.tx, {
       tenantId: context.tenantId, operation: "operator.rates.price.supersede",
       key: context.request.headers.get("idempotency-key") ?? "",
-      request: { propertyNode, ratePriceId, body },
+      request: { actorId: context.identity.actorId, propertyNode, ratePriceId, body },
     }, async (tx) => ({ status: 201, body: {
       ratePrice: ratePriceJson(await this.#pricing!.supersede(tx, {
         ratePriceId, pricing: correctedPricing,
@@ -2923,7 +2944,7 @@ export class OperatorHttpApi {
       tenantId: context.tenantId,
       operation: idempotencyOperation,
       key: context.request.headers.get("idempotency-key") ?? "",
-      request: { propertyNode, body: requestBody },
+      request: { actorId: context.identity.actorId, propertyNode, body: requestBody },
     }, async (tx) => ({
       status: 201,
       body: await command(tx, createAuditEnvelope({
@@ -2964,7 +2985,7 @@ export class OperatorHttpApi {
       tenantId: context.tenantId,
       operation: idempotencyOperation,
       key: context.request.headers.get("idempotency-key") ?? "",
-      request: { propertyNode, body: requestBody },
+      request: { actorId: context.identity.actorId, propertyNode, body: requestBody },
     }, async (tx) => ({
       status: 201,
       body: jsonValue(await command(tx, createAuditEnvelope({

@@ -14,7 +14,7 @@ services:
       YELLOW_HOLD_EXPIRY_WORKER: "${YELLOW_HOLD_EXPIRY_WORKER:-1}"
       YELLOW_AVAILABILITY_PROJECTION_WORKER: "${YELLOW_AVAILABILITY_PROJECTION_WORKER:-1}"
       DATABASE_URL: "${YELLOW_APP_DATABASE_URL:-postgres://yellow:yellow@postgres:5432/yellow_dev}"
-      YELLOW_TOKEN_SECRET: "${YELLOW_TOKEN_SECRET:-yellow-local-development-token-secret-change-before-deployment}"
+      YELLOW_TOKEN_SECRET: "${YELLOW_TOKEN_SECRET:-}"
     ports: ["127.0.0.1:${YELLOW_APP_PORT:-3000}:3000"]
     healthcheck:
       test:
@@ -75,7 +75,7 @@ services:
       retries: 20
 
   valkey:
-    image: valkey/valkey:8-alpine
+    image: valkey/valkey:8.1.9-alpine@sha256:e0eb7c480958d32bdc4357a74bdd70653ae15f2f9b4c93c4a5a9fad1dc471c84
     ports: ["127.0.0.1:${YELLOW_VALKEY_PORT:-6389}:6379"]
     command: valkey-server --save "" --appendonly no
     healthcheck:

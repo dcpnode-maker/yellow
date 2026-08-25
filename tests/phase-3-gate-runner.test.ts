@@ -28,7 +28,7 @@ function fakeHarness(exitFor: (process: Phase3GateProcess) => number = () => 0) 
   return { events, harness };
 }
 
-describe("Orders 079/083/104/108 reproducible cumulative database proof runner", () => {
+describe("Orders 079/083/104/108/118/121/123/124/129 reproducible cumulative database proof runner", () => {
   test("P1: matrix pins every Phase-3 and inherited F11 database proof with exact environment mapping", () => {
     expect(PHASE_3_DATABASE_PROOFS).toEqual([
       {
@@ -136,8 +136,36 @@ describe("Orders 079/083/104/108 reproducible cumulative database proof runner",
         urlEnv: "YELLOW_SECURITY_DEFINER_URL",
         passwordEnv: null,
       },
+      {
+        databaseName: "yellow_ci_p5_app_role_nonlogin",
+        testFile: "tests/app-role-nonlogin.integration.test.ts",
+        requireEnv: "YELLOW_REQUIRE_APP_ROLE_NONLOGIN",
+        urlEnv: "YELLOW_APP_ROLE_NONLOGIN_URL",
+        passwordEnv: null,
+      },
+      {
+        databaseName: "yellow_ci_p5_actor_idempotency",
+        testFile: "tests/operator-idempotency-actor.integration.test.ts",
+        requireEnv: "YELLOW_REQUIRE_OPERATOR_IDEMPOTENCY_ACTOR",
+        urlEnv: "YELLOW_OPERATOR_IDEMPOTENCY_ACTOR_URL",
+        passwordEnv: "YELLOW_OPERATOR_IDEMPOTENCY_ACTOR_PASSWORD",
+      },
+      {
+        databaseName: "yellow_ci_p5_business_day_seal",
+        testFile: "tests/business-day-seal-authority.integration.test.ts",
+        requireEnv: "YELLOW_REQUIRE_BUSINESS_DAY_SEAL",
+        urlEnv: "YELLOW_BUSINESS_DAY_SEAL_URL",
+        passwordEnv: null,
+      },
+      {
+        databaseName: "yellow_ci_p5_reservation_parent",
+        testFile: "tests/reservation-parent-before-occupancy.integration.test.ts",
+        requireEnv: "YELLOW_REQUIRE_RESERVATION_PARENT",
+        urlEnv: "YELLOW_RESERVATION_PARENT_URL",
+        passwordEnv: null,
+      },
     ]);
-    expect(new Set(PHASE_3_DATABASE_PROOFS.map(({ databaseName }) => databaseName)).size).toBe(15);
+    expect(new Set(PHASE_3_DATABASE_PROOFS.map(({ databaseName }) => databaseName)).size).toBe(19);
   });
 
   test("P1: inputs fail closed before orchestration", () => {

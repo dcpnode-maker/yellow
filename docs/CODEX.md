@@ -11,7 +11,7 @@ doctrine applies to tooling too. The only real work is bridging two config diale
 | Claude Code | Codex | Status |
 |---|---|---|
 | `CLAUDE.md` | `AGENTS.md` | Written — trimmed mirror, same invariants/boundaries/never-do list |
-| `.mcp.json` | `.codex/config.toml` | Written — same three servers (postgres, github, context7) |
+| `.mcp.json` | `.codex/config.toml` | Written — mirrored empty MCP configurations; no auto-launched servers |
 | `.claude/skills/yellow-*/` | *(no equivalent loader)* | Plain Markdown — Codex can read the files directly, just not auto-load them the way Claude Code does |
 | `DECISIONS.log` | `DECISIONS.log` | **Same file, on purpose** — see rule below |
 | `tests/run_invariants.py`, `docker-compose.yml`, `migrations/` | *(identical)* | Zero changes — these are Postgres/Docker, not Claude |
@@ -62,6 +62,9 @@ now — the efficient split is:
 Run `./setup.sh` once (it doesn't care which agent runs afterward), then point
 either agent at the same repo. `tests/run_invariants.py` is the referee: whichever
 agent touched the code, the battery must still print `11 passed, 0 failed`.
+Project MCP launchers are intentionally disabled; use local `psql`/repository
+scripts, `git`/`gh`, and built-in documentation tools. A future MCP requires a
+separate reviewed order with exact package provenance and credential scope.
 
 ## What does NOT transfer automatically
 
@@ -83,11 +86,9 @@ agent touched the code, the battery must still print `11 passed, 0 failed`.
 
 ```bash
 codex
-# then inside the session:
-#   confirm it has read AGENTS.md
-#   /mcp  (or Codex's equivalent status command) → postgres, github, context7 connected
+# then inside the session, confirm it has read AGENTS.md.
 ```
 
-If MCP servers don't show connected, the fix is identical to Claude Code's: Docker
-containers running (`docker compose up -d`) and `GITHUB_TOKEN` exported in the shell
-Codex was launched from.
+There are no project MCP servers expected to show connected. Docker is still used
+by the database and application workflows, but no MCP package is fetched or
+started by this repository configuration.
