@@ -376,15 +376,16 @@ export class ExtensionRegistry {
   }
 
   async listVisible(tenantId: string): Promise<readonly ExtensionInstance[]> {
-    return await withTenantRole(this.#platformPool, tenantId, async (connection) => {
+    const connection = await this.#platformPool.reserve();
+    try {
       const rows = await connection<ExtensionRow[]>`
         SELECT id, tenant_id, type, key, version, content, status
-        FROM extension
-        WHERE tenant_id IS NULL OR tenant_id = ${tenantId}::uuid
-        ORDER BY type, key, version
+        FROM runtime_visible_extensions(${tenantId}::uuid)
       `;
       return rows.map(toInstance);
-    });
+    } finally {
+      connection.release();
+    }
   }
 
   async checkCompatibility(
@@ -395,14 +396,19 @@ export class ExtensionRegistry {
     if (!TYPE_NAME.test(type)) throw new Error("extension type must be a stable lowercase identifier");
     const definitionIssues = schemaDefinitionIssues(proposedSchema);
     if (definitionIssues.length > 0) throw new ExtensionValidationError(definitionIssues);
-    return await withTenantRole(this.#platformPool, tenantId, async (connection) => {
+    void tenantId;
+    const connection = await this.#platformPool.reserve();
+    try {
       const rows = await connection<Array<{ id: string; content: JsonObject }>>`
-        SELECT id, content FROM extension WHERE type = ${type} ORDER BY id
+        SELECT id, content
+        FROM runtime_extension_compatibility_inputs(${type})
       `;
       return rows.flatMap(({ id, content }) => {
         const issues = validateJsonSchema(proposedSchema, content);
         return issues.length === 0 ? [] : [{ extensionId: id, issues }];
       });
-    });
+    } finally {
+      connection.release();
+    }
   }
 }
