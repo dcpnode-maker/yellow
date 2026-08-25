@@ -436,8 +436,8 @@ databaseDescribe("Order 023 crash-safe outbox relay", () => {
     };
 
     const terminateHandlerBackend = async (tx: Tx) => {
-      const rows = await tx<{ pid: number }[]>`SELECT pg_backend_pid()::int AS pid`;
-      await admin!`SELECT pg_terminate_backend(${rows[0]!.pid})`;
+      await tx.unsafe("RESET ROLE");
+      await tx.unsafe("SELECT pg_terminate_backend(pg_backend_pid())");
     };
 
     if (mode === "ordered" && adversary === "reset") {
