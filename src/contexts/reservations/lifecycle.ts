@@ -852,6 +852,17 @@ export class ReservationLifecycleService {
           "Reinstatement requires cancelled segments with their original sellable units",
         );
       }
+      const updatedSegments = await commandTx<Array<{ id: string }>>`
+        UPDATE reservation_segment
+        SET status = 'booked'
+        WHERE tenant_id = ${input.envelope.tenantId}::uuid
+          AND reservation_id = ${reservationId}::uuid
+          AND status = 'cancelled'
+        RETURNING id
+      `;
+      if (updatedSegments.length !== segments.length) {
+        throw new ReservationLifecycleConflictError("Reservation segments changed concurrently");
+      }
       let reclaimedClaimCount = 0;
       for (const segment of segments) {
         try {
@@ -875,17 +886,6 @@ export class ReservationLifecycleService {
           }
           throw error;
         }
-      }
-      const updatedSegments = await commandTx<Array<{ id: string }>>`
-        UPDATE reservation_segment
-        SET status = 'booked'
-        WHERE tenant_id = ${input.envelope.tenantId}::uuid
-          AND reservation_id = ${reservationId}::uuid
-          AND status = 'cancelled'
-        RETURNING id
-      `;
-      if (updatedSegments.length !== segments.length) {
-        throw new ReservationLifecycleConflictError("Reservation segments changed concurrently");
       }
       const updated = await commandTx<Array<{ id: string }>>`
         UPDATE reservation

@@ -9,6 +9,12 @@ if (process.env.YELLOW_REQUIRE_SECURITY_DEFINER === "1" && !URL) {
 const TENANT = "00000000-0000-0000-0000-000000011301";
 const PROPERTY = "00000000-0000-0000-0000-000000011311";
 const ACTOR = "00000000-0000-0000-0000-000000011321";
+const PARTY = "00000000-0000-0000-0000-000000011322";
+const UNIT_TYPE = "00000000-0000-0000-0000-000000011323";
+const SELLABLE = "00000000-0000-0000-0000-000000011324";
+const RATE_PLAN = "00000000-0000-0000-0000-000000011325";
+const RESERVATION = "00000000-0000-0000-0000-000000011326";
+const SEGMENT = "00000000-0000-0000-0000-000000011327";
 
 const dbDescribe = URL ? describe.serial : describe.skip;
 const admin = URL ? new SQL(URL, { max: 1 }) : undefined;
@@ -280,10 +286,33 @@ dbDescribe("Order 108 SECURITY DEFINER shadow-path containment", () => {
         VALUES
           ('00000000-0000-0000-0000-000000011331', '${TENANT}', '${PROPERTY}',
            'SEC-1', 'room', 1);
+        INSERT INTO public.party(id, tenant_id, kind, display_name, status)
+          VALUES ('${PARTY}', '${TENANT}', 'person', 'Order 108 Guest', 'active');
+        INSERT INTO public.unit_type(id, tenant_id, property_node, code, name, profile_key)
+          VALUES ('${UNIT_TYPE}', '${TENANT}', '${PROPERTY}', 'SEC', 'Security Room', 'room');
+        INSERT INTO public.sellable_unit(id, tenant_id, unit_type_id, name)
+          VALUES ('${SELLABLE}', '${TENANT}', '${UNIT_TYPE}', 'Security Sellable');
+        INSERT INTO public.sellable_unit_space(tenant_id, sellable_unit_id, space_id, claim_mode)
+          VALUES ('${TENANT}', '${SELLABLE}', '00000000-0000-0000-0000-000000011331', 'exclusive');
+        INSERT INTO public.rate_plan(id, tenant_id, property_node, code, name, currency, status)
+          VALUES ('${RATE_PLAN}', '${TENANT}', '${PROPERTY}', 'SEC', 'Security Rate', 'USD', 'active');
+        INSERT INTO public.reservation(
+          id, tenant_id, property_node, confirmation_no, status, primary_party, channel_code, currency
+        ) VALUES (
+          '${RESERVATION}', '${TENANT}', '${PROPERTY}', 'SEC-EXACT', 'reserved', '${PARTY}', 'direct', 'USD'
+        );
+        INSERT INTO public.reservation_segment(
+          id, tenant_id, reservation_id, seq, unit_type_id, sellable_unit_id, period,
+          adults, children, rate_plan_id, status
+        ) VALUES (
+          '${SEGMENT}', '${TENANT}', '${RESERVATION}', 1, '${UNIT_TYPE}', '${SELLABLE}',
+          tstzrange('2026-08-24T12:00:00Z', '2026-08-25T12:00:00Z', '[)'),
+          1, '[]'::jsonb, '${RATE_PLAN}', 'booked'
+        );
         SET LOCAL ROLE app_role;
         SELECT set_config('app.tenant_id', '${TENANT}', true);
       `);
-      const slot = "00000000-0000-0000-0000-000000011341";
+      const slot = SEGMENT;
       const claims = await connection<Array<{ id: string }>>`
         SELECT public.record_occupancy(
           ${TENANT}::uuid,
