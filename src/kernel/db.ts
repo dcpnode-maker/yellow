@@ -39,15 +39,28 @@ export class Database {
     }
   }
 
-  async #restoreForReuse(connection: ReservedSQL): Promise<void> {
-    await connection.unsafe("RESET ROLE");
-    await connection.unsafe("RESET app.tenant_id");
-    await this.#assertSettlement(connection);
+  async #discardAndAssertRuntimeSettlement(connection: ReservedSQL): Promise<void> {
+    await connection.unsafe("DISCARD ALL");
+    const rows = await connection<{
+      session_user: string;
+      current_user: string;
+      tenant_reset: boolean;
+    }[]>`
+      SELECT session_user::text AS session_user,
+             current_user::text AS current_user,
+             NULLIF(current_setting('app.tenant_id', true), '') IS NULL AS tenant_reset
+    `;
+    const row = rows[0];
+    if (rows.length !== 1 || row?.session_user !== "yellow_runtime" ||
+        row.current_user !== "yellow_runtime" || row.tenant_reset !== true) {
+      throw new Error("PostgreSQL connection did not settle to the runtime identity");
+    }
   }
 
   async withTenantTransaction<T>(tenantId: string, operation: (tx: Tx) => Promise<T>): Promise<T> {
     const connection = await this.#pool.reserve();
     let began = false;
+    let settled = false;
     let reusable = false;
 
     try {
@@ -64,6 +77,7 @@ export class Database {
       const result = await operation(connection);
       await connection.unsafe("COMMIT");
       began = false;
+      settled = true;
       await this.#assertSettlement(connection);
       reusable = true;
       return result;
@@ -72,6 +86,7 @@ export class Database {
         try {
           await connection.unsafe("ROLLBACK");
           began = false;
+          settled = true;
           await this.#assertSettlement(connection);
           reusable = true;
         } catch {
@@ -80,16 +95,20 @@ export class Database {
       }
       throw error;
     } finally {
-      if (!reusable) {
+      if (!reusable && settled) {
         try {
-          await this.#restoreForReuse(connection);
+          await this.#discardAndAssertRuntimeSettlement(connection);
           reusable = true;
         } catch {
-          // ReservedSQL has no single-connection destroy operation. Its immediate
-          // close is the documented containment fallback; never release a connection
-          // whose role/context could not be reset and verified.
-          try { await connection.close({ timeout: 0 }); } catch { /* preserve the request failure */ }
+          // Fall through to immediate close below. A failed DISCARD/reverification
+          // leaves the reserved backend ineligible for pool reuse.
         }
+      }
+      if (!reusable) {
+        // ReservedSQL has no single-connection destroy operation. Its immediate
+        // close is the documented containment fallback; never release a connection
+        // whose transaction, role, or tenant context could not be verified clean.
+        try { await connection.close({ timeout: 0 }); } catch { /* preserve the request failure */ }
       }
       if (reusable) connection.release();
     }
