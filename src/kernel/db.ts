@@ -18,6 +18,7 @@ export interface DatabaseOptions {
 export class Database {
   readonly #pool: ConnectionPool;
   readonly #ownsPool: boolean;
+  #closePromise: Promise<void> | undefined;
 
   constructor(pool: ConnectionPool, ownsPool = false) {
     this.#pool = pool;
@@ -113,6 +114,8 @@ export class Database {
   }
 
   async close(): Promise<void> {
-    if (this.#ownsPool) await this.#pool.close?.();
+    if (!this.#ownsPool) return;
+    this.#closePromise ??= this.#pool.close?.({ timeout: 0 }) ?? Promise.resolve();
+    await this.#closePromise;
   }
 }
