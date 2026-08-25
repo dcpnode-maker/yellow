@@ -40,13 +40,16 @@ final reviewer may consider the occurrence discharged.
 - `tests/migrate.integration.test.ts`;
 - `tests/database-acceptance.integration.test.ts`;
 - `tests/schema/expected.sql`, mechanically regenerated only;
+- `scripts/seed.ts` and `tests/seed.integration.test.ts`, only for the Q160/D-416
+  deploy-owned global seed plus read-only app-role verification boundary;
 - `scripts/run-phase-3-gate.ts` and `tests/phase-3-gate-runner.test.ts`, only for one
   unique Order-150 focused-suite mapping;
 - `docs/SECURITY.md` and `docs/CONTRACTS.md`, only for the exact ACL catalogue and
   named residual command-capability debt;
-- this order, additive D-415/ledger records, and one independent Order-150 review.
+- this order, `handoff/questions/160-order150-seed-authority-boundary.md`, additive
+  D-415–D-416/ledger records, and one independent Order-150 review.
 
-No TypeScript production caller, baseline/applied migration, protected referee,
+No TypeScript production caller other than the exact scoped deployment seed, baseline/applied migration, protected referee,
 table, policy, role, credential, function body, trigger, event, state machine,
 dependency, Compose file, workflow or founder-status snapshot is in scope. A needed
 caller or capability-function change stops this order and requires a new order.
