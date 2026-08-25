@@ -1,6 +1,6 @@
 # Question 148 — Strict Order-126 parents expose lifecycle and inherited-fixture predecessors
 
-**Status:** OPEN — BLOCKS ORDER 126
+**Status:** RESOLVED — D-383
 **Order:** 126 · occupancy caller tenant binding
 **Branch:** `phase-5/occupancy-caller-tenant-binding-final`
 **Approved Base:** `2faf5e8db8264af59e65effdfcb5603da628a181`
@@ -111,3 +111,8 @@ test-only fixture predecessor from the current approved frontier. Then resume Or
 and restart P0-P4 from fresh databases. Do not edit either out-of-scope production/test
 path, relax migration 0014, allocate an order/decision, claim BUILT-UNREVIEWED, or close
 the Cyber occurrence under this question alone.
+
+## RESOLVED
+
+D-383 resolved the strict-parent predecessor through Order 144. This canonical marker
+records the existing authority for `state.sh`; it adds no new ruling.
