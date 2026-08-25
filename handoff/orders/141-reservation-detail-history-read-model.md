@@ -117,18 +117,29 @@ commands/results, protected-surface confirmation and any inherited precondition 
   Independent review found that PostgreSQL permits schema-valid unbounded/empty
   `tstzrange` values even though the column is non-null; the initial candidate returned
   a null required segment bound. The correction adds a runtime required-bound guard and
-  a permanent hostile unbounded-range regression. Independent re-review is pending.
+  a permanent hostile unbounded-range regression.
+- Second corrected executable: `f3aa3ca3763de761aebf6250c927aee7290122a5`.
+  Independent re-review rejected bounded non-`[)`/empty periods and fail-open stored
+  references hidden by RLS or belonging to another property. The second correction
+  requires finite non-empty `[)` periods, changes Party/account lookups to lossless
+  left joins, validates reservation, segment, guest and folio reference coherence,
+  requires exactly one matching primary guest, and adds permanent hostile regressions
+  for both range bounds, empty/`(]` ranges, foreign reservation/guest/segment references
+  and a wrong-property folio account. Independent re-review is pending.
 - Product/test files: `src/contexts/reservations/detail.ts`, the reservations public
   index, and the focused integration proof only. No schema, migration, permission,
   route, runtime, UI, dependency, protected referee or financial mutation changed.
 - Fresh PostgreSQL focused proof:
   `YELLOW_REQUIRE_RESERVATION_DETAIL=1 YELLOW_RESERVATION_DETAIL_URL=... bun test
-  tests/reservation-detail.integration.test.ts` → 5 passed, 0 failed, 38 assertions.
+  tests/reservation-detail.integration.test.ts` → 5 passed, 0 failed, 48 assertions.
 - Standing gate: frozen install unchanged; typecheck green; 64-file import boundary
   gate green; `bun test` 150 passed, 397 skipped, 0 failed, 1,832 assertions; licence
   policy passed for 23 installed packages; audit found no vulnerabilities; schema
   matches `tests/schema/expected.sql`; fresh Windows DB-only setup applied all eleven
-  migrations to 85 tables and the protected referee passed 11/11.
+  migrations to 85 tables and the protected referee passed 11/11. After the second
+  correction, standing tests remained 150 passed/397 skipped/0 failed with 1,832
+  assertions, typecheck/64-file boundaries/licences/audit remained green, and a fresh
+  Windows DB-only setup again passed the protected referee 11/11.
 - The Unix wrapper stopped before assertions because Git Bash did not expose the
   installed Bun executable; the repository-equivalent PowerShell setup ran the full
   fresh-database proof. No assertion was weakened or called green from the stopped run.
