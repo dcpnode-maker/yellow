@@ -1,6 +1,6 @@
 # Order 126 — Bind occupancy SECURITY DEFINER callers to tenant authority
 
-**Status:** BUILT-UNREVIEWED — independent Tier-3 review required
+**Status:** APPROVED — D-391
 **Phase:** 5 · Cyber remediation
 **Branch:** `phase-5/occupancy-caller-tenant-binding-approved-final`
 **Base:** `3e387eb6139621354cd7bc5e87370aee0f312b92` — independently approved
@@ -288,6 +288,7 @@ authorize merge, push, deployment or Cyber closure.
 - [x] P0 is freshly reproduced on exact approved Base.
 - [x] Builder P1–P4 pass on immutable executable
       `16b48bdfb559dcc9ce0a417a427f3cc5b5d6b1fb`.
-- [ ] Independent non-implementing Tier-3 review approves that exact SHA.
-- [ ] Only `occ_2f4ca8c2e6f1d7352ba849c8` is then eligible for discharge; every sibling
+- [x] Independent non-implementing Tier-3 review approves exact executable
+      `16b48bdfb559dcc9ce0a417a427f3cc5b5d6b1fb` under D-391.
+- [x] Only `occ_2f4ca8c2e6f1d7352ba849c8` is discharged; every sibling
       finding remains outside scope.
