@@ -291,7 +291,7 @@ AS $runtime_resolve_active_tenant$
 $runtime_resolve_active_tenant$;
 
 CREATE FUNCTION public.runtime_due_hold_scopes(p_limit integer)
-RETURNS TABLE(tenant_id uuid, property_node ltree)
+RETURNS TABLE(tenant_id uuid, property_node uuid)
 LANGUAGE plpgsql
 STABLE
 SECURITY DEFINER

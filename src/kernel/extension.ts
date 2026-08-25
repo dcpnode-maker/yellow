@@ -266,8 +266,24 @@ export class ExtensionRegistry {
     const definitionIssues = schemaDefinitionIssues(input.jsonSchema);
     if (definitionIssues.length > 0) throw new ExtensionValidationError(definitionIssues);
     return await withTenantRole(this.#platformPool, input.envelope.tenantId, async (connection) => {
+      const inserted = await connection<Array<{ json_schema: JsonObject }>>`
+        INSERT INTO extension_type (type, json_schema)
+        VALUES (${input.type}, ${JSON.stringify(input.jsonSchema)}::text::jsonb)
+        ON CONFLICT (type) DO NOTHING
+        RETURNING json_schema
+      `;
+      if (inserted[0]) {
+        await recordFact(connection, {
+          entityType: "extension_type",
+          entityId: await extensionTypeSubjectId(input.type),
+          envelope: input.envelope,
+          payload: { type: input.type, json_schema: input.jsonSchema },
+        });
+        return "inserted";
+      }
+
       const existing = await connection<Array<{ json_schema: JsonObject }>>`
-        SELECT json_schema FROM extension_type WHERE type = ${input.type} FOR UPDATE
+        SELECT json_schema FROM extension_type WHERE type = ${input.type}
       `;
       if (existing[0]) {
         if (!sameJson(existing[0].json_schema, input.jsonSchema)) {
@@ -275,17 +291,7 @@ export class ExtensionRegistry {
         }
         return "already exact";
       }
-      await connection`
-        INSERT INTO extension_type (type, json_schema)
-        VALUES (${input.type}, ${JSON.stringify(input.jsonSchema)}::text::jsonb)
-      `;
-      await recordFact(connection, {
-        entityType: "extension_type",
-        entityId: await extensionTypeSubjectId(input.type),
-        envelope: input.envelope,
-        payload: { type: input.type, json_schema: input.jsonSchema },
-      });
-      return "inserted";
+      throw new Error(`extension type ${input.type} was not visible after registration conflict`);
     });
   }
 

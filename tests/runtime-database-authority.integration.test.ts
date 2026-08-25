@@ -349,6 +349,10 @@ databaseDescribe("Order 127 runtime database authority (kernel boundary; HTTP P4
       "runtime_visible_extensions(uuid)",
     ]);
     expect(capabilities.every((row) => row.owner === "yellow_owner" && !row.public_execute && !row.app_execute && row.runtime_execute && JSON.stringify(row.config) === JSON.stringify(["search_path=pg_catalog, public, pg_temp"]))).toBe(true);
+    const dueScopeResult = await admin!<{ result: string }[]>`
+      SELECT pg_catalog.pg_get_function_result('public.runtime_due_hold_scopes(integer)'::regprocedure) AS result
+    `;
+    expect(dueScopeResult).toEqual([{ result: "TABLE(tenant_id uuid, property_node uuid)" }]);
 
     const rls = await admin!<{ tables: number; enabled: number; forced: number; policies: number }[]>`
       SELECT count(*) FILTER (WHERE c.relkind IN ('r','p'))::int AS tables,
