@@ -126,6 +126,11 @@ interface ReservationRow {
   readonly cancelled_at: string | null;
   readonly cancel_reason: string | null;
   readonly cancellation_no: string | null;
+  readonly visible_property_id: string | null;
+  readonly visible_primary_party_id: string | null;
+  readonly visible_booker_party_id: string | null;
+  readonly visible_group_id: string | null;
+  readonly visible_guarantee_policy_id: string | null;
 }
 
 interface SegmentRow {
@@ -133,20 +138,29 @@ interface SegmentRow {
   readonly seq: number;
   readonly unit_type_id: string;
   readonly sellable_unit_id: string | null;
-  readonly from_at: string;
-  readonly to_at: string;
+  readonly from_at: string | null;
+  readonly to_at: string | null;
   readonly adults: number;
   readonly children: JsonValue;
   readonly rate_plan_id: string;
   readonly price_override: JsonValue | null;
   readonly status: string;
+  readonly period_nonempty: boolean;
+  readonly period_lower_inclusive: boolean;
+  readonly period_upper_inclusive: boolean;
+  readonly period_lower_finite: boolean;
+  readonly period_upper_finite: boolean;
+  readonly visible_unit_type_id: string | null;
+  readonly visible_sellable_unit_id: string | null;
+  readonly visible_rate_plan_id: string | null;
 }
 
 interface GuestRow {
   readonly party_id: string;
-  readonly display_name: string;
+  readonly display_name: string | null;
   readonly role: string;
   readonly share_pct: string | null;
+  readonly visible_party_id: string | null;
 }
 
 interface FolioRow {
@@ -156,6 +170,8 @@ interface FolioRow {
   readonly window_no: number;
   readonly name: string | null;
   readonly status: string;
+  readonly visible_account_id: string | null;
+  readonly account_property_node: string | null;
 }
 
 interface AlertRow {
@@ -257,6 +273,19 @@ function requireStoredRequiredInstant(name: string, value: string | null): strin
   return instant;
 }
 
+function requireCoherentReference(name: string, stored: string | null, visible: string | null): void {
+  if (stored !== visible) {
+    throw new ReservationDetailConflictError(`Stored ${name} reference is incoherent`);
+  }
+}
+
+function requireCanonicalSegmentPeriod(segment: SegmentRow): void {
+  if (!segment.period_nonempty || !segment.period_lower_finite || !segment.period_upper_finite ||
+      !segment.period_lower_inclusive || segment.period_upper_inclusive) {
+    throw new ReservationDetailConflictError("Stored segment period must be a finite, non-empty [) range");
+  }
+}
+
 function freezeJson(value: JsonValue): JsonValue {
   if (Array.isArray(value)) {
     return Object.freeze(value.map((item) => freezeJson(item)));
@@ -334,36 +363,82 @@ export class ReservationDetailService {
     }
 
     const reservations = await tx<ReservationRow[]>`
-      SELECT id, confirmation_no, status, primary_party, booker_party, group_id,
-             channel_code, market_code, source_code, origin_code, currency,
-             guarantee_policy, eta::text AS eta, etd::text AS etd, notes,
-             to_char(created_at AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"') AS created_at,
-             CASE WHEN cancelled_at IS NULL THEN NULL ELSE
-               to_char(cancelled_at AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"') END AS cancelled_at,
-             cancel_reason, cancellation_no
+      SELECT reservation.id, reservation.confirmation_no, reservation.status,
+             reservation.primary_party, reservation.booker_party, reservation.group_id,
+             reservation.channel_code, reservation.market_code, reservation.source_code,
+             reservation.origin_code, reservation.currency, reservation.guarantee_policy,
+             reservation.eta::text AS eta, reservation.etd::text AS etd, reservation.notes,
+             to_char(reservation.created_at AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"') AS created_at,
+             CASE WHEN reservation.cancelled_at IS NULL THEN NULL ELSE
+               to_char(reservation.cancelled_at AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"') END AS cancelled_at,
+             reservation.cancel_reason, reservation.cancellation_no,
+             property.id AS visible_property_id,
+             primary_party.id AS visible_primary_party_id,
+             booker_party.id AS visible_booker_party_id,
+             reservation_group.id AS visible_group_id,
+             guarantee_policy.id AS visible_guarantee_policy_id
       FROM reservation
-      WHERE tenant_id = ${tenantId}::uuid
-        AND tenant_id = current_setting('app.tenant_id', true)::uuid
-        AND property_node = ${propertyNode}::uuid
-        AND confirmation_no = ${input.confirmationNo}
+      LEFT JOIN org_node AS property
+        ON property.tenant_id = reservation.tenant_id
+       AND property.id = reservation.property_node
+       AND property.kind = 'property'
+      LEFT JOIN party AS primary_party
+        ON primary_party.tenant_id = reservation.tenant_id
+       AND primary_party.id = reservation.primary_party
+      LEFT JOIN party AS booker_party
+        ON booker_party.tenant_id = reservation.tenant_id
+       AND booker_party.id = reservation.booker_party
+      LEFT JOIN reservation_group
+        ON reservation_group.tenant_id = reservation.tenant_id
+       AND reservation_group.id = reservation.group_id
+       AND reservation_group.property_node = reservation.property_node
+      LEFT JOIN policy AS guarantee_policy
+        ON guarantee_policy.tenant_id = reservation.tenant_id
+       AND guarantee_policy.id = reservation.guarantee_policy
+       AND guarantee_policy.kind = 'guarantee'
+      WHERE reservation.tenant_id = ${tenantId}::uuid
+        AND reservation.tenant_id = current_setting('app.tenant_id', true)::uuid
+        AND reservation.property_node = ${propertyNode}::uuid
+        AND reservation.confirmation_no = ${input.confirmationNo}
     `;
     const reservation = reservations[0];
     if (!reservation) throw new ReservationDetailNotFoundError("Reservation was not found in the property");
 
     const segments = await tx<SegmentRow[]>`
-      SELECT id, seq, unit_type_id, sellable_unit_id,
-             to_char(lower(period) AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"') AS from_at,
-             to_char(upper(period) AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"') AS to_at,
-             adults, children, rate_plan_id, price_override, status
-      FROM reservation_segment
-      WHERE tenant_id = ${tenantId}::uuid
-        AND reservation_id = ${reservation.id}::uuid
-      ORDER BY seq, id
+      SELECT segment.id, segment.seq, segment.unit_type_id, segment.sellable_unit_id,
+             to_char(lower(segment.period) AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"') AS from_at,
+             to_char(upper(segment.period) AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"') AS to_at,
+             segment.adults, segment.children, segment.rate_plan_id, segment.price_override, segment.status,
+             NOT isempty(segment.period) AS period_nonempty,
+             lower_inc(segment.period) AS period_lower_inclusive,
+             upper_inc(segment.period) AS period_upper_inclusive,
+             NOT lower_inf(segment.period) AS period_lower_finite,
+             NOT upper_inf(segment.period) AS period_upper_finite,
+             unit_type.id AS visible_unit_type_id,
+             sellable_unit.id AS visible_sellable_unit_id,
+             rate_plan.id AS visible_rate_plan_id
+      FROM reservation_segment AS segment
+      LEFT JOIN unit_type
+        ON unit_type.tenant_id = segment.tenant_id
+       AND unit_type.id = segment.unit_type_id
+       AND unit_type.property_node = ${propertyNode}::uuid
+      LEFT JOIN sellable_unit
+        ON sellable_unit.tenant_id = segment.tenant_id
+       AND sellable_unit.id = segment.sellable_unit_id
+       AND sellable_unit.unit_type_id = segment.unit_type_id
+      LEFT JOIN rate_plan
+        ON rate_plan.tenant_id = segment.tenant_id
+       AND rate_plan.id = segment.rate_plan_id
+       AND rate_plan.property_node = ${propertyNode}::uuid
+      WHERE segment.tenant_id = ${tenantId}::uuid
+        AND segment.reservation_id = ${reservation.id}::uuid
+      ORDER BY segment.seq, segment.id
     `;
     const guests = await tx<GuestRow[]>`
-      SELECT guest.party_id, party.display_name, guest.role, guest.share_pct::text
+      SELECT guest.party_id, party.display_name, guest.role, guest.share_pct::text,
+             party.id AS visible_party_id
       FROM reservation_guest AS guest
-      JOIN party
+      LEFT JOIN party
         ON party.tenant_id = guest.tenant_id
        AND party.id = guest.party_id
       WHERE guest.tenant_id = ${tenantId}::uuid
@@ -372,14 +447,14 @@ export class ReservationDetailService {
                guest.party_id
     `;
     const folios = await tx<FolioRow[]>`
-      SELECT folio.id, folio.account_id, folio.folio_no, folio.window_no, folio.name, folio.status
+      SELECT folio.id, folio.account_id, folio.folio_no, folio.window_no, folio.name, folio.status,
+             account.id AS visible_account_id, account.property_node AS account_property_node
       FROM folio
-      JOIN account
+      LEFT JOIN account
         ON account.tenant_id = folio.tenant_id
        AND account.id = folio.account_id
       WHERE folio.tenant_id = ${tenantId}::uuid
         AND folio.reservation_id = ${reservation.id}::uuid
-        AND (account.property_node IS NULL OR account.property_node = ${propertyNode}::uuid)
       ORDER BY folio.window_no, folio.id
     `;
     const alerts = await tx<AlertRow[]>`
@@ -425,6 +500,41 @@ export class ReservationDetailService {
       ORDER BY fact.recorded_at, fact.id
     `;
 
+    requireCoherentReference("reservation property", propertyNode, reservation.visible_property_id);
+    requireCoherentReference("reservation primary Party", reservation.primary_party,
+      reservation.visible_primary_party_id);
+    requireCoherentReference("reservation booker Party", reservation.booker_party,
+      reservation.visible_booker_party_id);
+    requireCoherentReference("reservation group", reservation.group_id, reservation.visible_group_id);
+    requireCoherentReference("reservation guarantee policy", reservation.guarantee_policy,
+      reservation.visible_guarantee_policy_id);
+
+    for (const segment of segments) {
+      requireCanonicalSegmentPeriod(segment);
+      requireCoherentReference("segment unit type", segment.unit_type_id, segment.visible_unit_type_id);
+      requireCoherentReference("segment sellable unit", segment.sellable_unit_id,
+        segment.visible_sellable_unit_id);
+      requireCoherentReference("segment rate plan", segment.rate_plan_id, segment.visible_rate_plan_id);
+    }
+    for (const guest of guests) {
+      requireCoherentReference("reservation guest Party", guest.party_id, guest.visible_party_id);
+      if (guest.display_name === null) {
+        throw new ReservationDetailConflictError("Stored reservation guest Party is missing");
+      }
+    }
+    const primaryGuests = guests.filter((guest) => guest.role === "primary" &&
+      guest.party_id === reservation.primary_party);
+    if (primaryGuests.length !== 1 || guests.some((guest) =>
+      guest.role === "primary" && guest.party_id !== reservation.primary_party)) {
+      throw new ReservationDetailConflictError("Stored reservation primary guest membership is incoherent");
+    }
+    for (const folio of folios) {
+      requireCoherentReference("folio account", folio.account_id, folio.visible_account_id);
+      if (folio.account_property_node !== null && folio.account_property_node !== propertyNode) {
+        throw new ReservationDetailConflictError("Stored folio account property is incoherent");
+      }
+    }
+
     return Object.freeze({
       reservationId: requireStoredUuid("reservation id", reservation.id)!,
       confirmationNo: reservation.confirmation_no,
@@ -462,7 +572,7 @@ export class ReservationDetailService {
       }))),
       guests: Object.freeze(guests.map((guest) => Object.freeze({
         partyId: requireStoredUuid("guest Party id", guest.party_id)!,
-        displayName: guest.display_name,
+        displayName: guest.display_name!,
         role: guestRole(guest.role),
         sharePct: guest.share_pct,
       }))),

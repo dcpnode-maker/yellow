@@ -259,7 +259,45 @@ databaseDescribe("Order 141 fresh-PostgreSQL reservation detail proof", () => {
       SET period=tstzrange(NULL,'2026-08-27T06:30:00Z','()') WHERE id=${SEGMENT_A1}::uuid`;
     await expect(find()).rejects.toBeInstanceOf(ReservationDetailConflictError);
     await admin!`UPDATE reservation_segment
+      SET period=tstzrange('2026-08-25T06:30:00Z',NULL,'[)') WHERE id=${SEGMENT_A1}::uuid`;
+    await expect(find()).rejects.toBeInstanceOf(ReservationDetailConflictError);
+    await admin!`UPDATE reservation_segment SET period='empty'::tstzrange WHERE id=${SEGMENT_A1}::uuid`;
+    await expect(find()).rejects.toBeInstanceOf(ReservationDetailConflictError);
+    await admin!`UPDATE reservation_segment
+      SET period=tstzrange('2026-08-25T06:30:00Z','2026-08-27T06:30:00Z','(]') WHERE id=${SEGMENT_A1}::uuid`;
+    await expect(find()).rejects.toBeInstanceOf(ReservationDetailConflictError);
+    await admin!`UPDATE reservation_segment
       SET period=tstzrange('2026-08-25T06:30:00Z','2026-08-27T06:30:00Z','[)') WHERE id=${SEGMENT_A1}::uuid`;
+
+    await admin!`UPDATE reservation SET primary_party=${PRIMARY_B}::uuid WHERE id=${RESERVATION_A}::uuid`;
+    await expect(find()).rejects.toBeInstanceOf(ReservationDetailConflictError);
+    await admin!`UPDATE reservation SET primary_party=${PRIMARY_A}::uuid WHERE id=${RESERVATION_A}::uuid`;
+
+    await admin!`UPDATE reservation SET booker_party=${PRIMARY_B}::uuid WHERE id=${RESERVATION_A}::uuid`;
+    await expect(find()).rejects.toBeInstanceOf(ReservationDetailConflictError);
+    await admin!`UPDATE reservation SET booker_party=${ACCOMPANYING_A}::uuid WHERE id=${RESERVATION_A}::uuid`;
+
+    await admin!`UPDATE reservation SET property_node=${PROPERTY_B}::uuid WHERE id=${RESERVATION_A}::uuid`;
+    await expect(find(input({ propertyNode: PROPERTY_B }))).rejects.toBeInstanceOf(ReservationDetailConflictError);
+    await admin!`UPDATE reservation SET property_node=${PROPERTY_A}::uuid WHERE id=${RESERVATION_A}::uuid`;
+
+    await admin!`UPDATE reservation_guest SET party_id=${PRIMARY_B}::uuid
+      WHERE tenant_id=${TENANT_A}::uuid AND reservation_id=${RESERVATION_A}::uuid AND party_id=${PRIMARY_A}::uuid`;
+    await expect(find()).rejects.toBeInstanceOf(ReservationDetailConflictError);
+    await admin!`UPDATE reservation_guest SET party_id=${PRIMARY_A}::uuid
+      WHERE tenant_id=${TENANT_A}::uuid AND reservation_id=${RESERVATION_A}::uuid AND party_id=${PRIMARY_B}::uuid`;
+
+    await admin!`UPDATE reservation_segment SET unit_type_id=${UNIT_B}::uuid WHERE id=${SEGMENT_A1}::uuid`;
+    await expect(find()).rejects.toBeInstanceOf(ReservationDetailConflictError);
+    await admin!`UPDATE reservation_segment SET unit_type_id=${UNIT_A}::uuid WHERE id=${SEGMENT_A1}::uuid`;
+
+    await admin!`UPDATE reservation_segment SET rate_plan_id=${RATE_B}::uuid WHERE id=${SEGMENT_A1}::uuid`;
+    await expect(find()).rejects.toBeInstanceOf(ReservationDetailConflictError);
+    await admin!`UPDATE reservation_segment SET rate_plan_id=${RATE_A}::uuid WHERE id=${SEGMENT_A1}::uuid`;
+
+    await admin!`UPDATE account SET property_node=${PROPERTY_A2}::uuid WHERE id=${ACCOUNT_A}::uuid`;
+    await expect(find()).rejects.toBeInstanceOf(ReservationDetailConflictError);
+    await admin!`UPDATE account SET property_node=${PROPERTY_A}::uuid WHERE id=${ACCOUNT_A}::uuid`;
 
     const tenantBVisible = await database!.withTenantTransaction(TENANT_B, async (tx) => ({
       parties: (await tx<Array<{ n: number }>>`SELECT count(*)::int n FROM party WHERE tenant_id=${TENANT_A}::uuid`)[0]!.n,
