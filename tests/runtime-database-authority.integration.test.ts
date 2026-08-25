@@ -465,16 +465,26 @@ databaseDescribe("Order 127 runtime database authority (kernel boundary; HTTP P4
     expect(await captureSqlState(() => direct`SELECT public.runtime_extension_compatibility_inputs('')`)).toBe("22023");
     expect(await captureSqlState(() => direct`SELECT public.runtime_visible_extensions(NULL::uuid)`)).toBe("22023");
     expect(await captureSqlState(() => direct`SELECT public.runtime_extension_compatibility_inputs(repeat('a', 65))`)).toBe("22023");
-      const visibleA = await direct<{ key: string }[]>`
-        SELECT key FROM public.runtime_visible_extensions(${tenantA}::uuid)
-       ORDER BY key
+      const expectedVisibleA = await admin!<{ id: string }[]>`
+        SELECT id FROM public.extension
+         WHERE tenant_id IS NULL OR tenant_id = ${tenantA}::uuid
+         ORDER BY id
       `;
-      const visibleB = await direct<{ key: string }[]>`
-        SELECT key FROM public.runtime_visible_extensions(${tenantB}::uuid)
-       ORDER BY key
+      const expectedVisibleB = await admin!<{ id: string }[]>`
+        SELECT id FROM public.extension
+         WHERE tenant_id IS NULL OR tenant_id = ${tenantB}::uuid
+         ORDER BY id
       `;
-      expect(visibleA).toEqual([{ key: "global" }, { key: "tenant-a" }]);
-      expect(visibleB).toEqual([{ key: "global" }, { key: "tenant-b" }]);
+      const visibleA = await direct<{ id: string }[]>`
+        SELECT id FROM public.runtime_visible_extensions(${tenantA}::uuid)
+         ORDER BY id
+      `;
+      const visibleB = await direct<{ id: string }[]>`
+        SELECT id FROM public.runtime_visible_extensions(${tenantB}::uuid)
+         ORDER BY id
+      `;
+      expect(visibleA).toEqual(expectedVisibleA);
+      expect(visibleB).toEqual(expectedVisibleB);
       const compatibility = await direct<{ id: string }[]>`
         SELECT id FROM public.runtime_extension_compatibility_inputs(${extensionType}) ORDER BY id
       `;
