@@ -28,6 +28,7 @@ const RUNTIME_URL = process.env.YELLOW_FOUNDER_RESERVATION_JOURNEY_RUNTIME_URL ?
 const PASSWORD = process.env.YELLOW_FOUNDER_RESERVATION_JOURNEY_PASSWORD;
 const APPROVER_PASSWORD = process.env.YELLOW_FOUNDER_RESERVATION_JOURNEY_APPROVER_PASSWORD;
 const REQUIRE_DATABASE = process.env.YELLOW_REQUIRE_FOUNDER_RESERVATION_JOURNEY === "1";
+const EXPECTATION = process.env.YELLOW_FOUNDER_RESERVATION_JOURNEY_EXPECTATION;
 const SECRET = "yellow-order-160-founder-journey-secret-exactly-long-enough";
 const FOREIGN_PROPERTY = "00000000-0000-0000-0000-000000016011";
 const FOREIGN_USER = "00000000-0000-0000-0000-000000016021";
@@ -35,22 +36,29 @@ const FOREIGN_USER = "00000000-0000-0000-0000-000000016021";
 if (REQUIRE_DATABASE && (!DEPLOY_URL || !RUNTIME_URL || !PASSWORD || !APPROVER_PASSWORD)) {
   throw new Error("Order 160 requires distinct deploy/runtime URLs and both local-review passwords");
 }
+if (REQUIRE_DATABASE && EXPECTATION !== "base-denied" && EXPECTATION !== "candidate-success") {
+  throw new Error("Order 160 requires an explicit base-denied or candidate-success expectation");
+}
 if (REQUIRE_DATABASE && DEPLOY_URL === RUNTIME_URL) {
   throw new Error("Order 160 refuses one shared deployment/runtime database authority URL");
 }
 
-const databaseDescribe = DEPLOY_URL && RUNTIME_URL && PASSWORD && APPROVER_PASSWORD
+const databaseDescribe = DEPLOY_URL && RUNTIME_URL && PASSWORD && APPROVER_PASSWORD &&
+  (EXPECTATION === "base-denied" || EXPECTATION === "candidate-success")
   ? describe.serial
   : describe.skip;
 const runTag = crypto.randomUUID().slice(0, 8);
 const displayName = `Order 160 Founder Guest ${runTag}`;
 const email = `founder-${runTag}@order160.test`;
+const phone = "+919876540160";
+const whatsapp = "+919876550160";
 const partyKey = `order160-party-${runTag}`;
 const holdKey = `order160-hold-${runTag}`;
 const commitKey = `order160-commit-${runTag}`;
 const partyCorrelation = crypto.randomUUID();
 const holdCorrelation = crypto.randomUUID();
 const commitCorrelation = crypto.randomUUID();
+const rawSensitiveValues = Object.freeze([displayName, email, phone, whatsapp]);
 
 let admin: SQL;
 let loginPool: SQL;
@@ -83,12 +91,26 @@ async function counts(): Promise<Record<string, number>> {
       (SELECT count(*)::int FROM folio WHERE tenant_id=${SEED_TENANT.id}::uuid) AS folios,
       (SELECT count(*)::int FROM journal WHERE tenant_id=${SEED_TENANT.id}::uuid) AS journals,
       (SELECT count(*)::int FROM posting_line WHERE tenant_id=${SEED_TENANT.id}::uuid) AS postings,
+      (SELECT count(*)::int FROM payment_instrument WHERE tenant_id=${SEED_TENANT.id}::uuid) AS payment_instruments,
       (SELECT count(*)::int FROM payment WHERE tenant_id=${SEED_TENANT.id}::uuid) AS payments,
       (SELECT count(*)::int FROM document_series WHERE tenant_id=${SEED_TENANT.id}::uuid) AS document_series,
-      (SELECT count(*)::int FROM document WHERE tenant_id=${SEED_TENANT.id}::uuid) AS documents
+      (SELECT count(*)::int FROM document WHERE tenant_id=${SEED_TENANT.id}::uuid) AS documents,
+      (SELECT count(*)::int FROM fiscal_submission WHERE tenant_id=${SEED_TENANT.id}::uuid) AS fiscal_submissions
   `;
   if (!rows[0]) throw new Error("financial artifact count returned no row");
   return rows[0];
+}
+
+async function serializedEvidence(): Promise<string> {
+  const rows = await admin<Array<{ stored: string }>>`
+    SELECT payload::text AS stored FROM fact_log WHERE tenant_id=${SEED_TENANT.id}::uuid
+    UNION ALL
+    SELECT payload::text AS stored FROM outbox WHERE tenant_id=${SEED_TENANT.id}::uuid
+    UNION ALL
+    SELECT to_jsonb(api_idempotency)::text AS stored FROM api_idempotency
+      WHERE tenant_id=${SEED_TENANT.id}::uuid
+  `;
+  return rows.map(({ stored }) => stored).join(" ");
 }
 
 beforeAll(async () => {
@@ -101,9 +123,9 @@ beforeAll(async () => {
     logger: () => undefined,
   });
   admin = new SQL(DEPLOY_URL, { max: 4 });
-  loginPool = new SQL(RUNTIME_URL, { max: 4 });
+  loginPool = new SQL(RUNTIME_URL, { max: 4, prepare: false });
   eventPool = new SQL(RUNTIME_URL, { max: 4, prepare: false });
-  extensionPool = new SQL(RUNTIME_URL, { max: 4 });
+  extensionPool = new SQL(RUNTIME_URL, { max: 4, prepare: false });
   database = Database.connect(RUNTIME_URL, { maxConnections: 12, prepare: false });
   tokens = new Hs256TokenSigner(SECRET);
 
@@ -189,9 +211,9 @@ beforeAll(async () => {
   const verified = await tokens.verify(accessToken);
   const verifiedScopes = verified?.scp.split(" ") ?? [];
   expect(verifiedScopes).toEqual(REVIEW_PERMISSIONS.map(({ code }) => code).sort());
-  expect(verifiedScopes.filter((scope) => scope === "reservations.booking:write")).toEqual([
-    "reservations.booking:write",
-  ]);
+  expect(verifiedScopes.filter((scope) => scope === "reservations.booking:write")).toEqual(
+    EXPECTATION === "candidate-success" ? ["reservations.booking:write"] : [],
+  );
   const properties = await call("/api/v1/me/properties", { headers: headers() });
   expect(properties.status).toBe(200);
   expect((await properties.json() as { properties: Array<{ id: string }> }).properties.map(({ id }) => id)).toEqual([
@@ -231,7 +253,11 @@ databaseDescribe("Order 160 founder reservation journey through runtime authorit
       displayName,
       legalName: null,
       roles: ["guest"],
-      contacts: [{ kind: "email", value: email, isPrimary: true }],
+      contacts: [
+        { kind: "email", value: email, isPrimary: true },
+        { kind: "phone", value: phone },
+        { kind: "whatsapp", value: whatsapp },
+      ],
       acknowledgedDuplicatePartyIds: [],
     };
     const partyResponse = await call(`/api/v1/properties/${SEED_PROPERTY.id}/parties`, {
@@ -335,6 +361,41 @@ databaseDescribe("Order 160 founder reservation journey through runtime authorit
       FROM hold WHERE id=${hold.id}::uuid
     `;
     expect(deniedAfter).toEqual(deniedBefore);
+
+    if (EXPECTATION === "base-denied") {
+      const baseCommit = await call("/api/v1/reservations:commit", {
+        method: "POST", headers: headers(accessToken, commitKey, commitCorrelation), body: JSON.stringify(commitInput),
+      });
+      expect(baseCommit.status).toBe(403);
+      expect(await baseCommit.json()).toMatchObject({ type: "auth/scope_missing" });
+      const baseAfter = await admin<Array<{
+        hold_status: string;
+        hold_claims: number;
+        reservations: number;
+        reservation_claims: number;
+      }>>`
+        SELECT status AS hold_status,
+          (SELECT count(*)::int FROM space_occupancy
+            WHERE slot_ref=${hold.id}::uuid AND slot_kind='hold') AS hold_claims,
+          (SELECT count(*)::int FROM reservation WHERE tenant_id=${SEED_TENANT.id}::uuid) AS reservations,
+          (SELECT count(*)::int FROM api_idempotency WHERE tenant_id=${SEED_TENANT.id}::uuid
+            AND operation='reservation.commit') AS reservation_claims
+        FROM hold WHERE id=${hold.id}::uuid
+      `;
+      expect(baseAfter[0]).toEqual({
+        hold_status: "active",
+        hold_claims: 1,
+        reservations: 0,
+        reservation_claims: 0,
+      });
+      expect(await counts()).toEqual(financialBefore);
+      const baseEvidence = await serializedEvidence();
+      for (const sensitive of [...rawSensitiveValues, partyKey, holdKey, commitKey]) {
+        expect(baseEvidence).not.toContain(sensitive);
+      }
+      return;
+    }
+    expect(EXPECTATION).toBe("candidate-success");
 
     const committed = await call("/api/v1/reservations:commit", {
       method: "POST", headers: headers(accessToken, commitKey, commitCorrelation), body: JSON.stringify(commitInput),
@@ -456,34 +517,52 @@ databaseDescribe("Order 160 founder reservation journey through runtime authorit
       response_status: number;
       complete: boolean;
       lifetime_seconds: number;
+      same_instant: boolean;
+      key_hash: string;
+      request_hash: string;
+      response_body: Record<string, any>;
       stored: string;
     }>>`
       SELECT operation, response_status,
         completed_at IS NOT NULL AS complete,
         extract(epoch FROM expires_at-created_at)::int AS lifetime_seconds,
+        completed_at=created_at AS same_instant,
+        key_hash, request_hash, response_body,
         to_jsonb(api_idempotency)::text AS stored
       FROM api_idempotency
       WHERE tenant_id=${SEED_TENANT.id}::uuid AND operation IN (
         'profiles.party.create', 'operator.inventory.holds.place', 'reservation.commit')
       ORDER BY operation
     `;
-    expect(evidence.map(({ operation, response_status, complete, lifetime_seconds }) => ({
-      operation, response_status, complete, lifetime_seconds,
+    expect(evidence.map(({ operation, response_status, complete, lifetime_seconds, same_instant }) => ({
+      operation, response_status, complete, lifetime_seconds, same_instant,
     }))).toEqual([
-      { operation: "operator.inventory.holds.place", response_status: 201, complete: true, lifetime_seconds: 86_400 },
-      { operation: "profiles.party.create", response_status: 201, complete: true, lifetime_seconds: 86_400 },
-      { operation: "reservation.commit", response_status: 201, complete: true, lifetime_seconds: 86_400 },
+      { operation: "operator.inventory.holds.place", response_status: 201, complete: true,
+        lifetime_seconds: 86_400, same_instant: true },
+      { operation: "profiles.party.create", response_status: 201, complete: true,
+        lifetime_seconds: 86_400, same_instant: true },
+      { operation: "reservation.commit", response_status: 201, complete: true,
+        lifetime_seconds: 86_400, same_instant: true },
     ]);
+    for (const row of evidence) {
+      expect(row.key_hash).toMatch(/^[0-9a-f]{64}$/);
+      expect(row.request_hash).toMatch(/^[0-9a-f]{64}$/);
+      expect(row.response_body).toBeTruthy();
+    }
+    expect(evidence.find(({ operation }) => operation === "profiles.party.create")?.response_body)
+      .toMatchObject({ partyId: party.partyId });
+    expect(evidence.find(({ operation }) => operation === "operator.inventory.holds.place")?.response_body)
+      .toMatchObject({ hold: { id: hold.id, status: "active" } });
+    expect(evidence.find(({ operation }) => operation === "reservation.commit")?.response_body)
+      .toMatchObject({ reservationId: reservation.reservationId, holdId: hold.id, status: "reserved" });
     const evidenceText = evidence.map(({ stored }) => stored).join(" ");
-    for (const sensitive of [partyKey, holdKey, commitKey, email]) expect(evidenceText).not.toContain(sensitive);
-    expect(evidenceText).not.toContain("founder-");
-
-    const privateEvidence = await admin<Array<{ stored: string }>>`
-      SELECT payload::text AS stored FROM fact_log WHERE tenant_id=${SEED_TENANT.id}::uuid
-      UNION ALL
-      SELECT payload::text AS stored FROM outbox WHERE tenant_id=${SEED_TENANT.id}::uuid
-    `;
-    expect(privateEvidence.map(({ stored }) => stored).join(" ")).not.toContain(email);
+    for (const sensitive of [...rawSensitiveValues, partyKey, holdKey, commitKey]) {
+      expect(evidenceText).not.toContain(sensitive);
+    }
+    const privateEvidence = await serializedEvidence();
+    for (const sensitive of [...rawSensitiveValues, partyKey, holdKey, commitKey]) {
+      expect(privateEvidence).not.toContain(sensitive);
+    }
     expect(await counts()).toEqual(financialBefore);
     const financialLink = await admin<Array<{ folios: number }>>`
       SELECT count(*)::int AS folios FROM folio WHERE reservation_id=${reservation.reservationId}::uuid
