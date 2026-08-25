@@ -18,6 +18,10 @@ const CONSUMERS = [
   "order-023-concurrent",
   "order-023-backlog",
   "order-023-prune",
+  "order-023-canary-cursor",
+  "order-023-canary-unpublished",
+  "order-023-canary-cursor-rollback",
+  "order-023-canary-unpublished-rollback",
 ] as const;
 
 if (REQUIRE_DATABASE && (!DEPLOY_DATABASE_URL || !RUNTIME_DATABASE_URL)) {
@@ -82,6 +86,15 @@ async function drain(relay: OutboxRelay, handler: Parameters<OutboxRelay["drainO
     if (batch.examined === 0) return examined;
   }
 }
+
+test("D398: migration exposes explicit cursor/unpublished branches", async () => {
+  const migration = await Bun.file(new URL("../migrations/0015_runtime_database_authority.sql", import.meta.url)).text();
+  expect(migration).toContain("p_unpublished boolean");
+  expect(migration).toContain("IF p_unpublished THEN");
+  expect(migration).toContain("o.published_at IS NULL");
+  expect(migration).toContain("o.seq > p_after");
+  expect(migration).toContain("ON CONFLICT (consumer, outbox_id) DO NOTHING");
+});
 
 beforeAll(async () => {
   if (!DEPLOY_DATABASE_URL || !RUNTIME_DATABASE_URL) return;
@@ -195,6 +208,61 @@ databaseDescribe("Order 023 crash-safe outbox relay", () => {
       WHERE id IN ${admin!(events.map(({ id }) => id))} AND published_at IS NOT NULL
     `;
     expect(published[0]?.count).toBe(12);
+  });
+
+  test("D398: set-wise marks and both consume paths preserve order, dedupe, and rollback", async () => {
+    const cursorEvents = (await insertEvents(4)).sort((left, right) => left.seq - right.seq);
+    await admin!`INSERT INTO consumer_processed (consumer, outbox_id) VALUES ('order-023-canary-cursor', ${cursorEvents[0]!.id}::uuid)`;
+    const cursorHandled: string[] = [];
+    const cursorResult = await bus!.consumeBatch("order-023-canary", async (event) => {
+      cursorHandled.push(event.id);
+    }, { limit: 10 });
+    expect(cursorResult).toMatchObject({ examined: 4, processed: 3, lastSeq: cursorEvents.at(-1)!.seq });
+    expect(cursorHandled).toEqual(cursorEvents.slice(1).map(({ id }) => id));
+    expect(await bus!.markPublished(cursorEvents.map(({ id }) => id))).toBe(4);
+
+    const unpublishedEvents = (await insertEvents(4)).sort((left, right) => left.seq - right.seq);
+    await admin!`INSERT INTO consumer_processed (consumer, outbox_id) VALUES ('order-023-canary-unpublished', ${unpublishedEvents[0]!.id}::uuid)`;
+    const unpublishedHandled: string[] = [];
+    const unpublishedResult = await bus!.consumeUnpublishedBatch("order-023-canary-unpublished", async (event) => {
+      unpublishedHandled.push(event.id);
+    }, { limit: 10 });
+    expect(unpublishedResult).toMatchObject({ examined: 4, processed: 3, lastSeq: unpublishedEvents.at(-1)!.seq });
+    expect(unpublishedResult.events.map(({ id }) => id)).toEqual(unpublishedEvents.map(({ id }) => id));
+    expect(unpublishedHandled).toEqual(unpublishedEvents.slice(1).map(({ id }) => id));
+
+    const marked = await bus!.markPublished([
+      unpublishedEvents[3]!.id,
+      unpublishedEvents[1]!.id,
+      unpublishedEvents[1]!.id,
+    ]);
+    expect(marked).toBe(2);
+    const publication = await admin!<{ id: string; published: boolean }[]>`
+      SELECT id, published_at IS NOT NULL AS published
+        FROM outbox
+       WHERE id IN (${unpublishedEvents[1]!.id}::uuid, ${unpublishedEvents[3]!.id}::uuid)
+       ORDER BY id
+    `;
+    expect(publication).toEqual([
+      { id: unpublishedEvents[1]!.id, published: true },
+      { id: unpublishedEvents[3]!.id, published: true },
+    ].sort((left, right) => left.id.localeCompare(right.id)));
+    expect(await bus!.markPublished(unpublishedEvents.map(({ id }) => id))).toBe(4);
+
+    const cursorRollbackEvents = (await insertEvents(2)).sort((left, right) => left.seq - right.seq);
+    await expect(bus!.consumeBatch("order-023-canary-cursor-rollback", async () => {
+      throw new Error("D398 cursor rollback");
+    }, { limit: 10 })).rejects.toThrow("D398 cursor rollback");
+    const cursorRetry = await bus!.consumeBatch("order-023-canary-cursor-rollback", async () => undefined, { limit: 10 });
+    expect(cursorRetry.processed).toBe(cursorRollbackEvents.length);
+    expect(await bus!.markPublished(cursorRollbackEvents.map(({ id }) => id))).toBe(cursorRollbackEvents.length);
+
+    const unpublishedRollbackEvents = (await insertEvents(2)).sort((left, right) => left.seq - right.seq);
+    await expect(bus!.consumeUnpublishedBatch("order-023-canary-unpublished-rollback", async () => {
+      throw new Error("D398 unpublished rollback");
+    }, { limit: 10 })).rejects.toThrow("D398 unpublished rollback");
+    const unpublishedRetry = await bus!.consumeUnpublishedBatch("order-023-canary-unpublished-rollback", async () => undefined, { limit: 10 });
+    expect(unpublishedRetry.processed).toBe(unpublishedRollbackEvents.length);
   });
 
   test("P4: polling starts every 100-250 ms while idle and under load", async () => {
