@@ -2,6 +2,7 @@ import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { randomUUID } from "node:crypto";
 import {
   mkdtemp,
+  readdir,
   readFile,
   rename,
   rm,
@@ -209,6 +210,19 @@ databaseDescribe("Bun SQL migration runner", () => {
     async () => {
       if (!RUNTIME_URL) return;
       await withDatabase(async ({ databaseName, databaseUrl: targetUrl, sql }) => {
+        const predecessorFiles = await readdir(PROJECT_MIGRATIONS);
+        const predecessor = Object.fromEntries(await Promise.all(
+          predecessorFiles
+            .filter((filename) => {
+              const version = Number(filename.slice(0, 4));
+              return filename.endsWith(".sql") && version >= 2 && version <= 14;
+            })
+            .map(async (filename) => [filename, await readFile(resolve(PROJECT_MIGRATIONS, filename))] as const),
+        ));
+        await withMigrationDirectory(predecessor, async (directory) => {
+          await runMigrations({ databaseUrl: targetUrl, migrationsDirectory: directory, logger: () => undefined });
+        });
+
         const runtimeTargetUrl = new URL(RUNTIME_URL);
         runtimeTargetUrl.pathname = `/${databaseName}`;
         const blocker = new SQL(runtimeTargetUrl.toString(), { max: 1 });
@@ -496,7 +510,7 @@ databaseDescribe("Bun SQL migration runner", () => {
           connection_limit: 0,
           password_is_null: true,
           safe_attributes: true,
-          memberships: 0,
+          memberships: 1,
         }]);
 
         const tableCount = await sql<{ count: number }[]>`
@@ -538,8 +552,8 @@ databaseDescribe("Bun SQL migration runner", () => {
           public_execute: boolean;
           app_execute: boolean;
         }>>`
-          SELECT pg_get_userbyid(p.proowner) = current_user AS owner_matches,
-                 has_function_privilege(current_user, p.oid, 'EXECUTE') AS owner_execute,
+          SELECT pg_get_userbyid(p.proowner) = 'yellow_owner' AS owner_matches,
+                 has_function_privilege('yellow_owner', p.oid, 'EXECUTE') AS owner_execute,
                  has_function_privilege('public', p.oid, 'EXECUTE') AS public_execute,
                  has_function_privilege('app_role', p.oid, 'EXECUTE') AS app_execute
             FROM pg_catalog.pg_proc AS p
