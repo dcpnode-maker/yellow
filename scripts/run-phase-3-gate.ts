@@ -169,6 +169,13 @@ export const PHASE_3_DATABASE_PROOFS: readonly Phase3DatabaseProof[] = Object.fr
     urlEnv: "YELLOW_RUNTIME_AUTHORITY_P0_URL",
     passwordEnv: null,
   },
+  {
+    databaseName: "yellow_ci_p5_runtime_dml_authority",
+    testFile: "tests/runtime-dml-authority.integration.test.ts",
+    requireEnv: "YELLOW_REQUIRE_RUNTIME_DML",
+    urlEnv: "YELLOW_RUNTIME_DML_URL",
+    passwordEnv: null,
+  },
 ]);
 
 const DATABASE_NAME = /^[a-z][a-z0-9_]{0,62}$/;

@@ -29,7 +29,7 @@ function fakeHarness(exitFor: (process: Phase3GateProcess) => number = () => 0) 
   return { events, harness };
 }
 
-describe("Orders 079/083/104/108/118/121/123/124/129 reproducible cumulative database proof runner", () => {
+describe("Orders 079/083/104/108/118/121/123/124/129/150 reproducible cumulative database proof runner", () => {
   test("P1: matrix pins every Phase-3 and inherited F11 database proof with exact environment mapping", () => {
     expect(PHASE_3_DATABASE_PROOFS).toEqual([
       {
@@ -172,8 +172,15 @@ describe("Orders 079/083/104/108/118/121/123/124/129 reproducible cumulative dat
         urlEnv: "YELLOW_RUNTIME_AUTHORITY_P0_URL",
         passwordEnv: null,
       },
+      {
+        databaseName: "yellow_ci_p5_runtime_dml_authority",
+        testFile: "tests/runtime-dml-authority.integration.test.ts",
+        requireEnv: "YELLOW_REQUIRE_RUNTIME_DML",
+        urlEnv: "YELLOW_RUNTIME_DML_URL",
+        passwordEnv: null,
+      },
     ]);
-    expect(new Set(PHASE_3_DATABASE_PROOFS.map(({ databaseName }) => databaseName)).size).toBe(20);
+    expect(new Set(PHASE_3_DATABASE_PROOFS.map(({ databaseName }) => databaseName)).size).toBe(21);
   });
 
   test("P1: inputs fail closed before orchestration", () => {

@@ -101,7 +101,7 @@ describe("seed CLI", () => {
 
 const databaseDescribe = ADMIN_URL ? describe.serial : describe.skip;
 
-databaseDescribe("deterministic app-role bootstrap seed", () => {
+databaseDescribe("deterministic deploy-owned bootstrap seed", () => {
   beforeAll(async () => {
     const parsed = new URL(requiredAdminUrl());
     const adminDatabase = parsed.pathname.replace(/^\//, "");
@@ -116,14 +116,15 @@ databaseDescribe("deterministic app-role bootstrap seed", () => {
     admin = undefined;
   });
 
-  test("runner then seed writes exactly one canonical tenant and property as app_role", async () => {
+  test("runner then seed writes exactly one canonical tenant and property as deploy authority", async () => {
     await withDatabase(async (targetUrl, sql) => {
       const lines: string[] = [];
       const result = await runSeed({ databaseUrl: targetUrl, logger: (line) => lines.push(line) });
       expect(result.tenant).toBe("inserted");
       expect(result.property).toBe("inserted");
       expect(result.registry).toBe("inserted");
-      expect(result.writeRole).toBe("app_role");
+      expect(result.writeRole).toBe(result.deploymentRole);
+      expect(result.writeRole).not.toBe("app_role");
       expect(result.roleReset).toBe(true);
       expect(result.tenantContextCleared).toBe(true);
       expect(result.reuseProbeCleared).toBe(true);
@@ -234,7 +235,7 @@ databaseDescribe("deterministic app-role bootstrap seed", () => {
           const rows = await connection<{ current_user: string; tenant_context: string }[]>`
             SELECT current_user, current_setting('app.tenant_id', true) AS tenant_context
           `;
-          expect(rows).toEqual([{ current_user: "app_role", tenant_context: SEED_TENANT.id }]);
+          expect(rows).toEqual([{ current_user: "yellow_deploy", tenant_context: SEED_TENANT.id }]);
           throw new Error("controlled pre-property failure");
         },
       }));

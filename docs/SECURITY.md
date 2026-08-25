@@ -93,6 +93,30 @@ access tokens and does not modify staff password hashes.
 - Cross-tenant IDOR: API handlers must scope EVERY query by session tenant even
   though RLS backstops — belt and braces, and the tests hit both.
 
+### Positive runtime-DML boundary (migration 0016)
+
+The runtime role must have a positive, machine-checked mutation catalogue rather
+than blanket `app_role` table grants. Migration 0016 preserves only table/column
+operations exercised by current production callers; it grants no mutation on
+future tables, views, global coordination tables, tenantless metadata or
+immutable records by default. `document` remains runtime-immutable and
+`rate_price` permits only `UPDATE (superseded_by)`. Outbox publication is
+function-mediated and must not remain a direct runtime update.
+
+Canonical demo and review seed are deploy/tool operations. The external
+`yellow_deploy` caller creates and verifies global tenant/property seed rows;
+`app_role` performs only the exact tenant-context visibility/idempotency probe.
+Runtime coordination, occupancy, due-hold discovery, extension reads,
+publication marking and pruning use their existing signature-specific functions.
+
+Named residual capability debt remains for approval decisions, extension
+publication/retirement, hold transitions, inventory-policy and projection
+replacement, operational-block updates, reservation/segment/guest lifecycle,
+folio numbering, journal/posting transitions, and future task/fiscal/statutory or
+document mutation. The one explicit global exception is
+`extension_type(type,json_schema)` INSERT for current platform registration
+(D-417); it is temporary residual debt and must move behind a bounded capability.
+
 ## 6. Statutory & privacy
 
 - Identity data retention per country config; scheduled anonymisation after the

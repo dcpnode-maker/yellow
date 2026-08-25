@@ -590,6 +590,31 @@ databaseDescribe("Bun SQL migration runner", () => {
   );
 
   test(
+    "applies the exact positive runtime DML authority migration",
+    async () => {
+      await withDatabase(async ({ databaseUrl: targetUrl, sql }) => {
+        const result = await runMigrations({
+          databaseUrl: targetUrl,
+          migrationsDirectory: PROJECT_MIGRATIONS,
+          logger: () => undefined,
+        });
+        expect(result.appliedFiles).toContain("0016_runtime_dml_authority.sql");
+        const ledger = await sql<Array<{ version: number | bigint; filename: string; checksum_sha256: string }>>`
+          SELECT version, filename, checksum_sha256
+            FROM public.schema_migration
+           WHERE version = 16
+        `;
+        expect(ledger.map((row) => ({ ...row, version: Number(row.version) }))).toEqual([{
+          version: 16,
+          filename: "0016_runtime_dml_authority.sql",
+          checksum_sha256: "216e79ab0b10a697b79e99872cbf3a65394dcdf94773af1fd4c13862f4e83fe5",
+        }]);
+      });
+    },
+    60_000,
+  );
+
+  test(
     "applies the exact account-folio integrity migration and rejects tenant-crossing references",
     async () => {
       await withDatabase(async ({ databaseUrl: targetUrl, sql }) => {

@@ -21,6 +21,31 @@ does not make a custom GUC immutable against arbitrary SQL already executing ins
 the trusted transaction; raw SQL exposure, runtime deployment authority, broad DML
 grants and occupancy-function tenant binding remain separate security risks.
 
+### Runtime mutation catalogue
+
+The post-Order-127 runtime contract is positive, not default-open: migration 0016
+grants only exact table/column mutations mapped to current production SQL. There
+is no mutation privilege on a future table or view, and no generic global or
+tenantless write path. `yellow_deploy` remains the deploy/migration/schema/seed
+principal; seed creates and verifies canonical global tenant/property rows through
+that boundary, while the runtime role performs only the exact read-only
+visibility/idempotency probe.
+
+Outbox publication is `runtime_mark_outbox_published(uuid[])`, not direct runtime
+`UPDATE`; occupancy, due-hold discovery, consumer cursor and extension listing/
+compatibility operations likewise remain signature-specific functions. `document`
+has no runtime mutation authority, and `rate_price` exposes only the sanctioned
+`superseded_by` update alongside its insert path. Insert-only fact, journal,
+posting-line and outbox history has no update/delete contract.
+
+Residual protected transitions are not generalized by this catalogue: approval
+decisions, extension publication, hold state changes, inventory-policy/projection
+replacement, operational-block lifecycle, reservation/segment/guest lifecycle,
+folio numbering, financial posting, and future task/fiscal/statutory/document
+commands require later bounded capabilities. The sole temporary global exception
+is the exact platform registration insert `extension_type(type, json_schema)`
+(D-417); it is residual debt, not a general extension-table or global-write grant.
+
 ## 2. THE availability contract (the interface everything hangs off)
 
 `POST /api/v1/properties/{node}/availability:search`

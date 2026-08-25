@@ -5490,6 +5490,20 @@ REVOKE ALL ON FUNCTION public.assert_day_open() FROM PUBLIC;
 
 
 --
+-- Name: FUNCTION assert_journal_balanced(); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.assert_journal_balanced() FROM PUBLIC;
+
+
+--
+-- Name: FUNCTION derive_posting_line_currency(); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.derive_posting_line_currency() FROM PUBLIC;
+
+
+--
 -- Name: FUNCTION expire_holds(); Type: ACL; Schema: public; Owner: -
 --
 
@@ -5610,133 +5624,462 @@ REVOKE ALL ON FUNCTION public.seal_business_day(p_tenant uuid, p_property uuid, 
 -- Name: TABLE account; Type: ACL; Schema: public; Owner: -
 --
 
-GRANT SELECT,INSERT,UPDATE ON TABLE public.account TO app_role;
+GRANT SELECT ON TABLE public.account TO app_role;
+
+
+--
+-- Name: COLUMN account.tenant_id; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT INSERT(tenant_id) ON TABLE public.account TO app_role;
+
+
+--
+-- Name: COLUMN account.property_node; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT INSERT(property_node) ON TABLE public.account TO app_role;
+
+
+--
+-- Name: COLUMN account.role; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT INSERT(role) ON TABLE public.account TO app_role;
+
+
+--
+-- Name: COLUMN account.party_id; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT INSERT(party_id) ON TABLE public.account TO app_role;
+
+
+--
+-- Name: COLUMN account.name; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT INSERT(name) ON TABLE public.account TO app_role;
+
+
+--
+-- Name: COLUMN account.currency; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT INSERT(currency) ON TABLE public.account TO app_role;
+
+
+--
+-- Name: COLUMN account.status; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT INSERT(status) ON TABLE public.account TO app_role;
 
 
 --
 -- Name: TABLE address; Type: ACL; Schema: public; Owner: -
 --
 
-GRANT SELECT,INSERT,UPDATE ON TABLE public.address TO app_role;
+GRANT SELECT ON TABLE public.address TO app_role;
 
 
 --
 -- Name: TABLE alert; Type: ACL; Schema: public; Owner: -
 --
 
-GRANT SELECT,INSERT,UPDATE ON TABLE public.alert TO app_role;
+GRANT SELECT ON TABLE public.alert TO app_role;
 
 
 --
 -- Name: TABLE api_client; Type: ACL; Schema: public; Owner: -
 --
 
-GRANT SELECT,INSERT,UPDATE ON TABLE public.api_client TO app_role;
+GRANT SELECT ON TABLE public.api_client TO app_role;
 
 
 --
 -- Name: TABLE api_idempotency; Type: ACL; Schema: public; Owner: -
 --
 
-GRANT SELECT,INSERT,UPDATE ON TABLE public.api_idempotency TO app_role;
+GRANT SELECT ON TABLE public.api_idempotency TO app_role;
+
+
+--
+-- Name: COLUMN api_idempotency.tenant_id; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT INSERT(tenant_id) ON TABLE public.api_idempotency TO app_role;
+
+
+--
+-- Name: COLUMN api_idempotency.operation; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT INSERT(operation) ON TABLE public.api_idempotency TO app_role;
+
+
+--
+-- Name: COLUMN api_idempotency.key_hash; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT INSERT(key_hash) ON TABLE public.api_idempotency TO app_role;
+
+
+--
+-- Name: COLUMN api_idempotency.request_hash; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT INSERT(request_hash),UPDATE(request_hash) ON TABLE public.api_idempotency TO app_role;
+
+
+--
+-- Name: COLUMN api_idempotency.response_status; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT UPDATE(response_status) ON TABLE public.api_idempotency TO app_role;
+
+
+--
+-- Name: COLUMN api_idempotency.response_body; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT UPDATE(response_body) ON TABLE public.api_idempotency TO app_role;
+
+
+--
+-- Name: COLUMN api_idempotency.created_at; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT INSERT(created_at),UPDATE(created_at) ON TABLE public.api_idempotency TO app_role;
+
+
+--
+-- Name: COLUMN api_idempotency.completed_at; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT UPDATE(completed_at) ON TABLE public.api_idempotency TO app_role;
+
+
+--
+-- Name: COLUMN api_idempotency.expires_at; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT INSERT(expires_at),UPDATE(expires_at) ON TABLE public.api_idempotency TO app_role;
 
 
 --
 -- Name: TABLE app_user; Type: ACL; Schema: public; Owner: -
 --
 
-GRANT SELECT,INSERT,UPDATE ON TABLE public.app_user TO app_role;
+GRANT SELECT ON TABLE public.app_user TO app_role;
 
 
 --
 -- Name: TABLE approval_request; Type: ACL; Schema: public; Owner: -
 --
 
-GRANT SELECT,INSERT,UPDATE ON TABLE public.approval_request TO app_role;
+GRANT SELECT ON TABLE public.approval_request TO app_role;
+
+
+--
+-- Name: COLUMN approval_request.tenant_id; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT INSERT(tenant_id) ON TABLE public.approval_request TO app_role;
+
+
+--
+-- Name: COLUMN approval_request.kind; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT INSERT(kind) ON TABLE public.approval_request TO app_role;
+
+
+--
+-- Name: COLUMN approval_request.subject_type; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT INSERT(subject_type) ON TABLE public.approval_request TO app_role;
+
+
+--
+-- Name: COLUMN approval_request.subject_id; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT INSERT(subject_id) ON TABLE public.approval_request TO app_role;
+
+
+--
+-- Name: COLUMN approval_request.requested_by; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT INSERT(requested_by) ON TABLE public.approval_request TO app_role;
+
+
+--
+-- Name: COLUMN approval_request.payload; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT INSERT(payload) ON TABLE public.approval_request TO app_role;
+
+
+--
+-- Name: COLUMN approval_request.status; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT UPDATE(status) ON TABLE public.approval_request TO app_role;
+
+
+--
+-- Name: COLUMN approval_request.decided_by; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT UPDATE(decided_by) ON TABLE public.approval_request TO app_role;
+
+
+--
+-- Name: COLUMN approval_request.decided_at; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT UPDATE(decided_at) ON TABLE public.approval_request TO app_role;
 
 
 --
 -- Name: TABLE ar_allocation; Type: ACL; Schema: public; Owner: -
 --
 
-GRANT SELECT,INSERT,UPDATE ON TABLE public.ar_allocation TO app_role;
+GRANT SELECT ON TABLE public.ar_allocation TO app_role;
 
 
 --
 -- Name: TABLE automation; Type: ACL; Schema: public; Owner: -
 --
 
-GRANT SELECT,INSERT,UPDATE ON TABLE public.automation TO app_role;
+GRANT SELECT ON TABLE public.automation TO app_role;
 
 
 --
 -- Name: TABLE availability_projection; Type: ACL; Schema: public; Owner: -
 --
 
-GRANT SELECT,INSERT,DELETE,UPDATE ON TABLE public.availability_projection TO app_role;
+GRANT SELECT,DELETE ON TABLE public.availability_projection TO app_role;
+
+
+--
+-- Name: COLUMN availability_projection.tenant_id; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT INSERT(tenant_id) ON TABLE public.availability_projection TO app_role;
+
+
+--
+-- Name: COLUMN availability_projection.property_node; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT INSERT(property_node) ON TABLE public.availability_projection TO app_role;
+
+
+--
+-- Name: COLUMN availability_projection.unit_type_id; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT INSERT(unit_type_id) ON TABLE public.availability_projection TO app_role;
+
+
+--
+-- Name: COLUMN availability_projection.stay_date; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT INSERT(stay_date) ON TABLE public.availability_projection TO app_role;
+
+
+--
+-- Name: COLUMN availability_projection.physical; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT INSERT(physical) ON TABLE public.availability_projection TO app_role;
+
+
+--
+-- Name: COLUMN availability_projection.sold; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT INSERT(sold) ON TABLE public.availability_projection TO app_role;
+
+
+--
+-- Name: COLUMN availability_projection.held; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT INSERT(held) ON TABLE public.availability_projection TO app_role;
+
+
+--
+-- Name: COLUMN availability_projection.blocked; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT INSERT(blocked) ON TABLE public.availability_projection TO app_role;
+
+
+--
+-- Name: COLUMN availability_projection.ooo; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT INSERT(ooo) ON TABLE public.availability_projection TO app_role;
+
+
+--
+-- Name: COLUMN availability_projection.updated_at; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT INSERT(updated_at) ON TABLE public.availability_projection TO app_role;
 
 
 --
 -- Name: TABLE block_allotment; Type: ACL; Schema: public; Owner: -
 --
 
-GRANT SELECT,INSERT,UPDATE ON TABLE public.block_allotment TO app_role;
+GRANT SELECT ON TABLE public.block_allotment TO app_role;
 
 
 --
 -- Name: TABLE block_status_def; Type: ACL; Schema: public; Owner: -
 --
 
-GRANT SELECT,INSERT,UPDATE ON TABLE public.block_status_def TO app_role;
+GRANT SELECT ON TABLE public.block_status_def TO app_role;
 
 
 --
 -- Name: TABLE business_day; Type: ACL; Schema: public; Owner: -
 --
 
-GRANT SELECT,INSERT ON TABLE public.business_day TO app_role;
+GRANT SELECT ON TABLE public.business_day TO app_role;
 
 
 --
 -- Name: TABLE cashier_session; Type: ACL; Schema: public; Owner: -
 --
 
-GRANT SELECT,INSERT,UPDATE ON TABLE public.cashier_session TO app_role;
+GRANT SELECT ON TABLE public.cashier_session TO app_role;
 
 
 --
 -- Name: TABLE channel; Type: ACL; Schema: public; Owner: -
 --
 
-GRANT SELECT,INSERT ON TABLE public.channel TO app_role;
+GRANT SELECT ON TABLE public.channel TO app_role;
 
 
 --
 -- Name: TABLE channel_map; Type: ACL; Schema: public; Owner: -
 --
 
-GRANT SELECT,INSERT,UPDATE ON TABLE public.channel_map TO app_role;
+GRANT SELECT ON TABLE public.channel_map TO app_role;
 
 
 --
 -- Name: TABLE consent; Type: ACL; Schema: public; Owner: -
 --
 
-GRANT SELECT,INSERT,UPDATE ON TABLE public.consent TO app_role;
+GRANT SELECT ON TABLE public.consent TO app_role;
 
 
 --
 -- Name: TABLE contact_point; Type: ACL; Schema: public; Owner: -
 --
 
-GRANT SELECT,INSERT,UPDATE ON TABLE public.contact_point TO app_role;
+GRANT SELECT ON TABLE public.contact_point TO app_role;
+
+
+--
+-- Name: COLUMN contact_point.tenant_id; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT INSERT(tenant_id) ON TABLE public.contact_point TO app_role;
+
+
+--
+-- Name: COLUMN contact_point.party_id; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT INSERT(party_id) ON TABLE public.contact_point TO app_role;
+
+
+--
+-- Name: COLUMN contact_point.kind; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT INSERT(kind) ON TABLE public.contact_point TO app_role;
+
+
+--
+-- Name: COLUMN contact_point.value; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT INSERT(value) ON TABLE public.contact_point TO app_role;
+
+
+--
+-- Name: COLUMN contact_point.is_primary; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT INSERT(is_primary) ON TABLE public.contact_point TO app_role;
+
+
+--
+-- Name: COLUMN contact_point.verified; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT INSERT(verified) ON TABLE public.contact_point TO app_role;
 
 
 --
 -- Name: TABLE rate_price; Type: ACL; Schema: public; Owner: -
 --
 
-GRANT SELECT,INSERT,UPDATE ON TABLE public.rate_price TO app_role;
+GRANT SELECT ON TABLE public.rate_price TO app_role;
+
+
+--
+-- Name: COLUMN rate_price.tenant_id; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT INSERT(tenant_id) ON TABLE public.rate_price TO app_role;
+
+
+--
+-- Name: COLUMN rate_price.rate_plan_id; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT INSERT(rate_plan_id) ON TABLE public.rate_price TO app_role;
+
+
+--
+-- Name: COLUMN rate_price.unit_type_id; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT INSERT(unit_type_id) ON TABLE public.rate_price TO app_role;
+
+
+--
+-- Name: COLUMN rate_price.stay_dates; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT INSERT(stay_dates) ON TABLE public.rate_price TO app_role;
+
+
+--
+-- Name: COLUMN rate_price.dow_mask; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT INSERT(dow_mask) ON TABLE public.rate_price TO app_role;
+
+
+--
+-- Name: COLUMN rate_price.pricing; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT INSERT(pricing) ON TABLE public.rate_price TO app_role;
 
 
 --
@@ -5750,350 +6093,1407 @@ GRANT UPDATE(superseded_by) ON TABLE public.rate_price TO app_role;
 -- Name: TABLE current_rate_price; Type: ACL; Schema: public; Owner: -
 --
 
-GRANT SELECT,INSERT ON TABLE public.current_rate_price TO app_role;
+GRANT SELECT ON TABLE public.current_rate_price TO app_role;
 
 
 --
 -- Name: TABLE discrepancy; Type: ACL; Schema: public; Owner: -
 --
 
-GRANT SELECT,INSERT,UPDATE ON TABLE public.discrepancy TO app_role;
+GRANT SELECT ON TABLE public.discrepancy TO app_role;
 
 
 --
 -- Name: TABLE document; Type: ACL; Schema: public; Owner: -
 --
 
-GRANT SELECT,INSERT,UPDATE ON TABLE public.document TO app_role;
+GRANT SELECT ON TABLE public.document TO app_role;
 
 
 --
 -- Name: TABLE document_series; Type: ACL; Schema: public; Owner: -
 --
 
-GRANT SELECT,INSERT,UPDATE ON TABLE public.document_series TO app_role;
+GRANT SELECT ON TABLE public.document_series TO app_role;
+
+
+--
+-- Name: COLUMN document_series.next_no; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT UPDATE(next_no) ON TABLE public.document_series TO app_role;
 
 
 --
 -- Name: TABLE erasure_request; Type: ACL; Schema: public; Owner: -
 --
 
-GRANT SELECT,INSERT,UPDATE ON TABLE public.erasure_request TO app_role;
+GRANT SELECT ON TABLE public.erasure_request TO app_role;
 
 
 --
 -- Name: TABLE extension; Type: ACL; Schema: public; Owner: -
 --
 
-GRANT SELECT,INSERT,UPDATE ON TABLE public.extension TO app_role;
+GRANT SELECT ON TABLE public.extension TO app_role;
+
+
+--
+-- Name: COLUMN extension.tenant_id; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT INSERT(tenant_id) ON TABLE public.extension TO app_role;
+
+
+--
+-- Name: COLUMN extension.type; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT INSERT(type) ON TABLE public.extension TO app_role;
+
+
+--
+-- Name: COLUMN extension.key; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT INSERT(key) ON TABLE public.extension TO app_role;
+
+
+--
+-- Name: COLUMN extension.version; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT INSERT(version) ON TABLE public.extension TO app_role;
+
+
+--
+-- Name: COLUMN extension.content; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT INSERT(content) ON TABLE public.extension TO app_role;
+
+
+--
+-- Name: COLUMN extension.status; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT INSERT(status),UPDATE(status) ON TABLE public.extension TO app_role;
 
 
 --
 -- Name: TABLE extension_type; Type: ACL; Schema: public; Owner: -
 --
 
-GRANT SELECT,INSERT ON TABLE public.extension_type TO app_role;
+GRANT SELECT ON TABLE public.extension_type TO app_role;
+
+
+--
+-- Name: COLUMN extension_type.type; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT INSERT(type) ON TABLE public.extension_type TO app_role;
+
+
+--
+-- Name: COLUMN extension_type.json_schema; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT INSERT(json_schema) ON TABLE public.extension_type TO app_role;
 
 
 --
 -- Name: TABLE fact_log; Type: ACL; Schema: public; Owner: -
 --
 
-GRANT SELECT,INSERT ON TABLE public.fact_log TO app_role;
+GRANT SELECT ON TABLE public.fact_log TO app_role;
+
+
+--
+-- Name: COLUMN fact_log.tenant_id; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT INSERT(tenant_id) ON TABLE public.fact_log TO app_role;
+
+
+--
+-- Name: COLUMN fact_log.entity_type; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT INSERT(entity_type) ON TABLE public.fact_log TO app_role;
+
+
+--
+-- Name: COLUMN fact_log.entity_id; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT INSERT(entity_id) ON TABLE public.fact_log TO app_role;
+
+
+--
+-- Name: COLUMN fact_log.fact_type; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT INSERT(fact_type) ON TABLE public.fact_log TO app_role;
+
+
+--
+-- Name: COLUMN fact_log.valid_from; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT INSERT(valid_from) ON TABLE public.fact_log TO app_role;
+
+
+--
+-- Name: COLUMN fact_log.business_date; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT INSERT(business_date) ON TABLE public.fact_log TO app_role;
+
+
+--
+-- Name: COLUMN fact_log.actor_id; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT INSERT(actor_id) ON TABLE public.fact_log TO app_role;
+
+
+--
+-- Name: COLUMN fact_log.payload; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT INSERT(payload) ON TABLE public.fact_log TO app_role;
+
+
+--
+-- Name: COLUMN fact_log.supersedes; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT INSERT(supersedes) ON TABLE public.fact_log TO app_role;
 
 
 --
 -- Name: TABLE fiscal_submission; Type: ACL; Schema: public; Owner: -
 --
 
-GRANT SELECT,INSERT,UPDATE ON TABLE public.fiscal_submission TO app_role;
+GRANT SELECT ON TABLE public.fiscal_submission TO app_role;
 
 
 --
 -- Name: TABLE folio; Type: ACL; Schema: public; Owner: -
 --
 
-GRANT SELECT,INSERT,UPDATE ON TABLE public.folio TO app_role;
+GRANT SELECT ON TABLE public.folio TO app_role;
+
+
+--
+-- Name: COLUMN folio.tenant_id; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT INSERT(tenant_id) ON TABLE public.folio TO app_role;
+
+
+--
+-- Name: COLUMN folio.account_id; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT INSERT(account_id) ON TABLE public.folio TO app_role;
+
+
+--
+-- Name: COLUMN folio.reservation_id; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT INSERT(reservation_id) ON TABLE public.folio TO app_role;
+
+
+--
+-- Name: COLUMN folio.folio_no; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT INSERT(folio_no) ON TABLE public.folio TO app_role;
+
+
+--
+-- Name: COLUMN folio.window_no; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT INSERT(window_no) ON TABLE public.folio TO app_role;
+
+
+--
+-- Name: COLUMN folio.name; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT INSERT(name) ON TABLE public.folio TO app_role;
+
+
+--
+-- Name: COLUMN folio.status; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT INSERT(status) ON TABLE public.folio TO app_role;
 
 
 --
 -- Name: TABLE posting_line; Type: ACL; Schema: public; Owner: -
 --
 
-GRANT SELECT,INSERT ON TABLE public.posting_line TO app_role;
+GRANT SELECT ON TABLE public.posting_line TO app_role;
+
+
+--
+-- Name: COLUMN posting_line.tenant_id; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT INSERT(tenant_id) ON TABLE public.posting_line TO app_role;
+
+
+--
+-- Name: COLUMN posting_line.journal_id; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT INSERT(journal_id) ON TABLE public.posting_line TO app_role;
+
+
+--
+-- Name: COLUMN posting_line.seq; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT INSERT(seq) ON TABLE public.posting_line TO app_role;
+
+
+--
+-- Name: COLUMN posting_line.account_id; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT INSERT(account_id) ON TABLE public.posting_line TO app_role;
+
+
+--
+-- Name: COLUMN posting_line.folio_id; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT INSERT(folio_id) ON TABLE public.posting_line TO app_role;
+
+
+--
+-- Name: COLUMN posting_line.tx_code; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT INSERT(tx_code) ON TABLE public.posting_line TO app_role;
+
+
+--
+-- Name: COLUMN posting_line.description; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT INSERT(description) ON TABLE public.posting_line TO app_role;
+
+
+--
+-- Name: COLUMN posting_line.amount_minor; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT INSERT(amount_minor) ON TABLE public.posting_line TO app_role;
+
+
+--
+-- Name: COLUMN posting_line.quantity; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT INSERT(quantity) ON TABLE public.posting_line TO app_role;
+
+
+--
+-- Name: COLUMN posting_line.business_date; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT INSERT(business_date) ON TABLE public.posting_line TO app_role;
+
+
+--
+-- Name: COLUMN posting_line.currency; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT INSERT(currency) ON TABLE public.posting_line TO app_role;
 
 
 --
 -- Name: TABLE folio_balance; Type: ACL; Schema: public; Owner: -
 --
 
-GRANT SELECT,INSERT ON TABLE public.folio_balance TO app_role;
+GRANT SELECT ON TABLE public.folio_balance TO app_role;
 
 
 --
 -- Name: TABLE hold; Type: ACL; Schema: public; Owner: -
 --
 
-GRANT SELECT,INSERT,UPDATE ON TABLE public.hold TO app_role;
+GRANT SELECT ON TABLE public.hold TO app_role;
+
+
+--
+-- Name: COLUMN hold.tenant_id; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT INSERT(tenant_id) ON TABLE public.hold TO app_role;
+
+
+--
+-- Name: COLUMN hold.property_node; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT INSERT(property_node) ON TABLE public.hold TO app_role;
+
+
+--
+-- Name: COLUMN hold.sellable_unit_id; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT INSERT(sellable_unit_id) ON TABLE public.hold TO app_role;
+
+
+--
+-- Name: COLUMN hold.period; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT INSERT(period) ON TABLE public.hold TO app_role;
+
+
+--
+-- Name: COLUMN hold.kind; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT INSERT(kind) ON TABLE public.hold TO app_role;
+
+
+--
+-- Name: COLUMN hold.holder; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT INSERT(holder) ON TABLE public.hold TO app_role;
+
+
+--
+-- Name: COLUMN hold.expires_at; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT INSERT(expires_at) ON TABLE public.hold TO app_role;
+
+
+--
+-- Name: COLUMN hold.status; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT UPDATE(status) ON TABLE public.hold TO app_role;
 
 
 --
 -- Name: TABLE identity_document; Type: ACL; Schema: public; Owner: -
 --
 
-GRANT SELECT,INSERT,UPDATE ON TABLE public.identity_document TO app_role;
+GRANT SELECT ON TABLE public.identity_document TO app_role;
 
 
 --
 -- Name: TABLE inbound_message; Type: ACL; Schema: public; Owner: -
 --
 
-GRANT SELECT,INSERT,UPDATE ON TABLE public.inbound_message TO app_role;
+GRANT SELECT ON TABLE public.inbound_message TO app_role;
 
 
 --
 -- Name: TABLE inventory_authority; Type: ACL; Schema: public; Owner: -
 --
 
-GRANT SELECT,INSERT,UPDATE ON TABLE public.inventory_authority TO app_role;
+GRANT SELECT ON TABLE public.inventory_authority TO app_role;
 
 
 --
 -- Name: TABLE journal; Type: ACL; Schema: public; Owner: -
 --
 
-GRANT SELECT,INSERT ON TABLE public.journal TO app_role;
+GRANT SELECT ON TABLE public.journal TO app_role;
+
+
+--
+-- Name: COLUMN journal.tenant_id; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT INSERT(tenant_id) ON TABLE public.journal TO app_role;
+
+
+--
+-- Name: COLUMN journal.property_node; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT INSERT(property_node) ON TABLE public.journal TO app_role;
+
+
+--
+-- Name: COLUMN journal.business_date; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT INSERT(business_date) ON TABLE public.journal TO app_role;
+
+
+--
+-- Name: COLUMN journal.kind; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT INSERT(kind) ON TABLE public.journal TO app_role;
+
+
+--
+-- Name: COLUMN journal.description; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT INSERT(description) ON TABLE public.journal TO app_role;
+
+
+--
+-- Name: COLUMN journal.currency; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT INSERT(currency) ON TABLE public.journal TO app_role;
+
+
+--
+-- Name: COLUMN journal.source; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT INSERT(source) ON TABLE public.journal TO app_role;
+
+
+--
+-- Name: COLUMN journal.created_by; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT INSERT(created_by) ON TABLE public.journal TO app_role;
 
 
 --
 -- Name: TABLE membership; Type: ACL; Schema: public; Owner: -
 --
 
-GRANT SELECT,INSERT,UPDATE ON TABLE public.membership TO app_role;
+GRANT SELECT ON TABLE public.membership TO app_role;
 
 
 --
 -- Name: TABLE message; Type: ACL; Schema: public; Owner: -
 --
 
-GRANT SELECT,INSERT ON TABLE public.message TO app_role;
+GRANT SELECT ON TABLE public.message TO app_role;
 
 
 --
 -- Name: TABLE negotiated_rate; Type: ACL; Schema: public; Owner: -
 --
 
-GRANT SELECT,INSERT,UPDATE ON TABLE public.negotiated_rate TO app_role;
+GRANT SELECT ON TABLE public.negotiated_rate TO app_role;
 
 
 --
 -- Name: TABLE ooo_oos; Type: ACL; Schema: public; Owner: -
 --
 
-GRANT SELECT,INSERT,UPDATE ON TABLE public.ooo_oos TO app_role;
+GRANT SELECT ON TABLE public.ooo_oos TO app_role;
+
+
+--
+-- Name: COLUMN ooo_oos.tenant_id; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT INSERT(tenant_id) ON TABLE public.ooo_oos TO app_role;
+
+
+--
+-- Name: COLUMN ooo_oos.space_id; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT INSERT(space_id) ON TABLE public.ooo_oos TO app_role;
+
+
+--
+-- Name: COLUMN ooo_oos.kind; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT INSERT(kind) ON TABLE public.ooo_oos TO app_role;
+
+
+--
+-- Name: COLUMN ooo_oos.period; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT INSERT(period),UPDATE(period) ON TABLE public.ooo_oos TO app_role;
+
+
+--
+-- Name: COLUMN ooo_oos.reason; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT INSERT(reason) ON TABLE public.ooo_oos TO app_role;
 
 
 --
 -- Name: TABLE org_node; Type: ACL; Schema: public; Owner: -
 --
 
-GRANT SELECT,INSERT,UPDATE ON TABLE public.org_node TO app_role;
+GRANT SELECT ON TABLE public.org_node TO app_role;
+
+
+--
+-- Name: COLUMN org_node.config; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT UPDATE(config) ON TABLE public.org_node TO app_role;
 
 
 --
 -- Name: TABLE outbox; Type: ACL; Schema: public; Owner: -
 --
 
-GRANT SELECT,INSERT ON TABLE public.outbox TO app_role;
+GRANT SELECT ON TABLE public.outbox TO app_role;
 
 
 --
--- Name: COLUMN outbox.published_at; Type: ACL; Schema: public; Owner: -
+-- Name: COLUMN outbox.tenant_id; Type: ACL; Schema: public; Owner: -
 --
 
-GRANT UPDATE(published_at) ON TABLE public.outbox TO app_role;
+GRANT INSERT(tenant_id) ON TABLE public.outbox TO app_role;
+
+
+--
+-- Name: COLUMN outbox.property_node; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT INSERT(property_node) ON TABLE public.outbox TO app_role;
+
+
+--
+-- Name: COLUMN outbox.business_date; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT INSERT(business_date) ON TABLE public.outbox TO app_role;
+
+
+--
+-- Name: COLUMN outbox.aggregate_type; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT INSERT(aggregate_type) ON TABLE public.outbox TO app_role;
+
+
+--
+-- Name: COLUMN outbox.aggregate_id; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT INSERT(aggregate_id) ON TABLE public.outbox TO app_role;
+
+
+--
+-- Name: COLUMN outbox.event_type; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT INSERT(event_type) ON TABLE public.outbox TO app_role;
+
+
+--
+-- Name: COLUMN outbox.event_version; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT INSERT(event_version) ON TABLE public.outbox TO app_role;
+
+
+--
+-- Name: COLUMN outbox.actor_id; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT INSERT(actor_id) ON TABLE public.outbox TO app_role;
+
+
+--
+-- Name: COLUMN outbox.correlation_id; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT INSERT(correlation_id) ON TABLE public.outbox TO app_role;
+
+
+--
+-- Name: COLUMN outbox.causation_id; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT INSERT(causation_id) ON TABLE public.outbox TO app_role;
+
+
+--
+-- Name: COLUMN outbox.payload; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT INSERT(payload) ON TABLE public.outbox TO app_role;
 
 
 --
 -- Name: TABLE overbooking_limit; Type: ACL; Schema: public; Owner: -
 --
 
-GRANT SELECT,INSERT,UPDATE ON TABLE public.overbooking_limit TO app_role;
+GRANT SELECT ON TABLE public.overbooking_limit TO app_role;
 
 
 --
 -- Name: TABLE package; Type: ACL; Schema: public; Owner: -
 --
 
-GRANT SELECT,INSERT,UPDATE ON TABLE public.package TO app_role;
+GRANT SELECT ON TABLE public.package TO app_role;
 
 
 --
 -- Name: TABLE package_element; Type: ACL; Schema: public; Owner: -
 --
 
-GRANT SELECT,INSERT,UPDATE ON TABLE public.package_element TO app_role;
+GRANT SELECT ON TABLE public.package_element TO app_role;
 
 
 --
 -- Name: TABLE party; Type: ACL; Schema: public; Owner: -
 --
 
-GRANT SELECT,INSERT,UPDATE ON TABLE public.party TO app_role;
+GRANT SELECT ON TABLE public.party TO app_role;
+
+
+--
+-- Name: COLUMN party.tenant_id; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT INSERT(tenant_id) ON TABLE public.party TO app_role;
+
+
+--
+-- Name: COLUMN party.kind; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT INSERT(kind) ON TABLE public.party TO app_role;
+
+
+--
+-- Name: COLUMN party.display_name; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT INSERT(display_name) ON TABLE public.party TO app_role;
+
+
+--
+-- Name: COLUMN party.legal_name; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT INSERT(legal_name) ON TABLE public.party TO app_role;
 
 
 --
 -- Name: TABLE party_relationship; Type: ACL; Schema: public; Owner: -
 --
 
-GRANT SELECT,INSERT,UPDATE ON TABLE public.party_relationship TO app_role;
+GRANT SELECT ON TABLE public.party_relationship TO app_role;
 
 
 --
 -- Name: TABLE party_role; Type: ACL; Schema: public; Owner: -
 --
 
-GRANT SELECT,INSERT,UPDATE ON TABLE public.party_role TO app_role;
+GRANT SELECT ON TABLE public.party_role TO app_role;
+
+
+--
+-- Name: COLUMN party_role.tenant_id; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT INSERT(tenant_id) ON TABLE public.party_role TO app_role;
+
+
+--
+-- Name: COLUMN party_role.party_id; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT INSERT(party_id) ON TABLE public.party_role TO app_role;
+
+
+--
+-- Name: COLUMN party_role.role; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT INSERT(role) ON TABLE public.party_role TO app_role;
 
 
 --
 -- Name: TABLE payment; Type: ACL; Schema: public; Owner: -
 --
 
-GRANT SELECT,INSERT,UPDATE ON TABLE public.payment TO app_role;
+GRANT SELECT ON TABLE public.payment TO app_role;
 
 
 --
 -- Name: TABLE payment_instrument; Type: ACL; Schema: public; Owner: -
 --
 
-GRANT SELECT,INSERT,UPDATE ON TABLE public.payment_instrument TO app_role;
+GRANT SELECT ON TABLE public.payment_instrument TO app_role;
 
 
 --
 -- Name: TABLE permission; Type: ACL; Schema: public; Owner: -
 --
 
-GRANT SELECT,INSERT ON TABLE public.permission TO app_role;
+GRANT SELECT ON TABLE public.permission TO app_role;
 
 
 --
 -- Name: TABLE policy; Type: ACL; Schema: public; Owner: -
 --
 
-GRANT SELECT,INSERT,UPDATE ON TABLE public.policy TO app_role;
+GRANT SELECT ON TABLE public.policy TO app_role;
+
+
+--
+-- Name: COLUMN policy.tenant_id; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT INSERT(tenant_id) ON TABLE public.policy TO app_role;
+
+
+--
+-- Name: COLUMN policy.kind; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT INSERT(kind) ON TABLE public.policy TO app_role;
+
+
+--
+-- Name: COLUMN policy.name; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT INSERT(name) ON TABLE public.policy TO app_role;
+
+
+--
+-- Name: COLUMN policy.content; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT INSERT(content) ON TABLE public.policy TO app_role;
 
 
 --
 -- Name: TABLE preference; Type: ACL; Schema: public; Owner: -
 --
 
-GRANT SELECT,INSERT,UPDATE ON TABLE public.preference TO app_role;
+GRANT SELECT ON TABLE public.preference TO app_role;
 
 
 --
 -- Name: TABLE promotion; Type: ACL; Schema: public; Owner: -
 --
 
-GRANT SELECT,INSERT,UPDATE ON TABLE public.promotion TO app_role;
+GRANT SELECT ON TABLE public.promotion TO app_role;
 
 
 --
 -- Name: TABLE push_cursor; Type: ACL; Schema: public; Owner: -
 --
 
-GRANT SELECT,INSERT,UPDATE ON TABLE public.push_cursor TO app_role;
+GRANT SELECT ON TABLE public.push_cursor TO app_role;
 
 
 --
 -- Name: TABLE queue_entry; Type: ACL; Schema: public; Owner: -
 --
 
-GRANT SELECT,INSERT,UPDATE ON TABLE public.queue_entry TO app_role;
+GRANT SELECT ON TABLE public.queue_entry TO app_role;
 
 
 --
 -- Name: TABLE rate_plan; Type: ACL; Schema: public; Owner: -
 --
 
-GRANT SELECT,INSERT,UPDATE ON TABLE public.rate_plan TO app_role;
+GRANT SELECT ON TABLE public.rate_plan TO app_role;
+
+
+--
+-- Name: COLUMN rate_plan.tenant_id; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT INSERT(tenant_id) ON TABLE public.rate_plan TO app_role;
+
+
+--
+-- Name: COLUMN rate_plan.property_node; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT INSERT(property_node) ON TABLE public.rate_plan TO app_role;
+
+
+--
+-- Name: COLUMN rate_plan.code; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT INSERT(code) ON TABLE public.rate_plan TO app_role;
+
+
+--
+-- Name: COLUMN rate_plan.name; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT INSERT(name) ON TABLE public.rate_plan TO app_role;
+
+
+--
+-- Name: COLUMN rate_plan.currency; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT INSERT(currency) ON TABLE public.rate_plan TO app_role;
+
+
+--
+-- Name: COLUMN rate_plan.tax_inclusive; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT INSERT(tax_inclusive) ON TABLE public.rate_plan TO app_role;
+
+
+--
+-- Name: COLUMN rate_plan.cancellation_policy; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT INSERT(cancellation_policy) ON TABLE public.rate_plan TO app_role;
+
+
+--
+-- Name: COLUMN rate_plan.guarantee_policy; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT INSERT(guarantee_policy) ON TABLE public.rate_plan TO app_role;
+
+
+--
+-- Name: COLUMN rate_plan.deposit_policy; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT INSERT(deposit_policy) ON TABLE public.rate_plan TO app_role;
+
+
+--
+-- Name: COLUMN rate_plan.market_code; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT INSERT(market_code) ON TABLE public.rate_plan TO app_role;
+
+
+--
+-- Name: COLUMN rate_plan.source_code; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT INSERT(source_code) ON TABLE public.rate_plan TO app_role;
 
 
 --
 -- Name: TABLE rate_plan_package; Type: ACL; Schema: public; Owner: -
 --
 
-GRANT SELECT,INSERT,UPDATE ON TABLE public.rate_plan_package TO app_role;
+GRANT SELECT ON TABLE public.rate_plan_package TO app_role;
 
 
 --
 -- Name: TABLE reservation; Type: ACL; Schema: public; Owner: -
 --
 
-GRANT SELECT,INSERT,UPDATE ON TABLE public.reservation TO app_role;
+GRANT SELECT ON TABLE public.reservation TO app_role;
+
+
+--
+-- Name: COLUMN reservation.id; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT INSERT(id) ON TABLE public.reservation TO app_role;
+
+
+--
+-- Name: COLUMN reservation.tenant_id; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT INSERT(tenant_id) ON TABLE public.reservation TO app_role;
+
+
+--
+-- Name: COLUMN reservation.property_node; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT INSERT(property_node) ON TABLE public.reservation TO app_role;
+
+
+--
+-- Name: COLUMN reservation.confirmation_no; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT INSERT(confirmation_no) ON TABLE public.reservation TO app_role;
+
+
+--
+-- Name: COLUMN reservation.status; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT INSERT(status),UPDATE(status) ON TABLE public.reservation TO app_role;
+
+
+--
+-- Name: COLUMN reservation.primary_party; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT INSERT(primary_party) ON TABLE public.reservation TO app_role;
+
+
+--
+-- Name: COLUMN reservation.channel_code; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT INSERT(channel_code) ON TABLE public.reservation TO app_role;
+
+
+--
+-- Name: COLUMN reservation.market_code; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT INSERT(market_code),UPDATE(market_code) ON TABLE public.reservation TO app_role;
+
+
+--
+-- Name: COLUMN reservation.source_code; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT INSERT(source_code),UPDATE(source_code) ON TABLE public.reservation TO app_role;
+
+
+--
+-- Name: COLUMN reservation.origin_code; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT UPDATE(origin_code) ON TABLE public.reservation TO app_role;
+
+
+--
+-- Name: COLUMN reservation.currency; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT INSERT(currency) ON TABLE public.reservation TO app_role;
+
+
+--
+-- Name: COLUMN reservation.guarantee_policy; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT INSERT(guarantee_policy) ON TABLE public.reservation TO app_role;
+
+
+--
+-- Name: COLUMN reservation.eta; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT UPDATE(eta) ON TABLE public.reservation TO app_role;
+
+
+--
+-- Name: COLUMN reservation.etd; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT UPDATE(etd) ON TABLE public.reservation TO app_role;
+
+
+--
+-- Name: COLUMN reservation.notes; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT UPDATE(notes) ON TABLE public.reservation TO app_role;
+
+
+--
+-- Name: COLUMN reservation.cancelled_at; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT UPDATE(cancelled_at) ON TABLE public.reservation TO app_role;
+
+
+--
+-- Name: COLUMN reservation.cancel_reason; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT UPDATE(cancel_reason) ON TABLE public.reservation TO app_role;
+
+
+--
+-- Name: COLUMN reservation.cancellation_no; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT UPDATE(cancellation_no) ON TABLE public.reservation TO app_role;
 
 
 --
 -- Name: TABLE reservation_group; Type: ACL; Schema: public; Owner: -
 --
 
-GRANT SELECT,INSERT,UPDATE ON TABLE public.reservation_group TO app_role;
+GRANT SELECT ON TABLE public.reservation_group TO app_role;
 
 
 --
 -- Name: TABLE reservation_guest; Type: ACL; Schema: public; Owner: -
 --
 
-GRANT SELECT,INSERT,DELETE,UPDATE ON TABLE public.reservation_guest TO app_role;
+GRANT SELECT,DELETE ON TABLE public.reservation_guest TO app_role;
+
+
+--
+-- Name: COLUMN reservation_guest.tenant_id; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT INSERT(tenant_id) ON TABLE public.reservation_guest TO app_role;
+
+
+--
+-- Name: COLUMN reservation_guest.reservation_id; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT INSERT(reservation_id) ON TABLE public.reservation_guest TO app_role;
+
+
+--
+-- Name: COLUMN reservation_guest.party_id; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT INSERT(party_id) ON TABLE public.reservation_guest TO app_role;
+
+
+--
+-- Name: COLUMN reservation_guest.role; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT INSERT(role),UPDATE(role) ON TABLE public.reservation_guest TO app_role;
+
+
+--
+-- Name: COLUMN reservation_guest.share_pct; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT INSERT(share_pct),UPDATE(share_pct) ON TABLE public.reservation_guest TO app_role;
 
 
 --
 -- Name: TABLE reservation_segment; Type: ACL; Schema: public; Owner: -
 --
 
-GRANT SELECT,INSERT,UPDATE ON TABLE public.reservation_segment TO app_role;
+GRANT SELECT ON TABLE public.reservation_segment TO app_role;
+
+
+--
+-- Name: COLUMN reservation_segment.id; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT INSERT(id) ON TABLE public.reservation_segment TO app_role;
+
+
+--
+-- Name: COLUMN reservation_segment.tenant_id; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT INSERT(tenant_id) ON TABLE public.reservation_segment TO app_role;
+
+
+--
+-- Name: COLUMN reservation_segment.reservation_id; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT INSERT(reservation_id) ON TABLE public.reservation_segment TO app_role;
+
+
+--
+-- Name: COLUMN reservation_segment.seq; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT INSERT(seq) ON TABLE public.reservation_segment TO app_role;
+
+
+--
+-- Name: COLUMN reservation_segment.unit_type_id; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT INSERT(unit_type_id) ON TABLE public.reservation_segment TO app_role;
+
+
+--
+-- Name: COLUMN reservation_segment.sellable_unit_id; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT INSERT(sellable_unit_id) ON TABLE public.reservation_segment TO app_role;
+
+
+--
+-- Name: COLUMN reservation_segment.period; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT INSERT(period),UPDATE(period) ON TABLE public.reservation_segment TO app_role;
+
+
+--
+-- Name: COLUMN reservation_segment.adults; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT INSERT(adults) ON TABLE public.reservation_segment TO app_role;
+
+
+--
+-- Name: COLUMN reservation_segment.children; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT INSERT(children) ON TABLE public.reservation_segment TO app_role;
+
+
+--
+-- Name: COLUMN reservation_segment.rate_plan_id; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT INSERT(rate_plan_id) ON TABLE public.reservation_segment TO app_role;
+
+
+--
+-- Name: COLUMN reservation_segment.price_override; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT INSERT(price_override) ON TABLE public.reservation_segment TO app_role;
+
+
+--
+-- Name: COLUMN reservation_segment.status; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT INSERT(status),UPDATE(status) ON TABLE public.reservation_segment TO app_role;
 
 
 --
 -- Name: TABLE restriction; Type: ACL; Schema: public; Owner: -
 --
 
-GRANT SELECT,INSERT,UPDATE ON TABLE public.restriction TO app_role;
+GRANT SELECT ON TABLE public.restriction TO app_role;
+
+
+--
+-- Name: COLUMN restriction.tenant_id; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT INSERT(tenant_id) ON TABLE public.restriction TO app_role;
+
+
+--
+-- Name: COLUMN restriction.scope_node; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT INSERT(scope_node) ON TABLE public.restriction TO app_role;
+
+
+--
+-- Name: COLUMN restriction.unit_type_id; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT INSERT(unit_type_id) ON TABLE public.restriction TO app_role;
+
+
+--
+-- Name: COLUMN restriction.rate_plan_id; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT INSERT(rate_plan_id) ON TABLE public.restriction TO app_role;
+
+
+--
+-- Name: COLUMN restriction.channel_code; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT INSERT(channel_code) ON TABLE public.restriction TO app_role;
+
+
+--
+-- Name: COLUMN restriction.kind; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT INSERT(kind) ON TABLE public.restriction TO app_role;
+
+
+--
+-- Name: COLUMN restriction.value; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT INSERT(value) ON TABLE public.restriction TO app_role;
+
+
+--
+-- Name: COLUMN restriction.stay_dates; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT INSERT(stay_dates) ON TABLE public.restriction TO app_role;
+
+
+--
+-- Name: COLUMN restriction.source; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT INSERT(source) ON TABLE public.restriction TO app_role;
 
 
 --
 -- Name: TABLE role; Type: ACL; Schema: public; Owner: -
 --
 
-GRANT SELECT,INSERT,UPDATE ON TABLE public.role TO app_role;
+GRANT SELECT ON TABLE public.role TO app_role;
 
 
 --
 -- Name: TABLE role_permission; Type: ACL; Schema: public; Owner: -
 --
 
-GRANT SELECT,INSERT,UPDATE ON TABLE public.role_permission TO app_role;
+GRANT SELECT ON TABLE public.role_permission TO app_role;
 
 
 --
 -- Name: TABLE sellable_unit; Type: ACL; Schema: public; Owner: -
 --
 
-GRANT SELECT,INSERT,UPDATE ON TABLE public.sellable_unit TO app_role;
+GRANT SELECT ON TABLE public.sellable_unit TO app_role;
+
+
+--
+-- Name: COLUMN sellable_unit.tenant_id; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT INSERT(tenant_id) ON TABLE public.sellable_unit TO app_role;
+
+
+--
+-- Name: COLUMN sellable_unit.unit_type_id; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT INSERT(unit_type_id) ON TABLE public.sellable_unit TO app_role;
+
+
+--
+-- Name: COLUMN sellable_unit.name; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT INSERT(name) ON TABLE public.sellable_unit TO app_role;
 
 
 --
 -- Name: TABLE sellable_unit_space; Type: ACL; Schema: public; Owner: -
 --
 
-GRANT SELECT,INSERT,UPDATE ON TABLE public.sellable_unit_space TO app_role;
+GRANT SELECT ON TABLE public.sellable_unit_space TO app_role;
+
+
+--
+-- Name: COLUMN sellable_unit_space.tenant_id; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT INSERT(tenant_id) ON TABLE public.sellable_unit_space TO app_role;
+
+
+--
+-- Name: COLUMN sellable_unit_space.sellable_unit_id; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT INSERT(sellable_unit_id) ON TABLE public.sellable_unit_space TO app_role;
+
+
+--
+-- Name: COLUMN sellable_unit_space.space_id; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT INSERT(space_id) ON TABLE public.sellable_unit_space TO app_role;
+
+
+--
+-- Name: COLUMN sellable_unit_space.claim_mode; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT INSERT(claim_mode) ON TABLE public.sellable_unit_space TO app_role;
 
 
 --
 -- Name: TABLE space; Type: ACL; Schema: public; Owner: -
 --
 
-GRANT SELECT,INSERT,UPDATE ON TABLE public.space TO app_role;
+GRANT SELECT ON TABLE public.space TO app_role;
+
+
+--
+-- Name: COLUMN space.tenant_id; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT INSERT(tenant_id) ON TABLE public.space TO app_role;
+
+
+--
+-- Name: COLUMN space.property_node; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT INSERT(property_node) ON TABLE public.space TO app_role;
+
+
+--
+-- Name: COLUMN space.code; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT INSERT(code) ON TABLE public.space TO app_role;
+
+
+--
+-- Name: COLUMN space.profile_key; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT INSERT(profile_key) ON TABLE public.space TO app_role;
+
+
+--
+-- Name: COLUMN space.capacity; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT INSERT(capacity) ON TABLE public.space TO app_role;
+
+
+--
+-- Name: COLUMN space.max_occupancy; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT INSERT(max_occupancy) ON TABLE public.space TO app_role;
+
+
+--
+-- Name: COLUMN space.floor; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT INSERT(floor) ON TABLE public.space TO app_role;
+
+
+--
+-- Name: COLUMN space.area_sqm; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT INSERT(area_sqm) ON TABLE public.space TO app_role;
+
+
+--
+-- Name: COLUMN space.gender_policy; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT INSERT(gender_policy) ON TABLE public.space TO app_role;
+
+
+--
+-- Name: COLUMN space.attrs; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT INSERT(attrs) ON TABLE public.space TO app_role;
 
 
 --
@@ -6107,56 +7507,56 @@ GRANT SELECT ON TABLE public.space_occupancy TO app_role;
 -- Name: TABLE space_relation; Type: ACL; Schema: public; Owner: -
 --
 
-GRANT SELECT,INSERT,UPDATE ON TABLE public.space_relation TO app_role;
+GRANT SELECT ON TABLE public.space_relation TO app_role;
 
 
 --
 -- Name: TABLE stats_daily; Type: ACL; Schema: public; Owner: -
 --
 
-GRANT SELECT,INSERT,UPDATE ON TABLE public.stats_daily TO app_role;
+GRANT SELECT ON TABLE public.stats_daily TO app_role;
 
 
 --
 -- Name: TABLE statutory_submission; Type: ACL; Schema: public; Owner: -
 --
 
-GRANT SELECT,INSERT,UPDATE ON TABLE public.statutory_submission TO app_role;
+GRANT SELECT ON TABLE public.statutory_submission TO app_role;
 
 
 --
 -- Name: TABLE task; Type: ACL; Schema: public; Owner: -
 --
 
-GRANT SELECT,INSERT,UPDATE ON TABLE public.task TO app_role;
+GRANT SELECT ON TABLE public.task TO app_role;
 
 
 --
 -- Name: TABLE task_sheet; Type: ACL; Schema: public; Owner: -
 --
 
-GRANT SELECT,INSERT,UPDATE ON TABLE public.task_sheet TO app_role;
+GRANT SELECT ON TABLE public.task_sheet TO app_role;
 
 
 --
 -- Name: TABLE tax_assignment; Type: ACL; Schema: public; Owner: -
 --
 
-GRANT SELECT,INSERT ON TABLE public.tax_assignment TO app_role;
+GRANT SELECT ON TABLE public.tax_assignment TO app_role;
 
 
 --
 -- Name: TABLE tenant; Type: ACL; Schema: public; Owner: -
 --
 
-GRANT SELECT,INSERT,UPDATE ON TABLE public.tenant TO app_role;
+GRANT SELECT ON TABLE public.tenant TO app_role;
 
 
 --
 -- Name: TABLE travel_detail; Type: ACL; Schema: public; Owner: -
 --
 
-GRANT SELECT,INSERT,UPDATE ON TABLE public.travel_detail TO app_role;
+GRANT SELECT ON TABLE public.travel_detail TO app_role;
 
 
 --
@@ -6177,35 +7577,98 @@ GRANT SELECT ON TABLE public.tx_code_route TO app_role;
 -- Name: TABLE unit_condition; Type: ACL; Schema: public; Owner: -
 --
 
-GRANT SELECT,INSERT,UPDATE ON TABLE public.unit_condition TO app_role;
+GRANT SELECT ON TABLE public.unit_condition TO app_role;
 
 
 --
 -- Name: TABLE unit_type; Type: ACL; Schema: public; Owner: -
 --
 
-GRANT SELECT,INSERT,UPDATE ON TABLE public.unit_type TO app_role;
+GRANT SELECT ON TABLE public.unit_type TO app_role;
+
+
+--
+-- Name: COLUMN unit_type.tenant_id; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT INSERT(tenant_id) ON TABLE public.unit_type TO app_role;
+
+
+--
+-- Name: COLUMN unit_type.property_node; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT INSERT(property_node) ON TABLE public.unit_type TO app_role;
+
+
+--
+-- Name: COLUMN unit_type.code; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT INSERT(code) ON TABLE public.unit_type TO app_role;
+
+
+--
+-- Name: COLUMN unit_type.name; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT INSERT(name) ON TABLE public.unit_type TO app_role;
+
+
+--
+-- Name: COLUMN unit_type.profile_key; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT INSERT(profile_key) ON TABLE public.unit_type TO app_role;
+
+
+--
+-- Name: COLUMN unit_type.base_occupancy; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT INSERT(base_occupancy) ON TABLE public.unit_type TO app_role;
+
+
+--
+-- Name: COLUMN unit_type.max_occupancy; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT INSERT(max_occupancy) ON TABLE public.unit_type TO app_role;
+
+
+--
+-- Name: COLUMN unit_type.attrs; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT INSERT(attrs) ON TABLE public.unit_type TO app_role;
+
+
+--
+-- Name: COLUMN unit_type.sort_order; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT INSERT(sort_order) ON TABLE public.unit_type TO app_role;
 
 
 --
 -- Name: TABLE user_role; Type: ACL; Schema: public; Owner: -
 --
 
-GRANT SELECT,INSERT,UPDATE ON TABLE public.user_role TO app_role;
+GRANT SELECT ON TABLE public.user_role TO app_role;
 
 
 --
 -- Name: TABLE vehicle; Type: ACL; Schema: public; Owner: -
 --
 
-GRANT SELECT,INSERT,UPDATE ON TABLE public.vehicle TO app_role;
+GRANT SELECT ON TABLE public.vehicle TO app_role;
 
 
 --
 -- Name: TABLE waitlist_entry; Type: ACL; Schema: public; Owner: -
 --
 
-GRANT SELECT,INSERT,UPDATE ON TABLE public.waitlist_entry TO app_role;
+GRANT SELECT ON TABLE public.waitlist_entry TO app_role;
 
 
 --

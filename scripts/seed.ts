@@ -221,7 +221,7 @@ export interface SeedResult {
   readonly property: "inserted" | "already exact";
   readonly registry: "inserted" | "already exact";
   readonly deploymentRole: string;
-  readonly writeRole: "app_role";
+  readonly writeRole: string;
   readonly backendPid: number;
   readonly roleReset: true;
   readonly tenantContextCleared: true;
@@ -481,12 +481,6 @@ export async function runSeed(options: SeedOptions): Promise<SeedResult> {
 
     await connection.unsafe("BEGIN");
     try {
-      await connection.unsafe("SET LOCAL ROLE app_role");
-      const role = await identity(connection);
-      if (role.current_user !== "app_role" || role.backend_pid !== backendPid) {
-        throw new Error("Seed transaction did not assume app_role on the reserved backend");
-      }
-
       const tenant = await handleTenant(connection);
       const contextRows = await connection<{ tenant_context: string }[]>`
         SELECT set_config('app.tenant_id', ${SEED_TENANT.id}, true) AS tenant_context
@@ -495,11 +489,18 @@ export async function runSeed(options: SeedOptions): Promise<SeedResult> {
 
       await options.beforeProperty?.(connection);
       const property = await handleProperty(connection);
-      await connection.unsafe("RESET ROLE");
       const registry = await handleLaunchRegistry(connection);
+
+      // The deploy tool owns canonical global creation. app_role receives only a
+      // read-only visibility/idempotency probe after the exact rows exist.
       await connection.unsafe("SET LOCAL ROLE app_role");
+      const role = await identity(connection);
+      if (role.current_user !== "app_role" || role.backend_pid !== backendPid) {
+        throw new Error("Seed verification did not assume app_role on the reserved backend");
+      }
       await handleTenant(connection);
       await handleProperty(connection);
+      await connection.unsafe("RESET ROLE");
       await connection.unsafe("COMMIT");
 
       await assertReset(connection, deploymentRole, backendPid);
@@ -512,7 +513,7 @@ export async function runSeed(options: SeedOptions): Promise<SeedResult> {
       logger(`seed tenant: ${tenant}`);
       logger(`seed property: ${property}`);
       logger(`seed summary: status=${tenant === "already exact" && property === "already exact" && registry === "already exact" ? "no-op" : "applied"} backend_pid=${backendPid}`);
-      result = { tenant, property, registry, deploymentRole, writeRole: "app_role", backendPid, roleReset: true, tenantContextCleared: true, reuseProbeCleared: true };
+      result = { tenant, property, registry, deploymentRole, writeRole: deploymentRole, backendPid, roleReset: true, tenantContextCleared: true, reuseProbeCleared: true };
     } catch (error) {
       let evidence: RollbackEvidence = { connectionUsable: false, roleReset: false, tenantContextCleared: false };
       try {

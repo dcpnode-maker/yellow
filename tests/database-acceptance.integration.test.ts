@@ -80,6 +80,11 @@ const EXPECTED_MIGRATIONS = [
     filename: "0015_runtime_database_authority.sql",
     checksum_sha256: "cd201b7e0bc9a2fb538b32f69adb0900d7b2149f9cc82fd5e9a02056a573166a",
   },
+  {
+    version: 16,
+    filename: "0016_runtime_dml_authority.sql",
+    checksum_sha256: "216e79ab0b10a697b79e99872cbf3a65394dcdf94773af1fd4c13862f4e83fe5",
+  },
 ];
 
 if (REQUIRE_DATABASE && !DATABASE_URL) {
