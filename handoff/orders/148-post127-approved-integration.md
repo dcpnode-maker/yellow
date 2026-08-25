@@ -1,6 +1,6 @@
 # Order 148 — Integrate the approved post-127 line
 
-**Status:** READY
+**Status:** CORRECTION READY — Q158/D-410 diff-hygiene boundary resolved
 **Phase:** 5 · delivery control
 **Branch:** `phase-5/post127-approved-integration`
 **Base:** `f26e3952cdc0091bab852b3c6b670b84a13cef7c` — closed Order-127
@@ -30,12 +30,16 @@ order proves provenance and integration behavior; it does not implement a featur
 - Order-147 presentation approval D-408 belongs to its separate approved status
   branch and is deliberately not imported. D-409 is the next decision on this
   product-integration line; the numbering gap is explicit, not missing evidence.
+- Target-to-Base `git diff --check` has an immutable inherited manifest of 53
+  Markdown trailing-space findings across 11 already reviewed governance paths.
+  Q158/D-410 permits no rewrite; Base-to-candidate hygiene must be exact and empty.
 - Finance activation and any workbench approval-status upgrade remain separate future
   orders. Neither may be smuggled into this integration candidate.
 
 ## Scope
 
 - this order;
+- `handoff/questions/158-order148-diff-hygiene-boundary.md`;
 - additive D-409 and the Order-148 ledger records;
 - `handoff/reviews/148-post127-approved-integration.md` only when written by the
   independent reviewer; and
@@ -52,7 +56,9 @@ change under this order.
 Fetch the PR target read-only and require its exact SHA before proof. Prove target is
 an ancestor of the candidate, the candidate is zero commits behind, and no merge,
 rebase, cherry-pick, graft or replacement ancestry was introduced by this order.
-Prove Base-to-candidate changes only the Scope paths above.
+Prove Base-to-candidate changes only the Scope paths above and passes `git diff
+--check`. Separately prove the target-to-Base inherited manifest is exactly 53
+findings across the 11 Q158 paths, with no candidate-created addition.
 
 ### P1 — provenance and exclusions
 
@@ -101,4 +107,3 @@ approval may Codex push this branch and open one PR targeting the exact fetched
 - [ ] Independent Tier-3 review approves that exact candidate.
 - [ ] Branch is pushed and one PR is opened against the unchanged target with referee
       evidence; no merge or deployment occurs.
-
