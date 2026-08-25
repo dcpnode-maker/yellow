@@ -1062,7 +1062,7 @@ export class RatePublicationService {
             AND approval.kind = ${RELEASE_TYPE}
             AND approval.subject_type = 'extension'
             AND approval.payload ->> 'rate_plan_id' = ${ratePlanId}
-            AND (approval.created_at, approval.id) < (${cursor.createdAt}::timestamptz, ${cursor.id}::uuid)
+            AND (approval.created_at, approval.id) < (${cursor.createdAt.toISOString()}::timestamptz, ${cursor.id}::uuid)
           ORDER BY approval.created_at DESC, approval.id DESC
           LIMIT ${pageSize + 1}
         `;
