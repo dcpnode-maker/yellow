@@ -1,6 +1,6 @@
 # Order 143 — Create segment-change parents before occupancy reacquisition
 
-**Status:** IMPLEMENTED-NONDB — DATABASE PROOF PENDING
+**Status:** BUILT-UNREVIEWED — INDEPENDENT TIER-3 REVIEW REQUIRED
 **Phase:** 5 · Cyber remediation prerequisite
 **Branch:** `phase-5/reservation-segment-parent-before-occupancy`
 **Base:** `a3c91bc410a4bcc943c57b5ae5d3b89e6a2c29d4` — independently approved
@@ -52,12 +52,14 @@ transaction back, restoring old parent and occupancy state byte-for-byte.
    exact locked segment period with the existing compare-and-swap predicates, then call
    `claimForSegment` using the same segment id and new period. A zero-row update fails
    before reacquisition. Unit-type and exact returned-period checks stay mandatory.
-3. For `moveRoom`, release through inventory, insert the next segment using the
-   already locked source commercial shape, target unit type, destination sellable and
-   exact active period, then call `claimForSegment` for that row. The acquired unit
-   type, one-exclusive-space shape, different physical space and exact period checks
-   remain mandatory. Only after acquisition succeeds may the old segment become
-   departed with its exact historical period.
+3. For `moveRoom`, release through inventory, use inventory's existing read-only
+   preparation to reject a missing, foreign or cross-type destination before inserting
+   its parent, then insert the next segment using the already locked source commercial
+   shape, target unit type, destination sellable and exact active period. Call
+   `claimForSegment` for that row so inventory revalidates after the parent is visible.
+   The acquired unit type, one-exclusive-space shape, different physical space and exact
+   period checks remain mandatory. Only after acquisition succeeds may the old segment
+   become departed with its exact historical period.
 4. Preserve existing fact/outbox payloads, ordering, event names, idempotency request
    shape and public result. No new state, transition, event or cross-context SQL.
 5. Every failure after a provisional update/insert relies on the existing transaction
@@ -148,32 +150,52 @@ APPROVE or REJECT. Builder output is not reviewer evidence.
   outbox assertions, or editing protected referee/fixture files;
 - self-review, self-merge, push, deployment, live-status or Cyber finding closure.
 
-## Builder checkpoint — non-database only
+## Builder evidence
 
-The test-first ordering proof is preserved in exact commit
-`850c36d3815cc5f464bba0468d694c51d0662a7e`: before production edits its focused
-static assertion reported 1 pass, 5 skipped, 1 failure and showed both required
-parent-before-claim predicates as false. The exact executable commit
-`76dfe26dff81d183d3b156becd10685b989d6f93` makes only the two preregistered
-transaction-local reorderings in `segments.ts`.
-
-Without starting Docker, that executable passes:
-
-- focused static proof: 2 passed, 5 skipped, 0 failed, 3 assertions;
-- standing suite: 173 passed, 422 skipped, 0 failed, 1,982 assertions;
-- typecheck, 64-file import-boundary check, frozen 23-package licence check and audit
-  with no vulnerabilities.
-
-The test-only PostgreSQL guard and observations are committed and compile, but P0's
-database red, P1-P4 database behavior, P5, the pristine referee and independent
-Tier-3 review have deliberately not run while Docker remains prohibited. This status
-is therefore neither `BUILT-UNREVIEWED` nor review-ready.
+- Exact P0 commit `850c36d3815cc5f464bba0468d694c51d0662a7e` on a fresh
+  migrated database produced the static false/false ordering red and real SQLSTATE
+  `P0143` at both changed-period and new-id occupancy inserts: 1 passed, 6 failed and
+  19 assertions. Direct read-back proved departure retained its old exact parent and
+  claim period; room move retained the one old in-house segment/claim and created zero
+  new parent, claim, idempotency result or event.
+- The initial executable `76dfe26dff81d183d3b156becd10685b989d6f93` passed P1-P3
+  and P5 but the unchanged strict guard exposed one P4 compatibility defect: a
+  cross-unit-type destination reached its provisional parent and raised raw `P0143`
+  before the established lifecycle conflict. Corrected exact executable
+  `4e06d4b7580e68af5a716a3bfb6d9ec93994e692` adds only inventory-owned read-only
+  destination preparation before insertion; acquisition still revalidates after the
+  parent becomes visible. The complete unchanged guarded suite then passes 7/7 with
+  115 assertions.
+- Fresh isolated regressions pass: reservation commit 5/5 (106 assertions), HTTP
+  commit 5/5 (61), lifecycle 5/5 (62), seeded holds 9/9 (32), inventory 6/6 (30), and
+  Order-129 parent sequencing 7/7 (45). The remapped isolated phase matrix passes
+  19/19 suites.
+- The unchanged migration suite passes 17/17 with 95 assertions under native WSL.
+  Its Windows run passed 16/17; only the test's temporary symlink creation was denied
+  by the host with `EPERM` before product code. Canonically seeded deployment
+  acceptance passes 6/6 with 13 assertions and fresh schema drift matches
+  `tests/schema/expected.sql`.
+- Under the coordinator's unique-database rule, the app-never-started DB-only setup
+  core was reproduced manually because `setup.ps1` hardcodes shared `yellow_dev` and
+  `yellow_test` names: migrations 0001-0013, the unchanged fixture, exact 85-table
+  count and pristine referee `11 passed, 0 failed of 11`. A separate fresh protected
+  typed-parent proof passes 5/5 with 58 assertions, including its embedded referee.
+- Standing passes 173 with 422 skipped, 0 failed and 1,982 assertions. Typecheck,
+  64-file boundaries, frozen 23-package licence check and audit pass. Protected SHA-256
+  remains exact: baseline
+  `fe2a9fc949c6bacded3f8d3fc4d14fc596a83ebde9aeb043eb10845f07b30923`, referee
+  `2afa95bb7c02cd9637ffc9c3df00d1ddf7cfc5d8d31c4fd8fad29b950c1a418d`, fixture
+  `bf71d8fc2987126db61ca3105e5d5cb5a4f48b9e2eba09d8b7fc1f3441fd4c62` and schema
+  `a5ffe526138e0c87365f58bbf1f0a08f51f531418aefe6ebe414ffda7e51d59a`.
+- Every `yellow_o143b_*` and test-owned `yellow_migrate_*` database was dropped. The
+  shared Compose configuration and services were not stopped or reconfigured, and no
+  application container was started. Builder output is not independent review.
 
 ## Definition of done
 
-- [ ] P0 is committed separately and reproduces both exact-parent ordering failures.
-- [ ] P1–P4 pass on one immutable executable SHA.
-- [ ] P5 and pristine referee are green.
+- [x] P0 is committed separately and reproduces both exact-parent ordering failures.
+- [x] P1–P4 pass on one immutable executable SHA.
+- [x] P5 and pristine referee are green.
 - [ ] Independent non-implementing Tier-3 review approves the exact executable.
 - [ ] Only then may Order 126 adopt the approved Order-143 frontier and resume its own
       strict migration proof.
