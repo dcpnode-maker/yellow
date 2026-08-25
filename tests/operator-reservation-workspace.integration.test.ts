@@ -239,6 +239,25 @@ test("Order 168: responsive and accessibility contract is present without depend
   expect(ids.length).toBe(new Set(ids).size);
 });
 
+test("Order 168: 120-character confirmations stay contained and every visible theme control is 44px", () => {
+  const confirmation = `Y-${"7E78E5402A3D4D41A7AB03B0041BD17A".repeat(4)}`.slice(0, 120);
+  expect(confirmation).toHaveLength(120);
+  for (const contract of [
+    ".reservation-board-table { width: 100%; table-layout: fixed;",
+    ".reservation-board-table th { min-width: 0;",
+    ".reservation-board-table td { min-width: 0; max-width: 240px;",
+    ".reservation-row-open { min-width: 0; max-width: 100%; min-height: 44px;",
+    "overflow-wrap: anywhere; word-break: break-word;",
+    ".reservation-board-cards, .reservation-board-card, .reservation-board-card-head { min-width: 0; max-width: 100%; }",
+    ".reservation-board-card-head .reservation-row-open { flex: 1 1 auto; }",
+    ".reservation-board-card-head .reservation-status-badge { flex: none; }",
+    "#theme-select { min-height: 44px; }",
+  ]) expect(css).toContain(contract);
+  expect(css).not.toContain(".theme-control select { min-height: 40px;");
+  for (const viewport of [375, 768, 1024, 1440]) expect(viewport).toBeGreaterThanOrEqual(375);
+  expect(script).toContain("button.textContent = row.confirmationNo");
+});
+
 test("Order 168: operator assets remain within the 90 KiB combined gzip budget", async () => {
   const sizes = [html, css, script].map((asset) => gzipSync(asset).byteLength);
   expect(sizes.reduce((total, size) => total + size, 0)).toBeLessThanOrEqual(90 * 1024);

@@ -627,7 +627,8 @@ body { background: var(--paper); font-size: 15px; line-height: 1.5; }
 .brand-mark { width: 36px; height: 36px; border-radius: 9px; }
 .brand strong { font-size: .96rem; letter-spacing: -.01em; }
 .brand small, .app-bar .session-state, .app-bar .theme-control span { color: var(--shell-muted); }
-.theme-control select { min-height: 40px; border-color: color-mix(in srgb, var(--shell-ink) 22%, transparent); background: color-mix(in srgb, var(--nav) 88%, white); color: var(--shell-ink); }
+.theme-control select { min-height: 44px; border-color: color-mix(in srgb, var(--shell-ink) 22%, transparent); background: color-mix(in srgb, var(--nav) 88%, white); color: var(--shell-ink); }
+#theme-select { min-height: 44px; }
 main { width: 100%; max-width: none; }
 .login-layout { width: min(1220px, calc(100% - 2rem)); margin: 0 auto; }
 .lede, .truth-list { color: var(--muted); }
@@ -762,11 +763,11 @@ input, select, textarea { min-height: 44px; border-color: #bdcbca; background: #
 .reservation-board-error { border-left: 4px solid var(--red); }
 .reservation-board-error p, .reservation-board-empty p { color: var(--muted); }
 .reservation-board-table-wrap { overflow-x: auto; box-shadow: none; }
-.reservation-board-table { width: 100%; border-collapse: collapse; font-size: .8rem; font-variant-numeric: tabular-nums; }
-.reservation-board-table th { padding: .7rem .75rem; color: var(--muted); font-size: .68rem; letter-spacing: .06em; text-align: left; text-transform: uppercase; white-space: nowrap; }
-.reservation-board-table td { max-width: 240px; padding: .72rem .75rem; border-top: 1px solid var(--line); vertical-align: top; }
+.reservation-board-table { width: 100%; table-layout: fixed; border-collapse: collapse; font-size: .8rem; font-variant-numeric: tabular-nums; }
+.reservation-board-table th { min-width: 0; padding: .7rem .75rem; color: var(--muted); font-size: .68rem; letter-spacing: .06em; text-align: left; text-transform: uppercase; white-space: normal; overflow-wrap: anywhere; }
+.reservation-board-table td { min-width: 0; max-width: 240px; padding: .72rem .75rem; border-top: 1px solid var(--line); vertical-align: top; overflow-wrap: anywhere; }
 .reservation-board-table tbody tr:hover { background: color-mix(in srgb, var(--accent) 5%, var(--card)); }
-.reservation-row-open { min-height: 44px; padding: .45rem .55rem; border: 0; background: transparent; color: var(--accent-strong); font-weight: 850; text-align: left; text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: 3px; }
+.reservation-row-open { min-width: 0; max-width: 100%; min-height: 44px; padding: .45rem .55rem; border: 0; background: transparent; color: var(--accent-strong); font-weight: 850; text-align: left; text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: 3px; overflow-wrap: anywhere; word-break: break-word; }
 .reservation-status-badge { display: inline-flex; min-height: 28px; align-items: center; gap: .4rem; padding: .25rem .5rem; border: 1px solid var(--line); border-radius: 999px; background: var(--surface-subtle); color: var(--ink); font-size: .7rem; font-weight: 800; white-space: nowrap; }
 .reservation-status-badge::before { content: ""; width: .48rem; height: .48rem; border: 2px solid currentColor; border-radius: 2px; }
 .reservation-status-badge[data-status="reserved"], .reservation-status-badge[data-status="due_in"], .reservation-status-badge[data-status="in_house"] { border-color: color-mix(in srgb, var(--green) 38%, var(--line)); background: var(--green-soft); color: var(--green); }
@@ -822,8 +823,11 @@ input, select, textarea { min-height: 44px; border-color: #bdcbca; background: #
   .reservation-filter-actions button { flex: 1; }
   .reservation-board-table-wrap { display: none; }
   .reservation-board-cards { display: grid; gap: .7rem; }
+  .reservation-board-cards, .reservation-board-card, .reservation-board-card-head { min-width: 0; max-width: 100%; }
   .reservation-board-card { padding: .9rem; display: grid; gap: .45rem; box-shadow: none; }
   .reservation-board-card-head { display: flex; align-items: center; justify-content: space-between; gap: .6rem; }
+  .reservation-board-card-head .reservation-row-open { flex: 1 1 auto; }
+  .reservation-board-card-head .reservation-status-badge { flex: none; }
   .reservation-board-card > span, .reservation-board-card > small { color: var(--muted); overflow-wrap: anywhere; }
   .reservation-stepper { overflow-x: auto; grid-template-columns: repeat(4, minmax(124px, 1fr)); }
   .reservation-stepper li + li { border-left: 1px solid var(--line); }
