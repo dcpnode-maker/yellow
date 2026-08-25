@@ -8,6 +8,15 @@ export interface ProjectPhaseSnapshot {
   readonly state: PhaseBuildState;
 }
 
+export type ProjectRecordedWorkState = "independently_approved" | "proof_in_progress";
+
+export interface ProjectRecordedWorkSnapshot {
+  readonly order: 126 | 127 | 148;
+  readonly state: ProjectRecordedWorkState;
+  readonly summary: string;
+  readonly remaining?: string;
+}
+
 export interface OperatorRuntimeStatus {
   readonly workbenchEnabled: boolean;
   readonly holdExpiryWorkerEnabled: boolean;
@@ -24,12 +33,12 @@ export const DEFAULT_OPERATOR_RUNTIME_STATUS: OperatorRuntimeStatus = Object.fre
 
 export const PROJECT_BUILD_SNAPSHOT = Object.freeze({
   schemaVersion: 1,
-  recordedAt: "2026-08-24",
+  recordedAt: "2026-08-25",
   label: "Recorded build snapshot",
   roadmap: Object.freeze({
     phaseCount: 13,
-    latestBuiltOrder: 129,
-    currentOrder: 129,
+    latestBuiltOrder: 149,
+    currentOrder: 149,
     activePhase: 5,
   }),
   review: Object.freeze({
@@ -38,6 +47,24 @@ export const PROJECT_BUILD_SNAPSHOT = Object.freeze({
     state: INDEPENDENTLY_REVIEWED_THROUGH_ORDER >= 107 ? "reviewed" as const : "built_unverified" as const,
   }),
   referee: Object.freeze({ requiredPasses: 11, requiredFailures: 0 }),
+  recordedWork: Object.freeze([
+    Object.freeze({
+      order: 126,
+      state: "independently_approved" as const,
+      summary: "Order 126 independently approved (D-391).",
+    }),
+    Object.freeze({
+      order: 127,
+      state: "independently_approved" as const,
+      summary: "Order 127 independently approved (D-407).",
+    }),
+    Object.freeze({
+      order: 148,
+      state: "independently_approved" as const,
+      summary: "Order 148 independently approved (D-412).",
+      remaining: "PR #78 is open and unmerged; no deployment is claimed.",
+    }),
+  ] satisfies readonly ProjectRecordedWorkSnapshot[]),
   phases: Object.freeze([
     Object.freeze({ number: 0, name: "Bootstrap", state: "reviewed" as const }),
     Object.freeze({ number: 1, name: "Kernel", state: INDEPENDENTLY_REVIEWED_THROUGH_ORDER >= 26 ? "reviewed" as const : "built_unverified" as const }),

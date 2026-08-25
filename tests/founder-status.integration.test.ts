@@ -161,10 +161,10 @@ describe("Order 064 recorded build snapshot", () => {
     const reviewCoverage = await deriveIndependentReviewCoverage();
     const rows = manifestRows(manifest);
     expect(rows.length).toBeGreaterThan(0);
-    expect(PROJECT_BUILD_SNAPSHOT.roadmap.latestBuiltOrder).toBe(129);
+    expect(PROJECT_BUILD_SNAPSHOT.roadmap.latestBuiltOrder).toBe(149);
     expect(PROJECT_BUILD_SNAPSHOT.review.gate3Debt).toBe(0);
     expect(PROJECT_BUILD_SNAPSHOT.review.state).toBe("built_unverified");
-    expect(PROJECT_BUILD_SNAPSHOT.roadmap.currentOrder).toBe(129);
+    expect(PROJECT_BUILD_SNAPSHOT.roadmap.currentOrder).toBe(149);
     expect(PROJECT_BUILD_SNAPSHOT.roadmap.activePhase).toBe(5);
     expect(PROJECT_BUILD_SNAPSHOT.roadmap.phaseCount).toBe(13);
     expect(reviewCoverage.throughOrder).toBe(91);
@@ -177,6 +177,25 @@ describe("Order 064 recorded build snapshot", () => {
     expect(Number(INDEPENDENTLY_REVIEWED_THROUGH_ORDER)).toBe(reviewCoverage.throughOrder);
     expect(Number(PROJECT_BUILD_SNAPSHOT.review.independentlyReviewedThroughOrder)).toBe(Number(reviewCoverage.throughOrder));
     expect(PROJECT_BUILD_SNAPSHOT.referee).toEqual({ requiredPasses: 11, requiredFailures: 0 });
+    expect(PROJECT_BUILD_SNAPSHOT.recordedWork).toEqual([
+      {
+        order: 126,
+        state: "independently_approved",
+        summary: "Order 126 independently approved (D-391).",
+      },
+      {
+        order: 127,
+        state: "independently_approved",
+        summary: "Order 127 independently approved (D-407).",
+      },
+      {
+        order: 148,
+        state: "independently_approved",
+        summary: "Order 148 independently approved (D-412).",
+        remaining: "PR #78 is open and unmerged; no deployment is claimed.",
+      },
+    ]);
+    expect(PROJECT_BUILD_SNAPSHOT.review.independentlyReviewedThroughOrder).toBe(91);
     expect(PROJECT_BUILD_SNAPSHOT.phases).toHaveLength(13);
     expect(PROJECT_BUILD_SNAPSHOT.phases.map(({ number }) => Number(number))).toEqual([...Array(13).keys()]);
     expect(PROJECT_BUILD_SNAPSHOT.phases[0]?.state).toBe("reviewed");
@@ -208,6 +227,8 @@ describe("Order 064 recorded build snapshot", () => {
     expect(html).toContain('id="roadmap-progress"');
     expect(html).toContain('id="review-progress"');
     expect(html).toContain('id="status-reviewed"');
+    expect(html).toContain('id="status-current-work"');
+    expect(html).toContain("Recorded coordination evidence");
     expect(html).toContain("Recorded build snapshot");
     expect(html).toContain("Live service checks");
     expect(css).toContain(".status-health-grid");
@@ -215,6 +236,8 @@ describe("Order 064 recorded build snapshot", () => {
     expect(js).toContain('"/system-status"');
     expect(js).toContain("loadSystemStatus");
     expect(js).toContain('const statusReviewed = document.querySelector("#status-reviewed")');
+    expect(js).toContain('const statusCurrentWork = document.querySelector("#status-current-work")');
+    expect(js).toContain("statusCurrentWork.replaceChildren(...currentWork)");
     expect(js).toContain('statusReviewed.textContent = `${snapshot.review.independentlyReviewedThroughOrder} orders`;');
     expect(js).not.toContain('statusDebt.textContent = `${snapshot.review.gate3Debt} orders`;');
     expect(js).not.toMatch(/localStorage|sessionStorage|document\.cookie|setInterval|EventSource|WebSocket/);

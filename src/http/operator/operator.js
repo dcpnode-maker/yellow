@@ -258,6 +258,7 @@
   const statusRoadmapCopy = document.querySelector("#status-roadmap-copy");
   const statusReviewCopy = document.querySelector("#status-review-copy");
   const statusPhaseList = document.querySelector("#status-phase-list");
+  const statusCurrentWork = document.querySelector("#status-current-work");
   const statusHealthGrid = document.querySelector("#status-health-grid");
   const statusMessage = document.querySelector("#status-message");
   const reservationLookupForm = document.querySelector("#reservation-lookup-form");
@@ -2163,6 +2164,26 @@
       return item;
     });
     statusPhaseList.replaceChildren(...phases);
+
+    const currentWork = snapshot.recordedWork.map((item) => {
+      const entry = document.createElement("li");
+      entry.className = "status-phase-item";
+      entry.dataset.state = item.state;
+      const order = document.createElement("b");
+      order.textContent = String(item.order);
+      const copy = document.createElement("span");
+      const summary = document.createElement("span");
+      summary.textContent = item.summary;
+      copy.append(summary);
+      if (item.remaining) {
+        const remaining = document.createElement("small");
+        remaining.textContent = item.remaining;
+        copy.append(remaining);
+      }
+      entry.append(order, copy);
+      return entry;
+    });
+    statusCurrentWork.replaceChildren(...currentWork);
 
     const appChecked = new Date(live.app.checkedAt).toLocaleString();
     const databaseChecked = new Date(live.database.checkedAt).toLocaleString();
