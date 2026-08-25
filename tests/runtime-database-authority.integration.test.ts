@@ -393,16 +393,26 @@ databaseDescribe("Order 127 runtime database authority (kernel boundary; HTTP P4
     expect(denied.every((row) => !row.public_execute && !row.app_execute)).toBe(true);
 
     await database.withTenantTransaction(tenantA, async (tx) => {
-      expect(await captureSqlState(() => tx`SELECT public.runtime_due_hold_scopes(1)`)).toBe("42501");
-      expect(await captureSqlState(() => tx`SELECT public.runtime_resolve_active_tenant('x')`)).toBe("42501");
-      expect(await captureSqlState(() => tx`SELECT public.runtime_consumer_begin('x')`)).toBe("42501");
-      expect(await captureSqlState(() => tx`SELECT public.runtime_consumer_read('x', 0, 1, true)`)).toBe("42501");
-      expect(await captureSqlState(() => tx`SELECT public.runtime_consumer_mark('x', gen_random_uuid())`)).toBe("42501");
-      expect(await captureSqlState(() => tx`SELECT public.runtime_consumer_advance('x', 0)`)).toBe("42501");
-      expect(await captureSqlState(() => tx`SELECT public.runtime_mark_outbox_published(ARRAY[gen_random_uuid()])`)).toBe("42501");
-      expect(await captureSqlState(() => tx`SELECT public.runtime_prune_outbox(0)`)).toBe("42501");
-      expect(await captureSqlState(() => tx`SELECT public.runtime_visible_extensions(${tenantA}::uuid)`)).toBe("42501");
-      expect(await captureSqlState(() => tx`SELECT public.runtime_extension_compatibility_inputs(${extensionType})`)).toBe("42501");
+      const deniedStatements = [
+        () => tx`SELECT public.runtime_due_hold_scopes(1)`,
+        () => tx`SELECT public.runtime_resolve_active_tenant('x')`,
+        () => tx`SELECT public.runtime_consumer_begin('x')`,
+        () => tx`SELECT public.runtime_consumer_read('x', 0, 1, true)`,
+        () => tx`SELECT public.runtime_consumer_mark('x', gen_random_uuid())`,
+        () => tx`SELECT public.runtime_consumer_advance('x', 0)`,
+        () => tx`SELECT public.runtime_mark_outbox_published(ARRAY[gen_random_uuid()])`,
+        () => tx`SELECT public.runtime_prune_outbox(0)`,
+        () => tx`SELECT public.runtime_visible_extensions(${tenantA}::uuid)`,
+        () => tx`SELECT public.runtime_extension_compatibility_inputs(${extensionType})`,
+      ];
+      for (const [index, statement] of deniedStatements.entries()) {
+        const savepoint = `order127_p3_denial_${index}`;
+        await tx.unsafe(`SAVEPOINT ${savepoint}`);
+        const state = await captureSqlState(statement);
+        await tx.unsafe(`ROLLBACK TO SAVEPOINT ${savepoint}`);
+        await tx.unsafe(`RELEASE SAVEPOINT ${savepoint}`);
+        expect(state).toBe("42501");
+      }
     });
 
     const direct = runtimeSession!;
