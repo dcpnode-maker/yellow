@@ -1,6 +1,6 @@
 # Question 166 — Order 156 needs an unforgeable registration authority
 
-**Status:** OPEN — founder trust-boundary choice required
+**Status:** RESOLVED — founder selected recommended option 1
 **Order:** 156
 **Raised by:** independent Tier-3 pre-implementation review
 **Date:** 2026-08-25
@@ -57,3 +57,9 @@ the stated platform-scope bypass, so it is not recommended.
 Authorize option 1, option 2, or explicitly accept option 3's residual impersonation
 risk. Option 1 is recommended because it is narrow, testable and does not put signing
 key verification inside PostgreSQL.
+
+## RESOLVED
+
+On 2026-08-25 the founder selected option 1. D-422 authorizes the exact dedicated
+`yellow_extension_registrar` principal, credential, pool, atomic command/audit function
+and expanded provisioning/proof scope. Options 2 and 3 are rejected.

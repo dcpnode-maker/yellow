@@ -1,6 +1,6 @@
 # Order 156 — Bound extension-type registration capability
 
-**Status:** BLOCKED — Question 166 requires an unforgeable authority choice
+**Status:** READY — Q166 option 1 authorized by D-422
 **Phase:** 5 · Cyber remediation
 **Branch:** `phase-5/extension-type-registration-capability`
 **Base:** `c7e89e9a9c83deaddd06ffe838a23b455e2613c7`
@@ -18,6 +18,14 @@ validation, audit facts, compatibility behavior or response semantics.
 ## Scope
 
 - `migrations/0018_extension_type_registration_capability.sql`;
+- `.env.example`, `docker-compose.yml`, `setup.sh` and `.github/workflows/ci.yml`, only
+  for the third registrar credential/DSN and exact service injection boundary;
+- `scripts/provision-local-database-authority.ts` and
+  `tests/runtime-database-authority.integration.test.ts`;
+- `src/server.ts`, only for one dedicated registrar pool;
+- `scripts/seed-review.ts` and `tests/review-seed.integration.test.ts`, only to make
+  their existing non-registrar registry pool unprepared while proving no registrar
+  credential reaches review seed;
 - `src/kernel/extension.ts`;
 - `tests/extension-type-registration-capability.integration.test.ts`;
 - `tests/extension.integration.test.ts`;
@@ -28,8 +36,9 @@ validation, audit facts, compatibility behavior or response semantics.
 - `tests/schema/expected.sql`, mechanically regenerated only;
 - `scripts/run-phase-3-gate.ts` and `tests/phase-3-gate-runner.test.ts`, only for one
   unique focused-suite mapping;
-- `docs/SECURITY.md` and `docs/CONTRACTS.md`;
-- this order, Question 165, D-420/D-421, additive `handoff/LEDGER.md`, and one
+- `docs/SECURITY.md`, `docs/CONTRACTS.md`, `docs/TOOLING.md` and
+  `docs/LOCAL-REVIEW.md`;
+- this order, Questions 165-166, D-420-D-422, additive `handoff/LEDGER.md`, and one
   independent review.
 
 No other source, migration, test, schema, script, documentation or governance path is
@@ -37,22 +46,33 @@ in scope. If another path is required, stop and write a new question.
 
 ## Required implementation
 
-1. Add `public.register_extension_type(uuid,text,jsonb) RETURNS boolean`, owned by
-   unreachable NOLOGIN `yellow_owner`, `SECURITY DEFINER`, with exact safe search path
-   `pg_catalog, public, pg_temp` and fully qualified objects.
-2. Admit only the real `yellow_runtime` to the effective `app_role` path with an exact
-   non-null tenant argument matching `app.tenant_id`. Reject missing, malformed or
-   foreign effective authority before mutation. Because PostgreSQL cannot observe
-   same-value custom-GUC locality, the existing wrapper must scrub and verify role and
-   tenant state at settlement under D-395/D-402/D-421 before releasing the backend.
-3. Accept only the existing bounded stable lowercase type and valid non-null JSON
-   schema inputs. Preserve exact insert=true, already-identical=false and divergent
-   schema rejection semantics under concurrency. Return no catalogue or schema data.
-4. Grant execute only to `app_role`; revoke it from PUBLIC and direct
-   `yellow_runtime`. Revoke the remaining direct `extension_type(type,json_schema)`
-   insert privilege after the caller is migrated.
-5. Keep the authenticated platform-scope check, tenant-bound audit fact, compatibility
-   validation, transaction atomicity and existing HTTP/service response behavior exact.
+1. Provision exact LOGIN `yellow_extension_registrar` with NOINHERIT, NOSUPERUSER,
+   NOCREATEDB, NOCREATEROLE, NOREPLICATION and NOBYPASSRLS; zero membership, ownership,
+   table/sequence DML or generic privileges, with connection limit four. Generate one
+   independent local-only secret and DSN in the ignored atomic owner-only authority
+   file. Never log, commit, pass to migrate/seed/review-seed, or silently rotate it.
+2. Add exact `public.register_extension_type(uuid,text,jsonb,uuid,uuid,uuid) RETURNS
+   boolean`, ordered tenant/type/schema/actor/property/request, owned by unreachable
+   NOLOGIN `yellow_owner`, `SECURITY DEFINER`, exact search path
+   `pg_catalog, public, pg_temp`, fully qualified objects, and an exact
+   `session_user = 'yellow_extension_registrar'` check.
+3. Accept only non-null tenant/actor/property/request UUIDs, stable lowercase type of
+   at most 64 characters, and a non-null JSON object bounded by the existing 16 KiB HTTP
+   body ceiling. TypeScript retains the existing recursive semantic/keyword validation;
+   the registrar credential is its database trust boundary.
+4. The function validates the tenant property, internally derives the existing UUIDv5
+   subject for `https://yellow.local/extension-type/{type}`, fixes operation to
+   `extension_type.registered`, and atomically inserts the catalogue row plus exact
+   tenant/actor/request audit fact. It returns true only for insert, false for identical
+   replay with no new fact, and preserves divergent-schema rejection under concurrency.
+5. Grant registrar only schema USAGE and exact function EXECUTE. Revoke EXECUTE from
+   PUBLIC, `app_role` and `yellow_runtime`; revoke direct
+   `extension_type(type,json_schema)` insert from app_role. The dedicated Bun pool is
+   required, username-checked, backend-verified, max two and `prepare:false`; it is
+   never exposed as generic runtime/event/login/worker `Tx`.
+6. Keep authenticated platform-scope check, compatibility behavior and exact HTTP
+   403/201/200/409/422 responses unchanged. Runtime pool remains the only instance/read
+   pool; review-seed receives no registrar credential.
 
 ## Pre-registered proof
 
@@ -67,9 +87,10 @@ transaction.
 
 On the candidate, the same direct insert returns exact SQLSTATE `42501` with zero row.
 Prove exact function owner, signature, search path and ACLs; wrong/missing effective
-tenant and role rejection; direct runtime/PUBLIC denial; pg_temp shadow resistance; no
-arbitrary relation/type selector; rollback containment; and same-value session-tenant
-scrub plus exact post-settlement runtime/null-tenant verification before backend reuse.
+tenant and session-principal rejection; direct runtime/app-role/PUBLIC denial;
+registrar zero-membership/ownership/table/sequence authority; pg_temp shadow resistance;
+no arbitrary selector; rollback containment; exact credential-file upgrade/redaction,
+wrong-secret/malformed-role fail-closed behavior, and unprepared dedicated-pool reuse.
 
 ### P2 — honest behavior and races
 
@@ -93,16 +114,15 @@ schema; standing tests; typecheck; boundaries; licences; audit; protected hashes
 a fresh app-never-started `./setup.sh --db-only` referee with exactly 11/11.
 
 The independent reviewer must reproduce P0 on exact Base and personally execute
-P1-P4 against one immutable candidate before approval. Question 166 must be resolved
-before implementation; the current `app_role`-executable signature cannot enforce the
-HTTP authorization boundary and must not be implemented as admitted.
+P1-P4 against one immutable candidate before approval.
 
 ## Forbidden
 
 - Editing an existing migration, `migrations/0001_init.sql`, or
   `tests/run_invariants.py`.
-- Generic SQL/relation selectors, raw table grants, broader function execution, new
-  role/credential/table/policy/route/dependency, or owner membership.
+- Generic SQL/relation selectors, raw table grants, broader function execution, any
+  principal/credential beyond exact `yellow_extension_registrar`, new table/policy/
+  route/dependency, or owner membership.
 - Changing platform authorization, schemas, facts, events, compatibility rules or API
   behavior to make proof pass.
 - Combining approval decisions or extension publication/status transitions into this
