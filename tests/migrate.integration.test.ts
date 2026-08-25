@@ -224,12 +224,16 @@ databaseDescribe("Bun SQL migration runner", () => {
           expect(failedLedger.map((row) => Number(row.version))).toEqual(
             Array.from({ length: 14 }, (_, index) => index + 1),
           );
-          const ownership = await sql<{ owner: string }[]>`
-            SELECT pg_get_userbyid(c.relowner) AS owner
-              FROM pg_catalog.pg_class c
-             WHERE c.oid = 'public.schema_migration'::regclass
+          const ownership = await sql<{ owner: string; owner_objects: number }[]>`
+            SELECT pg_get_userbyid(m.relowner) AS owner,
+                   (SELECT count(*)::int
+                      FROM pg_catalog.pg_class c
+                      JOIN pg_catalog.pg_namespace n ON n.oid = c.relnamespace
+                     WHERE n.nspname = 'public' AND pg_get_userbyid(c.relowner) = 'yellow_owner') AS owner_objects
+              FROM pg_catalog.pg_class m
+             WHERE m.oid = 'public.schema_migration'::regclass
           `;
-          expect(ownership).toEqual([{ owner: "yellow_deploy" }]);
+          expect(ownership).toEqual([{ owner: "yellow_deploy", owner_objects: 0 }]);
         } finally {
           await blocker.close();
         }
