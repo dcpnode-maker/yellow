@@ -1,10 +1,10 @@
 # Question 155 — Order-127 relay handler context
 
-**Status:** RESOLVED BY D-399 — CORRECTION READY
+**Status:** RESOLVED BY D-399 AND D-401 — CORRECTION READY
 **Order:** 127 · runtime database authority
 **Branch:** `phase-5/runtime-database-authority-final`
 **D398 rerun head:** `5255ac2`
-**Related decisions:** D-392, D-398, D-399
+**Related decisions:** D-392, D-395, D-398, D-399, D-401
 
 ## RESOLVED
 
@@ -47,3 +47,31 @@ No handler batching, parallelism, reordering, skipped handler, cross-tenant cont
 reuse, context verification omission, new SQL capability/grant/table/interface, batch
 limit change, timeout/RSS/assertion weakening, reuse of timed-out evidence,
 self-review, merge, push, deployment or Cyber closure is authorized.
+
+## D-401 independent-review correction
+
+The first D-399 implementation and canaries stopped at independent static review.
+Checking only the current tenant value cannot distinguish a hostile handler that
+rewrites the same value session-scoped; that value can survive commit. The hostile
+canaries also threw inside the handler, so they proved handler-exception rollback
+rather than adapter detection. Finally, the actual server event pool retained Bun
+prepared statements while exposing its reserved connection to handlers. A handler can
+issue `DEALLOCATE ALL`, desynchronize Bun's prepared-name cache and make safe release
+or single-backend eviction impossible, matching D-395's measured SQLSTATE `26000` and
+pool-poisoning evidence. No database rerun is admitted from that stopped head.
+
+The already in-scope `src/server.ts` event pool and every affected relay proof pool
+must therefore use `prepare: false`. Ordered and unpublished consumption must share
+the same sequential context/settlement boundary. After every non-throwing handler, the
+adapter itself must detect wrong role, wrong tenant and same-value session-scoped GUC
+tamper. Before a backend returns to its pool after commit or rollback, exact settlement
+must prove `current_user = session_user = yellow_runtime`, null tenant context and no
+prepared statements on the exact reserved backend; failed settlement follows D-395's
+unprepared discard/recheck or pool fail-close contract. Hostile `DEALLOCATE ALL`, role,
+wrong-tenant and same-value session-GUC canaries must exercise both ordered and
+unpublished consumers, prove marks/effects/cursor rollback and a clean ordered retry,
+and prove settlement on the exact backend rather than an arbitrary pool checkout.
+
+This correction changes no role, grant, capability, migration, interface, batch size,
+handler ordering, timeout, RSS threshold or allowed path. D-400 belongs exclusively to
+Order 147; D-401 is the unique correction decision for this stopped review.
