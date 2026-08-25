@@ -61,14 +61,22 @@ access tokens and does not modify staff password hashes.
 
 ## 5. Tenant isolation failure modes (tested, not assumed)
 
-- `app_role` is an internal `NOLOGIN` policy/capability role. It has no password,
-  no connection allowance, no explicit memberships and no privileged attributes.
-  Customers, staff, integrations, reporting and BI clients must never authenticate
-  as it or receive membership in it. Yellow's deployment connection establishes a
-  verified transaction-local tenant context and only then uses `SET LOCAL ROLE
-  app_role`; transaction end resets both values. A future direct-database product
-  requires a separately reviewed principal-to-tenant binding and must not toggle
-  `LOGIN` or grant membership to this role.
+- `yellow_runtime` is the only application, HTTP, worker, event and discovery
+  login. It is `NOSUPERUSER`, `NOBYPASSRLS`, owns no Yellow object, and has one
+  explicit membership edge: `yellow_runtime -> app_role`.
+- `yellow_owner` is `NOLOGIN`, password-free, non-superuser and owns the public
+  schema objects and bounded SECURITY DEFINER capabilities. `yellow_deploy` is a
+  separate deployment/migration/seed/schema/referee administrator and is never
+  present in an application environment. `app_role` remains an internal `NOLOGIN`
+  capability role with no password or authentication path.
+- Every application transaction establishes verified tenant context before
+  `SET LOCAL ROLE app_role`; commit, rollback, nested failure and pooled backend
+  reuse must restore `current_user = session_user = yellow_runtime` and clear the
+  tenant setting. A hostile `RESET ROLE` can therefore return only to the runtime
+  principal, which has no owner/deploy, DDL, cross-tenant or role-management power.
+- Deployment tooling accepts only `YELLOW_DEPLOY_DATABASE_URL`; application and
+  worker processes accept only `YELLOW_RUNTIME_DATABASE_URL`. The DSNs are distinct,
+  generated/injected secrets and are never logged or committed.
 - RLS through views — regression TC-13.4, permanent.
 - SECURITY DEFINER choke points use the exact fixed search path
   `pg_catalog, public, pg_temp`, schema-qualify every Yellow relation and helper

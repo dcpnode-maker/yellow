@@ -1,9 +1,9 @@
 import { afterAll, describe, expect, test } from "bun:test";
 import { SQL } from "bun";
 
-const URL = process.env.YELLOW_SECURITY_DEFINER_URL;
+const URL = process.env.YELLOW_DEPLOY_DATABASE_URL ?? process.env.YELLOW_SECURITY_DEFINER_URL;
 if (process.env.YELLOW_REQUIRE_SECURITY_DEFINER === "1" && !URL) {
-  throw new Error("YELLOW_SECURITY_DEFINER_URL is required by the Order 108 proof");
+  throw new Error("YELLOW_DEPLOY_DATABASE_URL is required by the Order 108 proof");
 }
 
 const TENANT = "00000000-0000-0000-0000-000000011301";

@@ -14,7 +14,7 @@ import {
 
 const PROJECT_ROOT = resolve(import.meta.dir, "..");
 const SEED_SCRIPT = resolve(PROJECT_ROOT, "scripts", "seed.ts");
-const ADMIN_URL = process.env.YELLOW_SEED_TEST_ADMIN_URL;
+const ADMIN_URL = process.env.YELLOW_DEPLOY_DATABASE_URL ?? process.env.YELLOW_SEED_TEST_ADMIN_URL;
 const REQUIRE_DATABASE = process.env.YELLOW_REQUIRE_SEED_DB === "1";
 const FORBIDDEN_DATABASES = new Set(["yellow_dev", "yellow_test"]);
 
@@ -84,9 +84,10 @@ async function collectChild(child: Subprocess<"ignore", "pipe", "pipe">): Promis
 }
 
 describe("seed CLI", () => {
-  test("requires DATABASE_URL", async () => {
+    test("requires YELLOW_DEPLOY_DATABASE_URL", async () => {
     const env = { ...process.env };
     delete env.DATABASE_URL;
+    delete env.YELLOW_DEPLOY_DATABASE_URL;
     const result = await collectChild(Bun.spawn([process.execPath, SEED_SCRIPT], {
       cwd: PROJECT_ROOT,
       env,
@@ -94,7 +95,7 @@ describe("seed CLI", () => {
       stdout: "pipe",
       stderr: "pipe",
     }));
-    expect(result).toEqual({ exitCode: 1, stdout: "", stderr: "DATABASE_URL is required\n" });
+    expect(result).toEqual({ exitCode: 1, stdout: "", stderr: "YELLOW_DEPLOY_DATABASE_URL is required\n" });
   });
 });
 
@@ -256,7 +257,7 @@ databaseDescribe("deterministic app-role bootstrap seed", () => {
       const runnableUrl = targetUrl;
       const result = await collectChild(Bun.spawn([process.execPath, SEED_SCRIPT], {
         cwd: PROJECT_ROOT,
-        env: { ...process.env, DATABASE_URL: runnableUrl },
+        env: { ...process.env, YELLOW_DEPLOY_DATABASE_URL: runnableUrl },
         stdin: "ignore",
         stdout: "pipe",
         stderr: "pipe",

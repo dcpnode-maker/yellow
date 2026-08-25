@@ -9,7 +9,7 @@ import {
 } from "../src/contexts/identity";
 import { Database } from "../src/kernel";
 
-const DATABASE_URL = process.env.YELLOW_AUTH_URL;
+const DATABASE_URL = process.env.YELLOW_RUNTIME_DATABASE_URL ?? process.env.YELLOW_AUTH_URL;
 const REQUIRE_DATABASE = process.env.YELLOW_REQUIRE_AUTH === "1";
 const SECRET = "yellow-order-020-hs256-secret-0001";
 const USER_ID = "00000000-0000-0000-0000-000000000960";

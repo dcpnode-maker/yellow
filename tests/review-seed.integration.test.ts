@@ -15,17 +15,18 @@ import { ApprovalService, Database, ExtensionRegistry, PostgresEventBus } from "
 import { runReviewSeed, REVIEW_APPROVER_EMAIL, REVIEW_EMAIL } from "../scripts/seed-review";
 import { runSeed, SEED_PROPERTY, SEED_TENANT } from "../scripts/seed";
 
-const DATABASE_URL = process.env.YELLOW_REVIEW_SEED_URL;
+const DEPLOY_DATABASE_URL = process.env.YELLOW_DEPLOY_DATABASE_URL ?? process.env.YELLOW_REVIEW_SEED_URL;
+const RUNTIME_DATABASE_URL = process.env.YELLOW_RUNTIME_DATABASE_URL ?? process.env.YELLOW_REVIEW_SEED_URL;
 const PASSWORD = process.env.YELLOW_REVIEW_SEED_PASSWORD;
 const APPROVER_PASSWORD = PASSWORD ? `${PASSWORD}-approver` : undefined;
 const REQUIRE_DATABASE = process.env.YELLOW_REQUIRE_REVIEW_SEED === "1";
 const SECRET = "yellow-order-046-test-token-secret-exactly-long-enough";
 
-if (REQUIRE_DATABASE && (!DATABASE_URL || !PASSWORD)) {
-  throw new Error("YELLOW_REVIEW_SEED_URL and YELLOW_REVIEW_SEED_PASSWORD are required by the Order 046 proof");
+if (REQUIRE_DATABASE && (!DEPLOY_DATABASE_URL || !RUNTIME_DATABASE_URL || !PASSWORD)) {
+  throw new Error("YELLOW_DEPLOY_DATABASE_URL, YELLOW_RUNTIME_DATABASE_URL and YELLOW_REVIEW_SEED_PASSWORD are required by the Order 046 proof");
 }
 
-const databaseDescribe = DATABASE_URL && PASSWORD ? describe.serial : describe.skip;
+const databaseDescribe = DEPLOY_DATABASE_URL && RUNTIME_DATABASE_URL && PASSWORD ? describe.serial : describe.skip;
 let admin: SQL;
 let loginPool: SQL;
 let platformPool: SQL;
@@ -150,15 +151,15 @@ async function rateSnapshot() {
 }
 
 beforeAll(async () => {
-  if (!DATABASE_URL || !PASSWORD) return;
-  await runSeed({ databaseUrl: DATABASE_URL, logger: () => undefined });
-  first = await runReviewSeed({ databaseUrl: DATABASE_URL, password: PASSWORD,
+  if (!DEPLOY_DATABASE_URL || !RUNTIME_DATABASE_URL || !PASSWORD) return;
+  await runSeed({ databaseUrl: DEPLOY_DATABASE_URL, logger: () => undefined });
+  first = await runReviewSeed({ databaseUrl: DEPLOY_DATABASE_URL, password: PASSWORD,
     approverPassword: APPROVER_PASSWORD!, logger: () => undefined });
-  admin = new SQL(DATABASE_URL, { max: 4 });
-  loginPool = new SQL(DATABASE_URL, { max: 4 });
-  platformPool = new SQL(DATABASE_URL, { max: 4 });
-  eventPool = new SQL(DATABASE_URL, { max: 4 });
-  database = Database.connect(DATABASE_URL, { maxConnections: 8 });
+  admin = new SQL(DEPLOY_DATABASE_URL, { max: 4 });
+  loginPool = new SQL(RUNTIME_DATABASE_URL, { max: 4 });
+  platformPool = new SQL(RUNTIME_DATABASE_URL, { max: 4 });
+  eventPool = new SQL(RUNTIME_DATABASE_URL, { max: 4 });
+  database = Database.connect(RUNTIME_DATABASE_URL, { maxConnections: 8 });
   const registry = new ExtensionRegistry(platformPool);
   const events = new PostgresEventBus(eventPool);
   models = new RateModelService(registry);
@@ -166,9 +167,8 @@ beforeAll(async () => {
   publication = new RatePublicationService(registry, new ApprovalService(events), events);
   quote = new RateQuoteService(publication);
 });
-
 afterAll(async () => {
-  if (!DATABASE_URL || !PASSWORD) return;
+  if (!DEPLOY_DATABASE_URL || !RUNTIME_DATABASE_URL || !PASSWORD) return;
   await database.close();
   await eventPool.close();
   await platformPool.close();
@@ -241,7 +241,7 @@ databaseDescribe("Order 046 reproducible local-review seed", () => {
 
   test("P3: identical rerun is an exact no-op", async () => {
     const before = await counts();
-    const second = await runReviewSeed({ databaseUrl: DATABASE_URL!, password: PASSWORD!,
+    const second = await runReviewSeed({ databaseUrl: DEPLOY_DATABASE_URL!, password: PASSWORD!,
       approverPassword: APPROVER_PASSWORD!, logger: () => undefined });
     expect(second).toMatchObject({
       unitTypes: { created: 0, existing: 2 },
@@ -259,7 +259,7 @@ databaseDescribe("Order 046 reproducible local-review seed", () => {
 
   test("P4: same identity with a different password fails without mutation", async () => {
     const before = await counts();
-    await expect(runReviewSeed({ databaseUrl: DATABASE_URL!, password: `${PASSWORD!}-collision`,
+    await expect(runReviewSeed({ databaseUrl: DEPLOY_DATABASE_URL!, password: `${PASSWORD!}-collision`,
       approverPassword: APPROVER_PASSWORD!, logger: () => undefined }))
       .rejects.toThrow("Review user collides with non-canonical local-review data");
     expect(await counts()).toEqual(before);
@@ -271,10 +271,10 @@ databaseDescribe("Order 046 reproducible local-review seed", () => {
 
   test("Order 077 P3: a divergent or shared approver secret fails atomically", async () => {
     const before = await counts();
-    await expect(runReviewSeed({ databaseUrl: DATABASE_URL!, password: PASSWORD!,
+    await expect(runReviewSeed({ databaseUrl: DEPLOY_DATABASE_URL!, password: PASSWORD!,
       approverPassword: `${APPROVER_PASSWORD!}-collision`, logger: () => undefined }))
       .rejects.toThrow("Review approver collides with non-canonical local-review data");
-    await expect(runReviewSeed({ databaseUrl: DATABASE_URL!, password: PASSWORD!,
+    await expect(runReviewSeed({ databaseUrl: DEPLOY_DATABASE_URL!, password: PASSWORD!,
       approverPassword: PASSWORD!, logger: () => undefined }))
       .rejects.toThrow("approverPassword must be distinct from password");
     expect(await counts()).toEqual(before);
@@ -517,7 +517,7 @@ databaseDescribe("Order 046 reproducible local-review seed", () => {
     await admin`UPDATE extension SET content = ${JSON.stringify(divergent)}::text::jsonb WHERE id = ${active.id}::uuid`;
     try {
       const before = await rateSnapshot();
-      await expect(runReviewSeed({ databaseUrl: DATABASE_URL!, password: PASSWORD!,
+      await expect(runReviewSeed({ databaseUrl: DEPLOY_DATABASE_URL!, password: PASSWORD!,
         approverPassword: APPROVER_PASSWORD!, logger: () => undefined }))
         .rejects.toThrow("active FLEX release collides with non-canonical local-review data");
       expect(await rateSnapshot()).toEqual(before);
@@ -580,3 +580,4 @@ databaseDescribe("Order 046 reproducible local-review seed", () => {
     expect(await rateSnapshot()).toEqual(before);
   });
 });
+

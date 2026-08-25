@@ -3,7 +3,8 @@ import { SQL } from "bun";
 
 import { OutboxRelay, PostgresEventBus, type OutboxEvent } from "../src/kernel";
 
-const DATABASE_URL = process.env.YELLOW_OUTBOX_URL;
+const DEPLOY_DATABASE_URL = process.env.YELLOW_DEPLOY_DATABASE_URL ?? process.env.YELLOW_OUTBOX_URL;
+const RUNTIME_DATABASE_URL = process.env.YELLOW_RUNTIME_DATABASE_URL ?? process.env.YELLOW_OUTBOX_URL;
 const REQUIRE_DATABASE = process.env.YELLOW_REQUIRE_RELAY === "1";
 const TENANT = "00000000-0000-0000-0000-000000000001";
 const PROPERTY = "00000000-0000-0000-0000-000000000012";
@@ -19,11 +20,11 @@ const CONSUMERS = [
   "order-023-prune",
 ] as const;
 
-if (REQUIRE_DATABASE && !DATABASE_URL) {
-  throw new Error("YELLOW_OUTBOX_URL is required by the Order 023 proof");
+if (REQUIRE_DATABASE && (!DEPLOY_DATABASE_URL || !RUNTIME_DATABASE_URL)) {
+  throw new Error("YELLOW_DEPLOY_DATABASE_URL and YELLOW_RUNTIME_DATABASE_URL are required by the Order 023 proof");
 }
 
-const databaseDescribe = DATABASE_URL ? describe.serial : describe.skip;
+const databaseDescribe = DEPLOY_DATABASE_URL && RUNTIME_DATABASE_URL ? describe.serial : describe.skip;
 let admin: SQL | undefined;
 let pool: SQL | undefined;
 let bus: PostgresEventBus | undefined;
@@ -83,9 +84,9 @@ async function drain(relay: OutboxRelay, handler: Parameters<OutboxRelay["drainO
 }
 
 beforeAll(async () => {
-  if (!DATABASE_URL) return;
-  admin = new SQL(DATABASE_URL, { max: 4 });
-  pool = new SQL(DATABASE_URL, { max: 12 });
+  if (!DEPLOY_DATABASE_URL || !RUNTIME_DATABASE_URL) return;
+  admin = new SQL(DEPLOY_DATABASE_URL, { max: 4 });
+  pool = new SQL(RUNTIME_DATABASE_URL, { max: 12 });
   bus = new PostgresEventBus(pool);
   // Order proofs own the relay's pending queue; isolate it from prior local test data.
   await admin`UPDATE outbox SET published_at = now() WHERE published_at IS NULL`;
@@ -111,7 +112,7 @@ databaseDescribe("Order 023 crash-safe outbox relay", () => {
     const childSource = `
       import { SQL } from "bun";
       import { OutboxRelay, PostgresEventBus } from ${JSON.stringify(moduleUrl)};
-      const pool = new SQL(process.env.YELLOW_OUTBOX_URL, { max: 1 });
+      const pool = new SQL(process.env.YELLOW_RUNTIME_DATABASE_URL, { max: 1 });
       const relay = new OutboxRelay(new PostgresEventBus(pool), { consumer: "order-023-kill", batchSize: 120 });
       let handled = 0;
       await relay.drainOnce(async (event, tx) => {
@@ -123,7 +124,7 @@ databaseDescribe("Order 023 crash-safe outbox relay", () => {
       });
     `;
     const child = Bun.spawn([process.execPath, "-e", childSource], {
-      env: { ...process.env, YELLOW_OUTBOX_URL: DATABASE_URL! },
+      env: { ...process.env, YELLOW_RUNTIME_DATABASE_URL: RUNTIME_DATABASE_URL! },
       stdout: "pipe",
       stderr: "pipe",
     });

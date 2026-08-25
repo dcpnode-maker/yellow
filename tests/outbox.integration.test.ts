@@ -11,7 +11,8 @@ import {
   type PublishEventInput,
 } from "../src/kernel";
 
-const DATABASE_URL = process.env.YELLOW_OUTBOX_URL;
+const DEPLOY_DATABASE_URL = process.env.YELLOW_DEPLOY_DATABASE_URL ?? process.env.YELLOW_OUTBOX_URL;
+const RUNTIME_DATABASE_URL = process.env.YELLOW_RUNTIME_DATABASE_URL ?? process.env.YELLOW_OUTBOX_URL;
 const REQUIRE_DATABASE = process.env.YELLOW_REQUIRE_OUTBOX === "1";
 const TENANT_A = "00000000-0000-0000-0000-000000000001";
 const PROPERTY_A = "00000000-0000-0000-0000-000000000012";
@@ -28,11 +29,11 @@ const TEST_CONSUMERS = [
   "order-022-consumer-b",
 ] as const;
 
-if (REQUIRE_DATABASE && !DATABASE_URL) {
-  throw new Error("YELLOW_OUTBOX_URL is required by the Order 022 proof");
+if (REQUIRE_DATABASE && (!DEPLOY_DATABASE_URL || !RUNTIME_DATABASE_URL)) {
+  throw new Error("YELLOW_DEPLOY_DATABASE_URL and YELLOW_RUNTIME_DATABASE_URL are required by the Order 022 proof");
 }
 
-const databaseDescribe = DATABASE_URL ? describe.serial : describe.skip;
+const databaseDescribe = DEPLOY_DATABASE_URL && RUNTIME_DATABASE_URL ? describe.serial : describe.skip;
 let database: Database | undefined;
 let admin: SQL | undefined;
 let consumerPool: SQL | undefined;
@@ -55,10 +56,10 @@ function event(aggregateId: string, correlationId = crypto.randomUUID()): Publis
 }
 
 beforeAll(() => {
-  if (!DATABASE_URL) return;
-  database = Database.connect(DATABASE_URL, { maxConnections: 24 });
-  admin = new SQL(DATABASE_URL, { max: 4 });
-  consumerPool = new SQL(DATABASE_URL, { max: 8 });
+  if (!DEPLOY_DATABASE_URL || !RUNTIME_DATABASE_URL) return;
+  database = Database.connect(RUNTIME_DATABASE_URL, { maxConnections: 24 });
+  admin = new SQL(DEPLOY_DATABASE_URL, { max: 4 });
+  consumerPool = new SQL(RUNTIME_DATABASE_URL, { max: 8 });
   bus = new PostgresEventBus(consumerPool);
 });
 
@@ -207,7 +208,7 @@ databaseDescribe("Order 022 EventBus and durable consumer", () => {
       SELECT seq::int AS seq, id FROM outbox ORDER BY seq
     `;
     const observed: string[] = [];
-    const poolA = new SQL(DATABASE_URL!, { max: 1 });
+    const poolA = new SQL(RUNTIME_DATABASE_URL!, { max: 1 });
     const firstBus = new PostgresEventBus(poolA);
     const first = await firstBus.consumeBatch(
       "order-022-resume",
@@ -218,7 +219,7 @@ databaseDescribe("Order 022 EventBus and durable consumer", () => {
     );
     await poolA.close();
 
-    const poolB = new SQL(DATABASE_URL!, { max: 1 });
+    const poolB = new SQL(RUNTIME_DATABASE_URL!, { max: 1 });
     const restartedBus = new PostgresEventBus(poolB);
     const second = await restartedBus.consumeBatch(
       "order-022-resume",
@@ -240,8 +241,8 @@ databaseDescribe("Order 022 EventBus and durable consumer", () => {
     const expected = await admin!<Array<{ seq: number }>>`SELECT seq::int AS seq FROM outbox ORDER BY seq`;
     const observedA: number[] = [];
     const observedB: number[] = [];
-    const poolA = new SQL(DATABASE_URL!, { max: 1 });
-    const poolB = new SQL(DATABASE_URL!, { max: 1 });
+    const poolA = new SQL(RUNTIME_DATABASE_URL!, { max: 1 });
+    const poolB = new SQL(RUNTIME_DATABASE_URL!, { max: 1 });
 
     await Promise.all([
       new PostgresEventBus(poolA).consumeBatch(

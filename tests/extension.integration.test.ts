@@ -7,7 +7,8 @@ import { Database, ExtensionRegistry } from "../src/kernel";
 import { validateJsonSchema } from "../src/kernel";
 import { LAUNCH_EXTENSIONS, LAUNCH_EXTENSION_TYPES } from "../scripts/seed";
 
-const DATABASE_URL = process.env.YELLOW_EXTENSION_URL;
+const DEPLOY_DATABASE_URL = process.env.YELLOW_DEPLOY_DATABASE_URL ?? process.env.YELLOW_EXTENSION_URL;
+const RUNTIME_DATABASE_URL = process.env.YELLOW_RUNTIME_DATABASE_URL ?? process.env.YELLOW_EXTENSION_URL;
 const REQUIRE_DATABASE = process.env.YELLOW_REQUIRE_EXTENSION === "1";
 const TENANT_A = "00000000-0000-0000-0000-000000000001";
 const TENANT_B = "00000000-0000-0000-0000-000000000002";
@@ -28,11 +29,11 @@ const SCHEMA = {
   },
 } as const;
 
-if (REQUIRE_DATABASE && !DATABASE_URL) {
-  throw new Error("YELLOW_EXTENSION_URL is required by the Order 024 proof");
+if (REQUIRE_DATABASE && (!DEPLOY_DATABASE_URL || !RUNTIME_DATABASE_URL)) {
+  throw new Error("YELLOW_DEPLOY_DATABASE_URL and YELLOW_RUNTIME_DATABASE_URL are required by the Order 024 proof");
 }
 
-const databaseDescribe = DATABASE_URL ? describe.serial : describe.skip;
+const databaseDescribe = DEPLOY_DATABASE_URL && RUNTIME_DATABASE_URL ? describe.serial : describe.skip;
 let admin: SQL | undefined;
 let platformPool: SQL | undefined;
 let database: Database | undefined;
@@ -69,10 +70,10 @@ function request(path: string, token: string, init: RequestInit = {}): Request {
 }
 
 beforeAll(async () => {
-  if (!DATABASE_URL) return;
-  admin = new SQL(DATABASE_URL, { max: 3 });
-  platformPool = new SQL(DATABASE_URL, { max: 6 });
-  database = Database.connect(DATABASE_URL, { maxConnections: 6 });
+  if (!DEPLOY_DATABASE_URL || !RUNTIME_DATABASE_URL) return;
+  admin = new SQL(DEPLOY_DATABASE_URL, { max: 3 });
+  platformPool = new SQL(RUNTIME_DATABASE_URL, { max: 6 });
+  database = Database.connect(RUNTIME_DATABASE_URL, { maxConnections: 6 });
   registry = new ExtensionRegistry(platformPool);
   const tokens = new Hs256TokenSigner(SECRET);
   const fullScopes = [
@@ -222,7 +223,7 @@ databaseDescribe("Order 024 runtime extension registry", () => {
   });
 
   test("P5: proposed schema incompatibility identifies existing ids and exact paths", async () => {
-    const failures = await registry!.checkCompatibility(TYPE, {
+    const failures = await registry!.checkCompatibility(TENANT_A, TYPE, {
       ...SCHEMA,
       required: ["name", "capacity", "code"],
       properties: { ...SCHEMA.properties, code: { type: "string" } },

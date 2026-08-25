@@ -16,6 +16,12 @@ export type Phase3GateProcess = Readonly<{
   env: Readonly<Record<string, string>>;
 }>;
 
+/** Deployment tooling and application proofs intentionally use distinct DSNs. */
+export type Phase3GateDatabaseUrls = Readonly<{
+  deployUrl: string;
+  runtimeUrl: string;
+}>;
+
 export interface Phase3GateHarness {
   recreateDatabase(adminUrl: string, databaseName: string): Promise<void>;
   runProcess(process: Phase3GateProcess): Promise<number>;
@@ -156,36 +162,38 @@ export const PHASE_3_DATABASE_PROOFS: readonly Phase3DatabaseProof[] = Object.fr
     urlEnv: "YELLOW_RESERVATION_PARENT_URL",
     passwordEnv: null,
   },
+  {
+    databaseName: "yellow_ci_p5_runtime_database_authority",
+    testFile: "tests/runtime-database-authority.integration.test.ts",
+    requireEnv: "YELLOW_REQUIRE_RUNTIME_AUTHORITY_P0",
+    urlEnv: "YELLOW_RUNTIME_AUTHORITY_P0_URL",
+    passwordEnv: null,
+  },
 ]);
 
 const DATABASE_NAME = /^[a-z][a-z0-9_]{0,62}$/;
 
-export function validatePhase3GateInputs(adminUrl: string, password: string): {
-  adminUrl: string;
+export function validatePhase3GateInputs(deployUrl: string, runtimeUrl: string, password: string): Phase3GateDatabaseUrls & {
   password: string;
 } {
-  if (!adminUrl || adminUrl !== adminUrl.trim()) {
-    throw new Error("YELLOW_PHASE3_GATE_ADMIN_URL must be an exact admin URL");
-  }
-  let parsed: URL;
-  try {
-    parsed = new URL(adminUrl);
-  } catch {
-    throw new Error("YELLOW_PHASE3_GATE_ADMIN_URL must be a valid PostgreSQL URL");
-  }
-  if (!new Set(["postgres:", "postgresql:"]).has(parsed.protocol)) {
-    throw new Error("YELLOW_PHASE3_GATE_ADMIN_URL must use PostgreSQL");
-  }
-  if (!parsed.hostname || !parsed.pathname || parsed.pathname === "/") {
-    throw new Error("YELLOW_PHASE3_GATE_ADMIN_URL must name an admin database");
-  }
-  if (parsed.search || parsed.hash) {
-    throw new Error("YELLOW_PHASE3_GATE_ADMIN_URL must not contain query or fragment data");
-  }
+  const parse = (value: string, label: string): URL => {
+    if (!value || value !== value.trim()) throw new Error(`${label} must be an exact URL`);
+    let parsed: URL;
+    try { parsed = new URL(value); } catch { throw new Error(`${label} must be a valid PostgreSQL URL`); }
+    if (!new Set(["postgres:", "postgresql:"]).has(parsed.protocol)) throw new Error(`${label} must use PostgreSQL`);
+    if (!parsed.hostname || !parsed.pathname || parsed.pathname === "/") throw new Error(`${label} must name a database`);
+    if (parsed.search || parsed.hash) throw new Error(`${label} must not contain query or fragment data`);
+    return parsed;
+  };
+  const deploy = parse(deployUrl, "YELLOW_PHASE3_GATE_DEPLOY_URL");
+  const runtime = parse(runtimeUrl, "YELLOW_PHASE3_GATE_RUNTIME_URL");
   if (!password || password !== password.trim() || password.length < 16) {
     throw new Error("Phase-3 proof password must be at least 16 exact characters");
   }
-  return { adminUrl, password };
+  if (deploy.username === runtime.username && deploy.password === runtime.password) {
+    throw new Error("Phase-3 deploy and runtime URLs must use distinct credentials");
+  }
+  return { deployUrl, runtimeUrl, password };
 }
 
 function quoteDatabaseName(databaseName: string): string {
@@ -247,30 +255,34 @@ function checkedExit(input: Phase3GateProcess, exitCode: number): void {
 }
 
 export async function runPhase3Gate(input: {
-  adminUrl: string;
+  deployUrl: string;
+  runtimeUrl: string;
   password: string;
   harness?: Phase3GateHarness;
 }): Promise<void> {
-  const { adminUrl, password } = validatePhase3GateInputs(input.adminUrl, input.password);
+  const { deployUrl, runtimeUrl, password } = validatePhase3GateInputs(input.deployUrl, input.runtimeUrl, input.password);
   const harness = input.harness ?? createRuntimePhase3GateHarness();
 
   for (const proof of PHASE_3_DATABASE_PROOFS) {
-    const databaseUrl = databaseUrlFor(adminUrl, proof.databaseName);
+    const deployDatabaseUrl = databaseUrlFor(deployUrl, proof.databaseName);
+    const runtimeDatabaseUrl = databaseUrlFor(runtimeUrl, proof.databaseName);
     let primaryError: unknown;
     try {
-      await harness.recreateDatabase(adminUrl, proof.databaseName);
+      await harness.recreateDatabase(deployUrl, proof.databaseName);
       const migrate: Phase3GateProcess = {
         kind: "migrate",
         label: `migrate ${proof.testFile}`,
         testFile: proof.testFile,
         command: ["bun", "run", "db:migrate"],
-        env: { DATABASE_URL: databaseUrl },
+        env: { YELLOW_DEPLOY_DATABASE_URL: deployDatabaseUrl },
       };
       checkedExit(migrate, await harness.runProcess(migrate));
 
       const suiteEnv: Record<string, string> = {
         [proof.requireEnv]: "1",
-        [proof.urlEnv]: databaseUrl,
+        [proof.urlEnv]: deployDatabaseUrl,
+        YELLOW_DEPLOY_DATABASE_URL: deployDatabaseUrl,
+        YELLOW_RUNTIME_DATABASE_URL: runtimeDatabaseUrl,
       };
       if (proof.passwordEnv) suiteEnv[proof.passwordEnv] = password;
       const suite: Phase3GateProcess = {
@@ -286,7 +298,7 @@ export async function runPhase3Gate(input: {
     }
 
     try {
-      await harness.dropDatabase(adminUrl, proof.databaseName);
+      await harness.dropDatabase(deployUrl, proof.databaseName);
     } catch (cleanupError) {
       if (!primaryError) throw cleanupError;
       console.error(`[phase3-gate] cleanup also failed for ${proof.testFile}`, cleanupError);
@@ -299,7 +311,8 @@ export async function runPhase3Gate(input: {
 
 export async function main(): Promise<void> {
   await runPhase3Gate({
-    adminUrl: process.env.YELLOW_PHASE3_GATE_ADMIN_URL ?? "",
+    deployUrl: process.env.YELLOW_PHASE3_GATE_DEPLOY_URL ?? "",
+    runtimeUrl: process.env.YELLOW_PHASE3_GATE_RUNTIME_URL ?? "",
     password: process.env.YELLOW_PHASE3_GATE_PASSWORD ?? "",
   });
 }

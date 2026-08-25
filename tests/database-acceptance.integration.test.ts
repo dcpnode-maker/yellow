@@ -2,7 +2,7 @@ import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { SQL } from "bun";
 import { SEED_PROPERTY, SEED_TENANT } from "../scripts/seed";
 
-const DATABASE_URL = process.env.YELLOW_DATABASE_ACCEPTANCE_URL;
+const DATABASE_URL = process.env.YELLOW_DEPLOY_DATABASE_URL ?? process.env.YELLOW_DATABASE_ACCEPTANCE_URL;
 const REQUIRE_DATABASE = process.env.YELLOW_REQUIRE_DATABASE_ACCEPTANCE === "1";
 const EXPECTED_MIGRATIONS = [
   {
@@ -78,7 +78,7 @@ const EXPECTED_MIGRATIONS = [
 ];
 
 if (REQUIRE_DATABASE && !DATABASE_URL) {
-  throw new Error("YELLOW_DATABASE_ACCEPTANCE_URL is required by bun run test:database");
+  throw new Error("YELLOW_DEPLOY_DATABASE_URL is required by bun run test:database");
 }
 
 let sql: SQL | undefined;
@@ -116,7 +116,7 @@ databaseDescribe("fresh deployment database acceptance", () => {
     }))).toEqual(EXPECTED_MIGRATIONS);
 
     const relation = await sql!<{ owner_matches: boolean; relrowsecurity: boolean; public_privileges: number; app_privileges: number }[]>`
-      SELECT pg_get_userbyid(c.relowner) = current_user AS owner_matches,
+      SELECT pg_get_userbyid(c.relowner) = 'yellow_owner' AS owner_matches,
              c.relrowsecurity,
              (SELECT count(*)::int FROM aclexplode(COALESCE(c.relacl, acldefault('r', c.relowner))) acl WHERE acl.grantee = 0) AS public_privileges,
              (SELECT count(*)::int
@@ -128,10 +128,10 @@ databaseDescribe("fresh deployment database acceptance", () => {
     expect(relation).toEqual([{ owner_matches: true, relrowsecurity: false, public_privileges: 0, app_privileges: 0 }]);
   });
 
-  test("deployment user owns all public tables/views and non-extension functions", async () => {
+  test("yellow_owner owns all public tables/views and non-extension functions", async () => {
     const relations = await sql!<{ total: number; wrong_owner: number; app_owned: number }[]>`
       SELECT count(*)::int AS total,
-             count(*) FILTER (WHERE pg_get_userbyid(relowner) <> current_user)::int AS wrong_owner,
+             count(*) FILTER (WHERE pg_get_userbyid(relowner) <> 'yellow_owner')::int AS wrong_owner,
              count(*) FILTER (WHERE pg_get_userbyid(relowner) = 'app_role')::int AS app_owned
         FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace
        WHERE n.nspname = 'public' AND c.relkind IN ('r','p','v','m')
@@ -142,7 +142,7 @@ databaseDescribe("fresh deployment database acceptance", () => {
 
     const functions = await sql!<{ total: number; wrong_owner: number }[]>`
       SELECT count(*)::int AS total,
-             count(*) FILTER (WHERE pg_get_userbyid(p.proowner) <> current_user)::int AS wrong_owner
+             count(*) FILTER (WHERE pg_get_userbyid(p.proowner) <> 'yellow_owner')::int AS wrong_owner
         FROM pg_proc p
         JOIN pg_namespace n ON n.oid = p.pronamespace
        WHERE n.nspname = 'public'
@@ -192,7 +192,7 @@ databaseDescribe("fresh deployment database acceptance", () => {
         FROM pg_catalog.pg_auth_members
        WHERE roleid = 'app_role'::regrole OR member = 'app_role'::regrole
     `;
-    expect(memberships).toEqual([{ count: 0 }]);
+    expect(memberships).toEqual([{ count: 1 }]);
   });
 
   test("keeps business-day sealing deployment-owner-only", async () => {
@@ -202,8 +202,8 @@ databaseDescribe("fresh deployment database acceptance", () => {
       publicExecute: boolean;
       appExecute: boolean;
     }>>`
-      SELECT pg_get_userbyid(p.proowner) = current_user AS "ownerMatches",
-             has_function_privilege(current_user, p.oid, 'EXECUTE') AS "ownerExecute",
+      SELECT pg_get_userbyid(p.proowner) = 'yellow_owner' AS "ownerMatches",
+             has_function_privilege('yellow_owner', p.oid, 'EXECUTE') AS "ownerExecute",
              has_function_privilege('public', p.oid, 'EXECUTE') AS "publicExecute",
              has_function_privilege('app_role', p.oid, 'EXECUTE') AS "appExecute"
         FROM pg_catalog.pg_proc AS p

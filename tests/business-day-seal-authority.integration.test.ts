@@ -3,9 +3,10 @@ import { SQL } from "bun";
 
 import { Database } from "../src/kernel";
 
-const URL = process.env.YELLOW_BUSINESS_DAY_SEAL_URL;
-if (process.env.YELLOW_REQUIRE_BUSINESS_DAY_SEAL === "1" && !URL) {
-  throw new Error("YELLOW_BUSINESS_DAY_SEAL_URL is required by the Order 124 proof");
+const DEPLOY_DATABASE_URL = process.env.YELLOW_DEPLOY_DATABASE_URL ?? process.env.YELLOW_BUSINESS_DAY_SEAL_URL;
+const RUNTIME_DATABASE_URL = process.env.YELLOW_RUNTIME_DATABASE_URL ?? process.env.YELLOW_BUSINESS_DAY_SEAL_URL;
+if (process.env.YELLOW_REQUIRE_BUSINESS_DAY_SEAL === "1" && (!DEPLOY_DATABASE_URL || !RUNTIME_DATABASE_URL)) {
+  throw new Error("YELLOW_DEPLOY_DATABASE_URL and YELLOW_RUNTIME_DATABASE_URL are required by the Order 124 proof");
 }
 
 const TENANT_A = "00000000-0000-0000-0000-000000012401";
@@ -17,9 +18,9 @@ const BUSINESS_DATE = "2026-08-24";
 const OWNER_DATE = "2026-08-25";
 const MISSING_DATE = "2026-08-26";
 
-const databaseDescribe = URL ? describe.serial : describe.skip;
-const admin = URL ? new SQL(URL, { max: 1 }) : undefined;
-const database = URL ? Database.connect(URL, { maxConnections: 1 }) : undefined;
+const databaseDescribe = DEPLOY_DATABASE_URL && RUNTIME_DATABASE_URL ? describe.serial : describe.skip;
+const admin = DEPLOY_DATABASE_URL ? new SQL(DEPLOY_DATABASE_URL, { max: 1 }) : undefined;
+const database = RUNTIME_DATABASE_URL ? Database.connect(RUNTIME_DATABASE_URL, { maxConnections: 1 }) : undefined;
 
 function sqlState(error: unknown): string | undefined {
   if (!error || typeof error !== "object") return undefined;
@@ -143,8 +144,8 @@ databaseDescribe("Order 124 business-day seal authority containment", () => {
       config: string[];
       source: string;
     }>>`
-      SELECT pg_get_userbyid(p.proowner) = current_user AS "ownerMatches",
-             has_function_privilege(current_user, p.oid, 'EXECUTE') AS "ownerExecute",
+      SELECT pg_get_userbyid(p.proowner) = 'yellow_owner' AS "ownerMatches",
+             has_function_privilege('yellow_owner', p.oid, 'EXECUTE') AS "ownerExecute",
              has_function_privilege('public', p.oid, 'EXECUTE') AS "publicExecute",
              has_function_privilege('app_role', p.oid, 'EXECUTE') AS "appExecute",
              p.prosecdef AS "securityDefiner",

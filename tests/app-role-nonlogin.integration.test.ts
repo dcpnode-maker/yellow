@@ -6,9 +6,9 @@ import { SQL } from "bun";
 import { runMigrations } from "../scripts/migrate";
 import { Database } from "../src/kernel";
 
-const ADMIN_URL = process.env.YELLOW_APP_ROLE_NONLOGIN_URL;
+const ADMIN_URL = process.env.YELLOW_DEPLOY_DATABASE_URL ?? process.env.YELLOW_APP_ROLE_NONLOGIN_URL;
 if (process.env.YELLOW_REQUIRE_APP_ROLE_NONLOGIN === "1" && !ADMIN_URL) {
-  throw new Error("YELLOW_APP_ROLE_NONLOGIN_URL is required by the Order 118 proof");
+  throw new Error("YELLOW_DEPLOY_DATABASE_URL is required by the Order 118 proof");
 }
 
 const SOURCE_TENANT = "00000000-0000-0000-0000-000000011801";

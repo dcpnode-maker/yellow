@@ -27,7 +27,7 @@ const BUSINESS_DAY_SEAL_MIGRATION = await readFile(
   resolve(PROJECT_ROOT, "migrations", "0013_revoke_app_role_business_day_seal.sql"),
 );
 const BASELINE_SHA256 = "fe2a9fc949c6bacded3f8d3fc4d14fc596a83ebde9aeb043eb10845f07b30923";
-const ADMIN_URL = process.env.YELLOW_MIGRATION_TEST_ADMIN_URL;
+const ADMIN_URL = process.env.YELLOW_DEPLOY_DATABASE_URL ?? process.env.YELLOW_MIGRATION_TEST_ADMIN_URL;
 const REQUIRE_DATABASE = process.env.YELLOW_REQUIRE_MIGRATION_DB === "1";
 const FORBIDDEN_DATABASES = new Set(["yellow_dev", "yellow_test"]);
 
@@ -127,7 +127,7 @@ function spawnRunner(targetUrl: string, directory: string): Subprocess<"ignore",
     cwd: PROJECT_ROOT,
     env: {
       ...process.env,
-      DATABASE_URL: targetUrl,
+      YELLOW_DEPLOY_DATABASE_URL: targetUrl,
       YELLOW_MIGRATIONS_DIR: directory,
     },
     stdin: "ignore",
@@ -159,9 +159,10 @@ function summaryEvidence(output: string): SummaryEvidence {
 }
 
 describe("migration CLI", () => {
-  test("requires DATABASE_URL instead of silently selecting a database", async () => {
+  test("requires YELLOW_DEPLOY_DATABASE_URL instead of silently selecting a database", async () => {
     const env = { ...process.env };
     delete env.DATABASE_URL;
+    delete env.YELLOW_DEPLOY_DATABASE_URL;
     delete env.YELLOW_MIGRATIONS_DIR;
     const child = Bun.spawn([process.execPath, MIGRATE_SCRIPT], {
       cwd: PROJECT_ROOT,
@@ -174,7 +175,7 @@ describe("migration CLI", () => {
 
     expect(result.exitCode).toBe(1);
     expect(result.stdout).toBe("");
-    expect(result.stderr.trim()).toBe("DATABASE_URL is required");
+    expect(result.stderr.trim()).toBe("YELLOW_DEPLOY_DATABASE_URL is required");
   });
 });
 

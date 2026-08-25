@@ -17,7 +17,11 @@ supply-chain and credential surface.
 Use the existing local `psql`/repository scripts for Postgres, `git` and `gh` for
 GitHub, and the built-in web/documentation tools for current library references.
 These replacements preserve the repository workflows without silently installing
-an external process. A future MCP must be introduced by a separate reviewed order
+an external process. Deployment and schema/referee commands use only
+`YELLOW_DEPLOY_DATABASE_URL`; the application, workers, event relay and tenant
+discovery use only `YELLOW_RUNTIME_DATABASE_URL`. Never pass the deployment DSN
+through an application environment or use it as a runtime fallback. A future MCP
+must be introduced by a separate reviewed order
 with an exact version, provenance/integrity record, and explicit credential scope.
 
 ## Add later, at the phase that needs it

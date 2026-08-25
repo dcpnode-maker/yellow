@@ -4,14 +4,15 @@ import { SQL } from "bun";
 
 import { Database } from "../src/kernel";
 
-const DATABASE_URL = process.env.YELLOW_RUNTIME_AUTHORITY_P0_URL;
+const DEPLOY_DATABASE_URL = process.env.YELLOW_DEPLOY_DATABASE_URL ?? process.env.YELLOW_RUNTIME_AUTHORITY_P0_URL;
+const RUNTIME_DATABASE_URL = process.env.YELLOW_RUNTIME_DATABASE_URL ?? process.env.YELLOW_RUNTIME_AUTHORITY_P0_URL;
 const REQUIRE_DATABASE = process.env.YELLOW_REQUIRE_RUNTIME_AUTHORITY_P0 === "1";
 
-if (REQUIRE_DATABASE && !DATABASE_URL) {
-  throw new Error("YELLOW_RUNTIME_AUTHORITY_P0_URL is required for Order 127 P0");
+if (REQUIRE_DATABASE && (!DEPLOY_DATABASE_URL || !RUNTIME_DATABASE_URL)) {
+  throw new Error("YELLOW_DEPLOY_DATABASE_URL and YELLOW_RUNTIME_DATABASE_URL are required for Order 127 P0");
 }
 
-const databaseDescribe = DATABASE_URL ? describe.serial : describe.skip;
+const databaseDescribe = DEPLOY_DATABASE_URL && RUNTIME_DATABASE_URL ? describe.serial : describe.skip;
 const tenantA = randomUUID();
 const tenantB = randomUUID();
 const partyA = randomUUID();
@@ -45,8 +46,8 @@ databaseDescribe("Order 127 P0 runtime database authority", () => {
   let database: Database;
 
   beforeAll(async () => {
-    admin = new SQL(DATABASE_URL!, { max: 1 });
-    database = Database.connect(DATABASE_URL!, { maxConnections: 1 });
+    admin = new SQL(DEPLOY_DATABASE_URL!, { max: 1 });
+    database = Database.connect(RUNTIME_DATABASE_URL!, { maxConnections: 1 });
     await admin`
       INSERT INTO tenant (id, slug, name)
       VALUES

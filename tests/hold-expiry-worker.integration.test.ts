@@ -24,7 +24,8 @@ import {
 import { runReviewSeed } from "../scripts/seed-review";
 import { runSeed, SEED_PROPERTY, SEED_TENANT } from "../scripts/seed";
 
-const DATABASE_URL = process.env.YELLOW_HOLD_EXPIRY_URL;
+const DEPLOY_DATABASE_URL = process.env.YELLOW_DEPLOY_DATABASE_URL ?? process.env.YELLOW_HOLD_EXPIRY_URL;
+const RUNTIME_DATABASE_URL = process.env.YELLOW_RUNTIME_DATABASE_URL ?? process.env.YELLOW_HOLD_EXPIRY_URL;
 const PASSWORD = process.env.YELLOW_HOLD_EXPIRY_PASSWORD;
 const REQUIRE_DATABASE = process.env.YELLOW_REQUIRE_HOLD_EXPIRY === "1";
 const TENANT_B = "00000000-0000-0000-0000-000000005602";
@@ -35,13 +36,14 @@ const SELLABLE_B = "00000000-0000-0000-0000-000000005642";
 const ACTOR_A = "00000000-0000-0000-0000-000000005650";
 const ACTOR_B = "00000000-0000-0000-0000-000000005651";
 
-if (REQUIRE_DATABASE && (!DATABASE_URL || !PASSWORD)) {
-  throw new Error("YELLOW_HOLD_EXPIRY_URL and YELLOW_HOLD_EXPIRY_PASSWORD are required by Order 056");
+if (REQUIRE_DATABASE && (!DEPLOY_DATABASE_URL || !RUNTIME_DATABASE_URL || !PASSWORD)) {
+  throw new Error("YELLOW_DEPLOY_DATABASE_URL, YELLOW_RUNTIME_DATABASE_URL and YELLOW_HOLD_EXPIRY_PASSWORD are required by Order 056");
 }
 
-const databaseDescribe = DATABASE_URL && PASSWORD ? describe.serial : describe.skip;
+const databaseDescribe = DEPLOY_DATABASE_URL && RUNTIME_DATABASE_URL && PASSWORD ? describe.serial : describe.skip;
 let admin: SQL;
 let eventPool: SQL;
+let runtimePool: SQL;
 let database: Database;
 let events: PostgresEventBus;
 let holds: HoldService;
@@ -110,15 +112,16 @@ class TransientSource implements DueHoldScopeSource {
 }
 
 beforeAll(async () => {
-  if (!DATABASE_URL || !PASSWORD) return;
-  await runSeed({ databaseUrl: DATABASE_URL, logger() {} });
-  await runReviewSeed({ databaseUrl: DATABASE_URL, password: PASSWORD, logger() {} });
-  admin = new SQL(DATABASE_URL, { max: 12 });
-  eventPool = new SQL(DATABASE_URL, { max: 16 });
-  database = Database.connect(DATABASE_URL, { maxConnections: 32 });
+  if (!DEPLOY_DATABASE_URL || !RUNTIME_DATABASE_URL || !PASSWORD) return;
+  await runSeed({ databaseUrl: DEPLOY_DATABASE_URL, logger() {} });
+  await runReviewSeed({ databaseUrl: DEPLOY_DATABASE_URL, password: PASSWORD, logger() {} });
+  admin = new SQL(DEPLOY_DATABASE_URL, { max: 12 });
+  runtimePool = new SQL(RUNTIME_DATABASE_URL, { max: 16 });
+  eventPool = runtimePool;
+  database = Database.connect(RUNTIME_DATABASE_URL, { maxConnections: 32 });
   events = new PostgresEventBus(eventPool);
   holds = new HoldService(events);
-  source = new PostgresDueHoldScopeSource(admin);
+  source = new PostgresDueHoldScopeSource(runtimePool);
   const rows = await admin<Array<{ name: string; id: string }>>`
     SELECT name, id FROM sellable_unit WHERE tenant_id=${SEED_TENANT.id}::uuid ORDER BY name
   `;
@@ -139,7 +142,7 @@ beforeAll(async () => {
 
 afterAll(async () => {
   await database?.close();
-  await eventPool?.close();
+  await runtimePool?.close();
   await admin?.close();
 });
 
@@ -175,7 +178,7 @@ databaseDescribe("Order 056 audited hold-expiry worker", () => {
       { tenantId: TENANT_B, propertyNode: PROPERTY_B },
     ]);
     expect(Object.keys(scopes[0] ?? {}).sort()).toEqual(["propertyNode", "tenantId"]);
-    const connection = await admin.reserve();
+    const connection = await runtimePool.reserve();
     try {
       await connection.unsafe("BEGIN");
       await connection.unsafe("SET LOCAL ROLE app_role");
