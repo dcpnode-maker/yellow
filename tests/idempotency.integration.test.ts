@@ -45,7 +45,7 @@ async function cleanFixtures(): Promise<void> {
 beforeAll(async () => {
   if (!DEPLOY_DATABASE_URL || !RUNTIME_DATABASE_URL) return;
   admin = new SQL(DEPLOY_DATABASE_URL, { max: 4 });
-  database = Database.connect(RUNTIME_DATABASE_URL, { maxConnections: 24 });
+  database = Database.connect(RUNTIME_DATABASE_URL, { maxConnections: 24, prepare: false });
   await cleanFixtures();
   await admin`
     INSERT INTO tenant (id, slug, name, tier, status)

@@ -129,6 +129,8 @@ export class PostgresIdempotency {
     const now = this.#now();
     validateNow(now);
     const expiresAt = new Date(now.getTime() + RETENTION_MS);
+    const nowIso = now.toISOString();
+    const expiresAtIso = expiresAt.toISOString();
 
     const claimed = await tx<Array<{ claimed: boolean }>>`
       INSERT INTO api_idempotency (
@@ -136,7 +138,7 @@ export class PostgresIdempotency {
       )
       VALUES (
         ${input.tenantId}::uuid, ${input.operation}, ${keyHash}, ${requestHash},
-        ${now}, ${expiresAt}
+        ${nowIso}::timestamptz, ${expiresAtIso}::timestamptz
       )
       ON CONFLICT (tenant_id, operation, key_hash) DO UPDATE
       SET request_hash = EXCLUDED.request_hash,
@@ -179,7 +181,7 @@ export class PostgresIdempotency {
       UPDATE api_idempotency
       SET response_status = ${result.status},
           response_body = ${encodedBody}::text::jsonb,
-          completed_at = ${now}
+          completed_at = ${nowIso}::timestamptz
       WHERE tenant_id = ${input.tenantId}::uuid
         AND operation = ${input.operation}
         AND key_hash = ${keyHash}
