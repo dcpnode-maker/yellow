@@ -64,6 +64,7 @@ const schemaName = `o127_p0_${randomUUID().replaceAll("-", "")}`;
 const contaminationTempName = `o127_contaminated_${randomUUID().replaceAll("-", "")}`;
 const contaminationPreparedName = `o127_prepared_${randomUUID().replaceAll("-", "")}`;
 const rollbackMarker = new Error("Order 127 P0 probe rollback");
+const RUNTIME_DATABASE_OPTIONS = { maxConnections: 1, prepare: false } as unknown as Parameters<typeof Database.connect>[1];
 
 interface AuthorityEvidence {
   readonly sessionUser: string;
@@ -120,7 +121,7 @@ databaseDescribe("Order 127 runtime database authority (kernel boundary; HTTP P4
   beforeAll(async () => {
     admin = new SQL(DEPLOY_DATABASE_URL!, { max: 1 });
     runtimeSession = new SQL(RUNTIME_DATABASE_URL!, { max: 1 });
-    database = Database.connect(RUNTIME_DATABASE_URL!, { maxConnections: 1 });
+    database = Database.connect(RUNTIME_DATABASE_URL!, RUNTIME_DATABASE_OPTIONS);
     await admin`
       INSERT INTO tenant (id, slug, name)
       VALUES
@@ -365,38 +366,55 @@ databaseDescribe("Order 127 runtime database authority (kernel boundary; HTTP P4
     await expect(database.withTenantTransaction(tenantA, async (tx) => {
       await tx.unsafe("SET ROLE app_role");
       await tx.unsafe("SET search_path = pg_temp");
+      await tx`SELECT set_config('app.tenant_id', ${tenantB}, false)`;
       await tx.unsafe(`CREATE TEMP TABLE ${contaminationTempName} (id integer) ON COMMIT PRESERVE ROWS`);
       await tx.unsafe(`PREPARE ${contaminationPreparedName} AS SELECT 1`);
       return "contaminated";
     })).rejects.toThrow("connection retained role or tenant context");
 
     const canary = await database.withTenantTransaction(tenantA, async (tx) => {
-      const rows = await tx<{ current_user: string; session_user: string; tenant_id: string; search_path: string; temp_table_present: boolean; prepared_present: boolean }[]>`
+      const rows = await tx<{ current_user: string; session_user: string; tenant_id: string; search_path: string; temp_table_present: boolean; prepared_present: boolean; prepared_count: number }[]>`
         SELECT current_user::text AS current_user, session_user::text AS session_user,
                current_setting('app.tenant_id', true) AS tenant_id,
                current_setting('search_path') AS search_path,
                to_regclass(${`pg_temp.${contaminationTempName}`}) IS NOT NULL AS temp_table_present,
-               EXISTS (SELECT 1 FROM pg_prepared_statements WHERE name = ${contaminationPreparedName}) AS prepared_present
+               EXISTS (SELECT 1 FROM pg_prepared_statements WHERE name = ${contaminationPreparedName}) AS prepared_present,
+               (SELECT count(*)::int FROM pg_prepared_statements) AS prepared_count
       `;
       return rows[0];
     });
     expect(canary).toEqual({
       current_user: "app_role", session_user: "yellow_runtime", tenant_id: tenantA,
-      search_path: '"$user", public', temp_table_present: false, prepared_present: false,
+      search_path: '"$user", public', temp_table_present: false, prepared_present: false, prepared_count: 0,
     });
-    const observerPool = new SQL(RUNTIME_DATABASE_URL!, { max: 1 });
+    const reuseCanary = await database.withTenantTransaction(tenantA, async (tx) => tx<{
+      current_user: string; session_user: string; tenant_id: string; prepared_count: number;
+    }[]>`
+      SELECT current_user::text AS current_user, session_user::text AS session_user,
+             current_setting('app.tenant_id', true) AS tenant_id,
+             (SELECT count(*)::int FROM pg_prepared_statements) AS prepared_count
+    `);
+    expect(reuseCanary).toEqual([{
+      current_user: "app_role", session_user: "yellow_runtime", tenant_id: tenantA, prepared_count: 0,
+    }]);
+    const observerPool = new SQL(RUNTIME_DATABASE_URL!, { max: 1, prepare: false });
     const observer = await observerPool.reserve();
     try {
-      const rows = await observer<{ current_user: string; session_user: string; tenant_clear: boolean }[]>`
+      const rows = await observer<{ current_user: string; session_user: string; tenant_clear: boolean; search_path: string; prepared_count: number }[]>`
         SELECT current_user::text AS current_user, session_user::text AS session_user,
-               NULLIF(current_setting('app.tenant_id', true), '') IS NULL AS tenant_clear
+               NULLIF(current_setting('app.tenant_id', true), '') IS NULL AS tenant_clear,
+               current_setting('search_path') AS search_path,
+               (SELECT count(*)::int FROM pg_prepared_statements) AS prepared_count
       `;
-      expect(rows).toEqual([{ current_user: "yellow_runtime", session_user: "yellow_runtime", tenant_clear: true }]);
+      expect(rows).toEqual([{
+        current_user: "yellow_runtime", session_user: "yellow_runtime", tenant_clear: true,
+        search_path: '"$user", public', prepared_count: 0,
+      }]);
     } finally { observer.release(); await observerPool.close(); }
 
     await closeWithin(database);
     await closeWithin(database);
-    database = Database.connect(RUNTIME_DATABASE_URL!, { maxConnections: 1 });
+    database = Database.connect(RUNTIME_DATABASE_URL!, RUNTIME_DATABASE_OPTIONS);
   });
 
   test("P3: bounded capabilities reject PUBLIC/app_role and malformed or oversized inputs", async () => {
