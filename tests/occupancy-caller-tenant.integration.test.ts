@@ -37,10 +37,12 @@ const RATE_A = "00000000-0000-0000-0000-000000012657";
 const RESERVATION_A = "00000000-0000-0000-0000-000000012658";
 const SEGMENT_A = "00000000-0000-0000-0000-000000012659";
 const OOO_A = "00000000-0000-0000-0000-000000012660";
+const CANCELLED_SEGMENT_A = "00000000-0000-0000-0000-000000012661";
 const HOSTILE_PERIOD = "[2026-09-01 00:00:00+00,2026-09-02 00:00:00+00)";
 const VICTIM_PERIOD = "[2026-09-03 00:00:00+00,2026-09-04 00:00:00+00)";
 const SEGMENT_PERIOD = "[2026-10-20 00:00:00+00,2026-10-21 00:00:00+00)";
 const OOO_PERIOD = "[2026-10-22 00:00:00+00,2026-10-23 00:00:00+00)";
+const CANCELLED_SEGMENT_PERIOD = "[2026-10-24 00:00:00+00,2026-10-25 00:00:00+00)";
 const EXCLUSIVE_RACE_PERIOD = "[2026-11-01 00:00:00+00,2026-11-02 00:00:00+00)";
 const POSITIONAL_RACE_PERIOD = "[2026-11-03 00:00:00+00,2026-11-04 00:00:00+00)";
 const MODE_CONFLICT_PERIOD = "[2026-11-05 00:00:00+00,2026-11-06 00:00:00+00)";
@@ -194,8 +196,11 @@ beforeAll(async () => {
     VALUES ('${RESERVATION_A}', '${TENANT_A}', '${PROPERTY_A}', 'O126', '${PARTY_A}', 'USD');
     INSERT INTO public.reservation_segment
       (id, tenant_id, reservation_id, seq, unit_type_id, sellable_unit_id, period, rate_plan_id, status)
-    VALUES ('${SEGMENT_A}', '${TENANT_A}', '${RESERVATION_A}', 1, '${UNIT_TYPE_A}', '${SELLABLE_A}',
-            '${SEGMENT_PERIOD}', '${RATE_A}', 'booked');
+    VALUES
+      ('${SEGMENT_A}', '${TENANT_A}', '${RESERVATION_A}', 1, '${UNIT_TYPE_A}', '${SELLABLE_A}',
+       '${SEGMENT_PERIOD}', '${RATE_A}', 'booked'),
+      ('${CANCELLED_SEGMENT_A}', '${TENANT_A}', '${RESERVATION_A}', 2, '${UNIT_TYPE_A}', '${SELLABLE_A}',
+       '${CANCELLED_SEGMENT_PERIOD}', '${RATE_A}', 'cancelled');
     INSERT INTO public.ooo_oos (id, tenant_id, space_id, kind, period, reason)
     VALUES ('${OOO_A}', '${TENANT_A}', '${SPACE_A}', 'ooo', '${OOO_PERIOD}', 'Order 126 typed parent');
     SELECT public.record_occupancy(
@@ -238,7 +243,7 @@ afterAll(async () => {
   if (admin) {
     await cleanupClaims().catch(() => undefined);
     await admin.unsafe(`
-      DELETE FROM public.reservation_segment WHERE id = '${SEGMENT_A}';
+      DELETE FROM public.reservation_segment WHERE id IN ('${SEGMENT_A}', '${CANCELLED_SEGMENT_A}');
       DELETE FROM public.reservation WHERE id = '${RESERVATION_A}';
       DELETE FROM public.rate_plan WHERE id = '${RATE_A}';
       DELETE FROM public.party WHERE id = '${PARTY_A}';
@@ -401,6 +406,61 @@ databaseDescribe("Order 126 occupancy caller tenant binding", () => {
       unboundedPeriod: "22023",
       before: [{ count: 0 }],
       after: [{ count: 0 }],
+    });
+  });
+
+  test("P1: an exact same-tenant cancelled segment is stale and cannot create occupancy", async () => {
+    let observed: {
+      readonly state?: string;
+      readonly before: number;
+      readonly after: number;
+      readonly parentStatus: string;
+    } | undefined;
+    try {
+      const before = await admin!<Array<{ count: number }>>`
+        SELECT count(*)::int AS count
+          FROM public.space_occupancy
+         WHERE tenant_id = ${TENANT_A}::uuid
+           AND slot_ref = ${CANCELLED_SEGMENT_A}::uuid
+      `;
+      const attempt = await attemptClaim({
+        slot: CANCELLED_SEGMENT_A,
+        space: SPACE_A,
+        period: CANCELLED_SEGMENT_PERIOD,
+        kind: "segment",
+        exclusive: true,
+      });
+      const after = await admin!<Array<{ count: number }>>`
+        SELECT count(*)::int AS count
+          FROM public.space_occupancy
+         WHERE tenant_id = ${TENANT_A}::uuid
+           AND slot_ref = ${CANCELLED_SEGMENT_A}::uuid
+      `;
+      const parent = await admin!<Array<{ status: string }>>`
+        SELECT status
+          FROM public.reservation_segment
+         WHERE tenant_id = ${TENANT_A}::uuid
+           AND id = ${CANCELLED_SEGMENT_A}::uuid
+      `;
+      observed = {
+        state: attempt.state,
+        before: before[0]!.count,
+        after: after[0]!.count,
+        parentStatus: parent[0]!.status,
+      };
+    } finally {
+      await admin!`
+        DELETE FROM public.space_occupancy
+         WHERE tenant_id = ${TENANT_A}::uuid
+           AND slot_ref = ${CANCELLED_SEGMENT_A}::uuid
+      `;
+    }
+
+    expect(observed).toEqual({
+      state: "P0003",
+      before: 0,
+      after: 0,
+      parentStatus: "cancelled",
     });
   });
 
