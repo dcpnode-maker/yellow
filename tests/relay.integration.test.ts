@@ -19,6 +19,7 @@ const CONSUMERS = [
   "order-023-backlog",
   "order-023-prune",
   "order-023-canary-cursor",
+  "order-023-canary",
   "order-023-canary-unpublished",
   "order-023-canary-cursor-rollback",
   "order-023-canary-unpublished-rollback",
@@ -76,6 +77,18 @@ async function insertEvents(count: number, correlation = crypto.randomUUID()): P
     occurredAt: row.created_at,
     payload: { proof: "order-023" },
   }));
+}
+
+async function seedConsumerCursor(consumer: string): Promise<void> {
+  await admin!`DELETE FROM consumer_processed WHERE consumer = ${consumer}`;
+  const rows = await admin!<{ lastSeq: number }[]>`
+    SELECT COALESCE(max(seq), 0)::int AS "lastSeq" FROM outbox
+  `;
+  await admin!`
+    INSERT INTO consumer_cursor (consumer, last_seq)
+    VALUES (${consumer}, ${rows[0]?.lastSeq ?? 0}::bigint)
+    ON CONFLICT (consumer) DO UPDATE SET last_seq = EXCLUDED.last_seq
+  `;
 }
 
 async function drain(relay: OutboxRelay, handler: Parameters<OutboxRelay["drainOnce"]>[0]): Promise<number> {
@@ -211,16 +224,18 @@ databaseDescribe("Order 023 crash-safe outbox relay", () => {
   });
 
   test("D398: set-wise marks and both consume paths preserve order, dedupe, and rollback", async () => {
+    await seedConsumerCursor("order-023-canary-cursor");
     const cursorEvents = (await insertEvents(4)).sort((left, right) => left.seq - right.seq);
     await admin!`INSERT INTO consumer_processed (consumer, outbox_id) VALUES ('order-023-canary-cursor', ${cursorEvents[0]!.id}::uuid)`;
     const cursorHandled: string[] = [];
-    const cursorResult = await bus!.consumeBatch("order-023-canary", async (event) => {
+    const cursorResult = await bus!.consumeBatch("order-023-canary-cursor", async (event) => {
       cursorHandled.push(event.id);
     }, { limit: 10 });
     expect(cursorResult).toMatchObject({ examined: 4, processed: 3, lastSeq: cursorEvents.at(-1)!.seq });
     expect(cursorHandled).toEqual(cursorEvents.slice(1).map(({ id }) => id));
     expect(await bus!.markPublished(cursorEvents.map(({ id }) => id))).toBe(4);
 
+    await seedConsumerCursor("order-023-canary-unpublished");
     const unpublishedEvents = (await insertEvents(4)).sort((left, right) => left.seq - right.seq);
     await admin!`INSERT INTO consumer_processed (consumer, outbox_id) VALUES ('order-023-canary-unpublished', ${unpublishedEvents[0]!.id}::uuid)`;
     const unpublishedHandled: string[] = [];
@@ -249,6 +264,7 @@ databaseDescribe("Order 023 crash-safe outbox relay", () => {
     ].sort((left, right) => left.id.localeCompare(right.id)));
     expect(await bus!.markPublished(unpublishedEvents.map(({ id }) => id))).toBe(4);
 
+    await seedConsumerCursor("order-023-canary-cursor-rollback");
     const cursorRollbackEvents = (await insertEvents(2)).sort((left, right) => left.seq - right.seq);
     await expect(bus!.consumeBatch("order-023-canary-cursor-rollback", async () => {
       throw new Error("D398 cursor rollback");
@@ -257,6 +273,7 @@ databaseDescribe("Order 023 crash-safe outbox relay", () => {
     expect(cursorRetry.processed).toBe(cursorRollbackEvents.length);
     expect(await bus!.markPublished(cursorRollbackEvents.map(({ id }) => id))).toBe(cursorRollbackEvents.length);
 
+    await seedConsumerCursor("order-023-canary-unpublished-rollback");
     const unpublishedRollbackEvents = (await insertEvents(2)).sort((left, right) => left.seq - right.seq);
     await expect(bus!.consumeUnpublishedBatch("order-023-canary-unpublished-rollback", async () => {
       throw new Error("D398 unpublished rollback");
