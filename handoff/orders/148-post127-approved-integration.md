@@ -1,6 +1,6 @@
 # Order 148 — Integrate the approved post-127 line
 
-**Status:** CORRECTION READY — Q158–159 / D-410–D-411 hygiene resolved
+**Status:** APPROVED — D-412; PR #78 open against unchanged admitted target
 **Phase:** 5 · delivery control
 **Branch:** `phase-5/post127-approved-integration`
 **Base:** `f26e3952cdc0091bab852b3c6b670b84a13cef7c` — closed Order-127
@@ -102,9 +102,9 @@ approval may Codex push this branch and open one PR targeting the exact fetched
 
 - [x] Exact approved Base and freshly fetched target are recorded; ancestry is
       target-ancestor, 111 ahead, zero behind.
-- [ ] P0 exact identity and Scope-only candidate pass.
-- [ ] P1 complete latest-owner/protected/exclusion map passes.
-- [ ] P2 complete executable integration proof passes on one immutable candidate.
-- [ ] Independent Tier-3 review approves that exact candidate.
-- [ ] Branch is pushed and one PR is opened against the unchanged target with referee
+- [x] P0 exact identity and Scope-only candidate pass.
+- [x] P1 complete latest-owner/protected/exclusion map passes.
+- [x] P2 complete executable integration proof passes on one immutable candidate.
+- [x] Independent Tier-3 review approves that exact candidate.
+- [x] Branch is pushed and one PR is opened against the unchanged target with referee
       evidence; no merge or deployment occurs.
