@@ -724,6 +724,14 @@ databaseDescribe("Order 086 atomic reservation segment changes", () => {
     await makeInHouse(oooTarget.reservationId, oooTarget.segmentId);
     const oooSlot = crypto.randomUUID();
     await admin!`
+      INSERT INTO ooo_oos (id, tenant_id, space_id, kind, period, reason)
+      VALUES (
+        ${oooSlot}::uuid, ${TENANT_A}::uuid, ${SPACE_B}::uuid, 'ooo',
+        tstzrange(${oooStay.from.toISOString()}::timestamptz, ${oooStay.to.toISOString()}::timestamptz, '[)'),
+        'Order 086 typed-parent conflict fixture'
+      )
+    `;
+    await admin!`
       SELECT record_occupancy(
         ${TENANT_A}::uuid, ${SPACE_B}::uuid,
         tstzrange(${oooStay.from.toISOString()}::timestamptz, ${oooStay.to.toISOString()}::timestamptz, '[)'),
@@ -746,6 +754,7 @@ databaseDescribe("Order 086 atomic reservation segment changes", () => {
       ReservationLifecycleConflictError,
     );
     await admin!`SELECT release_occupancy(${TENANT_A}::uuid, ${oooSlot}::uuid)`;
+    await admin!`DELETE FROM ooo_oos WHERE id = ${oooSlot}::uuid`;
     expect((await moveRoom(oooService, oooInput)).replayed).toBe(false);
 
     const raceStay = period(60, 4);

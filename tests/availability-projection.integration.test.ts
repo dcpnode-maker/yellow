@@ -41,6 +41,9 @@ const HOLD_REF = "00000000-0000-0000-0000-000000005861";
 const OOO_REF = "00000000-0000-0000-0000-000000005862";
 const OOS_REF = "00000000-0000-0000-0000-000000005863";
 const DST_REF = "00000000-0000-0000-0000-000000005864";
+const RESERVATION_REF = "00000000-0000-0000-0000-000000005865";
+const PARTY_REF = "00000000-0000-0000-0000-000000005866";
+const RATE_REF = "00000000-0000-0000-0000-000000005867";
 const FROM_DATE = "2027-03-13";
 const TO_DATE = "2027-03-16";
 
@@ -104,6 +107,30 @@ async function record(
   to: string,
   exclusive: boolean,
 ): Promise<void> {
+  if (slotKind === "hold") {
+    await admin`
+      INSERT INTO hold (
+        id, tenant_id, property_node, sellable_unit_id, period,
+        kind, holder, expires_at, status
+      )
+      SELECT ${slotRef}::uuid, ${TENANT_A}::uuid, unit_type.property_node,
+             mapping.sellable_unit_id,
+             tstzrange(${from}::timestamptz, ${to}::timestamptz, '[)'),
+             'cart', '{}'::jsonb, '2030-01-01T00:00:00Z'::timestamptz, 'active'
+        FROM sellable_unit_space AS mapping
+        JOIN sellable_unit
+          ON sellable_unit.id = mapping.sellable_unit_id
+         AND sellable_unit.tenant_id = mapping.tenant_id
+        JOIN unit_type
+          ON unit_type.id = sellable_unit.unit_type_id
+         AND unit_type.tenant_id = sellable_unit.tenant_id
+       WHERE mapping.tenant_id = ${TENANT_A}::uuid
+         AND mapping.space_id = ${spaceId}::uuid
+         AND mapping.claim_mode = ${exclusive ? "exclusive" : "positional"}
+       ORDER BY mapping.sellable_unit_id
+       LIMIT 1
+    `;
+  }
   await database.withTenantTransaction(TENANT_A, async (tx) => {
     const result = await tx<Array<{ id: string }>>`
       SELECT record_occupancy(
@@ -144,6 +171,7 @@ async function cleanDynamicState(): Promise<void> {
   await admin`DELETE FROM space_occupancy WHERE slot_ref IN (
     ${SEGMENT_REF}::uuid, ${HOLD_REF}::uuid, ${OOO_REF}::uuid, ${DST_REF}::uuid
   )`;
+  await admin`DELETE FROM hold WHERE id IN (${HOLD_REF}::uuid, ${DST_REF}::uuid)`;
   await admin`DELETE FROM ooo_oos WHERE id IN (${OOO_REF}::uuid, ${OOS_REF}::uuid)`;
   await setOosPolicy("blocked");
 }
@@ -235,6 +263,34 @@ beforeAll(async () => {
       (${TENANT_A}::uuid, ${SU_SHARED_2}::uuid, ${SPACE_SHARED}::uuid, 'exclusive'),
       (${TENANT_B}::uuid, ${SU_B}::uuid, ${SPACE_B}::uuid, 'exclusive')
   `;
+  await admin`
+    INSERT INTO party (id, tenant_id, kind, display_name)
+    VALUES (${PARTY_REF}::uuid, ${TENANT_A}::uuid, 'person', 'Order 058 typed parent')
+  `;
+  await admin`
+    INSERT INTO rate_plan (id, tenant_id, property_node, code, name, currency)
+    VALUES (${RATE_REF}::uuid, ${TENANT_A}::uuid, ${PROPERTY_A}::uuid,
+            'O58-PARENT', 'Order 058 typed parent', 'USD')
+  `;
+  await admin`
+    INSERT INTO reservation (
+      id, tenant_id, property_node, confirmation_no, primary_party, currency
+    ) VALUES (
+      ${RESERVATION_REF}::uuid, ${TENANT_A}::uuid, ${PROPERTY_A}::uuid,
+      'O58-PARENT', ${PARTY_REF}::uuid, 'USD'
+    )
+  `;
+  await admin`
+    INSERT INTO reservation_segment (
+      id, tenant_id, reservation_id, seq, unit_type_id, sellable_unit_id,
+      period, rate_plan_id, status
+    ) VALUES (
+      ${SEGMENT_REF}::uuid, ${TENANT_A}::uuid, ${RESERVATION_REF}::uuid, 1,
+      ${UT_HOTEL}::uuid, ${SU_HOTEL_1}::uuid,
+      tstzrange('2027-03-13T05:00:00Z', '2027-03-14T05:00:00Z', '[)'),
+      ${RATE_REF}::uuid, 'booked'
+    )
+  `;
 });
 
 afterAll(async () => {
@@ -242,6 +298,10 @@ afterAll(async () => {
   await admin`DROP TRIGGER IF EXISTS order058_fail_projection_insert ON availability_projection`;
   await admin`DROP FUNCTION IF EXISTS public.order058_fail_projection_insert()`;
   await cleanDynamicState();
+  await admin`DELETE FROM reservation_segment WHERE id = ${SEGMENT_REF}::uuid`;
+  await admin`DELETE FROM reservation WHERE id = ${RESERVATION_REF}::uuid`;
+  await admin`DELETE FROM rate_plan WHERE id = ${RATE_REF}::uuid`;
+  await admin`DELETE FROM party WHERE id = ${PARTY_REF}::uuid`;
   await admin`DELETE FROM availability_projection WHERE property_node IN (${PROPERTY_A}::uuid, ${PROPERTY_B}::uuid)`;
   await admin`DELETE FROM sellable_unit_space WHERE sellable_unit_id IN (
     ${SU_HOTEL_1}::uuid, ${SU_HOTEL_2}::uuid, ${SU_DORM}::uuid, ${SU_COMPOSITE}::uuid,
