@@ -1,6 +1,6 @@
 # Order 142 — Compose approved post-130 integration on canonical main
 
-**Status:** ADMITTED  
+**Status:** BUILT-UNREVIEWED  
 **Phase:** 5  
 **Tier:** 3 — authentication, role/ACL migrations, idempotency, reservation/occupancy
 sequencing and protected-referee composition  
@@ -227,3 +227,41 @@ self-merge, push, deploy or claim live status.
 Before merge, abandon only this dedicated worktree/branch; never move `main` or delete
 source evidence. After merge, use a separately ordered and independently reviewed forward
 correction/revert. Never rewrite migrations 0012/0013 or applied migration history.
+
+## Builder evidence — 2026-08-25
+
+Immutable executable `a060d49db570185cd711d850aa7113f58eee359f` was composed from
+Base `952478d17bcebd67e696d5cb76eec37e89cabcf3`. Machine verification reported
+`verified_blobs=77 mismatches=0 unexpected_paths=0`; the fixed migration and operator
+blobs match this order. The additive governance union preserves canonical D-339, records
+the historical collision/exclusions in D-377, and imports no draft finance, Order 126 or
+Order 127 executable path.
+
+Builder-executed proof on the immutable executable:
+
+- frozen install: 23 packages; typecheck and 64-file import boundaries passed;
+- licences: 23 verified; dependency audit: no vulnerabilities; external container images
+  are exact digest pins;
+- standing suite: 172 passed, 422 skipped, 0 failed, 1,981 assertions;
+- app-never-started `setup.ps1 -DbOnly`: migrations 0001–0013, 85 tables and referee
+  `11 passed, 0 failed`;
+- protected typed-parent referee: 5/5 with 58 assertions on a fresh migrated and fixture-
+  seeded database;
+- fresh canonical deployment acceptance: 6/6 with 13 assertions; exact schema drift check
+  passed;
+- phase gate: 19/19 suites passed, each on an isolated fresh database;
+- protected SHA-256: referee
+  `2afa95bb7c02cd9637ffc9c3df00d1ddf7cfc5d8d31c4fd8fad29b950c1a418d`, fixture
+  `bf71d8fc2987126db61ca3105e5d5cb5a4f48b9e2eba09d8b7fc1f3441fd4c62`, migration
+  0001 `fe2a9fc949c6bacded3f8d3fc4d14fc596a83ebde9aeb043eb10845f07b30923`;
+- final `state.ps1`: clean executable, app down, PostgreSQL/Valkey bounded to the proof
+  stack, 85 tables, descendant stack pending independent review.
+
+Two coordinator command defects were not product failures and were corrected before the
+recorded proof: a stale focused-test filename, and an acceptance attempt against the
+fixture-populated referee database. The successful evidence above uses the exact test path
+and a separate fresh canonically seeded acceptance database. Historical exact metadata
+contains inherited trailing whitespace; it is preserved byte-for-byte for provenance.
+
+Independent non-implementing Tier-3 P0–P5 review remains mandatory. This builder record
+does not authorize merge, push, deployment, live status or Order 126 completion.
