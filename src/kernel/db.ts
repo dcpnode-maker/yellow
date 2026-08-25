@@ -29,6 +29,16 @@ export class Database {
     return new Database(pool, true);
   }
 
+  async #assertSettlement(connection: ReservedSQL): Promise<void> {
+    const rows = await connection<{ role_reset: boolean; tenant_reset: boolean }[]>`
+      SELECT current_user = session_user AS role_reset,
+             NULLIF(current_setting('app.tenant_id', true), '') IS NULL AS tenant_reset
+    `;
+    if (rows.length !== 1 || rows[0]?.role_reset !== true || rows[0]?.tenant_reset !== true) {
+      throw new Error("PostgreSQL connection retained role or tenant context after transaction settlement");
+    }
+  }
+
   async withTenantTransaction<T>(tenantId: string, operation: (tx: Tx) => Promise<T>): Promise<T> {
     const connection = await this.#pool.reserve();
     let began = false;
@@ -47,11 +57,14 @@ export class Database {
       const result = await operation(connection);
       await connection.unsafe("COMMIT");
       began = false;
+      await this.#assertSettlement(connection);
       return result;
     } catch (error) {
       if (began) {
         try {
           await connection.unsafe("ROLLBACK");
+          began = false;
+          await this.#assertSettlement(connection);
         } catch {
           // Preserve the request failure; the broken connection is discarded by Bun.
         }

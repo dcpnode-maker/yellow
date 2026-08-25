@@ -222,6 +222,38 @@ function toInstance(row: ExtensionRow): ExtensionInstance {
   };
 }
 
+async function withTenantRole<T>(
+  pool: ConnectionPool,
+  tenantId: string,
+  operation: (connection: Tx) => Promise<T>,
+): Promise<T> {
+  if (tenantId === "") throw new Error("tenant context is required");
+  const connection = await pool.reserve();
+  let began = false;
+  try {
+    await connection.unsafe("BEGIN");
+    began = true;
+    const context = await connection<{ tenant_id: string }[]>`
+      SELECT set_config('app.tenant_id', ${tenantId}, true) AS tenant_id
+    `;
+    if (context[0]?.tenant_id !== tenantId) {
+      throw new Error("PostgreSQL did not establish the requested tenant context");
+    }
+    await connection.unsafe("SET LOCAL ROLE app_role");
+    const result = await operation(connection);
+    await connection.unsafe("COMMIT");
+    began = false;
+    return result;
+  } catch (error) {
+    if (began) {
+      try { await connection.unsafe("ROLLBACK"); } catch { /* discard broken connection */ }
+    }
+    throw error;
+  } finally {
+    connection.release();
+  }
+}
+
 export class ExtensionRegistry {
   readonly #platformPool: ConnectionPool;
 
@@ -233,11 +265,7 @@ export class ExtensionRegistry {
     if (!TYPE_NAME.test(input.type)) throw new Error("extension type must be a stable lowercase identifier");
     const definitionIssues = schemaDefinitionIssues(input.jsonSchema);
     if (definitionIssues.length > 0) throw new ExtensionValidationError(definitionIssues);
-    const connection = await this.#platformPool.reserve();
-    let began = false;
-    try {
-      await connection.unsafe("BEGIN");
-      began = true;
+    return await withTenantRole(this.#platformPool, input.envelope.tenantId, async (connection) => {
       const existing = await connection<Array<{ json_schema: JsonObject }>>`
         SELECT json_schema FROM extension_type WHERE type = ${input.type} FOR UPDATE
       `;
@@ -245,8 +273,6 @@ export class ExtensionRegistry {
         if (!sameJson(existing[0].json_schema, input.jsonSchema)) {
           throw new Error(`extension type ${input.type} already exists with divergent schema`);
         }
-        await connection.unsafe("COMMIT");
-        began = false;
         return "already exact";
       }
       await connection`
@@ -259,15 +285,8 @@ export class ExtensionRegistry {
         envelope: input.envelope,
         payload: { type: input.type, json_schema: input.jsonSchema },
       });
-      await connection.unsafe("COMMIT");
-      began = false;
       return "inserted";
-    } catch (error) {
-      if (began) await connection.unsafe("ROLLBACK");
-      throw error;
-    } finally {
-      connection.release();
-    }
+    });
   }
 
   async createInstance(tx: Tx, input: CreateExtensionInput): Promise<ExtensionInstance> {
@@ -357,8 +376,7 @@ export class ExtensionRegistry {
   }
 
   async listVisible(tenantId: string): Promise<readonly ExtensionInstance[]> {
-    const connection = await this.#platformPool.reserve();
-    try {
+    return await withTenantRole(this.#platformPool, tenantId, async (connection) => {
       const rows = await connection<ExtensionRow[]>`
         SELECT id, tenant_id, type, key, version, content, status
         FROM extension
@@ -366,9 +384,7 @@ export class ExtensionRegistry {
         ORDER BY type, key, version
       `;
       return rows.map(toInstance);
-    } finally {
-      connection.release();
-    }
+    });
   }
 
   async checkCompatibility(type: string, proposedSchema: Readonly<JsonObject>): Promise<readonly CompatibilityFailure[]> {

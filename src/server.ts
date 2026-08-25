@@ -38,7 +38,7 @@ function runtimeHostname(): string {
   throw new Error("non-loopback operator binding requires YELLOW_OPERATOR_ALLOW_NON_LOOPBACK=1");
 }
 
-function required(name: "DATABASE_URL" | "YELLOW_TOKEN_SECRET"): string {
+function required(name: "YELLOW_RUNTIME_DATABASE_URL" | "YELLOW_TOKEN_SECRET"): string {
   const value = Bun.env[name];
   if (!value) throw new Error(`${name} is required when YELLOW_OPERATOR_WORKBENCH=1`);
   return value;
@@ -46,7 +46,7 @@ function required(name: "DATABASE_URL" | "YELLOW_TOKEN_SECRET"): string {
 
 function runtimeApp() {
   if (!workbenchEnabled) return app;
-  const databaseUrl = required("DATABASE_URL");
+  const databaseUrl = required("YELLOW_RUNTIME_DATABASE_URL");
   const tokens = new Hs256TokenSigner(required("YELLOW_TOKEN_SECRET"));
   const database = Database.connect(databaseUrl, { maxConnections: 12 });
   const loginPool = new SQL(databaseUrl, { max: 4 });
