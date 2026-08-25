@@ -13,7 +13,7 @@ services:
       YELLOW_OPERATOR_WORKBENCH: "${YELLOW_OPERATOR_WORKBENCH:-0}"
       YELLOW_HOLD_EXPIRY_WORKER: "${YELLOW_HOLD_EXPIRY_WORKER:-1}"
       YELLOW_AVAILABILITY_PROJECTION_WORKER: "${YELLOW_AVAILABILITY_PROJECTION_WORKER:-1}"
-      YELLOW_RUNTIME_DATABASE_URL: "postgres://yellow_runtime:${YELLOW_RUNTIME_DATABASE_PASSWORD:?YELLOW_RUNTIME_DATABASE_PASSWORD is required}@postgres:5432/yellow_dev"
+      YELLOW_RUNTIME_DATABASE_URL: "postgres://yellow_runtime:${YELLOW_RUNTIME_DATABASE_PASSWORD:?YELLOW_RUNTIME_DATABASE_PASSWORD is required}@postgres:5432/${YELLOW_DATABASE_NAME:-yellow_dev}"
       YELLOW_TOKEN_SECRET: "${YELLOW_TOKEN_SECRET:-}"
     depends_on:
       postgres:
@@ -40,7 +40,7 @@ services:
       target: database-tools
     command: ["bun", "scripts/provision-local-database-authority.ts"]
     environment:
-      YELLOW_DEPLOY_DATABASE_URL: "postgres://yellow_deploy:${YELLOW_DEPLOY_DATABASE_PASSWORD:?YELLOW_DEPLOY_DATABASE_PASSWORD is required}@postgres:5432/yellow_dev"
+      YELLOW_DEPLOY_DATABASE_URL: "postgres://yellow_deploy:${YELLOW_DEPLOY_DATABASE_PASSWORD:?YELLOW_DEPLOY_DATABASE_PASSWORD is required}@postgres:5432/${YELLOW_DATABASE_NAME:-yellow_dev}"
       YELLOW_RUNTIME_DATABASE_PASSWORD: "${YELLOW_RUNTIME_DATABASE_PASSWORD:?YELLOW_RUNTIME_DATABASE_PASSWORD is required}"
     depends_on:
       postgres:
@@ -53,7 +53,7 @@ services:
       dockerfile: Dockerfile
       target: database-tools
     environment:
-      YELLOW_DEPLOY_DATABASE_URL: "postgres://yellow_deploy:${YELLOW_DEPLOY_DATABASE_PASSWORD:?YELLOW_DEPLOY_DATABASE_PASSWORD is required}@postgres:5432/yellow_dev"
+      YELLOW_DEPLOY_DATABASE_URL: "postgres://yellow_deploy:${YELLOW_DEPLOY_DATABASE_PASSWORD:?YELLOW_DEPLOY_DATABASE_PASSWORD is required}@postgres:5432/${YELLOW_DATABASE_NAME:-yellow_dev}"
     depends_on:
       provision:
         condition: service_completed_successfully
@@ -66,7 +66,7 @@ services:
       target: database-tools
     command: ["bun", "scripts/seed.ts"]
     environment:
-      YELLOW_DEPLOY_DATABASE_URL: "postgres://yellow_deploy:${YELLOW_DEPLOY_DATABASE_PASSWORD:?YELLOW_DEPLOY_DATABASE_PASSWORD is required}@postgres:5432/yellow_dev"
+      YELLOW_DEPLOY_DATABASE_URL: "postgres://yellow_deploy:${YELLOW_DEPLOY_DATABASE_PASSWORD:?YELLOW_DEPLOY_DATABASE_PASSWORD is required}@postgres:5432/${YELLOW_DATABASE_NAME:-yellow_dev}"
     depends_on:
       migrate:
         condition: service_completed_successfully
@@ -76,7 +76,7 @@ services:
     environment:
       POSTGRES_USER: yellow_deploy
       POSTGRES_PASSWORD: "${YELLOW_DEPLOY_DATABASE_PASSWORD:?YELLOW_DEPLOY_DATABASE_PASSWORD is required}"
-      POSTGRES_DB: yellow_dev
+      POSTGRES_DB: "${YELLOW_DATABASE_NAME:-yellow_dev}"
     ports: ["127.0.0.1:${YELLOW_POSTGRES_PORT:-5442}:5432"]
     volumes:
       - yellow-pgdata:/var/lib/postgresql/data
@@ -86,7 +86,7 @@ services:
       -c pg_stat_statements.track=all
       -c log_min_duration_statement=200
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U yellow_deploy -d yellow_dev"]
+      test: ["CMD-SHELL", "pg_isready -U yellow_deploy -d \"$${POSTGRES_DB}\""]
       interval: 3s
       timeout: 3s
       retries: 20

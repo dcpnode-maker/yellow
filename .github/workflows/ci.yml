@@ -250,6 +250,7 @@ jobs:
     timeout-minutes: 20
     env:
       COMPOSE_PROJECT_NAME: yellow-ci-database
+      YELLOW_DATABASE_NAME: yellow_ci_deployment
     steps:
       - name: Check out repository
         uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
@@ -329,7 +330,7 @@ jobs:
         run: |
           set -euo pipefail
           postgres_address="$(docker compose port postgres 5432)"
-          YELLOW_DEPLOY_DATABASE_URL="postgres://yellow_deploy:${YELLOW_DEPLOY_DATABASE_PASSWORD}@${postgres_address}/yellow_dev" \
+          YELLOW_DEPLOY_DATABASE_URL="postgres://yellow_deploy:${YELLOW_DEPLOY_DATABASE_PASSWORD}@${postgres_address}/${YELLOW_DATABASE_NAME}" \
             bun scripts/provision-local-database-authority.ts
 
       - name: Execute isolated Phase 3 database proofs
@@ -368,10 +369,30 @@ jobs:
           bun run test:database
           bun run schema:check
 
-      - name: Start application and verify exact health
+      - name: Start application and verify exact health plus database-backed runtime
         shell: bash
         run: |
           set -euo pipefail
+          proof_directory="$(mktemp -d)"
+          trap 'rm -rf "$proof_directory"' EXIT
+
+          review_password="$(bun -e 'const b=crypto.getRandomValues(new Uint8Array(48));process.stdout.write(Buffer.from(b).toString("base64url"));')"
+          approver_password="$(bun -e 'const b=crypto.getRandomValues(new Uint8Array(48));process.stdout.write(Buffer.from(b).toString("base64url"));')"
+          token_secret="$(bun -e 'const b=crypto.getRandomValues(new Uint8Array(48));process.stdout.write(Buffer.from(b).toString("base64url"));')"
+          if [[ "$review_password" == "$approver_password" ]]; then exit 1; fi
+          echo "::add-mask::$review_password"
+          echo "::add-mask::$approver_password"
+          echo "::add-mask::$token_secret"
+
+          YELLOW_DEPLOY_DATABASE_URL="$DEPLOYMENT_URL" \
+          YELLOW_REVIEW_PASSWORD="$review_password" \
+          YELLOW_REVIEW_APPROVER_PASSWORD="$approver_password" \
+            bun scripts/seed-review.ts
+
+          export YELLOW_OPERATOR_WORKBENCH=1
+          export YELLOW_HOLD_EXPIRY_WORKER=1
+          export YELLOW_AVAILABILITY_PROJECTION_WORKER=1
+          export YELLOW_TOKEN_SECRET="$token_secret"
           docker compose up --detach app
           if ! app_address="$(docker compose port app 3000 2>/dev/null)"; then
             echo "app service has no published application address" >&2
@@ -382,19 +403,93 @@ jobs:
             exit 1
           fi
 
+          app_ready=0
           for attempt in {1..30}; do
             status=""
-            if ! status="$(curl --silent --show-error --output /tmp/yellow-health-body --write-out '%{http_code}' "http://${app_address}/health")"; then
+            if ! status="$(curl --silent --show-error --output "$proof_directory/health.json" --write-out '%{http_code}' "http://${app_address}/health")"; then
               status=""
             fi
             body=""
-            if [[ -f /tmp/yellow-health-body ]]; then
-              body="$(cat /tmp/yellow-health-body)"
+            if [[ -f "$proof_directory/health.json" ]]; then
+              body="$(cat "$proof_directory/health.json")"
             fi
-            if [[ "$status" == "200" && "$body" == '{"status":"ok"}' ]]; then exit 0; fi
+            if [[ "$status" == "200" && "$body" == '{"status":"ok"}' ]]; then
+              app_ready=1
+              break
+            fi
             sleep 1
           done
-          exit 1
+          if [[ "$app_ready" != "1" ]]; then
+            echo "application did not reach exact health" >&2
+            exit 1
+          fi
+
+          LOGIN_PASSWORD="$review_password" LOGIN_FILE="$proof_directory/login-request.json" bun -e '
+            await Bun.write(process.env.LOGIN_FILE!, JSON.stringify({
+              tenant: "yellow-demo", email: "operator@yellow.local", password: process.env.LOGIN_PASSWORD,
+            }));
+          '
+          login_status="$(curl --silent --show-error \
+            --output "$proof_directory/login-response.json" --write-out '%{http_code}' \
+            --header 'content-type: application/json' --data-binary "@$proof_directory/login-request.json" \
+            "http://${app_address}/api/v1/auth/local:login")"
+          if [[ "$login_status" != "200" ]]; then
+            echo "database-backed local login returned HTTP $login_status" >&2
+            exit 1
+          fi
+          access_token="$(LOGIN_FILE="$proof_directory/login-response.json" bun -e '
+            const body = await Bun.file(process.env.LOGIN_FILE!).json();
+            if (typeof body.accessToken !== "string" || body.accessToken.length < 32 || body.tokenType !== "Bearer") {
+              process.exit(1);
+            }
+            process.stdout.write(body.accessToken);
+          ')"
+          echo "::add-mask::$access_token"
+          AUTH_TOKEN="$access_token" AUTH_FILE="$proof_directory/auth.curl" bun -e '
+            await Bun.write(process.env.AUTH_FILE!, `header = "Authorization: Bearer ${process.env.AUTH_TOKEN}"\n`);
+          '
+
+          status_status="$(curl --silent --show-error --config "$proof_directory/auth.curl" \
+            --output "$proof_directory/system-status.json" --write-out '%{http_code}' \
+            "http://${app_address}/api/v1/properties/4518a22f-b455-54c6-a50a-4584383749b9/system-status")"
+          if [[ "$status_status" != "200" ]]; then
+            echo "authenticated tenant database probe returned HTTP $status_status" >&2
+            exit 1
+          fi
+          STATUS_FILE="$proof_directory/system-status.json" YELLOW_DATABASE_NAME="$YELLOW_DATABASE_NAME" bun -e '
+            const body = await Bun.file(process.env.STATUS_FILE!).json();
+            if (body?.live?.database?.state !== "operational"
+                || body.live.database.tenantContext !== true
+                || body.live.database.database !== process.env.YELLOW_DATABASE_NAME
+                || body?.live?.workers?.holdExpiry !== "configured"
+                || body.live.workers.availabilityProjection !== "configured") {
+              process.exit(1);
+            }
+          '
+
+          projection_ready=0
+          for attempt in {1..30}; do
+            cursor_exists="$(docker compose exec -T postgres psql --username yellow_deploy \
+              --dbname "$YELLOW_DATABASE_NAME" --tuples-only --no-align --command \
+              "SELECT EXISTS (SELECT 1 FROM consumer_cursor WHERE consumer = 'availability-projection')")"
+            if [[ "$cursor_exists" == "t" ]]; then
+              projection_ready=1
+              break
+            fi
+            sleep 1
+          done
+          if [[ "$projection_ready" != "1" ]]; then
+            echo "availability projection worker did not establish its runtime database cursor" >&2
+            exit 1
+          fi
+
+          runtime_sessions="$(docker compose exec -T postgres psql --username yellow_deploy \
+            --dbname "$YELLOW_DATABASE_NAME" --tuples-only --no-align --command \
+            "SELECT count(*) FROM pg_stat_activity WHERE datname = current_database() AND usename = 'yellow_runtime'")"
+          if [[ ! "$runtime_sessions" =~ ^[0-9]+$ || "$runtime_sessions" -lt 4 ]]; then
+            echo "runtime startup did not establish the application and worker database sessions" >&2
+            exit 1
+          fi
 
       - name: Prove invariant database through canonical referee
         shell: bash
