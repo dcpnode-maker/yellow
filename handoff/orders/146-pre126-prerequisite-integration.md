@@ -1,6 +1,6 @@
 # Order 146 — Integrate approved prerequisites before Order 126
 
-**Status:** IMPLEMENTED-NONDB
+**Status:** BUILT-UNREVIEWED
 **Phase:** 5 · Cyber remediation integration
 **Branch:** `phase-5/pre126-prerequisite-integration`
 **Base:** `2faf5e8db8264af59e65effdfcb5603da628a181` — independently approved
@@ -109,7 +109,7 @@ proof before approval. No source approval substitutes for integration review.
 - [x] Exact latest-owner overlay and governance union are committed separately.
 - [x] P0-P2 pass on one immutable executable with Docker off.
 - [ ] P3 and independent Tier-3 integration review approve that executable.
-- [ ] No migration/Order126/merge/push/deployment/live/Cyber closure is claimed.
+- [x] No migration/Order126/merge/push/deployment/live/Cyber closure is claimed.
 
 ## Builder evidence — 2026-08-25
 
@@ -146,3 +146,42 @@ With database variables unset and Docker down:
 database schema/referee/combined dynamic proof belongs to P3 and was not attempted while
 Docker was unauthorized. This record is `IMPLEMENTED-NONDB`, not review-ready or
 `BUILT-UNREVIEWED`.
+
+## Database builder evidence — 2026-08-25
+
+After explicit coordinator authorization, the builder proved the unchanged executable
+`483d4f18247058374fd427e1d49ef3cb0b3372d4` against the shared PostgreSQL 16.15
+service using only isolated `yellow_o146b_*` databases, except the separately authorized
+unchanged migration suite's repository-owned `yellow_migrate_*` prefix. Compose was not
+reconfigured or stopped and no app container was started.
+
+- On canonical migrations 0001–0013, the combined lifecycle, operational-block and
+  security-definer suites passed 16/16 with 130 assertions.
+- Exact strict migration blob `83fd6d4f4e99db52dc5670a2741dfa4455867d13` from
+  `b96101f` was streamed only into a disposable proof database, never imported into the
+  worktree. The same combined suites passed 16/16 with 130 assertions under that strict
+  validation, proving the approved lifecycle sequencing and both compatibility fixtures
+  compose together.
+- Reservation commit 5/5 (106), commit HTTP 5/5 (61), Order-129 parents 7/7 (45) and
+  Order-143 segment changes 7/7 (115) passed. An initial six-file shared-database bundle
+  also produced two setup-only `23503` failures because unseeded holds/inventory fixtures
+  reuse canonical tenant/property ids; the correction used separate freshly migrated,
+  canonically fixture-seeded databases and passed holds 9/9 (32) and inventory 6/6 (30).
+  No executable or test file changed.
+- The 19-suite phase matrix was remapped to fresh `yellow_o146b_m01`–`m19` databases;
+  all 19 suites passed and every database was dropped after its suite.
+- The unchanged 17-case migration suite passed 16/17 on Windows with only the known OS
+  symlink `EPERM` at line 870, then passed 17/17 with 95 assertions unchanged under WSL.
+- Fresh migration/seed acceptance passed 6/6 with 13 assertions. Schema drift matched
+  `tests/schema/expected.sql` exactly.
+- A separate app-never-started, fixture-seeded setup-equivalent database had 85 public
+  tables and 75 RLS tables/policies; the protected referee passed 11/11.
+- The final standing recomputation passed 174/422/0 with 1,983 assertions across 92
+  files. Typecheck, 64 import boundaries, 23-package licence policy and dependency audit
+  remained green; the protected hashes and exact composition manifest remain unchanged.
+
+All controlled `yellow_o146b_*` and authorized `yellow_migrate_*` databases were
+independently queried after cleanup: zero remained. PostgreSQL and Valkey were left
+healthy for the coordinator. This builder proof advances only to `BUILT-UNREVIEWED`;
+the unchecked P3 item still requires a non-implementing Tier-3 reviewer to personally
+reproduce the exact integration proof.
