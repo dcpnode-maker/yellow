@@ -335,7 +335,7 @@ databaseDescribe("Order 023 crash-safe outbox relay", () => {
         SELECT c.last_seq::int AS "lastSeq",
                (SELECT count(*)::int FROM consumer_processed WHERE consumer = ${consumer}) AS marks,
                (SELECT count(*)::int FROM fact_log WHERE payload->>'proof' = 'order-023'
-                 AND id IN ${admin!(events.map(({ aggregateId }) => aggregateId))}) AS effects
+                 AND entity_id IN ${admin!(events.map(({ aggregateId }) => aggregateId))}) AS effects
           FROM consumer_cursor AS c WHERE c.consumer = ${consumer}
       `;
       expect(rows).toEqual([{ lastSeq: baseline, marks: 0, effects: 0 }]);
