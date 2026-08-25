@@ -308,6 +308,81 @@ databaseDescribe("Bun SQL migration runner", () => {
   );
 
   test(
+    "reuses the cluster-global runtime membership across databases and fails closed on extras",
+    async () => {
+      const exactMembership = [{ role_name: "app_role", member_name: "yellow_runtime" }];
+
+      await withDatabase(async ({ databaseUrl: firstUrl, sql: firstSql }) => {
+        const first = await runMigrations({
+          databaseUrl: firstUrl,
+          migrationsDirectory: PROJECT_MIGRATIONS,
+          logger: () => undefined,
+        });
+        expect(first.appliedFiles).toContain("0015_runtime_database_authority.sql");
+        const firstMembership = await firstSql<{ role_name: string; member_name: string }[]>`
+          SELECT pg_get_userbyid(roleid) AS role_name, pg_get_userbyid(member) AS member_name
+            FROM pg_catalog.pg_auth_members
+           WHERE roleid = 'app_role'::regrole OR member = 'yellow_runtime'::regrole
+           ORDER BY role_name, member_name
+        `;
+        expect(firstMembership).toEqual(exactMembership);
+      });
+
+      await withDatabase(async ({ databaseUrl: secondUrl, sql: secondSql }) => {
+        const second = await runMigrations({
+          databaseUrl: secondUrl,
+          migrationsDirectory: PROJECT_MIGRATIONS,
+          logger: () => undefined,
+        });
+        expect(second.appliedFiles).toContain("0012_app_role_nonlogin.sql");
+        expect(second.appliedFiles).toContain("0015_runtime_database_authority.sql");
+        const secondLedger = await secondSql<{ version: string | bigint }[]>`
+          SELECT version FROM public.schema_migration WHERE version IN (12, 15) ORDER BY version
+        `;
+        expect(secondLedger.map((row) => Number(row.version))).toEqual([12, 15]);
+        const secondMembership = await secondSql<{ role_name: string; member_name: string }[]>`
+          SELECT pg_get_userbyid(roleid) AS role_name, pg_get_userbyid(member) AS member_name
+            FROM pg_catalog.pg_auth_members
+           WHERE roleid = 'app_role'::regrole OR member = 'yellow_runtime'::regrole
+           ORDER BY role_name, member_name
+        `;
+        expect(secondMembership).toEqual(exactMembership);
+      });
+
+      await admin!.unsafe("GRANT app_role TO yellow_owner");
+      try {
+        await withDatabase(async ({ databaseUrl: malformedUrl, sql: malformedSql }) => {
+          const error = await migrationFailure(() => runMigrations({
+            databaseUrl: malformedUrl,
+            migrationsDirectory: PROJECT_MIGRATIONS,
+            logger: () => undefined,
+          }));
+          expect(error.errno).toBe("55000");
+          const malformedLedger = await malformedSql<{ version: string | bigint }[]>`
+            SELECT version FROM public.schema_migration ORDER BY version
+          `;
+          expect(malformedLedger.map((row) => Number(row.version))).toEqual(
+            Array.from({ length: 11 }, (_, index) => index + 1),
+          );
+          const malformedMembership = await admin!<{ role_name: string; member_name: string }[]>`
+            SELECT pg_get_userbyid(roleid) AS role_name, pg_get_userbyid(member) AS member_name
+              FROM pg_catalog.pg_auth_members
+             WHERE roleid = 'app_role'::regrole OR member = 'yellow_runtime'::regrole
+             ORDER BY role_name, member_name
+          `;
+          expect(malformedMembership).toEqual([
+            { role_name: "app_role", member_name: "yellow_owner" },
+            ...exactMembership,
+          ]);
+        });
+      } finally {
+        await admin!.unsafe("REVOKE app_role FROM yellow_owner");
+      }
+    },
+    180_000,
+  );
+
+  test(
     "applies the immutable baseline once, validates metadata, and is a stable no-op",
     async () => {
       await withDatabase(async ({ databaseUrl: targetUrl, sql }) => {
