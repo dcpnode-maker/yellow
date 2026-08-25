@@ -1,6 +1,6 @@
 # Order 156 — Bound extension-type registration capability
 
-**Status:** READY — D-421 locality-oracle correction applied
+**Status:** BLOCKED — Question 166 requires an unforgeable authority choice
 **Phase:** 5 · Cyber remediation
 **Branch:** `phase-5/extension-type-registration-capability`
 **Base:** `c7e89e9a9c83deaddd06ffe838a23b455e2613c7`
@@ -93,7 +93,9 @@ schema; standing tests; typecheck; boundaries; licences; audit; protected hashes
 a fresh app-never-started `./setup.sh --db-only` referee with exactly 11/11.
 
 The independent reviewer must reproduce P0 on exact Base and personally execute
-P1-P4 against one immutable candidate before approval.
+P1-P4 against one immutable candidate before approval. Question 166 must be resolved
+before implementation; the current `app_role`-executable signature cannot enforce the
+HTTP authorization boundary and must not be implemented as admitted.
 
 ## Forbidden
 
