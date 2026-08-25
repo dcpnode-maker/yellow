@@ -177,9 +177,22 @@ export class PostgresEventBus implements EventBus {
     await this.#assertSettlement(connection);
   }
 
-  async #failClosePool(): Promise<void> {
-    this.#failureClose ??= this.#pool.close?.({ timeout: 0 }) ?? Promise.resolve();
-    try { await this.#failureClose; } catch { /* Preserve the consumer failure. */ }
+  async #failClosePool(connection: Tx): Promise<void> {
+    let closing = this.#failureClose;
+    if (!closing) {
+      const close = this.#pool.close;
+      if (!close) return;
+      try {
+        // Start and cache whole-pool shutdown before returning this unusable
+        // reservation. Bun can then dispose it instead of making it reusable.
+        closing = close.call(this.#pool, { timeout: 0 });
+        this.#failureClose = closing;
+      } catch {
+        return;
+      }
+    }
+    try { connection.release(); } catch { /* Preserve the consumer failure. */ }
+    try { await closing; } catch { /* Preserve the consumer failure. */ }
   }
 
   async #markBatch(
@@ -399,7 +412,7 @@ export class PostgresEventBus implements EventBus {
           mustClosePool = true;
         }
       }
-      if (!reusable || mustClosePool) await this.#failClosePool();
+      if (!reusable || mustClosePool) await this.#failClosePool(connection);
       if (reusable && !mustClosePool) connection.release();
     }
   }
