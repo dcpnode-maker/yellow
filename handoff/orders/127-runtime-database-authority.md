@@ -1,6 +1,7 @@
 # Order 127 — Separate runtime database authority from deployment authority
 
-**Status:** READY — D-392; governance admitted before implementation
+**Status:** READY — D-392, corrected by D-393; governance admitted before
+implementation
 **Phase:** 5 · Cyber remediation
 **Branch:** `phase-5/runtime-database-authority-final`
 **Base:** `8daf34e1f1328e866b0b52ff750631e7d651d0b7` — exact independently
@@ -132,6 +133,7 @@ Executable proof may change only:
 - new `tests/runtime-database-authority.integration.test.ts`;
 - `tests/app-role-nonlogin.integration.test.ts`;
 - `tests/auth.integration.test.ts`;
+- `tests/business-day-seal-authority.integration.test.ts`;
 - `tests/tenant-context.integration.test.ts`;
 - `tests/outbox.integration.test.ts`;
 - `tests/relay.integration.test.ts`;
@@ -146,6 +148,11 @@ Executable proof may change only:
 - `tests/schema-drift.test.ts`;
 - `tests/jwt-runtime-secret-security.test.ts`; and
 - mechanically regenerated `tests/schema/expected.sql`.
+
+`tests/business-day-seal-authority.integration.test.ts` may change only its ownership
+oracle from the current/deployment owner to exact `yellow_owner`. It must preserve
+deployment execution, app/PUBLIC denial, the exact function ACL and the existing
+tenant/day-seal latch behavior without assertion weakening.
 
 Documentation may change only:
 
@@ -252,7 +259,7 @@ normalized schema, standing, typecheck, 64-file boundaries, frozen licences/audi
 image pins and protected hashes. Run fresh `setup.sh --db-only` and standalone
 app-never-started referee with exactly `11 passed, 0 failed of 11`.
 
-A non-implementing Tier-3 reviewer must personally reproduce P0 and P1–P4 on exclusive
+A non-implementing Tier-3 reviewer must personally reproduce P0 and P1–P5 on exclusive
 disposable clusters, inspect actual app/tool environments without revealing values,
 and execute the relevant cumulative gates on one immutable SHA. Builder output is not
 review evidence.
