@@ -150,7 +150,7 @@ test("D398: migration exposes explicit cursor/unpublished branches", async () =>
 beforeAll(async () => {
   if (!DEPLOY_DATABASE_URL || !RUNTIME_DATABASE_URL) return;
   admin = new SQL(DEPLOY_DATABASE_URL, { max: 4 });
-  pool = new SQL(RUNTIME_DATABASE_URL, { max: 12 });
+  pool = new SQL(RUNTIME_DATABASE_URL, { max: 12, prepare: false });
   bus = new PostgresEventBus(pool);
   // Order proofs own the relay's pending queue; isolate it from prior local test data.
   await admin`UPDATE outbox SET published_at = now() WHERE published_at IS NULL`;
@@ -181,7 +181,7 @@ databaseDescribe("Order 023 crash-safe outbox relay", () => {
     const childSource = `
       import { SQL } from "bun";
       import { OutboxRelay, PostgresEventBus } from ${JSON.stringify(moduleUrl)};
-      const pool = new SQL(process.env.YELLOW_RUNTIME_DATABASE_URL, { max: 1 });
+      const pool = new SQL(process.env.YELLOW_RUNTIME_DATABASE_URL, { max: 1, prepare: false });
       const relay = new OutboxRelay(new PostgresEventBus(pool), { consumer: "order-023-kill", batchSize: 120 });
       let handled = 0;
       await relay.drainOnce(async (event, tx) => {
