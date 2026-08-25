@@ -1,6 +1,6 @@
 # Question 162 — Order 150 financial row-lock authority
 
-**Status:** OPEN — founder decision required
+**Status:** RESOLVED — D-418
 **Order:** 150
 **Raised:** 2026-08-25
 **Trigger:** pre-registered P2/P4 phase-matrix assertion failure
