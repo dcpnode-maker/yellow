@@ -1,6 +1,6 @@
 # Order 166 — Reservation board and detail read surface
 
-**Status:** BUILT-UNREVIEWED — prerequisite for the real reservation workbench
+**Status:** APPROVED — independent Tier-3 review complete at `0e88417`
 **Phase:** 5 · human-testable application
 **Branch:** `phase-5/reservation-read-surface`
 **Base:** `c0fa84d` (Order165 candidate plus approved Order164 evidence; Order165 review remains prerequisite)
@@ -79,7 +79,7 @@ runtime replacement is in scope. Stop and write a question before widening it.
 
 - [x] One bounded board page and one UUID detail surface are tenant/property safe.
 - [x] Approved Order141 guards remain intact and existing lookup stays compatible.
-- [ ] Full Tier-3 proof passes on one immutable independently approved candidate.
+- [x] Full Tier-3 proof passes on one immutable independently approved candidate.
 
 ## Builder evidence — 2026-08-26
 
@@ -117,3 +117,15 @@ runtime replacement is in scope. Stop and write a question before widening it.
 
 Builder work stops at this candidate. Independent non-implementing Tier-3 review must
 personally execute the proof before approval; no merge, push or deployment is claimed.
+
+## Independent review verdict — 2026-08-26
+
+APPROVED at immutable candidate `0e88417faf17fded2f519d29c4732002891bb159`.
+The non-implementing reviewer verified exact Base and approved Order141/165 composition,
+personally ran the complete 14/14 unprepared board/detail/operator proof, standing
+190/0, static/security32/32, typecheck/boundaries/licence/audit/image gates, exact live
+schema, deployment acceptance6/6 and fresh 85-table referee11/11. The inherited
+single-URL Order141 fixture-authority limitation and two harmless command preconditions
+are disclosed in `handoff/reviews/166-reservation-read-surface.md`; temporary authority
+was confined to a disposable database and reverted before exact ACL/schema acceptance.
+No UI/write/schema/grant/merge/push/deployment or broader Phase5 claim is approved.
