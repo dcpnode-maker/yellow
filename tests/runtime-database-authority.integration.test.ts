@@ -31,7 +31,7 @@ test("P4: local authority provisioning rejects malformed deploy URLs and weak ru
 test("P4: actual server boundary authenticates only with the runtime DSN", async () => {
   const server = await Bun.file(new URL("../src/server.ts", import.meta.url)).text();
   expect(server).toContain('required("YELLOW_RUNTIME_DATABASE_URL")');
-  expect(server).toContain("const database = Database.connect(databaseUrl");
+  expect(server).toContain("const database = Database.connect(databaseUrl, { maxConnections: 12, prepare: false });");
   expect(server).not.toContain('required("DATABASE_URL")');
   expect(server).not.toContain("process.env.DATABASE_URL");
 });
