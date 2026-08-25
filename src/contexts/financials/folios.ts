@@ -260,7 +260,6 @@ export class FolioService {
           AND party_id = ${reservation.primary_party}::uuid
           AND currency = ${reservation.currency}::char(3)
         ORDER BY id
-        FOR UPDATE
       `;
       if (accounts.length > 1) {
         throw new FolioConflictError("Canonical guest account is ambiguous");
@@ -298,12 +297,58 @@ export class FolioService {
           AND reservation_id = ${normalized.reservationId}::uuid
           AND window_no = 1
         ORDER BY id
-        FOR UPDATE
       `;
       if (existingFolios.length > 1) {
         throw new FolioConflictError("Reservation has ambiguous primary folios");
       }
-      const existing = existingFolios[0];
+      const discoveredFolio = existingFolios[0];
+      if (discoveredFolio && discoveredFolio.account_id !== account.id) {
+        throw new FolioConflictError("Canonical guest account relationship is inconsistent");
+      }
+      const discoveredFolioId = discoveredFolio?.id ?? null;
+      await commandTx`
+        SELECT public.lock_financial_rows(
+          ${normalized.tenantId}::uuid,
+          ARRAY[${account.id}::uuid]::uuid[],
+          ${discoveredFolioId}::uuid
+        )
+      `;
+
+      const lockedAccounts = await commandTx<AccountRow[]>`
+        SELECT id, property_node, role, party_id, currency::text, status
+        FROM account
+        WHERE tenant_id = ${normalized.tenantId}::uuid
+          AND tenant_id = current_setting('app.tenant_id', true)::uuid
+          AND property_node = ${reservation.property_node}::uuid
+          AND role = 'guest'
+          AND party_id = ${reservation.primary_party}::uuid
+          AND currency = ${reservation.currency}::char(3)
+        ORDER BY id
+      `;
+      if (lockedAccounts.length !== 1 || lockedAccounts[0]?.id !== account.id) {
+        throw new FolioConflictError("Canonical guest account changed during lock acquisition");
+      }
+      account = lockedAccounts[0];
+      if (account.property_node !== reservation.property_node || account.role !== "guest" ||
+          account.party_id !== reservation.primary_party || account.currency !== reservation.currency ||
+          account.status !== "open") {
+        throw new FolioConflictError("Canonical guest account relationship is inconsistent");
+      }
+
+      const lockedFolios = await commandTx<FolioRow[]>`
+        SELECT id, account_id, reservation_id, folio_no, window_no, status
+        FROM folio
+        WHERE tenant_id = ${normalized.tenantId}::uuid
+          AND tenant_id = current_setting('app.tenant_id', true)::uuid
+          AND reservation_id = ${normalized.reservationId}::uuid
+          AND window_no = 1
+        ORDER BY id
+      `;
+      const lockedFolioId = lockedFolios[0]?.id ?? null;
+      if (lockedFolios.length > 1 || lockedFolioId !== discoveredFolioId) {
+        throw new FolioConflictError("Reservation primary folio changed during lock acquisition");
+      }
+      const existing = lockedFolios[0];
       if (existing) {
         return { status: 200, body: storedFolio(existing, account.id) };
       }

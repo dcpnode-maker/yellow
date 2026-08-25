@@ -257,6 +257,7 @@ databaseDescribe("Order 150 positive runtime DML authority", () => {
         JOIN pg_namespace n ON n.oid = p.pronamespace
        WHERE n.nspname = 'public'
          AND p.proname IN ('record_occupancy', 'release_occupancy', 'seal_business_day',
+           'lock_financial_rows',
            'runtime_resolve_active_tenant', 'runtime_due_hold_scopes', 'runtime_consumer_begin',
            'runtime_consumer_read', 'runtime_consumer_mark', 'runtime_consumer_advance',
            'runtime_mark_outbox_published', 'runtime_prune_outbox', 'runtime_visible_extensions',
@@ -268,6 +269,8 @@ databaseDescribe("Order 150 positive runtime DML authority", () => {
       signature.startsWith("record_occupancy(") || signature.startsWith("release_occupancy(")
     );
     expect(occupancyFunctions.every(({ app, runtime }) => app && !runtime)).toBe(true);
+    expect(functions.find(({ signature }) => signature.startsWith("lock_financial_rows(")))
+      .toEqual(expect.objectContaining({ app: true, runtime: false }));
     const runtimeFunctions = functions.filter(({ signature }) => signature.startsWith("runtime_"));
     expect(runtimeFunctions).toHaveLength(10);
     expect(runtimeFunctions.every(({ app, runtime }) => !app && runtime)).toBe(true);

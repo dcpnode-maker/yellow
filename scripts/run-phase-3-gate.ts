@@ -176,6 +176,13 @@ export const PHASE_3_DATABASE_PROOFS: readonly Phase3DatabaseProof[] = Object.fr
     urlEnv: "YELLOW_RUNTIME_DML_URL",
     passwordEnv: null,
   },
+  {
+    databaseName: "yellow_ci_p5_financial_row_lock",
+    testFile: "tests/financial-row-lock-authority.integration.test.ts",
+    requireEnv: "YELLOW_REQUIRE_FINANCIAL_ROW_LOCK",
+    urlEnv: "YELLOW_FINANCIAL_ROW_LOCK_URL",
+    passwordEnv: null,
+  },
 ]);
 
 const DATABASE_NAME = /^[a-z][a-z0-9_]{0,62}$/;
