@@ -354,6 +354,8 @@
     to.setDate(to.getDate() + 2);
     availabilityForm.elements.from.value = localInputValue(from);
     availabilityForm.elements.to.value = localInputValue(to);
+    reservationBookingForm.elements.from.value = utcInstantInputValue(from);
+    reservationBookingForm.elements.to.value = utcInstantInputValue(to);
     restrictionForm.elements.stayStart.value = localInputValue(from).slice(0, 10);
     restrictionForm.elements.stayEnd.value = localInputValue(to).slice(0, 10);
     ratePriceForm.elements.stayStart.value = localInputValue(from).slice(0, 10);

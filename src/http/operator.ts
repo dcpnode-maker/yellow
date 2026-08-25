@@ -42,6 +42,7 @@ import {
   RateAuthoringError,
   RateConfigurationService,
   RateConflictError,
+  RateEvaluationError,
   RateIntentError,
   RateIntentService,
   RateModelService,
@@ -1523,6 +1524,16 @@ export class OperatorHttpApi {
       if (error instanceof InventoryValidationError || error instanceof ReservationOfferValidationError ||
           error instanceof ReservationOfferSearchTooBroadError) {
         return apiError(context.request, 400, "request/invalid", "Invalid request", "Availability search input is invalid");
+      }
+      if (error instanceof RateEvaluationError &&
+          error.message === "booking window must be 0 to 730 property-local days") {
+        return apiError(
+          context.request,
+          400,
+          "request/booking_window",
+          "Stay dates unavailable",
+          "Choose stay dates within the next 730 property-local days",
+        );
       }
       return apiError(context.request, 503, "service/unavailable", "Service unavailable", "Availability is temporarily unavailable");
     }

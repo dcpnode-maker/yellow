@@ -10,7 +10,12 @@ import {
   HoldService,
   ReservationOccupancyService,
 } from "../src/contexts/inventory";
-import { RateConfigurationService, RatePublicationService, RateQuoteService } from "../src/contexts/rates";
+import {
+  RateConfigurationService,
+  RateEvaluationError,
+  RatePublicationService,
+  RateQuoteService,
+} from "../src/contexts/rates";
 import {
   ReservationCommitService,
   ReservationLifecycleService,
@@ -284,9 +289,16 @@ databaseDescribe("Order 160 founder reservation journey through runtime authorit
     expect(profiles.map(({ partyId }) => partyId)).toContain(party.partyId);
     expect(JSON.stringify(profiles)).not.toContain(email);
 
-    const from = new Date(Date.now() + 30 * 86_400_000);
-    from.setUTCHours(15, 0, 0, 0);
-    const to = new Date(from.getTime() + 2 * 86_400_000);
+    const operatorScriptResponse = await call("/assets/operator.js");
+    expect(operatorScriptResponse.status).toBe(200);
+    const operatorScript = await operatorScriptResponse.text();
+    expect(operatorScript).toContain("reservationBookingForm.elements.from.value = utcInstantInputValue(from)");
+    expect(operatorScript).toContain("reservationBookingForm.elements.to.value = utcInstantInputValue(to)");
+    const from = new Date();
+    from.setDate(from.getDate() + 1);
+    from.setHours(15, 0, 0, 0);
+    const to = new Date(from);
+    to.setDate(to.getDate() + 2);
     const offerResponse = await call(`/api/v1/properties/${SEED_PROPERTY.id}/availability:search`, {
       method: "POST",
       headers: headers(),
@@ -306,6 +318,65 @@ databaseDescribe("Order 160 founder reservation journey through runtime authorit
       stay: { from: from.toISOString(), to: to.toISOString() },
       total: { amount_minor: "25000", currency: "USD", kind: "pre_tax" },
     });
+
+    const distantFrom = new Date(from.getTime() + 800 * 86_400_000);
+    const distantTo = new Date(distantFrom.getTime() + 2 * 86_400_000);
+    const outsideBookingWindow = await call(`/api/v1/properties/${SEED_PROPERTY.id}/availability:search`, {
+      method: "POST",
+      headers: headers(),
+      body: JSON.stringify({
+        stay: { from: distantFrom.toISOString(), to: distantTo.toISOString() },
+        party: { adults: 1, children: [] },
+        channel: "direct",
+      }),
+    });
+    expect(outsideBookingWindow.status).toBe(400);
+    expect(outsideBookingWindow.headers.get("cache-control")).toBe("no-store");
+    expect(await outsideBookingWindow.json()).toEqual(expect.objectContaining({
+      type: "request/booking_window",
+      title: "Stay dates unavailable",
+      detail: "Choose stay dates within the next 730 property-local days",
+    }));
+
+    const unrelatedFailureApp = createApp({
+      database,
+      tenantResolver: new BearerTenantResolver(tokens),
+      operatorApi: new OperatorHttpApi(
+        new LocalLoginService(loginPool, tokens),
+        undefined,
+        undefined,
+        new PostgresIdempotency(),
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        { async search(): Promise<never> {
+          throw new RateEvaluationError("currency must be an uppercase three-letter code");
+        } },
+      ),
+    });
+    const unrelatedFailure = await unrelatedFailureApp.handle(new Request(
+      `http://yellow.test/api/v1/properties/${SEED_PROPERTY.id}/availability:search`,
+      {
+        method: "POST",
+        headers: headers(),
+        body: JSON.stringify({
+          stay: { from: from.toISOString(), to: to.toISOString() },
+          party: { adults: 1, children: [] },
+          channel: "direct",
+        }),
+      },
+    ));
+    expect(unrelatedFailure.status).toBe(503);
+    const unrelatedFailureText = await unrelatedFailure.text();
+    expect(unrelatedFailureText).toContain("Availability is temporarily unavailable");
+    expect(unrelatedFailureText).not.toContain("currency must be an uppercase three-letter code");
 
     const holdInput = {
       sellableUnitId: offer.sellable_unit.id,
