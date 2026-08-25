@@ -1,6 +1,6 @@
 # Order 156 — Bound extension-type registration capability
 
-**Status:** READY — authorized implementation
+**Status:** READY — D-421 locality-oracle correction applied
 **Phase:** 5 · Cyber remediation
 **Branch:** `phase-5/extension-type-registration-capability`
 **Base:** `c7e89e9a9c83deaddd06ffe838a23b455e2613c7`
@@ -29,7 +29,8 @@ validation, audit facts, compatibility behavior or response semantics.
 - `scripts/run-phase-3-gate.ts` and `tests/phase-3-gate-runner.test.ts`, only for one
   unique focused-suite mapping;
 - `docs/SECURITY.md` and `docs/CONTRACTS.md`;
-- this order, D-420, additive `handoff/LEDGER.md`, and one independent review.
+- this order, Question 165, D-420/D-421, additive `handoff/LEDGER.md`, and one
+  independent review.
 
 No other source, migration, test, schema, script, documentation or governance path is
 in scope. If another path is required, stop and write a new question.
@@ -39,9 +40,11 @@ in scope. If another path is required, stop and write a new question.
 1. Add `public.register_extension_type(uuid,text,jsonb) RETURNS boolean`, owned by
    unreachable NOLOGIN `yellow_owner`, `SECURITY DEFINER`, with exact safe search path
    `pg_catalog, public, pg_temp` and fully qualified objects.
-2. Admit only the real `yellow_runtime` to transaction-local `app_role` path with an
-   exact non-null tenant argument matching `app.tenant_id`. Reject missing, malformed,
-   foreign or session-scoped authority before mutation.
+2. Admit only the real `yellow_runtime` to the effective `app_role` path with an exact
+   non-null tenant argument matching `app.tenant_id`. Reject missing, malformed or
+   foreign effective authority before mutation. Because PostgreSQL cannot observe
+   same-value custom-GUC locality, the existing wrapper must scrub and verify role and
+   tenant state at settlement under D-395/D-402/D-421 before releasing the backend.
 3. Accept only the existing bounded stable lowercase type and valid non-null JSON
    schema inputs. Preserve exact insert=true, already-identical=false and divergent
    schema rejection semantics under concurrency. Return no catalogue or schema data.
@@ -63,9 +66,10 @@ transaction.
 ### P1 — authority and containment
 
 On the candidate, the same direct insert returns exact SQLSTATE `42501` with zero row.
-Prove exact function owner, signature, search path and ACLs; wrong/missing tenant and
-role rejection; direct runtime/PUBLIC denial; pg_temp shadow resistance; no arbitrary
-relation/type selector; and rollback containment.
+Prove exact function owner, signature, search path and ACLs; wrong/missing effective
+tenant and role rejection; direct runtime/PUBLIC denial; pg_temp shadow resistance; no
+arbitrary relation/type selector; rollback containment; and same-value session-tenant
+scrub plus exact post-settlement runtime/null-tenant verification before backend reuse.
 
 ### P2 — honest behavior and races
 
