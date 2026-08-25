@@ -15,6 +15,8 @@ const DEPLOY_DATABASE_URL = process.env.YELLOW_DEPLOY_DATABASE_URL ?? process.en
 const RUNTIME_DATABASE_URL = process.env.YELLOW_RUNTIME_DATABASE_URL ?? process.env.YELLOW_OUTBOX_URL;
 const REQUIRE_DATABASE = process.env.YELLOW_REQUIRE_OUTBOX === "1";
 const TENANT_A = "00000000-0000-0000-0000-000000000001";
+const GROUP_A = "00000000-0000-0000-0000-000000000010";
+const REGION_A = "00000000-0000-0000-0000-000000000011";
 const PROPERTY_A = "00000000-0000-0000-0000-000000000012";
 const ACTOR = "00000000-0000-0000-0000-000000000960";
 const COMMITTED_TASK = "00000000-0000-0000-0000-000000000973";
@@ -38,6 +40,8 @@ let database: Database | undefined;
 let admin: SQL | undefined;
 let consumerPool: SQL | undefined;
 let bus: PostgresEventBus | undefined;
+const createdFixtureNodes: string[] = [];
+let createdFixtureTenant = false;
 const testAggregateIds = new Set<string>([COMMITTED_TASK, ROLLED_BACK_TASK]);
 
 function event(aggregateId: string, correlationId = crypto.randomUUID()): PublishEventInput {
@@ -55,12 +59,45 @@ function event(aggregateId: string, correlationId = crypto.randomUUID()): Publis
   };
 }
 
-beforeAll(() => {
+beforeAll(async () => {
   if (!DEPLOY_DATABASE_URL || !RUNTIME_DATABASE_URL) return;
   database = Database.connect(RUNTIME_DATABASE_URL, { maxConnections: 24 });
   admin = new SQL(DEPLOY_DATABASE_URL, { max: 4 });
   consumerPool = new SQL(RUNTIME_DATABASE_URL, { max: 8 });
   bus = new PostgresEventBus(consumerPool);
+
+  const tenant = await admin<{ id: string }[]>`SELECT id::text AS id FROM tenant WHERE id = ${TENANT_A}::uuid`;
+  if (tenant.length === 0) {
+    await admin`INSERT INTO tenant (id, slug, name) VALUES (${TENANT_A}::uuid, 'acme', 'Acme Hotels')`;
+    createdFixtureTenant = true;
+  }
+  const fixtureNodes = [
+    { id: GROUP_A, path: "acme", kind: "group", name: "Acme Group", timezone: null, currency: null },
+    { id: REGION_A, path: "acme.gulf", kind: "region", name: "Gulf Region", timezone: null, currency: null },
+    { id: PROPERTY_A, path: "acme.gulf.dxb01", kind: "property", name: "Acme Downtown Dubai", timezone: "Asia/Dubai", currency: "AED" },
+  ] as const;
+  for (const node of fixtureNodes) {
+    const existing = await admin<{ id: string }[]>`SELECT id::text AS id FROM org_node WHERE id = ${node.id}::uuid`;
+    if (existing.length === 0) {
+      await admin`
+        INSERT INTO org_node (id, tenant_id, path, kind, name, timezone, currency)
+        VALUES (${node.id}::uuid, ${TENANT_A}::uuid, ${node.path}::ltree, ${node.kind}, ${node.name}, ${node.timezone}, ${node.currency})
+      `;
+      createdFixtureNodes.push(node.id);
+    }
+  }
+  const authoritativeProperty = await admin<{ tenant_id: string; path: string; kind: string; parent_path: string | null }[]>`
+    SELECT tenant_id::text AS tenant_id, path::text AS path, kind,
+           subpath(path, 0, nlevel(path) - 1)::text AS parent_path
+      FROM org_node
+     WHERE id = ${PROPERTY_A}::uuid
+  `;
+  expect(authoritativeProperty).toEqual([{
+    tenant_id: TENANT_A,
+    path: "acme.gulf.dxb01",
+    kind: "property",
+    parent_path: "acme.gulf",
+  }]);
 });
 
 afterAll(async () => {
@@ -69,6 +106,12 @@ afterAll(async () => {
     await admin`DELETE FROM consumer_cursor WHERE consumer IN ${admin(TEST_CONSUMERS)}`;
     await admin`DELETE FROM outbox WHERE aggregate_id IN ${admin([...testAggregateIds])}`;
     await admin`DELETE FROM task WHERE id IN (${COMMITTED_TASK}::uuid, ${ROLLED_BACK_TASK}::uuid)`;
+    for (const nodeId of [PROPERTY_A, REGION_A, GROUP_A]) {
+      if (createdFixtureNodes.includes(nodeId)) {
+        await admin`DELETE FROM org_node WHERE id = ${nodeId}::uuid`;
+      }
+    }
+    if (createdFixtureTenant) await admin`DELETE FROM tenant WHERE id = ${TENANT_A}::uuid`;
     await admin.close();
   }
   await consumerPool?.close();
@@ -83,6 +126,7 @@ databaseDescribe("Order 022 EventBus and durable consumer", () => {
       current_name: string;
       relrowsecurity: boolean;
       app_privileges: boolean;
+      runtime_privileges: boolean;
       public_privileges: boolean;
     }>>`
       SELECT
@@ -91,6 +135,7 @@ databaseDescribe("Order 022 EventBus and durable consumer", () => {
         current_user AS current_name,
         c.relrowsecurity,
         has_table_privilege('app_role', c.oid, 'SELECT,INSERT,UPDATE,DELETE,TRUNCATE,REFERENCES,TRIGGER') AS app_privileges,
+        has_table_privilege('yellow_runtime', c.oid, 'SELECT,INSERT,UPDATE,DELETE,TRUNCATE,REFERENCES,TRIGGER') AS runtime_privileges,
         EXISTS (
           SELECT 1
           FROM aclexplode(COALESCE(c.relacl, acldefault('r', c.relowner))) AS acl
@@ -103,10 +148,13 @@ databaseDescribe("Order 022 EventBus and durable consumer", () => {
       ORDER BY c.relname
     `;
 
-    expect(rows).toHaveLength(2);
-    expect(rows.every((row) => row.owner === row.current_name)).toBe(true);
+    expect(rows).toEqual([
+      { relname: "consumer_cursor", owner: "yellow_owner", current_name: "yellow_deploy", relrowsecurity: false, app_privileges: false, runtime_privileges: false, public_privileges: false },
+      { relname: "consumer_processed", owner: "yellow_owner", current_name: "yellow_deploy", relrowsecurity: false, app_privileges: false, runtime_privileges: false, public_privileges: false },
+    ]);
     expect(rows.every((row) => row.relrowsecurity === false)).toBe(true);
     expect(rows.every((row) => row.app_privileges === false)).toBe(true);
+    expect(rows.every((row) => row.runtime_privileges === false)).toBe(true);
     expect(rows.every((row) => row.public_privileges === false)).toBe(true);
   });
 
