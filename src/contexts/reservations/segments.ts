@@ -665,6 +665,20 @@ export class ReservationSegmentService {
       const sourceClaim = requireOneExclusiveClaim(released.claims, "Source sellable unit");
       requireClaimsPeriod(released.claims, expected.json, "Source sellable unit");
       const activePeriod = freezePeriod(movedAt, expected.to);
+      let preparedDestination;
+      try {
+        preparedDestination = await this.#occupancy.prepareClaimForSegment(commandTx, {
+          sellableUnitId: destinationSellableUnitId,
+          from: movedAt,
+          to: expected.to,
+          envelope: occupancyEnvelope(input.envelope, "occupancy.recorded"),
+        });
+      } catch (error) {
+        mapInventoryError(error, "Destination room inventory is not available");
+      }
+      if (preparedDestination.unitTypeId !== target.unit_type_id) {
+        throw new ReservationLifecycleConflictError("Room move destination must have the same unit type");
+      }
       const inserted = await commandTx<Array<{ id: string }>>`
         INSERT INTO reservation_segment (
           id, tenant_id, reservation_id, seq, unit_type_id, sellable_unit_id,
