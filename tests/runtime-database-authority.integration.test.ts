@@ -3,6 +3,7 @@ import { randomUUID } from "node:crypto";
 import { SQL } from "bun";
 
 import { Database } from "../src/kernel";
+import { provisionLocalDatabaseAuthority } from "../scripts/provision-local-database-authority";
 
 const DEPLOY_DATABASE_URL = process.env.YELLOW_DEPLOY_DATABASE_URL ?? process.env.YELLOW_RUNTIME_AUTHORITY_P0_URL;
 const RUNTIME_DATABASE_URL = process.env.YELLOW_RUNTIME_DATABASE_URL ?? process.env.YELLOW_RUNTIME_AUTHORITY_P0_URL;
@@ -13,6 +14,28 @@ if (REQUIRE_DATABASE && (!DEPLOY_DATABASE_URL || !RUNTIME_DATABASE_URL)) {
 }
 
 const databaseDescribe = DEPLOY_DATABASE_URL && RUNTIME_DATABASE_URL ? describe.serial : describe.skip;
+
+test("P4: local authority provisioning rejects malformed deploy URLs and weak runtime secrets before connecting", async () => {
+  await expect(provisionLocalDatabaseAuthority({
+    deployDatabaseUrl: "not-a-postgres-url",
+    runtimePassword: "short",
+    logger: () => undefined,
+  })).rejects.toThrow("valid PostgreSQL URL");
+  await expect(provisionLocalDatabaseAuthority({
+    deployDatabaseUrl: "postgres://yellow_deploy:deploy-secret@127.0.0.1:1/postgres",
+    runtimePassword: "short",
+    logger: () => undefined,
+  })).rejects.toThrow("32 to 256");
+});
+
+test("P4: actual server boundary authenticates only with the runtime DSN", async () => {
+  const server = await Bun.file(new URL("../src/server.ts", import.meta.url)).text();
+  expect(server).toContain('required("YELLOW_RUNTIME_DATABASE_URL")');
+  expect(server).toContain("const database = Database.connect(databaseUrl");
+  expect(server).not.toContain('required("DATABASE_URL")');
+  expect(server).not.toContain("process.env.DATABASE_URL");
+});
+
 const tenantA = randomUUID();
 const tenantB = randomUUID();
 const partyA = randomUUID();
@@ -22,6 +45,8 @@ const extensionGlobal = randomUUID();
 const extensionA = randomUUID();
 const extensionB = randomUUID();
 const schemaName = `o127_p0_${randomUUID().replaceAll("-", "")}`;
+const contaminationTempName = `o127_contaminated_${randomUUID().replaceAll("-", "")}`;
+const contaminationPreparedName = `o127_prepared_${randomUUID().replaceAll("-", "")}`;
 const rollbackMarker = new Error("Order 127 P0 probe rollback");
 
 interface AuthorityEvidence {
@@ -282,17 +307,26 @@ databaseDescribe("Order 127 runtime database authority (kernel boundary; HTTP P4
   test("P2: a post-COMMIT contaminated role is rejected, discarded, and cannot poison pool reuse", async () => {
     await expect(database.withTenantTransaction(tenantA, async (tx) => {
       await tx.unsafe("SET ROLE app_role");
+      await tx.unsafe("SET search_path = pg_temp");
+      await tx.unsafe(`CREATE TEMP TABLE ${contaminationTempName} (id integer) ON COMMIT PRESERVE ROWS`);
+      await tx.unsafe(`PREPARE ${contaminationPreparedName} AS SELECT 1`);
       return "contaminated";
     })).rejects.toThrow("connection retained role or tenant context");
 
     const canary = await database.withTenantTransaction(tenantA, async (tx) => {
-      const rows = await tx<{ current_user: string; session_user: string; tenant_id: string }[]>`
+      const rows = await tx<{ current_user: string; session_user: string; tenant_id: string; search_path: string; temp_table_present: boolean; prepared_present: boolean }[]>`
         SELECT current_user::text AS current_user, session_user::text AS session_user,
-               current_setting('app.tenant_id', true) AS tenant_id
+               current_setting('app.tenant_id', true) AS tenant_id,
+               current_setting('search_path') AS search_path,
+               to_regclass('pg_temp.${contaminationTempName}') IS NOT NULL AS temp_table_present,
+               EXISTS (SELECT 1 FROM pg_prepared_statements WHERE name = '${contaminationPreparedName}') AS prepared_present
       `;
       return rows[0];
     });
-    expect(canary).toEqual({ current_user: "app_role", session_user: "yellow_runtime", tenant_id: tenantA });
+    expect(canary).toEqual({
+      current_user: "app_role", session_user: "yellow_runtime", tenant_id: tenantA,
+      search_path: '"$user", public', temp_table_present: false, prepared_present: false,
+    });
     const observerPool = new SQL(RUNTIME_DATABASE_URL!, { max: 1 });
     const observer = await observerPool.reserve();
     try {
@@ -360,6 +394,56 @@ databaseDescribe("Order 127 runtime database authority (kernel boundary; HTTP P4
     await direct`SELECT count(*)::int FROM public.runtime_visible_extensions(${tenantA}::uuid)`;
     await direct.unsafe("CREATE TEMP TABLE runtime_extension_compatibility_inputs (id uuid) ON COMMIT DROP");
     await direct`SELECT count(*)::int FROM public.runtime_extension_compatibility_inputs('order127-missing')`;
+  });
+
+  test("P4: provisioning is idempotent, separates secrets, and redacts authority material", async () => {
+    const runtimePassword = decodeURIComponent(new URL(RUNTIME_DATABASE_URL!).password);
+    await runtimeSession.close();
+    const lines: string[] = [];
+    const result = await provisionLocalDatabaseAuthority({
+      deployDatabaseUrl: DEPLOY_DATABASE_URL!, runtimePassword, logger: (line) => lines.push(line),
+    });
+    expect(result).toEqual({ owner: "already exact", runtime: "already exact" });
+    expect(lines).toEqual(["database authority provisioned: owner=already exact runtime=already exact"]);
+    expect(DEPLOY_DATABASE_URL).not.toBe(RUNTIME_DATABASE_URL);
+    expect(lines.join("\n")).not.toContain(runtimePassword);
+    expect(lines.join("\n")).not.toContain(DEPLOY_DATABASE_URL);
+    runtimeSession = new SQL(RUNTIME_DATABASE_URL!, { max: 1 });
+  });
+
+  test("P4: incompatible owner is rejected atomically and an exact retry succeeds", async () => {
+    const runtimePassword = decodeURIComponent(new URL(RUNTIME_DATABASE_URL!).password);
+    await runtimeSession.close();
+    await admin!.unsafe("ALTER ROLE yellow_owner LOGIN");
+    try {
+      await expect(provisionLocalDatabaseAuthority({ deployDatabaseUrl: DEPLOY_DATABASE_URL!, runtimePassword, logger: () => undefined })).rejects.toThrow("incompatible existing attributes");
+      const rows = await admin!<{ can_login: boolean; runtime_exists: boolean }[]>`
+        SELECT rolcanlogin AS can_login,
+               EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'yellow_runtime') AS runtime_exists
+          FROM pg_roles WHERE rolname = 'yellow_owner'
+      `;
+      expect(rows).toEqual([{ can_login: true, runtime_exists: true }]);
+    } finally {
+      await admin!.unsafe("ALTER ROLE yellow_owner NOLOGIN PASSWORD NULL CONNECTION LIMIT 0 NOSUPERUSER NOCREATEDB NOCREATEROLE NOINHERIT NOREPLICATION NOBYPASSRLS");
+    }
+    const retry = await provisionLocalDatabaseAuthority({ deployDatabaseUrl: DEPLOY_DATABASE_URL!, runtimePassword, logger: () => undefined });
+    expect(retry).toEqual({ owner: "already exact", runtime: "already exact" });
+    runtimeSession = new SQL(RUNTIME_DATABASE_URL!, { max: 1 });
+  });
+
+  test("P4: an active runtime session blocks provisioning, then a drained retry is exact", async () => {
+    const runtimePassword = decodeURIComponent(new URL(RUNTIME_DATABASE_URL!).password);
+    await runtimeSession.close();
+    const blocker = new SQL(RUNTIME_DATABASE_URL!, { max: 1 });
+    try {
+      await blocker`SELECT 1`;
+      await expect(provisionLocalDatabaseAuthority({ deployDatabaseUrl: DEPLOY_DATABASE_URL!, runtimePassword, logger: () => undefined })).rejects.toThrow(/active runtime session|drain/i);
+    } finally {
+      await blocker.close();
+    }
+    runtimeSession = new SQL(RUNTIME_DATABASE_URL!, { max: 1 });
+    const retry = await provisionLocalDatabaseAuthority({ deployDatabaseUrl: DEPLOY_DATABASE_URL!, runtimePassword, logger: () => undefined });
+    expect(retry).toEqual({ owner: "already exact", runtime: "already exact" });
   });
 
 });
