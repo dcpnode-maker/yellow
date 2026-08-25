@@ -109,10 +109,18 @@ Canonical demo and review seed are deploy/tool operations. The external
 Runtime coordination, occupancy, due-hold discovery, extension reads,
 publication marking and pruning use their existing signature-specific functions.
 
+Account and folio rows expose no direct runtime `UPDATE` authority. Financial
+commands obtain only structural row locks through
+`lock_financial_rows(tenant, account_ids, optional_folio)`: a non-mutating,
+owner-mediated function callable only after the trusted runtime transaction has
+entered `app_role`. It accepts one or two distinct tenant accounts, locks them in
+UUID order, optionally locks a folio belonging to that set, returns no business
+data, and fails without identifying a missing or foreign target.
+
 Named residual capability debt remains for approval decisions, extension
 publication/retirement, hold transitions, inventory-policy and projection
 replacement, operational-block updates, reservation/segment/guest lifecycle,
-folio numbering, journal/posting transitions, and future task/fiscal/statutory or
+folio numbering, journal/posting transitions beyond this structural lock, and future task/fiscal/statutory or
 document mutation. The one explicit global exception is
 `extension_type(type,json_schema)` INSERT for current platform registration
 (D-417); it is temporary residual debt and must move behind a bounded capability.

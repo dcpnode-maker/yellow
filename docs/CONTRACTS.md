@@ -38,6 +38,13 @@ has no runtime mutation authority, and `rate_price` exposes only the sanctioned
 `superseded_by` update alongside its insert path. Insert-only fact, journal,
 posting-line and outbox history has no update/delete contract.
 
+Financial account/folio serialization is exposed only through
+`lock_financial_rows(uuid, uuid[], uuid)`. The function is not a write contract:
+it returns no row data, accepts one or two distinct accounts plus an optional
+folio linked to that set, orders account locks canonically, and remains executable
+only by `app_role` inside a tenant-bound runtime transaction. Direct account or
+folio `UPDATE` and direct row locking remain outside runtime authority.
+
 Residual protected transitions are not generalized by this catalogue: approval
 decisions, extension publication, hold state changes, inventory-policy/projection
 replacement, operational-block lifecycle, reservation/segment/guest lifecycle,

@@ -263,7 +263,7 @@ export class ChargeService {
         quantity: normalized.quantity,
       },
     }, async (commandTx) => {
-      const folios = await commandTx<FolioContextRow[]>`
+      const discoveredFolios = await commandTx<FolioContextRow[]>`
         SELECT
           folio.id AS folio_id,
           folio.status AS folio_status,
@@ -284,10 +284,9 @@ export class ChargeService {
         WHERE folio.tenant_id = ${normalized.tenantId}::uuid
           AND folio.tenant_id = current_setting('app.tenant_id', true)::uuid
           AND folio.id = ${normalized.folioId}::uuid
-        FOR UPDATE OF folio, account
         FOR SHARE OF property
       `;
-      const folio = folios[0];
+      let folio = discoveredFolios[0];
       if (!folio) {
         throw new ChargeNotFoundError("Folio was not found with canonical financial ownership");
       }
@@ -302,22 +301,6 @@ export class ChargeService {
       }
       if (!UUID.test(folio.account_id) || !/^[A-Z]{3}$/.test(folio.currency)) {
         throw new ChargeConflictError("Folio financial ownership is inconsistent");
-      }
-
-      const days = await commandTx<BusinessDayRow[]>`
-        SELECT business_date::text, sealed_at
-        FROM business_day
-        WHERE tenant_id = ${normalized.tenantId}::uuid
-          AND tenant_id = current_setting('app.tenant_id', true)::uuid
-          AND property_node = ${folio.property_node}::uuid
-          AND business_date = ${folio.business_date}::date
-      `;
-      const day = days[0];
-      if (!day || day.business_date !== folio.business_date) {
-        throw new ChargeConflictError("Property business day is missing");
-      }
-      if (day.sealed_at !== null) {
-        throw new ChargeConflictError("Property business day is sealed");
       }
 
       const codes = await commandTx<TxCodeRow[]>`
@@ -354,13 +337,98 @@ export class ChargeService {
         WHERE tenant_id = ${normalized.tenantId}::uuid
           AND tenant_id = current_setting('app.tenant_id', true)::uuid
           AND id = ${route.credit_account_id}::uuid
-        FOR SHARE
       `;
-      const revenueAccount = revenueAccounts[0];
+      let revenueAccount = revenueAccounts[0];
       if (!revenueAccount || revenueAccount.id !== route.credit_account_id ||
           revenueAccount.property_node !== folio.property_node || revenueAccount.currency !== folio.currency ||
           revenueAccount.role !== "revenue" || revenueAccount.status !== "open") {
         throw new ChargeConflictError("Transaction code revenue route is inconsistent or closed");
+      }
+
+      await commandTx`
+        SELECT public.lock_financial_rows(
+          ${normalized.tenantId}::uuid,
+          ARRAY[${folio.account_id}::uuid, ${revenueAccount.id}::uuid]::uuid[],
+          ${folio.folio_id}::uuid
+        )
+      `;
+
+      const lockedFolios = await commandTx<FolioContextRow[]>`
+        SELECT
+          folio.id AS folio_id,
+          folio.status AS folio_status,
+          account.id AS account_id,
+          account.status AS account_status,
+          account.role AS account_role,
+          account.property_node,
+          account.currency::text,
+          (transaction_timestamp() AT TIME ZONE property.timezone)::date::text AS business_date
+        FROM folio
+        JOIN account
+          ON account.tenant_id = folio.tenant_id
+         AND account.id = folio.account_id
+        JOIN org_node AS property
+          ON property.tenant_id = account.tenant_id
+         AND property.id = account.property_node
+         AND property.kind = 'property'
+        WHERE folio.tenant_id = ${normalized.tenantId}::uuid
+          AND folio.tenant_id = current_setting('app.tenant_id', true)::uuid
+          AND folio.id = ${normalized.folioId}::uuid
+        FOR SHARE OF property
+      `;
+      folio = lockedFolios[0];
+      if (!folio || folio.folio_id !== normalized.folioId ||
+          folio.property_node !== normalized.envelope.propertyNode) {
+        throw new ChargeNotFoundError("Folio was not found with canonical financial ownership");
+      }
+      if (folio.folio_status !== "open") {
+        throw new ChargeConflictError("Folio is not open");
+      }
+      if (folio.account_status !== "open" || folio.account_role !== "guest" ||
+          !UUID.test(folio.account_id) || !/^[A-Z]{3}$/.test(folio.currency)) {
+        throw new ChargeConflictError("Folio financial ownership is inconsistent");
+      }
+
+      const lockedRoutes = await commandTx<RouteRow[]>`
+        SELECT route.credit_account_id
+        FROM tx_code_route AS route
+        WHERE route.tenant_id = ${normalized.tenantId}::uuid
+          AND route.tenant_id = current_setting('app.tenant_id', true)::uuid
+          AND route.property_node = ${folio.property_node}::uuid
+          AND route.currency = ${folio.currency}::char(3)
+          AND route.tx_code = ${normalized.txCode}
+      `;
+      if (lockedRoutes.length !== 1 || lockedRoutes[0]?.credit_account_id !== revenueAccount.id) {
+        throw new ChargeConflictError("Transaction code revenue route changed during lock acquisition");
+      }
+      const lockedRevenueAccounts = await commandTx<RevenueAccountRow[]>`
+        SELECT id, property_node, currency::text, role, status
+        FROM account
+        WHERE tenant_id = ${normalized.tenantId}::uuid
+          AND tenant_id = current_setting('app.tenant_id', true)::uuid
+          AND id = ${revenueAccount.id}::uuid
+      `;
+      revenueAccount = lockedRevenueAccounts[0];
+      if (!revenueAccount || revenueAccount.property_node !== folio.property_node ||
+          revenueAccount.currency !== folio.currency || revenueAccount.role !== "revenue" ||
+          revenueAccount.status !== "open") {
+        throw new ChargeConflictError("Transaction code revenue route is inconsistent or closed");
+      }
+
+      const days = await commandTx<BusinessDayRow[]>`
+        SELECT business_date::text, sealed_at
+        FROM business_day
+        WHERE tenant_id = ${normalized.tenantId}::uuid
+          AND tenant_id = current_setting('app.tenant_id', true)::uuid
+          AND property_node = ${folio.property_node}::uuid
+          AND business_date = ${folio.business_date}::date
+      `;
+      const day = days[0];
+      if (!day || day.business_date !== folio.business_date) {
+        throw new ChargeConflictError("Property business day is missing");
+      }
+      if (day.sealed_at !== null) {
+        throw new ChargeConflictError("Property business day is sealed");
       }
 
       const debitAmount = normalized.amount;
