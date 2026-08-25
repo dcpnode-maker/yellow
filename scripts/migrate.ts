@@ -6,6 +6,7 @@ const FILE_NAME_PATTERN = /^[0-9]{4}_[a-z0-9][a-z0-9_-]*\.sql$/;
 const BASELINE_FILE = "0001_init.sql";
 const BASELINE_SHA256 = "fe2a9fc949c6bacded3f8d3fc4d14fc596a83ebde9aeb043eb10845f07b30923";
 const ADVISORY_LOCK_KEY = 6_441_674_055_002_974_567n;
+const APP_ROLE_NONLOGIN_VERSION = 12;
 const OWNER_CUTOVER_VERSION = 15;
 const FINAL_OWNER_ROLE = "yellow_owner";
 const DEFAULT_MIGRATIONS_DIRECTORY = resolve(import.meta.dir, "..", "migrations");
@@ -403,6 +404,97 @@ async function readLedger(connection: ReservedSQL): Promise<readonly LedgerRow[]
   `;
 }
 
+interface RuntimeAppMembershipRow {
+  readonly granted_role: string;
+  readonly member_role: string;
+  readonly admin_option: boolean;
+  readonly inherit_option: boolean;
+  readonly set_option: boolean;
+}
+
+async function runtimeAppMemberships(connection: ReservedSQL): Promise<readonly RuntimeAppMembershipRow[]> {
+  return await connection<RuntimeAppMembershipRow[]>`
+    SELECT granted.rolname AS granted_role,
+           member.rolname AS member_role,
+           membership.admin_option,
+           membership.inherit_option,
+           membership.set_option
+      FROM pg_catalog.pg_auth_members membership
+      JOIN pg_catalog.pg_roles granted ON granted.oid = membership.roleid
+      JOIN pg_catalog.pg_roles member ON member.oid = membership.member
+     WHERE granted.rolname IN ('yellow_deploy', 'yellow_owner', 'yellow_runtime', 'app_role')
+        OR member.rolname IN ('yellow_deploy', 'yellow_owner', 'yellow_runtime', 'app_role')
+     ORDER BY granted.rolname, member.rolname
+  `;
+}
+
+function isExactRuntimeAppMembership(row: RuntimeAppMembershipRow | undefined): boolean {
+  return row !== undefined
+    && row.granted_role === "app_role"
+    && row.member_role === "yellow_runtime"
+    && !row.admin_option
+    && !row.inherit_option
+    && row.set_option;
+}
+
+async function suspendExactRuntimeAppMembership(connection: ReservedSQL): Promise<boolean> {
+  const memberships = await runtimeAppMemberships(connection);
+  if (memberships.length === 0) return false;
+  if (memberships.length !== 1 || !isExactRuntimeAppMembership(memberships[0])) {
+    throw new Error("migration 0012 encountered an unsupported database-authority membership edge");
+  }
+
+  const roles = await connection<Array<{
+    rolname: string;
+    rolcanlogin: boolean;
+    rolconnlimit: number;
+    rolpassword: string | null;
+    rolsuper: boolean;
+    rolcreatedb: boolean;
+    rolcreaterole: boolean;
+    rolinherit: boolean;
+    rolreplication: boolean;
+    rolbypassrls: boolean;
+  }>>`
+    SELECT rolname, rolcanlogin, rolconnlimit, rolpassword, rolsuper, rolcreatedb,
+           rolcreaterole, rolinherit, rolreplication, rolbypassrls
+      FROM pg_catalog.pg_authid
+     WHERE rolname IN ('app_role', 'yellow_runtime')
+     ORDER BY rolname
+  `;
+  const app = roles.find(({ rolname }) => rolname === "app_role");
+  const runtime = roles.find(({ rolname }) => rolname === "yellow_runtime");
+  const appIsExact = app !== undefined && !app.rolcanlogin && app.rolconnlimit === 0
+    && app.rolpassword === null && !app.rolsuper && !app.rolcreatedb && !app.rolcreaterole
+    && !app.rolinherit && !app.rolreplication && !app.rolbypassrls;
+  const runtimeIsExact = runtime !== undefined && runtime.rolcanlogin && runtime.rolconnlimit === -1
+    && runtime.rolpassword !== null && !runtime.rolsuper && !runtime.rolcreatedb && !runtime.rolcreaterole
+    && !runtime.rolinherit && !runtime.rolreplication && !runtime.rolbypassrls;
+  if (!appIsExact || !runtimeIsExact) {
+    throw new Error("migration 0012 encountered incompatible app_role or yellow_runtime attributes");
+  }
+
+  const active = await connection<{ active: boolean }[]>`
+    SELECT EXISTS (
+      SELECT 1 FROM pg_catalog.pg_stat_activity
+       WHERE usename = 'yellow_runtime'
+    ) AS active
+  `;
+  if (active[0]?.active === true) {
+    throw new Error("yellow_runtime has an active session; drain it before migration 0012");
+  }
+  await connection.unsafe("REVOKE app_role FROM yellow_runtime");
+  return true;
+}
+
+async function restoreExactRuntimeAppMembership(connection: ReservedSQL): Promise<void> {
+  await connection.unsafe("GRANT app_role TO yellow_runtime");
+  const memberships = await runtimeAppMemberships(connection);
+  if (memberships.length !== 1 || !isExactRuntimeAppMembership(memberships[0])) {
+    throw new Error("migration 0012 did not restore the exact yellow_runtime to app_role membership");
+  }
+}
+
 async function applyMigration(
   connection: ReservedSQL,
   record: MigrationRecord,
@@ -419,7 +511,10 @@ async function applyMigration(
     if (record.version > OWNER_CUTOVER_VERSION) {
       await connection.unsafe(`SET LOCAL ROLE ${FINAL_OWNER_ROLE}`);
     }
+    const restoreRuntimeAppMembership = record.version === APP_ROLE_NONLOGIN_VERSION
+      && await suspendExactRuntimeAppMembership(connection);
     await connection.unsafe(record.sqlText);
+    if (restoreRuntimeAppMembership) await restoreExactRuntimeAppMembership(connection);
     await revokeLedgerPrivileges(connection, false);
     await connection`
       INSERT INTO public.schema_migration (version, filename, checksum_sha256)
