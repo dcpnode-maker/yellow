@@ -433,7 +433,7 @@ BEGIN
   VALUES (p_consumer, p_outbox_id)
   ON CONFLICT (consumer, outbox_id) DO NOTHING
   RETURNING true INTO v_inserted;
-  RETURN pg_catalog.coalesce(v_inserted, false);
+  RETURN COALESCE(v_inserted, false);
 END
 $runtime_consumer_mark$;
 
@@ -484,7 +484,7 @@ SET search_path = pg_catalog, public, pg_temp
 AS $runtime_mark_outbox_published$
 DECLARE
   v_count integer;
-  v_size integer := pg_catalog.coalesce(pg_catalog.cardinality(p_event_ids), -1);
+  v_size integer := COALESCE(pg_catalog.cardinality(p_event_ids), -1);
 BEGIN
   IF v_size < 1 OR v_size > 1000 OR pg_catalog.array_position(p_event_ids, NULL) IS NOT NULL THEN
     RAISE EXCEPTION 'event id array must contain between 1 and 1000 non-null UUIDs'
@@ -496,7 +496,7 @@ BEGIN
       FROM pg_catalog.unnest(p_event_ids) AS event_id
   ), marked AS (
     UPDATE public.outbox AS o
-       SET published_at = pg_catalog.coalesce(o.published_at, pg_catalog.now())
+       SET published_at = COALESCE(o.published_at, pg_catalog.now())
      WHERE o.id IN (SELECT event_id FROM ids)
     RETURNING 1
   )
