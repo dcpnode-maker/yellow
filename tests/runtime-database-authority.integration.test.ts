@@ -36,6 +36,22 @@ test("P4: actual server boundary authenticates only with the runtime DSN", async
   expect(server).not.toContain("process.env.DATABASE_URL");
 });
 
+test("P1/P4: owned sequences follow their parent and PowerShell forwards detached Compose explicitly", async () => {
+  const migration = await Bun.file(new URL("../migrations/0015_runtime_database_authority.sql", import.meta.url)).text();
+  const parentTransfer = migration.indexOf("$order127_transfer_relations$");
+  const standaloneSequenceTransfer = migration.indexOf("$order127_transfer_standalone_sequences$");
+  expect(parentTransfer).toBeGreaterThan(-1);
+  expect(standaloneSequenceTransfer).toBeGreaterThan(parentTransfer);
+  const standaloneSequenceBody = migration.slice(standaloneSequenceTransfer);
+  expect(standaloneSequenceBody).toContain("d.deptype IN ('a', 'i')");
+  expect(standaloneSequenceBody).toContain("ALTER SEQUENCE %s OWNER TO yellow_owner");
+
+  const powershell = await Bun.file(new URL("../setup.ps1", import.meta.url)).text();
+  expect(powershell).toContain("Invoke-Compose -Arguments @('up', '--detach', 'postgres', 'valkey')");
+  expect(powershell).toContain("Invoke-Compose -Arguments @('up', '--detach', 'app')");
+  expect(powershell).not.toContain("Invoke-Compose up -d");
+});
+
 const tenantA = randomUUID();
 const tenantB = randomUUID();
 const partyA = randomUUID();
