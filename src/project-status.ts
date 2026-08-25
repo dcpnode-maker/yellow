@@ -11,7 +11,7 @@ export interface ProjectPhaseSnapshot {
 export type ProjectRecordedWorkState = "independently_approved" | "proof_in_progress";
 
 export interface ProjectRecordedWorkSnapshot {
-  readonly order: 126 | 127 | 148;
+  readonly order: 126 | 127 | 148 | 154 | 155 | 156;
   readonly state: ProjectRecordedWorkState;
   readonly summary: string;
   readonly remaining?: string;
@@ -37,8 +37,8 @@ export const PROJECT_BUILD_SNAPSHOT = Object.freeze({
   label: "Recorded build snapshot",
   roadmap: Object.freeze({
     phaseCount: 13,
-    latestBuiltOrder: 149,
-    currentOrder: 149,
+    latestBuiltOrder: 155,
+    currentOrder: 156,
     activePhase: 5,
   }),
   review: Object.freeze({
@@ -63,6 +63,24 @@ export const PROJECT_BUILD_SNAPSHOT = Object.freeze({
       state: "independently_approved" as const,
       summary: "Order 148 independently approved (D-412).",
       remaining: "PR #78 is open and unmerged; no deployment is claimed.",
+    }),
+    Object.freeze({
+      order: 154,
+      state: "independently_approved" as const,
+      summary: "Order 154 reviewed runtime-DML union independently approved.",
+      remaining: "The reviewed union is unmerged; no deployment is claimed.",
+    }),
+    Object.freeze({
+      order: 155,
+      state: "independently_approved" as const,
+      summary: "Order 155 resolved-question normalization independently checked.",
+      remaining: "The governance-only order is unmerged.",
+    }),
+    Object.freeze({
+      order: 156,
+      state: "proof_in_progress" as const,
+      summary: "Q166 option 1 authorized for a dedicated extension registrar.",
+      remaining: "Implementation and independent Tier-3 proof are in progress; no product completion is claimed.",
     }),
   ] satisfies readonly ProjectRecordedWorkSnapshot[]),
   phases: Object.freeze([

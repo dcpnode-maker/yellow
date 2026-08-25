@@ -161,10 +161,10 @@ describe("Order 064 recorded build snapshot", () => {
     const reviewCoverage = await deriveIndependentReviewCoverage();
     const rows = manifestRows(manifest);
     expect(rows.length).toBeGreaterThan(0);
-    expect(PROJECT_BUILD_SNAPSHOT.roadmap.latestBuiltOrder).toBe(149);
+    expect(PROJECT_BUILD_SNAPSHOT.roadmap.latestBuiltOrder).toBe(155);
     expect(PROJECT_BUILD_SNAPSHOT.review.gate3Debt).toBe(0);
     expect(PROJECT_BUILD_SNAPSHOT.review.state).toBe("built_unverified");
-    expect(PROJECT_BUILD_SNAPSHOT.roadmap.currentOrder).toBe(149);
+    expect(PROJECT_BUILD_SNAPSHOT.roadmap.currentOrder).toBe(156);
     expect(PROJECT_BUILD_SNAPSHOT.roadmap.activePhase).toBe(5);
     expect(PROJECT_BUILD_SNAPSHOT.roadmap.phaseCount).toBe(13);
     expect(reviewCoverage.throughOrder).toBe(91);
@@ -193,6 +193,24 @@ describe("Order 064 recorded build snapshot", () => {
         state: "independently_approved",
         summary: "Order 148 independently approved (D-412).",
         remaining: "PR #78 is open and unmerged; no deployment is claimed.",
+      },
+      {
+        order: 154,
+        state: "independently_approved",
+        summary: "Order 154 reviewed runtime-DML union independently approved.",
+        remaining: "The reviewed union is unmerged; no deployment is claimed.",
+      },
+      {
+        order: 155,
+        state: "independently_approved",
+        summary: "Order 155 resolved-question normalization independently checked.",
+        remaining: "The governance-only order is unmerged.",
+      },
+      {
+        order: 156,
+        state: "proof_in_progress",
+        summary: "Q166 option 1 authorized for a dedicated extension registrar.",
+        remaining: "Implementation and independent Tier-3 proof are in progress; no product completion is claimed.",
       },
     ]);
     expect(PROJECT_BUILD_SNAPSHOT.review.independentlyReviewedThroughOrder).toBe(91);
