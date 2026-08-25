@@ -98,16 +98,14 @@ export class Database {
       if (!reusable && settled) {
         try {
           await this.#discardAndAssertRuntimeSettlement(connection);
-          reusable = true;
         } catch {
-          // Fall through to immediate close below. A failed DISCARD/reverification
-          // leaves the reserved backend ineligible for pool reuse.
+          // Preserve the request failure. The reserved backend is closed below.
         }
       }
       if (!reusable) {
-        // ReservedSQL has no single-connection destroy operation. Its immediate
-        // close is the documented containment fallback; never release a connection
-        // whose transaction, role, or tenant context could not be verified clean.
+        // DISCARD ALL invalidates PostgreSQL prepared statements while Bun retains
+        // their client-side names. Even a successfully reverified discarded client
+        // must therefore be closed, never released for reuse.
         try { await connection.close({ timeout: 0 }); } catch { /* preserve the request failure */ }
       }
       if (reusable) connection.release();
