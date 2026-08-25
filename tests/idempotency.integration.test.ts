@@ -11,7 +11,8 @@ import {
   type JsonValue,
 } from "../src/kernel";
 
-const DATABASE_URL = process.env.YELLOW_IDEMPOTENCY_URL;
+const DEPLOY_DATABASE_URL = process.env.YELLOW_DEPLOY_DATABASE_URL ?? process.env.YELLOW_IDEMPOTENCY_URL;
+const RUNTIME_DATABASE_URL = process.env.YELLOW_RUNTIME_DATABASE_URL ?? process.env.YELLOW_IDEMPOTENCY_URL;
 const REQUIRE_DATABASE = process.env.YELLOW_REQUIRE_IDEMPOTENCY === "1";
 const TENANT_A = "00000000-0000-0000-0000-000000004710";
 const TENANT_B = "00000000-0000-0000-0000-000000004711";
@@ -21,11 +22,11 @@ const ACTOR_A = "00000000-0000-0000-0000-000000004730";
 const ACTOR_B = "00000000-0000-0000-0000-000000004731";
 const NOW = new Date("2030-01-02T03:04:05.000Z");
 
-if (REQUIRE_DATABASE && !DATABASE_URL) {
+if (REQUIRE_DATABASE && (!DEPLOY_DATABASE_URL || !RUNTIME_DATABASE_URL)) {
   throw new Error("YELLOW_IDEMPOTENCY_URL is required by the Order 047 proof");
 }
 
-const databaseDescribe = DATABASE_URL ? describe.serial : describe.skip;
+const databaseDescribe = DEPLOY_DATABASE_URL && RUNTIME_DATABASE_URL ? describe.serial : describe.skip;
 let admin: SQL;
 let database: Database;
 
@@ -42,9 +43,9 @@ async function cleanFixtures(): Promise<void> {
 }
 
 beforeAll(async () => {
-  if (!DATABASE_URL) return;
-  admin = new SQL(DATABASE_URL, { max: 4 });
-  database = Database.connect(DATABASE_URL, { maxConnections: 24 });
+  if (!DEPLOY_DATABASE_URL || !RUNTIME_DATABASE_URL) return;
+  admin = new SQL(DEPLOY_DATABASE_URL, { max: 4 });
+  database = Database.connect(RUNTIME_DATABASE_URL, { maxConnections: 24 });
   await cleanFixtures();
   await admin`
     INSERT INTO tenant (id, slug, name, tier, status)
@@ -67,7 +68,7 @@ beforeAll(async () => {
 });
 
 afterAll(async () => {
-  if (!DATABASE_URL) return;
+  if (!DEPLOY_DATABASE_URL || !RUNTIME_DATABASE_URL) return;
   await cleanFixtures();
   await database.close();
   await admin.close();
@@ -348,6 +349,7 @@ databaseDescribe("Order 047 durable API idempotency", () => {
     const metadata = await admin<Array<{
       relrowsecurity: boolean; relforcerowsecurity: boolean; policies: number;
       can_select: boolean; can_insert: boolean; can_update: boolean; can_delete: boolean;
+      insert_columns: string[]; update_columns: string[];
       expiry_indexes: number;
     }>>`
       SELECT c.relrowsecurity, c.relforcerowsecurity,
@@ -356,6 +358,12 @@ databaseDescribe("Order 047 durable API idempotency", () => {
         has_table_privilege('app_role', c.oid, 'INSERT') AS can_insert,
         has_table_privilege('app_role', c.oid, 'UPDATE') AS can_update,
         has_table_privilege('app_role', c.oid, 'DELETE') AS can_delete,
+        (SELECT array_agg(column_name::text ORDER BY ordinal_position) FROM information_schema.columns col
+          WHERE col.table_schema = 'public' AND col.table_name = 'api_idempotency'
+            AND has_column_privilege('app_role', 'public.api_idempotency', col.column_name, 'INSERT')) AS insert_columns,
+        (SELECT array_agg(column_name::text ORDER BY ordinal_position) FROM information_schema.columns col
+          WHERE col.table_schema = 'public' AND col.table_name = 'api_idempotency'
+            AND has_column_privilege('app_role', 'public.api_idempotency', col.column_name, 'UPDATE')) AS update_columns,
         (SELECT count(*)::int FROM pg_indexes WHERE schemaname = 'public'
           AND tablename = 'api_idempotency' AND indexdef LIKE '%expires_at%') AS expiry_indexes
       FROM pg_class c
@@ -366,9 +374,11 @@ databaseDescribe("Order 047 durable API idempotency", () => {
       relforcerowsecurity: false,
       policies: 1,
       can_select: true,
-      can_insert: true,
-      can_update: true,
+      can_insert: false,
+      can_update: false,
       can_delete: false,
+      insert_columns: ["tenant_id", "operation", "key_hash", "request_hash", "created_at", "expires_at"],
+      update_columns: ["request_hash", "response_status", "response_body", "created_at", "completed_at", "expires_at"],
       expiry_indexes: 1,
     }]);
   });

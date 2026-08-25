@@ -28,7 +28,8 @@ import {
   type Tx,
 } from "../src/kernel";
 
-const DATABASE_URL = process.env.YELLOW_RESERVATION_LIFECYCLE_URL;
+const DEPLOY_DATABASE_URL = process.env.YELLOW_DEPLOY_DATABASE_URL ?? process.env.YELLOW_RESERVATION_LIFECYCLE_URL;
+const RUNTIME_DATABASE_URL = process.env.YELLOW_RUNTIME_DATABASE_URL ?? process.env.YELLOW_RESERVATION_LIFECYCLE_URL;
 const REQUIRE_DATABASE = process.env.YELLOW_REQUIRE_RESERVATION_LIFECYCLE === "1";
 
 const TENANT_A = "00000000-0000-0000-0000-000000008501";
@@ -64,7 +65,7 @@ const ZERO_CONTENT = Object.freeze({
   ]),
 });
 
-if (REQUIRE_DATABASE && !DATABASE_URL) {
+if (REQUIRE_DATABASE && (!DEPLOY_DATABASE_URL || !RUNTIME_DATABASE_URL)) {
   throw new Error("YELLOW_RESERVATION_LIFECYCLE_URL is required by the Order 085 proof");
 }
 
@@ -87,7 +88,7 @@ test("Order 144 P0/P1: reinstatement restores live segment parents before occupa
   });
 });
 
-const databaseDescribe = DATABASE_URL ? describe.serial : describe.skip;
+const databaseDescribe = DEPLOY_DATABASE_URL && RUNTIME_DATABASE_URL ? describe.serial : describe.skip;
 let admin: SQL | undefined;
 let eventPool: SQL | undefined;
 let database: Database | undefined;
@@ -253,10 +254,10 @@ class FailAtEventBus implements EventBus {
 }
 
 beforeAll(async () => {
-  if (!DATABASE_URL) return;
-  admin = new SQL(DATABASE_URL, { max: 16 });
-  eventPool = new SQL(DATABASE_URL, { max: 32 });
-  database = Database.connect(DATABASE_URL, { maxConnections: 64 });
+  if (!DEPLOY_DATABASE_URL || !RUNTIME_DATABASE_URL) return;
+  admin = new SQL(DEPLOY_DATABASE_URL, { max: 16 });
+  eventPool = new SQL(RUNTIME_DATABASE_URL, { max: 32 });
+  database = Database.connect(RUNTIME_DATABASE_URL, { maxConnections: 64 });
   events = new PostgresEventBus(eventPool);
   occupancy = new ReservationOccupancyService(events);
   commits = new ReservationCommitService({
@@ -345,6 +346,7 @@ beforeAll(async () => {
       segment_status text NOT NULL,
       period tstzrange NOT NULL
     );
+    ALTER TABLE order144_parent_observation OWNER TO yellow_owner;
     CREATE FUNCTION order144_require_live_segment_parent() RETURNS trigger
     LANGUAGE plpgsql AS $$
     BEGIN

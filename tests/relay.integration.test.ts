@@ -167,7 +167,7 @@ beforeAll(async () => {
 
 afterAll(async () => {
   if (admin) {
-    await admin`DELETE FROM task WHERE payload->>'proof' = 'order-023'`;
+    await admin`DELETE FROM fact_log WHERE payload->>'proof' = 'order-023'`;
     await admin`DELETE FROM consumer_processed WHERE consumer IN ${admin(CONSUMERS)}`;
     await admin`DELETE FROM consumer_cursor WHERE consumer IN ${admin(CONSUMERS)}`;
     if (correlations.size > 0) {
@@ -191,9 +191,8 @@ databaseDescribe("Order 023 crash-safe outbox relay", () => {
       const relay = new OutboxRelay(new PostgresEventBus(pool), { consumer: "order-023-kill", batchSize: 120 });
       let handled = 0;
       await relay.drainOnce(async (event, tx) => {
-        await tx\`INSERT INTO task (id, tenant_id, property_node, kind, payload)
-          VALUES (\${event.aggregateId}::uuid, \${event.tenantId}::uuid, \${event.propertyNode}::uuid,
-            'trace', '{"proof":"order-023"}'::jsonb)\`;
+        await tx\`INSERT INTO fact_log (tenant_id, entity_type, entity_id, fact_type, valid_from, business_date, actor_id, payload)
+          VALUES (\${event.tenantId}::uuid, 'task', \${event.aggregateId}::uuid, 'order023.effect', now(), \${event.businessDate}::date, \${event.actorId}::uuid, '{"proof":"order-023"}'::jsonb)\`;
         handled += 1;
         if (handled === 25) process.kill(process.pid, "SIGKILL");
       });
@@ -209,7 +208,7 @@ databaseDescribe("Order 023 crash-safe outbox relay", () => {
 
     const rolledBack = await admin!<Array<{ tasks: number; markers: number; published: number }>>`
       SELECT
-        (SELECT count(*)::int FROM task WHERE id IN ${admin!(events.map(({ aggregateId }) => aggregateId))}) AS tasks,
+        (SELECT count(*)::int FROM fact_log WHERE entity_id IN ${admin!(events.map(({ aggregateId }) => aggregateId))}) AS tasks,
         (SELECT count(*)::int FROM consumer_processed WHERE consumer = 'order-023-kill') AS markers,
         (SELECT count(*)::int FROM outbox WHERE id IN ${admin!(events.map(({ id }) => id))} AND published_at IS NOT NULL) AS published
     `;
@@ -220,11 +219,8 @@ databaseDescribe("Order 023 crash-safe outbox relay", () => {
     await drain(relay, async (event, tx) => {
       handlerIds.push(event.id);
       await tx`
-        INSERT INTO task (id, tenant_id, property_node, kind, payload)
-        VALUES (
-          ${event.aggregateId}::uuid, ${event.tenantId}::uuid, ${event.propertyNode}::uuid,
-          'trace', '{"proof":"order-023"}'::jsonb
-        )
+        INSERT INTO fact_log (tenant_id, entity_type, entity_id, fact_type, valid_from, business_date, actor_id, payload)
+        VALUES (${event.tenantId}::uuid, 'task', ${event.aggregateId}::uuid, 'order023.effect', now(), ${event.businessDate}::date, ${event.actorId}::uuid, '{"proof":"order-023"}'::jsonb)
       `;
     });
     expect(handlerIds).toHaveLength(120);
@@ -232,7 +228,7 @@ databaseDescribe("Order 023 crash-safe outbox relay", () => {
 
     const recovered = await admin!<Array<{ tasks: number; markers: number; published: number }>>`
       SELECT
-        (SELECT count(*)::int FROM task WHERE id IN ${admin!(events.map(({ aggregateId }) => aggregateId))}) AS tasks,
+        (SELECT count(*)::int FROM fact_log WHERE entity_id IN ${admin!(events.map(({ aggregateId }) => aggregateId))}) AS tasks,
         (SELECT count(*)::int FROM consumer_processed WHERE consumer = 'order-023-kill') AS markers,
         (SELECT count(*)::int FROM outbox WHERE id IN ${admin!(events.map(({ id }) => id))} AND published_at IS NOT NULL) AS published
     `;
@@ -246,11 +242,8 @@ databaseDescribe("Order 023 crash-safe outbox relay", () => {
     await expect(relay.drainOnce(async (event, tx) => {
       handled += 1;
       await tx`
-        INSERT INTO task (id, tenant_id, property_node, kind, payload)
-        VALUES (
-          ${event.aggregateId}::uuid, ${event.tenantId}::uuid, ${event.propertyNode}::uuid,
-          'trace', '{"proof":"order-023"}'::jsonb
-        )
+        INSERT INTO fact_log (tenant_id, entity_type, entity_id, fact_type, valid_from, business_date, actor_id, payload)
+        VALUES (${event.tenantId}::uuid, 'task', ${event.aggregateId}::uuid, 'order023.effect', now(), ${event.businessDate}::date, ${event.actorId}::uuid, '{"proof":"order-023"}'::jsonb)
       `;
     }, {
       afterConsumerCommit: () => {
@@ -341,8 +334,8 @@ databaseDescribe("Order 023 crash-safe outbox relay", () => {
       const rows = await admin!<{ lastSeq: number; marks: number; effects: number }[]>`
         SELECT c.last_seq::int AS "lastSeq",
                (SELECT count(*)::int FROM consumer_processed WHERE consumer = ${consumer}) AS marks,
-               (SELECT count(*)::int FROM task WHERE payload->>'proof' = 'order-023'
-                 AND id IN ${admin!(events.map(({ aggregateId }) => aggregateId))}) AS effects
+               (SELECT count(*)::int FROM fact_log WHERE payload->>'proof' = 'order-023'
+                 AND entity_id IN ${admin!(events.map(({ aggregateId }) => aggregateId))}) AS effects
           FROM consumer_cursor AS c WHERE c.consumer = ${consumer}
       `;
       expect(rows).toEqual([{ lastSeq: baseline, marks: 0, effects: 0 }]);
@@ -381,9 +374,8 @@ databaseDescribe("Order 023 crash-safe outbox relay", () => {
       const failedBus = new PostgresEventBus(failedPool);
       try {
         await expect(consume(failedBus, async (event, tx) => {
-          await tx`INSERT INTO task (id, tenant_id, property_node, kind, payload)
-            VALUES (${event.aggregateId}::uuid, ${event.tenantId}::uuid, ${event.propertyNode}::uuid,
-                    'trace', '{"proof":"order-023"}'::jsonb)`;
+          await tx`INSERT INTO fact_log (tenant_id, entity_type, entity_id, fact_type, valid_from, business_date, actor_id, payload)
+            VALUES (${event.tenantId}::uuid, 'task', ${event.aggregateId}::uuid, 'order023.effect', now(), ${event.businessDate}::date, ${event.actorId}::uuid, '{"proof":"order-023"}'::jsonb)`;
           await tamper(tx, event);
         })).rejects.toThrow(/changed|required|settle|prepared|26000|connection|closed|terminated|reset/i);
         await assertRollback(consumer, baseline, events);

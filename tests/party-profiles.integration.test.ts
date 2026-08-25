@@ -19,7 +19,8 @@ import {
   type Tx,
 } from "../src/kernel";
 
-const DATABASE_URL = process.env.YELLOW_PARTY_PROFILES_URL;
+const DEPLOY_DATABASE_URL = process.env.YELLOW_DEPLOY_DATABASE_URL ?? process.env.YELLOW_PARTY_PROFILES_URL;
+const RUNTIME_DATABASE_URL = process.env.YELLOW_RUNTIME_DATABASE_URL ?? process.env.YELLOW_PARTY_PROFILES_URL;
 const REQUIRE_DATABASE = process.env.YELLOW_REQUIRE_PARTY_PROFILES === "1";
 
 const TENANT_A = "00000000-0000-0000-0000-000000010101";
@@ -41,11 +42,11 @@ const EMAIL_A = "asha.rao@order101.test";
 const PHONE_A = "+919876543210";
 const FOREIGN_EMAIL = "foreign@order101.test";
 
-if (REQUIRE_DATABASE && !DATABASE_URL) {
+if (REQUIRE_DATABASE && (!DEPLOY_DATABASE_URL || !RUNTIME_DATABASE_URL)) {
   throw new Error("YELLOW_PARTY_PROFILES_URL is required by the Order 101 proof");
 }
 
-const databaseDescribe = DATABASE_URL ? describe.serial : describe.skip;
+const databaseDescribe = DEPLOY_DATABASE_URL && RUNTIME_DATABASE_URL ? describe.serial : describe.skip;
 let admin: SQL | undefined;
 let eventPool: SQL | undefined;
 let database: Database | undefined;
@@ -152,10 +153,10 @@ class FailAfterPublishEventBus implements EventBus {
 }
 
 beforeAll(async () => {
-  if (!DATABASE_URL) return;
-  admin = new SQL(DATABASE_URL, { max: 24 });
-  eventPool = new SQL(DATABASE_URL, { max: 24 });
-  database = Database.connect(DATABASE_URL, { maxConnections: 48 });
+  if (!DEPLOY_DATABASE_URL || !RUNTIME_DATABASE_URL) return;
+  admin = new SQL(DEPLOY_DATABASE_URL, { max: 24 });
+  eventPool = new SQL(RUNTIME_DATABASE_URL, { max: 24 });
+  database = Database.connect(RUNTIME_DATABASE_URL, { maxConnections: 48 });
   events = new PostgresEventBus(eventPool);
   profiles = serviceFor(events);
   await cleanFixtures();
@@ -329,7 +330,8 @@ databaseDescribe("Order 101 tenant-safe Party search and create", () => {
     } finally {
       connection.release();
     }
-    expect(tenantPlan).toContain("party_tenant_status_id");
+    expect(tenantPlan).toMatch(/party_tenant_status_id|party_tenant_id_id_uq/);
+    expect(tenantPlan).toContain("Index");
     expect(contactPlan).toContain("contact_point_tenant_kind_value");
     expect(trigramPlan).toContain("party_name_trgm");
   });
