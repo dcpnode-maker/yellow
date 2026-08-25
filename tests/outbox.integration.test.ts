@@ -105,7 +105,7 @@ afterAll(async () => {
     await admin`DELETE FROM consumer_processed WHERE consumer IN ${admin(TEST_CONSUMERS)}`;
     await admin`DELETE FROM consumer_cursor WHERE consumer IN ${admin(TEST_CONSUMERS)}`;
     await admin`DELETE FROM outbox WHERE aggregate_id IN ${admin([...testAggregateIds])}`;
-    await admin`DELETE FROM task WHERE id IN (${COMMITTED_TASK}::uuid, ${ROLLED_BACK_TASK}::uuid)`;
+    await admin`DELETE FROM fact_log WHERE entity_id IN (${COMMITTED_TASK}::uuid, ${ROLLED_BACK_TASK}::uuid)`;
     for (const nodeId of [PROPERTY_A, REGION_A, GROUP_A]) {
       if (createdFixtureNodes.includes(nodeId)) {
         await admin`DELETE FROM org_node WHERE id = ${nodeId}::uuid`;
@@ -161,16 +161,16 @@ databaseDescribe("Order 022 EventBus and durable consumer", () => {
   test("P1: mutation and event commit together while rollback publishes neither", async () => {
     const committed = await database!.withTenantTransaction(TENANT_A, async (tx) => {
       await tx`
-        INSERT INTO task (id, tenant_id, property_node, kind, payload)
-        VALUES (${COMMITTED_TASK}::uuid, ${TENANT_A}::uuid, ${PROPERTY_A}::uuid, 'trace', '{}'::jsonb)
+        INSERT INTO fact_log (tenant_id, entity_type, entity_id, fact_type, valid_from, business_date, actor_id, payload)
+        VALUES (${TENANT_A}::uuid, 'task', ${COMMITTED_TASK}::uuid, 'order022.effect', now(), ${BUSINESS_DATE}::date, ${ACTOR}::uuid, '{"proof":"order-022"}'::jsonb)
       `;
       return bus!.publish(tx, event(COMMITTED_TASK, COMMITTED_CORRELATION));
     });
 
     await expect(database!.withTenantTransaction(TENANT_A, async (tx) => {
       await tx`
-        INSERT INTO task (id, tenant_id, property_node, kind, payload)
-        VALUES (${ROLLED_BACK_TASK}::uuid, ${TENANT_A}::uuid, ${PROPERTY_A}::uuid, 'trace', '{}'::jsonb)
+        INSERT INTO fact_log (tenant_id, entity_type, entity_id, fact_type, valid_from, business_date, actor_id, payload)
+        VALUES (${TENANT_A}::uuid, 'task', ${ROLLED_BACK_TASK}::uuid, 'order022.effect', now(), ${BUSINESS_DATE}::date, ${ACTOR}::uuid, '{"proof":"order-022"}'::jsonb)
       `;
       await bus!.publish(tx, event(ROLLED_BACK_TASK, ROLLED_BACK_CORRELATION));
       throw new Error("controlled event rollback");
@@ -178,9 +178,9 @@ databaseDescribe("Order 022 EventBus and durable consumer", () => {
 
     const rows = await admin!<Array<{ committed_tasks: number; committed_events: number; rolled_tasks: number; rolled_events: number }>>`
       SELECT
-        (SELECT count(*)::int FROM task WHERE id = ${COMMITTED_TASK}::uuid) AS committed_tasks,
+        (SELECT count(*)::int FROM fact_log WHERE entity_id = ${COMMITTED_TASK}::uuid) AS committed_tasks,
         (SELECT count(*)::int FROM outbox WHERE aggregate_id = ${COMMITTED_TASK}::uuid) AS committed_events,
-        (SELECT count(*)::int FROM task WHERE id = ${ROLLED_BACK_TASK}::uuid) AS rolled_tasks,
+        (SELECT count(*)::int FROM fact_log WHERE entity_id = ${ROLLED_BACK_TASK}::uuid) AS rolled_tasks,
         (SELECT count(*)::int FROM outbox WHERE aggregate_id = ${ROLLED_BACK_TASK}::uuid) AS rolled_events
     `;
     expect(rows).toEqual([{ committed_tasks: 1, committed_events: 1, rolled_tasks: 0, rolled_events: 0 }]);

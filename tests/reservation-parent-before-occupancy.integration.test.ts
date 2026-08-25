@@ -23,7 +23,8 @@ import {
   type Tx,
 } from "../src/kernel";
 
-const DATABASE_URL = process.env.YELLOW_RESERVATION_PARENT_URL;
+const DEPLOY_DATABASE_URL = process.env.YELLOW_DEPLOY_DATABASE_URL ?? process.env.YELLOW_RESERVATION_PARENT_URL;
+const RUNTIME_DATABASE_URL = process.env.YELLOW_RUNTIME_DATABASE_URL ?? process.env.YELLOW_RESERVATION_PARENT_URL;
 const REQUIRE_DATABASE = process.env.YELLOW_REQUIRE_RESERVATION_PARENT === "1";
 
 const TENANT = "00000000-0000-0000-0000-000000012901";
@@ -41,11 +42,11 @@ const DIRECT_SEGMENT = "00000000-0000-0000-0000-000000012982";
 const HELD_RESERVATION = "00000000-0000-0000-0000-000000012983";
 const HELD_SEGMENT = "00000000-0000-0000-0000-000000012984";
 
-if (REQUIRE_DATABASE && !DATABASE_URL) {
+if (REQUIRE_DATABASE && (!DEPLOY_DATABASE_URL || !RUNTIME_DATABASE_URL)) {
   throw new Error("YELLOW_RESERVATION_PARENT_URL is required by the Order 129 proof");
 }
 
-const databaseDescribe = DATABASE_URL ? describe.serial : describe.skip;
+const databaseDescribe = DEPLOY_DATABASE_URL && RUNTIME_DATABASE_URL ? describe.serial : describe.skip;
 let admin: SQL | undefined;
 let eventPool: SQL | undefined;
 let database: Database | undefined;
@@ -103,7 +104,7 @@ class StaleDirectPreparationService extends ReservationOccupancyService {
     input: PrepareReservationSegmentClaimInput,
   ): Promise<PreparedReservationSegmentClaim> {
     const prepared = await super.prepareClaimForSegment(tx, input);
-    await tx`
+    await admin!`
       UPDATE sellable_unit SET status = 'inactive'
       WHERE tenant_id = ${input.envelope.tenantId}::uuid
         AND id = ${prepared.sellableUnitId}::uuid
@@ -127,8 +128,42 @@ class StaleHoldPreparationService extends HoldService {
     tx: Tx,
     input: PrepareCartHoldForSegmentInput,
   ): Promise<PreparedCartHoldForSegment> {
-    const prepared = await super.prepareForSegment(tx, input);
-    await tx`
+    const rows = await tx.unsafe<Array<{
+      hold_id: string;
+      sellable_unit_id: string;
+      unit_type_id: string;
+      from_at: Date;
+      to_at: Date;
+      claim_count: number;
+    }>>(`
+      SELECT h.id AS hold_id, h.sellable_unit_id, su.unit_type_id,
+             lower(h.period) AS from_at, upper(h.period) AS to_at,
+             (SELECT count(*)::int FROM space_occupancy AS occupancy
+               WHERE occupancy.tenant_id = h.tenant_id
+                 AND occupancy.slot_ref = h.id
+                 AND occupancy.slot_kind = 'hold') AS claim_count
+      FROM hold AS h
+      JOIN sellable_unit AS su
+        ON su.id = h.sellable_unit_id AND su.tenant_id = h.tenant_id
+      WHERE h.tenant_id = $1::uuid
+        AND h.tenant_id = current_setting('app.tenant_id', true)::uuid
+        AND h.property_node = $2::uuid
+        AND h.id = $3::uuid
+        AND h.kind = 'cart'
+        AND h.status = 'active'
+        AND h.expires_at > transaction_timestamp()
+    `, [input.envelope.tenantId, input.envelope.propertyNode, input.holdId]);
+    const row = rows[0];
+    if (!row || row.claim_count < 1) throw new Error("Order 152 stale-hold fixture was unavailable");
+    const prepared = Object.freeze({
+      holdId: row.hold_id,
+      sellableUnitId: row.sellable_unit_id,
+      unitTypeId: row.unit_type_id,
+      from: new Date(row.from_at),
+      to: new Date(row.to_at),
+      claimCount: row.claim_count,
+    });
+    await admin!`
       UPDATE hold SET status = 'released'
       WHERE tenant_id = ${input.envelope.tenantId}::uuid
         AND id = ${prepared.holdId}::uuid
@@ -177,10 +212,10 @@ async function artifactCounts(reservationId: string, segmentId: string) {
 }
 
 beforeAll(async () => {
-  if (!DATABASE_URL) return;
-  admin = new SQL(DATABASE_URL, { max: 8 });
-  eventPool = new SQL(DATABASE_URL, { max: 8 });
-  database = Database.connect(DATABASE_URL, { maxConnections: 16 });
+  if (!DEPLOY_DATABASE_URL || !RUNTIME_DATABASE_URL) return;
+  admin = new SQL(DEPLOY_DATABASE_URL, { max: 8 });
+  eventPool = new SQL(RUNTIME_DATABASE_URL, { max: 8 });
+  database = Database.connect(RUNTIME_DATABASE_URL, { maxConnections: 16 });
   events = new PostgresEventBus(eventPool);
   holds = new HoldService(events);
 
@@ -447,6 +482,10 @@ databaseDescribe("Order 129 reservation parents precede segment occupancy", () =
       idempotencyKey: "order129-stale-direct",
       envelope: envelope("reservation.confirmed"),
     }))).rejects.toThrow("Active sellable unit");
+    await admin!`
+      UPDATE sellable_unit SET status = 'active'
+      WHERE tenant_id = ${TENANT}::uuid AND id = ${SELLABLE}::uuid
+    `;
     expect(await artifactCounts(staleReservation, staleSegment)).toEqual({
       reservations: 0, segments: 0, guests: 0, segment_claims: 0,
       facts: 0, events: 0, idempotency: 0,
@@ -559,6 +598,12 @@ databaseDescribe("Order 129 reservation parents precede segment occupancy", () =
       await expect(database!.withTenantTransaction(TENANT, (tx) =>
         serviceFor(item.reservationId, item.segmentId, { holds: item.holdService })
           .commitHeld(tx, input))).rejects.toThrow(item.message);
+      if (item.holdService instanceof StaleHoldPreparationService) {
+        await admin!`
+          UPDATE hold SET status = 'active'
+          WHERE tenant_id = ${TENANT}::uuid AND id = ${hold.id}::uuid
+        `;
+      }
       expect(await artifactCounts(item.reservationId, item.segmentId)).toEqual({
         reservations: 0, segments: 0, guests: 0, segment_claims: 0,
         facts: 0, events: 0, idempotency: 0,

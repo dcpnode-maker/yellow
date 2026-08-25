@@ -3,7 +3,8 @@ import { SQL } from "bun";
 
 import { createAuditEnvelope, Database, recordFact } from "../src/kernel";
 
-const DATABASE_URL = process.env.YELLOW_FACT_LOG_URL;
+const DEPLOY_DATABASE_URL = process.env.YELLOW_DEPLOY_DATABASE_URL ?? process.env.YELLOW_FACT_LOG_URL;
+const RUNTIME_DATABASE_URL = process.env.YELLOW_RUNTIME_DATABASE_URL ?? process.env.YELLOW_FACT_LOG_URL;
 const REQUIRE_DATABASE = process.env.YELLOW_REQUIRE_FACT_LOG === "1";
 const TENANT_A = "00000000-0000-0000-0000-000000000001";
 const TENANT_B = "00000000-0000-0000-0000-000000000002";
@@ -13,12 +14,15 @@ const COMMITTED_USER = "00000000-0000-0000-0000-000000000971";
 const ROLLED_BACK_USER = "00000000-0000-0000-0000-000000000972";
 const COMMITTED_REQUEST = "00000000-0000-0000-0000-000000000981";
 const ROLLED_BACK_REQUEST = "00000000-0000-0000-0000-000000000982";
+const COMMITTED_KEY_HASH = "a".repeat(64);
+const ROLLED_BACK_KEY_HASH = "b".repeat(64);
+const REQUEST_HASH = "c".repeat(64);
 
-if (REQUIRE_DATABASE && !DATABASE_URL) {
+if (REQUIRE_DATABASE && (!DEPLOY_DATABASE_URL || !RUNTIME_DATABASE_URL)) {
   throw new Error("YELLOW_FACT_LOG_URL is required by the Order 021 proof");
 }
 
-const databaseDescribe = DATABASE_URL ? describe.serial : describe.skip;
+const databaseDescribe = DEPLOY_DATABASE_URL && RUNTIME_DATABASE_URL ? describe.serial : describe.skip;
 let database: Database | undefined;
 let admin: SQL | undefined;
 let committedFactId: string | undefined;
@@ -29,16 +33,34 @@ function sqlState(error: unknown): string | undefined {
   return typeof errno === "string" && errno !== "" ? errno : undefined;
 }
 
-beforeAll(() => {
-  if (!DATABASE_URL) return;
-  database = Database.connect(DATABASE_URL, { maxConnections: 2 });
-  admin = new SQL(DATABASE_URL, { max: 1 });
+beforeAll(async () => {
+  if (!DEPLOY_DATABASE_URL || !RUNTIME_DATABASE_URL) return;
+  database = Database.connect(RUNTIME_DATABASE_URL, { maxConnections: 2 });
+  admin = new SQL(DEPLOY_DATABASE_URL, { max: 1 });
+  await admin`
+    INSERT INTO tenant (id, slug, name, tier, status)
+    VALUES (${TENANT_A}::uuid, 'order-021-fact-log', 'Order 021 Fact Log', 'shared', 'active')
+  `;
+  await admin`
+    INSERT INTO org_node (id, tenant_id, path, kind, name, timezone, currency)
+    VALUES (${PROPERTY_A}::uuid, ${TENANT_A}::uuid, 'order_021_property', 'property',
+      'Order 021 Property', 'UTC', 'USD')
+  `;
+  await admin`
+    INSERT INTO app_user (id, tenant_id, email, display_name, auth, status)
+    VALUES (${COMMITTED_USER}::uuid, ${TENANT_A}::uuid,
+      'order-021-commit@yellow.test', 'Order 021 Commit', '{}'::jsonb, 'active')
+  `;
 });
 
 afterAll(async () => {
   if (admin) {
+    await admin`DELETE FROM api_idempotency WHERE tenant_id = ${TENANT_A}::uuid
+      AND operation = 'kernel.fact-log-proof'`;
     await admin`DELETE FROM fact_log WHERE entity_id IN (${COMMITTED_USER}::uuid, ${ROLLED_BACK_USER}::uuid)`;
     await admin`DELETE FROM app_user WHERE id IN (${COMMITTED_USER}::uuid, ${ROLLED_BACK_USER}::uuid)`;
+    await admin`DELETE FROM org_node WHERE id = ${PROPERTY_A}::uuid`;
+    await admin`DELETE FROM tenant WHERE id = ${TENANT_A}::uuid`;
     await admin.close();
   }
   await database?.close();
@@ -56,14 +78,12 @@ databaseDescribe("Order 021 fact_log audit envelope", () => {
 
     const fact = await database!.withTenantTransaction(TENANT_A, async (tx) => {
       await tx`
-        INSERT INTO app_user (id, tenant_id, email, display_name, auth, status)
-        VALUES (
-          ${COMMITTED_USER}::uuid,
-          ${TENANT_A}::uuid,
-          'order-021-commit@yellow.test',
-          'Order 021 Commit',
-          '{}'::jsonb,
-          'active'
+        INSERT INTO api_idempotency (
+          tenant_id, operation, key_hash, request_hash, created_at, expires_at
+        ) VALUES (
+          ${TENANT_A}::uuid, 'kernel.fact-log-proof', ${COMMITTED_KEY_HASH}::char(64),
+          ${REQUEST_HASH}::char(64), transaction_timestamp(),
+          transaction_timestamp() + interval '24 hours'
         )
       `;
       return recordFact(tx, {
@@ -77,6 +97,7 @@ databaseDescribe("Order 021 fact_log audit envelope", () => {
 
     const rows = await admin!<Array<{
       user_count: number;
+      mutation_count: number;
       fact_count: number;
       tenant_id: string;
       actor_id: string;
@@ -87,6 +108,8 @@ databaseDescribe("Order 021 fact_log audit envelope", () => {
     }>>`
       SELECT
         (SELECT count(*)::int FROM app_user WHERE id = ${COMMITTED_USER}::uuid) AS user_count,
+        (SELECT count(*)::int FROM api_idempotency WHERE tenant_id = ${TENANT_A}::uuid
+          AND operation = 'kernel.fact-log-proof' AND key_hash = ${COMMITTED_KEY_HASH}::char(64)) AS mutation_count,
         count(*)::int AS fact_count,
         min(tenant_id::text) AS tenant_id,
         min(actor_id::text) AS actor_id,
@@ -99,6 +122,7 @@ databaseDescribe("Order 021 fact_log audit envelope", () => {
     `;
     const row = rows[0]!;
     expect(row.user_count).toBe(1);
+    expect(row.mutation_count).toBe(1);
     expect(row.fact_count).toBe(1);
     expect(row.tenant_id).toBe(TENANT_A);
     expect(row.actor_id).toBe(ACTOR);
@@ -118,14 +142,12 @@ databaseDescribe("Order 021 fact_log audit envelope", () => {
 
     await expect(database!.withTenantTransaction(TENANT_A, async (tx) => {
       await tx`
-        INSERT INTO app_user (id, tenant_id, email, display_name, auth, status)
-        VALUES (
-          ${ROLLED_BACK_USER}::uuid,
-          ${TENANT_A}::uuid,
-          'order-021-rollback@yellow.test',
-          'Order 021 Rollback',
-          '{}'::jsonb,
-          'active'
+        INSERT INTO api_idempotency (
+          tenant_id, operation, key_hash, request_hash, created_at, expires_at
+        ) VALUES (
+          ${TENANT_A}::uuid, 'kernel.fact-log-proof', ${ROLLED_BACK_KEY_HASH}::char(64),
+          ${REQUEST_HASH}::char(64), transaction_timestamp(),
+          transaction_timestamp() + interval '24 hours'
         )
       `;
       await recordFact(tx, {
@@ -136,12 +158,13 @@ databaseDescribe("Order 021 fact_log audit envelope", () => {
       throw new Error("controlled rollback");
     })).rejects.toThrow("controlled rollback");
 
-    const rows = await admin!<Array<{ users: number; facts: number }>>`
+    const rows = await admin!<Array<{ mutations: number; facts: number }>>`
       SELECT
-        (SELECT count(*)::int FROM app_user WHERE id = ${ROLLED_BACK_USER}::uuid) AS users,
+        (SELECT count(*)::int FROM api_idempotency WHERE tenant_id = ${TENANT_A}::uuid
+          AND operation = 'kernel.fact-log-proof' AND key_hash = ${ROLLED_BACK_KEY_HASH}::char(64)) AS mutations,
         (SELECT count(*)::int FROM fact_log WHERE entity_id = ${ROLLED_BACK_USER}::uuid) AS facts
     `;
-    expect(rows).toEqual([{ users: 0, facts: 0 }]);
+    expect(rows).toEqual([{ mutations: 0, facts: 0 }]);
   });
 
   test("P3: app_role cannot update or delete fact_log", async () => {
