@@ -332,19 +332,21 @@ databaseDescribe("Order 023 crash-safe outbox relay", () => {
     expect(await bus!.markPublished(unpublishedRollbackEvents.map(({ id }) => id))).toBe(unpublishedRollbackEvents.length);
   });
 
-  test("D399/D402: mixed-tenant order, tamper rollback, and neutralized reuse", async () => {
-    await seedConsumerCursor("order-023-mixed-clean");
-    const cleanEvents = await insertMixedEvents();
-    const cleanSeen: Array<{ id: string; user: string; tenant: string }> = [];
-    const cleanResult = await bus!.consumeBatch("order-023-mixed-clean", async (event, tx) => {
-      const rows = await tx<{ user: string; tenant: string }[]>`
-        SELECT current_user::text AS user, current_setting('app.tenant_id', true) AS tenant
-      `;
-      cleanSeen.push({ id: event.id, user: rows[0]!.user, tenant: rows[0]!.tenant });
-    }, { limit: 10 });
-    expect(cleanResult).toMatchObject({ examined: 5, processed: 5, lastSeq: cleanEvents.at(-1)!.seq });
-    expect(cleanSeen).toEqual(cleanEvents.map(({ id, tenantId }) => ({ id, user: "app_role", tenant: tenantId })));
-    expect(await bus!.markPublished(cleanEvents.map(({ id }) => id))).toBe(5);
+  const runD399Proof = async (mode: "ordered" | "unpublished") => {
+    if (mode === "ordered") {
+      await seedConsumerCursor("order-023-mixed-clean");
+      const cleanEvents = await insertMixedEvents();
+      const cleanSeen: Array<{ id: string; user: string; tenant: string }> = [];
+      const cleanResult = await bus!.consumeBatch("order-023-mixed-clean", async (event, tx) => {
+        const rows = await tx<{ user: string; tenant: string }[]>`
+          SELECT current_user::text AS user, current_setting('app.tenant_id', true) AS tenant
+        `;
+        cleanSeen.push({ id: event.id, user: rows[0]!.user, tenant: rows[0]!.tenant });
+      }, { limit: 10 });
+      expect(cleanResult).toMatchObject({ examined: 5, processed: 5, lastSeq: cleanEvents.at(-1)!.seq });
+      expect(cleanSeen).toEqual(cleanEvents.map(({ id, tenantId }) => ({ id, user: "app_role", tenant: tenantId })));
+      expect(await bus!.markPublished(cleanEvents.map(({ id }) => id))).toBe(5);
+    }
 
     const assertRollback = async (consumer: string, baseline: number, events: readonly OutboxEvent[]) => {
       const rows = await admin!<{ lastSeq: number; marks: number; effects: number }[]>`
@@ -449,28 +451,31 @@ databaseDescribe("Order 023 crash-safe outbox relay", () => {
       await admin!`SELECT pg_terminate_backend(${rows[0]!.pid})`;
     };
 
-    await runFailure("order-023-mixed-reset", (candidate, handler) => candidate.consumeBatch("order-023-mixed-reset", handler, { limit: 10 }), async (tx) => {
-      await tx.unsafe("RESET ROLE");
-    });
-    await runFailure("order-023-mixed-reset-unpublished", (candidate, handler) => candidate.consumeUnpublishedBatch("order-023-mixed-reset-unpublished", handler, { limit: 10 }), async (tx) => {
-      await tx.unsafe("RESET ROLE");
-    });
-    await runFailure("order-023-mixed-wrong-tenant", (candidate, handler) => candidate.consumeBatch("order-023-mixed-wrong-tenant", handler, { limit: 10 }), async (tx) => {
-      await tx`SELECT set_config('app.tenant_id', ${MIXED_TENANT_B}, false)`;
-    });
-    await runFailure("order-023-mixed-wrong-tenant-unpublished", (candidate, handler) => candidate.consumeUnpublishedBatch("order-023-mixed-wrong-tenant-unpublished", handler, { limit: 10 }), async (tx) => {
-      await tx`SELECT set_config('app.tenant_id', ${MIXED_TENANT_B}, false)`;
-    });
-    await runSameValue("order-023-mixed-guc", (candidate, handler) => candidate.consumeBatch("order-023-mixed-guc", handler, { limit: 10 }), false);
-    await runSameValue("order-023-mixed-guc-deallocate", (candidate, handler) => candidate.consumeBatch("order-023-mixed-guc-deallocate", handler, { limit: 10 }), true);
-    await runFailure("order-023-mixed-unpublished-failure", (candidate, handler) => candidate.consumeUnpublishedBatch("order-023-mixed-unpublished-failure", handler, { limit: 10 }), async (tx) => {
-      await tx`SELECT set_config('app.tenant_id', ${MIXED_TENANT_B}, false)`;
-    });
-    await runSameValue("order-023-mixed-unpublished-guc", (candidate, handler) => candidate.consumeUnpublishedBatch("order-023-mixed-unpublished-guc", handler, { limit: 10 }), false);
-    await runSameValue("order-023-mixed-unpublished", (candidate, handler) => candidate.consumeUnpublishedBatch("order-023-mixed-unpublished", handler, { limit: 10 }), true);
-    await runFailure("order-023-mixed-settlement-failure", (candidate, handler) => candidate.consumeBatch("order-023-mixed-settlement-failure", handler, { limit: 10 }), terminateHandlerBackend, true);
-    await runFailure("order-023-mixed-unpublished-settlement-failure", (candidate, handler) => candidate.consumeUnpublishedBatch("order-023-mixed-unpublished-settlement-failure", handler, { limit: 10 }), terminateHandlerBackend, true);
-  });
+    if (mode === "ordered") {
+      await runFailure("order-023-mixed-reset", (candidate, handler) => candidate.consumeBatch("order-023-mixed-reset", handler, { limit: 10 }), async (tx) => {
+        await tx.unsafe("RESET ROLE");
+      });
+      await runFailure("order-023-mixed-wrong-tenant", (candidate, handler) => candidate.consumeBatch("order-023-mixed-wrong-tenant", handler, { limit: 10 }), async (tx) => {
+        await tx`SELECT set_config('app.tenant_id', ${MIXED_TENANT_B}, false)`;
+      });
+      await runSameValue("order-023-mixed-guc", (candidate, handler) => candidate.consumeBatch("order-023-mixed-guc", handler, { limit: 10 }), false);
+      await runSameValue("order-023-mixed-guc-deallocate", (candidate, handler) => candidate.consumeBatch("order-023-mixed-guc-deallocate", handler, { limit: 10 }), true);
+      await runFailure("order-023-mixed-settlement-failure", (candidate, handler) => candidate.consumeBatch("order-023-mixed-settlement-failure", handler, { limit: 10 }), terminateHandlerBackend, true);
+    } else {
+      await runFailure("order-023-mixed-reset-unpublished", (candidate, handler) => candidate.consumeUnpublishedBatch("order-023-mixed-reset-unpublished", handler, { limit: 10 }), async (tx) => {
+        await tx.unsafe("RESET ROLE");
+      });
+      await runFailure("order-023-mixed-wrong-tenant-unpublished", (candidate, handler) => candidate.consumeUnpublishedBatch("order-023-mixed-wrong-tenant-unpublished", handler, { limit: 10 }), async (tx) => {
+        await tx`SELECT set_config('app.tenant_id', ${MIXED_TENANT_B}, false)`;
+      });
+      await runSameValue("order-023-mixed-unpublished-guc", (candidate, handler) => candidate.consumeUnpublishedBatch("order-023-mixed-unpublished-guc", handler, { limit: 10 }), false);
+      await runSameValue("order-023-mixed-unpublished", (candidate, handler) => candidate.consumeUnpublishedBatch("order-023-mixed-unpublished", handler, { limit: 10 }), true);
+      await runFailure("order-023-mixed-unpublished-settlement-failure", (candidate, handler) => candidate.consumeUnpublishedBatch("order-023-mixed-unpublished-settlement-failure", handler, { limit: 10 }), terminateHandlerBackend, true);
+    }
+  };
+
+  test("D399/D402 ordered: mixed-tenant tamper and neutralized reuse", async () => runD399Proof("ordered"));
+  test("D399/D402 unpublished: mixed-tenant tamper and neutralized reuse", async () => runD399Proof("unpublished"));
 
   test("P4: polling starts every 100-250 ms while idle and under load", async () => {
     async function measure(consumer: string, load: boolean): Promise<number[]> {
