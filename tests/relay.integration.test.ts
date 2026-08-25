@@ -8,6 +8,8 @@ const RUNTIME_DATABASE_URL = process.env.YELLOW_RUNTIME_DATABASE_URL ?? process.
 const REQUIRE_DATABASE = process.env.YELLOW_REQUIRE_RELAY === "1";
 const TENANT = "00000000-0000-0000-0000-000000000001";
 const PROPERTY = "00000000-0000-0000-0000-000000000012";
+const MIXED_TENANT_B = crypto.randomUUID();
+const MIXED_PROPERTY_B = crypto.randomUUID();
 const ACTOR = "00000000-0000-0000-0000-000000000960";
 const BUSINESS_DATE = "2026-09-02";
 const CONSUMERS = [
@@ -23,6 +25,9 @@ const CONSUMERS = [
   "order-023-canary-unpublished",
   "order-023-canary-cursor-rollback",
   "order-023-canary-unpublished-rollback",
+  "order-023-mixed-clean",
+  "order-023-mixed-reset",
+  "order-023-mixed-guc",
 ] as const;
 
 if (REQUIRE_DATABASE && (!DEPLOY_DATABASE_URL || !RUNTIME_DATABASE_URL)) {
@@ -79,16 +84,46 @@ async function insertEvents(count: number, correlation = crypto.randomUUID()): P
   }));
 }
 
-async function seedConsumerCursor(consumer: string): Promise<void> {
+async function seedConsumerCursor(consumer: string): Promise<number> {
   await admin!`DELETE FROM consumer_processed WHERE consumer = ${consumer}`;
   const rows = await admin!<{ lastSeq: number }[]>`
     SELECT COALESCE(max(seq), 0)::int AS "lastSeq" FROM outbox
   `;
+  const lastSeq = rows[0]?.lastSeq ?? 0;
   await admin!`
     INSERT INTO consumer_cursor (consumer, last_seq)
-    VALUES (${consumer}, ${rows[0]?.lastSeq ?? 0}::bigint)
+    VALUES (${consumer}, ${lastSeq}::bigint)
     ON CONFLICT (consumer) DO UPDATE SET last_seq = EXCLUDED.last_seq
   `;
+  return lastSeq;
+}
+
+async function insertMixedEvents(): Promise<OutboxEvent[]> {
+  const tenants = [TENANT, TENANT, MIXED_TENANT_B, MIXED_TENANT_B, TENANT];
+  const properties = [PROPERTY, PROPERTY, MIXED_PROPERTY_B, MIXED_PROPERTY_B, PROPERTY];
+  const correlation = crypto.randomUUID();
+  correlations.add(correlation);
+  const events: OutboxEvent[] = [];
+  for (let index = 0; index < tenants.length; index += 1) {
+    const rows = await admin!<Array<{ seq: number; id: string; aggregate_id: string; created_at: Date }>>`
+      INSERT INTO outbox (
+        tenant_id, property_node, business_date, aggregate_type, aggregate_id,
+        event_type, actor_id, correlation_id, payload
+      ) VALUES (
+        ${tenants[index]!}::uuid, ${properties[index]!}::uuid, ${BUSINESS_DATE}::date,
+        'task', gen_random_uuid(), 'task.created', ${ACTOR}::uuid, ${correlation}::uuid,
+        '{"proof":"order-023-mixed"}'::jsonb
+      ) RETURNING seq::int, id, aggregate_id, created_at
+    `;
+    const row = rows[0]!;
+    events.push({
+      seq: row.seq, id: row.id, tenantId: tenants[index]!, propertyNode: properties[index]!,
+      businessDate: BUSINESS_DATE, aggregateType: "task", aggregateId: row.aggregate_id,
+      eventType: "task.created", eventVersion: 1, actorId: ACTOR, correlationId: correlation,
+      causationId: null, occurredAt: row.created_at, payload: { proof: "order-023-mixed" },
+    });
+  }
+  return events;
 }
 
 async function drain(relay: OutboxRelay, handler: Parameters<OutboxRelay["drainOnce"]>[0]): Promise<number> {
@@ -116,6 +151,9 @@ beforeAll(async () => {
   bus = new PostgresEventBus(pool);
   // Order proofs own the relay's pending queue; isolate it from prior local test data.
   await admin`UPDATE outbox SET published_at = now() WHERE published_at IS NULL`;
+  await admin`INSERT INTO tenant (id, slug, name) VALUES (${MIXED_TENANT_B}::uuid, 'order023-mixed-b', 'Order 023 Mixed B')`;
+  await admin`INSERT INTO org_node (id, tenant_id, path, kind, name, timezone, currency)
+    VALUES (${MIXED_PROPERTY_B}::uuid, ${MIXED_TENANT_B}::uuid, 'order023.mixed_b'::ltree, 'property', 'Order 023 Mixed B', 'UTC', 'USD')`;
 });
 
 afterAll(async () => {
@@ -126,6 +164,8 @@ afterAll(async () => {
     if (correlations.size > 0) {
       await admin`DELETE FROM outbox WHERE correlation_id IN ${admin([...correlations])}`;
     }
+    await admin`DELETE FROM org_node WHERE id = ${MIXED_PROPERTY_B}::uuid`;
+    await admin`DELETE FROM tenant WHERE id = ${MIXED_TENANT_B}::uuid`;
     await admin.close();
   }
   await pool?.close();
@@ -280,6 +320,93 @@ databaseDescribe("Order 023 crash-safe outbox relay", () => {
     }, { limit: 10 })).rejects.toThrow("D398 unpublished rollback");
     const unpublishedRetry = await bus!.consumeUnpublishedBatch("order-023-canary-unpublished-rollback", async () => undefined, { limit: 10 });
     expect(unpublishedRetry.processed).toBe(unpublishedRollbackEvents.length);
+  });
+
+  test("D399: mixed-tenant handlers are ordered and hostile context tampering rolls back exactly", async () => {
+    const cleanBaseline = await seedConsumerCursor("order-023-mixed-clean");
+    const cleanEvents = await insertMixedEvents();
+    const cleanSeen: Array<{ id: string; user: string; tenant: string }> = [];
+    const cleanResult = await bus!.consumeBatch("order-023-mixed-clean", async (event, tx) => {
+      const rows = await tx<{ user: string; tenant: string }[]>`
+        SELECT current_user::text AS user, current_setting('app.tenant_id', true) AS tenant
+      `;
+      cleanSeen.push({ id: event.id, user: rows[0]!.user, tenant: rows[0]!.tenant });
+    }, { limit: 10 });
+    expect(cleanResult).toMatchObject({ examined: 5, processed: 5, lastSeq: cleanEvents.at(-1)!.seq });
+    expect(cleanSeen).toEqual(cleanEvents.map(({ id, tenantId }) => ({ id, user: "app_role", tenant: tenantId })));
+    expect(await bus!.markPublished(cleanEvents.map(({ id }) => id))).toBe(5);
+
+    const resetBaseline = await seedConsumerCursor("order-023-mixed-reset");
+    const resetEvents = await insertMixedEvents();
+    await expect(bus!.consumeBatch("order-023-mixed-reset", async (event, tx) => {
+      await tx`
+        INSERT INTO task (id, tenant_id, property_node, kind, payload)
+        VALUES (${event.aggregateId}::uuid, ${event.tenantId}::uuid, ${event.propertyNode}::uuid,
+                'trace', '{"proof":"order-023"}'::jsonb)
+      `;
+      await tx.unsafe("RESET ROLE");
+      await tx`SELECT set_config('app.tenant_id', ${MIXED_TENANT_B}, false)`;
+      throw new Error("D399 reset-role tamper");
+    }, { limit: 10 })).rejects.toThrow("D399 reset-role tamper");
+    const resetRollback = await admin!<{ lastSeq: number; marks: number; effects: number }[]>`
+      SELECT c.last_seq::int AS "lastSeq",
+             (SELECT count(*)::int FROM consumer_processed WHERE consumer = 'order-023-mixed-reset') AS marks,
+             (SELECT count(*)::int FROM task WHERE payload->>'proof' = 'order-023' AND id IN ${admin!(resetEvents.map(({ aggregateId }) => aggregateId))}) AS effects
+        FROM consumer_cursor AS c WHERE c.consumer = 'order-023-mixed-reset'
+    `;
+    expect(resetRollback).toEqual([{ lastSeq: resetBaseline, marks: 0, effects: 0 }]);
+    const resetSeen: string[] = [];
+    const resetRetry = await bus!.consumeBatch("order-023-mixed-reset", async (event, tx) => {
+      const rows = await tx<{ user: string; tenant: string }[]>`
+        SELECT current_user::text AS user, current_setting('app.tenant_id', true) AS tenant
+      `;
+      expect(rows).toEqual([{ user: "app_role", tenant: event.tenantId }]);
+      resetSeen.push(event.id);
+    }, { limit: 10 });
+    expect(resetRetry.processed).toBe(resetEvents.length);
+    expect(resetSeen).toEqual(resetEvents.map(({ id }) => id));
+    expect(await bus!.markPublished(resetEvents.map(({ id }) => id))).toBe(5);
+
+    const gucBaseline = await seedConsumerCursor("order-023-mixed-guc");
+    const gucEvents = await insertMixedEvents();
+    await expect(bus!.consumeBatch("order-023-mixed-guc", async (event, tx) => {
+      await tx`
+        INSERT INTO task (id, tenant_id, property_node, kind, payload)
+        VALUES (${event.aggregateId}::uuid, ${event.tenantId}::uuid, ${event.propertyNode}::uuid,
+                'trace', '{"proof":"order-023"}'::jsonb)
+      `;
+      await tx`SELECT set_config('app.tenant_id', ${MIXED_TENANT_B}, false)`;
+      throw new Error("D399 tenant-GUC tamper");
+    }, { limit: 10 })).rejects.toThrow("D399 tenant-GUC tamper");
+    const gucRollback = await admin!<{ lastSeq: number; marks: number; effects: number }[]>`
+      SELECT c.last_seq::int AS "lastSeq",
+             (SELECT count(*)::int FROM consumer_processed WHERE consumer = 'order-023-mixed-guc') AS marks,
+             (SELECT count(*)::int FROM task WHERE payload->>'proof' = 'order-023' AND id IN ${admin!(gucEvents.map(({ aggregateId }) => aggregateId))}) AS effects
+        FROM consumer_cursor AS c WHERE c.consumer = 'order-023-mixed-guc'
+    `;
+    expect(gucRollback).toEqual([{ lastSeq: gucBaseline, marks: 0, effects: 0 }]);
+    const gucSeen: string[] = [];
+    const gucRetry = await bus!.consumeBatch("order-023-mixed-guc", async (event, tx) => {
+      const rows = await tx<{ user: string; tenant: string }[]>`
+        SELECT current_user::text AS user, current_setting('app.tenant_id', true) AS tenant
+      `;
+      expect(rows).toEqual([{ user: "app_role", tenant: event.tenantId }]);
+      gucSeen.push(event.id);
+    }, { limit: 10 });
+    expect(gucRetry.processed).toBe(gucEvents.length);
+    expect(gucSeen).toEqual(gucEvents.map(({ id }) => id));
+    expect(await bus!.markPublished(gucEvents.map(({ id }) => id))).toBe(5);
+
+    const settled = await pool!.reserve();
+    try {
+      const rows = await settled<{ current_user: string; session_user: string; tenant_clear: boolean }[]>`
+        SELECT current_user::text AS current_user, session_user::text AS session_user,
+               NULLIF(current_setting('app.tenant_id', true), '') IS NULL AS tenant_clear
+      `;
+      expect(rows).toEqual([{ current_user: "yellow_runtime", session_user: "yellow_runtime", tenant_clear: true }]);
+    } finally {
+      settled.release();
+    }
   });
 
   test("P4: polling starts every 100-250 ms while idle and under load", async () => {
