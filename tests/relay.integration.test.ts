@@ -27,10 +27,16 @@ const CONSUMERS = [
   "order-023-canary-unpublished-rollback",
   "order-023-mixed-clean",
   "order-023-mixed-reset",
+  "order-023-mixed-reset-unpublished",
   "order-023-mixed-wrong-tenant",
+  "order-023-mixed-wrong-tenant-unpublished",
   "order-023-mixed-guc",
+  "order-023-mixed-guc-deallocate",
   "order-023-mixed-unpublished",
+  "order-023-mixed-unpublished-guc",
   "order-023-mixed-unpublished-failure",
+  "order-023-mixed-settlement-failure",
+  "order-023-mixed-unpublished-settlement-failure",
 ] as const;
 
 if (REQUIRE_DATABASE && (!DEPLOY_DATABASE_URL || !RUNTIME_DATABASE_URL)) {
@@ -371,7 +377,12 @@ databaseDescribe("Order 023 crash-safe outbox relay", () => {
     };
 
     type Consume = (candidate: PostgresEventBus, handler: (event: OutboxEvent, tx: Tx) => Promise<void>) => Promise<unknown>;
-    const runFailure = async (consumer: string, consume: Consume, tamper: (tx: Tx, event: OutboxEvent) => Promise<void>) => {
+    const runFailure = async (
+      consumer: string,
+      consume: Consume,
+      tamper: (tx: Tx, event: OutboxEvent) => Promise<void>,
+      expectPoolClosed = false,
+    ) => {
       const baseline = await seedConsumerCursor(consumer);
       const events = await insertMixedEvents();
       const failedPool = new SQL(RUNTIME_DATABASE_URL!, { max: 1, prepare: false });
@@ -382,8 +393,11 @@ databaseDescribe("Order 023 crash-safe outbox relay", () => {
             VALUES (${event.aggregateId}::uuid, ${event.tenantId}::uuid, ${event.propertyNode}::uuid,
                     'trace', '{"proof":"order-023"}'::jsonb)`;
           await tamper(tx, event);
-        })).rejects.toThrow(/changed|required|settle|prepared|26000/i);
+        })).rejects.toThrow(/changed|required|settle|prepared|26000|connection|closed|terminated|reset/i);
         await assertRollback(consumer, baseline, events);
+        if (expectPoolClosed) {
+          await expect(failedPool.reserve()).rejects.toThrow();
+        }
       } finally {
         // A true settlement failure fail-closes this pool; never rely on PID replacement in place.
         await failedPool.close();
@@ -429,17 +443,32 @@ databaseDescribe("Order 023 crash-safe outbox relay", () => {
       }
     };
 
+    const terminateHandlerBackend = async (tx: Tx) => {
+      const rows = await tx<{ pid: number }[]>`SELECT pg_backend_pid()::int AS pid`;
+      await admin!`SELECT pg_terminate_backend(${rows[0]!.pid})`;
+    };
+
     await runFailure("order-023-mixed-reset", (candidate, handler) => candidate.consumeBatch("order-023-mixed-reset", handler, { limit: 10 }), async (tx) => {
+      await tx.unsafe("RESET ROLE");
+    });
+    await runFailure("order-023-mixed-reset-unpublished", (candidate, handler) => candidate.consumeUnpublishedBatch("order-023-mixed-reset-unpublished", handler, { limit: 10 }), async (tx) => {
       await tx.unsafe("RESET ROLE");
     });
     await runFailure("order-023-mixed-wrong-tenant", (candidate, handler) => candidate.consumeBatch("order-023-mixed-wrong-tenant", handler, { limit: 10 }), async (tx) => {
       await tx`SELECT set_config('app.tenant_id', ${MIXED_TENANT_B}, false)`;
     });
+    await runFailure("order-023-mixed-wrong-tenant-unpublished", (candidate, handler) => candidate.consumeUnpublishedBatch("order-023-mixed-wrong-tenant-unpublished", handler, { limit: 10 }), async (tx) => {
+      await tx`SELECT set_config('app.tenant_id', ${MIXED_TENANT_B}, false)`;
+    });
     await runSameValue("order-023-mixed-guc", (candidate, handler) => candidate.consumeBatch("order-023-mixed-guc", handler, { limit: 10 }), false);
+    await runSameValue("order-023-mixed-guc-deallocate", (candidate, handler) => candidate.consumeBatch("order-023-mixed-guc-deallocate", handler, { limit: 10 }), true);
     await runFailure("order-023-mixed-unpublished-failure", (candidate, handler) => candidate.consumeUnpublishedBatch("order-023-mixed-unpublished-failure", handler, { limit: 10 }), async (tx) => {
       await tx`SELECT set_config('app.tenant_id', ${MIXED_TENANT_B}, false)`;
     });
+    await runSameValue("order-023-mixed-unpublished-guc", (candidate, handler) => candidate.consumeUnpublishedBatch("order-023-mixed-unpublished-guc", handler, { limit: 10 }), false);
     await runSameValue("order-023-mixed-unpublished", (candidate, handler) => candidate.consumeUnpublishedBatch("order-023-mixed-unpublished", handler, { limit: 10 }), true);
+    await runFailure("order-023-mixed-settlement-failure", (candidate, handler) => candidate.consumeBatch("order-023-mixed-settlement-failure", handler, { limit: 10 }), terminateHandlerBackend, true);
+    await runFailure("order-023-mixed-unpublished-settlement-failure", (candidate, handler) => candidate.consumeUnpublishedBatch("order-023-mixed-unpublished-settlement-failure", handler, { limit: 10 }), terminateHandlerBackend, true);
   });
 
   test("P4: polling starts every 100-250 ms while idle and under load", async () => {
