@@ -244,7 +244,11 @@ databaseDescribe("Order 127 runtime database authority (kernel boundary; HTTP P4
        WHERE n.nspname = 'public' AND p.proname LIKE 'runtime_%'
        ORDER BY signature
     `;
-    expect(capabilities).toHaveLength(8);
+    expect(capabilities).toHaveLength(10);
+    expect(capabilities.map(({ signature }) => signature)).toEqual(expect.arrayContaining([
+      "public.runtime_visible_extensions(uuid)",
+      "public.runtime_extension_compatibility_inputs(text)",
+    ]));
     expect(capabilities.every((row) => row.owner === "yellow_owner" && !row.public_execute && !row.app_execute && row.runtime_execute && JSON.stringify(row.config) === JSON.stringify(["search_path=pg_catalog, public, pg_temp"]))).toBe(true);
 
     const rls = await admin!<{ tables: number; enabled: number; forced: number; policies: number }[]>`
@@ -292,7 +296,7 @@ databaseDescribe("Order 127 runtime database authority (kernel boundary; HTTP P4
         FROM pg_catalog.pg_proc p JOIN pg_catalog.pg_namespace n ON n.oid = p.pronamespace
        WHERE n.nspname = 'public' AND p.proname LIKE 'runtime_%' ORDER BY signature
     `;
-    expect(denied).toHaveLength(8);
+    expect(denied).toHaveLength(10);
     expect(denied.every((row) => !row.public_execute && !row.app_execute)).toBe(true);
 
     await database.withTenantTransaction(tenantA, async (tx) => {
@@ -306,6 +310,20 @@ databaseDescribe("Order 127 runtime database authority (kernel boundary; HTTP P4
       expect(await captureSqlState(() => tx`SELECT public.runtime_prune_outbox(-1)`)).toBe("22023");
       const unknown = await tx<{ id: string | null }[]>`SELECT public.runtime_resolve_active_tenant('bad'' OR 1=1') AS id`;
       expect(unknown).toEqual([{ id: null }]);
+      expect(await captureSqlState(() => tx`SELECT public.runtime_extension_compatibility_inputs('')`)).toBe("22023");
+      const visibleA = await tx<{ count: number }[]>`
+        SELECT count(*)::int AS count FROM public.runtime_visible_extensions(${tenantA}::uuid)
+      `;
+      const visibleB = await tx<{ count: number }[]>`
+        SELECT count(*)::int AS count FROM public.runtime_visible_extensions(${tenantB}::uuid)
+      `;
+      expect(visibleA[0]?.count).toBeGreaterThanOrEqual(0);
+      expect(visibleB[0]?.count).toBeGreaterThanOrEqual(0);
+      await tx.unsafe("CREATE TEMP TABLE runtime_visible_extensions (id uuid) ON COMMIT DROP");
+      await tx`SELECT count(*)::int FROM public.runtime_visible_extensions(${tenantA}::uuid)`;
+      await tx.unsafe("CREATE TEMP TABLE runtime_extension_compatibility_inputs (id uuid) ON COMMIT DROP");
+      await tx`SELECT count(*)::int FROM public.runtime_extension_compatibility_inputs('order127-missing')`;
     });
   });
+
 });
