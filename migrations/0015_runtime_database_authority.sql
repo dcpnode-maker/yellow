@@ -105,7 +105,7 @@ BEGIN
         FROM pg_catalog.pg_class c
         JOIN pg_catalog.pg_namespace n ON n.oid = c.relnamespace
        WHERE n.nspname = 'public'
-         AND c.relkind IN ('r', 'p', 'v', 'm', 'S')
+         AND c.relkind IN ('r', 'p', 'v', 'm', 'f', 'S')
          AND NOT EXISTS (
            SELECT 1 FROM pg_catalog.pg_depend d
             WHERE d.classid = 'pg_catalog.pg_class'::pg_catalog.regclass
@@ -120,7 +120,7 @@ BEGIN
       FROM pg_catalog.pg_class c
       JOIN pg_catalog.pg_namespace n ON n.oid = c.relnamespace
      WHERE n.nspname = 'public'
-       AND c.relkind IN ('r', 'p', 'v', 'm', 'S')
+       AND c.relkind IN ('r', 'p', 'v', 'm', 'f', 'S')
        AND NOT EXISTS (
          SELECT 1 FROM pg_catalog.pg_depend d
           WHERE d.classid = 'pg_catalog.pg_class'::pg_catalog.regclass
@@ -205,7 +205,7 @@ BEGIN
       FROM pg_catalog.pg_class c
       JOIN pg_catalog.pg_namespace n ON n.oid = c.relnamespace
      WHERE n.nspname = 'public'
-       AND c.relkind IN ('r', 'p', 'v', 'm', 'S')
+       AND c.relkind IN ('r', 'p', 'v', 'm', 'f')
        AND NOT EXISTS (
          SELECT 1 FROM pg_catalog.pg_depend d
           WHERE d.classid = 'pg_catalog.pg_class'::pg_catalog.regclass
@@ -214,14 +214,42 @@ BEGIN
      ORDER BY c.oid
   LOOP
     CASE v_relation.relkind
-      WHEN 'S' THEN EXECUTE pg_catalog.format('ALTER SEQUENCE %s OWNER TO yellow_owner', v_relation.qualified_name);
       WHEN 'v' THEN EXECUTE pg_catalog.format('ALTER VIEW %s OWNER TO yellow_owner', v_relation.qualified_name);
       WHEN 'm' THEN EXECUTE pg_catalog.format('ALTER MATERIALIZED VIEW %s OWNER TO yellow_owner', v_relation.qualified_name);
+      WHEN 'f' THEN EXECUTE pg_catalog.format('ALTER FOREIGN TABLE %s OWNER TO yellow_owner', v_relation.qualified_name);
       ELSE EXECUTE pg_catalog.format('ALTER TABLE %s OWNER TO yellow_owner', v_relation.qualified_name);
     END CASE;
   END LOOP;
 END
 $order127_transfer_relations$;
+
+DO $order127_transfer_standalone_sequences$
+DECLARE
+  v_sequence record;
+BEGIN
+  FOR v_sequence IN
+    SELECT pg_catalog.format('%I.%I', n.nspname, c.relname) AS qualified_name
+      FROM pg_catalog.pg_class c
+      JOIN pg_catalog.pg_namespace n ON n.oid = c.relnamespace
+     WHERE n.nspname = 'public'
+       AND c.relkind = 'S'
+       AND NOT EXISTS (
+         SELECT 1 FROM pg_catalog.pg_depend d
+          WHERE d.classid = 'pg_catalog.pg_class'::pg_catalog.regclass
+            AND d.objid = c.oid
+            AND d.deptype IN ('a', 'i')
+       )
+       AND NOT EXISTS (
+         SELECT 1 FROM pg_catalog.pg_depend d
+          WHERE d.classid = 'pg_catalog.pg_class'::pg_catalog.regclass
+            AND d.objid = c.oid AND d.deptype = 'e'
+       )
+     ORDER BY c.oid
+  LOOP
+    EXECUTE pg_catalog.format('ALTER SEQUENCE %s OWNER TO yellow_owner', v_sequence.qualified_name);
+  END LOOP;
+END
+$order127_transfer_standalone_sequences$;
 
 DO $order127_transfer_functions$
 DECLARE
@@ -604,7 +632,7 @@ BEGIN
       FROM pg_catalog.pg_class c
       JOIN pg_catalog.pg_namespace n ON n.oid = c.relnamespace
      WHERE n.nspname = 'public'
-       AND c.relkind IN ('r', 'p', 'v', 'm', 'S')
+       AND c.relkind IN ('r', 'p', 'v', 'm', 'f', 'S')
        AND NOT EXISTS (
          SELECT 1 FROM pg_catalog.pg_depend d
           WHERE d.classid = 'pg_catalog.pg_class'::pg_catalog.regclass

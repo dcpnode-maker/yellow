@@ -92,7 +92,7 @@ $env:YELLOW_POSTGRES_PORT = if ($env:YELLOW_POSTGRES_PORT) { $env:YELLOW_POSTGRE
 $env:YELLOW_VALKEY_PORT = if ($env:YELLOW_VALKEY_PORT) { $env:YELLOW_VALKEY_PORT } else { '6389' }
 
 Write-Host "Compose project $($env:COMPOSE_PROJECT_NAME) · ports app=$($env:YELLOW_APP_PORT) postgres=$($env:YELLOW_POSTGRES_PORT) valkey=$($env:YELLOW_VALKEY_PORT)"
-Invoke-Compose up -d postgres valkey | Out-Host; Assert-Exit 'Starting PostgreSQL and Valkey'
+Invoke-Compose -Arguments @('up', '--detach', 'postgres', 'valkey') | Out-Host; Assert-Exit 'Starting PostgreSQL and Valkey'
 
 $ready = $false
 foreach ($attempt in 1..40) {
@@ -148,7 +148,7 @@ try {
             [Array]::Clear($tokenSecretBytes, 0, $tokenSecretBytes.Length)
             Write-Host 'Generated an ephemeral local JWT signing secret for this setup invocation.'
         }
-        Invoke-Compose up -d app | Out-Host; Assert-Exit 'Starting the application'
+        Invoke-Compose -Arguments @('up', '--detach', 'app') | Out-Host; Assert-Exit 'Starting the application'
         $healthy = $false
         foreach ($attempt in 1..30) {
             try {
