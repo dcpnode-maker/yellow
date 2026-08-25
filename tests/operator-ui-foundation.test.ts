@@ -18,7 +18,8 @@ test("Order 158: the operator surface has one responsive application shell", asy
   expect(css).toContain("grid-template-columns: 244px minmax(0, 1fr)");
   expect(css).toContain("@media (max-width: 1020px)");
   expect(css).toContain("@media (max-width: 600px)");
-  expect(css).toContain("min-height: 44px");
+  expect(css).toMatch(/\.search-button\s*\{\s*min-height:\s*44px;\s*\}/);
+  expect(css).toMatch(/\.domain-tab\s*\{[\s\S]*?min-height:\s*44px;/);
   expect(css).toContain("prefers-reduced-motion: reduce");
 });
 

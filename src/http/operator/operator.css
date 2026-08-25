@@ -101,7 +101,7 @@ input:hover, select:hover, textarea:hover { border-color: #8d978c; }
 .domain-tab { border: 0; background: transparent; color: var(--muted); padding: .72rem .9rem; font-weight: 800; }
 .domain-tab.is-active { background: color-mix(in srgb, var(--accent) 12%, var(--card)); color: var(--accent-strong); }
 .search-bar { padding: 1rem; border-radius: var(--card-radius); display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)) auto; gap: .8rem; align-items: end; }
-.search-button { min-height: 43px; }
+.search-button { min-height: 44px; }
 .timezone-note { grid-column: 1 / -1; margin: .2rem .2rem 0; font-size: .78rem; }
 .summary-row { min-height: 58px; display: flex; align-items: center; justify-content: space-between; gap: 1rem; color: var(--muted); }
 .summary-row p { margin: 0; }
@@ -689,7 +689,7 @@ input, select, textarea { min-height: 44px; border-color: #bdcbca; background: #
 .domain-tab {
   position: relative;
   width: 100%;
-  min-height: 42px;
+  min-height: 44px;
   padding: .62rem .7rem .62rem 1.9rem;
   border-radius: 8px;
   text-align: left;
