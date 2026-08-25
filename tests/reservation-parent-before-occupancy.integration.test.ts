@@ -237,6 +237,7 @@ beforeAll(async () => {
       period tstzrange NOT NULL
     )
   `);
+  await admin.unsafe("ALTER TABLE order129_parent_observation OWNER TO yellow_owner");
   await admin.unsafe(`
     CREATE FUNCTION order129_require_segment_parent() RETURNS trigger
     LANGUAGE plpgsql AS $$
