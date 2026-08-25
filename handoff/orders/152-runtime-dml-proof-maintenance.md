@@ -83,4 +83,3 @@ or alter that failure.
 - [ ] Corrections stay inside the eight test files with zero ACL/catalogue change.
 - [ ] All corrected suites and cumulative non-product gates pass.
 - [ ] Independent cumulative review confirms proof strength and scope.
-
