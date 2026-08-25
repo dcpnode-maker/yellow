@@ -1,6 +1,6 @@
 # Question 150 — Order-127 extension visibility and pooled settlement stop
 
-**Status:** RESOLVED BY D-394 — CORRECTION READY
+**Status:** RESOLVED BY D-394 AND D-404 — CORRECTION READY
 **Order:** 127 · runtime database authority
 **Branch:** `phase-5/runtime-database-authority-final`
 **Approved Base:** `8daf34e1f1328e866b0b52ff750631e7d651d0b7`
@@ -109,3 +109,21 @@ nested failure behavior remains unchanged.
 No migration number, DSN role, domain state, table, event, policy, write authority,
 scope path, assertion strength, merge, push, deployment, live mutation or Cyber closure
 is otherwise authorized.
+
+## D-404 isolated phase-matrix fixture correction
+
+The first complete post-v15 phase-matrix run passed sixteen isolated suites before
+Order 129's unchanged parent-before-occupancy proof failed with SQLSTATE `42501`.
+Its proof-only `order129_parent_observation` table is created by `yellow_deploy`, but
+the real `record_occupancy()` function is correctly owned by `yellow_owner` after
+migration 0015. The observer trigger runs within that SECURITY DEFINER execution and
+therefore cannot insert into the deploy-owned proof table. This is an unadmitted test
+fixture ownership dependency, not a product or occupancy-authority failure.
+
+Add only `tests/reservation-parent-before-occupancy.integration.test.ts` to Order 127's
+proof scope. Its sole permitted change is to transfer the proof-only observation table
+to exact `yellow_owner` after creation, so the observer follows the post-v15 function
+authority. The trigger body, production function, parent sequencing, rollback,
+concurrency, expected errors and every assertion remain unchanged. The phase matrix
+must restart from its first suite; earlier partial green output is not cumulative
+evidence. No sibling observation fixture or product path is admitted by this correction.

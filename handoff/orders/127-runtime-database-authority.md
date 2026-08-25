@@ -163,6 +163,8 @@ Local/deployment tooling may change only:
 Executable proof may change only:
 
 - new `tests/runtime-database-authority.integration.test.ts`;
+- `tests/reservation-parent-before-occupancy.integration.test.ts`, only to transfer its
+  proof-only observation table to exact `yellow_owner` after creation;
 - `tests/app-role-nonlogin.integration.test.ts`;
 - `tests/auth.integration.test.ts`;
 - `tests/business-day-seal-authority.integration.test.ts`;
