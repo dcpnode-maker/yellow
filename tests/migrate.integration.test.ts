@@ -257,6 +257,57 @@ databaseDescribe("Bun SQL migration runner", () => {
   );
 
   test(
+    "migration 0015 transfers the owned outbox sequence with its parent table",
+    async () => {
+      await withDatabase(async ({ databaseUrl: targetUrl, sql }) => {
+        let failure: unknown;
+        let result: MigrationRunResult | undefined;
+        try {
+          result = await runMigrations({
+            databaseUrl: targetUrl,
+            migrationsDirectory: PROJECT_MIGRATIONS,
+            logger: () => undefined,
+          });
+        } catch (error) {
+          failure = error;
+        }
+
+        const ledger = await sql<{ version: string | bigint }[]>`
+          SELECT version FROM public.schema_migration ORDER BY version
+        `;
+        const owners = await sql<{ relname: string; owner: string }[]>`
+          SELECT c.relname, pg_get_userbyid(c.relowner) AS owner
+            FROM pg_catalog.pg_class c
+            JOIN pg_catalog.pg_namespace n ON n.oid = c.relnamespace
+           WHERE n.nspname = 'public' AND c.relname IN ('outbox', 'outbox_seq_seq')
+           ORDER BY c.relname
+        `;
+
+        if (failure) {
+          // Keep the builder red with direct evidence that 0015 rolled back before
+          // any owner transfer or ledger insertion.
+          expect(ledger.map((row) => Number(row.version))).toEqual(
+            Array.from({ length: 14 }, (_, index) => index + 1),
+          );
+          expect(owners).toEqual([
+            { relname: "outbox", owner: "yellow_deploy" },
+            { relname: "outbox_seq_seq", owner: "yellow_deploy" },
+          ]);
+          throw failure;
+        }
+
+        expect(result?.appliedFiles).toContain("0015_runtime_database_authority.sql");
+        expect(ledger.map((row) => Number(row.version))).toContain(15);
+        expect(owners).toEqual([
+          { relname: "outbox", owner: "yellow_owner" },
+          { relname: "outbox_seq_seq", owner: "yellow_owner" },
+        ]);
+      });
+    },
+    120_000,
+  );
+
+  test(
     "applies the immutable baseline once, validates metadata, and is a stable no-op",
     async () => {
       await withDatabase(async ({ databaseUrl: targetUrl, sql }) => {
