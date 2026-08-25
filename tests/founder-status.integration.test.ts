@@ -161,10 +161,10 @@ describe("Order 064 recorded build snapshot", () => {
     const reviewCoverage = await deriveIndependentReviewCoverage();
     const rows = manifestRows(manifest);
     expect(rows.length).toBeGreaterThan(0);
-    expect(PROJECT_BUILD_SNAPSHOT.roadmap.latestBuiltOrder).toBe(155);
+    expect(PROJECT_BUILD_SNAPSHOT.roadmap.latestBuiltOrder).toBe(163);
     expect(PROJECT_BUILD_SNAPSHOT.review.gate3Debt).toBe(0);
     expect(PROJECT_BUILD_SNAPSHOT.review.state).toBe("built_unverified");
-    expect(PROJECT_BUILD_SNAPSHOT.roadmap.currentOrder).toBe(156);
+    expect(PROJECT_BUILD_SNAPSHOT.roadmap.currentOrder).toBe(164);
     expect(PROJECT_BUILD_SNAPSHOT.roadmap.activePhase).toBe(5);
     expect(PROJECT_BUILD_SNAPSHOT.roadmap.phaseCount).toBe(13);
     expect(reviewCoverage.throughOrder).toBe(91);
@@ -208,9 +208,39 @@ describe("Order 064 recorded build snapshot", () => {
       },
       {
         order: 156,
+        state: "independently_approved",
+        summary: "Order 156 dedicated extension registrar independently approved.",
+        remaining: "This capability does not imply Phase-wide completion or production deployment.",
+      },
+      {
+        order: 160,
+        state: "independently_approved",
+        summary: "Order 160 local-review booking authority independently approved.",
+        remaining: "Approval is limited to the governed local Party-to-reservation journey.",
+      },
+      {
+        order: 161,
+        state: "independently_approved",
+        summary: "Order 161 local booking promotion independently approved.",
+        remaining: "Runtime promotion evidence is recorded separately; no production deployment is claimed.",
+      },
+      {
+        order: 162,
+        state: "independently_approved",
+        summary: "Order 162 rate-publication cursor correction independently approved.",
+        remaining: "Approval is limited to the immutable cursor-binding correction.",
+      },
+      {
+        order: 163,
+        state: "independently_approved",
+        summary: "Order 163 persistent local founder login handoff independently approved.",
+        remaining: "The protected credential handoff and runtime identity are evidenced outside this snapshot.",
+      },
+      {
+        order: 164,
         state: "proof_in_progress",
-        summary: "Q166 option 1 authorized for a dedicated extension registrar.",
-        remaining: "Implementation and independent Tier-3 proof are in progress; no product completion is claimed.",
+        summary: "Order 164 integrates the approved product and local operational lineages.",
+        remaining: "Independent proof is in progress; the reservation-desk UI remains the next bounded order.",
       },
     ]);
     expect(PROJECT_BUILD_SNAPSHOT.review.independentlyReviewedThroughOrder).toBe(91);

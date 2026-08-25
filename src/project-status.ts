@@ -11,7 +11,7 @@ export interface ProjectPhaseSnapshot {
 export type ProjectRecordedWorkState = "independently_approved" | "proof_in_progress";
 
 export interface ProjectRecordedWorkSnapshot {
-  readonly order: 126 | 127 | 148 | 154 | 155 | 156;
+  readonly order: 126 | 127 | 148 | 154 | 155 | 156 | 160 | 161 | 162 | 163 | 164;
   readonly state: ProjectRecordedWorkState;
   readonly summary: string;
   readonly remaining?: string;
@@ -33,12 +33,12 @@ export const DEFAULT_OPERATOR_RUNTIME_STATUS: OperatorRuntimeStatus = Object.fre
 
 export const PROJECT_BUILD_SNAPSHOT = Object.freeze({
   schemaVersion: 1,
-  recordedAt: "2026-08-25",
+  recordedAt: "2026-08-26",
   label: "Recorded build snapshot",
   roadmap: Object.freeze({
     phaseCount: 13,
-    latestBuiltOrder: 155,
-    currentOrder: 156,
+    latestBuiltOrder: 163,
+    currentOrder: 164,
     activePhase: 5,
   }),
   review: Object.freeze({
@@ -78,9 +78,39 @@ export const PROJECT_BUILD_SNAPSHOT = Object.freeze({
     }),
     Object.freeze({
       order: 156,
+      state: "independently_approved" as const,
+      summary: "Order 156 dedicated extension registrar independently approved.",
+      remaining: "This capability does not imply Phase-wide completion or production deployment.",
+    }),
+    Object.freeze({
+      order: 160,
+      state: "independently_approved" as const,
+      summary: "Order 160 local-review booking authority independently approved.",
+      remaining: "Approval is limited to the governed local Party-to-reservation journey.",
+    }),
+    Object.freeze({
+      order: 161,
+      state: "independently_approved" as const,
+      summary: "Order 161 local booking promotion independently approved.",
+      remaining: "Runtime promotion evidence is recorded separately; no production deployment is claimed.",
+    }),
+    Object.freeze({
+      order: 162,
+      state: "independently_approved" as const,
+      summary: "Order 162 rate-publication cursor correction independently approved.",
+      remaining: "Approval is limited to the immutable cursor-binding correction.",
+    }),
+    Object.freeze({
+      order: 163,
+      state: "independently_approved" as const,
+      summary: "Order 163 persistent local founder login handoff independently approved.",
+      remaining: "The protected credential handoff and runtime identity are evidenced outside this snapshot.",
+    }),
+    Object.freeze({
+      order: 164,
       state: "proof_in_progress" as const,
-      summary: "Q166 option 1 authorized for a dedicated extension registrar.",
-      remaining: "Implementation and independent Tier-3 proof are in progress; no product completion is claimed.",
+      summary: "Order 164 integrates the approved product and local operational lineages.",
+      remaining: "Independent proof is in progress; the reservation-desk UI remains the next bounded order.",
     }),
   ] satisfies readonly ProjectRecordedWorkSnapshot[]),
   phases: Object.freeze([
