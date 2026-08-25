@@ -104,7 +104,7 @@ BEGIN
        AND s.status = 'active'
      WHERE rs.id = p_slot
        AND rs.tenant_id = v_tenant
-       AND rs.status IN ('booked', 'in_house', 'cancelled')
+       AND rs.status IN ('booked', 'in_house')
        AND rs.period = p_period;
   ELSE
     SELECT true

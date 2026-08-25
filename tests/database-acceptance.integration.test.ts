@@ -70,6 +70,11 @@ const EXPECTED_MIGRATIONS = [
     filename: "0013_revoke_app_role_business_day_seal.sql",
     checksum_sha256: "75aef629ebc90a7c2ba3dcf94532295cfce57fc521197d7b5cdc6b6d5a1bf712",
   },
+  {
+    version: 14,
+    filename: "0014_bind_occupancy_caller_tenant.sql",
+    checksum_sha256: "706806ad3c041d506df1e90f75b19ed219baa3fedb8968471828657ab6c7493a",
+  },
 ];
 
 if (REQUIRE_DATABASE && !DATABASE_URL) {
