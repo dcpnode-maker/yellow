@@ -1,7 +1,7 @@
 # Order 127 — Separate runtime database authority from deployment authority
 
-**Status:** CORRECTION READY — D-392, corrected by D-393 through D-398;
-Questions 150–154 resolved before corrected executable implementation
+**Status:** CORRECTION READY — D-392, corrected by D-393 through D-399;
+Questions 150–155 resolved before corrected executable implementation
 **Phase:** 5 · Cyber remediation
 **Branch:** `phase-5/runtime-database-authority-final`
 **Base:** `8daf34e1f1328e866b0b52ff750631e7d651d0b7` — exact independently
@@ -206,7 +206,9 @@ Governance may change only:
 - `handoff/questions/153-order127-outbox-capability-contract.md` for the exact resolved
   outbox result, owner-oracle and authoritative task-parent fixture contract;
 - `handoff/questions/154-order127-relay-backlog-throughput.md` for the exact resolved
-  relay backlog hot-path contract; and
+  relay backlog hot-path contract;
+- `handoff/questions/155-order127-relay-handler-context.md` for the exact resolved
+  sequential handler-context transition contract; and
 - additive Order-127 entries in `DECISIONS.log` and `handoff/LEDGER.md`.
 
 Every other path is forbidden. In particular: never edit migrations 0001–0014,
@@ -302,6 +304,16 @@ inserted flag in original row order. Handlers remain sequential and tenant-scope
 the same transaction; cursor advance, publication, rollback, crash recovery and
 dedupe semantics remain unchanged. Batch size remains at most 1000. No new capability,
 grant, table, interface or assertion budget is admitted.
+
+Already-marked handlers remain sequential in original event order. The adapter may
+reuse exact `app_role` plus transaction-local tenant context only across consecutive
+events for the same tenant. On a tenant change it must `RESET ROLE`, set the new exact
+tenant, then `SET LOCAL ROLE app_role`; after every handler it verifies exact
+`current_user = 'app_role'` and exact transaction-local tenant UUID before continuing.
+Handler error, context tamper, verification failure or transition failure rolls the
+entire marks/effects/cursor transaction back, and final `RESET ROLE` is mandatory.
+Mixed A/B/A and hostile context-tamper proofs are required. No handler batching,
+reordering, cross-tenant reuse or proof-budget change is admitted.
 
 The inherited Order-118 proof retains its parent-to-hardened 0012 transition and,
 after v15, requires exactly one incoming `app_role` membership from `yellow_runtime`,
