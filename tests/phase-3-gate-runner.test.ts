@@ -243,10 +243,10 @@ describe("Orders 079/083/104/108/118/121/123/124/129 reproducible cumulative dat
     const packageJson = await Bun.file(new URL("../package.json", import.meta.url)).json();
     const workflow = await Bun.file(new URL("../.github/workflows/ci.yml", import.meta.url)).text();
     expect(packageJson.scripts["test:phase3-gate"]).toBe("bun scripts/run-phase-3-gate.ts");
-    expect(workflow).toContain("YELLOW_PHASE3_GATE_DEPLOY_URL: ${{ env.ADMIN_URL }}");
-    expect(workflow).toContain("YELLOW_PHASE3_GATE_RUNTIME_URL: ${{ env.RUNTIME_URL }}");
-    expect(workflow).toContain("YELLOW_PHASE3_GATE_PASSWORD: Order079-CI-Proof-Only!");
-    const commandIndex = workflow.indexOf("run: bun run test:phase3-gate");
+    expect(workflow).toContain('YELLOW_PHASE3_GATE_DEPLOY_URL="$ADMIN_URL"');
+    expect(workflow).toContain('YELLOW_PHASE3_GATE_RUNTIME_URL="postgres://yellow_runtime:${YELLOW_RUNTIME_DATABASE_PASSWORD}@${POSTGRES_ADDRESS}/postgres"');
+    expect(workflow).toContain("YELLOW_PHASE3_GATE_PASSWORD='Order079-CI-Proof-Only!'");
+    const commandIndex = workflow.indexOf("bun run test:phase3-gate");
     expect(commandIndex).toBeGreaterThan(workflow.indexOf("Resolve PostgreSQL address through Compose"));
     expect(commandIndex).toBeLessThan(workflow.indexOf("Start application and verify exact health"));
   });

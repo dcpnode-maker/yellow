@@ -17,14 +17,16 @@ export YELLOW_OPERATOR_WORKBENCH=1
 export YELLOW_REVIEW_PASSWORD='<choose a local-only password>'
 export YELLOW_REVIEW_APPROVER_PASSWORD='<choose a different local-only password>'
 ./setup.sh --db-only
-YELLOW_DEPLOY_DATABASE_URL="postgres://yellow_deploy:<deploy-secret>@127.0.0.1:${YELLOW_POSTGRES_PORT}/yellow_dev" bun run db:seed-review
+docker compose --env-file .yellow/runtime-database-authority.env --profile tools run --rm seed bun scripts/seed-review.ts
 export YELLOW_TOKEN_SECRET="$(bun -e 'const bytes = crypto.getRandomValues(new Uint8Array(48)); process.stdout.write(Buffer.from(bytes).toString("base64"));')"
 docker compose up -d --build app
 ```
 
-The deployment DSN is for migration and seed tooling only. The application and
-worker receive the separate `YELLOW_RUNTIME_DATABASE_URL` secret; do not export
-the deployment URL into the app process or reuse its credentials.
+The ignored `.yellow/runtime-database-authority.env` file is the sole local
+authority input; it contains passwords only and is owner-readable. Compose builds
+the deployment DSN inside the tools container, so no secret URL is placed in shell
+history. The application and worker receive the separate runtime credential; do not
+export the deployment URL into the app process or reuse its credentials.
 
 The generated signing secret exists only in that shell and is never printed or written
 to the repository. Generate a fresh value after opening a new shell. `./setup.sh` without
