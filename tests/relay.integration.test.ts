@@ -392,7 +392,7 @@ databaseDescribe("Order 023 crash-safe outbox relay", () => {
         }
       } finally {
         // A true settlement failure fail-closes this pool; never rely on PID replacement in place.
-        await failedPool.close();
+        if (!expectPoolClosed) await failedPool.close();
       }
 
       const retryPool = new SQL(RUNTIME_DATABASE_URL!, { max: 1, prepare: false });
