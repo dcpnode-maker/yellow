@@ -18,6 +18,13 @@ SET client_min_messages = warning;
 SET row_security = off;
 
 --
+-- Name: public; Type: SCHEMA; Schema: -; Owner: -
+--
+
+-- *not* creating schema, since initdb creates it
+
+
+--
 -- Name: btree_gist; Type: EXTENSION; Schema: -; Owner: -
 --
 
@@ -472,6 +479,330 @@ BEGIN
   END IF;
   RETURN n;
 END $$;
+
+
+--
+-- Name: runtime_consumer_advance(text, bigint); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.runtime_consumer_advance(p_consumer text, p_last_seq bigint) RETURNS bigint
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'pg_catalog', 'public', 'pg_temp'
+    AS $_$
+DECLARE
+  v_current bigint;
+BEGIN
+  IF p_consumer IS NULL OR pg_catalog.length(p_consumer) > 64
+     OR p_consumer !~ '^[a-z][a-z0-9-]*$' THEN
+    RAISE EXCEPTION 'consumer must be a stable lowercase name' USING ERRCODE = '22023';
+  END IF;
+  IF p_last_seq IS NULL OR p_last_seq < 0 THEN
+    RAISE EXCEPTION 'consumer cursor must be non-negative' USING ERRCODE = '22023';
+  END IF;
+
+  SELECT c.last_seq INTO v_current
+    FROM public.consumer_cursor AS c
+   WHERE c.consumer = p_consumer
+   FOR UPDATE;
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'consumer cursor was not begun' USING ERRCODE = '55000';
+  END IF;
+  IF p_last_seq < v_current THEN
+    RAISE EXCEPTION 'consumer cursor cannot move backwards' USING ERRCODE = '22023';
+  END IF;
+
+  IF p_last_seq <> v_current THEN
+    UPDATE public.consumer_cursor
+       SET last_seq = p_last_seq, updated_at = pg_catalog.now()
+     WHERE consumer = p_consumer;
+  END IF;
+  RETURN p_last_seq;
+END
+$_$;
+
+
+--
+-- Name: runtime_consumer_begin(text); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.runtime_consumer_begin(p_consumer text) RETURNS bigint
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'pg_catalog', 'public', 'pg_temp'
+    AS $_$
+DECLARE
+  v_last_seq bigint;
+BEGIN
+  IF p_consumer IS NULL OR pg_catalog.length(p_consumer) > 64
+     OR p_consumer !~ '^[a-z][a-z0-9-]*$' THEN
+    RAISE EXCEPTION 'consumer must be a stable lowercase name' USING ERRCODE = '22023';
+  END IF;
+
+  INSERT INTO public.consumer_cursor (consumer, last_seq)
+  VALUES (p_consumer, 0)
+  ON CONFLICT (consumer) DO NOTHING;
+
+  SELECT c.last_seq INTO STRICT v_last_seq
+    FROM public.consumer_cursor AS c
+   WHERE c.consumer = p_consumer
+   FOR UPDATE;
+  RETURN v_last_seq;
+END
+$_$;
+
+
+--
+-- Name: runtime_consumer_mark(text, uuid); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.runtime_consumer_mark(p_consumer text, p_outbox_id uuid) RETURNS boolean
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'pg_catalog', 'public', 'pg_temp'
+    AS $_$
+DECLARE
+  v_inserted boolean;
+BEGIN
+  IF p_consumer IS NULL OR pg_catalog.length(p_consumer) > 64
+     OR p_consumer !~ '^[a-z][a-z0-9-]*$' OR p_outbox_id IS NULL THEN
+    RAISE EXCEPTION 'valid consumer and outbox id are required' USING ERRCODE = '22023';
+  END IF;
+
+  INSERT INTO public.consumer_processed (consumer, outbox_id)
+  VALUES (p_consumer, p_outbox_id)
+  ON CONFLICT (consumer, outbox_id) DO NOTHING
+  RETURNING true INTO v_inserted;
+  RETURN COALESCE(v_inserted, false);
+END
+$_$;
+
+
+--
+-- Name: runtime_consumer_read(text, bigint, integer, boolean); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.runtime_consumer_read(p_consumer text, p_after bigint, p_limit integer, p_unpublished boolean) RETURNS TABLE(seq bigint, id uuid, tenant_id uuid, property_node uuid, business_date text, aggregate_type text, aggregate_id uuid, event_type text, event_version integer, actor_id uuid, correlation_id uuid, causation_id uuid, created_at timestamp with time zone, payload jsonb)
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'pg_catalog', 'public', 'pg_temp'
+    AS $_$
+DECLARE
+  v_cursor bigint;
+BEGIN
+  IF p_consumer IS NULL OR pg_catalog.length(p_consumer) > 64
+     OR p_consumer !~ '^[a-z][a-z0-9-]*$' THEN
+    RAISE EXCEPTION 'consumer must be a stable lowercase name' USING ERRCODE = '22023';
+  END IF;
+  IF p_after IS NULL OR p_after < 0 THEN
+    RAISE EXCEPTION 'consumer cursor must be non-negative' USING ERRCODE = '22023';
+  END IF;
+  IF p_limit IS NULL OR p_limit < 1 OR p_limit > 1000 THEN
+    RAISE EXCEPTION 'consumer batch limit must be between 1 and 1000' USING ERRCODE = '22023';
+  END IF;
+  IF p_unpublished IS NULL THEN
+    RAISE EXCEPTION 'unpublished selector is required' USING ERRCODE = '22023';
+  END IF;
+
+  SELECT c.last_seq INTO v_cursor
+    FROM public.consumer_cursor AS c
+   WHERE c.consumer = p_consumer
+   FOR UPDATE;
+  IF NOT FOUND OR v_cursor <> p_after THEN
+    RAISE EXCEPTION 'consumer cursor changed or was not begun' USING ERRCODE = '55000';
+  END IF;
+
+  IF p_unpublished THEN
+    RETURN QUERY
+    SELECT o.seq,
+           o.id,
+           o.tenant_id,
+           o.property_node,
+           o.business_date::text,
+           o.aggregate_type,
+           o.aggregate_id,
+           o.event_type,
+           o.event_version,
+           o.actor_id,
+           o.correlation_id,
+           o.causation_id,
+           o.created_at,
+           o.payload
+      FROM public.outbox AS o
+     WHERE o.published_at IS NULL
+     ORDER BY o.seq
+     LIMIT p_limit;
+  ELSE
+    RETURN QUERY
+    SELECT o.seq,
+           o.id,
+           o.tenant_id,
+           o.property_node,
+           o.business_date::text,
+           o.aggregate_type,
+           o.aggregate_id,
+           o.event_type,
+           o.event_version,
+           o.actor_id,
+           o.correlation_id,
+           o.causation_id,
+           o.created_at,
+           o.payload
+      FROM public.outbox AS o
+     WHERE o.seq > p_after
+     ORDER BY o.seq
+     LIMIT p_limit;
+  END IF;
+END
+$_$;
+
+
+--
+-- Name: runtime_due_hold_scopes(integer); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.runtime_due_hold_scopes(p_limit integer) RETURNS TABLE(tenant_id uuid, property_node uuid)
+    LANGUAGE plpgsql STABLE SECURITY DEFINER
+    SET search_path TO 'pg_catalog', 'public', 'pg_temp'
+    AS $$
+BEGIN
+  IF p_limit IS NULL OR p_limit < 1 OR p_limit > 1000 THEN
+    RAISE EXCEPTION 'limit must be between 1 and 1000' USING ERRCODE = '22023';
+  END IF;
+
+  RETURN QUERY
+  SELECT h.tenant_id, h.property_node
+    FROM public.hold AS h
+   WHERE h.status = 'active'
+     AND h.expires_at <= pg_catalog.transaction_timestamp()
+   GROUP BY h.tenant_id, h.property_node
+   ORDER BY pg_catalog.min(h.expires_at), h.tenant_id, h.property_node
+   LIMIT p_limit;
+END
+$$;
+
+
+--
+-- Name: runtime_extension_compatibility_inputs(text); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.runtime_extension_compatibility_inputs(p_type text) RETURNS TABLE(id uuid, content jsonb)
+    LANGUAGE plpgsql STABLE SECURITY DEFINER
+    SET search_path TO 'pg_catalog', 'public', 'pg_temp'
+    AS $_$
+BEGIN
+  IF p_type IS NULL OR pg_catalog.length(p_type) > 64
+     OR p_type !~ '^[a-z][a-z0-9_.-]*$' THEN
+    RAISE EXCEPTION 'extension type must be a stable lowercase identifier'
+      USING ERRCODE = '22023';
+  END IF;
+  RETURN QUERY
+  SELECT e.id, e.content
+    FROM public.extension AS e
+   WHERE e.type = p_type
+   ORDER BY e.id;
+END
+$_$;
+
+
+--
+-- Name: runtime_mark_outbox_published(uuid[]); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.runtime_mark_outbox_published(p_event_ids uuid[]) RETURNS integer
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'pg_catalog', 'public', 'pg_temp'
+    AS $$
+DECLARE
+  v_count integer;
+  v_size integer := COALESCE(pg_catalog.cardinality(p_event_ids), -1);
+BEGIN
+  IF v_size < 1 OR v_size > 1000 OR pg_catalog.array_position(p_event_ids, NULL) IS NOT NULL THEN
+    RAISE EXCEPTION 'event id array must contain between 1 and 1000 non-null UUIDs'
+      USING ERRCODE = '22023';
+  END IF;
+
+  WITH ids AS (
+    SELECT DISTINCT event_id
+      FROM pg_catalog.unnest(p_event_ids) AS event_id
+  ), marked AS (
+    UPDATE public.outbox AS o
+       SET published_at = COALESCE(o.published_at, pg_catalog.now())
+     WHERE o.id IN (SELECT event_id FROM ids)
+    RETURNING 1
+  )
+  SELECT pg_catalog.count(*)::integer INTO v_count FROM marked;
+  RETURN v_count;
+END
+$$;
+
+
+--
+-- Name: runtime_prune_outbox(integer); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.runtime_prune_outbox(p_retention_seconds integer) RETURNS TABLE(processed integer, outbox bigint)
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'pg_catalog', 'public', 'pg_temp'
+    AS $$
+DECLARE
+  v_processed integer;
+  v_outbox bigint;
+BEGIN
+  IF p_retention_seconds IS NULL OR p_retention_seconds < 0 THEN
+    RAISE EXCEPTION 'retention seconds must be a non-negative integer' USING ERRCODE = '22023';
+  END IF;
+
+  WITH gone AS (
+    DELETE FROM public.consumer_processed AS processed_row
+    USING public.outbox AS event
+     WHERE processed_row.outbox_id = event.id
+       AND event.published_at IS NOT NULL
+       AND event.published_at < pg_catalog.now()
+           - pg_catalog.make_interval(secs => p_retention_seconds)
+    RETURNING 1
+  )
+  SELECT pg_catalog.count(*)::integer INTO v_processed FROM gone;
+
+  SELECT public.prune_outbox(pg_catalog.make_interval(secs => p_retention_seconds))
+    INTO v_outbox;
+  RETURN QUERY SELECT v_processed, v_outbox;
+END
+$$;
+
+
+--
+-- Name: runtime_resolve_active_tenant(text); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.runtime_resolve_active_tenant(p_slug text) RETURNS uuid
+    LANGUAGE sql STABLE STRICT SECURITY DEFINER
+    SET search_path TO 'pg_catalog', 'public', 'pg_temp'
+    AS $_$
+  SELECT t.id
+    FROM public.tenant AS t
+   WHERE pg_catalog.length(p_slug) BETWEEN 1 AND 63
+     AND p_slug ~ '^[a-z0-9][a-z0-9-]{0,62}$'
+     AND t.slug = p_slug
+     AND t.status = 'active'
+$_$;
+
+
+--
+-- Name: runtime_visible_extensions(uuid); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.runtime_visible_extensions(p_tenant uuid) RETURNS TABLE(id uuid, tenant_id uuid, type text, key text, version integer, content jsonb, status text)
+    LANGUAGE plpgsql STABLE SECURITY DEFINER
+    SET search_path TO 'pg_catalog', 'public', 'pg_temp'
+    AS $$
+BEGIN
+  IF p_tenant IS NULL THEN
+    RAISE EXCEPTION 'tenant id is required' USING ERRCODE = '22023';
+  END IF;
+  RETURN QUERY
+  SELECT e.id, e.tenant_id, e.type, e.key, e.version, e.content, e.status
+    FROM public.extension AS e
+   WHERE e.tenant_id IS NULL OR e.tenant_id = p_tenant
+   ORDER BY e.type, e.key, e.version;
+END
+$$;
 
 
 --
@@ -5148,6 +5479,7 @@ ALTER TABLE public.waitlist_entry ENABLE ROW LEVEL SECURITY;
 --
 
 GRANT USAGE ON SCHEMA public TO app_role;
+GRANT USAGE ON SCHEMA public TO yellow_runtime;
 
 
 --
@@ -5185,6 +5517,86 @@ GRANT ALL ON FUNCTION public.record_occupancy(p_tenant uuid, p_space uuid, p_per
 
 REVOKE ALL ON FUNCTION public.release_occupancy(p_tenant uuid, p_slot uuid) FROM PUBLIC;
 GRANT ALL ON FUNCTION public.release_occupancy(p_tenant uuid, p_slot uuid) TO app_role;
+
+
+--
+-- Name: FUNCTION runtime_consumer_advance(p_consumer text, p_last_seq bigint); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.runtime_consumer_advance(p_consumer text, p_last_seq bigint) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.runtime_consumer_advance(p_consumer text, p_last_seq bigint) TO yellow_runtime;
+
+
+--
+-- Name: FUNCTION runtime_consumer_begin(p_consumer text); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.runtime_consumer_begin(p_consumer text) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.runtime_consumer_begin(p_consumer text) TO yellow_runtime;
+
+
+--
+-- Name: FUNCTION runtime_consumer_mark(p_consumer text, p_outbox_id uuid); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.runtime_consumer_mark(p_consumer text, p_outbox_id uuid) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.runtime_consumer_mark(p_consumer text, p_outbox_id uuid) TO yellow_runtime;
+
+
+--
+-- Name: FUNCTION runtime_consumer_read(p_consumer text, p_after bigint, p_limit integer, p_unpublished boolean); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.runtime_consumer_read(p_consumer text, p_after bigint, p_limit integer, p_unpublished boolean) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.runtime_consumer_read(p_consumer text, p_after bigint, p_limit integer, p_unpublished boolean) TO yellow_runtime;
+
+
+--
+-- Name: FUNCTION runtime_due_hold_scopes(p_limit integer); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.runtime_due_hold_scopes(p_limit integer) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.runtime_due_hold_scopes(p_limit integer) TO yellow_runtime;
+
+
+--
+-- Name: FUNCTION runtime_extension_compatibility_inputs(p_type text); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.runtime_extension_compatibility_inputs(p_type text) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.runtime_extension_compatibility_inputs(p_type text) TO yellow_runtime;
+
+
+--
+-- Name: FUNCTION runtime_mark_outbox_published(p_event_ids uuid[]); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.runtime_mark_outbox_published(p_event_ids uuid[]) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.runtime_mark_outbox_published(p_event_ids uuid[]) TO yellow_runtime;
+
+
+--
+-- Name: FUNCTION runtime_prune_outbox(p_retention_seconds integer); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.runtime_prune_outbox(p_retention_seconds integer) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.runtime_prune_outbox(p_retention_seconds integer) TO yellow_runtime;
+
+
+--
+-- Name: FUNCTION runtime_resolve_active_tenant(p_slug text); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.runtime_resolve_active_tenant(p_slug text) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.runtime_resolve_active_tenant(p_slug text) TO yellow_runtime;
+
+
+--
+-- Name: FUNCTION runtime_visible_extensions(p_tenant uuid); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.runtime_visible_extensions(p_tenant uuid) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.runtime_visible_extensions(p_tenant uuid) TO yellow_runtime;
 
 
 --
