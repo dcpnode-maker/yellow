@@ -1,6 +1,6 @@
 # Order 174 — Folio UUID deep-link shell correction
 
-**Status:** READY
+**Status:** BUILT-UNREVIEWED
 **Phase:** 5
 **Branch:** `phase-5/folio-deep-link-shell`
 **Base:** `f48428805dae628f8c5b14dd83050375ce4f3f14`
@@ -48,9 +48,30 @@ live port is in scope.
 
 ## Definition of done
 
-- [ ] P0 is reproduced on exact Base.
-- [ ] P1–P4 pass with a permanent served regression.
+- [x] P0 is reproduced on exact Base.
+- [x] P1–P4 pass with a permanent served regression.
 - [ ] Independent reviewer executes and approves the complete Order171 P1–P6 restart.
+
+## Builder evidence
+
+Product commit `ca45b7991cb6313f3142b24468a9cdad1d38807c` adds exactly the
+singular UUID shell registration and its permanent handler-level served regression.
+Exact Base, whose product paths are byte-identical to the admitted tree, returned the
+plural shell as `200 text/html` and the singular UUID path as `404` with the
+`NOT_FOUND` text response. Candidate focused proof passed 7/7 with 78 assertions:
+singular and plural are `200 text/html` with byte-identical HTML, root and reservation
+detail shells remain exact, and missing, extra-segment and unknown neighbors remain
+exact 404s.
+
+Standing tests passed 212/0 with 2,600 assertions; typecheck, 66-file boundaries,
+23-package licence policy, audit, exact schema and protected-surface comparison passed.
+A fresh isolated 85-table database passed referee 11/11. The inherited Windows
+`/proc/1/comm` readiness poll rejected a healthy PostgreSQL container, so the same
+migration/schema/referee operations were executed directly. One malformed disposable
+schema-check precondition echoed only that isolated database URL; its containers,
+volume and authority file were immediately destroyed, fresh authority was generated,
+and the complete database proof restarted successfully. Ports 3000/3002 were never
+touched. Independent Order171 P1-P6 restart remains required.
 
 ## Forbidden
 
