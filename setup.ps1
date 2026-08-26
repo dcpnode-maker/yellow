@@ -16,13 +16,16 @@ function Invoke-Compose {
     param([Parameter(ValueFromRemainingArguments = $true)][string[]]$Arguments)
     $previousDeployPassword = $env:YELLOW_DEPLOY_DATABASE_PASSWORD
     $previousRuntimePassword = $env:YELLOW_RUNTIME_DATABASE_PASSWORD
+    $previousRegistrarPassword = $env:YELLOW_EXTENSION_REGISTRAR_DATABASE_PASSWORD
     try {
         $env:YELLOW_DEPLOY_DATABASE_PASSWORD = $script:DeployPassword
         $env:YELLOW_RUNTIME_DATABASE_PASSWORD = $script:RuntimePassword
+        $env:YELLOW_EXTENSION_REGISTRAR_DATABASE_PASSWORD = $script:RegistrarPassword
         & docker compose @Arguments
     } finally {
         $env:YELLOW_DEPLOY_DATABASE_PASSWORD = $previousDeployPassword
         $env:YELLOW_RUNTIME_DATABASE_PASSWORD = $previousRuntimePassword
+        $env:YELLOW_EXTENSION_REGISTRAR_DATABASE_PASSWORD = $previousRegistrarPassword
     }
 }
 
@@ -40,17 +43,21 @@ $authorityFile = Join-Path $authorityDirectory 'runtime-database-authority.env'
 if (-not (Test-Path -LiteralPath $authorityFile)) {
     $deployBytes = New-Object byte[] 48
     $runtimeBytes = New-Object byte[] 48
+    $registrarBytes = New-Object byte[] 48
     [Security.Cryptography.RandomNumberGenerator]::Fill($deployBytes)
     [Security.Cryptography.RandomNumberGenerator]::Fill($runtimeBytes)
+    [Security.Cryptography.RandomNumberGenerator]::Fill($registrarBytes)
     $script:DeployPassword = [Convert]::ToBase64String($deployBytes).TrimEnd('=').Replace('+', '-').Replace('/', '_')
     $script:RuntimePassword = [Convert]::ToBase64String($runtimeBytes).TrimEnd('=').Replace('+', '-').Replace('/', '_')
+    $script:RegistrarPassword = [Convert]::ToBase64String($registrarBytes).TrimEnd('=').Replace('+', '-').Replace('/', '_')
     [Array]::Clear($deployBytes, 0, $deployBytes.Length)
     [Array]::Clear($runtimeBytes, 0, $runtimeBytes.Length)
+    [Array]::Clear($registrarBytes, 0, $registrarBytes.Length)
     $temporaryAuthorityFile = Join-Path $authorityDirectory ("runtime-database-authority.{0}.tmp" -f [Guid]::NewGuid().ToString('N'))
     try {
         [IO.File]::WriteAllText(
             $temporaryAuthorityFile,
-            "YELLOW_DEPLOY_DATABASE_PASSWORD=$($script:DeployPassword)`nYELLOW_RUNTIME_DATABASE_PASSWORD=$($script:RuntimePassword)`n",
+            "YELLOW_DEPLOY_DATABASE_PASSWORD=$($script:DeployPassword)`nYELLOW_RUNTIME_DATABASE_PASSWORD=$($script:RuntimePassword)`nYELLOW_EXTENSION_REGISTRAR_DATABASE_PASSWORD=$($script:RegistrarPassword)`n",
             [Text.UTF8Encoding]::new($false)
         )
         Move-Item -LiteralPath $temporaryAuthorityFile -Destination $authorityFile
@@ -64,17 +71,26 @@ if ($authorityItem.PSIsContainer -or ($authorityItem.Attributes -band [IO.FileAt
 }
 $currentIdentity = [Security.Principal.WindowsIdentity]::GetCurrent().Name
 $authorityAcl = Get-Acl -LiteralPath $authorityFile
-$authorityAcl.SetAccessRuleProtection($true, $false)
-foreach ($rule in @($authorityAcl.Access)) { $authorityAcl.RemoveAccessRuleAll($rule) }
-$authorityAcl.AddAccessRule([Security.AccessControl.FileSystemAccessRule]::new(
-    $currentIdentity,
-    [Security.AccessControl.FileSystemRights]::FullControl,
-    [Security.AccessControl.AccessControlType]::Allow
-))
-Set-Acl -LiteralPath $authorityFile -AclObject $authorityAcl
+$authorityRules = @($authorityAcl.Access)
+$authorityAclExact = $authorityAcl.Owner -eq $currentIdentity -and
+    $authorityAcl.AreAccessRulesProtected -and $authorityRules.Count -eq 1 -and
+    $authorityRules[0].IdentityReference.Value -eq $currentIdentity -and
+    $authorityRules[0].AccessControlType -eq [Security.AccessControl.AccessControlType]::Allow -and
+    (($authorityRules[0].FileSystemRights -band [Security.AccessControl.FileSystemRights]::FullControl) -eq
+      [Security.AccessControl.FileSystemRights]::FullControl)
+if (-not $authorityAclExact) {
+    $authorityAcl.SetAccessRuleProtection($true, $false)
+    foreach ($rule in @($authorityAcl.Access)) { $authorityAcl.RemoveAccessRuleAll($rule) }
+    $authorityAcl.AddAccessRule([Security.AccessControl.FileSystemAccessRule]::new(
+        $currentIdentity,
+        [Security.AccessControl.FileSystemRights]::FullControl,
+        [Security.AccessControl.AccessControlType]::Allow
+    ))
+    Set-Acl -LiteralPath $authorityFile -AclObject $authorityAcl
+}
 $authorityLines = @(Get-Content -LiteralPath $authorityFile)
 if (
-    $authorityLines.Count -ne 2 -or
+    ($authorityLines.Count -ne 2 -and $authorityLines.Count -ne 3) -or
     $authorityLines[0] -notmatch '^YELLOW_DEPLOY_DATABASE_PASSWORD=([A-Za-z0-9_-]{43,256})$' -or
     $authorityLines[1] -notmatch '^YELLOW_RUNTIME_DATABASE_PASSWORD=([A-Za-z0-9_-]{43,256})$'
 ) {
@@ -83,6 +99,42 @@ if (
 $script:DeployPassword = $authorityLines[0].Substring('YELLOW_DEPLOY_DATABASE_PASSWORD='.Length)
 $script:RuntimePassword = $authorityLines[1].Substring('YELLOW_RUNTIME_DATABASE_PASSWORD='.Length)
 if ($script:DeployPassword -eq $script:RuntimePassword) { throw 'Local database authority passwords must be distinct.' }
+if ($authorityLines.Count -eq 2) {
+    $registrarBytes = New-Object byte[] 48
+    [Security.Cryptography.RandomNumberGenerator]::Fill($registrarBytes)
+    $script:RegistrarPassword = [Convert]::ToBase64String($registrarBytes).TrimEnd('=').Replace('+', '-').Replace('/', '_')
+    [Array]::Clear($registrarBytes, 0, $registrarBytes.Length)
+    $temporaryAuthorityFile = Join-Path $authorityDirectory ("runtime-database-authority.{0}.tmp" -f [Guid]::NewGuid().ToString('N'))
+    $backupAuthorityFile = Join-Path $authorityDirectory ("runtime-database-authority.{0}.backup" -f [Guid]::NewGuid().ToString('N'))
+    try {
+        [IO.File]::WriteAllText(
+            $temporaryAuthorityFile,
+            "YELLOW_DEPLOY_DATABASE_PASSWORD=$($script:DeployPassword)`nYELLOW_RUNTIME_DATABASE_PASSWORD=$($script:RuntimePassword)`nYELLOW_EXTENSION_REGISTRAR_DATABASE_PASSWORD=$($script:RegistrarPassword)`n",
+            [Text.UTF8Encoding]::new($false)
+        )
+        [IO.File]::Replace($temporaryAuthorityFile, $authorityFile, $backupAuthorityFile)
+    } finally {
+        Remove-Item -LiteralPath $temporaryAuthorityFile -Force -ErrorAction SilentlyContinue
+        Remove-Item -LiteralPath $backupAuthorityFile -Force -ErrorAction SilentlyContinue
+    }
+    $upgradedAcl = Get-Acl -LiteralPath $authorityFile
+    if ($upgradedAcl.Owner -ne $currentIdentity -or -not $upgradedAcl.AreAccessRulesProtected) {
+        throw 'Upgraded local database authority file did not retain owner-only ACLs.'
+    }
+    $authorityLines = @(Get-Content -LiteralPath $authorityFile)
+}
+if (
+    $authorityLines.Count -ne 3 -or
+    $authorityLines[0] -notmatch '^YELLOW_DEPLOY_DATABASE_PASSWORD=([A-Za-z0-9_-]{43,256})$' -or
+    $authorityLines[1] -notmatch '^YELLOW_RUNTIME_DATABASE_PASSWORD=([A-Za-z0-9_-]{43,256})$' -or
+    $authorityLines[2] -notmatch '^YELLOW_EXTENSION_REGISTRAR_DATABASE_PASSWORD=([A-Za-z0-9_-]{43,256})$'
+) {
+    throw 'Local database authority file is malformed.'
+}
+$script:RegistrarPassword = $authorityLines[2].Substring('YELLOW_EXTENSION_REGISTRAR_DATABASE_PASSWORD='.Length)
+if ($script:DeployPassword -eq $script:RegistrarPassword -or $script:RuntimePassword -eq $script:RegistrarPassword) {
+    throw 'Local database authority passwords must be pairwise distinct.'
+}
 
 $folderName = (Split-Path $root -Leaf).ToLowerInvariant()
 $defaultProject = ($folderName -replace '[^a-z0-9_-]', '-')
@@ -109,14 +161,17 @@ $devUrl = "postgres://yellow_deploy:$($script:DeployPassword)@127.0.0.1:$($env:Y
 $testUrl = "postgres://yellow_deploy:$($script:DeployPassword)@127.0.0.1:$($env:YELLOW_POSTGRES_PORT)/yellow_test"
 $previousDeployUrl = $env:YELLOW_DEPLOY_DATABASE_URL
 $previousRuntimePassword = $env:YELLOW_RUNTIME_DATABASE_PASSWORD
+$previousRegistrarPassword = $env:YELLOW_EXTENSION_REGISTRAR_DATABASE_PASSWORD
 $previousDsn = $env:YELLOW_DSN
 $previousEncoding = $env:PYTHONIOENCODING
 $previousTokenSecret = $env:YELLOW_TOKEN_SECRET
 try {
     $env:YELLOW_DEPLOY_DATABASE_URL = $devUrl
     $env:YELLOW_RUNTIME_DATABASE_PASSWORD = $script:RuntimePassword
+    $env:YELLOW_EXTENSION_REGISTRAR_DATABASE_PASSWORD = $script:RegistrarPassword
     bun scripts/provision-local-database-authority.ts | Out-Host; Assert-Exit 'Provisioning local database authority'
     $env:YELLOW_RUNTIME_DATABASE_PASSWORD = $null
+    $env:YELLOW_EXTENSION_REGISTRAR_DATABASE_PASSWORD = $null
     bun scripts/migrate.ts | Out-Host; Assert-Exit 'Migrating yellow_dev'
     bun scripts/seed.ts | Out-Host; Assert-Exit 'Seeding yellow_dev'
 
@@ -163,6 +218,7 @@ try {
 } finally {
     $env:YELLOW_DEPLOY_DATABASE_URL = $previousDeployUrl
     $env:YELLOW_RUNTIME_DATABASE_PASSWORD = $previousRuntimePassword
+    $env:YELLOW_EXTENSION_REGISTRAR_DATABASE_PASSWORD = $previousRegistrarPassword
     $env:YELLOW_DSN = $previousDsn
     $env:PYTHONIOENCODING = $previousEncoding
     $env:YELLOW_TOKEN_SECRET = $previousTokenSecret

@@ -38,23 +38,37 @@ function runtimeHostname(): string {
   throw new Error("non-loopback operator binding requires YELLOW_OPERATOR_ALLOW_NON_LOOPBACK=1");
 }
 
-function required(name: "YELLOW_RUNTIME_DATABASE_URL" | "YELLOW_TOKEN_SECRET"): string {
+function required(name: "YELLOW_RUNTIME_DATABASE_URL" | "YELLOW_EXTENSION_REGISTRAR_DATABASE_URL" | "YELLOW_TOKEN_SECRET"): string {
   const value = Bun.env[name];
   if (!value) throw new Error(`${name} is required when YELLOW_OPERATOR_WORKBENCH=1`);
+  return value;
+}
+
+function registrarDatabaseUrl(): string {
+  const value = required("YELLOW_EXTENSION_REGISTRAR_DATABASE_URL");
+  let parsed: URL;
+  try { parsed = new URL(value); } catch { throw new Error("YELLOW_EXTENSION_REGISTRAR_DATABASE_URL must be a valid URL"); }
+  if (!new Set(["postgres:", "postgresql:"]).has(parsed.protocol)
+      || decodeURIComponent(parsed.username) !== "yellow_extension_registrar"
+      || parsed.password === "" || parsed.hash !== "") {
+    throw new Error("YELLOW_EXTENSION_REGISTRAR_DATABASE_URL must authenticate the exact registrar role");
+  }
   return value;
 }
 
 function runtimeApp() {
   if (!workbenchEnabled) return app;
   const databaseUrl = required("YELLOW_RUNTIME_DATABASE_URL");
+  const registrarUrl = registrarDatabaseUrl();
   const tokens = new Hs256TokenSigner(required("YELLOW_TOKEN_SECRET"));
   const database = Database.connect(databaseUrl, { maxConnections: 12, prepare: false });
   const loginPool = new SQL(databaseUrl, { max: 4 });
   const eventPool = new SQL(databaseUrl, { max: 4, prepare: false });
-  const extensionPool = new SQL(databaseUrl, { max: 4 });
+  const extensionPool = new SQL(databaseUrl, { max: 4, prepare: false });
+  const registrarPool = new SQL(registrarUrl, { max: 2, prepare: false });
   const login = new LocalLoginService(loginPool, tokens, new LocalLoginGuard());
   const events = new PostgresEventBus(eventPool);
-  const registry = new ExtensionRegistry(extensionPool);
+  const registry = new ExtensionRegistry(extensionPool, registrarPool);
   const approvals = new ApprovalService(events);
   const inventory = new InventoryService(events);
   const restrictions = new RestrictionService(events);

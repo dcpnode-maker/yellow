@@ -20,7 +20,6 @@ const INSERT_COLUMNS = Object.freeze({
   availability_projection: ["blocked", "held", "ooo", "physical", "property_node", "sold", "stay_date", "tenant_id", "unit_type_id", "updated_at"],
   contact_point: ["is_primary", "kind", "party_id", "tenant_id", "value", "verified"],
   extension: ["content", "key", "status", "tenant_id", "type", "version"],
-  extension_type: ["json_schema", "type"],
   fact_log: ["actor_id", "business_date", "entity_id", "entity_type", "fact_type", "payload", "supersedes", "tenant_id", "valid_from"],
   folio: ["account_id", "folio_no", "name", "reservation_id", "status", "tenant_id", "window_no"],
   hold: ["expires_at", "holder", "kind", "period", "property_node", "sellable_unit_id", "tenant_id"],
@@ -69,7 +68,6 @@ const CALLER_SOURCES = Object.freeze<Record<string, string>>({
   "document_series:UPDATE": "src/contexts/financials/folios.ts",
   "extension:INSERT": "src/kernel/extension.ts",
   "extension:UPDATE": "src/contexts/rates/publication.ts",
-  "extension_type:INSERT": "src/kernel/extension.ts",
   "fact_log:INSERT": "src/kernel/fact-log.ts",
   "folio:INSERT": "src/contexts/financials/folios.ts",
   "hold:INSERT": "src/contexts/inventory/holds.ts",
@@ -102,7 +100,7 @@ const CALLER_SOURCES = Object.freeze<Record<string, string>>({
 
 const RESIDUAL_CAPABILITY_OWNERS = Object.freeze({
   approval_decision: ["approval_request:UPDATE"],
-  extension_registration_and_lifecycle: ["extension_type:INSERT", "extension:UPDATE"],
+  extension_lifecycle: ["extension:UPDATE"],
   financial_folio_opening: ["account:INSERT", "document_series:UPDATE", "folio:INSERT"],
   financial_posting: ["journal:INSERT", "posting_line:INSERT"],
   hold_lifecycle: ["hold:UPDATE"],
@@ -169,7 +167,6 @@ describe("Order 150 committed production caller map", () => {
       "availability_projection:INSERT",
       "document_series:UPDATE",
       "extension:UPDATE",
-      "extension_type:INSERT",
       "folio:INSERT",
       "hold:UPDATE",
       "journal:INSERT",
@@ -249,10 +246,11 @@ databaseDescribe("Order 150 positive runtime DML authority", () => {
     `;
     expect(defaultMutation).toEqual([]);
 
-    const functions = await deploy!<Array<{ signature: string; app: boolean; runtime: boolean }>>`
+    const functions = await deploy!<Array<{ signature: string; app: boolean; runtime: boolean; registrar: boolean }>>`
       SELECT p.oid::regprocedure::text AS signature,
              has_function_privilege('app_role', p.oid, 'EXECUTE') AS app,
-             has_function_privilege('yellow_runtime', p.oid, 'EXECUTE') AS runtime
+             has_function_privilege('yellow_runtime', p.oid, 'EXECUTE') AS runtime,
+             has_function_privilege('yellow_extension_registrar', p.oid, 'EXECUTE') AS registrar
         FROM pg_proc p
         JOIN pg_namespace n ON n.oid = p.pronamespace
        WHERE n.nspname = 'public'
@@ -262,7 +260,7 @@ databaseDescribe("Order 150 positive runtime DML authority", () => {
            'runtime_consumer_read', 'runtime_consumer_mark', 'runtime_consumer_advance',
            'runtime_mark_outbox_published', 'runtime_prune_outbox', 'runtime_visible_extensions',
            'runtime_extension_compatibility_inputs', 'assert_journal_balanced',
-           'derive_posting_line_currency')
+           'derive_posting_line_currency', 'register_extension_type')
        ORDER BY signature
     `;
     const occupancyFunctions = functions.filter(({ signature }) =>
@@ -274,6 +272,8 @@ databaseDescribe("Order 150 positive runtime DML authority", () => {
     const runtimeFunctions = functions.filter(({ signature }) => signature.startsWith("runtime_"));
     expect(runtimeFunctions).toHaveLength(10);
     expect(runtimeFunctions.every(({ app, runtime }) => !app && runtime)).toBe(true);
+    expect(functions.find(({ signature }) => signature.startsWith("register_extension_type(")))
+      .toEqual(expect.objectContaining({ app: false, runtime: false, registrar: true }));
     expect(functions.find(({ signature }) => signature.startsWith("seal_business_day("))).toEqual(expect.objectContaining({ app: false }));
     const triggerFunctions = functions.filter(({ signature }) =>
       signature.startsWith("assert_journal_balanced(") || signature.startsWith("derive_posting_line_currency(")

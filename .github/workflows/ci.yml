@@ -276,12 +276,15 @@ jobs:
           set -euo pipefail
           deploy_password="$(bun -e 'const b=crypto.getRandomValues(new Uint8Array(48));process.stdout.write(Buffer.from(b).toString("base64url"));')"
           runtime_password="$(bun -e 'const b=crypto.getRandomValues(new Uint8Array(48));process.stdout.write(Buffer.from(b).toString("base64url"));')"
-          if [[ "$deploy_password" == "$runtime_password" ]]; then exit 1; fi
+          registrar_password="$(bun -e 'const b=crypto.getRandomValues(new Uint8Array(48));process.stdout.write(Buffer.from(b).toString("base64url"));')"
+          if [[ "$deploy_password" == "$runtime_password" || "$deploy_password" == "$registrar_password" || "$runtime_password" == "$registrar_password" ]]; then exit 1; fi
           echo "::add-mask::$deploy_password"
           echo "::add-mask::$runtime_password"
+          echo "::add-mask::$registrar_password"
           {
             echo "YELLOW_DEPLOY_DATABASE_PASSWORD=$deploy_password"
             echo "YELLOW_RUNTIME_DATABASE_PASSWORD=$runtime_password"
+            echo "YELLOW_EXTENSION_REGISTRAR_DATABASE_PASSWORD=$registrar_password"
           } >> "$GITHUB_ENV"
 
       - name: Start pinned PostgreSQL
@@ -318,6 +321,7 @@ jobs:
             echo "ADMIN_URL=postgres://yellow_deploy:${YELLOW_DEPLOY_DATABASE_PASSWORD}@${postgres_address}/postgres"
             echo "DEPLOYMENT_URL=postgres://yellow_deploy:${YELLOW_DEPLOY_DATABASE_PASSWORD}@${postgres_address}/yellow_ci_deployment"
             echo "DEPLOYMENT_RUNTIME_URL=postgres://yellow_runtime:${YELLOW_RUNTIME_DATABASE_PASSWORD}@${postgres_address}/yellow_ci_deployment"
+            echo "DEPLOYMENT_REGISTRAR_URL=postgres://yellow_extension_registrar:${YELLOW_EXTENSION_REGISTRAR_DATABASE_PASSWORD}@${postgres_address}/yellow_ci_deployment"
             echo "INVARIANT_URL=postgres://yellow_deploy:${YELLOW_DEPLOY_DATABASE_PASSWORD}@${postgres_address}/yellow_ci_invariant"
             echo "INVARIANT_RUNTIME_URL=postgres://yellow_runtime:${YELLOW_RUNTIME_DATABASE_PASSWORD}@${postgres_address}/yellow_ci_invariant"
             echo "YELLOW_DEPLOY_DATABASE_URL=postgres://yellow_deploy:${YELLOW_DEPLOY_DATABASE_PASSWORD}@${postgres_address}/postgres"
@@ -331,6 +335,8 @@ jobs:
           set -euo pipefail
           postgres_address="$(docker compose port postgres 5432)"
           YELLOW_DEPLOY_DATABASE_URL="postgres://yellow_deploy:${YELLOW_DEPLOY_DATABASE_PASSWORD}@${postgres_address}/${YELLOW_DATABASE_NAME}" \
+          YELLOW_RUNTIME_DATABASE_PASSWORD="$YELLOW_RUNTIME_DATABASE_PASSWORD" \
+          YELLOW_EXTENSION_REGISTRAR_DATABASE_PASSWORD="$YELLOW_EXTENSION_REGISTRAR_DATABASE_PASSWORD" \
             bun scripts/provision-local-database-authority.ts
 
       - name: Execute isolated Phase 3 database proofs
@@ -338,6 +344,7 @@ jobs:
         run: |
           YELLOW_PHASE3_GATE_DEPLOY_URL="$ADMIN_URL" \
           YELLOW_PHASE3_GATE_RUNTIME_URL="postgres://yellow_runtime:${YELLOW_RUNTIME_DATABASE_PASSWORD}@${POSTGRES_ADDRESS}/postgres" \
+          YELLOW_PHASE3_GATE_REGISTRAR_URL="postgres://yellow_extension_registrar:${YELLOW_EXTENSION_REGISTRAR_DATABASE_PASSWORD}@${POSTGRES_ADDRESS}/postgres" \
           YELLOW_PHASE3_GATE_PASSWORD='Order079-CI-Proof-Only!' \
             bun run test:phase3-gate
 
@@ -362,6 +369,7 @@ jobs:
         run: |
           export YELLOW_DEPLOY_DATABASE_URL="$DEPLOYMENT_URL"
           export YELLOW_RUNTIME_DATABASE_URL="$DEPLOYMENT_RUNTIME_URL"
+          export YELLOW_EXTENSION_REGISTRAR_DATABASE_URL="$DEPLOYMENT_REGISTRAR_URL"
           export YELLOW_DATABASE_ACCEPTANCE_URL="$DEPLOYMENT_URL"
           export YELLOW_SCHEMA_DATABASE=yellow_ci_deployment
           bun run db:migrate

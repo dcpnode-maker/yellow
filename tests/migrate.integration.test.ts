@@ -640,6 +640,31 @@ databaseDescribe("Bun SQL migration runner", () => {
   );
 
   test(
+    "applies the exact extension type registrar capability migration",
+    async () => {
+      await withDatabase(async ({ databaseUrl: targetUrl, sql }) => {
+        const result = await runMigrations({
+          databaseUrl: targetUrl,
+          migrationsDirectory: PROJECT_MIGRATIONS,
+          logger: () => undefined,
+        });
+        expect(result.appliedFiles).toContain("0018_extension_type_registration_capability.sql");
+        const ledger = await sql<Array<{ version: number | bigint; filename: string; checksum_sha256: string }>>`
+          SELECT version, filename, checksum_sha256
+            FROM public.schema_migration
+           WHERE version = 18
+        `;
+        expect(ledger.map((row) => ({ ...row, version: Number(row.version) }))).toEqual([{
+          version: 18,
+          filename: "0018_extension_type_registration_capability.sql",
+          checksum_sha256: "77e80f10c1c148fe79dcf71c546afe87fbdf97ac7f320644f5e550c88d409fc3",
+        }]);
+      });
+    },
+    60_000,
+  );
+
+  test(
     "applies the exact account-folio integrity migration and rejects tenant-crossing references",
     async () => {
       await withDatabase(async ({ databaseUrl: targetUrl, sql }) => {

@@ -27,12 +27,14 @@ interface SessionRow {
 export interface ProvisionLocalDatabaseAuthorityOptions {
   readonly deployDatabaseUrl: string;
   readonly runtimePassword: string;
+  readonly registrarPassword: string;
   readonly logger?: (line: string) => void;
 }
 
 export interface ProvisionLocalDatabaseAuthorityResult {
   readonly owner: "created" | "already exact";
   readonly runtime: "created" | "already exact";
+  readonly registrar: "created" | "already exact";
 }
 
 function errorMessage(error: unknown): string {
@@ -43,9 +45,9 @@ function replaceEvery(value: string, target: string, replacement: string): strin
   return target === "" ? value : value.split(target).join(replacement);
 }
 
-function redactedError(error: unknown, databaseUrl: string, runtimePassword: string): Error {
+function redactedError(error: unknown, databaseUrl: string, ...passwords: readonly string[]): Error {
   let value = replaceEvery(errorMessage(error), databaseUrl, "[REDACTED_DATABASE_URL]");
-  value = replaceEvery(value, runtimePassword, "[REDACTED]");
+  for (const password of passwords) value = replaceEvery(value, password, "[REDACTED]");
   try {
     const parsed = new URL(databaseUrl);
     for (const credential of [
@@ -80,14 +82,14 @@ function deployUrl(value: string): URL {
   return parsed;
 }
 
-function checkedPassword(value: string): string {
+function checkedPassword(name: string, value: string): string {
   if (value.length < MIN_PASSWORD_LENGTH || value.length > MAX_PASSWORD_LENGTH) {
     throw new Error(
-      `YELLOW_RUNTIME_DATABASE_PASSWORD must contain ${MIN_PASSWORD_LENGTH} to ${MAX_PASSWORD_LENGTH} characters`,
+      `${name} must contain ${MIN_PASSWORD_LENGTH} to ${MAX_PASSWORD_LENGTH} characters`,
     );
   }
   if (/\p{Cc}/u.test(value)) {
-    throw new Error("YELLOW_RUNTIME_DATABASE_PASSWORD must not contain control characters");
+    throw new Error(`${name} must not contain control characters`);
   }
   return value;
 }
@@ -115,6 +117,20 @@ function exactRuntime(role: RoleRow | undefined): boolean {
     && role.rolname === "yellow_runtime"
     && role.rolcanlogin === true
     && role.rolconnlimit === -1
+    && role.rolpassword !== null
+    && role.rolsuper === false
+    && role.rolcreatedb === false
+    && role.rolcreaterole === false
+    && role.rolinherit === false
+    && role.rolreplication === false
+    && role.rolbypassrls === false;
+}
+
+function exactRegistrar(role: RoleRow | undefined): boolean {
+  return role !== undefined
+    && role.rolname === "yellow_extension_registrar"
+    && role.rolcanlogin === true
+    && role.rolconnlimit === 4
     && role.rolpassword !== null
     && role.rolsuper === false
     && role.rolcreatedb === false
@@ -155,7 +171,7 @@ async function roles(connection: ReservedSQL): Promise<readonly RoleRow[]> {
            rolreplication,
            rolbypassrls
       FROM pg_authid
-     WHERE rolname IN ('yellow_owner', 'yellow_runtime')
+     WHERE rolname IN ('yellow_extension_registrar', 'yellow_owner', 'yellow_runtime')
      ORDER BY rolname
   `;
 }
@@ -176,8 +192,8 @@ async function verifyMembership(connection: ReservedSQL): Promise<void> {
       FROM pg_auth_members membership
       JOIN pg_roles granted ON granted.oid = membership.roleid
       JOIN pg_roles member ON member.oid = membership.member
-     WHERE granted.rolname IN ('yellow_owner', 'yellow_runtime', 'app_role')
-        OR member.rolname IN ('yellow_owner', 'yellow_runtime', 'app_role')
+     WHERE granted.rolname IN ('yellow_extension_registrar', 'yellow_owner', 'yellow_runtime', 'app_role')
+        OR member.rolname IN ('yellow_extension_registrar', 'yellow_owner', 'yellow_runtime', 'app_role')
      ORDER BY granted.rolname, member.rolname
   `;
   if (rows.some(({ granted_role, member_role, admin_option, inherit_option, set_option }) => (
@@ -203,11 +219,34 @@ async function verifyRuntimeLogin(url: URL): Promise<void> {
   }
 }
 
+async function verifyRegistrarLogin(url: URL): Promise<void> {
+  const registrarPool = new SQL(url.toString(), { max: 1, prepare: false });
+  try {
+    const rows = await registrarPool<Array<{ session_user: string; current_user: string }>>`
+      SELECT session_user, current_user
+    `;
+    if (rows.length !== 1 || rows[0]?.session_user !== "yellow_extension_registrar"
+        || rows[0]?.current_user !== "yellow_extension_registrar") {
+      throw new Error("the generated registrar credential did not authenticate as yellow_extension_registrar");
+    }
+  } finally {
+    await registrarPool.close();
+  }
+}
+
 export async function provisionLocalDatabaseAuthority(
   options: ProvisionLocalDatabaseAuthorityOptions,
 ): Promise<ProvisionLocalDatabaseAuthorityResult> {
   const parsedDeployUrl = deployUrl(options.deployDatabaseUrl);
-  const runtimePassword = checkedPassword(options.runtimePassword);
+  const runtimePassword = checkedPassword("YELLOW_RUNTIME_DATABASE_PASSWORD", options.runtimePassword);
+  const registrarPassword = checkedPassword(
+    "YELLOW_EXTENSION_REGISTRAR_DATABASE_PASSWORD",
+    options.registrarPassword,
+  );
+  if (runtimePassword === registrarPassword || runtimePassword === decodeURIComponent(parsedDeployUrl.password)
+      || registrarPassword === decodeURIComponent(parsedDeployUrl.password)) {
+    throw new Error("database authority credentials must be pairwise distinct");
+  }
   const logger = options.logger ?? console.log;
   const pool = new SQL(parsedDeployUrl.toString(), { max: 1 });
   const connection = await pool.reserve();
@@ -223,9 +262,13 @@ export async function provisionLocalDatabaseAuthority(
     const initial = await roles(connection);
     const initialOwner = initial.find(({ rolname }) => rolname === "yellow_owner");
     const initialRuntime = initial.find(({ rolname }) => rolname === "yellow_runtime");
+    const initialRegistrar = initial.find(({ rolname }) => rolname === "yellow_extension_registrar");
     if (initialOwner && !exactOwner(initialOwner)) throw new Error("yellow_owner has incompatible existing attributes");
     if (initialRuntime && !exactRuntime(initialRuntime)) {
       throw new Error("yellow_runtime has incompatible existing attributes");
+    }
+    if (initialRegistrar && !exactRegistrar(initialRegistrar)) {
+      throw new Error("yellow_extension_registrar has incompatible existing attributes");
     }
     await verifyMembership(connection);
 
@@ -234,6 +277,12 @@ export async function provisionLocalDatabaseAuthority(
       existingRuntimeUrl.username = "yellow_runtime";
       existingRuntimeUrl.password = runtimePassword;
       await verifyRuntimeLogin(existingRuntimeUrl);
+    }
+    if (initialRegistrar) {
+      const existingRegistrarUrl = new URL(parsedDeployUrl);
+      existingRegistrarUrl.username = "yellow_extension_registrar";
+      existingRegistrarUrl.password = registrarPassword;
+      await verifyRegistrarLogin(existingRegistrarUrl);
     }
 
     if (!initialOwner) {
@@ -246,10 +295,16 @@ export async function provisionLocalDatabaseAuthority(
         LOGIN PASSWORD ${quoteLiteral(runtimePassword)} CONNECTION LIMIT -1
         NOSUPERUSER NOCREATEDB NOCREATEROLE NOINHERIT NOREPLICATION NOBYPASSRLS`);
     }
+    if (!initialRegistrar) {
+      await connection.unsafe(`CREATE ROLE yellow_extension_registrar WITH
+        LOGIN PASSWORD ${quoteLiteral(registrarPassword)} CONNECTION LIMIT 4
+        NOSUPERUSER NOCREATEDB NOCREATEROLE NOINHERIT NOREPLICATION NOBYPASSRLS`);
+    }
 
     const final = await roles(connection);
     if (!exactOwner(final.find(({ rolname }) => rolname === "yellow_owner"))
-        || !exactRuntime(final.find(({ rolname }) => rolname === "yellow_runtime"))) {
+        || !exactRuntime(final.find(({ rolname }) => rolname === "yellow_runtime"))
+        || !exactRegistrar(final.find(({ rolname }) => rolname === "yellow_extension_registrar"))) {
       throw new Error("database authority roles did not reach the exact required catalogue");
     }
     await connection.unsafe("COMMIT");
@@ -259,18 +314,23 @@ export async function provisionLocalDatabaseAuthority(
     runtimeUrl.username = "yellow_runtime";
     runtimeUrl.password = runtimePassword;
     await verifyRuntimeLogin(runtimeUrl);
+    const registrarUrl = new URL(parsedDeployUrl);
+    registrarUrl.username = "yellow_extension_registrar";
+    registrarUrl.password = registrarPassword;
+    await verifyRegistrarLogin(registrarUrl);
 
     const result: ProvisionLocalDatabaseAuthorityResult = Object.freeze({
       owner: initialOwner ? "already exact" : "created",
       runtime: initialRuntime ? "already exact" : "created",
+      registrar: initialRegistrar ? "already exact" : "created",
     });
-    logger(`database authority provisioned: owner=${result.owner} runtime=${result.runtime}`);
+    logger(`database authority provisioned: owner=${result.owner} runtime=${result.runtime} registrar=${result.registrar}`);
     return result;
   } catch (error) {
     if (began) {
       try { await connection.unsafe("ROLLBACK"); } catch { /* Preserve the original failure. */ }
     }
-    throw redactedError(error, parsedDeployUrl.toString(), runtimePassword);
+    throw redactedError(error, parsedDeployUrl.toString(), runtimePassword, registrarPassword);
   } finally {
     connection.release();
     await pool.close();
@@ -280,13 +340,14 @@ export async function provisionLocalDatabaseAuthority(
 async function runCli(): Promise<void> {
   const deployDatabaseUrl = process.env.YELLOW_DEPLOY_DATABASE_URL;
   const runtimePassword = process.env.YELLOW_RUNTIME_DATABASE_PASSWORD;
-  if (!deployDatabaseUrl || !runtimePassword) {
-    console.error("YELLOW_DEPLOY_DATABASE_URL and YELLOW_RUNTIME_DATABASE_PASSWORD are required");
+  const registrarPassword = process.env.YELLOW_EXTENSION_REGISTRAR_DATABASE_PASSWORD;
+  if (!deployDatabaseUrl || !runtimePassword || !registrarPassword) {
+    console.error("YELLOW_DEPLOY_DATABASE_URL, YELLOW_RUNTIME_DATABASE_PASSWORD and YELLOW_EXTENSION_REGISTRAR_DATABASE_PASSWORD are required");
     process.exitCode = 1;
     return;
   }
   try {
-    await provisionLocalDatabaseAuthority({ deployDatabaseUrl, runtimePassword });
+    await provisionLocalDatabaseAuthority({ deployDatabaseUrl, runtimePassword, registrarPassword });
   } catch (error) {
     console.error(`database authority provisioning failed: ${errorMessage(error)}`);
     process.exitCode = 1;

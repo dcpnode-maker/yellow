@@ -7,33 +7,50 @@ import { provisionLocalDatabaseAuthority } from "../scripts/provision-local-data
 
 const DEPLOY_DATABASE_URL = process.env.YELLOW_DEPLOY_DATABASE_URL ?? process.env.YELLOW_RUNTIME_AUTHORITY_P0_URL;
 const RUNTIME_DATABASE_URL = process.env.YELLOW_RUNTIME_DATABASE_URL ?? process.env.YELLOW_RUNTIME_AUTHORITY_P0_URL;
+const REGISTRAR_DATABASE_URL = process.env.YELLOW_EXTENSION_REGISTRAR_DATABASE_URL;
 const REQUIRE_DATABASE = process.env.YELLOW_REQUIRE_RUNTIME_AUTHORITY_P0 === "1";
 
-if (REQUIRE_DATABASE && (!DEPLOY_DATABASE_URL || !RUNTIME_DATABASE_URL)) {
-  throw new Error("YELLOW_DEPLOY_DATABASE_URL and YELLOW_RUNTIME_DATABASE_URL are required for Order 127 P0");
+if (REQUIRE_DATABASE && (!DEPLOY_DATABASE_URL || !RUNTIME_DATABASE_URL || !REGISTRAR_DATABASE_URL)) {
+  throw new Error("deploy, runtime and registrar database URLs are required for Order 127/156 P0");
 }
 
-const databaseDescribe = DEPLOY_DATABASE_URL && RUNTIME_DATABASE_URL ? describe.serial : describe.skip;
+const databaseDescribe = DEPLOY_DATABASE_URL && RUNTIME_DATABASE_URL && REGISTRAR_DATABASE_URL ? describe.serial : describe.skip;
 
 test("P4: local authority provisioning rejects malformed deploy URLs and weak runtime secrets before connecting", async () => {
   await expect(provisionLocalDatabaseAuthority({
     deployDatabaseUrl: "not-a-postgres-url",
     runtimePassword: "short",
+    registrarPassword: "registrar-proof-secret-that-is-long-enough",
     logger: () => undefined,
   })).rejects.toThrow("valid PostgreSQL URL");
   await expect(provisionLocalDatabaseAuthority({
     deployDatabaseUrl: "postgres://yellow_deploy:deploy-secret@127.0.0.1:1/postgres",
     runtimePassword: "short",
+    registrarPassword: "registrar-proof-secret-that-is-long-enough",
     logger: () => undefined,
   })).rejects.toThrow("32 to 256");
 });
 
-test("P4: actual server boundary authenticates only with the runtime DSN", async () => {
+test("P4: server and setup keep runtime and registrar credentials on exact separate boundaries", async () => {
   const server = await Bun.file(new URL("../src/server.ts", import.meta.url)).text();
+  const setupSh = await Bun.file(new URL("../setup.sh", import.meta.url)).text();
+  const setupPs = await Bun.file(new URL("../setup.ps1", import.meta.url)).text();
+  const compose = await Bun.file(new URL("../docker-compose.yml", import.meta.url)).text();
+  const reviewSeed = await Bun.file(new URL("../scripts/seed-review.ts", import.meta.url)).text();
   expect(server).toContain('required("YELLOW_RUNTIME_DATABASE_URL")');
+  expect(server).toContain('required("YELLOW_EXTENSION_REGISTRAR_DATABASE_URL")');
   expect(server).toContain("const database = Database.connect(databaseUrl, { maxConnections: 12, prepare: false });");
+  expect(server).toContain("new SQL(registrarUrl, { max: 2, prepare: false })");
   expect(server).not.toContain('required("DATABASE_URL")');
   expect(server).not.toContain("process.env.DATABASE_URL");
+  for (const setup of [setupSh, setupPs]) {
+    expect(setup).toContain("YELLOW_EXTENSION_REGISTRAR_DATABASE_PASSWORD");
+    expect(setup).toContain("YELLOW_DEPLOY_DATABASE_PASSWORD");
+    expect(setup).toContain("YELLOW_RUNTIME_DATABASE_PASSWORD");
+  }
+  expect(compose).toContain("YELLOW_EXTENSION_REGISTRAR_DATABASE_URL");
+  expect(reviewSeed).not.toContain("YELLOW_EXTENSION_REGISTRAR");
+  expect(reviewSeed).toContain("new SQL(options.databaseUrl, { max: 4, prepare: false })");
 });
 
 test("P1/P4: owned sequences follow their parent and PowerShell forwards detached Compose explicitly", async () => {
@@ -291,12 +308,13 @@ databaseDescribe("Order 127 runtime database authority (kernel boundary; HTTP P4
              rolcreatedb AS create_db, rolcreaterole AS create_role,
              rolinherit AS inherit, rolreplication AS replication, rolbypassrls AS bypass_rls
         FROM pg_catalog.pg_authid
-       WHERE rolname IN ('yellow_deploy', 'yellow_owner', 'yellow_runtime', 'app_role')
+       WHERE rolname IN ('yellow_deploy', 'yellow_extension_registrar', 'yellow_owner', 'yellow_runtime', 'app_role')
        ORDER BY rolname
     `;
     expect(roles).toEqual([
       { rolname: "app_role", can_login: false, conn_limit: 0, password_is_null: true, superuser: false, create_db: false, create_role: false, inherit: false, replication: false, bypass_rls: false },
       { rolname: "yellow_deploy", can_login: true, conn_limit: -1, password_is_null: false, superuser: true, create_db: true, create_role: true, inherit: true, replication: true, bypass_rls: true },
+      { rolname: "yellow_extension_registrar", can_login: true, conn_limit: 4, password_is_null: false, superuser: false, create_db: false, create_role: false, inherit: false, replication: false, bypass_rls: false },
       { rolname: "yellow_owner", can_login: false, conn_limit: 0, password_is_null: true, superuser: false, create_db: false, create_role: false, inherit: false, replication: false, bypass_rls: false },
       { rolname: "yellow_runtime", can_login: true, conn_limit: -1, password_is_null: false, superuser: false, create_db: false, create_role: false, inherit: false, replication: false, bypass_rls: false },
     ]);
@@ -306,8 +324,8 @@ databaseDescribe("Order 127 runtime database authority (kernel boundary; HTTP P4
         FROM pg_catalog.pg_auth_members m
         JOIN pg_catalog.pg_roles parent ON parent.oid = m.roleid
         JOIN pg_catalog.pg_roles member ON member.oid = m.member
-       WHERE parent.rolname IN ('yellow_deploy', 'yellow_owner', 'yellow_runtime', 'app_role')
-          OR member.rolname IN ('yellow_deploy', 'yellow_owner', 'yellow_runtime', 'app_role')
+       WHERE parent.rolname IN ('yellow_deploy', 'yellow_extension_registrar', 'yellow_owner', 'yellow_runtime', 'app_role')
+          OR member.rolname IN ('yellow_deploy', 'yellow_extension_registrar', 'yellow_owner', 'yellow_runtime', 'app_role')
        ORDER BY parent.rolname, member.rolname
     `;
     expect(memberships).toEqual([{ role_name: "app_role", member_name: "yellow_runtime" }]);
@@ -501,12 +519,14 @@ databaseDescribe("Order 127 runtime database authority (kernel boundary; HTTP P4
 
   test("P4: provisioning is idempotent, separates secrets, and redacts authority material", async () => {
     const runtimePassword = decodeURIComponent(new URL(RUNTIME_DATABASE_URL!).password);
+    const registrarPassword = decodeURIComponent(new URL(REGISTRAR_DATABASE_URL!).password);
     const lines: string[] = [];
     const result = await provisionLocalDatabaseAuthority({
-      deployDatabaseUrl: DEPLOY_DATABASE_URL!, runtimePassword, logger: (line) => lines.push(line),
+      deployDatabaseUrl: DEPLOY_DATABASE_URL!, runtimePassword, registrarPassword,
+      logger: (line) => lines.push(line),
     });
-    expect(result).toEqual({ owner: "already exact", runtime: "already exact" });
-    expect(lines).toEqual(["database authority provisioned: owner=already exact runtime=already exact"]);
+    expect(result).toEqual({ owner: "already exact", runtime: "already exact", registrar: "already exact" });
+    expect(lines).toEqual(["database authority provisioned: owner=already exact runtime=already exact registrar=already exact"]);
     expect(DEPLOY_DATABASE_URL).not.toBe(RUNTIME_DATABASE_URL);
     expect(lines.join("\n")).not.toContain(runtimePassword);
     expect(lines.join("\n")).not.toContain(DEPLOY_DATABASE_URL);
@@ -514,10 +534,11 @@ databaseDescribe("Order 127 runtime database authority (kernel boundary; HTTP P4
 
   test("P4: incompatible owner is rejected atomically and an exact retry succeeds", async () => {
     const runtimePassword = decodeURIComponent(new URL(RUNTIME_DATABASE_URL!).password);
+    const registrarPassword = decodeURIComponent(new URL(REGISTRAR_DATABASE_URL!).password);
     await runtimeSession.close();
     await admin!.unsafe("ALTER ROLE yellow_owner LOGIN");
     try {
-      await expect(provisionLocalDatabaseAuthority({ deployDatabaseUrl: DEPLOY_DATABASE_URL!, runtimePassword, logger: () => undefined })).rejects.toThrow("incompatible existing attributes");
+      await expect(provisionLocalDatabaseAuthority({ deployDatabaseUrl: DEPLOY_DATABASE_URL!, runtimePassword, registrarPassword, logger: () => undefined })).rejects.toThrow("incompatible existing attributes");
       const rows = await admin!<{ can_login: boolean; runtime_exists: boolean }[]>`
         SELECT rolcanlogin AS can_login,
                EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'yellow_runtime') AS runtime_exists
@@ -527,9 +548,41 @@ databaseDescribe("Order 127 runtime database authority (kernel boundary; HTTP P4
     } finally {
       await admin!.unsafe("ALTER ROLE yellow_owner NOLOGIN PASSWORD NULL CONNECTION LIMIT 0 NOSUPERUSER NOCREATEDB NOCREATEROLE NOINHERIT NOREPLICATION NOBYPASSRLS");
     }
-    const retry = await provisionLocalDatabaseAuthority({ deployDatabaseUrl: DEPLOY_DATABASE_URL!, runtimePassword, logger: () => undefined });
-    expect(retry).toEqual({ owner: "already exact", runtime: "already exact" });
+    const retry = await provisionLocalDatabaseAuthority({ deployDatabaseUrl: DEPLOY_DATABASE_URL!, runtimePassword, registrarPassword, logger: () => undefined });
+    expect(retry).toEqual({ owner: "already exact", runtime: "already exact", registrar: "already exact" });
     runtimeSession = new SQL(RUNTIME_DATABASE_URL!, { max: 1 });
+  });
+
+  test("P4: wrong registrar secret and malformed registrar role fail closed without authority output", async () => {
+    const runtimePassword = decodeURIComponent(new URL(RUNTIME_DATABASE_URL!).password);
+    const registrarPassword = decodeURIComponent(new URL(REGISTRAR_DATABASE_URL!).password);
+    const wrongRegistrarPassword = "wrong-registrar-proof-secret-that-remains-private";
+    let wrongSecretError = "";
+    try {
+      await provisionLocalDatabaseAuthority({
+        deployDatabaseUrl: DEPLOY_DATABASE_URL!, runtimePassword,
+        registrarPassword: wrongRegistrarPassword, logger: () => undefined,
+      });
+    } catch (error) {
+      wrongSecretError = error instanceof Error ? error.message : String(error);
+    }
+    expect(wrongSecretError).not.toBe("");
+    expect(wrongSecretError).not.toContain(wrongRegistrarPassword);
+    expect(wrongSecretError).not.toContain(registrarPassword);
+
+    await admin!.unsafe("ALTER ROLE yellow_extension_registrar CONNECTION LIMIT 3");
+    try {
+      await expect(provisionLocalDatabaseAuthority({
+        deployDatabaseUrl: DEPLOY_DATABASE_URL!, runtimePassword, registrarPassword,
+        logger: () => undefined,
+      })).rejects.toThrow("yellow_extension_registrar has incompatible existing attributes");
+    } finally {
+      await admin!.unsafe("ALTER ROLE yellow_extension_registrar CONNECTION LIMIT 4");
+    }
+    expect(await provisionLocalDatabaseAuthority({
+      deployDatabaseUrl: DEPLOY_DATABASE_URL!, runtimePassword, registrarPassword,
+      logger: () => undefined,
+    })).toEqual({ owner: "already exact", runtime: "already exact", registrar: "already exact" });
   });
 
 });

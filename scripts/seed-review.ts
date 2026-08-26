@@ -774,7 +774,7 @@ export async function runReviewSeed(options: ReviewSeedOptions): Promise<ReviewS
   const logger = options.logger ?? console.log;
   const { userId, approverUserId, roleId } = await canonicalIds();
   const identityPool = new SQL(options.databaseUrl, { max: 2 });
-  const eventPool = new SQL(options.databaseUrl, { max: 4 });
+  const eventPool = new SQL(options.databaseUrl, { max: 4, prepare: false });
   const database = Database.connect(options.databaseUrl, { maxConnections: 6 });
 
   try {

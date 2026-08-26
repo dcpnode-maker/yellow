@@ -9,6 +9,7 @@ import { LAUNCH_EXTENSIONS, LAUNCH_EXTENSION_TYPES } from "../scripts/seed";
 
 const DEPLOY_DATABASE_URL = process.env.YELLOW_DEPLOY_DATABASE_URL ?? process.env.YELLOW_EXTENSION_URL;
 const RUNTIME_DATABASE_URL = process.env.YELLOW_RUNTIME_DATABASE_URL ?? process.env.YELLOW_EXTENSION_URL;
+const REGISTRAR_DATABASE_URL = process.env.YELLOW_EXTENSION_REGISTRAR_DATABASE_URL;
 const REQUIRE_DATABASE = process.env.YELLOW_REQUIRE_EXTENSION === "1";
 const TENANT_A = "00000000-0000-0000-0000-000000000001";
 const TENANT_B = "00000000-0000-0000-0000-000000000002";
@@ -29,13 +30,14 @@ const SCHEMA = {
   },
 } as const;
 
-if (REQUIRE_DATABASE && (!DEPLOY_DATABASE_URL || !RUNTIME_DATABASE_URL)) {
-  throw new Error("YELLOW_DEPLOY_DATABASE_URL and YELLOW_RUNTIME_DATABASE_URL are required by the Order 024 proof");
+if (REQUIRE_DATABASE && (!DEPLOY_DATABASE_URL || !RUNTIME_DATABASE_URL || !REGISTRAR_DATABASE_URL)) {
+  throw new Error("deploy, runtime and extension registrar database URLs are required by the Order 024 proof");
 }
 
-const databaseDescribe = DEPLOY_DATABASE_URL && RUNTIME_DATABASE_URL ? describe.serial : describe.skip;
+const databaseDescribe = DEPLOY_DATABASE_URL && RUNTIME_DATABASE_URL && REGISTRAR_DATABASE_URL ? describe.serial : describe.skip;
 let admin: SQL | undefined;
 let platformPool: SQL | undefined;
+let registrarPool: SQL | undefined;
 let database: Database | undefined;
 let registry: ExtensionRegistry | undefined;
 let tokenA = "";
@@ -70,11 +72,12 @@ function request(path: string, token: string, init: RequestInit = {}): Request {
 }
 
 beforeAll(async () => {
-  if (!DEPLOY_DATABASE_URL || !RUNTIME_DATABASE_URL) return;
+  if (!DEPLOY_DATABASE_URL || !RUNTIME_DATABASE_URL || !REGISTRAR_DATABASE_URL) return;
   admin = new SQL(DEPLOY_DATABASE_URL, { max: 3 });
-  platformPool = new SQL(RUNTIME_DATABASE_URL, { max: 6 });
+  platformPool = new SQL(RUNTIME_DATABASE_URL, { max: 6, prepare: false });
+  registrarPool = new SQL(REGISTRAR_DATABASE_URL, { max: 2, prepare: false });
   database = Database.connect(RUNTIME_DATABASE_URL, { maxConnections: 6 });
-  registry = new ExtensionRegistry(platformPool);
+  registry = new ExtensionRegistry(platformPool, registrarPool);
   const tokens = new Hs256TokenSigner(SECRET);
   const fullScopes = [
     "identity.extension-type:register",
@@ -98,6 +101,7 @@ afterAll(async () => {
     await admin.close();
   }
   await platformPool?.close();
+  await registrarPool?.close();
   await database?.close();
 });
 

@@ -61,7 +61,7 @@ access tokens and does not modify staff password hashes.
 
 ## 5. Tenant isolation failure modes (tested, not assumed)
 
-- `yellow_runtime` is the only application, HTTP, worker, event and discovery
+- `yellow_runtime` is the tenant application, HTTP, worker, event and discovery
   login. It is `NOSUPERUSER`, `NOBYPASSRLS`, owns no Yellow object, and has one
   explicit membership edge: `yellow_runtime -> app_role`.
 - `yellow_owner` is `NOLOGIN`, password-free, non-superuser and owns the public
@@ -69,13 +69,20 @@ access tokens and does not modify staff password hashes.
   separate deployment/migration/seed/schema/referee administrator and is never
   present in an application environment. `app_role` remains an internal `NOLOGIN`
   capability role with no password or authentication path.
+- `yellow_extension_registrar` is a separate `LOGIN`, `NOINHERIT` principal with
+  connection limit four, zero membership/ownership/table/sequence authority, and
+  only schema `USAGE` plus execution of the fixed extension-type registration
+  command. Its max-two unprepared pool is reachable only after the authenticated
+  platform-scope check and is never exposed as a generic transaction handle.
 - Every application transaction establishes verified tenant context before
   `SET LOCAL ROLE app_role`; commit, rollback, nested failure and pooled backend
   reuse must restore `current_user = session_user = yellow_runtime` and clear the
   tenant setting. A hostile `RESET ROLE` can therefore return only to the runtime
   principal, which has no owner/deploy, DDL, cross-tenant or role-management power.
-- Deployment tooling accepts only `YELLOW_DEPLOY_DATABASE_URL`; application and
-  worker processes accept only `YELLOW_RUNTIME_DATABASE_URL`. The DSNs are distinct,
+- Deployment tooling accepts only `YELLOW_DEPLOY_DATABASE_URL`; tenant application
+  paths accept `YELLOW_RUNTIME_DATABASE_URL`, while the application alone also
+  receives `YELLOW_EXTENSION_REGISTRAR_DATABASE_URL`. Migrate, seed and review seed
+  never receive the registrar credential. All three credentials are distinct,
   generated/injected secrets and are never logged or committed.
 - RLS through views — regression TC-13.4, permanent.
 - SECURITY DEFINER choke points use the exact fixed search path
@@ -117,13 +124,19 @@ entered `app_role`. It accepts one or two distinct tenant accounts, locks them i
 UUID order, optionally locks a folio belonging to that set, returns no business
 data, and fails without identifying a missing or foreign target.
 
+Extension-type registration is `register_extension_type(tenant,type,schema,actor,
+property,request)`, not direct runtime DML. The `yellow_owner` function verifies the
+dedicated session principal and audit authority, derives the UUIDv5 subject, and
+atomically writes the global type plus one insert-only tenant fact; identical replay
+returns false without another fact and divergence fails. Runtime, `app_role` and
+`PUBLIC` cannot execute it or directly insert the catalogue row.
+
 Named residual capability debt remains for approval decisions, extension
 publication/retirement, hold transitions, inventory-policy and projection
 replacement, operational-block updates, reservation/segment/guest lifecycle,
 folio numbering, journal/posting transitions beyond this structural lock, and future task/fiscal/statutory or
-document mutation. The one explicit global exception is
-`extension_type(type,json_schema)` INSERT for current platform registration
-(D-417); it is temporary residual debt and must move behind a bounded capability.
+document mutation. Extension publication/retirement remains separate debt; the
+registration exception from D-417 is closed by migration 0018.
 
 ## 6. Statutory & privacy
 

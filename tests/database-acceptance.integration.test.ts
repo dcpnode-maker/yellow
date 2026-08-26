@@ -90,6 +90,11 @@ const EXPECTED_MIGRATIONS = [
     filename: "0017_financial_row_lock_capability.sql",
     checksum_sha256: "0d784fab670353b665e464d350e92ab5e6de401a131a737a63b86e1844a6ec81",
   },
+  {
+    version: 18,
+    filename: "0018_extension_type_registration_capability.sql",
+    checksum_sha256: "77e80f10c1c148fe79dcf71c546afe87fbdf97ac7f320644f5e550c88d409fc3",
+  },
 ];
 
 if (REQUIRE_DATABASE && !DATABASE_URL) {

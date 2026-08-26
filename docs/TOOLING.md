@@ -24,6 +24,12 @@ through an application environment or use it as a runtime fallback. A future MCP
 must be introduced by a separate reviewed order
 with an exact version, provenance/integrity record, and explicit credential scope.
 
+The application additionally receives `YELLOW_EXTENSION_REGISTRAR_DATABASE_URL`
+for the single authenticated extension-type registration command. That credential
+must never be supplied to MCPs, migration, seed, review-seed, worker, event, login or
+discovery tooling. Local setup stores its password beside the distinct deploy/runtime
+passwords in the ignored owner-only authority file and Compose constructs the DSN.
+
 ## Add later, at the phase that needs it
 
 Future tooling is not pre-wired. A future browser or error-tracking integration

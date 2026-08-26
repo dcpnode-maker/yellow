@@ -29,14 +29,15 @@ mkdir -p "$authority_dir"
 if [ ! -e "$authority_file" ]; then
   deploy_password=$(bun -e 'const b=crypto.getRandomValues(new Uint8Array(48));process.stdout.write(Buffer.from(b).toString("base64url"));')
   runtime_password=$(bun -e 'const b=crypto.getRandomValues(new Uint8Array(48));process.stdout.write(Buffer.from(b).toString("base64url"));')
+  registrar_password=$(bun -e 'const b=crypto.getRandomValues(new Uint8Array(48));process.stdout.write(Buffer.from(b).toString("base64url"));')
   authority_tmp=$(mktemp "$authority_dir/runtime-database-authority.XXXXXX")
   chmod 600 "$authority_tmp"
-  printf 'YELLOW_DEPLOY_DATABASE_PASSWORD=%s\nYELLOW_RUNTIME_DATABASE_PASSWORD=%s\n' \
-    "$deploy_password" "$runtime_password" > "$authority_tmp"
+  printf 'YELLOW_DEPLOY_DATABASE_PASSWORD=%s\nYELLOW_RUNTIME_DATABASE_PASSWORD=%s\nYELLOW_EXTENSION_REGISTRAR_DATABASE_PASSWORD=%s\n' \
+    "$deploy_password" "$runtime_password" "$registrar_password" > "$authority_tmp"
   mv -n "$authority_tmp" "$authority_file"
   rm -f -- "$authority_tmp"
   authority_tmp=''
-  unset deploy_password runtime_password
+  unset deploy_password runtime_password registrar_password
 fi
 [ -f "$authority_file" ] && [ ! -L "$authority_file" ] || {
   echo 'Local database authority path must be one regular, non-symlink file.' >&2; exit 1;
@@ -47,25 +48,48 @@ fi
 chmod 600 "$authority_file"
 deploy_password=''
 runtime_password=''
+registrar_password=''
 authority_lines=0
 while IFS='=' read -r key value; do
   authority_lines=$((authority_lines + 1))
   case "$key" in
     YELLOW_DEPLOY_DATABASE_PASSWORD) deploy_password="$value" ;;
     YELLOW_RUNTIME_DATABASE_PASSWORD) runtime_password="$value" ;;
+    YELLOW_EXTENSION_REGISTRAR_DATABASE_PASSWORD) registrar_password="$value" ;;
     *) echo 'Local database authority file has an unexpected key.' >&2; exit 1 ;;
   esac
 done < "$authority_file"
-[ "$authority_lines" -eq 2 ] \
-  && [[ "$deploy_password" =~ ^[A-Za-z0-9_-]{43,256}$ ]] \
+[ "$authority_lines" -eq 2 ] || [ "$authority_lines" -eq 3 ] || {
+  echo 'Local database authority file is malformed.' >&2; exit 1;
+}
+[[ "$deploy_password" =~ ^[A-Za-z0-9_-]{43,256}$ ]] \
   && [[ "$runtime_password" =~ ^[A-Za-z0-9_-]{43,256}$ ]] \
   && [ "$deploy_password" != "$runtime_password" ] || {
+  echo 'Local database authority file is malformed.' >&2; exit 1;
+}
+if [ "$authority_lines" -eq 2 ]; then
+  registrar_password=$(bun -e 'const b=crypto.getRandomValues(new Uint8Array(48));process.stdout.write(Buffer.from(b).toString("base64url"));')
+  authority_tmp=$(mktemp "$authority_dir/runtime-database-authority.XXXXXX")
+  chmod 600 "$authority_tmp"
+  printf 'YELLOW_DEPLOY_DATABASE_PASSWORD=%s\nYELLOW_RUNTIME_DATABASE_PASSWORD=%s\nYELLOW_EXTENSION_REGISTRAR_DATABASE_PASSWORD=%s\n' \
+    "$deploy_password" "$runtime_password" "$registrar_password" > "$authority_tmp"
+  mv -f "$authority_tmp" "$authority_file"
+  authority_tmp=''
+fi
+[ "$authority_lines" -eq 2 ] || [ "$authority_lines" -eq 3 ]
+[[ "$deploy_password" =~ ^[A-Za-z0-9_-]{43,256}$ ]] \
+  && [[ "$runtime_password" =~ ^[A-Za-z0-9_-]{43,256}$ ]] \
+  && [[ "$registrar_password" =~ ^[A-Za-z0-9_-]{43,256}$ ]] \
+  && [ "$deploy_password" != "$runtime_password" ] \
+  && [ "$deploy_password" != "$registrar_password" ] \
+  && [ "$runtime_password" != "$registrar_password" ] || {
   echo 'Local database authority file is malformed.' >&2; exit 1;
 }
 
 compose() {
   YELLOW_DEPLOY_DATABASE_PASSWORD="$deploy_password" \
   YELLOW_RUNTIME_DATABASE_PASSWORD="$runtime_password" \
+  YELLOW_EXTENSION_REGISTRAR_DATABASE_PASSWORD="$registrar_password" \
     docker compose "$@"
 }
 
@@ -93,6 +117,7 @@ done
 dev_url="postgres://yellow_deploy:${deploy_password}@127.0.0.1:${YELLOW_POSTGRES_PORT}/yellow_dev"
 test_url="postgres://yellow_deploy:${deploy_password}@127.0.0.1:${YELLOW_POSTGRES_PORT}/yellow_test"
 YELLOW_DEPLOY_DATABASE_URL="$dev_url" YELLOW_RUNTIME_DATABASE_PASSWORD="$runtime_password" \
+  YELLOW_EXTENSION_REGISTRAR_DATABASE_PASSWORD="$registrar_password" \
   bun scripts/provision-local-database-authority.ts
 YELLOW_DEPLOY_DATABASE_URL="$dev_url" bun scripts/migrate.ts
 YELLOW_DEPLOY_DATABASE_URL="$dev_url" bun scripts/seed.ts

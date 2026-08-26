@@ -411,6 +411,109 @@ END $$;
 
 
 --
+-- Name: register_extension_type(uuid, text, jsonb, uuid, uuid, uuid); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.register_extension_type(p_tenant uuid, p_type text, p_json_schema jsonb, p_actor uuid, p_property uuid, p_request uuid) RETURNS boolean
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'pg_catalog', 'public', 'pg_temp'
+    AS $_$
+DECLARE
+  v_property_timezone text;
+  v_inserted boolean := false;
+  v_existing jsonb;
+  v_subject_bytes bytea;
+  v_subject_hex text;
+  v_subject uuid;
+BEGIN
+  IF session_user <> 'yellow_extension_registrar'
+     OR current_user <> 'yellow_owner' THEN
+    RAISE EXCEPTION USING ERRCODE = '42501',
+      MESSAGE = 'extension type registration requires the dedicated registrar';
+  END IF;
+  IF p_tenant IS NULL OR p_actor IS NULL OR p_property IS NULL OR p_request IS NULL THEN
+    RAISE EXCEPTION USING ERRCODE = '22023', MESSAGE = 'extension type audit envelope is invalid';
+  END IF;
+  IF p_type IS NULL OR pg_catalog.length(p_type) > 64
+     OR p_type !~ '^[a-z][a-z0-9_.-]*$' THEN
+    RAISE EXCEPTION USING ERRCODE = '22023', MESSAGE = 'extension type must be a stable lowercase identifier';
+  END IF;
+  IF p_json_schema IS NULL OR pg_catalog.jsonb_typeof(p_json_schema) <> 'object'
+     OR pg_catalog.octet_length(pg_catalog.convert_to(p_json_schema::text, 'UTF8')) > 16384 THEN
+    RAISE EXCEPTION USING ERRCODE = '22023', MESSAGE = 'extension type schema must be a bounded JSON object';
+  END IF;
+
+  SELECT property.timezone INTO v_property_timezone
+    FROM public.tenant AS tenant
+    JOIN public.org_node AS property
+      ON property.tenant_id = tenant.id
+     AND property.id = p_property
+     AND property.kind = 'property'
+    JOIN public.app_user AS actor
+      ON actor.tenant_id = tenant.id
+     AND actor.id = p_actor
+     AND actor.status = 'active'
+   WHERE tenant.id = p_tenant
+     AND tenant.status = 'active';
+  IF v_property_timezone IS NULL THEN
+    RAISE EXCEPTION USING ERRCODE = '42501', MESSAGE = 'extension type audit authority is invalid';
+  END IF;
+
+  INSERT INTO public.extension_type(type, json_schema)
+  VALUES (p_type, p_json_schema)
+  ON CONFLICT (type) DO NOTHING
+  RETURNING true INTO v_inserted;
+
+  IF NOT COALESCE(v_inserted, false) THEN
+    SELECT extension_type.json_schema INTO v_existing
+      FROM public.extension_type AS extension_type
+     WHERE extension_type.type = p_type;
+    IF v_existing IS DISTINCT FROM p_json_schema THEN
+      RAISE EXCEPTION 'extension type % already exists with divergent schema', p_type
+        USING ERRCODE = '23505';
+    END IF;
+    RETURN false;
+  END IF;
+
+  v_subject_bytes := public.digest(
+    pg_catalog.uuid_send('6ba7b811-9dad-11d1-80b4-00c04fd430c8'::uuid)
+      || pg_catalog.convert_to('https://yellow.local/extension-type/' || p_type, 'UTF8'),
+    'sha1'
+  );
+  v_subject_bytes := pg_catalog.set_byte(
+    v_subject_bytes, 6, (pg_catalog.get_byte(v_subject_bytes, 6) & 15) | 80
+  );
+  v_subject_bytes := pg_catalog.set_byte(
+    v_subject_bytes, 8, (pg_catalog.get_byte(v_subject_bytes, 8) & 63) | 128
+  );
+  v_subject_hex := pg_catalog.encode(pg_catalog.substring(v_subject_bytes, 1, 16), 'hex');
+  v_subject := (
+    pg_catalog.substring(v_subject_hex, 1, 8) || '-' ||
+    pg_catalog.substring(v_subject_hex, 9, 4) || '-' ||
+    pg_catalog.substring(v_subject_hex, 13, 4) || '-' ||
+    pg_catalog.substring(v_subject_hex, 17, 4) || '-' ||
+    pg_catalog.substring(v_subject_hex, 21, 12)
+  )::uuid;
+
+  INSERT INTO public.fact_log(
+    tenant_id, entity_type, entity_id, fact_type, valid_from, business_date,
+    actor_id, payload, supersedes
+  ) VALUES (
+    p_tenant, 'extension_type', v_subject, 'extension_type.registered',
+    pg_catalog.transaction_timestamp(),
+    (pg_catalog.transaction_timestamp() AT TIME ZONE v_property_timezone)::date,
+    p_actor,
+    pg_catalog.jsonb_build_object(
+      'type', p_type, 'json_schema', p_json_schema, 'request_id', p_request
+    ),
+    NULL
+  );
+  RETURN true;
+END;
+$_$;
+
+
+--
 -- Name: release_occupancy(uuid, uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -5548,6 +5651,7 @@ ALTER TABLE public.waitlist_entry ENABLE ROW LEVEL SECURITY;
 
 GRANT USAGE ON SCHEMA public TO app_role;
 GRANT USAGE ON SCHEMA public TO yellow_runtime;
+GRANT USAGE ON SCHEMA public TO yellow_extension_registrar;
 
 
 --
@@ -5599,6 +5703,14 @@ REVOKE ALL ON FUNCTION public.prune_outbox(p_retain interval) FROM PUBLIC;
 
 REVOKE ALL ON FUNCTION public.record_occupancy(p_tenant uuid, p_space uuid, p_period tstzrange, p_slot uuid, p_slot_kind text, p_exclusive boolean) FROM PUBLIC;
 GRANT ALL ON FUNCTION public.record_occupancy(p_tenant uuid, p_space uuid, p_period tstzrange, p_slot uuid, p_slot_kind text, p_exclusive boolean) TO app_role;
+
+
+--
+-- Name: FUNCTION register_extension_type(p_tenant uuid, p_type text, p_json_schema jsonb, p_actor uuid, p_property uuid, p_request uuid); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.register_extension_type(p_tenant uuid, p_type text, p_json_schema jsonb, p_actor uuid, p_property uuid, p_request uuid) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.register_extension_type(p_tenant uuid, p_type text, p_json_schema jsonb, p_actor uuid, p_property uuid, p_request uuid) TO yellow_extension_registrar;
 
 
 --
@@ -6261,20 +6373,6 @@ GRANT INSERT(status),UPDATE(status) ON TABLE public.extension TO app_role;
 --
 
 GRANT SELECT ON TABLE public.extension_type TO app_role;
-
-
---
--- Name: COLUMN extension_type.type; Type: ACL; Schema: public; Owner: -
---
-
-GRANT INSERT(type) ON TABLE public.extension_type TO app_role;
-
-
---
--- Name: COLUMN extension_type.json_schema; Type: ACL; Schema: public; Owner: -
---
-
-GRANT INSERT(json_schema) ON TABLE public.extension_type TO app_role;
 
 
 --

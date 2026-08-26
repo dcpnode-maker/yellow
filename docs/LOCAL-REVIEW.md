@@ -25,8 +25,11 @@ docker compose up -d --build app
 The ignored `.yellow/runtime-database-authority.env` file is the sole local
 authority input; it contains passwords only and is owner-readable. Compose builds
 the deployment DSN inside the tools container, so no secret URL is placed in shell
-history. The application and worker receive the separate runtime credential; do not
-export the deployment URL into the app process or reuse its credentials.
+history. It contains pairwise-distinct deploy, runtime and extension-registrar
+passwords; exact legacy two-key files are atomically upgraded without rotating their
+existing values. The application receives separate runtime and registrar credentials,
+while workers use runtime and migrate/seed/review-seed receive no registrar secret.
+Do not export the deployment URL into the app process or reuse its credentials.
 
 The generated signing secret exists only in that shell and is never printed or written
 to the repository. Generate a fresh value after opening a new shell. `./setup.sh` without

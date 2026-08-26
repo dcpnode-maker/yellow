@@ -6,6 +6,7 @@ export type Phase3DatabaseProof = Readonly<{
   requireEnv: string;
   urlEnv: string;
   passwordEnv: string | null;
+  registrarUrlEnv?: string;
 }>;
 
 export type Phase3GateProcess = Readonly<{
@@ -168,6 +169,7 @@ export const PHASE_3_DATABASE_PROOFS: readonly Phase3DatabaseProof[] = Object.fr
     requireEnv: "YELLOW_REQUIRE_RUNTIME_AUTHORITY_P0",
     urlEnv: "YELLOW_RUNTIME_AUTHORITY_P0_URL",
     passwordEnv: null,
+    registrarUrlEnv: "YELLOW_EXTENSION_REGISTRAR_DATABASE_URL",
   },
   {
     databaseName: "yellow_ci_p5_runtime_dml_authority",
@@ -183,11 +185,20 @@ export const PHASE_3_DATABASE_PROOFS: readonly Phase3DatabaseProof[] = Object.fr
     urlEnv: "YELLOW_FINANCIAL_ROW_LOCK_URL",
     passwordEnv: null,
   },
+  {
+    databaseName: "yellow_ci_p5_extension_registration",
+    testFile: "tests/extension-type-registration-capability.integration.test.ts",
+    requireEnv: "YELLOW_REQUIRE_EXTENSION_REGISTRATION",
+    urlEnv: "YELLOW_EXTENSION_REGISTRATION_URL",
+    passwordEnv: null,
+    registrarUrlEnv: "YELLOW_EXTENSION_REGISTRAR_DATABASE_URL",
+  },
 ]);
 
 const DATABASE_NAME = /^[a-z][a-z0-9_]{0,62}$/;
 
-export function validatePhase3GateInputs(deployUrl: string, runtimeUrl: string, password: string): Phase3GateDatabaseUrls & {
+export function validatePhase3GateInputs(deployUrl: string, runtimeUrl: string, registrarUrl: string, password: string): Phase3GateDatabaseUrls & {
+  registrarUrl: string;
   password: string;
 } {
   const parse = (value: string, label: string): URL => {
@@ -201,13 +212,19 @@ export function validatePhase3GateInputs(deployUrl: string, runtimeUrl: string, 
   };
   const deploy = parse(deployUrl, "YELLOW_PHASE3_GATE_DEPLOY_URL");
   const runtime = parse(runtimeUrl, "YELLOW_PHASE3_GATE_RUNTIME_URL");
+  const registrar = parse(registrarUrl, "YELLOW_PHASE3_GATE_REGISTRAR_URL");
   if (!password || password !== password.trim() || password.length < 16) {
     throw new Error("Phase-3 proof password must be at least 16 exact characters");
   }
-  if (deploy.username === runtime.username && deploy.password === runtime.password) {
-    throw new Error("Phase-3 deploy and runtime URLs must use distinct credentials");
+  const credentials = new Set([
+    `${deploy.username}\u0000${deploy.password}`,
+    `${runtime.username}\u0000${runtime.password}`,
+    `${registrar.username}\u0000${registrar.password}`,
+  ]);
+  if (credentials.size !== 3 || decodeURIComponent(registrar.username) !== "yellow_extension_registrar") {
+    throw new Error("Phase-3 deploy, runtime and registrar URLs must use distinct exact credentials");
   }
-  return { deployUrl, runtimeUrl, password };
+  return { deployUrl, runtimeUrl, registrarUrl, password };
 }
 
 function quoteDatabaseName(databaseName: string): string {
@@ -271,15 +288,19 @@ function checkedExit(input: Phase3GateProcess, exitCode: number): void {
 export async function runPhase3Gate(input: {
   deployUrl: string;
   runtimeUrl: string;
+  registrarUrl: string;
   password: string;
   harness?: Phase3GateHarness;
 }): Promise<void> {
-  const { deployUrl, runtimeUrl, password } = validatePhase3GateInputs(input.deployUrl, input.runtimeUrl, input.password);
+  const { deployUrl, runtimeUrl, registrarUrl, password } = validatePhase3GateInputs(
+    input.deployUrl, input.runtimeUrl, input.registrarUrl, input.password,
+  );
   const harness = input.harness ?? createRuntimePhase3GateHarness();
 
   for (const proof of PHASE_3_DATABASE_PROOFS) {
     const deployDatabaseUrl = databaseUrlFor(deployUrl, proof.databaseName);
     const runtimeDatabaseUrl = databaseUrlFor(runtimeUrl, proof.databaseName);
+    const registrarDatabaseUrl = databaseUrlFor(registrarUrl, proof.databaseName);
     let primaryError: unknown;
     try {
       await harness.recreateDatabase(deployUrl, proof.databaseName);
@@ -299,6 +320,7 @@ export async function runPhase3Gate(input: {
         YELLOW_RUNTIME_DATABASE_URL: runtimeDatabaseUrl,
       };
       if (proof.passwordEnv) suiteEnv[proof.passwordEnv] = password;
+      if (proof.registrarUrlEnv) suiteEnv[proof.registrarUrlEnv] = registrarDatabaseUrl;
       const suite: Phase3GateProcess = {
         kind: "test",
         label: proof.testFile,
@@ -327,6 +349,7 @@ export async function main(): Promise<void> {
   await runPhase3Gate({
     deployUrl: process.env.YELLOW_PHASE3_GATE_DEPLOY_URL ?? "",
     runtimeUrl: process.env.YELLOW_PHASE3_GATE_RUNTIME_URL ?? "",
+    registrarUrl: process.env.YELLOW_PHASE3_GATE_REGISTRAR_URL ?? "",
     password: process.env.YELLOW_PHASE3_GATE_PASSWORD ?? "",
   });
 }

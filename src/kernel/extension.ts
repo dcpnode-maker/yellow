@@ -4,7 +4,6 @@ import { recordFact } from "./fact-log";
 
 const TYPE_NAME = /^[a-z][a-z0-9_.-]*$/;
 const INSTANCE_KEY = /^[a-z0-9][a-z0-9_.:-]*$/;
-const URL_NAMESPACE_UUID = "6ba7b811-9dad-11d1-80b4-00c04fd430c8";
 const SUPPORTED_KEYWORDS = new Set([
   "$id",
   "additionalProperties",
@@ -188,28 +187,6 @@ export function validateJsonSchema(schema: unknown, value: unknown, path = "$"):
   return issues;
 }
 
-function namespaceBytes(namespace: string): Uint8Array {
-  return Uint8Array.from(namespace.replaceAll("-", "").match(/../g) ?? [], (value) => Number.parseInt(value, 16));
-}
-
-function formatUuid(bytes: Uint8Array): string {
-  const hex = Array.from(bytes, (value) => value.toString(16).padStart(2, "0")).join("");
-  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
-}
-
-async function extensionTypeSubjectId(type: string): Promise<string> {
-  const namespace = namespaceBytes(URL_NAMESPACE_UUID);
-  const name = new TextEncoder().encode(`https://yellow.local/extension-type/${type}`);
-  const input = new Uint8Array(namespace.length + name.length);
-  input.set(namespace);
-  input.set(name, namespace.length);
-  const digest = new Uint8Array(await crypto.subtle.digest("SHA-1", input));
-  const uuid = digest.slice(0, 16);
-  uuid[6] = (uuid[6]! & 0x0f) | 0x50;
-  uuid[8] = (uuid[8]! & 0x3f) | 0x80;
-  return formatUuid(uuid);
-}
-
 function toInstance(row: ExtensionRow): ExtensionInstance {
   return {
     id: row.id,
@@ -222,76 +199,127 @@ function toInstance(row: ExtensionRow): ExtensionInstance {
   };
 }
 
-async function withTenantRole<T>(
-  pool: ConnectionPool,
-  tenantId: string,
-  operation: (connection: Tx) => Promise<T>,
-): Promise<T> {
-  if (tenantId === "") throw new Error("tenant context is required");
-  const connection = await pool.reserve();
-  let began = false;
-  try {
-    await connection.unsafe("BEGIN");
-    began = true;
-    const context = await connection<{ tenant_id: string }[]>`
-      SELECT set_config('app.tenant_id', ${tenantId}, true) AS tenant_id
-    `;
-    if (context[0]?.tenant_id !== tenantId) {
-      throw new Error("PostgreSQL did not establish the requested tenant context");
-    }
-    await connection.unsafe("SET LOCAL ROLE app_role");
-    const result = await operation(connection);
-    await connection.unsafe("COMMIT");
-    began = false;
-    return result;
-  } catch (error) {
-    if (began) {
-      try { await connection.unsafe("ROLLBACK"); } catch { /* discard broken connection */ }
-    }
-    throw error;
-  } finally {
-    connection.release();
-  }
-}
-
 export class ExtensionRegistry {
   readonly #platformPool: ConnectionPool;
+  readonly #registrarPool: ConnectionPool | undefined;
+  #registrarFailure: Error | undefined;
+  #registrarClose: Promise<void> | undefined;
 
-  constructor(platformPool: ConnectionPool) {
+  constructor(platformPool: ConnectionPool, registrarPool?: ConnectionPool) {
     this.#platformPool = platformPool;
+    this.#registrarPool = registrarPool;
+  }
+
+  async #assertRegistrarSettlement(connection: Tx): Promise<void> {
+    const rows = await connection.unsafe<Array<{
+      session_user: string;
+      current_user: string;
+      tenant_reset: boolean;
+      prepared_count: number;
+    }>>(`
+      SELECT session_user::text AS session_user,
+             current_user::text AS current_user,
+             NULLIF(current_setting('app.tenant_id', true), '') IS NULL AS tenant_reset,
+             (SELECT count(*)::int FROM pg_prepared_statements) AS prepared_count
+    `);
+    const row = rows[0];
+    if (rows.length !== 1 || row?.session_user !== "yellow_extension_registrar"
+        || row.current_user !== "yellow_extension_registrar" || row.tenant_reset !== true
+        || row.prepared_count !== 0) {
+      throw new Error("Extension registrar connection did not settle to its unprepared identity");
+    }
+  }
+
+  async #scrubRegistrar(connection: Tx): Promise<void> {
+    await connection.unsafe("DISCARD ALL");
+    await this.#assertRegistrarSettlement(connection);
+  }
+
+  #failRegistrarPool(): void {
+    if (this.#registrarFailure) return;
+    this.#registrarFailure = new Error("Extension registrar pool is irreversibly failed");
+    const close = this.#registrarPool?.close;
+    if (!close) return;
+    try {
+      const closing = close.call(this.#registrarPool, { timeout: 0 });
+      this.#registrarClose = closing;
+      void closing.catch(() => { /* The originating registrar failure remains authoritative. */ });
+    } catch {
+      // The adapter is already fail-closed.
+    }
+  }
+
+  async #withRegistrar<T>(operation: (connection: Tx) => Promise<T>): Promise<T> {
+    if (this.#registrarFailure) throw this.#registrarFailure;
+    const pool = this.#registrarPool;
+    if (!pool) throw new Error("Extension registrar database capability is unavailable");
+    const connection = await pool.reserve();
+    let began = false;
+    let settled = false;
+    let reusable = false;
+    try {
+      try {
+        await this.#assertRegistrarSettlement(connection);
+      } catch {
+        await this.#scrubRegistrar(connection);
+      }
+      await connection.unsafe("BEGIN");
+      began = true;
+      const result = await operation(connection);
+      await connection.unsafe("COMMIT");
+      began = false;
+      settled = true;
+      await this.#assertRegistrarSettlement(connection);
+      reusable = true;
+      return result;
+    } catch (error) {
+      if (began) {
+        try {
+          await connection.unsafe("ROLLBACK");
+          began = false;
+          settled = true;
+          await this.#assertRegistrarSettlement(connection);
+          reusable = true;
+        } catch {
+          // Preserve the registrar command error; settlement is handled below.
+        }
+      }
+      throw error;
+    } finally {
+      if (!reusable && settled) {
+        try {
+          await this.#scrubRegistrar(connection);
+          reusable = true;
+        } catch {
+          // The owning pool is failed below and this backend is never released.
+        }
+      }
+      if (reusable) connection.release();
+      else this.#failRegistrarPool();
+    }
   }
 
   async registerType(input: RegisterExtensionTypeInput): Promise<"inserted" | "already exact"> {
-    if (!TYPE_NAME.test(input.type)) throw new Error("extension type must be a stable lowercase identifier");
+    if (!TYPE_NAME.test(input.type) || input.type.length > 64) {
+      throw new Error("extension type must be a stable lowercase identifier");
+    }
     const definitionIssues = schemaDefinitionIssues(input.jsonSchema);
     if (definitionIssues.length > 0) throw new ExtensionValidationError(definitionIssues);
-    return await withTenantRole(this.#platformPool, input.envelope.tenantId, async (connection) => {
-      const inserted = await connection<Array<{ json_schema: JsonObject }>>`
-        INSERT INTO extension_type (type, json_schema)
-        VALUES (${input.type}, ${JSON.stringify(input.jsonSchema)}::text::jsonb)
-        ON CONFLICT (type) DO NOTHING
-        RETURNING json_schema
+    return await this.#withRegistrar(async (connection) => {
+      const rows = await connection<Array<{ inserted: boolean }>>`
+        SELECT public.register_extension_type(
+          ${input.envelope.tenantId}::uuid,
+          ${input.type},
+          ${JSON.stringify(input.jsonSchema)}::text::jsonb,
+          ${input.envelope.actorId}::uuid,
+          ${input.envelope.propertyNode}::uuid,
+          ${input.envelope.requestId}::uuid
+        ) AS inserted
       `;
-      if (inserted[0]) {
-        await recordFact(connection, {
-          entityType: "extension_type",
-          entityId: await extensionTypeSubjectId(input.type),
-          envelope: input.envelope,
-          payload: { type: input.type, json_schema: input.jsonSchema },
-        });
-        return "inserted";
+      if (rows.length !== 1 || typeof rows[0]?.inserted !== "boolean") {
+        throw new Error("PostgreSQL did not return an extension registration result");
       }
-
-      const existing = await connection<Array<{ json_schema: JsonObject }>>`
-        SELECT json_schema FROM extension_type WHERE type = ${input.type}
-      `;
-      if (existing[0]) {
-        if (!sameJson(existing[0].json_schema, input.jsonSchema)) {
-          throw new Error(`extension type ${input.type} already exists with divergent schema`);
-        }
-        return "already exact";
-      }
-      throw new Error(`extension type ${input.type} was not visible after registration conflict`);
+      return rows[0].inserted ? "inserted" : "already exact";
     });
   }
 

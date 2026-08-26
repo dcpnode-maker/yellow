@@ -45,13 +45,20 @@ folio linked to that set, orders account locks canonically, and remains executab
 only by `app_role` inside a tenant-bound runtime transaction. Direct account or
 folio `UPDATE` and direct row locking remain outside runtime authority.
 
+Platform extension-type registration uses the separately authenticated
+`yellow_extension_registrar` only through
+`register_extension_type(uuid,text,jsonb,uuid,uuid,uuid)`. The function fixes the
+audit operation, derives the UUIDv5 subject, writes the type and first fact atomically,
+returns false for an exact replay, and rejects divergent schema. It grants no generic
+registrar transaction or direct table-write contract; runtime and `app_role` retain
+only instance/read authority.
+
 Residual protected transitions are not generalized by this catalogue: approval
 decisions, extension publication, hold state changes, inventory-policy/projection
 replacement, operational-block lifecycle, reservation/segment/guest lifecycle,
 folio numbering, financial posting, and future task/fiscal/statutory/document
-commands require later bounded capabilities. The sole temporary global exception
-is the exact platform registration insert `extension_type(type, json_schema)`
-(D-417); it is residual debt, not a general extension-table or global-write grant.
+commands require later bounded capabilities. Extension publication/retirement remains
+separate from the now-bounded type-registration command.
 
 ## 2. THE availability contract (the interface everything hangs off)
 

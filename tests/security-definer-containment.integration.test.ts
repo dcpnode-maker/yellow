@@ -162,7 +162,8 @@ dbDescribe("Order 108 SECURITY DEFINER shadow-path containment", () => {
        WHERE n.nspname = 'public'
          AND p.proname = ANY(ARRAY[
            'record_occupancy', 'release_occupancy', 'expire_holds',
-           'prune_outbox', 'assert_day_open', 'seal_business_day', 'lock_financial_rows'
+           'prune_outbox', 'assert_day_open', 'seal_business_day', 'lock_financial_rows',
+           'register_extension_type'
          ]::name[])
        ORDER BY signature
     `;
@@ -180,6 +181,8 @@ dbDescribe("Order 108 SECURITY DEFINER shadow-path containment", () => {
         config: ["search_path=pg_catalog, public, pg_temp"], appExecute: false, publicDenied: true },
       { signature: "record_occupancy(uuid,uuid,tstzrange,uuid,text,boolean)", securityDefiner: true,
         config: ["search_path=pg_catalog, public, pg_temp"], appExecute: true, publicDenied: true },
+      { signature: "register_extension_type(uuid,text,jsonb,uuid,uuid,uuid)", securityDefiner: true,
+        config: ["search_path=pg_catalog, public, pg_temp"], appExecute: false, publicDenied: true },
       { signature: "release_occupancy(uuid,uuid)", securityDefiner: true,
         config: ["search_path=pg_catalog, public, pg_temp"], appExecute: true, publicDenied: true },
       { signature: "seal_business_day(uuid,uuid,date,uuid)", securityDefiner: true,
@@ -193,6 +196,8 @@ dbDescribe("Order 108 SECURITY DEFINER shadow-path containment", () => {
       ["prune_outbox(interval)", ["public.outbox"]],
       ["record_occupancy(uuid,uuid,tstzrange,uuid,text,boolean)",
         ["public.space_occupancy", "public.space"]],
+      ["register_extension_type(uuid,text,jsonb,uuid,uuid,uuid)",
+        ["public.tenant", "public.org_node", "public.app_user", "public.extension_type", "public.fact_log"]],
       ["release_occupancy(uuid,uuid)", ["public.space_occupancy"]],
       ["seal_business_day(uuid,uuid,date,uuid)", ["public.business_day"]],
     ]);
