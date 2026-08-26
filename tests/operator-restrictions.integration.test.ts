@@ -227,7 +227,7 @@ databaseDescribe("Order 049 operator restriction management", () => {
     expect(html).toContain('id="restrictions-view"');
     expect(html).toContain('id="restriction-form"');
     expect(html).toContain("End date is exclusive");
-    expect(css).toContain(':root[data-theme="pixel"]');
+    expect(css).toContain(':root[data-theme="android"]');
     expect(js).toContain('"restrictions"');
     expect(js).toContain("idempotency-key");
     expect(js).not.toMatch(/localStorage|sessionStorage|document\.cookie/);

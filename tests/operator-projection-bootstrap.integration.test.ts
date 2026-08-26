@@ -288,6 +288,6 @@ databaseDescribe("Order 060 operator projection bootstrap", () => {
     expect(js).toContain('addEventListener("submit"');
     expect(js).not.toContain('dispatchEvent(new Event("submit"))');
     expect(html).toContain('<option value="apple">Apple calm</option>');
-    expect(html).toContain('<option value="pixel">Pixel expressive</option>');
+    expect(html).toContain('<option value="android">Android · Material 3</option>');
   });
 });

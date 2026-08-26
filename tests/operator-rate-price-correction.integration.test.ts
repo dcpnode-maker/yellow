@@ -257,7 +257,7 @@ databaseDescribe("Order 052 operator rate-price correction", () => {
     expect(html).toContain('id="correction-child-list"');
     expect(html).toContain('id="add-correction-child"');
     expect(html).toContain("creates new history");
-    expect(css).toContain(':root[data-theme="pixel"]');
+    expect(css).toContain(':root[data-theme="android"]');
     expect(js).toContain("loadPriceCorrection");
     expect(js).not.toMatch(/parseFloat|Number\([^)]*(?:amount|price)/i);
     expect(js).not.toMatch(/localStorage|sessionStorage|document\.cookie/);

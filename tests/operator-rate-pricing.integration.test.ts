@@ -241,7 +241,7 @@ databaseDescribe("Order 051 operator rate-price management", () => {
     expect(html).toContain('id="create-tier-list"');
     expect(html).toContain('id="add-create-tier"');
     expect(html).toContain("Exact minor units");
-    expect(css).toContain(':root[data-theme="pixel"]');
+    expect(css).toContain(':root[data-theme="android"]');
     expect(js).toContain("BigInt");
     expect(js).not.toMatch(/parseFloat|Number\([^)]*(?:amount|price)/i);
     expect(js).not.toMatch(/localStorage|sessionStorage|document\.cookie/);

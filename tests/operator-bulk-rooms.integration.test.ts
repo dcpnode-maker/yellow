@@ -306,7 +306,7 @@ databaseDescribe("Order 057 operator bulk exclusive-room creation", () => {
     expect(html).toContain('id="bulk-room-preview"');
     expect(html).toContain('id="bulk-room-mode"');
     expect(html).toContain('aria-live="polite"');
-    expect(css).toContain(':root[data-theme="pixel"]');
+    expect(css).toContain(':root[data-theme="android"]');
     expect(css).toContain(".bulk-room-preview");
     expect(js).toContain('"rooms:bulk"');
     expect(js).toContain("Array.from");

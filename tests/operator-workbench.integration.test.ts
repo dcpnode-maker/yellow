@@ -365,14 +365,14 @@ databaseDescribe("Order 042 authenticated operator workbench", () => {
     expect(js).not.toContain("fabricated");
     expect(html).toContain('id="theme-select"');
     expect(html).toContain('value="apple"');
-    expect(html).toContain('value="pixel"');
+    expect(html).toContain('value="android"');
     expect(html).toContain('id="bulk-room-form"');
     expect(html).toContain('id="bulk-room-preview"');
     expect(html).toContain('data-view="status"');
     expect(html).toContain('id="status-view"');
     expect(html).toContain("Recorded build snapshot");
     expect(html).toContain("Live service checks");
-    expect(css).toContain(':root[data-theme="pixel"]');
+    expect(css).toContain(':root[data-theme="android"]');
     expect(css).toContain(".bulk-room-preview");
     expect(css).toContain(".status-health-grid");
     expect(js).toContain("document.documentElement.dataset.theme");

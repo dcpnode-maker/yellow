@@ -241,7 +241,7 @@ databaseDescribe("Order 048 operator inventory management", () => {
     expect(html).toContain('id="unit-type-form"');
     expect(html).toContain('id="space-form"');
     expect(html).toContain('id="sellable-unit-form"');
-    expect(css).toContain(':root[data-theme="pixel"]');
+    expect(css).toContain(':root[data-theme="android"]');
     expect(css).toContain("[hidden] { display: none !important; }");
     expect(js).toContain("crypto.randomUUID()");
     expect(js).toContain("idempotency-key");

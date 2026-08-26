@@ -459,7 +459,7 @@ databaseDescribe("Order 062 operator-managed offline lease pool", () => {
     expect(script).toContain("Prepare offline capacity");
     expect(script).not.toMatch(/localStorage|sessionStorage|indexedDB|space_occupancy|record_occupancy|release_occupancy/i);
     expect(script).not.toMatch(/offline-leases[^\n]*(?:consume|reservation)/i);
-    expect(css).toContain("[data-theme=\"pixel\"]");
+    expect(css).toContain("[data-theme=\"android\"]");
     expect(css).toContain("@media (max-width: 720px)");
   });
 });

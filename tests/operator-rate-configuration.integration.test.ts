@@ -291,7 +291,7 @@ databaseDescribe("Order 050 operator rate-plan management", () => {
     expect(html).toContain('id="policy-form"');
     expect(html).toContain('id="rate-plan-form"');
     expect(html).toContain("Prices and derived plans are separate steps");
-    expect(css).toContain(':root[data-theme="pixel"]');
+    expect(css).toContain(':root[data-theme="android"]');
     expect(js).toContain('"rates"');
     expect(js).not.toMatch(/localStorage|sessionStorage|document\.cookie/);
     expect(js).not.toMatch(BROWSER_SQL_SYNTAX);

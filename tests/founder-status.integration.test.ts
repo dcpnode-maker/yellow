@@ -363,7 +363,7 @@ describe("Order 064 recorded build snapshot", () => {
     expect(html).toContain("Recorded build snapshot");
     expect(html).toContain("Live service checks");
     expect(css).toContain(".status-health-grid");
-    expect(css).toContain(':root[data-theme="pixel"]');
+    expect(css).toContain(':root[data-theme="android"]');
     expect(js).toContain('"/system-status"');
     expect(js).toContain("loadSystemStatus");
     expect(js).toContain('const statusReviewed = document.querySelector("#status-reviewed")');
