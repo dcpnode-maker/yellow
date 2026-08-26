@@ -131,3 +131,24 @@ test("Order 177: Today reuses UUID detail and responsive accessible shell", () =
   expect(css).not.toMatch(/(?:html|body|\.workbench)[^{]*\{[^}]*overflow-x:\s*(?:hidden|clip)/);
   expect(`${html}\n${css}\n${todaySource}`).not.toMatch(/https?:\/\/|@import|url\s*\(/i);
 });
+
+test("Order 177 D-454: detail return uses stable identity after lane replacement", () => {
+  const decision = new Function(`return (${functionSource("todayReturnFocusDecision")})`)() as
+    (reservationId: string, matched: boolean, settled: boolean) => string;
+  expect(decision("reservation-1", true, false)).toBe("row");
+  expect(decision("reservation-1", false, false)).toBe("wait");
+  expect(decision("reservation-1", false, true)).toBe("heading");
+  expect(decision("", true, true)).toBe("none");
+
+  const close = functionSource("closeReservationDetail");
+  expect(close).toContain("todayReturnFocus = { reservationId: returnReservationId, cycle: 0 }");
+  expect(close.indexOf("todayReturnFocus =")).toBeLessThan(close.indexOf('setView("today", false)'));
+  expect(close).toContain('returnView === "today" ? document.querySelector("#today-title")');
+  expect(functionSource("renderTodayLane")).toContain("restoreTodayReturnFocus(cycle)");
+  expect(functionSource("loadToday")).toContain("Promise.all(TODAY_STATUSES.map");
+  expect(functionSource("loadToday")).toContain("restoreTodayReturnFocus(cycle, true)");
+  const restore = functionSource("restoreTodayReturnFocus");
+  expect(restore).toContain("button.dataset.reservationId === todayReturnFocus.reservationId");
+  expect(restore).toContain('decision === "row"');
+  expect(restore).toContain('decision === "heading"');
+});

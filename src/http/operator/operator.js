@@ -44,6 +44,8 @@
   let reservationDetailGeneration = 0;
   let reservationDrawerReturnFocus = null;
   let reservationDrawerReturnView = "";
+  let reservationDrawerReturnReservationId = "";
+  let todayReturnFocus = { reservationId: "", cycle: 0 };
   let todayGeneration = 0;
   let todayWindowState = null;
   const todayLaneState = {
@@ -543,6 +545,8 @@
     reservationPrimaryFolioAttemptKey = "";
     reservationPrimaryFolioReservationId = "";
     reservationDrawerReturnView = "";
+    reservationDrawerReturnReservationId = "";
+    todayReturnFocus = { reservationId: "", cycle: 0 };
     resetTodayState();
     reservationCreateDirty = false;
     clearPartyProfileState();
@@ -761,7 +765,23 @@
       todayWindowState?.key === windowKey;
   }
 
-  function renderTodayLane(status, page, older = false) {
+  function todayReturnFocusDecision(reservationId, matched, settled) {
+    if (!reservationId) return "none";
+    if (matched) return "row";
+    return settled ? "heading" : "wait";
+  }
+
+  function restoreTodayReturnFocus(cycle, settled = false) {
+    if (todayReturnFocus.cycle !== cycle || activeView !== "today" || location.pathname !== `/p/${propertySelect.value}/today`) return;
+    const match = [...todayView.querySelectorAll(".reservation-row-open")]
+      .find((button) => button.dataset.reservationId === todayReturnFocus.reservationId && !button.closest("[hidden]"));
+    const decision = todayReturnFocusDecision(todayReturnFocus.reservationId, Boolean(match), settled);
+    if (decision === "row") match.focus();
+    if (decision === "heading") document.querySelector("#today-title").focus();
+    if (decision === "row" || decision === "heading") todayReturnFocus = { reservationId: "", cycle: 0 };
+  }
+
+  function renderTodayLane(status, page, older = false, cycle = todayGeneration) {
     const state = todayLaneState[status];
     const elements = todayLaneElements(status);
     state.rows = Array.isArray(page.reservations) ? page.reservations.slice(0, 50) : [];
@@ -772,6 +792,7 @@
     elements.summary.textContent = `${count} shown on this bounded page${state.nextCursor ? " · more records available" : ""}.`;
     elements.status.textContent = older ? `Showing the next bounded page of ${count}; the previous page was replaced.` : `${count} record${count === 1 ? "" : "s"} shown.`;
     setTodayLaneState(status, count === 0 ? "empty" : "ready");
+    restoreTodayReturnFocus(cycle);
   }
 
   async function loadTodayLane(status, { older = false, cycle = todayGeneration, window = todayWindowState } = {}) {
@@ -792,7 +813,7 @@
       const query = todayBoardQuery(status, window, older ? state.nextCursor || "" : "");
       const page = await request(`/api/v1/properties/${encodeURIComponent(property)}/reservation-board?${query}`);
       if (!todayRequestIsCurrent(status, cycle, requestGeneration, property, window.key)) return;
-      renderTodayLane(status, page, older);
+      renderTodayLane(status, page, older, cycle);
     } catch (error) {
       if (!todayRequestIsCurrent(status, cycle, requestGeneration, property, window.key)) return;
       const message = error instanceof Error ? error.message : "This Today lane is unavailable.";
@@ -823,9 +844,11 @@
       return;
     }
     todayWindowState = window;
+    if (todayReturnFocus.reservationId) todayReturnFocus.cycle = cycle;
     const label = new Intl.DateTimeFormat(undefined, { dateStyle: "full", timeZone: window.timeZone }).format(new Date(window.from));
     todayWindowLabel.textContent = `${label} · ${window.timeZone} · browser-computed display boundary`;
-    for (const status of TODAY_STATUSES) void loadTodayLane(status, { cycle, window });
+    void Promise.all(TODAY_STATUSES.map((status) => loadTodayLane(status, { cycle, window })))
+      .then(() => restoreTodayReturnFocus(cycle, true));
   }
 
   function setReservationBoardState(state, message = "") {
@@ -1316,6 +1339,7 @@
     closeReservationCreate({ history: false, force: true });
     if (activeView === "today") {
       reservationDrawerReturnView = "today";
+      reservationDrawerReturnReservationId = reservationId;
       setView("reservations", false);
     }
     reservationDrawerReturnFocus = trigger;
@@ -1338,18 +1362,24 @@
     reservationDetailFolioList.replaceChildren();
     clearReservationDrawerLifecycle();
     const returnView = reservationDrawerReturnView;
+    const returnReservationId = reservationDrawerReturnReservationId;
     if (updateHistory && propertySelect.value) {
       if (returnView === "today") history.replaceState(null, "", `/p/${propertySelect.value}/today`);
       else if (reservationExitHistoryAction(history.state, "reservation-detail") === "back") history.back();
       else history.replaceState(null, "", `/p/${propertySelect.value}/reservations`);
     }
-    if (returnView === "today") setView("today", false);
+    if (returnView === "today") {
+      todayReturnFocus = { reservationId: returnReservationId, cycle: 0 };
+      setView("today", false);
+    }
     if (restoreFocus) {
-      const target = reservationDrawerReturnFocus?.isConnected ? reservationDrawerReturnFocus : document.querySelector("#reservations-title");
+      const target = returnView === "today" ? document.querySelector("#today-title") :
+        reservationDrawerReturnFocus?.isConnected ? reservationDrawerReturnFocus : document.querySelector("#reservations-title");
       target?.focus();
     }
     reservationDrawerReturnFocus = null;
     reservationDrawerReturnView = "";
+    reservationDrawerReturnReservationId = "";
   }
 
   function syncReservationRoute() {
@@ -5068,6 +5098,8 @@
     reservationBoardNextCursor = null;
     reservationRouteReservationId = "";
     reservationDrawerReturnView = "";
+    reservationDrawerReturnReservationId = "";
+    todayReturnFocus = { reservationId: "", cycle: 0 };
     reservationDetailDrawer.hidden = true;
     reservationPrimaryFolioAttemptKey = "";
     reservationPrimaryFolioReservationId = "";
