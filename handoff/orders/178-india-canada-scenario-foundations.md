@@ -1,6 +1,6 @@
 # Order 178 — India and Canada scenario foundations
 
-**Status:** READY — D-456
+**Status:** CHANGES REQUIRED — D-457
 **Phase:** 5 · human UAT foundations
 **Branch:** `phase-5/india-canada-scenario-foundations`
 **Base:** `f90165d` (independently approved Order177)
