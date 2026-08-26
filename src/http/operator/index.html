@@ -9,6 +9,18 @@
     <script src="/assets/operator.js" defer></script>
   </head>
   <body>
+    <svg hidden aria-hidden="true">
+      <symbol id="i-today" viewBox="0 0 24 24"><path d="M5 4h14v16H5zM8 2v4m8-4v4M5 9h14M8 13h3m2 0h3m-8 3h3"/></symbol>
+      <symbol id="i-availability" viewBox="0 0 24 24"><path d="M4 18V8m5 10V4m6 14v-7m5 7V6M2 20h20"/></symbol>
+      <symbol id="i-reservations" viewBox="0 0 24 24"><path d="M7 3h10v3h3v15H4V6h3zm0 0v6h10V3M8 13h8m-8 4h5"/></symbol>
+      <symbol id="i-folios" viewBox="0 0 24 24"><path d="M6 3h10l3 3v15H6zM16 3v4h4M9 12h7m-7 4h7"/></symbol>
+      <symbol id="i-operations" viewBox="0 0 24 24"><path d="M12 3v4m0 10v4M3 12h4m10 0h4M5.6 5.6l2.8 2.8m7.2 7.2 2.8 2.8m0-12.8-2.8 2.8m-7.2 7.2-2.8 2.8M12 9a3 3 0 1 1 0 6 3 3 0 0 1 0-6z"/></symbol>
+      <symbol id="i-inventory" viewBox="0 0 24 24"><path d="m4 7 8-4 8 4-8 4zm0 0v10l8 4 8-4V7M12 11v10"/></symbol>
+      <symbol id="i-restrictions" viewBox="0 0 24 24"><path d="M12 3 3 7v5c0 5 3.8 8.2 9 9 5.2-.8 9-4 9-9V7zm-4 9 2.5 2.5L16 9"/></symbol>
+      <symbol id="i-rates" viewBox="0 0 24 24"><path d="M3 6h18M3 12h18M3 18h18M8 3v6m8 0v6m-5 0v6"/></symbol>
+      <symbol id="i-status" viewBox="0 0 24 24"><path d="M4 19V9m5 10V5m5 14v-7m5 7V3"/></symbol>
+    </svg>
+    <div class="ambient-stage" aria-hidden="true"><span></span><span></span><span></span></div>
     <a class="skip-link" href="#main">Skip to workbench</a>
     <header class="app-bar">
       <div class="brand" aria-label="Yellow Hospitality OS">
@@ -85,19 +97,19 @@
           <p class="domain-nav-label">Workspace</p>
           <nav class="domain-nav" aria-label="Workbench domains">
             <span class="domain-nav-group">Front desk</span>
-            <button class="domain-tab" id="nav-today" type="button" data-view="today" aria-controls="today-view">Today</button>
-            <button class="domain-tab is-active" id="nav-availability" type="button" data-view="availability" aria-controls="availability-view">Availability</button>
-            <button class="domain-tab" id="nav-reservations" type="button" data-view="reservations" aria-controls="reservations-view">Reservations</button>
-            <button class="domain-tab" id="nav-folios" type="button" data-view="folios" aria-controls="folios-view">Folios</button>
+            <button class="domain-tab" id="nav-today" type="button" data-view="today" aria-controls="today-view"><svg class="domain-icon" aria-hidden="true"><use href="#i-today"/></svg><span>Today</span></button>
+            <button class="domain-tab is-active" id="nav-availability" type="button" data-view="availability" aria-controls="availability-view"><svg class="domain-icon" aria-hidden="true"><use href="#i-availability"/></svg><span>Availability</span></button>
+            <button class="domain-tab" id="nav-reservations" type="button" data-view="reservations" aria-controls="reservations-view"><svg class="domain-icon" aria-hidden="true"><use href="#i-reservations"/></svg><span>Reservations</span></button>
+            <button class="domain-tab" id="nav-folios" type="button" data-view="folios" aria-controls="folios-view"><svg class="domain-icon" aria-hidden="true"><use href="#i-folios"/></svg><span>Folios</span></button>
             <button class="workspace-disclosure" id="secondary-workspaces-toggle" type="button" aria-expanded="false" aria-controls="secondary-workspaces">More workspaces</button>
             <div class="secondary-workspaces" id="secondary-workspaces" hidden>
               <span class="domain-nav-group">Property control</span>
-              <button class="domain-tab" id="nav-operations" type="button" data-view="operations" aria-controls="operations-view">Operations</button>
-              <button class="domain-tab" id="nav-inventory" type="button" data-view="inventory" aria-controls="inventory-view">Inventory setup</button>
-              <button class="domain-tab" id="nav-restrictions" type="button" data-view="restrictions" aria-controls="restrictions-view">Restrictions</button>
-              <button class="domain-tab" id="nav-rates" type="button" data-view="rates" aria-controls="rates-view">Rates</button>
+              <button class="domain-tab" id="nav-operations" type="button" data-view="operations" aria-controls="operations-view"><svg class="domain-icon" aria-hidden="true"><use href="#i-operations"/></svg><span>Operations</span></button>
+              <button class="domain-tab" id="nav-inventory" type="button" data-view="inventory" aria-controls="inventory-view"><svg class="domain-icon" aria-hidden="true"><use href="#i-inventory"/></svg><span>Inventory setup</span></button>
+              <button class="domain-tab" id="nav-restrictions" type="button" data-view="restrictions" aria-controls="restrictions-view"><svg class="domain-icon" aria-hidden="true"><use href="#i-restrictions"/></svg><span>Restrictions</span></button>
+              <button class="domain-tab" id="nav-rates" type="button" data-view="rates" aria-controls="rates-view"><svg class="domain-icon" aria-hidden="true"><use href="#i-rates"/></svg><span>Rates</span></button>
               <span class="domain-nav-group">System</span>
-              <button class="domain-tab" id="nav-status" type="button" data-view="status" aria-controls="status-view">Project status</button>
+              <button class="domain-tab" id="nav-status" type="button" data-view="status" aria-controls="status-view"><svg class="domain-icon" aria-hidden="true"><use href="#i-status"/></svg><span>Project status</span></button>
             </div>
           </nav>
         </aside>

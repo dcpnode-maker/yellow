@@ -434,6 +434,108 @@
   const THEMES = new Set(["apple", "android", "win95", "glass"]);
   const EXPERIENCES = new Set(["simple", "advanced", "expert"]);
   const SECONDARY_VIEWS = new Set(["operations", "inventory", "restrictions", "rates", "status"]);
+  function motionPreference(query) {
+    return typeof window.matchMedia === "function" ? window.matchMedia(query) : { matches: true, addEventListener() {} };
+  }
+  const reducedMotion = motionPreference("(prefers-reduced-motion: reduce)");
+  const coarsePointer = motionPreference("(pointer: coarse)");
+  const forcedColours = motionPreference("(forced-colors: active)");
+  let motionSequence = 0;
+  let activeMotion = null;
+
+  function cancelWorkspaceMotion(commit = false) {
+    motionSequence += 1;
+    const motion = activeMotion;
+    activeMotion = null;
+    if (!motion) return;
+    if (commit) motion.commit();
+    motion.cancel();
+  }
+
+  function workspaceMotionAllowed(nextTheme) {
+    const supportsBackdrop = nextTheme !== "glass" || (typeof CSS !== "undefined" &&
+      typeof CSS.supports === "function" && (CSS.supports("backdrop-filter", "blur(2px)") ||
+      CSS.supports("-webkit-backdrop-filter", "blur(2px)")));
+    return !workbenchView.hidden && document.visibilityState === "visible" &&
+      !reducedMotion.matches && !coarsePointer.matches && !forcedColours.matches && supportsBackdrop;
+  }
+
+  function animateWorkspaceFallback(duration, sequence, commit) {
+    commit();
+    if (typeof workbenchView.animate !== "function") return;
+    const animation = workbenchView.animate([
+      { opacity: 0.72, transform: "translate3d(0, 8px, 0) scale(.995)" },
+      { opacity: 1, transform: "none" },
+    ], { duration, easing: "cubic-bezier(.2, .8, .2, 1)" });
+    activeMotion = {
+      commit,
+      cancel() { animation.cancel(); },
+    };
+    animation.finished.catch(() => {}).finally(() => {
+      if (sequence === motionSequence) activeMotion = null;
+    });
+  }
+
+  function transitionWorkspace(change, { duration = 280, nextTheme = document.documentElement.dataset.theme } = {}) {
+    cancelWorkspaceMotion();
+    const sequence = motionSequence;
+    const boundedDuration = Math.min(400, Math.max(0, duration));
+    let committed = false;
+    const commit = () => {
+      if (committed) return;
+      committed = true;
+      change();
+    };
+    if (!workspaceMotionAllowed(nextTheme)) {
+      commit();
+      return;
+    }
+    if (typeof document.startViewTransition !== "function") {
+      animateWorkspaceFallback(boundedDuration, sequence, commit);
+      return;
+    }
+
+    const rootTransitionName = document.documentElement.style.viewTransitionName;
+    const workspaceTransitionName = workbenchView.style.viewTransitionName;
+    document.documentElement.style.viewTransitionName = "none";
+    workbenchView.style.viewTransitionName = "yellow-workspace";
+    let cleaned = false;
+    const cleanup = () => {
+      if (cleaned) return;
+      cleaned = true;
+      document.documentElement.style.viewTransitionName = rootTransitionName;
+      workbenchView.style.viewTransitionName = workspaceTransitionName;
+    };
+    try {
+      const transition = document.startViewTransition(() => {
+        if (sequence === motionSequence) commit();
+      });
+      activeMotion = {
+        commit,
+        cancel() {
+          transition.skipTransition?.();
+          cleanup();
+        },
+      };
+      transition.ready.then(() => {
+        if (sequence !== motionSequence || typeof document.getAnimations !== "function") return;
+        for (const animation of document.getAnimations()) {
+          const pseudo = animation.effect?.pseudoElement ?? "";
+          if (pseudo.startsWith("::view-transition")) animation.effect.updateTiming({ duration: boundedDuration });
+        }
+      }).catch(() => {});
+      transition.updateCallbackDone.catch(() => {
+        if (sequence === motionSequence) commit();
+      });
+      transition.finished.catch(() => {}).finally(() => {
+        cleanup();
+        if (sequence === motionSequence) activeMotion = null;
+      });
+    } catch {
+      cleanup();
+      animateWorkspaceFallback(boundedDuration, sequence, commit);
+    }
+  }
 
   function applyTheme(theme) {
     const next = THEMES.has(theme) ? theme : "apple";
@@ -5902,8 +6004,23 @@
     if (event.target !== builderExpertJson) renderBuilderCommand();
   });
   builderExpertJson.addEventListener("input", renderBuilderCommand);
-  themeSelect.addEventListener("change", () => applyTheme(themeSelect.value));
-  experienceSelect.addEventListener("change", () => applyExperience(experienceSelect.value));
+  themeSelect.addEventListener("change", () => {
+    const theme = themeSelect.value;
+    transitionWorkspace(() => applyTheme(theme), { duration: theme === "glass" ? 400 : 280, nextTheme: theme });
+  });
+  experienceSelect.addEventListener("change", () => {
+    transitionWorkspace(() => applyExperience(experienceSelect.value));
+  });
+  for (const preference of [reducedMotion, coarsePointer, forcedColours]) {
+    if (typeof preference.addEventListener === "function") {
+      preference.addEventListener("change", () => cancelWorkspaceMotion(true));
+    } else {
+      preference.addListener?.(() => cancelWorkspaceMotion(true));
+    }
+  }
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState !== "visible") cancelWorkspaceMotion(true);
+  });
   secondaryWorkspacesToggle.addEventListener("click", () => {
     secondaryWorkspaces.hidden = !secondaryWorkspaces.hidden;
     secondaryWorkspacesToggle.setAttribute("aria-expanded", String(!secondaryWorkspaces.hidden));

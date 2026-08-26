@@ -1,20 +1,4 @@
 :root {
-  --ink: #17202b;
-  --muted: #66717e;
-  --paper: #f4f6f8;
-  --card: #ffffff;
-  --line: #dce1e7;
-  --accent: #315fdb;
-  --accent-strong: #2448a6;
-  --accent-ink: #ffffff;
-  --brand: #f4cf4e;
-  --focus: #315fdb;
-  --nav: rgba(255,255,255,.78);
-  --ambient-a: rgba(126,163,255,.22);
-  --ambient-b: rgba(255,214,80,.12);
-  --control-radius: 12px;
-  --card-radius: 22px;
-  --card-shadow: 0 18px 50px rgba(36,49,68,.09);
   --green: #176b45;
   --green-soft: #e6f4ec;
   --red: #9f2f2f;
@@ -65,9 +49,7 @@ label { display: grid; gap: .45rem; color: #3f4941; font-size: .82rem; font-weig
 input, select, textarea { width: 100%; border: 1px solid #c9cec3; background: white; color: var(--ink); padding: .78rem .85rem; }
 textarea { resize: vertical; line-height: 1.5; }
 input:hover, select:hover, textarea:hover { border-color: #8d978c; }
-.primary { border: 1px solid var(--accent-strong); background: var(--accent); color: var(--accent-ink); padding: .82rem 1.1rem; font-weight: 800; box-shadow: 0 4px 0 var(--accent-strong); }
-.primary:hover { transform: translateY(-1px); box-shadow: 0 5px 0 var(--accent-strong); }
-.primary:active { transform: translateY(2px); box-shadow: 0 2px 0 var(--accent-strong); }
+.primary { border: 1px solid var(--accent-strong); background: var(--accent); color: var(--accent-ink); padding: .82rem 1.1rem; font-weight: 800; }
 .quiet { border: 1px solid var(--line); background: var(--card); padding: .65rem .9rem; color: var(--ink); }
 .muted, .form-message, .timezone-note { color: var(--muted); }
 .form-message { min-height: 1.25rem; margin: 0; font-size: .85rem; }
@@ -601,24 +583,6 @@ input:hover, select:hover, textarea:hover { border-color: #8d978c; }
   --surface-subtle: #f6f9f9;
 }
 
-:root[data-theme="android"] {
-  --ink: #182536;
-  --muted: #627083;
-  --paper: #eef2f8;
-  --card: #ffffff;
-  --line: #d8e0eb;
-  --accent: #2463b6;
-  --accent-strong: #184d91;
-  --accent-ink: #ffffff;
-  --brand: #7ed4d0;
-  --focus: #0b76ce;
-  --nav: #14263e;
-  --surface-subtle: #f5f7fb;
-  --control-radius: 12px;
-  --card-radius: 18px;
-  --card-shadow: 0 10px 28px rgba(29, 53, 83, .08);
-}
-
 html { background: var(--paper); scroll-behavior: smooth; }
 body { background: var(--paper); font-size: 15px; line-height: 1.5; }
 .app-bar {
@@ -958,24 +922,32 @@ h1, h2, h3, h4, .brand strong { font-family: var(--font-display); }
   box-shadow: var(--material-card-shadow);
   -webkit-backdrop-filter: var(--material-card-filter);
   backdrop-filter: var(--material-card-filter);
-  transition: transform var(--material-transition), box-shadow var(--material-transition), border-color var(--material-transition);
+  transition: transform var(--material-transition), opacity var(--material-transition);
 }
-.option-card:hover, .reservation-board-card:hover { transform: var(--material-hover-lift); }
 input, select, textarea, .quiet, .secondary {
   border: var(--material-control-border);
   background: var(--material-control);
   box-shadow: var(--material-control-shadow);
-  transition: transform var(--material-transition), box-shadow var(--material-transition), border-color var(--material-transition);
+  transition: transform var(--material-transition), opacity var(--material-transition);
 }
 input:focus, select:focus, textarea:focus { box-shadow: var(--material-control-active-shadow); }
 .primary {
   border: var(--material-primary-border);
   background: var(--material-primary);
   box-shadow: var(--material-primary-shadow);
-  transition: transform var(--material-transition), box-shadow var(--material-transition), filter var(--material-transition);
+  transition: transform var(--material-transition), opacity var(--material-transition);
 }
-.primary:hover { transform: var(--material-hover-lift); box-shadow: var(--material-primary-shadow); filter: brightness(1.035); }
 .primary:active, .quiet:active, .secondary:active { transform: var(--material-press); }
+
+@media (hover: hover) and (pointer: fine) {
+  .option-card:hover, .reservation-board-card:hover { transform: var(--material-hover-lift); }
+  .primary:hover { transform: var(--material-hover-lift); box-shadow: var(--material-primary-shadow); }
+}
+
+.domain-tab { display: flex; align-items: center; gap: .62rem; padding-left: .7rem; }
+.domain-tab::before { display: none; }
+.domain-icon { display: block; width: 18px; height: 18px; flex: 0 0 18px; fill: none; stroke: currentColor; stroke-width: 1.75; stroke-linecap: round; stroke-linejoin: round; }
+.ambient-stage { display: none; pointer-events: none; }
 
 /* Apple: restrained navigation material; content remains a solid standard layer. */
 :root[data-theme="apple"] {
@@ -992,9 +964,15 @@ input:focus, select:focus, textarea:focus { box-shadow: var(--material-control-a
   --material-primary: linear-gradient(#0a84ff, #006edb); --material-primary-border: .5px solid #005fc0;
   --material-primary-shadow: 0 1px 1px rgba(0,0,0,.08), 0 5px 16px rgba(0,110,219,.22);
   --material-nav: rgba(248,248,250,.78); --material-nav-border: .5px solid rgba(60,60,67,.2);
-  --material-nav-shadow: 0 8px 30px rgba(0,0,0,.07); --material-nav-filter: blur(24px) saturate(180%);
+  --material-nav-shadow: 0 1px 0 rgba(0,0,0,.04), 0 18px 40px rgba(0,0,0,.055); --material-nav-filter: blur(24px) saturate(180%);
+  --material-hover-lift: translateY(-2px); --material-press: scale(.985); --material-transition: 180ms cubic-bezier(.22,1,.36,1);
 }
-:root[data-theme="apple"] .domain-tab.is-active { border-radius: 10px; box-shadow: none; }
+:root[data-theme="apple"] .app-bar { border-bottom-color: rgba(60,60,67,.16); }
+:root[data-theme="apple"] .domain-bar { border-color: rgba(60,60,67,.18); }
+:root[data-theme="apple"] .domain-tab { gap: .48rem; font-weight: 650; letter-spacing: -.012em; }
+:root[data-theme="apple"] .domain-tab.is-active { border-radius: 10px; background: rgba(0,122,255,.1); box-shadow: none; }
+:root[data-theme="apple"] .primary { border-radius: 13px; font-weight: 700; }
+:root[data-theme="apple"] :is(.folio-statement-table-wrap,.reservation-board-table-wrap,.reservation-detail-section) { background: #fff; }
 
 /* Windows 95/98: exact tactile metaphors—outset commands, inset fields, square panels. */
 :root[data-theme="win95"] {
@@ -1014,7 +992,12 @@ input:focus, select:focus, textarea:focus { box-shadow: var(--material-control-a
 :root[data-theme="win95"] input, :root[data-theme="win95"] textarea, :root[data-theme="win95"] select { background: #ffffff; border-style: inset; color: #000; }
 :root[data-theme="win95"] .app-bar :is(button, select, a):focus-visible { outline-color: #ffff00; box-shadow: 0 0 0 2px #000000; }
 :root[data-theme="win95"] .primary { color: #000; }
-:root[data-theme="win95"] .workbench-head { padding-inline: .75rem; background: #c0c0c0; border: 2px outset #fff; }
+:root[data-theme="win95"] .brand-mark { border-radius: 0; border: 2px outset #fff; }
+:root[data-theme="win95"] .domain-icon { width: 16px; height: 16px; flex-basis: 16px; stroke-width: 2; }
+:root[data-theme="win95"] .workbench-head { padding: .35rem .5rem; align-items: center; background: #000080; color: #fff; border: 2px outset #fff; }
+:root[data-theme="win95"] .workbench-head :is(h1,#operator-name) { color: #fff; }
+:root[data-theme="win95"] .workbench-head .eyebrow { margin: 0; color: #ffff00; }
+:root[data-theme="win95"] .workbench-head .quiet { background: #c0c0c0; color: #000; border: 2px outset #fff; }
 :root[data-theme="win95"] .domain-tab.is-active { border: 1px dotted #000; background: #000080; color: #fff; box-shadow: none; }
 
 /* Android Material Expressive: tonal surfaces, pill geometry and spring-like press. */
@@ -1029,9 +1012,13 @@ input:focus, select:focus, textarea:focus { box-shadow: var(--material-control-a
   --material-control-active-shadow: inset 0 0 0 2px #6750a4;
   --material-primary: #6750a4; --material-primary-border: 0; --material-primary-shadow: 0 2px 6px rgba(79,55,139,.28);
   --material-nav: #f1ecf4; --material-nav-border: 0; --material-nav-shadow: 0 3px 12px rgba(29,25,43,.14);
-  --material-press: scale(.97); --material-transition: 220ms cubic-bezier(.2,0,0,1);
+  --material-hover-lift: translateY(-2px); --material-press: scale(.97); --material-transition: 220ms cubic-bezier(.2,0,0,1);
 }
+:root[data-theme="android"] body { background: radial-gradient(circle at 8% 8%,rgba(103,80,164,.13),transparent 24rem),radial-gradient(circle at 94% 24%,rgba(0,106,106,.1),transparent 28rem),#f8f7ff; }
+:root[data-theme="android"] .domain-icon { width: 20px; height: 20px; flex-basis: 20px; stroke-width: 1.9; }
+:root[data-theme="android"] .domain-tab { gap: .6rem; font-weight: 650; overflow: hidden; }
 :root[data-theme="android"] .domain-tab.is-active, :root[data-theme="android"] .reservation-status-badge { border-radius: 999px; }
+:root[data-theme="android"] .primary { border-radius: 999px; font-weight: 700; }
 
 /* Pure Glass: luminous atmosphere, true translucent layers and highlight edges. */
 :root[data-theme="glass"] {
@@ -1051,8 +1038,15 @@ input:focus, select:focus, textarea:focus { box-shadow: var(--material-control-a
   --material-primary-border: 1px solid rgba(255,255,255,.65); --material-primary-shadow: inset 0 1px 0 rgba(255,255,255,.5), 0 10px 24px rgba(5,96,107,.28);
   --material-nav: linear-gradient(135deg, rgba(10,50,68,.68), rgba(18,94,105,.46));
   --material-nav-border: 1px solid rgba(255,255,255,.32); --material-nav-shadow: 0 12px 38px rgba(9,55,79,.26); --material-nav-filter: blur(26px) saturate(170%);
+  --material-hover-lift: translate3d(0,-4px,12px); --material-press: scale(.985); --material-transition: 220ms cubic-bezier(.16,1,.3,1);
 }
-:root[data-theme="glass"] body { background: radial-gradient(circle at 14% 9%, rgba(80,216,255,.78), transparent 28rem), radial-gradient(circle at 88% 18%, rgba(255,194,91,.62), transparent 24rem), radial-gradient(circle at 55% 95%, rgba(142,95,255,.38), transparent 30rem), #dff3ff; background-attachment: fixed; }
+:root[data-theme="glass"] body { position: relative; isolation: isolate; background: linear-gradient(145deg,#d9f3ff 0,#eaf7ff 42%,#f7edff 100%); }
+:root[data-theme="glass"] :is(.app-bar,main) { position: relative; z-index: 1; }
+:root[data-theme="glass"] .ambient-stage { position: fixed; z-index: 0; inset: 0; display: block; overflow: hidden; }
+:root[data-theme="glass"] .ambient-stage span { position: absolute; width: min(62vw,52rem); aspect-ratio: 1; border-radius: 50%; opacity: .72; background: radial-gradient(circle,var(--glow),transparent 68%); transform: translate3d(0,0,0); }
+:root[data-theme="glass"] .ambient-stage span:nth-child(1) { left: -18vw; top: -28vw; --glow: rgba(55,206,255,.82); }
+:root[data-theme="glass"] .ambient-stage span:nth-child(2) { right: -20vw; top: -12vw; --glow: rgba(255,194,91,.62); }
+:root[data-theme="glass"] .ambient-stage span:nth-child(3) { left: 28vw; bottom: -34vw; --glow: rgba(150,102,255,.42); }
 
 :root[data-theme="apple"] .workbench-head { max-width: 1180px; margin-inline: auto; }
 :root[data-theme="apple"] .section-heading h2 { font-weight: 680; letter-spacing: -.045em; }
@@ -1078,25 +1072,22 @@ input:focus, select:focus, textarea:focus { box-shadow: var(--material-control-a
 :root[data-theme="glass"] .metric:nth-child(2) { background: linear-gradient(145deg, rgba(255,255,255,.65), rgba(255,199,93,.22)); }
 :root[data-theme="glass"] .metric:nth-child(3) { background: linear-gradient(145deg, rgba(255,255,255,.62), rgba(155,109,255,.2)); }
 
-/* Video-derived flagship motion: translucent stage morph plus layered file-depth. */
+/* Video-derived flagship motion: a stable shell and content-only spatial continuity. */
 :root[data-theme="glass"] .workbench { perspective: 1400px; }
-:root[data-theme="glass"] .domain-bar,
-:root[data-theme="glass"] .workbench-head,
-:root[data-theme="glass"] .card,
-:root[data-theme="glass"] .metric,
-:root[data-theme="glass"] .reservation-board-card,
-:root[data-theme="glass"] .folio-posting-card { transform-style: preserve-3d; will-change: transform; }
-:root[data-theme="glass"] .card:hover,
-:root[data-theme="glass"] .reservation-board-card:hover,
-:root[data-theme="glass"] .folio-posting-card:hover { transform: translate3d(0,-5px,18px) rotateX(.8deg); box-shadow: inset 0 1px 0 rgba(255,255,255,.95), 0 30px 72px rgba(12,62,86,.24); }
-:root[data-theme="glass"] .workbench > section:not([hidden]) { animation: glass-stage-in 520ms cubic-bezier(.16,1,.3,1) both; transform-origin: 50% 18%; }
-:root[data-theme="glass"] .domain-tab { transition: transform 260ms cubic-bezier(.16,1,.3,1), background 260ms ease, box-shadow 260ms ease; }
-:root[data-theme="glass"] .domain-tab.is-active { transform: translate3d(5px,0,16px); box-shadow: -5px 0 0 rgba(255,199,93,.78), 0 12px 28px rgba(12,62,86,.18); }
-:root[data-theme="apple"] .card:hover,
-:root[data-theme="apple"] .reservation-board-card:hover { transform: translateY(-3px) scale(1.005); }
-:root[data-theme="android"] .domain-tab { transition: border-radius 280ms cubic-bezier(.2,0,0,1), transform 280ms cubic-bezier(.2,0,0,1), background 280ms ease; }
+:root[data-theme="glass"] :is(.domain-bar,.workbench-head,.card,.metric,.reservation-board-card) { transform-style: preserve-3d; }
+:root[data-theme="glass"] .workbench > section:not([hidden]) { animation: glass-stage-in 280ms cubic-bezier(.16,1,.3,1) both; transform-origin: 50% 18%; }
+:root[data-theme="glass"] .domain-tab { gap: .68rem; transition: transform 220ms cubic-bezier(.16,1,.3,1), opacity 220ms ease; }
+:root[data-theme="glass"] .domain-tab.is-active { transform: translate3d(4px,0,12px); box-shadow: -4px 0 0 rgba(255,199,93,.78), 0 12px 28px rgba(12,62,86,.18); }
+:root[data-theme="glass"] :is(.folio-statement-table-wrap,.reservation-board-table-wrap,.folio-posting-card,.reservation-detail-section) { background: rgba(250,254,255,.92); -webkit-backdrop-filter: none; backdrop-filter: none; }
+:root[data-theme="glass"] .folio-workspace-tabs { padding: .35rem; border: 1px solid rgba(255,255,255,.7); border-radius: 18px; background: rgba(255,255,255,.26); box-shadow: inset 0 1px 0 rgba(255,255,255,.9),0 14px 34px rgba(12,62,86,.12); }
+:root[data-theme="glass"] .folio-workspace-tabs [aria-selected="true"] { transform: translate3d(0,-2px,8px); background: rgba(255,255,255,.76); box-shadow: 0 8px 18px rgba(12,62,86,.14); }
+:root[data-theme="android"] .domain-tab { transition: transform 220ms cubic-bezier(.2,0,0,1), opacity 220ms ease; }
 :root[data-theme="android"] .domain-tab.is-active { transform: scale(1.035); border-radius: 18px 28px 18px 28px; }
-@keyframes glass-stage-in { from { opacity: 0; transform: translate3d(0,18px,-28px) rotateX(2deg) scale(.985); filter: blur(5px); } to { opacity: 1; transform: none; filter: none; } }
+@media (hover: hover) and (pointer: fine) {
+  :root[data-theme="apple"] :is(.option-card,.reservation-board-card):hover { transform: translateY(-3px) scale(1.005); }
+  :root[data-theme="glass"] :is(.option-card,.reservation-board-card):hover { transform: translate3d(0,-4px,12px) rotateX(.6deg); box-shadow: inset 0 1px 0 rgba(255,255,255,.95),0 28px 64px rgba(12,62,86,.22); }
+}
+@keyframes glass-stage-in { from { opacity: 0; transform: translate3d(0,16px,-22px) rotateX(1.2deg) scale(.988); } to { opacity: 1; transform: none; } }
 
 @media (min-width: 1021px) {
   :root[data-theme="apple"] .workbench { width: min(1280px, calc(100% - 2rem)); margin-inline: auto; padding-inline: 0; display: block; }
@@ -1104,7 +1095,6 @@ input:focus, select:focus, textarea:focus { box-shadow: var(--material-control-a
   :root[data-theme="apple"] .domain-bar > label { width: 250px; flex: none; padding: 0; border: 0; }
   :root[data-theme="apple"] .domain-nav { display: flex; align-items: center; gap: .3rem; overflow-x: auto; }
   :root[data-theme="apple"] .domain-tab { width: auto; min-width: max-content; padding: .65rem .85rem; text-align: center; }
-  :root[data-theme="apple"] .domain-tab::before { display: none; }
   :root[data-theme="apple"] .workbench > section:not(.login-layout) { max-width: 1180px; margin-inline: auto; padding-top: .85rem; }
   :root[data-theme="apple"] .status-summary-grid { grid-template-columns: 1.25fr 1fr 1fr; }
   :root[data-theme="win95"] .workbench { grid-template-columns: 274px minmax(0,1fr); column-gap: 4px; padding: 4px; background: #c0c0c0; border: 2px outset #fff; }
@@ -1116,8 +1106,10 @@ input:focus, select:focus, textarea:focus { box-shadow: var(--material-control-a
   :root[data-theme="android"] .domain-bar > label { width: 260px; padding: 0; border: 0; }
   :root[data-theme="android"] .domain-nav { display: flex; gap: .45rem; overflow-x: auto; }
   :root[data-theme="android"] .domain-tab { width: auto; min-width: max-content; padding: .7rem 1rem; text-align: center; }
-  :root[data-theme="android"] .domain-tab::before { display: none; }
   :root[data-theme="android"] .workbench > section:not(.login-layout) { max-width: 1240px; margin-inline: auto; }
+  :root[data-theme="android"] :is(.status-summary-grid,.metric-grid) { grid-template-columns: repeat(12,minmax(0,1fr)); gap: .85rem; }
+  :root[data-theme="android"] :is(.status-summary-grid,.metric-grid) > :first-child { grid-column: span 6; min-height: 132px; }
+  :root[data-theme="android"] :is(.status-summary-grid,.metric-grid) > :not(:first-child) { grid-column: span 3; }
   :root[data-theme="glass"] .workbench { grid-template-columns: 278px minmax(0,1fr); column-gap: 1.65rem; }
   :root[data-theme="glass"] .domain-bar { border-radius: 24px; background: linear-gradient(145deg,rgba(255,255,255,.5),rgba(255,255,255,.2)); -webkit-backdrop-filter: blur(24px) saturate(160%); backdrop-filter: blur(24px) saturate(160%); }
   :root[data-theme="glass"] .metric-grid { grid-template-columns: repeat(12,minmax(0,1fr)); }
@@ -1141,6 +1133,7 @@ input:focus, select:focus, textarea:focus { box-shadow: var(--material-control-a
     border: 1px solid CanvasText; background: Canvas; color: CanvasText; box-shadow: none; backdrop-filter: none;
   }
   .primary { background: Highlight; color: HighlightText; }
+  .ambient-stage { display: none !important; }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -1151,6 +1144,15 @@ input:focus, select:focus, textarea:focus { box-shadow: var(--material-control-a
   :root[data-theme="glass"] .card:hover,
   :root[data-theme="glass"] .reservation-board-card:hover,
   :root[data-theme="glass"] .folio-posting-card:hover,
+  :root[data-theme="glass"] .domain-tab,
   :root[data-theme="glass"] .domain-tab.is-active,
+  :root[data-theme="android"] .domain-tab,
   :root[data-theme="android"] .domain-tab.is-active { transform: none; }
+}
+
+@media (hover: none), (pointer: coarse) {
+  :root[data-theme="apple"] :is(.option-card,.reservation-board-card),
+  :root[data-theme="glass"] :is(.option-card,.reservation-board-card),
+  :root[data-theme="glass"] .domain-tab,
+  :root[data-theme="android"] .domain-tab { transition-duration: 0ms; transform: none; }
 }
