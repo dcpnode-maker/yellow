@@ -1,6 +1,6 @@
 # Question 170 — Order183/184 combined operator asset ceiling
 
-**Status:** OPEN — hard-floor assertion failure
+**Status:** RESOLVED — founder selected five exact skins; D-478 / Order185
 **Order:** 183 resumed on independently approved Order184
 **Raised by:** Codex integration owner
 **Date:** 2026-08-26
@@ -31,3 +31,11 @@ financial/UI proof after the combined assets are back at or below 98,304 bytes.
 Rejected alternatives: raise the ceiling; delete or alias a skin; weaken the gzip test;
 remove financial safety copy or correction states; externalize an asset/dependency; or
 promote the unreviewed financial candidate.
+
+## RESOLVED
+
+The founder explicitly replaced the sixteen-skin requirement with exactly five:
+Apple iOS, latest Android, Windows 95/98, Neumorphism and Glassmorphism. Order185 owns
+that bounded presentation curation and keeps the 96 KiB limit unchanged. This is not a
+budget workaround: it is the founder's product catalogue decision, and each retained
+skin must meet a stronger visual/material contract based on the supplied references.
