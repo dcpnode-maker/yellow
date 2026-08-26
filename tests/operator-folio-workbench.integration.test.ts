@@ -3,7 +3,7 @@ import { SQL } from "bun";
 import { readFileSync } from "node:fs";
 
 import { createApp } from "../src/app";
-import { ChargeService, FolioStatementService } from "../src/contexts/financials";
+import { ChargeCorrectionService, ChargeService, FolioStatementService } from "../src/contexts/financials";
 import { BearerTenantResolver, hashLocalPassword, Hs256TokenSigner, LocalLoginService, verifyLocalPassword } from "../src/contexts/identity";
 import { OperatorHttpApi } from "../src/http/operator";
 import { Database, PostgresEventBus, PostgresIdempotency, type TenantRequestContext, type Tx } from "../src/kernel";
@@ -458,6 +458,7 @@ beforeAll(async () => {
   const events = new PostgresEventBus(folioEventPool);
   const statements = new FolioStatementService();
   const charges = new ChargeService({ events, idempotency: new PostgresIdempotency() });
+  const corrections = new ChargeCorrectionService({ events, idempotency: new PostgresIdempotency() });
   folioHttpApp = createApp({
     database: folioDatabase,
     tenantResolver: new BearerTenantResolver(tokens),
@@ -465,6 +466,7 @@ beforeAll(async () => {
       login, undefined, undefined, new PostgresIdempotency(),
       undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined,
       undefined, undefined, undefined, undefined, undefined, undefined, undefined, statements, charges,
+      undefined, undefined, undefined, corrections,
     ),
   });
   readToken = await folioLogin("read@order105.test");
