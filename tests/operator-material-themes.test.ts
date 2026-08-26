@@ -19,6 +19,24 @@ function themeBlock(css: string, theme: string) {
   return css.slice(start, end + 2);
 }
 
+function token(block: string, name: string) {
+  const value = block.match(new RegExp(`${name}:\\s*(#[0-9a-f]{6})`, "i"))?.[1];
+  expect(value).toBeDefined();
+  return value!;
+}
+
+function contrast(foreground: string, background: string) {
+  const luminance = (hex: string) => {
+    const channels = [1, 3, 5].map((index) => Number.parseInt(hex.slice(index, index + 2), 16) / 255)
+      .map((value) => value <= 0.04045 ? value / 12.92 : ((value + 0.055) / 1.055) ** 2.4);
+    return 0.2126 * channels[0]! + 0.7152 * channels[1]! + 0.0722 * channels[2]!;
+  };
+  const foregroundLuminance = luminance(foreground);
+  const backgroundLuminance = luminance(background);
+  return (Math.max(foregroundLuminance, backgroundLuminance) + 0.05)
+    / (Math.min(foregroundLuminance, backgroundLuminance) + 0.05);
+}
+
 test("Order184: all advertised appearances are allowlisted and keep one semantic app", async () => {
   const html = await Bun.file(htmlFile).text();
   const script = await Bun.file(scriptFile).text();
@@ -67,6 +85,21 @@ test("Order184: signature materials are structural and accessibility fallbacks a
   expect(css).toContain("@media (forced-colors: active)");
   expect(css).toContain(':root[data-theme="aurora"] body { animation: none; }');
   expect(css).toContain("min-height: 44px");
+});
+
+test("Order184: welcome text and classic focus remain visibly accessible", async () => {
+  const css = await Bun.file(cssFile).text();
+  for (const theme of themes) {
+    const block = themeBlock(css, theme);
+    const paper = token(block, "--paper");
+    expect(contrast(token(block, "--ink"), paper)).toBeGreaterThanOrEqual(4.5);
+    expect(contrast(token(block, "--muted"), paper)).toBeGreaterThanOrEqual(4.5);
+  }
+  const win95 = themeBlock(css, "win95");
+  expect(contrast(token(win95, "--focus"), token(win95, "--nav"))).toBeGreaterThanOrEqual(3);
+  expect(css).toContain(':root[data-theme="win95"] .app-bar :is(button, select, a):focus-visible');
+  expect(css).toContain("box-shadow: 0 0 0 2px #000000");
+  expect(contrast("#000000", "#c0c0c0")).toBeGreaterThanOrEqual(3);
 });
 
 test("Order184: the material system remains dependency-free and same-origin", async () => {

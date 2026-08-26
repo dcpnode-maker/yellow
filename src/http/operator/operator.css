@@ -1073,7 +1073,7 @@ input:focus, select:focus, textarea:focus { box-shadow: var(--material-control-a
 
 /* macOS: desktop-window precision with a neutral toolbar and compact controls. */
 :root[data-theme="macos"] {
-  --ink: #202124; --muted: #62676d; --paper: #dfe3e8; --card: #f7f7f8; --line: #b9bec5;
+  --ink: #202124; --muted: #555b61; --paper: #dfe3e8; --card: #f7f7f8; --line: #b9bec5;
   --accent: #0a74da; --accent-strong: #075cae; --focus: #006bd6; --nav: rgba(232,234,237,.9);
   --shell-ink: #202124; --shell-muted: #5f6368; --surface-subtle: #eceef1;
   --control-radius: 7px; --card-radius: 11px;
@@ -1095,8 +1095,8 @@ input:focus, select:focus, textarea:focus { box-shadow: var(--material-control-a
 
 /* Windows 95/98: exact tactile metaphors—outset commands, inset fields, square panels. */
 :root[data-theme="win95"] {
-  --ink: #000000; --muted: #303030; --paper: #008080; --card: #c0c0c0; --line: #808080;
-  --accent: #000080; --accent-strong: #00005c; --accent-ink: #ffffff; --focus: #000080;
+  --ink: #000000; --muted: #000000; --paper: #008c8c; --card: #c0c0c0; --line: #808080;
+  --accent: #000080; --accent-strong: #00005c; --accent-ink: #ffffff; --focus: #ffff00;
   --brand: #ffff00; --nav: #000080; --shell-ink: #ffffff; --shell-muted: #ffffff; --surface-subtle: #d4d0c8;
   --control-radius: 0; --card-radius: 0;
   --font-ui: Tahoma, "MS Sans Serif", "Segoe UI", sans-serif; --font-display: var(--font-ui);
@@ -1109,13 +1109,14 @@ input:focus, select:focus, textarea:focus { box-shadow: var(--material-control-a
   --material-hover-lift: none; --material-press: translate(1px, 1px); --material-transition: 0ms linear;
 }
 :root[data-theme="win95"] input, :root[data-theme="win95"] textarea, :root[data-theme="win95"] select { background: #ffffff; border-style: inset; color: #000; }
+:root[data-theme="win95"] .app-bar :is(button, select, a):focus-visible { outline-color: #ffff00; box-shadow: 0 0 0 2px #000000; }
 :root[data-theme="win95"] .primary { color: #000; }
 :root[data-theme="win95"] .workbench-head { padding-inline: .75rem; background: #c0c0c0; border: 2px outset #fff; }
 :root[data-theme="win95"] .domain-tab.is-active { border: 1px dotted #000; background: #000080; color: #fff; box-shadow: none; }
 
 /* Windows XP: Luna gloss, friendly radius and layered blue/green controls. */
 :root[data-theme="winxp"] {
-  --ink: #15305a; --muted: #566c8e; --paper: #ece9d8; --card: #fffef4; --line: #7f9db9;
+  --ink: #15305a; --muted: #4b5f7e; --paper: #ece9d8; --card: #fffef4; --line: #7f9db9;
   --accent: #2f64d6; --accent-strong: #1746a2; --accent-ink: #fff; --focus: #1d4fa8;
   --brand: #ffcc33; --nav: #245edb; --shell-ink: #ffffff; --shell-muted: #edf3ff; --surface-subtle: #f5f3e7;
   --control-radius: 7px; --card-radius: 12px;
@@ -1219,7 +1220,7 @@ input:focus, select:focus, textarea:focus { box-shadow: var(--material-control-a
 
 /* Restrained skeuomorphism: parchment content, engraved metal and tactile leather. */
 :root[data-theme="skeuo"] {
-  --ink: #30271d; --muted: #65584a; --paper: #d9c7a5; --card: #f3ead8; --line: #9e8769;
+  --ink: #30271d; --muted: #574a3d; --paper: #d9c7a5; --card: #f3ead8; --line: #9e8769;
   --accent: #9b4f2c; --accent-strong: #6f351d; --focus: #155d8d; --nav: #3a2519;
   --shell-ink: #fff5df; --shell-muted: #dbc8aa; --surface-subtle: #e8dcc6;
   --control-radius: 9px; --card-radius: 13px;
