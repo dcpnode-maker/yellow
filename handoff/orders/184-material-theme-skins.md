@@ -1,6 +1,6 @@
 # Order 184 — Materially distinct operator skins
 
-**Status:** BUILT — corrected product candidate `3cffb5f`; independent browser review pending
+**Status:** APPROVED AND PROMOTED LOCALLY — product `3cffb5f`, image `sha256:10004705`
 **Phase:** 5 · founder-visible operations
 **Branch:** `phase-5/material-theme-skins`
 **Base:** `144753b` (independently approved current local through Order182)
@@ -103,7 +103,7 @@ asset, logo, source or pixel-identical interface is permitted.
 ## Definition of done
 
 - [x] Every offered skin is materially and compositionally distinct, not a color alias.
-- [ ] Existing hotel workflows remain exact in every skin.
-- [ ] Accessibility, responsive, performance and fallback gates pass.
-- [ ] Independent review approves the exact candidate.
-- [ ] The approved candidate is the only app on loopback3000 with the Order182 data.
+- [x] Existing hotel workflows remain exact in every skin.
+- [x] Accessibility, responsive, performance and fallback gates pass.
+- [x] Independent review approves the exact candidate.
+- [x] The approved candidate is the only app on loopback3000 with the Order182 data.
