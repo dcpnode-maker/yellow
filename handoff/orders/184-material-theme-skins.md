@@ -1,6 +1,6 @@
 # Order 184 — Materially distinct operator skins
 
-**Status:** BUILT — revised product candidate `f55b606`; independent review pending
+**Status:** BUILT — corrected product candidate `3cffb5f`; independent browser review pending
 **Phase:** 5 · founder-visible operations
 **Branch:** `phase-5/material-theme-skins`
 **Base:** `144753b` (independently approved current local through Order182)
@@ -92,9 +92,13 @@ asset, logo, source or pixel-identical interface is permitted.
   local page without starting another app. Glass, Windows95 and Yellow screenshots
   are visibly different; the 16-skin 375px matrix has zero root overflow and 44px
   minimum visible controls. This is builder evidence, not independent approval.
-- Focused 35/0 with 1,033 assertions, standing 241/0 with 481 database-skipped,
+- Adversarial review of `f55b606` found theme-driven hierarchy concealment/order,
+  a narrow sticky-header collision, insufficient XP title contrast and macOS root
+  clipping. Corrected candidate `3cffb5f` closes all four findings, adds WebKit
+  backdrop fallbacks and strengthens forced-colour/static structural proof.
+- Focused 12/0 with 716 assertions, standing 241/0 with 481 database-skipped,
   typecheck, 66-file boundaries, 23-package licence policy and audit pass. Combined
-  operator gzip is 97,814/98,304 bytes.
+  operator gzip is 97,763/98,304 bytes.
 
 ## Definition of done
 
