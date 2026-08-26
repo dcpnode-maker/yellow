@@ -2,9 +2,16 @@ import { expect, test } from "bun:test";
 import { readFileSync } from "node:fs";
 import { gzipSync } from "node:zlib";
 
+import { createApp } from "../src/app";
+import type { OperatorHttpApi } from "../src/http/operator";
+
 const html = readFileSync(new URL("../src/http/operator/index.html", import.meta.url), "utf8");
 const css = readFileSync(new URL("../src/http/operator/operator.css", import.meta.url), "utf8");
 const script = readFileSync(new URL("../src/http/operator/operator.js", import.meta.url), "utf8");
+
+const operatorApi = new Proxy({}, {
+  get: () => () => new Response("unused"),
+}) as OperatorHttpApi;
 
 function functionSource(name: string): string {
   const start = script.indexOf(`function ${name}(`);
@@ -70,6 +77,41 @@ test("Order 171 P0/P5: UUID workspace route is canonical, bounded and restorable
   expect(functionSource("renderFolioRows")).toContain("folioStatementRows.replaceChildren()");
   expect(functionSource("renderFolioRows")).toContain("folioStatementCards.replaceChildren()");
   expect(functionSource("renderFolioRows")).not.toContain("append = false");
+});
+
+test("Order 174 P1/P2: singular UUID folio deep links serve only the exact operator shell route", async () => {
+  const app = createApp({ operatorApi });
+  const property = "00000000-0000-4000-8000-000000017400";
+  const folio = "00000000-0000-4000-8000-000000017401";
+  const plural = await app.handle(new Request(`http://order174.test/p/${property}/folios`));
+  const singular = await app.handle(new Request(`http://order174.test/p/${property}/folio/${folio}`));
+
+  expect(plural.status).toBe(200);
+  expect(singular.status).toBe(200);
+  expect(plural.headers.get("content-type")).toContain("text/html");
+  expect(singular.headers.get("content-type")).toContain("text/html");
+  expect(await singular.text()).toBe(await plural.text());
+
+  const neighboringShells = [
+    "/",
+    `/p/${property}/res/00000000-0000-4000-8000-000000017402`,
+  ];
+  for (const path of neighboringShells) {
+    const response = await app.handle(new Request(`http://order174.test${path}`));
+    expect(response.status).toBe(200);
+    expect(response.headers.get("content-type")).toContain("text/html");
+    expect(await response.text()).toBe(html);
+  }
+
+  for (const path of [
+    `/p/${property}/folio`,
+    `/p/${property}/folio/${folio}/extra`,
+    `/p/${property}/unknown/${folio}`,
+  ]) {
+    const response = await app.handle(new Request(`http://order174.test${path}`));
+    expect(response.status).toBe(404);
+    expect(await response.text()).toBe("NOT_FOUND");
+  }
 });
 
 test("Order 171 P5: statement has semantic desktop and equivalent mobile states", () => {

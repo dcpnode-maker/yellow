@@ -96,6 +96,7 @@ export function createApp(options: AppOptions = {}) {
       .get("/p/:property/reservations", () => operatorAssets.html())
       .get("/p/:property/res/:reservation", () => operatorAssets.html())
       .get("/p/:property/folios", () => operatorAssets.html())
+      .get("/p/:property/folio/:folio", () => operatorAssets.html())
       .get("/p/:property/status", () => operatorAssets.html())
       .get("/assets/operator.css", () => operatorAssets.css())
       .get("/assets/operator.js", () => operatorAssets.js())
