@@ -1,6 +1,6 @@
 # Order 182 — Current-local scenario import
 
-**Status:** READY — D-465
+**Status:** COMPLETE — D-466
 **Phase:** 5 · founder human testing data
 **Branch:** `phase-5/two-hotel-scenario-seed`
 **Base:** `459b4e5` (independently approved Order181)
@@ -47,8 +47,8 @@ merge, push or production deployment is in scope.
 
 ## Definition of done
 
-- [ ] A hashed pre-import backup exists and is owner restricted.
-- [ ] Exact approved Order181 data is present in the current local database.
-- [ ] Exact replay, invariants and authenticated UAT reads pass.
-- [ ] Independent reviewer approves the current-local import.
-- [ ] Port 3000 remains the sole healthy local app and port 3002 stays unbound.
+- [x] A hashed pre-import backup exists and is owner restricted.
+- [x] Exact approved Order181 data is present in the current local database.
+- [x] Exact replay, invariants and authenticated UAT reads pass.
+- [x] Independent reviewer approves the current-local import.
+- [x] Port 3000 remains the sole healthy local app and port 3002 stays unbound.
