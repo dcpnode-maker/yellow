@@ -1,6 +1,6 @@
 # Order 175 — Folio responsive containment correction
 
-**Status:** READY
+**Status:** BUILT-UNREVIEWED
 **Phase:** 5
 **Branch:** `phase-5/folio-responsive-containment`
 **Base:** `b8c1b94c73c1f3b491794cead03c658113e8892c`
@@ -48,9 +48,38 @@ schema, migration, dependency, runtime, credential, container or live port is in
 
 ## Definition of done
 
-- [ ] P0 is reproduced on exact Base.
-- [ ] P1–P4 pass with permanent regression evidence.
+- [x] P0 is reproduced on exact Base.
+- [x] P1–P4 pass with permanent regression evidence.
 - [ ] Independent reviewer executes and approves complete Order171 P1–P6.
+
+## Builder evidence
+
+Product commit `453a2b6c08e74f05d1ec841949074333cc76ec51` adds only intrinsic-size
+containment to the folio statement grid container, its direct `#folio-statement`
+grid item and the existing local table scroll wrapper, plus a permanent exact CSS
+regression. The 900-pixel semantic table, all columns, the below-768 card breakpoint,
+HTML, JavaScript and routes remain unchanged.
+
+Headless Chrome reproduced exact Base document widths 934 at viewport 768 and 1214
+at viewport 1024. Candidate widths are 753/1009 respectively (the 15-pixel difference
+is the vertical scrollbar and remains below `innerWidth`); 375, 720 and 1440 are also
+contained. At 768/1024 the wrapper client widths are 686/652 while its scroll width
+and table width remain exactly 900, proving local rather than document scrolling.
+Apple and Pixel themes, reduced motion, unclipped workspace head/tabs/summary and
+visible control minimums of 45 pixels or more passed; 375/720 activate the existing
+card view, covering effective narrow layout at 200% zoom.
+
+Focused proof passed 8/8 with 90 assertions. Standing proof passed 213, skipped 480
+environment-gated tests and failed zero with 2,612 assertions. Typecheck, 66-file
+boundaries, 23-package licence policy, dependency audit, diff check, protected hashes
+and the 85,658-byte combined gzip budget passed. One sequential isolated PostgreSQL
+and Valkey stack applied 18 migrations, matched the exact schema, loaded 85 public
+tables with 75 RLS tables and passed the referee 11/11. The inherited Windows
+`/proc/1/comm` setup readiness check rejected the healthy pinned container; the same
+stack's exact remaining provision/migrate/fixture/schema/referee steps were therefore
+run directly. Its containers, network, volume and generated authority file were
+removed; ports 3000/3002 were untouched. Complete independent Order171 P1–P6 restart
+remains required.
 
 ## Forbidden
 
