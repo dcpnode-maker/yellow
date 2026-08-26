@@ -135,3 +135,31 @@ PostgreSQL and Valkey remained their original healthy containers. The review did
 mutate data, schema, credentials, runtime configuration or product files. Order187
 remains static-approved/browser-pending and requires a browser-capable independent
 exact-candidate run before any future retention or promotion.
+
+---
+
+## Corrected guarded browser UAT — D-491
+
+**Conclusion:** NOT-APPROVED / ROLLED-BACK
+
+D-490 admitted one corrected same-port attempt with exact candidate image
+`sha256:d59143d630326817672f8d4a3e3824dd77db8ce78d8347303aaaa367e83c537b`,
+the required workbench enablement and a fresh unpersisted signing key. The coordinator
+proved the sole candidate app healthy with root, health, CSS and JavaScript HTTP 200,
+left port 3002 unbound, retained exact rollback, and marked a freshly reloaded live
+candidate tab for handoff.
+
+The independent review browser then explicitly disconnected. Fresh target selection
+reported no browser available; after the required troubleshooting step, the one
+permitted browser inventory returned an empty list. Browser policy forbids switching
+to an unrelated control surface or indirect workaround. No candidate DOM, screenshot,
+transition, credential or authenticated state was inspected, and no password, token
+or other secret was requested, read, typed or transmitted.
+
+The mandatory browser gate therefore remains unexecuted and the candidate is not
+approved. The coordinator closed the guard and restored exact Order186 image
+`sha256:d778b9b1515c5b56484197032487c1da23a57573a4aba1c2d11e9aff79af4ab2`.
+Independent post-rollback execution confirms three healthy containers, sole
+`127.0.0.1:3000`, no port 3002, HTTP 200 for root/health/CSS/JavaScript, and exact
+D-485 served asset hashes. PostgreSQL and Valkey remain their original healthy
+containers. Order187 remains static-approved/browser-pending.
