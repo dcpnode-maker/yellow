@@ -231,3 +231,48 @@ must restore the reservation identity used by the additional-window browser comm
 meet the Android target-size minimum, clear stale prior-property financial state and
 make the visible button workflows keyboard-operable, then obtain a fresh independent
 authenticated P7 on the corrected exact product.
+
+---
+
+## Re-review — repaired candidate browser unavailable
+
+**Conclusion:** STATIC/DB-GREEN · AUTHENTICATED-P7-PENDING · NO PROMOTION APPROVAL
+
+**Exact candidate:** `0096ac4eff2944af68b033700cf5ef227f6ce971`
+
+The same independent non-implementing reviewer inspected the exact repair from
+`db281418616bf6703983ba8aeeb4b63361efeaad`. Its eight-file product/test delta adds the
+nullable safe top-level reservation identity to the folio statement, clears all prior
+folio presentation before a property-scoped read, disables additional-window creation
+without an exact reservation UUID, adds bounded non-repeating Enter/Space activation,
+and enforces 48px Android mobile domain targets. No migration, transfer capability,
+posting mutation, dependency, credential or approved `:3000` local changed.
+
+Reviewer-executed proof on the disposable `:5442` database passed **39/39 with 391
+assertions** across migration-0020 authority, fresh statement projection, 20-way
+additional-window and transfer concurrency, immutable balanced routing, hostile and
+rollback cases, exact HTTP/UI contracts and theme target regressions. TypeScript
+typecheck passed; import boundaries passed over 68 TypeScript files. Related folio,
+theme and motion tests passed **23/23 with 349 assertions** plus five intentionally
+database-gated skips. The full standing suite passed **263**, skipped 502 database-
+gated cases and failed zero with 3,373 assertions. Licence policy passed for 23
+packages and `bun audit` found no vulnerabilities. Exact operator gzip is HTML 19,799
++ CSS 17,853 + JavaScript 60,645 = **98,297 / 98,304 bytes**.
+
+The reviewer then started one transient direct-Bun harness on loopback `:3188`
+against `:5442`; health returned exact HTTP 200 while the approved app on `:3000`
+remained bound by its original process. Required direct
+`getForUrl("http://127.0.0.1:3188/")` returned `No browser is available`. After reading
+the mandated bootstrap troubleshooting documentation, the one permitted inventory
+returned `[]`. The coordinator explicitly reset and released its own browser binding;
+a retry through the same existing runtime still returned `No browser is available`.
+Policy forbids resetting again or substituting another browser-control surface.
+
+Consequently no credential was read or entered and none of the four repaired browser
+journeys is claimed: successful non-undefined creation/move, exact Android 375px target
+geometry, stale-property visual clearing, or non-repeating Enter/Space activation.
+The earlier rejection of `0713b7b` remains valid, while `0096ac4` is a repaired
+static/database-green candidate awaiting a browser-capable independent authenticated
+P7. The transient `:3188` process was stopped and is unbound; `:3000` and `:5442`
+remain on their original listeners. No local replacement, promotion, integration,
+merge, push, deployment, production or Phase-wide completion is approved.

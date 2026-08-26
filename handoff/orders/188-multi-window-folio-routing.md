@@ -1,6 +1,6 @@
 # Order 188 — Multi-window folio routing
 
-**Status:** CHANGES-REQUIRED on `0713b7b` — authenticated P7 browser defects
+**Status:** REPAIRED-STATIC/DB-GREEN on `0096ac4` — authenticated P7 browser pending
 **Phase:** 5 · folios, postings and settlement
 **Branch:** `phase-5/folio-charge-correction-resumed`
 **Base:** `29f8489` (Order187 static-approved/browser-pending governance head)
