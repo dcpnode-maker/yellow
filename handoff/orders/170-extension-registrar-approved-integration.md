@@ -1,6 +1,6 @@
 # Order 170 — Integrate approved extension registrar onto the local workspace lineage
 
-**Status:** BUILT-UNREVIEWED
+**Status:** APPROVED — independent Tier-3 review complete at `8988089`
 **Phase:** 5 · security prerequisite integration
 **Branch:** `phase-5/extension-registrar-approved-integration`
 **Base:** `cb88b664463c81a59c064e638b203f3b33b51304`
@@ -69,7 +69,15 @@ P0-P4 against one immutable candidate before approval.
 
 - [x] Approved Order156 capability is present on the exact Order169 descendant.
 - [x] P0-P4 are green without weakening assertions.
-- [ ] Independent Tier-3 review approves one immutable executable.
+- [x] Independent Tier-3 review approves one immutable executable.
+
+## Independent review — 2026-08-26
+
+An independent non-implementing Tier-3 reviewer approved exact candidate
+`8988089f96dd110810d78ac0839228ffb9406dc9` with no finding after personally
+executing P0–P4. See
+`handoff/reviews/170-extension-registrar-approved-integration.md` for composition,
+database, security, secret non-retention, harness-incident and cleanup evidence.
 
 ## Builder evidence — 2026-08-26
 
