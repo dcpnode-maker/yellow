@@ -1,6 +1,6 @@
 # Order 186 — Approved correction and four-skin local promotion
 
-**Status:** IN PROGRESS — D-484
+**Status:** APPROVED LOCALLY — D-485
 **Phase:** 5 · founder human testing
 **Branch:** `phase-5/folio-charge-correction-resumed`
 **Base:** `4c3b202` (independently approved Order183 governance over approved Order185)
@@ -67,10 +67,10 @@ merge, push or production deployment is in scope.
 
 ## Definition of done
 
-- [ ] Owner-restricted readable backup and retained rollback image are recorded.
-- [ ] Migration0019, exact replay, schema and referee 11/11 pass on the persistent local.
-- [ ] The sole loopback3000 app serves the approved four-skin correction candidate.
-- [ ] Authenticated three-property and open correction UAT plus exact post-seal grants
+- [x] Owner-restricted readable backup and retained rollback image are recorded.
+- [x] Migration0019, exact replay, schema and referee 11/11 pass on the persistent local.
+- [x] The sole loopback3000 app serves the approved four-skin correction candidate.
+- [x] Authenticated three-property and open correction UAT plus exact post-seal grants
       pass without
       mutating original financial history.
-- [ ] Independent non-operating review approves the exact local operation.
+- [x] Independent non-operating review approves the exact local operation.
