@@ -1,6 +1,6 @@
 # Order 176 — Adaptive experience shell
 
-**Status:** CHANGES REQUIRED — independent 375px containment finding at `0aef0bb`
+**Status:** APPROVED — corrected candidate `700713a`
 **Phase:** 5 · founder-visible operations
 **Branch:** `phase-5/adaptive-experience-shell`
 **Base:** `f3bcb36` (independently approved Orders171/173/174/175)
@@ -58,10 +58,11 @@ tax, fiscal, housekeeping, merge, push, local promotion or deployment is in scop
 
 ## Definition of done
 
-- [ ] Progressive detail operates over one unchanged semantic application.
-- [ ] Theme packs are original token variants with no external dependency or copied UI.
-- [ ] Existing founder reservation-to-folio journey remains green in every detail level.
-- [ ] Complete repository and real-browser gates pass.
-- [ ] Independent review approves the immutable candidate. Candidate `0aef0bb` was
+- [x] Progressive detail operates over one unchanged semantic application.
+- [x] Theme packs are original token variants with no external dependency or copied UI.
+- [x] Existing founder reservation-to-folio journey remains green in every detail level.
+- [x] Complete repository and real-browser gates pass.
+- [x] Independent review approves corrected immutable candidate `700713a`. Candidate `0aef0bb` was
   rejected for root horizontal overflow at 375px in all 18 detail/theme combinations;
-  see `handoff/reviews/176-adaptive-experience-shell.md`.
+  the permanent rejection and complete corrected-candidate restart are both preserved
+  in `handoff/reviews/176-adaptive-experience-shell.md`.

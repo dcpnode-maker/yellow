@@ -1,10 +1,15 @@
 # Independent review — Order 176 adaptive experience shell
 
-**Verdict:** CHANGES REQUIRED  
-**Reviewer:** independent non-implementing OpenAI Codex  
-**Candidate:** `0aef0bb35f8eb2f00e882af1ff5771d09d54f035`  
-**Branch:** `phase-5/adaptive-experience-shell`  
+**Final verdict:** APPROVED — corrected candidate
+**Final reviewer:** independent non-implementing OpenAI Codex
+**Approved candidate:** `700713a544aa2308a29348450f769086ed7508df`
+**Initial verdict:** CHANGES REQUIRED at `0aef0bb35f8eb2f00e882af1ff5771d09d54f035`
+**Branch:** `phase-5/adaptive-experience-shell`
 **Date:** 2026-08-26
+
+The initial rejection below remains part of the permanent record. Approval applies
+only to the corrected immutable candidate and the bounded Order 176 presentation
+scope.
 
 ## Finding
 
@@ -74,3 +79,66 @@ then submit a new immutable candidate for a complete independent restart of the
 Order 176 Browser matrix and unchanged reservation-to-folio journey.
 
 No merge, push, promotion, deployment or Phase-completion authority is granted.
+
+## Corrected-candidate independent restart
+
+### Correction inspected
+
+Candidate `700713a544aa2308a29348450f769086ed7508df` descends the rejected
+candidate through the recorded rejection commit. Its product correction is limited
+to eight CSS lines in `operator.css` and four permanent assertions in
+`operator-adaptive-experience.test.ts`: the narrow app bar wraps, both selector
+labels may shrink, and both selects fill their bounded row. It does not hide root
+overflow, reduce the 44-pixel targets, remove options, change control order, change
+application authority, or touch an API, route, database, migration, permission,
+dependency or external asset.
+
+### Reviewer-executed evidence
+
+- exact served-asset SHA-256 values for HTML, CSS and JavaScript matched the candidate
+  worktree inside the sole app container on loopback port 3127;
+- focused operator/adaptive/reservation/folio/security proof: **25 passed, 0 failed,
+  363 assertions**; complete standing suite: **216 passed, 0 failed, 480 skipped,
+  2,650 assertions**;
+- TypeScript passed; import boundaries scanned **66 files**; licence policy passed
+  **23 packages**; production dependency audit found no vulnerabilities;
+- level-9 gzip was HTML 18,723 + CSS 13,370 + JavaScript 54,363 = **86,456 bytes**,
+  below the 98,304-byte cap;
+- protected SHA-256 remained exact: baseline
+  `fe2a9fc949c6bacded3f8d3fc4d14fc596a83ebde9aeb043eb10845f07b30923`, referee
+  `2afa95bb7c02cd9637ffc9c3df00d1ddf7cfc5d8d31c4fd8fad29b950c1a418d`, typed
+  fixture `84d928488a2569b4115cec2a0ccb66edbcf80d33d87aa1248c7ee1685e81afb9`;
+- the reviewer recreated `yellow_test`, applied migrations 0001–0018, loaded the
+  canonical fixture, counted **85 public tables**, and personally passed the referee
+  **11/11**;
+- the reviewer recreated the disposable development database, applied migrations
+  0001–0018, ran canonical seed plus review seed, and personally passed the complete
+  reservation → primary folio → governed untaxed charge journey **1/1 with 210
+  assertions**;
+- Chrome 151 executed all **72** combinations of 375/768/1024/1440 ×
+  Simple/Advanced/Expert × six themes: maximum root scroll delta was **0**, minimum
+  visible target was **44px**, every dataset/control value was exact, and the
+  intentionally locally scrolling domain navigation never became document overflow;
+- Browser state proof preserved a typed reservation draft, active create panel,
+  route and focused input across detail/theme changes; an active secondary workspace
+  stayed visible when returning to Simple; Space opened the semantic disclosure and
+  moved focus to its first workspace;
+- reduced-motion matched and computed transition/animation durations of `1e-05s`
+  (0.01ms); page scale 2 retained root/body width 360 at inner width 375; all resource
+  origins remained same-origin 3127 and Chrome recorded zero runtime exceptions.
+
+The canonical PowerShell setup wrapper again reached a healthy PostgreSQL process but
+timed out in its inherited readiness loop; direct `/proc/1/comm` returned `postgres`
+and `pg_isready` accepted connections. The reviewer therefore executed the wrapper's
+remaining exact recreate/migrate/fixture/table/referee sequence on that same sole
+stack. Discarded harness preconditions — wrong review-seed environment names, inherited
+journey residue, locally scrolling navigation counted as escaped controls, native
+dirty-exit sequencing and Chrome's equivalent `1e-05s` duration serialization — were
+corrected and rerun; none is counted as product evidence.
+
+## Final verdict
+
+**APPROVED.** The corrected candidate closes F1 with no new finding and satisfies the
+Order 176 presentation, accessibility, responsive, authority-preservation and journey
+requirements. Approval grants no merge, push, promotion, deployment, tax, payment,
+fiscal, housekeeping or Phase-wide completion claim.
