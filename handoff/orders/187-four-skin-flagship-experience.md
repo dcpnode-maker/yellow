@@ -30,7 +30,11 @@ No API, route, domain service, database, schema, migration, seed, permission,
 financial authority, dependency, external font/asset, WebGL, copied logo/artwork,
 second local, port change, public bind, credential, merge, push, production deployment
 or payload-ceiling increase is in scope. The sole approved app on loopback port 3000
-stays unchanged until the exact candidate independently passes this order.
+stays the only local app. D-488 permits one guarded same-port UAT replacement after
+static review: retain the exact rollback image, recreate only the app container, keep
+PostgreSQL/Valkey and their data unchanged, allow only reviewer read paths, and either
+retain the exact independently approved candidate or immediately restore the prior
+image. At no point may two app locals listen or port 3002 bind.
 
 ## Four-skin design contract
 
@@ -88,6 +92,8 @@ stays unchanged until the exact candidate independently passes this order.
   request, copied asset, new dependency or increased payload ceiling;
 - focused tests, standing non-database suite, typecheck, boundaries, licences, audit,
   exact protected hashes and independent settled-screenshot plus transition review.
+- guarded same-port UAT records the before/candidate image identities, proves exactly
+  one loopback app/no port3002, and restores the prior image if browser approval fails.
 
 ## Definition of done
 
