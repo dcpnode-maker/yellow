@@ -1,6 +1,6 @@
 # Order 177 — Today command centre
 
-**Status:** CHANGES REQUIRED — D-454
+**Status:** APPROVED — D-455
 **Phase:** 5 · founder-visible operations
 **Branch:** `phase-5/today-command-centre`
 **Base:** `e13b83d` (independently approved Order176)
@@ -62,5 +62,5 @@ or deployment is in scope.
 - [x] Three lanes fail and paginate independently without stale paint or false totals.
 - [x] Existing reservation creation, detail and folio static/standing journeys remain unchanged.
 - [x] Builder repository gates pass; fresh DB and real-Browser gates remain reviewer-owned.
-- [ ] Independent review approves the immutable candidate. Candidate `a23286e` is
-  rejected by D-454 because UUID-detail return loses keyboard focus.
+- [x] Independent review approves corrected immutable candidate `55bf924d0235ebff37ce725c58622ba7eaefd27c`
+  under D-455. D-454's rejection of `a23286e` remains preserved.

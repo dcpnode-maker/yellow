@@ -1,13 +1,60 @@
 # Independent review — Order 177 Today command centre
 
-**Verdict:** CHANGES REQUIRED
-**Reviewed tip:** `a23286e84e4199a245e4e340bd9ac836acc02b90`
-**Product candidate:** `cb79f6f90ab44ba892bd84e7342194f792084fc9`
+**Verdict:** APPROVED — D-455
+**Reviewed tip:** `55bf924d0235ebff37ce725c58622ba7eaefd27c`
+**Product candidate:** `55bf924d0235ebff37ce725c58622ba7eaefd27c`
 **Base:** `e13b83d` (independently approved Order 176)
 **Reviewer:** independent non-implementing OpenAI Codex
 **Date:** 2026-08-26
 
-## Finding
+## Corrected-candidate verdict
+
+The corrected immutable candidate is approved with no remaining finding. Its only
+product delta after the rejected candidate is stable reservation return identity,
+immediate visible Today-title focus, current-cycle matching-row restoration after
+lane replacement, deterministic settled fallback, and a permanent executable pure
+decision/source regression. APIs, queries, schema, migrations, permissions,
+dependencies and server authority remain unchanged.
+
+The reviewer restarted every gate from zero. Focused tests passed **41/41 (582
+assertions)** and standing tests passed **223/223 (2,739 assertions)**; typecheck,
+66-file boundaries, 23-package licences, production audit and diff-check passed.
+Combined level-9 gzip was **89,748 / 92,160 bytes**. Baseline, referee and typed-parent
+fixture hashes remained exact.
+
+The sole fresh database applied migrations 0001–0018, matched the exact schema, had
+85 public test tables and passed acceptance **6/6 (13)**, referee **11/11**, review
+seed **12/12 (40)** and the reservation→primary-folio→governed-charge journey **1/1
+(210)**. Served HTML/CSS/JavaScript hashes were byte-identical to source.
+
+Authenticated Microsoft Edge **151.0.4129.107** issued exactly three real Today GETs
+(`due_in`, `due_out`, `in_house`) with one identical UTC `[from,to)` window,
+`limit=50` and no cursor. A same-origin controlled response harness then proved
+truthful cursor replacement, no inferred total, independent error/retry, route-stale
+suppression and newer-generation precedence. Opening a real UUID detail from a
+synthetic Today row and closing it focused visible `#today-title` immediately; the
+current due-in response then focused the replacement row with that exact UUID. An
+absent row settled to the visible Today title rather than BODY.
+
+All **72/72** combinations of 375/768/1024/1440 × Simple/Advanced/Expert × six
+themes had zero root/body overflow, exact datasets and a 44-pixel minimum actionable
+target. 200% page scale remained contained; reduced motion matched with 0.01 ms
+maximum computed duration and no active animation; keyboard Tab reached the visible
+outlined Today refresh. All observed resources were same-origin and runtime
+exceptions were zero.
+
+One first Edge harness attempt submitted before the deferred script attached and put
+its disposable review password into its isolated URL. The reviewer immediately
+destroyed that entire Edge profile, database volume, image, network and authority
+file, then generated a fresh unrelated credential set and reran the complete browser
+proof successfully. No production or founder-local credential was involved, and the
+discarded attempt is not counted as evidence. Final Edge/profile/stack/secrets were
+also removed; ports 3000 and 3002 were never bound or touched.
+
+Approval is limited to Order177's bounded read-only Today surface and focus correction.
+It grants no merge, push, promotion, deployment or Phase-wide completion authority.
+
+## Prior finding preserved
 
 ### F1 — UUID detail return loses the Today row's keyboard focus
 
