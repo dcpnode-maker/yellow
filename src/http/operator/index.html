@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en" data-theme="apple">
+<html lang="en" data-theme="yellow" data-experience="simple">
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -16,10 +16,21 @@
         <span><strong>Yellow</strong><small>Hotel Operations</small></span>
       </div>
       <div class="app-actions">
+        <label class="experience-control"><span>Workspace detail</span>
+          <select id="experience-select" aria-label="Workspace detail">
+            <option value="simple">Simple</option>
+            <option value="advanced">Advanced</option>
+            <option value="expert">Expert</option>
+          </select>
+        </label>
         <label class="theme-control"><span>Appearance</span>
           <select id="theme-select" aria-label="Appearance">
+            <option value="yellow">Yellow Ops</option>
             <option value="apple">Apple calm</option>
             <option value="pixel">Pixel expressive</option>
+            <option value="windows">Windows clear</option>
+            <option value="glass">Glass light</option>
+            <option value="aurora">Aurora focus</option>
           </select>
         </label>
         <div class="session-state" id="session-state">Local review · signed out</div>
@@ -76,13 +87,16 @@
             <button class="domain-tab is-active" id="nav-availability" type="button" data-view="availability" aria-controls="availability-view">Availability</button>
             <button class="domain-tab" id="nav-reservations" type="button" data-view="reservations" aria-controls="reservations-view">Reservations</button>
             <button class="domain-tab" id="nav-folios" type="button" data-view="folios" aria-controls="folios-view">Folios</button>
-            <span class="domain-nav-group">Property control</span>
-            <button class="domain-tab" id="nav-operations" type="button" data-view="operations" aria-controls="operations-view">Operations</button>
-            <button class="domain-tab" id="nav-inventory" type="button" data-view="inventory" aria-controls="inventory-view">Inventory setup</button>
-            <button class="domain-tab" id="nav-restrictions" type="button" data-view="restrictions" aria-controls="restrictions-view">Restrictions</button>
-            <button class="domain-tab" id="nav-rates" type="button" data-view="rates" aria-controls="rates-view">Rates</button>
-            <span class="domain-nav-group">System</span>
-            <button class="domain-tab" id="nav-status" type="button" data-view="status" aria-controls="status-view">Project status</button>
+            <button class="workspace-disclosure" id="secondary-workspaces-toggle" type="button" aria-expanded="false" aria-controls="secondary-workspaces">More workspaces</button>
+            <div class="secondary-workspaces" id="secondary-workspaces" hidden>
+              <span class="domain-nav-group">Property control</span>
+              <button class="domain-tab" id="nav-operations" type="button" data-view="operations" aria-controls="operations-view">Operations</button>
+              <button class="domain-tab" id="nav-inventory" type="button" data-view="inventory" aria-controls="inventory-view">Inventory setup</button>
+              <button class="domain-tab" id="nav-restrictions" type="button" data-view="restrictions" aria-controls="restrictions-view">Restrictions</button>
+              <button class="domain-tab" id="nav-rates" type="button" data-view="rates" aria-controls="rates-view">Rates</button>
+              <span class="domain-nav-group">System</span>
+              <button class="domain-tab" id="nav-status" type="button" data-view="status" aria-controls="status-view">Project status</button>
+            </div>
           </nav>
           <label class="property-context">Current property
             <select name="property" id="property-select" required></select>

@@ -77,6 +77,9 @@
   const operatorName = document.querySelector("#operator-name");
   const signOutButton = document.querySelector("#sign-out");
   const themeSelect = document.querySelector("#theme-select");
+  const experienceSelect = document.querySelector("#experience-select");
+  const secondaryWorkspaces = document.querySelector("#secondary-workspaces");
+  const secondaryWorkspacesToggle = document.querySelector("#secondary-workspaces-toggle");
   const workbenchTitle = document.querySelector("#workbench-title");
   const availabilityReservationShortcut = document.querySelector("#availability-reservation-shortcut");
   const availabilityView = document.querySelector("#availability-view");
@@ -396,9 +399,25 @@
   const folioChargeAvailability = document.querySelector("#folio-charge-availability");
   const SYSTEM_STATUS_SUFFIX = "/system-status";
   const MAX_MINOR = BigInt("9223372036854775807");
+  const THEMES = new Set(["yellow", "apple", "pixel", "windows", "glass", "aurora"]);
+  const EXPERIENCES = new Set(["simple", "advanced", "expert"]);
+  const SECONDARY_VIEWS = new Set(["operations", "inventory", "restrictions", "rates", "status"]);
 
   function applyTheme(theme) {
-    document.documentElement.dataset.theme = theme === "pixel" ? "pixel" : "apple";
+    const next = THEMES.has(theme) ? theme : "yellow";
+    document.documentElement.dataset.theme = next;
+    themeSelect.value = next;
+  }
+
+  function applyExperience(experience, { preserveActive = true } = {}) {
+    const next = EXPERIENCES.has(experience) ? experience : "simple";
+    const keepSecondaryOpen = preserveActive && SECONDARY_VIEWS.has(activeView);
+    document.documentElement.dataset.experience = next;
+    experienceSelect.value = next;
+    secondaryWorkspacesToggle.hidden = next !== "simple";
+    secondaryWorkspaces.hidden = next === "simple" && !keepSecondaryOpen;
+    secondaryWorkspacesToggle.setAttribute("aria-expanded", String(!secondaryWorkspaces.hidden));
+    secondaryWorkspacesToggle.textContent = secondaryWorkspaces.hidden ? "More workspaces" : "Fewer workspaces";
   }
 
   function localInputValue(date) {
@@ -525,6 +544,7 @@
     rateCorrectionForm.hidden = true;
     pendingKeys.clear();
     history.replaceState(null, "", "/");
+    applyExperience("simple", { preserveActive: false });
     loginForm.elements.password.value = "";
     loginForm.elements.email.focus();
   }
@@ -3331,6 +3351,11 @@
   function setView(view, updateHistory = true) {
     const previousView = activeView;
     activeView = ["availability", "inventory", "operations", "reservations", "folios", "restrictions", "rates", "status"].includes(view) ? view : "availability";
+    if (document.documentElement.dataset.experience === "simple" && SECONDARY_VIEWS.has(activeView)) {
+      secondaryWorkspaces.hidden = false;
+      secondaryWorkspacesToggle.setAttribute("aria-expanded", "true");
+      secondaryWorkspacesToggle.textContent = "Fewer workspaces";
+    }
     if (previousView === "folios" && activeView !== "folios") clearFolioState();
     availabilityView.hidden = activeView !== "availability";
     inventoryView.hidden = activeView !== "inventory";
@@ -5465,8 +5490,16 @@
   });
   builderExpertJson.addEventListener("input", renderBuilderCommand);
   themeSelect.addEventListener("change", () => applyTheme(themeSelect.value));
+  experienceSelect.addEventListener("change", () => applyExperience(experienceSelect.value));
+  secondaryWorkspacesToggle.addEventListener("click", () => {
+    secondaryWorkspaces.hidden = !secondaryWorkspaces.hidden;
+    secondaryWorkspacesToggle.setAttribute("aria-expanded", String(!secondaryWorkspaces.hidden));
+    secondaryWorkspacesToggle.textContent = secondaryWorkspaces.hidden ? "More workspaces" : "Fewer workspaces";
+    if (!secondaryWorkspaces.hidden) secondaryWorkspaces.querySelector(".domain-tab")?.focus();
+  });
   signOutButton.addEventListener("click", showLogin);
   applyTheme(themeSelect.value);
+  applyExperience(experienceSelect.value);
   initializeDates();
   addTier(createTierList, 1, "");
   addTier(createTierList, 2, "");
