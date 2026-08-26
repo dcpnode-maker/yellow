@@ -1,6 +1,6 @@
 # Order 186 — Approved correction and four-skin local promotion
 
-**Status:** IN PROGRESS — D-483
+**Status:** IN PROGRESS — D-484
 **Phase:** 5 · founder human testing
 **Branch:** `phase-5/folio-charge-correction-resumed`
 **Base:** `4c3b202` (independently approved Order183 governance over approved Order185)
@@ -56,10 +56,11 @@ merge, push or production deployment is in scope.
    Port3002 stays unbound. Prove health, login, three-property switcher and exact served
    four-theme assets.
 7. Through authenticated HTTP, create one new governed open-day charge and correction
-   in a disposable founder-UAT folio, prove the original is byte-unchanged and the new
-   adjustment exactly negates it. Independently prove the normal operator cannot forge
-   post-seal authority and the approver can correct a specifically prepared sealed-day
-   UAT charge. Preserve all resulting immutable audit/outbox/idempotency evidence.
+   in a founder-UAT folio, prove the original is byte-unchanged and the new adjustment
+   exactly negates it. Prove exact post-seal role grants locally, but do not seal a
+   persistent current business day for demonstration; D-481's independently executed
+   fresh-database denial/approver-success is the authoritative post-seal proof. Preserve
+   all resulting immutable audit/outbox/idempotency evidence.
 8. Independent reviewer verifies the exact image, backup, migration ledger/schema,
    topology, UI assets, authenticated journeys, immutable ledger evidence and rollback
    image. The sole local stays running only after approval.
@@ -69,6 +70,7 @@ merge, push or production deployment is in scope.
 - [ ] Owner-restricted readable backup and retained rollback image are recorded.
 - [ ] Migration0019, exact replay, schema and referee 11/11 pass on the persistent local.
 - [ ] The sole loopback3000 app serves the approved four-skin correction candidate.
-- [ ] Authenticated three-property and open/post-seal correction UAT pass without
+- [ ] Authenticated three-property and open correction UAT plus exact post-seal grants
+      pass without
       mutating original financial history.
 - [ ] Independent non-operating review approves the exact local operation.
