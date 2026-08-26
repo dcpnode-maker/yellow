@@ -1,6 +1,6 @@
 # Order 177 — Today command centre
 
-**Status:** IN PROGRESS
+**Status:** BUILT — INDEPENDENT REVIEW REQUIRED
 **Phase:** 5 · founder-visible operations
 **Branch:** `phase-5/today-command-centre`
 **Base:** `e13b83d` (independently approved Order176)
@@ -58,8 +58,8 @@ or deployment is in scope.
 
 ## Definition of done
 
-- [ ] Today is a truthful, bounded operational command centre over existing reads.
-- [ ] Three lanes fail and paginate independently without stale paint or false totals.
-- [ ] Existing reservation creation, detail and folio journeys remain unchanged.
-- [ ] Complete repository and real-Browser gates pass.
+- [x] Today is a truthful, bounded operational command centre over existing reads.
+- [x] Three lanes fail and paginate independently without stale paint or false totals.
+- [x] Existing reservation creation, detail and folio static/standing journeys remain unchanged.
+- [x] Builder repository gates pass; fresh DB and real-Browser gates remain reviewer-owned.
 - [ ] Independent review approves the immutable candidate.
