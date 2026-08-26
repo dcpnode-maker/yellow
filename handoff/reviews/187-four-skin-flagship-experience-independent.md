@@ -99,3 +99,39 @@ candidate. The browser policy limitation recorded above remains, so desktop/phon
 computed-style, focus, overflow, request-console and runtime-transition acceptance is
 still unclaimed. The corrected product is eligible for a browser-capable independent
 review, not local promotion. The sole local remains untouched.
+
+---
+
+## Guarded same-port browser UAT — D-489
+
+**Conclusion:** NOT-APPROVED / ROLLED-BACK
+
+Two concurrent append-only governance writers assigned D-488 to the static re-review
+and to the guarded-UAT admission. History remains unchanged; D-489 is the unambiguous
+browser verdict for both records.
+
+The coordinator built exact candidate image
+`sha256:d59143d630326817672f8d4a3e3824dd77db8ce78d8347303aaaa367e83c537b`
+from product `dc5d1a1`, retained approved rollback image
+`sha256:d778b9b1515c5b56484197032487c1da23a57573a4aba1c2d11e9aff79af4ab2`,
+and briefly selected the candidate as the sole loopback app under the guarded order.
+This independent browser session had no claimable user tab, and a fresh navigation to
+`http://127.0.0.1:3000/` failed with `ERR_BLOCKED_BY_CLIENT`. The later handed-off tab
+could not establish exact current candidate delivery and was not used as cached
+evidence. No credential was requested, read, typed or transmitted.
+
+Because the mandatory exact-candidate authenticated settled-screenshot and
+recorded-transition matrix did not execute, the candidate is not approved. The
+coordinator restored the rollback image. Independent read-only post-rollback proof
+now confirms exactly three healthy containers; one app on loopback port 3000; port
+3002 unbound; `YELLOW_OPERATOR_WORKBENCH=1`; and HTTP 200 for health, the operator
+document, CSS and JavaScript. The served hashes exactly reproduce D-485:
+
+- HTML `9329466d69ad8ec7126004552c2181eeecffb1dabfce56bd18c0fc936b62234a`;
+- CSS `01679a617bd8bf3a1437249c878444d6532453890ee35c5ad8ad98d62cfc979b`;
+- JavaScript `e191001f69c4e7c1a48b0cbd59095c3663c1219b0f69b2b55ea544d36a76e838`.
+
+PostgreSQL and Valkey remained their original healthy containers. The review did not
+mutate data, schema, credentials, runtime configuration or product files. Order187
+remains static-approved/browser-pending and requires a browser-capable independent
+exact-candidate run before any future retention or promotion.
