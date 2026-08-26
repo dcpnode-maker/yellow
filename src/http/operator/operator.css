@@ -780,7 +780,7 @@ input, select, textarea { min-height: 44px; border-color: #bdcbca; background: #
 }
 @media (prefers-reduced-motion: reduce) { .today-lane-loading span, .reservation-board-loading span, .reservation-detail-loading span, .folio-statement-loading span, .reservation-detail-drawer { animation: none; }
 }
-/* Order 184: material systems */ :root { --font-ui: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; --font-display: var(--font-ui); --material-card: var(--card); --material-card-border: 1px solid var(--line); --material-card-shadow: var(--card-shadow); --material-card-filter: none; --material-control: #ffffff; --material-control-border: 1px solid #bdcbca; --material-control-shadow: none; --material-control-active-shadow: inset 0 2px 5px rgba(15, 35, 38, .16); --material-primary: var(--accent); --material-primary-border: 1px solid var(--accent-strong); --material-primary-shadow: 0 3px 0 var(--accent-strong); --material-nav: var(--nav); --material-nav-border: 1px solid color-mix(in srgb, var(--shell-ink) 14%, transparent); --material-nav-shadow: none; --material-nav-filter: none; --material-hover-lift: translateY(-1px); --material-press: translateY(1px); --material-transition: 180ms cubic-bezier(.2, .8, .2, 1); }
+:root { --font-ui: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; --font-display: var(--font-ui); --material-card: var(--card); --material-card-border: 1px solid var(--line); --material-card-shadow: var(--card-shadow); --material-card-filter: none; --material-control: #ffffff; --material-control-border: 1px solid #bdcbca; --material-control-shadow: none; --material-control-active-shadow: inset 0 2px 5px rgba(15, 35, 38, .16); --material-primary: var(--accent); --material-primary-border: 1px solid var(--accent-strong); --material-primary-shadow: 0 3px 0 var(--accent-strong); --material-nav: var(--nav); --material-nav-border: 1px solid color-mix(in srgb, var(--shell-ink) 14%, transparent); --material-nav-shadow: none; --material-nav-filter: none; --material-hover-lift: translateY(-1px); --material-press: translateY(1px); --material-transition: 180ms cubic-bezier(.2, .8, .2, 1); }
 html, body, button, input, select, textarea { font-family: var(--font-ui); }
 h1, h2, h3, h4, .brand strong { font-family: var(--font-display); }
 .app-bar { border-bottom: var(--material-nav-border); background: var(--material-nav); box-shadow: var(--material-nav-shadow); -webkit-backdrop-filter: var(--material-nav-filter); backdrop-filter: var(--material-nav-filter); }
@@ -916,7 +916,7 @@ to { opacity: 1; transform: none; }
 }
 @media (max-width: 767px) { :root[data-theme="android"] .domain-bar { position: sticky; z-index: var(--plane-nav); top: auto; bottom: 0; padding: .35rem; border-radius: 28px 28px 0 0; }
 :root[data-theme="android"] .domain-nav { grid-template-columns: repeat(4,1fr); }
-:root[data-theme="android"] .domain-tab { flex-direction: column; gap: 2px; padding: 4px; font-size: .72rem; }
+:root[data-theme="android"] .domain-tab { flex: 0 0 auto; min-inline-size: 48px; min-block-size: 48px; flex-direction: column; gap: 2px; padding: 4px; font-size: .72rem; }
 }
 @supports not ((-webkit-backdrop-filter: blur(2px)) or (backdrop-filter: blur(2px))) { :root[data-theme="apple"], :root[data-theme="glass"] { --material-card: #ffffff; --material-card-filter: none; --material-nav-filter: none; }
 :root[data-theme="glass"] { --material-nav: #164c5c; --material-control: #f4fbfc; }

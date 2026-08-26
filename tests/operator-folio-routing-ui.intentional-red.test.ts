@@ -45,6 +45,38 @@ test("Order188 P0/P6: one workbench has roving folio-window tabs and contextual 
   expect(keys).toContain("canonicalFolioPath(propertySelect.value, target.dataset.folioId");
 });
 
+test("Order188 P6/P7: additional windows use an exact reservation identity and never request undefined", () => {
+  const open = functionSource("openAdditionalFolioWindow");
+  expect(open).toContain("const reservationId = folioStatementData.reservationId");
+  expect(open).toContain("if (!canonicalUuid(reservationId))");
+  expect(open).toContain("No reservation.");
+  expect(open).toContain("/reservations/${enc(reservationId)}/folios");
+  expect(open).not.toContain("enc(folioStatementData.reservationId)");
+  expect(script).toContain("folioWindowNew.disabled = !canonicalUuid(statement.reservationId)");
+});
+
+test("Order188 P7: failed property-scoped reads clear every prior folio summary before showing an error", () => {
+  const reset = functionSource("resetFolioPresentation");
+  for (const target of ["folioWindow", "folioStatus", "folioCurrency", "folioBalance", "folioStayTotal",
+    "folioActiveTotal", "folioAccountCurrency"]) expect(reset).toContain(target);
+  for (const target of ["folioStatementTitle", "folioWorkspaceTitle", "folioWindowCount", "folioLineCount"])
+    expect(reset).toContain(`${target}.textContent =`);
+  expect(reset).toContain('target.textContent = "—"');
+  expect(reset).toContain("folioStatementData = null");
+  expect(reset).toContain("folioWindowTabs.replaceChildren()");
+  expect(script.indexOf("resetFolioPresentation();", script.indexOf("async function lookupFolioStatement")))
+    .toBeLessThan(script.indexOf("await request(", script.indexOf("async function lookupFolioStatement")));
+});
+
+test("Order188 P7: create and contextual correction have explicit non-repeating Enter and Space activation", () => {
+  expect(script).toContain('document.addEventListener("keydown", (event) => {');
+  expect(script).toContain('"#folio-window-new,.folio-correct-action"');
+  expect(script).toContain('/^(Enter| )$/.test(event.key)');
+  expect(script).toContain("event.repeat");
+  expect(script).toContain("event.preventDefault()");
+  expect(script).toContain("action.click()");
+});
+
 test("Order188 P0/P6: organize is the canonical whole-group preview then acknowledged commit", () => {
   for (const id of [
     "folio-organize-groups",

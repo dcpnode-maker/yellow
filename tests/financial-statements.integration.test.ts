@@ -9,6 +9,7 @@ import {
 } from "../src/contexts/financials";
 import { Database, type Tx } from "../src/kernel";
 
+const STATEMENT_SOURCE = await Bun.file(new globalThis.URL("../src/contexts/financials/statements.ts", import.meta.url)).text();
 const URL = process.env.YELLOW_FINANCIAL_STATEMENTS_URL;
 if (process.env.YELLOW_REQUIRE_FINANCIAL_STATEMENTS === "1" && !URL) {
   throw new Error("YELLOW_FINANCIAL_STATEMENTS_URL is required by the Order 105 proof");
@@ -25,6 +26,8 @@ const GUEST_A2 = "00000000-0000-0000-0000-000000010524";
 const REVENUE_A2 = "00000000-0000-0000-0000-000000010525";
 const GUEST_B = "00000000-0000-0000-0000-000000010526";
 const REVENUE_B = "00000000-0000-0000-0000-000000010527";
+const PARTY_A = "00000000-0000-0000-0000-000000010528";
+const RESERVATION_A = "00000000-0000-0000-0000-000000010529";
 const FOLIO_A = "00000000-0000-0000-0000-000000010531";
 const EMPTY_FOLIO_A = "00000000-0000-0000-0000-000000010532";
 const OTHER_FOLIO_A = "00000000-0000-0000-0000-000000010533";
@@ -58,7 +61,7 @@ function rewriteCursor(cursor: string, changes: Record<string, unknown>): string
 async function clean(): Promise<void> {
   if (!admin) return;
   for (const table of ["api_idempotency", "outbox", "fact_log", "posting_line", "journal",
-    "tx_code_route", "business_day", "folio", "account", "org_node"]) {
+    "tx_code_route", "business_day", "folio", "account", "reservation", "party", "org_node"]) {
     await admin.unsafe(`DELETE FROM ${table} WHERE tenant_id IN ($1::uuid,$2::uuid)`, [TENANT_A, TENANT_B]);
   }
   await admin`DELETE FROM tenant WHERE id IN (${TENANT_A}::uuid,${TENANT_B}::uuid)`;
@@ -86,13 +89,17 @@ beforeAll(async () => {
     (${REVENUE_A2}::uuid,${TENANT_A}::uuid,${PROPERTY_A2}::uuid,'revenue','Revenue A2','INR','open'),
     (${GUEST_B}::uuid,${TENANT_B}::uuid,${PROPERTY_B}::uuid,'guest','Guest ledger B','INR','open'),
     (${REVENUE_B}::uuid,${TENANT_B}::uuid,${PROPERTY_B}::uuid,'revenue','Revenue B','INR','open')`;
-  await admin`INSERT INTO folio(id,tenant_id,account_id,folio_no,window_no,name,status,created_at) VALUES
-    (${FOLIO_A}::uuid,${TENANT_A}::uuid,${GUEST_A}::uuid,'O105-A',1,'Primary','open','2026-08-20T01:02:03.123456Z'),
-    (${EMPTY_FOLIO_A}::uuid,${TENANT_A}::uuid,${GUEST_A}::uuid,'O105-E',2,NULL,'open','2026-08-20T01:02:03.123457Z'),
-    (${OTHER_FOLIO_A}::uuid,${TENANT_A}::uuid,${GUEST_A}::uuid,'O105-O',3,NULL,'open','2026-08-20T01:02:03.123458Z'),
-    (${STRESS_FOLIO_A}::uuid,${TENANT_A}::uuid,${GUEST_A}::uuid,'O105-S',4,NULL,'open','2026-08-20T01:02:03.123459Z'),
-    (${FOLIO_A2}::uuid,${TENANT_A}::uuid,${GUEST_A2}::uuid,'O105-A2',1,NULL,'open','2026-08-20T01:02:03.123460Z'),
-    (${FOLIO_B}::uuid,${TENANT_B}::uuid,${GUEST_B}::uuid,'O105-B',1,NULL,'open','2026-08-20T01:02:03.123461Z')`;
+  await admin`INSERT INTO party(id,tenant_id,kind,display_name,status) VALUES
+    (${PARTY_A}::uuid,${TENANT_A}::uuid,'org','Statement fixture','active')`;
+  await admin`INSERT INTO reservation(id,tenant_id,property_node,confirmation_no,status,primary_party,channel_code,currency) VALUES
+    (${RESERVATION_A}::uuid,${TENANT_A}::uuid,${PROPERTY_A}::uuid,'O105-RES','reserved',${PARTY_A}::uuid,'direct','INR')`;
+  await admin`INSERT INTO folio(id,tenant_id,account_id,reservation_id,folio_no,window_no,name,status,created_at) VALUES
+    (${FOLIO_A}::uuid,${TENANT_A}::uuid,${GUEST_A}::uuid,${RESERVATION_A}::uuid,'O105-A',1,'Primary','open','2026-08-20T01:02:03.123456Z'),
+    (${EMPTY_FOLIO_A}::uuid,${TENANT_A}::uuid,${GUEST_A}::uuid,${RESERVATION_A}::uuid,'O105-E',2,NULL,'open','2026-08-20T01:02:03.123457Z'),
+    (${OTHER_FOLIO_A}::uuid,${TENANT_A}::uuid,${GUEST_A}::uuid,${RESERVATION_A}::uuid,'O105-O',3,NULL,'open','2026-08-20T01:02:03.123458Z'),
+    (${STRESS_FOLIO_A}::uuid,${TENANT_A}::uuid,${GUEST_A}::uuid,${RESERVATION_A}::uuid,'O105-S',4,NULL,'open','2026-08-20T01:02:03.123459Z'),
+    (${FOLIO_A2}::uuid,${TENANT_A}::uuid,${GUEST_A2}::uuid,NULL,'O105-A2',1,NULL,'open','2026-08-20T01:02:03.123460Z'),
+    (${FOLIO_B}::uuid,${TENANT_B}::uuid,${GUEST_B}::uuid,NULL,'O105-B',1,NULL,'open','2026-08-20T01:02:03.123461Z')`;
   await admin`INSERT INTO tx_code(code,name,grp,usali_line,default_dr,default_cr) VALUES
     ('SROOM','Statement room','revenue','Rooms','guest','revenue'),
     ('SCLOSED','Closed route','revenue','Other operated','guest','revenue'),
@@ -129,6 +136,12 @@ afterAll(async () => { await clean(); await database?.close(); await admin?.clos
 
 describe("Order 105 folio statement snapshot", () => {
   test("P0: the financial context exposes the statement service", () => expect(typeof FolioStatementService).toBe("function"));
+  test("P0/P4: reservation identity is a nullable top-level projection with no reservation or party join", () => {
+    expect(STATEMENT_SOURCE).toContain("readonly reservationId: string | null;");
+    expect(STATEMENT_SOURCE).toContain("resolved.reservation_id,");
+    expect(STATEMENT_SOURCE).toContain("reservationId: snapshot.reservation_id,");
+    expect(STATEMENT_SOURCE).not.toMatch(/JOIN\s+(?:reservation|party)\b/i);
+  });
   test("P0/P4: strict malformed input and cursor fail before SQL", async () => {
     let calls = 0;
     const noSql = (() => { calls += 1; return Promise.resolve([]); }) as unknown as Tx;
@@ -146,6 +159,7 @@ describe("Order 105 folio statement snapshot", () => {
 dbDescribe("Order 105 fresh-PostgreSQL statement proof", () => {
   test("P1: empty statement is exact, safe and currently chargeable", async () => {
     expect(await get(input({ reference: EMPTY_FOLIO_A }))).toEqual({
+      reservationId: RESERVATION_A,
       folio: { id: EMPTY_FOLIO_A, reference: "O105-E", name: null, windowNo: 2, status: "open",
         currency: "INR", createdAt: "2026-08-20T01:02:03.123457Z" },
       siblingWindows: [
@@ -160,6 +174,16 @@ dbDescribe("Order 105 fresh-PostgreSQL statement proof", () => {
       chargeOptions: [{ code: "SROOM", name: "Statement room", usaliLine: "Rooms" }],
       chargeAvailability: { allowed: true, reason: null }, nextCursor: null,
     });
+  });
+
+  test("P1/P4: reservation identity is exact and a non-reservation folio stays nullable without PII", async () => {
+    const bound = await get();
+    expect(bound.reservationId).toBe(RESERVATION_A);
+    expect(JSON.stringify(bound)).not.toContain("Statement fixture");
+
+    const unbound = await get(input({ propertyNode: PROPERTY_A2, reference: "O105-A2" }));
+    expect(unbound.reservationId).toBeNull();
+    expect(JSON.stringify(unbound)).not.toMatch(/primaryParty|displayName|contact|email|phone/i);
   });
 
   test("P1: mixed signs, huge exact values, microseconds and full-ledger running balance", async () => {

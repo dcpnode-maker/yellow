@@ -85,6 +85,20 @@ test("Order185: signature materials are structural and accessibility fallbacks a
   expect(css).toContain("min-height: 44px");
 });
 
+test("Order188: narrow Android domain tabs retain exact 48px targets in local scroll", async () => {
+  const css = await Bun.file(cssFile).text();
+  const narrowStart = css.lastIndexOf("@media (max-width: 767px)");
+  const narrowEnd = css.indexOf("@supports not", narrowStart);
+  expect(narrowStart).toBeGreaterThanOrEqual(0);
+  expect(narrowEnd).toBeGreaterThan(narrowStart);
+  const narrowAndroid = css.slice(narrowStart, narrowEnd);
+  const tabRule = narrowAndroid.match(/:root\[data-theme="android"\] \.domain-tab \{([^}]*)\}/)?.[1] ?? "";
+  expect(tabRule).toMatch(/(?:^|;)\s*flex:\s*0 0 auto\s*;/);
+  expect(tabRule).toMatch(/(?:^|;)\s*min-inline-size:\s*48px\s*;/);
+  expect(tabRule).toMatch(/(?:^|;)\s*min-block-size:\s*48px\s*;/);
+  expect(css).toMatch(/:root\[data-theme="android"\] \.domain-nav \{[^}]*overflow-x:\s*auto\s*;/);
+});
+
 test("Order185: welcome text and classic focus remain visibly accessible", async () => {
   const css = await Bun.file(cssFile).text();
   for (const theme of themes) {

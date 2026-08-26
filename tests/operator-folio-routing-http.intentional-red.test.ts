@@ -86,6 +86,7 @@ test("Order188 P0/P6: canonical routing input carries identities and revision bu
 
 test("Order188 P0/P6: workspace DTO exposes only safe sibling windows and server-owned groups", () => {
   const result = interfaceSource("FolioStatementResult");
+  expect(result).toContain("readonly reservationId: string | null;");
   expect(result).toContain("readonly siblingWindows: readonly FolioSiblingWindow[];");
   expect(result).toContain("readonly stayTotalMinor: string;");
 

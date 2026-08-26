@@ -85,6 +85,7 @@
  const $ = document.querySelector.bind(document);
  const el = document.createElement.bind(document);
  const enc = encodeURIComponent;
+ const canonicalUuid = (value) => /^[\da-f]{8}(?:-[\da-f]{4}){3}-[\da-f]{12}$/.test(value);
   function node(tag, className, text) {
  const created = el(tag);
  if (className) created.className = className;
@@ -3109,11 +3110,17 @@
  folioStatement.hidden = true;
  folioStatementRows.replaceChildren();
  folioStatementCards.replaceChildren();
+ folioStatementTitle.textContent = "Folio";
+ folioWorkspaceTitle.textContent = "Folio workspace";
+ for (const target of [folioWindow, folioStatus, folioCurrency, folioBalance, folioStayTotal,
+  folioActiveTotal, folioAccountCurrency]) target.textContent = "—";
+ folioWindowCount.textContent = "0";
+ folioLineCount.textContent = "0";
  folioLoadOlder.hidden = true;
  folioLoadOlder.disabled = false;
  folioPageStatus.textContent = "";
  folioChargeCode.replaceChildren();
- folioChargeAvailability.textContent = "Charge availability comes from current server truth.";
+ folioChargeAvailability.textContent = "Current server charge availability.";
  folioChargeFields.disabled = true;
  folioChargeForm.reset();
  folioChargeAttemptKey = "";
@@ -3126,6 +3133,7 @@
  folioCorrectionReturnFocus = null;
  folioWindowNewForm.reset();
  folioWindowNewForm.hidden = true;
+ folioWindowNew.disabled = true;
  folioWindowAttemptKey = "";
  folioWindowDraft = "";
  folioOrganizeForm.reset();
@@ -3320,6 +3328,12 @@
  }
   async function openAdditionalFolioWindow() {
  if (!folioStatementData) return;
+ const reservationId = folioStatementData.reservationId;
+ if (!canonicalUuid(reservationId)) {
+  formMessage(folioWindowNewForm, "No reservation.", true);
+  folioWindowNewForm.elements.name.focus();
+  return;
+ }
  const name = folioWindowNewForm.elements.name.value.trim();
  const body = { sourceFolioId: folioStatementData.folio.id, name };
  const draft = JSON.stringify(body);
@@ -3328,7 +3342,6 @@
   folioWindowAttemptKey = crypto.randomUUID();
  }
  const generation = folioGeneration, property = propertySelect.value, identity = folioIdentity;
- const reservationId = folioStatementData.reservationId;
  try {
   const opened = await request(`/api/v1/properties/${enc(property)}/reservations/${enc(reservationId)}/folios`, {
   method: "POST", headers: { "idempotency-key": folioWindowAttemptKey }, body: JSON.stringify(body),
@@ -3578,6 +3591,7 @@
  folioAccountCurrency.textContent = statement.folio.currency;
  const windows = folioWindows(statement);
  folioWindowCount.textContent = String(windows.length);
+ folioWindowNew.disabled = !canonicalUuid(statement.reservationId);
  renderFolioWindowTabs(windows, statement.folio.id);
  renderFolioTransferGroups(statement.rows);
  folioLineCount.textContent = String(statement.lineCount);
@@ -3585,8 +3599,8 @@
  renderFolioChargeOptions(statement.chargeOptions, statement.chargeAvailability);
  folioLoadOlder.hidden = statement.nextCursor === null;
  folioPageStatus.textContent = statement.nextCursor === null
-  ? `This page is complete. The folio contains ${String(statement.lineCount)} immutable line${statement.lineCount === 1 ? "" : "s"}.`
-  : "An older bounded statement page is available from the server.";
+  ? `All ${String(statement.lineCount)} immutable line${statement.lineCount === 1 ? "" : "s"} loaded.`
+  : "Older postings available.";
  folioStatementLoading.hidden = true;
  folioStatementError.hidden = true;
  folioStatement.hidden = false;
@@ -5322,6 +5336,12 @@
  syncReservationRoute();
  });
  document.addEventListener("keydown", (event) => {
+ const action = event.target.closest?.("#folio-window-new,.folio-correct-action");
+ if (activeView === "folios" && action && !event.repeat && /^(Enter| )$/.test(event.key) && !action.disabled) {
+  event.preventDefault();
+  action.click();
+  return;
+ }
  if (activeView === "folios" && event.key === "Escape" && !folioWorkspace.hidden) {
   event.preventDefault();
   folioWorkspaceBack.click();

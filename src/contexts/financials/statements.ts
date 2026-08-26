@@ -77,6 +77,7 @@ export interface FolioChargeAvailability {
 }
 
 export interface FolioStatementResult {
+  readonly reservationId: string | null;
   readonly folio: FolioStatementMetadata;
   readonly siblingWindows: readonly FolioSiblingWindow[];
   readonly balanceMinor: string;
@@ -100,6 +101,7 @@ interface StatementCursor {
 }
 
 interface StatementSnapshotRow {
+  readonly reservation_id: string | null;
   readonly folio_id: string;
   readonly folio_reference: string | null;
   readonly folio_name: string | null;
@@ -618,6 +620,7 @@ export class FolioStatementService {
           ON balance.tenant_id = sibling.tenant_id AND balance.folio_id = sibling.id
       )
       SELECT
+        resolved.reservation_id,
         resolved.id AS folio_id,
         resolved.folio_no AS folio_reference,
         resolved.name AS folio_name,
@@ -711,6 +714,7 @@ export class FolioStatementService {
     }
 
     return Object.freeze({
+      reservationId: snapshot.reservation_id,
       folio: Object.freeze({
         id: snapshot.folio_id,
         reference: snapshot.folio_reference,
