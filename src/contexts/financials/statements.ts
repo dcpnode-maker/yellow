@@ -288,10 +288,9 @@ export class FolioStatementService {
             WHEN (current_day.sealed_at IS NOT NULL OR original_day.sealed_at IS NOT NULL)
               AND NOT ${normalized.canPostSealAdjustment} THEN false
             WHEN header.kind <> 'charge' OR header.reverses IS NOT NULL
-              OR header.source->>'interface' <> 'financials.charge.post' THEN false
+              OR header.source <> '{"interface":"financials.charge.post"}'::jsonb THEN false
             WHEN reversed_by.id IS NOT NULL THEN false
-            WHEN shape.line_count < 2 OR shape.total_minor <> 0 OR shape.folio_line_count <> 1
-              OR NOT shape.tax_free OR NOT shape.folio_coherent THEN false
+            WHEN NOT shape.canonical_pair THEN false
             ELSE true
           END AS correction_eligible,
           CASE
@@ -303,10 +302,9 @@ export class FolioStatementService {
               AND NOT ${normalized.canPostSealAdjustment}
               THEN 'post_seal_not_authorized'
             WHEN header.kind <> 'charge' OR header.reverses IS NOT NULL
-              OR header.source->>'interface' <> 'financials.charge.post' THEN 'not_original_charge'
+              OR header.source <> '{"interface":"financials.charge.post"}'::jsonb THEN 'not_original_charge'
             WHEN reversed_by.id IS NOT NULL THEN 'already_corrected'
-            WHEN shape.line_count < 2 OR shape.total_minor <> 0 OR shape.folio_line_count <> 1
-              OR NOT shape.tax_free OR NOT shape.folio_coherent THEN 'inconsistent_posting_set'
+            WHEN NOT shape.canonical_pair THEN 'inconsistent_posting_set'
             ELSE NULL
           END AS correction_reason
         FROM resolved
@@ -324,6 +322,8 @@ export class FolioStatementService {
         LEFT JOIN journal AS reversed_by
           ON reversed_by.tenant_id = header.tenant_id
          AND reversed_by.reverses = header.id
+         AND reversed_by.property_node = header.property_node
+         AND reversed_by.currency = header.currency
         LEFT JOIN business_day AS current_day
           ON current_day.tenant_id = ${normalized.tenantId}::uuid
          AND current_day.tenant_id = current_setting('app.tenant_id', true)::uuid
@@ -335,13 +335,46 @@ export class FolioStatementService {
          AND original_day.property_node = resolved.property_node
          AND original_day.business_date = header.business_date
         JOIN LATERAL (
-          SELECT count(*)::int AS line_count,
-                 COALESCE(sum(original.amount_minor), 0)::bigint AS total_minor,
-                 count(*) FILTER (
-                   WHERE original.folio_id = resolved.id AND original.account_id = resolved.account_id
-                 )::int AS folio_line_count,
-                 bool_and(original.tax_detail IS NULL) AS tax_free,
-                 bool_and(original.folio_id IS NULL OR original.folio_id = resolved.id) AS folio_coherent
+          SELECT
+            count(*) = 2
+            AND EXISTS (
+              SELECT 1
+                FROM posting_line AS guest_line
+                JOIN account AS guest_account
+                  ON guest_account.tenant_id = guest_line.tenant_id
+                 AND guest_account.id = guest_line.account_id
+                JOIN posting_line AS revenue_line
+                  ON revenue_line.tenant_id = guest_line.tenant_id
+                 AND revenue_line.journal_id = guest_line.journal_id
+                 AND revenue_line.seq = 2
+                JOIN account AS revenue_account
+                  ON revenue_account.tenant_id = revenue_line.tenant_id
+                 AND revenue_account.id = revenue_line.account_id
+               WHERE guest_line.tenant_id = header.tenant_id
+                 AND guest_line.journal_id = header.id
+                 AND guest_line.seq = 1
+                 AND guest_line.account_id = resolved.account_id
+                 AND guest_line.folio_id = resolved.id
+                 AND guest_account.role = 'guest'
+                 AND guest_account.property_node = resolved.property_node
+                 AND guest_account.currency = resolved.currency::char(3)
+                 AND guest_line.amount_minor > 0
+                 AND revenue_line.account_id <> guest_line.account_id
+                 AND revenue_line.folio_id IS NULL
+                 AND revenue_account.role = 'revenue'
+                 AND revenue_account.property_node = resolved.property_node
+                 AND revenue_account.currency = resolved.currency::char(3)
+                 AND revenue_line.amount_minor = -guest_line.amount_minor
+                 AND revenue_line.tx_code = guest_line.tx_code
+                 AND revenue_line.quantity = guest_line.quantity
+                 AND revenue_line.description = guest_line.description
+                 AND guest_line.business_date = header.business_date
+                 AND revenue_line.business_date = header.business_date
+                 AND guest_line.currency = header.currency
+                 AND revenue_line.currency = header.currency
+                 AND guest_line.tax_detail IS NULL
+                 AND revenue_line.tax_detail IS NULL
+            ) AS canonical_pair
             FROM posting_line AS original
            WHERE original.tenant_id = header.tenant_id
              AND original.journal_id = header.id

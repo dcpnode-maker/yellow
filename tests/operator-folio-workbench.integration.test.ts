@@ -296,9 +296,11 @@ const HTTP_PROPERTY_B = "00000000-0000-0000-0000-000000010524";
 const HTTP_READ_USER = "00000000-0000-0000-0000-000000010531";
 const HTTP_WRITE_USER = "00000000-0000-0000-0000-000000010532";
 const HTTP_FOREIGN_USER = "00000000-0000-0000-0000-000000010533";
+const HTTP_APPROVER_USER = "00000000-0000-0000-0000-000000010534";
 const HTTP_READ_ROLE = "00000000-0000-0000-0000-000000010541";
 const HTTP_WRITE_ROLE = "00000000-0000-0000-0000-000000010542";
 const HTTP_FOREIGN_ROLE = "00000000-0000-0000-0000-000000010543";
+const HTTP_APPROVER_ROLE = "00000000-0000-0000-0000-000000010544";
 const HTTP_GUEST_A = "00000000-0000-0000-0000-000000010551";
 const HTTP_GUEST_CHILD = "00000000-0000-0000-0000-000000010552";
 const HTTP_GUEST_B = "00000000-0000-0000-0000-000000010553";
@@ -318,6 +320,7 @@ let folioHttpApp: ReturnType<typeof createApp> | undefined;
 let folioBusinessDate = "";
 let readToken = "";
 let writeToken = "";
+let approverToken = "";
 
 async function cleanFolioHttpFixture(): Promise<void> {
   if (!folioAdmin) return;
@@ -330,9 +333,9 @@ async function cleanFolioHttpFixture(): Promise<void> {
   }
   await folioAdmin`DELETE FROM user_role WHERE tenant_id IN (${HTTP_TENANT_A}::uuid,${HTTP_TENANT_B}::uuid)`;
   await folioAdmin`DELETE FROM role_permission WHERE role_id IN
-    (${HTTP_READ_ROLE}::uuid,${HTTP_WRITE_ROLE}::uuid,${HTTP_FOREIGN_ROLE}::uuid)`;
+    (${HTTP_READ_ROLE}::uuid,${HTTP_WRITE_ROLE}::uuid,${HTTP_FOREIGN_ROLE}::uuid,${HTTP_APPROVER_ROLE}::uuid)`;
   await folioAdmin`DELETE FROM role WHERE id IN
-    (${HTTP_READ_ROLE}::uuid,${HTTP_WRITE_ROLE}::uuid,${HTTP_FOREIGN_ROLE}::uuid)`;
+    (${HTTP_READ_ROLE}::uuid,${HTTP_WRITE_ROLE}::uuid,${HTTP_FOREIGN_ROLE}::uuid,${HTTP_APPROVER_ROLE}::uuid)`;
   await folioAdmin`DELETE FROM app_user WHERE tenant_id IN (${HTTP_TENANT_A}::uuid,${HTTP_TENANT_B}::uuid)`;
   await folioAdmin`DELETE FROM org_node WHERE tenant_id IN (${HTTP_TENANT_A}::uuid,${HTTP_TENANT_B}::uuid)`;
   await folioAdmin`DELETE FROM tenant WHERE id IN (${HTTP_TENANT_A}::uuid,${HTTP_TENANT_B}::uuid)`;
@@ -400,23 +403,31 @@ beforeAll(async () => {
   await folioAdmin`INSERT INTO app_user(id,tenant_id,email,display_name,auth,status) VALUES
     (${HTTP_READ_USER}::uuid,${HTTP_TENANT_A}::uuid,'read@order105.test','Order 105 reader',${JSON.stringify(auth)}::text::jsonb,'active'),
     (${HTTP_WRITE_USER}::uuid,${HTTP_TENANT_A}::uuid,'write@order105.test','Order 105 writer',${JSON.stringify(auth)}::text::jsonb,'active'),
-    (${HTTP_FOREIGN_USER}::uuid,${HTTP_TENANT_B}::uuid,'foreign@order105.test','Order 105 foreign',${JSON.stringify(auth)}::text::jsonb,'active')`;
+    (${HTTP_FOREIGN_USER}::uuid,${HTTP_TENANT_B}::uuid,'foreign@order105.test','Order 105 foreign',${JSON.stringify(auth)}::text::jsonb,'active'),
+    (${HTTP_APPROVER_USER}::uuid,${HTTP_TENANT_A}::uuid,'approver@order105.test','Order 105 approver',${JSON.stringify(auth)}::text::jsonb,'active')`;
   await folioAdmin`INSERT INTO permission(code,description) VALUES
     ('financials.folios:read','Read property folio statements'),
-    ('financials.charges:write','Post governed charges to property folios')
+    ('financials.charges:write','Post governed charges to property folios'),
+    ('financials.adjustments:write','Correct governed folio charges'),
+    ('financials.adjustments:post-seal','Correct charges after business-day seal')
     ON CONFLICT (code) DO NOTHING`;
   await folioAdmin`INSERT INTO role(id,tenant_id,name) VALUES
     (${HTTP_READ_ROLE}::uuid,${HTTP_TENANT_A}::uuid,'Order 105 exact reader'),
     (${HTTP_WRITE_ROLE}::uuid,${HTTP_TENANT_A}::uuid,'Order 105 ancestor writer'),
-    (${HTTP_FOREIGN_ROLE}::uuid,${HTTP_TENANT_B}::uuid,'Order 105 foreign reader')`;
+    (${HTTP_FOREIGN_ROLE}::uuid,${HTTP_TENANT_B}::uuid,'Order 105 foreign reader'),
+    (${HTTP_APPROVER_ROLE}::uuid,${HTTP_TENANT_A}::uuid,'Order 105 post-seal approver')`;
   await folioAdmin`INSERT INTO role_permission(role_id,permission_code) VALUES
     (${HTTP_READ_ROLE}::uuid,'financials.folios:read'),
     (${HTTP_WRITE_ROLE}::uuid,'financials.charges:write'),
-    (${HTTP_FOREIGN_ROLE}::uuid,'financials.folios:read')`;
+    (${HTTP_WRITE_ROLE}::uuid,'financials.adjustments:write'),
+    (${HTTP_FOREIGN_ROLE}::uuid,'financials.folios:read'),
+    (${HTTP_APPROVER_ROLE}::uuid,'financials.adjustments:write'),
+    (${HTTP_APPROVER_ROLE}::uuid,'financials.adjustments:post-seal')`;
   await folioAdmin`INSERT INTO user_role(tenant_id,user_id,role_id,scope_node) VALUES
     (${HTTP_TENANT_A}::uuid,${HTTP_READ_USER}::uuid,${HTTP_READ_ROLE}::uuid,${HTTP_PROPERTY_A}::uuid),
     (${HTTP_TENANT_A}::uuid,${HTTP_WRITE_USER}::uuid,${HTTP_WRITE_ROLE}::uuid,${HTTP_GROUP_A}::uuid),
-    (${HTTP_TENANT_B}::uuid,${HTTP_FOREIGN_USER}::uuid,${HTTP_FOREIGN_ROLE}::uuid,${HTTP_PROPERTY_B}::uuid)`;
+    (${HTTP_TENANT_B}::uuid,${HTTP_FOREIGN_USER}::uuid,${HTTP_FOREIGN_ROLE}::uuid,${HTTP_PROPERTY_B}::uuid),
+    (${HTTP_TENANT_A}::uuid,${HTTP_APPROVER_USER}::uuid,${HTTP_APPROVER_ROLE}::uuid,${HTTP_PROPERTY_A}::uuid)`;
   await folioAdmin`INSERT INTO account(id,tenant_id,property_node,role,name,currency,status) VALUES
     (${HTTP_GUEST_A}::uuid,${HTTP_TENANT_A}::uuid,${HTTP_PROPERTY_A}::uuid,'guest','Order 105 exact guest','USD','open'),
     (${HTTP_GUEST_CHILD}::uuid,${HTTP_TENANT_A}::uuid,${HTTP_PROPERTY_CHILD}::uuid,'guest','Order 105 child guest','USD','open'),
@@ -458,6 +469,7 @@ beforeAll(async () => {
   });
   readToken = await folioLogin("read@order105.test");
   writeToken = await folioLogin("write@order105.test");
+  approverToken = await folioLogin("approver@order105.test");
 }, 60_000);
 
 afterAll(async () => {
@@ -591,5 +603,74 @@ folioHttpDescribe("Order 105 real authenticated folio HTTP proof", () => {
     expect(changed.status).toBe(409);
     expect((await changed.json() as { type: string }).type).toBe("request/idempotency_conflict");
     expect(await folioArtifacts()).toEqual({ journals: 1, lines: 2, facts: 1, events: 1, keys: 1 });
+  }, 30_000);
+
+  test("Order 183 real HTTP correction honors open-day and post-seal authority", async () => {
+    const charge = await folioHttpRequest(
+      `/api/v1/properties/${HTTP_PROPERTY_A}/folios/${HTTP_FOLIO_A}/charges`, {
+        method: "POST", headers: folioAuth(writeToken, "order183-http-original"),
+        body: JSON.stringify({ txCode: HTTP_TX_CODE, amountMinor: "700", quantity: "1.000" }),
+      });
+    expect(charge.status).toBe(201);
+    const original = await charge.json() as { journalId: string };
+    const adjustmentPath = `/api/v1/properties/${HTTP_PROPERTY_A}/folios/${HTTP_FOLIO_A}/adjustments`;
+    const post = (token: string, key: string, body: Record<string, unknown>, extra: Record<string, string> = {}) =>
+      folioHttpRequest(adjustmentPath, {
+        method: "POST", headers: { ...folioAuth(token, key), ...extra }, body: JSON.stringify(body),
+      });
+    const corrected = await post(writeToken, "order183-http-correction", {
+      reversesJournalId: original.journalId, reason: "Corrected room charge",
+    });
+    expect(corrected.status).toBe(201);
+    const correctedBody = await corrected.json() as { journalId: string; reversesJournalId: string; amountMinor: string; replayed: boolean };
+    expect(correctedBody).toMatchObject({ reversesJournalId: original.journalId, amountMinor: "-700", replayed: false });
+    expect(corrected.headers.get("idempotency-replayed")).toBe("false");
+    const exactReplay = await post(writeToken, "order183-http-correction", {
+      reversesJournalId: original.journalId, reason: "Corrected room charge",
+    });
+    expect(exactReplay.status).toBe(201);
+    expect(exactReplay.headers.get("idempotency-replayed")).toBe("true");
+    expect(await exactReplay.json()).toEqual({ ...correctedBody, replayed: true });
+    const changed = await post(writeToken, "order183-http-correction", {
+      reversesJournalId: original.journalId, reason: "Changed reason",
+    });
+    expect(changed.status).toBe(409);
+    expect((await changed.json() as { type: string }).type).toBe("request/idempotency_conflict");
+
+    const sealedCharge = await folioHttpRequest(
+      `/api/v1/properties/${HTTP_PROPERTY_A}/folios/${HTTP_FOLIO_A}/charges`, {
+        method: "POST", headers: folioAuth(writeToken, "order183-http-sealed-original"),
+        body: JSON.stringify({ txCode: HTTP_TX_CODE, amountMinor: "99", quantity: "1.000" }),
+      });
+    expect(sealedCharge.status).toBe(201);
+    const sealedOriginal = await sealedCharge.json() as { journalId: string };
+    await folioAdmin!`UPDATE business_day SET sealed_at=now(),sealed_by=${HTTP_WRITE_USER}::uuid
+      WHERE tenant_id=${HTTP_TENANT_A}::uuid AND property_node=${HTTP_PROPERTY_A}::uuid AND business_date=${folioBusinessDate}::date`;
+    const beforeForged = (await folioAdmin!<Array<{ n: number }>>`
+      SELECT count(*)::int n FROM journal WHERE tenant_id=${HTTP_TENANT_A}::uuid`)[0]!.n;
+    const forgedBody = await post(writeToken, "order183-http-sealed-forged-body", {
+      reversesJournalId: sealedOriginal.journalId, reason: "Forged authority", postSealAuthorized: true,
+    });
+    expect(forgedBody.status).toBe(400);
+    expect((await forgedBody.json() as { type: string }).type).toBe("request/invalid");
+    const forgedHeader = await post(writeToken, "order183-http-sealed-forged-header", {
+      reversesJournalId: sealedOriginal.journalId, reason: "Forged authority",
+    }, { "x-post-seal-authorized": "true" });
+    expect(forgedHeader.status).toBe(403);
+    expect((await forgedHeader.json() as { type: string }).type).toBe("auth/scope_missing");
+    expect((await folioAdmin!<Array<{ n: number }>>`
+      SELECT count(*)::int n FROM journal WHERE tenant_id=${HTTP_TENANT_A}::uuid`)[0]!.n).toBe(beforeForged);
+    const authorized = await post(approverToken, "order183-http-sealed-authorized", {
+      reversesJournalId: sealedOriginal.journalId, reason: "Authorized sealed correction",
+    });
+    expect(authorized.status).toBe(201);
+    expect((await authorized.json() as { amountMinor: string }).amountMinor).toBe("-99");
+    const counts = await folioAdmin!<Array<{ journals: number; lines: number; facts: number; events: number; correctionKeys: number }>>`
+      SELECT (SELECT count(*)::int FROM journal WHERE tenant_id=${HTTP_TENANT_A}::uuid) journals,
+        (SELECT count(*)::int FROM posting_line WHERE tenant_id=${HTTP_TENANT_A}::uuid) lines,
+        (SELECT count(*)::int FROM fact_log WHERE tenant_id=${HTTP_TENANT_A}::uuid AND fact_type='journal.posted') facts,
+        (SELECT count(*)::int FROM outbox WHERE tenant_id=${HTTP_TENANT_A}::uuid AND event_type='journal.posted') events,
+        (SELECT count(*)::int FROM api_idempotency WHERE tenant_id=${HTTP_TENANT_A}::uuid AND operation='financials.charge.reverse') correctionKeys`;
+    expect(counts[0]!.correctionKeys).toBe(2);
   }, 30_000);
 });

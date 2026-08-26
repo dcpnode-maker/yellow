@@ -164,6 +164,7 @@ dbDescribe("Order 108 SECURITY DEFINER shadow-path containment", () => {
            'record_occupancy', 'release_occupancy', 'expire_holds',
            'prune_outbox', 'assert_day_open', 'seal_business_day', 'lock_financial_rows',
            'lock_financial_business_days',
+           'create_charge_correction_header',
            'register_extension_type'
          ]::name[])
        ORDER BY signature
@@ -174,6 +175,8 @@ dbDescribe("Order 108 SECURITY DEFINER shadow-path containment", () => {
     }))).toEqual([
       { signature: "assert_day_open()", securityDefiner: true,
         config: ["search_path=pg_catalog, public, pg_temp"], appExecute: false, publicDenied: true },
+      { signature: "create_charge_correction_header(uuid,uuid,uuid,character,text,uuid)", securityDefiner: true,
+        config: ["search_path=pg_catalog, public, pg_temp"], appExecute: true, publicDenied: true },
       { signature: "expire_holds()", securityDefiner: true,
         config: ["search_path=pg_catalog, public, pg_temp"], appExecute: false, publicDenied: true },
       { signature: "lock_financial_business_days(uuid,uuid,date[])", securityDefiner: true,
@@ -194,6 +197,8 @@ dbDescribe("Order 108 SECURITY DEFINER shadow-path containment", () => {
 
     const expectedQualifiedObjects = new Map<string, readonly string[]>([
       ["assert_day_open()", ["public.business_day"]],
+      ["create_charge_correction_header(uuid,uuid,uuid,character,text,uuid)",
+        ["public.org_node", "public.app_user", "public.journal"]],
       ["expire_holds()", ["public.hold", "public.release_occupancy"]],
       ["lock_financial_rows(uuid,uuid[],uuid)", ["public.account", "public.folio"]],
       ["lock_financial_business_days(uuid,uuid,date[])", ["public.business_day"]],
@@ -210,6 +215,19 @@ dbDescribe("Order 108 SECURITY DEFINER shadow-path containment", () => {
         expect(definition.source).toContain(object);
       }
     }
+
+    const headerAuthority = await admin!<Array<{
+      owner: string; runtimeExecute: boolean; volatility: string;
+    }>>`
+      SELECT pg_get_userbyid(p.proowner) AS owner,
+             has_function_privilege('yellow_runtime',p.oid,'EXECUTE') AS "runtimeExecute",
+             p.provolatile::text AS volatility
+        FROM pg_proc p
+       WHERE p.oid = 'public.create_charge_correction_header(uuid,uuid,uuid,character,text,uuid)'::regprocedure
+    `;
+    expect(headerAuthority).toEqual([{
+      owner: "yellow_owner", runtimeExecute: false, volatility: "v",
+    }]);
 
     const connection = await admin!.reserve();
     let began = false;

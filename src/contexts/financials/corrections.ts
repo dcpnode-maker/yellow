@@ -9,6 +9,7 @@ import {
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 const IDEMPOTENCY_KEY = /^[\x21-\x7e]{8,200}$/;
+const INVISIBLE_REASON = /[\u200b-\u200d\u202a-\u202e\u2060\u2066-\u2069\ufeff]/u;
 const MAX_REASON_LENGTH = 500;
 
 export interface ReverseChargeInput {
@@ -171,7 +172,8 @@ function normalize(input: ReverseChargeInput): NormalizedCorrection {
     throw new ChargeCorrectionValidationError("audit operation must be journal.posted");
   }
   if (typeof input.reason !== "string" || input.reason.length < 1 || input.reason.length > MAX_REASON_LENGTH ||
-      input.reason.trim() !== input.reason || /[\u0000-\u001f\u007f]/.test(input.reason)) {
+      input.reason.trim() !== input.reason || /[\u0000-\u001f\u007f]/.test(input.reason) ||
+      INVISIBLE_REASON.test(input.reason)) {
     throw new ChargeCorrectionValidationError("reason must be trimmed visible text of 1 to 500 characters");
   }
   if (typeof input.postSealAuthorized !== "boolean") {
@@ -299,6 +301,33 @@ export class ChargeCorrectionService {
             ${normalized.folioId}::uuid
           )
         `;
+        const lockedFolio = (await commandTx<FolioContextRow[]>`
+          SELECT folio.id AS folio_id, folio.status AS folio_status,
+                 account.id AS account_id, account.status AS account_status,
+                 account.role AS account_role, account.property_node,
+                 account.currency::text,
+                 (transaction_timestamp() AT TIME ZONE property.timezone)::date::text AS business_date,
+                 day.sealed_at
+            FROM folio
+            JOIN account ON account.tenant_id = folio.tenant_id AND account.id = folio.account_id
+            JOIN org_node AS property ON property.tenant_id = account.tenant_id
+             AND property.id = account.property_node AND property.kind = 'property'
+            LEFT JOIN business_day AS day ON day.tenant_id = folio.tenant_id
+             AND day.property_node = property.id
+             AND day.business_date = (transaction_timestamp() AT TIME ZONE property.timezone)::date
+           WHERE folio.tenant_id = ${normalized.tenantId}::uuid
+             AND folio.tenant_id = current_setting('app.tenant_id', true)::uuid
+             AND folio.id = ${normalized.folioId}::uuid
+        `)[0];
+        if (!lockedFolio || lockedFolio.property_node !== normalized.envelope.propertyNode) {
+          throw new ChargeCorrectionNotFoundError("Folio was not found in the audit property after lock acquisition");
+        }
+        if (lockedFolio.folio_status !== "open" || lockedFolio.account_status !== "open" ||
+            lockedFolio.account_role !== "guest" || lockedFolio.account_id !== folio.account_id ||
+            lockedFolio.property_node !== folio.property_node || lockedFolio.currency !== folio.currency ||
+            !accountIds.includes(lockedFolio.account_id)) {
+          throw new ChargeCorrectionConflictError("Locked folio financial ownership is inconsistent or frozen");
+        }
         await commandTx`
           SELECT pg_catalog.pg_advisory_xact_lock(
             pg_catalog.hashtextextended(
@@ -317,8 +346,8 @@ export class ChargeCorrectionService {
              AND header.tenant_id = current_setting('app.tenant_id', true)::uuid
              AND header.id = ${normalized.reversesJournalId}::uuid
         `)[0];
-        if (!lockedOriginal || lockedOriginal.property_node !== folio.property_node ||
-            lockedOriginal.currency !== folio.currency) {
+        if (!lockedOriginal || lockedOriginal.property_node !== lockedFolio.property_node ||
+            lockedOriginal.currency !== lockedFolio.currency) {
           throw new ChargeCorrectionNotFoundError("Original charge was not found in the folio property");
         }
         if (lockedOriginal.kind !== "charge" || lockedOriginal.reverses !== null ||
@@ -355,12 +384,12 @@ export class ChargeCorrectionService {
         const revenueAmount = revenueLine ? BigInt(revenueLine.amount_minor) : 0n;
         const canonicalPair = guestLine !== undefined && revenueLine !== undefined &&
           guestLine.seq === 1 && revenueLine.seq === 2 &&
-          guestLine.account_id === folio.account_id && guestLine.folio_id === normalized.folioId &&
-          guestLine.account_role === "guest" && guestLine.account_property_node === folio.property_node &&
-          guestLine.account_currency === folio.currency && guestAmount > 0n &&
+          guestLine.account_id === lockedFolio.account_id && guestLine.folio_id === normalized.folioId &&
+          guestLine.account_role === "guest" && guestLine.account_property_node === lockedFolio.property_node &&
+          guestLine.account_currency === lockedFolio.currency && guestAmount > 0n &&
           revenueLine.account_id !== guestLine.account_id && revenueLine.folio_id === null &&
-          revenueLine.account_role === "revenue" && revenueLine.account_property_node === folio.property_node &&
-          revenueLine.account_currency === folio.currency && revenueAmount === -guestAmount &&
+          revenueLine.account_role === "revenue" && revenueLine.account_property_node === lockedFolio.property_node &&
+          revenueLine.account_currency === lockedFolio.currency && revenueAmount === -guestAmount &&
           guestLine.tx_code === revenueLine.tx_code && guestLine.quantity === revenueLine.quantity &&
           guestLine.description === revenueLine.description &&
           guestLine.business_date === lockedOriginal.business_date &&
@@ -376,13 +405,13 @@ export class ChargeCorrectionService {
 
         const requiredDateValues = [...new Set([
           lockedOriginal.business_date,
-          folio.business_date,
+          lockedFolio.business_date,
         ])].sort();
         if (requiredDateValues.length === 1) {
           await commandTx`
             SELECT public.lock_financial_business_days(
               ${normalized.tenantId}::uuid,
-              ${folio.property_node}::uuid,
+              ${lockedFolio.property_node}::uuid,
               ARRAY[${requiredDateValues[0]}::date]::date[]
             )
           `;
@@ -390,7 +419,7 @@ export class ChargeCorrectionService {
           await commandTx`
             SELECT public.lock_financial_business_days(
               ${normalized.tenantId}::uuid,
-              ${folio.property_node}::uuid,
+              ${lockedFolio.property_node}::uuid,
               ARRAY[${requiredDateValues[0]}::date, ${requiredDateValues[1]}::date]::date[]
             )
           `;
@@ -399,9 +428,9 @@ export class ChargeCorrectionService {
           SELECT business_date::text, sealed_at FROM business_day
            WHERE tenant_id = ${normalized.tenantId}::uuid
              AND tenant_id = current_setting('app.tenant_id', true)::uuid
-             AND property_node = ${folio.property_node}::uuid
+             AND property_node = ${lockedFolio.property_node}::uuid
              AND business_date = ANY (
-               ARRAY[${lockedOriginal.business_date}::date, ${folio.business_date}::date]::date[]
+               ARRAY[${lockedOriginal.business_date}::date, ${lockedFolio.business_date}::date]::date[]
              )
            ORDER BY business_date
         `;
@@ -414,17 +443,15 @@ export class ChargeCorrectionService {
           throw new ChargeCorrectionAuthorizationError("Post-seal correction authority is required");
         }
 
-        const source = JSON.stringify({ interface: "financials.charge.reverse" });
         const correction = (await commandTx<Array<{ id: string }>>`
-          INSERT INTO journal (
-            tenant_id, property_node, business_date, kind, description,
-            currency, reverses, source, created_by
-          ) VALUES (
-            ${normalized.tenantId}::uuid, ${folio.property_node}::uuid,
-            ${folio.business_date}::date, 'adjustment', ${normalized.reason},
-            ${folio.currency}::char(3), ${normalized.reversesJournalId}::uuid,
-            ${source}::text::jsonb, ${normalized.envelope.actorId}::uuid
-          ) RETURNING id
+          SELECT public.create_charge_correction_header(
+            ${normalized.tenantId}::uuid,
+            ${normalized.reversesJournalId}::uuid,
+            ${lockedFolio.property_node}::uuid,
+            ${lockedFolio.currency}::char(3),
+            ${normalized.reason},
+            ${normalized.envelope.actorId}::uuid
+          ) AS id
         `)[0];
         if (!correction) throw new Error("PostgreSQL did not return the correction journal");
 
@@ -437,7 +464,7 @@ export class ChargeCorrectionService {
               ${normalized.tenantId}::uuid, ${correction.id}::uuid, ${line.seq}::smallint,
               ${line.account_id}::uuid, ${line.folio_id}::uuid, ${line.tx_code},
               ${line.description}, ${-BigInt(line.amount_minor)}, ${line.quantity}::numeric(10,3),
-              ${folio.business_date}::date, ${folio.currency}::char(3)
+              ${lockedFolio.business_date}::date, ${lockedFolio.currency}::char(3)
             )
           `;
         }
@@ -449,13 +476,13 @@ export class ChargeCorrectionService {
           envelope: normalized.envelope,
           payload,
         });
-        if (fact.businessDate !== folio.business_date) {
+        if (fact.businessDate !== lockedFolio.business_date) {
           throw new Error("Audit and correction business dates diverged");
         }
         await this.#events.publish(commandTx, {
           tenantId: normalized.tenantId,
-          propertyNode: folio.property_node,
-          businessDate: folio.business_date,
+          propertyNode: lockedFolio.property_node,
+          businessDate: lockedFolio.business_date,
           aggregateType: "journal",
           aggregateId: correction.id,
           eventType: "journal.posted",
@@ -470,8 +497,8 @@ export class ChargeCorrectionService {
             journalId: correction.id,
             folioId: normalized.folioId,
             reversesJournalId: normalized.reversesJournalId,
-            businessDate: folio.business_date,
-            currency: folio.currency,
+            businessDate: lockedFolio.business_date,
+            currency: lockedFolio.currency,
             amountMinor: (-guestAmount).toString(),
           }),
         };

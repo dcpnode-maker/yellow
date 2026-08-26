@@ -34,6 +34,10 @@ const FOLIO_B = "00000000-0000-0000-0000-000000010536";
 const J1 = "00000000-0000-0000-0000-000000010541";
 const J2 = "00000000-0000-0000-0000-000000010542";
 const J3 = "00000000-0000-0000-0000-000000010543";
+const CANONICAL_JOURNAL = "00000000-0000-0000-0000-000000010544";
+const EXTRA_SOURCE_JOURNAL = "00000000-0000-0000-0000-000000010545";
+const THREE_LINE_JOURNAL = "00000000-0000-0000-0000-000000010546";
+const MISMATCHED_JOURNAL = "00000000-0000-0000-0000-000000010547";
 
 const dbDescribe = URL ? describe.serial : describe.skip;
 const service = new FolioStatementService();
@@ -219,6 +223,56 @@ dbDescribe("Order 105 fresh-PostgreSQL statement proof", () => {
     await admin!`UPDATE business_day SET sealed_at=statement_timestamp() WHERE tenant_id=${TENANT_A}::uuid AND property_node=${PROPERTY_A}::uuid AND business_date=${day}::date`;
     expect((await get(input({ reference: "O105-E" }))).chargeAvailability).toEqual({ allowed: false, reason: "business_day_sealed" });
     await admin!`UPDATE business_day SET sealed_at=NULL WHERE tenant_id=${TENANT_A}::uuid AND property_node=${PROPERTY_A}::uuid AND business_date=${day}::date`;
+  });
+
+  test("P1/P4: correction eligibility exactly matches the canonical command shape", async () => {
+    const journals = [CANONICAL_JOURNAL, EXTRA_SOURCE_JOURNAL, THREE_LINE_JOURNAL, MISMATCHED_JOURNAL];
+    try {
+      await admin!`INSERT INTO journal(
+          id,tenant_id,property_node,business_date,kind,description,currency,source,created_at
+        ) VALUES
+        (${CANONICAL_JOURNAL}::uuid,${TENANT_A}::uuid,${PROPERTY_A}::uuid,${day}::date,
+          'charge','Canonical','INR','{"interface":"financials.charge.post"}'::jsonb,'2026-08-23T00:00:00.000001Z'),
+        (${EXTRA_SOURCE_JOURNAL}::uuid,${TENANT_A}::uuid,${PROPERTY_A}::uuid,${day}::date,
+          'charge','Extra source','INR','{"interface":"financials.charge.post","extra":true}'::jsonb,'2026-08-23T00:00:00.000002Z'),
+        (${THREE_LINE_JOURNAL}::uuid,${TENANT_A}::uuid,${PROPERTY_A}::uuid,${day}::date,
+          'charge','Three lines','INR','{"interface":"financials.charge.post"}'::jsonb,'2026-08-23T00:00:00.000003Z'),
+        (${MISMATCHED_JOURNAL}::uuid,${TENANT_A}::uuid,${PROPERTY_A}::uuid,${day}::date,
+          'charge','Mismatch','INR','{"interface":"financials.charge.post"}'::jsonb,'2026-08-23T00:00:00.000004Z')`;
+      await admin!`INSERT INTO posting_line(
+          tenant_id,journal_id,seq,account_id,folio_id,tx_code,description,
+          amount_minor,quantity,business_date,currency
+        ) VALUES
+        (${TENANT_A}::uuid,${CANONICAL_JOURNAL}::uuid,1,${GUEST_A}::uuid,${FOLIO_A}::uuid,'SROOM','Canonical',100,1.000,${day}::date,'INR'),
+        (${TENANT_A}::uuid,${CANONICAL_JOURNAL}::uuid,2,${REVENUE_A}::uuid,NULL,'SROOM','Canonical',-100,1.000,${day}::date,'INR'),
+        (${TENANT_A}::uuid,${EXTRA_SOURCE_JOURNAL}::uuid,1,${GUEST_A}::uuid,${FOLIO_A}::uuid,'SROOM','Extra source',110,1.000,${day}::date,'INR'),
+        (${TENANT_A}::uuid,${EXTRA_SOURCE_JOURNAL}::uuid,2,${REVENUE_A}::uuid,NULL,'SROOM','Extra source',-110,1.000,${day}::date,'INR'),
+        (${TENANT_A}::uuid,${THREE_LINE_JOURNAL}::uuid,1,${GUEST_A}::uuid,${FOLIO_A}::uuid,'SROOM','Three lines',120,1.000,${day}::date,'INR'),
+        (${TENANT_A}::uuid,${THREE_LINE_JOURNAL}::uuid,2,${REVENUE_A}::uuid,NULL,'SROOM','Three lines',-60,1.000,${day}::date,'INR'),
+        (${TENANT_A}::uuid,${THREE_LINE_JOURNAL}::uuid,3,${REVENUE_A}::uuid,NULL,'SROOM','Three lines',-60,1.000,${day}::date,'INR'),
+        (${TENANT_A}::uuid,${MISMATCHED_JOURNAL}::uuid,1,${GUEST_A}::uuid,${FOLIO_A}::uuid,'SROOM','Mismatch',130,1.000,${day}::date,'INR'),
+        (${TENANT_A}::uuid,${MISMATCHED_JOURNAL}::uuid,2,${REVENUE_A}::uuid,NULL,'SROOM','Mismatch',-130,2.000,${day}::date,'INR')`;
+
+      const statement = await get(input({ canCorrectCharge: true, canPostSealAdjustment: true, limit: 100 }));
+      const byJournal = new Map(statement.rows.map((row) => [row.journalId, row]));
+      expect(byJournal.get(CANONICAL_JOURNAL)).toMatchObject({
+        correctionEligible: true,
+        correctionReason: null,
+      });
+      for (const journalId of [EXTRA_SOURCE_JOURNAL, THREE_LINE_JOURNAL, MISMATCHED_JOURNAL]) {
+        expect(byJournal.get(journalId)).toMatchObject({
+          correctionEligible: false,
+          correctionReason: journalId === EXTRA_SOURCE_JOURNAL ? "not_original_charge" : "inconsistent_posting_set",
+        });
+      }
+    } finally {
+      await admin!`DELETE FROM posting_line WHERE tenant_id=${TENANT_A}::uuid AND journal_id IN (
+        ${journals[0]}::uuid, ${journals[1]}::uuid, ${journals[2]}::uuid, ${journals[3]}::uuid
+      )`;
+      await admin!`DELETE FROM journal WHERE tenant_id=${TENANT_A}::uuid AND id IN (
+        ${journals[0]}::uuid, ${journals[1]}::uuid, ${journals[2]}::uuid, ${journals[3]}::uuid
+      )`;
+    }
   });
 
   test("P4: 10,000-line folio stays indexed and bounded with complete running truth", async () => {

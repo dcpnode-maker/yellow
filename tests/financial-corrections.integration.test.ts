@@ -23,6 +23,7 @@ if (process.env.YELLOW_REQUIRE_FINANCIAL_CORRECTIONS === "1" && !DATABASE_URL) {
 }
 const TENANT = "00000000-0000-0000-0000-000000018301";
 const PROPERTY = "00000000-0000-0000-0000-000000018302";
+const OTHER_PROPERTY = "00000000-0000-0000-0000-000000018307";
 const ACTOR = "00000000-0000-0000-0000-000000018303";
 const PARTY = "00000000-0000-0000-0000-000000018304";
 const GUEST = "00000000-0000-0000-0000-000000018305";
@@ -109,8 +110,9 @@ beforeAll(async () => {
   nextDay = adjacentDays.next_day;
   await admin`INSERT INTO tenant(id,slug,name,tier,status)
     VALUES(${TENANT}::uuid,'order183','Order 183','shared','active')`;
-  await admin`INSERT INTO org_node(id,tenant_id,path,kind,name,timezone,currency)
-    VALUES(${PROPERTY}::uuid,${TENANT}::uuid,'order183','property','Order 183','UTC','INR')`;
+  await admin`INSERT INTO org_node(id,tenant_id,path,kind,name,timezone,currency) VALUES
+    (${PROPERTY}::uuid,${TENANT}::uuid,'order183','property','Order 183','UTC','INR'),
+    (${OTHER_PROPERTY}::uuid,${TENANT}::uuid,'order183_other','property','Order 183 Other','UTC','CAD')`;
   await admin`INSERT INTO app_user(id,tenant_id,email,display_name,status)
     VALUES(${ACTOR}::uuid,${TENANT}::uuid,'actor@order183.test','Order 183 Actor','active')`;
   await admin`INSERT INTO party(id,tenant_id,kind,display_name,status)
@@ -148,7 +150,9 @@ describe("Order 183 correction boundary", () => {
     await expect(new ChargeCorrectionService({} as never).reverseCharge({} as never, invalid))
       .rejects.toBeInstanceOf(ChargeCorrectionValidationError);
     const migration = await Bun.file(new URL("../migrations/0019_financial_reversal_authority.sql", import.meta.url)).text();
-    expect(migration).toContain("GRANT INSERT (reverses) ON public.journal TO app_role");
+    expect(migration).not.toContain("GRANT INSERT (reverses) ON public.journal TO app_role");
+    expect(migration).toContain("CREATE FUNCTION public.create_charge_correction_header(");
+    expect(migration).toContain("GRANT EXECUTE ON FUNCTION public.create_charge_correction_header");
     expect(migration).toContain("ON public.journal (tenant_id, reverses)");
     expect(migration).toContain("WHERE reverses IS NOT NULL");
     expect(migration).not.toMatch(/GRANT\s+UPDATE|GRANT\s+DELETE/i);
@@ -169,6 +173,20 @@ dbDescribe("Order 183 fresh-PostgreSQL correction proof", () => {
       FROM pg_proc p
       WHERE p.oid='public.lock_financial_business_days(uuid,uuid,date[])'::regprocedure`;
     expect(authority).toEqual([{ owner: "yellow_owner", security_definer: true, volatility: "v",
+      config: ["search_path=pg_catalog, public, pg_temp"], app: true, runtime: false, public_role: false }]);
+
+    const headerAuthority = await admin!<Array<{
+      owner: string; security_definer: boolean; volatility: string; config: string[];
+      app: boolean; runtime: boolean; public_role: boolean;
+    }>>`
+      SELECT pg_get_userbyid(p.proowner) owner, p.prosecdef security_definer,
+             p.provolatile::text volatility, p.proconfig config,
+             has_function_privilege('app_role',p.oid,'EXECUTE') app,
+             has_function_privilege('yellow_runtime',p.oid,'EXECUTE') runtime,
+             has_function_privilege('public',p.oid,'EXECUTE') public_role
+      FROM pg_proc p
+      WHERE p.oid='public.create_charge_correction_header(uuid,uuid,uuid,character,text,uuid)'::regprocedure`;
+    expect(headerAuthority).toEqual([{ owner: "yellow_owner", security_definer: true, volatility: "v",
       config: ["search_path=pg_catalog, public, pg_temp"], app: true, runtime: false, public_role: false }]);
 
     await database!.withTenantTransaction(TENANT, (tx) => tx.unsafe(
@@ -205,6 +223,52 @@ dbDescribe("Order 183 fresh-PostgreSQL correction proof", () => {
       "UPDATE business_day SET sealed_at=sealed_at WHERE tenant_id=$1::uuid",
       [TENANT],
     )), "42501");
+  }, 30_000);
+
+  test("P0/P4 reversal header capability denies raw, cross-property, cross-currency and forged authority", async () => {
+    const original = await charge(FOLIOS[4]!, "order183-charge-capability", "32100");
+    const artifactCounts = () => admin!<Array<{ corrections: number; lines: number; facts: number; events: number }>>`
+      SELECT
+        (SELECT count(*)::int FROM journal WHERE tenant_id=${TENANT}::uuid
+          AND reverses=${original.journalId}::uuid) corrections,
+        (SELECT count(*)::int FROM posting_line WHERE tenant_id=${TENANT}::uuid
+          AND journal_id IN (SELECT id FROM journal WHERE tenant_id=${TENANT}::uuid
+            AND reverses=${original.journalId}::uuid)) lines,
+        (SELECT count(*)::int FROM fact_log WHERE tenant_id=${TENANT}::uuid
+          AND entity_id IN (SELECT id FROM journal WHERE tenant_id=${TENANT}::uuid
+            AND reverses=${original.journalId}::uuid)) facts,
+        (SELECT count(*)::int FROM outbox WHERE tenant_id=${TENANT}::uuid
+          AND aggregate_id IN (SELECT id FROM journal WHERE tenant_id=${TENANT}::uuid
+            AND reverses=${original.journalId}::uuid)) events`;
+    const before = (await artifactCounts())[0]!;
+
+    await expectSqlState(() => admin!.unsafe(
+      "SELECT public.create_charge_correction_header($1::uuid,$2::uuid,$3::uuid,$4::char(3),$5,$6::uuid)",
+      [TENANT, original.journalId, PROPERTY, "INR", "Forged owner call", ACTOR],
+    ), "42501");
+    await expectSqlState(() => database!.withTenantTransaction(TENANT, (tx) => tx.unsafe(
+      `INSERT INTO journal(tenant_id,property_node,business_date,kind,description,currency,reverses,source,created_by)
+       VALUES($1::uuid,$2::uuid,$3::date,'adjustment',$4,'INR',$5::uuid,
+         '{"interface":"financials.charge.reverse"}'::jsonb,$6::uuid)`,
+      [TENANT, PROPERTY, day, "Raw reversal bypass", original.journalId, ACTOR],
+    )), "42501");
+    for (const [property, currency, actor, expectedState] of [
+      [OTHER_PROPERTY, "CAD", ACTOR, "55000"],
+      [PROPERTY, "CAD", ACTOR, "55000"],
+      [PROPERTY, "INR", "00000000-0000-0000-0000-000000018399", "55000"],
+    ] as const) {
+      await expectSqlState(() => database!.withTenantTransaction(TENANT, (tx) => tx.unsafe(
+        "SELECT public.create_charge_correction_header($1::uuid,$2::uuid,$3::uuid,$4::char(3),$5,$6::uuid)",
+        [TENANT, original.journalId, property, currency, "Forged correction header", actor],
+      )), expectedState);
+    }
+    await expectSqlState(() => database!.withTenantTransaction(TENANT, (tx) => tx.unsafe(
+      "SELECT public.create_charge_correction_header($1::uuid,$2::uuid,$3::uuid,$4::char(3),$5,$6::uuid)",
+      ["00000000-0000-0000-0000-000000018399", original.journalId, PROPERTY, "INR",
+        "Foreign tenant correction", ACTOR],
+    )), "42501");
+
+    expect((await artifactCounts())[0]!).toEqual(before);
   }, 30_000);
 
   test("P0/P4 reversed day sets serialize while unrelated rows remain nonblocking", async () => {
@@ -293,6 +357,79 @@ dbDescribe("Order 183 fresh-PostgreSQL correction proof", () => {
       SELECT count(*)::int n FROM journal WHERE tenant_id=${TENANT}::uuid
        AND reverses=${secondOriginal.journalId}::uuid`)[0]!.n).toBe(1);
   }, 60_000);
+
+  test("P2/P4 locked folio state is re-read after a concurrent account freeze", async () => {
+    const original = await charge(FOLIOS[5]!, "order183-charge-stale-freeze", "45600");
+    const counts = () => admin!<Array<{ journals: number; lines: number; facts: number; events: number; keys: number }>>`
+      SELECT
+        (SELECT count(*)::int FROM journal WHERE tenant_id=${TENANT}::uuid) journals,
+        (SELECT count(*)::int FROM posting_line WHERE tenant_id=${TENANT}::uuid) lines,
+        (SELECT count(*)::int FROM fact_log WHERE tenant_id=${TENANT}::uuid) facts,
+        (SELECT count(*)::int FROM outbox WHERE tenant_id=${TENANT}::uuid) events,
+        (SELECT count(*)::int FROM api_idempotency WHERE tenant_id=${TENANT}::uuid) keys`;
+    const before = (await counts())[0]!;
+    let frozen!: () => void;
+    let release!: () => void;
+    const frozenPromise = new Promise<void>((resolve) => { frozen = resolve; });
+    const releasePromise = new Promise<void>((resolve) => { release = resolve; });
+    const blocker = admin!.begin(async (tx) => {
+      await tx`UPDATE account SET status='frozen'
+        WHERE tenant_id=${TENANT}::uuid AND id=${GUEST}::uuid`;
+      frozen();
+      await releasePromise;
+    });
+    await frozenPromise;
+
+    const attempted = reverse(correction(
+      original.journalId,
+      FOLIOS[5]!,
+      "order183-stale-freeze-correction",
+    ));
+    await Bun.sleep(75);
+    release();
+    await blocker;
+    await expect(attempted).rejects.toBeInstanceOf(ChargeCorrectionConflictError);
+    expect((await counts())[0]!).toEqual(before);
+    expect((await admin!<Array<{ n: number }>>`
+      SELECT count(*)::int n FROM journal
+      WHERE tenant_id=${TENANT}::uuid AND reverses=${original.journalId}::uuid`)[0]!.n).toBe(0);
+    await admin!`UPDATE account SET status='open'
+      WHERE tenant_id=${TENANT}::uuid AND id=${GUEST}::uuid`;
+  }, 30_000);
+
+  test("P4 publisher failure rolls header, lines, fact and idempotency back before exact retry", async () => {
+    const original = await charge(FOLIOS[4]!, "order183-charge-publisher-failure", "65400");
+    const input = correction(original.journalId, FOLIOS[4]!, "order183-publisher-failure");
+    const counts = () => admin!<Array<{ corrections: number; lines: number; facts: number; events: number; keys: number }>>`
+      SELECT
+        (SELECT count(*)::int FROM journal WHERE tenant_id=${TENANT}::uuid
+          AND reverses=${original.journalId}::uuid) corrections,
+        (SELECT count(*)::int FROM posting_line WHERE tenant_id=${TENANT}::uuid
+          AND journal_id IN (SELECT id FROM journal WHERE tenant_id=${TENANT}::uuid
+            AND reverses=${original.journalId}::uuid)) lines,
+        (SELECT count(*)::int FROM fact_log WHERE tenant_id=${TENANT}::uuid
+          AND entity_id IN (SELECT id FROM journal WHERE tenant_id=${TENANT}::uuid
+            AND reverses=${original.journalId}::uuid)) facts,
+        (SELECT count(*)::int FROM outbox WHERE tenant_id=${TENANT}::uuid
+          AND aggregate_id IN (SELECT id FROM journal WHERE tenant_id=${TENANT}::uuid
+            AND reverses=${original.journalId}::uuid)) events,
+        (SELECT count(*)::int FROM api_idempotency WHERE tenant_id=${TENANT}::uuid
+          AND operation='financials.charge.reverse') keys`;
+    const before = (await counts())[0]!;
+    const failing = new ChargeCorrectionService({
+      events: { async publish(): Promise<never> { throw new Error("injected correction publisher failure"); } } as never,
+      idempotency: new PostgresIdempotency(),
+    });
+    await expect(database!.withTenantTransaction(TENANT, (tx) => failing.reverseCharge(tx, input)))
+      .rejects.toThrow("injected correction publisher failure");
+    expect((await counts())[0]!).toEqual(before);
+    expect(await reverse(input)).toMatchObject({
+      reversesJournalId: original.journalId,
+      amountMinor: "-65400",
+      replayed: false,
+    });
+    expect((await counts())[0]!).toEqual({ corrections: 1, lines: 2, facts: 1, events: 1, keys: before.keys + 1 });
+  }, 30_000);
 
   test("P3 sealed-day authority is server input and immutable ACL remains denied", async () => {
     const original = await charge(FOLIOS[3]!, "order183-charge-sealed", "700");

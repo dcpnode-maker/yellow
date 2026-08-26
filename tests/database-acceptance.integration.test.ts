@@ -98,7 +98,7 @@ const EXPECTED_MIGRATIONS = [
   {
     version: 19,
     filename: "0019_financial_reversal_authority.sql",
-    checksum_sha256: "51a4542e3816a7d009bcc547b1e3669bab1234ea4a6fb6f76b06a9521cc49c2e",
+    checksum_sha256: "40cbd74f4c154ac23f56a1b69edf865c3a5904a98d2264ad6d962671414fcc4d",
   },
 ];
 

@@ -1,7 +1,5 @@
--- Order 183: permit immutable reversal lineage on the existing journal primitive
--- and make one-reversal arbitration authoritative in PostgreSQL.
-
-GRANT INSERT (reverses) ON public.journal TO app_role;
+-- Order 183: create immutable reversal lineage only through one bounded header
+-- capability and make one-reversal arbitration authoritative in PostgreSQL.
 
 CREATE UNIQUE INDEX journal_one_reversal
   ON public.journal (tenant_id, reverses)
@@ -73,3 +71,95 @@ ALTER FUNCTION public.lock_financial_business_days(uuid,uuid,date[]) OWNER TO ye
 REVOKE ALL ON FUNCTION public.lock_financial_business_days(uuid,uuid,date[])
   FROM PUBLIC, app_role, yellow_runtime;
 GRANT EXECUTE ON FUNCTION public.lock_financial_business_days(uuid,uuid,date[]) TO app_role;
+
+CREATE FUNCTION public.create_charge_correction_header(
+  p_tenant uuid,
+  p_original uuid,
+  p_property uuid,
+  p_currency character(3),
+  p_description text,
+  p_actor uuid
+) RETURNS uuid
+LANGUAGE plpgsql
+VOLATILE
+SECURITY DEFINER
+SET search_path = pg_catalog, public, pg_temp
+AS $$
+DECLARE
+  v_context_tenant uuid;
+  v_business_date date;
+  v_header_id uuid;
+BEGIN
+  IF pg_catalog.current_setting('role', true) IS DISTINCT FROM 'app_role' THEN
+    RAISE EXCEPTION USING ERRCODE = '42501', MESSAGE = 'charge correction header requires app_role';
+  END IF;
+
+  BEGIN
+    v_context_tenant := NULLIF(
+      pg_catalog.current_setting('app.tenant_id', true), ''
+    )::uuid;
+  EXCEPTION WHEN invalid_text_representation THEN
+    RAISE EXCEPTION USING ERRCODE = '42501', MESSAGE = 'charge correction header tenant context is invalid';
+  END;
+  IF v_context_tenant IS NULL OR p_tenant IS NULL OR v_context_tenant <> p_tenant THEN
+    RAISE EXCEPTION USING ERRCODE = '42501', MESSAGE = 'charge correction header tenant context is invalid';
+  END IF;
+  IF p_original IS NULL OR p_property IS NULL OR p_currency IS NULL OR p_actor IS NULL
+     OR p_description IS NULL OR p_description <> pg_catalog.btrim(p_description)
+     OR pg_catalog.char_length(p_description) NOT BETWEEN 1 AND 500
+     OR p_description ~ '[[:cntrl:]]'
+     OR p_description ~ U&'[\200B-\200D\202A-\202E\2060\2066-\2069\FEFF]' THEN
+    RAISE EXCEPTION USING ERRCODE = '22023', MESSAGE = 'charge correction header input is invalid';
+  END IF;
+
+  SELECT (pg_catalog.transaction_timestamp() AT TIME ZONE property.timezone)::date
+    INTO v_business_date
+    FROM public.org_node AS property
+   WHERE property.tenant_id = p_tenant
+     AND property.id = p_property
+     AND property.kind = 'property'
+     AND property.currency = p_currency;
+  IF NOT FOUND THEN
+    RAISE EXCEPTION USING ERRCODE = '55000', MESSAGE = 'charge correction property is unavailable';
+  END IF;
+
+  PERFORM 1
+    FROM public.app_user AS actor
+   WHERE actor.tenant_id = p_tenant
+     AND actor.id = p_actor
+     AND actor.status = 'active';
+  IF NOT FOUND THEN
+    RAISE EXCEPTION USING ERRCODE = '55000', MESSAGE = 'charge correction actor is unavailable';
+  END IF;
+
+  PERFORM 1
+    FROM public.journal AS original
+   WHERE original.tenant_id = p_tenant
+     AND original.id = p_original
+     AND original.property_node = p_property
+     AND original.currency = p_currency
+     AND original.kind = 'charge'
+     AND original.reverses IS NULL
+     AND original.source = '{"interface":"financials.charge.post"}'::jsonb;
+  IF NOT FOUND THEN
+    RAISE EXCEPTION USING ERRCODE = '55000', MESSAGE = 'governed original charge is unavailable';
+  END IF;
+
+  INSERT INTO public.journal (
+    tenant_id, property_node, business_date, kind, description,
+    currency, reverses, source, created_by
+  ) VALUES (
+    p_tenant, p_property, v_business_date, 'adjustment', p_description,
+    p_currency, p_original, '{"interface":"financials.charge.reverse"}'::jsonb, p_actor
+  ) RETURNING id INTO v_header_id;
+
+  RETURN v_header_id;
+END;
+$$;
+
+ALTER FUNCTION public.create_charge_correction_header(uuid,uuid,uuid,character,text,uuid)
+  OWNER TO yellow_owner;
+REVOKE ALL ON FUNCTION public.create_charge_correction_header(uuid,uuid,uuid,character,text,uuid)
+  FROM PUBLIC, app_role, yellow_runtime;
+GRANT EXECUTE ON FUNCTION public.create_charge_correction_header(uuid,uuid,uuid,character,text,uuid)
+  TO app_role;
