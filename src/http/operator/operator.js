@@ -43,6 +43,14 @@
   let reservationDetailData = null;
   let reservationDetailGeneration = 0;
   let reservationDrawerReturnFocus = null;
+  let reservationDrawerReturnView = "";
+  let todayGeneration = 0;
+  let todayWindowState = null;
+  const todayLaneState = {
+    due_in: { rows: [], nextCursor: null, requestGeneration: 0 },
+    due_out: { rows: [], nextCursor: null, requestGeneration: 0 },
+    in_house: { rows: [], nextCursor: null, requestGeneration: 0 },
+  };
   let reservationCreateStep = 1;
   let reservationCreateDirty = false;
   let reservationCreateProperty = "";
@@ -83,6 +91,10 @@
   const workbenchTitle = document.querySelector("#workbench-title");
   const availabilityReservationShortcut = document.querySelector("#availability-reservation-shortcut");
   const availabilityView = document.querySelector("#availability-view");
+  const todayView = document.querySelector("#today-view");
+  const todayWindowLabel = document.querySelector("#today-window");
+  const todayRefresh = document.querySelector("#today-refresh");
+  const todayLanes = [...document.querySelectorAll("[data-today-lane]")];
   const inventoryView = document.querySelector("#inventory-view");
   const restrictionsView = document.querySelector("#restrictions-view");
   const ratesView = document.querySelector("#rates-view");
@@ -530,6 +542,8 @@
     reservationRouteReservationId = "";
     reservationPrimaryFolioAttemptKey = "";
     reservationPrimaryFolioReservationId = "";
+    reservationDrawerReturnView = "";
+    resetTodayState();
     reservationCreateDirty = false;
     clearPartyProfileState();
     clearFolioState();
@@ -567,7 +581,7 @@
       propertySelect.disabled = true;
     } else {
       propertySelect.disabled = false;
-      const pathProperty = location.pathname.match(/^\/p\/([0-9a-f-]+)\/(?:availability|inventory|operations|reservations|folios|restrictions|rates|status|res\/[0-9a-f-]+|folio\/[0-9a-f-]+)$/)?.[1];
+      const pathProperty = location.pathname.match(/^\/p\/([0-9a-f-]+)\/(?:today|availability|inventory|operations|reservations|folios|restrictions|rates|status|res\/[0-9a-f-]+|folio\/[0-9a-f-]+)$/)?.[1];
       if (pathProperty && body.properties.some(({ id }) => id === pathProperty)) propertySelect.value = pathProperty;
     }
   }
@@ -670,6 +684,148 @@
     party.textContent = `${row.adults} adult${row.adults === 1 ? "" : "s"}${row.children ? ` · ${row.children} child${row.children === 1 ? "" : "ren"}` : ""} · ${row.channelCode}`;
     article.append(head, guest, stay, room, party);
     return article;
+  }
+
+  const TODAY_STATUSES = Object.freeze(["due_in", "due_out", "in_house"]);
+
+  function todayLaneElements(status) {
+    const lane = todayLanes.find((candidate) => candidate.dataset.todayLane === status);
+    return {
+      lane,
+      summary: lane.querySelector("[data-today-summary]"),
+      loading: lane.querySelector("[data-today-loading]"),
+      error: lane.querySelector("[data-today-error]"),
+      empty: lane.querySelector("[data-today-empty]"),
+      list: lane.querySelector("[data-today-list]"),
+      more: lane.querySelector("[data-today-more]"),
+      status: lane.querySelector("[data-today-status]"),
+    };
+  }
+
+  function setTodayLaneState(status, state, message = "") {
+    const elements = todayLaneElements(status);
+    elements.loading.hidden = state !== "loading";
+    elements.error.hidden = state !== "error";
+    elements.empty.hidden = state !== "empty";
+    elements.list.hidden = state !== "ready";
+    elements.lane.setAttribute("aria-busy", String(state === "loading"));
+    if (state === "error") elements.error.querySelector("p").textContent = message;
+  }
+
+  function propertyLocalDate(instant, timeZone) {
+    const parts = Object.fromEntries(new Intl.DateTimeFormat("en-CA", {
+      timeZone, year: "numeric", month: "2-digit", day: "2-digit",
+    }).formatToParts(instant).filter(({ type }) => type !== "literal").map(({ type, value }) => [type, value]));
+    return `${parts.year}-${parts.month}-${parts.day}`;
+  }
+
+  function todayWindow(now = new Date()) {
+    const timeZone = propertyTimeZone();
+    const localDate = propertyLocalDate(now, timeZone);
+    const from = zonedInstant(localDate, 0, 0, timeZone);
+    const nextDate = dateAfter(localDate);
+    const to = zonedInstant(nextDate, 0, 0, timeZone);
+    if (propertyLocalDate(new Date(from), timeZone) !== localDate || propertyLocalDate(new Date(to), timeZone) !== nextDate) {
+      throw new Error("The property-local Today boundary could not be represented safely.");
+    }
+    return { localDate, timeZone, from, to, key: `${localDate}|${timeZone}|${from}|${to}` };
+  }
+
+  function todayBoardQuery(status, window, after = "") {
+    if (!TODAY_STATUSES.includes(status)) throw new Error("Unsupported Today lane.");
+    const query = new URLSearchParams({ status, from: window.from, to: window.to, limit: "50" });
+    if (after) query.set("after", after);
+    return query;
+  }
+
+  function resetTodayState() {
+    todayGeneration += 1;
+    todayWindowState = null;
+    for (const status of TODAY_STATUSES) {
+      const state = todayLaneState[status];
+      state.rows = [];
+      state.nextCursor = null;
+      state.requestGeneration += 1;
+      const elements = todayLaneElements(status);
+      elements.list.replaceChildren();
+      elements.more.hidden = true;
+      elements.summary.textContent = "Not loaded.";
+      elements.status.textContent = "";
+      setTodayLaneState(status, "empty");
+    }
+  }
+
+  function todayRequestIsCurrent(status, cycle, requestGeneration, property, windowKey) {
+    return cycle === todayGeneration && requestGeneration === todayLaneState[status].requestGeneration &&
+      property === propertySelect.value && activeView === "today" && location.pathname === `/p/${property}/today` &&
+      todayWindowState?.key === windowKey;
+  }
+
+  function renderTodayLane(status, page, older = false) {
+    const state = todayLaneState[status];
+    const elements = todayLaneElements(status);
+    state.rows = Array.isArray(page.reservations) ? page.reservations.slice(0, 50) : [];
+    state.nextCursor = typeof page.nextCursor === "string" ? page.nextCursor : null;
+    elements.list.replaceChildren(...state.rows.map(reservationCard));
+    elements.more.hidden = state.nextCursor === null;
+    const count = state.rows.length;
+    elements.summary.textContent = `${count} shown on this bounded page${state.nextCursor ? " · more records available" : ""}.`;
+    elements.status.textContent = older ? `Showing the next bounded page of ${count}; the previous page was replaced.` : `${count} record${count === 1 ? "" : "s"} shown.`;
+    setTodayLaneState(status, count === 0 ? "empty" : "ready");
+  }
+
+  async function loadTodayLane(status, { older = false, cycle = todayGeneration, window = todayWindowState } = {}) {
+    if (!window) return;
+    const state = todayLaneState[status];
+    if (older && !state.nextCursor) return;
+    const property = propertySelect.value;
+    const requestGeneration = ++state.requestGeneration;
+    const elements = todayLaneElements(status);
+    if (!older) {
+      state.nextCursor = null;
+      elements.more.hidden = true;
+      setTodayLaneState(status, "loading");
+    }
+    elements.more.disabled = older;
+    elements.status.textContent = older ? "Loading the next bounded page…" : "Loading this bounded page…";
+    try {
+      const query = todayBoardQuery(status, window, older ? state.nextCursor || "" : "");
+      const page = await request(`/api/v1/properties/${encodeURIComponent(property)}/reservation-board?${query}`);
+      if (!todayRequestIsCurrent(status, cycle, requestGeneration, property, window.key)) return;
+      renderTodayLane(status, page, older);
+    } catch (error) {
+      if (!todayRequestIsCurrent(status, cycle, requestGeneration, property, window.key)) return;
+      const message = error instanceof Error ? error.message : "This Today lane is unavailable.";
+      if (older && state.rows.length > 0) {
+        setTodayLaneState(status, "ready");
+        elements.status.textContent = `${message} The current page remains visible.`;
+      } else {
+        setTodayLaneState(status, "error", message);
+        elements.status.textContent = error?.status === 403 ? "Reservation access is not granted." : "Lane unavailable.";
+      }
+    } finally {
+      if (todayRequestIsCurrent(status, cycle, requestGeneration, property, window.key)) elements.more.disabled = false;
+    }
+  }
+
+  function loadToday() {
+    const property = propertySelect.value;
+    if (!property || activeView !== "today") return;
+    const cycle = ++todayGeneration;
+    let window;
+    try {
+      window = todayWindow();
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "The property-local Today boundary is unavailable.";
+      todayWindowState = null;
+      todayWindowLabel.textContent = "Property-local day unavailable.";
+      for (const status of TODAY_STATUSES) setTodayLaneState(status, "error", message);
+      return;
+    }
+    todayWindowState = window;
+    const label = new Intl.DateTimeFormat(undefined, { dateStyle: "full", timeZone: window.timeZone }).format(new Date(window.from));
+    todayWindowLabel.textContent = `${label} · ${window.timeZone} · browser-computed display boundary`;
+    for (const status of TODAY_STATUSES) void loadTodayLane(status, { cycle, window });
   }
 
   function setReservationBoardState(state, message = "") {
@@ -1158,6 +1314,10 @@
 
   async function openReservationDetail(reservationId, { push = true, trigger = null } = {}) {
     closeReservationCreate({ history: false, force: true });
+    if (activeView === "today") {
+      reservationDrawerReturnView = "today";
+      setView("reservations", false);
+    }
     reservationDrawerReturnFocus = trigger;
     reservationDetailDrawer.hidden = false;
     if (push) history.pushState({ yellowSurface: "reservation-detail" }, "", `/p/${propertySelect.value}/res/${reservationId}`);
@@ -1177,15 +1337,19 @@
     reservationDetailFolios.hidden = true;
     reservationDetailFolioList.replaceChildren();
     clearReservationDrawerLifecycle();
+    const returnView = reservationDrawerReturnView;
     if (updateHistory && propertySelect.value) {
-      if (reservationExitHistoryAction(history.state, "reservation-detail") === "back") history.back();
+      if (returnView === "today") history.replaceState(null, "", `/p/${propertySelect.value}/today`);
+      else if (reservationExitHistoryAction(history.state, "reservation-detail") === "back") history.back();
       else history.replaceState(null, "", `/p/${propertySelect.value}/reservations`);
     }
+    if (returnView === "today") setView("today", false);
     if (restoreFocus) {
       const target = reservationDrawerReturnFocus?.isConnected ? reservationDrawerReturnFocus : document.querySelector("#reservations-title");
       target?.focus();
     }
     reservationDrawerReturnFocus = null;
+    reservationDrawerReturnView = "";
   }
 
   function syncReservationRoute() {
@@ -3350,13 +3514,15 @@
 
   function setView(view, updateHistory = true) {
     const previousView = activeView;
-    activeView = ["availability", "inventory", "operations", "reservations", "folios", "restrictions", "rates", "status"].includes(view) ? view : "availability";
+    activeView = ["today", "availability", "inventory", "operations", "reservations", "folios", "restrictions", "rates", "status"].includes(view) ? view : "availability";
     if (document.documentElement.dataset.experience === "simple" && SECONDARY_VIEWS.has(activeView)) {
       secondaryWorkspaces.hidden = false;
       secondaryWorkspacesToggle.setAttribute("aria-expanded", "true");
       secondaryWorkspacesToggle.textContent = "Fewer workspaces";
     }
     if (previousView === "folios" && activeView !== "folios") clearFolioState();
+    if (previousView === "today" && activeView !== "today") todayGeneration += 1;
+    todayView.hidden = activeView !== "today";
     availabilityView.hidden = activeView !== "availability";
     inventoryView.hidden = activeView !== "inventory";
     restrictionsView.hidden = activeView !== "restrictions";
@@ -3365,7 +3531,7 @@
     reservationsView.hidden = activeView !== "reservations";
     foliosView.hidden = activeView !== "folios";
     statusView.hidden = activeView !== "status";
-    workbenchTitle.textContent = activeView === "inventory" ? "Inventory setup" :
+    workbenchTitle.textContent = activeView === "today" ? "Today" : activeView === "inventory" ? "Inventory setup" :
       activeView === "operations" ? "Operations" : activeView === "reservations" ? "Reservations" : activeView === "folios" ? "Folios" : activeView === "restrictions" ? "Restrictions" :
         activeView === "rates" ? "Rates" : activeView === "status" ? "Project status" : "Availability";
     for (const tab of navigation) {
@@ -3377,6 +3543,7 @@
       history.pushState(null, "", `/p/${propertySelect.value}/${activeView}`);
     }
     if (activeView === "inventory") void loadInventory();
+    if (activeView === "today") loadToday();
     if (activeView === "availability") {
       void loadActiveHolds();
       void loadOfflineLeases();
@@ -4896,9 +5063,11 @@
     reservationBookingSearchGeneration += 1;
     reservationBoardGeneration += 1;
     reservationDetailGeneration += 1;
+    resetTodayState();
     reservationBoardRows = [];
     reservationBoardNextCursor = null;
     reservationRouteReservationId = "";
+    reservationDrawerReturnView = "";
     reservationDetailDrawer.hidden = true;
     reservationPrimaryFolioAttemptKey = "";
     reservationPrimaryFolioReservationId = "";
@@ -4910,6 +5079,7 @@
     clearFolioState();
     if (propertySelect.value) history.replaceState(null, "", `/p/${propertySelect.value}/${activeView}`);
     if (activeView === "inventory") void loadInventory();
+    if (activeView === "today") loadToday();
     if (activeView === "availability") {
       void loadActiveHolds();
       void loadOfflineLeases();
@@ -4951,6 +5121,12 @@
   reservationEmptyClear.addEventListener("click", clearReservationBoardFilters);
   reservationBoardRetry.addEventListener("click", () => void loadReservationBoard());
   reservationBoardMore.addEventListener("click", () => void loadReservationBoard({ older: true }));
+  todayRefresh.addEventListener("click", loadToday);
+  for (const lane of todayLanes) {
+    const status = lane.dataset.todayLane;
+    lane.querySelector("[data-today-retry]").addEventListener("click", () => void loadTodayLane(status));
+    lane.querySelector("[data-today-more]").addEventListener("click", () => void loadTodayLane(status, { older: true }));
+  }
   reservationCreateOpen.addEventListener("click", () => openReservationCreate());
   reservationEmptyCreate.addEventListener("click", () => openReservationCreate());
   reservationCreateCancel.addEventListener("click", () => closeReservationCreate());
@@ -5004,6 +5180,11 @@
   });
   reservationPrimaryFolioCreate.addEventListener("click", () => void openPrimaryFolio());
   window.addEventListener("popstate", () => {
+    if (location.pathname === `/p/${propertySelect.value}/today`) {
+      closeReservationDetail({ history: false, restoreFocus: false });
+      if (activeView !== "today") setView("today", false);
+      return;
+    }
     const folioRoute = folioRouteFromLocation();
     if (activeView === "folios" && !folioWorkspace.hidden && !confirmFolioExit()) {
       const currentId = folioStatementData?.folio.id || folioIdentity;
@@ -5509,6 +5690,7 @@
   setBuilderStep(1);
   setBuilderMode("guided", false);
   const initialView = location.pathname.endsWith("/inventory") ? "inventory" :
+    location.pathname.endsWith("/today") ? "today" :
     location.pathname.endsWith("/operations") ? "operations" :
     (location.pathname.endsWith("/reservations") || /^\/p\/[0-9a-f-]+\/res\/[0-9a-f-]+$/.test(location.pathname)) ? "reservations" :
     (location.pathname.endsWith("/folios") || /^\/p\/[0-9a-f-]+\/folio\/[0-9a-f-]+$/.test(location.pathname)) ? "folios" :

@@ -855,6 +855,29 @@ input, select, textarea { min-height: 44px; border-color: #bdcbca; background: #
   .panel-heading { align-items: stretch; flex-direction: column; }
 }
 
+/* Today command centre — truthful bounded pages, never inferred totals. */
+.today-heading { align-items: end; }
+.today-boundary { margin-bottom: 1rem; }
+.today-lanes { min-width: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1rem; align-items: start; }
+.today-lane { min-width: 0; padding: 1rem; box-shadow: none; }
+.today-lane-head { display: flex; justify-content: space-between; gap: .75rem; }
+.today-lane-head h3 { margin: 0 0 .25rem; }
+.today-lane-list { min-width: 0; display: grid; gap: .65rem; }
+.today-lane-list .reservation-board-card { min-width: 0; max-width: 100%; padding: .8rem; display: grid; gap: .4rem; box-shadow: none; }
+.today-lane-list .reservation-board-card-head { min-width: 0; display: flex; align-items: center; justify-content: space-between; gap: .55rem; }
+.today-lane-list .reservation-board-card > span, .today-lane-list .reservation-board-card > small { color: var(--muted); overflow-wrap: anywhere; }
+.today-lane-loading { display: grid; gap: .45rem; }
+.today-lane-loading span { display: block; min-height: 48px; border: 1px solid var(--line); border-radius: 10px; background: linear-gradient(90deg, var(--surface-subtle), color-mix(in srgb, var(--accent) 7%, var(--card)), var(--surface-subtle)); background-size: 220% 100%; animation: reservation-pulse 1.4s ease-in-out infinite; }
+.today-lane-error, .today-lane-empty { padding: .85rem; border-radius: 10px; background: var(--surface-subtle); }
+.today-lane-error { border-left: 4px solid var(--red); }
+.today-lane-more { width: 100%; margin-top: .75rem; }
+
+@media (max-width: 900px) {
+  .today-lanes { grid-template-columns: 1fr; }
+  .today-heading { align-items: stretch; flex-direction: column; }
+  .today-heading .quiet { width: 100%; }
+}
+
 /* Reservation workspace — dense, bounded and keyboard-first. */
 .reservation-heading { display: flex; justify-content: space-between; gap: 1rem; }
 .reservation-heading > div { min-width: 0; }
@@ -966,5 +989,5 @@ input, select, textarea { min-height: 44px; border-color: #bdcbca; background: #
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .reservation-board-loading span, .reservation-detail-loading span, .folio-statement-loading span, .reservation-detail-drawer { animation: none; }
+  .today-lane-loading span, .reservation-board-loading span, .reservation-detail-loading span, .folio-statement-loading span, .reservation-detail-drawer { animation: none; }
 }

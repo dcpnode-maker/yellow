@@ -84,6 +84,7 @@
           <p class="domain-nav-label">Workspace</p>
           <nav class="domain-nav" aria-label="Workbench domains">
             <span class="domain-nav-group">Front desk</span>
+            <button class="domain-tab" id="nav-today" type="button" data-view="today" aria-controls="today-view">Today</button>
             <button class="domain-tab is-active" id="nav-availability" type="button" data-view="availability" aria-controls="availability-view">Availability</button>
             <button class="domain-tab" id="nav-reservations" type="button" data-view="reservations" aria-controls="reservations-view">Reservations</button>
             <button class="domain-tab" id="nav-folios" type="button" data-view="folios" aria-controls="folios-view">Folios</button>
@@ -166,6 +167,47 @@
             </div>
             <p class="inventory-status" id="status-message" role="status" aria-live="polite">Open Project status to run authenticated live checks.</p>
           </section>
+        </section>
+
+        <section id="today-view" hidden aria-labelledby="today-title">
+          <div class="section-heading today-heading">
+            <div>
+              <p class="eyebrow">Front desk</p>
+              <h2 id="today-title" tabindex="-1">Today</h2>
+              <p class="muted" id="today-window">Loading the property-local day…</p>
+            </div>
+            <button class="quiet" id="today-refresh" type="button">Refresh Today</button>
+          </div>
+          <p class="field-note today-boundary" id="today-boundary">Due-in, due-out and in-house reservations overlapping this property-local day. Each list is one bounded server page, not a hotel-wide total.</p>
+          <div class="today-lanes">
+            <section class="card today-lane" data-today-lane="due_in" aria-labelledby="today-due-in-title">
+              <div class="today-lane-head"><div><h3 id="today-due-in-title">Due in</h3><p class="muted" data-today-summary>Not loaded.</p></div></div>
+              <div class="today-lane-loading" data-today-loading hidden aria-hidden="true"><span></span><span></span><span></span></div>
+              <section class="today-lane-error" data-today-error hidden role="alert"><strong>Due-in reservations unavailable</strong><p></p><button class="secondary" type="button" data-today-retry>Try again</button></section>
+              <div class="today-lane-empty" data-today-empty hidden>No due-in reservations are shown on this bounded page.</div>
+              <div class="today-lane-list" data-today-list hidden></div>
+              <button class="quiet today-lane-more" type="button" data-today-more hidden>Load more due-in records</button>
+              <p class="inventory-status" data-today-status role="status" aria-live="polite"></p>
+            </section>
+            <section class="card today-lane" data-today-lane="due_out" aria-labelledby="today-due-out-title">
+              <div class="today-lane-head"><div><h3 id="today-due-out-title">Due out</h3><p class="muted" data-today-summary>Not loaded.</p></div></div>
+              <div class="today-lane-loading" data-today-loading hidden aria-hidden="true"><span></span><span></span><span></span></div>
+              <section class="today-lane-error" data-today-error hidden role="alert"><strong>Due-out reservations unavailable</strong><p></p><button class="secondary" type="button" data-today-retry>Try again</button></section>
+              <div class="today-lane-empty" data-today-empty hidden>No due-out reservations are shown on this bounded page.</div>
+              <div class="today-lane-list" data-today-list hidden></div>
+              <button class="quiet today-lane-more" type="button" data-today-more hidden>Load more due-out records</button>
+              <p class="inventory-status" data-today-status role="status" aria-live="polite"></p>
+            </section>
+            <section class="card today-lane" data-today-lane="in_house" aria-labelledby="today-in-house-title">
+              <div class="today-lane-head"><div><h3 id="today-in-house-title">In house</h3><p class="muted" data-today-summary>Not loaded.</p></div></div>
+              <div class="today-lane-loading" data-today-loading hidden aria-hidden="true"><span></span><span></span><span></span></div>
+              <section class="today-lane-error" data-today-error hidden role="alert"><strong>In-house reservations unavailable</strong><p></p><button class="secondary" type="button" data-today-retry>Try again</button></section>
+              <div class="today-lane-empty" data-today-empty hidden>No in-house reservations are shown on this bounded page.</div>
+              <div class="today-lane-list" data-today-list hidden></div>
+              <button class="quiet today-lane-more" type="button" data-today-more hidden>Load more in-house records</button>
+              <p class="inventory-status" data-today-status role="status" aria-live="polite"></p>
+            </section>
+          </div>
         </section>
 
         <section id="availability-view" aria-labelledby="availability-title">

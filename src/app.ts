@@ -89,6 +89,7 @@ export function createApp(options: AppOptions = {}) {
     app
       .get("/", () => operatorAssets.html())
       .get("/p/:property/availability", () => operatorAssets.html())
+      .get("/p/:property/today", () => operatorAssets.html())
       .get("/p/:property/inventory", () => operatorAssets.html())
       .get("/p/:property/restrictions", () => operatorAssets.html())
       .get("/p/:property/rates", () => operatorAssets.html())
