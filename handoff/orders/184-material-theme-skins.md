@@ -1,6 +1,6 @@
 # Order 184 — Materially distinct operator skins
 
-**Status:** READY — founder UI-first directive / D-471
+**Status:** BUILT — exact candidate `9c9ae2d`; independent static approved, independent browser acceptance pending
 **Phase:** 5 · founder-visible operations
 **Branch:** `phase-5/material-theme-skins`
 **Base:** `144753b` (independently approved current local through Order182)
@@ -82,7 +82,7 @@ asset, logo, source or pixel-identical interface is permitted.
 
 ## Definition of done
 
-- [ ] Every offered skin is materially distinct and not a color alias.
+- [x] Every offered skin is materially distinct and not a color alias.
 - [ ] Existing hotel workflows remain exact in every skin.
 - [ ] Accessibility, responsive, performance and fallback gates pass.
 - [ ] Independent review approves the exact candidate.
