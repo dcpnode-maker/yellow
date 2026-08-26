@@ -23,6 +23,13 @@ sealed-day, token-only, trust, tax or fiscal guardrails.
 | 113 | 3 | Folio settlement and AR transfer | Every window settles or explicitly transfers under credit authority | Zero-balance/AR guard, credit limits, multi-window completeness, rollback |
 | 114 | 3 | Phase-5 journey and gate | Reservation → folio → charge → payment → settlement runs on pristine PostgreSQL | Non-skipped journey, schema/deployment/referee, hostile money/tenant/role boundaries |
 
+Founder-priority recovery splits the original Order 109 outcome into independently
+reviewable slices. Order 183 delivered immutable whole-charge correction and exact
+post-seal authority. Order 188 now delivers additional folio windows plus governed
+whole-group routing for Business, Personal and Corrections presentation. Together
+they satisfy the correction/transfer foundation without silently importing payment,
+AR, document, tax or settlement behavior.
+
 Current founder-visible delivery: Order 171 wires the already-approved primary-folio
 command behind its own property permission and an explicit reservation action, then
 reuses the existing statement and governed untaxed-charge surfaces. Reservation commit
