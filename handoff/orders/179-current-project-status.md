@@ -1,6 +1,6 @@
 # Order 179 — Current founder Project status
 
-**Status:** READY — D-459
+**Status:** APPROVED — D-460
 **Phase:** 5 · founder-visible status truth
 **Branch:** `phase-5/current-project-status`
 **Base:** `88415d2` (independently approved Order178)
@@ -47,8 +47,8 @@ promotion, merge, push or deployment change is in scope.
 
 ## Definition of done
 
-- [ ] Project status is current through approved Order178 and names Order179 active.
-- [ ] Contiguous review coverage remains truthful at 91.
-- [ ] Offline scenario data is not represented as imported or live.
-- [ ] Builder gates pass.
-- [ ] Independent review approves the immutable candidate before local promotion.
+- [x] Project status is current through approved Order178 and names Order179 active.
+- [x] Contiguous review coverage remains truthful at 91.
+- [x] Offline scenario data is not represented as imported or live.
+- [x] Builder gates pass.
+- [x] Independent review approves the immutable candidate before local promotion.
