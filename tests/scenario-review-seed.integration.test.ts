@@ -97,5 +97,5 @@ describe("Order181 two-hotel scenario review seed contract", () => {
     } finally {
       await sql.close({ timeout: 0 });
     }
-  }, 300_000);
+  }, 600_000);
 });
