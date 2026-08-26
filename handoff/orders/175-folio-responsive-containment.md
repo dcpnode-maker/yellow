@@ -1,6 +1,6 @@
 # Order 175 — Folio responsive containment correction
 
-**Status:** BUILT-UNREVIEWED
+**Status:** APPROVED — independently reviewed candidate `6870692`
 **Phase:** 5
 **Branch:** `phase-5/folio-responsive-containment`
 **Base:** `b8c1b94c73c1f3b491794cead03c658113e8892c`
@@ -50,7 +50,15 @@ schema, migration, dependency, runtime, credential, container or live port is in
 
 - [x] P0 is reproduced on exact Base.
 - [x] P1–P4 pass with permanent regression evidence.
-- [ ] Independent reviewer executes and approves complete Order171 P1–P6.
+- [x] Independent reviewer executes and approves complete Order171 P1–P6.
+
+## Independent approval — 2026-08-26
+
+The complete P1-P6 restart passed on exact candidate `6870692`. Browser proof at
+375/720/768/1024/1440, explicit 200% scale, both themes and reduced motion showed no
+document overflow or undersized controls; the unchanged 900-pixel semantic table
+scrolled only inside its local wrapper. Full evidence is in
+`handoff/reviews/171-reservation-folio-journey.md`.
 
 ## Builder evidence
 

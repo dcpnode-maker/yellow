@@ -1,6 +1,6 @@
 # Order 174 — Folio UUID deep-link shell correction
 
-**Status:** BUILT-UNREVIEWED
+**Status:** APPROVED — integrated in independently reviewed candidate `6870692`
 **Phase:** 5
 **Branch:** `phase-5/folio-deep-link-shell`
 **Base:** `f48428805dae628f8c5b14dd83050375ce4f3f14`
@@ -50,7 +50,14 @@ live port is in scope.
 
 - [x] P0 is reproduced on exact Base.
 - [x] P1–P4 pass with a permanent served regression.
-- [ ] Independent reviewer executes and approves the complete Order171 P1–P6 restart.
+- [x] Independent reviewer executes and approves the complete Order171 P1–P6 restart.
+
+## Independent approval — 2026-08-26
+
+The singular UUID shell was byte-identical to the plural shell, malformed neighbors
+remained 404, and normal navigation plus direct refresh/re-login passed in the complete
+Order171 restart at candidate `6870692`; see
+`handoff/reviews/171-reservation-folio-journey.md`.
 
 ## Builder evidence
 

@@ -1,6 +1,6 @@
 # Order 173 — Primary-folio exact replay correction
 
-**Status:** BUILT-UNREVIEWED
+**Status:** APPROVED — integrated in independently reviewed candidate `6870692`
 **Phase:** 5 · Financials
 **Branch:** `phase-5/primary-folio-exact-replay`
 **Base:** `db0e71d15b8961b9e0a1faf94a89481440dee364`
@@ -50,7 +50,14 @@ edit protected tests.
 
 - [x] P0 reproduces the reviewer finding on exact Base.
 - [x] Focused P1–P3 pass with byte-level status/body/header assertions.
-- [ ] Order171 immutable candidate is rebuilt and independently passes P1–P6.
+- [x] Order171 immutable candidate is rebuilt and independently passes P1–P6.
+
+## Independent approval — 2026-08-26
+
+Exact first-create/20 same-key byte-identical header-only replays, 20 new-key existing
+lookups, changed-actor 409 and one durable effect passed in the complete Order171
+restart at candidate `6870692`; see
+`handoff/reviews/171-reservation-folio-journey.md`.
 
 ## Builder evidence
 

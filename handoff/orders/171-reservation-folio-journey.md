@@ -1,6 +1,6 @@
 # Order 171 — Reservation-to-folio operator journey
 
-**Status:** BUILT-UNREVIEWED — immutable integrated candidate `6aa4865`
+**Status:** APPROVED — independently reviewed corrective candidate `6870692`
 **Phase:** 5 · Financials
 **Branch:** `phase-5/reservation-folio-journey`
 **Base:** `c830c9ebb80dcceb4d70d54784d7f17427ddf02a`
@@ -130,7 +130,16 @@ role grants, PII/account disclosure, dependency, self-review, merge, push or dep
 - [x] Intentional red is recorded before product implementation.
 - [x] Explicit real reservation-to-folio-to-charge path passes on fresh PostgreSQL.
 - [x] Responsive/accessibility/performance and builder project gates pass.
-- [ ] Independent Tier-3 reviewer approves one immutable executable.
+- [x] Independent Tier-3 reviewer approves one immutable executable.
+
+## Independent approval — 2026-08-26
+
+The non-implementing Tier-3 reviewer restarted P1-P6 on corrected immutable candidate
+`6870692cc998a2fe200f3dfefd486cd30d8cf153`. Fresh PostgreSQL authority, complete
+founder journey, exact replay/concurrency/rollback/hostile finance, real served API,
+responsive Browser/accessibility, full/static/schema/security/gzip and canonical
+referee proofs all passed. Verdict and exact commands/results are recorded in
+`handoff/reviews/171-reservation-folio-journey.md`.
 
 ## Builder evidence — 2026-08-26
 
