@@ -1,6 +1,6 @@
 # Order 184 — Materially distinct operator skins
 
-**Status:** BUILT — exact candidate `9c9ae2d`; independent static approved, independent browser acceptance pending
+**Status:** BUILT — revised product candidate `f55b606`; independent review pending
 **Phase:** 5 · founder-visible operations
 **Branch:** `phase-5/material-theme-skins`
 **Base:** `144753b` (independently approved current local through Order182)
@@ -80,9 +80,25 @@ asset, logo, source or pixel-identical interface is permitted.
 - independent non-implementing reviewer personally executes the visual/accessibility
   matrix before the sole local is replaced.
 
+## Revised founder-reference evidence
+
+- The founder's 16 screenshots are visual references only. No artwork, asset, logo,
+  source or pixel-identical layout was copied.
+- The candidate now changes desktop composition as well as material: horizontal
+  content-first shelves, framed desktop windows, classic/XP task panes, Fluent and
+  glass rails, asymmetric bento grids, editorial Yellow hierarchy and tactile
+  Neo/Skeuo/Clay spacing all remain one ordered semantic DOM.
+- Root browser preflight rendered the working-tree stylesheet over the unchanged sole
+  local page without starting another app. Glass, Windows95 and Yellow screenshots
+  are visibly different; the 16-skin 375px matrix has zero root overflow and 44px
+  minimum visible controls. This is builder evidence, not independent approval.
+- Focused 35/0 with 1,033 assertions, standing 241/0 with 481 database-skipped,
+  typecheck, 66-file boundaries, 23-package licence policy and audit pass. Combined
+  operator gzip is 97,814/98,304 bytes.
+
 ## Definition of done
 
-- [x] Every offered skin is materially distinct and not a color alias.
+- [x] Every offered skin is materially and compositionally distinct, not a color alias.
 - [ ] Existing hotel workflows remain exact in every skin.
 - [ ] Accessibility, responsive, performance and fallback gates pass.
 - [ ] Independent review approves the exact candidate.
