@@ -1,6 +1,6 @@
 # Order 180 — Single current founder local
 
-**Status:** READY — D-461
+**Status:** APPROVED LOCALLY — D-462
 **Phase:** 5 · founder human testing
 **Branch:** `phase-5/single-current-local`
 **Base:** `ad0c895` (independently approved Order179)
@@ -47,8 +47,8 @@ or production deployment is in scope.
 
 ## Definition of done
 
-- [ ] Exactly one healthy current app listens only on 127.0.0.1:3000.
-- [ ] Port3002 is unbound.
-- [ ] Login, Project status and core CRUD proof pass against persistent data.
-- [ ] Private credentials are recoverable by the founder without chat/log exposure.
-- [ ] Independent operational verification approves the local.
+- [x] Exactly one healthy current app listens only on 127.0.0.1:3000.
+- [x] Port3002 is unbound.
+- [x] Login, Project status and core CRUD proof pass against persistent data.
+- [x] Private credentials are recoverable by the founder without chat/log exposure.
+- [x] Independent operational verification approves the local.
