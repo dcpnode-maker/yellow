@@ -30,6 +30,23 @@ export interface FolioStatementMetadata {
   readonly createdAt: string;
 }
 
+export interface FolioSiblingWindow {
+  readonly id: string;
+  readonly windowNo: number;
+  readonly reference: string | null;
+  readonly name: string | null;
+  readonly status: string;
+  readonly balanceMinor: string;
+}
+
+export interface FolioTransferGroup {
+  readonly id: string;
+  readonly memberCount: number;
+  readonly eligible: boolean;
+  readonly reason: string | null;
+  readonly currentWindowId: string;
+}
+
 export interface FolioStatementRow {
   readonly lineId: string;
   readonly journalId: string;
@@ -45,6 +62,7 @@ export interface FolioStatementRow {
   readonly quantity: string;
   readonly amountMinor: string;
   readonly runningBalanceMinor: string;
+  readonly transferGroup: FolioTransferGroup;
 }
 
 export interface FolioChargeOption {
@@ -60,7 +78,10 @@ export interface FolioChargeAvailability {
 
 export interface FolioStatementResult {
   readonly folio: FolioStatementMetadata;
+  readonly siblingWindows: readonly FolioSiblingWindow[];
   readonly balanceMinor: string;
+  readonly stayTotalMinor: string;
+  readonly generation: string;
   readonly lineCount: number;
   readonly rows: readonly FolioStatementRow[];
   readonly chargeOptions: readonly FolioChargeOption[];
@@ -87,6 +108,9 @@ interface StatementSnapshotRow {
   readonly currency: string;
   readonly folio_created_at: string;
   readonly balance_minor: string;
+  readonly stay_total_minor: string;
+  readonly generation: string;
+  readonly sibling_windows: FolioSiblingWindow[];
   readonly line_count: number;
   readonly rows: FolioStatementRow[];
   readonly charge_options: FolioChargeOption[];
@@ -234,6 +258,13 @@ export class FolioStatementService {
   async get(tx: Tx, input: FolioStatementInput): Promise<FolioStatementResult> {
     const normalized = normalize(input);
     const cursor = normalized.cursor;
+    // This projection's tenant/folio cardinality is intentionally parameter-sensitive.
+    // Keep planning transaction-local, avoid cardinality-sensitive nested-loop
+    // amplification, and skip JIT triggered by the deliberately inflated fallback cost.
+    await tx`SELECT
+      set_config('plan_cache_mode', 'force_custom_plan', true),
+      set_config('jit', 'off', true),
+      set_config('enable_nestloop', 'off', true)`;
     const rows = await tx<StatementSnapshotRow[]>`
       WITH resolved AS MATERIALIZED (
         SELECT
@@ -243,6 +274,7 @@ export class FolioStatementService {
           folio.window_no,
           folio.status,
           folio.created_at,
+          folio.reservation_id,
           account.id AS account_id,
           account.role AS account_role,
           account.status AS account_status,
@@ -262,6 +294,88 @@ export class FolioStatementService {
           AND property.id = ${normalized.propertyNode}::uuid
           AND ((${normalized.referenceIsUuid} AND folio.id = ${normalized.referenceUuid}::uuid)
             OR (NOT ${normalized.referenceIsUuid} AND folio.folio_no = ${normalized.reference}))
+      ), journal_line_counts AS MATERIALIZED (
+        SELECT candidate.journal_id, count(*)::int AS line_count
+        FROM posting_line AS candidate
+        WHERE candidate.tenant_id = ${normalized.tenantId}::uuid
+          AND candidate.tenant_id = current_setting('app.tenant_id', true)::uuid
+        GROUP BY candidate.journal_id
+      ), canonical_charge_shapes AS MATERIALIZED (
+        SELECT header.id AS journal_id, true AS canonical_pair
+        FROM resolved
+        JOIN journal AS header
+          ON header.tenant_id = ${normalized.tenantId}::uuid
+         AND header.tenant_id = current_setting('app.tenant_id', true)::uuid
+         AND header.property_node = resolved.property_node
+         AND header.currency = resolved.currency::char(3)
+         AND header.kind = 'charge'
+         AND header.reverses IS NULL
+         AND header.source = '{"interface":"financials.charge.post"}'::jsonb
+        JOIN journal_line_counts AS line_count
+          ON line_count.journal_id = header.id AND line_count.line_count = 2
+        JOIN posting_line AS guest_line
+          ON guest_line.tenant_id = header.tenant_id
+         AND guest_line.journal_id = header.id
+         AND guest_line.seq = 1
+         AND guest_line.account_id = resolved.account_id
+         AND guest_line.folio_id = resolved.id
+         AND guest_line.amount_minor > 0
+         AND guest_line.business_date = header.business_date
+         AND guest_line.currency = header.currency
+         AND guest_line.tax_detail IS NULL
+        JOIN account AS guest_account
+          ON guest_account.tenant_id = guest_line.tenant_id
+         AND guest_account.id = guest_line.account_id
+         AND guest_account.role = 'guest'
+         AND guest_account.property_node = resolved.property_node
+         AND guest_account.currency = resolved.currency::char(3)
+        JOIN posting_line AS revenue_line
+          ON revenue_line.tenant_id = guest_line.tenant_id
+         AND revenue_line.journal_id = guest_line.journal_id
+         AND revenue_line.seq = 2
+         AND revenue_line.account_id <> guest_line.account_id
+         AND revenue_line.folio_id IS NULL
+         AND revenue_line.amount_minor = -guest_line.amount_minor
+         AND revenue_line.tx_code = guest_line.tx_code
+         AND revenue_line.quantity = guest_line.quantity
+         AND revenue_line.description IS NOT DISTINCT FROM guest_line.description
+         AND revenue_line.business_date = header.business_date
+         AND revenue_line.currency = header.currency
+         AND revenue_line.tax_detail IS NULL
+        JOIN account AS revenue_account
+          ON revenue_account.tenant_id = revenue_line.tenant_id
+         AND revenue_account.id = revenue_line.account_id
+         AND revenue_account.role = 'revenue'
+         AND revenue_account.property_node = resolved.property_node
+         AND revenue_account.currency = resolved.currency::char(3)
+      ), relevant_roots AS MATERIALIZED (
+        SELECT DISTINCT COALESCE(line.folio_transfer_root_line_id, line.id) AS root_line_id
+        FROM resolved
+        JOIN posting_line AS line
+          ON line.tenant_id = ${normalized.tenantId}::uuid
+         AND line.tenant_id = current_setting('app.tenant_id', true)::uuid
+         AND line.account_id = resolved.account_id
+         AND line.folio_id = resolved.id
+      ), root_allocations AS MATERIALIZED (
+        SELECT COALESCE(candidate.folio_transfer_root_line_id, candidate.id) AS root_line_id,
+               candidate.folio_id AS current_folio_id,
+               sum(candidate.amount_minor) AS amount_minor
+        FROM resolved
+        JOIN posting_line AS candidate
+          ON candidate.tenant_id = ${normalized.tenantId}::uuid
+         AND candidate.tenant_id = current_setting('app.tenant_id', true)::uuid
+         AND candidate.account_id = resolved.account_id
+         AND candidate.folio_id IS NOT NULL
+        JOIN relevant_roots AS root
+          ON COALESCE(candidate.folio_transfer_root_line_id, candidate.id) = root.root_line_id
+        GROUP BY COALESCE(candidate.folio_transfer_root_line_id, candidate.id), candidate.folio_id
+        HAVING sum(candidate.amount_minor) <> 0
+      ), root_allocation_shapes AS MATERIALIZED (
+        SELECT root_line_id, count(*)::int AS allocation_count,
+               min(current_folio_id::text)::uuid AS current_folio_id,
+               max(amount_minor) AS amount_minor
+        FROM root_allocations
+        GROUP BY root_line_id
       ), ledger AS MATERIALIZED (
         SELECT
           line.id AS line_id,
@@ -271,6 +385,7 @@ export class FolioStatementService {
           header.created_at,
           header.reverses AS reverses_journal_id,
           reversed_by.id AS reversed_by_journal_id,
+          line.folio_transfer_root_line_id,
           line.tx_code,
           line.description,
           line.quantity::text AS quantity,
@@ -290,7 +405,10 @@ export class FolioStatementService {
             WHEN header.kind <> 'charge' OR header.reverses IS NOT NULL
               OR header.source <> '{"interface":"financials.charge.post"}'::jsonb THEN false
             WHEN reversed_by.id IS NOT NULL THEN false
-            WHEN NOT shape.canonical_pair THEN false
+            WHEN NOT COALESCE(shape.canonical_pair, false) THEN false
+            WHEN NOT COALESCE(routing.allocation_count = 1
+              AND routing.current_folio_id = resolved.id
+              AND routing.amount_minor = line.amount_minor, false) THEN false
             ELSE true
           END AS correction_eligible,
           CASE
@@ -304,7 +422,11 @@ export class FolioStatementService {
             WHEN header.kind <> 'charge' OR header.reverses IS NOT NULL
               OR header.source <> '{"interface":"financials.charge.post"}'::jsonb THEN 'not_original_charge'
             WHEN reversed_by.id IS NOT NULL THEN 'already_corrected'
-            WHEN NOT shape.canonical_pair THEN 'inconsistent_posting_set'
+            WHEN NOT COALESCE(shape.canonical_pair, false) THEN 'inconsistent_posting_set'
+            WHEN NOT COALESCE(routing.allocation_count = 1
+              AND routing.current_folio_id = resolved.id
+              AND routing.amount_minor = line.amount_minor, false)
+              THEN 'charge_routed_from_original_folio'
             ELSE NULL
           END AS correction_reason
         FROM resolved
@@ -324,6 +446,10 @@ export class FolioStatementService {
          AND reversed_by.reverses = header.id
          AND reversed_by.property_node = header.property_node
          AND reversed_by.currency = header.currency
+        LEFT JOIN root_allocation_shapes AS routing
+          ON routing.root_line_id = line.id
+        LEFT JOIN canonical_charge_shapes AS shape
+          ON shape.journal_id = header.id
         LEFT JOIN business_day AS current_day
           ON current_day.tenant_id = ${normalized.tenantId}::uuid
          AND current_day.tenant_id = current_setting('app.tenant_id', true)::uuid
@@ -334,51 +460,6 @@ export class FolioStatementService {
          AND original_day.tenant_id = current_setting('app.tenant_id', true)::uuid
          AND original_day.property_node = resolved.property_node
          AND original_day.business_date = header.business_date
-        JOIN LATERAL (
-          SELECT
-            count(*) = 2
-            AND EXISTS (
-              SELECT 1
-                FROM posting_line AS guest_line
-                JOIN account AS guest_account
-                  ON guest_account.tenant_id = guest_line.tenant_id
-                 AND guest_account.id = guest_line.account_id
-                JOIN posting_line AS revenue_line
-                  ON revenue_line.tenant_id = guest_line.tenant_id
-                 AND revenue_line.journal_id = guest_line.journal_id
-                 AND revenue_line.seq = 2
-                JOIN account AS revenue_account
-                  ON revenue_account.tenant_id = revenue_line.tenant_id
-                 AND revenue_account.id = revenue_line.account_id
-               WHERE guest_line.tenant_id = header.tenant_id
-                 AND guest_line.journal_id = header.id
-                 AND guest_line.seq = 1
-                 AND guest_line.account_id = resolved.account_id
-                 AND guest_line.folio_id = resolved.id
-                 AND guest_account.role = 'guest'
-                 AND guest_account.property_node = resolved.property_node
-                 AND guest_account.currency = resolved.currency::char(3)
-                 AND guest_line.amount_minor > 0
-                 AND revenue_line.account_id <> guest_line.account_id
-                 AND revenue_line.folio_id IS NULL
-                 AND revenue_account.role = 'revenue'
-                 AND revenue_account.property_node = resolved.property_node
-                 AND revenue_account.currency = resolved.currency::char(3)
-                 AND revenue_line.amount_minor = -guest_line.amount_minor
-                 AND revenue_line.tx_code = guest_line.tx_code
-                 AND revenue_line.quantity = guest_line.quantity
-                 AND revenue_line.description = guest_line.description
-                 AND guest_line.business_date = header.business_date
-                 AND revenue_line.business_date = header.business_date
-                 AND guest_line.currency = header.currency
-                 AND revenue_line.currency = header.currency
-                 AND guest_line.tax_detail IS NULL
-                 AND revenue_line.tax_detail IS NULL
-            ) AS canonical_pair
-            FROM posting_line AS original
-           WHERE original.tenant_id = header.tenant_id
-             AND original.journal_id = header.id
-        ) AS shape ON true
       ), page AS MATERIALIZED (
         SELECT *
         FROM ledger
@@ -392,6 +473,92 @@ export class FolioStatementService {
         SELECT * FROM page
         ORDER BY business_date DESC, created_at DESC, journal_id DESC, seq DESC
         LIMIT ${normalized.limit}
+      ), visible_group_context AS MATERIALIZED (
+        SELECT visible_page.*,
+               COALESCE(group_original.id, visible_page.journal_id) AS transfer_group_id,
+               group_original.id AS governed_group_id
+        FROM visible_page
+        LEFT JOIN posting_line AS canonical_root
+          ON canonical_root.tenant_id = ${normalized.tenantId}::uuid
+         AND canonical_root.tenant_id = current_setting('app.tenant_id', true)::uuid
+         AND canonical_root.id = COALESCE(visible_page.folio_transfer_root_line_id, visible_page.line_id)
+        LEFT JOIN journal AS canonical_header
+          ON canonical_header.tenant_id = canonical_root.tenant_id
+         AND canonical_header.id = canonical_root.journal_id
+        LEFT JOIN journal AS group_original
+          ON group_original.tenant_id = canonical_header.tenant_id
+         AND group_original.id = CASE
+           WHEN canonical_header.kind = 'adjustment' THEN canonical_header.reverses
+           ELSE canonical_header.id
+         END
+         AND group_original.kind = 'charge'
+         AND group_original.reverses IS NULL
+         AND group_original.source = '{"interface":"financials.charge.post"}'::jsonb
+      ), governed_group_roots AS MATERIALIZED (
+        SELECT original.id AS group_id, original_guest.id AS root_line_id
+        FROM resolved
+        JOIN (SELECT DISTINCT governed_group_id FROM visible_group_context
+              WHERE governed_group_id IS NOT NULL) AS visible_group
+          ON true
+        JOIN journal AS original
+          ON original.tenant_id = ${normalized.tenantId}::uuid
+         AND original.tenant_id = current_setting('app.tenant_id', true)::uuid
+         AND original.id = visible_group.governed_group_id
+         AND original.property_node = resolved.property_node
+         AND original.currency = resolved.currency::char(3)
+        JOIN posting_line AS original_guest
+          ON original_guest.tenant_id = original.tenant_id
+         AND original_guest.journal_id = original.id
+         AND original_guest.seq = 1
+         AND original_guest.account_id = resolved.account_id
+        UNION ALL
+        SELECT original.id, correction_guest.id
+        FROM resolved
+        JOIN (SELECT DISTINCT governed_group_id FROM visible_group_context
+              WHERE governed_group_id IS NOT NULL) AS visible_group
+          ON true
+        JOIN journal AS original
+          ON original.tenant_id = ${normalized.tenantId}::uuid
+         AND original.tenant_id = current_setting('app.tenant_id', true)::uuid
+         AND original.id = visible_group.governed_group_id
+         AND original.property_node = resolved.property_node
+         AND original.currency = resolved.currency::char(3)
+        JOIN journal AS correction
+          ON correction.tenant_id = original.tenant_id
+         AND correction.reverses = original.id
+         AND correction.kind = 'adjustment'
+         AND correction.source = '{"interface":"financials.charge.reverse"}'::jsonb
+        JOIN posting_line AS correction_guest
+          ON correction_guest.tenant_id = correction.tenant_id
+         AND correction_guest.journal_id = correction.id
+         AND correction_guest.seq = 1
+         AND correction_guest.account_id = resolved.account_id
+      ), transfer_group_shapes AS MATERIALIZED (
+        SELECT roots.group_id, count(*)::int AS member_count,
+               count(*) BETWEEN 1 AND 2
+                 AND bool_and(allocation.allocation_count = 1
+                   AND allocation.current_folio_id = resolved.id) AS eligible,
+               CASE
+                 WHEN count(*) NOT BETWEEN 1 AND 2 THEN 'inconsistent_group_members'
+                 WHEN NOT bool_and(allocation.allocation_count = 1) THEN 'split_group_allocation'
+                 WHEN NOT bool_and(allocation.current_folio_id = resolved.id) THEN 'group_in_another_window'
+                 ELSE NULL
+               END AS reason
+        FROM resolved
+        JOIN governed_group_roots AS roots ON true
+        LEFT JOIN root_allocation_shapes AS allocation
+          ON allocation.root_line_id = roots.root_line_id
+        GROUP BY roots.group_id
+      ), routed_visible_page AS MATERIALIZED (
+        SELECT visible.*,
+               COALESCE(group_shape.member_count, 0) AS transfer_member_count,
+               COALESCE(group_shape.eligible, false) AS transfer_eligible,
+               COALESCE(group_shape.reason, 'not_governed_charge_group') AS transfer_reason,
+               resolved.id AS transfer_current_window_id
+        FROM resolved
+        JOIN visible_group_context AS visible ON true
+        LEFT JOIN transfer_group_shapes AS group_shape
+          ON group_shape.group_id = visible.governed_group_id
       ), applicable_options AS MATERIALIZED (
         SELECT code.code, code.name, code.usali_line
         FROM resolved
@@ -438,6 +605,17 @@ export class FolioStatementService {
          AND day.tenant_id = current_setting('app.tenant_id', true)::uuid
          AND day.property_node = resolved.property_node
          AND day.business_date = resolved.current_business_date
+      ), family AS MATERIALIZED (
+        SELECT sibling.id, sibling.window_no, sibling.folio_no, sibling.name, sibling.status,
+               COALESCE(balance.balance_minor, 0)::text AS balance_minor
+        FROM resolved
+        JOIN folio AS sibling
+          ON sibling.tenant_id = ${normalized.tenantId}::uuid
+         AND sibling.tenant_id = current_setting('app.tenant_id', true)::uuid
+         AND sibling.reservation_id IS NOT DISTINCT FROM resolved.reservation_id
+         AND sibling.account_id = resolved.account_id
+        LEFT JOIN folio_balance AS balance
+          ON balance.tenant_id = sibling.tenant_id AND balance.folio_id = sibling.id
       )
       SELECT
         resolved.id AS folio_id,
@@ -448,6 +626,22 @@ export class FolioStatementService {
         resolved.currency,
         to_char(resolved.created_at AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"') AS folio_created_at,
         COALESCE((SELECT sum(amount_minor::numeric)::text FROM ledger), '0') AS balance_minor,
+        COALESCE((SELECT sum(balance_minor::numeric)::text FROM family), '0') AS stay_total_minor,
+        md5(
+          COALESCE((SELECT string_agg(id::text || ':' || window_no::text || ':' || balance_minor,
+            '|' ORDER BY window_no, id) FROM family), '')
+        ) AS generation,
+        COALESCE((
+          SELECT jsonb_agg(jsonb_build_object(
+            'id', id,
+            'windowNo', window_no,
+            'reference', folio_no,
+            'name', name,
+            'status', status,
+            'balanceMinor', balance_minor
+          ) ORDER BY window_no, id)
+          FROM family
+        ), '[]'::jsonb) AS sibling_windows,
         (SELECT count(*)::int FROM ledger) AS line_count,
         COALESCE((
           SELECT jsonb_agg(jsonb_build_object(
@@ -464,9 +658,16 @@ export class FolioStatementService {
             'description', description,
             'quantity', quantity,
             'amountMinor', amount_minor,
-            'runningBalanceMinor', running_balance_minor
+            'runningBalanceMinor', running_balance_minor,
+            'transferGroup', jsonb_build_object(
+              'id', transfer_group_id,
+              'memberCount', transfer_member_count,
+              'eligible', transfer_eligible,
+              'reason', transfer_reason,
+              'currentWindowId', transfer_current_window_id
+            )
           ) ORDER BY business_date DESC, created_at DESC, journal_id DESC, seq DESC)
-          FROM visible_page
+          FROM routed_visible_page
         ), '[]'::jsonb) AS rows,
         COALESCE((
           SELECT jsonb_agg(jsonb_build_object(
@@ -519,7 +720,10 @@ export class FolioStatementService {
         currency: snapshot.currency,
         createdAt: snapshot.folio_created_at,
       }),
+      siblingWindows: Object.freeze(snapshot.sibling_windows.map((sibling) => Object.freeze(sibling))),
       balanceMinor: snapshot.balance_minor,
+      stayTotalMinor: snapshot.stay_total_minor,
+      generation: snapshot.generation,
       lineCount: snapshot.line_count,
       rows: Object.freeze(snapshot.rows.map((row) => Object.freeze(row))),
       chargeOptions: Object.freeze(snapshot.charge_options.map((option) => Object.freeze(option))),

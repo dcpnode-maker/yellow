@@ -71,6 +71,7 @@ interface OriginalJournalRow {
 }
 
 interface OriginalLineRow {
+  readonly id: string;
   readonly seq: number;
   readonly account_id: string;
   readonly folio_id: string | null;
@@ -84,6 +85,7 @@ interface OriginalLineRow {
   readonly account_role: string;
   readonly account_property_node: string | null;
   readonly account_currency: string;
+  readonly folio_transfer_root_line_id: string | null;
 }
 
 interface CorrectionBody extends Readonly<Record<string, JsonValue>> {
@@ -277,9 +279,10 @@ export class ChargeCorrectionService {
         }
 
         const discoveredLines = await commandTx<OriginalLineRow[]>`
-          SELECT line.seq::int, line.account_id, line.folio_id, line.tx_code,
+          SELECT line.id, line.seq::int, line.account_id, line.folio_id, line.tx_code,
                  line.description, line.amount_minor::text, line.quantity::text, line.tax_detail,
                  line.business_date::text, line.currency::text,
+                 line.folio_transfer_root_line_id,
                  account.role AS account_role, account.property_node AS account_property_node,
                  account.currency::text AS account_currency
             FROM posting_line AS line
@@ -294,11 +297,22 @@ export class ChargeCorrectionService {
             !accountIds.includes(folio.account_id)) {
           throw new ChargeCorrectionConflictError("Original charge posting set is inconsistent");
         }
+        const discoveredGuestRoot = discoveredLines[0]?.id;
+        if (!discoveredGuestRoot || !UUID.test(discoveredGuestRoot)) {
+          throw new ChargeCorrectionConflictError("Original charge root is invalid");
+        }
         await commandTx`
           SELECT public.lock_financial_rows(
             ${normalized.tenantId}::uuid,
             ARRAY[${accountIds[0]}::uuid, ${accountIds[1]}::uuid]::uuid[],
             ${normalized.folioId}::uuid
+          )
+        `;
+        await commandTx`
+          SELECT pg_catalog.pg_advisory_xact_lock(
+            pg_catalog.hashtextextended(
+              ${`${normalized.tenantId}:folio-transfer-root:${discoveredGuestRoot}`}, 188
+            )
           )
         `;
         const lockedFolio = (await commandTx<FolioContextRow[]>`
@@ -366,9 +380,10 @@ export class ChargeCorrectionService {
         }
 
         const lines = await commandTx<OriginalLineRow[]>`
-          SELECT line.seq::int, line.account_id, line.folio_id, line.tx_code,
+          SELECT line.id, line.seq::int, line.account_id, line.folio_id, line.tx_code,
                  line.description, line.amount_minor::text, line.quantity::text, line.tax_detail,
                  line.business_date::text, line.currency::text,
+                 line.folio_transfer_root_line_id,
                  account.role AS account_role, account.property_node AS account_property_node,
                  account.currency::text AS account_currency
             FROM posting_line AS line
@@ -384,6 +399,7 @@ export class ChargeCorrectionService {
         const revenueAmount = revenueLine ? BigInt(revenueLine.amount_minor) : 0n;
         const canonicalPair = guestLine !== undefined && revenueLine !== undefined &&
           guestLine.seq === 1 && revenueLine.seq === 2 &&
+          guestLine.folio_transfer_root_line_id === null && revenueLine.folio_transfer_root_line_id === null &&
           guestLine.account_id === lockedFolio.account_id && guestLine.folio_id === normalized.folioId &&
           guestLine.account_role === "guest" && guestLine.account_property_node === lockedFolio.property_node &&
           guestLine.account_currency === lockedFolio.currency && guestAmount > 0n &&
@@ -401,6 +417,25 @@ export class ChargeCorrectionService {
             lineAccounts.length !== accountIds.length ||
             lineAccounts.some((account, index) => account !== accountIds[index]) || !balanced) {
           throw new ChargeCorrectionConflictError("Original charge posting set is incomplete or inconsistent");
+        }
+
+        const allocations = await commandTx<Array<{ folio_id: string; amount_minor: string }>>`
+          SELECT candidate.folio_id, sum(candidate.amount_minor)::text AS amount_minor
+          FROM posting_line AS candidate
+          WHERE candidate.tenant_id=${normalized.tenantId}::uuid
+            AND candidate.tenant_id=current_setting('app.tenant_id', true)::uuid
+            AND candidate.account_id=${lockedFolio.account_id}::uuid
+            AND COALESCE(candidate.folio_transfer_root_line_id,candidate.id)=${guestLine.id}::uuid
+            AND candidate.folio_id IS NOT NULL
+          GROUP BY candidate.folio_id
+          HAVING sum(candidate.amount_minor)<>0
+          ORDER BY candidate.folio_id
+        `;
+        if (allocations.length !== 1 || allocations[0]?.folio_id !== normalized.folioId ||
+            allocations[0].amount_minor !== guestLine.amount_minor) {
+          throw new ChargeCorrectionConflictError(
+            "Charge must be fully restored to its original folio before correction",
+          );
         }
 
         const requiredDateValues = [...new Set([

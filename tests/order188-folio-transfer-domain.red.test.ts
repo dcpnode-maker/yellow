@@ -47,7 +47,7 @@ describe("Order 188 P0 immutable whole-group routing domain", () => {
 
     expect(source).toContain("export interface FolioSiblingWindow");
     expect(source).toContain("export interface FolioTransferGroup");
-    expect(source).toContain("readonly siblings: readonly FolioSiblingWindow[]");
+    expect(source).toContain("readonly siblingWindows: readonly FolioSiblingWindow[]");
     expect(source).toContain("readonly stayTotalMinor: string");
     expect(source).toContain("readonly transferGroup: FolioTransferGroup");
     expect(source).toContain("readonly memberCount: number");

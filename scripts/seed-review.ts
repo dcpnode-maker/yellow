@@ -43,6 +43,7 @@ export const REVIEW_PERMISSIONS = Object.freeze([
   { code: "financials.adjustments:write", description: "Create governed immutable folio adjustments" },
   { code: "financials.folios:open", description: "Open reservation primary folios" },
   { code: "financials.folios:read", description: "Read property folio statements" },
+  { code: "financials.transfers:write", description: "Preview and commit governed folio transfers" },
   { code: REVIEW_PERMISSION, description: "Read tenant-scoped truth availability" },
   { code: "inventory.blocks:read", description: "Read tenant-scoped operational blocks" },
   { code: "inventory.blocks:write", description: "Open and close tenant-scoped operational blocks" },

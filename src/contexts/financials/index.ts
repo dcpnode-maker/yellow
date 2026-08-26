@@ -7,9 +7,25 @@ export {
 export type {
   FolioEligibleReservationStatus,
   FolioServiceOptions,
+  OpenAdditionalFolioInput,
+  OpenAdditionalFolioResult,
   OpenPrimaryFolioInput,
   OpenPrimaryFolioResult,
 } from "./folios";
+
+export {
+  FolioTransferConflictError,
+  FolioTransferNotFoundError,
+  FolioTransferService,
+  FolioTransferValidationError,
+} from "./transfers";
+export type {
+  FolioTransferInput,
+  FolioTransferMemberEffect,
+  FolioTransferPreviewResult,
+  FolioTransferResult,
+  FolioTransferServiceOptions,
+} from "./transfers";
 
 export {
   ChargeConflictError,
@@ -48,4 +64,6 @@ export type {
   FolioStatementMetadata,
   FolioStatementResult,
   FolioStatementRow,
+  FolioSiblingWindow,
+  FolioTransferGroup,
 } from "./statements";

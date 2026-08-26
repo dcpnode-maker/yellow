@@ -138,7 +138,9 @@ describe("Order 105 operator folio workbench", () => {
   });
 
   test("Order 183 P3: correction UI uses server eligibility, exact BigInt preview and immutable language", () => {
-    expect(html).toContain('id="folio-tab-correction"');
+    expect(html).not.toContain('id="folio-tab-correction"');
+    expect(html).toContain('id="folio-correction-panel" hidden aria-labelledby="folio-correction-heading"');
+    expect(script).toContain('action.textContent = "Correct a wrong charge"');
     expect(html).toContain('id="folio-correction-reason" name="reason" required minlength="1" maxlength="500"');
     expect(html).toContain("new immutable balanced adjustment and does not edit or delete the original");
     const render = functionSlice("renderFolioRows", "renderFolioChargeOptions");

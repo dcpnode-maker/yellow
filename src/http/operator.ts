@@ -20,6 +20,10 @@ import {
   FolioConflictError,
   FolioNotFoundError,
   FolioService,
+  FolioTransferConflictError,
+  FolioTransferNotFoundError,
+  FolioTransferService,
+  FolioTransferValidationError,
   FolioStatementNotFoundError,
   FolioStatementService,
   FolioStatementValidationError,
@@ -153,6 +157,7 @@ const PARTY_READ_SCOPE = "crm.parties:read";
 const PARTY_WRITE_SCOPE = "crm.parties:write";
 const FOLIO_READ_SCOPE = "financials.folios:read";
 const FOLIO_OPEN_SCOPE = "financials.folios:open";
+const FOLIO_TRANSFER_SCOPE = "financials.transfers:write";
 const CHARGE_WRITE_SCOPE = "financials.charges:write";
 const ADJUSTMENT_WRITE_SCOPE = "financials.adjustments:write";
 const ADJUSTMENT_POST_SEAL_SCOPE = "financials.adjustments:post-seal";
@@ -202,6 +207,49 @@ interface CorrectionDraft {
   readonly reversesJournalId: string;
   readonly reason: string;
   readonly idempotencyKey: string;
+}
+
+const FOLIO_TRANSFER_FIELDS = ["sourceFolioId", "destinationFolioId", "newWindowName", "groupIds", "reason", "generation", "previewRevision"] as const;
+const FOLIO_TRANSFER_REVISION = /^[A-Za-z0-9_-]{1,512}$/;
+
+interface FolioTransferDraft {
+  readonly sourceFolioId: string;
+  readonly destinationFolioId?: string;
+  readonly newWindowName?: string;
+  readonly groupIds: readonly string[];
+  readonly reason: string;
+  readonly generation: string;
+  readonly previewRevision: string;
+}
+
+function parseFolioTransfer(body: unknown): FolioTransferDraft | null {
+  if (!isObject(body) || !exactKeys(body, [...FOLIO_TRANSFER_FIELDS])) return null;
+  const originId = body[FOLIO_TRANSFER_FIELDS[0]];
+  const destinationId = body[FOLIO_TRANSFER_FIELDS[1]];
+  const destinationName = body[FOLIO_TRANSFER_FIELDS[2]];
+  const groups = body[FOLIO_TRANSFER_FIELDS[3]];
+  const reason = body[FOLIO_TRANSFER_FIELDS[4]];
+  const generation = body[FOLIO_TRANSFER_FIELDS[5]];
+  const revision = body[FOLIO_TRANSFER_FIELDS[6]];
+  if (typeof originId !== "string" || !UUID.test(originId) ||
+      (destinationId !== null && (typeof destinationId !== "string" || !UUID.test(destinationId))) ||
+      (destinationName !== null && (typeof destinationName !== "string" ||
+        destinationName !== destinationName.trim() || destinationName.length < 1 || destinationName.length > 80)) ||
+      (destinationId === null) === (destinationName === null) ||
+      !Array.isArray(groups) || groups.length < 1 || groups.length > 50 ||
+      groups.some((id) => typeof id !== "string" || !UUID.test(id)) || new Set(groups).size !== groups.length ||
+      typeof reason !== "string" || reason !== reason.trim() || reason.length < 1 || reason.length > 500 ||
+      typeof generation !== "string" || !FOLIO_TRANSFER_REVISION.test(generation) ||
+      typeof revision !== "string" || (revision.length > 0 && !FOLIO_TRANSFER_REVISION.test(revision))) return null;
+  return Object.freeze({
+    [FOLIO_TRANSFER_FIELDS[0]]: originId,
+    ...(destinationId === null ? {} : { [FOLIO_TRANSFER_FIELDS[1]]: destinationId }),
+    ...(destinationName === null ? {} : { [FOLIO_TRANSFER_FIELDS[2]]: destinationName }),
+    [FOLIO_TRANSFER_FIELDS[3]]: Object.freeze([...groups] as string[]),
+    [FOLIO_TRANSFER_FIELDS[4]]: reason,
+    [FOLIO_TRANSFER_FIELDS[5]]: generation,
+    [FOLIO_TRANSFER_FIELDS[6]]: revision,
+  }) as unknown as FolioTransferDraft;
 }
 
 function parseCharge(request: Request, body: unknown): ChargeDraft | null {
@@ -899,7 +947,8 @@ type PartyOperations = Pick<PartyProfileService, "search" | "create">;
 type FolioStatementOperations = Pick<FolioStatementService, "get">;
 type ChargeOperations = Pick<ChargeService, "postCharge">;
 type ChargeCorrectionOperations = Pick<ChargeCorrectionService, "reverseCharge">;
-type FolioOperations = Pick<FolioService, "openPrimary">;
+type FolioOperations = Pick<FolioService, "openPrimary" | "openAdditional">;
+type FolioTransferOperations = Pick<FolioTransferService, "preview" | "transfer">;
 
 const MAX_MONEY = 9_223_372_036_854_775_807n;
 
@@ -1286,6 +1335,7 @@ export class OperatorHttpApi {
   readonly #charges?: ChargeOperations;
   readonly #chargeCorrections?: ChargeCorrectionOperations;
   readonly #folios?: FolioOperations;
+  readonly #folioTransfers?: FolioTransferOperations;
 
   constructor(
     login: LocalLoginService,
@@ -1313,6 +1363,7 @@ export class OperatorHttpApi {
     reservationDetail?: ReservationDetailOperations,
     folios?: FolioOperations,
     chargeCorrections?: ChargeCorrectionOperations,
+    folioTransfers?: FolioTransferOperations,
   ) {
     this.#login = login;
     this.#availability = availability;
@@ -1339,6 +1390,7 @@ export class OperatorHttpApi {
     this.#reservationDetail = reservationDetail;
     this.#folios = folios;
     this.#chargeCorrections = chargeCorrections;
+    this.#folioTransfers = folioTransfers;
   }
 
   unavailable(request: Request): Response {
@@ -1351,15 +1403,20 @@ export class OperatorHttpApi {
 
   failure(request: Request, error: unknown): Response {
     if (error instanceof FolioValidationError || error instanceof FolioStatementValidationError ||
-        error instanceof ChargeValidationError || error instanceof ChargeCorrectionValidationError) {
+        error instanceof ChargeValidationError || error instanceof ChargeCorrectionValidationError ||
+        error instanceof FolioTransferValidationError) {
       return apiError(request, 400, "request/invalid", "Invalid request", "Financial input is invalid");
     }
     if (error instanceof FolioNotFoundError || error instanceof FolioStatementNotFoundError ||
-        error instanceof ChargeNotFoundError || error instanceof ChargeCorrectionNotFoundError) {
+        error instanceof ChargeNotFoundError || error instanceof ChargeCorrectionNotFoundError ||
+        error instanceof FolioTransferNotFoundError) {
       return apiError(request, 404, "financials/not_found", "Not found", "The requested folio or charge configuration was not found");
     }
     if (error instanceof FolioConflictError) {
       return apiError(request, 409, "financials/conflict", "Conflict", "The primary folio conflicts with current financial state");
+    }
+    if (error instanceof FolioTransferConflictError) {
+      return apiError(request, 409, "financials/conflict", "Conflict", "The folio transfer conflicts with current financial state");
     }
     if (error instanceof ChargeConflictError) {
       return apiError(request, 409, "financials/conflict", "Conflict", "The charge conflicts with current financial state");
@@ -1603,6 +1660,109 @@ export class OperatorHttpApi {
     return apiResponse(context.request, canonicalJson(jsonValue(response)), result.changed ? 201 : 200, {
       "idempotency-replayed": String(result.replayed),
       "x-correlation-id": requestId,
+    });
+  }
+
+  async openAdditionalFolio(
+    context: TenantRequestContext,
+    propertyNode: string,
+    reservationId: string,
+    body: unknown,
+  ): Promise<Response> {
+    if (!hasScope(context, FOLIO_OPEN_SCOPE)) {
+      return apiError(context.request, 403, "auth/scope_missing", "Forbidden", "Folio window creation is not granted");
+    }
+    if (!UUID.test(propertyNode) || !UUID.test(reservationId) || !isObject(body) ||
+        !exactKeys(body, ["sourceFolioId", "name"]) || typeof body.sourceFolioId !== "string" ||
+        !UUID.test(body.sourceFolioId) || typeof body.name !== "string" || body.name !== body.name.trim() ||
+        body.name.length < 1 || body.name.length > 80) {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Additional folio input is invalid");
+    }
+    const idempotencyKey = context.request.headers.get("idempotency-key");
+    if (!idempotencyKey || !IDEMPOTENCY_KEY.test(idempotencyKey)) {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Additional folio input is invalid");
+    }
+    const grants = await listGrantedProperties(context, FOLIO_OPEN_SCOPE);
+    if (!grants.some(({ id }) => id === propertyNode)) {
+      return apiError(context.request, 403, "auth/property_forbidden", "Forbidden", "Property access is not granted");
+    }
+    if (!this.#folios) return this.unavailable(context.request);
+    const requestId = correlationId(context.request);
+    const result = await this.#folios.openAdditional(context.tx, {
+      tenantId: context.tenantId,
+      reservationId,
+      sourceFolioId: body.sourceFolioId,
+      name: body.name,
+      idempotencyKey,
+      envelope: createAuditEnvelope({ actorId: context.identity.actorId, tenantId: context.tenantId,
+        propertyNode, requestId, operation: "folio.opened" }),
+    });
+    return apiResponse(context.request, canonicalJson(jsonValue(result)), 201, {
+      "idempotency-replayed": String(result.replayed), "x-correlation-id": requestId,
+    });
+  }
+
+  async previewFolioTransfer(
+    context: TenantRequestContext,
+    propertyNode: string,
+    folioId: string,
+    body: unknown,
+  ): Promise<Response> {
+    if (!hasScope(context, FOLIO_TRANSFER_SCOPE)) {
+      return apiError(context.request, 403, "auth/scope_missing", "Forbidden", "Folio transfer access is not granted");
+    }
+    if (!UUID.test(propertyNode) || !UUID.test(folioId)) {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Property or folio identifier is invalid");
+    }
+    const input = parseFolioTransfer(body);
+    if (!input || input.sourceFolioId !== folioId) {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Folio transfer input is invalid");
+    }
+    const grants = await listGrantedProperties(context, FOLIO_TRANSFER_SCOPE);
+    if (!grants.some(({ id }) => id === propertyNode)) {
+      return apiError(context.request, 403, "auth/property_forbidden", "Forbidden", "Property access is not granted");
+    }
+    if (!this.#folioTransfers) return this.unavailable(context.request);
+    const requestId = correlationId(context.request);
+    const result = await this.#folioTransfers.preview(context.tx, {
+      tenantId: context.tenantId, ...input, idempotencyKey: `folio-transfer-preview:${requestId}`,
+      envelope: createAuditEnvelope({ actorId: context.identity.actorId, tenantId: context.tenantId,
+        propertyNode, requestId, operation: "journal.posted" }),
+    });
+    return apiResponse(context.request, canonicalJson(jsonValue(result)));
+  }
+
+  async transferFolioGroups(
+    context: TenantRequestContext,
+    propertyNode: string,
+    folioId: string,
+    body: unknown,
+  ): Promise<Response> {
+    if (!hasScope(context, FOLIO_TRANSFER_SCOPE)) {
+      return apiError(context.request, 403, "auth/scope_missing", "Forbidden", "Folio transfer access is not granted");
+    }
+    if (!UUID.test(propertyNode) || !UUID.test(folioId)) {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Property or folio identifier is invalid");
+    }
+    const input = parseFolioTransfer(body);
+    const idempotencyKey = context.request.headers.get("idempotency-key");
+    if (!input || input.sourceFolioId !== folioId || input.previewRevision.length === 0 ||
+        !idempotencyKey || !IDEMPOTENCY_KEY.test(idempotencyKey)) {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Folio transfer input is invalid");
+    }
+    const grants = await listGrantedProperties(context, FOLIO_TRANSFER_SCOPE);
+    if (!grants.some(({ id }) => id === propertyNode)) {
+      return apiError(context.request, 403, "auth/property_forbidden", "Forbidden", "Property access is not granted");
+    }
+    if (!this.#folioTransfers) return this.unavailable(context.request);
+    const requestId = correlationId(context.request);
+    const result = await this.#folioTransfers.transfer(context.tx, {
+      tenantId: context.tenantId, ...input, idempotencyKey,
+      envelope: createAuditEnvelope({ actorId: context.identity.actorId, tenantId: context.tenantId,
+        propertyNode, requestId, operation: "journal.posted" }),
+    });
+    return apiResponse(context.request, canonicalJson(jsonValue(result)), 201, {
+      "idempotency-replayed": String(result.replayed), "x-correlation-id": requestId,
     });
   }
 

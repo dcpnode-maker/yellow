@@ -120,6 +120,11 @@ export function createApp(options: AppOptions = {}) {
           context, params.property, params.reservation, body,
         ))
       )
+      .post("/api/v1/properties/:property/reservations/:reservation/folios", ({ request, params, body, tenantContext }) =>
+        withOperatorTenant(request, (context) => operator.openAdditionalFolio(
+          context, params.property, params.reservation, body,
+        ))
+      )
       .post("/api/v1/properties/:property/folios/:folioId/charges", ({ request, params, body, tenantContext }) =>
         withOperatorTenant(request, (context) => operator.postFolioCharge(
           context, params.property, params.folioId, body,
@@ -127,6 +132,16 @@ export function createApp(options: AppOptions = {}) {
       )
       .post("/api/v1/properties/:property/folios/:folioId/adjustments", ({ request, params, body, tenantContext }) =>
         withOperatorTenant(request, (context) => operator.correctFolioCharge(
+          context, params.property, params.folioId, body,
+        ))
+      )
+      .post("/api/v1/properties/:property/folios/:folioId/transfers:preview", ({ request, params, body, tenantContext }) =>
+        withOperatorTenant(request, (context) => operator.previewFolioTransfer(
+          context, params.property, params.folioId, body,
+        ))
+      )
+      .post("/api/v1/properties/:property/folios/:folioId/transfers", ({ request, params, body, tenantContext }) =>
+        withOperatorTenant(request, (context) => operator.transferFolioGroups(
           context, params.property, params.folioId, body,
         ))
       )

@@ -239,6 +239,28 @@ server-derived `correctionEligible`/`correctionReason` per row. Partial correcti
 transfer/routing, additional windows, tax, payment, settlement, fiscal documents and
 checkout remain outside this slice.
 
+Order 188 multi-window contract: `FolioService.openAdditional(tx,input)` accepts an
+exact source folio, bounded unique window name, idempotency key and server audit
+envelope. It serializes the same reservation/account family, derives the next window
+number and non-fiscal folio reference, and creates at most 20 open presentation windows
+over the same guest account, reservation, property and currency. The existing
+`financials.folios:open` property grant authorizes this command.
+
+`FolioTransferService.preview/transfer` accepts one source folio, one existing sibling
+or one new-window name, 1–50 opaque server group ids, a visible bounded reason,
+generation and preview revision. It never accepts amount, account, date, currency,
+journal kind or authority. Preview returns exact server-derived before/after window
+balances and an unchanged stay total. Commit requires property grant
+`financials.transfers:write`, durable idempotency and a fresh preview, then invokes the
+bounded owner capability once. Each whole group appends one balanced `transfer` journal
+with typed root lineage and equal/opposite guest-account folio lines; original charge
+and correction bytes never change. A corrected original/contra pair is indivisible.
+Transfer/correction races have one coherent winner. The safe statement projection adds
+only sibling-window display metadata and server-owned group metadata; it exposes no
+account, Party or PII and the browser performs no money math. These windows organize
+later document inputs only: company debtors, AR, tax/fiscal issue, legal invoice buyer,
+numbering, printing, payment and settlement remain separate contracts.
+
 Implemented operator statement slice: `FolioStatementService.get(tx, input)` resolves
 one tenant/property folio by UUID or strict human reference and returns one PostgreSQL
 snapshot containing safe folio metadata, exact signed decimal-string server balance and

@@ -1,6 +1,6 @@
 # Order 188 — Multi-window folio routing
 
-**Status:** READY — D-492
+**Status:** READY — D-492 / founder visual corrections D-493–D-495
 **Phase:** 5 · folios, postings and settlement
 **Branch:** `phase-5/folio-charge-correction-resumed`
 **Base:** `29f8489` (Order187 static-approved/browser-pending governance head)
@@ -40,8 +40,8 @@ invariants and is forbidden.
 - existing operator HTML, CSS and JavaScript for one multi-window workbench;
 - canonical review seed permission additions only;
 - focused domain, HTTP, authority, UI, accessibility and founder-journey tests;
-- contracts/UI specification/Phase-5 plan, this order, decision/ledger and independent
-  review evidence.
+- contracts/UI specification/Phase-5 plan, `docs/DESIGN.md`, this order,
+  decision/ledger and independent review evidence.
 
 No file outside the exact paths named by the committed order may change without a
 written question and additive decision.
@@ -143,9 +143,59 @@ coherent outcome.
    route/back/sign-out/beforeunload exits guard dirty drafts. Failed writes retain the
    key and focus the error. Stale responses paint and navigate nothing. Success
    refreshes server truth, announces globally and focuses the new/target window.
-7. Appearances remain exactly Apple, Android, Win95/98 and Glass. Motion is bounded
-   transform/opacity spatial continuity, interruptible, at most 400ms, with immediate
-   reduced-motion, coarse-pointer, forced-colour and no-backdrop fallbacks.
+7. D-494 supersedes D-493's temporary three-value catalogue. Appearances are exactly
+   Apple iOS, Android 17 / native Pixel, Windows 95/98, Glassmorphism and Neomorphism.
+   Apple remains the fail-closed default. A skin is a complete composition, control,
+   depth and motion system, never a palette alias.
+
+## Founder visual correction — D-493
+
+The current approved local and static Order187 candidate are not accepted as the final
+visual standard. D-494 supersedes only D-493's temporary catalogue reduction; all
+quality, performance and proof requirements remain. Order188 must prove five original
+Yellow systems:
+
+1. **Apple iOS** — content-first reduction, native system typography, large-title to
+   compact-title continuity, grouped/inset planes, precise icon-only system controls,
+   spring-like navigation, tactile press states and a spatial sheet/workbench model.
+   It must feel like a current first-party Apple operations application, not rounded
+   white ERP cards.
+2. **Android 17 / native Pixel** — current Pixel information architecture, edge-to-edge
+   adaptive layout, Material 3 Expressive shape and motion hierarchy, tonal surfaces,
+   predictive-back continuity, 48dp controls, state layers, navigation rail/bar
+   adaptation and native-feeling emphasized/decelerated easing. It must not be Apple
+   with Pixel colours or generic Material cards.
+3. **Windows 95/98** — authentic desktop grammar: taskbar/start affordance, application
+   title bar, menu strip, overlapping/inset MDI work areas, system-grey controls,
+   exact light/dark bevels, dotted focus, pressed pixels, classic status bar and
+   immediate no-easing interaction. It must not be modern cards with square corners.
+4. **Glassmorphism** — a luminous spatial environment rather than transparent cards: original
+   layered ambient scene, stable refractive shell, three visibly separated depth
+   planes, edge/specular light, subtle parallax at point of intent, document-to-detail
+   continuity and dense opaque financial glass. Backdrop blur supports hierarchy but
+   never constitutes the design by itself.
+5. **Neomorphism** — a dedicated tactile environment with one coherent virtual light
+   source, concave/convex control states, pressed wells, raised command clusters,
+   restrained low-chroma surfaces and unmistakable focus/error/disabled semantics.
+   Depth communicates function; shadows never replace borders, contrast or hierarchy.
+6. Native CSS perspective, View Transitions and Web Animations may be used with
+   feature-detected fallbacks. A dependency, WebGL or external asset is admitted only
+   if executable evidence proves native technology cannot meet the result and the
+   added cost remains within Yellow's low-latency/offline/security boundaries. No such
+   dependency is presumed by this decision.
+7. Interaction must remain smooth at a measured 60fps target on the founder laptop:
+   transform/opacity only during routine transitions, no layout thrash or animated
+   blur, no long task over 50ms, no permanent GPU hint, full interruption and exact
+   reduced-motion/coarse-pointer/forced-colour/no-backdrop fallbacks.
+8. Settled screenshots and recorded transitions at authenticated real workflows—not
+   isolated mock cards—must make the five products recognizably different with the
+   colours removed. Theme switching preserves route, property, window, draft, preview,
+   idempotency and logical focus.
+9. D-495 admits one canonical `docs/DESIGN.md` evidence and implementation atlas. It
+   maps the founder-supplied screenshots and both local reference videos to original
+   Yellow composition, control, depth, motion, accessibility and performance rules;
+   it may link public source pages but must not copy or commit third-party assets,
+   duplicate the supplied media, or expand product authority.
 
 ## Required intentional red and executable proof
 
@@ -170,7 +220,7 @@ coherent outcome.
   the same command bytes; no Party/PII/account leak or client money math.
 - **P7 real browser:** keyboard create/move/correct/isolate and pointer review;
   retry/same-key, stale, back/refresh, draft/focus/theme/detail preservation at
-  375/768/1024/1440, 200%, reduced motion and forced colours; four appearances × three
+  375/768/1024/1440, 200%, reduced motion and forced colours; five appearances × three
   details; 44px targets, no root overflow or runtime/request error.
 - **P8 complete gates:** focused/standing suites, typecheck, boundaries, licences,
   audit, protected hashes, exact schema/database acceptance and fresh referee 11/11.

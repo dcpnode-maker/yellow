@@ -51,9 +51,16 @@ CONTRACTS.md endpoint — no palette-only capabilities.
 3. **Reservation drawer** — summary, stay dates, guests, rate, policies, alerts;
    actions per state machine (buttons render from the transition table, disabled
    with reason if guard fails).
-4. **Folio workbench** — postings ledger (immutable rows), windows/tabs per folio,
-   transfer by drag, adjustment = guided reversal flow (reason → approval if over
-   threshold), settle → payment state machine.
+4. **Folio workbench** — one immutable postings workspace with a roving tablist of
+   server-owned Business, Personal, Corrections or custom windows. Statement, Add
+   charge and Organize charges are inline tasks. Organize selects whole server groups,
+   one sibling destination, reason, server preview and acknowledgement before a new
+   balanced transfer is appended. Drag in Advanced/Expert only populates that review;
+   keyboard/buttons are complete equivalents. Correction is contextual from an
+   eligible row and appends a contra; a corrected pair moves only as one group. Simple
+   presents View bill, Separate charges and Correct a wrong charge. One global live
+   region reports completion after hidden panels change. No browser money arithmetic,
+   invoice/print claim or editable financial history.
 5. **Availability & rates workbench** — calendar per unit_type: price, restrictions,
    overbooking limit; bulk edit by drag-select; bitemporal "as of" viewer.
 6. **Day-close readiness dashboard** — the checklist as live tiles (open cashier

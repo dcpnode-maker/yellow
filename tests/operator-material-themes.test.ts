@@ -5,7 +5,7 @@ const cssFile = new URL("../src/http/operator/operator.css", import.meta.url);
 const scriptFile = new URL("../src/http/operator/operator.js", import.meta.url);
 
 const themes = [
-  "apple", "android", "win95", "glass",
+  "apple", "android", "win95", "glass", "neo",
 ] as const;
 
 function themeBlock(css: string, theme: string) {
@@ -13,9 +13,9 @@ function themeBlock(css: string, theme: string) {
   const order184 = css.indexOf("/* Order 184:");
   const start = css.indexOf(marker, order184);
   expect(start).toBeGreaterThanOrEqual(0);
-  const end = css.indexOf("\n}", start);
+  const end = css.indexOf("\n", start);
   expect(end).toBeGreaterThan(start);
-  return css.slice(start, end + 2);
+  return css.slice(start, end);
 }
 
 function token(block: string, name: string) {
@@ -36,19 +36,21 @@ function contrast(foreground: string, background: string) {
     / (Math.min(foregroundLuminance, backgroundLuminance) + 0.05);
 }
 
-test("Order185: all advertised appearances are allowlisted and keep one semantic app", async () => {
+test("Order188: all five advertised appearances are allowlisted and keep one semantic app", async () => {
   const html = await Bun.file(htmlFile).text();
   const script = await Bun.file(scriptFile).text();
   const appearanceSelect = html.match(/<select id="theme-select"[\s\S]*?<\/select>/)?.[0] ?? "";
   const advertised = [...appearanceSelect.matchAll(/<option value="([^"]+)">/g)].map((match) => match[1]);
   expect(advertised).toEqual([...themes]);
-  expect(new Set(advertised).size).toBe(4);
+  expect(new Set(advertised).size).toBe(5);
   for (const theme of advertised) {
     expect(html).toContain(`<option value="${theme}">`);
     expect(script).toContain(`"${theme}"`);
   }
   expect(html.match(/id="workbench-view"/g)).toHaveLength(1);
   expect(script).toContain("document.documentElement.dataset.theme = next");
+  expect(script).toContain('const THEMES = new Set(["apple", "android", "win95", "glass", "neo"])');
+  expect(script).toContain('THEMES.has(theme) ? theme : "apple"');
   expect(script).not.toMatch(/localStorage|sessionStorage|document\.cookie|indexedDB/);
 });
 
@@ -74,9 +76,12 @@ test("Order185: signature materials are structural and accessibility fallbacks a
   expect(themeBlock(css, "glass")).toContain("--material-card-filter: blur(22px) saturate(155%)");
   expect(themeBlock(css, "glass")).toContain("rgba(255,255,255,.42)");
   expect(themeBlock(css, "android")).toContain("--material-press: scale(.97)");
+  expect(themeBlock(css, "neo")).toContain("inset -4px -4px 8px #ffffff");
   expect(css).toContain("@supports not ((-webkit-backdrop-filter: blur(2px)) or (backdrop-filter: blur(2px)))");
   expect(css).toContain("@media (forced-colors: active)");
   expect(css).toContain(':root[data-theme="android"] :is(button, input, select, textarea, .domain-tab) { min-height: 48px; }');
+  expect(css).toContain(':root[data-theme="win95"] .win-taskbar');
+  expect(css).toContain(':root[data-theme="glass"] .depth-plane-front');
   expect(css).toContain("min-height: 44px");
 });
 

@@ -9,6 +9,7 @@ describe("Order 188 P0 additional folio-window command", () => {
   test("FolioService exposes the exact server-derived sibling-window contract", () => {
     expect(folios).toContain("export interface OpenAdditionalFolioInput");
     expect(folios).toContain("readonly sourceFolioId: string");
+    expect(folios).toContain("readonly reservationId: string");
     expect(folios).toContain("readonly name: string");
     expect(folios).toMatch(/async openAdditional\s*\(tx:\s*Tx,\s*input:\s*OpenAdditionalFolioInput\)/);
     expect(folios).toContain('operation: "financials.folio.open"');

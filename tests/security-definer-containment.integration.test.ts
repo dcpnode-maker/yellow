@@ -165,6 +165,7 @@ dbDescribe("Order 108 SECURITY DEFINER shadow-path containment", () => {
            'prune_outbox', 'assert_day_open', 'seal_business_day', 'lock_financial_rows',
            'lock_financial_business_days',
            'create_charge_correction_header',
+           'create_folio_transfer',
            'register_extension_type'
          ]::name[])
        ORDER BY signature
@@ -176,6 +177,8 @@ dbDescribe("Order 108 SECURITY DEFINER shadow-path containment", () => {
       { signature: "assert_day_open()", securityDefiner: true,
         config: ["search_path=pg_catalog, public, pg_temp"], appExecute: false, publicDenied: true },
       { signature: "create_charge_correction_header(uuid,uuid,uuid,character,text,uuid)", securityDefiner: true,
+        config: ["search_path=pg_catalog, public, pg_temp"], appExecute: true, publicDenied: true },
+      { signature: "create_folio_transfer(uuid,uuid,uuid,uuid[],uuid,text)", securityDefiner: true,
         config: ["search_path=pg_catalog, public, pg_temp"], appExecute: true, publicDenied: true },
       { signature: "expire_holds()", securityDefiner: true,
         config: ["search_path=pg_catalog, public, pg_temp"], appExecute: false, publicDenied: true },
@@ -199,6 +202,9 @@ dbDescribe("Order 108 SECURITY DEFINER shadow-path containment", () => {
       ["assert_day_open()", ["public.business_day"]],
       ["create_charge_correction_header(uuid,uuid,uuid,character,text,uuid)",
         ["public.org_node", "public.app_user", "public.journal"]],
+      ["create_folio_transfer(uuid,uuid,uuid,uuid[],uuid,text)",
+        ["public.account", "public.folio", "public.reservation", "public.org_node",
+          "public.app_user", "public.posting_line", "public.journal", "public.business_day"]],
       ["expire_holds()", ["public.hold", "public.release_occupancy"]],
       ["lock_financial_rows(uuid,uuid[],uuid)", ["public.account", "public.folio"]],
       ["lock_financial_business_days(uuid,uuid,date[])", ["public.business_day"]],
@@ -229,6 +235,19 @@ dbDescribe("Order 108 SECURITY DEFINER shadow-path containment", () => {
       owner: "yellow_owner", runtimeExecute: false, volatility: "v",
     }]);
 
+    const transferAuthority = await admin!<Array<{
+      owner: string; runtimeExecute: boolean; volatility: string;
+    }>>`
+      SELECT pg_get_userbyid(p.proowner) AS owner,
+             has_function_privilege('yellow_runtime',p.oid,'EXECUTE') AS "runtimeExecute",
+             p.provolatile::text AS volatility
+        FROM pg_proc p
+       WHERE p.oid = 'public.create_folio_transfer(uuid,uuid,uuid,uuid[],uuid,text)'::regprocedure
+    `;
+    expect(transferAuthority).toEqual([{
+      owner: "yellow_owner", runtimeExecute: false, volatility: "v",
+    }]);
+
     const connection = await admin!.reserve();
     let began = false;
     try {
@@ -239,6 +258,14 @@ dbDescribe("Order 108 SECURITY DEFINER shadow-path containment", () => {
         "SELECT public.expire_holds()",
         `SELECT public.seal_business_day(
           '${TENANT}'::uuid, '${PROPERTY}'::uuid, DATE '2026-08-24', '${ACTOR}'::uuid
+        )`,
+        `SELECT * FROM public.create_folio_transfer(
+          '${TENANT}'::uuid,
+          '00000000-0000-0000-0000-000000011351'::uuid,
+          '00000000-0000-0000-0000-000000011352'::uuid,
+          ARRAY['00000000-0000-0000-0000-000000011353'::uuid],
+          '${ACTOR}'::uuid,
+          'hostile direct app-role call'
         )`,
       ]) {
         await connection.unsafe("SAVEPOINT denied_call");

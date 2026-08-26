@@ -6,20 +6,20 @@ const htmlFile = new URL("../src/http/operator/index.html", import.meta.url);
 const scriptFile = new URL("../src/http/operator/operator.js", import.meta.url);
 
 const themes = [
-  "apple", "android", "win95", "glass",
+  "apple", "android", "win95", "glass", "neo",
 ] as const;
 
 function themeBlock(css: string, theme: string): string {
   const marker = `:root[data-theme="${theme}"] {`;
   const start = css.indexOf(marker, css.indexOf("/* Order 184:"));
   expect(start).toBeGreaterThanOrEqual(0);
-  const end = css.indexOf("\n}", start);
+  const end = css.indexOf("\n", start);
   expect(end).toBeGreaterThan(start);
-  const material = css.slice(start, end + 2);
+  const material = css.slice(start, end);
   return material;
 }
 
-test("Order185: the four founder-selected skins carry structural material vectors", async () => {
+test("Order188: the five founder-selected systems carry structural material vectors", async () => {
   const css = await Bun.file(cssFile).text();
   const categories = [
     /--(?:control|card)-radius:/, // geometry
@@ -48,6 +48,7 @@ test("Order185: material signatures, fallbacks and accessibility contracts are e
   expect(css).toMatch(/data-theme="win95"[\s\S]*outset/);
   expect(css).toMatch(/data-theme="win95"[\s\S]*inset/);
   expect(css).toMatch(/data-theme="android"[\s\S]*min-height:\s*48px/);
+  expect(css).toMatch(/data-theme="neo"[\s\S]*inset/);
   expect(css).toMatch(/@media \(prefers-reduced-motion: reduce\)/);
   expect(css).toContain("@keyframes glass-stage-in");
   expect(css).toMatch(/prefers-reduced-motion:[\s\S]*glass-stage-in[\s\S]*animation:\s*none/);
@@ -64,6 +65,7 @@ test("Order185: skins use distinct layout grammars rather than palette aliases",
     android: [/display:\s*block/, /flex-direction:\s*row/],
     win95: [/274px/, /border:\s*2px inset/],
     glass: [/278px/, /repeat\(12/],
+    neo: [/border-radius:\s*24px/, /inset/],
   };
   for (const [theme, patterns] of Object.entries(signatures)) {
     const scoped = rules(theme);
@@ -72,7 +74,7 @@ test("Order185: skins use distinct layout grammars rather than palette aliases",
   }
   expect(css).not.toMatch(/data-theme="[^"]+"[^{}]*\.domain-nav-group[^{}]*clip-path/);
   expect(css).not.toMatch(/data-theme="[^"]+"[^{}]*\{[^}]*(?:^|[;{]\s*)order:/m);
-  expect(css).not.toMatch(/data-theme="(?:yellow|macos|winxp|windows|pixel|linux|neo|skeuo|clay|aurora|stripe|airbnb|duolingo)"/);
+  expect(css).not.toMatch(/data-theme="(?:yellow|macos|winxp|windows|pixel|linux|skeuo|clay|aurora|stripe|airbnb|duolingo)"/);
   expect(css).toMatch(/@media \(max-width:\s*600px\)[\s\S]*\.app-bar\s*\{[^}]*position:\s*relative[\s\S]*\.domain-bar\s*\{[^}]*top:\s*0/);
   expect(html.indexOf('class="property-context"')).toBeLessThan(html.indexOf('class="domain-nav"'));
 });

@@ -11,6 +11,9 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 const IDEMPOTENCY_KEY = /^[\x21-\x7e]{8,200}$/;
 const CURRENCY = /^[A-Z]{3}$/;
 const ELIGIBLE_STATUSES = ["reserved", "due_in", "in_house", "due_out"] as const;
+const MAX_WINDOW_NAME = 80;
+const MAX_FOLIO_WINDOWS = 20;
+const INVISIBLE_NAME = /[\u200b-\u200d\u202a-\u202e\u2060\u2066-\u2069\ufeff]/u;
 
 export type FolioEligibleReservationStatus = typeof ELIGIBLE_STATUSES[number];
 
@@ -27,6 +30,27 @@ export interface OpenPrimaryFolioResult {
   readonly reservationId: string;
   readonly folioNo: string;
   readonly windowNo: 1;
+  readonly changed: boolean;
+  readonly replayed: boolean;
+}
+
+export interface OpenAdditionalFolioInput extends Readonly<Record<string, unknown>> {
+  readonly tenantId: string;
+  readonly reservationId: string;
+  readonly sourceFolioId: string;
+  readonly name: string;
+  readonly idempotencyKey: string;
+  readonly envelope: AuditEnvelope;
+}
+
+export interface OpenAdditionalFolioResult extends Readonly<Record<string, JsonValue>> {
+  readonly folioId: string;
+  readonly reservationId: string;
+  readonly folioNo: string;
+  readonly windowNo: number;
+  readonly name: string;
+  readonly status: "open";
+  readonly currency: string;
   readonly changed: boolean;
   readonly replayed: boolean;
 }
@@ -85,6 +109,33 @@ interface OpenPrimaryBody extends Readonly<Record<string, JsonValue>> {
   readonly folioNo: string;
   readonly windowNo: 1;
   readonly changed: boolean;
+}
+
+interface NormalizedOpenAdditional {
+  readonly tenantId: string;
+  readonly reservationId: string;
+  readonly sourceFolioId: string;
+  readonly name: string;
+  readonly idempotencyKey: string;
+  readonly envelope: AuditEnvelope;
+}
+
+interface FolioFamilyRow extends FolioRow {
+  readonly name: string | null;
+  readonly property_node: string;
+  readonly currency: string;
+  readonly account_status: string;
+}
+
+interface OpenAdditionalBody extends Readonly<Record<string, JsonValue>> {
+  readonly folioId: string;
+  readonly reservationId: string;
+  readonly folioNo: string;
+  readonly windowNo: number;
+  readonly name: string;
+  readonly status: "open";
+  readonly currency: string;
+  readonly changed: true;
 }
 
 export class FolioValidationError extends Error {
@@ -153,6 +204,49 @@ function normalize(input: OpenPrimaryFolioInput): NormalizedOpenPrimary {
   return Object.freeze({
     tenantId,
     reservationId: requireUuid("reservationId", input.reservationId),
+    idempotencyKey: input.idempotencyKey,
+    envelope: input.envelope,
+  });
+}
+
+function normalizeAdditional(input: OpenAdditionalFolioInput): NormalizedOpenAdditional {
+  if (typeof input !== "object" || input === null || Array.isArray(input)) {
+    throw new FolioValidationError("Additional folio input must be an object");
+  }
+  requireExactKeys("Additional folio input", input, [
+    "tenantId", "reservationId", "sourceFolioId", "name", "idempotencyKey", "envelope",
+  ]);
+  if (typeof input.envelope !== "object" || input.envelope === null || Array.isArray(input.envelope)) {
+    throw new FolioValidationError("envelope must be an audit envelope");
+  }
+  requireExactKeys("envelope", input.envelope, [
+    "actorId", "tenantId", "propertyNode", "requestId", "operation",
+  ]);
+  const tenantId = requireUuid("tenantId", input.tenantId);
+  if (requireUuid("envelope.tenantId", input.envelope.tenantId) !== tenantId) {
+    throw new FolioValidationError("tenantId must match the audit envelope tenant");
+  }
+  requireUuid("envelope.actorId", input.envelope.actorId);
+  requireUuid("envelope.propertyNode", input.envelope.propertyNode);
+  requireUuid("envelope.requestId", input.envelope.requestId);
+  if (input.envelope.operation !== "folio.opened") {
+    throw new FolioValidationError("audit operation must be folio.opened");
+  }
+  if (typeof input.idempotencyKey !== "string" || !IDEMPOTENCY_KEY.test(input.idempotencyKey)) {
+    throw new FolioValidationError("idempotencyKey must contain 8-200 visible ASCII characters");
+  }
+  if (typeof input.name !== "string") throw new FolioValidationError("name must be text");
+  const name = input.name.trim();
+  const visibleLength = Array.from(name).length;
+  if (visibleLength < 1 || visibleLength > MAX_WINDOW_NAME || /[\u0000-\u001f\u007f]/u.test(name) ||
+      INVISIBLE_NAME.test(name)) {
+    throw new FolioValidationError("name must contain 1-80 visible characters");
+  }
+  return Object.freeze({
+    tenantId,
+    reservationId: requireUuid("reservationId", input.reservationId),
+    sourceFolioId: requireUuid("sourceFolioId", input.sourceFolioId),
+    name,
     idempotencyKey: input.idempotencyKey,
     envelope: input.envelope,
   });
@@ -430,6 +524,174 @@ export class FolioService {
           folioNo,
           windowNo: 1,
           changed: true,
+        }),
+      };
+    });
+    return Object.freeze({ ...outcome.body, replayed: outcome.replayed });
+  }
+
+  async openAdditional(tx: Tx, input: OpenAdditionalFolioInput): Promise<OpenAdditionalFolioResult>;
+  async openAdditional(
+    tx: Tx, input: Readonly<Record<string, unknown>>,
+  ): Promise<Readonly<Record<string, unknown>>>;
+  async openAdditional(
+    tx: Tx, input: OpenAdditionalFolioInput | Readonly<Record<string, unknown>>,
+  ): Promise<OpenAdditionalFolioResult> {
+    const normalized = normalizeAdditional(input as OpenAdditionalFolioInput);
+    const outcome = await this.#idempotency.execute<OpenAdditionalBody>(tx, {
+      tenantId: normalized.tenantId,
+      operation: "financials.folio.open",
+      key: normalized.idempotencyKey,
+      request: {
+        actorId: normalized.envelope.actorId,
+        propertyNode: normalized.envelope.propertyNode,
+        reservationId: normalized.reservationId,
+        sourceFolioId: normalized.sourceFolioId,
+        name: normalized.name,
+      },
+    }, async (commandTx) => {
+      const sourceRows = await commandTx<FolioFamilyRow[]>`
+        SELECT folio.id, folio.account_id, folio.reservation_id, folio.folio_no,
+               folio.window_no, folio.name, folio.status,
+               account.property_node, account.currency::text, account.status AS account_status
+        FROM folio
+        JOIN account ON account.tenant_id=folio.tenant_id AND account.id=folio.account_id
+        WHERE folio.tenant_id=${normalized.tenantId}::uuid
+          AND folio.tenant_id=current_setting('app.tenant_id', true)::uuid
+          AND folio.id=${normalized.sourceFolioId}::uuid
+      `;
+      const source = sourceRows[0];
+      if (!source || source.property_node !== normalized.envelope.propertyNode) {
+        throw new FolioNotFoundError("Source folio was not found in the audit property");
+      }
+      if (!source.reservation_id || source.reservation_id !== normalized.reservationId ||
+          source.status !== "open" || source.account_status !== "open" ||
+          !CURRENCY.test(source.currency)) {
+        throw new FolioConflictError("Source folio family is not open and canonical");
+      }
+
+      await commandTx`
+        SELECT pg_advisory_xact_lock(
+          hashtextextended(${`${normalized.tenantId}:reservation:${source.reservation_id}`}, 188)
+        )
+      `;
+      await commandTx`
+        SELECT public.lock_financial_rows(
+          ${normalized.tenantId}::uuid,
+          ARRAY[${source.account_id}::uuid]::uuid[],
+          ${normalized.sourceFolioId}::uuid
+        )
+      `;
+
+      const family = await commandTx<FolioFamilyRow[]>`
+        SELECT folio.id, folio.account_id, folio.reservation_id, folio.folio_no,
+               folio.window_no, folio.name, folio.status,
+               account.property_node, account.currency::text, account.status AS account_status
+        FROM folio
+        JOIN account ON account.tenant_id=folio.tenant_id AND account.id=folio.account_id
+        WHERE folio.tenant_id=${normalized.tenantId}::uuid
+          AND folio.tenant_id=current_setting('app.tenant_id', true)::uuid
+          AND folio.reservation_id=${source.reservation_id}::uuid
+        ORDER BY folio.window_no, folio.id
+      `;
+      if (family.length < 1 || family.length >= MAX_FOLIO_WINDOWS ||
+          family.some((folio) => folio.account_id !== source.account_id ||
+            folio.property_node !== source.property_node || folio.currency !== source.currency ||
+            folio.account_status !== "open")) {
+        throw new FolioConflictError(family.length >= MAX_FOLIO_WINDOWS
+          ? "Folio family already has 20 windows"
+          : "Folio family is inconsistent");
+      }
+      if (!family.some((folio) => folio.id === source.id && folio.status === "open")) {
+        throw new FolioConflictError("Source folio changed during lock acquisition");
+      }
+      if (family.some((folio, index) => folio.window_no !== index + 1)) {
+        throw new FolioConflictError("Folio family window sequence is not gap-free");
+      }
+      if (family.some((folio) => folio.name?.trim().toLocaleLowerCase("en-US") ===
+          normalized.name.toLocaleLowerCase("en-US"))) {
+        throw new FolioConflictError("Folio window name already exists in the family");
+      }
+      const windowNo = Math.max(...family.map((folio) => folio.window_no)) + 1;
+      if (!Number.isSafeInteger(windowNo) || windowNo < 2 || windowNo > MAX_FOLIO_WINDOWS) {
+        throw new FolioConflictError("Next folio window number is invalid");
+      }
+      const gapCheck = await commandTx<Array<{ next_window_no: number }>>`
+        SELECT max(window_no)::int + 1 AS next_window_no
+        FROM folio
+        WHERE tenant_id=${normalized.tenantId}::uuid
+          AND tenant_id=current_setting('app.tenant_id', true)::uuid
+          AND reservation_id=${source.reservation_id}::uuid
+      `;
+      if (gapCheck[0]?.next_window_no !== windowNo) {
+        throw new FolioConflictError("Folio window sequence changed during allocation");
+      }
+
+      const series = await commandTx<SeriesRow[]>`
+        SELECT id, next_no FROM document_series
+        WHERE tenant_id=${normalized.tenantId}::uuid
+          AND tenant_id=current_setting('app.tenant_id', true)::uuid
+          AND property_node=${source.property_node}::uuid AND kind='folio' AND fiscal=false
+        ORDER BY id FOR UPDATE
+      `;
+      if (series.length !== 1 || !series[0] || BigInt(series[0].next_no) < 1n) {
+        throw new FolioConflictError("Property must have one valid non-fiscal folio series");
+      }
+      const allocated = await commandTx<AllocatedSeriesRow[]>`
+        UPDATE document_series SET next_no=next_no+1
+        WHERE tenant_id=${normalized.tenantId}::uuid
+          AND tenant_id=current_setting('app.tenant_id', true)::uuid
+          AND id=${series[0].id}::uuid AND property_node=${source.property_node}::uuid
+          AND kind='folio' AND fiscal=false
+        RETURNING prefix || (next_no - 1)::text AS folio_no
+      `;
+      const folioNo = allocated[0]?.folio_no;
+      if (!folioNo) throw new Error("PostgreSQL did not allocate the folio reference");
+      const created = await commandTx<FolioFamilyRow[]>`
+        INSERT INTO folio (tenant_id, account_id, reservation_id, folio_no, window_no, name, status)
+        VALUES (${normalized.tenantId}::uuid, ${source.account_id}::uuid,
+          ${source.reservation_id}::uuid, ${folioNo}, ${windowNo}::smallint, ${normalized.name}, 'open')
+        RETURNING id, account_id, reservation_id, folio_no, window_no, name, status,
+          ${source.property_node}::uuid AS property_node, ${source.currency}::text AS currency,
+          'open'::text AS account_status
+      `;
+      const folio = created[0];
+      if (!folio?.reservation_id || !folio.folio_no || !folio.name) {
+        throw new Error("PostgreSQL did not return the additional folio");
+      }
+      const payload = Object.freeze({
+        folio_id: folio.id,
+        account_id: source.account_id,
+        reservation_id: folio.reservation_id,
+        window_no: folio.window_no,
+        folio_no: folio.folio_no,
+        name: folio.name,
+      });
+      const fact = await recordFact(commandTx, {
+        entityType: "folio", entityId: folio.id, envelope: normalized.envelope, payload,
+      });
+      await this.#events.publish(commandTx, {
+        tenantId: normalized.tenantId,
+        propertyNode: source.property_node,
+        businessDate: fact.businessDate,
+        aggregateType: "folio",
+        aggregateId: folio.id,
+        eventType: "folio.opened",
+        actorId: normalized.envelope.actorId,
+        correlationId: normalized.envelope.requestId,
+        payload,
+      });
+      return {
+        status: 201,
+        body: Object.freeze({
+          folioId: folio.id,
+          reservationId: folio.reservation_id,
+          folioNo: folio.folio_no,
+          windowNo: folio.window_no,
+          name: folio.name,
+          status: "open" as const,
+          currency: source.currency,
+          changed: true as const,
         }),
       };
     });

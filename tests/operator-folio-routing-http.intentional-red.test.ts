@@ -105,7 +105,7 @@ test("Order188 P0/P6: workspace DTO exposes only safe sibling windows and server
     "readonly memberCount: number;",
     "readonly eligible: boolean;",
     "readonly reason: string | null;",
-    "readonly currentFolioId: string;",
+    "readonly currentWindowId: string;",
   ]) expect(group).toContain(field);
   expect(interfaceSource("FolioStatementRow")).toContain(
     "readonly transferGroup: FolioTransferGroup;",

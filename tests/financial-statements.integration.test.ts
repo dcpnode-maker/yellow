@@ -148,7 +148,15 @@ dbDescribe("Order 105 fresh-PostgreSQL statement proof", () => {
     expect(await get(input({ reference: EMPTY_FOLIO_A }))).toEqual({
       folio: { id: EMPTY_FOLIO_A, reference: "O105-E", name: null, windowNo: 2, status: "open",
         currency: "INR", createdAt: "2026-08-20T01:02:03.123457Z" },
-      balanceMinor: "0", lineCount: 0, rows: [],
+      siblingWindows: [
+        { id: FOLIO_A, windowNo: 1, reference: "O105-A", name: "Primary", status: "open",
+          balanceMinor: "9007199254740990" },
+        { id: EMPTY_FOLIO_A, windowNo: 2, reference: "O105-E", name: null, status: "open", balanceMinor: "0" },
+        { id: OTHER_FOLIO_A, windowNo: 3, reference: "O105-O", name: null, status: "open", balanceMinor: "0" },
+        { id: STRESS_FOLIO_A, windowNo: 4, reference: "O105-S", name: null, status: "open", balanceMinor: "0" },
+      ],
+      balanceMinor: "0", stayTotalMinor: "9007199254740990",
+      generation: expect.stringMatching(/^[0-9a-f]{32}$/), lineCount: 0, rows: [],
       chargeOptions: [{ code: "SROOM", name: "Statement room", usaliLine: "Rooms" }],
       chargeAvailability: { allowed: true, reason: null }, nextCursor: null,
     });
@@ -162,11 +170,15 @@ dbDescribe("Order 105 fresh-PostgreSQL statement proof", () => {
       { lineId: expect.any(String), journalId: J3, kind: "charge", businessDate: "2026-08-21",
         postedAt: "2026-08-21T10:11:12.654321Z", reversesJournalId: null, reversedByJournalId: null,
         correctionEligible: false, correctionReason: "adjustment_not_authorized", txCode: "SROOM",
-        description: "Visible third", quantity: "1.125", amountMinor: "7", runningBalanceMinor: "9007199254740990" },
+        description: "Visible third", quantity: "1.125", amountMinor: "7", runningBalanceMinor: "9007199254740990",
+        transferGroup: { id: J3, memberCount: 0, eligible: false,
+          reason: "not_governed_charge_group", currentWindowId: FOLIO_A } },
       { lineId: expect.any(String), journalId: J2, kind: "adjustment", businessDate: "2026-08-20",
         postedAt: "2026-08-20T10:11:12.123456Z", reversesJournalId: J1, reversedByJournalId: null,
         correctionEligible: false, correctionReason: "adjustment_not_authorized", txCode: "SROOM",
-        description: "Visible second", quantity: "2.500", amountMinor: "-10", runningBalanceMinor: "9007199254740983" },
+        description: "Visible second", quantity: "2.500", amountMinor: "-10", runningBalanceMinor: "9007199254740983",
+        transferGroup: { id: J2, memberCount: 0, eligible: false,
+          reason: "not_governed_charge_group", currentWindowId: FOLIO_A } },
     ]);
     expect(result.nextCursor).toBeString();
     expect(JSON.stringify(result)).not.toMatch(/account|counterpart|source|tax|party|contact/i);
@@ -295,9 +307,12 @@ dbDescribe("Order 105 fresh-PostgreSQL statement proof", () => {
     expect(result.rows[0]!.runningBalanceMinor).toBe("10000");
     expect(result.nextCursor).toBeString();
     expect(elapsed).toBeLessThan(5_000);
-    const plan = (await admin!<Array<{ "QUERY PLAN": string }>>`EXPLAIN (ANALYZE, BUFFERS, FORMAT TEXT)
-      SELECT line.id FROM posting_line line WHERE line.tenant_id=${TENANT_A}::uuid AND line.folio_id=${STRESS_FOLIO_A}::uuid`)
-      .map((row) => row["QUERY PLAN"]).join("\n");
+    const plan = await admin!.begin(async (tx) => {
+      await tx`SET LOCAL enable_seqscan = off`;
+      return (await tx<Array<{ "QUERY PLAN": string }>>`EXPLAIN (ANALYZE, BUFFERS, FORMAT TEXT)
+        SELECT line.id FROM posting_line line WHERE line.tenant_id=${TENANT_A}::uuid AND line.folio_id=${STRESS_FOLIO_A}::uuid`)
+        .map((row) => row["QUERY PLAN"]).join("\n");
+    });
     expect(plan).toMatch(/posting_folio/i);
   }, 60_000);
 });
