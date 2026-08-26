@@ -61,26 +61,32 @@ test("Order184: material signatures, fallbacks and accessibility contracts are e
 });
 
 test("Order184: skins use distinct layout grammars rather than palette aliases", async () => {
-  const css = await Bun.file(cssFile).text();
-  const desktop = css.slice(css.indexOf("@media (min-width: 1021px)"));
+  const [css, html] = await Promise.all([Bun.file(cssFile).text(), Bun.file(htmlFile).text()]);
+  const rules = (theme: string) => [...css.matchAll(new RegExp(`[^{}]*data-theme="${theme}"[^{}]*\\{[^{}]*\\}`, "g"))]
+    .map((match) => match[0]).join("\n");
   const signatures: Record<(typeof themes)[number], RegExp[]> = {
     yellow: [/272px/, /status-summary-grid/, /status-phase-list/],
-    apple: [/display:\s*block/, /domain-nav[^{]*\{[^}]*display:\s*flex/],
-    macos: [/218px/, /overflow:\s*clip/], win95: [/274px/, /border:\s*2px inset/],
-    winxp: [/258px/, /linear-gradient\(135deg,#fff,#edf4ff\)/],
-    windows: [/280px/, /backdrop-filter:\s*blur\(22px\)/],
-    pixel: [/display:\s*block/, /domain-tab[^{]*\{[^}]*min-width:\s*max-content/],
+    apple: [/display:\s*block/, /flex-direction:\s*row/],
+    macos: [/218px/, /28px 70px/], win95: [/274px/, /border:\s*2px inset/],
+    winxp: [/258px/, /#214d99/], windows: [/280px/, /-webkit-backdrop-filter:\s*blur\(22px\)/],
+    pixel: [/display:\s*block/, /flex-direction:\s*row/],
     linux: [/208px/, /background:\s*#252525/], glass: [/278px/, /repeat\(12/],
     neo: [/252px/, /minmax\(340px,1fr\)/], skeuo: [/286px/, /10px solid/],
     clay: [/270px/, /rotate\(/], aurora: [/232px/, /repeat\(12/],
     stripe: [/210px/, /minmax\(320px,1fr\)/],
-    airbnb: [/display:\s*block/, /max-width:\s*1180px/],
+    airbnb: [/228px/, /max-width:\s*1060px/],
     duolingo: [/258px/, /minmax\(360px,1fr\)/],
   };
   for (const [theme, patterns] of Object.entries(signatures)) {
-    expect(desktop).toContain(`data-theme="${theme}"`);
-    for (const pattern of patterns) expect(desktop).toMatch(pattern);
+    const scoped = rules(theme);
+    expect(scoped).toContain(`data-theme="${theme}"`);
+    for (const pattern of patterns) expect(scoped).toMatch(pattern);
   }
+  expect(css).not.toMatch(/data-theme="[^"]+"[^{}]*\.domain-nav-group[^{}]*clip-path/);
+  expect(css).not.toMatch(/data-theme="[^"]+"[^{}]*\{[^}]*(?:^|[;{]\s*)order:/m);
+  expect(css).not.toMatch(/data-theme="macos"[^{}]*\.workbench[^{}]*\{[^}]*overflow:\s*clip/);
+  expect(css).toMatch(/@media \(max-width:\s*600px\)[\s\S]*\.app-bar\s*\{[^}]*position:\s*relative[\s\S]*\.domain-bar\s*\{[^}]*top:\s*0/);
+  expect(html.indexOf('class="property-context"')).toBeLessThan(html.indexOf('class="domain-nav"'));
 });
 
 test("Order184: skins remain responsive, dependency-free and inside the asset ceiling", async () => {

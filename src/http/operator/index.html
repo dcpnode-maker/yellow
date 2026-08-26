@@ -91,6 +91,9 @@
         </div>
 
         <aside class="domain-bar card" aria-label="Property workspace">
+          <label class="property-context">Current property
+            <select name="property" id="property-select" required></select>
+          </label>
           <p class="domain-nav-label">Workspace</p>
           <nav class="domain-nav" aria-label="Workbench domains">
             <span class="domain-nav-group">Front desk</span>
@@ -109,9 +112,6 @@
               <button class="domain-tab" id="nav-status" type="button" data-view="status" aria-controls="status-view">Project status</button>
             </div>
           </nav>
-          <label class="property-context">Current property
-            <select name="property" id="property-select" required></select>
-          </label>
         </aside>
 
         <section id="status-view" hidden aria-labelledby="status-title">
