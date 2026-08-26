@@ -12,9 +12,13 @@ import {
   ChargeNotFoundError,
   ChargeService,
   ChargeValidationError,
+  FolioConflictError,
+  FolioNotFoundError,
+  FolioService,
   FolioStatementNotFoundError,
   FolioStatementService,
   FolioStatementValidationError,
+  FolioValidationError,
 } from "../contexts/financials";
 import {
   AvailabilityService,
@@ -143,6 +147,7 @@ const RESERVATION_SEGMENT_WRITE_SCOPE = "reservations.segments:write";
 const PARTY_READ_SCOPE = "crm.parties:read";
 const PARTY_WRITE_SCOPE = "crm.parties:write";
 const FOLIO_READ_SCOPE = "financials.folios:read";
+const FOLIO_OPEN_SCOPE = "financials.folios:open";
 const CHARGE_WRITE_SCOPE = "financials.charges:write";
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 const ISO_INSTANT = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})(?::(\d{2})(?:\.(\d{1,3}))?)?(Z|([+-])(\d{2}):(\d{2}))$/;
@@ -866,6 +871,7 @@ type ReservationDetailOperations = Pick<ReservationDetailService, "findById">;
 type PartyOperations = Pick<PartyProfileService, "search" | "create">;
 type FolioStatementOperations = Pick<FolioStatementService, "get">;
 type ChargeOperations = Pick<ChargeService, "postCharge">;
+type FolioOperations = Pick<FolioService, "openPrimary">;
 
 const MAX_MONEY = 9_223_372_036_854_775_807n;
 
@@ -1250,6 +1256,7 @@ export class OperatorHttpApi {
   readonly #parties?: PartyOperations;
   readonly #folioStatements?: FolioStatementOperations;
   readonly #charges?: ChargeOperations;
+  readonly #folios?: FolioOperations;
 
   constructor(
     login: LocalLoginService,
@@ -1275,6 +1282,7 @@ export class OperatorHttpApi {
     charges?: ChargeOperations,
     reservationBoard?: ReservationBoardOperations,
     reservationDetail?: ReservationDetailOperations,
+    folios?: FolioOperations,
   ) {
     this.#login = login;
     this.#availability = availability;
@@ -1299,6 +1307,7 @@ export class OperatorHttpApi {
     this.#charges = charges;
     this.#reservationBoard = reservationBoard;
     this.#reservationDetail = reservationDetail;
+    this.#folios = folios;
   }
 
   unavailable(request: Request): Response {
@@ -1310,11 +1319,16 @@ export class OperatorHttpApi {
   }
 
   failure(request: Request, error: unknown): Response {
-    if (error instanceof FolioStatementValidationError || error instanceof ChargeValidationError) {
+    if (error instanceof FolioValidationError || error instanceof FolioStatementValidationError ||
+        error instanceof ChargeValidationError) {
       return apiError(request, 400, "request/invalid", "Invalid request", "Financial input is invalid");
     }
-    if (error instanceof FolioStatementNotFoundError || error instanceof ChargeNotFoundError) {
+    if (error instanceof FolioNotFoundError || error instanceof FolioStatementNotFoundError ||
+        error instanceof ChargeNotFoundError) {
       return apiError(request, 404, "financials/not_found", "Not found", "The requested folio or charge configuration was not found");
+    }
+    if (error instanceof FolioConflictError) {
+      return apiError(request, 409, "financials/conflict", "Conflict", "The primary folio conflicts with current financial state");
     }
     if (error instanceof ChargeConflictError) {
       return apiError(request, 409, "financials/conflict", "Conflict", "The charge conflicts with current financial state");
@@ -1499,6 +1513,54 @@ export class OperatorHttpApi {
       ...query,
     });
     return apiResponse(context.request, canonicalJson(jsonValue(statement)));
+  }
+
+  async openPrimaryFolio(
+    context: TenantRequestContext,
+    propertyNode: string,
+    reservationId: string,
+    body: unknown,
+  ): Promise<Response> {
+    if (!hasScope(context, FOLIO_OPEN_SCOPE)) {
+      return apiError(context.request, 403, "auth/scope_missing", "Forbidden", "Primary folio creation is not granted");
+    }
+    if (!UUID.test(propertyNode) || !UUID.test(reservationId) || !isObject(body) || !exactKeys(body, [])) {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Primary folio input is invalid");
+    }
+    const idempotencyKey = context.request.headers.get("idempotency-key");
+    if (!idempotencyKey || !IDEMPOTENCY_KEY.test(idempotencyKey)) {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Primary folio input is invalid");
+    }
+    const grants = await listGrantedProperties(context, FOLIO_OPEN_SCOPE);
+    if (!grants.some(({ id }) => id === propertyNode)) {
+      return apiError(context.request, 403, "auth/property_forbidden", "Forbidden", "Property access is not granted");
+    }
+    if (!this.#folios) return this.unavailable(context.request);
+    const requestId = correlationId(context.request);
+    const result = await this.#folios.openPrimary(context.tx, {
+      tenantId: context.tenantId,
+      reservationId,
+      idempotencyKey,
+      envelope: createAuditEnvelope({
+        actorId: context.identity.actorId,
+        tenantId: context.tenantId,
+        propertyNode,
+        requestId,
+        operation: "folio.opened",
+      }),
+    });
+    const response = {
+      folioId: result.folioId,
+      reservationId: result.reservationId,
+      folioNo: result.folioNo,
+      windowNo: result.windowNo,
+      changed: result.changed,
+      replayed: result.replayed,
+    };
+    return apiResponse(context.request, canonicalJson(jsonValue(response)), result.changed ? 201 : 200, {
+      "idempotency-replayed": String(result.replayed),
+      "x-correlation-id": requestId,
+    });
   }
 
   async postFolioCharge(
@@ -2097,11 +2159,21 @@ export class OperatorHttpApi {
       propertyNode,
       reservationId,
     });
+    const hasFolioOpenScope = hasScope(context, FOLIO_OPEN_SCOPE);
+    const folioOpenGrants = hasFolioOpenScope
+      ? await listGrantedProperties(context, FOLIO_OPEN_SCOPE)
+      : [];
+    const canOpenPrimaryFolio = hasFolioOpenScope &&
+      folioOpenGrants.some(({ id }) => id === propertyNode) &&
+      reservation.folios.length === 0 &&
+      (reservation.status === "reserved" || reservation.status === "due_in" ||
+        reservation.status === "in_house" || reservation.status === "due_out");
     const actions = Object.freeze({
       canModify: reservation.status === "reserved" || reservation.status === "due_in" ||
         reservation.status === "in_house" || reservation.status === "due_out",
       canCancel: reservation.status === "reserved" || reservation.status === "due_in",
       canReinstate: reservation.status === "cancelled" || reservation.status === "no_show",
+      canOpenPrimaryFolio,
     });
     return apiResponse(context.request, canonicalJson({ reservation: jsonValue(reservation), actions }));
   }

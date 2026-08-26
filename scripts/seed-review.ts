@@ -35,6 +35,7 @@ export const REVIEW_PERMISSIONS = Object.freeze([
   { code: "crm.parties:read", description: "Search tenant-scoped Party profiles" },
   { code: "crm.parties:write", description: "Create tenant-scoped Party profiles" },
   { code: "financials.charges:write", description: "Post governed charges to property folios" },
+  { code: "financials.folios:open", description: "Open reservation primary folios" },
   { code: "financials.folios:read", description: "Read property folio statements" },
   { code: REVIEW_PERMISSION, description: "Read tenant-scoped truth availability" },
   { code: "inventory.blocks:read", description: "Read tenant-scoped operational blocks" },
@@ -64,6 +65,8 @@ export const REVIEW_PERMISSIONS = Object.freeze([
 const REVIEW_USER_NAME = `${TENANT_NAME}/review-user/${REVIEW_EMAIL}`;
 const REVIEW_APPROVER_USER_NAME = `${TENANT_NAME}/review-user/${REVIEW_APPROVER_EMAIL}`;
 const REVIEW_ROLE_NAME_UUID = `${TENANT_NAME}/review-role/availability`;
+const REVIEW_FOLIO_SERIES_UUID = `${TENANT_NAME}/review-financials/folio-series`;
+const REVIEW_REVENUE_ACCOUNT_UUID = `${TENANT_NAME}/review-financials/room-revenue`;
 
 const ROOM_TYPES = Object.freeze([
   { code: "STD", name: "Standard Room", baseOccupancy: 2, maxOccupancy: 2, sortOrder: 10 },
@@ -230,7 +233,13 @@ function exact(value: unknown, expected: unknown, label: string): void {
   if (stableJson(value) !== stableJson(expected)) throw new Error(`${label} collides with non-canonical local-review data`);
 }
 
-async function canonicalIds(): Promise<{ userId: string; approverUserId: string; roleId: string }> {
+async function canonicalIds(): Promise<{
+  userId: string;
+  approverUserId: string;
+  roleId: string;
+  folioSeriesId: string;
+  revenueAccountId: string;
+}> {
   const derivedTenant = await uuidV5(URL_NAMESPACE_UUID, TENANT_NAME);
   const derivedProperty = await uuidV5(derivedTenant, PROPERTY_NAME);
   if (derivedTenant !== SEED_TENANT.id || derivedProperty !== SEED_PROPERTY.id) {
@@ -240,6 +249,8 @@ async function canonicalIds(): Promise<{ userId: string; approverUserId: string;
     userId: await uuidV5(SEED_TENANT.id, REVIEW_USER_NAME),
     approverUserId: await uuidV5(SEED_TENANT.id, REVIEW_APPROVER_USER_NAME),
     roleId: await uuidV5(SEED_TENANT.id, REVIEW_ROLE_NAME_UUID),
+    folioSeriesId: await uuidV5(SEED_TENANT.id, REVIEW_FOLIO_SERIES_UUID),
+    revenueAccountId: await uuidV5(SEED_TENANT.id, REVIEW_REVENUE_ACCOUNT_UUID),
   };
 }
 
@@ -370,6 +381,131 @@ async function provisionIdentity(
         scope_node: SEED_PROPERTY.id }, `${user.label} role grant`);
       if (grants.length !== 1) throw new Error(`${user.label} role grant is not canonical`);
     }
+  }
+}
+
+async function provisionReviewFinancials(
+  connection: ReservedSQL,
+  folioSeriesId: string,
+  revenueAccountId: string,
+): Promise<void> {
+  const series = await connection<Array<{
+    id: string; prefix: string; next_no: string | number | bigint; last_doc_hash: string | null;
+  }>>`
+    SELECT id, prefix, next_no, last_doc_hash
+    FROM document_series
+    WHERE tenant_id=${SEED_TENANT.id}::uuid
+      AND property_node=${SEED_PROPERTY.id}::uuid
+      AND kind='folio' AND fiscal=false
+    ORDER BY id
+  `;
+  if (series.length === 0) {
+    await connection`
+      INSERT INTO document_series (id, tenant_id, property_node, kind, prefix, next_no, fiscal)
+      VALUES (${folioSeriesId}::uuid, ${SEED_TENANT.id}::uuid, ${SEED_PROPERTY.id}::uuid,
+        'folio', 'FOL-', 1, false)
+    `;
+  } else {
+    const current = series[0];
+    if (series.length !== 1 || !current || current.id !== folioSeriesId || current.prefix !== "FOL-" ||
+        BigInt(current.next_no) < 1n || current.last_doc_hash !== null) {
+      throw new Error("Local-review non-fiscal folio series collides with non-canonical data");
+    }
+  }
+
+  const accounts = await connection<Array<{
+    id: string; tenant_id: string; property_node: string | null; role: string;
+    party_id: string | null; name: string; currency: string; status: string;
+  }>>`
+    SELECT id, tenant_id, property_node, role, party_id, name, currency::text, status
+    FROM account
+    WHERE id=${revenueAccountId}::uuid
+       OR (tenant_id=${SEED_TENANT.id}::uuid AND property_node=${SEED_PROPERTY.id}::uuid
+           AND role='revenue' AND name='Room Revenue' AND currency=${SEED_PROPERTY.currency})
+    ORDER BY id
+  `;
+  const expectedAccount = {
+    id: revenueAccountId, tenant_id: SEED_TENANT.id, property_node: SEED_PROPERTY.id,
+    role: "revenue", party_id: null, name: "Room Revenue", currency: SEED_PROPERTY.currency, status: "open",
+  };
+  if (accounts.length === 0) {
+    await connection`
+      INSERT INTO account (id, tenant_id, property_node, role, party_id, name, currency, status)
+      VALUES (${revenueAccountId}::uuid, ${SEED_TENANT.id}::uuid, ${SEED_PROPERTY.id}::uuid,
+        'revenue', NULL, 'Room Revenue', ${SEED_PROPERTY.currency}, 'open')
+    `;
+  } else {
+    exact(accounts[0], expectedAccount, "Local-review room-revenue account");
+    if (accounts.length !== 1) throw new Error("Local-review room-revenue account is ambiguous");
+  }
+
+  const codes = await connection<Array<{
+    code: string; name: string; grp: string; usali_line: string | null;
+    default_dr: string | null; default_cr: string | null;
+  }>>`
+    SELECT code, name, grp, usali_line, default_dr, default_cr FROM tx_code WHERE code='ROOM'
+  `;
+  const expectedCode = {
+    code: "ROOM", name: "Room charge", grp: "revenue", usali_line: "Rooms",
+    default_dr: "guest", default_cr: "revenue",
+  };
+  if (codes.length === 0) {
+    await connection`
+      INSERT INTO tx_code (code, name, grp, usali_line, default_dr, default_cr)
+      VALUES ('ROOM', 'Room charge', 'revenue', 'Rooms', 'guest', 'revenue')
+    `;
+  } else {
+    exact(codes[0], expectedCode, "Local-review ROOM transaction code");
+    if (codes.length !== 1) throw new Error("Local-review ROOM transaction code is ambiguous");
+  }
+
+  const routes = await connection<Array<{
+    tenant_id: string; property_node: string; currency: string; tx_code: string;
+    debit_account_id: string | null; credit_account_id: string | null;
+  }>>`
+    SELECT tenant_id, property_node, currency::text, tx_code, debit_account_id, credit_account_id
+    FROM tx_code_route
+    WHERE tenant_id=${SEED_TENANT.id}::uuid AND property_node=${SEED_PROPERTY.id}::uuid
+      AND currency=${SEED_PROPERTY.currency} AND tx_code='ROOM'
+  `;
+  const expectedRoute = {
+    tenant_id: SEED_TENANT.id, property_node: SEED_PROPERTY.id, currency: SEED_PROPERTY.currency,
+    tx_code: "ROOM", debit_account_id: null, credit_account_id: revenueAccountId,
+  };
+  if (routes.length === 0) {
+    await connection`
+      INSERT INTO tx_code_route (
+        tenant_id, property_node, currency, tx_code, debit_account_id, credit_account_id
+      ) VALUES (
+        ${SEED_TENANT.id}::uuid, ${SEED_PROPERTY.id}::uuid, ${SEED_PROPERTY.currency},
+        'ROOM', NULL, ${revenueAccountId}::uuid
+      )
+    `;
+  } else {
+    exact(routes[0], expectedRoute, "Local-review ROOM transaction route");
+    if (routes.length !== 1) throw new Error("Local-review ROOM transaction route is ambiguous");
+  }
+
+  const days = await connection<Array<{ tenant_id: string; business_date: string; sealed_at: string | null }>>`
+    SELECT day.tenant_id, day.business_date::text, day.sealed_at::text
+    FROM org_node AS property
+    LEFT JOIN business_day AS day
+      ON day.property_node=property.id
+     AND day.business_date=(CURRENT_TIMESTAMP AT TIME ZONE property.timezone)::date
+    WHERE property.id=${SEED_PROPERTY.id}::uuid AND property.tenant_id=${SEED_TENANT.id}::uuid
+  `;
+  const currentDay = days[0];
+  if (!currentDay) throw new Error("Local-review property is unavailable while provisioning its business day");
+  if (currentDay.business_date === null || currentDay.tenant_id === null) {
+    await connection`
+      INSERT INTO business_day (tenant_id, property_node, business_date)
+      SELECT property.tenant_id, property.id,
+        (CURRENT_TIMESTAMP AT TIME ZONE property.timezone)::date
+      FROM org_node AS property
+      WHERE property.id=${SEED_PROPERTY.id}::uuid AND property.tenant_id=${SEED_TENANT.id}::uuid
+    `;
+  } else if (currentDay.tenant_id !== SEED_TENANT.id || currentDay.sealed_at !== null) {
+    throw new Error("Local-review current business day is foreign or sealed");
   }
 }
 
@@ -772,15 +908,16 @@ export async function runReviewSeed(options: ReviewSeedOptions): Promise<ReviewS
     throw new Error("approverPassword must be distinct from password");
   }
   const logger = options.logger ?? console.log;
-  const { userId, approverUserId, roleId } = await canonicalIds();
+  const { userId, approverUserId, roleId, folioSeriesId, revenueAccountId } = await canonicalIds();
   const identityPool = new SQL(options.databaseUrl, { max: 2 });
   const eventPool = new SQL(options.databaseUrl, { max: 4, prepare: false });
   const database = Database.connect(options.databaseUrl, { maxConnections: 6 });
 
   try {
-    await withIdentityTransaction(identityPool, (tx) => provisionIdentity(
-      tx, options.password, approverPassword, userId, approverUserId, roleId,
-    ));
+    await withIdentityTransaction(identityPool, async (tx) => {
+      await provisionIdentity(tx, options.password, approverPassword, userId, approverUserId, roleId);
+      await provisionReviewFinancials(tx, folioSeriesId, revenueAccountId);
+    });
     const events = new PostgresEventBus(eventPool);
     const inventory = new InventoryService(events);
     const counts = {

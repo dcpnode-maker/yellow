@@ -113,6 +113,11 @@ export function createApp(options: AppOptions = {}) {
           context, params.property, params.reference,
         ))
       )
+      .post("/api/v1/properties/:property/reservations/:reservation/primary-folio", ({ request, params, body, tenantContext }) =>
+        withOperatorTenant(request, (context) => operator.openPrimaryFolio(
+          context, params.property, params.reservation, body,
+        ))
+      )
       .post("/api/v1/properties/:property/folios/:folioId/charges", ({ request, params, body, tenantContext }) =>
         withOperatorTenant(request, (context) => operator.postFolioCharge(
           context, params.property, params.folioId, body,

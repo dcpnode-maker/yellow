@@ -3,6 +3,7 @@ import { SQL } from "bun";
 
 import { createApp } from "../src/app";
 import { PartyProfileService } from "../src/contexts/crm";
+import { ChargeService, FolioService, FolioStatementService } from "../src/contexts/financials";
 import { BearerTenantResolver, Hs256TokenSigner, LocalLoginService } from "../src/contexts/identity";
 import {
   AvailabilityProjectionService,
@@ -60,6 +61,8 @@ const whatsapp = "+919876550160";
 const partyKey = `order160-party-${runTag}`;
 const holdKey = `order160-hold-${runTag}`;
 const commitKey = `order160-commit-${runTag}`;
+const folioKey = `order171-folio-${runTag}`;
+const chargeKey = `order171-charge-${runTag}`;
 const partyCorrelation = crypto.randomUUID();
 const holdCorrelation = crypto.randomUUID();
 const commitCorrelation = crypto.randomUUID();
@@ -75,6 +78,7 @@ let app: ReturnType<typeof createApp>;
 let accessToken = "";
 let noScopeToken = "";
 let foreignPropertyToken = "";
+let noFolioOpenToken = "";
 
 function headers(token = accessToken, key?: string, correlationId = crypto.randomUUID()): Record<string, string> {
   return {
@@ -89,8 +93,20 @@ function call(path: string, init: RequestInit = {}): Promise<Response> {
   return app.handle(new Request(`http://yellow.test${path}`, init));
 }
 
-async function counts(): Promise<Record<string, number>> {
-  const rows = await admin<Array<Record<string, number>>>`
+interface FinancialCounts {
+  readonly accounts: number;
+  readonly folios: number;
+  readonly journals: number;
+  readonly postings: number;
+  readonly payment_instruments: number;
+  readonly payments: number;
+  readonly document_series: number;
+  readonly documents: number;
+  readonly fiscal_submissions: number;
+}
+
+async function counts(): Promise<FinancialCounts> {
+  const rows = await admin<FinancialCounts[]>`
     SELECT
       (SELECT count(*)::int FROM account WHERE tenant_id=${SEED_TENANT.id}::uuid) AS accounts,
       (SELECT count(*)::int FROM folio WHERE tenant_id=${SEED_TENANT.id}::uuid) AS folios,
@@ -157,6 +173,9 @@ beforeAll(async () => {
   });
   const lifecycle = new ReservationLifecycleService({ events, idempotency: new PostgresIdempotency() });
   const parties = new PartyProfileService({ events, idempotency: new PostgresIdempotency() });
+  const folios = new FolioService({ events, idempotency: new PostgresIdempotency() });
+  const statements = new FolioStatementService();
+  const charges = new ChargeService({ events, idempotency: new PostgresIdempotency() });
   app = createApp({
     database,
     tenantResolver: new BearerTenantResolver(tokens),
@@ -180,6 +199,11 @@ beforeAll(async () => {
       lifecycle,
       undefined,
       parties,
+      statements,
+      charges,
+      undefined,
+      undefined,
+      folios,
     ),
   });
 
@@ -229,10 +253,15 @@ beforeAll(async () => {
     tenantId: SEED_TENANT.id,
     scopes: REVIEW_PERMISSIONS.map(({ code }) => code).filter((code) => code !== "reservations.booking:write"),
   });
+  noFolioOpenToken = await tokens.issue({
+    userId: review.userId,
+    tenantId: SEED_TENANT.id,
+    scopes: REVIEW_PERMISSIONS.map(({ code }) => code).filter((code) => code !== "financials.folios:open"),
+  });
   foreignPropertyToken = await tokens.issue({
     userId: FOREIGN_USER,
     tenantId: SEED_TENANT.id,
-    scopes: ["inventory.availability:read", "reservations.booking:write"],
+    scopes: ["financials.folios:open", "inventory.availability:read", "reservations.booking:write"],
   });
   const foreignProperties = await call("/api/v1/me/properties", { headers: headers(foreignPropertyToken) });
   expect(foreignProperties.status).toBe(200);
@@ -250,8 +279,8 @@ afterAll(async () => {
   await admin.close();
 }, 30_000);
 
-databaseDescribe("Order 160 founder reservation journey through runtime authority", () => {
-  test("Party, offer, hold and reservation are executable, replayable and non-financial", async () => {
+databaseDescribe("Orders 160/171 founder reservation-to-folio journey through runtime authority", () => {
+  test("Party, offer, hold, reservation, explicit folio and governed charge are executable and replayable", async () => {
     const financialBefore = await counts();
     const partyInput = {
       kind: "person",
@@ -635,9 +664,110 @@ databaseDescribe("Order 160 founder reservation journey through runtime authorit
       expect(privateEvidence).not.toContain(sensitive);
     }
     expect(await counts()).toEqual(financialBefore);
-    const financialLink = await admin<Array<{ folios: number }>>`
+    const financialLinkBefore = await admin<Array<{ folios: number }>>`
       SELECT count(*)::int AS folios FROM folio WHERE reservation_id=${reservation.reservationId}::uuid
     `;
-    expect(financialLink[0]?.folios).toBe(0);
+    expect(financialLinkBefore[0]?.folios).toBe(0);
+
+    const openPath = `/api/v1/properties/${SEED_PROPERTY.id}/reservations/${reservation.reservationId}/primary-folio`;
+    const deniedOpen = await call(openPath, {
+      method: "POST", headers: headers(noFolioOpenToken, `order171-denied-${runTag}`), body: "{}",
+    });
+    expect(deniedOpen.status).toBe(403);
+    const foreignOpen = await call(openPath, {
+      method: "POST", headers: headers(foreignPropertyToken, `order171-foreign-${runTag}`), body: "{}",
+    });
+    expect(foreignOpen.status).toBe(403);
+    const malformedOpen = await call(openPath, {
+      method: "POST", headers: headers(accessToken, `order171-malformed-${runTag}`),
+      body: JSON.stringify({ accountId: crypto.randomUUID() }),
+    });
+    expect(malformedOpen.status).toBe(400);
+    expect(await counts()).toEqual(financialBefore);
+
+    const opened = await call(openPath, {
+      method: "POST", headers: headers(accessToken, folioKey), body: "{}",
+    });
+    expect(opened.status).toBe(201);
+    expect(opened.headers.get("idempotency-replayed")).toBe("false");
+    const openedText = await opened.text();
+    expect(openedText).not.toMatch(/account|party|displayName|email|phone/i);
+    const primaryFolio = JSON.parse(openedText) as {
+      folioId: string; reservationId: string; folioNo: string; windowNo: number;
+      changed: boolean; replayed: boolean;
+    };
+    expect(primaryFolio).toMatchObject({
+      reservationId: reservation.reservationId, windowNo: 1, changed: true, replayed: false,
+    });
+    const openedReplay = await call(openPath, {
+      method: "POST", headers: headers(accessToken, folioKey), body: "{}",
+    });
+    expect(openedReplay.status).toBe(201);
+    expect(openedReplay.headers.get("idempotency-replayed")).toBe("true");
+    expect(await openedReplay.json()).toEqual({ ...primaryFolio, replayed: true });
+
+    const emptyStatement = await call(
+      `/api/v1/properties/${SEED_PROPERTY.id}/folios/${primaryFolio.folioId}/statement?limit=50`,
+      { headers: headers() },
+    );
+    expect(emptyStatement.status).toBe(200);
+    expect(await emptyStatement.json()).toMatchObject({
+      folio: { id: primaryFolio.folioId, reference: primaryFolio.folioNo, windowNo: 1, status: "open", currency: "USD" },
+      balanceMinor: "0", lineCount: 0, rows: [],
+      chargeOptions: [{ code: "ROOM", name: "Room charge", usaliLine: "Rooms" }],
+      chargeAvailability: { allowed: true, reason: null },
+    });
+
+    const charged = await call(`/api/v1/properties/${SEED_PROPERTY.id}/folios/${primaryFolio.folioId}/charges`, {
+      method: "POST",
+      headers: headers(accessToken, chargeKey),
+      body: JSON.stringify({ txCode: "ROOM", amountMinor: "12500", quantity: "1.000" }),
+    });
+    expect(charged.status).toBe(201);
+    const charge = await charged.json() as { journalId: string; amountMinor: string; currency: string; replayed: boolean };
+    expect(charge).toMatchObject({ amountMinor: "12500", currency: "USD", replayed: false });
+    const refreshed = await call(
+      `/api/v1/properties/${SEED_PROPERTY.id}/folios/${primaryFolio.folioId}/statement?limit=50`,
+      { headers: headers() },
+    );
+    expect(refreshed.status).toBe(200);
+    expect(await refreshed.json()).toMatchObject({
+      balanceMinor: "12500", lineCount: 1,
+      rows: [{ journalId: charge.journalId, kind: "charge", txCode: "ROOM", amountMinor: "12500", runningBalanceMinor: "12500" }],
+    });
+
+    const financialAfter = await counts();
+    expect(financialAfter).toEqual({
+      ...financialBefore,
+      accounts: financialBefore.accounts + 1,
+      folios: financialBefore.folios + 1,
+      journals: financialBefore.journals + 1,
+      postings: financialBefore.postings + 2,
+    });
+    const exactFinancials = await admin<Array<{
+      folios: number; guest_accounts: number; folio_facts: number; folio_events: number;
+      folio_keys: number; charge_keys: number; balanced: string; series_advanced: boolean;
+    }>>`
+      SELECT
+        (SELECT count(*)::int FROM folio WHERE reservation_id=${reservation.reservationId}::uuid) AS folios,
+        (SELECT count(*)::int FROM account WHERE tenant_id=${SEED_TENANT.id}::uuid
+          AND property_node=${SEED_PROPERTY.id}::uuid AND party_id=${party.partyId}::uuid
+          AND role='guest' AND currency='USD') AS guest_accounts,
+        (SELECT count(*)::int FROM fact_log WHERE tenant_id=${SEED_TENANT.id}::uuid
+          AND entity_id=${primaryFolio.folioId}::uuid AND fact_type='folio.opened') AS folio_facts,
+        (SELECT count(*)::int FROM outbox WHERE tenant_id=${SEED_TENANT.id}::uuid
+          AND aggregate_id=${primaryFolio.folioId}::uuid AND event_type='folio.opened') AS folio_events,
+        (SELECT count(*)::int FROM api_idempotency WHERE tenant_id=${SEED_TENANT.id}::uuid
+          AND operation='financials.folio.open') AS folio_keys,
+        (SELECT count(*)::int FROM api_idempotency WHERE tenant_id=${SEED_TENANT.id}::uuid
+          AND operation='financials.charge.post') AS charge_keys,
+        (SELECT sum(amount_minor)::text FROM posting_line WHERE journal_id=${charge.journalId}::uuid) AS balanced,
+        (SELECT next_no > 1 FROM document_series WHERE tenant_id=${SEED_TENANT.id}::uuid
+          AND property_node=${SEED_PROPERTY.id}::uuid AND kind='folio' AND fiscal=false) AS series_advanced
+    `;
+    expect(exactFinancials[0]).toEqual({
+      folios: 1, guest_accounts: 1, folio_facts: 1, folio_events: 1,
+      folio_keys: 1, charge_keys: 1, balanced: "0", series_advanced: true,
+    });
   }, 120_000);
 });

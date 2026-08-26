@@ -242,7 +242,7 @@ databaseDescribe("Order 053 operator operational blocks", () => {
         AND role.name='Local Availability Reviewer' ORDER BY permission.code
     `;
     expect(permissions.map(({ code }) => code)).toEqual([
-      "crm.parties:read", "crm.parties:write", "financials.charges:write", "financials.folios:read",
+      "crm.parties:read", "crm.parties:write", "financials.charges:write", "financials.folios:open", "financials.folios:read",
       "inventory.availability:read", "inventory.blocks:read", "inventory.blocks:write",
       "inventory.configuration:read", "inventory.configuration:write", "inventory.holds:read",
       "inventory.holds:write", "inventory.offline_leases:read", "inventory.offline_leases:write",

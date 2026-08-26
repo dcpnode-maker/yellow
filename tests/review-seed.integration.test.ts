@@ -239,6 +239,45 @@ databaseDescribe("Order 046 reproducible local-review seed", () => {
     ]);
   });
 
+  test("Order 171 P1/P4: provisions only canonical local-review financial configuration", async () => {
+    const rows = await admin<Array<{
+      series: number; revenue_accounts: number; room_codes: number; room_routes: number;
+      current_open_days: number; guest_accounts: number; folios: number; journals: number;
+      postings: number; payments: number; documents: number;
+    }>>`
+      SELECT
+        (SELECT count(*)::int FROM document_series
+          WHERE tenant_id=${SEED_TENANT.id}::uuid AND property_node=${SEED_PROPERTY.id}::uuid
+            AND kind='folio' AND prefix='FOL-' AND fiscal=false AND next_no >= 1) AS series,
+        (SELECT count(*)::int FROM account
+          WHERE tenant_id=${SEED_TENANT.id}::uuid AND property_node=${SEED_PROPERTY.id}::uuid
+            AND role='revenue' AND name='Room Revenue' AND currency='USD' AND status='open') AS revenue_accounts,
+        (SELECT count(*)::int FROM tx_code
+          WHERE code='ROOM' AND name='Room charge' AND grp='revenue' AND usali_line='Rooms'
+            AND default_dr='guest' AND default_cr='revenue') AS room_codes,
+        (SELECT count(*)::int FROM tx_code_route AS route
+          JOIN account AS revenue ON revenue.id=route.credit_account_id AND revenue.tenant_id=route.tenant_id
+          WHERE route.tenant_id=${SEED_TENANT.id}::uuid AND route.property_node=${SEED_PROPERTY.id}::uuid
+            AND route.currency='USD' AND route.tx_code='ROOM' AND route.debit_account_id IS NULL
+            AND revenue.role='revenue' AND revenue.name='Room Revenue') AS room_routes,
+        (SELECT count(*)::int FROM business_day AS day
+          JOIN org_node AS property ON property.id=day.property_node AND property.tenant_id=day.tenant_id
+          WHERE day.tenant_id=${SEED_TENANT.id}::uuid AND day.property_node=${SEED_PROPERTY.id}::uuid
+            AND day.business_date=(CURRENT_TIMESTAMP AT TIME ZONE property.timezone)::date
+            AND day.sealed_at IS NULL) AS current_open_days,
+        (SELECT count(*)::int FROM account WHERE tenant_id=${SEED_TENANT.id}::uuid AND role='guest') AS guest_accounts,
+        (SELECT count(*)::int FROM folio WHERE tenant_id=${SEED_TENANT.id}::uuid) AS folios,
+        (SELECT count(*)::int FROM journal WHERE tenant_id=${SEED_TENANT.id}::uuid) AS journals,
+        (SELECT count(*)::int FROM posting_line WHERE tenant_id=${SEED_TENANT.id}::uuid) AS postings,
+        (SELECT count(*)::int FROM payment WHERE tenant_id=${SEED_TENANT.id}::uuid) AS payments,
+        (SELECT count(*)::int FROM document WHERE tenant_id=${SEED_TENANT.id}::uuid) AS documents
+    `;
+    expect(rows[0]).toEqual({
+      series: 1, revenue_accounts: 1, room_codes: 1, room_routes: 1, current_open_days: 1,
+      guest_accounts: 0, folios: 0, journals: 0, postings: 0, payments: 0, documents: 0,
+    });
+  });
+
   test("P3: identical rerun is an exact no-op", async () => {
     const before = await counts();
     const second = await runReviewSeed({ databaseUrl: DEPLOY_DATABASE_URL!, password: PASSWORD!,
@@ -306,7 +345,7 @@ databaseDescribe("Order 046 reproducible local-review seed", () => {
     expect(await tokens.verify(loginBody.accessToken)).toMatchObject({
       sub: first.userId,
       tid: SEED_TENANT.id,
-      scp: "crm.parties:read crm.parties:write financials.charges:write financials.folios:read inventory.availability:read inventory.blocks:read inventory.blocks:write inventory.configuration:read inventory.configuration:write inventory.holds:read inventory.holds:write inventory.offline_leases:read inventory.offline_leases:write inventory.policy:read inventory.policy:write inventory.restriction:read inventory.restriction:write rates.configuration:read rates.configuration:write rates.pricing:read rates.pricing:write reservations.booking:write reservations.guests:read reservations.guests:write reservations.lifecycle:read reservations.lifecycle:write reservations.segments:read reservations.segments:write",
+      scp: "crm.parties:read crm.parties:write financials.charges:write financials.folios:open financials.folios:read inventory.availability:read inventory.blocks:read inventory.blocks:write inventory.configuration:read inventory.configuration:write inventory.holds:read inventory.holds:write inventory.offline_leases:read inventory.offline_leases:write inventory.policy:read inventory.policy:write inventory.restriction:read inventory.restriction:write rates.configuration:read rates.configuration:write rates.pricing:read rates.pricing:write reservations.booking:write reservations.guests:read reservations.guests:write reservations.lifecycle:read reservations.lifecycle:write reservations.segments:read reservations.segments:write",
     });
     const approverLogin = await app.handle(new Request("http://yellow.test/api/v1/auth/local:login", {
       method: "POST",
@@ -320,7 +359,7 @@ databaseDescribe("Order 046 reproducible local-review seed", () => {
     expect(await tokens.verify(approverLoginBody.accessToken)).toMatchObject({
       sub: first.approverUserId,
       tid: SEED_TENANT.id,
-      scp: "crm.parties:read crm.parties:write financials.charges:write financials.folios:read inventory.availability:read inventory.blocks:read inventory.blocks:write inventory.configuration:read inventory.configuration:write inventory.holds:read inventory.holds:write inventory.offline_leases:read inventory.offline_leases:write inventory.policy:read inventory.policy:write inventory.restriction:read inventory.restriction:write rates.configuration:read rates.configuration:write rates.pricing:read rates.pricing:write reservations.booking:write reservations.guests:read reservations.guests:write reservations.lifecycle:read reservations.lifecycle:write reservations.segments:read reservations.segments:write",
+      scp: "crm.parties:read crm.parties:write financials.charges:write financials.folios:open financials.folios:read inventory.availability:read inventory.blocks:read inventory.blocks:write inventory.configuration:read inventory.configuration:write inventory.holds:read inventory.holds:write inventory.offline_leases:read inventory.offline_leases:write inventory.policy:read inventory.policy:write inventory.restriction:read inventory.restriction:write rates.configuration:read rates.configuration:write rates.pricing:read rates.pricing:write reservations.booking:write reservations.guests:read reservations.guests:write reservations.lifecycle:read reservations.lifecycle:write reservations.segments:read reservations.segments:write",
     });
 
     const headers = { "content-type": "application/json", authorization: `Bearer ${loginBody.accessToken}` };

@@ -196,6 +196,16 @@ idempotency are one transaction. An exact existing open window is returned uncha
 This slice does not post money or implement extra windows, settlement, payments,
 tax/fiscal behavior, cashiering, day close, or AR.
 
+The operator exposes that existing command only as
+`POST /api/v1/properties/{property}/reservations/{reservationId}/primary-folio` under
+the distinct property scope `financials.folios:open`. The request body is exactly `{}`
+and the existing visible-ASCII `Idempotency-Key` header is mandatory. Tenant, actor,
+property and `folio.opened` audit authority are server-derived. A changed result is
+`201`; an existing/replayed result is `200`. The safe response contains only folio id,
+reservation id, human folio reference, window `1`, and server `changed`/`replayed`
+truth; account, Party and other PII never cross this adapter. Reservation commit does
+not call this endpoint or create a financial artifact automatically.
+
 Implemented posting slice: `ChargeService.postCharge(tx, input)` accepts an open folio,
 governed revenue tx code, canonical positive int64 decimal-string total, optional
 fixed-scale quantity, idempotency key and audit envelope. It server-derives the exact

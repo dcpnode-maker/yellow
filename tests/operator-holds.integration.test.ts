@@ -277,7 +277,7 @@ databaseDescribe("Order 055 operator cart holds", () => {
     `;
     expect(permissions.map(({ code }) => code)).toEqual([
       "crm.parties:read", "crm.parties:write",
-      "financials.charges:write", "financials.folios:read",
+      "financials.charges:write", "financials.folios:open", "financials.folios:read",
       "inventory.availability:read", "inventory.blocks:read", "inventory.blocks:write",
       "inventory.configuration:read", "inventory.configuration:write", "inventory.holds:read",
       "inventory.holds:write", "inventory.offline_leases:read", "inventory.offline_leases:write",

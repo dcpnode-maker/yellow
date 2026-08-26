@@ -23,6 +23,12 @@ sealed-day, token-only, trust, tax or fiscal guardrails.
 | 113 | 3 | Folio settlement and AR transfer | Every window settles or explicitly transfers under credit authority | Zero-balance/AR guard, credit limits, multi-window completeness, rollback |
 | 114 | 3 | Phase-5 journey and gate | Reservation → folio → charge → payment → settlement runs on pristine PostgreSQL | Non-skipped journey, schema/deployment/referee, hostile money/tenant/role boundaries |
 
+Current founder-visible delivery: Order 171 wires the already-approved primary-folio
+command behind its own property permission and an explicit reservation action, then
+reuses the existing statement and governed untaxed-charge surfaces. Reservation commit
+remains financially decoupled; the local-review seed supplies only deterministic
+non-production folio numbering, room-revenue routing and the current open business day.
+
 Tax evaluation, fiscal documents, statutory submissions, owner/trust payout automation
 and multi-currency FX stay outside this sequence until their dedicated compliance and
 research orders. Trust accounts may exist in the baseline but no Phase-5 command may
