@@ -79,6 +79,7 @@ let accessToken = "";
 let noScopeToken = "";
 let foreignPropertyToken = "";
 let noFolioOpenToken = "";
+let changedActorToken = "";
 
 function headers(token = accessToken, key?: string, correlationId = crypto.randomUUID()): Record<string, string> {
   return {
@@ -257,6 +258,11 @@ beforeAll(async () => {
     userId: review.userId,
     tenantId: SEED_TENANT.id,
     scopes: REVIEW_PERMISSIONS.map(({ code }) => code).filter((code) => code !== "financials.folios:open"),
+  });
+  changedActorToken = await tokens.issue({
+    userId: review.approverUserId,
+    tenantId: SEED_TENANT.id,
+    scopes: REVIEW_PERMISSIONS.map(({ code }) => code),
   });
   foreignPropertyToken = await tokens.issue({
     userId: FOREIGN_USER,
@@ -704,7 +710,30 @@ databaseDescribe("Orders 160/171 founder reservation-to-folio journey through ru
     });
     expect(openedReplay.status).toBe(201);
     expect(openedReplay.headers.get("idempotency-replayed")).toBe("true");
-    expect(await openedReplay.json()).toEqual({ ...primaryFolio, replayed: true });
+    expect(await openedReplay.text()).toBe(openedText);
+
+    const [exactRetries, existingLookups] = await Promise.all([
+      Promise.all(Array.from({ length: 20 }, () => call(openPath, {
+        method: "POST", headers: headers(accessToken, folioKey), body: "{}",
+      }))),
+      Promise.all(Array.from({ length: 20 }, (_, index) => call(openPath, {
+        method: "POST", headers: headers(accessToken, `order173-existing-${runTag}-${index}`), body: "{}",
+      }))),
+    ]);
+    for (const retry of exactRetries) {
+      expect(retry.status).toBe(201);
+      expect(retry.headers.get("idempotency-replayed")).toBe("true");
+      expect(await retry.text()).toBe(openedText);
+    }
+    for (const existing of existingLookups) {
+      expect(existing.status).toBe(200);
+      expect(existing.headers.get("idempotency-replayed")).toBe("false");
+      expect(await existing.json()).toEqual({ ...primaryFolio, changed: false });
+    }
+    const changedRequest = await call(openPath, {
+      method: "POST", headers: headers(changedActorToken, folioKey), body: "{}",
+    });
+    expect(changedRequest.status).toBe(409);
 
     const emptyStatement = await call(
       `/api/v1/properties/${SEED_PROPERTY.id}/folios/${primaryFolio.folioId}/statement?limit=50`,
@@ -746,7 +775,8 @@ databaseDescribe("Orders 160/171 founder reservation-to-folio journey through ru
     });
     const exactFinancials = await admin<Array<{
       folios: number; guest_accounts: number; folio_facts: number; folio_events: number;
-      folio_keys: number; charge_keys: number; balanced: string; series_advanced: boolean;
+      folio_keys: number; creation_outcomes: number; existing_outcomes: number;
+      drifted_replay_bodies: number; charge_keys: number; balanced: string; series_advanced: boolean;
     }>>`
       SELECT
         (SELECT count(*)::int FROM folio WHERE reservation_id=${reservation.reservationId}::uuid) AS folios,
@@ -760,6 +790,15 @@ databaseDescribe("Orders 160/171 founder reservation-to-folio journey through ru
         (SELECT count(*)::int FROM api_idempotency WHERE tenant_id=${SEED_TENANT.id}::uuid
           AND operation='financials.folio.open') AS folio_keys,
         (SELECT count(*)::int FROM api_idempotency WHERE tenant_id=${SEED_TENANT.id}::uuid
+          AND operation='financials.folio.open' AND response_status=201
+          AND response_body @> '{"changed":true}'::jsonb) AS creation_outcomes,
+        (SELECT count(*)::int FROM api_idempotency WHERE tenant_id=${SEED_TENANT.id}::uuid
+          AND operation='financials.folio.open' AND response_status=200
+          AND response_body @> '{"changed":false}'::jsonb) AS existing_outcomes,
+        (SELECT count(*)::int FROM api_idempotency WHERE tenant_id=${SEED_TENANT.id}::uuid
+          AND operation='financials.folio.open'
+          AND response_body @> '{"replayed":true}'::jsonb) AS drifted_replay_bodies,
+        (SELECT count(*)::int FROM api_idempotency WHERE tenant_id=${SEED_TENANT.id}::uuid
           AND operation='financials.charge.post') AS charge_keys,
         (SELECT sum(amount_minor)::text FROM posting_line WHERE journal_id=${charge.journalId}::uuid) AS balanced,
         (SELECT next_no > 1 FROM document_series WHERE tenant_id=${SEED_TENANT.id}::uuid
@@ -767,7 +806,8 @@ databaseDescribe("Orders 160/171 founder reservation-to-folio journey through ru
     `;
     expect(exactFinancials[0]).toEqual({
       folios: 1, guest_accounts: 1, folio_facts: 1, folio_events: 1,
-      folio_keys: 1, charge_keys: 1, balanced: "0", series_advanced: true,
+      folio_keys: 21, creation_outcomes: 1, existing_outcomes: 20, drifted_replay_bodies: 0,
+      charge_keys: 1, balanced: "0", series_advanced: true,
     });
   }, 120_000);
 });

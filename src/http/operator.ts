@@ -1555,7 +1555,7 @@ export class OperatorHttpApi {
       folioNo: result.folioNo,
       windowNo: result.windowNo,
       changed: result.changed,
-      replayed: result.replayed,
+      replayed: false,
     };
     return apiResponse(context.request, canonicalJson(jsonValue(response)), result.changed ? 201 : 200, {
       "idempotency-replayed": String(result.replayed),

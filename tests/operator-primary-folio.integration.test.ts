@@ -137,22 +137,44 @@ describe("Order 171 primary-folio backend adapter", () => {
     expect(calls).toBe(0);
   });
 
-  test("P1: existing and replayed server truth returns 200 without changing the safe shape", async () => {
+  test("P1/P2: an exact stored creation replay preserves its 201 body while a new key sees the existing folio", async () => {
+    let calls = 0;
     const operator = operatorWithFolios({
       async openPrimary() {
+        calls += 1;
+        if (calls <= 2) {
+          return {
+            folioId: FOLIO, accountId: ACTOR, reservationId: RESERVATION, folioNo: "FOL-9",
+            windowNo: 1, changed: true, replayed: calls === 2,
+          };
+        }
         return {
           folioId: FOLIO, accountId: ACTOR, reservationId: RESERVATION, folioNo: "FOL-9",
-          windowNo: 1, changed: false, replayed: true,
+          windowNo: 1, changed: false, replayed: false,
         };
       },
     });
-    const response = await operator.openPrimaryFolio(
+    const first = await operator.openPrimaryFolio(
       context(request(), ["financials.folios:open"]), PROPERTY, RESERVATION, {},
     );
-    expect(response.status).toBe(200);
-    expect(response.headers.get("idempotency-replayed")).toBe("true");
-    expect(await response.json()).toEqual({
-      changed: false, folioId: FOLIO, folioNo: "FOL-9", replayed: true,
+    const firstText = await first.text();
+    expect(first.status).toBe(201);
+    expect(first.headers.get("idempotency-replayed")).toBe("false");
+
+    const replay = await operator.openPrimaryFolio(
+      context(request(), ["financials.folios:open"]), PROPERTY, RESERVATION, {},
+    );
+    expect(replay.status).toBe(201);
+    expect(replay.headers.get("idempotency-replayed")).toBe("true");
+    expect(await replay.text()).toBe(firstText);
+
+    const existing = await operator.openPrimaryFolio(
+      context(request("order173-new-key"), ["financials.folios:open"]), PROPERTY, RESERVATION, {},
+    );
+    expect(existing.status).toBe(200);
+    expect(existing.headers.get("idempotency-replayed")).toBe("false");
+    expect(await existing.json()).toEqual({
+      changed: false, folioId: FOLIO, folioNo: "FOL-9", replayed: false,
       reservationId: RESERVATION, windowNo: 1,
     });
   });
