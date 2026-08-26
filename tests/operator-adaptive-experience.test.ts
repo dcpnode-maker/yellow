@@ -22,18 +22,17 @@ test("Order 176: progressive detail has a safe Simple default and one semantic s
   expect(html.match(/id="workbench-view"/g)).toHaveLength(1);
 });
 
-test("Order 176: appearances are original token packs and remain orthogonal", async () => {
+test("Order 185: the four appearances remain orthogonal to workspace detail", async () => {
   const html = await Bun.file(htmlFile).text();
   const css = await Bun.file(cssFile).text();
   const script = await Bun.file(scriptFile).text();
   const themes = [
-    "yellow", "apple", "macos", "win95", "winxp", "windows", "pixel", "linux",
-    "glass", "neo", "skeuo", "clay", "aurora", "stripe", "airbnb", "duolingo",
+    "apple", "android", "win95", "glass",
   ];
 
   for (const theme of themes) {
     expect(html).toContain(`<option value="${theme}">`);
-    if (theme !== "yellow") expect(css).toContain(`:root[data-theme="${theme}"]`);
+    expect(css).toContain(`:root[data-theme="${theme}"]`);
   }
   for (const theme of themes) expect(script).toContain(`"${theme}"`);
   expect(script).toContain('document.documentElement.dataset.theme = next');

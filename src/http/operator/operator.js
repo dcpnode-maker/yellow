@@ -431,15 +431,12 @@
   const folioCorrectionExpected = document.querySelector("#folio-correction-expected");
   const SYSTEM_STATUS_SUFFIX = "/system-status";
   const MAX_MINOR = BigInt("9223372036854775807");
-  const THEMES = new Set([
-    "yellow", "apple", "macos", "win95", "winxp", "windows", "pixel", "linux",
-    "glass", "neo", "skeuo", "clay", "aurora", "stripe", "airbnb", "duolingo",
-  ]);
+  const THEMES = new Set(["apple", "android", "win95", "glass"]);
   const EXPERIENCES = new Set(["simple", "advanced", "expert"]);
   const SECONDARY_VIEWS = new Set(["operations", "inventory", "restrictions", "rates", "status"]);
 
   function applyTheme(theme) {
-    const next = THEMES.has(theme) ? theme : "yellow";
+    const next = THEMES.has(theme) ? theme : "apple";
     document.documentElement.dataset.theme = next;
     themeSelect.value = next;
   }

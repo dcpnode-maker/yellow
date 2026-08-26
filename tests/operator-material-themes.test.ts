@@ -5,8 +5,7 @@ const cssFile = new URL("../src/http/operator/operator.css", import.meta.url);
 const scriptFile = new URL("../src/http/operator/operator.js", import.meta.url);
 
 const themes = [
-  "apple", "macos", "win95", "winxp", "windows", "pixel", "linux", "glass",
-  "neo", "skeuo", "clay", "aurora", "stripe", "airbnb", "duolingo",
+  "apple", "android", "win95", "glass",
 ] as const;
 
 function themeBlock(css: string, theme: string) {
@@ -37,13 +36,13 @@ function contrast(foreground: string, background: string) {
     / (Math.min(foregroundLuminance, backgroundLuminance) + 0.05);
 }
 
-test("Order184: all advertised appearances are allowlisted and keep one semantic app", async () => {
+test("Order185: all advertised appearances are allowlisted and keep one semantic app", async () => {
   const html = await Bun.file(htmlFile).text();
   const script = await Bun.file(scriptFile).text();
   const appearanceSelect = html.match(/<select id="theme-select"[\s\S]*?<\/select>/)?.[0] ?? "";
   const advertised = [...appearanceSelect.matchAll(/<option value="([^"]+)">/g)].map((match) => match[1]);
-  expect(advertised).toEqual(["yellow", ...themes]);
-  expect(new Set(advertised).size).toBe(16);
+  expect(advertised).toEqual([...themes]);
+  expect(new Set(advertised).size).toBe(4);
   for (const theme of advertised) {
     expect(html).toContain(`<option value="${theme}">`);
     expect(script).toContain(`"${theme}"`);
@@ -53,7 +52,7 @@ test("Order184: all advertised appearances are allowlisted and keep one semantic
   expect(script).not.toMatch(/localStorage|sessionStorage|document\.cookie|indexedDB/);
 });
 
-test("Order184: every skin declares a complete non-colour material vector", async () => {
+test("Order185: every skin declares a complete non-colour material vector", async () => {
   const css = await Bun.file(cssFile).text();
   const required = [
     "--font-ui:", "--control-radius:", "--card-radius:", "--material-card:",
@@ -68,26 +67,20 @@ test("Order184: every skin declares a complete non-colour material vector", asyn
   }
 });
 
-test("Order184: signature materials are structural and accessibility fallbacks are permanent", async () => {
+test("Order185: signature materials are structural and accessibility fallbacks are permanent", async () => {
   const css = await Bun.file(cssFile).text();
   expect(themeBlock(css, "win95")).toContain("outset");
   expect(css).toContain(':root[data-theme="win95"] input');
-  expect(themeBlock(css, "winxp")).toContain("linear-gradient");
-  expect(themeBlock(css, "windows")).toContain("--material-card-filter: blur(18px)");
   expect(themeBlock(css, "glass")).toContain("--material-card-filter: blur(22px) saturate(155%)");
   expect(themeBlock(css, "glass")).toContain("rgba(255,255,255,.42)");
-  expect(themeBlock(css, "neo")).toContain("-8px -8px 18px");
-  expect(themeBlock(css, "neo")).toContain("inset -4px -4px 9px");
-  expect(themeBlock(css, "skeuo")).toContain("repeating-linear-gradient");
-  expect(themeBlock(css, "clay")).toContain("3px solid");
-  expect(css).toContain("@keyframes yellow-aurora");
+  expect(themeBlock(css, "android")).toContain("--material-press: scale(.97)");
   expect(css).toContain("@supports not ((-webkit-backdrop-filter: blur(2px)) or (backdrop-filter: blur(2px)))");
   expect(css).toContain("@media (forced-colors: active)");
-  expect(css).toContain(':root[data-theme="aurora"] body { animation: none; }');
+  expect(css).toContain(':root[data-theme="android"] :is(button, input, select, textarea, .domain-tab) { min-height: 48px; }');
   expect(css).toContain("min-height: 44px");
 });
 
-test("Order184: welcome text and classic focus remain visibly accessible", async () => {
+test("Order185: welcome text and classic focus remain visibly accessible", async () => {
   const css = await Bun.file(cssFile).text();
   for (const theme of themes) {
     const block = themeBlock(css, theme);
@@ -102,7 +95,7 @@ test("Order184: welcome text and classic focus remain visibly accessible", async
   expect(contrast("#000000", "#c0c0c0")).toBeGreaterThanOrEqual(3);
 });
 
-test("Order184: the material system remains dependency-free and same-origin", async () => {
+test("Order185: the material system remains dependency-free and same-origin", async () => {
   const text = `${await Bun.file(htmlFile).text()}\n${await Bun.file(cssFile).text()}\n${await Bun.file(scriptFile).text()}`;
   expect(text).not.toMatch(/https?:\/\/|@import|url\s*\(/i);
   expect(text).not.toMatch(/logo|trademark/i);
