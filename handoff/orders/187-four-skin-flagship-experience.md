@@ -36,6 +36,12 @@ PostgreSQL/Valkey and their data unchanged, allow only reviewer read paths, and 
 retain the exact independently approved candidate or immediately restore the prior
 image. At no point may two app locals listen or port 3002 bind.
 
+D-490 corrects the failed first UAT precondition: every guarded recreate must pass
+`YELLOW_OPERATOR_WORKBENCH=1` and a non-empty fresh in-memory token-signing key to
+Compose, then prove `/`, `/health` and `/assets/operator.css` return 200 from the exact
+candidate image before browser handoff. The key is never printed or persisted; session
+rotation is acceptable, but hotel credentials and data remain unchanged.
+
 ## Four-skin design contract
 
 1. The selector remains exactly `apple`, `android`, `win95`, `glass`; Apple remains
