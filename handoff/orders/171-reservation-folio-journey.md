@@ -1,6 +1,6 @@
 # Order 171 — Reservation-to-folio operator journey
 
-**Status:** READY
+**Status:** BUILT-UNREVIEWED — immutable integrated candidate `6aa4865`
 **Phase:** 5 · Financials
 **Branch:** `phase-5/reservation-folio-journey`
 **Base:** `c830c9ebb80dcceb4d70d54784d7f17427ddf02a`
@@ -127,7 +127,31 @@ role grants, PII/account disclosure, dependency, self-review, merge, push or dep
 
 ## Definition of done
 
-- [ ] Intentional red is recorded before product implementation.
-- [ ] Explicit real reservation-to-folio-to-charge path passes on fresh PostgreSQL.
-- [ ] Responsive/accessibility/performance and full project gates pass.
+- [x] Intentional red is recorded before product implementation.
+- [x] Explicit real reservation-to-folio-to-charge path passes on fresh PostgreSQL.
+- [x] Responsive/accessibility/performance and builder project gates pass.
 - [ ] Independent Tier-3 reviewer approves one immutable executable.
+
+## Builder evidence — 2026-08-26
+
+Exact integrated product executable `6aa48652d8b6e238be93d7f4cb2924b78ba98e53`
+composes backend candidate `a88cfa670a3eddd09ac1789921eebc4d49b643f2`
+and UI candidate `08a34f87523c01e46910755ac9de6ef163445f85` on admitted
+Order171 without overlapping product edits. The backend lane personally executed the
+fresh-PostgreSQL founder journey, review seed, folio concurrency/rollback, posting drift
+and equivalent referee proof: journey 1/1 with 89 assertions, seed 12/12 with 40,
+folios 12/12, postings 10/10 including 500 charges/1,000 balanced lines with zero
+drift, and referee 11/11. The UI lane passed focused 38 with four environment-gated
+skips and a 85,647-byte aggregate gzip result under the 92,160-byte limit.
+
+After composition, focused static/integration tests passed 21 with five expected
+database-environment skips and zero failures; the complete repository suite passed
+211, skipped 480 database/environment-gated cases and failed zero with 2,578
+assertions. Typecheck, 66-file boundaries and the 23-package licence policy passed.
+The canonical WSL setup stopped before assertions because Bun 1.3.14 is absent in
+WSL. Windows `setup.ps1 -DbOnly` reproduced the inherited `/proc/1/comm` readiness
+false negative even though the fresh isolated PostgreSQL 16.15 and Valkey containers
+were healthy; this failed harness attempt is not counted green. Independent P1-P6
+execution on the immutable integrated candidate remains mandatory. Ports 3000/3002
+were untouched; there is no approval, promotion, merge, push, deployment or Phase
+completion claim.
