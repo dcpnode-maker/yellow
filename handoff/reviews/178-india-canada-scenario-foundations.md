@@ -1,40 +1,27 @@
-# Independent review — Order 178 India and Canada scenario foundations
+# Final independent review — Order 178 India and Canada scenario foundations
 
-**Verdict:** CHANGES REQUIRED — D-457
-**Reviewed tip:** `2dfca4663b0a1b81faf6656f72d721f26b1feba6`
-**Product candidate:** `2dfca4663b0a1b81faf6656f72d721f26b1feba6`
+**Verdict:** APPROVED — D-458
+**Reviewed tip:** `4d72db248efdf0f6337b532121e1b7fd5e0d35eb`
+**Product candidate:** `4d72db248efdf0f6337b532121e1b7fd5e0d35eb`
 **Base:** `f90165d` (independently approved Order177)
 **Reviewer:** independent non-implementing OpenAI Codex
 **Date:** 2026-08-26
 
-## Finding
+## D-457 closure
 
-### F1 — Valid IANA zones are not bound to the manifest jurisdiction
-
-`validateScenarioManifest()` validates that a timezone exists in ICU but does not
-bind it to the selected country. Fresh hostile probes changed only the property
-timezone and proved that both of these invalid combinations are accepted:
-
-- country `IN`, currency `INR`, timezone `America/Toronto`;
-- country `CA`, currency `CAD`, timezone `Asia/Kolkata`.
-
-That contradicts D-456 and Required foundation 1, which require the Indian scenario
-to use `Asia/Kolkata` and the Canadian scenario to use a Canadian IANA timezone. It
-also lets an otherwise closed source claim jurisdiction-local civil inputs under an
-unrelated timezone.
-
-Bind country, currency and timezone coherently during manifest validation. India
-must require exact `Asia/Kolkata`; Canada must reject zones outside the bounded
-Canadian scenario contract. Add permanent hostile tests using valid IANA zones from
-the wrong country, then submit a new immutable candidate for a complete independent
-restart.
+The corrected validator binds `IN` to exact `Asia/Kolkata` and `CA` to a bounded set
+of Canadian IANA zones after syntactic IANA validation. Fresh hostile execution
+rejected `IN`/`America/Toronto`, `CA`/`Asia/Kolkata`, valid-but-unsupported Canadian
+`America/Whitehorse`, and non-Canadian `America/New_York`; supported
+`CA`/`America/Vancouver` remained valid. The permanent D-457 regression covers both
+cross-country swaps, an unsupported valid zone and a missing timezone.
 
 ## Reviewer-executed evidence
 
-- exact Base-to-candidate scope contains only the eight Order178-permitted files and
-  `git diff --check` passed;
-- focused tests passed **7/7 (82 assertions)**;
-- standing tests passed **230/230 (2,821 assertions)** with 480 database opt-ins
+- exact Base-to-candidate scope contains only the nine Order178-permitted product,
+  test and governance files and `git diff --check` passed;
+- focused tests passed **8/8 (86 assertions)**;
+- standing tests passed **231/231 (2,825 assertions)** with 480 database opt-ins
   skipped because Order178 requires no local stack;
 - strict typecheck passed; import boundaries scanned **66** TypeScript files;
   licence policy passed **23** installed packages; `bun audit` found no vulnerability;
@@ -47,8 +34,21 @@ restart.
 - both capability envelopes remained `pending_policy` / `future_phase` with false
   database and imported-reservation authority; a second run reported both files
   unchanged; byte tampering exited nonzero with content-addressed drift;
-- the disposable output directory was removed completely. No Docker service or local
-  app was started, and ports 3000/3002 were not touched.
+- relative roots, normalized traversal and scenario-key escape probes rejected;
+  a real Windows junction redirect also rejected before writing outside the root;
+- every disposable output, link and outside-target directory was removed completely.
+  No Docker service or local app was started, and ports 3000/3002 were not touched.
 
-No approval, merge, push, promotion, deployment or Phase-wide completion authority
-is granted.
+Approval is limited to Order178's deterministic offline fixture scope. It grants no
+database import, legal/fiscal authority, runtime/local-app change, merge, push,
+promotion, deployment or Phase-wide completion authority.
+
+## Preserved prior rejection — D-457
+
+Candidate `2dfca4663b0a1b81faf6656f72d721f26b1feba6` was rejected because its
+validator accepted valid but cross-jurisdiction combinations: `IN`/`INR` with
+`America/Toronto` and `CA`/`CAD` with `Asia/Kolkata`. Its otherwise-green evidence
+was exact scope, focused 7/7 (82), standing 230/230 (2,821), typecheck, 66
+boundaries, 23 licences, audit, two 1,096-date outputs, hashes, leap/Toronto-DST,
+unchanged replay, hard-failing tamper and cleanup. That rejection remains immutable;
+D-458 approves only the separately corrected candidate named above.

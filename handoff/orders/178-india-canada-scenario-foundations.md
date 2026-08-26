@@ -1,6 +1,6 @@
 # Order 178 — India and Canada scenario foundations
 
-**Status:** CHANGES REQUIRED — D-457
+**Status:** APPROVED — D-458
 **Phase:** 5 · human UAT foundations
 **Branch:** `phase-5/india-canada-scenario-foundations`
 **Base:** `f90165d` (independently approved Order177)
@@ -70,9 +70,9 @@ deployment is in scope.
 
 ## Definition of done
 
-- [ ] Both compact manifests are complete and versioned.
-- [ ] Deterministic 1,096-day compilation is bounded and content addressed.
-- [ ] Output defaults to the single approved D-drive generated-data tree.
-- [ ] No legal, fiscal, database or real-person authority is implied.
-- [ ] Focused and standing gates pass.
-- [ ] Independent review approves the immutable candidate.
+- [x] Both compact manifests are complete and versioned.
+- [x] Deterministic 1,096-day compilation is bounded and content addressed.
+- [x] Output defaults to the single approved D-drive generated-data tree.
+- [x] No legal, fiscal, database or real-person authority is implied.
+- [x] Focused and standing gates pass.
+- [x] Independent review approves the immutable candidate.
