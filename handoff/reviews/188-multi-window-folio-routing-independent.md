@@ -136,3 +136,12 @@ The transient process was then stopped cleanly. Port `:3188` is unbound and `:30
 remains bound by its original process. The STATIC/FINANCIAL approval at `0713b7b`
 stands; full Order188 approval and every promotion/integration action remain blocked
 on a browser-capable independent execution of authenticated P7 on that exact product.
+
+A coordinator subsequently released its own supported in-app-browser binding, then
+created and handed off a fresh candidate tab (`Yellow · Hotel Operations`, tab `8`).
+This reviewer's required direct `getForUrl("http://127.0.0.1:3188/")` selection still
+reported no browser, and the prior documented binding reported disconnected when asked
+for the handed-off tab. The skill forbids resetting the persistent browser runtime or
+substituting another surface after this condition. A second isolated `:3188` harness
+was therefore stopped with the same no-credential/no-browser-proof verdict; `:3000`
+again remained untouched.
