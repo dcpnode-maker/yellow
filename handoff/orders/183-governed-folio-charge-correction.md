@@ -1,8 +1,8 @@
 # Order 183 — Governed folio charge correction
 
-**Status:** RESUMED — Question170 resolved by founder five-skin Order185
+**Status:** APPROVED — independent Tier-3 gate passed at exact candidate `25f11dfd7de3b54cc202edc491568c52809c0ba3`
 **Phase:** 5 · financial operations and founder UAT
-**Branch:** `phase-5/folio-charge-correction`
+**Branch:** `phase-5/folio-charge-correction-resumed`
 **Base:** `144753b` (independently approved current local through Order182)
 **Risk tier:** 3 — immutable financial reversal and concurrent correction arbitration
 **Owner:** Codex implementation; independent non-implementing financial reviewer
@@ -116,8 +116,8 @@ merge, push or production deployment is in scope.
 
 ## Definition of done
 
-- [ ] Users can lawfully correct an erroneous charge without mutating history.
-- [ ] Reversal lineage and UI language are directionally correct.
-- [ ] Concurrency, replay, tenancy, balance and sealed-day proofs pass.
-- [ ] Post-seal corrections are restricted to explicitly authorized property users.
-- [ ] Independent Tier-3 review approves the exact candidate.
+- [x] Users can lawfully correct an erroneous charge without mutating history.
+- [x] Reversal lineage and UI language are directionally correct.
+- [x] Concurrency, replay, tenancy, balance and sealed-day proofs pass.
+- [x] Post-seal corrections are restricted to explicitly authorized property users.
+- [x] Independent Tier-3 review approves the exact candidate.
