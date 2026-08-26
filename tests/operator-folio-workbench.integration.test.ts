@@ -672,7 +672,7 @@ folioHttpDescribe("Order 105 real authenticated folio HTTP proof", () => {
         (SELECT count(*)::int FROM posting_line WHERE tenant_id=${HTTP_TENANT_A}::uuid) lines,
         (SELECT count(*)::int FROM fact_log WHERE tenant_id=${HTTP_TENANT_A}::uuid AND fact_type='journal.posted') facts,
         (SELECT count(*)::int FROM outbox WHERE tenant_id=${HTTP_TENANT_A}::uuid AND event_type='journal.posted') events,
-        (SELECT count(*)::int FROM api_idempotency WHERE tenant_id=${HTTP_TENANT_A}::uuid AND operation='financials.charge.reverse') correctionKeys`;
+        (SELECT count(*)::int FROM api_idempotency WHERE tenant_id=${HTTP_TENANT_A}::uuid AND operation='financials.charge.reverse') AS "correctionKeys"`;
     expect(counts[0]!.correctionKeys).toBe(2);
   }, 30_000);
 });
