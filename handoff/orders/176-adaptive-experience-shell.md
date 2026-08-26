@@ -1,6 +1,6 @@
 # Order 176 — Adaptive experience shell
 
-**Status:** IN PROGRESS
+**Status:** CHANGES REQUIRED — independent 375px containment finding at `0aef0bb`
 **Phase:** 5 · founder-visible operations
 **Branch:** `phase-5/adaptive-experience-shell`
 **Base:** `f3bcb36` (independently approved Orders171/173/174/175)
@@ -62,4 +62,6 @@ tax, fiscal, housekeeping, merge, push, local promotion or deployment is in scop
 - [ ] Theme packs are original token variants with no external dependency or copied UI.
 - [ ] Existing founder reservation-to-folio journey remains green in every detail level.
 - [ ] Complete repository and real-browser gates pass.
-- [ ] Independent review approves the immutable candidate.
+- [ ] Independent review approves the immutable candidate. Candidate `0aef0bb` was
+  rejected for root horizontal overflow at 375px in all 18 detail/theme combinations;
+  see `handoff/reviews/176-adaptive-experience-shell.md`.
