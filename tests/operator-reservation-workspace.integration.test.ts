@@ -258,9 +258,9 @@ test("Order 168: 120-character confirmations stay contained and every visible th
   expect(script).toContain("button.textContent = row.confirmationNo");
 });
 
-test("Order 168: operator assets remain within the 90 KiB combined gzip budget", async () => {
+test("Order 168 / Order184: operator assets remain within the 96 KiB combined gzip budget", async () => {
   const sizes = [html, css, script].map((asset) => gzipSync(asset).byteLength);
-  expect(sizes.reduce((total, size) => total + size, 0)).toBeLessThanOrEqual(90 * 1024);
+  expect(sizes.reduce((total, size) => total + size, 0)).toBeLessThanOrEqual(96 * 1024);
   const pkg = JSON.parse(readFileSync(new URL("../package.json", import.meta.url), "utf8")) as { dependencies: Record<string, string> };
   expect(pkg.dependencies).toEqual({ elysia: "^1.4.29" });
 });

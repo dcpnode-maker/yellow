@@ -26,13 +26,16 @@ test("Order 176: appearances are original token packs and remain orthogonal", as
   const html = await Bun.file(htmlFile).text();
   const css = await Bun.file(cssFile).text();
   const script = await Bun.file(scriptFile).text();
-  const themes = ["yellow", "apple", "pixel", "windows", "glass", "aurora"];
+  const themes = [
+    "yellow", "apple", "macos", "win95", "winxp", "windows", "pixel", "linux",
+    "glass", "neo", "skeuo", "clay", "aurora", "stripe", "airbnb", "duolingo",
+  ];
 
   for (const theme of themes) {
     expect(html).toContain(`<option value="${theme}">`);
     if (theme !== "yellow") expect(css).toContain(`:root[data-theme="${theme}"]`);
   }
-  expect(script).toContain('const THEMES = new Set(["yellow", "apple", "pixel", "windows", "glass", "aurora"])');
+  for (const theme of themes) expect(script).toContain(`"${theme}"`);
   expect(script).toContain('document.documentElement.dataset.theme = next');
   expect(script).toContain('document.documentElement.dataset.experience = next');
   expect(`${html}\n${css}\n${script}`).not.toMatch(/https?:\/\/|@import|url\s*\(/i);

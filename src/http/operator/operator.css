@@ -991,3 +991,348 @@ input, select, textarea { min-height: 44px; border-color: #bdcbca; background: #
 @media (prefers-reduced-motion: reduce) {
   .today-lane-loading span, .reservation-board-loading span, .reservation-detail-loading span, .folio-statement-loading span, .reservation-detail-drawer { animation: none; }
 }
+
+/* Order 184: appearance means material, not palette. Every skin supplies a
+   complete surface/control/elevation contract over the same semantic DOM. */
+:root {
+  --font-ui: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-display: var(--font-ui);
+  --material-card: var(--card);
+  --material-card-border: 1px solid var(--line);
+  --material-card-shadow: var(--card-shadow);
+  --material-card-filter: none;
+  --material-control: #ffffff;
+  --material-control-border: 1px solid #bdcbca;
+  --material-control-shadow: none;
+  --material-control-active-shadow: inset 0 2px 5px rgba(15, 35, 38, .16);
+  --material-primary: var(--accent);
+  --material-primary-border: 1px solid var(--accent-strong);
+  --material-primary-shadow: 0 3px 0 var(--accent-strong);
+  --material-nav: var(--nav);
+  --material-nav-border: 1px solid color-mix(in srgb, var(--shell-ink) 14%, transparent);
+  --material-nav-shadow: none;
+  --material-nav-filter: none;
+  --material-hover-lift: translateY(-1px);
+  --material-press: translateY(1px);
+  --material-transition: 180ms cubic-bezier(.2, .8, .2, 1);
+}
+
+html, body, button, input, select, textarea { font-family: var(--font-ui); }
+h1, h2, h3, h4, .brand strong { font-family: var(--font-display); }
+.app-bar {
+  border-bottom: var(--material-nav-border);
+  background: var(--material-nav);
+  box-shadow: var(--material-nav-shadow);
+  -webkit-backdrop-filter: var(--material-nav-filter);
+  backdrop-filter: var(--material-nav-filter);
+}
+.card, .option-card, .metric, .reservation-board-card, .folio-posting-card,
+.reservation-detail-section, .today-lane, .inventory-item, .restriction-item {
+  border: var(--material-card-border);
+  background: var(--material-card);
+  box-shadow: var(--material-card-shadow);
+  -webkit-backdrop-filter: var(--material-card-filter);
+  backdrop-filter: var(--material-card-filter);
+  transition: transform var(--material-transition), box-shadow var(--material-transition), border-color var(--material-transition);
+}
+.option-card:hover, .reservation-board-card:hover { transform: var(--material-hover-lift); }
+input, select, textarea, .quiet, .secondary {
+  border: var(--material-control-border);
+  background: var(--material-control);
+  box-shadow: var(--material-control-shadow);
+  transition: transform var(--material-transition), box-shadow var(--material-transition), border-color var(--material-transition);
+}
+input:focus, select:focus, textarea:focus { box-shadow: var(--material-control-active-shadow); }
+.primary {
+  border: var(--material-primary-border);
+  background: var(--material-primary);
+  box-shadow: var(--material-primary-shadow);
+  transition: transform var(--material-transition), box-shadow var(--material-transition), filter var(--material-transition);
+}
+.primary:hover { transform: var(--material-hover-lift); box-shadow: var(--material-primary-shadow); filter: brightness(1.035); }
+.primary:active, .quiet:active, .secondary:active { transform: var(--material-press); }
+
+/* Apple: restrained navigation material; content remains a solid standard layer. */
+:root[data-theme="apple"] {
+  --ink: #1d1d1f; --muted: #5f6368; --paper: #f5f5f7; --card: #ffffff; --line: rgba(60,60,67,.22);
+  --accent: #006edb; --accent-strong: #0055ad; --focus: #005fcc; --nav: rgba(248,248,250,.78);
+  --shell-ink: #1d1d1f; --shell-muted: #5f6368; --surface-subtle: #f2f2f7;
+  --control-radius: 12px; --card-radius: 20px;
+  --font-ui: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", sans-serif;
+  --font-display: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", sans-serif;
+  --material-card: #ffffff; --material-card-border: .5px solid rgba(60,60,67,.25);
+  --material-card-shadow: 0 1px 2px rgba(0,0,0,.04), 0 18px 45px rgba(0,0,0,.08);
+  --material-control: rgba(255,255,255,.96); --material-control-border: .5px solid rgba(60,60,67,.32);
+  --material-control-shadow: inset 0 1px 0 rgba(255,255,255,.9), 0 1px 2px rgba(0,0,0,.06);
+  --material-primary: linear-gradient(#0a84ff, #006edb); --material-primary-border: .5px solid #005fc0;
+  --material-primary-shadow: 0 1px 1px rgba(0,0,0,.08), 0 5px 16px rgba(0,110,219,.22);
+  --material-nav: rgba(248,248,250,.78); --material-nav-border: .5px solid rgba(60,60,67,.2);
+  --material-nav-shadow: 0 8px 30px rgba(0,0,0,.07); --material-nav-filter: blur(24px) saturate(180%);
+}
+:root[data-theme="apple"] .domain-tab.is-active { border-radius: 10px; box-shadow: none; }
+
+/* macOS: desktop-window precision with a neutral toolbar and compact controls. */
+:root[data-theme="macos"] {
+  --ink: #202124; --muted: #62676d; --paper: #dfe3e8; --card: #f7f7f8; --line: #b9bec5;
+  --accent: #0a74da; --accent-strong: #075cae; --focus: #006bd6; --nav: rgba(232,234,237,.9);
+  --shell-ink: #202124; --shell-muted: #5f6368; --surface-subtle: #eceef1;
+  --control-radius: 7px; --card-radius: 11px;
+  --font-ui: -apple-system, BlinkMacSystemFont, "Helvetica Neue", Arial, sans-serif;
+  --font-display: var(--font-ui);
+  --material-card: linear-gradient(180deg, #ffffff, #f1f2f4);
+  --material-card-border: 1px solid rgba(0,0,0,.18);
+  --material-card-shadow: 0 1px 0 rgba(255,255,255,.95) inset, 0 14px 34px rgba(30,35,40,.14);
+  --material-control: linear-gradient(#ffffff, #e8e9eb); --material-control-border: 1px solid #aeb3b9;
+  --material-control-shadow: inset 0 1px 0 #fff, 0 1px 1px rgba(0,0,0,.08);
+  --material-control-active-shadow: inset 0 2px 4px rgba(0,0,0,.18);
+  --material-primary: linear-gradient(#49a4ff, #0879df); --material-primary-border: 1px solid #0666bd;
+  --material-primary-shadow: inset 0 1px 0 rgba(255,255,255,.4), 0 1px 2px rgba(0,0,0,.16);
+  --material-nav: linear-gradient(180deg, rgba(247,248,249,.94), rgba(216,219,223,.94));
+  --material-nav-border: 1px solid #aeb3b9; --material-nav-shadow: 0 1px 8px rgba(0,0,0,.12);
+  --material-nav-filter: blur(18px) saturate(130%);
+}
+:root[data-theme="macos"] .brand-mark { border-radius: 999px; box-shadow: inset 0 0 0 1px rgba(0,0,0,.12), 0 1px 2px rgba(0,0,0,.18); }
+
+/* Windows 95/98: exact tactile metaphors—outset commands, inset fields, square panels. */
+:root[data-theme="win95"] {
+  --ink: #000000; --muted: #303030; --paper: #008080; --card: #c0c0c0; --line: #808080;
+  --accent: #000080; --accent-strong: #00005c; --accent-ink: #ffffff; --focus: #000080;
+  --brand: #ffff00; --nav: #000080; --shell-ink: #ffffff; --shell-muted: #ffffff; --surface-subtle: #d4d0c8;
+  --control-radius: 0; --card-radius: 0;
+  --font-ui: Tahoma, "MS Sans Serif", "Segoe UI", sans-serif; --font-display: var(--font-ui);
+  --material-card: #c0c0c0; --material-card-border: 2px outset #ffffff; --material-card-shadow: 2px 2px 0 #000000;
+  --material-control: #c0c0c0; --material-control-border: 2px outset #ffffff;
+  --material-control-shadow: none; --material-control-active-shadow: 2px inset #808080;
+  --material-primary: #c0c0c0; --material-primary-border: 2px outset #ffffff;
+  --material-primary-shadow: 1px 1px 0 #000000; --material-nav: #000080;
+  --material-nav-border: 2px outset #ffffff; --material-nav-shadow: 2px 2px 0 #000000;
+  --material-hover-lift: none; --material-press: translate(1px, 1px); --material-transition: 0ms linear;
+}
+:root[data-theme="win95"] input, :root[data-theme="win95"] textarea, :root[data-theme="win95"] select { background: #ffffff; border-style: inset; color: #000; }
+:root[data-theme="win95"] .primary { color: #000; }
+:root[data-theme="win95"] .workbench-head { padding-inline: .75rem; background: #c0c0c0; border: 2px outset #fff; }
+:root[data-theme="win95"] .domain-tab.is-active { border: 1px dotted #000; background: #000080; color: #fff; box-shadow: none; }
+
+/* Windows XP: Luna gloss, friendly radius and layered blue/green controls. */
+:root[data-theme="winxp"] {
+  --ink: #15305a; --muted: #566c8e; --paper: #ece9d8; --card: #fffef4; --line: #7f9db9;
+  --accent: #2f64d6; --accent-strong: #1746a2; --accent-ink: #fff; --focus: #1d4fa8;
+  --brand: #ffcc33; --nav: #245edb; --shell-ink: #ffffff; --shell-muted: #edf3ff; --surface-subtle: #f5f3e7;
+  --control-radius: 7px; --card-radius: 12px;
+  --font-ui: Tahoma, "Segoe UI", sans-serif; --font-display: Trebuchet MS, Tahoma, sans-serif;
+  --material-card: linear-gradient(135deg, #ffffff 0 70%, #f0f5df 100%);
+  --material-card-border: 1px solid #9db4d0; --material-card-shadow: inset 0 1px 0 #fff, 0 5px 14px rgba(37,70,121,.18);
+  --material-control: linear-gradient(#ffffff, #ece9d8); --material-control-border: 1px solid #7f9db9;
+  --material-control-shadow: inset 0 1px 0 #fff, 0 1px 2px rgba(0,0,0,.12);
+  --material-primary: linear-gradient(#7fc84d 0, #48a52d 48%, #2b8a1d 52%, #54b638 100%);
+  --material-primary-border: 1px solid #1d7013; --material-primary-shadow: inset 0 1px 0 rgba(255,255,255,.55), 0 2px 4px rgba(0,0,0,.2);
+  --material-nav: linear-gradient(180deg, #3c7bea, #245edb 54%, #1941a5);
+  --material-nav-border: 1px solid #113b9e; --material-nav-shadow: 0 4px 14px rgba(20,48,126,.28);
+}
+:root[data-theme="winxp"] .domain-tab.is-active { background: linear-gradient(#fff, #dce9ff); border: 1px solid #7f9db9; box-shadow: inset 0 1px 0 #fff; }
+
+/* Fluent: Mica base, Acrylic transient surfaces and disciplined z-depth. */
+:root[data-theme="windows"] {
+  --ink: #1b1b1b; --muted: #5d5d5d; --paper: #f3f3f3; --card: rgba(255,255,255,.78); --line: rgba(0,0,0,.14);
+  --accent: #0067c0; --accent-strong: #004f94; --focus: #005a9e; --nav: rgba(245,245,245,.78);
+  --shell-ink: #1b1b1b; --shell-muted: #5d5d5d; --surface-subtle: rgba(255,255,255,.55);
+  --control-radius: 4px; --card-radius: 8px;
+  --font-ui: "Segoe UI Variable", "Segoe UI", sans-serif; --font-display: var(--font-ui);
+  --material-card: rgba(255,255,255,.76); --material-card-border: 1px solid rgba(0,0,0,.12);
+  --material-card-shadow: 0 2px 4px rgba(0,0,0,.08), 0 12px 32px rgba(0,0,0,.07); --material-card-filter: blur(18px) saturate(125%);
+  --material-control: rgba(255,255,255,.88); --material-control-border: 1px solid rgba(0,0,0,.22);
+  --material-control-shadow: inset 0 -1px 0 rgba(0,0,0,.18); --material-control-active-shadow: inset 0 -2px 0 #0067c0;
+  --material-primary: #0067c0; --material-primary-border: 1px solid #005ba9; --material-primary-shadow: 0 2px 4px rgba(0,0,0,.18);
+  --material-nav: rgba(245,245,245,.78); --material-nav-border: 1px solid rgba(0,0,0,.1);
+  --material-nav-shadow: 0 8px 24px rgba(0,0,0,.08); --material-nav-filter: blur(28px) saturate(130%);
+}
+
+/* Android Material Expressive: tonal surfaces, pill geometry and spring-like press. */
+:root[data-theme="pixel"] {
+  --ink: #211f26; --muted: #625f68; --paper: #f8f7ff; --card: #fffbff; --line: #cac4d0;
+  --accent: #6750a4; --accent-strong: #4f378b; --focus: #006a6a; --nav: #f1ecf4;
+  --shell-ink: #211f26; --shell-muted: #625f68; --surface-subtle: #f3edf7;
+  --control-radius: 22px; --card-radius: 28px;
+  --font-ui: Roboto, "Segoe UI", sans-serif; --font-display: var(--font-ui);
+  --material-card: #fffbff; --material-card-border: 1px solid #cac4d0; --material-card-shadow: 0 1px 3px rgba(29,25,43,.18), 0 8px 22px rgba(29,25,43,.08);
+  --material-control: #f3edf7; --material-control-border: 1px solid #79747e; --material-control-shadow: none;
+  --material-control-active-shadow: inset 0 0 0 2px #6750a4;
+  --material-primary: #6750a4; --material-primary-border: 0; --material-primary-shadow: 0 2px 6px rgba(79,55,139,.28);
+  --material-nav: #f1ecf4; --material-nav-border: 0; --material-nav-shadow: 0 3px 12px rgba(29,25,43,.14);
+  --material-press: scale(.97); --material-transition: 220ms cubic-bezier(.2,0,0,1);
+}
+:root[data-theme="pixel"] .domain-tab.is-active, :root[data-theme="pixel"] .reservation-status-badge { border-radius: 999px; }
+
+/* Linux workstation: efficient, high-contrast industrial desktop. */
+:root[data-theme="linux"] {
+  --ink: #f4f4f4; --muted: #c5c5c5; --paper: #202020; --card: #2d2d2d; --line: #555555;
+  --accent: #e95420; --accent-strong: #bd3f14; --accent-ink: #fff; --focus: #ffb000;
+  --brand: #f6c744; --nav: #171717; --shell-ink: #f5f5f5; --shell-muted: #c8c8c8; --surface-subtle: #383838;
+  --control-radius: 5px; --card-radius: 8px;
+  --font-ui: Ubuntu, Cantarell, "DejaVu Sans", sans-serif; --font-display: var(--font-ui);
+  --material-card: linear-gradient(180deg, #333, #292929); --material-card-border: 1px solid #555;
+  --material-card-shadow: 0 1px 0 rgba(255,255,255,.07) inset, 0 8px 22px rgba(0,0,0,.35);
+  --material-control: #1f1f1f; --material-control-border: 1px solid #626262; --material-control-shadow: inset 0 1px 3px rgba(0,0,0,.55);
+  --material-primary: linear-gradient(#f26b38, #d94a17); --material-primary-border: 1px solid #a93612; --material-primary-shadow: 0 2px 5px rgba(0,0,0,.35);
+  --material-nav: #171717; --material-nav-border: 1px solid #4b4b4b; --material-nav-shadow: 0 4px 18px rgba(0,0,0,.45);
+}
+:root[data-theme="linux"] label, :root[data-theme="linux"] input, :root[data-theme="linux"] select, :root[data-theme="linux"] textarea { color: var(--ink); }
+
+/* Pure Glass: luminous atmosphere, true translucent layers and highlight edges. */
+:root[data-theme="glass"] {
+  --ink: #102c3b; --muted: #3e5e6d; --paper: #dff3ff; --card: rgba(255,255,255,.42); --line: rgba(255,255,255,.68);
+  --accent: #087f8c; --accent-strong: #05606b; --focus: #005f9e; --nav: rgba(13,52,70,.56);
+  --shell-ink: #f5fdff; --shell-muted: #d5f5ff; --surface-subtle: rgba(255,255,255,.34);
+  --control-radius: 16px; --card-radius: 24px;
+  --font-ui: Inter, "Segoe UI", sans-serif; --font-display: var(--font-ui);
+  --material-card: linear-gradient(135deg, rgba(255,255,255,.62), rgba(255,255,255,.24));
+  --material-card-border: 1px solid rgba(255,255,255,.78);
+  --material-card-shadow: inset 0 1px 0 rgba(255,255,255,.9), inset 0 -1px 0 rgba(255,255,255,.2), 0 22px 55px rgba(12,62,86,.2);
+  --material-card-filter: blur(22px) saturate(155%);
+  --material-control: rgba(255,255,255,.5); --material-control-border: 1px solid rgba(255,255,255,.78);
+  --material-control-shadow: inset 0 1px 0 rgba(255,255,255,.9), 0 8px 18px rgba(12,62,86,.12);
+  --material-control-active-shadow: inset 0 2px 8px rgba(8,79,92,.14), 0 0 0 2px rgba(255,255,255,.6);
+  --material-primary: linear-gradient(135deg, rgba(5,126,142,.96), rgba(31,168,173,.82));
+  --material-primary-border: 1px solid rgba(255,255,255,.65); --material-primary-shadow: inset 0 1px 0 rgba(255,255,255,.5), 0 10px 24px rgba(5,96,107,.28);
+  --material-nav: linear-gradient(135deg, rgba(10,50,68,.68), rgba(18,94,105,.46));
+  --material-nav-border: 1px solid rgba(255,255,255,.32); --material-nav-shadow: 0 12px 38px rgba(9,55,79,.26); --material-nav-filter: blur(26px) saturate(170%);
+}
+:root[data-theme="glass"] body { background: radial-gradient(circle at 14% 9%, rgba(80,216,255,.78), transparent 28rem), radial-gradient(circle at 88% 18%, rgba(255,194,91,.62), transparent 24rem), radial-gradient(circle at 55% 95%, rgba(142,95,255,.38), transparent 30rem), #dff3ff; background-attachment: fixed; }
+
+/* Accessible soft UI: true convex cards and concave controls with explicit borders. */
+:root[data-theme="neo"] {
+  --ink: #303b4a; --muted: #5d6877; --paper: #e4e9ef; --card: #e4e9ef; --line: #9ca8b7;
+  --accent: #5367d8; --accent-strong: #3e50b8; --focus: #384cc4; --nav: #e4e9ef;
+  --shell-ink: #303b4a; --shell-muted: #5d6877; --surface-subtle: #e4e9ef;
+  --control-radius: 16px; --card-radius: 22px;
+  --font-ui: "Segoe UI", system-ui, sans-serif; --font-display: var(--font-ui);
+  --material-card: linear-gradient(145deg, #f3f8ff, #cdd2d7); --material-card-border: 1px solid rgba(87,100,117,.36);
+  --material-card-shadow: -8px -8px 18px rgba(255,255,255,.9), 8px 8px 18px rgba(145,155,168,.58);
+  --material-control: #e4e9ef; --material-control-border: 1px solid #9ca8b7;
+  --material-control-shadow: inset -4px -4px 9px rgba(255,255,255,.85), inset 4px 4px 9px rgba(145,155,168,.48);
+  --material-control-active-shadow: inset -2px -2px 5px rgba(255,255,255,.85), inset 5px 5px 10px rgba(130,142,157,.58);
+  --material-primary: linear-gradient(145deg, #6378ee, #4559c1); --material-primary-border: 1px solid #384aa8;
+  --material-primary-shadow: -4px -4px 10px rgba(255,255,255,.7), 5px 5px 12px rgba(120,130,149,.58);
+  --material-nav: #e4e9ef; --material-nav-border: 1px solid rgba(87,100,117,.34);
+  --material-nav-shadow: 0 8px 20px rgba(145,155,168,.45);
+}
+
+/* Restrained skeuomorphism: parchment content, engraved metal and tactile leather. */
+:root[data-theme="skeuo"] {
+  --ink: #30271d; --muted: #65584a; --paper: #d9c7a5; --card: #f3ead8; --line: #9e8769;
+  --accent: #9b4f2c; --accent-strong: #6f351d; --focus: #155d8d; --nav: #3a2519;
+  --shell-ink: #fff5df; --shell-muted: #dbc8aa; --surface-subtle: #e8dcc6;
+  --control-radius: 9px; --card-radius: 13px;
+  --font-ui: Georgia, Cambria, "Times New Roman", serif; --font-display: Georgia, Cambria, serif;
+  --material-card: repeating-linear-gradient(0deg, rgba(110,82,47,.025) 0 1px, transparent 1px 4px), linear-gradient(135deg, #fff8e9, #ead9bc);
+  --material-card-border: 1px solid #9e8769; --material-card-shadow: inset 0 1px 0 rgba(255,255,255,.8), inset 0 -2px 5px rgba(105,75,44,.14), 0 10px 24px rgba(66,43,24,.2);
+  --material-control: linear-gradient(#f7f1e5, #c9b99e); --material-control-border: 1px solid #7d6b55;
+  --material-control-shadow: inset 0 2px 3px rgba(255,255,255,.8), inset 0 -2px 4px rgba(74,53,34,.2), 0 1px 2px rgba(0,0,0,.18);
+  --material-control-active-shadow: inset 0 3px 7px rgba(65,43,25,.28);
+  --material-primary: linear-gradient(#b96b45, #7d3b22); --material-primary-border: 1px solid #5c2917;
+  --material-primary-shadow: inset 0 1px 0 rgba(255,255,255,.35), 0 3px 0 #5c2917, 0 6px 12px rgba(61,35,20,.24);
+  --material-nav: linear-gradient(90deg, #2d1c13, #4a3020 48%, #2d1c13); --material-nav-border: 1px solid #1d110b;
+  --material-nav-shadow: inset 0 -2px 0 rgba(255,220,168,.1), 0 6px 18px rgba(48,31,18,.38);
+}
+
+/* Clay: chunky outlined surfaces, soft inner light and tactile squish. */
+:root[data-theme="clay"] {
+  --ink: #332f3a; --muted: #625b69; --paper: #f4f1fa; --card: #fff9ff; --line: #9b82c4;
+  --accent: #6f4cc3; --accent-strong: #52339d; --focus: #44248f; --nav: #5a3daa;
+  --shell-ink: #ffffff; --shell-muted: #eee6ff; --surface-subtle: #eee7f8;
+  --control-radius: 20px; --card-radius: 28px;
+  --font-ui: "Trebuchet MS", "Segoe UI", sans-serif; --font-display: var(--font-ui);
+  --material-card: linear-gradient(145deg, #fffaff, #e9dff5); --material-card-border: 3px solid #a98bcf;
+  --material-card-shadow: inset -3px -4px 8px rgba(95,62,139,.12), inset 3px 3px 8px rgba(255,255,255,.9), 7px 8px 0 rgba(111,76,195,.2);
+  --material-control: linear-gradient(145deg, #fffaff, #e4d8f1); --material-control-border: 3px solid #9b82c4;
+  --material-control-shadow: inset -2px -3px 6px rgba(82,51,157,.13), inset 2px 2px 6px #fff;
+  --material-control-active-shadow: inset 4px 5px 8px rgba(82,51,157,.2);
+  --material-primary: linear-gradient(145deg, #8f6bdf, #6544ba); --material-primary-border: 3px solid #52339d;
+  --material-primary-shadow: inset -3px -4px 7px rgba(55,30,120,.24), inset 3px 3px 7px rgba(255,255,255,.35), 0 5px 0 #52339d;
+  --material-nav: linear-gradient(135deg, #6f4cc3, #4f3498); --material-nav-border: 3px solid #442987;
+  --material-nav-shadow: inset 0 -4px 8px rgba(48,25,105,.2), 0 8px 0 rgba(68,41,135,.2);
+  --material-press: translateY(3px) scale(.985); --material-transition: 200ms cubic-bezier(.34,1.56,.64,1);
+}
+
+/* Aurora: atmospheric mesh behind quiet translucent content, with one slow ambient motion. */
+:root[data-theme="aurora"] {
+  --ink: #17223b; --muted: #53627a; --paper: #e9efff; --card: rgba(255,255,255,.76); --line: rgba(55,72,112,.2);
+  --accent: #5a49bd; --accent-strong: #44339d; --focus: #274ab7; --nav: rgba(22,33,66,.84);
+  --shell-ink: #f7f8ff; --shell-muted: #d8dcf4; --surface-subtle: rgba(255,255,255,.58);
+  --control-radius: 14px; --card-radius: 21px;
+  --font-ui: Inter, "Segoe UI", sans-serif; --font-display: var(--font-ui);
+  --material-card: linear-gradient(145deg, rgba(255,255,255,.88), rgba(243,245,255,.58)); --material-card-border: 1px solid rgba(255,255,255,.82);
+  --material-card-shadow: 0 18px 45px rgba(54,44,120,.16), inset 0 1px 0 #fff; --material-card-filter: blur(16px) saturate(125%);
+  --material-control: rgba(255,255,255,.72); --material-control-border: 1px solid rgba(82,74,150,.28); --material-control-shadow: 0 5px 14px rgba(65,50,135,.1);
+  --material-primary: linear-gradient(135deg, #6958ce, #3a75d5); --material-primary-border: 1px solid #3f3697; --material-primary-shadow: 0 9px 24px rgba(70,60,175,.28);
+  --material-nav: rgba(22,33,66,.84); --material-nav-border: 1px solid rgba(255,255,255,.16); --material-nav-shadow: 0 10px 32px rgba(30,24,76,.24); --material-nav-filter: blur(20px) saturate(145%);
+}
+:root[data-theme="aurora"] body { background: radial-gradient(circle at 15% 15%, rgba(89,216,190,.55), transparent 30rem), radial-gradient(circle at 80% 10%, rgba(181,89,226,.45), transparent 27rem), radial-gradient(circle at 55% 80%, rgba(67,120,238,.42), transparent 33rem), #e9efff; background-size: 130% 130%; animation: yellow-aurora 12s ease-in-out infinite alternate; }
+@keyframes yellow-aurora { to { background-position: 8% 5%, 92% 8%, 48% 92%, 0 0; } }
+
+/* Fintech precision: crisp grid, thin edges and controlled luminous CTA. */
+:root[data-theme="stripe"] {
+  --ink: #1a1f36; --muted: #5b6478; --paper: #f6f9fc; --card: #ffffff; --line: #d8dee9;
+  --accent: #635bff; --accent-strong: #473ed8; --focus: #5145f5; --nav: #0a2540;
+  --shell-ink: #ffffff; --shell-muted: #b8c7d9; --surface-subtle: #f7fafc;
+  --control-radius: 6px; --card-radius: 10px;
+  --font-ui: Inter, "Segoe UI", sans-serif; --font-display: var(--font-ui);
+  --material-card: #ffffff; --material-card-border: 1px solid #d8dee9; --material-card-shadow: 0 1px 2px rgba(50,50,93,.06), 0 8px 24px rgba(50,50,93,.08);
+  --material-control: #ffffff; --material-control-border: 1px solid #c7cedb; --material-control-shadow: 0 1px 2px rgba(50,50,93,.08);
+  --material-control-active-shadow: 0 0 0 3px rgba(99,91,255,.18);
+  --material-primary: linear-gradient(135deg, #635bff, #8a5cff); --material-primary-border: 1px solid #5149e6; --material-primary-shadow: 0 4px 10px rgba(99,91,255,.28);
+  --material-nav: #0a2540; --material-nav-border: 1px solid #163b5c; --material-nav-shadow: 0 5px 18px rgba(10,37,64,.28);
+}
+:root[data-theme="stripe"] .metric strong, :root[data-theme="stripe"] .count strong { font-family: ui-monospace, "SFMono-Regular", Consolas, monospace; }
+
+/* Hospitality warm: generous rounding, soft lift and inviting coral action. */
+:root[data-theme="airbnb"] {
+  --ink: #222222; --muted: #626262; --paper: #f7f7f7; --card: #ffffff; --line: #dddddd;
+  --accent: #d93654; --accent-strong: #b42542; --focus: #b42542; --nav: rgba(255,255,255,.94);
+  --shell-ink: #222; --shell-muted: #626262; --surface-subtle: #f7f7f7;
+  --control-radius: 12px; --card-radius: 20px;
+  --font-ui: Circular, Inter, "Segoe UI", sans-serif; --font-display: var(--font-ui);
+  --material-card: #ffffff; --material-card-border: 1px solid #dddddd; --material-card-shadow: 0 6px 20px rgba(0,0,0,.1);
+  --material-control: #ffffff; --material-control-border: 1px solid #b0b0b0; --material-control-shadow: inset 0 1px 2px rgba(0,0,0,.04);
+  --material-control-active-shadow: 0 0 0 2px #222;
+  --material-primary: linear-gradient(135deg, #e43c5b, #bd1e4b); --material-primary-border: 0; --material-primary-shadow: 0 5px 14px rgba(190,30,74,.24);
+  --material-nav: rgba(255,255,255,.94); --material-nav-border: 1px solid #e4e4e4; --material-nav-shadow: 0 3px 15px rgba(0,0,0,.08); --material-nav-filter: blur(16px);
+}
+
+/* Playful momentum: bold outlines, chunky depth and quick tactile response. */
+:root[data-theme="duolingo"] {
+  --ink: #24312a; --muted: #52645a; --paper: #f4fbf0; --card: #ffffff; --line: #9acb83;
+  --accent: #3f9f28; --accent-strong: #287a18; --focus: #145f9d; --nav: #276d43;
+  --shell-ink: #ffffff; --shell-muted: #ddf7e7; --surface-subtle: #edf9e8;
+  --control-radius: 14px; --card-radius: 20px;
+  --font-ui: "Arial Rounded MT Bold", "Trebuchet MS", "Segoe UI", sans-serif; --font-display: var(--font-ui);
+  --material-card: linear-gradient(#ffffff, #f8fff5); --material-card-border: 2px solid #9acb83; --material-card-shadow: 0 5px 0 #76ad5f;
+  --material-control: #ffffff; --material-control-border: 2px solid #9acb83; --material-control-shadow: inset 0 -2px 0 #d7eecd;
+  --material-control-active-shadow: inset 0 3px 5px rgba(64,120,42,.16);
+  --material-primary: linear-gradient(#58c63b, #3f9f28); --material-primary-border: 2px solid #287a18; --material-primary-shadow: 0 5px 0 #287a18;
+  --material-nav: linear-gradient(#318153, #276d43); --material-nav-border: 0; --material-nav-shadow: 0 5px 0 #1e5634;
+  --material-press: translateY(4px); --material-transition: 130ms ease-out;
+}
+
+@supports not ((-webkit-backdrop-filter: blur(2px)) or (backdrop-filter: blur(2px))) {
+  :root[data-theme="apple"], :root[data-theme="windows"], :root[data-theme="glass"], :root[data-theme="aurora"] {
+    --material-card: #ffffff; --material-card-filter: none; --material-nav-filter: none;
+  }
+  :root[data-theme="glass"] { --material-nav: #164c5c; --material-control: #f4fbfc; }
+  :root[data-theme="aurora"] { --material-nav: #1d2c55; --material-control: #ffffff; }
+}
+
+@media (forced-colors: active) {
+  .app-bar, .card, .option-card, .metric, .reservation-board-card, .folio-posting-card,
+  .reservation-detail-section, input, select, textarea, .primary, .quiet, .secondary {
+    border: 1px solid CanvasText; background: Canvas; color: CanvasText; box-shadow: none; backdrop-filter: none;
+  }
+  .primary { background: Highlight; color: HighlightText; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root { --material-transition: 0ms linear; --material-hover-lift: none; --material-press: none; }
+  :root[data-theme="aurora"] body { animation: none; }
+  .card, .option-card, .metric, .reservation-board-card, .folio-posting-card,
+  .reservation-detail-section, input, select, textarea, .primary, .quiet, .secondary { transition: none; }
+}

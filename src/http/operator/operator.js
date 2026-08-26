@@ -413,7 +413,10 @@
   const folioChargeAvailability = document.querySelector("#folio-charge-availability");
   const SYSTEM_STATUS_SUFFIX = "/system-status";
   const MAX_MINOR = BigInt("9223372036854775807");
-  const THEMES = new Set(["yellow", "apple", "pixel", "windows", "glass", "aurora"]);
+  const THEMES = new Set([
+    "yellow", "apple", "macos", "win95", "winxp", "windows", "pixel", "linux",
+    "glass", "neo", "skeuo", "clay", "aurora", "stripe", "airbnb", "duolingo",
+  ]);
   const EXPERIENCES = new Set(["simple", "advanced", "expert"]);
   const SECONDARY_VIEWS = new Set(["operations", "inventory", "restrictions", "rates", "status"]);
 

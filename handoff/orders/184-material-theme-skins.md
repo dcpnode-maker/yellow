@@ -19,6 +19,8 @@ remain exact.
 
 - `src/http/operator/index.html`, `operator.js` and `operator.css`;
 - focused static and browser-facing appearance tests;
+- the two inherited operator gzip assertions only to replace their 90 KiB ceiling with
+  this order's explicit 96 KiB ceiling; all dependency and same-origin assertions stay;
 - this order, additive D-471, `handoff/LEDGER.md`, and independent review;
 - after approval only, one app-image replacement on the existing sole loopback3000
   local while retaining the approved Order182 database and credentials.
@@ -62,7 +64,8 @@ asset, logo, source or pixel-identical interface is permitted.
    statuses, 4.5:1 body contrast, reduced motion, 200% zoom and zero root overflow at
    375/768/1024/1440. Unsupported CSS features degrade to solid accessible surfaces.
 7. Combined operator HTML/CSS/JS remains dependency-free, same-origin and at or below
-   96 KiB gzip.
+   96 KiB gzip. D-472 explicitly supersedes only the prior 90 KiB numeric ceiling to
+   carry fifteen real material systems; it does not permit external assets or code.
 
 ## Proof
 
