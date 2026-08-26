@@ -75,3 +75,27 @@ focused/static/full/type/boundary/licence/audit/gzip proof and complete the mand
 authenticated settled-screenshot and recorded-transition review before any local
 promotion. This review does not approve replacement, promotion, restart, deployment,
 merge, push, Phase-wide completion or any database/runtime change.
+
+---
+
+## Re-review — corrected candidate `dc5d1a1`
+
+**Conclusion:** STATIC-APPROVED / BROWSER-PENDING
+
+The exact repair adds `animation: none` for the Glass workbench stage inside
+no-backdrop, forced-colours and coarse-pointer fallbacks, while retaining the existing
+reduced-motion fallback. The focused test now requires all four exact declarations.
+The original blocking finding is resolved without weakening supported fine-pointer
+motion or expanding scope.
+
+The reviewer personally reran the focused suite (**14 passed, 0 failed, 278
+assertions**), standing suite (**246 passed, 491 database-gated skipped, 0 failed,
+3,105 assertions**), typecheck, 67-file boundaries, 23-package licence policy, audit
+and diff check. Corrected gzip is **97,158 / 98,304 bytes**, leaving 1,146 bytes.
+
+This is not full Order187 approval. D-486 and the order require independent
+authenticated settled screenshots and recorded-transition evidence for the exact
+candidate. The browser policy limitation recorded above remains, so desktop/phone,
+computed-style, focus, overflow, request-console and runtime-transition acceptance is
+still unclaimed. The corrected product is eligible for a browser-capable independent
+review, not local promotion. The sole local remains untouched.
