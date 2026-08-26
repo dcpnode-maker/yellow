@@ -1,6 +1,6 @@
 # Order 183 — Governed folio charge correction
 
-**Status:** READY — corrected by D-468 / Question167
+**Status:** READY — corrected by D-468/D-469 / Question167
 **Phase:** 5 · financial operations and founder UAT
 **Branch:** `phase-5/folio-charge-correction`
 **Base:** `144753b` (independently approved current local through Order182)
@@ -32,6 +32,9 @@ No table, column, migration, alternate ledger or mutable balance is needed.
 - `src/app.ts` and `src/http/operator.ts` for one exact property-scoped correction route;
 - existing operator HTML/JavaScript/CSS for one progressive `Correct posting` folio
   action that refreshes the authoritative statement and balance;
+- `scripts/seed-review.ts`, `scripts/seed-scenario-review.ts` and focused seed tests
+  only to provision normal correction authority separately from approver-only post-seal
+  authority across the three review properties;
 - focused domain/HTTP/UI tests and directly affected existing statement/folio tests;
 - `docs/CONTRACTS.md`, this order, additive D-467, ledger and independent review.
 
@@ -57,10 +60,16 @@ merge, push or production deployment is in scope.
    tax detail remains null. Never update/delete original financial rows. Existing
    Invariant 7 remains exact: a correction/adjustment may post after seal, while an
    ordinary charge may not.
-4. Fact, `journal.posted` outbox event and durable idempotency settle in the same
+4. Normal correction requires `financials.adjustments:write`. If the target business
+   day is sealed, the authenticated actor must additionally carry exact property-scoped
+   `financials.adjustments:post-seal`; this boolean is derived only from verified token
+   scopes/grants and is never accepted from JSON. The review operator lacks post-seal
+   authority; the distinct review approver has it across Yellow Demo, Riverstone and
+   Harbourlight. This is an authorization boundary, not an implied two-person approval.
+5. Fact, `journal.posted` outbox event and durable idempotency settle in the same
    transaction. Exact replay returns the same result; changed payload under the same
    key conflicts; publisher or audit failure rolls everything back.
-5. The operator route is `POST
+6. The operator route is `POST
    /api/v1/properties/{property}/folios/{folioId}/adjustments`, requires exact new
    `financials.adjustments:write` scope, mandatory `Idempotency-Key`, and body exactly
    `{reversesJournalId, reason}`. It never trusts tenant, actor, property, currency or
@@ -72,7 +81,8 @@ merge, push or production deployment is in scope.
    row exposes `reversedByJournalId` only when a correction exists. The ambiguous old
    `reversalJournalId` name and incorrect “Reversed by” direction are removed together.
 2. Only server-eligible original charge rows offer `Correct posting`; corrections and
-   already-corrected rows are never actionable. The workflow shows original amount,
+   already-corrected rows are never actionable. A sealed-day row is actionable only for
+   an actor with post-seal authority. The workflow shows original amount,
    resulting balance effect and irreversible-ledger explanation before submit.
 3. Keyboard, focus restoration, pending/error/retry, narrow viewport, 200% zoom,
    reduced motion, dirty-exit confirmation and exact no-secret/no-storage/no-third-party
@@ -87,6 +97,9 @@ merge, push or production deployment is in scope.
 - a 20-way race yields exactly one correction winner and no deadlock/drift;
 - a sealed day accepts only the correction while rejecting ordinary charge posting;
   fact/outbox/idempotency and injected failure rollback proofs pass;
+- on a sealed day the ordinary review operator receives generic forbidden with zero
+  mutation, the distinct authorized approver succeeds, and a body/header authority
+  forgery cannot cross the verified-scope boundary;
 - migration 0019 grants only `journal.reverses` INSERT authority beyond the existing
   catalogue and enforces one tenant-bound reversal per original at the database layer;
 - statements report both lineage directions correctly across keyset pages; INR and CAD
@@ -102,4 +115,5 @@ merge, push or production deployment is in scope.
 - [ ] Users can lawfully correct an erroneous charge without mutating history.
 - [ ] Reversal lineage and UI language are directionally correct.
 - [ ] Concurrency, replay, tenancy, balance and sealed-day proofs pass.
+- [ ] Post-seal corrections are restricted to explicitly authorized property users.
 - [ ] Independent Tier-3 review approves the exact candidate.
