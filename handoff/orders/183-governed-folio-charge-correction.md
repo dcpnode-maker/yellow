@@ -1,6 +1,6 @@
 # Order 183 — Governed folio charge correction
 
-**Status:** READY — D-467
+**Status:** READY — corrected by D-468 / Question167
 **Phase:** 5 · financial operations and founder UAT
 **Branch:** `phase-5/folio-charge-correction`
 **Base:** `144753b` (independently approved current local through Order182)
@@ -25,6 +25,8 @@ No table, column, migration, alternate ledger or mutable balance is needed.
 ## Scope
 
 - new `src/contexts/financials/corrections.ts` and export from its `index.ts`;
+- `migrations/0019_financial_reversal_authority.sql`, the derived expected schema,
+  exact migration-acceptance entry and runtime-DML authority proof;
 - `src/contexts/financials/statements.ts` only to expose unambiguous
   `reversesJournalId`, `reversedByJournalId` and server-derived correction eligibility;
 - `src/app.ts` and `src/http/operator.ts` for one exact property-scoped correction route;
@@ -33,8 +35,8 @@ No table, column, migration, alternate ledger or mutable balance is needed.
 - focused domain/HTTP/UI tests and directly affected existing statement/folio tests;
 - `docs/CONTRACTS.md`, this order, additive D-467, ledger and independent review.
 
-No migration, schema, account/route authoring, partial-line correction, transfer,
-additional folio window, payment/provider/token, settlement, cashier/day-close,
+No table/column/view/function, account/route authoring, partial-line correction,
+transfer, additional folio window, payment/provider/token, settlement, cashier/day-close,
 deposit, trust, tax/fiscal/document, checkout, credential, public bind, second local,
 merge, push or production deployment is in scope.
 
@@ -47,12 +49,14 @@ merge, push or production deployment is in scope.
 2. Lock the folio/account financial rows, original journal and any reversal evidence
    deterministically. The original must be a governed `charge` on the exact open folio,
    same tenant/property/currency, with a complete balanced posting set. Reject a
-   reversal-of-reversal, a second reversal, wrong property/folio, sealed-current-day
-   conflict and malformed reason generically.
-3. Insert one `adjustment` journal on the current property-local open business date
+   reversal-of-reversal, a second reversal, wrong property/folio and malformed reason
+   generically.
+3. Insert one `adjustment` journal on the current property-local business date
    with `reverses=original.id`, then insert exact sign-negated copies of every original
    posting line. Preserve accounts, folio lineage, currency and governed tx code;
-   tax detail remains null. Never update/delete original financial rows.
+   tax detail remains null. Never update/delete original financial rows. Existing
+   Invariant 7 remains exact: a correction/adjustment may post after seal, while an
+   ordinary charge may not.
 4. Fact, `journal.posted` outbox event and durable idempotency settle in the same
    transaction. Exact replay returns the same result; changed payload under the same
    key conflicts; publisher or audit failure rolls everything back.
@@ -81,7 +85,10 @@ merge, push or production deployment is in scope.
 - exact replay is a no-op and changed-key, duplicate, reversal-of-reversal,
   cross-tenant/property/folio, malformed reason and unauthorized scope fail closed;
 - a 20-way race yields exactly one correction winner and no deadlock/drift;
-- sealed current day, fact/outbox/idempotency and injected failure rollback proofs pass;
+- a sealed day accepts only the correction while rejecting ordinary charge posting;
+  fact/outbox/idempotency and injected failure rollback proofs pass;
+- migration 0019 grants only `journal.reverses` INSERT authority beyond the existing
+  catalogue and enforces one tenant-bound reversal per original at the database layer;
 - statements report both lineage directions correctly across keyset pages; INR and CAD
   examples preserve currency and return the exact refreshed balance;
 - served operator workflow completes by keyboard and remains contained at mobile,
