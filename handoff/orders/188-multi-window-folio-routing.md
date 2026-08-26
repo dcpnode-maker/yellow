@@ -1,6 +1,6 @@
 # Order 188 — Multi-window folio routing
 
-**Status:** CHANGES-REQUIRED — independent review of `3ee48f6`; database acceptance fixture omits migration 0020
+**Status:** STATIC/FINANCIAL-APPROVED on `0713b7b` — authenticated P7 browser pending
 **Phase:** 5 · folios, postings and settlement
 **Branch:** `phase-5/folio-charge-correction-resumed`
 **Base:** `29f8489` (Order187 static-approved/browser-pending governance head)

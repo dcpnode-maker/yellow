@@ -72,3 +72,41 @@ Candidate `3ee48f6` is not approved and is not eligible for local replacement,
 promotion, merge, push, deployment, production or Phase-wide completion. A corrected
 candidate requires a fresh non-implementing Tier-3 review that reruns P1–P8, including
 the fresh database-acceptance suite and the complete authenticated browser matrix.
+
+---
+
+## Re-review — repaired candidate `0713b7b`
+
+**Conclusion:** STATIC/FINANCIAL-APPROVED · AUTHENTICATED-P7-BROWSER-PENDING
+
+**Exact candidate:** `0713b7b58e37df58416b9a083f5d2d1e14fbad7f`
+
+The only product delta after the rejection is the exact version-20 filename and
+checksum tuple appended to the existing exact migration ledger fixture. The migration
+file itself hashes to
+`137c9aea660aea953b86b8bdb1233af6385ddf73daa01a25bfa3149af416d9f1`, matching the
+new tuple. No migration, schema, runtime, domain, HTTP, UI, seed, dependency or
+protected file changed.
+
+The reviewer personally rebuilt `yellow_test` from zero and reran the rejected gate:
+schema drift matched, database acceptance passed **6/6 with 13 assertions**, and a
+second migration invocation was an exact no-op. Fresh P1–P6 proof passed **30/30 with
+353 assertions**, including every Order188 financial, authority, concurrency, hostile
+and rollback case. A separately rebuilt fixture database contained exactly 85 public
+tables and the protected referee passed **11/11**.
+
+The reviewer also reran the standing suite (**258 passed, 501 database-gated skipped,
+0 failed, 3,335 assertions**), typecheck, 68-file import boundaries, 23-package licence
+policy and dependency audit. The operator assets are byte-unchanged at combined gzip
+**98,168 / 98,304 bytes**. The repaired range passes `git diff --check`; exact diff
+from the rejected governance head contains only
+`tests/database-acceptance.integration.test.ts`.
+
+Authenticated P7 remains unexecuted because action-time confirmation to type the local
+review credential is still absent. No credential was entered or inspected, no
+transient browser harness was started, port `:3188` is unbound, and the approved sole
+`:3000` app remains listening and untouched. Consequently this verdict approves the
+schema, financial behavior, authority, concurrency, static contracts and all
+non-credential gates, but does not approve local replacement, promotion, merge, push,
+deployment, production, Phase-wide completion or the required authenticated browser
+matrix. Full Order188 approval still requires P7 on this exact candidate.
