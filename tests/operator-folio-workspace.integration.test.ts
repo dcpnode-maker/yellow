@@ -30,12 +30,25 @@ test("Order 171 P0/P5: reservation drawer exposes only explicit UUID-backed foli
   ]) expect(html).toContain(`id="${id}"`);
   expect(script).toContain("function renderReservationFolios(");
   expect(script).toContain("function openPrimaryFolio(");
+  expect(functionSource("renderReservationFolios")).toContain(
+    "folios.length === 0 && result.actions?.canOpenPrimaryFolio === true",
+  );
+  expect(functionSource("renderReservationFolios")).not.toMatch(/reservation\.status|status\s*===/);
   expect(script).toContain("/primary-folio");
   expect(script).toContain('headers: { "idempotency-key": attemptKey }');
   expect(script).toContain("reservationPrimaryFolioAttemptKey");
   expect(script).toContain("generation !== reservationDetailGeneration");
   expect(script).toContain("property !== propertySelect.value");
   expect(script).not.toMatch(/automatically creates? (?:a )?folio/i);
+  const parse = executableFunction<(value: Record<string, unknown>) => Record<string, unknown>>("primaryFolioResult");
+  const result = {
+    folioId: "00000000-0000-0000-0000-000000017101",
+    reservationId: "00000000-0000-0000-0000-000000017102",
+    folioNo: "FOL-171", windowNo: 1, changed: true, replayed: false,
+  };
+  expect(parse(result)).toEqual(result);
+  expect(() => parse({ ...result, accountId: "not-disclosed" })).toThrow("invalid primary folio result");
+  expect(() => parse({ ...result, windowNo: 2 })).toThrow("invalid primary folio result");
 });
 
 test("Order 171 P0/P5: UUID workspace route is canonical, bounded and restorable", () => {
@@ -72,6 +85,7 @@ test("Order 171 P5: statement has semantic desktop and equivalent mobile states"
   expect(css).toContain("@media (prefers-reduced-motion: reduce)");
   expect(css).toContain("min-height: 44px");
   expect(css).toContain("overflow-wrap: anywhere");
+  expect(script).toContain("['ArrowLeft', 'ArrowRight', 'Home', 'End']");
 });
 
 test("Order 171 P5: route/property/history guards suppress stale financial repaint", () => {

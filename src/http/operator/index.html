@@ -573,6 +573,12 @@
             <div class="reservation-detail-loading" id="reservation-detail-loading" aria-hidden="true"><span></span><span></span><span></span><span></span></div>
             <section class="reservation-detail-error" id="reservation-detail-error" hidden role="alert"><strong>Reservation details could not be loaded</strong><p></p><button class="secondary" id="reservation-detail-retry" type="button">Try again</button></section>
             <div class="reservation-detail-content" id="reservation-detail-content" hidden></div>
+            <section class="reservation-detail-section reservation-detail-folios" id="reservation-detail-folios" hidden aria-labelledby="reservation-detail-folios-title">
+              <h4 id="reservation-detail-folios-title">Folios</h4>
+              <div class="reservation-detail-folio-list" id="reservation-detail-folio-list"></div>
+              <button class="primary" id="reservation-primary-folio-create" type="button" hidden>Create primary folio</button>
+              <p class="form-message" id="reservation-primary-folio-message" role="status" aria-live="assertive"></p>
+            </section>
             <div class="reservation-detail-actions" id="reservation-detail-actions" hidden></div>
             <p class="inventory-status" id="reservation-detail-status" role="status" aria-live="polite"></p>
           </aside>
@@ -582,7 +588,7 @@
           <div class="section-heading">
             <div>
               <p class="eyebrow">Guest ledger evidence</p>
-              <h2 id="folios-title">Folio statement</h2>
+              <h2 id="folios-title" tabindex="-1">Folios</h2>
               <p class="muted">Read immutable guest-side postings and, when authorized, add one governed untaxed charge. This is not tax calculation, invoicing, payment, settlement, fiscalization or checkout.</p>
             </div>
           </div>
@@ -595,7 +601,18 @@
             <p class="form-message" role="status" aria-live="polite">Enter the exact human-readable folio reference.</p>
           </form>
 
-          <section class="folio-statement card" id="folio-statement" hidden aria-labelledby="folio-statement-title" tabindex="-1">
+          <section class="folio-statement card" id="folio-workspace" hidden aria-labelledby="folio-workspace-title" tabindex="-1">
+            <div class="folio-workspace-head">
+              <button class="quiet" id="folio-workspace-back" type="button">Back to folio lookup</button>
+              <div><p class="eyebrow">Immutable guest ledger</p><h3 id="folio-workspace-title">Folio workspace</h3></div>
+            </div>
+            <div class="folio-workspace-tabs" role="tablist" aria-label="Folio workspace">
+              <button class="quiet" id="folio-tab-postings" type="button" role="tab" aria-controls="folio-postings-panel" aria-selected="true">Postings</button>
+              <button class="quiet" id="folio-tab-charge" type="button" role="tab" aria-controls="folio-charge-panel" aria-selected="false">Add charge</button>
+            </div>
+            <div class="folio-statement-loading" id="folio-statement-loading" hidden aria-hidden="true"><span></span><span></span><span></span></div>
+            <section class="folio-statement-error" id="folio-statement-error" hidden role="alert"><strong>Folio statement could not be loaded</strong><p></p><button class="secondary" id="folio-statement-retry" type="button">Try again</button></section>
+            <div id="folio-statement" hidden>
             <div class="folio-summary">
               <div><span>Reference</span><strong id="folio-statement-title">—</strong></div>
               <div><span>Window</span><strong id="folio-window">—</strong></div>
@@ -605,26 +622,28 @@
               <div><span>Immutable lines</span><strong id="folio-line-count">—</strong></div>
             </div>
 
+            <section id="folio-postings-panel" role="tabpanel" aria-labelledby="folio-tab-postings">
             <div class="folio-table-wrap" role="region" aria-labelledby="folio-lines-caption" tabindex="0">
               <table class="folio-lines">
                 <caption id="folio-lines-caption">Immutable folio statement · newest postings first</caption>
                 <thead><tr>
                   <th scope="col">Business date</th>
                   <th scope="col">Posted (UTC)</th>
-                  <th scope="col">Kind</th>
-                  <th scope="col">Code</th>
-                  <th scope="col">Description</th>
-                  <th scope="col">Quantity</th>
+                  <th scope="col">Posting</th>
+                  <th scope="col">Description · quantity</th>
                   <th scope="col">Signed amount (minor)</th>
                   <th scope="col">Running balance (minor)</th>
                 </tr></thead>
                 <tbody id="folio-statement-rows"></tbody>
               </table>
             </div>
+            <div class="folio-statement-cards" id="folio-statement-cards" aria-label="Immutable folio postings"></div>
             <button class="quiet" id="folio-load-older" type="button" hidden>Load older postings</button>
             <p class="inventory-status" id="folio-page-status" role="status" aria-live="polite"></p>
             <p class="form-message error" id="folio-error" role="alert" aria-live="assertive"></p>
+            </section>
 
+            <section id="folio-charge-panel" role="tabpanel" aria-labelledby="folio-tab-charge" hidden>
             <form class="folio-charge-form" id="folio-charge-form">
               <fieldset id="folio-charge-fields">
                 <legend>Add an untaxed charge</legend>
@@ -643,6 +662,8 @@
               </fieldset>
               <p class="form-message" role="status" aria-live="assertive"></p>
             </form>
+            </section>
+            </div>
           </section>
         </section>
 

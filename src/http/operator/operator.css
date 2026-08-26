@@ -476,6 +476,26 @@ input:hover, select:hover, textarea:hover { border-color: #8d978c; }
 .folio-charge-confirmation { min-height: 44px; display: flex; align-items: center; gap: .65rem; line-height: 1.45; }
 .folio-charge-confirmation input { width: 22px; min-height: 22px; flex: none; accent-color: var(--accent); }
 .folio-charge-form button { justify-self: start; }
+.folio-workspace-head { display: flex; align-items: center; gap: 1rem; }
+.folio-workspace-head > div { min-width: 0; }
+.folio-workspace-head h3 { margin: 0; overflow-wrap: anywhere; }
+.folio-workspace-tabs { display: flex; gap: .5rem; border-bottom: 1px solid var(--line); }
+.folio-workspace-tabs button { min-height: 44px; border-radius: var(--control-radius) var(--control-radius) 0 0; }
+.folio-workspace-tabs button[aria-selected="true"] { color: var(--accent-strong); box-shadow: inset 0 -3px 0 var(--accent); }
+.folio-statement-loading { display: grid; gap: .55rem; }
+.folio-statement-loading span { min-height: 58px; border: 1px solid var(--line); border-radius: 10px; background: linear-gradient(90deg, var(--surface-subtle), color-mix(in srgb, var(--accent) 7%, var(--card)), var(--surface-subtle)); background-size: 220% 100%; animation: reservation-pulse 1.4s ease-in-out infinite; }
+.folio-statement-error { padding: 1rem; border-left: 4px solid var(--red); background: var(--red-soft); }
+.folio-statement-cards { display: none; }
+.folio-posting-card { min-width: 0; max-width: 100%; padding: .9rem; border: 1px solid var(--line); border-radius: 12px; background: var(--surface-subtle); }
+.folio-posting-card dl { margin: 0; display: grid; grid-template-columns: minmax(108px, .75fr) minmax(0, 1.25fr); gap: .35rem .65rem; }
+.folio-posting-card dt { color: var(--muted); font-size: .72rem; font-weight: 800; text-transform: uppercase; }
+.folio-posting-card dd { min-width: 0; margin: 0; overflow-wrap: anywhere; font-variant-numeric: tabular-nums; }
+.reservation-detail-folios { margin-top: .85rem; }
+.reservation-detail-folio-list { display: grid; gap: .5rem; }
+.reservation-folio-open, #reservation-primary-folio-create { width: 100%; min-height: 44px; overflow-wrap: anywhere; }
+.reservation-folio-open { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: .7rem; padding: .7rem; border: 1px solid var(--line); border-radius: var(--control-radius); background: var(--card); color: var(--ink); text-align: left; }
+.reservation-folio-open strong, .reservation-folio-open small { min-width: 0; overflow-wrap: anywhere; }
+.reservation-folio-open small { color: var(--muted); }
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
@@ -833,6 +853,10 @@ input, select, textarea { min-height: 44px; border-color: #bdcbca; background: #
   .reservation-stepper li + li { border-left: 1px solid var(--line); }
   .reservation-field-grid, .party-profile-contacts { grid-template-columns: 1fr; }
   .party-profile-contacts legend, .party-profile-contacts .field-note { grid-column: 1; }
+  .folio-workspace-head { align-items: stretch; flex-direction: column; }
+  .folio-workspace-head button { width: 100%; }
+  .folio-table-wrap { display: none; }
+  .folio-statement-cards { display: grid; gap: .7rem; }
 }
 
 @media (max-width: 480px) {
@@ -847,8 +871,11 @@ input, select, textarea { min-height: 44px; border-color: #bdcbca; background: #
   .reservation-detail-section dl { grid-template-columns: 1fr; gap: .15rem; }
   .reservation-detail-section dd + dt { margin-top: .5rem; }
   .reservation-detail-action-menu { grid-template-columns: 1fr; }
+  .folio-workspace-tabs button { flex: 1; }
+  .folio-posting-card dl { grid-template-columns: 1fr; gap: .12rem; }
+  .folio-posting-card dd + dt { margin-top: .45rem; }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .reservation-board-loading span, .reservation-detail-loading span, .reservation-detail-drawer { animation: none; }
+  .reservation-board-loading span, .reservation-detail-loading span, .folio-statement-loading span, .reservation-detail-drawer { animation: none; }
 }

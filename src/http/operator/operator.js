@@ -57,6 +57,12 @@
   let folioIdentity = "";
   let folioChargeAttemptKey = "";
   let folioChargeDraft = "";
+  let folioActiveTab = "postings";
+  let folioRouteCursor = "";
+  let folioWorkspaceProperty = "";
+  let folioReturnFocus = null;
+  let reservationPrimaryFolioAttemptKey = "";
+  let reservationPrimaryFolioReservationId = "";
   const pendingKeys = new Map();
 
   const loginView = document.querySelector("#login-view");
@@ -353,9 +359,23 @@
   const reservationDetailError = document.querySelector("#reservation-detail-error");
   const reservationDetailRetry = document.querySelector("#reservation-detail-retry");
   const reservationDetailContent = document.querySelector("#reservation-detail-content");
+  const reservationDetailFolios = document.querySelector("#reservation-detail-folios");
+  const reservationDetailFolioList = document.querySelector("#reservation-detail-folio-list");
+  const reservationPrimaryFolioCreate = document.querySelector("#reservation-primary-folio-create");
+  const reservationPrimaryFolioMessage = document.querySelector("#reservation-primary-folio-message");
   const reservationDetailActions = document.querySelector("#reservation-detail-actions");
   const reservationDetailStatus = document.querySelector("#reservation-detail-status");
   const folioStatementLookupForm = document.querySelector("#folio-statement-lookup-form");
+  const folioWorkspace = document.querySelector("#folio-workspace");
+  const folioWorkspaceTitle = document.querySelector("#folio-workspace-title");
+  const folioWorkspaceBack = document.querySelector("#folio-workspace-back");
+  const folioTabPostings = document.querySelector("#folio-tab-postings");
+  const folioTabCharge = document.querySelector("#folio-tab-charge");
+  const folioPostingsPanel = document.querySelector("#folio-postings-panel");
+  const folioChargePanel = document.querySelector("#folio-charge-panel");
+  const folioStatementLoading = document.querySelector("#folio-statement-loading");
+  const folioStatementError = document.querySelector("#folio-statement-error");
+  const folioStatementRetry = document.querySelector("#folio-statement-retry");
   const folioStatement = document.querySelector("#folio-statement");
   const folioStatementTitle = document.querySelector("#folio-statement-title");
   const folioWindow = document.querySelector("#folio-window");
@@ -364,6 +384,7 @@
   const folioBalance = document.querySelector("#folio-balance");
   const folioLineCount = document.querySelector("#folio-line-count");
   const folioStatementRows = document.querySelector("#folio-statement-rows");
+  const folioStatementCards = document.querySelector("#folio-statement-cards");
   const folioLoadOlder = document.querySelector("#folio-load-older");
   const folioPageStatus = document.querySelector("#folio-page-status");
   const folioError = document.querySelector("#folio-error");
@@ -488,6 +509,8 @@
     reservationBoardRows = [];
     reservationBoardNextCursor = null;
     reservationRouteReservationId = "";
+    reservationPrimaryFolioAttemptKey = "";
+    reservationPrimaryFolioReservationId = "";
     reservationCreateDirty = false;
     clearPartyProfileState();
     clearFolioState();
@@ -524,7 +547,7 @@
       propertySelect.disabled = true;
     } else {
       propertySelect.disabled = false;
-      const pathProperty = location.pathname.match(/^\/p\/([0-9a-f-]+)\/(?:availability|inventory|operations|reservations|folios|restrictions|rates|status|res\/[0-9a-f-]+)$/)?.[1];
+      const pathProperty = location.pathname.match(/^\/p\/([0-9a-f-]+)\/(?:availability|inventory|operations|reservations|folios|restrictions|rates|status|res\/[0-9a-f-]+|folio\/[0-9a-f-]+)$/)?.[1];
       if (pathProperty && body.properties.some(({ id }) => id === pathProperty)) propertySelect.value = pathProperty;
     }
   }
@@ -963,6 +986,86 @@
     reservationDetailActions.hidden = false;
   }
 
+  function renderReservationFolios(result) {
+    const reservation = result.reservation;
+    const folios = Array.isArray(reservation.folios) ? reservation.folios : [];
+    reservationDetailFolioList.replaceChildren();
+    reservationDetailFolios.hidden = false;
+    reservationPrimaryFolioMessage.textContent = "";
+    for (const folio of folios) {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = "reservation-folio-open";
+      button.dataset.folioId = folio.folioId;
+      const identity = document.createElement("strong");
+      identity.textContent = folio.folioNo || `Window ${String(folio.windowNo)}`;
+      const state = document.createElement("small");
+      state.textContent = `Window ${String(folio.windowNo)} · ${folio.status}`;
+      button.append(identity, state);
+      button.setAttribute("aria-label", `Open folio ${folio.folioNo || folio.folioId}, window ${String(folio.windowNo)}, ${folio.status}`);
+      button.addEventListener("click", () => openFolioWorkspace(folio.folioId, { trigger: button }));
+      reservationDetailFolioList.append(button);
+    }
+    const canOpen = folios.length === 0 && result.actions?.canOpenPrimaryFolio === true;
+    reservationPrimaryFolioCreate.hidden = !canOpen;
+    reservationPrimaryFolioCreate.disabled = false;
+    if (folios.length === 0 && !canOpen) {
+      const empty = document.createElement("p");
+      empty.className = "muted";
+      empty.textContent = "No primary folio is available for an explicit command in the current server state.";
+      reservationDetailFolioList.append(empty);
+    }
+  }
+
+  function primaryFolioResult(value) {
+    const keys = value && typeof value === "object" && !Array.isArray(value) ? Object.keys(value).sort() : [];
+    const expected = ["changed", "folioId", "folioNo", "replayed", "reservationId", "windowNo"];
+    if (JSON.stringify(keys) !== JSON.stringify(expected)
+      || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(value.folioId)
+      || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(value.reservationId)
+      || typeof value.folioNo !== "string" || value.folioNo.length < 1 || value.folioNo.length > 120
+      || value.windowNo !== 1 || typeof value.changed !== "boolean" || typeof value.replayed !== "boolean") {
+      throw new Error("The server returned an invalid primary folio result.");
+    }
+    return value;
+  }
+
+  async function openPrimaryFolio() {
+    if (!reservationDetailData || reservationPrimaryFolioCreate.hidden) return;
+    const generation = reservationDetailGeneration;
+    const property = propertySelect.value;
+    const reservationId = reservationDetailData.reservation.reservationId;
+    if (reservationPrimaryFolioReservationId !== reservationId) {
+      reservationPrimaryFolioReservationId = reservationId;
+      reservationPrimaryFolioAttemptKey = crypto.randomUUID();
+    }
+    const attemptKey = reservationPrimaryFolioAttemptKey;
+    reservationPrimaryFolioCreate.disabled = true;
+    reservationPrimaryFolioMessage.classList.remove("error");
+    reservationPrimaryFolioMessage.textContent = "Creating or resolving the primary folio from server truth…";
+    try {
+      const result = primaryFolioResult(await request(`/api/v1/properties/${encodeURIComponent(property)}/reservations/${encodeURIComponent(reservationId)}/primary-folio`, {
+        method: "POST", headers: { "idempotency-key": attemptKey }, body: "{}",
+      }));
+      if (generation !== reservationDetailGeneration || property !== propertySelect.value || reservationRouteReservationId !== reservationId) return;
+      if (result.reservationId !== reservationId || typeof result.folioId !== "string") throw new Error("The server returned a different reservation or folio.");
+      reservationPrimaryFolioAttemptKey = "";
+      reservationPrimaryFolioReservationId = "";
+      reservationPrimaryFolioMessage.textContent = result.replayed
+        ? "The existing primary folio was confirmed. Opening its immutable statement…"
+        : result.changed ? "Primary folio created. Opening its immutable statement…" : "Primary folio already existed. Opening its immutable statement…";
+      openFolioWorkspace(result.folioId, { trigger: reservationPrimaryFolioCreate });
+    } catch (error) {
+      if (generation !== reservationDetailGeneration || property !== propertySelect.value || reservationRouteReservationId !== reservationId) return;
+      reservationPrimaryFolioMessage.classList.add("error");
+      reservationPrimaryFolioMessage.textContent = `${error instanceof Error ? error.message : "The primary folio could not be confirmed"}. Retry keeps the same idempotency key.`;
+    } finally {
+      if (generation === reservationDetailGeneration && property === propertySelect.value && reservationRouteReservationId === reservationId) {
+        reservationPrimaryFolioCreate.disabled = false;
+      }
+    }
+  }
+
   function renderReservationDetail(result) {
     clearReservationDrawerLifecycle();
     const reservation = result.reservation;
@@ -985,11 +1088,10 @@
         `${alert.active ? "Active" : "Inactive"} · ${alert.showOn} · ${alert.message}`),
       detailCollection("Travel", reservation.travel, (travel) =>
         `${travel.direction} · ${travel.mode || "mode not recorded"}${travel.scheduledAt ? ` · ${reservationDateTime(travel.scheduledAt)}` : ""}${travel.pickupRequested ? " · pickup requested" : ""}`),
-      detailCollection("Folios", reservation.folios, (folio) =>
-        `${folio.folioNo || "Number pending"} · window ${folio.windowNo} · ${folio.status}`),
       detailCollection("History", reservation.history, (fact) =>
         `${reservationDateTime(fact.recordedAt)} · ${fact.factType}`),
     );
+    renderReservationFolios(result);
     renderReservationDrawerLifecycle(result);
     reservationDetailLoading.hidden = true;
     reservationDetailError.hidden = true;
@@ -1006,6 +1108,14 @@
     reservationDetailLoading.hidden = false;
     reservationDetailError.hidden = true;
     reservationDetailContent.hidden = true;
+    reservationDetailFolios.hidden = true;
+    reservationDetailFolioList.replaceChildren();
+    reservationPrimaryFolioCreate.hidden = true;
+    reservationPrimaryFolioMessage.textContent = "";
+    if (reservationPrimaryFolioReservationId !== reservationId) {
+      reservationPrimaryFolioAttemptKey = "";
+      reservationPrimaryFolioReservationId = "";
+    }
     clearReservationDrawerLifecycle();
     reservationDetailDrawer.setAttribute("aria-busy", "true");
     reservationDetailStatus.textContent = "Loading reservation details…";
@@ -1039,9 +1149,13 @@
     if (reservationDetailDrawer.hidden) return;
     reservationDetailGeneration += 1;
     reservationRouteReservationId = "";
+    reservationPrimaryFolioAttemptKey = "";
+    reservationPrimaryFolioReservationId = "";
     reservationDetailData = null;
     reservationDetailDrawer.hidden = true;
     reservationDetailContent.replaceChildren();
+    reservationDetailFolios.hidden = true;
+    reservationDetailFolioList.replaceChildren();
     clearReservationDrawerLifecycle();
     if (updateHistory && propertySelect.value) {
       if (reservationExitHistoryAction(history.state, "reservation-detail") === "back") history.back();
@@ -2829,9 +2943,56 @@
     depositPolicyFields.querySelector('input[name="depositDays"]').required = depositDue.value === "days_before_arrival";
   }
 
-  function isCurrentFolioRequest(generation, property, identity, folioId = null) {
-    return generation === folioGeneration && property === propertySelect.value && identity === folioIdentity
-      && (folioId === null || folioStatementData?.folio.id === folioId);
+  function folioRouteFromLocation(pathname = location.pathname, search = location.search) {
+    const workspace = pathname.match(/^\/p\/([0-9a-f-]+)\/folio\/([0-9a-f-]+)$/);
+    if (workspace) {
+      const query = new URLSearchParams(search);
+      const exactKeys = [...query.keys()].every((key) => key === "tab" || key === "after")
+        && query.getAll("tab").length <= 1 && query.getAll("after").length <= 1;
+      const requestedTab = exactKeys ? query.get("tab") : "";
+      const tab = requestedTab === "charge" ? "charge" : "postings";
+      const requestedAfter = exactKeys ? query.get("after") || "" : "";
+      const after = /^[A-Za-z0-9_-]{1,512}$/.test(requestedAfter) ? requestedAfter : "";
+      return { kind: "workspace", property: workspace[1], folioId: workspace[2], tab, after };
+    }
+    const list = pathname.match(/^\/p\/([0-9a-f-]+)\/folios$/);
+    return list ? { kind: "list", property: list[1] } : { kind: "other" };
+  }
+
+  function canonicalFolioPath(property, folioId, tab = "postings", after = "") {
+    const query = new URLSearchParams({ tab: tab === "charge" ? "charge" : "postings" });
+    if (after) query.set("after", after);
+    return `/p/${property}/folio/${folioId}?${query.toString()}`;
+  }
+
+  function folioChargeIsDirty(amount, quantity, confirmed) {
+    return String(amount).trim() !== "" || String(quantity).trim() !== "" || confirmed === true;
+  }
+
+  function currentFolioChargeIsDirty() {
+    return folioChargeIsDirty(folioChargeForm.elements.amountMinor.value, folioChargeForm.elements.quantity.value, folioChargeConfirm.checked);
+  }
+
+  function confirmFolioExit() {
+    return !currentFolioChargeIsDirty() || confirm("Discard this unfinished untaxed charge?");
+  }
+
+  function folioRefreshDecision(origin, current) {
+    return origin.generation === current.generation && origin.property === current.property
+      && origin.identity === current.identity && origin.folioId === current.folioId && current.active === true
+      ? "render" : "suppress";
+  }
+
+  function isCurrentFolioRequest(generation, property, identity, folioId = identity) {
+    return folioRefreshDecision(
+      { generation, property, identity, folioId },
+      { generation: folioGeneration, property: propertySelect.value, identity: folioIdentity,
+        folioId: folioStatementData?.folio.id || folioIdentity, active: activeView === "folios" },
+    ) === "render";
+  }
+
+  function boundedFolioPage(rows) {
+    return Array.isArray(rows) ? rows.slice(0, 50) : [];
   }
 
   function setFolioError(message = "") {
@@ -2841,8 +3002,13 @@
   function resetFolioPresentation() {
     folioStatementData = null;
     folioNextCursor = null;
+    folioRouteCursor = "";
+    folioWorkspace.hidden = true;
+    folioStatementLoading.hidden = true;
+    folioStatementError.hidden = true;
     folioStatement.hidden = true;
     folioStatementRows.replaceChildren();
+    folioStatementCards.replaceChildren();
     folioLoadOlder.hidden = true;
     folioLoadOlder.disabled = false;
     folioPageStatus.textContent = "";
@@ -2858,6 +3024,9 @@
   function clearFolioState() {
     folioGeneration += 1;
     folioIdentity = "";
+    folioActiveTab = "postings";
+    folioWorkspaceProperty = "";
+    folioReturnFocus = null;
     resetFolioPresentation();
     folioStatementLookupForm.reset();
     formMessage(folioStatementLookupForm, "Enter the exact human-readable folio reference.");
@@ -2879,33 +3048,59 @@
     return value;
   }
 
-  function renderFolioRows(rows, append = false) {
+  function folioCardField(list, label, value) {
+    const term = document.createElement("dt");
+    term.textContent = label;
+    const description = document.createElement("dd");
+    description.textContent = value === null || value === undefined || value === "" ? "—" : String(value);
+    list.append(term, description);
+  }
+
+  function renderFolioRows(rows) {
+    const bounded = boundedFolioPage(rows);
     const fragment = document.createDocumentFragment();
-    for (const row of rows) {
+    const cards = document.createDocumentFragment();
+    for (const row of bounded) {
+      const posting = `${row.kind}${row.reversalJournalId ? " · reversed" : ""} · ${row.txCode}`;
+      const description = `${row.description || "—"} · quantity ${exactFolioQuantity(row.quantity)}`;
+      const amount = exactFolioMinor(row.amountMinor, "amount");
+      const running = exactFolioMinor(row.runningBalanceMinor, "running balance");
       const tableRow = document.createElement("tr");
       tableRow.append(
         folioCell(row.businessDate),
         folioCell(row.postedAt),
-        folioCell(row.reversalJournalId ? `${row.kind} · reversed` : row.kind),
-        folioCell(row.txCode),
-        folioCell(row.description),
-        folioCell(exactFolioQuantity(row.quantity)),
-        folioCell(exactFolioMinor(row.amountMinor, "amount")),
-        folioCell(exactFolioMinor(row.runningBalanceMinor, "running balance")),
+        folioCell(posting),
+        folioCell(description),
+        folioCell(amount),
+        folioCell(running),
       );
       tableRow.title = row.reversalJournalId ? `Reversed by journal ${row.reversalJournalId}` : `${row.kind} · journal ${row.journalId}`;
       fragment.append(tableRow);
+      const card = document.createElement("article");
+      card.className = "folio-posting-card";
+      const list = document.createElement("dl");
+      folioCardField(list, "Business date", row.businessDate);
+      folioCardField(list, "Posted UTC", row.postedAt);
+      folioCardField(list, "Posting", posting);
+      folioCardField(list, "Description", description);
+      folioCardField(list, "Signed minor amount", amount);
+      folioCardField(list, "Running minor balance", running);
+      card.append(list);
+      cards.append(card);
     }
-    if (!append) folioStatementRows.replaceChildren();
+    folioStatementRows.replaceChildren();
+    folioStatementCards.replaceChildren();
     folioStatementRows.append(fragment);
-    if (!append && rows.length === 0) {
+    folioStatementCards.append(cards);
+    if (bounded.length === 0) {
       const emptyRow = document.createElement("tr");
       const emptyCell = document.createElement("td");
       emptyCell.className = "folio-empty";
-      emptyCell.colSpan = 8;
+      emptyCell.colSpan = 6;
       emptyCell.textContent = "No immutable guest-side postings were returned.";
       emptyRow.append(emptyCell);
       folioStatementRows.append(emptyRow);
+      emptyList(folioStatementCards, "No immutable guest-side postings were returned.");
     }
   }
 
@@ -2926,22 +3121,49 @@
       : availability.reason || "No currently governed untaxed charge is available.";
   }
 
-  function renderFolioStatement(statement, append = false) {
+  function setFolioTab(tab, { updateHistory = true, focus = true } = {}) {
+    const next = tab === "charge" ? "charge" : "postings";
+    if (next !== folioActiveTab && folioActiveTab === "charge" && currentFolioChargeIsDirty()) {
+      if (!confirmFolioExit()) return false;
+      folioChargeForm.reset();
+      folioChargeAttemptKey = "";
+      folioChargeDraft = "";
+      syncFolioChargeConfirmation();
+    }
+    folioActiveTab = next;
+    const postings = next === "postings";
+    folioPostingsPanel.hidden = !postings;
+    folioChargePanel.hidden = postings;
+    folioTabPostings.setAttribute("aria-selected", String(postings));
+    folioTabCharge.setAttribute("aria-selected", String(!postings));
+    if (updateHistory && propertySelect.value && folioStatementData) {
+      history.pushState({ yellowSurface: "folio-workspace" }, "", canonicalFolioPath(propertySelect.value, folioStatementData.folio.id, next, folioRouteCursor));
+    }
+    if (focus) (postings ? folioTabPostings : folioTabCharge).focus();
+    return true;
+  }
+
+  function renderFolioStatement(statement) {
     folioStatementData = statement;
     folioNextCursor = statement.nextCursor;
     folioStatementTitle.textContent = statement.folio.reference || statement.folio.id;
+    folioWorkspaceTitle.textContent = statement.folio.reference || `Folio ${statement.folio.id}`;
     folioWindow.textContent = String(statement.folio.windowNo);
     folioStatus.textContent = statement.folio.status;
     folioCurrency.textContent = statement.folio.currency;
     folioBalance.textContent = exactFolioMinor(statement.balanceMinor, "server balance");
     folioLineCount.textContent = String(statement.lineCount);
-    renderFolioRows(statement.rows, append);
+    renderFolioRows(statement.rows);
     renderFolioChargeOptions(statement.chargeOptions, statement.chargeAvailability);
     folioLoadOlder.hidden = statement.nextCursor === null;
     folioPageStatus.textContent = statement.nextCursor === null
-      ? `All ${String(statement.lineCount)} immutable lines are represented.`
-      : "More immutable postings are available from the server.";
+      ? `This page is complete. The folio contains ${String(statement.lineCount)} immutable line${statement.lineCount === 1 ? "" : "s"}.`
+      : "An older bounded statement page is available from the server.";
+    folioStatementLoading.hidden = true;
+    folioStatementError.hidden = true;
     folioStatement.hidden = false;
+    folioWorkspace.hidden = false;
+    setFolioTab(folioActiveTab, { updateHistory: false, focus: false });
   }
 
   async function lookupFolioStatement() {
@@ -2951,53 +3173,100 @@
     const property = propertySelect.value;
     const identity = reference;
     folioIdentity = identity;
+    folioWorkspaceProperty = property;
     resetFolioPresentation();
+    folioWorkspace.hidden = false;
+    folioStatementLoading.hidden = false;
     const button = folioStatementLookupForm.querySelector("button[type=submit]");
     button.disabled = true;
     formMessage(folioStatementLookupForm, "Reading one immutable server statement…");
     try {
       const statement = await request(`/api/v1/properties/${encodeURIComponent(property)}/folios/${encodeURIComponent(reference)}/statement?limit=50`);
       if (!isCurrentFolioRequest(generation, property, identity)) return;
+      if (typeof statement.folio?.id !== "string") throw new Error("The server returned an invalid folio identity.");
+      folioRouteCursor = "";
       renderFolioStatement(statement);
+      folioIdentity = statement.folio.id;
       formMessage(folioStatementLookupForm, `Loaded exact folio ${statement.folio.reference || statement.folio.id}.`);
-      folioStatement.focus();
+      history.pushState({ yellowSurface: "folio-workspace" }, "", canonicalFolioPath(property, statement.folio.id, "postings"));
+      folioWorkspace.focus();
     } catch (error) {
-      if (!isCurrentFolioRequest(generation, property, identity)) return;
-      resetFolioPresentation();
-      folioIdentity = identity;
+      if (generation !== folioGeneration || property !== propertySelect.value || activeView !== "folios") return;
+      folioStatementLoading.hidden = true;
+      folioStatementError.hidden = false;
+      folioStatementError.querySelector("p").textContent = error instanceof Error ? error.message : "Folio statement could not be loaded";
       const message = error instanceof Error ? error.message : "Folio statement could not be loaded";
       formMessage(folioStatementLookupForm, message, true);
       setFolioError(message);
     } finally {
-      if (isCurrentFolioRequest(generation, property, identity)) button.disabled = false;
+      if (generation === folioGeneration && property === propertySelect.value && activeView === "folios") button.disabled = false;
     }
   }
 
-  async function loadOlderFolioRows() {
-    if (!folioStatementData || !folioNextCursor) return;
-    const generation = folioGeneration;
+  async function loadFolioWorkspace(folioId, after = "", { focus = true } = {}) {
+    const generation = ++folioGeneration;
     const property = propertySelect.value;
-    const identity = folioIdentity;
-    const folioId = folioStatementData.folio.id;
-    const cursor = folioNextCursor;
-    folioLoadOlder.disabled = true;
-    folioPageStatus.textContent = "Loading older immutable postings…";
-    setFolioError();
+    const identity = folioId;
+    folioWorkspaceProperty = property;
+    folioIdentity = identity;
+    folioRouteCursor = after;
+    resetFolioPresentation();
+    folioIdentity = identity;
+    folioRouteCursor = after;
+    folioWorkspace.hidden = false;
+    folioStatementLoading.hidden = false;
+    folioWorkspace.setAttribute("aria-busy", "true");
     try {
-      const page = await request(`/api/v1/properties/${encodeURIComponent(property)}/folios/${encodeURIComponent(folioId)}/statement?after=${encodeURIComponent(cursor)}&limit=50`);
+      const query = after ? `?after=${encodeURIComponent(after)}&limit=50` : "?limit=50";
+      const statement = await request(`/api/v1/properties/${encodeURIComponent(property)}/folios/${encodeURIComponent(folioId)}/statement${query}`);
       if (!isCurrentFolioRequest(generation, property, identity, folioId)) return;
-      if (page.folio.id !== folioId) throw new Error("The server returned a different folio.");
-      folioNextCursor = page.nextCursor;
-      renderFolioRows(page.rows, true);
-      folioLoadOlder.hidden = page.nextCursor === null;
-      folioPageStatus.textContent = page.nextCursor === null ? "All immutable lines are loaded." : "Older immutable postings remain available.";
+      if (statement.folio.id !== folioId) throw new Error("The server returned a different folio.");
+      renderFolioStatement(statement);
+      folioWorkspace.setAttribute("aria-busy", "false");
+      if (focus) folioWorkspace.focus();
     } catch (error) {
       if (!isCurrentFolioRequest(generation, property, identity, folioId)) return;
       const message = error instanceof Error ? error.message : "Older postings could not be loaded";
-      folioPageStatus.textContent = "Older postings were not added.";
+      folioStatementLoading.hidden = true;
+      folioStatementError.hidden = false;
+      folioStatementError.querySelector("p").textContent = message;
+      folioWorkspace.setAttribute("aria-busy", "false");
       setFolioError(message);
-    } finally {
-      if (isCurrentFolioRequest(generation, property, identity, folioId)) folioLoadOlder.disabled = false;
+    }
+  }
+
+  function loadOlderFolioRows() {
+    if (!folioStatementData || !folioNextCursor || !confirmFolioExit()) return;
+    const cursor = folioNextCursor;
+    history.pushState({ yellowSurface: "folio-workspace" }, "", canonicalFolioPath(propertySelect.value, folioStatementData.folio.id, folioActiveTab, cursor));
+    void loadFolioWorkspace(folioStatementData.folio.id, cursor);
+  }
+
+  function openFolioWorkspace(folioId, { trigger = null } = {}) {
+    if (activeView === "folios" && !confirmFolioExit()) return;
+    folioReturnFocus = trigger;
+    closeReservationDetail({ history: false, restoreFocus: false });
+    setView("folios", false);
+    folioActiveTab = "postings";
+    history.pushState({ yellowSurface: "folio-workspace" }, "", canonicalFolioPath(propertySelect.value, folioId));
+    void loadFolioWorkspace(folioId);
+  }
+
+  function syncFolioRoute() {
+    const route = folioRouteFromLocation();
+    if (route.kind === "other" || !propertySelect.value || route.property !== propertySelect.value) return;
+    if (route.kind === "list") {
+      clearFolioState();
+      document.querySelector("#folios-title")?.focus();
+      return;
+    }
+    const canonical = canonicalFolioPath(route.property, route.folioId, route.tab, route.after);
+    if (`${location.pathname}${location.search}` !== canonical) history.replaceState({ yellowSurface: "folio-workspace" }, "", canonical);
+    folioActiveTab = route.tab;
+    if (folioIdentity !== route.folioId || folioRouteCursor !== route.after || folioWorkspace.hidden) {
+      void loadFolioWorkspace(route.folioId, route.after, { focus: false });
+    } else {
+      setFolioTab(route.tab, { updateHistory: false, focus: false });
     }
   }
 
@@ -3060,7 +3329,9 @@
   }
 
   function setView(view, updateHistory = true) {
+    const previousView = activeView;
     activeView = ["availability", "inventory", "operations", "reservations", "folios", "restrictions", "rates", "status"].includes(view) ? view : "availability";
+    if (previousView === "folios" && activeView !== "folios") clearFolioState();
     availabilityView.hidden = activeView !== "availability";
     inventoryView.hidden = activeView !== "inventory";
     restrictionsView.hidden = activeView !== "restrictions";
@@ -3093,6 +3364,7 @@
       syncReservationRoute();
       if (reservationBoardRows.length === 0) void loadReservationBoard();
     }
+    if (activeView === "folios") syncFolioRoute();
   }
 
   function formMessage(form, message, isError = false) {
@@ -4586,6 +4858,10 @@
   reservationPrimaryShare.addEventListener("input", updateReservationShareTotal);
 
   propertySelect.addEventListener("change", () => {
+    if (activeView === "folios" && !folioWorkspace.hidden && !confirmFolioExit()) {
+      propertySelect.value = folioWorkspaceProperty;
+      return;
+    }
     if (shouldConfirmReservationExit(reservationCreatePanel.hidden === false, reservationCreateDirty, "property") &&
         !confirm("Discard this unfinished reservation? Entered details will be lost.")) {
       propertySelect.value = reservationCreateProperty;
@@ -4599,6 +4875,8 @@
     reservationBoardNextCursor = null;
     reservationRouteReservationId = "";
     reservationDetailDrawer.hidden = true;
+    reservationPrimaryFolioAttemptKey = "";
+    reservationPrimaryFolioReservationId = "";
     clearReservationDrawerLifecycle();
     reservationCreatePanel.hidden = true;
     reservationBoard.hidden = false;
@@ -4632,6 +4910,7 @@
   });
   for (const tab of navigation) tab.addEventListener("click", () => {
     if (tab.dataset.view !== "reservations" && !reservationCreatePanel.hidden && !closeReservationCreate({ history: false })) return;
+    if (activeView === "folios" && tab.dataset.view !== "folios" && !folioWorkspace.hidden && !confirmFolioExit()) return;
     setView(tab.dataset.view);
   });
   availabilityReservationShortcut.addEventListener("click", () => {
@@ -4698,16 +4977,34 @@
   reservationDetailRetry.addEventListener("click", () => {
     if (reservationRouteReservationId) void loadReservationDetail(reservationRouteReservationId);
   });
+  reservationPrimaryFolioCreate.addEventListener("click", () => void openPrimaryFolio());
   window.addEventListener("popstate", () => {
+    const folioRoute = folioRouteFromLocation();
+    if (activeView === "folios" && !folioWorkspace.hidden && !confirmFolioExit()) {
+      const currentId = folioStatementData?.folio.id || folioIdentity;
+      history.pushState({ yellowSurface: "folio-workspace" }, "", canonicalFolioPath(propertySelect.value, currentId, folioActiveTab, folioRouteCursor));
+      return;
+    }
+    if (folioRoute.kind !== "other" && folioRoute.property === propertySelect.value) {
+      setView("folios", false);
+      syncFolioRoute();
+      return;
+    }
     const route = reservationRoute();
     if (shouldConfirmReservationExit(reservationCreatePanel.hidden === false, reservationCreateDirty, route.kind) &&
         !confirm("Leave this unfinished reservation? Entered details will be lost.")) {
       history.pushState({ yellowSurface: "reservation-create" }, "", `/p/${propertySelect.value}/reservations?new=1&step=${["stay", "guest", "offer", "review"][reservationCreateStep - 1]}`);
       return;
     }
+    if (route.kind !== "other") setView("reservations", false);
     syncReservationRoute();
   });
   document.addEventListener("keydown", (event) => {
+    if (activeView === "folios" && event.key === "Escape" && !folioWorkspace.hidden) {
+      event.preventDefault();
+      folioWorkspaceBack.click();
+      return;
+    }
     if (activeView !== "reservations") return;
     const editable = event.target.closest?.("input, select, textarea, [contenteditable=true]");
     if (event.key === "Escape") {
@@ -4731,6 +5028,28 @@
     void lookupFolioStatement();
   });
   folioLoadOlder.addEventListener("click", () => void loadOlderFolioRows());
+  folioWorkspaceBack.addEventListener("click", () => {
+    if (!confirmFolioExit()) return;
+    const returnTarget = folioReturnFocus;
+    clearFolioState();
+    history.replaceState(null, "", `/p/${propertySelect.value}/folios`);
+    const target = returnTarget?.isConnected ? returnTarget : folioStatementLookupForm.elements.reference;
+    target?.focus();
+    folioReturnFocus = null;
+  });
+  folioTabPostings.addEventListener("click", () => setFolioTab("postings"));
+  folioTabCharge.addEventListener("click", () => setFolioTab("charge"));
+  for (const [tab, element] of [["postings", folioTabPostings], ["charge", folioTabCharge]]) {
+    element.addEventListener("keydown", (event) => {
+      if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return;
+      event.preventDefault();
+      const next = event.key === "Home" || event.key === "ArrowLeft" ? "postings" : "charge";
+      if (next !== tab || event.key === "Home" || event.key === "End") setFolioTab(next);
+    });
+  }
+  folioStatementRetry.addEventListener("click", () => {
+    if (folioIdentity) void loadFolioWorkspace(folioIdentity, folioRouteCursor);
+  });
   folioChargeConfirm.addEventListener("change", syncFolioChargeConfirmation);
   folioChargeForm.addEventListener("input", () => {
     const draft = JSON.stringify(folioChargeBody());
@@ -5159,7 +5478,7 @@
   const initialView = location.pathname.endsWith("/inventory") ? "inventory" :
     location.pathname.endsWith("/operations") ? "operations" :
     (location.pathname.endsWith("/reservations") || /^\/p\/[0-9a-f-]+\/res\/[0-9a-f-]+$/.test(location.pathname)) ? "reservations" :
-    location.pathname.endsWith("/folios") ? "folios" :
+    (location.pathname.endsWith("/folios") || /^\/p\/[0-9a-f-]+\/folio\/[0-9a-f-]+$/.test(location.pathname)) ? "folios" :
     location.pathname.endsWith("/restrictions") ? "restrictions" :
     location.pathname.endsWith("/rates") ? "rates" :
     location.pathname.endsWith("/status") ? "status" : "availability";

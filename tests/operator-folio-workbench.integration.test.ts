@@ -52,7 +52,7 @@ describe("Order 105 operator folio workbench", () => {
     expect(html).toContain('id="folio-reference"');
     expect(html).toContain('<table class="folio-lines">');
     expect(html).toContain('<caption id="folio-lines-caption">Immutable folio statement');
-    expect(html.match(/<th scope="col">/g)).toHaveLength(8);
+    expect(html.match(/<th scope="col">/g)).toHaveLength(6);
     expect(html).toContain('id="folio-load-older"');
     expect(html).toContain('id="folio-charge-code" name="txCode"');
     expect(html).toContain("I understand this irreversibly posts an untaxed charge.");
@@ -70,8 +70,8 @@ describe("Order 105 operator folio workbench", () => {
     );
     expect(folioSurface).toContain("cell.textContent");
     expect(folioSurface).toContain('folioBalance.textContent = exactFolioMinor(statement.balanceMinor, "server balance")');
-    expect(folioSurface).toContain('folioCell(exactFolioMinor(row.amountMinor, "amount"))');
-    expect(folioSurface).toContain('folioCell(exactFolioMinor(row.runningBalanceMinor, "running balance"))');
+    expect(folioSurface).toContain('const amount = exactFolioMinor(row.amountMinor, "amount")');
+    expect(folioSurface).toContain('const running = exactFolioMinor(row.runningBalanceMinor, "running balance")');
     expect(folioSurface).not.toMatch(/\bNumber\s*\(|parseInt\s*\(|parseFloat\s*\(|Math\.|\.toFixed\s*\(/);
     expect(folioSurface).not.toMatch(/innerHTML|outerHTML|insertAdjacentHTML/);
     expect(folioSurface).not.toMatch(/accountId|businessDate\s*:|currency\s*:|journalKind|debit|credit|routeId|balanceMinor\s*:/);
@@ -80,15 +80,17 @@ describe("Order 105 operator folio workbench", () => {
   });
 
   test("P3: lookup and older-page requests are bounded and stale-safe", () => {
-    const lookup = asyncFunctionSlice("lookupFolioStatement", "async function loadOlderFolioRows");
-    const page = asyncFunctionSlice("loadOlderFolioRows", "function folioChargeBody");
+    const lookup = asyncFunctionSlice("lookupFolioStatement", "async function loadFolioWorkspace");
+    const page = functionSlice("loadOlderFolioRows", "openFolioWorkspace");
+    const workspace = asyncFunctionSlice("loadFolioWorkspace", "function loadOlderFolioRows");
     expect(lookup).toContain("/statement?limit=50");
-    expect(page).toContain("/statement?after=");
-    expect(page).toContain("&limit=50");
-    expect(lookup.match(/isCurrentFolioRequest\(generation, property, identity\)/g)).toHaveLength(3);
-    expect(page.match(/isCurrentFolioRequest\(generation, property, identity, folioId\)/g)).toHaveLength(3);
-    expect(page).toContain("renderFolioRows(page.rows, true)");
-    expect(page).not.toContain("renderFolioStatement(page");
+    expect(workspace).toContain("?after=");
+    expect(workspace).toContain("&limit=50");
+    expect(lookup.match(/isCurrentFolioRequest\(generation, property, identity\)/g)).toHaveLength(1);
+    expect(lookup.match(/generation !== folioGeneration \|\| property !== propertySelect\.value \|\| activeView !== "folios"/g)).toHaveLength(1);
+    expect(workspace.match(/isCurrentFolioRequest\(generation, property, identity, folioId\)/g)).toHaveLength(2);
+    expect(workspace).toContain("renderFolioStatement(statement)");
+    expect(page).toContain("void loadFolioWorkspace(folioStatementData.folio.id, cursor)");
   });
 
   test("P3: charge uses one retry key and refetches only after server success", () => {
@@ -107,17 +109,16 @@ describe("Order 105 operator folio workbench", () => {
   });
 
   test("P3 extracted canary: generation, property and folio identity all guard repaint", () => {
-    const source = functionSlice("isCurrentFolioRequest", "setFolioError");
-    const make = Function(
-      "folioGeneration", "propertySelect", "folioIdentity", "folioStatementData",
-      `${source}\nreturn isCurrentFolioRequest;`,
-    ) as (...args: unknown[]) => (generation: number, property: string, identity: string, folioId?: string | null) => boolean;
-    const current = make(7, { value: "property-a" }, "FOL-7", { folio: { id: "folio-a" } });
-    expect(current(7, "property-a", "FOL-7", "folio-a")).toBeTrue();
-    expect(current(6, "property-a", "FOL-7", "folio-a")).toBeFalse();
-    expect(current(7, "property-b", "FOL-7", "folio-a")).toBeFalse();
-    expect(current(7, "property-a", "FOL-8", "folio-a")).toBeFalse();
-    expect(current(7, "property-a", "FOL-7", "folio-b")).toBeFalse();
+    const source = functionSlice("folioRefreshDecision", "isCurrentFolioRequest");
+    const decide = Function(`${source}\nreturn folioRefreshDecision;`)() as
+      (origin: Record<string, unknown>, current: Record<string, unknown>) => string;
+    const origin = { generation: 7, property: "property-a", identity: "folio-a", folioId: "folio-a" };
+    const current = { ...origin, active: true };
+    expect(decide(origin, current)).toBe("render");
+    expect(decide(origin, { ...current, generation: 6 })).toBe("suppress");
+    expect(decide(origin, { ...current, property: "property-b" })).toBe("suppress");
+    expect(decide(origin, { ...current, identity: "folio-b" })).toBe("suppress");
+    expect(decide(origin, { ...current, active: false })).toBe("suppress");
   });
 
   test("P3: property change and sign-out invalidate and clear all folio state", () => {
