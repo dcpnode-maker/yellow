@@ -276,3 +276,20 @@ static/database-green candidate awaiting a browser-capable independent authentic
 P7. The transient `:3188` process was stopped and is unbound; `:3000` and `:5442`
 remain on their original listeners. No local replacement, promotion, integration,
 merge, push, deployment, production or Phase-wide completion is approved.
+
+### Final bounded browser-panel recovery
+
+The reviewer made the authorized final recovery attempt without changing the candidate
+or prior proof. A fresh direct-Bun `0096ac4` harness again returned exact health 200 on
+loopback `:3188`, with `:3000` untouched. The coordinator explicitly opened
+`http://127.0.0.1:3188/` in the Codex right browser panel; the app reported that open as
+queued for this exact task. Direct `getForUrl` still returned `No browser is available`
+and the supported inventory remained `[]`. The coordinator then explicitly navigated
+the app to this exact task to materialize the queued panel. The reviewer restarted the
+same transient harness, reconfirmed health 200 and retried direct `getForUrl`; it again
+returned `No browser is available`.
+
+No credential was read or entered and no repaired browser journey is claimed. Both
+transient listener processes were stopped after their bounded attempts; `:3188` is
+unbound and original `:3000`/`:5442` listeners remain. The verdict stays
+STATIC/DB-GREEN · AUTHENTICATED-P7-PENDING, with no approval or promotion claim.
