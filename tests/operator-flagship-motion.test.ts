@@ -49,6 +49,7 @@ test("Order187: the four flagship systems have structural identity without unsaf
   expect(styles).toContain(':root[data-theme="glass"] .ambient-stage');
   expect(styles).toContain('@media (hover: none), (pointer: coarse)');
   expect(styles).toContain('@media (prefers-reduced-motion: reduce)');
+  expect(styles.match(/:root\[data-theme="glass"\] \.workbench > section:not\(\[hidden\]\) \{ animation: none; \}/g)?.length).toBe(4);
   expect(styles).not.toContain("will-change");
   expect(styles).not.toMatch(/@keyframes[^}]*\bfilter\s*:/s);
   expect(styles).not.toMatch(/transition:[^;]*(?:filter|width|height|top|left)/);

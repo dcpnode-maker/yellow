@@ -1125,6 +1125,7 @@ input:focus, select:focus, textarea:focus { box-shadow: var(--material-control-a
   :root[data-theme="glass"] { --material-nav: #164c5c; --material-control: #f4fbfc; }
   :root[data-theme="glass"] .workbench-head,
   :root[data-theme="glass"] .domain-bar { background: #eaf7fb; -webkit-backdrop-filter: none; backdrop-filter: none; }
+  :root[data-theme="glass"] .workbench > section:not([hidden]) { animation: none; }
 }
 
 @media (forced-colors: active) {
@@ -1134,6 +1135,7 @@ input:focus, select:focus, textarea:focus { box-shadow: var(--material-control-a
   }
   .primary { background: Highlight; color: HighlightText; }
   .ambient-stage { display: none !important; }
+  :root[data-theme="glass"] .workbench > section:not([hidden]) { animation: none; }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -1155,4 +1157,5 @@ input:focus, select:focus, textarea:focus { box-shadow: var(--material-control-a
   :root[data-theme="glass"] :is(.option-card,.reservation-board-card),
   :root[data-theme="glass"] .domain-tab,
   :root[data-theme="android"] .domain-tab { transition-duration: 0ms; transform: none; }
+  :root[data-theme="glass"] .workbench > section:not([hidden]) { animation: none; }
 }
