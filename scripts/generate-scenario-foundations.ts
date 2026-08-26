@@ -8,6 +8,14 @@ export const DEFAULT_SCENARIO_DAY_COUNT = 1_096;
 export const DEFAULT_SCENARIO_SEED = "yellow-uat-v1";
 export const DEFAULT_SCENARIO_OUTPUT_ROOT = "D:\\Yellow\\generated\\scenario-foundations\\v1";
 export const MAX_SCENARIO_DAY_COUNT = 1_096;
+const APPROVED_CANADIAN_TIME_ZONES = new Set([
+  "America/Edmonton",
+  "America/Halifax",
+  "America/St_Johns",
+  "America/Toronto",
+  "America/Vancouver",
+  "America/Winnipeg",
+]);
 
 type RoomClass = { code: string; label: string };
 
@@ -174,6 +182,13 @@ function validTimeZone(value: unknown, path: string): string {
   return zone;
 }
 
+function validScenarioTimeZone(countryCode: "IN" | "CA", value: unknown, path: string): string {
+  const zone = validTimeZone(value, path);
+  const coherent = countryCode === "IN" ? zone === "Asia/Kolkata" : APPROVED_CANADIAN_TIME_ZONES.has(zone);
+  if (!coherent) throw new Error(`${path} is not approved for country ${countryCode}.`);
+  return zone;
+}
+
 export function validateScenarioManifest(input: unknown): ScenarioManifest {
   assertNoSensitiveAuthority(input);
   const root = objectAt(input, "manifest");
@@ -191,7 +206,7 @@ export function validateScenarioManifest(input: unknown): ScenarioManifest {
     displayName: text(property.displayName, "manifest.property.displayName"),
     countryCode,
     currency,
-    timeZone: validTimeZone(property.timeZone, "manifest.property.timeZone"),
+    timeZone: validScenarioTimeZone(countryCode, property.timeZone, "manifest.property.timeZone"),
   };
 
   const roomClasses = codedObjects(root.roomClasses, "manifest.roomClasses", (item, path): RoomClass => {

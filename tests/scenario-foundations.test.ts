@@ -106,6 +106,24 @@ test("Order 178: malformed, excessive and authority-bearing inputs fail closed",
   expect(() => compileScenarioFoundation(india, "2024-01-01", 1, "email@example.test")).toThrow("seed is invalid");
 });
 
+test("Order 178 D-457: country, currency and timezone remain jurisdiction-coherent", () => {
+  const indiaWithCanadianZone = clone(india);
+  indiaWithCanadianZone.property.timeZone = "America/Toronto";
+  expect(() => validateScenarioManifest(indiaWithCanadianZone)).toThrow("not approved for country IN");
+
+  const canadaWithIndianZone = clone(canada);
+  canadaWithIndianZone.property.timeZone = "Asia/Kolkata";
+  expect(() => validateScenarioManifest(canadaWithIndianZone)).toThrow("not approved for country CA");
+
+  const canadaWithUnsupportedValidZone = clone(canada);
+  canadaWithUnsupportedValidZone.property.timeZone = "America/New_York";
+  expect(() => validateScenarioManifest(canadaWithUnsupportedValidZone)).toThrow("not approved for country CA");
+
+  const missingTimeZone = clone(canada);
+  delete missingTimeZone.property.timeZone;
+  expect(() => validateScenarioManifest(missingTimeZone)).toThrow("must contain exactly");
+});
+
 test("Order 178: output and CLI boundaries reject traversal, relative roots and duplicate flags", () => {
   expect(() => scenarioOutputPath("relative/output", "india-riverstone", "a".repeat(64))).toThrow("absolute traversal-free");
   expect(() => scenarioOutputPath(`${tmpdir()}\\safe\\..\\escape`, "india-riverstone", "a".repeat(64))).toThrow("absolute traversal-free");
