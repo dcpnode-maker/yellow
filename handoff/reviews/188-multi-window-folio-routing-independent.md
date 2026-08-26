@@ -145,3 +145,89 @@ for the handed-off tab. The skill forbids resetting the persistent browser runti
 substituting another surface after this condition. A second isolated `:3188` harness
 was therefore stopped with the same no-credential/no-browser-proof verdict; `:3000`
 again remained untouched.
+
+---
+
+## Fresh authenticated P7 — browser changes required
+
+**Conclusion:** CHANGES-REQUIRED · STATIC/FINANCIAL EVIDENCE RETAINED · NO PROMOTION APPROVAL
+
+**Exact product candidate:** `0713b7b58e37df58416b9a083f5d2d1e14fbad7f`
+
+**Reviewer:** fresh independent non-implementing OpenAI Codex agent
+
+The reviewer recreated one transient direct-Bun harness on loopback `:3188` against
+the disposable review database on `:5442`. Direct
+`getForUrl("http://127.0.0.1:3188/")` selected the Codex in-app browser. The complete
+browser documentation was emitted and read, the founder-authorized protected local
+credential was entered without printing, logging or persisting it, and authentication
+succeeded as Yellow Review Operator. The sole approved app on `:3000` remained owned
+by its original container and was not restarted, replaced or inspected.
+
+### Blocking P7 findings
+
+1. **Additional-window creation is not wired to a usable reservation identity.** On
+   authenticated `HAR-FOL-1`, entering `Business` and submitting the visible New folio
+   window form sent
+   `/api/v1/properties/976f0f64-1102-5af8-ba5b-47678f8a5436/reservations/undefined/folios`.
+   The server correctly returned HTTP 400 `request/invalid`, and the UI rendered
+   `Additional folio input is invalid. Retry keeps the same idempotency key.` Two
+   pointer retries emitted the identical body and identical retained key, proving the
+   retry contract itself works, but both used the same invalid `undefined` route.
+   Create therefore cannot complete; move, reroute and successful retry cannot be
+   exercised through the product. This is a direct failure of Order188 P7 and the
+   order outcome.
+2. **The Android 375px target-size gate is red in every detail mode.** After a full
+   450 ms settle, enabled visible navigation controls measured `Today` 40x48 and
+   `Folios` 41x48 in Simple, plus `Rates` 37x48 in Advanced and Expert. Order188
+   requires every target to be at least 44px and the Android system calls for 48dp.
+3. **Property isolation leaves stale prior-property truth visible.** After correcting
+   `HAR-FOL-1`, switching from Harbourlight to Riverstone and searching the forbidden
+   Harbourlight reference correctly returned not found, but the Riverstone route still
+   displayed the prior `HAR-FOL-1` heading plus CAD, window count and prior totals
+   beneath the error. No posting rows or account/Party data crossed, but stale
+   property-scoped financial state painted under the new property route, contrary to
+   the property-exit/stale-paint contract.
+4. **Required keyboard activation did not execute.** With the native enabled buttons
+   focused, Enter/Space through both the semantic locator and the browser keyboard did
+   not open New folio window or Correct a wrong charge; pointer clicks opened both
+   flows. Because the same supported browser activated the pointer handlers and the
+   buttons remained enabled with `tabindex=0`, the mandated keyboard create/correct
+   proof is red even apart from the invalid create route.
+
+### Reviewer-executed browser evidence
+
+- Pointer correction succeeded in the disposable database: the immutable ROOM charge
+  remained, a new `adjustment` row of `-18000` appeared with typed reversal lineage,
+  the active/stay balance became zero and the line count became two.
+- Dirty Back produced a confirmation prompt. Dismissing it retained the `Business`
+  draft. Reload preserved the authenticated deep link, Neo/Expert appearance/detail,
+  the draft, error and logical input focus. Appearance/detail changes likewise retained
+  the deep link, draft and focus.
+- The fully settled five-appearance x three-detail x four-width matrix executed all
+  **60/60** combinations at 375/768/1024/1440. Theme/detail values were exact and all
+  60 had zero root overflow. Apart from the Android 375px finding above, no enabled
+  visible control measured below 44px.
+- Settled authenticated 1440px screenshots were captured and personally inspected for
+  all five appearances. Their structure remains materially distinct: Apple uses the
+  white low-depth content plane; Android uses asymmetric 28px/28px/12px expressive
+  surfaces; Win95 uses a 274px rail, square system-grey bevels, navy title plane and
+  pixel shadow; Glass uses a 278px rail, transparent financial plane,
+  `blur(22px) saturate(1.55)` and specular inset depth; Neo uses a 250px rail and
+  coherent paired `-9px/+9px` tactile shadows. All five screenshots had zero root
+  overflow.
+- At 200% page scale the visual viewport was 712.4px wide with scale 2 and zero root
+  overflow. Reduced-motion removed animations and collapsed transitions to the
+  immediate 0.00001s fallback with zero overflow. Forced colours removed shadows and
+  backdrop filters, restored solid borders and retained zero overflow.
+- Final browser console warning/error collection was empty. The two intentional failed
+  creation requests are the only observed request errors.
+
+The transient tab was closed, viewport/emulated media/page scale were reset, and the
+`:3188` listener was stopped. `:3000` and `:5442` remained bound to their original
+process. Candidate `0713b7b` is not eligible for local replacement, promotion,
+integration, merge, push, deployment, production or Phase-wide completion. Repair
+must restore the reservation identity used by the additional-window browser command,
+meet the Android target-size minimum, clear stale prior-property financial state and
+make the visible button workflows keyboard-operable, then obtain a fresh independent
+authenticated P7 on the corrected exact product.
