@@ -11,7 +11,9 @@ export interface ProjectPhaseSnapshot {
 export type ProjectRecordedWorkState = "independently_approved" | "proof_in_progress";
 
 export interface ProjectRecordedWorkSnapshot {
-  readonly order: 126 | 127 | 148 | 154 | 155 | 156 | 160 | 161 | 162 | 163 | 164;
+  readonly order:
+    | 126 | 127 | 148 | 154 | 155 | 156 | 160 | 161 | 162 | 163 | 164
+    | 165 | 166 | 168 | 169 | 170 | 171 | 173 | 174 | 175 | 176 | 177 | 178;
   readonly state: ProjectRecordedWorkState;
   readonly summary: string;
   readonly remaining?: string;
@@ -37,8 +39,8 @@ export const PROJECT_BUILD_SNAPSHOT = Object.freeze({
   label: "Recorded build snapshot",
   roadmap: Object.freeze({
     phaseCount: 13,
-    latestBuiltOrder: 163,
-    currentOrder: 164,
+    latestBuiltOrder: 178,
+    currentOrder: 179,
     activePhase: 5,
   }),
   review: Object.freeze({
@@ -108,9 +110,81 @@ export const PROJECT_BUILD_SNAPSHOT = Object.freeze({
     }),
     Object.freeze({
       order: 164,
-      state: "proof_in_progress" as const,
-      summary: "Order 164 integrates the approved product and local operational lineages.",
-      remaining: "Independent proof is in progress; the reservation-desk UI remains the next bounded order.",
+      state: "independently_approved" as const,
+      summary: "Order 164 approved the clean product and local operational lineage prerequisite.",
+      remaining: "Approval did not complete reservation UX, deploy, or advance Phase 5.",
+    }),
+    Object.freeze({
+      order: 165,
+      state: "independently_approved" as const,
+      summary: "Order 165 independently approved editable near-future stay defaults and the exact booking-window 400 response.",
+      remaining: "Approval did not include the reservation board, read model, drawer, or broader UI completion.",
+    }),
+    Object.freeze({
+      order: 166,
+      state: "independently_approved" as const,
+      summary: "Order 166 independently approved the bounded reservation board and UUID detail read surface.",
+      remaining: "Approval did not include a new UI, reservation writes, schema changes, or Phase-wide completion.",
+    }),
+    Object.freeze({
+      order: 168,
+      state: "independently_approved" as const,
+      summary: "Order 168 independently approved the dependency-free reservation workspace UI.",
+      remaining: "Approval did not itself promote a local stack or claim broader Phase 5 completion.",
+    }),
+    Object.freeze({
+      order: 169,
+      state: "independently_approved" as const,
+      summary: "Order 169 independently approved the bounded loopback app-only promotion.",
+      remaining: "Approval did not authorize public exposure, production deployment, or rollback destruction.",
+    }),
+    Object.freeze({
+      order: 170,
+      state: "independently_approved" as const,
+      summary: "Order 170 independently approved the extension registrar composition onto the reservation lineage.",
+      remaining: "Approval did not close other command-capability debt or authorize extension publication transitions.",
+    }),
+    Object.freeze({
+      order: 171,
+      state: "independently_approved" as const,
+      summary: "Order 171 independently approved the explicit reservation-to-primary-folio-to-governed-untaxed-charge journey.",
+      remaining: "Approval did not include payments, tax, fiscal documents, settlement, transfers, or checkout.",
+    }),
+    Object.freeze({
+      order: 173,
+      state: "independently_approved" as const,
+      summary: "Order 173 independently approved exact byte-identical primary-folio replay semantics.",
+      remaining: "Approval was limited to the corrected HTTP representation and existing replay header.",
+    }),
+    Object.freeze({
+      order: 174,
+      state: "independently_approved" as const,
+      summary: "Order 174 independently approved the singular UUID folio workspace shell route.",
+      remaining: "The shell adds no data or business authority.",
+    }),
+    Object.freeze({
+      order: 175,
+      state: "independently_approved" as const,
+      summary: "Order 175 independently approved responsive folio containment with the semantic table preserved.",
+      remaining: "Approval did not change folio data, finance authority, or runtime behavior.",
+    }),
+    Object.freeze({
+      order: 176,
+      state: "independently_approved" as const,
+      summary: "Order 176 independently approved the adaptive detail levels and original visual themes.",
+      remaining: "Presentation changes do not alter permissions, request semantics, or business authority.",
+    }),
+    Object.freeze({
+      order: 177,
+      state: "independently_approved" as const,
+      summary: "Order 177 independently approved the bounded read-only Today command centre and focus correction.",
+      remaining: "Approval did not add operational mutations or Phase-wide completion authority.",
+    }),
+    Object.freeze({
+      order: 178,
+      state: "independently_approved" as const,
+      summary: "Order 178 independently approved deterministic offline India and Canada UAT inputs.",
+      remaining: "These offline scenario foundations have not been imported into the application and carry no legal or fiscal authority.",
     }),
   ] satisfies readonly ProjectRecordedWorkSnapshot[]),
   phases: Object.freeze([

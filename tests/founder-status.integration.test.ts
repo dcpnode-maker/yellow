@@ -161,10 +161,10 @@ describe("Order 064 recorded build snapshot", () => {
     const reviewCoverage = await deriveIndependentReviewCoverage();
     const rows = manifestRows(manifest);
     expect(rows.length).toBeGreaterThan(0);
-    expect(PROJECT_BUILD_SNAPSHOT.roadmap.latestBuiltOrder).toBe(163);
+    expect(PROJECT_BUILD_SNAPSHOT.roadmap.latestBuiltOrder).toBe(178);
     expect(PROJECT_BUILD_SNAPSHOT.review.gate3Debt).toBe(0);
     expect(PROJECT_BUILD_SNAPSHOT.review.state).toBe("built_unverified");
-    expect(PROJECT_BUILD_SNAPSHOT.roadmap.currentOrder).toBe(164);
+    expect(PROJECT_BUILD_SNAPSHOT.roadmap.currentOrder).toBe(179);
     expect(PROJECT_BUILD_SNAPSHOT.roadmap.activePhase).toBe(5);
     expect(PROJECT_BUILD_SNAPSHOT.roadmap.phaseCount).toBe(13);
     expect(reviewCoverage.throughOrder).toBe(91);
@@ -238,11 +238,94 @@ describe("Order 064 recorded build snapshot", () => {
       },
       {
         order: 164,
-        state: "proof_in_progress",
-        summary: "Order 164 integrates the approved product and local operational lineages.",
-        remaining: "Independent proof is in progress; the reservation-desk UI remains the next bounded order.",
+        state: "independently_approved",
+        summary: "Order 164 approved the clean product and local operational lineage prerequisite.",
+        remaining: "Approval did not complete reservation UX, deploy, or advance Phase 5.",
+      },
+      {
+        order: 165,
+        state: "independently_approved",
+        summary: "Order 165 independently approved editable near-future stay defaults and the exact booking-window 400 response.",
+        remaining: "Approval did not include the reservation board, read model, drawer, or broader UI completion.",
+      },
+      {
+        order: 166,
+        state: "independently_approved",
+        summary: "Order 166 independently approved the bounded reservation board and UUID detail read surface.",
+        remaining: "Approval did not include a new UI, reservation writes, schema changes, or Phase-wide completion.",
+      },
+      {
+        order: 168,
+        state: "independently_approved",
+        summary: "Order 168 independently approved the dependency-free reservation workspace UI.",
+        remaining: "Approval did not itself promote a local stack or claim broader Phase 5 completion.",
+      },
+      {
+        order: 169,
+        state: "independently_approved",
+        summary: "Order 169 independently approved the bounded loopback app-only promotion.",
+        remaining: "Approval did not authorize public exposure, production deployment, or rollback destruction.",
+      },
+      {
+        order: 170,
+        state: "independently_approved",
+        summary: "Order 170 independently approved the extension registrar composition onto the reservation lineage.",
+        remaining: "Approval did not close other command-capability debt or authorize extension publication transitions.",
+      },
+      {
+        order: 171,
+        state: "independently_approved",
+        summary: "Order 171 independently approved the explicit reservation-to-primary-folio-to-governed-untaxed-charge journey.",
+        remaining: "Approval did not include payments, tax, fiscal documents, settlement, transfers, or checkout.",
+      },
+      {
+        order: 173,
+        state: "independently_approved",
+        summary: "Order 173 independently approved exact byte-identical primary-folio replay semantics.",
+        remaining: "Approval was limited to the corrected HTTP representation and existing replay header.",
+      },
+      {
+        order: 174,
+        state: "independently_approved",
+        summary: "Order 174 independently approved the singular UUID folio workspace shell route.",
+        remaining: "The shell adds no data or business authority.",
+      },
+      {
+        order: 175,
+        state: "independently_approved",
+        summary: "Order 175 independently approved responsive folio containment with the semantic table preserved.",
+        remaining: "Approval did not change folio data, finance authority, or runtime behavior.",
+      },
+      {
+        order: 176,
+        state: "independently_approved",
+        summary: "Order 176 independently approved the adaptive detail levels and original visual themes.",
+        remaining: "Presentation changes do not alter permissions, request semantics, or business authority.",
+      },
+      {
+        order: 177,
+        state: "independently_approved",
+        summary: "Order 177 independently approved the bounded read-only Today command centre and focus correction.",
+        remaining: "Approval did not add operational mutations or Phase-wide completion authority.",
+      },
+      {
+        order: 178,
+        state: "independently_approved",
+        summary: "Order 178 independently approved deterministic offline India and Canada UAT inputs.",
+        remaining: "These offline scenario foundations have not been imported into the application and carry no legal or fiscal authority.",
       },
     ]);
+    const recordedOrders = PROJECT_BUILD_SNAPSHOT.recordedWork.map(({ order }) => Number(order));
+    expect(recordedOrders).toEqual([
+      126, 127, 148, 154, 155, 156, 160, 161, 162, 163, 164,
+      165, 166, 168, 169, 170, 171, 173, 174, 175, 176, 177, 178,
+    ]);
+    expect(recordedOrders).not.toContain(167);
+    expect(recordedOrders).not.toContain(172);
+    const order178: { readonly summary: string; readonly remaining?: string } | undefined =
+      PROJECT_BUILD_SNAPSHOT.recordedWork.find(({ order }) => order === 178);
+    expect(`${order178?.summary} ${order178?.remaining}`).toMatch(/offline/i);
+    expect(order178?.remaining).toMatch(/have not been imported into the application/i);
     expect(PROJECT_BUILD_SNAPSHOT.review.independentlyReviewedThroughOrder).toBe(91);
     expect(PROJECT_BUILD_SNAPSHOT.phases).toHaveLength(13);
     expect(PROJECT_BUILD_SNAPSHOT.phases.map(({ number }) => Number(number))).toEqual([...Array(13).keys()]);
