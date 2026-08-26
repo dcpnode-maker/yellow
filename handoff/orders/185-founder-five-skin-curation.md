@@ -1,6 +1,6 @@
 # Order 185 — Founder four-skin flagship curation
 
-**Status:** IN PROGRESS
+**Status:** APPROVED — D-480
 **Phase:** 5 · founder-visible operations
 **Branch:** `phase-5/folio-charge-correction-resumed`
 **Base:** independently approved and locally promoted Order184 plus resumed Order183 checkpoint
@@ -57,7 +57,7 @@ push, production deployment or active-local replacement is in scope.
 
 ## Definition of done
 
-- [ ] Exactly four founder-selected skins are offered.
-- [ ] Each visibly matches its named material/layout language rather than a palette.
-- [ ] Accessibility, responsive, state and asset gates pass.
-- [ ] Independent UI/browser reviewer approves the exact candidate.
+- [x] Exactly four founder-selected skins are offered.
+- [x] Each visibly matches its named material/layout language rather than a palette.
+- [x] Accessibility, responsive, state and asset gates pass.
+- [x] Independent UI/browser reviewer approves the exact candidate.
