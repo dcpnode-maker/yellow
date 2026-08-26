@@ -12,6 +12,8 @@
     "schema:check": "bun scripts/schema-drift.ts --check",
     "schema:print": "bun scripts/schema-drift.ts --print",
     "scenario:generate": "bun scripts/generate-scenario-foundations.ts",
+    "scenario:seed-review": "bun scripts/seed-scenario-review.ts",
+    "test:scenario:seed-review": "YELLOW_REQUIRE_SCENARIO_REVIEW=1 bun test tests/scenario-review-seed.integration.test.ts",
     "start": "bun src/server.ts",
     "test:db:migrate": "YELLOW_REQUIRE_MIGRATION_DB=1 bun test tests/migrate.integration.test.ts",
     "test:db:seed": "YELLOW_REQUIRE_SEED_DB=1 bun test tests/seed.integration.test.ts",
