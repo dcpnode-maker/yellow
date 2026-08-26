@@ -110,3 +110,29 @@ schema, financial behavior, authority, concurrency, static contracts and all
 non-credential gates, but does not approve local replacement, promotion, merge, push,
 deployment, production, Phase-wide completion or the required authenticated browser
 matrix. Full Order188 approval still requires P7 on this exact candidate.
+
+---
+
+## Authenticated P7 retry — browser unavailable
+
+**Conclusion:** P7-PENDING · NO PRODUCT FINDING · NO PROMOTION APPROVAL
+
+After the founder explicitly authorized action-time entry of the existing local-only
+review credential, the reviewer started one direct transient Bun harness on loopback
+`:3188` against the disposable review database. Health returned the exact
+`{"status":"ok"}` response, while the independently approved app remained the sole
+listener on `:3000` and was not restarted, replaced or inspected.
+
+Before any credential entry, the previously selected in-app browser binding became
+unavailable. The reviewer followed the browser and bootstrap troubleshooting
+instructions; fresh target selection reported no browser available, and the one
+permitted browser inventory returned an empty list. Browser policy forbids substituting
+an unrelated browser-control surface or source-code workaround. Therefore no password,
+token or other credential was read, typed or transmitted, and no authenticated DOM,
+workflow, screenshot, transition, viewport, zoom, forced-colour, reduced-motion,
+keyboard/pointer, target-size, overflow, console or request-error claim is made.
+
+The transient process was then stopped cleanly. Port `:3188` is unbound and `:3000`
+remains bound by its original process. The STATIC/FINANCIAL approval at `0713b7b`
+stands; full Order188 approval and every promotion/integration action remain blocked
+on a browser-capable independent execution of authenticated P7 on that exact product.
