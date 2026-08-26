@@ -1,6 +1,6 @@
 # Order 183 — Governed folio charge correction
 
-**Status:** PAUSED AT VERIFIED CHECKPOINT — founder reprioritized genuine UI skins first (D-471)
+**Status:** STOPPED — combined Order184 asset ceiling failed; Question170 open
 **Phase:** 5 · financial operations and founder UAT
 **Branch:** `phase-5/folio-charge-correction`
 **Base:** `144753b` (independently approved current local through Order182)
