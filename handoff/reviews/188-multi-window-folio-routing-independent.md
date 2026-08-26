@@ -293,3 +293,22 @@ No credential was read or entered and no repaired browser journey is claimed. Bo
 transient listener processes were stopped after their bounded attempts; `:3188` is
 unbound and original `:3000`/`:5442` listeners remain. The verdict stays
 STATIC/DB-GREEN · AUTHENTICATED-P7-PENDING, with no approval or promotion claim.
+
+### Founder-authorized available-browser retry
+
+After the coordinator independently proved the Codex in-app browser available against
+`:3000`, read its complete documentation and explicitly reset/released that binding,
+the founder repeated authorization for protected credential entry and the repaired
+browser proof. The reviewer started exact candidate `0096ac4` on a fresh direct-Bun
+loopback `:3188` harness; health was exact HTTP 200 and `:3000` remained untouched.
+Direct `getForUrl("http://127.0.0.1:3188/")` in this reviewer's required existing
+runtime nevertheless returned `No browser is available` before credential entry.
+
+The coordinator then explicitly opened the `:3188` right-panel target, received a
+queued result and navigated the Codex app to this exact task with `navigated:true` to
+materialize it. The one authorized same-runtime retry again returned
+`No browser is available`. Browser policy forbids resetting the reviewer's runtime or
+substituting another control surface after discovery failure. No credential was read
+or entered and no browser result is claimed. The harness was stopped; `:3188` is
+unbound and the original `:3000`/`:5442` listeners remain. Static/database evidence
+for `0096ac4` remains green, but authenticated P7 and approval remain pending.
