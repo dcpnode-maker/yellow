@@ -30,6 +30,13 @@ function executableFunction<T extends (...args: never[]) => unknown>(name: strin
   return new Function(`return (${functionSource(name)})`)() as T;
 }
 
+function cssRule(selector: string): string {
+  const escaped = selector.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const match = css.match(new RegExp(`${escaped}\\s*\\{([^}]*)\\}`));
+  if (!match) throw new Error(`Missing CSS rule ${selector}`);
+  return match[1]!;
+}
+
 test("Order 171 P0/P5: reservation drawer exposes only explicit UUID-backed folio handoff", () => {
   for (const id of [
     "reservation-detail-folios", "reservation-primary-folio-create",
@@ -128,6 +135,26 @@ test("Order 171 P5: statement has semantic desktop and equivalent mobile states"
   expect(css).toContain("min-height: 44px");
   expect(css).toContain("overflow-wrap: anywhere");
   expect(script).toContain("['ArrowLeft', 'ArrowRight', 'Home', 'End']");
+});
+
+test("Order 175 P1/P2: wide folio table is contained by its grid item and local scroll region", () => {
+  const statement = cssRule(".folio-statement");
+  const statementBody = cssRule(".folio-statement > #folio-statement");
+  const wrapper = cssRule(".folio-table-wrap");
+  const table = cssRule(".folio-lines");
+
+  expect(statement).toContain("min-width: 0");
+  expect(statement).toContain("max-width: 100%");
+  expect(statementBody).toContain("min-width: 0");
+  expect(statementBody).toContain("max-width: 100%");
+  expect(wrapper).toContain("min-width: 0");
+  expect(wrapper).toContain("max-width: 100%");
+  expect(wrapper).toContain("overflow: auto");
+  expect(table).toContain("min-width: 900px");
+  expect(table).not.toMatch(/table-layout|max-width/);
+  expect(css).toContain("@media (max-width: 767px)");
+  expect(css).toMatch(/@media \(max-width: 767px\)[\s\S]*?\.folio-table-wrap \{ display: none; \}[\s\S]*?\.folio-statement-cards \{ display: grid;/);
+  expect(css).not.toMatch(/(?:html|body|\.workbench)\s*\{[^}]*overflow-x\s*:\s*(?:hidden|clip)/);
 });
 
 test("Order 171 P5: route/property/history guards suppress stale financial repaint", () => {
