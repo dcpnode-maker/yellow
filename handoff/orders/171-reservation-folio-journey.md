@@ -131,4 +131,3 @@ role grants, PII/account disclosure, dependency, self-review, merge, push or dep
 - [ ] Explicit real reservation-to-folio-to-charge path passes on fresh PostgreSQL.
 - [ ] Responsive/accessibility/performance and full project gates pass.
 - [ ] Independent Tier-3 reviewer approves one immutable executable.
-
