@@ -100,6 +100,11 @@ const EXPECTED_MIGRATIONS = [
     filename: "0019_financial_reversal_authority.sql",
     checksum_sha256: "40cbd74f4c154ac23f56a1b69edf865c3a5904a98d2264ad6d962671414fcc4d",
   },
+  {
+    version: 20,
+    filename: "0020_multi_window_folio_routing.sql",
+    checksum_sha256: "137c9aea660aea953b86b8bdb1233af6385ddf73daa01a25bfa3149af416d9f1",
+  },
 ];
 
 if (REQUIRE_DATABASE && !DATABASE_URL) {
