@@ -46,6 +46,10 @@ test("Order 176: every detail level retains target and responsive safety rules",
   expect(css).toContain("min-height: 44px");
   expect(css).toContain("@media (max-width: 1020px)");
   expect(css).toContain("@media (max-width: 767px)");
+  expect(css).toContain(".app-bar { flex-wrap: wrap; gap: .45rem; padding: .5rem .75rem; }");
+  expect(css).toContain(".app-actions { width: 100%; min-width: 0; gap: .45rem; }");
+  expect(css).toContain(".theme-control, .experience-control { flex: 1 1 0; min-width: 0; }");
+  expect(css).toContain(".theme-control select, .experience-control select { width: 100%; min-width: 0; max-width: none; }");
   expect(css).toContain("prefers-reduced-motion: reduce");
   expect(css).not.toContain("overflow-x: hidden");
 });

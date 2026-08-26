@@ -836,10 +836,12 @@ input, select, textarea { min-height: 44px; border-color: #bdcbca; background: #
 }
 
 @media (max-width: 600px) {
-  .app-bar { padding-inline: .75rem; }
+  .app-bar { flex-wrap: wrap; gap: .45rem; padding: .5rem .75rem; }
+  .brand { min-width: 0; }
   .brand small, .session-state, .theme-control span, .experience-control span { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
-  .theme-control select, .experience-control select { min-width: 7.2rem; max-width: 36vw; }
-  .app-actions { gap: .45rem; }
+  .app-actions { width: 100%; min-width: 0; gap: .45rem; }
+  .theme-control, .experience-control { flex: 1 1 0; min-width: 0; }
+  .theme-control select, .experience-control select { width: 100%; min-width: 0; max-width: none; }
   .workbench-head { align-items: flex-start; }
   .workbench-head .quiet { min-width: 44px; }
   .domain-bar { align-items: stretch; flex-direction: column; }
