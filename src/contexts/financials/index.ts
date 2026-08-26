@@ -24,6 +24,19 @@ export type {
 } from "./postings";
 
 export {
+  ChargeCorrectionAuthorizationError,
+  ChargeCorrectionConflictError,
+  ChargeCorrectionNotFoundError,
+  ChargeCorrectionService,
+  ChargeCorrectionValidationError,
+} from "./corrections";
+export type {
+  ChargeCorrectionServiceOptions,
+  ReverseChargeInput,
+  ReverseChargeResult,
+} from "./corrections";
+
+export {
   FolioStatementNotFoundError,
   FolioStatementService,
   FolioStatementValidationError,

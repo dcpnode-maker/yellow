@@ -214,8 +214,30 @@ atomically posts one debit-positive guest/folio line and equal credit-negative r
 line. Journal, immutable lines, minimized `journal.posted` fact/outbox and idempotency
 share one transaction; the business-day latch serializes against sealing. This amount is
 explicitly untaxed and quantity is descriptive, never multiplied. Tax allocation,
-scheduled/nightly charges, route authoring, corrections, transfers, payments,
+scheduled/nightly charges, route authoring, transfers, payments,
 settlement and fiscal behavior remain planned.
+
+Implemented immutable correction slice: `ChargeCorrectionService.reverseCharge(tx,
+input)` accepts only server-derived tenant/property/actor authority, an exact open folio,
+an exact original journal UUID, a trimmed visible 1–500 character reason, durable
+idempotency key and audit envelope. The original must be the canonical two-line untaxed
+`ChargeService` journal for that folio. The command deterministically locks financial
+rows, arbitrates the tenant/original pair, locks both the original and current property
+business-day rows, then inserts one current-date `adjustment` header with
+`reverses=original.id` and exact sign-negated immutable line copies. A tenant-leading
+partial unique index allows at most one correction. Original bytes never change;
+idempotency, fact and `journal.posted` outbox evidence settle in the same transaction.
+
+`POST /api/v1/properties/{property}/folios/{folioId}/adjustments` requires the exact
+property grant `financials.adjustments:write`, mandatory visible-ASCII
+`Idempotency-Key`, and body exactly `{reversesJournalId,reason}`. If either the original
+or current business day is sealed, the verified identity must additionally have the
+same property's `financials.adjustments:post-seal`; body and headers cannot assert that
+authority. This is direct authorization, not a two-person approval workflow. The
+statement exposes distinct `reversesJournalId`/`reversedByJournalId` lineage and
+server-derived `correctionEligible`/`correctionReason` per row. Partial correction,
+transfer/routing, additional windows, tax, payment, settlement, fiscal documents and
+checkout remain outside this slice.
 
 Implemented operator statement slice: `FolioStatementService.get(tx, input)` resolves
 one tenant/property folio by UUID or strict human reference and returns one PostgreSQL

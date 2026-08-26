@@ -163,6 +163,7 @@ dbDescribe("Order 108 SECURITY DEFINER shadow-path containment", () => {
          AND p.proname = ANY(ARRAY[
            'record_occupancy', 'release_occupancy', 'expire_holds',
            'prune_outbox', 'assert_day_open', 'seal_business_day', 'lock_financial_rows',
+           'lock_financial_business_days',
            'register_extension_type'
          ]::name[])
        ORDER BY signature
@@ -175,6 +176,8 @@ dbDescribe("Order 108 SECURITY DEFINER shadow-path containment", () => {
         config: ["search_path=pg_catalog, public, pg_temp"], appExecute: false, publicDenied: true },
       { signature: "expire_holds()", securityDefiner: true,
         config: ["search_path=pg_catalog, public, pg_temp"], appExecute: false, publicDenied: true },
+      { signature: "lock_financial_business_days(uuid,uuid,date[])", securityDefiner: true,
+        config: ["search_path=pg_catalog, public, pg_temp"], appExecute: true, publicDenied: true },
       { signature: "lock_financial_rows(uuid,uuid[],uuid)", securityDefiner: true,
         config: ["search_path=pg_catalog, public, pg_temp"], appExecute: true, publicDenied: true },
       { signature: "prune_outbox(interval)", securityDefiner: true,
@@ -193,6 +196,7 @@ dbDescribe("Order 108 SECURITY DEFINER shadow-path containment", () => {
       ["assert_day_open()", ["public.business_day"]],
       ["expire_holds()", ["public.hold", "public.release_occupancy"]],
       ["lock_financial_rows(uuid,uuid[],uuid)", ["public.account", "public.folio"]],
+      ["lock_financial_business_days(uuid,uuid,date[])", ["public.business_day"]],
       ["prune_outbox(interval)", ["public.outbox"]],
       ["record_occupancy(uuid,uuid,tstzrange,uuid,text,boolean)",
         ["public.space_occupancy", "public.space"]],

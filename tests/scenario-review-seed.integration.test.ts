@@ -69,7 +69,7 @@ describe("Order181 two-hotel scenario review seed contract", () => {
       `;
       expect(proof[0]).toEqual({
         scenario_properties: 2,
-        grants: 4,
+        grants: 6,
         occupancy: 256,
         reservation_facts: 4_128,
         reservation_events: 4_128,

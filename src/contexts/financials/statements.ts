@@ -16,6 +16,8 @@ export interface FolioStatementInput {
   readonly reference: string;
   readonly after?: string;
   readonly limit?: number;
+  readonly canCorrectCharge?: boolean;
+  readonly canPostSealAdjustment?: boolean;
 }
 
 export interface FolioStatementMetadata {
@@ -34,7 +36,10 @@ export interface FolioStatementRow {
   readonly kind: string;
   readonly businessDate: string;
   readonly postedAt: string;
-  readonly reversalJournalId: string | null;
+  readonly reversesJournalId: string | null;
+  readonly reversedByJournalId: string | null;
+  readonly correctionEligible: boolean;
+  readonly correctionReason: string | null;
   readonly txCode: string;
   readonly description: string | null;
   readonly quantity: string;
@@ -122,7 +127,10 @@ function requirePlainRecord(name: string, value: unknown): asserts value is Reco
 }
 
 function requireExactKeys(value: Record<string, unknown>): void {
-  const allowed = new Set(["tenantId", "propertyNode", "reference", "after", "limit"]);
+  const allowed = new Set([
+    "tenantId", "propertyNode", "reference", "after", "limit",
+    "canCorrectCharge", "canPostSealAdjustment",
+  ]);
   const unsupported = Object.getOwnPropertyNames(value).filter((key) => !allowed.has(key)).sort();
   if (unsupported.length > 0) {
     throw new FolioStatementValidationError(`Statement input contains unsupported fields: ${unsupported.join(", ")}`);
@@ -184,6 +192,8 @@ function normalize(input: FolioStatementInput): {
   referenceUuid: string;
   cursor: StatementCursor | null;
   limit: number;
+  canCorrectCharge: boolean;
+  canPostSealAdjustment: boolean;
 } {
   requirePlainRecord("Statement input", input);
   requireExactKeys(input);
@@ -197,6 +207,12 @@ function normalize(input: FolioStatementInput): {
       (typeof input.limit !== "number" || !Number.isSafeInteger(input.limit) || input.limit < 1 || input.limit > MAX_LIMIT)) {
     throw new FolioStatementValidationError(`limit must be an integer from 1 to ${MAX_LIMIT}`);
   }
+  if (input.canCorrectCharge !== undefined && typeof input.canCorrectCharge !== "boolean") {
+    throw new FolioStatementValidationError("canCorrectCharge must be server-derived boolean authority");
+  }
+  if (input.canPostSealAdjustment !== undefined && typeof input.canPostSealAdjustment !== "boolean") {
+    throw new FolioStatementValidationError("canPostSealAdjustment must be server-derived boolean authority");
+  }
   const cursor = decodeCursor(input.after);
   if (cursor && cursor.p !== propertyNode) {
     throw new FolioStatementValidationError("after cursor belongs to another property");
@@ -209,6 +225,8 @@ function normalize(input: FolioStatementInput): {
     referenceUuid: UUID.test(input.reference) ? input.reference : "00000000-0000-0000-0000-000000000000",
     cursor,
     limit: input.limit ?? DEFAULT_LIMIT,
+    canCorrectCharge: input.canCorrectCharge ?? false,
+    canPostSealAdjustment: input.canPostSealAdjustment ?? false,
   });
 }
 
@@ -251,7 +269,8 @@ export class FolioStatementService {
           header.kind,
           line.business_date,
           header.created_at,
-          header.reverses AS reversal_journal_id,
+          header.reverses AS reverses_journal_id,
+          reversed_by.id AS reversed_by_journal_id,
           line.tx_code,
           line.description,
           line.quantity::text AS quantity,
@@ -260,7 +279,36 @@ export class FolioStatementService {
             ORDER BY line.business_date, header.created_at, header.id, line.seq
             ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
           )::text AS running_balance_minor,
-          line.seq
+          line.seq,
+          CASE
+            WHEN NOT ${normalized.canCorrectCharge} THEN false
+            WHEN resolved.status <> 'open' OR resolved.account_role <> 'guest'
+              OR resolved.account_status <> 'open' THEN false
+            WHEN current_day.business_date IS NULL OR original_day.business_date IS NULL THEN false
+            WHEN (current_day.sealed_at IS NOT NULL OR original_day.sealed_at IS NOT NULL)
+              AND NOT ${normalized.canPostSealAdjustment} THEN false
+            WHEN header.kind <> 'charge' OR header.reverses IS NOT NULL
+              OR header.source->>'interface' <> 'financials.charge.post' THEN false
+            WHEN reversed_by.id IS NOT NULL THEN false
+            WHEN shape.line_count < 2 OR shape.total_minor <> 0 OR shape.folio_line_count <> 1
+              OR NOT shape.tax_free OR NOT shape.folio_coherent THEN false
+            ELSE true
+          END AS correction_eligible,
+          CASE
+            WHEN NOT ${normalized.canCorrectCharge} THEN 'adjustment_not_authorized'
+            WHEN resolved.status <> 'open' OR resolved.account_role <> 'guest'
+              OR resolved.account_status <> 'open' THEN 'folio_not_open'
+            WHEN current_day.business_date IS NULL OR original_day.business_date IS NULL THEN 'business_day_missing'
+            WHEN (current_day.sealed_at IS NOT NULL OR original_day.sealed_at IS NOT NULL)
+              AND NOT ${normalized.canPostSealAdjustment}
+              THEN 'post_seal_not_authorized'
+            WHEN header.kind <> 'charge' OR header.reverses IS NOT NULL
+              OR header.source->>'interface' <> 'financials.charge.post' THEN 'not_original_charge'
+            WHEN reversed_by.id IS NOT NULL THEN 'already_corrected'
+            WHEN shape.line_count < 2 OR shape.total_minor <> 0 OR shape.folio_line_count <> 1
+              OR NOT shape.tax_free OR NOT shape.folio_coherent THEN 'inconsistent_posting_set'
+            ELSE NULL
+          END AS correction_reason
         FROM resolved
         JOIN posting_line AS line
           ON line.tenant_id = ${normalized.tenantId}::uuid
@@ -273,6 +321,31 @@ export class FolioStatementService {
          AND header.property_node = resolved.property_node
          AND header.currency = resolved.currency::char(3)
          AND header.business_date = line.business_date
+        LEFT JOIN journal AS reversed_by
+          ON reversed_by.tenant_id = header.tenant_id
+         AND reversed_by.reverses = header.id
+        LEFT JOIN business_day AS current_day
+          ON current_day.tenant_id = ${normalized.tenantId}::uuid
+         AND current_day.tenant_id = current_setting('app.tenant_id', true)::uuid
+         AND current_day.property_node = resolved.property_node
+         AND current_day.business_date = resolved.current_business_date
+        LEFT JOIN business_day AS original_day
+          ON original_day.tenant_id = ${normalized.tenantId}::uuid
+         AND original_day.tenant_id = current_setting('app.tenant_id', true)::uuid
+         AND original_day.property_node = resolved.property_node
+         AND original_day.business_date = header.business_date
+        JOIN LATERAL (
+          SELECT count(*)::int AS line_count,
+                 COALESCE(sum(original.amount_minor), 0)::bigint AS total_minor,
+                 count(*) FILTER (
+                   WHERE original.folio_id = resolved.id AND original.account_id = resolved.account_id
+                 )::int AS folio_line_count,
+                 bool_and(original.tax_detail IS NULL) AS tax_free,
+                 bool_and(original.folio_id IS NULL OR original.folio_id = resolved.id) AS folio_coherent
+            FROM posting_line AS original
+           WHERE original.tenant_id = header.tenant_id
+             AND original.journal_id = header.id
+        ) AS shape ON true
       ), page AS MATERIALIZED (
         SELECT *
         FROM ledger
@@ -350,7 +423,10 @@ export class FolioStatementService {
             'kind', kind,
             'businessDate', business_date::text,
             'postedAt', to_char(created_at AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"'),
-            'reversalJournalId', reversal_journal_id,
+            'reversesJournalId', reverses_journal_id,
+            'reversedByJournalId', reversed_by_journal_id,
+            'correctionEligible', correction_eligible,
+            'correctionReason', correction_reason,
             'txCode', tx_code,
             'description', description,
             'quantity', quantity,

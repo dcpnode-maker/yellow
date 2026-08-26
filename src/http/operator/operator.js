@@ -67,6 +67,10 @@
   let folioIdentity = "";
   let folioChargeAttemptKey = "";
   let folioChargeDraft = "";
+  let folioCorrectionAttemptKey = "";
+  let folioCorrectionDraft = "";
+  let folioCorrectionSelection = null;
+  let folioCorrectionReturnFocus = null;
   let folioActiveTab = "postings";
   let folioRouteCursor = "";
   let folioWorkspaceProperty = "";
@@ -388,8 +392,10 @@
   const folioWorkspaceBack = document.querySelector("#folio-workspace-back");
   const folioTabPostings = document.querySelector("#folio-tab-postings");
   const folioTabCharge = document.querySelector("#folio-tab-charge");
+  const folioTabCorrection = document.querySelector("#folio-tab-correction");
   const folioPostingsPanel = document.querySelector("#folio-postings-panel");
   const folioChargePanel = document.querySelector("#folio-charge-panel");
+  const folioCorrectionPanel = document.querySelector("#folio-correction-panel");
   const folioStatementLoading = document.querySelector("#folio-statement-loading");
   const folioStatementError = document.querySelector("#folio-statement-error");
   const folioStatementRetry = document.querySelector("#folio-statement-retry");
@@ -411,6 +417,18 @@
   const folioChargeConfirm = document.querySelector("#folio-charge-confirm");
   const folioChargeSubmit = document.querySelector("#folio-charge-submit");
   const folioChargeAvailability = document.querySelector("#folio-charge-availability");
+  const folioCorrectionForm = document.querySelector("#folio-correction-form");
+  const folioCorrectionFields = document.querySelector("#folio-correction-fields");
+  const folioCorrectionHeading = document.querySelector("#folio-correction-heading");
+  const folioCorrectionReason = document.querySelector("#folio-correction-reason");
+  const folioCorrectionConfirm = document.querySelector("#folio-correction-confirm");
+  const folioCorrectionSubmit = document.querySelector("#folio-correction-submit");
+  const folioCorrectionCancel = document.querySelector("#folio-correction-cancel");
+  const folioCorrectionCurrency = document.querySelector("#folio-correction-currency");
+  const folioCorrectionOriginal = document.querySelector("#folio-correction-original");
+  const folioCorrectionEffect = document.querySelector("#folio-correction-effect");
+  const folioCorrectionBalance = document.querySelector("#folio-correction-balance");
+  const folioCorrectionExpected = document.querySelector("#folio-correction-expected");
   const SYSTEM_STATUS_SUFFIX = "/system-status";
   const MAX_MINOR = BigInt("9223372036854775807");
   const THEMES = new Set([
@@ -3167,7 +3185,7 @@
       const exactKeys = [...query.keys()].every((key) => key === "tab" || key === "after")
         && query.getAll("tab").length <= 1 && query.getAll("after").length <= 1;
       const requestedTab = exactKeys ? query.get("tab") : "";
-      const tab = requestedTab === "charge" ? "charge" : "postings";
+      const tab = requestedTab === "charge" || requestedTab === "correction" ? requestedTab : "postings";
       const requestedAfter = exactKeys ? query.get("after") || "" : "";
       const after = /^[A-Za-z0-9_-]{1,512}$/.test(requestedAfter) ? requestedAfter : "";
       return { kind: "workspace", property: workspace[1], folioId: workspace[2], tab, after };
@@ -3177,7 +3195,7 @@
   }
 
   function canonicalFolioPath(property, folioId, tab = "postings", after = "") {
-    const query = new URLSearchParams({ tab: tab === "charge" ? "charge" : "postings" });
+    const query = new URLSearchParams({ tab: ["charge", "correction"].includes(tab) ? tab : "postings" });
     if (after) query.set("after", after);
     return `/p/${property}/folio/${folioId}?${query.toString()}`;
   }
@@ -3190,7 +3208,14 @@
     return folioChargeIsDirty(folioChargeForm.elements.amountMinor.value, folioChargeForm.elements.quantity.value, folioChargeConfirm.checked);
   }
 
+  function currentFolioCorrectionIsDirty() {
+    return folioCorrectionReason.value !== "" || folioCorrectionConfirm.checked;
+  }
+
   function confirmFolioExit() {
+    if (folioActiveTab === "correction" && currentFolioCorrectionIsDirty()) {
+      return confirm("Discard this unfinished posting correction?");
+    }
     return !currentFolioChargeIsDirty() || confirm("Discard this unfinished untaxed charge?");
   }
 
@@ -3235,6 +3260,12 @@
     folioChargeForm.reset();
     folioChargeAttemptKey = "";
     folioChargeDraft = "";
+    folioCorrectionForm.reset();
+    folioCorrectionFields.disabled = true;
+    folioCorrectionAttemptKey = "";
+    folioCorrectionDraft = "";
+    folioCorrectionSelection = null;
+    folioCorrectionReturnFocus = null;
     setFolioError();
   }
 
@@ -3278,20 +3309,32 @@
     const fragment = document.createDocumentFragment();
     const cards = document.createDocumentFragment();
     for (const row of bounded) {
-      const posting = `${row.kind}${row.reversalJournalId ? " · reversed" : ""} · ${row.txCode}`;
+      const lineage = row.reversesJournalId
+        ? `Corrects original charge journal ${row.reversesJournalId}`
+        : row.reversedByJournalId ? `Corrected by adjustment journal ${row.reversedByJournalId}` : "";
+      const posting = `${row.kind} · ${row.txCode}${lineage ? ` · ${lineage}` : ""}`;
       const description = `${row.description || "—"} · quantity ${exactFolioQuantity(row.quantity)}`;
       const amount = exactFolioMinor(row.amountMinor, "amount");
       const running = exactFolioMinor(row.runningBalanceMinor, "running balance");
       const tableRow = document.createElement("tr");
+      const postingCell = folioCell(posting);
       tableRow.append(
         folioCell(row.businessDate),
         folioCell(row.postedAt),
-        folioCell(posting),
+        postingCell,
         folioCell(description),
         folioCell(amount),
         folioCell(running),
       );
-      tableRow.title = row.reversalJournalId ? `Reversed by journal ${row.reversalJournalId}` : `${row.kind} · journal ${row.journalId}`;
+      tableRow.title = lineage || `${row.kind} · journal ${row.journalId}`;
+      if (row.correctionEligible === true) {
+        const action = document.createElement("button");
+        action.type = "button";
+        action.className = "quiet compact folio-correct-action";
+        action.textContent = "Correct posting";
+        action.dataset.journalId = row.journalId;
+        postingCell.append(document.createElement("br"), action);
+      }
       fragment.append(tableRow);
       const card = document.createElement("article");
       card.className = "folio-posting-card";
@@ -3303,6 +3346,14 @@
       folioCardField(list, "Signed minor amount", amount);
       folioCardField(list, "Running minor balance", running);
       card.append(list);
+      if (row.correctionEligible === true) {
+        const action = document.createElement("button");
+        action.type = "button";
+        action.className = "quiet folio-correct-action";
+        action.textContent = "Correct posting";
+        action.dataset.journalId = row.journalId;
+        card.append(action);
+      }
       cards.append(card);
     }
     folioStatementRows.replaceChildren();
@@ -3338,25 +3389,140 @@
       : availability.reason || "No currently governed untaxed charge is available.";
   }
 
+  function clearFolioCorrection({ restoreFocus = false } = {}) {
+    const target = folioCorrectionReturnFocus;
+    folioCorrectionForm.reset();
+    folioCorrectionFields.disabled = true;
+    folioCorrectionAttemptKey = "";
+    folioCorrectionDraft = "";
+    folioCorrectionSelection = null;
+    folioCorrectionCurrency.textContent = "—";
+    folioCorrectionOriginal.textContent = "—";
+    folioCorrectionEffect.textContent = "—";
+    folioCorrectionBalance.textContent = "—";
+    folioCorrectionExpected.textContent = "—";
+    syncFolioCorrectionConfirmation();
+    if (restoreFocus) {
+      if (target?.isConnected) target.focus();
+      else folioTabPostings.focus();
+    }
+    folioCorrectionReturnFocus = null;
+  }
+
+  function openFolioCorrection(journalId, trigger) {
+    if (!folioStatementData) return;
+    const row = folioStatementData.rows.find((candidate) =>
+      candidate.journalId === journalId && candidate.correctionEligible === true
+    );
+    if (!row) return;
+    folioCorrectionSelection = row;
+    folioCorrectionReturnFocus = trigger;
+    folioCorrectionFields.disabled = false;
+    const original = BigInt(exactFolioMinor(row.amountMinor, "original amount"));
+    const balance = BigInt(exactFolioMinor(folioStatementData.balanceMinor, "server balance"));
+    const effect = -original;
+    folioCorrectionCurrency.textContent = folioStatementData.folio.currency;
+    folioCorrectionOriginal.textContent = original.toString();
+    folioCorrectionEffect.textContent = effect.toString();
+    folioCorrectionBalance.textContent = balance.toString();
+    folioCorrectionExpected.textContent = `${(balance + effect).toString()} · preview subject to authoritative refresh`;
+    setFolioTab("correction", { focus: false });
+    folioCorrectionHeading.focus();
+  }
+
+  function folioCorrectionBody() {
+    return {
+      reversesJournalId: folioCorrectionSelection?.journalId || "",
+      reason: folioCorrectionReason.value,
+    };
+  }
+
+  function syncFolioCorrectionConfirmation() {
+    const validReason = folioCorrectionReason.value.length >= 1 &&
+      folioCorrectionReason.value.length <= 500 &&
+      folioCorrectionReason.value.trim() === folioCorrectionReason.value;
+    folioCorrectionSubmit.disabled = folioCorrectionFields.disabled ||
+      !folioCorrectionSelection || !validReason || !folioCorrectionConfirm.checked;
+  }
+
+  async function postFolioCorrection() {
+    if (!folioStatementData || !folioCorrectionSelection || folioCorrectionSubmit.disabled) return;
+    const generation = folioGeneration;
+    const property = propertySelect.value;
+    const identity = folioIdentity;
+    const folioId = folioStatementData.folio.id;
+    const body = folioCorrectionBody();
+    const draft = JSON.stringify(body);
+    if (draft !== folioCorrectionDraft) {
+      folioCorrectionDraft = draft;
+      folioCorrectionAttemptKey = crypto.randomUUID();
+    }
+    const attemptKey = folioCorrectionAttemptKey;
+    folioCorrectionFields.disabled = true;
+    folioCorrectionForm.setAttribute("aria-busy", "true");
+    formMessage(folioCorrectionForm, "Creating one immutable balanced adjustment…");
+    try {
+      const corrected = await request(`/api/v1/properties/${encodeURIComponent(property)}/folios/${encodeURIComponent(folioId)}/adjustments`, {
+        method: "POST",
+        headers: { "idempotency-key": attemptKey },
+        body: JSON.stringify(body),
+      });
+      if (!isCurrentFolioRequest(generation, property, identity, folioId)) return;
+      if (corrected.folioId !== folioId || corrected.reversesJournalId !== body.reversesJournalId) {
+        throw new Error("The server returned different correction lineage.");
+      }
+      const refreshed = await request(`/api/v1/properties/${encodeURIComponent(property)}/folios/${encodeURIComponent(folioId)}/statement?limit=50`);
+      if (!isCurrentFolioRequest(generation, property, identity, folioId)) return;
+      if (refreshed.folio.id !== folioId) throw new Error("The server returned a different folio.");
+      folioRouteCursor = "";
+      clearFolioCorrection();
+      folioActiveTab = "postings";
+      renderFolioStatement(refreshed);
+      history.pushState({ yellowSurface: "folio-workspace" }, "", canonicalFolioPath(property, folioId, "postings"));
+      formMessage(folioCorrectionForm, corrected.replayed
+        ? "The existing adjustment was confirmed and the authoritative statement refreshed."
+        : "Balanced adjustment created and the authoritative statement refreshed.");
+      folioBalance.focus();
+    } catch (error) {
+      if (!isCurrentFolioRequest(generation, property, identity, folioId)) return;
+      folioCorrectionFields.disabled = false;
+      const message = error instanceof Error ? error.message : "The correction could not be created";
+      formMessage(folioCorrectionForm, `${message}. Retry keeps the same idempotency key.`, true);
+      syncFolioCorrectionConfirmation();
+    } finally {
+      if (isCurrentFolioRequest(generation, property, identity, folioId)) {
+        folioCorrectionForm.setAttribute("aria-busy", "false");
+      }
+    }
+  }
+
   function setFolioTab(tab, { updateHistory = true, focus = true } = {}) {
-    const next = tab === "charge" ? "charge" : "postings";
-    if (next !== folioActiveTab && folioActiveTab === "charge" && currentFolioChargeIsDirty()) {
+    const next = ["charge", "correction"].includes(tab) ? tab : "postings";
+    if (next !== folioActiveTab && ["charge", "correction"].includes(folioActiveTab) &&
+        (currentFolioChargeIsDirty() || currentFolioCorrectionIsDirty())) {
       if (!confirmFolioExit()) return false;
-      folioChargeForm.reset();
-      folioChargeAttemptKey = "";
-      folioChargeDraft = "";
-      syncFolioChargeConfirmation();
+      if (folioActiveTab === "charge") {
+        folioChargeForm.reset();
+        folioChargeAttemptKey = "";
+        folioChargeDraft = "";
+        syncFolioChargeConfirmation();
+      } else {
+        clearFolioCorrection();
+      }
     }
     folioActiveTab = next;
     const postings = next === "postings";
+    const charge = next === "charge";
     folioPostingsPanel.hidden = !postings;
-    folioChargePanel.hidden = postings;
+    folioChargePanel.hidden = !charge;
+    folioCorrectionPanel.hidden = next !== "correction";
     folioTabPostings.setAttribute("aria-selected", String(postings));
-    folioTabCharge.setAttribute("aria-selected", String(!postings));
+    folioTabCharge.setAttribute("aria-selected", String(charge));
+    folioTabCorrection.setAttribute("aria-selected", String(next === "correction"));
     if (updateHistory && propertySelect.value && folioStatementData) {
       history.pushState({ yellowSurface: "folio-workspace" }, "", canonicalFolioPath(propertySelect.value, folioStatementData.folio.id, next, folioRouteCursor));
     }
-    if (focus) (postings ? folioTabPostings : folioTabCharge).focus();
+    if (focus) ({ postings: folioTabPostings, charge: folioTabCharge, correction: folioTabCorrection })[next].focus();
     return true;
   }
 
@@ -5280,14 +5446,26 @@
   });
   folioTabPostings.addEventListener("click", () => setFolioTab("postings"));
   folioTabCharge.addEventListener("click", () => setFolioTab("charge"));
-  for (const [tab, element] of [["postings", folioTabPostings], ["charge", folioTabCharge]]) {
+  folioTabCorrection.addEventListener("click", () => {
+    if (folioCorrectionSelection) setFolioTab("correction");
+  });
+  const folioTabs = [["postings", folioTabPostings], ["charge", folioTabCharge], ["correction", folioTabCorrection]];
+  for (const [tab, element] of folioTabs) {
     element.addEventListener("keydown", (event) => {
       if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return;
       event.preventDefault();
-      const next = event.key === "Home" || event.key === "ArrowLeft" ? "postings" : "charge";
-      if (next !== tab || event.key === "Home" || event.key === "End") setFolioTab(next);
+      const index = folioTabs.findIndex(([name]) => name === tab);
+      const next = event.key === "Home" ? "postings" : event.key === "End" ? "correction" :
+        folioTabs[(index + (event.key === "ArrowRight" ? 1 : -1) + folioTabs.length) % folioTabs.length][0];
+      if (next !== "correction" || folioCorrectionSelection) setFolioTab(next);
     });
   }
+  folioWorkspace.addEventListener("click", (event) => {
+    const action = event.target.closest?.(".folio-correct-action");
+    if (action instanceof HTMLButtonElement && action.dataset.journalId) {
+      openFolioCorrection(action.dataset.journalId, action);
+    }
+  });
   folioStatementRetry.addEventListener("click", () => {
     if (folioIdentity) void loadFolioWorkspace(folioIdentity, folioRouteCursor);
   });
@@ -5303,6 +5481,28 @@
   folioChargeForm.addEventListener("submit", (event) => {
     event.preventDefault();
     void postFolioCharge();
+  });
+  folioCorrectionForm.addEventListener("input", () => {
+    const draft = JSON.stringify(folioCorrectionBody());
+    if (folioCorrectionDraft && draft !== folioCorrectionDraft) {
+      folioCorrectionAttemptKey = "";
+      folioCorrectionDraft = "";
+    }
+    syncFolioCorrectionConfirmation();
+  });
+  folioCorrectionForm.addEventListener("submit", (event) => {
+    event.preventDefault();
+    void postFolioCorrection();
+  });
+  folioCorrectionCancel.addEventListener("click", () => {
+    if (currentFolioCorrectionIsDirty() && !confirmFolioExit()) return;
+    clearFolioCorrection({ restoreFocus: true });
+    setFolioTab("postings", { focus: false });
+  });
+  folioCorrectionPanel.addEventListener("keydown", (event) => {
+    if (event.key !== "Escape") return;
+    event.preventDefault();
+    folioCorrectionCancel.click();
   });
   refreshInventory.addEventListener("click", () => void loadInventory());
   refreshProjection.addEventListener("click", () => void loadProjectionStatus());

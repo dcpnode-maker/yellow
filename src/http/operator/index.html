@@ -675,6 +675,7 @@
             <div class="folio-workspace-tabs" role="tablist" aria-label="Folio workspace">
               <button class="quiet" id="folio-tab-postings" type="button" role="tab" aria-controls="folio-postings-panel" aria-selected="true">Postings</button>
               <button class="quiet" id="folio-tab-charge" type="button" role="tab" aria-controls="folio-charge-panel" aria-selected="false">Add charge</button>
+              <button class="quiet" id="folio-tab-correction" type="button" role="tab" aria-controls="folio-correction-panel" aria-selected="false">Correct posting</button>
             </div>
             <div class="folio-statement-loading" id="folio-statement-loading" hidden aria-hidden="true"><span></span><span></span><span></span></div>
             <section class="folio-statement-error" id="folio-statement-error" hidden role="alert"><strong>Folio statement could not be loaded</strong><p></p><button class="secondary" id="folio-statement-retry" type="button">Try again</button></section>
@@ -728,6 +729,30 @@
               </fieldset>
               <p class="form-message" role="status" aria-live="assertive"></p>
             </form>
+            </section>
+            <section id="folio-correction-panel" role="tabpanel" aria-labelledby="folio-tab-correction" hidden>
+              <form class="folio-charge-form folio-correction-form" id="folio-correction-form">
+                <fieldset id="folio-correction-fields" disabled>
+                  <legend id="folio-correction-heading" tabindex="-1">Correct an immutable posting</legend>
+                  <p class="field-note">This creates a new balanced adjustment. It never edits, deletes, refunds or replaces the original journal.</p>
+                  <div class="folio-correction-preview" aria-label="Authoritative correction preview">
+                    <span>Currency <strong id="folio-correction-currency">—</strong></span>
+                    <span>Original signed amount <strong id="folio-correction-original">—</strong></span>
+                    <span>Correction effect <strong id="folio-correction-effect">—</strong></span>
+                    <span>Current server balance <strong id="folio-correction-balance">—</strong></span>
+                    <span>Expected balance after effect <strong id="folio-correction-expected">—</strong></span>
+                  </div>
+                  <label for="folio-correction-reason">Correction reason
+                    <textarea id="folio-correction-reason" name="reason" required minlength="1" maxlength="500" rows="4" autocomplete="off"></textarea>
+                  </label>
+                  <label class="folio-charge-confirmation"><input id="folio-correction-confirm" type="checkbox"> I understand this creates a new immutable balanced adjustment and does not edit or delete the original.</label>
+                  <div class="folio-correction-actions">
+                    <button class="primary" id="folio-correction-submit" type="submit" disabled>Create balanced adjustment</button>
+                    <button class="quiet" id="folio-correction-cancel" type="button">Cancel correction</button>
+                  </div>
+                </fieldset>
+                <p class="form-message" role="status" aria-live="assertive"></p>
+              </form>
             </section>
             </div>
           </section>

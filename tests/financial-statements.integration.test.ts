@@ -156,10 +156,12 @@ dbDescribe("Order 105 fresh-PostgreSQL statement proof", () => {
     expect(result.lineCount).toBe(3);
     expect(result.rows).toEqual([
       { lineId: expect.any(String), journalId: J3, kind: "charge", businessDate: "2026-08-21",
-        postedAt: "2026-08-21T10:11:12.654321Z", reversalJournalId: null, txCode: "SROOM",
+        postedAt: "2026-08-21T10:11:12.654321Z", reversesJournalId: null, reversedByJournalId: null,
+        correctionEligible: false, correctionReason: "adjustment_not_authorized", txCode: "SROOM",
         description: "Visible third", quantity: "1.125", amountMinor: "7", runningBalanceMinor: "9007199254740990" },
       { lineId: expect.any(String), journalId: J2, kind: "adjustment", businessDate: "2026-08-20",
-        postedAt: "2026-08-20T10:11:12.123456Z", reversalJournalId: J1, txCode: "SROOM",
+        postedAt: "2026-08-20T10:11:12.123456Z", reversesJournalId: J1, reversedByJournalId: null,
+        correctionEligible: false, correctionReason: "adjustment_not_authorized", txCode: "SROOM",
         description: "Visible second", quantity: "2.500", amountMinor: "-10", runningBalanceMinor: "9007199254740983" },
     ]);
     expect(result.nextCursor).toBeString();

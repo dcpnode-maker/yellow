@@ -23,6 +23,7 @@ import { uuidV5 } from "./lib/uuid-v5";
 import { SEED_TENANT, TENANT_NAME, URL_NAMESPACE_UUID } from "./seed";
 import {
   REVIEW_APPROVER_EMAIL,
+  REVIEW_APPROVER_ROLE_NAME,
   REVIEW_EMAIL,
   REVIEW_ROLE_NAME,
 } from "./seed-review";
@@ -64,6 +65,7 @@ interface Identity {
   readonly operatorId: string;
   readonly approverId: string;
   readonly roleId: string;
+  readonly approverRoleId: string;
 }
 
 interface PropertySpec {
@@ -178,13 +180,16 @@ async function loadIdentity(tx: Tx): Promise<Identity> {
   }
   const operatorId = users.find(({ email }) => email === REVIEW_EMAIL)?.id;
   const approverId = users.find(({ email }) => email === REVIEW_APPROVER_EMAIL)?.id;
-  const roles = await tx<Array<{ id: string }>>`
-    SELECT id FROM role WHERE tenant_id=${SEED_TENANT.id}::uuid AND name=${REVIEW_ROLE_NAME}
+  const roles = await tx<Array<{ id: string; name: string }>>`
+    SELECT id, name FROM role WHERE tenant_id=${SEED_TENANT.id}::uuid
+      AND name IN (${REVIEW_ROLE_NAME}, ${REVIEW_APPROVER_ROLE_NAME})
   `;
-  if (!operatorId || !approverId || roles.length !== 1 || !roles[0]) {
+  const roleId = roles.find(({ name }) => name === REVIEW_ROLE_NAME)?.id;
+  const approverRoleId = roles.find(({ name }) => name === REVIEW_APPROVER_ROLE_NAME)?.id;
+  if (!operatorId || !approverId || !roleId || !approverRoleId || roles.length !== 2) {
     throw new Error("Canonical local-review identity or role is ambiguous");
   }
-  return { operatorId, approverId, roleId: roles[0].id };
+  return { operatorId, approverId, roleId, approverRoleId };
 }
 
 async function ensureProperty(tx: Tx, spec: PropertySpec, identity: Identity): Promise<void> {
@@ -228,6 +233,12 @@ async function ensureProperty(tx: Tx, spec: PropertySpec, identity: Identity): P
       ON CONFLICT (user_id, role_id, scope_node) DO NOTHING
     `;
   }
+  await tx`
+    INSERT INTO user_role (tenant_id, user_id, role_id, scope_node)
+    VALUES (${SEED_TENANT.id}::uuid, ${identity.approverId}::uuid,
+      ${identity.approverRoleId}::uuid, ${spec.propertyId}::uuid)
+    ON CONFLICT (user_id, role_id, scope_node) DO NOTHING
+  `;
 }
 
 async function ensureInventory(

@@ -1,6 +1,6 @@
 # Order 183 — Governed folio charge correction
 
-**Status:** READY — corrected by D-468/D-469 / Question167
+**Status:** PAUSED AT VERIFIED CHECKPOINT — founder reprioritized genuine UI skins first (D-471)
 **Phase:** 5 · financial operations and founder UAT
 **Branch:** `phase-5/folio-charge-correction`
 **Base:** `144753b` (independently approved current local through Order182)
@@ -26,7 +26,8 @@ No table, column, migration, alternate ledger or mutable balance is needed.
 
 - new `src/contexts/financials/corrections.ts` and export from its `index.ts`;
 - `migrations/0019_financial_reversal_authority.sql`, the derived expected schema,
-  exact migration-acceptance entry and runtime-DML authority proof;
+  exact migration-acceptance entry and runtime-DML authority proof, including one
+  bounded owner-mediated `lock_financial_business_days(uuid,uuid,date[])` capability;
 - `src/contexts/financials/statements.ts` only to expose unambiguous
   `reversesJournalId`, `reversedByJournalId` and server-derived correction eligibility;
 - `src/app.ts` and `src/http/operator.ts` for one exact property-scoped correction route;
@@ -38,7 +39,7 @@ No table, column, migration, alternate ledger or mutable balance is needed.
 - focused domain/HTTP/UI tests and directly affected existing statement/folio tests;
 - `docs/CONTRACTS.md`, this order, additive D-467, ledger and independent review.
 
-No table/column/view/function, account/route authoring, partial-line correction,
+No table/column/view or other function, account/route authoring, partial-line correction,
 transfer, additional folio window, payment/provider/token, settlement, cashier/day-close,
 deposit, trust, tax/fiscal/document, checkout, credential, public bind, second local,
 merge, push or production deployment is in scope.
@@ -50,7 +51,9 @@ merge, push or production deployment is in scope.
    reason, idempotency key and audit envelope. The amount is never accepted from the
    browser.
 2. Lock the folio/account financial rows, original journal and any reversal evidence
-   deterministically. The original must be a governed `charge` on the exact open folio,
+   deterministically. Use the bounded migration-0019 business-day lock capability for
+   the original and current dates; direct `business_day` UPDATE remains forbidden.
+   The original must be a governed `charge` on the exact open folio,
    same tenant/property/currency, with a complete balanced posting set. Reject a
    reversal-of-reversal, a second reversal, wrong property/folio and malformed reason
    generically.
@@ -101,7 +104,8 @@ merge, push or production deployment is in scope.
   mutation, the distinct authorized approver succeeds, and a body/header authority
   forgery cannot cross the verified-scope boundary;
 - migration 0019 grants only `journal.reverses` INSERT authority beyond the existing
-  catalogue and enforces one tenant-bound reversal per original at the database layer;
+  table-DML catalogue, enforces one tenant-bound reversal per original at the database
+  layer, and exposes only the exact tenant/property/date-bound day-lock capability;
 - statements report both lineage directions correctly across keyset pages; INR and CAD
   examples preserve currency and return the exact refreshed balance;
 - served operator workflow completes by keyboard and remains contained at mobile,

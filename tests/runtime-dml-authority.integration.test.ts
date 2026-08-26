@@ -23,7 +23,7 @@ const INSERT_COLUMNS = Object.freeze({
   fact_log: ["actor_id", "business_date", "entity_id", "entity_type", "fact_type", "payload", "supersedes", "tenant_id", "valid_from"],
   folio: ["account_id", "folio_no", "name", "reservation_id", "status", "tenant_id", "window_no"],
   hold: ["expires_at", "holder", "kind", "period", "property_node", "sellable_unit_id", "tenant_id"],
-  journal: ["business_date", "created_by", "currency", "description", "kind", "property_node", "source", "tenant_id"],
+  journal: ["business_date", "created_by", "currency", "description", "kind", "property_node", "reverses", "source", "tenant_id"],
   ooo_oos: ["kind", "period", "reason", "space_id", "tenant_id"],
   outbox: ["actor_id", "aggregate_id", "aggregate_type", "business_date", "causation_id", "correlation_id", "event_type", "event_version", "payload", "property_node", "tenant_id"],
   party: ["display_name", "kind", "legal_name", "tenant_id"],
@@ -255,7 +255,7 @@ databaseDescribe("Order 150 positive runtime DML authority", () => {
         JOIN pg_namespace n ON n.oid = p.pronamespace
        WHERE n.nspname = 'public'
          AND p.proname IN ('record_occupancy', 'release_occupancy', 'seal_business_day',
-           'lock_financial_rows',
+           'lock_financial_rows', 'lock_financial_business_days',
            'runtime_resolve_active_tenant', 'runtime_due_hold_scopes', 'runtime_consumer_begin',
            'runtime_consumer_read', 'runtime_consumer_mark', 'runtime_consumer_advance',
            'runtime_mark_outbox_published', 'runtime_prune_outbox', 'runtime_visible_extensions',
@@ -268,6 +268,8 @@ databaseDescribe("Order 150 positive runtime DML authority", () => {
     );
     expect(occupancyFunctions.every(({ app, runtime }) => app && !runtime)).toBe(true);
     expect(functions.find(({ signature }) => signature.startsWith("lock_financial_rows(")))
+      .toEqual(expect.objectContaining({ app: true, runtime: false }));
+    expect(functions.find(({ signature }) => signature.startsWith("lock_financial_business_days(")))
       .toEqual(expect.objectContaining({ app: true, runtime: false }));
     const runtimeFunctions = functions.filter(({ signature }) => signature.startsWith("runtime_"));
     expect(runtimeFunctions).toHaveLength(10);

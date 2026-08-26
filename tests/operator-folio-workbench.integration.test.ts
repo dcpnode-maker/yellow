@@ -16,11 +16,12 @@ const ACTOR = "00000000-0000-0000-0000-000000010502";
 const PROPERTY = "00000000-0000-0000-0000-000000010503";
 const FOLIO = "00000000-0000-0000-0000-000000010504";
 
-function operatorWithFinancials(statements: unknown, charges: unknown): OperatorHttpApi {
+function operatorWithFinancials(statements: unknown, charges: unknown, corrections?: unknown): OperatorHttpApi {
   return new OperatorHttpApi(
     {} as never, undefined, undefined, undefined, undefined, undefined, undefined,
     undefined, undefined, undefined, undefined, undefined, undefined, undefined,
     undefined, undefined, undefined, undefined, undefined, statements as never, charges as never,
+    undefined, undefined, undefined, corrections as never,
   );
 }
 
@@ -136,13 +137,68 @@ describe("Order 105 operator folio workbench", () => {
     expect(propertyChange).toContain("clearFolioState()");
   });
 
+  test("Order 183 P3: correction UI uses server eligibility, exact BigInt preview and immutable language", () => {
+    expect(html).toContain('id="folio-tab-correction"');
+    expect(html).toContain('id="folio-correction-reason" name="reason" required minlength="1" maxlength="500"');
+    expect(html).toContain("new immutable balanced adjustment and does not edit or delete the original");
+    const render = functionSlice("renderFolioRows", "renderFolioChargeOptions");
+    expect(render).toContain("row.correctionEligible === true");
+    expect(render).toContain("row.reversesJournalId");
+    expect(render).toContain("row.reversedByJournalId");
+    expect(render).not.toContain("reversalJournalId");
+    const open = functionSlice("openFolioCorrection", "folioCorrectionBody");
+    expect(open).toContain("BigInt(exactFolioMinor");
+    expect(open).toContain("const effect = -original");
+    expect(open).not.toMatch(/\bNumber\s*\(|parseInt\s*\(|parseFloat\s*\(|Math\.|\.toFixed\s*\(/);
+    const post = asyncFunctionSlice("postFolioCorrection", "function setFolioTab");
+    expect(post).toContain("/adjustments");
+    expect(post).toContain('headers: { "idempotency-key": attemptKey }');
+    expect(post.indexOf("/statement?limit=50")).toBeGreaterThan(post.indexOf('method: "POST"'));
+    expect(post).toContain("Retry keeps the same idempotency key.");
+  });
+
+  test("Order 183 P2: exact correction adapter derives all authority and rejects forged body fields", async () => {
+    let captured: Record<string, unknown> | null = null;
+    const operator = operatorWithFinancials({ async get() { throw new Error("must not run"); } },
+      { async postCharge() { throw new Error("must not run"); } }, {
+        async reverseCharge(_tx: Tx, input: Record<string, unknown>) {
+          captured = input;
+          return { journalId: "00000000-0000-0000-0000-000000018399", folioId: FOLIO,
+            reversesJournalId: "00000000-0000-0000-0000-000000018398", businessDate: "2026-08-26",
+            currency: "USD", amountMinor: "-100", replayed: false };
+        },
+      });
+    const request = new Request("http://yellow.test/", { method: "POST", headers: {
+      "idempotency-key": "order183-http-key",
+      "x-correlation-id": "00000000-0000-0000-0000-000000018397",
+      "x-post-seal-authorized": "true",
+    } });
+    const response = await operator.correctFolioCharge(financialContext(request,
+      ["financials.adjustments:write", "financials.adjustments:post-seal"]), PROPERTY, FOLIO,
+    { reversesJournalId: "00000000-0000-0000-0000-000000018398", reason: "Wrong room charge" });
+    expect(response.status).toBe(201);
+    expect(captured as unknown).toEqual({
+      tenantId: TENANT, folioId: FOLIO,
+      reversesJournalId: "00000000-0000-0000-0000-000000018398", reason: "Wrong room charge",
+      postSealAuthorized: true, idempotencyKey: "order183-http-key",
+      envelope: { actorId: ACTOR, tenantId: TENANT, propertyNode: PROPERTY,
+        requestId: "00000000-0000-0000-0000-000000018397", operation: "journal.posted" },
+    });
+    const bad = await operator.correctFolioCharge(financialContext(request,
+      ["financials.adjustments:write", "financials.adjustments:post-seal"]), PROPERTY, FOLIO,
+    { reversesJournalId: "00000000-0000-0000-0000-000000018398", reason: "Wrong room charge",
+      postSealAuthorized: true });
+    expect(bad.status).toBe(400);
+  });
+
   test("P2: read and write permissions remain separate before financial services", async () => {
     let statementCalls = 0;
     let chargeCalls = 0;
     const operator = operatorWithFinancials({
       async get(_tx: Tx, input: unknown) {
         statementCalls += 1;
-        expect(input).toEqual({ tenantId: TENANT, propertyNode: PROPERTY, reference: "FOL-105", limit: 100 });
+        expect(input).toEqual({ tenantId: TENANT, propertyNode: PROPERTY, reference: "FOL-105", limit: 100,
+          canCorrectCharge: false, canPostSealAdjustment: false });
         return {
           folio: { id: FOLIO, reference: "FOL-105", name: null, windowNo: 1, status: "open", currency: "USD", createdAt: "2026-08-24T00:00:00.000000Z" },
           balanceMinor: "0", lineCount: 0, rows: [], chargeOptions: [],

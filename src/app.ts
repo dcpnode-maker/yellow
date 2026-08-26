@@ -125,6 +125,11 @@ export function createApp(options: AppOptions = {}) {
           context, params.property, params.folioId, body,
         ))
       )
+      .post("/api/v1/properties/:property/folios/:folioId/adjustments", ({ request, params, body, tenantContext }) =>
+        withOperatorTenant(request, (context) => operator.correctFolioCharge(
+          context, params.property, params.folioId, body,
+        ))
+      )
       .post("/api/v1/properties/:property/availability:search", ({ request, params, body, tenantContext }) =>
         withOperatorTenant(request, (context) => operator.search(context, params.property, body))
       )

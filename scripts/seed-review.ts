@@ -30,11 +30,17 @@ export const REVIEW_DISPLAY_NAME = "Yellow Review Operator";
 export const REVIEW_APPROVER_EMAIL = "approver@yellow.local";
 export const REVIEW_APPROVER_DISPLAY_NAME = "Yellow Rate Approver";
 export const REVIEW_ROLE_NAME = "Local Availability Reviewer";
+export const REVIEW_APPROVER_ROLE_NAME = "Local Post-Seal Financial Approver";
+export const REVIEW_POST_SEAL_PERMISSION = Object.freeze({
+  code: "financials.adjustments:post-seal",
+  description: "Post immutable financial adjustments involving sealed business days",
+});
 export const REVIEW_PERMISSION = "inventory.availability:read";
 export const REVIEW_PERMISSIONS = Object.freeze([
   { code: "crm.parties:read", description: "Search tenant-scoped Party profiles" },
   { code: "crm.parties:write", description: "Create tenant-scoped Party profiles" },
   { code: "financials.charges:write", description: "Post governed charges to property folios" },
+  { code: "financials.adjustments:write", description: "Create governed immutable folio adjustments" },
   { code: "financials.folios:open", description: "Open reservation primary folios" },
   { code: "financials.folios:read", description: "Read property folio statements" },
   { code: REVIEW_PERMISSION, description: "Read tenant-scoped truth availability" },
@@ -65,6 +71,7 @@ export const REVIEW_PERMISSIONS = Object.freeze([
 const REVIEW_USER_NAME = `${TENANT_NAME}/review-user/${REVIEW_EMAIL}`;
 const REVIEW_APPROVER_USER_NAME = `${TENANT_NAME}/review-user/${REVIEW_APPROVER_EMAIL}`;
 const REVIEW_ROLE_NAME_UUID = `${TENANT_NAME}/review-role/availability`;
+const REVIEW_APPROVER_ROLE_NAME_UUID = `${TENANT_NAME}/review-role/post-seal-financial`;
 const REVIEW_FOLIO_SERIES_UUID = `${TENANT_NAME}/review-financials/folio-series`;
 const REVIEW_REVENUE_ACCOUNT_UUID = `${TENANT_NAME}/review-financials/room-revenue`;
 
@@ -237,6 +244,7 @@ async function canonicalIds(): Promise<{
   userId: string;
   approverUserId: string;
   roleId: string;
+  approverRoleId: string;
   folioSeriesId: string;
   revenueAccountId: string;
 }> {
@@ -249,6 +257,7 @@ async function canonicalIds(): Promise<{
     userId: await uuidV5(SEED_TENANT.id, REVIEW_USER_NAME),
     approverUserId: await uuidV5(SEED_TENANT.id, REVIEW_APPROVER_USER_NAME),
     roleId: await uuidV5(SEED_TENANT.id, REVIEW_ROLE_NAME_UUID),
+    approverRoleId: await uuidV5(SEED_TENANT.id, REVIEW_APPROVER_ROLE_NAME_UUID),
     folioSeriesId: await uuidV5(SEED_TENANT.id, REVIEW_FOLIO_SERIES_UUID),
     revenueAccountId: await uuidV5(SEED_TENANT.id, REVIEW_REVENUE_ACCOUNT_UUID),
   };
@@ -297,6 +306,7 @@ async function provisionIdentity(
   userId: string,
   approverUserId: string,
   roleId: string,
+  approverRoleId: string,
 ): Promise<void> {
   const base = await connection<Array<{ tenant_ok: boolean; property_ok: boolean }>>`
     SELECT
@@ -327,6 +337,15 @@ async function provisionIdentity(
     } else {
       exact(permissions[0], permission, `Review permission ${permission.code}`);
     }
+  }
+  const postSealPermissions = await connection<Array<{ code: string; description: string }>>`
+    SELECT code, description FROM permission WHERE code = ${REVIEW_POST_SEAL_PERMISSION.code}
+  `;
+  if (postSealPermissions.length === 0) {
+    await connection`INSERT INTO permission (code, description)
+      VALUES (${REVIEW_POST_SEAL_PERMISSION.code}, ${REVIEW_POST_SEAL_PERMISSION.description})`;
+  } else {
+    exact(postSealPermissions[0], REVIEW_POST_SEAL_PERMISSION, "Post-seal review permission");
   }
 
   const roles = await connection<RoleRow[]>`
@@ -359,6 +378,25 @@ async function provisionIdentity(
       throw new Error(`Review role permission ${permission.code} is not canonical`);
     }
   }
+  const approverRoles = await connection<RoleRow[]>`
+    SELECT id, tenant_id, name FROM role
+    WHERE id = ${approverRoleId}::uuid
+       OR (tenant_id = ${SEED_TENANT.id}::uuid AND name = ${REVIEW_APPROVER_ROLE_NAME})
+    ORDER BY id
+  `;
+  if (approverRoles.length === 0) {
+    await connection`INSERT INTO role (id, tenant_id, name)
+      VALUES (${approverRoleId}::uuid, ${SEED_TENANT.id}::uuid, ${REVIEW_APPROVER_ROLE_NAME})`;
+  } else {
+    exact(approverRoles[0], { id: approverRoleId, tenant_id: SEED_TENANT.id,
+      name: REVIEW_APPROVER_ROLE_NAME }, "Post-seal review role");
+    if (approverRoles.length !== 1) throw new Error("Post-seal review role is ambiguous");
+  }
+  await connection`
+    INSERT INTO role_permission (role_id, permission_code)
+    VALUES (${approverRoleId}::uuid, ${REVIEW_POST_SEAL_PERMISSION.code})
+    ON CONFLICT (role_id, permission_code) DO NOTHING
+  `;
 
   const users = Object.freeze([
     Object.freeze({ id: userId, email: REVIEW_EMAIL, displayName: REVIEW_DISPLAY_NAME, label: "Review user", password }),
@@ -382,6 +420,12 @@ async function provisionIdentity(
       if (grants.length !== 1) throw new Error(`${user.label} role grant is not canonical`);
     }
   }
+  await connection`
+    INSERT INTO user_role (tenant_id, user_id, role_id, scope_node)
+    VALUES (${SEED_TENANT.id}::uuid, ${approverUserId}::uuid,
+      ${approverRoleId}::uuid, ${SEED_PROPERTY.id}::uuid)
+    ON CONFLICT (user_id, role_id, scope_node) DO NOTHING
+  `;
 }
 
 async function provisionReviewFinancials(
@@ -908,14 +952,14 @@ export async function runReviewSeed(options: ReviewSeedOptions): Promise<ReviewS
     throw new Error("approverPassword must be distinct from password");
   }
   const logger = options.logger ?? console.log;
-  const { userId, approverUserId, roleId, folioSeriesId, revenueAccountId } = await canonicalIds();
+  const { userId, approverUserId, roleId, approverRoleId, folioSeriesId, revenueAccountId } = await canonicalIds();
   const identityPool = new SQL(options.databaseUrl, { max: 2 });
   const eventPool = new SQL(options.databaseUrl, { max: 4, prepare: false });
   const database = Database.connect(options.databaseUrl, { maxConnections: 6 });
 
   try {
     await withIdentityTransaction(identityPool, async (tx) => {
-      await provisionIdentity(tx, options.password, approverPassword, userId, approverUserId, roleId);
+      await provisionIdentity(tx, options.password, approverPassword, userId, approverUserId, roleId, approverRoleId);
       await provisionReviewFinancials(tx, folioSeriesId, revenueAccountId);
     });
     const events = new PostgresEventBus(eventPool);

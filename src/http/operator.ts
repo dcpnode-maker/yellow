@@ -8,6 +8,11 @@ import {
   type PartyRole,
 } from "../contexts/crm";
 import {
+  ChargeCorrectionAuthorizationError,
+  ChargeCorrectionConflictError,
+  ChargeCorrectionNotFoundError,
+  ChargeCorrectionService,
+  ChargeCorrectionValidationError,
   ChargeConflictError,
   ChargeNotFoundError,
   ChargeService,
@@ -149,6 +154,8 @@ const PARTY_WRITE_SCOPE = "crm.parties:write";
 const FOLIO_READ_SCOPE = "financials.folios:read";
 const FOLIO_OPEN_SCOPE = "financials.folios:open";
 const CHARGE_WRITE_SCOPE = "financials.charges:write";
+const ADJUSTMENT_WRITE_SCOPE = "financials.adjustments:write";
+const ADJUSTMENT_POST_SEAL_SCOPE = "financials.adjustments:post-seal";
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 const ISO_INSTANT = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})(?::(\d{2})(?:\.(\d{1,3}))?)?(Z|([+-])(\d{2}):(\d{2}))$/;
 const LOCAL_DATE = /^(\d{4})-(\d{2})-(\d{2})$/;
@@ -191,6 +198,12 @@ interface ChargeDraft {
   readonly idempotencyKey: string;
 }
 
+interface CorrectionDraft {
+  readonly reversesJournalId: string;
+  readonly reason: string;
+  readonly idempotencyKey: string;
+}
+
 function parseCharge(request: Request, body: unknown): ChargeDraft | null {
   if (!isObject(body) || !exactKeys(body, ["txCode", "amountMinor"], ["quantity"]) ||
       typeof body.txCode !== "string" || !CHARGE_TX_CODE.test(body.txCode) ||
@@ -205,6 +218,20 @@ function parseCharge(request: Request, body: unknown): ChargeDraft | null {
     txCode: body.txCode,
     amountMinor: body.amountMinor,
     ...(body.quantity === undefined ? {} : { quantity: body.quantity }),
+    idempotencyKey,
+  });
+}
+
+function parseCorrection(request: Request, body: unknown): CorrectionDraft | null {
+  if (!isObject(body) || !exactKeys(body, ["reversesJournalId", "reason"]) ||
+      typeof body.reversesJournalId !== "string" || !UUID.test(body.reversesJournalId) ||
+      typeof body.reason !== "string" || body.reason.length < 1 || body.reason.length > 500 ||
+      body.reason.trim() !== body.reason || /[\u0000-\u001f\u007f]/.test(body.reason)) return null;
+  const idempotencyKey = request.headers.get("idempotency-key");
+  if (!idempotencyKey || !IDEMPOTENCY_KEY.test(idempotencyKey)) return null;
+  return Object.freeze({
+    reversesJournalId: body.reversesJournalId,
+    reason: body.reason,
     idempotencyKey,
   });
 }
@@ -871,6 +898,7 @@ type ReservationDetailOperations = Pick<ReservationDetailService, "findById">;
 type PartyOperations = Pick<PartyProfileService, "search" | "create">;
 type FolioStatementOperations = Pick<FolioStatementService, "get">;
 type ChargeOperations = Pick<ChargeService, "postCharge">;
+type ChargeCorrectionOperations = Pick<ChargeCorrectionService, "reverseCharge">;
 type FolioOperations = Pick<FolioService, "openPrimary">;
 
 const MAX_MONEY = 9_223_372_036_854_775_807n;
@@ -1256,6 +1284,7 @@ export class OperatorHttpApi {
   readonly #parties?: PartyOperations;
   readonly #folioStatements?: FolioStatementOperations;
   readonly #charges?: ChargeOperations;
+  readonly #chargeCorrections?: ChargeCorrectionOperations;
   readonly #folios?: FolioOperations;
 
   constructor(
@@ -1283,6 +1312,7 @@ export class OperatorHttpApi {
     reservationBoard?: ReservationBoardOperations,
     reservationDetail?: ReservationDetailOperations,
     folios?: FolioOperations,
+    chargeCorrections?: ChargeCorrectionOperations,
   ) {
     this.#login = login;
     this.#availability = availability;
@@ -1308,6 +1338,7 @@ export class OperatorHttpApi {
     this.#reservationBoard = reservationBoard;
     this.#reservationDetail = reservationDetail;
     this.#folios = folios;
+    this.#chargeCorrections = chargeCorrections;
   }
 
   unavailable(request: Request): Response {
@@ -1320,11 +1351,11 @@ export class OperatorHttpApi {
 
   failure(request: Request, error: unknown): Response {
     if (error instanceof FolioValidationError || error instanceof FolioStatementValidationError ||
-        error instanceof ChargeValidationError) {
+        error instanceof ChargeValidationError || error instanceof ChargeCorrectionValidationError) {
       return apiError(request, 400, "request/invalid", "Invalid request", "Financial input is invalid");
     }
     if (error instanceof FolioNotFoundError || error instanceof FolioStatementNotFoundError ||
-        error instanceof ChargeNotFoundError) {
+        error instanceof ChargeNotFoundError || error instanceof ChargeCorrectionNotFoundError) {
       return apiError(request, 404, "financials/not_found", "Not found", "The requested folio or charge configuration was not found");
     }
     if (error instanceof FolioConflictError) {
@@ -1332,6 +1363,12 @@ export class OperatorHttpApi {
     }
     if (error instanceof ChargeConflictError) {
       return apiError(request, 409, "financials/conflict", "Conflict", "The charge conflicts with current financial state");
+    }
+    if (error instanceof ChargeCorrectionConflictError) {
+      return apiError(request, 409, "financials/conflict", "Conflict", "The correction conflicts with current financial state");
+    }
+    if (error instanceof ChargeCorrectionAuthorizationError) {
+      return apiError(request, 403, "auth/scope_missing", "Forbidden", "Financial adjustment access is not granted");
     }
     if (error instanceof PartyDuplicateReviewRequiredError) {
       return apiError(request, 409, "profiles/duplicate_review_required", "Duplicate review required",
@@ -1506,11 +1543,17 @@ export class OperatorHttpApi {
       return apiError(context.request, 400, "request/invalid", "Invalid request", "Folio statement query is invalid");
     }
     if (!this.#folioStatements) return this.unavailable(context.request);
+    const adjustmentWriteGranted = hasScope(context, ADJUSTMENT_WRITE_SCOPE) &&
+      (await listGrantedProperties(context, ADJUSTMENT_WRITE_SCOPE)).some(({ id }) => id === propertyNode);
+    const postSealGranted = adjustmentWriteGranted && hasScope(context, ADJUSTMENT_POST_SEAL_SCOPE) &&
+      (await listGrantedProperties(context, ADJUSTMENT_POST_SEAL_SCOPE)).some(({ id }) => id === propertyNode);
     const statement = await this.#folioStatements.get(context.tx, {
       tenantId: context.tenantId,
       propertyNode,
       reference,
       ...query,
+      canCorrectCharge: adjustmentWriteGranted,
+      canPostSealAdjustment: postSealGranted,
     });
     return apiResponse(context.request, canonicalJson(jsonValue(statement)));
   }
@@ -1591,6 +1634,51 @@ export class OperatorHttpApi {
       txCode: input.txCode,
       amountMinor: input.amountMinor,
       ...(input.quantity === undefined ? {} : { quantity: input.quantity }),
+      idempotencyKey: input.idempotencyKey,
+      envelope: createAuditEnvelope({
+        actorId: context.identity.actorId,
+        tenantId: context.tenantId,
+        propertyNode,
+        requestId,
+        operation: "journal.posted",
+      }),
+    });
+    return apiResponse(context.request, canonicalJson(jsonValue(result)), 201, {
+      "idempotency-replayed": String(result.replayed),
+      "x-correlation-id": requestId,
+    });
+  }
+
+  async correctFolioCharge(
+    context: TenantRequestContext,
+    propertyNode: string,
+    folioId: string,
+    body: unknown,
+  ): Promise<Response> {
+    if (!hasScope(context, ADJUSTMENT_WRITE_SCOPE)) {
+      return apiError(context.request, 403, "auth/scope_missing", "Forbidden", "Financial adjustment access is not granted");
+    }
+    if (!UUID.test(propertyNode) || !UUID.test(folioId)) {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Property or folio identifier is invalid");
+    }
+    const grants = await listGrantedProperties(context, ADJUSTMENT_WRITE_SCOPE);
+    if (!grants.some(({ id }) => id === propertyNode)) {
+      return apiError(context.request, 403, "auth/property_forbidden", "Forbidden", "Property access is not granted");
+    }
+    const input = parseCorrection(context.request, body);
+    if (!input) {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Folio correction input is invalid");
+    }
+    if (!this.#chargeCorrections) return this.unavailable(context.request);
+    const postSealAuthorized = hasScope(context, ADJUSTMENT_POST_SEAL_SCOPE) &&
+      (await listGrantedProperties(context, ADJUSTMENT_POST_SEAL_SCOPE)).some(({ id }) => id === propertyNode);
+    const requestId = correlationId(context.request);
+    const result = await this.#chargeCorrections.reverseCharge(context.tx, {
+      tenantId: context.tenantId,
+      folioId,
+      reversesJournalId: input.reversesJournalId,
+      reason: input.reason,
+      postSealAuthorized,
       idempotencyKey: input.idempotencyKey,
       envelope: createAuditEnvelope({
         actorId: context.identity.actorId,
