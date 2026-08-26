@@ -312,3 +312,62 @@ substituting another control surface after discovery failure. No credential was 
 or entered and no browser result is claimed. The harness was stopped; `:3188` is
 unbound and the original `:3000`/`:5442` listeners remain. Static/database evidence
 for `0096ac4` remains green, but authenticated P7 and approval remain pending.
+
+## Fresh authenticated P7 approval — repaired candidate
+
+**Conclusion:** APPROVED
+
+**Exact product candidate:** `0096ac4eff2944af68b033700cf5ef227f6ce971`
+
+A fresh independent non-implementing OpenAI Codex Tier-3 reviewer used the founder's
+action-time authorization to enter the existing protected review credential only into
+the loopback `127.0.0.1:3188` login. The credential was never printed, persisted,
+copied to governance evidence or sent off-host. The candidate ran as one transient
+direct-Bun harness against the disposable/current isolated database on `:5442`; exact
+health was HTTP 200, the approved app on `:3000` remained HTTP 200 and untouched, and
+`:3188` was stopped and unbound after review. Canonical review identities/grants were
+refreshed only in the disposable database after its prior seed rejected login.
+
+The reviewer personally executed the four repaired browser journeys. Enter opened
+the inline New folio window task exactly once; server-backed creation of `Business
+Review` succeeded, selected the new `HAR-FOL-13` sibling, reported two exact windows
+and did not issue or surface an `undefined` reservation route. At Android 375px,
+expanded `Today`, `Folios` and `Rates` measured respectively 48x48,
+49.68x49.68 and 48x48 CSS pixels. Switching Harbourlight to Riverstone cleared the
+entire prior presentation before a forbidden `HAR-FOL-1` read; the result was the
+generic not-found response with `Folio workspace`, em-dash totals/currency, zero
+windows and no Harbourlight reference, CAD value or previous lines. On eligible
+`RIV-FOL-1`, Enter and Space each exposed exactly one `Correct a wrong charge` form;
+the existing original remained untouched because no correction was submitted.
+
+The settled five-appearance x three-detail x four-width browser matrix passed 60/60
+at 375/768/1024/1440 with zero document/root overflow. Android 375 stayed at a 48px
+minimum width and at least the 44px cross-platform minimum height in all three detail
+modes. Page scale 200% produced visual scale 2 and zero overflow. Reduced motion had
+zero active animations and zero transitions longer than the immediate fallback.
+Forced colours had zero box shadows, zero backdrop filters and zero overflow. A dirty
+new-window draft retained its exact value, deep route and focused name control while
+switching Apple to Glass and Simple to Advanced. The final warning/error console was
+empty. Two browser-control session resets occurred during optional continuation; a
+fresh authenticated tab resumed from server truth and completed the remaining
+correction and console proof without cached evidence.
+
+Reviewer-executed repository proof passed the focused routing/theme/workbench set
+32/32 with 474 assertions plus five intentionally database-gated skips, and the
+correctly role-separated PostgreSQL set passed 34/34 with 198 assertions across
+migration 0020, statements, additional-window concurrency, immutable balanced
+routing, hostile boundaries and rollback. The standing suite passed 263/263 with
+3,373 assertions plus 502 intentional database skips; TypeScript, 68 import
+boundaries, 23-package licence policy, audit and diff checks were green. An initial
+reviewer harness invocation incorrectly supplied the deployment URL to the transfer
+runtime and reproduced the capability's expected `42501`; rerunning with the exact
+runtime principal passed 34/34. The final `setup.ps1 -DbOnly` wrapper hit the inherited
+Windows readiness false-negative at line 158 even while Docker reported the exact
+`:5442` container healthy and `pg_isready` reported accepting connections; it changed
+no product result and the earlier reviewer-executed exact-candidate referee remains
+11/11.
+
+No product file was edited by this reviewer. Exact candidate `0096ac4` is approved for
+the bounded Order188 local-promotion/integration decision. This does not itself
+replace `:3000`, merge, push, deploy production, issue invoices, or claim Phase-wide
+completion.
