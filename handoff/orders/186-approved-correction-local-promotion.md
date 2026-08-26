@@ -1,6 +1,6 @@
 # Order 186 — Approved correction and four-skin local promotion
 
-**Status:** READY — D-482
+**Status:** IN PROGRESS — D-483
 **Phase:** 5 · founder human testing
 **Branch:** `phase-5/folio-charge-correction-resumed`
 **Base:** `4c3b202` (independently approved Order183 governance over approved Order185)
@@ -47,9 +47,11 @@ merge, push or production deployment is in scope.
    runner; exact replay is a no-op. Run schema drift, database acceptance and fresh
    referee 11/11 before starting the candidate. Any failure restarts the retained old
    app; the backup and persistent volumes remain untouched.
-5. Rerun only the approved canonical and scenario review seeds with the protected
-   authority. Existing credentials, three properties, 2,192 scenario stays, 256 live
-   claims and 24 seeded charge journals remain exact; permission additions are exact.
+5. Rerun the approved canonical review seed with protected authority. Run the scenario
+   seeder's separately committed authority phase to install the exact approver-role
+   grants. If later founder CRUD makes the scenario replay non-canonical, its data phase
+   must fail closed; preserve that founder state and prove no scenario row was rewritten
+   or regenerated. Credentials remain unchanged and permission additions are exact.
 6. Start exactly one candidate app at loopback3000 over the same PostgreSQL and Valkey.
    Port3002 stays unbound. Prove health, login, three-property switcher and exact served
    four-theme assets.
