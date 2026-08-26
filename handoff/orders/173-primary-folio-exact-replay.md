@@ -1,6 +1,6 @@
 # Order 173 — Primary-folio exact replay correction
 
-**Status:** READY
+**Status:** BUILT-UNREVIEWED
 **Phase:** 5 · Financials
 **Branch:** `phase-5/primary-folio-exact-replay`
 **Base:** `db0e71d15b8961b9e0a1faf94a89481440dee364`
@@ -48,6 +48,20 @@ edit protected tests.
 
 ## Definition of done
 
-- [ ] P0 reproduces the reviewer finding on exact Base.
-- [ ] Focused P1–P3 pass with byte-level status/body/header assertions.
+- [x] P0 reproduces the reviewer finding on exact Base.
+- [x] Focused P1–P3 pass with byte-level status/body/header assertions.
 - [ ] Order171 immutable candidate is rebuilt and independently passes P1–P6.
+
+## Builder evidence
+
+Product commit `5f0e72ca52a13b959b1ccad7a36e03b4c52a7e03` preserves the
+original canonical response body and uses only the existing replay header for transport
+metadata. Exact-Base P0 failed solely on `replayed:false` versus `replayed:true`.
+Candidate focused proof passed 6/6 with 117 assertions; a fresh unprepared-runtime
+PostgreSQL founder journey passed 1/1 with 210 assertions, including twenty exact
+retries, twenty new-key existing-folio opens, changed-actor 409 and one account/window/
+number/fact/outbox creation effect. Standing tests passed 211/0 with 2,583 assertions;
+typecheck, 66-file boundaries, licence, audit, schema drift and pristine referee 11/11
+also passed. The inherited Windows `/proc/1/comm` readiness false negative occurred
+after both isolated services were healthy, so equivalent migration/journey/schema/
+referee commands were executed directly. Independent P1–P6 remains required.
