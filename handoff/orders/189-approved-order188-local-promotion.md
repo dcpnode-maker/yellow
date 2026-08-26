@@ -1,6 +1,6 @@
 # Order 189 — Approved Order188 local promotion
 
-**Status:** READY — D-496
+**Status:** BUILT-UNREVIEWED — D-497
 **Phase:** 5 · founder human testing
 **Branch:** `phase-5/folio-charge-correction-resumed`
 **Base:** `5c96310` (independent Tier-3 approval over exact product `0096ac4`)
@@ -47,8 +47,40 @@ payment, settlement, tax/fiscal/document issue, merge, push or production deploy
 
 ## Definition of done
 
-- [ ] Backup readable and rollback image retained.
-- [ ] Migration 0020, replay, schema and referee are green.
-- [ ] Sole loopback 3000 serves the exact approved Order188 product.
-- [ ] Authenticated five-theme and financial smoke proof is green.
+- [x] Backup readable and rollback image retained.
+- [x] Migration 0020, replay, schema and referee are green.
+- [x] Sole loopback 3000 serves the exact approved Order188 product.
+- [x] Authenticated five-theme and financial smoke proof is green.
 - [ ] Independent operation review approves the local promotion.
+
+## Operator evidence — D-497
+
+- Exact approved runtime image `sha256:5a50503e89c44d11bd313359ca74b40ff427354790b6b2a7c0b746120777906b`
+  carries `yellow.git=0096ac4eff2944af68b033700cf5ef227f6ce971` and `yellow.order=188`.
+  Exact prior image `sha256:d778b9b1515c5b56484197032487c1da23a57573a4aba1c2d11e9aff79af4ab2`
+  is retained as `yellow-order186-rollback:d778b9b15`.
+- Owner-only custom backup `D:\Yellow\backups\order189\yellow-order189-20260827-040006.dump`
+  is 3,292,734 bytes, SHA-256
+  `8a9a660664a8f8b66de160e2bcc434a67d44297cf71a136caab323164d04c65d`,
+  and passed PostgreSQL catalogue parsing before persistent mutation.
+- Persistent migration 0020 applied once and exact replay reported zero applied;
+  schema drift is exact. The first direct referee attempt was correctly rejected
+  because the destructive test fixture was absent from the populated founder database.
+  A fresh disposable same-service database then ran migrations 1–20, loaded the exact
+  invariant fixture and passed 11/11; it was removed immediately.
+- The canonical review seed replayed exactly. The scenario seeder committed only its
+  approved authority phase and then failed closed on the known founder-modified
+  Riverstone 2024-11-24 reservation; no scenario data transaction committed. Exact
+  operator/approver permissions were read back across all three granted properties.
+- The sole healthy app is the exact candidate on `127.0.0.1:3000`; PostgreSQL and
+  Valkey are preserved on loopback 5643/6590 and port 3002 is unbound. The prior signing
+  secret was reused only in process memory; credential files and values were unchanged.
+- Protected operator authentication returned exactly three properties. Local UAT
+  appended one second folio window, two balanced USD charges, one balanced immutable
+  transfer of the 101-minor-unit group and one exact balanced correction of the separate
+  103-minor-unit charge. All four journals balance to zero, the correction has zero
+  mismatched contra lines, source/destination balances are 12,500/101, and `app_role`
+  retains no journal or posting-line update/delete privilege.
+- Real in-app Browser at 375x812 resolved Apple, Android, Windows95/98, Glass and Neo to
+  five distinct computed surface/radius/filter/background systems with zero root
+  overflow and zero console warnings/errors; the temporary viewport and tab were reset.
