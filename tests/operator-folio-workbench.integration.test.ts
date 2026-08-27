@@ -66,6 +66,40 @@ describe("Order 105 operator folio workbench", () => {
     expect(css).toContain("prefers-reduced-motion: reduce");
   });
 
+  test("Order193 P5: startup tablist exists and native login stays disabled until boot completes", () => {
+    expect(html).toContain('id="folio-workspace-tabs" role="tablist" aria-label="Folio workspace"');
+    expect(script).toContain('const tabs = [...$("#folio-workspace-tabs").children]');
+    expect(html).toContain('<button class="primary" type="submit" disabled>Enter workbench</button>');
+    const listener = script.indexOf('loginForm.addEventListener("submit"');
+    const boot = script.indexOf("setView(initialView, false)");
+    const enabled = script.indexOf('loginForm.querySelector("button[type=submit]").disabled = false');
+    expect(listener).toBeGreaterThanOrEqual(0);
+    expect(boot).toBeGreaterThan(listener);
+    expect(enabled).toBeGreaterThan(boot);
+  });
+
+  test("Order193 P5: clean folio exit never prompts while every dirty family does", () => {
+    const source = functionSlice("confirmFolioExit", "folioRefreshDecision");
+    const run = Function("state", `
+      const prompts=[];
+      const confirm=message=>(prompts.push(message),true);
+      const currentFolioCorrectionIsDirty=()=>state.correction===true;
+      const currentFolioChargeIsDirty=()=>state.charge===true;
+      const currentFolioWindowIsDirty=()=>state.window===true;
+      const currentFolioOrganizeIsDirty=()=>state.organize===true;
+      const d=state.deposit?{d:()=>true}:undefined;
+      const currentFolioDraftIsDirty=()=>currentFolioChargeIsDirty()||d?.d()||currentFolioCorrectionIsDirty()||currentFolioWindowIsDirty()||currentFolioOrganizeIsDirty();
+      ${source}
+      return {allowed:confirmFolioExit(),prompts};
+    `) as (state: Record<string, boolean>) => { allowed: boolean; prompts: string[] };
+    expect(run({})).toEqual({ allowed: true, prompts: [] });
+    for (const dirty of ["correction", "charge", "deposit", "window", "organize"]) {
+      const result = run({ [dirty]: true });
+      expect(result.allowed).toBe(true);
+      expect(result.prompts).toHaveLength(1);
+    }
+  });
+
   test("P3: browser renders exact server strings and exposes no ledger authority", () => {
     const folioSurface = script.slice(
       script.indexOf("  function isCurrentFolioRequest("),

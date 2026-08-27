@@ -75,7 +75,7 @@
 <label>Password
 <input name="password" type="password" autocomplete="current-password" required maxlength="1024">
 </label>
-<button class="primary" type="submit">Enter workbench</button>
+<button class="primary" type="submit" disabled>Enter workbench</button>
 <p class="form-message" id="login-message" role="status" aria-live="polite"></p>
 </form>
 </section>
@@ -671,7 +671,7 @@
 </form>
 <button class="quiet" id="folio-window-new" type="button">New folio window</button>
 </div>
-<div class="folio-workspace-tabs" role="tablist" aria-label="Folio workspace">
+<div class="folio-workspace-tabs" id="folio-workspace-tabs" role="tablist" aria-label="Folio workspace">
 <button class="quiet" id="folio-tab-postings" type="button" role="tab" aria-controls="folio-postings-panel" aria-selected="true">Statement</button>
 <button class="quiet" id="folio-tab-charge" type="button" role="tab" aria-controls="folio-charge-panel" aria-selected="false">Add charge</button>
 <button class="quiet" id="folio-tab-deposit" type="button" role="tab" aria-controls="folio-deposit-panel" aria-selected="false">Deposits</button>

@@ -409,7 +409,7 @@
  const folioWindowNew = $("#folio-window-new");
  const folioWindowNewForm = $("#folio-window-new-form");
  const folioWindowNewCancel = $("#folio-window-new-cancel");
- const tabs = [...$("#folio-workspace-tabs").children].map((tab) => [tab.id.slice(10), tab]);
+ const tabs = [...$("#folio-workspace-tabs").children].map(t=>[t.id.slice(10),t]);
  const folioOrganizeForm = $("#folio-organize-form");
  const folioOrganizeFields = $("#folio-organize-fields");
  const folioOrganizeGroups = $("#folio-organize-groups");
@@ -3039,10 +3039,10 @@
   const query = new URLSearchParams(search);
   const exactKeys = [...query.keys()].every((key) => key === "tab" || key === "after")
   && query.getAll("tab").length <= 1 && query.getAll("after").length <= 1;
-  const requestedTab = exactKeys ? query.get("tab") : "";
-  const tab = requestedTab === "charge" || requestedTab === "deposit" || requestedTab === "organize" ? requestedTab : "postings";
-  const requestedAfter = exactKeys ? query.get("after") || "" : "";
-  const after = /^[A-Za-z0-9_-]{1,512}$/.test(requestedAfter) ? requestedAfter : "";
+  const t = exactKeys ? query.get("tab") : "";
+  const tab = t === "charge" || t === "deposit" || t === "organize" ? t : "postings";
+  const a = exactKeys ? query.get("after") || "" : "";
+  const after = /^[A-Za-z0-9_-]{1,512}$/.test(a) ? a : "";
   return { kind: "workspace", property: workspace[1], folioId: workspace[2], tab, after };
  }
  const list = pathname.match(/^\/p\/([0-9a-f-]+)\/folios$/);
@@ -3076,7 +3076,7 @@
   function confirmFolioExit() {
  if (currentFolioCorrectionIsDirty()) return confirm("Discard this unfinished posting correction?");
  if (currentFolioChargeIsDirty()) return confirm("Discard this unfinished untaxed charge?");
- return confirm("Discard this unfinished folio task?");
+ return !currentFolioDraftIsDirty()||confirm("Discard this unfinished folio task?");
  }
   function folioRefreshDecision(origin, current) {
  return origin.generation === current.generation && origin.property === current.property
@@ -5921,4 +5921,5 @@
  location.pathname.endsWith("/rates") ? "rates" :
  location.pathname.endsWith("/status") ? "status" : "availability";
  setView(initialView, false);
+ loginForm.querySelector("button[type=submit]").disabled = false;
 })();
