@@ -1,6 +1,6 @@
 # Order 196 — Governed folio settlement and closure
 
-**Status:** READY — D-531
+**Status:** ACTIVE — D-531, D-532
 **Phase:** 5 — Financials
 **Branch:** `phase-5/folio-charge-correction-resumed`
 **Base:** `caf1998` (independently approved Order195 local UI)
@@ -28,6 +28,7 @@ and never imply checkout, invoice creation, fiscalization or provider settlement
 
 ## Exact scope
 
+- `migrations/0023_folio_settlement_capability.sql`
 - `src/contexts/financials/settlements.ts`, `src/contexts/financials/index.ts`
 - `src/http/operator.ts`, `src/app.ts`
 - `src/http/operator/index.html`, `src/http/operator/operator.js`,
@@ -40,8 +41,8 @@ and never imply checkout, invoice creation, fiscalization or provider settlement
   `docs/STATE-MACHINES.md`, `docs/DOMAIN-MODEL-V1.md` and Phase 5 in `BUILD-PLAN.md`
 - this order, its question/review, `DECISIONS.log`, and `handoff/LEDGER.md`
 
-No other file is admitted. There is no migration and `migrations/0001_init.sql` stays
-byte-identical.
+No other file is admitted. Migration `0023` may add only one bounded settlement
+transition capability; `migrations/0001_init.sql` stays byte-identical.
 
 ## Required work
 
@@ -49,7 +50,10 @@ byte-identical.
 2. Add a strict settlement service using durable actor-bound idempotency and exact
    tenant/property envelopes. It first validates, then calls `lock_financial_rows`,
    re-reads the locked folio/account and canonical `folio_balance`, and performs one
-   guarded state update.
+   guarded state transition through the exact migration-0023 capability. The
+   capability accepts only `open -> settled` or `settled -> closed`, requires the
+   current transaction tenant and exact app runtime role, proves the locked canonical
+   balance is zero, and returns no general mutation authority.
 3. `settle` requires exact `open` status, open guest account, exact property ownership
    and balance `0`. `close` requires exact `settled` status and a still-zero balance.
    Replays return the original result; different requests under one key conflict.
@@ -69,7 +73,8 @@ byte-identical.
 - payment-provider settlement, capture, refund, chargeback, cash or cashier work
 - account/reservation closure, checkout, invoice/document/fiscal/tax work
 - reopen, forced settlement, non-zero settlement or client-provided balance/state
-- migration, new dependency, local promotion, merge, push or public/production deploy
+- any migration beyond the exact bounded `0023` capability, new dependency, local
+  promotion, merge, push or public/production deploy
 
 ## Pre-registered proof
 
@@ -81,7 +86,8 @@ byte-identical.
   charge-vs-settle and transfer-vs-settle have one coherent winner with no late money
   on a settled folio and no stranded partial effect.
 - **P3 authority/isolation:** tenant/property/scope/actor/idempotency attacks fail
-  generically; raw app-role mutation outside the service is not introduced.
+  generically; direct app-role folio UPDATE remains denied; PUBLIC and the runtime
+  login cannot execute the capability; hostile tenant/state/non-zero calls fail.
 - **P4 HTTP/browser:** keyboard and pointer settle/close, confirmations, retry, stale
   response suppression and refetch work at 375/768/1020/1440 across six appearances.
 - **P5 standing:** financial/referee/type/boundary/licence/audit and full tests pass;
