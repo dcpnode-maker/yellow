@@ -161,10 +161,11 @@ describe("Order 064 recorded build snapshot", () => {
     const reviewCoverage = await deriveIndependentReviewCoverage();
     const rows = manifestRows(manifest);
     expect(rows.length).toBeGreaterThan(0);
-    expect(PROJECT_BUILD_SNAPSHOT.roadmap.latestBuiltOrder).toBe(178);
+    expect(PROJECT_BUILD_SNAPSHOT.recordedAt).toBe("2026-08-27");
+    expect(PROJECT_BUILD_SNAPSHOT.roadmap.latestBuiltOrder).toBe(189);
     expect(PROJECT_BUILD_SNAPSHOT.review.gate3Debt).toBe(0);
     expect(PROJECT_BUILD_SNAPSHOT.review.state).toBe("built_unverified");
-    expect(PROJECT_BUILD_SNAPSHOT.roadmap.currentOrder).toBe(179);
+    expect(PROJECT_BUILD_SNAPSHOT.roadmap.currentOrder).toBe(190);
     expect(PROJECT_BUILD_SNAPSHOT.roadmap.activePhase).toBe(5);
     expect(PROJECT_BUILD_SNAPSHOT.roadmap.phaseCount).toBe(13);
     expect(reviewCoverage.throughOrder).toBe(91);
@@ -314,14 +315,76 @@ describe("Order 064 recorded build snapshot", () => {
         summary: "Order 178 independently approved deterministic offline India and Canada UAT inputs.",
         remaining: "These offline scenario foundations have not been imported into the application and carry no legal or fiscal authority.",
       },
+      {
+        order: 179,
+        state: "independently_approved",
+        summary: "Order 179 independently approved the authenticated founder-visible recorded-status snapshot.",
+        remaining: "Approval was limited to recorded-status truth and did not promote a local runtime.",
+      },
+      {
+        order: 180,
+        state: "independently_approved",
+        summary: "Order 180 independently approved the sole founder-local application on loopback port 3000.",
+        remaining: "Approval was local-only; no public or production deployment is claimed.",
+      },
+      {
+        order: 181,
+        state: "independently_approved",
+        summary: "Order 181 independently approved deterministic two-hotel offline scenario seed authority.",
+        remaining: "Approval covered seed code only and did not import scenarios into the active local database.",
+      },
+      {
+        order: 182,
+        state: "independently_approved",
+        summary: "Order 182 independently approved the bounded two-hotel scenario import into the sole founder-local database.",
+        remaining: "The import preserved the existing founder journey; no product, schema, credential, or production change is claimed.",
+      },
+      {
+        order: 183,
+        state: "independently_approved",
+        summary: "Order 183 independently approved governed immutable folio charge correction.",
+        remaining: "Approval did not itself promote the correction to the founder-local runtime.",
+      },
+      {
+        order: 184,
+        state: "independently_approved",
+        summary: "Order 184 independently approved the material theme-skin product and its guarded local presentation.",
+        remaining: "Its sixteen-skin catalogue was later superseded by Order 185; no broader product authority is claimed.",
+      },
+      {
+        order: 185,
+        state: "independently_approved",
+        summary: "Order 185 independently approved the founder-curated Apple, Android, Win95 and Glass product catalogue.",
+        remaining: "Approval changed presentation only and did not promote a local runtime.",
+      },
+      {
+        order: 186,
+        state: "independently_approved",
+        summary: "Order 186 independently approved the correction-capable product on the sole founder-local application.",
+        remaining: "Founder CRUD drift was preserved; no local business day was sealed and no production deployment is claimed.",
+      },
+      {
+        order: 188,
+        state: "independently_approved",
+        summary: "Order 188 independently approved multi-window folio routing and the five-appearance product.",
+        remaining: "Approval did not itself replace the founder-local application or claim Phase-wide completion.",
+      },
+      {
+        order: 189,
+        state: "independently_approved",
+        summary: "Order 189 independently approved the exact Order 188 product on the sole founder-local application.",
+        remaining: "Founder CRUD drift and persistent data were preserved; no public or production deployment is claimed.",
+      },
     ]);
     const recordedOrders = PROJECT_BUILD_SNAPSHOT.recordedWork.map(({ order }) => Number(order));
     expect(recordedOrders).toEqual([
       126, 127, 148, 154, 155, 156, 160, 161, 162, 163, 164,
       165, 166, 168, 169, 170, 171, 173, 174, 175, 176, 177, 178,
+      179, 180, 181, 182, 183, 184, 185, 186, 188, 189,
     ]);
     expect(recordedOrders).not.toContain(167);
     expect(recordedOrders).not.toContain(172);
+    expect(recordedOrders).not.toContain(187);
     const order178: { readonly summary: string; readonly remaining?: string } | undefined =
       PROJECT_BUILD_SNAPSHOT.recordedWork.find(({ order }) => order === 178);
     expect(`${order178?.summary} ${order178?.remaining}`).toMatch(/offline/i);

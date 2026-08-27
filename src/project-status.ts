@@ -13,7 +13,8 @@ export type ProjectRecordedWorkState = "independently_approved" | "proof_in_prog
 export interface ProjectRecordedWorkSnapshot {
   readonly order:
     | 126 | 127 | 148 | 154 | 155 | 156 | 160 | 161 | 162 | 163 | 164
-    | 165 | 166 | 168 | 169 | 170 | 171 | 173 | 174 | 175 | 176 | 177 | 178;
+    | 165 | 166 | 168 | 169 | 170 | 171 | 173 | 174 | 175 | 176 | 177 | 178
+    | 179 | 180 | 181 | 182 | 183 | 184 | 185 | 186 | 188 | 189;
   readonly state: ProjectRecordedWorkState;
   readonly summary: string;
   readonly remaining?: string;
@@ -35,12 +36,12 @@ export const DEFAULT_OPERATOR_RUNTIME_STATUS: OperatorRuntimeStatus = Object.fre
 
 export const PROJECT_BUILD_SNAPSHOT = Object.freeze({
   schemaVersion: 1,
-  recordedAt: "2026-08-26",
+  recordedAt: "2026-08-27",
   label: "Recorded build snapshot",
   roadmap: Object.freeze({
     phaseCount: 13,
-    latestBuiltOrder: 178,
-    currentOrder: 179,
+    latestBuiltOrder: 189,
+    currentOrder: 190,
     activePhase: 5,
   }),
   review: Object.freeze({
@@ -185,6 +186,66 @@ export const PROJECT_BUILD_SNAPSHOT = Object.freeze({
       state: "independently_approved" as const,
       summary: "Order 178 independently approved deterministic offline India and Canada UAT inputs.",
       remaining: "These offline scenario foundations have not been imported into the application and carry no legal or fiscal authority.",
+    }),
+    Object.freeze({
+      order: 179,
+      state: "independently_approved" as const,
+      summary: "Order 179 independently approved the authenticated founder-visible recorded-status snapshot.",
+      remaining: "Approval was limited to recorded-status truth and did not promote a local runtime.",
+    }),
+    Object.freeze({
+      order: 180,
+      state: "independently_approved" as const,
+      summary: "Order 180 independently approved the sole founder-local application on loopback port 3000.",
+      remaining: "Approval was local-only; no public or production deployment is claimed.",
+    }),
+    Object.freeze({
+      order: 181,
+      state: "independently_approved" as const,
+      summary: "Order 181 independently approved deterministic two-hotel offline scenario seed authority.",
+      remaining: "Approval covered seed code only and did not import scenarios into the active local database.",
+    }),
+    Object.freeze({
+      order: 182,
+      state: "independently_approved" as const,
+      summary: "Order 182 independently approved the bounded two-hotel scenario import into the sole founder-local database.",
+      remaining: "The import preserved the existing founder journey; no product, schema, credential, or production change is claimed.",
+    }),
+    Object.freeze({
+      order: 183,
+      state: "independently_approved" as const,
+      summary: "Order 183 independently approved governed immutable folio charge correction.",
+      remaining: "Approval did not itself promote the correction to the founder-local runtime.",
+    }),
+    Object.freeze({
+      order: 184,
+      state: "independently_approved" as const,
+      summary: "Order 184 independently approved the material theme-skin product and its guarded local presentation.",
+      remaining: "Its sixteen-skin catalogue was later superseded by Order 185; no broader product authority is claimed.",
+    }),
+    Object.freeze({
+      order: 185,
+      state: "independently_approved" as const,
+      summary: "Order 185 independently approved the founder-curated Apple, Android, Win95 and Glass product catalogue.",
+      remaining: "Approval changed presentation only and did not promote a local runtime.",
+    }),
+    Object.freeze({
+      order: 186,
+      state: "independently_approved" as const,
+      summary: "Order 186 independently approved the correction-capable product on the sole founder-local application.",
+      remaining: "Founder CRUD drift was preserved; no local business day was sealed and no production deployment is claimed.",
+    }),
+    Object.freeze({
+      order: 188,
+      state: "independently_approved" as const,
+      summary: "Order 188 independently approved multi-window folio routing and the five-appearance product.",
+      remaining: "Approval did not itself replace the founder-local application or claim Phase-wide completion.",
+    }),
+    Object.freeze({
+      order: 189,
+      state: "independently_approved" as const,
+      summary: "Order 189 independently approved the exact Order 188 product on the sole founder-local application.",
+      remaining: "Founder CRUD drift and persistent data were preserved; no public or production deployment is claimed.",
     }),
   ] satisfies readonly ProjectRecordedWorkSnapshot[]),
   phases: Object.freeze([
