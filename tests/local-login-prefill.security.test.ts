@@ -23,9 +23,9 @@ describe("Order194 local sign-in prefill", () => {
     expect(response.headers.get("cache-control")).toBe("no-store");
     expect(html).toContain('id="login-form" autocomplete="off"');
     expect(html).toContain('<script src="/assets/operator-local-prefill.js" defer></script>');
-    expect(html).toContain('name="tenant" autocomplete="off" required maxlength="63" placeholder="yellow-demo" value="yellow-demo&amp;&quot;&lt;"');
-    expect(html).toContain('name="email" type="email" autocomplete="off" required maxlength="254" placeholder="operator@yellow.local" value="operator+review@yellow.local"');
-    expect(html).toContain('name="password" type="password" autocomplete="off" required maxlength="1024" value="secret&amp;&quot;&lt;value&gt;"');
+    expect(html).toContain('name="tenant" autocomplete="off" required maxlength="63" placeholder="yellow-demo" data-local-default="yellow-demo&amp;&quot;&lt;" value="yellow-demo&amp;&quot;&lt;"');
+    expect(html).toContain('name="email" type="email" autocomplete="off" required maxlength="254" placeholder="operator@yellow.local" data-local-default="operator+review@yellow.local" value="operator+review@yellow.local"');
+    expect(html).toContain('name="password" type="password" autocomplete="off" required maxlength="1024" data-local-default="secret&amp;&quot;&lt;value&gt;" value="secret&amp;&quot;&lt;value&gt;"');
     expect(html).not.toContain('type="text" autocomplete="current-password"');
   });
 
@@ -58,8 +58,10 @@ describe("Order194 local sign-in prefill", () => {
     const response = operatorAssets.localPrefillJs();
     const script = await response.text();
     expect(response.headers.get("cache-control")).toBe("no-store");
-    expect(script).toContain("e.defaultValue");
-    expect(script).toContain("e.value=e.defaultValue");
+    expect(script).toContain("e.dataset.localDefault");
+    expect(script).toContain("delete e.dataset.localDefault");
+    expect(script).toContain("addEventListener('pageshow',r,{once:true})");
+    expect(script).toContain("e.value=s");
     expect(script).not.toMatch(/yellow-demo|operator@|password|local-deposit/i);
   });
 
