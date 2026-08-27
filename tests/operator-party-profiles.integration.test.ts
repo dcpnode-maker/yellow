@@ -407,6 +407,7 @@ databaseDescribe("Order 102 operator Party HTTP adapter", () => {
     const before = await artifacts();
     const valid = createBody({ displayName: `Order 102 Hostile ${runTag}` });
     const hostilePrimaryAccountNumber = "4111".repeat(4);
+    const hostileCardVerificationValue = "1".repeat(3);
     const hostile: unknown[] = [
       { ...valid, tenantId: SEED_TENANT.id },
       { ...valid, actorId: userId },
@@ -414,7 +415,7 @@ databaseDescribe("Order 102 operator Party HTTP adapter", () => {
       { ...valid, operation: "party.created" },
       { ...valid, attrs: { dateOfBirth: "1990-01-01", nationality: "IN" } },
       { ...valid, consent: true },
-      { ...valid, payment: { pan: hostilePrimaryAccountNumber, cvv: "123" } },
+      { ...valid, payment: { pan: hostilePrimaryAccountNumber, cvv: hostileCardVerificationValue } },
       { ...valid, verified: true },
       { ...valid, contacts: [{ kind: "email", value: `verified-${runTag}@order102.test`, verified: true }] },
       { ...valid, roles: [] },
