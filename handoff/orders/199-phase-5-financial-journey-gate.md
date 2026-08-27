@@ -1,6 +1,6 @@
 # Order 199 — Phase-5 financial journey gate
 
-**Status:** READY-D539 — intentional red and executable journey required
+**Status:** BUILT-UNREVIEWED-D540 — executable journey and builder proof complete; independent review deferred
 **Phase:** 5 — Financials
 **Branch:** `phase-5/financial-journey-gate`
 **Base:** `101bc90bf721` (built-unreviewed Order198)
@@ -75,9 +75,9 @@ is admitted. `migrations/0001_init.sql` remains byte-identical.
 
 ## Definition of done
 
-- [ ] Intentional red precedes journey implementation.
-- [ ] Both exact-zero settlement paths execute on pristine PostgreSQL.
-- [ ] Approval, hostile-boundary and concurrency proofs are executable.
-- [ ] No production authority or new product behavior is invented for the gate.
-- [ ] Built result is recorded without claiming checkout, independent approval, Phase5
+- [x] Intentional red precedes journey implementation.
+- [x] Both exact-zero settlement paths execute on pristine PostgreSQL.
+- [x] Approval, hostile-boundary and concurrency proofs are executable.
+- [x] No production authority or new product behavior is invented for the gate.
+- [x] Built result is recorded without claiming checkout, independent approval, Phase5
       completion or application completion.

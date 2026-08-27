@@ -121,10 +121,13 @@ Built-unreviewed Order 198 adds the missing direct-billing path: one locked posi
 balance may move to one party-specific company/travel-agent receivable under derived
 credit authority, leaving the folio at zero for existing settlement. It is not a full
 AR ledger, invoice, allocation, aging, checkout or accounting-provider integration.
-The next build slice is the Order 114 Phase-5 journey gate: execute charge-to-payment
-and charge-to-receivable zero-balance settlement paths on pristine PostgreSQL, together
-with hostile authority and concurrency proofs. Independent review remains deferred
-until that complete Phase-5 candidate exists.
+Built-unreviewed Order 199 executes the Order 114 Phase-5 composition gate on pristine
+PostgreSQL: charge-to-payment and charge-to-receivable paths both reach exact zero,
+settle and close, while over-limit four-eyes, hostile runtime/property authority and
+capture/transfer/settlement arbitration remain coherent. It adds no product authority.
+Independent review remains deferred under the founder's build-first direction; this
+does not yet claim checkout, external provider settlement, Phase-5 approval or app
+completion.
 
 ## Phase 6 — Stay ops & Housekeeping
 

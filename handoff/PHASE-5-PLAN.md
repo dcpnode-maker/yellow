@@ -36,11 +36,13 @@ half: exact positive guest debt moves only to a party-specific company/travel-ag
 receivable under locked derived credit authority. Full AR invoices, allocations,
 aging/statements and external accounting remain Phase12.
 
-The active build frontier now moves to Order114's Phase-5 financial journey: pristine
-PostgreSQL must prove the same reservation and folio can reach exact-zero settlement
-through either governed payment capture or the new receivable transfer, while hostile
-tenant, property, role, approval and concurrent command paths leave coherent immutable
-truth. This gate does not imply checkout, fiscal issue or external provider settlement.
+Built-unreviewed Order199 now executes Order114's Phase-5 financial journey on pristine
+PostgreSQL: the same reservation and folio reach exact-zero settlement through either
+governed token-only payment capture or the new receivable transfer; exact four-eyes,
+hostile property/runtime authority and concurrent capture/transfer/settlement paths
+leave coherent immutable truth. The independent high-risk gate is deferred until the
+built candidate is ready for review. This does not imply checkout, fiscal issue,
+external provider settlement or Phase-5 approval.
 
 Current founder-visible delivery: Order 171 wires the already-approved primary-folio
 command behind its own property permission and an explicit reservation action, then
