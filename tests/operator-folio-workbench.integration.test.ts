@@ -79,9 +79,8 @@ describe("Order 105 operator folio workbench", () => {
   });
 
   test("Order193 P5: the 375px folio deposit workspace cannot grow its grid track", () => {
-    expect(css).toContain("#folio-workspace { grid-template-columns: minmax(0, 1fr);");
-    expect(css).toMatch(/@media \(max-width: 480px\)[\s\S]*?#folio-workspace-tabs \{[^}]*grid-template-columns: repeat\(2, minmax\(0, 1fr\)\)/);
-    expect(css).toMatch(/@media \(max-width: 480px\)[\s\S]*?#folio-workspace-tabs button \{[^}]*min-width: 0/);
+    expect(depositCss).toContain("#folio-workspace{grid-template-columns:minmax(0,1fr)}");
+    expect(depositCss).toContain("@media(max-width:480px){#folio-workspace-tabs{flex-wrap:wrap}}");
   });
 
   test("Order193 P5: clean folio exit never prompts while every dirty family does", () => {
