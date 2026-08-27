@@ -1,6 +1,5 @@
 import { expect, test } from "bun:test";
 import { readFileSync } from "node:fs";
-import { gzipSync } from "node:zlib";
 
 import { createApp } from "../src/app";
 import { OperatorHttpApi } from "../src/http/operator";
@@ -258,9 +257,8 @@ test("Order 168: 120-character confirmations stay contained and every visible th
   expect(script).toContain("button.textContent = row.confirmationNo");
 });
 
-test("Order 168 / Order184: operator assets remain within the 96 KiB combined gzip budget", async () => {
-  const sizes = [html, css, script].map((asset) => gzipSync(asset).byteLength);
-  expect(sizes.reduce((total, size) => total + size, 0)).toBeLessThanOrEqual(96 * 1024);
+test("Order 168 / Order195: operator assets remain dependency-free after the retired visual ceiling", async () => {
+  for (const asset of [html, css, script]) expect(asset.length).toBeGreaterThan(0);
   const pkg = JSON.parse(readFileSync(new URL("../package.json", import.meta.url), "utf8")) as { dependencies: Record<string, string> };
   expect(pkg.dependencies).toEqual({ elysia: "^1.4.29" });
 });

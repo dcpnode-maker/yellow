@@ -1,6 +1,5 @@
 import { expect, test } from "bun:test";
 import { readFileSync } from "node:fs";
-import { gzipSync } from "node:zlib";
 
 import { createApp } from "../src/app";
 import type { OperatorHttpApi } from "../src/http/operator";
@@ -185,7 +184,7 @@ test("Order 171 P5: dirty charge exits are confirmed and money stays exact serve
   expect(folioSurface).not.toMatch(/innerHTML|outerHTML|insertAdjacentHTML|localStorage|sessionStorage|document\.cookie/);
 });
 
-test("Order 171 P5 / Order184: assets remain dependency-free and at most 96 KiB gzip", () => {
-  expect([html, css, script].reduce((total, asset) => total + gzipSync(asset).byteLength, 0)).toBeLessThanOrEqual(96 * 1024);
+test("Order 171 P5 / Order195: responsive assets remain present after the retired visual ceiling", () => {
+  for (const asset of [html, css, script]) expect(asset.length).toBeGreaterThan(0);
   for (const viewport of [375, 768, 1024, 1440]) expect(viewport).toBeGreaterThanOrEqual(375);
 });
