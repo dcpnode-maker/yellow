@@ -175,6 +175,36 @@ query parameters and returns the approved reservation aggregate plus server-deri
 foreign-property UUID details share one generic reservation not-found response. The
 existing exact `GET .../reservations?confirmationNo=...` lifecycle lookup is unchanged.
 
+Order 200 active check-in contract: `GET
+/api/v1/properties/{property}/reservations/{reservation}/check-in/readiness` requires
+`stay-operations.checkin:read` and the exact property grant. It returns a no-store, server-owned
+snapshot `{reservationId,status,segmentId,assignedSpaceId,primaryFolioId,roomCondition,
+identityGate{required,satisfied,adapterKey},dirtyRoomOverrideRequired,
+dirtyRoomOverrideAuthorized,blockers[],canCheckIn}`. Stable blockers name wrong state,
+missing/ambiguous active segment or physical-room mapping, absent condition, unready
+room, missing open primary folio, unavailable configured adapter, and missing recorded
+identity evidence. The response contains no Party, document, contact, legal-field or
+financial data.
+
+`POST /api/v1/properties/{property}/reservations/{reservation}/check-in` requires
+`stay-operations.checkin:commit`, the exact property grant, a visible-ASCII `Idempotency-Key`, and
+body exactly `{}` or `{reason}`. Tenant, actor, property, readiness and dirty-room
+authority are server-derived. A dirty/pickup room additionally requires the distinct
+same-property `stay-operations.checkin:dirty-room-override` grant and a trimmed attributable
+reason; a ready room rejects an override reason. Success atomically changes only the
+exact due-in reservation and its one active booked segment to `in_house`, then writes
+one minimized fact and `reservation.checked_in` outbox event with durable actor-bound
+replay. It does not create or mutate accounts, folios, occupancy claims, keys, money,
+business days, statutory submissions, tax/fiscal documents or checkout state.
+
+Identity readiness is selected only by `org_node.config.statutory_adapter_key`. The
+key must resolve to exactly one effective active tenant-owned `statutory_adapter` with
+a non-empty valid `required_identity_fields` declaration. When selected, every Party
+attached through `reservation_guest` (plus the primary Party) must have at least one
+recorded `identity_document`; field semantics, nationality rules, validation and
+submission remain adapter-owned Phase 8 work. No country code is embedded in check-in
+logic.
+
 Implemented domain slice: `PartyProfileService.search` performs tenant-bound, bounded
 active-Party lookup by UUID, display name, or canonical contact and returns masked
 contact hints. `PartyProfileService.create` normalizes Party roles/contacts, requires

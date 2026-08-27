@@ -347,6 +347,16 @@ export function createApp(options: AppOptions = {}) {
           context, params.property, params.reservation,
         ))
       )
+      .get("/api/v1/properties/:property/reservations/:reservation/check-in/readiness", ({ request, params, tenantContext }) =>
+        withOperatorTenant(request, (context) => operator.checkInReadiness(
+          context, params.property, params.reservation,
+        ))
+      )
+      .post("/api/v1/properties/:property/reservations/:reservation/check-in", ({ request, params, body, tenantContext }) =>
+        withOperatorTenant(request, (context) => operator.commitCheckIn(
+          context, params.property, params.reservation, body,
+        ))
+      )
       .get("/api/v1/properties/:property/reservation-segments", ({ request, params, tenantContext }) =>
         withOperatorTenant(request, (context) => operator.reservationSegments(context, params.property))
       )

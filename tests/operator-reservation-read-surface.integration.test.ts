@@ -1,5 +1,7 @@
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { SQL } from "bun";
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 
 import { createApp } from "../src/app";
 import { BearerTenantResolver, Hs256TokenSigner, LocalLoginService } from "../src/contexts/identity";
@@ -37,6 +39,22 @@ function context(path: string, scopes = ["reservations.lifecycle:read"], granted
 }
 
 describe("Order 166 operator reservation read surface", () => {
+  test("Order 200 composes check-in beneath UUID detail without client authority", () => {
+    const root = resolve(import.meta.dir, "..");
+    const app = readFileSync(resolve(root, "src/app.ts"), "utf8");
+    const html = readFileSync(resolve(root, "src/http/operator/index.html"), "utf8");
+    const client = readFileSync(resolve(root, "src/http/operator/operator.js"), "utf8");
+    const css = readFileSync(resolve(root, "src/http/operator/operator.css"), "utf8");
+    expect(app).toContain('reservations/:reservation/check-in/readiness"');
+    expect(app).toContain('reservations/:reservation/check-in"');
+    expect(html).toContain('id="checkin-workbench"');
+    expect(client).toContain("loadCheckInReadiness");
+    expect(client).not.toContain('body: JSON.stringify({ dirtyRoomOverrideAuthorized');
+    for (const theme of ["apple", "android", "win95", "glass", "neo", "erp"]) {
+      expect(css).toContain(`:root[data-theme="${theme}"] .checkin-workbench`);
+    }
+  });
+
   test("board admits only strict non-PII query keys and binds tenant/property authority", async () => {
     boardCalls.length = 0;
     const path = `/api/v1/properties/${PROPERTY}/reservation-board?status=reserved&limit=100`;

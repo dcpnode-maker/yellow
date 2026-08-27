@@ -135,6 +135,12 @@ import {
   type ExpectedSegmentPeriod,
 } from "../contexts/reservations";
 import {
+  CheckInConflictError,
+  CheckInNotFoundError,
+  CheckInService,
+  CheckInValidationError,
+} from "../contexts/stay-operations";
+import {
   createAuditEnvelope,
   IdempotencyConflictError,
   IdempotencyValidationError,
@@ -192,6 +198,9 @@ const CASHIER_SUPERVISE_SCOPE = "financials.cashiers:supervise";
 const RECEIVABLE_READ_SCOPE = "financials.receivables:read";
 const RECEIVABLE_TRANSFER_SCOPE = "financials.receivables:transfer";
 const RECEIVABLE_APPROVE_SCOPE = "financials.receivables:approve";
+const CHECKIN_READ_SCOPE = "stay-operations.checkin:read";
+const CHECKIN_COMMIT_SCOPE = "stay-operations.checkin:commit";
+const CHECKIN_DIRTY_ROOM_OVERRIDE_SCOPE = "stay-operations.checkin:dirty-room-override";
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 const ISO_INSTANT = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})(?::(\d{2})(?:\.(\d{1,3}))?)?(Z|([+-])(\d{2}):(\d{2}))$/;
 const LOCAL_DATE = /^(\d{4})-(\d{2})-(\d{2})$/;
@@ -250,6 +259,15 @@ interface ReceivableAccountDraft { readonly receivableAccountId: string; }
 interface ReceivableTransferDraft extends ReceivableAccountDraft {
   readonly reason: string;
   readonly approvalId?: string;
+}
+
+interface CheckInDraft { readonly reason?: string; }
+
+function parseCheckIn(body: unknown): CheckInDraft | null {
+  if (!isObject(body) || !exactKeys(body, [], ["reason"]) ||
+      (body.reason !== undefined && (typeof body.reason !== "string" || body.reason.trim() !== body.reason ||
+        body.reason.length < 1 || body.reason.length > 500 || /[\u0000-\u001f\u007f]/.test(body.reason)))) return null;
+  return Object.freeze(body.reason === undefined ? {} : { reason: body.reason });
 }
 
 function parseReceivableAccount(body: unknown): ReceivableAccountDraft | null {
@@ -1076,6 +1094,7 @@ type ReservationLifecycleOperations = Pick<ReservationLifecycleService, "findByC
 type ReservationSegmentOperations = Pick<ReservationSegmentService, "findByConfirmation" | "changeDeparture" | "moveRoom">;
 type ReservationBoardOperations = Pick<ReservationBoardService, "list">;
 type ReservationDetailOperations = Pick<ReservationDetailService, "findById">;
+type CheckInOperations = Pick<CheckInService, "getReadiness" | "checkIn">;
 type PartyOperations = Pick<PartyProfileService, "search" | "create">;
 type FolioStatementOperations = Pick<FolioStatementService, "get">;
 type ChargeOperations = Pick<ChargeService, "postCharge">;
@@ -1477,6 +1496,7 @@ export class OperatorHttpApi {
   readonly #hostedDeposits?: HostedDepositOperations;
   readonly #cashiers?: CashierOperations;
   readonly #receivables?: ReceivableOperations;
+  readonly #checkIns?: CheckInOperations;
 
   constructor(
     login: LocalLoginService,
@@ -1509,6 +1529,7 @@ export class OperatorHttpApi {
     folioSettlements?: FolioSettlementOperations,
     cashiers?: CashierOperations,
     receivables?: ReceivableOperations,
+    checkIns?: CheckInOperations,
   ) {
     this.#login = login;
     this.#availability = availability;
@@ -1540,6 +1561,7 @@ export class OperatorHttpApi {
     this.#folioSettlements = folioSettlements;
     this.#cashiers = cashiers;
     this.#receivables = receivables;
+    this.#checkIns = checkIns;
   }
 
   unavailable(request: Request): Response {
@@ -1551,6 +1573,15 @@ export class OperatorHttpApi {
   }
 
   failure(request: Request, error: unknown): Response {
+    if (error instanceof CheckInValidationError) {
+      return apiError(request, 400, "request/invalid", "Invalid request", "Check-in input is invalid");
+    }
+    if (error instanceof CheckInNotFoundError) {
+      return apiError(request, 404, "reservations/not_found", "Not found", "The referenced reservation was not found");
+    }
+    if (error instanceof CheckInConflictError) {
+      return apiError(request, 409, "reservations/conflict", "Conflict", "Check-in readiness changed; reload the reservation and try again");
+    }
     if (error instanceof CashierValidationError) {
       return apiError(request, 400, "request/invalid", "Invalid request", "Cashier input is invalid");
     }
@@ -3045,6 +3076,78 @@ export class OperatorHttpApi {
       ...query,
     });
     return apiResponse(context.request, canonicalJson(jsonValue(page)));
+  }
+
+  async checkInReadiness(
+    context: TenantRequestContext,
+    propertyNode: string,
+    reservationId: string,
+  ): Promise<Response> {
+    // Bound by createApp at the exact `check-in/readiness` route; never cache this mutable readiness result.
+    if (!UUID.test(propertyNode) || !UUID.test(reservationId) || new URL(context.request.url).search.length > 0) {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Check-in readiness input is invalid");
+    }
+    if (!hasScope(context, CHECKIN_READ_SCOPE)) {
+      return apiError(context.request, 403, "auth/scope_missing", "Forbidden", "Check-in readiness access is not granted");
+    }
+    const grants = await listGrantedProperties(context, CHECKIN_READ_SCOPE);
+    if (!grants.some(({ id }) => id === propertyNode)) {
+      return apiError(context.request, 404, "reservations/not_found", "Not found", "The referenced reservation was not found");
+    }
+    if (!this.#checkIns) return this.unavailable(context.request);
+    const overrideGranted = hasScope(context, CHECKIN_DIRTY_ROOM_OVERRIDE_SCOPE) &&
+      (await listGrantedProperties(context, CHECKIN_DIRTY_ROOM_OVERRIDE_SCOPE)).some(({ id }) => id === propertyNode);
+    const readiness = await this.#checkIns.getReadiness({
+      tenantId: context.tenantId,
+      propertyNode,
+      reservationId,
+      dirtyRoomOverrideAuthorized: overrideGranted,
+    });
+    return apiResponse(context.request, canonicalJson(jsonValue(readiness)));
+  }
+
+  async commitCheckIn(
+    context: TenantRequestContext,
+    propertyNode: string,
+    reservationId: string,
+    body: unknown,
+  ): Promise<Response> {
+    const input = parseCheckIn(body);
+    const idempotencyKey = context.request.headers.get("idempotency-key");
+    if (!UUID.test(propertyNode) || !UUID.test(reservationId) || !input ||
+        !idempotencyKey || !IDEMPOTENCY_KEY.test(idempotencyKey)) {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Check-in input is invalid");
+    }
+    if (!hasScope(context, CHECKIN_COMMIT_SCOPE)) {
+      return apiError(context.request, 403, "auth/scope_missing", "Forbidden", "Check-in is not granted");
+    }
+    const grants = await listGrantedProperties(context, CHECKIN_COMMIT_SCOPE);
+    if (!grants.some(({ id }) => id === propertyNode)) {
+      return apiError(context.request, 404, "reservations/not_found", "Not found", "The referenced reservation was not found");
+    }
+    if (!this.#checkIns) return this.unavailable(context.request);
+    const overrideGranted = hasScope(context, CHECKIN_DIRTY_ROOM_OVERRIDE_SCOPE) &&
+      (await listGrantedProperties(context, CHECKIN_DIRTY_ROOM_OVERRIDE_SCOPE)).some(({ id }) => id === propertyNode);
+    const requestId = correlationId(context.request);
+    const result = await this.#checkIns.checkIn({
+      tenantId: context.tenantId,
+      propertyNode,
+      reservationId,
+      idempotencyKey,
+      dirtyRoomOverrideAuthorized: overrideGranted,
+      ...(input.reason === undefined ? {} : { dirtyRoomOverrideReason: input.reason }),
+      envelope: createAuditEnvelope({
+        actorId: context.identity.actorId,
+        tenantId: context.tenantId,
+        propertyNode,
+        requestId,
+        operation: "reservation.checked_in",
+      }),
+    });
+    return apiResponse(context.request, canonicalJson(jsonValue(result)), 200, {
+      "idempotency-replayed": String(result.replayed),
+      "x-correlation-id": requestId,
+    });
   }
 
   async reservationDetail(

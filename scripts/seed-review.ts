@@ -43,6 +43,10 @@ export const REVIEW_RECEIVABLE_APPROVE_PERMISSION = Object.freeze({
   code: "financials.receivables:approve",
   description: "Approve governed over-limit receivable transfers",
 });
+export const REVIEW_DIRTY_ROOM_OVERRIDE_PERMISSION = Object.freeze({
+  code: "stay-operations.checkin:dirty-room-override",
+  description: "Override a dirty or pickup room check-in with an attributable reason",
+});
 export const REVIEW_PERMISSION = "inventory.availability:read";
 export const REVIEW_PERMISSIONS = Object.freeze([
   { code: "crm.parties:read", description: "Search tenant-scoped Party profiles" },
@@ -82,6 +86,8 @@ export const REVIEW_PERMISSIONS = Object.freeze([
   { code: "reservations.lifecycle:write", description: "Modify tenant-scoped reservation lifecycle" },
   { code: "reservations.segments:read", description: "Read tenant-scoped reservation segment history" },
   { code: "reservations.segments:write", description: "Change tenant-scoped reservation segments" },
+  { code: "stay-operations.checkin:read", description: "Read server-owned property check-in readiness" },
+  { code: "stay-operations.checkin:commit", description: "Commit an eligible property check-in" },
 ]);
 const REVIEW_USER_NAME = `${TENANT_NAME}/review-user/${REVIEW_EMAIL}`;
 const REVIEW_APPROVER_USER_NAME = `${TENANT_NAME}/review-user/${REVIEW_APPROVER_EMAIL}`;
@@ -95,6 +101,8 @@ const REVIEW_COMPANY_PARTY_UUID = `${TENANT_NAME}/review-parties/company/northst
 const REVIEW_AGENT_PARTY_UUID = `${TENANT_NAME}/review-parties/agent/horizon-travel`;
 const REVIEW_COMPANY_ACCOUNT_UUID = `${TENANT_NAME}/review-financials/receivable/northstar-consulting`;
 const REVIEW_AGENT_ACCOUNT_UUID = `${TENANT_NAME}/review-financials/receivable/horizon-travel`;
+const REVIEW_STATUTORY_ADAPTER_KEY = "local-review-recorded-identity";
+const REVIEW_CHECKIN_FIXTURE_UUID = `${TENANT_NAME}/review-checkin`;
 export const REVIEW_CASH_DRAWER_CODE = "FRONT-DESK-1";
 export const REVIEW_CASH_DENOMINATIONS = Object.freeze([1n, 5n, 10n, 25n, 100n, 500n, 1000n, 2000n, 5000n, 10000n]);
 
@@ -109,6 +117,15 @@ const ROOMS = Object.freeze([
   { code: "103", unitTypeCode: "STD", name: "Room 103", floor: "1", areaSqm: 26 },
   { code: "201", unitTypeCode: "DLX", name: "Room 201", floor: "2", areaSqm: 36 },
   { code: "202", unitTypeCode: "DLX", name: "Room 202", floor: "2", areaSqm: 38 },
+]);
+
+const CHECKIN_EXAMPLES = Object.freeze([
+  Object.freeze({ key: "clean", confirmationNo: "ARR-CLEAN", displayName: "Arrival Clean Example",
+    roomCode: "101", condition: "clean" as const, hasIdentityDocument: true }),
+  Object.freeze({ key: "dirty", confirmationNo: "ARR-DIRTY", displayName: "Arrival Dirty Example",
+    roomCode: "102", condition: "dirty" as const, hasIdentityDocument: true }),
+  Object.freeze({ key: "identity-gated", confirmationNo: "ARR-IDENTITY", displayName: "Arrival Identity Gate Example",
+    roomCode: "G01", condition: "clean" as const, hasIdentityDocument: false }),
 ]);
 
 const REVIEW_RATE_POLICIES: readonly Readonly<{
@@ -217,6 +234,13 @@ interface ReviewSeedBaseResult {
   readonly sellableUnits: { created: number; existing: number };
 }
 
+interface ReviewCheckInExamples {
+  readonly cleanReservationId: string;
+  readonly dirtyReservationId: string;
+  readonly identityGatedReservationId: string;
+  readonly identityGatePropertyId: string;
+}
+
 interface ReviewSeedRateResult {
   readonly ratePlanId: string;
   readonly activeReleaseId: string;
@@ -227,11 +251,13 @@ interface ReviewSeedRateResult {
 export interface PublishedReviewSeedResult extends ReviewSeedBaseResult {
   readonly mode: "published";
   readonly rate: ReviewSeedRateResult;
+  readonly checkInExamples: ReviewCheckInExamples;
 }
 
 export interface IdentityInventoryReviewSeedResult extends ReviewSeedBaseResult {
   readonly mode: "identity_inventory";
   readonly rate: null;
+  readonly checkInExamples: null;
 }
 
 export type ReviewSeedResult = PublishedReviewSeedResult | IdentityInventoryReviewSeedResult;
@@ -408,6 +434,16 @@ async function provisionIdentity(
     exact(receivableApprovePermissions[0], REVIEW_RECEIVABLE_APPROVE_PERMISSION,
       "Receivable approve review permission");
   }
+  const dirtyRoomOverridePermissions = await connection<Array<{ code: string; description: string }>>`
+    SELECT code, description FROM permission WHERE code = ${REVIEW_DIRTY_ROOM_OVERRIDE_PERMISSION.code}
+  `;
+  if (dirtyRoomOverridePermissions.length === 0) {
+    await connection`INSERT INTO permission (code, description)
+      VALUES (${REVIEW_DIRTY_ROOM_OVERRIDE_PERMISSION.code}, ${REVIEW_DIRTY_ROOM_OVERRIDE_PERMISSION.description})`;
+  } else {
+    exact(dirtyRoomOverridePermissions[0], REVIEW_DIRTY_ROOM_OVERRIDE_PERMISSION,
+      "Dirty-room override review permission");
+  }
 
   const roles = await connection<RoleRow[]>`
     SELECT id, tenant_id, name FROM role
@@ -466,6 +502,11 @@ async function provisionIdentity(
   await connection`
     INSERT INTO role_permission (role_id, permission_code)
     VALUES (${approverRoleId}::uuid, ${REVIEW_RECEIVABLE_APPROVE_PERMISSION.code})
+    ON CONFLICT (role_id, permission_code) DO NOTHING
+  `;
+  await connection`
+    INSERT INTO role_permission (role_id, permission_code)
+    VALUES (${approverRoleId}::uuid, ${REVIEW_DIRTY_ROOM_OVERRIDE_PERMISSION.code})
     ON CONFLICT (role_id, permission_code) DO NOTHING
   `;
 
@@ -1209,6 +1250,308 @@ async function provisionReviewRate(
   });
 }
 
+async function provisionCheckInExamples(
+  connection: ReservedSQL,
+  ratePlanId: string,
+  userId: string,
+  approverUserId: string,
+  roleId: string,
+  approverRoleId: string,
+  unitTypes: ReadonlyMap<string, UnitType>,
+  spaces: ReadonlyMap<string, Space>,
+  sellableUnits: ReadonlyMap<string, SellableUnit>,
+): Promise<ReviewCheckInExamples> {
+  await connection`SELECT pg_advisory_xact_lock(hashtextextended('yellow.local.review.seed.checkin', 0))`;
+
+  const identityPropertyId = await uuidV5(SEED_TENANT.id, `${REVIEW_CHECKIN_FIXTURE_UUID}/identity-property`);
+  const identityPropertyPath = "yellow_demo.review_identity";
+  const identityPropertyConfig = Object.freeze({ statutory_adapter_key: REVIEW_STATUTORY_ADAPTER_KEY });
+  const identityPropertyRows = await connection<Array<Record<string, unknown>>>`
+    SELECT id, tenant_id, path::text, kind, name, timezone, currency::text, config
+    FROM org_node
+    WHERE id=${identityPropertyId}::uuid
+       OR (tenant_id=${SEED_TENANT.id}::uuid AND path=${identityPropertyPath}::ltree)
+    ORDER BY id FOR UPDATE
+  `;
+  const expectedIdentityProperty = { id: identityPropertyId, tenant_id: SEED_TENANT.id,
+    path: identityPropertyPath, kind: "property", name: "Yellow Identity Gate Review Property",
+    timezone: "UTC", currency: "USD", config: identityPropertyConfig };
+  if (identityPropertyRows.length === 0) {
+    await connection`INSERT INTO org_node (id, tenant_id, path, kind, name, timezone, currency, config)
+      VALUES (${identityPropertyId}::uuid, ${SEED_TENANT.id}::uuid, ${identityPropertyPath}::ltree,
+        'property', 'Yellow Identity Gate Review Property', 'UTC', 'USD',
+        ${JSON.stringify(identityPropertyConfig)}::text::jsonb)`;
+  } else {
+    exact(identityPropertyRows[0], expectedIdentityProperty, "Local-review identity-gate property");
+    if (identityPropertyRows.length !== 1) throw new Error("Local-review identity-gate property is ambiguous");
+  }
+
+  for (const grant of [
+    { userId, roleId },
+    { userId: approverUserId, roleId },
+    { userId: approverUserId, roleId: approverRoleId },
+  ]) {
+    await connection`INSERT INTO user_role (tenant_id, user_id, role_id, scope_node)
+      VALUES (${SEED_TENANT.id}::uuid, ${grant.userId}::uuid, ${grant.roleId}::uuid,
+        ${identityPropertyId}::uuid)
+      ON CONFLICT (user_id, role_id, scope_node) DO NOTHING`;
+  }
+
+  const identityUnitTypeId = await uuidV5(SEED_TENANT.id, `${REVIEW_CHECKIN_FIXTURE_UUID}/identity-property/unit-type`);
+  const identitySpaceId = await uuidV5(SEED_TENANT.id, `${REVIEW_CHECKIN_FIXTURE_UUID}/identity-property/space`);
+  const identitySellableId = await uuidV5(SEED_TENANT.id, `${REVIEW_CHECKIN_FIXTURE_UUID}/identity-property/sellable`);
+  const identityRatePlanId = await uuidV5(SEED_TENANT.id, `${REVIEW_CHECKIN_FIXTURE_UUID}/identity-property/rate-plan`);
+  await connection`INSERT INTO unit_type
+      (id, tenant_id, property_node, code, name, profile_key, base_occupancy, max_occupancy, attrs, sort_order)
+    VALUES (${identityUnitTypeId}::uuid, ${SEED_TENANT.id}::uuid, ${identityPropertyId}::uuid,
+      'GATE', 'Identity Gate Review Room', 'hotel', 1, 1,
+      '{"source":"local-review-checkin"}'::jsonb, 10)
+    ON CONFLICT (tenant_id, property_node, code) DO NOTHING`;
+  await connection`INSERT INTO space
+      (id, tenant_id, property_node, code, profile_key, capacity, floor, attrs, status)
+    VALUES (${identitySpaceId}::uuid, ${SEED_TENANT.id}::uuid, ${identityPropertyId}::uuid,
+      'G01', 'hotel', 1, 'G', '{"source":"local-review-checkin"}'::jsonb, 'active')
+    ON CONFLICT (tenant_id, property_node, code) DO NOTHING`;
+  await connection`INSERT INTO sellable_unit (id, tenant_id, unit_type_id, name, status)
+    VALUES (${identitySellableId}::uuid, ${SEED_TENANT.id}::uuid, ${identityUnitTypeId}::uuid,
+      'Identity Gate Review Room G01', 'active')
+    ON CONFLICT (id) DO NOTHING`;
+  await connection`INSERT INTO sellable_unit_space
+      (tenant_id, sellable_unit_id, space_id, claim_mode)
+    VALUES (${SEED_TENANT.id}::uuid, ${identitySellableId}::uuid, ${identitySpaceId}::uuid, 'exclusive')
+    ON CONFLICT (sellable_unit_id, space_id) DO NOTHING`;
+  await connection`INSERT INTO rate_plan
+      (id, tenant_id, property_node, code, name, currency, tax_inclusive, status)
+    VALUES (${identityRatePlanId}::uuid, ${SEED_TENANT.id}::uuid, ${identityPropertyId}::uuid,
+      'ARRIVAL-REVIEW', 'Arrival readiness review rate', 'USD', true, 'active')
+    ON CONFLICT (tenant_id, property_node, code) DO NOTHING`;
+
+  const adapterId = await uuidV5(SEED_TENANT.id, `${REVIEW_CHECKIN_FIXTURE_UUID}/statutory-adapter`);
+  const adapterContent = Object.freeze({
+    country: "ZZ",
+    adapter_key: "recorded-identity-demo",
+    schedule: "on_checkin",
+    required_identity_fields: Object.freeze(["identity_document"]),
+    transport: "rest",
+    format: "local-review-only",
+  });
+  const adapterRows = await connection<Array<{
+    id: string; tenant_id: string | null; type: string; key: string; version: number;
+    content: unknown; status: string; effective_now: boolean;
+  }>>`
+    SELECT id, tenant_id, type, key, version, content, status, effective @> CURRENT_TIMESTAMP AS effective_now
+    FROM extension
+    WHERE id=${adapterId}::uuid
+       OR (tenant_id=${SEED_TENANT.id}::uuid AND type='statutory_adapter'
+           AND key=${REVIEW_STATUTORY_ADAPTER_KEY} AND version=1)
+    ORDER BY id
+    FOR UPDATE
+  `;
+  const expectedAdapter = {
+    id: adapterId, tenant_id: SEED_TENANT.id, type: "statutory_adapter",
+    key: REVIEW_STATUTORY_ADAPTER_KEY, version: 1, content: adapterContent,
+    status: "active", effective_now: true,
+  };
+  if (adapterRows.length === 0) {
+    await connection`
+      INSERT INTO extension (id, tenant_id, type, key, version, effective, content, status)
+      VALUES (${adapterId}::uuid, ${SEED_TENANT.id}::uuid, 'statutory_adapter',
+        ${REVIEW_STATUTORY_ADAPTER_KEY}, 1,
+        tstzrange('2020-01-01T00:00:00Z'::timestamptz, NULL, '[)'),
+        ${JSON.stringify(adapterContent)}::text::jsonb, 'active')
+    `;
+  } else {
+    exact(adapterRows[0], expectedAdapter, "Local-review statutory adapter");
+    if (adapterRows.length !== 1) throw new Error("Local-review statutory adapter is ambiguous");
+  }
+
+  const result: Record<string, string> = {};
+  for (const spec of CHECKIN_EXAMPLES) {
+    const identityGated = spec.key === "identity-gated";
+    const baseUnitType = unitTypes.get("STD");
+    const baseSpace = spaces.get(spec.roomCode);
+    const baseSellableUnit = sellableUnits.get(spec.roomCode);
+    if (!identityGated && (!baseUnitType || !baseSpace || !baseSellableUnit)) {
+      throw new Error(`Local-review check-in inventory is absent for room ${spec.roomCode}`);
+    }
+    const propertyNode = identityGated ? identityPropertyId : SEED_PROPERTY.id;
+    const unitTypeId = identityGated ? identityUnitTypeId : baseUnitType!.id;
+    const spaceId = identityGated ? identitySpaceId : baseSpace!.id;
+    const sellableUnitId = identityGated ? identitySellableId : baseSellableUnit!.id;
+    const fixtureRatePlanId = identityGated ? identityRatePlanId : ratePlanId;
+    const base = `${REVIEW_CHECKIN_FIXTURE_UUID}/${spec.key}`;
+    const partyId = await uuidV5(SEED_TENANT.id, `${base}/party`);
+    const accountId = await uuidV5(SEED_TENANT.id, `${base}/account`);
+    const reservationId = await uuidV5(SEED_TENANT.id, `${base}/reservation`);
+    const segmentId = await uuidV5(SEED_TENANT.id, `${base}/segment`);
+    const folioId = await uuidV5(SEED_TENANT.id, `${base}/folio`);
+    const identityDocumentId = await uuidV5(SEED_TENANT.id, `${base}/identity-document`);
+
+    const partyRows = await connection<Array<{
+      id: string; tenant_id: string; kind: string; display_name: string; legal_name: string | null;
+      attrs: unknown; vip_code: string | null; status: string; merged_into: string | null;
+    }>>`
+      SELECT id, tenant_id, kind, display_name, legal_name, attrs, vip_code, status, merged_into
+      FROM party WHERE id=${partyId}::uuid ORDER BY id FOR UPDATE
+    `;
+    const expectedParty = { id: partyId, tenant_id: SEED_TENANT.id, kind: "person",
+      display_name: spec.displayName, legal_name: spec.displayName,
+      attrs: { source: "local-review", checkin_example: spec.key }, vip_code: null,
+      status: "active", merged_into: null };
+    if (partyRows.length === 0) {
+      await connection`
+        INSERT INTO party (id, tenant_id, kind, display_name, legal_name, attrs, status)
+        VALUES (${partyId}::uuid, ${SEED_TENANT.id}::uuid, 'person', ${spec.displayName},
+          ${spec.displayName}, ${JSON.stringify(expectedParty.attrs)}::text::jsonb, 'active')
+      `;
+    } else exact(partyRows[0], expectedParty, `Local-review ${spec.key} arrival party`);
+
+    const guestRoles = await connection<Array<{ tenant_id: string; party_id: string; role: string; detail: unknown }>>`
+      SELECT tenant_id, party_id, role, detail FROM party_role
+      WHERE party_id=${partyId}::uuid AND role='guest'
+    `;
+    const expectedGuestRole = { tenant_id: SEED_TENANT.id, party_id: partyId, role: "guest",
+      detail: { source: "local-review", checkin_example: spec.key } };
+    if (guestRoles.length === 0) {
+      await connection`INSERT INTO party_role (tenant_id, party_id, role, detail)
+        VALUES (${SEED_TENANT.id}::uuid, ${partyId}::uuid, 'guest',
+          ${JSON.stringify(expectedGuestRole.detail)}::text::jsonb)`;
+    } else exact(guestRoles[0], expectedGuestRole, `Local-review ${spec.key} guest role`);
+
+    const reservationRows = await connection<Array<Record<string, unknown>>>`
+      SELECT id, tenant_id, property_node, confirmation_no, status, primary_party,
+             booker_party, group_id, channel_code, currency::text, guarantee_policy
+      FROM reservation
+      WHERE id=${reservationId}::uuid
+         OR (tenant_id=${SEED_TENANT.id}::uuid AND confirmation_no=${spec.confirmationNo})
+      ORDER BY id FOR UPDATE
+    `;
+    const expectedReservation = { id: reservationId, tenant_id: SEED_TENANT.id,
+      property_node: propertyNode, confirmation_no: spec.confirmationNo, status: "due_in",
+      primary_party: partyId, booker_party: null, group_id: null, channel_code: "direct",
+      currency: SEED_PROPERTY.currency, guarantee_policy: null };
+    if (reservationRows.length === 0) {
+      await connection`
+        INSERT INTO reservation (id, tenant_id, property_node, confirmation_no, status,
+          primary_party, channel_code, currency, notes)
+        VALUES (${reservationId}::uuid, ${SEED_TENANT.id}::uuid, ${propertyNode}::uuid,
+          ${spec.confirmationNo}, 'due_in', ${partyId}::uuid, 'direct', ${SEED_PROPERTY.currency},
+          ${`Local-review ${spec.key} check-in readiness example`})
+      `;
+    } else {
+      exact(reservationRows[0], expectedReservation, `Local-review ${spec.key} arrival reservation`);
+      if (reservationRows.length !== 1) throw new Error(`Local-review ${spec.key} arrival reservation is ambiguous`);
+    }
+
+    const segmentRows = await connection<Array<Record<string, unknown>>>`
+      SELECT id, tenant_id, reservation_id, seq, unit_type_id, sellable_unit_id,
+             lower(period)='2020-01-01T00:00:00Z'::timestamptz AS exact_start,
+             upper(period)='2100-01-01T00:00:00Z'::timestamptz AS exact_end,
+             adults, children, rate_plan_id, price_override, status
+      FROM reservation_segment WHERE id=${segmentId}::uuid FOR UPDATE
+    `;
+    const expectedSegment = { id: segmentId, tenant_id: SEED_TENANT.id,
+      reservation_id: reservationId, seq: 1, unit_type_id: unitTypeId,
+      sellable_unit_id: sellableUnitId, exact_start: true, exact_end: true,
+      adults: 1, children: [], rate_plan_id: fixtureRatePlanId, price_override: null, status: "booked" };
+    if (segmentRows.length === 0) {
+      await connection`
+        INSERT INTO reservation_segment (id, tenant_id, reservation_id, seq, unit_type_id,
+          sellable_unit_id, period, adults, children, rate_plan_id, status)
+        VALUES (${segmentId}::uuid, ${SEED_TENANT.id}::uuid, ${reservationId}::uuid, 1,
+          ${unitTypeId}::uuid, ${sellableUnitId}::uuid,
+          tstzrange('2020-01-01T00:00:00Z'::timestamptz, '2100-01-01T00:00:00Z'::timestamptz, '[)'),
+          1, '[]'::jsonb, ${fixtureRatePlanId}::uuid, 'booked')
+      `;
+    } else exact(segmentRows[0], expectedSegment, `Local-review ${spec.key} arrival segment`);
+
+    const reservationGuests = await connection<Array<{ tenant_id: string; reservation_id: string; party_id: string; role: string; share_pct: string | null }>>`
+      SELECT tenant_id, reservation_id, party_id, role, share_pct::text
+      FROM reservation_guest WHERE reservation_id=${reservationId}::uuid AND party_id=${partyId}::uuid
+    `;
+    const expectedReservationGuest = { tenant_id: SEED_TENANT.id, reservation_id: reservationId,
+      party_id: partyId, role: "primary", share_pct: null };
+    if (reservationGuests.length === 0) {
+      await connection`INSERT INTO reservation_guest (tenant_id, reservation_id, party_id, role)
+        VALUES (${SEED_TENANT.id}::uuid, ${reservationId}::uuid, ${partyId}::uuid, 'primary')`;
+    } else exact(reservationGuests[0], expectedReservationGuest, `Local-review ${spec.key} reservation guest`);
+
+    const accountRows = await connection<Array<Record<string, unknown>>>`
+      SELECT id, tenant_id, property_node, role, party_id, name, currency::text,
+             credit_limit_minor::text, status
+      FROM account WHERE id=${accountId}::uuid FOR UPDATE
+    `;
+    const accountName = `${spec.displayName} Guest Ledger`;
+    const expectedAccount = { id: accountId, tenant_id: SEED_TENANT.id,
+      property_node: propertyNode, role: "guest", party_id: partyId, name: accountName,
+      currency: SEED_PROPERTY.currency, credit_limit_minor: null, status: "open" };
+    if (accountRows.length === 0) {
+      await connection`INSERT INTO account (id, tenant_id, property_node, role, party_id, name, currency, status)
+        VALUES (${accountId}::uuid, ${SEED_TENANT.id}::uuid, ${propertyNode}::uuid,
+          'guest', ${partyId}::uuid, ${accountName}, ${SEED_PROPERTY.currency}, 'open')`;
+    } else exact(accountRows[0], expectedAccount, `Local-review ${spec.key} guest account`);
+
+    const folioRows = await connection<Array<Record<string, unknown>>>`
+      SELECT id, tenant_id, account_id, reservation_id, folio_no, window_no, name, status
+      FROM folio WHERE id=${folioId}::uuid OR
+        (tenant_id=${SEED_TENANT.id}::uuid AND folio_no=${`ARR-${spec.key.toUpperCase()}-1`})
+      ORDER BY id FOR UPDATE
+    `;
+    const folioNo = `ARR-${spec.key.toUpperCase()}-1`;
+    const expectedFolio = { id: folioId, tenant_id: SEED_TENANT.id, account_id: accountId,
+      reservation_id: reservationId, folio_no: folioNo, window_no: 1,
+      name: "Primary", status: "open" };
+    if (folioRows.length === 0) {
+      await connection`INSERT INTO folio (id, tenant_id, account_id, reservation_id, folio_no, window_no, name, status)
+        VALUES (${folioId}::uuid, ${SEED_TENANT.id}::uuid, ${accountId}::uuid,
+          ${reservationId}::uuid, ${folioNo}, 1, 'Primary', 'open')`;
+    } else {
+      exact(folioRows[0], expectedFolio, `Local-review ${spec.key} primary folio`);
+      if (folioRows.length !== 1) throw new Error(`Local-review ${spec.key} primary folio is ambiguous`);
+    }
+
+    const conditionRows = await connection<Array<{ tenant_id: string; space_id: string; condition: string; updated_by: string | null }>>`
+      SELECT tenant_id, space_id, condition, updated_by FROM unit_condition WHERE space_id=${spaceId}::uuid FOR UPDATE
+    `;
+    const expectedCondition = { tenant_id: SEED_TENANT.id, space_id: spaceId,
+      condition: spec.condition, updated_by: userId };
+    if (conditionRows.length === 0) {
+      await connection`INSERT INTO unit_condition (tenant_id, space_id, condition, updated_by)
+        VALUES (${SEED_TENANT.id}::uuid, ${spaceId}::uuid, ${spec.condition}, ${userId}::uuid)`;
+    } else exact(conditionRows[0], expectedCondition, `Local-review room ${spec.roomCode} condition`);
+
+    const identityDocuments = await connection<Array<Record<string, unknown>>>`
+      SELECT id, tenant_id, party_id, kind, number_enc, issuing_country::text, expiry::text, scan_ref
+      FROM identity_document WHERE party_id=${partyId}::uuid ORDER BY id FOR UPDATE
+    `;
+    if (spec.hasIdentityDocument) {
+      const expectedIdentityDocument = { id: identityDocumentId, tenant_id: SEED_TENANT.id,
+        party_id: partyId, kind: "passport", number_enc: `local-review:${spec.key}:recorded`,
+        issuing_country: "ZZ", expiry: "2099-12-31", scan_ref: null };
+      if (identityDocuments.length === 0) {
+        await connection`INSERT INTO identity_document
+          (id, tenant_id, party_id, kind, number_enc, issuing_country, expiry)
+          VALUES (${identityDocumentId}::uuid, ${SEED_TENANT.id}::uuid, ${partyId}::uuid,
+            'passport', ${expectedIdentityDocument.number_enc}, 'ZZ', '2099-12-31'::date)`;
+      } else {
+        exact(identityDocuments[0], expectedIdentityDocument, `Local-review ${spec.key} identity evidence`);
+        if (identityDocuments.length !== 1) throw new Error(`Local-review ${spec.key} identity evidence is ambiguous`);
+      }
+    } else if (identityDocuments.length !== 0) {
+      throw new Error("Local-review identity-gated example must have no recorded identity document");
+    }
+
+    result[spec.key] = reservationId;
+  }
+
+  return Object.freeze({
+    cleanReservationId: result.clean!,
+    dirtyReservationId: result.dirty!,
+    identityGatedReservationId: result["identity-gated"]!,
+    identityGatePropertyId: identityPropertyId,
+  });
+}
+
 export function runReviewSeed(options: IdentityInventoryReviewSeedOptions): Promise<IdentityInventoryReviewSeedResult>;
 export function runReviewSeed(options: PublishedReviewSeedOptions): Promise<PublishedReviewSeedResult>;
 export async function runReviewSeed(options: ReviewSeedOptions): Promise<ReviewSeedResult> {
@@ -1330,7 +1673,7 @@ export async function runReviewSeed(options: ReviewSeedOptions): Promise<ReviewS
       companyReceivableAccountId, agentReceivableAccountId, ...counts };
     if (mode === "identity_inventory") {
       logger("review rate: omitted by explicit identity_inventory fixture mode");
-      return { ...common, mode, rate: null };
+      return { ...common, mode, rate: null, checkInExamples: null };
     }
 
     const previewSellable = sellableUnits.get("101");
@@ -1354,8 +1697,25 @@ export async function runReviewSeed(options: ReviewSeedOptions): Promise<ReviewS
       );
     });
 
+    let checkInExamples: ReviewCheckInExamples | undefined;
+    await withIdentityTransaction(identityPool, async (tx) => {
+      checkInExamples = await provisionCheckInExamples(
+        tx,
+        rate.ratePlanId,
+        userId,
+        approverUserId,
+        roleId,
+        approverRoleId,
+        unitTypes,
+        spaces,
+        sellableUnits,
+      );
+    });
+    if (!checkInExamples) throw new Error("Local-review check-in examples were not provisioned");
+
     logger(`review rate: plan=${rate.ratePlanId} active_release=${rate.activeReleaseId} version=${rate.activeReleaseVersion} state=${rate.created ? "created" : "existing"}`);
-    return { ...common, mode, rate };
+    logger(`review check-in: clean=${checkInExamples.cleanReservationId} dirty=${checkInExamples.dirtyReservationId} identity_gated=${checkInExamples.identityGatedReservationId}`);
+    return { ...common, mode, rate, checkInExamples };
   } finally {
     await database.close();
     await eventPool.close();

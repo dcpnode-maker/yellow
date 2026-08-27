@@ -1,6 +1,6 @@
 # Order 200 — Governed arrival readiness and check-in workbench
 
-**Status:** READY-D541 — intentional red and implementation required
+**Status:** BUILT-UNREVIEWED-D542 — implementation and executable builder proof complete
 **Phase:** 6 — Stay operations and housekeeping
 **Branch:** `phase-6/governed-checkin-readiness`
 **Base:** `f138f996a74d` (built-unreviewed Order199)
@@ -59,8 +59,8 @@ remains byte-identical.
 2. Add a read-only readiness service returning named server-owned blockers and no PII.
 3. Add actor-bound idempotent atomic check-in with exact tenant/property/audit input,
    state re-read, reservation+segment transition, fact and outbox in one transaction.
-4. Add `stay.checkin:read`, `stay.checkin:commit`, and
-   `stay.checkin:dirty-room-override` behind exact property grants; only the handler
+4. Add `stay-operations.checkin:read`, `stay-operations.checkin:commit`, and
+   `stay-operations.checkin:dirty-room-override` behind exact property grants; only the handler
    derives override authority.
 5. Add no-store readiness/commit routes and a Today/reservation-detail check-in
    workbench with one clear action, blocker summary, confirmation, retained retry key,
@@ -98,8 +98,8 @@ remains byte-identical.
 
 ## Definition of done
 
-- [ ] Intentional red precedes implementation.
-- [ ] Server-owned readiness and atomic check-in are executable.
-- [ ] Dirty override, identity gate, hostile authority and convergence are proved.
-- [ ] Operator workbench is usable without client-derived lifecycle authority.
-- [ ] Result is recorded built-unreviewed without claiming checkout, Phase6 or app completion.
+- [x] Intentional red precedes implementation.
+- [x] Server-owned readiness and atomic check-in are executable.
+- [x] Dirty override, identity gate, hostile authority and convergence are proved.
+- [x] Operator workbench is usable without client-derived lifecycle authority.
+- [x] Result is recorded built-unreviewed without claiming checkout, Phase6 or app completion.

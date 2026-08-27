@@ -268,9 +268,21 @@ segments.
 
 **Entities:** arrival/readiness, travel detail, queue entry, vehicle, room/key/interface
 references, service requests.
-**Invariants:** check-in guards identity/statutory/payment/room readiness; check-out
-guards folio settlement/AR transfer; physical occupancy and financial account lifecycle
-remain separable where policy allows open folio.
+**Invariants:** check-in guards exact due-in state, one current assigned booked segment,
+one open primary folio, authoritative room condition and configuration-selected
+recorded identity evidence; check-out guards folio settlement/AR transfer; physical
+occupancy and financial account lifecycle remain separable where policy allows open
+folio.
+
+Order 200 is the active first Phase-6 slice. `org_node.config.statutory_adapter_key`
+selects one exact effective active tenant-owned `statutory_adapter`; a non-empty valid
+`required_identity_fields` declaration activates the generic rule that every
+reservation Party has at least one recorded `identity_document`. This readiness gate
+does not expose PII and does not interpret country-specific fields. Clean/inspected
+rooms pass; dirty/pickup requires a distinct exact property grant and attributable
+reason. Commit changes only reservation plus active segment to `in_house` and appends
+minimized evidence. It creates no account/folio, occupancy, key, financial, day,
+statutory-submission, tax/fiscal or checkout effect.
 
 Whether a separate persisted Stay root is needed is **research required**; do not add one
 without measured command/query needs.

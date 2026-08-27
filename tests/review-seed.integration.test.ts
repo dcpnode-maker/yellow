@@ -244,6 +244,10 @@ databaseDescribe("Order 046 reproducible local-review seed", () => {
         created: true,
       },
     });
+    expect(first.checkInExamples.cleanReservationId).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/);
+    expect(first.checkInExamples.dirtyReservationId).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/);
+    expect(first.checkInExamples.identityGatedReservationId).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/);
+    expect(first.checkInExamples.identityGatePropertyId).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/);
     expect(first.cashAccountId).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/);
     expect(first.cashDrawerId).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/);
     expect(first.companyPartyId).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/);
@@ -251,7 +255,7 @@ databaseDescribe("Order 046 reproducible local-review seed", () => {
     expect(first.companyReceivableAccountId).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/);
     expect(first.agentReceivableAccountId).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/);
     expect(await counts()).toEqual({
-      users: 2, roles: 1, grants: 3, unit_types: 2, spaces: 5,
+      users: 2, roles: 1, grants: 6, unit_types: 2, spaces: 5,
       sellables: 5, requester_facts: 21, requester_events: 18,
       approver_facts: 2, approver_events: 2, policies: 4, rate_plans: 1,
       model_versions: 1, target_versions: 1, release_versions: 1,
@@ -321,7 +325,89 @@ databaseDescribe("Order 046 reproducible local-review seed", () => {
     `;
     expect(rows[0]).toEqual({
       series: 1, revenue_accounts: 1, room_codes: 1, room_routes: 1, current_open_days: 1,
-      guest_accounts: 0, folios: 0, journals: 0, postings: 0, payments: 0, documents: 0,
+      guest_accounts: 3, folios: 3, journals: 0, postings: 0, payments: 0, documents: 0,
+    });
+  });
+
+  test("Order 200 P6: provisions three deterministic due-in readiness examples without check-in or ledger effects", async () => {
+    const ids = first.checkInExamples;
+    const cleanReservationId = String(ids.cleanReservationId);
+    const dirtyReservationId = String(ids.dirtyReservationId);
+    const identityGatedReservationId = String(ids.identityGatedReservationId);
+    const examples = await admin<Array<{
+      confirmation_no: string; reservation_status: string; segment_status: string;
+      room_code: string; condition: string; folio_status: string; window_no: number;
+      identity_documents: number;
+    }>>`
+      SELECT reservation.confirmation_no, reservation.status AS reservation_status,
+             segment.status AS segment_status, space.code AS room_code,
+             condition.condition, folio.status AS folio_status, folio.window_no,
+             count(identity.id)::int AS identity_documents
+      FROM reservation
+      JOIN reservation_segment AS segment ON segment.reservation_id=reservation.id
+      JOIN sellable_unit_space AS assignment ON assignment.sellable_unit_id=segment.sellable_unit_id
+      JOIN space ON space.id=assignment.space_id
+      JOIN unit_condition AS condition ON condition.space_id=space.id
+      JOIN folio ON folio.reservation_id=reservation.id AND folio.window_no=1
+      JOIN reservation_guest AS guest ON guest.reservation_id=reservation.id
+      LEFT JOIN identity_document AS identity ON identity.party_id=guest.party_id
+      WHERE reservation.id IN (${cleanReservationId}::uuid, ${dirtyReservationId}::uuid,
+        ${identityGatedReservationId}::uuid)
+      GROUP BY reservation.confirmation_no, reservation.status, segment.status, space.code,
+               condition.condition, folio.status, folio.window_no
+      ORDER BY reservation.confirmation_no
+    `;
+    expect(examples).toEqual([
+      { confirmation_no: "ARR-CLEAN", reservation_status: "due_in", segment_status: "booked",
+        room_code: "101", condition: "clean", folio_status: "open", window_no: 1,
+        identity_documents: 1 },
+      { confirmation_no: "ARR-DIRTY", reservation_status: "due_in", segment_status: "booked",
+        room_code: "102", condition: "dirty", folio_status: "open", window_no: 1,
+        identity_documents: 1 },
+      { confirmation_no: "ARR-IDENTITY", reservation_status: "due_in", segment_status: "booked",
+        room_code: "G01", condition: "clean", folio_status: "open", window_no: 1,
+        identity_documents: 0 },
+    ]);
+    const configuration = await admin<Array<{
+      adapter_key: string | null; active_adapters: number; required_identity_fields: unknown;
+      base_property_config: unknown;
+      occupancy_claims: number; facts: number; events: number; journals: number;
+      postings: number; payments: number; documents: number;
+    }>>`
+      SELECT
+        property.config->>'statutory_adapter_key' AS adapter_key,
+        (SELECT count(*)::int FROM extension
+          WHERE tenant_id=${SEED_TENANT.id}::uuid AND type='statutory_adapter'
+            AND key=property.config->>'statutory_adapter_key' AND status='active'
+            AND effective @> CURRENT_TIMESTAMP) AS active_adapters,
+        (SELECT content->'required_identity_fields' FROM extension
+          WHERE tenant_id=${SEED_TENANT.id}::uuid AND type='statutory_adapter'
+            AND key=property.config->>'statutory_adapter_key' AND status='active'
+            AND effective @> CURRENT_TIMESTAMP) AS required_identity_fields,
+        (SELECT config FROM org_node
+          WHERE id=${SEED_PROPERTY.id}::uuid AND tenant_id=${SEED_TENANT.id}::uuid) AS base_property_config,
+        (SELECT count(*)::int FROM space_occupancy AS occupancy
+          JOIN reservation_segment AS seeded_segment ON seeded_segment.id=occupancy.slot_ref
+          WHERE seeded_segment.reservation_id IN (${cleanReservationId}::uuid,
+            ${dirtyReservationId}::uuid, ${identityGatedReservationId}::uuid)) AS occupancy_claims,
+        (SELECT count(*)::int FROM fact_log
+          WHERE entity_id IN (${cleanReservationId}::uuid, ${dirtyReservationId}::uuid,
+            ${identityGatedReservationId}::uuid)) AS facts,
+        (SELECT count(*)::int FROM outbox
+          WHERE aggregate_id IN (${cleanReservationId}::uuid, ${dirtyReservationId}::uuid,
+            ${identityGatedReservationId}::uuid)) AS events,
+        (SELECT count(*)::int FROM journal WHERE tenant_id=${SEED_TENANT.id}::uuid) AS journals,
+        (SELECT count(*)::int FROM posting_line WHERE tenant_id=${SEED_TENANT.id}::uuid) AS postings,
+        (SELECT count(*)::int FROM payment WHERE tenant_id=${SEED_TENANT.id}::uuid) AS payments,
+        (SELECT count(*)::int FROM document WHERE tenant_id=${SEED_TENANT.id}::uuid) AS documents
+      FROM org_node AS property
+      WHERE property.id=${String(ids.identityGatePropertyId)}::uuid
+        AND property.tenant_id=${SEED_TENANT.id}::uuid
+    `;
+    expect(configuration[0]).toEqual({
+      adapter_key: "local-review-recorded-identity", active_adapters: 1,
+      required_identity_fields: ["identity_document"], base_property_config: {}, occupancy_claims: 0,
+      facts: 0, events: 0, journals: 0, postings: 0, payments: 0, documents: 0,
     });
   });
 
@@ -392,7 +478,7 @@ databaseDescribe("Order 046 reproducible local-review seed", () => {
     expect(await tokens.verify(loginBody.accessToken)).toMatchObject({
       sub: first.userId,
       tid: SEED_TENANT.id,
-      scp: "crm.parties:read crm.parties:write financials.adjustments:write financials.cashiers:operate financials.cashiers:read financials.charges:write financials.folios:close financials.folios:open financials.folios:read financials.folios:settle financials.receivables:read financials.receivables:transfer financials.transfers:write inventory.availability:read inventory.blocks:read inventory.blocks:write inventory.configuration:read inventory.configuration:write inventory.holds:read inventory.holds:write inventory.offline_leases:read inventory.offline_leases:write inventory.policy:read inventory.policy:write inventory.restriction:read inventory.restriction:write rates.configuration:read rates.configuration:write rates.pricing:read rates.pricing:write reservations.booking:write reservations.guests:read reservations.guests:write reservations.lifecycle:read reservations.lifecycle:write reservations.segments:read reservations.segments:write",
+      scp: "crm.parties:read crm.parties:write financials.adjustments:write financials.cashiers:operate financials.cashiers:read financials.charges:write financials.folios:close financials.folios:open financials.folios:read financials.folios:settle financials.receivables:read financials.receivables:transfer financials.transfers:write inventory.availability:read inventory.blocks:read inventory.blocks:write inventory.configuration:read inventory.configuration:write inventory.holds:read inventory.holds:write inventory.offline_leases:read inventory.offline_leases:write inventory.policy:read inventory.policy:write inventory.restriction:read inventory.restriction:write rates.configuration:read rates.configuration:write rates.pricing:read rates.pricing:write reservations.booking:write reservations.guests:read reservations.guests:write reservations.lifecycle:read reservations.lifecycle:write reservations.segments:read reservations.segments:write stay-operations.checkin:commit stay-operations.checkin:read",
     });
     const approverLogin = await app.handle(new Request("http://yellow.test/api/v1/auth/local:login", {
       method: "POST",
@@ -406,15 +492,21 @@ databaseDescribe("Order 046 reproducible local-review seed", () => {
     expect(await tokens.verify(approverLoginBody.accessToken)).toMatchObject({
       sub: first.approverUserId,
       tid: SEED_TENANT.id,
-      scp: "crm.parties:read crm.parties:write financials.adjustments:post-seal financials.adjustments:write financials.cashiers:operate financials.cashiers:read financials.cashiers:supervise financials.charges:write financials.folios:close financials.folios:open financials.folios:read financials.folios:settle financials.receivables:approve financials.receivables:read financials.receivables:transfer financials.transfers:write inventory.availability:read inventory.blocks:read inventory.blocks:write inventory.configuration:read inventory.configuration:write inventory.holds:read inventory.holds:write inventory.offline_leases:read inventory.offline_leases:write inventory.policy:read inventory.policy:write inventory.restriction:read inventory.restriction:write rates.configuration:read rates.configuration:write rates.pricing:read rates.pricing:write reservations.booking:write reservations.guests:read reservations.guests:write reservations.lifecycle:read reservations.lifecycle:write reservations.segments:read reservations.segments:write",
+      scp: "crm.parties:read crm.parties:write financials.adjustments:post-seal financials.adjustments:write financials.cashiers:operate financials.cashiers:read financials.cashiers:supervise financials.charges:write financials.folios:close financials.folios:open financials.folios:read financials.folios:settle financials.receivables:approve financials.receivables:read financials.receivables:transfer financials.transfers:write inventory.availability:read inventory.blocks:read inventory.blocks:write inventory.configuration:read inventory.configuration:write inventory.holds:read inventory.holds:write inventory.offline_leases:read inventory.offline_leases:write inventory.policy:read inventory.policy:write inventory.restriction:read inventory.restriction:write rates.configuration:read rates.configuration:write rates.pricing:read rates.pricing:write reservations.booking:write reservations.guests:read reservations.guests:write reservations.lifecycle:read reservations.lifecycle:write reservations.segments:read reservations.segments:write stay-operations.checkin:commit stay-operations.checkin:dirty-room-override stay-operations.checkin:read",
     });
 
     const headers = { "content-type": "application/json", authorization: `Bearer ${loginBody.accessToken}` };
     const properties = await app.handle(new Request("http://yellow.test/api/v1/me/properties", { headers }));
-    expect(await properties.json()).toEqual({ properties: [{
-      id: SEED_PROPERTY.id, name: SEED_PROPERTY.name,
-      timezone: SEED_PROPERTY.timezone, currency: SEED_PROPERTY.currency,
-    }] });
+    expect(await properties.json()).toEqual({ properties: [
+      {
+        id: SEED_PROPERTY.id, name: SEED_PROPERTY.name,
+        timezone: SEED_PROPERTY.timezone, currency: SEED_PROPERTY.currency,
+      },
+      {
+        id: first.checkInExamples.identityGatePropertyId,
+        name: "Yellow Identity Gate Review Property", timezone: "UTC", currency: "USD",
+      },
+    ] });
 
     const from = new Date(Date.now() + 30 * 86_400_000);
     from.setUTCHours(15, 0, 0, 0);

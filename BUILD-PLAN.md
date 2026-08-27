@@ -139,6 +139,17 @@ queue_entry; message primitive + send_message action.
 **DoD**: checkout with open balance blocks with actionable error · HK task sheet
 matches occupancy + cadence config · discrepancy report correct on seeded divergence.
 
+Order 200 is built-unreviewed as the first Phase-6 product slice. It adds server-owned due-in
+readiness and the exact atomic `due_in -> in_house` reservation/current-segment
+transition. Assigned physical room, open primary folio, clean/inspected condition and
+configuration-selected recorded identity evidence are prerequisites; dirty/pickup
+requires distinct same-property authority and a reason. Deterministic review seed rows
+cover ready and dirty arrivals on the canonical review property plus an identity-gated
+arrival on a deterministic sibling property whose config selects the synthetic review
+adapter; the canonical property's config remains unchanged. The fixtures perform no
+check-in, occupancy or ledger effects. This built slice does not implement checkout, key issue,
+housekeeping workflows, statutory submission, or complete/review/approve Phase 6.
+
 ## Phase 7 — Tax engine + India IRP
 
 tax_assignment evaluation (percent/fixed/slab, compound, line-vs-document rounding)

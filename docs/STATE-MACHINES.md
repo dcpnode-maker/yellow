@@ -10,7 +10,7 @@ Transition tables are exhaustive — anything not listed is rejected with `inval
 | quote | reserved | availability confirmed via choke-point write of holds→segments; payment/guarantee per policy | reservation.confirmed |
 | reserved | due_in | business_date == arrival date (roll job) | reservation.due_in |
 | reserved/due_in | cancelled | within policy or override(approval); releases occupancy | reservation.cancelled |
-| due_in | in_house | check-in: id verified per statutory need; folio window ≥1 open; unit assigned & condition ∈ {clean,inspected} or `checkin.dirty_room` permission; keys optional | reservation.checked_in |
+| due_in | in_house | exactly one current booked segment is assigned to exactly one active physical room; primary folio window 1 and guest account are open; `unit_condition` is clean/inspected, or dirty/pickup has same-property `stay-operations.checkin:dirty-room-override` plus reason; when property config selects an effective active tenant statutory adapter declaring identity evidence, every reservation Party has a recorded identity document | reservation.checked_in |
 | due_in | no_show | day-roll for the arrival date; guarantee policy drives no-show journal | reservation.no_show |
 | in_house | due_out | business_date == departure date | reservation.due_out |
 | in_house/due_out | checked_out | ALL folio windows settled (balance 0) or transfer-to-AR with permission; occupancy period trimmed to now | reservation.checked_out |
@@ -19,6 +19,14 @@ Transition tables are exhaustive — anything not listed is rejected with `inval
 Segment moves: never edit `period`/unit on a live segment for a room move — close the
 segment (`departed`, trim period) and open the next `seq` (new occupancy via choke).
 Extensions/shortenings on the SAME unit: release + re-record inside one transaction.
+
+Order 200 makes the `due_in -> in_house` row executable through a server-owned
+readiness snapshot and an actor-bound idempotent command. The reservation and exact
+active segment change together; fact and outbox share that transaction. Readiness is
+re-read under lock at commit, so browser booleans and stale previews have no authority.
+The transition does not alter occupancy, folio/account state, money, keys, business
+day or statutory-submission state. Check-out and every other Phase-6 transition remain
+outside this active slice.
 
 ## 2. Folio (`folio.status`) — open → settled → closed
 

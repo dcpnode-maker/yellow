@@ -32,8 +32,15 @@ outbox by `seq` (SQL) or JetStream by offset.
 **rates** · policy.created {kind} · rate_plan.created {code,currency,policy_ids} · rate_price.created {rate_plan_id,unit_type_id,stay_dates,dow_mask,currency} · rate_price.superseded {old_rate_price_id,new_rate_price_id,currency}
 → quote versioning, direct-booking cache invalidation, distribution ARI
 
-**reservations** · reservation.confirmed {segments[{unit_type,period,rate_plan}],channel} · .modified {diff} · .cancelled {reason,penalty_journal?} · .no_show · .checked_in {segment,space} · .checked_out · .reinstated · .due_in/.due_out · segment.moved {from_space,to_space} · group.status_changed {deducts_delta} · block.rooms_released
+**reservations** · reservation.confirmed {segments[{unit_type,period,rate_plan}],channel} · .modified {diff} · .cancelled {reason,penalty_journal?} · .no_show · .checked_in {segment_id,space_id,primary_folio_id,room_condition,dirty_room_override_used,dirty_room_override_reason?,statutory_adapter_key?,identity_evidence_required,identity_evidence_satisfied} · .checked_out · .reinstated · .due_in/.due_out · segment.moved {from_space,to_space} · group.status_changed {deducts_delta} · block.rooms_released
 → folio automations, HK task generation, statutory scheduler, stats, ARI, messaging
+
+`reservation.checked_in` is the minimized evidence of the exact reservation and active
+segment entering `in_house` together. It may name the room, primary folio and configured
+adapter key, but never includes Party, identity-document, contact, credential or legal
+field values. Override authority is recorded only as use/reason after server-derived
+authorization. Consumers must not infer key issue, occupancy mutation, posting/payment,
+folio settlement, statutory submission, business-day movement or checkout.
 
 **financials** · journal.posted {kind,lines:[{account,folio?,tx_code,amount_minor}],payment_id?,operation_id?} · folio.opened {folio_id,account_id,reservation_id,window_no,folio_no,name?} · folio.settled/.closed {folio_id,account_id,reservation_id,window_no,previous_status,status} · payment.authorized/.incrementally_authorized/.captured/.refunded/.voided/.failed/.indeterminate/.reconciled {operation_id,payment_id,phase,outcome,amount_minor,currency,journal_id?} · credit.limit_breached · cashier.opened/.counted/.closed {session_id,drawer_id,count_id?,over_short_minor?} · business_day.opened/.sealed · deposit.requested {hosted_request_id,operation_id,folio_id,amount_minor,currency,expires_at,generation} · deposit.applied {application_id,hosted_request_id,operation_id,folio_id,amount_minor,journal_id} · deposit.matured
 → documents, AR, trust splits (Automation), dashboards, GL export

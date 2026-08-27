@@ -41,6 +41,10 @@
  let reservationBoardGeneration = 0;
  let reservationDetailData = null;
  let reservationDetailGeneration = 0;
+ let checkInReadinessData = null;
+ let checkInReadinessGeneration = 0;
+ let checkInAttemptKey = "";
+ let checkInAttemptDraft = "";
  let reservationDrawerReturnFocus = null;
  let reservationDrawerReturnView = "";
  let reservationDrawerReturnReservationId = "";
@@ -465,6 +469,19 @@
  const reservationPrimaryFolioMessage = $("#reservation-primary-folio-message");
  const reservationDetailActions = $("#reservation-detail-actions");
  const reservationDetailStatus = $("#reservation-detail-status");
+ const checkInWorkbench = $("#checkin-workbench");
+ const checkInHeading = $("#checkin-workbench-heading");
+ const checkInBadge = $("#checkin-readiness-badge");
+ const checkInSummary = $("#checkin-readiness-summary");
+ const checkInBlockers = $("#checkin-blockers");
+ const checkInForm = $("#checkin-form");
+ const checkInOverrideLabel = $("#checkin-override-label");
+ const checkInOverrideReason = $("#checkin-override-reason");
+ const checkInOverrideNote = $("#checkin-override-note");
+ const checkInConfirm = $("#checkin-confirm");
+ const checkInSubmit = $("#checkin-submit");
+ const checkInRefresh = $("#checkin-refresh");
+ const checkInMessage = $("#checkin-message");
  const folioStatementLookupForm = $("#folio-statement-lookup-form");
  const folioWorkspace = $("#folio-workspace");
  const folioWorkspaceTitle = $("#folio-workspace-title");
@@ -1415,6 +1432,151 @@
   }
  }
  }
+  function clearCheckInWorkbench({ preserveDraft = false } = {}) {
+ checkInReadinessGeneration += 1;
+ checkInReadinessData = null;
+ checkInWorkbench.hidden = true;
+ checkInWorkbench.setAttribute("aria-busy", "false");
+ checkInBlockers.replaceChildren();
+ checkInBadge.textContent = "Checking…";
+ checkInSummary.textContent = "Yellow is checking the assigned room, primary folio and configured identity evidence.";
+ checkInOverrideLabel.hidden = true;
+ checkInOverrideNote.hidden = true;
+ checkInConfirm.checked = false;
+ checkInSubmit.disabled = true;
+ checkInRefresh.disabled = false;
+ checkInMessage.textContent = "";
+ checkInMessage.classList.remove("error");
+ if (!preserveDraft) {
+  checkInOverrideReason.value = "";
+  checkInAttemptKey = "";
+  checkInAttemptDraft = "";
+ }
+ }
+  function checkInReadinessResult(value, reservationId) {
+ if (!value || typeof value !== "object" || Array.isArray(value)
+  || value.reservationId !== reservationId || typeof value.status !== "string"
+  || !Array.isArray(value.blockers) || typeof value.canCheckIn !== "boolean"
+  || typeof value.dirtyRoomOverrideRequired !== "boolean"
+  || typeof value.dirtyRoomOverrideAuthorized !== "boolean") {
+  throw new Error("The server returned an invalid check-in readiness result.");
+ }
+ for (const blocker of value.blockers) {
+  if (typeof blocker !== "string" || blocker.length < 1) {
+   throw new Error("The server returned an invalid check-in blocker.");
+  }
+ }
+ return value;
+ }
+ const checkInBlockerLabels = Object.freeze({
+ reservation_not_due_in: "Reservation is no longer due in.",
+ active_segment_missing: "No active booked stay segment was found.",
+ room_assignment_missing: "Assign a physical room before check-in.",
+ room_mapping_invalid: "The assigned sellable room mapping needs correction.",
+ room_condition_missing: "The assigned room has no current housekeeping condition.",
+ room_not_ready: "The assigned room is dirty or awaiting pickup service.",
+ dirty_room_override_unauthorized: "Your property access does not allow a dirty-room exception.",
+ primary_folio_not_open: "Open the primary folio before check-in.",
+ statutory_adapter_unavailable: "The configured statutory identity adapter is unavailable.",
+ identity_document_missing: "Required recorded identity evidence is incomplete.",
+ });
+  function renderCheckInReadiness(readiness) {
+ checkInReadinessData = readiness;
+ checkInBlockers.replaceChildren();
+ const blockers = readiness.blockers;
+ checkInBadge.textContent = readiness.canCheckIn ? "Ready" : `${blockers.length} blocker${blockers.length === 1 ? "" : "s"}`;
+ checkInBadge.dataset.state = readiness.canCheckIn ? "ready" : "blocked";
+ checkInSummary.textContent = readiness.canCheckIn
+  ? readiness.dirtyRoomOverrideRequired ? "Ready with an authorised dirty-room exception. Record the operational reason before check-in." : "Assigned room, folio and identity evidence are ready."
+  : "Check-in stays unavailable until every named server-owned blocker is resolved.";
+ for (const blocker of blockers) {
+  const item = node("li", "", checkInBlockerLabels[blocker] || blocker.replaceAll("_", " "));
+  item.dataset.blocker = blocker;
+  checkInBlockers.append(item);
+ }
+ const needsReason = readiness.dirtyRoomOverrideRequired === true && readiness.dirtyRoomOverrideAuthorized === true;
+ checkInOverrideLabel.hidden = !needsReason;
+ checkInOverrideNote.hidden = !needsReason;
+ checkInOverrideReason.required = needsReason;
+ checkInConfirm.disabled = !readiness.canCheckIn;
+ checkInSubmit.disabled = !readiness.canCheckIn || !checkInConfirm.checked || (needsReason && checkInOverrideReason.value.trim() === "");
+ checkInWorkbench.setAttribute("aria-busy", "false");
+ }
+  async function loadCheckInReadiness({ focus = false, preserveDraft = false } = {}) {
+ if (!reservationDetailData || reservationDetailData.reservation.status !== "due_in") {
+  clearCheckInWorkbench();
+  return;
+ }
+ const reservationId = reservationDetailData.reservation.reservationId;
+ const property = propertySelect.value;
+ const detailGeneration = reservationDetailGeneration;
+ const generation = ++checkInReadinessGeneration;
+ checkInWorkbench.hidden = false;
+ checkInWorkbench.setAttribute("aria-busy", "true");
+ checkInRefresh.disabled = true;
+ checkInSubmit.disabled = true;
+ checkInBadge.textContent = "Checking…";
+ checkInMessage.classList.remove("error");
+ checkInMessage.textContent = "Loading current arrival readiness…";
+ if (!preserveDraft) checkInConfirm.checked = false;
+ try {
+  const result = checkInReadinessResult(await request(`/api/v1/properties/${enc(property)}/reservations/${enc(reservationId)}/check-in/readiness`), reservationId);
+  if (generation !== checkInReadinessGeneration || detailGeneration !== reservationDetailGeneration
+   || property !== propertySelect.value || reservationRouteReservationId !== reservationId) return;
+  renderCheckInReadiness(result);
+  checkInMessage.textContent = "Readiness refreshed from server truth.";
+  if (focus) checkInHeading.focus();
+ } catch (error) {
+  if (generation !== checkInReadinessGeneration || detailGeneration !== reservationDetailGeneration
+   || property !== propertySelect.value || reservationRouteReservationId !== reservationId) return;
+  checkInReadinessData = null;
+  checkInWorkbench.setAttribute("aria-busy", "false");
+  checkInMessage.classList.add("error");
+  checkInMessage.textContent = `${error instanceof Error ? error.message : "Readiness could not be loaded"}. Refresh to retry.`;
+ } finally {
+  if (generation === checkInReadinessGeneration && detailGeneration === reservationDetailGeneration
+   && property === propertySelect.value && reservationRouteReservationId === reservationId) checkInRefresh.disabled = false;
+ }
+ }
+  async function submitCheckIn(event) {
+ event.preventDefault();
+ if (!reservationDetailData || !checkInReadinessData?.canCheckIn || !checkInConfirm.checked) return;
+ const reservationId = reservationDetailData.reservation.reservationId;
+ const property = propertySelect.value;
+ const detailGeneration = reservationDetailGeneration;
+ const needsReason = checkInReadinessData.dirtyRoomOverrideRequired === true;
+ const reason = checkInOverrideReason.value.trim();
+ if (needsReason && reason === "") { checkInOverrideReason.focus(); return; }
+ const body = needsReason ? { reason } : {};
+ const draft = JSON.stringify({ property, reservationId, body });
+ if (!checkInAttemptKey || checkInAttemptDraft !== draft) {
+  checkInAttemptKey = crypto.randomUUID();
+  checkInAttemptDraft = draft;
+ }
+ const attemptKey = checkInAttemptKey;
+ checkInSubmit.disabled = true;
+ checkInRefresh.disabled = true;
+ checkInMessage.classList.remove("error");
+ checkInMessage.textContent = "Checking in from current server truth…";
+ try {
+  const result = await request(`/api/v1/properties/${enc(property)}/reservations/${enc(reservationId)}/check-in`, {
+  method: "POST", headers: { "idempotency-key": attemptKey }, body: JSON.stringify(body),
+  });
+  if (detailGeneration !== reservationDetailGeneration || property !== propertySelect.value || reservationRouteReservationId !== reservationId) return;
+  if (!result || result.reservationId !== reservationId) throw new Error("The server returned a different reservation");
+  checkInAttemptKey = "";
+  checkInAttemptDraft = "";
+  checkInMessage.textContent = result.replayed ? "Existing check-in confirmed. Refreshing the stay…" : "Guest checked in. Refreshing the stay…";
+  await loadReservationDetail(reservationId);
+  void loadToday();
+ } catch (error) {
+  if (detailGeneration !== reservationDetailGeneration || property !== propertySelect.value || reservationRouteReservationId !== reservationId) return;
+  checkInMessage.classList.add("error");
+  checkInMessage.textContent = `${error instanceof Error ? error.message : "Check-in could not be completed"}. Retry keeps the same request key; refresh readiness if conditions changed.`;
+  checkInRefresh.disabled = false;
+  checkInSubmit.disabled = false;
+ }
+ }
   function renderReservationDetail(result) {
  clearReservationDrawerLifecycle();
  const reservation = result.reservation;
@@ -1447,6 +1609,8 @@
  reservationDetailContent.hidden = false;
  reservationDetailStatus.textContent = "Complete reservation detail loaded from server truth.";
  reservationDetailDrawer.setAttribute("aria-busy", "false");
+ if (reservation.status === "due_in") void loadCheckInReadiness();
+ else clearCheckInWorkbench();
  }
   async function loadReservationDetail(reservationId) {
  const generation = ++reservationDetailGeneration;
@@ -1456,6 +1620,7 @@
  reservationDetailLoading.hidden = false;
  reservationDetailError.hidden = true;
  reservationDetailContent.hidden = true;
+ clearCheckInWorkbench({ preserveDraft: true });
  reservationDetailFolios.hidden = true;
  reservationDetailFolioList.replaceChildren();
  reservationPrimaryFolioCreate.hidden = true;
@@ -1503,6 +1668,7 @@
  reservationPrimaryFolioAttemptKey = "";
  reservationPrimaryFolioReservationId = "";
  reservationDetailData = null;
+ clearCheckInWorkbench();
  reservationDetailDrawer.hidden = true;
  reservationDetailContent.replaceChildren();
  reservationDetailFolios.hidden = true;
@@ -5858,6 +6024,7 @@
  reservationDrawerReturnReservationId = "";
  todayReturnFocus = { reservationId: "", cycle: 0 };
  reservationDetailDrawer.hidden = true;
+ clearCheckInWorkbench();
  reservationPrimaryFolioAttemptKey = "";
  reservationPrimaryFolioReservationId = "";
  clearReservationDrawerLifecycle();
@@ -5968,6 +6135,15 @@
  if (reservationRouteReservationId) void loadReservationDetail(reservationRouteReservationId);
  });
  reservationPrimaryFolioCreate.addEventListener("click", () => void openPrimaryFolio());
+ checkInForm.addEventListener("submit", (event) => void submitCheckIn(event));
+ checkInRefresh.addEventListener("click", () => void loadCheckInReadiness({ focus: true, preserveDraft: true }));
+ const updateCheckInAction = () => {
+  const needsReason = checkInReadinessData?.dirtyRoomOverrideRequired === true;
+  checkInSubmit.disabled = checkInReadinessData?.canCheckIn !== true || !checkInConfirm.checked
+  || (needsReason && checkInOverrideReason.value.trim() === "");
+ };
+ checkInConfirm.addEventListener("change", updateCheckInAction);
+ checkInOverrideReason.addEventListener("input", updateCheckInAction);
  window.addEventListener("popstate", () => {
  if (location.pathname === `/p/${propertySelect.value}/today`) {
   closeReservationDetail({ history: false, restoreFocus: false });
