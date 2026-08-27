@@ -46,10 +46,6 @@ function localReviewCredentials(): OperatorLocalReviewCredentials | undefined {
   if (!workbenchEnabled || hostedProviderOnly) {
     throw new Error("local review prefill requires the operator workbench");
   }
-  const hostname = runtimeHostname();
-  if (!new Set(["127.0.0.1", "localhost", "::1"]).has(hostname)) {
-    throw new Error("local review prefill requires a loopback bind");
-  }
   const credentials = {
     tenant: Bun.env.YELLOW_LOCAL_REVIEW_TENANT ?? "",
     email: Bun.env.YELLOW_LOCAL_REVIEW_EMAIL ?? "",

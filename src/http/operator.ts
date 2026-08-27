@@ -3592,6 +3592,12 @@ function escapeHtmlAttribute(value: string): string {
     .replaceAll(">", "&gt;");
 }
 
+function isLoopbackRequest(request: Request): boolean {
+  let hostname: string;
+  try { hostname = new URL(request.url).hostname; } catch { return false; }
+  return new Set(["127.0.0.1", "localhost", "[::1]", "::1"]).has(hostname);
+}
+
 function localReviewHtml(credentials: OperatorLocalReviewCredentials): Response {
   let html = readFileSync(fileURLToPath(ASSET_URLS.html), "utf8");
   const fields = [
@@ -3609,8 +3615,10 @@ function localReviewHtml(credentials: OperatorLocalReviewCredentials): Response 
 }
 
 export const operatorAssets = Object.freeze({
-  html(credentials?: OperatorLocalReviewCredentials): Response {
-    return credentials ? localReviewHtml(credentials) : assetResponse(ASSET_URLS.html, "text/html; charset=utf-8");
+  html(credentials?: OperatorLocalReviewCredentials, request?: Request): Response {
+    return credentials && request && isLoopbackRequest(request)
+      ? localReviewHtml(credentials)
+      : assetResponse(ASSET_URLS.html, "text/html; charset=utf-8");
   },
   css(): Response { return assetResponse(ASSET_URLS.css, "text/css; charset=utf-8"); },
   js(): Response { return assetResponse(ASSET_URLS.js, "text/javascript; charset=utf-8"); },
