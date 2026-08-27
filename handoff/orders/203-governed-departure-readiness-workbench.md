@@ -21,8 +21,9 @@ controls but performs no checkout or mutation.
 - Reservation status must be `in_house` or `due_out`.
 - Exactly one segment for the reservation is `in_house`.
 - That segment resolves through its assigned sellable unit to exactly one active
-  physical space, and exactly one matching `slot_kind='reservation'`, exclusive
-  occupancy exists for that segment/space with the exact segment period.
+  physical space, and exactly one matching `slot_kind='segment'`, exclusive
+  occupancy exists with `slot_ref` equal to that segment id, the same space, and the
+  exact segment period.
 - At least one folio window exists for the reservation. Every window must be
   `settled` or `closed` and its canonical `COALESCE(folio_balance,0)` must equal zero.
   An open-but-zero window is deliberately blocked; the existing settlement command
@@ -107,4 +108,3 @@ No migration, dependency, table, state, event, command or write authority is adm
 - [ ] Read and races are coherent and byte-for-byte mutation-free.
 - [ ] Human Departure workbench and deterministic ready fixture are usable.
 - [ ] Result is recorded built-unreviewed without claiming checkout/Phase6/app completion.
-
