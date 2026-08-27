@@ -1,4 +1,4 @@
-# Order 192 independent Tier-3 review — CHANGES REQUIRED
+# Order 192 independent Tier-3 review — APPROVED AFTER CORRECTION
 
 **Reviewer:** OpenAI Codex independent non-implementing reviewer
 
@@ -6,90 +6,76 @@
 
 **Implementation candidate:** `afaa9674c65984f08cbd56031510c308ce3681ad`
 
-**Builder-governance head reviewed:** `658ab0f208d164b14f3576e335935acdbb14d038`
+**Corrected proof candidate:** `549b81dba6ead5163135d0c4a76169429174eebd`
 
-**Decision:** CHANGES REQUIRED — D-507
+**Builder-governance head reviewed:** `caf60333731d6cd688da3c126ef0af92561617c3`
+
+**Decision:** APPROVED — D-509
 
 ## Summary
 
-The schema, state, money, reconciliation and inherited executable paths that are
-actually covered all pass on fresh reviewer-owned databases. No incorrect journal,
-excess capture/refund, receipt replay, rollback, migration, RLS catalogue or ACL
-result was observed. Approval is nevertheless blocked because the committed P1/P4/P5
-oracle does not execute three proofs that Order192 explicitly requires, while D-506
-describes them as complete.
+The exact payment implementation, migration, contracts and production source remain
+byte-identical to the previously reviewed `afaa967` candidate. Corrected candidate
+`549b81d` changes only two admitted proof files and closes all three D-507 blockers:
+the scanner now executes over public/assets/seeds/evidence fixtures with a narrow
+counted non-card allowlist; both new tables receive real tenant-A/B hostile execution;
+and deterministic distinct-key capture/void, increment/capture and refund races prove
+exact winner and loser-artifact behavior. The complete Tier-3 review was rerun from
+the top on fresh reviewer-owned databases and is green.
 
-## Blocking findings
+## Resolved findings
 
-| Severity | Location | Finding | Required correction |
-|---|---|---|---|
-| Blocking proof gap | `tests/financial-payments.integration.test.ts` P5 | The executable no-PAN/CVV scan visits only `src`, `migrations` and `scripts`. Order192 Required work13 also requires runtime assets, seeds and evidence fixtures. `public` and the relevant test/evidence fixture surface are not scanned. The separately edited hostile Party fixture is therefore outside the committed scanner. | Extend the executable scanner to every required surface. Handle legitimate long financial test integers through a narrow, documented non-card allowlist or fixture classification; do not broadly suppress 12–19 digit candidates. Prove the hostile sentinel remains effective without retaining a contiguous PAN. |
-| Blocking Tier-3 tenancy proof gap | `tests/financial-payments.integration.test.ts` P1/P5 | P1 checks the RLS/policy catalogue and P5 checks a foreign property envelope, but neither executes tenant-A/tenant-B reads and hostile inserts against the new `payment_operation` and `provider_event_receipt` tables. D-505/P1/P5/P6 require executable tenant isolation for this exact new surface. | Add two-tenant app-role proof that A sees only A, B sees only B/zero A, and hostile cross-tenant operation/receipt references fail without artifacts. |
-| Blocking concurrency proof gap | `tests/financial-payments.integration.test.ts` P4 | The twenty-way test races identical authorization and capture keys. It does not race distinct state commands or any refund calls, although the pre-registered P4 requires same-key/capture/refund racers and the review assignment requires twenty-way idempotency/state/refund races. | Add deterministic twenty-way distinct-key capture/state arbitration and bounded partial-refund races. Assert exact winner/result semantics, one capture, refund total never above capture, journal/fact/outbox cardinalities and zero drift after rejected losers. |
+| D-507 blocker | Correction and reviewer result |
+|---|---|
+| No-PAN/CVV scan omitted public assets and evidence fixtures. | The scanner traverses every existing `src`, `public`, `assets`, `migrations`, `scripts`, `fixtures` and `tests` surface; asserts representative runtime, scenario, Party, fact, outbox, idempotency and SQL fixture files are included; uses only two exact counted non-card integer allowlist entries; checks Luhn and CVV/CVC shapes; and checks fact/outbox/idempotency evidence plus forbidden database column names. P5 passes. |
+| New-table tenant isolation was catalogue-only. | P1 creates tenants A and B, operations and receipts, proves each app-role transaction sees only its own operation/receipt, rejects A-context inserts carrying B authority, rejects foreign reconciliation, and proves zero hostile artifacts. P1 passes. |
+| P4 lacked distinct state/refund races. | Three pause-controlled twenty-way tests race distinct capture-vs-void, incremental-vs-capture and refund keys. Each produces one winner, nineteen rejected losers, exact payment/journal/fact/outbox/line cardinalities, at most one capture, bounded refunds, exact folio balance and zero tenant ledger drift. P4 passes. |
+
+No prior Order192 assertion was removed or weakened. The only companion Party-proof
+change constructs its hostile CVV sentinel dynamically so rejection remains active
+without retaining prohibited contiguous evidence.
 
 ## Personally executed evidence
 
-- `git diff a92659b..afaa967` and the exact migration/service/provider/docs/test
-  surfaces were inspected against PROJECT.md, D-505/D-506 and the mandatory
-  compliance, entity and PostgreSQL patterns. Scope is within Order192 and
-  `migrations/0001_init.sql` is unchanged.
-- `.\setup.ps1 -DbOnly` on reviewer-owned `yellow_test`: migrations1–21 applied,
-  exact87 public tables, 77 RLS-enabled tenant tables and77 policies; referee
-  **11 passed, 0 failed**.
-- `bun test tests/financial-payments.integration.test.ts` with fresh isolated
-  deployment/runtime URLs: **6 pass, 0 fail, 156 expectations**. Covered catalogue
-  and ACL shape, journal-free auth/increment/void, one locked balance-capped capture,
-  two bounded capture-linked refunds with exact signs, receipt replay/content
-  conflict/late reconciliation, injected rollback and the currently committed
-  hostile-input checks.
-- Fresh dedicated `yellow_order192_review` migrated1–21 and seeded canonically.
-  Database acceptance, app-role nonlogin and runtime-authority suites: **21 pass,
-  0 fail, 117 expectations**.
-- Inherited financial postings on that fresh database: **10 pass, 0 fail,
-  111 expectations**, including 500 charges and 1,000 balanced immutable lines.
-- Native Windows migration suite: **22 pass, 1 host-policy failure**. The failure is
-  the disclosed inability to create the symlink attack fixture (`EPERM`) before the
-  product migration runner is invoked; it is not counted as a product pass or fail.
-- The identical unchanged migration suite was personally rerun in cached
-  `oven/bun:1.3.14-alpine` against the same isolated PostgreSQL authority:
-  **23 pass, 0 fail, 118 expectations**, including the symlink fail-closed proof.
-- `bun test`: **264 pass, 507 database-dependent skips, 0 fail,
+- Read the constitution, Phase5 plan, roster/workflow, Order192, D-505–D-508 and the
+  mandatory compliance/entity/PostgreSQL skills. Repair scope is exactly
+  `tests/financial-payments.integration.test.ts` and
+  `tests/operator-party-profiles.integration.test.ts`; no migration, production
+  source, contract, schema expectation or setup behavior changed after `afaa967`.
+- `.\setup.ps1 -DbOnly`: fresh migrations1–21, exact87 public tables, 77 RLS-enabled
+  tenant tables and77 policies; referee **11 passed, 0 failed**.
+- Corrected payment suite with isolated runtime/deployment URLs: **10 pass, 0 fail,
+  560 expectations**. It executes schema/index/FK/RLS/ACL shape, A/B isolation and
+  hostile writes, journal-free auth/increment/void, one balance-capped capture,
+  linked refunds, same-key and distinct state/refund races, receipt reconciliation,
+  rollback, hostile authority/money/token containment, normalized evidence and
+  canonical journal lines.
+- Fresh `yellow_order192_rereview` migrated1–21 and seeded canonically. Database
+  acceptance, app-role nonlogin and runtime-authority: **21 pass, 0 fail,
+  117 expectations**.
+- Inherited financial postings: **10 pass, 0 fail, 111 expectations**, including
+  500 charges and 1,000 balanced immutable lines.
+- Cached `oven/bun:1.3.14-alpine` migration suite: **23 pass, 0 fail,
+  118 expectations**, including the symlink fail-closed fixture.
+- Native Windows migration suite: **22 pass, 1 host-policy failure**. The only failure
+  is disclosed Windows `EPERM` while the test creates its symlink fixture before
+  product migration code runs; the identical Linux execution above is green.
+- `bun test`: **264 pass, 511 database-dependent skips, 0 fail,
   3,378 expectations**.
-- `bun run schema:check`: exact schema matches `tests/schema/expected.sql`.
-- `bun run typecheck`: pass.
-- `bun run boundaries`: pass, 70 TypeScript files scanned.
-- `bun run license-check`: pass, 23 installed packages.
-- `bun audit --production`: no vulnerabilities found.
-- `git diff --check a92659b..afaa967`: pass.
-- Reviewer supplemental scan of the exact Order192 diff found no Luhn-valid 12–19
-  digit sequence; database column-name scan found zero PAN/CVV/CVC-shaped columns.
-  This supplemental observation does not replace the missing committed full-surface
-  oracle identified above.
+- Schema drift: exact; typecheck: pass; boundaries: 70 files; licences: 23 packages;
+  `bun audit --production`: no vulnerabilities; both exact-range diff checks pass.
+- Disposable reviewer database was dropped; worktree was clean before governance.
 
-An initial combined inherited-suite invocation incorrectly reused the two-tenant
-referee fixture for canonical-seed acceptance and used the runtime login for a suite
-whose cleanup requires deployment authority. Those fixture/role errors were not
-treated as candidate evidence; every affected suite was rerun from scratch on its
-correct isolated database and role, producing the green results recorded above.
+## PowerShell setup review
 
-## PowerShell setup change
-
-`setup.ps1` now passes Compose arguments through an explicit string array, preventing
-PowerShell from consuming `pg_isready -d` as an abbreviated common parameter, and
-adds an explicit standard-input path for fixture loading. The reviewer executed the
-whole script successfully. Readiness, postmaster identity, SQL `ON_ERROR_STOP`, fresh
-database recreation, fixture load, exact table count and referee failure handling
-remain fail-closed. No relaxation was found.
-
-## Scope and safety
-
-No founder/local runtime, persistent founder data, credentials, permissions or
-production system was mutated. All reviewer databases were disposable. No local
-promotion, merge, push, public/production deployment or Phase-wide completion is
-approved.
+The earlier `setup.ps1` repair is unchanged and was re-executed end to end. Explicit
+Compose argument arrays and standard input fix PowerShell binding without weakening
+readiness, postmaster identity, SQL `ON_ERROR_STOP`, database recreation, exact table
+count or referee failure propagation.
 
 ## Verdict
 
-**CHANGES REQUIRED.** Candidate `afaa967` is not independently approved. Correct the
-three bounded executable-proof gaps, record a new exact candidate, and obtain a fresh
-non-implementing Tier-3 rerun of P1–P5 and the inherited gates.
+**APPROVED.** Corrected exact Order192 candidate `549b81d` satisfies D-505 and closes
+D-507 with personally rerun Tier-3 proof. Approval covers only this bounded token-only
+payment foundation; no local promotion, founder database/credential/permission
+mutation, merge, push, public/production deployment or Phase completion is approved.

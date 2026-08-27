@@ -1,6 +1,6 @@
 # Order 192 — Token-only payment lifecycle foundation
 
-**Status:** CHANGES REQUIRED — D-507
+**Status:** APPROVED — D-509
 **Phase:** 5 — Financials
 **Branch:** `phase-5/folio-charge-correction-resumed`
 **Base:** `a92659b` (independently approved Order191 local)
@@ -118,9 +118,9 @@ requires a numbered question; scope must not widen silently.
 
 ## Definition of done
 
-- [ ] Intentional red precedes product/migration code.
-- [ ] Stable operation, append-only attempts and durable receipts are proven.
-- [ ] Auth/increment/void remain journal-free; capture/refund journals are exact.
-- [ ] No-PAN, tenancy, concurrency, replay/reconciliation and rollback proofs pass.
-- [ ] Current schema/oracles and referee 11/11 pass.
-- [ ] Independent Tier-3 review approves the exact candidate.
+- [x] Intentional red precedes product/migration code.
+- [x] Stable operation, append-only attempts and durable receipts are proven.
+- [x] Auth/increment/void remain journal-free; capture/refund journals are exact.
+- [x] No-PAN, tenancy, concurrency, replay/reconciliation and rollback proofs pass.
+- [x] Current schema/oracles and referee 11/11 pass.
+- [x] Independent Tier-3 review approves the exact candidate.
