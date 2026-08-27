@@ -1,7 +1,7 @@
 # Phase 6 — Stay operations and housekeeping
 
-**Status:** active; Order 200 is built-unreviewed, not Phase completion  
-**Entry point:** built-unreviewed Phase-5 composition through Order 199  
+**Status:** active; Order 200 is built-unreviewed, not Phase completion
+**Entry point:** built-unreviewed Phase-5 composition through Order 199
 **Current order:** `200-governed-arrival-readiness-checkin.md`
 
 ## Outcome
