@@ -13,7 +13,10 @@ function Assert-Exit([string]$Operation) {
 }
 
 function Invoke-Compose {
-    param([Parameter(ValueFromRemainingArguments = $true)][string[]]$Arguments)
+    param(
+        [Parameter(Mandatory = $true)][string[]]$Arguments,
+        [Parameter(Mandatory = $false)][AllowEmptyString()][string]$StandardInput
+    )
     $previousDeployPassword = $env:YELLOW_DEPLOY_DATABASE_PASSWORD
     $previousRuntimePassword = $env:YELLOW_RUNTIME_DATABASE_PASSWORD
     $previousRegistrarPassword = $env:YELLOW_EXTENSION_REGISTRAR_DATABASE_PASSWORD
@@ -21,7 +24,11 @@ function Invoke-Compose {
         $env:YELLOW_DEPLOY_DATABASE_PASSWORD = $script:DeployPassword
         $env:YELLOW_RUNTIME_DATABASE_PASSWORD = $script:RuntimePassword
         $env:YELLOW_EXTENSION_REGISTRAR_DATABASE_PASSWORD = $script:RegistrarPassword
-        & docker compose @Arguments
+        if ($PSBoundParameters.ContainsKey('StandardInput')) {
+            $StandardInput | & docker compose @Arguments
+        } else {
+            & docker compose @Arguments
+        }
     } finally {
         $env:YELLOW_DEPLOY_DATABASE_PASSWORD = $previousDeployPassword
         $env:YELLOW_RUNTIME_DATABASE_PASSWORD = $previousRuntimePassword
@@ -148,9 +155,11 @@ Invoke-Compose -Arguments @('up', '--detach', 'postgres', 'valkey') | Out-Host; 
 
 $ready = $false
 foreach ($attempt in 1..40) {
-    $postmaster = Invoke-Compose exec -T postgres cat /proc/1/comm 2> $null
+    $postmaster = Invoke-Compose -Arguments @('exec', '-T', 'postgres', 'cat', '/proc/1/comm') 2> $null
     $finalPostmaster = $LASTEXITCODE -eq 0 -and $postmaster.Trim() -eq 'postgres'
-    Invoke-Compose exec -T postgres pg_isready -U yellow_deploy -d yellow_dev *> $null
+    # Use the explicit array form so PowerShell cannot consume pg_isready's `-d`
+    # as an abbreviated common `-Debug` parameter on Invoke-Compose.
+    Invoke-Compose -Arguments @('exec', '-T', 'postgres', 'pg_isready', '-U', 'yellow_deploy', '-d', 'yellow_dev') *> $null
     $databaseReady = $LASTEXITCODE -eq 0
     if ($databaseReady -and $finalPostmaster) { $ready = $true; break }
     Start-Sleep -Seconds 1
@@ -175,21 +184,24 @@ try {
     bun scripts/migrate.ts | Out-Host; Assert-Exit 'Migrating yellow_dev'
     bun scripts/seed.ts | Out-Host; Assert-Exit 'Seeding yellow_dev'
 
-    Invoke-Compose exec -T postgres psql -U yellow_deploy -d postgres -v ON_ERROR_STOP=1 `
-        -c 'DROP DATABASE IF EXISTS yellow_test WITH (FORCE)' -c 'CREATE DATABASE yellow_test OWNER yellow_deploy' | Out-Host
+    Invoke-Compose -Arguments @('exec', '-T', 'postgres', 'psql', '-U', 'yellow_deploy', '-d', 'postgres',
+        '-v', 'ON_ERROR_STOP=1', '-c', 'DROP DATABASE IF EXISTS yellow_test WITH (FORCE)',
+        '-c', 'CREATE DATABASE yellow_test OWNER yellow_deploy') | Out-Host
     Assert-Exit 'Recreating yellow_test'
 
     $env:YELLOW_DEPLOY_DATABASE_URL = $testUrl
     bun scripts/migrate.ts | Out-Host; Assert-Exit 'Migrating yellow_test'
-    Get-Content (Join-Path $root 'tests/seed_fixture.sql') -Raw |
-        Invoke-Compose exec -T postgres psql -U yellow_deploy -d yellow_test -v ON_ERROR_STOP=1 | Out-Host
+    $fixtureSql = Get-Content (Join-Path $root 'tests/seed_fixture.sql') -Raw
+    Invoke-Compose -Arguments @('exec', '-T', 'postgres', 'psql', '-U', 'yellow_deploy', '-d', 'yellow_test',
+        '-v', 'ON_ERROR_STOP=1') -StandardInput $fixtureSql | Out-Host
     Assert-Exit 'Loading the invariant fixture'
 
-    $tables = Invoke-Compose exec -T postgres psql -U yellow_deploy -d yellow_test -tAc "SELECT count(*) FROM pg_tables WHERE schemaname='public';"
+    $tables = Invoke-Compose -Arguments @('exec', '-T', 'postgres', 'psql', '-U', 'yellow_deploy', '-d', 'yellow_test',
+        '-tAc', "SELECT count(*) FROM pg_tables WHERE schemaname='public';")
     Assert-Exit 'Counting public tables'
     $tables = $tables.Trim()
-    if ($tables -ne '85') { throw "yellow_test has $tables public tables; expected 85 (80 baseline + tx_code_route + 2 kernel consumer + api_idempotency + schema_migration)." }
-    Write-Host 'yellow_test tables: 85 (80 baseline + tx_code_route + 2 kernel consumer + api_idempotency + schema_migration)'
+    if ($tables -ne '87') { throw "yellow_test has $tables public tables; expected 87 (80 baseline + tx_code_route + 2 kernel consumer + api_idempotency + payment operation + provider receipt + schema_migration)." }
+    Write-Host 'yellow_test tables: 87 (80 baseline + tx_code_route + 2 kernel consumer + api_idempotency + payment operation + provider receipt + schema_migration)'
 
     $env:YELLOW_DSN = "dbname=yellow_test user=yellow_deploy password=$($script:DeployPassword) host=127.0.0.1 port=$($env:YELLOW_POSTGRES_PORT)"
     $env:PYTHONIOENCODING = 'utf-8'

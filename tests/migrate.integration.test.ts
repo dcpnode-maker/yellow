@@ -516,7 +516,7 @@ databaseDescribe("Bun SQL migration runner", () => {
         const tableCount = await sql<{ count: number }[]>`
           SELECT count(*)::int AS count FROM pg_catalog.pg_tables WHERE schemaname = 'public'
         `;
-        expect(tableCount).toEqual([{ count: 85 }]);
+        expect(tableCount).toEqual([{ count: 87 }]);
       });
     },
     60_000,
@@ -787,7 +787,7 @@ databaseDescribe("Bun SQL migration runner", () => {
         const tableCount = await sql<{ count: number }[]>`
           SELECT count(*)::int AS count FROM pg_tables WHERE schemaname = 'public'
         `;
-        expect(tableCount).toEqual([{ count: 85 }]);
+        expect(tableCount).toEqual([{ count: 87 }]);
 
         const privileges = await sql<{
           route_rls: boolean;

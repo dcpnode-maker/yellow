@@ -576,3 +576,12 @@ Before any schema change:
 - Is the proposed model proven by the next runnable vertical slice?
 
 If those answers are missing, the next artifact is a question/ADR, not a migration.
+
+### Payment operation identity (Order 192)
+
+`payment_operation` is the immutable tenant/property/folio collection identity. It
+binds the guest account, tokenized instrument, provider/method, currency, governed
+payment code/clearing route, actor and request hashes. `payment` is its append-only
+attempt/result history; `provider_event_receipt` is immutable late-provider evidence.
+Neither receipt nor durable evidence stores the opaque token or raw provider payload.
+The one-capture and no-overpayment policy is part of the aggregate, not adapter choice.

@@ -101,6 +101,12 @@ folio statement + `folio_balance`.
 1,000-posting concurrency run: trial balance = 0 drift · adjustment creates reversal
 journal, original untouched · trust account negative-guard requires approval.
 
+Order 192 adds the payment foundation within this phase: immutable token-only
+operations, append-only attempts/receipts, journal-free auth/increment/void, exactly
+one locked balance-capped capture, bounded linked partial refunds and deterministic
+local reconciliation. Remote PSP/network/UI, deposits, settlement and checkout remain
+future work; this does not claim Phase 5 completion.
+
 ## Phase 6 — Stay ops & Housekeeping
 
 check_in (statutory field gate) / check_out (settlement) flows; travel_detail capture

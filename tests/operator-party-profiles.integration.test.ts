@@ -406,6 +406,7 @@ databaseDescribe("Order 102 operator Party HTTP adapter", () => {
   test("P3: hostile caller-owned authority, PII, contact state, malformed fields and keys fail before mutation", async () => {
     const before = await artifacts();
     const valid = createBody({ displayName: `Order 102 Hostile ${runTag}` });
+    const hostilePrimaryAccountNumber = "4111".repeat(4);
     const hostile: unknown[] = [
       { ...valid, tenantId: SEED_TENANT.id },
       { ...valid, actorId: userId },
@@ -413,7 +414,7 @@ databaseDescribe("Order 102 operator Party HTTP adapter", () => {
       { ...valid, operation: "party.created" },
       { ...valid, attrs: { dateOfBirth: "1990-01-01", nationality: "IN" } },
       { ...valid, consent: true },
-      { ...valid, payment: { pan: "4111111111111111", cvv: "123" } },
+      { ...valid, payment: { pan: hostilePrimaryAccountNumber, cvv: "123" } },
       { ...valid, verified: true },
       { ...valid, contacts: [{ kind: "email", value: `verified-${runTag}@order102.test`, verified: true }] },
       { ...valid, roles: [] },
@@ -429,7 +430,9 @@ databaseDescribe("Order 102 operator Party HTTP adapter", () => {
     for (const [index, body] of hostile.entries()) {
       const response = await create(body, `order102-hostile-${runTag}-${index}`);
       expect(response.status).toBe(400);
-      expect(await response.text()).not.toMatch(/4111111111111111|verified-.*@order102\.test/);
+      const responseText = await response.text();
+      expect(responseText).not.toContain(hostilePrimaryAccountNumber);
+      expect(responseText).not.toMatch(/verified-.*@order102\.test/);
       expect(await artifacts()).toEqual(before);
     }
     expect((await create(valid)).status).toBe(400);

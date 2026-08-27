@@ -35,7 +35,7 @@ outbox by `seq` (SQL) or JetStream by offset.
 **reservations** · reservation.confirmed {segments[{unit_type,period,rate_plan}],channel} · .modified {diff} · .cancelled {reason,penalty_journal?} · .no_show · .checked_in {segment,space} · .checked_out · .reinstated · .due_in/.due_out · segment.moved {from_space,to_space} · group.status_changed {deducts_delta} · block.rooms_released
 → folio automations, HK task generation, statutory scheduler, stats, ARI, messaging
 
-**financials** · journal.posted {kind,lines:[{account,folio?,tx_code,amount_minor}]} · folio.opened/.settled/.closed · payment.authorized/.captured/.refunded/.failed · credit.limit_breached · cashier.closed {over_short} · business_day.opened/.sealed · deposit.requested/.matured
+**financials** · journal.posted {kind,lines:[{account,folio?,tx_code,amount_minor}],payment_id?,operation_id?} · folio.opened/.settled/.closed · payment.authorized/.incrementally_authorized/.captured/.refunded/.voided/.failed/.indeterminate/.reconciled {operation_id,payment_id,phase,outcome,amount_minor,currency,journal_id?} · credit.limit_breached · cashier.closed {over_short} · business_day.opened/.sealed · deposit.requested/.matured
 → documents, AR, trust splits (Automation), dashboards, GL export
 
 **housekeeping/stay** · unit.condition_changed · task.created/.status_changed · discrepancy.reported/.resolved · queue.entered/.cleared · message.received/.sent

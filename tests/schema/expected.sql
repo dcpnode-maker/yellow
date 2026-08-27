@@ -766,6 +766,38 @@ $$;
 
 
 --
+-- Name: lock_payment_operation(uuid, uuid); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.lock_payment_operation(p_tenant uuid, p_operation uuid) RETURNS void
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'pg_catalog', 'public', 'pg_temp'
+    AS $$
+DECLARE
+  v_context uuid;
+BEGIN
+  IF pg_catalog.current_setting('role', true) IS DISTINCT FROM 'app_role' THEN
+    RAISE EXCEPTION USING ERRCODE = '42501', MESSAGE = 'payment operation lock requires app_role';
+  END IF;
+  BEGIN
+    v_context := NULLIF(pg_catalog.current_setting('app.tenant_id', true), '')::uuid;
+  EXCEPTION WHEN invalid_text_representation THEN
+    RAISE EXCEPTION USING ERRCODE = '42501', MESSAGE = 'payment operation tenant context is invalid';
+  END;
+  IF v_context IS NULL OR p_tenant IS NULL OR p_operation IS NULL OR v_context <> p_tenant THEN
+    RAISE EXCEPTION USING ERRCODE = '42501', MESSAGE = 'payment operation tenant context is invalid';
+  END IF;
+  PERFORM 1 FROM public.payment_operation
+   WHERE tenant_id = p_tenant AND id = p_operation
+   FOR UPDATE;
+  IF NOT FOUND THEN
+    RAISE EXCEPTION USING ERRCODE = '55000', MESSAGE = 'payment operation is unavailable';
+  END IF;
+END;
+$$;
+
+
+--
 -- Name: prune_outbox(interval); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -2411,8 +2443,8 @@ CREATE TABLE public.payment (
     id uuid DEFAULT gen_random_uuid() NOT NULL,
     tenant_id uuid NOT NULL,
     journal_id uuid,
-    instrument_id uuid,
-    psp text,
+    instrument_id uuid NOT NULL,
+    psp text NOT NULL,
     psp_ref text,
     method text NOT NULL,
     phase text NOT NULL,
@@ -2420,7 +2452,22 @@ CREATE TABLE public.payment (
     currency character(3) NOT NULL,
     status text DEFAULT 'pending'::text NOT NULL,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
+    operation_id uuid NOT NULL,
+    predecessor_payment_id uuid,
+    receipt_id uuid,
+    capture_payment_id uuid,
+    capture_journal_id uuid,
+    attempt_no integer NOT NULL,
+    result_code text NOT NULL,
+    command_key_hash character(64) NOT NULL,
+    request_hash character(64) NOT NULL,
+    CONSTRAINT payment_amount_positive_ck CHECK ((amount_minor > 0)),
+    CONSTRAINT payment_attempt_positive_ck CHECK ((attempt_no > 0)),
+    CONSTRAINT payment_hashes_ck CHECK (((command_key_hash ~ '^[0-9a-f]{64}$'::text) AND (request_hash ~ '^[0-9a-f]{64}$'::text))),
+    CONSTRAINT payment_journal_shape_ck CHECK ((((status = 'succeeded'::text) AND (phase = ANY (ARRAY['capture'::text, 'refund'::text])) AND (journal_id IS NOT NULL)) OR ((NOT ((status = 'succeeded'::text) AND (phase = ANY (ARRAY['capture'::text, 'refund'::text])))) AND (journal_id IS NULL)))),
     CONSTRAINT payment_phase_check CHECK ((phase = ANY (ARRAY['auth'::text, 'capture'::text, 'refund'::text, 'void'::text, 'incremental_auth'::text]))),
+    CONSTRAINT payment_refund_lineage_ck CHECK ((((status = 'succeeded'::text) AND (phase = 'refund'::text) AND (capture_payment_id IS NOT NULL) AND (capture_journal_id IS NOT NULL)) OR ((NOT ((status = 'succeeded'::text) AND (phase = 'refund'::text))) AND (capture_payment_id IS NULL) AND (capture_journal_id IS NULL)))),
+    CONSTRAINT payment_result_code_ck CHECK ((result_code ~ '^[a-z][a-z0-9._-]{0,63}$'::text)),
     CONSTRAINT payment_status_check CHECK ((status = ANY (ARRAY['pending'::text, 'succeeded'::text, 'failed'::text])))
 );
 
@@ -2440,7 +2487,37 @@ CREATE TABLE public.payment_instrument (
     expiry text,
     psp text,
     status text DEFAULT 'active'::text NOT NULL,
-    CONSTRAINT payment_instrument_kind_check CHECK ((kind = ANY (ARRAY['card_network_token'::text, 'upi_vpa'::text, 'bank'::text, 'cash_marker'::text])))
+    CONSTRAINT payment_instrument_kind_check CHECK ((kind = ANY (ARRAY['card_network_token'::text, 'upi_vpa'::text, 'bank'::text, 'cash_marker'::text]))),
+    CONSTRAINT payment_instrument_status_ck CHECK ((status = ANY (ARRAY['active'::text, 'inactive'::text, 'revoked'::text]))),
+    CONSTRAINT payment_instrument_token_shape_ck CHECK (((token IS NULL) OR (((octet_length(token) >= 16) AND (octet_length(token) <= 512)) AND (token ~ '^[!-~]+$'::text) AND (token !~ '^[0-9]{12,19}$'::text))))
+);
+
+
+--
+-- Name: payment_operation; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.payment_operation (
+    tenant_id uuid NOT NULL,
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    property_node uuid NOT NULL,
+    folio_id uuid NOT NULL,
+    guest_account_id uuid NOT NULL,
+    instrument_id uuid NOT NULL,
+    provider text NOT NULL,
+    method text NOT NULL,
+    currency character(3) NOT NULL,
+    tx_code text NOT NULL,
+    clearing_account_id uuid NOT NULL,
+    purpose text DEFAULT 'folio_payment'::text NOT NULL,
+    key_hash character(64) NOT NULL,
+    request_hash character(64) NOT NULL,
+    actor_id uuid NOT NULL,
+    created_at timestamp with time zone DEFAULT transaction_timestamp() NOT NULL,
+    CONSTRAINT payment_operation_hashes_ck CHECK (((key_hash ~ '^[0-9a-f]{64}$'::text) AND (request_hash ~ '^[0-9a-f]{64}$'::text))),
+    CONSTRAINT payment_operation_method_ck CHECK ((method = ANY (ARRAY['card'::text, 'upi'::text]))),
+    CONSTRAINT payment_operation_provider_ck CHECK ((provider ~ '^[a-z][a-z0-9._-]{0,63}$'::text)),
+    CONSTRAINT payment_operation_purpose_ck CHECK ((purpose = 'folio_payment'::text))
 );
 
 
@@ -2492,6 +2569,33 @@ CREATE TABLE public.promotion (
     book_window tstzrange,
     stay_dates daterange,
     constraints jsonb DEFAULT '{}'::jsonb NOT NULL
+);
+
+
+--
+-- Name: provider_event_receipt; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.provider_event_receipt (
+    tenant_id uuid NOT NULL,
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    operation_id uuid NOT NULL,
+    provider text NOT NULL,
+    event_id text NOT NULL,
+    content_hash character(64) NOT NULL,
+    provider_reference text NOT NULL,
+    phase text NOT NULL,
+    outcome text NOT NULL,
+    amount_minor bigint NOT NULL,
+    currency character(3) NOT NULL,
+    received_at timestamp with time zone DEFAULT transaction_timestamp() NOT NULL,
+    CONSTRAINT provider_event_receipt_amount_ck CHECK ((amount_minor > 0)),
+    CONSTRAINT provider_event_receipt_content_hash_ck CHECK ((content_hash ~ '^[0-9a-f]{64}$'::text)),
+    CONSTRAINT provider_event_receipt_event_id_ck CHECK ((((octet_length(event_id) >= 8) AND (octet_length(event_id) <= 200)) AND (event_id ~ '^[!-~]+$'::text))),
+    CONSTRAINT provider_event_receipt_outcome_ck CHECK ((outcome = ANY (ARRAY['approved'::text, 'declined'::text, 'indeterminate'::text]))),
+    CONSTRAINT provider_event_receipt_phase_ck CHECK ((phase = ANY (ARRAY['auth'::text, 'incremental_auth'::text, 'capture'::text, 'void'::text, 'refund'::text]))),
+    CONSTRAINT provider_event_receipt_provider_ck CHECK ((provider ~ '^[a-z][a-z0-9._-]{0,63}$'::text)),
+    CONSTRAINT provider_event_receipt_provider_reference_ck CHECK ((((octet_length(provider_reference) >= 1) AND (octet_length(provider_reference) <= 200)) AND (provider_reference ~ '^[!-~]+$'::text)))
 );
 
 
@@ -3100,6 +3204,14 @@ ALTER TABLE ONLY public.app_user
 
 
 --
+-- Name: app_user app_user_tenant_id_uq; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.app_user
+    ADD CONSTRAINT app_user_tenant_id_uq UNIQUE (tenant_id, id);
+
+
+--
 -- Name: approval_request approval_request_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -3532,6 +3644,22 @@ ALTER TABLE ONLY public.party
 
 
 --
+-- Name: payment payment_attempt_uq; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.payment
+    ADD CONSTRAINT payment_attempt_uq UNIQUE (tenant_id, operation_id, attempt_no);
+
+
+--
+-- Name: payment payment_command_key_uq; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.payment
+    ADD CONSTRAINT payment_command_key_uq UNIQUE (tenant_id, operation_id, command_key_hash);
+
+
+--
 -- Name: payment_instrument payment_instrument_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -3540,11 +3668,59 @@ ALTER TABLE ONLY public.payment_instrument
 
 
 --
+-- Name: payment_instrument payment_instrument_tenant_id_uq; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.payment_instrument
+    ADD CONSTRAINT payment_instrument_tenant_id_uq UNIQUE (tenant_id, id);
+
+
+--
+-- Name: payment_operation payment_operation_key_uq; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.payment_operation
+    ADD CONSTRAINT payment_operation_key_uq UNIQUE (tenant_id, key_hash);
+
+
+--
+-- Name: payment_operation payment_operation_pk; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.payment_operation
+    ADD CONSTRAINT payment_operation_pk PRIMARY KEY (tenant_id, id);
+
+
+--
+-- Name: payment_operation payment_operation_tenant_id_currency_uq; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.payment_operation
+    ADD CONSTRAINT payment_operation_tenant_id_currency_uq UNIQUE (tenant_id, id, currency);
+
+
+--
 -- Name: payment payment_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.payment
     ADD CONSTRAINT payment_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: payment payment_receipt_uq; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.payment
+    ADD CONSTRAINT payment_receipt_uq UNIQUE (tenant_id, receipt_id);
+
+
+--
+-- Name: payment payment_tenant_id_uq; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.payment
+    ADD CONSTRAINT payment_tenant_id_uq UNIQUE (tenant_id, id);
 
 
 --
@@ -3609,6 +3785,22 @@ ALTER TABLE ONLY public.promotion
 
 ALTER TABLE ONLY public.promotion
     ADD CONSTRAINT promotion_tenant_id_code_key UNIQUE (tenant_id, code);
+
+
+--
+-- Name: provider_event_receipt provider_event_receipt_pk; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.provider_event_receipt
+    ADD CONSTRAINT provider_event_receipt_pk PRIMARY KEY (tenant_id, id);
+
+
+--
+-- Name: provider_event_receipt provider_event_receipt_provider_event_uq; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.provider_event_receipt
+    ADD CONSTRAINT provider_event_receipt_provider_event_uq UNIQUE (tenant_id, provider, event_id);
 
 
 --
@@ -4075,6 +4267,48 @@ CREATE INDEX party_tenant_status_id ON public.party USING btree (tenant_id, stat
 
 
 --
+-- Name: payment_capture_lookup; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX payment_capture_lookup ON public.payment USING btree (tenant_id, capture_payment_id) WHERE (capture_payment_id IS NOT NULL);
+
+
+--
+-- Name: payment_one_successful_capture; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX payment_one_successful_capture ON public.payment USING btree (tenant_id, operation_id) WHERE ((phase = 'capture'::text) AND (status = 'succeeded'::text));
+
+
+--
+-- Name: payment_operation_chain; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX payment_operation_chain ON public.payment USING btree (tenant_id, operation_id, attempt_no, id);
+
+
+--
+-- Name: payment_operation_folio_lookup; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX payment_operation_folio_lookup ON public.payment_operation USING btree (tenant_id, folio_id, created_at, id);
+
+
+--
+-- Name: payment_operation_instrument_lookup; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX payment_operation_instrument_lookup ON public.payment_operation USING btree (tenant_id, instrument_id, created_at, id);
+
+
+--
+-- Name: payment_predecessor_lookup; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX payment_predecessor_lookup ON public.payment USING btree (tenant_id, predecessor_payment_id) WHERE (predecessor_payment_id IS NOT NULL);
+
+
+--
 -- Name: posting_acct; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -4093,6 +4327,13 @@ CREATE INDEX posting_folio ON public.posting_line USING btree (tenant_id, folio_
 --
 
 CREATE INDEX posting_line_transfer_root_lookup ON public.posting_line USING btree (tenant_id, folio_transfer_root_line_id) WHERE (folio_transfer_root_line_id IS NOT NULL);
+
+
+--
+-- Name: provider_event_receipt_operation_lookup; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX provider_event_receipt_operation_lookup ON public.provider_event_receipt USING btree (tenant_id, operation_id, received_at, id);
 
 
 --
@@ -4689,6 +4930,22 @@ ALTER TABLE ONLY public.party_role
 
 
 --
+-- Name: payment payment_capture_journal_tenant_fk; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.payment
+    ADD CONSTRAINT payment_capture_journal_tenant_fk FOREIGN KEY (tenant_id, capture_journal_id) REFERENCES public.journal(tenant_id, id);
+
+
+--
+-- Name: payment payment_capture_payment_tenant_fk; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.payment
+    ADD CONSTRAINT payment_capture_payment_tenant_fk FOREIGN KEY (tenant_id, capture_payment_id) REFERENCES public.payment(tenant_id, id);
+
+
+--
 -- Name: payment payment_instrument_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -4705,11 +4962,107 @@ ALTER TABLE ONLY public.payment_instrument
 
 
 --
+-- Name: payment payment_instrument_tenant_fk; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.payment
+    ADD CONSTRAINT payment_instrument_tenant_fk FOREIGN KEY (tenant_id, instrument_id) REFERENCES public.payment_instrument(tenant_id, id);
+
+
+--
 -- Name: payment payment_journal_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.payment
     ADD CONSTRAINT payment_journal_id_fkey FOREIGN KEY (journal_id) REFERENCES public.journal(id);
+
+
+--
+-- Name: payment payment_journal_tenant_fk; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.payment
+    ADD CONSTRAINT payment_journal_tenant_fk FOREIGN KEY (tenant_id, journal_id) REFERENCES public.journal(tenant_id, id);
+
+
+--
+-- Name: payment_operation payment_operation_actor_fk; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.payment_operation
+    ADD CONSTRAINT payment_operation_actor_fk FOREIGN KEY (tenant_id, actor_id) REFERENCES public.app_user(tenant_id, id);
+
+
+--
+-- Name: payment_operation payment_operation_clearing_account_fk; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.payment_operation
+    ADD CONSTRAINT payment_operation_clearing_account_fk FOREIGN KEY (tenant_id, property_node, currency, clearing_account_id) REFERENCES public.account(tenant_id, property_node, currency, id);
+
+
+--
+-- Name: payment payment_operation_fk; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.payment
+    ADD CONSTRAINT payment_operation_fk FOREIGN KEY (tenant_id, operation_id, currency) REFERENCES public.payment_operation(tenant_id, id, currency);
+
+
+--
+-- Name: payment_operation payment_operation_folio_fk; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.payment_operation
+    ADD CONSTRAINT payment_operation_folio_fk FOREIGN KEY (tenant_id, guest_account_id, folio_id) REFERENCES public.folio(tenant_id, account_id, id);
+
+
+--
+-- Name: payment_operation payment_operation_guest_account_fk; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.payment_operation
+    ADD CONSTRAINT payment_operation_guest_account_fk FOREIGN KEY (tenant_id, property_node, currency, guest_account_id) REFERENCES public.account(tenant_id, property_node, currency, id);
+
+
+--
+-- Name: payment_operation payment_operation_instrument_fk; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.payment_operation
+    ADD CONSTRAINT payment_operation_instrument_fk FOREIGN KEY (tenant_id, instrument_id) REFERENCES public.payment_instrument(tenant_id, id);
+
+
+--
+-- Name: payment_operation payment_operation_property_fk; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.payment_operation
+    ADD CONSTRAINT payment_operation_property_fk FOREIGN KEY (tenant_id, property_node) REFERENCES public.org_node(tenant_id, id);
+
+
+--
+-- Name: payment_operation payment_operation_tx_code_fk; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.payment_operation
+    ADD CONSTRAINT payment_operation_tx_code_fk FOREIGN KEY (tx_code) REFERENCES public.tx_code(code);
+
+
+--
+-- Name: payment payment_predecessor_tenant_fk; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.payment
+    ADD CONSTRAINT payment_predecessor_tenant_fk FOREIGN KEY (tenant_id, predecessor_payment_id) REFERENCES public.payment(tenant_id, id);
+
+
+--
+-- Name: payment payment_receipt_tenant_fk; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.payment
+    ADD CONSTRAINT payment_receipt_tenant_fk FOREIGN KEY (tenant_id, receipt_id) REFERENCES public.provider_event_receipt(tenant_id, id);
 
 
 --
@@ -4782,6 +5135,14 @@ ALTER TABLE ONLY public.posting_line
 
 ALTER TABLE ONLY public.preference
     ADD CONSTRAINT preference_party_id_fkey FOREIGN KEY (party_id) REFERENCES public.party(id);
+
+
+--
+-- Name: provider_event_receipt provider_event_receipt_operation_fk; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.provider_event_receipt
+    ADD CONSTRAINT provider_event_receipt_operation_fk FOREIGN KEY (tenant_id, operation_id, currency) REFERENCES public.payment_operation(tenant_id, id, currency);
 
 
 --
@@ -5521,6 +5882,12 @@ ALTER TABLE public.payment ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.payment_instrument ENABLE ROW LEVEL SECURITY;
 
 --
+-- Name: payment_operation; Type: ROW SECURITY; Schema: public; Owner: -
+--
+
+ALTER TABLE public.payment_operation ENABLE ROW LEVEL SECURITY;
+
+--
 -- Name: policy; Type: ROW SECURITY; Schema: public; Owner: -
 --
 
@@ -5543,6 +5910,12 @@ ALTER TABLE public.preference ENABLE ROW LEVEL SECURITY;
 --
 
 ALTER TABLE public.promotion ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: provider_event_receipt; Type: ROW SECURITY; Schema: public; Owner: -
+--
+
+ALTER TABLE public.provider_event_receipt ENABLE ROW LEVEL SECURITY;
 
 --
 -- Name: push_cursor; Type: ROW SECURITY; Schema: public; Owner: -
@@ -5973,6 +6346,13 @@ CREATE POLICY tenant_isolation ON public.payment_instrument USING ((tenant_id = 
 
 
 --
+-- Name: payment_operation tenant_isolation; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY tenant_isolation ON public.payment_operation USING ((tenant_id = (current_setting('app.tenant_id'::text, true))::uuid)) WITH CHECK ((tenant_id = (current_setting('app.tenant_id'::text, true))::uuid));
+
+
+--
 -- Name: policy tenant_isolation; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -5998,6 +6378,13 @@ CREATE POLICY tenant_isolation ON public.preference USING ((tenant_id = (current
 --
 
 CREATE POLICY tenant_isolation ON public.promotion USING ((tenant_id = (current_setting('app.tenant_id'::text, true))::uuid)) WITH CHECK ((tenant_id = (current_setting('app.tenant_id'::text, true))::uuid));
+
+
+--
+-- Name: provider_event_receipt tenant_isolation; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY tenant_isolation ON public.provider_event_receipt USING ((tenant_id = (current_setting('app.tenant_id'::text, true))::uuid)) WITH CHECK ((tenant_id = (current_setting('app.tenant_id'::text, true))::uuid));
 
 
 --
@@ -6298,6 +6685,14 @@ GRANT ALL ON FUNCTION public.lock_financial_business_days(p_tenant uuid, p_prope
 
 REVOKE ALL ON FUNCTION public.lock_financial_rows(p_tenant uuid, p_account_ids uuid[], p_folio_id uuid) FROM PUBLIC;
 GRANT ALL ON FUNCTION public.lock_financial_rows(p_tenant uuid, p_account_ids uuid[], p_folio_id uuid) TO app_role;
+
+
+--
+-- Name: FUNCTION lock_payment_operation(p_tenant uuid, p_operation uuid); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.lock_payment_operation(p_tenant uuid, p_operation uuid) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.lock_payment_operation(p_tenant uuid, p_operation uuid) TO app_role;
 
 
 --
@@ -7616,10 +8011,255 @@ GRANT SELECT ON TABLE public.payment TO app_role;
 
 
 --
+-- Name: COLUMN payment.tenant_id; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT INSERT(tenant_id) ON TABLE public.payment TO app_role;
+
+
+--
+-- Name: COLUMN payment.journal_id; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT INSERT(journal_id) ON TABLE public.payment TO app_role;
+
+
+--
+-- Name: COLUMN payment.instrument_id; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT INSERT(instrument_id) ON TABLE public.payment TO app_role;
+
+
+--
+-- Name: COLUMN payment.psp; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT INSERT(psp) ON TABLE public.payment TO app_role;
+
+
+--
+-- Name: COLUMN payment.psp_ref; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT INSERT(psp_ref) ON TABLE public.payment TO app_role;
+
+
+--
+-- Name: COLUMN payment.method; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT INSERT(method) ON TABLE public.payment TO app_role;
+
+
+--
+-- Name: COLUMN payment.phase; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT INSERT(phase) ON TABLE public.payment TO app_role;
+
+
+--
+-- Name: COLUMN payment.amount_minor; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT INSERT(amount_minor) ON TABLE public.payment TO app_role;
+
+
+--
+-- Name: COLUMN payment.currency; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT INSERT(currency) ON TABLE public.payment TO app_role;
+
+
+--
+-- Name: COLUMN payment.status; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT INSERT(status) ON TABLE public.payment TO app_role;
+
+
+--
+-- Name: COLUMN payment.operation_id; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT INSERT(operation_id) ON TABLE public.payment TO app_role;
+
+
+--
+-- Name: COLUMN payment.predecessor_payment_id; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT INSERT(predecessor_payment_id) ON TABLE public.payment TO app_role;
+
+
+--
+-- Name: COLUMN payment.receipt_id; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT INSERT(receipt_id) ON TABLE public.payment TO app_role;
+
+
+--
+-- Name: COLUMN payment.capture_payment_id; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT INSERT(capture_payment_id) ON TABLE public.payment TO app_role;
+
+
+--
+-- Name: COLUMN payment.capture_journal_id; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT INSERT(capture_journal_id) ON TABLE public.payment TO app_role;
+
+
+--
+-- Name: COLUMN payment.attempt_no; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT INSERT(attempt_no) ON TABLE public.payment TO app_role;
+
+
+--
+-- Name: COLUMN payment.result_code; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT INSERT(result_code) ON TABLE public.payment TO app_role;
+
+
+--
+-- Name: COLUMN payment.command_key_hash; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT INSERT(command_key_hash) ON TABLE public.payment TO app_role;
+
+
+--
+-- Name: COLUMN payment.request_hash; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT INSERT(request_hash) ON TABLE public.payment TO app_role;
+
+
+--
 -- Name: TABLE payment_instrument; Type: ACL; Schema: public; Owner: -
 --
 
 GRANT SELECT ON TABLE public.payment_instrument TO app_role;
+
+
+--
+-- Name: TABLE payment_operation; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT SELECT ON TABLE public.payment_operation TO app_role;
+
+
+--
+-- Name: COLUMN payment_operation.tenant_id; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT INSERT(tenant_id) ON TABLE public.payment_operation TO app_role;
+
+
+--
+-- Name: COLUMN payment_operation.id; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT INSERT(id) ON TABLE public.payment_operation TO app_role;
+
+
+--
+-- Name: COLUMN payment_operation.property_node; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT INSERT(property_node) ON TABLE public.payment_operation TO app_role;
+
+
+--
+-- Name: COLUMN payment_operation.folio_id; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT INSERT(folio_id) ON TABLE public.payment_operation TO app_role;
+
+
+--
+-- Name: COLUMN payment_operation.guest_account_id; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT INSERT(guest_account_id) ON TABLE public.payment_operation TO app_role;
+
+
+--
+-- Name: COLUMN payment_operation.instrument_id; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT INSERT(instrument_id) ON TABLE public.payment_operation TO app_role;
+
+
+--
+-- Name: COLUMN payment_operation.provider; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT INSERT(provider) ON TABLE public.payment_operation TO app_role;
+
+
+--
+-- Name: COLUMN payment_operation.method; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT INSERT(method) ON TABLE public.payment_operation TO app_role;
+
+
+--
+-- Name: COLUMN payment_operation.currency; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT INSERT(currency) ON TABLE public.payment_operation TO app_role;
+
+
+--
+-- Name: COLUMN payment_operation.tx_code; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT INSERT(tx_code) ON TABLE public.payment_operation TO app_role;
+
+
+--
+-- Name: COLUMN payment_operation.clearing_account_id; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT INSERT(clearing_account_id) ON TABLE public.payment_operation TO app_role;
+
+
+--
+-- Name: COLUMN payment_operation.purpose; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT INSERT(purpose) ON TABLE public.payment_operation TO app_role;
+
+
+--
+-- Name: COLUMN payment_operation.key_hash; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT INSERT(key_hash) ON TABLE public.payment_operation TO app_role;
+
+
+--
+-- Name: COLUMN payment_operation.request_hash; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT INSERT(request_hash) ON TABLE public.payment_operation TO app_role;
+
+
+--
+-- Name: COLUMN payment_operation.actor_id; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT INSERT(actor_id) ON TABLE public.payment_operation TO app_role;
 
 
 --
@@ -7676,6 +8316,83 @@ GRANT SELECT ON TABLE public.preference TO app_role;
 --
 
 GRANT SELECT ON TABLE public.promotion TO app_role;
+
+
+--
+-- Name: TABLE provider_event_receipt; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT SELECT ON TABLE public.provider_event_receipt TO app_role;
+
+
+--
+-- Name: COLUMN provider_event_receipt.tenant_id; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT INSERT(tenant_id) ON TABLE public.provider_event_receipt TO app_role;
+
+
+--
+-- Name: COLUMN provider_event_receipt.operation_id; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT INSERT(operation_id) ON TABLE public.provider_event_receipt TO app_role;
+
+
+--
+-- Name: COLUMN provider_event_receipt.provider; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT INSERT(provider) ON TABLE public.provider_event_receipt TO app_role;
+
+
+--
+-- Name: COLUMN provider_event_receipt.event_id; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT INSERT(event_id) ON TABLE public.provider_event_receipt TO app_role;
+
+
+--
+-- Name: COLUMN provider_event_receipt.content_hash; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT INSERT(content_hash) ON TABLE public.provider_event_receipt TO app_role;
+
+
+--
+-- Name: COLUMN provider_event_receipt.provider_reference; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT INSERT(provider_reference) ON TABLE public.provider_event_receipt TO app_role;
+
+
+--
+-- Name: COLUMN provider_event_receipt.phase; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT INSERT(phase) ON TABLE public.provider_event_receipt TO app_role;
+
+
+--
+-- Name: COLUMN provider_event_receipt.outcome; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT INSERT(outcome) ON TABLE public.provider_event_receipt TO app_role;
+
+
+--
+-- Name: COLUMN provider_event_receipt.amount_minor; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT INSERT(amount_minor) ON TABLE public.provider_event_receipt TO app_role;
+
+
+--
+-- Name: COLUMN provider_event_receipt.currency; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT INSERT(currency) ON TABLE public.provider_event_receipt TO app_role;
 
 
 --

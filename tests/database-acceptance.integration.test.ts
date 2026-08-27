@@ -105,6 +105,11 @@ const EXPECTED_MIGRATIONS = [
     filename: "0020_multi_window_folio_routing.sql",
     checksum_sha256: "137c9aea660aea953b86b8bdb1233af6385ddf73daa01a25bfa3149af416d9f1",
   },
+  {
+    version: 21,
+    filename: "0021_token_only_payment_foundation.sql",
+    checksum_sha256: "8538168ae7158c4a3f4b1f93b9bae5bcc1f9fb5d6e45327486e0a68bba04dcc1",
+  },
 ];
 
 if (REQUIRE_DATABASE && !DATABASE_URL) {

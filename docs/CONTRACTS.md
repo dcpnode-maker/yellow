@@ -506,3 +506,21 @@ An approval decision is not publication. Only the operator who recorded an appro
 requires that operator to run a fresh server preview in the current in-memory session. Publication
 then revalidates the existing hashes, cells, release state and deciding actor atomically. Rejection
 is terminal and can never publish.
+
+## 16. Token-only payment operation boundary
+
+`PaymentService` owns authorization, incremental authorization, one capture, void,
+partial refunds and late reconciliation. Callers provide tenant-scoped resource ids,
+canonical positive int64 minor units, an idempotency key and the audit envelope; the
+service derives property, guest folio/account, provider, method, currency, governed
+payment code and clearing account. Only an active opaque card-network or UPI token is
+passed to the `PaymentProvider` port. Tokens never appear in command results, facts,
+events, errors or receipts.
+
+Each command commits a prepared attempt, calls the provider outside PostgreSQL, then
+atomically appends its result, fact and outbox evidence. Authorization, increment and
+void are journal-free. One successful capture is capped by both authorization and the
+locked positive folio balance; capture closes unused authority. Refunds are bounded by
+the captured remainder and carry explicit capture-payment and capture-journal lineage.
+Provider receipts store normalized fields and a content hash only; same receipt/hash
+replays, changed content conflicts, and receipt plus late result commit together.

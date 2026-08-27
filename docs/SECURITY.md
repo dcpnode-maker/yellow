@@ -140,6 +140,16 @@ registration exception from D-417 is closed by migration 0018.
 
 ## 6. Statutory & privacy
 
+### Token-only payment containment
+
+Runtime may select and insert only the enumerated columns on payment operations,
+attempts and provider receipts; update/delete/truncate remain denied. Every new table,
+key, index, RLS policy and reference is tenant-leading. The only provider credential is
+an opaque active instrument token delivered directly to the provider port in memory.
+PAN, CVV, raw callbacks and secrets are forbidden from source, schema, seeds, logs,
+facts, outbox and reconciliation storage. Operation and financial-row locks serialize
+money decisions; receipts and effects commit atomically.
+
 - Identity data retention per country config; scheduled anonymisation after the
   legal window. Erasure = anonymise party, preserve financial rows (GDPR
   Art. 17(3)(b)) — TC-8.5.

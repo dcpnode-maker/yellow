@@ -229,7 +229,7 @@ databaseDescribe("Order 118 app_role authentication containment", () => {
            JOIN pg_catalog.pg_namespace AS n ON n.oid = c.relnamespace
           WHERE n.nspname = 'public') AS policies
     `;
-    expect(databaseShape).toEqual([{ tables: 85, rlsTables: 75, policies: 75 }]);
+    expect(databaseShape).toEqual([{ tables: 87, rlsTables: 77, policies: 77 }]);
 
     const ledger = await admin!<Array<{ filename: string; checksum: string }>>`
       SELECT filename, checksum_sha256 AS checksum

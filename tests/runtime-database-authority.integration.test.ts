@@ -381,7 +381,7 @@ databaseDescribe("Order 127 runtime database authority (kernel boundary; HTTP P4
         FROM pg_catalog.pg_class c JOIN pg_catalog.pg_namespace n ON n.oid = c.relnamespace
        WHERE n.nspname = 'public'
     `;
-    expect(rls).toEqual([{ tables: 85, enabled: 75, forced: 0, policies: 75 }]);
+    expect(rls).toEqual([{ tables: 87, enabled: 77, forced: 0, policies: 77 }]);
   });
 
   test("P2: a post-COMMIT contaminated role is rejected, discarded, and cannot poison pool reuse", async () => {

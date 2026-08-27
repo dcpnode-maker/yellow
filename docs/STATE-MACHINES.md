@@ -54,8 +54,14 @@ with `group_id` (consumes allotment before house inventory when `deducts`).
 expired (sweep) | released. Offline lease pool: client keeps N active `offline_lease`
 holds while online; offline walk-ins may consume ONLY those (v2 §5.1).
 
-## 7. Payment — auth → incremental_auth* → capture | void ; capture → refund*.
-Every phase change lands a `payment` row + journal on success (card_clearing legs).
+## 7. Payment — auth → incremental_auth* → one capture | void ; capture → refund*.
+Every command appends a prepared attempt and a provider result. Failed attempts do not
+advance state; an indeterminate result blocks every later phase except reconciliation.
+Auth, increment and void never create journals. The single successful capture may be
+partial, terminates unused authority, cannot exceed the locked positive folio balance,
+and posts guest `-amount` / governed clearing `+amount`. Each partial refund is bounded
+by the captured remainder, posts the exact opposite signs, and links to the capture
+payment and journal without using correction-only `journal.reverses`. Void is terminal.
 
 ## 8. Document (fiscal) — draft → issued (number+hash assigned, series advanced,
 prev_hash chained) → cleared|rejected (fiscal_submission) ; issued→void only where

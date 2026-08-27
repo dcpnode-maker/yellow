@@ -57,6 +57,31 @@ export {
   FolioStatementService,
   FolioStatementValidationError,
 } from "./statements";
+
+export { LocalPaymentProvider } from "./payment-provider";
+export type {
+  LocalPaymentProviderOptions,
+  PaymentProvider,
+  PaymentProviderOutcome,
+  PaymentProviderOutcomeKind,
+  PaymentProviderPhase,
+  PaymentProviderRequest,
+} from "./payment-provider";
+
+export {
+  PaymentConflictError,
+  PaymentNotFoundError,
+  PaymentService,
+  PaymentValidationError,
+} from "./payments";
+export type {
+  CreatePaymentOperationInput,
+  PaymentCommandResult,
+  PaymentServiceOptions,
+  PaymentTransitionInput,
+  ReconcilePaymentInput,
+  VoidPaymentInput,
+} from "./payments";
 export type {
   FolioChargeAvailability,
   FolioChargeOption,
