@@ -198,3 +198,77 @@ sole-local candidate across all six appearances, all required widths plus 200%,
 keyboard/focus/fallback/error/console checks and settled screenshots. Port 3000 may be
 changed only through the documented app-only rollback guard, and the candidate may be
 retained only if that separate browser gate approves it.
+
+---
+
+## Fresh authenticated D-527 live-browser review
+
+**Verdict:** CHANGES REQUIRED — DO NOT RETAIN THIS IMAGE
+
+**Exact product candidate:** `74e9452a01ba748b712dce93a3f1f8eec9186f11`
+
+**Exact candidate image:**
+`sha256:6be6919c6e5eb637f7ecb8ece0e3eb208e5d27ea40206f2c0cc3abc146e971d2`
+
+**Reviewer:** OpenAI Codex fresh non-implementing browser reviewer
+(`order195_live_browser_review`)
+
+**Review date:** 2026-08-27
+
+**Boundary:** authenticated read-only UI actions and browser emulation against the
+sole loopback app on port 3000. The reviewer did not edit source, change database or
+provider state, replace an image/container, open port 3002, merge, push or deploy.
+Settled screenshots were captured only in a temporary review directory and were not
+committed.
+
+### Blocking product findings
+
+1. **Opening the secondary-workspace overlay scrolls the page on desktop and moves
+   the visible workbench by more than the permitted one pixel.** With every case
+   isolated at the top of the page, 375, 768 and 1020 passed for all six appearances.
+   At both 1021 and 1440 CSS pixels, however, Windows95/98 changed `scrollY` from 0 to
+   7.2 and moved workbench viewport Y from 64.15 to 56.95; Glass changed `scrollY`
+   from 0 to 14.4 and workbench Y from 64.15 to 49.75; Neomorphism changed by about
+   14.4 pixels; and ERP changed by 14.4 pixels while its domain bar also moved from
+   80.15 to 72. Apple showed a residual 1.6-pixel shift at 1440 in the isolated run.
+   Focus containment itself works; the defect is focus-induced auto-scroll during
+   open/return/wrap. This violates Order195's <=1px visible-geometry contract.
+2. **The primary availability action is not visible in the settled 375x900 DPR2
+   viewport in any appearance.** Its measured top edge was 1065.71px (Apple),
+   1031.06px (Android), 1077.11px (Windows95/98), 1028.71px (Glass), 1027.91px
+   (Neomorphism), and 1116.71px (ERP). Root/body overflow is zero and the action is
+   present in document flow, but it is below the initial viewport, so the explicit
+   live-review requirement for a visible primary action is not met.
+
+### Verified live properties
+
+- Thirty base cases (six appearances x 375/768/1020/1021/1440) executed in the
+  authenticated real app. Every case had zero root/body horizontal overflow, a fixed
+  disclosure within the eight-pixel viewport boundary, initial focus containment,
+  Shift+Tab last-item wrap, Tab first-item wrap, and Escape close plus return focus.
+- The additional 375x900 DPR2 matrix executed for all six appearances with effective
+  DPR 2.0, zero root/body overflow, bounded fixed disclosure and the same complete
+  keyboard results.
+- Live computed signatures prove distinct presentation systems: Apple uses a 1280px
+  inset horizontal shelf and 20px surfaces; Android uses 48px expressive controls,
+  pill geometry and a 1320px shelf; Windows95/98 uses teal desktop, zero-radius bevels
+  and explicit `\"nav chrome\" \"nav head\" \"nav content\"` grid areas; Glass uses
+  32px/28px saturated backdrop filters plus specular multi-plane shadows; Neomorphism
+  uses coherent paired raised/inset shadows; ERP uses a 232px dark rail and compact
+  seven-pixel controls.
+- On the live project-status route, ERP's command heading computed as a two-column
+  grid (`908.487px 153.913px`) and its 12-column KPI bento measured 554/271/271px,
+  a 2.044 lead-card ratio, with zero root overflow.
+- Theme and Expert detail survived navigation into Reservations and browser Back.
+- Reduced motion matched and reduced sampled transition/animation durations to
+  `0.00001s`; forced-colours matched with zero root overflow; coarse pointer matched
+  with no visible target under 44px in the sampled active surface. Browser console
+  warnings/errors were empty.
+
+### Proof not promoted by this failed candidate
+
+Because the candidate already fails two executable requirements, it receives no
+retention approval. A corrected exact product/image must be promoted under the same
+rollback guard and a fresh reviewer must rerun the entire matrix, including the live
+no-backdrop branch, opaque Glass financial-surface comparison and request-failure
+capture; those checks were not used to infer approval after the blocker was found.
