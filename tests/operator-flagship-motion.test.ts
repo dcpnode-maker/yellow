@@ -32,13 +32,13 @@ test("Order187: flagship transitions are bounded, interruptible and accessibilit
   expect(script).not.toMatch(/localStorage|sessionStorage|document\.cookie|indexedDB/);
 });
 
-test("Order188: the five flagship systems have structural identity without unsafe motion", async () => {
+test("Order195: the six flagship systems have structural identity without unsafe motion", async () => {
   const [page, styles] = await Promise.all([
     Bun.file(pageFile).text(),
     Bun.file(styleFile).text(),
   ]);
 
-  for (const theme of ["apple", "android", "win95", "glass", "neo"]) {
+  for (const theme of ["apple", "android", "win95", "glass", "neo", "erp"]) {
     expect(styles).toContain(`:root[data-theme="${theme}"]`);
   }
   expect(page.match(/class="domain-icon"/g)?.length).toBe(9);
@@ -50,6 +50,7 @@ test("Order188: the five flagship systems have structural identity without unsaf
   expect(styles).toContain(':root[data-theme="android"] :is(.status-summary-grid,.metric-grid)');
   expect(styles).toContain(':root[data-theme="glass"] .ambient-stage');
   expect(styles).toContain(':root[data-theme="neo"] :is(.domain-bar,.workbench-head)');
+  expect(styles).toContain(':root[data-theme="erp"] .status-summary-grid');
   expect(styles).toContain('@media (hover: none), (pointer: coarse)');
   expect(styles).toContain('@media (prefers-reduced-motion: reduce)');
   expect(styles.match(/:root\[data-theme="glass"\] \.workbench > section:not\(\[hidden\]\) \{ animation: none; \}/g)?.length).toBe(4);

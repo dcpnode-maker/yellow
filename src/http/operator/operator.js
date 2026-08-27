@@ -460,7 +460,7 @@
  const folioCorrectionExpected = $("#folio-correction-expected");
  const SYSTEM_STATUS_SUFFIX = "/system-status";
  const MAX_MINOR = BigInt("9223372036854775807");
- const THEMES = new Set(["apple", "android", "win95", "glass", "neo"]);
+ const THEMES = new Set(["apple", "android", "win95", "glass", "neo", "erp"]);
  const EXPERIENCES = new Set(["simple", "advanced", "expert"]);
  const SECONDARY_VIEWS = new Set(["operations", "inventory", "restrictions", "rates", "status"]);
   function motionPreference(query) {
@@ -5898,6 +5898,19 @@
  secondaryWorkspacesToggle.setAttribute("aria-expanded", String(!secondaryWorkspaces.hidden));
  secondaryWorkspacesToggle.textContent = secondaryWorkspaces.hidden ? "More workspaces" : "Fewer workspaces";
  if (!secondaryWorkspaces.hidden) secondaryWorkspaces.querySelector(".domain-tab")?.focus();
+ });
+ document.addEventListener("keydown", (event) => {
+  if (event.key !== "Escape" || secondaryWorkspaces.hidden) return;
+  secondaryWorkspaces.hidden = true;
+  secondaryWorkspacesToggle.setAttribute("aria-expanded", "false");
+  secondaryWorkspacesToggle.textContent = "More workspaces";
+  secondaryWorkspacesToggle.focus();
+ });
+ document.addEventListener("pointerdown", (event) => {
+  if (secondaryWorkspaces.hidden || secondaryWorkspaces.contains(event.target) || secondaryWorkspacesToggle.contains(event.target)) return;
+  secondaryWorkspaces.hidden = true;
+  secondaryWorkspacesToggle.setAttribute("aria-expanded", "false");
+  secondaryWorkspacesToggle.textContent = "More workspaces";
  });
  signOutButton.addEventListener("click", () => {
  if (activeView !== "folios" || folioWorkspace.hidden || confirmFolioExit()) showLogin();

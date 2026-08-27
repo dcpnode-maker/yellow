@@ -1,8 +1,8 @@
 # Yellow interface atlas
 
-**Status:** Order 188 implementation contract · D-493–D-495  
+**Status:** Order 195 implementation contract · D-493–D-526
 **Catalogue:** Apple iOS · Android 17 / native Pixel · Windows 95/98 ·
-Glassmorphism · Neomorphism  
+Glassmorphism · Neomorphism · Enterprise ERP
 **Default:** Apple iOS  
 **Applies to:** the same authenticated Yellow application, server truth and ordered
 semantic DOM in every appearance.
@@ -22,7 +22,8 @@ remain identical.
    task, but hierarchy must still answer: where am I, what changed and what can I do?
 3. **Native, not costume.** Apple and Android follow their platform interaction
    grammar; Windows follows classic desktop grammar; Glass and Neo have coherent
-   physical models. Logos, wallpapers, fonts, icons and proprietary artwork are not
+   physical models; ERP owns a dense analytic composition. Logos, wallpapers, fonts,
+   icons and proprietary artwork are not
    copied.
 4. **Depth has meaning.** Z depth distinguishes universe, navigation, current work,
    preview and irreversible confirmation. Decorative floating cards are forbidden.
@@ -341,6 +342,41 @@ source. Depth communicates affordance and state; shadows never replace semantics
 - No springy gel, breathing shadows or endless surface animation.
 - Forced colours removes shadows entirely and preserves bordered semantic states.
 
+## Appearance 6 · Enterprise ERP
+
+### Signature
+
+A restrained, information-dense hotel command system for users who prefer conventional
+enterprise scanning speed. It combines a compact dark module rail, a narrow command
+bar, dense evidence tables and clear analytic summaries without becoming the shared
+layout underneath the other five appearances.
+
+### Composition
+
+- Persistent compact left rail; the active module is unmistakable without expanding
+  or reflowing the workbench.
+- Page title, filters and one primary command share a bounded command row.
+- KPI and operational summaries use asymmetric bento spans only when they improve
+  scanning; transaction tables remain aligned and compact.
+- Drill-downs preserve the list/filter context and open beside or above the active
+  evidence rather than replacing the entire application shell.
+- Existing room/unit/space truth may gain a CSS-perspective spatial navigator, with
+  list/table parity always available. It never invents geometry or owns configuration.
+
+### Evidence interpretation
+
+- [ERP Dashboard Free Sketch Resource](https://dribbble.com/shots/16273394-ERP-Dashboard-Free-Sketch-Resource)
+  contributes compact rail, blue action hierarchy and dense summary rhythm.
+- [Fashion & Lifestyle Trade ERP SaaS](https://dribbble.com/shots/25657982-Fashion-Lifestyle-Trade-ERP-Saas)
+  contributes restrained monochrome hierarchy and the balance of simplicity with
+  complex operational access.
+- [3D Apartment Interactive Experience](https://dribbble.com/shots/27682972-3D-Apartment-Interactive-Experience)
+  contributes spatial selection and list-to-detail continuity for room configuration.
+- [Glass UI Kit](https://dribbble.com/shots/23435614-Glass-UI-Kit) contributes luminous
+  environment, dark navigation glass, specular edges and multiple optical planes.
+
+These are attributable references, not executable authority or copied assets/layouts.
+
 ## Structural signature test
 
 Before colour is considered, a reviewer must identify every appearance from a settled
@@ -353,6 +389,7 @@ greyscale screenshot:
 | Windows 95/98 | title/menu/status/task bars, MDI windows, bevels and dotted focus |
 | Glass | ambient universe, refractive shell and separated specular depth planes |
 | Neo | continuous tactile surface, raised commands, inset wells and physical selection |
+| ERP | compact dark rail, bounded command row, dense evidence table and analytic bento |
 
 Failure means the implementation is a palette alias and is rejected.
 
@@ -414,4 +451,3 @@ No appearance may hide a state because its material treatment is inconvenient.
 - [ ] Real authenticated browser evidence passes all target viewports and detail modes.
 - [ ] Asset ceiling, typecheck, boundaries, licences, audit and protected hashes pass.
 - [ ] Independent non-implementing Tier-3 reviewer executes the complete proof.
-

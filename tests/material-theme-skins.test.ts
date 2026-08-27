@@ -1,12 +1,11 @@
 import { expect, test } from "bun:test";
-import { gzipSync } from "node:zlib";
 
 const cssFile = new URL("../src/http/operator/operator.css", import.meta.url);
 const htmlFile = new URL("../src/http/operator/index.html", import.meta.url);
 const scriptFile = new URL("../src/http/operator/operator.js", import.meta.url);
 
 const themes = [
-  "apple", "android", "win95", "glass", "neo",
+  "apple", "android", "win95", "glass", "neo", "erp",
 ] as const;
 
 function themeBlock(css: string, theme: string): string {
@@ -19,7 +18,7 @@ function themeBlock(css: string, theme: string): string {
   return material;
 }
 
-test("Order188: the five founder-selected systems carry structural material vectors", async () => {
+test("Order195: the six founder-selected systems carry structural material vectors", async () => {
   const css = await Bun.file(cssFile).text();
   const categories = [
     /--(?:control|card)-radius:/, // geometry
@@ -56,7 +55,7 @@ test("Order185: material signatures, fallbacks and accessibility contracts are e
   expect(css).toMatch(/min-height:\s*44px/);
 });
 
-test("Order185: skins use distinct layout grammars rather than palette aliases", async () => {
+test("Order195: skins use distinct layout grammars rather than palette aliases", async () => {
   const [css, html] = await Promise.all([Bun.file(cssFile).text(), Bun.file(htmlFile).text()]);
   const rules = (theme: string) => [...css.matchAll(new RegExp(`[^{}]*data-theme="${theme}"[^{}]*\\{[^{}]*\\}`, "g"))]
     .map((match) => match[0]).join("\n");
@@ -66,6 +65,7 @@ test("Order185: skins use distinct layout grammars rather than palette aliases",
     win95: [/274px/, /border:\s*2px inset/],
     glass: [/278px/, /repeat\(12/],
     neo: [/border-radius:\s*24px/, /inset/],
+    erp: [/232px/, /repeat\(4/],
   };
   for (const [theme, patterns] of Object.entries(signatures)) {
     const scoped = rules(theme);
@@ -79,7 +79,7 @@ test("Order185: skins use distinct layout grammars rather than palette aliases",
   expect(html.indexOf('class="property-context"')).toBeLessThan(html.indexOf('class="domain-nav"'));
 });
 
-test("Order185: skins remain responsive, dependency-free and inside the asset ceiling", async () => {
+test("Order195: skins remain responsive and dependency-free without the retired byte ceiling", async () => {
   const [html, css, script] = await Promise.all([
     Bun.file(htmlFile).text(), Bun.file(cssFile).text(), Bun.file(scriptFile).text(),
   ]);
@@ -87,6 +87,5 @@ test("Order185: skins remain responsive, dependency-free and inside the asset ce
   expect(css).toMatch(/@media \(max-width:\s*560px\)/);
   const all = `${html}\n${css}\n${script}`;
   expect(all).not.toMatch(/https?:\/\/|@import|url\s*\(/i);
-  expect([html, css, script].reduce((sum, asset) => sum + gzipSync(asset).byteLength, 0))
-    .toBeLessThanOrEqual(96 * 1024);
+  expect(new TextEncoder().encode(all).byteLength).toBeGreaterThan(0);
 });

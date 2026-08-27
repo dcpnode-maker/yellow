@@ -22,12 +22,12 @@ test("Order 176: progressive detail has a safe Simple default and one semantic s
   expect(html.match(/id="workbench-view"/g)).toHaveLength(1);
 });
 
-test("Order 188: the five appearances remain orthogonal to workspace detail", async () => {
+test("Order 195: the six appearances remain orthogonal to workspace detail", async () => {
   const html = await Bun.file(htmlFile).text();
   const css = await Bun.file(cssFile).text();
   const script = await Bun.file(scriptFile).text();
   const themes = [
-    "apple", "android", "win95", "glass", "neo",
+    "apple", "android", "win95", "glass", "neo", "erp",
   ];
 
   for (const theme of themes) {

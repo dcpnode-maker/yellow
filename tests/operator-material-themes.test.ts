@@ -5,7 +5,7 @@ const cssFile = new URL("../src/http/operator/operator.css", import.meta.url);
 const scriptFile = new URL("../src/http/operator/operator.js", import.meta.url);
 
 const themes = [
-  "apple", "android", "win95", "glass", "neo",
+  "apple", "android", "win95", "glass", "neo", "erp",
 ] as const;
 
 function themeBlock(css: string, theme: string) {
@@ -36,20 +36,20 @@ function contrast(foreground: string, background: string) {
     / (Math.min(foregroundLuminance, backgroundLuminance) + 0.05);
 }
 
-test("Order188: all five advertised appearances are allowlisted and keep one semantic app", async () => {
+test("Order195: all six advertised appearances are allowlisted and keep one semantic app", async () => {
   const html = await Bun.file(htmlFile).text();
   const script = await Bun.file(scriptFile).text();
   const appearanceSelect = html.match(/<select id="theme-select"[\s\S]*?<\/select>/)?.[0] ?? "";
   const advertised = [...appearanceSelect.matchAll(/<option value="([^"]+)">/g)].map((match) => match[1]);
   expect(advertised).toEqual([...themes]);
-  expect(new Set(advertised).size).toBe(5);
+  expect(new Set(advertised).size).toBe(6);
   for (const theme of advertised) {
     expect(html).toContain(`<option value="${theme}">`);
     expect(script).toContain(`"${theme}"`);
   }
   expect(html.match(/id="workbench-view"/g)).toHaveLength(1);
   expect(script).toContain("document.documentElement.dataset.theme = next");
-  expect(script).toContain('const THEMES = new Set(["apple", "android", "win95", "glass", "neo"])');
+  expect(script).toContain('const THEMES = new Set(["apple", "android", "win95", "glass", "neo", "erp"])');
   expect(script).toContain('THEMES.has(theme) ? theme : "apple"');
   expect(script).not.toMatch(/localStorage|sessionStorage|document\.cookie|indexedDB/);
 });
@@ -73,8 +73,8 @@ test("Order185: signature materials are structural and accessibility fallbacks a
   const css = await Bun.file(cssFile).text();
   expect(themeBlock(css, "win95")).toContain("outset");
   expect(css).toContain(':root[data-theme="win95"] input');
-  expect(themeBlock(css, "glass")).toContain("--material-card-filter: blur(22px) saturate(155%)");
-  expect(themeBlock(css, "glass")).toContain("rgba(255,255,255,.42)");
+  expect(themeBlock(css, "glass")).toContain("--material-card-filter: blur(24px) saturate(165%)");
+  expect(themeBlock(css, "glass")).toContain("--paper: #071126");
   expect(themeBlock(css, "android")).toContain("--material-press: scale(.97)");
   expect(themeBlock(css, "neo")).toContain("inset -4px -4px 8px #ffffff");
   expect(css).toContain("@supports not ((-webkit-backdrop-filter: blur(2px)) or (backdrop-filter: blur(2px)))");
