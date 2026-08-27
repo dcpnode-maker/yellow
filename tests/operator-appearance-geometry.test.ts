@@ -122,6 +122,8 @@ test("Order195: disclosure is a viewport overlay at every responsive width", asy
   expect(script).toContain('event.key !== "Tab"');
   expect(script).toContain("event.shiftKey");
   expect(script).toContain("closeSecondaryWorkspaces(true)");
+  expect(script.match(/focus\(\{ preventScroll: true \}\)/g)?.length ?? 0).toBeGreaterThanOrEqual(4);
+  expect(css).toMatch(/@media \(max-width: 600px\)[\s\S]*\.search-bar \.search-button \{[^}]*grid-row:\s*1/);
 });
 
 test("Order195: Win95 uses explicit grid areas so the active window cannot auto-place below the sidebar", async () => {

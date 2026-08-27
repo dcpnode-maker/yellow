@@ -655,6 +655,7 @@ input, select, textarea { min-height: 44px; border-color: #bdcbca; background: #
 .availability-heading { align-items: stretch; flex-direction: column; }
 .availability-heading .quiet { width: 100%; }
 .search-bar { padding: .85rem; }
+.search-bar .search-button { grid-row: 1; }
 .result-grid { grid-template-columns: 1fr; }
 .panel-heading { align-items: stretch; flex-direction: column; }
 }

@@ -5914,7 +5914,7 @@
   secondaryWorkspaces.hidden = true;
   secondaryWorkspacesToggle.setAttribute("aria-expanded", "false");
   secondaryWorkspacesToggle.textContent = "More workspaces";
-  if (restoreFocus) secondaryWorkspacesToggle.focus();
+  if (restoreFocus) secondaryWorkspacesToggle.focus({ preventScroll: true });
  };
  const openSecondaryWorkspaces = () => {
   if (secondaryWorkspaces.parentElement !== document.body) document.body.append(secondaryWorkspaces);
@@ -5924,7 +5924,7 @@
   positionSecondaryWorkspaces();
   requestAnimationFrame(() => {
    positionSecondaryWorkspaces();
-   workspaceMenuFocusable()[0]?.focus();
+   workspaceMenuFocusable()[0]?.focus({ preventScroll: true });
   });
  };
  secondaryWorkspacesToggle.addEventListener("click", () => {
@@ -5949,10 +5949,10 @@
   const last = focusable[focusable.length - 1];
   if (event.shiftKey && document.activeElement === first) {
    event.preventDefault();
-   last?.focus();
+   last?.focus({ preventScroll: true });
   } else if (!event.shiftKey && document.activeElement === last) {
    event.preventDefault();
-   first?.focus();
+   first?.focus({ preventScroll: true });
   }
  });
  document.addEventListener("pointerdown", (event) => {
