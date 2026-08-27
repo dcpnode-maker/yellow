@@ -586,3 +586,121 @@ authenticated six-appearance browser matrix. Retain it only if the reviewer prov
 the corrected Android 48px shell controls together with every previously required
 geometry, DPR2, focus, fallback, state, Glass-opacity, failure-recovery and console
 check. No prior rejected image may be relabelled or treated as that proof.
+
+---
+
+## Android target correction authenticated D-527 final browser review
+
+**Verdict:** APPROVED — RETAIN THIS EXACT IMAGE
+
+**Exact product:** `ca3a2aa20f2e0c267d2ba64a8b1c3839eb3000a3`
+
+**Exact image:**
+`sha256:579a2a66722bea02a8d2e77a234847199a2b82bf301b77890451e9d361309350`
+
+**Reviewer:** OpenAI Codex fresh independent non-implementing/non-operating browser
+reviewer (`order195_android_live_review`)
+
+**Review date:** 2026-08-28
+
+**Boundary:** authenticated read-only Chrome interaction against the sole loopback app
+on port 3000. The reviewer did not edit product source, database state, credentials,
+provider, container/image selection, ports or runtime configuration. Theme/detail
+selection, navigation, keyboard traversal, read-only availability search and bounded
+in-page failure injection were the only interactions.
+
+### Exact blocker correction
+
+- In Android at 375, 768, 1020, 1021 and 1440 CSS pixels, both always-visible global
+  selectors now compute to exactly `48px` height and `48px` min-height. The same two
+  controls compute to exactly 48px in the separate 375x900 DPR2/touch context.
+- Android's sampled active-domain controls also meet its 48px floor: the disclosure is
+  48px or taller, Search is 48.71875px or taller, and the active domain command is
+  49.67999px or taller. No sampled visible control in any appearance is below the
+  general 44px floor.
+
+### Complete fresh authenticated matrix
+
+- 30/30 base cases executed: six appearances at 375, 768, 1020, 1021 and 1440 CSS
+  pixels. A separate six-case 375x900 DPR2/touch matrix executed with effective DPR 2.
+- Every case has zero root/body horizontal overflow, an eight-pixel-bounded fixed
+  disclosure, and at most 0px measured workbench/domain/document-scroll change across
+  open, focus settling, Shift+Tab wrap, Tab wrap, Escape and close.
+- Every case opens focus on `nav-operations`; Shift+Tab wraps to `nav-status`; Tab wraps
+  to `nav-operations`; Escape closes and returns focus to the disclosure toggle.
+- In every DPR2 case the single governed Search action is initially within the
+  900px viewport, enabled and hit-test clickable. Its bottom is between 733.02px and
+  823.5px, with zero root/body overflow.
+- Windows95/98 desktop uses the explicit `"nav chrome" "nav head" "nav content"`
+  grid and a 0px chrome-to-active-window gap. Its responsive composition intentionally
+  collapses below the 1021px desktop breakpoint without creating a root overflow.
+- ERP's live Project-status command heading is a two-column grid and its 12-column
+  bento measures 554/271/271px, a 2.044 lead-card ratio, with zero root overflow.
+
+### Material, fallback, state and recovery proof
+
+- Six computed desktop signatures are unique. Apple and Android use distinct
+  horizontal shelf systems; Win95 uses authentic square MDI chrome; Glass uses
+  `blur(32px) saturate(1.68)` navigation glass with three distinct colour fields and
+  three depth transforms; Neomorphism has paired raised/inset coherent-light shadows;
+  ERP has its 232px dense rail and compact analytic system.
+- Glass's representative dense reservation table computes to
+  `rgba(250, 253, 255, 0.93)` with no backdrop filter, materially more opaque than its
+  navigation glass. Settled desktop and DPR2 screenshots for all six appearances plus
+  reduced-motion, forced-colour and no-backdrop captures were personally inspected.
+- Reduced motion removes the stage animation/transform and resolves transition time to
+  the standing immediate `0.01ms`; forced colours produce solid Canvas surfaces,
+  explicit borders, no shadow/backdrop and no ambient stage; real touch emulation
+  matches coarse pointer and hover-none with zero-duration interaction motion and no
+  sampled target below 44px.
+- Installed Chrome reports backdrop support. The exact committed `@supports not`
+  branch was therefore statically matched and its exact opaque values were executed in
+  a CSP-bypassed reviewer-only page simulation: solid `rgb(234,247,251)` navigation,
+  white cards, no filters and zero overflow. This does not alter the served product.
+- Property, Glass appearance and Expert detail survive semantic navigation and browser
+  Back. An intentional in-page availability rejection displays the error and re-enables
+  Search; a following bounded synthetic empty 200 renders `No options returned.` and
+  remains enabled. No server or database request is changed by this proof.
+- No page exception, unexpected console warning/error, failed request or unexpected
+  HTTP error occurred. Chrome's unreferenced favicon 404 is the only filtered browser
+  noise.
+
+### Reviewer-harness correction recorded without hiding evidence
+
+The raw harness initially printed `FAIL` solely because its reviewer selector treated
+nested SVG `<use href>` nodes as keyboard-focusable, required desktop Win95 grid-area
+names below the documented responsive breakpoint, and over-required browser Back to
+restore Project status rather than preserve application state. The raw report is
+retained. Its actual `activeElement` records prove all 36 focus cycles green; the only
+three Win95 entries are 375/768/1020 while both desktop cases have the explicit grid and
+0px gap; and property/theme/detail all preserve. A transparent normalized report
+classifies those 40 harness assertions, leaves zero product failures and records PASS.
+
+### Runtime containment after review
+
+```text
+app       c20227400263... image 579a2a66722b... healthy; label yellow.git=ca3a2aa..., yellow.order=195
+provider  32b2ce4cc9a5... image 5ca432f63550... healthy; start 2026-08-27T16:23:56Z
+postgres  3072977b22f6... image ab5c955e9e57... healthy; start 2026-08-27T13:14:23Z
+valkey    b39d0b80c0a8... image e0eb7c480958... healthy; start 2026-08-27T13:14:24Z
+GET http://127.0.0.1:3000/health => 200
+ports => 3000/3001/5643/6590 each one listener; 3002 CLOSED
+```
+
+Provider, PostgreSQL and Valkey IDs, images and start instants are byte-identical to
+pre-review evidence. D-527 therefore approves retaining only the exact image above on
+the single loopback3000 app.
+
+### Evidence artifacts
+
+```text
+C:\Users\astha\.codex\visualizations\2026\08\27\order195-android-final-review\report-raw.json
+C:\Users\astha\.codex\visualizations\2026\08\27\order195-android-final-review\report-final.json
+report-final.json SHA-256
+0F90A5C1F373590BB374C3753D9F9215DBFDE0D25CBD1C0101B77DF0329DB891
+12 settled six-appearance desktop/DPR2 screenshots plus fallback screenshots
+```
+
+This approval is exact-image local retention only. It does not approve a merge, push,
+public bind, production deployment, data/schema/authority/credential change, Phase-5
+completion or any broader product claim.
