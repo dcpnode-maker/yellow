@@ -1,8 +1,8 @@
 # Order 190 — Current project status through Order 189
 
 **Status:** CHANGES REQUIRED — D-500
-**Phase:** 5 — Financials  
-**Risk:** Tier 1 (founder-visible recorded-status truth only)  
+**Phase:** 5 — Financials
+**Risk:** Tier 1 (founder-visible recorded-status truth only)
 **Base:** `628d1591b5c392ab3aace7fcd6e9cee80c68f2a1`
 
 ## Outcome
