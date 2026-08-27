@@ -1,32 +1,33 @@
-# Order 190 independent review — CHANGES REQUIRED
+# Order 190 independent review — APPROVED AFTER CORRECTION
 
 **Reviewer:** OpenAI Codex independent non-implementing reviewer
 
 **Base:** `628d1591b5c392ab3aace7fcd6e9cee80c68f2a1`
 
-**Candidate:** `bb60977123be1923de03a5899ef4a33f707b0872`
+**Candidate:** `86a56fa95f5b47991fe20fbaf22f0456ae3e8bd0`
 
-**Decision:** CHANGES REQUIRED — D-500
+**Decision:** APPROVED — D-501
 
 ## Summary
 
 The two product-file changes are correct, bounded and supported by passing focused,
-asset-budget and static gates. The candidate cannot be approved because the order's
-mandatory exact-base `git diff --check` proof fails on its newly added governance
-file.
+asset-budget and static gates. D-500 correctly rejected the predecessor because its
+mandatory exact-base diff check failed. Commit `86a56fa` then removed only the two
+remaining trailing-space sequences from the order; the complete proof was rerun from
+the top and the corrected exact candidate is approved.
 
 ## Finding
 
-| Severity | File | Finding | Required correction |
+| Severity | File | Finding | Resolution |
 |---|---|---|---|
-| Blocking gate | `handoff/orders/190-current-project-status-through-order189.md` | Lines 3–5 contain trailing whitespace and line 57 is a blank line at EOF, so `git diff --check 628d159..bb60977` exits non-zero. | Remove the trailing whitespace and blank line at EOF, commit the correction, then have an independent non-implementer rerun the complete Order190 proof against the corrected exact candidate. |
+| Resolved blocking gate | `handoff/orders/190-current-project-status-through-order189.md` | D-500 found trailing whitespace on predecessor lines3–5 and a blank EOF line57. | The D-500 governance record removed the status-line whitespace and blank EOF; follow-up `86a56fa` changed only Phase/Risk trailing whitespace. Exact-base and worktree diff checks are now clean. |
 
 ## Personally executed evidence
 
 - Exact range is restricted to `DECISIONS.log`, `handoff/LEDGER.md`, the Order190
   order, `src/project-status.ts`, and
-  `tests/founder-status.integration.test.ts`; candidate commit itself changes only
-  the two product files.
+  `tests/founder-status.integration.test.ts`; implementation commit `bb60977`
+  changes only the two product files.
 - The status source records `recordedAt=2026-08-27`, latest built Order189, current
   Order190, review-through exactly91, Orders179–186 and188–189 in chronology,
   explicit Order187 exclusion, Phase0–3 reviewed, Phase4 built-unverified, Phase5
@@ -38,9 +39,12 @@ file.
 - `bun run boundaries`: pass, 68 TypeScript files scanned.
 - `bun run license-check`: pass, 23 installed packages.
 - `bun audit`: no vulnerabilities found.
-- `git status --short`: clean before this review record.
-- `git diff --check 628d1591b5c392ab3aace7fcd6e9cee80c68f2a1..bb60977123be1923de03a5899ef4a33f707b0872`:
-  **failed** with trailing whitespace on order lines3–5 and a blank line at EOF.
+- `git show 86a56fa`: exactly two formatting-only replacements removing trailing
+  whitespace from the order's Phase and Risk lines.
+- `git diff --check 628d1591b5c392ab3aace7fcd6e9cee80c68f2a1..86a56fa95f5b47991fe20fbaf22f0456ae3e8bd0`:
+  pass with no output.
+- Worktree `git diff --check` and `git status --short`: pass with no output before
+  this approval record.
 
 ## Scope and safety
 
@@ -50,5 +54,7 @@ production deployment or Phase-wide completion is approved.
 
 ## Verdict
 
-**CHANGES REQUIRED.** Correct the governance whitespace and rerun the full exact-
-candidate review. This record is not approval.
+**APPROVED.** Exact corrected Order190 candidate `86a56fa` satisfies D-499 and all
+personally rerun gates. Approval is recorded-status scope only; it does not approve
+runtime replacement, local promotion, merge, push, public or production deployment,
+or Phase-wide completion.
