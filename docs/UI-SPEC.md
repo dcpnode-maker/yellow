@@ -68,6 +68,16 @@ CONTRACTS.md endpoint — no palette-only capabilities.
    carry-forward flow for discrepancies with approval.
 7. **Housekeeping mobile view** — task list by floor, tap to advance state, photo
    attach for discrepancy, works offline, syncs.
+
+   The Order-202 desktop/mobile task-sheet workbench uses one property-local date and
+   one active staff attendant selector. Preview shows only server-resolved eligible
+   rooms with room code, floor, condition and cadence evidence; it never accepts a
+   browser-authored room list or cadence. A single labelled generation action retains
+   its idempotency key across retry and refreshes the authoritative current sheet on
+   success. Unsupported weekly/custom/missing/ambiguous cadence is actionable and
+   creates nothing. Empty/loading/error/retry states, keyboard operation, restored
+   focus, deep links, stale-property/request guards and reduced motion apply in every
+   supported appearance.
 8. **Kiosk mode** — locked-down check-in flow: find reservation → verify identity
    (statutory fields per country) → sign registration card → issue key placeholder.
 9. **Owner portal (read)** — statements from postings, occupancy of owned units.

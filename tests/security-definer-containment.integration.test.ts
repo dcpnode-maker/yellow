@@ -166,6 +166,7 @@ dbDescribe("Order 108 SECURITY DEFINER shadow-path containment", () => {
            'lock_financial_business_days',
            'create_charge_correction_header',
            'create_folio_transfer', 'create_receivable_transfer',
+           'govern_housekeeping_task_sheet',
            'open_cashier_session', 'append_cashier_count', 'close_cashier_session',
            'register_extension_type', 'transition_housekeeping_task'
          ]::name[])
@@ -189,6 +190,8 @@ dbDescribe("Order 108 SECURITY DEFINER shadow-path containment", () => {
         config: ["search_path=pg_catalog, public, pg_temp"], appExecute: true, publicDenied: true },
       { signature: "expire_holds()", securityDefiner: true,
         config: ["search_path=pg_catalog, public, pg_temp"], appExecute: false, publicDenied: true },
+      { signature: "govern_housekeeping_task_sheet(uuid,uuid,date,uuid,uuid,text,integer)", securityDefiner: true,
+        config: ["search_path=pg_catalog, public, pg_temp"], appExecute: true, publicDenied: true },
       { signature: "lock_financial_business_days(uuid,uuid,date[])", securityDefiner: true,
         config: ["search_path=pg_catalog, public, pg_temp"], appExecute: true, publicDenied: true },
       { signature: "lock_financial_rows(uuid,uuid[],uuid)", securityDefiner: true,
@@ -228,6 +231,10 @@ dbDescribe("Order 108 SECURITY DEFINER shadow-path containment", () => {
           "public.org_node", "public.party", "public.party_role", "public.folio_balance",
           "public.posting_line", "public.approval_request", "public.journal", "public.business_day"]],
       ["expire_holds()", ["public.hold", "public.release_occupancy"]],
+      ["govern_housekeeping_task_sheet(uuid,uuid,date,uuid,uuid,text,integer)",
+        ["public.org_node", "public.app_user", "public.party", "public.party_role",
+          "public.space", "public.space_occupancy", "public.reservation_segment",
+          "public.reservation", "public.extension", "public.task_sheet", "public.task"]],
       ["lock_financial_rows(uuid,uuid[],uuid)", ["public.account", "public.folio"]],
       ["lock_financial_business_days(uuid,uuid,date[])", ["public.business_day"]],
       ["open_cashier_session(uuid,uuid,uuid,uuid,bigint[],bigint[])",

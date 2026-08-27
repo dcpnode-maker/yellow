@@ -21,7 +21,20 @@ function functionSource(name: string): string {
   throw new Error(`Unclosed function ${name}`);
 }
 
-const todaySource = script.slice(script.indexOf("const TODAY_STATUSES"), script.indexOf("function setReservationBoardState"));
+const todaySource = [
+  "todayLaneElements",
+  "setTodayLaneState",
+  "propertyLocalDate",
+  "todayWindow",
+  "todayBoardQuery",
+  "resetTodayState",
+  "todayRequestIsCurrent",
+  "todayReturnFocusDecision",
+  "restoreTodayReturnFocus",
+  "renderTodayLane",
+  "loadTodayLane",
+  "loadToday",
+].map(functionSource).join("\n");
 
 test("Order 177: Today is the first truthful Front desk route", async () => {
   const todayIndex = html.indexOf('id="nav-today"');

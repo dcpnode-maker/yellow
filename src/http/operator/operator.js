@@ -56,6 +56,13 @@
  let housekeepingData = [];
  let housekeepingReturnFocus = "";
  const housekeepingAttempts = new Map();
+ let housekeepingSheetGeneration = 0;
+ let housekeepingSheetRequestGeneration = 0;
+ let housekeepingSheetAttendant = null;
+ let housekeepingSheetPreview = [];
+ let housekeepingSheetCanGenerate = false;
+ let housekeepingSheetAttemptKey = "";
+ let housekeepingSheetAttemptDraft = "";
  const todayLaneState = {
  due_in: { rows: [], nextCursor: null, requestGeneration: 0 },
  due_out: { rows: [], nextCursor: null, requestGeneration: 0 },
@@ -160,6 +167,22 @@
  const housekeepingEmpty = $("#housekeeping-empty");
  const housekeepingTaskList = $("#housekeeping-task-list");
  const housekeepingStatus = $("#housekeeping-status");
+ const housekeepingSheetForm = $("#housekeeping-sheet-form");
+ const housekeepingSheetDate = $("#housekeeping-sheet-date");
+ const housekeepingAttendantQuery = $("#housekeeping-attendant-query");
+ const housekeepingAttendantSearch = $("#housekeeping-attendant-search");
+ const housekeepingAttendantSearchRow = $(".housekeeping-attendant-search-row");
+ const housekeepingAttendantResults = $("#housekeeping-attendant-results");
+ const housekeepingAttendantSelected = $("#housekeeping-attendant-selected");
+ const housekeepingAttendantChange = $("#housekeeping-attendant-change");
+ const housekeepingPreviewAction = $("#housekeeping-preview");
+ const housekeepingSheetMessage = $("#housekeeping-sheet-message");
+ const housekeepingSheetPreviewPanel = $("#housekeeping-sheet-preview");
+ const housekeepingPreviewCount = $("#housekeeping-preview-count");
+ const housekeepingPreviewRooms = $("#housekeeping-preview-rooms");
+ const housekeepingGenerateCopy = $("#housekeeping-generate-copy");
+ const housekeepingGenerate = $("#housekeeping-generate");
+ const housekeepingSheetList = $("#housekeeping-sheet-list");
  const inventoryView = $("#inventory-view");
  const restrictionsView = $("#restrictions-view");
  const ratesView = $("#rates-view");
@@ -795,6 +818,7 @@
  housekeepingData = [];
  housekeepingReturnFocus = "";
  housekeepingAttempts.clear();
+ clearHousekeepingSheetState();
  reservationBoardRows = [];
  reservationBoardNextCursor = null;
  reservationRouteReservationId = "";
@@ -1085,6 +1109,251 @@
  const HOUSEKEEPING_CONDITION_LABELS = Object.freeze({
  dirty: "Dirty", pickup: "Pickup", clean: "Clean", inspected: "Inspected",
  });
+ const HOUSEKEEPING_CADENCE_LABELS = Object.freeze({ daily: "Daily", on_departure: "On departure" });
+  function setHousekeepingSheetMessage(message, isError = false) {
+ housekeepingSheetMessage.textContent = message;
+ housekeepingSheetMessage.classList.toggle("error", isError);
+ }
+  function clearHousekeepingSheetPreview() {
+ housekeepingSheetRequestGeneration += 1;
+ housekeepingSheetPreview = [];
+ housekeepingSheetCanGenerate = false;
+ housekeepingSheetAttemptKey = "";
+ housekeepingSheetAttemptDraft = "";
+ housekeepingSheetPreviewPanel.hidden = true;
+ housekeepingPreviewRooms.replaceChildren();
+ housekeepingPreviewCount.textContent = "0 rooms";
+ housekeepingGenerate.disabled = true;
+ }
+  function clearHousekeepingSheetState() {
+ housekeepingSheetGeneration += 1;
+ clearHousekeepingSheetPreview();
+ housekeepingSheetAttendant = null;
+ housekeepingSheetForm.reset();
+ housekeepingAttendantResults.replaceChildren();
+ housekeepingAttendantSelected.hidden = true;
+ housekeepingAttendantSearchRow.hidden = false;
+ housekeepingAttendantSelected.querySelector("strong").textContent = "";
+ housekeepingAttendantSelected.querySelector("small").textContent = "";
+ housekeepingSheetList.replaceChildren();
+ housekeepingPreviewAction.disabled = true;
+ setHousekeepingSheetMessage("");
+ }
+  function housekeepingSheetIsCurrent(generation, requestGeneration, property, sheetDate) {
+ return generation === housekeepingSheetGeneration && requestGeneration === housekeepingSheetRequestGeneration &&
+  property === propertySelect.value && sheetDate === housekeepingSheetDate.value &&
+  activeView === "housekeeping" && location.pathname === `/p/${property}/housekeeping`;
+ }
+  function updateHousekeepingSheetProgress() {
+ const hasDate = /^\d{4}-\d{2}-\d{2}$/.test(housekeepingSheetDate.value);
+ const hasAttendant = canonicalUuid(String(housekeepingSheetAttendant?.partyId || ""));
+ housekeepingPreviewAction.disabled = !(hasDate && hasAttendant);
+ for (const step of document.querySelectorAll("[data-sheet-step]")) {
+  const name = step.dataset.sheetStep;
+  const current = !hasDate ? name === "date" : !hasAttendant ? name === "attendant" : name === "preview";
+  step.classList.toggle("is-current", current);
+ }
+ }
+  function chooseHousekeepingAttendant(profile) {
+ housekeepingSheetGeneration += 1;
+ clearHousekeepingSheetPreview();
+ housekeepingSheetAttendant = { partyId: String(profile.partyId), displayName: String(profile.displayName || "Staff Party") };
+ housekeepingAttendantSelected.querySelector("strong").textContent = housekeepingSheetAttendant.displayName;
+ housekeepingAttendantSelected.querySelector("small").textContent = `Party ${housekeepingSheetAttendant.partyId} · server revalidates active staff authority`;
+ housekeepingAttendantSelected.hidden = false;
+ housekeepingAttendantSearchRow.hidden = true;
+ housekeepingAttendantResults.replaceChildren();
+ housekeepingAttendantQuery.value = "";
+ housekeepingAttendantSelected.focus({ preventScroll: true });
+ setHousekeepingSheetMessage("Attendant selected. Preview will still be validated against current staff truth.");
+ updateHousekeepingSheetProgress();
+ }
+  function housekeepingAttendantCard(profile) {
+ const card = node("article", "housekeeping-attendant-result");
+ const copy = node("div");
+ copy.append(node("strong", "", String(profile.displayName || "Staff Party")), node("small", "", `Party ${profile.partyId}`));
+ const use = node("button", "secondary", "Choose attendant");
+ use.type = "button";
+ use.dataset.partyId = String(profile.partyId || "");
+ use.setAttribute("aria-label", `Choose ${profile.displayName || "this staff Party"} as housekeeping attendant`);
+ use.addEventListener("click", () => chooseHousekeepingAttendant(profile));
+ card.append(copy, use);
+ return card;
+ }
+  async function searchHousekeepingAttendants() {
+ const query = housekeepingAttendantQuery.value.trim();
+ const property = propertySelect.value;
+ if (query.length < 2 || !property) {
+  setHousekeepingSheetMessage("Enter at least two characters to find an active staff Party.", true);
+  housekeepingAttendantQuery.focus();
+  return;
+ }
+ const generation = ++housekeepingSheetGeneration;
+ clearHousekeepingSheetPreview();
+ housekeepingAttendantSearch.disabled = true;
+ housekeepingAttendantResults.replaceChildren();
+ setHousekeepingSheetMessage("Searching canonical Party profiles…");
+ try {
+  const result = await request(`/api/v1/properties/${enc(property)}/parties:search`, {
+  method: "POST", body: JSON.stringify({ query, limit: 20 }),
+  });
+  if (generation !== housekeepingSheetGeneration || property !== propertySelect.value || activeView !== "housekeeping") return;
+  const staff = (Array.isArray(result.profiles) ? result.profiles : [])
+  .filter((profile) => canonicalUuid(String(profile.partyId || "")) && Array.isArray(profile.roles) && profile.roles.includes("staff"));
+  housekeepingAttendantResults.replaceChildren(...staff.map(housekeepingAttendantCard));
+  if (staff.length === 0) {
+  housekeepingAttendantResults.append(node("p", "field-note", "No staff-labelled Party matched. Refine the search; the server validates active staff again at generation."));
+  }
+  housekeepingAttendantResults.tabIndex = -1;
+  housekeepingAttendantResults.focus({ preventScroll: true });
+  setHousekeepingSheetMessage(`${staff.length} staff-labelled Party result${staff.length === 1 ? "" : "s"}.`);
+ } catch (error) {
+  if (generation !== housekeepingSheetGeneration || property !== propertySelect.value || activeView !== "housekeeping") return;
+  setHousekeepingSheetMessage(error instanceof Error ? error.message : "Staff search failed. Try again.", true);
+ } finally {
+  if (generation === housekeepingSheetGeneration && property === propertySelect.value) housekeepingAttendantSearch.disabled = false;
+ }
+ }
+  function housekeepingPreviewRoomCard(room) {
+ const card = node("article", "housekeeping-preview-room");
+ const head = node("div", "housekeeping-preview-room-head");
+ const identity = node("div");
+ identity.append(node("span", "eyebrow", room.floor ? `Floor ${room.floor}` : "Floor not set"), node("strong", "", `Room ${room.spaceCode}`));
+ head.append(identity, housekeepingBadge("cadence", HOUSEKEEPING_CADENCE_LABELS[room.cadence] || "Server cadence", room.cadence));
+ const evidence = node("dl", "housekeeping-evidence");
+ for (const [term, value] of [
+  ["Profile", String(room.profileKey || "Not returned")],
+  ["Arrival", housekeepingDate(room.arrivalAt)],
+  ["Departure", housekeepingDate(room.departureAt)],
+ ]) evidence.append(node("dt", "", term), node("dd", "", value));
+ card.append(head, evidence);
+ return card;
+ }
+  function renderHousekeepingSheetList(sheets) {
+ housekeepingSheetList.replaceChildren();
+ if (sheets.length === 0) {
+  housekeepingSheetList.append(node("p", "field-note", "No generated sheet exists for this date."));
+  return;
+ }
+ for (const sheet of sheets.slice(0, 200)) {
+  const row = node("article", "housekeeping-sheet-row");
+  const identity = node("div");
+  identity.append(node("strong", "", String(sheet.attendantName || "Housekeeping attendant")),
+  node("small", "", `${sheet.taskCount} assigned task${sheet.taskCount === 1 ? "" : "s"} · ${sheet.sheetDate}`));
+  row.append(identity, housekeepingBadge("sheet-state", "Generated", "generated"));
+  housekeepingSheetList.append(row);
+ }
+ }
+  function renderHousekeepingSheetPreview(body, sheets) {
+ const rooms = Array.isArray(body.rooms) ? body.rooms.slice(0, 200) : [];
+ housekeepingSheetPreview = rooms;
+ housekeepingSheetCanGenerate = body.canGenerate === true;
+ housekeepingPreviewRooms.replaceChildren(...rooms.map(housekeepingPreviewRoomCard));
+ housekeepingPreviewCount.textContent = `${rooms.length} room${rooms.length === 1 ? "" : "s"}`;
+ housekeepingGenerate.disabled = rooms.length === 0 || !housekeepingSheetCanGenerate || !housekeepingSheetAttendant;
+ housekeepingGenerateCopy.textContent = rooms.length === 0
+  ? "No currently occupied room is eligible for a supported daily or departure cadence."
+  : !housekeepingSheetCanGenerate
+  ? "Preview is available, but your current property grant does not permit generation."
+  : `Generate ${rooms.length} assigned task${rooms.length === 1 ? "" : "s"} for ${housekeepingSheetAttendant.displayName}.`;
+ housekeepingSheetPreviewPanel.hidden = false;
+ renderHousekeepingSheetList(sheets);
+ }
+  async function previewHousekeepingSheet({ focus = false } = {}) {
+ if (!housekeepingSheetForm.reportValidity() || !housekeepingSheetAttendant) {
+  setHousekeepingSheetMessage("Choose a date and one staff attendant before previewing.", true);
+  (!housekeepingSheetDate.value ? housekeepingSheetDate : housekeepingAttendantQuery).focus();
+  return;
+ }
+ const property = propertySelect.value;
+ const sheetDate = housekeepingSheetDate.value;
+ const generation = ++housekeepingSheetGeneration;
+ const requestGeneration = ++housekeepingSheetRequestGeneration;
+ housekeepingPreviewAction.disabled = true;
+ housekeepingGenerate.disabled = true;
+ setHousekeepingSheetMessage("Resolving current occupancy and effective cadence…");
+ try {
+  const query = `sheetDate=${enc(sheetDate)}`;
+  const [preview, list] = await Promise.all([
+  request(`/api/v1/properties/${enc(property)}/housekeeping/sheets/preview?${query}`),
+  request(`/api/v1/properties/${enc(property)}/housekeeping/sheets?${query}`),
+  ]);
+  if (!housekeepingSheetIsCurrent(generation, requestGeneration, property, sheetDate)) return;
+  if (!preview || !Array.isArray(preview.rooms) || !list || !Array.isArray(list.sheets)) throw new Error("The housekeeping sheet response was invalid.");
+  renderHousekeepingSheetPreview(preview, list.sheets);
+  setHousekeepingSheetMessage(`${preview.rooms.length} authoritative room${preview.rooms.length === 1 ? "" : "s"} ready for review.`);
+  if (focus) housekeepingSheetPreviewPanel.focus({ preventScroll: true });
+ } catch (error) {
+  if (!housekeepingSheetIsCurrent(generation, requestGeneration, property, sheetDate)) return;
+  housekeepingSheetPreviewPanel.hidden = true;
+  const message = error instanceof Error ? error.message : "Preview failed";
+  const cadenceHelp = /cadence/i.test(message) ? " Update the room profile to daily or on-departure, then preview again." : " Refresh and try again.";
+  setHousekeepingSheetMessage(`${message}.${cadenceHelp}`, true);
+  if (focus) housekeepingPreviewAction.focus({ preventScroll: true });
+ } finally {
+  if (housekeepingSheetIsCurrent(generation, requestGeneration, property, sheetDate)) updateHousekeepingSheetProgress();
+ }
+ }
+  async function generateHousekeepingSheet() {
+ const property = propertySelect.value;
+ const sheetDate = housekeepingSheetDate.value;
+ const attendantPartyId = String(housekeepingSheetAttendant?.partyId || "");
+ if (!property || !/^\d{4}-\d{2}-\d{2}$/.test(sheetDate) || !canonicalUuid(attendantPartyId) ||
+  housekeepingSheetPreview.length === 0 || !housekeepingSheetCanGenerate) return;
+ const draft = JSON.stringify({ property, sheetDate, attendantPartyId });
+ if (housekeepingSheetAttemptDraft !== draft) {
+  housekeepingSheetAttemptDraft = draft;
+  housekeepingSheetAttemptKey = crypto.randomUUID();
+ }
+ const generation = housekeepingSheetGeneration;
+ const requestGeneration = housekeepingSheetRequestGeneration;
+ housekeepingGenerate.disabled = true;
+ setHousekeepingSheetMessage(`Generating ${housekeepingSheetPreview.length} governed assigned task${housekeepingSheetPreview.length === 1 ? "" : "s"}…`);
+ try {
+  const result = await request(`/api/v1/properties/${enc(property)}/housekeeping/sheets/generate`, {
+  method: "POST", headers: { "idempotency-key": housekeepingSheetAttemptKey },
+  body: JSON.stringify({ sheetDate, attendantPartyId }),
+  });
+  if (!housekeepingSheetIsCurrent(generation, requestGeneration, property, sheetDate)) return;
+  housekeepingSheetAttemptKey = "";
+  housekeepingSheetAttemptDraft = "";
+  setHousekeepingSheetMessage(result.replayed ? "The existing sheet was confirmed. Refreshing authoritative tasks…" : "Task sheet generated. Refreshing authoritative tasks…");
+  await Promise.all([previewHousekeepingSheet(), loadHousekeepingBoard()]);
+  if (activeView === "housekeeping") $("#housekeeping-sheet-history").focus({ preventScroll: true });
+ } catch (error) {
+  if (!housekeepingSheetIsCurrent(generation, requestGeneration, property, sheetDate)) return;
+  if (error?.status === 409) {
+  housekeepingSheetAttemptKey = "";
+  housekeepingSheetAttemptDraft = "";
+  setHousekeepingSheetMessage("Sheet truth changed or another attendant already owns it. Refreshing before another decision…", true);
+  await previewHousekeepingSheet();
+  } else {
+  const message = error instanceof Error ? error.message : "Sheet generation failed";
+  setHousekeepingSheetMessage(`${message}. If the Party became inactive or lost the staff role, choose another attendant; otherwise retry keeps the same key.`, true);
+  housekeepingGenerate.disabled = false;
+  housekeepingGenerate.focus({ preventScroll: true });
+  }
+  async function loadHousekeepingSheetHistory({ focus = false } = {}) {
+ const property = propertySelect.value;
+ const sheetDate = housekeepingSheetDate.value;
+ if (!property || !/^\d{4}-\d{2}-\d{2}$/.test(sheetDate) || activeView !== "housekeeping") return;
+ const generation = ++housekeepingSheetGeneration;
+ const requestGeneration = ++housekeepingSheetRequestGeneration;
+ setHousekeepingSheetMessage("Loading generated sheets for this date…");
+ try {
+  const body = await request(`/api/v1/properties/${enc(property)}/housekeeping/sheets?sheetDate=${enc(sheetDate)}`);
+  if (!housekeepingSheetIsCurrent(generation, requestGeneration, property, sheetDate)) return;
+  if (!body || !Array.isArray(body.sheets)) throw new Error("The generated sheet response was invalid.");
+  renderHousekeepingSheetList(body.sheets);
+  setHousekeepingSheetMessage(`${body.sheets.length} generated sheet${body.sheets.length === 1 ? "" : "s"} found for this date.`);
+  if (focus) $("#housekeeping-sheet-history").focus({ preventScroll: true });
+ } catch (error) {
+  if (!housekeepingSheetIsCurrent(generation, requestGeneration, property, sheetDate)) return;
+  setHousekeepingSheetMessage(error instanceof Error ? error.message : "Generated sheets could not be loaded.", true);
+ }
+ }
+ }
+ }
   function setHousekeepingState(state, message = "") {
  housekeepingLoading.hidden = state !== "loading";
  housekeepingError.hidden = state !== "error";
@@ -4764,6 +5033,8 @@
  if (previousView === "housekeeping" && activeView !== "housekeeping") {
   housekeepingGeneration += 1;
   housekeepingRequestGeneration += 1;
+  housekeepingSheetGeneration += 1;
+  housekeepingSheetRequestGeneration += 1;
  }
  todayView.hidden = activeView !== "today";
  housekeepingView.hidden = activeView !== "housekeeping";
@@ -4794,7 +5065,13 @@
   void loadOfflineLeases();
  }
  if (activeView === "operations") void loadOperationalBlocks();
- if (activeView === "housekeeping") void loadHousekeepingBoard();
+ if (activeView === "housekeeping") {
+  void loadHousekeepingBoard();
+  if (housekeepingSheetDate.value) {
+  if (housekeepingSheetAttendant) void previewHousekeepingSheet();
+  else void loadHousekeepingSheetHistory();
+  }
+ }
  if (activeView === "restrictions") void loadRestrictions();
  if (activeView === "rates") void loadRates();
  if (activeView === "status") void loadSystemStatus();
@@ -6194,6 +6471,7 @@
  housekeepingData = [];
  housekeepingReturnFocus = "";
  housekeepingAttempts.clear();
+ clearHousekeepingSheetState();
  resetTodayState();
  reservationBoardRows = [];
  reservationBoardNextCursor = null;
@@ -6257,8 +6535,44 @@
  reservationBoardRetry.addEventListener("click", () => void loadReservationBoard());
  reservationBoardMore.addEventListener("click", () => void loadReservationBoard({ older: true }));
  todayRefresh.addEventListener("click", loadToday);
- housekeepingRefresh.addEventListener("click", () => void loadHousekeepingBoard({ focus: true }));
+ housekeepingRefresh.addEventListener("click", () => {
+ void loadHousekeepingBoard({ focus: true });
+ if (housekeepingSheetDate.value) {
+  if (housekeepingSheetAttendant) void previewHousekeepingSheet();
+  else void loadHousekeepingSheetHistory();
+ }
+ });
  housekeepingRetry.addEventListener("click", () => void loadHousekeepingBoard({ focus: true }));
+ housekeepingSheetForm.addEventListener("submit", (event) => {
+ event.preventDefault();
+ void previewHousekeepingSheet({ focus: true });
+ });
+ housekeepingAttendantSearch.addEventListener("click", () => void searchHousekeepingAttendants());
+ housekeepingAttendantQuery.addEventListener("keydown", (event) => {
+ if (event.key === "Enter") { event.preventDefault(); void searchHousekeepingAttendants(); }
+ });
+ housekeepingAttendantQuery.addEventListener("input", () => {
+ housekeepingSheetGeneration += 1;
+ housekeepingAttendantResults.replaceChildren();
+ setHousekeepingSheetMessage("");
+ });
+ housekeepingAttendantChange.addEventListener("click", () => {
+ housekeepingSheetGeneration += 1;
+ clearHousekeepingSheetPreview();
+ housekeepingSheetAttendant = null;
+ housekeepingAttendantSelected.hidden = true;
+ housekeepingAttendantSearchRow.hidden = false;
+ updateHousekeepingSheetProgress();
+ setHousekeepingSheetMessage("Choose the attendant again, then refresh the authoritative preview.");
+ housekeepingAttendantQuery.focus({ preventScroll: true });
+ });
+ housekeepingSheetDate.addEventListener("change", () => {
+ housekeepingSheetGeneration += 1;
+ clearHousekeepingSheetPreview();
+ updateHousekeepingSheetProgress();
+ if (housekeepingSheetDate.value) void loadHousekeepingSheetHistory();
+ });
+ housekeepingGenerate.addEventListener("click", () => void generateHousekeepingSheet());
  housekeepingTaskList.addEventListener("click", (event) => {
   const button = event.target.closest?.(".housekeeping-action");
   if (button && !button.disabled) void submitHousekeepingAction(button);

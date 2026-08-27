@@ -7,7 +7,7 @@ import { CashierService, ChargeCorrectionService, ChargeService, FolioService, F
 import { AvailabilityProjectionConsumer, AvailabilityProjectionService, AvailabilityService, HoldExpiryWorker, HoldService, InventoryPolicyService, InventoryService, OperationalBlockService, ReservationOccupancyService, RestrictionService } from "./contexts/inventory";
 import { ReservationBoardService, ReservationCommitService, ReservationDetailService, ReservationGuestService, ReservationLifecycleService, ReservationOfferSearchService, ReservationSegmentService } from "./contexts/reservations";
 import { CheckInService } from "./contexts/stay-operations";
-import { HousekeepingTaskService } from "./contexts/housekeeping";
+import { HousekeepingSheetService, HousekeepingTaskService } from "./contexts/housekeeping";
 import {
   createRateIntentProposalAdapterFromEnvironment,
   RateConfigurationService,
@@ -152,6 +152,7 @@ function runtimeApp() {
   const receivables = new ReceivableService({ database, events, idempotency: new PostgresIdempotency(), approvals });
   const checkIns = new CheckInService({ database, events, idempotency: new PostgresIdempotency() });
   const housekeeping = new HousekeepingTaskService({ database, events, idempotency: new PostgresIdempotency() });
+  const housekeepingSheets = new HousekeepingSheetService({ database, events, idempotency: new PostgresIdempotency() });
   const projection = new AvailabilityProjectionService();
   const availability = new AvailabilityService();
   const publication = new RatePublicationService(registry, approvals, events);
@@ -189,7 +190,7 @@ function runtimeApp() {
   return createApp({
     database,
     tenantResolver: new BearerTenantResolver(tokens),
-    operatorApi: new OperatorHttpApi(login, availability, inventory, new PostgresIdempotency(), restrictions, rates, pricing, blocks, policy, holds, projection, runtimeStatus, rateBuilder, reservations, reservationOffers, reservationGuests, reservationLifecycle, reservationSegments, parties, folioStatements, charges, new ReservationBoardService(), new ReservationDetailService(), folios, chargeCorrections, folioTransfers, hostedRuntime?.hostedDeposits, folioSettlements, cashiers, receivables, checkIns, housekeeping),
+    operatorApi: new OperatorHttpApi(login, availability, inventory, new PostgresIdempotency(), restrictions, rates, pricing, blocks, policy, holds, projection, runtimeStatus, rateBuilder, reservations, reservationOffers, reservationGuests, reservationLifecycle, reservationSegments, parties, folioStatements, charges, new ReservationBoardService(), new ReservationDetailService(), folios, chargeCorrections, folioTransfers, hostedRuntime?.hostedDeposits, folioSettlements, cashiers, receivables, checkIns, housekeeping, housekeepingSheets),
     operatorLocalReviewCredentials: localReviewCredentials(),
     ...(hostedRuntime ? { hostedDepositRoutes: hostedRuntime.routes, hostedDepositSurface: "guest" as const } : {}),
   });

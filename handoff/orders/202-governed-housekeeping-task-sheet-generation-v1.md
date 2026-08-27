@@ -1,6 +1,6 @@
 # Order 202 — Governed housekeeping task-sheet generation v1
 
-**Status:** READY-D545 — intentional red and implementation required
+**Status:** BUILT-UNREVIEWED-D547 — implementation and executable gates green; independent proof deferred
 **Phase:** 6 — Stay operations and housekeeping
 **Branch:** `phase-6/governed-housekeeping-task-sheet-generation-v1`
 **Base:** `4ca545e` (built-unreviewed Order201)
@@ -47,6 +47,7 @@ room identity, state, task identity and evidence.
 - `tests/housekeeping-task-sheet-generation.intentional-red.test.ts`,
   `tests/housekeeping-task-sheet-generation.integration.test.ts`,
   `tests/operator-housekeeping-sheet-workbench.integration.test.ts`, focused additions to
+  `tests/operator-today-command-centre.integration.test.ts`,
   `tests/review-seed.integration.test.ts`, `tests/migrate.integration.test.ts`,
   `tests/database-acceptance.integration.test.ts`,
   `tests/runtime-dml-authority.integration.test.ts`,
@@ -111,9 +112,8 @@ dependency, extension type, weekly rule or custom cadence language is admitted.
 
 ## Definition of done
 
-- [ ] Intentional red precedes implementation.
-- [ ] Daily and on-departure generation is authoritative, deterministic and atomic.
-- [ ] Unsupported cadence and hostile boundaries fail without artifacts.
-- [ ] Human sheet-generation workbench and deterministic eligible fixture are usable.
-- [ ] Result is recorded built-unreviewed without claiming weekly/custom/discrepancy/checkout/Phase6/app completion.
-
+- [x] Intentional red precedes implementation.
+- [x] Daily and on-departure generation is authoritative, deterministic and atomic.
+- [x] Unsupported cadence and hostile boundaries fail without artifacts.
+- [x] Human sheet-generation workbench and deterministic eligible fixture are usable.
+- [x] Result is recorded built-unreviewed without claiming weekly/custom/discrepancy/checkout/Phase6/app completion.

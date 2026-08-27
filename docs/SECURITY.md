@@ -155,6 +155,24 @@ are server-derived; foreign ids are concealed and browser-supplied authority is
 ignored. The capability cannot create, assign, cancel or reopen tasks and cannot
 write sheets, occupancy, reservations, financials, days or statutory records.
 
+### Governed housekeeping sheet-generation containment (migration 0027)
+
+Runtime has no direct `INSERT`, `UPDATE` or `DELETE` authority over `task_sheet` or
+`task`. Migration 0027 provides one fixed-search-path owner-mediated generation
+capability. It validates the dedicated runtime/app-role context, transaction-local
+tenant, active actor/property, one active same-tenant staff attendant, exact
+property-local date, effective tenant-over-global vertical profile, current in-house
+segment and sanctioned same-space occupancy while holding the deterministic decision
+keys. `PUBLIC`, direct login and raw runtime DML remain denied.
+
+HTTP authority is least-scoped separately: `housekeeping.sheets:read` permits preview
+and current-sheet reads; `housekeeping.sheets:generate` permits the deliberate write.
+Tenant, property, actor, room set, cadence, occupancy, task state and task identity are
+server-derived. Weekly/custom/missing/mixed/ambiguous cadence, foreign or inactive
+staff and hostile property/actor ids create no sheet, task, fact, outbox or
+idempotency artifact. The capability cannot mutate task lifecycle, room condition,
+reservation, segment, occupancy, financial, business-day, key or statutory truth.
+
 ## 6. Statutory & privacy
 
 ### Token-only payment containment

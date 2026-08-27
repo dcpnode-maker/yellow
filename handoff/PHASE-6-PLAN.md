@@ -60,16 +60,31 @@ This slice deliberately omits task creation, assignment, cancellation, reopen,
 cadence, task sheets, credits, attendant allocation, discrepancies, queue, keys,
 reservation/occupancy mutation, financials, business-day or statutory effects.
 
+## Built-unreviewed bounded slice — Order 202
+
+Order 202 adds property-scoped preview, current-sheet read and deliberate generation
+under distinct `housekeeping.sheets:read` and `housekeeping.sheets:generate` grants.
+The server owns actor, property, active staff attendant validation, effective
+tenant-over-global profile truth, occupancy/current-segment selection and deterministic
+sheet/task identities. V1 supports only `daily` in-house rooms and `on_departure`
+rooms whose occupied segment ends on the exact property-local date. Weekly, custom,
+missing, mixed or ambiguous cadence fails atomically.
+
+The review seed reuses Avery Housekeeping and adds one isolated fixed-date in-house
+segment plus sanctioned occupancy on otherwise unused daily hotel room 202 in pickup
+condition. It exposes the date and exact ids but intentionally creates no sheet, task,
+fact/outbox transition or financial/statutory effect. Generation creates one assigned
+housekeeping task per distinct eligible room and atomic minimized evidence; it never
+mutates source reservation, segment, occupancy or condition truth.
+
 ## Subsequent bounded slices
 
-1. Active Order202 task-sheet generation v1 consumes only recorded daily and
-   on-departure cadence; weekly/custom remain fail-closed pending explicit policy.
-2. Discrepancy, queue and service-message workflows with explicit state and audit.
-3. Arrival travel/vehicle/parking capture; any parking occupancy must use the existing
+1. Discrepancy, queue and service-message workflows with explicit state and audit.
+2. Arrival travel/vehicle/parking capture; any parking occupancy must use the existing
    occupancy choke point.
-4. Governed departure readiness and checkout composed with settled folios or exact AR
+3. Governed departure readiness and checkout composed with settled folios or exact AR
    authority; no implicit balance repair.
-5. Optional key-provider port only after provider ownership, credential and recovery
+4. Optional key-provider port only after provider ownership, credential and recovery
    policy are fixed.
 
 Statutory field semantics, validation, submission and receipts remain Phase 8. Tax and

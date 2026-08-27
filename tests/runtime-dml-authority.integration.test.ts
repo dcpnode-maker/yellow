@@ -286,6 +286,7 @@ databaseDescribe("Order 150 positive runtime DML authority", () => {
           AND p.proname IN ('record_occupancy', 'release_occupancy', 'seal_business_day',
             'lock_financial_rows', 'lock_financial_business_days', 'create_charge_correction_header',
             'create_folio_transfer', 'create_receivable_transfer',
+            'govern_housekeeping_task_sheet',
             'open_cashier_session', 'append_cashier_count', 'close_cashier_session',
            'runtime_resolve_active_tenant', 'runtime_due_hold_scopes', 'runtime_consumer_begin',
            'runtime_consumer_read', 'runtime_consumer_mark', 'runtime_consumer_advance',
@@ -307,6 +308,8 @@ databaseDescribe("Order 150 positive runtime DML authority", () => {
     expect(functions.find(({ signature }) => signature.startsWith("create_folio_transfer(")))
       .toEqual(expect.objectContaining({ app: true, runtime: false }));
     expect(functions.find(({ signature }) => signature.startsWith("create_receivable_transfer(")))
+      .toEqual(expect.objectContaining({ app: true, runtime: false }));
+    expect(functions.find(({ signature }) => signature.startsWith("govern_housekeeping_task_sheet(")))
       .toEqual(expect.objectContaining({ app: true, runtime: false }));
     for (const capability of [
       "open_cashier_session(", "append_cashier_count(", "close_cashier_session(",
@@ -346,6 +349,8 @@ databaseDescribe("Order 150 positive runtime DML authority", () => {
     await expectAppRoleDenied("DELETE FROM public.cashier_count_line WHERE false");
     await expectAppRoleDenied("UPDATE public.task SET status = status WHERE false");
     await expectAppRoleDenied("UPDATE public.unit_condition SET condition = condition WHERE false");
+    await expectAppRoleDenied("INSERT INTO public.task_sheet (tenant_id, property_node, sheet_date) VALUES ('00000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-000000000002', DATE '2026-08-28')");
+    await expectAppRoleDenied("INSERT INTO public.task (tenant_id, property_node, kind, status) VALUES ('00000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-000000000002', 'housekeeping', 'assigned')");
   });
 
   test("P3: new tables receive no mutation and an unauthorized grant is detected", async () => {

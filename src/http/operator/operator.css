@@ -749,6 +749,33 @@ input, select, textarea { min-height: 44px; border-color: #bdcbca; background: #
 }
 .housekeeping-heading { align-items: end; }
 .housekeeping-boundary { margin-bottom: 1rem; }
+.housekeeping-sheet-workbench { min-width: 0; margin-bottom: 1rem; padding: 1rem; display: grid; gap: 1rem; overflow: hidden; }
+.housekeeping-sheet-intro, .housekeeping-preview-head, .housekeeping-generate-bar, .housekeeping-sheet-row { min-width: 0; display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
+.housekeeping-sheet-intro h3, .housekeeping-preview-head h4 { margin: .2rem 0 0; }
+.housekeeping-sheet-steps { min-width: 0; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: .35rem; list-style: none; }
+.housekeeping-sheet-steps li { min-height: 32px; padding: .38rem .65rem; display: inline-flex; align-items: center; border: 1px solid var(--line); border-radius: 999px; background: var(--surface-subtle); color: var(--muted); font-size: .72rem; font-weight: 800; }
+.housekeeping-sheet-steps li.is-current { border-color: var(--accent); background: color-mix(in srgb,var(--accent) 12%,var(--card)); color: var(--accent-strong); }
+.housekeeping-sheet-form { min-width: 0; display: grid; grid-template-columns: minmax(190px,.65fr) minmax(280px,1.35fr) auto; gap: .75rem 1rem; align-items: end; }
+.housekeeping-sheet-form > .field-note, .housekeeping-sheet-form > .form-message { grid-column: 1 / -1; margin: 0; }
+.housekeeping-attendant-picker { min-width: 0; margin: 0; padding: .75rem; border: 1px solid var(--line); border-radius: var(--control-radius); }
+.housekeeping-attendant-search-row { min-width: 0; display: grid; grid-template-columns: minmax(0,1fr) auto; gap: .6rem; align-items: end; }
+.housekeeping-attendant-search-row button, .housekeeping-preview-action { min-height: 44px; }
+.housekeeping-attendant-results { min-width: 0; margin-top: .55rem; display: grid; gap: .4rem; }
+.housekeeping-attendant-result, .housekeeping-attendant-selected { min-width: 0; padding: .65rem; display: flex; align-items: center; justify-content: space-between; gap: .75rem; border: 1px solid var(--line); border-radius: var(--control-radius); background: var(--surface-subtle); }
+.housekeeping-attendant-result div, .housekeeping-attendant-selected div { min-width: 0; display: grid; gap: .18rem; }
+.housekeeping-attendant-result :is(strong,small), .housekeeping-attendant-selected :is(strong,small) { overflow-wrap: anywhere; }
+.housekeeping-sheet-preview, .housekeeping-sheet-history { min-width: 0; padding-top: 1rem; display: grid; gap: .75rem; border-top: 1px solid var(--line); }
+.housekeeping-preview-rooms { min-width: 0; display: grid; grid-template-columns: repeat(auto-fit,minmax(min(100%,240px),1fr)); gap: .65rem; }
+.housekeeping-preview-room { min-width: 0; padding: .75rem; display: grid; gap: .65rem; border: 1px solid var(--line); border-radius: var(--control-radius); background: var(--surface-subtle); }
+.housekeeping-preview-room-head { min-width: 0; display: flex; align-items: start; justify-content: space-between; gap: .5rem; }
+.housekeeping-preview-room-head > div { min-width: 0; display: grid; }
+.housekeeping-generate-bar { padding: .75rem; border: 1px solid var(--line); border-radius: var(--control-radius); background: var(--surface-subtle); }
+.housekeeping-generate-bar p { margin: 0; color: var(--muted); }
+.housekeeping-generate-bar button { min-height: 44px; flex: none; }
+#housekeeping-sheet-list { min-width: 0; display: grid; gap: .5rem; }
+.housekeeping-sheet-row { padding: .65rem .75rem; border: 1px solid var(--line); border-radius: var(--control-radius); background: var(--surface-subtle); }
+.housekeeping-sheet-row > div { min-width: 0; display: grid; gap: .15rem; }
+.housekeeping-sheet-row :is(strong,small) { overflow-wrap: anywhere; }
 .housekeeping-task-list { min-width: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 330px), 1fr)); gap: 1rem; align-items: start; }
 .housekeeping-task-card { min-width: 0; padding: 1rem; display: grid; gap: 1rem; overflow: hidden; }
 .housekeeping-task-head { min-width: 0; display: flex; align-items: start; justify-content: space-between; gap: .75rem; }
@@ -772,6 +799,11 @@ input, select, textarea { min-height: 44px; border-color: #bdcbca; background: #
 .housekeeping-error p { color: var(--muted); }
 @media (max-width: 700px) { .housekeeping-heading { align-items: stretch; flex-direction: column; }
 .housekeeping-heading .quiet { width: 100%; }
+.housekeeping-sheet-intro, .housekeeping-preview-head, .housekeeping-generate-bar { align-items: stretch; flex-direction: column; }
+.housekeeping-sheet-form { grid-template-columns: minmax(0,1fr); }
+.housekeeping-sheet-form > .field-note, .housekeeping-sheet-form > .form-message { grid-column: auto; }
+.housekeeping-attendant-search-row { grid-template-columns: minmax(0,1fr); }
+.housekeeping-attendant-search-row button, .housekeeping-preview-action, .housekeeping-generate-bar button { width: 100%; }
 .housekeeping-task-head { display: grid; }
 .housekeeping-badges { justify-content: start; }
 }
@@ -1010,21 +1042,36 @@ input:focus, select:focus, textarea:focus { box-shadow: var(--material-control-a
 :root[data-theme="erp"] .checkin-workbench { border: 1px solid #d6dce5; border-left: 4px solid #3157b7; border-radius: 10px; background: #fff; box-shadow: 0 8px 24px rgba(16,24,40,.06); }
 :root[data-theme="apple"] .housekeeping-task-card { border: .5px solid rgba(60,60,67,.25); border-radius: 22px; background: rgba(255,255,255,.9); box-shadow: 0 1px 2px rgba(0,0,0,.04),0 18px 45px rgba(0,0,0,.08); }
 :root[data-theme="apple"] .housekeeping-badge { min-height: 28px; border-width: .5px; }
+:root[data-theme="apple"] .housekeeping-sheet-workbench { border: .5px solid rgba(60,60,67,.22); border-radius: 24px; background: rgba(255,255,255,.9); box-shadow: 0 1px 2px rgba(0,0,0,.04),0 22px 55px rgba(0,0,0,.08); }
+:root[data-theme="apple"] :is(.housekeeping-attendant-picker,.housekeeping-preview-room,.housekeeping-generate-bar,.housekeeping-sheet-row) { border-width: .5px; border-radius: 16px; background: rgba(248,248,250,.86); }
 :root[data-theme="android"] .housekeeping-task-card { border: 0; border-radius: 28px 28px 12px 28px; background: #f7fbf8; box-shadow: 0 1px 3px rgba(29,25,43,.18),0 8px 22px rgba(29,25,43,.08); }
 :root[data-theme="android"] .housekeeping-task-card:nth-child(even) { border-radius: 28px 12px 28px 28px; background: #eaddff; }
 :root[data-theme="android"] .housekeeping-action { min-height: 48px; border-radius: 999px; }
+:root[data-theme="android"] .housekeeping-sheet-workbench { border: 0; border-radius: 28px 28px 12px 28px; background: #f7fbf8; box-shadow: 0 1px 3px rgba(29,25,43,.18),0 8px 24px rgba(29,25,43,.08); }
+:root[data-theme="android"] :is(.housekeeping-attendant-picker,.housekeeping-preview-room,.housekeeping-generate-bar,.housekeeping-sheet-row) { border: 0; border-radius: 20px 20px 8px 20px; background: #eaddff; }
+:root[data-theme="android"] .housekeeping-sheet-steps li { min-height: 40px; }
 :root[data-theme="win95"] .housekeeping-task-list { gap: 6px; }
 :root[data-theme="win95"] .housekeeping-task-card { padding: 6px; gap: 6px; border: 2px outset #fff; border-radius: 0; background: #c0c0c0; box-shadow: 1px 1px #000; }
 :root[data-theme="win95"] .housekeeping-task-head { padding: 4px; background: #000080; color: #fff; }
 :root[data-theme="win95"] .housekeeping-task-head :is(.eyebrow,h3) { color: #fff; }
 :root[data-theme="win95"] .housekeeping-badge { border: 2px inset #fff; border-radius: 0; background: #fff; color: #000; }
 :root[data-theme="win95"] .housekeeping-action { border-radius: 0; }
+:root[data-theme="win95"] .housekeeping-sheet-workbench { padding: 6px; gap: 6px; border: 2px outset #fff; border-radius: 0; background: #c0c0c0; box-shadow: 1px 1px #000; }
+:root[data-theme="win95"] .housekeeping-sheet-intro { padding: 4px; background: #000080; color: #fff; }
+:root[data-theme="win95"] .housekeeping-sheet-intro :is(.eyebrow,h3) { color: #fff; }
+:root[data-theme="win95"] :is(.housekeeping-attendant-picker,.housekeeping-attendant-result,.housekeeping-attendant-selected,.housekeeping-preview-room,.housekeeping-generate-bar,.housekeeping-sheet-row,.housekeeping-sheet-steps li) { border: 2px inset #fff; border-radius: 0; background: #c0c0c0; box-shadow: none; }
 :root[data-theme="glass"] .housekeeping-task-card { border: 1px solid rgba(255,255,255,.36); border-radius: 25px; background: linear-gradient(145deg,rgba(244,250,255,.22),rgba(104,148,222,.08)); box-shadow: inset 0 1px rgba(255,255,255,.5),0 28px 68px rgba(0,5,22,.34); -webkit-backdrop-filter: blur(28px) saturate(168%); backdrop-filter: blur(28px) saturate(168%); }
 :root[data-theme="glass"] .housekeeping-badge { border-color: rgba(255,255,255,.34); background: rgba(238,247,255,.14); }
+:root[data-theme="glass"] .housekeeping-sheet-workbench { border: 1px solid rgba(255,255,255,.38); border-radius: 28px; background: linear-gradient(145deg,rgba(244,250,255,.2),rgba(104,148,222,.08)); box-shadow: inset 0 1px rgba(255,255,255,.58),0 30px 72px rgba(0,5,22,.34); -webkit-backdrop-filter: blur(30px) saturate(172%); backdrop-filter: blur(30px) saturate(172%); }
+:root[data-theme="glass"] :is(.housekeeping-attendant-picker,.housekeeping-attendant-result,.housekeeping-attendant-selected,.housekeeping-preview-room,.housekeeping-generate-bar,.housekeeping-sheet-row) { border-color: rgba(255,255,255,.42); background: rgba(238,247,255,.14); box-shadow: inset 0 1px rgba(255,255,255,.34); }
 :root[data-theme="neo"] .housekeeping-task-card { border: 1px solid #a1adb3; border-radius: 24px; background: #e8eef1; box-shadow: -8px -8px 18px #fff,8px 8px 18px #bec8cd; }
 :root[data-theme="neo"] .housekeeping-badge { background: #e8eef1; box-shadow: inset -4px -4px 8px #fff,inset 4px 4px 8px #c1cbd0; }
+:root[data-theme="neo"] .housekeeping-sheet-workbench { border: 1px solid #a1adb3; border-radius: 26px; background: #e8eef1; box-shadow: -9px -9px 20px #fff,9px 9px 20px #bec8cd; }
+:root[data-theme="neo"] :is(.housekeeping-attendant-picker,.housekeeping-attendant-result,.housekeeping-attendant-selected,.housekeeping-preview-room,.housekeeping-generate-bar,.housekeeping-sheet-row) { border-color: #a1adb3; background: #e8eef1; box-shadow: inset -4px -4px 9px #fff,inset 4px 4px 9px #c1cbd0; }
 :root[data-theme="erp"] .housekeeping-task-card { border: 1px solid #d9dee7; border-left: 4px solid #163ee9; border-radius: 8px; background: #fff; box-shadow: 0 1px 2px rgba(16,24,40,.04),0 8px 20px rgba(16,24,40,.05); }
 :root[data-theme="erp"] .housekeeping-badge, :root[data-theme="erp"] .housekeeping-action { border-radius: 6px; }
+:root[data-theme="erp"] .housekeeping-sheet-workbench { border: 1px solid #d9dee7; border-left: 4px solid #163ee9; border-radius: 8px; background: #fff; box-shadow: 0 1px 2px rgba(16,24,40,.04),0 8px 20px rgba(16,24,40,.05); }
+:root[data-theme="erp"] :is(.housekeeping-attendant-picker,.housekeeping-preview-room,.housekeeping-generate-bar,.housekeeping-sheet-row) { border-radius: 6px; background: #f7f8fa; }
 @media (max-width: 600px) { .checkin-actions > button { flex: 1 1 100%; } }
 @media (prefers-reduced-motion: reduce) { .checkin-workbench[aria-busy="true"] .checkin-readiness-badge { animation: none; } }
 :root[data-theme="erp"] { --ink: #111318; --muted: #515b6b; --paper: #f3f4f6; --card: #ffffff; --line: #d9dee7; --accent: #163ee9; --accent-strong: #0928a8; --focus: #002dcc; --nav: #10131b; --shell-ink: #ffffff; --shell-muted: #c8cfdb; --surface-subtle: #f7f8fa; --control-radius: 7px; --card-radius: 10px; --font-ui: "Segoe UI", Arial, sans-serif; --font-display: var(--font-ui); --material-card: #fff; --material-card-border: 1px solid #d9dee7; --material-card-shadow: 0 1px 2px rgba(16,24,40,.04),0 8px 20px rgba(16,24,40,.06); --material-control: #fff; --material-control-border: 1px solid #aeb7c6; --material-control-shadow: inset 0 1px 0 #fff; --material-control-active-shadow: 0 0 0 3px rgba(22,62,233,.18); --material-primary: #163ee9; --material-primary-border: 1px solid #0928a8; --material-primary-shadow: 0 4px 12px rgba(22,62,233,.2); --material-nav: #10131b; --material-nav-border: 1px solid #242a38; --material-nav-shadow: 0 12px 30px rgba(10,14,23,.18); --material-hover-lift: translateY(-1px); --material-press: translateY(1px); --material-transition: 140ms ease-out; }

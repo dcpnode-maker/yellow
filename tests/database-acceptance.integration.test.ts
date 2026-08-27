@@ -135,6 +135,11 @@ const EXPECTED_MIGRATIONS = [
     filename: "0026_governed_housekeeping_task_transition.sql",
     checksum_sha256: "f3667d8443db21ad921512bfadc453e9a9f341b60594f888dad7f69a88f0fba6",
   },
+  {
+    version: 27,
+    filename: "0027_governed_housekeeping_task_sheet_generation.sql",
+    checksum_sha256: "fb46db4af1ebca0dd1d66501e51ed2064c5dc108a40701a6a7b00d170b30be43",
+  },
 ];
 
 if (REQUIRE_DATABASE && !DATABASE_URL) {

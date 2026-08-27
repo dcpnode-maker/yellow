@@ -305,6 +305,21 @@ clean to inspected. `unit_condition.updated_by/updated_at`, task `completed_at`,
 and outbox rows retain attributable evidence. This slice does not model cadence,
 task-sheet generation, credits, attendant allocation or occupancy.
 
+Order 202 composes the existing `task_sheet`, `task`, `space`, `reservation_segment`,
+`space_occupancy`, Party/staff-role and `vertical_profile` primitives; it adds no root,
+table or state. One deterministic sheet is identified by tenant, property, local date
+and selected active staff attendant. Its deterministic assigned housekeeping tasks
+reference distinct active physical spaces selected from authoritative current
+in-house occupancy and effective per-room cadence. Tenant profile configuration wins
+over the global profile on the same key. V1 admits only recorded `daily` and exact
+local-date `on_departure`; missing, ambiguous, weekly or custom semantics fail closed.
+
+Sheet generation appends tasks plus attributable facts/events but does not alter the
+source reservation, segment, occupancy or room condition. Order 201 remains the sole
+owner of later assigned-to-verified task and dirty/pickup-to-inspected condition
+transitions. Credits, balancing, reassignment, cancellation, automatic scheduling,
+discrepancy and checkout remain outside this slice.
+
 ### Asset/Work Order aggregate — target extension
 
 Baseline `task`, `space`, relations, and OOO/OOS provide foundations, but there is no

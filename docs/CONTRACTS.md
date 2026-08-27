@@ -672,3 +672,33 @@ task sheet, cadence, credits, occupancy, reservation, discrepancy, queue, key,
 financial, business-day or statutory effect. Direct runtime DML over `task` and
 `unit_condition` remains denied; the application may use only the bounded governed
 transition capability.
+
+## 21. Governed housekeeping task-sheet generation v1
+
+Order 202 adds bounded preview, current-sheet read and one deliberate generation
+command. `housekeeping.sheets:read` permits property-scoped preview/list reads;
+`housekeeping.sheets:generate` permits generation. The server derives tenant,
+property, actor, active physical rooms, current reservation segment and sanctioned
+occupancy truth, effective vertical-profile cadence and exact task identities. Browser
+input is only a property-local `sheetDate`, one selected active staff Party id and an
+idempotency key.
+
+The v1 cadence contract is deliberately narrow. `daily` includes a distinct active
+physical room only when an authoritative in-house segment occupies the property-local
+date. `on_departure` additionally requires the occupied segment's exclusive upper
+instant to fall on that date. Tenant configuration overrides the global profile on the
+same key; missing, ambiguous, mixed, `weekly` or `custom` cadence fails the whole
+request without artifacts. No weekday, anchor or custom language is inferred.
+
+One successful command creates one deterministic `task_sheet` for the exact
+tenant/property/date/attendant and one assigned `kind='housekeeping'`,
+`subject_type='space'` task per distinct eligible room. Tasks carry only server-owned
+sheet/date/cadence provenance and `department='Housekeeping'`; credits are absent.
+Same-key replay returns the same result, changed reuse conflicts, and concurrent
+contenders converge without silently reassigning an existing sheet. Task creation,
+matching facts and `task.created` outbox events commit atomically.
+
+Generation does not transition tasks or room condition and does not create, update or
+delete reservations, segments, occupancy, folios, journals, business days, keys,
+statutory or fiscal records. Direct runtime DML over `task_sheet` and `task` remains
+denied; only the owner-mediated bounded capability may generate them.

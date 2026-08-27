@@ -207,6 +207,46 @@ async function housekeepingSnapshot() {
   `;
 }
 
+async function housekeepingSheetFixtureSnapshot() {
+  const fixture = first.housekeepingExamples;
+  return admin<Array<Record<string, unknown>>>`
+    SELECT reservation.id AS reservation_id, reservation.status AS reservation_status,
+           reservation.confirmation_no, segment.id AS segment_id,
+           segment.status AS segment_status, segment.seq,
+           to_char(lower(segment.period) AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') AS stay_start,
+           to_char(upper(segment.period) AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') AS stay_end,
+           space.id AS space_id, space.code AS room_code, space.profile_key,
+           sellable.id AS sellable_unit_id, occupancy.id AS occupancy_id,
+           occupancy.slot_kind, occupancy.exclusive, occupancy.claim::text,
+           condition.condition,
+           to_char(condition.updated_at AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') AS condition_updated_at,
+           condition.updated_by,
+           (SELECT count(*)::int FROM task_sheet
+             WHERE tenant_id=${SEED_TENANT.id}::uuid AND property_node=${SEED_PROPERTY.id}::uuid
+               AND sheet_date=${fixture.sheetDate}::date) AS sheets,
+           (SELECT count(*)::int FROM task
+             WHERE tenant_id=${SEED_TENANT.id}::uuid AND subject_id=space.id) AS tasks,
+           (SELECT count(*)::int FROM fact_log
+             WHERE entity_id IN (reservation.id, segment.id, occupancy.id)) AS facts,
+           (SELECT count(*)::int FROM outbox
+             WHERE aggregate_id IN (reservation.id, segment.id, occupancy.id)) AS events,
+           (SELECT count(*)::int FROM journal WHERE tenant_id=${SEED_TENANT.id}::uuid) AS journals,
+           (SELECT count(*)::int FROM posting_line WHERE tenant_id=${SEED_TENANT.id}::uuid) AS postings,
+           (SELECT count(*)::int FROM payment WHERE tenant_id=${SEED_TENANT.id}::uuid) AS payments,
+           (SELECT count(*)::int FROM document WHERE tenant_id=${SEED_TENANT.id}::uuid) AS documents
+    FROM reservation
+    JOIN reservation_segment AS segment
+      ON segment.reservation_id=reservation.id AND segment.id=${fixture.eligibleSegmentId}::uuid
+    JOIN sellable_unit AS sellable ON sellable.id=segment.sellable_unit_id
+    JOIN sellable_unit_space AS assignment ON assignment.sellable_unit_id=sellable.id
+    JOIN space ON space.id=assignment.space_id AND space.id=${fixture.eligibleSpaceId}::uuid
+    JOIN space_occupancy AS occupancy
+      ON occupancy.slot_ref=segment.id AND occupancy.id=${fixture.eligibleOccupancyId}::uuid
+    JOIN unit_condition AS condition ON condition.space_id=space.id
+    WHERE reservation.id=${fixture.eligibleReservationId}::uuid
+  `;
+}
+
 beforeAll(async () => {
   if (!DEPLOY_DATABASE_URL || !RUNTIME_DATABASE_URL || !PASSWORD) return;
   await runSeed({ databaseUrl: DEPLOY_DATABASE_URL, logger: () => undefined });
@@ -270,6 +310,15 @@ databaseDescribe("Order 046 reproducible local-review seed", () => {
     expect(first.checkInExamples.identityGatePropertyId).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/);
     expect(first.housekeepingExamples.assignedDirtyTaskId).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/);
     expect(first.housekeepingExamples.doneCleanTaskId).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/);
+    expect(first.housekeepingExamples).toMatchObject({ sheetDate: "2026-09-18" });
+    for (const id of [
+      first.housekeepingExamples.attendantPartyId,
+      first.housekeepingExamples.eligibleReservationId,
+      first.housekeepingExamples.eligibleSegmentId,
+      first.housekeepingExamples.eligibleSpaceId,
+      first.housekeepingExamples.eligibleSellableUnitId,
+      first.housekeepingExamples.eligibleOccupancyId,
+    ]) expect(id).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/);
     expect(first.cashAccountId).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/);
     expect(first.cashDrawerId).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/);
     expect(first.companyPartyId).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/);
@@ -485,9 +534,36 @@ databaseDescribe("Order 046 reproducible local-review seed", () => {
     expect(guards[0]).toEqual({ sheets: 0, occupancy: 0, reservation_assignments: 0, facts: 0, events: 0 });
   });
 
+  test("Order 202 P7: provisions one isolated daily in-house eligible room without generating a sheet", async () => {
+    expect(await housekeepingSheetFixtureSnapshot()).toEqual([{
+      reservation_id: first.housekeepingExamples.eligibleReservationId,
+      reservation_status: "in_house", confirmation_no: "HK-SHEET-ELIGIBLE",
+      segment_id: first.housekeepingExamples.eligibleSegmentId,
+      segment_status: "in_house", seq: 1,
+      stay_start: "2026-09-17T15:00:00.000Z", stay_end: "2026-09-19T11:00:00.000Z",
+      space_id: first.housekeepingExamples.eligibleSpaceId, room_code: "202", profile_key: "hotel",
+      sellable_unit_id: first.housekeepingExamples.eligibleSellableUnitId,
+      occupancy_id: first.housekeepingExamples.eligibleOccupancyId,
+      slot_kind: "segment", exclusive: true, claim: "[0,)", condition: "pickup",
+      condition_updated_at: "2026-09-18T07:00:00.000Z", updated_by: first.userId,
+      sheets: 0, tasks: 0, facts: 0, events: 0,
+      journals: 0, postings: 0, payments: 0, documents: 0,
+    }]);
+    const profile = await admin<Array<{ cadence: string; matches: number }>>`
+      SELECT content->>'housekeeping_cadence' AS cadence, count(*)::int AS matches
+      FROM extension
+      WHERE type='vertical_profile' AND key='hotel' AND status='active'
+        AND effective @> '2026-09-18T00:00:00Z'::timestamptz
+        AND (tenant_id IS NULL OR tenant_id=${SEED_TENANT.id}::uuid)
+      GROUP BY content->>'housekeeping_cadence'
+    `;
+    expect(profile).toEqual([{ cadence: "daily", matches: 1 }]);
+  });
+
   test("P3: identical rerun is an exact no-op", async () => {
     const before = await counts();
     const housekeepingBefore = await housekeepingSnapshot();
+    const sheetFixtureBefore = await housekeepingSheetFixtureSnapshot();
     const second = await runReviewSeed({ databaseUrl: DEPLOY_DATABASE_URL!, password: PASSWORD!,
       approverPassword: APPROVER_PASSWORD!, logger: () => undefined });
     expect(second).toMatchObject({
@@ -503,6 +579,8 @@ databaseDescribe("Order 046 reproducible local-review seed", () => {
     });
     expect(await counts()).toEqual(before);
     expect(await housekeepingSnapshot()).toEqual(housekeepingBefore);
+    expect(second.housekeepingExamples).toEqual(first.housekeepingExamples);
+    expect(await housekeepingSheetFixtureSnapshot()).toEqual(sheetFixtureBefore);
   });
 
   test("P4: same identity with a different password fails without mutation", async () => {
@@ -554,7 +632,7 @@ databaseDescribe("Order 046 reproducible local-review seed", () => {
     expect(await tokens.verify(loginBody.accessToken)).toMatchObject({
       sub: first.userId,
       tid: SEED_TENANT.id,
-      scp: "crm.parties:read crm.parties:write financials.adjustments:write financials.cashiers:operate financials.cashiers:read financials.charges:write financials.folios:close financials.folios:open financials.folios:read financials.folios:settle financials.receivables:read financials.receivables:transfer financials.transfers:write housekeeping.tasks:read housekeeping.tasks:work inventory.availability:read inventory.blocks:read inventory.blocks:write inventory.configuration:read inventory.configuration:write inventory.holds:read inventory.holds:write inventory.offline_leases:read inventory.offline_leases:write inventory.policy:read inventory.policy:write inventory.restriction:read inventory.restriction:write rates.configuration:read rates.configuration:write rates.pricing:read rates.pricing:write reservations.booking:write reservations.guests:read reservations.guests:write reservations.lifecycle:read reservations.lifecycle:write reservations.segments:read reservations.segments:write stay-operations.checkin:commit stay-operations.checkin:read",
+      scp: "crm.parties:read crm.parties:write financials.adjustments:write financials.cashiers:operate financials.cashiers:read financials.charges:write financials.folios:close financials.folios:open financials.folios:read financials.folios:settle financials.receivables:read financials.receivables:transfer financials.transfers:write housekeeping.sheets:generate housekeeping.sheets:read housekeeping.tasks:read housekeeping.tasks:work inventory.availability:read inventory.blocks:read inventory.blocks:write inventory.configuration:read inventory.configuration:write inventory.holds:read inventory.holds:write inventory.offline_leases:read inventory.offline_leases:write inventory.policy:read inventory.policy:write inventory.restriction:read inventory.restriction:write rates.configuration:read rates.configuration:write rates.pricing:read rates.pricing:write reservations.booking:write reservations.guests:read reservations.guests:write reservations.lifecycle:read reservations.lifecycle:write reservations.segments:read reservations.segments:write stay-operations.checkin:commit stay-operations.checkin:read",
     });
     const approverLogin = await app.handle(new Request("http://yellow.test/api/v1/auth/local:login", {
       method: "POST",
@@ -568,7 +646,7 @@ databaseDescribe("Order 046 reproducible local-review seed", () => {
     expect(await tokens.verify(approverLoginBody.accessToken)).toMatchObject({
       sub: first.approverUserId,
       tid: SEED_TENANT.id,
-      scp: "crm.parties:read crm.parties:write financials.adjustments:post-seal financials.adjustments:write financials.cashiers:operate financials.cashiers:read financials.cashiers:supervise financials.charges:write financials.folios:close financials.folios:open financials.folios:read financials.folios:settle financials.receivables:approve financials.receivables:read financials.receivables:transfer financials.transfers:write housekeeping.tasks:inspect housekeeping.tasks:read housekeeping.tasks:work inventory.availability:read inventory.blocks:read inventory.blocks:write inventory.configuration:read inventory.configuration:write inventory.holds:read inventory.holds:write inventory.offline_leases:read inventory.offline_leases:write inventory.policy:read inventory.policy:write inventory.restriction:read inventory.restriction:write rates.configuration:read rates.configuration:write rates.pricing:read rates.pricing:write reservations.booking:write reservations.guests:read reservations.guests:write reservations.lifecycle:read reservations.lifecycle:write reservations.segments:read reservations.segments:write stay-operations.checkin:commit stay-operations.checkin:dirty-room-override stay-operations.checkin:read",
+      scp: "crm.parties:read crm.parties:write financials.adjustments:post-seal financials.adjustments:write financials.cashiers:operate financials.cashiers:read financials.cashiers:supervise financials.charges:write financials.folios:close financials.folios:open financials.folios:read financials.folios:settle financials.receivables:approve financials.receivables:read financials.receivables:transfer financials.transfers:write housekeeping.sheets:generate housekeeping.sheets:read housekeeping.tasks:inspect housekeeping.tasks:read housekeeping.tasks:work inventory.availability:read inventory.blocks:read inventory.blocks:write inventory.configuration:read inventory.configuration:write inventory.holds:read inventory.holds:write inventory.offline_leases:read inventory.offline_leases:write inventory.policy:read inventory.policy:write inventory.restriction:read inventory.restriction:write rates.configuration:read rates.configuration:write rates.pricing:read rates.pricing:write reservations.booking:write reservations.guests:read reservations.guests:write reservations.lifecycle:read reservations.lifecycle:write reservations.segments:read reservations.segments:write stay-operations.checkin:commit stay-operations.checkin:dirty-room-override stay-operations.checkin:read",
     });
 
     const headers = { "content-type": "application/json", authorization: `Bearer ${loginBody.accessToken}` };

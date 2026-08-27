@@ -77,6 +77,15 @@ fact(s), outbox row(s), task status, completion time and condition actor/time co
 one transaction. These events contain no assignee/guest PII and do not imply task
 creation, sheets/cadence, occupancy, reservation, financial or statutory effects.
 
+Order 202 produces one `task.created` fact/outbox pair for every task created by one
+governed task-sheet generation transaction. Its minimized payload identifies the
+task, sheet, physical space, property-local sheet date and resolved cadence; it does
+not carry guest or attendant PII. The `task_sheet`, all assigned tasks and every
+matching fact/outbox row commit together. Replay or concurrency does not publish a
+second event for the same deterministic sheet/space task. Consumers must not infer a
+task transition, condition change, reservation/occupancy mutation, credit allocation,
+financial effect, business-day action or statutory submission from `task.created`.
+
 **profiles** · party.created/.merged {into} · party.anonymised · consent.changed
 
 **distribution** · inbound.received {channel,external_id} · inbound.processed {reservation_id}/.failed · ari.push_requested {channel,unit_types,date_range} · map.changed

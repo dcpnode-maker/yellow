@@ -17,3 +17,23 @@ export type {
   HousekeepingTransitionInput,
   HousekeepingTransitionResult,
 } from "./tasks";
+
+export {
+  HOUSEKEEPING_SHEET_CADENCES,
+  HousekeepingSheetConflictError,
+  HousekeepingSheetNotFoundError,
+  HousekeepingSheetService,
+  HousekeepingSheetValidationError,
+  HousekeepingUnsupportedCadenceError,
+} from "./sheets";
+export type {
+  HousekeepingGeneratedTask,
+  HousekeepingSheetCadence,
+  HousekeepingSheetGenerateInput,
+  HousekeepingSheetGenerationResult,
+  HousekeepingSheetListInput,
+  HousekeepingSheetListItem,
+  HousekeepingSheetPreviewInput,
+  HousekeepingSheetPreviewItem,
+  HousekeepingSheetServiceOptions,
+} from "./sheets";

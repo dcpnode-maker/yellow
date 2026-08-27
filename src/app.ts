@@ -361,6 +361,15 @@ export function createApp(options: AppOptions = {}) {
       .get("/api/v1/properties/:property/housekeeping/tasks", ({ request, params, tenantContext }) =>
         withOperatorTenant(request, (context) => operator.housekeepingBoard(context, params.property))
       )
+      .get("/api/v1/properties/:property/housekeeping/sheets/preview", ({ request, params, tenantContext }) =>
+        withOperatorTenant(request, (context) => operator.previewHousekeepingSheet(context, params.property))
+      )
+      .get("/api/v1/properties/:property/housekeeping/sheets", ({ request, params, tenantContext }) =>
+        withOperatorTenant(request, (context) => operator.listHousekeepingSheets(context, params.property))
+      )
+      .post("/api/v1/properties/:property/housekeeping/sheets/generate", ({ request, params, body, tenantContext }) =>
+        withOperatorTenant(request, (context) => operator.generateHousekeepingSheet(context, params.property, body))
+      )
       .post("/api/v1/properties/:property/housekeeping/tasks/:task/transition", ({ request, params, body, tenantContext }) =>
         withOperatorTenant(request, (context) => operator.transitionHousekeepingTask(
           context, params.property, params.task, body,

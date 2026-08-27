@@ -160,6 +160,18 @@ It adds no task creation/assignment/cancellation, sheets, cadence, credits,
 discrepancies, occupancy, reservation, financial, day or statutory behavior and does
 not complete Phase 6.
 
+Order 202 is a built-unreviewed bounded task-sheet generation slice. It resolves exact
+tenant-over-global `vertical_profile` truth per active physical room and admits only
+recorded daily in-house plus exact property-local on-departure cadence. One selected
+active staff Party receives one deterministic sheet and one assigned housekeeping
+task per distinct eligible occupied room; creation and minimized evidence are atomic.
+Weekly/custom/missing/mixed/ambiguous cadence fails closed. The deterministic review
+fixture adds one fixed-date in-house occupied pickup room and exposes Avery
+Housekeeping without pre-generating a sheet/task. This slice adds no lifecycle or
+condition transition, credit balancing, auto-scheduling, reservation/occupancy
+mutation, financial/day/statutory effect, discrepancy or checkout, and does not
+complete Phase 6.
+
 ## Phase 7 — Tax engine + India IRP
 
 tax_assignment evaluation (percent/fixed/slab, compound, line-vs-document rounding)

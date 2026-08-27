@@ -219,13 +219,41 @@
 <section id="housekeeping-view" hidden aria-labelledby="housekeeping-title">
 <div class="section-heading housekeeping-heading">
 <div>
-<p class="eyebrow">Property operations</p>
+<p class="eyebrow">Stay operations</p>
 <h2 id="housekeeping-title" tabindex="-1">Housekeeping</h2>
-<p class="muted">Work one existing room task at a time from current server-owned task and room-condition evidence.</p>
+<p class="muted">Build one governed daily sheet, then work assigned rooms from current PostgreSQL truth.</p>
 </div>
-<button class="quiet" id="housekeeping-refresh" type="button">Refresh board</button>
+<button class="quiet" id="housekeeping-refresh" type="button">Refresh workspace</button>
 </div>
-<p class="field-note housekeeping-boundary">This bounded board does not create, assign, cancel or reopen tasks. Start and complete require work authority; verification requires separate inspection authority.</p>
+<section class="card housekeeping-sheet-workbench" id="housekeeping-sheet-generator" aria-labelledby="housekeeping-sheet-title">
+<div class="housekeeping-sheet-intro">
+<div><span class="eyebrow">Attendant sheet</span><h3 id="housekeeping-sheet-title">Preview rooms before generation</h3></div>
+<ol class="housekeeping-sheet-steps" aria-label="Sheet generation progress"><li data-sheet-step="date" class="is-current">1 · Date</li><li data-sheet-step="attendant">2 · Attendant</li><li data-sheet-step="preview">3 · Preview</li></ol>
+</div>
+<form id="housekeeping-sheet-form" class="housekeeping-sheet-form">
+<label for="housekeeping-sheet-date">Property-local sheet date
+<input id="housekeeping-sheet-date" name="sheetDate" type="date" required aria-describedby="housekeeping-sheet-date-note">
+</label>
+<p class="field-note" id="housekeeping-sheet-date-note">The server resolves property timezone, occupancy and cadence. Weekly, custom or ambiguous cadence is not guessed.</p>
+<fieldset class="housekeeping-attendant-picker">
+<legend>Housekeeping attendant</legend>
+<div class="housekeeping-attendant-search-row"><label for="housekeeping-attendant-query">Find an active staff Party
+<input id="housekeeping-attendant-query" name="attendantQuery" minlength="2" maxlength="120" autocomplete="off" placeholder="Avery or Party ID">
+</label><button class="secondary" id="housekeeping-attendant-search" type="button">Search staff</button></div>
+<div id="housekeeping-attendant-results" class="housekeeping-attendant-results" role="region" aria-label="Staff Party results" aria-live="polite"></div>
+<div id="housekeeping-attendant-selected" class="housekeeping-attendant-selected" hidden tabindex="-1"><div><span class="eyebrow">Selected attendant</span><strong></strong><small></small></div><button class="quiet" id="housekeeping-attendant-change" type="button">Change</button></div>
+</fieldset>
+<button class="primary housekeeping-preview-action" id="housekeeping-preview" type="submit" disabled>Preview eligible rooms</button>
+<p class="form-message" id="housekeeping-sheet-message" role="status" aria-live="polite"></p>
+</form>
+<section id="housekeeping-sheet-preview" class="housekeeping-sheet-preview" hidden aria-labelledby="housekeeping-preview-title" tabindex="-1">
+<div class="housekeeping-preview-head"><div><span class="eyebrow">Authoritative preview</span><h4 id="housekeeping-preview-title">Eligible occupied rooms</h4></div><strong id="housekeeping-preview-count">0 rooms</strong></div>
+<div id="housekeeping-preview-rooms" class="housekeeping-preview-rooms" aria-label="Eligible rooms"></div>
+<div class="housekeeping-generate-bar"><p id="housekeeping-generate-copy">Review every room before creating assigned tasks.</p><button class="primary" id="housekeeping-generate" type="button">Generate task sheet</button></div>
+</section>
+<section id="housekeeping-sheet-history" class="housekeeping-sheet-history" aria-labelledby="housekeeping-sheet-history-title" tabindex="-1"><div class="housekeeping-preview-head"><div><span class="eyebrow">Current date</span><h4 id="housekeeping-sheet-history-title">Generated sheets</h4></div></div><div id="housekeeping-sheet-list"></div></section>
+</section>
+<p class="field-note housekeeping-boundary">Generation creates only assigned housekeeping tasks for the exact previewed property date and chosen attendant. The bounded lifecycle board below does not create, assign, cancel or reopen tasks. Start and complete require work authority; verification requires separate inspection authority.</p>
 <div class="housekeeping-loading" id="housekeeping-loading" hidden aria-hidden="true"><span></span><span></span><span></span></div>
 <section class="card housekeeping-error" id="housekeeping-error" hidden role="alert">
 <strong>Housekeeping board unavailable</strong>

@@ -798,6 +798,44 @@ databaseDescribe("Bun SQL migration runner", () => {
   );
 
   test(
+    "applies the exact governed housekeeping task-sheet generation migration",
+    async () => {
+      await withDatabase(async ({ databaseUrl: targetUrl, sql }) => {
+        const result = await runMigrations({
+          databaseUrl: targetUrl,
+          migrationsDirectory: PROJECT_MIGRATIONS,
+          logger: () => undefined,
+        });
+        expect(result.appliedFiles).toContain("0027_governed_housekeeping_task_sheet_generation.sql");
+        const ledger = await sql<Array<{
+          version: number | bigint; filename: string; checksum_sha256: string;
+        }>>`
+          SELECT version, filename, checksum_sha256
+          FROM public.schema_migration
+          WHERE version = 27
+        `;
+        expect(ledger.map((row) => ({ ...row, version: Number(row.version) }))).toEqual([{
+          version: 27,
+          filename: "0027_governed_housekeeping_task_sheet_generation.sql",
+          checksum_sha256: "fb46db4af1ebca0dd1d66501e51ed2064c5dc108a40701a6a7b00d170b30be43",
+        }]);
+        const shape = await sql<Array<{ functions: number; indexes: number }>>`
+          SELECT
+            (SELECT count(*)::int FROM pg_proc AS procedure
+              JOIN pg_namespace AS namespace ON namespace.oid=procedure.pronamespace
+              WHERE namespace.nspname='public'
+                AND procedure.proname='govern_housekeeping_task_sheet') AS functions,
+            (SELECT count(*)::int FROM pg_indexes
+              WHERE schemaname='public'
+                AND indexname IN ('task_sheet_property_date_unique','task_housekeeping_sheet_space_unique')) AS indexes
+        `;
+        expect(shape).toEqual([{ functions: 1, indexes: 2 }]);
+      });
+    },
+    60_000,
+  );
+
+  test(
     "applies the exact account-folio integrity migration and rejects tenant-crossing references",
     async () => {
       await withDatabase(async ({ databaseUrl: targetUrl, sql }) => {

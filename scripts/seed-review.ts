@@ -68,6 +68,8 @@ export const REVIEW_PERMISSIONS = Object.freeze([
   { code: "financials.transfers:write", description: "Preview and commit governed folio transfers" },
   { code: "housekeeping.tasks:read", description: "Read the governed property housekeeping task board" },
   { code: "housekeeping.tasks:work", description: "Start and complete governed property housekeeping tasks" },
+  { code: "housekeeping.sheets:read", description: "Read governed property housekeeping task sheets" },
+  { code: "housekeeping.sheets:generate", description: "Generate governed property housekeeping task sheets" },
   { code: REVIEW_PERMISSION, description: "Read tenant-scoped truth availability" },
   { code: "inventory.blocks:read", description: "Read tenant-scoped operational blocks" },
   { code: "inventory.blocks:write", description: "Open and close tenant-scoped operational blocks" },
@@ -145,6 +147,17 @@ const HOUSEKEEPING_EXAMPLES = Object.freeze([
     createdAt: "2026-09-15T13:00:00.000Z", dueAt: "2026-09-16T11:00:00.000Z",
     completedAt: "2026-09-16T09:00:00.000Z" }),
 ]);
+
+const HOUSEKEEPING_SHEET_FIXTURE = Object.freeze({
+  roomCode: "202",
+  confirmationNo: "HK-SHEET-ELIGIBLE",
+  displayName: "Housekeeping Sheet Eligible Guest",
+  sheetDate: "2026-09-18",
+  stayStart: "2026-09-17T15:00:00.000Z",
+  stayEnd: "2026-09-19T11:00:00.000Z",
+  condition: "pickup" as const,
+  conditionUpdatedAt: "2026-09-18T07:00:00.000Z",
+});
 
 const REVIEW_RATE_POLICIES: readonly Readonly<{
   kind: Policy["kind"];
@@ -262,6 +275,13 @@ interface ReviewCheckInExamples {
 interface ReviewHousekeepingExamples {
   readonly assignedDirtyTaskId: string;
   readonly doneCleanTaskId: string;
+  readonly attendantPartyId: string;
+  readonly sheetDate: string;
+  readonly eligibleReservationId: string;
+  readonly eligibleSegmentId: string;
+  readonly eligibleSpaceId: string;
+  readonly eligibleSellableUnitId: string;
+  readonly eligibleOccupancyId: string;
 }
 
 interface ReviewSeedRateResult {
@@ -1596,7 +1616,9 @@ async function provisionCheckInExamples(
 async function provisionHousekeepingExamples(
   connection: ReservedSQL,
   userId: string,
+  ratePlanId: string,
   spaces: ReadonlyMap<string, Space>,
+  sellableUnits: ReadonlyMap<string, SellableUnit>,
 ): Promise<ReviewHousekeepingExamples> {
   await connection`SELECT pg_advisory_xact_lock(hashtextextended('yellow.local.review.seed.housekeeping', 0))`;
 
@@ -1708,9 +1730,189 @@ async function provisionHousekeepingExamples(
     taskIds[spec.key] = taskId;
   }
 
+  const sheetFixtureSpace = spaces.get(HOUSEKEEPING_SHEET_FIXTURE.roomCode);
+  const sheetFixtureSellable = sellableUnits.get(HOUSEKEEPING_SHEET_FIXTURE.roomCode);
+  if (!sheetFixtureSpace || !sheetFixtureSellable) {
+    throw new Error("Local-review housekeeping sheet fixture inventory is absent");
+  }
+  const fixtureBase = `${REVIEW_HOUSEKEEPING_FIXTURE_UUID}/sheet-generation`;
+  const guestPartyId = await uuidV5(SEED_TENANT.id, `${fixtureBase}/party`);
+  const reservationId = await uuidV5(SEED_TENANT.id, `${fixtureBase}/reservation`);
+  const segmentId = await uuidV5(SEED_TENANT.id, `${fixtureBase}/segment`);
+  const guestAttrs = Object.freeze({ source: "local-review", housekeeping_fixture: "sheet-eligible-guest" });
+  const guestRows = await connection<Array<Record<string, unknown>>>`
+    SELECT id, tenant_id, kind, display_name, legal_name, attrs, vip_code, status, merged_into
+    FROM party WHERE id=${guestPartyId}::uuid ORDER BY id FOR UPDATE
+  `;
+  const expectedGuest = { id: guestPartyId, tenant_id: SEED_TENANT.id, kind: "person",
+    display_name: HOUSEKEEPING_SHEET_FIXTURE.displayName,
+    legal_name: HOUSEKEEPING_SHEET_FIXTURE.displayName, attrs: guestAttrs,
+    vip_code: null, status: "active", merged_into: null };
+  if (guestRows.length === 0) {
+    await connection`INSERT INTO party
+      (id, tenant_id, kind, display_name, legal_name, attrs, status)
+      VALUES (${guestPartyId}::uuid, ${SEED_TENANT.id}::uuid, 'person',
+        ${HOUSEKEEPING_SHEET_FIXTURE.displayName}, ${HOUSEKEEPING_SHEET_FIXTURE.displayName},
+        ${JSON.stringify(guestAttrs)}::text::jsonb, 'active')`;
+  } else {
+    exact(guestRows[0], expectedGuest, "Local-review housekeeping sheet eligible guest");
+    if (guestRows.length !== 1) throw new Error("Local-review housekeeping sheet eligible guest is ambiguous");
+  }
+
+  const guestRoleDetail = Object.freeze({ source: "local-review", housekeeping_fixture: "sheet-eligible-guest" });
+  const guestRoleRows = await connection<Array<Record<string, unknown>>>`
+    SELECT tenant_id, party_id, role, detail FROM party_role
+    WHERE party_id=${guestPartyId}::uuid AND role='guest'
+  `;
+  const expectedGuestRole = { tenant_id: SEED_TENANT.id, party_id: guestPartyId,
+    role: "guest", detail: guestRoleDetail };
+  if (guestRoleRows.length === 0) {
+    await connection`INSERT INTO party_role (tenant_id, party_id, role, detail)
+      VALUES (${SEED_TENANT.id}::uuid, ${guestPartyId}::uuid, 'guest',
+        ${JSON.stringify(guestRoleDetail)}::text::jsonb)`;
+  } else {
+    exact(guestRoleRows[0], expectedGuestRole, "Local-review housekeeping sheet eligible guest role");
+    if (guestRoleRows.length !== 1) throw new Error("Local-review housekeeping sheet eligible guest role is ambiguous");
+  }
+
+  const reservationRows = await connection<Array<Record<string, unknown>>>`
+    SELECT id, tenant_id, property_node, confirmation_no, status, primary_party,
+           booker_party, group_id, channel_code, currency::text, guarantee_policy
+    FROM reservation
+    WHERE id=${reservationId}::uuid OR
+      (tenant_id=${SEED_TENANT.id}::uuid AND confirmation_no=${HOUSEKEEPING_SHEET_FIXTURE.confirmationNo})
+    ORDER BY id FOR UPDATE
+  `;
+  const expectedReservation = { id: reservationId, tenant_id: SEED_TENANT.id,
+    property_node: SEED_PROPERTY.id, confirmation_no: HOUSEKEEPING_SHEET_FIXTURE.confirmationNo,
+    status: "in_house", primary_party: guestPartyId, booker_party: null, group_id: null,
+    channel_code: "direct", currency: SEED_PROPERTY.currency, guarantee_policy: null };
+  if (reservationRows.length === 0) {
+    await connection`INSERT INTO reservation
+      (id, tenant_id, property_node, confirmation_no, status, primary_party,
+       channel_code, currency, notes)
+      VALUES (${reservationId}::uuid, ${SEED_TENANT.id}::uuid, ${SEED_PROPERTY.id}::uuid,
+        ${HOUSEKEEPING_SHEET_FIXTURE.confirmationNo}, 'in_house', ${guestPartyId}::uuid,
+        'direct', ${SEED_PROPERTY.currency}, 'Local-review housekeeping sheet eligible stay')`;
+  } else {
+    exact(reservationRows[0], expectedReservation, "Local-review housekeeping sheet eligible reservation");
+    if (reservationRows.length !== 1) throw new Error("Local-review housekeeping sheet eligible reservation is ambiguous");
+  }
+
+  const sellableRows = await connection<Array<{ unit_type_id: string }>>`
+    SELECT unit_type_id FROM sellable_unit
+    WHERE id=${sheetFixtureSellable.id}::uuid AND tenant_id=${SEED_TENANT.id}::uuid
+  `;
+  const unitTypeId = sellableRows[0]?.unit_type_id;
+  if (!unitTypeId || sellableRows.length !== 1) {
+    throw new Error("Local-review housekeeping sheet eligible sellable unit is ambiguous");
+  }
+  const segmentRows = await connection<Array<Record<string, unknown>>>`
+    SELECT id, tenant_id, reservation_id, seq, unit_type_id, sellable_unit_id,
+           lower(period)=${HOUSEKEEPING_SHEET_FIXTURE.stayStart}::timestamptz AS exact_start,
+           upper(period)=${HOUSEKEEPING_SHEET_FIXTURE.stayEnd}::timestamptz AS exact_end,
+           adults, children, rate_plan_id, price_override, status
+    FROM reservation_segment WHERE id=${segmentId}::uuid FOR UPDATE
+  `;
+  const expectedSegment = { id: segmentId, tenant_id: SEED_TENANT.id,
+    reservation_id: reservationId, seq: 1, unit_type_id: unitTypeId,
+    sellable_unit_id: sheetFixtureSellable.id, exact_start: true, exact_end: true,
+    adults: 1, children: [], rate_plan_id: ratePlanId, price_override: null, status: "in_house" };
+  if (segmentRows.length === 0) {
+    await connection`INSERT INTO reservation_segment
+      (id, tenant_id, reservation_id, seq, unit_type_id, sellable_unit_id, period,
+       adults, children, rate_plan_id, status)
+      VALUES (${segmentId}::uuid, ${SEED_TENANT.id}::uuid, ${reservationId}::uuid, 1,
+        ${unitTypeId}::uuid, ${sheetFixtureSellable.id}::uuid,
+        tstzrange(${HOUSEKEEPING_SHEET_FIXTURE.stayStart}::timestamptz,
+          ${HOUSEKEEPING_SHEET_FIXTURE.stayEnd}::timestamptz, '[)'),
+        1, '[]'::jsonb, ${ratePlanId}::uuid, 'in_house')`;
+  } else {
+    exact(segmentRows[0], expectedSegment, "Local-review housekeeping sheet eligible segment");
+    if (segmentRows.length !== 1) throw new Error("Local-review housekeeping sheet eligible segment is ambiguous");
+  }
+
+  const reservationGuestRows = await connection<Array<Record<string, unknown>>>`
+    SELECT tenant_id, reservation_id, party_id, role, share_pct::text
+    FROM reservation_guest
+    WHERE reservation_id=${reservationId}::uuid AND party_id=${guestPartyId}::uuid
+  `;
+  const expectedReservationGuest = { tenant_id: SEED_TENANT.id, reservation_id: reservationId,
+    party_id: guestPartyId, role: "primary", share_pct: null };
+  if (reservationGuestRows.length === 0) {
+    await connection`INSERT INTO reservation_guest (tenant_id, reservation_id, party_id, role)
+      VALUES (${SEED_TENANT.id}::uuid, ${reservationId}::uuid, ${guestPartyId}::uuid, 'primary')`;
+  } else {
+    exact(reservationGuestRows[0], expectedReservationGuest,
+      "Local-review housekeeping sheet eligible reservation guest");
+    if (reservationGuestRows.length !== 1) {
+      throw new Error("Local-review housekeeping sheet eligible reservation guest is ambiguous");
+    }
+  }
+
+  const sheetConditionRows = await connection<Array<Record<string, unknown>>>`
+    SELECT tenant_id, space_id, condition,
+           to_char(updated_at AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') AS updated_at,
+           updated_by
+    FROM unit_condition WHERE space_id=${sheetFixtureSpace.id}::uuid FOR UPDATE
+  `;
+  const expectedSheetCondition = { tenant_id: SEED_TENANT.id, space_id: sheetFixtureSpace.id,
+    condition: HOUSEKEEPING_SHEET_FIXTURE.condition,
+    updated_at: HOUSEKEEPING_SHEET_FIXTURE.conditionUpdatedAt, updated_by: userId };
+  if (sheetConditionRows.length === 0) {
+    await connection`INSERT INTO unit_condition
+      (tenant_id, space_id, condition, updated_at, updated_by)
+      VALUES (${SEED_TENANT.id}::uuid, ${sheetFixtureSpace.id}::uuid,
+        ${HOUSEKEEPING_SHEET_FIXTURE.condition},
+        ${HOUSEKEEPING_SHEET_FIXTURE.conditionUpdatedAt}::timestamptz, ${userId}::uuid)`;
+  } else {
+    exact(sheetConditionRows[0], expectedSheetCondition,
+      "Local-review housekeeping sheet eligible room condition");
+    if (sheetConditionRows.length !== 1) {
+      throw new Error("Local-review housekeeping sheet eligible room condition is ambiguous");
+    }
+  }
+
+  let occupancyRows = await connection<Array<Record<string, unknown>>>`
+    SELECT id, tenant_id, space_id,
+           lower(period)=${HOUSEKEEPING_SHEET_FIXTURE.stayStart}::timestamptz AS exact_start,
+           upper(period)=${HOUSEKEEPING_SHEET_FIXTURE.stayEnd}::timestamptz AS exact_end,
+           slot_ref, slot_kind, exclusive, claim::text
+    FROM space_occupancy WHERE tenant_id=${SEED_TENANT.id}::uuid AND slot_ref=${segmentId}::uuid
+    ORDER BY id
+  `;
+  if (occupancyRows.length === 0) {
+    await connection`SELECT record_occupancy(
+      ${SEED_TENANT.id}::uuid, ${sheetFixtureSpace.id}::uuid,
+      tstzrange(${HOUSEKEEPING_SHEET_FIXTURE.stayStart}::timestamptz,
+        ${HOUSEKEEPING_SHEET_FIXTURE.stayEnd}::timestamptz, '[)'),
+      ${segmentId}::uuid, 'segment', true)`;
+    occupancyRows = await connection<Array<Record<string, unknown>>>`
+      SELECT id, tenant_id, space_id,
+             lower(period)=${HOUSEKEEPING_SHEET_FIXTURE.stayStart}::timestamptz AS exact_start,
+             upper(period)=${HOUSEKEEPING_SHEET_FIXTURE.stayEnd}::timestamptz AS exact_end,
+             slot_ref, slot_kind, exclusive, claim::text
+      FROM space_occupancy WHERE tenant_id=${SEED_TENANT.id}::uuid AND slot_ref=${segmentId}::uuid
+      ORDER BY id
+    `;
+  }
+  const occupancy = occupancyRows[0];
+  if (!occupancy) throw new Error("Local-review housekeeping sheet eligible occupancy is absent");
+  exact(occupancy, { id: occupancy.id, tenant_id: SEED_TENANT.id, space_id: sheetFixtureSpace.id,
+    exact_start: true, exact_end: true, slot_ref: segmentId, slot_kind: "segment",
+    exclusive: true, claim: "[0,)" }, "Local-review housekeeping sheet eligible occupancy");
+  if (occupancyRows.length !== 1) throw new Error("Local-review housekeeping sheet eligible occupancy is ambiguous");
+
   return Object.freeze({
     assignedDirtyTaskId: taskIds["assigned-dirty"]!,
     doneCleanTaskId: taskIds["done-clean"]!,
+    attendantPartyId,
+    sheetDate: HOUSEKEEPING_SHEET_FIXTURE.sheetDate,
+    eligibleReservationId: reservationId,
+    eligibleSegmentId: segmentId,
+    eligibleSpaceId: sheetFixtureSpace.id,
+    eligibleSellableUnitId: sheetFixtureSellable.id,
+    eligibleOccupancyId: String(occupancy.id),
   });
 }
 
@@ -1873,7 +2075,13 @@ export async function runReviewSeed(options: ReviewSeedOptions): Promise<ReviewS
         spaces,
         sellableUnits,
       );
-      housekeepingExamples = await provisionHousekeepingExamples(tx, userId, spaces);
+      housekeepingExamples = await provisionHousekeepingExamples(
+        tx,
+        userId,
+        rate.ratePlanId,
+        spaces,
+        sellableUnits,
+      );
     });
     if (!checkInExamples) throw new Error("Local-review check-in examples were not provisioned");
     if (!housekeepingExamples) throw new Error("Local-review housekeeping examples were not provisioned");
@@ -1881,6 +2089,7 @@ export async function runReviewSeed(options: ReviewSeedOptions): Promise<ReviewS
     logger(`review rate: plan=${rate.ratePlanId} active_release=${rate.activeReleaseId} version=${rate.activeReleaseVersion} state=${rate.created ? "created" : "existing"}`);
     logger(`review check-in: clean=${checkInExamples.cleanReservationId} dirty=${checkInExamples.dirtyReservationId} identity_gated=${checkInExamples.identityGatedReservationId}`);
     logger(`review housekeeping: assigned_dirty=${housekeepingExamples.assignedDirtyTaskId} done_clean=${housekeepingExamples.doneCleanTaskId}`);
+    logger(`review housekeeping sheet fixture: date=${housekeepingExamples.sheetDate} attendant=${housekeepingExamples.attendantPartyId} reservation=${housekeepingExamples.eligibleReservationId} segment=${housekeepingExamples.eligibleSegmentId} room=${housekeepingExamples.eligibleSpaceId}`);
     return { ...common, mode, rate, checkInExamples, housekeepingExamples };
   } finally {
     await database.close();

@@ -143,7 +143,12 @@ import {
 import {
   HousekeepingConflictError,
   HousekeepingNotFoundError,
+  HousekeepingSheetConflictError,
+  HousekeepingSheetNotFoundError,
+  HousekeepingSheetService,
+  HousekeepingSheetValidationError,
   HousekeepingTaskService,
+  HousekeepingUnsupportedCadenceError,
   HousekeepingValidationError,
   type HousekeepingTaskAction,
   type HousekeepingTaskBoardItem,
@@ -212,6 +217,8 @@ const CHECKIN_DIRTY_ROOM_OVERRIDE_SCOPE = "stay-operations.checkin:dirty-room-ov
 const HOUSEKEEPING_READ_SCOPE = "housekeeping.tasks:read";
 const HOUSEKEEPING_WORK_SCOPE = "housekeeping.tasks:work";
 const HOUSEKEEPING_INSPECT_SCOPE = "housekeeping.tasks:inspect";
+const HOUSEKEEPING_SHEET_READ_SCOPE = "housekeeping.sheets:read";
+const HOUSEKEEPING_SHEET_GENERATE_SCOPE = "housekeeping.sheets:generate";
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 const ISO_INSTANT = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})(?::(\d{2})(?:\.(\d{1,3}))?)?(Z|([+-])(\d{2}):(\d{2}))$/;
 const LOCAL_DATE = /^(\d{4})-(\d{2})-(\d{2})$/;
@@ -281,6 +288,11 @@ interface HousekeepingTransitionDraft {
   readonly expectedRoomUpdatedAt: string;
 }
 
+interface HousekeepingSheetGenerateDraft {
+  readonly sheetDate: string;
+  readonly attendantPartyId: string;
+}
+
 function parseHousekeepingTransition(body: unknown): HousekeepingTransitionDraft | null {
   if (!isObject(body) || !exactKeys(body, [
     "action", "expectedTaskStatus", "expectedRoomCondition", "expectedRoomUpdatedAt",
@@ -309,6 +321,21 @@ function housekeepingBoardQuery(request: Request): { readonly limit?: number } |
   const rawLimit = query.get("limit");
   if (rawLimit !== null && !/^(?:[1-9]|[1-9][0-9]|1[0-9]{2}|200)$/.test(rawLimit)) return null;
   return Object.freeze(rawLimit === null ? {} : { limit: Number(rawLimit) });
+}
+
+function housekeepingSheetDateQuery(request: Request): { readonly sheetDate: string } | null {
+  const query = new URL(request.url).searchParams;
+  if ([...query.keys()].some((key) => key !== "sheetDate") || query.getAll("sheetDate").length !== 1) return null;
+  const sheetDate = query.get("sheetDate");
+  return sheetDate !== null && LOCAL_DATE.test(sheetDate) ? Object.freeze({ sheetDate }) : null;
+}
+
+function parseHousekeepingSheetGenerate(body: unknown): HousekeepingSheetGenerateDraft | null {
+  return isObject(body) && exactKeys(body, ["sheetDate", "attendantPartyId"]) &&
+    typeof body.sheetDate === "string" && LOCAL_DATE.test(body.sheetDate) &&
+    typeof body.attendantPartyId === "string" && UUID.test(body.attendantPartyId)
+    ? Object.freeze({ sheetDate: body.sheetDate, attendantPartyId: body.attendantPartyId })
+    : null;
 }
 
 function allowedHousekeepingActions(
@@ -1169,6 +1196,7 @@ type ReservationBoardOperations = Pick<ReservationBoardService, "list">;
 type ReservationDetailOperations = Pick<ReservationDetailService, "findById">;
 type CheckInOperations = Pick<CheckInService, "getReadiness" | "checkIn">;
 type HousekeepingOperations = Pick<HousekeepingTaskService, "listBoard" | "transition">;
+type HousekeepingSheetOperations = Pick<HousekeepingSheetService, "preview" | "list" | "generate">;
 type PartyOperations = Pick<PartyProfileService, "search" | "create">;
 type FolioStatementOperations = Pick<FolioStatementService, "get">;
 type ChargeOperations = Pick<ChargeService, "postCharge">;
@@ -1572,6 +1600,7 @@ export class OperatorHttpApi {
   readonly #receivables?: ReceivableOperations;
   readonly #checkIns?: CheckInOperations;
   readonly #housekeeping?: HousekeepingOperations;
+  readonly #housekeepingSheets?: HousekeepingSheetOperations;
 
   constructor(
     login: LocalLoginService,
@@ -1606,6 +1635,7 @@ export class OperatorHttpApi {
     receivables?: ReceivableOperations,
     checkIns?: CheckInOperations,
     housekeeping?: HousekeepingOperations,
+    housekeepingSheets?: HousekeepingSheetOperations,
   ) {
     this.#login = login;
     this.#availability = availability;
@@ -1639,6 +1669,7 @@ export class OperatorHttpApi {
     this.#receivables = receivables;
     this.#checkIns = checkIns;
     this.#housekeeping = housekeeping;
+    this.#housekeepingSheets = housekeepingSheets;
   }
 
   unavailable(request: Request): Response {
@@ -1650,6 +1681,18 @@ export class OperatorHttpApi {
   }
 
   failure(request: Request, error: unknown): Response {
+    if (error instanceof HousekeepingUnsupportedCadenceError) {
+      return apiError(request, 422, "housekeeping/unsupported_cadence", "Unsupported cadence", "One or more eligible rooms use weekly, custom, missing or ambiguous housekeeping cadence. Configure daily or on-departure before generating the sheet");
+    }
+    if (error instanceof HousekeepingSheetValidationError) {
+      return apiError(request, 400, "request/invalid", "Invalid request", "Housekeeping sheet input is invalid");
+    }
+    if (error instanceof HousekeepingSheetNotFoundError) {
+      return apiError(request, 404, "housekeeping/not_found", "Not found", "The referenced property, attendant or housekeeping sheet was not found");
+    }
+    if (error instanceof HousekeepingSheetConflictError) {
+      return apiError(request, 409, "housekeeping/conflict", "Conflict", "Housekeeping sheet truth changed or another attendant already owns this date; refresh before trying again");
+    }
     if (error instanceof HousekeepingValidationError) {
       return apiError(request, 400, "request/invalid", "Invalid request", "Housekeeping task input is invalid");
     }
@@ -3268,6 +3311,102 @@ export class OperatorHttpApi {
     return apiResponse(context.request, canonicalJson(jsonValue({
       tasks: board.map((item) => operatorHousekeepingItem(item, workGranted, inspectGranted)),
     })));
+  }
+
+  async previewHousekeepingSheet(
+    context: TenantRequestContext,
+    propertyNode: string,
+  ): Promise<Response> {
+    const query = housekeepingSheetDateQuery(context.request);
+    if (!UUID.test(propertyNode) || !query) {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Housekeeping sheet date is invalid");
+    }
+    if (!hasScope(context, HOUSEKEEPING_SHEET_READ_SCOPE)) {
+      return apiError(context.request, 403, "auth/scope_missing", "Forbidden", "Housekeeping sheet preview access is not granted");
+    }
+    const readGrants = await listGrantedProperties(context, HOUSEKEEPING_SHEET_READ_SCOPE);
+    if (!readGrants.some(({ id }) => id === propertyNode)) {
+      return apiError(context.request, 404, "housekeeping/not_found", "Not found", "The referenced housekeeping sheet preview was not found");
+    }
+    if (!this.#housekeepingSheets) return this.unavailable(context.request);
+    const generateGrants = hasScope(context, HOUSEKEEPING_SHEET_GENERATE_SCOPE)
+      ? await listGrantedProperties(context, HOUSEKEEPING_SHEET_GENERATE_SCOPE)
+      : [];
+    const rooms = await this.#housekeepingSheets.preview({
+      tenantId: context.tenantId,
+      propertyNode,
+      sheetDate: query.sheetDate,
+      limit: 200,
+    });
+    return apiResponse(context.request, canonicalJson(jsonValue({
+      sheetDate: query.sheetDate,
+      rooms,
+      canGenerate: generateGrants.some(({ id }) => id === propertyNode),
+    })));
+  }
+
+  async listHousekeepingSheets(
+    context: TenantRequestContext,
+    propertyNode: string,
+  ): Promise<Response> {
+    const query = housekeepingSheetDateQuery(context.request);
+    if (!UUID.test(propertyNode) || !query) {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Housekeeping sheet date is invalid");
+    }
+    if (!hasScope(context, HOUSEKEEPING_SHEET_READ_SCOPE)) {
+      return apiError(context.request, 403, "auth/scope_missing", "Forbidden", "Housekeeping sheet access is not granted");
+    }
+    const grants = await listGrantedProperties(context, HOUSEKEEPING_SHEET_READ_SCOPE);
+    if (!grants.some(({ id }) => id === propertyNode)) {
+      return apiError(context.request, 404, "housekeeping/not_found", "Not found", "The referenced housekeeping sheet was not found");
+    }
+    if (!this.#housekeepingSheets) return this.unavailable(context.request);
+    const sheets = await this.#housekeepingSheets.list({
+      tenantId: context.tenantId,
+      propertyNode,
+      sheetDate: query.sheetDate,
+      limit: 200,
+    });
+    return apiResponse(context.request, canonicalJson(jsonValue({ sheetDate: query.sheetDate, sheets })));
+  }
+
+  async generateHousekeepingSheet(
+    context: TenantRequestContext,
+    propertyNode: string,
+    body: unknown,
+  ): Promise<Response> {
+    const input = parseHousekeepingSheetGenerate(body);
+    const idempotencyKey = context.request.headers.get("idempotency-key");
+    if (!UUID.test(propertyNode) || !input || new URL(context.request.url).search.length > 0 ||
+        !idempotencyKey || !IDEMPOTENCY_KEY.test(idempotencyKey)) {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Housekeeping sheet generation input is invalid");
+    }
+    if (!hasScope(context, HOUSEKEEPING_SHEET_GENERATE_SCOPE)) {
+      return apiError(context.request, 403, "auth/scope_missing", "Forbidden", "Housekeeping sheet generation is not granted");
+    }
+    const grants = await listGrantedProperties(context, HOUSEKEEPING_SHEET_GENERATE_SCOPE);
+    if (!grants.some(({ id }) => id === propertyNode)) {
+      return apiError(context.request, 404, "housekeeping/not_found", "Not found", "The referenced housekeeping sheet was not found");
+    }
+    if (!this.#housekeepingSheets) return this.unavailable(context.request);
+    const requestId = correlationId(context.request);
+    const result = await this.#housekeepingSheets.generate({
+      tenantId: context.tenantId,
+      propertyNode,
+      ...input,
+      idempotencyKey,
+      envelope: createAuditEnvelope({
+        actorId: context.identity.actorId,
+        tenantId: context.tenantId,
+        propertyNode,
+        requestId,
+        operation: "task.created",
+      }),
+    });
+    return apiResponse(context.request, canonicalJson(jsonValue(result)), 200, {
+      "idempotency-replayed": String((result as { readonly replayed?: boolean }).replayed === true),
+      "x-correlation-id": requestId,
+    });
   }
 
   async transitionHousekeepingTask(
