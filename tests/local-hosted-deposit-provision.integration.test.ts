@@ -40,6 +40,7 @@ describe("Order 194 local hosted-deposit provisioner", () => {
 
 let admin: SQL | undefined;
 let ids: { cardClearing: string; depositLiability: string; instrument: string };
+let fixtureReady = false;
 
 async function artifactCounts(): Promise<Record<string, number>> {
   const rows = await admin!<Array<Record<string, number>>>`
@@ -98,11 +99,12 @@ async function removeOrder194Fixture(): Promise<void> {
       instrument: await uuidV5(SEED_TENANT.id,
         `${PROPERTY_NAME}/order194/local-deposit-instrument/${base[0].party_id}`),
     };
+    fixtureReady = true;
     await removeOrder194Fixture();
   });
 
   afterAll(async () => {
-    await removeOrder194Fixture();
+    if (fixtureReady) await removeOrder194Fixture();
     await admin?.close();
   });
 
