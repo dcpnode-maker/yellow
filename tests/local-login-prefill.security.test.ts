@@ -22,6 +22,7 @@ describe("Order194 local sign-in prefill", () => {
     const html = await response.text();
     expect(response.headers.get("cache-control")).toBe("no-store");
     expect(html).toContain('id="login-form" autocomplete="off"');
+    expect(html).toContain('<script src="/assets/operator-local-prefill.js" defer></script>');
     expect(html).toContain('name="tenant" autocomplete="off" required maxlength="63" placeholder="yellow-demo" value="yellow-demo&amp;&quot;&lt;"');
     expect(html).toContain('name="email" type="email" autocomplete="off" required maxlength="254" placeholder="operator@yellow.local" value="operator+review@yellow.local"');
     expect(html).toContain('name="password" type="password" autocomplete="off" required maxlength="1024" value="secret&amp;&quot;&lt;value&gt;"');
@@ -50,6 +51,16 @@ describe("Order194 local sign-in prefill", () => {
     const html = await response.text();
     expect(response.headers.get("cache-control")).toBe("no-cache");
     expect(html).not.toContain("not-committed");
+    expect(html).not.toContain("operator-local-prefill.js");
+  });
+
+  test("same-origin restoration helper contains no credential and is never cached", async () => {
+    const response = operatorAssets.localPrefillJs();
+    const script = await response.text();
+    expect(response.headers.get("cache-control")).toBe("no-store");
+    expect(script).toContain("e.defaultValue");
+    expect(script).toContain("e.value=e.defaultValue");
+    expect(script).not.toMatch(/yellow-demo|operator@|password|local-deposit/i);
   });
 
   test("server source gates a complete process-only trio behind loopback and explicit enablement", async () => {

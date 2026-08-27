@@ -108,6 +108,7 @@ export function createApp(options: AppOptions = {}) {
       .get("/assets/operator.js", () => operatorAssets.js())
       .get("/assets/operator-deposits.css", () => operatorAssets.depositCss())
       .get("/assets/operator-deposits.js", () => operatorAssets.depositJs())
+      .get("/assets/operator-local-prefill.js", () => operatorAssets.localPrefillJs())
       .post("/api/v1/auth/local:login", ({ request, body, server }) =>
         operator.login(request, body, localLoginSourceKey(server?.requestIP(request)))
       )

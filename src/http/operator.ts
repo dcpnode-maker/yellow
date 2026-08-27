@@ -3612,6 +3612,9 @@ function localReviewHtml(credentials: OperatorLocalReviewCredentials): Response 
     if (html.split(input).length !== 2) throw new Error("operator sign-in field contract changed");
     html = html.replace(input, `${input.slice(0, -1).replace(/ autocomplete="[^"]+"/, ' autocomplete="off"')} value="${escapeHtmlAttribute(value)}">`);
   }
+  const head = "</head>";
+  if (html.split(head).length !== 2) throw new Error("operator document head contract changed");
+  html = html.replace(head, '<script src="/assets/operator-local-prefill.js" defer></script>\n</head>');
   return new Response(html, {
     headers: { "cache-control": "no-store", "content-type": "text/html; charset=utf-8" },
   });
@@ -3627,4 +3630,9 @@ export const operatorAssets = Object.freeze({
   js(): Response { return assetResponse(ASSET_URLS.js, "text/javascript; charset=utf-8"); },
   depositCss(): Response { return assetResponse(ASSET_URLS.depositCss, "text/css; charset=utf-8"); },
   depositJs(): Response { return assetResponse(ASSET_URLS.depositJs, "text/javascript; charset=utf-8"); },
+  localPrefillJs(): Response {
+    return new Response("(()=>{const f=document.querySelector('#login-form[autocomplete=off]');if(f)for(const e of f.elements)if(e instanceof HTMLInputElement&&e.defaultValue)e.value=e.defaultValue})()", {
+      headers: { "cache-control": "no-store", "content-type": "text/javascript; charset=utf-8" },
+    });
+  },
 });
