@@ -74,10 +74,9 @@ async function removeOrder194Fixture(): Promise<void> {
     await tx`DELETE FROM role_permission WHERE permission_code IN (${LOCAL_HOSTED_DEPOSIT_PERMISSIONS[0]!.code},
       ${LOCAL_HOSTED_DEPOSIT_PERMISSIONS[1]!.code},${LOCAL_HOSTED_DEPOSIT_PERMISSIONS[2]!.code})
       AND role_id IN (SELECT id FROM role WHERE tenant_id=${SEED_TENANT.id}::uuid AND name=${REVIEW_ROLE_NAME})`;
-    await tx`DELETE FROM permission WHERE code IN (${LOCAL_HOSTED_DEPOSIT_PERMISSIONS[0]!.code},
-      ${LOCAL_HOSTED_DEPOSIT_PERMISSIONS[1]!.code},${LOCAL_HOSTED_DEPOSIT_PERMISSIONS[2]!.code})`;
     await tx`DELETE FROM tx_code_route WHERE tenant_id=${SEED_TENANT.id}::uuid
       AND property_node=${SEED_PROPERTY.id}::uuid AND currency='USD' AND tx_code IN ('CARD_PAYMENT','DEP')`;
+    await tx`DELETE FROM tx_code WHERE code IN ('CARD_PAYMENT','DEP')`;
     await tx`DELETE FROM payment_instrument WHERE id=${ids.instrument}::uuid`;
     await tx`DELETE FROM account WHERE id IN (${ids.cardClearing}::uuid,${ids.depositLiability}::uuid)`;
   });

@@ -7,9 +7,9 @@ import { uuidV5 } from "./lib/uuid-v5";
 const LOCK_NAME = "yellow.local.order194.hosted-deposit-uat";
 
 export const LOCAL_HOSTED_DEPOSIT_PERMISSIONS = Object.freeze([
-  Object.freeze({ code: "financials.payments:read", description: "Read governed payment operations" }),
-  Object.freeze({ code: "financials.payments:write", description: "Execute governed payment operations" }),
-  Object.freeze({ code: "financials.deposits:apply", description: "Apply captured deposits to guest folios" }),
+  Object.freeze({ code: "financials.payments:read", description: "Read hosted payment and deposit status" }),
+  Object.freeze({ code: "financials.payments:write", description: "Create hosted deposit payment requests" }),
+  Object.freeze({ code: "financials.deposits:apply", description: "Apply captured deposit liability to a folio" }),
 ]);
 
 const ACCOUNT_SPECS = Object.freeze([
