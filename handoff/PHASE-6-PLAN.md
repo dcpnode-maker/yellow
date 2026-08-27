@@ -2,7 +2,7 @@
 
 **Status:** active; Orders 200–201 are built-unreviewed
 **Entry point:** built-unreviewed Phase-5 composition through Order 199
-**Current order:** next bounded housekeeping task-sheet generation slice is prepared but not yet opened
+**Current order:** `202-governed-housekeeping-task-sheet-generation-v1.md`
 
 ## Outcome
 
@@ -62,8 +62,8 @@ reservation/occupancy mutation, financials, business-day or statutory effects.
 
 ## Subsequent bounded slices
 
-1. Task-sheet generation from configured cadence after the bounded Order-201
-   housekeeping condition/inspection lifecycle.
+1. Active Order202 task-sheet generation v1 consumes only recorded daily and
+   on-departure cadence; weekly/custom remain fail-closed pending explicit policy.
 2. Discrepancy, queue and service-message workflows with explicit state and audit.
 3. Arrival travel/vehicle/parking capture; any parking occupancy must use the existing
    occupancy choke point.
