@@ -1,9 +1,15 @@
 # Order 195 independent static UI/accessibility review
 
-**Verdict:** CHANGES REQUIRED  
-**Reviewed candidate:** `8c15adfc342155d6a75e1d3915417f7934ebba96`  
-**Reviewer:** OpenAI Codex independent non-implementing reviewer (`order195_static_review`)  
-**Review date:** 2026-08-27  
+**Verdict:** CHANGES REQUIRED
+
+**Reviewed candidate:** `8c15adfc342155d6a75e1d3915417f7934ebba96`
+
+**Reviewed governance/test tip:** `3bd750f8654b22d04004f4bf11df5fd564f1c3aa`
+
+**Reviewer:** OpenAI Codex independent non-implementing reviewer (`order195_static_review`)
+
+**Review date:** 2026-08-27
+
 **Scope:** static source, tests and repository gates only; no browser, local runtime,
 database, credentials, ports, image promotion, merge, push or deployment was touched.
 
@@ -21,27 +27,17 @@ database, credentials, ports, image promotion, merge, push or deployment was tou
    containment. That does not meet the order's explicit focus-containment contract.
    The focused geometry test asserts Escape text only and therefore misses this
    requirement.
-3. **The standing suite is red.** Two retained tests still enforce the historical
-   96 KiB gzip ceiling that D-526 retires. The candidate updates only one ceiling test;
-   `tests/operator-folio-workspace.integration.test.ts:188` and
-   `tests/operator-reservation-workspace.integration.test.ts:261` remain red. Those
-   files are outside Order195's Scope list, so the builder must either amend scope
-   through the documented question/decision process or choose an in-scope resolution.
-4. **The required browser-geometry acceptance test is not present.** The new
+3. **The required browser-geometry acceptance test is not present.** The new
    `tests/operator-appearance-geometry.test.ts` is a static regex test. It does not
    launch a browser, measure bounding rectangles, exercise 375/768/1020/1021/1440 or
    200%, prove <=1px reflow, detect clipping/overflow, or inspect focus. It cannot
    satisfy the order's executable geometry proof.
-5. **Enterprise ERP does not yet implement its stated composition.** The candidate
+4. **Enterprise ERP does not yet implement its stated composition.** The candidate
    adds a token vector, a 232px rail, a uniform four-column metric grid and compact
    table typography. It does not add or rearrange the semantic shell into the required
    bounded command row containing title, filters and primary action, nor an asymmetric
    KPI/bento composition. Static signatures therefore prove a distinct palette and
    rail width, not the complete ERP composition required by the order.
-6. **The exact-diff gate is not clean.** `git diff --check
-   88abc3e..8c15adfc342155d6a75e1d3915417f7934ebba96` reports a new blank line at
-   EOF in `handoff/orders/195-six-native-appearance-rebuild.md:109`.
-
 ## Verified green properties
 
 - Exact ordered selector and allowlist are Apple iOS, Android/Material 3,
@@ -60,8 +56,13 @@ database, credentials, ports, image promotion, merge, push or deployment was tou
   check over `migrations`, `src/contexts`, `src/http/server.ts` and `src/server.ts`
   returned exit 0 with no paths.
 - Combined operator source measured 483,251 raw bytes and 99,332 gzip bytes during
-  this review. D-526 allows this size, but the retained standing tests have not been
-  reconciled.
+  this review. D-526 allows this size.
+- D-528 validly expands scope only to the two obsolete ceiling assertions. Governance
+  commit `9cabadfa55f24ffae65c6e056326bc555fd12d4a` changes only the order, decision and
+  ledger; correction `3bd750f8654b22d04004f4bf11df5fd564f1c3aa` removes only the two
+  unused `gzipSync` imports and their superseded byte conditions. Dependency identity,
+  responsive, security and workflow assertions remain intact, and product source is
+  byte-identical to `8c15adf`.
 
 ## Personally executed commands and results
 
@@ -76,8 +77,9 @@ git diff --name-status 88abc3e..8c15adfc342155d6a75e1d3915417f7934ebba96
 => only DECISIONS.log, docs/DESIGN.md, handoff/LEDGER.md, Order195,
    operator HTML/CSS/JS and the named presentation tests
 
-git diff --check 88abc3e..8c15adfc342155d6a75e1d3915417f7934ebba96
-=> FAIL: Order195 line 109, new blank line at EOF
+git diff --quiet 8c15adf..3bd750f -- operator source, package/dependency,
+  migration, context/domain, server and authority paths
+=> PASS: no product, dependency, API, schema, data or authority change
 
 bun test tests/operator-material-themes.test.ts tests/material-theme-skins.test.ts \
   tests/operator-adaptive-experience.test.ts tests/operator-flagship-motion.test.ts \
@@ -85,9 +87,11 @@ bun test tests/operator-material-themes.test.ts tests/material-theme-skins.test.
 => 17 pass, 0 fail, 386 expectations
 
 bun test
-=> FAIL: 300 pass, 525 skip, 2 fail, 3701 expectations
-   - Order 171 P5 / Order184: assets remain dependency-free and at most 96 KiB gzip
-   - Order 168 / Order184: operator assets remain within the 96 KiB combined gzip budget
+=> PASS at governance/test tip 3bd750f: 302 pass, 525 intentional skips,
+   0 fail, 3710 expectations
+
+bun test [five focused appearance files plus the two D-528 workspace files]
+=> PASS: 34 pass, 0 fail, 655 expectations
 
 bun run typecheck
 => PASS
@@ -106,7 +110,6 @@ bun audit
 
 Make disclosure non-reflowing at every required breakpoint, implement and test actual
 focus containment, add a real geometry/browser harness that measures the complete
-matrix, reconcile the retired byte ceiling across standing tests through valid scope,
-complete the ERP composition rather than only its tokens/rail, and make `git diff
---check` clean. Then submit one new exact candidate hash for fresh static review before
-any runtime/browser promotion work.
+matrix, and complete the ERP composition rather than only its tokens/rail. Then submit
+one new exact product candidate hash for fresh static review before any runtime/browser
+promotion work.
