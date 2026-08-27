@@ -484,3 +484,105 @@ machine-readable report
    EABCE9C499165139FA8F94ADC6448F3ED5CD73883202C2F53344C5666D6DA216
 => 12 settled appearance screenshots plus reduced/forced-colour screenshots captured
 ```
+
+---
+
+## Android target correction independent static re-review
+
+**Verdict:** APPROVED FOR A NEW D-527 GUARDED BROWSER CANDIDATE
+
+**Exact corrected product candidate:**
+`ca3a2aa20f2e0c267d2ba64a8b1c3839eb3000a3`
+
+**Reviewer:** OpenAI Codex fresh independent non-implementing reviewer
+(`order195_android_static_review`)
+
+**Review date:** 2026-08-27
+
+**Boundary:** source, scoped diff and an isolated real-Chromium computed-style proof
+only. The reviewer did not edit product source, touch the local runtime or database,
+inspect credentials, replace a container/image, open a port, merge, push or deploy.
+This approval admits only a newly labelled exact app image into D-527's guarded
+same-port browser review; it is not retention or Order195 completion approval.
+
+### D-529 blocker resolved in the rendered cascade
+
+- The correction adds one Android-only high-specificity rule for the two always-visible
+  global selectors: `#theme-select` and `#experience-select` now have a 48px minimum.
+  It follows the generic 44px ID rules and outranks the generic label/select rule;
+  there is no later Android or responsive override that defeats it.
+- A fresh isolated headless Chrome/CDP run loaded the actual committed stylesheet and
+  representative exact shell labels/selects. Both controls computed to exactly 48px
+  height and `48px` min-height at 375 CSS pixels with DPR2, and at 768, 1020, 1021 and
+  1440 CSS pixels. This directly covers every width where D-529 measured 44px and
+  45.9375px.
+- The correction does not duplicate controls or alter semantic HTML, theme state,
+  authentication, workflows or responsive composition. Its committed static test
+  preserves the selector-specific Android 48px contract.
+
+### Scope, quality and payload inspection
+
+- `git show ca3a2aa` changes exactly one CSS declaration and one scoped test assertion.
+  The full `88abc3e..ca3a2aa` name list is contained by Order195's explicit scope.
+- Protected migration, context/domain, server composition, dependency and Compose
+  paths are byte-unchanged. `git diff --check 88abc3e..ca3a2aa` passed.
+- The complete inherited appearance candidate remains covered by its prior static and
+  live evidence; this re-review inspected the exact `400c406..ca3a2aa` lineage and did
+  not use the prior rejected image as proof of the corrected selector size.
+- Combined operator HTML/CSS/JS measures 486,677 raw bytes and 99,855 gzip bytes. The
+  correction adds no dependency or external asset. D-526 deliberately removed the
+  historical visual-shell byte ceiling, so size is recorded rather than used as a
+  rejection criterion.
+
+### Personally executed commands and results
+
+```text
+git rev-parse HEAD
+=> ca3a2aa20f2e0c267d2ba64a8b1c3839eb3000a3
+
+git status --short
+=> clean before review evidence
+
+git diff --check 88abc3e..ca3a2aa
+git diff --quiet 400c406..ca3a2aa -- migrations src/contexts \
+  src/http/server.ts src/server.ts package.json bun.lock docker-compose.yml
+=> PASS
+
+Order195 exact scope allowlist over git diff --name-only 88abc3e..ca3a2aa
+=> PASS: every changed path is explicitly admitted by Order195
+
+fresh isolated Chrome/CDP using the actual operator.css and Android shell selectors
+=> theme-select: 48px height / 48px min-height at 375-DPR2, 768, 1020, 1021, 1440
+=> experience-select: 48px height / 48px min-height at the same five widths
+
+bun test tests/operator-material-themes.test.ts \
+  tests/material-theme-skins.test.ts tests/operator-adaptive-experience.test.ts \
+  tests/operator-flagship-motion.test.ts tests/operator-appearance-geometry.test.ts \
+  tests/operator-folio-workspace.integration.test.ts \
+  tests/operator-reservation-workspace.integration.test.ts
+=> 36 pass, 0 fail, 694 expectations; Chromium/CDP geometry test executed
+
+bun test
+=> 304 pass, 525 intentional skips, 0 fail, 3749 expectations
+
+bun run typecheck
+=> PASS
+
+bun run boundaries
+=> PASS: 71 TypeScript files scanned
+
+bun run license-check
+=> PASS: 23 installed packages
+
+bun audit
+=> PASS: no vulnerabilities found
+```
+
+### Remaining mandatory gate
+
+A freshly built image labelled with exact product
+`ca3a2aa20f2e0c267d2ba64a8b1c3839eb3000a3` must undergo D-527's complete fresh
+authenticated six-appearance browser matrix. Retain it only if the reviewer proves
+the corrected Android 48px shell controls together with every previously required
+geometry, DPR2, focus, fallback, state, Glass-opacity, failure-recovery and console
+check. No prior rejected image may be relabelled or treated as that proof.
