@@ -1,6 +1,6 @@
 # Order 190 — Current project status through Order 189
 
-**Status:** READY — D-499  
+**Status:** CHANGES REQUIRED — D-500
 **Phase:** 5 — Financials  
 **Risk:** Tier 1 (founder-visible recorded-status truth only)  
 **Base:** `628d1591b5c392ab3aace7fcd6e9cee80c68f2a1`
@@ -54,4 +54,3 @@ completion change is admitted.
 - Recording Order 187 as approved or built current truth.
 - Claiming merge, push, public/production deployment, or Phase 5 completion.
 - Mutating the local stack or persistent database in this order.
-
