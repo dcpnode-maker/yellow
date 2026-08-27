@@ -41,7 +41,7 @@ test("Order195: the six flagship systems have structural identity without unsafe
   for (const theme of ["apple", "android", "win95", "glass", "neo", "erp"]) {
     expect(styles).toContain(`:root[data-theme="${theme}"]`);
   }
-  expect(page.match(/class="domain-icon"/g)?.length).toBe(9);
+  expect(page.match(/class="domain-icon"/g)?.length).toBe(10);
   expect(page.match(/<symbol id="i-/g)?.length).toBe(9);
   expect(page).toContain('class="ambient-stage" aria-hidden="true"');
   expect(page.match(/class="depth-plane /g)?.length).toBe(3);

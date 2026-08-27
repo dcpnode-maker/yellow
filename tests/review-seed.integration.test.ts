@@ -187,6 +187,26 @@ async function rateSnapshot() {
   return { ...(await canonicalRateRows()), extensions, approvals, evidence };
 }
 
+async function housekeepingSnapshot() {
+  const assignedDirtyTaskId = String(first.housekeepingExamples.assignedDirtyTaskId);
+  const doneCleanTaskId = String(first.housekeepingExamples.doneCleanTaskId);
+  return admin<Array<Record<string, unknown>>>`
+    SELECT task.id, task.status AS task_status, task.kind, task.subject_type,
+           task.assignee_party, task.department, task.priority, task.credits, task.sheet_id,
+           task.payload, space.code AS room_code, condition.condition,
+           to_char(condition.updated_at AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') AS room_updated_at,
+           condition.updated_by,
+           CASE WHEN task.completed_at IS NULL THEN NULL ELSE
+             to_char(task.completed_at AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') END AS completed_at
+    FROM task
+    JOIN space ON space.id=task.subject_id AND space.tenant_id=task.tenant_id
+    JOIN unit_condition AS condition
+      ON condition.space_id=space.id AND condition.tenant_id=task.tenant_id
+    WHERE task.id IN (${assignedDirtyTaskId}::uuid, ${doneCleanTaskId}::uuid)
+    ORDER BY space.code
+  `;
+}
+
 beforeAll(async () => {
   if (!DEPLOY_DATABASE_URL || !RUNTIME_DATABASE_URL || !PASSWORD) return;
   await runSeed({ databaseUrl: DEPLOY_DATABASE_URL, logger: () => undefined });
@@ -248,6 +268,8 @@ databaseDescribe("Order 046 reproducible local-review seed", () => {
     expect(first.checkInExamples.dirtyReservationId).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/);
     expect(first.checkInExamples.identityGatedReservationId).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/);
     expect(first.checkInExamples.identityGatePropertyId).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/);
+    expect(first.housekeepingExamples.assignedDirtyTaskId).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/);
+    expect(first.housekeepingExamples.doneCleanTaskId).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/);
     expect(first.cashAccountId).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/);
     expect(first.cashDrawerId).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/);
     expect(first.companyPartyId).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/);
@@ -411,8 +433,61 @@ databaseDescribe("Order 046 reproducible local-review seed", () => {
     });
   });
 
+  test("Order 201 P6: provisions assigned-dirty and done-clean tasks without transitions, sheets or occupancy", async () => {
+    const rows = await housekeepingSnapshot();
+    expect(rows).toEqual([
+      {
+        id: first.housekeepingExamples.assignedDirtyTaskId,
+        task_status: "assigned", kind: "housekeeping", subject_type: "space",
+        assignee_party: expect.any(String), department: "Housekeeping", priority: 2,
+        credits: null, sheet_id: null,
+        payload: { source: "local-review", housekeeping_example: "assigned-dirty" },
+        room_code: "103", condition: "dirty",
+        room_updated_at: "2026-09-16T08:00:00.000Z", updated_by: first.userId,
+        completed_at: null,
+      },
+      {
+        id: first.housekeepingExamples.doneCleanTaskId,
+        task_status: "done", kind: "housekeeping", subject_type: "space",
+        assignee_party: expect.any(String), department: "Housekeeping", priority: 2,
+        credits: null, sheet_id: null,
+        payload: { source: "local-review", housekeeping_example: "done-clean" },
+        room_code: "201", condition: "clean",
+        room_updated_at: "2026-09-16T09:00:00.000Z", updated_by: first.userId,
+        completed_at: "2026-09-16T09:00:00.000Z",
+      },
+    ]);
+
+    const guards = await admin<Array<{
+      sheets: number; occupancy: number; reservation_assignments: number; facts: number; events: number;
+    }>>`
+      SELECT
+        (SELECT count(*)::int FROM task_sheet
+          WHERE tenant_id=${SEED_TENANT.id}::uuid AND property_node=${SEED_PROPERTY.id}::uuid) AS sheets,
+        (SELECT count(*)::int FROM space_occupancy
+          WHERE tenant_id=${SEED_TENANT.id}::uuid AND space_id IN (
+            SELECT subject_id FROM task WHERE id IN (
+              ${String(first.housekeepingExamples.assignedDirtyTaskId)}::uuid,
+              ${String(first.housekeepingExamples.doneCleanTaskId)}::uuid))) AS occupancy,
+        (SELECT count(*)::int FROM reservation_segment AS segment
+          JOIN sellable_unit_space AS assignment ON assignment.sellable_unit_id=segment.sellable_unit_id
+          WHERE assignment.space_id IN (
+            SELECT subject_id FROM task WHERE id IN (
+              ${String(first.housekeepingExamples.assignedDirtyTaskId)}::uuid,
+              ${String(first.housekeepingExamples.doneCleanTaskId)}::uuid))) AS reservation_assignments,
+        (SELECT count(*)::int FROM fact_log WHERE entity_id IN (
+          ${String(first.housekeepingExamples.assignedDirtyTaskId)}::uuid,
+          ${String(first.housekeepingExamples.doneCleanTaskId)}::uuid)) AS facts,
+        (SELECT count(*)::int FROM outbox WHERE aggregate_id IN (
+          ${String(first.housekeepingExamples.assignedDirtyTaskId)}::uuid,
+          ${String(first.housekeepingExamples.doneCleanTaskId)}::uuid)) AS events
+    `;
+    expect(guards[0]).toEqual({ sheets: 0, occupancy: 0, reservation_assignments: 0, facts: 0, events: 0 });
+  });
+
   test("P3: identical rerun is an exact no-op", async () => {
     const before = await counts();
+    const housekeepingBefore = await housekeepingSnapshot();
     const second = await runReviewSeed({ databaseUrl: DEPLOY_DATABASE_URL!, password: PASSWORD!,
       approverPassword: APPROVER_PASSWORD!, logger: () => undefined });
     expect(second).toMatchObject({
@@ -427,6 +502,7 @@ databaseDescribe("Order 046 reproducible local-review seed", () => {
       },
     });
     expect(await counts()).toEqual(before);
+    expect(await housekeepingSnapshot()).toEqual(housekeepingBefore);
   });
 
   test("P4: same identity with a different password fails without mutation", async () => {
@@ -478,7 +554,7 @@ databaseDescribe("Order 046 reproducible local-review seed", () => {
     expect(await tokens.verify(loginBody.accessToken)).toMatchObject({
       sub: first.userId,
       tid: SEED_TENANT.id,
-      scp: "crm.parties:read crm.parties:write financials.adjustments:write financials.cashiers:operate financials.cashiers:read financials.charges:write financials.folios:close financials.folios:open financials.folios:read financials.folios:settle financials.receivables:read financials.receivables:transfer financials.transfers:write inventory.availability:read inventory.blocks:read inventory.blocks:write inventory.configuration:read inventory.configuration:write inventory.holds:read inventory.holds:write inventory.offline_leases:read inventory.offline_leases:write inventory.policy:read inventory.policy:write inventory.restriction:read inventory.restriction:write rates.configuration:read rates.configuration:write rates.pricing:read rates.pricing:write reservations.booking:write reservations.guests:read reservations.guests:write reservations.lifecycle:read reservations.lifecycle:write reservations.segments:read reservations.segments:write stay-operations.checkin:commit stay-operations.checkin:read",
+      scp: "crm.parties:read crm.parties:write financials.adjustments:write financials.cashiers:operate financials.cashiers:read financials.charges:write financials.folios:close financials.folios:open financials.folios:read financials.folios:settle financials.receivables:read financials.receivables:transfer financials.transfers:write housekeeping.tasks:read housekeeping.tasks:work inventory.availability:read inventory.blocks:read inventory.blocks:write inventory.configuration:read inventory.configuration:write inventory.holds:read inventory.holds:write inventory.offline_leases:read inventory.offline_leases:write inventory.policy:read inventory.policy:write inventory.restriction:read inventory.restriction:write rates.configuration:read rates.configuration:write rates.pricing:read rates.pricing:write reservations.booking:write reservations.guests:read reservations.guests:write reservations.lifecycle:read reservations.lifecycle:write reservations.segments:read reservations.segments:write stay-operations.checkin:commit stay-operations.checkin:read",
     });
     const approverLogin = await app.handle(new Request("http://yellow.test/api/v1/auth/local:login", {
       method: "POST",
@@ -492,7 +568,7 @@ databaseDescribe("Order 046 reproducible local-review seed", () => {
     expect(await tokens.verify(approverLoginBody.accessToken)).toMatchObject({
       sub: first.approverUserId,
       tid: SEED_TENANT.id,
-      scp: "crm.parties:read crm.parties:write financials.adjustments:post-seal financials.adjustments:write financials.cashiers:operate financials.cashiers:read financials.cashiers:supervise financials.charges:write financials.folios:close financials.folios:open financials.folios:read financials.folios:settle financials.receivables:approve financials.receivables:read financials.receivables:transfer financials.transfers:write inventory.availability:read inventory.blocks:read inventory.blocks:write inventory.configuration:read inventory.configuration:write inventory.holds:read inventory.holds:write inventory.offline_leases:read inventory.offline_leases:write inventory.policy:read inventory.policy:write inventory.restriction:read inventory.restriction:write rates.configuration:read rates.configuration:write rates.pricing:read rates.pricing:write reservations.booking:write reservations.guests:read reservations.guests:write reservations.lifecycle:read reservations.lifecycle:write reservations.segments:read reservations.segments:write stay-operations.checkin:commit stay-operations.checkin:dirty-room-override stay-operations.checkin:read",
+      scp: "crm.parties:read crm.parties:write financials.adjustments:post-seal financials.adjustments:write financials.cashiers:operate financials.cashiers:read financials.cashiers:supervise financials.charges:write financials.folios:close financials.folios:open financials.folios:read financials.folios:settle financials.receivables:approve financials.receivables:read financials.receivables:transfer financials.transfers:write housekeeping.tasks:inspect housekeeping.tasks:read housekeeping.tasks:work inventory.availability:read inventory.blocks:read inventory.blocks:write inventory.configuration:read inventory.configuration:write inventory.holds:read inventory.holds:write inventory.offline_leases:read inventory.offline_leases:write inventory.policy:read inventory.policy:write inventory.restriction:read inventory.restriction:write rates.configuration:read rates.configuration:write rates.pricing:read rates.pricing:write reservations.booking:write reservations.guests:read reservations.guests:write reservations.lifecycle:read reservations.lifecycle:write reservations.segments:read reservations.segments:write stay-operations.checkin:commit stay-operations.checkin:dirty-room-override stay-operations.checkin:read",
     });
 
     const headers = { "content-type": "application/json", authorization: `Bearer ${loginBody.accessToken}` };

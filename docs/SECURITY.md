@@ -138,6 +138,23 @@ folio numbering, journal/posting transitions beyond this structural lock, and fu
 document mutation. Extension publication/retirement remains separate debt; the
 registration exception from D-417 is closed by migration 0018.
 
+### Governed housekeeping transition containment (migration 0026)
+
+Runtime has no direct `INSERT`, `UPDATE` or `DELETE` authority over `task` or
+`unit_condition`. Migration 0026 adds one fixed-search-path owner-mediated capability
+for the three Order-201 adjacent transitions only. It verifies the dedicated runtime
+session/app role, exact tenant context, active actor and property, eligible
+housekeeping/space task, active same-property space, authoritative condition and all
+expected stale guards while holding the affected rows. `PUBLIC` and direct login
+execution remain denied.
+
+HTTP authority is separately least-scoped: `housekeeping.tasks:read` reads the board,
+`housekeeping.tasks:work` starts/completes, and the distinct
+`housekeeping.tasks:inspect` permission verifies. Tenant/property/actor/target state
+are server-derived; foreign ids are concealed and browser-supplied authority is
+ignored. The capability cannot create, assign, cancel or reopen tasks and cannot
+write sheets, occupancy, reservations, financials, days or statutory records.
+
 ## 6. Statutory & privacy
 
 ### Token-only payment containment

@@ -141,6 +141,14 @@ import {
   CheckInValidationError,
 } from "../contexts/stay-operations";
 import {
+  HousekeepingConflictError,
+  HousekeepingNotFoundError,
+  HousekeepingTaskService,
+  HousekeepingValidationError,
+  type HousekeepingTaskAction,
+  type HousekeepingTaskBoardItem,
+} from "../contexts/housekeeping";
+import {
   createAuditEnvelope,
   IdempotencyConflictError,
   IdempotencyValidationError,
@@ -201,6 +209,9 @@ const RECEIVABLE_APPROVE_SCOPE = "financials.receivables:approve";
 const CHECKIN_READ_SCOPE = "stay-operations.checkin:read";
 const CHECKIN_COMMIT_SCOPE = "stay-operations.checkin:commit";
 const CHECKIN_DIRTY_ROOM_OVERRIDE_SCOPE = "stay-operations.checkin:dirty-room-override";
+const HOUSEKEEPING_READ_SCOPE = "housekeeping.tasks:read";
+const HOUSEKEEPING_WORK_SCOPE = "housekeeping.tasks:work";
+const HOUSEKEEPING_INSPECT_SCOPE = "housekeeping.tasks:inspect";
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 const ISO_INSTANT = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})(?::(\d{2})(?:\.(\d{1,3}))?)?(Z|([+-])(\d{2}):(\d{2}))$/;
 const LOCAL_DATE = /^(\d{4})-(\d{2})-(\d{2})$/;
@@ -262,6 +273,68 @@ interface ReceivableTransferDraft extends ReceivableAccountDraft {
 }
 
 interface CheckInDraft { readonly reason?: string; }
+
+interface HousekeepingTransitionDraft {
+  readonly action: HousekeepingTaskAction;
+  readonly expectedTaskStatus: "assigned" | "in_progress" | "done";
+  readonly expectedRoomCondition: "clean" | "dirty" | "pickup" | "inspected";
+  readonly expectedRoomUpdatedAt: string;
+}
+
+function parseHousekeepingTransition(body: unknown): HousekeepingTransitionDraft | null {
+  if (!isObject(body) || !exactKeys(body, [
+    "action", "expectedTaskStatus", "expectedRoomCondition", "expectedRoomUpdatedAt",
+  ])) return null;
+  if (body.action !== "start" && body.action !== "complete" && body.action !== "verify") return null;
+  if (body.expectedTaskStatus !== "assigned" && body.expectedTaskStatus !== "in_progress" && body.expectedTaskStatus !== "done") return null;
+  const expectedTaskStatus = body.expectedTaskStatus;
+  const expectedForAction = body.action === "start" ? "assigned" : body.action === "complete" ? "in_progress" : "done";
+  if (expectedTaskStatus !== expectedForAction) return null;
+  if (body.expectedRoomCondition !== "clean" && body.expectedRoomCondition !== "dirty" &&
+      body.expectedRoomCondition !== "pickup" && body.expectedRoomCondition !== "inspected") return null;
+  if (typeof body.expectedRoomUpdatedAt !== "string") return null;
+  const roomUpdatedAt = new Date(body.expectedRoomUpdatedAt);
+  if (!Number.isFinite(roomUpdatedAt.getTime()) || roomUpdatedAt.toISOString() !== body.expectedRoomUpdatedAt) return null;
+  return Object.freeze({
+    action: body.action,
+    expectedTaskStatus,
+    expectedRoomCondition: body.expectedRoomCondition,
+    expectedRoomUpdatedAt: body.expectedRoomUpdatedAt,
+  });
+}
+
+function housekeepingBoardQuery(request: Request): { readonly limit?: number } | null {
+  const query = new URL(request.url).searchParams;
+  if ([...query.keys()].some((key) => key !== "limit") || query.getAll("limit").length > 1) return null;
+  const rawLimit = query.get("limit");
+  if (rawLimit !== null && !/^(?:[1-9]|[1-9][0-9]|1[0-9]{2}|200)$/.test(rawLimit)) return null;
+  return Object.freeze(rawLimit === null ? {} : { limit: Number(rawLimit) });
+}
+
+function allowedHousekeepingActions(
+  eligibleAction: HousekeepingTaskAction | null,
+  workGranted: boolean,
+  inspectGranted: boolean,
+): readonly HousekeepingTaskAction[] {
+  if (eligibleAction === "verify") return Object.freeze(inspectGranted ? ["verify"] : []);
+  if (eligibleAction === "start" || eligibleAction === "complete") {
+    return Object.freeze(workGranted ? [eligibleAction] : []);
+  }
+  return Object.freeze([]);
+}
+
+function operatorHousekeepingItem(
+  item: HousekeepingTaskBoardItem,
+  workGranted: boolean,
+  inspectGranted: boolean,
+) {
+  const { assigneePartyId, eligibleAction, ...evidence } = item;
+  return Object.freeze({
+    ...evidence,
+    assigned: assigneePartyId !== null,
+    allowedActions: allowedHousekeepingActions(eligibleAction, workGranted, inspectGranted),
+  });
+}
 
 function parseCheckIn(body: unknown): CheckInDraft | null {
   if (!isObject(body) || !exactKeys(body, [], ["reason"]) ||
@@ -1095,6 +1168,7 @@ type ReservationSegmentOperations = Pick<ReservationSegmentService, "findByConfi
 type ReservationBoardOperations = Pick<ReservationBoardService, "list">;
 type ReservationDetailOperations = Pick<ReservationDetailService, "findById">;
 type CheckInOperations = Pick<CheckInService, "getReadiness" | "checkIn">;
+type HousekeepingOperations = Pick<HousekeepingTaskService, "listBoard" | "transition">;
 type PartyOperations = Pick<PartyProfileService, "search" | "create">;
 type FolioStatementOperations = Pick<FolioStatementService, "get">;
 type ChargeOperations = Pick<ChargeService, "postCharge">;
@@ -1497,6 +1571,7 @@ export class OperatorHttpApi {
   readonly #cashiers?: CashierOperations;
   readonly #receivables?: ReceivableOperations;
   readonly #checkIns?: CheckInOperations;
+  readonly #housekeeping?: HousekeepingOperations;
 
   constructor(
     login: LocalLoginService,
@@ -1530,6 +1605,7 @@ export class OperatorHttpApi {
     cashiers?: CashierOperations,
     receivables?: ReceivableOperations,
     checkIns?: CheckInOperations,
+    housekeeping?: HousekeepingOperations,
   ) {
     this.#login = login;
     this.#availability = availability;
@@ -1562,6 +1638,7 @@ export class OperatorHttpApi {
     this.#cashiers = cashiers;
     this.#receivables = receivables;
     this.#checkIns = checkIns;
+    this.#housekeeping = housekeeping;
   }
 
   unavailable(request: Request): Response {
@@ -1573,6 +1650,15 @@ export class OperatorHttpApi {
   }
 
   failure(request: Request, error: unknown): Response {
+    if (error instanceof HousekeepingValidationError) {
+      return apiError(request, 400, "request/invalid", "Invalid request", "Housekeeping task input is invalid");
+    }
+    if (error instanceof HousekeepingNotFoundError) {
+      return apiError(request, 404, "housekeeping/not_found", "Not found", "The referenced housekeeping task was not found");
+    }
+    if (error instanceof HousekeepingConflictError) {
+      return apiError(request, 409, "housekeeping/conflict", "Conflict", "Housekeeping task or room condition changed; refresh the board and try again");
+    }
     if (error instanceof CheckInValidationError) {
       return apiError(request, 400, "request/invalid", "Invalid request", "Check-in input is invalid");
     }
@@ -3145,6 +3231,90 @@ export class OperatorHttpApi {
       }),
     });
     return apiResponse(context.request, canonicalJson(jsonValue(result)), 200, {
+      "idempotency-replayed": String(result.replayed),
+      "x-correlation-id": requestId,
+    });
+  }
+
+  async housekeepingBoard(
+    context: TenantRequestContext,
+    propertyNode: string,
+  ): Promise<Response> {
+    const query = housekeepingBoardQuery(context.request);
+    if (!UUID.test(propertyNode) || !query) {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Housekeeping board input is invalid");
+    }
+    if (!hasScope(context, HOUSEKEEPING_READ_SCOPE)) {
+      return apiError(context.request, 403, "auth/scope_missing", "Forbidden", "Housekeeping board access is not granted");
+    }
+    const readGrants = await listGrantedProperties(context, HOUSEKEEPING_READ_SCOPE);
+    if (!readGrants.some(({ id }) => id === propertyNode)) {
+      return apiError(context.request, 404, "housekeeping/not_found", "Not found", "The referenced housekeeping board was not found");
+    }
+    if (!this.#housekeeping) return this.unavailable(context.request);
+    const [workGrants, inspectGrants] = await Promise.all([
+      hasScope(context, HOUSEKEEPING_WORK_SCOPE)
+        ? listGrantedProperties(context, HOUSEKEEPING_WORK_SCOPE) : Promise.resolve([]),
+      hasScope(context, HOUSEKEEPING_INSPECT_SCOPE)
+        ? listGrantedProperties(context, HOUSEKEEPING_INSPECT_SCOPE) : Promise.resolve([]),
+    ]);
+    const workGranted = workGrants.some(({ id }) => id === propertyNode);
+    const inspectGranted = inspectGrants.some(({ id }) => id === propertyNode);
+    const board = await this.#housekeeping.listBoard({
+      tenantId: context.tenantId,
+      propertyNode,
+      ...query,
+    });
+    return apiResponse(context.request, canonicalJson(jsonValue({
+      tasks: board.map((item) => operatorHousekeepingItem(item, workGranted, inspectGranted)),
+    })));
+  }
+
+  async transitionHousekeepingTask(
+    context: TenantRequestContext,
+    propertyNode: string,
+    taskId: string,
+    body: unknown,
+  ): Promise<Response> {
+    const input = parseHousekeepingTransition(body);
+    const idempotencyKey = context.request.headers.get("idempotency-key");
+    if (!UUID.test(propertyNode) || !UUID.test(taskId) || !input ||
+        !idempotencyKey || !IDEMPOTENCY_KEY.test(idempotencyKey) || new URL(context.request.url).search.length > 0) {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Housekeeping task input is invalid");
+    }
+    const requiredScope = input.action === "verify" ? HOUSEKEEPING_INSPECT_SCOPE : HOUSEKEEPING_WORK_SCOPE;
+    if (!hasScope(context, requiredScope)) {
+      return apiError(context.request, 403, "auth/scope_missing", "Forbidden", "Housekeeping task action is not granted");
+    }
+    const grants = await listGrantedProperties(context, requiredScope);
+    if (!grants.some(({ id }) => id === propertyNode)) {
+      return apiError(context.request, 404, "housekeeping/not_found", "Not found", "The referenced housekeeping task was not found");
+    }
+    if (!this.#housekeeping) return this.unavailable(context.request);
+    const requestId = correlationId(context.request);
+    const result = await this.#housekeeping.transition({
+      tenantId: context.tenantId,
+      propertyNode,
+      taskId,
+      ...input,
+      idempotencyKey,
+      envelope: createAuditEnvelope({
+        actorId: context.identity.actorId,
+        tenantId: context.tenantId,
+        propertyNode,
+        requestId,
+        operation: "task.status_changed",
+      }),
+    });
+    const { eligibleAction, ...evidence } = result;
+    return apiResponse(context.request, canonicalJson(jsonValue({
+      ...evidence,
+      allowedActions: allowedHousekeepingActions(
+        eligibleAction,
+        requiredScope === HOUSEKEEPING_WORK_SCOPE,
+        requiredScope === HOUSEKEEPING_INSPECT_SCOPE,
+      ),
+    })), 200, {
       "idempotency-replayed": String(result.replayed),
       "x-correlation-id": requestId,
     });

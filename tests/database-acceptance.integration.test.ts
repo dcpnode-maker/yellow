@@ -130,6 +130,11 @@ const EXPECTED_MIGRATIONS = [
     filename: "0025_governed_receivable_transfer.sql",
     checksum_sha256: "ce3fe52783ffb467f56a2a7342c0a5808ab8824d625f3b01b5e3532e1191c9fe",
   },
+  {
+    version: 26,
+    filename: "0026_governed_housekeeping_task_transition.sql",
+    checksum_sha256: "f3667d8443db21ad921512bfadc453e9a9f341b60594f888dad7f69a88f0fba6",
+  },
 ];
 
 if (REQUIRE_DATABASE && !DATABASE_URL) {

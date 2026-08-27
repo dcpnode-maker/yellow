@@ -87,8 +87,16 @@ conflicts. The guest folio becomes zero but remains open until the separate sett
 state machine runs. Emits `receivable.transferred`.
 
 ## 4. Task — open → assigned → in_progress → done → verified (HK inspection) ;
-any → cancelled. HK: verifying a `housekeeping` task sets `unit_condition`
-dirty→clean→inspected. Emits task.status_changed (+ unit.condition_changed).
+any → cancelled.
+
+Order 201 executes only the existing adjacent housekeeping subset: start is
+`assigned -> in_progress` and preserves authoritative room condition; complete is
+`in_progress -> done`, requires dirty/pickup and atomically changes it to clean;
+verify is `done -> verified`, requires clean and atomically changes it to inspected.
+Each action binds expected task status, room condition and condition `updated_at`.
+Open/assignment, cancellation, reopen and non-housekeeping task transitions remain
+non-executable in this slice. Emits `task.status_changed` and, only where the room
+condition changes, `unit.condition_changed`.
 
 ## 5. Block (`reservation_group`, kind=block) — statuses come from `block_status_def`
 (tenant config); the ONLY semantic the engine reads is `deducts`. Transitions between

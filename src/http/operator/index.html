@@ -107,6 +107,7 @@
 <div class="secondary-workspaces" id="secondary-workspaces" hidden>
 <span class="domain-nav-group">Property control</span>
 <button class="domain-tab" id="nav-operations" type="button" data-view="operations" aria-controls="operations-view"><svg class="domain-icon" aria-hidden="true"><use href="#i-operations"/></svg><span>Operations</span></button>
+<button class="domain-tab" id="nav-housekeeping" type="button" data-view="housekeeping" aria-controls="housekeeping-view"><svg class="domain-icon" aria-hidden="true"><use href="#i-operations"/></svg><span>Housekeeping</span></button>
 <button class="domain-tab" id="nav-inventory" type="button" data-view="inventory" aria-controls="inventory-view"><svg class="domain-icon" aria-hidden="true"><use href="#i-inventory"/></svg><span>Inventory setup</span></button>
 <button class="domain-tab" id="nav-restrictions" type="button" data-view="restrictions" aria-controls="restrictions-view"><svg class="domain-icon" aria-hidden="true"><use href="#i-restrictions"/></svg><span>Restrictions</span></button>
 <button class="domain-tab" id="nav-rates" type="button" data-view="rates" aria-controls="rates-view"><svg class="domain-icon" aria-hidden="true"><use href="#i-rates"/></svg><span>Rates</span></button>
@@ -214,6 +215,29 @@
 <p class="inventory-status" data-today-status role="status" aria-live="polite"></p>
 </section>
 </div>
+</section>
+<section id="housekeeping-view" hidden aria-labelledby="housekeeping-title">
+<div class="section-heading housekeeping-heading">
+<div>
+<p class="eyebrow">Property operations</p>
+<h2 id="housekeeping-title" tabindex="-1">Housekeeping</h2>
+<p class="muted">Work one existing room task at a time from current server-owned task and room-condition evidence.</p>
+</div>
+<button class="quiet" id="housekeeping-refresh" type="button">Refresh board</button>
+</div>
+<p class="field-note housekeeping-boundary">This bounded board does not create, assign, cancel or reopen tasks. Start and complete require work authority; verification requires separate inspection authority.</p>
+<div class="housekeeping-loading" id="housekeeping-loading" hidden aria-hidden="true"><span></span><span></span><span></span></div>
+<section class="card housekeeping-error" id="housekeeping-error" hidden role="alert">
+<strong>Housekeeping board unavailable</strong>
+<p id="housekeeping-error-copy"></p>
+<button class="secondary" id="housekeeping-retry" type="button">Try again</button>
+</section>
+<section class="card housekeeping-empty" id="housekeeping-empty" hidden>
+<strong>No eligible housekeeping tasks are shown</strong>
+<p class="muted">Refresh after an existing assigned or completed room task is available for this property.</p>
+</section>
+<div class="housekeeping-task-list" id="housekeeping-task-list" hidden aria-label="Existing housekeeping tasks"></div>
+<p class="inventory-status" id="housekeeping-status" role="status" aria-live="polite"></p>
 </section>
 <section id="availability-view" aria-labelledby="availability-title">
 <div class="section-heading availability-heading">

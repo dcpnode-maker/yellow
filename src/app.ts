@@ -99,6 +99,7 @@ export function createApp(options: AppOptions = {}) {
       .get("/p/:property/restrictions", ({ request }) => operatorAssets.html(options.operatorLocalReviewCredentials, request))
       .get("/p/:property/rates", ({ request }) => operatorAssets.html(options.operatorLocalReviewCredentials, request))
       .get("/p/:property/operations", ({ request }) => operatorAssets.html(options.operatorLocalReviewCredentials, request))
+      .get("/p/:property/housekeeping", ({ request }) => operatorAssets.html(options.operatorLocalReviewCredentials, request))
       .get("/p/:property/reservations", ({ request }) => operatorAssets.html(options.operatorLocalReviewCredentials, request))
       .get("/p/:property/res/:reservation", ({ request }) => operatorAssets.html(options.operatorLocalReviewCredentials, request))
       .get("/p/:property/folios", ({ request }) => operatorAssets.html(options.operatorLocalReviewCredentials, request))
@@ -355,6 +356,14 @@ export function createApp(options: AppOptions = {}) {
       .post("/api/v1/properties/:property/reservations/:reservation/check-in", ({ request, params, body, tenantContext }) =>
         withOperatorTenant(request, (context) => operator.commitCheckIn(
           context, params.property, params.reservation, body,
+        ))
+      )
+      .get("/api/v1/properties/:property/housekeeping/tasks", ({ request, params, tenantContext }) =>
+        withOperatorTenant(request, (context) => operator.housekeepingBoard(context, params.property))
+      )
+      .post("/api/v1/properties/:property/housekeeping/tasks/:task/transition", ({ request, params, body, tenantContext }) =>
+        withOperatorTenant(request, (context) => operator.transitionHousekeepingTask(
+          context, params.property, params.task, body,
         ))
       )
       .get("/api/v1/properties/:property/reservation-segments", ({ request, params, tenantContext }) =>

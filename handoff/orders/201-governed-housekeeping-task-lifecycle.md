@@ -1,6 +1,6 @@
 # Order 201 — Governed housekeeping task lifecycle and inspection workbench
 
-**Status:** READY-D543 — intentional red and implementation required
+**Status:** BUILT-UNREVIEWED-D544 — executable implementation complete; independent gate deferred
 **Phase:** 6 — Stay operations and housekeeping
 **Branch:** `phase-6/governed-housekeeping-task-lifecycle`
 **Base:** `96573e1b8126` (built-unreviewed Order200)
@@ -46,6 +46,7 @@ room truth, allowed actions, actor, tenant, property and inspection authority.
 - `tests/housekeeping-task-lifecycle.intentional-red.test.ts`,
   `tests/housekeeping-task-lifecycle.integration.test.ts`,
   `tests/operator-housekeeping-workbench.integration.test.ts`, focused additions to
+  `tests/operator-flagship-motion.test.ts`,
   `tests/review-seed.integration.test.ts`, `tests/migrate.integration.test.ts`,
   `tests/database-acceptance.integration.test.ts`,
   `tests/runtime-dml-authority.integration.test.ts`,
@@ -111,8 +112,8 @@ extension type is admitted.
 
 ## Definition of done
 
-- [ ] Intentional red precedes implementation.
-- [ ] Governed task and room-condition transitions are executable and atomic.
-- [ ] Authority, hostile boundaries, rollback, replay and convergence are proved.
-- [ ] Human housekeeping workbench and deterministic review tasks are usable.
-- [ ] Result is recorded built-unreviewed without claiming sheets, checkout, Phase6 or app completion.
+- [x] Intentional red precedes implementation.
+- [x] Governed task and room-condition transitions are executable and atomic.
+- [x] Authority, hostile boundaries, rollback, replay and convergence are proved.
+- [x] Human housekeeping workbench and deterministic review tasks are usable.
+- [x] Result is recorded built-unreviewed without claiming sheets, checkout, Phase6 or app completion.

@@ -167,7 +167,7 @@ dbDescribe("Order 108 SECURITY DEFINER shadow-path containment", () => {
            'create_charge_correction_header',
            'create_folio_transfer', 'create_receivable_transfer',
            'open_cashier_session', 'append_cashier_count', 'close_cashier_session',
-           'register_extension_type'
+           'register_extension_type', 'transition_housekeeping_task'
          ]::name[])
        ORDER BY signature
     `;
@@ -205,6 +205,8 @@ dbDescribe("Order 108 SECURITY DEFINER shadow-path containment", () => {
         config: ["search_path=pg_catalog, public, pg_temp"], appExecute: true, publicDenied: true },
       { signature: "seal_business_day(uuid,uuid,date,uuid)", securityDefiner: true,
         config: ["search_path=pg_catalog, public, pg_temp"], appExecute: false, publicDenied: true },
+      { signature: "transition_housekeeping_task(uuid,uuid,uuid,text,text,text,timestamp with time zone,uuid)", securityDefiner: true,
+        config: ["search_path=pg_catalog, public, pg_temp"], appExecute: true, publicDenied: true },
     ]);
 
     const expectedQualifiedObjects = new Map<string, readonly string[]>([
@@ -239,6 +241,8 @@ dbDescribe("Order 108 SECURITY DEFINER shadow-path containment", () => {
         ["public.tenant", "public.org_node", "public.app_user", "public.extension_type", "public.fact_log"]],
       ["release_occupancy(uuid,uuid)", ["public.space_occupancy"]],
       ["seal_business_day(uuid,uuid,date,uuid)", ["public.business_day"]],
+      ["transition_housekeeping_task(uuid,uuid,uuid,text,text,text,timestamp with time zone,uuid)",
+        ["public.app_user", "public.org_node", "public.task", "public.space", "public.unit_condition"]],
     ]);
     for (const definition of functions) {
       for (const object of expectedQualifiedObjects.get(definition.signature) ?? []) {
@@ -349,6 +353,11 @@ dbDescribe("Order 108 SECURITY DEFINER shadow-path containment", () => {
           '${TENANT}'::uuid, '${PROPERTY}'::uuid,
           '00000000-0000-0000-0000-000000011362'::uuid, '${ACTOR}'::uuid,
           '00000000-0000-0000-0000-000000011363'::uuid, NULL, NULL, false
+        )`,
+        `SELECT * FROM public.transition_housekeeping_task(
+          '${TENANT}'::uuid, '${PROPERTY}'::uuid,
+          '00000000-0000-0000-0000-000000011364'::uuid,
+          'start', 'assigned', 'dirty', now(), '${ACTOR}'::uuid
         )`,
       ]) {
         await connection.unsafe("SAVEPOINT denied_call");

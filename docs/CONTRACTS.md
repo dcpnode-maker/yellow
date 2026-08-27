@@ -649,3 +649,26 @@ The result leaves the guest folio at exact zero and increases receivable exposur
 the same amount. It does not settle the folio automatically and creates no AR invoice,
 allocation, aging, statement, provider settlement, checkout, document, tax or fiscal
 artifact. Generic `ar_control` is never a direct-billing target.
+
+## 20. Governed housekeeping task lifecycle
+
+Order 201 exposes a bounded property housekeeping board over existing
+`kind='housekeeping'`, `subject_type='space'` tasks and active physical rooms. Read
+requires `housekeeping.tasks:read`; start and complete require
+`housekeeping.tasks:work`; verification requires the distinct
+`housekeeping.tasks:inspect` grant. The server derives tenant, property, actor,
+current status, room condition and the one allowed action. No Party PII is returned.
+
+The only executable transitions are `assigned -> in_progress`,
+`in_progress -> done` and `done -> verified`. Every command binds the exact task
+status, room condition and room-condition `updated_at` returned by the board. A stale
+or foreign target conflicts without mutation. Start preserves room condition;
+complete accepts only dirty/pickup and atomically makes it clean; verify accepts only
+clean and atomically makes it inspected. Task/condition changes, minimized facts and
+outbox events commit together under actor-bound durable idempotency.
+
+This boundary does not create, assign, cancel, reopen or delete tasks. It creates no
+task sheet, cadence, credits, occupancy, reservation, discrepancy, queue, key,
+financial, business-day or statutory effect. Direct runtime DML over `task` and
+`unit_condition` remains denied; the application may use only the bounded governed
+transition capability.

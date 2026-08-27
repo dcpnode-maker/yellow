@@ -1,8 +1,8 @@
 # Phase 6 — Stay operations and housekeeping
 
-**Status:** active; Order 200 is built-unreviewed, not Phase completion
+**Status:** active; Orders 200–201 are built-unreviewed
 **Entry point:** built-unreviewed Phase-5 composition through Order 199
-**Current order:** `200-governed-arrival-readiness-checkin.md`
+**Current order:** next bounded housekeeping task-sheet generation slice is prepared but not yet opened
 
 ## Outcome
 
@@ -39,10 +39,31 @@ synthetic review statutory adapter. The canonical property config remains unchan
 They carry open primary folios only as prerequisites and create no journal, posting,
 payment, occupancy, document or check-in evidence.
 
+## Built-unreviewed bounded slice — Order 201
+
+Order 201 exposes one property housekeeping task board and only three adjacent actions
+over existing `kind='housekeeping'`, `subject_type='space'` tasks:
+
+- start `assigned -> in_progress`, preserving room condition;
+- complete `in_progress -> done`, requiring dirty/pickup and atomically making it clean;
+- independently authorized verify `done -> verified`, requiring clean and atomically
+  making it inspected.
+
+The exact scopes are `housekeeping.tasks:read`, `housekeeping.tasks:work` and the
+distinct `housekeeping.tasks:inspect`. Commands bind expected task status, condition
+and condition `updated_at`; the server derives actor/property/authority and commits
+the task/condition state plus minimized facts/events atomically. Review seed fixtures
+place an assigned-dirty task on room 103 and a done-clean task on room 201 without
+transition evidence, sheets, occupancy or changes to the Order-200 arrivals.
+
+This slice deliberately omits task creation, assignment, cancellation, reopen,
+cadence, task sheets, credits, attendant allocation, discrepancies, queue, keys,
+reservation/occupancy mutation, financials, business-day or statutory effects.
+
 ## Subsequent bounded slices
 
-1. Housekeeping condition commands and inspection identity, then task-sheet generation
-   from configured cadence.
+1. Task-sheet generation from configured cadence after the bounded Order-201
+   housekeeping condition/inspection lifecycle.
 2. Discrepancy, queue and service-message workflows with explicit state and audit.
 3. Arrival travel/vehicle/parking capture; any parking occupancy must use the existing
    occupancy choke point.

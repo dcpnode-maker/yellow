@@ -150,6 +150,16 @@ adapter; the canonical property's config remains unchanged. The fixtures perform
 check-in, occupancy or ledger effects. This built slice does not implement checkout, key issue,
 housekeeping workflows, statutory submission, or complete/review/approve Phase 6.
 
+Order 201 is built-unreviewed as the bounded housekeeping lifecycle slice. It consumes only existing
+housekeeping/space tasks and the canonical `assigned -> in_progress -> done ->
+verified` lifecycle: start preserves condition, completion moves dirty/pickup to
+clean, and independently authorized verification moves clean to inspected. Exact
+read/work/inspect scopes, stale task/condition/time guards, same-transaction minimized
+evidence and deterministic assigned-dirty/done-clean review fixtures are executable.
+It adds no task creation/assignment/cancellation, sheets, cadence, credits,
+discrepancies, occupancy, reservation, financial, day or statutory behavior and does
+not complete Phase 6.
+
 ## Phase 7 — Tax engine + India IRP
 
 tax_assignment evaluation (percent/fixed/slab, compound, line-vs-document rounding)

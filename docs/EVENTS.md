@@ -68,6 +68,15 @@ document issue, fiscalization or folio settlement from this event.
 
 **housekeeping/stay** · unit.condition_changed · task.created/.status_changed · discrepancy.reported/.resolved · queue.entered/.cleared · message.received/.sent
 
+Order 201 produces `task.status_changed` for each governed adjacent housekeeping
+transition. Its minimized payload identifies the task, space, previous/current task
+status and action. Complete and verify additionally produce
+`unit.condition_changed`, containing the space and previous/current condition; start
+does not emit a condition event because it does not change condition. The matching
+fact(s), outbox row(s), task status, completion time and condition actor/time commit in
+one transaction. These events contain no assignee/guest PII and do not imply task
+creation, sheets/cadence, occupancy, reservation, financial or statutory effects.
+
 **profiles** · party.created/.merged {into} · party.anonymised · consent.changed
 
 **distribution** · inbound.received {channel,external_id} · inbound.processed {reservation_id}/.failed · ari.push_requested {channel,unit_types,date_range} · map.changed

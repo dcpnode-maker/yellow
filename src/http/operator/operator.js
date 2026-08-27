@@ -51,6 +51,11 @@
  let todayReturnFocus = { reservationId: "", cycle: 0 };
  let todayGeneration = 0;
  let todayWindowState = null;
+ let housekeepingGeneration = 0;
+ let housekeepingRequestGeneration = 0;
+ let housekeepingData = [];
+ let housekeepingReturnFocus = "";
+ const housekeepingAttempts = new Map();
  const todayLaneState = {
  due_in: { rows: [], nextCursor: null, requestGeneration: 0 },
  due_out: { rows: [], nextCursor: null, requestGeneration: 0 },
@@ -146,6 +151,15 @@
  const todayWindowLabel = $("#today-window");
  const todayRefresh = $("#today-refresh");
  const todayLanes = [...document.querySelectorAll("[data-today-lane]")];
+ const housekeepingView = $("#housekeeping-view");
+ const housekeepingRefresh = $("#housekeeping-refresh");
+ const housekeepingLoading = $("#housekeeping-loading");
+ const housekeepingError = $("#housekeeping-error");
+ const housekeepingErrorCopy = $("#housekeeping-error-copy");
+ const housekeepingRetry = $("#housekeeping-retry");
+ const housekeepingEmpty = $("#housekeeping-empty");
+ const housekeepingTaskList = $("#housekeeping-task-list");
+ const housekeepingStatus = $("#housekeeping-status");
  const inventoryView = $("#inventory-view");
  const restrictionsView = $("#restrictions-view");
  const ratesView = $("#rates-view");
@@ -564,7 +578,7 @@
  const MAX_MINOR = BigInt("9223372036854775807");
  const THEMES = new Set(["apple", "android", "win95", "glass", "neo", "erp"]);
  const EXPERIENCES = new Set(["simple", "advanced", "expert"]);
- const SECONDARY_VIEWS = new Set(["operations", "inventory", "restrictions", "rates", "status"]);
+ const SECONDARY_VIEWS = new Set(["operations", "housekeeping", "inventory", "restrictions", "rates", "status"]);
   function motionPreference(query) {
  return typeof window.matchMedia === "function" ? window.matchMedia(query) : { matches: true, addEventListener() {} };
  }
@@ -776,6 +790,11 @@
  reservationBookingSearchGeneration += 1;
  reservationBoardGeneration += 1;
  reservationDetailGeneration += 1;
+ housekeepingGeneration += 1;
+ housekeepingRequestGeneration += 1;
+ housekeepingData = [];
+ housekeepingReturnFocus = "";
+ housekeepingAttempts.clear();
  reservationBoardRows = [];
  reservationBoardNextCursor = null;
  reservationRouteReservationId = "";
@@ -824,7 +843,7 @@
   propertySelect.disabled = true;
  } else {
   propertySelect.disabled = false;
-  const pathProperty = location.pathname.match(/^\/p\/([0-9a-f-]+)\/(?:today|availability|inventory|operations|reservations|folios|restrictions|rates|status|res\/[0-9a-f-]+|folio\/[0-9a-f-]+)$/)?.[1];
+  const pathProperty = location.pathname.match(/^\/p\/([0-9a-f-]+)\/(?:today|availability|inventory|operations|housekeeping|reservations|folios|cashiers|restrictions|rates|status|res\/[0-9a-f-]+|folio\/[0-9a-f-]+)$/)?.[1];
   if (pathProperty && body.properties.some(({ id }) => id === pathProperty)) propertySelect.value = pathProperty;
  }
  }
@@ -1057,6 +1076,115 @@
  void Promise.all(TODAY_STATUSES.map((status) => loadTodayLane(status, { cycle, window })))
   .then(() => restoreTodayReturnFocus(cycle, true));
  }
+ const HOUSEKEEPING_ACTION_LABELS = Object.freeze({
+ start: "Start cleaning", complete: "Mark room clean", verify: "Verify inspection",
+ });
+ const HOUSEKEEPING_STATUS_LABELS = Object.freeze({
+ assigned: "Assigned", in_progress: "In progress", done: "Awaiting inspection", verified: "Verified",
+ });
+ const HOUSEKEEPING_CONDITION_LABELS = Object.freeze({
+ dirty: "Dirty", pickup: "Pickup", clean: "Clean", inspected: "Inspected",
+ });
+  function setHousekeepingState(state, message = "") {
+ housekeepingLoading.hidden = state !== "loading";
+ housekeepingError.hidden = state !== "error";
+ housekeepingEmpty.hidden = state !== "empty";
+ housekeepingTaskList.hidden = state !== "ready";
+ housekeepingView.setAttribute("aria-busy", String(state === "loading"));
+ if (state === "error") housekeepingErrorCopy.textContent = message;
+ }
+  function housekeepingIsCurrent(generation, requestGeneration, property) {
+ return generation === housekeepingGeneration && requestGeneration === housekeepingRequestGeneration &&
+  property === propertySelect.value && activeView === "housekeeping" &&
+  location.pathname === `/p/${property}/housekeeping`;
+ }
+  function housekeepingDate(value, empty = "Not set") {
+ if (value === null || value === undefined || value === "") return empty;
+ const instant = new Date(String(value));
+ if (!Number.isFinite(instant.getTime())) return "Invalid server date";
+ return new Intl.DateTimeFormat(undefined, { dateStyle: "medium", timeStyle: "short" }).format(instant);
+ }
+  function housekeepingBadge(className, text, value) {
+ const badge = node("span", `housekeeping-badge ${className}`, text);
+ badge.dataset.value = value;
+ return badge;
+ }
+  function housekeepingTaskCard(task) {
+ const article = node("article", "card housekeeping-task-card");
+ article.dataset.taskId = task.taskId;
+ const heading = node("div", "housekeeping-task-head");
+ const identity = node("div", "housekeeping-room-identity");
+ identity.append(node("span", "eyebrow", task.floor ? `Floor ${task.floor}` : "Floor not set"), node("h3", "", `Room ${task.spaceCode}`));
+ const badges = node("div", "housekeeping-badges");
+ badges.append(
+  housekeepingBadge("task-status", HOUSEKEEPING_STATUS_LABELS[task.taskStatus] || "Unknown status", task.taskStatus),
+  housekeepingBadge("room-condition", HOUSEKEEPING_CONDITION_LABELS[task.roomCondition] || "Unknown condition", task.roomCondition),
+ );
+ heading.append(identity, badges);
+ const evidence = node("dl", "housekeeping-evidence");
+ const values = [
+  ["Assignment", task.assigned ? "Assigned" : "Not assigned"],
+  ["Priority", String(task.priority)],
+  ["Due", housekeepingDate(task.dueAt)],
+  ["Room evidence", housekeepingDate(task.roomUpdatedAt)],
+ ];
+ for (const [term, value] of values) evidence.append(node("dt", "", term), node("dd", "", value));
+ const actionArea = node("div", "housekeeping-task-action");
+ const allowedActions = Array.isArray(task.allowedActions) ? task.allowedActions.slice(0, 1) : [];
+ if (allowedActions.length === 1 && HOUSEKEEPING_ACTION_LABELS[allowedActions[0]]) {
+  const action = allowedActions[0];
+  const button = node("button", "primary housekeeping-action", HOUSEKEEPING_ACTION_LABELS[action]);
+  button.type = "button";
+  button.dataset.taskId = task.taskId;
+  button.dataset.action = action;
+  button.dataset.expectedTaskStatus = task.taskStatus;
+  button.dataset.expectedRoomCondition = task.roomCondition;
+  button.dataset.expectedRoomUpdatedAt = task.roomUpdatedAt;
+  button.setAttribute("aria-label", `${HOUSEKEEPING_ACTION_LABELS[action]} for room ${task.spaceCode}`);
+  actionArea.append(button);
+ } else {
+  actionArea.append(node("p", "field-note housekeeping-blocker", "No action is permitted for your current grant and this server state."));
+ }
+ article.append(heading, evidence, actionArea);
+ return article;
+ }
+  function restoreHousekeepingFocus() {
+ if (!housekeepingReturnFocus || activeView !== "housekeeping") return;
+ const control = [...housekeepingTaskList.querySelectorAll(".housekeeping-action")]
+  .find((button) => button.dataset.taskId === housekeepingReturnFocus);
+ (control || $("#housekeeping-title")).focus({ preventScroll: true });
+ housekeepingReturnFocus = "";
+ }
+  function renderHousekeepingBoard(tasks) {
+ housekeepingData = tasks.slice(0, 200);
+ housekeepingTaskList.replaceChildren(...housekeepingData.map(housekeepingTaskCard));
+ setHousekeepingState(housekeepingData.length === 0 ? "empty" : "ready");
+ housekeepingStatus.textContent = `${housekeepingData.length} existing task${housekeepingData.length === 1 ? "" : "s"} shown on this bounded property board.`;
+ restoreHousekeepingFocus();
+ }
+  async function loadHousekeepingBoard({ focus = false } = {}) {
+ const property = propertySelect.value;
+ if (!property || activeView !== "housekeeping") return;
+ const generation = ++housekeepingGeneration;
+ const requestGeneration = ++housekeepingRequestGeneration;
+ housekeepingRefresh.disabled = true;
+ housekeepingStatus.textContent = "Loading current server task and room-condition evidence…";
+ setHousekeepingState("loading");
+ try {
+  const body = await request(`/api/v1/properties/${enc(property)}/housekeeping/tasks?limit=200`);
+  if (!housekeepingIsCurrent(generation, requestGeneration, property)) return;
+  if (!body || !Array.isArray(body.tasks)) throw new Error("The housekeeping board response was invalid.");
+  renderHousekeepingBoard(body.tasks);
+  if (focus && !housekeepingReturnFocus) $("#housekeeping-title").focus({ preventScroll: true });
+ } catch (error) {
+  if (!housekeepingIsCurrent(generation, requestGeneration, property)) return;
+  setHousekeepingState("error", error instanceof Error ? error.message : "The housekeeping board is unavailable.");
+  housekeepingStatus.textContent = error?.status === 403 ? "Housekeeping read access is not granted." : "Board unavailable; no task state was changed.";
+  if (focus) housekeepingRetry.focus({ preventScroll: true });
+ } finally {
+  if (housekeepingIsCurrent(generation, requestGeneration, property)) housekeepingRefresh.disabled = false;
+ }
+ }
   function setReservationBoardState(state, message = "") {
  reservationBoardLoading.hidden = state !== "loading";
  reservationBoardError.hidden = state !== "error";
@@ -1064,6 +1192,45 @@
  reservationBoardContent.hidden = state !== "ready";
  reservationBoard.setAttribute("aria-busy", String(state === "loading"));
  if (state === "error") reservationBoardError.querySelector("p").textContent = message;
+ }
+  async function submitHousekeepingAction(button) {
+ const property = propertySelect.value;
+ const taskId = button.dataset.taskId;
+ const body = {
+  action: button.dataset.action,
+  expectedTaskStatus: button.dataset.expectedTaskStatus,
+  expectedRoomCondition: button.dataset.expectedRoomCondition,
+  expectedRoomUpdatedAt: button.dataset.expectedRoomUpdatedAt,
+ };
+ const draft = JSON.stringify({ property, taskId, ...body });
+ const existing = housekeepingAttempts.get(taskId);
+ const attempt = existing?.draft === draft ? existing : { draft, key: crypto.randomUUID() };
+ housekeepingAttempts.set(taskId, attempt);
+ const generation = housekeepingGeneration;
+ button.disabled = true;
+ housekeepingStatus.textContent = `${HOUSEKEEPING_ACTION_LABELS[body.action]} using the exact displayed task and room evidence…`;
+ try {
+  const result = await request(`/api/v1/properties/${enc(property)}/housekeeping/tasks/${enc(taskId)}/transition`, {
+  method: "POST", headers: { "idempotency-key": attempt.key }, body: JSON.stringify(body),
+  });
+  if (generation !== housekeepingGeneration || property !== propertySelect.value || activeView !== "housekeeping") return;
+  housekeepingAttempts.delete(taskId);
+  housekeepingReturnFocus = taskId;
+  housekeepingStatus.textContent = result.replayed ? "The existing task transition was confirmed. Refreshing authoritative evidence…" : "Task transition recorded. Refreshing authoritative evidence…";
+  await loadHousekeepingBoard();
+ } catch (error) {
+  if (generation !== housekeepingGeneration || property !== propertySelect.value || activeView !== "housekeeping") return;
+  if (error?.status === 409) {
+  housekeepingAttempts.delete(taskId);
+  housekeepingReturnFocus = taskId;
+  housekeepingStatus.textContent = "Task or room evidence changed. Refreshing the authoritative board before another action…";
+  await loadHousekeepingBoard();
+  } else {
+  housekeepingStatus.textContent = `${error instanceof Error ? error.message : "Task action failed"}. Retry this unchanged action to keep the same idempotency key.`;
+  button.disabled = false;
+  button.focus({ preventScroll: true });
+  }
+ }
  }
   function reservationBoardQuery(after = "") {
  const fields = new FormData(reservationBoardForm);
@@ -4586,7 +4753,7 @@
  }
   function setView(view, updateHistory = true) {
  const previousView = activeView;
- activeView = ["today", "availability", "inventory", "operations", "reservations", "folios", "cashiers", "restrictions", "rates", "status"].includes(view) ? view : "availability";
+ activeView = ["today", "availability", "inventory", "operations", "housekeeping", "reservations", "folios", "cashiers", "restrictions", "rates", "status"].includes(view) ? view : "availability";
  if (document.documentElement.dataset.experience === "simple" && SECONDARY_VIEWS.has(activeView)) {
   secondaryWorkspaces.hidden = false;
   secondaryWorkspacesToggle.setAttribute("aria-expanded", "true");
@@ -4594,7 +4761,12 @@
  }
  if (previousView === "folios" && activeView !== "folios") clearFolioState();
  if (previousView === "today" && activeView !== "today") todayGeneration += 1;
+ if (previousView === "housekeeping" && activeView !== "housekeeping") {
+  housekeepingGeneration += 1;
+  housekeepingRequestGeneration += 1;
+ }
  todayView.hidden = activeView !== "today";
+ housekeepingView.hidden = activeView !== "housekeeping";
  availabilityView.hidden = activeView !== "availability";
  inventoryView.hidden = activeView !== "inventory";
  restrictionsView.hidden = activeView !== "restrictions";
@@ -4605,7 +4777,7 @@
  cashiersView.hidden = activeView !== "cashiers";
  statusView.hidden = activeView !== "status";
  workbenchTitle.textContent = activeView === "today" ? "Today" : activeView === "inventory" ? "Inventory setup" :
-  activeView === "operations" ? "Operations" : activeView === "reservations" ? "Reservations" : activeView === "folios" ? "Folios" : activeView === "cashiers" ? "Cashiers" : activeView === "restrictions" ? "Restrictions" :
+  activeView === "operations" ? "Operations" : activeView === "housekeeping" ? "Housekeeping" : activeView === "reservations" ? "Reservations" : activeView === "folios" ? "Folios" : activeView === "cashiers" ? "Cashiers" : activeView === "restrictions" ? "Restrictions" :
   activeView === "rates" ? "Rates" : activeView === "status" ? "Project status" : "Availability";
  for (const tab of navigation) {
   const selected = tab.dataset.view === activeView;
@@ -4622,6 +4794,7 @@
   void loadOfflineLeases();
  }
  if (activeView === "operations") void loadOperationalBlocks();
+ if (activeView === "housekeeping") void loadHousekeepingBoard();
  if (activeView === "restrictions") void loadRestrictions();
  if (activeView === "rates") void loadRates();
  if (activeView === "status") void loadSystemStatus();
@@ -6016,6 +6189,11 @@
  reservationBookingSearchGeneration += 1;
  reservationBoardGeneration += 1;
  reservationDetailGeneration += 1;
+ housekeepingGeneration += 1;
+ housekeepingRequestGeneration += 1;
+ housekeepingData = [];
+ housekeepingReturnFocus = "";
+ housekeepingAttempts.clear();
  resetTodayState();
  reservationBoardRows = [];
  reservationBoardNextCursor = null;
@@ -6041,6 +6219,7 @@
   void loadOfflineLeases();
  }
  if (activeView === "operations") void loadOperationalBlocks();
+ if (activeView === "housekeeping") void loadHousekeepingBoard();
  if (activeView === "restrictions") void loadRestrictions();
  if (activeView === "rates") void loadRates();
  if (activeView === "status") void loadSystemStatus();
@@ -6078,6 +6257,12 @@
  reservationBoardRetry.addEventListener("click", () => void loadReservationBoard());
  reservationBoardMore.addEventListener("click", () => void loadReservationBoard({ older: true }));
  todayRefresh.addEventListener("click", loadToday);
+ housekeepingRefresh.addEventListener("click", () => void loadHousekeepingBoard({ focus: true }));
+ housekeepingRetry.addEventListener("click", () => void loadHousekeepingBoard({ focus: true }));
+ housekeepingTaskList.addEventListener("click", (event) => {
+  const button = event.target.closest?.(".housekeeping-action");
+  if (button && !button.disabled) void submitHousekeepingAction(button);
+ });
  for (const lane of todayLanes) {
  const status = lane.dataset.todayLane;
  lane.querySelector("[data-today-retry]").addEventListener("click", () => void loadTodayLane(status));
@@ -6148,6 +6333,12 @@
  if (location.pathname === `/p/${propertySelect.value}/today`) {
   closeReservationDetail({ history: false, restoreFocus: false });
   if (activeView !== "today") setView("today", false);
+  return;
+ }
+ if (location.pathname === `/p/${propertySelect.value}/housekeeping`) {
+  closeReservationDetail({ history: false, restoreFocus: false });
+  if (activeView !== "housekeeping") setView("housekeeping", false);
+  else void loadHousekeepingBoard();
   return;
  }
  const folioRoute = folioRouteFromLocation();
@@ -6860,6 +7051,7 @@
  const initialView = location.pathname.endsWith("/inventory") ? "inventory" :
  location.pathname.endsWith("/today") ? "today" :
  location.pathname.endsWith("/operations") ? "operations" :
+ location.pathname.endsWith("/housekeeping") ? "housekeeping" :
  (location.pathname.endsWith("/reservations") || /^\/p\/[0-9a-f-]+\/res\/[0-9a-f-]+$/.test(location.pathname)) ? "reservations" :
  (location.pathname.endsWith("/folios") || /^\/p\/[0-9a-f-]+\/folio\/[0-9a-f-]+$/.test(location.pathname)) ? "folios" :
  location.pathname.endsWith("/cashiers") ? "cashiers" :

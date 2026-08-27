@@ -47,6 +47,10 @@ export const REVIEW_DIRTY_ROOM_OVERRIDE_PERMISSION = Object.freeze({
   code: "stay-operations.checkin:dirty-room-override",
   description: "Override a dirty or pickup room check-in with an attributable reason",
 });
+export const REVIEW_HOUSEKEEPING_INSPECT_PERMISSION = Object.freeze({
+  code: "housekeeping.tasks:inspect",
+  description: "Independently verify completed property housekeeping tasks",
+});
 export const REVIEW_PERMISSION = "inventory.availability:read";
 export const REVIEW_PERMISSIONS = Object.freeze([
   { code: "crm.parties:read", description: "Search tenant-scoped Party profiles" },
@@ -62,6 +66,8 @@ export const REVIEW_PERMISSIONS = Object.freeze([
   { code: "financials.receivables:read", description: "Read governed property receivable targets and exposure" },
   { code: "financials.receivables:transfer", description: "Transfer exact guest debt to a governed receivable" },
   { code: "financials.transfers:write", description: "Preview and commit governed folio transfers" },
+  { code: "housekeeping.tasks:read", description: "Read the governed property housekeeping task board" },
+  { code: "housekeeping.tasks:work", description: "Start and complete governed property housekeeping tasks" },
   { code: REVIEW_PERMISSION, description: "Read tenant-scoped truth availability" },
   { code: "inventory.blocks:read", description: "Read tenant-scoped operational blocks" },
   { code: "inventory.blocks:write", description: "Open and close tenant-scoped operational blocks" },
@@ -103,6 +109,7 @@ const REVIEW_COMPANY_ACCOUNT_UUID = `${TENANT_NAME}/review-financials/receivable
 const REVIEW_AGENT_ACCOUNT_UUID = `${TENANT_NAME}/review-financials/receivable/horizon-travel`;
 const REVIEW_STATUTORY_ADAPTER_KEY = "local-review-recorded-identity";
 const REVIEW_CHECKIN_FIXTURE_UUID = `${TENANT_NAME}/review-checkin`;
+const REVIEW_HOUSEKEEPING_FIXTURE_UUID = `${TENANT_NAME}/review-housekeeping`;
 export const REVIEW_CASH_DRAWER_CODE = "FRONT-DESK-1";
 export const REVIEW_CASH_DENOMINATIONS = Object.freeze([1n, 5n, 10n, 25n, 100n, 500n, 1000n, 2000n, 5000n, 10000n]);
 
@@ -126,6 +133,17 @@ const CHECKIN_EXAMPLES = Object.freeze([
     roomCode: "102", condition: "dirty" as const, hasIdentityDocument: true }),
   Object.freeze({ key: "identity-gated", confirmationNo: "ARR-IDENTITY", displayName: "Arrival Identity Gate Example",
     roomCode: "G01", condition: "clean" as const, hasIdentityDocument: false }),
+]);
+
+const HOUSEKEEPING_EXAMPLES = Object.freeze([
+  Object.freeze({ key: "assigned-dirty", roomCode: "103", taskStatus: "assigned" as const,
+    condition: "dirty" as const, conditionUpdatedAt: "2026-09-16T08:00:00.000Z",
+    createdAt: "2026-09-15T12:00:00.000Z", dueAt: "2026-09-16T10:00:00.000Z",
+    completedAt: null }),
+  Object.freeze({ key: "done-clean", roomCode: "201", taskStatus: "done" as const,
+    condition: "clean" as const, conditionUpdatedAt: "2026-09-16T09:00:00.000Z",
+    createdAt: "2026-09-15T13:00:00.000Z", dueAt: "2026-09-16T11:00:00.000Z",
+    completedAt: "2026-09-16T09:00:00.000Z" }),
 ]);
 
 const REVIEW_RATE_POLICIES: readonly Readonly<{
@@ -241,6 +259,11 @@ interface ReviewCheckInExamples {
   readonly identityGatePropertyId: string;
 }
 
+interface ReviewHousekeepingExamples {
+  readonly assignedDirtyTaskId: string;
+  readonly doneCleanTaskId: string;
+}
+
 interface ReviewSeedRateResult {
   readonly ratePlanId: string;
   readonly activeReleaseId: string;
@@ -252,12 +275,14 @@ export interface PublishedReviewSeedResult extends ReviewSeedBaseResult {
   readonly mode: "published";
   readonly rate: ReviewSeedRateResult;
   readonly checkInExamples: ReviewCheckInExamples;
+  readonly housekeepingExamples: ReviewHousekeepingExamples;
 }
 
 export interface IdentityInventoryReviewSeedResult extends ReviewSeedBaseResult {
   readonly mode: "identity_inventory";
   readonly rate: null;
   readonly checkInExamples: null;
+  readonly housekeepingExamples: null;
 }
 
 export type ReviewSeedResult = PublishedReviewSeedResult | IdentityInventoryReviewSeedResult;
@@ -444,6 +469,17 @@ async function provisionIdentity(
     exact(dirtyRoomOverridePermissions[0], REVIEW_DIRTY_ROOM_OVERRIDE_PERMISSION,
       "Dirty-room override review permission");
   }
+  const housekeepingInspectPermissions = await connection<Array<{ code: string; description: string }>>`
+    SELECT code, description FROM permission WHERE code = ${REVIEW_HOUSEKEEPING_INSPECT_PERMISSION.code}
+  `;
+  if (housekeepingInspectPermissions.length === 0) {
+    await connection`INSERT INTO permission (code, description)
+      VALUES (${REVIEW_HOUSEKEEPING_INSPECT_PERMISSION.code},
+        ${REVIEW_HOUSEKEEPING_INSPECT_PERMISSION.description})`;
+  } else {
+    exact(housekeepingInspectPermissions[0], REVIEW_HOUSEKEEPING_INSPECT_PERMISSION,
+      "Housekeeping inspect review permission");
+  }
 
   const roles = await connection<RoleRow[]>`
     SELECT id, tenant_id, name FROM role
@@ -507,6 +543,11 @@ async function provisionIdentity(
   await connection`
     INSERT INTO role_permission (role_id, permission_code)
     VALUES (${approverRoleId}::uuid, ${REVIEW_DIRTY_ROOM_OVERRIDE_PERMISSION.code})
+    ON CONFLICT (role_id, permission_code) DO NOTHING
+  `;
+  await connection`
+    INSERT INTO role_permission (role_id, permission_code)
+    VALUES (${approverRoleId}::uuid, ${REVIEW_HOUSEKEEPING_INSPECT_PERMISSION.code})
     ON CONFLICT (role_id, permission_code) DO NOTHING
   `;
 
@@ -1552,6 +1593,127 @@ async function provisionCheckInExamples(
   });
 }
 
+async function provisionHousekeepingExamples(
+  connection: ReservedSQL,
+  userId: string,
+  spaces: ReadonlyMap<string, Space>,
+): Promise<ReviewHousekeepingExamples> {
+  await connection`SELECT pg_advisory_xact_lock(hashtextextended('yellow.local.review.seed.housekeeping', 0))`;
+
+  const attendantPartyId = await uuidV5(
+    SEED_TENANT.id,
+    `${REVIEW_HOUSEKEEPING_FIXTURE_UUID}/attendant`,
+  );
+  const attendantAttrs = Object.freeze({ source: "local-review", housekeeping_fixture: "attendant" });
+  const attendantRows = await connection<Array<Record<string, unknown>>>`
+    SELECT id, tenant_id, kind, display_name, legal_name, attrs, vip_code, status, merged_into
+    FROM party WHERE id=${attendantPartyId}::uuid ORDER BY id FOR UPDATE
+  `;
+  const expectedAttendant = { id: attendantPartyId, tenant_id: SEED_TENANT.id, kind: "person",
+    display_name: "Avery Housekeeping", legal_name: "Avery Housekeeping", attrs: attendantAttrs,
+    vip_code: null, status: "active", merged_into: null };
+  if (attendantRows.length === 0) {
+    await connection`INSERT INTO party
+      (id, tenant_id, kind, display_name, legal_name, attrs, status)
+      VALUES (${attendantPartyId}::uuid, ${SEED_TENANT.id}::uuid, 'person',
+        'Avery Housekeeping', 'Avery Housekeeping',
+        ${JSON.stringify(attendantAttrs)}::text::jsonb, 'active')`;
+  } else {
+    exact(attendantRows[0], expectedAttendant, "Local-review housekeeping attendant");
+    if (attendantRows.length !== 1) throw new Error("Local-review housekeeping attendant is ambiguous");
+  }
+
+  const staffDetail = Object.freeze({ source: "local-review", housekeeping_fixture: "attendant" });
+  const staffRoles = await connection<Array<Record<string, unknown>>>`
+    SELECT tenant_id, party_id, role, detail FROM party_role
+    WHERE party_id=${attendantPartyId}::uuid AND role='staff'
+  `;
+  const expectedStaffRole = { tenant_id: SEED_TENANT.id, party_id: attendantPartyId,
+    role: "staff", detail: staffDetail };
+  if (staffRoles.length === 0) {
+    await connection`INSERT INTO party_role (tenant_id, party_id, role, detail)
+      VALUES (${SEED_TENANT.id}::uuid, ${attendantPartyId}::uuid, 'staff',
+        ${JSON.stringify(staffDetail)}::text::jsonb)`;
+  } else {
+    exact(staffRoles[0], expectedStaffRole, "Local-review housekeeping attendant role");
+    if (staffRoles.length !== 1) throw new Error("Local-review housekeeping attendant role is ambiguous");
+  }
+
+  const taskIds: Record<string, string> = {};
+  for (const spec of HOUSEKEEPING_EXAMPLES) {
+    const space = spaces.get(spec.roomCode);
+    if (!space) throw new Error(`Local-review housekeeping room ${spec.roomCode} is absent`);
+
+    const physicalSpaces = await connection<Array<{ id: string }>>`
+      SELECT id FROM space
+      WHERE id=${space.id}::uuid AND tenant_id=${SEED_TENANT.id}::uuid
+        AND property_node=${SEED_PROPERTY.id}::uuid AND status='active'
+    `;
+    if (physicalSpaces.length !== 1) {
+      throw new Error(`Local-review housekeeping room ${spec.roomCode} is not one active property space`);
+    }
+
+    const conditionRows = await connection<Array<Record<string, unknown>>>`
+      SELECT tenant_id, space_id, condition,
+             to_char(updated_at AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') AS updated_at,
+             updated_by
+      FROM unit_condition WHERE space_id=${space.id}::uuid FOR UPDATE
+    `;
+    const expectedCondition = { tenant_id: SEED_TENANT.id, space_id: space.id,
+      condition: spec.condition, updated_at: spec.conditionUpdatedAt, updated_by: userId };
+    if (conditionRows.length === 0) {
+      await connection`INSERT INTO unit_condition
+        (tenant_id, space_id, condition, updated_at, updated_by)
+        VALUES (${SEED_TENANT.id}::uuid, ${space.id}::uuid, ${spec.condition},
+          ${spec.conditionUpdatedAt}::timestamptz, ${userId}::uuid)`;
+    } else {
+      exact(conditionRows[0], expectedCondition,
+        `Local-review housekeeping room ${spec.roomCode} condition`);
+      if (conditionRows.length !== 1) {
+        throw new Error(`Local-review housekeeping room ${spec.roomCode} condition is ambiguous`);
+      }
+    }
+
+    const taskId = await uuidV5(SEED_TENANT.id, `${REVIEW_HOUSEKEEPING_FIXTURE_UUID}/${spec.key}/task`);
+    const payload = Object.freeze({ source: "local-review", housekeeping_example: spec.key });
+    const taskRows = await connection<Array<Record<string, unknown>>>`
+      SELECT id, tenant_id, property_node, kind, status, subject_type, subject_id,
+             assignee_party, department,
+             to_char(due_at AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') AS due_at,
+             priority, credits, sheet_id, payload,
+             to_char(created_at AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') AS created_at,
+             CASE WHEN completed_at IS NULL THEN NULL ELSE
+               to_char(completed_at AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') END AS completed_at
+      FROM task WHERE id=${taskId}::uuid ORDER BY id FOR UPDATE
+    `;
+    const expectedTask = { id: taskId, tenant_id: SEED_TENANT.id, property_node: SEED_PROPERTY.id,
+      kind: "housekeeping", status: spec.taskStatus, subject_type: "space", subject_id: space.id,
+      assignee_party: attendantPartyId, department: "Housekeeping", due_at: spec.dueAt,
+      priority: 2, credits: null, sheet_id: null, payload, created_at: spec.createdAt,
+      completed_at: spec.completedAt };
+    if (taskRows.length === 0) {
+      await connection`INSERT INTO task
+        (id, tenant_id, property_node, kind, status, subject_type, subject_id,
+         assignee_party, department, due_at, priority, credits, sheet_id, payload,
+         created_at, completed_at)
+        VALUES (${taskId}::uuid, ${SEED_TENANT.id}::uuid, ${SEED_PROPERTY.id}::uuid,
+          'housekeeping', ${spec.taskStatus}, 'space', ${space.id}::uuid,
+          ${attendantPartyId}::uuid, 'Housekeeping', ${spec.dueAt}::timestamptz,
+          2, NULL, NULL, ${JSON.stringify(payload)}::text::jsonb,
+          ${spec.createdAt}::timestamptz, ${spec.completedAt}::timestamptz)`;
+    } else {
+      exact(taskRows[0], expectedTask, `Local-review ${spec.key} housekeeping task`);
+      if (taskRows.length !== 1) throw new Error(`Local-review ${spec.key} housekeeping task is ambiguous`);
+    }
+    taskIds[spec.key] = taskId;
+  }
+
+  return Object.freeze({
+    assignedDirtyTaskId: taskIds["assigned-dirty"]!,
+    doneCleanTaskId: taskIds["done-clean"]!,
+  });
+}
+
 export function runReviewSeed(options: IdentityInventoryReviewSeedOptions): Promise<IdentityInventoryReviewSeedResult>;
 export function runReviewSeed(options: PublishedReviewSeedOptions): Promise<PublishedReviewSeedResult>;
 export async function runReviewSeed(options: ReviewSeedOptions): Promise<ReviewSeedResult> {
@@ -1673,7 +1835,7 @@ export async function runReviewSeed(options: ReviewSeedOptions): Promise<ReviewS
       companyReceivableAccountId, agentReceivableAccountId, ...counts };
     if (mode === "identity_inventory") {
       logger("review rate: omitted by explicit identity_inventory fixture mode");
-      return { ...common, mode, rate: null, checkInExamples: null };
+      return { ...common, mode, rate: null, checkInExamples: null, housekeepingExamples: null };
     }
 
     const previewSellable = sellableUnits.get("101");
@@ -1698,6 +1860,7 @@ export async function runReviewSeed(options: ReviewSeedOptions): Promise<ReviewS
     });
 
     let checkInExamples: ReviewCheckInExamples | undefined;
+    let housekeepingExamples: ReviewHousekeepingExamples | undefined;
     await withIdentityTransaction(identityPool, async (tx) => {
       checkInExamples = await provisionCheckInExamples(
         tx,
@@ -1710,12 +1873,15 @@ export async function runReviewSeed(options: ReviewSeedOptions): Promise<ReviewS
         spaces,
         sellableUnits,
       );
+      housekeepingExamples = await provisionHousekeepingExamples(tx, userId, spaces);
     });
     if (!checkInExamples) throw new Error("Local-review check-in examples were not provisioned");
+    if (!housekeepingExamples) throw new Error("Local-review housekeeping examples were not provisioned");
 
     logger(`review rate: plan=${rate.ratePlanId} active_release=${rate.activeReleaseId} version=${rate.activeReleaseVersion} state=${rate.created ? "created" : "existing"}`);
     logger(`review check-in: clean=${checkInExamples.cleanReservationId} dirty=${checkInExamples.dirtyReservationId} identity_gated=${checkInExamples.identityGatedReservationId}`);
-    return { ...common, mode, rate, checkInExamples };
+    logger(`review housekeeping: assigned_dirty=${housekeepingExamples.assignedDirtyTaskId} done_clean=${housekeepingExamples.doneCleanTaskId}`);
+    return { ...common, mode, rate, checkInExamples, housekeepingExamples };
   } finally {
     await database.close();
     await eventPool.close();

@@ -755,6 +755,49 @@ databaseDescribe("Bun SQL migration runner", () => {
   );
 
   test(
+    "applies the exact governed housekeeping-task transition migration",
+    async () => {
+      await withDatabase(async ({ databaseUrl: targetUrl, sql }) => {
+        const result = await runMigrations({
+          databaseUrl: targetUrl,
+          migrationsDirectory: PROJECT_MIGRATIONS,
+          logger: () => undefined,
+        });
+        expect(result.appliedFiles).toContain("0026_governed_housekeeping_task_transition.sql");
+        const ledger = await sql<Array<{
+          version: number | bigint;
+          filename: string;
+          checksum_sha256: string;
+        }>>`
+          SELECT version, filename, checksum_sha256
+            FROM public.schema_migration
+           WHERE version = 26
+        `;
+        expect(ledger.map((row) => ({ ...row, version: Number(row.version) }))).toEqual([{
+          version: 26,
+          filename: "0026_governed_housekeeping_task_transition.sql",
+          checksum_sha256: "f3667d8443db21ad921512bfadc453e9a9f341b60594f888dad7f69a88f0fba6",
+        }]);
+
+        const shape = await sql<Array<{
+          tables: number; policies: number; functions: number;
+        }>>`
+          SELECT
+            (SELECT count(*)::int FROM pg_catalog.pg_tables WHERE schemaname = 'public') AS tables,
+            (SELECT count(*)::int FROM pg_catalog.pg_policies WHERE schemaname = 'public') AS policies,
+            (SELECT count(*)::int
+               FROM pg_catalog.pg_proc AS procedure
+               JOIN pg_catalog.pg_namespace AS namespace ON namespace.oid = procedure.pronamespace
+              WHERE namespace.nspname = 'public'
+                AND procedure.proname = 'transition_housekeeping_task') AS functions
+        `;
+        expect(shape).toEqual([{ tables: 93, policies: 83, functions: 1 }]);
+      });
+    },
+    60_000,
+  );
+
+  test(
     "applies the exact account-folio integrity migration and rejects tenant-crossing references",
     async () => {
       await withDatabase(async ({ databaseUrl: targetUrl, sql }) => {

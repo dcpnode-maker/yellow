@@ -296,6 +296,15 @@ without measured command/query needs.
 sleep/skip/person discrepancies are explicit; maintenance dependencies can block
 readiness; mobile/offline updates conflict safely.
 
+Order 201 consumes the existing `task` primitive without adding a housekeeping root
+or state. One eligible task is tenant/property-bound, `kind='housekeeping'`,
+`subject_type='space'`, and references one active physical space. The task status and
+its room's `unit_condition` form one locked transition decision: start preserves the
+condition, completion moves dirty/pickup to clean, and independent verification moves
+clean to inspected. `unit_condition.updated_by/updated_at`, task `completed_at`, facts
+and outbox rows retain attributable evidence. This slice does not model cadence,
+task-sheet generation, credits, attendant allocation or occupancy.
+
 ### Asset/Work Order aggregate — target extension
 
 Baseline `task`, `space`, relations, and OOO/OOS provide foundations, but there is no

@@ -344,6 +344,8 @@ databaseDescribe("Order 150 positive runtime DML authority", () => {
     await expectAppRoleDenied("UPDATE public.cashier_session SET closed_at = now() WHERE false");
     await expectAppRoleDenied("INSERT INTO public.cashier_count (tenant_id, session_id, drawer_id, kind, attempt_no, counted_by, total_minor) VALUES ('00000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-000000000002', '00000000-0000-0000-0000-000000000003', 'closing', 1, '00000000-0000-0000-0000-000000000004', 0)");
     await expectAppRoleDenied("DELETE FROM public.cashier_count_line WHERE false");
+    await expectAppRoleDenied("UPDATE public.task SET status = status WHERE false");
+    await expectAppRoleDenied("UPDATE public.unit_condition SET condition = condition WHERE false");
   });
 
   test("P3: new tables receive no mutation and an unauthorized grant is detected", async () => {
