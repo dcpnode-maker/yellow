@@ -702,3 +702,26 @@ Generation does not transition tasks or room condition and does not create, upda
 delete reservations, segments, occupancy, folios, journals, business days, keys,
 statutory or fiscal records. Direct runtime DML over `task_sheet` and `task` remains
 denied; only the owner-mediated bounded capability may generate them.
+
+## 22. Governed departure-readiness read boundary
+
+`CheckoutReadinessService.read` accepts only lowercase tenant, property and
+reservation UUIDs. It executes one tenant transaction and one PostgreSQL snapshot
+query, returning the stored reservation state, exactly one current `in_house`
+segment when present, its one active physical room, the exact exclusive
+`slot_kind='segment'` occupancy whose slot reference, space and period match that
+segment, and every reservation folio window ordered by `window_no,id`.
+
+Window balances are canonical bigint decimal strings from
+`COALESCE(folio_balance.balance_minor,0)`. Readiness requires reservation state
+`in_house` or `due_out`, one segment/room/occupancy chain, at least one window, and
+every window `settled` or `closed` at exact zero. Open-zero is intentionally blocked;
+only the existing settlement command may transition it. Blockers are emitted once in
+the fixed Order-203 order, and `ready=true` means only that no blocker was present in
+this advisory snapshot.
+
+The result is deeply frozen and contains no Party, contact, identity-document or note
+data. Malformed input fails validation; foreign or mismatched tenant/property/target
+authority is concealed as not found. The read performs no checkout, transition,
+occupancy release, account/folio/ledger change, fact, event or idempotency write. A
+future checkout command must lock and revalidate every predicate.

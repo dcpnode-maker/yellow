@@ -135,6 +135,8 @@ import {
   type ExpectedSegmentPeriod,
 } from "../contexts/reservations";
 import {
+  CheckoutReadinessNotFoundError,
+  CheckoutReadinessValidationError,
   CheckInConflictError,
   CheckInNotFoundError,
   CheckInService,
@@ -214,6 +216,7 @@ const RECEIVABLE_APPROVE_SCOPE = "financials.receivables:approve";
 const CHECKIN_READ_SCOPE = "stay-operations.checkin:read";
 const CHECKIN_COMMIT_SCOPE = "stay-operations.checkin:commit";
 const CHECKIN_DIRTY_ROOM_OVERRIDE_SCOPE = "stay-operations.checkin:dirty-room-override";
+const CHECKOUT_READINESS_SCOPE = "stay-operations.checkout:read";
 const HOUSEKEEPING_READ_SCOPE = "housekeeping.tasks:read";
 const HOUSEKEEPING_WORK_SCOPE = "housekeeping.tasks:work";
 const HOUSEKEEPING_INSPECT_SCOPE = "housekeeping.tasks:inspect";
@@ -1195,6 +1198,30 @@ type ReservationSegmentOperations = Pick<ReservationSegmentService, "findByConfi
 type ReservationBoardOperations = Pick<ReservationBoardService, "list">;
 type ReservationDetailOperations = Pick<ReservationDetailService, "findById">;
 type CheckInOperations = Pick<CheckInService, "getReadiness" | "checkIn">;
+interface CheckoutReadinessOperations {
+  read(input: Readonly<{
+    tenantId: string;
+    propertyNode: string;
+    reservationId: string;
+  }>): Promise<Readonly<{
+    reservationId: string;
+    reservationStatus: string;
+    ready: boolean;
+    blockers: readonly string[];
+    segment: null | Readonly<{ segmentId: string; sellableUnitId: string; periodStart: string; periodEnd: string }>;
+    room: null | Readonly<{ spaceId: string; spaceCode: string }>;
+    occupancy: null | Readonly<{ occupancyId: string; periodStart: string; periodEnd: string }>;
+    folios: readonly Readonly<{
+      folioId: string;
+      folioNo: string | null;
+      windowNo: number;
+      name: string | null;
+      status: "open" | "settled" | "closed";
+      currency: string;
+      balanceMinor: string;
+    }>[];
+  }>>;
+}
 type HousekeepingOperations = Pick<HousekeepingTaskService, "listBoard" | "transition">;
 type HousekeepingSheetOperations = Pick<HousekeepingSheetService, "preview" | "list" | "generate">;
 type PartyOperations = Pick<PartyProfileService, "search" | "create">;
@@ -1599,6 +1626,7 @@ export class OperatorHttpApi {
   readonly #cashiers?: CashierOperations;
   readonly #receivables?: ReceivableOperations;
   readonly #checkIns?: CheckInOperations;
+  readonly #checkoutReadiness?: CheckoutReadinessOperations;
   readonly #housekeeping?: HousekeepingOperations;
   readonly #housekeepingSheets?: HousekeepingSheetOperations;
 
@@ -1636,6 +1664,7 @@ export class OperatorHttpApi {
     checkIns?: CheckInOperations,
     housekeeping?: HousekeepingOperations,
     housekeepingSheets?: HousekeepingSheetOperations,
+    checkoutReadiness?: CheckoutReadinessOperations,
   ) {
     this.#login = login;
     this.#availability = availability;
@@ -1670,6 +1699,7 @@ export class OperatorHttpApi {
     this.#checkIns = checkIns;
     this.#housekeeping = housekeeping;
     this.#housekeepingSheets = housekeepingSheets;
+    this.#checkoutReadiness = checkoutReadiness;
   }
 
   unavailable(request: Request): Response {
@@ -1681,6 +1711,12 @@ export class OperatorHttpApi {
   }
 
   failure(request: Request, error: unknown): Response {
+    if (error instanceof CheckoutReadinessValidationError) {
+      return apiError(request, 400, "request/invalid", "Invalid request", "Departure readiness input is invalid");
+    }
+    if (error instanceof CheckoutReadinessNotFoundError) {
+      return apiError(request, 404, "reservations/not_found", "Not found", "The referenced reservation was not found");
+    }
     if (error instanceof HousekeepingUnsupportedCadenceError) {
       return apiError(request, 422, "housekeeping/unsupported_cadence", "Unsupported cadence", "One or more eligible rooms use weekly, custom, missing or ambiguous housekeeping cadence. Configure daily or on-departure before generating the sheet");
     }
@@ -3277,6 +3313,30 @@ export class OperatorHttpApi {
       "idempotency-replayed": String(result.replayed),
       "x-correlation-id": requestId,
     });
+  }
+
+  async checkoutReadiness(
+    context: TenantRequestContext,
+    propertyNode: string,
+    reservationId: string,
+  ): Promise<Response> {
+    if (!UUID.test(propertyNode) || !UUID.test(reservationId) || new URL(context.request.url).search.length > 0) {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Departure checkout-readiness input is invalid");
+    }
+    if (!hasScope(context, CHECKOUT_READINESS_SCOPE)) {
+      return apiError(context.request, 403, "auth/scope_missing", "Forbidden", "Departure readiness access is not granted");
+    }
+    const grants = await listGrantedProperties(context, CHECKOUT_READINESS_SCOPE);
+    if (!grants.some(({ id }) => id === propertyNode)) {
+      return apiError(context.request, 404, "reservations/not_found", "Not found", "The referenced reservation was not found");
+    }
+    if (!this.#checkoutReadiness) return this.unavailable(context.request);
+    const readiness = await this.#checkoutReadiness.read({
+      tenantId: context.tenantId,
+      propertyNode,
+      reservationId,
+    });
+    return apiResponse(context.request, canonicalJson(jsonValue(readiness)));
   }
 
   async housekeepingBoard(

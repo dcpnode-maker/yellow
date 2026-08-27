@@ -688,6 +688,19 @@
 </form>
 <p class="form-message" id="checkin-message" role="status" aria-live="assertive"></p>
 </section>
+<section class="reservation-detail-section departure-workbench" id="reservation-departure-workbench" hidden aria-labelledby="departure-readiness-heading" aria-busy="false">
+<div class="departure-workbench-head"><div><p class="eyebrow">Departure readiness</p><h4 id="departure-readiness-heading" tabindex="-1">Review this departure</h4></div><span class="departure-readiness-badge" id="departure-readiness-badge">Checking…</span></div>
+<p class="muted" id="departure-readiness-summary">Yellow is checking the current stay, physical room, exclusive occupancy and every folio window.</p>
+<section class="departure-readiness-error" id="departure-readiness-error" hidden role="alert"><strong>Departure readiness could not be loaded</strong><p></p><button class="secondary" id="departure-readiness-retry" type="button">Try again</button></section>
+<div id="departure-readiness-content" hidden>
+<dl class="departure-readiness-evidence" id="departure-readiness-evidence" aria-label="Server-owned departure evidence"></dl>
+<section class="departure-blocker-panel" aria-labelledby="departure-blockers-heading"><h5 id="departure-blockers-heading">What needs attention</h5><ol class="departure-blockers" id="departure-blockers"></ol></section>
+<section class="departure-folio-panel" aria-labelledby="departure-folios-heading"><div class="departure-folio-head"><h5 id="departure-folios-heading">Every folio window</h5><span id="departure-folio-count">0 windows</span></div><div class="departure-folio-list" id="departure-folio-list"></div></section>
+</div>
+<p class="field-note">This is one advisory server snapshot. It does not check out the guest, release occupancy, close an account or change financial truth. Resolve folio blockers in the existing governed Folio controls, then refresh.</p>
+<div class="departure-actions"><button class="quiet" id="departure-readiness-refresh" type="button">Refresh departure readiness</button></div>
+<p class="form-message" id="departure-readiness-message" role="status" aria-live="polite" aria-atomic="true"></p>
+</section>
 <section class="reservation-detail-section reservation-detail-folios" id="reservation-detail-folios" hidden aria-labelledby="reservation-detail-folios-title">
 <h4 id="reservation-detail-folios-title">Folios</h4>
 <div class="reservation-detail-folio-list" id="reservation-detail-folio-list"></div>

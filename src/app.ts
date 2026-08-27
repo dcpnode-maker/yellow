@@ -358,6 +358,11 @@ export function createApp(options: AppOptions = {}) {
           context, params.property, params.reservation, body,
         ))
       )
+      .get("/api/v1/properties/:property/reservations/:reservation/checkout-readiness", ({ request, params, tenantContext }) =>
+        withOperatorTenant(request, (context) => operator.checkoutReadiness(
+          context, params.property, params.reservation,
+        ))
+      )
       .get("/api/v1/properties/:property/housekeeping/tasks", ({ request, params, tenantContext }) =>
         withOperatorTenant(request, (context) => operator.housekeepingBoard(context, params.property))
       )

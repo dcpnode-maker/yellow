@@ -320,6 +320,21 @@ owner of later assigned-to-verified task and dirty/pickup-to-inspected condition
 transitions. Credits, balancing, reassignment, cancellation, automatic scheduling,
 discrepancy and checkout remain outside this slice.
 
+Order 203 adds no aggregate and no state machine. Its departure-readiness snapshot is
+a read-only composition of the existing reservation, current in-house segment,
+assigned sellable-to-physical-space map, sanctioned segment occupancy, account/folio
+windows and canonical `folio_balance` view. The valid operational chain is one
+`in_house` segment, one active physical space and one exclusive
+`slot_kind='segment'` occupancy whose slot reference, space and period exactly equal
+that segment.
+
+At least one reservation folio window is required; each must already be `settled` or
+`closed` with exact bigint zero balance. Reservation `in_house`/`due_out` is
+departure-eligible state, but the snapshot is advisory evidence rather than checkout
+authority. Physical departure, reservation/segment transition, occupancy release and
+financial/account closure remain distinct future commands that must revalidate under
+their own locks.
+
 ### Asset/Work Order aggregate — target extension
 
 Baseline `task`, `space`, relations, and OOO/OOS provide foundations, but there is no

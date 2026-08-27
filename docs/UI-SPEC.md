@@ -166,3 +166,35 @@ availability come from the server; the browser only adds the stricter fresh-prev
 There is no polling, background decision, automatic selection, automatic publication or
 persisted browser authority. Refresh and “Load older requests” are deliberate controls;
 sign-out clears all approval selection and preview evidence from memory.
+
+## 11. Governed departure readiness
+
+Reservation detail includes one advisory **Departure readiness** workbench. A manual
+refresh reads one coherent server snapshot for the current reservation; it never
+checks out the guest, releases occupancy, changes accounts or infers authority in the
+browser. The reservation deep link remains `/p/{property}/res/{reservation}` and the
+heading receives focus after an operator-requested refresh; errors retain an explicit
+retry control.
+
+The workbench presents reservation state, current in-house segment, physical room,
+exact exclusive occupancy and every folio window. Folio balances are displayed as the
+server-provided currency plus signed minor-unit string without browser arithmetic.
+Every window links to the existing governed Folio controls so staff can resolve the
+condition in its owning workflow and then refresh departure readiness.
+
+Blockers use this fixed, human-explained order:
+
+1. reservation is not in house or due out;
+2. current in-house segment is missing or ambiguous;
+3. active physical room is missing or ambiguous;
+4. exact exclusive reservation occupancy is missing or ambiguous;
+5. no folio window exists;
+6. at least one folio window is open;
+7. at least one folio window has a non-zero server balance.
+
+The surface requires `stay-operations.checkout:read` plus a server-derived property
+grant. Foreign properties are concealed. Property, reservation-detail, route and
+request-generation guards discard stale responses. There is no polling, persistence,
+optimistic readiness or checkout action. Keyboard focus, 44-pixel controls, narrow
+layouts, forced colours, reduced motion and all six current appearances remain
+supported.

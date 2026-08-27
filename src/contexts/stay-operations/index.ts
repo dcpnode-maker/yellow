@@ -15,3 +15,15 @@ export type {
   CheckInRoomCondition,
   CheckInServiceOptions,
 } from "./checkin";
+
+export {
+  CHECKOUT_READINESS_BLOCKERS,
+  CheckoutReadinessNotFoundError,
+  CheckoutReadinessService,
+  CheckoutReadinessValidationError,
+} from "./checkout-readiness";
+export type {
+  CheckoutReadiness,
+  CheckoutReadinessBlocker,
+  CheckoutReadinessInput,
+} from "./checkout-readiness";

@@ -1,6 +1,6 @@
 # Order 203 — Governed departure-readiness workbench
 
-**Status:** READY-D548 — intentional red and implementation required
+**Status:** BUILT-UNREVIEWED-D550 — implementation and executable gates green; independent proof deferred
 **Phase:** 6 — Stay operations and housekeeping
 **Branch:** `phase-6/governed-departure-readiness-workbench`
 **Base:** `c3d48a3` (built-unreviewed Order202)
@@ -103,8 +103,8 @@ No migration, dependency, table, state, event, command or write authority is adm
 
 ## Definition of done
 
-- [ ] Intentional red precedes implementation.
-- [ ] Exact readiness and every blocker are server-owned and executable.
-- [ ] Read and races are coherent and byte-for-byte mutation-free.
-- [ ] Human Departure workbench and deterministic ready fixture are usable.
-- [ ] Result is recorded built-unreviewed without claiming checkout/Phase6/app completion.
+- [x] Intentional red precedes implementation.
+- [x] Exact readiness and every blocker are server-owned and executable.
+- [x] Read and races are coherent and byte-for-byte mutation-free.
+- [x] Human Departure workbench and deterministic ready fixture are usable.
+- [x] Result is recorded built-unreviewed without claiming checkout/Phase6/app completion.

@@ -172,7 +172,7 @@ condition transition, credit balancing, auto-scheduling, reservation/occupancy
 mutation, financial/day/statutory effect, discrepancy or checkout, and does not
 complete Phase 6.
 
-Order 203 is the active read-only departure-readiness slice. One tenant transaction
+Order 203 is a built-unreviewed read-only departure-readiness slice. One tenant transaction
 and one PostgreSQL snapshot derive fixed blockers from reservation state, the unique
 current in-house segment, its active physical room, matching exclusive occupancy and
 every reservation folio window's canonical status/balance. The operator receives an

@@ -96,6 +96,7 @@ export const REVIEW_PERMISSIONS = Object.freeze([
   { code: "reservations.segments:write", description: "Change tenant-scoped reservation segments" },
   { code: "stay-operations.checkin:read", description: "Read server-owned property check-in readiness" },
   { code: "stay-operations.checkin:commit", description: "Commit an eligible property check-in" },
+  { code: "stay-operations.checkout:read", description: "Read server-owned property departure readiness" },
 ]);
 const REVIEW_USER_NAME = `${TENANT_NAME}/review-user/${REVIEW_EMAIL}`;
 const REVIEW_APPROVER_USER_NAME = `${TENANT_NAME}/review-user/${REVIEW_APPROVER_EMAIL}`;
@@ -157,6 +158,7 @@ const HOUSEKEEPING_SHEET_FIXTURE = Object.freeze({
   stayEnd: "2026-09-19T11:00:00.000Z",
   condition: "pickup" as const,
   conditionUpdatedAt: "2026-09-18T07:00:00.000Z",
+  financialCreatedAt: "2026-09-17T14:00:00.000Z",
 });
 
 const REVIEW_RATE_POLICIES: readonly Readonly<{
@@ -282,6 +284,8 @@ interface ReviewHousekeepingExamples {
   readonly eligibleSpaceId: string;
   readonly eligibleSellableUnitId: string;
   readonly eligibleOccupancyId: string;
+  readonly departureAccountId: string;
+  readonly departureFolioId: string;
 }
 
 interface ReviewSeedRateResult {
@@ -1739,6 +1743,8 @@ async function provisionHousekeepingExamples(
   const guestPartyId = await uuidV5(SEED_TENANT.id, `${fixtureBase}/party`);
   const reservationId = await uuidV5(SEED_TENANT.id, `${fixtureBase}/reservation`);
   const segmentId = await uuidV5(SEED_TENANT.id, `${fixtureBase}/segment`);
+  const departureAccountId = await uuidV5(SEED_TENANT.id, `${fixtureBase}/departure-readiness/account`);
+  const departureFolioId = await uuidV5(SEED_TENANT.id, `${fixtureBase}/departure-readiness/folio`);
   const guestAttrs = Object.freeze({ source: "local-review", housekeeping_fixture: "sheet-eligible-guest" });
   const guestRows = await connection<Array<Record<string, unknown>>>`
     SELECT id, tenant_id, kind, display_name, legal_name, attrs, vip_code, status, merged_into
@@ -1850,6 +1856,72 @@ async function provisionHousekeepingExamples(
     }
   }
 
+  const departureAccountRows = await connection<Array<Record<string, unknown>>>`
+    SELECT account.id, account.tenant_id, account.property_node, account.role, account.party_id,
+           account.name, account.currency::text, account.credit_limit_minor::text, account.status,
+           to_char(account.created_at AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') AS created_at
+    FROM account
+    WHERE account.id=${departureAccountId}::uuid
+       OR (account.tenant_id=${SEED_TENANT.id}::uuid
+         AND account.property_node=${SEED_PROPERTY.id}::uuid
+         AND account.role='guest' AND account.party_id=${guestPartyId}::uuid)
+    ORDER BY account.id FOR UPDATE
+  `;
+  const expectedDepartureAccount = { id: departureAccountId, tenant_id: SEED_TENANT.id,
+    property_node: SEED_PROPERTY.id, role: "guest", party_id: guestPartyId,
+    name: `${HOUSEKEEPING_SHEET_FIXTURE.displayName} Ledger`,
+    currency: SEED_PROPERTY.currency, credit_limit_minor: null, status: "open",
+    created_at: HOUSEKEEPING_SHEET_FIXTURE.financialCreatedAt };
+  if (departureAccountRows.length === 0) {
+    await connection`INSERT INTO account
+      (id, tenant_id, property_node, role, party_id, name, currency, status, created_at)
+      VALUES (${departureAccountId}::uuid, ${SEED_TENANT.id}::uuid, ${SEED_PROPERTY.id}::uuid,
+        'guest', ${guestPartyId}::uuid, ${expectedDepartureAccount.name},
+        ${SEED_PROPERTY.currency}, 'open',
+        ${HOUSEKEEPING_SHEET_FIXTURE.financialCreatedAt}::timestamptz)`;
+  } else {
+    exact(departureAccountRows[0], expectedDepartureAccount,
+      "Local-review departure-readiness guest account");
+    if (departureAccountRows.length !== 1) {
+      throw new Error("Local-review departure-readiness guest account is ambiguous");
+    }
+  }
+
+  const departureFolioNo = "DEP-HK-SHEET-1";
+  const departureFolioRows = await connection<Array<Record<string, unknown>>>`
+    SELECT folio.id, folio.tenant_id, folio.account_id, folio.reservation_id,
+           folio.folio_no, folio.window_no, folio.name, folio.status,
+           to_char(folio.created_at AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') AS created_at,
+           COALESCE(balance.balance_minor, 0)::text AS balance_minor,
+           COALESCE(balance.lines, 0)::int AS posting_lines
+    FROM folio
+    LEFT JOIN folio_balance AS balance
+      ON balance.tenant_id=folio.tenant_id AND balance.folio_id=folio.id
+    WHERE folio.id=${departureFolioId}::uuid
+       OR (folio.tenant_id=${SEED_TENANT.id}::uuid
+         AND (folio.folio_no=${departureFolioNo}
+           OR (folio.reservation_id=${reservationId}::uuid AND folio.window_no=1)))
+    ORDER BY folio.id FOR UPDATE OF folio
+  `;
+  const expectedDepartureFolio = { id: departureFolioId, tenant_id: SEED_TENANT.id,
+    account_id: departureAccountId, reservation_id: reservationId,
+    folio_no: departureFolioNo, window_no: 1, name: "Primary", status: "settled",
+    created_at: HOUSEKEEPING_SHEET_FIXTURE.financialCreatedAt,
+    balance_minor: "0", posting_lines: 0 };
+  if (departureFolioRows.length === 0) {
+    await connection`INSERT INTO folio
+      (id, tenant_id, account_id, reservation_id, folio_no, window_no, name, status, created_at)
+      VALUES (${departureFolioId}::uuid, ${SEED_TENANT.id}::uuid,
+        ${departureAccountId}::uuid, ${reservationId}::uuid, ${departureFolioNo}, 1,
+        'Primary', 'settled', ${HOUSEKEEPING_SHEET_FIXTURE.financialCreatedAt}::timestamptz)`;
+  } else {
+    exact(departureFolioRows[0], expectedDepartureFolio,
+      "Local-review departure-readiness settled folio");
+    if (departureFolioRows.length !== 1) {
+      throw new Error("Local-review departure-readiness settled folio is ambiguous");
+    }
+  }
+
   const sheetConditionRows = await connection<Array<Record<string, unknown>>>`
     SELECT tenant_id, space_id, condition,
            to_char(updated_at AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') AS updated_at,
@@ -1913,6 +1985,8 @@ async function provisionHousekeepingExamples(
     eligibleSpaceId: sheetFixtureSpace.id,
     eligibleSellableUnitId: sheetFixtureSellable.id,
     eligibleOccupancyId: String(occupancy.id),
+    departureAccountId,
+    departureFolioId,
   });
 }
 
@@ -2090,6 +2164,7 @@ export async function runReviewSeed(options: ReviewSeedOptions): Promise<ReviewS
     logger(`review check-in: clean=${checkInExamples.cleanReservationId} dirty=${checkInExamples.dirtyReservationId} identity_gated=${checkInExamples.identityGatedReservationId}`);
     logger(`review housekeeping: assigned_dirty=${housekeepingExamples.assignedDirtyTaskId} done_clean=${housekeepingExamples.doneCleanTaskId}`);
     logger(`review housekeeping sheet fixture: date=${housekeepingExamples.sheetDate} attendant=${housekeepingExamples.attendantPartyId} reservation=${housekeepingExamples.eligibleReservationId} segment=${housekeepingExamples.eligibleSegmentId} room=${housekeepingExamples.eligibleSpaceId}`);
+    logger(`review departure readiness fixture: reservation=${housekeepingExamples.eligibleReservationId} segment=${housekeepingExamples.eligibleSegmentId} room=${housekeepingExamples.eligibleSpaceId} occupancy=${housekeepingExamples.eligibleOccupancyId} account=${housekeepingExamples.departureAccountId} folio=${housekeepingExamples.departureFolioId}`);
     return { ...common, mode, rate, checkInExamples, housekeepingExamples };
   } finally {
     await database.close();

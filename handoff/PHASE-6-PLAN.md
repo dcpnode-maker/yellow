@@ -77,17 +77,30 @@ fact/outbox transition or financial/statutory effect. Generation creates one ass
 housekeeping task per distinct eligible room and atomic minimized evidence; it never
 mutates source reservation, segment, occupancy or condition truth.
 
+## Built-unreviewed bounded slice — Order 203
+
+Order 203 adds one no-store, read-only departure snapshot and a human Departure
+workbench under `stay-operations.checkout:read`. One tenant transaction and one SQL
+snapshot derive the fixed ordered blockers from reservation state, the unique current
+in-house segment, its one active physical room, the exact matching exclusive segment
+occupancy, and every reservation folio window's canonical status and balance.
+
+The deterministic review fixture reuses Order202's isolated in-house reservation and
+adds only one open guest account plus one settled zero-balance folio. The workbench
+shows exact evidence, explains each blocker and links to existing governed Folio
+controls. Reads are deeply frozen, mutation-free and coherent across a real concurrent
+settlement transition. No checkout action, occupancy release, settlement, account,
+document, day, statutory, key or other mutation is introduced.
+
 ## Subsequent bounded slices
 
-1. Active Order203: read-only governed departure readiness and an actionable human
-   workbench over exact current-segment, room, occupancy and all-window settlement truth.
+1. Governed checkout command composed with settled folios or exact AR authority; no
+   implicit balance repair and every readiness predicate is locked and revalidated.
 2. Discrepancy, queue and service-message workflows only after their sleep/skip/person,
    queue-linkage and resolution semantics are recorded explicitly.
 3. Arrival travel/vehicle/parking capture; any parking occupancy must use the existing
    occupancy choke point.
-4. Governed checkout command composed with settled folios or exact AR authority; no
-   implicit balance repair and every readiness predicate is locked and revalidated.
-5. Optional key-provider port only after provider ownership, credential and recovery
+4. Optional key-provider port only after provider ownership, credential and recovery
    policy are fixed.
 
 Statutory field semantics, validation, submission and receipts remain Phase 8. Tax and

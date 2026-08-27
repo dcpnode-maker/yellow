@@ -45,6 +45,8 @@
  let checkInReadinessGeneration = 0;
  let checkInAttemptKey = "";
  let checkInAttemptDraft = "";
+ let checkoutReadinessData = null;
+ let checkoutReadinessGeneration = 0;
  let reservationDrawerReturnFocus = null;
  let reservationDrawerReturnView = "";
  let reservationDrawerReturnReservationId = "";
@@ -519,6 +521,20 @@
  const checkInSubmit = $("#checkin-submit");
  const checkInRefresh = $("#checkin-refresh");
  const checkInMessage = $("#checkin-message");
+ const departureWorkbench = $("#reservation-departure-workbench");
+ const departureHeading = $("#departure-readiness-heading");
+ const departureBadge = $("#departure-readiness-badge");
+ const departureSummary = $("#departure-readiness-summary");
+ const departureError = $("#departure-readiness-error");
+ const departureContent = $("#departure-readiness-content");
+ const departureEvidence = $("#departure-readiness-evidence");
+ const departureBlockerPanel = departureWorkbench.querySelector(".departure-blocker-panel");
+ const departureBlockers = $("#departure-blockers");
+ const departureFolioCount = $("#departure-folio-count");
+ const departureFolioList = $("#departure-folio-list");
+ const departureRefresh = $("#departure-readiness-refresh");
+ const departureRetry = $("#departure-readiness-retry");
+ const departureMessage = $("#departure-readiness-message");
  const folioStatementLookupForm = $("#folio-statement-lookup-form");
  const folioWorkspace = $("#folio-workspace");
  const folioWorkspaceTitle = $("#folio-workspace-title");
@@ -2013,6 +2029,165 @@
   checkInSubmit.disabled = false;
  }
  }
+ const CHECKOUT_READINESS_BLOCKERS = Object.freeze([
+ "reservation_not_departure_state", "current_segment_missing_or_ambiguous",
+ "physical_room_missing_or_ambiguous", "occupancy_missing_or_ambiguous",
+ "folio_window_missing", "folio_window_unsettled", "folio_window_nonzero",
+ ]);
+ const checkoutReadinessBlockerLabels = Object.freeze({
+ reservation_not_departure_state: "Reservation must be in house or due out before departure readiness can pass.",
+ current_segment_missing_or_ambiguous: "Resolve the stay so exactly one current segment is in house.",
+ physical_room_missing_or_ambiguous: "Assign exactly one active physical room to the current segment.",
+ occupancy_missing_or_ambiguous: "The current segment needs one exact matching exclusive reservation occupancy.",
+ folio_window_missing: "Open at least one reservation folio window.",
+ folio_window_unsettled: "Settle or close every folio window. An open zero-balance window is still blocked.",
+ folio_window_nonzero: "Bring every folio window to an exact zero server balance through governed financial controls.",
+ });
+  function clearCheckoutReadinessWorkbench() {
+ checkoutReadinessGeneration += 1;
+ checkoutReadinessData = null;
+ departureWorkbench.hidden = true;
+ departureWorkbench.setAttribute("aria-busy", "false");
+ departureBadge.textContent = "Checking…";
+ departureBadge.removeAttribute("data-state");
+ departureSummary.textContent = "Yellow is checking the current stay, physical room, exclusive occupancy and every folio window.";
+ departureError.hidden = true;
+ departureError.querySelector("p").textContent = "";
+ departureContent.hidden = true;
+ departureEvidence.replaceChildren();
+ departureBlockers.replaceChildren();
+ departureFolioList.replaceChildren();
+ departureFolioCount.textContent = "0 windows";
+ departureRefresh.disabled = false;
+ departureMessage.classList.remove("error");
+ departureMessage.textContent = "";
+ }
+  function checkoutReadinessResult(value, reservationId) {
+ if (!value || typeof value !== "object" || Array.isArray(value) || value.reservationId !== reservationId
+  || typeof value.reservationStatus !== "string" || typeof value.ready !== "boolean"
+  || !Array.isArray(value.blockers) || !Array.isArray(value.folios)) {
+  throw new Error("The server returned an invalid departure readiness result.");
+ }
+ const blockerOrder = value.blockers.map((blocker) => CHECKOUT_READINESS_BLOCKERS.indexOf(blocker));
+ if (blockerOrder.some((position) => position < 0)
+  || blockerOrder.some((position, index) => index > 0 && position <= blockerOrder[index - 1])
+  || value.ready !== (value.blockers.length === 0)) {
+  throw new Error("The server returned invalid or unordered departure blockers.");
+ }
+ const segmentValid = value.segment === null || (canonicalUuid(String(value.segment.segmentId || ""))
+  && canonicalUuid(String(value.segment.sellableUnitId || ""))
+  && typeof value.segment.periodStart === "string" && typeof value.segment.periodEnd === "string");
+ const roomValid = value.room === null || (canonicalUuid(String(value.room.spaceId || ""))
+  && typeof value.room.spaceCode === "string");
+ const occupancyValid = value.occupancy === null || (canonicalUuid(String(value.occupancy.occupancyId || ""))
+  && typeof value.occupancy.periodStart === "string" && typeof value.occupancy.periodEnd === "string");
+ const foliosValid = value.folios.every((folio) => folio && canonicalUuid(String(folio.folioId || ""))
+  && (folio.folioNo === null || typeof folio.folioNo === "string")
+  && Number.isInteger(folio.windowNo) && folio.windowNo > 0
+  && (folio.name === null || typeof folio.name === "string")
+  && ["open", "settled", "closed"].includes(folio.status)
+  && /^[A-Z]{3}$/.test(String(folio.currency || ""))
+  && /^-?(?:0|[1-9][0-9]*)$/.test(String(folio.balanceMinor || "")));
+ if (!segmentValid || !roomValid || !occupancyValid || !foliosValid) {
+  throw new Error("The server returned invalid departure evidence.");
+ }
+ return value;
+ }
+  function checkoutReadinessIsCurrent(generation, detailGeneration, property, reservationId) {
+ return generation === checkoutReadinessGeneration && detailGeneration === reservationDetailGeneration
+  && property === propertySelect.value && reservationRouteReservationId === reservationId
+  && reservationDetailData?.reservation?.reservationId === reservationId
+  && !reservationDetailDrawer.hidden && location.pathname === `/p/${property}/res/${reservationId}`;
+ }
+function departureEvidenceRow(term, value) {
+ const row = node("div");
+ row.append(node("dt", "", term), node("dd", "", value));
+ return row;
+ }
+  function departureFolioCard(folio) {
+ const card = node("article", "departure-folio-card");
+ const head = node("div", "departure-folio-card-head");
+ const identity = node("div");
+ identity.append(
+  node("strong", "", folio.name || folio.folioNo || `Window ${folio.windowNo}`),
+  node("small", "", `${folio.folioNo || "No reference"} · Window ${folio.windowNo}`),
+ );
+ const status = node("span", "departure-folio-status", folio.status);
+ status.dataset.status = folio.status;
+ head.append(identity, status);
+ const balance = node("div", "departure-folio-balance");
+ balance.append(node("span", "", "Exact server balance"), node("strong", "", `${folio.currency} ${folio.balanceMinor} minor units`));
+ const open = node("button", "secondary departure-folio-open", "Open Folio controls");
+ open.type = "button";
+ open.setAttribute("aria-label", `Open governed Folio controls for ${folio.folioNo || `window ${folio.windowNo}`}`);
+ open.addEventListener("click", () => openFolioWorkspace(folio.folioId, { trigger: open }));
+ card.append(head, balance, open);
+ return card;
+ }
+  function renderCheckoutReadiness(readiness) {
+ checkoutReadinessData = readiness;
+ departureEvidence.replaceChildren(
+  departureEvidenceRow("Reservation state", reservationStatusLabels[readiness.reservationStatus] || readiness.reservationStatus),
+  departureEvidenceRow("Current segment", readiness.segment
+   ? `${reservationDateTime(readiness.segment.periodStart)} – ${reservationDateTime(readiness.segment.periodEnd)}` : "Not resolved"),
+  departureEvidenceRow("Physical room", readiness.room ? `Room ${readiness.room.spaceCode}` : "Not resolved"),
+  departureEvidenceRow("Exclusive occupancy", readiness.occupancy
+   ? `${reservationDateTime(readiness.occupancy.periodStart)} – ${reservationDateTime(readiness.occupancy.periodEnd)}` : "Not resolved"),
+ );
+ departureBlockers.replaceChildren(...readiness.blockers.map((blocker) => {
+  const item = node("li", "", checkoutReadinessBlockerLabels[blocker]);
+  item.dataset.blocker = blocker;
+  return item;
+ }));
+ departureBlockerPanel.hidden = readiness.blockers.length === 0;
+ departureFolioList.replaceChildren(...readiness.folios.map(departureFolioCard));
+ departureFolioCount.textContent = `${readiness.folios.length} window${readiness.folios.length === 1 ? "" : "s"}`;
+ departureBadge.textContent = readiness.ready ? "Ready" : `${readiness.blockers.length} blocker${readiness.blockers.length === 1 ? "" : "s"}`;
+ departureBadge.dataset.state = readiness.ready ? "ready" : "blocked";
+ departureSummary.textContent = readiness.ready
+  ? "Current server evidence is ready for a later governed checkout command to lock and revalidate. No checkout occurred here."
+  : "Departure remains blocked until every named server-owned condition is resolved.";
+ departureError.hidden = true;
+ departureContent.hidden = false;
+ departureWorkbench.setAttribute("aria-busy", "false");
+ }
+  async function loadCheckoutReadiness({ focus = false } = {}) {
+ if (!reservationDetailData) {
+  clearCheckoutReadinessWorkbench();
+  return;
+ }
+ const reservationId = reservationDetailData.reservation.reservationId;
+ const property = propertySelect.value;
+ const detailGeneration = reservationDetailGeneration;
+ const generation = ++checkoutReadinessGeneration;
+ departureWorkbench.hidden = false;
+ departureWorkbench.setAttribute("aria-busy", "true");
+ departureRefresh.disabled = true;
+ departureError.hidden = true;
+ departureContent.hidden = true;
+ departureBadge.textContent = "Checking…";
+ departureMessage.classList.remove("error");
+ departureMessage.textContent = "Loading one coherent departure snapshot…";
+ try {
+  const result = checkoutReadinessResult(await request(`/api/v1/properties/${enc(property)}/reservations/${enc(reservationId)}/checkout-readiness`), reservationId);
+  if (!checkoutReadinessIsCurrent(generation, detailGeneration, property, reservationId)) return;
+  renderCheckoutReadiness(result);
+  departureMessage.textContent = "Departure readiness refreshed from current server truth.";
+  if (focus) departureHeading.focus({ preventScroll: true });
+ } catch (error) {
+  if (!checkoutReadinessIsCurrent(generation, detailGeneration, property, reservationId)) return;
+  checkoutReadinessData = null;
+  departureWorkbench.setAttribute("aria-busy", "false");
+  departureContent.hidden = true;
+  departureError.hidden = false;
+  departureError.querySelector("p").textContent = error instanceof Error ? error.message : "Departure readiness is unavailable.";
+  departureMessage.classList.add("error");
+  departureMessage.textContent = "No readiness conclusion was made. Retry this read-only snapshot.";
+  if (focus) departureRetry.focus({ preventScroll: true });
+ } finally {
+  if (checkoutReadinessIsCurrent(generation, detailGeneration, property, reservationId)) departureRefresh.disabled = false;
+ }
+ }
   function renderReservationDetail(result) {
  clearReservationDrawerLifecycle();
  const reservation = result.reservation;
@@ -2047,6 +2222,7 @@
  reservationDetailDrawer.setAttribute("aria-busy", "false");
  if (reservation.status === "due_in") void loadCheckInReadiness();
  else clearCheckInWorkbench();
+ void loadCheckoutReadiness();
  }
   async function loadReservationDetail(reservationId) {
  const generation = ++reservationDetailGeneration;
@@ -2057,6 +2233,7 @@
  reservationDetailError.hidden = true;
  reservationDetailContent.hidden = true;
  clearCheckInWorkbench({ preserveDraft: true });
+ clearCheckoutReadinessWorkbench();
  reservationDetailFolios.hidden = true;
  reservationDetailFolioList.replaceChildren();
  reservationPrimaryFolioCreate.hidden = true;
@@ -2105,6 +2282,7 @@
  reservationPrimaryFolioReservationId = "";
  reservationDetailData = null;
  clearCheckInWorkbench();
+ clearCheckoutReadinessWorkbench();
  reservationDetailDrawer.hidden = true;
  reservationDetailContent.replaceChildren();
  reservationDetailFolios.hidden = true;
@@ -6481,6 +6659,7 @@
  todayReturnFocus = { reservationId: "", cycle: 0 };
  reservationDetailDrawer.hidden = true;
  clearCheckInWorkbench();
+ clearCheckoutReadinessWorkbench();
  reservationPrimaryFolioAttemptKey = "";
  reservationPrimaryFolioReservationId = "";
  clearReservationDrawerLifecycle();
@@ -6643,6 +6822,8 @@
  };
  checkInConfirm.addEventListener("change", updateCheckInAction);
  checkInOverrideReason.addEventListener("input", updateCheckInAction);
+ departureRefresh.addEventListener("click", () => void loadCheckoutReadiness({ focus: true }));
+ departureRetry.addEventListener("click", () => void loadCheckoutReadiness({ focus: true }));
  window.addEventListener("popstate", () => {
  if (location.pathname === `/p/${propertySelect.value}/today`) {
   closeReservationDetail({ history: false, restoreFocus: false });

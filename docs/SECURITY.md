@@ -173,6 +173,24 @@ staff and hostile property/actor ids create no sheet, task, fact, outbox or
 idempotency artifact. The capability cannot mutate task lifecycle, room condition,
 reservation, segment, occupancy, financial, business-day, key or statutory truth.
 
+### Departure-readiness read containment
+
+The Order-203 query is reachable only after the HTTP adapter proves
+`stay-operations.checkout:read` and the exact property grant. The domain service then
+validates exact lowercase UUID input and rebinds tenant/property/reservation inside a
+transaction-local RLS context. Its single PostgreSQL statement joins only the
+authorized reservation to operational segment, room, sanctioned segment occupancy and
+reservation folio evidence; foreign or mismatched targets return the same concealed
+not-found outcome.
+
+The deeply frozen response excludes Party, contact, identity-document, reservation
+note and payment-instrument data. It returns only operational identifiers, room code,
+period boundaries, folio presentation labels/status/currency and canonical decimal
+balance. The query has no mutation capability and creates no fact, outbox or
+idempotency evidence. A ready snapshot is not a checkout authorization and cannot
+release occupancy, settle/close a folio, close an account or transition reservation or
+segment state.
+
 ## 6. Statutory & privacy
 
 ### Token-only payment containment
