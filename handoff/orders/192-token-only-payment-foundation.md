@@ -1,6 +1,6 @@
 # Order 192 — Token-only payment lifecycle foundation
 
-**Status:** READY — D-505
+**Status:** CHANGES REQUIRED — D-507
 **Phase:** 5 — Financials
 **Branch:** `phase-5/folio-charge-correction-resumed`
 **Base:** `a92659b` (independently approved Order191 local)
