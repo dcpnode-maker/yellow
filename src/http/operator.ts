@@ -1,3 +1,6 @@
+import { readFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
+
 import { LocalLoginLimitedError, LocalLoginService, type LocalLoginInput } from "../contexts/identity";
 import {
   PartyDuplicateReviewRequiredError,
@@ -3568,14 +3571,47 @@ const ASSET_URLS = {
   depositJs: new URL("./operator/operator-deposits.js", import.meta.url),
 } as const;
 
+export interface OperatorLocalReviewCredentials {
+  readonly tenant: string;
+  readonly email: string;
+  readonly password: string;
+}
+
 function assetResponse(url: URL, contentType: string): Response {
   return new Response(Bun.file(url), {
     headers: { "cache-control": "no-cache", "content-type": contentType },
   });
 }
 
+function escapeHtmlAttribute(value: string): string {
+  return value
+    .replaceAll("&", "&amp;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#39;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;");
+}
+
+function localReviewHtml(credentials: OperatorLocalReviewCredentials): Response {
+  let html = readFileSync(fileURLToPath(ASSET_URLS.html), "utf8");
+  const fields = [
+    ['<input name="tenant" autocomplete="organization" required maxlength="63" placeholder="yellow-demo">', credentials.tenant],
+    ['<input name="email" type="email" autocomplete="username" required maxlength="254" placeholder="operator@yellow.local">', credentials.email],
+    ['<input name="password" type="password" autocomplete="current-password" required maxlength="1024">', credentials.password],
+  ] as const;
+  for (const [input, value] of fields) {
+    if (html.split(input).length !== 2) throw new Error("operator sign-in field contract changed");
+    html = html.replace(input, `${input.slice(0, -1)} value="${escapeHtmlAttribute(value)}">`);
+  }
+  return new Response(html, {
+    headers: { "cache-control": "no-store", "content-type": "text/html; charset=utf-8" },
+  });
+}
+
 export const operatorAssets = Object.freeze({
-  html(): Response { return assetResponse(ASSET_URLS.html, "text/html; charset=utf-8"); },
+  html(credentials?: OperatorLocalReviewCredentials): Response {
+    return credentials ? localReviewHtml(credentials) : assetResponse(ASSET_URLS.html, "text/html; charset=utf-8");
+  },
   css(): Response { return assetResponse(ASSET_URLS.css, "text/css; charset=utf-8"); },
   js(): Response { return assetResponse(ASSET_URLS.js, "text/javascript; charset=utf-8"); },
   depositCss(): Response { return assetResponse(ASSET_URLS.depositCss, "text/css; charset=utf-8"); },

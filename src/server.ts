@@ -16,7 +16,7 @@ import {
   RateQuoteService,
   RateTargetService,
 } from "./contexts/rates";
-import { OperatorHttpApi } from "./http/operator";
+import { OperatorHttpApi, type OperatorLocalReviewCredentials } from "./http/operator";
 import { HostedDepositProviderHttpApi } from "./http/provider";
 import { ApprovalService, Database, ExtensionRegistry, PostgresEventBus, PostgresIdempotency } from "./kernel";
 import type { OperatorRuntimeStatus } from "./project-status";
@@ -39,6 +39,26 @@ function runtimeHostname(): string {
   }
   if (Bun.env.YELLOW_OPERATOR_ALLOW_NON_LOOPBACK === "1") return requested;
   throw new Error("non-loopback operator binding requires YELLOW_OPERATOR_ALLOW_NON_LOOPBACK=1");
+}
+
+function localReviewCredentials(): OperatorLocalReviewCredentials | undefined {
+  if (Bun.env.YELLOW_LOCAL_REVIEW_PREFILL !== "1") return undefined;
+  if (!workbenchEnabled || hostedProviderOnly) {
+    throw new Error("local review prefill requires the operator workbench");
+  }
+  const hostname = runtimeHostname();
+  if (!new Set(["127.0.0.1", "localhost", "::1"]).has(hostname)) {
+    throw new Error("local review prefill requires a loopback bind");
+  }
+  const credentials = {
+    tenant: Bun.env.YELLOW_LOCAL_REVIEW_TENANT ?? "",
+    email: Bun.env.YELLOW_LOCAL_REVIEW_EMAIL ?? "",
+    password: Bun.env.YELLOW_LOCAL_REVIEW_PASSWORD ?? "",
+  };
+  if (Object.values(credentials).some((value) => value.length === 0)) {
+    throw new Error("local review prefill requires tenant, email and password");
+  }
+  return credentials;
 }
 
 function required(name: "YELLOW_RUNTIME_DATABASE_URL" | "YELLOW_EXTENSION_REGISTRAR_DATABASE_URL" | "YELLOW_TOKEN_SECRET" |
@@ -163,6 +183,7 @@ function runtimeApp() {
     database,
     tenantResolver: new BearerTenantResolver(tokens),
     operatorApi: new OperatorHttpApi(login, availability, inventory, new PostgresIdempotency(), restrictions, rates, pricing, blocks, policy, holds, projection, runtimeStatus, rateBuilder, reservations, reservationOffers, reservationGuests, reservationLifecycle, reservationSegments, parties, folioStatements, charges, new ReservationBoardService(), new ReservationDetailService(), folios, chargeCorrections, folioTransfers, hostedRuntime?.hostedDeposits),
+    operatorLocalReviewCredentials: localReviewCredentials(),
     ...(hostedRuntime ? { hostedDepositRoutes: hostedRuntime.routes, hostedDepositSurface: "guest" as const } : {}),
   });
 }

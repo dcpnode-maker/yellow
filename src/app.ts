@@ -3,7 +3,7 @@ import { isIP } from "node:net";
 
 import { SECURITY_HEADERS } from "./http/security-headers";
 import { ExtensionHttpApi } from "./http/extensions";
-import { operatorAssets, type OperatorHttpApi } from "./http/operator";
+import { operatorAssets, type OperatorHttpApi, type OperatorLocalReviewCredentials } from "./http/operator";
 import { hostedDepositAssets, type HostedDepositProviderHttpApi } from "./http/provider";
 import {
   Database,
@@ -38,6 +38,7 @@ export interface AppOptions {
   readonly tenantResolver?: TenantResolver;
   readonly extensionRegistry?: ExtensionRegistry;
   readonly operatorApi?: OperatorHttpApi;
+  readonly operatorLocalReviewCredentials?: OperatorLocalReviewCredentials;
   readonly hostedDepositRoutes?: HostedDepositProviderHttpApi;
   readonly hostedDepositSurface?: "guest" | "provider" | "all";
 }
@@ -91,18 +92,18 @@ export function createApp(options: AppOptions = {}) {
       }
     };
     app
-      .get("/", () => operatorAssets.html())
-      .get("/p/:property/availability", () => operatorAssets.html())
-      .get("/p/:property/today", () => operatorAssets.html())
-      .get("/p/:property/inventory", () => operatorAssets.html())
-      .get("/p/:property/restrictions", () => operatorAssets.html())
-      .get("/p/:property/rates", () => operatorAssets.html())
-      .get("/p/:property/operations", () => operatorAssets.html())
-      .get("/p/:property/reservations", () => operatorAssets.html())
-      .get("/p/:property/res/:reservation", () => operatorAssets.html())
-      .get("/p/:property/folios", () => operatorAssets.html())
-      .get("/p/:property/folio/:folio", () => operatorAssets.html())
-      .get("/p/:property/status", () => operatorAssets.html())
+      .get("/", () => operatorAssets.html(options.operatorLocalReviewCredentials))
+      .get("/p/:property/availability", () => operatorAssets.html(options.operatorLocalReviewCredentials))
+      .get("/p/:property/today", () => operatorAssets.html(options.operatorLocalReviewCredentials))
+      .get("/p/:property/inventory", () => operatorAssets.html(options.operatorLocalReviewCredentials))
+      .get("/p/:property/restrictions", () => operatorAssets.html(options.operatorLocalReviewCredentials))
+      .get("/p/:property/rates", () => operatorAssets.html(options.operatorLocalReviewCredentials))
+      .get("/p/:property/operations", () => operatorAssets.html(options.operatorLocalReviewCredentials))
+      .get("/p/:property/reservations", () => operatorAssets.html(options.operatorLocalReviewCredentials))
+      .get("/p/:property/res/:reservation", () => operatorAssets.html(options.operatorLocalReviewCredentials))
+      .get("/p/:property/folios", () => operatorAssets.html(options.operatorLocalReviewCredentials))
+      .get("/p/:property/folio/:folio", () => operatorAssets.html(options.operatorLocalReviewCredentials))
+      .get("/p/:property/status", () => operatorAssets.html(options.operatorLocalReviewCredentials))
       .get("/assets/operator.css", () => operatorAssets.css())
       .get("/assets/operator.js", () => operatorAssets.js())
       .get("/assets/operator-deposits.css", () => operatorAssets.depositCss())
