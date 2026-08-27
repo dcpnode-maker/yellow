@@ -113,3 +113,88 @@ focus containment, add a real geometry/browser harness that measures the complet
 matrix, and complete the ERP composition rather than only its tokens/rail. Then submit
 one new exact product candidate hash for fresh static review before any runtime/browser
 promotion work.
+
+---
+
+## Fresh static re-review
+
+**Verdict:** APPROVED FOR D-527 GUARDED BROWSER CANDIDATE
+
+**Exact product candidate reviewed:** `74e9452a01ba748b712dce93a3f1f8eec9186f11`
+
+**Reviewer:** OpenAI Codex independent non-implementing reviewer
+(`order195_rereview`)
+
+**Re-review date:** 2026-08-27
+
+**Boundary:** source, scoped diff and committed Chromium/CDP proof only. The reviewer
+did not touch the local runtime, database, browser session, credentials, Docker,
+ports, merge, push or deployment. This approval admits only D-527's guarded app-only
+candidate step; it is not the mandatory authenticated six-appearance/200% visual and
+accessibility approval.
+
+### Prior blockers resolved
+
+1. The disclosure material is now a global `position: fixed` viewport overlay, and
+   the <=1020px `display: contents` rule is removed. Opening portals the menu to
+   `document.body`; measured anchor coordinates are clamped to an eight-pixel edge,
+   recomputed after layout, and maintained on resize/scroll without changing the
+   command shelf's document geometry.
+2. The open menu now contains keyboard focus: Escape closes and returns focus to the
+   disclosure control, Tab wraps last-to-first, and Shift+Tab wraps first-to-last.
+   Outside pointer interaction closes the menu.
+3. `tests/operator-appearance-geometry.test.ts` is no longer regex-only. On this
+   reviewer host it discovered installed Chrome, launched a fresh isolated headless
+   process, connected through its DevTools WebSocket, set device metrics, loaded the
+   actual operator stylesheet, and measured disclosure/root geometry at 375, 768,
+   1020, 1021 and 1440 CSS pixels. The test did not skip and passed.
+4. Windows95/98 retains explicit `nav/chrome/head/content` named grid placement.
+   Enterprise ERP now has a bounded two-column title/primary-command band, styled
+   dense filter toolbar, and a 12-column asymmetric KPI grid whose lead metric spans
+   twice a normal metric.
+
+### Scope and correctness inspection
+
+- `git diff --name-status 88abc3e..74e9452` contains only Order195 governance/design,
+  the three scoped operator assets, and the named presentation/workspace tests.
+- Protected API/domain/schema/data/authority and dependency paths are byte-unchanged;
+  `git diff --quiet` over `migrations`, `src/contexts`, both server composition files,
+  `package.json`, `bun.lock` and `docker-compose.yml` passed.
+- `git diff --check 88abc3e..74e9452` passed.
+- The final correction `f509c48..74e9452` changes exactly operator CSS/JS and three
+  scoped appearance tests; no runtime or server surface is present.
+
+### Personally executed commands and results
+
+```text
+git rev-parse HEAD
+=> 74e9452a01ba748b712dce93a3f1f8eec9186f11
+
+git status --short
+=> clean before review evidence
+
+git diff --name-status f509c48..74e9452
+=> operator.css, operator.js, material-theme-skins.test.ts,
+   operator-appearance-geometry.test.ts, operator-flagship-motion.test.ts only
+
+git diff --check 88abc3e..74e9452
+=> PASS
+
+bun test tests/operator-appearance-geometry.test.ts \
+  tests/material-theme-skins.test.ts \
+  tests/operator-flagship-motion.test.ts \
+  tests/operator-assets-security.test.ts \
+  tests/operator-reservation-booking.integration.test.ts
+=> 28 pass, 0 fail, 405 expectations; Chromium/CDP matrix executed and passed
+
+bun run typecheck
+=> PASS
+```
+
+### Remaining mandatory gate
+
+D-527 still requires a fresh non-implementing reviewer to exercise the authenticated
+sole-local candidate across all six appearances, all required widths plus 200%,
+keyboard/focus/fallback/error/console checks and settled screenshots. Port 3000 may be
+changed only through the documented app-only rollback guard, and the candidate may be
+retained only if that separate browser gate approves it.
