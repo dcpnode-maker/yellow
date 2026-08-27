@@ -272,3 +272,102 @@ retention approval. A corrected exact product/image must be promoted under the s
 rollback guard and a fresh reviewer must rerun the entire matrix, including the live
 no-backdrop branch, opaque Glass financial-surface comparison and request-failure
 capture; those checks were not used to infer approval after the blocker was found.
+
+---
+
+## Corrected candidate independent static re-review
+
+**Verdict:** APPROVED FOR D-527 GUARDED BROWSER CANDIDATE
+
+**Exact corrected product candidate:**
+`400c406412f7b217c77228026de82ea05537637a`
+
+**Reviewer:** OpenAI Codex fresh independent non-implementing reviewer
+(`order195_corrected_static_review`)
+
+**Review date:** 2026-08-27
+
+**Boundary:** source, scoped diff and committed Chromium/CDP proof only. The reviewer
+did not edit product source, touch the local runtime or database, inspect credentials,
+replace a container/image, open a port, merge, push or deploy. This approval admits
+only a newly labelled exact app image into D-527's guarded same-port browser review;
+it is not retention or completion approval.
+
+### Failed live findings corrected in source
+
+1. The disclosure open, Escape/close return-focus, forward-Tab wrap and Shift+Tab
+   wrap calls now all use `focus({ preventScroll: true })`. The correction therefore
+   preserves the existing focus trap while removing the browser's focus-induced
+   document scroll at each reachable focus transition that failed the prior live
+   matrix.
+2. At `max-width: 600px`, the availability form keeps its one-column flow but places
+   its one existing authoritative `Search availability` submit control in grid row
+   one. The exact HTML still contains a single submit action and the later theme
+   systems contain no competing `search-button` or `grid-row` override. Thus at the
+   required 375px width the action precedes the four field rows that previously put
+   it at 1027.91–1116.71px. This is static admission evidence only; the fresh DPR2
+   authenticated reviewer must still measure it above the 900px fold in all six
+   appearances.
+
+### Scope and standing-proof inspection
+
+- `git diff --name-status 74e9452..400c406` changes only the two governance evidence
+  files, `operator.css`, `operator.js` and the scoped geometry test.
+- `git diff --quiet 74e9452..400c406` over migrations, contexts, server composition,
+  dependency manifests and Compose passed. No API, domain, schema, seed, data,
+  permission, credential or runtime-authority surface changed.
+- `git diff --check 88abc3e..400c406` passed, and the complete base-to-candidate file
+  list is contained by Order195's explicit scope.
+- The combined operator HTML/CSS/JS is 486,588 raw bytes and 99,839 gzip bytes. D-526
+  intentionally removed the historical visual-shell byte ceiling; no dependency or
+  external asset was added.
+
+### Personally executed commands and results
+
+```text
+git rev-parse HEAD
+=> 400c406412f7b217c77228026de82ea05537637a
+
+git status --short
+=> clean before review evidence
+
+git diff --check 74e9452..400c406
+git diff --check 88abc3e..400c406
+=> PASS
+
+git diff --quiet 74e9452..400c406 -- migrations src/contexts \
+  src/http/server.ts src/server.ts package.json bun.lock docker-compose.yml
+=> PASS: protected product, dependency and runtime-composition paths unchanged
+
+bun test tests/operator-appearance-geometry.test.ts
+=> 4 pass, 0 fail, 46 expectations; the isolated Chromium/CDP matrix executed at
+   375/768/1020/1021/1440 and did not skip
+
+bun test [seven focused appearance/security/booking files]
+=> 37 pass, 0 fail, 640 expectations
+
+bun test
+=> 304 pass, 525 intentional skips, 0 fail, 3748 expectations
+
+bun run typecheck
+=> PASS
+
+bun run boundaries
+=> PASS: 71 TypeScript files scanned
+
+bun run license-check
+=> PASS: 23 installed packages
+
+bun audit
+=> PASS: no vulnerabilities found
+```
+
+### Remaining mandatory gate
+
+A fresh non-implementing reviewer must still execute D-527's full authenticated
+six-appearance matrix against an exact image labelled with
+`400c406412f7b217c77228026de82ea05537637a`, including every contract width, 375x900
+DPR2, <=1px open/wrap/Escape geometry, primary-action visibility, no-backdrop,
+opaque Glass financial-surface comparison, request-failure capture, reduced motion,
+forced colours, coarse pointer, state preservation and console/request checks. Retain
+that image only if the fresh live review approves it.
