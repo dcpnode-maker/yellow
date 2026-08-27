@@ -138,6 +138,11 @@ export function createApp(options: AppOptions = {}) {
           context, params.property, params.folioId, body,
         ))
       )
+      .post("/api/v1/properties/:property/folios/:folioId/status", ({ request, params, body, tenantContext }) =>
+        withOperatorTenant(request, (context) => operator.transitionFolioStatus(
+          context, params.property, params.folioId, body,
+        ))
+      )
       .post("/api/v1/properties/:property/folios/:folioId/adjustments", ({ request, params, body, tenantContext }) =>
         withOperatorTenant(request, (context) => operator.correctFolioCharge(
           context, params.property, params.folioId, body,

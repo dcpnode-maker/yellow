@@ -311,6 +311,17 @@ only governed attributable revenue-code metadata needed by the approved untaxed 
 command. The query is not a second ledger and creates no fact or event; the browser
 never recomputes money or sees counterparty accounts, routing, source, tax detail or PII.
 
+Implemented governed window lifecycle: an open guest-account folio may become settled
+only when the shared canonical financial locks are held and PostgreSQL proves its
+`folio_balance` is exactly zero. A settled window may become closed only under the same
+locks with a still-zero balance. The yellow-owner bounded capability accepts only those
+two adjacent transitions; direct runtime folio updates, reopen, force and non-zero
+settlement remain unavailable. Durable actor-bound idempotency, the state change, one
+identifier/state-only fact and one outbox event share the tenant transaction. No
+journal/posting history or account state changes, and folio closure is independent of
+reservation checkout, payment/provider settlement, invoice/fiscal issue, tax and day
+close.
+
 ### Journal aggregate — Financials
 
 **Root:** `journal`.

@@ -18,12 +18,19 @@ const ACTOR = "00000000-0000-0000-0000-000000010502";
 const PROPERTY = "00000000-0000-0000-0000-000000010503";
 const FOLIO = "00000000-0000-0000-0000-000000010504";
 
-function operatorWithFinancials(statements: unknown, charges: unknown, corrections?: unknown, hosted?:unknown): OperatorHttpApi {
+function operatorWithFinancials(
+  statements: unknown,
+  charges: unknown,
+  corrections?: unknown,
+  hosted?: unknown,
+  settlements?: unknown,
+): OperatorHttpApi {
   return new OperatorHttpApi(
     {} as never, undefined, undefined, undefined, undefined, undefined, undefined,
     undefined, undefined, undefined, undefined, undefined, undefined, undefined,
     undefined, undefined, undefined, undefined, undefined, statements as never, charges as never,
     undefined, undefined, undefined, corrections as never, undefined, hosted as never,
+    settlements as never,
   );
 }
 
@@ -148,6 +155,68 @@ describe("Order 105 operator folio workbench", () => {
     expect(renderAt).toBeGreaterThan(refetchAt);
     expect(charge.slice(0, refetchAt)).not.toContain("renderFolioRows(");
     expect(charge).toContain("Retry keeps the same idempotency key.");
+  });
+
+  test("Order196 P4: zero-balance settlement UI is explicit, retry-safe and server-refetched", () => {
+    expect(html).toContain('id="folio-settlement-panel"');
+    expect(html).toContain('id="folio-settlement-action" type="button" hidden disabled');
+    expect(html).toContain('id="folio-settlement-status" role="status" aria-live="assertive"');
+    const submit = asyncFunctionSlice("submitFolioStatus", "function renderFolioStatement");
+    expect(submit).toContain('body: JSON.stringify({ action, idempotencyKey: attemptKey })');
+    expect(submit).toContain("folioStatusAttemptKey = crypto.randomUUID()");
+    expect(submit).toContain("Retry keeps the same idempotency key.");
+    expect(submit).toContain("/statement?limit=50");
+    expect(submit.indexOf("renderFolioStatement(refreshed)")).toBeGreaterThan(
+      submit.indexOf("/statement?limit=50"),
+    );
+    expect(submit.match(/isCurrentFolioRequest\(generation, property, identity, folioId\)/g))
+      .toHaveLength(3);
+  });
+
+  test("Order196 P4: action-specific authority and server envelope precede settlement calls", async () => {
+    const calls: Array<{ action: string; input: Record<string, unknown> }> = [];
+    const settlements = {
+      async settle(input: Record<string, unknown>) {
+        calls.push({ action: "settle", input });
+        return { folioId: FOLIO, accountId: ACTOR, reservationId: null, windowNo: 1,
+          previousStatus: "open", status: "settled", balanceMinor: "0", replayed: false };
+      },
+      async close(input: Record<string, unknown>) {
+        calls.push({ action: "close", input });
+        return { folioId: FOLIO, accountId: ACTOR, reservationId: null, windowNo: 1,
+          previousStatus: "settled", status: "closed", balanceMinor: "0", replayed: false };
+      },
+    };
+    const api = operatorWithFinancials(undefined, undefined, undefined, undefined, settlements);
+    const request = new Request(`http://yellow.test/api/v1/properties/${PROPERTY}/folios/${FOLIO}/status`, {
+      method: "POST", headers: { "x-correlation-id": "order196-http-request" },
+    });
+    const missing = await api.transitionFolioStatus(
+      financialContext(request, ["financials.folios:read"]), PROPERTY, FOLIO,
+      { action: "settle", idempotencyKey: "order196-http-settle" },
+    );
+    expect(missing.status).toBe(403);
+    expect(calls).toHaveLength(0);
+
+    const settled = await api.transitionFolioStatus(
+      financialContext(request, ["financials.folios:settle"]), PROPERTY, FOLIO,
+      { action: "settle", idempotencyKey: "order196-http-settle" },
+    );
+    expect(settled.status).toBe(200);
+    expect(await settled.json()).toMatchObject({
+      folioId: FOLIO, previousStatus: "open", status: "settled", balanceMinor: "0",
+    });
+    expect(calls[0]).toMatchObject({ action: "settle", input: {
+      tenantId: TENANT, folioId: FOLIO, idempotencyKey: "order196-http-settle",
+      envelope: { actorId: ACTOR, tenantId: TENANT, propertyNode: PROPERTY, operation: "folio.settled" },
+    } });
+
+    const malformed = await api.transitionFolioStatus(
+      financialContext(request, ["financials.folios:close"]), PROPERTY, FOLIO,
+      { action: "close", idempotencyKey: "order196-http-close", balanceMinor: "0" },
+    );
+    expect(malformed.status).toBe(400);
+    expect(calls).toHaveLength(1);
   });
 
   test("Order193 P5: hosted deposit workbench is token-only, server-truth and retry-safe", () => {

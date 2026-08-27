@@ -115,6 +115,11 @@ const EXPECTED_MIGRATIONS = [
     filename: "0022_hosted_deposit_workbench.sql",
     checksum_sha256: "a906182ea41fb3f92617900716c6a6523ac7a34af2651b6907781f6607080dfd",
   },
+  {
+    version: 23,
+    filename: "0023_folio_settlement_capability.sql",
+    checksum_sha256: "1209d2cf1e7b7c949640a8da0202633c6713d0006f3f17752e976195186ea933",
+  },
 ];
 
 if (REQUIRE_DATABASE && !DATABASE_URL) {

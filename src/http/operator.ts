@@ -30,6 +30,10 @@ import {
   FolioStatementNotFoundError,
   FolioStatementService,
   FolioStatementValidationError,
+  FolioSettlementConflictError,
+  FolioSettlementNotFoundError,
+  FolioSettlementService,
+  FolioSettlementValidationError,
   FolioValidationError,
   HostedDepositConflictError,
   HostedDepositNotFoundError,
@@ -164,6 +168,8 @@ const PARTY_READ_SCOPE = "crm.parties:read";
 const PARTY_WRITE_SCOPE = "crm.parties:write";
 const FOLIO_READ_SCOPE = "financials.folios:read";
 const FOLIO_OPEN_SCOPE = "financials.folios:open";
+const FOLIO_SETTLE_SCOPE = "financials.folios:settle";
+const FOLIO_CLOSE_SCOPE = "financials.folios:close";
 const FOLIO_TRANSFER_SCOPE = "financials.transfers:write";
 const CHARGE_WRITE_SCOPE = "financials.charges:write";
 const ADJUSTMENT_WRITE_SCOPE = "financials.adjustments:write";
@@ -217,6 +223,18 @@ interface CorrectionDraft {
   readonly reversesJournalId: string;
   readonly reason: string;
   readonly idempotencyKey: string;
+}
+
+interface FolioStatusDraft {
+  readonly action: "settle" | "close";
+  readonly idempotencyKey: string;
+}
+
+function parseFolioStatus(body: unknown): FolioStatusDraft | null {
+  if (!isObject(body) || !exactKeys(body, ["action", "idempotencyKey"]) ||
+      (body.action !== "settle" && body.action !== "close") ||
+      typeof body.idempotencyKey !== "string" || !IDEMPOTENCY_KEY.test(body.idempotencyKey)) return null;
+  return Object.freeze({ action: body.action, idempotencyKey: body.idempotencyKey });
 }
 
 const FOLIO_TRANSFER_FIELDS = ["sourceFolioId", "destinationFolioId", "newWindowName", "groupIds", "reason", "generation", "previewRevision"] as const;
@@ -958,6 +976,7 @@ type FolioStatementOperations = Pick<FolioStatementService, "get">;
 type ChargeOperations = Pick<ChargeService, "postCharge">;
 type ChargeCorrectionOperations = Pick<ChargeCorrectionService, "reverseCharge">;
 type FolioOperations = Pick<FolioService, "openPrimary" | "openAdditional">;
+type FolioSettlementOperations = Pick<FolioSettlementService, "settle" | "close">;
 type FolioTransferOperations = Pick<FolioTransferService, "preview" | "transfer">;
 type HostedDepositOperations = Pick<HostedDepositService, "create" | "apply" | "statusForOperator">;
 
@@ -1346,6 +1365,7 @@ export class OperatorHttpApi {
   readonly #charges?: ChargeOperations;
   readonly #chargeCorrections?: ChargeCorrectionOperations;
   readonly #folios?: FolioOperations;
+  readonly #folioSettlements?: FolioSettlementOperations;
   readonly #folioTransfers?: FolioTransferOperations;
   readonly #hostedDeposits?: HostedDepositOperations;
 
@@ -1377,6 +1397,7 @@ export class OperatorHttpApi {
     chargeCorrections?: ChargeCorrectionOperations,
     folioTransfers?: FolioTransferOperations,
     hostedDeposits?: HostedDepositOperations,
+    folioSettlements?: FolioSettlementOperations,
   ) {
     this.#login = login;
     this.#availability = availability;
@@ -1405,6 +1426,7 @@ export class OperatorHttpApi {
     this.#chargeCorrections = chargeCorrections;
     this.#folioTransfers = folioTransfers;
     this.#hostedDeposits = hostedDeposits;
+    this.#folioSettlements = folioSettlements;
   }
 
   unavailable(request: Request): Response {
@@ -1418,12 +1440,14 @@ export class OperatorHttpApi {
   failure(request: Request, error: unknown): Response {
     if (error instanceof FolioValidationError || error instanceof FolioStatementValidationError ||
         error instanceof ChargeValidationError || error instanceof ChargeCorrectionValidationError ||
-        error instanceof FolioTransferValidationError || error instanceof HostedDepositValidationError) {
+        error instanceof FolioTransferValidationError || error instanceof HostedDepositValidationError ||
+        error instanceof FolioSettlementValidationError) {
       return apiError(request, 400, "request/invalid", "Invalid request", "Financial input is invalid");
     }
     if (error instanceof FolioNotFoundError || error instanceof FolioStatementNotFoundError ||
         error instanceof ChargeNotFoundError || error instanceof ChargeCorrectionNotFoundError ||
-        error instanceof FolioTransferNotFoundError || error instanceof HostedDepositNotFoundError) {
+        error instanceof FolioTransferNotFoundError || error instanceof HostedDepositNotFoundError ||
+        error instanceof FolioSettlementNotFoundError) {
       return apiError(request, 404, "financials/not_found", "Not found", "The requested folio or charge configuration was not found");
     }
     if (error instanceof FolioConflictError) {
@@ -1431,6 +1455,9 @@ export class OperatorHttpApi {
     }
     if (error instanceof FolioTransferConflictError) {
       return apiError(request, 409, "financials/conflict", "Conflict", "The folio transfer conflicts with current financial state");
+    }
+    if (error instanceof FolioSettlementConflictError) {
+      return apiError(request, 409, "financials/conflict", "Conflict", "The folio settlement conflicts with current financial state");
     }
     if (error instanceof HostedDepositConflictError) {
       return apiError(request, 409, "financials/conflict", "Conflict", "The hosted deposit conflicts with current financial state");
@@ -1919,6 +1946,47 @@ export class OperatorHttpApi {
       }),
     });
     return apiResponse(context.request, canonicalJson(jsonValue(result)), 201, {
+      "idempotency-replayed": String(result.replayed),
+      "x-correlation-id": requestId,
+    });
+  }
+
+  async transitionFolioStatus(
+    context: TenantRequestContext,
+    propertyNode: string,
+    folioId: string,
+    body: unknown,
+  ): Promise<Response> {
+    const input = parseFolioStatus(body);
+    if (!input || !UUID.test(propertyNode) || !UUID.test(folioId)) {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Folio settlement input is invalid");
+    }
+    const scope = input.action === "settle" ? FOLIO_SETTLE_SCOPE : FOLIO_CLOSE_SCOPE;
+    if (!hasScope(context, scope)) {
+      return apiError(context.request, 403, "auth/scope_missing", "Forbidden", "Folio settlement access is not granted");
+    }
+    const grants = await listGrantedProperties(context, scope);
+    if (!grants.some(({ id }) => id === propertyNode)) {
+      return apiError(context.request, 403, "auth/property_forbidden", "Forbidden", "Property access is not granted");
+    }
+    if (!this.#folioSettlements) return this.unavailable(context.request);
+    const requestId = correlationId(context.request);
+    const command = {
+      tenantId: context.tenantId,
+      folioId,
+      idempotencyKey: input.idempotencyKey,
+      envelope: createAuditEnvelope({
+        actorId: context.identity.actorId,
+        tenantId: context.tenantId,
+        propertyNode,
+        requestId,
+        operation: input.action === "settle" ? "folio.settled" : "folio.closed",
+      }),
+    } as const;
+    const result = input.action === "settle"
+      ? await this.#folioSettlements.settle(command)
+      : await this.#folioSettlements.close(command);
+    return apiResponse(context.request, canonicalJson(jsonValue(result)), 200, {
       "idempotency-replayed": String(result.replayed),
       "x-correlation-id": requestId,
     });

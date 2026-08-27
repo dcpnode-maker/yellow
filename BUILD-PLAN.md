@@ -107,8 +107,14 @@ one locked balance-capped capture, bounded linked partial refunds and determinis
 local reconciliation. Order 193 adds the zero-cost hosted deposit workbench: expiring
 hash-only guest links, a separately originated synthetic provider with signed bounded
 callbacks, deposit-liability capture and separately authorized capped partial/full
-folio application. Real PSPs, delivery, deposit refunds/chargebacks, cashier,
-settlement and checkout remain future work; this does not claim Phase 5 completion.
+folio application. Built-unreviewed Order 196 adds the governed per-window lifecycle:
+`open -> settled -> closed` is available only through the exact tenant/property
+PostgreSQL capability after shared financial locks and an exact-zero canonical balance,
+with durable idempotency and same-transaction fact/outbox evidence. It creates no
+journal and does not close the account or reservation. Real PSPs, delivery, deposit
+refunds/chargebacks, cashier, provider settlement, checkout, account closure,
+invoice/fiscal issue, trust safeguards and audited business-day close remain work in
+this active phase; Phase 5 is not complete.
 
 ## Phase 6 — Stay ops & Housekeeping
 

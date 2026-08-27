@@ -20,8 +20,19 @@ Segment moves: never edit `period`/unit on a live segment for a room move — cl
 segment (`departed`, trim period) and open the next `seq` (new occupancy via choke).
 Extensions/shortenings on the SAME unit: release + re-record inside one transaction.
 
-## 2. Folio (`folio.status`) — open → settled (balance 0, no future automations) → closed
-(after doc issued; reopening forbidden — corrections post to a new folio window).
+## 2. Folio (`folio.status`) — open → settled → closed
+
+| From | To | Exact guard/effect |
+|---|---|---|
+| open | settled | property-owned guest account is open; canonical locked `folio_balance` is exactly 0; one guarded PostgreSQL transition plus `folio.settled` fact/outbox evidence |
+| settled | closed | the same account/property relationship remains canonical and open; locked balance is still exactly 0; one guarded transition plus `folio.closed` fact/outbox evidence |
+
+Every folio window transitions independently. There is no reopen, force or non-zero
+path. Settlement/closure creates no balancing journal and changes no journal or posting
+line. It does not close the account or reservation and does not imply payment/provider
+settlement, checkout, invoice/document issue, fiscalization, tax or business-day close.
+Later corrections post through a separately governed open window; immutable history is
+never edited.
 
 ## 3. Business day — open → **sealed** via `seal_business_day()`.
 The function is currently deployment-owner-only as a temporary least-privilege

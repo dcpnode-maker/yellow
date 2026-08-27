@@ -1,6 +1,6 @@
 # Order 196 — Governed folio settlement and closure
 
-**Status:** ACTIVE — D-531, D-532
+**Status:** BUILT-UNREVIEWED — D-531, D-532, D-533; Phase-5 gate pending
 **Phase:** 5 — Financials
 **Branch:** `phase-5/folio-charge-correction-resumed`
 **Base:** `caf1998` (independently approved Order195 local UI)
@@ -30,13 +30,15 @@ and never imply checkout, invoice creation, fiscalization or provider settlement
 
 - `migrations/0023_folio_settlement_capability.sql`
 - `src/contexts/financials/settlements.ts`, `src/contexts/financials/index.ts`
-- `src/http/operator.ts`, `src/app.ts`
+- `src/http/operator.ts`, `src/app.ts`, `src/server.ts`
 - `src/http/operator/index.html`, `src/http/operator/operator.js`,
   `src/http/operator/operator.css`
 - `tests/financial-folio-settlement.integration.test.ts`,
   `tests/financial-folio-settlement.intentional-red.test.ts`,
   `tests/operator-folio-workbench.integration.test.ts`,
-  `tests/review-seed.integration.test.ts`, `scripts/seed-review.ts`
+  `tests/review-seed.integration.test.ts`, `tests/migrate.integration.test.ts`,
+  `tests/database-acceptance.integration.test.ts`, `tests/schema/expected.sql`,
+  `scripts/seed-review.ts`
 - settlement sections only in `docs/CONTRACTS.md`, `docs/EVENTS.md`,
   `docs/STATE-MACHINES.md`, `docs/DOMAIN-MODEL-V1.md` and Phase 5 in `BUILD-PLAN.md`
 - this order, its question/review, `DECISIONS.log`, and `handoff/LEDGER.md`
@@ -95,9 +97,11 @@ transition capability; `migrations/0001_init.sql` stays byte-identical.
 
 ## Definition of done
 
-- [ ] Intentional red precedes product implementation.
-- [ ] Zero-balance monotonic transition is PostgreSQL-lock authoritative.
-- [ ] Financial history and balance are unchanged by settlement/closure.
-- [ ] Concurrency and authority proofs pass.
-- [ ] Authenticated operator controls are usable across six appearances.
-- [ ] Standing gates pass; independent gate remains explicit until executed.
+- [x] Intentional red precedes product implementation.
+- [x] Zero-balance monotonic transition is PostgreSQL-lock authoritative.
+- [x] Financial history and balance are unchanged by settlement/closure.
+- [x] Twenty-way convergence, charge arbitration and authority proofs pass.
+- [x] Operator API/UI contracts and all six appearance-specific controls are built.
+- [x] Static, schema and fresh-PostgreSQL implementation gates pass.
+- [ ] Transfer arbitration, authenticated browser matrix and independent high-risk
+      execution remain explicit at the Phase-5 gate.

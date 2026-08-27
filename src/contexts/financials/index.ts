@@ -108,3 +108,16 @@ export type {
   FolioSiblingWindow,
   FolioTransferGroup,
 } from "./statements";
+
+export {
+  FolioSettlementConflictError,
+  FolioSettlementNotFoundError,
+  FolioSettlementService,
+  FolioSettlementValidationError,
+} from "./settlements";
+export type {
+  FolioSettlementInput,
+  FolioSettlementResult,
+  FolioSettlementServiceOptions,
+  FolioSettlementStatus,
+} from "./settlements";

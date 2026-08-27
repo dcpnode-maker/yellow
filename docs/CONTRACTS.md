@@ -45,6 +45,16 @@ folio linked to that set, orders account locks canonically, and remains executab
 only by `app_role` inside a tenant-bound runtime transaction. Direct account or
 folio `UPDATE` and direct row locking remain outside runtime authority.
 
+The one bounded folio-state mutation is
+`transition_folio_status(uuid,uuid,uuid,text)`. It is yellow-owner-owned and callable
+only by `app_role` from the exact `yellow_runtime` tenant transaction. The action is
+only `settle` (`open -> settled`) or `close` (`settled -> closed`); the capability
+relocks the canonical guest account/folio, proves exact property ownership and a
+canonical `folio_balance` of zero, then performs one guarded status update. It exposes
+no general column/table selector, journal/posting mutation, non-zero override, force or
+reopen authority. Direct `folio UPDATE`, PUBLIC execution and execution by the runtime
+login remain denied.
+
 Platform extension-type registration uses the separately authenticated
 `yellow_extension_registrar` only through
 `register_extension_type(uuid,text,jsonb,uuid,uuid,uuid)`. The function fixes the
@@ -143,8 +153,8 @@ tenant-authority validation or RLS.
 check_in {segment,space?,keys?} · check_out {settlements[]} · move {to_space} ·
 extend/shorten · group: create/status/allotment/rooming_list(bulk)
 **financials**: postCharge {folio,tx_code,amount,qty} · transfer {lines[],to_folio|account} ·
-adjust {reverses_line,reason} · settle {folio,method,instrument?,amount} ·
-routeRules→Automation CRUD · folio: open_window/get/statement · deposits: request/apply ·
+adjust {reverses_line,reason} · folio: open_window/get/statement/settle/close ·
+routeRules→Automation CRUD · deposits: request/apply ·
 cashier: open/close · day: readiness/seal · ar: invoice(from folio)/allocate/statement
 **inventory**: spaces/unit_types/sellable_units CRUD · restrictions batch ·
 ooo/oos open+close · authority get/set · projection rebuild (admin)
@@ -260,6 +270,27 @@ only sibling-window display metadata and server-owned group metadata; it exposes
 account, Party or PII and the browser performs no money math. These windows organize
 later document inputs only: company debtors, AR, tax/fiscal issue, legal invoice buyer,
 numbering, printing, payment and settlement remain separate contracts.
+
+Order 196 governed folio-state contract: `FolioSettlementService.settle/close` owns
+its tenant transaction and durable actor-bound idempotency. After strict input and
+server audit-envelope validation it discovers the property-owned open guest account,
+calls the shared canonical financial lock, re-reads the locked folio/account and
+`folio_balance`, and invokes `transition_folio_status` once. Settle accepts only an
+exact-zero `open` window; close accepts only an exact-zero `settled` window. The
+transition, one `folio.settled` or `folio.closed` fact, its outbox event and the stored
+idempotent response commit or roll back together. A replay returns the original
+result; changed input under the same operation/key conflicts. No journal or posting
+line is created, updated or deleted, and the guest account remains open.
+
+`POST /api/v1/properties/{property}/folios/{folioId}/status` is no-store and accepts
+exactly `{action:"settle"|"close",idempotencyKey}`. The authenticated operator must
+hold the selected property's exact `financials.folios:settle` or
+`financials.folios:close` grant. Tenant, actor, property, prior state, balance and
+authority are server-derived; the browser cannot assert them. Success is `200` with
+server folio/account/reservation/window identities, previous/current status, exact
+zero balance and replay truth. This state assertion is not payment/provider
+settlement, cashier close, account/reservation closure, checkout, invoice/document
+issue, fiscalization, taxation or business-day close.
 
 Implemented operator statement slice: `FolioStatementService.get(tx, input)` resolves
 one tenant/property folio by UUID or strict human reference and returns one PostgreSQL

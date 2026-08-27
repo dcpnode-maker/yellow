@@ -638,7 +638,7 @@
 <div>
 <p class="eyebrow">Guest ledger evidence</p>
 <h2 id="folios-title" tabindex="-1">Folios</h2>
-<p class="muted">This is not tax calculation, invoicing, payment, settlement, fiscalization or checkout.</p>
+<p class="muted">This is not tax calculation, invoicing, payment, settlement, fiscalization or checkout. The separate status control acts only on the current zero-balance folio window.</p>
 </div>
 </div>
 <form class="card folio-lookup" id="folio-statement-lookup-form">
@@ -689,6 +689,19 @@
 <div><span>Server balance (minor units)</span><strong id="folio-balance" tabindex="-1">—</strong></div>
 <div><span>Immutable lines</span><strong id="folio-line-count">—</strong></div>
 </div>
+<section class="folio-settlement-panel" id="folio-settlement-panel" aria-labelledby="folio-settlement-heading">
+<div class="folio-settlement-copy">
+<p class="eyebrow">Window status</p>
+<h4 id="folio-settlement-heading" tabindex="-1">Checking settlement readiness</h4>
+<p id="folio-settlement-copy">Yellow will use the current server status and exact balance to show the next governed action.</p>
+</div>
+<div class="folio-settlement-state" aria-label="Current folio status and balance">
+<span>Server status <strong id="folio-settlement-state">—</strong></span>
+<span>Exact balance <strong id="folio-settlement-balance">—</strong></span>
+</div>
+<button class="primary folio-settlement-action" id="folio-settlement-action" type="button" hidden disabled>Settle folio</button>
+<p class="form-message folio-settlement-status" id="folio-settlement-status" role="status" aria-live="assertive" aria-atomic="true"></p>
+</section>
 <section id="folio-postings-panel" role="tabpanel" aria-labelledby="folio-tab-postings">
 <div class="folio-table-wrap" role="region" aria-labelledby="folio-lines-caption" tabindex="0">
 <table class="folio-lines">

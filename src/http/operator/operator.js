@@ -76,6 +76,9 @@
  let folioTransferAttemptKey = "";
  let folioTransferDraft = "";
  let folioTransferPreview = null;
+ let folioStatusAttemptKey = "";
+ let folioStatusAttemptDraft = "";
+ let folioStatusPending = false;
  let folioActiveTab = "postings";
  let folioRouteCursor = "";
  let folioWorkspaceProperty = "";
@@ -431,6 +434,13 @@
  const folioCurrency = $("#folio-currency");
  const folioBalance = $("#folio-balance");
  const folioLineCount = $("#folio-line-count");
+ const folioSettlementPanel = $("#folio-settlement-panel");
+ const folioSettlementHeading = $("#folio-settlement-heading");
+ const folioSettlementCopy = $("#folio-settlement-copy");
+ const folioSettlementState = $("#folio-settlement-state");
+ const folioSettlementBalance = $("#folio-settlement-balance");
+ const folioSettlementAction = $("#folio-settlement-action");
+ const folioSettlementStatus = $("#folio-settlement-status");
  const folioStayTotal = $("#folio-stay-total");
  const folioActiveTotal = $("#folio-active-total");
  const folioAccountCurrency = $("#folio-account-currency");
@@ -3071,7 +3081,7 @@
   folioOrganizeReason.value !== "" || folioOrganizeAcknowledgement.checked || folioTransferPreview !== null;
  }
   function currentFolioDraftIsDirty() {
- return currentFolioChargeIsDirty() || d?.d() || currentFolioCorrectionIsDirty() || currentFolioWindowIsDirty() || currentFolioOrganizeIsDirty();
+ return currentFolioChargeIsDirty() || d?.d() || currentFolioCorrectionIsDirty() || currentFolioWindowIsDirty() || currentFolioOrganizeIsDirty() || folioStatusPending;
  }
   function confirmFolioExit() {
  if (currentFolioCorrectionIsDirty()) return confirm("Discard this unfinished posting correction?");
@@ -3141,6 +3151,20 @@
  folioTransferAttemptKey = "";
  folioTransferDraft = "";
  folioTransferPreview = null;
+ folioStatusAttemptKey = "";
+ folioStatusAttemptDraft = "";
+ folioStatusPending = false;
+ folioSettlementPanel.removeAttribute("data-status");
+ folioSettlementPanel.setAttribute("aria-busy", "false");
+ folioSettlementHeading.textContent = "Checking settlement readiness";
+ folioSettlementCopy.textContent = "Yellow will use the current server status and exact balance to show the next governed action.";
+ folioSettlementState.textContent = "—";
+ folioSettlementBalance.textContent = "—";
+ folioSettlementAction.hidden = true;
+ folioSettlementAction.disabled = true;
+ folioSettlementAction.removeAttribute("data-action");
+ folioSettlementStatus.classList.remove("error");
+ folioSettlementStatus.textContent = "";
  folioWindowTabs.replaceChildren();
  setFolioError();
  }
@@ -3574,6 +3598,122 @@
  if (focus) (tabs.find(([name]) => name === next)?.[1] || folioCorrectionHeading).focus();
  return true;
  }
+  function folioStatusAction(statement = folioStatementData) {
+ if (!statement?.folio) return null;
+ const balance = BigInt(exactFolioMinor(statement.balanceMinor, "server balance"));
+ if (balance !== 0n) return null;
+ if (statement.folio.status === "open") return "settle";
+ if (statement.folio.status === "settled") return "close";
+ return null;
+ }
+  function renderFolioSettlement(statement) {
+ const status = String(statement.folio.status || "unknown");
+ const balance = BigInt(exactFolioMinor(statement.balanceMinor, "server balance"));
+ const action = folioStatusAction(statement);
+ folioSettlementPanel.dataset.status = status;
+ folioSettlementPanel.setAttribute("aria-busy", String(folioStatusPending));
+ folioSettlementState.textContent = status;
+ folioSettlementBalance.textContent = balance.toString();
+ folioSettlementAction.hidden = true;
+ folioSettlementAction.disabled = true;
+ folioSettlementAction.removeAttribute("data-action");
+ folioSettlementStatus.classList.remove("error");
+ folioSettlementStatus.textContent = "";
+ if (balance !== 0n) {
+  folioSettlementHeading.textContent = "Payment required before settlement";
+  folioSettlementCopy.textContent = `The server balance is ${balance.toString()} minor units. Use an authorized payment or deposit workflow to bring this window to exactly zero; Yellow will not force or simulate settlement.`;
+  return;
+ }
+ if (action === "settle") {
+  folioSettlementHeading.textContent = "Ready to settle this window";
+  folioSettlementCopy.textContent = "The server reports an open folio with an exact zero balance. Settlement records that assertion only; it does not pay, invoice or check out the stay.";
+  folioSettlementAction.textContent = folioStatusPending ? "Settling…" : "Settle folio";
+ } else if (action === "close") {
+  folioSettlementHeading.textContent = "Ready to close this window";
+  folioSettlementCopy.textContent = "The server reports a settled folio that is still exactly zero. Closure finalizes this folio window only; it does not close the account, issue an invoice or check out the reservation.";
+  folioSettlementAction.textContent = folioStatusPending ? "Closing…" : "Close folio";
+ } else if (status === "closed") {
+  folioSettlementHeading.textContent = "Folio window closed";
+  folioSettlementCopy.textContent = "This window has reached its final status. Its immutable postings remain available as evidence; no reopen action is offered here.";
+  return;
+ } else {
+  folioSettlementHeading.textContent = "No status action available";
+  folioSettlementCopy.textContent = "The server returned a folio status that has no authorized transition in this workspace.";
+  return;
+ }
+ folioSettlementAction.dataset.action = action;
+ folioSettlementAction.hidden = false;
+ folioSettlementAction.disabled = folioStatusPending;
+ }
+  async function submitFolioStatus(action) {
+ if (!folioStatementData || (action !== "settle" && action !== "close") || folioStatusPending) return;
+ if (folioStatusAction(folioStatementData) !== action) {
+  renderFolioSettlement(folioStatementData);
+  folioSettlementStatus.classList.add("error");
+  folioSettlementStatus.textContent = "The current server statement no longer offers that status action.";
+  return;
+ }
+ const folioId = folioStatementData.folio.id;
+ const prompt = action === "settle"
+  ? "Settle this zero-balance folio window? This records a final status assertion and does not take payment, issue an invoice or check out the reservation."
+  : "Close this settled zero-balance folio window? Closed folios cannot be reopened from this workspace.";
+ if (!confirm(prompt)) return;
+ const generation = folioGeneration;
+ const property = propertySelect.value;
+ const identity = folioIdentity;
+ const draft = JSON.stringify({
+  folioId, action, status: folioStatementData.folio.status,
+  balanceFingerprint: exactFolioMinor(folioStatementData.balanceMinor, "server balance"),
+  generation: String(folioStatementData.generation || ""),
+ });
+ if (draft !== folioStatusAttemptDraft) {
+  folioStatusAttemptDraft = draft;
+  folioStatusAttemptKey = crypto.randomUUID();
+ }
+ const attemptKey = folioStatusAttemptKey;
+ const expectedPreviousStatus = action === "settle" ? "open" : "settled";
+ const expectedStatus = action === "settle" ? "settled" : "closed";
+ folioStatusPending = true;
+ renderFolioSettlement(folioStatementData);
+ folioSettlementStatus.textContent = action === "settle"
+  ? "Asking the server to verify zero balance and settle this folio…"
+  : "Asking the server to verify zero balance and close this folio…";
+ try {
+  const transitioned = await request(`/api/v1/properties/${enc(property)}/folios/${enc(folioId)}/status`, {
+  method: "POST", body: JSON.stringify({ action, idempotencyKey: attemptKey }),
+  });
+  if (!isCurrentFolioRequest(generation, property, identity, folioId)) return;
+  const returnedFolioId = transitioned.folioId ?? transitioned.folio?.id;
+  const returnedStatus = transitioned.status ?? transitioned.folio?.status;
+  if (returnedFolioId !== folioId || transitioned.previousStatus !== expectedPreviousStatus || returnedStatus !== expectedStatus ||
+  exactFolioMinor(transitioned.balanceMinor, "transition balance") !== "0") {
+  throw new Error("The server returned a different folio status transition");
+  }
+  const refreshed = await request(`/api/v1/properties/${enc(property)}/folios/${enc(folioId)}/statement?limit=50`);
+  if (!isCurrentFolioRequest(generation, property, identity, folioId)) return;
+  if (refreshed.folio?.id !== folioId || refreshed.folio?.status !== expectedStatus) {
+  throw new Error("The authoritative statement did not confirm the requested folio status");
+  }
+  folioStatusAttemptKey = "";
+  folioStatusAttemptDraft = "";
+  folioStatusPending = false;
+  folioRouteCursor = "";
+  renderFolioStatement(refreshed);
+  const replayed = transitioned.replayed === true;
+  folioSettlementStatus.textContent = action === "settle"
+  ? replayed ? "Existing settlement confirmed. The authoritative statement was refreshed." : "Folio settled. The authoritative statement was refreshed."
+  : replayed ? "Existing closure confirmed. The authoritative statement was refreshed." : "Folio closed. The authoritative statement was refreshed.";
+  folioSettlementHeading.focus({ preventScroll: true });
+ } catch (error) {
+  if (!isCurrentFolioRequest(generation, property, identity, folioId)) return;
+  folioStatusPending = false;
+  renderFolioSettlement(folioStatementData);
+  const message = error instanceof Error ? error.message : "The folio status could not be changed";
+  folioSettlementStatus.classList.add("error");
+  folioSettlementStatus.textContent = `${message}. Retry keeps the same idempotency key.`;
+  folioSettlementAction.focus({ preventScroll: true });
+ }
+ }
   function renderFolioStatement(statement) {
  folioStatementData = statement;
  folioNextCursor = statement.nextCursor;
@@ -3594,6 +3734,7 @@
  folioLineCount.textContent = String(statement.lineCount);
  renderFolioRows(statement.rows);
  renderFolioChargeOptions(statement.chargeOptions, statement.chargeAvailability);
+ renderFolioSettlement(statement);
  folioLoadOlder.hidden = statement.nextCursor === null;
  folioPageStatus.textContent = statement.nextCursor === null
   ? `All ${String(statement.lineCount)} immutable line${statement.lineCount === 1 ? "" : "s"} loaded.`
@@ -5447,6 +5588,10 @@
  folioChargeForm.addEventListener("submit", (event) => {
  event.preventDefault();
  void postFolioCharge();
+ });
+ folioSettlementAction.addEventListener("click", () => {
+ const action = folioSettlementAction.dataset.action;
+ if (action === "settle" || action === "close") void submitFolioStatus(action);
  });
  folioCorrectionForm.addEventListener("input", () => {
  const draft = JSON.stringify(folioCorrectionBody());
