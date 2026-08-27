@@ -1,6 +1,6 @@
 # Order 191 — Approved status refresh local promotion
 
-**Status:** BUILT-UNREVIEWED — D-503
+**Status:** APPROVED LOCALLY — D-504
 **Phase:** 5 · founder human testing
 **Branch:** `phase-5/folio-charge-correction-resumed`
 **Base:** `ce3fc95709cfeccde4bb0070ae20ba38273f6ec8`
@@ -52,7 +52,7 @@ migration, scenario import, financial command, merge, push or production deploym
 - [x] Protected Project Status reports exact Order190 truth.
 - [x] Persistent credentials, schema, data and Order189 immutable UAT are unchanged.
 - [x] Exact Order189 rollback image remains retained.
-- [ ] Independent non-operating review approves the local promotion.
+- [x] Independent non-operating review approves the local promotion.
 
 ## Operator evidence — D-503
 
