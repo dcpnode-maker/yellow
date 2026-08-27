@@ -95,9 +95,11 @@ required, stop and record a numbered question before editing it.
   colours, no-backdrop, coarse pointer and zero console/page/request errors pass.
 - Focused and standing suites, typecheck, boundaries, licences, audit and exact diff
   pass. A fresh non-implementing reviewer personally executes the browser matrix.
-- Only after independent approval, replace the app container of the sole loopback
-  stack on port3000, preserving PostgreSQL, Valkey, provider3001, rollback image and
-  all data. Port3002 remains closed.
+- After independent static approval, a guarded same-port browser candidate may replace
+  only the app container of the sole loopback stack on port3000 for the mandatory
+  authenticated geometry/screenshot review. Preserve PostgreSQL, Valkey, provider3001,
+  rollback image and all data; port3002 remains closed. Retain the candidate only if
+  that fresh reviewer approves it, otherwise restore the exact rollback image.
 
 ## Definition of done
 
@@ -106,4 +108,3 @@ required, stop and record a numbered question before editing it.
 - [ ] Glass, native platform, ERP and room-configuration evidence meets this order.
 - [ ] Accessibility, responsive, state and measured performance proofs pass.
 - [ ] Independent review approves the exact candidate before sole-local promotion.
-
