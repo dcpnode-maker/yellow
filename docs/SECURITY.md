@@ -191,6 +191,29 @@ idempotency evidence. A ready snapshot is not a checkout authorization and canno
 release occupancy, settle/close a folio, close an account or transition reservation or
 segment state.
 
+### Governed checkout command containment
+
+The write route is separately protected by `stay-operations.checkout:commit` and the
+exact property grant. Its accepted HTTP body is empty; the adapter constructs the
+actor-bound `reservation.checked_out` envelope and the domain independently validates
+tenant, property, actor, reservation and idempotency identity. Foreign property,
+tenant, actor or target authority is concealed and creates no durable artifact.
+
+The command obtains deterministic reservation/segment locks, then locks the one
+canonical guest account and every reservation folio only through the existing
+owner-mediated financial-row capability. It revalidates the fixed readiness blockers
+under those locks. Occupancy is released only through
+`ReservationOccupancyService.releaseForSegment`; raw runtime status and occupancy DML
+remain denied. Guarded non-lengthening state updates, release, idempotency, fact and
+outbox evidence share one rollback boundary, including publication failure and
+concurrent settlement or segment-change arbitration.
+
+Facts and events contain minimized operational ids, states, periods, release count and
+folio status/balance evidence only. They exclude names, contacts, identity documents,
+notes and payment instruments. Checkout has no authority over account/folio state,
+ledger, payment, business day, room condition, housekeeping, keys, documents,
+statutory or fiscal truth.
+
 ## 6. Statutory & privacy
 
 ### Token-only payment containment

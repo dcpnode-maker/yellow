@@ -725,3 +725,27 @@ data. Malformed input fails validation; foreign or mismatched tenant/property/ta
 authority is concealed as not found. The read performs no checkout, transition,
 occupancy release, account/folio/ledger change, fact, event or idempotency write. A
 future checkout command must lock and revalidate every predicate.
+
+## 23. Governed checkout command boundary
+
+`CheckoutService.checkout` accepts only tenant, property and reservation UUIDs, an
+8–200 visible-ASCII idempotency key, and an exact server-built
+`reservation.checked_out` audit envelope. Room, segment, folio, balances, readiness
+and time are never caller authority. Its one tenant transaction verifies the active
+actor; locks the reservation and all segments; locks the single canonical guest
+account and every reservation folio through `lock_financial_rows` in deterministic
+order; and re-evaluates the exact Order-203 blockers from PostgreSQL truth.
+
+Only `in_house` or `due_out` reservations with exactly one current `in_house`
+segment may proceed. `ReservationOccupancyService.releaseForSegment` is the only
+occupancy mutation. The segment becomes `departed`, its upper bound becomes the
+server transaction timestamp only when that timestamp is earlier than the recorded
+upper bound, and the reservation becomes `checked_out`. Checkout before the segment
+lower bound fails closed. The command never lengthens a stay.
+
+Release, both guarded transitions, idempotency, the minimized
+`reservation.checked_out` fact and matching outbox event commit or roll back as one
+effect. Exact replay returns the prior frozen result; changed reuse conflicts.
+Checkout does not settle or close folios/accounts, post or reverse money, mutate a
+business day, mark a room dirty, or create housekeeping work. Those remain separate
+governed commands.

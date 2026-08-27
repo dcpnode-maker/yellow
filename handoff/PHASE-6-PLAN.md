@@ -1,8 +1,8 @@
 # Phase 6 — Stay operations and housekeeping
 
-**Status:** active; Orders 200–201 are built-unreviewed
+**Status:** active; Orders 200–204 are built-unreviewed
 **Entry point:** built-unreviewed Phase-5 composition through Order 199
-**Current order:** `202-governed-housekeeping-task-sheet-generation-v1.md`
+**Current order:** `204-governed-checkout-command.md` (built-unreviewed)
 
 ## Outcome
 
@@ -92,15 +92,32 @@ controls. Reads are deeply frozen, mutation-free and coherent across a real conc
 settlement transition. No checkout action, occupancy release, settlement, account,
 document, day, statutory, key or other mutation is introduced.
 
+## Built-unreviewed bounded slice — Order 204
+
+Order 204 adds the exact `stay-operations.checkout:commit` command and a deliberate
+confirmed **Check out guest** action to the existing Departure workbench. One
+actor-bound idempotent tenant transaction locks the reservation and segments, the
+single canonical guest account and every folio in deterministic order, then
+revalidates every Order203 blocker. Only `in_house` or `due_out` may become
+`checked_out`, and exactly one current `in_house` segment becomes `departed`.
+
+The command releases the exact matching occupancy only through
+`ReservationOccupancyService.releaseForSegment`, trims the segment at server
+transaction time without lengthening its booked period, and records minimized
+fact/outbox evidence atomically. Exact replay is stable; stale financial/segment
+truth, hostile authority and publication failure leave no partial mutation. The
+deterministic fixture adds one separately settled-zero checkout-ready stay and no
+command effect. Checkout never settles, closes, transfers or repairs a folio, changes
+room condition or creates housekeeping work; Order202's departure-sheet workflow
+remains separate.
+
 ## Subsequent bounded slices
 
-1. Governed checkout command composed with settled folios or exact AR authority; no
-   implicit balance repair and every readiness predicate is locked and revalidated.
-2. Discrepancy, queue and service-message workflows only after their sleep/skip/person,
+1. Discrepancy, queue and service-message workflows only after their sleep/skip/person,
    queue-linkage and resolution semantics are recorded explicitly.
-3. Arrival travel/vehicle/parking capture; any parking occupancy must use the existing
+2. Arrival travel/vehicle/parking capture; any parking occupancy must use the existing
    occupancy choke point.
-4. Optional key-provider port only after provider ownership, credential and recovery
+3. Optional key-provider port only after provider ownership, credential and recovery
    policy are fixed.
 
 Statutory field semantics, validation, submission and receipts remain Phase 8. Tax and

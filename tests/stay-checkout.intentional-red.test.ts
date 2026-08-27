@@ -13,7 +13,6 @@ test("Order 204 intentional red: governed checkout command is absent before impl
   expect(existsSync(service)).toBe(true);
   expect(operator).toContain("stay-operations.checkout:commit");
   expect(app).toContain('/checkout"');
-  expect(html).toContain('id="departure-checkout-submit"');
+  expect(html).toContain('id="checkout-command-submit"');
   expect(script).toContain("submitCheckout");
 });
-

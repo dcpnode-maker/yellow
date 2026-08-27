@@ -47,6 +47,10 @@
  let checkInAttemptDraft = "";
  let checkoutReadinessData = null;
  let checkoutReadinessGeneration = 0;
+ let checkoutAttemptKey = "";
+ let checkoutAttemptDraft = "";
+ let checkoutPending = false;
+ let checkoutCompletionNotice = null;
  let reservationDrawerReturnFocus = null;
  let reservationDrawerReturnView = "";
  let reservationDrawerReturnReservationId = "";
@@ -532,6 +536,9 @@
  const departureBlockers = $("#departure-blockers");
  const departureFolioCount = $("#departure-folio-count");
  const departureFolioList = $("#departure-folio-list");
+ const departureCheckoutForm = $("#checkout-command-form");
+ const departureCheckoutConfirm = $("#checkout-command-confirm");
+ const departureCheckoutSubmit = $("#checkout-command-submit");
  const departureRefresh = $("#departure-readiness-refresh");
  const departureRetry = $("#departure-readiness-retry");
  const departureMessage = $("#departure-readiness-message");
@@ -2046,6 +2053,11 @@
   function clearCheckoutReadinessWorkbench() {
  checkoutReadinessGeneration += 1;
  checkoutReadinessData = null;
+ if (checkoutCompletionNotice && (checkoutCompletionNotice.property !== propertySelect.value
+  || checkoutCompletionNotice.reservationId !== reservationRouteReservationId)) checkoutCompletionNotice = null;
+ checkoutAttemptKey = "";
+ checkoutAttemptDraft = "";
+ checkoutPending = false;
  departureWorkbench.hidden = true;
  departureWorkbench.setAttribute("aria-busy", "false");
  departureBadge.textContent = "Checking…";
@@ -2058,9 +2070,19 @@
  departureBlockers.replaceChildren();
  departureFolioList.replaceChildren();
  departureFolioCount.textContent = "0 windows";
+ departureCheckoutForm.setAttribute("aria-busy", "false");
+ departureCheckoutConfirm.checked = false;
+ departureCheckoutConfirm.disabled = true;
+ departureCheckoutSubmit.disabled = true;
  departureRefresh.disabled = false;
  departureMessage.classList.remove("error");
  departureMessage.textContent = "";
+ }
+  function syncCheckoutConfirmation() {
+ const ready = checkoutReadinessData?.ready === true;
+ departureCheckoutConfirm.disabled = checkoutPending || !ready;
+ departureCheckoutSubmit.disabled = checkoutPending || !ready || !departureCheckoutConfirm.checked;
+ departureRefresh.disabled = checkoutPending;
  }
   function checkoutReadinessResult(value, reservationId) {
  if (!value || typeof value !== "object" || Array.isArray(value) || value.reservationId !== reservationId
@@ -2150,6 +2172,7 @@ function departureEvidenceRow(term, value) {
  departureError.hidden = true;
  departureContent.hidden = false;
  departureWorkbench.setAttribute("aria-busy", "false");
+ syncCheckoutConfirmation();
  }
   async function loadCheckoutReadiness({ focus = false } = {}) {
  if (!reservationDetailData) {
@@ -2163,6 +2186,9 @@ function departureEvidenceRow(term, value) {
  departureWorkbench.hidden = false;
  departureWorkbench.setAttribute("aria-busy", "true");
  departureRefresh.disabled = true;
+ departureCheckoutConfirm.checked = false;
+ departureCheckoutConfirm.disabled = true;
+ departureCheckoutSubmit.disabled = true;
  departureError.hidden = true;
  departureContent.hidden = true;
  departureBadge.textContent = "Checking…";
@@ -2172,7 +2198,10 @@ function departureEvidenceRow(term, value) {
   const result = checkoutReadinessResult(await request(`/api/v1/properties/${enc(property)}/reservations/${enc(reservationId)}/checkout-readiness`), reservationId);
   if (!checkoutReadinessIsCurrent(generation, detailGeneration, property, reservationId)) return;
   renderCheckoutReadiness(result);
-  departureMessage.textContent = "Departure readiness refreshed from current server truth.";
+  const completion = checkoutCompletionNotice?.property === property
+   && checkoutCompletionNotice.reservationId === reservationId ? checkoutCompletionNotice.message : "";
+  departureMessage.textContent = completion || "Departure readiness refreshed from current server truth.";
+  if (completion) checkoutCompletionNotice = null;
   if (focus) departureHeading.focus({ preventScroll: true });
  } catch (error) {
   if (!checkoutReadinessIsCurrent(generation, detailGeneration, property, reservationId)) return;
@@ -2183,9 +2212,104 @@ function departureEvidenceRow(term, value) {
   departureError.querySelector("p").textContent = error instanceof Error ? error.message : "Departure readiness is unavailable.";
   departureMessage.classList.add("error");
   departureMessage.textContent = "No readiness conclusion was made. Retry this read-only snapshot.";
+  syncCheckoutConfirmation();
   if (focus) departureRetry.focus({ preventScroll: true });
  } finally {
   if (checkoutReadinessIsCurrent(generation, detailGeneration, property, reservationId)) departureRefresh.disabled = false;
+ }
+ }
+  function checkoutResult(value, reservationId) {
+ const keys = value && typeof value === "object" && !Array.isArray(value) ? Object.keys(value).sort() : [];
+ const expected = ["assignedSpaceId", "checkedOutAt", "folioWindowCount", "previousReservationStatus", "previousSegmentPeriod", "releasedClaimCount", "replayed", "reservationId", "reservationStatus", "segmentId", "segmentPeriod", "segmentStatus"];
+ const periodsValid = [value?.previousSegmentPeriod, value?.segmentPeriod].every((period) => period
+  && typeof period === "object" && !Array.isArray(period)
+  && JSON.stringify(Object.keys(period).sort()) === JSON.stringify(["from", "to"])
+  && typeof period.from === "string" && typeof period.to === "string");
+ if (JSON.stringify(keys) !== JSON.stringify(expected) || value.reservationId !== reservationId
+  || !["in_house", "due_out"].includes(value.previousReservationStatus)
+  || value.reservationStatus !== "checked_out" || value.segmentStatus !== "departed"
+  || !canonicalUuid(String(value.segmentId || "")) || !canonicalUuid(String(value.assignedSpaceId || ""))
+  || typeof value.checkedOutAt !== "string" || !periodsValid
+  || !Number.isInteger(value.releasedClaimCount) || value.releasedClaimCount < 0
+  || !Number.isInteger(value.folioWindowCount) || value.folioWindowCount < 0
+  || typeof value.replayed !== "boolean") {
+  throw new Error("The server returned an invalid checkout result.");
+ }
+ return value;
+ }
+  async function submitCheckout(event) {
+ event.preventDefault();
+ if (!reservationDetailData || checkoutReadinessData?.ready !== true || !departureCheckoutConfirm.checked || checkoutPending) return;
+ const reservationId = reservationDetailData.reservation.reservationId;
+ const property = propertySelect.value;
+ const detailGeneration = reservationDetailGeneration;
+ const readinessGeneration = checkoutReadinessGeneration;
+ const draft = JSON.stringify({ property, reservationId });
+ if (!checkoutAttemptKey || checkoutAttemptDraft !== draft) {
+  checkoutAttemptKey = crypto.randomUUID();
+  checkoutAttemptDraft = draft;
+ }
+ const attemptKey = checkoutAttemptKey;
+ checkoutPending = true;
+ departureCheckoutForm.setAttribute("aria-busy", "true");
+ departureMessage.classList.remove("error");
+ departureMessage.textContent = "Checking out from locked, current server truth…";
+ syncCheckoutConfirmation();
+ let focusRefresh = false;
+ try {
+  const result = checkoutResult(await request(`/api/v1/properties/${enc(property)}/reservations/${enc(reservationId)}/checkout`, {
+   method: "POST", headers: { "idempotency-key": attemptKey }, body: "{}",
+  }), reservationId);
+  if (!checkoutReadinessIsCurrent(readinessGeneration, detailGeneration, property, reservationId)) return;
+  checkoutAttemptKey = "";
+  checkoutAttemptDraft = "";
+  departureCheckoutConfirm.checked = false;
+  departureMessage.textContent = result.replayed
+   ? "Existing checkout confirmed. Refreshing the authoritative stay and Today lanes…"
+   : "Guest checked out. Refreshing the authoritative stay and Today lanes…";
+  checkoutCompletionNotice = Object.freeze({
+   property,
+   reservationId,
+   message: result.replayed
+    ? "Existing checkout confirmed. Reservation detail and departure evidence are refreshed from server truth."
+    : "Guest checked out. Reservation detail and departure evidence are refreshed from server truth.",
+  });
+  announceOperation(result.replayed ? "Existing checkout confirmed." : "Guest checked out successfully.");
+  void loadToday();
+  const detailRefresh = loadReservationDetail(reservationId);
+  const authoritativeDetailGeneration = reservationDetailGeneration;
+  await detailRefresh;
+  if (authoritativeDetailGeneration !== reservationDetailGeneration || property !== propertySelect.value
+   || reservationRouteReservationId !== reservationId || reservationDetailData?.reservation?.reservationId !== reservationId
+   || reservationDetailData.reservation.status !== "checked_out" || reservationDetailDrawer.hidden
+   || location.pathname !== `/p/${property}/res/${reservationId}`) return;
+  departureMessage.textContent = result.replayed
+   ? "Existing checkout confirmed. Reservation detail is refreshed from server truth."
+   : "Guest checked out. Reservation detail is refreshed from server truth.";
+  departureHeading.focus({ preventScroll: true });
+ } catch (error) {
+  if (!checkoutReadinessIsCurrent(readinessGeneration, detailGeneration, property, reservationId)) return;
+  const conflict = error?.status === 409;
+  if (conflict) {
+   checkoutReadinessData = null;
+   departureCheckoutConfirm.checked = false;
+   departureBadge.textContent = "Refresh required";
+   departureBadge.dataset.state = "blocked";
+   departureSummary.textContent = "Checkout conditions changed on the server. Refresh departure readiness before retrying.";
+   focusRefresh = true;
+  }
+  departureMessage.classList.add("error");
+  departureMessage.textContent = conflict
+   ? `${error instanceof Error ? error.message : "Checkout conditions changed"}. Refresh departure readiness; the same request key is retained.`
+   : `${error instanceof Error ? error.message : "Checkout could not be completed"}. Retry keeps the same request key; refresh departure readiness if conditions changed.`;
+  if (!conflict) departureHeading.focus({ preventScroll: true });
+ } finally {
+  if (property === propertySelect.value && reservationRouteReservationId === reservationId) {
+   checkoutPending = false;
+   departureCheckoutForm.setAttribute("aria-busy", "false");
+   syncCheckoutConfirmation();
+   if (focusRefresh) departureRefresh.focus({ preventScroll: true });
+  }
  }
  }
   function renderReservationDetail(result) {
@@ -6824,6 +6948,8 @@ function departureEvidenceRow(term, value) {
  checkInOverrideReason.addEventListener("input", updateCheckInAction);
  departureRefresh.addEventListener("click", () => void loadCheckoutReadiness({ focus: true }));
  departureRetry.addEventListener("click", () => void loadCheckoutReadiness({ focus: true }));
+ departureCheckoutForm.addEventListener("submit", (event) => void submitCheckout(event));
+ departureCheckoutConfirm.addEventListener("change", syncCheckoutConfirmation);
  window.addEventListener("popstate", () => {
  if (location.pathname === `/p/${propertySelect.value}/today`) {
   closeReservationDetail({ history: false, restoreFocus: false });

@@ -363,6 +363,11 @@ export function createApp(options: AppOptions = {}) {
           context, params.property, params.reservation,
         ))
       )
+      .post("/api/v1/properties/:property/reservations/:reservation/checkout", ({ request, params, body, tenantContext }) =>
+        withOperatorTenant(request, (context) => operator.commitCheckout(
+          context, params.property, params.reservation, body,
+        ))
+      )
       .get("/api/v1/properties/:property/housekeeping/tasks", ({ request, params, tenantContext }) =>
         withOperatorTenant(request, (context) => operator.housekeepingBoard(context, params.property))
       )

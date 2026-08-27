@@ -27,3 +27,16 @@ export type {
   CheckoutReadinessBlocker,
   CheckoutReadinessInput,
 } from "./checkout-readiness";
+
+export {
+  CheckoutConflictError,
+  CheckoutNotFoundError,
+  CheckoutService,
+  CheckoutValidationError,
+} from "./checkout";
+export type {
+  CheckoutInput,
+  CheckoutPeriod,
+  CheckoutResult,
+  CheckoutServiceOptions,
+} from "./checkout";

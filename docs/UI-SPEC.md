@@ -198,3 +198,30 @@ request-generation guards discard stale responses. There is no polling, persiste
 optimistic readiness or checkout action. Keyboard focus, 44-pixel controls, narrow
 layouts, forced colours, reduced motion and all six current appearances remain
 supported.
+
+## 12. Governed checkout command
+
+The Departure workbench contains one explicit **Check out guest** form beneath the
+latest advisory readiness evidence. Its confirmation names the operational
+consequences: the server locks and revalidates current truth, marks the current stay
+segment departed, releases the room claim and records checkout. It does not rewrite,
+delete or close financial records in the browser.
+
+The command sends only `{}` to the exact reservation checkout route. Property,
+reservation, actor, authority, readiness, room, occupancy, folio evidence, timestamps
+and state transitions are server-owned. The action requires
+`stay-operations.checkout:commit` plus a server-derived property grant; a foreign
+property is concealed. A checked confirmation and a currently ready advisory snapshot
+enable the control for clarity, but neither is treated as server authority.
+
+One idempotency key is retained across a transport retry and replaced only when the
+operator changes to a different property or reservation, or after authoritative
+success. During the request, both checkout and readiness controls are unavailable to
+prevent duplicate submission. A successful result refreshes reservation detail and
+Today from server truth before focus returns to the Departure heading. A conflict
+keeps the same request key, explains that conditions changed and directs the operator
+to refresh readiness. Property, reservation, route, detail-generation and
+readiness-generation guards discard stale results. The form adds no polling, browser
+storage, client arithmetic, optimistic state or client-authored authority and remains
+keyboard-operable, responsive, reduced-motion and forced-colour compatible in all six
+appearances.

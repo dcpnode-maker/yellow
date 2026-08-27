@@ -135,8 +135,12 @@ import {
   type ExpectedSegmentPeriod,
 } from "../contexts/reservations";
 import {
+  CheckoutConflictError,
+  CheckoutNotFoundError,
   CheckoutReadinessNotFoundError,
   CheckoutReadinessValidationError,
+  CheckoutService,
+  CheckoutValidationError,
   CheckInConflictError,
   CheckInNotFoundError,
   CheckInService,
@@ -217,6 +221,7 @@ const CHECKIN_READ_SCOPE = "stay-operations.checkin:read";
 const CHECKIN_COMMIT_SCOPE = "stay-operations.checkin:commit";
 const CHECKIN_DIRTY_ROOM_OVERRIDE_SCOPE = "stay-operations.checkin:dirty-room-override";
 const CHECKOUT_READINESS_SCOPE = "stay-operations.checkout:read";
+const CHECKOUT_COMMIT_SCOPE = "stay-operations.checkout:commit";
 const HOUSEKEEPING_READ_SCOPE = "housekeeping.tasks:read";
 const HOUSEKEEPING_WORK_SCOPE = "housekeeping.tasks:work";
 const HOUSEKEEPING_INSPECT_SCOPE = "housekeeping.tasks:inspect";
@@ -1198,6 +1203,7 @@ type ReservationSegmentOperations = Pick<ReservationSegmentService, "findByConfi
 type ReservationBoardOperations = Pick<ReservationBoardService, "list">;
 type ReservationDetailOperations = Pick<ReservationDetailService, "findById">;
 type CheckInOperations = Pick<CheckInService, "getReadiness" | "checkIn">;
+type CheckoutOperations = Pick<CheckoutService, "checkout">;
 interface CheckoutReadinessOperations {
   read(input: Readonly<{
     tenantId: string;
@@ -1627,6 +1633,7 @@ export class OperatorHttpApi {
   readonly #receivables?: ReceivableOperations;
   readonly #checkIns?: CheckInOperations;
   readonly #checkoutReadiness?: CheckoutReadinessOperations;
+  readonly #checkouts?: CheckoutOperations;
   readonly #housekeeping?: HousekeepingOperations;
   readonly #housekeepingSheets?: HousekeepingSheetOperations;
 
@@ -1665,6 +1672,7 @@ export class OperatorHttpApi {
     housekeeping?: HousekeepingOperations,
     housekeepingSheets?: HousekeepingSheetOperations,
     checkoutReadiness?: CheckoutReadinessOperations,
+    checkouts?: CheckoutOperations,
   ) {
     this.#login = login;
     this.#availability = availability;
@@ -1700,6 +1708,7 @@ export class OperatorHttpApi {
     this.#housekeeping = housekeeping;
     this.#housekeepingSheets = housekeepingSheets;
     this.#checkoutReadiness = checkoutReadiness;
+    this.#checkouts = checkouts;
   }
 
   unavailable(request: Request): Response {
@@ -1711,6 +1720,17 @@ export class OperatorHttpApi {
   }
 
   failure(request: Request, error: unknown): Response {
+    if (error instanceof CheckoutValidationError) {
+      return apiError(request, 400, "request/invalid", "Invalid request", "Checkout input is invalid");
+    }
+    if (error instanceof CheckoutNotFoundError) {
+      return apiError(request, 404, "reservations/not_found", "Not found", "The referenced reservation was not found");
+    }
+    if (error instanceof CheckoutConflictError) {
+      return apiError(request, 409, "reservations/conflict", "Checkout blocked", "Checkout conditions changed; refresh departure readiness and resolve every named blocker before trying again", {
+        blockers: error.blockers,
+      });
+    }
     if (error instanceof CheckoutReadinessValidationError) {
       return apiError(request, 400, "request/invalid", "Invalid request", "Departure readiness input is invalid");
     }
@@ -3337,6 +3357,45 @@ export class OperatorHttpApi {
       reservationId,
     });
     return apiResponse(context.request, canonicalJson(jsonValue(readiness)));
+  }
+
+  async commitCheckout(
+    context: TenantRequestContext,
+    propertyNode: string,
+    reservationId: string,
+    body: unknown,
+  ): Promise<Response> {
+    const idempotencyKey = context.request.headers.get("idempotency-key");
+    if (!UUID.test(propertyNode) || !UUID.test(reservationId) || new URL(context.request.url).search.length > 0 ||
+        !isObject(body) || !exactKeys(body, []) || !idempotencyKey || !IDEMPOTENCY_KEY.test(idempotencyKey)) {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Checkout input is invalid");
+    }
+    if (!hasScope(context, CHECKOUT_COMMIT_SCOPE)) {
+      return apiError(context.request, 403, "auth/scope_missing", "Forbidden", "Checkout is not granted");
+    }
+    const grants = await listGrantedProperties(context, CHECKOUT_COMMIT_SCOPE);
+    if (!grants.some(({ id }) => id === propertyNode)) {
+      return apiError(context.request, 404, "reservations/not_found", "Not found", "The referenced reservation was not found");
+    }
+    if (!this.#checkouts) return this.unavailable(context.request);
+    const requestId = correlationId(context.request);
+    const result = await this.#checkouts.checkout({
+      tenantId: context.tenantId,
+      propertyNode,
+      reservationId,
+      idempotencyKey,
+      envelope: createAuditEnvelope({
+        actorId: context.identity.actorId,
+        tenantId: context.tenantId,
+        propertyNode,
+        requestId,
+        operation: "reservation.checked_out",
+      }),
+    });
+    return apiResponse(context.request, canonicalJson(jsonValue(result)), 200, {
+      "idempotency-replayed": String(result.replayed),
+      "x-correlation-id": requestId,
+    });
   }
 
   async housekeepingBoard(

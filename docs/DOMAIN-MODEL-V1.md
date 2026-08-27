@@ -335,6 +335,20 @@ authority. Physical departure, reservation/segment transition, occupancy release
 financial/account closure remain distinct future commands that must revalidate under
 their own locks.
 
+Order 204 adds no aggregate, table, state or event vocabulary. It is the governed
+command that consumes the Order-203 predicate set under reservation, segment,
+account and folio locks. The existing reservation transition
+`in_house|due_out -> checked_out` and exactly one current segment transition
+`in_house -> departed` occur atomically with the sanctioned release of that
+segment's one matching exclusive occupancy.
+
+The segment range preserves its lower bound and never extends its upper bound:
+early departure uses the PostgreSQL transaction timestamp, while late execution
+retains the already-recorded upper bound. Folio settlement/closure and canonical-zero
+balance are preconditions, not effects; account, folio, journal, posting and payment
+truth remain byte-stable. Room condition and housekeeping scheduling are intentionally
+separate aggregates and receive no implicit checkout consequence.
+
 ### Asset/Work Order aggregate — target extension
 
 Baseline `task`, `space`, relations, and OOO/OOS provide foundations, but there is no

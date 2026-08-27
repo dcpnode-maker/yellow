@@ -180,6 +180,15 @@ actionable Departure workbench under `stay-operations.checkout:read`, but no che
 settlement, occupancy trim or other mutation is admitted. The later checkout command
 must lock and revalidate the same truth.
 
+Order 204 is a built-unreviewed governed checkout slice. One actor-bound transaction
+locks and revalidates the Order203 reservation, segment, room, occupancy and all-window
+financial-readiness truth, releases only the exact segment occupancy through the
+sanctioned inventory service, trims without lengthening and departs that segment, and
+transitions `in_house`/`due_out` to `checked_out` with replayable fact/outbox evidence.
+The operator receives a deliberate confirmed checkout action and deterministic ready
+fixture. Checkout performs no financial repair, room-condition change or housekeeping
+task creation and does not complete, independently approve or locally promote Phase 6.
+
 ## Phase 7 — Tax engine + India IRP
 
 tax_assignment evaluation (percent/fixed/slab, compound, line-vs-document rounding)

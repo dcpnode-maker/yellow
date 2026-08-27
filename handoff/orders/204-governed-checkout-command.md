@@ -1,6 +1,6 @@
 # Order 204 — Governed checkout command
 
-**Status:** READY-D551 — intentional red and implementation required
+**Status:** BUILT-UNREVIEWED-D552 — implementation and executable gates green; independent proof deferred
 **Phase:** 6 — Stay operations and housekeeping
 **Branch:** `phase-6/governed-checkout-command`
 **Base:** `9162fac` (built-unreviewed Order203)
@@ -116,9 +116,8 @@ No migration, dependency, table, state or event vocabulary is admitted.
 
 ## Definition of done
 
-- [ ] Intentional red precedes implementation.
-- [ ] Locks and revalidation make checkout atomic against financial/segment races.
-- [ ] Occupancy release and status/period/evidence are exact and replayable.
-- [ ] Human checkout action and deterministic ready fixture are usable.
-- [ ] Result is recorded built-unreviewed without claiming room dirtying/housekeeping/Phase6/app completion.
-
+- [x] Intentional red precedes implementation.
+- [x] Locks and revalidation make checkout atomic against financial/segment races.
+- [x] Occupancy release and status/period/evidence are exact and replayable.
+- [x] Human checkout action and deterministic ready fixture are usable.
+- [x] Result is recorded built-unreviewed without claiming room dirtying/housekeeping/Phase6/app completion.

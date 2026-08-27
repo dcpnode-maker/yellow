@@ -97,6 +97,7 @@ export const REVIEW_PERMISSIONS = Object.freeze([
   { code: "stay-operations.checkin:read", description: "Read server-owned property check-in readiness" },
   { code: "stay-operations.checkin:commit", description: "Commit an eligible property check-in" },
   { code: "stay-operations.checkout:read", description: "Read server-owned property departure readiness" },
+  { code: "stay-operations.checkout:commit", description: "Commit an eligible property checkout" },
 ]);
 const REVIEW_USER_NAME = `${TENANT_NAME}/review-user/${REVIEW_EMAIL}`;
 const REVIEW_APPROVER_USER_NAME = `${TENANT_NAME}/review-user/${REVIEW_APPROVER_EMAIL}`;
@@ -159,6 +160,13 @@ const HOUSEKEEPING_SHEET_FIXTURE = Object.freeze({
   condition: "pickup" as const,
   conditionUpdatedAt: "2026-09-18T07:00:00.000Z",
   financialCreatedAt: "2026-09-17T14:00:00.000Z",
+});
+
+const CHECKOUT_COMMAND_FIXTURE = Object.freeze({
+  confirmationNo: "CHECKOUT-READY",
+  stayStart: "2025-09-18T15:00:00.000Z",
+  stayEnd: HOUSEKEEPING_SHEET_FIXTURE.stayStart,
+  financialCreatedAt: "2026-08-27T14:00:00.000Z",
 });
 
 const REVIEW_RATE_POLICIES: readonly Readonly<{
@@ -286,6 +294,10 @@ interface ReviewHousekeepingExamples {
   readonly eligibleOccupancyId: string;
   readonly departureAccountId: string;
   readonly departureFolioId: string;
+  readonly checkoutReservationId: string;
+  readonly checkoutSegmentId: string;
+  readonly checkoutOccupancyId: string;
+  readonly checkoutFolioId: string;
 }
 
 interface ReviewSeedRateResult {
@@ -1745,6 +1757,10 @@ async function provisionHousekeepingExamples(
   const segmentId = await uuidV5(SEED_TENANT.id, `${fixtureBase}/segment`);
   const departureAccountId = await uuidV5(SEED_TENANT.id, `${fixtureBase}/departure-readiness/account`);
   const departureFolioId = await uuidV5(SEED_TENANT.id, `${fixtureBase}/departure-readiness/folio`);
+  const checkoutFixtureBase = `${fixtureBase}/departure-command`;
+  const checkoutReservationId = await uuidV5(SEED_TENANT.id, `${checkoutFixtureBase}/reservation`);
+  const checkoutSegmentId = await uuidV5(SEED_TENANT.id, `${checkoutFixtureBase}/segment`);
+  const checkoutFolioId = await uuidV5(SEED_TENANT.id, `${checkoutFixtureBase}/folio`);
   const guestAttrs = Object.freeze({ source: "local-review", housekeeping_fixture: "sheet-eligible-guest" });
   const guestRows = await connection<Array<Record<string, unknown>>>`
     SELECT id, tenant_id, kind, display_name, legal_name, attrs, vip_code, status, merged_into
@@ -1975,6 +1991,132 @@ async function provisionHousekeepingExamples(
     exclusive: true, claim: "[0,)" }, "Local-review housekeeping sheet eligible occupancy");
   if (occupancyRows.length !== 1) throw new Error("Local-review housekeeping sheet eligible occupancy is ambiguous");
 
+  const checkoutReservationRows = await connection<Array<Record<string, unknown>>>`
+    SELECT id, tenant_id, property_node, confirmation_no, status, primary_party,
+           booker_party, group_id, channel_code, currency::text, guarantee_policy
+    FROM reservation
+    WHERE id=${checkoutReservationId}::uuid OR
+      (tenant_id=${SEED_TENANT.id}::uuid AND confirmation_no=${CHECKOUT_COMMAND_FIXTURE.confirmationNo})
+    ORDER BY id FOR UPDATE
+  `;
+  const expectedCheckoutReservation = { id: checkoutReservationId, tenant_id: SEED_TENANT.id,
+    property_node: SEED_PROPERTY.id, confirmation_no: CHECKOUT_COMMAND_FIXTURE.confirmationNo,
+    status: "due_out", primary_party: guestPartyId, booker_party: null, group_id: null,
+    channel_code: "direct", currency: SEED_PROPERTY.currency, guarantee_policy: null };
+  if (checkoutReservationRows.length === 0) {
+    await connection`INSERT INTO reservation
+      (id, tenant_id, property_node, confirmation_no, status, primary_party,
+       channel_code, currency, notes)
+      VALUES (${checkoutReservationId}::uuid, ${SEED_TENANT.id}::uuid, ${SEED_PROPERTY.id}::uuid,
+        ${CHECKOUT_COMMAND_FIXTURE.confirmationNo}, 'due_out', ${guestPartyId}::uuid,
+        'direct', ${SEED_PROPERTY.currency}, 'Local-review governed checkout ready stay')`;
+  } else {
+    exact(checkoutReservationRows[0], expectedCheckoutReservation,
+      "Local-review checkout command reservation");
+    if (checkoutReservationRows.length !== 1) {
+      throw new Error("Local-review checkout command reservation is ambiguous");
+    }
+  }
+
+  const checkoutSegmentRows = await connection<Array<Record<string, unknown>>>`
+    SELECT id, tenant_id, reservation_id, seq, unit_type_id, sellable_unit_id,
+           lower(period)=${CHECKOUT_COMMAND_FIXTURE.stayStart}::timestamptz AS exact_start,
+           upper(period)=${CHECKOUT_COMMAND_FIXTURE.stayEnd}::timestamptz AS exact_end,
+           adults, children, rate_plan_id, price_override, status
+    FROM reservation_segment WHERE id=${checkoutSegmentId}::uuid FOR UPDATE
+  `;
+  const expectedCheckoutSegment = { id: checkoutSegmentId, tenant_id: SEED_TENANT.id,
+    reservation_id: checkoutReservationId, seq: 1, unit_type_id: unitTypeId,
+    sellable_unit_id: sheetFixtureSellable.id, exact_start: true, exact_end: true,
+    adults: 1, children: [], rate_plan_id: ratePlanId, price_override: null, status: "in_house" };
+  if (checkoutSegmentRows.length === 0) {
+    await connection`INSERT INTO reservation_segment
+      (id, tenant_id, reservation_id, seq, unit_type_id, sellable_unit_id, period,
+       adults, children, rate_plan_id, status)
+      VALUES (${checkoutSegmentId}::uuid, ${SEED_TENANT.id}::uuid,
+        ${checkoutReservationId}::uuid, 1, ${unitTypeId}::uuid,
+        ${sheetFixtureSellable.id}::uuid,
+        tstzrange(${CHECKOUT_COMMAND_FIXTURE.stayStart}::timestamptz,
+          ${CHECKOUT_COMMAND_FIXTURE.stayEnd}::timestamptz, '[)'),
+        1, '[]'::jsonb, ${ratePlanId}::uuid, 'in_house')`;
+  } else {
+    exact(checkoutSegmentRows[0], expectedCheckoutSegment,
+      "Local-review checkout command segment");
+    if (checkoutSegmentRows.length !== 1) {
+      throw new Error("Local-review checkout command segment is ambiguous");
+    }
+  }
+
+  const checkoutFolioNo = "DEP-CHECKOUT-1";
+  const checkoutFolioRows = await connection<Array<Record<string, unknown>>>`
+    SELECT folio.id, folio.tenant_id, folio.account_id, folio.reservation_id,
+           folio.folio_no, folio.window_no, folio.name, folio.status,
+           to_char(folio.created_at AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') AS created_at,
+           COALESCE(balance.balance_minor, 0)::text AS balance_minor,
+           COALESCE(balance.lines, 0)::int AS posting_lines
+    FROM folio
+    LEFT JOIN folio_balance AS balance
+      ON balance.tenant_id=folio.tenant_id AND balance.folio_id=folio.id
+    WHERE folio.id=${checkoutFolioId}::uuid
+       OR (folio.tenant_id=${SEED_TENANT.id}::uuid
+         AND (folio.folio_no=${checkoutFolioNo}
+           OR (folio.reservation_id=${checkoutReservationId}::uuid AND folio.window_no=1)))
+    ORDER BY folio.id FOR UPDATE OF folio
+  `;
+  const expectedCheckoutFolio = { id: checkoutFolioId, tenant_id: SEED_TENANT.id,
+    account_id: departureAccountId, reservation_id: checkoutReservationId,
+    folio_no: checkoutFolioNo, window_no: 1, name: "Primary", status: "settled",
+    created_at: CHECKOUT_COMMAND_FIXTURE.financialCreatedAt,
+    balance_minor: "0", posting_lines: 0 };
+  if (checkoutFolioRows.length === 0) {
+    await connection`INSERT INTO folio
+      (id, tenant_id, account_id, reservation_id, folio_no, window_no, name, status, created_at)
+      VALUES (${checkoutFolioId}::uuid, ${SEED_TENANT.id}::uuid,
+        ${departureAccountId}::uuid, ${checkoutReservationId}::uuid, ${checkoutFolioNo}, 1,
+        'Primary', 'settled', ${CHECKOUT_COMMAND_FIXTURE.financialCreatedAt}::timestamptz)`;
+  } else {
+    exact(checkoutFolioRows[0], expectedCheckoutFolio,
+      "Local-review checkout command settled folio");
+    if (checkoutFolioRows.length !== 1) {
+      throw new Error("Local-review checkout command settled folio is ambiguous");
+    }
+  }
+
+  let checkoutOccupancyRows = await connection<Array<Record<string, unknown>>>`
+    SELECT id, tenant_id, space_id,
+           lower(period)=${CHECKOUT_COMMAND_FIXTURE.stayStart}::timestamptz AS exact_start,
+           upper(period)=${CHECKOUT_COMMAND_FIXTURE.stayEnd}::timestamptz AS exact_end,
+           slot_ref, slot_kind, exclusive, claim::text
+    FROM space_occupancy
+    WHERE tenant_id=${SEED_TENANT.id}::uuid AND slot_ref=${checkoutSegmentId}::uuid
+    ORDER BY id
+  `;
+  if (checkoutOccupancyRows.length === 0) {
+    await connection`SELECT record_occupancy(
+      ${SEED_TENANT.id}::uuid, ${sheetFixtureSpace.id}::uuid,
+      tstzrange(${CHECKOUT_COMMAND_FIXTURE.stayStart}::timestamptz,
+        ${CHECKOUT_COMMAND_FIXTURE.stayEnd}::timestamptz, '[)'),
+      ${checkoutSegmentId}::uuid, 'segment', true)`;
+    checkoutOccupancyRows = await connection<Array<Record<string, unknown>>>`
+      SELECT id, tenant_id, space_id,
+             lower(period)=${CHECKOUT_COMMAND_FIXTURE.stayStart}::timestamptz AS exact_start,
+             upper(period)=${CHECKOUT_COMMAND_FIXTURE.stayEnd}::timestamptz AS exact_end,
+             slot_ref, slot_kind, exclusive, claim::text
+      FROM space_occupancy
+      WHERE tenant_id=${SEED_TENANT.id}::uuid AND slot_ref=${checkoutSegmentId}::uuid
+      ORDER BY id
+    `;
+  }
+  const checkoutOccupancy = checkoutOccupancyRows[0];
+  if (!checkoutOccupancy) throw new Error("Local-review checkout command occupancy is absent");
+  exact(checkoutOccupancy, { id: checkoutOccupancy.id, tenant_id: SEED_TENANT.id,
+    space_id: sheetFixtureSpace.id, exact_start: true, exact_end: true,
+    slot_ref: checkoutSegmentId, slot_kind: "segment", exclusive: true, claim: "[0,)" },
+  "Local-review checkout command occupancy");
+  if (checkoutOccupancyRows.length !== 1) {
+    throw new Error("Local-review checkout command occupancy is ambiguous");
+  }
+
   return Object.freeze({
     assignedDirtyTaskId: taskIds["assigned-dirty"]!,
     doneCleanTaskId: taskIds["done-clean"]!,
@@ -1987,6 +2129,10 @@ async function provisionHousekeepingExamples(
     eligibleOccupancyId: String(occupancy.id),
     departureAccountId,
     departureFolioId,
+    checkoutReservationId,
+    checkoutSegmentId,
+    checkoutOccupancyId: String(checkoutOccupancy.id),
+    checkoutFolioId,
   });
 }
 
@@ -2165,6 +2311,7 @@ export async function runReviewSeed(options: ReviewSeedOptions): Promise<ReviewS
     logger(`review housekeeping: assigned_dirty=${housekeepingExamples.assignedDirtyTaskId} done_clean=${housekeepingExamples.doneCleanTaskId}`);
     logger(`review housekeeping sheet fixture: date=${housekeepingExamples.sheetDate} attendant=${housekeepingExamples.attendantPartyId} reservation=${housekeepingExamples.eligibleReservationId} segment=${housekeepingExamples.eligibleSegmentId} room=${housekeepingExamples.eligibleSpaceId}`);
     logger(`review departure readiness fixture: reservation=${housekeepingExamples.eligibleReservationId} segment=${housekeepingExamples.eligibleSegmentId} room=${housekeepingExamples.eligibleSpaceId} occupancy=${housekeepingExamples.eligibleOccupancyId} account=${housekeepingExamples.departureAccountId} folio=${housekeepingExamples.departureFolioId}`);
+    logger(`review checkout command fixture: reservation=${housekeepingExamples.checkoutReservationId} segment=${housekeepingExamples.checkoutSegmentId} room=${housekeepingExamples.eligibleSpaceId} occupancy=${housekeepingExamples.checkoutOccupancyId} account=${housekeepingExamples.departureAccountId} folio=${housekeepingExamples.checkoutFolioId}`);
     return { ...common, mode, rate, checkInExamples, housekeepingExamples };
   } finally {
     await database.close();

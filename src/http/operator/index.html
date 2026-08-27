@@ -697,9 +697,12 @@
 <section class="departure-blocker-panel" aria-labelledby="departure-blockers-heading"><h5 id="departure-blockers-heading">What needs attention</h5><ol class="departure-blockers" id="departure-blockers"></ol></section>
 <section class="departure-folio-panel" aria-labelledby="departure-folios-heading"><div class="departure-folio-head"><h5 id="departure-folios-heading">Every folio window</h5><span id="departure-folio-count">0 windows</span></div><div class="departure-folio-list" id="departure-folio-list"></div></section>
 </div>
-<p class="field-note">This is one advisory server snapshot. It does not check out the guest, release occupancy, close an account or change financial truth. Resolve folio blockers in the existing governed Folio controls, then refresh.</p>
-<div class="departure-actions"><button class="quiet" id="departure-readiness-refresh" type="button">Refresh departure readiness</button></div>
-<p class="form-message" id="departure-readiness-message" role="status" aria-live="polite" aria-atomic="true"></p>
+<form class="departure-checkout-form" id="checkout-command-form" aria-busy="false">
+<p class="field-note" id="checkout-command-consequence">The readiness snapshot alone does not check out the guest. At confirmation, the server locks and revalidates the stay, marks its current segment departed, releases the room claim and records checkout. Financial records remain immutable.</p>
+<label class="departure-checkout-confirm"><input id="checkout-command-confirm" type="checkbox" aria-describedby="checkout-command-consequence"> <span>I confirm this guest is departing and understand that checkout changes the operational stay state.</span></label>
+<div class="departure-actions"><button class="primary" id="checkout-command-submit" type="submit" disabled>Check out guest</button><button class="quiet" id="departure-readiness-refresh" type="button">Refresh departure readiness</button></div>
+</form>
+<p class="form-message" id="departure-readiness-message" role="status" aria-live="assertive" aria-atomic="true"></p>
 </section>
 <section class="reservation-detail-section reservation-detail-folios" id="reservation-detail-folios" hidden aria-labelledby="reservation-detail-folios-title">
 <h4 id="reservation-detail-folios-title">Folios</h4>

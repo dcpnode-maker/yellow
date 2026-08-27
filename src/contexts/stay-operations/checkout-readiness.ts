@@ -1,4 +1,4 @@
-import type { Database } from "../../kernel";
+import type { Database, Tx } from "../../kernel";
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 const INTEGER = /^-?(?:0|[1-9][0-9]*)$/;
@@ -125,7 +125,9 @@ function requireUuid(value: unknown, subject: string): string {
   return value;
 }
 
-function normalize(input: CheckoutReadinessInput): Readonly<CheckoutReadinessInput> {
+export function normalizeCheckoutReadinessInput(
+  input: CheckoutReadinessInput,
+): Readonly<CheckoutReadinessInput> {
   requirePlainObject(input);
   const keys = Object.getOwnPropertyNames(input).sort();
   const expected = ["propertyNode", "reservationId", "tenantId"];
@@ -257,9 +259,30 @@ export class CheckoutReadinessService {
   }
 
   async read(input: CheckoutReadinessInput): Promise<CheckoutReadiness> {
-    const normalized = normalize(input);
+    const normalized = normalizeCheckoutReadinessInput(input);
     try {
-      const rows = await this.#database.withTenantTransaction(normalized.tenantId, (tx) => tx<SnapshotRow[]>`
+      return await this.#database.withTenantTransaction(
+        normalized.tenantId,
+        (tx) => loadCheckoutReadiness(tx, normalized),
+      );
+    } catch (error) {
+      const state = (error as { errno?: unknown; code?: unknown }).errno ??
+        (error as { errno?: unknown; code?: unknown }).code;
+      if (state === "42501") {
+        throw new CheckoutReadinessNotFoundError("Reservation was not found in the active property");
+      }
+      throw error;
+    }
+  }
+}
+
+/** Internal command reuse; callers must already be inside the tenant transaction. */
+export async function loadCheckoutReadiness(
+  tx: Tx,
+  input: CheckoutReadinessInput,
+): Promise<CheckoutReadiness> {
+  const normalized = normalizeCheckoutReadinessInput(input);
+  const rows = await tx<SnapshotRow[]>`
         WITH target_reservation AS MATERIALIZED (
           SELECT reservation.id, reservation.status
           FROM public.reservation
@@ -364,15 +387,6 @@ export class CheckoutReadinessService {
         LEFT JOIN matching_occupancies AS occupancy ON true
         LEFT JOIN reservation_folios AS folio ON true
         ORDER BY folio.window_no NULLS LAST, folio.id NULLS LAST
-      `);
-      return snapshot(rows);
-    } catch (error) {
-      const state = (error as { errno?: unknown; code?: unknown }).errno ??
-        (error as { errno?: unknown; code?: unknown }).code;
-      if (state === "42501") {
-        throw new CheckoutReadinessNotFoundError("Reservation was not found in the active property");
-      }
-      throw error;
-    }
-  }
+  `;
+  return snapshot(rows);
 }
