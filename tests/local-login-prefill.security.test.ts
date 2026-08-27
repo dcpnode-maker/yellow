@@ -21,9 +21,10 @@ describe("Order194 local sign-in prefill", () => {
     }, new Request("http://127.0.0.1:3000/"));
     const html = await response.text();
     expect(response.headers.get("cache-control")).toBe("no-store");
-    expect(html).toContain('name="tenant" autocomplete="organization" required maxlength="63" placeholder="yellow-demo" value="yellow-demo&amp;&quot;&lt;"');
-    expect(html).toContain('name="email" type="email" autocomplete="username" required maxlength="254" placeholder="operator@yellow.local" value="operator+review@yellow.local"');
-    expect(html).toContain('name="password" type="password" autocomplete="current-password" required maxlength="1024" value="secret&amp;&quot;&lt;value&gt;"');
+    expect(html).toContain('id="login-form" autocomplete="off"');
+    expect(html).toContain('name="tenant" autocomplete="off" required maxlength="63" placeholder="yellow-demo" value="yellow-demo&amp;&quot;&lt;"');
+    expect(html).toContain('name="email" type="email" autocomplete="off" required maxlength="254" placeholder="operator@yellow.local" value="operator+review@yellow.local"');
+    expect(html).toContain('name="password" type="password" autocomplete="off" required maxlength="1024" value="secret&amp;&quot;&lt;value&gt;"');
     expect(html).not.toContain('type="text" autocomplete="current-password"');
   });
 

@@ -3600,6 +3600,9 @@ function isLoopbackRequest(request: Request): boolean {
 
 function localReviewHtml(credentials: OperatorLocalReviewCredentials): Response {
   let html = readFileSync(fileURLToPath(ASSET_URLS.html), "utf8");
+  const form = '<form class="card login-card" id="login-form">';
+  if (html.split(form).length !== 2) throw new Error("operator sign-in form contract changed");
+  html = html.replace(form, '<form class="card login-card" id="login-form" autocomplete="off">');
   const fields = [
     ['<input name="tenant" autocomplete="organization" required maxlength="63" placeholder="yellow-demo">', credentials.tenant],
     ['<input name="email" type="email" autocomplete="username" required maxlength="254" placeholder="operator@yellow.local">', credentials.email],
@@ -3607,7 +3610,7 @@ function localReviewHtml(credentials: OperatorLocalReviewCredentials): Response 
   ] as const;
   for (const [input, value] of fields) {
     if (html.split(input).length !== 2) throw new Error("operator sign-in field contract changed");
-    html = html.replace(input, `${input.slice(0, -1)} value="${escapeHtmlAttribute(value)}">`);
+    html = html.replace(input, `${input.slice(0, -1).replace(/ autocomplete="[^"]+"/, ' autocomplete="off"')} value="${escapeHtmlAttribute(value)}">`);
   }
   return new Response(html, {
     headers: { "cache-control": "no-store", "content-type": "text/html; charset=utf-8" },
