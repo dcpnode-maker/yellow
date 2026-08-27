@@ -30,6 +30,12 @@ whole-group routing for Business, Personal and Corrections presentation. Togethe
 they satisfy the correction/transfer foundation without silently importing payment,
 AR, document, tax or settlement behavior.
 
+Order196 delivered exact-zero per-window settlement and Order197 delivered governed
+cashier custody. Active Order198 now completes the approved Order113 direct-billing
+half: exact positive guest debt moves only to a party-specific company/travel-agent
+receivable under locked derived credit authority. Full AR invoices, allocations,
+aging/statements and external accounting remain Phase12.
+
 Current founder-visible delivery: Order 171 wires the already-approved primary-folio
 command behind its own property permission and an explicit reservation action, then
 reuses the existing statement and governed untaxed-charge surfaces. Reservation commit

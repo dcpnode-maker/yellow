@@ -117,6 +117,10 @@ invoice/fiscal issue, trust safeguards and audited business-day close remain wor
 this active phase; Phase 5 is not complete. Built-unreviewed Order 197 adds governed property
 cash drawers, blind immutable denomination counts and approval-bound over/short close;
 it creates no cash posting, balancing journal or business-day seal authority.
+Active Order 198 adds the missing direct-billing path: one locked positive guest-folio
+balance may move to one party-specific company/travel-agent receivable under derived
+credit authority, leaving the folio at zero for existing settlement. It is not a full
+AR ledger, invoice, allocation, aging, checkout or accounting-provider integration.
 
 ## Phase 6 — Stay ops & Housekeeping
 
