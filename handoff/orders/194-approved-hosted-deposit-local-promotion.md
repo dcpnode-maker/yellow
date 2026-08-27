@@ -24,6 +24,7 @@ and narrowly provisioning one deterministic Yellow Demo/FOL-1 USD deposit fixtur
 - `src/app.ts`
 - `src/server.ts`
 - `src/http/operator.ts`
+- `docker-compose.yml`
 - `tests/local-login-prefill.security.test.ts`
 - `DECISIONS.log`
 - `handoff/LEDGER.md`
@@ -42,6 +43,8 @@ admitted. If implementation requires one, stop and open a numbered question.
 - HTML-escape every attribute value and return the credential-bearing document with
   `cache-control: no-store`. The password remains a masked password input.
 - The browser token stays memory-only and reload still requires one click to sign in.
+- Docker may listen on its internal wildcard only behind the existing host-loopback
+  publication; credential values are emitted only for loopback-host requests.
 
 ## Fixed provisioning contract
 

@@ -58,5 +58,9 @@ describe("Order194 local sign-in prefill", () => {
     expect(source).not.toMatch(/console\.(?:log|error|warn)\([^\n]*(?:LOCAL_REVIEW|credentials)/);
     const operator = await Bun.file(new URL("../src/http/operator.ts", import.meta.url)).text();
     expect(operator).toContain('new Set(["127.0.0.1", "localhost", "[::1]", "::1"])');
+    const compose = await Bun.file(new URL("../docker-compose.yml", import.meta.url)).text();
+    for (const name of ["YELLOW_LOCAL_REVIEW_PREFILL", "YELLOW_LOCAL_REVIEW_TENANT", "YELLOW_LOCAL_REVIEW_EMAIL", "YELLOW_LOCAL_REVIEW_PASSWORD"]) {
+      expect(compose).toContain(`${name}: "\${${name}`);
+    }
   });
 });
