@@ -1,8 +1,10 @@
 # Order 193 hosted payment and deposit workbench independent review
 
-**Conclusion:** CHANGES REQUIRED
+**Conclusion:** APPROVED
 
-**Corrected product candidate:** `bb87e680d1abf9b34790127ed10e3b632dbc66fc`
+**Approved corrected product candidate:** `6d804f933e8696b747f942afcb5aed1a61c06d89`
+
+**Prior rejected corrected candidate:** `bb87e680d1abf9b34790127ed10e3b632dbc66fc`
 
 **Prior rejected product candidate:** `102563e99300f329388dc857c13a88140f2f2552`
 
@@ -140,3 +142,52 @@ Candidates `102563e` and `bb87e68` are not approved and are not eligible for loc
 integration, merge, push, public or production deployment, or Phase-wide completion.
 The isolated reviewer stack and volume were removed; the sole
 `yellow-local-current` stack on port 3000 remained healthy and untouched.
+
+## Final corrected-candidate approval
+
+Fresh independent Tier-3 review **APPROVES** exact product candidate
+`6d804f933e8696b747f942afcb5aed1a61c06d89`. Its exact D-517 repair moves only the
+required folio grid/tab containment into lazy `operator-deposits.css`; the initial
+operator shell is **98,300/98,304 gzip bytes**, the lazy bundle is
+**3,731/8,192**, and the D-516 native-375 containment remains green.
+
+Reviewer-owned isolated execution produced the following evidence:
+
+- fresh migrations 0001-0022, exactly 89 public tables, 79 tenant RLS
+  policies, and referee **11/11**;
+- hosted HTTP/assets/UAT/operator/security **49 passed, 6 intentional skips,
+  0 failed (522 assertions)**; hosted database **10/10 (56)**; inherited payments
+  **10/10 (592)**; authenticated operator HTTP **23/23 (247)**; database
+  acceptance **6/6 (13)**; app-role **5/5 (25)**; runtime authority **10/10
+  (79)**; pinned Linux Bun 1.3.14 migrations **23/23 (118)**;
+- standing **291 passed, 521 intentional database skips, 0 failed (3,616
+  assertions)**, plus typecheck, 71-file boundaries, 23-package licence policy,
+  exact schema, production audit and exact-range/worktree diff checks;
+- authenticated Folio Deposits containment at 375/768/1024/1440: root
+  client/scroll **360/360, 753/753, 1009/1009, 1425/1425**; workspace
+  **334/334, 721/721, 975/975, 1178/1178**; deposit panel
+  **302/302, 689/689, 943/943, 1146/1146**. The 200%-equivalent effective
+  512-pixel run remained **497/497** at the root and **471/471** in the workspace;
+- reduced-motion media matched, keyboard focus exposed a solid 2.4-pixel outline,
+  no-JavaScript login remained disabled and URL-stable, clean exit did not prompt,
+  dirty exit raised the required blocking confirmation, and final warning/error
+  console collection was empty;
+- a real guest `3195` -> distinct synthetic provider `3196` -> signed callback
+  `3195` journey returned exact guest server truth. Identical provider replay
+  retained one durable receipt. Native partial 2,000 and final 3,000 application
+  produced one hash-only request, one operation, one receipt, two applications
+  totalling 5,000, three two-line journals each summing zero, zero remainder and
+  folio balance 5,000.
+
+Two reviewer-harness preconditions were discarded and are not counted as product
+evidence: an initial canonical-acceptance invocation against the browser fixture
+database, and the in-app browser's refusal to perform the guest native POST before
+following the server-issued 303. The exact 303 was verified from the running server,
+then the same browser traversed the signed provider URL and completed both callback
+and replay. The dirty-exit automation connection timed out while its expected modal
+was open; the modal itself appeared and the current-candidate executable exit oracle
+also passed. Neither limitation changes product truth.
+
+Candidate `6d804f9` is eligible for the bounded next integration/promotion order. This
+approval does not authorize merge, push, public or production deployment, real PSP
+use, fiscal issue, or Phase-wide completion.
