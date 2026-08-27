@@ -431,6 +431,8 @@ input:hover, select:hover, textarea:hover { border-color: #8d978c; }
 .folio-correction-form label[for="folio-correction-reason"], .folio-correction-actions { grid-column: 1 / -1; }
 .folio-correction-actions { display: flex; flex-wrap: wrap; gap: .65rem; }
 .folio-correct-action { margin-top: .45rem; }
+#folio-workspace { grid-template-columns: minmax(0, 1fr); }
+#folio-workspace > * { min-width: 0; max-width: 100%; }
 .folio-workspace-head { display: flex; align-items: center; gap: 1rem; }
 .folio-workspace-head > div { min-width: 0; }
 .folio-workspace-head h3 { margin: 0; overflow-wrap: anywhere; }
@@ -775,6 +777,8 @@ input, select, textarea { min-height: 44px; border-color: #bdcbca; background: #
 .reservation-detail-section dd + dt { margin-top: .5rem; }
 .reservation-detail-action-menu { grid-template-columns: 1fr; }
 .folio-workspace-tabs button { flex: 1; }
+#folio-workspace-tabs { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+#folio-workspace-tabs button { min-width: 0; width: 100%; white-space: normal; overflow-wrap: anywhere; }
 .folio-posting-card dl { grid-template-columns: 1fr; gap: .12rem; }
 .folio-posting-card dd + dt { margin-top: .45rem; }
 }

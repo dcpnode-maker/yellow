@@ -78,6 +78,12 @@ describe("Order 105 operator folio workbench", () => {
     expect(enabled).toBeGreaterThan(boot);
   });
 
+  test("Order193 P5: the 375px folio deposit workspace cannot grow its grid track", () => {
+    expect(css).toContain("#folio-workspace { grid-template-columns: minmax(0, 1fr);");
+    expect(css).toMatch(/@media \(max-width: 480px\)[\s\S]*?#folio-workspace-tabs \{[^}]*grid-template-columns: repeat\(2, minmax\(0, 1fr\)\)/);
+    expect(css).toMatch(/@media \(max-width: 480px\)[\s\S]*?#folio-workspace-tabs button \{[^}]*min-width: 0/);
+  });
+
   test("Order193 P5: clean folio exit never prompts while every dirty family does", () => {
     const source = functionSlice("confirmFolioExit", "folioRefreshDecision");
     const run = Function("state", `
