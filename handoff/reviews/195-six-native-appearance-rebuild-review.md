@@ -371,3 +371,116 @@ DPR2, <=1px open/wrap/Escape geometry, primary-action visibility, no-backdrop,
 opaque Glass financial-surface comparison, request-failure capture, reduced motion,
 forced colours, coarse pointer, state preservation and console/request checks. Retain
 that image only if the fresh live review approves it.
+
+---
+
+## Corrected candidate authenticated D-527 live-browser review
+
+**Verdict:** CHANGES REQUIRED — DO NOT RETAIN THIS IMAGE
+
+**Exact product candidate:** `400c406412f7b217c77228026de82ea05537637a`
+
+**Exact candidate image:**
+`sha256:ec6803c3978947de047bc3d93f83277cc314192a76c0a61c82fa255597e201a8`
+
+**Reviewer:** OpenAI Codex fresh independent non-implementing/non-operating browser
+reviewer (`order195_corrected_live_review`)
+
+**Review date:** 2026-08-27
+
+**Boundary:** authenticated read-only UI interaction and browser emulation against the
+sole loopback app on port 3000. The reviewer did not change product source, database,
+credentials, provider, port bindings, image/container selection or runtime state.
+Screenshots and the machine-readable report are outside the repository at
+`C:\Users\astha\.codex\visualizations\2026\08\27\order195-corrected-live-review`.
+
+### Blocking product finding
+
+**Pixel Android does not meet its required 48px control floor in the global shell.**
+At every tested width, the Appearance selector computed to exactly `44px` high and
+the Workspace-detail selector to `45.9375px`, despite Android's explicit 48px control
+contract. The defect reproduced at 375, 768, 1020, 1021 and 1440 CSS pixels. The
+content-level Android domain/action controls were at least 48px; only these two
+always-visible global controls remain below the native Pixel target. Correct the
+specificity/order conflict and submit a newly labelled exact image for a fresh full
+D-527 review. The current exact image is **not approved for retention**.
+
+### Previously blocking findings now verified corrected
+
+- All 30 base cases (six appearances x 375/768/1020/1021/1440) held workbench Y,
+  domain-bar Y and document scroll within `0px` before/open/after disclosure focus
+  settling. Every fixed disclosure stayed within the eight-pixel viewport boundary.
+- In every base case Shift+Tab wrapped first-to-last, Tab wrapped last-to-first,
+  Escape closed the sheet and focus returned to `#secondary-workspaces-toggle`.
+- All six 375x900 DPR2 cases had zero root/body horizontal overflow and the primary
+  `Search availability` action was initially visible, enabled and clickable. Its
+  measured height was 52.2px or greater.
+- Windows95/98's chrome-to-workbench gap remained bounded with no implicit desktop
+  void. ERP's live command heading was a two-column grid and its 12-column bento
+  measured 554/271/271px, a greater-than-2:1 lead-card ratio.
+
+### Other verified live properties
+
+- Selector values are exact and ordered: Apple, Android, Windows95/98, Glass,
+  Neomorphism and Enterprise ERP. Computed presentation signatures are unique across
+  workbench columns, navigation placement/background, card geometry/elevation,
+  primary-control geometry and typography. Settled desktop and DPR2 screenshots were
+  inspected for every appearance.
+- Property, Expert detail, active Folios view and active navigation identity survived
+  a Glass appearance transition. No page exception or network loading failure was
+  observed.
+- Glass used `blur(32px) saturate(1.68)` navigation glass, three distinct environmental
+  colour fields and three distinct depth transforms. Its representative dense table
+  surface computed to `rgba(250,253,255,0.93)` with no backdrop filter, materially
+  more opaque than navigation glass.
+- Reduced motion resolved sampled animation to `none`, transform to `none` and the
+  standing immediate `0.01ms` duration. Forced colours produced solid Canvas surfaces,
+  explicit borders, no shadows/backdrop and hid the ambient stage. Real touch
+  emulation matched coarse pointer/hover-none and reduced sampled transitions to 0s.
+- An intentional in-page availability fetch rejection displayed the failure, restored
+  its enabled action, and a subsequent bounded synthetic 200/empty response rendered
+  `No options returned.`. The reviewer changed no server or database state.
+- Chrome retained native backdrop support even when launched with both advertised
+  disable-feature switches, so a genuinely unsupported-engine `@supports not`
+  execution could not be produced on this host. The committed fallback remains
+  statically present, but it is not used to infer retention approval after the
+  Android blocker.
+- The only incidental HTTP/console entry was Chrome's unreferenced `/favicon.ico`
+  404. No application/API request failed during the measured matrix or bounded
+  synthetic error-recovery proof.
+
+### Runtime identity and containment after review
+
+```text
+app       b39bc3fa58c7... image ec6803c39789... healthy; label yellow.git=400c406..., yellow.order=195
+provider  32b2ce4cc9a5... image 5ca432f63550... healthy; start 2026-08-27T16:23:56Z
+postgres  3072977b22f6... image ab5c955e9e57... healthy; start 2026-08-27T13:14:23Z
+valkey    b39d0b80c0a8... image e0eb7c480958... healthy; start 2026-08-27T13:14:24Z
+GET http://127.0.0.1:3000/health => 200
+port 3002 => CLOSED
+```
+
+Provider/PostgreSQL/Valkey identities and start instants remained exact across the
+review. D-527 therefore requires the operator to restore the retained rollback or
+replace this image only with a newly corrected, newly labelled guarded candidate.
+
+### Personally executed evidence
+
+```text
+docker ps / docker inspect exact labels and container identities
+Get-NetTCPConnection for 3000/3001/3002/5643/6590
+=> sole app3000 plus provider3001/PostgreSQL5643/Valkey6590; no3002; all healthy
+
+fresh isolated headless Chrome/CDP 1440x900 plus exact device-metric overrides
+=> 30/30 base geometry/focus cases executed; 6/6 375x900 DPR2 cases executed
+=> prior reflow and below-fold primary-action blockers corrected
+=> Android global selectors fail 48px floor at all five widths
+
+Emulation.setEmulatedMedia / setTouchEmulationEnabled
+=> reduced-motion, forced-colours and real coarse-pointer fallbacks pass
+
+machine-readable report
+=> report.json SHA-256
+   EABCE9C499165139FA8F94ADC6448F3ED5CD73883202C2F53344C5666D6DA216
+=> 12 settled appearance screenshots plus reduced/forced-colour screenshots captured
+```
