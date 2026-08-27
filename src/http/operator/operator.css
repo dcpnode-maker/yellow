@@ -876,6 +876,7 @@ input:focus, select:focus, textarea:focus { box-shadow: var(--material-control-a
 :root[data-theme="apple"] .status-summary-grid, :root[data-theme="apple"] .metric-grid { gap: 1rem; }
 :root[data-theme="apple"] .metric { min-height: 118px; }
 :root[data-theme="android"] :is(button, input, select, textarea, .domain-tab) { min-height: 48px; }
+:root[data-theme="android"] :is(#theme-select, #experience-select) { min-height: 48px; }
 :root[data-theme="android"] .section-heading h2 { font-size: clamp(1.7rem, 3vw, 2.35rem); font-weight: 520; }
 :root[data-theme="android"] .domain-tab { border-radius: 999px; }
 :root[data-theme="android"] .card, :root[data-theme="android"] .metric, :root[data-theme="android"] .reservation-board-card, :root[data-theme="android"] .folio-posting-card { border-radius: 28px 28px 12px 28px; }

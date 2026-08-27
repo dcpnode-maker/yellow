@@ -47,6 +47,7 @@ test("Order185: material signatures, fallbacks and accessibility contracts are e
   expect(css).toMatch(/data-theme="win95"[\s\S]*outset/);
   expect(css).toMatch(/data-theme="win95"[\s\S]*inset/);
   expect(css).toMatch(/data-theme="android"[\s\S]*min-height:\s*48px/);
+  expect(css).toMatch(/data-theme="android"[^\n]*#theme-select[^\n]*#experience-select[^\n]*min-height:\s*48px/);
   expect(css).toMatch(/data-theme="neo"[\s\S]*inset/);
   expect(css).toMatch(/@media \(prefers-reduced-motion: reduce\)/);
   expect(css).toContain("@keyframes glass-stage-in");
