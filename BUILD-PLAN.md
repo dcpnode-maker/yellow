@@ -172,6 +172,14 @@ condition transition, credit balancing, auto-scheduling, reservation/occupancy
 mutation, financial/day/statutory effect, discrepancy or checkout, and does not
 complete Phase 6.
 
+Order 203 is the active read-only departure-readiness slice. One tenant transaction
+and one PostgreSQL snapshot derive fixed blockers from reservation state, the unique
+current in-house segment, its active physical room, matching exclusive occupancy and
+every reservation folio window's canonical status/balance. The operator receives an
+actionable Departure workbench under `stay-operations.checkout:read`, but no checkout,
+settlement, occupancy trim or other mutation is admitted. The later checkout command
+must lock and revalidate the same truth.
+
 ## Phase 7 — Tax engine + India IRP
 
 tax_assignment evaluation (percent/fixed/slab, compound, line-vs-document rounding)

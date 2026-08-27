@@ -79,12 +79,15 @@ mutates source reservation, segment, occupancy or condition truth.
 
 ## Subsequent bounded slices
 
-1. Discrepancy, queue and service-message workflows with explicit state and audit.
-2. Arrival travel/vehicle/parking capture; any parking occupancy must use the existing
+1. Active Order203: read-only governed departure readiness and an actionable human
+   workbench over exact current-segment, room, occupancy and all-window settlement truth.
+2. Discrepancy, queue and service-message workflows only after their sleep/skip/person,
+   queue-linkage and resolution semantics are recorded explicitly.
+3. Arrival travel/vehicle/parking capture; any parking occupancy must use the existing
    occupancy choke point.
-3. Governed departure readiness and checkout composed with settled folios or exact AR
-   authority; no implicit balance repair.
-4. Optional key-provider port only after provider ownership, credential and recovery
+4. Governed checkout command composed with settled folios or exact AR authority; no
+   implicit balance repair and every readiness predicate is locked and revalidated.
+5. Optional key-provider port only after provider ownership, credential and recovery
    policy are fixed.
 
 Statutory field semantics, validation, submission and receipts remain Phase 8. Tax and
