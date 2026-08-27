@@ -5893,25 +5893,74 @@
  document.addEventListener("visibilitychange", () => {
  if (document.visibilityState !== "visible") cancelWorkspaceMotion(true);
  });
- secondaryWorkspacesToggle.addEventListener("click", () => {
- secondaryWorkspaces.hidden = !secondaryWorkspaces.hidden;
- secondaryWorkspacesToggle.setAttribute("aria-expanded", String(!secondaryWorkspaces.hidden));
- secondaryWorkspacesToggle.textContent = secondaryWorkspaces.hidden ? "More workspaces" : "Fewer workspaces";
- if (!secondaryWorkspaces.hidden) secondaryWorkspaces.querySelector(".domain-tab")?.focus();
- });
- document.addEventListener("keydown", (event) => {
-  if (event.key !== "Escape" || secondaryWorkspaces.hidden) return;
+ const workspaceMenuFocusable = () => Array.from(secondaryWorkspaces.querySelectorAll('a[href],button:not([disabled]),input:not([disabled]),select:not([disabled]),textarea:not([disabled]),[tabindex]:not([tabindex="-1"])'))
+  .filter((element) => element.getClientRects().length > 0);
+ const positionSecondaryWorkspaces = () => {
+  if (secondaryWorkspaces.hidden) return;
+  const edge = 8;
+  const anchor = secondaryWorkspacesToggle.getBoundingClientRect();
+  const menuWidth = Math.min(320, Math.max(0, window.innerWidth - edge * 2));
+  const desiredHeight = Math.min(520, secondaryWorkspaces.scrollHeight);
+  const left = Math.min(Math.max(edge, anchor.right - menuWidth), Math.max(edge, window.innerWidth - menuWidth - edge));
+  let top = anchor.bottom + edge;
+  const availableBelow = window.innerHeight - top - edge;
+  if (availableBelow < Math.min(desiredHeight, 240) && anchor.top > desiredHeight + edge * 2) top = anchor.top - desiredHeight - edge;
+  top = Math.min(Math.max(edge, top), Math.max(edge, window.innerHeight - Math.min(desiredHeight, window.innerHeight - edge * 2) - edge));
+  secondaryWorkspaces.style.setProperty("--workspace-menu-left", `${left}px`);
+  secondaryWorkspaces.style.setProperty("--workspace-menu-top", `${top}px`);
+  secondaryWorkspaces.style.setProperty("--workspace-menu-max-height", `${Math.max(120, window.innerHeight - top - edge)}px`);
+ };
+ const closeSecondaryWorkspaces = (restoreFocus = false) => {
   secondaryWorkspaces.hidden = true;
   secondaryWorkspacesToggle.setAttribute("aria-expanded", "false");
   secondaryWorkspacesToggle.textContent = "More workspaces";
-  secondaryWorkspacesToggle.focus();
+  if (restoreFocus) secondaryWorkspacesToggle.focus();
+ };
+ const openSecondaryWorkspaces = () => {
+  if (secondaryWorkspaces.parentElement !== document.body) document.body.append(secondaryWorkspaces);
+  secondaryWorkspaces.hidden = false;
+  secondaryWorkspacesToggle.setAttribute("aria-expanded", "true");
+  secondaryWorkspacesToggle.textContent = "Fewer workspaces";
+  positionSecondaryWorkspaces();
+  requestAnimationFrame(() => {
+   positionSecondaryWorkspaces();
+   workspaceMenuFocusable()[0]?.focus();
+  });
+ };
+ secondaryWorkspacesToggle.addEventListener("click", () => {
+  if (secondaryWorkspaces.hidden) openSecondaryWorkspaces();
+  else closeSecondaryWorkspaces(true);
+ });
+ document.addEventListener("keydown", (event) => {
+  if (secondaryWorkspaces.hidden) return;
+  if (event.key === "Escape") {
+   event.preventDefault();
+   closeSecondaryWorkspaces(true);
+   return;
+  }
+  if (event.key !== "Tab") return;
+  const focusable = workspaceMenuFocusable();
+  if (focusable.length === 0) {
+   event.preventDefault();
+   secondaryWorkspaces.focus();
+   return;
+  }
+  const first = focusable[0];
+  const last = focusable[focusable.length - 1];
+  if (event.shiftKey && document.activeElement === first) {
+   event.preventDefault();
+   last?.focus();
+  } else if (!event.shiftKey && document.activeElement === last) {
+   event.preventDefault();
+   first?.focus();
+  }
  });
  document.addEventListener("pointerdown", (event) => {
   if (secondaryWorkspaces.hidden || secondaryWorkspaces.contains(event.target) || secondaryWorkspacesToggle.contains(event.target)) return;
-  secondaryWorkspaces.hidden = true;
-  secondaryWorkspacesToggle.setAttribute("aria-expanded", "false");
-  secondaryWorkspacesToggle.textContent = "More workspaces";
+  closeSecondaryWorkspaces();
  });
+ window.addEventListener("resize", positionSecondaryWorkspaces);
+ document.addEventListener("scroll", positionSecondaryWorkspaces, { passive: true, capture: true });
  signOutButton.addEventListener("click", () => {
  if (activeView !== "folios" || folioWorkspace.hidden || confirmFolioExit()) showLogin();
  });

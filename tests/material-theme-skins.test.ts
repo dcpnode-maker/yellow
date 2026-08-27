@@ -65,7 +65,7 @@ test("Order195: skins use distinct layout grammars rather than palette aliases",
     win95: [/274px/, /border:\s*2px inset/],
     glass: [/278px/, /repeat\(12/],
     neo: [/border-radius:\s*24px/, /inset/],
-    erp: [/232px/, /repeat\(4/],
+    erp: [/232px/, /repeat\(12/],
   };
   for (const [theme, patterns] of Object.entries(signatures)) {
     const scoped = rules(theme);

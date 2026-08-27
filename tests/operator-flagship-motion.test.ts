@@ -50,7 +50,7 @@ test("Order195: the six flagship systems have structural identity without unsafe
   expect(styles).toContain(':root[data-theme="android"] :is(.status-summary-grid,.metric-grid)');
   expect(styles).toContain(':root[data-theme="glass"] .ambient-stage');
   expect(styles).toContain(':root[data-theme="neo"] :is(.domain-bar,.workbench-head)');
-  expect(styles).toContain(':root[data-theme="erp"] .status-summary-grid');
+  expect(styles).toContain(':root[data-theme="erp"] :is(.status-summary-grid,.metric-grid)');
   expect(styles).toContain('@media (hover: none), (pointer: coarse)');
   expect(styles).toContain('@media (prefers-reduced-motion: reduce)');
   expect(styles.match(/:root\[data-theme="glass"\] \.workbench > section:not\(\[hidden\]\) \{ animation: none; \}/g)?.length).toBe(4);
