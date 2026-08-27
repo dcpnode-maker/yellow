@@ -19,17 +19,22 @@ const INSERT_COLUMNS = Object.freeze({
   approval_request: ["kind", "payload", "requested_by", "subject_id", "subject_type", "tenant_id"],
   availability_projection: ["blocked", "held", "ooo", "physical", "property_node", "sold", "stay_date", "tenant_id", "unit_type_id", "updated_at"],
   contact_point: ["is_primary", "kind", "party_id", "tenant_id", "value", "verified"],
+  deposit_application: ["amount_minor", "capture_payment_id", "created_by", "currency", "deposit_account_id", "folio_id", "guest_account_id", "hosted_request_id", "id", "journal_id", "key_hash", "operation_id", "property_node", "request_hash", "tenant_id"],
   extension: ["content", "key", "status", "tenant_id", "type", "version"],
   fact_log: ["actor_id", "business_date", "entity_id", "entity_type", "fact_type", "payload", "supersedes", "tenant_id", "valid_from"],
   folio: ["account_id", "folio_no", "name", "reservation_id", "status", "tenant_id", "window_no"],
   hold: ["expires_at", "holder", "kind", "period", "property_node", "sellable_unit_id", "tenant_id"],
+  hosted_payment_request: ["amount_minor", "bearer_hash", "created_by", "currency", "deposit_account_id", "expires_at", "folio_id", "generation", "guest_account_id", "id", "key_hash", "operation_id", "property_node", "request_hash", "tenant_id"],
   journal: ["business_date", "created_by", "currency", "description", "kind", "property_node", "source", "tenant_id"],
   ooo_oos: ["kind", "period", "reason", "space_id", "tenant_id"],
   outbox: ["actor_id", "aggregate_id", "aggregate_type", "business_date", "causation_id", "correlation_id", "event_type", "event_version", "payload", "property_node", "tenant_id"],
   party: ["display_name", "kind", "legal_name", "tenant_id"],
   party_role: ["party_id", "role", "tenant_id"],
+  payment: ["amount_minor", "attempt_no", "capture_journal_id", "capture_payment_id", "command_key_hash", "currency", "instrument_id", "journal_id", "method", "operation_id", "phase", "predecessor_payment_id", "psp", "psp_ref", "receipt_id", "request_hash", "result_code", "status", "tenant_id"],
+  payment_operation: ["actor_id", "clearing_account_id", "currency", "deposit_account_id", "folio_id", "guest_account_id", "id", "instrument_id", "key_hash", "method", "property_node", "provider", "purpose", "request_hash", "tenant_id", "tx_code"],
   policy: ["content", "kind", "name", "tenant_id"],
   posting_line: ["account_id", "amount_minor", "business_date", "currency", "description", "folio_id", "journal_id", "quantity", "seq", "tenant_id", "tx_code"],
+  provider_event_receipt: ["amount_minor", "content_hash", "currency", "event_id", "operation_id", "outcome", "phase", "provider", "provider_reference", "tenant_id"],
   rate_plan: ["cancellation_policy", "code", "currency", "deposit_policy", "guarantee_policy", "market_code", "name", "property_node", "source_code", "tax_inclusive", "tenant_id"],
   rate_price: ["dow_mask", "pricing", "rate_plan_id", "stay_dates", "tenant_id", "unit_type_id"],
   reservation: ["channel_code", "confirmation_no", "currency", "guarantee_policy", "id", "market_code", "primary_party", "property_node", "source_code", "status", "tenant_id"],
@@ -65,6 +70,7 @@ const CALLER_SOURCES = Object.freeze<Record<string, string>>({
   "availability_projection:DELETE": "src/contexts/inventory/availability-projection.ts",
   "availability_projection:INSERT": "src/contexts/inventory/availability-projection.ts",
   "contact_point:INSERT": "src/contexts/crm/parties.ts",
+  "deposit_application:INSERT": "src/contexts/financials/hosted-deposits.ts",
   "document_series:UPDATE": "src/contexts/financials/folios.ts",
   "extension:INSERT": "src/kernel/extension.ts",
   "extension:UPDATE": "src/contexts/rates/publication.ts",
@@ -72,6 +78,7 @@ const CALLER_SOURCES = Object.freeze<Record<string, string>>({
   "folio:INSERT": "src/contexts/financials/folios.ts",
   "hold:INSERT": "src/contexts/inventory/holds.ts",
   "hold:UPDATE": "src/contexts/inventory/holds.ts",
+  "hosted_payment_request:INSERT": "src/contexts/financials/hosted-deposits.ts",
   "journal:INSERT": "src/contexts/financials/postings.ts",
   "ooo_oos:INSERT": "src/contexts/inventory/operational-blocks.ts",
   "ooo_oos:UPDATE": "src/contexts/inventory/operational-blocks.ts",
@@ -79,8 +86,11 @@ const CALLER_SOURCES = Object.freeze<Record<string, string>>({
   "outbox:INSERT": "src/kernel/outbox.ts",
   "party:INSERT": "src/contexts/crm/parties.ts",
   "party_role:INSERT": "src/contexts/crm/parties.ts",
+  "payment:INSERT": "src/contexts/financials/payments.ts",
+  "payment_operation:INSERT": "src/contexts/financials/payments.ts",
   "policy:INSERT": "src/contexts/rates/configuration.ts",
   "posting_line:INSERT": "src/contexts/financials/postings.ts",
+  "provider_event_receipt:INSERT": "src/contexts/financials/payments.ts",
   "rate_plan:INSERT": "src/contexts/rates/configuration.ts",
   "rate_price:INSERT": "src/contexts/rates/pricing.ts",
   "rate_price:UPDATE": "src/contexts/rates/pricing.ts",
@@ -268,6 +278,7 @@ databaseDescribe("Order 150 positive runtime DML authority", () => {
           AND p.proname IN ('record_occupancy', 'release_occupancy', 'seal_business_day',
             'lock_financial_rows', 'lock_financial_business_days', 'create_charge_correction_header',
             'create_folio_transfer',
+            'open_cashier_session', 'append_cashier_count', 'close_cashier_session',
            'runtime_resolve_active_tenant', 'runtime_due_hold_scopes', 'runtime_consumer_begin',
            'runtime_consumer_read', 'runtime_consumer_mark', 'runtime_consumer_advance',
            'runtime_mark_outbox_published', 'runtime_prune_outbox', 'runtime_visible_extensions',
@@ -287,6 +298,12 @@ databaseDescribe("Order 150 positive runtime DML authority", () => {
       .toEqual(expect.objectContaining({ app: true, runtime: false }));
     expect(functions.find(({ signature }) => signature.startsWith("create_folio_transfer(")))
       .toEqual(expect.objectContaining({ app: true, runtime: false }));
+    for (const capability of [
+      "open_cashier_session(", "append_cashier_count(", "close_cashier_session(",
+    ]) {
+      expect(functions.find(({ signature }) => signature.startsWith(capability)))
+        .toEqual(expect.objectContaining({ app: true, runtime: false }));
+    }
     const runtimeFunctions = functions.filter(({ signature }) => signature.startsWith("runtime_"));
     expect(runtimeFunctions).toHaveLength(10);
     expect(runtimeFunctions.every(({ app, runtime }) => !app && runtime)).toBe(true);
@@ -311,6 +328,10 @@ databaseDescribe("Order 150 positive runtime DML authority", () => {
     await expectAppRoleDenied("UPDATE public.posting_line SET folio_transfer_root_line_id = id WHERE false");
     await expectAppRoleDenied("INSERT INTO public.posting_line (tenant_id, journal_id, seq, account_id, folio_id, tx_code, description, amount_minor, quantity, business_date, currency, folio_transfer_root_line_id) SELECT tenant_id, journal_id, seq, account_id, folio_id, tx_code, description, amount_minor, quantity, business_date, currency, id FROM public.posting_line WHERE false");
     await expectAppRoleDenied("INSERT INTO public.space_occupancy (tenant_id, space_id, period, slot_ref, slot_kind, exclusive, claim) VALUES ('00000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-000000000002', tstzrange(now(), now() + interval '1 hour', '[)'), '00000000-0000-0000-0000-000000000003', 'segment', true, int4range(0, NULL))");
+    await expectAppRoleDenied("INSERT INTO public.cash_drawer (tenant_id, property_node, account_id, code, name, currency) VALUES ('00000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-000000000002', '00000000-0000-0000-0000-000000000003', 'HOSTILE', 'Hostile', 'USD')");
+    await expectAppRoleDenied("UPDATE public.cashier_session SET closed_at = now() WHERE false");
+    await expectAppRoleDenied("INSERT INTO public.cashier_count (tenant_id, session_id, drawer_id, kind, attempt_no, counted_by, total_minor) VALUES ('00000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-000000000002', '00000000-0000-0000-0000-000000000003', 'closing', 1, '00000000-0000-0000-0000-000000000004', 0)");
+    await expectAppRoleDenied("DELETE FROM public.cashier_count_line WHERE false");
   });
 
   test("P3: new tables receive no mutation and an unauthorized grant is detected", async () => {

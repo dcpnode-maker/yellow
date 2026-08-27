@@ -166,6 +166,7 @@ dbDescribe("Order 108 SECURITY DEFINER shadow-path containment", () => {
            'lock_financial_business_days',
            'create_charge_correction_header',
            'create_folio_transfer',
+           'open_cashier_session', 'append_cashier_count', 'close_cashier_session',
            'register_extension_type'
          ]::name[])
        ORDER BY signature
@@ -174,8 +175,12 @@ dbDescribe("Order 108 SECURITY DEFINER shadow-path containment", () => {
     expect(functions.map(({ signature, securityDefiner, config, appExecute, publicDenied }) => ({
       signature, securityDefiner, config, appExecute, publicDenied,
     }))).toEqual([
+      { signature: "append_cashier_count(uuid,uuid,uuid,uuid,bigint[],bigint[])", securityDefiner: true,
+        config: ["search_path=pg_catalog, public, pg_temp"], appExecute: true, publicDenied: true },
       { signature: "assert_day_open()", securityDefiner: true,
         config: ["search_path=pg_catalog, public, pg_temp"], appExecute: false, publicDenied: true },
+      { signature: "close_cashier_session(uuid,uuid,uuid,uuid,uuid,uuid,text,boolean)", securityDefiner: true,
+        config: ["search_path=pg_catalog, public, pg_temp"], appExecute: true, publicDenied: true },
       { signature: "create_charge_correction_header(uuid,uuid,uuid,character,text,uuid)", securityDefiner: true,
         config: ["search_path=pg_catalog, public, pg_temp"], appExecute: true, publicDenied: true },
       { signature: "create_folio_transfer(uuid,uuid,uuid,uuid[],uuid,text)", securityDefiner: true,
@@ -185,6 +190,8 @@ dbDescribe("Order 108 SECURITY DEFINER shadow-path containment", () => {
       { signature: "lock_financial_business_days(uuid,uuid,date[])", securityDefiner: true,
         config: ["search_path=pg_catalog, public, pg_temp"], appExecute: true, publicDenied: true },
       { signature: "lock_financial_rows(uuid,uuid[],uuid)", securityDefiner: true,
+        config: ["search_path=pg_catalog, public, pg_temp"], appExecute: true, publicDenied: true },
+      { signature: "open_cashier_session(uuid,uuid,uuid,uuid,bigint[],bigint[])", securityDefiner: true,
         config: ["search_path=pg_catalog, public, pg_temp"], appExecute: true, publicDenied: true },
       { signature: "prune_outbox(interval)", securityDefiner: true,
         config: ["search_path=pg_catalog, public, pg_temp"], appExecute: false, publicDenied: true },
@@ -199,7 +206,14 @@ dbDescribe("Order 108 SECURITY DEFINER shadow-path containment", () => {
     ]);
 
     const expectedQualifiedObjects = new Map<string, readonly string[]>([
+      ["append_cashier_count(uuid,uuid,uuid,uuid,bigint[],bigint[])",
+        ["public.org_node", "public.cashier_session", "public.business_day", "public.cash_drawer",
+          "public.app_user", "public.cash_drawer_denomination", "public.cashier_count",
+          "public.cashier_count_line"]],
       ["assert_day_open()", ["public.business_day"]],
+      ["close_cashier_session(uuid,uuid,uuid,uuid,uuid,uuid,text,boolean)",
+        ["public.org_node", "public.cashier_session", "public.business_day", "public.cash_drawer",
+          "public.app_user", "public.cashier_count", "public.approval_request"]],
       ["create_charge_correction_header(uuid,uuid,uuid,character,text,uuid)",
         ["public.org_node", "public.app_user", "public.journal"]],
       ["create_folio_transfer(uuid,uuid,uuid,uuid[],uuid,text)",
@@ -208,6 +222,10 @@ dbDescribe("Order 108 SECURITY DEFINER shadow-path containment", () => {
       ["expire_holds()", ["public.hold", "public.release_occupancy"]],
       ["lock_financial_rows(uuid,uuid[],uuid)", ["public.account", "public.folio"]],
       ["lock_financial_business_days(uuid,uuid,date[])", ["public.business_day"]],
+      ["open_cashier_session(uuid,uuid,uuid,uuid,bigint[],bigint[])",
+        ["public.org_node", "public.business_day", "public.cash_drawer", "public.account",
+          "public.app_user", "public.cash_drawer_denomination", "public.cashier_session",
+          "public.cashier_count", "public.cashier_count_line"]],
       ["prune_outbox(interval)", ["public.outbox"]],
       ["record_occupancy(uuid,uuid,tstzrange,uuid,text,boolean)",
         ["public.space_occupancy", "public.space"]],
@@ -248,6 +266,30 @@ dbDescribe("Order 108 SECURITY DEFINER shadow-path containment", () => {
       owner: "yellow_owner", runtimeExecute: false, volatility: "v",
     }]);
 
+    const cashierAuthority = await admin!<Array<{
+      signature: string; owner: string; runtimeExecute: boolean; volatility: string;
+    }>>`
+      SELECT p.oid::regprocedure::text AS signature,
+             pg_get_userbyid(p.proowner) AS owner,
+             has_function_privilege('yellow_runtime',p.oid,'EXECUTE') AS "runtimeExecute",
+             p.provolatile::text AS volatility
+        FROM pg_proc p
+       WHERE p.oid = ANY(ARRAY[
+         'public.open_cashier_session(uuid,uuid,uuid,uuid,bigint[],bigint[])'::regprocedure,
+         'public.append_cashier_count(uuid,uuid,uuid,uuid,bigint[],bigint[])'::regprocedure,
+         'public.close_cashier_session(uuid,uuid,uuid,uuid,uuid,uuid,text,boolean)'::regprocedure
+       ])
+       ORDER BY signature
+    `;
+    expect(cashierAuthority).toEqual([
+      { signature: "append_cashier_count(uuid,uuid,uuid,uuid,bigint[],bigint[])",
+        owner: "yellow_owner", runtimeExecute: false, volatility: "v" },
+      { signature: "close_cashier_session(uuid,uuid,uuid,uuid,uuid,uuid,text,boolean)",
+        owner: "yellow_owner", runtimeExecute: false, volatility: "v" },
+      { signature: "open_cashier_session(uuid,uuid,uuid,uuid,bigint[],bigint[])",
+        owner: "yellow_owner", runtimeExecute: false, volatility: "v" },
+    ]);
+
     const connection = await admin!.reserve();
     let began = false;
     try {
@@ -266,6 +308,21 @@ dbDescribe("Order 108 SECURITY DEFINER shadow-path containment", () => {
           ARRAY['00000000-0000-0000-0000-000000011353'::uuid],
           '${ACTOR}'::uuid,
           'hostile direct app-role call'
+        )`,
+        `SELECT * FROM public.open_cashier_session(
+          '${TENANT}'::uuid, '${PROPERTY}'::uuid,
+          '00000000-0000-0000-0000-000000011361'::uuid, '${ACTOR}'::uuid,
+          ARRAY[1]::bigint[], ARRAY[0]::bigint[]
+        )`,
+        `SELECT * FROM public.append_cashier_count(
+          '${TENANT}'::uuid, '${PROPERTY}'::uuid,
+          '00000000-0000-0000-0000-000000011362'::uuid, '${ACTOR}'::uuid,
+          ARRAY[1]::bigint[], ARRAY[0]::bigint[]
+        )`,
+        `SELECT * FROM public.close_cashier_session(
+          '${TENANT}'::uuid, '${PROPERTY}'::uuid,
+          '00000000-0000-0000-0000-000000011362'::uuid, '${ACTOR}'::uuid,
+          '00000000-0000-0000-0000-000000011363'::uuid, NULL, NULL, false
         )`,
       ]) {
         await connection.unsafe("SAVEPOINT denied_call");

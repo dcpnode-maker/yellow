@@ -472,6 +472,42 @@ input:hover, select:hover, textarea:hover { border-color: #8d978c; }
 .folio-statement-loading span { min-height: 58px; border: 1px solid var(--line); border-radius: 10px; background: linear-gradient(90deg, var(--surface-subtle), color-mix(in srgb, var(--accent) 7%, var(--card)), var(--surface-subtle)); background-size: 220% 100%; animation: reservation-pulse 1.4s ease-in-out infinite; }
 .folio-statement-error { padding: 1rem; border-left: 4px solid var(--red); background: var(--red-soft); }
 .folio-statement-cards { display: none; }
+.cashier-loading { min-height: 196px; margin-top: 1rem; padding: 1rem; display: grid; gap: .65rem; }
+.cashier-loading span { min-height: 46px; border: 1px solid var(--line); border-radius: var(--control-radius); background: linear-gradient(90deg,var(--surface-subtle),color-mix(in srgb,var(--accent) 8%,var(--card)),var(--surface-subtle)); background-size: 220% 100%; animation: reservation-pulse 1.4s ease-in-out infinite; }
+.cashier-error { margin-top: 1rem; padding: 1rem; border-left: 4px solid var(--red); background: var(--red-soft); }
+.cashier-workbench { margin-top: 1rem; display: grid; gap: 1rem; }
+.cashier-workbench-head { display: grid; grid-template-columns: minmax(0,1fr) minmax(210px,.45fr); gap: 1rem; align-items: end; padding: 1rem; border: 1px solid var(--line); border-radius: var(--card-radius); background: color-mix(in srgb,var(--accent) 7%,var(--card)); }
+.cashier-workbench-head h3, .cashier-workbench-head p { margin: 0; }
+.cashier-workbench-head .eyebrow { margin-bottom: .3rem; }
+.cashier-workbench-head label { display: grid; gap: .35rem; color: var(--accent-strong); font-size: .75rem; font-weight: 800; }
+.cashier-workbench-head select { min-height: 44px; }
+.cashier-summary { display: grid; grid-template-columns: repeat(4,minmax(0,1fr)); gap: .75rem; }
+.cashier-summary > div { min-width: 0; padding: .85rem; border: 1px solid var(--line); border-radius: var(--control-radius); background: color-mix(in srgb,var(--paper) 58%,var(--card)); }
+.cashier-summary span, .cashier-summary strong { display: block; overflow-wrap: anywhere; }
+.cashier-summary span { color: var(--muted); font-size: .68rem; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
+.cashier-summary strong { margin-top: .3rem; font-variant-numeric: tabular-nums; }
+.cashier-open-panel, .cashier-count-panel, .cashier-close-panel, .cashier-evidence { padding: 1rem; }
+.cashier-open-panel > div, .cashier-count-panel > div, .cashier-close-panel > div { margin-bottom: 1rem; }
+.cashier-open-panel h4, .cashier-count-panel h4, .cashier-close-panel h4, .cashier-evidence h4 { margin: 0 0 .35rem; }
+.cashier-count-form fieldset { margin: 0; padding: 1rem; display: grid; gap: .85rem; border: 1px solid color-mix(in srgb,var(--amber) 45%,var(--line)); border-radius: var(--control-radius); background: var(--amber-soft); }
+.cashier-count-form legend { padding: 0 .4rem; color: var(--amber); font-weight: 850; }
+.cashier-denominations { display: grid; grid-template-columns: repeat(auto-fit,minmax(132px,1fr)); gap: .65rem; }
+.cashier-denomination { display: grid; gap: .38rem; min-width: 0; padding: .7rem; border: 1px solid var(--line); border-radius: var(--control-radius); background: var(--card); }
+.cashier-denomination span { color: var(--muted); font-size: .68rem; font-weight: 850; letter-spacing: .06em; text-transform: uppercase; }
+.cashier-denomination input { min-height: 44px; font-variant-numeric: tabular-nums; }
+.cashier-confirmation { min-height: 44px; display: flex; align-items: center; gap: .65rem; line-height: 1.45; }
+.cashier-confirmation input { width: 22px; min-height: 22px; flex: none; accent-color: var(--accent); }
+.cashier-close-form { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: .85rem; }
+.cashier-close-form label { display: grid; gap: .35rem; color: var(--accent-strong); font-size: .78rem; font-weight: 800; }
+.cashier-close-form textarea, .cashier-close-form input, .cashier-close-form button { min-height: 44px; }
+.cashier-close-form .cashier-confirmation, .cashier-close-form button, .cashier-close-form .form-message { grid-column: 1 / -1; }
+.cashier-approval-actions { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: .65rem; }
+.cashier-approval-actions button { min-width: min(100%, 14rem); }
+.cashier-evidence dl { margin: .85rem 0 0; display: grid; grid-template-columns: minmax(10rem,.55fr) minmax(0,1.45fr); gap: .45rem .9rem; }
+.cashier-evidence dt { color: var(--muted); font-size: .72rem; font-weight: 850; text-transform: uppercase; }
+.cashier-evidence dd { min-width: 0; margin: 0; overflow-wrap: anywhere; font-variant-numeric: tabular-nums; }
+.cashier-workbench[aria-busy="true"] { cursor: progress; }
+.cashier-workbench[aria-busy="true"] > :not(.cashier-loading) { opacity: .7; }
 .folio-posting-card { min-width: 0; max-width: 100%; padding: .9rem; border: 1px solid var(--line); border-radius: 12px; background: var(--surface-subtle); }
 .folio-posting-card dl { margin: 0; display: grid; grid-template-columns: minmax(108px, .75fr) minmax(0, 1.25fr); gap: .35rem .65rem; }
 .folio-posting-card dt { color: var(--muted); font-size: .72rem; font-weight: 800; text-transform: uppercase; }
@@ -506,6 +542,7 @@ input:hover, select:hover, textarea:hover { border-color: #8d978c; }
 .party-profile-contacts legend, .party-profile-contacts .field-note { grid-column: 1; }
 .reservation-field-grid { grid-template-columns: 1fr; }
 .folio-summary, .folio-charge-form fieldset, .folio-correction-preview, .folio-settlement-panel { grid-template-columns: 1fr; }
+.cashier-workbench-head, .cashier-summary, .cashier-close-form { grid-template-columns: 1fr; }
 .folio-settlement-action { width: 100%; justify-self: stretch; }
 .builder-steps { grid-template-columns: 1fr; }
 .builder-steps li + li { border-left: 0; border-top: 1px solid var(--line); }
@@ -516,6 +553,9 @@ input:hover, select:hover, textarea:hover { border-color: #8d978c; }
 }
 :root[data-experience="simple"] .detail-only, :root:not([data-experience="simple"]) .simple-only { display: none; }
 @media (max-width: 767px) { .folio-window-new-form, .folio-organize-form fieldset { grid-template-columns: 1fr; }
+.cashier-denominations { grid-template-columns: repeat(2,minmax(0,1fr)); }
+.cashier-evidence dl { grid-template-columns: 1fr; gap: .12rem; }
+.cashier-evidence dd + dt { margin-top: .5rem; }
 }
 @media (max-width: 720px) { .operations-layout { grid-template-columns: 1fr; }
 }
@@ -828,6 +868,8 @@ input:focus, select:focus, textarea:focus { box-shadow: var(--material-control-a
 :root[data-theme="apple"] .folio-settlement-panel { border: .5px solid rgba(60,60,67,.22); border-radius: 18px; background: #f2f2f7; box-shadow: 0 12px 32px rgba(0,0,0,.06); }
 :root[data-theme="apple"] .folio-settlement-state span { border: .5px solid rgba(60,60,67,.2); border-radius: 12px; background: rgba(255,255,255,.94); }
 :root[data-theme="apple"] .folio-settlement-action { border-radius: 13px; }
+:root[data-theme="apple"] .cashier-workbench-head { border: .5px solid rgba(60,60,67,.22); border-radius: 18px; background: #f2f2f7; box-shadow: 0 12px 32px rgba(0,0,0,.06); }
+:root[data-theme="apple"] .cashier-summary > div { border: .5px solid rgba(60,60,67,.2); border-radius: 12px; background: rgba(255,255,255,.94); }
  :root[data-theme="win95"] { --ink: #000000; --muted: #000000; --paper: #008c8c; --card: #c0c0c0; --line: #808080; --accent: #000080; --accent-strong: #00005c; --accent-ink: #ffffff; --focus: #ffff00; --brand: #ffff00; --nav: #000080; --shell-ink: #ffffff; --shell-muted: #ffffff; --surface-subtle: #d4d0c8; --control-radius: 0; --card-radius: 0; --font-ui: Tahoma, "MS Sans Serif", "Segoe UI", sans-serif; --font-display: var(--font-ui); --material-card: #c0c0c0; --material-card-border: 2px outset #ffffff; --material-card-shadow: 2px 2px 0 #000000; --material-control: #c0c0c0; --material-control-border: 2px outset #ffffff; --material-control-shadow: none; --material-control-active-shadow: 2px inset #808080; --material-primary: #c0c0c0; --material-primary-border: 2px outset #ffffff; --material-primary-shadow: 1px 1px 0 #000000; --material-nav: #000080; --material-nav-border: 2px outset #ffffff; --material-nav-shadow: 2px 2px 0 #000000; --material-hover-lift: none; --material-press: translate(1px, 1px); --material-transition: 0ms linear; }
 :root[data-theme="win95"] input, :root[data-theme="win95"] textarea, :root[data-theme="win95"] select { background: #ffffff; border-style: inset; color: #000; }
 :root[data-theme="win95"] .app-bar :is(button, select, a):focus-visible { outline-color: #ffff00; box-shadow: 0 0 0 2px #000000; }
@@ -850,6 +892,8 @@ input:focus, select:focus, textarea:focus { box-shadow: var(--material-control-a
 :root[data-theme="win95"] .folio-settlement-panel { border: 2px outset #fff; border-radius: 0; background: #c0c0c0; box-shadow: 1px 1px 0 #000; }
 :root[data-theme="win95"] .folio-settlement-state span { border: 2px inset #fff; border-radius: 0; background: #fff; }
 :root[data-theme="win95"] .folio-settlement-action { border-radius: 0; }
+:root[data-theme="win95"] .cashier-workbench-head, :root[data-theme="win95"] .cashier-summary > div, :root[data-theme="win95"] .cashier-count-form fieldset { border: 2px outset #fff; border-radius: 0; background: #c0c0c0; box-shadow: 1px 1px 0 #000; }
+:root[data-theme="win95"] .cashier-denomination { border: 2px inset #fff; border-radius: 0; }
  :root[data-theme="android"] { --ink: #211f26; --muted: #625f68; --paper: #f8f7ff; --card: #fffbff; --line: #cac4d0; --accent: #6750a4; --accent-strong: #4f378b; --focus: #006a6a; --nav: #f1ecf4; --shell-ink: #211f26; --shell-muted: #625f68; --surface-subtle: #f3edf7; --control-radius: 22px; --card-radius: 28px; --font-ui: Roboto, "Segoe UI", sans-serif; --font-display: var(--font-ui); --material-card: #fffbff; --material-card-border: 1px solid #cac4d0; --material-card-shadow: 0 1px 3px rgba(29,25,43,.18), 0 8px 22px rgba(29,25,43,.08); --material-control: #f3edf7; --material-control-border: 1px solid #79747e; --material-control-shadow: none; --material-control-active-shadow: inset 0 0 0 2px #6750a4; --material-primary: #6750a4; --material-primary-border: 0; --material-primary-shadow: 0 2px 6px rgba(79,55,139,.28); --material-nav: #f1ecf4; --material-nav-border: 0; --material-nav-shadow: 0 3px 12px rgba(29,25,43,.14); --material-hover-lift: translateY(-2px); --material-press: scale(.97); --material-transition: 220ms cubic-bezier(.2,0,0,1); }
 :root[data-theme="android"] body { background: radial-gradient(circle at 8% 8%,rgba(103,80,164,.13),transparent 24rem),radial-gradient(circle at 94% 24%,rgba(0,106,106,.1),transparent 28rem),#f8f7ff; }
 :root[data-theme="android"] .domain-icon { width: 20px; height: 20px; flex-basis: 20px; stroke-width: 1.9; }
@@ -862,6 +906,8 @@ input:focus, select:focus, textarea:focus { box-shadow: var(--material-control-a
 :root[data-theme="android"] .folio-settlement-panel { border: 0; border-radius: 28px 28px 12px 28px; background: #eaddff; box-shadow: 0 1px 3px rgba(29,25,43,.18),0 8px 22px rgba(29,25,43,.08); }
 :root[data-theme="android"] .folio-settlement-state span { min-height: 64px; border: 0; border-radius: 18px; background: rgba(255,251,255,.82); }
 :root[data-theme="android"] .folio-settlement-action { min-height: 48px; border-radius: 999px; }
+:root[data-theme="android"] .cashier-workbench-head { border: 0; border-radius: 28px 28px 12px 28px; background: #eaddff; box-shadow: 0 1px 3px rgba(29,25,43,.18),0 8px 22px rgba(29,25,43,.08); }
+:root[data-theme="android"] .cashier-summary > div { min-height: 76px; border: 0; border-radius: 18px; background: rgba(255,251,255,.82); }
  :root[data-theme="glass"] { --ink: #f6f9ff; --muted: #c1cee4; --paper: #071126; --card: rgba(236,246,255,.13); --line: rgba(255,255,255,.24); --accent: #56d8ff; --accent-strong: #9be9ff; --focus: #ffe17a; --nav: rgba(6,18,42,.56); --shell-ink: #f8fbff; --shell-muted: #c5d5eb; --surface-subtle: rgba(238,247,255,.1); --control-radius: 15px; --card-radius: 25px; --font-ui: Inter, "Segoe UI", sans-serif; --font-display: var(--font-ui); --material-card: linear-gradient(145deg, rgba(244,250,255,.2), rgba(155,195,255,.08)); --material-card-border: 1px solid rgba(255,255,255,.28); --material-card-shadow: inset 0 1px 0 rgba(255,255,255,.42), inset 0 -1px 0 rgba(2,9,27,.34), 0 26px 70px rgba(0,5,22,.38); --material-card-filter: blur(24px) saturate(165%); --material-control: rgba(238,247,255,.14); --material-control-border: 1px solid rgba(255,255,255,.3); --material-control-shadow: inset 0 1px 0 rgba(255,255,255,.34), 0 10px 24px rgba(0,5,22,.22); --material-control-active-shadow: inset 0 2px 10px rgba(0,8,28,.3), 0 0 0 3px rgba(86,216,255,.28); --material-primary: linear-gradient(135deg, #43d3ff, #7f79ff); --material-primary-border: 1px solid rgba(255,255,255,.5); --material-primary-shadow: inset 0 1px 0 rgba(255,255,255,.54), 0 14px 32px rgba(36,121,255,.32); --material-nav: linear-gradient(145deg, rgba(6,18,42,.68), rgba(15,43,79,.42)); --material-nav-border: 1px solid rgba(255,255,255,.2); --material-nav-shadow: inset 0 1px 0 rgba(255,255,255,.22), 0 24px 64px rgba(0,4,20,.38); --material-nav-filter: blur(32px) saturate(168%); --material-hover-lift: translate3d(0,-4px,12px); --material-press: scale(.985); --material-transition: 220ms cubic-bezier(.16,1,.3,1); }
 :root[data-theme="glass"] body { position: relative; isolation: isolate; background: radial-gradient(circle at 12% 8%,#173c88 0,transparent 30rem),radial-gradient(circle at 86% 16%,#452e91 0,transparent 32rem),linear-gradient(145deg,#050b1c 0,#091a38 48%,#101132 100%); }
 :root[data-theme="glass"] :is(.app-bar,main) { position: relative; z-index: var(--plane-content); }
@@ -876,11 +922,14 @@ input:focus, select:focus, textarea:focus { box-shadow: var(--material-control-a
 :root[data-theme="glass"] .folio-settlement-panel { border: 1px solid rgba(255,255,255,.34); border-radius: 25px; background: linear-gradient(145deg,rgba(244,250,255,.2),rgba(104,148,222,.08)); box-shadow: inset 0 1px 0 rgba(255,255,255,.46),inset 0 -1px 0 rgba(0,7,25,.3),0 24px 60px rgba(0,5,22,.3); -webkit-backdrop-filter: blur(26px) saturate(168%); backdrop-filter: blur(26px) saturate(168%); }
 :root[data-theme="glass"] .folio-settlement-state span { border-color: rgba(255,255,255,.3); background: rgba(238,247,255,.14); }
 :root[data-theme="glass"] .folio-settlement-action { box-shadow: inset 0 1px 0 rgba(255,255,255,.58),0 14px 30px rgba(36,121,255,.3); }
+:root[data-theme="glass"] .cashier-workbench-head { border: 1px solid rgba(255,255,255,.34); border-radius: 25px; background: linear-gradient(145deg,rgba(244,250,255,.2),rgba(104,148,222,.08)); box-shadow: inset 0 1px 0 rgba(255,255,255,.46),inset 0 -1px 0 rgba(0,7,25,.3),0 24px 60px rgba(0,5,22,.3); -webkit-backdrop-filter: blur(26px) saturate(168%); backdrop-filter: blur(26px) saturate(168%); }
+:root[data-theme="glass"] .cashier-summary > div { border-color: rgba(255,255,255,.3); background: rgba(238,247,255,.14); }
  :root[data-theme="neo"] { --ink: #26333a; --muted: #53636b; --paper: #e8eef1; --card: #e8eef1; --line: #86959c; --accent: #176f7b; --accent-strong: #0c535d; --focus: #005fcc; --nav: #e8eef1; --shell-ink: #26333a; --shell-muted: #53636b; --surface-subtle: #dde5e9; --control-radius: 16px; --card-radius: 24px; --font-ui: Inter, "Segoe UI", sans-serif; --font-display: var(--font-ui); --material-card: #e8eef1; --material-card-border: 1px solid #a1adb3; --material-card-shadow: -9px -9px 18px #ffffff, 9px 9px 18px #bec8cd; --material-control: #e8eef1; --material-control-border: 1px solid #98a6ad; --material-control-shadow: inset -4px -4px 8px #ffffff, inset 4px 4px 8px #c1cbd0; --material-control-active-shadow: inset 6px 6px 12px #bdc8cd, inset -6px -6px 12px #ffffff, 0 0 0 3px rgba(0,95,204,.32); --material-primary: #e8eef1; --material-primary-border: 1px solid #76868e; --material-primary-shadow: -5px -5px 10px #ffffff, 5px 5px 10px #bac5ca; --material-nav: #e8eef1; --material-nav-border: 1px solid #9aa8ae; --material-nav-shadow: -6px -6px 14px #ffffff, 6px 6px 14px #bdc8cd; --material-hover-lift: translateY(-2px); --material-press: translateY(1px); --material-transition: 160ms cubic-bezier(.2,.8,.2,1); }
 :root[data-theme="neo"] body { background: #e8eef1; }
 :root[data-theme="neo"] :is(.domain-bar,.workbench-head) { border-radius: 24px; box-shadow: -8px -8px 18px #fff,8px 8px 18px #bcc7cc; }
 :root[data-theme="neo"] .folio-settlement-panel { border: 1px solid #a1adb3; border-radius: 24px; background: #e8eef1; box-shadow: -8px -8px 18px #fff,8px 8px 18px #bec8cd; }
 :root[data-theme="neo"] .folio-settlement-state span { border-color: #98a6ad; background: #e8eef1; box-shadow: inset -4px -4px 8px #fff,inset 4px 4px 8px #c1cbd0; }
+:root[data-theme="neo"] .cashier-workbench-head, :root[data-theme="neo"] .cashier-summary > div { border: 1px solid #a1adb3; border-radius: 24px; background: #e8eef1; box-shadow: -8px -8px 18px #fff,8px 8px 18px #bec8cd; }
 :root[data-theme="erp"] { --ink: #111318; --muted: #515b6b; --paper: #f3f4f6; --card: #ffffff; --line: #d9dee7; --accent: #163ee9; --accent-strong: #0928a8; --focus: #002dcc; --nav: #10131b; --shell-ink: #ffffff; --shell-muted: #c8cfdb; --surface-subtle: #f7f8fa; --control-radius: 7px; --card-radius: 10px; --font-ui: "Segoe UI", Arial, sans-serif; --font-display: var(--font-ui); --material-card: #fff; --material-card-border: 1px solid #d9dee7; --material-card-shadow: 0 1px 2px rgba(16,24,40,.04),0 8px 20px rgba(16,24,40,.06); --material-control: #fff; --material-control-border: 1px solid #aeb7c6; --material-control-shadow: inset 0 1px 0 #fff; --material-control-active-shadow: 0 0 0 3px rgba(22,62,233,.18); --material-primary: #163ee9; --material-primary-border: 1px solid #0928a8; --material-primary-shadow: 0 4px 12px rgba(22,62,233,.2); --material-nav: #10131b; --material-nav-border: 1px solid #242a38; --material-nav-shadow: 0 12px 30px rgba(10,14,23,.18); --material-hover-lift: translateY(-1px); --material-press: translateY(1px); --material-transition: 140ms ease-out; }
 :root[data-theme="erp"] body { background: linear-gradient(180deg,#eef1f6,#f7f8fa 220px); }
 :root[data-theme="erp"] .app-bar { min-height: 58px; }
@@ -897,6 +946,8 @@ input:focus, select:focus, textarea:focus { box-shadow: var(--material-control-a
 :root[data-theme="erp"] .folio-settlement-panel { border: 1px solid #d9dee7; border-left: 4px solid #163ee9; border-radius: 8px; background: #fff; box-shadow: 0 1px 2px rgba(16,24,40,.04),0 8px 20px rgba(16,24,40,.05); }
 :root[data-theme="erp"] .folio-settlement-state span { border-radius: 6px; background: #f7f8fa; }
 :root[data-theme="erp"] .folio-settlement-action { border-radius: 6px; }
+:root[data-theme="erp"] .cashier-workbench-head { border: 1px solid #d9dee7; border-left: 4px solid #163ee9; border-radius: 8px; background: #fff; box-shadow: 0 1px 2px rgba(16,24,40,.04),0 8px 20px rgba(16,24,40,.05); }
+:root[data-theme="erp"] .cashier-summary > div { border-radius: 6px; background: #f7f8fa; }
 :root[data-theme="erp"] :is(.status-summary-grid,.metric-grid) { gap: .75rem; }
 :root[data-theme="erp"] :is(.card,.metric,.reservation-detail-section,.folio-posting-card) { border-radius: 10px; box-shadow: 0 1px 2px rgba(16,24,40,.04),0 8px 20px rgba(16,24,40,.05); }
 :root[data-theme="erp"] :is(.reservation-board-table,.folio-statement-table) { font-size: .78rem; }

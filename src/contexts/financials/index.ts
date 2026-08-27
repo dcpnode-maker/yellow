@@ -121,3 +121,29 @@ export type {
   FolioSettlementServiceOptions,
   FolioSettlementStatus,
 } from "./settlements";
+
+export {
+  CashierAuthorizationError,
+  CashierConflictError,
+  CashierNotFoundError,
+  CashierService,
+  CashierValidationError,
+} from "./cashiers";
+export type {
+  AppendCashierCountInput,
+  AppendCashierCountResult,
+  CashierActiveSession,
+  CashierCountAttempt,
+  CashierDenominationQuantity,
+  CashierListInput,
+  CashierOverShortApprovalResult,
+  CashierReadInput,
+  CashierReadResult,
+  CashierServiceOptions,
+  CloseCashierSessionInput,
+  CloseCashierSessionResult,
+  DecideCashierOverShortApprovalInput,
+  OpenCashierSessionInput,
+  OpenCashierSessionResult,
+  RequestCashierOverShortApprovalInput,
+} from "./cashiers";

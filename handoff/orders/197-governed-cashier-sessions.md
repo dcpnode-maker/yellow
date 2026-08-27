@@ -1,6 +1,6 @@
 # Order 197 — Governed cashier sessions
 
-**Status:** READY-D534 — intentional red and implementation required
+**Status:** BUILT-UNREVIEWED-D536 — implementation and registered builder gates green
 **Phase:** 5 — Financials
 **Branch:** `phase-5/governed-cashier-sessions`
 **Base:** `55c5aa0c166a` (built-unreviewed Order196)
@@ -51,6 +51,8 @@ invent cash postings or broaden the existing owner-only business-day seal.
 - `src/http/operator/index.html`, `src/http/operator/operator.js`,
   `src/http/operator/operator.css`
 - `scripts/seed-review.ts`
+- `setup.sh` only for the exact migrations-1–24 public-table count/message admitted
+  by Question173 and D-535
 - `tests/financial-cashier-sessions.integration.test.ts`,
   `tests/financial-cashier-sessions.intentional-red.test.ts`,
   `tests/operator-cashier-workbench.integration.test.ts`,
@@ -136,8 +138,8 @@ No other file is admitted. `migrations/0001_init.sql` remains byte-identical.
 
 ## Definition of done
 
-- [ ] Intentional red precedes product implementation.
-- [ ] Exact drawer/count/session lifecycle and approval policy are executable.
-- [ ] No hidden or invented cash accounting enters the slice.
-- [ ] Operator workflow and all registered executable gates pass.
-- [ ] Built result is recorded without claiming day close or Phase-5 completion.
+- [x] Intentional red precedes product implementation.
+- [x] Exact drawer/count/session lifecycle and approval policy are executable.
+- [x] No hidden or invented cash accounting enters the slice.
+- [x] Operator workflow and all registered executable gates pass.
+- [x] Built result is recorded without claiming day close or Phase-5 completion.

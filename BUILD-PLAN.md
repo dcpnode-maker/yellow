@@ -112,9 +112,11 @@ folio application. Built-unreviewed Order 196 adds the governed per-window lifec
 PostgreSQL capability after shared financial locks and an exact-zero canonical balance,
 with durable idempotency and same-transaction fact/outbox evidence. It creates no
 journal and does not close the account or reservation. Real PSPs, delivery, deposit
-refunds/chargebacks, cashier, provider settlement, checkout, account closure,
+refunds/chargebacks, provider settlement, checkout, account closure,
 invoice/fiscal issue, trust safeguards and audited business-day close remain work in
-this active phase; Phase 5 is not complete.
+this active phase; Phase 5 is not complete. Built-unreviewed Order 197 adds governed property
+cash drawers, blind immutable denomination counts and approval-bound over/short close;
+it creates no cash posting, balancing journal or business-day seal authority.
 
 ## Phase 6 — Stay ops & Housekeeping
 

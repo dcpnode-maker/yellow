@@ -102,6 +102,7 @@
 <button class="domain-tab is-active" id="nav-availability" type="button" data-view="availability" aria-controls="availability-view"><svg class="domain-icon" aria-hidden="true"><use href="#i-availability"/></svg><span>Availability</span></button>
 <button class="domain-tab" id="nav-reservations" type="button" data-view="reservations" aria-controls="reservations-view"><svg class="domain-icon" aria-hidden="true"><use href="#i-reservations"/></svg><span>Reservations</span></button>
 <button class="domain-tab" id="nav-folios" type="button" data-view="folios" aria-controls="folios-view"><svg class="domain-icon" aria-hidden="true"><use href="#i-folios"/></svg><span>Folios</span></button>
+<button class="domain-tab" id="nav-cashiers" type="button" data-view="cashiers" aria-controls="cashiers-view"><svg class="domain-icon cashier-domain-icon" aria-hidden="true"><use href="#i-operations"/></svg><span>Cashiers</span></button>
 <button class="workspace-disclosure" id="secondary-workspaces-toggle" type="button" aria-expanded="false" aria-controls="secondary-workspaces">More workspaces</button>
 <div class="secondary-workspaces" id="secondary-workspaces" hidden>
 <span class="domain-nav-group">Property control</span>
@@ -791,6 +792,57 @@
 </form>
 </section>
 </div>
+</section>
+</section>
+<section id="cashiers-view" hidden aria-labelledby="cashiers-title">
+<div class="section-heading cashier-heading">
+<div>
+<p class="eyebrow">Cash custody</p>
+<h2 id="cashiers-title" tabindex="-1">Cashier workbench</h2>
+<p class="muted">Open one governed drawer, submit a blind physical count, then close only from the server’s immutable evidence. This workbench never calculates cash.</p>
+</div>
+<button class="quiet" id="cashier-refresh" type="button">Refresh authoritative state</button>
+</div>
+<section class="cashier-loading card" id="cashier-loading" hidden aria-hidden="true"><span></span><span></span><span></span></section>
+<section class="cashier-error" id="cashier-error" hidden role="alert"><strong>Cashier state could not be loaded</strong><p></p><button class="secondary" id="cashier-retry" type="button">Try again</button></section>
+<section class="cashier-workbench" id="cashier-workbench" hidden aria-labelledby="cashier-workbench-title" tabindex="-1" aria-busy="false">
+<div class="cashier-workbench-head">
+<div><p class="eyebrow">Authoritative drawer state</p><h3 id="cashier-workbench-title">Select a drawer</h3><p class="muted" id="cashier-session-summary">The server decides which cashier actions are available.</p></div>
+<label for="cashier-drawer">Governed drawer<select id="cashier-drawer" name="drawerId" required></select></label>
+</div>
+<div class="cashier-summary" aria-label="Current cashier session">
+<div><span>Drawer</span><strong id="cashier-drawer-name">—</strong></div>
+<div><span>Currency</span><strong id="cashier-currency">—</strong></div>
+<div><span>Session</span><strong id="cashier-session-state">No active session</strong></div>
+<div><span>Latest count</span><strong id="cashier-count-state">—</strong></div>
+</div>
+<section class="cashier-open-panel card" id="cashier-open-panel" aria-labelledby="cashier-open-title" hidden>
+<div><p class="eyebrow">Custody start</p><h4 id="cashier-open-title">Open this drawer</h4><p class="muted">Enter physical quantities by governed denomination. Yellow records only the server-derived total.</p></div>
+<form class="cashier-count-form" id="cashier-open-form">
+<fieldset id="cashier-open-fields"><legend>Opening float</legend><div class="cashier-denominations" id="cashier-open-denominations"></div><label class="cashier-confirmation"><input id="cashier-open-confirm" type="checkbox"> I confirm this is my physical opening count for this drawer.</label><button class="primary" id="cashier-open-submit" type="submit" disabled>Open cashier session</button></fieldset>
+<p class="form-message" role="status" aria-live="assertive"></p>
+</form>
+</section>
+<section class="cashier-count-panel card" id="cashier-count-panel" aria-labelledby="cashier-count-title" hidden>
+<div><p class="eyebrow">Blind physical count</p><h4 id="cashier-count-title">Record a count</h4><p class="muted">Expected cash is deliberately hidden until you submit this immutable count. Enter quantities, not money totals.</p></div>
+<form class="cashier-count-form" id="cashier-count-form">
+<fieldset id="cashier-count-fields"><legend>Counted denominations</legend><div class="cashier-denominations" id="cashier-count-denominations"></div><label class="cashier-confirmation"><input id="cashier-count-confirm" type="checkbox"> I confirm this is the physical count I observed.</label><button class="primary" id="cashier-count-submit" type="submit" disabled>Submit blind count</button></fieldset>
+<p class="form-message" role="status" aria-live="assertive"></p>
+</form>
+</section>
+<section class="cashier-close-panel card" id="cashier-close-panel" aria-labelledby="cashier-close-title" hidden>
+<div><p class="eyebrow">Controlled close</p><h4 id="cashier-close-title">Close from the latest count</h4><p class="muted" id="cashier-close-copy">The server will validate this close against the exact immutable count.</p></div>
+<form class="cashier-close-form" id="cashier-close-form">
+<label for="cashier-close-reason">Reason, if the server requires one<textarea id="cashier-close-reason" name="reason" maxlength="500" rows="3" autocomplete="off"></textarea></label>
+<label for="cashier-close-approval">Approved request ID, if required<input id="cashier-close-approval" name="approvalId" inputmode="text" maxlength="64" autocomplete="off"></label>
+<label class="cashier-confirmation"><input id="cashier-close-confirm" type="checkbox"> I understand that closing is final and evidence is never changed.</label>
+<div class="cashier-approval-actions"><button class="secondary" id="cashier-approval-request" type="button">Request discrepancy approval</button><button class="secondary" id="cashier-supervised-approval-request" type="button" hidden disabled>Supervisor request for abandoned session</button><button class="secondary" id="cashier-approval-approve" type="button" disabled>Approve exact request</button><button class="quiet" id="cashier-approval-reject" type="button" disabled>Reject exact request</button></div>
+<button class="primary" id="cashier-close-submit" type="submit" disabled>Close cashier session</button>
+<button class="secondary" id="cashier-supervised-close" type="button" hidden disabled>Supervisor close abandoned session</button>
+<p class="form-message" role="status" aria-live="assertive"></p>
+</form>
+</section>
+<section class="cashier-evidence card" id="cashier-evidence" aria-live="polite" hidden><h4>Latest operational evidence</h4><dl id="cashier-evidence-list"></dl></section>
 </section>
 </section>
 <section id="inventory-view" hidden aria-labelledby="inventory-title">

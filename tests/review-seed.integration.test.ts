@@ -39,12 +39,17 @@ let quote: RateQuoteService;
 let first: Awaited<ReturnType<typeof runReviewSeed>>;
 
 async function counts() {
+  const cashAccountId = String(first.cashAccountId);
+  const cashDrawerId = String(first.cashDrawerId);
+  const propertyCurrency = String(SEED_PROPERTY.currency);
   const rows = await admin<Array<{
     users: number; roles: number; grants: number; unit_types: number;
     spaces: number; sellables: number; requester_facts: number; requester_events: number;
     approver_facts: number; approver_events: number; policies: number; rate_plans: number;
     model_versions: number; target_versions: number; release_versions: number;
     active_releases: number; approvals: number; approved_approvals: number;
+    cash_accounts: number; cash_drawers: number; cash_denominations: number;
+    cashier_sessions: number; cashier_counts: number;
   }>>`
     SELECT
       (SELECT count(*)::int FROM app_user WHERE id IN (${first.userId}::uuid, ${first.approverUserId}::uuid)) AS users,
@@ -73,6 +78,19 @@ async function counts() {
         AND kind = 'rate_plan_release') AS approvals,
       (SELECT count(*)::int FROM approval_request WHERE tenant_id = ${SEED_TENANT.id}::uuid
         AND kind = 'rate_plan_release' AND status = 'approved') AS approved_approvals
+      ,(SELECT count(*)::int FROM account WHERE id = ${cashAccountId}::uuid
+        AND tenant_id = ${SEED_TENANT.id}::uuid AND property_node = ${SEED_PROPERTY.id}::uuid
+        AND role = 'cash' AND currency = ${propertyCurrency}) AS cash_accounts
+      ,(SELECT count(*)::int FROM cash_drawer WHERE id = ${cashDrawerId}::uuid
+        AND tenant_id = ${SEED_TENANT.id}::uuid AND property_node = ${SEED_PROPERTY.id}::uuid
+        AND code = 'FRONT-DESK-1' AND active) AS cash_drawers
+      ,(SELECT count(*)::int FROM cash_drawer_denomination
+        WHERE tenant_id = ${SEED_TENANT.id}::uuid AND drawer_id = ${cashDrawerId}::uuid
+          AND active) AS cash_denominations
+      ,(SELECT count(*)::int FROM cashier_session
+        WHERE tenant_id = ${SEED_TENANT.id}::uuid AND drawer_id = ${cashDrawerId}::uuid) AS cashier_sessions
+      ,(SELECT count(*)::int FROM cashier_count
+        WHERE tenant_id = ${SEED_TENANT.id}::uuid AND drawer_id = ${cashDrawerId}::uuid) AS cashier_counts
   `;
   const row = rows[0];
   if (!row) throw new Error("Order 046 count probe returned no row");
@@ -207,12 +225,16 @@ databaseDescribe("Order 046 reproducible local-review seed", () => {
         created: true,
       },
     });
+    expect(first.cashAccountId).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/);
+    expect(first.cashDrawerId).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/);
     expect(await counts()).toEqual({
       users: 2, roles: 1, grants: 3, unit_types: 2, spaces: 5,
       sellables: 5, requester_facts: 21, requester_events: 18,
       approver_facts: 2, approver_events: 2, policies: 4, rate_plans: 1,
       model_versions: 1, target_versions: 1, release_versions: 1,
       active_releases: 1, approvals: 1, approved_approvals: 1,
+      cash_accounts: 1, cash_drawers: 1, cash_denominations: 10,
+      cashier_sessions: 0, cashier_counts: 0,
     });
   });
 
@@ -345,7 +367,7 @@ databaseDescribe("Order 046 reproducible local-review seed", () => {
     expect(await tokens.verify(loginBody.accessToken)).toMatchObject({
       sub: first.userId,
       tid: SEED_TENANT.id,
-      scp: "crm.parties:read crm.parties:write financials.adjustments:write financials.charges:write financials.folios:close financials.folios:open financials.folios:read financials.folios:settle inventory.availability:read inventory.blocks:read inventory.blocks:write inventory.configuration:read inventory.configuration:write inventory.holds:read inventory.holds:write inventory.offline_leases:read inventory.offline_leases:write inventory.policy:read inventory.policy:write inventory.restriction:read inventory.restriction:write rates.configuration:read rates.configuration:write rates.pricing:read rates.pricing:write reservations.booking:write reservations.guests:read reservations.guests:write reservations.lifecycle:read reservations.lifecycle:write reservations.segments:read reservations.segments:write",
+      scp: "crm.parties:read crm.parties:write financials.adjustments:write financials.cashiers:operate financials.cashiers:read financials.charges:write financials.folios:close financials.folios:open financials.folios:read financials.folios:settle financials.transfers:write inventory.availability:read inventory.blocks:read inventory.blocks:write inventory.configuration:read inventory.configuration:write inventory.holds:read inventory.holds:write inventory.offline_leases:read inventory.offline_leases:write inventory.policy:read inventory.policy:write inventory.restriction:read inventory.restriction:write rates.configuration:read rates.configuration:write rates.pricing:read rates.pricing:write reservations.booking:write reservations.guests:read reservations.guests:write reservations.lifecycle:read reservations.lifecycle:write reservations.segments:read reservations.segments:write",
     });
     const approverLogin = await app.handle(new Request("http://yellow.test/api/v1/auth/local:login", {
       method: "POST",
@@ -359,7 +381,7 @@ databaseDescribe("Order 046 reproducible local-review seed", () => {
     expect(await tokens.verify(approverLoginBody.accessToken)).toMatchObject({
       sub: first.approverUserId,
       tid: SEED_TENANT.id,
-      scp: "crm.parties:read crm.parties:write financials.adjustments:post-seal financials.adjustments:write financials.charges:write financials.folios:close financials.folios:open financials.folios:read financials.folios:settle inventory.availability:read inventory.blocks:read inventory.blocks:write inventory.configuration:read inventory.configuration:write inventory.holds:read inventory.holds:write inventory.offline_leases:read inventory.offline_leases:write inventory.policy:read inventory.policy:write inventory.restriction:read inventory.restriction:write rates.configuration:read rates.configuration:write rates.pricing:read rates.pricing:write reservations.booking:write reservations.guests:read reservations.guests:write reservations.lifecycle:read reservations.lifecycle:write reservations.segments:read reservations.segments:write",
+      scp: "crm.parties:read crm.parties:write financials.adjustments:post-seal financials.adjustments:write financials.cashiers:operate financials.cashiers:read financials.cashiers:supervise financials.charges:write financials.folios:close financials.folios:open financials.folios:read financials.folios:settle financials.transfers:write inventory.availability:read inventory.blocks:read inventory.blocks:write inventory.configuration:read inventory.configuration:write inventory.holds:read inventory.holds:write inventory.offline_leases:read inventory.offline_leases:write inventory.policy:read inventory.policy:write inventory.restriction:read inventory.restriction:write rates.configuration:read rates.configuration:write rates.pricing:read rates.pricing:write reservations.booking:write reservations.guests:read reservations.guests:write reservations.lifecycle:read reservations.lifecycle:write reservations.segments:read reservations.segments:write",
     });
 
     const headers = { "content-type": "application/json", authorization: `Bearer ${loginBody.accessToken}` };

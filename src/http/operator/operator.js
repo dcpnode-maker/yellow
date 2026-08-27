@@ -83,6 +83,20 @@
  let folioRouteCursor = "";
  let folioWorkspaceProperty = "";
  let folioReturnFocus = null;
+ let cashierData = null;
+ let cashierGeneration = 0;
+ let cashierDrawerId = "";
+ let cashierOpenAttemptKey = "";
+ let cashierOpenDraft = "";
+ let cashierCountAttemptKey = "";
+ let cashierCountDraft = "";
+ let cashierCloseAttemptKey = "";
+ let cashierCloseDraft = "";
+ let cashierLatestEvidence = null;
+ let cashierApprovalRequestKey = "";
+ let cashierApprovalRequestDraft = "";
+ let cashierApprovalDecisionKey = "";
+ let cashierApprovalDecisionDraft = "";
  let reservationPrimaryFolioAttemptKey = "";
  let reservationPrimaryFolioReservationId = "";
  const pendingKeys = new Map();
@@ -124,7 +138,45 @@
  const operationsView = $("#operations-view");
  const reservationsView = $("#reservations-view");
  const foliosView = $("#folios-view");
+ const cashiersView = $("#cashiers-view");
  const statusView = $("#status-view");
+ const cashierRefresh = $("#cashier-refresh");
+ const cashierLoading = $("#cashier-loading");
+ const cashierError = $("#cashier-error");
+ const cashierRetry = $("#cashier-retry");
+ const cashierWorkbench = $("#cashier-workbench");
+ const cashierDrawer = $("#cashier-drawer");
+ const cashierDrawerName = $("#cashier-drawer-name");
+ const cashierCurrency = $("#cashier-currency");
+ const cashierSessionState = $("#cashier-session-state");
+ const cashierCountState = $("#cashier-count-state");
+ const cashierSessionSummary = $("#cashier-session-summary");
+ const cashierOpenPanel = $("#cashier-open-panel");
+ const cashierOpenForm = $("#cashier-open-form");
+ const cashierOpenFields = $("#cashier-open-fields");
+ const cashierOpenDenominations = $("#cashier-open-denominations");
+ const cashierOpenConfirm = $("#cashier-open-confirm");
+ const cashierOpenSubmit = $("#cashier-open-submit");
+ const cashierCountPanel = $("#cashier-count-panel");
+ const cashierCountForm = $("#cashier-count-form");
+ const cashierCountFields = $("#cashier-count-fields");
+ const cashierCountDenominations = $("#cashier-count-denominations");
+ const cashierCountConfirm = $("#cashier-count-confirm");
+ const cashierCountSubmit = $("#cashier-count-submit");
+ const cashierClosePanel = $("#cashier-close-panel");
+ const cashierCloseForm = $("#cashier-close-form");
+ const cashierCloseReason = $("#cashier-close-reason");
+ const cashierCloseApproval = $("#cashier-close-approval");
+ const cashierCloseConfirm = $("#cashier-close-confirm");
+ const cashierCloseSubmit = $("#cashier-close-submit");
+ const cashierSupervisedClose = $("#cashier-supervised-close");
+ const cashierApprovalRequest = $("#cashier-approval-request");
+ const cashierSupervisedApprovalRequest = $("#cashier-supervised-approval-request");
+ const cashierApprovalApprove = $("#cashier-approval-approve");
+ const cashierApprovalReject = $("#cashier-approval-reject");
+ const cashierCloseCopy = $("#cashier-close-copy");
+ const cashierEvidence = $("#cashier-evidence");
+ const cashierEvidenceList = $("#cashier-evidence-list");
  const navigation = document.querySelectorAll(".domain-tab");
  const refreshInventory = $("#refresh-inventory");
  const inventoryStatus = $("#inventory-status");
@@ -696,6 +748,10 @@
  reservationCreateDirty = false;
  clearPartyProfileState();
  clearFolioState();
+ cashierGeneration += 1;
+ cashierData = null;
+ cashierDrawerId = "";
+ cashierLatestEvidence = null;
  clearReservationDrawerLifecycle();
  reservationGuestForm.hidden = true;
  reservationLifecycleEditor.hidden = true;
@@ -3899,9 +3955,206 @@
   if (isCurrentFolioRequest(generation, property, identity, folioId)) syncFolioChargeConfirmation();
  }
  }
+  function canonicalCashierPath(property) { return `/p/${enc(property)}/cashiers`; }
+  function cashierRouteFromLocation() {
+ const match = /^\/p\/([0-9a-f-]+)\/cashiers$/.exec(location.pathname);
+ return match ? { property: match[1] } : null;
+ }
+ function cashierDenominations(drawer) {
+ return Array.isArray(drawer?.denominations) ? drawer.denominations.filter((denomination) =>
+  denomination && typeof denomination.denominationMinor === "string") : [];
+ }
+  function cashierSession(drawer) { return drawer?.session || drawer?.activeSession || null; }
+  function cashierCurrentDrawer() {
+ return Array.isArray(cashierData?.drawers) ? cashierData.drawers.find((drawer) => drawer?.id === cashierDrawerId) || null : null;
+ }
+  function cashierMessage(form, message, isError = false) { formMessage(form, message, isError); }
+  function cashierFormBody(drawer, container) {
+ const denominations = cashierDenominations(drawer).map((denomination) => {
+  const input = container.querySelector(`[data-denomination-minor="${denomination.denominationMinor}"]`);
+  return { denominationMinor: denomination.denominationMinor, quantity: String(input?.value || "0") };
+ });
+ return { denominations };
+ }
+  function renderCashierDenominations(container, drawer) {
+ container.replaceChildren();
+ for (const denomination of cashierDenominations(drawer)) {
+  const label = node("label", "cashier-denomination");
+  const title = node("span", "", String(denomination.label || denomination.display || denomination.denominationMinor || "Governed denomination"));
+  const input = el("input");
+  input.type = "text";
+  input.inputMode = "numeric";
+  input.autocomplete = "off";
+  input.maxLength = 19;
+  input.pattern = "(?:0|[1-9][0-9]*)";
+  input.value = "0";
+  input.dataset.denominationMinor = denomination.denominationMinor;
+  input.setAttribute("aria-label", `${title.textContent} quantity`);
+  label.append(title, input);
+  container.append(label);
+ }
+ }
+  function syncCashierConfirmations() {
+ const drawer = cashierCurrentDrawer();
+ const hasDrawer = !!drawer;
+ cashierOpenSubmit.disabled = !hasDrawer || !cashierOpenConfirm.checked;
+ cashierCountSubmit.disabled = !hasDrawer || !cashierCountConfirm.checked;
+ cashierCloseSubmit.disabled = !hasDrawer || drawer?.canOperate !== true || !cashierCloseConfirm.checked || !cashierSession(drawer)?.sessionId || !cashierSession(drawer)?.latestCount?.countId;
+ cashierSupervisedClose.hidden = drawer?.supervised !== true;
+ cashierSupervisedClose.disabled = !hasDrawer || drawer?.supervised !== true || !cashierCloseConfirm.checked || !cashierSession(drawer)?.sessionId || !cashierSession(drawer)?.latestCount?.countId;
+ cashierApprovalRequest.disabled = !hasDrawer || drawer?.canOperate !== true || !cashierSession(drawer)?.sessionId || !cashierSession(drawer)?.latestCount?.countId;
+ cashierSupervisedApprovalRequest.hidden = drawer?.supervised !== true;
+ cashierSupervisedApprovalRequest.disabled = !hasDrawer || drawer?.supervised !== true || !cashierSession(drawer)?.sessionId || !cashierSession(drawer)?.latestCount?.countId;
+ cashierApprovalApprove.disabled = !hasDrawer || drawer.supervised !== true || !cashierSession(drawer)?.sessionId || !canonicalUuid(cashierCloseApproval.value);
+ cashierApprovalReject.disabled = !hasDrawer || drawer.supervised !== true || !cashierSession(drawer)?.sessionId || !canonicalUuid(cashierCloseApproval.value);
+ }
+  function cashierEvidenceRows(value) {
+ cashierEvidenceList.replaceChildren();
+ if (!value || typeof value !== "object") { cashierEvidence.hidden = true; return; }
+ const entries = [
+  ["Session", value.sessionId || value.id], ["Count", value.countId || value.latestCountId],
+  ["Expected", value.expectedMinor], ["Counted", value.countedMinor], ["Over / short", value.overShortMinor],
+  ["Status", value.status],
+ ].filter(([, item]) => item !== undefined && item !== null && item !== "");
+ for (const [label, entry] of entries) {
+  cashierEvidenceList.append(node("dt", "", label), node("dd", "", String(entry)));
+ }
+ cashierEvidence.hidden = entries.length === 0;
+ }
+  function renderCashierState(data) {
+ const drawers = Array.isArray(data?.drawers) ? data.drawers : [];
+ cashierDrawer.replaceChildren();
+ for (const drawer of drawers) {
+  if (!drawer || typeof drawer.id !== "string") continue;
+  const option = el("option"); option.value = drawer.id; option.textContent = String(drawer.name || drawer.code || drawer.id); cashierDrawer.append(option);
+ }
+ if (!drawers.some((drawer) => drawer?.id === cashierDrawerId)) cashierDrawerId = cashierDrawer.value || "";
+ const drawer = cashierCurrentDrawer();
+ cashierWorkbench.hidden = !drawer;
+ if (!drawer) return;
+ const session = cashierSession(drawer);
+ cashierDrawerName.textContent = String(drawer.name || drawer.code || drawer.id);
+ cashierCurrency.textContent = String(drawer.currency || "—");
+ cashierSessionState.textContent = session?.sessionId ? "Open" : "No active session";
+ cashierCountState.textContent = session?.latestCount?.countId ? `Attempt ${session.latestCount.attemptNo}` : "—";
+ cashierSessionSummary.textContent = session?.sessionId ? "Server evidence controls each available action." : "Open custody only after entering your physical opening count.";
+ cashierOpenPanel.hidden = !!session || drawer.canOpen === false;
+ cashierCountPanel.hidden = !session || drawer.canCount === false;
+ cashierClosePanel.hidden = !session || drawer.canClose === false;
+ cashierCloseSubmit.hidden = drawer.canOperate !== true;
+ cashierApprovalRequest.hidden = drawer.canOperate !== true;
+ renderCashierDenominations(cashierOpenDenominations, drawer);
+ renderCashierDenominations(cashierCountDenominations, drawer);
+ cashierOpenForm.reset(); cashierCountForm.reset(); cashierCloseForm.reset();
+ cashierOpenConfirm.checked = false; cashierCountConfirm.checked = false; cashierCloseConfirm.checked = false;
+ cashierCloseCopy.textContent = session?.latestCount?.countId ? "The server validates the latest immutable count, close authority and any required approval." : "Submit a fresh physical count before attempting close.";
+ cashierEvidenceRows(session?.latestOperationalAttempt || session?.closeEvidence || cashierLatestEvidence);
+ syncCashierConfirmations();
+ }
+  function cashierIsCurrent(generation, property, drawerId = cashierDrawerId) {
+ return generation === cashierGeneration && activeView === "cashiers" && property === propertySelect.value && drawerId === cashierDrawerId;
+ }
+  async function loadCashierSession({ focus = false } = {}) {
+ const property = propertySelect.value;
+ if (!property) return;
+ const generation = ++cashierGeneration;
+ cashierLoading.hidden = false; cashierError.hidden = true; cashierWorkbench.setAttribute("aria-busy", "true");
+ try {
+  const result = await request(`/api/v1/properties/${enc(property)}/cashier-sessions`);
+  if (!cashierIsCurrent(generation, property)) return;
+  cashierData = result; renderCashierState(result); cashierLoading.hidden = true; cashierWorkbench.setAttribute("aria-busy", "false");
+  if (focus) cashierWorkbench.focus();
+ } catch (error) {
+  if (!cashierIsCurrent(generation, property)) return;
+  cashierLoading.hidden = true; cashierWorkbench.setAttribute("aria-busy", "false"); cashierError.hidden = false;
+  cashierError.querySelector("p").textContent = error instanceof Error ? error.message : "Cashier state could not be loaded";
+ }
+ }
+  async function submitCashierOpen() {
+ const drawer = cashierCurrentDrawer(); if (!drawer || cashierOpenSubmit.disabled) return;
+ const property = propertySelect.value, generation = cashierGeneration;
+ const body = { drawerId: drawer.id, ...cashierFormBody(drawer, cashierOpenDenominations) };
+ const draft = JSON.stringify(body); if (draft !== cashierOpenDraft) { cashierOpenDraft = draft; cashierOpenAttemptKey = crypto.randomUUID(); }
+ cashierOpenSubmit.disabled = true; cashierMessage(cashierOpenForm, "Opening this cashier session through the governed server command…");
+ try {
+  const result = await request(`/api/v1/properties/${enc(property)}/cashier-sessions`, { method: "POST", headers: { "idempotency-key": cashierOpenAttemptKey }, body: JSON.stringify(body) });
+  if (!cashierIsCurrent(generation, property, drawer.id)) return;
+  cashierMessage(cashierOpenForm, result.replayed ? "The existing cashier opening was confirmed. Refreshing server evidence…" : "Cashier session opened. Refreshing server evidence…");
+  cashierLatestEvidence = result; cashierOpenAttemptKey = ""; cashierOpenDraft = ""; await loadCashierSession({ focus: true });
+ } catch (error) { if (cashierIsCurrent(generation, property, drawer.id)) cashierMessage(cashierOpenForm, `${error instanceof Error ? error.message : "Opening failed"}. Retry keeps the same idempotency key.`, true); }
+ finally { if (cashierIsCurrent(generation, property, drawer.id)) syncCashierConfirmations(); }
+ }
+  async function submitCashierCount() {
+ const drawer = cashierCurrentDrawer(), session = cashierSession(drawer); if (!drawer || !session?.sessionId || cashierCountSubmit.disabled) return;
+ const property = propertySelect.value, generation = cashierGeneration;
+ const body = cashierFormBody(drawer, cashierCountDenominations);
+ const draft = JSON.stringify({ sessionId: session.sessionId, ...body }); if (draft !== cashierCountDraft) { cashierCountDraft = draft; cashierCountAttemptKey = crypto.randomUUID(); }
+ cashierCountSubmit.disabled = true; cashierMessage(cashierCountForm, "Submitting one blind physical count. Expected cash remains hidden…");
+ try {
+  const result = await request(`/api/v1/properties/${enc(property)}/cashier-sessions/${enc(session.sessionId)}/counts`, { method: "POST", headers: { "idempotency-key": cashierCountAttemptKey }, body: JSON.stringify(body) });
+  if (!cashierIsCurrent(generation, property, drawer.id)) return;
+  cashierMessage(cashierCountForm, result.replayed ? "The existing count was confirmed. Refreshing server evidence…" : "Blind count recorded. Refreshing server evidence…");
+  cashierLatestEvidence = result; cashierCountAttemptKey = ""; cashierCountDraft = ""; await loadCashierSession({ focus: true });
+ } catch (error) { if (cashierIsCurrent(generation, property, drawer.id)) cashierMessage(cashierCountForm, `${error instanceof Error ? error.message : "Count failed"}. Retry keeps the same idempotency key.`, true); }
+ finally { if (cashierIsCurrent(generation, property, drawer.id)) syncCashierConfirmations(); }
+ }
+  async function requestCashierApproval(supervised = false) {
+ const drawer = cashierCurrentDrawer(), session = cashierSession(drawer);
+ const control = supervised ? cashierSupervisedApprovalRequest : cashierApprovalRequest;
+ if (!drawer || !session?.sessionId || !session?.latestCount?.countId || control.disabled || (supervised && drawer.supervised !== true)) return;
+ const property = propertySelect.value, generation = cashierGeneration;
+ const body = { countId: session.latestCount.countId };
+ const draft = JSON.stringify({ sessionId: session.sessionId, ...body });
+ if (draft !== cashierApprovalRequestDraft) { cashierApprovalRequestDraft = draft; cashierApprovalRequestKey = crypto.randomUUID(); }
+ control.disabled = true; cashierMessage(cashierCloseForm, "Requesting exact server-derived discrepancy approval…");
+ try {
+  const route = supervised ? "supervised-approvals" : "approvals";
+  const result = await request(`/api/v1/properties/${enc(property)}/cashier-sessions/${enc(session.sessionId)}/${route}`, { method: "POST", headers: { "idempotency-key": cashierApprovalRequestKey }, body: JSON.stringify(body) });
+  if (!cashierIsCurrent(generation, property, drawer.id)) return;
+  cashierCloseApproval.value = String(result.approvalId || ""); cashierLatestEvidence = result; cashierEvidenceRows(result);
+  cashierMessage(cashierCloseForm, result.replayed ? "The existing approval request was confirmed. A different supervisor may approve it." : "Discrepancy approval requested. A different supervisor may approve this exact evidence.");
+  cashierApprovalRequestKey = ""; cashierApprovalRequestDraft = ""; syncCashierConfirmations();
+ } catch (error) { if (cashierIsCurrent(generation, property, drawer.id)) cashierMessage(cashierCloseForm, `${error instanceof Error ? error.message : "Approval request failed"}. Retry keeps the same idempotency key.`, true); }
+ finally { if (cashierIsCurrent(generation, property, drawer.id)) syncCashierConfirmations(); }
+ }
+  async function decideCashierApproval(action) {
+ const drawer = cashierCurrentDrawer(), session = cashierSession(drawer), approvalId = cashierCloseApproval.value.trim();
+ const control = action === "approve" ? cashierApprovalApprove : cashierApprovalReject;
+ if ((action !== "approve" && action !== "reject") || !drawer || drawer.supervised !== true || !session?.sessionId || !canonicalUuid(approvalId) || control.disabled) return;
+ const property = propertySelect.value, generation = cashierGeneration;
+ const draft = JSON.stringify({ sessionId: session.sessionId, approvalId });
+ if (draft !== cashierApprovalDecisionDraft) { cashierApprovalDecisionDraft = draft; cashierApprovalDecisionKey = crypto.randomUUID(); }
+ control.disabled = true; cashierMessage(cashierCloseForm, action === "approve" ? "Approving only the server-bound discrepancy evidence…" : "Rejecting only the server-bound discrepancy evidence…");
+ try {
+  const result = await request(`/api/v1/properties/${enc(property)}/cashier-sessions/${enc(session.sessionId)}/approvals/${enc(approvalId)}/${action}`, { method: "POST", headers: { "idempotency-key": cashierApprovalDecisionKey }, body: JSON.stringify({}) });
+  if (!cashierIsCurrent(generation, property, drawer.id)) return;
+  cashierLatestEvidence = result; cashierEvidenceRows(result);
+  cashierMessage(cashierCloseForm, result.replayed ? "The existing approval decision was confirmed." : action === "approve" ? "Discrepancy approval recorded. You may now close from this exact count." : "Discrepancy approval rejected. Close remains unavailable for this count.");
+  cashierApprovalDecisionKey = ""; cashierApprovalDecisionDraft = ""; syncCashierConfirmations();
+ } catch (error) { if (cashierIsCurrent(generation, property, drawer.id)) cashierMessage(cashierCloseForm, `${error instanceof Error ? error.message : "Approval failed"}. Retry keeps the same idempotency key.`, true); }
+ finally { if (cashierIsCurrent(generation, property, drawer.id)) syncCashierConfirmations(); }
+ }
+  async function submitCashierClose(supervised = false) {
+ const drawer = cashierCurrentDrawer(), session = cashierSession(drawer);
+ const control = supervised ? cashierSupervisedClose : cashierCloseSubmit;
+ if (!drawer || !session?.sessionId || !session?.latestCount?.countId || control.disabled || (supervised && drawer.supervised !== true)) return;
+ const property = propertySelect.value, generation = cashierGeneration;
+ const reason = cashierCloseReason.value.trim(), approvalId = cashierCloseApproval.value.trim();
+ const body = { countId: session.latestCount.countId, ...(reason ? { reason } : {}), ...(approvalId ? { approvalId } : {}) };
+ const draft = JSON.stringify({ sessionId: session.sessionId, ...body }); if (draft !== cashierCloseDraft) { cashierCloseDraft = draft; cashierCloseAttemptKey = crypto.randomUUID(); }
+ control.disabled = true; cashierMessage(cashierCloseForm, "Closing only through the server’s current immutable evidence…");
+ try {
+  const route = supervised ? "supervised-close" : "close";
+  const result = await request(`/api/v1/properties/${enc(property)}/cashier-sessions/${enc(session.sessionId)}/${route}`, { method: "POST", headers: { "idempotency-key": cashierCloseAttemptKey }, body: JSON.stringify(body) });
+  if (!cashierIsCurrent(generation, property, drawer.id)) return;
+  cashierLatestEvidence = result; cashierEvidenceRows(result); cashierMessage(cashierCloseForm, result.replayed ? "The existing close was confirmed. Refreshing server evidence…" : "Cashier session closed. Refreshing server evidence…");
+  cashierCloseAttemptKey = ""; cashierCloseDraft = ""; await loadCashierSession({ focus: true });
+ } catch (error) { if (cashierIsCurrent(generation, property, drawer.id)) cashierMessage(cashierCloseForm, `${error instanceof Error ? error.message : "Close failed"}. Retry keeps the same idempotency key.`, true); }
+ finally { if (cashierIsCurrent(generation, property, drawer.id)) syncCashierConfirmations(); }
+ }
   function setView(view, updateHistory = true) {
  const previousView = activeView;
- activeView = ["today", "availability", "inventory", "operations", "reservations", "folios", "restrictions", "rates", "status"].includes(view) ? view : "availability";
+ activeView = ["today", "availability", "inventory", "operations", "reservations", "folios", "cashiers", "restrictions", "rates", "status"].includes(view) ? view : "availability";
  if (document.documentElement.dataset.experience === "simple" && SECONDARY_VIEWS.has(activeView)) {
   secondaryWorkspaces.hidden = false;
   secondaryWorkspacesToggle.setAttribute("aria-expanded", "true");
@@ -3917,9 +4170,10 @@
  operationsView.hidden = activeView !== "operations";
  reservationsView.hidden = activeView !== "reservations";
  foliosView.hidden = activeView !== "folios";
+ cashiersView.hidden = activeView !== "cashiers";
  statusView.hidden = activeView !== "status";
  workbenchTitle.textContent = activeView === "today" ? "Today" : activeView === "inventory" ? "Inventory setup" :
-  activeView === "operations" ? "Operations" : activeView === "reservations" ? "Reservations" : activeView === "folios" ? "Folios" : activeView === "restrictions" ? "Restrictions" :
+  activeView === "operations" ? "Operations" : activeView === "reservations" ? "Reservations" : activeView === "folios" ? "Folios" : activeView === "cashiers" ? "Cashiers" : activeView === "restrictions" ? "Restrictions" :
   activeView === "rates" ? "Rates" : activeView === "status" ? "Project status" : "Availability";
  for (const tab of navigation) {
   const selected = tab.dataset.view === activeView;
@@ -3944,6 +4198,7 @@
   if (reservationBoardRows.length === 0) void loadReservationBoard();
  }
  if (activeView === "folios") syncFolioRoute();
+ if (activeView === "cashiers") void loadCashierSession();
  }
   function formMessage(form, message, isError = false) {
  const target = form.querySelector(".form-message");
@@ -5464,6 +5719,11 @@
   syncFolioRoute();
   return;
  }
+ const cashierRoute = cashierRouteFromLocation();
+ if (cashierRoute && cashierRoute.property === propertySelect.value) {
+  setView("cashiers", false);
+  return;
+ }
  const route = reservationRoute();
  if (shouldConfirmReservationExit(reservationCreatePanel.hidden === false, reservationCreateDirty, route.kind) &&
   !confirm("Leave this unfinished reservation? Entered details will be lost.")) {
@@ -5589,6 +5849,28 @@
  event.preventDefault();
  void postFolioCharge();
  });
+ cashierRefresh.addEventListener("click", () => void loadCashierSession({ focus: true }));
+ cashierRetry.addEventListener("click", () => void loadCashierSession({ focus: true }));
+ cashierDrawer.addEventListener("change", () => {
+ cashierDrawerId = cashierDrawer.value;
+ cashierLatestEvidence = null;
+ cashierOpenAttemptKey = cashierOpenDraft = cashierCountAttemptKey = cashierCountDraft = cashierCloseAttemptKey = cashierCloseDraft = "";
+ renderCashierState(cashierData);
+ });
+ cashierOpenConfirm.addEventListener("change", syncCashierConfirmations);
+ cashierCountConfirm.addEventListener("change", syncCashierConfirmations);
+ cashierCloseConfirm.addEventListener("change", syncCashierConfirmations);
+ cashierOpenForm.addEventListener("input", () => { if (cashierOpenDraft) { cashierOpenDraft = ""; cashierOpenAttemptKey = ""; } syncCashierConfirmations(); });
+ cashierCountForm.addEventListener("input", () => { if (cashierCountDraft) { cashierCountDraft = ""; cashierCountAttemptKey = ""; } syncCashierConfirmations(); });
+ cashierCloseForm.addEventListener("input", () => { if (cashierCloseDraft) { cashierCloseDraft = ""; cashierCloseAttemptKey = ""; } syncCashierConfirmations(); });
+ cashierOpenForm.addEventListener("submit", (event) => { event.preventDefault(); void submitCashierOpen(); });
+ cashierCountForm.addEventListener("submit", (event) => { event.preventDefault(); void submitCashierCount(); });
+ cashierCloseForm.addEventListener("submit", (event) => { event.preventDefault(); void submitCashierClose(); });
+ cashierSupervisedClose.addEventListener("click", () => void submitCashierClose(true));
+ cashierApprovalRequest.addEventListener("click", () => void requestCashierApproval());
+ cashierSupervisedApprovalRequest.addEventListener("click", () => void requestCashierApproval(true));
+ cashierApprovalApprove.addEventListener("click", () => void decideCashierApproval("approve"));
+ cashierApprovalReject.addEventListener("click", () => void decideCashierApproval("reject"));
  folioSettlementAction.addEventListener("click", () => {
  const action = folioSettlementAction.dataset.action;
  if (action === "settle" || action === "close") void submitFolioStatus(action);
@@ -6124,6 +6406,7 @@
  location.pathname.endsWith("/operations") ? "operations" :
  (location.pathname.endsWith("/reservations") || /^\/p\/[0-9a-f-]+\/res\/[0-9a-f-]+$/.test(location.pathname)) ? "reservations" :
  (location.pathname.endsWith("/folios") || /^\/p\/[0-9a-f-]+\/folio\/[0-9a-f-]+$/.test(location.pathname)) ? "folios" :
+ location.pathname.endsWith("/cashiers") ? "cashiers" :
  location.pathname.endsWith("/restrictions") ? "restrictions" :
  location.pathname.endsWith("/rates") ? "rates" :
  location.pathname.endsWith("/status") ? "status" : "availability";

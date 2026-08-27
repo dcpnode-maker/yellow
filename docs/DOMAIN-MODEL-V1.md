@@ -606,3 +606,14 @@ insert-only child of the captured operation and its folio; each row names the ex
 immutable application journal. Capture belongs to payment history and deposit
 liability, while application belongs to the folio ledger, so neither artifact is
 silently inferred from the other or from browser state.
+
+### Cashier custody identity (Order 197)
+
+`cash_drawer` is the property/currency identity and
+`cash_drawer_denomination` is its governed positive-unit configuration.
+`cashier_session` is the mutable open/closed custody head for one drawer, actor and
+business date. `cashier_count` plus `cashier_count_line` are insert-only observations;
+the database derives their exact bigint total and retains every recount. Closing names
+one immutable count and records the expected, counted and over/short evidence. A
+non-zero discrepancy also names one distinct-decider approval. None of these identities
+is a payment, journal, provider settlement or business-day seal.

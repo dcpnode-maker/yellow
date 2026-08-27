@@ -578,3 +578,24 @@ journal by both unapplied capture and positive folio balance. Staff read, create
 apply routes require distinct `financials.payments:read`,
 `financials.payments:write` and `financials.deposits:apply` scopes plus the exact
 property grants. This contract does not refund deposits, settle or close a folio.
+
+## 18. Governed cashier-custody boundary
+
+`CashierService` is the only application boundary for opening, recounting and closing
+a property cash drawer. Callers submit only a governed drawer id and non-negative
+quantities for the drawer's configured bigint denomination units. PostgreSQL derives
+the property, open business date, currency, actor custody and every exact int64 total;
+caller totals, dates, currencies, accounts and users are rejected authority.
+
+At most one session may be open for a drawer and for a tenant user. Counts and count
+lines are immutable. Ordinary close remains blind until a count has been submitted:
+expected cash is the opening count plus typed cash effects (opening only while Yellow
+has no cash-posting command). Zero closes directly. A non-zero over/short requires a
+reason and one exact approved, different-user, one-use `cashier_over_short` request
+bound to the session, count and server-derived totals. Supervisor abandoned close
+also requires a distinct closer, fresh closer-owned count and reason.
+
+Open, count and close append minimized facts and `cashier.opened`,
+`cashier.counted`, `cashier.closed` outbox events in the same transaction. This
+contract never posts cash, balances a discrepancy, mutates a journal, settles a
+provider or seals a business day.

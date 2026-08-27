@@ -516,7 +516,7 @@ databaseDescribe("Bun SQL migration runner", () => {
         const tableCount = await sql<{ count: number }[]>`
           SELECT count(*)::int AS count FROM pg_catalog.pg_tables WHERE schemaname = 'public'
         `;
-        expect(tableCount).toEqual([{ count: 89 }]);
+        expect(tableCount).toEqual([{ count: 93 }]);
       });
     },
     60_000,
@@ -665,6 +665,49 @@ databaseDescribe("Bun SQL migration runner", () => {
   );
 
   test(
+    "applies the exact governed cashier-session migration",
+    async () => {
+      await withDatabase(async ({ databaseUrl: targetUrl, sql }) => {
+        const result = await runMigrations({
+          databaseUrl: targetUrl,
+          migrationsDirectory: PROJECT_MIGRATIONS,
+          logger: () => undefined,
+        });
+        expect(result.appliedFiles).toContain("0024_governed_cashier_sessions.sql");
+        const ledger = await sql<Array<{
+          version: number | bigint;
+          filename: string;
+          checksum_sha256: string;
+        }>>`
+          SELECT version, filename, checksum_sha256
+            FROM public.schema_migration
+           WHERE version = 24
+        `;
+        expect(ledger.map((row) => ({ ...row, version: Number(row.version) }))).toEqual([{
+          version: 24,
+          filename: "0024_governed_cashier_sessions.sql",
+          checksum_sha256: "8884596df1155a308c752e733834e9cdcf95dd462b286450c6dbc3ae22b50e76",
+        }]);
+
+        const shape = await sql<Array<{ tables: number; policies: number; functions: number }>>`
+          SELECT
+            (SELECT count(*)::int FROM pg_catalog.pg_tables WHERE schemaname = 'public') AS tables,
+            (SELECT count(*)::int FROM pg_catalog.pg_policies WHERE schemaname = 'public') AS policies,
+            (SELECT count(*)::int
+               FROM pg_catalog.pg_proc AS procedure
+               JOIN pg_catalog.pg_namespace AS namespace ON namespace.oid = procedure.pronamespace
+              WHERE namespace.nspname = 'public'
+                AND procedure.proname IN (
+                  'open_cashier_session', 'append_cashier_count', 'close_cashier_session'
+                )) AS functions
+        `;
+        expect(shape).toEqual([{ tables: 93, policies: 83, functions: 3 }]);
+      });
+    },
+    60_000,
+  );
+
+  test(
     "applies the exact account-folio integrity migration and rejects tenant-crossing references",
     async () => {
       await withDatabase(async ({ databaseUrl: targetUrl, sql }) => {
@@ -787,7 +830,7 @@ databaseDescribe("Bun SQL migration runner", () => {
         const tableCount = await sql<{ count: number }[]>`
           SELECT count(*)::int AS count FROM pg_tables WHERE schemaname = 'public'
         `;
-        expect(tableCount).toEqual([{ count: 89 }]);
+        expect(tableCount).toEqual([{ count: 93 }]);
 
         const privileges = await sql<{
           route_rls: boolean;

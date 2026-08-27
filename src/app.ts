@@ -103,6 +103,7 @@ export function createApp(options: AppOptions = {}) {
       .get("/p/:property/res/:reservation", ({ request }) => operatorAssets.html(options.operatorLocalReviewCredentials, request))
       .get("/p/:property/folios", ({ request }) => operatorAssets.html(options.operatorLocalReviewCredentials, request))
       .get("/p/:property/folio/:folio", ({ request }) => operatorAssets.html(options.operatorLocalReviewCredentials, request))
+      .get("/p/:property/cashiers", ({ request }) => operatorAssets.html(options.operatorLocalReviewCredentials, request))
       .get("/p/:property/status", ({ request }) => operatorAssets.html(options.operatorLocalReviewCredentials, request))
       .get("/assets/operator.css", () => operatorAssets.css())
       .get("/assets/operator.js", () => operatorAssets.js())
@@ -117,6 +118,33 @@ export function createApp(options: AppOptions = {}) {
       )
       .get("/api/v1/properties/:property/system-status", ({ request, params, tenantContext }) =>
         withOperatorTenant(request, (context) => operator.systemStatus(context, params.property))
+      )
+      .get("/api/v1/properties/:property/cashier-sessions", ({ request, params, tenantContext }) =>
+        withOperatorTenant(request, (context) => operator.cashierSessions(context, params.property))
+      )
+      .post("/api/v1/properties/:property/cashier-sessions", ({ request, params, body, tenantContext }) =>
+        withOperatorTenant(request, (context) => operator.openCashierSession(context, params.property, body))
+      )
+      .post("/api/v1/properties/:property/cashier-sessions/:sessionId/counts", ({ request, params, body, tenantContext }) =>
+        withOperatorTenant(request, (context) => operator.appendCashierCount(context, params.property, params.sessionId, body))
+      )
+      .post("/api/v1/properties/:property/cashier-sessions/:sessionId/approvals", ({ request, params, body, tenantContext }) =>
+        withOperatorTenant(request, (context) => operator.requestCashierOverShortApproval(context, params.property, params.sessionId, body))
+      )
+      .post("/api/v1/properties/:property/cashier-sessions/:sessionId/supervised-approvals", ({ request, params, body, tenantContext }) =>
+        withOperatorTenant(request, (context) => operator.requestCashierOverShortApproval(context, params.property, params.sessionId, body, true))
+      )
+      .post("/api/v1/properties/:property/cashier-sessions/:sessionId/approvals/:approvalId/approve", ({ request, params, body, tenantContext }) =>
+        withOperatorTenant(request, (context) => operator.approveCashierOverShort(context, params.property, params.sessionId, params.approvalId, body))
+      )
+      .post("/api/v1/properties/:property/cashier-sessions/:sessionId/approvals/:approvalId/reject", ({ request, params, body, tenantContext }) =>
+        withOperatorTenant(request, (context) => operator.rejectCashierOverShort(context, params.property, params.sessionId, params.approvalId, body))
+      )
+      .post("/api/v1/properties/:property/cashier-sessions/:sessionId/close", ({ request, params, body, tenantContext }) =>
+        withOperatorTenant(request, (context) => operator.closeCashierSession(context, params.property, params.sessionId, body))
+      )
+      .post("/api/v1/properties/:property/cashier-sessions/:sessionId/supervised-close", ({ request, params, body, tenantContext }) =>
+        withOperatorTenant(request, (context) => operator.closeCashierSession(context, params.property, params.sessionId, body, true))
       )
       .get("/api/v1/properties/:property/folios/:reference/statement", ({ request, params, tenantContext }) =>
         withOperatorTenant(request, (context) => operator.folioStatement(

@@ -20,6 +20,11 @@ import {
   ChargeNotFoundError,
   ChargeService,
   ChargeValidationError,
+  CashierAuthorizationError,
+  CashierConflictError,
+  CashierNotFoundError,
+  CashierService,
+  CashierValidationError,
   FolioConflictError,
   FolioNotFoundError,
   FolioService,
@@ -177,6 +182,9 @@ const ADJUSTMENT_POST_SEAL_SCOPE = "financials.adjustments:post-seal";
 const PAYMENT_READ_SCOPE = "financials.payments:read";
 const PAYMENT_WRITE_SCOPE = "financials.payments:write";
 const DEPOSIT_APPLY_SCOPE = "financials.deposits:apply";
+const CASHIER_READ_SCOPE = "financials.cashiers:read";
+const CASHIER_OPERATE_SCOPE = "financials.cashiers:operate";
+const CASHIER_SUPERVISE_SCOPE = "financials.cashiers:supervise";
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 const ISO_INSTANT = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})(?::(\d{2})(?:\.(\d{1,3}))?)?(Z|([+-])(\d{2}):(\d{2}))$/;
 const LOCAL_DATE = /^(\d{4})-(\d{2})-(\d{2})$/;
@@ -228,6 +236,69 @@ interface CorrectionDraft {
 interface FolioStatusDraft {
   readonly action: "settle" | "close";
   readonly idempotencyKey: string;
+}
+
+interface CashierDenominationDraft extends Readonly<Record<string, unknown>> {
+  readonly denominationMinor: string;
+  readonly quantity: string;
+}
+
+function parseCashierDenominations(value: unknown): readonly CashierDenominationDraft[] | null {
+  if (!Array.isArray(value) || value.length < 1 || value.length > 100) return null;
+  const denominations: CashierDenominationDraft[] = [];
+  const seen = new Set<string>();
+  for (const line of value) {
+    if (!isObject(line) || !exactKeys(line, ["denominationMinor", "quantity"]) ||
+        typeof line.denominationMinor !== "string" || !POSITIVE_INT64.test(line.denominationMinor) ||
+        BigInt(line.denominationMinor) > INT64_MAX || typeof line.quantity !== "string" ||
+        !/^(?:0|[1-9][0-9]*)$/.test(line.quantity) || BigInt(line.quantity) > INT64_MAX ||
+        seen.has(line.denominationMinor)) return null;
+    seen.add(line.denominationMinor);
+    denominations.push(Object.freeze({ denominationMinor: line.denominationMinor, quantity: line.quantity }));
+  }
+  return Object.freeze(denominations);
+}
+
+interface CashierOpenDraft {
+  readonly drawerId: string;
+  readonly denominations: readonly CashierDenominationDraft[];
+}
+
+function parseCashierOpen(body: unknown): CashierOpenDraft | null {
+  if (!isObject(body) || !exactKeys(body, ["drawerId", "denominations"]) ||
+      typeof body.drawerId !== "string" || !UUID.test(body.drawerId)) return null;
+  const denominations = parseCashierDenominations(body.denominations);
+  return denominations ? Object.freeze({ drawerId: body.drawerId, denominations }) : null;
+}
+
+interface CashierCountDraft { readonly denominations: readonly CashierDenominationDraft[]; }
+
+function parseCashierCount(body: unknown): CashierCountDraft | null {
+  if (!isObject(body) || !exactKeys(body, ["denominations"])) return null;
+  const denominations = parseCashierDenominations(body.denominations);
+  return denominations ? Object.freeze({ denominations }) : null;
+}
+
+interface CashierCloseDraft {
+  readonly countId: string;
+  readonly reason?: string;
+  readonly approvalId?: string;
+}
+
+function parseCashierApprovalRequest(body: unknown): { readonly countId: string } | null {
+  return isObject(body) && exactKeys(body, ["countId"]) && typeof body.countId === "string" && UUID.test(body.countId)
+    ? Object.freeze({ countId: body.countId })
+    : null;
+}
+
+function parseCashierClose(body: unknown): CashierCloseDraft | null {
+  if (!isObject(body) || !exactKeys(body, ["countId"], ["reason", "approvalId"]) ||
+      typeof body.countId !== "string" || !UUID.test(body.countId) ||
+      (body.reason !== undefined && (typeof body.reason !== "string" || body.reason !== body.reason.trim() ||
+        body.reason.length < 1 || body.reason.length > 500 || /[\u0000-\u001f\u007f]/.test(body.reason))) ||
+      (body.approvalId !== undefined && (typeof body.approvalId !== "string" || !UUID.test(body.approvalId)))) return null;
+  return Object.freeze({ countId: body.countId, ...(body.reason === undefined ? {} : { reason: body.reason }),
+    ...(body.approvalId === undefined ? {} : { approvalId: body.approvalId }) });
 }
 
 function parseFolioStatus(body: unknown): FolioStatusDraft | null {
@@ -979,6 +1050,7 @@ type FolioOperations = Pick<FolioService, "openPrimary" | "openAdditional">;
 type FolioSettlementOperations = Pick<FolioSettlementService, "settle" | "close">;
 type FolioTransferOperations = Pick<FolioTransferService, "preview" | "transfer">;
 type HostedDepositOperations = Pick<HostedDepositService, "create" | "apply" | "statusForOperator">;
+type CashierOperations = Pick<CashierService, "list" | "open" | "appendCount" | "close" | "requestOverShortApproval" | "approveOverShort" | "rejectOverShort">;
 
 const MAX_MONEY = 9_223_372_036_854_775_807n;
 
@@ -1368,6 +1440,7 @@ export class OperatorHttpApi {
   readonly #folioSettlements?: FolioSettlementOperations;
   readonly #folioTransfers?: FolioTransferOperations;
   readonly #hostedDeposits?: HostedDepositOperations;
+  readonly #cashiers?: CashierOperations;
 
   constructor(
     login: LocalLoginService,
@@ -1398,6 +1471,7 @@ export class OperatorHttpApi {
     folioTransfers?: FolioTransferOperations,
     hostedDeposits?: HostedDepositOperations,
     folioSettlements?: FolioSettlementOperations,
+    cashiers?: CashierOperations,
   ) {
     this.#login = login;
     this.#availability = availability;
@@ -1427,6 +1501,7 @@ export class OperatorHttpApi {
     this.#folioTransfers = folioTransfers;
     this.#hostedDeposits = hostedDeposits;
     this.#folioSettlements = folioSettlements;
+    this.#cashiers = cashiers;
   }
 
   unavailable(request: Request): Response {
@@ -1438,6 +1513,18 @@ export class OperatorHttpApi {
   }
 
   failure(request: Request, error: unknown): Response {
+    if (error instanceof CashierValidationError) {
+      return apiError(request, 400, "request/invalid", "Invalid request", "Cashier input is invalid");
+    }
+    if (error instanceof CashierNotFoundError) {
+      return apiError(request, 404, "financials/not_found", "Not found", "The requested cashier session or drawer was not found");
+    }
+    if (error instanceof CashierAuthorizationError) {
+      return apiError(request, 403, "auth/scope_missing", "Forbidden", "Cashier access is not granted");
+    }
+    if (error instanceof CashierConflictError) {
+      return apiError(request, 409, "financials/conflict", "Conflict", "The cashier session conflicts with current financial state");
+    }
     if (error instanceof FolioValidationError || error instanceof FolioStatementValidationError ||
         error instanceof ChargeValidationError || error instanceof ChargeCorrectionValidationError ||
         error instanceof FolioTransferValidationError || error instanceof HostedDepositValidationError ||
@@ -1618,6 +1705,215 @@ export class OperatorHttpApi {
           detail: "External CI is not queried by the local runtime; use the linked GitHub pull request evidence.",
         },
       },
+    });
+  }
+
+  async cashierSessions(
+    context: TenantRequestContext,
+    propertyNode: string,
+  ): Promise<Response> {
+    if (!hasScope(context, CASHIER_READ_SCOPE)) {
+      return apiError(context.request, 403, "auth/scope_missing", "Forbidden", "Cashier read access is not granted");
+    }
+    if (!UUID.test(propertyNode)) {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Property identifier is invalid");
+    }
+    const grants = await listGrantedProperties(context, CASHIER_READ_SCOPE);
+    if (!grants.some(({ id }) => id === propertyNode)) {
+      return apiError(context.request, 403, "auth/property_forbidden", "Forbidden", "Property access is not granted");
+    }
+    if (!this.#cashiers) return this.unavailable(context.request);
+    const supervised = hasScope(context, CASHIER_SUPERVISE_SCOPE) &&
+      (await listGrantedProperties(context, CASHIER_SUPERVISE_SCOPE)).some(({ id }) => id === propertyNode);
+    const canOperate = hasScope(context, CASHIER_OPERATE_SCOPE) &&
+      (await listGrantedProperties(context, CASHIER_OPERATE_SCOPE)).some(({ id }) => id === propertyNode);
+    const drawers = await this.#cashiers.list({
+      tenantId: context.tenantId,
+      propertyNode,
+      actorId: context.identity.actorId,
+      supervised,
+    });
+    return apiResponse(context.request, canonicalJson(jsonValue({ drawers: drawers.map((drawer) => ({
+      ...drawer,
+      id: drawer.drawerId,
+      canOpen: canOperate,
+      canCount: canOperate,
+      canClose: canOperate || supervised,
+      supervised,
+    })) })));
+  }
+
+  async openCashierSession(
+    context: TenantRequestContext,
+    propertyNode: string,
+    body: unknown,
+  ): Promise<Response> {
+    const input = parseCashierOpen(body);
+    const idempotencyKey = context.request.headers.get("idempotency-key");
+    if (!input || !UUID.test(propertyNode) || !idempotencyKey || !IDEMPOTENCY_KEY.test(idempotencyKey)) {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Cashier opening input is invalid");
+    }
+    if (!hasScope(context, CASHIER_OPERATE_SCOPE)) {
+      return apiError(context.request, 403, "auth/scope_missing", "Forbidden", "Cashier operation access is not granted");
+    }
+    const grants = await listGrantedProperties(context, CASHIER_OPERATE_SCOPE);
+    if (!grants.some(({ id }) => id === propertyNode)) {
+      return apiError(context.request, 403, "auth/property_forbidden", "Forbidden", "Property access is not granted");
+    }
+    if (!this.#cashiers) return this.unavailable(context.request);
+    const requestId = correlationId(context.request);
+    const result = await this.#cashiers.open({
+      tenantId: context.tenantId, drawerId: input.drawerId, denominations: input.denominations, idempotencyKey,
+      envelope: createAuditEnvelope({ actorId: context.identity.actorId, tenantId: context.tenantId, propertyNode, requestId, operation: "cashier.opened" }),
+    });
+    return apiResponse(context.request, canonicalJson(jsonValue(result)), result.replayed ? 200 : 201, {
+      "idempotency-replayed": String(result.replayed), "x-correlation-id": requestId,
+    });
+  }
+
+  async appendCashierCount(
+    context: TenantRequestContext,
+    propertyNode: string,
+    sessionId: string,
+    body: unknown,
+  ): Promise<Response> {
+    const input = parseCashierCount(body);
+    const idempotencyKey = context.request.headers.get("idempotency-key");
+    if (!input || !UUID.test(propertyNode) || !UUID.test(sessionId) || !idempotencyKey || !IDEMPOTENCY_KEY.test(idempotencyKey)) {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Cashier count input is invalid");
+    }
+    if (!hasScope(context, CASHIER_OPERATE_SCOPE)) {
+      return apiError(context.request, 403, "auth/scope_missing", "Forbidden", "Cashier operation access is not granted");
+    }
+    const grants = await listGrantedProperties(context, CASHIER_OPERATE_SCOPE);
+    if (!grants.some(({ id }) => id === propertyNode)) {
+      return apiError(context.request, 403, "auth/property_forbidden", "Forbidden", "Property access is not granted");
+    }
+    if (!this.#cashiers) return this.unavailable(context.request);
+    const requestId = correlationId(context.request);
+    const result = await this.#cashiers.appendCount({
+      tenantId: context.tenantId, sessionId, denominations: input.denominations, idempotencyKey,
+      envelope: createAuditEnvelope({ actorId: context.identity.actorId, tenantId: context.tenantId, propertyNode, requestId, operation: "cashier.counted" }),
+    });
+    return apiResponse(context.request, canonicalJson(jsonValue(result)), result.replayed ? 200 : 201, {
+      "idempotency-replayed": String(result.replayed), "x-correlation-id": requestId,
+    });
+  }
+
+  async requestCashierOverShortApproval(
+    context: TenantRequestContext,
+    propertyNode: string,
+    sessionId: string,
+    body: unknown,
+    supervised = false,
+  ): Promise<Response> {
+    const input = parseCashierApprovalRequest(body);
+    const idempotencyKey = context.request.headers.get("idempotency-key");
+    if (!input || !UUID.test(propertyNode) || !UUID.test(sessionId) || !idempotencyKey || !IDEMPOTENCY_KEY.test(idempotencyKey)) {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Cashier approval input is invalid");
+    }
+    const scope = supervised ? CASHIER_SUPERVISE_SCOPE : CASHIER_OPERATE_SCOPE;
+    if (!hasScope(context, scope)) {
+      return apiError(context.request, 403, "auth/scope_missing", "Forbidden", supervised ? "Cashier supervision access is not granted" : "Cashier operation access is not granted");
+    }
+    const grants = await listGrantedProperties(context, scope);
+    if (!grants.some(({ id }) => id === propertyNode)) {
+      return apiError(context.request, 403, "auth/property_forbidden", "Forbidden", "Property access is not granted");
+    }
+    if (!this.#cashiers) return this.unavailable(context.request);
+    const requestId = correlationId(context.request);
+    const result = await this.#cashiers.requestOverShortApproval({
+      tenantId: context.tenantId, sessionId, countId: input.countId, supervised, idempotencyKey,
+      envelope: createAuditEnvelope({ actorId: context.identity.actorId, tenantId: context.tenantId, propertyNode, requestId, operation: "approval.requested" }),
+    });
+    return apiResponse(context.request, canonicalJson(jsonValue(result)), result.replayed ? 200 : 201, {
+      "idempotency-replayed": String(result.replayed), "x-correlation-id": requestId,
+    });
+  }
+
+  async approveCashierOverShort(
+    context: TenantRequestContext,
+    propertyNode: string,
+    sessionId: string,
+    approvalId: string,
+    body: unknown,
+  ): Promise<Response> {
+    return this.decideCashierOverShort(context, propertyNode, sessionId, approvalId, body, "approve");
+  }
+
+  async rejectCashierOverShort(
+    context: TenantRequestContext,
+    propertyNode: string,
+    sessionId: string,
+    approvalId: string,
+    body: unknown,
+  ): Promise<Response> {
+    return this.decideCashierOverShort(context, propertyNode, sessionId, approvalId, body, "reject");
+  }
+
+  async decideCashierOverShort(
+    context: TenantRequestContext,
+    propertyNode: string,
+    sessionId: string,
+    approvalId: string,
+    body: unknown,
+    decision: "approve" | "reject",
+  ): Promise<Response> {
+    const idempotencyKey = context.request.headers.get("idempotency-key");
+    if (!isObject(body) || !exactKeys(body, []) || !UUID.test(propertyNode) || !UUID.test(sessionId) || !UUID.test(approvalId) ||
+        !idempotencyKey || !IDEMPOTENCY_KEY.test(idempotencyKey)) {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Cashier approval input is invalid");
+    }
+    if (!hasScope(context, CASHIER_SUPERVISE_SCOPE)) {
+      return apiError(context.request, 403, "auth/scope_missing", "Forbidden", "Cashier supervision access is not granted");
+    }
+    const grants = await listGrantedProperties(context, CASHIER_SUPERVISE_SCOPE);
+    if (!grants.some(({ id }) => id === propertyNode)) {
+      return apiError(context.request, 403, "auth/property_forbidden", "Forbidden", "Property access is not granted");
+    }
+    if (!this.#cashiers) return this.unavailable(context.request);
+    const requestId = correlationId(context.request);
+    const result = await (decision === "approve" ? this.#cashiers.approveOverShort({
+      tenantId: context.tenantId, sessionId, approvalId, idempotencyKey,
+      envelope: createAuditEnvelope({ actorId: context.identity.actorId, tenantId: context.tenantId, propertyNode, requestId, operation: "approval.decided" }),
+    }) : this.#cashiers.rejectOverShort({
+      tenantId: context.tenantId, sessionId, approvalId, idempotencyKey,
+      envelope: createAuditEnvelope({ actorId: context.identity.actorId, tenantId: context.tenantId, propertyNode, requestId, operation: "approval.decided" }),
+    }));
+    return apiResponse(context.request, canonicalJson(jsonValue(result)), 200, {
+      "idempotency-replayed": String(result.replayed), "x-correlation-id": requestId,
+    });
+  }
+
+  async closeCashierSession(
+    context: TenantRequestContext,
+    propertyNode: string,
+    sessionId: string,
+    body: unknown,
+    supervised = false,
+  ): Promise<Response> {
+    const input = parseCashierClose(body);
+    const idempotencyKey = context.request.headers.get("idempotency-key");
+    if (!input || !UUID.test(propertyNode) || !UUID.test(sessionId) || !idempotencyKey || !IDEMPOTENCY_KEY.test(idempotencyKey)) {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Cashier close input is invalid");
+    }
+    const scope = supervised ? CASHIER_SUPERVISE_SCOPE : CASHIER_OPERATE_SCOPE;
+    if (!hasScope(context, scope)) {
+      return apiError(context.request, 403, "auth/scope_missing", "Forbidden", supervised ? "Cashier supervision access is not granted" : "Cashier operation access is not granted");
+    }
+    const grants = await listGrantedProperties(context, scope);
+    if (!grants.some(({ id }) => id === propertyNode)) {
+      return apiError(context.request, 403, "auth/property_forbidden", "Forbidden", "Property access is not granted");
+    }
+    if (!this.#cashiers) return this.unavailable(context.request);
+    const requestId = correlationId(context.request);
+    const result = await this.#cashiers.close({
+      tenantId: context.tenantId, sessionId, countId: input.countId, ...(input.reason === undefined ? {} : { reason: input.reason }),
+      ...(input.approvalId === undefined ? {} : { approvalId: input.approvalId }), supervised, idempotencyKey,
+      envelope: createAuditEnvelope({ actorId: context.identity.actorId, tenantId: context.tenantId, propertyNode, requestId, operation: "cashier.closed" }),
+    });
+    return apiResponse(context.request, canonicalJson(jsonValue(result)), result.replayed ? 200 : 201, {
+      "idempotency-replayed": String(result.replayed), "x-correlation-id": requestId,
     });
   }
 

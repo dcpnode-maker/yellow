@@ -120,6 +120,11 @@ const EXPECTED_MIGRATIONS = [
     filename: "0023_folio_settlement_capability.sql",
     checksum_sha256: "1209d2cf1e7b7c949640a8da0202633c6713d0006f3f17752e976195186ea933",
   },
+  {
+    version: 24,
+    filename: "0024_governed_cashier_sessions.sql",
+    checksum_sha256: "8884596df1155a308c752e733834e9cdcf95dd462b286450c6dbc3ae22b50e76",
+  },
 ];
 
 if (REQUIRE_DATABASE && !DATABASE_URL) {
@@ -260,6 +265,91 @@ databaseDescribe("fresh deployment database acceptance", () => {
       publicExecute: false,
       appExecute: false,
     }]);
+  });
+
+  test("has the exact governed cashier schema, RLS and bounded capability authority", async () => {
+    const shape = await sql!<Array<{ tables: number; policies: number }>>`
+      SELECT
+        (SELECT count(*)::int FROM pg_catalog.pg_tables WHERE schemaname = 'public') AS tables,
+        (SELECT count(*)::int FROM pg_catalog.pg_policies WHERE schemaname = 'public') AS policies
+    `;
+    expect(shape).toEqual([{ tables: 93, policies: 83 }]);
+
+    const relations = await sql!<Array<{
+      relation: string;
+      rls: boolean;
+      appSelect: boolean;
+      appMutation: boolean;
+    }>>`
+      SELECT class.relname AS relation,
+             class.relrowsecurity AS rls,
+             has_table_privilege('app_role', class.oid, 'SELECT') AS "appSelect",
+             (
+               has_table_privilege('app_role', class.oid, 'INSERT')
+               OR has_table_privilege('app_role', class.oid, 'UPDATE')
+               OR has_table_privilege('app_role', class.oid, 'DELETE')
+               OR has_table_privilege('app_role', class.oid, 'TRUNCATE')
+             ) AS "appMutation"
+        FROM pg_catalog.pg_class AS class
+       WHERE class.oid = ANY(ARRAY[
+         'public.cash_drawer'::regclass,
+         'public.cash_drawer_denomination'::regclass,
+         'public.cashier_count'::regclass,
+         'public.cashier_count_line'::regclass
+       ])
+       ORDER BY relation
+    `;
+    expect(relations).toEqual([
+      { relation: "cash_drawer", rls: true, appSelect: true, appMutation: false },
+      { relation: "cash_drawer_denomination", rls: true, appSelect: true, appMutation: false },
+      { relation: "cashier_count", rls: true, appSelect: true, appMutation: false },
+      { relation: "cashier_count_line", rls: true, appSelect: true, appMutation: false },
+    ]);
+
+    const functions = await sql!<Array<{
+      signature: string;
+      owner: string;
+      securityDefiner: boolean;
+      config: string[];
+      appExecute: boolean;
+      runtimeExecute: boolean;
+      publicExecute: boolean;
+    }>>`
+      SELECT procedure.oid::regprocedure::text AS signature,
+             pg_catalog.pg_get_userbyid(procedure.proowner) AS owner,
+             procedure.prosecdef AS "securityDefiner",
+             procedure.proconfig AS config,
+             pg_catalog.has_function_privilege('app_role', procedure.oid, 'EXECUTE') AS "appExecute",
+             pg_catalog.has_function_privilege('yellow_runtime', procedure.oid, 'EXECUTE') AS "runtimeExecute",
+             pg_catalog.has_function_privilege('public', procedure.oid, 'EXECUTE') AS "publicExecute"
+        FROM pg_catalog.pg_proc AS procedure
+        JOIN pg_catalog.pg_namespace AS namespace ON namespace.oid = procedure.pronamespace
+       WHERE namespace.nspname = 'public'
+         AND procedure.proname IN (
+           'open_cashier_session', 'append_cashier_count', 'close_cashier_session'
+         )
+       ORDER BY signature
+    `;
+    expect(functions).toEqual([
+      {
+        signature: "append_cashier_count(uuid,uuid,uuid,uuid,bigint[],bigint[])",
+        owner: "yellow_owner", securityDefiner: true,
+        config: ["search_path=pg_catalog, public, pg_temp"],
+        appExecute: true, runtimeExecute: false, publicExecute: false,
+      },
+      {
+        signature: "close_cashier_session(uuid,uuid,uuid,uuid,uuid,uuid,text,boolean)",
+        owner: "yellow_owner", securityDefiner: true,
+        config: ["search_path=pg_catalog, public, pg_temp"],
+        appExecute: true, runtimeExecute: false, publicExecute: false,
+      },
+      {
+        signature: "open_cashier_session(uuid,uuid,uuid,uuid,bigint[],bigint[])",
+        owner: "yellow_owner", securityDefiner: true,
+        config: ["search_path=pg_catalog, public, pg_temp"],
+        appExecute: true, runtimeExecute: false, publicExecute: false,
+      },
+    ]);
   });
 
   test("contains only the exact canonical demo tenant and property", async () => {

@@ -51,6 +51,20 @@ to the open day via approval_request (emits `discrepancy.carried`) so a seal is 
 hostage to absent staff. Post-seal: only adjustment/correction journals (DB-enforced).
 Emits business_day.sealed.
 
+### 3a. Cashier session — open → closed
+
+Opening binds one property drawer, one custodian and the current property-local open
+business day to an immutable denomination count. One open session per drawer and one
+per tenant user are hard constraints. An open session may append immutable blind
+recounts; no count or line may be edited or removed.
+
+Close selects one submitted count and derives `over_short = counted - expected` in
+PostgreSQL. Zero closes directly. Non-zero close requires a reason and an approved
+different-user, one-use request bound to the exact server totals. Supervisor close of
+an abandoned session additionally requires a distinct closer, a fresh closer-owned
+count and a reason. Closed is terminal: no reopen, mutation or silent balancing entry.
+Emits `cashier.opened`, `cashier.counted` and `cashier.closed`.
+
 ## 4. Task — open → assigned → in_progress → done → verified (HK inspection) ;
 any → cancelled. HK: verifying a `housekeeping` task sets `unit_condition`
 dirty→clean→inspected. Emits task.status_changed (+ unit.condition_changed).
