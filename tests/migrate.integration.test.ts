@@ -708,6 +708,53 @@ databaseDescribe("Bun SQL migration runner", () => {
   );
 
   test(
+    "applies the exact governed receivable-transfer migration",
+    async () => {
+      await withDatabase(async ({ databaseUrl: targetUrl, sql }) => {
+        const result = await runMigrations({
+          databaseUrl: targetUrl,
+          migrationsDirectory: PROJECT_MIGRATIONS,
+          logger: () => undefined,
+        });
+        expect(result.appliedFiles).toContain("0025_governed_receivable_transfer.sql");
+        const ledger = await sql<Array<{
+          version: number | bigint;
+          filename: string;
+          checksum_sha256: string;
+        }>>`
+          SELECT version, filename, checksum_sha256
+            FROM public.schema_migration
+           WHERE version = 25
+        `;
+        expect(ledger.map((row) => ({ ...row, version: Number(row.version) }))).toEqual([{
+          version: 25,
+          filename: "0025_governed_receivable_transfer.sql",
+          checksum_sha256: "ce3fe52783ffb467f56a2a7342c0a5808ab8824d625f3b01b5e3532e1191c9fe",
+        }]);
+
+        const shape = await sql<Array<{
+          tables: number; policies: number; functions: number; approvalColumns: number;
+        }>>`
+          SELECT
+            (SELECT count(*)::int FROM pg_catalog.pg_tables WHERE schemaname = 'public') AS tables,
+            (SELECT count(*)::int FROM pg_catalog.pg_policies WHERE schemaname = 'public') AS policies,
+            (SELECT count(*)::int
+               FROM pg_catalog.pg_proc AS procedure
+               JOIN pg_catalog.pg_namespace AS namespace ON namespace.oid = procedure.pronamespace
+              WHERE namespace.nspname = 'public'
+                AND procedure.proname = 'create_receivable_transfer') AS functions,
+            (SELECT count(*)::int
+               FROM information_schema.columns
+              WHERE table_schema = 'public' AND table_name = 'journal'
+                AND column_name = 'approval_request_id') AS "approvalColumns"
+        `;
+        expect(shape).toEqual([{ tables: 93, policies: 83, functions: 1, approvalColumns: 1 }]);
+      });
+    },
+    60_000,
+  );
+
+  test(
     "applies the exact account-folio integrity migration and rejects tenant-crossing references",
     async () => {
       await withDatabase(async ({ databaseUrl: targetUrl, sql }) => {

@@ -678,6 +678,7 @@
 <button class="quiet" id="folio-tab-charge" type="button" role="tab" aria-controls="folio-charge-panel" aria-selected="false">Add charge</button>
 <button class="quiet" id="folio-tab-deposit" type="button" role="tab" aria-controls="folio-deposit-panel" aria-selected="false">Deposits</button>
 <button class="quiet" id="folio-tab-organize" type="button" role="tab" aria-controls="folio-organize-panel" aria-selected="false">Organize charges</button>
+<button class="quiet" id="folio-tab-direct-billing" type="button" role="tab" aria-controls="folio-direct-billing-panel" aria-selected="false">Direct billing</button>
 </div>
 <div class="folio-statement-loading" id="folio-statement-loading" hidden aria-hidden="true"><span></span><span></span><span></span></div>
 <section class="folio-statement-error" id="folio-statement-error" hidden role="alert"><strong>Folio statement could not be loaded</strong><p></p><button class="secondary" id="folio-statement-retry" type="button">Try again</button></section>
@@ -766,6 +767,32 @@
 <button class="primary" id="folio-organize-submit" type="submit" disabled>Commit balanced transfer</button>
 </fieldset>
 <p class="form-message" role="status"></p>
+</form>
+</section>
+<section id="folio-direct-billing-panel" role="tabpanel" aria-labelledby="folio-tab-direct-billing" hidden>
+<form class="folio-receivable-form" id="receivable-transfer-workbench" aria-busy="false">
+<fieldset id="receivable-transfer-fields" disabled>
+<legend>Transfer this exact guest balance to direct billing</legend>
+<p class="field-note" id="receivable-transfer-availability">Choose an eligible company or travel-agent target from the server-owned list. The server verifies current eligibility and derives all credit authority; Yellow never accepts a browser-entered balance, limit, exposure, currency or approval evidence.</p>
+<label for="receivable-transfer-account">Eligible receivable account
+<select id="receivable-transfer-account" name="receivableAccountId" required><option value="">Loading eligible targets…</option></select>
+</label>
+<label for="receivable-transfer-reason">Transfer reason
+<textarea id="receivable-transfer-reason" name="reason" required minlength="1" maxlength="500" rows="3" autocomplete="off"></textarea>
+</label>
+<button class="secondary" id="receivable-transfer-preview-submit" type="button">Refresh authoritative preview</button>
+<div class="folio-receivable-preview-slot">
+<section class="folio-receivable-preview" id="receivable-transfer-preview" aria-live="polite" aria-label="Authoritative direct-billing preview" hidden></section>
+</div>
+<div class="receivable-transfer-approval-actions" id="receivable-transfer-approval-actions" hidden>
+<button class="secondary" id="receivable-transfer-approval-request" type="button" disabled>Request exact over-limit approval</button>
+<button class="secondary" id="receivable-transfer-approval-approve" type="button" disabled>Approve exact request</button>
+<button class="quiet" id="receivable-transfer-approval-reject" type="button" disabled>Reject exact request</button>
+</div>
+<label class="folio-charge-confirmation"><input id="receivable-transfer-confirm" type="checkbox"> I reviewed the server’s current preview and understand this transfers the exact current positive guest balance through one immutable journal.</label>
+<button class="primary" id="receivable-transfer-submit" type="submit" disabled>Transfer exact balance to direct billing</button>
+</fieldset>
+<p class="form-message" role="status" aria-live="assertive" aria-atomic="true"></p>
 </form>
 </section>
 <section id="folio-correction-panel" hidden aria-labelledby="folio-correction-heading">

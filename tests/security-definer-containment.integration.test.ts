@@ -165,7 +165,7 @@ dbDescribe("Order 108 SECURITY DEFINER shadow-path containment", () => {
            'prune_outbox', 'assert_day_open', 'seal_business_day', 'lock_financial_rows',
            'lock_financial_business_days',
            'create_charge_correction_header',
-           'create_folio_transfer',
+           'create_folio_transfer', 'create_receivable_transfer',
            'open_cashier_session', 'append_cashier_count', 'close_cashier_session',
            'register_extension_type'
          ]::name[])
@@ -184,6 +184,8 @@ dbDescribe("Order 108 SECURITY DEFINER shadow-path containment", () => {
       { signature: "create_charge_correction_header(uuid,uuid,uuid,character,text,uuid)", securityDefiner: true,
         config: ["search_path=pg_catalog, public, pg_temp"], appExecute: true, publicDenied: true },
       { signature: "create_folio_transfer(uuid,uuid,uuid,uuid[],uuid,text)", securityDefiner: true,
+        config: ["search_path=pg_catalog, public, pg_temp"], appExecute: true, publicDenied: true },
+      { signature: "create_receivable_transfer(uuid,uuid,uuid,uuid,uuid,uuid,text)", securityDefiner: true,
         config: ["search_path=pg_catalog, public, pg_temp"], appExecute: true, publicDenied: true },
       { signature: "expire_holds()", securityDefiner: true,
         config: ["search_path=pg_catalog, public, pg_temp"], appExecute: false, publicDenied: true },
@@ -219,6 +221,10 @@ dbDescribe("Order 108 SECURITY DEFINER shadow-path containment", () => {
       ["create_folio_transfer(uuid,uuid,uuid,uuid[],uuid,text)",
         ["public.account", "public.folio", "public.reservation", "public.org_node",
           "public.app_user", "public.posting_line", "public.journal", "public.business_day"]],
+      ["create_receivable_transfer(uuid,uuid,uuid,uuid,uuid,uuid,text)",
+        ["public.app_user", "public.folio", "public.lock_financial_rows", "public.account",
+          "public.org_node", "public.party", "public.party_role", "public.folio_balance",
+          "public.posting_line", "public.approval_request", "public.journal", "public.business_day"]],
       ["expire_holds()", ["public.hold", "public.release_occupancy"]],
       ["lock_financial_rows(uuid,uuid[],uuid)", ["public.account", "public.folio"]],
       ["lock_financial_business_days(uuid,uuid,date[])", ["public.business_day"]],
@@ -266,6 +272,20 @@ dbDescribe("Order 108 SECURITY DEFINER shadow-path containment", () => {
       owner: "yellow_owner", runtimeExecute: false, volatility: "v",
     }]);
 
+    const receivableAuthority = await admin!<Array<{
+      owner: string; runtimeExecute: boolean; volatility: string;
+    }>>`
+      SELECT pg_get_userbyid(p.proowner) AS owner,
+             has_function_privilege('yellow_runtime',p.oid,'EXECUTE') AS "runtimeExecute",
+             p.provolatile::text AS volatility
+        FROM pg_proc p
+       WHERE p.oid =
+         'public.create_receivable_transfer(uuid,uuid,uuid,uuid,uuid,uuid,text)'::regprocedure
+    `;
+    expect(receivableAuthority).toEqual([{
+      owner: "yellow_owner", runtimeExecute: false, volatility: "v",
+    }]);
+
     const cashierAuthority = await admin!<Array<{
       signature: string; owner: string; runtimeExecute: boolean; volatility: string;
     }>>`
@@ -308,6 +328,12 @@ dbDescribe("Order 108 SECURITY DEFINER shadow-path containment", () => {
           ARRAY['00000000-0000-0000-0000-000000011353'::uuid],
           '${ACTOR}'::uuid,
           'hostile direct app-role call'
+        )`,
+        `SELECT * FROM public.create_receivable_transfer(
+          '${TENANT}'::uuid, '${PROPERTY}'::uuid,
+          '00000000-0000-0000-0000-000000011354'::uuid,
+          '00000000-0000-0000-0000-000000011355'::uuid,
+          '${ACTOR}'::uuid, NULL, 'hostile direct app-role call'
         )`,
         `SELECT * FROM public.open_cashier_session(
           '${TENANT}'::uuid, '${PROPERTY}'::uuid,

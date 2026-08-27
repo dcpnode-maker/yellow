@@ -1,6 +1,6 @@
 # Order 198 — Governed direct-billing receivable transfer
 
-**Status:** READY-D537 — intentional red and implementation required
+**Status:** BUILT-UNREVIEWED-D538 — implementation and builder proof complete; independent Phase-5 gate retained
 **Phase:** 5 — Financials
 **Branch:** `phase-5/governed-receivable-transfer`
 **Base:** `10bef0515870` (built-unreviewed Order197)
@@ -113,9 +113,8 @@ No other file is admitted. `migrations/0001_init.sql` remains byte-identical.
 
 ## Definition of done
 
-- [ ] Intentional red precedes product implementation.
-- [ ] Exact transfer economics, exposure and approval authority are executable.
-- [ ] No fake AR ledger or forbidden financial artifact enters the slice.
-- [ ] Operator workflow and all registered builder gates pass.
-- [ ] Built result is recorded without claiming checkout, Phase5 or app completion.
-
+- [x] Intentional red precedes product implementation.
+- [x] Exact transfer economics, exposure and approval authority are executable.
+- [x] No fake AR ledger or forbidden financial artifact enters the slice.
+- [x] Operator workflow and all registered builder gates pass.
+- [x] Built result is recorded without claiming checkout, Phase5 or app completion.

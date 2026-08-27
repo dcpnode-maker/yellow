@@ -31,10 +31,16 @@ they satisfy the correction/transfer foundation without silently importing payme
 AR, document, tax or settlement behavior.
 
 Order196 delivered exact-zero per-window settlement and Order197 delivered governed
-cashier custody. Active Order198 now completes the approved Order113 direct-billing
+cashier custody. Built-unreviewed Order198 now completes the approved Order113 direct-billing
 half: exact positive guest debt moves only to a party-specific company/travel-agent
 receivable under locked derived credit authority. Full AR invoices, allocations,
 aging/statements and external accounting remain Phase12.
+
+The active build frontier now moves to Order114's Phase-5 financial journey: pristine
+PostgreSQL must prove the same reservation and folio can reach exact-zero settlement
+through either governed payment capture or the new receivable transfer, while hostile
+tenant, property, role, approval and concurrent command paths leave coherent immutable
+truth. This gate does not imply checkout, fiscal issue or external provider settlement.
 
 Current founder-visible delivery: Order 171 wires the already-approved primary-folio
 command behind its own property permission and an explicit reservation action, then

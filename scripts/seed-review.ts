@@ -39,6 +39,10 @@ export const REVIEW_CASHIER_SUPERVISE_PERMISSION = Object.freeze({
   code: "financials.cashiers:supervise",
   description: "Supervise governed property cashier custody",
 });
+export const REVIEW_RECEIVABLE_APPROVE_PERMISSION = Object.freeze({
+  code: "financials.receivables:approve",
+  description: "Approve governed over-limit receivable transfers",
+});
 export const REVIEW_PERMISSION = "inventory.availability:read";
 export const REVIEW_PERMISSIONS = Object.freeze([
   { code: "crm.parties:read", description: "Search tenant-scoped Party profiles" },
@@ -51,6 +55,8 @@ export const REVIEW_PERMISSIONS = Object.freeze([
   { code: "financials.folios:close", description: "Close exact-zero settled property folio windows" },
   { code: "financials.cashiers:read", description: "Read governed property cashier custody" },
   { code: "financials.cashiers:operate", description: "Operate an attributable property cashier session" },
+  { code: "financials.receivables:read", description: "Read governed property receivable targets and exposure" },
+  { code: "financials.receivables:transfer", description: "Transfer exact guest debt to a governed receivable" },
   { code: "financials.transfers:write", description: "Preview and commit governed folio transfers" },
   { code: REVIEW_PERMISSION, description: "Read tenant-scoped truth availability" },
   { code: "inventory.blocks:read", description: "Read tenant-scoped operational blocks" },
@@ -85,6 +91,10 @@ const REVIEW_FOLIO_SERIES_UUID = `${TENANT_NAME}/review-financials/folio-series`
 const REVIEW_REVENUE_ACCOUNT_UUID = `${TENANT_NAME}/review-financials/room-revenue`;
 const REVIEW_CASH_ACCOUNT_UUID = `${TENANT_NAME}/review-financials/front-desk-cash`;
 const REVIEW_CASH_DRAWER_UUID = `${TENANT_NAME}/review-financials/front-desk-1`;
+const REVIEW_COMPANY_PARTY_UUID = `${TENANT_NAME}/review-parties/company/northstar-consulting`;
+const REVIEW_AGENT_PARTY_UUID = `${TENANT_NAME}/review-parties/agent/horizon-travel`;
+const REVIEW_COMPANY_ACCOUNT_UUID = `${TENANT_NAME}/review-financials/receivable/northstar-consulting`;
+const REVIEW_AGENT_ACCOUNT_UUID = `${TENANT_NAME}/review-financials/receivable/horizon-travel`;
 export const REVIEW_CASH_DRAWER_CODE = "FRONT-DESK-1";
 export const REVIEW_CASH_DENOMINATIONS = Object.freeze([1n, 5n, 10n, 25n, 100n, 500n, 1000n, 2000n, 5000n, 10000n]);
 
@@ -198,6 +208,10 @@ interface ReviewSeedBaseResult {
   readonly roleId: string;
   readonly cashAccountId: string;
   readonly cashDrawerId: string;
+  readonly companyPartyId: string;
+  readonly agentPartyId: string;
+  readonly companyReceivableAccountId: string;
+  readonly agentReceivableAccountId: string;
   readonly unitTypes: { created: number; existing: number };
   readonly rooms: { created: number; existing: number };
   readonly sellableUnits: { created: number; existing: number };
@@ -264,6 +278,10 @@ async function canonicalIds(): Promise<{
   revenueAccountId: string;
   cashAccountId: string;
   cashDrawerId: string;
+  companyPartyId: string;
+  agentPartyId: string;
+  companyReceivableAccountId: string;
+  agentReceivableAccountId: string;
 }> {
   const derivedTenant = await uuidV5(URL_NAMESPACE_UUID, TENANT_NAME);
   const derivedProperty = await uuidV5(derivedTenant, PROPERTY_NAME);
@@ -279,6 +297,10 @@ async function canonicalIds(): Promise<{
     revenueAccountId: await uuidV5(SEED_TENANT.id, REVIEW_REVENUE_ACCOUNT_UUID),
     cashAccountId: await uuidV5(SEED_TENANT.id, REVIEW_CASH_ACCOUNT_UUID),
     cashDrawerId: await uuidV5(SEED_TENANT.id, REVIEW_CASH_DRAWER_UUID),
+    companyPartyId: await uuidV5(SEED_TENANT.id, REVIEW_COMPANY_PARTY_UUID),
+    agentPartyId: await uuidV5(SEED_TENANT.id, REVIEW_AGENT_PARTY_UUID),
+    companyReceivableAccountId: await uuidV5(SEED_TENANT.id, REVIEW_COMPANY_ACCOUNT_UUID),
+    agentReceivableAccountId: await uuidV5(SEED_TENANT.id, REVIEW_AGENT_ACCOUNT_UUID),
   };
 }
 
@@ -376,6 +398,16 @@ async function provisionIdentity(
     exact(cashierSupervisePermissions[0], REVIEW_CASHIER_SUPERVISE_PERMISSION,
       "Cashier supervise review permission");
   }
+  const receivableApprovePermissions = await connection<Array<{ code: string; description: string }>>`
+    SELECT code, description FROM permission WHERE code = ${REVIEW_RECEIVABLE_APPROVE_PERMISSION.code}
+  `;
+  if (receivableApprovePermissions.length === 0) {
+    await connection`INSERT INTO permission (code, description)
+      VALUES (${REVIEW_RECEIVABLE_APPROVE_PERMISSION.code}, ${REVIEW_RECEIVABLE_APPROVE_PERMISSION.description})`;
+  } else {
+    exact(receivableApprovePermissions[0], REVIEW_RECEIVABLE_APPROVE_PERMISSION,
+      "Receivable approve review permission");
+  }
 
   const roles = await connection<RoleRow[]>`
     SELECT id, tenant_id, name FROM role
@@ -431,6 +463,11 @@ async function provisionIdentity(
     VALUES (${approverRoleId}::uuid, ${REVIEW_CASHIER_SUPERVISE_PERMISSION.code})
     ON CONFLICT (role_id, permission_code) DO NOTHING
   `;
+  await connection`
+    INSERT INTO role_permission (role_id, permission_code)
+    VALUES (${approverRoleId}::uuid, ${REVIEW_RECEIVABLE_APPROVE_PERMISSION.code})
+    ON CONFLICT (role_id, permission_code) DO NOTHING
+  `;
 
   const users = Object.freeze([
     Object.freeze({ id: userId, email: REVIEW_EMAIL, displayName: REVIEW_DISPLAY_NAME, label: "Review user", password }),
@@ -462,12 +499,112 @@ async function provisionIdentity(
   `;
 }
 
+async function provisionReceivableTarget(
+  connection: ReservedSQL,
+  spec: Readonly<{
+    partyId: string;
+    accountId: string;
+    displayName: string;
+    legalName: string;
+    partyRole: "company" | "agent";
+    accountName: string;
+    creditLimitMinor: bigint;
+  }>,
+): Promise<void> {
+  const parties = await connection<Array<{
+    id: string; tenant_id: string; kind: string; display_name: string; legal_name: string | null;
+    attrs: unknown; vip_code: string | null; status: string; merged_into: string | null;
+  }>>`
+    SELECT id, tenant_id, kind, display_name, legal_name, attrs, vip_code, status, merged_into
+    FROM party
+    WHERE id=${spec.partyId}::uuid
+       OR (tenant_id=${SEED_TENANT.id}::uuid AND display_name=${spec.displayName})
+    ORDER BY id
+  `;
+  const expectedParty = {
+    id: spec.partyId, tenant_id: SEED_TENANT.id, kind: "org", display_name: spec.displayName,
+    legal_name: spec.legalName, attrs: { source: "local-review", direct_billing: true },
+    vip_code: null, status: "active", merged_into: null,
+  };
+  if (parties.length === 0) {
+    await connection`
+      INSERT INTO party (id, tenant_id, kind, display_name, legal_name, attrs, status)
+      VALUES (${spec.partyId}::uuid, ${SEED_TENANT.id}::uuid, 'org', ${spec.displayName},
+        ${spec.legalName}, ${JSON.stringify(expectedParty.attrs)}::text::jsonb, 'active')
+    `;
+  } else {
+    exact(parties[0], expectedParty, `Local-review ${spec.partyRole} party`);
+    if (parties.length !== 1) throw new Error(`Local-review ${spec.partyRole} party is ambiguous`);
+  }
+
+  const roles = await connection<Array<{ tenant_id: string; party_id: string; role: string; detail: unknown }>>`
+    SELECT tenant_id, party_id, role, detail
+    FROM party_role
+    WHERE tenant_id=${SEED_TENANT.id}::uuid AND party_id=${spec.partyId}::uuid AND role=${spec.partyRole}
+  `;
+  const expectedRole = {
+    tenant_id: SEED_TENANT.id, party_id: spec.partyId, role: spec.partyRole,
+    detail: { source: "local-review" },
+  };
+  if (roles.length === 0) {
+    await connection`
+      INSERT INTO party_role (tenant_id, party_id, role, detail)
+      VALUES (${SEED_TENANT.id}::uuid, ${spec.partyId}::uuid, ${spec.partyRole},
+        ${JSON.stringify(expectedRole.detail)}::text::jsonb)
+    `;
+  } else {
+    exact(roles[0], expectedRole, `Local-review ${spec.partyRole} role`);
+    if (roles.length !== 1) throw new Error(`Local-review ${spec.partyRole} role is ambiguous`);
+  }
+
+  const accounts = await connection<Array<{
+    id: string; tenant_id: string; property_node: string | null; role: string;
+    party_id: string | null; name: string; currency: string;
+    credit_limit_minor: string | number | bigint | null; status: string;
+  }>>`
+    SELECT id, tenant_id, property_node, role, party_id, name, currency::text,
+           credit_limit_minor, status
+    FROM account
+    WHERE id=${spec.accountId}::uuid
+       OR (tenant_id=${SEED_TENANT.id}::uuid AND property_node=${SEED_PROPERTY.id}::uuid
+           AND role='company' AND party_id=${spec.partyId}::uuid
+           AND currency=${SEED_PROPERTY.currency})
+    ORDER BY id
+  `;
+  const expectedAccount = {
+    id: spec.accountId, tenant_id: SEED_TENANT.id, property_node: SEED_PROPERTY.id,
+    role: "company", party_id: spec.partyId, name: spec.accountName,
+    currency: SEED_PROPERTY.currency, credit_limit_minor: spec.creditLimitMinor.toString(), status: "open",
+  };
+  if (accounts.length === 0) {
+    await connection`
+      INSERT INTO account (
+        id, tenant_id, property_node, role, party_id, name, currency, credit_limit_minor, status
+      ) VALUES (
+        ${spec.accountId}::uuid, ${SEED_TENANT.id}::uuid, ${SEED_PROPERTY.id}::uuid,
+        'company', ${spec.partyId}::uuid, ${spec.accountName}, ${SEED_PROPERTY.currency},
+        ${spec.creditLimitMinor}, 'open'
+      )
+    `;
+  } else {
+    const account = accounts[0];
+    exact(account && { ...account,
+      credit_limit_minor: account.credit_limit_minor === null ? null : BigInt(account.credit_limit_minor).toString(),
+    }, expectedAccount, `Local-review ${spec.partyRole} receivable account`);
+    if (accounts.length !== 1) throw new Error(`Local-review ${spec.partyRole} receivable account is ambiguous`);
+  }
+}
+
 async function provisionReviewFinancials(
   connection: ReservedSQL,
   folioSeriesId: string,
   revenueAccountId: string,
   cashAccountId: string,
   cashDrawerId: string,
+  companyPartyId: string,
+  agentPartyId: string,
+  companyReceivableAccountId: string,
+  agentReceivableAccountId: string,
 ): Promise<void> {
   const series = await connection<Array<{
     id: string; prefix: string; next_no: string | number | bigint; last_doc_hash: string | null;
@@ -594,6 +731,25 @@ async function provisionReviewFinancials(
       REVIEW_CASH_DENOMINATIONS.map((unit_minor) => ({ unit_minor: unit_minor.toString(), active: true })),
       "Local-review cashier denominations");
   }
+
+  await provisionReceivableTarget(connection, {
+    partyId: companyPartyId,
+    accountId: companyReceivableAccountId,
+    displayName: "Northstar Consulting",
+    legalName: "Northstar Consulting Limited",
+    partyRole: "company",
+    accountName: "Northstar Consulting Receivable",
+    creditLimitMinor: 500000n,
+  });
+  await provisionReceivableTarget(connection, {
+    partyId: agentPartyId,
+    accountId: agentReceivableAccountId,
+    displayName: "Horizon Travel",
+    legalName: "Horizon Travel Services Limited",
+    partyRole: "agent",
+    accountName: "Horizon Travel Receivable",
+    creditLimitMinor: 250000n,
+  });
 
   const codes = await connection<Array<{
     code: string; name: string; grp: string; usali_line: string | null;
@@ -1066,7 +1222,8 @@ export async function runReviewSeed(options: ReviewSeedOptions): Promise<ReviewS
   const logger = options.logger ?? console.log;
   const {
     userId, approverUserId, roleId, approverRoleId, folioSeriesId, revenueAccountId,
-    cashAccountId, cashDrawerId,
+    cashAccountId, cashDrawerId, companyPartyId, agentPartyId,
+    companyReceivableAccountId, agentReceivableAccountId,
   } = await canonicalIds();
   const identityPool = new SQL(options.databaseUrl, { max: 2 });
   const eventPool = new SQL(options.databaseUrl, { max: 4, prepare: false });
@@ -1075,7 +1232,8 @@ export async function runReviewSeed(options: ReviewSeedOptions): Promise<ReviewS
   try {
     await withIdentityTransaction(identityPool, async (tx) => {
       await provisionIdentity(tx, options.password, approverPassword, userId, approverUserId, roleId, approverRoleId);
-      await provisionReviewFinancials(tx, folioSeriesId, revenueAccountId, cashAccountId, cashDrawerId);
+      await provisionReviewFinancials(tx, folioSeriesId, revenueAccountId, cashAccountId, cashDrawerId,
+        companyPartyId, agentPartyId, companyReceivableAccountId, agentReceivableAccountId);
     });
     const events = new PostgresEventBus(eventPool);
     const inventory = new InventoryService(events);
@@ -1168,7 +1326,8 @@ export async function runReviewSeed(options: ReviewSeedOptions): Promise<ReviewS
     logger(`review inventory: unit_types=${counts.unitTypes.created}/${counts.unitTypes.existing} rooms=${counts.rooms.created}/${counts.rooms.existing} sellable_units=${counts.sellableUnits.created}/${counts.sellableUnits.existing} created/existing`);
     const common = { tenant: SEED_TENANT.slug, property: SEED_PROPERTY.name, email: REVIEW_EMAIL,
       userId, approverEmail: REVIEW_APPROVER_EMAIL, approverUserId, roleId,
-      cashAccountId, cashDrawerId, ...counts };
+      cashAccountId, cashDrawerId, companyPartyId, agentPartyId,
+      companyReceivableAccountId, agentReceivableAccountId, ...counts };
     if (mode === "identity_inventory") {
       logger("review rate: omitted by explicit identity_inventory fixture mode");
       return { ...common, mode, rate: null };

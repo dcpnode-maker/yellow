@@ -65,6 +65,19 @@ an abandoned session additionally requires a distinct closer, a fresh closer-own
 count and a reason. Closed is terminal: no reopen, mutation or silent balancing entry.
 Emits `cashier.opened`, `cashier.counted` and `cashier.closed`.
 
+### 3b. Direct-billing receivable transfer — preview → approved where required → posted
+
+Preview is read-only and derives the exact current positive guest-folio balance,
+receivable exposure, credit limit and projected exposure. Within-limit preview may
+post directly. Over-limit preview requires a pending request, then a different-user
+approval; rejection is terminal under the existing approval state machine.
+
+Posting re-locks and revalidates every bound value, consumes at most one approval and
+creates one balanced immutable transfer journal. The command has no mutable transfer
+head or reopen transition: replay returns the original effect and changed/stale input
+conflicts. The guest folio becomes zero but remains open until the separate settlement
+state machine runs. Emits `receivable.transferred`.
+
 ## 4. Task — open → assigned → in_progress → done → verified (HK inspection) ;
 any → cancelled. HK: verifying a `housekeeping` task sets `unit_condition`
 dirty→clean→inspected. Emits task.status_changed (+ unit.condition_changed).

@@ -116,6 +116,34 @@ export function createApp(options: AppOptions = {}) {
       .get("/api/v1/me/properties", ({ request, tenantContext }) =>
         withOperatorTenant(request, (context) => operator.properties(context))
       )
+      .get("/api/operator/properties/:propertyNode/receivable-transfers/targets", ({ request, params, tenantContext }) =>
+        withOperatorTenant(request, (context) => operator.receivableTransferTargets(context, params.propertyNode))
+      )
+      .post("/api/operator/properties/:propertyNode/folios/:folioId/receivable-transfers:preview", ({ request, params, body, tenantContext }) =>
+        withOperatorTenant(request, (context) => operator.previewReceivableTransfer(
+          context, params.propertyNode, params.folioId, body,
+        ))
+      )
+      .post("/api/operator/properties/:propertyNode/folios/:folioId/receivable-transfers/approvals", ({ request, params, body, tenantContext }) =>
+        withOperatorTenant(request, (context) => operator.requestReceivableOverLimitApproval(
+          context, params.propertyNode, params.folioId, body,
+        ))
+      )
+      .post("/api/operator/properties/:propertyNode/folios/:folioId/receivable-transfers/approvals/:approvalId/approve", ({ request, params, body, tenantContext }) =>
+        withOperatorTenant(request, (context) => operator.decideReceivableOverLimitApproval(
+          context, params.propertyNode, params.folioId, params.approvalId, body, "approve",
+        ))
+      )
+      .post("/api/operator/properties/:propertyNode/folios/:folioId/receivable-transfers/approvals/:approvalId/reject", ({ request, params, body, tenantContext }) =>
+        withOperatorTenant(request, (context) => operator.decideReceivableOverLimitApproval(
+          context, params.propertyNode, params.folioId, params.approvalId, body, "reject",
+        ))
+      )
+      .post("/api/operator/properties/:propertyNode/folios/:folioId/receivable-transfers", ({ request, params, body, tenantContext }) =>
+        withOperatorTenant(request, (context) => operator.transferReceivableBalance(
+          context, params.propertyNode, params.folioId, body,
+        ))
+      )
       .get("/api/v1/properties/:property/system-status", ({ request, params, tenantContext }) =>
         withOperatorTenant(request, (context) => operator.systemStatus(context, params.property))
       )

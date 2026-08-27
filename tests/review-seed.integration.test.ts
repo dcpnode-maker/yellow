@@ -50,6 +50,8 @@ async function counts() {
     active_releases: number; approvals: number; approved_approvals: number;
     cash_accounts: number; cash_drawers: number; cash_denominations: number;
     cashier_sessions: number; cashier_counts: number;
+    receivable_parties: number; receivable_roles: number; receivable_accounts: number;
+    receivable_journals: number;
   }>>`
     SELECT
       (SELECT count(*)::int FROM app_user WHERE id IN (${first.userId}::uuid, ${first.approverUserId}::uuid)) AS users,
@@ -91,6 +93,23 @@ async function counts() {
         WHERE tenant_id = ${SEED_TENANT.id}::uuid AND drawer_id = ${cashDrawerId}::uuid) AS cashier_sessions
       ,(SELECT count(*)::int FROM cashier_count
         WHERE tenant_id = ${SEED_TENANT.id}::uuid AND drawer_id = ${cashDrawerId}::uuid) AS cashier_counts
+      ,(SELECT count(*)::int FROM party
+        WHERE tenant_id = ${SEED_TENANT.id}::uuid
+          AND id IN (${first.companyPartyId}::uuid, ${first.agentPartyId}::uuid)
+          AND kind = 'org' AND status = 'active') AS receivable_parties
+      ,(SELECT count(*)::int FROM party_role
+        WHERE tenant_id = ${SEED_TENANT.id}::uuid
+          AND ((party_id = ${first.companyPartyId}::uuid AND role = 'company')
+            OR (party_id = ${first.agentPartyId}::uuid AND role = 'agent'))) AS receivable_roles
+      ,(SELECT count(*)::int FROM account
+        WHERE tenant_id = ${SEED_TENANT.id}::uuid AND property_node = ${SEED_PROPERTY.id}::uuid
+          AND role = 'company' AND status = 'open'
+          AND id IN (${first.companyReceivableAccountId}::uuid, ${first.agentReceivableAccountId}::uuid)) AS receivable_accounts
+      ,(SELECT count(DISTINCT posting_line.journal_id)::int
+        FROM posting_line
+        WHERE tenant_id = ${SEED_TENANT.id}::uuid
+          AND account_id IN (${first.companyReceivableAccountId}::uuid,
+            ${first.agentReceivableAccountId}::uuid)) AS receivable_journals
   `;
   const row = rows[0];
   if (!row) throw new Error("Order 046 count probe returned no row");
@@ -227,6 +246,10 @@ databaseDescribe("Order 046 reproducible local-review seed", () => {
     });
     expect(first.cashAccountId).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/);
     expect(first.cashDrawerId).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/);
+    expect(first.companyPartyId).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/);
+    expect(first.agentPartyId).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/);
+    expect(first.companyReceivableAccountId).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/);
+    expect(first.agentReceivableAccountId).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/);
     expect(await counts()).toEqual({
       users: 2, roles: 1, grants: 3, unit_types: 2, spaces: 5,
       sellables: 5, requester_facts: 21, requester_events: 18,
@@ -235,6 +258,8 @@ databaseDescribe("Order 046 reproducible local-review seed", () => {
       active_releases: 1, approvals: 1, approved_approvals: 1,
       cash_accounts: 1, cash_drawers: 1, cash_denominations: 10,
       cashier_sessions: 0, cashier_counts: 0,
+      receivable_parties: 2, receivable_roles: 2, receivable_accounts: 2,
+      receivable_journals: 0,
     });
   });
 
@@ -367,7 +392,7 @@ databaseDescribe("Order 046 reproducible local-review seed", () => {
     expect(await tokens.verify(loginBody.accessToken)).toMatchObject({
       sub: first.userId,
       tid: SEED_TENANT.id,
-      scp: "crm.parties:read crm.parties:write financials.adjustments:write financials.cashiers:operate financials.cashiers:read financials.charges:write financials.folios:close financials.folios:open financials.folios:read financials.folios:settle financials.transfers:write inventory.availability:read inventory.blocks:read inventory.blocks:write inventory.configuration:read inventory.configuration:write inventory.holds:read inventory.holds:write inventory.offline_leases:read inventory.offline_leases:write inventory.policy:read inventory.policy:write inventory.restriction:read inventory.restriction:write rates.configuration:read rates.configuration:write rates.pricing:read rates.pricing:write reservations.booking:write reservations.guests:read reservations.guests:write reservations.lifecycle:read reservations.lifecycle:write reservations.segments:read reservations.segments:write",
+      scp: "crm.parties:read crm.parties:write financials.adjustments:write financials.cashiers:operate financials.cashiers:read financials.charges:write financials.folios:close financials.folios:open financials.folios:read financials.folios:settle financials.receivables:read financials.receivables:transfer financials.transfers:write inventory.availability:read inventory.blocks:read inventory.blocks:write inventory.configuration:read inventory.configuration:write inventory.holds:read inventory.holds:write inventory.offline_leases:read inventory.offline_leases:write inventory.policy:read inventory.policy:write inventory.restriction:read inventory.restriction:write rates.configuration:read rates.configuration:write rates.pricing:read rates.pricing:write reservations.booking:write reservations.guests:read reservations.guests:write reservations.lifecycle:read reservations.lifecycle:write reservations.segments:read reservations.segments:write",
     });
     const approverLogin = await app.handle(new Request("http://yellow.test/api/v1/auth/local:login", {
       method: "POST",
@@ -381,7 +406,7 @@ databaseDescribe("Order 046 reproducible local-review seed", () => {
     expect(await tokens.verify(approverLoginBody.accessToken)).toMatchObject({
       sub: first.approverUserId,
       tid: SEED_TENANT.id,
-      scp: "crm.parties:read crm.parties:write financials.adjustments:post-seal financials.adjustments:write financials.cashiers:operate financials.cashiers:read financials.cashiers:supervise financials.charges:write financials.folios:close financials.folios:open financials.folios:read financials.folios:settle financials.transfers:write inventory.availability:read inventory.blocks:read inventory.blocks:write inventory.configuration:read inventory.configuration:write inventory.holds:read inventory.holds:write inventory.offline_leases:read inventory.offline_leases:write inventory.policy:read inventory.policy:write inventory.restriction:read inventory.restriction:write rates.configuration:read rates.configuration:write rates.pricing:read rates.pricing:write reservations.booking:write reservations.guests:read reservations.guests:write reservations.lifecycle:read reservations.lifecycle:write reservations.segments:read reservations.segments:write",
+      scp: "crm.parties:read crm.parties:write financials.adjustments:post-seal financials.adjustments:write financials.cashiers:operate financials.cashiers:read financials.cashiers:supervise financials.charges:write financials.folios:close financials.folios:open financials.folios:read financials.folios:settle financials.receivables:approve financials.receivables:read financials.receivables:transfer financials.transfers:write inventory.availability:read inventory.blocks:read inventory.blocks:write inventory.configuration:read inventory.configuration:write inventory.holds:read inventory.holds:write inventory.offline_leases:read inventory.offline_leases:write inventory.policy:read inventory.policy:write inventory.restriction:read inventory.restriction:write rates.configuration:read rates.configuration:write rates.pricing:read rates.pricing:write reservations.booking:write reservations.guests:read reservations.guests:write reservations.lifecycle:read reservations.lifecycle:write reservations.segments:read reservations.segments:write",
     });
 
     const headers = { "content-type": "application/json", authorization: `Bearer ${loginBody.accessToken}` };

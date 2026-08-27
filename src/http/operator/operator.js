@@ -83,6 +83,16 @@
  let folioRouteCursor = "";
  let folioWorkspaceProperty = "";
  let folioReturnFocus = null;
+ let receivableTargets = [];
+ let receivablePreview = null;
+ let receivableApproval = null;
+ let receivablePreviewGeneration = 0;
+ let receivableApprovalAttemptKey = "";
+ let receivableApprovalDraft = "";
+ let receivableDecisionAttemptKey = "";
+ let receivableDecisionDraft = "";
+ let receivableTransferAttemptKey = "";
+ let receivableTransferDraft = "";
  let cashierData = null;
  let cashierGeneration = 0;
  let cashierDrawerId = "";
@@ -475,6 +485,19 @@
  const folioOrganizePreviewSubmit = $("#folio-organize-preview-submit");
  const folioOrganizeAcknowledgement = $("#folio-organize-acknowledgement");
  const folioOrganizeSubmit = $("#folio-organize-submit");
+ const receivableTransferForm = $("#receivable-transfer-workbench");
+ const receivableTransferFields = $("#receivable-transfer-fields");
+ const receivableTransferAccount = $("#receivable-transfer-account");
+ const receivableTransferReason = $("#receivable-transfer-reason");
+ const receivableTransferAvailability = $("#receivable-transfer-availability");
+ const receivableTransferPreviewSubmit = $("#receivable-transfer-preview-submit");
+ const receivableTransferPreview = $("#receivable-transfer-preview");
+ const receivableTransferApprovalActions = $("#receivable-transfer-approval-actions");
+ const receivableTransferApprovalRequest = $("#receivable-transfer-approval-request");
+ const receivableTransferApprovalApprove = $("#receivable-transfer-approval-approve");
+ const receivableTransferApprovalReject = $("#receivable-transfer-approval-reject");
+ const receivableTransferConfirm = $("#receivable-transfer-confirm");
+ const receivableTransferSubmit = $("#receivable-transfer-submit");
  const folioCorrectionPanel = $("#folio-correction-panel");
  const folioStatementLoading = $("#folio-statement-loading");
  const folioStatementError = $("#folio-statement-error");
@@ -3106,7 +3129,7 @@
   const exactKeys = [...query.keys()].every((key) => key === "tab" || key === "after")
   && query.getAll("tab").length <= 1 && query.getAll("after").length <= 1;
   const t = exactKeys ? query.get("tab") : "";
-  const tab = t === "charge" || t === "deposit" || t === "organize" ? t : "postings";
+  const tab = t === "charge" || t === "deposit" || t === "organize" || t === "direct-billing" ? t : "postings";
   const a = exactKeys ? query.get("after") || "" : "";
   const after = /^[A-Za-z0-9_-]{1,512}$/.test(a) ? a : "";
   return { kind: "workspace", property: workspace[1], folioId: workspace[2], tab, after };
@@ -3137,11 +3160,13 @@
   folioOrganizeReason.value !== "" || folioOrganizeAcknowledgement.checked || folioTransferPreview !== null;
  }
   function currentFolioDraftIsDirty() {
- return currentFolioChargeIsDirty() || d?.d() || currentFolioCorrectionIsDirty() || currentFolioWindowIsDirty() || currentFolioOrganizeIsDirty() || folioStatusPending;
+ return currentFolioChargeIsDirty() || d?.d() || currentFolioCorrectionIsDirty() || currentFolioWindowIsDirty() || currentFolioOrganizeIsDirty() ||
+  (typeof currentReceivableTransferIsDirty === "function" && currentReceivableTransferIsDirty()) || folioStatusPending;
  }
   function confirmFolioExit() {
  if (currentFolioCorrectionIsDirty()) return confirm("Discard this unfinished posting correction?");
  if (currentFolioChargeIsDirty()) return confirm("Discard this unfinished untaxed charge?");
+ if (typeof currentReceivableTransferIsDirty === "function" && currentReceivableTransferIsDirty()) return confirm("Discard this unfinished direct-billing transfer?");
  return !currentFolioDraftIsDirty()||confirm("Discard this unfinished folio task?");
  }
   function folioRefreshDecision(origin, current) {
@@ -3207,6 +3232,20 @@
  folioTransferAttemptKey = "";
  folioTransferDraft = "";
  folioTransferPreview = null;
+ receivableTargets = [];
+ receivablePreview = null;
+ receivableApproval = null;
+ receivablePreviewGeneration += 1;
+ receivableApprovalAttemptKey = receivableApprovalDraft = "";
+ receivableDecisionAttemptKey = receivableDecisionDraft = "";
+ receivableTransferAttemptKey = receivableTransferDraft = "";
+ receivableTransferForm.reset();
+ receivableTransferFields.disabled = true;
+ receivableTransferAccount.replaceChildren(new Option("Loading eligible targets…", ""));
+ receivableTransferPreview.replaceChildren();
+ receivableTransferPreview.hidden = true;
+ receivableTransferApprovalActions.hidden = true;
+ receivableTransferAvailability.textContent = "Choose an eligible company or travel-agent target from the server-owned list.";
  folioStatusAttemptKey = "";
  folioStatusAttemptDraft = "";
  folioStatusPending = false;
@@ -3233,6 +3272,232 @@
  resetFolioPresentation();
  folioStatementLookupForm.reset();
  formMessage(folioStatementLookupForm, "Enter the exact human-readable folio reference.");
+ }
+  function receivableTransferBody() {
+ return {
+  receivableAccountId: receivableTransferAccount.value,
+  reason: receivableTransferReason.value.trim(),
+  ...(receivableApproval?.status === "approved" && canonicalUuid(receivableApproval.approvalId)
+   ? { approvalId: receivableApproval.approvalId } : {}),
+ };
+ }
+  function currentReceivableTransferIsDirty() {
+ return receivableTransferAccount.value !== "" || receivableTransferReason.value !== "" ||
+  receivableTransferConfirm.checked || receivablePreview !== null || receivableApproval !== null;
+ }
+  function resetReceivablePreview() {
+ receivablePreview = null;
+ receivableApproval = null;
+ receivablePreviewGeneration += 1;
+ receivableApprovalAttemptKey = receivableApprovalDraft = "";
+ receivableDecisionAttemptKey = receivableDecisionDraft = "";
+ receivableTransferAttemptKey = receivableTransferDraft = "";
+ receivableTransferPreview.replaceChildren();
+ receivableTransferPreview.hidden = true;
+ receivableTransferApprovalActions.hidden = true;
+ receivableTransferConfirm.checked = false;
+ syncReceivableTransferConfirmation();
+ }
+  function renderReceivableTargets(targets, selected = receivableTransferAccount.value) {
+ const fragment = document.createDocumentFragment();
+ fragment.append(new Option("Choose a server-owned receivable target", ""));
+ for (const target of targets) {
+  if (!target || !canonicalUuid(target.accountId) || !canonicalUuid(target.partyId) ||
+   (target.partyRole !== "company" && target.partyRole !== "agent") || typeof target.name !== "string" ||
+   typeof target.currency !== "string") continue;
+  const option = el("option"); option.value = target.accountId;
+  option.textContent = `${target.name} · ${target.partyRole} · ${target.currency}`;
+  fragment.append(option);
+ }
+ receivableTransferAccount.replaceChildren(fragment);
+ receivableTransferAccount.value = targets.some((target) => target?.accountId === selected) ? selected : "";
+ }
+  async function loadReceivableTransferTargets() {
+ if (!folioStatementData) return;
+ const generation = folioGeneration, property = propertySelect.value, identity = folioIdentity;
+ const folioId = folioStatementData.folio.id;
+ receivableTransferFields.disabled = true;
+ receivableTransferAvailability.textContent = "Loading current eligible receivable targets…";
+ try {
+  const result = await request(`/api/operator/properties/${enc(property)}/receivable-transfers/targets`);
+  if (!isCurrentFolioRequest(generation, property, identity, folioId) || folioActiveTab !== "direct-billing") return;
+  const targets = Array.isArray(result?.targets) ? result.targets : [];
+  receivableTargets = targets;
+  renderReceivableTargets(targets);
+  receivableTransferFields.disabled = targets.length === 0;
+  receivableTransferAvailability.textContent = targets.length === 0
+   ? "The server returned no eligible company or travel-agent receivable targets for this property."
+   : "Choose one server-owned target, then refresh the authoritative direct-billing preview.";
+ } catch (error) {
+  if (!isCurrentFolioRequest(generation, property, identity, folioId) || folioActiveTab !== "direct-billing") return;
+  receivableTransferFields.disabled = true;
+  receivableTransferAvailability.textContent = error instanceof Error ? error.message : "Eligible receivable targets could not be loaded.";
+  formMessage(receivableTransferForm, "Eligible receivable targets could not be loaded. Refresh the folio and try again.", true);
+ }
+ }
+  function renderReceivableTransferPreview(preview) {
+ const fields = [
+  ["Target", preview.name], ["Party role", preview.partyRole], ["Currency", preview.currency],
+  ["Exact transfer", preview.amountMinor], ["Current exposure", preview.exposureMinor],
+  ["Credit limit", preview.creditLimitMinor === null ? "—" : preview.creditLimitMinor],
+  ["Projected exposure", preview.projectedExposureMinor],
+  ["Approval", preview.requiresApproval === true ? "Required" : "Not required"],
+ ];
+ const fragment = document.createDocumentFragment();
+ for (const [label, value] of fields) {
+  const item = node("div"); const heading = node("span", "", label); const detail = node("strong", "", String(value));
+  item.append(heading, detail); fragment.append(item);
+ }
+ receivableTransferPreview.replaceChildren(fragment);
+ receivableTransferPreview.hidden = false;
+ receivableTransferApprovalActions.hidden = preview.requiresApproval !== true;
+ }
+  function syncReceivableTransferConfirmation() {
+ const previewReady = receivablePreview !== null && receivablePreview.receivableAccountId === receivableTransferAccount.value;
+ const reason = receivableTransferReason.value.trim();
+ const approvalReady = receivablePreview?.requiresApproval !== true || receivableApproval?.status === "approved";
+ receivableTransferSubmit.disabled = receivableTransferFields.disabled || !previewReady || !approvalReady ||
+  !receivableTransferConfirm.checked || reason.length < 1 || reason.length > 500;
+ receivableTransferApprovalRequest.disabled = receivableTransferFields.disabled || receivablePreview?.requiresApproval !== true ||
+  receivableApproval?.status === "pending" || receivableApproval?.status === "approved";
+ const decisionReady = receivableApproval?.status === "pending" && canonicalUuid(receivableApproval.approvalId);
+ receivableTransferApprovalApprove.disabled = !decisionReady;
+ receivableTransferApprovalReject.disabled = !decisionReady;
+ }
+  async function loadReceivableTransferPreview() {
+ if (!folioStatementData || !canonicalUuid(receivableTransferAccount.value)) return;
+ const generation = folioGeneration, property = propertySelect.value, identity = folioIdentity;
+ const folioId = folioStatementData.folio.id, accountId = receivableTransferAccount.value;
+ const requestGeneration = ++receivablePreviewGeneration;
+ receivableTransferPreviewSubmit.disabled = true;
+ receivableTransferForm.setAttribute("aria-busy", "true");
+ formMessage(receivableTransferForm, "Reading the server-owned direct-billing preview…");
+ try {
+  const preview = await request(`/api/operator/properties/${enc(property)}/folios/${enc(folioId)}/receivable-transfers:preview`, {
+   method: "POST", body: JSON.stringify({ receivableAccountId: accountId }),
+  });
+  if (!isCurrentFolioRequest(generation, property, identity, folioId) || requestGeneration !== receivablePreviewGeneration ||
+   accountId !== receivableTransferAccount.value || folioActiveTab !== "direct-billing") return;
+  if (preview.folioId !== folioId || preview.receivableAccountId !== accountId || !canonicalUuid(preview.partyId) ||
+   (preview.partyRole !== "company" && preview.partyRole !== "agent") || typeof preview.currency !== "string") {
+   throw new Error("The server returned a different receivable preview.");
+  }
+  receivablePreview = preview;
+  receivableApproval = null;
+  renderReceivableTransferPreview(preview);
+  formMessage(receivableTransferForm, preview.requiresApproval === true
+   ? "The server requires a fresh different-user approval before this exact transfer."
+   : "Server preview confirmed. Review it, enter a reason and confirm the immutable transfer.");
+  syncReceivableTransferConfirmation();
+ } catch (error) {
+  if (!isCurrentFolioRequest(generation, property, identity, folioId) || requestGeneration !== receivablePreviewGeneration) return;
+  resetReceivablePreview();
+  formMessage(receivableTransferForm, error instanceof Error ? error.message : "Direct-billing preview failed.", true);
+ } finally {
+  if (isCurrentFolioRequest(generation, property, identity, folioId) && requestGeneration === receivablePreviewGeneration) {
+   receivableTransferPreviewSubmit.disabled = false; receivableTransferForm.setAttribute("aria-busy", "false");
+  }
+ }
+ }
+  async function requestReceivableTransferApproval() {
+ if (!folioStatementData || receivablePreview?.requiresApproval !== true || receivableTransferApprovalRequest.disabled) return;
+ const generation = folioGeneration, property = propertySelect.value, identity = folioIdentity;
+ const folioId = folioStatementData.folio.id, accountId = receivablePreview.receivableAccountId;
+ const draft = JSON.stringify({ folioId, accountId });
+ if (draft !== receivableApprovalDraft) { receivableApprovalDraft = draft; receivableApprovalAttemptKey = crypto.randomUUID(); }
+ receivableTransferApprovalRequest.disabled = true; receivableTransferForm.setAttribute("aria-busy", "true");
+ formMessage(receivableTransferForm, "Requesting one exact server-bound over-limit approval…");
+ try {
+  const approval = await request(`/api/operator/properties/${enc(property)}/folios/${enc(folioId)}/receivable-transfers/approvals`, {
+   method: "POST", headers: { "idempotency-key": receivableApprovalAttemptKey }, body: JSON.stringify({ receivableAccountId: accountId }),
+  });
+  if (!isCurrentFolioRequest(generation, property, identity, folioId) || accountId !== receivableTransferAccount.value) return;
+  if (approval.folioId !== folioId || approval.receivableAccountId !== accountId || !canonicalUuid(approval.approvalId)) {
+   throw new Error("The server returned a different approval request.");
+  }
+  receivableApproval = approval;
+  formMessage(receivableTransferForm, approval.replayed === true
+   ? "The existing exact approval request was confirmed. A different approver may decide it."
+   : "Exact approval requested. A different approver may decide it.");
+  syncReceivableTransferConfirmation();
+ } catch (error) {
+  if (isCurrentFolioRequest(generation, property, identity, folioId)) {
+   formMessage(receivableTransferForm, `${error instanceof Error ? error.message : "Approval request failed"}. Retry keeps the same idempotency key.`, true);
+  }
+ } finally {
+  if (isCurrentFolioRequest(generation, property, identity, folioId)) {
+   receivableTransferForm.setAttribute("aria-busy", "false"); syncReceivableTransferConfirmation();
+  }
+ }
+ }
+  async function decideReceivableTransferApproval(decision) {
+ if ((decision !== "approve" && decision !== "reject") || !folioStatementData || receivableApproval?.status !== "pending") return;
+ const control = decision === "approve" ? receivableTransferApprovalApprove : receivableTransferApprovalReject;
+ if (control.disabled || !canonicalUuid(receivableApproval.approvalId)) return;
+ const generation = folioGeneration, property = propertySelect.value, identity = folioIdentity;
+ const folioId = folioStatementData.folio.id, approvalId = receivableApproval.approvalId;
+ const draft = JSON.stringify({ folioId, approvalId, decision });
+ if (draft !== receivableDecisionDraft) { receivableDecisionDraft = draft; receivableDecisionAttemptKey = crypto.randomUUID(); }
+ control.disabled = true; receivableTransferForm.setAttribute("aria-busy", "true");
+ formMessage(receivableTransferForm, `${decision === "approve" ? "Approving" : "Rejecting"} only the server-bound approval evidence…`);
+ try {
+  const approval = await request(`/api/operator/properties/${enc(property)}/folios/${enc(folioId)}/receivable-transfers/approvals/${enc(approvalId)}/${decision}`, {
+   method: "POST", headers: { "idempotency-key": receivableDecisionAttemptKey }, body: JSON.stringify({}),
+  });
+  if (!isCurrentFolioRequest(generation, property, identity, folioId) || approvalId !== receivableApproval?.approvalId) return;
+  if (approval.folioId !== folioId || approval.approvalId !== approvalId || approval.status !== `${decision}d`) {
+   throw new Error("The server returned a different approval decision.");
+  }
+  receivableApproval = approval;
+  formMessage(receivableTransferForm, approval.replayed === true ? "The existing approval decision was confirmed."
+   : decision === "approve" ? "Exact approval recorded. You may now confirm this transfer."
+   : "Exact approval rejected. This transfer remains unavailable.");
+  syncReceivableTransferConfirmation();
+ } catch (error) {
+  if (isCurrentFolioRequest(generation, property, identity, folioId)) {
+   formMessage(receivableTransferForm, `${error instanceof Error ? error.message : "Approval decision failed"}. Retry keeps the same idempotency key.`, true);
+  }
+ } finally {
+  if (isCurrentFolioRequest(generation, property, identity, folioId)) {
+   receivableTransferForm.setAttribute("aria-busy", "false"); syncReceivableTransferConfirmation();
+  }
+ }
+ }
+  async function submitReceivableTransfer() {
+ if (!folioStatementData || receivableTransferSubmit.disabled) return;
+ const generation = folioGeneration, property = propertySelect.value, identity = folioIdentity;
+ const folioId = folioStatementData.folio.id, body = receivableTransferBody();
+ const draft = JSON.stringify(body);
+ if (draft !== receivableTransferDraft) { receivableTransferDraft = draft; receivableTransferAttemptKey = crypto.randomUUID(); }
+ receivableTransferFields.disabled = true; receivableTransferForm.setAttribute("aria-busy", "true");
+ formMessage(receivableTransferForm, "Transferring only the server-verified exact positive balance…");
+ try {
+  const transferred = await request(`/api/operator/properties/${enc(property)}/folios/${enc(folioId)}/receivable-transfers`, {
+   method: "POST", headers: { "idempotency-key": receivableTransferAttemptKey }, body: JSON.stringify(body),
+  });
+  if (!isCurrentFolioRequest(generation, property, identity, folioId)) return;
+  if (transferred.folioId !== folioId || transferred.receivableAccountId !== body.receivableAccountId || !canonicalUuid(transferred.journalId)) {
+   throw new Error("The server returned a different receivable transfer.");
+  }
+  const refreshed = await request(`/api/v1/properties/${enc(property)}/folios/${enc(folioId)}/statement?limit=50`);
+  if (!isCurrentFolioRequest(generation, property, identity, folioId) || refreshed.folio?.id !== folioId) return;
+  receivableTransferAttemptKey = receivableTransferDraft = "";
+  renderFolioStatement(refreshed);
+  folioActiveTab = "postings";
+  setFolioTab("postings", { updateHistory: true, focus: false });
+  formMessage(receivableTransferForm, transferred.replayed === true
+   ? "Existing direct-billing transfer confirmed. The authoritative folio was refreshed."
+   : "Direct-billing transfer recorded. The authoritative folio was refreshed.");
+  folioBalance.focus({ preventScroll: true });
+ } catch (error) {
+  if (isCurrentFolioRequest(generation, property, identity, folioId)) {
+   receivableTransferFields.disabled = false;
+   formMessage(receivableTransferForm, `${error instanceof Error ? error.message : "Direct-billing transfer failed"}. Retry keeps the same idempotency key.`, true);
+   syncReceivableTransferConfirmation();
+  }
+ } finally {
+  if (isCurrentFolioRequest(generation, property, identity, folioId)) receivableTransferForm.setAttribute("aria-busy", "false");
+ }
  }
   function folioCell(text) {
  const cell = el("td");
@@ -3651,6 +3916,7 @@
  if(next==="deposit")if(d)d.s();else if(!p){const g=folioGeneration;p=import("/assets/operator-deposits.js").then(m=>(d=m.default([
   () => [folioGeneration, propertySelect.value, folioIdentity, folioStatementData], request, renderFolioStatement,
  ])).s(g),()=>p=g==folioGeneration&&folioActiveTab==="deposit"&&announceOperation("error"))}
+ if (next === "direct-billing") void loadReceivableTransferTargets();
  if (focus) (tabs.find(([name]) => name === next)?.[1] || folioCorrectionHeading).focus();
  return true;
  }
@@ -3960,7 +4226,7 @@
  const match = /^\/p\/([0-9a-f-]+)\/cashiers$/.exec(location.pathname);
  return match ? { property: match[1] } : null;
  }
- function cashierDenominations(drawer) {
+  function cashierDenominations(drawer) {
  return Array.isArray(drawer?.denominations) ? drawer.denominations.filter((denomination) =>
   denomination && typeof denomination.denominationMinor === "string") : [];
  }
@@ -5782,8 +6048,8 @@
  element.addEventListener("keydown", (event) => {
   if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return;
   event.preventDefault();
-  const next = event.key === "Home" ? "postings" : event.key === "End" ? "organize" :
-  tabs[(tabs.findIndex(([name]) => name === tab)+(event.key==="ArrowRight"?1:3))%4][0];
+  const next = event.key === "Home" ? "postings" : event.key === "End" ? tabs[tabs.length - 1][0] :
+  tabs[(tabs.findIndex(([name]) => name === tab)+(event.key==="ArrowRight"?1:tabs.length - 1))%tabs.length][0];
   setFolioTab(next);
  });
  }
@@ -5827,6 +6093,20 @@
  event.preventDefault();
  void submitFolioTransfer(true);
  });
+ receivableTransferAccount.addEventListener("change", () => {
+  resetReceivablePreview();
+  formMessage(receivableTransferForm, "Target changed. Refresh the server-owned preview before continuing.");
+ });
+ receivableTransferReason.addEventListener("input", () => {
+  if (receivableTransferDraft) { receivableTransferAttemptKey = ""; receivableTransferDraft = ""; }
+  syncReceivableTransferConfirmation();
+ });
+ receivableTransferConfirm.addEventListener("change", syncReceivableTransferConfirmation);
+ receivableTransferPreviewSubmit.addEventListener("click", () => void loadReceivableTransferPreview());
+ receivableTransferApprovalRequest.addEventListener("click", () => void requestReceivableTransferApproval());
+ receivableTransferApprovalApprove.addEventListener("click", () => void decideReceivableTransferApproval("approve"));
+ receivableTransferApprovalReject.addEventListener("click", () => void decideReceivableTransferApproval("reject"));
+ receivableTransferForm.addEventListener("submit", (event) => { event.preventDefault(); void submitReceivableTransfer(); });
  folioWorkspace.addEventListener("click", (event) => {
  const action = event.target.closest?.(".folio-correct-action");
  if (action instanceof HTMLButtonElement && action.dataset.journalId) {

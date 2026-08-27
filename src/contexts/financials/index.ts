@@ -129,6 +129,9 @@ export {
   CashierService,
   CashierValidationError,
 } from "./cashiers";
+
+export { ReceivableConflictError, ReceivableNotFoundError, ReceivableService, ReceivableValidationError } from "./receivables";
+export type { DecideReceivableApprovalInput, ReceivableApprovalResult, ReceivablePreview, ReceivablePreviewInput, ReceivableServiceOptions, ReceivableTarget, ReceivableTargetListInput, ReceivableTransferInput, ReceivableTransferResult, RequestReceivableApprovalInput } from "./receivables";
 export type {
   AppendCashierCountInput,
   AppendCashierCountResult,

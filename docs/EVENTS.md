@@ -52,6 +52,13 @@ only where applicable; they contain no denomination, account, payment, instrumen
 journal or caller-supplied total. Consumers must not infer cash posting, discrepancy
 write-off, provider settlement or business-day seal.
 
+`receivable.transferred` describes one immutable guest-debt transfer. Its minimized
+payload contains only guest folio/account, receivable account/party, exact amount,
+currency, journal and approval identifier where consumed. The producer writes the
+fact and outbox row in the same transaction as the balanced journal. Consumers must
+not infer an AR invoice, allocation, aging state, external accounting export, checkout,
+document issue, fiscalization or folio settlement from this event.
+
 **housekeeping/stay** · unit.condition_changed · task.created/.status_changed · discrepancy.reported/.resolved · queue.entered/.cleared · message.received/.sent
 
 **profiles** · party.created/.merged {into} · party.anonymised · consent.changed

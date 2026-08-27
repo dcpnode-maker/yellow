@@ -125,6 +125,11 @@ const EXPECTED_MIGRATIONS = [
     filename: "0024_governed_cashier_sessions.sql",
     checksum_sha256: "8884596df1155a308c752e733834e9cdcf95dd462b286450c6dbc3ae22b50e76",
   },
+  {
+    version: 25,
+    filename: "0025_governed_receivable_transfer.sql",
+    checksum_sha256: "ce3fe52783ffb467f56a2a7342c0a5808ab8824d625f3b01b5e3532e1191c9fe",
+  },
 ];
 
 if (REQUIRE_DATABASE && !DATABASE_URL) {
@@ -350,6 +355,66 @@ databaseDescribe("fresh deployment database acceptance", () => {
         appExecute: true, runtimeExecute: false, publicExecute: false,
       },
     ]);
+  });
+
+  test("has exact journal approval lineage and governed receivable-transfer authority", async () => {
+    const shape = await sql!<Array<{
+      tables: number; policies: number; directBill: number;
+      approvalNullable: boolean; compositeFk: boolean; oneUseIndex: boolean;
+      appApprovalInsert: boolean; appApprovalUpdate: boolean;
+    }>>`
+      SELECT
+        (SELECT count(*)::int FROM pg_catalog.pg_tables WHERE schemaname = 'public') AS tables,
+        (SELECT count(*)::int FROM pg_catalog.pg_policies WHERE schemaname = 'public') AS policies,
+        (SELECT count(*)::int FROM public.tx_code
+          WHERE code = 'DIRECT_BILL' AND name = 'Direct billing transfer'
+            AND grp = 'transfer' AND usali_line IS NULL
+            AND default_dr = 'company' AND default_cr = 'guest') AS "directBill",
+        (SELECT is_nullable = 'YES' FROM information_schema.columns
+          WHERE table_schema = 'public' AND table_name = 'journal'
+            AND column_name = 'approval_request_id') AS "approvalNullable",
+        EXISTS (
+          SELECT 1 FROM pg_catalog.pg_constraint
+           WHERE conrelid = 'public.journal'::regclass
+             AND conname = 'journal_approval_request_fk'
+             AND pg_catalog.pg_get_constraintdef(oid) =
+               'FOREIGN KEY (tenant_id, approval_request_id) REFERENCES approval_request(tenant_id, id)'
+        ) AS "compositeFk",
+        EXISTS (
+          SELECT 1 FROM pg_catalog.pg_indexes
+           WHERE schemaname = 'public' AND tablename = 'journal'
+             AND indexname = 'journal_one_use_approval'
+             AND indexdef LIKE 'CREATE UNIQUE INDEX% (tenant_id, approval_request_id) WHERE (approval_request_id IS NOT NULL)'
+        ) AS "oneUseIndex",
+        has_column_privilege('app_role','public.journal','approval_request_id','INSERT') AS "appApprovalInsert",
+        has_column_privilege('app_role','public.journal','approval_request_id','UPDATE') AS "appApprovalUpdate"
+    `;
+    expect(shape).toEqual([{
+      tables: 93, policies: 83, directBill: 1,
+      approvalNullable: true, compositeFk: true, oneUseIndex: true,
+      appApprovalInsert: false, appApprovalUpdate: false,
+    }]);
+
+    const functions = await sql!<Array<{
+      signature: string; owner: string; securityDefiner: boolean; config: string[];
+      appExecute: boolean; runtimeExecute: boolean; publicExecute: boolean;
+    }>>`
+      SELECT procedure.oid::regprocedure::text AS signature,
+             pg_catalog.pg_get_userbyid(procedure.proowner) AS owner,
+             procedure.prosecdef AS "securityDefiner", procedure.proconfig AS config,
+             pg_catalog.has_function_privilege('app_role', procedure.oid, 'EXECUTE') AS "appExecute",
+             pg_catalog.has_function_privilege('yellow_runtime', procedure.oid, 'EXECUTE') AS "runtimeExecute",
+             pg_catalog.has_function_privilege('public', procedure.oid, 'EXECUTE') AS "publicExecute"
+        FROM pg_catalog.pg_proc AS procedure
+       WHERE procedure.oid =
+         'public.create_receivable_transfer(uuid,uuid,uuid,uuid,uuid,uuid,text)'::regprocedure
+    `;
+    expect(functions).toEqual([{
+      signature: "create_receivable_transfer(uuid,uuid,uuid,uuid,uuid,uuid,text)",
+      owner: "yellow_owner", securityDefiner: true,
+      config: ["search_path=pg_catalog, public, pg_temp"],
+      appExecute: true, runtimeExecute: false, publicExecute: false,
+    }]);
   });
 
   test("contains only the exact canonical demo tenant and property", async () => {

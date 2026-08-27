@@ -224,6 +224,14 @@ databaseDescribe("Order 150 positive runtime DML authority", () => {
     `)[0]).toEqual({ allowed: false });
     expect((await deploy!<Array<{ insertAllowed: boolean; updateAllowed: boolean }>>`
       SELECT has_column_privilege(
+               'app_role','public.journal','approval_request_id','INSERT'
+             ) AS "insertAllowed",
+             has_column_privilege(
+               'app_role','public.journal','approval_request_id','UPDATE'
+             ) AS "updateAllowed"
+    `)[0]).toEqual({ insertAllowed: false, updateAllowed: false });
+    expect((await deploy!<Array<{ insertAllowed: boolean; updateAllowed: boolean }>>`
+      SELECT has_column_privilege(
                'app_role','public.posting_line','folio_transfer_root_line_id','INSERT'
              ) AS "insertAllowed",
              has_column_privilege(
@@ -277,7 +285,7 @@ databaseDescribe("Order 150 positive runtime DML authority", () => {
        WHERE n.nspname = 'public'
           AND p.proname IN ('record_occupancy', 'release_occupancy', 'seal_business_day',
             'lock_financial_rows', 'lock_financial_business_days', 'create_charge_correction_header',
-            'create_folio_transfer',
+            'create_folio_transfer', 'create_receivable_transfer',
             'open_cashier_session', 'append_cashier_count', 'close_cashier_session',
            'runtime_resolve_active_tenant', 'runtime_due_hold_scopes', 'runtime_consumer_begin',
            'runtime_consumer_read', 'runtime_consumer_mark', 'runtime_consumer_advance',
@@ -297,6 +305,8 @@ databaseDescribe("Order 150 positive runtime DML authority", () => {
     expect(functions.find(({ signature }) => signature.startsWith("create_charge_correction_header(")))
       .toEqual(expect.objectContaining({ app: true, runtime: false }));
     expect(functions.find(({ signature }) => signature.startsWith("create_folio_transfer(")))
+      .toEqual(expect.objectContaining({ app: true, runtime: false }));
+    expect(functions.find(({ signature }) => signature.startsWith("create_receivable_transfer(")))
       .toEqual(expect.objectContaining({ app: true, runtime: false }));
     for (const capability of [
       "open_cashier_session(", "append_cashier_count(", "close_cashier_session(",
@@ -326,6 +336,8 @@ databaseDescribe("Order 150 positive runtime DML authority", () => {
     await expectAppRoleDenied("INSERT INTO public.channel (code, name) VALUES ('order150-hostile', 'Hostile')");
     await expectAppRoleDenied("UPDATE public.outbox SET published_at = now() WHERE false");
     await expectAppRoleDenied("UPDATE public.posting_line SET folio_transfer_root_line_id = id WHERE false");
+    await expectAppRoleDenied("UPDATE public.journal SET approval_request_id = NULL WHERE false");
+    await expectAppRoleDenied("INSERT INTO public.journal (tenant_id, property_node, business_date, kind, description, currency, source, created_by, approval_request_id) SELECT tenant_id, property_node, business_date, kind, description, currency, source, created_by, NULL FROM public.journal WHERE false");
     await expectAppRoleDenied("INSERT INTO public.posting_line (tenant_id, journal_id, seq, account_id, folio_id, tx_code, description, amount_minor, quantity, business_date, currency, folio_transfer_root_line_id) SELECT tenant_id, journal_id, seq, account_id, folio_id, tx_code, description, amount_minor, quantity, business_date, currency, id FROM public.posting_line WHERE false");
     await expectAppRoleDenied("INSERT INTO public.space_occupancy (tenant_id, space_id, period, slot_ref, slot_kind, exclusive, claim) VALUES ('00000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-000000000002', tstzrange(now(), now() + interval '1 hour', '[)'), '00000000-0000-0000-0000-000000000003', 'segment', true, int4range(0, NULL))");
     await expectAppRoleDenied("INSERT INTO public.cash_drawer (tenant_id, property_node, account_id, code, name, currency) VALUES ('00000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-000000000002', '00000000-0000-0000-0000-000000000003', 'HOSTILE', 'Hostile', 'USD')");

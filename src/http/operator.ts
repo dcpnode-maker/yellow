@@ -44,6 +44,10 @@ import {
   HostedDepositNotFoundError,
   HostedDepositService,
   HostedDepositValidationError,
+  ReceivableConflictError,
+  ReceivableNotFoundError,
+  ReceivableService,
+  ReceivableValidationError,
 } from "../contexts/financials";
 import {
   AvailabilityService,
@@ -185,6 +189,9 @@ const DEPOSIT_APPLY_SCOPE = "financials.deposits:apply";
 const CASHIER_READ_SCOPE = "financials.cashiers:read";
 const CASHIER_OPERATE_SCOPE = "financials.cashiers:operate";
 const CASHIER_SUPERVISE_SCOPE = "financials.cashiers:supervise";
+const RECEIVABLE_READ_SCOPE = "financials.receivables:read";
+const RECEIVABLE_TRANSFER_SCOPE = "financials.receivables:transfer";
+const RECEIVABLE_APPROVE_SCOPE = "financials.receivables:approve";
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 const ISO_INSTANT = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})(?::(\d{2})(?:\.(\d{1,3}))?)?(Z|([+-])(\d{2}):(\d{2}))$/;
 const LOCAL_DATE = /^(\d{4})-(\d{2})-(\d{2})$/;
@@ -236,6 +243,33 @@ interface CorrectionDraft {
 interface FolioStatusDraft {
   readonly action: "settle" | "close";
   readonly idempotencyKey: string;
+}
+
+interface ReceivableAccountDraft { readonly receivableAccountId: string; }
+
+interface ReceivableTransferDraft extends ReceivableAccountDraft {
+  readonly reason: string;
+  readonly approvalId?: string;
+}
+
+function parseReceivableAccount(body: unknown): ReceivableAccountDraft | null {
+  return isObject(body) && exactKeys(body, ["receivableAccountId"]) &&
+    typeof body.receivableAccountId === "string" && UUID.test(body.receivableAccountId)
+    ? Object.freeze({ receivableAccountId: body.receivableAccountId })
+    : null;
+}
+
+function parseReceivableTransfer(body: unknown): ReceivableTransferDraft | null {
+  if (!isObject(body) || !exactKeys(body, ["receivableAccountId", "reason"], ["approvalId"]) ||
+      typeof body.receivableAccountId !== "string" || !UUID.test(body.receivableAccountId) ||
+      typeof body.reason !== "string" || body.reason.trim() !== body.reason ||
+      body.reason.length < 1 || body.reason.length > 500 || /[\u0000-\u001f\u007f]/.test(body.reason) ||
+      (body.approvalId !== undefined && (typeof body.approvalId !== "string" || !UUID.test(body.approvalId)))) return null;
+  return Object.freeze({
+    receivableAccountId: body.receivableAccountId,
+    reason: body.reason,
+    ...(body.approvalId === undefined ? {} : { approvalId: body.approvalId }),
+  });
 }
 
 interface CashierDenominationDraft extends Readonly<Record<string, unknown>> {
@@ -1051,6 +1085,7 @@ type FolioSettlementOperations = Pick<FolioSettlementService, "settle" | "close"
 type FolioTransferOperations = Pick<FolioTransferService, "preview" | "transfer">;
 type HostedDepositOperations = Pick<HostedDepositService, "create" | "apply" | "statusForOperator">;
 type CashierOperations = Pick<CashierService, "list" | "open" | "appendCount" | "close" | "requestOverShortApproval" | "approveOverShort" | "rejectOverShort">;
+type ReceivableOperations = Pick<ReceivableService, "listTargets" | "preview" | "requestOverLimitApproval" | "approveOverLimit" | "rejectOverLimit" | "transfer">;
 
 const MAX_MONEY = 9_223_372_036_854_775_807n;
 
@@ -1441,6 +1476,7 @@ export class OperatorHttpApi {
   readonly #folioTransfers?: FolioTransferOperations;
   readonly #hostedDeposits?: HostedDepositOperations;
   readonly #cashiers?: CashierOperations;
+  readonly #receivables?: ReceivableOperations;
 
   constructor(
     login: LocalLoginService,
@@ -1472,6 +1508,7 @@ export class OperatorHttpApi {
     hostedDeposits?: HostedDepositOperations,
     folioSettlements?: FolioSettlementOperations,
     cashiers?: CashierOperations,
+    receivables?: ReceivableOperations,
   ) {
     this.#login = login;
     this.#availability = availability;
@@ -1502,6 +1539,7 @@ export class OperatorHttpApi {
     this.#hostedDeposits = hostedDeposits;
     this.#folioSettlements = folioSettlements;
     this.#cashiers = cashiers;
+    this.#receivables = receivables;
   }
 
   unavailable(request: Request): Response {
@@ -1524,6 +1562,15 @@ export class OperatorHttpApi {
     }
     if (error instanceof CashierConflictError) {
       return apiError(request, 409, "financials/conflict", "Conflict", "The cashier session conflicts with current financial state");
+    }
+    if (error instanceof ReceivableValidationError) {
+      return apiError(request, 400, "request/invalid", "Invalid request", "Receivable transfer input is invalid");
+    }
+    if (error instanceof ReceivableNotFoundError) {
+      return apiError(request, 404, "financials/not_found", "Not found", "The requested receivable target or folio was not found");
+    }
+    if (error instanceof ReceivableConflictError) {
+      return apiError(request, 409, "financials/conflict", "Conflict", "The receivable transfer conflicts with current financial state");
     }
     if (error instanceof FolioValidationError || error instanceof FolioStatementValidationError ||
         error instanceof ChargeValidationError || error instanceof ChargeCorrectionValidationError ||
@@ -1911,6 +1958,145 @@ export class OperatorHttpApi {
       tenantId: context.tenantId, sessionId, countId: input.countId, ...(input.reason === undefined ? {} : { reason: input.reason }),
       ...(input.approvalId === undefined ? {} : { approvalId: input.approvalId }), supervised, idempotencyKey,
       envelope: createAuditEnvelope({ actorId: context.identity.actorId, tenantId: context.tenantId, propertyNode, requestId, operation: "cashier.closed" }),
+    });
+    return apiResponse(context.request, canonicalJson(jsonValue(result)), result.replayed ? 200 : 201, {
+      "idempotency-replayed": String(result.replayed), "x-correlation-id": requestId,
+    });
+  }
+
+  async receivableTransferTargets(
+    context: TenantRequestContext,
+    propertyNode: string,
+  ): Promise<Response> {
+    if (!UUID.test(propertyNode)) {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Property identifier is invalid");
+    }
+    if (!hasScope(context, RECEIVABLE_READ_SCOPE)) {
+      return apiError(context.request, 403, "auth/scope_missing", "Forbidden", "Receivable read access is not granted");
+    }
+    const grants = await listGrantedProperties(context, RECEIVABLE_READ_SCOPE);
+    if (!grants.some(({ id }) => id === propertyNode)) {
+      return apiError(context.request, 403, "auth/property_forbidden", "Forbidden", "Property access is not granted");
+    }
+    if (!this.#receivables) return this.unavailable(context.request);
+    const targets = await this.#receivables.listTargets({ tenantId: context.tenantId, propertyNode });
+    return apiResponse(context.request, canonicalJson(jsonValue({ targets })));
+  }
+
+  async previewReceivableTransfer(
+    context: TenantRequestContext,
+    propertyNode: string,
+    folioId: string,
+    body: unknown,
+  ): Promise<Response> {
+    const input = parseReceivableAccount(body);
+    if (!input || !UUID.test(propertyNode) || !UUID.test(folioId)) {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Receivable preview input is invalid");
+    }
+    if (!hasScope(context, RECEIVABLE_READ_SCOPE)) {
+      return apiError(context.request, 403, "auth/scope_missing", "Forbidden", "Receivable read access is not granted");
+    }
+    const grants = await listGrantedProperties(context, RECEIVABLE_READ_SCOPE);
+    if (!grants.some(({ id }) => id === propertyNode)) {
+      return apiError(context.request, 403, "auth/property_forbidden", "Forbidden", "Property access is not granted");
+    }
+    if (!this.#receivables) return this.unavailable(context.request);
+    const result = await this.#receivables.preview({
+      tenantId: context.tenantId, propertyNode, folioId, receivableAccountId: input.receivableAccountId,
+    });
+    return apiResponse(context.request, canonicalJson(jsonValue(result)));
+  }
+
+  async requestReceivableOverLimitApproval(
+    context: TenantRequestContext,
+    propertyNode: string,
+    folioId: string,
+    body: unknown,
+  ): Promise<Response> {
+    const input = parseReceivableAccount(body);
+    const idempotencyKey = context.request.headers.get("idempotency-key");
+    if (!input || !UUID.test(propertyNode) || !UUID.test(folioId) || !idempotencyKey || !IDEMPOTENCY_KEY.test(idempotencyKey)) {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Receivable approval input is invalid");
+    }
+    if (!hasScope(context, RECEIVABLE_TRANSFER_SCOPE)) {
+      return apiError(context.request, 403, "auth/scope_missing", "Forbidden", "Receivable transfer access is not granted");
+    }
+    const grants = await listGrantedProperties(context, RECEIVABLE_TRANSFER_SCOPE);
+    if (!grants.some(({ id }) => id === propertyNode)) {
+      return apiError(context.request, 403, "auth/property_forbidden", "Forbidden", "Property access is not granted");
+    }
+    if (!this.#receivables) return this.unavailable(context.request);
+    const requestId = correlationId(context.request);
+    const result = await this.#receivables.requestOverLimitApproval({
+      tenantId: context.tenantId, folioId, receivableAccountId: input.receivableAccountId, idempotencyKey,
+      envelope: createAuditEnvelope({ actorId: context.identity.actorId, tenantId: context.tenantId,
+        propertyNode, requestId, operation: "approval.requested" }),
+    });
+    return apiResponse(context.request, canonicalJson(jsonValue(result)), result.replayed ? 200 : 201, {
+      "idempotency-replayed": String(result.replayed), "x-correlation-id": requestId,
+    });
+  }
+
+  async decideReceivableOverLimitApproval(
+    context: TenantRequestContext,
+    propertyNode: string,
+    folioId: string,
+    approvalId: string,
+    body: unknown,
+    decision: "approve" | "reject",
+  ): Promise<Response> {
+    const idempotencyKey = context.request.headers.get("idempotency-key");
+    if (!isObject(body) || !exactKeys(body, []) || !UUID.test(propertyNode) || !UUID.test(folioId) ||
+        !UUID.test(approvalId) || !idempotencyKey || !IDEMPOTENCY_KEY.test(idempotencyKey)) {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Receivable approval decision input is invalid");
+    }
+    if (!hasScope(context, RECEIVABLE_APPROVE_SCOPE)) {
+      return apiError(context.request, 403, "auth/scope_missing", "Forbidden", "Receivable approval access is not granted");
+    }
+    const grants = await listGrantedProperties(context, RECEIVABLE_APPROVE_SCOPE);
+    if (!grants.some(({ id }) => id === propertyNode)) {
+      return apiError(context.request, 403, "auth/property_forbidden", "Forbidden", "Property access is not granted");
+    }
+    if (!this.#receivables) return this.unavailable(context.request);
+    const requestId = correlationId(context.request);
+    const input = {
+      tenantId: context.tenantId, folioId, approvalId, idempotencyKey,
+      envelope: createAuditEnvelope({ actorId: context.identity.actorId, tenantId: context.tenantId,
+        propertyNode, requestId, operation: "approval.decided" }),
+    };
+    const result = decision === "approve"
+      ? await this.#receivables.approveOverLimit(input)
+      : await this.#receivables.rejectOverLimit(input);
+    return apiResponse(context.request, canonicalJson(jsonValue(result)), 200, {
+      "idempotency-replayed": String(result.replayed), "x-correlation-id": requestId,
+    });
+  }
+
+  async transferReceivableBalance(
+    context: TenantRequestContext,
+    propertyNode: string,
+    folioId: string,
+    body: unknown,
+  ): Promise<Response> {
+    const input = parseReceivableTransfer(body);
+    const idempotencyKey = context.request.headers.get("idempotency-key");
+    if (!input || !UUID.test(propertyNode) || !UUID.test(folioId) || !idempotencyKey || !IDEMPOTENCY_KEY.test(idempotencyKey)) {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Receivable transfer input is invalid");
+    }
+    if (!hasScope(context, RECEIVABLE_TRANSFER_SCOPE)) {
+      return apiError(context.request, 403, "auth/scope_missing", "Forbidden", "Receivable transfer access is not granted");
+    }
+    const grants = await listGrantedProperties(context, RECEIVABLE_TRANSFER_SCOPE);
+    if (!grants.some(({ id }) => id === propertyNode)) {
+      return apiError(context.request, 403, "auth/property_forbidden", "Forbidden", "Property access is not granted");
+    }
+    if (!this.#receivables) return this.unavailable(context.request);
+    const requestId = correlationId(context.request);
+    const result = await this.#receivables.transfer({
+      tenantId: context.tenantId, folioId, receivableAccountId: input.receivableAccountId,
+      approvalId: input.approvalId, reason: input.reason, idempotencyKey,
+      envelope: createAuditEnvelope({ actorId: context.identity.actorId, tenantId: context.tenantId,
+        propertyNode, requestId, operation: "journal.posted" }),
     });
     return apiResponse(context.request, canonicalJson(jsonValue(result)), result.replayed ? 200 : 201, {
       "idempotency-replayed": String(result.replayed), "x-correlation-id": requestId,

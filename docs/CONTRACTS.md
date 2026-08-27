@@ -599,3 +599,23 @@ Open, count and close append minimized facts and `cashier.opened`,
 `cashier.counted`, `cashier.closed` outbox events in the same transaction. This
 contract never posts cash, balances a discrepancy, mutates a journal, settles a
 provider or seals a business day.
+
+## 19. Governed direct-billing receivable boundary
+
+`ReceivableService` previews and transfers only the exact locked positive balance of
+one open guest folio window. The target is one open party-owned `company` account in
+the same tenant, property and currency whose Party has the `company` or `agent` role.
+The service derives amount, currency, account status, party role, current exposure,
+credit limit and projected exposure; callers provide identifiers, idempotency and an
+audit envelope only.
+
+`credit_limit_minor = NULL` denies direct billing. A within-limit transfer creates one
+balanced immutable transfer journal. An over-limit transfer additionally consumes one
+approved, different-user, one-use request bound to exact party/account/folio/amount,
+exposure before, limit and projected exposure. Every command revalidates those facts
+under deterministic financial locks before posting.
+
+The result leaves the guest folio at exact zero and increases receivable exposure by
+the same amount. It does not settle the folio automatically and creates no AR invoice,
+allocation, aging, statement, provider settlement, checkout, document, tax or fiscal
+artifact. Generic `ar_control` is never a direct-billing target.

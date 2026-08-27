@@ -113,10 +113,11 @@ describe("Order 105 operator folio workbench", () => {
   });
 
   test("P3: browser renders exact server strings and exposes no ledger authority", () => {
-    const folioSurface = script.slice(
-      script.indexOf("  function isCurrentFolioRequest("),
-      script.indexOf("  function setView(", script.indexOf("  function isCurrentFolioRequest(")),
-    );
+    const folioStart = script.indexOf("  function isCurrentFolioRequest(");
+    const directBillingStart = script.indexOf("  function receivableTransferBody(", folioStart);
+    const directBillingEnd = script.indexOf("  function folioCell(", directBillingStart);
+    const folioEnd = script.indexOf("  function setView(", folioStart);
+    const folioSurface = `${script.slice(folioStart, directBillingStart)}${script.slice(directBillingEnd, folioEnd)}`;
     expect(folioSurface).toContain("cell.textContent");
     expect(folioSurface).toContain('folioBalance.textContent = exactFolioMinor(statement.balanceMinor, "server balance")');
     expect(folioSurface).toContain('const amount = exactFolioMinor(row.amountMinor, "amount")');

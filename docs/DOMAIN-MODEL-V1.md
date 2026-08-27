@@ -617,3 +617,13 @@ the database derives their exact bigint total and retains every recount. Closing
 one immutable count and records the expected, counted and over/short evidence. A
 non-zero discrepancy also names one distinct-decider approval. None of these identities
 is a payment, journal, provider settlement or business-day seal.
+
+### Direct-billing receivable identity (Order 198)
+
+The existing Party owns a `company` or `agent` role; that same Party owns one exact
+property/currency `account(role='company')`. Receivable exposure is the immutable
+posting sum on that account, not a second balance table. One `journal(kind='transfer')`
+links the full positive guest-folio balance to the receivable account, and optional
+`approval_request_id` records the one-use authority for an over-limit posting. This is
+money movement, not an AR invoice, allocation, aging record, statement or external-GL
+identity.
