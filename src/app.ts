@@ -47,6 +47,7 @@ export function createApp(options: AppOptions = {}) {
     options.tenantResolver ?? failClosedTenantResolver,
     options.database ?? new Database(unavailablePool),
   );
+  const providerCsp = options.hostedDepositRoutes?.providerContentSecurityPolicy();
 
   const app = new Elysia()
     .decorate("tenantContext", tenantContext)
@@ -348,7 +349,7 @@ export function createApp(options: AppOptions = {}) {
       .post("/pay/:bearer/continue", ({ request, params }) => provider.continue(request, params.bearer))
       .post("/api/v1/provider/local-deposit/callback", ({ request }) => provider.callback(request), { parse: "none" });
     if (surface === "provider" || surface === "all") app
-      .get("/provider/pay", () => hostedDepositAssets.providerHtml())
+      .get("/provider/pay", () => hostedDepositAssets.providerHtml(providerCsp))
       .get("/assets/provider.css", () => hostedDepositAssets.providerCss())
       .get("/assets/provider.js", () => hostedDepositAssets.providerJs())
       .get("/api/provider/local-deposit/handoff", ({ request }) =>

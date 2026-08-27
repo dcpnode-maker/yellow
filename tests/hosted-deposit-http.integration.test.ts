@@ -19,6 +19,13 @@ function signature(raw: string, path: string = PATH, timestamp = String(NOW), ev
     .update(`local-deposit\nv1\n${path}\n${timestamp}\n${eventId}\n${raw}`).digest("hex");
 }
 
+function handoffToken(returnUrl: string) {
+  const payload = { correlation:"11111111-1111-4111-8111-111111111111.66666666-6666-4666-8666-666666666666",
+    amountMinor:"25000", currency:"INR", returnUrl, expiry:NOW + 60_000 };
+  const encoded = Buffer.from(JSON.stringify(payload)).toString("base64url");
+  return `${encoded}.${createHmac("sha256", SECRET).update(`handoff.v1.${encoded}`).digest("hex")}`;
+}
+
 function callbackRequest(options: {
   raw?: string; path?: string; timestamp?: string; eventId?: string; signature?: string;
 } = {}) {
@@ -170,6 +177,38 @@ describe("Order193 signed provider callback", () => {
     expect((await provider.providerOutcome(token, "approve")).status).toBe(303);
     expect(callback).toBeDefined(); expect(new URL(callback!.url).pathname).toBe(PATH);
     expect(JSON.parse(await callback!.clone().text())).toEqual(expect.objectContaining({ outcome:"approved" }));
+  });
+
+  test("provider page permits form return only to its exact validated guest origin", async () => {
+    const provider = new HostedDepositProviderHttpApi({ callbackSecret:SECRET, now:() => NOW,
+      providerOrigin:"http://127.0.0.1:3001", guestOrigin:"http://127.0.0.1:3000" });
+    const app = createApp({ hostedDepositRoutes:provider, hostedDepositSurface:"provider" });
+    const page = await app.handle(new Request("http://127.0.0.1:3001/provider/pay"));
+    expect(page.headers.get("content-security-policy")).toContain(
+      "form-action 'self' http://127.0.0.1:3000",
+    );
+    expect(page.headers.get("content-security-policy")).not.toContain("*");
+    const health = await app.handle(new Request("http://127.0.0.1:3001/health"));
+    expect(health.headers.get("content-security-policy")).toContain("form-action 'self'");
+    expect(health.headers.get("content-security-policy")).not.toContain("http://127.0.0.1:3000");
+
+    for (const returnUrl of [
+      "http://127.0.0.1:3999/pay-return/blocked",
+      "http://127.0.0.1:3000/not-pay-return/blocked",
+      "http://127.0.0.1:3000/pay-return/blocked?leak=1",
+      "http://127.0.0.1:3000/pay-return/blocked#fragment",
+    ]) expect((await provider.providerHandoff(handoffToken(returnUrl))).status).toBe(400);
+  });
+
+  test("public provider and guest origins reject paths, credentials, foreign hosts and CSP input", () => {
+    const invalid = [
+      { providerOrigin:"http://127.0.0.1:3001/path" },
+      { guestOrigin:"http://user:pass@127.0.0.1:3000" },
+      { guestOrigin:"http://localhost:3000" },
+      { guestOrigin:"http://127.0.0.1:3000; form-action *" },
+    ];
+    for (const origins of invalid) expect(() => new HostedDepositProviderHttpApi({ callbackSecret:SECRET,
+      ...origins })).toThrow("must be an exact HTTP 127.0.0.1 origin");
   });
 
   test("provider response loss retries the same durable event and produces one effect", async () => {

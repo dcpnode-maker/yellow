@@ -30,6 +30,15 @@ function constantEqual(left: string, right: string): boolean {
   return timingSafeEqual(Buffer.from(left, "hex"), Buffer.from(right, "hex"));
 }
 
+function localPublicOrigin(value: string, label: string): string {
+  try {
+    const url = new URL(value);
+    if (url.origin !== value || url.protocol !== "http:" || url.hostname !== "127.0.0.1" ||
+        url.username !== "" || url.password !== "") throw new Error("invalid");
+    return url.origin;
+  } catch { throw new Error(`${label} must be an exact HTTP 127.0.0.1 origin`); }
+}
+
 function publicHeaders(contentType = "application/json; charset=utf-8"): HeadersInit {
   return { ...SECURITY_HEADERS, "content-type": contentType, "cache-control": "no-store, max-age=0",
     pragma: "no-cache", "referrer-policy": "no-referrer", "cross-origin-resource-policy": "same-origin" };
@@ -96,11 +105,17 @@ export class HostedDepositProviderHttpApi {
   constructor(options: ProviderHttpOptions) {
     if (options.callbackSecret.length < 32) throw new Error("Hosted deposit callback secret must be at least 32 characters");
     this.#hosted = options.hostedDeposits; this.#payments = options.payments; this.#secret = options.callbackSecret;
-    this.#providerOrigin = options.providerOrigin ?? "http://127.0.0.1:3001";
-    this.#guestOrigin = options.guestOrigin ?? "http://127.0.0.1:3000";
+    this.#providerOrigin = localPublicOrigin(options.providerOrigin ?? "http://127.0.0.1:3001", "Provider origin");
+    this.#guestOrigin = localPublicOrigin(options.guestOrigin ?? "http://127.0.0.1:3000", "Guest origin");
     this.#callbackOrigin = options.callbackOrigin ?? this.#guestOrigin;
     this.#now = options.now ?? Date.now;
     this.#sendCallback = options.sendCallback ?? ((request) => fetch(request, { redirect: "manual" }));
+  }
+
+  providerContentSecurityPolicy(): string {
+    return SECURITY_HEADERS["content-security-policy"].replace(
+      "form-action 'self'", `form-action 'self' ${this.#guestOrigin}`,
+    );
   }
 
   async guestStatus(request: Request, bearer: string): Promise<Response> {
@@ -227,9 +242,17 @@ export class HostedDepositProviderHttpApi {
           typeof value.correlation !== "string" || typeof value.amountMinor !== "string" || !POSITIVE.test(value.amountMinor) ||
           typeof value.currency !== "string" || !CURRENCY.test(value.currency) || typeof value.expiry !== "number" ||
           value.expiry < this.#now() || value.expiry > this.#now() + 5 * 60_000 || typeof value.returnUrl !== "string" ||
-          !value.returnUrl.startsWith(`${this.#guestOrigin}/pay-return/`)) return null;
+          !this.#validReturnUrl(value.returnUrl)) return null;
       return value as unknown as { correlation: string; amountMinor: string; currency: string; returnUrl: string; expiry: number };
     } catch { return null; }
+  }
+
+  #validReturnUrl(value: string): boolean {
+    try {
+      const url = new URL(value);
+      return url.origin === this.#guestOrigin && url.username === "" && url.password === "" &&
+        url.hash === "" && url.search === "" && url.pathname.startsWith("/pay-return/");
+    } catch { return false; }
   }
 
 }
@@ -244,14 +267,16 @@ const PROVIDER_ASSETS = {
   html: new URL("./provider/index.html", import.meta.url), css: new URL("./provider/provider.css", import.meta.url),
   js: new URL("./provider/provider.js", import.meta.url),
 } as const;
-function asset(url: URL, contentType: string): Response {
-  return new Response(Bun.file(url), { headers: publicHeaders(contentType) });
+function asset(url: URL, contentType: string, contentSecurityPolicy?: string): Response {
+  const headers = publicHeaders(contentType) as Record<string, string>;
+  if (contentSecurityPolicy) headers["content-security-policy"] = contentSecurityPolicy;
+  return new Response(Bun.file(url), { headers });
 }
 export const hostedDepositAssets = Object.freeze({
   guestHtml: () => asset(GUEST_ASSETS.html, "text/html; charset=utf-8"),
   guestCss: () => asset(GUEST_ASSETS.css, "text/css; charset=utf-8"),
   guestJs: () => asset(GUEST_ASSETS.js, "text/javascript; charset=utf-8"),
-  providerHtml: () => asset(PROVIDER_ASSETS.html, "text/html; charset=utf-8"),
+  providerHtml: (contentSecurityPolicy?: string) => asset(PROVIDER_ASSETS.html, "text/html; charset=utf-8", contentSecurityPolicy),
   providerCss: () => asset(PROVIDER_ASSETS.css, "text/css; charset=utf-8"),
   providerJs: () => asset(PROVIDER_ASSETS.js, "text/javascript; charset=utf-8"),
 });
