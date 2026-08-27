@@ -30,7 +30,7 @@ return values are informational and this order never settles or closes a folio.
 - `migrations/0022_hosted_deposit_workbench.sql`
 - `src/contexts/financials/hosted-deposits.ts`,
   `src/contexts/financials/payments.ts`, `src/contexts/financials/index.ts`
-- `src/http/operator.ts`, `src/app.ts`, `src/http/provider.ts`
+- `src/http/operator.ts`, `src/app.ts`, `src/server.ts`, `src/http/provider.ts`
 - `src/http/operator/index.html`, `src/http/operator/operator.js`,
   `src/http/operator/operator.css`
 - `src/http/guest/index.html`, `src/http/guest/guest.js`, `src/http/guest/guest.css`
