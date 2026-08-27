@@ -23,6 +23,10 @@ desktop region.
 - `tests/operator-material-themes.test.ts`, `tests/material-theme-skins.test.ts`,
   `tests/operator-adaptive-experience.test.ts`, `tests/operator-flagship-motion.test.ts`
   and one new browser-geometry acceptance test;
+- `tests/operator-folio-workspace.integration.test.ts` and
+  `tests/operator-reservation-workspace.integration.test.ts` only to remove their
+  superseded 98,304-byte ceiling assertions while retaining all dependency,
+  responsive, security and workflow checks;
 - `docs/DESIGN.md`, this order, additive decision/ledger evidence and independent
   review `handoff/reviews/195-six-native-appearance-rebuild-review.md`.
 
