@@ -150,8 +150,8 @@ into a product capability.
 | Business day/seal | FOUNDATION EXISTS | table/functions/invariant tests | roll/readiness/exceptions workflow |
 | Cashier sessions | FOUNDATION EXISTS | table | lifecycle, over/short, permissions |
 | Routing/transfers/allowances | FOUNDATION EXISTS | contracts/automation | deterministic commands |
-| Payments | PARTIAL | immutable operation/attempt/receipt model, deterministic token-only provider, one balance-capped capture, exact journals and replay proof | remote PSP adapter, authenticated webhook transport and settlement UX |
-| Deposits/preauth/incremental auth | PARTIAL | journal-free authorization and incremental-authorization command chain | deposits, guarantee policy workflow and remote provider certification |
+| Payments | PARTIAL | immutable operation/attempt/receipt model, deterministic token-only provider, one balance-capped capture, exact journals, signed bounded synthetic callback and replay proof | real remote PSP adapter/certification, settlement UX and chargebacks |
+| Deposits/preauth/incremental auth | PARTIAL | journal-free authorization/increment chain plus expiring hosted deposit request, liability capture and capped immutable partial/full folio application | guarantee policy automation, deposit refunds, delivery channels and remote provider certification |
 | Refunds/chargebacks | PARTIAL | bounded partial-refund commands with capture payment/journal lineage | disputes, chargebacks, permissions and operational UX |
 | Accounts receivable | FOUNDATION EXISTS | accounts/ar allocation | invoicing, allocation, aging, statements |
 | Owner accounting/statements | MISSING | vertical flags/product destination | separate owner ledger/payout model |

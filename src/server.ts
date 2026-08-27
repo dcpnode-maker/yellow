@@ -3,7 +3,7 @@ import { SQL } from "bun";
 import { app, createApp } from "./app";
 import { BearerTenantResolver, Hs256TokenSigner, LocalLoginGuard, LocalLoginService } from "./contexts/identity";
 import { PartyProfileService } from "./contexts/crm";
-import { ChargeCorrectionService, ChargeService, FolioService, FolioStatementService, FolioTransferService } from "./contexts/financials";
+import { ChargeCorrectionService, ChargeService, FolioService, FolioStatementService, FolioTransferService, HostedDepositService, LocalPaymentProvider, PaymentService } from "./contexts/financials";
 import { AvailabilityProjectionConsumer, AvailabilityProjectionService, AvailabilityService, HoldExpiryWorker, HoldService, InventoryPolicyService, InventoryService, OperationalBlockService, ReservationOccupancyService, RestrictionService } from "./contexts/inventory";
 import { ReservationBoardService, ReservationCommitService, ReservationDetailService, ReservationGuestService, ReservationLifecycleService, ReservationOfferSearchService, ReservationSegmentService } from "./contexts/reservations";
 import {
@@ -17,12 +17,15 @@ import {
   RateTargetService,
 } from "./contexts/rates";
 import { OperatorHttpApi } from "./http/operator";
+import { HostedDepositProviderHttpApi } from "./http/provider";
 import { ApprovalService, Database, ExtensionRegistry, PostgresEventBus, PostgresIdempotency } from "./kernel";
 import type { OperatorRuntimeStatus } from "./project-status";
 import { PostgresDueHoldScopeSource } from "./workers/postgres-due-hold-scopes";
 
 const port = Bun.env.PORT === undefined ? 3000 : Number(Bun.env.PORT);
 const workbenchEnabled = Bun.env.YELLOW_OPERATOR_WORKBENCH === "1";
+const hostedDepositEnabled = Bun.env.YELLOW_HOSTED_DEPOSIT_WORKBENCH === "1";
+const hostedProviderOnly = Bun.env.YELLOW_HOSTED_PROVIDER_ONLY === "1";
 const holdExpiryEnabled = workbenchEnabled && Bun.env.YELLOW_HOLD_EXPIRY_WORKER === "1";
 const projectionWorkerEnabled = workbenchEnabled && Bun.env.YELLOW_AVAILABILITY_PROJECTION_WORKER === "1";
 const maxRequestBodySize = 16 * 1024;
@@ -38,7 +41,8 @@ function runtimeHostname(): string {
   throw new Error("non-loopback operator binding requires YELLOW_OPERATOR_ALLOW_NON_LOOPBACK=1");
 }
 
-function required(name: "YELLOW_RUNTIME_DATABASE_URL" | "YELLOW_EXTENSION_REGISTRAR_DATABASE_URL" | "YELLOW_TOKEN_SECRET"): string {
+function required(name: "YELLOW_RUNTIME_DATABASE_URL" | "YELLOW_EXTENSION_REGISTRAR_DATABASE_URL" | "YELLOW_TOKEN_SECRET" |
+  "YELLOW_HOSTED_DEPOSIT_CALLBACK_SECRET"): string {
   const value = Bun.env[name];
   if (!value) throw new Error(`${name} is required when YELLOW_OPERATOR_WORKBENCH=1`);
   return value;
@@ -57,17 +61,41 @@ function registrarDatabaseUrl(): string {
 }
 
 function runtimeApp() {
-  if (!workbenchEnabled) return app;
+  if (!workbenchEnabled && !hostedProviderOnly) return app;
+  if (hostedProviderOnly) {
+    const routes = new HostedDepositProviderHttpApi({
+      callbackSecret: required("YELLOW_HOSTED_DEPOSIT_CALLBACK_SECRET"),
+      providerOrigin: Bun.env.YELLOW_HOSTED_PROVIDER_ORIGIN ?? "http://127.0.0.1:3001",
+      guestOrigin: Bun.env.YELLOW_HOSTED_GUEST_ORIGIN ?? "http://127.0.0.1:3000",
+      callbackOrigin: Bun.env.YELLOW_HOSTED_CALLBACK_ORIGIN,
+    });
+    return createApp({ hostedDepositRoutes: routes, hostedDepositSurface: "provider" });
+  }
   const databaseUrl = required("YELLOW_RUNTIME_DATABASE_URL");
+  const database = Database.connect(databaseUrl, { maxConnections: 12, prepare: false });
+  const eventPool = new SQL(databaseUrl, { max: 4, prepare: false });
+  const events = new PostgresEventBus(eventPool);
+  const hostedRuntime = hostedDepositEnabled ? (() => {
+    const paymentProvider = new LocalPaymentProvider({ decide: (request) =>
+      request.phase === "capture" ? "indeterminate" : "approved" });
+    const payments = new PaymentService({ database, events, provider: paymentProvider });
+    const hostedDeposits = new HostedDepositService({ database, payments, events });
+    const routes = new HostedDepositProviderHttpApi({
+      hostedDeposits,
+      payments,
+      callbackSecret: required("YELLOW_HOSTED_DEPOSIT_CALLBACK_SECRET"),
+      providerOrigin: Bun.env.YELLOW_HOSTED_PROVIDER_ORIGIN ?? "http://127.0.0.1:3001",
+      guestOrigin: Bun.env.YELLOW_HOSTED_GUEST_ORIGIN ?? "http://127.0.0.1:3000",
+      callbackOrigin: Bun.env.YELLOW_HOSTED_CALLBACK_ORIGIN,
+    });
+    return { hostedDeposits, routes };
+  })() : undefined;
   const registrarUrl = registrarDatabaseUrl();
   const tokens = new Hs256TokenSigner(required("YELLOW_TOKEN_SECRET"));
-  const database = Database.connect(databaseUrl, { maxConnections: 12, prepare: false });
   const loginPool = new SQL(databaseUrl, { max: 4 });
-  const eventPool = new SQL(databaseUrl, { max: 4, prepare: false });
   const extensionPool = new SQL(databaseUrl, { max: 4, prepare: false });
   const registrarPool = new SQL(registrarUrl, { max: 2, prepare: false });
   const login = new LocalLoginService(loginPool, tokens, new LocalLoginGuard());
-  const events = new PostgresEventBus(eventPool);
   const registry = new ExtensionRegistry(extensionPool, registrarPool);
   const approvals = new ApprovalService(events);
   const inventory = new InventoryService(events);
@@ -134,7 +162,8 @@ function runtimeApp() {
   return createApp({
     database,
     tenantResolver: new BearerTenantResolver(tokens),
-    operatorApi: new OperatorHttpApi(login, availability, inventory, new PostgresIdempotency(), restrictions, rates, pricing, blocks, policy, holds, projection, runtimeStatus, rateBuilder, reservations, reservationOffers, reservationGuests, reservationLifecycle, reservationSegments, parties, folioStatements, charges, new ReservationBoardService(), new ReservationDetailService(), folios, chargeCorrections, folioTransfers),
+    operatorApi: new OperatorHttpApi(login, availability, inventory, new PostgresIdempotency(), restrictions, rates, pricing, blocks, policy, holds, projection, runtimeStatus, rateBuilder, reservations, reservationOffers, reservationGuests, reservationLifecycle, reservationSegments, parties, folioStatements, charges, new ReservationBoardService(), new ReservationDetailService(), folios, chargeCorrections, folioTransfers, hostedRuntime?.hostedDeposits),
+    ...(hostedRuntime ? { hostedDepositRoutes: hostedRuntime.routes, hostedDepositSurface: "guest" as const } : {}),
   });
 }
 

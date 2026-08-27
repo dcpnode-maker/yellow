@@ -524,3 +524,26 @@ locked positive folio balance; capture closes unused authority. Refunds are boun
 the captured remainder and carry explicit capture-payment and capture-journal lineage.
 Provider receipts store normalized fields and a content hash only; same receipt/hash
 replays, changed content conflicts, and receipt plus late result commit together.
+
+## 17. Hosted deposit-payment boundary
+
+`HostedDepositService.create` binds a deposit-purpose payment operation to one tenant,
+property, folio window, tokenized instrument, positive amount/currency, creator and
+24-hour expiry. Durable actor-bound idempotency returns the original request metadata
+without reissuing its bearer. Regeneration revokes the prior active generation. Only a
+SHA-256 bearer hash is stored; the 256-bit raw bearer is returned once and is excluded
+from provider handoffs, receipts, facts, events, caches and browser storage.
+
+The separately originated synthetic provider receives only a signed, short-lived
+correlation, amount, currency, return URL and expiry. `POST /provider/callback` verifies
+the bounded exact raw bytes, version, path, timestamp, event id and HMAC before parsing,
+then delegates exclusively to the payment receipt/reconciliation contract. Browser
+return values are never payment truth.
+
+Deposit capture debits clearing and credits deposit liability without touching the
+folio. `HostedDepositService.apply` separately locks the capture, applications, folio,
+accounts and business day; it caps the immutable liability-debit/guest-folio-credit
+journal by both unapplied capture and positive folio balance. Staff read, create and
+apply routes require distinct `financials.payments:read`,
+`financials.payments:write` and `financials.deposits:apply` scopes plus the exact
+property grants. This contract does not refund deposits, settle or close a folio.

@@ -11,9 +11,13 @@ services:
       PORT: "3000"
       YELLOW_OPERATOR_ALLOW_NON_LOOPBACK: "1"
       YELLOW_OPERATOR_WORKBENCH: "${YELLOW_OPERATOR_WORKBENCH:-0}"
+      YELLOW_HOSTED_DEPOSIT_WORKBENCH: "${YELLOW_HOSTED_DEPOSIT_WORKBENCH:-0}"
+      YELLOW_RUNTIME_DATABASE_URL: "postgres://yellow_runtime:${YELLOW_RUNTIME_DATABASE_PASSWORD:?YELLOW_RUNTIME_DATABASE_PASSWORD is required}@postgres:5432/${YELLOW_DATABASE_NAME:-yellow_dev}"
+      YELLOW_HOSTED_DEPOSIT_CALLBACK_SECRET: "${YELLOW_HOSTED_DEPOSIT_CALLBACK_SECRET:-}"
+      YELLOW_HOSTED_PROVIDER_ORIGIN: "http://127.0.0.1:${YELLOW_HOSTED_PROVIDER_PORT:-3001}"
+      YELLOW_HOSTED_GUEST_ORIGIN: "http://127.0.0.1:${YELLOW_APP_PORT:-3000}"
       YELLOW_HOLD_EXPIRY_WORKER: "${YELLOW_HOLD_EXPIRY_WORKER:-1}"
       YELLOW_AVAILABILITY_PROJECTION_WORKER: "${YELLOW_AVAILABILITY_PROJECTION_WORKER:-1}"
-      YELLOW_RUNTIME_DATABASE_URL: "postgres://yellow_runtime:${YELLOW_RUNTIME_DATABASE_PASSWORD:?YELLOW_RUNTIME_DATABASE_PASSWORD is required}@postgres:5432/${YELLOW_DATABASE_NAME:-yellow_dev}"
       YELLOW_EXTENSION_REGISTRAR_DATABASE_URL: "postgres://yellow_extension_registrar:${YELLOW_EXTENSION_REGISTRAR_DATABASE_PASSWORD:?YELLOW_EXTENSION_REGISTRAR_DATABASE_PASSWORD is required}@postgres:5432/${YELLOW_DATABASE_NAME:-yellow_dev}"
       YELLOW_TOKEN_SECRET: "${YELLOW_TOKEN_SECRET:-}"
     depends_on:
@@ -29,6 +33,34 @@ services:
           const response = await fetch("http://127.0.0.1:3000/health");
           const body = await response.json();
           if (response.status !== 200 || JSON.stringify(body) !== '{"status":"ok"}') process.exit(1);
+      interval: 3s
+      timeout: 3s
+      retries: 20
+
+  synthetic-provider:
+    profiles: ["hosted-deposit"]
+    build:
+      context: .
+      dockerfile: Dockerfile
+    environment:
+      NODE_ENV: production
+      HOST: "0.0.0.0"
+      PORT: "3001"
+      YELLOW_OPERATOR_ALLOW_NON_LOOPBACK: "1"
+      YELLOW_HOSTED_PROVIDER_ONLY: "1"
+      YELLOW_HOSTED_DEPOSIT_CALLBACK_SECRET: "${YELLOW_HOSTED_DEPOSIT_CALLBACK_SECRET:-}"
+      YELLOW_HOSTED_PROVIDER_ORIGIN: "http://127.0.0.1:${YELLOW_HOSTED_PROVIDER_PORT:-3001}"
+      YELLOW_HOSTED_GUEST_ORIGIN: "http://127.0.0.1:${YELLOW_APP_PORT:-3000}"
+      YELLOW_HOSTED_CALLBACK_ORIGIN: "http://app:3000"
+    ports: ["127.0.0.1:${YELLOW_HOSTED_PROVIDER_PORT:-3001}:3001"]
+    healthcheck:
+      test:
+        - CMD
+        - bun
+        - -e
+        - >-
+          const response = await fetch("http://127.0.0.1:3001/health");
+          if (response.status !== 200) process.exit(1);
       interval: 3s
       timeout: 3s
       retries: 20

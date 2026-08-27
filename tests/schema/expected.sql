@@ -639,6 +639,38 @@ END $$;
 
 
 --
+-- Name: lock_and_revoke_hosted_payment_requests(uuid, uuid, timestamp with time zone); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.lock_and_revoke_hosted_payment_requests(p_tenant uuid, p_folio uuid, p_revoked_at timestamp with time zone) RETURNS integer
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'pg_catalog', 'public', 'pg_temp'
+    AS $$
+DECLARE v_context uuid; v_generation integer;
+BEGIN
+  IF pg_catalog.current_setting('role', true) IS DISTINCT FROM 'app_role' THEN
+    RAISE EXCEPTION USING ERRCODE='42501', MESSAGE='hosted request lock requires app_role';
+  END IF;
+  BEGIN
+    v_context := NULLIF(pg_catalog.current_setting('app.tenant_id', true), '')::uuid;
+  EXCEPTION WHEN invalid_text_representation THEN
+    RAISE EXCEPTION USING ERRCODE='42501', MESSAGE='hosted request tenant context is invalid';
+  END;
+  IF v_context IS NULL OR v_context <> p_tenant OR p_folio IS NULL THEN
+    RAISE EXCEPTION USING ERRCODE='42501', MESSAGE='hosted request tenant context is invalid';
+  END IF;
+  PERFORM 1 FROM public.folio WHERE tenant_id=p_tenant AND id=p_folio FOR UPDATE;
+  IF NOT FOUND THEN RAISE EXCEPTION USING ERRCODE='55000', MESSAGE='folio is unavailable'; END IF;
+  SELECT COALESCE(max(generation),0)+1 INTO v_generation
+    FROM public.hosted_payment_request WHERE tenant_id=p_tenant AND folio_id=p_folio;
+  UPDATE public.hosted_payment_request SET revoked_at=p_revoked_at
+   WHERE tenant_id=p_tenant AND folio_id=p_folio AND revoked_at IS NULL AND expires_at>p_revoked_at;
+  RETURN v_generation;
+END;
+$$;
+
+
+--
 -- Name: lock_financial_business_days(uuid, uuid, date[]); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -1946,6 +1978,35 @@ CREATE VIEW public.current_rate_price WITH (security_invoker='true') AS
 
 
 --
+-- Name: deposit_application; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.deposit_application (
+    tenant_id uuid NOT NULL,
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    property_node uuid NOT NULL,
+    hosted_request_id uuid NOT NULL,
+    operation_id uuid NOT NULL,
+    capture_payment_id uuid NOT NULL,
+    capture_phase text DEFAULT 'capture'::text NOT NULL,
+    capture_status text DEFAULT 'succeeded'::text NOT NULL,
+    folio_id uuid NOT NULL,
+    deposit_account_id uuid NOT NULL,
+    guest_account_id uuid NOT NULL,
+    amount_minor bigint NOT NULL,
+    currency character(3) NOT NULL,
+    journal_id uuid NOT NULL,
+    key_hash character(64) NOT NULL,
+    request_hash character(64) NOT NULL,
+    created_by uuid NOT NULL,
+    created_at timestamp with time zone DEFAULT transaction_timestamp() NOT NULL,
+    CONSTRAINT deposit_application_amount_ck CHECK ((amount_minor > 0)),
+    CONSTRAINT deposit_application_capture_kind_ck CHECK (((capture_phase = 'capture'::text) AND (capture_status = 'succeeded'::text))),
+    CONSTRAINT deposit_application_hashes_ck CHECK (((key_hash ~ '^[0-9a-f]{64}$'::text) AND (request_hash ~ '^[0-9a-f]{64}$'::text)))
+);
+
+
+--
 -- Name: discrepancy; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -2160,6 +2221,40 @@ CREATE TABLE public.hold (
     status text DEFAULT 'active'::text NOT NULL,
     CONSTRAINT hold_kind_check CHECK ((kind = ANY (ARRAY['cart'::text, 'offline_lease'::text, 'manual'::text]))),
     CONSTRAINT hold_status_check CHECK ((status = ANY (ARRAY['active'::text, 'consumed'::text, 'expired'::text, 'released'::text])))
+);
+
+
+--
+-- Name: hosted_payment_request; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.hosted_payment_request (
+    tenant_id uuid NOT NULL,
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    property_node uuid NOT NULL,
+    folio_id uuid NOT NULL,
+    guest_account_id uuid NOT NULL,
+    operation_id uuid NOT NULL,
+    deposit_account_id uuid NOT NULL,
+    operation_purpose text DEFAULT 'deposit'::text NOT NULL,
+    amount_minor bigint NOT NULL,
+    currency character(3) NOT NULL,
+    bearer_hash character(64) NOT NULL,
+    key_hash character(64) NOT NULL,
+    request_hash character(64) NOT NULL,
+    generation integer NOT NULL,
+    created_by uuid NOT NULL,
+    expires_at timestamp with time zone NOT NULL,
+    revoked_at timestamp with time zone,
+    created_at timestamp with time zone DEFAULT transaction_timestamp() NOT NULL,
+    CONSTRAINT hosted_payment_request_amount_ck CHECK ((amount_minor > 0)),
+    CONSTRAINT hosted_payment_request_expiry_ck CHECK ((expires_at > created_at)),
+    CONSTRAINT hosted_payment_request_generation_ck CHECK ((generation > 0)),
+    CONSTRAINT hosted_payment_request_hash_ck CHECK ((bearer_hash ~ '^[0-9a-f]{64}$'::text)),
+    CONSTRAINT hosted_payment_request_key_hash_ck CHECK ((key_hash ~ '^[0-9a-f]{64}$'::text)),
+    CONSTRAINT hosted_payment_request_purpose_ck CHECK ((operation_purpose = 'deposit'::text)),
+    CONSTRAINT hosted_payment_request_request_hash_ck CHECK ((request_hash ~ '^[0-9a-f]{64}$'::text)),
+    CONSTRAINT hosted_payment_request_revocation_ck CHECK (((revoked_at IS NULL) OR (revoked_at >= created_at)))
 );
 
 
@@ -2514,10 +2609,11 @@ CREATE TABLE public.payment_operation (
     request_hash character(64) NOT NULL,
     actor_id uuid NOT NULL,
     created_at timestamp with time zone DEFAULT transaction_timestamp() NOT NULL,
+    deposit_account_id uuid,
     CONSTRAINT payment_operation_hashes_ck CHECK (((key_hash ~ '^[0-9a-f]{64}$'::text) AND (request_hash ~ '^[0-9a-f]{64}$'::text))),
     CONSTRAINT payment_operation_method_ck CHECK ((method = ANY (ARRAY['card'::text, 'upi'::text]))),
     CONSTRAINT payment_operation_provider_ck CHECK ((provider ~ '^[a-z][a-z0-9._-]{0,63}$'::text)),
-    CONSTRAINT payment_operation_purpose_ck CHECK ((purpose = 'folio_payment'::text))
+    CONSTRAINT payment_operation_purpose_ck CHECK ((((purpose = 'folio_payment'::text) AND (deposit_account_id IS NULL)) OR ((purpose = 'deposit'::text) AND (deposit_account_id IS NOT NULL))))
 );
 
 
@@ -3332,6 +3428,22 @@ ALTER TABLE ONLY public.contact_point
 
 
 --
+-- Name: deposit_application deposit_application_key_uq; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.deposit_application
+    ADD CONSTRAINT deposit_application_key_uq UNIQUE (tenant_id, key_hash);
+
+
+--
+-- Name: deposit_application deposit_application_pk; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.deposit_application
+    ADD CONSTRAINT deposit_application_pk PRIMARY KEY (tenant_id, id);
+
+
+--
 -- Name: discrepancy discrepancy_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -3444,6 +3556,46 @@ ALTER TABLE ONLY public.hold
 
 
 --
+-- Name: hosted_payment_request hosted_payment_request_bearer_uq; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.hosted_payment_request
+    ADD CONSTRAINT hosted_payment_request_bearer_uq UNIQUE (tenant_id, bearer_hash);
+
+
+--
+-- Name: hosted_payment_request hosted_payment_request_generation_uq; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.hosted_payment_request
+    ADD CONSTRAINT hosted_payment_request_generation_uq UNIQUE (tenant_id, folio_id, generation);
+
+
+--
+-- Name: hosted_payment_request hosted_payment_request_key_uq; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.hosted_payment_request
+    ADD CONSTRAINT hosted_payment_request_key_uq UNIQUE (tenant_id, key_hash);
+
+
+--
+-- Name: hosted_payment_request hosted_payment_request_lineage_uq; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.hosted_payment_request
+    ADD CONSTRAINT hosted_payment_request_lineage_uq UNIQUE (tenant_id, id, property_node, folio_id, guest_account_id, operation_id, deposit_account_id, currency);
+
+
+--
+-- Name: hosted_payment_request hosted_payment_request_pk; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.hosted_payment_request
+    ADD CONSTRAINT hosted_payment_request_pk PRIMARY KEY (tenant_id, id);
+
+
+--
 -- Name: identity_document identity_document_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -3473,6 +3625,14 @@ ALTER TABLE ONLY public.inbound_message
 
 ALTER TABLE ONLY public.inventory_authority
     ADD CONSTRAINT inventory_authority_pkey PRIMARY KEY (property_node, channel_code);
+
+
+--
+-- Name: journal journal_deposit_lineage_uq; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.journal
+    ADD CONSTRAINT journal_deposit_lineage_uq UNIQUE (tenant_id, id, property_node, currency);
 
 
 --
@@ -3660,6 +3820,14 @@ ALTER TABLE ONLY public.payment
 
 
 --
+-- Name: payment payment_deposit_capture_lineage_uq; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.payment
+    ADD CONSTRAINT payment_deposit_capture_lineage_uq UNIQUE (tenant_id, id, operation_id, currency, phase, status);
+
+
+--
 -- Name: payment_instrument payment_instrument_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -3673,6 +3841,14 @@ ALTER TABLE ONLY public.payment_instrument
 
 ALTER TABLE ONLY public.payment_instrument
     ADD CONSTRAINT payment_instrument_tenant_id_uq UNIQUE (tenant_id, id);
+
+
+--
+-- Name: payment_operation payment_operation_deposit_lineage_uq; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.payment_operation
+    ADD CONSTRAINT payment_operation_deposit_lineage_uq UNIQUE (tenant_id, id, property_node, folio_id, guest_account_id, currency, deposit_account_id, purpose);
 
 
 --
@@ -4183,6 +4359,27 @@ CREATE INDEX contact_point_tenant_kind_value ON public.contact_point USING btree
 
 
 --
+-- Name: deposit_application_capture_lookup; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX deposit_application_capture_lookup ON public.deposit_application USING btree (tenant_id, capture_payment_id, created_at, id);
+
+
+--
+-- Name: deposit_application_folio_lookup; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX deposit_application_folio_lookup ON public.deposit_application USING btree (tenant_id, folio_id, created_at, id);
+
+
+--
+-- Name: deposit_application_operation_lookup; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX deposit_application_operation_lookup ON public.deposit_application USING btree (tenant_id, operation_id, created_at, id);
+
+
+--
 -- Name: document_subject; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -4215,6 +4412,27 @@ CREATE UNIQUE INDEX folio_no_uq ON public.folio USING btree (tenant_id, folio_no
 --
 
 CREATE INDEX hold_expiry ON public.hold USING btree (expires_at) WHERE (status = 'active'::text);
+
+
+--
+-- Name: hosted_payment_request_expiry_lookup; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX hosted_payment_request_expiry_lookup ON public.hosted_payment_request USING btree (tenant_id, expires_at, id) WHERE (revoked_at IS NULL);
+
+
+--
+-- Name: hosted_payment_request_folio_lookup; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX hosted_payment_request_folio_lookup ON public.hosted_payment_request USING btree (tenant_id, folio_id, generation DESC, id);
+
+
+--
+-- Name: hosted_payment_request_operation_lookup; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX hosted_payment_request_operation_lookup ON public.hosted_payment_request USING btree (tenant_id, operation_id, id);
 
 
 --
@@ -4626,6 +4844,70 @@ ALTER TABLE ONLY public.contact_point
 
 
 --
+-- Name: deposit_application deposit_application_actor_fk; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.deposit_application
+    ADD CONSTRAINT deposit_application_actor_fk FOREIGN KEY (tenant_id, created_by) REFERENCES public.app_user(tenant_id, id);
+
+
+--
+-- Name: deposit_application deposit_application_capture_fk; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.deposit_application
+    ADD CONSTRAINT deposit_application_capture_fk FOREIGN KEY (tenant_id, capture_payment_id, operation_id, currency, capture_phase, capture_status) REFERENCES public.payment(tenant_id, id, operation_id, currency, phase, status);
+
+
+--
+-- Name: deposit_application deposit_application_deposit_account_fk; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.deposit_application
+    ADD CONSTRAINT deposit_application_deposit_account_fk FOREIGN KEY (tenant_id, property_node, currency, deposit_account_id) REFERENCES public.account(tenant_id, property_node, currency, id);
+
+
+--
+-- Name: deposit_application deposit_application_folio_fk; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.deposit_application
+    ADD CONSTRAINT deposit_application_folio_fk FOREIGN KEY (tenant_id, guest_account_id, folio_id) REFERENCES public.folio(tenant_id, account_id, id);
+
+
+--
+-- Name: deposit_application deposit_application_guest_account_fk; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.deposit_application
+    ADD CONSTRAINT deposit_application_guest_account_fk FOREIGN KEY (tenant_id, property_node, currency, guest_account_id) REFERENCES public.account(tenant_id, property_node, currency, id);
+
+
+--
+-- Name: deposit_application deposit_application_journal_fk; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.deposit_application
+    ADD CONSTRAINT deposit_application_journal_fk FOREIGN KEY (tenant_id, journal_id, property_node, currency) REFERENCES public.journal(tenant_id, id, property_node, currency);
+
+
+--
+-- Name: deposit_application deposit_application_property_fk; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.deposit_application
+    ADD CONSTRAINT deposit_application_property_fk FOREIGN KEY (tenant_id, property_node) REFERENCES public.org_node(tenant_id, id);
+
+
+--
+-- Name: deposit_application deposit_application_request_fk; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.deposit_application
+    ADD CONSTRAINT deposit_application_request_fk FOREIGN KEY (tenant_id, hosted_request_id, property_node, folio_id, guest_account_id, operation_id, deposit_account_id, currency) REFERENCES public.hosted_payment_request(tenant_id, id, property_node, folio_id, guest_account_id, operation_id, deposit_account_id, currency);
+
+
+--
 -- Name: discrepancy discrepancy_space_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -4743,6 +5025,38 @@ ALTER TABLE ONLY public.hold
 
 ALTER TABLE ONLY public.hold
     ADD CONSTRAINT hold_sellable_unit_id_fkey FOREIGN KEY (sellable_unit_id) REFERENCES public.sellable_unit(id);
+
+
+--
+-- Name: hosted_payment_request hosted_payment_request_actor_fk; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.hosted_payment_request
+    ADD CONSTRAINT hosted_payment_request_actor_fk FOREIGN KEY (tenant_id, created_by) REFERENCES public.app_user(tenant_id, id);
+
+
+--
+-- Name: hosted_payment_request hosted_payment_request_folio_fk; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.hosted_payment_request
+    ADD CONSTRAINT hosted_payment_request_folio_fk FOREIGN KEY (tenant_id, guest_account_id, folio_id) REFERENCES public.folio(tenant_id, account_id, id);
+
+
+--
+-- Name: hosted_payment_request hosted_payment_request_operation_fk; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.hosted_payment_request
+    ADD CONSTRAINT hosted_payment_request_operation_fk FOREIGN KEY (tenant_id, operation_id, property_node, folio_id, guest_account_id, currency, deposit_account_id, operation_purpose) REFERENCES public.payment_operation(tenant_id, id, property_node, folio_id, guest_account_id, currency, deposit_account_id, purpose);
+
+
+--
+-- Name: hosted_payment_request hosted_payment_request_property_fk; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.hosted_payment_request
+    ADD CONSTRAINT hosted_payment_request_property_fk FOREIGN KEY (tenant_id, property_node) REFERENCES public.org_node(tenant_id, id);
 
 
 --
@@ -4999,6 +5313,14 @@ ALTER TABLE ONLY public.payment_operation
 
 ALTER TABLE ONLY public.payment_operation
     ADD CONSTRAINT payment_operation_clearing_account_fk FOREIGN KEY (tenant_id, property_node, currency, clearing_account_id) REFERENCES public.account(tenant_id, property_node, currency, id);
+
+
+--
+-- Name: payment_operation payment_operation_deposit_account_fk; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.payment_operation
+    ADD CONSTRAINT payment_operation_deposit_account_fk FOREIGN KEY (tenant_id, property_node, currency, deposit_account_id) REFERENCES public.account(tenant_id, property_node, currency, id);
 
 
 --
@@ -5720,6 +6042,12 @@ ALTER TABLE public.consent ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.contact_point ENABLE ROW LEVEL SECURITY;
 
 --
+-- Name: deposit_application; Type: ROW SECURITY; Schema: public; Owner: -
+--
+
+ALTER TABLE public.deposit_application ENABLE ROW LEVEL SECURITY;
+
+--
 -- Name: discrepancy; Type: ROW SECURITY; Schema: public; Owner: -
 --
 
@@ -5772,6 +6100,12 @@ ALTER TABLE public.folio ENABLE ROW LEVEL SECURITY;
 --
 
 ALTER TABLE public.hold ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: hosted_payment_request; Type: ROW SECURITY; Schema: public; Owner: -
+--
+
+ALTER TABLE public.hosted_payment_request ENABLE ROW LEVEL SECURITY;
 
 --
 -- Name: identity_document; Type: ROW SECURITY; Schema: public; Owner: -
@@ -6157,6 +6491,13 @@ CREATE POLICY tenant_isolation ON public.contact_point USING ((tenant_id = (curr
 
 
 --
+-- Name: deposit_application tenant_isolation; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY tenant_isolation ON public.deposit_application USING ((tenant_id = (current_setting('app.tenant_id'::text, true))::uuid)) WITH CHECK ((tenant_id = (current_setting('app.tenant_id'::text, true))::uuid));
+
+
+--
 -- Name: discrepancy tenant_isolation; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -6217,6 +6558,13 @@ CREATE POLICY tenant_isolation ON public.folio USING ((tenant_id = (current_sett
 --
 
 CREATE POLICY tenant_isolation ON public.hold USING ((tenant_id = (current_setting('app.tenant_id'::text, true))::uuid)) WITH CHECK ((tenant_id = (current_setting('app.tenant_id'::text, true))::uuid));
+
+
+--
+-- Name: hosted_payment_request tenant_isolation; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY tenant_isolation ON public.hosted_payment_request USING ((tenant_id = (current_setting('app.tenant_id'::text, true))::uuid)) WITH CHECK ((tenant_id = (current_setting('app.tenant_id'::text, true))::uuid));
 
 
 --
@@ -6669,6 +7017,14 @@ REVOKE ALL ON FUNCTION public.derive_posting_line_currency() FROM PUBLIC;
 --
 
 REVOKE ALL ON FUNCTION public.expire_holds() FROM PUBLIC;
+
+
+--
+-- Name: FUNCTION lock_and_revoke_hosted_payment_requests(p_tenant uuid, p_folio uuid, p_revoked_at timestamp with time zone); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.lock_and_revoke_hosted_payment_requests(p_tenant uuid, p_folio uuid, p_revoked_at timestamp with time zone) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.lock_and_revoke_hosted_payment_requests(p_tenant uuid, p_folio uuid, p_revoked_at timestamp with time zone) TO app_role;
 
 
 --
@@ -7290,6 +7646,118 @@ GRANT SELECT ON TABLE public.current_rate_price TO app_role;
 
 
 --
+-- Name: TABLE deposit_application; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT SELECT ON TABLE public.deposit_application TO app_role;
+
+
+--
+-- Name: COLUMN deposit_application.tenant_id; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT INSERT(tenant_id) ON TABLE public.deposit_application TO app_role;
+
+
+--
+-- Name: COLUMN deposit_application.id; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT INSERT(id) ON TABLE public.deposit_application TO app_role;
+
+
+--
+-- Name: COLUMN deposit_application.property_node; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT INSERT(property_node) ON TABLE public.deposit_application TO app_role;
+
+
+--
+-- Name: COLUMN deposit_application.hosted_request_id; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT INSERT(hosted_request_id) ON TABLE public.deposit_application TO app_role;
+
+
+--
+-- Name: COLUMN deposit_application.operation_id; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT INSERT(operation_id) ON TABLE public.deposit_application TO app_role;
+
+
+--
+-- Name: COLUMN deposit_application.capture_payment_id; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT INSERT(capture_payment_id) ON TABLE public.deposit_application TO app_role;
+
+
+--
+-- Name: COLUMN deposit_application.folio_id; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT INSERT(folio_id) ON TABLE public.deposit_application TO app_role;
+
+
+--
+-- Name: COLUMN deposit_application.deposit_account_id; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT INSERT(deposit_account_id) ON TABLE public.deposit_application TO app_role;
+
+
+--
+-- Name: COLUMN deposit_application.guest_account_id; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT INSERT(guest_account_id) ON TABLE public.deposit_application TO app_role;
+
+
+--
+-- Name: COLUMN deposit_application.amount_minor; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT INSERT(amount_minor) ON TABLE public.deposit_application TO app_role;
+
+
+--
+-- Name: COLUMN deposit_application.currency; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT INSERT(currency) ON TABLE public.deposit_application TO app_role;
+
+
+--
+-- Name: COLUMN deposit_application.journal_id; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT INSERT(journal_id) ON TABLE public.deposit_application TO app_role;
+
+
+--
+-- Name: COLUMN deposit_application.key_hash; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT INSERT(key_hash) ON TABLE public.deposit_application TO app_role;
+
+
+--
+-- Name: COLUMN deposit_application.request_hash; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT INSERT(request_hash) ON TABLE public.deposit_application TO app_role;
+
+
+--
+-- Name: COLUMN deposit_application.created_by; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT INSERT(created_by) ON TABLE public.deposit_application TO app_role;
+
+
+--
 -- Name: TABLE discrepancy; Type: ACL; Schema: public; Owner: -
 --
 
@@ -7665,6 +8133,118 @@ GRANT INSERT(expires_at) ON TABLE public.hold TO app_role;
 --
 
 GRANT UPDATE(status) ON TABLE public.hold TO app_role;
+
+
+--
+-- Name: TABLE hosted_payment_request; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT SELECT ON TABLE public.hosted_payment_request TO app_role;
+
+
+--
+-- Name: COLUMN hosted_payment_request.tenant_id; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT INSERT(tenant_id) ON TABLE public.hosted_payment_request TO app_role;
+
+
+--
+-- Name: COLUMN hosted_payment_request.id; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT INSERT(id) ON TABLE public.hosted_payment_request TO app_role;
+
+
+--
+-- Name: COLUMN hosted_payment_request.property_node; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT INSERT(property_node) ON TABLE public.hosted_payment_request TO app_role;
+
+
+--
+-- Name: COLUMN hosted_payment_request.folio_id; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT INSERT(folio_id) ON TABLE public.hosted_payment_request TO app_role;
+
+
+--
+-- Name: COLUMN hosted_payment_request.guest_account_id; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT INSERT(guest_account_id) ON TABLE public.hosted_payment_request TO app_role;
+
+
+--
+-- Name: COLUMN hosted_payment_request.operation_id; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT INSERT(operation_id) ON TABLE public.hosted_payment_request TO app_role;
+
+
+--
+-- Name: COLUMN hosted_payment_request.deposit_account_id; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT INSERT(deposit_account_id) ON TABLE public.hosted_payment_request TO app_role;
+
+
+--
+-- Name: COLUMN hosted_payment_request.amount_minor; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT INSERT(amount_minor) ON TABLE public.hosted_payment_request TO app_role;
+
+
+--
+-- Name: COLUMN hosted_payment_request.currency; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT INSERT(currency) ON TABLE public.hosted_payment_request TO app_role;
+
+
+--
+-- Name: COLUMN hosted_payment_request.bearer_hash; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT INSERT(bearer_hash) ON TABLE public.hosted_payment_request TO app_role;
+
+
+--
+-- Name: COLUMN hosted_payment_request.key_hash; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT INSERT(key_hash) ON TABLE public.hosted_payment_request TO app_role;
+
+
+--
+-- Name: COLUMN hosted_payment_request.request_hash; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT INSERT(request_hash) ON TABLE public.hosted_payment_request TO app_role;
+
+
+--
+-- Name: COLUMN hosted_payment_request.generation; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT INSERT(generation) ON TABLE public.hosted_payment_request TO app_role;
+
+
+--
+-- Name: COLUMN hosted_payment_request.created_by; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT INSERT(created_by) ON TABLE public.hosted_payment_request TO app_role;
+
+
+--
+-- Name: COLUMN hosted_payment_request.expires_at; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT INSERT(expires_at) ON TABLE public.hosted_payment_request TO app_role;
 
 
 --
@@ -8260,6 +8840,13 @@ GRANT INSERT(request_hash) ON TABLE public.payment_operation TO app_role;
 --
 
 GRANT INSERT(actor_id) ON TABLE public.payment_operation TO app_role;
+
+
+--
+-- Name: COLUMN payment_operation.deposit_account_id; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT INSERT(deposit_account_id) ON TABLE public.payment_operation TO app_role;
 
 
 --

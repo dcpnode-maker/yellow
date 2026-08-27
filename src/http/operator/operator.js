@@ -66,6 +66,7 @@
  let folioIdentity = "";
  let folioChargeAttemptKey = "";
  let folioChargeDraft = "";
+ let d,p
  let folioCorrectionAttemptKey = "";
  let folioCorrectionDraft = "";
  let folioCorrectionSelection = null;
@@ -408,12 +409,7 @@
  const folioWindowNew = $("#folio-window-new");
  const folioWindowNewForm = $("#folio-window-new-form");
  const folioWindowNewCancel = $("#folio-window-new-cancel");
- const folioTabPostings = $("#folio-tab-postings");
- const folioTabCharge = $("#folio-tab-charge");
- const folioTabOrganize = $("#folio-tab-organize");
- const folioPostingsPanel = $("#folio-postings-panel");
- const folioChargePanel = $("#folio-charge-panel");
- const folioOrganizePanel = $("#folio-organize-panel");
+ const tabs = [...$("#folio-workspace-tabs").children].map((tab) => [tab.id.slice(10), tab]);
  const folioOrganizeForm = $("#folio-organize-form");
  const folioOrganizeFields = $("#folio-organize-fields");
  const folioOrganizeGroups = $("#folio-organize-groups");
@@ -3044,7 +3040,7 @@
   const exactKeys = [...query.keys()].every((key) => key === "tab" || key === "after")
   && query.getAll("tab").length <= 1 && query.getAll("after").length <= 1;
   const requestedTab = exactKeys ? query.get("tab") : "";
-  const tab = requestedTab === "charge" || requestedTab === "organize" ? requestedTab : "postings";
+  const tab = requestedTab === "charge" || requestedTab === "deposit" || requestedTab === "organize" ? requestedTab : "postings";
   const requestedAfter = exactKeys ? query.get("after") || "" : "";
   const after = /^[A-Za-z0-9_-]{1,512}$/.test(requestedAfter) ? requestedAfter : "";
   return { kind: "workspace", property: workspace[1], folioId: workspace[2], tab, after };
@@ -3053,7 +3049,7 @@
  return list ? { kind: "list", property: list[1] } : { kind: "other" };
  }
   function canonicalFolioPath(property, folioId, tab = "postings", after = "") {
- const query = new URLSearchParams({ tab: ["charge", "organize"].includes(tab) ? tab : "postings" });
+ const query = new URLSearchParams({ tab: tabs.find(([name]) => name === tab) ? tab : "postings" });
  if (after) query.set("after", after);
  return `/p/${property}/folio/${folioId}?${query.toString()}`;
  }
@@ -3075,12 +3071,12 @@
   folioOrganizeReason.value !== "" || folioOrganizeAcknowledgement.checked || folioTransferPreview !== null;
  }
   function currentFolioDraftIsDirty() {
- return currentFolioChargeIsDirty() || currentFolioCorrectionIsDirty() || currentFolioWindowIsDirty() || currentFolioOrganizeIsDirty();
+ return currentFolioChargeIsDirty() || d?.d() || currentFolioCorrectionIsDirty() || currentFolioWindowIsDirty() || currentFolioOrganizeIsDirty();
  }
   function confirmFolioExit() {
  if (currentFolioCorrectionIsDirty()) return confirm("Discard this unfinished posting correction?");
  if (currentFolioChargeIsDirty()) return confirm("Discard this unfinished untaxed charge?");
- return !(currentFolioWindowIsDirty() || currentFolioOrganizeIsDirty()) || confirm("Discard this unfinished folio task?");
+ return confirm("Discard this unfinished folio task?");
  }
   function folioRefreshDecision(origin, current) {
  return origin.generation === current.generation && origin.property === current.property
@@ -3125,6 +3121,7 @@
  folioChargeForm.reset();
  folioChargeAttemptKey = "";
  folioChargeDraft = "";
+ d?.r();
  folioCorrectionForm.reset();
  folioCorrectionFields.disabled = true;
  folioCorrectionAttemptKey = "";
@@ -3460,7 +3457,7 @@
  syncFolioCorrectionConfirmation();
  if (restoreFocus) {
   if (target?.isConnected) target.focus();
-  else folioTabPostings.focus();
+  else tabs[0][1].focus();
  }
  folioCorrectionReturnFocus = null;
  }
@@ -3548,9 +3545,10 @@
  }
  }
   function setFolioTab(tab, { updateHistory = true, focus = true } = {}) {
- const next = ["charge", "organize", "correction"].includes(tab) ? tab : "postings";
+ const next = tabs.find(([name]) => name === tab) || tab === "correction" ? tab : "postings";
  if (next !== folioActiveTab && currentFolioDraftIsDirty()) {
   if (!confirmFolioExit()) return false;
+  d?.r();
   if (folioActiveTab === "charge") {
   folioChargeForm.reset();
   folioChargeAttemptKey = "";
@@ -3561,20 +3559,19 @@
   }
  }
  folioActiveTab = next;
- const postings = next === "postings";
- const charge = next === "charge";
- const organize = next === "organize";
- folioPostingsPanel.hidden = !postings;
- folioChargePanel.hidden = !charge;
- folioOrganizePanel.hidden = !organize;
+ for (const [name, button] of tabs) {
+  const selected = name === next;
+  $(`#folio-${name}-panel`).hidden = !selected;
+  button.setAttribute("aria-selected", selected);
+ }
  folioCorrectionPanel.hidden = next !== "correction";
- folioTabPostings.setAttribute("aria-selected", String(postings));
- folioTabCharge.setAttribute("aria-selected", String(charge));
- folioTabOrganize.setAttribute("aria-selected", String(organize));
  if (updateHistory && propertySelect.value && folioStatementData) {
   history.pushState({ yellowSurface: "folio-workspace" }, "", canonicalFolioPath(propertySelect.value, folioStatementData.folio.id, next, folioRouteCursor));
  }
- if (focus) ({ postings: folioTabPostings, charge: folioTabCharge, organize: folioTabOrganize, correction: folioCorrectionHeading })[next].focus();
+ if(next==="deposit")if(d)d.s();else if(!p){const g=folioGeneration;p=import("/assets/operator-deposits.js").then(m=>(d=m.default([
+  () => [folioGeneration, propertySelect.value, folioIdentity, folioStatementData], request, renderFolioStatement,
+ ])).s(g),()=>p=g==folioGeneration&&folioActiveTab==="deposit"&&announceOperation("error"))}
+ if (focus) (tabs.find(([name]) => name === next)?.[1] || folioCorrectionHeading).focus();
  return true;
  }
   function renderFolioStatement(statement) {
@@ -5379,17 +5376,13 @@
  target?.focus();
  folioReturnFocus = null;
  });
- folioTabPostings.addEventListener("click", () => setFolioTab("postings"));
- folioTabCharge.addEventListener("click", () => setFolioTab("charge"));
- folioTabOrganize.addEventListener("click", () => setFolioTab("organize"));
- const folioTabs = [["postings", folioTabPostings], ["charge", folioTabCharge], ["organize", folioTabOrganize]];
- for (const [tab, element] of folioTabs) {
+ for (const [tab, element] of tabs) {
+ element.addEventListener("click", () => setFolioTab(tab));
  element.addEventListener("keydown", (event) => {
   if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return;
   event.preventDefault();
-  const index = folioTabs.findIndex(([name]) => name === tab);
   const next = event.key === "Home" ? "postings" : event.key === "End" ? "organize" :
-  folioTabs[(index + (event.key === "ArrowRight" ? 1 : -1) + folioTabs.length) % folioTabs.length][0];
+  tabs[(tabs.findIndex(([name]) => name === tab)+(event.key==="ArrowRight"?1:3))%4][0];
   setFolioTab(next);
  });
  }

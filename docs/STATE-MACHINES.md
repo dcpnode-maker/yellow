@@ -63,6 +63,19 @@ and posts guest `-amount` / governed clearing `+amount`. Each partial refund is 
 by the captured remainder, posts the exact opposite signs, and links to the capture
 payment and journal without using correction-only `journal.reverses`. Void is terminal.
 
+### 7a. Hosted deposit request and application
+
+`ready → capture_pending → captured | failed`; `ready | capture_pending → expired`,
+and regeneration changes the prior active generation to `revoked`. A browser return
+never transitions the request: only the signed provider receipt reconciled through the
+payment state machine can establish captured/failed truth. Late approved truth may
+replace an informational timeout because provider reconciliation remains authoritative.
+
+Application is not a hosted-request state transition. Each application appends one
+immutable record and balanced journal while `sum(applications) ≤ captured amount` and
+the locked folio balance remains positive. Concurrent losers conflict; no application
+is allowed for ready, pending, failed, expired, revoked or foreign capture state.
+
 ## 8. Document (fiscal) — draft → issued (number+hash assigned, series advanced,
 prev_hash chained) → cleared|rejected (fiscal_submission) ; issued→void only where
 jurisdiction permits, else credit-note document. Emits document.issued / .cleared.

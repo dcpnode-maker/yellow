@@ -3,7 +3,7 @@ import { SQL } from "bun";
 import { readFileSync } from "node:fs";
 
 import { createApp } from "../src/app";
-import { ChargeCorrectionService, ChargeService, FolioStatementService } from "../src/contexts/financials";
+import { ChargeCorrectionService, ChargeService, FolioStatementService, HostedDepositConflictError } from "../src/contexts/financials";
 import { BearerTenantResolver, hashLocalPassword, Hs256TokenSigner, LocalLoginService, verifyLocalPassword } from "../src/contexts/identity";
 import { OperatorHttpApi } from "../src/http/operator";
 import { Database, PostgresEventBus, PostgresIdempotency, type TenantRequestContext, type Tx } from "../src/kernel";
@@ -11,17 +11,19 @@ import { Database, PostgresEventBus, PostgresIdempotency, type TenantRequestCont
 const html = readFileSync(new URL("../src/http/operator/index.html", import.meta.url), "utf8");
 const css = readFileSync(new URL("../src/http/operator/operator.css", import.meta.url), "utf8");
 const script = readFileSync(new URL("../src/http/operator/operator.js", import.meta.url), "utf8");
+const depositScript = readFileSync(new URL("../src/http/operator/operator-deposits.js", import.meta.url), "utf8");
+const depositCss = readFileSync(new URL("../src/http/operator/operator-deposits.css", import.meta.url), "utf8");
 const TENANT = "00000000-0000-0000-0000-000000010501";
 const ACTOR = "00000000-0000-0000-0000-000000010502";
 const PROPERTY = "00000000-0000-0000-0000-000000010503";
 const FOLIO = "00000000-0000-0000-0000-000000010504";
 
-function operatorWithFinancials(statements: unknown, charges: unknown, corrections?: unknown): OperatorHttpApi {
+function operatorWithFinancials(statements: unknown, charges: unknown, corrections?: unknown, hosted?:unknown): OperatorHttpApi {
   return new OperatorHttpApi(
     {} as never, undefined, undefined, undefined, undefined, undefined, undefined,
     undefined, undefined, undefined, undefined, undefined, undefined, undefined,
     undefined, undefined, undefined, undefined, undefined, statements as never, charges as never,
-    undefined, undefined, undefined, corrections as never,
+    undefined, undefined, undefined, corrections as never, undefined, hosted as never,
   );
 }
 
@@ -107,6 +109,77 @@ describe("Order 105 operator folio workbench", () => {
     expect(renderAt).toBeGreaterThan(refetchAt);
     expect(charge.slice(0, refetchAt)).not.toContain("renderFolioRows(");
     expect(charge).toContain("Retry keeps the same idempotency key.");
+  });
+
+  test("Order193 P5: hosted deposit workbench is token-only, server-truth and retry-safe", () => {
+    expect(html).toContain('id="folio-tab-deposit" type="button" role="tab" aria-controls="folio-deposit-panel" aria-selected="false"');
+    expect(html).toContain('id="folio-deposit-panel"');
+    expect(html).not.toContain('id="folio-deposit-instrument"');
+    expect(script).toContain('import("/assets/operator-deposits.js")');
+    expect(depositScript).toContain('id="folio-deposit-instrument" name="instrumentId"');
+    expect(depositScript).toContain("No card, bank or VPA details belong here.");
+    expect(depositScript).toContain("Append one immutable balanced liability-to-folio journal.");
+    expect(depositCss).toContain(".folio-deposit-status");
+    const create = depositScript.slice(depositScript.indexOf(" async function create()"), depositScript.indexOf(" async function applyDeposit()"));
+    expect(create).toContain("createKey = crypto.randomUUID()");
+    expect(create).toContain('headers:{"idempotency-key":createKey}');
+    expect(create.indexOf("refreshStatus(false)")).toBeGreaterThan(create.indexOf('method:"POST"'));
+    expect(create).toContain("Retry keeps the same idempotency key.");
+    const apply = depositScript.slice(depositScript.indexOf(" async function applyDeposit()"));
+    expect(apply).toContain("applyKey = crypto.randomUUID()");
+    expect(apply).toContain('headers:{"idempotency-key":applyKey}');
+    expect(apply.indexOf("/statement?limit=50")).toBeGreaterThan(apply.indexOf('method:"POST"'));
+    expect(apply.indexOf("refreshStatus(false)")).toBeGreaterThan(apply.indexOf("renderStatement(statement)"));
+    expect(apply).toContain("Retry keeps the same idempotency key.");
+    expect(`${create}\n${apply}`).not.toMatch(/localStorage|sessionStorage|document\.cookie|optimistic/i);
+    expect(script).toContain("d?.r()");
+    expect(script).toContain('if(d)d.s();else if(!p){const g=folioGeneration;p=import("/assets/operator-deposits.js")');
+    expect(script).toContain("])).s(g)");
+    expect(script).toContain('p=g==folioGeneration&&folioActiveTab==="deposit"&&announceOperation("error")');
+    expect(depositScript).toContain("s: (g=context().generation) => g===context().generation");
+    expect(depositScript).toContain('return !panel.hidden && !panel.closest("#folio-workspace").hidden');
+  });
+
+  test("Order193 P5: lazy deposit load is single-flight, stale-safe and retryable after bounded failure", async () => {
+    const source = functionSlice("setFolioTab", "renderFolioStatement")
+      .replace('import("/assets/operator-deposits.js")', "load()");
+    const build = Function("load", `
+      let d,p,folioGeneration=1,folioActiveTab="postings",folioStatementData={folio:{id:"folio-a"}},folioIdentity="folio-a";
+      const propertySelect={value:"property-a"}, request=()=>{}, renderFolioStatement=()=>{};
+      const currentFolioDraftIsDirty=()=>false,confirmFolioExit=()=>true,clearFolioCorrection=()=>{};
+      const folioChargeForm={reset(){}},syncFolioChargeConfirmation=()=>{};let folioChargeAttemptKey="",folioChargeDraft="";
+      const buttons=Object.fromEntries(["postings","charge","deposit","organize"].map(name=>[name,{setAttribute(){},focus(){}}]));
+      const panels=Object.fromEntries(Object.keys(buttons).map(name=>["#folio-"+name+"-panel",{hidden:false}]));
+      const tabs=Object.entries(buttons),$=selector=>panels[selector],folioCorrectionPanel={hidden:true},folioCorrectionHeading={focus(){}};
+      const history={pushState(){}},canonicalFolioPath=()=>"/",announcements=[];
+      const announceOperation=value=>announcements.push(value);
+      ${source}
+      return {select:name=>setFolioTab(name,{updateHistory:false,focus:false}),bump:()=>folioGeneration++,active:()=>folioActiveTab,announcements};
+    `) as (load: () => Promise<unknown>) => { select(name: string): boolean; bump(): void; active(): string; announcements: string[] };
+    let loads = 0, resolve!: (value: unknown) => void;
+    const deferred = new Promise((done) => { resolve = done; });
+    const harness = build(async () => { loads += 1; return deferred; });
+    const generations: number[] = [];
+    const ui = { d: () => false, r: () => resets++, s: (generation = 1) => generations.push(generation) };
+    let resets = 0;
+    harness.select("deposit"); harness.select("deposit");
+    expect(loads).toBe(1);
+    harness.select("postings"); resolve({ default: () => ui });
+    await deferred; await Bun.sleep(0);
+    expect({ resets, generations }).toEqual({ resets: 0, generations: [1] });
+    harness.select("deposit"); await Promise.resolve();
+    expect(loads).toBe(1); expect(generations).toEqual([1, 1]);
+
+    let rejects = 0, reject!: (error: Error) => void;
+    let failed = new Promise((_done, fail) => { reject = fail; });
+    const failure = build(() => { rejects += 1; return failed; });
+    failure.select("deposit"); failure.bump(); reject(new Error("asset failed"));
+    await failed.catch(() => {}); await Bun.sleep(0);
+    expect(failure.announcements).toEqual([]);
+    failed = Promise.reject(new Error("retry failed")); failed.catch(() => {});
+    failure.select("deposit"); await Bun.sleep(0);
+    expect(rejects).toBe(2);
+    expect(failure.announcements).toEqual(["error"]);
   });
 
   test("P3 extracted canary: generation, property and folio identity all guard repaint", () => {
@@ -228,6 +301,45 @@ describe("Order 105 operator folio workbench", () => {
     expect(chargeCalls).toBe(0);
   });
 
+  test("Order193 P2: payment read/write/apply scopes and exact property grants precede every domain call", async () => {
+    const calls:{create:unknown[];apply:unknown[];status:unknown[]}={create:[],apply:[],status:[]};
+    const hosted = {
+      async create(input:unknown) { calls.create.push(input); return { requestId:FOLIO,operationId:PROPERTY,
+        bearer:"one-time",expiresAt:new Date().toISOString(),amountMinor:"1000",currency:"USD",generation:1,replayed:false }; },
+      async apply(input:unknown) { calls.apply.push(input); return { applicationId:ACTOR,journalId:PROPERTY,
+        hostedRequestId:FOLIO,amountMinor:"100",currency:"USD",replayed:false }; },
+      async statusForOperator(tenantId:string,requestId:string) { calls.status.push({tenantId,requestId}); return {
+        tenantId,requestId,propertyNode:PROPERTY,propertyName:"Yellow",folioId:FOLIO,folioReference:"FOL-1",
+        operationId:ACTOR,amountMinor:"1000",currency:"USD",generation:1,expiresAt:new Date().toISOString(),
+        state:"captured",capturedMinor:"1000",appliedMinor:"0",remainingMinor:"1000" }; },
+    };
+    const api=operatorWithFinancials({}, {}, undefined, hosted);
+    const createRequest=()=>new Request(`http://yellow.test/api/v1/properties/${PROPERTY}/folios/${FOLIO}/hosted-deposits`,
+      {method:"POST",headers:{"idempotency-key":"order193-http-create"}});
+    const applyRequest=()=>new Request(`http://yellow.test/api/v1/properties/${PROPERTY}/hosted-deposits/${FOLIO}/applications`,
+      {method:"POST",headers:{"idempotency-key":"order193-http-apply"}});
+    expect((await api.createHostedDeposit(financialContext(createRequest(),[]),PROPERTY,FOLIO,
+      {instrumentId:ACTOR,amountMinor:"1000"})).status).toBe(403);
+    expect((await api.applyHostedDeposit(financialContext(applyRequest(),[]),PROPERTY,FOLIO,{amountMinor:"100"})).status).toBe(403);
+    expect((await api.hostedDepositReadAuthority(financialContext(new Request("http://yellow.test"),[]),PROPERTY)).status).toBe(403);
+    expect(calls).toEqual({create:[],apply:[],status:[]});
+    expect((await api.createHostedDeposit(financialContext(createRequest(),["financials.payments:write"],false),PROPERTY,FOLIO,
+      {instrumentId:ACTOR,amountMinor:"1000"})).status).toBe(403);
+    expect((await api.applyHostedDeposit(financialContext(applyRequest(),["financials.deposits:apply"],false),PROPERTY,FOLIO,
+      {amountMinor:"100"})).status).toBe(403);
+    expect((await api.hostedDepositReadAuthority(financialContext(new Request("http://yellow.test"),["financials.payments:read"],false),PROPERTY)).status).toBe(403);
+    expect(calls).toEqual({create:[],apply:[],status:[]});
+    expect((await api.createHostedDeposit(financialContext(createRequest(),["financials.payments:write"]),PROPERTY,FOLIO,
+      {instrumentId:ACTOR,amountMinor:"1000"})).status).toBe(201);
+    expect((await api.applyHostedDeposit(financialContext(applyRequest(),["financials.deposits:apply"]),PROPERTY,FOLIO,
+      {amountMinor:"100"})).status).toBe(201);
+    expect((await api.hostedDepositStatus(financialContext(new Request("http://yellow.test"),["financials.payments:read"]),PROPERTY,FOLIO)).status).toBe(200);
+    expect(calls.create).toHaveLength(1); expect(calls.apply).toHaveLength(1); expect(calls.status).toHaveLength(1);
+    const otherProperty="00000000-0000-0000-0000-000000010599";
+    expect((await api.hostedDepositStatus(financialContext(new Request("http://yellow.test"),["financials.payments:read"]),otherProperty,FOLIO)).status).toBe(403);
+    expect(calls.status).toHaveLength(1);
+  });
+
   test("P2: charge adapter accepts only the governed body/header and builds one server envelope", async () => {
     let captured: Record<string, unknown> | null = null;
     const operator = operatorWithFinancials({ async get() { throw new Error("must not run"); } }, {
@@ -323,6 +435,9 @@ let folioBusinessDate = "";
 let readToken = "";
 let writeToken = "";
 let approverToken = "";
+let foreignToken = "";
+const hostedHttpCalls = { create: 0, apply: 0, status: 0 };
+const hostedHttpKeys = new Map<string, string>();
 
 async function cleanFolioHttpFixture(): Promise<void> {
   if (!folioAdmin) return;
@@ -357,11 +472,11 @@ function folioAuth(token: string, key?: string): Record<string, string> {
   };
 }
 
-async function folioLogin(email: string): Promise<string> {
+async function folioLogin(email: string, tenant = "order105-http-a"): Promise<string> {
   const response = await folioHttpRequest("/api/v1/auth/local:login", {
     method: "POST",
     headers: { "content-type": "application/json" },
-    body: JSON.stringify({ tenant: "order105-http-a", email, password: HTTP_PASSWORD }),
+    body: JSON.stringify({ tenant, email, password: HTTP_PASSWORD }),
   });
   expect(response.status).toBe(200);
   return (await response.json() as { accessToken: string }).accessToken;
@@ -411,7 +526,10 @@ beforeAll(async () => {
     ('financials.folios:read','Read property folio statements'),
     ('financials.charges:write','Post governed charges to property folios'),
     ('financials.adjustments:write','Correct governed folio charges'),
-    ('financials.adjustments:post-seal','Correct charges after business-day seal')
+    ('financials.adjustments:post-seal','Correct charges after business-day seal'),
+    ('financials.payments:read','Read hosted payment status'),
+    ('financials.payments:write','Create hosted payment requests'),
+    ('financials.deposits:apply','Apply captured deposit liability')
     ON CONFLICT (code) DO NOTHING`;
   await folioAdmin`INSERT INTO role(id,tenant_id,name) VALUES
     (${HTTP_READ_ROLE}::uuid,${HTTP_TENANT_A}::uuid,'Order 105 exact reader'),
@@ -420,16 +538,23 @@ beforeAll(async () => {
     (${HTTP_APPROVER_ROLE}::uuid,${HTTP_TENANT_A}::uuid,'Order 105 post-seal approver')`;
   await folioAdmin`INSERT INTO role_permission(role_id,permission_code) VALUES
     (${HTTP_READ_ROLE}::uuid,'financials.folios:read'),
+    (${HTTP_READ_ROLE}::uuid,'financials.payments:read'),
     (${HTTP_WRITE_ROLE}::uuid,'financials.charges:write'),
     (${HTTP_WRITE_ROLE}::uuid,'financials.adjustments:write'),
+    (${HTTP_WRITE_ROLE}::uuid,'financials.payments:write'),
+    (${HTTP_WRITE_ROLE}::uuid,'financials.deposits:apply'),
     (${HTTP_FOREIGN_ROLE}::uuid,'financials.folios:read'),
+    (${HTTP_FOREIGN_ROLE}::uuid,'financials.payments:read'),
+    (${HTTP_FOREIGN_ROLE}::uuid,'financials.payments:write'),
+    (${HTTP_FOREIGN_ROLE}::uuid,'financials.deposits:apply'),
     (${HTTP_APPROVER_ROLE}::uuid,'financials.adjustments:write'),
     (${HTTP_APPROVER_ROLE}::uuid,'financials.adjustments:post-seal')`;
   await folioAdmin`INSERT INTO user_role(tenant_id,user_id,role_id,scope_node) VALUES
     (${HTTP_TENANT_A}::uuid,${HTTP_READ_USER}::uuid,${HTTP_READ_ROLE}::uuid,${HTTP_PROPERTY_A}::uuid),
     (${HTTP_TENANT_A}::uuid,${HTTP_WRITE_USER}::uuid,${HTTP_WRITE_ROLE}::uuid,${HTTP_GROUP_A}::uuid),
     (${HTTP_TENANT_B}::uuid,${HTTP_FOREIGN_USER}::uuid,${HTTP_FOREIGN_ROLE}::uuid,${HTTP_PROPERTY_B}::uuid),
-    (${HTTP_TENANT_A}::uuid,${HTTP_APPROVER_USER}::uuid,${HTTP_APPROVER_ROLE}::uuid,${HTTP_PROPERTY_A}::uuid)`;
+    (${HTTP_TENANT_A}::uuid,${HTTP_APPROVER_USER}::uuid,${HTTP_APPROVER_ROLE}::uuid,${HTTP_PROPERTY_A}::uuid),
+    (${HTTP_TENANT_A}::uuid,${HTTP_APPROVER_USER}::uuid,${HTTP_WRITE_ROLE}::uuid,${HTTP_GROUP_A}::uuid)`;
   await folioAdmin`INSERT INTO account(id,tenant_id,property_node,role,name,currency,status) VALUES
     (${HTTP_GUEST_A}::uuid,${HTTP_TENANT_A}::uuid,${HTTP_PROPERTY_A}::uuid,'guest','Order 105 exact guest','USD','open'),
     (${HTTP_GUEST_CHILD}::uuid,${HTTP_TENANT_A}::uuid,${HTTP_PROPERTY_CHILD}::uuid,'guest','Order 105 child guest','USD','open'),
@@ -461,6 +586,36 @@ beforeAll(async () => {
   const statements = new FolioStatementService();
   const charges = new ChargeService({ events, idempotency: new PostgresIdempotency() });
   const corrections = new ChargeCorrectionService({ events, idempotency: new PostgresIdempotency() });
+  const remember = (kind: string, input: Record<string, unknown>) => {
+    const key = `${kind}:${input.tenantId}:${input.idempotencyKey}`;
+    const value = JSON.stringify({ actorId: (input.envelope as { actorId: string }).actorId,
+      folioId: input.folioId, hostedRequestId: input.hostedRequestId,
+      instrumentId: input.instrumentId, amountMinor: input.amountMinor });
+    const prior = hostedHttpKeys.get(key);
+    if (prior && prior !== value) throw new HostedDepositConflictError("Changed idempotent request");
+    hostedHttpKeys.set(key, value);
+    return prior !== undefined;
+  };
+  const hosted = {
+    async create(input: Record<string, unknown>) {
+      hostedHttpCalls.create += 1; const replayed = remember("create", input);
+      return { requestId: HTTP_FOLIO_CHILD, operationId: HTTP_PROPERTY_CHILD,
+        ...(replayed ? {} : { bearer: "one-time-http-bearer" }), expiresAt: "2026-08-28T00:00:00.000Z",
+        amountMinor: input.amountMinor, currency: "USD", generation: 1, replayed };
+    },
+    async apply(input: Record<string, unknown>) {
+      hostedHttpCalls.apply += 1; const replayed = remember("apply", input);
+      return { applicationId: HTTP_GUEST_CHILD, journalId: HTTP_REVENUE_CHILD,
+        hostedRequestId: input.hostedRequestId, amountMinor: input.amountMinor, currency: "USD", replayed };
+    },
+    async statusForOperator(tenantId: string, requestId: string) {
+      hostedHttpCalls.status += 1;
+      return { tenantId, requestId, propertyNode: HTTP_PROPERTY_A, propertyName: "Order 105 exact",
+        folioId: HTTP_FOLIO_A, folioReference: "O105-EXACT", operationId: HTTP_REVENUE_A,
+        amountMinor: "1000", currency: "USD", generation: 1, expiresAt: "2026-08-28T00:00:00.000Z",
+        state: "captured", capturedMinor: "1000", appliedMinor: "0", remainingMinor: "1000" };
+    },
+  };
   folioHttpApp = createApp({
     database: folioDatabase,
     tenantResolver: new BearerTenantResolver(tokens),
@@ -468,12 +623,13 @@ beforeAll(async () => {
       login, undefined, undefined, new PostgresIdempotency(),
       undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined,
       undefined, undefined, undefined, undefined, undefined, undefined, undefined, statements, charges,
-      undefined, undefined, undefined, corrections,
+      undefined, undefined, undefined, corrections, undefined, hosted as never,
     ),
   });
   readToken = await folioLogin("read@order105.test");
   writeToken = await folioLogin("write@order105.test");
   approverToken = await folioLogin("approver@order105.test");
+  foreignToken = await folioLogin("foreign@order105.test", "order105-http-b");
 }, 60_000);
 
 afterAll(async () => {
@@ -515,6 +671,56 @@ folioHttpDescribe("Order 105 real authenticated folio HTTP proof", () => {
     );
     expect(writeCannotRead.status).toBe(403);
     expect(await folioArtifacts()).toEqual({ journals: 0, lines: 0, facts: 0, events: 0, keys: 0 });
+  }, 30_000);
+
+  test("Order193 P4: authenticated routes enforce every scope, hierarchy, tenant and actor-bound retry", async () => {
+    const before = { ...hostedHttpCalls };
+    const createPath = `/api/v1/properties/${HTTP_PROPERTY_CHILD}/folios/${HTTP_FOLIO_CHILD}/hosted-deposits`;
+    const applyPath = `/api/v1/properties/${HTTP_PROPERTY_CHILD}/hosted-deposits/${HTTP_FOLIO_CHILD}/applications`;
+    const statusPath = `/api/v1/properties/${HTTP_PROPERTY_A}/hosted-deposits/${HTTP_FOLIO_A}`;
+    const post = (path: string, token: string, key: string, body: Record<string, unknown>) =>
+      folioHttpRequest(path, { method: "POST", headers: folioAuth(token, key), body: JSON.stringify(body) });
+
+    expect((await post(createPath, readToken, "order193-missing-write", {
+      instrumentId: HTTP_REVENUE_CHILD, amountMinor: "1000",
+    })).status).toBe(403);
+    expect((await post(applyPath, readToken, "order193-missing-apply", { amountMinor: "100" })).status).toBe(403);
+    expect((await folioHttpRequest(statusPath, { headers: folioAuth(writeToken) })).status).toBe(403);
+    for (const [path, method, body] of [
+      [statusPath, "GET", undefined],
+      [createPath, "POST", { instrumentId: HTTP_REVENUE_CHILD, amountMinor: "1000" }],
+      [applyPath, "POST", { amountMinor: "100" }],
+    ] as const) {
+      const response = await folioHttpRequest(path, {
+        method, headers: folioAuth(foreignToken, `order193-foreign-${method}`),
+        ...(body ? { body: JSON.stringify(body) } : {}),
+      });
+      expect(response.status).toBe(403);
+      expect((await response.json() as { type: string }).type).toBe("auth/property_forbidden");
+    }
+    expect(hostedHttpCalls).toEqual(before);
+    expect(await folioArtifacts()).toEqual({ journals: 0, lines: 0, facts: 0, events: 0, keys: 0 });
+
+    const exact = await folioHttpRequest(statusPath, { headers: folioAuth(readToken) });
+    expect(exact.status).toBe(200);
+    expect(await exact.json()).toMatchObject({ propertyNode: HTTP_PROPERTY_A, state: "captured" });
+    const key = "order193-real-http-create";
+    const created = await post(createPath, writeToken, key, { instrumentId: HTTP_REVENUE_CHILD, amountMinor: "1000" });
+    expect(created.status).toBe(201);
+    expect(await created.json()).toMatchObject({ requestId: HTTP_FOLIO_CHILD, bearer: "one-time-http-bearer", replayed: false });
+    const replay = await post(createPath, writeToken, key, { instrumentId: HTTP_REVENUE_CHILD, amountMinor: "1000" });
+    expect(replay.status).toBe(201);
+    expect(await replay.json()).toMatchObject({ requestId: HTTP_FOLIO_CHILD, replayed: true });
+    const changed = await post(createPath, writeToken, key, { instrumentId: HTTP_REVENUE_CHILD, amountMinor: "1001" });
+    expect(changed.status).toBe(409);
+    const changedActor = await post(createPath, approverToken, key, { instrumentId: HTTP_REVENUE_CHILD, amountMinor: "1000" });
+    expect(changedActor.status).toBe(409);
+    const applied = await post(applyPath, writeToken, "order193-real-http-apply", { amountMinor: "100" });
+    expect(applied.status).toBe(201);
+    const appliedReplay = await post(applyPath, writeToken, "order193-real-http-apply", { amountMinor: "100" });
+    expect(appliedReplay.status).toBe(200);
+    expect(await appliedReplay.json()).toMatchObject({ hostedRequestId: HTTP_FOLIO_CHILD, replayed: true });
+    expect(hostedHttpCalls).toEqual({ create: before.create + 4, apply: before.apply + 2, status: before.status + 1 });
   }, 30_000);
 
   test("P2: cross-property and cross-tenant references share one generic not-found response", async () => {

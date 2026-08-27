@@ -585,3 +585,13 @@ payment code/clearing route, actor and request hashes. `payment` is its append-o
 attempt/result history; `provider_event_receipt` is immutable late-provider evidence.
 Neither receipt nor durable evidence stores the opaque token or raw provider payload.
 The one-capture and no-overpayment policy is part of the aggregate, not adapter choice.
+
+### Hosted deposit identity (Order 193)
+
+`hosted_payment_request` is the tenant/property/folio-bound, expiring generation that
+references one deposit-purpose `payment_operation`. It stores a bearer hash and
+idempotency/request hashes, never the raw bearer. `deposit_application` is an
+insert-only child of the captured operation and its folio; each row names the exact
+immutable application journal. Capture belongs to payment history and deposit
+liability, while application belongs to the folio ledger, so neither artifact is
+silently inferred from the other or from browser state.

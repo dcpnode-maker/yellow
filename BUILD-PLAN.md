@@ -104,8 +104,11 @@ journal, original untouched · trust account negative-guard requires approval.
 Order 192 adds the payment foundation within this phase: immutable token-only
 operations, append-only attempts/receipts, journal-free auth/increment/void, exactly
 one locked balance-capped capture, bounded linked partial refunds and deterministic
-local reconciliation. Remote PSP/network/UI, deposits, settlement and checkout remain
-future work; this does not claim Phase 5 completion.
+local reconciliation. Order 193 adds the zero-cost hosted deposit workbench: expiring
+hash-only guest links, a separately originated synthetic provider with signed bounded
+callbacks, deposit-liability capture and separately authorized capped partial/full
+folio application. Real PSPs, delivery, deposit refunds/chargebacks, cashier,
+settlement and checkout remain future work; this does not claim Phase 5 completion.
 
 ## Phase 6 — Stay ops & Housekeeping
 

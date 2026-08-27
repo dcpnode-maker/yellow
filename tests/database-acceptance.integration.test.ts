@@ -110,6 +110,11 @@ const EXPECTED_MIGRATIONS = [
     filename: "0021_token_only_payment_foundation.sql",
     checksum_sha256: "8538168ae7158c4a3f4b1f93b9bae5bcc1f9fb5d6e45327486e0a68bba04dcc1",
   },
+  {
+    version: 22,
+    filename: "0022_hosted_deposit_workbench.sql",
+    checksum_sha256: "a906182ea41fb3f92617900716c6a6523ac7a34af2651b6907781f6607080dfd",
+  },
 ];
 
 if (REQUIRE_DATABASE && !DATABASE_URL) {

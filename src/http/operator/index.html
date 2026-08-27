@@ -672,9 +672,10 @@
 <button class="quiet" id="folio-window-new" type="button">New folio window</button>
 </div>
 <div class="folio-workspace-tabs" role="tablist" aria-label="Folio workspace">
-<button class="quiet" id="folio-tab-postings" type="button" role="tab" aria-controls="folio-postings-panel" aria-selected="true"><span class="simple-only">View bill</span><span class="detail-only">Statement</span></button>
+<button class="quiet" id="folio-tab-postings" type="button" role="tab" aria-controls="folio-postings-panel" aria-selected="true">Statement</button>
 <button class="quiet" id="folio-tab-charge" type="button" role="tab" aria-controls="folio-charge-panel" aria-selected="false">Add charge</button>
-<button class="quiet" id="folio-tab-organize" type="button" role="tab" aria-controls="folio-organize-panel" aria-selected="false"><span class="simple-only">Separate charges</span><span class="detail-only">Organize charges</span></button>
+<button class="quiet" id="folio-tab-deposit" type="button" role="tab" aria-controls="folio-deposit-panel" aria-selected="false">Deposits</button>
+<button class="quiet" id="folio-tab-organize" type="button" role="tab" aria-controls="folio-organize-panel" aria-selected="false">Organize charges</button>
 </div>
 <div class="folio-statement-loading" id="folio-statement-loading" hidden aria-hidden="true"><span></span><span></span><span></span></div>
 <section class="folio-statement-error" id="folio-statement-error" hidden role="alert"><strong>Folio statement could not be loaded</strong><p></p><button class="secondary" id="folio-statement-retry" type="button">Try again</button></section>
@@ -727,6 +728,7 @@
 <p class="form-message" role="status" aria-live="assertive"></p>
 </form>
 </section>
+<div id="folio-deposit-panel" hidden></div>
 <section id="folio-organize-panel" role="tabpanel" aria-labelledby="folio-tab-organize" hidden>
 <form class="folio-charge-form folio-organize-form" id="folio-organize-form">
 <fieldset id="folio-organize-fields">

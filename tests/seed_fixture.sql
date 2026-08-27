@@ -174,6 +174,10 @@ INSERT INTO account (id, tenant_id, property_node, role, name, currency, status)
   ('00000000-0000-0000-0000-000000000805', '00000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-000000000012', 'deposit_liability', 'Deposit Liability', 'AED', 'open'),
   ('00000000-0000-0000-0000-000000000806', '00000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-000000000012', 'house', 'House Account', 'AED', 'open');
 
+INSERT INTO tx_code_route (tenant_id, property_node, currency, tx_code, debit_account_id, credit_account_id) VALUES
+  ('00000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-000000000012', 'AED', 'DEP', NULL,
+   '00000000-0000-0000-0000-000000000805');
+
 -- ============================================================================
 -- BUSINESS DAY (open)
 -- ============================================================================
@@ -250,7 +254,10 @@ INSERT INTO role_permission (role_id, permission_code) VALUES
   ('00000000-0000-0000-0000-000000000951', 'business_day.seal'),
   ('00000000-0000-0000-0000-000000000952', 'reservation.override.rate'),
   ('00000000-0000-0000-0000-000000000952', 'finance.approval.trust_negative'),
-  ('00000000-0000-0000-0000-000000000952', 'business_day.reopen');
+  ('00000000-0000-0000-0000-000000000952', 'business_day.reopen'),
+  ('00000000-0000-0000-0000-000000000952', 'financials.payments:read'),
+  ('00000000-0000-0000-0000-000000000952', 'financials.payments:write'),
+  ('00000000-0000-0000-0000-000000000952', 'financials.deposits:apply');
 
 -- ============================================================================
 -- APP USER (test front desk agent)

@@ -200,8 +200,8 @@ try {
         '-tAc', "SELECT count(*) FROM pg_tables WHERE schemaname='public';")
     Assert-Exit 'Counting public tables'
     $tables = $tables.Trim()
-    if ($tables -ne '87') { throw "yellow_test has $tables public tables; expected 87 (80 baseline + tx_code_route + 2 kernel consumer + api_idempotency + payment operation + provider receipt + schema_migration)." }
-    Write-Host 'yellow_test tables: 87 (80 baseline + tx_code_route + 2 kernel consumer + api_idempotency + payment operation + provider receipt + schema_migration)'
+    if ($tables -ne '89') { throw "yellow_test has $tables public tables; expected 89 (80 baseline + tx_code_route + 2 kernel consumer + api_idempotency + payment operation + provider receipt + hosted request + deposit application + schema_migration)." }
+    Write-Host 'yellow_test tables: 89 (80 baseline + tx_code_route + 2 kernel consumer + api_idempotency + payment operation + provider receipt + hosted request + deposit application + schema_migration)'
 
     $env:YELLOW_DSN = "dbname=yellow_test user=yellow_deploy password=$($script:DeployPassword) host=127.0.0.1 port=$($env:YELLOW_POSTGRES_PORT)"
     $env:PYTHONIOENCODING = 'utf-8'

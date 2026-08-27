@@ -82,6 +82,22 @@ export type {
   ReconcilePaymentInput,
   VoidPaymentInput,
 } from "./payments";
+export type { PaymentOperationPurpose } from "./payments";
+
+export {
+  HostedDepositConflictError,
+  HostedDepositNotFoundError,
+  HostedDepositService,
+  HostedDepositValidationError,
+  assertHostedCallbackHash,
+} from "./hosted-deposits";
+export type {
+  ApplyDepositInput,
+  CreateHostedDepositInput,
+  DepositApplicationResult,
+  HostedDepositLink,
+  HostedDepositStatus,
+} from "./hosted-deposits";
 export type {
   FolioChargeAvailability,
   FolioChargeOption,

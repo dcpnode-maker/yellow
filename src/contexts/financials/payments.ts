@@ -31,6 +31,8 @@ export interface CreatePaymentOperationInput {
   readonly envelope: AuditEnvelope;
 }
 
+export type PaymentOperationPurpose = "folio_payment" | "deposit";
+
 export interface PaymentTransitionInput {
   readonly tenantId: string;
   readonly operationId: string;
@@ -87,6 +89,8 @@ interface OperationRow {
   readonly currency: string;
   readonly tx_code: string;
   readonly clearing_account_id: string;
+  readonly deposit_account_id: string | null;
+  readonly purpose: PaymentOperationPurpose;
   readonly actor_id: string;
   readonly token: string;
 }
@@ -240,7 +244,10 @@ export class PaymentService {
   }
 
   authorize(input: CreatePaymentOperationInput): Promise<PaymentCommandResult> {
-    return this.#run("auth", input);
+    return this.#run("auth", input, "folio_payment");
+  }
+  authorizeDeposit(input: CreatePaymentOperationInput): Promise<PaymentCommandResult> {
+    return this.#run("auth", input, "deposit");
   }
   incrementalAuthorize(input: PaymentTransitionInput): Promise<PaymentCommandResult> {
     return this.#run("incremental_auth", input);
@@ -249,9 +256,10 @@ export class PaymentService {
   refund(input: PaymentTransitionInput): Promise<PaymentCommandResult> { return this.#run("refund", input); }
   void(input: VoidPaymentInput): Promise<PaymentCommandResult> { return this.#run("void", input); }
 
-  async #run(phase: CommandPhase, input: CreatePaymentOperationInput | PaymentTransitionInput | VoidPaymentInput): Promise<PaymentCommandResult> {
+  async #run(phase: CommandPhase, input: CreatePaymentOperationInput | PaymentTransitionInput | VoidPaymentInput,
+    purpose: PaymentOperationPurpose = "folio_payment"): Promise<PaymentCommandResult> {
     const prepared = await this.#database.withTenantTransaction(input.tenantId,
-      (tx) => this.#prepare(tx, phase, input));
+      (tx) => this.#prepare(tx, phase, input, purpose));
     if ("result" in prepared) return prepared.result;
     const providerOutcome = await this.#provider.execute(prepared.providerRequest);
     return this.#database.withTenantTransaction(prepared.tenantId,
@@ -259,7 +267,8 @@ export class PaymentService {
   }
 
   async #prepare(tx: Tx, phase: CommandPhase,
-    raw: CreatePaymentOperationInput | PaymentTransitionInput | VoidPaymentInput): Promise<Prepared | ExistingResult> {
+    raw: CreatePaymentOperationInput | PaymentTransitionInput | VoidPaymentInput,
+    purpose: PaymentOperationPurpose): Promise<Prepared | ExistingResult> {
     requireRecord(raw, "payment input");
     const isAuth = phase === "auth";
     const isVoid = phase === "void";
@@ -274,7 +283,7 @@ export class PaymentService {
     const operationId = isAuth ? undefined : uuid((raw as PaymentTransitionInput).operationId, "operationId");
     const requestedMoney = isVoid ? undefined : money((raw as CreatePaymentOperationInput).amountMinor);
     const requestShape = isAuth
-      ? { phase, folioId: uuid((raw as CreatePaymentOperationInput).folioId, "folioId"),
+      ? { phase, purpose, folioId: uuid((raw as CreatePaymentOperationInput).folioId, "folioId"),
           instrumentId: uuid((raw as CreatePaymentOperationInput).instrumentId, "instrumentId"), amountMinor: requestedMoney!.text,
           actorId: audit.actorId, propertyNode: audit.propertyNode }
       : { phase, operationId, ...(requestedMoney ? { amountMinor: requestedMoney.text } : {}),
@@ -288,6 +297,7 @@ export class PaymentService {
       const existingOperation = (await tx<OperationRow[]>`
         SELECT op.id,op.property_node,op.folio_id,op.guest_account_id,op.instrument_id,
                op.provider,op.method,op.currency::text,op.tx_code,op.clearing_account_id,
+               op.deposit_account_id,op.purpose,
                op.actor_id,instrument.token
           FROM payment_operation op
           JOIN payment_instrument instrument ON instrument.tenant_id=op.tenant_id AND instrument.id=op.instrument_id
@@ -303,8 +313,10 @@ export class PaymentService {
                  instrument.id instrument_id,instrument.psp provider,
                  CASE instrument.kind WHEN 'card_network_token' THEN 'card' ELSE 'upi' END method,
                  account.currency::text,
-                 CASE instrument.kind WHEN 'card_network_token' THEN 'CARD_PAYMENT' ELSE 'UPI_PAYMENT' END tx_code,
-                 route.debit_account_id clearing_account_id,${audit.actorId}::uuid actor_id,instrument.token
+                 CASE WHEN ${purpose}='deposit' THEN 'DEP'
+                      WHEN instrument.kind='card_network_token' THEN 'CARD_PAYMENT' ELSE 'UPI_PAYMENT' END tx_code,
+                 route.debit_account_id clearing_account_id,deposit.id deposit_account_id,
+                 ${purpose}::text purpose,${audit.actorId}::uuid actor_id,instrument.token
             FROM folio
             JOIN account ON account.tenant_id=folio.tenant_id AND account.id=folio.account_id
             JOIN org_node property ON property.tenant_id=account.tenant_id AND property.id=account.property_node AND property.kind='property'
@@ -313,6 +325,12 @@ export class PaymentService {
             JOIN tx_code_route route ON route.tenant_id=account.tenant_id AND route.property_node=account.property_node
               AND route.currency=account.currency AND route.tx_code=code.code
             JOIN account clearing ON clearing.tenant_id=route.tenant_id AND clearing.id=route.debit_account_id
+            LEFT JOIN tx_code_route deposit_route ON deposit_route.tenant_id=account.tenant_id
+              AND deposit_route.property_node=account.property_node AND deposit_route.currency=account.currency
+              AND deposit_route.tx_code='DEP' AND ${purpose}='deposit'
+            LEFT JOIN account deposit ON deposit.tenant_id=deposit_route.tenant_id
+              AND deposit.property_node=deposit_route.property_node AND deposit.currency=deposit_route.currency
+              AND deposit.id=deposit_route.credit_account_id AND deposit.role='deposit_liability' AND deposit.status='open'
             JOIN app_user actor ON actor.tenant_id=folio.tenant_id AND actor.id=${audit.actorId}::uuid AND actor.status='active'
            WHERE folio.tenant_id=${tenantId}::uuid AND folio.id=${(raw as CreatePaymentOperationInput).folioId}::uuid
              AND folio.status='open' AND account.status='open' AND account.role='guest'
@@ -322,19 +340,21 @@ export class PaymentService {
              AND code.grp='payment' AND code.default_dr=CASE instrument.kind WHEN 'card_network_token' THEN 'card_clearing' ELSE 'upi_clearing' END
              AND code.default_cr='guest' AND clearing.status='open'
              AND clearing.role=CASE instrument.kind WHEN 'card_network_token' THEN 'card_clearing' ELSE 'upi_clearing' END
-             AND clearing.property_node=account.property_node AND clearing.currency=account.currency`)[0];
+             AND clearing.property_node=account.property_node AND clearing.currency=account.currency
+             AND (${purpose}='folio_payment' OR deposit.id IS NOT NULL)`)[0];
         if (!context || !context.token || !SAFE_ID.test(context.token) || /^[0-9]{12,19}$/.test(context.token)) {
           throw new PaymentNotFoundError("Active tokenized instrument and governed folio payment route were not found");
         }
         const inserted = await tx<OperationRow[]>`
           INSERT INTO payment_operation(tenant_id,id,property_node,folio_id,guest_account_id,instrument_id,
-            provider,method,currency,tx_code,clearing_account_id,purpose,key_hash,request_hash,actor_id)
+            provider,method,currency,tx_code,clearing_account_id,deposit_account_id,purpose,key_hash,request_hash,actor_id)
           VALUES(${tenantId}::uuid,${context.id}::uuid,${context.property_node}::uuid,${context.folio_id}::uuid,
             ${context.guest_account_id}::uuid,${context.instrument_id}::uuid,${context.provider},${context.method},
-            ${context.currency}::char(3),${context.tx_code},${context.clearing_account_id}::uuid,'folio_payment',
+            ${context.currency}::char(3),${context.tx_code},${context.clearing_account_id}::uuid,
+            ${context.deposit_account_id}::uuid,${purpose},
             ${commandKeyHash},${requestHash},${audit.actorId}::uuid)
           RETURNING id,property_node,folio_id,guest_account_id,instrument_id,provider,method,currency::text,
-                    tx_code,clearing_account_id,actor_id,${context.token}::text token`;
+                    tx_code,clearing_account_id,deposit_account_id,purpose,actor_id,${context.token}::text token`;
         operation = inserted[0]!;
       }
     } else {
@@ -342,6 +362,7 @@ export class PaymentService {
       const found = (await tx<OperationRow[]>`
         SELECT op.id,op.property_node,op.folio_id,op.guest_account_id,op.instrument_id,
                op.provider,op.method,op.currency::text,op.tx_code,op.clearing_account_id,
+               op.deposit_account_id,op.purpose,
                op.actor_id,instrument.token
           FROM payment_operation op
           JOIN payment_instrument instrument ON instrument.tenant_id=op.tenant_id AND instrument.id=op.instrument_id
@@ -384,13 +405,19 @@ export class PaymentService {
     if (phase === "capture") {
       if (state.captured > 0n) throw new PaymentConflictError("Payment operation already has its one capture");
       if (amount > state.authorized) throw new PaymentConflictError("Capture exceeds authorized value");
+      const creditAccount = operation.purpose === "deposit" ? operation.deposit_account_id : operation.guest_account_id;
+      if (!creditAccount) throw new PaymentConflictError("Payment operation account route is unavailable");
       await tx`SELECT public.lock_financial_rows(${tenantId}::uuid,
-        ARRAY[${operation.guest_account_id}::uuid,${operation.clearing_account_id}::uuid]::uuid[],${operation.folio_id}::uuid)`;
-      const balance = (await tx<Array<{ amount: string }>>`SELECT COALESCE(sum(amount_minor),0)::text amount FROM posting_line
-        WHERE tenant_id=${tenantId}::uuid AND folio_id=${operation.folio_id}::uuid`)[0]!.amount;
-      if (BigInt(balance) <= 0n || amount > BigInt(balance)) throw new PaymentConflictError("Capture exceeds current positive folio balance");
+        ARRAY[${creditAccount}::uuid,${operation.clearing_account_id}::uuid]::uuid[],
+        ${operation.purpose === "folio_payment" ? operation.folio_id : null}::uuid)`;
+      if (operation.purpose === "folio_payment") {
+        const balance = (await tx<Array<{ amount: string }>>`SELECT COALESCE(sum(amount_minor),0)::text amount FROM posting_line
+          WHERE tenant_id=${tenantId}::uuid AND folio_id=${operation.folio_id}::uuid`)[0]!.amount;
+        if (BigInt(balance) <= 0n || amount > BigInt(balance)) throw new PaymentConflictError("Capture exceeds current positive folio balance");
+      }
     }
     if (phase === "refund") {
+      if (operation.purpose === "deposit") throw new PaymentConflictError("Deposit refunds are not available");
       if (state.captured === 0n || amount > state.captured - state.refunded) throw new PaymentConflictError("Refund exceeds captured remainder");
     }
     if (phase === "void") {
@@ -469,17 +496,22 @@ export class PaymentService {
     if (!dateRow || dateRow.sealed_at !== null) throw new PaymentConflictError("Current property business day is missing or sealed");
     businessDate = dateRow.business_date;
     if (status === "succeeded" && (prepared.phase === "capture" || prepared.phase === "refund")) {
+      const creditAccount = prepared.operation.purpose === "deposit"
+        ? prepared.operation.deposit_account_id : prepared.operation.guest_account_id;
+      if (!creditAccount) throw new PaymentConflictError("Payment operation account route is unavailable");
       await tx`SELECT public.lock_financial_rows(${prepared.tenantId}::uuid,
-        ARRAY[${prepared.operation.guest_account_id}::uuid,${prepared.operation.clearing_account_id}::uuid]::uuid[],
-        ${prepared.operation.folio_id}::uuid)`;
+        ARRAY[${creditAccount}::uuid,${prepared.operation.clearing_account_id}::uuid]::uuid[],
+        ${prepared.operation.purpose === "folio_payment" ? prepared.operation.folio_id : null}::uuid)`;
       const latest = chain(await tx<AttemptRow[]>`SELECT id,phase,amount_minor::text,status,result_code,psp_ref,journal_id,
         attempt_no,predecessor_payment_id,request_hash FROM payment WHERE tenant_id=${prepared.tenantId}::uuid
         AND operation_id=${prepared.operation.id}::uuid AND id<>${prepared.pendingId}::uuid ORDER BY attempt_no,id`);
       const amount = BigInt(prepared.amountMinor);
       if (prepared.phase === "capture") {
-        const balance = BigInt((await tx<Array<{ amount: string }>>`SELECT COALESCE(sum(amount_minor),0)::text amount
-          FROM posting_line WHERE tenant_id=${prepared.tenantId}::uuid AND folio_id=${prepared.operation.folio_id}::uuid`)[0]!.amount);
-        if (latest.captured > 0n || amount > latest.authorized || balance <= 0n || amount > balance) {
+        const balance = prepared.operation.purpose === "folio_payment" ? BigInt((await tx<Array<{ amount: string }>>`
+          SELECT COALESCE(sum(amount_minor),0)::text amount FROM posting_line
+          WHERE tenant_id=${prepared.tenantId}::uuid AND folio_id=${prepared.operation.folio_id}::uuid`)[0]!.amount) : null;
+        if (latest.captured > 0n || amount > latest.authorized ||
+            (balance !== null && (balance <= 0n || amount > balance))) {
           throw new PaymentConflictError("Capture no longer satisfies locked payment and folio limits");
         }
       } else if (latest.captured === 0n || amount > latest.captured - latest.refunded) {
@@ -492,12 +524,13 @@ export class PaymentService {
         ${JSON.stringify({ interface: `financials.payment.${prepared.phase}` })}::text::jsonb,${prepared.envelope.actorId}::uuid)
         RETURNING id`)[0]!;
       journalId = header.id;
-      const guestAmount = prepared.phase === "capture" ? -amount : amount;
-      const clearingAmount = -guestAmount;
+      const creditAmount = prepared.phase === "capture" ? -amount : amount;
+      const clearingAmount = -creditAmount;
       await tx`INSERT INTO posting_line(tenant_id,journal_id,seq,account_id,folio_id,tx_code,description,amount_minor,
         quantity,business_date,currency) VALUES
-        (${prepared.tenantId}::uuid,${journalId}::uuid,1,${prepared.operation.guest_account_id}::uuid,
-          ${prepared.operation.folio_id}::uuid,${prepared.operation.tx_code},${prepared.phase},${guestAmount},1,
+        (${prepared.tenantId}::uuid,${journalId}::uuid,1,${creditAccount}::uuid,
+          ${prepared.operation.purpose === "deposit" ? null : prepared.operation.folio_id}::uuid,
+          ${prepared.operation.tx_code},${prepared.phase},${creditAmount},1,
           ${businessDate}::date,${prepared.operation.currency}::char(3)),
         (${prepared.tenantId}::uuid,${journalId}::uuid,2,${prepared.operation.clearing_account_id}::uuid,
           NULL,${prepared.operation.tx_code},${prepared.phase},${clearingAmount},1,${businessDate}::date,
@@ -530,7 +563,8 @@ export class PaymentService {
       const journalPayload = Object.freeze({ journal_id: journalId, kind: prepared.phase === "capture" ? "payment" : "refund",
         payment_id: inserted.id, operation_id: prepared.operation.id,
         lines: Object.freeze([
-          Object.freeze({ account: prepared.operation.guest_account_id, folio: prepared.operation.folio_id,
+          Object.freeze({ account: prepared.operation.purpose === "deposit" ? prepared.operation.deposit_account_id! : prepared.operation.guest_account_id,
+            ...(prepared.operation.purpose === "deposit" ? {} : { folio: prepared.operation.folio_id }),
             tx_code: prepared.operation.tx_code, amount_minor: (prepared.phase === "capture" ?
               -BigInt(prepared.amountMinor) : BigInt(prepared.amountMinor)).toString() }),
           Object.freeze({ account: prepared.operation.clearing_account_id,
@@ -558,7 +592,8 @@ export class PaymentService {
     const prepared = await this.#database.withTenantTransaction(tenantId, async (tx): Promise<Prepared | ExistingResult> => {
       await tx`SELECT public.lock_payment_operation(${tenantId}::uuid,${operationId}::uuid)`;
       const op = (await tx<OperationRow[]>`SELECT op.id,op.property_node,op.folio_id,op.guest_account_id,op.instrument_id,
-        op.provider,op.method,op.currency::text,op.tx_code,op.clearing_account_id,op.actor_id,instrument.token
+        op.provider,op.method,op.currency::text,op.tx_code,op.clearing_account_id,
+        op.deposit_account_id,op.purpose,op.actor_id,instrument.token
         FROM payment_operation op JOIN payment_instrument instrument ON instrument.tenant_id=op.tenant_id AND instrument.id=op.instrument_id
         WHERE op.tenant_id=${tenantId}::uuid AND op.id=${operationId}::uuid AND op.property_node=${audit.propertyNode}::uuid`)[0];
       if (!op || op.currency !== input.currency) throw new PaymentNotFoundError("Payment operation was not found for receipt");

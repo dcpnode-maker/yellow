@@ -28,6 +28,10 @@ import {
   FolioStatementService,
   FolioStatementValidationError,
   FolioValidationError,
+  HostedDepositConflictError,
+  HostedDepositNotFoundError,
+  HostedDepositService,
+  HostedDepositValidationError,
 } from "../contexts/financials";
 import {
   AvailabilityService,
@@ -161,6 +165,9 @@ const FOLIO_TRANSFER_SCOPE = "financials.transfers:write";
 const CHARGE_WRITE_SCOPE = "financials.charges:write";
 const ADJUSTMENT_WRITE_SCOPE = "financials.adjustments:write";
 const ADJUSTMENT_POST_SEAL_SCOPE = "financials.adjustments:post-seal";
+const PAYMENT_READ_SCOPE = "financials.payments:read";
+const PAYMENT_WRITE_SCOPE = "financials.payments:write";
+const DEPOSIT_APPLY_SCOPE = "financials.deposits:apply";
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 const ISO_INSTANT = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})(?::(\d{2})(?:\.(\d{1,3}))?)?(Z|([+-])(\d{2}):(\d{2}))$/;
 const LOCAL_DATE = /^(\d{4})-(\d{2})-(\d{2})$/;
@@ -949,6 +956,7 @@ type ChargeOperations = Pick<ChargeService, "postCharge">;
 type ChargeCorrectionOperations = Pick<ChargeCorrectionService, "reverseCharge">;
 type FolioOperations = Pick<FolioService, "openPrimary" | "openAdditional">;
 type FolioTransferOperations = Pick<FolioTransferService, "preview" | "transfer">;
+type HostedDepositOperations = Pick<HostedDepositService, "create" | "apply" | "statusForOperator">;
 
 const MAX_MONEY = 9_223_372_036_854_775_807n;
 
@@ -1336,6 +1344,7 @@ export class OperatorHttpApi {
   readonly #chargeCorrections?: ChargeCorrectionOperations;
   readonly #folios?: FolioOperations;
   readonly #folioTransfers?: FolioTransferOperations;
+  readonly #hostedDeposits?: HostedDepositOperations;
 
   constructor(
     login: LocalLoginService,
@@ -1364,6 +1373,7 @@ export class OperatorHttpApi {
     folios?: FolioOperations,
     chargeCorrections?: ChargeCorrectionOperations,
     folioTransfers?: FolioTransferOperations,
+    hostedDeposits?: HostedDepositOperations,
   ) {
     this.#login = login;
     this.#availability = availability;
@@ -1391,6 +1401,7 @@ export class OperatorHttpApi {
     this.#folios = folios;
     this.#chargeCorrections = chargeCorrections;
     this.#folioTransfers = folioTransfers;
+    this.#hostedDeposits = hostedDeposits;
   }
 
   unavailable(request: Request): Response {
@@ -1404,12 +1415,12 @@ export class OperatorHttpApi {
   failure(request: Request, error: unknown): Response {
     if (error instanceof FolioValidationError || error instanceof FolioStatementValidationError ||
         error instanceof ChargeValidationError || error instanceof ChargeCorrectionValidationError ||
-        error instanceof FolioTransferValidationError) {
+        error instanceof FolioTransferValidationError || error instanceof HostedDepositValidationError) {
       return apiError(request, 400, "request/invalid", "Invalid request", "Financial input is invalid");
     }
     if (error instanceof FolioNotFoundError || error instanceof FolioStatementNotFoundError ||
         error instanceof ChargeNotFoundError || error instanceof ChargeCorrectionNotFoundError ||
-        error instanceof FolioTransferNotFoundError) {
+        error instanceof FolioTransferNotFoundError || error instanceof HostedDepositNotFoundError) {
       return apiError(request, 404, "financials/not_found", "Not found", "The requested folio or charge configuration was not found");
     }
     if (error instanceof FolioConflictError) {
@@ -1417,6 +1428,9 @@ export class OperatorHttpApi {
     }
     if (error instanceof FolioTransferConflictError) {
       return apiError(request, 409, "financials/conflict", "Conflict", "The folio transfer conflicts with current financial state");
+    }
+    if (error instanceof HostedDepositConflictError) {
+      return apiError(request, 409, "financials/conflict", "Conflict", "The hosted deposit conflicts with current financial state");
     }
     if (error instanceof ChargeConflictError) {
       return apiError(request, 409, "financials/conflict", "Conflict", "The charge conflicts with current financial state");
@@ -1764,6 +1778,104 @@ export class OperatorHttpApi {
     return apiResponse(context.request, canonicalJson(jsonValue(result)), 201, {
       "idempotency-replayed": String(result.replayed), "x-correlation-id": requestId,
     });
+  }
+
+  async createHostedDeposit(
+    context: TenantRequestContext,
+    propertyNode: string,
+    folioId: string,
+    body: unknown,
+  ): Promise<Response> {
+    if (!hasScope(context, PAYMENT_WRITE_SCOPE)) {
+      return apiError(context.request, 403, "auth/scope_missing", "Forbidden", "Payment creation is not granted");
+    }
+    if (!UUID.test(propertyNode) || !UUID.test(folioId) || !isObject(body) ||
+        !exactKeys(body, ["instrumentId", "amountMinor"]) || typeof body.instrumentId !== "string" ||
+        !UUID.test(body.instrumentId) || typeof body.amountMinor !== "string" ||
+        !POSITIVE_INT64.test(body.amountMinor) || BigInt(body.amountMinor) > INT64_MAX) {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Hosted deposit input is invalid");
+    }
+    const idempotencyKey = context.request.headers.get("idempotency-key");
+    if (!idempotencyKey || !IDEMPOTENCY_KEY.test(idempotencyKey)) {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Hosted deposit input is invalid");
+    }
+    const grants = await listGrantedProperties(context, PAYMENT_WRITE_SCOPE);
+    if (!grants.some(({ id }) => id === propertyNode)) {
+      return apiError(context.request, 403, "auth/property_forbidden", "Forbidden", "Property access is not granted");
+    }
+    if (!this.#hostedDeposits) return this.unavailable(context.request);
+    const requestId = correlationId(context.request);
+    const result = await this.#hostedDeposits.create({ tenantId: context.tenantId, folioId,
+      instrumentId: body.instrumentId, amountMinor: body.amountMinor, idempotencyKey,
+      envelope: createAuditEnvelope({ actorId: context.identity.actorId, tenantId: context.tenantId,
+        propertyNode, requestId, operation: "deposit.requested" }) });
+    return apiResponse(context.request, canonicalJson(jsonValue(result)), 201, { "x-correlation-id": requestId });
+  }
+
+  async applyHostedDeposit(
+    context: TenantRequestContext,
+    propertyNode: string,
+    requestIdValue: string,
+    body: unknown,
+  ): Promise<Response> {
+    if (!hasScope(context, DEPOSIT_APPLY_SCOPE)) {
+      return apiError(context.request, 403, "auth/scope_missing", "Forbidden", "Deposit application is not granted");
+    }
+    if (!UUID.test(propertyNode) || !UUID.test(requestIdValue) || !isObject(body) ||
+        !exactKeys(body, ["amountMinor"]) || typeof body.amountMinor !== "string" ||
+        !POSITIVE_INT64.test(body.amountMinor) || BigInt(body.amountMinor) > INT64_MAX) {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Deposit application input is invalid");
+    }
+    const idempotencyKey = context.request.headers.get("idempotency-key");
+    if (!idempotencyKey || !IDEMPOTENCY_KEY.test(idempotencyKey)) {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Deposit application input is invalid");
+    }
+    const grants = await listGrantedProperties(context, DEPOSIT_APPLY_SCOPE);
+    if (!grants.some(({ id }) => id === propertyNode)) {
+      return apiError(context.request, 403, "auth/property_forbidden", "Forbidden", "Property access is not granted");
+    }
+    if (!this.#hostedDeposits) return this.unavailable(context.request);
+    const correlation = correlationId(context.request);
+    const result = await this.#hostedDeposits.apply({ tenantId: context.tenantId,
+      hostedRequestId: requestIdValue, amountMinor: body.amountMinor, idempotencyKey,
+      envelope: createAuditEnvelope({ actorId: context.identity.actorId, tenantId: context.tenantId,
+        propertyNode, requestId: correlation, operation: "deposit.applied" }) });
+    return apiResponse(context.request, canonicalJson(jsonValue(result)), result.replayed ? 200 : 201,
+      { "idempotency-replayed": String(result.replayed), "x-correlation-id": correlation });
+  }
+
+  async hostedDepositReadAuthority(context: TenantRequestContext, propertyNode: string): Promise<Response> {
+    if (!hasScope(context, PAYMENT_READ_SCOPE)) {
+      return apiError(context.request, 403, "auth/scope_missing", "Forbidden", "Payment access is not granted");
+    }
+    const grants = await listGrantedProperties(context, PAYMENT_READ_SCOPE);
+    if (!UUID.test(propertyNode) || !grants.some(({ id }) => id === propertyNode)) {
+      return apiError(context.request, 403, "auth/property_forbidden", "Forbidden", "Property access is not granted");
+    }
+    return apiResponse(context.request, { authorized: true });
+  }
+
+  async hostedDepositStatus(
+    context: TenantRequestContext,
+    propertyNode: string,
+    requestIdValue: string,
+  ): Promise<Response> {
+    if (!hasScope(context, PAYMENT_READ_SCOPE)) {
+      return apiError(context.request, 403, "auth/scope_missing", "Forbidden", "Payment access is not granted");
+    }
+    if (!UUID.test(propertyNode) || !UUID.test(requestIdValue)) {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Hosted deposit identity is invalid");
+    }
+    const grants = await listGrantedProperties(context, PAYMENT_READ_SCOPE);
+    if (!grants.some(({ id }) => id === propertyNode)) {
+      return apiError(context.request, 403, "auth/property_forbidden", "Forbidden", "Property access is not granted");
+    }
+    if (!this.#hostedDeposits) return this.unavailable(context.request);
+    const result = await this.#hostedDeposits.statusForOperator(context.tenantId, requestIdValue);
+    if (result.propertyNode !== propertyNode) {
+      return apiError(context.request, 404, "resource/not_found", "Not found", "Hosted deposit was not found");
+    }
+    return apiResponse(context.request, canonicalJson(jsonValue(result)));
   }
 
   async postFolioCharge(
@@ -3452,6 +3564,8 @@ const ASSET_URLS = {
   html: new URL("./operator/index.html", import.meta.url),
   css: new URL("./operator/operator.css", import.meta.url),
   js: new URL("./operator/operator.js", import.meta.url),
+  depositCss: new URL("./operator/operator-deposits.css", import.meta.url),
+  depositJs: new URL("./operator/operator-deposits.js", import.meta.url),
 } as const;
 
 function assetResponse(url: URL, contentType: string): Response {
@@ -3464,4 +3578,6 @@ export const operatorAssets = Object.freeze({
   html(): Response { return assetResponse(ASSET_URLS.html, "text/html; charset=utf-8"); },
   css(): Response { return assetResponse(ASSET_URLS.css, "text/css; charset=utf-8"); },
   js(): Response { return assetResponse(ASSET_URLS.js, "text/javascript; charset=utf-8"); },
+  depositCss(): Response { return assetResponse(ASSET_URLS.depositCss, "text/css; charset=utf-8"); },
+  depositJs(): Response { return assetResponse(ASSET_URLS.depositJs, "text/javascript; charset=utf-8"); },
 });

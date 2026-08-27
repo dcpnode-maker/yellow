@@ -150,6 +150,15 @@ PAN, CVV, raw callbacks and secrets are forbidden from source, schema, seeds, lo
 facts, outbox and reconciliation storage. Operation and financial-row locks serialize
 money decisions; receipts and effects commit atomically.
 
+Hosted deposit links add a bearer surface without adding payment credentials. The
+256-bit raw bearer is shown once, is sent only in the guest URL, and is never persisted,
+logged, emitted, cached, stored by browser APIs or forwarded to the provider origin.
+Provider handoff and callback use non-secret correlation plus bounded, expiring HMAC
+signatures; callback verification covers exact raw bytes and path before parsing.
+Guest/provider pages are same-product but separate origins with no-store/no-referrer,
+strict CSP, no cookies and no third-party assets. Operator creation, status and
+application retain separate scopes and exact property grants.
+
 - Identity data retention per country config; scheduled anonymisation after the
   legal window. Erasure = anonymise party, preserve financial rows (GDPR
   Art. 17(3)(b)) — TC-8.5.

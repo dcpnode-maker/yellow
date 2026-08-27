@@ -4,6 +4,7 @@ import { isIP } from "node:net";
 import { SECURITY_HEADERS } from "./http/security-headers";
 import { ExtensionHttpApi } from "./http/extensions";
 import { operatorAssets, type OperatorHttpApi } from "./http/operator";
+import { hostedDepositAssets, type HostedDepositProviderHttpApi } from "./http/provider";
 import {
   Database,
   type ExtensionRegistry,
@@ -37,6 +38,8 @@ export interface AppOptions {
   readonly tenantResolver?: TenantResolver;
   readonly extensionRegistry?: ExtensionRegistry;
   readonly operatorApi?: OperatorHttpApi;
+  readonly hostedDepositRoutes?: HostedDepositProviderHttpApi;
+  readonly hostedDepositSurface?: "guest" | "provider" | "all";
 }
 
 export function createApp(options: AppOptions = {}) {
@@ -101,6 +104,8 @@ export function createApp(options: AppOptions = {}) {
       .get("/p/:property/status", () => operatorAssets.html())
       .get("/assets/operator.css", () => operatorAssets.css())
       .get("/assets/operator.js", () => operatorAssets.js())
+      .get("/assets/operator-deposits.css", () => operatorAssets.depositCss())
+      .get("/assets/operator-deposits.js", () => operatorAssets.depositJs())
       .post("/api/v1/auth/local:login", ({ request, body, server }) =>
         operator.login(request, body, localLoginSourceKey(server?.requestIP(request)))
       )
@@ -143,6 +148,24 @@ export function createApp(options: AppOptions = {}) {
       .post("/api/v1/properties/:property/folios/:folioId/transfers", ({ request, params, body, tenantContext }) =>
         withOperatorTenant(request, (context) => operator.transferFolioGroups(
           context, params.property, params.folioId, body,
+        ))
+      )
+      .get("/api/v1/properties/:property/payments/authority", ({ request, params, tenantContext }) =>
+        withOperatorTenant(request, (context) => operator.hostedDepositReadAuthority(context, params.property))
+      )
+      .post("/api/v1/properties/:property/folios/:folioId/hosted-deposits", ({ request, params, body, tenantContext }) =>
+        withOperatorTenant(request, (context) => operator.createHostedDeposit(
+          context, params.property, params.folioId, body,
+        ))
+      )
+      .post("/api/v1/properties/:property/hosted-deposits/:requestId/applications", ({ request, params, body, tenantContext }) =>
+        withOperatorTenant(request, (context) => operator.applyHostedDeposit(
+          context, params.property, params.requestId, body,
+        ))
+      )
+      .get("/api/v1/properties/:property/hosted-deposits/:requestId", ({ request, params, tenantContext }) =>
+        withOperatorTenant(request, (context) => operator.hostedDepositStatus(
+          context, params.property, params.requestId,
         ))
       )
       .post("/api/v1/properties/:property/availability:search", ({ request, params, body, tenantContext }) =>
@@ -308,6 +331,32 @@ export function createApp(options: AppOptions = {}) {
       .post("/api/v1/properties/:property/inventory/rooms:bulk", ({ request, params, body, tenantContext }) =>
         withOperatorTenant(request, (context) => operator.createBulkRooms(context, params.property, body))
       );
+  }
+
+  if (options.hostedDepositRoutes) {
+    const provider = options.hostedDepositRoutes;
+    const surface = options.hostedDepositSurface ?? "all";
+    if (surface === "guest" || surface === "all") app
+      .get("/pay/:bearer", () => hostedDepositAssets.guestHtml())
+      .get("/pay/:bearer/return", () => hostedDepositAssets.guestHtml())
+      .get("/pay-return/:correlation", () => hostedDepositAssets.guestHtml())
+      .get("/assets/guest.css", () => hostedDepositAssets.guestCss())
+      .get("/assets/guest.js", () => hostedDepositAssets.guestJs())
+      .get("/api/public/hosted-deposits/:bearer", ({ request, params }) => provider.guestStatus(request, params.bearer))
+      .get("/api/public/hosted-deposit-returns/:correlation", ({ request, params }) =>
+        provider.guestStatusByCorrelation(request, params.correlation))
+      .post("/pay/:bearer/continue", ({ request, params }) => provider.continue(request, params.bearer))
+      .post("/api/v1/provider/local-deposit/callback", ({ request }) => provider.callback(request), { parse: "none" });
+    if (surface === "provider" || surface === "all") app
+      .get("/provider/pay", () => hostedDepositAssets.providerHtml())
+      .get("/assets/provider.css", () => hostedDepositAssets.providerCss())
+      .get("/assets/provider.js", () => hostedDepositAssets.providerJs())
+      .get("/api/provider/local-deposit/handoff", ({ request }) =>
+        provider.providerHandoff(new URL(request.url).searchParams.get("handoff") ?? ""))
+      .post("/api/provider/local-deposit/outcome", ({ body }) => {
+        const value = typeof body === "object" && body !== null && !Array.isArray(body) ? body as Record<string, unknown> : {};
+        return provider.providerOutcome(typeof value.handoff === "string" ? value.handoff : "", value.outcome);
+      });
   }
 
   return app;

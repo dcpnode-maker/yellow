@@ -48,7 +48,7 @@ try {
     }
     if ($running -contains 'postgres') {
         $tables = docker compose exec -T postgres psql -U yellow -d yellow_test -tAc "SELECT count(*) FROM pg_tables WHERE schemaname='public';" 2>$null
-        if ($LASTEXITCODE -eq 0) { Write-Host "yellow_test tables: $($tables.Trim()) (80 baseline + tx_code_route + 2 kernel consumer + api_idempotency + payment operation + provider receipt + schema_migration; expected 87)" }
+        if ($LASTEXITCODE -eq 0) { Write-Host "yellow_test tables: $($tables.Trim()) (80 baseline + tx_code_route + 2 kernel consumer + api_idempotency + payment operation + provider receipt + hosted request + deposit application + schema_migration; expected 89)" }
     }
 
     $phase = 0
