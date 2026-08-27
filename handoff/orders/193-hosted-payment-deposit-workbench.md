@@ -32,7 +32,8 @@ return values are informational and this order never settles or closes a folio.
   `src/contexts/financials/payments.ts`, `src/contexts/financials/index.ts`
 - `src/http/operator.ts`, `src/app.ts`, `src/server.ts`, `src/http/provider.ts`
 - `src/http/operator/index.html`, `src/http/operator/operator.js`,
-  `src/http/operator/operator.css`
+  `src/http/operator/operator.css`, `src/http/operator/operator-deposits.js`,
+  `src/http/operator/operator-deposits.css`
 - `src/http/guest/index.html`, `src/http/guest/guest.js`, `src/http/guest/guest.css`
 - `src/http/provider/index.html`, `src/http/provider/provider.js`,
   `src/http/provider/provider.css`
@@ -91,6 +92,10 @@ requires a numbered question; scope must not widen silently.
    property grants, durable actor-bound idempotency, no-store responses and generic
    cross-tenant denials. The operator UI uses server amounts/status, retains retry keys,
    refetches after success and never infers authority or optimistic success.
+   Deposit-workbench markup, behavior and styling load from dependency-free same-origin
+   lazy assets only when the folio Deposits tab is selected. The original three-asset
+   shell remains at or below 96 KiB gzip; lazy assets have a separate strict executable
+   budget and preserve CSP, no-storage, stale-identity and keyboard invariants.
 9. Initial delivery is copy-only. Deposit refunds, chargebacks, real PSP/UPI,
    email/WhatsApp delivery, cashier, settlement/checkout, AR/trust, tax/fiscal and
    public booking remain separate orders.
