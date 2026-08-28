@@ -1,9 +1,9 @@
 # Order 245 — Parking occupancy definer-path repair
 
-**Status:** READY-D638
+**Status:** BUILT-UNREVIEWED-D639
 **Phase:** 7 — Tax engine and India IRP prerequisite hygiene
 **Branch:** `phase-7/parking-occupancy-definer-path-repair`
-**Base:** Order244 implementation descendant of `9cd40d9`
+**Base:** Order244 implementation `1cef833`
 **Risk tier:** 3 — forward repair to occupancy SECURITY DEFINER configuration
 **Owner:** Codex implementation; independent high-risk review deferred by founder build-first direction
 
@@ -53,6 +53,24 @@ and product behavior remain unchanged.
 
 ## Definition of done
 
-- [ ] Forward repair and exact fixtures are executable.
-- [ ] Fresh migration suite, acceptance and 94-table referee are green.
-- [ ] Order closes only built-unreviewed pending independent Tier-3 review.
+- [x] Forward repair and exact fixtures are executable.
+- [x] Fresh migration suite, acceptance and 94-table referee are green.
+- [x] Order closes only built-unreviewed pending independent Tier-3 review.
+
+## Built checkpoint
+
+Migration0039 changes only the exact seven-argument `record_occupancy` and two-argument
+`release_occupancy` function configurations to `pg_catalog, public, pg_temp`. The
+generated schema diff contains only those two configuration changes; all bodies,
+signatures, owners and ACLs remain unchanged. Its SHA-256 is
+`365ffb951f4ea5f4febac97ed7a4d86d5c342891d0d5464e8a36a73653c1b841`.
+
+Fresh PostgreSQL proves 94 tables and 84 RLS policies, migration integration 36/36
+with 160 assertions, canonical database acceptance 8/8 with 18 assertions and the
+adversarial referee 11/11. The standing suite passes 822/822 plus 717 expected
+database skips with 8,372 assertions across 1,539 tests/278 files; typecheck, 91
+import boundaries, 23-package licence policy, zero-vulnerability audit, all four
+JavaScript syntax checks and diff hygiene are green. Disposable proof databases were
+removed and the sole port-3000 app was untouched. Independent Tier-3 review remains
+deferred; no approval, product behavior, local promotion, merge, deployment, Phase7
+or application-complete claim is made.

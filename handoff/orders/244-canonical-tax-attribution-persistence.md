@@ -1,6 +1,6 @@
 # Order 244 — Canonical tax-attribution persistence foundation
 
-**Status:** BUILT-AWAITING-ORDER245-GATE-D638
+**Status:** BUILT-UNREVIEWED-D640
 **Phase:** 7 — Tax engine and India IRP
 **Branch:** `phase-7/canonical-tax-attribution-persistence`
 **Base:** `f97464b` (approved sole-local Order243 descendant of built Order242/240)
@@ -76,8 +76,8 @@ held, a reservation committed, money posted or a fiscal document issued.
 
 - [x] Intentional red precedes implementation.
 - [x] Governed append-only root and exact record/read service are executable.
-- [ ] Fresh PostgreSQL and standing proof is transcribed.
-- [ ] Order closes only built-unreviewed pending independent Tier-3 review.
+- [x] Fresh PostgreSQL and standing proof is transcribed.
+- [x] Order closes only built-unreviewed pending independent Tier-3 review.
 
 ## Built checkpoint
 
@@ -89,8 +89,11 @@ skips, with typecheck, 91 boundaries, 23-package licence policy, zero-vulnerabil
 audit, four JavaScript syntax checks and diff hygiene green. Fresh PostgreSQL has 94
 tables/84 policies; database acceptance passes 8/8 and the referee passes 11/11.
 
-The complete migration runner is 35/36 because its standing SECURITY DEFINER proof
-correctly discovered two inherited Order236 functions whose immutable migration0037
-omits explicit `pg_temp` from `search_path`. D-638/Order245 records the narrow
-forward-only prerequisite repair. This checkpoint does not claim Order244 closed or
+The complete migration runner originally stopped at 35/36 because its standing
+SECURITY DEFINER proof correctly discovered two inherited Order236 functions whose
+immutable migration0037 omitted explicit `pg_temp` from `search_path`. D-638/Order245
+repaired those exact configurations forward-only without changing either function
+body, signature, owner or ACL. The resulting fresh migration suite is 36/36 with 160
+assertions, database acceptance is 8/8 with 18 assertions and the 94-table/84-policy
+referee is 11/11. D-640 therefore closes this order built-unreviewed. It is not
 independently approved and does not promote or mutate the sole local app.

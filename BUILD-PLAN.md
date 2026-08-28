@@ -479,6 +479,21 @@ zero-vulnerability audit, JavaScript syntax and diff hygiene are green. Schema,
 database and local runtime behavior are unchanged; persistence, posting, documents
 and fiscal finality remain later slices.
 
+Order244 is built-unreviewed under D-640 as the first governed persistence boundary.
+One exact positive Order240 snapshot can be stored as append-only tenant/property
+truth with actor binding, same-hash convergence, tenant-scoped read and one minimized
+atomic `tax.attribution_recorded` fact/outbox pair. Focused real PostgreSQL proof is
+`6/6` with 49 assertions; standing proof is `822/822` plus 717 expected database
+skips. No hold, reservation, folio, journal, posting, document or fiscal state changes.
+
+Order245 is built-unreviewed under D-639. Forward migration0039 repairs only the two
+inherited Order236 occupancy SECURITY DEFINER search paths to explicit `pg_temp` last;
+function bodies, signatures, owners, ACLs and product behavior remain unchanged. The
+complete fresh migration suite is `36/36` with 160 assertions, database acceptance is
+`8/8` with 18 assertions and the 94-table/84-policy referee is `11/11`. Typecheck,
+91 boundaries, 23 licences, zero-vulnerability audit, four JavaScript syntax checks
+and diff hygiene are green. Independent review remains deferred.
+
 Order244 is ready under D-637 as the append-only persistence foundation. It gives one
 exact parsed Order240 positive quote snapshot a tenant/property-scoped PostgreSQL
 root, same-hash convergence, tenant-isolated read, idempotent receipt and one atomic

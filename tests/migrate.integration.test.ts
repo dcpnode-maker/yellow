@@ -1142,7 +1142,7 @@ databaseDescribe("Bun SQL migration runner", () => {
           appExecute: false,
           runtimeExecute: false,
           volatility: "v",
-          config: ["search_path=pg_catalog, public"],
+          config: ["search_path=pg_catalog, public, pg_temp"],
         }]);
       });
     },
@@ -1625,6 +1625,7 @@ databaseDescribe("Bun SQL migration runner", () => {
           logger: () => undefined,
         });
         expect(result.appliedFiles).toContain("0011_security_definer_containment.sql");
+        expect(result.appliedFiles).toContain("0039_parking_occupancy_definer_path_repair.sql");
 
         const ledger = await sql<
           { version: string | bigint; filename: string; checksum_sha256: string }[]
@@ -1633,6 +1634,15 @@ databaseDescribe("Bun SQL migration runner", () => {
           version: 11,
           filename: "0011_security_definer_containment.sql",
           checksum_sha256: "6c9af4f72fa6be5a2c0e256624620c7ee8cf61d709c3ca99a37cd126bbe57796",
+        }]);
+
+        const repairLedger = await sql<
+          { version: string | bigint; filename: string; checksum_sha256: string }[]
+        >`SELECT version, filename, checksum_sha256 FROM schema_migration WHERE version = 39`;
+        expect(repairLedger.map((row) => ({ ...row, version: Number(row.version) }))).toEqual([{
+          version: 39,
+          filename: "0039_parking_occupancy_definer_path_repair.sql",
+          checksum_sha256: "365ffb951f4ea5f4febac97ed7a4d86d5c342891d0d5464e8a36a73653c1b841",
         }]);
 
         const functions = await sql<{
@@ -1656,13 +1666,18 @@ databaseDescribe("Bun SQL migration runner", () => {
             FROM pg_proc AS p
             JOIN pg_namespace AS n ON n.oid = p.pronamespace
            WHERE n.nspname = 'public'
-             AND p.proname = ANY(ARRAY[
-               'record_occupancy', 'release_occupancy', 'expire_holds',
-               'prune_outbox', 'assert_day_open', 'seal_business_day'
-             ]::name[])
+             AND p.oid IN (
+               'public.record_occupancy(uuid,uuid,tstzrange,uuid,text,boolean)'::regprocedure::oid,
+               'public.record_occupancy(uuid,uuid,tstzrange,uuid,text,boolean,uuid)'::regprocedure::oid,
+               'public.release_occupancy(uuid,uuid)'::regprocedure::oid,
+               'public.expire_holds()'::regprocedure::oid,
+               'public.prune_outbox(interval)'::regprocedure::oid,
+               'public.assert_day_open()'::regprocedure::oid,
+               'public.seal_business_day(uuid,uuid,date,uuid)'::regprocedure::oid
+             )
         `;
         expect(functions).toEqual([{
-          count: 6,
+          count: 7,
           unsafeConfig: 0,
           publicExecute: 0,
           appExecute: 2,

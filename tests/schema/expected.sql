@@ -3309,7 +3309,7 @@ END $$;
 
 CREATE FUNCTION public.record_occupancy(p_tenant uuid, p_space uuid, p_period tstzrange, p_slot uuid, p_slot_kind text, p_exclusive boolean, p_vehicle uuid) RETURNS uuid
     LANGUAGE plpgsql SECURITY DEFINER
-    SET search_path TO 'pg_catalog', 'public'
+    SET search_path TO 'pg_catalog', 'public', 'pg_temp'
     AS $$
 DECLARE
   v_authority text := NULLIF(
@@ -3647,7 +3647,7 @@ $_$;
 
 CREATE FUNCTION public.release_occupancy(p_tenant uuid, p_slot uuid) RETURNS integer
     LANGUAGE plpgsql SECURITY DEFINER
-    SET search_path TO 'pg_catalog', 'public'
+    SET search_path TO 'pg_catalog', 'public', 'pg_temp'
     AS $$
 DECLARE
   v_authority text := NULLIF(

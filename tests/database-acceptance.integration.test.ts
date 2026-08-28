@@ -195,6 +195,11 @@ const EXPECTED_MIGRATIONS = [
     filename: "0038_canonical_tax_attribution_persistence.sql",
     checksum_sha256: "dea9cfaf573d56ce2c0f5ee7987bf7009d12d0517f72dcd8a3b316232937f982",
   },
+  {
+    version: 39,
+    filename: "0039_parking_occupancy_definer_path_repair.sql",
+    checksum_sha256: "365ffb951f4ea5f4febac97ed7a4d86d5c342891d0d5464e8a36a73653c1b841",
+  },
 ];
 
 if (REQUIRE_DATABASE && !DATABASE_URL) {

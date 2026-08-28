@@ -122,3 +122,19 @@ CGST/SGST/IGST/place-of-supply meaning, document allocation or provider behavior
 UI and local runtime promotion also remain absent. Independent Tier-3 review remains
 deferred; the next production slice must authoritatively re-quote and bind persisted
 evidence before posting or document work can consume it.
+
+Order244 proof is now green after the inherited prerequisite repair: focused real
+PostgreSQL persistence passes `6/6` with 49 assertions, standing proof passes
+`822/822` plus 717 expected database skips, acceptance passes `8/8`, and the fresh
+94-table/84-policy referee passes `11/11`. The append-only attribution root remains
+unlinked to holds, reservations, postings, documents and fiscal submission.
+
+## Order 245 prerequisite repair
+
+Order245 changes no Phase-7 product meaning. Forward migration0039 adds explicit
+`pg_temp`-last resolution only to the exact inherited seven-argument parking occupancy
+recorder and two-argument release wrapper. Bodies, signatures, owners, ACLs and all
+parking/occupancy behavior remain unchanged. The exact schema stays at 94 tables and
+84 RLS policies; migration proof passes `36/36` with 160 assertions, acceptance
+passes `8/8` with 18 assertions and the referee passes `11/11`. This closes the
+Order244 executable gate without claiming independent approval or Phase completion.
