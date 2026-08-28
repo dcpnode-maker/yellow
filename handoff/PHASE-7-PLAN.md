@@ -106,3 +106,19 @@ skips with 8,356 assertions across 1,528 tests/276 files. Typecheck, 90 import
 boundaries, 23 dependency licences, zero-vulnerability audit, all four JavaScript
 syntax checks and diff hygiene are green. Independent review remains deferred; no
 persistence, booking acceptance, posting, document or fiscal authority is claimed.
+
+## Order 244 boundary
+
+Order244 is the first persistence slice. One exact parsed positive Order240 snapshot
+may become an append-only `tax_attribution_snapshot` root through database-owner
+authority, with same-hash convergence, tenant-scoped read, idempotent receipt and one
+atomic minimized `tax.attribution_recorded` fact/outbox pair. Exact property and actor
+binding provides recording context only; it is not quote, hold or booking authority.
+
+This slice adds no reservation, segment, hold, occupancy, folio, journal, posting,
+`tax_detail`, document, series or submission link or mutation. It chooses no tax
+payable account or routing, negative correction allocation, India
+CGST/SGST/IGST/place-of-supply meaning, document allocation or provider behavior. HTTP,
+UI and local runtime promotion also remain absent. Independent Tier-3 review remains
+deferred; the next production slice must authoritatively re-quote and bind persisted
+evidence before posting or document work can consume it.

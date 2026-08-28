@@ -1,6 +1,6 @@
 # Order 244 — Canonical tax-attribution persistence foundation
 
-**Status:** READY-D637
+**Status:** BUILT-AWAITING-ORDER245-GATE-D638
 **Phase:** 7 — Tax engine and India IRP
 **Branch:** `phase-7/canonical-tax-attribution-persistence`
 **Base:** `f97464b` (approved sole-local Order243 descendant of built Order242/240)
@@ -74,8 +74,23 @@ held, a reservation committed, money posted or a fiscal document issued.
 
 ## Definition of done
 
-- [ ] Intentional red precedes implementation.
-- [ ] Governed append-only root and exact record/read service are executable.
+- [x] Intentional red precedes implementation.
+- [x] Governed append-only root and exact record/read service are executable.
 - [ ] Fresh PostgreSQL and standing proof is transcribed.
 - [ ] Order closes only built-unreviewed pending independent Tier-3 review.
 
+## Built checkpoint
+
+The append-only root, owner-mediated capability, strict transaction-taking service,
+tenant/property/actor containment, exact parser round-trip, idempotent convergence and
+minimized atomic fact/outbox evidence are implemented. Real PostgreSQL P1–P6 pass
+6/6 with 49 assertions; the standing suite passes 822/822 plus 717 expected database
+skips, with typecheck, 91 boundaries, 23-package licence policy, zero-vulnerability
+audit, four JavaScript syntax checks and diff hygiene green. Fresh PostgreSQL has 94
+tables/84 policies; database acceptance passes 8/8 and the referee passes 11/11.
+
+The complete migration runner is 35/36 because its standing SECURITY DEFINER proof
+correctly discovered two inherited Order236 functions whose immutable migration0037
+omits explicit `pg_temp` from `search_path`. D-638/Order245 records the narrow
+forward-only prerequisite repair. This checkpoint does not claim Order244 closed or
+independently approved and does not promote or mutate the sole local app.

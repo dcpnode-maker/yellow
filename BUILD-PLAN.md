@@ -479,6 +479,16 @@ zero-vulnerability audit, JavaScript syntax and diff hygiene are green. Schema,
 database and local runtime behavior are unchanged; persistence, posting, documents
 and fiscal finality remain later slices.
 
+Order244 is ready under D-637 as the append-only persistence foundation. It gives one
+exact parsed Order240 positive quote snapshot a tenant/property-scoped PostgreSQL
+root, same-hash convergence, tenant-isolated read, idempotent receipt and one atomic
+minimized `tax.attribution_recorded` fact/outbox pair. Contextual property and actor
+binding does not establish quote ownership or booking acceptance. No hold,
+reservation, folio, journal, posting, tax detail, document, series, submission, tax
+payable routing, correction allocation, India decomposition, HTTP, UI or local
+runtime authority is admitted; Order244 can close only built-unreviewed pending its
+required independent executable fiscal review.
+
 tax_assignment evaluation (percent/fixed/slab, compound, line-vs-document rounding)
 from EXTENSIONS §2; India GST slab per room-night; document issue path: series →
 gapless number → hash chain → document; IRP reporting adapter (sandbox), IRN + QR

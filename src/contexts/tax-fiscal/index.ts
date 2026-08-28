@@ -20,3 +20,16 @@ export type {
   PositiveTaxAttributionRoomNightInput,
   PositiveTaxAttributionSnapshotV1,
 } from "./attribution";
+export {
+  TaxAttributionPersistenceConflictError,
+  TaxAttributionPersistenceNotFoundError,
+  TaxAttributionPersistenceService,
+  TaxAttributionPersistenceValidationError,
+} from "./persistence";
+export type {
+  GetTaxAttributionInput,
+  RecordTaxAttributionInput,
+  TaxAttributionPersistenceServiceOptions,
+  TaxAttributionReceipt,
+  TaxAttributionRecord,
+} from "./persistence";

@@ -237,6 +237,29 @@ submission or fiscal-final result. Consumers must obtain separately authorized
 persistence, posting, correction, transfer and document semantics rather than treating
 the snapshot as money or legal finality.
 
+### Tax-attribution persistence containment
+
+Order 244 accepts only a value that survives the exact hostile Order-240 parser. All
+stored duplicate identity is derived from that parsed value, never caller-selected,
+and database constraints must agree with canonical JSON on every read. The active
+tenant transaction resolves the contextual property and actor through composite
+same-tenant references. Tenant RLS protects reads; PUBLIC and the app role receive no
+raw insert, update or delete. The app role can execute only the bounded
+owner-mediated record capability, whose security-definer body requires the exact
+runtime session, effective app role and transaction-local tenant context.
+
+Same-tenant snapshot-hash convergence and command idempotency prevent duplicate roots
+and evidence under replay or concurrency. Root, fact, minimized outbox event and
+receipt are one transaction: any parser, authority, fact or event failure leaves none
+of them. The outbox event deliberately excludes the full snapshot, PII, amounts,
+night/component detail, accounts, postings and documents.
+
+The property id proves where the evidence was recorded, not that its quote belongs to
+that property. No browser route or caller can convert this root into booking or
+financial authority. Authoritative re-quote and hold/reservation binding, tax-payable
+routing, journal topology, corrections, India tax decomposition, document allocation,
+numbering, provider submission and fiscal finality remain separate guarded commands.
+
 Named residual capability debt remains for approval decisions, extension
 publication/retirement, hold transitions, inventory-policy and projection
 replacement, operational-block updates, reservation/segment/guest lifecycle,

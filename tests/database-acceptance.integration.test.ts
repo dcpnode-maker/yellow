@@ -190,6 +190,11 @@ const EXPECTED_MIGRATIONS = [
     filename: "0037_governed_vehicle_parking_assignment.sql",
     checksum_sha256: "82df1de46ee97771390d1d102142380b40b590456f687fdd1bd0cd1d3a4d601a",
   },
+  {
+    version: 38,
+    filename: "0038_canonical_tax_attribution_persistence.sql",
+    checksum_sha256: "dea9cfaf573d56ce2c0f5ee7987bf7009d12d0517f72dcd8a3b316232937f982",
+  },
 ];
 
 if (REQUIRE_DATABASE && !DATABASE_URL) {
@@ -338,7 +343,7 @@ databaseDescribe("fresh deployment database acceptance", () => {
         (SELECT count(*)::int FROM pg_catalog.pg_tables WHERE schemaname = 'public') AS tables,
         (SELECT count(*)::int FROM pg_catalog.pg_policies WHERE schemaname = 'public') AS policies
     `;
-    expect(shape).toEqual([{ tables: 93, policies: 83 }]);
+    expect(shape).toEqual([{ tables: 94, policies: 84 }]);
 
     const relations = await sql!<Array<{
       relation: string;
@@ -450,7 +455,7 @@ databaseDescribe("fresh deployment database acceptance", () => {
         has_column_privilege('app_role','public.journal','approval_request_id','UPDATE') AS "appApprovalUpdate"
     `;
     expect(shape).toEqual([{
-      tables: 93, policies: 83, directBill: 1,
+      tables: 94, policies: 84, directBill: 1,
       approvalNullable: true, compositeFk: true, oneUseIndex: true,
       appApprovalInsert: false, appApprovalUpdate: false,
     }]);

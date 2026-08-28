@@ -535,6 +535,34 @@ surface and grants no booking, folio, journal, posting, `tax_detail`, correction
 reversal, transfer, tax-payable allocation, invoice, CGST/SGST/IGST split, document,
 numbering, IRP, provider, submission or fiscal-finality authority.
 
+### Canonical tax-attribution persistence
+
+Order 244 gives the exact Order-240 value one append-only PostgreSQL owner. The
+internal record command first re-parses the complete value through the hostile
+Order-240 boundary; callers cannot supply duplicated identity columns separately or
+replace canonical snapshot JSON after validation. One active-tenant exact property
+and active actor are resolved inside the transaction before the database owner
+capability stores schema version, `rate_quote` origin, quote hash, snapshot hash,
+currency and the complete canonical snapshot together.
+
+The snapshot hash is the tenant convergence key. Recording the same exact snapshot
+again returns the existing immutable root; an idempotent command replay returns the
+same frozen receipt, while reuse of its command key with different request meaning
+fails closed. Creation writes one `tax.attribution_recorded` fact and one minimized
+outbox event in the same transaction. The event contains only attribution, property,
+origin, quote-hash, snapshot-hash and currency identity; it never carries the full
+snapshot, guest/Party data or financial lines.
+
+Read is tenant scoped and returns only a value that still parses and agrees exactly
+with every duplicated identity field. The table and fact are insert-only; the app
+role has no raw table mutation and may invoke only the bounded owner-mediated
+capability under its exact runtime-role and transaction-local tenant checks.
+Persistence proves only that exact positive quote-tax evidence was durably recorded
+for contextual property and actor attribution. It does not prove that the quote
+belongs to that property, was accepted, protected by a hold, committed to a
+reservation, posted, invoiced, submitted or fiscally finalized. Those links require
+separate authoritative commands.
+
 ## 8. Pure rate-model evaluator
 
 Order 067's in-process evaluator is a draft/simulation primitive, not a database or HTTP contract.

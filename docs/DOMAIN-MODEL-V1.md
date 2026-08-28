@@ -580,6 +580,30 @@ row, fact or event and authorizes no reservation/hold/commit, folio, posting, jo
 tax detail, correction/reversal, transfer, document, numbering/hash chain, invoice,
 CGST/SGST/IGST allocation, IRP, provider, submission or fiscal-final state.
 
+### Tax Attribution Snapshot aggregate — Tax/Fiscal
+
+**Root:** `tax_attribution_snapshot`.
+
+Order 244 persists one exact Order-240 positive `rate_quote` snapshot as a distinct
+append-only tenant root. PostgreSQL owns the root identity and constrains its tenant,
+contextual property, recording actor, schema version, origin kind, quote hash,
+snapshot hash and currency alongside the complete canonical JSON value. Same-tenant
+same-hash recording converges to one root rather than creating competing evidence.
+
+**Command:** `recordPositiveSnapshot(snapshot, idempotencyKey)` re-parses the hostile
+value, derives all duplicated identity from it, proves the exact property and actor
+inside the active tenant transaction, and records root, fact, minimized outbox event
+and idempotent receipt atomically. **Query:** tenant-scoped read by root id re-parses
+stored JSON and rejects any disagreement with constrained identity before returning
+deeply frozen truth.
+
+This aggregate records evidence, not economic or legal state. Its property is audit
+context only and is not quote-to-property authority. It has no transition, update,
+delete, correction or supersession path, and it owns no hold, reservation, folio,
+journal, posting, tax detail, document, series, submission or provider effect. A
+later authoritative re-quote and booking command must bind the evidence before any
+consumer may infer acceptance or money movement.
+
 ### Document aggregate — Tax/Fiscal
 
 **Root:** `document` under `document_series`.
