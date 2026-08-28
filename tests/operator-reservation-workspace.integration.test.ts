@@ -351,6 +351,199 @@ test("Order 210: editor returns home and success refreshes detail plus segment t
   expect(refresh).toContain("current.confirmationNo !== origin.confirmationNo");
 });
 
+test("Order 211: Guests & shares preserves primary identity and explicit no-remainder allocation", () => {
+  expect(html).toMatch(/id="reservation-primary-party" readonly aria-readonly="true"/);
+  const render = functionSource("renderReservationGuests");
+  expect(render).toContain("reservationPrimaryParty.value = reservation.primaryPartyId");
+  expect(render).toContain('if (guest.role !== "primary") addReservationGuestRow(guest)');
+  expect(render).not.toMatch(/reservation\.primaryPartyId\s*=|role:\s*["']primary["']/);
+
+  const canonical = executableFunction<(value: string) => string | null>("canonicalShare");
+  expect(canonical("60.00")).toBe("60.00");
+  expect(canonical("100.00")).toBe("100.00");
+  for (const invalid of ["60", "60.0", "060.00", "0.00", "100.01", "-1.00"]) expect(canonical(invalid)).toBeNull();
+  const basisPoints = new Function(`
+    ${functionSource("canonicalShare")}
+    return (${functionSource("shareBasisPoints")});
+  `)() as (value: string) => bigint | null;
+  expect(basisPoints("60.00")).toBe(6000n);
+  expect(basisPoints("40.00")).toBe(4000n);
+  expect(basisPoints("60.0")).toBeNull();
+
+  const shareTotal = functionSource("updateReservationShareTotal");
+  expect(shareTotal).toContain('row.querySelector("select").value === "sharer"');
+  expect(shareTotal).toContain("share.disabled = !isSharer");
+  expect(shareTotal).toContain('if (!isSharer) share.value = ""');
+  expect(shareTotal).toContain("reservationPrimaryShare.disabled = sharers.length === 0");
+  expect(shareTotal).toContain('reservationPrimaryShare.value = ""');
+  expect(shareTotal).toContain("basisPoints.reduce((sum, value) => sum + value, 0n)");
+  expect(shareTotal).toContain('total === 10000n ? " · ready" : " · must equal 100.00%"');
+  expect(shareTotal).not.toMatch(/10000n\s*-|100(?:\.00)?\s*-/);
+
+  const submitListenerStart = script.indexOf('reservationGuestForm.addEventListener("submit"');
+  const submitListener = script.slice(submitListenerStart, script.indexOf('addReservationGuest.addEventListener("click"', submitListenerStart));
+  expect(submitListener).toContain('role === "sharer" ? row.querySelector(\'input[name="sharePct"]\').value : null');
+  expect(submitListener).toContain('guests.some((guest) => guest.role === "sharer") ? reservationPrimaryShare.value : null');
+  expect(submitListener).toContain("const body = { primarySharePct, guests }");
+  expect(submitListener).toContain("await submitReservationGuestCommand(body)");
+  expect(submitListener).not.toMatch(/primaryPartyId|remainder|10000n\s*-/i);
+});
+
+test("Order 211: current-detail guest routing and existing PUT transport remain exact", () => {
+  const open = functionSource("openReservationGuestAllocation");
+  expect(open).toContain("reservation.reservationId !== reservationRouteReservationId");
+  expect(open).toContain("reservationDetailData.reservation.confirmationNo !== reservation.confirmationNo");
+  expect(open).toContain("panel.append(reservationGuestForm)");
+  expect(open).toContain("reservationLookupForm.elements.confirmationNo.value = confirmationNo");
+  expect(open).toContain("requestReservationGuests(origin.property, confirmationNo)");
+  expect(open.match(/requestReservationGuests\(origin\.property, confirmationNo\)/g)).toHaveLength(1);
+  expect(open).toContain("if (!reservationGuestDetailRequestIsCurrent(origin)) return false");
+  expect(open).toContain("body?.reservation?.reservationId !== origin.reservationId");
+  expect(open).toContain("body.reservation.confirmationNo !== origin.confirmationNo");
+  expect(open).toContain("renderReservationGuests(body.reservation, focus)");
+  expect(open).not.toMatch(/method:\s*["'](?:PUT|PATCH|POST)["']|submitReservationGuestCommand|\.click\(\)/);
+
+  const submit = functionSource("submitReservationGuestCommand");
+  expect(submit).toContain("const origin = reservationGuestCommandOrigin()");
+  expect(submit).toContain('if (origin.kind === "drawer" && !reservationGuestDetailRequestIsCurrent(origin)) return false');
+  expect(submit).toContain("`reservation-guests:${reservationGuestData.reservationId}:${JSON.stringify(body)}`");
+  expect(submit).toContain("pendingKeys.get(identity) || crypto.randomUUID()");
+  expect(submit).toContain("/reservations/${enc(reservationGuestData.reservationId)}/guests");
+  expect(submit).toContain('method: "PUT"');
+  expect(submit).toContain('headers: { "idempotency-key": key }');
+  expect(submit).toContain("body: JSON.stringify(body)");
+  expect(submit.match(/refreshReservationDetailAfterGuestCommand\(origin, response\.reservation\)/g)).toHaveLength(1);
+  expect(submit).not.toMatch(/primaryPartyId|remainder|method:\s*["'](?:PATCH|POST)["']/i);
+});
+
+test("Order 211: guest request identity and lifecycle fail closed at every drawer boundary", () => {
+  const guardSource = functionSource("reservationGuestDetailRequestIsCurrent");
+  const evaluate = new Function("state", `
+    let reservationGuestRequestGeneration = state.requestGeneration;
+    let reservationDetailGeneration = state.detailGeneration;
+    const propertySelect = { value: state.property };
+    let reservationRouteReservationId = state.reservationId;
+    let reservationDetailData = state.detailData;
+    const reservationDetailDrawer = { hidden: state.drawerHidden };
+    const reservationGuestForm = {
+      parentElement: { classList: { contains: () => state.hosted } },
+    };
+    ${guardSource}
+    return reservationGuestDetailRequestIsCurrent(state.origin);
+  `) as (state: Record<string, unknown>) => boolean;
+  const origin = {
+    requestGeneration: 13,
+    detailGeneration: 9,
+    property: "p-1",
+    reservationId: "r-1",
+    confirmationNo: "Y-1",
+  };
+  const current = {
+    requestGeneration: 13,
+    detailGeneration: 9,
+    property: "p-1",
+    reservationId: "r-1",
+    detailData: { reservation: { reservationId: "r-1", confirmationNo: "Y-1" } },
+    drawerHidden: false,
+    hosted: true,
+    origin,
+  };
+  expect(evaluate(current)).toBe(true);
+  for (const stale of [
+    { requestGeneration: 14 },
+    { detailGeneration: 10 },
+    { property: "p-2" },
+    { reservationId: "r-2" },
+    { detailData: { reservation: { reservationId: "r-2", confirmationNo: "Y-1" } } },
+    { detailData: { reservation: { reservationId: "r-1", confirmationNo: "Y-2" } } },
+    { drawerHidden: true },
+    { hosted: false },
+  ]) expect(evaluate({ ...current, ...stale })).toBe(false);
+
+  const clear = functionSource("clearReservationDrawerLifecycle");
+  expect(clear).toContain("restoreReservationGuestEditorHome()");
+  expect(functionSource("loadReservationDetail")).toContain("clearReservationDrawerLifecycle()");
+  expect(functionSource("closeReservationDetail")).toContain("clearReservationDrawerLifecycle()");
+  expect(functionSource("showLogin")).toContain("clearReservationDrawerLifecycle()");
+  const propertyChangeStart = script.indexOf('propertySelect.addEventListener("change"');
+  const propertyChange = script.slice(propertyChangeStart, script.indexOf("for (const tab of navigation)", propertyChangeStart));
+  expect(propertyChange).toContain("clearReservationDrawerLifecycle()");
+});
+
+test("Order 211: guest editor restores home, excludes Stay changes and refreshes exact truth once", () => {
+  const restoreSource = functionSource("restoreReservationGuestEditorHome");
+  const restore = new Function(`
+    let reservationGuestRequestGeneration = 6;
+    let reservationGuestData = { stale: true };
+    const otherParent = {};
+    let resetCount = 0, replaceCount = 0, appendCount = 0;
+    const message = {
+      textContent: "stale",
+      classList: { error: true, remove(name) { if (name === "error") this.error = false; } },
+    };
+    const reservationGuestForm = {
+      hidden: false,
+      parentElement: otherParent,
+      reset() { resetCount += 1; },
+      querySelector() { return message; },
+    };
+    const reservationGuestList = { replaceChildren() { replaceCount += 1; } };
+    const reservationConfirmation = { textContent: "Y-1" };
+    const reservationStatus = { textContent: "reserved" };
+    const reservationShareTotal = { textContent: "stale total" };
+    const reservationGuestHome = { append(node) { appendCount += 1; node.parentElement = this; } };
+    ${restoreSource}
+    restoreReservationGuestEditorHome();
+    return {
+      requestGeneration: reservationGuestRequestGeneration,
+      data: reservationGuestData,
+      hidden: reservationGuestForm.hidden,
+      resetCount,
+      replaceCount,
+      confirmation: reservationConfirmation.textContent,
+      status: reservationStatus.textContent,
+      total: reservationShareTotal.textContent,
+      message: message.textContent,
+      error: message.classList.error,
+      appendCount,
+      atHome: reservationGuestForm.parentElement === reservationGuestHome,
+    };
+  `) as () => Record<string, unknown>;
+  expect(restore()).toEqual({
+    requestGeneration: 7,
+    data: null,
+    hidden: true,
+    resetCount: 1,
+    replaceCount: 1,
+    confirmation: "—",
+    status: "—",
+    total: "No sharers · primary share must stay empty.",
+    message: "",
+    error: false,
+    appendCount: 1,
+    atHome: true,
+  });
+
+  const drawer = functionSource("renderReservationDrawerLifecycle");
+  expect(drawer).toContain('node("section", "reservation-guest-allocation-panel")');
+  expect(drawer).toContain('node("section", "reservation-stay-changes-panel")');
+  expect(drawer).toContain("stayChangesPanel.hidden = true");
+  expect(drawer).toContain("restoreReservationSegmentEditorHome()");
+  expect(drawer).toContain("guestAllocationPanel.hidden = true");
+  expect(drawer).toContain("restoreReservationGuestEditorHome()");
+  const lifecycleButton = functionSource("drawerLifecycleButton");
+  expect(lifecycleButton).toContain("restoreReservationSegmentEditorHome()");
+  expect(lifecycleButton).toContain("restoreReservationGuestEditorHome()");
+
+  const refresh = functionSource("refreshReservationDetailAfterGuestCommand");
+  expect(refresh.match(/loadReservationDetail\(origin\.reservationId\)/g)).toHaveLength(1);
+  expect(refresh.match(/openReservationGuestAllocation\(current, \{ focus: true \}\)/g)).toHaveLength(1);
+  expect(refresh).toContain("if (!reservationGuestDetailRequestIsCurrent(origin)) return false");
+  expect(refresh).toContain("propertySelect.value !== origin.property");
+  expect(refresh).toContain("reservationRouteReservationId !== origin.reservationId");
+  expect(refresh).toContain("current.confirmationNo !== origin.confirmationNo");
+});
+
 test("Order 168: dirty exit, history and journey reset policies execute at exact boundaries", () => {
   const shouldConfirm = executableFunction<(visible: boolean, dirty: boolean, destination: string) => boolean>("shouldConfirmReservationExit");
   expect(shouldConfirm(true, true, "board")).toBe(true);

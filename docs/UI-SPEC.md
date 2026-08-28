@@ -347,3 +347,27 @@ respects reduced motion and forced colours. Apple, Android, Windows 95/98, glass
 neomorphism and ERP appearances each preserve their native material treatment without
 changing server authority, endpoint, method, request body, idempotency or confirmation
 semantics.
+
+## 19. Reservation-detail guest allocation
+
+The current reservation drawer offers one semantic **Guests & shares** action in the
+same bounded action group as the existing governed controls. It loads the exact
+reservation's authoritative guest occurrence and allocation and moves the one
+existing guest editor into the drawer. The detached confirmation lookup remains
+inert, is never exposed as a second journey, and no editor is cloned.
+
+The server-owned primary Party and role remain read-only. Dynamic guest rows expose
+only the existing accompanying and sharer choices, with the existing explicit share
+total and inline command feedback. Guests & shares and Stay changes are mutually
+exclusive presentation panels. Closing or changing drawer identity returns each
+editor to its own inert home, and late results or detached focus are discarded.
+
+Loading, success, failure and retry are announced in the current drawer. After an
+authoritative save, the current guest allocation and exact reservation detail refresh
+once before focus returns to the live Guests & shares panel. The action and all
+dynamic-row controls remain at least 44 pixels, and 48 pixels in Android appearance.
+Long Party identifiers, labels, rows and share totals contain at 375 pixels and 200%
+zoom, with visible focus, reduced-motion and forced-colour support. Apple, Android,
+Windows 95/98, glass, neomorphism and ERP appearances retain distinct native material
+treatment without changing server authority, endpoint, method, body, idempotency or
+allocation semantics.

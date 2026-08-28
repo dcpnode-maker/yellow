@@ -29,6 +29,7 @@
  let pricingRowSequence = 0;
  let bulkRoomDraft = [];
  let reservationGuestData = null;
+ let reservationGuestRequestGeneration = 0;
  let reservationLifecycleData = null;
  let reservationSegmentData = null;
  let reservationSegmentRequestGeneration = 0;
@@ -473,6 +474,7 @@
  const reservationGuestList = $("#reservation-guest-list");
  const reservationShareTotal = $("#reservation-share-total");
  const addReservationGuest = $("#add-reservation-guest");
+ const reservationGuestHome = reservationGuestForm.parentElement;
  const reservationLifecycleLookupForm = $("#reservation-lifecycle-lookup-form");
  const reservationLifecycleEditor = $("#reservation-lifecycle-editor");
  const lifecycleConfirmation = $("#lifecycle-confirmation");
@@ -2034,6 +2036,7 @@
  };
  }
   function clearReservationDrawerLifecycle() {
+ restoreReservationGuestEditorHome();
  restoreReservationSegmentEditorHome();
  reservationLifecycleData = null;
  reservationMetadataForm.hidden = true;
@@ -2049,6 +2052,22 @@
  }
  reservationDetailActions.replaceChildren();
  reservationDetailActions.hidden = true;
+ }
+  function restoreReservationGuestEditorHome() {
+ reservationGuestRequestGeneration += 1;
+ reservationGuestData = null;
+ reservationGuestForm.hidden = true;
+ reservationGuestForm.reset();
+ reservationGuestList.replaceChildren();
+ reservationConfirmation.textContent = "—";
+ reservationStatus.textContent = "—";
+ reservationShareTotal.textContent = "No sharers · primary share must stay empty.";
+ const message = reservationGuestForm.querySelector(".form-message");
+ message.textContent = "";
+ message.classList.remove("error");
+ if (reservationGuestForm.parentElement !== reservationGuestHome) {
+  reservationGuestHome.append(reservationGuestForm);
+ }
  }
   function restoreReservationSegmentEditorHome() {
  reservationSegmentRequestGeneration += 1;
@@ -2074,6 +2093,11 @@
   if (stayChangesPanel && !stayChangesPanel.hidden) {
   stayChangesPanel.hidden = true;
   restoreReservationSegmentEditorHome();
+  }
+  const guestAllocationPanel = reservationDetailActions.querySelector(".reservation-guest-allocation-panel");
+  if (guestAllocationPanel && !guestAllocationPanel.hidden) {
+  guestAllocationPanel.hidden = true;
+  restoreReservationGuestEditorHome();
   }
   for (const peer of reservationDetailActions.querySelectorAll(".reservation-detail-action-menu button")) {
   peer.setAttribute("aria-expanded", String(peer === button));
@@ -2120,10 +2144,41 @@
   reservationCancelForm.hidden = true;
   reservationReinstatePanel.hidden = true;
   reservationLifecycleEditor.hidden = true;
+  const guestAllocationPanel = reservationDetailActions.querySelector(".reservation-guest-allocation-panel");
+  if (guestAllocationPanel) guestAllocationPanel.hidden = true;
+  restoreReservationGuestEditorHome();
   stayChangesPanel.hidden = false;
   void openReservationStayChanges(result.reservation, { focus: true });
  });
  menu.append(stayChangesAction);
+ const guestAllocationPanel = node("section", "reservation-guest-allocation-panel");
+ guestAllocationPanel.id = "reservation-guest-allocation-panel";
+ guestAllocationPanel.hidden = true;
+ const guestAllocationHeading = node("h4", "", "Guests & shares");
+ guestAllocationHeading.id = "reservation-guest-allocation-heading";
+ guestAllocationPanel.setAttribute("aria-labelledby", guestAllocationHeading.id);
+ guestAllocationPanel.append(guestAllocationHeading,
+  node("p", "muted", "Authoritative guest occurrence and exact server-governed sharing for this reservation."));
+ const guestAllocationAction = el("button");
+ guestAllocationAction.type = "button";
+ guestAllocationAction.className = "secondary reservation-guest-allocation-action";
+ guestAllocationAction.textContent = "Guests & shares";
+ guestAllocationAction.setAttribute("aria-controls", guestAllocationPanel.id);
+ guestAllocationAction.setAttribute("aria-expanded", "false");
+ guestAllocationAction.addEventListener("click", () => {
+  for (const peer of reservationDetailActions.querySelectorAll(".reservation-detail-action-menu button")) {
+  peer.setAttribute("aria-expanded", String(peer === guestAllocationAction));
+  }
+  reservationMetadataForm.hidden = true;
+  reservationCancelForm.hidden = true;
+  reservationReinstatePanel.hidden = true;
+  reservationLifecycleEditor.hidden = true;
+  stayChangesPanel.hidden = true;
+  restoreReservationSegmentEditorHome();
+  guestAllocationPanel.hidden = false;
+  void openReservationGuestAllocation(result.reservation, { focus: true });
+ });
+ menu.append(guestAllocationAction);
  if (actionNames.length > 0) {
   renderReservationLifecycle(lifecycle);
   reservationMetadataForm.hidden = true;
@@ -2135,7 +2190,7 @@
   if (name === "cancel") menu.append(drawerLifecycleButton("Cancel", reservationCancelForm));
   if (name === "reinstate") menu.append(drawerLifecycleButton("Reinstate", reservationReinstatePanel));
  }
- reservationDetailActions.append(menu, stayChangesPanel);
+ reservationDetailActions.append(menu, stayChangesPanel, guestAllocationPanel);
  if (actionNames.length > 0) {
   reservationDetailActions.append(reservationLifecycleEditor);
   reservationLifecycleEditor.hidden = false;
@@ -5969,7 +6024,7 @@ function departureEvidenceRow(term, value) {
  updateReservationShareTotal();
  if (!guest.partyId) party.focus();
  }
-  function renderReservationGuests(reservation) {
+  function renderReservationGuests(reservation, focus = false) {
  reservationGuestData = reservation;
  reservationConfirmation.textContent = reservation.confirmationNo;
  reservationStatus.textContent = reservation.status.replaceAll("_", " ");
@@ -5982,6 +6037,124 @@ function departureEvidenceRow(term, value) {
  }
  reservationGuestForm.hidden = false;
  updateReservationShareTotal();
+ if (focus) {
+  reservationGuestForm.tabIndex = -1;
+  reservationGuestForm.focus({ preventScroll: true });
+ }
+ }
+  function reservationGuestDetailRequestIsCurrent(origin) {
+ return origin.requestGeneration === reservationGuestRequestGeneration
+  && origin.detailGeneration === reservationDetailGeneration
+  && origin.property === propertySelect.value
+  && origin.reservationId === reservationRouteReservationId
+  && reservationDetailData?.reservation?.reservationId === origin.reservationId
+  && reservationDetailData.reservation.confirmationNo === origin.confirmationNo
+  && reservationDetailDrawer.hidden === false
+  && reservationGuestForm.parentElement?.classList.contains("reservation-guest-allocation-panel");
+ }
+  async function requestReservationGuests(property, confirmationNo) {
+ return request(`/api/v1/properties/${enc(property)}/reservation-guests?confirmationNo=${enc(confirmationNo)}`);
+ }
+  async function openReservationGuestAllocation(reservation = reservationDetailData?.reservation, { focus = true } = {}) {
+ const panel = reservationDetailActions.querySelector(".reservation-guest-allocation-panel");
+ const action = reservationDetailActions.querySelector(".reservation-guest-allocation-action");
+ if (!panel || !action || !reservation || reservationDetailDrawer.hidden
+  || reservation.reservationId !== reservationRouteReservationId
+  || reservationDetailData?.reservation?.reservationId !== reservation.reservationId
+  || reservationDetailData.reservation.confirmationNo !== reservation.confirmationNo) {
+  restoreReservationGuestEditorHome();
+  return false;
+ }
+ restoreReservationGuestEditorHome();
+ panel.hidden = false;
+ panel.append(reservationGuestForm);
+ const confirmationNo = reservation.confirmationNo;
+ reservationLookupForm.elements.confirmationNo.value = confirmationNo;
+ const origin = {
+  requestGeneration: ++reservationGuestRequestGeneration,
+  detailGeneration: reservationDetailGeneration,
+  property: propertySelect.value,
+  reservationId: reservation.reservationId,
+  confirmationNo,
+ };
+ reservationDetailStatus.textContent = "Loading authoritative guests and shares…";
+ action.textContent = "Guests & shares";
+ try {
+  const body = await requestReservationGuests(origin.property, confirmationNo);
+  if (!reservationGuestDetailRequestIsCurrent(origin)) return false;
+  if (body?.reservation?.reservationId !== origin.reservationId
+   || body.reservation.confirmationNo !== origin.confirmationNo) {
+  throw new Error("Guest allocation did not match the current reservation.");
+  }
+  renderReservationGuests(body.reservation, focus);
+  reservationDetailStatus.textContent = "Guests and shares loaded from authoritative reservation truth.";
+  return true;
+ } catch (error) {
+  if (!reservationGuestDetailRequestIsCurrent(origin)) return false;
+  reservationGuestData = null;
+  reservationGuestForm.hidden = true;
+  reservationDetailStatus.textContent = error instanceof Error ? error.message : "Guests and shares could not be loaded.";
+  action.textContent = "Retry guests & shares";
+  if (focus) action.focus({ preventScroll: true });
+  return false;
+ }
+ }
+  function reservationGuestCommandOrigin() {
+ const hosted = reservationGuestForm.parentElement?.classList.contains("reservation-guest-allocation-panel") === true;
+ return {
+  kind: hosted ? "drawer" : "legacy",
+  requestGeneration: reservationGuestRequestGeneration,
+  detailGeneration: reservationDetailGeneration,
+  property: propertySelect.value,
+  reservationId: reservationGuestData?.reservationId || "",
+  confirmationNo: reservationGuestData?.confirmationNo || "",
+  reservation: reservationGuestData,
+ };
+ }
+  async function refreshReservationDetailAfterGuestCommand(origin, responseReservation) {
+ if (origin.kind !== "drawer") {
+  renderReservationGuests({ ...origin.reservation, ...responseReservation });
+  return true;
+ }
+ if (!reservationGuestDetailRequestIsCurrent(origin)) return false;
+ await loadReservationDetail(origin.reservationId);
+ const current = reservationDetailData?.reservation;
+ if (propertySelect.value !== origin.property || reservationRouteReservationId !== origin.reservationId
+  || reservationDetailDrawer.hidden || reservationDetailError.hidden === false || reservationDetailContent.hidden
+  || current?.reservationId !== origin.reservationId
+  || current.confirmationNo !== origin.confirmationNo) return false;
+ return openReservationGuestAllocation(current, { focus: true });
+ }
+  async function submitReservationGuestCommand(body) {
+ if (!reservationGuestData) return false;
+ const origin = reservationGuestCommandOrigin();
+ if (origin.kind === "drawer" && !reservationGuestDetailRequestIsCurrent(origin)) return false;
+ const identity = `reservation-guests:${reservationGuestData.reservationId}:${JSON.stringify(body)}`;
+ const key = pendingKeys.get(identity) || crypto.randomUUID();
+ pendingKeys.set(identity, key);
+ const button = reservationGuestForm.querySelector("button[type=submit]");
+ button.disabled = true;
+ formMessage(reservationGuestForm, "Saving through the audited reservation command…");
+ try {
+  const response = await request(`/api/v1/properties/${enc(origin.property)}/reservations/${enc(reservationGuestData.reservationId)}/guests`, {
+  method: "PUT",
+  headers: { "idempotency-key": key },
+  body: JSON.stringify(body),
+  });
+  pendingKeys.delete(identity);
+  const refreshed = await refreshReservationDetailAfterGuestCommand(origin, response.reservation);
+  if (origin.kind === "drawer" && !refreshed) return true;
+  formMessage(reservationGuestForm, response.reservation.changed
+  ? "Guest allocation saved with its audit fact and event."
+  : "Allocation already matched server truth; no evidence was invented.");
+  return true;
+ } catch (error) {
+  if (origin.kind === "drawer" && !reservationGuestDetailRequestIsCurrent(origin)) return false;
+  formMessage(reservationGuestForm, error instanceof Error ? error.message : "Guest allocation could not be saved", true);
+  return false;
+ } finally {
+  button.disabled = false;
+ }
  }
   function lifecycleFieldValue(value) {
  return value === null ? "" : value;
@@ -7286,7 +7459,7 @@ function departureEvidenceRow(term, value) {
  reservationGuestForm.hidden = true;
  reservationGuestData = null;
  try {
-  const body = await request(`/api/v1/properties/${enc(propertySelect.value)}/reservation-guests?confirmationNo=${enc(confirmationNo)}`);
+  const body = await requestReservationGuests(propertySelect.value, confirmationNo);
   renderReservationGuests(body.reservation);
   formMessage(reservationLookupForm, "Reservation found. Review the complete allocation below.");
  } catch (error) {
@@ -7308,28 +7481,7 @@ function departureEvidenceRow(term, value) {
  });
  const primarySharePct = guests.some((guest) => guest.role === "sharer") ? reservationPrimaryShare.value : null;
  const body = { primarySharePct, guests };
- const identity = `reservation-guests:${reservationGuestData.reservationId}:${JSON.stringify(body)}`;
- const key = pendingKeys.get(identity) || crypto.randomUUID();
- pendingKeys.set(identity, key);
- const button = reservationGuestForm.querySelector("button[type=submit]");
- button.disabled = true;
- formMessage(reservationGuestForm, "Saving through the audited reservation command…");
- try {
-  const response = await request(`/api/v1/properties/${enc(propertySelect.value)}/reservations/${enc(reservationGuestData.reservationId)}/guests`, {
-  method: "PUT",
-  headers: { "idempotency-key": key },
-  body: JSON.stringify(body),
-  });
-  pendingKeys.delete(identity);
-  renderReservationGuests({ ...reservationGuestData, ...response.reservation });
-  formMessage(reservationGuestForm, response.reservation.changed
-  ? "Guest allocation saved with its audit fact and event."
-  : "Allocation already matched server truth; no evidence was invented.");
- } catch (error) {
-  formMessage(reservationGuestForm, error instanceof Error ? error.message : "Guest allocation could not be saved", true);
- } finally {
-  button.disabled = false;
- }
+ await submitReservationGuestCommand(body);
  });
  addReservationGuest.addEventListener("click", () => {
  if (reservationGuestList.childElementCount < 99) addReservationGuestRow();

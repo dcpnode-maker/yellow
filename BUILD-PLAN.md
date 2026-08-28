@@ -240,7 +240,7 @@ reachable from the exact current reservation without copied identifiers. Server
 action flags, occupancy arbitration, idempotency and endpoints remain unchanged;
 stale drawer requests fail closed. This cannot complete Phase 6.
 
-Order 211 is admitted as a UI-only reservation-detail guest-allocation integration.
+Order 211 is built-unreviewed as a UI-only reservation-detail guest-allocation integration.
 The existing audited guest editor becomes reachable from the exact current
 reservation without copied identifiers. Server-owned primary identity, explicit
 share semantics, existing PUT/idempotency/fact/event behavior and detached lookup

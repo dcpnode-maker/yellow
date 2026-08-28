@@ -1,6 +1,6 @@
 # Order 211 — Reservation-detail guest allocation
 
-**Status:** READY-D565 — intentional red required before implementation
+**Status:** BUILT-UNREVIEWED-D566 — implementation and required executable gates green
 **Phase:** 6 — Stay operations and housekeeping
 **Branch:** `phase-6/reservation-detail-guest-allocation`
 **Base:** `0a58cc8` (built-unreviewed Order210)
@@ -83,9 +83,9 @@ local, schema or product-state authority change is admitted.
 
 ## Definition of done
 
-- [ ] Intentional red precedes implementation.
-- [ ] Exact current-detail guest allocation is usable without copied identifiers.
-- [ ] Governed mutation and server-owned primary semantics are unchanged.
-- [ ] Stale paint/focus and detached editor states fail closed.
-- [ ] Result is built-unreviewed without approval, Phase6/app completion, local
+- [x] Intentional red precedes implementation.
+- [x] Exact current-detail guest allocation is usable without copied identifiers.
+- [x] Governed mutation and server-owned primary semantics are unchanged.
+- [x] Stale paint/focus and detached editor states fail closed.
+- [x] Result is built-unreviewed without approval, Phase6/app completion, local
   promotion, merge, push or deployment.
