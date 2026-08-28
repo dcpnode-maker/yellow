@@ -79,6 +79,9 @@
  let housekeepingConditionRequestGeneration = 0;
  let housekeepingConditionRows = [];
  let housekeepingConditionNextCursor = null;
+ let housekeepingConditionInitialization = null;
+ let housekeepingConditionInitializationRequestGeneration = 0;
+ const housekeepingConditionInitializationAttempts = new Map();
  const housekeepingAttempts = new Map();
  const housekeepingTaskDetailAttempts = new Map();
  let housekeepingSheetGeneration = 0;
@@ -234,6 +237,7 @@
  const housekeepingConditionList = $("#housekeeping-condition-list");
  const housekeepingConditionStatus = $("#housekeeping-condition-status");
  const housekeepingConditionMore = $("#housekeeping-condition-more");
+ const housekeepingConditionInitializationSlot = $("#housekeeping-condition-initialization-slot");
  const housekeepingSheetForm = $("#housekeeping-sheet-form");
  const housekeepingSheetDate = $("#housekeeping-sheet-date");
  const housekeepingAttendantQuery = $("#housekeeping-attendant-query");
@@ -1999,6 +2003,232 @@ function ensureHousekeepingGenerationReceiptPanel() {
  if (!valid) throw new Error("The room-condition response contained invalid room truth.");
  return value;
   }
+  function clearHousekeepingConditionInitialization() {
+ housekeepingConditionInitializationRequestGeneration += 1;
+ housekeepingConditionInitialization = null;
+ housekeepingConditionInitializationSlot.replaceChildren();
+  }
+  function housekeepingConditionInitializationIsCurrent(origin, action) {
+ return checkInHousekeepingReturn?.property === origin.property
+ && checkInHousekeepingReturn?.reservationId === origin.reservationId
+ && checkInHousekeepingReturn?.assignedSpaceId === origin.assignedSpaceId
+ && checkInHousekeepingReturn?.blocker === origin.blocker
+  && checkInHousekeepingReturn === origin.returning
+  && activeView === "housekeeping"
+  && propertySelect.value === origin.property
+  && location.pathname === `/p/${origin.property}/housekeeping`
+  && location.search === ""
+  && housekeepingConditionGeneration === origin.conditionGeneration
+  && housekeepingConditionRequestGeneration === origin.conditionRequestGeneration
+  && origin.assignedSpaceId === action?.dataset.spaceId
+  && origin.blocker === "room_condition_missing"
+  && housekeepingConditionInitialization?.origin === origin
+  && housekeepingConditionInitialization?.action === action
+  && action.isConnected
+  && action.hidden === false
+  && housekeepingConditionBoard.contains(action);
+  }
+  function housekeepingConditionInitializationContextIsCurrent(origin) {
+ return origin?.returning === checkInHousekeepingReturn
+  && origin.blocker === "room_condition_missing"
+  && origin.assignedSpaceId === checkInHousekeepingReturn?.assignedSpaceId
+  && origin.reservationId === checkInHousekeepingReturn?.reservationId
+  && activeView === "housekeeping"
+  && origin.property === propertySelect.value
+  && location.pathname === `/p/${origin.property}/housekeeping`
+  && location.search === "";
+  }
+  function housekeepingInitialConditionCandidateResult(value, origin) {
+ const topKeys = value && typeof value === "object" && !Array.isArray(value) ? Object.keys(value).sort() : [];
+ const candidate = JSON.stringify(topKeys) === JSON.stringify(["candidate"]) ? value.candidate : null;
+ const keys = candidate && typeof candidate === "object" && !Array.isArray(candidate) ? Object.keys(candidate).sort() : [];
+ const exactInitialConditions = ["clean", "dirty", "pickup"];
+ const allowed = candidate?.allowedInitialConditions;
+ if (!candidate || JSON.stringify(keys) !== JSON.stringify(["allowedInitialConditions", "code", "floor", "roomCondition", "spaceId"])
+  || candidate.spaceId !== origin.assignedSpaceId || !canonicalUuid(candidate.spaceId)
+  || typeof candidate.code !== "string" || candidate.code.length < 1 || candidate.code.length > 120
+  || (candidate.floor !== null && typeof candidate.floor !== "string") || candidate.roomCondition !== null
+  || !Array.isArray(allowed) || allowed.length > exactInitialConditions.length
+  || new Set(allowed).size !== allowed.length || !allowed.every((condition) => exactInitialConditions.includes(condition))
+  || JSON.stringify(allowed) !== JSON.stringify(exactInitialConditions.filter((condition) => allowed.includes(condition)))) {
+  throw new Error("The initial room-condition candidate response was invalid.");
+ }
+ return Object.freeze({ ...candidate, allowedInitialConditions: Object.freeze(allowed.slice()) });
+  }
+  function renderHousekeepingConditionInitialization(origin, candidate) {
+ const section = node("section", "housekeeping-condition-initialization");
+ section.setAttribute("aria-label", `Initial condition for assigned room ${candidate?.code || ""}`.trim());
+ const copy = node("div", "housekeeping-condition-initialization-copy");
+ copy.append(
+  node("strong", "", candidate ? `Room ${candidate.code} has no recorded condition` : "Checking the assigned room condition"),
+  node("p", "muted", "Choose a first canonical condition deliberately. This control never changes an existing condition."),
+ );
+ const action = node("button", "quiet housekeeping-condition-initialize-action", "Set initial condition");
+ action.type = "button";
+ action.dataset.spaceId = origin.assignedSpaceId;
+ action.setAttribute("aria-expanded", "false");
+ action.disabled = !candidate || candidate.allowedInitialConditions.length === 0;
+ const status = node("p", "housekeeping-condition-initialization-status", candidate
+  ? candidate.allowedInitialConditions.length === 0
+   ? "You may view this room, but initialization is not granted."
+   : "No condition is selected."
+  : "Loading the exact assigned-room candidate…");
+ status.setAttribute("role", "status");
+ status.setAttribute("aria-live", "polite");
+ section.append(copy, action, status);
+ housekeepingConditionInitializationSlot.replaceChildren(section);
+ housekeepingConditionInitialization = { origin, candidate, action, section, status };
+ if (!candidate || candidate.allowedInitialConditions.length === 0) return action;
+ const form = node("form", "housekeeping-condition-initialization-form");
+ form.id = `housekeeping-condition-initialization-${origin.assignedSpaceId}`;
+ form.hidden = true;
+ form.setAttribute("aria-busy", "false");
+ const fieldset = node("fieldset", "housekeeping-condition-initialization-options");
+ fieldset.append(node("legend", "", "Initial room condition"));
+ const labels = Object.freeze({ clean: "Clean", dirty: "Dirty", pickup: "Pickup" });
+ for (const condition of candidate.allowedInitialConditions) {
+  const label = node("label", "housekeeping-condition-initialization-option");
+  const input = el("input");
+  input.type = "radio";
+  input.name = "initial-room-condition";
+  input.value = condition;
+  input.required = true;
+  label.append(input, node("span", "", labels[condition]));
+  fieldset.append(label);
+ }
+ const controls = node("div", "housekeeping-condition-initialization-controls");
+ const submit = node("button", "primary", "Record initial condition");
+ submit.type = "submit";
+ const cancel = node("button", "quiet", "Cancel");
+ cancel.type = "button";
+ controls.append(submit, cancel);
+ form.append(fieldset, controls);
+ action.setAttribute("aria-controls", form.id);
+ action.addEventListener("click", () => {
+  if (!housekeepingConditionInitializationIsCurrent(origin, action)) return;
+  const expanded = action.getAttribute("aria-expanded") !== "true";
+  action.setAttribute("aria-expanded", String(expanded));
+  form.hidden = !expanded;
+  if (expanded) form.querySelector('input[name="initial-room-condition"]')?.focus({ preventScroll: true });
+ });
+ cancel.addEventListener("click", () => {
+  form.hidden = true;
+  action.setAttribute("aria-expanded", "false");
+  status.textContent = "No condition is selected.";
+  action.focus({ preventScroll: true });
+ });
+ form.addEventListener("submit", (event) => void submitHousekeepingConditionInitialization(event, origin, candidate, form, action, status));
+ section.insertBefore(form, status);
+ return action;
+  }
+  async function loadHousekeepingInitialConditionCandidate(returning) {
+ if (!returning || returning.blocker !== "room_condition_missing" || !returning.assignedSpaceId
+  || activeView !== "housekeeping" || returning.property !== propertySelect.value
+  || location.pathname !== `/p/${returning.property}/housekeeping` || location.search !== "") return null;
+ const origin = Object.freeze({
+  ...returning,
+  returning,
+  conditionGeneration: housekeepingConditionGeneration,
+  conditionRequestGeneration: housekeepingConditionRequestGeneration,
+ });
+ const action = renderHousekeepingConditionInitialization(origin, null);
+ if (!housekeepingConditionInitializationIsCurrent(origin, action)) return null;
+ const requestGeneration = ++housekeepingConditionInitializationRequestGeneration;
+ try {
+  const value = await request(`/api/v1/properties/${enc(origin.property)}/housekeeping/conditions/${enc(origin.assignedSpaceId)}/candidate`);
+  if (requestGeneration !== housekeepingConditionInitializationRequestGeneration
+   || !housekeepingConditionInitializationIsCurrent(origin, action)) return null;
+  const candidate = housekeepingInitialConditionCandidateResult(value, origin);
+  const refreshedAction = renderHousekeepingConditionInitialization(origin, candidate);
+  return housekeepingConditionInitializationIsCurrent(origin, refreshedAction) ? candidate : null;
+ } catch (error) {
+  if (requestGeneration !== housekeepingConditionInitializationRequestGeneration
+   || !housekeepingConditionInitializationIsCurrent(origin, action)) return null;
+  if (error?.status === 404) {
+   clearHousekeepingConditionInitialization();
+   return null;
+  }
+  action.disabled = true;
+  housekeepingConditionInitialization.status.textContent = error?.status === 403
+   ? "Initialization is not granted for this property."
+   : `${error instanceof Error ? error.message : "The exact room candidate could not be loaded"}. Refresh conditions to retry.`;
+  return null;
+ }
+  }
+  function openHousekeepingConditionInitialization(origin) {
+ if (!origin || origin.blocker !== "room_condition_missing" || !origin.assignedSpaceId
+  || origin !== checkInHousekeepingReturn || origin.property !== propertySelect.value
+  || activeView !== "housekeeping" || location.pathname !== `/p/${origin.property}/housekeeping` || location.search !== "") return false;
+ void loadHousekeepingInitialConditionCandidate(origin);
+ return true;
+  }
+  function reopenHousekeepingConditionInitialization() {
+ const returning = checkInHousekeepingReturn;
+ if (returning?.blocker === "room_condition_missing") openHousekeepingConditionInitialization(returning);
+  }
+  async function refreshHousekeepingConditionInitializationTruth(origin) {
+ if (!housekeepingConditionInitializationContextIsCurrent(origin)) return null;
+ await Promise.all([
+  loadHousekeepingConditions(),
+  loadCheckInReadiness({ preserveDraft: true }),
+ ]);
+ if (!housekeepingConditionInitializationContextIsCurrent(origin)) return null;
+ return loadHousekeepingInitialConditionCandidate(checkInHousekeepingReturn);
+  }
+  function restoreHousekeepingConditionInitializationFocus(origin, candidate) {
+ if (!housekeepingConditionInitializationContextIsCurrent(origin)) return false;
+ const action = housekeepingConditionInitialization?.action;
+ const exact = candidate && candidate.roomCondition === null && action?.isConnected && action.hidden === false
+  && housekeepingConditionBoard.contains(action) ? action : null;
+ (exact || housekeepingConditionTitle).focus({ preventScroll: true });
+ return true;
+  }
+  async function submitHousekeepingConditionInitialization(event, origin, candidate, form, action, status) {
+ event.preventDefault();
+ if (!housekeepingConditionInitializationIsCurrent(origin, action)) return;
+ const selected = form.querySelector('input[name="initial-room-condition"]:checked');
+ const roomCondition = selected?.value;
+ if (!roomCondition || !candidate.allowedInitialConditions.includes(roomCondition)) {
+  status.textContent = "Choose one allowed initial condition.";
+  form.querySelector('input[name="initial-room-condition"]')?.focus({ preventScroll: true });
+  return;
+ }
+ const body = { expectedRoomCondition: null, roomCondition };
+ const draft = JSON.stringify(body);
+ const attemptId = `${origin.property}:${origin.assignedSpaceId}`;
+ const existing = housekeepingConditionInitializationAttempts.get(attemptId);
+ const attempt = existing?.draft === draft ? existing : { draft, key: crypto.randomUUID() };
+ housekeepingConditionInitializationAttempts.set(attemptId, attempt);
+ form.setAttribute("aria-busy", "true");
+ action.disabled = true;
+ for (const control of form.elements) control.disabled = true;
+ status.classList.remove("error");
+ status.textContent = "Recording the first condition from current server truth…";
+ try {
+  await request(`/api/v1/properties/${enc(origin.property)}/housekeeping/conditions/${enc(origin.assignedSpaceId)}/initialize`, {
+   method: "POST",
+   headers: { "idempotency-key": attempt.key },
+   body: JSON.stringify(body),
+  });
+  const refreshedCandidate = await refreshHousekeepingConditionInitializationTruth(origin);
+  housekeepingConditionInitializationAttempts.delete(attemptId);
+  restoreHousekeepingConditionInitializationFocus(origin, refreshedCandidate);
+ } catch (error) {
+  if (error?.status === 409) {
+   const refreshedCandidate = await refreshHousekeepingConditionInitializationTruth(origin);
+   housekeepingConditionInitializationAttempts.delete(attemptId);
+   restoreHousekeepingConditionInitializationFocus(origin, refreshedCandidate);
+   return;
+  }
+  if (!housekeepingConditionInitializationIsCurrent(origin, action)) return;
+  form.setAttribute("aria-busy", "false");
+  action.disabled = false;
+  for (const control of form.elements) control.disabled = false;
+  status.classList.add("error");
+  status.textContent = `${error instanceof Error ? error.message : "The first condition could not be recorded"}. Retry keeps the same request key.`;
+  selected.focus({ preventScroll: true });
+ }
+  }
   function housekeepingConditionCard(room) {
  const article = node("article", "housekeeping-condition-card");
  article.setAttribute("role", "listitem");
@@ -2046,6 +2276,7 @@ function ensureHousekeepingGenerationReceiptPanel() {
   function clearHousekeepingConditionState() {
  housekeepingConditionGeneration += 1;
  housekeepingConditionRequestGeneration += 1;
+ clearHousekeepingConditionInitialization();
  housekeepingConditionRows = [];
  housekeepingConditionNextCursor = null;
  housekeepingConditionFilter.value = "";
@@ -3241,6 +3472,7 @@ function ensureHousekeepingGenerationReceiptPanel() {
  return true;
  }
   function returnFromHousekeepingToCheckIn({ fromHistory = false } = {}) {
+ const checkInWorkbenchHeading = checkInHeading;
  const returning = fromHistory ? checkInHousekeepingReturn :
   checkInHousekeepingReturnFromState(history.state, propertySelect.value);
  if (!returning || returning.property !== propertySelect.value ||
@@ -3256,6 +3488,7 @@ function ensureHousekeepingGenerationReceiptPanel() {
  setView("reservations", false);
  reservationDrawerReturnView = returning.drawerReturnView;
  reservationDrawerReturnReservationId = returning.reservationId;
+ checkInWorkbenchHeading.focus({ preventScroll: true });
  return true;
  }
   function restoreCheckInHousekeepingArrivalFocus(readiness) {
@@ -7651,7 +7884,8 @@ function vehicleReturnPathFromState(state, property) {
  }
  if (previousView === "today" && activeView !== "today") todayGeneration += 1;
  if (previousView === "housekeeping" && activeView !== "housekeeping") {
-  clearHousekeepingSheetReceipt();
+   clearHousekeepingConditionInitialization();
+   clearHousekeepingSheetReceipt();
   closeHousekeepingTaskDetail({ history: false, restoreFocus: false });
   housekeepingGeneration += 1;
   housekeepingRequestGeneration += 1;
@@ -7710,7 +7944,8 @@ function vehicleReturnPathFromState(state, property) {
     syncHousekeepingRoute();
     void loadHousekeepingBoard();
     void loadHousekeepingConditions().then(() => {
-     if (arrivalReturn) restoreCheckInHousekeepingRoomFocus(arrivalReturn);
+     if (arrivalReturn?.blocker === "room_condition_missing") openHousekeepingConditionInitialization(arrivalReturn);
+     else if (arrivalReturn) restoreCheckInHousekeepingRoomFocus(arrivalReturn);
     });
     if (housekeepingSheetDate.value) {
      if (housekeepingSheetAttendant) void previewHousekeepingSheet();
@@ -9623,18 +9858,18 @@ function vehicleReturnPathFromState(state, property) {
  todayRefresh.addEventListener("click", loadToday);
  housekeepingRefresh.addEventListener("click", () => {
  void loadHousekeepingBoard({ focus: true });
- void loadHousekeepingConditions();
+ void loadHousekeepingConditions().then(reopenHousekeepingConditionInitialization);
  if (housekeepingSheetDate.value) {
   if (housekeepingSheetAttendant) void previewHousekeepingSheet();
   else void loadHousekeepingSheetHistory();
  }
  });
  housekeepingRetry.addEventListener("click", () => void loadHousekeepingBoard({ focus: true }));
- housekeepingConditionRefresh.addEventListener("click", () => void loadHousekeepingConditions({ focus: "refresh" }));
+ housekeepingConditionRefresh.addEventListener("click", () => void loadHousekeepingConditions({ focus: "refresh" }).then(reopenHousekeepingConditionInitialization));
  housekeepingArrivalReturnAction.addEventListener("click", () => void returnFromHousekeepingToCheckIn());
- housekeepingConditionRetry.addEventListener("click", () => void loadHousekeepingConditions({ focus: "title" }));
- housekeepingConditionMore.addEventListener("click", () => void loadHousekeepingConditions({ older: true, focus: "more" }));
- housekeepingConditionFilter.addEventListener("change", () => void loadHousekeepingConditions({ focus: "filter" }));
+ housekeepingConditionRetry.addEventListener("click", () => void loadHousekeepingConditions({ focus: "title" }).then(reopenHousekeepingConditionInitialization));
+ housekeepingConditionMore.addEventListener("click", () => void loadHousekeepingConditions({ older: true, focus: "more" }).then(reopenHousekeepingConditionInitialization));
+ housekeepingConditionFilter.addEventListener("change", () => void loadHousekeepingConditions({ focus: "filter" }).then(reopenHousekeepingConditionInitialization));
  housekeepingSheetForm.addEventListener("submit", (event) => {
  event.preventDefault();
  void previewHousekeepingSheet({ focus: true });

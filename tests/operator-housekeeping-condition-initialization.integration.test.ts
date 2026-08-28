@@ -32,11 +32,11 @@ const housekeeping = {
   },
   async initializeCondition(input: unknown) {
     initializeCalls.push(input);
-    const roomCondition = (input as { roomCondition?: unknown }).roomCondition;
+    const roomCondition = (input as { roomCondition: "clean" | "dirty" | "pickup" }).roomCondition;
     return Object.freeze({
       spaceId: SPACE,
       roomCondition,
-      updatedAt: UPDATED_AT,
+      roomUpdatedAt: UPDATED_AT,
       replayed,
     });
   },
@@ -50,7 +50,7 @@ function operator(): OperatorHttpApi {
     undefined, undefined, undefined, undefined, undefined, undefined, undefined,
     undefined, undefined, undefined, undefined, undefined, undefined, undefined,
     undefined, undefined, undefined, undefined, undefined, undefined, undefined,
-    undefined, undefined,
+    undefined,
     housekeeping,
   );
 }
@@ -225,7 +225,7 @@ describe("Order227 exact missing-room condition ingress HTTP", () => {
       PROPERTY, SPACE, valid,
     )).status).toBe(400);
     expect((await api.initializeHousekeepingCondition(
-      context("POST", "/initialize", ["housekeeping.conditions:initialize"], true, valid, "not-a-key"),
+      context("POST", "/initialize", ["housekeeping.conditions:initialize"], true, valid, "short"),
       PROPERTY, SPACE, valid,
     )).status).toBe(400);
     expect((await api.initializeHousekeepingCondition(

@@ -910,3 +910,32 @@ condition, occupancy, fact, outbox or idempotency write.
 `housekeeping.tasks:read` scope and exact property grant, accepts no query and is
 `Cache-Control: no-store`. It is an exact read-only detail, not generic task authority;
 existing board transitions remain separate and unchanged.
+
+## 29. Governed initial room-condition ingress
+
+`HousekeepingTaskService.getInitialConditionCandidate` admits only one active
+physical room in the exact tenant and property when no `unit_condition` row exists.
+Its deeply frozen read result is exactly `{spaceId,code,floor,roomCondition:null}`;
+existing conditions, foreign or inactive rooms and malformed stored truth fail
+closed without partial disclosure. The read performs no condition, task, fact,
+outbox or idempotency write.
+
+`GET /api/v1/properties/{property}/housekeeping/conditions/{space}/candidate`
+requires `housekeeping.tasks:read` and its exact property grant, accepts no query and
+is `Cache-Control: no-store`. Its minimized candidate adds
+`allowedInitialConditions:["clean","dirty","pickup"]` only when the caller also
+holds `housekeeping.conditions:initialize` for that exact property; otherwise that
+array is empty. The candidate never infers a condition.
+
+`POST /api/v1/properties/{property}/housekeeping/conditions/{space}/initialize`
+requires the exact initialize scope and property grant, no query, a valid
+`Idempotency-Key`, and only
+`{expectedRoomCondition:null,roomCondition:"clean"|"dirty"|"pickup"}`. `inspected`
+is deliberately excluded. The owner-mediated capability inserts only while the row
+is absent; an existing row conflicts and is never changed. The atomic domain command
+records the canonical `unit.condition_changed` fact and outbox event, and exact
+replays return the same canonical receipt with `Idempotency-Replayed: true`.
+Responses are `Cache-Control: no-store`, expose only
+`{replayed,roomCondition,spaceId,updatedAt}`, and carry the request correlation ID.
+There are no PUT, PATCH or DELETE variants and direct runtime DML on
+`unit_condition` remains denied.

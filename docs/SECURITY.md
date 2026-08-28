@@ -345,8 +345,26 @@ under transaction-local RLS and selects only active physical rooms with canonica
 condition truth. The adapter re-minimizes the response to room id, code, floor,
 condition and update instant. It cannot disclose updater identity, task/assignee,
 occupancy, reservation/guest, OOO/OOS, readiness, source/reason or inferred status.
-No condition-write route exists, and the read has no task transition, condition,
-space, occupancy, reservation, fact, outbox or idempotency capability.
+The Order-208 read itself has no condition-write authority, task transition,
+condition, space, occupancy, reservation, fact, outbox or idempotency capability.
+
+### Governed initial room-condition containment (migration 0030)
+
+Migration 0030 adds one fixed-search-path owner-mediated, insert-only capability for
+an absent `unit_condition`. It admits only the dedicated runtime/app-role context,
+transaction-local tenant, active actor, exact property and one active same-property
+space. The parent space is locked before absence is proved, so concurrent first
+writes converge to one insert while every existing condition fails as a stale
+conflict. Only `clean`, `dirty` and `pickup` are accepted; `inspected` remains reserved
+for governed verification. `PUBLIC`, direct-login execution and raw runtime
+`INSERT`, `UPDATE`, `DELETE` and `TRUNCATE` remain denied.
+
+The separate exact-property `housekeeping.conditions:initialize` permission grants
+only this bounded first write. Tenant, property, actor, updater, timestamp and prior
+absence are server-owned. Actor-bound idempotency, the condition insert, one minimized
+`unit.condition_changed` fact and one matching outbox event commit in the same
+transaction. The capability cannot read or mutate tasks, reservations, check-in,
+occupancy, OOO/OOS, financials, business days, documents or statutory state.
 
 ### Housekeeping-task exact-detail containment
 

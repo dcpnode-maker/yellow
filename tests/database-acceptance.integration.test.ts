@@ -150,6 +150,11 @@ const EXPECTED_MIGRATIONS = [
     filename: "0029_governed_arrival_pickup_task.sql",
     checksum_sha256: "44bfef33a0cb775ed790a7df6d6510e23286cb1570fe5565473e8b422a2d1576",
   },
+  {
+    version: 30,
+    filename: "0030_governed_unit_condition_initialization.sql",
+    checksum_sha256: "2afcace484bcba5f3513a92102216f8f73da2159e1f2348f6870b459fcef8524",
+  },
 ];
 
 if (REQUIRE_DATABASE && !DATABASE_URL) {

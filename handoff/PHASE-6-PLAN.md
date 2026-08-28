@@ -274,7 +274,7 @@ existing Housekeeping condition board. Only `room_condition_missing` or
 condition/reservation/readiness refetch and exact-or-safe focus preserve the operator
 journey without a new request, command, task/occupancy inference, schema or event.
 
-Order 227 is ready as the absence-only initial room-condition ingress needed by the
+Order 227 is built-unreviewed as the absence-only initial room-condition ingress needed by the
 exact `room_condition_missing` journey. It adds one server-owned missing-room
 candidate read and one governed insert-only, actor-bound idempotent command with
 same-transaction `unit.condition_changed` evidence. Existing conditions cannot be

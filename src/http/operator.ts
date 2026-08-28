@@ -242,6 +242,7 @@ const VEHICLE_REGISTER_READ_SCOPE = "stay-operations.vehicles:read";
 const HOUSEKEEPING_READ_SCOPE = "housekeeping.tasks:read";
 const HOUSEKEEPING_WORK_SCOPE = "housekeeping.tasks:work";
 const HOUSEKEEPING_INSPECT_SCOPE = "housekeeping.tasks:inspect";
+const HOUSEKEEPING_CONDITION_INITIALIZE_SCOPE = "housekeeping.conditions:initialize";
 const HOUSEKEEPING_SHEET_READ_SCOPE = "housekeeping.sheets:read";
 const HOUSEKEEPING_SHEET_GENERATE_SCOPE = "housekeeping.sheets:generate";
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
@@ -418,6 +419,19 @@ interface HousekeepingTransitionDraft {
   readonly expectedTaskStatus: "assigned" | "in_progress" | "done";
   readonly expectedRoomCondition: "clean" | "dirty" | "pickup" | "inspected";
   readonly expectedRoomUpdatedAt: string;
+}
+
+interface HousekeepingConditionInitializeDraft {
+  readonly expectedRoomCondition: null;
+  readonly roomCondition: "clean" | "dirty" | "pickup";
+}
+
+function parseHousekeepingConditionInitialize(body: unknown): HousekeepingConditionInitializeDraft | null {
+  return isObject(body) && exactKeys(body, ["expectedRoomCondition", "roomCondition"]) &&
+    body.expectedRoomCondition === null &&
+    (body.roomCondition === "clean" || body.roomCondition === "dirty" || body.roomCondition === "pickup")
+    ? Object.freeze({ expectedRoomCondition: null, roomCondition: body.roomCondition })
+    : null;
 }
 
 interface HousekeepingSheetGenerateDraft {
@@ -1445,7 +1459,33 @@ interface CheckoutReadinessOperations {
 }
 type HousekeepingOperations = Pick<HousekeepingTaskService, "listBoard" | "transition"> &
   Partial<Pick<HousekeepingTaskService, "listConditions">> &
-  Partial<Pick<HousekeepingTaskService, "get">>;
+  Partial<Pick<HousekeepingTaskService, "get">> &
+  Partial<Readonly<{
+    getInitialConditionCandidate(input: Readonly<{
+      tenantId: string;
+      propertyNode: string;
+      spaceId: string;
+    }>): Promise<Readonly<{
+      spaceId: string;
+      code: string;
+      floor: string | null;
+      roomCondition: null;
+    }>>;
+    initializeCondition(input: Readonly<{
+      tenantId: string;
+      propertyNode: string;
+      spaceId: string;
+      expectedRoomCondition: null;
+      roomCondition: "clean" | "dirty" | "pickup";
+      idempotencyKey: string;
+      envelope: unknown;
+    }>): Promise<Readonly<{
+      spaceId: string;
+      roomCondition: "clean" | "dirty" | "pickup";
+      roomUpdatedAt: string;
+      replayed: boolean;
+    }>>;
+  }>>;
 type HousekeepingSheetOperations = Pick<HousekeepingSheetService, "preview" | "list" | "generate">;
 type PartyOperations = Pick<PartyProfileService, "search" | "create">;
 type FolioStatementOperations = Pick<FolioStatementService, "get">;
@@ -1943,6 +1983,9 @@ export class OperatorHttpApi {
   }
 
   failure(request: Request, error: unknown): Response {
+    const conditionIngress = /^\/api\/v1\/properties\/[0-9a-f-]+\/housekeeping\/conditions\/[0-9a-f-]+\/(?:candidate|initialize)$/.test(
+      new URL(request.url).pathname,
+    );
     if (error instanceof VehicleRegisterValidationError) {
       return apiError(request, 400, "request/invalid", "Invalid request", "Vehicle register input is invalid");
     }
@@ -1982,13 +2025,19 @@ export class OperatorHttpApi {
       return apiError(request, 409, "housekeeping/conflict", "Conflict", "Housekeeping sheet truth changed or another attendant already owns this date; refresh before trying again");
     }
     if (error instanceof HousekeepingValidationError) {
-      return apiError(request, 400, "request/invalid", "Invalid request", "Housekeeping task input is invalid");
+      return apiError(request, 400, "request/invalid", "Invalid request", conditionIngress
+        ? "Housekeeping condition input is invalid"
+        : "Housekeeping task input is invalid");
     }
     if (error instanceof HousekeepingNotFoundError) {
-      return apiError(request, 404, "housekeeping/not_found", "Not found", "The referenced housekeeping task was not found");
+      return apiError(request, 404, "housekeeping/not_found", "Not found", conditionIngress
+        ? "The referenced room condition candidate was not found"
+        : "The referenced housekeeping task was not found");
     }
     if (error instanceof HousekeepingConflictError) {
-      return apiError(request, 409, "housekeeping/conflict", "Conflict", "Housekeeping task or room condition changed; refresh the board and try again");
+      return apiError(request, 409, "housekeeping/conflict", "Conflict", conditionIngress
+        ? "Room condition truth changed; refresh the candidate and try again"
+        : "Housekeeping task or room condition changed; refresh the board and try again");
     }
     if (error instanceof CheckInValidationError) {
       return apiError(request, 400, "request/invalid", "Invalid request", "Check-in input is invalid");
@@ -3830,6 +3879,86 @@ export class OperatorHttpApi {
       ...query,
     });
     return apiResponse(context.request, canonicalJson(housekeepingConditionJson(page)));
+  }
+
+  async housekeepingInitialConditionCandidate(
+    context: TenantRequestContext,
+    propertyNode: string,
+    spaceId: string,
+  ): Promise<Response> {
+    if (!UUID.test(propertyNode) || !UUID.test(spaceId) || new URL(context.request.url).search.length > 0) {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Housekeeping condition candidate input is invalid");
+    }
+    if (!hasScope(context, HOUSEKEEPING_READ_SCOPE)) {
+      return apiError(context.request, 403, "auth/scope_missing", "Forbidden", "Housekeeping condition candidate access is not granted");
+    }
+    const readGrants = await listGrantedProperties(context, HOUSEKEEPING_READ_SCOPE);
+    if (!readGrants.some(({ id }) => id === propertyNode)) {
+      return apiError(context.request, 404, "housekeeping/not_found", "Not found", "The referenced room condition candidate was not found");
+    }
+    if (!this.#housekeeping?.getInitialConditionCandidate) return this.unavailable(context.request);
+    const initializeGrants = hasScope(context, HOUSEKEEPING_CONDITION_INITIALIZE_SCOPE)
+      ? await listGrantedProperties(context, HOUSEKEEPING_CONDITION_INITIALIZE_SCOPE)
+      : [];
+    const candidate = await this.#housekeeping.getInitialConditionCandidate({
+      tenantId: context.tenantId,
+      propertyNode,
+      spaceId,
+    });
+    return apiResponse(context.request, canonicalJson(jsonValue({
+      candidate: {
+        ...candidate,
+        allowedInitialConditions: initializeGrants.some(({ id }) => id === propertyNode)
+          ? ["clean", "dirty", "pickup"] : [],
+      },
+    })));
+  }
+
+  async initializeHousekeepingCondition(
+    context: TenantRequestContext,
+    propertyNode: string,
+    spaceId: string,
+    body: unknown,
+  ): Promise<Response> {
+    const input = parseHousekeepingConditionInitialize(body);
+    const idempotencyKey = context.request.headers.get("idempotency-key");
+    if (!UUID.test(propertyNode) || !UUID.test(spaceId) || !input ||
+        !idempotencyKey || !IDEMPOTENCY_KEY.test(idempotencyKey) ||
+        new URL(context.request.url).search.length > 0) {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Housekeeping condition initialization input is invalid");
+    }
+    if (!hasScope(context, HOUSEKEEPING_CONDITION_INITIALIZE_SCOPE)) {
+      return apiError(context.request, 403, "auth/scope_missing", "Forbidden", "Housekeeping condition initialization is not granted");
+    }
+    const grants = await listGrantedProperties(context, HOUSEKEEPING_CONDITION_INITIALIZE_SCOPE);
+    if (!grants.some(({ id }) => id === propertyNode)) {
+      return apiError(context.request, 404, "housekeeping/not_found", "Not found", "The referenced room condition candidate was not found");
+    }
+    if (!this.#housekeeping?.initializeCondition) return this.unavailable(context.request);
+    const requestId = correlationId(context.request);
+    const result = await this.#housekeeping.initializeCondition({
+      tenantId: context.tenantId,
+      propertyNode,
+      spaceId,
+      ...input,
+      idempotencyKey,
+      envelope: createAuditEnvelope({
+        actorId: context.identity.actorId,
+        tenantId: context.tenantId,
+        propertyNode,
+        requestId,
+        operation: "unit.condition_changed",
+      }),
+    });
+    return apiResponse(context.request, canonicalJson(jsonValue({
+      replayed: result.replayed,
+      roomCondition: result.roomCondition,
+      spaceId: result.spaceId,
+      updatedAt: result.roomUpdatedAt,
+    })), 201, {
+      "idempotency-replayed": String(result.replayed),
+      "x-correlation-id": requestId,
+    });
   }
 
   async previewHousekeepingSheet(

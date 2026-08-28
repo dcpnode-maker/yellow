@@ -20,11 +20,15 @@ export const HOUSEKEEPING_TASK_STATUSES = Object.freeze([
 export const HOUSEKEEPING_ROOM_CONDITIONS = Object.freeze([
   "clean", "dirty", "pickup", "inspected",
 ] as const);
+export const HOUSEKEEPING_INITIAL_CONDITIONS = Object.freeze([
+  "clean", "dirty", "pickup",
+] as const);
 
 export type HousekeepingTaskAction = (typeof HOUSEKEEPING_TASK_ACTIONS)[number];
 export type HousekeepingTaskStatus = (typeof HOUSEKEEPING_TASK_STATUSES)[number];
 export type HousekeepingTaskDetailStatus = Exclude<HousekeepingTaskStatus, "verified">;
 export type HousekeepingRoomCondition = (typeof HOUSEKEEPING_ROOM_CONDITIONS)[number];
+export type HousekeepingInitialCondition = (typeof HOUSEKEEPING_INITIAL_CONDITIONS)[number];
 
 export interface HousekeepingBoardInput {
   readonly tenantId: string;
@@ -44,6 +48,19 @@ export interface HousekeepingConditionListInput {
   readonly condition?: HousekeepingRoomCondition;
   readonly cursor?: string;
   readonly limit?: number;
+}
+
+export interface HousekeepingInitialConditionCandidateInput {
+  readonly tenantId: string;
+  readonly propertyNode: string;
+  readonly spaceId: string;
+}
+
+export interface HousekeepingInitialConditionCandidate {
+  readonly spaceId: string;
+  readonly code: string;
+  readonly floor: string | null;
+  readonly roomCondition: null;
 }
 
 export interface HousekeepingConditionBoardRow {
@@ -112,6 +129,23 @@ export interface HousekeepingTransitionResult extends Readonly<Record<string, Js
   readonly replayed: boolean;
 }
 
+export interface HousekeepingConditionInitializationInput {
+  readonly tenantId: string;
+  readonly propertyNode: string;
+  readonly spaceId: string;
+  readonly expectedRoomCondition: null;
+  readonly roomCondition: HousekeepingInitialCondition;
+  readonly idempotencyKey: string;
+  readonly envelope: AuditEnvelope;
+}
+
+export interface HousekeepingConditionInitializationResult extends Readonly<Record<string, JsonValue>> {
+  readonly spaceId: string;
+  readonly roomCondition: HousekeepingInitialCondition;
+  readonly roomUpdatedAt: string;
+  readonly replayed: boolean;
+}
+
 export interface HousekeepingTaskServiceOptions {
   readonly database: Database;
   readonly events: EventBus;
@@ -141,6 +175,12 @@ interface CapabilityRow {
   readonly task_completed_at: Date | null;
 }
 
+interface ConditionInitializationCapabilityRow {
+  readonly space_id: string;
+  readonly room_condition: string;
+  readonly room_updated_at: Date;
+}
+
 interface HousekeepingConditionCursor {
   readonly v: 1;
   readonly condition: HousekeepingRoomCondition | null;
@@ -154,6 +194,12 @@ interface HousekeepingConditionSqlRow {
   readonly floor: string | null;
   readonly condition: string;
   readonly updated_at: string;
+}
+
+interface HousekeepingInitialConditionCandidateRow {
+  readonly id: string;
+  readonly code: string;
+  readonly floor: string | null;
 }
 
 export class HousekeepingValidationError extends Error {
@@ -222,6 +268,11 @@ function condition(value: unknown, subject = "room condition"): HousekeepingRoom
     return value;
   }
   throw new HousekeepingValidationError(`${subject} is invalid`);
+}
+
+function initialCondition(value: unknown): HousekeepingInitialCondition {
+  if (value === "clean" || value === "dirty" || value === "pickup") return value;
+  throw new HousekeepingValidationError("initial room condition is invalid");
 }
 
 function encodeBase64Url(value: string): string {
@@ -293,6 +344,18 @@ function conditionListInput(input: HousekeepingConditionListInput) {
   });
 }
 
+function initialConditionCandidateInput(
+  input: HousekeepingInitialConditionCandidateInput,
+): HousekeepingInitialConditionCandidateInput {
+  plainObject(input, "housekeeping initial condition candidate input");
+  exactKeys(input, ["tenantId", "propertyNode", "spaceId"], [], "housekeeping initial condition candidate input");
+  return Object.freeze({
+    tenantId: uuid(input.tenantId, "tenantId"),
+    propertyNode: uuid(input.propertyNode, "propertyNode"),
+    spaceId: uuid(input.spaceId, "spaceId"),
+  });
+}
+
 function storedConditionText(value: unknown, subject: string): string {
   if (typeof value !== "string" || value.length > 512) {
     throw new HousekeepingConflictError(`Stored room ${subject} is invalid`);
@@ -323,6 +386,11 @@ function storedRoomCondition(value: unknown): HousekeepingRoomCondition {
     return value;
   }
   throw new HousekeepingConflictError("Stored room condition is invalid");
+}
+
+function storedInitialCondition(value: unknown): HousekeepingInitialCondition {
+  if (value === "clean" || value === "dirty" || value === "pickup") return value;
+  throw new HousekeepingConflictError("Stored initial room condition is invalid");
 }
 
 function canonicalConditionRow(row: HousekeepingConditionSqlRow): HousekeepingConditionBoardRow {
@@ -482,6 +550,47 @@ function transitionInput(input: HousekeepingTransitionInput): HousekeepingTransi
   });
 }
 
+function conditionInitializationInput(
+  input: HousekeepingConditionInitializationInput,
+): HousekeepingConditionInitializationInput {
+  plainObject(input, "housekeeping condition initialization input");
+  exactKeys(input, [
+    "tenantId", "propertyNode", "spaceId", "expectedRoomCondition",
+    "roomCondition", "idempotencyKey", "envelope",
+  ], [], "housekeeping condition initialization input");
+  const tenantId = uuid(input.tenantId, "tenantId");
+  const propertyNode = uuid(input.propertyNode, "propertyNode");
+  if (input.expectedRoomCondition !== null) {
+    throw new HousekeepingValidationError("expectedRoomCondition must be null");
+  }
+  if (typeof input.idempotencyKey !== "string" || !IDEMPOTENCY_KEY.test(input.idempotencyKey)) {
+    throw new HousekeepingValidationError("idempotencyKey must contain 8 to 200 visible ASCII characters");
+  }
+  plainObject(input.envelope, "envelope");
+  exactKeys(input.envelope, ["actorId", "tenantId", "propertyNode", "requestId", "operation"], [], "envelope");
+  if (uuid(input.envelope.tenantId, "envelope.tenantId") !== tenantId ||
+      uuid(input.envelope.propertyNode, "envelope.propertyNode") !== propertyNode ||
+      input.envelope.operation !== "unit.condition_changed") {
+    throw new HousekeepingValidationError("audit envelope is not bound to unit.condition_changed");
+  }
+  const envelope = Object.freeze({
+    actorId: uuid(input.envelope.actorId, "envelope.actorId"),
+    tenantId,
+    propertyNode,
+    requestId: uuid(input.envelope.requestId, "envelope.requestId"),
+    operation: "unit.condition_changed",
+  });
+  return Object.freeze({
+    tenantId,
+    propertyNode,
+    spaceId: uuid(input.spaceId, "spaceId"),
+    expectedRoomCondition: null,
+    roomCondition: initialCondition(input.roomCondition),
+    idempotencyKey: input.idempotencyKey,
+    envelope,
+  });
+}
+
 function translateDatabaseError(error: unknown): never {
   if (error instanceof IdempotencyConflictError) {
     throw new HousekeepingConflictError(error.message);
@@ -552,6 +661,53 @@ export class HousekeepingTaskService {
     if (rows.length === 0) throw new HousekeepingNotFoundError("Housekeeping task was not found in the active property");
     if (rows.length !== 1) throw new HousekeepingConflictError("Housekeeping task detail is ambiguous");
     return canonicalTaskDetail(rows[0]!);
+  }
+
+  async getInitialConditionCandidate(
+    input: HousekeepingInitialConditionCandidateInput,
+  ): Promise<HousekeepingInitialConditionCandidate> {
+    const target = initialConditionCandidateInput(input);
+    const rows = await this.#database.withTenantTransaction(target.tenantId, (tx) =>
+      tx<HousekeepingInitialConditionCandidateRow[]>`
+        WITH target_property AS MATERIALIZED (
+          SELECT property.id
+          FROM public.org_node AS property
+          WHERE property.tenant_id = ${target.tenantId}::uuid
+            AND property.tenant_id = current_setting('app.tenant_id', true)::uuid
+            AND property.id = ${target.propertyNode}::uuid
+            AND property.kind = 'property'
+        )
+        SELECT room.id, room.code, room.floor
+        FROM public.space AS room
+        JOIN target_property AS property ON property.id = room.property_node
+        LEFT JOIN public.unit_condition AS room_condition
+          ON room_condition.tenant_id = room.tenant_id
+         AND room_condition.tenant_id = current_setting('app.tenant_id', true)::uuid
+         AND room_condition.space_id = room.id
+        WHERE room.tenant_id = ${target.tenantId}::uuid
+          AND room.tenant_id = current_setting('app.tenant_id', true)::uuid
+          AND room.id = ${target.spaceId}::uuid
+          AND room.status = 'active'
+          AND room_condition.space_id IS NULL
+      `,
+    );
+    if (rows.length === 0) {
+      throw new HousekeepingNotFoundError(
+        "Housekeeping room was not found in the active property",
+      );
+    }
+    if (rows.length !== 1) {
+      throw new HousekeepingConflictError(
+        "Housekeeping room condition candidate is ambiguous",
+      );
+    }
+    const row = rows[0]!;
+    return Object.freeze({
+      spaceId: storedConditionUuid(row.id),
+      code: storedConditionText(row.code, "code"),
+      floor: row.floor === null ? null : storedConditionText(row.floor, "floor"),
+      roomCondition: null,
+    });
   }
 
   async listConditions(input: HousekeepingConditionListInput): Promise<HousekeepingConditionPage> {
@@ -659,6 +815,98 @@ export class HousekeepingTaskService {
           });
         }));
       });
+    } catch (error) {
+      return translateDatabaseError(error);
+    }
+  }
+
+  async initializeCondition(
+    input: HousekeepingConditionInitializationInput,
+  ): Promise<HousekeepingConditionInitializationResult> {
+    const normalized = conditionInitializationInput(input);
+    try {
+      const outcome = await this.#database.withTenantTransaction(normalized.tenantId, (tx) =>
+        this.#idempotency.execute<HousekeepingConditionInitializationResult>(tx, {
+          tenantId: normalized.tenantId,
+          operation: "housekeeping.condition.initialize",
+          key: normalized.idempotencyKey,
+          request: {
+            actorId: normalized.envelope.actorId,
+            propertyNode: normalized.propertyNode,
+            spaceId: normalized.spaceId,
+            expectedRoomCondition: normalized.expectedRoomCondition,
+            roomCondition: normalized.roomCondition,
+          },
+        }, async (commandTx) => {
+          const rows = await commandTx<ConditionInitializationCapabilityRow[]>`
+            SELECT space_id, room_condition, room_updated_at
+            FROM public.initialize_unit_condition(
+              ${normalized.tenantId}::uuid,
+              ${normalized.propertyNode}::uuid,
+              ${normalized.spaceId}::uuid,
+              ${normalized.roomCondition},
+              ${normalized.envelope.actorId}::uuid
+            )
+          `;
+          const row = rows[0];
+          if (rows.length === 0) {
+            throw new HousekeepingNotFoundError(
+              "Housekeeping room was not found in the active property",
+            );
+          }
+          if (rows.length !== 1 || !row) {
+            throw new HousekeepingConflictError(
+              "Housekeeping room condition initialization returned invalid evidence",
+            );
+          }
+          const spaceId = storedUuid(row.space_id, "housekeeping room id");
+          if (spaceId !== normalized.spaceId) {
+            throw new HousekeepingConflictError(
+              "Housekeeping room condition initialization returned mismatched evidence",
+            );
+          }
+          const roomCondition = storedInitialCondition(row.room_condition);
+          if (roomCondition !== normalized.roomCondition) {
+            throw new HousekeepingConflictError(
+              "Housekeeping room condition initialization returned mismatched evidence",
+            );
+          }
+          const roomUpdatedAt = iso(row.room_updated_at, "room updated_at");
+          const payload = Object.freeze({
+            space_id: spaceId,
+            previous_condition: null,
+            current_condition: roomCondition,
+            room_updated_at: roomUpdatedAt,
+          });
+          const fact = await recordFact(commandTx, {
+            entityType: "unit_condition",
+            entityId: spaceId,
+            envelope: normalized.envelope,
+            payload,
+          });
+          await this.#events.publish(commandTx, {
+            tenantId: normalized.tenantId,
+            propertyNode: normalized.propertyNode,
+            businessDate: fact.businessDate,
+            aggregateType: "unit_condition",
+            aggregateId: spaceId,
+            eventType: "unit.condition_changed",
+            actorId: normalized.envelope.actorId,
+            correlationId: normalized.envelope.requestId,
+            payload,
+          });
+          return {
+            status: 201,
+            body: Object.freeze({
+              spaceId,
+              roomCondition,
+              roomUpdatedAt,
+              replayed: false,
+            }),
+          };
+        })
+      );
+      return Object.freeze({ ...outcome.body, replayed: outcome.replayed });
     } catch (error) {
       return translateDatabaseError(error);
     }

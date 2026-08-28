@@ -270,7 +270,7 @@ databaseDescribe("Order 227 governed initial room condition", () => {
       idempotencyKey: "order227-inspected-denied",
       envelope: audit(),
     })).rejects.toBeInstanceOf(HousekeepingValidationError);
-    expect(await deploy!`SELECT 1 FROM unit_condition WHERE space_id=${SPACES.inspected}::uuid`).toEqual([]);
+    expect(await deploy!`SELECT 1 FROM unit_condition WHERE space_id=${SPACES.inspected}::uuid`).toHaveLength(0);
   });
 
   test("P2 existing, inactive, wrong-property, foreign and inactive-actor targets write nothing", async () => {
@@ -355,10 +355,11 @@ databaseDescribe("Order 227 governed initial room condition", () => {
         (SELECT count(*)::int FROM fact_log WHERE entity_id=${SPACES.replay}::uuid) AS facts,
         (SELECT count(*)::int FROM outbox WHERE aggregate_id=${SPACES.replay}::uuid) AS events,
         (SELECT count(*)::int FROM api_idempotency WHERE tenant_id=${TENANT}::uuid
-          AND operation='housekeeping.condition.initialize') AS keys
+          AND operation='housekeeping.condition.initialize'
+          AND key_hash=encode(digest('order227-exact-replay','sha256'),'hex')) AS keys
     `;
     expect(evidence).toEqual([{ conditions: 1, facts: 1, events: 1, keys: 1 }]);
-    expect(await deploy!`SELECT 1 FROM unit_condition WHERE space_id=${SPACES.race}::uuid`).toEqual([]);
+    expect(await deploy!`SELECT 1 FROM unit_condition WHERE space_id=${SPACES.race}::uuid`).toHaveLength(0);
   });
 
   test("P3 twenty distinct contenders converge to one row, fact and outbox event", async () => {
@@ -388,7 +389,8 @@ databaseDescribe("Order 227 governed initial room condition", () => {
         (SELECT count(*)::int FROM fact_log WHERE entity_id=${SPACES.race}::uuid) AS facts,
         (SELECT count(*)::int FROM outbox WHERE aggregate_id=${SPACES.race}::uuid) AS events,
         (SELECT count(*)::int FROM api_idempotency WHERE tenant_id=${TENANT}::uuid
-          AND operation='housekeeping.condition.initialize' AND response_status=201) AS keys,
+          AND operation='housekeeping.condition.initialize' AND response_status=201
+          AND response_body->>'spaceId'=${SPACES.race}) AS keys,
         (SELECT condition FROM unit_condition WHERE space_id=${SPACES.race}::uuid) AS condition,
         (SELECT payload FROM fact_log WHERE entity_id=${SPACES.race}::uuid) AS fact_payload,
         (SELECT payload FROM outbox WHERE aggregate_id=${SPACES.race}::uuid) AS event_payload
@@ -440,7 +442,8 @@ databaseDescribe("Order 227 governed initial room condition", () => {
         (SELECT count(*)::int FROM fact_log WHERE entity_id=${SPACES.rollback}::uuid) AS facts,
         (SELECT count(*)::int FROM outbox WHERE aggregate_id=${SPACES.rollback}::uuid) AS events,
         (SELECT count(*)::int FROM api_idempotency WHERE tenant_id=${TENANT}::uuid
-          AND operation='housekeeping.condition.initialize') AS keys
+          AND operation='housekeeping.condition.initialize'
+          AND key_hash=encode(digest('order227-rollback-retry','sha256'),'hex')) AS keys
     `;
     expect(rolledBack).toEqual([{ conditions: 0, facts: 0, events: 0, keys: 0 }]);
 
@@ -456,7 +459,8 @@ databaseDescribe("Order 227 governed initial room condition", () => {
         (SELECT count(*)::int FROM fact_log WHERE entity_id=${SPACES.rollback}::uuid) AS facts,
         (SELECT count(*)::int FROM outbox WHERE aggregate_id=${SPACES.rollback}::uuid) AS events,
         (SELECT count(*)::int FROM api_idempotency WHERE tenant_id=${TENANT}::uuid
-          AND operation='housekeeping.condition.initialize' AND response_status=201) AS keys
+          AND operation='housekeeping.condition.initialize' AND response_status=201
+          AND key_hash=encode(digest('order227-rollback-retry','sha256'),'hex')) AS keys
     `;
     expect(committed).toEqual([{ conditions: 1, facts: 1, events: 1, keys: 1 }]);
   });

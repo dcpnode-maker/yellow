@@ -94,6 +94,14 @@ fact(s), outbox row(s), task status, completion time and condition actor/time co
 one transaction. These events contain no assignee/guest PII and do not imply task
 creation, sheets/cadence, occupancy, reservation, financial or statutory effects.
 
+Order 227 also produces `unit.condition_changed` when an authorized actor deliberately
+records the first condition for an active exact-property room. The minimized payload
+contains the space, `previous_condition: null`, the explicitly selected `clean`,
+`dirty` or `pickup` condition, and the server-recorded update instant. `inspected`
+remains available only through the governed verification transition. The inserted
+condition, matching fact and outbox row commit in one transaction and imply no task,
+reservation, check-in, occupancy, OOO/OOS, financial, day or statutory effect.
+
 Order 202 produces one `task.created` fact/outbox pair for every task created by one
 governed task-sheet generation transaction. Its minimized payload identifies the
 task, sheet, physical space, property-local sheet date and resolved cadence; it does

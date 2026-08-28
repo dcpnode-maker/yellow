@@ -322,7 +322,7 @@ existing Housekeeping condition board. It adds only minimized history return con
 authoritative condition/reservation/readiness refetch and exact-or-safe focus; it adds
 no request, command, task/occupancy inference, schema or event. This cannot complete Phase 6.
 
-Order 227 is ready as the governed absence-only initial room-condition ingress. An
+Order 227 is built-unreviewed as the governed absence-only initial room-condition ingress. An
 exact missing-room candidate read and one actor-bound idempotent owner-mediated insert
 record canonical condition truth plus same-transaction `unit.condition_changed`
 evidence. It cannot overwrite an existing condition, initialize `inspected`, or

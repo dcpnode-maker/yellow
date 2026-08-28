@@ -1,5 +1,6 @@
 export {
   HOUSEKEEPING_ROOM_CONDITIONS,
+  HOUSEKEEPING_INITIAL_CONDITIONS,
   HOUSEKEEPING_TASK_ACTIONS,
   HOUSEKEEPING_TASK_STATUSES,
   HousekeepingConflictError,
@@ -10,9 +11,14 @@ export {
 export type {
   HousekeepingBoardInput,
   HousekeepingConditionBoardRow,
+  HousekeepingConditionInitializationInput,
+  HousekeepingConditionInitializationResult,
   HousekeepingConditionListInput,
   HousekeepingConditionPage,
+  HousekeepingInitialConditionCandidate,
+  HousekeepingInitialConditionCandidateInput,
   HousekeepingRoomCondition,
+  HousekeepingInitialCondition,
   HousekeepingTaskAction,
   HousekeepingTaskBoardItem,
   HousekeepingTaskDetail,

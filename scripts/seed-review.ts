@@ -68,6 +68,7 @@ export const REVIEW_PERMISSIONS = Object.freeze([
   { code: "financials.transfers:write", description: "Preview and commit governed folio transfers" },
   { code: "housekeeping.tasks:read", description: "Read the governed property housekeeping task board" },
   { code: "housekeeping.tasks:work", description: "Start and complete governed property housekeeping tasks" },
+  { code: "housekeeping.conditions:initialize", description: "Initialize one absent property room condition" },
   { code: "housekeeping.sheets:read", description: "Read governed property housekeeping task sheets" },
   { code: "housekeeping.sheets:generate", description: "Generate governed property housekeeping task sheets" },
   { code: REVIEW_PERMISSION, description: "Read tenant-scoped truth availability" },
@@ -132,7 +133,10 @@ const ROOMS = Object.freeze([
   { code: "103", unitTypeCode: "STD", name: "Room 103", floor: "1", areaSqm: 26 },
   { code: "201", unitTypeCode: "DLX", name: "Room 201", floor: "2", areaSqm: 36 },
   { code: "202", unitTypeCode: "DLX", name: "Room 202", floor: "2", areaSqm: 38 },
+  { code: "203", unitTypeCode: "DLX", name: "Room 203", floor: "2", areaSqm: 38 },
 ]);
+
+const INITIAL_CONDITION_FIXTURE_ROOM_CODE = "203";
 
 const CHECKIN_EXAMPLES = Object.freeze([
   Object.freeze({ key: "clean", confirmationNo: "ARR-CLEAN", displayName: "Arrival Clean Example",
@@ -382,6 +386,7 @@ export interface PublishedReviewSeedResult extends ReviewSeedBaseResult {
   readonly vehicleExamples: ReviewVehicleExamples;
   readonly arrivalTravelExamples: ReviewArrivalTravelExamples;
   readonly departureTravelExamples: ReviewDepartureTravelExamples;
+  readonly conditionInitializationSpaceId: string;
 }
 
 export interface IdentityInventoryReviewSeedResult extends ReviewSeedBaseResult {
@@ -2625,6 +2630,14 @@ export async function runReviewSeed(options: ReviewSeedOptions): Promise<ReviewS
     if (!arrivalTravelExamples) throw new Error("Local-review arrival travel examples were not provisioned");
     if (!departureTravelExamples) throw new Error("Local-review departure travel example was not provisioned");
 
+    const conditionInitializationSpace = spaces.get(INITIAL_CONDITION_FIXTURE_ROOM_CODE);
+    if (!conditionInitializationSpace) throw new Error("Local-review condition initialization room is missing");
+    await withIdentityTransaction(identityPool, async (tx) => {
+      await tx`DELETE FROM unit_condition
+        WHERE tenant_id=${SEED_TENANT.id}::uuid
+          AND space_id=${conditionInitializationSpace.id}::uuid`;
+    });
+
     logger(`review rate: plan=${rate.ratePlanId} active_release=${rate.activeReleaseId} version=${rate.activeReleaseVersion} state=${rate.created ? "created" : "existing"}`);
     logger(`review check-in: clean=${checkInExamples.cleanReservationId} dirty=${checkInExamples.dirtyReservationId} identity_gated=${checkInExamples.identityGatedReservationId}`);
     logger(`review housekeeping: assigned_dirty=${housekeepingExamples.assignedDirtyTaskId} done_clean=${housekeepingExamples.doneCleanTaskId}`);
@@ -2635,7 +2648,8 @@ export async function runReviewSeed(options: ReviewSeedOptions): Promise<ReviewS
     logger(`review arrival travel fixtures: clean=${arrivalTravelExamples.cleanTravelId} dirty=${arrivalTravelExamples.dirtyTravelId}`);
     logger(`review departure travel fixture: checkout=${departureTravelExamples.checkoutTravelId}`);
     return { ...common, mode, rate, checkInExamples, housekeepingExamples, vehicleExamples,
-      arrivalTravelExamples, departureTravelExamples };
+      arrivalTravelExamples, departureTravelExamples,
+      conditionInitializationSpaceId: conditionInitializationSpace.id };
   } finally {
     await database.close();
     await eventPool.close();

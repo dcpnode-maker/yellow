@@ -836,6 +836,41 @@ databaseDescribe("Bun SQL migration runner", () => {
   );
 
   test(
+    "applies the exact governed initial unit-condition migration",
+    async () => {
+      await withDatabase(async ({ databaseUrl: targetUrl, sql }) => {
+        const result = await runMigrations({
+          databaseUrl: targetUrl,
+          migrationsDirectory: PROJECT_MIGRATIONS,
+          logger: () => undefined,
+        });
+        expect(result.appliedFiles).toContain("0030_governed_unit_condition_initialization.sql");
+        const ledger = await sql<Array<{
+          version: number | bigint; filename: string; checksum_sha256: string;
+        }>>`
+          SELECT version, filename, checksum_sha256
+            FROM public.schema_migration
+           WHERE version = 30
+        `;
+        expect(ledger.map((row) => ({ ...row, version: Number(row.version) }))).toEqual([{
+          version: 30,
+          filename: "0030_governed_unit_condition_initialization.sql",
+          checksum_sha256: "2afcace484bcba5f3513a92102216f8f73da2159e1f2348f6870b459fcef8524",
+        }]);
+        const shape = await sql<Array<{ functions: number }>>`
+          SELECT count(*)::int AS functions
+            FROM pg_catalog.pg_proc AS procedure
+            JOIN pg_catalog.pg_namespace AS namespace ON namespace.oid=procedure.pronamespace
+           WHERE namespace.nspname='public'
+             AND procedure.proname='initialize_unit_condition'
+        `;
+        expect(shape).toEqual([{ functions: 1 }]);
+      });
+    },
+    60_000,
+  );
+
+  test(
     "applies the exact account-folio integrity migration and rejects tenant-crossing references",
     async () => {
       await withDatabase(async ({ databaseUrl: targetUrl, sql }) => {

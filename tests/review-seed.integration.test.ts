@@ -461,15 +461,15 @@ databaseDescribe("Order 046 reproducible local-review seed", () => {
     ]);
   });
 
-  test("P1: provisions exact identities, five-room inventory and governed rate evidence", async () => {
+  test("P1: provisions exact identities, six-room inventory and governed rate evidence", async () => {
     expect(first).toMatchObject({
       tenant: "yellow-demo",
       property: "Yellow Demo Property",
       email: REVIEW_EMAIL,
       approverEmail: REVIEW_APPROVER_EMAIL,
       unitTypes: { created: 2, existing: 0 },
-      rooms: { created: 5, existing: 0 },
-      sellableUnits: { created: 5, existing: 0 },
+      rooms: { created: 6, existing: 0 },
+      sellableUnits: { created: 6, existing: 0 },
       rate: {
         ratePlanId: expect.any(String),
         activeReleaseId: expect.any(String),
@@ -502,6 +502,7 @@ databaseDescribe("Order 046 reproducible local-review seed", () => {
       first.arrivalTravelExamples.cleanTravelId,
       first.arrivalTravelExamples.dirtyTravelId,
       first.departureTravelExamples.checkoutTravelId,
+      first.conditionInitializationSpaceId,
     ]) expect(id).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/);
     expect(first.cashAccountId).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/);
     expect(first.cashDrawerId).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/);
@@ -510,8 +511,8 @@ databaseDescribe("Order 046 reproducible local-review seed", () => {
     expect(first.companyReceivableAccountId).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/);
     expect(first.agentReceivableAccountId).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/);
     expect(await counts()).toEqual({
-      users: 2, roles: 1, grants: 6, unit_types: 2, spaces: 5,
-      sellables: 5, requester_facts: 21, requester_events: 18,
+      users: 2, roles: 1, grants: 6, unit_types: 2, spaces: 6,
+      sellables: 6, requester_facts: 23, requester_events: 20,
       approver_facts: 2, approver_events: 2, policies: 4, rate_plans: 1,
       model_versions: 1, target_versions: 1, release_versions: 1,
       active_releases: 1, approvals: 1, approved_approvals: 1,
@@ -520,6 +521,20 @@ databaseDescribe("Order 046 reproducible local-review seed", () => {
       receivable_parties: 2, receivable_roles: 2, receivable_accounts: 2,
       receivable_journals: 0,
     });
+    const initializationCandidates = await admin<Array<{
+      code: string; status: string; conditions: number;
+    }>>`
+      SELECT space.code, space.status,
+             count(condition.space_id)::int AS conditions
+        FROM space
+        LEFT JOIN unit_condition AS condition
+          ON condition.tenant_id=space.tenant_id AND condition.space_id=space.id
+       WHERE space.tenant_id=${SEED_TENANT.id}::uuid
+         AND space.property_node=${SEED_PROPERTY.id}::uuid
+         AND space.id=${first.conditionInitializationSpaceId}::uuid
+       GROUP BY space.code, space.status
+    `;
+    expect(initializationCandidates).toEqual([{ code: "203", status: "active", conditions: 0 }]);
   });
 
   test("P2: every inventory aggregate carries one fact and one outbox event", async () => {
@@ -539,8 +554,8 @@ databaseDescribe("Order 046 reproducible local-review seed", () => {
       ORDER BY fact.entity_type
     `;
     expect(rows).toEqual([
-      { entity_type: "sellable_unit", aggregates: 5, facts: 5, events: 5 },
-      { entity_type: "space", aggregates: 5, facts: 5, events: 5 },
+      { entity_type: "sellable_unit", aggregates: 6, facts: 6, events: 6 },
+      { entity_type: "space", aggregates: 6, facts: 6, events: 6 },
       { entity_type: "unit_type", aggregates: 2, facts: 2, events: 2 },
     ]);
   });
@@ -1029,8 +1044,8 @@ databaseDescribe("Order 046 reproducible local-review seed", () => {
       approverPassword: APPROVER_PASSWORD!, logger: (line) => logLines.push(line) });
     expect(second).toMatchObject({
       unitTypes: { created: 0, existing: 2 },
-      rooms: { created: 0, existing: 5 },
-      sellableUnits: { created: 0, existing: 5 },
+      rooms: { created: 0, existing: 6 },
+      sellableUnits: { created: 0, existing: 6 },
       rate: {
         ratePlanId: first.rate.ratePlanId,
         activeReleaseId: first.rate.activeReleaseId,
@@ -1099,7 +1114,7 @@ databaseDescribe("Order 046 reproducible local-review seed", () => {
     expect(await verifyLocalPassword(APPROVER_PASSWORD!, approver?.auth)).toBe(true);
   });
 
-  test("P5: login is least-scope and availability returns five real options", async () => {
+  test("P5: login is least-scope and availability returns six real options", async () => {
     const tokens = new Hs256TokenSigner(SECRET);
     const app = createApp({
       database,
@@ -1116,7 +1131,7 @@ databaseDescribe("Order 046 reproducible local-review seed", () => {
     expect(await tokens.verify(loginBody.accessToken)).toMatchObject({
       sub: first.userId,
       tid: SEED_TENANT.id,
-      scp: "crm.parties:read crm.parties:write financials.adjustments:write financials.cashiers:operate financials.cashiers:read financials.charges:write financials.folios:close financials.folios:open financials.folios:read financials.folios:settle financials.receivables:read financials.receivables:transfer financials.transfers:write housekeeping.sheets:generate housekeeping.sheets:read housekeeping.tasks:read housekeeping.tasks:work inventory.availability:read inventory.blocks:read inventory.blocks:write inventory.configuration:read inventory.configuration:write inventory.holds:read inventory.holds:write inventory.offline_leases:read inventory.offline_leases:write inventory.policy:read inventory.policy:write inventory.restriction:read inventory.restriction:write rates.configuration:read rates.configuration:write rates.pricing:read rates.pricing:write reservations.booking:write reservations.guests:read reservations.guests:write reservations.lifecycle:read reservations.lifecycle:write reservations.segments:read reservations.segments:write stay-operations.checkin:commit stay-operations.checkin:read stay-operations.checkout:commit stay-operations.checkout:read stay-operations.vehicles:read",
+      scp: "crm.parties:read crm.parties:write financials.adjustments:write financials.cashiers:operate financials.cashiers:read financials.charges:write financials.folios:close financials.folios:open financials.folios:read financials.folios:settle financials.receivables:read financials.receivables:transfer financials.transfers:write housekeeping.conditions:initialize housekeeping.sheets:generate housekeeping.sheets:read housekeeping.tasks:read housekeeping.tasks:work inventory.availability:read inventory.blocks:read inventory.blocks:write inventory.configuration:read inventory.configuration:write inventory.holds:read inventory.holds:write inventory.offline_leases:read inventory.offline_leases:write inventory.policy:read inventory.policy:write inventory.restriction:read inventory.restriction:write rates.configuration:read rates.configuration:write rates.pricing:read rates.pricing:write reservations.booking:write reservations.guests:read reservations.guests:write reservations.lifecycle:read reservations.lifecycle:write reservations.segments:read reservations.segments:write stay-operations.checkin:commit stay-operations.checkin:read stay-operations.checkout:commit stay-operations.checkout:read stay-operations.vehicles:read",
     });
     const approverLogin = await app.handle(new Request("http://yellow.test/api/v1/auth/local:login", {
       method: "POST",
@@ -1130,7 +1145,7 @@ databaseDescribe("Order 046 reproducible local-review seed", () => {
     expect(await tokens.verify(approverLoginBody.accessToken)).toMatchObject({
       sub: first.approverUserId,
       tid: SEED_TENANT.id,
-      scp: "crm.parties:read crm.parties:write financials.adjustments:post-seal financials.adjustments:write financials.cashiers:operate financials.cashiers:read financials.cashiers:supervise financials.charges:write financials.folios:close financials.folios:open financials.folios:read financials.folios:settle financials.receivables:approve financials.receivables:read financials.receivables:transfer financials.transfers:write housekeeping.sheets:generate housekeeping.sheets:read housekeeping.tasks:inspect housekeeping.tasks:read housekeeping.tasks:work inventory.availability:read inventory.blocks:read inventory.blocks:write inventory.configuration:read inventory.configuration:write inventory.holds:read inventory.holds:write inventory.offline_leases:read inventory.offline_leases:write inventory.policy:read inventory.policy:write inventory.restriction:read inventory.restriction:write rates.configuration:read rates.configuration:write rates.pricing:read rates.pricing:write reservations.booking:write reservations.guests:read reservations.guests:write reservations.lifecycle:read reservations.lifecycle:write reservations.segments:read reservations.segments:write stay-operations.checkin:commit stay-operations.checkin:dirty-room-override stay-operations.checkin:read stay-operations.checkout:commit stay-operations.checkout:read stay-operations.vehicles:read",
+      scp: "crm.parties:read crm.parties:write financials.adjustments:post-seal financials.adjustments:write financials.cashiers:operate financials.cashiers:read financials.cashiers:supervise financials.charges:write financials.folios:close financials.folios:open financials.folios:read financials.folios:settle financials.receivables:approve financials.receivables:read financials.receivables:transfer financials.transfers:write housekeeping.conditions:initialize housekeeping.sheets:generate housekeeping.sheets:read housekeeping.tasks:inspect housekeeping.tasks:read housekeeping.tasks:work inventory.availability:read inventory.blocks:read inventory.blocks:write inventory.configuration:read inventory.configuration:write inventory.holds:read inventory.holds:write inventory.offline_leases:read inventory.offline_leases:write inventory.policy:read inventory.policy:write inventory.restriction:read inventory.restriction:write rates.configuration:read rates.configuration:write rates.pricing:read rates.pricing:write reservations.booking:write reservations.guests:read reservations.guests:write reservations.lifecycle:read reservations.lifecycle:write reservations.segments:read reservations.segments:write stay-operations.checkin:commit stay-operations.checkin:dirty-room-override stay-operations.checkin:read stay-operations.checkout:commit stay-operations.checkout:read stay-operations.vehicles:read",
     });
 
     const headers = { "content-type": "application/json", authorization: `Bearer ${loginBody.accessToken}` };
@@ -1158,7 +1173,7 @@ databaseDescribe("Order 046 reproducible local-review seed", () => {
     expect(availability.status).toBe(200);
     const body = await availability.json() as { options: Array<{ sellableUnitName: string; bookable: boolean }> };
     expect(body.options.map(({ sellableUnitName }) => sellableUnitName)).toEqual([
-      "Room 101", "Room 102", "Room 103", "Room 201", "Room 202",
+      "Room 101", "Room 102", "Room 103", "Room 201", "Room 202", "Room 203",
     ]);
     expect(body.options.every(({ bookable }) => bookable)).toBe(true);
   });

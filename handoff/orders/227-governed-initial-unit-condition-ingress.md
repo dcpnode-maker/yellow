@@ -1,6 +1,6 @@
 # Order 227 — Governed initial room-condition ingress
 
-**Status:** READY-D597
+**Status:** BUILT-UNREVIEWED-D598
 **Phase:** 6 — Stay operations and housekeeping
 **Branch:** `phase-6/governed-room-condition-initialization`
 **Base:** `bd4f246` (built-unreviewed Order226)
@@ -110,8 +110,8 @@ dependencies remain unchanged.
 
 ## Definition of done
 
-- [ ] Intentional red precedes implementation.
-- [ ] Absence-only room-condition initialization is atomic and executable.
-- [ ] Authority, hostile boundaries, rollback, replay and convergence are proved.
-- [ ] The exact missing-condition operator journey is usable and stale-safe.
-- [ ] Standing gates are green and the result is recorded built-unreviewed.
+- [x] Intentional red precedes implementation.
+- [x] Absence-only room-condition initialization is atomic and executable.
+- [x] Authority, hostile boundaries, rollback, replay and convergence are proved.
+- [x] The exact missing-condition operator journey is usable and stale-safe.
+- [x] Standing gates are green and the result is recorded built-unreviewed.

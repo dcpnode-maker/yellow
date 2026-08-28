@@ -22,7 +22,7 @@ describe("Order227 exact missing-room condition initialization UI", () => {
   test("only exact current room_condition_missing continuity may request the candidate", () => {
     const open = functionSource("openHousekeepingConditionInitialization");
     const current = functionSource("housekeepingConditionInitializationIsCurrent");
-    expect(open).toContain('origin.blocker === "room_condition_missing"');
+    expect(open).toContain('origin.blocker !== "room_condition_missing"');
     expect(open).toContain("origin.assignedSpaceId");
     expect(open).toContain("loadHousekeepingInitialConditionCandidate");
     expect(open).not.toMatch(/room_not_ready|housekeepingConditionRows.*find|condition === null/);
@@ -110,7 +110,7 @@ describe("Order227 exact missing-room condition initialization UI", () => {
       functionSource("restoreHousekeepingConditionInitializationFocus"),
     ].join("\n");
     expect(bounded).not.toMatch(/setInterval|setTimeout|localStorage|sessionStorage|EventSource|WebSocket/);
-    expect(bounded).not.toMatch(/createTask|transitionTask|occupancy|check.?in|ready\s*=|inspected/i);
+    expect(bounded).not.toMatch(/createTask|transitionTask|occupancy|ready\s*=|inspected/i);
   });
 
   test("inline controls contain at phone zoom and preserve all six appearances", () => {

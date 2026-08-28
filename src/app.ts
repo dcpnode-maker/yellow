@@ -395,6 +395,16 @@ export function createApp(options: AppOptions = {}) {
       .get("/api/v1/properties/:property/housekeeping/conditions", ({ request, params, tenantContext }) =>
         withOperatorTenant(request, (context) => operator.housekeepingConditions(context, params.property))
       )
+      .get("/api/v1/properties/:property/housekeeping/conditions/:space/candidate", ({ request, params, tenantContext }) =>
+        withOperatorTenant(request, (context) => operator.housekeepingInitialConditionCandidate(
+          context, params.property, params.space,
+        ))
+      )
+      .post("/api/v1/properties/:property/housekeeping/conditions/:space/initialize", ({ request, params, body, tenantContext }) =>
+        withOperatorTenant(request, (context) => operator.initializeHousekeepingCondition(
+          context, params.property, params.space, body,
+        ))
+      )
       .get("/api/v1/properties/:property/housekeeping/sheets/preview", ({ request, params, tenantContext }) =>
         withOperatorTenant(request, (context) => operator.previewHousekeepingSheet(context, params.property))
       )

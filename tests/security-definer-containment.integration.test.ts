@@ -168,7 +168,8 @@ dbDescribe("Order 108 SECURITY DEFINER shadow-path containment", () => {
            'create_folio_transfer', 'create_receivable_transfer',
            'govern_arrival_pickup_task', 'govern_housekeeping_task_sheet',
            'open_cashier_session', 'append_cashier_count', 'close_cashier_session',
-           'register_extension_type', 'transition_housekeeping_task'
+           'register_extension_type', 'transition_housekeeping_task',
+           'initialize_unit_condition'
          ]::name[])
        ORDER BY signature
     `;
@@ -193,6 +194,8 @@ dbDescribe("Order 108 SECURITY DEFINER shadow-path containment", () => {
       { signature: "govern_arrival_pickup_task(uuid,uuid,uuid,uuid)", securityDefiner: true,
         config: ["search_path=pg_catalog, public, pg_temp"], appExecute: true, publicDenied: true },
       { signature: "govern_housekeeping_task_sheet(uuid,uuid,date,uuid,uuid,text,integer)", securityDefiner: true,
+        config: ["search_path=pg_catalog, public, pg_temp"], appExecute: true, publicDenied: true },
+      { signature: "initialize_unit_condition(uuid,uuid,uuid,text,uuid)", securityDefiner: true,
         config: ["search_path=pg_catalog, public, pg_temp"], appExecute: true, publicDenied: true },
       { signature: "lock_financial_business_days(uuid,uuid,date[])", securityDefiner: true,
         config: ["search_path=pg_catalog, public, pg_temp"], appExecute: true, publicDenied: true },
@@ -239,6 +242,8 @@ dbDescribe("Order 108 SECURITY DEFINER shadow-path containment", () => {
         ["public.org_node", "public.app_user", "public.party", "public.party_role",
           "public.space", "public.space_occupancy", "public.reservation_segment",
           "public.reservation", "public.extension", "public.task_sheet", "public.task"]],
+      ["initialize_unit_condition(uuid,uuid,uuid,text,uuid)",
+        ["public.app_user", "public.org_node", "public.space", "public.unit_condition"]],
       ["lock_financial_rows(uuid,uuid[],uuid)", ["public.account", "public.folio"]],
       ["lock_financial_business_days(uuid,uuid,date[])", ["public.business_day"]],
       ["open_cashier_session(uuid,uuid,uuid,uuid,bigint[],bigint[])",
@@ -369,6 +374,11 @@ dbDescribe("Order 108 SECURITY DEFINER shadow-path containment", () => {
           '${TENANT}'::uuid, '${PROPERTY}'::uuid,
           '00000000-0000-0000-0000-000000011364'::uuid,
           'start', 'assigned', 'dirty', now(), '${ACTOR}'::uuid
+        )`,
+        `SELECT * FROM public.initialize_unit_condition(
+          '${TENANT}'::uuid, '${PROPERTY}'::uuid,
+          '00000000-0000-0000-0000-000000011365'::uuid,
+          'clean', '${ACTOR}'::uuid
         )`,
       ]) {
         await connection.unsafe("SAVEPOINT denied_call");

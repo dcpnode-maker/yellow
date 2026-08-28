@@ -847,3 +847,37 @@ compact rectangular density. All six appearances preserve the same semantic labe
 reading order and targets. Keyboard focus is explicit, reduced motion removes
 nonessential transitions and transforms, and forced colours replace decorative
 materials with system button colours and boundaries.
+
+## 33. Governed initial room-condition ingress
+
+Housekeeping exposes **Set initial condition** only within the exact current
+`room_condition_missing` arrival return context and only after the exact assigned-room
+candidate GET confirms that the canonical condition is absent. The paged condition
+board never supplies or implies this absence. Direct Housekeeping, a different blocker,
+a missing assigned room, a changed property or route, and stale generations expose no
+initialization form.
+
+The disclosure is inline in the canonical Room conditions board. Its semantic form
+uses one fieldset and the server-returned allowed literals only: clean, dirty and
+pickup. No option is preselected, and inspected is never offered because inspection
+remains governed transition evidence. Submission sends only the explicit absence
+expectation and chosen literal with one idempotency key retained unchanged for an
+unchanged retry. There is no browser-derived default, optimistic room row, polling or
+browser storage.
+
+Success and absence conflicts refetch the exact candidate, bounded condition board and
+arrival readiness before focus moves. Focus returns to the same current disclosure only
+when the candidate still proves absence; otherwise it moves to the safe Room conditions
+heading. Property, Housekeeping path and view, condition and request generations,
+assigned space, blocker, current return object, connected action and board containment
+all participate in stale-response rejection.
+
+The action and form remain bounded at 375 pixels and 200% zoom. Controls are at least
+44 pixels, with 48-pixel Android targets. Apple iOS uses restrained layered system
+surfaces, Android uses Material 3 shapes and elevation, Windows 95/98 uses square
+outset/inset chrome, glassmorphism uses translucent blur, neomorphism uses paired raised
+and inset shadows, and ERP uses compact rectangular density. All six preserve the same
+semantics and reading order. Keyboard focus is visible, reduced motion removes
+nonessential transforms and transitions, and forced colours replace decorative
+materials with system boundaries while preserving the established Housekeeping detail
+fallbacks.

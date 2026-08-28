@@ -305,6 +305,14 @@ clean to inspected. `unit_condition.updated_by/updated_at`, task `completed_at`,
 and outbox rows retain attributable evidence. This slice does not model cadence,
 task-sheet generation, credits, attendant allocation or occupancy.
 
+Order 227 adds no new root or state. It closes only the absent-row ingress for one
+active exact-property `space`: a server-authorized actor may explicitly initialize
+`unit_condition` to `clean`, `dirty` or `pickup`. `inspected` is excluded because it
+is verification evidence. The parent space is the serialization key, existing rows
+are immutable through this ingress, and condition, actor, transaction time, fact and
+outbox evidence are committed atomically. Absence is not a default condition and does
+not imply readiness, occupancy, OOO/OOS, reservation or task truth.
+
 Order 202 composes the existing `task_sheet`, `task`, `space`, `reservation_segment`,
 `space_occupancy`, Party/staff-role and `vertical_profile` primitives; it adds no root,
 table or state. One deterministic sheet is identified by tenant, property, local date

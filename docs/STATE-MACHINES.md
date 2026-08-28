@@ -98,6 +98,14 @@ Open/assignment, cancellation, reopen and non-housekeeping task transitions rema
 non-executable in this slice. Emits `task.status_changed` and, only where the room
 condition changes, `unit.condition_changed`.
 
+Order 227 admits one absence-only initialization before this condition-transition
+machine has a current row. An active exact-property room with no `unit_condition` may
+be initialized deliberately to `clean`, `dirty` or `pickup`; `inspected` is forbidden
+because it remains evidence of the `done -> verified` transition. Parent-room locking
+serializes contenders and an existing condition is a stale conflict, never an update
+or upsert. This initialization creates no task state and emits only
+`unit.condition_changed` with `previous_condition: null`.
+
 Order 213 may create one `open` `guest_request` task as a create-only effect of
 current arrival pickup intent. It does not execute an `open -> assigned` or any other
 task transition. The task stays governed by this canonical machine; assignment,
