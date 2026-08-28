@@ -1,6 +1,6 @@
 # Order 214 — Reservation-detail arrival pickup state
 
-**Status:** READY-D571 — intentional red must precede implementation
+**Status:** BUILT-UNREVIEWED-D572 — implementation and builder gates complete
 **Phase:** 6 — Stay operations and housekeeping
 **Branch:** `phase-6/reservation-detail-arrival-pickup-state`
 **Base:** `5b03b9a` (built-unreviewed Order213)
@@ -79,8 +79,8 @@ promotion, merge, push or deployment is admitted.
 
 ## Definition of done
 
-- [ ] Intentional red precedes implementation.
-- [ ] All exact states are truthful and no task lifecycle or action is inferred.
-- [ ] Six appearance treatments and accessibility/containment proofs are green.
-- [ ] Focused and standing gates are green.
-- [ ] Result is recorded built-unreviewed; independent product review remains deferred.
+- [x] Intentional red precedes implementation.
+- [x] All exact states are truthful and no task lifecycle or action is inferred.
+- [x] Six appearance treatments and accessibility/containment proofs are green.
+- [x] Focused and standing gates are green.
+- [x] Result is recorded built-unreviewed; independent product review remains deferred.

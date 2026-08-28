@@ -1001,9 +1001,52 @@
   function reservationStay(row) {
  return `${reservationDateTime(row.stayFrom)} – ${reservationDateTime(row.stayTo)}`;
  }
- const RESERVATION_TRAVEL_MODE_LABELS = Object.freeze({
+const RESERVATION_TRAVEL_MODE_LABELS = Object.freeze({
  flight: "Flight", train: "Train", bus: "Bus", car: "Car", ferry: "Ferry", other: "Other",
  });
+  function reservationPickupAutomationState(travel) {
+ if (!travel || travel.direction !== "arrival") return null;
+ if (travel.pickupRequested !== true) {
+  return Object.freeze({ state: "not-requested", label: "Pickup not requested" });
+ }
+ if (!travel.scheduledAt) {
+  return Object.freeze({ state: "schedule-required", label: "Pickup requested · schedule required" });
+ }
+ if (typeof travel.pickupTaskId !== "string" || travel.pickupTaskId.length === 0) {
+  return Object.freeze({ state: "task-pending", label: "Pickup requested · task pending" });
+ }
+ return Object.freeze({ state: "task-linked", label: "Pickup task linked" });
+ }
+  function reservationTravelDetailCollection(items) {
+ const section = node("section", "reservation-detail-section");
+ const heading = node("h4", "", "Travel");
+ const list = el("ul");
+ if (items.length === 0) {
+  list.append(node("li", "", "No travel recorded."));
+ } else {
+  for (const item of items) {
+  const row = node("li", "reservation-travel-detail");
+  const identity = [item.carrier, item.serviceNo]
+   .filter((value) => typeof value === "string" && value.length > 0).join(" ");
+  const copy = [
+   item.direction,
+   RESERVATION_TRAVEL_MODE_LABELS[item.mode] || "Mode not recorded",
+   identity,
+   item.scheduledAt ? reservationDateTime(item.scheduledAt) : "Time not recorded",
+  ].filter(Boolean).join(" · ");
+  row.append(node("span", "reservation-travel-detail-copy", copy));
+  const pickup = reservationPickupAutomationState(item);
+  if (pickup) {
+   const state = node("span", "reservation-pickup-state", pickup.label);
+   state.dataset.pickupState = pickup.state;
+   row.append(state);
+  }
+  list.append(row);
+  }
+ }
+ section.append(heading, list);
+ return section;
+ }
   function reservationArrivalTravelSummary(row) {
  const travel = row?.arrivalTravel;
  if (!travel) return null;
@@ -2803,8 +2846,7 @@ function departureEvidenceRow(term, value) {
   `${guest.displayName} · ${guest.role}${guest.sharePct ? ` · ${guest.sharePct}% share` : ""}`),
   detailCollection("Alerts", reservation.alerts, (alert) =>
   `${alert.active ? "Active" : "Inactive"} · ${alert.showOn} · ${alert.message}`),
-  detailCollection("Travel", reservation.travel, (travel) =>
-  `${travel.direction} · ${travel.mode || "mode not recorded"}${travel.scheduledAt ? ` · ${reservationDateTime(travel.scheduledAt)}` : ""}${travel.pickupRequested ? " · pickup requested" : ""}`),
+  reservationTravelDetailCollection(reservation.travel),
   detailCollection("History", reservation.history, (fact) =>
   `${reservationDateTime(fact.recordedAt)} · ${fact.factType}`),
  );

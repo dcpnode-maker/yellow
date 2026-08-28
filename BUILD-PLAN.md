@@ -261,7 +261,7 @@ evidence commit with the task/link. Assignment, cancellation, post-link travel e
 manual UI, vehicle/parking, occupancy, finance and statutory effects remain outside
 this slice. This cannot complete Phase 6.
 
-Order 214 owns only read-only arrival pickup state on canonical reservation detail.
+Order 214 is built-unreviewed and owns only read-only arrival pickup state on canonical reservation detail.
 It renders authoritative not-requested, schedule-required, scheduled-unlinked or
 linked presence without exposing task identity/lifecycle or adding an action, route,
 query, poll or mutation. This cannot complete Phase 6.

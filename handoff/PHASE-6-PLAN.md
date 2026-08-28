@@ -1,8 +1,8 @@
 # Phase 6 — Stay operations and housekeeping
 
-**Status:** active; Orders 200–212 are built-unreviewed
+**Status:** active; Orders 200–214 are built-unreviewed
 **Entry point:** built-unreviewed Phase-5 composition through Order 199
-**Current order:** `212-governed-reservation-travel-capture.md` (built-unreviewed)
+**Current order:** `214-reservation-detail-arrival-pickup-state.md` (built-unreviewed)
 
 ## Outcome
 
@@ -209,7 +209,7 @@ It adds no generic automation catalogue claim, assignment, dispatch, cancellatio
 task transition, post-link edit, vehicle/parking, occupancy, finance or statutory
 effect. Canonical-detail task navigation remains a later read-only human slice.
 
-Order 214 owns only the first read-only human slice: canonical reservation detail
+Order 214 is built-unreviewed and owns only the first read-only human slice: canonical reservation detail
 shows honest arrival pickup state from existing travel/link truth. It adds no task
 identity, lifecycle, action, route, query, polling or mutation. Generic task detail
 and navigation remain later work.

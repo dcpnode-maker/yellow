@@ -401,3 +401,27 @@ pixels and 200% zoom. Long values wrap, keyboard focus remains visible, and redu
 motion and forced colours are explicit. Apple, Android, Windows 95/98, glass,
 neomorphism and ERP each retain distinct native material treatment without changing
 the governed endpoint, CAS, idempotency or audit semantics.
+
+## 21. Reservation-detail arrival pickup state
+
+The canonical reservation drawer presents pickup automation state only inside the
+existing arrival row in its Travel section. Exact authoritative arrival truth maps
+to one text label: **Pickup not requested**, **Pickup requested · schedule required**,
+**Pickup requested · task pending**, or **Pickup task linked**. Departure rows never
+show a pickup state. The state preserves the recorded mode, carrier, service number
+and scheduled instant already shown beside it.
+
+This is read-only presentation of the current reservation detail response. It adds no
+request, polling, cache, task link, route, button or background effect, and it never
+shows a task identity or infers task status, assignment, queue, dispatch, completion,
+driver, vehicle, contact or transport outcome. Ordinary authoritative detail refresh
+is the only way a newly linked task becomes visible, so the label makes no immediacy
+claim.
+
+Text carries the complete meaning; colour, border, material and depth are supporting
+cues only. The status contains long translated text at 375 pixels and 200% zoom with
+no horizontal overflow. Apple iOS, Android, Windows 95/98, glassmorphism,
+neomorphism and ERP each retain a dedicated native material treatment. Forced colours
+restore explicit system borders and text, while reduced motion applies no animation
+or transition. Existing reservation route, Back/Escape/focus and stale-response
+guards remain unchanged.
