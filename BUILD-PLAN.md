@@ -271,6 +271,11 @@ nested human route. It proves the exact current arrival link and canonical trans
 task shape, returns minimized task state, and adds no generic task authority,
 lifecycle action or polling. This cannot complete Phase 6.
 
+Order 216 owns one exact read-only Vehicle Register detail endpoint and nested human
+route. It reuses the Order205 minimized row truth, re-proves linked reservation and
+Party associations, and adds no vehicle write, parking/occupancy inference or action,
+polling, scope, migration or event. This cannot complete Phase 6.
+
 ## Phase 7 — Tax engine + India IRP
 
 tax_assignment evaluation (percent/fixed/slab, compound, line-vs-document rounding)

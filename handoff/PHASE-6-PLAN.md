@@ -2,7 +2,7 @@
 
 **Status:** active; Orders 200–215 are built-unreviewed
 **Entry point:** built-unreviewed Phase-5 composition through Order 199
-**Current order:** `215-reservation-pickup-task-detail.md` (built-unreviewed)
+**Current order:** `216-vehicle-register-detail.md` (ready)
 
 ## Outcome
 
@@ -218,6 +218,11 @@ Order 215 is built-unreviewed and owns one reservation-scoped pickup-task detail
 route under existing reservation read authority. It exposes minimized canonical task
 state only and adds no generic task scope, cross-kind board, lifecycle mutation or
 polling. Generic task navigation remains later work.
+
+Order 216 owns one exact read-only Vehicle Register detail endpoint and nested human
+route under the existing Order205 authority. It exposes only the already-approved
+minimized row, re-proves linked reservation/Party associations and adds no write,
+parking/occupancy inference or action, polling, scope, migration or event.
 
 Statutory field semantics, validation, submission and receipts remain Phase 8. Tax and
 fiscal document work remains Phase 7. No country rule is hardcoded in Phase 6.
