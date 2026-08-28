@@ -227,6 +227,13 @@ with no task, assignee, updater, occupancy, reservation, guest, readiness, OOO/O
 source, reason or inferred status. This slice adds no write, migration, event, fact,
 authority or local promotion and cannot complete Phase 6.
 
+Order 209 is admitted as a UI-only Today operational-routing slice. Exact due-in and
+due-out card status/lane pairs deep-link to the existing check-in and checkout
+readiness workbenches with strict refresh/history/focus behavior. In-house and
+mismatched rows receive no action; readiness and explicit confirmation remain
+server-governed. This adds no API, domain authority, product mutation or local
+promotion and cannot complete Phase 6.
+
 ## Phase 7 — Tax engine + India IRP
 
 tax_assignment evaluation (percent/fixed/slab, compound, line-vs-document rounding)
