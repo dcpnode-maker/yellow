@@ -40,6 +40,24 @@ export {
 } from "./sheets";
 
 export {
+  HOUSEKEEPING_DISCREPANCY_KINDS,
+  HOUSEKEEPING_OBSERVED_PRESENCES,
+  HousekeepingDiscrepancyConflictError,
+  HousekeepingDiscrepancyNotFoundError,
+  HousekeepingDiscrepancyService,
+  HousekeepingDiscrepancyValidationError,
+} from "./discrepancies";
+export type {
+  HousekeepingDiscrepancy,
+  HousekeepingDiscrepancyKind,
+  HousekeepingDiscrepancyListInput,
+  HousekeepingDiscrepancyReportInput,
+  HousekeepingDiscrepancyReportResult,
+  HousekeepingDiscrepancyServiceOptions,
+  HousekeepingObservedPresence,
+} from "./discrepancies";
+
+export {
   ArrivalRoomCleaningConflictError,
   ArrivalRoomCleaningNotFoundError,
   ArrivalRoomCleaningTaskService,

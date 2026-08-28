@@ -221,3 +221,17 @@ reported as one, never retried into success.
 
 Emits `approval.requested` on creation and `approval.decided` on any terminal transition,
 through the `EventBus` port, in the same transaction as the state change.
+
+## 10. Discrepancy — unresolved creation only (Order 235)
+
+Order 235 adds no discrepancy transition. It may create one unresolved row for one
+exact active physical room only when an explicit observation differs from coherent
+server-derived current stay/occupancy truth. Its immutable classification at creation
+is `sleep`, `skip` or `person`, encoded by canonical reported/system tokens.
+
+Matching truth is a no-op. While an unresolved row exists, exact evidence is replayed
+and different evidence conflicts; neither path changes the row. Resolution,
+carry-forward, queue linkage, message/alert creation, update and deletion remain
+outside this slice. Therefore no `unresolved -> resolved` transition is executable by
+Order 235 even though the baseline retains `resolved_at` and `resolution` for a later
+governed workflow.

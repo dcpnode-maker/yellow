@@ -1,6 +1,6 @@
 # Order 235 — Governed room discrepancy reporting
 
-**Status:** READY-D618
+**Status:** BUILT-UNREVIEWED-D619
 **Phase:** 6 — Stay operations and housekeeping
 **Branch:** `phase-6/governed-room-discrepancy-reporting`
 **Base:** `cccca69` (built-unreviewed Order234)
@@ -112,8 +112,43 @@ financial, business-day and statutory truth remain unchanged.
 
 ## Definition of done
 
-- [ ] Intentional red precedes implementation.
-- [ ] Exact governed sleep/skip/person classification is atomic and executable.
-- [ ] Authority, hostile boundaries, rollback, replay and convergence are proved.
-- [ ] The human Housekeeping reporting/read journey is accessible and stale-safe.
-- [ ] Standing gates are green and the result is recorded built-unreviewed.
+- [x] Intentional red precedes implementation.
+- [x] Exact governed sleep/skip/person classification implementation is present.
+- [x] Authority, hostile-boundary, rollback, replay and convergence proof coverage is present.
+- [x] The stale-safe accessible Housekeeping reporting/read journey is implemented.
+- [x] Final focused, adjacent, standing, schema and fresh-referee totals are transcribed
+  from the integration owner's completed executable proof.
+
+## Built evidence
+
+The implementation remains inside this order's exact scope: migration0036 and the
+existing discrepancy primitive, one bounded Housekeeping service/export, minimal
+application/operator composition, the canonical Housekeeping UI, deterministic review
+seed/scopes, exact schema, focused tests and the six discrepancy-only documentation
+surfaces. The acceptance migration registry update is the focused acceptance proof
+permitted by scope. No unrelated production or governance file is part of the product
+diff, and the forbidden source-state mutation scan is empty.
+
+Migration0036 fixes the six-argument owner-mediated capability, exact runtime/app-role
+caller containment, raw discrepancy DML revocation, and one partial unique unresolved-
+room boundary. The committed intentional red was `0/5` before implementation. The
+completed focused PostgreSQL/domain/HTTP/UI/authority suite is `29/29` with `171`
+assertions, including fresh sleep/skip/person/no-op classification, rollback/retry,
+hostile containment and twenty-reporter convergence. The adjacent Housekeeping,
+checkout and room-condition set is `150/150` with `47` environment skips and `1,544`
+assertions across `45` files. The standing suite is `761/761` with `695` environment
+skips, `8,050` assertions and `1,456` tests across `265` files.
+
+Fresh migration/acceptance/runtime-DML/SECURITY-DEFINER proof is `50/50`; deterministic
+review seed/reseed proof is `23/23`; migration0036 SHA-256 is
+`bd72ca9ff3b02d4f0c00b4ce82a6afb1591056b71a04cebda71b61efacc61b76`; and the exact
+schema snapshot matches. Typecheck, `87`-file boundaries, `23` dependency licences,
+zero-vulnerability audit, JavaScript syntax and diff checks are green. The fresh
+PostgreSQL fixture has `93` public tables and the executable referee passes `11/11`.
+The wrapper's inherited pre-Order235 `89`-table display assertion remains stale, so
+the exact referee was executed directly after the wrapper created and migrated the
+fresh fixture; no unrelated setup file was changed outside this order.
+
+Independent Tier-3 review remains deferred under the founder's build-first direction.
+No approval, Phase-6/app completion, local promotion, merge, push or deployment is
+claimed.

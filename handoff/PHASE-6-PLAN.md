@@ -343,13 +343,17 @@ infer cleaning/discrepancy, rerun checkout or change direct Housekeeping behavio
 Focused `13/13`, adjacent `104/104`, standing `741/0`, static/exact-schema gates and
 fresh referee `11/11` are green; independent product review remains deferred.
 
-Order 235 is ready as governed create-only room-discrepancy reporting. PostgreSQL owns
-the comparison between one deliberate observed room presence/person count and one
-coherent exact current stay plus exclusive occupancy, classifying only sleep, skip or
-person. Matching truth is no-op; one unresolved discrepancy per room converges with
-one minimized fact/outbox chain. Queue linkage, resolution/carry-forward, messages,
-automatic inference, shared/positional semantics and all source-state mutation remain
-later slices.
+Order 235 is built-unreviewed as governed create-only room-discrepancy reporting.
+PostgreSQL owns the comparison between one deliberate observed room presence/person
+count and one coherent exact current stay plus exclusive occupancy, classifying only
+sleep, skip or person. Matching truth is no-op; one unresolved discrepancy per room
+converges with one minimized fact/outbox chain. Queue linkage, resolution/carry-
+forward, messages, automatic inference, shared/positional semantics and all source-
+state mutation remain later slices.
+The exact product diff remains within Order235 scope. Focused `29/29`, adjacent
+`150/150`, standing `761/0`, fresh migration/acceptance/runtime authority and review-
+seed proof, exact schema, static gates and fresh referee `11/11` are green. Independent
+Tier-3 approval remains deferred under the founder's build-first direction.
 
 Statutory field semantics, validation, submission and receipts remain Phase 8. Tax and
 fiscal document work remains Phase 7. No country rule is hardcoded in Phase 6.

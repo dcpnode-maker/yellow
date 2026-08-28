@@ -180,6 +180,11 @@ const EXPECTED_MIGRATIONS = [
     filename: "0035_runtime_due_departure_scopes.sql",
     checksum_sha256: "ee102c6e479badc14fb8945d0c493905840d1c58845b9def4d74d6e2bf1a7447",
   },
+  {
+    version: 36,
+    filename: "0036_governed_room_discrepancy_reporting.sql",
+    checksum_sha256: "bd72ca9ff3b02d4f0c00b4ce82a6afb1591056b71a04cebda71b61efacc61b76",
+  },
 ];
 
 if (REQUIRE_DATABASE && !DATABASE_URL) {

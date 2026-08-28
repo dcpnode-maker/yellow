@@ -1071,6 +1071,59 @@ databaseDescribe("Bun SQL migration runner", () => {
   );
 
   test(
+    "applies the exact governed room-discrepancy reporting migration",
+    async () => {
+      await withDatabase(async ({ databaseUrl: targetUrl, sql }) => {
+        const result = await runMigrations({
+          databaseUrl: targetUrl,
+          migrationsDirectory: PROJECT_MIGRATIONS,
+          logger: () => undefined,
+        });
+        expect(result.appliedFiles).toContain("0036_governed_room_discrepancy_reporting.sql");
+        const ledger = await sql<Array<{
+          version: number | bigint; filename: string; checksum_sha256: string;
+        }>>`
+          SELECT version, filename, checksum_sha256
+            FROM public.schema_migration
+           WHERE version = 36
+        `;
+        expect(ledger.map((row) => ({ ...row, version: Number(row.version) }))).toEqual([{
+          version: 36,
+          filename: "0036_governed_room_discrepancy_reporting.sql",
+          checksum_sha256: "bd72ca9ff3b02d4f0c00b4ce82a6afb1591056b71a04cebda71b61efacc61b76",
+        }]);
+        const capability = await sql<Array<{
+          owner: string; securityDefiner: boolean; publicExecute: boolean; appExecute: boolean;
+          runtimeExecute: boolean; volatility: string; config: string[] | null;
+        }>>`
+          SELECT pg_catalog.pg_get_userbyid(procedure.proowner) AS owner,
+                 procedure.prosecdef AS "securityDefiner",
+                 pg_catalog.has_function_privilege('public', procedure.oid, 'EXECUTE') AS "publicExecute",
+                 pg_catalog.has_function_privilege('app_role', procedure.oid, 'EXECUTE') AS "appExecute",
+                 pg_catalog.has_function_privilege('yellow_runtime', procedure.oid, 'EXECUTE') AS "runtimeExecute",
+                 procedure.provolatile::text AS volatility,
+                 procedure.proconfig AS config
+            FROM pg_catalog.pg_proc AS procedure
+            JOIN pg_catalog.pg_namespace AS namespace ON namespace.oid=procedure.pronamespace
+           WHERE namespace.nspname='public'
+             AND procedure.oid =
+               'public.report_room_discrepancy(uuid,uuid,uuid,text,integer,uuid)'::regprocedure
+        `;
+        expect(capability).toEqual([{
+          owner: "yellow_owner",
+          securityDefiner: true,
+          publicExecute: false,
+          appExecute: true,
+          runtimeExecute: false,
+          volatility: "v",
+          config: ["search_path=pg_catalog, public"],
+        }]);
+      });
+    },
+    60_000,
+  );
+
+  test(
     "applies the exact account-folio integrity migration and rejects tenant-crossing references",
     async () => {
       await withDatabase(async ({ databaseUrl: targetUrl, sql }) => {

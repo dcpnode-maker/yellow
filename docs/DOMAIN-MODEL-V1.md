@@ -815,3 +815,19 @@ transaction re-proves the complete shape using PostgreSQL's transaction-stable l
 calendar date. Replay, contention and rollback preserve a single transition/evidence
 chain. The roll creates no checkout, occupancy release, condition, task, folio,
 financial, identity, statutory or business-day meaning.
+
+### Room discrepancy identity (Order 235)
+
+Order 235 adds no table, event or parallel occupancy model. It composes the existing
+active physical `space`, one exclusive sellable mapping, reservation parent, latest
+current segment, `space_occupancy` claim, `discrepancy`, `fact_log`, outbox and
+idempotency primitives. PostgreSQL remains the system-presence authority; the
+operator supplies only a deliberate observation.
+
+One unresolved discrepancy belongs to one room. Sleep records observed occupied
+against system vacant; skip records observed vacant against system occupied; person
+records unequal observed and expected persons while both are occupied. Canonical
+reported/system tokens preserve that difference without copying reservation,
+segment, occupancy or guest identity into the discrepancy read model. Matching truth
+has no discrepancy identity. Resolution, carry, queues, messages, room condition,
+tasks and financial/day/statutory meaning remain separate primitives and workflows.

@@ -149,6 +149,16 @@ statutory data. Consumers must not infer that cleaning started or completed, tha
 room condition changed, or that reservation, check-in, occupancy, key, folio,
 financial, business-day, travel, vehicle, parking or statutory state changed.
 
+Order 235 produces `discrepancy.reported` only when an explicit room observation
+differs from PostgreSQL-derived coherent current stay/occupancy truth. The aggregate
+is the newly inserted discrepancy. Its minimized payload contains the physical room
+id, derived `sleep|skip|person` kind and canonical reported/system tokens; it contains
+no reservation, segment, occupancy-row, guest, contact or caller-supplied system
+truth. The discrepancy, matching fact and outbox row commit in one transaction.
+Matching truth, exact replay and a losing concurrent contender emit nothing new.
+Consumers must not infer condition change, task creation, queue/carry resolution,
+checkout/check-in, financial, business-day or statutory effects.
+
 **profiles** · party.created/.merged {into} · party.anonymised · consent.changed
 
 **distribution** · inbound.received {channel,external_id} · inbound.processed {reservation_id}/.failed · ari.push_requested {channel,unit_types,date_range} · map.changed

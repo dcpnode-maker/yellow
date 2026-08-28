@@ -1101,3 +1101,40 @@ The worker bounds scope and departure batches, supports one drain cycle and abor
 polling, and is disabled unless explicitly enabled in workbench composition. There is
 no API route, automatic checkout, segment/occupancy mutation, business-day operation,
 financial effect or other lifecycle command.
+
+## 35. Governed room discrepancy reporting
+
+`HousekeepingDiscrepancyService.listOpen` accepts one lowercase tenant UUID and one
+exact granted property UUID. In one transaction-local tenant read it returns only
+unresolved discrepancies for active physical rooms in that property, ordered by
+room code and immutable discrepancy identity. Each deeply frozen row is exactly the
+room id, room code, nullable floor, derived `sleep|skip|person` kind, canonical
+reported/system tokens, reporter id and server report instant. Reservation, segment,
+occupancy, guest and contact identities are excluded.
+
+`HousekeepingDiscrepancyService.report` accepts only one exact room id, explicit
+observed presence `occupied|vacant`, observed persons `1..99` when occupied, an
+actor-bound audit envelope and an `Idempotency-Key`. Tenant, property, actor, system
+presence, expected persons, classification, timestamps and evidence are server-owned.
+The owner-mediated PostgreSQL capability accepts only an active exact-property
+physical room with one active exclusive mapping and coherent current stay/occupancy
+truth. Dorm, positional, shared, composite, inactive, foreign, non-room, ambiguous or
+multiply occupied shapes fail closed.
+
+System presence is occupied only for one latest current `in_house` segment whose
+parent is `in_house|due_out` and whose exact room has one current exclusive occupancy
+claim for that segment. The canonical differences are sleep (observed occupied,
+system vacant), skip (observed vacant, system occupied) and person (both occupied but
+persons differ). Matching truth is a successful no-op. A changed result inserts one
+unresolved `discrepancy`, one minimized `discrepancy.reported` fact and one matching
+outbox event atomically. Exact replay returns the same effect; different evidence for
+an already-open room conflicts. V1 does not resolve, update, delete, carry, queue,
+message or automatically infer a report.
+
+`GET|POST /api/v1/properties/{property}/housekeeping/discrepancies` accept no query
+parameters and are `Cache-Control: no-store`. GET requires
+`housekeeping.discrepancies:read`; POST additionally requires
+`housekeeping.discrepancies:report`, an exact `Idempotency-Key`, and only
+`{spaceId,observedPresence,observedPersons}`. Direct runtime discrepancy DML remains
+denied. Reporting does not mutate room condition, task, sheet, reservation, segment,
+occupancy, folio, financial, business-day or statutory truth.

@@ -169,6 +169,10 @@ import {
   ArrivalRoomCleaningNotFoundError,
   ArrivalRoomCleaningTaskService,
   ArrivalRoomCleaningValidationError,
+  HousekeepingDiscrepancyConflictError,
+  HousekeepingDiscrepancyNotFoundError,
+  HousekeepingDiscrepancyService,
+  HousekeepingDiscrepancyValidationError,
   HousekeepingConflictError,
   HousekeepingNotFoundError,
   HousekeepingSheetConflictError,
@@ -179,6 +183,8 @@ import {
   HousekeepingUnsupportedCadenceError,
   HousekeepingValidationError,
   type HousekeepingConditionPage,
+  type HousekeepingDiscrepancy,
+  type HousekeepingObservedPresence,
   type HousekeepingTaskAction,
   type HousekeepingTaskBoardItem,
   type HousekeepingTaskDetail,
@@ -257,6 +263,8 @@ const HOUSEKEEPING_SHEET_READ_SCOPE = "housekeeping.sheets:read";
 const HOUSEKEEPING_SHEET_GENERATE_SCOPE = "housekeeping.sheets:generate";
 const HOUSEKEEPING_ARRIVAL_TASK_READ_SCOPE = "housekeeping.arrival-tasks:read";
 const HOUSEKEEPING_ARRIVAL_TASK_CREATE_SCOPE = "housekeeping.arrival-tasks:create";
+const HOUSEKEEPING_DISCREPANCY_READ_SCOPE = "housekeeping.discrepancies:read";
+const HOUSEKEEPING_DISCREPANCY_REPORT_SCOPE = "housekeeping.discrepancies:report";
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 const ISO_INSTANT = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})(?::(\d{2})(?:\.(\d{1,3}))?)?(Z|([+-])(\d{2}):(\d{2}))$/;
 const LOCAL_DATE = /^(\d{4})-(\d{2})-(\d{2})$/;
@@ -489,6 +497,28 @@ function parseHousekeepingConditionInitialize(body: unknown): HousekeepingCondit
     : null;
 }
 
+interface HousekeepingDiscrepancyReportDraft {
+  readonly spaceId: string;
+  readonly observedPresence: HousekeepingObservedPresence;
+  readonly observedPersons: number | null;
+}
+
+function parseHousekeepingDiscrepancyReport(body: unknown): HousekeepingDiscrepancyReportDraft | null {
+  if (!isObject(body) || !exactKeys(body, ["spaceId", "observedPresence", "observedPersons"]) ||
+      typeof body.spaceId !== "string" || !UUID.test(body.spaceId) ||
+      (body.observedPresence !== "occupied" && body.observedPresence !== "vacant")) return null;
+  if (body.observedPresence === "vacant") {
+    return body.observedPersons === null
+      ? Object.freeze({ spaceId: body.spaceId, observedPresence: body.observedPresence, observedPersons: null })
+      : null;
+  }
+  return typeof body.observedPersons === "number" && Number.isInteger(body.observedPersons) &&
+    body.observedPersons >= 1 && body.observedPersons <= 99
+    ? Object.freeze({ spaceId: body.spaceId, observedPresence: body.observedPresence,
+      observedPersons: body.observedPersons })
+    : null;
+}
+
 interface HousekeepingSheetGenerateDraft {
   readonly sheetDate: string;
   readonly attendantPartyId: string;
@@ -606,6 +636,19 @@ function operatorHousekeepingTaskDetail(
       workGranted,
       inspectGranted,
     ),
+  });
+}
+
+function operatorHousekeepingDiscrepancy(discrepancy: HousekeepingDiscrepancy) {
+  return Object.freeze({
+    spaceId: discrepancy.spaceId,
+    spaceCode: discrepancy.code,
+    floor: discrepancy.floor,
+    kind: discrepancy.kind,
+    reported: discrepancy.reported,
+    systemState: discrepancy.systemState,
+    reportedBy: discrepancy.reportedBy,
+    reportedAt: discrepancy.reportedAt,
   });
 }
 
@@ -1588,6 +1631,7 @@ type HousekeepingOperations = Pick<HousekeepingTaskService, "listBoard" | "trans
   }>>;
 type HousekeepingSheetOperations = Pick<HousekeepingSheetService, "preview" | "list" | "generate">;
 type ArrivalRoomCleaningOperations = Pick<ArrivalRoomCleaningTaskService, "candidate" | "create">;
+type HousekeepingDiscrepancyOperations = Pick<HousekeepingDiscrepancyService, "listOpen" | "report">;
 type PartyOperations = Pick<PartyProfileService, "search" | "create">;
 type FolioStatementOperations = Pick<FolioStatementService, "get">;
 type ChargeOperations = Pick<ChargeService, "postCharge">;
@@ -1998,6 +2042,7 @@ export class OperatorHttpApi {
   readonly #reservationTravel?: ReservationTravelOperations;
   readonly #pickupTaskDispatch?: PickupTaskDispatchOperations;
   readonly #arrivalRoomCleaning?: ArrivalRoomCleaningOperations;
+  readonly #housekeepingDiscrepancies?: HousekeepingDiscrepancyOperations;
 
   constructor(
     login: LocalLoginService,
@@ -2039,6 +2084,7 @@ export class OperatorHttpApi {
     reservationTravel?: ReservationTravelOperations,
     pickupTaskDispatch?: PickupTaskDispatchOperations,
     arrivalRoomCleaning?: ArrivalRoomCleaningOperations,
+    housekeepingDiscrepancies?: HousekeepingDiscrepancyOperations,
   ) {
     this.#login = login;
     this.#availability = availability;
@@ -2079,6 +2125,7 @@ export class OperatorHttpApi {
     this.#reservationTravel = reservationTravel;
     this.#pickupTaskDispatch = pickupTaskDispatch;
     this.#arrivalRoomCleaning = arrivalRoomCleaning;
+    this.#housekeepingDiscrepancies = housekeepingDiscrepancies;
   }
 
   unavailable(request: Request): Response {
@@ -2093,6 +2140,15 @@ export class OperatorHttpApi {
     const conditionIngress = /^\/api\/v1\/properties\/[0-9a-f-]+\/housekeeping\/conditions\/[0-9a-f-]+\/(?:candidate|initialize)$/.test(
       new URL(request.url).pathname,
     );
+    if (error instanceof HousekeepingDiscrepancyValidationError) {
+      return apiError(request, 400, "request/invalid", "Invalid request", "Room-discrepancy input is invalid");
+    }
+    if (error instanceof HousekeepingDiscrepancyNotFoundError) {
+      return apiError(request, 404, "housekeeping/not_found", "Not found", "The referenced reportable room was not found");
+    }
+    if (error instanceof HousekeepingDiscrepancyConflictError) {
+      return apiError(request, 409, "housekeeping/conflict", "Conflict", "Room discrepancy truth changed; refresh and try again");
+    }
     if (error instanceof ArrivalPickupTaskDispatchValidationError) {
       return apiError(request, 400, "request/invalid", "Invalid request", "Arrival pickup task transition input is invalid");
     }
@@ -4006,6 +4062,73 @@ export class OperatorHttpApi {
       ...query,
     });
     return apiResponse(context.request, canonicalJson(housekeepingConditionJson(page)));
+  }
+
+  async housekeepingDiscrepancies(
+    context: TenantRequestContext,
+    propertyNode: string,
+  ): Promise<Response> {
+    if (!UUID.test(propertyNode) || new URL(context.request.url).search.length > 0) {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Room-discrepancy read input is invalid");
+    }
+    if (!hasScope(context, HOUSEKEEPING_DISCREPANCY_READ_SCOPE)) {
+      return apiError(context.request, 403, "auth/scope_missing", "Forbidden", "Room-discrepancy read access is not granted");
+    }
+    const grants = await listGrantedProperties(context, HOUSEKEEPING_DISCREPANCY_READ_SCOPE);
+    if (!grants.some(({ id }) => id === propertyNode)) {
+      return apiError(context.request, 404, "housekeeping/not_found", "Not found", "The referenced room discrepancies were not found");
+    }
+    if (!this.#housekeepingDiscrepancies) return this.unavailable(context.request);
+    const discrepancies = await this.#housekeepingDiscrepancies.listOpen({
+      tenantId: context.tenantId,
+      propertyNode,
+    });
+    return apiResponse(context.request, canonicalJson(jsonValue({
+      discrepancies: discrepancies.map(operatorHousekeepingDiscrepancy),
+    })));
+  }
+
+  async reportHousekeepingDiscrepancy(
+    context: TenantRequestContext,
+    propertyNode: string,
+    body: unknown,
+  ): Promise<Response> {
+    const input = parseHousekeepingDiscrepancyReport(body);
+    const idempotencyKey = context.request.headers.get("idempotency-key");
+    if (!UUID.test(propertyNode) || !input || !idempotencyKey || !IDEMPOTENCY_KEY.test(idempotencyKey) ||
+        new URL(context.request.url).search.length > 0) {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Room-discrepancy report input is invalid");
+    }
+    if (!hasScope(context, HOUSEKEEPING_DISCREPANCY_REPORT_SCOPE)) {
+      return apiError(context.request, 403, "auth/scope_missing", "Forbidden", "Room-discrepancy reporting is not granted");
+    }
+    const grants = await listGrantedProperties(context, HOUSEKEEPING_DISCREPANCY_REPORT_SCOPE);
+    if (!grants.some(({ id }) => id === propertyNode)) {
+      return apiError(context.request, 404, "housekeeping/not_found", "Not found", "The referenced reportable room was not found");
+    }
+    if (!this.#housekeepingDiscrepancies) return this.unavailable(context.request);
+    const requestId = correlationId(context.request);
+    const result = await this.#housekeepingDiscrepancies.report({
+      tenantId: context.tenantId,
+      propertyNode,
+      ...input,
+      idempotencyKey,
+      envelope: createAuditEnvelope({
+        actorId: context.identity.actorId,
+        tenantId: context.tenantId,
+        propertyNode,
+        requestId,
+        operation: "discrepancy.reported",
+      }),
+    });
+    return apiResponse(context.request, canonicalJson(jsonValue({
+      discrepancy: result.discrepancy === null ? null : operatorHousekeepingDiscrepancy(result.discrepancy),
+      created: result.created,
+      replayed: result.replayed,
+    })), 201, {
+      "idempotency-replayed": String(result.replayed),
+      "x-correlation-id": requestId,
+    });
   }
 
   async housekeepingInitialConditionCandidate(

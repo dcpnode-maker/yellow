@@ -1042,3 +1042,34 @@ reservation-detail heading. Refresh reconstructs only an exact bounded history
 descriptor; direct Housekeeping remains unchanged. No checkout replay, condition or
 task mutation, polling, browser storage, automatic cleaning consequence or new request
 family is introduced.
+
+## 39. Deliberate room discrepancy reporting
+
+The canonical Housekeeping condition board includes a distinct **Room observations**
+region. It loads the exact no-store unresolved-discrepancy read independently from
+condition paging. Each current card exposes only room code, nullable floor,
+`Sleep|Skip|Person`, canonical reported/system values, reporter and server-recorded
+time. It never renders guest, reservation, segment or occupancy identity and never
+labels a condition or task as discrepant.
+
+**Report room observation** is a semantic form with explicit room selection,
+`Occupied|Vacant` presence and persons `1..99` only while occupied. Nothing is
+preselected and there is no inferred observation, optimistic discrepancy, automatic
+submission, polling or browser storage. Submission retains one idempotency key for
+the unchanged draft, locks related controls in flight, then authoritatively refreshes
+both the open-discrepancy list and current condition board. Matching truth explains
+that no discrepancy was created. An existing changed open report stays a conflict;
+the browser never offers resolve, edit, delete, carry, queue or message actions.
+
+Property, active Housekeeping view, route, connected form, selected room and request
+generation participate in stale-response rejection. Changing room or presence
+invalidates the prior persons value and retry identity. Late or detached responses
+are inert. Status uses a polite live region; validation errors focus the exact field,
+and successful current refresh focuses the matching open card or the region heading.
+
+The form, list and messages stay contained at 375 pixels and 200% zoom. Controls are
+at least 44 pixels and 48 pixels on Android. Apple iOS, Android, Windows 95/98,
+glassmorphism, neomorphism and ERP keep their dedicated materials while preserving
+identical labels, reading order and authority. Keyboard focus is visible, reduced
+motion removes nonessential transitions and forced colours replace decorative
+materials with system boundaries.

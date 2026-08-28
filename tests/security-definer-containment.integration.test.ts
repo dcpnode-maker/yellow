@@ -170,7 +170,8 @@ dbDescribe("Order 108 SECURITY DEFINER shadow-path containment", () => {
            'open_cashier_session', 'append_cashier_count', 'close_cashier_session',
            'register_extension_type', 'transition_housekeeping_task',
            'initialize_unit_condition', 'transition_arrival_pickup_task',
-           'create_arrival_room_cleaning_task', 'assign_due_in_room'
+           'create_arrival_room_cleaning_task', 'assign_due_in_room',
+           'report_room_discrepancy'
          ]::name[])
        ORDER BY signature
     `;
@@ -216,6 +217,8 @@ dbDescribe("Order 108 SECURITY DEFINER shadow-path containment", () => {
         config: ["search_path=pg_catalog, public, pg_temp"], appExecute: false, publicDenied: true },
       { signature: "release_occupancy(uuid,uuid)", securityDefiner: true,
         config: ["search_path=pg_catalog, public, pg_temp"], appExecute: true, publicDenied: true },
+      { signature: "report_room_discrepancy(uuid,uuid,uuid,text,integer,uuid)", securityDefiner: true,
+        config: ["search_path=pg_catalog, public"], appExecute: true, publicDenied: true },
       { signature: "seal_business_day(uuid,uuid,date,uuid)", securityDefiner: true,
         config: ["search_path=pg_catalog, public, pg_temp"], appExecute: false, publicDenied: true },
       { signature: "transition_arrival_pickup_task(uuid,uuid,uuid,uuid,text,text,uuid,uuid,uuid)", securityDefiner: true,
@@ -271,6 +274,11 @@ dbDescribe("Order 108 SECURITY DEFINER shadow-path containment", () => {
       ["register_extension_type(uuid,text,jsonb,uuid,uuid,uuid)",
         ["public.tenant", "public.org_node", "public.app_user", "public.extension_type", "public.fact_log"]],
       ["release_occupancy(uuid,uuid)", ["public.space_occupancy"]],
+      ["report_room_discrepancy(uuid,uuid,uuid,text,integer,uuid)",
+        ["public.app_user", "public.org_node", "public.space", "public.unit_type",
+          "public.sellable_unit", "public.sellable_unit_space", "public.unit_condition",
+          "public.space_occupancy", "public.reservation_segment", "public.reservation",
+          "public.discrepancy"]],
       ["seal_business_day(uuid,uuid,date,uuid)", ["public.business_day"]],
       ["transition_housekeeping_task(uuid,uuid,uuid,text,text,text,timestamp with time zone,uuid)",
         ["public.app_user", "public.org_node", "public.task", "public.space", "public.unit_condition"]],
@@ -420,6 +428,11 @@ dbDescribe("Order 108 SECURITY DEFINER shadow-path containment", () => {
           '${TENANT}'::uuid, '${PROPERTY}'::uuid,
           '00000000-0000-0000-0000-000000011365'::uuid,
           'clean', '${ACTOR}'::uuid
+        )`,
+        `SELECT * FROM public.report_room_discrepancy(
+          '${TENANT}'::uuid, '${PROPERTY}'::uuid,
+          '00000000-0000-0000-0000-00000001136f'::uuid,
+          'vacant', NULL, '${ACTOR}'::uuid
         )`,
       ]) {
         await connection.unsafe("SAVEPOINT denied_call");

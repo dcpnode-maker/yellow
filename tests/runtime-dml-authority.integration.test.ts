@@ -287,6 +287,7 @@ databaseDescribe("Order 150 positive runtime DML authority", () => {
             'lock_financial_rows', 'lock_financial_business_days', 'create_charge_correction_header',
             'create_folio_transfer', 'create_receivable_transfer',
             'govern_housekeeping_task_sheet', 'initialize_unit_condition',
+            'report_room_discrepancy',
             'transition_arrival_pickup_task', 'create_arrival_room_cleaning_task',
             'assign_due_in_room',
             'open_cashier_session', 'append_cashier_count', 'close_cashier_session',
@@ -322,6 +323,8 @@ databaseDescribe("Order 150 positive runtime DML authority", () => {
     expect(functions.find(({ signature }) => signature.startsWith("assign_due_in_room(")))
       .toEqual(expect.objectContaining({ app: true, runtime: false }));
     expect(functions.find(({ signature }) => signature.startsWith("govern_housekeeping_task_sheet(")))
+      .toEqual(expect.objectContaining({ app: true, runtime: false }));
+    expect(functions.find(({ signature }) => signature.startsWith("report_room_discrepancy(")))
       .toEqual(expect.objectContaining({ app: true, runtime: false }));
     for (const capability of [
       "open_cashier_session(", "append_cashier_count(", "close_cashier_session(",
@@ -363,6 +366,9 @@ databaseDescribe("Order 150 positive runtime DML authority", () => {
     await expectAppRoleDenied("UPDATE public.unit_condition SET condition = condition WHERE false");
     await expectAppRoleDenied("INSERT INTO public.task_sheet (tenant_id, property_node, sheet_date) VALUES ('00000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-000000000002', DATE '2026-08-28')");
     await expectAppRoleDenied("INSERT INTO public.task (tenant_id, property_node, kind, status) VALUES ('00000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-000000000002', 'housekeeping', 'assigned')");
+    await expectAppRoleDenied("INSERT INTO public.discrepancy (tenant_id, space_id, reported, system_state, reported_by) VALUES ('00000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-000000000002', 'occupied', 'vacant', '00000000-0000-0000-0000-000000000003')");
+    await expectAppRoleDenied("UPDATE public.discrepancy SET resolved_at = now() WHERE false");
+    await expectAppRoleDenied("DELETE FROM public.discrepancy WHERE false");
   });
 
   test("P3: new tables receive no mutation and an unauthorized grant is detected", async () => {

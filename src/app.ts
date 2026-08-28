@@ -430,6 +430,14 @@ export function createApp(options: AppOptions = {}) {
       .get("/api/v1/properties/:property/housekeeping/conditions", ({ request, params, tenantContext }) =>
         withOperatorTenant(request, (context) => operator.housekeepingConditions(context, params.property))
       )
+      .get("/api/v1/properties/:property/housekeeping/discrepancies", ({ request, params, tenantContext }) =>
+        withOperatorTenant(request, (context) => operator.housekeepingDiscrepancies(context, params.property))
+      )
+      .post("/api/v1/properties/:property/housekeeping/discrepancies", ({ request, params, body, tenantContext }) =>
+        withOperatorTenant(request, (context) => operator.reportHousekeepingDiscrepancy(
+          context, params.property, body,
+        ))
+      )
       .get("/api/v1/properties/:property/housekeeping/conditions/:space/candidate", ({ request, params, tenantContext }) =>
         withOperatorTenant(request, (context) => operator.housekeepingInitialConditionCandidate(
           context, params.property, params.space,

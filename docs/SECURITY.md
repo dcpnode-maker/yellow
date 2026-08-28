@@ -497,6 +497,27 @@ past, missing and incoherent truth fails closed. The explicit opt-in worker adds
 checkout, occupancy-release, finance, day, condition, task, identity, statutory or
 operator-command authority.
 
+### Room discrepancy reporting containment (migration 0036)
+
+Migration0036 exposes one volatile, fixed-search-path `yellow_owner` capability for
+create-only room discrepancy classification. `PUBLIC` and `yellow_runtime` cannot
+execute it directly; only a `yellow_runtime` session that has entered transaction-
+local `app_role` under the exact tenant context can call it. The capability rechecks
+session user, assumed role, current definer, tenant context and active actor, then
+locks and derives exact-property room, mapping, reservation/segment and exclusive
+occupancy truth. Browser or caller input never owns system presence, expected persons,
+kind, timestamps or evidence.
+
+`app_role` retains SELECT but no raw INSERT, UPDATE, DELETE or TRUNCATE authority over
+`discrepancy`. The capability admits only one active physical room with one exclusive
+mapping and coherent current truth; positional, shared, composite, inactive, foreign,
+ambiguous and multiply occupied shapes fail closed. One unresolved room row is the
+concurrency boundary. The surrounding tenant transaction commits it with one
+minimized fact/outbox pair and actor-bound idempotency, or rolls everything back.
+Matching truth writes nothing. This authority cannot resolve/carry/delete a
+discrepancy or mutate condition, task, reservation, segment, occupancy, finance,
+business-day or statutory truth.
+
 ## 6. Statutory & privacy
 
 ### Token-only payment containment

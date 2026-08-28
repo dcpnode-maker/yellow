@@ -279,6 +279,32 @@
 <div class="housekeeping-condition-list" id="housekeeping-condition-list" role="list" aria-label="Loaded room conditions" hidden></div>
 <div class="housekeeping-condition-footer"><p id="housekeeping-condition-status" role="status" aria-live="polite">Open Housekeeping to load one bounded page.</p><button class="quiet housekeeping-condition-more" id="housekeeping-condition-more" type="button" hidden>Load more rooms</button></div>
 </section>
+<section class="card housekeeping-discrepancy-workbench" id="housekeeping-discrepancy-workbench" aria-labelledby="housekeeping-discrepancy-title" aria-busy="false">
+<div class="housekeeping-discrepancy-head">
+<div><span class="eyebrow">Observed room presence</span><h3 id="housekeeping-discrepancy-title" tabindex="-1">Report room observation</h3><p class="muted">Choose one exact loaded room and report only what is physically observed. PostgreSQL compares it with current coherent stay and exclusive occupancy truth.</p></div>
+<button class="quiet" id="housekeeping-discrepancy-refresh" type="button">Refresh open discrepancies</button>
+</div>
+<form class="housekeeping-discrepancy-report-form" id="housekeeping-discrepancy-report-form">
+<label for="housekeeping-discrepancy-space">Exact loaded room
+<select id="housekeeping-discrepancy-space" name="spaceId" required aria-describedby="housekeeping-discrepancy-room-note"><option value="">Load and choose a room</option></select>
+</label>
+<p class="field-note" id="housekeeping-discrepancy-room-note">The selector contains only the current bounded room-condition page. Load more rooms when necessary; no room identity is inferred.</p>
+<fieldset class="housekeeping-discrepancy-presence">
+<legend>Observed presence</legend>
+<label><input type="radio" name="observedPresence" value="vacant" required> Vacant</label>
+<label><input type="radio" name="observedPresence" value="occupied" required> Occupied</label>
+</fieldset>
+<label id="housekeeping-discrepancy-persons-field" for="housekeeping-discrepancy-persons" hidden>Observed persons
+<input id="housekeeping-discrepancy-persons" name="observedPersons" type="number" min="1" max="99" step="1" inputmode="numeric" disabled>
+</label>
+<p class="field-note">A matching observation creates nothing. An open discrepancy is immutable here and must be resolved by a later governed workflow.</p>
+<button class="primary" id="housekeeping-discrepancy-submit" type="submit">Report observation</button>
+</form>
+<p class="housekeeping-discrepancy-status" id="housekeeping-discrepancy-status" role="status" aria-live="polite">Open Housekeeping to load unresolved discrepancies.</p>
+<section class="housekeeping-discrepancy-error" id="housekeeping-discrepancy-error" hidden role="alert"><strong>Open discrepancies unavailable</strong><p></p><button class="secondary" id="housekeeping-discrepancy-retry" type="button">Try again</button></section>
+<section class="housekeeping-discrepancy-empty" id="housekeeping-discrepancy-empty" hidden tabindex="-1"><strong>No unresolved room discrepancy</strong><p class="muted">Current server truth has no unresolved discrepancy for this property.</p></section>
+<div class="housekeeping-discrepancy-list" id="housekeeping-discrepancy-list" role="list" aria-label="Unresolved room discrepancies" hidden></div>
+</section>
 <section class="card housekeeping-sheet-workbench" id="housekeeping-sheet-generator" aria-labelledby="housekeeping-sheet-title">
 <div class="housekeeping-sheet-intro">
 <div><span class="eyebrow">Attendant sheet</span><h3 id="housekeeping-sheet-title">Preview rooms before generation</h3></div>

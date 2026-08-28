@@ -95,6 +95,10 @@
  let housekeepingConditionInitialization = null;
  let housekeepingConditionInitializationRequestGeneration = 0;
  const housekeepingConditionInitializationAttempts = new Map();
+ let housekeepingDiscrepancyGeneration = 0;
+ let housekeepingDiscrepancyRequestGeneration = 0;
+ let housekeepingDiscrepancyRows = Object.freeze([]);
+ const housekeepingDiscrepancyAttempts = new Map();
  let arrivalRoomCleaningTaskRequest = null;
  let arrivalRoomCleaningTaskRequestGeneration = 0;
  let arrivalRoomCleaningTaskAttempt = null;
@@ -255,6 +259,19 @@
  const housekeepingConditionStatus = $("#housekeeping-condition-status");
  const housekeepingConditionMore = $("#housekeeping-condition-more");
  const housekeepingConditionInitializationSlot = $("#housekeeping-condition-initialization-slot");
+ const housekeepingDiscrepancyWorkbench = $("#housekeeping-discrepancy-workbench");
+ const housekeepingDiscrepancyTitle = $("#housekeeping-discrepancy-title");
+ const housekeepingDiscrepancyRefresh = $("#housekeeping-discrepancy-refresh");
+ const housekeepingDiscrepancyForm = $("#housekeeping-discrepancy-report-form");
+ const housekeepingDiscrepancySpace = $("#housekeeping-discrepancy-space");
+ const housekeepingDiscrepancyPersonsField = $("#housekeeping-discrepancy-persons-field");
+ const housekeepingDiscrepancyPersons = $("#housekeeping-discrepancy-persons");
+ const housekeepingDiscrepancySubmit = $("#housekeeping-discrepancy-submit");
+ const housekeepingDiscrepancyStatus = $("#housekeeping-discrepancy-status");
+ const housekeepingDiscrepancyError = $("#housekeeping-discrepancy-error");
+ const housekeepingDiscrepancyRetry = $("#housekeeping-discrepancy-retry");
+ const housekeepingDiscrepancyEmpty = $("#housekeeping-discrepancy-empty");
+ const housekeepingDiscrepancyList = $("#housekeeping-discrepancy-list");
  const housekeepingSheetForm = $("#housekeeping-sheet-form");
  const housekeepingSheetDate = $("#housekeeping-sheet-date");
  const housekeepingAttendantQuery = $("#housekeeping-attendant-query");
@@ -2757,6 +2774,7 @@ function ensureHousekeepingGenerationReceiptPanel() {
  housekeepingConditionRows = combined;
  housekeepingConditionNextCursor = page.nextCursor;
  housekeepingConditionList.replaceChildren(...combined.map(housekeepingConditionCard));
+ syncHousekeepingDiscrepancyRooms();
  housekeepingConditionCount.textContent = String(combined.length);
  setHousekeepingConditionState(combined.length === 0 ? "empty" : "ready");
  housekeepingConditionMore.hidden = combined.length === 0 || page.nextCursor === null;
@@ -2776,6 +2794,7 @@ function ensureHousekeepingGenerationReceiptPanel() {
  housekeepingConditionFilter.value = "";
  housekeepingConditionCount.textContent = "0";
  housekeepingConditionList.replaceChildren();
+ syncHousekeepingDiscrepancyRooms();
  housekeepingConditionMore.hidden = true;
  housekeepingConditionMore.disabled = false;
  housekeepingConditionRefresh.disabled = false;
@@ -2830,11 +2849,206 @@ function ensureHousekeepingGenerationReceiptPanel() {
     : "No room-condition conclusion was made. Retry this read-only request.";
    if (focus) housekeepingConditionRetry.focus({ preventScroll: true });
   }
- } finally {
+  } finally {
   if (housekeepingConditionIsCurrent(generation, requestGeneration, property, condition, detailTaskId)) {
    housekeepingConditionBoard.setAttribute("aria-busy", "false");
    housekeepingConditionRefresh.disabled = false;
    housekeepingConditionMore.disabled = false;
+  }
+ }
+  }
+  function housekeepingDiscrepancyIsCurrent(generation, requestGeneration, property) {
+ return generation === housekeepingDiscrepancyGeneration
+  && requestGeneration === housekeepingDiscrepancyRequestGeneration
+  && property === propertySelect.value && activeView === "housekeeping"
+  && location.pathname === `/p/${property}/housekeeping` && location.search === ""
+  && housekeepingDiscrepancyWorkbench.isConnected && !housekeepingDiscrepancyWorkbench.hidden;
+  }
+  function housekeepingDiscrepancyRow(value) {
+ const keys = value && typeof value === "object" && !Array.isArray(value) ? Object.keys(value).sort() : [];
+ if (JSON.stringify(keys) !== JSON.stringify(["floor", "kind", "reported", "reportedAt", "reportedBy", "spaceCode", "spaceId", "systemState"]) ||
+  !canonicalUuid(String(value.spaceId || "")) || typeof value.spaceCode !== "string" || value.spaceCode.length === 0 ||
+  (value.floor !== null && typeof value.floor !== "string") || !["sleep", "skip", "person"].includes(value.kind) ||
+  typeof value.reported !== "string" || !/^(?:occupied|vacant|persons:(?:[1-9]|[1-9][0-9]))$/.test(value.reported) ||
+  typeof value.systemState !== "string" || !/^(?:occupied|vacant|persons:[1-9][0-9]{0,2})$/.test(value.systemState) ||
+  !canonicalUuid(String(value.reportedBy || "")) || !housekeepingCanonicalInstant(value.reportedAt)) {
+  throw new Error("The unresolved discrepancy response contained invalid room truth.");
+ }
+ return Object.freeze({ ...value });
+  }
+  function housekeepingDiscrepancyResult(value) {
+ const keys = value && typeof value === "object" && !Array.isArray(value) ? Object.keys(value).sort() : [];
+ if (JSON.stringify(keys) !== JSON.stringify(["discrepancies"]) || !Array.isArray(value.discrepancies) || value.discrepancies.length > 200) {
+  throw new Error("The unresolved discrepancy response was invalid.");
+ }
+ const rows = value.discrepancies.map(housekeepingDiscrepancyRow);
+ if (new Set(rows.map((row) => row.spaceId)).size !== rows.length) throw new Error("The unresolved discrepancy response repeated a room.");
+ return Object.freeze(rows);
+  }
+  function syncHousekeepingDiscrepancyRooms() {
+ const selected = housekeepingDiscrepancySpace.value;
+ const options = [node("option", "", housekeepingConditionRows.length === 0 ? "Load and choose a room" : "Choose an exact loaded room")];
+ options[0].value = "";
+ for (const room of housekeepingConditionRows) {
+  const option = node("option", "", `Room ${room.code}${room.floor ? ` · Floor ${room.floor}` : ""}`);
+  option.value = room.spaceId;
+  options.push(option);
+ }
+ housekeepingDiscrepancySpace.replaceChildren(...options);
+ housekeepingDiscrepancySpace.value = housekeepingConditionRows.some((room) => room.spaceId === selected) ? selected : "";
+ housekeepingDiscrepancySubmit.disabled = housekeepingDiscrepancySpace.value === "";
+  }
+  function housekeepingDiscrepancyCard(row) {
+ const article = node("article", "housekeeping-discrepancy-card");
+ article.setAttribute("role", "listitem");
+ article.tabIndex = -1;
+ article.dataset.spaceId = row.spaceId;
+ article.setAttribute("aria-label", `${row.kind} discrepancy for room ${row.spaceCode}`);
+ const head = node("div", "housekeeping-discrepancy-card-head");
+ const identity = node("div", "housekeeping-room-identity");
+ identity.append(node("span", "eyebrow", row.floor ? `Floor ${row.floor}` : "Floor not set"), node("h4", "", `Room ${row.spaceCode}`));
+ head.append(identity, housekeepingBadge("discrepancy-kind", row.kind[0].toUpperCase() + row.kind.slice(1), row.kind));
+ const evidence = node("dl", "");
+ evidence.append(
+  node("dt", "", "Observed"), node("dd", "", row.reported),
+  node("dt", "", "System"), node("dd", "", row.systemState),
+  node("dt", "", "Reported by"), node("dd", "", row.reportedBy),
+  node("dt", "", "Reported at"), node("dd", "", housekeepingDate(row.reportedAt)),
+ );
+ article.append(head, evidence);
+ return article;
+  }
+  function renderHousekeepingDiscrepancies(rows) {
+ housekeepingDiscrepancyRows = Object.freeze(rows.slice());
+ housekeepingDiscrepancyList.replaceChildren(...rows.map(housekeepingDiscrepancyCard));
+ housekeepingDiscrepancyList.hidden = rows.length === 0;
+ housekeepingDiscrepancyEmpty.hidden = rows.length !== 0;
+ housekeepingDiscrepancyError.hidden = true;
+ housekeepingDiscrepancyStatus.textContent = rows.length === 0
+  ? "No unresolved room discrepancy is recorded for this property."
+  : `${rows.length} unresolved room discrepanc${rows.length === 1 ? "y" : "ies"} loaded from current server truth.`;
+  }
+  function clearHousekeepingDiscrepancyState() {
+ housekeepingDiscrepancyGeneration += 1;
+ housekeepingDiscrepancyRequestGeneration += 1;
+ housekeepingDiscrepancyRows = Object.freeze([]);
+ housekeepingDiscrepancyAttempts.clear();
+ housekeepingDiscrepancyList.replaceChildren();
+ housekeepingDiscrepancyList.hidden = true;
+ housekeepingDiscrepancyEmpty.hidden = true;
+ housekeepingDiscrepancyError.hidden = true;
+ housekeepingDiscrepancyWorkbench.setAttribute("aria-busy", "false");
+ housekeepingDiscrepancyForm.reset();
+ housekeepingDiscrepancyPersonsField.hidden = true;
+ housekeepingDiscrepancyPersons.disabled = true;
+ housekeepingDiscrepancySpace.replaceChildren(Object.assign(node("option", "", "Load and choose a room"), { value: "" }));
+ housekeepingDiscrepancySubmit.disabled = true;
+ housekeepingDiscrepancyStatus.textContent = "Open Housekeeping to load unresolved discrepancies.";
+  }
+  async function loadHousekeepingDiscrepancies({ focus = "", focusSpaceId = "" } = {}) {
+ const property = propertySelect.value;
+ if (!property || activeView !== "housekeeping" || location.pathname !== `/p/${property}/housekeeping` || location.search !== "") return;
+ const generation = ++housekeepingDiscrepancyGeneration;
+ const requestGeneration = ++housekeepingDiscrepancyRequestGeneration;
+ housekeepingDiscrepancyRefresh.disabled = true;
+ housekeepingDiscrepancyWorkbench.setAttribute("aria-busy", "true");
+ housekeepingDiscrepancyStatus.textContent = "Loading unresolved room discrepancies…";
+ try {
+  const rows = housekeepingDiscrepancyResult(await request(`/api/v1/properties/${enc(property)}/housekeeping/discrepancies`));
+  if (!housekeepingDiscrepancyIsCurrent(generation, requestGeneration, property)) return;
+  renderHousekeepingDiscrepancies(rows);
+  if (focusSpaceId) {
+   const card = [...housekeepingDiscrepancyList.querySelectorAll(".housekeeping-discrepancy-card")]
+    .find((candidate) => candidate.dataset.spaceId === focusSpaceId);
+   (card || housekeepingDiscrepancyTitle).focus({ preventScroll: true });
+  } else if (focus === "refresh") housekeepingDiscrepancyRefresh.focus({ preventScroll: true });
+  else if (focus === "title") housekeepingDiscrepancyTitle.focus({ preventScroll: true });
+ } catch (error) {
+  if (!housekeepingDiscrepancyIsCurrent(generation, requestGeneration, property)) return;
+  housekeepingDiscrepancyRows = Object.freeze([]);
+  housekeepingDiscrepancyList.replaceChildren();
+  housekeepingDiscrepancyList.hidden = true;
+  housekeepingDiscrepancyEmpty.hidden = true;
+  housekeepingDiscrepancyError.hidden = false;
+  housekeepingDiscrepancyError.querySelector("p").textContent = error instanceof Error ? error.message : "Open discrepancies could not be loaded.";
+  housekeepingDiscrepancyStatus.textContent = error?.status === 403
+   ? "Housekeeping discrepancy read access is not granted."
+   : "No discrepancy conclusion was made. Retry this read-only request.";
+  if (focus) housekeepingDiscrepancyRetry.focus({ preventScroll: true });
+ } finally {
+  if (housekeepingDiscrepancyIsCurrent(generation, requestGeneration, property)) {
+   housekeepingDiscrepancyRefresh.disabled = false;
+   housekeepingDiscrepancyWorkbench.setAttribute("aria-busy", "false");
+  }
+ }
+  }
+  function updateHousekeepingDiscrepancyPresence(preserveAttempt = false) {
+ const presence = housekeepingDiscrepancyForm.elements.observedPresence.value;
+ const occupied = presence === "occupied";
+ housekeepingDiscrepancyPersonsField.hidden = !occupied;
+ housekeepingDiscrepancyPersons.disabled = !occupied;
+ housekeepingDiscrepancyPersons.required = occupied;
+ if (!occupied) housekeepingDiscrepancyPersons.value = "";
+ if (!preserveAttempt) housekeepingDiscrepancyAttempts.clear();
+  }
+  async function submitHousekeepingDiscrepancy(event) {
+ event.preventDefault();
+ const property = propertySelect.value;
+ const spaceId = housekeepingDiscrepancySpace.value;
+ const observedPresence = housekeepingDiscrepancyForm.elements.observedPresence.value;
+ const roomCurrent = housekeepingConditionRows.some((room) => room.spaceId === spaceId);
+ if (!property || !roomCurrent || !["occupied", "vacant"].includes(observedPresence)) {
+  (!spaceId ? housekeepingDiscrepancySpace : housekeepingDiscrepancyForm.elements.observedPresence[0]).focus({ preventScroll: true });
+  housekeepingDiscrepancyStatus.textContent = "Choose one exact loaded room and an explicit observed presence.";
+  return;
+ }
+ const observedPersons = observedPresence === "occupied" ? Number(housekeepingDiscrepancyPersons.value) : null;
+ if (observedPresence === "occupied" && (!Number.isInteger(observedPersons) || observedPersons < 1 || observedPersons > 99)) {
+  housekeepingDiscrepancyPersons.focus({ preventScroll: true });
+  housekeepingDiscrepancyStatus.textContent = "Enter the observed persons from 1 to 99.";
+  return;
+ }
+ const body = { spaceId, observedPresence, observedPersons };
+ const draft = JSON.stringify({ property, ...body });
+ const attempt = housekeepingDiscrepancyAttempts.get(spaceId)?.draft === draft
+  ? housekeepingDiscrepancyAttempts.get(spaceId) : Object.freeze({ draft, key: crypto.randomUUID() });
+ housekeepingDiscrepancyAttempts.set(spaceId, attempt);
+ const generation = housekeepingDiscrepancyGeneration;
+ const requestGeneration = housekeepingDiscrepancyRequestGeneration;
+ const form = housekeepingDiscrepancyForm;
+ for (const control of form.elements) control.disabled = true;
+ housekeepingDiscrepancyRefresh.disabled = true;
+ housekeepingDiscrepancyStatus.textContent = "Comparing the explicit observation with current PostgreSQL stay and occupancy truth…";
+ try {
+  const result = await request(`/api/v1/properties/${enc(property)}/housekeeping/discrepancies`, {
+   method: "POST", headers: { "idempotency-key": attempt.key }, body: JSON.stringify(body),
+  });
+  if (!housekeepingDiscrepancyIsCurrent(generation, requestGeneration, property) || !form.isConnected ||
+   housekeepingDiscrepancySpace.value !== spaceId) return;
+  if (!result || typeof result !== "object" || typeof result.created !== "boolean" || typeof result.replayed !== "boolean" ||
+   (result.discrepancy !== null && (!result.discrepancy || typeof result.discrepancy !== "object"))) {
+   throw new Error("The discrepancy report receipt was invalid.");
+  }
+  housekeepingDiscrepancyAttempts.delete(spaceId);
+  const message = result.discrepancy === null
+   ? "The observation matches current server truth; no discrepancy was created."
+   : `${result.created ? "Discrepancy recorded" : "Existing discrepancy returned"}${result.replayed ? " from the retained request" : ""}.`;
+  await Promise.all([loadHousekeepingDiscrepancies({ focusSpaceId: result.discrepancy === null ? "" : spaceId }), loadHousekeepingConditions()]);
+  if (activeView === "housekeeping" && propertySelect.value === property && location.pathname === `/p/${property}/housekeeping`) {
+   syncHousekeepingDiscrepancyRooms();
+   housekeepingDiscrepancyStatus.textContent = message;
+   if (result.discrepancy === null) housekeepingDiscrepancyTitle.focus({ preventScroll: true });
+  }
+ } catch (error) {
+  if (!housekeepingDiscrepancyIsCurrent(generation, requestGeneration, property) || !form.isConnected) return;
+  housekeepingDiscrepancyStatus.textContent = `${error instanceof Error ? error.message : "The observation could not be reported"} Retry keeps the same request key for this unchanged draft.`;
+  housekeepingDiscrepancySpace.focus({ preventScroll: true });
+ } finally {
+  if (activeView === "housekeeping" && propertySelect.value === property && location.pathname === `/p/${property}/housekeeping` && form.isConnected) {
+   for (const control of form.elements) control.disabled = false;
+   updateHousekeepingDiscrepancyPresence(true);
+   syncHousekeepingDiscrepancyRooms();
+   housekeepingDiscrepancyRefresh.disabled = false;
   }
  }
   }
@@ -3270,6 +3484,9 @@ function ensureHousekeepingGenerationReceiptPanel() {
  const contextualReturn = arrivalCleaningCheckInReturnFromState(history.state, propertySelect.value, taskId);
  if (contextualReturn) checkInHousekeepingReturn = checkInHousekeepingReturnFromArrivalCleaning(contextualReturn);
  housekeepingView.classList.add("is-task-detail");
+ housekeepingDiscrepancyGeneration += 1;
+ housekeepingDiscrepancyRequestGeneration += 1;
+ housekeepingDiscrepancyWorkbench.hidden = true;
  panel.hidden = false;
  panel.querySelector(".housekeeping-task-detail-title").focus({ preventScroll: true });
  void loadHousekeepingTaskDetail(taskId, { focus });
@@ -3308,6 +3525,8 @@ function ensureHousekeepingGenerationReceiptPanel() {
  const wasDetail = housekeepingRouteTaskId !== "";
  const returnFocus = housekeepingTaskDetailReturnFocus;
  closeHousekeepingTaskDetail({ history: false, restoreFocus: false });
+ housekeepingDiscrepancyWorkbench.hidden = false;
+ if (housekeepingDiscrepancyRows.length === 0) void loadHousekeepingDiscrepancies();
  if (housekeepingData.length === 0) void loadHousekeepingBoard({ focus: focus || wasDetail });
  else if (focus || wasDetail) (returnFocus?.isConnected ? returnFocus : document.querySelector("#housekeeping-title"))?.focus({ preventScroll: true });
  }
@@ -9099,7 +9318,7 @@ function vehicleReturnPathFromState(state, property) {
   }
  }
  if (previousView === "today" && activeView !== "today") todayGeneration += 1;
- if (previousView === "housekeeping" && activeView !== "housekeeping") {
+  if (previousView === "housekeeping" && activeView !== "housekeeping") {
    clearHousekeepingConditionInitialization();
    clearArrivalRoomCleaningTask();
    clearHousekeepingSheetReceipt();
@@ -9107,7 +9326,8 @@ function vehicleReturnPathFromState(state, property) {
   housekeepingGeneration += 1;
   housekeepingRequestGeneration += 1;
   housekeepingConditionGeneration += 1;
-  housekeepingConditionRequestGeneration += 1;
+   housekeepingConditionRequestGeneration += 1;
+   clearHousekeepingDiscrepancyState();
   housekeepingSheetGeneration += 1;
   housekeepingSheetRequestGeneration += 1;
   if (activeView !== "reservations" || `${location.pathname}${location.search}` !== checkInHousekeepingReturn?.originPath) {
@@ -9161,10 +9381,12 @@ function vehicleReturnPathFromState(state, property) {
    if (route.kind === "other" || route.property !== propertySelect.value) {
     history.replaceState(null, "", `/p/${propertySelect.value}/housekeeping`);
    }
-   if (housekeepingNavigationRoute().kind === "detail") syncHousekeepingRoute();
-   else {
-    syncHousekeepingRoute();
-    void loadHousekeepingBoard();
+    if (housekeepingNavigationRoute().kind === "detail") syncHousekeepingRoute();
+    else {
+     syncHousekeepingRoute();
+     housekeepingDiscrepancyWorkbench.hidden = false;
+     void loadHousekeepingBoard();
+     void loadHousekeepingDiscrepancies();
     void loadHousekeepingConditions().then(() => {
      if (arrivalReturn?.blocker === "room_condition_missing") openHousekeepingConditionInitialization(arrivalReturn);
      else if (arrivalReturn?.blocker === "dirty_room_override_unauthorized") void openArrivalRoomCleaningTask(arrivalReturn);
@@ -11009,6 +11231,7 @@ function vehicleReturnPathFromState(state, property) {
  housekeepingAttempts.clear();
  housekeepingTaskDetailAttempts.clear();
  clearHousekeepingConditionState();
+ clearHousekeepingDiscrepancyState();
  clearHousekeepingSheetState();
  departureFolioReturn = null;
  departureFolioExitConfirmed = false;
@@ -11052,6 +11275,8 @@ function vehicleReturnPathFromState(state, property) {
  if (activeView === "housekeeping") {
   void loadHousekeepingBoard();
   void loadHousekeepingConditions();
+  housekeepingDiscrepancyWorkbench.hidden = false;
+  void loadHousekeepingDiscrepancies();
  }
  if (activeView === "vehicles") {
   history.replaceState({ yellowSurface: "vehicle-register" }, "", canonicalVehiclePath(propertySelect.value));
@@ -11098,6 +11323,7 @@ function vehicleReturnPathFromState(state, property) {
  housekeepingRefresh.addEventListener("click", () => {
  void loadHousekeepingBoard({ focus: true });
  void loadHousekeepingConditions().then(reopenHousekeepingConditionInitialization);
+ void loadHousekeepingDiscrepancies();
  if (housekeepingSheetDate.value) {
   if (housekeepingSheetAttendant) void previewHousekeepingSheet();
   else void loadHousekeepingSheetHistory();
@@ -11109,6 +11335,17 @@ function vehicleReturnPathFromState(state, property) {
  housekeepingConditionRetry.addEventListener("click", () => void loadHousekeepingConditions({ focus: "title" }).then(reopenHousekeepingConditionInitialization));
  housekeepingConditionMore.addEventListener("click", () => void loadHousekeepingConditions({ older: true, focus: "more" }).then(reopenHousekeepingConditionInitialization));
  housekeepingConditionFilter.addEventListener("change", () => void loadHousekeepingConditions({ focus: "filter" }).then(reopenHousekeepingConditionInitialization));
+ housekeepingDiscrepancyRefresh.addEventListener("click", () => void loadHousekeepingDiscrepancies({ focus: "refresh" }));
+ housekeepingDiscrepancyRetry.addEventListener("click", () => void loadHousekeepingDiscrepancies({ focus: "title" }));
+ housekeepingDiscrepancyForm.addEventListener("submit", (event) => void submitHousekeepingDiscrepancy(event));
+ housekeepingDiscrepancySpace.addEventListener("change", () => {
+  housekeepingDiscrepancyAttempts.clear();
+  housekeepingDiscrepancySubmit.disabled = housekeepingDiscrepancySpace.value === "";
+ });
+ housekeepingDiscrepancyForm.addEventListener("change", (event) => {
+  if (event.target.name === "observedPresence") updateHousekeepingDiscrepancyPresence();
+ });
+ housekeepingDiscrepancyPersons.addEventListener("input", () => housekeepingDiscrepancyAttempts.clear());
  housekeepingSheetForm.addEventListener("submit", (event) => {
  event.preventDefault();
  void previewHousekeepingSheet({ focus: true });
@@ -11284,6 +11521,8 @@ housekeepingSheetDate.addEventListener("change", () => {
    syncHousekeepingRoute({ focus: true });
    void loadHousekeepingBoard();
    void loadHousekeepingConditions();
+   housekeepingDiscrepancyWorkbench.hidden = false;
+   void loadHousekeepingDiscrepancies();
   }
  return;
  }
