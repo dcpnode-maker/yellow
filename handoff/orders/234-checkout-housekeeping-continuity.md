@@ -1,6 +1,6 @@
 # Order 234 — Checkout-to-Housekeeping continuity
 
-**Status:** READY-D616
+**Status:** BUILT-UNREVIEWED-D617
 **Phase:** 6 — Stay operations and housekeeping
 **Branch:** `phase-6/checkout-housekeeping-continuity`
 **Base:** `857601b` (built-unreviewed Order233)
@@ -77,8 +77,27 @@ or claiming that cleaning is required.
 ## Definition of done
 
 - [x] Order233 is recorded built-unreviewed at exact base `857601b`.
-- [ ] Intentional red precedes implementation.
-- [ ] Exact checkout success admits one stale-safe transient action.
-- [ ] Existing Housekeeping authoritative room truth receives the navigation.
-- [ ] No room/task/checkout/server authority changes.
-- [ ] Standing gates are green and the result is recorded built-unreviewed.
+- [x] Intentional red precedes implementation.
+- [x] Exact checkout success admits one stale-safe transient action.
+- [x] Existing Housekeeping authoritative room truth receives the navigation.
+- [x] No room/task/checkout/server authority changes.
+- [x] Standing gates are green and the result is recorded built-unreviewed.
+
+## Built evidence
+
+The committed intentional-red base first failed `0/2` because the exact checkout
+descriptor and stale-safe Housekeeping action were absent. The final focused suite
+passes `13/13` with `179` assertions, and the adjacent checkout, condition-board,
+reservation-detail, Folio-return and check-in/Housekeeping continuity set passes
+`104/104` with `1,294` assertions across `19` files. Exact checkout receipt admission,
+hostile/surplus/mismatch containment, authoritative detail refresh, route and DOM
+generation guards, canonical history, exact-room-or-heading focus, Back/Escape/
+Back/Forward/refresh and unchanged direct Housekeeping behavior are executable.
+
+The full standing suite passes `741/741` with `682` environment skips and `7,912`
+assertions across `1,423` tests in `259` files. Typecheck, `86` import boundaries,
+`23` dependency licences, zero audit findings, JavaScript syntax, diff and exact schema
+are green. A fresh `yellow_test` inside the one existing PostgreSQL stack applied all
+`35` migrations, loaded the invariant fixture, proved `93` public tables and returned
+`11 passed, 0 failed of 11`. No second application local was created or promoted.
+Independent product review remains deferred under the founder's build-first direction.

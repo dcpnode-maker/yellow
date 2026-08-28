@@ -34,7 +34,7 @@ describe("Order234 intentional red — checkout to Housekeeping continuity", () 
 
     expect(script.includes("function checkoutHousekeepingCompletionActionIsCurrent(")).toBe(true);
     expect(script.includes("function openCheckoutHousekeeping(")).toBe(true);
-    expect(render.includes("checkout-housekeeping-action")).toBe(true);
-    expect(render.includes("Review room in Housekeeping")).toBe(true);
+    expect(render.includes("renderCheckoutHousekeepingReview(reservation)")).toBe(true);
+    expect(script.includes('"Review room in Housekeeping"')).toBe(true);
   });
 });

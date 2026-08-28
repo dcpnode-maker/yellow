@@ -1016,3 +1016,29 @@ canonical state. There is no polling or browser storage. Candidate selection and
 actions remain keyboard operable with visible focus, at least 44 pixels, 48 pixels on
 Android, and contained at 375 pixels and 200% zoom. All six current appearances,
 forced colours and reduced motion preserve identical semantic order and authority.
+
+## 38. Checkout-to-Housekeeping return continuity
+
+Only an exact current governed checkout result with the matching reservation,
+`checked_out` parent, `departed` segment, canonical assigned room and exactly one
+released occupancy claim admits the transient completion context. The browser retains
+only property, reservation, confirmation, assigned room, fixed expected statuses,
+plain reservation-detail origin path and authoritative detail generation. It discards
+timestamps, periods, folio counts, segment identity and every readiness or room-state
+inference.
+
+After canonical checked-out reservation detail is authoritatively refreshed, one
+semantic **Review room in Housekeeping** action appears in that completion context.
+Detached, stale, replaced, wrong-property, wrong-reservation, wrong-status, wrong-room,
+query-bearing or generation-mismatched controls are inert. The action creates one
+history entry, opens the existing Housekeeping condition-board route and performs only
+its existing read. It focuses the exact authoritative assigned-room card when present,
+or the safe Room conditions heading otherwise. It neither filters room truth nor
+claims the room is dirty, clean, inspected, discrepant or awaiting work.
+
+Back, Escape and browser Back/Forward return to canonical plain checked-out
+reservation detail, refetch current truth and focus the regenerated action or the safe
+reservation-detail heading. Refresh reconstructs only an exact bounded history
+descriptor; direct Housekeeping remains unchanged. No checkout replay, condition or
+task mutation, polling, browser storage, automatic cleaning consequence or new request
+family is introduced.
