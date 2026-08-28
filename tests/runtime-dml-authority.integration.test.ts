@@ -290,7 +290,8 @@ databaseDescribe("Order 150 positive runtime DML authority", () => {
             'transition_arrival_pickup_task', 'create_arrival_room_cleaning_task',
             'assign_due_in_room',
             'open_cashier_session', 'append_cashier_count', 'close_cashier_session',
-           'runtime_resolve_active_tenant', 'runtime_due_arrival_scopes', 'runtime_due_hold_scopes',
+           'runtime_resolve_active_tenant', 'runtime_due_arrival_scopes', 'runtime_due_departure_scopes',
+           'runtime_due_hold_scopes',
            'runtime_consumer_begin',
            'runtime_consumer_read', 'runtime_consumer_mark', 'runtime_consumer_advance',
            'runtime_mark_outbox_published', 'runtime_prune_outbox', 'runtime_visible_extensions',
@@ -329,7 +330,7 @@ databaseDescribe("Order 150 positive runtime DML authority", () => {
         .toEqual(expect.objectContaining({ app: true, runtime: false }));
     }
     const runtimeFunctions = functions.filter(({ signature }) => signature.startsWith("runtime_"));
-    expect(runtimeFunctions).toHaveLength(11);
+    expect(runtimeFunctions).toHaveLength(12);
     expect(runtimeFunctions.every(({ app, runtime }) => !app && runtime)).toBe(true);
     expect(functions.find(({ signature }) => signature.startsWith("register_extension_type(")))
       .toEqual(expect.objectContaining({ app: false, runtime: false, registrar: true }));

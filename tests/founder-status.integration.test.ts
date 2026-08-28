@@ -26,6 +26,7 @@ const RUNTIME_STATUS: OperatorRuntimeStatus = Object.freeze({
   availabilityProjectionWorkerEnabled: false,
   pickupTaskWorkerEnabled: false,
   reservationArrivalRollWorkerEnabled: true,
+  reservationDepartureRollWorkerEnabled: true,
   processStartedAt: "2026-08-22T00:00:00.000Z",
 });
 
@@ -480,7 +481,7 @@ databaseDescribe("Order 064 authenticated founder status", () => {
         app: { state: string; checkedAt: string; processStartedAt: string };
         database: { state: string; checkedAt: string; tenantContext: boolean; database: string };
         workers: { holdExpiry: string; availabilityProjection: string; arrivalPickupTask: string;
-          reservationArrivalRoll: string };
+          reservationArrivalRoll: string; reservationDepartureRoll: string };
         valkey: { state: string; detail: string };
         ci: { state: string; detail: string };
       };
@@ -501,7 +502,7 @@ databaseDescribe("Order 064 authenticated founder status", () => {
     expect(Number.isFinite(Date.parse(body.live.database.checkedAt))).toBe(true);
     expect(body.live.workers).toEqual({
       holdExpiry: "configured", availabilityProjection: "disabled", arrivalPickupTask: "disabled",
-      reservationArrivalRoll: "configured",
+      reservationArrivalRoll: "configured", reservationDepartureRoll: "configured",
     });
     expect(body.live.valkey).toEqual({
       state: "not_connected",

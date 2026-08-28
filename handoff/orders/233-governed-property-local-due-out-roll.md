@@ -1,6 +1,6 @@
 # Order 233 — Governed property-local due-out roll
 
-**Status:** READY-D614
+**Status:** BUILT-UNREVIEWED-D615
 **Phase:** 6 — Stay operations and housekeeping
 **Branch:** `phase-6/governed-property-local-due-out-roll`
 **Base:** `ab49e31` (built-unreviewed Order232)
@@ -117,10 +117,31 @@ execution and direct runtime table reads remain denied.
 ## Definition of done
 
 - [x] Order232 is recorded built-unreviewed at exact base `ab49e31`.
-- [ ] Intentional red precedes implementation.
-- [ ] Date admission is transaction-stable, PostgreSQL-owned and property-local.
-- [ ] Only parent `in_house -> due_out` changes; latest segment remains byte-identical.
-- [ ] Exactly one existing `reservation.due_out` evidence chain commits.
-- [ ] Checkout, occupancy, finance and product UI behavior remain unchanged.
-- [ ] Standing gates are green and the result is recorded built-unreviewed.
+- [x] Intentional red precedes implementation.
+- [x] Date admission is transaction-stable, PostgreSQL-owned and property-local.
+- [x] Only parent `in_house -> due_out` changes; latest segment remains byte-identical.
+- [x] Exactly one existing `reservation.due_out` evidence chain commits.
+- [x] Checkout, occupancy, finance and product UI behavior remain unchanged.
+- [x] Standing gates are green and the result is recorded built-unreviewed.
 
+## Built evidence
+
+The intentional-red proof first failed `0/4` for the absent service, scope adapter,
+worker composition and production `reservation.due_out` emission. The final focused
+suite passes `14/14` with `70` assertions. Fresh PostgreSQL proves the non-UTC
+property-local date, parent-only transition with byte-identical segment, one exact
+fact/outbox/idempotency result, no-op containment, twenty-contender convergence,
+publication rollback, bounded runtime discovery and opt-in worker behavior. The real
+hotel journey proves existing Today, reservation detail and checkout readiness consume
+the rolled parent while occupancy remains present and no checkout fact or event exists.
+
+Migration0035 has SHA-256
+`ee102c6e479badc14fb8945d0c493905840d1c58845b9def4d74d6e2bf1a7447`.
+Database acceptance passes `8/8`, runtime authority `10/10`, runtime DML `5/5`,
+SECURITY-DEFINER `3/3`, the migration suite `33/33`, the exact schema snapshot, and
+fresh referee `11/11`. The standing suite passes `728/728` with `682` environment
+skips and `7,733` assertions across `1,410` tests in `256` files; typecheck,
+`86` import boundaries, `23` licences, zero audit findings, JavaScript syntax and diff
+checks are green. Independent Tier-3 approval remains deferred under the founder's
+build-first direction; no approval, Phase-6/app completion, local promotion, merge,
+push or deployment is claimed.

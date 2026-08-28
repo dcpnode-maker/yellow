@@ -26,6 +26,7 @@ export interface OperatorRuntimeStatus {
   readonly availabilityProjectionWorkerEnabled: boolean;
   readonly pickupTaskWorkerEnabled: boolean;
   readonly reservationArrivalRollWorkerEnabled: boolean;
+  readonly reservationDepartureRollWorkerEnabled: boolean;
   readonly processStartedAt: string;
 }
 
@@ -35,6 +36,7 @@ export const DEFAULT_OPERATOR_RUNTIME_STATUS: OperatorRuntimeStatus = Object.fre
   availabilityProjectionWorkerEnabled: false,
   pickupTaskWorkerEnabled: false,
   reservationArrivalRollWorkerEnabled: false,
+  reservationDepartureRollWorkerEnabled: false,
   processStartedAt: new Date(0).toISOString(),
 });
 

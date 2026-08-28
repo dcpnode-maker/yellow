@@ -324,13 +324,16 @@ referee proofs are green. This adds no operator control, no no-show/due-out/day-
 meaning and no occupancy, folio, identity, financial or statutory effect; independent
 Tier-3 approval remains deferred.
 
-Order 233 is active as the mirrored property-local departure roll. One bounded opt-in
-worker will discover only exact due tenant/property scopes, compare the latest current
-`in_house` segment's local departure date with PostgreSQL's transaction-stable
-property-local calendar date, and change only its coherent parent to `due_out`. The
-segment stays byte-equivalent and one existing `reservation.due_out` evidence chain
-commits atomically. Existing Today and checkout-readiness surfaces observe the parent;
-checkout, occupancy release, finance, business day and product UI remain separate.
+Order 233 is built-unreviewed as the mirrored property-local departure roll. One
+bounded opt-in worker discovers only exact due tenant/property scopes, compares the
+latest current `in_house` segment's local departure date with PostgreSQL's
+transaction-stable property-local calendar date, and changes only its coherent parent
+to `due_out`. The segment stays byte-equivalent and one existing
+`reservation.due_out` evidence chain commits atomically. Existing Today,
+reservation-detail and checkout-readiness surfaces observe the parent; checkout,
+occupancy release, finance, business day and product UI remain separate. Focused,
+contention, rollback, migration, authority, exact-schema, standing and fresh-referee
+proofs are green; independent Tier-3 approval remains deferred.
 
 Statutory field semantics, validation, submission and receipts remain Phase 8. Tax and
 fiscal document work remains Phase 7. No country rule is hardcoded in Phase 6.

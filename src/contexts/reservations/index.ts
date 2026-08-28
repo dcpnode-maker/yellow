@@ -167,3 +167,22 @@ export type {
   RolledDueArrival,
   RollDueArrivalsInput,
 } from "./arrival-roll";
+export {
+  RESERVATION_DEPARTURE_ROLL_ACTOR_ID,
+  ReservationDepartureRollConflictError,
+  ReservationDepartureRollService,
+  ReservationDepartureRollValidationError,
+  ReservationDepartureRollWorker,
+} from "./departure-roll";
+export type {
+  DueDepartureScope,
+  DueDepartureScopeSource,
+  ReservationDepartureRollDrainResult,
+  ReservationDepartureRollFailure,
+  ReservationDepartureRollResult,
+  ReservationDepartureRollRunOptions,
+  ReservationDepartureRollServiceOptions,
+  ReservationDepartureRollWorkerOptions,
+  RolledDueDeparture,
+  RollDueDeparturesInput,
+} from "./departure-roll";

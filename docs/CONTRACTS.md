@@ -1081,3 +1081,23 @@ deterministic drain cycle and abortable polling, and is disabled unless explicit
 enabled in the existing workbench composition. This is an internal server contract:
 there is no API route, operator control, automatic check-in, business-day read/write or
 other reservation-state command.
+
+## 34. Governed property-local due-out roll
+
+`ReservationDepartureRollService.rollDueDepartures` accepts only one lowercase tenant
+UUID, property UUID, bounded departure limit and system audit envelope bound to
+`reservation.due_out`. One tenant transaction derives the transaction-stable stored-
+property local calendar date, locks at most the requested exact-property `in_house`
+parents with their latest current `in_house` segments, and revalidates before changing
+only each parent to `due_out`. The segment remains byte-equivalent `in_house`.
+
+Each changed parent uses a deterministic property/date/reservation idempotency key and
+commits its status, one minimized existing fact/outbox pair and stored result together.
+Reruns and contenders add no second effect; publication failure rolls everything back.
+Future, missed-past, foreign, absent/incoherent or non-`in_house` truth is a no-op.
+
+`runtime_due_departure_scopes(limit)` is the bounded runtime-only discovery capability.
+The worker bounds scope and departure batches, supports one drain cycle and abortable
+polling, and is disabled unless explicitly enabled in workbench composition. There is
+no API route, automatic checkout, segment/occupancy mutation, business-day operation,
+financial effect or other lifecycle command.

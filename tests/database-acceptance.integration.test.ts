@@ -175,6 +175,11 @@ const EXPECTED_MIGRATIONS = [
     filename: "0034_runtime_due_arrival_scopes.sql",
     checksum_sha256: "b59480ab270c8822c9f972de527fc47ab73c411dc9037d37e6d3d326f19cc21a",
   },
+  {
+    version: 35,
+    filename: "0035_runtime_due_departure_scopes.sql",
+    checksum_sha256: "ee102c6e479badc14fb8945d0c493905840d1c58845b9def4d74d6e2bf1a7447",
+  },
 ];
 
 if (REQUIRE_DATABASE && !DATABASE_URL) {

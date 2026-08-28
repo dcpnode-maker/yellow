@@ -5,7 +5,7 @@ import { BearerTenantResolver, Hs256TokenSigner, LocalLoginGuard, LocalLoginServ
 import { PartyProfileService } from "./contexts/crm";
 import { CashierService, ChargeCorrectionService, ChargeService, FolioService, FolioSettlementService, FolioStatementService, FolioTransferService, HostedDepositService, LocalPaymentProvider, PaymentService, ReceivableService } from "./contexts/financials";
 import { AvailabilityProjectionConsumer, AvailabilityProjectionService, AvailabilityService, HoldExpiryWorker, HoldService, InventoryPolicyService, InventoryService, OperationalBlockService, ReservationOccupancyService, RestrictionService } from "./contexts/inventory";
-import { ReservationArrivalRollService, ReservationArrivalRollWorker, ReservationBoardService, ReservationCommitService, ReservationDetailService, ReservationGuestService, ReservationLifecycleService, ReservationOfferSearchService, ReservationSegmentService, ReservationTravelService } from "./contexts/reservations";
+import { ReservationArrivalRollService, ReservationArrivalRollWorker, ReservationBoardService, ReservationCommitService, ReservationDepartureRollService, ReservationDepartureRollWorker, ReservationDetailService, ReservationGuestService, ReservationLifecycleService, ReservationOfferSearchService, ReservationSegmentService, ReservationTravelService } from "./contexts/reservations";
 import { ArrivalPickupTaskAutomationConsumer, ArrivalPickupTaskDispatchService, CheckInService, CheckoutReadinessService, CheckoutService, VehicleRegisterService } from "./contexts/stay-operations";
 import { ArrivalRoomCleaningTaskService, HousekeepingSheetService, HousekeepingTaskService } from "./contexts/housekeeping";
 import {
@@ -23,6 +23,7 @@ import { HostedDepositProviderHttpApi } from "./http/provider";
 import { ApprovalService, Database, ExtensionRegistry, PostgresEventBus, PostgresIdempotency } from "./kernel";
 import type { OperatorRuntimeStatus } from "./project-status";
 import { PostgresDueArrivalScopeSource } from "./workers/postgres-due-arrival-scopes";
+import { PostgresDueDepartureScopeSource } from "./workers/postgres-due-departure-scopes";
 import { PostgresDueHoldScopeSource } from "./workers/postgres-due-hold-scopes";
 
 const port = Bun.env.PORT === undefined ? 3000 : Number(Bun.env.PORT);
@@ -33,6 +34,7 @@ const holdExpiryEnabled = workbenchEnabled && Bun.env.YELLOW_HOLD_EXPIRY_WORKER 
 const projectionWorkerEnabled = workbenchEnabled && Bun.env.YELLOW_AVAILABILITY_PROJECTION_WORKER === "1";
 const pickupTaskWorkerEnabled = workbenchEnabled && Bun.env.YELLOW_PICKUP_TASK_WORKER === "1";
 const reservationArrivalRollEnabled = workbenchEnabled && Bun.env.YELLOW_RESERVATION_ARRIVAL_ROLL_WORKER === "1";
+const reservationDepartureRollEnabled = workbenchEnabled && Bun.env.YELLOW_RESERVATION_DEPARTURE_ROLL_WORKER === "1";
 const maxRequestBodySize = 16 * 1024;
 const processStartedAt = new Date().toISOString();
 
@@ -146,6 +148,11 @@ function runtimeApp() {
     events,
     idempotency: new PostgresIdempotency(),
   });
+  const reservationDepartureRolls = new ReservationDepartureRollService({
+    database,
+    events,
+    idempotency: new PostgresIdempotency(),
+  });
   const parties = new PartyProfileService({ events, idempotency: new PostgresIdempotency() });
   const folioStatements = new FolioStatementService();
   const charges = new ChargeService({ events, idempotency: new PostgresIdempotency() });
@@ -197,6 +204,7 @@ function runtimeApp() {
     availabilityProjectionWorkerEnabled: projectionWorkerEnabled,
     pickupTaskWorkerEnabled,
     reservationArrivalRollWorkerEnabled: reservationArrivalRollEnabled,
+    reservationDepartureRollWorkerEnabled: reservationDepartureRollEnabled,
     processStartedAt,
   };
   if (projectionWorkerEnabled) {
@@ -236,6 +244,21 @@ function runtimeApp() {
         }
       },
     }).catch(() => console.error("reservation arrival-roll worker stopped unexpectedly"));
+  }
+  if (reservationDepartureRollEnabled) {
+    const discoveryPool = new SQL(databaseUrl, { max: 2, prepare: false });
+    const worker = new ReservationDepartureRollWorker(
+      reservationDepartureRolls,
+      new PostgresDueDepartureScopeSource(discoveryPool),
+    );
+    worker.run({
+      onError() { console.error("reservation departure-roll worker discovery failed"); },
+      onResult(result) {
+        if (result.failures.length > 0) {
+          console.error(`reservation departure-roll worker failed for ${result.failures.length} scope(s)`);
+        }
+      },
+    }).catch(() => console.error("reservation departure-roll worker stopped unexpectedly"));
   }
   return createApp({
     database,

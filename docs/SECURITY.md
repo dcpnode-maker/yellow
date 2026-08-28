@@ -480,6 +480,23 @@ worker is explicit opt-in and exposes no HTTP/operator command, catch-up, no-sho
 check-in, occupancy, assignment, condition, task, folio, financial, statutory or
 business-day mutation authority.
 
+### Property-local due-out roll containment (migration 0035)
+
+Migration0035 mirrors that boundary with only
+`runtime_due_departure_scopes(integer)`: a stable fixed-search-path
+`yellow_owner` capability executable solely by `yellow_runtime`. It returns bounded
+tenant/property UUID pairs whose coherent `in_house` parent and latest `in_house`
+segment depart on the transaction-stable stored-property local calendar date. It
+returns no reservation, segment, guest, folio or room detail and grants no direct table
+read or transition authority.
+
+The ordinary tenant transaction re-proves and locks the complete shape, changes only
+the parent to `due_out`, and commits minimized existing fact/outbox/idempotency
+evidence atomically. The segment and occupancy remain unchanged; foreign, future,
+past, missing and incoherent truth fails closed. The explicit opt-in worker adds no
+checkout, occupancy-release, finance, day, condition, task, identity, statutory or
+operator-command authority.
+
 ## 6. Statutory & privacy
 
 ### Token-only payment containment

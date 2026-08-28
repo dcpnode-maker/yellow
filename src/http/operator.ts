@@ -2371,6 +2371,7 @@ export class OperatorHttpApi {
           availabilityProjection: this.#runtimeStatus.availabilityProjectionWorkerEnabled ? "configured" : "disabled",
           arrivalPickupTask: this.#runtimeStatus.pickupTaskWorkerEnabled ? "configured" : "disabled",
           reservationArrivalRoll: this.#runtimeStatus.reservationArrivalRollWorkerEnabled ? "configured" : "disabled",
+          reservationDepartureRoll: this.#runtimeStatus.reservationDepartureRollWorkerEnabled ? "configured" : "disabled",
         },
         valkey: {
           state: "not_connected",

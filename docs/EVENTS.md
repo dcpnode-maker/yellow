@@ -45,6 +45,14 @@ and publication failure leaves no status or evidence artifact. Consumers must no
 infer segment-state change, catch-up/no-show, check-in, occupancy/assignment, room
 condition/task, folio or financial/business-day/statutory effects.
 
+`reservation.due_out` is the minimized evidence that one coherent parent changed from
+`in_house` to `due_out` on its transaction-stable property-local departure date. Its
+payload contains only reservation id, previous/current parent status, segment id,
+unchanged `in_house` segment status and business date. The parent, fact, outbox and
+idempotency result commit together while the segment and occupancy remain unchanged.
+Consumers must not infer checkout, occupancy release, folio/financial action,
+business-day movement, room condition, housekeeping task or statutory effect.
+
 `reservation.checked_in` is the minimized evidence of the exact reservation and active
 segment entering `in_house` together. It may name the room, primary folio and configured
 adapter key, but never includes Party, identity-document, contact, credential or legal

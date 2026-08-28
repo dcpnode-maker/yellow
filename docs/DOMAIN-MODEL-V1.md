@@ -801,3 +801,17 @@ complete shape. Replay, contention and rollback preserve a single atomic transit
 and evidence chain; future, missed-past, foreign, incoherent and non-reserved truth
 remain unchanged. The roll creates no occupancy, assignment, condition, task, folio,
 identity, financial, statutory, business-day or check-in meaning.
+
+### Property-local due-out roll identity (Order 233)
+
+Order 233 adds no aggregate, table, event, operator command or segment state. It
+composes the existing reservation root, latest current `in_house` segment, stored
+property timezone and existing evidence primitives. Only the parent changes from
+`in_house` to `due_out`; the segment and occupancy remain byte-equivalent current
+truth until the separate governed checkout command acts.
+
+Bounded runtime discovery reveals only tenant/property scope, and the tenant
+transaction re-proves the complete shape using PostgreSQL's transaction-stable local
+calendar date. Replay, contention and rollback preserve a single transition/evidence
+chain. The roll creates no checkout, occupancy release, condition, task, folio,
+financial, identity, statutory or business-day meaning.
