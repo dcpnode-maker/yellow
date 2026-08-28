@@ -2,8 +2,7 @@
 
 **Status:** active; Orders 237-238 built-unreviewed
 **Entry point:** built-unreviewed Phase-6 composition through Order 236
-**Current order:** Order 238 effective tax-jurisdiction resolution is built-unreviewed
-under D-627; the next quote-preview slice is not yet opened
+**Current order:** Order 239 attributable rate-quote tax preview is ready under D-628
 
 ## Outcome
 
@@ -71,3 +70,11 @@ standing suite passes `797/797` plus 708 environment skips. Exact `[)` assignmen
 tenant/property isolation, unique active visible version binding, canonical frozen
 content/hash evidence and zero writes are executable. Independent review remains
 deferred; quote, posting, document and fiscal authority remain absent.
+
+## Order 239 boundary
+
+Order239 composes the two built tax primitives only into the canonical read-only live
+rate quote. Exact room-only stays with one exact jurisdiction version may produce a
+frozen tax preview bound into quote/offer evidence. Package/promotion attribution,
+partial/mixed jurisdiction, more than 366 nights and inclusion-mode disagreement
+produce no fabricated total. Folio/posting/document/fiscal integration remains later.

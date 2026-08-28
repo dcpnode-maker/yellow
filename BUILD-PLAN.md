@@ -444,6 +444,13 @@ passes `17/17` plus 12 expected database skips, and the standing suite passes
 `797/797` plus 708 environment skips. Typecheck, 89 import boundaries, 23 dependency
 licences, zero-vulnerability audit, JavaScript syntax and diff hygiene are green.
 
+Order239 is ready under D-628. It composes effective nightly resolution and the pure
+evaluator into one exact room-only quote tax preview, binds the frozen evidence before
+quote hashing and exposes it through existing offer JSON. It refuses partial/mixed
+jurisdiction, unsupported package/promotion allocation, over-366-night calculation
+and rate-plan/display disagreement. No price mutation, folio/posting/document/fiscal
+authority, migration or new endpoint is admitted.
+
 tax_assignment evaluation (percent/fixed/slab, compound, line-vs-document rounding)
 from EXTENSIONS §2; India GST slab per room-night; document issue path: series →
 gapless number → hash chain → document; IRP reporting adapter (sandbox), IRN + QR
