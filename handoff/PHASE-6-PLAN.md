@@ -2,7 +2,7 @@
 
 **Status:** active; Orders 200–223 are built-unreviewed
 **Entry point:** built-unreviewed Phase-5 composition through Order 199
-**Current order:** next bounded build-first slice pending
+**Current order:** `224-reservation-folio-return-continuity.md` (ready)
 
 ## Outcome
 
@@ -257,6 +257,11 @@ Order 223 is built-unreviewed and extends only the existing Today presentation t
 rows route to the already-supported checkout-readiness workbench. Existing
 authoritative blockers and explicit confirmation remain mandatory; no command,
 authority, mutation, schema, migration or event is added.
+
+Order 224 repairs reservation-detail Folio navigation so existing and successfully
+resolved primary Folios can return through authoritative reservation detail with
+safe focus. Order222 departure and direct Folio behavior remain unchanged; no
+financial command, authority, mutation, schema, migration or event is added.
 
 Statutory field semantics, validation, submission and receipts remain Phase 8. Tax and
 fiscal document work remains Phase 7. No country rule is hardcoded in Phase 6.
