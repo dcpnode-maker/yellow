@@ -1,8 +1,8 @@
 # Phase 6 — Stay operations and housekeeping
 
-**Status:** active; Orders 200–235 are built-unreviewed
+**Status:** active; Orders 200–236 are built-unreviewed
 **Entry point:** built-unreviewed Phase-5 composition through Order 199
-**Current order:** Order 236 governed vehicle parking-slot assignment is ready
+**Current order:** Order 236 governed vehicle parking-slot assignment is built-unreviewed
 
 ## Outcome
 
@@ -376,11 +376,13 @@ Until those slices and proofs land, Phase 6 remains active and unapproved.
 
 ### Order 236 — governed vehicle parking-slot assignment
 
-Order 236 is ready under D-620. It adds one create-only exact-property assignment for
-an onsite reservation-linked vehicle to an active capacity-one parking `space`, using
-the existing current reservation segment and `record_occupancy()` as the only
-collision/write choke point. PostgreSQL owns current-stay and period derivation; the
-browser selects only exact vehicle and parking-space identities. Replacement/release,
-staff/visitor parking, entry/exit, history and auto-allocation remain later policy.
-The order may finish only as built-unreviewed while independent Tier-3 review is
-deferred by the founder's build-first direction.
+Order 236 is built-unreviewed under D-622. It adds one create-only exact-property
+assignment for an onsite reservation-linked vehicle to an active capacity-one parking
+`space`. An owner-private seven-argument occupancy overload validates the vehicle and
+current stay without weakening the established room recorder; PostgreSQL owns current-
+segment and period derivation. The canonical checkout release path clears both parking
+claim and vehicle pointer atomically. Replacement/manual release, staff/visitor
+parking, entry/exit, history and auto-allocation remain later policy. Focused `23/23`,
+adjacent `80/80`, standing `771/771`, fresh migration/acceptance/runtime authority and
+review-seed proof, exact schema, static gates and fresh 93-table referee `11/11` are
+green. Independent Tier-3 review remains deferred by the founder's build-first direction.

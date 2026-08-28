@@ -419,6 +419,16 @@ export function createApp(options: AppOptions = {}) {
           context, params.property, params.vehicle,
         ))
       )
+      .get("/api/v1/properties/:property/vehicles/:vehicle/parking", ({ request, params, tenantContext }) =>
+        withOperatorTenant(request, (context) => operator.vehicleParking(
+          context, params.property, params.vehicle,
+        ))
+      )
+      .post("/api/v1/properties/:property/vehicles/:vehicle/parking", ({ request, params, body, tenantContext }) =>
+        withOperatorTenant(request, (context) => operator.vehicleParkingAssign(
+          context, params.property, params.vehicle, body,
+        ))
+      )
       .get("/api/v1/properties/:property/housekeeping/tasks", ({ request, params, tenantContext }) =>
         withOperatorTenant(request, (context) => operator.housekeepingBoard(context, params.property))
       )

@@ -46,6 +46,10 @@ export {
   VehicleRegisterNotFoundError,
   VehicleRegisterService,
   VehicleRegisterValidationError,
+  VehicleParkingAssignmentService,
+  VehicleParkingConflictError,
+  VehicleParkingNotFoundError,
+  VehicleParkingValidationError,
 } from "./vehicles";
 export type {
   VehicleRegisterInput,
@@ -53,6 +57,13 @@ export type {
   VehicleRegisterPage,
   VehicleRegisterRow,
   VehicleRegisterServiceOptions,
+  VehicleParkingAssignment,
+  VehicleParkingAssignmentInput,
+  VehicleParkingAssignmentResult,
+  VehicleParkingAssignmentServiceOptions,
+  VehicleParkingReadInput,
+  VehicleParkingSnapshot,
+  VehicleParkingSpace,
 } from "./vehicles";
 
 export { ArrivalPickupTaskAutomationConsumer } from "./pickup-task-automation";

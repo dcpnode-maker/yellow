@@ -1,6 +1,6 @@
 # Order 236 — Governed vehicle parking-slot assignment
 
-**Status:** READY-D620
+**Status:** BUILT-UNREVIEWED-D622
 **Phase:** 6 — Stay operations and housekeeping
 **Branch:** `phase-6/governed-vehicle-parking-assignment`
 **Base:** `dbaafec` (built-unreviewed Order235)
@@ -30,7 +30,8 @@ all contention through the existing `record_occupancy()` choke point.
   slot, stale/incoherent vehicle/stay truth, elapsed stay or occupied slot fails closed.
 - V1 is create-only. Replacement, manual release, vehicle entry/exit, staff/visitor
   vehicles without a reservation, historical parking and automatic allocation remain
-  later policy work. Existing segment checkout/release remains the only release path.
+  later policy work. Existing segment checkout/release remains the only release path
+  and clears both the parking claim and its vehicle pointer atomically.
 - Exact scope is `stay-operations.vehicles:park`; the existing register/detail read
   scope remains unchanged. Every command requires an actor-bound `Idempotency-Key`.
 - A changed assignment writes the governed vehicle binding, one minimized
@@ -59,9 +60,12 @@ all contention through the existing `record_occupancy()` choke point.
 - Phase-6 entries in `BUILD-PLAN.md`, `handoff/PHASE-6-PLAN.md`, this order,
   `DECISIONS.log` and `handoff/LEDGER.md`.
 
-`migrations/0001_init.sql`, occupancy functions, reservation/segment lifecycle,
-vehicle entry/exit, room occupancy, financial, business-day and statutory truth remain
-unchanged.
+`migrations/0001_init.sql`, the established six-argument room/unit occupancy recorder,
+reservation/segment lifecycle, vehicle entry/exit, room occupancy, financial,
+business-day and statutory truth remain unchanged. D-621 admits only one owner-private
+seven-argument `record_occupancy` overload for vehicle-validated parking and one
+external-name-preserving `release_occupancy` wrapper around the former owner-only
+typed-parent implementation so canonical checkout can release parking safely.
 
 ## Required work
 
@@ -79,7 +83,7 @@ unchanged.
 
 ## Forbidden
 
-- parking replacement/release/history, automatic allocation, batch assignment,
+- parking replacement/manual release/history, automatic allocation, batch assignment,
   staff/visitor parking, generic vehicle CRUD, vehicle entry/exit or notes mutation;
 - reservation/segment lifecycle, room occupancy, condition/task/sheet/discrepancy,
   folio/financial/day/key/statutory mutation;
@@ -106,11 +110,24 @@ unchanged.
 
 ## Definition of done
 
-- [ ] Intentional red precedes implementation.
-- [ ] Exact governed create-only parking assignment implementation is present.
-- [ ] Authority, hostile-boundary, rollback, replay and convergence proof coverage is present.
-- [ ] The stale-safe accessible vehicle-detail assignment journey is implemented.
-- [ ] Final focused, adjacent, standing, schema and fresh-referee totals are transcribed.
+- [x] Intentional red precedes implementation.
+- [x] Exact governed create-only parking assignment implementation is present.
+- [x] Authority, hostile-boundary, rollback, replay and convergence proof coverage is present.
+- [x] The stale-safe accessible vehicle-detail assignment journey is implemented.
+- [x] Final focused, adjacent, standing, schema and fresh-referee totals are transcribed.
+
+## Built-unreviewed evidence
+
+Focused parking/HTTP/authority proof is `23 passed, 0 failed` (`337` assertions), the
+adjacent vehicle/occupancy/checkout lane is `80 passed, 0 failed` (`7` environment
+skips; `924` assertions), and the standing suite is `771 passed, 0 failed` (`704`
+environment skips; `8,098` assertions across `1,475` tests/`268` files). Fresh
+migration, database acceptance, review seed, runtime-DML and SECURITY-DEFINER proofs,
+exact schema, typecheck, `87` import-boundary files, `23` dependency licences, zero
+audit vulnerabilities, JavaScript syntax and diff checks are green. A native Windows
+execution of the exact database-only setup sequence rebuilt `93` tables and the
+canonical referee printed `11 passed, 0 failed of 11`. Migration0037 SHA-256 is
+`82df1de46ee97771390d1d102142380b40b590456f687fdd1bd0cd1d3a4d601a`.
 
 Independent Tier-3 review remains deferred under the founder's build-first direction.
 No approval, Phase-6/app completion, local promotion, merge, push or deployment is

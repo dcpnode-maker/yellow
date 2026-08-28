@@ -159,6 +159,15 @@ Matching truth, exact replay and a losing concurrent contender emit nothing new.
 Consumers must not infer condition change, task creation, queue/carry resolution,
 checkout/check-in, financial, business-day or statutory effects.
 
+Order 236 reuses `occupancy.recorded` only when one governed parking assignment creates
+its exclusive claim. The aggregate remains the occupancy row; the minimized payload
+contains the parking space, linked reservation segment, server-derived period and
+canonical exclusive claim, without guest/contact data or caller-supplied stay truth.
+The occupancy, `vehicle.parking_space` binding, fact, outbox and idempotent receipt
+commit together. Exact replay and losing contenders emit nothing new. Consumers must
+not infer vehicle entry/exit, parking replacement/release, room occupancy, stay-state,
+financial, business-day or statutory effects.
+
 **profiles** · party.created/.merged {into} · party.anonymised · consent.changed
 
 **distribution** · inbound.received {channel,external_id} · inbound.processed {reservation_id}/.failed · ari.push_requested {channel,unit_types,date_range} · map.changed

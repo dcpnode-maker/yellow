@@ -303,7 +303,12 @@ databaseDescribe("Order 150 positive runtime DML authority", () => {
     const occupancyFunctions = functions.filter(({ signature }) =>
       signature.startsWith("record_occupancy(") || signature.startsWith("release_occupancy(")
     );
-    expect(occupancyFunctions.every(({ app, runtime }) => app && !runtime)).toBe(true);
+    const privateParkingChoke = occupancyFunctions.find(({ signature }) =>
+      signature === "record_occupancy(uuid,uuid,tstzrange,uuid,text,boolean,uuid)"
+    );
+    expect(privateParkingChoke).toEqual(expect.objectContaining({ app: false, runtime: false }));
+    expect(occupancyFunctions.filter((entry) => entry !== privateParkingChoke)
+      .every(({ app, runtime }) => app && !runtime)).toBe(true);
     expect(functions.find(({ signature }) => signature.startsWith("lock_financial_rows(")))
       .toEqual(expect.objectContaining({ app: true, runtime: false }));
     expect(functions.find(({ signature }) => signature.startsWith("lock_financial_business_days(")))

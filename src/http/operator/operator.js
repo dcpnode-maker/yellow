@@ -8878,6 +8878,48 @@ function vehicleReturnPathFromState(state, property) {
  }
  return vehicleRecordResult(value.vehicle, origin.vehicleId);
  }
+ function vehicleParkingSpaceResult(value) {
+ const keys = value && typeof value === "object" && !Array.isArray(value) ? Object.keys(value).sort() : [];
+ if (keys.join(",") !== "code,floor,parkingSpaceId" || !canonicalUuid(value.parkingSpaceId) ||
+  typeof value.code !== "string" || value.code.length < 1 || value.code.length > 120 ||
+  (value.floor !== null && (typeof value.floor !== "string" || value.floor.length < 1 || value.floor.length > 120))) {
+  throw new Error("The server returned an invalid parking space.");
+ }
+ return Object.freeze({ ...value });
+ }
+ function vehicleParkingSnapshotResult(value, origin) {
+ if (!value || typeof value !== "object" || Array.isArray(value) || Object.keys(value).join(",") !== "snapshot") {
+  throw new Error("The server returned an invalid parking envelope.");
+ }
+ const snapshot = value.snapshot;
+ const keys = snapshot && typeof snapshot === "object" && !Array.isArray(snapshot) ? Object.keys(snapshot).sort() : [];
+ if (keys.join(",") !== "assignment,candidates,vehicleId" || snapshot.vehicleId !== origin.vehicleId ||
+  !Array.isArray(snapshot.candidates)) throw new Error("The server returned invalid parking truth.");
+ const assignment = snapshot.assignment === null ? null : vehicleParkingSpaceResult(snapshot.assignment);
+ const candidates = Object.freeze(snapshot.candidates.map(vehicleParkingSpaceResult));
+ if (assignment !== null && candidates.length !== 0) throw new Error("The server returned replaceable parking truth.");
+ return Object.freeze({ vehicleId: snapshot.vehicleId, assignment, candidates });
+ }
+ function vehicleParkingAssignmentResult(value, origin, expectedSpace) {
+ const keys = value && typeof value === "object" && !Array.isArray(value) ? Object.keys(value).sort() : [];
+ if (keys.join(",") !== "assignment,created,replayed" || typeof value.created !== "boolean" ||
+  typeof value.replayed !== "boolean") throw new Error("The server returned an invalid parking receipt.");
+ const assignment = value.assignment;
+ const assignmentKeys = assignment && typeof assignment === "object" && !Array.isArray(assignment)
+  ? Object.keys(assignment).sort() : [];
+ if (assignmentKeys.join(",") !== "code,floor,from,parkingSpaceId,registration,to,vehicleId" ||
+  assignment.vehicleId !== origin.vehicleId || assignment.parkingSpaceId !== expectedSpace ||
+  typeof assignment.registration !== "string" || !Number.isFinite(Date.parse(assignment.from)) ||
+  !Number.isFinite(Date.parse(assignment.to)) || Date.parse(assignment.from) >= Date.parse(assignment.to)) {
+  throw new Error("The server returned mismatched parking evidence.");
+ }
+ vehicleParkingSpaceResult({
+  parkingSpaceId: assignment.parkingSpaceId,
+  code: assignment.code,
+  floor: assignment.floor,
+ });
+ return Object.freeze({ assignment: Object.freeze({ ...assignment }), created: value.created, replayed: value.replayed });
+ }
  function vehicleRegisterIsCurrent(generation, property, registration, cursor) {
  return generation === vehicleRegisterGeneration && activeView === "vehicles" &&
   property === propertySelect.value && registration === vehicleRegisterFilter && cursor === vehicleRegisterCursor &&
@@ -9095,8 +9137,8 @@ function vehicleReturnPathFromState(state, property) {
  const title = panel.querySelector(".vehicle-detail-title");
  title.textContent = vehicle.registration;
  const summary = node("div", "vehicle-detail-summary");
- summary.append(node("span", "vehicle-read-only", "Read only"),
-  node("p", "", "Recorded vehicle-register truth for this property."));
+ summary.append(node("span", "vehicle-read-only", "Vehicle record"),
+  node("p", "", "Recorded vehicle-register truth with a separate governed parking command."));
  if (vehicle.reservationId !== null) {
   const linkedReservation = node("button", "vehicle-linked-reservation-action", "Open linked reservation");
   linkedReservation.type = "button";
@@ -9123,12 +9165,124 @@ function vehicleReturnPathFromState(state, property) {
  identityFacts.append(vehicleMeta("Vehicle ID", vehicle.vehicleId),
   vehicleMeta("Reservation ID", vehicle.reservationId), vehicleMeta("Party ID", vehicle.partyId));
  identifiers.append(identityFacts);
- panel.querySelector(".vehicle-detail-content").replaceChildren(summary, facts, identifiers,
-  node("p", "field-note", "Read only. Entry, exit, parking, assignment and guest workflows remain separate governed operations."));
+ const parking = node("section", "vehicle-parking-assignment");
+ parking.setAttribute("aria-labelledby", "vehicle-parking-title");
+ parking.setAttribute("aria-busy", "true");
+ const parkingTitle = node("h4", "", "Parking assignment");
+ parkingTitle.id = "vehicle-parking-title";
+ parking.append(parkingTitle, node("p", "vehicle-parking-status", "Loading current parking truth…"));
+ panel.querySelector(".vehicle-detail-content").replaceChildren(summary, facts, parking, identifiers,
+  node("p", "field-note", "Vehicle entry, exit and guest records remain separate governed operations."));
  panel.querySelector(".vehicle-detail-content").hidden = false;
  panel.querySelector(".vehicle-detail-loading").hidden = true;
  panel.querySelector(".vehicle-detail-error").hidden = true;
  panel.setAttribute("aria-busy", "false");
+ }
+ function vehicleParkingActionIsCurrent(origin, panel, snapshot, button, select) {
+ return vehicleDetailRequestIsCurrent(origin, panel) && vehicleDetailData?.vehicleId === origin.vehicleId &&
+  Object.isFrozen(snapshot) && snapshot.vehicleId === origin.vehicleId && snapshot.assignment === null &&
+  panel.querySelector(".vehicle-parking-assignment")?.contains(button) &&
+  panel.querySelector(".vehicle-parking-assignment")?.contains(select) &&
+  button.isConnected && !button.disabled && select.isConnected && !select.disabled &&
+  snapshot.candidates.some((candidate) => candidate.parkingSpaceId === select.value);
+ }
+ async function assignVehicleParking(origin, panel, snapshot, select, button, message) {
+ if (!vehicleParkingActionIsCurrent(origin, panel, snapshot, button, select)) return;
+ const parkingSpaceId = select.value;
+ const attemptKey = crypto.randomUUID();
+ button.disabled = true;
+ select.disabled = true;
+ message.classList.remove("error");
+ message.textContent = "Assigning this vehicle through live parking occupancy truth…";
+ try {
+  const receipt = vehicleParkingAssignmentResult(await request(
+   `/api/v1/properties/${enc(origin.property)}/vehicles/${enc(origin.vehicleId)}/parking`, {
+    method: "POST",
+    headers: { "idempotency-key": attemptKey },
+    body: JSON.stringify({ parkingSpaceId }),
+   }), origin, parkingSpaceId);
+  if (!vehicleDetailRequestIsCurrent(origin, panel)) return;
+  message.textContent = receipt.replayed
+   ? `Parking ${receipt.assignment.code} was already assigned. Refreshing server truth…`
+   : `Parking ${receipt.assignment.code} assigned. Refreshing server truth…`;
+  await loadVehicleDetail(origin.vehicleId, { focus: true });
+ } catch (error) {
+  if (!vehicleDetailRequestIsCurrent(origin, panel)) return;
+  message.classList.add("error");
+  message.textContent = `${error instanceof Error ? error.message : "Parking could not be assigned"}. Refresh and choose again.`;
+  button.disabled = false;
+  select.disabled = false;
+  message.focus({ preventScroll: true });
+ }
+ }
+ function renderVehicleParking(origin, panel, snapshot) {
+ const parking = panel.querySelector(".vehicle-parking-assignment");
+ if (!parking || !vehicleDetailRequestIsCurrent(origin, panel)) return;
+ const title = node("h4", "", "Parking assignment");
+ title.id = "vehicle-parking-title";
+ if (snapshot.assignment) {
+  const assigned = node("div", "vehicle-parking-assigned");
+  assigned.append(node("span", "status-pill", "Assigned"),
+   node("strong", "", snapshot.assignment.code),
+   node("p", "muted", snapshot.assignment.floor ? `Floor ${snapshot.assignment.floor}` : "Parking floor not recorded"));
+  parking.replaceChildren(title, assigned,
+   node("p", "field-note", "Create-only assignment. Checkout releases the linked stay occupancy."));
+  parking.setAttribute("aria-busy", "false");
+  return;
+ }
+ if (snapshot.candidates.length === 0) {
+  parking.replaceChildren(title,
+   node("p", "vehicle-parking-empty", "No currently available parking space is configured for this stay."),
+   node("p", "field-note", "Refresh after parking inventory or occupancy changes."));
+  parking.setAttribute("aria-busy", "false");
+  return;
+ }
+ const form = node("div", "vehicle-parking-form");
+ const label = node("label", "", "Available parking space");
+ const select = el("select");
+ select.className = "vehicle-parking-select";
+ select.setAttribute("aria-label", "Available parking space");
+ for (const candidate of snapshot.candidates) {
+  const option = el("option");
+  option.value = candidate.parkingSpaceId;
+  option.textContent = candidate.floor ? `${candidate.code} · floor ${candidate.floor}` : candidate.code;
+  select.append(option);
+ }
+ label.append(select);
+ const button = node("button", "vehicle-parking-assign", "Assign parking");
+ button.type = "button";
+ const message = node("p", "vehicle-parking-message", "Selection is rechecked against PostgreSQL before assignment.");
+ message.tabIndex = -1;
+ message.setAttribute("role", "status");
+ button.addEventListener("click", () => void assignVehicleParking(origin, panel, snapshot, select, button, message));
+ form.append(label, button);
+ parking.replaceChildren(title, form, message,
+  node("p", "field-note", "Assignment is create-only; replacement and manual release are not inferred."));
+ parking.setAttribute("aria-busy", "false");
+ }
+ async function loadVehicleParking(origin, panel) {
+ const parking = panel.querySelector(".vehicle-parking-assignment");
+ if (!parking || !vehicleDetailRequestIsCurrent(origin, panel)) return;
+ parking.setAttribute("aria-busy", "true");
+ try {
+  const snapshot = vehicleParkingSnapshotResult(await request(
+   `/api/v1/properties/${enc(origin.property)}/vehicles/${enc(origin.vehicleId)}/parking`), origin);
+  if (!vehicleDetailRequestIsCurrent(origin, panel)) return;
+  renderVehicleParking(origin, panel, snapshot);
+ } catch (error) {
+  if (!vehicleDetailRequestIsCurrent(origin, panel)) return;
+  const title = node("h4", "", "Parking assignment");
+  title.id = "vehicle-parking-title";
+  const message = node("p", "vehicle-parking-message error",
+   error?.status === 403 ? "Parking assignment is not granted to this role."
+    : error?.status === 404 ? "This vehicle has no exact current assignable stay."
+     : error instanceof Error ? error.message : "Parking truth is unavailable.");
+  const retry = node("button", "secondary vehicle-parking-retry", "Refresh parking");
+  retry.type = "button";
+  retry.addEventListener("click", () => void loadVehicleParking(origin, panel));
+  parking.replaceChildren(title, message, retry);
+  parking.setAttribute("aria-busy", "false");
+ }
  }
  async function loadVehicleDetail(vehicleId, { focus = false } = {}) {
  const panel = ensureVehicleDetailPanel();
@@ -9149,6 +9303,7 @@ function vehicleReturnPathFromState(state, property) {
   if (!vehicleDetailRequestIsCurrent(origin, panel)) return;
   vehicleDetailData = vehicle;
   renderVehicleDetail(panel, vehicle, origin);
+  void loadVehicleParking(origin, panel);
   vehicleResultSummary.textContent = `Exact vehicle ${vehicle.registration} loaded from server truth.`;
   if (focus) panel.querySelector(".vehicle-detail-title").focus({ preventScroll: true });
  } catch (error) {

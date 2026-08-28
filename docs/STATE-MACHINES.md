@@ -235,3 +235,19 @@ carry-forward, queue linkage, message/alert creation, update and deletion remain
 outside this slice. Therefore no `unresolved -> resolved` transition is executable by
 Order 235 even though the baseline retains `resolved_at` and `resolution` for a later
 governed workflow.
+
+## 11. Vehicle parking — unassigned to assigned only (Order 236)
+
+```
+unassigned --assign one admitted parking space--> assigned
+assigned --canonical segment checkout/release--> unassigned
+```
+
+Order 236 exposes only that create transition for one onsite reservation-linked
+vehicle with one coherent current in-house segment. PostgreSQL creates the exclusive
+parking occupancy claim before atomically binding `vehicle.parking_space`. Exact
+same-target replay returns the existing assignment; another target or incoherent
+truth conflicts without a state change. The second transition is not a parking
+command: existing segment checkout validates and releases the claim and clears its
+pointer atomically. Replacement, manual release, reassignment,
+entry/exit, staff/visitor parking and history are outside this state machine.

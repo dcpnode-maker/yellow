@@ -161,6 +161,10 @@ import {
   VehicleRegisterNotFoundError,
   VehicleRegisterService,
   VehicleRegisterValidationError,
+  VehicleParkingAssignmentService,
+  VehicleParkingConflictError,
+  VehicleParkingNotFoundError,
+  VehicleParkingValidationError,
   type VehicleRegisterPage,
   type VehicleRegisterRow,
 } from "../contexts/stay-operations";
@@ -253,6 +257,7 @@ const CHECKIN_DIRTY_ROOM_OVERRIDE_SCOPE = "stay-operations.checkin:dirty-room-ov
 const CHECKOUT_READINESS_SCOPE = "stay-operations.checkout:read";
 const CHECKOUT_COMMIT_SCOPE = "stay-operations.checkout:commit";
 const VEHICLE_REGISTER_READ_SCOPE = "stay-operations.vehicles:read";
+const VEHICLE_PARK_SCOPE = "stay-operations.vehicles:park";
 const PICKUP_TASK_DISPATCH_SCOPE = "stay-operations.pickup-tasks:dispatch";
 const PICKUP_TASK_WORK_SCOPE = "stay-operations.pickup-tasks:work";
 const HOUSEKEEPING_READ_SCOPE = "housekeeping.tasks:read";
@@ -517,6 +522,13 @@ function parseHousekeepingDiscrepancyReport(body: unknown): HousekeepingDiscrepa
     ? Object.freeze({ spaceId: body.spaceId, observedPresence: body.observedPresence,
       observedPersons: body.observedPersons })
     : null;
+}
+
+function parseVehicleParkingAssignment(body: unknown): { readonly parkingSpaceId: string } | null {
+  if (!isObject(body) || !exactKeys(body, ["parkingSpaceId"]) || !UUID.test(String(body.parkingSpaceId))) {
+    return null;
+  }
+  return Object.freeze({ parkingSpaceId: String(body.parkingSpaceId) });
 }
 
 interface HousekeepingSheetGenerateDraft {
@@ -1576,6 +1588,7 @@ type CheckInOperations = Pick<CheckInService, "getReadiness" | "checkIn">;
 type CheckoutOperations = Pick<CheckoutService, "checkout">;
 type VehicleRegisterOperations = Pick<VehicleRegisterService, "list"> &
   Partial<Pick<VehicleRegisterService, "get">>;
+type VehicleParkingOperations = Pick<VehicleParkingAssignmentService, "read" | "assign">;
 interface CheckoutReadinessOperations {
   read(input: Readonly<{
     tenantId: string;
@@ -2043,6 +2056,7 @@ export class OperatorHttpApi {
   readonly #pickupTaskDispatch?: PickupTaskDispatchOperations;
   readonly #arrivalRoomCleaning?: ArrivalRoomCleaningOperations;
   readonly #housekeepingDiscrepancies?: HousekeepingDiscrepancyOperations;
+  readonly #vehicleParking?: VehicleParkingOperations;
 
   constructor(
     login: LocalLoginService,
@@ -2085,6 +2099,7 @@ export class OperatorHttpApi {
     pickupTaskDispatch?: PickupTaskDispatchOperations,
     arrivalRoomCleaning?: ArrivalRoomCleaningOperations,
     housekeepingDiscrepancies?: HousekeepingDiscrepancyOperations,
+    vehicleParking?: VehicleParkingOperations,
   ) {
     this.#login = login;
     this.#availability = availability;
@@ -2126,6 +2141,7 @@ export class OperatorHttpApi {
     this.#pickupTaskDispatch = pickupTaskDispatch;
     this.#arrivalRoomCleaning = arrivalRoomCleaning;
     this.#housekeepingDiscrepancies = housekeepingDiscrepancies;
+    this.#vehicleParking = vehicleParking;
   }
 
   unavailable(request: Request): Response {
@@ -2175,6 +2191,15 @@ export class OperatorHttpApi {
     }
     if (error instanceof VehicleRegisterConflictError) {
       return apiError(request, 409, "vehicles/conflict", "Vehicle register unavailable", "Stored vehicle associations are inconsistent; no register data was disclosed");
+    }
+    if (error instanceof VehicleParkingValidationError) {
+      return apiError(request, 400, "request/invalid", "Invalid request", "Vehicle parking input is invalid");
+    }
+    if (error instanceof VehicleParkingNotFoundError) {
+      return apiError(request, 404, "vehicles/not_found", "Not found", "The vehicle or parking space is not an exact current assignment target");
+    }
+    if (error instanceof VehicleParkingConflictError) {
+      return apiError(request, 409, "vehicles/conflict", "Parking assignment changed", "Refresh the vehicle and choose a currently available parking space");
     }
     if (error instanceof CheckoutValidationError) {
       return apiError(request, 400, "request/invalid", "Invalid request", "Checkout input is invalid");
@@ -3969,6 +3994,72 @@ export class OperatorHttpApi {
       vehicleId,
     });
     return apiResponse(context.request, canonicalJson({ vehicle: vehicleRegisterRowJson(vehicle) }));
+  }
+
+  async vehicleParking(
+    context: TenantRequestContext,
+    propertyNode: string,
+    vehicleId: string,
+  ): Promise<Response> {
+    if (!UUID.test(propertyNode) || !UUID.test(vehicleId) || new URL(context.request.url).search.length > 0) {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Vehicle parking input is invalid");
+    }
+    if (!hasScope(context, VEHICLE_PARK_SCOPE)) {
+      return apiError(context.request, 403, "auth/scope_missing", "Forbidden", "Vehicle parking assignment is not granted");
+    }
+    const grants = await listGrantedProperties(context, VEHICLE_PARK_SCOPE);
+    if (!grants.some(({ id }) => id === propertyNode)) {
+      return apiError(context.request, 404, "vehicles/not_found", "Not found", "The referenced vehicle was not found");
+    }
+    if (!this.#vehicleParking) return this.unavailable(context.request);
+    const snapshot = await this.#vehicleParking.read({
+      tenantId: context.tenantId,
+      propertyNode,
+      vehicleId,
+    });
+    return apiResponse(context.request, canonicalJson(jsonValue({ snapshot })));
+  }
+
+  async vehicleParkingAssign(
+    context: TenantRequestContext,
+    propertyNode: string,
+    vehicleId: string,
+    body: unknown,
+  ): Promise<Response> {
+    const input = parseVehicleParkingAssignment(body);
+    const idempotencyKey = context.request.headers.get("idempotency-key");
+    if (!UUID.test(propertyNode) || !UUID.test(vehicleId) || !input ||
+        !idempotencyKey || !IDEMPOTENCY_KEY.test(idempotencyKey) ||
+        new URL(context.request.url).search.length > 0) {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Vehicle parking input is invalid");
+    }
+    if (!hasScope(context, VEHICLE_PARK_SCOPE)) {
+      return apiError(context.request, 403, "auth/scope_missing", "Forbidden", "Vehicle parking assignment is not granted");
+    }
+    const grants = await listGrantedProperties(context, VEHICLE_PARK_SCOPE);
+    if (!grants.some(({ id }) => id === propertyNode)) {
+      return apiError(context.request, 404, "vehicles/not_found", "Not found", "The referenced vehicle was not found");
+    }
+    if (!this.#vehicleParking) return this.unavailable(context.request);
+    const requestId = correlationId(context.request);
+    const result = await this.#vehicleParking.assign({
+      tenantId: context.tenantId,
+      propertyNode,
+      vehicleId,
+      parkingSpaceId: input.parkingSpaceId,
+      idempotencyKey,
+      envelope: createAuditEnvelope({
+        actorId: context.identity.actorId,
+        tenantId: context.tenantId,
+        propertyNode,
+        requestId,
+        operation: "occupancy.recorded",
+      }),
+    });
+    return apiResponse(context.request, canonicalJson(jsonValue(result)), result.created ? 201 : 200, {
+      "idempotency-replayed": String(result.replayed),
+      "x-correlation-id": requestId,
+    });
   }
 
   async housekeepingBoard(

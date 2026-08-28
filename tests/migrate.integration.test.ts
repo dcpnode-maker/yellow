@@ -1118,6 +1118,85 @@ databaseDescribe("Bun SQL migration runner", () => {
           volatility: "v",
           config: ["search_path=pg_catalog, public"],
         }]);
+        const parkingChokePoint = await sql<Array<{
+          owner: string; securityDefiner: boolean; publicExecute: boolean; appExecute: boolean;
+          runtimeExecute: boolean; volatility: string; config: string[] | null;
+        }>>`
+          SELECT pg_catalog.pg_get_userbyid(procedure.proowner) AS owner,
+                 procedure.prosecdef AS "securityDefiner",
+                 pg_catalog.has_function_privilege('public', procedure.oid, 'EXECUTE') AS "publicExecute",
+                 pg_catalog.has_function_privilege('app_role', procedure.oid, 'EXECUTE') AS "appExecute",
+                 pg_catalog.has_function_privilege('yellow_runtime', procedure.oid, 'EXECUTE') AS "runtimeExecute",
+                 procedure.provolatile::text AS volatility,
+                 procedure.proconfig AS config
+            FROM pg_catalog.pg_proc AS procedure
+            JOIN pg_catalog.pg_namespace AS namespace ON namespace.oid=procedure.pronamespace
+           WHERE namespace.nspname='public'
+             AND procedure.oid =
+               'public.record_occupancy(uuid,uuid,tstzrange,uuid,text,boolean,uuid)'::regprocedure
+        `;
+        expect(parkingChokePoint).toEqual([{
+          owner: "yellow_owner",
+          securityDefiner: true,
+          publicExecute: false,
+          appExecute: false,
+          runtimeExecute: false,
+          volatility: "v",
+          config: ["search_path=pg_catalog, public"],
+        }]);
+      });
+    },
+    60_000,
+  );
+
+  test(
+    "applies the exact governed vehicle-parking assignment migration",
+    async () => {
+      await withDatabase(async ({ databaseUrl: targetUrl, sql }) => {
+        const result = await runMigrations({
+          databaseUrl: targetUrl,
+          migrationsDirectory: PROJECT_MIGRATIONS,
+          logger: () => undefined,
+        });
+        expect(result.appliedFiles).toContain("0037_governed_vehicle_parking_assignment.sql");
+        const ledger = await sql<Array<{
+          version: number | bigint; filename: string; checksum_sha256: string;
+        }>>`
+          SELECT version, filename, checksum_sha256
+            FROM public.schema_migration
+           WHERE version = 37
+        `;
+        expect(ledger.map((row) => ({ ...row, version: Number(row.version) }))).toEqual([{
+          version: 37,
+          filename: "0037_governed_vehicle_parking_assignment.sql",
+          checksum_sha256: "82df1de46ee97771390d1d102142380b40b590456f687fdd1bd0cd1d3a4d601a",
+        }]);
+        const capability = await sql<Array<{
+          owner: string; securityDefiner: boolean; publicExecute: boolean; appExecute: boolean;
+          runtimeExecute: boolean; volatility: string; config: string[] | null;
+        }>>`
+          SELECT pg_catalog.pg_get_userbyid(procedure.proowner) AS owner,
+                 procedure.prosecdef AS "securityDefiner",
+                 pg_catalog.has_function_privilege('public', procedure.oid, 'EXECUTE') AS "publicExecute",
+                 pg_catalog.has_function_privilege('app_role', procedure.oid, 'EXECUTE') AS "appExecute",
+                 pg_catalog.has_function_privilege('yellow_runtime', procedure.oid, 'EXECUTE') AS "runtimeExecute",
+                 procedure.provolatile::text AS volatility,
+                 procedure.proconfig AS config
+            FROM pg_catalog.pg_proc AS procedure
+            JOIN pg_catalog.pg_namespace AS namespace ON namespace.oid=procedure.pronamespace
+           WHERE namespace.nspname='public'
+             AND procedure.oid =
+               'public.assign_vehicle_parking(uuid,uuid,uuid,uuid,uuid)'::regprocedure
+        `;
+        expect(capability).toEqual([{
+          owner: "yellow_owner",
+          securityDefiner: true,
+          publicExecute: false,
+          appExecute: true,
+          runtimeExecute: false,
+          volatility: "v",
+          config: ["search_path=pg_catalog, public"],
+        }]);
       });
     },
     60_000,

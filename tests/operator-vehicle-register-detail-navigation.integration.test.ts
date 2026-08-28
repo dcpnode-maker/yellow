@@ -69,7 +69,7 @@ describe("Order 216 exact Vehicle Register detail navigation", () => {
     expect(script).toContain('window.addEventListener("popstate"');
   });
 
-  test("remains read-only with no generic vehicle lifecycle or polling authority", () => {
+  test("preserves the canonical detail read while parking remains a separate governed command", () => {
     const detail = [
       functionSource("renderVehicleDetail"),
       functionSource("loadVehicleDetail"),
@@ -77,7 +77,8 @@ describe("Order 216 exact Vehicle Register detail navigation", () => {
     ].join("\n");
     expect(detail).not.toMatch(/method:\s*"(?:POST|PUT|PATCH|DELETE)"/);
     expect(detail).not.toMatch(/setInterval|setTimeout|localStorage|sessionStorage/);
-    expect(detail).not.toMatch(/parkingSpace|onsite|occupancy|notes/);
-    expect(detail).toContain("Read only");
+    expect(detail).not.toMatch(/notes/);
+    expect(detail).toContain("separate governed parking command");
+    expect(detail).toContain("void loadVehicleParking(origin, panel)");
   });
 });

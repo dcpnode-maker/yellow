@@ -378,7 +378,8 @@ async function vehicleFixtureSnapshot() {
     WHERE vehicle.tenant_id=${SEED_TENANT.id}::uuid
       AND vehicle.property_node=${SEED_PROPERTY.id}::uuid
       AND vehicle.id IN (${first.vehicleExamples.arrivalVehicleId}::uuid,
-        ${first.vehicleExamples.departureVehicleId}::uuid)
+        ${first.vehicleExamples.departureVehicleId}::uuid,
+        ${first.vehicleExamples.parkingVehicleId}::uuid)
     ORDER BY vehicle.reg_no, vehicle.id
   `;
 }
@@ -501,6 +502,7 @@ databaseDescribe("Order 046 reproducible local-review seed", () => {
       first.housekeepingExamples.checkoutFolioId,
       first.vehicleExamples.arrivalVehicleId,
       first.vehicleExamples.departureVehicleId,
+      first.vehicleExamples.parkingVehicleId,
       first.arrivalTravelExamples.cleanTravelId,
       first.arrivalTravelExamples.dirtyTravelId,
       first.departureTravelExamples.checkoutTravelId,
@@ -513,8 +515,8 @@ databaseDescribe("Order 046 reproducible local-review seed", () => {
     expect(first.companyReceivableAccountId).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/);
     expect(first.agentReceivableAccountId).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/);
     expect(await counts()).toEqual({
-      users: 2, roles: 1, grants: 6, unit_types: 2, spaces: 6,
-      sellables: 6, requester_facts: 23, requester_events: 20,
+      users: 2, roles: 1, grants: 6, unit_types: 2, spaces: 9,
+      sellables: 6, requester_facts: 26, requester_events: 23,
       approver_facts: 2, approver_events: 2, policies: 4, rate_plans: 1,
       model_versions: 1, target_versions: 1, release_versions: 1,
       active_releases: 1, approvals: 1, approved_approvals: 1,
@@ -557,7 +559,7 @@ databaseDescribe("Order 046 reproducible local-review seed", () => {
     `;
     expect(rows).toEqual([
       { entity_type: "sellable_unit", aggregates: 6, facts: 6, events: 6 },
-      { entity_type: "space", aggregates: 6, facts: 6, events: 6 },
+      { entity_type: "space", aggregates: 9, facts: 9, events: 9 },
       { entity_type: "unit_type", aggregates: 2, facts: 2, events: 2 },
     ]);
   });
@@ -989,7 +991,7 @@ databaseDescribe("Order 046 reproducible local-review seed", () => {
     }]);
   });
 
-  test("Order 205 P5: provisions two literal property vehicle rows without parking or lifecycle effects", async () => {
+  test("Order 205 P5: provisions three literal property vehicle rows without parking or lifecycle effects", async () => {
     expect(await vehicleFixtureSnapshot()).toEqual([
       {
         id: first.vehicleExamples.arrivalVehicleId,
@@ -1027,6 +1029,24 @@ databaseDescribe("Order 046 reproducible local-review seed", () => {
         primary_party: expect.any(String),
         party_tenant_id: SEED_TENANT.id,
       },
+      {
+        id: first.vehicleExamples.parkingVehicleId,
+        reg_no: "PARK-YLW-01",
+        make: "Mahindra",
+        model: "XUV400",
+        colour: "Everest White",
+        driver_name: "Parking Assignment Guest",
+        reservation_id: expect.any(String),
+        party_id: expect.any(String),
+        entered_at: expect.any(String),
+        exited_at: null,
+        notes: null,
+        parking_space: null,
+        reservation_status: "in_house",
+        reservation_property: SEED_PROPERTY.id,
+        primary_party: expect.any(String),
+        party_tenant_id: SEED_TENANT.id,
+      },
     ]);
     const guards = await admin<Array<{
       facts: number; events: number; occupancy_references: number; idempotency_records: number;
@@ -1034,17 +1054,68 @@ databaseDescribe("Order 046 reproducible local-review seed", () => {
       SELECT
         (SELECT count(*)::int FROM fact_log WHERE entity_id IN (
           ${first.vehicleExamples.arrivalVehicleId}::uuid,
-          ${first.vehicleExamples.departureVehicleId}::uuid)) AS facts,
+          ${first.vehicleExamples.departureVehicleId}::uuid,
+          ${first.vehicleExamples.parkingVehicleId}::uuid)) AS facts,
         (SELECT count(*)::int FROM outbox WHERE aggregate_id IN (
           ${first.vehicleExamples.arrivalVehicleId}::uuid,
-          ${first.vehicleExamples.departureVehicleId}::uuid)) AS events,
+          ${first.vehicleExamples.departureVehicleId}::uuid,
+          ${first.vehicleExamples.parkingVehicleId}::uuid)) AS events,
         (SELECT count(*)::int FROM space_occupancy WHERE slot_ref IN (
           ${first.vehicleExamples.arrivalVehicleId}::uuid,
-          ${first.vehicleExamples.departureVehicleId}::uuid)) AS occupancy_references,
+          ${first.vehicleExamples.departureVehicleId}::uuid,
+          ${first.vehicleExamples.parkingVehicleId}::uuid)) AS occupancy_references,
         (SELECT count(*)::int FROM api_idempotency
           WHERE tenant_id=${SEED_TENANT.id}::uuid) AS idempotency_records
     `;
     expect(guards[0]).toEqual({ facts: 0, events: 0, occupancy_references: 0, idempotency_records: 0 });
+  });
+
+  test("Order 236 P6: provisions exact active parking choices and one current assignable vehicle", async () => {
+    const parking = await admin<Array<{
+      code: string; profile_key: string; capacity: number; status: string;
+      assignments: number; claims: number;
+    }>>`
+      SELECT space.code, space.profile_key, space.capacity, space.status,
+             count(vehicle.id)::int AS assignments,
+             count(occupancy.id)::int AS claims
+        FROM space
+        LEFT JOIN vehicle ON vehicle.tenant_id=space.tenant_id
+          AND vehicle.parking_space=space.id
+        LEFT JOIN space_occupancy AS occupancy ON occupancy.tenant_id=space.tenant_id
+          AND occupancy.space_id=space.id AND occupancy.period @> transaction_timestamp()
+       WHERE space.tenant_id=${SEED_TENANT.id}::uuid
+         AND space.property_node=${SEED_PROPERTY.id}::uuid
+         AND space.profile_key='parking'
+       GROUP BY space.id
+       ORDER BY space.code
+    `;
+    expect(parking).toEqual([
+      { code: "P-01", profile_key: "parking", capacity: 1, status: "active", assignments: 0, claims: 0 },
+      { code: "P-02", profile_key: "parking", capacity: 1, status: "active", assignments: 0, claims: 0 },
+      { code: "P-03", profile_key: "parking", capacity: 1, status: "active", assignments: 0, claims: 0 },
+    ]);
+    const vehicle = await admin<Array<{
+      id: string; entered: boolean; exited_at: string | null; parking_space: string | null;
+      reservation_status: string; current_segments: number;
+    }>>`
+      SELECT vehicle.id, vehicle.entered_at IS NOT NULL AS entered,
+             vehicle.exited_at::text, vehicle.parking_space,
+             reservation.status AS reservation_status,
+             count(segment.id) FILTER (
+               WHERE segment.status='in_house' AND segment.period @> transaction_timestamp()
+             )::int AS current_segments
+        FROM vehicle
+        JOIN reservation ON reservation.tenant_id=vehicle.tenant_id
+          AND reservation.id=vehicle.reservation_id
+        LEFT JOIN reservation_segment AS segment ON segment.tenant_id=reservation.tenant_id
+          AND segment.reservation_id=reservation.id
+       WHERE vehicle.tenant_id=${SEED_TENANT.id}::uuid
+         AND vehicle.property_node=${SEED_PROPERTY.id}::uuid
+         AND vehicle.id=${first.vehicleExamples.parkingVehicleId}::uuid
+       GROUP BY vehicle.id, reservation.status
+    `;
+    expect(vehicle).toEqual([{ id: first.vehicleExamples.parkingVehicleId, entered: true,
+      exited_at: null, parking_space: null, reservation_status: "in_house", current_segments: 1 }]);
   });
 
   test("Order 206 P5: provisions two exact arrival rows without pickup tasks or command effects", async () => {
@@ -1215,7 +1286,7 @@ databaseDescribe("Order 046 reproducible local-review seed", () => {
       `review checkout command fixture: reservation=${first.housekeepingExamples.checkoutReservationId} segment=${first.housekeepingExamples.checkoutSegmentId} room=${first.housekeepingExamples.eligibleSpaceId} occupancy=${first.housekeepingExamples.checkoutOccupancyId} account=${first.housekeepingExamples.departureAccountId} folio=${first.housekeepingExamples.checkoutFolioId}`,
     );
     expect(logLines).toContain(
-      `review vehicle fixtures: arrival=${first.vehicleExamples.arrivalVehicleId} departure=${first.vehicleExamples.departureVehicleId}`,
+      `review vehicle fixtures: arrival=${first.vehicleExamples.arrivalVehicleId} departure=${first.vehicleExamples.departureVehicleId} parking=${first.vehicleExamples.parkingVehicleId}`,
     );
     expect(logLines).toContain(
       `review arrival travel fixtures: clean=${first.arrivalTravelExamples.cleanTravelId} dirty=${first.arrivalTravelExamples.dirtyTravelId}`,
@@ -1274,7 +1345,7 @@ databaseDescribe("Order 046 reproducible local-review seed", () => {
     expect(await tokens.verify(loginBody.accessToken)).toMatchObject({
       sub: first.userId,
       tid: SEED_TENANT.id,
-      scp: "crm.parties:read crm.parties:write financials.adjustments:write financials.cashiers:operate financials.cashiers:read financials.charges:write financials.folios:close financials.folios:open financials.folios:read financials.folios:settle financials.receivables:read financials.receivables:transfer financials.transfers:write housekeeping.arrival-tasks:create housekeeping.arrival-tasks:read housekeeping.conditions:initialize housekeeping.discrepancies:read housekeeping.discrepancies:report housekeeping.sheets:generate housekeeping.sheets:read housekeeping.tasks:read housekeeping.tasks:work inventory.availability:read inventory.blocks:read inventory.blocks:write inventory.configuration:read inventory.configuration:write inventory.holds:read inventory.holds:write inventory.offline_leases:read inventory.offline_leases:write inventory.policy:read inventory.policy:write inventory.restriction:read inventory.restriction:write rates.configuration:read rates.configuration:write rates.pricing:read rates.pricing:write reservations.booking:write reservations.guests:read reservations.guests:write reservations.lifecycle:read reservations.lifecycle:write reservations.segments:read reservations.segments:write stay-operations.checkin:commit stay-operations.checkin:read stay-operations.checkout:commit stay-operations.checkout:read stay-operations.pickup-tasks:dispatch stay-operations.pickup-tasks:work stay-operations.vehicles:read",
+      scp: "crm.parties:read crm.parties:write financials.adjustments:write financials.cashiers:operate financials.cashiers:read financials.charges:write financials.folios:close financials.folios:open financials.folios:read financials.folios:settle financials.receivables:read financials.receivables:transfer financials.transfers:write housekeeping.arrival-tasks:create housekeeping.arrival-tasks:read housekeeping.conditions:initialize housekeeping.discrepancies:read housekeeping.discrepancies:report housekeeping.sheets:generate housekeeping.sheets:read housekeeping.tasks:read housekeeping.tasks:work inventory.availability:read inventory.blocks:read inventory.blocks:write inventory.configuration:read inventory.configuration:write inventory.holds:read inventory.holds:write inventory.offline_leases:read inventory.offline_leases:write inventory.policy:read inventory.policy:write inventory.restriction:read inventory.restriction:write rates.configuration:read rates.configuration:write rates.pricing:read rates.pricing:write reservations.booking:write reservations.guests:read reservations.guests:write reservations.lifecycle:read reservations.lifecycle:write reservations.segments:read reservations.segments:write stay-operations.checkin:commit stay-operations.checkin:read stay-operations.checkout:commit stay-operations.checkout:read stay-operations.pickup-tasks:dispatch stay-operations.pickup-tasks:work stay-operations.vehicles:park stay-operations.vehicles:read",
     });
     const approverLogin = await app.handle(new Request("http://yellow.test/api/v1/auth/local:login", {
       method: "POST",
@@ -1288,7 +1359,7 @@ databaseDescribe("Order 046 reproducible local-review seed", () => {
     expect(await tokens.verify(approverLoginBody.accessToken)).toMatchObject({
       sub: first.approverUserId,
       tid: SEED_TENANT.id,
-      scp: "crm.parties:read crm.parties:write financials.adjustments:post-seal financials.adjustments:write financials.cashiers:operate financials.cashiers:read financials.cashiers:supervise financials.charges:write financials.folios:close financials.folios:open financials.folios:read financials.folios:settle financials.receivables:approve financials.receivables:read financials.receivables:transfer financials.transfers:write housekeeping.arrival-tasks:create housekeeping.arrival-tasks:read housekeeping.conditions:initialize housekeeping.discrepancies:read housekeeping.discrepancies:report housekeeping.sheets:generate housekeeping.sheets:read housekeeping.tasks:inspect housekeeping.tasks:read housekeeping.tasks:work inventory.availability:read inventory.blocks:read inventory.blocks:write inventory.configuration:read inventory.configuration:write inventory.holds:read inventory.holds:write inventory.offline_leases:read inventory.offline_leases:write inventory.policy:read inventory.policy:write inventory.restriction:read inventory.restriction:write rates.configuration:read rates.configuration:write rates.pricing:read rates.pricing:write reservations.booking:write reservations.guests:read reservations.guests:write reservations.lifecycle:read reservations.lifecycle:write reservations.segments:read reservations.segments:write stay-operations.checkin:commit stay-operations.checkin:dirty-room-override stay-operations.checkin:read stay-operations.checkout:commit stay-operations.checkout:read stay-operations.pickup-tasks:dispatch stay-operations.pickup-tasks:work stay-operations.vehicles:read",
+      scp: "crm.parties:read crm.parties:write financials.adjustments:post-seal financials.adjustments:write financials.cashiers:operate financials.cashiers:read financials.cashiers:supervise financials.charges:write financials.folios:close financials.folios:open financials.folios:read financials.folios:settle financials.receivables:approve financials.receivables:read financials.receivables:transfer financials.transfers:write housekeeping.arrival-tasks:create housekeeping.arrival-tasks:read housekeeping.conditions:initialize housekeeping.discrepancies:read housekeeping.discrepancies:report housekeeping.sheets:generate housekeeping.sheets:read housekeeping.tasks:inspect housekeeping.tasks:read housekeeping.tasks:work inventory.availability:read inventory.blocks:read inventory.blocks:write inventory.configuration:read inventory.configuration:write inventory.holds:read inventory.holds:write inventory.offline_leases:read inventory.offline_leases:write inventory.policy:read inventory.policy:write inventory.restriction:read inventory.restriction:write rates.configuration:read rates.configuration:write rates.pricing:read rates.pricing:write reservations.booking:write reservations.guests:read reservations.guests:write reservations.lifecycle:read reservations.lifecycle:write reservations.segments:read reservations.segments:write stay-operations.checkin:commit stay-operations.checkin:dirty-room-override stay-operations.checkin:read stay-operations.checkout:commit stay-operations.checkout:read stay-operations.pickup-tasks:dispatch stay-operations.pickup-tasks:work stay-operations.vehicles:park stay-operations.vehicles:read",
     });
 
     const headers = { "content-type": "application/json", authorization: `Bearer ${loginBody.accessToken}` };

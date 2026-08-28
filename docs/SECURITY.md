@@ -518,6 +518,26 @@ Matching truth writes nothing. This authority cannot resolve/carry/delete a
 discrepancy or mutate condition, task, reservation, segment, occupancy, finance,
 business-day or statutory truth.
 
+### Vehicle parking assignment containment (migration 0037)
+
+Migration0037 exposes one volatile, fixed-search-path `yellow_owner` capability.
+`PUBLIC` and `yellow_runtime` cannot execute it directly; only a `yellow_runtime`
+session that has entered transaction-local `app_role` under the exact tenant context
+can call it. The capability rechecks session user, assumed role, current definer,
+tenant context and active actor, then locks and re-proves the exact-property vehicle,
+linked current stay, capacity-one parking space and occupancy truth.
+
+`app_role` and `yellow_runtime` retain no raw vehicle mutation authority, and direct
+`space_occupancy` DML remains denied. Caller-owned period, segment, claim, stay state,
+registration or property truth is rejected. The capability can create only one
+exclusive parking claim through `record_occupancy()` and bind one previously
+unassigned vehicle. The ordinary six-argument recorder remains unchanged; its
+vehicle-validating overload is owner-private. The canonical release name validates
+parking parents, clears matching vehicle pointers and delegates all non-parking
+typed parents to an owner-only invoker helper, so no additional public delete path is
+created. The assignment cannot replace, manually release, enter, exit, delete or mutate any
+other vehicle, stay, room, financial, business-day or statutory truth.
+
 ## 6. Statutory & privacy
 
 ### Token-only payment containment

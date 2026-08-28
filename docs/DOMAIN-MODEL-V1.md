@@ -831,3 +831,19 @@ reported/system tokens preserve that difference without copying reservation,
 segment, occupancy or guest identity into the discrepancy read model. Matching truth
 has no discrepancy identity. Resolution, carry, queues, messages, room condition,
 tasks and financial/day/statutory meaning remain separate primitives and workflows.
+
+### Vehicle parking assignment identity (Order 236)
+
+Order 236 adds no table, event or parking aggregate. A parking slot remains an active
+capacity-one exact-property `space` with `profile_key='parking'`. One onsite vehicle,
+its exact linked reservation and latest current `in_house` segment compose with the
+existing `space_occupancy`, fact, outbox and idempotency primitives.
+
+The vehicle stores only the current parking-space reference; the exclusive occupancy
+claim remains authoritative for collision and bounded period truth. The segment owns
+the stay bound, PostgreSQL owns the transaction-stable start, and the browser selects
+only a returned parking-space identity. Canonical segment checkout deletes the claim
+and clears the current pointer; replacement/manual release, entry/exit, unrelated
+vehicles, history and automatic allocation remain separate future workflows. Parking
+does not change reservation, segment, room, condition, task, folio, financial,
+business-day or statutory identity.

@@ -112,6 +112,7 @@ export const REVIEW_PERMISSIONS = Object.freeze([
   { code: "stay-operations.checkout:read", description: "Read server-owned property departure readiness" },
   { code: "stay-operations.checkout:commit", description: "Commit an eligible property checkout" },
   { code: "stay-operations.vehicles:read", description: "Read the governed property vehicle register" },
+  { code: "stay-operations.vehicles:park", description: "Assign onsite reservation-linked vehicles to governed parking spaces" },
   REVIEW_PICKUP_TASK_DISPATCH_PERMISSION,
   REVIEW_PICKUP_TASK_WORK_PERMISSION,
 ]);
@@ -149,6 +150,12 @@ const ROOMS = Object.freeze([
   { code: "201", unitTypeCode: "DLX", name: "Room 201", floor: "2", areaSqm: 36 },
   { code: "202", unitTypeCode: "DLX", name: "Room 202", floor: "2", areaSqm: 38 },
   { code: "203", unitTypeCode: "DLX", name: "Room 203", floor: "2", areaSqm: 38 },
+]);
+
+const PARKING_SPACES = Object.freeze([
+  { code: "P-01", name: "Parking P-01", floor: "B1" },
+  { code: "P-02", name: "Parking P-02", floor: "B1" },
+  { code: "P-03", name: "Parking P-03", floor: "B2" },
 ]);
 
 const INITIAL_CONDITION_FIXTURE_ROOM_CODE = "203";
@@ -249,6 +256,16 @@ const VEHICLE_EXAMPLES = Object.freeze([
     driverName: "Housekeeping Sheet Eligible Guest",
     enteredAt: "2026-09-17T13:45:00.000Z",
     exitedAt: "2026-09-19T11:20:00.000Z",
+  }),
+  Object.freeze({
+    key: "parking",
+    regNo: "PARK-YLW-01",
+    make: "Mahindra",
+    model: "XUV400",
+    colour: "Everest White",
+    driverName: "Parking Assignment Guest",
+    enteredAt: null,
+    exitedAt: null,
   }),
 ]);
 
@@ -388,6 +405,7 @@ interface ReviewHousekeepingExamples {
 interface ReviewVehicleExamples {
   readonly arrivalVehicleId: string;
   readonly departureVehicleId: string;
+  readonly parkingVehicleId: string;
 }
 
 interface ReviewArrivalTravelExamples {
@@ -1078,6 +1096,20 @@ function roomShape(item: Space, spec: typeof ROOMS[number]): void {
     areaSqm: spec.areaSqm.toFixed(2), genderPolicy: "any",
     attrs: { source: "local-review" }, status: "active",
   }, `Room ${spec.code}`);
+}
+
+function parkingShape(item: Space, spec: typeof PARKING_SPACES[number]): void {
+  exact({
+    tenantId: item.tenantId, propertyNode: item.propertyNode, code: item.code,
+    profileKey: item.profileKey, capacity: item.capacity, maxOccupancy: item.maxOccupancy,
+    floor: item.floor, areaSqm: item.areaSqm, genderPolicy: item.genderPolicy,
+    attrs: item.attrs, status: item.status,
+  }, {
+    tenantId: SEED_TENANT.id, propertyNode: SEED_PROPERTY.id, code: spec.code,
+    profileKey: "parking", capacity: 1, maxOccupancy: null, floor: spec.floor,
+    areaSqm: null, genderPolicy: "any",
+    attrs: { source: "local-review", name: spec.name }, status: "active",
+  }, `Parking space ${spec.code}`);
 }
 
 function sellableShape(item: SellableUnit, spec: typeof ROOMS[number], unitTypeId: string, spaceId: string): void {
@@ -2530,9 +2562,77 @@ async function provisionVehicleExamples(
   checkInExamples: ReviewCheckInExamples,
   housekeepingExamples: ReviewHousekeepingExamples,
 ): Promise<ReviewVehicleExamples> {
+  const parkingReservationId = await uuidV5(
+    SEED_TENANT.id,
+    `${REVIEW_VEHICLE_FIXTURE_UUID}/parking-reservation`,
+  );
+  const parkingSegmentId = await uuidV5(
+    SEED_TENANT.id,
+    `${REVIEW_VEHICLE_FIXTURE_UUID}/parking-segment`,
+  );
+  const parkingSources = await connection<Array<{
+    party_id: string; unit_type_id: string; sellable_unit_id: string; rate_plan_id: string;
+  }>>`
+    SELECT reservation.primary_party AS party_id, segment.unit_type_id,
+           segment.sellable_unit_id, segment.rate_plan_id
+      FROM reservation
+      JOIN reservation_segment AS segment
+        ON segment.tenant_id=reservation.tenant_id AND segment.reservation_id=reservation.id
+     WHERE reservation.tenant_id=${SEED_TENANT.id}::uuid
+       AND reservation.property_node=${SEED_PROPERTY.id}::uuid
+       AND reservation.id=${housekeepingExamples.eligibleReservationId}::uuid
+       AND segment.id=${housekeepingExamples.eligibleSegmentId}::uuid
+  `;
+  const parkingSource = parkingSources[0];
+  if (!parkingSource || parkingSources.length !== 1 || !parkingSource.sellable_unit_id) {
+    throw new Error("Local-review parking vehicle source stay is absent or inconsistent");
+  }
+  const parkingReservations = await connection<Array<{
+    id: string; status: string; primary_party: string; current_segments: number;
+  }>>`
+    SELECT reservation.id, reservation.status, reservation.primary_party,
+           (SELECT count(*)::int FROM reservation_segment AS segment
+             WHERE segment.tenant_id=reservation.tenant_id
+               AND segment.reservation_id=reservation.id
+               AND segment.status='in_house'
+               AND segment.period @> transaction_timestamp()) AS current_segments
+      FROM reservation
+     WHERE reservation.id=${parkingReservationId}::uuid
+        OR (reservation.tenant_id=${SEED_TENANT.id}::uuid
+            AND reservation.property_node=${SEED_PROPERTY.id}::uuid
+            AND reservation.confirmation_no='PARKING-REVIEW')
+     ORDER BY reservation.id
+     FOR UPDATE OF reservation
+  `;
+  if (parkingReservations.length === 0) {
+    await connection`INSERT INTO reservation(
+      id,tenant_id,property_node,confirmation_no,status,primary_party,channel_code,currency
+    ) VALUES(
+      ${parkingReservationId}::uuid,${SEED_TENANT.id}::uuid,${SEED_PROPERTY.id}::uuid,
+      'PARKING-REVIEW','in_house',${parkingSource.party_id}::uuid,'direct',${SEED_PROPERTY.currency}
+    )`;
+    await connection`INSERT INTO reservation_segment(
+      id,tenant_id,reservation_id,seq,unit_type_id,sellable_unit_id,period,
+      adults,children,rate_plan_id,status
+    ) VALUES(
+      ${parkingSegmentId}::uuid,${SEED_TENANT.id}::uuid,${parkingReservationId}::uuid,1,
+      ${parkingSource.unit_type_id}::uuid,${parkingSource.sellable_unit_id}::uuid,
+      tstzrange(transaction_timestamp()-interval '1 day',transaction_timestamp()+interval '30 days','[)'),
+      1,'[]'::jsonb,${parkingSource.rate_plan_id}::uuid,'in_house'
+    )`;
+  } else {
+    const existing = parkingReservations[0]!;
+    if (parkingReservations.length !== 1 || existing.id !== parkingReservationId ||
+        existing.status !== "in_house" || existing.primary_party !== parkingSource.party_id ||
+        existing.current_segments !== 1) {
+      throw new Error("Local-review parking assignment stay collides with non-canonical data");
+    }
+  }
+
   const reservationIds = Object.freeze({
     arrival: checkInExamples.cleanReservationId,
     departure: housekeepingExamples.eligibleReservationId,
+    parking: parkingReservationId,
   });
   const result: Record<string, string> = {};
 
@@ -2558,10 +2658,16 @@ async function provisionVehicleExamples(
     }
 
     const vehicleId = await uuidV5(SEED_TENANT.id, `${REVIEW_VEHICLE_FIXTURE_UUID}/${spec.key}`);
+    const enteredAt = spec.key === "parking"
+      ? (await connection<Array<{ entered_at: string }>>`
+          SELECT to_char(lower(period) AT TIME ZONE 'UTC','YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') AS entered_at
+            FROM reservation_segment WHERE id=${parkingSegmentId}::uuid
+        `)[0]!.entered_at
+      : spec.enteredAt;
     const vehicles = await connection<Array<Record<string, unknown>>>`
       SELECT id, tenant_id, property_node, reservation_id, party_id, reg_no, make, model,
              colour, driver_name, parking_space,
-             entered_at=${spec.enteredAt}::timestamptz AS exact_entered_at,
+             entered_at=${enteredAt}::timestamptz AS exact_entered_at,
              CASE WHEN ${spec.exitedAt}::text IS NULL THEN exited_at IS NULL
                   ELSE exited_at=${spec.exitedAt}::timestamptz END AS exact_exited_at,
              notes
@@ -2597,7 +2703,7 @@ async function provisionVehicleExamples(
           ${vehicleId}::uuid, ${SEED_TENANT.id}::uuid, ${SEED_PROPERTY.id}::uuid,
           ${reservationId}::uuid, ${association.party_id}::uuid, ${spec.regNo},
           ${spec.make}, ${spec.model}, ${spec.colour}, ${spec.driverName},
-          ${spec.enteredAt}::timestamptz, ${spec.exitedAt}::timestamptz
+          ${enteredAt}::timestamptz, ${spec.exitedAt}::timestamptz
         )
       `;
     } else {
@@ -2610,6 +2716,7 @@ async function provisionVehicleExamples(
   return Object.freeze({
     arrivalVehicleId: result.arrival!,
     departureVehicleId: result.departure!,
+    parkingVehicleId: result.parking!,
   });
 }
 
@@ -2693,6 +2800,23 @@ export async function runReviewSeed(options: ReviewSeedOptions): Promise<ReviewS
               propertyNode: SEED_PROPERTY.id, requestId: crypto.randomUUID(), operation: "space.created" }),
           });
           counts.rooms.created += 1;
+        }
+        spaces.set(spec.code, item);
+      }
+      for (const spec of PARKING_SPACES) {
+        const matches = existing.filter(({ code }) => code === spec.code);
+        let item = matches[0];
+        if (matches.length > 1) throw new Error(`Parking space ${spec.code} is duplicated`);
+        if (item) {
+          parkingShape(item, spec);
+        } else {
+          item = await inventory.createSpace(tx, {
+            code: spec.code, profileKey: "parking", capacity: 1, maxOccupancy: null,
+            floor: spec.floor, areaSqm: null, genderPolicy: "any",
+            attrs: { source: "local-review", name: spec.name },
+            envelope: createAuditEnvelope({ actorId: userId, tenantId: SEED_TENANT.id,
+              propertyNode: SEED_PROPERTY.id, requestId: crypto.randomUUID(), operation: "space.created" }),
+          });
         }
         spaces.set(spec.code, item);
       }
@@ -2815,7 +2939,7 @@ export async function runReviewSeed(options: ReviewSeedOptions): Promise<ReviewS
     logger(`review housekeeping sheet fixture: date=${housekeepingExamples.sheetDate} attendant=${housekeepingExamples.attendantPartyId} reservation=${housekeepingExamples.eligibleReservationId} segment=${housekeepingExamples.eligibleSegmentId} room=${housekeepingExamples.eligibleSpaceId}`);
     logger(`review departure readiness fixture: reservation=${housekeepingExamples.eligibleReservationId} segment=${housekeepingExamples.eligibleSegmentId} room=${housekeepingExamples.eligibleSpaceId} occupancy=${housekeepingExamples.eligibleOccupancyId} account=${housekeepingExamples.departureAccountId} folio=${housekeepingExamples.departureFolioId}`);
     logger(`review checkout command fixture: reservation=${housekeepingExamples.checkoutReservationId} segment=${housekeepingExamples.checkoutSegmentId} room=${housekeepingExamples.eligibleSpaceId} occupancy=${housekeepingExamples.checkoutOccupancyId} account=${housekeepingExamples.departureAccountId} folio=${housekeepingExamples.checkoutFolioId}`);
-    logger(`review vehicle fixtures: arrival=${vehicleExamples.arrivalVehicleId} departure=${vehicleExamples.departureVehicleId}`);
+    logger(`review vehicle fixtures: arrival=${vehicleExamples.arrivalVehicleId} departure=${vehicleExamples.departureVehicleId} parking=${vehicleExamples.parkingVehicleId}`);
     logger(`review arrival travel fixtures: clean=${arrivalTravelExamples.cleanTravelId} dirty=${arrivalTravelExamples.dirtyTravelId}`);
     logger(`review departure travel fixture: checkout=${departureTravelExamples.checkoutTravelId}`);
     logger(`review pickup task dispatch fixture: reservation=${pickupTaskDispatchExample.reservationId} travel=${pickupTaskDispatchExample.travelId} task=${pickupTaskDispatchExample.taskId} staff=${pickupTaskDispatchExample.staffPartyId}`);

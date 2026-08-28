@@ -1073,3 +1073,26 @@ glassmorphism, neomorphism and ERP keep their dedicated materials while preservi
 identical labels, reading order and authority. Keyboard focus is visible, reduced
 motion removes nonessential transitions and forced colours replace decorative
 materials with system boundaries.
+
+## 40. Vehicle parking assignment
+
+Canonical vehicle detail loads one separate no-store parking snapshot. An eligible
+unassigned onsite reservation-linked vehicle exposes an explicit **Parking space**
+picker containing only server-returned active exact-property candidates and an
+**Assign parking** action. Nothing is preselected; room spaces, inferred alternatives,
+automatic ranking, replacement, release and optimistic parking state are absent.
+
+Submission binds property, vehicle, route, current snapshot, selected parking-space
+identity and one unchanged-draft idempotency key. Related controls lock in flight. A
+current success authoritatively reloads vehicle detail and parking truth before
+painting the assignment; a conflict offers only authoritative refresh. Any property,
+route, vehicle, selection, connection or generation change makes a late response
+inert. Direct vehicle detail, Back/Forward and refresh rebuild only from canonical
+server truth without polling or browser storage.
+
+Labels, status and validation remain keyboard-readable and announce through the
+existing live region; invalid selection focuses its control and success focuses the
+assigned parking summary. Controls are at least 44 pixels and 48 pixels on Android,
+remain contained at 375 pixels and 200% zoom, and preserve identical semantic order
+across Apple iOS, Android, Windows 95/98, glassmorphism, neomorphism and ERP. Reduced
+motion removes nonessential effects and forced colours supplies system boundaries.

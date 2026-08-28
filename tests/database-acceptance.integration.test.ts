@@ -185,6 +185,11 @@ const EXPECTED_MIGRATIONS = [
     filename: "0036_governed_room_discrepancy_reporting.sql",
     checksum_sha256: "bd72ca9ff3b02d4f0c00b4ce82a6afb1591056b71a04cebda71b61efacc61b76",
   },
+  {
+    version: 37,
+    filename: "0037_governed_vehicle_parking_assignment.sql",
+    checksum_sha256: "82df1de46ee97771390d1d102142380b40b590456f687fdd1bd0cd1d3a4d601a",
+  },
 ];
 
 if (REQUIRE_DATABASE && !DATABASE_URL) {

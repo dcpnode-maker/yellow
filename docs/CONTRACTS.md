@@ -1138,3 +1138,33 @@ parameters and are `Cache-Control: no-store`. GET requires
 `{spaceId,observedPresence,observedPersons}`. Direct runtime discrepancy DML remains
 denied. Reporting does not mutate room condition, task, sheet, reservation, segment,
 occupancy, folio, financial, business-day or statutory truth.
+
+## 36. Governed vehicle parking assignment
+
+`VehicleParkingAssignmentService.read` returns the one exact onsite reservation-linked
+vehicle, its current in-house segment, any current parking assignment, and otherwise
+only active exact-property capacity-one `profile_key='parking'` candidates. It derives
+all stay, period and occupancy truth in a transaction-local tenant read; the caller
+cannot supply or infer them.
+
+`VehicleParkingAssignmentService.assign` accepts one selected parking-space UUID,
+actor-bound audit envelope and `Idempotency-Key`. PostgreSQL locks the vehicle, linked
+stay, current segment, parking space and claim truth, derives
+`[transaction_timestamp(), upper(segment.period))`, records one exclusive
+`slot_kind='segment'` claim through `record_occupancy()`, then binds
+`vehicle.parking_space` atomically. The surrounding tenant transaction commits the
+binding, one minimized existing `occupancy.recorded` fact/outbox pair and receipt or
+rolls all of them back. Exact same-target replay is stable; changed or stale truth
+conflicts.
+
+The established six-argument room/unit recorder remains unchanged. Parking uses an
+owner-private vehicle-validating overload; direct `app_role`, runtime and PUBLIC
+execution are denied. Canonical segment checkout remains the only release path and
+clears every validated parking claim plus the matching vehicle pointer before
+delegating room/unit release in the same transaction.
+
+`GET|POST /api/v1/properties/{property}/vehicles/{vehicle}/parking` accept no query
+parameters and are `Cache-Control: no-store`. GET uses the existing vehicle read
+authority; POST requires `stay-operations.vehicles:park`, an exact idempotency header
+and only `{parkingSpaceId}`. V1 is create-only: replacement, manual release, entry/exit,
+staff/visitor parking, history and automatic allocation are not commands.
