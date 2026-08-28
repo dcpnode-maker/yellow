@@ -208,7 +208,12 @@ const EXPECTED_MIGRATIONS = [
   {
     version: 41,
     filename: "0041_quoted_tax_reservation_lineage.sql",
-    checksum_sha256: "01034a5fd25d44a1244ef7da872d7d3f9b6b498d5476ba7d0d9c683842f9a00d",
+    checksum_sha256: "96795066ed0ae795044a56c7fbef33087e8c7fa94647b22482ee6b48ed06f171",
+  },
+  {
+    version: 42,
+    filename: "0042_quoted_tax_reservation_no_binding_compatibility.sql",
+    checksum_sha256: "dd2622f024859231a6128f649276bb4904d60f2380de9324196c22ac43b0c098",
   },
 ];
 

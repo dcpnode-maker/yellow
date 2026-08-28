@@ -184,3 +184,7 @@ document allocation and India place-of-supply policy.
 
 Order253/D-657 refreshes only the authenticated founder-visible build snapshot through
 that approved lineage. It does not change Phase7 product behavior or local runtime.
+
+Order254/D-661 independently approves the forward-only migration-lineage reconciliation prerequisite for
+promoting that snapshot: historical0041 bytes become exact to the applied ledger and
+the final compatibility correction moves to migration0042.

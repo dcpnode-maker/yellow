@@ -542,6 +542,11 @@ Order253/D-657 is the bounded founder-visible status refresh through approved
 Order252. It changes recorded status truth only; the sole local remains a separate
 promotion concern and unfinished Phases5–7 remain active.
 
+Order254/D-661 independently approves repository reconciliation to the exact historical migration0041 bytes
+already applied by an Order252 proof setup incident and carries the final no-binding
+compatibility correction forward in migration0042. Direct local app promotion remains
+separate and requires its own protected backup and verification order.
+
 tax_assignment evaluation (percent/fixed/slab, compound, line-vs-document rounding)
 from EXTENSIONS §2; India GST slab per room-night; document issue path: series →
 gapless number → hash chain → document; IRP reporting adapter (sandbox), IRN + QR

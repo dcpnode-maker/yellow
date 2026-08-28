@@ -1398,3 +1398,9 @@ A quoted-tax attribution bound to a cart hold becomes reservation evidence only 
 the existing held-reservation command consumes that exact hold and appends the exact
 reservation/first-segment link in the same transaction. The link is immutable audit
 lineage, not folio, account, route, posting, document or statutory authority.
+
+Migration0041 remains exact historical evidence at checksum `96795066…f171`.
+Migration0042 is the forward-only compatibility correction: when no quoted-tax hold
+binding exists, the capability returns zero rows before product authority checks;
+when a binding exists, all tenant/property/actor and exact lineage checks remain
+mandatory. Neither migration authorizes a ledger checksum rewrite.

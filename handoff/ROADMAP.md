@@ -187,3 +187,7 @@ policy before any positive posting writer.
 
 Order253 is the current bounded status-only slice; it preserves the unfinished Phase7
 state while making approved Order252 visible to the founder after a separate promotion.
+
+Order254 independently approved exact applied migration0041 lineage restoration plus
+forward-only migration0042. Sole-local promotion is the next bounded operational step;
+no product scope or phase state changes.

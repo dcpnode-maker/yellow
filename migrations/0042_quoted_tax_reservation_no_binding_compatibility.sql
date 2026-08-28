@@ -1,100 +1,9 @@
--- Order 252: append the immutable reservation/first-segment identity reached
--- by consuming an exact quoted-tax cart hold. This lineage grants no folio,
--- account, posting, document or fiscal authority.
+-- Forward-only compatibility correction for unquoted reservation holds.
+-- Migration 0041 is immutable historical evidence; this replacement preserves the
+-- exact capability contract while returning zero rows before authority checks when
+-- no quoted-tax hold binding exists.
 
-ALTER TABLE public.tax_attribution_hold_binding
-  ADD CONSTRAINT tax_attribution_hold_binding_lineage_identity_uq
-  UNIQUE (
-    tenant_id, id, property_node, hold_id, attribution_id,
-    sellable_unit_id, period, origin_quote_hash, snapshot_hash, currency
-  );
-
-ALTER TABLE public.reservation_segment
-  ADD CONSTRAINT reservation_segment_tenant_id_id_uq UNIQUE (tenant_id, id);
-
-CREATE TABLE public.tax_attribution_reservation_binding (
-  tenant_id uuid NOT NULL,
-  id uuid NOT NULL DEFAULT pg_catalog.gen_random_uuid(),
-  property_node uuid NOT NULL,
-  linked_by uuid NOT NULL,
-  binding_id uuid NOT NULL,
-  hold_id uuid NOT NULL,
-  attribution_id uuid NOT NULL,
-  reservation_id uuid NOT NULL,
-  segment_id uuid NOT NULL,
-  sellable_unit_id uuid NOT NULL,
-  period tstzrange NOT NULL,
-  origin_quote_hash text NOT NULL,
-  snapshot_hash text NOT NULL,
-  currency character(3) NOT NULL,
-  linked_at timestamptz NOT NULL DEFAULT pg_catalog.transaction_timestamp(),
-  CONSTRAINT tax_attribution_reservation_binding_pk PRIMARY KEY (tenant_id, id),
-  CONSTRAINT tax_attribution_reservation_binding_binding_uq
-    UNIQUE (tenant_id, binding_id),
-  CONSTRAINT tax_attribution_reservation_binding_reservation_uq
-    UNIQUE (tenant_id, reservation_id),
-  CONSTRAINT tax_attribution_reservation_binding_segment_uq
-    UNIQUE (tenant_id, segment_id),
-  CONSTRAINT tax_attribution_reservation_binding_period_ck CHECK (
-    NOT pg_catalog.isempty(period)
-    AND pg_catalog.lower_inc(period)
-    AND NOT pg_catalog.upper_inc(period)
-    AND pg_catalog.lower(period) IS NOT NULL
-    AND pg_catalog.upper(period) IS NOT NULL
-    AND pg_catalog.lower(period) < pg_catalog.upper(period)
-  ),
-  CONSTRAINT tax_attribution_reservation_binding_quote_hash_ck CHECK (
-    origin_quote_hash ~ '^[0-9a-f]{64}$'
-  ),
-  CONSTRAINT tax_attribution_reservation_binding_snapshot_hash_ck CHECK (
-    snapshot_hash ~ '^[0-9a-f]{64}$'
-  ),
-  CONSTRAINT tax_attribution_reservation_binding_currency_ck CHECK (
-    currency ~ '^[A-Z]{3}$'
-  ),
-  CONSTRAINT tax_attribution_reservation_binding_property_fk
-    FOREIGN KEY (tenant_id, property_node)
-    REFERENCES public.org_node (tenant_id, id),
-  CONSTRAINT tax_attribution_reservation_binding_actor_fk
-    FOREIGN KEY (tenant_id, linked_by)
-    REFERENCES public.app_user (tenant_id, id),
-  CONSTRAINT tax_attribution_reservation_binding_source_fk
-    FOREIGN KEY (
-      tenant_id, binding_id, property_node, hold_id, attribution_id,
-      sellable_unit_id, period, origin_quote_hash, snapshot_hash, currency
-    ) REFERENCES public.tax_attribution_hold_binding (
-      tenant_id, id, property_node, hold_id, attribution_id,
-      sellable_unit_id, period, origin_quote_hash, snapshot_hash, currency
-    ),
-  CONSTRAINT tax_attribution_reservation_binding_reservation_fk
-    FOREIGN KEY (tenant_id, reservation_id)
-    REFERENCES public.reservation (tenant_id, id),
-  CONSTRAINT tax_attribution_reservation_binding_segment_fk
-    FOREIGN KEY (tenant_id, segment_id)
-    REFERENCES public.reservation_segment (tenant_id, id)
-);
-
-CREATE INDEX tax_attribution_reservation_binding_property_lookup
-  ON public.tax_attribution_reservation_binding
-  (tenant_id, property_node, linked_at, id);
-CREATE INDEX tax_attribution_reservation_binding_attribution_lookup
-  ON public.tax_attribution_reservation_binding
-  (tenant_id, attribution_id, linked_at, id);
-
-ALTER TABLE public.tax_attribution_reservation_binding ENABLE ROW LEVEL SECURITY;
-CREATE POLICY tenant_isolation ON public.tax_attribution_reservation_binding
-  USING (
-    tenant_id = NULLIF(
-      pg_catalog.current_setting('app.tenant_id', true), ''
-    )::uuid
-  )
-  WITH CHECK (
-    tenant_id = NULLIF(
-      pg_catalog.current_setting('app.tenant_id', true), ''
-    )::uuid
-  );
-
-CREATE FUNCTION public.link_tax_attribution_reservation(
+CREATE OR REPLACE FUNCTION public.link_tax_attribution_reservation(
   p_tenant_id uuid,
   p_property_node uuid,
   p_actor_id uuid,
@@ -156,6 +65,20 @@ BEGIN
       MESSAGE = 'tax attribution reservation linkage identity is invalid';
   END IF;
 
+  SELECT binding.*
+    INTO v_binding
+    FROM public.tax_attribution_hold_binding AS binding
+   WHERE binding.tenant_id = p_tenant_id
+     AND binding.hold_id = p_hold_id
+   FOR KEY SHARE;
+  IF NOT FOUND THEN
+    RETURN;
+  END IF;
+  IF v_binding.property_node IS DISTINCT FROM p_property_node THEN
+    RAISE EXCEPTION USING ERRCODE = '55000',
+      MESSAGE = 'quoted-tax hold binding is unavailable for reservation linkage';
+  END IF;
+
   PERFORM 1
     FROM public.tenant
    WHERE tenant.id = p_tenant_id
@@ -181,20 +104,6 @@ BEGIN
   IF NOT FOUND THEN
     RAISE EXCEPTION USING ERRCODE = '55000',
       MESSAGE = 'tax attribution reservation linkage authority is unavailable';
-  END IF;
-
-  SELECT binding.*
-    INTO v_binding
-    FROM public.tax_attribution_hold_binding AS binding
-   WHERE binding.tenant_id = p_tenant_id
-     AND binding.hold_id = p_hold_id
-   FOR KEY SHARE;
-  IF NOT FOUND THEN
-    RETURN;
-  END IF;
-  IF v_binding.property_node IS DISTINCT FROM p_property_node THEN
-    RAISE EXCEPTION USING ERRCODE = '55000',
-      MESSAGE = 'quoted-tax hold binding is unavailable for reservation linkage';
   END IF;
 
   PERFORM pg_catalog.pg_advisory_xact_lock(
@@ -303,7 +212,3 @@ GRANT EXECUTE ON FUNCTION public.link_tax_attribution_reservation(
   uuid,uuid,uuid,uuid,uuid,uuid
 ) TO app_role;
 
-ALTER TABLE public.tax_attribution_reservation_binding OWNER TO yellow_owner;
-REVOKE ALL ON TABLE public.tax_attribution_reservation_binding FROM PUBLIC, app_role;
-REVOKE ALL ON TABLE public.tax_attribution_reservation_binding FROM yellow_runtime;
-GRANT SELECT ON TABLE public.tax_attribution_reservation_binding TO app_role;
