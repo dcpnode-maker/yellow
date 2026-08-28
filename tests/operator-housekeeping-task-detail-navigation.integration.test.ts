@@ -107,7 +107,9 @@ describe("Order 217 exact housekeeping-task detail navigation", () => {
     ].join("\n");
     expect(detail).not.toMatch(/method:\s*"(?:POST|PUT|PATCH|DELETE)"/);
     expect(detail).not.toMatch(/setInterval|setTimeout|localStorage|sessionStorage|EventSource|WebSocket/);
-    expect(detail).not.toMatch(/submitHousekeepingAction|housekeepingAttempts|allowedActions|eligibleAction/);
+    expect(detail).not.toMatch(/submitHousekeepingAction|housekeepingAttempts|eligibleAction/);
+    expect(functionSource("housekeepingTaskDetailResult")).toContain("allowedActions.length > 1");
+    expect(functionSource("housekeepingTaskDetailResult")).toContain("Object.freeze(allowedActions.slice())");
     expect(detail).toContain("Read only");
   });
 });

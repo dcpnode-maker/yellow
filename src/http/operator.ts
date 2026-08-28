@@ -495,7 +495,20 @@ function operatorHousekeepingItem(
   });
 }
 
-function operatorHousekeepingTaskDetail(task: HousekeepingTaskDetail) {
+function housekeepingTaskDetailEligibleAction(task: HousekeepingTaskDetail): HousekeepingTaskAction | null {
+  if (task.taskStatus === "assigned" && task.assigned) return "start";
+  if (task.taskStatus === "in_progress" && (task.roomCondition === "dirty" || task.roomCondition === "pickup")) {
+    return "complete";
+  }
+  if (task.taskStatus === "done" && task.roomCondition === "clean") return "verify";
+  return null;
+}
+
+function operatorHousekeepingTaskDetail(
+  task: HousekeepingTaskDetail,
+  workGranted: boolean,
+  inspectGranted: boolean,
+) {
   return Object.freeze({
     taskId: task.taskId,
     taskStatus: task.taskStatus,
@@ -508,6 +521,11 @@ function operatorHousekeepingTaskDetail(task: HousekeepingTaskDetail) {
     dueAt: task.dueAt,
     priority: task.priority,
     completedAt: task.completedAt,
+    allowedActions: allowedHousekeepingActions(
+      housekeepingTaskDetailEligibleAction(task),
+      workGranted,
+      inspectGranted,
+    ),
   });
 }
 
@@ -3772,13 +3790,21 @@ export class OperatorHttpApi {
       return apiError(context.request, 404, "housekeeping/not_found", "Not found", "The referenced housekeeping task was not found");
     }
     if (!this.#housekeeping?.get) return this.unavailable(context.request);
+    const [workGrants, inspectGrants] = await Promise.all([
+      hasScope(context, HOUSEKEEPING_WORK_SCOPE)
+        ? listGrantedProperties(context, HOUSEKEEPING_WORK_SCOPE) : Promise.resolve([]),
+      hasScope(context, HOUSEKEEPING_INSPECT_SCOPE)
+        ? listGrantedProperties(context, HOUSEKEEPING_INSPECT_SCOPE) : Promise.resolve([]),
+    ]);
+    const workGranted = workGrants.some(({ id }) => id === propertyNode);
+    const inspectGranted = inspectGrants.some(({ id }) => id === propertyNode);
     const task = await this.#housekeeping.get({
       tenantId: context.tenantId,
       propertyNode,
       taskId,
     });
     return apiResponse(context.request, canonicalJson(jsonValue({
-      task: operatorHousekeepingTaskDetail(task),
+      task: operatorHousekeepingTaskDetail(task, workGranted, inspectGranted),
     })));
   }
 

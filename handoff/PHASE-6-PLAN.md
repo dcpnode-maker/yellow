@@ -1,8 +1,8 @@
 # Phase 6 — Stay operations and housekeeping
 
-**Status:** active; Orders 200–218 are built-unreviewed
+**Status:** active; Orders 200–220 are built-unreviewed
 **Entry point:** built-unreviewed Phase-5 composition through Order 199
-**Current order:** `219-reservation-detail-operational-preparation.md` (ready)
+**Current order:** next bounded Phase-6 slice pending order creation
 
 ## Outcome
 
@@ -239,7 +239,7 @@ governed check-in or checkout preparation route. It maps only the already-admitt
 authoritative statuses, runs no command on navigation and adds no API, authority,
 mutation, schema or event.
 
-Order 220 is the exact human composition of Order217 task detail with the existing
+Order 220 is built-unreviewed as the exact human composition of Order217 task detail with the existing
 Order201 governed transition. It adds no lifecycle meaning, command authority, schema,
 migration or event and remains subject to server revalidation.
 

@@ -119,6 +119,7 @@ describe("Order 217 exact housekeeping-task HTTP detail", () => {
     expect(response.headers.get("cache-control")).toBe("no-store");
     expect(await response.json()).toEqual({
       task: {
+        allowedActions: [],
         assigned: true,
         completedAt: null,
         dueAt: DUE_AT,

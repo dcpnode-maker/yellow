@@ -1,6 +1,6 @@
 # Order 220 — Housekeeping-task detail governed actions
 
-**Status:** READY-D583 — intentional red must precede implementation
+**Status:** BUILT-UNREVIEWED-D584
 **Phase:** 6 — Stay operations and housekeeping
 **Branch:** `phase-6/housekeeping-task-detail-governed-actions`
 **Base:** `205b5af` (built-unreviewed Order219)
@@ -61,8 +61,21 @@ dependency, scope/event or local promotion/deployment file is admitted.
 
 ## Definition of done
 
-- [ ] Intentional red precedes implementation.
-- [ ] Exact detail emits only its current server-authorized action.
-- [ ] Existing governed transition remains the sole mutation authority.
-- [ ] Stale, idempotency, refresh, history, focus and six-appearance proof is green.
-- [ ] Standing gates are green and result is recorded built-unreviewed.
+- [x] Intentional red preceded implementation.
+- [x] Exact detail emits only its current server-authorized action.
+- [x] Existing governed transition remains the sole mutation authority.
+- [x] Stale, idempotency, refresh, history, focus and six-appearance proof is green.
+- [x] Standing gates are green and result is recorded built-unreviewed.
+
+## Built evidence
+
+- Focused integrated proof: 37 passed, 0 failed, 375 assertions across eight files.
+- Standing proof: 547 passed, 629 environment skips, 0 failed, 6,057 assertions;
+  1,176 tests across 210 files.
+- Typecheck, 82 import boundaries, 23 dependency licences, zero-vulnerability audit,
+  JavaScript syntax and diff checks are green.
+- Fresh migrations 1–29 produced the canonical 93-table schema and the referee passed
+  11/11. The stale setup wrapper still expects 89 tables; only that obsolete count was
+  bypassed for the direct canonical schema/referee proof.
+- The disposable `yellow-order220-build` containers, volumes and networks were removed.
+- Independent product review remains deferred by the founder's build-first direction.

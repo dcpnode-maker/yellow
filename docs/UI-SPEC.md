@@ -609,3 +609,38 @@ rectangular density. The label, target, reading order and governed behavior rema
 identical across all six. Keyboard focus is explicit, forced colours replace
 decorative materials with system button colours and boundaries, and reduced motion
 removes transition and transform effects.
+
+## 27. Housekeeping-task detail governed actions
+
+The exact current housekeeping-task detail presents zero or one semantic action from
+its frozen server-owned `allowedActions`: **Start cleaning**, **Mark room clean** or
+**Verify inspection**. Start and Complete remain governed by the existing property work
+grant; Verify remains governed by the distinct existing inspect grant. Browser status,
+room condition, assignment or timing never creates an action, and the existing
+transition endpoint remains the final authority inside its current transaction.
+
+Immediately before submit, the client rechecks the exact property, routed task,
+validated task status and room condition, room-condition evidence timestamp, allowed
+action, detail request generation, canonical nested pathname, current Housekeeping
+view, and connected visible panel and action. A mismatch is inert. The command uses
+only the existing action, expected task status, expected room condition and expected
+room-updated timestamp body with an actor-bound idempotency key. An unchanged retry
+retains its key; a conflict discards it and refreshes authoritative task-detail,
+Housekeeping-board and room-condition truth.
+
+Start and Complete repaint only after current detail, board and condition truth have
+settled. Verify returns to the existing Housekeeping board because verified truth is
+no longer eligible for this bounded detail, refreshes the same authoritative reads
+and restores safe focus. The nested route, Back, Forward, refresh and Escape keep
+their existing history behavior. No optimistic lifecycle claim, new target status,
+assignment, task creation, polling or browser-owned permission is introduced.
+
+The action remains at least 44 pixels and wraps without horizontal overflow at 375
+pixels and 200% zoom; Android raises the target to 48 pixels. Apple iOS uses a
+restrained rounded control, Android uses a Material 3 filled pill, Windows 95/98 uses
+square outset/inset system chrome, glassmorphism uses layered translucent blur,
+neomorphism uses paired raised and pressed inset shadows, and ERP uses compact
+rectangular density. The label, target, reading order and governed behavior remain
+identical across all six. Keyboard focus is explicit, forced colours replace
+decorative materials with system button colours and boundaries, and reduced motion
+removes transition and transform effects.
