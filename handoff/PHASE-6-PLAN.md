@@ -1,8 +1,8 @@
 # Phase 6 — Stay operations and housekeeping
 
-**Status:** active; Orders 200–226 are built-unreviewed
+**Status:** active; Orders 200–227 are built-unreviewed
 **Entry point:** built-unreviewed Phase-5 composition through Order 199
-**Current order:** next bounded build slice is being scoped
+**Current order:** Order228 governed arrival pickup-task dispatch is ready
 
 ## Outcome
 
