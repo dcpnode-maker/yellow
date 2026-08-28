@@ -305,6 +305,10 @@ Order 222 is built-unreviewed and repairs the existing departure-readiness to Fo
 adds only a minimized validated history return descriptor and authoritative refetch/
 focus restoration; it changes no financial or checkout authority. This cannot complete Phase 6.
 
+Order 223 extends the existing Today pure routing table so exact in-house rows may
+open the already-governed checkout-preparation workbench. It adds no command,
+authority, readiness meaning or new control family. This cannot complete Phase 6.
+
 ## Phase 7 — Tax engine + India IRP
 
 tax_assignment evaluation (percent/fixed/slab, compound, line-vs-document rounding)
