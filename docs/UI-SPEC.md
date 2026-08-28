@@ -644,3 +644,46 @@ rectangular density. The label, target, reading order and governed behavior rema
 identical across all six. Keyboard focus is explicit, forced colours replace
 decorative materials with system button colours and boundaries, and reduced motion
 removes transition and transform effects.
+
+## 28. Housekeeping-sheet task receipt
+
+A deliberate successful or replayed housekeeping-sheet generation displays one
+transient receipt containing exactly the tasks returned by that existing governed
+command. The receipt accepts only one canonical sheet for the current property,
+selected property-local date and selected attendant; its task count must equal its
+bounded task array, task and space identifiers must be canonical and unique, room and
+profile labels must be nonblank and bounded, and cadence remains exactly `daily` or
+`on_departure`. Validated receipt and task truth is frozen before presentation. The
+ordinary generated-sheet list remains aggregate history and never becomes a task
+detail authority.
+
+Each receipt task presents its recorded room, profile and cadence as text and exactly
+one **Open task** control. Merely displaying the receipt makes no request. Immediately
+before navigation, the client rechecks exact property, sheet date, attendant, receipt
+generation, task, space and cadence identity, active Housekeeping view, current path,
+and connected visible receipt panel and action. Any stale or detached identity is
+inert. Deliberate activation reuses only the existing canonical nested housekeeping-
+task route and Order217 no-store read; current terminal, ineligible or changed truth
+retains that endpoint's existing concealed/not-found behavior. Order220 remains the
+sole action authority after detail loads.
+
+The receipt is not persisted in browser storage and makes no sheet-history claim. It
+is cleared when property, date, attendant or draft identity changes, on a new preview,
+generation conflict or error, and when the operator leaves the relevant journey.
+Success and exact replay share the same rendering contract. The existing nested detail
+history, Back, Forward, refresh, Escape and board-return behavior remains authoritative;
+focus enters the receipt after generation and the existing task-detail journey restores
+focus only while the originating **Open task** control remains current and connected.
+There is no polling, optimistic state, copied task authority or automatic lifecycle
+command.
+
+The list contains no more than the command's existing 200-task bound, uses wrapping
+room/profile/cadence text and never creates horizontal overflow. Every **Open task**
+target is at least 44 pixels and becomes full width when necessary at 375 pixels and
+200% zoom; Android raises it to 48 pixels. Apple iOS uses grouped translucent surfaces,
+Android uses Material 3 shapes and elevation, Windows 95/98 uses square inset/outset
+system chrome and a navy receipt heading, glassmorphism uses layered translucent blur,
+neomorphism uses paired raised/inset shadows, and ERP uses compact rectangular density
+with a blue rule. Reading order and truth remain identical across all six. Keyboard
+focus is explicit, forced colours replace decorative materials with system boundaries
+and button colours, and reduced motion removes nonessential transitions and transforms.

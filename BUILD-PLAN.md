@@ -296,7 +296,7 @@ Order 220 is built-unreviewed and composes exact housekeeping-task detail with t
 transition. It adds only zero-or-one server-authorized action presentation and reuses
 the existing command/idempotency/revalidation path. This cannot complete Phase 6.
 
-Order 221 composes the exact existing housekeeping-sheet generation receipt with the
+Order 221 is built-unreviewed and composes the exact existing housekeeping-sheet generation receipt with the
 already-governed task-detail journey. It adds only transient validated task links and
 no server authority, mutation, persistent sheet-history claim, schema or event. This
 cannot complete Phase 6.

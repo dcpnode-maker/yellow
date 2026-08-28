@@ -1602,6 +1602,46 @@ to { opacity: 1; transform: none; }
 @media (prefers-reduced-motion: reduce) { .housekeeping-task-detail-loading span { animation: none; } }
 @media (forced-colors: active) { .housekeeping-task-detail-panel,.housekeeping-task-detail-summary,.housekeeping-task-detail-facts,.housekeeping-task-detail-identifiers,.housekeeping-task-read-only,.housekeeping-task-detail-error { border: 1px solid CanvasText; background: Canvas; color: CanvasText; box-shadow: none; -webkit-backdrop-filter: none; backdrop-filter: none; } }
 
+/* Order 221: bounded transient receipt for generated housekeeping tasks. */
+.housekeeping-sheet-task-receipt { min-width: 0; max-width: 100%; padding: 1rem; display: grid; gap: .75rem; border: 1px solid var(--line); border-radius: var(--card-radius); background: var(--card); box-shadow: var(--material-card-shadow); overflow: hidden; }
+.housekeeping-sheet-task-receipt-head { min-width: 0; display: flex; align-items: start; justify-content: space-between; flex-wrap: wrap; gap: .5rem 1rem; }
+.housekeeping-sheet-task-receipt-head > * { min-width: 0; }
+.housekeeping-sheet-task-receipt-head :is(h4,p,strong,small) { overflow-wrap: anywhere; }
+.housekeeping-sheet-task-receipt-list { min-width: 0; max-width: 100%; margin: 0; padding: 0; display: grid; gap: .5rem; list-style: none; }
+.housekeeping-sheet-task-receipt-item { min-width: 0; max-width: 100%; padding: .75rem; display: grid; grid-template-columns: minmax(0,1fr) auto; align-items: center; gap: .75rem 1rem; border: 1px solid var(--line); border-radius: var(--control-radius); background: var(--surface-subtle); overflow: hidden; }
+.housekeeping-sheet-task-receipt-identity { min-width: 0; display: grid; gap: .2rem; }
+.housekeeping-sheet-task-receipt-identity :is(strong,small) { min-width: 0; overflow-wrap: anywhere; }
+.housekeeping-sheet-task-receipt-meta { min-width: 0; display: flex; flex-wrap: wrap; gap: .3rem .65rem; color: var(--muted); font-size: .78rem; line-height: 1.5; }
+.housekeeping-sheet-task-receipt-action { min-width: 0; min-height: 44px; max-width: 100%; display: inline-flex; align-items: center; justify-content: center; padding: .65rem 1rem; border: 1px solid var(--accent-strong); border-radius: var(--control-radius); background: var(--accent); color: #fff; font: inherit; font-weight: 800; line-height: 1.2; text-align: center; white-space: normal; overflow-wrap: anywhere; cursor: pointer; box-shadow: var(--material-primary-shadow); transition: transform var(--material-transition),box-shadow var(--material-transition),background-color var(--material-transition); touch-action: manipulation; }
+.housekeeping-sheet-task-receipt-action:hover { transform: var(--material-hover-lift); }
+.housekeeping-sheet-task-receipt-action:active { transform: var(--material-press); }
+.housekeeping-sheet-task-receipt-action:focus-visible { outline: 3px solid var(--focus); outline-offset: 3px; }
+:root[data-theme="apple"] .housekeeping-sheet-task-receipt { border: .5px solid rgba(60,60,67,.22); border-radius: 20px; background: rgba(255,255,255,.9); box-shadow: 0 1px 2px rgba(0,0,0,.04),0 18px 44px rgba(0,0,0,.08); }
+:root[data-theme="apple"] .housekeeping-sheet-task-receipt-item { border-width: .5px; border-radius: 15px; background: rgba(248,248,250,.88); }
+:root[data-theme="apple"] .housekeeping-sheet-task-receipt-action { border: .5px solid rgba(0,64,136,.5); border-radius: 13px; background: linear-gradient(180deg,#1689ff,#0077ed); color: #fff; box-shadow: 0 1px 1px rgba(255,255,255,.35) inset,0 7px 18px rgba(0,122,255,.24); }
+:root[data-theme="android"] .housekeeping-sheet-task-receipt { border: 0; border-radius: 28px 28px 12px 28px; background: #f7fbf8; box-shadow: 0 1px 3px rgba(29,25,43,.18),0 8px 24px rgba(29,25,43,.08); }
+:root[data-theme="android"] .housekeeping-sheet-task-receipt-item { border: 0; border-radius: 20px 20px 8px 20px; background: #eaddff; }
+:root[data-theme="android"] .housekeeping-sheet-task-receipt-action { min-height: 48px; padding-inline: 1.5rem; border: 0; border-radius: 999px; background: #6750a4; color: #fff; box-shadow: 0 1px 2px rgba(29,25,43,.3),0 2px 6px rgba(29,25,43,.16); letter-spacing: .01em; }
+:root[data-theme="win95"] .housekeeping-sheet-task-receipt { padding: 6px; gap: 6px; border: 2px outset #fff; border-radius: 0; background: #c0c0c0; box-shadow: 1px 1px #000; }
+:root[data-theme="win95"] .housekeeping-sheet-task-receipt-head { padding: 4px; background: #000080; color: #fff; }
+:root[data-theme="win95"] .housekeeping-sheet-task-receipt-head :is(.eyebrow,h4,p,strong,small) { color: #fff; }
+:root[data-theme="win95"] .housekeeping-sheet-task-receipt-item { border: 2px inset #fff; border-radius: 0; background: #fff; color: #000; }
+:root[data-theme="win95"] .housekeeping-sheet-task-receipt-action { border: 2px outset #fff; border-radius: 0; background: #c0c0c0; color: #000; box-shadow: 1px 1px #000; font-family: "MS Sans Serif",Tahoma,sans-serif; }
+:root[data-theme="win95"] .housekeeping-sheet-task-receipt-action:active { border-style: inset; transform: none; box-shadow: none; }
+:root[data-theme="glass"] .housekeeping-sheet-task-receipt { border: 1px solid rgba(255,255,255,.4); border-radius: 24px; background: linear-gradient(145deg,rgba(244,250,255,.24),rgba(104,148,222,.1)); box-shadow: inset 0 1px rgba(255,255,255,.58),0 26px 64px rgba(0,5,22,.32); -webkit-backdrop-filter: blur(28px) saturate(172%); backdrop-filter: blur(28px) saturate(172%); }
+:root[data-theme="glass"] .housekeeping-sheet-task-receipt-item { border-color: rgba(255,255,255,.42); border-radius: 18px; background: rgba(238,247,255,.14); box-shadow: inset 0 1px rgba(255,255,255,.34); }
+:root[data-theme="glass"] .housekeeping-sheet-task-receipt-action { border: 1px solid rgba(255,255,255,.52); border-radius: 16px; background: linear-gradient(145deg,rgba(220,240,255,.3),rgba(102,160,232,.2)); color: #f8fbff; box-shadow: inset 0 1px rgba(255,255,255,.62),0 14px 34px rgba(0,5,22,.34); -webkit-backdrop-filter: blur(20px) saturate(170%); backdrop-filter: blur(20px) saturate(170%); }
+:root[data-theme="neo"] .housekeeping-sheet-task-receipt { border: 1px solid #a1adb3; border-radius: 24px; background: #e8eef1; box-shadow: -8px -8px 18px #fff,8px 8px 18px #bec8cd; }
+:root[data-theme="neo"] .housekeeping-sheet-task-receipt-item { border-color: #a1adb3; border-radius: 16px; background: #e8eef1; box-shadow: inset -4px -4px 9px #fff,inset 4px 4px 9px #c1cbd0; }
+:root[data-theme="neo"] .housekeeping-sheet-task-receipt-action { border: 1px solid #a1adb3; border-radius: 16px; background: #e8eef1; color: #176f7b; box-shadow: -5px -5px 12px #fff,5px 5px 12px #bec8cd; }
+:root[data-theme="neo"] .housekeeping-sheet-task-receipt-action:active { transform: none; box-shadow: inset -3px -3px 7px #fff,inset 3px 3px 7px #c1cbd0; }
+:root[data-theme="erp"] .housekeeping-sheet-task-receipt { border: 1px solid #d9dee7; border-left: 4px solid #163ee9; border-radius: 8px; background: #fff; box-shadow: 0 1px 2px rgba(16,24,40,.04),0 8px 20px rgba(16,24,40,.05); }
+:root[data-theme="erp"] .housekeeping-sheet-task-receipt-item { border-radius: 6px; background: #f7f8fa; }
+:root[data-theme="erp"] .housekeeping-sheet-task-receipt-action { border: 1px solid #0928a8; border-radius: 5px; background: #163ee9; color: #fff; box-shadow: 0 3px 9px rgba(22,62,233,.2); font-weight: 750; }
+@media (max-width: 420px) { .housekeeping-sheet-task-receipt { padding: .75rem; } .housekeeping-sheet-task-receipt-head { align-items: stretch; flex-direction: column; } .housekeeping-sheet-task-receipt-item { grid-template-columns: minmax(0,1fr); } .housekeeping-sheet-task-receipt-action { width: 100%; } }
+@media (prefers-reduced-motion: reduce) { .housekeeping-sheet-task-receipt-action { animation: none; transition: none; transform: none; } }
+@media (forced-colors: active) { .housekeeping-sheet-task-receipt,.housekeeping-sheet-task-receipt-item { border: 1px solid CanvasText; background: Canvas; color: CanvasText; box-shadow: none; -webkit-backdrop-filter: none; backdrop-filter: none; } .housekeeping-sheet-task-receipt-action { border: 2px solid ButtonText; background: ButtonFace; color: ButtonText; box-shadow: none; -webkit-backdrop-filter: none; backdrop-filter: none; forced-color-adjust: auto; } .housekeeping-sheet-task-receipt-action:focus-visible { outline: 3px solid Highlight; } }
+
 /* Order 220: server-authorized housekeeping-task detail transition. */
 .housekeeping-task-detail-governed-action { min-width: 0; min-height: 44px; max-width: 100%; display: inline-flex; align-items: center; justify-content: center; padding: .65rem 1rem; border: 1px solid var(--accent-strong); border-radius: var(--control-radius); background: var(--accent); color: #fff; font: inherit; font-weight: 800; line-height: 1.2; text-align: center; white-space: normal; overflow-wrap: anywhere; touch-action: manipulation; cursor: pointer; box-shadow: var(--material-primary-shadow); transition: transform var(--material-transition), box-shadow var(--material-transition), background-color var(--material-transition), border-color var(--material-transition); }
 .housekeeping-task-detail-governed-action:hover { transform: var(--material-hover-lift); }

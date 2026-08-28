@@ -1,6 +1,6 @@
 # Order 221 — Housekeeping-sheet task receipt
 
-**Status:** READY-D585 — intentional red must precede implementation
+**Status:** BUILT-UNREVIEWED-D586
 **Phase:** 6 — Stay operations and housekeeping
 **Branch:** `phase-6/housekeeping-sheet-task-receipt`
 **Base:** `3f80b50` (built-unreviewed Order220)
@@ -58,8 +58,21 @@ dependency, scope/event or local promotion/deployment file is admitted.
 
 ## Definition of done
 
-- [ ] Intentional red precedes implementation.
-- [ ] Exact generation receipt is validated and retained only while current.
-- [ ] Every task action reuses the authoritative existing task-detail journey.
-- [ ] Stale/history/focus and six-appearance proof is green.
-- [ ] Standing gates are green and result is recorded built-unreviewed.
+- [x] Intentional red preceded implementation (`cb15879`).
+- [x] Exact generation receipt is validated and retained only while current.
+- [x] Every task action reuses the authoritative existing task-detail journey.
+- [x] Stale/history/focus and six-appearance proof is green.
+- [x] Standing gates are green and result is recorded built-unreviewed.
+
+## Built evidence
+
+- Focused Order221 plus Orders202/217/220 proof: 39 passed, 0 failed, 404 assertions.
+- Standing proof: 561 passed, 629 environment skips, 0 failed, 6,178 assertions;
+  1,190 tests across 213 files.
+- Typecheck, 82 import boundaries, 23 dependency licences, zero-vulnerability audit,
+  JavaScript syntax and diff checks are green.
+- The implementation diff is confined to browser UI, specification, tests and
+  governance. No TypeScript, database, schema, migration, seed, dependency, server
+  route or executable authority changed; exact Order220 schema/referee evidence is
+  therefore preserved unchanged.
+- Independent product review remains deferred by the founder's build-first direction.

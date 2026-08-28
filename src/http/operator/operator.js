@@ -86,6 +86,9 @@
  let housekeepingSheetCanGenerate = false;
  let housekeepingSheetAttemptKey = "";
  let housekeepingSheetAttemptDraft = "";
+ let housekeepingGenerationReceipt = null;
+ let housekeepingGenerationReceiptGeneration = 0;
+ let housekeepingGenerationReceiptPanel = null;
  let vehicleRegisterGeneration = 0;
  let vehicleRegisterNextCursor = null;
  let vehicleRegisterCursor = "";
@@ -1558,12 +1561,138 @@ const RESERVATION_TRAVEL_MODE_LABELS = Object.freeze({
  dirty: "Dirty", pickup: "Pickup", clean: "Clean", inspected: "Inspected",
  });
  const HOUSEKEEPING_CADENCE_LABELS = Object.freeze({ daily: "Daily", on_departure: "On departure" });
-  function setHousekeepingSheetMessage(message, isError = false) {
+ function setHousekeepingSheetMessage(message, isError = false) {
  housekeepingSheetMessage.textContent = message;
  housekeepingSheetMessage.classList.toggle("error", isError);
  }
+ function clearHousekeepingSheetReceipt() {
+ housekeepingGenerationReceiptGeneration += 1;
+ housekeepingGenerationReceipt = null;
+ if (housekeepingGenerationReceiptPanel) {
+  housekeepingGenerationReceiptPanel.hidden = true;
+  housekeepingGenerationReceiptPanel.replaceChildren();
+ }
+ }
+ function parseHousekeepingGenerationReceipt(value, origin) {
+ const receiptKeys = ["attendantPartyId", "replayed", "sheetDate", "sheetId", "taskCount", "tasks"];
+ const taskKeys = ["cadence", "profileKey", "spaceCode", "spaceId", "taskId"];
+ const validOrigin = origin && typeof origin === "object" && !Array.isArray(origin) &&
+  Object.keys(origin).sort().join(",") === "attendantPartyId,property,sheetDate" &&
+  canonicalUuid(String(origin.property || "")) && canonicalUuid(String(origin.attendantPartyId || "")) &&
+  /^\d{4}-\d{2}-\d{2}$/.test(String(origin.sheetDate || ""));
+ if (!validOrigin || !value || typeof value !== "object" || Array.isArray(value) ||
+  Object.keys(value).sort().join(",") !== receiptKeys.join(",") || !canonicalUuid(String(value.sheetId || "")) ||
+  value.sheetDate !== origin.sheetDate || value.attendantPartyId !== origin.attendantPartyId ||
+  typeof value.replayed !== "boolean" || !Number.isInteger(value.taskCount) || value.taskCount < 1 ||
+  value.taskCount > 200 || !Array.isArray(value.tasks) || value.tasks.length !== value.taskCount) {
+  throw new Error("The housekeeping generation receipt was invalid.");
+ }
+ const taskIds = new Set();
+ const spaceIds = new Set();
+ const tasks = value.tasks.map((task) => {
+  const validTask = task && typeof task === "object" && !Array.isArray(task) &&
+   Object.keys(task).sort().join(",") === taskKeys.join(",") &&
+   canonicalUuid(String(task.taskId || "")) && canonicalUuid(String(task.spaceId || "")) &&
+   typeof task.spaceCode === "string" && task.spaceCode.trim().length > 0 && task.spaceCode.length <= 120 &&
+   typeof task.profileKey === "string" && task.profileKey.trim().length > 0 && task.profileKey.length <= 120 &&
+   ["daily", "on_departure"].includes(task.cadence) &&
+   !taskIds.has(task.taskId) && !spaceIds.has(task.spaceId);
+  if (!validTask) throw new Error("The housekeeping generation receipt contained invalid task truth.");
+  taskIds.add(task.taskId);
+  spaceIds.add(task.spaceId);
+  return Object.freeze({
+   taskId: task.taskId,
+   spaceId: task.spaceId,
+   spaceCode: task.spaceCode,
+   profileKey: task.profileKey,
+   cadence: task.cadence,
+  });
+ });
+ return Object.freeze({
+  property: origin.property,
+  sheetId: value.sheetId,
+  sheetDate: value.sheetDate,
+  attendantPartyId: value.attendantPartyId,
+  taskCount: value.taskCount,
+  tasks: Object.freeze(tasks),
+  replayed: value.replayed,
+ });
+ }
+function ensureHousekeepingGenerationReceiptPanel() {
+ if (housekeepingGenerationReceiptPanel?.isConnected) return housekeepingGenerationReceiptPanel;
+ const panel = node("section", "housekeeping-sheet-task-receipt");
+ panel.hidden = true;
+ panel.setAttribute("aria-labelledby", "housekeeping-sheet-task-receipt-title");
+ panel.addEventListener("click", (event) => {
+  const action = event.target.closest?.(".housekeeping-sheet-task-receipt-action");
+  if (action instanceof HTMLButtonElement) openGeneratedHousekeepingTaskDetail(action);
+ });
+ housekeepingSheetPreviewPanel.after(panel);
+ housekeepingGenerationReceiptPanel = panel;
+ return panel;
+ }
+ function renderHousekeepingSheetTaskReceipt(receipt) {
+ const panel = ensureHousekeepingGenerationReceiptPanel();
+ const generation = ++housekeepingGenerationReceiptGeneration;
+ housekeepingGenerationReceipt = Object.freeze({ ...receipt, generation });
+ const head = node("div", "housekeeping-sheet-task-receipt-head");
+ const copy = node("div");
+ copy.append(node("span", "eyebrow", receipt.replayed ? "Existing server receipt" : "Generation receipt"));
+ const title = node("h4", "", `${receipt.taskCount} task${receipt.taskCount === 1 ? "" : "s"} ready to open`);
+ title.id = "housekeeping-sheet-task-receipt-title";
+ title.tabIndex = -1;
+ copy.append(title);
+ head.append(copy, housekeepingBadge("sheet-state", receipt.replayed ? "Confirmed" : "Generated", "generated"));
+ const list = node("div", "housekeeping-sheet-task-receipt-list");
+ list.setAttribute("role", "list");
+ list.setAttribute("aria-label", "Tasks returned by this housekeeping-sheet generation");
+ for (const task of receipt.tasks) {
+  const item = node("article", "housekeeping-sheet-task-receipt-item");
+  item.setAttribute("role", "listitem");
+  const identity = node("div", "housekeeping-sheet-task-receipt-identity");
+  identity.append(node("strong", "", `Room ${task.spaceCode}`),
+   node("small", "housekeeping-sheet-task-receipt-meta", `${HOUSEKEEPING_CADENCE_LABELS[task.cadence]} · ${task.profileKey}`));
+  const action = node("button", "secondary housekeeping-sheet-task-receipt-action", "Open task");
+  action.type = "button";
+  action.dataset.receiptGeneration = String(generation);
+  action.dataset.sheetId = receipt.sheetId;
+  action.dataset.taskId = task.taskId;
+  action.dataset.spaceId = task.spaceId;
+  action.dataset.cadence = task.cadence;
+  action.setAttribute("aria-label", `Open generated housekeeping task for room ${task.spaceCode}`);
+  item.append(identity, action);
+  list.append(item);
+ }
+ panel.replaceChildren(head, list,
+  node("p", "field-note", "This transient list is the exact successful generation receipt. Opening a task refetches current governed truth."));
+ panel.hidden = false;
+ return title;
+ }
+ function generatedHousekeepingTaskAction(taskId) {
+ const receipt = housekeepingGenerationReceipt;
+ const panel = housekeepingGenerationReceiptPanel;
+ if (!receipt || !panel?.isConnected || panel.hidden) return null;
+ const action = [...panel.querySelectorAll(".housekeeping-sheet-task-receipt-action")]
+  .find((candidate) => candidate.dataset.taskId === taskId && candidate.dataset.receiptGeneration === String(receipt.generation));
+ return action instanceof HTMLButtonElement ? action : null;
+ }
+ function openGeneratedHousekeepingTaskDetail(action) {
+ const receipt = housekeepingGenerationReceipt;
+ const panel = housekeepingGenerationReceiptPanel;
+ if (!receipt || !panel?.isConnected || !(panel.hidden === false) || !(action instanceof HTMLButtonElement) ||
+  !action.isConnected || !panel.contains(action) || !action.classList.contains("housekeeping-sheet-task-receipt-action") ||
+  receipt.generation !== housekeepingGenerationReceiptGeneration || receipt.property !== propertySelect.value ||
+  receipt.sheetDate !== housekeepingSheetDate.value || receipt.attendantPartyId !== housekeepingSheetAttendant?.partyId ||
+  activeView !== "housekeeping" || location.pathname !== `/p/${receipt.property}/housekeeping` || location.search !== "") return;
+ const task = receipt.tasks.find((item) => item.taskId === action.dataset.taskId);
+ if (!task || action.dataset.receiptGeneration !== String(receipt.generation) ||
+  action.dataset.sheetId !== receipt.sheetId || action.dataset.spaceId !== task.spaceId ||
+  action.dataset.cadence !== task.cadence) return;
+ openHousekeepingTaskDetail(task.taskId, { trigger: action });
+ }
   function clearHousekeepingSheetPreview() {
  housekeepingSheetRequestGeneration += 1;
+ clearHousekeepingSheetReceipt();
  housekeepingSheetPreview = [];
  housekeepingSheetCanGenerate = false;
  housekeepingSheetAttemptKey = "";
@@ -1575,6 +1704,7 @@ const RESERVATION_TRAVEL_MODE_LABELS = Object.freeze({
  }
   function clearHousekeepingSheetState() {
  housekeepingSheetGeneration += 1;
+ clearHousekeepingSheetReceipt();
  clearHousekeepingSheetPreview();
  housekeepingSheetAttendant = null;
  housekeepingSheetForm.reset();
@@ -1604,6 +1734,7 @@ const RESERVATION_TRAVEL_MODE_LABELS = Object.freeze({
  }
   function chooseHousekeepingAttendant(profile) {
  housekeepingSheetGeneration += 1;
+ clearHousekeepingSheetReceipt();
  clearHousekeepingSheetPreview();
  housekeepingSheetAttendant = { partyId: String(profile.partyId), displayName: String(profile.displayName || "Staff Party") };
  housekeepingAttendantSelected.querySelector("strong").textContent = housekeepingSheetAttendant.displayName;
@@ -1708,6 +1839,7 @@ const RESERVATION_TRAVEL_MODE_LABELS = Object.freeze({
  renderHousekeepingSheetList(sheets);
  }
   async function previewHousekeepingSheet({ focus = false } = {}) {
+ clearHousekeepingSheetReceipt();
  if (!housekeepingSheetForm.reportValidity() || !housekeepingSheetAttendant) {
   setHousekeepingSheetMessage("Choose a date and one staff attendant before previewing.", true);
   (!housekeepingSheetDate.value ? housekeepingSheetDate : housekeepingAttendantQuery).focus();
@@ -1731,6 +1863,7 @@ const RESERVATION_TRAVEL_MODE_LABELS = Object.freeze({
   renderHousekeepingSheetPreview(preview, list.sheets);
   setHousekeepingSheetMessage(`${preview.rooms.length} authoritative room${preview.rooms.length === 1 ? "" : "s"} ready for review.`);
   if (focus) housekeepingSheetPreviewPanel.focus({ preventScroll: true });
+  return true;
  } catch (error) {
   if (!housekeepingSheetIsCurrent(generation, requestGeneration, property, sheetDate)) return;
   housekeepingSheetPreviewPanel.hidden = true;
@@ -1738,6 +1871,7 @@ const RESERVATION_TRAVEL_MODE_LABELS = Object.freeze({
   const cadenceHelp = /cadence/i.test(message) ? " Update the room profile to daily or on-departure, then preview again." : " Refresh and try again.";
   setHousekeepingSheetMessage(`${message}.${cadenceHelp}`, true);
   if (focus) housekeepingPreviewAction.focus({ preventScroll: true });
+  return false;
  } finally {
   if (housekeepingSheetIsCurrent(generation, requestGeneration, property, sheetDate)) updateHousekeepingSheetProgress();
  }
@@ -1755,6 +1889,7 @@ const RESERVATION_TRAVEL_MODE_LABELS = Object.freeze({
  }
  const generation = housekeepingSheetGeneration;
  const requestGeneration = housekeepingSheetRequestGeneration;
+ clearHousekeepingSheetReceipt();
  housekeepingGenerate.disabled = true;
  setHousekeepingSheetMessage(`Generating ${housekeepingSheetPreview.length} governed assigned task${housekeepingSheetPreview.length === 1 ? "" : "s"}…`);
  try {
@@ -1763,13 +1898,20 @@ const RESERVATION_TRAVEL_MODE_LABELS = Object.freeze({
   body: JSON.stringify({ sheetDate, attendantPartyId }),
   });
   if (!housekeepingSheetIsCurrent(generation, requestGeneration, property, sheetDate)) return;
+  const receipt = parseHousekeepingGenerationReceipt(result, { property, sheetDate, attendantPartyId });
   housekeepingSheetAttemptKey = "";
   housekeepingSheetAttemptDraft = "";
   setHousekeepingSheetMessage(result.replayed ? "The existing sheet was confirmed. Refreshing authoritative tasks…" : "Task sheet generated. Refreshing authoritative tasks…");
-  await Promise.all([previewHousekeepingSheet(), loadHousekeepingBoard()]);
-  if (activeView === "housekeeping") $("#housekeeping-sheet-history").focus({ preventScroll: true });
+  const [previewCurrent] = await Promise.all([previewHousekeepingSheet(), loadHousekeepingBoard()]);
+  if (previewCurrent !== true || activeView !== "housekeeping" || property !== propertySelect.value ||
+   sheetDate !== housekeepingSheetDate.value || attendantPartyId !== housekeepingSheetAttendant?.partyId ||
+   location.pathname !== `/p/${property}/housekeeping` || location.search !== "") return;
+  const receiptTitle = renderHousekeepingSheetTaskReceipt(receipt);
+  setHousekeepingSheetMessage(result.replayed ? "The existing sheet receipt was confirmed. Open a task to refetch current governed truth." : "Task sheet generated. Open a task to refetch current governed truth.");
+  receiptTitle.focus({ preventScroll: true });
  } catch (error) {
   if (!housekeepingSheetIsCurrent(generation, requestGeneration, property, sheetDate)) return;
+  clearHousekeepingSheetReceipt();
   if (error?.status === 409) {
   housekeepingSheetAttemptKey = "";
   housekeepingSheetAttemptDraft = "";
@@ -2248,7 +2390,7 @@ const RESERVATION_TRAVEL_MODE_LABELS = Object.freeze({
   function syncHousekeepingRoute({ focus = false } = {}) {
  const route = housekeepingNavigationRoute();
  if (route.kind === "detail" && route.property === propertySelect.value) {
-  openHousekeepingTaskDetail(route.taskId, { push: false, focus: true });
+  openHousekeepingTaskDetail(route.taskId, { push: false, focus: true, trigger: generatedHousekeepingTaskAction(route.taskId) });
   return;
  }
  if (route.kind !== "board" || route.property !== propertySelect.value) return;
@@ -6966,6 +7108,7 @@ function vehicleReturnPathFromState(state, property) {
  if (previousView === "folios" && activeView !== "folios") clearFolioState();
  if (previousView === "today" && activeView !== "today") todayGeneration += 1;
  if (previousView === "housekeeping" && activeView !== "housekeeping") {
+  clearHousekeepingSheetReceipt();
   closeHousekeepingTaskDetail({ history: false, restoreFocus: false });
   housekeepingGeneration += 1;
   housekeepingRequestGeneration += 1;
@@ -8938,8 +9081,9 @@ function vehicleReturnPathFromState(state, property) {
  housekeepingAttendantQuery.addEventListener("keydown", (event) => {
  if (event.key === "Enter") { event.preventDefault(); void searchHousekeepingAttendants(); }
  });
- housekeepingAttendantQuery.addEventListener("input", () => {
+housekeepingAttendantQuery.addEventListener("input", () => {
  housekeepingSheetGeneration += 1;
+ clearHousekeepingSheetReceipt();
  housekeepingAttendantResults.replaceChildren();
  setHousekeepingSheetMessage("");
  });
@@ -8953,8 +9097,9 @@ function vehicleReturnPathFromState(state, property) {
  setHousekeepingSheetMessage("Choose the attendant again, then refresh the authoritative preview.");
  housekeepingAttendantQuery.focus({ preventScroll: true });
  });
- housekeepingSheetDate.addEventListener("change", () => {
+housekeepingSheetDate.addEventListener("change", () => {
  housekeepingSheetGeneration += 1;
+ clearHousekeepingSheetReceipt();
  clearHousekeepingSheetPreview();
  updateHousekeepingSheetProgress();
  if (housekeepingSheetDate.value) void loadHousekeepingSheetHistory();
