@@ -307,18 +307,24 @@ colours, and has native material treatment in every current appearance.
 ## 17. Today operational action routing
 
 Today exposes one bounded **Prepare check-in** action only when both the lane and the
-server row status are exact `due_in`, and one **Prepare checkout** action only when
-both are exact `due_out`. Each semantic button opens the existing reservation detail
-at `/p/{property}/res/{reservation}?workbench=check-in|checkout`. In-house,
-mismatched and unknown lane/status combinations have no preparation action. Travel,
-room, folio and readiness evidence never creates or changes an action.
+server row status are exact `due_in`. It exposes one **Prepare checkout** action when
+the lane and row status are both exact `due_out` or both exact `in_house`. Every other
+lane/status pair remains inert. Each semantic button reuses the existing
+`.today-operational-action` control and opens the canonical reservation detail at
+`/p/{property}/res/{reservation}?workbench=check-in|checkout`; no second route,
+control family or appearance treatment is introduced. Travel, room, Folio, balance,
+occupancy, housekeeping and inferred readiness evidence never creates or changes an
+action.
 
 The query carries presentation and focus intent only. Refresh, Back, Forward and a
 same-reservation query change reapply that intent after current authoritative detail
 settles. Invalid, duplicate, empty, extra or status-incompatible intent canonicalizes
 to the plain reservation detail, announces the fallback and performs no command.
-Existing server readiness and explicit confirmation remain mandatory for every
-check-in or checkout POST.
+The existing strict workbench parser, one-entry history, stale guards and Today return
+focus remain unchanged. Existing authoritative reservation detail, checkout-readiness
+blockers, server permissions and explicit confirmation remain mandatory before any
+existing check-in or checkout command can run; Today navigation adds no authority or
+mutation.
 
 Action groups wrap without a fixed inline measure. Buttons remain at least 44 pixels
 and 48 pixels in Android appearance, contain at 375 pixels and 200% zoom, expose a

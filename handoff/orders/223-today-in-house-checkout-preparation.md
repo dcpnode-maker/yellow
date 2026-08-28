@@ -1,6 +1,6 @@
 # Order 223 — Today in-house checkout preparation
 
-**Status:** READY-D589 — intentional red must precede implementation
+**Status:** BUILT-UNREVIEWED-D590
 **Phase:** 6 — Stay operations and housekeeping
 **Branch:** `phase-6/today-in-house-checkout-preparation`
 **Base:** `a6053f7` (built-unreviewed Order222)
@@ -52,7 +52,18 @@ schema/migration/seed, dependency, scope/event, local promotion/deployment file 
 
 ## Definition of done
 
-- [ ] Intentional red precedes implementation.
-- [ ] Exact in-house row receives only the existing checkout-preparation action.
-- [ ] All mismatches remain inert and no authority is inferred.
-- [ ] Focused and standing gates are green and result is recorded built-unreviewed.
+- [x] Intentional red preceded implementation.
+- [x] Exact in-house row receives only the existing checkout-preparation action.
+- [x] All mismatches remain inert and no authority is inferred.
+- [x] Focused and standing gates are green and result is recorded built-unreviewed.
+
+## Builder evidence
+
+- Focused Today/reservation-detail/checkout journey: `64 passed, 0 failed`, 932 assertions.
+- Standing suite: `581 passed, 629 skipped, 0 failed`, 6,389 assertions across
+  1,210 tests in 218 files.
+- Typecheck, 82 import boundaries, 23 dependency licences, audit with zero known
+  vulnerabilities, JavaScript syntax and diff checks are green.
+- The diff changes no TypeScript server/API/domain/database/schema/migration/seed/
+  dependency authority, preserving the exact inherited schema/referee evidence.
+  Independent product review remains deferred by founder build-first direction.

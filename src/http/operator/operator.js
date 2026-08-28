@@ -1400,6 +1400,9 @@ const RESERVATION_TRAVEL_MODE_LABELS = Object.freeze({
  if (laneStatus === "due_out" && rowStatus === "due_out") {
   return { workbench: "checkout", label: "Prepare checkout" };
  }
+ if (laneStatus === "in_house" && rowStatus === "in_house") {
+  return { workbench: "checkout", label: "Prepare checkout" };
+ }
  return null;
  }
   function todayLaneElements(status) {

@@ -1,8 +1,8 @@
 # Phase 6 — Stay operations and housekeeping
 
-**Status:** active; Orders 200–222 are built-unreviewed
+**Status:** active; Orders 200–223 are built-unreviewed
 **Entry point:** built-unreviewed Phase-5 composition through Order 199
-**Current order:** `223-today-in-house-checkout-preparation.md` (ready)
+**Current order:** next bounded build-first slice pending
 
 ## Outcome
 
@@ -253,7 +253,7 @@ visible Back/Escape/history journey returns to the same authoritative departure
 workbench rather than losing context or focusing hidden content. It changes no server,
 financial, checkout, schema, migration or event authority.
 
-Order 223 extends only the existing Today presentation truth table so exact in-house
+Order 223 is built-unreviewed and extends only the existing Today presentation truth table so exact in-house
 rows route to the already-supported checkout-readiness workbench. Existing
 authoritative blockers and explicit confirmation remain mandatory; no command,
 authority, mutation, schema, migration or event is added.

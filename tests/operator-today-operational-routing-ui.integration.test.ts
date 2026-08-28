@@ -35,9 +35,9 @@ describe("Order 209 Today operational routing UI", () => {
     expect(card).toContain('action.setAttribute("aria-label"');
   });
 
-  test("the pure action choice does not create an in-house or evidence-inferred route", () => {
+  test("the pure action choice creates only the exact in-house route and never infers one from evidence", () => {
     const action = functionSource("todayOperationalAction");
-    expect(action).not.toContain("in_house");
+    expect(action).toContain('laneStatus === "in_house" && rowStatus === "in_house"');
     expect(action).not.toMatch(/arrival|departure|travel|pickup|room|folio|readiness|condition/i);
   });
 

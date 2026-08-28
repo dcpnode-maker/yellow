@@ -172,8 +172,9 @@ test("Order 209: Today preparation routes use only exact lane/status truth and p
     (lane: string, rowStatus: string) => { workbench: string; label: string } | null;
   expect(action("due_in", "due_in")).toEqual({ workbench: "check-in", label: "Prepare check-in" });
   expect(action("due_out", "due_out")).toEqual({ workbench: "checkout", label: "Prepare checkout" });
+  expect(action("in_house", "in_house")).toEqual({ workbench: "checkout", label: "Prepare checkout" });
   for (const [lane, rowStatus] of [
-    ["in_house", "in_house"], ["due_in", "in_house"], ["due_out", "in_house"],
+    ["due_in", "in_house"], ["due_out", "in_house"],
     ["due_in", "due_out"], ["due_out", "due_in"], ["unknown", "due_in"],
   ] as const) expect(action(lane, rowStatus)).toBeNull();
 

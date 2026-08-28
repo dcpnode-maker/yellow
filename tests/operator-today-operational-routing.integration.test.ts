@@ -26,7 +26,8 @@ test("Order 209: Today operational actions are an exact lane and row-status trut
   expect(action("due_out", "due_out")).toEqual({ workbench: "checkout", label: "Prepare checkout" });
   for (const lane of ["due_in", "due_out", "in_house", "unknown"]) {
     for (const row of ["due_in", "due_out", "in_house", "unknown"]) {
-      if ((lane === "due_in" && row === "due_in") || (lane === "due_out" && row === "due_out")) continue;
+      if ((lane === "due_in" && row === "due_in") || (lane === "due_out" && row === "due_out")
+        || (lane === "in_house" && row === "in_house")) continue;
       expect(action(lane, row)).toBeNull();
     }
   }

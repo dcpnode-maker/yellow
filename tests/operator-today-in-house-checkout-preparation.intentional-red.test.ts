@@ -16,7 +16,7 @@ function functionSource(name: string): string {
   throw new Error(`Unclosed function ${name}`);
 }
 
-test("Order 223 intentional red requires exact Today in-house checkout preparation", () => {
+test("Order 223 builds exact Today in-house checkout preparation", () => {
   const action = new Function(`return (${functionSource("todayOperationalAction")})`)() as
     (lane: string, row: string) => { workbench: string; label: string } | null;
   expect(action("in_house", "in_house")).toEqual({ workbench: "checkout", label: "Prepare checkout" });
