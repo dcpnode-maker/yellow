@@ -1,6 +1,6 @@
 # Order 259 — Configured positive-tax semantic routing
 
-**Status:** BUILT-D672
+**Status:** APPROVED-D673
 **Phase:** 7 — Tax engine and India IRP
 **Branch:** `phase-7/semantic-tax-route`
 **Base:** `b9187d7` (approved Order256, current status/local through Order258)
@@ -90,7 +90,7 @@ claim.
 - [x] Intentional red precedes implementation.
 - [x] Exact schema, resolver and P1–P7 proof pass.
 - [x] Standing and fresh referee/acceptance/schema gates pass.
-- [ ] A non-implementing Tier-3 reviewer personally executes and records proof.
+- [x] A non-implementing Tier-3 reviewer personally executes and records proof.
 
 ## Build evidence
 
@@ -105,4 +105,13 @@ environment skips with 8,508 assertions across 1,592 tests/287 files. Typecheck,
 hygiene and exact migration checksum
 `a5036df30f07c4c8add08c46cdb805c71b87597efa542e368e64aa35d572bf40`
 are green. All disposable proof infrastructure was removed and the stable local was
-untouched. Independent Tier-3 execution remains required before approval.
+untouched. Independent Tier-3 execution was required before approval and is recorded
+below.
+
+Independent review at
+`handoff/reviews/259-configured-positive-tax-semantic-routing.md` personally
+reproduced focused `9/9`, adjacent `21/21`, acceptance `11/11`, migration
+`38/38`, schema `4/4`, exact snapshot, fresh43/97/87/referee `11/11`,
+typecheck and 95 boundaries against exact commit `31662dd`. It found no issue,
+removed its standalone target and proved the stable local remained byte-identical and
+healthy. D-673 grants only the configured read-only routing boundary.

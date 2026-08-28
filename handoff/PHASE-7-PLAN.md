@@ -2,7 +2,7 @@
 
 **Status:** active; configured positive-tax routing built through Order259
 **Entry point:** built-unreviewed Phase-6 composition through Order 236
-**Current order:** Order259 configured positive-tax semantic routing is built pending independent Tier-3 review under D-672
+**Current order:** Order259 configured positive-tax semantic routing is independently approved under D-673
 
 ## Outcome
 
@@ -217,5 +217,8 @@ The slice writes no journal, posting, tax detail, evidence, document or fiscal s
 and invents no guest-debit code, effective-date policy, India decomposition or
 document allocation. Fresh PostgreSQL16.15 proof reaches migration43/97 tables/87
 policies; focused9/9, acceptance11/11, migration38/38, schema drift4/4, referee11/11,
-standing837/837 plus755 environment skips and all static gates are green. It remains
-built pending mandatory non-implementing Tier-3 execution.
+standing837/837 plus755 environment skips and all static gates are green. Independent
+Tier-3 review under D-673 personally reproduced the focused, adjacent, database,
+schema, referee and static proof with no finding. The next product boundary is a
+governed non-India, line-rounded positive posting writer; India/document allocation
+and taxed correction semantics remain explicit later policy work.

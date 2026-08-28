@@ -199,10 +199,11 @@ Order257/D-668 is the bounded founder-visible status refresh through approved
 Order256. It changes recorded status truth only; the sole local remains a separate
 promotion concern and unfinished Phases5–7 remain active.
 
-Order259/D-672 builds the explicit read-only semantic-route prerequisite: approved
+Order259/D-673 independently approves the explicit read-only semantic-route prerequisite: approved
 Order256 eligibility and the Order251 plan resolve only exact configured
 property/currency/jurisdiction revenue and tax credit routes, while policy blockers
 perform no lookup and every heuristic fallback is rejected. Migration43 reaches
 97 tables/87 policies with focused, acceptance, migration, schema and referee proof
-green. Independent Tier-3 execution remains the approval gate before a positive
-posting writer.
+green. The reviewer personally reproduced the complete proof with no finding. A
+governed positive posting writer is now the next product boundary; India/document
+allocation and taxed correction semantics remain later policy work.
