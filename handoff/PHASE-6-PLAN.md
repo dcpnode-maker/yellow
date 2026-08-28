@@ -1,8 +1,8 @@
 # Phase 6 — Stay operations and housekeeping
 
-**Status:** active; Orders 200–231 are built-unreviewed
+**Status:** active; Orders 200–235 are built-unreviewed
 **Entry point:** built-unreviewed Phase-5 composition through Order 199
-**Current order:** the next build-first Phase-6 slice is being scoped
+**Current order:** Order 236 governed vehicle parking-slot assignment is ready
 
 ## Outcome
 
@@ -373,3 +373,14 @@ fiscal document work remains Phase 7. No country rule is hardcoded in Phase 6.
 - an independent non-implementing agent executes the high-risk proof before approval.
 
 Until those slices and proofs land, Phase 6 remains active and unapproved.
+
+### Order 236 — governed vehicle parking-slot assignment
+
+Order 236 is ready under D-620. It adds one create-only exact-property assignment for
+an onsite reservation-linked vehicle to an active capacity-one parking `space`, using
+the existing current reservation segment and `record_occupancy()` as the only
+collision/write choke point. PostgreSQL owns current-stay and period derivation; the
+browser selects only exact vehicle and parking-space identities. Replacement/release,
+staff/visitor parking, entry/exit, history and auto-allocation remain later policy.
+The order may finish only as built-unreviewed while independent Tier-3 review is
+deferred by the founder's build-first direction.

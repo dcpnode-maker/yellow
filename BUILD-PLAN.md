@@ -401,6 +401,14 @@ Focused `29/29`, adjacent `150/150`, standing `761/0`, fresh database authority 
 review-seed proof, exact schema, static gates and fresh referee `11/11` are green;
 independent Tier-3 approval remains deferred under the founder's build-first direction.
 
+Order 236 is ready under D-620 for the first governed vehicle parking mutation. One
+exact onsite reservation-linked vehicle may receive one active capacity-one
+`profile_key='parking'` space through the existing exclusive `record_occupancy()`
+choke point, with server-derived current segment and bounded period. Replacement,
+release, staff/visitor parking, entry/exit and history remain deferred. This slice
+cannot complete Phase 6 and, after implementation, remains built-unreviewed until an
+independent Tier-3 reviewer personally executes its proof.
+
 ## Phase 7 — Tax engine + India IRP
 
 tax_assignment evaluation (percent/fixed/slab, compound, line-vs-document rounding)
