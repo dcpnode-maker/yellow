@@ -179,3 +179,8 @@ review request that is boring to read because every claim in it has a command at
 The interesting reviews should be the Tier-3 ones. If routine batches start generating
 findings, the orders are underspecified and that is the architect's fault, not the
 builder's.
+# Current Phase 7 build
+
+Order252 has independently approved exact quoted-tax hold-to-reservation/segment lineage. The
+next dependency remains governed folio eligibility and configured semantic tax-route
+policy before any positive posting writer.

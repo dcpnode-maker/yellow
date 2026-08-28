@@ -175,3 +175,9 @@ admitted.
 Order251 is built-unreviewed under D-652 with focused8/8, adjacent31/31, standing
 832/832 and fresh referee11/11 green. It adds no database, account route or write
 authority; independent Tier-3 product review remains deferred.
+# Latest approved build slice
+
+Order252/D-656 adds the independently approved immutable, same-transaction lineage from an Order248
+quoted-tax hold binding to the exact reservation and first segment created when that
+hold is consumed. It deliberately stops before folio selection, tax routing, posting,
+document allocation and India place-of-supply policy.

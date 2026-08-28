@@ -21,9 +21,13 @@ import {
 } from "./policy-evidence";
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
+const SHA256 = /^[0-9a-f]{64}$/;
+const CURRENCY = /^[A-Z]{3}$/;
 const CHANNEL = /^[a-z][a-z0-9._-]{0,63}$/;
 const IDEMPOTENCY_KEY = /^[\x21-\x7e]{8,200}$/;
 const MAX_STAY_MS = 366 * 24 * 60 * 60 * 1_000;
+const TAX_RESERVATION_BOUND_EVENT = "tax.attribution_reservation_bound";
+const TAX_RESERVATION_BINDING_ENTITY = "tax_attribution_reservation_binding";
 
 interface CommitReservationCommonInput {
   readonly primaryPartyId: string;
@@ -121,6 +125,21 @@ interface AcquiredInventory {
   readonly from: Date;
   readonly to: Date;
   readonly claimCount: number;
+}
+
+interface TaxReservationLineageRow {
+  readonly lineage_id: string;
+  readonly binding_id: string;
+  readonly hold_id: string;
+  readonly attribution_id: string;
+  readonly reservation_id: string;
+  readonly segment_id: string;
+  readonly origin_quote_hash: string;
+  readonly snapshot_hash: string;
+  readonly currency: string;
+  readonly linked_by: string;
+  readonly linked_at: Date | string;
+  readonly created: boolean;
 }
 
 type PreparedInventory = AcquiredInventory;
@@ -343,6 +362,14 @@ export class ReservationCommitService {
       }
       const acquired = await this.#acquire(commandTx, input.envelope, source, segmentId);
       this.#assertAcquiredMatchesPreparation(prepared, acquired);
+      if (acquired.source === "hold") {
+        await this.#linkQuotedTaxReservationLineage(commandTx, input.envelope, {
+          holdId: acquired.holdId!,
+          reservationId,
+          segmentId,
+          currency: plan.currency,
+        });
+      }
       const primaryGuests = await commandTx<Array<{ reservation_id: string }>>`
         INSERT INTO reservation_guest (tenant_id, reservation_id, party_id, role, share_pct)
         VALUES (${input.envelope.tenantId}::uuid, ${reservationId}::uuid,
@@ -421,6 +448,89 @@ export class ReservationCommitService {
       return { status: 201, body };
     });
     return freezeResult(outcome.body, outcome.replayed);
+  }
+
+  async #linkQuotedTaxReservationLineage(
+    tx: Tx,
+    envelope: AuditEnvelope,
+    identities: Readonly<{
+      holdId: string;
+      reservationId: string;
+      segmentId: string;
+      currency: string;
+    }>,
+  ): Promise<void> {
+    const rows = await tx<TaxReservationLineageRow[]>`
+      SELECT lineage_id, binding_id, hold_id, attribution_id, reservation_id, segment_id,
+             origin_quote_hash, snapshot_hash, currency::text, linked_by, linked_at, created
+      FROM public.link_tax_attribution_reservation(
+        ${envelope.tenantId}::uuid,
+        ${envelope.propertyNode}::uuid,
+        ${envelope.actorId}::uuid,
+        ${identities.holdId}::uuid,
+        ${identities.reservationId}::uuid,
+        ${identities.segmentId}::uuid
+      )
+    `;
+    if (rows.length === 0) return;
+    const row = rows[0];
+    if (rows.length !== 1 || !row ||
+        !UUID.test(row.lineage_id) || !UUID.test(row.binding_id) ||
+        !UUID.test(row.hold_id) || !UUID.test(row.attribution_id) ||
+        !UUID.test(row.reservation_id) || !UUID.test(row.segment_id) ||
+        !UUID.test(row.linked_by) || !SHA256.test(row.origin_quote_hash) ||
+        !SHA256.test(row.snapshot_hash) || !CURRENCY.test(row.currency) ||
+        typeof row.created !== "boolean") {
+      throw new ReservationConflictError("Quoted-tax reservation lineage returned invalid evidence");
+    }
+    const linkedAt = row.linked_at instanceof Date
+      ? new Date(row.linked_at.getTime())
+      : new Date(row.linked_at);
+    if (!Number.isFinite(linkedAt.getTime()) ||
+        row.hold_id !== identities.holdId ||
+        row.reservation_id !== identities.reservationId ||
+        row.segment_id !== identities.segmentId ||
+        row.currency !== identities.currency ||
+        row.linked_by !== envelope.actorId) {
+      throw new ReservationConflictError("Quoted-tax reservation lineage returned mismatched evidence");
+    }
+    if (!row.created) return;
+
+    const payload = Object.freeze({
+      lineage_id: row.lineage_id,
+      binding_id: row.binding_id,
+      hold_id: row.hold_id,
+      attribution_id: row.attribution_id,
+      reservation_id: row.reservation_id,
+      segment_id: row.segment_id,
+      origin_quote_hash: row.origin_quote_hash,
+      snapshot_hash: row.snapshot_hash,
+      currency: row.currency,
+    });
+    const lineageEnvelope = createAuditEnvelope({
+      actorId: envelope.actorId,
+      tenantId: envelope.tenantId,
+      propertyNode: envelope.propertyNode,
+      requestId: envelope.requestId,
+      operation: TAX_RESERVATION_BOUND_EVENT,
+    });
+    const fact = await recordFact(tx, {
+      entityType: TAX_RESERVATION_BINDING_ENTITY,
+      entityId: row.lineage_id,
+      envelope: lineageEnvelope,
+      payload,
+    });
+    await this.#events.publish(tx, {
+      tenantId: envelope.tenantId,
+      propertyNode: envelope.propertyNode,
+      businessDate: fact.businessDate,
+      aggregateType: TAX_RESERVATION_BINDING_ENTITY,
+      aggregateId: row.lineage_id,
+      eventType: TAX_RESERVATION_BOUND_EVENT,
+      actorId: envelope.actorId,
+      correlationId: envelope.requestId,
+      payload,
+    });
   }
 
   async #prepare(

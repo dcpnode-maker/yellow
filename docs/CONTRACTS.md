@@ -1392,3 +1392,9 @@ parameters and are `Cache-Control: no-store`. GET uses the existing vehicle read
 authority; POST requires `stay-operations.vehicles:park`, an exact idempotency header
 and only `{parkingSpaceId}`. V1 is create-only: replacement, manual release, entry/exit,
 staff/visitor parking, history and automatic allocation are not commands.
+# Quoted-tax reservation lineage
+
+A quoted-tax attribution bound to a cart hold becomes reservation evidence only when
+the existing held-reservation command consumes that exact hold and appends the exact
+reservation/first-segment link in the same transaction. The link is immutable audit
+lineage, not folio, account, route, posting, document or statutory authority.

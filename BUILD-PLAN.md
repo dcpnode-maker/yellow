@@ -532,6 +532,12 @@ payable routing, correction allocation, India decomposition, HTTP, UI or local
 runtime authority is admitted; Order244 can close only built-unreviewed pending its
 required independent executable fiscal review.
 
+Order252 is independently approved under D-656 as the exact hold-consumption lineage
+prerequisite for positive tax posting. A quoted-tax binding may become linked to one exact reservation
+and first segment only inside the existing successful held-reservation transaction;
+unquoted/direct commits remain unchanged. The edge chooses no folio, account, tx code
+or route and grants no posting, document, India-policy or fiscal authority.
+
 tax_assignment evaluation (percent/fixed/slab, compound, line-vs-document rounding)
 from EXTENSIONS §2; India GST slab per room-night; document issue path: series →
 gapless number → hash chain → document; IRP reporting adapter (sandbox), IRN + QR

@@ -205,6 +205,11 @@ const EXPECTED_MIGRATIONS = [
     filename: "0040_quoted_tax_hold_binding.sql",
     checksum_sha256: "b61d1332acf17df9189612d355fb584754bdd7ddda9782e377bf73be44cc589b",
   },
+  {
+    version: 41,
+    filename: "0041_quoted_tax_reservation_lineage.sql",
+    checksum_sha256: "01034a5fd25d44a1244ef7da872d7d3f9b6b498d5476ba7d0d9c683842f9a00d",
+  },
 ];
 
 if (REQUIRE_DATABASE && !DATABASE_URL) {
@@ -384,6 +389,115 @@ databaseDescribe("fresh deployment database acceptance", () => {
     }]);
   });
 
+  test("has the exact append-only quoted-tax reservation-lineage root and bounded capability", async () => {
+    const relation = await sql!<Array<{
+      owner: string; rls: boolean; tenantPolicy: boolean; appSelect: boolean;
+      appMutation: boolean; publicPrivileges: number; bindingUnique: boolean;
+      reservationUnique: boolean; segmentUnique: boolean; sourceFk: boolean;
+      reservationFk: boolean; segmentFk: boolean;
+    }>>`
+      SELECT pg_catalog.pg_get_userbyid(class.relowner) AS owner,
+             class.relrowsecurity AS rls,
+             EXISTS (
+               SELECT 1 FROM pg_catalog.pg_policy
+                WHERE polrelid=class.oid AND polname='tenant_isolation'
+             ) AS "tenantPolicy",
+             pg_catalog.has_table_privilege('app_role', class.oid, 'SELECT') AS "appSelect",
+             (
+               pg_catalog.has_table_privilege('app_role', class.oid, 'INSERT')
+               OR pg_catalog.has_table_privilege('app_role', class.oid, 'UPDATE')
+               OR pg_catalog.has_table_privilege('app_role', class.oid, 'DELETE')
+               OR pg_catalog.has_table_privilege('app_role', class.oid, 'TRUNCATE')
+             ) AS "appMutation",
+             (
+               SELECT count(*)::int
+                 FROM pg_catalog.aclexplode(
+                   COALESCE(class.relacl, pg_catalog.acldefault('r', class.relowner))
+                 ) AS acl
+                WHERE acl.grantee=0
+             ) AS "publicPrivileges",
+             EXISTS (
+               SELECT 1 FROM pg_catalog.pg_constraint
+                WHERE conrelid=class.oid
+                  AND conname='tax_attribution_reservation_binding_binding_uq'
+                  AND contype='u'
+             ) AS "bindingUnique",
+             EXISTS (
+               SELECT 1 FROM pg_catalog.pg_constraint
+                WHERE conrelid=class.oid
+                  AND conname='tax_attribution_reservation_binding_reservation_uq'
+                  AND contype='u'
+             ) AS "reservationUnique",
+             EXISTS (
+               SELECT 1 FROM pg_catalog.pg_constraint
+                WHERE conrelid=class.oid
+                  AND conname='tax_attribution_reservation_binding_segment_uq'
+                  AND contype='u'
+             ) AS "segmentUnique",
+             EXISTS (
+               SELECT 1 FROM pg_catalog.pg_constraint
+                WHERE conrelid=class.oid
+                  AND conname='tax_attribution_reservation_binding_source_fk'
+                  AND confrelid='public.tax_attribution_hold_binding'::regclass
+             ) AS "sourceFk",
+             EXISTS (
+               SELECT 1 FROM pg_catalog.pg_constraint
+                WHERE conrelid=class.oid
+                  AND conname='tax_attribution_reservation_binding_reservation_fk'
+                  AND confrelid='public.reservation'::regclass
+             ) AS "reservationFk",
+             EXISTS (
+               SELECT 1 FROM pg_catalog.pg_constraint
+                WHERE conrelid=class.oid
+                  AND conname='tax_attribution_reservation_binding_segment_fk'
+                  AND confrelid='public.reservation_segment'::regclass
+             ) AS "segmentFk"
+        FROM pg_catalog.pg_class AS class
+       WHERE class.oid='public.tax_attribution_reservation_binding'::regclass
+    `;
+    expect(relation).toEqual([{
+      owner: "yellow_owner",
+      rls: true,
+      tenantPolicy: true,
+      appSelect: true,
+      appMutation: false,
+      publicPrivileges: 0,
+      bindingUnique: true,
+      reservationUnique: true,
+      segmentUnique: true,
+      sourceFk: true,
+      reservationFk: true,
+      segmentFk: true,
+    }]);
+
+    const capability = await sql!<Array<{
+      signature: string; owner: string; securityDefiner: boolean; config: string[];
+      appExecute: boolean; runtimeExecute: boolean; publicExecute: boolean; result: string;
+    }>>`
+      SELECT procedure.oid::regprocedure::text AS signature,
+             pg_catalog.pg_get_userbyid(procedure.proowner) AS owner,
+             procedure.prosecdef AS "securityDefiner",
+             procedure.proconfig AS config,
+             pg_catalog.has_function_privilege('app_role', procedure.oid, 'EXECUTE') AS "appExecute",
+             pg_catalog.has_function_privilege('yellow_runtime', procedure.oid, 'EXECUTE') AS "runtimeExecute",
+             pg_catalog.has_function_privilege('public', procedure.oid, 'EXECUTE') AS "publicExecute",
+             pg_catalog.pg_get_function_result(procedure.oid) AS result
+        FROM pg_catalog.pg_proc AS procedure
+       WHERE procedure.oid =
+         'public.link_tax_attribution_reservation(uuid,uuid,uuid,uuid,uuid,uuid)'::regprocedure
+    `;
+    expect(capability).toEqual([{
+      signature: "link_tax_attribution_reservation(uuid,uuid,uuid,uuid,uuid,uuid)",
+      owner: "yellow_owner",
+      securityDefiner: true,
+      config: ["search_path=pg_catalog, public, pg_temp"],
+      appExecute: true,
+      runtimeExecute: false,
+      publicExecute: false,
+      result: "TABLE(lineage_id uuid, binding_id uuid, hold_id uuid, attribution_id uuid, reservation_id uuid, segment_id uuid, origin_quote_hash text, snapshot_hash text, currency character, linked_by uuid, linked_at timestamp with time zone, created boolean)",
+    }]);
+  });
+
   test("keeps app_role as an unassumable internal policy role", async () => {
     const role = await sql!<Array<{
       canLogin: boolean;
@@ -452,7 +566,7 @@ databaseDescribe("fresh deployment database acceptance", () => {
         (SELECT count(*)::int FROM pg_catalog.pg_tables WHERE schemaname = 'public') AS tables,
         (SELECT count(*)::int FROM pg_catalog.pg_policies WHERE schemaname = 'public') AS policies
     `;
-    expect(shape).toEqual([{ tables: 95, policies: 85 }]);
+    expect(shape).toEqual([{ tables: 96, policies: 86 }]);
 
     const relations = await sql!<Array<{
       relation: string;
@@ -564,7 +678,7 @@ databaseDescribe("fresh deployment database acceptance", () => {
         has_column_privilege('app_role','public.journal','approval_request_id','UPDATE') AS "appApprovalUpdate"
     `;
     expect(shape).toEqual([{
-      tables: 95, policies: 85, directBill: 1,
+      tables: 96, policies: 86, directBill: 1,
       approvalNullable: true, compositeFk: true, oneUseIndex: true,
       appApprovalInsert: false, appApprovalUpdate: false,
     }]);

@@ -24,7 +24,10 @@ import {
   type Tx,
 } from "../src/kernel";
 
-const DATABASE_URL = process.env.YELLOW_RESERVATION_COMMIT_URL;
+const DEPLOY_DATABASE_URL = process.env.YELLOW_DEPLOY_DATABASE_URL
+  ?? process.env.YELLOW_RESERVATION_COMMIT_URL;
+const RUNTIME_DATABASE_URL = process.env.YELLOW_RUNTIME_DATABASE_URL
+  ?? process.env.YELLOW_RESERVATION_COMMIT_URL;
 const REQUIRE_DATABASE = process.env.YELLOW_REQUIRE_RESERVATION_COMMIT === "1";
 
 const TENANT_A = "00000000-0000-0000-0000-000000008101";
@@ -53,11 +56,11 @@ const SELLABLE_B = "00000000-0000-0000-0000-000000008183";
 const MANUAL_HOLD = "00000000-0000-0000-0000-000000008191";
 const NOCLAIM_HOLD = "00000000-0000-0000-0000-000000008192";
 
-if (REQUIRE_DATABASE && !DATABASE_URL) {
-  throw new Error("YELLOW_RESERVATION_COMMIT_URL is required by the Order 081 proof");
+if (REQUIRE_DATABASE && (!DEPLOY_DATABASE_URL || !RUNTIME_DATABASE_URL)) {
+  throw new Error("deploy and runtime database URLs are required by the Order 081 proof");
 }
 
-const databaseDescribe = DATABASE_URL ? describe.serial : describe.skip;
+const databaseDescribe = DEPLOY_DATABASE_URL && RUNTIME_DATABASE_URL ? describe.serial : describe.skip;
 let admin: SQL | undefined;
 let eventPool: SQL | undefined;
 let database: Database | undefined;
@@ -205,10 +208,10 @@ async function claimSnapshot(holdId: string, segmentId?: string) {
 }
 
 beforeAll(async () => {
-  if (!DATABASE_URL) return;
-  admin = new SQL(DATABASE_URL, { max: 16 });
-  eventPool = new SQL(DATABASE_URL, { max: 32 });
-  database = Database.connect(DATABASE_URL, { maxConnections: 64 });
+  if (!DEPLOY_DATABASE_URL || !RUNTIME_DATABASE_URL) return;
+  admin = new SQL(DEPLOY_DATABASE_URL, { max: 16 });
+  eventPool = new SQL(RUNTIME_DATABASE_URL, { max: 32 });
+  database = Database.connect(RUNTIME_DATABASE_URL, { maxConnections: 64 });
   events = new PostgresEventBus(eventPool);
   holds = new HoldService(events);
   reservations = serviceFor(events);
