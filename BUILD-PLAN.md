@@ -266,6 +266,11 @@ It renders authoritative not-requested, schedule-required, scheduled-unlinked or
 linked presence without exposing task identity/lifecycle or adding an action, route,
 query, poll or mutation. This cannot complete Phase 6.
 
+Order 215 owns one reservation-scoped read-only pickup-task detail endpoint and
+nested human route. It proves the exact current arrival link and canonical transport
+task shape, returns minimized task state, and adds no generic task authority,
+lifecycle action or polling. This cannot complete Phase 6.
+
 ## Phase 7 — Tax engine + India IRP
 
 tax_assignment evaluation (percent/fixed/slab, compound, line-vs-document rounding)

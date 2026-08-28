@@ -214,6 +214,11 @@ shows honest arrival pickup state from existing travel/link truth. It adds no ta
 identity, lifecycle, action, route, query, polling or mutation. Generic task detail
 and navigation remain later work.
 
+Order 215 owns one reservation-scoped pickup-task detail endpoint and nested human
+route under existing reservation read authority. It exposes minimized canonical task
+state only and adds no generic task scope, cross-kind board, lifecycle mutation or
+polling. Generic task navigation remains later work.
+
 Statutory field semantics, validation, submission and receipts remain Phase 8. Tax and
 fiscal document work remains Phase 7. No country rule is hardcoded in Phase 6.
 
