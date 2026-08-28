@@ -163,6 +163,23 @@ CGST/SGST/IGST place-of-supply decomposition require later versioned contracts.
 Aggregate `GST_ROOM` output is not a legally final invoice and authorizes no posting,
 document number/hash or fiscal submission.
 
+Order 238 resolves the content supplied to that evaluator without making extension
+configuration caller-selectable. Inside a tenant transaction, an exact active
+same-tenant property and already-derived property-local business date select zero or
+one containing `tax_assignment` using PostgreSQL `[)` `daterange` semantics. Zero is
+explicitly unassigned and overlap fails closed. The assigned key must match exactly
+one active visible `tax_jurisdiction` returned by the established
+platform-global-plus-tenant runtime adapter. Zero or multiple active matches fail;
+tenant ownership and row order provide no preference.
+
+The resolver returns deeply frozen exact assignment bounds, extension id/owner/key/
+version, recursively canonical copied content, a SHA-256 content hash and
+deterministic evidence references. The runtime adapter omits `extension.effective`,
+so Order 238 neither applies nor bypasses that field; effective extension publication
+requires a later explicit contract and capability. Resolution writes no extension or
+assignment, emits no event and grants only input authority for the pure evaluator,
+not posting, document issue or fiscal submission authority.
+
 India GST launch instance (CBIC 15/2025 slabs, slab on transaction value per night):
 
 ```json

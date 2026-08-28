@@ -1,6 +1,6 @@
 # Order 238 — Effective tax-jurisdiction resolution
 
-**Status:** READY-D626
+**Status:** BUILT-UNREVIEWED-D627
 **Phase:** 7 — Tax engine and India IRP
 **Branch:** `phase-7/effective-tax-jurisdiction-resolution`
 **Base:** `e764ed2` (built-unreviewed Order237)
@@ -102,10 +102,26 @@ jurisdiction:{ extensionId,ownerTenantId,key,version,content,contentHash,evidenc
 
 ## Definition of done
 
-- [ ] Intentional red precedes implementation.
-- [ ] Exact property/date assignment and unique active version resolve fail closed.
-- [ ] Canonical content hash, deep freeze, isolation and zero-write evidence execute.
-- [ ] Focused, adjacent and standing totals are transcribed.
+- [x] Intentional red precedes implementation.
+- [x] Exact property/date assignment and unique active version resolve fail closed.
+- [x] Canonical content hash, deep freeze, isolation and zero-write evidence execute.
+- [x] Focused, adjacent and standing totals are transcribed.
 
 Independent review remains deferred under the founder's build-first direction. This
 order can close only as built-unreviewed.
+
+## Built evidence
+
+- The preregistered resolver red failed `0/2` before production existed. The completed
+  focused suite passes `13/13` with 61 assertions, including four real PostgreSQL
+  assignment/range/isolation/authority/zero-write proofs against the single existing
+  PostgreSQL 16.15 local stack.
+- Adjacent extension/rate-quote/tax proof passes `17/17` with 12 expected database
+  skips and 50 assertions.
+- The standing repository suite passes `797/797` with 708 environment skips, 8,188
+  assertions and 1,505 tests across 272 files.
+- Typecheck, 89-file import boundaries, 23-package licence policy, dependency audit
+  (zero vulnerabilities), four-file JavaScript syntax and diff checks are green.
+- No schema, migration, role, grant or function changed. Independent tax-authority
+  approval remains deferred; no quote, posting, document, fiscal-finality, local
+  promotion, merge, push, deployment, Phase-7 or app-complete claim is made.

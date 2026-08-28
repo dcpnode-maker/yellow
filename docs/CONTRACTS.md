@@ -446,6 +446,30 @@ Input lines, room-night components, tax definitions, application groups, depende
 lists, slab bands and rational representation complexity are explicitly bounded so a
 valid value cannot become an unbounded arithmetic-work request.
 
+### Effective tax-jurisdiction resolver
+
+Order 238 adds one internal read-only resolver before calculation. Its caller supplies
+only an exact property UUID and an already-derived property-local `YYYY-MM-DD`
+business date inside a tenant transaction. PostgreSQL tenant truth and an active
+same-tenant property are authoritative. The resolver selects assignments whose
+`daterange` contains that date with exact `[)` semantics: zero returns explicit
+`unassigned`, while more than one fails closed. Tenant id, jurisdiction key and
+extension identity are never caller selected.
+
+An assigned key is resolved only through `ExtensionRegistry.listVisible()` using the
+database-derived tenant. Exactly one visible active `tax_jurisdiction` row with that
+key is required across the existing platform-global-plus-tenant result; zero or
+multiple active versions fail closed, and no tenant-over-global preference is
+invented. The approved adapter does not expose `extension.effective`, so this
+contract neither applies nor bypasses that temporal meaning.
+
+A resolved value deeply freezes the exact assignment bounds and extension
+id/owner/key/version, a recursively canonical copied content value, its SHA-256 hash
+and deterministic evidence references. It is input authority for the pure evaluator
+only. Resolution performs no calculation or write and authorizes no quote, posting,
+journal, document, number/hash chain, provider action, fiscal submission, fact or
+event.
+
 ## 8. Pure rate-model evaluator
 
 Order 067's in-process evaluator is a draft/simulation primitive, not a database or HTTP contract.

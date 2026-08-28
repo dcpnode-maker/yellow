@@ -155,6 +155,30 @@ Negative corrections, tax-line residual allocation, person-category rules,
 explicitly outside this trust boundary and must fail closed at later integrations
 until separately authorized.
 
+### Read-only tax-jurisdiction resolution containment
+
+Order 238 accepts only a property UUID and an already-derived property-local business
+date inside the tenant transaction. PostgreSQL transaction-local tenant truth proves
+the active same-tenant property and selects the containing `tax_assignment`; no
+caller-supplied tenant, jurisdiction key, extension id, version, content or precedence
+is trusted. Missing assignment is explicit, overlap fails closed and `[)` range
+semantics require no process clock or timezone inference.
+
+Global-plus-tenant extension visibility remains confined to the existing
+yellow-runtime-only `ExtensionRegistry.listVisible()` adapter. There is no raw
+extension-table read, new database capability, RLS/ACL change or app-role/PUBLIC
+access. Exactly one active visible matching `tax_jurisdiction` is required; ambiguity
+fails rather than selecting by tenant ownership or row order. Because the adapter
+does not expose `extension.effective`, the resolver cannot assert or defeat extension
+temporal applicability.
+
+The recursively copied result is deeply frozen and binds exact assignment bounds,
+extension identity/version, canonical content, SHA-256 content hash and deterministic
+evidence references. Resolution writes no assignment, extension, fact, outbox,
+journal, posting, document, series/hash, submission or provider state and emits no
+event. Its evidence permits only later pure calculation; it is not quote, posting,
+fiscal-issue or legal-invoice authority.
+
 Named residual capability debt remains for approval decisions, extension
 publication/retirement, hold transitions, inventory-policy and projection
 replacement, operational-block updates, reservation/segment/guest lifecycle,

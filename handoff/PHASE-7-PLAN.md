@@ -1,8 +1,9 @@
 # Phase 7 — Tax engine and India IRP
 
-**Status:** active; Order 237 built-unreviewed
+**Status:** active; Orders 237-238 built-unreviewed
 **Entry point:** built-unreviewed Phase-6 composition through Order 236
-**Current order:** Order 238 effective tax-jurisdiction resolution is ready under D-626
+**Current order:** Order 238 effective tax-jurisdiction resolution is built-unreviewed
+under D-627; the next quote-preview slice is not yet opened
 
 ## Outcome
 
@@ -63,3 +64,10 @@ version, binds exact content hash evidence, and returns a deeply frozen read-onl
 result. It invents no global/tenant precedence or extension-effective-time policy and
 adds no migration, write, event, evaluator, quote, posting, document, provider, HTTP
 or UI authority.
+
+Order238 proof is green: the real-database focused suite passes `13/13`, adjacent
+extension/rate/tax proof passes `17/17` plus 12 expected database skips, and the
+standing suite passes `797/797` plus 708 environment skips. Exact `[)` assignment,
+tenant/property isolation, unique active visible version binding, canonical frozen
+content/hash evidence and zero writes are executable. Independent review remains
+deferred; quote, posting, document and fiscal authority remain absent.

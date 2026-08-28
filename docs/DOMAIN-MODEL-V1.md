@@ -499,6 +499,25 @@ person-category meaning, document allocation and CGST/SGST/IGST place-of-supply
 decomposition must be decided by later assignment, posting and fiscal-document
 contracts before any economic or legal state change.
 
+### Tax Jurisdiction Resolution value service — Tax/Fiscal
+
+Order 238 is a read-only value service, not an aggregate or state machine. Inside the
+active tenant transaction, an exact property id and already-derived property-local
+business date select zero or one containing `tax_assignment`. Lower bounds are
+inclusive and upper bounds exclusive; zero is explicit `unassigned`, while overlap
+is a conflict. The assigned key then requires exactly one active visible
+`tax_jurisdiction` version from the established platform-global-plus-tenant extension
+adapter. Missing or multiple active versions fail closed, with no tenant-over-global
+preference.
+
+The resolved value binds exact assignment bounds, extension id and owner, key,
+version, canonical copied content, SHA-256 content hash and deterministic evidence
+references, and is deeply frozen. The extension adapter does not expose
+`extension.effective`; resolution therefore neither interprets nor bypasses that
+field. The service creates no entity, emits no event and changes no configuration or
+financial/fiscal state. Its output authorizes only a later invocation of the pure tax
+evaluator.
+
 ### Document aggregate — Tax/Fiscal
 
 **Root:** `document` under `document_series`.

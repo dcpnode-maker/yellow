@@ -432,12 +432,17 @@ database skips, standing `788/788` plus 704 environment skips and all required s
 gates are green. Independent tax review remains deferred by the founder's build-first
 direction.
 
-Order238 is ready under D-626 as the next smallest read-only authority slice. It binds
+Order238 is built-unreviewed under D-627 as the read-only authority slice. It binds
 one exact active-tenant property/business-date assignment to exactly one active visible
 `tax_jurisdiction` extension id/version/content hash through existing PostgreSQL and
 runtime-extension authority. Missing/overlapping assignments and missing/ambiguous
 versions fail closed. No precedence, migration, mutation, quote, posting, document,
 provider, HTTP or UI behavior is admitted.
+
+The real-database focused proof passes `13/13`, adjacent extension/rate/tax proof
+passes `17/17` plus 12 expected database skips, and the standing suite passes
+`797/797` plus 708 environment skips. Typecheck, 89 import boundaries, 23 dependency
+licences, zero-vulnerability audit, JavaScript syntax and diff hygiene are green.
 
 tax_assignment evaluation (percent/fixed/slab, compound, line-vs-document rounding)
 from EXTENSIONS §2; India GST slab per room-night; document issue path: series →
