@@ -19,7 +19,7 @@ function functionSource(name: string): string {
 describe("Order 226 exact check-in to Housekeeping continuity", () => {
   test("admits only exact room-condition blockers on the current due-in readiness", () => {
     const render = functionSource("renderCheckInReadiness");
-    expect(script).toContain('const CHECKIN_HOUSEKEEPING_BLOCKERS = Object.freeze(["room_condition_missing", "room_not_ready"]);');
+    expect(script).toContain('const CHECKIN_HOUSEKEEPING_BLOCKERS = Object.freeze([\n  "room_condition_missing", "room_not_ready", "dirty_room_override_unauthorized",\n ]);');
     expect(script).toContain('const checkInHousekeepingAction = $("#checkin-housekeeping-action")');
     expect(render).toContain("CHECKIN_HOUSEKEEPING_BLOCKERS.includes(blocker)");
     expect(render).toContain("checkInHousekeepingAction.hidden = false");

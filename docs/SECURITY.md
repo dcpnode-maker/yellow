@@ -401,6 +401,35 @@ hostile and non-adjacent requests write nothing, and no contact, note, payload,
 driver, vehicle, parking, occupancy, financial, business-day or statutory data is
 accepted or returned.
 
+### Governed arrival room-cleaning task containment (migration 0032)
+
+Migration0032 adds one fixed-search-path owner-mediated create-or-return capability.
+It is executable only by the dedicated `yellow_runtime` session after assuming
+`app_role`, with `yellow_owner` as current definer and an exact transaction-local
+tenant. The capability re-proves an active actor, due-in reservation, unique current
+booked segment, unique active mapped room, canonical `dirty|pickup` condition and one
+selected active same-tenant Party carrying the `staff` role. A room-scoped advisory
+transaction lock serializes actionable-task discovery and creation. `PUBLIC`, direct
+login and raw runtime `INSERT`, `UPDATE`, `DELETE` and `TRUNCATE` on `task` remain
+denied.
+
+Candidate read and creation have separate exact-property permissions:
+`housekeeping.arrival-tasks:read` and `housekeeping.arrival-tasks:create`. The HTTP
+adapter accepts no query, validates canonical path/body identities and conceals
+ungranted properties and ineligible targets behind not-found. The create body admits
+only an attendant Party id; tenant, property, actor, reservation, room, condition,
+task shape, due time and provenance remain server-owned. Knowing a reservation, room
+or task UUID does not confer generic task authority.
+
+Actor-bound idempotency, at-most-one task creation, one minimized `task.created` fact
+and one matching outbox event commit atomically. One existing assigned/in-progress
+exact-room housekeeping task is returned without mutation or evidence; multiple
+actionable tasks fail closed. Open, done, verified, cancelled and unrelated tasks are
+never adopted. Guest/contact/note/payment/statutory data is absent from the stored task
+payload and the HTTP candidate. The capability cannot mutate room condition,
+reservation, segment, occupancy, check-in, folio, financial, business-day, key,
+travel, vehicle, parking or statutory truth.
+
 ## 6. Statutory & privacy
 
 ### Token-only payment containment

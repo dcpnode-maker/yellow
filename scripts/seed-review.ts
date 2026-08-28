@@ -76,6 +76,8 @@ export const REVIEW_PERMISSIONS = Object.freeze([
   { code: "financials.transfers:write", description: "Preview and commit governed folio transfers" },
   { code: "housekeeping.tasks:read", description: "Read the governed property housekeeping task board" },
   { code: "housekeeping.tasks:work", description: "Start and complete governed property housekeeping tasks" },
+  { code: "housekeeping.arrival-tasks:read", description: "Read the exact dirty or pickup arrival cleaning-task candidate" },
+  { code: "housekeeping.arrival-tasks:create", description: "Assign the exact dirty or pickup arrival cleaning task" },
   { code: "housekeeping.conditions:initialize", description: "Initialize one absent property room condition" },
   { code: "housekeeping.sheets:read", description: "Read governed property housekeeping task sheets" },
   { code: "housekeeping.sheets:generate", description: "Generate governed property housekeeping task sheets" },

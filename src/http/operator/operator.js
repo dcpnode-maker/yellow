@@ -85,6 +85,9 @@
  let housekeepingConditionInitialization = null;
  let housekeepingConditionInitializationRequestGeneration = 0;
  const housekeepingConditionInitializationAttempts = new Map();
+ let arrivalRoomCleaningTaskRequest = null;
+ let arrivalRoomCleaningTaskRequestGeneration = 0;
+ let arrivalRoomCleaningTaskAttempt = null;
  const housekeepingAttempts = new Map();
  const housekeepingTaskDetailAttempts = new Map();
  let housekeepingSheetGeneration = 0;
@@ -2279,6 +2282,12 @@ function ensureHousekeepingGenerationReceiptPanel() {
  housekeepingConditionInitialization = null;
  housekeepingConditionInitializationSlot.replaceChildren();
   }
+  function clearArrivalRoomCleaningTask() {
+ arrivalRoomCleaningTaskRequestGeneration += 1;
+ arrivalRoomCleaningTaskRequest = null;
+ arrivalRoomCleaningTaskAttempt = null;
+ housekeepingConditionInitializationSlot.replaceChildren();
+  }
   function housekeepingConditionInitializationIsCurrent(origin, action) {
  return checkInHousekeepingReturn?.property === origin.property
  && checkInHousekeepingReturn?.reservationId === origin.reservationId
@@ -2430,12 +2439,198 @@ function ensureHousekeepingGenerationReceiptPanel() {
  if (!origin || origin.blocker !== "room_condition_missing" || !origin.assignedSpaceId
   || origin !== checkInHousekeepingReturn || origin.property !== propertySelect.value
   || activeView !== "housekeeping" || location.pathname !== `/p/${origin.property}/housekeeping` || location.search !== "") return false;
+ clearArrivalRoomCleaningTask();
  void loadHousekeepingInitialConditionCandidate(origin);
  return true;
   }
   function reopenHousekeepingConditionInitialization() {
  const returning = checkInHousekeepingReturn;
  if (returning?.blocker === "room_condition_missing") openHousekeepingConditionInitialization(returning);
+  }
+
+  function arrivalRoomCleaningTaskIsCurrent(origin, section) {
+ return origin?.returning === checkInHousekeepingReturn
+  && origin.blocker === "dirty_room_override_unauthorized"
+  && origin.reservationId === checkInHousekeepingReturn?.reservationId
+  && origin.assignedSpaceId === checkInHousekeepingReturn?.assignedSpaceId
+  && origin.property === propertySelect.value
+  && activeView === "housekeeping"
+  && location.pathname === `/p/${origin.property}/housekeeping`
+  && location.search === ""
+  && arrivalRoomCleaningTaskRequest?.origin === origin
+  && arrivalRoomCleaningTaskRequest?.section === section
+  && section?.isConnected
+  && housekeepingConditionInitializationSlot.contains(section);
+  }
+  function arrivalRoomCleaningCandidateResult(value, origin) {
+ const keys = value && typeof value === "object" && !Array.isArray(value) ? Object.keys(value).sort() : [];
+ const candidate = value?.candidate;
+ const candidateKeys = candidate && typeof candidate === "object" && !Array.isArray(candidate)
+  ? Object.keys(candidate).sort() : [];
+ if (JSON.stringify(keys) !== JSON.stringify(["canCreate", "candidate"])
+  || typeof value.canCreate !== "boolean"
+  || JSON.stringify(candidateKeys) !== JSON.stringify([
+   "dueAt", "existingTaskId", "reservationId", "roomCondition", "spaceCode", "spaceId",
+  ])
+  || candidate.reservationId !== origin.reservationId
+  || candidate.spaceId !== origin.assignedSpaceId
+  || !canonicalUuid(candidate.spaceId)
+  || typeof candidate.spaceCode !== "string" || candidate.spaceCode.length < 1 || candidate.spaceCode.length > 120
+  || (candidate.roomCondition !== "dirty" && candidate.roomCondition !== "pickup")
+  || typeof candidate.dueAt !== "string" || !Number.isFinite(new Date(candidate.dueAt).getTime())
+  || (candidate.existingTaskId !== null && !canonicalUuid(candidate.existingTaskId))
+  || (candidate.existingTaskId !== null && value.canCreate)) {
+  throw new Error("The arrival cleaning candidate response was invalid.");
+ }
+ return Object.freeze({ candidate: Object.freeze({ ...candidate }), canCreate: value.canCreate });
+  }
+  function renderArrivalRoomCleaningTask(origin, state) {
+ const section = node("section", "arrival-room-cleaning-task");
+ section.setAttribute("aria-label", "Arrival room cleaning task");
+ const heading = node("header", "arrival-room-cleaning-task-heading");
+ heading.append(
+  node("strong", "", state ? `Prepare room ${state.candidate.spaceCode}` : "Checking cleaning-task truth"),
+  node("p", "muted", "Create one governed assigned task for this exact dirty or pickup arrival room. Yellow never changes the room condition here."),
+ );
+ const status = node("p", "arrival-room-cleaning-task-status", state ? "Authoritative candidate loaded." : "Loading authoritative candidate…");
+ status.setAttribute("role", "status");
+ status.setAttribute("aria-live", "polite");
+ section.append(heading, status);
+ housekeepingConditionInitializationSlot.replaceChildren(section);
+ arrivalRoomCleaningTaskRequest = { origin, section, status, state };
+ if (!state) return section;
+ if (state.candidate.existingTaskId) {
+  const open = node("button", "primary arrival-room-cleaning-task-open", "Open cleaning task");
+  open.type = "button";
+  open.addEventListener("click", () => {
+   if (!arrivalRoomCleaningTaskIsCurrent(origin, section)) return;
+   void openHousekeepingTaskDetail(state.candidate.existingTaskId, { trigger: open });
+  });
+  section.append(open);
+  status.textContent = "An actionable task already exists; no duplicate was created.";
+  return section;
+ }
+ if (!state.canCreate) {
+  status.textContent = "You may review this room, but cleaning-task creation is not granted.";
+  return section;
+ }
+ const form = node("form", "arrival-room-cleaning-task-form");
+ const label = node("label", "", "Find active housekeeping staff");
+ const query = el("input");
+ query.type = "search";
+ query.minLength = 2;
+ query.maxLength = 120;
+ query.autocomplete = "off";
+ query.placeholder = "Name or Party ID";
+ label.append(query);
+ const search = node("button", "secondary", "Search staff");
+ search.type = "button";
+ const results = node("div", "arrival-room-cleaning-task-results");
+ results.setAttribute("role", "region");
+ results.setAttribute("aria-live", "polite");
+ const selected = node("p", "arrival-room-cleaning-task-selected", "No attendant selected.");
+ const create = node("button", "primary", "Create cleaning task");
+ create.type = "submit";
+ create.disabled = true;
+ let attendant = null;
+ const choose = (profile) => {
+  if (!arrivalRoomCleaningTaskIsCurrent(origin, section)) return;
+  attendant = profile;
+  selected.textContent = `Selected attendant: ${profile.displayName}`;
+  create.disabled = false;
+  results.replaceChildren();
+  selected.tabIndex = -1;
+  selected.focus({ preventScroll: true });
+ };
+ const searchStaff = async () => {
+  if (!arrivalRoomCleaningTaskIsCurrent(origin, section)) return;
+  const term = query.value.trim();
+  if (term.length < 2) { status.textContent = "Enter at least two characters."; query.focus(); return; }
+  const generation = ++arrivalRoomCleaningTaskRequestGeneration;
+  search.disabled = true;
+  status.textContent = "Searching canonical staff Parties…";
+  try {
+   const value = await request(`/api/v1/properties/${enc(origin.property)}/parties:search`, {
+    method: "POST", body: JSON.stringify({ query: term, limit: 20 }),
+   });
+   if (generation !== arrivalRoomCleaningTaskRequestGeneration || !arrivalRoomCleaningTaskIsCurrent(origin, section)) return;
+   const staff = (Array.isArray(value.profiles) ? value.profiles : []).flatMap((profile) =>
+    canonicalUuid(String(profile?.partyId || "")) && typeof profile?.displayName === "string"
+    && Array.isArray(profile.roles) && profile.roles.includes("staff")
+     ? [Object.freeze({ partyId: profile.partyId, displayName: profile.displayName })] : []);
+   results.replaceChildren(...staff.map((profile) => {
+    const button = node("button", "quiet", `Choose ${profile.displayName}`);
+    button.type = "button";
+    button.addEventListener("click", () => choose(profile));
+    return button;
+   }));
+   if (staff.length === 0) results.append(node("p", "field-note", "No active staff-labelled Party matched."));
+   status.textContent = `${staff.length} staff result${staff.length === 1 ? "" : "s"}.`;
+  } catch (error) {
+   if (generation === arrivalRoomCleaningTaskRequestGeneration && arrivalRoomCleaningTaskIsCurrent(origin, section)) {
+    status.textContent = error instanceof Error ? error.message : "Staff search failed.";
+   }
+  } finally {
+   if (arrivalRoomCleaningTaskIsCurrent(origin, section)) search.disabled = false;
+  }
+ };
+ search.addEventListener("click", () => void searchStaff());
+ query.addEventListener("keydown", (event) => {
+  if (event.key === "Enter") { event.preventDefault(); void searchStaff(); }
+ });
+ form.addEventListener("submit", async (event) => {
+  event.preventDefault();
+  if (!attendant || !arrivalRoomCleaningTaskIsCurrent(origin, section)) return;
+  const draft = JSON.stringify({ reservationId: origin.reservationId, attendantPartyId: attendant.partyId });
+  arrivalRoomCleaningTaskAttempt = arrivalRoomCleaningTaskAttempt?.draft === draft
+   ? arrivalRoomCleaningTaskAttempt : { draft, key: crypto.randomUUID() };
+  for (const control of form.querySelectorAll("button,input")) control.disabled = true;
+  status.textContent = "Creating the governed cleaning task…";
+  try {
+   const value = await request(`/api/v1/properties/${enc(origin.property)}/reservations/${enc(origin.reservationId)}/arrival-room-cleaning-task`, {
+    method: "POST",
+    headers: { "Idempotency-Key": arrivalRoomCleaningTaskAttempt.key },
+    body: JSON.stringify({ attendantPartyId: attendant.partyId }),
+   });
+   if (!arrivalRoomCleaningTaskIsCurrent(origin, section) || !canonicalUuid(String(value?.taskId || ""))) return;
+   arrivalRoomCleaningTaskAttempt = null;
+   status.textContent = value.created ? "Cleaning task created. Opening authoritative task detail…" : "Existing cleaning task found. Opening authoritative detail…";
+   await loadHousekeepingBoard();
+   if (arrivalRoomCleaningTaskIsCurrent(origin, section)) {
+    await openHousekeepingTaskDetail(value.taskId, { trigger: create });
+   }
+  } catch (error) {
+   if (!arrivalRoomCleaningTaskIsCurrent(origin, section)) return;
+   status.textContent = `${error instanceof Error ? error.message : "Task creation failed"}. Retry the unchanged action safely.`;
+   for (const control of form.querySelectorAll("button,input")) control.disabled = false;
+   create.disabled = attendant === null;
+  }
+ });
+ form.append(label, search, results, selected, create);
+ section.append(form);
+ return section;
+  }
+  async function openArrivalRoomCleaningTask(returning) {
+ if (!returning || returning.blocker !== "dirty_room_override_unauthorized" || !returning.assignedSpaceId
+  || returning !== checkInHousekeepingReturn || returning.property !== propertySelect.value
+  || activeView !== "housekeeping" || location.pathname !== `/p/${returning.property}/housekeeping` || location.search !== "") return false;
+ clearHousekeepingConditionInitialization();
+ const origin = Object.freeze({ ...returning, returning });
+ const section = renderArrivalRoomCleaningTask(origin, null);
+ const generation = ++arrivalRoomCleaningTaskRequestGeneration;
+ try {
+  const value = await request(`/api/v1/properties/${enc(origin.property)}/reservations/${enc(origin.reservationId)}/arrival-room-cleaning-task/candidate`);
+  if (generation !== arrivalRoomCleaningTaskRequestGeneration || !arrivalRoomCleaningTaskIsCurrent(origin, section)) return false;
+  renderArrivalRoomCleaningTask(origin, arrivalRoomCleaningCandidateResult(value, origin));
+  return true;
+ } catch (error) {
+  if (generation !== arrivalRoomCleaningTaskRequestGeneration || !arrivalRoomCleaningTaskIsCurrent(origin, section)) return false;
+  if (error?.status === 404) { clearArrivalRoomCleaningTask(); return false; }
+  arrivalRoomCleaningTaskRequest.status.textContent = error?.status === 403
+   ? "Cleaning-task access is not granted for this property."
+   : `${error instanceof Error ? error.message : "Cleaning candidate unavailable"}. Refresh conditions to retry.`;
+  return false;
+ }
   }
   async function refreshHousekeepingConditionInitializationTruth(origin) {
  if (!housekeepingConditionInitializationContextIsCurrent(origin)) return null;
@@ -2548,6 +2743,7 @@ function ensureHousekeepingGenerationReceiptPanel() {
  housekeepingConditionGeneration += 1;
  housekeepingConditionRequestGeneration += 1;
  clearHousekeepingConditionInitialization();
+ clearArrivalRoomCleaningTask();
  housekeepingConditionRows = [];
  housekeepingConditionNextCursor = null;
  housekeepingConditionFilter.value = "";
@@ -3659,7 +3855,9 @@ function ensureHousekeepingGenerationReceiptPanel() {
   checkInAttemptDraft = "";
  }
  }
- const CHECKIN_HOUSEKEEPING_BLOCKERS = Object.freeze(["room_condition_missing", "room_not_ready"]);
+ const CHECKIN_HOUSEKEEPING_BLOCKERS = Object.freeze([
+  "room_condition_missing", "room_not_ready", "dirty_room_override_unauthorized",
+ ]);
  const CHECKIN_HOUSEKEEPING_CONDITIONS = Object.freeze(["clean", "dirty", "pickup", "inspected"]);
   function canonicalCheckInWorkbenchPath(property, reservationId) {
  return `/p/${property}/res/${reservationId}?${RESERVATION_WORKBENCH_QUERY["check-in"]}`;
@@ -8156,6 +8354,7 @@ function vehicleReturnPathFromState(state, property) {
  if (previousView === "today" && activeView !== "today") todayGeneration += 1;
  if (previousView === "housekeeping" && activeView !== "housekeeping") {
    clearHousekeepingConditionInitialization();
+   clearArrivalRoomCleaningTask();
    clearHousekeepingSheetReceipt();
   closeHousekeepingTaskDetail({ history: false, restoreFocus: false });
   housekeepingGeneration += 1;
@@ -8216,6 +8415,7 @@ function vehicleReturnPathFromState(state, property) {
     void loadHousekeepingBoard();
     void loadHousekeepingConditions().then(() => {
      if (arrivalReturn?.blocker === "room_condition_missing") openHousekeepingConditionInitialization(arrivalReturn);
+     else if (arrivalReturn?.blocker === "dirty_room_override_unauthorized") void openArrivalRoomCleaningTask(arrivalReturn);
      else if (arrivalReturn) restoreCheckInHousekeepingRoomFocus(arrivalReturn);
     });
     if (housekeepingSheetDate.value) {

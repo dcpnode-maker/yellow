@@ -371,6 +371,16 @@ export function createApp(options: AppOptions = {}) {
           context, params.property, params.reservation, params.task, "complete", body,
         ))
       )
+      .get("/api/v1/properties/:property/reservations/:reservation/arrival-room-cleaning-task/candidate", ({ request, params, tenantContext }) =>
+        withOperatorTenant(request, (context) => operator.arrivalRoomCleaningCandidate(
+          context, params.property, params.reservation,
+        ))
+      )
+      .post("/api/v1/properties/:property/reservations/:reservation/arrival-room-cleaning-task", ({ request, params, body, tenantContext }) =>
+        withOperatorTenant(request, (context) => operator.createArrivalRoomCleaningTask(
+          context, params.property, params.reservation, body,
+        ))
+      )
       .get("/api/v1/properties/:property/reservations/:reservation/check-in/readiness", ({ request, params, tenantContext }) =>
         withOperatorTenant(request, (context) => operator.checkInReadiness(
           context, params.property, params.reservation,

@@ -165,6 +165,10 @@ import {
   type VehicleRegisterRow,
 } from "../contexts/stay-operations";
 import {
+  ArrivalRoomCleaningConflictError,
+  ArrivalRoomCleaningNotFoundError,
+  ArrivalRoomCleaningTaskService,
+  ArrivalRoomCleaningValidationError,
   HousekeepingConflictError,
   HousekeepingNotFoundError,
   HousekeepingSheetConflictError,
@@ -251,6 +255,8 @@ const HOUSEKEEPING_INSPECT_SCOPE = "housekeeping.tasks:inspect";
 const HOUSEKEEPING_CONDITION_INITIALIZE_SCOPE = "housekeeping.conditions:initialize";
 const HOUSEKEEPING_SHEET_READ_SCOPE = "housekeeping.sheets:read";
 const HOUSEKEEPING_SHEET_GENERATE_SCOPE = "housekeeping.sheets:generate";
+const HOUSEKEEPING_ARRIVAL_TASK_READ_SCOPE = "housekeeping.arrival-tasks:read";
+const HOUSEKEEPING_ARRIVAL_TASK_CREATE_SCOPE = "housekeeping.arrival-tasks:create";
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 const ISO_INSTANT = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})(?::(\d{2})(?:\.(\d{1,3}))?)?(Z|([+-])(\d{2}):(\d{2}))$/;
 const LOCAL_DATE = /^(\d{4})-(\d{2})-(\d{2})$/;
@@ -486,6 +492,17 @@ function parseHousekeepingConditionInitialize(body: unknown): HousekeepingCondit
 interface HousekeepingSheetGenerateDraft {
   readonly sheetDate: string;
   readonly attendantPartyId: string;
+}
+
+interface ArrivalRoomCleaningCreateDraft {
+  readonly attendantPartyId: string;
+}
+
+function parseArrivalRoomCleaningCreate(body: unknown): ArrivalRoomCleaningCreateDraft | null {
+  return isObject(body) && exactKeys(body, ["attendantPartyId"]) &&
+    typeof body.attendantPartyId === "string" && UUID.test(body.attendantPartyId)
+    ? Object.freeze({ attendantPartyId: body.attendantPartyId })
+    : null;
 }
 
 function parseHousekeepingTransition(body: unknown): HousekeepingTransitionDraft | null {
@@ -1537,6 +1554,7 @@ type HousekeepingOperations = Pick<HousekeepingTaskService, "listBoard" | "trans
     }>>;
   }>>;
 type HousekeepingSheetOperations = Pick<HousekeepingSheetService, "preview" | "list" | "generate">;
+type ArrivalRoomCleaningOperations = Pick<ArrivalRoomCleaningTaskService, "candidate" | "create">;
 type PartyOperations = Pick<PartyProfileService, "search" | "create">;
 type FolioStatementOperations = Pick<FolioStatementService, "get">;
 type ChargeOperations = Pick<ChargeService, "postCharge">;
@@ -1946,6 +1964,7 @@ export class OperatorHttpApi {
   readonly #vehicleRegister?: VehicleRegisterOperations;
   readonly #reservationTravel?: ReservationTravelOperations;
   readonly #pickupTaskDispatch?: PickupTaskDispatchOperations;
+  readonly #arrivalRoomCleaning?: ArrivalRoomCleaningOperations;
 
   constructor(
     login: LocalLoginService,
@@ -1986,6 +2005,7 @@ export class OperatorHttpApi {
     vehicleRegister?: VehicleRegisterOperations,
     reservationTravel?: ReservationTravelOperations,
     pickupTaskDispatch?: PickupTaskDispatchOperations,
+    arrivalRoomCleaning?: ArrivalRoomCleaningOperations,
   ) {
     this.#login = login;
     this.#availability = availability;
@@ -2025,6 +2045,7 @@ export class OperatorHttpApi {
     this.#vehicleRegister = vehicleRegister;
     this.#reservationTravel = reservationTravel;
     this.#pickupTaskDispatch = pickupTaskDispatch;
+    this.#arrivalRoomCleaning = arrivalRoomCleaning;
   }
 
   unavailable(request: Request): Response {
@@ -2047,6 +2068,15 @@ export class OperatorHttpApi {
     }
     if (error instanceof ArrivalPickupTaskDispatchConflictError) {
       return apiError(request, 409, "reservations/conflict", "Conflict", "Arrival pickup task truth changed; refresh the task and try again");
+    }
+    if (error instanceof ArrivalRoomCleaningValidationError) {
+      return apiError(request, 400, "request/invalid", "Invalid request", "Arrival room cleaning task input is invalid");
+    }
+    if (error instanceof ArrivalRoomCleaningNotFoundError) {
+      return apiError(request, 404, "housekeeping/not_found", "Not found", "The referenced arrival room cleaning candidate or attendant was not found");
+    }
+    if (error instanceof ArrivalRoomCleaningConflictError) {
+      return apiError(request, 409, "housekeeping/conflict", "Conflict", "Arrival room cleaning truth changed; refresh the candidate and try again");
     }
     if (error instanceof VehicleRegisterValidationError) {
       return apiError(request, 400, "request/invalid", "Invalid request", "Vehicle register input is invalid");
@@ -4018,6 +4048,81 @@ export class OperatorHttpApi {
       spaceId: result.spaceId,
       updatedAt: result.roomUpdatedAt,
     })), 201, {
+      "idempotency-replayed": String(result.replayed),
+      "x-correlation-id": requestId,
+    });
+  }
+
+  async arrivalRoomCleaningCandidate(
+    context: TenantRequestContext,
+    propertyNode: string,
+    reservationId: string,
+  ): Promise<Response> {
+    if (!UUID.test(propertyNode) || !UUID.test(reservationId) ||
+        new URL(context.request.url).search.length > 0) {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Arrival room cleaning candidate input is invalid");
+    }
+    if (!hasScope(context, HOUSEKEEPING_ARRIVAL_TASK_READ_SCOPE)) {
+      return apiError(context.request, 403, "auth/scope_missing", "Forbidden", "Arrival room cleaning candidate access is not granted");
+    }
+    const readGrants = await listGrantedProperties(context, HOUSEKEEPING_ARRIVAL_TASK_READ_SCOPE);
+    if (!readGrants.some(({ id }) => id === propertyNode)) {
+      return apiError(context.request, 404, "housekeeping/not_found", "Not found", "The referenced arrival room cleaning candidate was not found");
+    }
+    if (!this.#arrivalRoomCleaning) return this.unavailable(context.request);
+    const createGrants = hasScope(context, HOUSEKEEPING_ARRIVAL_TASK_CREATE_SCOPE)
+      ? await listGrantedProperties(context, HOUSEKEEPING_ARRIVAL_TASK_CREATE_SCOPE)
+      : [];
+    const candidate = await this.#arrivalRoomCleaning.candidate({
+      tenantId: context.tenantId,
+      propertyNode,
+      reservationId,
+      actorId: context.identity.actorId,
+    });
+    return apiResponse(context.request, canonicalJson(jsonValue({
+      candidate,
+      canCreate: candidate.existingTaskId === null &&
+        createGrants.some(({ id }) => id === propertyNode),
+    })));
+  }
+
+  async createArrivalRoomCleaningTask(
+    context: TenantRequestContext,
+    propertyNode: string,
+    reservationId: string,
+    body: unknown,
+  ): Promise<Response> {
+    const input = parseArrivalRoomCleaningCreate(body);
+    const idempotencyKey = context.request.headers.get("idempotency-key");
+    if (!UUID.test(propertyNode) || !UUID.test(reservationId) || !input ||
+        !idempotencyKey || !IDEMPOTENCY_KEY.test(idempotencyKey) ||
+        new URL(context.request.url).search.length > 0) {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Arrival room cleaning task input is invalid");
+    }
+    if (!hasScope(context, HOUSEKEEPING_ARRIVAL_TASK_CREATE_SCOPE)) {
+      return apiError(context.request, 403, "auth/scope_missing", "Forbidden", "Arrival room cleaning task creation is not granted");
+    }
+    const grants = await listGrantedProperties(context, HOUSEKEEPING_ARRIVAL_TASK_CREATE_SCOPE);
+    if (!grants.some(({ id }) => id === propertyNode)) {
+      return apiError(context.request, 404, "housekeeping/not_found", "Not found", "The referenced arrival room cleaning candidate was not found");
+    }
+    if (!this.#arrivalRoomCleaning) return this.unavailable(context.request);
+    const requestId = correlationId(context.request);
+    const result = await this.#arrivalRoomCleaning.create({
+      tenantId: context.tenantId,
+      propertyNode,
+      reservationId,
+      ...input,
+      idempotencyKey,
+      envelope: createAuditEnvelope({
+        actorId: context.identity.actorId,
+        tenantId: context.tenantId,
+        propertyNode,
+        requestId,
+        operation: "task.created",
+      }),
+    });
+    return apiResponse(context.request, canonicalJson(jsonValue(result)), result.created ? 201 : 200, {
       "idempotency-replayed": String(result.replayed),
       "x-correlation-id": requestId,
     });

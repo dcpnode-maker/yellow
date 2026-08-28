@@ -15,9 +15,13 @@ export interface ArrivalRoomCleaningCandidateInput {
   readonly tenantId: string;
   readonly propertyNode: string;
   readonly reservationId: string;
+  readonly actorId: string;
 }
 
-export interface ArrivalRoomCleaningCreateInput extends ArrivalRoomCleaningCandidateInput {
+export interface ArrivalRoomCleaningCreateInput {
+  readonly tenantId: string;
+  readonly propertyNode: string;
+  readonly reservationId: string;
   readonly attendantPartyId: string;
   readonly idempotencyKey: string;
   readonly envelope: AuditEnvelope;
@@ -99,20 +103,30 @@ function condition(value: unknown): "dirty" | "pickup" {
   throw new Error("Database returned an invalid arrival room condition");
 }
 
+function boundedText(value: unknown, subject: string, maximum: number): string {
+  if (typeof value !== "string" || value.length < 1 || value.length > maximum) {
+    throw new Error(`Database returned invalid ${subject}`);
+  }
+  return value;
+}
+
 function instant(value: unknown, subject: string): string {
-  if (typeof value !== "string") throw new Error(`Database returned invalid ${subject}`);
-  const parsed = new Date(value);
+  if (!(value instanceof Date) && typeof value !== "string") {
+    throw new Error(`Database returned invalid ${subject}`);
+  }
+  const parsed = value instanceof Date ? value : new Date(value);
   if (!Number.isFinite(parsed.getTime())) throw new Error(`Database returned invalid ${subject}`);
   return parsed.toISOString();
 }
 
 function candidateInput(input: ArrivalRoomCleaningCandidateInput): ArrivalRoomCleaningCandidateInput {
   plain(input, "arrival cleaning candidate input");
-  exact(input, ["tenantId", "propertyNode", "reservationId"], "arrival cleaning candidate input");
+  exact(input, ["tenantId", "propertyNode", "reservationId", "actorId"], "arrival cleaning candidate input");
   return Object.freeze({
     tenantId: uuid(input.tenantId, "tenantId"),
     propertyNode: uuid(input.propertyNode, "propertyNode"),
     reservationId: uuid(input.reservationId, "reservationId"),
+    actorId: uuid(input.actorId, "actorId"),
   });
 }
 
@@ -121,29 +135,29 @@ function createInput(input: ArrivalRoomCleaningCreateInput): ArrivalRoomCleaning
   exact(input, [
     "tenantId", "propertyNode", "reservationId", "attendantPartyId", "idempotencyKey", "envelope",
   ], "arrival cleaning create input");
-  const base = candidateInput({
-    tenantId: input.tenantId,
-    propertyNode: input.propertyNode,
-    reservationId: input.reservationId,
-  });
+  const tenantId = uuid(input.tenantId, "tenantId");
+  const propertyNode = uuid(input.propertyNode, "propertyNode");
+  const reservationId = uuid(input.reservationId, "reservationId");
   if (typeof input.idempotencyKey !== "string" || !IDEMPOTENCY_KEY.test(input.idempotencyKey)) {
     throw new ArrivalRoomCleaningValidationError("idempotencyKey must contain 8 to 200 visible ASCII characters");
   }
   plain(input.envelope, "envelope");
   exact(input.envelope, ["actorId", "tenantId", "propertyNode", "requestId", "operation"], "envelope");
-  if (uuid(input.envelope.tenantId, "envelope.tenantId") !== base.tenantId ||
-      uuid(input.envelope.propertyNode, "envelope.propertyNode") !== base.propertyNode ||
+  if (uuid(input.envelope.tenantId, "envelope.tenantId") !== tenantId ||
+      uuid(input.envelope.propertyNode, "envelope.propertyNode") !== propertyNode ||
       input.envelope.operation !== "task.created") {
     throw new ArrivalRoomCleaningValidationError("audit envelope is not bound to task.created");
   }
   return Object.freeze({
-    ...base,
+    tenantId,
+    propertyNode,
+    reservationId,
     attendantPartyId: uuid(input.attendantPartyId, "attendantPartyId"),
     idempotencyKey: input.idempotencyKey,
     envelope: Object.freeze({
       actorId: uuid(input.envelope.actorId, "envelope.actorId"),
-      tenantId: base.tenantId,
-      propertyNode: base.propertyNode,
+      tenantId,
+      propertyNode,
       requestId: uuid(input.envelope.requestId, "envelope.requestId"),
       operation: "task.created",
     }),
@@ -196,6 +210,26 @@ export class ArrivalRoomCleaningTaskService {
               AND reservation.property_node = ${normalized.propertyNode}::uuid
               AND reservation.id = ${normalized.reservationId}::uuid
               AND reservation.status = 'due_in'
+              AND NOT EXISTS (
+                SELECT 1
+                FROM user_role AS actor_grant
+                JOIN role AS actor_role
+                  ON actor_role.tenant_id = actor_grant.tenant_id
+                 AND actor_role.id = actor_grant.role_id
+                JOIN role_permission AS actor_permission
+                  ON actor_permission.role_id = actor_role.id
+                 AND actor_permission.permission_code = 'stay-operations.checkin:dirty-room-override'
+                JOIN org_node AS grant_node
+                  ON grant_node.tenant_id = actor_grant.tenant_id
+                 AND grant_node.id = actor_grant.scope_node
+                JOIN org_node AS target_property
+                  ON target_property.tenant_id = actor_grant.tenant_id
+                 AND target_property.id = ${normalized.propertyNode}::uuid
+                 AND target_property.kind = 'property'
+                 AND target_property.path <@ grant_node.path
+                WHERE actor_grant.tenant_id = ${normalized.tenantId}::uuid
+                  AND actor_grant.user_id = ${normalized.actorId}::uuid
+              )
           ), eligible_room AS MATERIALIZED (
             SELECT segment.reservation_id, room.id AS space_id, room.code AS space_code,
                    condition.condition AS room_condition, lower(segment.period) AS due_at
@@ -216,7 +250,7 @@ export class ArrivalRoomCleaningTaskService {
           )
           SELECT room.reservation_id, room.space_id, room.space_code,
                  room.room_condition, room.due_at,
-                 min(task.id) AS existing_task_id,
+                 (array_agg(task.id ORDER BY task.id::text))[1] AS existing_task_id,
                  count(task.id)::int AS actionable_task_count
           FROM eligible_room AS room
           LEFT JOIN task
@@ -237,7 +271,7 @@ export class ArrivalRoomCleaningTaskService {
         return Object.freeze({
           reservationId: uuid(row.reservation_id, "reservationId"),
           spaceId: uuid(row.space_id, "spaceId"),
-          spaceCode: row.space_code,
+          spaceCode: boundedText(row.space_code, "space code", 120),
           roomCondition: condition(row.room_condition),
           dueAt: instant(row.due_at, "arrival due time"),
           existingTaskId: row.existing_task_id === null ? null : uuid(row.existing_task_id, "existingTaskId"),

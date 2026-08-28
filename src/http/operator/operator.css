@@ -791,6 +791,35 @@ input, select, textarea { min-height: 44px; border-color: #bdcbca; background: #
 .housekeeping-attendant-result, .housekeeping-attendant-selected { min-width: 0; padding: .65rem; display: flex; align-items: center; justify-content: space-between; gap: .75rem; border: 1px solid var(--line); border-radius: var(--control-radius); background: var(--surface-subtle); }
 .housekeeping-attendant-result div, .housekeeping-attendant-selected div { min-width: 0; display: grid; gap: .18rem; }
 .housekeeping-attendant-result :is(strong,small), .housekeeping-attendant-selected :is(strong,small) { overflow-wrap: anywhere; }
+.arrival-room-cleaning-task { min-width: 0; margin-bottom: 1rem; padding: 1rem; display: grid; gap: 1rem; overflow: hidden; }
+.arrival-room-cleaning-task > header { min-width: 0; display: flex; align-items: start; justify-content: space-between; gap: 1rem; }
+.arrival-room-cleaning-task > header > div { min-width: 0; }
+.arrival-room-cleaning-task h3 { margin: .2rem 0 .35rem; overflow-wrap: anywhere; }
+.arrival-room-cleaning-task p { max-width: 72ch; margin: 0; color: var(--muted); overflow-wrap: anywhere; }
+.arrival-room-cleaning-task-status { min-width: 0; padding: .8rem; border: 1px solid var(--line); border-left: 4px solid var(--amber); border-radius: var(--control-radius); background: var(--amber-soft); color: var(--ink); }
+.arrival-room-cleaning-task-form { min-width: 0; display: grid; grid-template-columns: minmax(260px,1fr) auto; gap: .75rem 1rem; align-items: end; }
+.arrival-room-cleaning-task-form > .field-note, .arrival-room-cleaning-task-form > .form-message, .arrival-room-cleaning-task-results, .arrival-room-cleaning-task-selected { grid-column: 1 / -1; }
+.arrival-room-cleaning-task-form button, .arrival-room-cleaning-task-open { min-height: 44px; }
+.arrival-room-cleaning-task-results { min-width: 0; display: grid; gap: .45rem; }
+.arrival-room-cleaning-task-results button, .arrival-room-cleaning-task-selected { min-width: 0; padding: .7rem .8rem; display: flex; align-items: center; justify-content: space-between; gap: .75rem; border: 1px solid var(--line); border-radius: var(--control-radius); background: var(--surface-subtle); color: var(--ink); text-align: left; }
+.arrival-room-cleaning-task-results button > span, .arrival-room-cleaning-task-selected > span { min-width: 0; display: grid; gap: .18rem; }
+.arrival-room-cleaning-task-results :is(strong,small), .arrival-room-cleaning-task-selected :is(strong,small) { overflow-wrap: anywhere; }
+.arrival-room-cleaning-task-open { justify-self: start; }
+:root[data-theme="apple"] .arrival-room-cleaning-task { border-width: .5px; border-radius: 22px; background: rgba(248,248,250,.88); box-shadow: inset 0 .5px rgba(255,255,255,.92), 0 18px 44px rgba(30,35,50,.12); backdrop-filter: blur(24px) saturate(145%); }
+:root[data-theme="apple"] .arrival-room-cleaning-task :is(.arrival-room-cleaning-task-results button,.arrival-room-cleaning-task-selected) { border-width: .5px; border-radius: 16px; background: rgba(255,255,255,.84); }
+:root[data-theme="android"] .arrival-room-cleaning-task { border: 0; border-radius: 28px 28px 12px 28px; background: #f7f2fa; box-shadow: 0 2px 5px rgba(29,25,43,.16), 0 8px 24px rgba(29,25,43,.08); }
+:root[data-theme="android"] .arrival-room-cleaning-task :is(button,input) { min-height: 48px; border-radius: 999px; }
+:root[data-theme="android"] .arrival-room-cleaning-task :is(.arrival-room-cleaning-task-results button,.arrival-room-cleaning-task-selected) { border: 0; border-radius: 20px 20px 8px 20px; background: #eaddff; color: #1d192b; }
+:root[data-theme="win95"] .arrival-room-cleaning-task { border: 2px outset #fff; border-radius: 0; background: #c0c0c0; color: #000; box-shadow: 1px 1px #000; font-family: "MS Sans Serif",Tahoma,sans-serif; }
+:root[data-theme="win95"] .arrival-room-cleaning-task :is(.arrival-room-cleaning-task-status,.arrival-room-cleaning-task-results button,.arrival-room-cleaning-task-selected) { border: 2px inset #fff; border-radius: 0; background: #fff; color: #000; box-shadow: none; }
+:root[data-theme="glass"] .arrival-room-cleaning-task { border: 1px solid rgba(255,255,255,.52); border-radius: 26px; background: linear-gradient(145deg,rgba(255,255,255,.3),rgba(126,178,242,.12)); box-shadow: inset 0 1px rgba(255,255,255,.75), 0 24px 56px rgba(0,18,48,.24); backdrop-filter: blur(28px) saturate(180%); }
+:root[data-theme="glass"] .arrival-room-cleaning-task :is(.arrival-room-cleaning-task-status,.arrival-room-cleaning-task-results button,.arrival-room-cleaning-task-selected) { border: 1px solid rgba(255,255,255,.6); border-radius: 18px; background: linear-gradient(145deg,rgba(255,255,255,.42),rgba(174,213,255,.18)); color: #102039; box-shadow: inset 0 1px rgba(255,255,255,.78), 0 12px 28px rgba(0,18,48,.16); backdrop-filter: blur(22px) saturate(170%); }
+:root[data-theme="neo"] .arrival-room-cleaning-task { border: 1px solid #a1adb3; border-radius: 22px; background: #e8eef1; color: #17252b; box-shadow: -9px -9px 22px #fff, 9px 9px 22px #bec8cd; }
+:root[data-theme="neo"] .arrival-room-cleaning-task :is(.arrival-room-cleaning-task-status,.arrival-room-cleaning-task-results button,.arrival-room-cleaning-task-selected) { border: 1px solid #a1adb3; border-radius: 16px; background: #e8eef1; color: #17252b; box-shadow: inset -4px -4px 9px #fff, inset 4px 4px 9px #c1cbd0; }
+:root[data-theme="erp"] .arrival-room-cleaning-task { border: 1px solid #d9dee7; border-radius: 6px; background: #fff; color: #202938; box-shadow: 0 4px 14px rgba(30,41,59,.08); }
+:root[data-theme="erp"] .arrival-room-cleaning-task :is(.arrival-room-cleaning-task-status,.arrival-room-cleaning-task-results button,.arrival-room-cleaning-task-selected) { border-radius: 5px; background: #f7f8fa; box-shadow: none; }
+@media (prefers-reduced-motion: reduce) { .arrival-room-cleaning-task, .arrival-room-cleaning-task * { animation: none; scroll-behavior: auto; transition: none; } }
+@media (forced-colors: active) { .arrival-room-cleaning-task, .arrival-room-cleaning-task :is(.arrival-room-cleaning-task-status,.arrival-room-cleaning-task-results button,.arrival-room-cleaning-task-selected) { border: 1px solid CanvasText; background: Canvas; color: CanvasText; box-shadow: none; backdrop-filter: none; forced-color-adjust: auto; } }
 .housekeeping-sheet-preview, .housekeeping-sheet-history { min-width: 0; padding-top: 1rem; display: grid; gap: .75rem; border-top: 1px solid var(--line); }
 .housekeeping-preview-rooms { min-width: 0; display: grid; grid-template-columns: repeat(auto-fit,minmax(min(100%,240px),1fr)); gap: .65rem; }
 .housekeeping-preview-room { min-width: 0; padding: .75rem; display: grid; gap: .65rem; border: 1px solid var(--line); border-radius: var(--control-radius); background: var(--surface-subtle); }
@@ -835,6 +864,10 @@ input, select, textarea { min-height: 44px; border-color: #bdcbca; background: #
 .housekeeping-sheet-form > .field-note, .housekeeping-sheet-form > .form-message { grid-column: auto; }
 .housekeeping-attendant-search-row { grid-template-columns: minmax(0,1fr); }
 .housekeeping-attendant-search-row button, .housekeeping-preview-action, .housekeeping-generate-bar button { width: 100%; }
+.arrival-room-cleaning-task > header { align-items: stretch; flex-direction: column; }
+.arrival-room-cleaning-task-form { grid-template-columns: minmax(0,1fr); }
+.arrival-room-cleaning-task-form > .field-note, .arrival-room-cleaning-task-form > .form-message, .arrival-room-cleaning-task-results, .arrival-room-cleaning-task-selected { grid-column: auto; }
+.arrival-room-cleaning-task-form button, .arrival-room-cleaning-task-open { width: 100%; }
 .housekeeping-task-head { display: grid; }
 .housekeeping-badges { justify-content: start; }
 }

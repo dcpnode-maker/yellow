@@ -681,6 +681,68 @@ databaseDescribe("Order 046 reproducible local-review seed", () => {
     });
   });
 
+  test("Order 229 P6: reuses one exact dirty arrival and active attendant without pre-creating a cleaning task", async () => {
+    const rows = await admin<Array<{
+      reservation_id: string; reservation_status: string; segment_status: string;
+      current_segments: number; property_node: string; room_id: string; room_code: string;
+      room_status: string; condition: string; attendant_id: string; attendant_status: string;
+      staff_roles: number; actionable_tasks: number; arrival_cleaning_tasks: number;
+    }>>`
+      SELECT reservation.id AS reservation_id,
+             reservation.status AS reservation_status,
+             segment.status AS segment_status,
+             (SELECT count(*)::int FROM reservation_segment AS current_segment
+               WHERE current_segment.tenant_id=reservation.tenant_id
+                 AND current_segment.reservation_id=reservation.id
+                 AND current_segment.status='booked'
+                 AND current_segment.period @> CURRENT_TIMESTAMP) AS current_segments,
+             reservation.property_node,
+             space.id AS room_id,
+             space.code AS room_code,
+             space.status AS room_status,
+             condition.condition,
+             attendant.id AS attendant_id,
+             attendant.status AS attendant_status,
+             (SELECT count(*)::int FROM party_role AS staff
+               WHERE staff.tenant_id=attendant.tenant_id
+                 AND staff.party_id=attendant.id AND staff.role='staff') AS staff_roles,
+             (SELECT count(*)::int FROM task
+               WHERE tenant_id=reservation.tenant_id
+                 AND property_node=reservation.property_node
+                 AND kind='housekeeping' AND subject_type='space' AND subject_id=space.id
+                 AND status IN ('assigned','in_progress')) AS actionable_tasks,
+             (SELECT count(*)::int FROM task
+               WHERE tenant_id=reservation.tenant_id
+                 AND property_node=reservation.property_node
+                 AND kind='housekeeping' AND subject_type='space' AND subject_id=space.id
+                 AND payload @> '{"source":"arrival_room_cleaning"}'::jsonb) AS arrival_cleaning_tasks
+        FROM reservation
+        JOIN reservation_segment AS segment
+          ON segment.tenant_id=reservation.tenant_id AND segment.reservation_id=reservation.id
+        JOIN sellable_unit_space AS assignment
+          ON assignment.tenant_id=segment.tenant_id
+         AND assignment.sellable_unit_id=segment.sellable_unit_id
+        JOIN space
+          ON space.tenant_id=assignment.tenant_id AND space.id=assignment.space_id
+        JOIN unit_condition AS condition
+          ON condition.tenant_id=space.tenant_id AND condition.space_id=space.id
+        JOIN party AS attendant
+          ON attendant.tenant_id=reservation.tenant_id
+         AND attendant.id=${first.housekeepingExamples.attendantPartyId}::uuid
+       WHERE reservation.tenant_id=${SEED_TENANT.id}::uuid
+         AND reservation.id=${first.checkInExamples.dirtyReservationId}::uuid
+    `;
+    expect(rows).toEqual([{
+      reservation_id: first.checkInExamples.dirtyReservationId,
+      reservation_status: "due_in", segment_status: "booked", current_segments: 1,
+      property_node: SEED_PROPERTY.id, room_id: expect.any(String), room_code: "102",
+      room_status: "active", condition: "dirty",
+      attendant_id: first.housekeepingExamples.attendantPartyId,
+      attendant_status: "active", staff_roles: 1,
+      actionable_tasks: 0, arrival_cleaning_tasks: 0,
+    }]);
+  });
+
   test("Order 201 P6: provisions assigned-dirty and done-clean tasks without transitions, sheets or occupancy", async () => {
     const rows = await housekeepingSnapshot();
     expect(rows).toEqual([
@@ -1131,7 +1193,7 @@ databaseDescribe("Order 046 reproducible local-review seed", () => {
     expect(await tokens.verify(loginBody.accessToken)).toMatchObject({
       sub: first.userId,
       tid: SEED_TENANT.id,
-      scp: "crm.parties:read crm.parties:write financials.adjustments:write financials.cashiers:operate financials.cashiers:read financials.charges:write financials.folios:close financials.folios:open financials.folios:read financials.folios:settle financials.receivables:read financials.receivables:transfer financials.transfers:write housekeeping.conditions:initialize housekeeping.sheets:generate housekeeping.sheets:read housekeeping.tasks:read housekeeping.tasks:work inventory.availability:read inventory.blocks:read inventory.blocks:write inventory.configuration:read inventory.configuration:write inventory.holds:read inventory.holds:write inventory.offline_leases:read inventory.offline_leases:write inventory.policy:read inventory.policy:write inventory.restriction:read inventory.restriction:write rates.configuration:read rates.configuration:write rates.pricing:read rates.pricing:write reservations.booking:write reservations.guests:read reservations.guests:write reservations.lifecycle:read reservations.lifecycle:write reservations.segments:read reservations.segments:write stay-operations.checkin:commit stay-operations.checkin:read stay-operations.checkout:commit stay-operations.checkout:read stay-operations.pickup-tasks:dispatch stay-operations.pickup-tasks:work stay-operations.vehicles:read",
+      scp: "crm.parties:read crm.parties:write financials.adjustments:write financials.cashiers:operate financials.cashiers:read financials.charges:write financials.folios:close financials.folios:open financials.folios:read financials.folios:settle financials.receivables:read financials.receivables:transfer financials.transfers:write housekeeping.arrival-tasks:create housekeeping.arrival-tasks:read housekeeping.conditions:initialize housekeeping.sheets:generate housekeeping.sheets:read housekeeping.tasks:read housekeeping.tasks:work inventory.availability:read inventory.blocks:read inventory.blocks:write inventory.configuration:read inventory.configuration:write inventory.holds:read inventory.holds:write inventory.offline_leases:read inventory.offline_leases:write inventory.policy:read inventory.policy:write inventory.restriction:read inventory.restriction:write rates.configuration:read rates.configuration:write rates.pricing:read rates.pricing:write reservations.booking:write reservations.guests:read reservations.guests:write reservations.lifecycle:read reservations.lifecycle:write reservations.segments:read reservations.segments:write stay-operations.checkin:commit stay-operations.checkin:read stay-operations.checkout:commit stay-operations.checkout:read stay-operations.pickup-tasks:dispatch stay-operations.pickup-tasks:work stay-operations.vehicles:read",
     });
     const approverLogin = await app.handle(new Request("http://yellow.test/api/v1/auth/local:login", {
       method: "POST",
@@ -1145,7 +1207,7 @@ databaseDescribe("Order 046 reproducible local-review seed", () => {
     expect(await tokens.verify(approverLoginBody.accessToken)).toMatchObject({
       sub: first.approverUserId,
       tid: SEED_TENANT.id,
-      scp: "crm.parties:read crm.parties:write financials.adjustments:post-seal financials.adjustments:write financials.cashiers:operate financials.cashiers:read financials.cashiers:supervise financials.charges:write financials.folios:close financials.folios:open financials.folios:read financials.folios:settle financials.receivables:approve financials.receivables:read financials.receivables:transfer financials.transfers:write housekeeping.conditions:initialize housekeeping.sheets:generate housekeeping.sheets:read housekeeping.tasks:inspect housekeeping.tasks:read housekeeping.tasks:work inventory.availability:read inventory.blocks:read inventory.blocks:write inventory.configuration:read inventory.configuration:write inventory.holds:read inventory.holds:write inventory.offline_leases:read inventory.offline_leases:write inventory.policy:read inventory.policy:write inventory.restriction:read inventory.restriction:write rates.configuration:read rates.configuration:write rates.pricing:read rates.pricing:write reservations.booking:write reservations.guests:read reservations.guests:write reservations.lifecycle:read reservations.lifecycle:write reservations.segments:read reservations.segments:write stay-operations.checkin:commit stay-operations.checkin:dirty-room-override stay-operations.checkin:read stay-operations.checkout:commit stay-operations.checkout:read stay-operations.pickup-tasks:dispatch stay-operations.pickup-tasks:work stay-operations.vehicles:read",
+      scp: "crm.parties:read crm.parties:write financials.adjustments:post-seal financials.adjustments:write financials.cashiers:operate financials.cashiers:read financials.cashiers:supervise financials.charges:write financials.folios:close financials.folios:open financials.folios:read financials.folios:settle financials.receivables:approve financials.receivables:read financials.receivables:transfer financials.transfers:write housekeeping.arrival-tasks:create housekeeping.arrival-tasks:read housekeeping.conditions:initialize housekeeping.sheets:generate housekeeping.sheets:read housekeeping.tasks:inspect housekeeping.tasks:read housekeeping.tasks:work inventory.availability:read inventory.blocks:read inventory.blocks:write inventory.configuration:read inventory.configuration:write inventory.holds:read inventory.holds:write inventory.offline_leases:read inventory.offline_leases:write inventory.policy:read inventory.policy:write inventory.restriction:read inventory.restriction:write rates.configuration:read rates.configuration:write rates.pricing:read rates.pricing:write reservations.booking:write reservations.guests:read reservations.guests:write reservations.lifecycle:read reservations.lifecycle:write reservations.segments:read reservations.segments:write stay-operations.checkin:commit stay-operations.checkin:dirty-room-override stay-operations.checkin:read stay-operations.checkout:commit stay-operations.checkout:read stay-operations.pickup-tasks:dispatch stay-operations.pickup-tasks:work stay-operations.vehicles:read",
     });
 
     const headers = { "content-type": "application/json", authorization: `Bearer ${loginBody.accessToken}` };

@@ -58,6 +58,32 @@ BEGIN
       MESSAGE = 'arrival room cleaning task target is unavailable';
   END IF;
 
+  -- This capability exists only for the exact dirty-room blocker.  An actor who
+  -- can override that blocker must continue through check-in instead of creating
+  -- a housekeeping task through this path.  Recompute the property-scoped grant
+  -- inside the owner transaction so a direct API call cannot bypass UI admission.
+  PERFORM 1
+    FROM public.user_role AS actor_grant
+    JOIN public.role AS actor_role
+      ON actor_role.tenant_id = actor_grant.tenant_id
+     AND actor_role.id = actor_grant.role_id
+    JOIN public.role_permission AS actor_permission
+      ON actor_permission.role_id = actor_role.id
+     AND actor_permission.permission_code = 'stay-operations.checkin:dirty-room-override'
+    JOIN public.org_node AS grant_node
+      ON grant_node.tenant_id = actor_grant.tenant_id
+     AND grant_node.id = actor_grant.scope_node
+    JOIN public.org_node AS target_property
+      ON target_property.tenant_id = actor_grant.tenant_id
+     AND target_property.id = p_property
+     AND target_property.kind = 'property'
+     AND target_property.path <@ grant_node.path
+   WHERE actor_grant.tenant_id = p_tenant
+     AND actor_grant.user_id = p_actor;
+  IF FOUND THEN
+    RETURN;
+  END IF;
+
   PERFORM 1
     FROM public.party AS attendant
     JOIN public.party_role AS staff

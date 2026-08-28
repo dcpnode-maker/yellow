@@ -120,6 +120,16 @@ non-adjacent and non-pickup task transitions remain non-executable. Each changed
 transition emits `task.status_changed` and changes no travel, reservation, occupancy,
 vehicle, parking, room-condition, financial, day or statutory state.
 
+Order 229 is a create-only entry into the existing machine at `assigned`. For one
+coherent dirty/pickup due-in room and one selected active same-tenant staff Party, it
+may insert exactly one `housekeeping`/`space` task already assigned to that Party. If
+one assigned or in-progress exact-room housekeeping task exists, the command returns
+it without a transition or event. Multiple actionable tasks fail closed; open, done,
+verified, cancelled and unrelated tasks are neither adopted nor mutated. Later
+`assigned -> in_progress -> done -> verified` work remains owned by Order 201. Creation
+emits `task.created` only and changes no room condition, reservation, check-in,
+occupancy, financial, day or statutory state.
+
 ## 5. Block (`reservation_group`, kind=block) — statuses come from `block_status_def`
 (tenant config); the ONLY semantic the engine reads is `deducts`. Transitions between
 statuses re-sync `availability_projection` deltas. Cutoff & wash run as Automations

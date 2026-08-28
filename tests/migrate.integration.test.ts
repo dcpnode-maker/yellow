@@ -906,6 +906,44 @@ databaseDescribe("Bun SQL migration runner", () => {
   );
 
   test(
+    "applies the exact governed arrival room-cleaning task migration",
+    async () => {
+      await withDatabase(async ({ databaseUrl: targetUrl, sql }) => {
+        const result = await runMigrations({
+          databaseUrl: targetUrl,
+          migrationsDirectory: PROJECT_MIGRATIONS,
+          logger: () => undefined,
+        });
+        expect(result.appliedFiles).toContain("0032_governed_arrival_room_cleaning_task.sql");
+        const ledger = await sql<Array<{
+          version: number | bigint; filename: string; checksum_sha256: string;
+        }>>`
+          SELECT version, filename, checksum_sha256
+            FROM public.schema_migration
+           WHERE version = 32
+        `;
+        expect(ledger.map((row) => ({ ...row, version: Number(row.version) }))).toEqual([{
+          version: 32,
+          filename: "0032_governed_arrival_room_cleaning_task.sql",
+          checksum_sha256: "f69c72349c237d635826136575ec1c66ccb48cf0f0ac9b3ea4a83f786b2a6718",
+        }]);
+        const shape = await sql<Array<{ functions: number; taskInsert: boolean; taskUpdate: boolean }>>`
+          SELECT
+            (SELECT count(*)::int
+               FROM pg_catalog.pg_proc AS procedure
+               JOIN pg_catalog.pg_namespace AS namespace ON namespace.oid=procedure.pronamespace
+              WHERE namespace.nspname='public'
+                AND procedure.proname='create_arrival_room_cleaning_task') AS functions,
+            has_table_privilege('app_role', 'public.task', 'INSERT') AS "taskInsert",
+            has_table_privilege('app_role', 'public.task', 'UPDATE') AS "taskUpdate"
+        `;
+        expect(shape).toEqual([{ functions: 1, taskInsert: false, taskUpdate: false }]);
+      });
+    },
+    60_000,
+  );
+
+  test(
     "applies the exact account-folio integrity migration and rejects tenant-crossing references",
     async () => {
       await withDatabase(async ({ databaseUrl: targetUrl, sql }) => {

@@ -1,6 +1,6 @@
 # Order 229 — Governed arrival room-cleaning task creation
 
-**Status:** READY-D602
+**Status:** BUILT-UNREVIEWED-D603
 **Phase:** 6 — Stay operations and housekeeping
 **Branch:** `phase-6/governed-arrival-room-cleaning-task`
 **Base:** `c58a734` (built-unreviewed Order228)
@@ -112,8 +112,8 @@ the existing task-detail and check-in preparation journeys.
 
 ## Definition of done
 
-- [ ] Intentional red precedes implementation.
-- [ ] Exact arrival room-cleaning task creation is atomic and executable.
-- [ ] Authority, duplicate containment, rollback, replay and convergence are proved.
-- [ ] The human blocker-to-task journey is stale-safe and usable.
-- [ ] Standing gates are green and the result is recorded built-unreviewed.
+- [x] Intentional red precedes implementation.
+- [x] Exact arrival room-cleaning task creation is atomic and executable.
+- [x] Authority, duplicate containment, rollback, replay and convergence are proved.
+- [x] The human blocker-to-task journey is stale-safe and usable.
+- [x] Standing gates are green and the result is recorded built-unreviewed.

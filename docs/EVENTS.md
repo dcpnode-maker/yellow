@@ -120,6 +120,17 @@ second event for the same deterministic sheet/space task. Consumers must not inf
 task transition, condition change, reservation/occupancy mutation, credit allocation,
 financial effect, business-day action or statutory submission from `task.created`.
 
+Order 229 produces one `task.created` fact/outbox pair only when the governed arrival
+room-cleaning command creates a new assigned housekeeping/space task. The aggregate is
+that task and the minimized payload is
+`{reservation_id,space_id,room_condition,assignee_party_id,status:'assigned',department:'Housekeeping',priority:1,due_at}`.
+Task, fact, outbox and idempotent receipt commit in one transaction. Returning an
+existing assigned/in-progress exact-room task, exact replay, or a losing concurrent
+contender emits no second pair. The event contains no guest/contact/note/payment or
+statutory data. Consumers must not infer that cleaning started or completed, that the
+room condition changed, or that reservation, check-in, occupancy, key, folio,
+financial, business-day, travel, vehicle, parking or statutory state changed.
+
 **profiles** · party.created/.merged {into} · party.anonymised · consent.changed
 
 **distribution** · inbound.received {channel,external_id} · inbound.processed {reservation_id}/.failed · ari.push_requested {channel,unit_types,date_range} · map.changed

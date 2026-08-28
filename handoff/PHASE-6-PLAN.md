@@ -288,11 +288,12 @@ actor-bound idempotency, expected status/assignee evidence and one same-transact
 cancellation, transport details, travel/vehicle/parking/occupancy/financial effect or
 inferred guest outcome.
 
-Order 229 is ready as the exact governed task-creation bridge for a current dirty/pickup
+Order 229 is built-unreviewed as the exact governed task-creation bridge for a current dirty/pickup
 arrival blocked by `dirty_room_override_unauthorized`. It may create at most one assigned housekeeping/space task
 for the exact dirty or pickup room and selected active property attendant, or return an
 already actionable exact-room task without duplicating it. It adds no automatic
-scheduling, condition/reservation/check-in/occupancy/financial mutation or generic task CRUD.
+scheduling, condition/reservation/check-in/occupancy/financial mutation or generic task CRUD;
+the exact property-scoped dirty-room override grant is recomputed inside both tenant transactions.
 
 Statutory field semantics, validation, submission and receipts remain Phase 8. Tax and
 fiscal document work remains Phase 7. No country rule is hardcoded in Phase 6.

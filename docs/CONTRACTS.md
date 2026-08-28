@@ -967,3 +967,45 @@ expected task/assignee evidence and, for assign, `staffPartyId`. Responses are
 `Cache-Control: no-store`, carry correlation and replay headers and expose only the
 minimized receipt. No generic task route, reassignment, cancellation, travel edit or
 transport-detail authority is introduced.
+
+## 31. Governed arrival room-cleaning task creation
+
+`ArrivalRoomCleaningTaskService.candidate` accepts one exact lowercase tenant,
+property and reservation UUID. Its transaction-local read returns a candidate only
+for one `due_in` reservation with exactly one current booked segment, one mapped active
+physical room in the exact property and a canonical `dirty|pickup` condition. More
+than one actionable `assigned|in_progress` housekeeping/space task for that room is
+incoherent and conceals the complete candidate. The deeply frozen candidate is
+exactly `reservationId`, `spaceId`, `spaceCode`, `roomCondition`, `dueAt` and nullable
+`existingTaskId`; it performs no write and makes no readiness, occupancy or cleaning
+completion inference.
+
+`GET /api/v1/properties/{property}/reservations/{reservation}/arrival-room-cleaning-task/candidate`
+accepts no query and requires `housekeeping.arrival-tasks:read` plus its exact property
+grant. Its no-store response is exactly `{candidate,canCreate}`. `canCreate` is true
+only when no actionable task exists and the caller also holds
+`housekeeping.arrival-tasks:create` for that property. Missing scope is forbidden;
+foreign, ungranted or incoherent identities share the concealed not-found boundary.
+
+`ArrivalRoomCleaningTaskService.create` accepts the same bounded identity, one active
+same-tenant staff Party as `attendantPartyId`, an actor-bound audit envelope and an
+idempotency key. The owner-mediated capability locks and re-proves the active actor,
+due-in reservation, unique current booked segment, unique active mapped room,
+`dirty|pickup` condition, selected staff Party and exact-room actionable-task count.
+It returns the one existing assigned/in-progress task without mutation, or inserts at
+most one task with `kind='housekeeping'`, `subject_type='space'`,
+`status='assigned'`, `department='Housekeeping'`, priority 1 and due time equal to the
+segment's recorded lower-bound arrival instant. Its stored payload is limited to
+`source='arrival_room_cleaning'`, canonical reservation id and room condition.
+
+`POST /api/v1/properties/{property}/reservations/{reservation}/arrival-room-cleaning-task`
+accepts no query, requires `housekeeping.arrival-tasks:create` plus its exact property
+grant, a valid `Idempotency-Key`, and only `{attendantPartyId}`. A new task returns 201;
+an existing actionable task returns 200. The minimized receipt contains only
+`taskId`, `reservationId`, `spaceId`, `roomCondition`, `attendantPartyId`, `dueAt`,
+`created` and `replayed`, with replay and correlation headers. Exact replay is stable,
+changed-key reuse conflicts and room-scoped contenders converge. Only creation writes
+one `task.created` fact/outbox pair in the same transaction; returning an existing task
+emits nothing. No generic task CRUD, condition or reservation mutation, check-in,
+occupancy, folio, financial, day, key, travel, vehicle, parking or statutory authority
+is introduced.

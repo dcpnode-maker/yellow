@@ -747,3 +747,23 @@ Order213 creates and links that task from current intent, while Order228 advance
 the linked task through assignment, work and completion. A done task records only
 completed work state: it does not by itself prove a guest boarded, a vehicle arrived,
 parking or occupancy changed, check-in occurred, or money became chargeable.
+
+### Arrival room-cleaning work identity (Order 229)
+
+Order 229 adds no root, table or state vocabulary. It composes the existing due-in
+reservation and current booked segment, sellable-unit-to-active-space mapping,
+canonical `unit_condition`, `task`, active Party plus `staff` role, `fact_log`, outbox
+and idempotency primitives. The reservation owns arrival status, its segment owns the
+recorded arrival instant and sellable assignment, `space` plus `unit_condition` own
+the exact physical room and its canonical dirty/pickup truth, and `task` owns cleaning
+work and the selected staff assignee.
+
+The task is the existing work primitive, not a new arrival-cleaning aggregate. Its
+minimized stored payload preserves only the `arrival_room_cleaning` source,
+reservation id and observed room condition; canonical condition remains outside the
+task. One exact room is the concurrency key. An existing assigned or in-progress
+housekeeping/space task is the current actionable work identity; open, done, verified,
+cancelled and unrelated tasks remain distinct history and are never adopted or
+mutated. Creating or returning the task does not prove cleaning progress, readiness,
+occupancy or check-in and creates no financial, key, travel, vehicle, parking or
+statutory identity.

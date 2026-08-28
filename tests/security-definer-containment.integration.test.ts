@@ -169,7 +169,8 @@ dbDescribe("Order 108 SECURITY DEFINER shadow-path containment", () => {
            'govern_arrival_pickup_task', 'govern_housekeeping_task_sheet',
            'open_cashier_session', 'append_cashier_count', 'close_cashier_session',
            'register_extension_type', 'transition_housekeeping_task',
-           'initialize_unit_condition', 'transition_arrival_pickup_task'
+           'initialize_unit_condition', 'transition_arrival_pickup_task',
+           'create_arrival_room_cleaning_task'
          ]::name[])
        ORDER BY signature
     `;
@@ -182,6 +183,8 @@ dbDescribe("Order 108 SECURITY DEFINER shadow-path containment", () => {
       { signature: "assert_day_open()", securityDefiner: true,
         config: ["search_path=pg_catalog, public, pg_temp"], appExecute: false, publicDenied: true },
       { signature: "close_cashier_session(uuid,uuid,uuid,uuid,uuid,uuid,text,boolean)", securityDefiner: true,
+        config: ["search_path=pg_catalog, public, pg_temp"], appExecute: true, publicDenied: true },
+      { signature: "create_arrival_room_cleaning_task(uuid,uuid,uuid,uuid,uuid)", securityDefiner: true,
         config: ["search_path=pg_catalog, public, pg_temp"], appExecute: true, publicDenied: true },
       { signature: "create_charge_correction_header(uuid,uuid,uuid,character,text,uuid)", securityDefiner: true,
         config: ["search_path=pg_catalog, public, pg_temp"], appExecute: true, publicDenied: true },
@@ -230,6 +233,10 @@ dbDescribe("Order 108 SECURITY DEFINER shadow-path containment", () => {
           "public.app_user", "public.cashier_count", "public.approval_request"]],
       ["create_charge_correction_header(uuid,uuid,uuid,character,text,uuid)",
         ["public.org_node", "public.app_user", "public.journal"]],
+      ["create_arrival_room_cleaning_task(uuid,uuid,uuid,uuid,uuid)",
+        ["public.app_user", "public.party", "public.party_role", "public.reservation",
+          "public.reservation_segment", "public.sellable_unit_space", "public.space",
+          "public.unit_condition", "public.task"]],
       ["create_folio_transfer(uuid,uuid,uuid,uuid[],uuid,text)",
         ["public.account", "public.folio", "public.reservation", "public.org_node",
           "public.app_user", "public.posting_line", "public.journal", "public.business_day"]],
@@ -386,6 +393,12 @@ dbDescribe("Order 108 SECURITY DEFINER shadow-path containment", () => {
           '00000000-0000-0000-0000-000000011367'::uuid,
           'assign', 'open', NULL,
           '00000000-0000-0000-0000-000000011368'::uuid,
+          '${ACTOR}'::uuid
+        )`,
+        `SELECT * FROM public.create_arrival_room_cleaning_task(
+          '${TENANT}'::uuid, '${PROPERTY}'::uuid,
+          '00000000-0000-0000-0000-000000011369'::uuid,
+          '00000000-0000-0000-0000-00000001136a'::uuid,
           '${ACTOR}'::uuid
         )`,
         `SELECT * FROM public.initialize_unit_condition(

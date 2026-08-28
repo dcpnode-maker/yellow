@@ -904,3 +904,41 @@ at 375 pixels and 200% zoom. All six current appearances preserve the same seman
 order and action matrix with dedicated native presentation. Keyboard focus is
 explicit, reduced motion removes nonessential movement and forced colours replace
 decorative materials with system boundaries.
+
+## 35. Arrival room-cleaning task creation
+
+The cleaning disclosure appears only after an exact current
+`dirty_room_override_unauthorized` check-in return enters the canonical Housekeeping
+route and the reservation-scoped candidate GET re-proves the same assigned room as a
+dirty/pickup due-in candidate. Direct Housekeeping, another blocker, a missing or
+changed assigned room, route/property mismatch, an incoherent candidate and stale
+request generations expose no form. The existing Room conditions board remains the
+surrounding authoritative surface and Yellow states explicitly that this action does
+not change condition truth.
+
+When an actionable exact-room task already exists, the disclosure explains that no
+duplicate was created and offers only **Open cleaning task** into the established
+authoritative task-detail journey. Without exact create permission it remains a
+read-only candidate. Otherwise the form provides detached active-staff Party search,
+explicit **Choose** selection and deliberate **Create cleaning task**. Staff results
+are limited to canonical Party id, permitted display name and the existing `staff`
+role; no contact, guest, note, payload, workload or inferred assignment is rendered.
+
+Submission sends only the selected `attendantPartyId`, retains one idempotency key for
+an unchanged reservation/attendant draft and locks related controls in flight. The
+browser paints no optimistic task or room state. A successful create-or-return
+refreshes the authoritative Housekeeping board and opens exact task detail. A current
+failure preserves the unchanged retry key and reports it in the live status region;
+late responses become inert when the property, route, blocker, reservation, assigned
+room, return object, section containment or request generation changes. There is no
+polling or browser storage.
+
+The section, live status, staff results, selection and actions remain contained at
+375 pixels and 200% zoom. Controls are at least 44 pixels and Android raises them to
+48 pixels. Apple iOS uses a layered translucent system card, Android uses Material 3
+shape/elevation and tonal results, Windows 95/98 uses square outset/inset system
+chrome, glassmorphism uses saturated translucent blur, neomorphism uses paired raised
+and inset shadows, and ERP uses compact rectangular density. All six appearances
+preserve the same semantic order and task authority. Keyboard selection and focus are
+explicit, reduced motion removes nonessential movement, and forced colours replace
+decorative materials with system boundaries.
