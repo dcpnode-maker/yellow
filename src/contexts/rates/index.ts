@@ -164,6 +164,10 @@ export type {
   RateQuoteGuestMixInput,
   RateQuoteNightOccupancyEvidence,
   RateQuoteTaxAssignmentEvidence,
+  RateQuoteTaxPreview,
+  RateQuoteTaxPreviewCalculated,
+  RateQuoteTaxPreviewUnavailable,
+  RateQuoteTaxPreviewUnavailableReason,
   ResolveRateQuoteInput,
 } from "./quote";
 export {

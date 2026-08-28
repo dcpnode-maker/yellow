@@ -1,6 +1,6 @@
 # Order 239 — Attributable rate-quote tax preview
 
-**Status:** READY-D628
+**Status:** BUILT-UNREVIEWED-D629
 **Phase:** 7 — Tax engine and India IRP
 **Branch:** `phase-7/quote-tax-preview`
 **Base:** `537f2c1` (built-unreviewed Order238)
@@ -95,10 +95,28 @@ room-tax preview bound into the quote hash and exposed through the existing offe
 
 ## Definition of done
 
-- [ ] Intentional red precedes implementation.
-- [ ] Exact attributable room-only preview is bound into quote and HTTP evidence.
-- [ ] Unsupported, conflicting and hostile cases fail without fabricated totals.
-- [ ] Focused, adjacent and standing totals are transcribed.
+- [x] Intentional red precedes implementation.
+- [x] Exact attributable room-only preview is bound into quote and HTTP evidence.
+- [x] Unsupported, conflicting and hostile cases fail without fabricated totals.
+- [x] Focused, adjacent and standing totals are transcribed.
 
 Independent review remains deferred under the founder's build-first direction. This
 order can close only as built-unreviewed.
+
+## Built evidence
+
+- The pre-registered surface red failed `0/4` before the resolver dependency, quote
+  preview and offer/HTTP evidence existed. The completed focused proof passes `7/7`
+  with 33 assertions; the source-level contract remains green `4/4` with 4 assertions.
+- Fresh isolated PostgreSQL proof passes `8/8` with 49 assertions. It exercises the
+  canonical quote path and proves calculated preview leaves tax assignment/extension,
+  fact/outbox, journal/posting, document and fiscal-submission counts unchanged.
+- Adjacent evaluator/resolver/quote proof passes `33/33` plus 4 expected database
+  skips with 121 assertions. The standing repository suite passes `808/808` plus 708
+  environment skips, 8,225 assertions and 1,516 tests across 274 files.
+- Typecheck, 89-file import boundaries, 23-package licence policy, dependency audit
+  (zero vulnerabilities), JavaScript syntax and diff hygiene are green. The schema is
+  unchanged. The disposable proof database was removed after execution.
+- Independent review remains deferred. No posting, folio, document, fiscal-finality,
+  approval, Phase-7/app completion, local promotion, merge, push or deployment is
+  claimed.

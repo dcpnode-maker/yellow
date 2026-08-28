@@ -22,6 +22,7 @@ import {
   ReservationLifecycleService,
   ReservationOfferSearchService,
 } from "../src/contexts/reservations";
+import { TaxJurisdictionResolutionService } from "../src/contexts/tax-fiscal";
 import { OperatorHttpApi } from "../src/http/operator";
 import { ApprovalService, Database, ExtensionRegistry, PostgresEventBus, PostgresIdempotency } from "../src/kernel";
 import { REVIEW_EMAIL, REVIEW_PERMISSIONS, runReviewSeed } from "../scripts/seed-review";
@@ -155,14 +156,15 @@ beforeAll(async () => {
   const availability = new AvailabilityService();
   const projection = new AvailabilityProjectionService();
   const rates = new RateConfigurationService(events);
+  const registry = new ExtensionRegistry(extensionPool);
   const publication = new RatePublicationService(
-    new ExtensionRegistry(extensionPool),
+    registry,
     new ApprovalService(events),
     events,
   );
   const offers = new ReservationOfferSearchService(
     rates,
-    new RateQuoteService(publication, availability, projection),
+    new RateQuoteService(publication, new TaxJurisdictionResolutionService(registry), availability, projection),
     availability,
   );
   const holds = new HoldService(events);

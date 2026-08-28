@@ -1886,6 +1886,7 @@ function reservationOfferHttpResult(result: ReservationOfferSearchResult): JsonV
         evidence_ref: tax.evidenceRef,
       })),
       tax_assignment_state: offer.taxAssignmentState,
+      tax_preview: offer.taxPreview,
       policies: Object.fromEntries(Object.entries(offer.policies).map(([kind, policy]) => [
         kind,
         policy === null ? null : { policy_id: policy.policyId, evidence_ref: policy.evidenceRef },

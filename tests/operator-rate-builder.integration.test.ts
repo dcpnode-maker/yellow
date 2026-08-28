@@ -10,6 +10,7 @@ import {
   RateQuoteService,
   RateTargetService,
 } from "../src/contexts/rates";
+import { TaxJurisdictionResolutionService } from "../src/contexts/tax-fiscal";
 import { OperatorHttpApi } from "../src/http/operator";
 import {
   ApprovalService,
@@ -228,7 +229,7 @@ beforeAll(async () => {
   models = new RateModelService(registry);
   targets = new RateTargetService(registry);
   publication = new RatePublicationService(registry, approvals, events);
-  quote = new RateQuoteService(publication);
+  quote = new RateQuoteService(publication, new TaxJurisdictionResolutionService(registry));
 
   const inventory = await admin<Array<{ unit_type_id: string; sellable_unit_id: string }>>`
     SELECT unit.id AS unit_type_id, sellable.id AS sellable_unit_id

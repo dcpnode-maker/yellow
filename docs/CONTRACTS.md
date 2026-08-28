@@ -470,6 +470,38 @@ only. Resolution performs no calculation or write and authorizes no quote, posti
 journal, document, number/hash chain, provider action, fiscal submission, fact or
 event.
 
+### Attributable rate-quote tax preview
+
+Order 239 composes the existing rate quote with Orders 238 and 237 without changing
+the quote request or accepting caller-selected tax authority. `RateQuoteService`
+requires an injected Order-238 resolver and resolves every ordered property-local
+night. Zero or partial assignment, or mixed extension id, owner, key, version or
+content hash across those nights, yields explicit `preview_unavailable` evidence and
+no partial tax total; nights are never averaged, split across versions or rounded as
+an invented document.
+
+Calculation is limited to an exact, priced, unblocked and conflict-free room-only
+quote of at most 366 nights. Package evidence or allocation, included or extra
+amounts, an applied promotion or discount, or a pre-tax subtotal unequal to the room
+total yields `unsupported_attribution`. The evaluator receives one `room_revenue`
+line containing the ordered nightly `bigint` amounts, exact length of stay and exact
+`(adults + children) * length-of-stay` person-nights. It derives neither person
+categories nor an average nightly slab basis.
+
+The service reads the exact active-tenant, exact-property rate plan currency and
+`tax_inclusive` value. That value must agree with the resolved jurisdiction's
+`price_display`; neither source overrides the other, and disagreement fails the quote
+closed. The quote result retains per-night assignment evidence, exact extension
+id/version/content/hash evidence and the complete Order-237 evaluation. This frozen
+evidence enters `quoteHash`, and `bigint` money crosses HTTP only as canonical decimal
+strings. The preview performs no write, price mutation, booking commit, posting,
+journal, tax-detail, document, provider or fiscal action and adds no endpoint.
+
+Folio tax preview is explicitly deferred. Current folio truth does not canonically
+attribute revenue group, service night, person-night, originating quote, correction or
+transfer for every positive charge. It must not be reconstructed from a descriptive
+quantity or a USALI label.
+
 ## 8. Pure rate-model evaluator
 
 Order 067's in-process evaluator is a draft/simulation primitive, not a database or HTTP contract.

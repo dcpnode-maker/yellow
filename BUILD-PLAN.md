@@ -451,6 +451,14 @@ jurisdiction, unsupported package/promotion allocation, over-366-night calculati
 and rate-plan/display disagreement. No price mutation, folio/posting/document/fiscal
 authority, migration or new endpoint is admitted.
 
+Order239 is built-unreviewed under D-629. Its focused contract passes `7/7` with 33
+assertions, fresh isolated PostgreSQL quote proof passes `8/8` with 49 assertions and
+exact zero-write truth, and the standing suite passes `808/808` plus 708 environment
+skips. Typecheck, 89 import boundaries, 23 dependency licences, zero-vulnerability
+audit, JavaScript syntax and diff hygiene are green. The disposable proof database was
+removed and no schema or local application was changed. Independent review remains
+deferred; folio attribution, posting, document and fiscal authority remain later.
+
 tax_assignment evaluation (percent/fixed/slab, compound, line-vs-document rounding)
 from EXTENSIONS §2; India GST slab per room-night; document issue path: series →
 gapless number → hash chain → document; IRP reporting adapter (sandbox), IRN + QR

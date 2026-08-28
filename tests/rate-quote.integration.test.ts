@@ -12,6 +12,7 @@ import {
   type RateRecommendationAdapter,
   type RateRecommendationRequest,
 } from "../src/contexts/rates";
+import { TaxJurisdictionResolutionService } from "../src/contexts/tax-fiscal";
 import {
   ApprovalService,
   createAuditEnvelope,
@@ -256,6 +257,20 @@ function acceptedRecommendation(request: RateRecommendationRequest) {
   };
 }
 
+async function taxWriteTruthSnapshot() {
+  return admin<Array<Record<string, number>>>`
+    SELECT
+      (SELECT count(*)::int FROM tax_assignment) AS tax_assignments,
+      (SELECT count(*)::int FROM extension) AS extensions,
+      (SELECT count(*)::int FROM fact_log) AS facts,
+      (SELECT count(*)::int FROM outbox) AS events,
+      (SELECT count(*)::int FROM journal) AS journals,
+      (SELECT count(*)::int FROM posting_line) AS posting_lines,
+      (SELECT count(*)::int FROM document) AS documents,
+      (SELECT count(*)::int FROM fiscal_submission) AS fiscal_submissions
+  `;
+}
+
 const recommendationAdapter: RateRecommendationAdapter = Object.freeze({
   adapterKey: "order-070-rms",
   adapterVersion: 1,
@@ -284,7 +299,7 @@ beforeAll(async () => {
     events,
     new RateRecommendationRegistry([recommendationAdapter]),
   );
-  quote = new RateQuoteService(publication);
+  quote = new RateQuoteService(publication, new TaxJurisdictionResolutionService(registry));
 
   await admin`
     INSERT INTO tenant (id, slug, name, tier, status)
@@ -346,7 +361,7 @@ beforeAll(async () => {
   `;
   await admin`
     INSERT INTO tax_assignment (tenant_id, property_node, jurisdiction_key, effective)
-    VALUES (${TENANT}::uuid, ${PROPERTY}::uuid, 'order-070-tax', daterange('2026-09-01', '2026-12-01', '[)'))
+    VALUES (${TENANT}::uuid, ${PROPERTY}::uuid, 'ae-vat', daterange('2026-09-01', '2026-12-01', '[)'))
   `;
   await admin`
     INSERT INTO availability_projection (
@@ -496,9 +511,9 @@ databaseDescribe("Order 070 live PostgreSQL universal quote", () => {
       signal: { basisPoints: 6_000, sellableCapacity: 10, sold: 6, held: 0 },
     });
     expect(first.taxAssignments).toEqual([
-      expect.objectContaining({ nightDate: "2026-09-01", jurisdictionKey: "order-070-tax" }),
-      expect.objectContaining({ nightDate: "2026-09-02", jurisdictionKey: "order-070-tax" }),
-      expect.objectContaining({ nightDate: "2026-09-03", jurisdictionKey: "order-070-tax" }),
+      expect.objectContaining({ nightDate: "2026-09-01", jurisdictionKey: "ae-vat" }),
+      expect.objectContaining({ nightDate: "2026-09-02", jurisdictionKey: "ae-vat" }),
+      expect.objectContaining({ nightDate: "2026-09-03", jurisdictionKey: "ae-vat" }),
     ]);
   });
 
@@ -530,12 +545,14 @@ databaseDescribe("Order 070 live PostgreSQL universal quote", () => {
   });
 
   test("P3: occupancy is attributable while exact retired parent history stays reproducible", async () => {
+    const writeTruthBefore = await taxWriteTruthSnapshot();
     const occupancy = await database.withTenantTransaction(TENANT, (tx) => quote.resolve(tx, quoteInput(PLANS.occupancy)));
     expect(occupancy.result).toMatchObject({ state: "quoted", roomAmountMinor: 36_000n });
     expect(occupancy.result.rateEvaluations.every(({ evaluationContext }) =>
       evaluationContext.occupancyBasisPoints === 6_000 &&
       evaluationContext.occupancyEvidenceRef?.startsWith("projection:")
     )).toBe(true);
+    expect(await taxWriteTruthSnapshot()).toEqual(writeTruthBefore);
 
     await admin`
       UPDATE availability_projection SET sold = 10
@@ -594,7 +611,10 @@ databaseDescribe("Order 070 live PostgreSQL universal quote", () => {
 
     const events = new PostgresEventBus(eventPool);
     const missingPublication = new RatePublicationService(registry, approvals, events);
-    const missingQuote = new RateQuoteService(missingPublication);
+    const missingQuote = new RateQuoteService(
+      missingPublication,
+      new TaxJurisdictionResolutionService(registry),
+    );
     const missing = await database.withTenantTransaction(TENANT, (tx) => missingQuote.resolve(tx, quoteInput(PLANS.rms, 1)));
     expect(missing.result.roomAmountMinor).toBe(9_000n);
     expect(missing.result.rateEvaluations[0]?.evaluationContext.recommendation).toMatchObject({
@@ -675,7 +695,7 @@ databaseDescribe("Order 070 live PostgreSQL universal quote", () => {
     try {
       await expect(database.withTenantTransaction(TENANT, (tx) =>
         quote.resolve(tx, quoteInput())
-      )).rejects.toThrow("Multiple tax assignments apply");
+      )).rejects.toThrow("Tax jurisdiction resolution failed");
     } finally {
       await admin`
         DELETE FROM tax_assignment
@@ -691,17 +711,17 @@ databaseDescribe("Order 070 live PostgreSQL universal quote", () => {
     )).toBe(true);
     await admin`
       INSERT INTO tax_assignment (tenant_id, property_node, jurisdiction_key, effective)
-      VALUES (${TENANT}::uuid, ${PROPERTY}::uuid, 'order-070-partial', daterange('2026-09-01', '2026-09-02', '[)'))
+      VALUES (${TENANT}::uuid, ${PROPERTY}::uuid, 'ae-vat', daterange('2026-09-01', '2026-09-02', '[)'))
     `;
     const partialTax = await database.withTenantTransaction(TENANT, (tx) => quote.resolve(tx, quoteInput()));
     expect(partialTax.taxAssignmentState).toBe("partial");
     expect(partialTax.taxAssignments.map(({ jurisdictionKey }) => jurisdictionKey)).toEqual([
-      "order-070-partial", null, null,
+      "ae-vat", null, null,
     ]);
     await admin`DELETE FROM tax_assignment WHERE property_node = ${PROPERTY}::uuid`;
     await admin`
       INSERT INTO tax_assignment (tenant_id, property_node, jurisdiction_key, effective)
-      VALUES (${TENANT}::uuid, ${PROPERTY}::uuid, 'order-070-tax', daterange('2026-09-01', '2026-12-01', '[)'))
+      VALUES (${TENANT}::uuid, ${PROPERTY}::uuid, 'ae-vat', daterange('2026-09-01', '2026-12-01', '[)'))
     `;
   });
 

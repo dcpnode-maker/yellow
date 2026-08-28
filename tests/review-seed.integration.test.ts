@@ -10,6 +10,7 @@ import {
   RateQuoteService,
   RateTargetService,
 } from "../src/contexts/rates";
+import { TaxJurisdictionResolutionService } from "../src/contexts/tax-fiscal";
 import { OperatorHttpApi } from "../src/http/operator";
 import { ApprovalService, Database, ExtensionRegistry, PostgresEventBus } from "../src/kernel";
 import { runReviewSeed, REVIEW_APPROVER_EMAIL, REVIEW_EMAIL } from "../scripts/seed-review";
@@ -436,7 +437,7 @@ beforeAll(async () => {
   models = new RateModelService(registry);
   targets = new RateTargetService(registry);
   publication = new RatePublicationService(registry, new ApprovalService(events), events);
-  quote = new RateQuoteService(publication);
+  quote = new RateQuoteService(publication, new TaxJurisdictionResolutionService(registry));
 });
 afterAll(async () => {
   if (!DEPLOY_DATABASE_URL || !RUNTIME_DATABASE_URL || !PASSWORD) return;

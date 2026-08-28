@@ -180,6 +180,30 @@ requires a later explicit contract and capability. Resolution writes no extensio
 assignment, emits no event and grants only input authority for the pure evaluator,
 not posting, document issue or fiscal submission authority.
 
+Order 239 is the first bounded quote consumer of that resolved content. Every ordered
+property-local night must resolve, and every night must bind the same exact extension
+id, owner, key, version and content hash. Unassigned, partially assigned or mixed
+stays return explicit preview-unavailable evidence with no partial tax total; the
+runtime does not average nights, split versions or invent document rounding.
+
+Evaluation is restricted to an exact room-only quote of at most 366 nights with no
+package evidence/allocation, included or extra amount, applied promotion or discount,
+and pre-tax subtotal equal to room total. One `room_revenue` line carries ordered
+nightly `bigint` amounts, exact length of stay and exact party person-nights. The
+exact active same-tenant/property rate-plan `tax_inclusive` truth must agree with
+`price_display`; neither overrides the other and mismatch fails closed.
+
+The quote retains per-night assignment evidence, exact extension
+id/version/content/hash evidence and the complete evaluator result, all bound into
+`quoteHash`; HTTP money remains canonical decimal strings. This use grants no
+extension write, price mutation, booking commit, folio/posting/journal/tax-detail,
+document/provider/fiscal, fact or event authority and adds no endpoint.
+
+Folio tax preview is explicitly deferred because current folio truth lacks canonical
+revenue-group, service-night, person-night, quote-lineage, correction and transfer
+attribution. Those inputs must not be inferred from USALI labels or descriptive
+quantity.
+
 India GST launch instance (CBIC 15/2025 slabs, slab on transaction value per night):
 
 ```json

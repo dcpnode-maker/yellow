@@ -179,6 +179,33 @@ journal, posting, document, series/hash, submission or provider state and emits 
 event. Its evidence permits only later pure calculation; it is not quote, posting,
 fiscal-issue or legal-invoice authority.
 
+### Rate-quote tax-preview containment
+
+Order 239 does not add caller-controlled tax inputs. The existing quote request is
+unchanged, and the service must use its injected Order-238 resolver for every ordered
+property-local night. Zero or partial assignment, or mixed exact extension id, owner,
+key, version or content hash, produces explicit unavailable evidence without a
+partial total. Blocked, unpriced or conflicting quotes do not evaluate.
+
+The preview admits only an exact room-only quote of at most 366 nights with no
+package evidence/allocation, included or extra amount, applied promotion or discount,
+and a pre-tax subtotal exactly equal to room total. Its sole `room_revenue` line uses
+the ordered nightly `bigint` amounts plus exact length of stay and party
+person-nights; neither averages nor person categories are trusted. The exact active
+same-tenant/property rate-plan currency and `tax_inclusive` truth must agree with the
+jurisdiction `price_display`; neither overrides the other and mismatch fails closed.
+
+Per-night assignment evidence, exact extension id/version/content/hash evidence and
+the complete evaluator result are deeply frozen into `quoteHash`. HTTP money is
+serialized only as canonical decimal strings. The preview has no write, cache, price
+mutation, booking-commit, folio, posting, journal, tax-detail, document, provider,
+fiscal, fact or event authority and exposes no new endpoint.
+
+Folio preview is outside this trust boundary. Folio reads do not canonically prove
+revenue group, service night, person-night, quote lineage, correction attribution and
+transfer attribution for every positive charge; inferring them from USALI labels or
+descriptive quantity would manufacture financial truth and is forbidden.
+
 Named residual capability debt remains for approval decisions, extension
 publication/retirement, hold transitions, inventory-policy and projection
 replacement, operational-block updates, reservation/segment/guest lifecycle,

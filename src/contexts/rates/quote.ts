@@ -4,6 +4,13 @@ import {
   type AvailabilityOccupancySignal,
   type AvailabilityOption,
 } from "../inventory";
+import {
+  evaluateTaxJurisdiction,
+  TaxJurisdictionResolutionService,
+  type ResolvedTaxJurisdictionResolution,
+  type TaxEvaluationResult,
+  type TaxJurisdictionResolutionResult,
+} from "../tax-fiscal";
 import type { Tx } from "../../kernel";
 import {
   composeRateStayQuote,
@@ -86,6 +93,7 @@ export interface RateQuote {
   readonly occupancyEvidence: readonly RateQuoteNightOccupancyEvidence[];
   readonly taxAssignmentState: "configured" | "partial" | "none";
   readonly taxAssignments: readonly RateQuoteTaxAssignmentEvidence[];
+  readonly taxPreview: RateQuoteTaxPreview;
   readonly result: RateStayCompositionResult;
   readonly quoteHash: string;
 }
@@ -101,10 +109,36 @@ export interface RateQuoteTaxAssignmentEvidence {
   readonly evidenceRef: string | null;
 }
 
+export type RateQuoteTaxPreviewUnavailableReason =
+  | "quote_not_quoted"
+  | "unassigned"
+  | "partial_assignment"
+  | "mixed_jurisdiction"
+  | "unsupported_attribution"
+  | "stay_too_long";
+
+export interface RateQuoteTaxPreviewUnavailable {
+  readonly state: "unavailable";
+  readonly reason: RateQuoteTaxPreviewUnavailableReason;
+  readonly assignments: readonly RateQuoteTaxAssignmentEvidence[];
+}
+
+export interface RateQuoteTaxPreviewCalculated {
+  readonly state: "calculated";
+  readonly reason: null;
+  readonly assignments: readonly RateQuoteTaxAssignmentEvidence[];
+  readonly jurisdiction: ResolvedTaxJurisdictionResolution["jurisdiction"];
+  readonly evaluation: TaxEvaluationResult;
+}
+
+export type RateQuoteTaxPreview = RateQuoteTaxPreviewUnavailable | RateQuoteTaxPreviewCalculated;
+
 interface PropertyClockRow {
   readonly tenant_id: string | null;
   readonly timezone: string;
   readonly booking_instant: Date;
+  readonly rate_plan_currency: string;
+  readonly rate_plan_tax_inclusive: boolean;
 }
 
 interface PolicyRow {
@@ -118,15 +152,10 @@ interface ChannelMapRow {
   readonly external_code: string;
 }
 
-interface TaxAssignmentRow {
-  readonly jurisdiction_key: string;
-  readonly from_date: string | null;
-  readonly to_date: string | null;
-}
-
 interface MandatoryEvidenceResult {
   readonly composition: readonly RateMandatoryPolicyEvidence[];
   readonly taxAssignments: readonly RateQuoteTaxAssignmentEvidence[];
+  readonly resolutions: readonly TaxJurisdictionResolutionResult[];
   readonly state: "configured" | "partial" | "none";
 }
 
@@ -255,8 +284,8 @@ function exactJson(value: unknown): unknown {
   }
   if (value === null || typeof value === "string" || typeof value === "boolean") return value;
   if (typeof value === "number") {
-    if (!Number.isSafeInteger(value)) throw new RateQuoteError("quote evidence contains unsafe number");
-    return value;
+    if (!Number.isFinite(value)) throw new RateQuoteError("quote evidence contains non-finite number");
+    return Object.is(value, -0) ? 0 : value;
   }
   if (Array.isArray(value)) return value.map(exactJson);
   if (!isObject(value)) throw new RateQuoteError("quote evidence is not canonical data");
@@ -327,29 +356,42 @@ export class RateQuoteService {
   readonly #publication: Pick<RatePublicationService, "getActiveRelease" | "evaluateReleaseNight">;
   readonly #availability: Pick<AvailabilityService, "search">;
   readonly #projection: Pick<AvailabilityProjectionService, "occupancySignal">;
+  readonly #taxJurisdictionResolver: Pick<TaxJurisdictionResolutionService, "resolve">;
 
   constructor(
     publication: Pick<RatePublicationService, "getActiveRelease" | "evaluateReleaseNight">,
+    taxJurisdictionResolver: Pick<TaxJurisdictionResolutionService, "resolve">,
     availability: Pick<AvailabilityService, "search"> = new AvailabilityService(),
     projection: Pick<AvailabilityProjectionService, "occupancySignal"> = new AvailabilityProjectionService(),
   ) {
     this.#publication = publication;
     this.#availability = availability;
     this.#projection = projection;
+    this.#taxJurisdictionResolver = taxJurisdictionResolver;
   }
 
   async resolve(tx: Tx, value: ResolveRateQuoteInput): Promise<RateQuote> {
     const input = normalizeInput(value);
     const clocks = await tx<PropertyClockRow[]>`
       SELECT nullif(current_setting('app.tenant_id', true), '')::uuid AS tenant_id,
-             timezone, transaction_timestamp() AS booking_instant
-      FROM org_node
-      WHERE id = ${input.propertyNode}::uuid
-        AND tenant_id = current_setting('app.tenant_id', true)::uuid
-        AND kind = 'property'
+             property.timezone,
+             transaction_timestamp() AS booking_instant,
+             plan.currency::text AS rate_plan_currency,
+             plan.tax_inclusive AS rate_plan_tax_inclusive
+      FROM org_node AS property
+      JOIN rate_plan AS plan
+        ON plan.tenant_id = property.tenant_id
+       AND plan.property_node = property.id
+       AND plan.id = ${input.ratePlanId}::uuid
+       AND plan.status = 'active'
+      WHERE property.id = ${input.propertyNode}::uuid
+        AND property.tenant_id = current_setting('app.tenant_id', true)::uuid
+        AND property.kind = 'property'
     `;
     const clock = clocks[0];
-    if (!clock?.tenant_id) throw new RateQuoteNotFoundError("Property was not found in the active tenant");
+    if (!clock?.tenant_id) {
+      throw new RateQuoteNotFoundError("Property was not found in the active tenant or rate plan was unavailable");
+    }
     if (!(clock.booking_instant instanceof Date) || !Number.isFinite(clock.booking_instant.getTime())) {
       throw new RateQuoteError("PostgreSQL did not return a valid transaction timestamp");
     }
@@ -374,7 +416,7 @@ export class RateQuoteService {
     const option = matches[0]!;
     const availability = availabilityEvidence(option, input);
     const policyEvidence = await this.#policyEvidence(tx, release);
-    const mandatory = await this.#mandatoryEvidence(tx, input.propertyNode, nights);
+    const mandatory = await this.#mandatoryEvidence(tx, clock.tenant_id, input.propertyNode, nights);
     const channelMappingEvidenceRef = await this.#channelMapping(
       tx,
       input,
@@ -426,6 +468,10 @@ export class RateQuoteService {
       channelMappingEvidenceRef,
     });
     const result = composeRateStayQuote(release.compositionSpec, context);
+    if (result.currency !== clock.rate_plan_currency) {
+      throw new RateQuoteConflictError("Rate release currency does not match the active rate plan");
+    }
+    const taxPreview = this.#taxPreview(input, clock.rate_plan_tax_inclusive, mandatory, result);
     const withoutHash = Object.freeze({
       tenantId: clock.tenant_id,
       propertyNode: input.propertyNode,
@@ -447,6 +493,7 @@ export class RateQuoteService {
       occupancyEvidence: Object.freeze(occupancyEvidence),
       taxAssignmentState: mandatory.state,
       taxAssignments: mandatory.taxAssignments,
+      taxPreview,
       result,
     });
     return Object.freeze({ ...withoutHash, quoteHash: hash(withoutHash) });
@@ -502,42 +549,142 @@ export class RateQuoteService {
 
   async #mandatoryEvidence(
     tx: Tx,
+    tenantId: string,
     propertyNode: string,
     nights: readonly string[],
   ): Promise<MandatoryEvidenceResult> {
-    const rows = await tx<TaxAssignmentRow[]>`
-      SELECT jurisdiction_key,
-             lower(effective)::text AS from_date,
-             upper(effective)::text AS to_date
-      FROM tax_assignment
-      WHERE tenant_id = current_setting('app.tenant_id', true)::uuid
-        AND property_node = ${propertyNode}::uuid
-        AND effective && daterange(${nights[0]}::date, ${new Date(Date.parse(`${nights.at(-1)}T00:00:00.000Z`) + DAY_MS).toISOString().slice(0, 10)}::date, '[)')
-      ORDER BY lower(effective), upper(effective), jurisdiction_key
-    `;
-    const taxAssignments = nights.map((nightDate) => {
-      const matches = rows.filter(({ from_date, to_date }) =>
-        (from_date === null || nightDate >= from_date) && (to_date === null || nightDate < to_date)
-      );
-      if (matches.length > 1) {
-        throw new RateQuoteConflictError(`Multiple tax assignments apply to ${nightDate}`);
+    const resolutions: TaxJurisdictionResolutionResult[] = [];
+    const taxAssignments: RateQuoteTaxAssignmentEvidence[] = [];
+    for (const nightDate of nights) {
+      let resolution: TaxJurisdictionResolutionResult;
+      try {
+        resolution = await this.#taxJurisdictionResolver.resolve(tx, {
+          propertyNode,
+          businessDate: nightDate,
+        });
+      } catch {
+        throw new RateQuoteConflictError(`Tax jurisdiction resolution failed for ${nightDate}`);
       }
-      const match = matches[0];
-      return Object.freeze({
+      if (resolution.tenantId !== tenantId
+          || resolution.propertyNode !== propertyNode
+          || resolution.businessDate !== nightDate) {
+        throw new RateQuoteConflictError("Tax jurisdiction resolver returned mismatched quote scope");
+      }
+      if (resolution.state === "resolved"
+          && (resolution.assignment.jurisdictionKey !== resolution.jurisdiction.key
+            || (resolution.jurisdiction.ownerTenantId !== null
+              && resolution.jurisdiction.ownerTenantId !== tenantId))) {
+        throw new RateQuoteConflictError("Tax jurisdiction resolver returned mismatched authority evidence");
+      }
+      resolutions.push(resolution);
+      taxAssignments.push(Object.freeze({
         nightDate,
-        jurisdictionKey: match?.jurisdiction_key ?? null,
-        evidenceRef: match === undefined ? null : `tax-assignment:${hash({ nightDate, ...match })}`,
-      });
-    });
+        jurisdictionKey: resolution.state === "resolved" ? resolution.assignment.jurisdictionKey : null,
+        evidenceRef: resolution.state === "resolved" ? resolution.assignment.evidenceRef : null,
+      }));
+    }
     const configured = taxAssignments.filter(({ jurisdictionKey }) => jurisdictionKey !== null);
-    const composition = configured.map(({ nightDate, evidenceRef }) => Object.freeze({
-      key: `tax-assignment-${nightDate}`,
-      evidenceRef: evidenceRef!,
-    }));
+    const composition = configured.length <= 100
+      ? configured.map(({ nightDate, evidenceRef }) => Object.freeze({
+          key: `tax-assignment-${nightDate}`,
+          evidenceRef: evidenceRef!,
+        }))
+      : [Object.freeze({
+          key: "tax-assignment-stay",
+          evidenceRef: `tax-assignment-set:${hash(taxAssignments)}`,
+        })];
     return Object.freeze({
       composition: Object.freeze(composition),
       taxAssignments: Object.freeze(taxAssignments),
+      resolutions: Object.freeze(resolutions),
       state: configured.length === 0 ? "none" : configured.length === nights.length ? "configured" : "partial",
+    });
+  }
+
+  #taxPreview(
+    input: NormalizedQuoteInput,
+    ratePlanTaxInclusive: boolean,
+    mandatory: MandatoryEvidenceResult,
+    result: RateStayCompositionResult,
+  ): RateQuoteTaxPreview {
+    const unavailable = (reason: RateQuoteTaxPreviewUnavailableReason): RateQuoteTaxPreviewUnavailable =>
+      Object.freeze({ state: "unavailable", reason, assignments: mandatory.taxAssignments });
+
+    if (result.state !== "quoted") return unavailable("quote_not_quoted");
+    if (result.rateEvaluations.length > 366) return unavailable("stay_too_long");
+    if (mandatory.state === "none") return unavailable("unassigned");
+    if (mandatory.state === "partial") return unavailable("partial_assignment");
+
+    const resolved = mandatory.resolutions.filter(
+      (resolution): resolution is ResolvedTaxJurisdictionResolution => resolution.state === "resolved",
+    );
+    if (resolved.length !== result.rateEvaluations.length || resolved.length === 0) {
+      return unavailable("partial_assignment");
+    }
+    const first = resolved[0]!;
+    const sameJurisdiction = resolved.every(({ jurisdiction }) =>
+      jurisdiction.extensionId === first.jurisdiction.extensionId
+      && jurisdiction.ownerTenantId === first.jurisdiction.ownerTenantId
+      && jurisdiction.key === first.jurisdiction.key
+      && jurisdiction.version === first.jurisdiction.version
+      && jurisdiction.contentHash === first.jurisdiction.contentHash
+    );
+    if (!sameJurisdiction) return unavailable("mixed_jurisdiction");
+
+    if (result.packageEvidence !== null
+        || result.includedAllocationMinor !== 0n
+        || result.packageExtraMinor !== 0n
+        || result.promotionDiscountMinor !== 0n
+        || result.appliedPromotionCodes.length !== 0
+        || typeof result.roomAmountMinor !== "bigint"
+        || result.roomAmountMinor <= 0n
+        || result.preTaxSubtotalMinor !== result.roomAmountMinor) {
+      return unavailable("unsupported_attribution");
+    }
+    const roomNightAmountsMinor: bigint[] = [];
+    let roomTotalMinor = 0n;
+    for (const { evaluationResult } of result.rateEvaluations) {
+      const amount = evaluationResult.amountMinor;
+      if (typeof amount !== "bigint" || amount <= 0n || amount > MAX_BIGINT - roomTotalMinor) {
+        return unavailable("unsupported_attribution");
+      }
+      roomNightAmountsMinor.push(amount);
+      roomTotalMinor += amount;
+    }
+    if (roomTotalMinor !== result.roomAmountMinor) return unavailable("unsupported_attribution");
+
+    const nights = roomNightAmountsMinor.length;
+    const guests = input.guests.adults + input.guests.childAges.length;
+    const personNights = guests * nights;
+    if (!Number.isSafeInteger(personNights)) return unavailable("unsupported_attribution");
+
+    let evaluation: TaxEvaluationResult;
+    try {
+      evaluation = evaluateTaxJurisdiction({
+        jurisdictionKey: first.jurisdiction.key,
+        content: first.jurisdiction.content,
+        lines: [Object.freeze({
+          lineId: "room",
+          revenueGroup: "room_revenue",
+          amountMinor: roomTotalMinor,
+          nights,
+          personNights,
+          roomNightAmountsMinor: Object.freeze(roomNightAmountsMinor),
+        })],
+      });
+    } catch {
+      throw new RateQuoteConflictError("Tax jurisdiction content could not be evaluated for the quote");
+    }
+    const expectedDisplay = ratePlanTaxInclusive ? "tax_inclusive" : "tax_exclusive";
+    if (evaluation.priceDisplay !== expectedDisplay) {
+      throw new RateQuoteConflictError("Rate-plan tax inclusion conflicts with jurisdiction price display");
+    }
+    return Object.freeze({
+      state: "calculated",
+      reason: null,
+      assignments: mandatory.taxAssignments,
+      jurisdiction: first.jurisdiction,
+      evaluation,
     });
   }
 }

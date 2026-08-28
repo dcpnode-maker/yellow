@@ -18,6 +18,7 @@ import {
   RateQuoteService,
   RateTargetService,
 } from "./contexts/rates";
+import { TaxJurisdictionResolutionService } from "./contexts/tax-fiscal";
 import { OperatorHttpApi, type OperatorLocalReviewCredentials } from "./http/operator";
 import { HostedDepositProviderHttpApi } from "./http/provider";
 import { ApprovalService, Database, ExtensionRegistry, PostgresEventBus, PostgresIdempotency } from "./kernel";
@@ -200,11 +201,12 @@ function runtimeApp() {
   const projection = new AvailabilityProjectionService();
   const availability = new AvailabilityService();
   const publication = new RatePublicationService(registry, approvals, events);
+  const taxJurisdictionResolver = new TaxJurisdictionResolutionService(registry);
   const rateBuilder = {
     models: new RateModelService(registry),
     targets: new RateTargetService(registry),
     publication,
-    quote: new RateQuoteService(publication, availability, projection),
+    quote: new RateQuoteService(publication, taxJurisdictionResolver, availability, projection),
     intent: new RateIntentService(createRateIntentProposalAdapterFromEnvironment(Bun.env)),
   };
   const reservationOffers = new ReservationOfferSearchService(rates, rateBuilder.quote, availability);

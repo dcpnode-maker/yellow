@@ -23,6 +23,7 @@ import {
   ReservationOfferValidationError,
   type ReservationOfferSearchInput,
 } from "../src/contexts/reservations";
+import { TaxJurisdictionResolutionService } from "../src/contexts/tax-fiscal";
 import { OperatorHttpApi } from "../src/http/operator";
 import {
   ApprovalService,
@@ -58,6 +59,7 @@ let database: Database;
 let availability: AvailabilityService;
 let projection: AvailabilityProjectionService;
 let rates: RateConfigurationService;
+let registry: ExtensionRegistry;
 let publication: RatePublicationService;
 let offers: ReservationOfferSearchService;
 let tokens: Hs256TokenSigner;
@@ -175,12 +177,18 @@ beforeAll(async () => {
   availability = new AvailabilityService();
   projection = new AvailabilityProjectionService();
   rates = new RateConfigurationService(events);
+  registry = new ExtensionRegistry(registryPool);
   publication = new RatePublicationService(
-    new ExtensionRegistry(registryPool),
+    registry,
     new ApprovalService(events),
     events,
   );
-  const quote = new RateQuoteService(publication, availability, projection);
+  const quote = new RateQuoteService(
+    publication,
+    new TaxJurisdictionResolutionService(registry),
+    availability,
+    projection,
+  );
   offers = new ReservationOfferSearchService(rates, quote, availability);
   tokens = new Hs256TokenSigner(SECRET);
   const login = new LocalLoginService(loginPool, tokens);
@@ -322,7 +330,12 @@ databaseDescribe("Order 084 live PostgreSQL reservation offers", () => {
 
     const bounded = new ReservationOfferSearchService(
       rates,
-      new RateQuoteService(publication, availability, projection),
+      new RateQuoteService(
+        publication,
+        new TaxJurisdictionResolutionService(registry),
+        availability,
+        projection,
+      ),
       availability,
       { maxCandidatePairs: 4 },
     );
@@ -468,7 +481,12 @@ databaseDescribe("Order 084 live PostgreSQL reservation offers", () => {
     };
     const observed = new ReservationOfferSearchService(
       rates,
-      new RateQuoteService(publication, exactAvailability, projection),
+      new RateQuoteService(
+        publication,
+        new TaxJurisdictionResolutionService(registry),
+        exactAvailability,
+        projection,
+      ),
       availability,
     );
     const [first, second] = await database.withTenantTransaction(SEED_TENANT.id, async (tx) => [

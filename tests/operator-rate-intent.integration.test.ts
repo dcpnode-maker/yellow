@@ -11,6 +11,7 @@ import {
   RateQuoteService,
   RateTargetService,
 } from "../src/contexts/rates";
+import { TaxJurisdictionResolutionService } from "../src/contexts/tax-fiscal";
 import { OperatorHttpApi } from "../src/http/operator";
 import {
   ApprovalService,
@@ -162,7 +163,7 @@ beforeAll(async () => {
         models,
         targets,
         publication,
-        quote: new RateQuoteService(publication),
+        quote: new RateQuoteService(publication, new TaxJurisdictionResolutionService(registry)),
         intent: new RateIntentService(),
       },
     ),

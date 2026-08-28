@@ -518,6 +518,36 @@ field. The service creates no entity, emits no event and changes no configuratio
 financial/fiscal state. Its output authorizes only a later invocation of the pure tax
 evaluator.
 
+### Rate Quote Tax Preview value service — Rates + Tax/Fiscal
+
+Order 239 is a read-only value composition, not an aggregate or state machine. The
+existing quote input remains unchanged and carries no tenant, jurisdiction,
+assignment or extension selection. The rate service resolves every ordered
+property-local night through Order 238 and evaluates only when all nights bind the
+same exact extension id, owner, key, version and content hash. Unassigned, partially
+assigned or mixed-version stays retain explicit unavailable evidence and no partial
+tax total.
+
+The attributable value is restricted to one exact room-only quote of at most 366
+nights with no package evidence/allocation, included or extra amount, applied
+promotion or discount, and with pre-tax subtotal equal to room total. One
+`room_revenue` line preserves ordered nightly `bigint` amounts, exact length of stay
+and exact party person-nights; no stay average or person category is inferred. The
+active-tenant, exact-property rate plan's currency and `tax_inclusive` truth must
+agree with the resolved jurisdiction `price_display`; neither is precedence over the
+other and disagreement fails closed.
+
+The deeply frozen result retains per-night assignment evidence, exact extension
+identity/version/content/hash evidence and the complete tax evaluation, all bound
+into `quoteHash`; HTTP money remains canonical decimal strings. It creates no entity,
+emits no event and authorizes no write, price mutation, booking commit, folio,
+posting, journal, tax detail, document, provider or fiscal action.
+
+Folio tax preview remains a separate deferred model. Existing folio charges do not
+canonically retain revenue group, service night, person-night, quote lineage,
+correction attribution and transfer attribution together, so those values may not be
+reconstructed from USALI labels or descriptive quantity.
+
 ### Document aggregate — Tax/Fiscal
 
 **Root:** `document` under `document_series`.

@@ -1,8 +1,8 @@
 # Phase 7 — Tax engine and India IRP
 
-**Status:** active; Orders 237-238 built-unreviewed
+**Status:** active; Orders 237-239 built-unreviewed
 **Entry point:** built-unreviewed Phase-6 composition through Order 236
-**Current order:** Order 239 attributable rate-quote tax preview is ready under D-628
+**Current order:** Order 239 attributable rate-quote tax preview is built-unreviewed under D-629
 
 ## Outcome
 
@@ -78,3 +78,11 @@ rate quote. Exact room-only stays with one exact jurisdiction version may produc
 frozen tax preview bound into quote/offer evidence. Package/promotion attribution,
 partial/mixed jurisdiction, more than 366 nights and inclusion-mode disagreement
 produce no fabricated total. Folio/posting/document/fiscal integration remains later.
+
+Order239 proof is green: the focused contract passes `7/7` with 33 assertions, fresh
+isolated PostgreSQL quote proof passes `8/8` with 49 assertions including exact
+before/after zero-write truth, and the standing suite passes `808/808` plus 708
+environment skips. Typecheck, 89 import boundaries, 23 dependency licences,
+zero-vulnerability audit, JavaScript syntax and diff hygiene are green. The schema is
+unchanged and the disposable proof database was removed. Independent review remains
+deferred; folio attribution, posting, document and fiscal authority remain absent.
