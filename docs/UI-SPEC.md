@@ -259,8 +259,25 @@ successful pickup.
 
 The existing reservation-board route, permission, filters, ordering, cursor and
 bounded-page replacement remain unchanged. There is no new request, polling, ETA
-sorting, travel edit, pickup action or browser persistence. Departure travel, notes,
-internal travel/task identifiers, Party/contact data, parking and vehicle truth are
-not transported. The text wraps within existing table cells and cards, remains in
+sorting, travel edit, pickup action or browser persistence. Notes, internal
+travel/task identifiers, Party/contact data, parking and vehicle truth are not
+transported. The text wraps within existing table cells and cards, remains in
 the screen-reader reading order, and retains current stale-response, focus,
 narrow-layout, reduced-motion, forced-colour and six-appearance protections.
+
+## 15. Governed departure-travel visibility
+
+The existing reservation board adds one compact **Departure** line beneath each stay,
+and the same line appears on Today only for the **Due out** lane. It shows recorded
+departure mode, optional carrier and service number, and the literal scheduled
+instant. It does not transport or infer pickup/drop-off meaning, notes, internal
+travel/task identifiers, pickup flags, Party/contact data, parking, vehicle truth or
+transport outcome.
+
+The existing reservation-board route, permission, filters, ordering, cursor and
+bounded-page replacement remain unchanged. Departure travel does not add a request,
+polling, departure-time sorting, travel edit, transfer action or browser persistence.
+The text wraps within the existing table cell and cards, follows the screen-reader
+reading order, and retains current stale-response, focus, narrow-layout,
+reduced-motion, forced-colour and six-appearance protections. Arrival travel remains
+separately visible on the board and only in Today's **Due in** lane.

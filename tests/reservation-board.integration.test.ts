@@ -21,6 +21,7 @@ const TASK_OTHER_TENANT = "00000000-0000-0000-0000-000000016632";
 const TRAVEL_ARRIVAL_A = "00000000-0000-0000-0000-000000016640";
 const TRAVEL_DEPARTURE_A = "00000000-0000-0000-0000-000000016641";
 const TRAVEL_ARRIVAL_B = "00000000-0000-0000-0000-000000016642";
+const TRAVEL_DEPARTURE_FOREIGN = "00000000-0000-0000-0000-000000016643";
 const CREATED = "2026-08-26T01:02:03.123456Z";
 const DEPLOY_URL = process.env.YELLOW_RESERVATION_BOARD_DEPLOY_URL ?? process.env.YELLOW_RESERVATION_BOARD_URL;
 const RUNTIME_URL = process.env.YELLOW_RESERVATION_BOARD_RUNTIME_URL ?? process.env.YELLOW_RESERVATION_BOARD_URL;
@@ -43,6 +44,8 @@ function row(id: string) {
     arrival_direction: null, arrival_mode: null, arrival_carrier: null, arrival_service_no: null,
     arrival_scheduled_at: null, arrival_pickup_requested: null, arrival_pickup_task_id: null,
     visible_arrival_pickup_task_id: null,
+    departure_direction: null, departure_mode: null, departure_carrier: null,
+    departure_service_no: null, departure_scheduled_at: null,
   };
 }
 
@@ -79,7 +82,7 @@ describe("Order 166 bounded reservation board", () => {
     expect(first.nextCursor).toBe("eyJ2IjoxLCJjcmVhdGVkQXQiOiIyMDI2LTA4LTI2VDAxOjAyOjAzLjEyMzQ1NloiLCJpZCI6IjAwMDAwMDAwLTAwMDAtMDAwMC0wMDAwLTAwMDAwMDAxNjYxMiJ9");
     expect(Object.keys(first.reservations[0]!).sort()).toEqual([
       "adults", "channelCode", "children", "confirmationNo", "createdAt", "currency",
-      "arrivalTravel",
+      "arrivalTravel", "departureTravel",
       "primaryGuestDisplayName", "ratePlanLabel", "reservationId", "sellableUnitLabel",
       "status", "stayFrom", "stayTo", "unitTypeLabel",
     ].sort());
@@ -136,6 +139,45 @@ describe("Order 166 bounded reservation board", () => {
     await expect(list({ ...row(RESERVATION_A), arrival_mode: "flight" }))
       .rejects.toBeInstanceOf(ReservationBoardConflictError);
   });
+
+  test("departure projection is exact, departure-only, deeply frozen and fail-closed on malformed stored truth", async () => {
+    const service = new ReservationBoardService();
+    const exact = {
+      ...row(RESERVATION_A),
+      departure_direction: "departure",
+      departure_mode: "ferry",
+      departure_carrier: "Harbour Ferry",
+      departure_service_no: "HF 72",
+      departure_scheduled_at: "2026-09-03T08:09:10.654321Z",
+    };
+    const list = (stored: Record<string, unknown>) => service.list((() => Promise.resolve([stored])) as unknown as Tx,
+      input());
+    const result = await list(exact);
+    expect(result.reservations[0]!.departureTravel).toEqual({
+      mode: "ferry", carrier: "Harbour Ferry", serviceNo: "HF 72",
+      scheduledAt: "2026-09-03T08:09:10.654321Z",
+    });
+    expect(Object.keys(result.reservations[0]!.departureTravel!).sort())
+      .toEqual(["carrier", "mode", "scheduledAt", "serviceNo"]);
+    expect(Object.isFrozen(result.reservations[0]!.departureTravel)).toBe(true);
+    expect((await list({ ...row(RESERVATION_A), departure_direction: "departure" }))
+      .reservations[0]!.departureTravel).toEqual({
+      mode: null, carrier: null, serviceNo: null, scheduledAt: null,
+    });
+
+    const invalid = [
+      { departure_direction: "arrival" },
+      { departure_mode: "spaceship" },
+      { departure_carrier: " " },
+      { departure_service_no: "" },
+      { departure_scheduled_at: "2026-09-03T08:09:10.654Z" },
+    ];
+    for (const override of invalid) {
+      await expect(list({ ...exact, ...override })).rejects.toBeInstanceOf(ReservationBoardConflictError);
+    }
+    await expect(list({ ...row(RESERVATION_A), departure_mode: "ferry" }))
+      .rejects.toBeInstanceOf(ReservationBoardConflictError);
+  });
 });
 
 async function clean() {
@@ -186,7 +228,8 @@ beforeAll(async () => {
     ) VALUES
     (${TRAVEL_ARRIVAL_A}::uuid,${TENANT}::uuid,${RESERVATION_A}::uuid,'arrival','flight','Air India','AI 141','2026-09-01 04:05:06.123456+00',true,${TASK_A}::uuid,'private arrival note'),
     (${TRAVEL_DEPARTURE_A}::uuid,${TENANT}::uuid,${RESERVATION_A}::uuid,'departure','ferry','Private Departure','SECRET-206','2026-09-03 08:09:10.654321+00',false,NULL,'private departure note'),
-    (${TRAVEL_ARRIVAL_B}::uuid,${TENANT}::uuid,${RESERVATION_B}::uuid,'arrival','train',NULL,NULL,NULL,false,NULL,'private cancelled-arrival note')`;
+    (${TRAVEL_ARRIVAL_B}::uuid,${TENANT}::uuid,${RESERVATION_B}::uuid,'arrival','train',NULL,NULL,NULL,false,NULL,'private cancelled-arrival note'),
+    (${TRAVEL_DEPARTURE_FOREIGN}::uuid,${TENANT_OTHER}::uuid,${RESERVATION_A}::uuid,'departure','flight','Foreign carrier','FOREIGN-207','2026-09-03 01:02:03.456789+00',true,${TASK_OTHER_TENANT}::uuid,'foreign note')`;
 });
 
 afterAll(async () => {
@@ -217,16 +260,25 @@ databaseDescribe("Order 166 production-style PostgreSQL board proof", () => {
       { mode: "flight", carrier: "Air India", serviceNo: "AI 141",
         scheduledAt: "2026-09-01T04:05:06.123456Z", pickupRequested: true, pickupTaskLinked: true },
     ]);
+    expect(combined.map(({ departureTravel }) => departureTravel)).toEqual([
+      null,
+      { mode: "ferry", carrier: "Private Departure", serviceNo: "SECRET-206",
+        scheduledAt: "2026-09-03T08:09:10.654321Z" },
+    ]);
     expect(await find(input({ limit: 1 }))).toEqual(first);
     expect((await find(input({ status: "cancelled" }))).reservations.map(({ reservationId }) => reservationId))
       .toEqual([RESERVATION_B]);
     expect((await find(input({ from: new Date("2026-09-02T00:00:00Z"), to: new Date("2026-09-04T00:00:00Z") })))
       .reservations.map(({ reservationId }) => reservationId)).toEqual([RESERVATION_A]);
     const disclosed = JSON.stringify(combined);
-    for (const forbidden of ["secret@example.test", TRAVEL_ARRIVAL_A, TRAVEL_DEPARTURE_A, TASK_A,
-      "private arrival note", "Private Departure", "SECRET-206", "same property task state", "done"]) {
+    for (const forbidden of ["secret@example.test", TRAVEL_ARRIVAL_A, TRAVEL_DEPARTURE_A,
+      TRAVEL_DEPARTURE_FOREIGN, TASK_A, TASK_OTHER_TENANT, "private arrival note",
+      "private departure note", "foreign note", "Foreign carrier", "FOREIGN-207",
+      "same property task state", "done"]) {
       expect(disclosed).not.toContain(forbidden);
     }
+    expect(Object.keys(combined[1]!.departureTravel!).sort())
+      .toEqual(["carrier", "mode", "scheduledAt", "serviceNo"]);
     expect(await counts()).toEqual(before);
 
     await admin!`UPDATE travel_detail SET pickup_task_id=${TASK_OTHER_PROPERTY}::uuid

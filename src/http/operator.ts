@@ -326,6 +326,7 @@ function reservationBoardJson(page: ReservationBoardPage): JsonValue {
       currency: reservation.currency,
       createdAt: reservation.createdAt,
       arrivalTravel: reservation.arrivalTravel,
+      departureTravel: reservation.departureTravel,
     })),
     nextCursor: page.nextCursor,
   });

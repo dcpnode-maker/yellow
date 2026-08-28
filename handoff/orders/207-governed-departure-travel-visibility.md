@@ -1,6 +1,6 @@
 # Order 207 — Governed departure-travel visibility
 
-**Status:** READY-D557 — intentional red committed; implementation pending
+**Status:** BUILT-UNREVIEWED-D558 — implementation and executable proof complete; independent review deferred
 **Phase:** 6 — Stay operations and housekeeping
 **Branch:** `phase-6/governed-departure-travel-visibility`
 **Base:** `49ca268` (built-unreviewed Order206)
@@ -95,10 +95,9 @@ byte-identical.
 
 ## Definition of done
 
-- [ ] Intentional red precedes implementation.
-- [ ] Departure truth is exact, minimized and mutation-free.
-- [ ] Existing arrival truth, board ordering/cursor/authorization remain compatible.
-- [ ] Reservation board and Today due-out surfaces make departure visible to a human.
-- [ ] Result is recorded built-unreviewed without claiming travel writes, transfer
+- [x] Intentional red precedes implementation.
+- [x] Departure truth is exact, minimized and mutation-free.
+- [x] Existing arrival truth, board ordering/cursor/authorization remain compatible.
+- [x] Reservation board and Today due-out surfaces make departure visible to a human.
+- [x] Result is recorded built-unreviewed without claiming travel writes, transfer
   automation, Phase6 or app completion.
-

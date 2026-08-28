@@ -174,9 +174,14 @@ pickupRequested,pickupTaskLinked}` from only the recorded `direction='arrival'` 
 row. Nullable mode/carrier/service/schedule values remain literal validated storage;
 `pickupTaskLinked` means only that the recorded task reference resolves in the same
 tenant and exact property. It exposes no travel/task id, note, Party/contact, task
-state or inferred pickup outcome. A hostile task association fails the complete board
-read closed. Travel does not alter the existing `(created_at,id)` order, filter,
-cursor, limit, permission or property boundary. `GET
+state or inferred pickup outcome. Each row separately carries
+`departureTravel: null | {mode,carrier,serviceNo,scheduledAt}` from only the recorded
+`direction='departure'` row. Its nullable values remain literal validated storage; it
+exposes no pickup/drop-off meaning, pickup flag, travel/task id, note, Party/contact,
+task state, vehicle/parking truth or inferred transport outcome. A hostile arrival
+task association fails the complete board read closed. Neither travel association
+alters the existing `(created_at,id)` order, filter, cursor, limit, permission or
+property boundary. `GET
 /api/v1/properties/{property}/reservations/{reservation UUID}` accepts no
 query parameters and returns the approved reservation aggregate plus server-derived
 `canModify`, `canCancel`, and `canReinstate` actions. Missing, foreign-tenant and

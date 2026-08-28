@@ -117,6 +117,7 @@ const REVIEW_CHECKIN_FIXTURE_UUID = `${TENANT_NAME}/review-checkin`;
 const REVIEW_HOUSEKEEPING_FIXTURE_UUID = `${TENANT_NAME}/review-housekeeping`;
 const REVIEW_VEHICLE_FIXTURE_UUID = `${TENANT_NAME}/review-vehicles`;
 const REVIEW_ARRIVAL_TRAVEL_FIXTURE_UUID = `${TENANT_NAME}/review-arrival-travel`;
+const REVIEW_DEPARTURE_TRAVEL_FIXTURE_UUID = `${TENANT_NAME}/review-departure-travel`;
 export const REVIEW_CASH_DRAWER_CODE = "FRONT-DESK-1";
 export const REVIEW_CASH_DENOMINATIONS = Object.freeze([1n, 5n, 10n, 25n, 100n, 500n, 1000n, 2000n, 5000n, 10000n]);
 
@@ -160,6 +161,13 @@ const ARRIVAL_TRAVEL_EXAMPLES = Object.freeze([
     pickupRequested: false,
   }),
 ]);
+
+const DEPARTURE_TRAVEL_EXAMPLE = Object.freeze({
+  mode: "flight" as const,
+  carrier: "Air Canada",
+  serviceNo: "AC43",
+  scheduledAt: "2026-09-17T18:25:45.987654Z",
+});
 
 const HOUSEKEEPING_EXAMPLES = Object.freeze([
   Object.freeze({ key: "assigned-dirty", roomCode: "103", taskStatus: "assigned" as const,
@@ -355,6 +363,10 @@ interface ReviewArrivalTravelExamples {
   readonly dirtyTravelId: string;
 }
 
+interface ReviewDepartureTravelExamples {
+  readonly checkoutTravelId: string;
+}
+
 interface ReviewSeedRateResult {
   readonly ratePlanId: string;
   readonly activeReleaseId: string;
@@ -369,6 +381,7 @@ export interface PublishedReviewSeedResult extends ReviewSeedBaseResult {
   readonly housekeepingExamples: ReviewHousekeepingExamples;
   readonly vehicleExamples: ReviewVehicleExamples;
   readonly arrivalTravelExamples: ReviewArrivalTravelExamples;
+  readonly departureTravelExamples: ReviewDepartureTravelExamples;
 }
 
 export interface IdentityInventoryReviewSeedResult extends ReviewSeedBaseResult {
@@ -378,6 +391,7 @@ export interface IdentityInventoryReviewSeedResult extends ReviewSeedBaseResult 
   readonly housekeepingExamples: null;
   readonly vehicleExamples: null;
   readonly arrivalTravelExamples: null;
+  readonly departureTravelExamples: null;
 }
 
 export type ReviewSeedResult = PublishedReviewSeedResult | IdentityInventoryReviewSeedResult;
@@ -1767,6 +1781,75 @@ async function provisionArrivalTravelExamples(
   });
 }
 
+async function provisionDepartureTravelExamples(
+  connection: ReservedSQL,
+  housekeepingExamples: ReviewHousekeepingExamples,
+): Promise<ReviewDepartureTravelExamples> {
+  await connection`SELECT pg_advisory_xact_lock(hashtextextended('yellow.local.review.seed.departure-travel', 0))`;
+  const reservationId = housekeepingExamples.checkoutReservationId;
+  const reservations = await connection<Array<{
+    id: string; tenant_id: string; property_node: string; status: string;
+    confirmation_no: string;
+  }>>`
+    SELECT id, tenant_id, property_node, status, confirmation_no
+    FROM reservation
+    WHERE id=${reservationId}::uuid
+    FOR UPDATE
+  `;
+  const reservation = reservations[0];
+  if (!reservation || reservations.length !== 1 || reservation.tenant_id !== SEED_TENANT.id ||
+      reservation.property_node !== SEED_PROPERTY.id || reservation.status !== "due_out" ||
+      reservation.confirmation_no !== CHECKOUT_COMMAND_FIXTURE.confirmationNo) {
+    throw new Error("Local-review checkout-ready departure travel reservation is absent or inconsistent");
+  }
+
+  const travelId = await uuidV5(SEED_TENANT.id, REVIEW_DEPARTURE_TRAVEL_FIXTURE_UUID);
+  const rows = await connection<Array<Record<string, unknown>>>`
+    SELECT id, tenant_id, reservation_id, direction, mode, carrier, service_no,
+           scheduled_at=${DEPARTURE_TRAVEL_EXAMPLE.scheduledAt}::timestamptz AS exact_scheduled_at,
+           pickup_requested, pickup_task_id, notes
+    FROM travel_detail
+    WHERE id=${travelId}::uuid
+       OR (tenant_id=${SEED_TENANT.id}::uuid AND reservation_id=${reservationId}::uuid
+           AND direction='departure')
+    ORDER BY id
+    FOR UPDATE
+  `;
+  const expected = {
+    id: travelId,
+    tenant_id: SEED_TENANT.id,
+    reservation_id: reservationId,
+    direction: "departure",
+    mode: DEPARTURE_TRAVEL_EXAMPLE.mode,
+    carrier: DEPARTURE_TRAVEL_EXAMPLE.carrier,
+    service_no: DEPARTURE_TRAVEL_EXAMPLE.serviceNo,
+    exact_scheduled_at: true,
+    pickup_requested: false,
+    pickup_task_id: null,
+    notes: null,
+  };
+  if (rows.length === 0) {
+    await connection`
+      INSERT INTO travel_detail (
+        id, tenant_id, reservation_id, direction, mode, carrier, service_no,
+        scheduled_at, pickup_requested, pickup_task_id, notes
+      ) VALUES (
+        ${travelId}::uuid, ${SEED_TENANT.id}::uuid, ${reservationId}::uuid,
+        'departure', ${DEPARTURE_TRAVEL_EXAMPLE.mode}, ${DEPARTURE_TRAVEL_EXAMPLE.carrier},
+        ${DEPARTURE_TRAVEL_EXAMPLE.serviceNo},
+        ${DEPARTURE_TRAVEL_EXAMPLE.scheduledAt}::timestamptz, false, NULL, NULL
+      )
+    `;
+  } else {
+    exact(rows[0], expected, "Local-review checkout-ready departure travel");
+    if (rows.length !== 1) {
+      throw new Error("Local-review checkout-ready departure travel is ambiguous");
+    }
+  }
+
+  return Object.freeze({ checkoutTravelId: travelId });
+}
+
 async function provisionHousekeepingExamples(
   connection: ReservedSQL,
   userId: string,
@@ -2484,7 +2567,7 @@ export async function runReviewSeed(options: ReviewSeedOptions): Promise<ReviewS
     if (mode === "identity_inventory") {
       logger("review rate: omitted by explicit identity_inventory fixture mode");
       return { ...common, mode, rate: null, checkInExamples: null, housekeepingExamples: null,
-        vehicleExamples: null, arrivalTravelExamples: null };
+        vehicleExamples: null, arrivalTravelExamples: null, departureTravelExamples: null };
     }
 
     const previewSellable = sellableUnits.get("101");
@@ -2512,6 +2595,7 @@ export async function runReviewSeed(options: ReviewSeedOptions): Promise<ReviewS
     let housekeepingExamples: ReviewHousekeepingExamples | undefined;
     let vehicleExamples: ReviewVehicleExamples | undefined;
     let arrivalTravelExamples: ReviewArrivalTravelExamples | undefined;
+    let departureTravelExamples: ReviewDepartureTravelExamples | undefined;
     await withIdentityTransaction(identityPool, async (tx) => {
       checkInExamples = await provisionCheckInExamples(
         tx,
@@ -2532,12 +2616,14 @@ export async function runReviewSeed(options: ReviewSeedOptions): Promise<ReviewS
         spaces,
         sellableUnits,
       );
+      departureTravelExamples = await provisionDepartureTravelExamples(tx, housekeepingExamples);
       vehicleExamples = await provisionVehicleExamples(tx, checkInExamples, housekeepingExamples);
     });
     if (!checkInExamples) throw new Error("Local-review check-in examples were not provisioned");
     if (!housekeepingExamples) throw new Error("Local-review housekeeping examples were not provisioned");
     if (!vehicleExamples) throw new Error("Local-review vehicle examples were not provisioned");
     if (!arrivalTravelExamples) throw new Error("Local-review arrival travel examples were not provisioned");
+    if (!departureTravelExamples) throw new Error("Local-review departure travel example was not provisioned");
 
     logger(`review rate: plan=${rate.ratePlanId} active_release=${rate.activeReleaseId} version=${rate.activeReleaseVersion} state=${rate.created ? "created" : "existing"}`);
     logger(`review check-in: clean=${checkInExamples.cleanReservationId} dirty=${checkInExamples.dirtyReservationId} identity_gated=${checkInExamples.identityGatedReservationId}`);
@@ -2547,8 +2633,9 @@ export async function runReviewSeed(options: ReviewSeedOptions): Promise<ReviewS
     logger(`review checkout command fixture: reservation=${housekeepingExamples.checkoutReservationId} segment=${housekeepingExamples.checkoutSegmentId} room=${housekeepingExamples.eligibleSpaceId} occupancy=${housekeepingExamples.checkoutOccupancyId} account=${housekeepingExamples.departureAccountId} folio=${housekeepingExamples.checkoutFolioId}`);
     logger(`review vehicle fixtures: arrival=${vehicleExamples.arrivalVehicleId} departure=${vehicleExamples.departureVehicleId}`);
     logger(`review arrival travel fixtures: clean=${arrivalTravelExamples.cleanTravelId} dirty=${arrivalTravelExamples.dirtyTravelId}`);
+    logger(`review departure travel fixture: checkout=${departureTravelExamples.checkoutTravelId}`);
     return { ...common, mode, rate, checkInExamples, housekeepingExamples, vehicleExamples,
-      arrivalTravelExamples };
+      arrivalTravelExamples, departureTravelExamples };
   } finally {
     await database.close();
     await eventPool.close();

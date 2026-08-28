@@ -971,11 +971,28 @@
  line.setAttribute("aria-label", summary);
  return line;
  }
+  function reservationDepartureTravelSummary(row) {
+ const travel = row?.departureTravel;
+ if (!travel) return null;
+ const identity = [travel.carrier, travel.serviceNo].filter((value) => typeof value === "string" && value.length > 0).join(" ");
+ const details = [
+  "Departure",
+  RESERVATION_TRAVEL_MODE_LABELS[travel.mode] || "Mode not recorded",
+  identity,
+  travel.scheduledAt ? reservationDateTime(travel.scheduledAt) : "Time not recorded",
+ ].filter(Boolean);
+ const summary = details.join(" · ");
+ const line = node("small", "reservation-departure-travel", summary);
+ line.setAttribute("aria-label", summary);
+ return line;
+ }
   function reservationStaySummary(row) {
  const summary = node("div", "reservation-stay-summary");
  summary.append(node("span", "", reservationStay(row)));
  const arrival = reservationArrivalTravelSummary(row);
+ const departure = reservationDepartureTravelSummary(row);
  if (arrival) summary.append(arrival);
+ if (departure) summary.append(departure);
  return summary;
  }
   function reservationStatusBadge(status) {
@@ -1009,7 +1026,7 @@
  }
  return tr;
  }
-  function reservationCard(row, { showArrivalTravel = true } = {}) {
+  function reservationCard(row, { showArrivalTravel = true, showDepartureTravel = true } = {}) {
  const article = node("article", "card reservation-board-card");
  const head = node("div", "reservation-board-card-head");
  head.append(reservationOpenButton(row), reservationStatusBadge(row.status));
@@ -1018,8 +1035,10 @@
  const room = node("span", "", `${row.sellableUnitLabel || row.unitTypeLabel} · ${row.ratePlanLabel}`);
  const party = node("small", "", `${row.adults} adult${row.adults === 1 ? "" : "s"}${row.children ? ` · ${row.children} child${row.children === 1 ? "" : "ren"}` : ""} · ${row.channelCode}`);
  const arrival = showArrivalTravel ? reservationArrivalTravelSummary(row) : null;
+ const departure = showDepartureTravel ? reservationDepartureTravelSummary(row) : null;
  article.append(head, guest, stay, room, party);
  if (arrival) article.append(arrival);
+ if (departure) article.append(departure);
  return article;
  }
  const TODAY_STATUSES = Object.freeze(["due_in", "due_out", "in_house"]);
@@ -1108,7 +1127,10 @@
  const elements = todayLaneElements(status);
  state.rows = Array.isArray(page.reservations) ? page.reservations.slice(0, 50) : [];
  state.nextCursor = typeof page.nextCursor === "string" ? page.nextCursor : null;
- elements.list.replaceChildren(...state.rows.map((row) => reservationCard(row, { showArrivalTravel: status === "due_in" })));
+ elements.list.replaceChildren(...state.rows.map((row) => reservationCard(row, {
+  showArrivalTravel: status === "due_in",
+  showDepartureTravel: status === "due_out",
+ })));
  elements.more.hidden = state.nextCursor === null;
  const count = state.rows.length;
  elements.summary.textContent = `${count} shown on this bounded page${state.nextCursor ? " · more records available" : ""}.`;

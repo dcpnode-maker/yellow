@@ -247,6 +247,22 @@ data and inferred pickup outcome. Its joins do not change the existing created-a
 keyset order, filters, cursor bytes or limit, and the read has no mutation, fact,
 outbox, idempotency, occupancy, queue or task capability.
 
+### Departure-travel board containment
+
+Order 207 reuses that same reservation-board route, exact property grant and
+`reservations.lifecycle:read` scope; it creates no departure- or travel-specific
+authority. The domain query remains inside transaction-local tenant RLS and selects
+only the row whose tenant, reservation association and
+`travel_detail.direction='departure'` match the already-authorized board row.
+
+The deeply frozen nested projection contains only validated literal mode and nullable
+carrier, service number and scheduled instant. It excludes pickup/drop-off meaning,
+pickup flags, travel/task ids, notes, task state/assignment/payload, Party/contact,
+vehicle/parking and inferred transport outcome. Arrival stays a separate projection.
+Neither join changes the existing created-at/id keyset order, filters, cursor bytes or
+limit; repeated reads are mutation-free and have no fact, outbox, idempotency,
+occupancy, task, queue or travel-write capability.
+
 ## 6. Statutory & privacy
 
 ### Token-only payment containment

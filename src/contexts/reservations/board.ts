@@ -33,6 +33,7 @@ export interface ReservationBoardRow {
   readonly currency: string;
   readonly createdAt: string;
   readonly arrivalTravel: ReservationBoardArrivalTravel | null;
+  readonly departureTravel: ReservationBoardDepartureTravel | null;
 }
 
 export interface ReservationBoardArrivalTravel {
@@ -42,6 +43,13 @@ export interface ReservationBoardArrivalTravel {
   readonly scheduledAt: string | null;
   readonly pickupRequested: boolean;
   readonly pickupTaskLinked: boolean;
+}
+
+export interface ReservationBoardDepartureTravel {
+  readonly mode: "flight" | "train" | "bus" | "car" | "ferry" | "other" | null;
+  readonly carrier: string | null;
+  readonly serviceNo: string | null;
+  readonly scheduledAt: string | null;
 }
 
 export interface ReservationBoardPage {
@@ -80,6 +88,11 @@ interface BoardSqlRow {
   readonly arrival_pickup_requested: boolean | null;
   readonly arrival_pickup_task_id: string | null;
   readonly visible_arrival_pickup_task_id: string | null;
+  readonly departure_direction: string | null;
+  readonly departure_mode: string | null;
+  readonly departure_carrier: string | null;
+  readonly departure_service_no: string | null;
+  readonly departure_scheduled_at: string | null;
 }
 
 export class ReservationBoardValidationError extends Error {
@@ -196,6 +209,12 @@ function storedArrivalMode(value: string | null): ReservationBoardArrivalTravel[
   throw new ReservationBoardConflictError("Stored arrival travel mode is invalid");
 }
 
+function storedDepartureMode(value: string | null): ReservationBoardDepartureTravel["mode"] {
+  if (value === null || value === "flight" || value === "train" || value === "bus" ||
+      value === "car" || value === "ferry" || value === "other") return value;
+  throw new ReservationBoardConflictError("Stored departure travel mode is invalid");
+}
+
 function storedNullableTravelText(value: string | null, name: string): string | null {
   if (value === null) return null;
   if (typeof value !== "string" || value.trim().length < 1) {
@@ -208,6 +227,22 @@ function storedNullableTravelInstant(value: string | null): string | null {
   if (value === null) return null;
   if (!isCanonicalInstant(value)) {
     throw new ReservationBoardConflictError("Stored arrival travel schedule is invalid");
+  }
+  return value;
+}
+
+function storedNullableDepartureTravelText(value: string | null, name: string): string | null {
+  if (value === null) return null;
+  if (typeof value !== "string" || value.trim().length < 1) {
+    throw new ReservationBoardConflictError(`Stored departure travel ${name} is invalid`);
+  }
+  return value;
+}
+
+function storedNullableDepartureTravelInstant(value: string | null): string | null {
+  if (value === null) return null;
+  if (!isCanonicalInstant(value)) {
+    throw new ReservationBoardConflictError("Stored departure travel schedule is invalid");
   }
   return value;
 }
@@ -239,6 +274,25 @@ function arrivalTravel(row: BoardSqlRow): ReservationBoardArrivalTravel | null {
     scheduledAt: storedNullableTravelInstant(row.arrival_scheduled_at),
     pickupRequested: row.arrival_pickup_requested,
     pickupTaskLinked: row.arrival_pickup_task_id !== null,
+  });
+}
+
+function departureTravel(row: BoardSqlRow): ReservationBoardDepartureTravel | null {
+  if (row.departure_direction === null) {
+    if (row.departure_mode !== null || row.departure_carrier !== null ||
+        row.departure_service_no !== null || row.departure_scheduled_at !== null) {
+      throw new ReservationBoardConflictError("Stored departure travel association is invalid");
+    }
+    return null;
+  }
+  if (row.departure_direction !== "departure") {
+    throw new ReservationBoardConflictError("Stored departure travel row is invalid");
+  }
+  return Object.freeze({
+    mode: storedDepartureMode(row.departure_mode),
+    carrier: storedNullableDepartureTravelText(row.departure_carrier, "carrier"),
+    serviceNo: storedNullableDepartureTravelText(row.departure_service_no, "service number"),
+    scheduledAt: storedNullableDepartureTravelInstant(row.departure_scheduled_at),
   });
 }
 
@@ -304,7 +358,14 @@ export class ReservationBoardService {
              END AS arrival_scheduled_at,
              arrival_travel.pickup_requested AS arrival_pickup_requested,
              arrival_travel.pickup_task_id AS arrival_pickup_task_id,
-             arrival_pickup_task.id AS visible_arrival_pickup_task_id
+             arrival_pickup_task.id AS visible_arrival_pickup_task_id,
+             departure_travel.direction AS departure_direction,
+             departure_travel.mode AS departure_mode,
+             departure_travel.carrier AS departure_carrier,
+             departure_travel.service_no AS departure_service_no,
+             CASE WHEN departure_travel.scheduled_at IS NULL THEN NULL ELSE
+               to_char(departure_travel.scheduled_at AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"')
+             END AS departure_scheduled_at
       FROM page_reservations AS page
       LEFT JOIN party ON party.tenant_id = ${page.tenantId}::uuid AND party.id = page.primary_party
       LEFT JOIN segment_summary AS summary ON summary.reservation_id = page.id
@@ -323,6 +384,10 @@ export class ReservationBoardService {
         ON arrival_pickup_task.tenant_id = ${page.tenantId}::uuid
        AND arrival_pickup_task.property_node = ${page.propertyNode}::uuid
        AND arrival_pickup_task.id = arrival_travel.pickup_task_id
+      LEFT JOIN travel_detail AS departure_travel
+        ON departure_travel.tenant_id = ${page.tenantId}::uuid
+       AND departure_travel.reservation_id = page.id
+       AND departure_travel.direction = 'departure'
       ORDER BY page.created_at DESC, page.id DESC
     `;
     const hasMore = rows.length > page.limit;
@@ -352,6 +417,7 @@ export class ReservationBoardService {
         currency: row.currency,
         createdAt: storedInstant(row.created_at, "creation time"),
         arrivalTravel: arrivalTravel(row),
+        departureTravel: departureTravel(row),
       });
     });
     const last = visible.at(-1);

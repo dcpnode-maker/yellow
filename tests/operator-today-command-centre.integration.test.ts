@@ -189,3 +189,27 @@ test("Order 206: arrival and pickup evidence is compact, accessible and due-in o
     "overflow-wrap: anywhere", "@media (forced-colors: active)",
   ]) expect(css).toContain(contract);
 });
+
+test("Order 207: departure evidence is compact, accessible and due-out only on Today", () => {
+  const summary = functionSource("reservationDepartureTravelSummary");
+  for (const literal of [
+    '"Departure"', '"Mode not recorded"', '"Time not recorded"',
+  ]) expect(summary).toContain(literal);
+  expect(summary).toContain('node("small", "reservation-departure-travel", summary)');
+  expect(summary).toContain('line.setAttribute("aria-label", summary)');
+  expect(summary).not.toMatch(/pickup|taskStatus|taskState|queue|assignment|travelId|notes|party|contact|parking|vehicle/i);
+
+  expect(functionSource("reservationStaySummary")).toContain("reservationDepartureTravelSummary(row)");
+  expect(functionSource("reservationCard")).toContain("reservationDepartureTravelSummary(row)");
+  const today = functionSource("renderTodayLane");
+  expect(today).toContain('showDepartureTravel: status === "due_out"');
+  expect(today).toContain('showArrivalTravel: status === "due_in"');
+  expect(today).not.toMatch(/sort\(|scheduledAt.*(?:<|>)|setInterval|setTimeout|localStorage|sessionStorage/i);
+
+  for (const contract of [
+    ".reservation-departure-travel { display: block;",
+    '.today-lane[data-today-lane="due_out"] .reservation-departure-travel',
+    "overflow-wrap: anywhere", "@media (forced-colors: active)",
+    ".reservation-departure-travel { color: CanvasText;",
+  ]) expect(css).toContain(contract);
+});

@@ -362,10 +362,18 @@ Order 206 adds no aggregate, state or automation. The existing reservation board
 projects only the one recorded arrival `travel_detail` row into a minimized immutable
 value: mode, carrier, service number, scheduled instant, pickup-requested and whether
 the optional pickup-task reference is coherent with the same tenant and exact
-property. Departure travel remains outside the projection. Task linkage is only an
+property. Task linkage is only an
 association-presence statement; it conveys no status, assignment, queue position,
 completion or transport outcome. Travel and task identities, notes and Party/contact
 truth remain undisclosed, and the projection cannot reorder the reservation board.
+
+Order 207 adds no aggregate, state or automation. The same board separately projects
+the one recorded departure `travel_detail` row into an immutable value containing
+only mode, carrier, service number and scheduled instant. Nullable values preserve
+their validated literal storage. Departure pickup/drop-off meaning, pickup flags,
+travel/task identities, notes, Party/contact, vehicle/parking and inferred transport
+outcome remain undisclosed. Arrival and departure truth can coexist, but neither can
+filter, reorder or change the board cursor.
 
 ### Asset/Work Order aggregate — target extension
 

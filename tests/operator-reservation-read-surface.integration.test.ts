@@ -66,6 +66,17 @@ describe("Order 166 operator reservation read surface", () => {
     expect(operator).toContain("canonicalJson(reservationBoardJson(page))");
   });
 
+  test("Order 207 minimizes departure travel on the existing board transport", () => {
+    const operator = readFileSync(resolve(import.meta.dir, "../src/http/operator.ts"), "utf8");
+    const projectionStart = operator.indexOf("function reservationBoardJson(");
+    const projectionEnd = operator.indexOf("\n}\n", projectionStart);
+    expect(projectionStart).toBeGreaterThan(0);
+    const projection = operator.slice(projectionStart, projectionEnd);
+    expect(projection).toContain("departureTravel: reservation.departureTravel");
+    expect(projection).not.toMatch(/pickupRequested|pickupTaskLinked|pickupTaskId|taskStatus|taskState|travelId|notes|partyId|contact|parking|vehicle/i);
+    expect(operator).toContain("canonicalJson(reservationBoardJson(page))");
+  });
+
   test("board admits only strict non-PII query keys and binds tenant/property authority", async () => {
     boardCalls.length = 0;
     const path = `/api/v1/properties/${PROPERTY}/reservation-board?status=reserved&limit=100`;

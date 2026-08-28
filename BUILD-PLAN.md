@@ -209,6 +209,16 @@ due-in fixtures add arrival rows without notes, ids, Party/contact data, task or
 other effect. This slice adds no travel write, pickup automation, migration, event or
 authority and does not complete, independently approve or locally promote Phase 6.
 
+Order 207 is a built-unreviewed read-only departure-travel visibility slice. Existing
+reservation-board rows and Today due-out cards now show only recorded departure mode,
+carrier, service number and scheduled instant. Arrival remains separately visible on
+the board and only in Today due-in; neither association changes the existing route,
+read permission, filters, `(created_at,id)` ordering or cursor. The deterministic
+checkout-ready due-out fixture adds exactly one departure row without notes, pickup
+task, pickup/drop-off interpretation or any operational effect. This slice adds no
+travel write, transfer automation, task, migration, event or authority and does not
+complete, independently approve or locally promote Phase 6.
+
 ## Phase 7 — Tax engine + India IRP
 
 tax_assignment evaluation (percent/fixed/slab, compound, line-vs-document rounding)

@@ -145,6 +145,22 @@ existing clean and dirty due-in examples and remains an exact no-op on reseed. N
 departure travel, note, internal id, Party/contact or task state is returned, and no
 travel write, pickup automation, task, event, occupancy or migration is introduced.
 
+## Built-unreviewed bounded slice — Order 207
+
+Order 207 extends the same reservation-board result with one separate deeply frozen
+`departureTravel` value containing only recorded departure mode, carrier, service
+number and scheduled instant. It preserves Order206 arrival truth and the board's
+existing route, permission, filters, `(created_at,id)` ordering, cursor and bounded
+page replacement.
+
+Reservation-board rows/cards and Today due-out cards expose one accessible compact
+Departure line with existing stale, focus, responsive, reduced-motion, forced-colour
+and appearance protections. Today due-in remains arrival-only and in-house shows
+neither travel line. The review seed adds exactly one departure row to the existing
+checkout-ready due-out fixture and remains an exact no-op on reseed. No pickup/drop-off
+meaning, pickup flag, note, internal id, Party/contact, task, vehicle, parking,
+travel write, automation, event, occupancy or migration is introduced.
+
 ## Subsequent bounded slices
 
 1. Discrepancy, queue and service-message workflows only after their sleep/skip/person,
