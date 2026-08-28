@@ -207,3 +207,7 @@ perform no lookup and every heuristic fallback is rejected. Migration43 reaches
 green. The reviewer personally reproduced the complete proof with no finding. A
 governed positive posting writer is now the next product boundary; India/document
 allocation and taxed correction semantics remain later policy work.
+
+Order260/D-674 is a bounded authenticated founder-status refresh through approved
+Order259. It advances only recorded latest/current truth and the compact Phase7
+milestone; runtime promotion is separate and unfinished Phases5–7 remain active.

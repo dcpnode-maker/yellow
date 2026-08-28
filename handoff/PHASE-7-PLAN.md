@@ -2,7 +2,7 @@
 
 **Status:** active; configured positive-tax routing built through Order259
 **Entry point:** built-unreviewed Phase-6 composition through Order 236
-**Current order:** Order259 configured positive-tax semantic routing is independently approved under D-673
+**Current order:** Order260 authenticated founder status through approved Order259 is built-unreviewed under D-675
 
 ## Outcome
 
@@ -222,3 +222,12 @@ Tier-3 review under D-673 personally reproduced the focused, adjacent, database,
 schema, referee and static proof with no finding. The next product boundary is a
 governed non-India, line-rounded positive posting writer; India/document allocation
 and taxed correction semantics remain explicit later policy work.
+
+Order260/D-674 is the status-only bridge from approved Order259 to a future guarded
+sole-local promotion. It records latest259/current260/review91/active7 and the compact
+Orders237–259 milestone without changing product, database, runtime, review coverage
+or phase state.
+
+Order260 is built-unreviewed under D-675 with focused5/5 plus two expected database
+skips, standing837/837 plus755 environment skips and all static gates green. Exact
+sole-local schema/app promotion remains a separate reversible order.

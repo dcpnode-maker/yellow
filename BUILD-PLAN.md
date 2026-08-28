@@ -573,6 +573,11 @@ green, and the reviewer personally reproduced the focused, adjacent, database,
 schema, referee and static gates with no finding. No posting writer, India
 decomposition, document allocation or fiscal authority is yet admitted.
 
+Order260/D-674 refreshes only authenticated recorded status through approved
+Order259: date2026-08-29/latest259/current260/review91/active7 and compact
+Orders237–259 truth. It changes no product, schema, database, credential or runtime;
+sole-local promotion remains a separate guarded order.
+
 tax_assignment evaluation (percent/fixed/slab, compound, line-vs-document rounding)
 from EXTENSIONS §2; India GST slab per room-night; document issue path: series →
 gapless number → hash chain → document; IRP reporting adapter (sandbox), IRN + QR
