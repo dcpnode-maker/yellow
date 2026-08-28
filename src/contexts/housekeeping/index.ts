@@ -38,6 +38,20 @@ export {
   HousekeepingSheetValidationError,
   HousekeepingUnsupportedCadenceError,
 } from "./sheets";
+
+export {
+  ArrivalRoomCleaningConflictError,
+  ArrivalRoomCleaningNotFoundError,
+  ArrivalRoomCleaningTaskService,
+  ArrivalRoomCleaningValidationError,
+} from "./arrival-cleaning";
+export type {
+  ArrivalRoomCleaningCandidate,
+  ArrivalRoomCleaningCandidateInput,
+  ArrivalRoomCleaningCreateInput,
+  ArrivalRoomCleaningResult,
+  ArrivalRoomCleaningTaskServiceOptions,
+} from "./arrival-cleaning";
 export type {
   HousekeepingGeneratedTask,
   HousekeepingSheetCadence,
