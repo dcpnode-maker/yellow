@@ -359,13 +359,17 @@ Executable contention, rollback, authority, migration, seed, schema and standing
 proofs are green. It is not room move, automatic allocation, readiness inference or
 automatic check-in.
 
-Order 232 is active as the missing canonical property-local arrival roll. A bounded
-server worker will use the transaction-stable PostgreSQL property-local calendar date and current-segment truth to
-change only the coherent `reserved` parent to `due_in` while its exact segment remains
-byte-equivalent `booked`, with one existing
-`reservation.due_in` evidence chain. This makes ordinary committed bookings visible
-to the existing Today/check-in journey without adding a browser command, no-show,
-due-out, occupancy, financial, identity or statutory behavior.
+Order 232 is built-unreviewed as the canonical property-local arrival roll. Its
+bounded opt-in server worker discovers only due tenant/property scopes through one
+owner-mediated runtime capability, then uses PostgreSQL's transaction-stable
+property-local calendar date and exact latest-segment truth to change only a coherent
+`reserved` parent to `due_in`. The current segment remains byte-equivalent `booked`,
+and one existing `reservation.due_in` fact/outbox/idempotency chain commits atomically.
+A real direct commit now becomes visible through existing Today, reservation-detail
+and check-in truth without a browser command or no-show, due-out, occupancy,
+financial, identity or statutory behavior. Focused `14/14`, database authority,
+exact schema, standing gates and fresh referee `11/11` are green; independent Tier-3
+approval remains deferred.
 
 ## Phase 7 — Tax engine + India IRP
 

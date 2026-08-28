@@ -785,3 +785,19 @@ a segment and cannot edit an existing assignment. It is not check-in: reservatio
 segment statuses remain `due_in` and `booked` until the separate governed check-in
 command re-reads every blocker. No task, folio, identity, price, financial,
 business-day, statutory, vehicle, parking or queue identity is created or changed.
+
+### Property-local due-in roll identity (Order 232)
+
+Order 232 adds no aggregate, table, event, operator command or segment state. It
+composes the existing reservation root, its latest current `booked` segment, stored
+property timezone, fact/outbox and idempotency primitives. The arrival boundary is the
+transaction-stable PostgreSQL calendar date in that timezone; `business_day` rows,
+browser/caller dates and process clocks do not own reservation chronology.
+
+Only the reservation root changes from `reserved` to `due_in`. The locked segment is
+identity and arrival evidence and remains byte-equivalent `booked`. Bounded discovery
+reveals only due tenant/property scope, while the tenant transaction re-proves the
+complete shape. Replay, contention and rollback preserve a single atomic transition
+and evidence chain; future, missed-past, foreign, incoherent and non-reserved truth
+remain unchanged. The roll creates no occupancy, assignment, condition, task, folio,
+identity, financial, statutory, business-day or check-in meaning.

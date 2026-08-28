@@ -3485,6 +3485,49 @@ $_$;
 
 
 --
+-- Name: runtime_due_arrival_scopes(integer); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.runtime_due_arrival_scopes(p_limit integer) RETURNS TABLE(tenant_id uuid, property_node uuid)
+    LANGUAGE plpgsql STABLE SECURITY DEFINER
+    SET search_path TO 'pg_catalog', 'public', 'pg_temp'
+    AS $$
+BEGIN
+  IF p_limit IS NULL OR p_limit < 1 OR p_limit > 1000 THEN
+    RAISE EXCEPTION 'limit must be between 1 and 1000' USING ERRCODE = '22023';
+  END IF;
+
+  RETURN QUERY
+  SELECT reservation.tenant_id, reservation.property_node
+    FROM public.reservation AS reservation
+    JOIN public.tenant AS tenant
+      ON tenant.id = reservation.tenant_id
+     AND tenant.status = 'active'
+    JOIN public.org_node AS property
+      ON property.tenant_id = reservation.tenant_id
+     AND property.id = reservation.property_node
+     AND property.kind = 'property'
+    JOIN pg_catalog.pg_timezone_names AS timezone
+      ON timezone.name = property.timezone
+    JOIN LATERAL (
+      SELECT segment.status, segment.period
+        FROM public.reservation_segment AS segment
+       WHERE segment.tenant_id = reservation.tenant_id
+         AND segment.reservation_id = reservation.id
+       ORDER BY segment.seq DESC, segment.id DESC
+       LIMIT 1
+    ) AS latest ON latest.status = 'booked'
+   WHERE reservation.status = 'reserved'
+     AND (pg_catalog.lower(latest.period) AT TIME ZONE timezone.name)::date =
+         (pg_catalog.transaction_timestamp() AT TIME ZONE timezone.name)::date
+   GROUP BY reservation.tenant_id, reservation.property_node
+   ORDER BY reservation.tenant_id, reservation.property_node
+   LIMIT p_limit;
+END
+$$;
+
+
+--
 -- Name: runtime_due_hold_scopes(integer); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -10161,6 +10204,14 @@ GRANT ALL ON FUNCTION public.runtime_consumer_mark(p_consumer text, p_outbox_id 
 
 REVOKE ALL ON FUNCTION public.runtime_consumer_read(p_consumer text, p_after bigint, p_limit integer, p_unpublished boolean) FROM PUBLIC;
 GRANT ALL ON FUNCTION public.runtime_consumer_read(p_consumer text, p_after bigint, p_limit integer, p_unpublished boolean) TO yellow_runtime;
+
+
+--
+-- Name: FUNCTION runtime_due_arrival_scopes(p_limit integer); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.runtime_due_arrival_scopes(p_limit integer) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.runtime_due_arrival_scopes(p_limit integer) TO yellow_runtime;
 
 
 --

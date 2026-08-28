@@ -148,3 +148,22 @@ export type {
   ReservationOfferSearchResult,
   ReservationOfferSearchSummary,
 } from "./offers";
+export {
+  RESERVATION_ARRIVAL_ROLL_ACTOR_ID,
+  ReservationArrivalRollConflictError,
+  ReservationArrivalRollService,
+  ReservationArrivalRollValidationError,
+  ReservationArrivalRollWorker,
+} from "./arrival-roll";
+export type {
+  DueArrivalScope,
+  DueArrivalScopeSource,
+  ReservationArrivalRollDrainResult,
+  ReservationArrivalRollFailure,
+  ReservationArrivalRollResult,
+  ReservationArrivalRollRunOptions,
+  ReservationArrivalRollServiceOptions,
+  ReservationArrivalRollWorkerOptions,
+  RolledDueArrival,
+  RollDueArrivalsInput,
+} from "./arrival-roll";

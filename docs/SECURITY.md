@@ -458,6 +458,28 @@ adds no effect. The capability cannot infer or mutate room condition/readiness, 
 check-in, move/split a segment, select an alternate automatically, or affect tasks,
 folios, identity, money, business day, statutory, vehicle, parking or queue truth.
 
+### Property-local due-in roll containment (migration 0034)
+
+Migration0034 adds only `runtime_due_arrival_scopes(integer)`: a stable,
+fixed-search-path `yellow_owner` capability executable by `yellow_runtime`, not
+`PUBLIC` or `app_role`. It validates a 1–1000 limit and returns bounded distinct
+tenant/property UUID pairs whose `reserved` parent and latest `booked` segment are due
+on `(transaction_timestamp() AT TIME ZONE property.timezone)::date`. It returns no
+reservation, segment, guest or stay detail, reads no `business_day`, and grants the
+runtime login no direct reservation, segment, property or day-table access and no
+transition capability.
+
+For each discovered scope the worker enters the ordinary transaction-local tenant and
+`app_role` boundary, then locks/revalidates exact-property parent and latest-segment
+truth. Existing column-scoped parent-status authority changes only `reserved` to
+`due_in`; the segment remains unchanged. Parent status, minimized fact/outbox evidence
+and actor-bound idempotency commit or roll back together. Bounded batches,
+`SKIP LOCKED`, deterministic replay and guarded status make contention converge once.
+Foreign, future, past, missing/incoherent and non-reserved truth fails closed. The
+worker is explicit opt-in and exposes no HTTP/operator command, catch-up, no-show,
+check-in, occupancy, assignment, condition, task, folio, financial, statutory or
+business-day mutation authority.
+
 ## 6. Statutory & privacy
 
 ### Token-only payment containment

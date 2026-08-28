@@ -312,13 +312,17 @@ task, folio, identity, check-in, financial, day or statutory effect is admitted.
 Fresh database contention, rollback, hostile-authority, migration, seed, schema and
 standing proofs are green; independent Tier-3 approval remains deferred.
 
-Order 232 is active as the missing property-local arrival roll. One bounded worker will
-derive the transaction-stable property-local calendar date in PostgreSQL and move only coherent current
-`reserved`/`booked` arrival truth to parent `due_in` while the segment remains
-byte-equivalent `booked`, atomically recording the existing
-`reservation.due_in` evidence. This closes the fixture-only gap before Today and the
-governed check-in journey; it adds no operator control, no no-show/due-out/day-close
-meaning and no occupancy, folio, identity, financial or statutory effect.
+Order 232 is built-unreviewed as the property-local arrival roll. One bounded opt-in
+worker discovers only due tenant/property scopes through a minimized owner-mediated
+runtime capability, derives the transaction-stable property-local calendar date in
+PostgreSQL and moves only coherent current `reserved`/`booked` arrival truth to parent
+`due_in`. The segment remains byte-equivalent `booked`, while one existing
+`reservation.due_in` fact/outbox/idempotency chain commits atomically. A real direct
+commit now reaches existing Today, reservation-detail and governed check-in truth.
+Focused, contention, rollback, migration, authority, exact-schema, standing and fresh
+referee proofs are green. This adds no operator control, no no-show/due-out/day-close
+meaning and no occupancy, folio, identity, financial or statutory effect; independent
+Tier-3 approval remains deferred.
 
 Statutory field semantics, validation, submission and receipts remain Phase 8. Tax and
 fiscal document work remains Phase 7. No country rule is hardcoded in Phase 6.

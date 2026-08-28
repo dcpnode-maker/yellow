@@ -6898,6 +6898,7 @@ function departureEvidenceRow(term, value) {
   healthCard("Hold-expiry worker", live.workers.holdExpiry, "Configured means the runtime flag is enabled; this card does not claim a successful poll."),
   healthCard("Projection worker", live.workers.availabilityProjection, "Configured means the runtime flag is enabled; projection remains disposable acceleration."),
   healthCard("Arrival pickup worker", live.workers.arrivalPickupTask, "Configured means current pickup intent is consumed into governed transport tasks; this card does not claim dispatch or completion."),
+  healthCard("Reservation arrival-roll worker", live.workers.reservationArrivalRoll, "Configured means the bounded property-local due-in roll is enabled; this card does not claim a successful cycle or check-in."),
   healthCard("Valkey", live.valkey.state, live.valkey.detail),
   healthCard("External CI", live.ci.state, live.ci.detail),
  );

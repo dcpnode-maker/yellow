@@ -1054,3 +1054,30 @@ headers. Success does not mutate condition, task, folio, identity or reservation
 status and does not run check-in. The client must refetch canonical reservation detail
 and check-in readiness; it cannot infer the next blocker from candidate or command
 output. There is no generic assignment, room-move, bulk or automatic-allocation route.
+
+## 33. Governed property-local due-in roll
+
+`ReservationArrivalRollService.rollDueArrivals` accepts only one lowercase tenant UUID,
+property UUID, bounded arrival limit and system audit envelope bound to
+`reservation.due_in`. One transaction-local tenant transaction derives
+`(transaction_timestamp() AT TIME ZONE property.timezone)::date`, locks at most the
+requested number of exact-property `reserved` parents with their latest current
+`booked` segment, and revalidates the same shape before writing. It changes only the
+parent to `due_in`; the segment remains byte-equivalent `booked`.
+
+Each changed parent uses the deterministic property/date/reservation idempotency key
+and commits its status, one minimized `reservation.due_in` fact/outbox pair and stored
+result together. Exact reruns and concurrent workers add no second effect. A failed
+fact or event publication rolls back status, evidence and idempotency before retry.
+Future or past arrival dates, foreign properties, absent/incoherent latest segments and
+non-`reserved` parents are no-ops; no delayed catch-up or lifecycle repair is inferred.
+
+`runtime_due_arrival_scopes(limit)` is a bounded, read-only, fixed-search-path owner
+capability callable only by `yellow_runtime`. It returns distinct tenant/property IDs
+whose coherent latest booked arrival equals that same transaction-stable property-local
+date; it exposes no reservation/segment details and grants no direct table read or
+transition authority. The worker bounds both scope and arrival batches, supports one
+deterministic drain cycle and abortable polling, and is disabled unless explicitly
+enabled in the existing workbench composition. This is an internal server contract:
+there is no API route, operator control, automatic check-in, business-day read/write or
+other reservation-state command.

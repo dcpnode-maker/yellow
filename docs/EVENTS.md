@@ -35,6 +35,16 @@ outbox by `seq` (SQL) or JetStream by offset.
 **reservations** · reservation.confirmed {segments[{unit_type,period,rate_plan}],channel} · .modified {diff} · .cancelled {reason,penalty_journal?} · .no_show · .checked_in {segment_id,space_id,primary_folio_id,room_condition,dirty_room_override_used,dirty_room_override_reason?,statutory_adapter_key?,identity_evidence_required,identity_evidence_satisfied} · .checked_out · .reinstated · .due_in/.due_out · segment.moved {from_space,to_space} · group.status_changed {deducts_delta} · block.rooms_released
 → folio automations, HK task generation, statutory scheduler, stats, ARI, messaging
 
+`reservation.due_in` is the minimized evidence that one coherent parent changed from
+`reserved` to `due_in` at its transaction-stable property-local arrival date. Its
+payload contains only reservation id, previous/current parent status, segment id,
+unchanged `booked` segment status and business date. The producer writes the parent
+status, fact, outbox row and idempotency result in one transaction; the referenced
+latest segment is not mutated. Rerun/concurrent workers produce no duplicate event,
+and publication failure leaves no status or evidence artifact. Consumers must not
+infer segment-state change, catch-up/no-show, check-in, occupancy/assignment, room
+condition/task, folio or financial/business-day/statutory effects.
+
 `reservation.checked_in` is the minimized evidence of the exact reservation and active
 segment entering `in_house` together. It may name the room, primary folio and configured
 adapter key, but never includes Party, identity-document, contact, credential or legal

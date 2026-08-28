@@ -170,6 +170,11 @@ const EXPECTED_MIGRATIONS = [
     filename: "0033_governed_due_in_room_assignment.sql",
     checksum_sha256: "cd983c31250bc5ace863fe156bc6aa15927eac74ba24ab449eff692e87aae82d",
   },
+  {
+    version: 34,
+    filename: "0034_runtime_due_arrival_scopes.sql",
+    checksum_sha256: "b59480ab270c8822c9f972de527fc47ab73c411dc9037d37e6d3d326f19cc21a",
+  },
 ];
 
 if (REQUIRE_DATABASE && !DATABASE_URL) {

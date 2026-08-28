@@ -971,6 +971,56 @@ databaseDescribe("Bun SQL migration runner", () => {
   );
 
   test(
+    "applies the exact bounded runtime due-arrival scope migration",
+    async () => {
+      await withDatabase(async ({ databaseUrl: targetUrl, sql }) => {
+        const result = await runMigrations({
+          databaseUrl: targetUrl,
+          migrationsDirectory: PROJECT_MIGRATIONS,
+          logger: () => undefined,
+        });
+        expect(result.appliedFiles).toContain("0034_runtime_due_arrival_scopes.sql");
+        const ledger = await sql<Array<{
+          version: number | bigint; filename: string; checksum_sha256: string;
+        }>>`
+          SELECT version, filename, checksum_sha256
+            FROM public.schema_migration
+           WHERE version = 34
+        `;
+        expect(ledger.map((row) => ({ ...row, version: Number(row.version) }))).toEqual([{
+          version: 34,
+          filename: "0034_runtime_due_arrival_scopes.sql",
+          checksum_sha256: "b59480ab270c8822c9f972de527fc47ab73c411dc9037d37e6d3d326f19cc21a",
+        }]);
+        const capability = await sql<Array<{
+          owner: string; publicExecute: boolean; appExecute: boolean; runtimeExecute: boolean;
+          volatility: string; config: string[] | null;
+        }>>`
+          SELECT pg_catalog.pg_get_userbyid(procedure.proowner) AS owner,
+                 pg_catalog.has_function_privilege('public', procedure.oid, 'EXECUTE') AS "publicExecute",
+                 pg_catalog.has_function_privilege('app_role', procedure.oid, 'EXECUTE') AS "appExecute",
+                 pg_catalog.has_function_privilege('yellow_runtime', procedure.oid, 'EXECUTE') AS "runtimeExecute",
+                 procedure.provolatile::text AS volatility,
+                 procedure.proconfig AS config
+            FROM pg_catalog.pg_proc AS procedure
+            JOIN pg_catalog.pg_namespace AS namespace ON namespace.oid=procedure.pronamespace
+           WHERE namespace.nspname='public'
+             AND procedure.proname='runtime_due_arrival_scopes'
+        `;
+        expect(capability).toEqual([{
+          owner: "yellow_owner",
+          publicExecute: false,
+          appExecute: false,
+          runtimeExecute: true,
+          volatility: "s",
+          config: ["search_path=pg_catalog, public, pg_temp"],
+        }]);
+      });
+    },
+    60_000,
+  );
+
+  test(
     "applies the exact account-folio integrity migration and rejects tenant-crossing references",
     async () => {
       await withDatabase(async ({ databaseUrl: targetUrl, sql }) => {

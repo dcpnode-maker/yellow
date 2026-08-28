@@ -1,6 +1,6 @@
 # Order 232 — Governed property-local due-in roll
 
-**Status:** ACTIVE-POLICY-CORRECTED-D612
+**Status:** BUILT-UNREVIEWED-D613
 **Phase:** 6 — Stay operations and housekeeping
 **Branch:** `phase-6/governed-property-local-due-in-roll`
 **Base:** `922c8a9` (built-unreviewed Order231)
@@ -107,9 +107,27 @@ execution and direct runtime table reads remain denied.
 
 ## Definition of done
 
-- [ ] Intentional red precedes implementation.
-- [ ] Property-local due admission is database-authoritative and bounded.
-- [ ] Parent transition/evidence is atomic, replay-safe and contention-safe while the
+- [x] Intentional red precedes implementation.
+- [x] Property-local due admission is database-authoritative and bounded.
+- [x] Parent transition/evidence is atomic, replay-safe and contention-safe while the
   coherent current booked segment remains unchanged.
-- [ ] Existing Today and check-in journeys become reachable from a real commit.
-- [ ] Standing gates are green and the result is recorded built-unreviewed.
+- [x] Existing Today and check-in journeys become reachable from a real commit.
+- [x] Standing gates are green and the result is recorded built-unreviewed.
+
+## Built evidence
+
+The intentional-red proof first failed `0/4` for the absent service, runtime scope
+adapter, worker composition and production `reservation.due_in` emission. The final
+focused suite passes `14/14` with `71` assertions: an ordinary direct commit rolls
+into existing Today, reservation-detail and check-in truth; future, past, foreign,
+terminal, absent and incoherent cases remain no-op; twenty contenders converge once;
+publication failure rolls back before exact retry; runtime discovery is bounded; and
+the worker remains opt-in and abortable.
+
+Fresh PostgreSQL 16.15 evidence passes the exact migration, migration ledger/hash,
+database acceptance `8/8`, runtime authority `10/10`, runtime DML `5/5`, exact schema
+snapshot and unchanged referee `11/11`. The standing suite passes with no failures,
+alongside typecheck, `85` boundaries, `23` licences, zero audit findings, JavaScript
+syntax and diff checks. Independent Tier-3 approval remains deferred under the
+founder's build-first direction; no approval, Phase-6/app completion, local
+promotion, merge, push or deployment is claimed.

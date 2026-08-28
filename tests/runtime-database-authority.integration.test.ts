@@ -353,12 +353,13 @@ databaseDescribe("Order 127 runtime database authority (kernel boundary; HTTP P4
        WHERE n.nspname = 'public' AND p.proname LIKE 'runtime_%'
        ORDER BY signature
     `;
-    expect(capabilities).toHaveLength(10);
+    expect(capabilities).toHaveLength(11);
     expect(capabilities.map(({ signature }) => signature).sort()).toEqual([
       "runtime_consumer_advance(text,bigint)",
       "runtime_consumer_begin(text)",
       "runtime_consumer_mark(text,uuid)",
       "runtime_consumer_read(text,bigint,integer,boolean)",
+      "runtime_due_arrival_scopes(integer)",
       "runtime_due_hold_scopes(integer)",
       "runtime_extension_compatibility_inputs(text)",
       "runtime_mark_outbox_published(uuid[])",
@@ -367,10 +368,19 @@ databaseDescribe("Order 127 runtime database authority (kernel boundary; HTTP P4
       "runtime_visible_extensions(uuid)",
     ]);
     expect(capabilities.every((row) => row.owner === "yellow_owner" && !row.public_execute && !row.app_execute && row.runtime_execute && JSON.stringify(row.config) === JSON.stringify(["search_path=pg_catalog, public, pg_temp"]))).toBe(true);
-    const dueScopeResult = await admin!<{ result: string }[]>`
-      SELECT pg_catalog.pg_get_function_result('public.runtime_due_hold_scopes(integer)'::regprocedure) AS result
+    const dueScopeResults = await admin!<{ signature: string; result: string }[]>`
+      SELECT p.oid::regprocedure::text AS signature,
+             pg_catalog.pg_get_function_result(p.oid) AS result
+        FROM pg_catalog.pg_proc AS p
+        JOIN pg_catalog.pg_namespace AS namespace ON namespace.oid = p.pronamespace
+       WHERE namespace.nspname = 'public'
+         AND p.proname IN ('runtime_due_arrival_scopes', 'runtime_due_hold_scopes')
+       ORDER BY signature
     `;
-    expect(dueScopeResult).toEqual([{ result: "TABLE(tenant_id uuid, property_node uuid)" }]);
+    expect(dueScopeResults).toEqual([
+      { signature: "runtime_due_arrival_scopes(integer)", result: "TABLE(tenant_id uuid, property_node uuid)" },
+      { signature: "runtime_due_hold_scopes(integer)", result: "TABLE(tenant_id uuid, property_node uuid)" },
+    ]);
 
     const rls = await admin!<{ tables: number; enabled: number; forced: number; policies: number }[]>`
       SELECT count(*) FILTER (WHERE c.relkind IN ('r','p'))::int AS tables,
@@ -381,7 +391,7 @@ databaseDescribe("Order 127 runtime database authority (kernel boundary; HTTP P4
         FROM pg_catalog.pg_class c JOIN pg_catalog.pg_namespace n ON n.oid = c.relnamespace
        WHERE n.nspname = 'public'
     `;
-    expect(rls).toEqual([{ tables: 89, enabled: 79, forced: 0, policies: 79 }]);
+    expect(rls).toEqual([{ tables: 93, enabled: 83, forced: 0, policies: 83 }]);
   });
 
   test("P2: a post-COMMIT contaminated role is rejected, discarded, and cannot poison pool reuse", async () => {
@@ -447,11 +457,12 @@ databaseDescribe("Order 127 runtime database authority (kernel boundary; HTTP P4
         FROM pg_catalog.pg_proc p JOIN pg_catalog.pg_namespace n ON n.oid = p.pronamespace
        WHERE n.nspname = 'public' AND p.proname LIKE 'runtime_%' ORDER BY signature
     `;
-    expect(denied).toHaveLength(10);
+    expect(denied).toHaveLength(11);
     expect(denied.every((row) => !row.public_execute && !row.app_execute)).toBe(true);
 
     await database.withTenantTransaction(tenantA, async (tx) => {
       const deniedStatements = [
+        () => tx`SELECT public.runtime_due_arrival_scopes(1)`,
         () => tx`SELECT public.runtime_due_hold_scopes(1)`,
         () => tx`SELECT public.runtime_resolve_active_tenant('x')`,
         () => tx`SELECT public.runtime_consumer_begin('x')`,
@@ -474,6 +485,8 @@ databaseDescribe("Order 127 runtime database authority (kernel boundary; HTTP P4
     });
 
     const direct = runtimeSession!;
+    expect(await captureSqlState(() => direct`SELECT public.runtime_due_arrival_scopes(0)`)).toBe("22023");
+    expect(await captureSqlState(() => direct`SELECT public.runtime_due_arrival_scopes(1001)`)).toBe("22023");
     expect(await captureSqlState(() => direct`SELECT public.runtime_due_hold_scopes(0)`)).toBe("22023");
     expect(await captureSqlState(() => direct`SELECT public.runtime_due_hold_scopes(1001)`)).toBe("22023");
     expect(await captureSqlState(() => direct`SELECT public.runtime_consumer_begin('Bad_Name')`)).toBe("22023");

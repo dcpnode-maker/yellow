@@ -8,7 +8,7 @@ Transition tables are exhaustive — anything not listed is rejected with `inval
 | From | To | Guard | Emits |
 |---|---|---|---|
 | quote | reserved | availability confirmed via choke-point write of holds→segments; payment/guarantee per policy | reservation.confirmed |
-| reserved | due_in | business_date == arrival date (roll job) | reservation.due_in |
+| reserved | due_in | bounded roll: the transaction-stable PostgreSQL calendar date in the stored property timezone equals the latest current `booked` segment's local arrival date; that segment remains `booked` | reservation.due_in |
 | reserved/due_in | cancelled | within policy or override(approval); releases occupancy | reservation.cancelled |
 | due_in | in_house | exactly one current booked segment is assigned to exactly one active physical room; primary folio window 1 and guest account are open; `unit_condition` is clean/inspected, or dirty/pickup has same-property `stay-operations.checkin:dirty-room-override` plus reason; when property config selects an effective active tenant statutory adapter declaring identity evidence, every reservation Party has a recorded identity document | reservation.checked_in |
 | due_in | no_show | day-roll for the arrival date; guarantee policy drives no-show journal | reservation.no_show |
@@ -19,6 +19,16 @@ Transition tables are exhaustive — anything not listed is rejected with `inval
 Segment moves: never edit `period`/unit on a live segment for a room move — close the
 segment (`departed`, trim period) and open the next `seq` (new occupancy via choke).
 Extensions/shortenings on the SAME unit: release + re-record inside one transaction.
+
+Order 232 makes only the `reserved -> due_in` row executable through a bounded server
+worker. It locks and revalidates the coherent parent/latest-segment shape, changes only
+the parent status, and commits one `reservation.due_in` fact, outbox row and durable
+idempotency result atomically. Exact reruns and contenders converge to one effect;
+future, past, foreign, incoherent and non-reserved truth are no-ops, while evidence
+failure rolls the whole attempt back. The date is
+`(transaction_timestamp() AT TIME ZONE property.timezone)::date`, not an open
+`business_day`, caller/browser date or process clock. There is no catch-up, repair,
+no-show, check-in, due-out or operator command in this transition.
 
 Order 200 makes the `due_in -> in_house` row executable through a server-owned
 readiness snapshot and an actor-bound idempotent command. The reservation and exact
