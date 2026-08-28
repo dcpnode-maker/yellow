@@ -1,8 +1,8 @@
 # Phase 7 — Tax engine and India IRP
 
-**Status:** active; Orders 237-239 built-unreviewed; Order 240 ready
+**Status:** active; Orders 237-240 built-unreviewed
 **Entry point:** built-unreviewed Phase-6 composition through Order 236
-**Current order:** Order 240 canonical positive tax-attribution snapshot is ready under D-630
+**Current order:** Order 240 canonical positive tax-attribution snapshot is built-unreviewed under D-631
 
 ## Outcome
 
@@ -98,3 +98,11 @@ non-canonical values fail closed; the result is deeply frozen and performs no wr
 This slice does not persist a quote, mutate a hold/reservation, post tax, change a
 folio, compose a correction/transfer or issue a fiscal document. Those runtime steps
 remain separately ordered after the immutable attribution contract exists.
+
+Order240 proof is green: its focused contract passes `12/12` with 131 assertions;
+the combined adjacent tax/quote proof passes `50/50` plus 11 expected database skips
+with 260 assertions; and the standing suite passes `820/820` plus 708 environment
+skips with 8,356 assertions across 1,528 tests/276 files. Typecheck, 90 import
+boundaries, 23 dependency licences, zero-vulnerability audit, all four JavaScript
+syntax checks and diff hygiene are green. Independent review remains deferred; no
+persistence, booking acceptance, posting, document or fiscal authority is claimed.

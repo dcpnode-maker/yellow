@@ -206,6 +206,37 @@ revenue group, service night, person-night, quote lineage, correction attributio
 transfer attribution for every positive charge; inferring them from USALI labels or
 descriptive quantity would manufacture financial truth and is forbidden.
 
+### Positive tax-attribution snapshot containment
+
+Order 240 is a pure in-process canonicalization boundary around one calculated
+Order-239 preview. It accepts no tenant lookup, database handle, extension resolver,
+price input override or caller-selected tax authority. Version 1 admits only the
+positive `rate_quote` origin and binds exact quote hash, currency, stable line and
+`room_revenue` identity, positive input lineage, ordered room-night and
+business-date assignment evidence, exact jurisdiction extension identity/version/
+content hash, evaluator modes, totals, tax totals and ordered line components.
+
+Transport values contain canonical non-negative decimal strings for every money and
+quantity. Runtime `bigint`, JavaScript-number/float money, exponent forms, signed or
+negative zero, unsafe magnitudes and non-finite values are rejected. Before hashing,
+creation proves exact room-night/input, evaluator-input, base/tax/grand and
+tax-total/component reconciliation plus unique coherent ordering. `snapshotHash`
+covers the complete canonical value excluding only itself.
+
+Parsing treats every value as hostile. It rejects unknown fields, getters/accessors,
+cycles, malformed UUIDs, SHA-256 values, currencies, dates, evidence references and
+decimal text, duplicate or out-of-order evidence, unsupported signs and any lineage
+or total mismatch. Builder and parser do not mutate input and expose only recursively
+frozen output, preventing a validated value from changing after its hash is checked.
+
+This boundary has no database, HTTP, UI, fact, event, cache or mutation capability.
+It cannot create or authorize a booking, folio, journal, posting, tax detail,
+correction, reversal, transfer, tax-payable allocation, invoice, India
+CGST/SGST/IGST split, document/series/hash chain, IRP payload, provider request,
+submission or fiscal-final result. Consumers must obtain separately authorized
+persistence, posting, correction, transfer and document semantics rather than treating
+the snapshot as money or legal finality.
+
 Named residual capability debt remains for approval decisions, extension
 publication/retirement, hold transitions, inventory-policy and projection
 replacement, operational-block updates, reservation/segment/guest lifecycle,

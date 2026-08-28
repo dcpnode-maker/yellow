@@ -502,6 +502,39 @@ attribute revenue group, service night, person-night, originating quote, correct
 transfer for every positive charge. It must not be reconstructed from a descriptive
 quantity or a USALI label.
 
+### Canonical positive tax-attribution snapshot
+
+Order 240 adds one pure version-1 transport value for an already-calculated Order-239
+room-tax preview. Its sole origin is `rate_quote`; it does not resolve, calculate or
+change a quote. Creation binds the exact quote SHA-256, currency, stable revenue-line
+id and `room_revenue` group, input amount, nights, person-nights, ordered room-night
+amounts, ordered business-date assignment evidence, exact jurisdiction extension
+identity/version/content hash, evaluator country/display/rounding modes, exact
+input/base/tax/grand totals, ordered tax totals and their ordered line components.
+This is complete positive-origin lineage, not a folio reconstruction.
+
+Every stored money and quantity is a canonical non-negative decimal string. Runtime
+`bigint`, JavaScript-number or float money, exponent notation, signs, leading zeroes
+other than the single value `0`, negative zero, unsafe magnitude and non-finite values
+are not snapshot values. Creation reconciles the whole value before hashing:
+room-night amounts sum exactly to the attributed input amount, evaluator input equals
+that same amount, base plus tax equals grand total, and every tax total equals its
+ordered components. Night dates, assignment references, tax identities and component
+lineage must be ordered, unique and mutually coherent.
+
+`snapshotHash` is SHA-256 over the complete canonical snapshot excluding only
+`snapshotHash` itself. Parsing is an exact hostile boundary, not permissive JSON
+normalization: unknown fields, accessors, cycles, malformed UUIDs, hashes, currency,
+dates, references or decimals, duplicate or out-of-order nights, mismatched lineage or
+totals and unsupported signs fail closed. Builder and parser do not mutate their
+inputs and return one recursively frozen value; a successful parse reproduces the
+same canonical bytes and hash-bound meaning.
+
+The snapshot is evidence only. Order 240 adds no persistence, fact, event, HTTP or UI
+surface and grants no booking, folio, journal, posting, `tax_detail`, correction,
+reversal, transfer, tax-payable allocation, invoice, CGST/SGST/IGST split, document,
+numbering, IRP, provider, submission or fiscal-finality authority.
+
 ## 8. Pure rate-model evaluator
 
 Order 067's in-process evaluator is a draft/simulation primitive, not a database or HTTP contract.

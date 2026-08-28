@@ -548,6 +548,38 @@ canonically retain revenue group, service night, person-night, quote lineage,
 correction attribution and transfer attribution together, so those values may not be
 reconstructed from USALI labels or descriptive quantity.
 
+### Positive Tax Attribution Snapshot value service — Tax/Fiscal
+
+Order 240 is a pure immutable value service, not an aggregate, entity or state
+machine. Version 1 has exactly one positive `rate_quote` origin. It converts one exact
+calculated Order-239 room preview into JSON-safe lineage binding the quote SHA-256,
+currency, stable line id and `room_revenue` group, input amount, nights,
+person-nights, ordered room-night amounts, ordered business-date assignment evidence,
+exact jurisdiction extension identity/version/content hash, evaluator country,
+display and rounding modes, exact totals, ordered tax totals and ordered line
+components.
+
+All money and quantities in the value are canonical non-negative decimal strings;
+there is no runtime `bigint`, float, exponent form, signed zero, unsafe magnitude or
+non-finite representation. Creation requires exact whole-value reconciliation:
+ordered room-night amounts equal the input amount, evaluator input is that same
+amount, base plus tax equals grand total and every tax total equals its components.
+Ordered nights, assignments and components remain unique and coherent. The
+deterministic `snapshotHash` covers the complete canonical value except the hash field
+itself, so quote identity, jurisdiction identity/content and every attribution amount
+share one tamper-evident boundary.
+
+Creation and exact parsing accept hostile input only by full validation. Unknown
+fields, getters/accessors, cycles, malformed UUID/hash/currency/date/reference or
+decimal values, duplicates, incorrect ordering, mismatched totals and unsupported
+signs fail closed. Neither operation mutates its input; both return the same
+recursively frozen canonical truth.
+
+The value service owns no persistence or economic transition. It creates no database
+row, fact or event and authorizes no reservation/hold/commit, folio, posting, journal,
+tax detail, correction/reversal, transfer, document, numbering/hash chain, invoice,
+CGST/SGST/IGST allocation, IRP, provider, submission or fiscal-final state.
+
 ### Document aggregate — Tax/Fiscal
 
 **Root:** `document` under `document_series`.

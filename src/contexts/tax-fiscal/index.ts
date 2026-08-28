@@ -9,3 +9,14 @@ export type {
   TaxJurisdictionResolutionResult,
   UnassignedTaxJurisdictionResolution,
 } from "./resolution";
+export {
+  TaxAttributionSnapshotError,
+  createPositiveTaxAttributionSnapshot,
+  parsePositiveTaxAttributionSnapshot,
+} from "./attribution";
+export type {
+  CreatePositiveTaxAttributionSnapshotInput,
+  PositiveTaxAttributionAssignmentInput,
+  PositiveTaxAttributionRoomNightInput,
+  PositiveTaxAttributionSnapshotV1,
+} from "./attribution";

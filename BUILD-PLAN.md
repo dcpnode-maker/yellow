@@ -466,6 +466,19 @@ deterministic snapshot hash. It adds no persistence, reservation, posting, folio
 correction, transfer, document, HTTP, UI or local-app authority. Independent review
 remains deferred under the founder's build-first direction.
 
+Order240 is built-unreviewed under D-631. Its pure builder/parser accepts only one
+fully reconciled positive `rate_quote` origin, emits canonical decimal-string JSON,
+binds exact nightly assignment/jurisdiction/evaluator lineage with a deterministic
+SHA-256 and returns recursively frozen truth. Hostile shape, identity, ordering,
+duplicate, magnitude and monetary reconciliation failures reject atomically. Focused
+proof passes `12/12` with 131 assertions, combined adjacent tax/quote proof passes
+`50/50` plus 11 expected database skips with 260 assertions, and the standing suite
+passes `820/820` plus 708 environment skips with 8,356 assertions across 1,528
+tests/276 files. Typecheck, 90 import boundaries, 23 dependency licences,
+zero-vulnerability audit, JavaScript syntax and diff hygiene are green. Schema,
+database and local runtime behavior are unchanged; persistence, posting, documents
+and fiscal finality remain later slices.
+
 tax_assignment evaluation (percent/fixed/slab, compound, line-vs-document rounding)
 from EXTENSIONS §2; India GST slab per room-night; document issue path: series →
 gapless number → hash chain → document; IRP reporting adapter (sandbox), IRN + QR

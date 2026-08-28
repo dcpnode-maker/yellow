@@ -1,6 +1,6 @@
 # Order 240 — Canonical positive tax-attribution snapshot
 
-**Status:** READY-D630
+**Status:** BUILT-UNREVIEWED-D631
 **Phase:** 7 — Tax engine and India IRP
 **Branch:** `phase-7/canonical-tax-attribution-snapshot`
 **Base:** `d6e52dc` (built-unreviewed Order239)
@@ -76,9 +76,19 @@ reconstructing financial meaning from descriptions or mutable configuration.
 
 ## Definition of done
 
-- [ ] Intentional red precedes implementation.
-- [ ] Canonical positive-origin snapshot creation and hostile parsing are executable.
-- [ ] Focused, adjacent and standing results are transcribed.
+- [x] Intentional red precedes implementation.
+- [x] Canonical positive-origin snapshot creation and hostile parsing are executable.
+- [x] Focused, adjacent and standing results are transcribed.
+
+## Built evidence
+
+Intentional red `0/4` preceded implementation. The combined focused and adjacent
+tax/quote proof is green at `50/50` plus 11 expected database skips with 260
+assertions; the Order240 contract contributes `12/12` with 131 assertions. The full
+standing suite is green at `820/820` plus 708 environment skips with 8,356 assertions
+across 1,528 tests/276 files. Typecheck, 90 import boundaries, 23 dependency licences,
+zero-vulnerability audit, all four tracked JavaScript syntax checks and diff hygiene
+are green. The schema, database and local application are unchanged by Order240.
 
 Independent review remains deferred under the founder's build-first direction. This
 order can close only as built-unreviewed.
