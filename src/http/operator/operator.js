@@ -2504,7 +2504,9 @@ function ensureHousekeepingGenerationReceiptPanel() {
   open.type = "button";
   open.addEventListener("click", () => {
    if (!arrivalRoomCleaningTaskIsCurrent(origin, section)) return;
-   void openHousekeepingTaskDetail(state.candidate.existingTaskId, { trigger: open });
+   const arrivalReturn = arrivalCleaningCheckInReturnDescriptor(origin, state.candidate.existingTaskId);
+   if (!arrivalReturn) return;
+   void openHousekeepingTaskDetail(state.candidate.existingTaskId, { trigger: open, arrivalReturn });
   });
   section.append(open);
   status.textContent = "An actionable task already exists; no duplicate was created.";
@@ -2597,7 +2599,9 @@ function ensureHousekeepingGenerationReceiptPanel() {
    status.textContent = value.created ? "Cleaning task created. Opening authoritative task detail…" : "Existing cleaning task found. Opening authoritative detail…";
    await loadHousekeepingBoard();
    if (arrivalRoomCleaningTaskIsCurrent(origin, section)) {
-    await openHousekeepingTaskDetail(value.taskId, { trigger: create });
+    const arrivalReturn = arrivalCleaningCheckInReturnDescriptor(origin, value.taskId);
+    if (!arrivalReturn) return;
+    await openHousekeepingTaskDetail(value.taskId, { trigger: create, arrivalReturn });
    }
   } catch (error) {
    if (!arrivalRoomCleaningTaskIsCurrent(origin, section)) return;
@@ -2851,6 +2855,93 @@ function ensureHousekeepingGenerationReceiptPanel() {
  }
  return Object.freeze({ ...task, allowedActions: Object.freeze(allowedActions.slice()) });
  }
+  function arrivalCleaningCheckInReturnDescriptor(origin, taskId) {
+ const returning = checkInHousekeepingReturnFromState(history.state, propertySelect.value);
+ if (!returning || !origin || origin.returning !== checkInHousekeepingReturn ||
+  origin.property !== returning.property || origin.reservationId !== returning.reservationId ||
+ origin.confirmationNo !== returning.confirmationNo || origin.status !== "due_in" ||
+  origin.blocker !== "dirty_room_override_unauthorized" || origin.blocker !== returning.blocker ||
+  origin.assignedSpaceId !== returning.assignedSpaceId || origin.roomCondition !== returning.roomCondition ||
+  !canonicalUuid(origin.assignedSpaceId) || (origin.roomCondition !== "dirty" && origin.roomCondition !== "pickup") ||
+  origin.originPath !== canonicalCheckInWorkbenchPath(origin.property, origin.reservationId) ||
+  origin.detailGeneration !== returning.detailGeneration || origin.readinessGeneration !== returning.readinessGeneration ||
+  origin.drawerReturnView !== returning.drawerReturnView ||
+  returning.originPath !== origin.originPath || !canonicalUuid(taskId) || activeView !== "housekeeping" ||
+  location.pathname !== `/p/${origin.property}/housekeeping` || location.search !== "") return null;
+ return Object.freeze({
+  property: origin.property,
+  reservationId: origin.reservationId,
+  confirmationNo: origin.confirmationNo,
+  status: origin.status,
+  blocker: origin.blocker,
+  assignedSpaceId: origin.assignedSpaceId,
+  roomCondition: origin.roomCondition,
+  originPath: origin.originPath,
+  detailGeneration: origin.detailGeneration,
+  readinessGeneration: origin.readinessGeneration,
+  drawerReturnView: origin.drawerReturnView,
+  taskId,
+  taskPath: canonicalHousekeepingTaskDetailPath(origin.property, taskId),
+  housekeepingGeneration,
+  housekeepingConditionGeneration,
+  taskDetailRequestGeneration: housekeepingTaskDetailRequestGeneration,
+ });
+  }
+  function arrivalCleaningCheckInReturnFromState(state, property, taskId = housekeepingRouteTaskId) {
+ const value = state?.arrivalCleaningCheckInReturn;
+ const keys = [
+  "assignedSpaceId", "blocker", "confirmationNo", "detailGeneration", "drawerReturnView",
+  "housekeepingConditionGeneration", "housekeepingGeneration", "originPath", "property",
+  "readinessGeneration", "reservationId", "roomCondition", "status", "taskDetailRequestGeneration",
+  "taskId", "taskPath",
+ ].sort();
+ if (state?.yellowSurface !== "housekeeping-task-detail" || !value || typeof value !== "object" || Array.isArray(value) ||
+  Object.keys(value).sort().join(",") !== keys.join(",") || value.property !== property || value.taskId !== taskId ||
+  !canonicalUuid(value.property) || !canonicalUuid(value.reservationId) || !canonicalUuid(value.assignedSpaceId) ||
+  !canonicalUuid(value.taskId) || typeof value.confirmationNo !== "string" || value.confirmationNo.length < 1 ||
+  value.confirmationNo.length > 120 || value.status !== "due_in" ||
+  value.blocker !== "dirty_room_override_unauthorized" ||
+  (value.roomCondition !== "dirty" && value.roomCondition !== "pickup") ||
+  value.originPath !== canonicalCheckInWorkbenchPath(value.property, value.reservationId) ||
+  value.taskPath !== canonicalHousekeepingTaskDetailPath(value.property, value.taskId) ||
+  !Number.isSafeInteger(value.detailGeneration) || value.detailGeneration < 1 ||
+  !Number.isSafeInteger(value.readinessGeneration) || value.readinessGeneration < 1 ||
+  !Number.isSafeInteger(value.housekeepingGeneration) || value.housekeepingGeneration < 0 ||
+  !Number.isSafeInteger(value.housekeepingConditionGeneration) || value.housekeepingConditionGeneration < 0 ||
+  !Number.isSafeInteger(value.taskDetailRequestGeneration) || value.taskDetailRequestGeneration < 0 ||
+  !["", "today", "vehicles", "vehicle-register"].includes(value.drawerReturnView)) return null;
+ return Object.freeze({ ...value });
+  }
+  function checkInHousekeepingReturnFromArrivalCleaning(returning) {
+ if (!returning) return null;
+ return Object.freeze({
+  property: returning.property,
+  reservationId: returning.reservationId,
+  confirmationNo: returning.confirmationNo,
+  status: returning.status,
+  blocker: returning.blocker,
+  assignedSpaceId: returning.assignedSpaceId,
+  roomCondition: returning.roomCondition,
+  originPath: returning.originPath,
+  detailGeneration: returning.detailGeneration,
+  readinessGeneration: returning.readinessGeneration,
+  drawerReturnView: returning.drawerReturnView,
+ });
+  }
+  function rebaseArrivalCleaningCheckInReturn(task) {
+ const returning = arrivalCleaningCheckInReturnFromState(history.state, propertySelect.value, task?.taskId);
+ if (!returning || task?.taskId !== housekeepingRouteTaskId || task.spaceId !== returning.assignedSpaceId ||
+  location.pathname !== returning.taskPath || location.search !== "") return null;
+ const current = Object.freeze({
+  ...returning,
+  housekeepingGeneration,
+  housekeepingConditionGeneration,
+  taskDetailRequestGeneration: housekeepingTaskDetailRequestGeneration,
+ });
+ history.replaceState({ ...history.state, arrivalCleaningCheckInReturn: current }, "", current.taskPath);
+ checkInHousekeepingReturn = checkInHousekeepingReturnFromArrivalCleaning(current);
+ return current;
+  }
   function ensureHousekeepingTaskDetailPanel() {
  if (housekeepingTaskDetailPanel?.isConnected) return housekeepingTaskDetailPanel;
  const panel = node("section", "card housekeeping-task-detail-panel");
@@ -2900,6 +2991,58 @@ function ensureHousekeepingGenerationReceiptPanel() {
  housekeepingTaskDetailPanel = panel;
  return panel;
  }
+  function arrivalCleaningCheckInReturnIsCurrent(returning, panel, action) {
+ const current = arrivalCleaningCheckInReturnFromState(history.state, propertySelect.value, housekeepingRouteTaskId);
+ const task = housekeepingTaskDetailData;
+ const content = panel?.querySelector(".housekeeping-task-detail-content");
+ return current !== null && returning !== null && activeView === "housekeeping" &&
+  current.property === returning.property && current.reservationId === returning.reservationId &&
+ current.confirmationNo === returning.confirmationNo && current.status === returning.status &&
+  current.blocker === returning.blocker && current.assignedSpaceId === returning.assignedSpaceId &&
+  current.roomCondition === returning.roomCondition && current.originPath === returning.originPath &&
+  current.detailGeneration === returning.detailGeneration && current.readinessGeneration === returning.readinessGeneration &&
+  current.drawerReturnView === returning.drawerReturnView &&
+  current.housekeepingGeneration === returning.housekeepingGeneration &&
+  current.housekeepingConditionGeneration === returning.housekeepingConditionGeneration &&
+  current.taskDetailRequestGeneration === returning.taskDetailRequestGeneration &&
+  current.taskId === returning.taskId && current.taskPath === returning.taskPath &&
+  returning.property === propertySelect.value && returning.taskId === housekeepingRouteTaskId &&
+  returning.blocker === "dirty_room_override_unauthorized" &&
+  (returning.roomCondition === "dirty" || returning.roomCondition === "pickup") &&
+  returning.originPath === canonicalCheckInWorkbenchPath(returning.property, returning.reservationId) &&
+  returning.taskPath === canonicalHousekeepingTaskDetailPath(returning.property, returning.taskId) &&
+  returning.housekeepingGeneration === housekeepingGeneration &&
+  returning.housekeepingConditionGeneration === housekeepingConditionGeneration &&
+  returning.taskDetailRequestGeneration === housekeepingTaskDetailRequestGeneration &&
+  task?.taskId === returning.taskId && task.spaceId === returning.assignedSpaceId &&
+  housekeepingTaskDetailPanel === panel && panel?.isConnected && panel.hidden === false &&
+  housekeepingView.classList.contains("is-task-detail") && content?.hidden === false &&
+  action?.isConnected && content.contains(action) &&
+  action.classList.contains("housekeeping-task-detail-arrival-return") && action.hidden === false && action.disabled === false &&
+  action.dataset.taskId === returning.taskId && action.dataset.reservationId === returning.reservationId &&
+  action.dataset.blocker === returning.blocker && action.dataset.spaceId === returning.assignedSpaceId &&
+  action.dataset.roomCondition === returning.roomCondition && action.dataset.originPath === returning.originPath &&
+  location.pathname === returning.taskPath && location.search === "";
+  }
+  function renderHousekeepingTaskDetailArrivalReturn(panel, task) {
+ const returning = rebaseArrivalCleaningCheckInReturn(task);
+ if (!returning) return null;
+ const wrapper = node("div", "housekeeping-task-detail-arrival-actions");
+ const label = task.taskStatus === "done" && task.roomCondition === "clean"
+  ? "Continue check-in preparation" : "Back to arrival";
+ const action = node("button", "quiet housekeeping-arrival-return housekeeping-task-detail-arrival-return", label);
+ action.type = "button";
+ action.dataset.taskId = returning.taskId;
+ action.dataset.reservationId = returning.reservationId;
+ action.dataset.blocker = returning.blocker;
+ action.dataset.spaceId = returning.assignedSpaceId;
+ action.dataset.roomCondition = returning.roomCondition;
+ action.dataset.originPath = returning.originPath;
+ action.setAttribute("aria-label", `${label} for ${returning.confirmationNo}`);
+ action.addEventListener("click", () => void returnFromArrivalCleaningTaskToCheckIn(action));
+ wrapper.append(action);
+ return wrapper;
+  }
   function housekeepingTaskDetailRequestIsCurrent(origin, panel) {
  return origin.requestGeneration === housekeepingTaskDetailRequestGeneration && activeView === "housekeeping" &&
   origin.property === propertySelect.value && origin.taskId === housekeepingRouteTaskId &&
@@ -2943,7 +3086,8 @@ function ensureHousekeepingGenerationReceiptPanel() {
   governedAction.append(node("p", "field-note housekeeping-task-detail-blocker", "No action is permitted for your current grant and this server state."));
  }
  const content = panel.querySelector(".housekeeping-task-detail-content");
- content.replaceChildren(summary, facts, identifiers, governedAction,
+ const arrivalReturn = renderHousekeepingTaskDetailArrivalReturn(panel, task);
+ content.replaceChildren(summary, facts, identifiers, governedAction, ...(arrivalReturn ? [arrivalReturn] : []),
   node("p", "field-note", "Task evidence is read only. Any offered lifecycle action remains governed by the server."));
  content.hidden = false;
  panel.querySelector(".housekeeping-task-detail-loading").hidden = true;
@@ -2974,11 +3118,33 @@ function ensureHousekeepingGenerationReceiptPanel() {
   loadHousekeepingConditions({ detailTaskId: origin.taskId }),
  ]);
   }
-  async function exitVerifiedHousekeepingTaskDetail(origin) {
- housekeepingReturnFocus = origin.taskId;
+  async function returnFromArrivalCleaningTaskToCheckIn(action) {
+ const panel = housekeepingTaskDetailPanel;
+ const returning = arrivalCleaningCheckInReturnFromState(history.state, propertySelect.value, housekeepingRouteTaskId);
+ if (!arrivalCleaningCheckInReturnIsCurrent(returning, panel, action)) return false;
+ const checkInReturn = checkInHousekeepingReturnFromArrivalCleaning(returning);
+ action.disabled = true;
+ checkInHousekeepingReturn = checkInReturn;
+ reservationDrawerReturnView = returning.drawerReturnView;
+ reservationDrawerReturnReservationId = returning.reservationId;
  closeHousekeepingTaskDetail({ history: false, restoreFocus: false });
- history.replaceState(null, "", `/p/${origin.property}/housekeeping`);
- await Promise.all([loadHousekeepingBoard({ focus: true }), loadHousekeepingConditions()]);
+ history.pushState({ yellowSurface: "reservation-detail" }, "", returning.originPath);
+ setView("reservations", false);
+ await openReservationDetail(returning.reservationId, { push: false, workbench: "check-in" });
+ return true;
+  }
+  async function exitVerifiedHousekeepingTaskDetail(origin) {
+ const arrivalReturn = arrivalCleaningCheckInReturnFromState(history.state, origin.property, origin.taskId);
+ const checkInReturn = checkInHousekeepingReturnFromArrivalCleaning(arrivalReturn);
+  housekeepingReturnFocus = origin.taskId;
+  closeHousekeepingTaskDetail({ history: false, restoreFocus: false });
+ if (checkInReturn) history.replaceState({
+  yellowSurface: "housekeeping", checkInHousekeepingReturn: checkInReturn,
+ }, "", `/p/${origin.property}/housekeeping`);
+ else history.replaceState(null, "", `/p/${origin.property}/housekeeping`);
+ checkInHousekeepingReturn = checkInReturn;
+ syncCheckInHousekeepingContext();
+  await Promise.all([loadHousekeepingBoard({ focus: true }), loadHousekeepingConditions()]);
   }
   async function submitHousekeepingTaskDetailAction(button) {
  const task = housekeepingTaskDetailData;
@@ -3069,13 +3235,17 @@ function ensureHousekeepingGenerationReceiptPanel() {
   if (housekeepingTaskDetailRequestIsCurrent(origin, panel)) panel.querySelector(".housekeeping-task-detail-refresh").disabled = false;
  }
  }
-  function openHousekeepingTaskDetail(taskId, { push = true, trigger = null, focus = true } = {}) {
+  function openHousekeepingTaskDetail(taskId, { push = true, trigger = null, focus = true, arrivalReturn = null } = {}) {
  if (!canonicalUuid(taskId) || !propertySelect.value) return;
  const panel = ensureHousekeepingTaskDetailPanel();
  housekeepingRouteTaskId = taskId;
  housekeepingTaskDetailReturnFocus = trigger || housekeepingTaskDetailReturnFocus;
  if (housekeepingTaskDetailReturnFocus?.isConnected) housekeepingTaskDetailReturnFocus.setAttribute("aria-expanded", "true");
- if (push) history.pushState({ yellowSurface: "housekeeping-task-detail" }, "", canonicalHousekeepingTaskDetailPath(propertySelect.value, taskId));
+ if (push) history.pushState(arrivalReturn ? {
+  yellowSurface: "housekeeping-task-detail", arrivalCleaningCheckInReturn: arrivalReturn,
+ } : { yellowSurface: "housekeeping-task-detail" }, "", canonicalHousekeepingTaskDetailPath(propertySelect.value, taskId));
+ const contextualReturn = arrivalCleaningCheckInReturnFromState(history.state, propertySelect.value, taskId);
+ if (contextualReturn) checkInHousekeepingReturn = checkInHousekeepingReturnFromArrivalCleaning(contextualReturn);
  housekeepingView.classList.add("is-task-detail");
  panel.hidden = false;
  panel.querySelector(".housekeeping-task-detail-title").focus({ preventScroll: true });
@@ -3102,10 +3272,13 @@ function ensureHousekeepingGenerationReceiptPanel() {
   target?.focus({ preventScroll: true });
  }
  }
-  function syncHousekeepingRoute({ focus = false } = {}) {
+ function syncHousekeepingRoute({ focus = false } = {}) {
  const route = housekeepingNavigationRoute();
  if (route.kind === "detail" && route.property === propertySelect.value) {
-  openHousekeepingTaskDetail(route.taskId, { push: false, focus: true, trigger: generatedHousekeepingTaskAction(route.taskId) });
+  const arrivalReturn = arrivalCleaningCheckInReturnFromState(history.state, route.property, route.taskId);
+  openHousekeepingTaskDetail(route.taskId, {
+   push: false, focus: true, trigger: generatedHousekeepingTaskAction(route.taskId), arrivalReturn,
+  });
   return;
  }
  if (route.kind !== "board" || route.property !== propertySelect.value) return;

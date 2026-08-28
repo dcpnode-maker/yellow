@@ -942,3 +942,43 @@ and inset shadows, and ERP uses compact rectangular density. All six appearances
 preserve the same semantic order and task authority. Keyboard selection and focus are
 explicit, reduced motion removes nonessential movement, and forced colours replace
 decorative materials with system boundaries.
+
+## 36. Arrival cleaning-task return to check-in preparation
+
+Only exact task detail opened by the Order-229 existing-task or create-or-return
+result carries arrival meaning. Its minimized frozen history descriptor binds the
+current property, reservation and confirmation, due-in status, exact
+`dirty_room_override_unauthorized` blocker, assigned room and original room
+condition, canonical `?workbench=check-in` origin, exact cleaning-task identity and
+the current detail, readiness and navigation generations. Direct Housekeeping,
+generic task cards and coincidentally matching room or task identifiers never adopt
+that descriptor.
+
+Contextual task detail presents one native semantic **Back to arrival** button while
+work remains. Only the exact authoritative task response reporting both `done` and
+room condition `clean` relabels the same destination **Continue check-in
+preparation**. The label is guidance, not a readiness claim: task status cannot prove
+check-in readiness, and the browser neither predicts readiness nor runs a check-in or
+task transition automatically.
+
+Start, Complete and Verify keep their established governed endpoints, request bodies,
+idempotency and server refresh. The arrival descriptor survives assigned,
+in-progress and done refreshes when every bound identity remains current; errors and
+conflicts stay on task detail. Verify may return to the board while preserving only
+the exact board-to-arrival continuity. Browser Back and Escape retain their existing
+detail-to-board behavior. Refresh and Forward may reconstruct contextual detail only
+from an exact valid descriptor.
+
+Deliberate activation reuses the canonical reservation return with
+`?workbench=check-in`. Yellow refetches reservation detail and server readiness, then
+focuses the exact blocker action if it still exists or the safe check-in heading when
+it does not. There is no new endpoint, readiness inference, optimistic room state,
+automatic navigation, polling, browser storage or new authority.
+
+The contextual action reuses the established Housekeeping arrival-return material:
+at least 44 pixels, 48 pixels on Android, wrapping within 375 pixels at 200% zoom.
+Apple iOS, Android, Windows 95/98, glassmorphism, neomorphism and ERP retain their
+dedicated native presentations without changing label semantics or reading order.
+The native button is keyboard operable with explicit visible focus; reduced motion
+removes nonessential transforms and transitions, and forced colours replace
+decorative materials with system button colours and boundaries.

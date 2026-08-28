@@ -295,11 +295,13 @@ already actionable exact-room task without duplicating it. It adds no automatic
 scheduling, condition/reservation/check-in/occupancy/financial mutation or generic task CRUD;
 the exact property-scoped dirty-room override grant is recomputed inside both tenant transactions.
 
-Order 230 is ready as UI-only arrival cleaning-task to check-in continuity. Exact
-Order229 task context may survive existing governed task actions and offer one deliberate
-return through canonical check-in preparation, which refetches server reservation and
-readiness truth. Generic Housekeeping task detail, transition authority and direct
-navigation remain unchanged; no browser readiness inference or automatic check-in is admitted.
+Order 230 is built-unreviewed as UI-only arrival cleaning-task to check-in continuity.
+Exact Order229 task context survives existing governed task actions and offers one
+deliberate return through canonical check-in preparation, which refetches server
+reservation and readiness truth. Generic Housekeeping task detail, transition authority
+and direct navigation remain unchanged; no browser readiness inference or automatic
+check-in is admitted. Focused `17/17`, adjacent continuity `36/36`, standing `695/0`,
+all static gates and fresh referee `11/11` are green.
 
 Statutory field semantics, validation, submission and receipts remain Phase 8. Tax and
 fiscal document work remains Phase 7. No country rule is hardcoded in Phase 6.

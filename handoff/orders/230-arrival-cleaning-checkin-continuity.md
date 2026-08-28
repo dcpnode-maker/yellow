@@ -1,6 +1,6 @@
 # Order 230 — Arrival cleaning-task check-in continuity
 
-**Status:** READY-D604
+**Status:** BUILT-UNREVIEWED-D605
 **Phase:** 6 — Stay operations and housekeeping
 **Branch:** `phase-6/arrival-cleaning-checkin-continuity`
 **Base:** `d378006` (built-unreviewed Order229)
@@ -86,8 +86,24 @@ schema, seed, dependency, event or local-promotion file is admitted.
 
 ## Definition of done
 
-- [ ] Intentional red precedes implementation.
-- [ ] Exact Order229 task context survives task detail and governed actions.
-- [ ] One deliberate return refetches authoritative check-in truth.
-- [ ] Direct Housekeeping and every stale/history/accessibility boundary pass.
-- [ ] Standing gates are green and the result is recorded built-unreviewed.
+- [x] Intentional red precedes implementation.
+- [x] Exact Order229 task context survives task detail and governed actions.
+- [x] One deliberate return refetches authoritative check-in truth.
+- [x] Direct Housekeeping and every stale/history/accessibility boundary pass.
+- [x] Standing gates are green and the result is recorded built-unreviewed.
+
+## Build evidence
+
+- Intentional-red commit `ccc6297` proved the missing contextual task-detail return
+  before implementation (`0/2` intended failures).
+- Focused Order230 navigation and presentation proof passes `17/17` with `182`
+  assertions; adjacent Order217/220/226/229/230 continuity passes `36/36` with
+  `467` assertions.
+- The full repository suite passes `695`, skips `657` environment-gated cases and
+  fails `0` across `1,352` tests in `244` files with `7,525` assertions.
+- Typecheck, `84` import boundaries, `23` dependency licences, dependency audit,
+  JavaScript syntax and diff hygiene are green.
+- A fresh database-only setup/referee passes `11/11`. This UI-only order changes no
+  schema; Order229's exact schema and migration evidence remain inherited.
+- Independent product review remains deferred under the founder's build-first
+  direction. This is built-unreviewed, not approved or promoted.
