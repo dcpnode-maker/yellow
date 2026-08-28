@@ -1,7 +1,7 @@
 import { expect, test } from "bun:test";
 import { readFileSync } from "node:fs";
 
-test("Order 225 intentional red requires exact register-to-reservation return continuity", () => {
+test("Order 225 builds exact register-to-reservation return continuity", () => {
   const script = readFileSync(new URL("../src/http/operator/operator.js", import.meta.url), "utf8");
   const css = readFileSync(new URL("../src/http/operator/operator.css", import.meta.url), "utf8");
   expect(script).toContain("function vehicleRegisterLinkedReservationActionIsCurrent(");

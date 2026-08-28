@@ -94,6 +94,8 @@
  let vehicleRegisterCursor = "";
  let vehicleRegisterFilter = "";
  let vehicleRegisterRenderedPath = "";
+ let vehicleRegisterRows = Object.freeze([]);
+ let vehicleRegisterDeferSync = false;
  let vehicleDetailData = null;
  let vehicleDetailRequestGeneration = 0;
  let vehicleRouteVehicleId = "";
@@ -101,6 +103,7 @@
  let vehicleDetailReturnPath = "";
  let vehicleDetailPanel = null;
  let vehicleLinkedReservationReturn = null;
+ let vehicleRegisterLinkedReservationReturn = null;
  const todayLaneState = {
  due_in: { rows: [], nextCursor: null, requestGeneration: 0 },
  due_out: { rows: [], nextCursor: null, requestGeneration: 0 },
@@ -926,6 +929,7 @@
  clearHousekeepingSheetState();
  clearVehicleRegisterState();
  vehicleLinkedReservationReturn = null;
+ vehicleRegisterLinkedReservationReturn = null;
  reservationBoardRows = [];
  reservationBoardNextCursor = null;
  reservationRouteReservationId = "";
@@ -3873,16 +3877,23 @@ function departureEvidenceRow(term, value) {
  const operationalReturn = reservationOperationalPreparationReturnFromState(history.state, propertySelect.value, reservationId);
  if (operationalReturn) reservationOperationalPreparationReturn = operationalReturn;
  const linkedVehicleReturn = vehicleLinkedReservationReturnFromState(history.state, propertySelect.value, reservationId);
+ const registerVehicleReturn = linkedVehicleReturn ? null
+  : vehicleRegisterLinkedReservationReturnFromState(history.state, propertySelect.value, reservationId);
  if (linkedVehicleReturn) {
   vehicleLinkedReservationReturn = linkedVehicleReturn;
   reservationDrawerReturnView = "vehicles";
+  reservationDrawerReturnReservationId = reservationId;
+ } else if (registerVehicleReturn) {
+  vehicleRegisterLinkedReservationReturn = registerVehicleReturn;
+  reservationDrawerReturnView = "vehicle-register";
   reservationDrawerReturnReservationId = reservationId;
  } else if (activeView === "today") {
   reservationDrawerReturnView = "today";
   reservationDrawerReturnReservationId = reservationId;
   setView("reservations", false);
- } else if (reservationDrawerReturnView === "vehicles") {
+ } else if (reservationDrawerReturnView === "vehicles" || reservationDrawerReturnView === "vehicle-register") {
   vehicleLinkedReservationReturn = null;
+  vehicleRegisterLinkedReservationReturn = null;
   reservationDrawerReturnView = "";
   reservationDrawerReturnReservationId = "";
  }
@@ -3912,6 +3923,10 @@ function departureEvidenceRow(term, value) {
  const linkedVehicleReturn = reservationDrawerReturnView === "vehicles"
   ? vehicleLinkedReservationReturnFromState(history.state, propertySelect.value, reservationRouteReservationId)
   : null;
+ const registerVehicleReturn = reservationDrawerReturnView === "vehicle-register"
+  ? vehicleRegisterLinkedReservationReturnFromState(history.state, propertySelect.value, reservationRouteReservationId)
+  : null;
+ if (updateHistory && registerVehicleReturn && returnFromReservationToVehicleRegister()) return;
  closeReservationPickupTaskDetail({ history: false, restoreFocus: false });
  reservationDetailGeneration += 1;
  reservationRouteReservationId = "";
@@ -3928,7 +3943,8 @@ function departureEvidenceRow(term, value) {
  reservationDetailFolioList.replaceChildren();
  clearReservationDrawerLifecycle();
  const returnView = reservationDrawerReturnView === "vehicles" && linkedVehicleReturn === null
-  ? "" : reservationDrawerReturnView;
+  ? "" : reservationDrawerReturnView === "vehicle-register" && registerVehicleReturn === null
+   ? "" : reservationDrawerReturnView;
  const returnReservationId = reservationDrawerReturnReservationId;
  if (updateHistory && propertySelect.value) {
   if (returnView === "today") history.replaceState(null, "", `/p/${propertySelect.value}/today`);
@@ -3942,7 +3958,7 @@ function departureEvidenceRow(term, value) {
   todayReturnFocus = { reservationId: returnReservationId, cycle: 0 };
   setView("today", false);
  }
- if (restoreFocus && returnView !== "vehicles") {
+ if (restoreFocus && returnView !== "vehicles" && returnView !== "vehicle-register") {
   const target = returnView === "today" ? document.querySelector("#today-title") :
   reservationDrawerReturnFocus?.isConnected ? reservationDrawerReturnFocus : $("#reservations-title");
   target?.focus();
@@ -3951,6 +3967,7 @@ function departureEvidenceRow(term, value) {
  reservationDrawerReturnView = "";
  reservationDrawerReturnReservationId = "";
  vehicleLinkedReservationReturn = null;
+ vehicleRegisterLinkedReservationReturn = null;
  }
   function syncReservationRoute() {
  const route = reservationNavigationRoute();
@@ -6921,6 +6938,9 @@ function departureEvidenceRow(term, value) {
  function canonicalVehicleDetailPath(property, vehicleId) {
  return `/p/${property}/vehicles/${vehicleId}`;
  }
+ function canonicalReservationDetailPath(property, reservationId) {
+ return `/p/${property}/res/${reservationId}`;
+ }
  function vehicleLinkedReservationReturnFromState(state, property, reservationId) {
  const value = state?.vehicleLinkedReservationReturn;
  if (state?.yellowSurface !== "reservation-detail" || !value || typeof value !== "object" || Array.isArray(value) ||
@@ -6933,6 +6953,25 @@ function departureEvidenceRow(term, value) {
   vehicleId: value.vehicleId,
   reservationId: value.reservationId,
   vehicleDetailPath: value.vehicleDetailPath,
+ });
+ }
+ function vehicleRegisterLinkedReservationReturnFromState(state, property, reservationId) {
+ const value = state?.vehicleRegisterLinkedReservationReturn;
+ if (state?.yellowSurface !== "reservation-detail" || !value || typeof value !== "object" || Array.isArray(value) ||
+  Object.keys(value).sort().join(",") !== "cursor,pageGeneration,property,registerPath,registration,reservationId,vehicleId" ||
+  !canonicalUuid(value.property) || value.property !== property ||
+  !canonicalUuid(value.vehicleId) || !canonicalUuid(value.reservationId) || value.reservationId !== reservationId ||
+  typeof value.registration !== "string" || typeof value.cursor !== "string" ||
+  !Number.isSafeInteger(value.pageGeneration) || value.pageGeneration < 1 ||
+  value.registerPath !== canonicalVehiclePath(value.property, value.registration, value.cursor)) return null;
+ return Object.freeze({
+  property: value.property,
+  vehicleId: value.vehicleId,
+  reservationId: value.reservationId,
+  registration: value.registration,
+  cursor: value.cursor,
+  registerPath: value.registerPath,
+  pageGeneration: value.pageGeneration,
  });
  }
  function vehicleRouteFromLocation() {
@@ -7013,9 +7052,79 @@ function vehicleReturnPathFromState(state, property) {
  item.append(node("dt", "", term), node("dd", "", vehicleValue(value)));
  return item;
  }
- function vehicleCard(vehicle) {
+ function vehicleRegisterLinkedReservationActionIsCurrent(origin, action) {
+ const currentRow = vehicleRegisterRows.find((row) => row.vehicleId === origin.vehicleId);
+ return origin.pageGeneration === vehicleRegisterGeneration && activeView === "vehicles" &&
+  origin.property === propertySelect.value && origin.registration === vehicleRegisterFilter &&
+  origin.cursor === vehicleRegisterCursor && origin.registerPath === vehicleRegisterRenderedPath &&
+  origin.registerPath === canonicalVehiclePath(origin.property, origin.registration, origin.cursor) &&
+  `${location.pathname}${location.search}` === origin.registerPath && vehiclesView.hidden === false &&
+  vehicleRegister.hidden === false && vehicleRegisterList.hidden === false &&
+  Object.isFrozen(origin.row) && currentRow === origin.row && origin.row.vehicleId === origin.vehicleId &&
+  origin.row.reservationId === origin.reservationId && canonicalUuid(origin.reservationId) &&
+  origin.card.isConnected && origin.card.hidden === false && vehicleRegisterList.contains(origin.card) &&
+  origin.card.dataset.vehicleId === origin.vehicleId && origin.card.dataset.reservationId === origin.reservationId &&
+  action.isConnected && action.hidden === false && action.disabled === false && origin.card.contains(action) &&
+  action.dataset.vehicleId === origin.vehicleId && action.dataset.reservationId === origin.reservationId;
+ }
+ async function openVehicleRegisterLinkedReservation(origin, action) {
+ if (!vehicleRegisterLinkedReservationActionIsCurrent(origin, action)) return false;
+ const linkedReturn = Object.freeze({
+  property: origin.property,
+  vehicleId: origin.vehicleId,
+  reservationId: origin.reservationId,
+  registration: origin.registration,
+  cursor: origin.cursor,
+  registerPath: origin.registerPath,
+  pageGeneration: origin.pageGeneration,
+ });
+ vehicleRegisterLinkedReservationReturn = linkedReturn;
+ reservationDrawerReturnView = "vehicle-register";
+ reservationDrawerReturnReservationId = origin.reservationId;
+ setView("reservations", false);
+ history.pushState({
+  yellowSurface: "reservation-detail",
+  vehicleRegisterLinkedReservationReturn: linkedReturn,
+ }, "", canonicalReservationDetailPath(origin.property, origin.reservationId));
+ await openReservationDetail(origin.reservationId, { push: false, trigger: action });
+ return true;
+ }
+ function returnFromReservationToVehicleRegister({ fromHistory = false } = {}) {
+ const returning = fromHistory ? vehicleRegisterLinkedReservationReturn
+  : vehicleRegisterLinkedReservationReturnFromState(history.state, propertySelect.value, reservationRouteReservationId);
+ if (!returning || returning.property !== propertySelect.value ||
+  returning.registerPath !== canonicalVehiclePath(returning.property, returning.registration, returning.cursor)) return false;
+ if (!fromHistory) {
+  vehicleRegisterLinkedReservationReturn = returning;
+  history.back();
+  return true;
+ }
+ if (`${location.pathname}${location.search}` !== returning.registerPath) return false;
+ closeReservationDetail({ history: false, restoreFocus: false });
+ vehicleRegisterLinkedReservationReturn = returning;
+ vehicleRegisterRows = Object.freeze([]);
+ vehicleRegisterRenderedPath = "";
+ vehicleRegisterFilter = returning.registration;
+ vehicleRegisterCursor = returning.cursor;
+ vehicleRegistration.value = returning.registration;
+ vehicleRegisterDeferSync = true;
+ setView("vehicles", false);
+ vehicleRegisterDeferSync = false;
+ void loadVehicleRegister({ cursor: returning.cursor }).then(() => {
+  if (vehicleRegisterLinkedReservationReturn !== returning || activeView !== "vehicles" ||
+   `${location.pathname}${location.search}` !== returning.registerPath) return;
+  const action = [...vehicleRegisterList.querySelectorAll(".vehicle-register-linked-reservation-action")]
+   .find((item) => item.dataset.vehicleId === returning.vehicleId && item.dataset.reservationId === returning.reservationId);
+  (action?.isConnected ? action : vehicleResultSummary).focus({ preventScroll: true });
+  vehicleRegisterLinkedReservationReturn = null;
+ });
+ return true;
+ }
+ function vehicleCard(vehicle, pageOrigin) {
  const card = node("article", "vehicle-register-card");
  card.setAttribute("role", "listitem");
+ card.dataset.vehicleId = vehicle.vehicleId;
+ if (vehicle.reservationId !== null) card.dataset.reservationId = vehicle.reservationId;
  const head = node("div", "vehicle-register-card-head");
  const title = node("div");
  title.append(node("span", "eyebrow", "Recorded registration"), node("h3", "vehicle-registration", vehicle.registration));
@@ -7025,6 +7134,26 @@ function vehicleReturnPathFromState(state, property) {
  open.dataset.vehicleId = vehicle.vehicleId;
  open.setAttribute("aria-label", `Open vehicle ${vehicle.registration}`);
  actions.append(node("span", "vehicle-read-only", "Read only"), open);
+ if (vehicle.reservationId !== null) {
+  const linkedReservation = node("button", "vehicle-register-linked-reservation-action", "Open linked reservation");
+  linkedReservation.type = "button";
+  linkedReservation.dataset.vehicleId = vehicle.vehicleId;
+  linkedReservation.dataset.reservationId = vehicle.reservationId;
+  linkedReservation.setAttribute("aria-label", `Open linked reservation for vehicle ${vehicle.registration}`);
+  const linkedOrigin = Object.freeze({
+   pageGeneration: pageOrigin.pageGeneration,
+   property: pageOrigin.property,
+   registration: pageOrigin.registration,
+   cursor: pageOrigin.cursor,
+   registerPath: pageOrigin.registerPath,
+   vehicleId: vehicle.vehicleId,
+   reservationId: vehicle.reservationId,
+   row: vehicle,
+   card: card,
+  });
+  linkedReservation.addEventListener("click", () => void openVehicleRegisterLinkedReservation(linkedOrigin, linkedReservation));
+  actions.append(linkedReservation);
+ }
  head.append(title, actions);
  const details = node("dl", "vehicle-register-meta");
  details.append(
@@ -7262,6 +7391,7 @@ function vehicleReturnPathFromState(state, property) {
  vehicleRegisterCursor = "";
  vehicleRegisterFilter = "";
  vehicleRegisterRenderedPath = "";
+ vehicleRegisterRows = Object.freeze([]);
  vehicleRegisterList.replaceChildren();
  vehicleRegisterList.hidden = true;
  vehicleRegisterLoading.hidden = true;
@@ -7270,10 +7400,11 @@ function vehicleReturnPathFromState(state, property) {
  vehicleRegisterNext.hidden = true;
  vehicleRegister.setAttribute("aria-busy", "false");
  }
- function renderVehicleRegister(page, { focus = false } = {}) {
+ function renderVehicleRegister(page, { focus = false, pageOrigin } = {}) {
  vehicleRegisterNextCursor = page.nextCursor;
  vehicleRegisterRenderedPath = canonicalVehiclePath(propertySelect.value, vehicleRegisterFilter, vehicleRegisterCursor);
- vehicleRegisterList.replaceChildren(...page.vehicles.map(vehicleCard));
+ vehicleRegisterRows = page.vehicles;
+ vehicleRegisterList.replaceChildren(...page.vehicles.map((vehicle) => vehicleCard(vehicle, pageOrigin)));
  vehicleRegisterList.hidden = page.vehicles.length === 0;
  vehicleRegisterEmpty.hidden = page.vehicles.length !== 0;
  vehicleRegisterNext.hidden = page.nextCursor === null;
@@ -7287,6 +7418,14 @@ function vehicleReturnPathFromState(state, property) {
  const registration = vehicleRegisterFilter;
  vehicleRegisterCursor = cursor;
  const generation = ++vehicleRegisterGeneration;
+ const pageOrigin = Object.freeze({
+  pageGeneration: generation,
+  property,
+  registration,
+  cursor,
+  registerPath: canonicalVehiclePath(property, registration, cursor),
+ });
+ vehicleRegisterRows = Object.freeze([]);
  vehicleRegister.setAttribute("aria-busy", "true");
  vehicleRegisterLoading.hidden = false;
  vehicleRegisterError.hidden = true;
@@ -7303,11 +7442,12 @@ function vehicleReturnPathFromState(state, property) {
  try {
   const page = vehicleRegisterResult(await request(`/api/v1/properties/${enc(property)}/vehicles?${query}`));
   if (!vehicleRegisterIsCurrent(generation, property, registration, cursor)) return;
-  renderVehicleRegister(page, { focus });
+  renderVehicleRegister(page, { focus, pageOrigin });
   vehicleRegisterError.hidden = true;
  } catch (error) {
   if (!vehicleRegisterIsCurrent(generation, property, registration, cursor)) return;
   vehicleRegisterNextCursor = null;
+  vehicleRegisterRows = Object.freeze([]);
   vehicleRegisterError.hidden = false;
   vehicleRegisterError.querySelector("p").textContent = error instanceof Error ? error.message : "The vehicle register could not be loaded.";
   vehicleResultSummary.textContent = "No vehicle-register conclusion was made. Retry this read-only request.";
@@ -7406,7 +7546,7 @@ function vehicleReturnPathFromState(state, property) {
   if (route.kind === "other" || route.property !== propertySelect.value) {
    history.replaceState({ yellowSurface: "vehicle-register" }, "", canonicalVehiclePath(propertySelect.value));
   }
-  syncVehicleRoute();
+  if (!vehicleRegisterDeferSync) syncVehicleRoute();
  }
  if (activeView === "restrictions") void loadRestrictions();
  if (activeView === "rates") void loadRates();
@@ -9222,6 +9362,7 @@ function vehicleReturnPathFromState(state, property) {
  reservationFolioExitConfirmed = false;
  clearVehicleRegisterState();
  vehicleLinkedReservationReturn = null;
+ vehicleRegisterLinkedReservationReturn = null;
  resetTodayState();
  reservationBoardRows = [];
  reservationBoardNextCursor = null;
@@ -9468,6 +9609,8 @@ housekeepingSheetDate.addEventListener("change", () => {
  return;
  }
  const vehicleRoute = vehicleNavigationRoute();
+ if (vehicleRegisterLinkedReservationReturn && vehicleRoute.kind === "register" &&
+  vehicleRoute.property === propertySelect.value && returnFromReservationToVehicleRegister({ fromHistory: true })) return;
  if (vehicleRoute.kind !== "other" && vehicleRoute.property === propertySelect.value) {
   closeReservationDetail({ history: false, restoreFocus: false });
   if (activeView !== "vehicles") setView("vehicles", false);

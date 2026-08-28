@@ -781,3 +781,34 @@ ERP uses compact rectangular density. The label, reading order and return target
 identical across all six. Keyboard focus is explicit, forced colours replace decorative
 materials with system button colours and boundaries, and reduced motion removes
 nonessential transition and transform effects.
+
+## 31. Vehicle-register-to-reservation return continuity
+
+Only the exact current register card for a canonical vehicle row with a non-null
+reservation identifier exposes **Open linked reservation**. The control carries the
+contextual class `vehicle-register-linked-reservation-action`; its label is navigation
+copy, not a claim about arrival, pickup, occupancy, readiness or reservation state.
+The existing vehicle-detail action remains unchanged.
+
+Opening canonical reservation detail captures a minimized frozen return descriptor
+for the current property, vehicle, reservation, registration, register filter and
+cursor, register path, page generation, frozen row, card and action. The client
+rechecks those identities immediately before navigation, creates exactly one history
+entry and reuses the existing reservation-detail read without adding any write.
+Detached, replaced, stale or mismatched sources are inert.
+
+The contextual control, Escape and browser Back restore the exact register URL,
+refetch authoritative register truth and restore focus to the same linked-reservation
+action when it still exists or to the safe register summary otherwise. Refresh and
+Forward reconstruct this continuity only from a descriptor that still validates.
+The descriptor is history-state only: there is no browser storage, polling, second
+route or new authority.
+
+The contextual action is at least 44 pixels and wraps within its register card at 375
+pixels and 200% zoom; Android raises it to 48 pixels. Apple iOS uses a restrained
+blue-tinted rounded control, Android uses a Material 3 secondary tonal pill, Windows
+95/98 uses square outset/inset system chrome, glassmorphism uses layered translucent
+blue blur, neomorphism uses paired raised and pressed inset shadows, and ERP uses
+compact rectangular density. All six appearances preserve the same label, order and
+target. Keyboard focus is explicit, reduced motion removes nonessential movement, and
+forced colours replace decorative materials with system button colours and boundaries.

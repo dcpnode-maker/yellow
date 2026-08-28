@@ -1,8 +1,8 @@
 # Phase 6 — Stay operations and housekeeping
 
-**Status:** active; Orders 200–224 are built-unreviewed
+**Status:** active; Orders 200–225 are built-unreviewed
 **Entry point:** built-unreviewed Phase-5 composition through Order 199
-**Current order:** `225-vehicle-register-linked-reservation-continuity.md` (ready)
+**Current order:** next bounded build slice is being scoped
 
 ## Outcome
 
@@ -263,7 +263,7 @@ resolved primary Folios can return through authoritative reservation detail with
 safe focus. Order222 departure and direct Folio behavior remain unchanged; no
 financial command, authority, mutation, schema, migration or event is added.
 
-Order 225 composes exact current Vehicle Register rows with the existing canonical
+Order 225 is built-unreviewed and composes exact current Vehicle Register rows with the existing canonical
 reservation-detail route. Only already-validated non-null associations may navigate;
 exact register filter/cursor history and focus are restored without a new request,
 vehicle/reservation mutation, parking/occupancy inference, schema or event.

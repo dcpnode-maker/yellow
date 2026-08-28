@@ -1,6 +1,6 @@
 # Order 225 — Vehicle-register linked-reservation continuity
 
-**Status:** READY-D593 — intentional red must precede implementation
+**Status:** BUILT-UNREVIEWED-D594
 **Phase:** 6 — Stay operations and housekeeping
 **Branch:** `phase-6/vehicle-register-linked-reservation-continuity`
 **Base:** `97431da` (built-unreviewed Order224)
@@ -62,7 +62,19 @@ seed, dependency, scope/event or local promotion/deployment file is admitted.
 
 ## Definition of done
 
-- [ ] Intentional red precedes implementation.
-- [ ] Only the exact current linked register row can open its canonical reservation.
-- [ ] History, authoritative refetch, compatibility and focus containment are exact.
-- [ ] Focused and standing gates are green and result is recorded built-unreviewed.
+- [x] Intentional red preceded implementation and failed on the absent continuity hooks.
+- [x] Only the exact current linked register row can open its canonical reservation.
+- [x] History, authoritative refetch, compatibility and focus containment are exact.
+- [x] Focused and standing gates are green and the result is recorded built-unreviewed.
+
+## Built-unreviewed evidence
+
+- Focused Order225 plus Order205/216/218/reservation compatibility: 47 passed,
+  0 failed; 480 assertions.
+- Standing suite: 608 passed, 629 environment-skipped, 0 failed; 6,655 assertions
+  across 1,237 tests in 224 files.
+- `bun run typecheck`, 82-file import boundaries, 23-package licence policy,
+  `bun audit` (0 vulnerabilities), JavaScript syntax and `git diff --check` are green.
+- The diff changes no TypeScript server/API/domain/database/schema/migration/seed/
+  dependency authority, so inherited schema and referee evidence remains exact.
+- Independent product review remains deferred under the founder's build-first direction.

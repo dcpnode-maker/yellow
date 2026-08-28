@@ -313,7 +313,7 @@ Order 224 is built-unreviewed and repairs the existing reservation-detail to Fol
 both existing and successfully resolved primary Folios. It adds only minimized
 history return context and no financial command or authority. This cannot complete Phase 6.
 
-Order 225 composes exact current Vehicle Register row truth with the existing canonical
+Order 225 is built-unreviewed and composes exact current Vehicle Register row truth with the existing canonical
 reservation-detail journey. It adds only minimized history return context and no new
 request, vehicle/reservation mutation, parking or occupancy authority. This cannot complete Phase 6.
 
