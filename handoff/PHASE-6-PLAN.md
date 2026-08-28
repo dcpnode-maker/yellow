@@ -2,7 +2,7 @@
 
 **Status:** active; Orders 200–221 are built-unreviewed
 **Entry point:** built-unreviewed Phase-5 composition through Order 199
-**Current order:** next bounded Phase-6 slice pending order creation
+**Current order:** `222-departure-folio-return-continuity.md` (ready)
 
 ## Outcome
 
@@ -247,6 +247,11 @@ Order 221 is built-unreviewed as the UI-only composition of the exact Order202 g
 the existing Order217/220 governed task-detail journey. It retains only a current,
 validated transient task receipt and adds no server authority, mutation, persistence,
 schema, migration or event.
+
+Order 222 repairs the existing checkout-readiness Folio-control navigation so its
+visible Back/Escape/history journey returns to the same authoritative departure
+workbench rather than losing context or focusing hidden content. It changes no server,
+financial, checkout, schema, migration or event authority.
 
 Statutory field semantics, validation, submission and receipts remain Phase 8. Tax and
 fiscal document work remains Phase 7. No country rule is hardcoded in Phase 6.
