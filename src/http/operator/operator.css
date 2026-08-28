@@ -912,6 +912,49 @@ input, select, textarea { min-height: 44px; border-color: #bdcbca; background: #
 :root[data-theme="glass"] .reservation-pickup-state { border-color: rgba(255,255,255,.72); border-radius: 16px; background: rgba(245,251,255,.76); color: #102039; box-shadow: inset 0 1px 0 rgba(255,255,255,.92), 0 8px 20px rgba(0,7,25,.16); -webkit-backdrop-filter: blur(18px) saturate(150%); backdrop-filter: blur(18px) saturate(150%); }
 :root[data-theme="neo"] .reservation-pickup-state { border-color: #a1adb3; border-radius: 14px; background: #e8eef1; color: #17252b; box-shadow: inset -3px -3px 7px #fff, inset 3px 3px 7px #c1cbd0; }
 :root[data-theme="erp"] .reservation-pickup-state { padding: .3rem .55rem; border-color: #c6ceda; border-left: 3px solid #163ee9; border-radius: 5px; background: #f7f8fa; color: #202938; box-shadow: none; font-size: .75rem; font-weight: 700; }
+.pickup-task-detail-action { min-width: 0; max-width: 100%; min-height: 44px; margin-top: .55rem; touch-action: manipulation; overflow-wrap: anywhere; transition: background-color 180ms ease-out, border-color 180ms ease-out, color 180ms ease-out, box-shadow 180ms ease-out, transform 180ms ease-out; }
+.pickup-task-detail-action:focus-visible, .pickup-task-detail-back:focus-visible, .pickup-task-detail-retry:focus-visible { outline: 3px solid var(--focus); outline-offset: 3px; }
+.reservation-detail-drawer.is-pickup-task-detail > :not(.reservation-detail-head):not(.pickup-task-detail-panel):not(#reservation-detail-status) { display: none !important; }
+.pickup-task-detail-panel { min-width: 0; max-width: 100%; margin: 0; padding: 1rem; overflow: clip; border: 1px solid var(--line); border-radius: var(--card-radius); background: var(--surface-subtle); box-shadow: inset 0 1px 0 color-mix(in srgb, var(--card) 75%, transparent), 0 14px 34px rgba(16,47,51,.1); }
+.pickup-task-detail-head { display: flex; align-items: flex-start; justify-content: space-between; gap: .8rem; }
+.pickup-task-detail-head h4 { margin: .1rem 0 0; }
+.pickup-task-detail-head .pickup-task-detail-back { flex: 0 0 auto; min-height: 44px; }
+.pickup-task-detail-panel :is(h4, p, strong, span, dt, dd, button) { overflow-wrap: anywhere; word-break: normal; }
+.pickup-task-detail-loading { display: grid; gap: .55rem; margin-top: .9rem; }
+.pickup-task-detail-loading span { display: block; min-height: 58px; border: 1px solid var(--line); border-radius: 10px; background: linear-gradient(90deg,var(--surface-subtle),color-mix(in srgb,var(--accent) 7%,var(--card)),var(--surface-subtle)); background-size: 220% 100%; animation: reservation-pulse 1.4s ease-in-out infinite; }
+.pickup-task-detail-error { margin-top: .9rem; padding: .85rem; border-left: 4px solid var(--red); background: var(--red-soft); }
+.pickup-task-detail-error p { margin-block: .4rem .7rem; }
+.pickup-task-detail-retry { min-height: 44px; }
+.pickup-task-detail-content { min-width: 0; max-width: 100%; margin-top: .9rem; display: grid; gap: .8rem; }
+.pickup-task-detail-summary { min-width: 0; display: flex; align-items: center; justify-content: space-between; gap: .7rem; }
+.pickup-task-detail-status { box-sizing: border-box; min-width: 0; max-width: 100%; padding: .34rem .64rem; border: 1px solid var(--line); border-radius: 999px; background: var(--card); color: var(--ink); font-size: .78rem; font-weight: 800; line-height: 1.35; white-space: normal; overflow-wrap: anywhere; }
+.pickup-task-detail-status[data-task-status="open"], .pickup-task-detail-status[data-task-status="assigned"], .pickup-task-detail-status[data-task-status="in_progress"] { border-color: color-mix(in srgb,var(--yellow) 54%,var(--line)); background: var(--yellow-soft); }
+.pickup-task-detail-status[data-task-status="done"], .pickup-task-detail-status[data-task-status="verified"] { border-color: color-mix(in srgb,var(--green) 52%,var(--line)); background: var(--green-soft); }
+.pickup-task-detail-status[data-task-status="cancelled"] { border-color: color-mix(in srgb,var(--red) 48%,var(--line)); background: var(--red-soft); }
+.pickup-task-detail-content > dl, .pickup-task-detail-identifiers dl { min-width: 0; margin: 0; display: grid; grid-template-columns: minmax(100px,.65fr) minmax(0,1.35fr); gap: .45rem .75rem; }
+.pickup-task-detail-content dt, .pickup-task-detail-identifiers dt { color: var(--muted); font-size: .72rem; font-weight: 800; text-transform: uppercase; }
+.pickup-task-detail-content dd, .pickup-task-detail-identifiers dd { min-width: 0; margin: 0; overflow-wrap: anywhere; }
+.pickup-task-detail-identifiers { min-width: 0; max-width: 100%; padding-top: .65rem; border-top: 1px solid var(--line); }
+.pickup-task-detail-identifiers summary { min-height: 44px; display: flex; align-items: center; color: var(--accent-strong); cursor: pointer; font-weight: 800; }
+:root[data-theme="apple"] .pickup-task-detail-panel { border: .5px solid rgba(60,60,67,.2); border-radius: 22px; background: rgba(242,242,247,.96); box-shadow: 0 18px 46px rgba(15,23,42,.12), inset 0 .5px 0 rgba(255,255,255,.92); }
+:root[data-theme="apple"] .pickup-task-detail-action, :root[data-theme="apple"] .pickup-task-detail-back { border-radius: 12px; font-weight: 650; }
+:root[data-theme="apple"] .pickup-task-detail-status { border: .5px solid rgba(60,60,67,.2); border-radius: 11px; background: rgba(255,255,255,.92); font-weight: 650; }
+:root[data-theme="android"] .pickup-task-detail-panel { border: 0; border-radius: 28px 28px 12px 28px; background: #eaddff; box-shadow: 0 3px 1px -2px rgba(28,27,31,.18),0 2px 2px rgba(28,27,31,.12),0 1px 5px rgba(28,27,31,.1); }
+:root[data-theme="android"] .pickup-task-detail-action, :root[data-theme="android"] .pickup-task-detail-back, :root[data-theme="android"] .pickup-task-detail-retry { min-height: 48px; border-radius: 999px; }
+:root[data-theme="android"] .pickup-task-detail-status { border: 0; background: #fffbff; color: #1d192b; }
+:root[data-theme="win95"] .pickup-task-detail-panel { padding: 6px; overflow: visible; border: 2px outset #fff; border-radius: 0; background: #c0c0c0; color: #000; box-shadow: 2px 2px 0 #000; }
+:root[data-theme="win95"] .pickup-task-detail-head { padding: 2px 3px; background: #000080; color: #fff; }
+:root[data-theme="win95"] .pickup-task-detail-head .eyebrow, :root[data-theme="win95"] .pickup-task-detail-head h4 { color: #fff; }
+:root[data-theme="win95"] .pickup-task-detail-action, :root[data-theme="win95"] .pickup-task-detail-back, :root[data-theme="win95"] .pickup-task-detail-retry { border-radius: 0; }
+:root[data-theme="win95"] .pickup-task-detail-status, :root[data-theme="win95"] .pickup-task-detail-identifiers { border: 2px inset #fff; border-radius: 0; background: #fff; color: #000; box-shadow: none; }
+:root[data-theme="glass"] .pickup-task-detail-panel { border-color: rgba(255,255,255,.7); border-radius: 26px; background: linear-gradient(145deg,rgba(238,249,255,.82),rgba(157,201,255,.6)); color: #102039; box-shadow: inset 0 1px 0 rgba(255,255,255,.95),0 24px 60px rgba(0,8,28,.3); -webkit-backdrop-filter: blur(28px) saturate(165%); backdrop-filter: blur(28px) saturate(165%); }
+:root[data-theme="glass"] .pickup-task-detail-status { border-color: rgba(255,255,255,.82); background: rgba(255,255,255,.74); color: #102039; box-shadow: inset 0 1px 0 rgba(255,255,255,.9),0 8px 20px rgba(0,7,25,.12); }
+:root[data-theme="neo"] .pickup-task-detail-panel { border-color: #a1adb3; border-radius: 22px; background: #e8eef1; color: #17252b; box-shadow: -10px -10px 22px #fff,10px 10px 22px #bec9ce; }
+:root[data-theme="neo"] .pickup-task-detail-action, :root[data-theme="neo"] .pickup-task-detail-back { border-radius: 14px; box-shadow: -4px -4px 9px #fff,4px 4px 9px #bec9ce; }
+:root[data-theme="neo"] .pickup-task-detail-status { border-color: #a1adb3; border-radius: 14px; background: #e8eef1; box-shadow: inset -3px -3px 7px #fff,inset 3px 3px 7px #c1cbd0; }
+:root[data-theme="erp"] .pickup-task-detail-panel { border: 1px solid #d9dee7; border-left: 4px solid #163ee9; border-radius: 8px; background: #fff; color: #202938; box-shadow: 0 1px 2px rgba(16,24,40,.04),0 8px 20px rgba(16,24,40,.05); }
+:root[data-theme="erp"] .pickup-task-detail-action, :root[data-theme="erp"] .pickup-task-detail-back { border-radius: 6px; }
+:root[data-theme="erp"] .pickup-task-detail-status { border-radius: 5px; background: #f7f8fa; box-shadow: none; }
 .reservation-detail-actions { margin: 1rem -1.1rem -1.1rem; padding: .9rem 1.1rem; border-top: 1px solid var(--line); background: var(--card); }
 .reservation-detail-actions button { width: 100%; }
 .reservation-detail-action-menu { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 128px), 1fr)); gap: .65rem; }
@@ -1043,6 +1086,11 @@ input, select, textarea { min-height: 44px; border-color: #bdcbca; background: #
 .reservation-travel-panel { margin-inline: 0; padding: .75rem; }
 .reservation-travel-panel :is(.reservation-summary, .reservation-travel-grid) { grid-template-columns: minmax(0, 1fr); }
 .reservation-pickup-state { width: 100%; justify-content: flex-start; }
+.pickup-task-detail-panel { margin-inline: 0; padding: .75rem; }
+.pickup-task-detail-head, .pickup-task-detail-summary { align-items: stretch; flex-direction: column; }
+.pickup-task-detail-head .pickup-task-detail-back, .pickup-task-detail-action, .pickup-task-detail-retry, .pickup-task-detail-status { width: 100%; }
+.pickup-task-detail-content > dl, .pickup-task-detail-identifiers dl { grid-template-columns: minmax(0,1fr); gap: .15rem; }
+.pickup-task-detail-content dd + dt, .pickup-task-detail-identifiers dd + dt { margin-top: .5rem; }
 .folio-workspace-tabs button { flex: 1; }
 .folio-posting-card dl { grid-template-columns: 1fr; gap: .12rem; }
 .folio-posting-card dd + dt { margin-top: .45rem; }
@@ -1053,6 +1101,8 @@ input, select, textarea { min-height: 44px; border-color: #bdcbca; background: #
 .reservation-guest-allocation-action, .reservation-guest-allocation-panel { animation: none; transition: none; transform: none; }
 .reservation-travel-action, .reservation-travel-panel { animation: none; transition: none; transform: none; }
 .reservation-pickup-state { animation: none; transition: none; transform: none; }
+.pickup-task-detail-action, .pickup-task-detail-panel { animation: none; transition: none; transform: none; }
+.pickup-task-detail-loading span { animation: none; }
 }
 @media (forced-colors: active) { .reservation-stay-changes-action:focus-visible { outline: 3px solid Highlight; }
 .reservation-stay-changes-panel { border: 2px solid CanvasText; background: Canvas; box-shadow: none; forced-color-adjust: auto; }
@@ -1061,6 +1111,8 @@ input, select, textarea { min-height: 44px; border-color: #bdcbca; background: #
 .reservation-travel-action:focus-visible { outline: 3px solid Highlight; }
 .reservation-travel-panel, .reservation-travel-summary { border: 2px solid CanvasText; background: Canvas; color: CanvasText; box-shadow: none; -webkit-backdrop-filter: none; backdrop-filter: none; forced-color-adjust: auto; }
 .reservation-pickup-state, .reservation-pickup-state[data-pickup-state] { border: 2px solid CanvasText; background: Canvas; color: CanvasText; box-shadow: none; -webkit-backdrop-filter: none; backdrop-filter: none; forced-color-adjust: auto; }
+.pickup-task-detail-action:focus-visible, .pickup-task-detail-back:focus-visible, .pickup-task-detail-retry:focus-visible { outline: 3px solid Highlight; }
+.pickup-task-detail-panel, .pickup-task-detail-status { border: 2px solid CanvasText; background: Canvas; color: CanvasText; box-shadow: none; -webkit-backdrop-filter: none; backdrop-filter: none; forced-color-adjust: auto; }
 }
 :root { --font-ui: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; --font-display: var(--font-ui); --material-card: var(--card); --material-card-border: 1px solid var(--line); --material-card-shadow: var(--card-shadow); --material-card-filter: none; --material-control: #ffffff; --material-control-border: 1px solid #bdcbca; --material-control-shadow: none; --material-control-active-shadow: inset 0 2px 5px rgba(15, 35, 38, .16); --material-primary: var(--accent); --material-primary-border: 1px solid var(--accent-strong); --material-primary-shadow: 0 3px 0 var(--accent-strong); --material-nav: var(--nav); --material-nav-border: 1px solid color-mix(in srgb, var(--shell-ink) 14%, transparent); --material-nav-shadow: none; --material-nav-filter: none; --material-hover-lift: translateY(-1px); --material-press: translateY(1px); --material-transition: 180ms cubic-bezier(.2, .8, .2, 1); }
 html, body, button, input, select, textarea { font-family: var(--font-ui); }

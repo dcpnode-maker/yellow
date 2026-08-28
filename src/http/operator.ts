@@ -1372,7 +1372,8 @@ type ReservationLifecycleOperations = Pick<ReservationLifecycleService, "findByC
 type ReservationSegmentOperations = Pick<ReservationSegmentService, "findByConfirmation" | "changeDeparture" | "moveRoom">;
 type ReservationTravelOperations = Pick<ReservationTravelService, "put">;
 type ReservationBoardOperations = Pick<ReservationBoardService, "list">;
-type ReservationDetailOperations = Pick<ReservationDetailService, "findById">;
+type ReservationDetailOperations = Pick<ReservationDetailService, "findById"> &
+  Partial<Pick<ReservationDetailService, "pickupTaskDetail">>;
 type CheckInOperations = Pick<CheckInService, "getReadiness" | "checkIn">;
 type CheckoutOperations = Pick<CheckoutService, "checkout">;
 type VehicleRegisterOperations = Pick<VehicleRegisterService, "list">;
@@ -3913,6 +3914,60 @@ export class OperatorHttpApi {
       canOpenPrimaryFolio,
     });
     return apiResponse(context.request, canonicalJson({ reservation: jsonValue(reservation), actions }));
+  }
+
+  async reservationPickupTaskDetail(
+    context: TenantRequestContext,
+    propertyNode: string,
+    reservationId: string,
+    taskId: string,
+  ): Promise<Response> {
+    if (!UUID.test(propertyNode) || !UUID.test(reservationId) || !UUID.test(taskId)) {
+      return apiError(
+        context.request,
+        400,
+        "request/invalid",
+        "Invalid request",
+        "Property, reservation or task identifier is invalid",
+      );
+    }
+    const query = new URL(context.request.url).searchParams;
+    if ([...query.keys()].length > 0) {
+      return apiError(
+        context.request,
+        400,
+        "request/invalid",
+        "Invalid request",
+        "Arrival pickup task detail query must be empty",
+      );
+    }
+    if (!hasScope(context, RESERVATION_LIFECYCLE_READ_SCOPE)) {
+      return apiError(
+        context.request,
+        403,
+        "auth/scope_missing",
+        "Forbidden",
+        "Reservation access is not granted",
+      );
+    }
+    if (!this.#reservationDetail?.pickupTaskDetail) return this.unavailable(context.request);
+    const grants = await listGrantedProperties(context, RESERVATION_LIFECYCLE_READ_SCOPE);
+    if (!grants.some(({ id }) => id === propertyNode)) {
+      return apiError(
+        context.request,
+        404,
+        "reservations/not_found",
+        "Not found",
+        "Referenced reservation input was not found",
+      );
+    }
+    const task = await this.#reservationDetail.pickupTaskDetail(context.tx, {
+      tenantId: context.tenantId,
+      propertyNode,
+      reservationId,
+      taskId,
+    });
+    return apiResponse(context.request, canonicalJson({ pickupTask: jsonValue(task) }));
   }
 
   async reservationLifecycle(context: TenantRequestContext, propertyNode: string): Promise<Response> {

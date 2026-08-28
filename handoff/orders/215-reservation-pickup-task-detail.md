@@ -1,6 +1,6 @@
 # Order 215 — Reservation-scoped pickup-task detail
 
-**Status:** READY-D573 — intentional red must precede implementation
+**Status:** BUILT-UNREVIEWED-D574 — implementation and executable build gates green; independent Tier-3 execution deferred
 **Phase:** 6 — Stay operations and housekeeping
 **Branch:** `phase-6/reservation-pickup-task-detail`
 **Base:** `633f8da` (built-unreviewed Order214)
@@ -95,8 +95,8 @@ deployment is admitted.
 
 ## Definition of done
 
-- [ ] Intentional red precedes implementation.
-- [ ] Service and endpoint return only exact canonical linked pickup-task truth.
-- [ ] Human nested route is stale-safe, accessible and read-only across six appearances.
-- [ ] Focused, standing and referee gates are green.
-- [ ] Result is recorded built-unreviewed; independent Tier-3 execution remains pending.
+- [x] Intentional red precedes implementation.
+- [x] Service and endpoint return only exact canonical linked pickup-task truth.
+- [x] Human nested route is stale-safe, accessible and read-only across six appearances.
+- [x] Focused, standing and referee gates are green.
+- [x] Result is recorded built-unreviewed; independent Tier-3 execution remains pending.

@@ -840,3 +840,26 @@ status are excluded.
 query keys, and is `Cache-Control: no-store`. There is no companion write route. The
 read cannot mutate condition, task, space, occupancy, reservation, fact, outbox or
 idempotency truth.
+
+## 26. Reservation-scoped arrival pickup-task detail
+
+`ReservationDetailService.pickupTaskDetail` accepts one lowercase tenant UUID, exact
+property UUID, reservation UUID and task UUID. In one tenant-bound transaction it
+proves the property reservation, its current arrival travel row and that row's exact
+pickup-task link. The linked row must also be a same-tenant, exact-property
+`guest_request` task whose subject is that reservation, department is `transport`,
+priority is `3`, due instant equals the arrival schedule, and payload is exactly
+`{"requestType":"arrival_pickup"}`. A missing, foreign, stale or unlinked identity is
+not found; a currently linked row with any other stored shape conflicts without a
+partial result.
+
+The deeply frozen result is exactly `taskId`, `reservationId`, `confirmationNo`, one
+canonical task status, `dueAt`, `priority`, `createdAt` and nullable `completedAt`.
+Payload, assignee, Party/contact data, notes, vehicle/driver/dispatch data, tenant and
+property identifiers are not returned. The read performs no task, travel,
+reservation, fact, outbox or idempotency write.
+
+`GET /api/v1/properties/{property}/reservations/{reservation}/arrival-pickup-task/{task}`
+requires the existing `reservations.lifecycle:read` scope and exact property grant,
+accepts no query and is `Cache-Control: no-store`. It is a reservation-scoped detail
+read, not generic task-list or task-lifecycle authority.

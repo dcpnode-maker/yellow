@@ -167,8 +167,12 @@ test("Order 209: strict workbench intent survives refresh and same-reservation q
   expect(sync).toContain("currentReservationWorkbench !== route.workbench");
   expect(sync).toContain("workbench: route.workbench");
 
-  const popstate = script.slice(script.indexOf('window.addEventListener("popstate"'), script.indexOf('document.addEventListener("keydown"'));
-  expect(popstate).toContain("const route = reservationRoute()");
+  const popstateStart = script.indexOf('window.addEventListener("popstate"');
+  const popstate = script.slice(
+    popstateStart,
+    script.indexOf('document.addEventListener("keydown"', popstateStart),
+  );
+  expect(popstate).toContain("const route = reservationNavigationRoute()");
   expect(popstate).toContain('if (route.kind !== "other") setView("reservations", false)');
   expect(popstate).toContain("syncReservationRoute()");
 

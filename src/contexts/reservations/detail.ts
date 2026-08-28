@@ -19,6 +19,32 @@ export interface FindReservationDetailByIdInput {
   readonly reservationId: string;
 }
 
+export interface FindReservationPickupTaskDetailInput {
+  readonly tenantId: string;
+  readonly propertyNode: string;
+  readonly reservationId: string;
+  readonly taskId: string;
+}
+
+export type ReservationPickupTaskStatus =
+  | "open"
+  | "assigned"
+  | "in_progress"
+  | "done"
+  | "verified"
+  | "cancelled";
+
+export interface ReservationPickupTaskDetail {
+  readonly taskId: string;
+  readonly reservationId: string;
+  readonly confirmationNo: string;
+  readonly status: ReservationPickupTaskStatus;
+  readonly dueAt: string;
+  readonly priority: number;
+  readonly createdAt: string;
+  readonly completedAt: string | null;
+}
+
 export interface ReservationDetailSegment {
   readonly segmentId: string;
   readonly sequence: number;
@@ -201,6 +227,26 @@ interface TravelRow {
   readonly visible_pickup_task_id: string | null;
 }
 
+interface PickupTaskDetailRow {
+  readonly reservation_id: string;
+  readonly confirmation_no: string;
+  readonly arrival_travel_id: string | null;
+  readonly pickup_task_id: string | null;
+  readonly arrival_scheduled_at: string | null;
+  readonly task_id: string | null;
+  readonly task_property_node: string | null;
+  readonly task_kind: string | null;
+  readonly task_status: string | null;
+  readonly task_subject_type: string | null;
+  readonly task_subject_id: string | null;
+  readonly task_department: string | null;
+  readonly task_due_at: string | null;
+  readonly task_priority: number | null;
+  readonly task_payload: JsonValue | null;
+  readonly task_created_at: string | null;
+  readonly task_completed_at: string | null;
+}
+
 interface FactRow {
   readonly id: string;
   readonly entity_type: string;
@@ -343,6 +389,18 @@ function travelMode(value: string | null): ReservationDetailTravel["mode"] {
   throw new ReservationDetailConflictError("Stored travel mode is invalid");
 }
 
+function pickupTaskStatus(value: string | null): ReservationPickupTaskStatus {
+  if (value === "open" || value === "assigned" || value === "in_progress" || value === "done" ||
+      value === "verified" || value === "cancelled") return value;
+  throw new ReservationDetailConflictError("Stored arrival pickup task status is invalid");
+}
+
+function isArrivalPickupPayload(value: JsonValue | null): boolean {
+  if (typeof value !== "object" || value === null || Array.isArray(value)) return false;
+  const payload = value as { readonly [key: string]: JsonValue };
+  return Object.keys(payload).length === 1 && payload.requestType === "arrival_pickup";
+}
+
 function childAges(value: JsonValue): readonly number[] {
   if (!Array.isArray(value)) throw new ReservationDetailConflictError("Stored segment children are invalid");
   return Object.freeze(value.map((child) => {
@@ -379,6 +437,88 @@ export class ReservationDetailService {
     const propertyNode = requireUuid("propertyNode", input.propertyNode);
     const reservationId = requireUuid("reservationId", input.reservationId);
     return this.find(tx, tenantId, propertyNode, reservationId, null);
+  }
+
+  async pickupTaskDetail(
+    tx: Tx,
+    input: FindReservationPickupTaskDetailInput,
+  ): Promise<ReservationPickupTaskDetail> {
+    requirePlainInput(input, ["tenantId", "propertyNode", "reservationId", "taskId"]);
+    const tenantId = requireUuid("tenantId", input.tenantId);
+    const propertyNode = requireUuid("propertyNode", input.propertyNode);
+    const reservationId = requireUuid("reservationId", input.reservationId);
+    const taskId = requireUuid("taskId", input.taskId);
+
+    const rows = await tx<PickupTaskDetailRow[]>`
+      SELECT reservation.id AS reservation_id, reservation.confirmation_no,
+             arrival.id AS arrival_travel_id, arrival.pickup_task_id,
+             CASE WHEN arrival.scheduled_at IS NULL THEN NULL ELSE
+               to_char(arrival.scheduled_at AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"')
+             END AS arrival_scheduled_at,
+             pickup_task.id AS task_id, pickup_task.property_node AS task_property_node,
+             pickup_task.kind AS task_kind, pickup_task.status AS task_status,
+             pickup_task.subject_type AS task_subject_type, pickup_task.subject_id AS task_subject_id,
+             pickup_task.department AS task_department,
+             CASE WHEN pickup_task.due_at IS NULL THEN NULL ELSE
+               to_char(pickup_task.due_at AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"')
+             END AS task_due_at,
+             pickup_task.priority AS task_priority, pickup_task.payload AS task_payload,
+             CASE WHEN pickup_task.created_at IS NULL THEN NULL ELSE
+               to_char(pickup_task.created_at AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"')
+             END AS task_created_at,
+             CASE WHEN pickup_task.completed_at IS NULL THEN NULL ELSE
+               to_char(pickup_task.completed_at AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"')
+             END AS task_completed_at
+      FROM reservation
+      JOIN org_node AS property
+        ON property.tenant_id = reservation.tenant_id
+       AND property.id = reservation.property_node
+       AND property.kind = 'property'
+      LEFT JOIN travel_detail AS arrival
+        ON arrival.tenant_id = reservation.tenant_id
+       AND arrival.reservation_id = reservation.id
+       AND arrival.direction = 'arrival'
+      LEFT JOIN task AS pickup_task
+        ON pickup_task.tenant_id = reservation.tenant_id
+       AND pickup_task.id = arrival.pickup_task_id
+      WHERE reservation.tenant_id = ${tenantId}::uuid
+        AND reservation.tenant_id = current_setting('app.tenant_id', true)::uuid
+        AND reservation.property_node = ${propertyNode}::uuid
+        AND reservation.id = ${reservationId}::uuid
+    `;
+    const row = rows[0];
+    if (!row || row.arrival_travel_id === null || row.pickup_task_id !== taskId) {
+      throw new ReservationDetailNotFoundError("Arrival pickup task was not found for the reservation");
+    }
+    if (rows.length !== 1 || row.task_id === null || row.task_id !== taskId ||
+        row.task_property_node !== propertyNode || row.task_kind !== "guest_request" ||
+        row.task_subject_type !== "reservation" || row.task_subject_id !== reservationId ||
+        row.task_department !== "transport" || row.task_priority !== 3 ||
+        !isArrivalPickupPayload(row.task_payload)) {
+      throw new ReservationDetailConflictError("Stored arrival pickup task link is incoherent");
+    }
+    const arrivalScheduledAt = requireStoredRequiredInstant(
+      "arrival pickup schedule",
+      row.arrival_scheduled_at,
+    );
+    const dueAt = requireStoredRequiredInstant("arrival pickup task due time", row.task_due_at);
+    if (dueAt !== arrivalScheduledAt) {
+      throw new ReservationDetailConflictError("Stored arrival pickup task due time is incoherent");
+    }
+    if (!CONFIRMATION_NO.test(row.confirmation_no)) {
+      throw new ReservationDetailConflictError("Stored reservation confirmation number is invalid");
+    }
+
+    return Object.freeze({
+      taskId: requireStoredUuid("arrival pickup task id", row.task_id)!,
+      reservationId: requireStoredUuid("reservation id", row.reservation_id)!,
+      confirmationNo: row.confirmation_no,
+      status: pickupTaskStatus(row.task_status),
+      dueAt,
+      priority: row.task_priority,
+      createdAt: requireStoredRequiredInstant("arrival pickup task creation time", row.task_created_at),
+      completedAt: requireStoredInstant("arrival pickup task completion time", row.task_completed_at),
+    });
   }
 
   private async find(

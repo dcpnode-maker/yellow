@@ -1,8 +1,8 @@
 # Phase 6 — Stay operations and housekeeping
 
-**Status:** active; Orders 200–214 are built-unreviewed
+**Status:** active; Orders 200–215 are built-unreviewed
 **Entry point:** built-unreviewed Phase-5 composition through Order 199
-**Current order:** `214-reservation-detail-arrival-pickup-state.md` (built-unreviewed)
+**Current order:** `215-reservation-pickup-task-detail.md` (built-unreviewed)
 
 ## Outcome
 
@@ -214,7 +214,7 @@ shows honest arrival pickup state from existing travel/link truth. It adds no ta
 identity, lifecycle, action, route, query, polling or mutation. Generic task detail
 and navigation remain later work.
 
-Order 215 owns one reservation-scoped pickup-task detail endpoint and nested human
+Order 215 is built-unreviewed and owns one reservation-scoped pickup-task detail endpoint and nested human
 route under existing reservation read authority. It exposes minimized canonical task
 state only and adds no generic task scope, cross-kind board, lifecycle mutation or
 polling. Generic task navigation remains later work.

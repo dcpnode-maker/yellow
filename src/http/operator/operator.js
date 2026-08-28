@@ -45,6 +45,9 @@
  let reservationBoardGeneration = 0;
  let reservationDetailData = null;
  let reservationDetailGeneration = 0;
+ let reservationPickupTaskData = null;
+ let reservationPickupTaskRequestGeneration = 0;
+ let reservationPickupTaskReturnFocus = null;
  let checkInReadinessData = null;
  let checkInReadinessGeneration = 0;
  let checkInAttemptKey = "";
@@ -90,6 +93,7 @@
  let reservationCreateDirty = false;
  let reservationCreateProperty = "";
  let reservationRouteReservationId = "";
+ let reservationRoutePickupTaskId = "";
  let currentReservationWorkbench = null;
  const RESERVATION_WORKBENCH_QUERY = Object.freeze({
   "check-in": "workbench=check-in",
@@ -852,6 +856,7 @@
  loginMessage.classList.toggle("error", isError);
  }
   function showLogin() {
+ closeReservationPickupTaskDetail({ history: false, restoreFocus: false });
  accessToken = "";
  operator = null;
  loginView.hidden = false;
@@ -945,7 +950,7 @@
   propertySelect.disabled = true;
  } else {
   propertySelect.disabled = false;
-  const pathProperty = location.pathname.match(/^\/p\/([0-9a-f-]+)\/(?:today|availability|inventory|operations|housekeeping|vehicles|reservations|folios|cashiers|restrictions|rates|status|res\/[0-9a-f-]+|folio\/[0-9a-f-]+)$/)?.[1];
+  const pathProperty = location.pathname.match(/^\/p\/([0-9a-f-]+)\/(?:today|availability|inventory|operations|housekeeping|vehicles|reservations|folios|cashiers|restrictions|rates|status|res\/[0-9a-f-]+(?:\/pickup-task\/[0-9a-f-]+)?|folio\/[0-9a-f-]+)$/)?.[1];
   if (pathProperty && body.properties.some(({ id }) => id === pathProperty)) propertySelect.value = pathProperty;
  }
  }
@@ -975,6 +980,18 @@
   && ["check-in", "checkout"].includes(values[0])) return { valid: true, value: values[0] };
  return { valid: false, value: null };
  }
+  function reservationPickupTaskRoute() {
+ const match = location.pathname.match(/^\/p\/([0-9a-f-]+)\/res\/([0-9a-f-]+)\/pickup-task\/([0-9a-f-]+)$/);
+ return match ? { property: match[1], reservationId: match[2], taskId: match[3] } : null;
+ }
+  function reservationNavigationRoute() {
+ const pickupTask = reservationPickupTaskRoute();
+ if (pickupTask) {
+  if (location.search) history.replaceState(history.state, "", location.pathname);
+  return { kind: "pickup-task", ...pickupTask };
+ }
+ return reservationRoute();
+ }
   function reservationRoute() {
  const detail = location.pathname.match(/^\/p\/([0-9a-f-]+)\/res\/([0-9a-f-]+)$/);
  if (detail) {
@@ -1001,6 +1018,196 @@
   function reservationStay(row) {
  return `${reservationDateTime(row.stayFrom)} – ${reservationDateTime(row.stayTo)}`;
  }
+  function canonicalReservationPickupTaskPath(property, reservationId, taskId) {
+ return `/p/${property}/res/${reservationId}/pickup-task/${taskId}`;
+ }
+ const RESERVATION_PICKUP_TASK_STATUS_LABELS = Object.freeze({
+ open: "Open", assigned: "Assigned", in_progress: "In progress", done: "Done",
+ verified: "Verified", cancelled: "Cancelled",
+ });
+  function reservationPickupTaskCanonicalInstant(value) {
+ if (typeof value !== "string" ||
+  !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,6})?Z$/.test(value)) return false;
+ return Number.isFinite(Date.parse(value));
+ }
+  function reservationPickupTaskDetailResult(value, origin) {
+ if (!value || typeof value !== "object" || Array.isArray(value) ||
+  Object.keys(value).sort().join(",") !== "pickupTask") {
+  throw new Error("The server returned an invalid pickup-task detail envelope.");
+ }
+ const task = value.pickupTask;
+ const keys = ["completedAt", "confirmationNo", "createdAt", "dueAt", "priority", "reservationId", "status", "taskId"];
+ if (!task || typeof task !== "object" || Array.isArray(task) ||
+  Object.keys(task).sort().join(",") !== keys.join(",") ||
+  !canonicalUuid(task.taskId) || task.taskId !== origin.taskId ||
+  !canonicalUuid(task.reservationId) || task.reservationId !== origin.reservationId ||
+  typeof task.confirmationNo !== "string" || task.confirmationNo !== origin.confirmationNo ||
+  task.confirmationNo.length < 1 || task.confirmationNo.length > 120 ||
+  !["open", "assigned", "in_progress", "done", "verified", "cancelled"].includes(task.status) ||
+  task.priority !== 3 || !reservationPickupTaskCanonicalInstant(task.dueAt) ||
+  !reservationPickupTaskCanonicalInstant(task.createdAt) ||
+  (task.completedAt !== null && !reservationPickupTaskCanonicalInstant(task.completedAt))) {
+  throw new Error("The server returned invalid pickup-task detail.");
+ }
+ return Object.freeze({ ...task });
+ }
+  function reservationPickupTaskPanel(reservationId, taskId) {
+ for (const existing of reservationDetailDrawer.querySelectorAll(".pickup-task-detail-panel")) existing.remove();
+ const panel = node("section", "pickup-task-detail-panel reservation-detail-section");
+ panel.hidden = true;
+ panel.dataset.reservationId = reservationId;
+ panel.dataset.taskId = taskId;
+ panel.setAttribute("aria-labelledby", "pickup-task-detail-title");
+ panel.setAttribute("aria-busy", "false");
+ const head = node("div", "pickup-task-detail-head");
+ const titleCopy = el("div");
+ titleCopy.append(node("p", "eyebrow", "Arrival transfer"));
+ const heading = node("h4", "", "Arrival pickup task");
+ heading.id = "pickup-task-detail-title";
+ heading.tabIndex = -1;
+ titleCopy.append(heading);
+ const back = node("button", "quiet pickup-task-detail-back", "Back to reservation");
+ back.type = "button";
+ back.addEventListener("click", () => closeReservationPickupTaskDetail());
+ head.append(titleCopy, back);
+ const loading = node("div", "pickup-task-detail-loading");
+ loading.setAttribute("aria-hidden", "true");
+ loading.append(el("span"), el("span"), el("span"));
+ const error = node("section", "pickup-task-detail-error");
+ error.hidden = true;
+ error.setAttribute("role", "alert");
+ const errorCopy = node("p", "", "Pickup task detail is unavailable.");
+ const retry = node("button", "secondary pickup-task-detail-retry", "Try again");
+ retry.type = "button";
+ retry.addEventListener("click", () => {
+  const reservation = reservationDetailData?.reservation;
+  if (reservation?.reservationId === reservationId && reservationRoutePickupTaskId === taskId) {
+  void loadReservationPickupTaskDetail(panel, reservation, taskId, { focus: true });
+  }
+ });
+ error.append(node("strong", "", "Pickup task detail could not be loaded"), errorCopy, retry);
+ const content = node("div", "pickup-task-detail-content");
+ content.hidden = true;
+ panel.append(head, loading, error, content);
+ reservationDetailStatus.before(panel);
+ return panel;
+ }
+  function reservationPickupTaskRequestIsCurrent(origin, panel) {
+ return origin.requestGeneration === reservationPickupTaskRequestGeneration
+  && origin.detailGeneration === reservationDetailGeneration
+  && origin.property === propertySelect.value
+  && origin.reservationId === reservationRouteReservationId
+  && origin.taskId === reservationRoutePickupTaskId
+  && reservationDetailData?.reservation?.reservationId === origin.reservationId
+  && reservationDetailData.reservation.confirmationNo === origin.confirmationNo
+  && reservationDetailDrawer.hidden === false
+  && panel.isConnected && panel.classList.contains("pickup-task-detail-panel")
+  && panel.dataset.reservationId === origin.reservationId && panel.dataset.taskId === origin.taskId
+  && location.pathname === canonicalReservationPickupTaskPath(origin.property, origin.reservationId, origin.taskId);
+ }
+  function renderReservationPickupTaskDetail(panel, task) {
+ const content = panel.querySelector(".pickup-task-detail-content");
+ const status = node("span", "pickup-task-detail-status", RESERVATION_PICKUP_TASK_STATUS_LABELS[task.status]);
+ status.dataset.taskStatus = task.status;
+ status.setAttribute("aria-label", `Task status: ${RESERVATION_PICKUP_TASK_STATUS_LABELS[task.status]}`);
+ const summary = node("div", "pickup-task-detail-summary");
+ summary.append(node("span", "eyebrow", "Current task state"), status);
+ const facts = el("dl");
+ for (const [label, value] of [
+  ["Reservation", task.confirmationNo],
+  ["Due", reservationDateTime(task.dueAt)],
+  ["Priority", String(task.priority)],
+  ["Created", reservationDateTime(task.createdAt)],
+  ["Completed", task.completedAt === null ? "Not completed" : reservationDateTime(task.completedAt)],
+ ]) facts.append(node("dt", "", label), node("dd", "", value));
+ const identifiers = node("details", "pickup-task-detail-identifiers");
+ identifiers.append(node("summary", "", "Recorded identifiers"));
+ const identityFacts = el("dl");
+ identityFacts.append(node("dt", "", "Task ID"), node("dd", "", task.taskId),
+  node("dt", "", "Reservation ID"), node("dd", "", task.reservationId));
+ identifiers.append(identityFacts);
+ content.replaceChildren(summary, facts, identifiers,
+  node("p", "field-note", "Read only. Operational changes remain separate governed workflows."));
+ content.hidden = false;
+ panel.querySelector(".pickup-task-detail-loading").hidden = true;
+ panel.querySelector(".pickup-task-detail-error").hidden = true;
+ panel.setAttribute("aria-busy", "false");
+ }
+  async function loadReservationPickupTaskDetail(panel, reservation, taskId, { focus = false } = {}) {
+ const origin = Object.freeze({
+  requestGeneration: ++reservationPickupTaskRequestGeneration,
+  detailGeneration: reservationDetailGeneration,
+  property: propertySelect.value,
+  reservationId: reservation.reservationId,
+  confirmationNo: reservation.confirmationNo,
+  taskId,
+ });
+ const loading = panel.querySelector(".pickup-task-detail-loading");
+ const error = panel.querySelector(".pickup-task-detail-error");
+ panel.setAttribute("aria-busy", "true");
+ loading.hidden = false;
+ error.hidden = true;
+ panel.querySelector(".pickup-task-detail-content").hidden = true;
+ try {
+  const body = await request(`/api/v1/properties/${enc(origin.property)}/reservations/${enc(origin.reservationId)}/arrival-pickup-task/${enc(origin.taskId)}`);
+  if (!reservationPickupTaskRequestIsCurrent(origin, panel)) return;
+  const task = reservationPickupTaskDetailResult(body, origin);
+  if (!reservationPickupTaskRequestIsCurrent(origin, panel)) return;
+  reservationPickupTaskData = task;
+  renderReservationPickupTaskDetail(panel, task);
+  reservationDetailStatus.textContent = "Current arrival pickup task loaded from server truth.";
+  if (focus) panel.querySelector("h4").focus({ preventScroll: true });
+ } catch (requestError) {
+  if (!reservationPickupTaskRequestIsCurrent(origin, panel)) return;
+  reservationPickupTaskData = null;
+  loading.hidden = true;
+  error.hidden = false;
+  error.querySelector("p").textContent = requestError?.status === 404
+  ? "The linked pickup task was not found for this reservation and property."
+  : requestError?.status === 409 ? "Stored pickup task truth is inconsistent; no task detail was disclosed."
+   : requestError instanceof Error ? requestError.message : "The pickup task detail is unavailable.";
+  panel.setAttribute("aria-busy", "false");
+  reservationDetailStatus.textContent = "Arrival pickup task detail unavailable.";
+  if (focus) panel.querySelector(".pickup-task-detail-retry").focus({ preventScroll: true });
+ }
+ }
+  async function openReservationPickupTaskDetail(reservation, taskId, { push = true, trigger = null } = {}) {
+ if (!reservation || reservation.reservationId !== reservationRouteReservationId ||
+  reservationDetailData?.reservation?.confirmationNo !== reservation.confirmationNo || !canonicalUuid(taskId)) return;
+ reservationRoutePickupTaskId = taskId;
+ reservationPickupTaskReturnFocus = trigger || [...reservationDetailContent.querySelectorAll(".pickup-task-detail-action")]
+  .find((button) => button.dataset.taskId === taskId) || null;
+ if (push) {
+  history.pushState({ yellowSurface: "reservation-pickup-task-detail" }, "",
+   canonicalReservationPickupTaskPath(propertySelect.value, reservation.reservationId, taskId));
+ }
+ const panel = reservationPickupTaskPanel(reservation.reservationId, taskId);
+ reservationDetailDrawer.classList.add("is-pickup-task-detail");
+ panel.hidden = false;
+ const action = reservationPickupTaskReturnFocus;
+ if (action?.isConnected) action.setAttribute("aria-expanded", "true");
+ panel.querySelector("h4").focus({ preventScroll: true });
+ await loadReservationPickupTaskDetail(panel, reservation, taskId, { focus: true });
+ }
+  function closeReservationPickupTaskDetail({ history: updateHistory = true, restoreFocus = true } = {}) {
+ const reservationId = reservationRouteReservationId;
+ const returnFocus = reservationPickupTaskReturnFocus;
+ reservationPickupTaskRequestGeneration += 1;
+ reservationPickupTaskData = null;
+ reservationPickupTaskReturnFocus = null;
+ reservationRoutePickupTaskId = "";
+ reservationDetailDrawer.classList.remove("is-pickup-task-detail");
+ for (const action of reservationDetailContent.querySelectorAll(".pickup-task-detail-action")) action.setAttribute("aria-expanded", "false");
+ for (const panel of reservationDetailDrawer.querySelectorAll(".pickup-task-detail-panel")) panel.remove();
+ if (updateHistory && propertySelect.value && reservationId) {
+  if (reservationExitHistoryAction(history.state, "reservation-pickup-task-detail") === "back") history.back();
+  else history.replaceState({ yellowSurface: "reservation-detail" }, "", `/p/${propertySelect.value}/res/${reservationId}`);
+ }
+ if (restoreFocus) {
+  const target = returnFocus?.isConnected ? returnFocus : reservationDetailTitle;
+  target?.focus({ preventScroll: true });
+ }
+ }
 const RESERVATION_TRAVEL_MODE_LABELS = Object.freeze({
  flight: "Flight", train: "Train", bus: "Bus", car: "Car", ferry: "Ferry", other: "Other",
  });
@@ -1016,6 +1223,22 @@ const RESERVATION_TRAVEL_MODE_LABELS = Object.freeze({
   return Object.freeze({ state: "task-pending", label: "Pickup requested · task pending" });
  }
  return Object.freeze({ state: "task-linked", label: "Pickup task linked" });
+ }
+  function reservationPickupTaskAction(item, pickup) {
+ if (pickup.state !== "task-linked" || !canonicalUuid(item.pickupTaskId)) return null;
+ const reservation = reservationDetailData?.reservation;
+ if (!reservation || reservation.reservationId !== reservationRouteReservationId) return null;
+ const action = el("button");
+ action.type = "button";
+ action.className = "secondary pickup-task-detail-action";
+ action.textContent = "Open pickup task";
+ action.dataset.taskId = item.pickupTaskId;
+ action.setAttribute("aria-expanded", "false");
+ action.setAttribute("aria-label", `Open arrival pickup task for reservation ${reservation.confirmationNo}`);
+ action.addEventListener("click", () => {
+  void openReservationPickupTaskDetail(reservation, item.pickupTaskId, { push: true, trigger: action });
+ });
+ return action;
  }
   function reservationTravelDetailCollection(items) {
  const section = node("section", "reservation-detail-section");
@@ -1040,6 +1263,8 @@ const RESERVATION_TRAVEL_MODE_LABELS = Object.freeze({
    const state = node("span", "reservation-pickup-state", pickup.label);
    state.dataset.pickupState = pickup.state;
    row.append(state);
+   const action = reservationPickupTaskAction(item, pickup);
+   if (action) row.append(action);
   }
   list.append(row);
   }
@@ -2863,6 +3088,12 @@ function departureEvidenceRow(term, value) {
  const generation = ++reservationDetailGeneration;
  const property = propertySelect.value;
  reservationRouteReservationId = reservationId;
+ if (!reservationPickupTaskRoute()) reservationRoutePickupTaskId = "";
+ reservationPickupTaskRequestGeneration += 1;
+ reservationPickupTaskData = null;
+ reservationPickupTaskReturnFocus = null;
+ reservationDetailDrawer.classList.remove("is-pickup-task-detail");
+ for (const panel of reservationDetailDrawer.querySelectorAll(".pickup-task-detail-panel")) panel.remove();
  reservationDetailTitle.textContent = "Loading reservation…";
  reservationDetailLoading.hidden = false;
  reservationDetailError.hidden = true;
@@ -2914,8 +3145,16 @@ function departureEvidenceRow(term, value) {
  reservationDetailDrawer.focus();
  await loadReservationDetail(reservationId);
  }
+  async function openReservationPickupTaskRoute(reservationId, taskId) {
+ await openReservationDetail(reservationId, { push: false });
+ if (!canonicalUuid(taskId) || reservationDetailData?.reservation?.reservationId !== reservationId ||
+  location.pathname !== canonicalReservationPickupTaskPath(propertySelect.value, reservationId, taskId)) return;
+ reservationRoutePickupTaskId = taskId;
+ await openReservationPickupTaskDetail(reservationDetailData.reservation, taskId, { push: false });
+ }
   function closeReservationDetail({ history: updateHistory = true, restoreFocus = true } = {}) {
  if (reservationDetailDrawer.hidden) return;
+ closeReservationPickupTaskDetail({ history: false, restoreFocus: false });
  reservationDetailGeneration += 1;
  reservationRouteReservationId = "";
  currentReservationWorkbench = null;
@@ -2950,11 +3189,24 @@ function departureEvidenceRow(term, value) {
  reservationDrawerReturnReservationId = "";
  }
   function syncReservationRoute() {
- const route = reservationRoute();
+ const route = reservationNavigationRoute();
  if (route.kind === "other" || !propertySelect.value || route.property !== propertySelect.value) return;
  if (route.kind === "detail") {
   if (reservationRouteReservationId !== route.reservationId || currentReservationWorkbench !== route.workbench || reservationDetailDrawer.hidden) {
   void openReservationDetail(route.reservationId, { push: false, workbench: route.workbench });
+  } else if (reservationRoutePickupTaskId) {
+  closeReservationPickupTaskDetail({ history: false, restoreFocus: true });
+  }
+  return;
+ }
+ if (route.kind === "pickup-task") {
+  if (reservationRouteReservationId !== route.reservationId || reservationDetailDrawer.hidden ||
+   reservationDetailData?.reservation?.reservationId !== route.reservationId) {
+  void openReservationPickupTaskRoute(route.reservationId, route.taskId);
+  } else if (reservationRoutePickupTaskId !== route.taskId ||
+   !reservationDetailDrawer.classList.contains("is-pickup-task-detail")) {
+  reservationRoutePickupTaskId = route.taskId;
+  void openReservationPickupTaskDetail(reservationDetailData.reservation, route.taskId, { push: false });
   }
   return;
  }
@@ -7777,6 +8029,41 @@ function departureEvidenceRow(term, value) {
  if (reservationGuestList.childElementCount < 99) addReservationGuestRow();
  });
  reservationPrimaryShare.addEventListener("input", updateReservationShareTotal);
+ document.addEventListener("keydown", (event) => {
+ const action = event.target.closest?.("#folio-window-new,.folio-correct-action");
+ if (activeView === "folios" && action && !event.repeat && /^(Enter| )$/.test(event.key) && !action.disabled) {
+  event.preventDefault();
+  action.click();
+  return;
+ }
+ if (activeView === "folios" && event.key === "Escape" && !folioWorkspace.hidden) {
+  event.preventDefault();
+  folioWorkspaceBack.click();
+  return;
+ }
+ if (activeView !== "reservations") return;
+ const editable = event.target.closest?.("input, select, textarea, [contenteditable=true]");
+ if (event.key === "Escape") {
+  if (reservationRoutePickupTaskId && !reservationDetailDrawer.hidden) {
+  event.preventDefault();
+  closeReservationPickupTaskDetail();
+  return;
+  }
+  if (!reservationDetailDrawer.hidden) { event.preventDefault(); closeReservationDetail(); return; }
+  if (!reservationCreatePanel.hidden) { event.preventDefault(); closeReservationCreate(); }
+  return;
+ }
+ if (editable || !reservationCreatePanel.hidden || !reservationDetailDrawer.hidden || (event.key !== "j" && event.key !== "k")) return;
+ const rows = [...document.querySelectorAll(".reservation-board-table .reservation-row-open")];
+ if (rows.length === 0) return;
+ const current = rows.indexOf(document.activeElement);
+ const forward = event.key === "j";
+ const backwards = event.key === "k";
+ const next = backwards ? Math.max(0, current < 0 ? 0 : current - 1) :
+  forward ? Math.min(rows.length - 1, current + 1) : current;
+ event.preventDefault();
+ rows[next].focus();
+ });
  propertySelect.addEventListener("change", () => {
  if (activeView === "folios" && !folioWorkspace.hidden && !confirmFolioExit()) {
   propertySelect.value = folioWorkspaceProperty;
@@ -7788,6 +8075,7 @@ function departureEvidenceRow(term, value) {
   return;
  }
  if (!reservationCreatePanel.hidden) closeReservationCreate({ history: false, force: true });
+ closeReservationPickupTaskDetail({ history: false, restoreFocus: false });
  reservationBookingSearchGeneration += 1;
  reservationBoardGeneration += 1;
  reservationDetailGeneration += 1;
@@ -8053,7 +8341,7 @@ function departureEvidenceRow(term, value) {
   setView("cashiers", false);
   return;
  }
- const route = reservationRoute();
+ const route = reservationNavigationRoute();
  if (shouldConfirmReservationExit(reservationCreatePanel.hidden === false, reservationCreateDirty, route.kind) &&
   !confirm("Leave this unfinished reservation? Entered details will be lost.")) {
   history.pushState({ yellowSurface: "reservation-create" }, "", `/p/${propertySelect.value}/reservations?new=1&step=${["stay", "guest", "offer", "review"][reservationCreateStep - 1]}`);
@@ -8061,36 +8349,6 @@ function departureEvidenceRow(term, value) {
  }
  if (route.kind !== "other") setView("reservations", false);
  syncReservationRoute();
- });
- document.addEventListener("keydown", (event) => {
- const action = event.target.closest?.("#folio-window-new,.folio-correct-action");
- if (activeView === "folios" && action && !event.repeat && /^(Enter| )$/.test(event.key) && !action.disabled) {
-  event.preventDefault();
-  action.click();
-  return;
- }
- if (activeView === "folios" && event.key === "Escape" && !folioWorkspace.hidden) {
-  event.preventDefault();
-  folioWorkspaceBack.click();
-  return;
- }
- if (activeView !== "reservations") return;
- const editable = event.target.closest?.("input, select, textarea, [contenteditable=true]");
- if (event.key === "Escape") {
-  if (!reservationDetailDrawer.hidden) { event.preventDefault(); closeReservationDetail(); return; }
-  if (!reservationCreatePanel.hidden) { event.preventDefault(); closeReservationCreate(); }
-  return;
- }
- if (editable || !reservationCreatePanel.hidden || !reservationDetailDrawer.hidden || (event.key !== "j" && event.key !== "k")) return;
- const rows = [...document.querySelectorAll(".reservation-board-table .reservation-row-open")];
- if (rows.length === 0) return;
- const current = rows.indexOf(document.activeElement);
- const forward = event.key === "j";
- const backwards = event.key === "k";
- const next = backwards ? Math.max(0, current < 0 ? 0 : current - 1) :
-  forward ? Math.min(rows.length - 1, current + 1) : current;
- event.preventDefault();
- rows[next].focus();
  });
  folioStatementLookupForm.addEventListener("submit", (event) => {
  event.preventDefault();
@@ -8749,7 +9007,7 @@ function departureEvidenceRow(term, value) {
  location.pathname.endsWith("/operations") ? "operations" :
  location.pathname.endsWith("/housekeeping") ? "housekeeping" :
  location.pathname.endsWith("/vehicles") ? "vehicles" :
- (location.pathname.endsWith("/reservations") || /^\/p\/[0-9a-f-]+\/res\/[0-9a-f-]+$/.test(location.pathname)) ? "reservations" :
+ (location.pathname.endsWith("/reservations") || /^\/p\/[0-9a-f-]+\/res\/[0-9a-f-]+(?:\/pickup-task\/[0-9a-f-]+)?$/.test(location.pathname)) ? "reservations" :
  (location.pathname.endsWith("/folios") || /^\/p\/[0-9a-f-]+\/folio\/[0-9a-f-]+$/.test(location.pathname)) ? "folios" :
  location.pathname.endsWith("/cashiers") ? "cashiers" :
  location.pathname.endsWith("/restrictions") ? "restrictions" :

@@ -299,6 +299,22 @@ schedule, terminal state and an existing link are no-op or fail closed. No capab
 exists here to mutate task lifecycle, assignee, priority, travel, Party/contact,
 vehicle/parking, occupancy, finance or statutory truth.
 
+### Reservation-scoped pickup-task detail containment
+
+Order 215 adds one read-only route behind the existing
+`reservations.lifecycle:read` scope and exact property grant. The adapter rejects any
+query authority and validates all three path identities before a tenant transaction.
+The domain read independently re-proves the exact reservation, its current arrival
+link and the complete canonical transport-task shape. Foreign, stale, wrong-property
+or unlinked task identity is concealed as not found; a hostile currently linked row
+fails closed as conflict without disclosing partial task data.
+
+The response is re-minimized to reservation/task identity, confirmation number,
+canonical status and task timing only. It excludes payload, Party/contact/assignee,
+notes, driver, vehicle, dispatch, property/tenant identity and internal transport
+details. Every result is no-store. No generic task scope, cross-kind lookup, polling
+or task lifecycle command is introduced.
+
 ### Room-condition board containment
 
 Order 208 adds one read-only route behind the existing

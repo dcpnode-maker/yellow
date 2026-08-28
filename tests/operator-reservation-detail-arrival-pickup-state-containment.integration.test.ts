@@ -88,7 +88,7 @@ test("Order 214: canonical Travel rendering preserves travel truth without inven
   expect(render).not.toMatch(/pickupTaskId|taskStatus|taskState|assignee|queue|dispatch|completion|driver|vehicle|contact/i);
 });
 
-test("Order 214: reservation route grammar, stale guards, Back, Escape and focus remain unchanged", () => {
+test("Order 214 detail containment survives the nested Order 215 Back, Escape and focus path", () => {
   const intent = executableFunction<(search: string) => { valid: boolean; value: string | null }>(
     "reservationWorkbenchIntent",
   );
@@ -126,8 +126,13 @@ test("Order 214: reservation route grammar, stale guards, Back, Escape and focus
   expect(close).toContain("target?.focus()");
 
   const keydownStart = script.indexOf('document.addEventListener("keydown"');
-  const keydown = script.slice(keydownStart, script.indexOf("propertySelect.addEventListener", keydownStart));
+  const keydownEnd = script.indexOf('folioStatementLookupForm.addEventListener', keydownStart);
+  const keydown = script.slice(keydownStart, keydownEnd);
   expect(keydown).toContain('event.key === "Escape"');
+  expect(keydown).toContain("closeReservationPickupTaskDetail()");
   expect(keydown).toContain("closeReservationDetail()");
-  expect(keydown).not.toMatch(/pickup|task/i);
+  expect(keydown.indexOf("closeReservationPickupTaskDetail()")).toBeLessThan(
+    keydown.indexOf("closeReservationDetail()"),
+  );
+  expect(keydown).not.toMatch(/method:\s*"(?:POST|PUT|PATCH|DELETE)"/);
 });

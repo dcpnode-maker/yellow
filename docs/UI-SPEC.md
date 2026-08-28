@@ -425,3 +425,37 @@ neomorphism and ERP each retain a dedicated native material treatment. Forced co
 restore explicit system borders and text, while reduced motion applies no animation
 or transition. Existing reservation route, Back/Escape/focus and stale-response
 guards remain unchanged.
+
+## 22. Reservation-scoped arrival pickup-task detail
+
+An authoritative linked arrival row alone exposes the semantic **Open pickup task**
+action. It opens the canonical nested route
+`/p/{property}/res/{reservation}/pickup-task/{task}` inside the existing reservation
+drawer and reads only the dedicated reservation-scoped arrival pickup-task endpoint.
+Direct navigation, refresh and Forward load that same route. Back, the panel's
+**Back to reservation** action and Escape restore the exact plain reservation route;
+focus returns to the originating action when it still exists, or to the reservation
+heading for a direct link.
+
+The single read-only panel shows the confirmation, literal task status, due time,
+priority, created time, nullable completion time and progressively disclosed recorded
+task/reservation identifiers. It never offers edit, assignment, dispatch, completion,
+cancellation or another lifecycle action; does not poll; and does not expose payload,
+assignee, Party/contact, notes, driver, vehicle, queue, sheet, credits, tenant/property
+identity or transport outcome. A missing or inconsistent current link displays a
+bounded retryable failure without partial task disclosure.
+
+Every request and render is bound to the exact property, reservation, confirmation,
+task, nested pathname, reservation-detail generation and pickup-task request
+generation. Changing property, reservation, task, route or drawer identity makes late
+responses inert. The endpoint response is accepted only when its exact minimized
+shape and all recorded identifiers agree with the current route.
+
+Text carries the complete task-status meaning for **Open**, **Assigned**,
+**In progress**, **Done**, **Verified** and **Cancelled**; colour and material are
+supporting cues only. Apple iOS, Android, Windows 95/98, glassmorphism, neomorphism
+and ERP each use a dedicated native presentation while preserving the same semantic
+order and truth. Controls remain at least 44 pixels, or 48 pixels for Android. Long
+identifiers and translated labels remain contained at 375 pixels and 200% zoom.
+Forced colours restore explicit system boundaries and focus, and reduced motion
+removes panel, control and loading animation.

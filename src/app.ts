@@ -349,6 +349,11 @@ export function createApp(options: AppOptions = {}) {
           context, params.property, params.reservation,
         ))
       )
+      .get("/api/v1/properties/:property/reservations/:reservation/arrival-pickup-task/:task", ({ request, params, tenantContext }) =>
+        withOperatorTenant(request, (context) => operator.reservationPickupTaskDetail(
+          context, params.property, params.reservation, params.task,
+        ))
+      )
       .get("/api/v1/properties/:property/reservations/:reservation/check-in/readiness", ({ request, params, tenantContext }) =>
         withOperatorTenant(request, (context) => operator.checkInReadiness(
           context, params.property, params.reservation,

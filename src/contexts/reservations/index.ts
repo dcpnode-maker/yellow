@@ -122,6 +122,7 @@ export {
 export type {
   FindReservationDetailByIdInput,
   FindReservationDetailInput,
+  FindReservationPickupTaskDetailInput,
   ReservationDetailAlert,
   ReservationDetailFact,
   ReservationDetailFolio,
@@ -129,6 +130,8 @@ export type {
   ReservationDetailResult,
   ReservationDetailSegment,
   ReservationDetailTravel,
+  ReservationPickupTaskDetail,
+  ReservationPickupTaskStatus,
 } from "./detail";
 export type {
   ReservationOffer,
