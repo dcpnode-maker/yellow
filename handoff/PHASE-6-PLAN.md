@@ -2,7 +2,7 @@
 
 **Status:** active; Orders 200–220 are built-unreviewed
 **Entry point:** built-unreviewed Phase-5 composition through Order 199
-**Current order:** next bounded Phase-6 slice pending order creation
+**Current order:** `221-housekeeping-sheet-task-receipt.md` (ready)
 
 ## Outcome
 
@@ -242,6 +242,11 @@ mutation, schema or event.
 Order 220 is built-unreviewed as the exact human composition of Order217 task detail with the existing
 Order201 governed transition. It adds no lifecycle meaning, command authority, schema,
 migration or event and remains subject to server revalidation.
+
+Order 221 is the UI-only composition of the exact Order202 generation response with
+the existing Order217/220 governed task-detail journey. It retains only a current,
+validated transient task receipt and adds no server authority, mutation, persistence,
+schema, migration or event.
 
 Statutory field semantics, validation, submission and receipts remain Phase 8. Tax and
 fiscal document work remains Phase 7. No country rule is hardcoded in Phase 6.
