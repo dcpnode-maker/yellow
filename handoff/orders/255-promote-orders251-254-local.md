@@ -1,6 +1,6 @@
 # Order 255 — Promote Orders251–254 to the sole local app
 
-**Status:** READY-D662
+**Status:** APPROVED-LOCALLY-D663
 **Phase:** 7 — Tax engine and India IRP
 **Branch:** `phase-7/promote-orders251-254-local`
 **Base:** `4d92b51` (approved Order254 descendant of built Order253)
@@ -60,7 +60,25 @@ reserved for exact pre-order lineage restoration.
 
 ## Definition of done
 
-- [ ] Backup, rollback image and pre-change digest are verified.
-- [ ] Only migration0042 and the app container change.
-- [ ] Login, both properties, exact status and one-local topology are green.
-- [ ] Independent non-operating verification records approval or findings.
+- [x] Backup, rollback image and pre-change digest are verified.
+- [x] Only migration0042 and the app container change.
+- [x] Login, both properties, exact status and one-local topology are green.
+- [x] Independent non-operating verification records approval or findings.
+
+## Promotion evidence
+
+The owner/SYSTEM-only 692,682-byte backup has SHA-256 `8f875088…874f`, a
+readable 1,269-entry restore catalogue and an exact 95-table pre-change count digest.
+The rollback image retains the prior app image `9d6bb66c…`.
+
+The production runner validated historical row41, applied only migration0042 and
+then reported no-op. PostgreSQL remains container `b0a92182a16a`, Valkey remains
+`ae62afc8df69`, the exact retained volume and all 95 non-ledger counts are unchanged,
+and the final database is migration42/96 tables/86 policies/two properties.
+
+One healthy replacement app `c003bc076893` serves only loopback3000 with protected
+populated masked one-click sign-in and exact status252/253/review91/active7 for both
+properties. Ports3002/3188 remain closed. The promotion-critical Order251 posting,
+Order252 reservation-lineage and Order253 status source hashes are exact to clean
+served HEAD. Independent non-operating verification is recorded in
+`handoff/reviews/255-promote-orders251-254-local.md`.

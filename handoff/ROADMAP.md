@@ -192,5 +192,6 @@ Order254 independently approved exact applied migration0041 lineage restoration 
 forward-only migration0042. Sole-local promotion is the next bounded operational step;
 no product scope or phase state changes.
 
-Order255/D-662 is the active sole-local backup, migration0042 and app-only promotion
-step. It changes no product scope and preserves one loopback app.
+Order255/D-663 independently verifies the approved sole-local backup, migration0042
+and app-only promotion. The next build remains governed folio eligibility and
+configured semantic tax-route policy before any positive posting writer.
