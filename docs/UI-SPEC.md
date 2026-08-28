@@ -536,3 +536,39 @@ to one column, and actions become full width so the panel contains at 375 pixels
 200% zoom. Keyboard focus remains visible. Forced colours replace decorative
 materials with explicit Canvas/CanvasText boundaries, and reduced motion removes the
 loading animation and nonessential transitions.
+
+## 25. Vehicle linked-reservation composition
+
+The exact vehicle-detail panel exposes **Open linked reservation** only after its
+current validated, frozen vehicle row contains a canonical non-null reservation
+identifier. A vehicle with no reservation association, including a Party-only record,
+shows no action. Immediately before navigation, the client rechecks the active
+Vehicles view, exact property, routed vehicle, current vehicle and reservation
+identifiers, canonical vehicle-detail pathname, and the connected visible panel and
+action. A mismatch is inert.
+
+The action adds exactly one history entry and targets only the existing
+`/p/{property}/res/{reservation}` route. Existing reservation detail and
+`reservations.lifecycle:read` transport remain the sole server authority, including
+their existing forbidden response. This composition adds no endpoint, request,
+scope, payload field or copied detail authority. Refresh and Forward reopen the
+authoritative reservation detail. Close, Escape and Back restore the exact vehicle
+detail, refetch its authoritative vehicle truth and focus its title; a second Back
+retains the Vehicle Register's exact return URL, literal filter and cursor behavior.
+
+This is read-only navigation between two existing exact reads. It performs no
+vehicle, reservation, Party, parking or task mutation; offers no POST, PUT, PATCH or
+DELETE; and adds no polling, browser storage, optimistic state, access decision,
+onsite state or parking inference. Property, vehicle, reservation, active-view,
+pathname, visible-panel and request-generation containment prevents stale navigation,
+paint or focus.
+
+The semantic action remains at least 44 pixels and wraps without horizontal overflow
+at 375 pixels and 200% zoom; Android raises the target to 48 pixels. Apple iOS uses a
+restrained blue rounded control, Android uses a Material 3 filled pill, Windows 95/98
+uses square outset/inset system chrome, glassmorphism uses translucent layered blur,
+neomorphism uses paired raised and pressed inset shadows, and ERP uses compact
+rectangular density. The same label, target and reading order remain authoritative
+across all six. Keyboard focus is explicit, forced colours replace decorative
+materials with system button colours and boundaries, and reduced motion removes
+transition and transform effects.

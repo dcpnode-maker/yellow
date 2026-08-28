@@ -1,8 +1,8 @@
 # Phase 6 — Stay operations and housekeeping
 
-**Status:** active; Orders 200–217 are built-unreviewed
+**Status:** active; Orders 200–218 are built-unreviewed
 **Entry point:** built-unreviewed Phase-5 composition through Order 199
-**Current order:** `218-vehicle-linked-reservation-navigation.md` (ready)
+**Current order:** Order 218 built-unreviewed; next bounded slice not yet opened
 
 ## Outcome
 
@@ -229,7 +229,7 @@ route under the existing Order201 board read authority. It exposes only exact el
 task/active-room/condition truth and adds no generic task API, lifecycle mutation,
 notes/payload/assignee identity, inference, polling, scope, migration or event.
 
-Order 218 is the UI-only composition from exact Order216 vehicle detail to the existing
+Order 218 is built-unreviewed as the UI-only composition from exact Order216 vehicle detail to the existing
 canonical reservation detail. It admits one action only for a validated non-null
 reservation association and adds no request, API, authority, mutation, parking
 inference, polling, schema or event.

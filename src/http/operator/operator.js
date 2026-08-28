@@ -96,6 +96,7 @@
  let vehicleDetailReturnFocus = null;
  let vehicleDetailReturnPath = "";
  let vehicleDetailPanel = null;
+ let vehicleLinkedReservationReturn = null;
  const todayLaneState = {
  due_in: { rows: [], nextCursor: null, requestGeneration: 0 },
  due_out: { rows: [], nextCursor: null, requestGeneration: 0 },
@@ -914,6 +915,7 @@
  housekeepingAttempts.clear();
  clearHousekeepingSheetState();
  clearVehicleRegisterState();
+ vehicleLinkedReservationReturn = null;
  reservationBoardRows = [];
  reservationBoardNextCursor = null;
  reservationRouteReservationId = "";
@@ -3346,10 +3348,19 @@ function departureEvidenceRow(term, value) {
  }
   async function openReservationDetail(reservationId, { push = true, trigger = null, workbench = null } = {}) {
  closeReservationCreate({ history: false, force: true });
- if (activeView === "today") {
+ const linkedVehicleReturn = vehicleLinkedReservationReturnFromState(history.state, propertySelect.value, reservationId);
+ if (linkedVehicleReturn) {
+  vehicleLinkedReservationReturn = linkedVehicleReturn;
+  reservationDrawerReturnView = "vehicles";
+  reservationDrawerReturnReservationId = reservationId;
+ } else if (activeView === "today") {
   reservationDrawerReturnView = "today";
   reservationDrawerReturnReservationId = reservationId;
   setView("reservations", false);
+ } else if (reservationDrawerReturnView === "vehicles") {
+  vehicleLinkedReservationReturn = null;
+  reservationDrawerReturnView = "";
+  reservationDrawerReturnReservationId = "";
  }
  reservationDrawerReturnFocus = trigger;
  currentReservationWorkbench = workbench === "check-in" || workbench === "checkout" ? workbench : null;
@@ -3371,6 +3382,9 @@ function departureEvidenceRow(term, value) {
  }
   function closeReservationDetail({ history: updateHistory = true, restoreFocus = true } = {}) {
  if (reservationDetailDrawer.hidden) return;
+ const linkedVehicleReturn = reservationDrawerReturnView === "vehicles"
+  ? vehicleLinkedReservationReturnFromState(history.state, propertySelect.value, reservationRouteReservationId)
+  : null;
  closeReservationPickupTaskDetail({ history: false, restoreFocus: false });
  reservationDetailGeneration += 1;
  reservationRouteReservationId = "";
@@ -3385,10 +3399,12 @@ function departureEvidenceRow(term, value) {
  reservationDetailFolios.hidden = true;
  reservationDetailFolioList.replaceChildren();
  clearReservationDrawerLifecycle();
- const returnView = reservationDrawerReturnView;
+ const returnView = reservationDrawerReturnView === "vehicles" && linkedVehicleReturn === null
+  ? "" : reservationDrawerReturnView;
  const returnReservationId = reservationDrawerReturnReservationId;
  if (updateHistory && propertySelect.value) {
   if (returnView === "today") history.replaceState(null, "", `/p/${propertySelect.value}/today`);
+  else if (returnView === "vehicles") history.back();
   else if (reservationExitHistoryAction(history.state, "reservation-detail") === "back") history.back();
   else history.replaceState(null, "", `/p/${propertySelect.value}/reservations`);
  }
@@ -3396,7 +3412,7 @@ function departureEvidenceRow(term, value) {
   todayReturnFocus = { reservationId: returnReservationId, cycle: 0 };
   setView("today", false);
  }
- if (restoreFocus) {
+ if (restoreFocus && returnView !== "vehicles") {
   const target = returnView === "today" ? document.querySelector("#today-title") :
   reservationDrawerReturnFocus?.isConnected ? reservationDrawerReturnFocus : $("#reservations-title");
   target?.focus();
@@ -3404,6 +3420,7 @@ function departureEvidenceRow(term, value) {
  reservationDrawerReturnFocus = null;
  reservationDrawerReturnView = "";
  reservationDrawerReturnReservationId = "";
+ vehicleLinkedReservationReturn = null;
  }
   function syncReservationRoute() {
  const route = reservationNavigationRoute();
@@ -6319,6 +6336,20 @@ function departureEvidenceRow(term, value) {
  function canonicalVehicleDetailPath(property, vehicleId) {
  return `/p/${property}/vehicles/${vehicleId}`;
  }
+ function vehicleLinkedReservationReturnFromState(state, property, reservationId) {
+ const value = state?.vehicleLinkedReservationReturn;
+ if (state?.yellowSurface !== "reservation-detail" || !value || typeof value !== "object" || Array.isArray(value) ||
+  Object.keys(value).sort().join(",") !== "property,reservationId,vehicleDetailPath,vehicleId" ||
+  !canonicalUuid(value.property) || value.property !== property ||
+  !canonicalUuid(value.vehicleId) || !canonicalUuid(value.reservationId) || value.reservationId !== reservationId ||
+  value.vehicleDetailPath !== canonicalVehicleDetailPath(value.property, value.vehicleId)) return null;
+ return Object.freeze({
+  property: value.property,
+  vehicleId: value.vehicleId,
+  reservationId: value.reservationId,
+  vehicleDetailPath: value.vehicleDetailPath,
+ });
+ }
  function vehicleRouteFromLocation() {
  const match = location.pathname.match(/^\/p\/([0-9a-f-]+)\/vehicles$/);
  if (!match) return null;
@@ -6476,14 +6507,58 @@ function vehicleReturnPathFromState(state, property) {
  return origin.requestGeneration === vehicleDetailRequestGeneration && activeView === "vehicles" &&
   origin.property === propertySelect.value && origin.vehicleId === vehicleRouteVehicleId &&
   panel.isConnected && panel.hidden === false && vehicleRegister.hidden === true &&
+ location.pathname === canonicalVehicleDetailPath(origin.property, origin.vehicleId) && location.search === "";
+ }
+ function vehicleLinkedReservationActionIsCurrent(origin, action) {
+ return origin.requestGeneration === vehicleDetailRequestGeneration && activeView === "vehicles" &&
+  origin.property === propertySelect.value && origin.vehicleId === vehicleRouteVehicleId &&
+  Object.isFrozen(origin.detail) && vehicleDetailData === origin.detail &&
+  origin.detail.vehicleId === origin.vehicleId && origin.detail.reservationId === origin.reservationId &&
+  canonicalUuid(origin.reservationId) && vehicleDetailPanel === origin.panel &&
+  origin.panel.isConnected && origin.panel.hidden === false && vehiclesView.hidden === false &&
+  origin.panel.querySelector(".vehicle-detail-content")?.hidden === false &&
+  action?.isConnected && action.hidden === false && action.disabled === false && origin.panel.contains(action) &&
   location.pathname === canonicalVehicleDetailPath(origin.property, origin.vehicleId) && location.search === "";
  }
- function renderVehicleDetail(panel, vehicle) {
+ async function openVehicleLinkedReservation(origin, action) {
+ if (!vehicleLinkedReservationActionIsCurrent(origin, action)) return;
+ const linkedReturn = Object.freeze({
+  property: origin.property,
+  vehicleId: origin.vehicleId,
+  reservationId: origin.reservationId,
+  vehicleDetailPath: canonicalVehicleDetailPath(origin.property, origin.vehicleId),
+ });
+ vehicleLinkedReservationReturn = linkedReturn;
+ reservationDrawerReturnView = "vehicles";
+ reservationDrawerReturnReservationId = origin.reservationId;
+ setView("reservations", false);
+ history.pushState({
+  yellowSurface: "reservation-detail",
+  vehicleLinkedReservationReturn: linkedReturn,
+ }, "", `/p/${origin.property}/res/${origin.reservationId}`);
+ await openReservationDetail(origin.reservationId, { push: false, trigger: action });
+ }
+ function renderVehicleDetail(panel, vehicle, origin) {
  const title = panel.querySelector(".vehicle-detail-title");
  title.textContent = vehicle.registration;
  const summary = node("div", "vehicle-detail-summary");
  summary.append(node("span", "vehicle-read-only", "Read only"),
   node("p", "", "Recorded vehicle-register truth for this property."));
+ if (vehicle.reservationId !== null) {
+  const linkedReservation = node("button", "vehicle-linked-reservation-action", "Open linked reservation");
+  linkedReservation.type = "button";
+  linkedReservation.setAttribute("aria-label", "Open linked reservation detail");
+  const linkedOrigin = Object.freeze({
+   requestGeneration: origin.requestGeneration,
+   property: origin.property,
+   vehicleId: vehicle.vehicleId,
+   reservationId: vehicle.reservationId,
+   detail: vehicle,
+   panel,
+  });
+  linkedReservation.addEventListener("click", () => void openVehicleLinkedReservation(linkedOrigin, linkedReservation));
+  summary.append(linkedReservation);
+ }
  const facts = node("dl", "vehicle-detail-facts");
  for (const [label, value] of [
   ["Make", vehicle.make], ["Model", vehicle.model], ["Colour", vehicle.colour],
@@ -6520,7 +6595,7 @@ function vehicleReturnPathFromState(state, property) {
   const vehicle = vehicleDetailResult(body, origin);
   if (!vehicleDetailRequestIsCurrent(origin, panel)) return;
   vehicleDetailData = vehicle;
-  renderVehicleDetail(panel, vehicle);
+  renderVehicleDetail(panel, vehicle, origin);
   vehicleResultSummary.textContent = `Exact vehicle ${vehicle.registration} loaded from server truth.`;
   if (focus) panel.querySelector(".vehicle-detail-title").focus({ preventScroll: true });
  } catch (error) {
@@ -8547,6 +8622,7 @@ function vehicleReturnPathFromState(state, property) {
  clearHousekeepingConditionState();
  clearHousekeepingSheetState();
  clearVehicleRegisterState();
+ vehicleLinkedReservationReturn = null;
  resetTodayState();
  reservationBoardRows = [];
  reservationBoardNextCursor = null;
@@ -8791,6 +8867,7 @@ function vehicleReturnPathFromState(state, property) {
  }
  const vehicleRoute = vehicleNavigationRoute();
  if (vehicleRoute.kind !== "other" && vehicleRoute.property === propertySelect.value) {
+  closeReservationDetail({ history: false, restoreFocus: false });
   if (activeView !== "vehicles") setView("vehicles", false);
   else syncVehicleRoute({ focus: true });
   return;

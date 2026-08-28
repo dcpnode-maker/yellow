@@ -282,7 +282,7 @@ assigned/in-progress/done truth, exposes no notes/payload/assignee identity or i
 operational meaning, and adds no task mutation, scope, migration or event. This cannot
 complete Phase 6.
 
-Order 218 composes the exact Order216 vehicle detail with the existing canonical
+Order 218 is built-unreviewed and composes the exact Order216 vehicle detail with the existing canonical
 reservation-detail route. Only a validated non-null reservation association receives
 one stale-safe read-only navigation action; no API, authority, mutation, parking
 inference, polling, schema or event is added. This cannot complete Phase 6.

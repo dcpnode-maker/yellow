@@ -1,6 +1,6 @@
 # Order 218 — Vehicle linked-reservation navigation
 
-**Status:** READY-D579 — intentional red must precede implementation
+**Status:** BUILT-UNREVIEWED-D580 — independent product review remains pending
 **Phase:** 6 — Stay operations and housekeeping
 **Branch:** `phase-6/vehicle-linked-reservation-navigation`
 **Base:** `3efaaf7` (built-unreviewed Order217)
@@ -60,9 +60,8 @@ dependency, scope/event or local promotion/deployment file is admitted.
 
 ## Definition of done
 
-- [ ] Intentional red precedes implementation.
-- [ ] Only the exact validated linked reservation is navigable.
-- [ ] Existing reservation authority and vehicle/register history remain unchanged.
-- [ ] Six-appearance and accessibility containment is green.
-- [ ] Standing gates are green and result is recorded built-unreviewed.
-
+- [x] Intentional red precedes implementation.
+- [x] Only the exact validated linked reservation is navigable.
+- [x] Existing reservation authority and vehicle/register history remain unchanged.
+- [x] Six-appearance and accessibility containment is green.
+- [x] Standing gates are green and result is recorded built-unreviewed.
