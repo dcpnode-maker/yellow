@@ -383,6 +383,24 @@ and makes every response no-store. The human route serves the existing operator 
 it adds no transition, assignment, mutation, polling or generic task authority. The
 Order 201 board and lifecycle actions remain unchanged.
 
+### Governed arrival pickup-task dispatch containment (migration 0031)
+
+Migration0031 adds one fixed-search-path owner-mediated capability callable only by
+the dedicated `yellow_runtime` session after it assumes `app_role` with an exact
+transaction-local tenant. The capability locks and re-proves active actor, exact
+property/reservation/arrival link, complete canonical Order213 task shape and current
+expected status/assignee evidence. Assign also re-proves an active same-tenant Party
+with an exact `staff` role. `PUBLIC`, direct-login execution and raw runtime task DML
+remain denied.
+
+Assignment and work use separate exact-property scopes. Both the HTTP adapter and
+domain capability bind the task to the reservation-scoped arrival link; knowing a
+task UUID cannot create generic task authority. Actor-bound idempotency, task update,
+one minimized fact and one matching outbox event commit atomically. Foreign, stale,
+hostile and non-adjacent requests write nothing, and no contact, note, payload,
+driver, vehicle, parking, occupancy, financial, business-day or statutory data is
+accepted or returned.
+
 ## 6. Statutory & privacy
 
 ### Token-only payment containment

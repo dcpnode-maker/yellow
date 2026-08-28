@@ -94,6 +94,15 @@ fact(s), outbox row(s), task status, completion time and condition actor/time co
 one transaction. These events contain no assignee/guest PII and do not imply task
 creation, sheets/cadence, occupancy, reservation, financial or statutory effects.
 
+Order 228 also produces `task.status_changed` for each exact governed arrival-pickup
+assignment, start or completion. Its minimized payload identifies the task,
+reservation, action and previous/current task status; assignment identity is not
+published. Task state, one matching fact and one outbox event commit in one
+transaction. Replay or concurrent stale evidence cannot publish a second effect.
+Consumers must not infer transport success beyond recorded task completion, and must
+not infer travel edits, vehicle/driver/parking state, occupancy, check-in, charges,
+business-day work or statutory submission.
+
 Order 227 also produces `unit.condition_changed` when an authorized actor deliberately
 records the first condition for an active exact-property room. The minimized payload
 contains the space, `previous_condition: null`, the explicitly selected `clean`,

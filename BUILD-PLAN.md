@@ -328,6 +328,13 @@ record canonical condition truth plus same-transaction `unit.condition_changed`
 evidence. It cannot overwrite an existing condition, initialize `inspected`, or
 change task, reservation, check-in, occupancy or financial truth.
 
+Order 228 is ready as the governed exact arrival pickup-task dispatch lifecycle. Only
+the currently linked canonical task may advance open to assigned active staff, then
+in progress and done through actor-bound idempotent CAS and one same-transaction
+`task.status_changed` fact/outbox per change. Generic task CRUD, reassignment,
+cancellation, travel/vehicle/parking/occupancy/financial effects and inferred
+transport outcome remain outside this slice.
+
 ## Phase 7 — Tax engine + India IRP
 
 tax_assignment evaluation (percent/fixed/slab, compound, line-vs-document rounding)

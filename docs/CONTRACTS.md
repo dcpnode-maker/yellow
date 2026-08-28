@@ -939,3 +939,31 @@ Responses are `Cache-Control: no-store`, expose only
 `{replayed,roomCondition,spaceId,updatedAt}`, and carry the request correlation ID.
 There are no PUT, PATCH or DELETE variants and direct runtime DML on
 `unit_condition` remains denied.
+
+## 30. Governed arrival pickup-task dispatch
+
+`ArrivalPickupTaskDispatchService.transition` accepts one exact tenant, property,
+reservation and currently linked task identity, an actor-bound command envelope and
+idempotency key, one literal `assign|start|complete`, expected task status and expected
+nullable assignee Party identity. Assign alone accepts a staff Party id. The server
+re-proves the current arrival link and complete Order213 task shape before the
+owner-mediated capability may apply exactly `open -> assigned`,
+`assigned -> in_progress` or `in_progress -> done`. Assignment requires an active
+same-tenant Party with role `staff`; completion alone records `completed_at`.
+
+The compare-and-set transition, one minimized `task.status_changed` fact and matching
+outbox event commit in the same tenant transaction. Exact replay returns the original
+receipt without another effect; changed key reuse, stale expected evidence,
+non-adjacent state, reassignment, hostile task shape and foreign identity fail closed.
+The deeply frozen receipt is limited to `taskId`, `reservationId`, `taskStatus`,
+nullable `assigneePartyId`, nullable `completedAt`, nullable `eligibleAction` and
+`replayed`.
+
+`POST /api/v1/properties/{property}/reservations/{reservation}/arrival-pickup-task/{task}/{action}`
+accepts no query, requires a valid `Idempotency-Key`, exact property grant and
+`stay-operations.pickup-tasks:dispatch` for assign or
+`stay-operations.pickup-tasks:work` for start/complete. Bodies contain only the
+expected task/assignee evidence and, for assign, `staffPartyId`. Responses are
+`Cache-Control: no-store`, carry correlation and replay headers and expose only the
+minimized receipt. No generic task route, reassignment, cancellation, travel edit or
+transport-detail authority is introduced.

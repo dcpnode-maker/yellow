@@ -281,6 +281,13 @@ same-transaction `unit.condition_changed` evidence. Existing conditions cannot b
 overwritten, `inspected` remains verification-only, and task, reservation, check-in,
 occupancy and financial truth remain unchanged.
 
+Order 228 is ready as the exact currently linked arrival pickup-task dispatch slice.
+It admits only active-staff assignment and adjacent start/complete transitions with
+actor-bound idempotency, expected status/assignee evidence and one same-transaction
+`task.status_changed` fact/outbox. It adds no generic task CRUD, reassignment,
+cancellation, transport details, travel/vehicle/parking/occupancy/financial effect or
+inferred guest outcome.
+
 Statutory field semantics, validation, submission and receipts remain Phase 8. Tax and
 fiscal document work remains Phase 7. No country rule is hardcoded in Phase 6.
 

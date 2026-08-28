@@ -881,3 +881,26 @@ semantics and reading order. Keyboard focus is visible, reduced motion removes
 nonessential transforms and transitions, and forced colours replace decorative
 materials with system boundaries while preserving the established Housekeeping detail
 fallbacks.
+
+## 34. Arrival pickup-task dispatch
+
+The existing canonical pickup-task nested panel renders only its one current
+server-derived `eligibleAction`. An open unassigned task exposes **Assign pickup**
+with detached active-staff search and explicit selection; an assigned task exposes
+**Start pickup**; an in-progress task exposes **Complete pickup**; every other state
+has no mutation control. Staff search may show its already-permitted display label,
+but the panel never fetches or renders contact, driver, vehicle, notes or payload.
+
+Submission binds the current property, reservation, task, route, detail generation,
+status and nullable assignee evidence, retains one unchanged idempotency key for an
+unchanged retry, and locks every related control in flight. The browser never paints
+an optimistic assignment or status. Success and current-state conflict refetch exact
+pickup detail before restoring focus to the next current action or the safe task
+heading. Changing route, property, reservation, task, staff selection or generation
+makes a late response inert. There is no polling or browser storage.
+
+Controls remain at least 44 pixels, with 48-pixel Android targets, and are contained
+at 375 pixels and 200% zoom. All six current appearances preserve the same semantic
+order and action matrix with dedicated native presentation. Keyboard focus is
+explicit, reduced motion removes nonessential movement and forced colours replace
+decorative materials with system boundaries.

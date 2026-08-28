@@ -111,6 +111,15 @@ current arrival pickup intent. It does not execute an `open -> assigned` or any 
 task transition. The task stays governed by this canonical machine; assignment,
 cancellation and transport-specific completion remain later commands.
 
+Order 228 executes only the arrival-pickup subset for the exact currently linked
+canonical Order213 task: assign is `open -> assigned` and requires one active
+same-tenant staff Party; start is `assigned -> in_progress`; complete is
+`in_progress -> done` and records the server completion instant. Every action binds
+expected status and nullable assignee evidence. Reassignment, cancel, reopen, verify,
+non-adjacent and non-pickup task transitions remain non-executable. Each changed
+transition emits `task.status_changed` and changes no travel, reservation, occupancy,
+vehicle, parking, room-condition, financial, day or statutory state.
+
 ## 5. Block (`reservation_group`, kind=block) — statuses come from `block_status_def`
 (tenant config); the ONLY semantic the engine reads is `deducts`. Transitions between
 statuses re-sync `availability_projection` deltas. Cutoff & wash run as Automations

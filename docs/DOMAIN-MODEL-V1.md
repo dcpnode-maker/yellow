@@ -737,3 +737,13 @@ links the full positive guest-folio balance to the receivable account, and optio
 `approval_request_id` records the one-use authority for an over-limit posting. This is
 money movement, not an AR invoice, allocation, aging record, statement or external-GL
 identity.
+
+### Arrival pickup work identity (Orders 213 and 228)
+
+The arrival `travel_detail` row owns pickup intent, schedule and its optional exact
+task link. The linked canonical `task(kind='guest_request',department='transport')`
+owns dispatch lifecycle and assignment; neither row duplicates the other's truth.
+Order213 creates and links that task from current intent, while Order228 advances only
+the linked task through assignment, work and completion. A done task records only
+completed work state: it does not by itself prove a guest boarded, a vehicle arrived,
+parking or occupancy changed, check-in occurred, or money became chargeable.
