@@ -173,6 +173,7 @@ import {
   type HousekeepingConditionPage,
   type HousekeepingTaskAction,
   type HousekeepingTaskBoardItem,
+  type HousekeepingTaskDetail,
 } from "../contexts/housekeeping";
 import {
   createAuditEnvelope,
@@ -491,6 +492,22 @@ function operatorHousekeepingItem(
     ...evidence,
     assigned: assigneePartyId !== null,
     allowedActions: allowedHousekeepingActions(eligibleAction, workGranted, inspectGranted),
+  });
+}
+
+function operatorHousekeepingTaskDetail(task: HousekeepingTaskDetail) {
+  return Object.freeze({
+    taskId: task.taskId,
+    taskStatus: task.taskStatus,
+    spaceId: task.spaceId,
+    spaceCode: task.spaceCode,
+    floor: task.floor,
+    roomCondition: task.roomCondition,
+    roomUpdatedAt: task.roomUpdatedAt,
+    assigned: task.assigned,
+    dueAt: task.dueAt,
+    priority: task.priority,
+    completedAt: task.completedAt,
   });
 }
 
@@ -1409,7 +1426,8 @@ interface CheckoutReadinessOperations {
   }>>;
 }
 type HousekeepingOperations = Pick<HousekeepingTaskService, "listBoard" | "transition"> &
-  Partial<Pick<HousekeepingTaskService, "listConditions">>;
+  Partial<Pick<HousekeepingTaskService, "listConditions">> &
+  Partial<Pick<HousekeepingTaskService, "get">>;
 type HousekeepingSheetOperations = Pick<HousekeepingSheetService, "preview" | "list" | "generate">;
 type PartyOperations = Pick<PartyProfileService, "search" | "create">;
 type FolioStatementOperations = Pick<FolioStatementService, "get">;
@@ -3734,6 +3752,33 @@ export class OperatorHttpApi {
     });
     return apiResponse(context.request, canonicalJson(jsonValue({
       tasks: board.map((item) => operatorHousekeepingItem(item, workGranted, inspectGranted)),
+    })));
+  }
+
+  async housekeepingTaskDetail(
+    context: TenantRequestContext,
+    propertyNode: string,
+    taskId: string,
+  ): Promise<Response> {
+    const query = new URL(context.request.url).searchParams;
+    if (!UUID.test(propertyNode) || !UUID.test(taskId) || [...query.keys()].length > 0) {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Housekeeping task detail input is invalid");
+    }
+    if (!hasScope(context, HOUSEKEEPING_READ_SCOPE)) {
+      return apiError(context.request, 403, "auth/scope_missing", "Forbidden", "Housekeeping task access is not granted");
+    }
+    const grants = await listGrantedProperties(context, HOUSEKEEPING_READ_SCOPE);
+    if (!grants.some(({ id }) => id === propertyNode)) {
+      return apiError(context.request, 404, "housekeeping/not_found", "Not found", "The referenced housekeeping task was not found");
+    }
+    if (!this.#housekeeping?.get) return this.unavailable(context.request);
+    const task = await this.#housekeeping.get({
+      tenantId: context.tenantId,
+      propertyNode,
+      taskId,
+    });
+    return apiResponse(context.request, canonicalJson(jsonValue({
+      task: operatorHousekeepingTaskDetail(task),
     })));
   }
 

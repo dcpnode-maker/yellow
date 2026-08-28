@@ -23,12 +23,19 @@ export const HOUSEKEEPING_ROOM_CONDITIONS = Object.freeze([
 
 export type HousekeepingTaskAction = (typeof HOUSEKEEPING_TASK_ACTIONS)[number];
 export type HousekeepingTaskStatus = (typeof HOUSEKEEPING_TASK_STATUSES)[number];
+export type HousekeepingTaskDetailStatus = Exclude<HousekeepingTaskStatus, "verified">;
 export type HousekeepingRoomCondition = (typeof HOUSEKEEPING_ROOM_CONDITIONS)[number];
 
 export interface HousekeepingBoardInput {
   readonly tenantId: string;
   readonly propertyNode: string;
   readonly limit?: number;
+}
+
+export interface HousekeepingTaskDetailInput {
+  readonly tenantId: string;
+  readonly propertyNode: string;
+  readonly taskId: string;
 }
 
 export interface HousekeepingConditionListInput {
@@ -65,6 +72,20 @@ export interface HousekeepingTaskBoardItem {
   readonly priority: number;
   readonly completedAt: string | null;
   readonly eligibleAction: HousekeepingTaskAction | null;
+}
+
+export interface HousekeepingTaskDetail {
+  readonly taskId: string;
+  readonly taskStatus: HousekeepingTaskDetailStatus;
+  readonly spaceId: string;
+  readonly spaceCode: string;
+  readonly floor: string | null;
+  readonly roomCondition: HousekeepingRoomCondition;
+  readonly roomUpdatedAt: string;
+  readonly assigned: boolean;
+  readonly dueAt: string | null;
+  readonly priority: number;
+  readonly completedAt: string | null;
 }
 
 export interface HousekeepingTransitionInput {
@@ -357,6 +378,65 @@ function boardInput(input: HousekeepingBoardInput): Readonly<Required<Housekeepi
   });
 }
 
+function detailInput(input: HousekeepingTaskDetailInput): Readonly<HousekeepingTaskDetailInput> {
+  plainObject(input, "housekeeping task detail input");
+  exactKeys(input, ["tenantId", "propertyNode", "taskId"], [], "housekeeping task detail input");
+  return Object.freeze({
+    tenantId: uuid(input.tenantId, "tenantId"),
+    propertyNode: uuid(input.propertyNode, "propertyNode"),
+    taskId: uuid(input.taskId, "taskId"),
+  });
+}
+
+function storedUuid(value: unknown, subject: string): string {
+  if (typeof value !== "string" || !UUID.test(value)) {
+    throw new HousekeepingConflictError(`Stored ${subject} is invalid`);
+  }
+  return value;
+}
+
+function storedText(value: unknown, subject: string): string {
+  if (typeof value !== "string" || value.length > 512 || /[\u0000-\u001f\u007f]/.test(value)) {
+    throw new HousekeepingConflictError(`Stored ${subject} is invalid`);
+  }
+  return value;
+}
+
+function storedTaskStatus(value: unknown): HousekeepingTaskDetailStatus {
+  if (value === "assigned" || value === "in_progress" || value === "done") return value;
+  throw new HousekeepingConflictError("Stored housekeeping task status is invalid");
+}
+
+function storedInstant(value: unknown, subject: string): string {
+  if (!(value instanceof Date) || !Number.isFinite(value.getTime())) {
+    throw new HousekeepingConflictError(`Stored ${subject} is invalid`);
+  }
+  return value.toISOString();
+}
+
+function storedOptionalInstant(value: unknown, subject: string): string | null {
+  return value === null ? null : storedInstant(value, subject);
+}
+
+function canonicalTaskDetail(row: BoardRow): HousekeepingTaskDetail {
+  if (!Number.isInteger(row.priority)) {
+    throw new HousekeepingConflictError("Stored housekeeping task priority is invalid");
+  }
+  return Object.freeze({
+    taskId: storedUuid(row.task_id, "housekeeping task id"),
+    taskStatus: storedTaskStatus(row.task_status),
+    spaceId: storedUuid(row.space_id, "housekeeping room id"),
+    spaceCode: storedText(row.space_code, "housekeeping room code"),
+    floor: row.floor === null ? null : storedText(row.floor, "housekeeping room floor"),
+    roomCondition: storedRoomCondition(row.room_condition),
+    roomUpdatedAt: storedInstant(row.room_updated_at, "housekeeping room update instant"),
+    assigned: row.assignee_party !== null,
+    dueAt: storedOptionalInstant(row.due_at, "housekeeping task due instant"),
+    priority: row.priority,
+    completedAt: storedOptionalInstant(row.completed_at, "housekeeping task completion instant"),
+  });
+}
+
 function transitionInput(input: HousekeepingTransitionInput): HousekeepingTransitionInput {
   plainObject(input, "housekeeping transition input");
   exactKeys(input, [
@@ -430,6 +510,48 @@ export class HousekeepingTaskService {
     this.#database = options.database;
     this.#events = options.events;
     this.#idempotency = options.idempotency;
+  }
+
+  async get(input: HousekeepingTaskDetailInput): Promise<HousekeepingTaskDetail> {
+    const target = detailInput(input);
+    const rows = await this.#database.withTenantTransaction(target.tenantId, async (tx) =>
+      tx<BoardRow[]>`
+        WITH target_property AS MATERIALIZED (
+          SELECT property.id
+          FROM public.org_node AS property
+          WHERE property.tenant_id = ${target.tenantId}::uuid
+            AND property.tenant_id = current_setting('app.tenant_id', true)::uuid
+            AND property.id = ${target.propertyNode}::uuid
+            AND property.kind = 'property'
+        )
+        SELECT task.id AS task_id, task.status AS task_status,
+               room.id AS space_id, room.code AS space_code, room.floor,
+               condition.condition AS room_condition,
+               condition.updated_at AS room_updated_at,
+               task.assignee_party, task.due_at, task.priority, task.completed_at
+        FROM public.task
+        JOIN target_property AS property ON property.id = task.property_node
+        JOIN public.space AS room
+          ON room.tenant_id = task.tenant_id
+         AND room.tenant_id = current_setting('app.tenant_id', true)::uuid
+         AND room.id = task.subject_id
+         AND room.property_node = property.id
+         AND room.status = 'active'
+        JOIN public.unit_condition AS condition
+          ON condition.tenant_id = task.tenant_id
+         AND condition.tenant_id = current_setting('app.tenant_id', true)::uuid
+         AND condition.space_id = room.id
+        WHERE task.tenant_id = ${target.tenantId}::uuid
+          AND task.tenant_id = current_setting('app.tenant_id', true)::uuid
+          AND task.id = ${target.taskId}::uuid
+          AND task.kind = 'housekeeping'
+          AND task.subject_type = 'space'
+          AND task.status IN ('assigned', 'in_progress', 'done')
+      `,
+    );
+    if (rows.length === 0) throw new HousekeepingNotFoundError("Housekeeping task was not found in the active property");
+    if (rows.length !== 1) throw new HousekeepingConflictError("Housekeeping task detail is ambiguous");
+    return canonicalTaskDetail(rows[0]!);
   }
 
   async listConditions(input: HousekeepingConditionListInput): Promise<HousekeepingConditionPage> {

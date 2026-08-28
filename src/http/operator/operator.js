@@ -68,6 +68,11 @@
  let housekeepingRequestGeneration = 0;
  let housekeepingData = [];
  let housekeepingReturnFocus = "";
+ let housekeepingTaskDetailData = null;
+ let housekeepingTaskDetailRequestGeneration = 0;
+ let housekeepingRouteTaskId = "";
+ let housekeepingTaskDetailReturnFocus = null;
+ let housekeepingTaskDetailPanel = null;
  let housekeepingConditionGeneration = 0;
  let housekeepingConditionRequestGeneration = 0;
  let housekeepingConditionRows = [];
@@ -905,6 +910,7 @@
  housekeepingRequestGeneration += 1;
  housekeepingData = [];
  housekeepingReturnFocus = "";
+ clearHousekeepingTaskDetailState();
  housekeepingAttempts.clear();
  clearHousekeepingSheetState();
  clearVehicleRegisterState();
@@ -957,7 +963,7 @@
   propertySelect.disabled = true;
  } else {
   propertySelect.disabled = false;
-  const pathProperty = location.pathname.match(/^\/p\/([0-9a-f-]+)\/(?:today|availability|inventory|operations|housekeeping|vehicles|reservations|folios|cashiers|restrictions|rates|status|res\/[0-9a-f-]+(?:\/pickup-task\/[0-9a-f-]+)?|folio\/[0-9a-f-]+)$/)?.[1];
+  const pathProperty = location.pathname.match(/^\/p\/([0-9a-f-]+)\/(?:today|availability|inventory|operations|housekeeping(?:\/tasks\/[0-9a-f-]+)?|vehicles(?:\/[0-9a-f-]+)?|reservations|folios|cashiers|restrictions|rates|status|res\/[0-9a-f-]+(?:\/pickup-task\/[0-9a-f-]+)?|folio\/[0-9a-f-]+)$/)?.[1];
   if (pathProperty && body.properties.some(({ id }) => id === pathProperty)) propertySelect.value = pathProperty;
  }
  }
@@ -1940,6 +1946,204 @@ const RESERVATION_TRAVEL_MODE_LABELS = Object.freeze({
   }
  }
   }
+  function canonicalHousekeepingTaskDetailPath(property, taskId) {
+ return `/p/${property}/housekeeping/tasks/${taskId}`;
+ }
+  function housekeepingTaskDetailRouteFromLocation() {
+ const match = location.pathname.match(/^\/p\/([0-9a-f-]+)\/housekeeping\/tasks\/([0-9a-f-]+)$/);
+ if (!match || !canonicalUuid(match[1]) || !canonicalUuid(match[2])) return null;
+ if (location.search) history.replaceState(history.state, "", location.pathname);
+ return { property: match[1], taskId: match[2] };
+ }
+  function housekeepingNavigationRoute() {
+ const detail = housekeepingTaskDetailRouteFromLocation();
+ if (detail) return { kind: "detail", ...detail };
+ const board = location.pathname.match(/^\/p\/([0-9a-f-]+)\/housekeeping$/);
+ return board && canonicalUuid(board[1]) ? { kind: "board", property: board[1] } : { kind: "other" };
+ }
+  function housekeepingTaskDetailResult(value, origin) {
+ const envelopeKeys = value && typeof value === "object" && !Array.isArray(value) ? Object.keys(value).sort().join(",") : "";
+ const task = envelopeKeys === "task" ? value.task : null;
+ const keys = ["assigned", "completedAt", "dueAt", "floor", "priority", "roomCondition", "roomUpdatedAt", "spaceCode", "spaceId", "taskId", "taskStatus"];
+ if (!task || typeof task !== "object" || Array.isArray(task) || Object.keys(task).sort().join(",") !== keys.join(",") ||
+  task.taskId !== origin.taskId || !canonicalUuid(task.taskId) || !canonicalUuid(task.spaceId) ||
+  !["assigned", "in_progress", "done"].includes(task.taskStatus) ||
+  !["clean", "dirty", "pickup", "inspected"].includes(task.roomCondition) ||
+  typeof task.spaceCode !== "string" || task.spaceCode.length < 1 || task.spaceCode.length > 120 ||
+  (task.floor !== null && typeof task.floor !== "string") || typeof task.assigned !== "boolean" ||
+  !Number.isInteger(task.priority) || !housekeepingCanonicalInstant(task.roomUpdatedAt) ||
+  (task.dueAt !== null && !housekeepingCanonicalInstant(task.dueAt)) ||
+  (task.completedAt !== null && !housekeepingCanonicalInstant(task.completedAt))) {
+  throw new Error("The server returned invalid housekeeping-task detail.");
+ }
+ return Object.freeze({ ...task });
+ }
+  function ensureHousekeepingTaskDetailPanel() {
+ if (housekeepingTaskDetailPanel?.isConnected) return housekeepingTaskDetailPanel;
+ const panel = node("section", "card housekeeping-task-detail-panel");
+ panel.hidden = true;
+ panel.setAttribute("aria-labelledby", "housekeeping-task-detail-title");
+ panel.setAttribute("aria-busy", "false");
+ const head = node("div", "housekeeping-task-detail-head");
+ const titleCopy = el("div");
+ titleCopy.append(node("p", "eyebrow", "Housekeeping task"));
+ const title = node("h3", "housekeeping-task-detail-title", "Task detail");
+ title.id = "housekeeping-task-detail-title";
+ title.tabIndex = -1;
+ titleCopy.append(title);
+ const actions = node("div", "housekeeping-task-detail-actions");
+ const back = node("button", "quiet housekeeping-task-detail-back", "Back to board");
+ back.type = "button";
+ const refresh = node("button", "secondary housekeeping-task-detail-refresh", "Refresh detail");
+ refresh.type = "button";
+ actions.append(back, refresh);
+ head.append(titleCopy, actions);
+ const loading = node("div", "housekeeping-task-detail-loading");
+ loading.hidden = true;
+ loading.setAttribute("aria-hidden", "true");
+ loading.append(el("span"), el("span"), el("span"));
+ const error = node("section", "housekeeping-task-detail-error");
+ error.hidden = true;
+ error.setAttribute("role", "alert");
+ const errorCopy = node("p", "", "Housekeeping-task detail is unavailable.");
+ const retry = node("button", "secondary housekeeping-task-detail-retry", "Try again");
+ retry.type = "button";
+ error.append(node("strong", "", "Task detail could not be loaded"), errorCopy, retry);
+ const content = node("div", "housekeeping-task-detail-content");
+ content.hidden = true;
+ panel.append(head, loading, error, content);
+ housekeepingView.append(panel);
+ back.addEventListener("click", () => closeHousekeepingTaskDetail());
+ refresh.addEventListener("click", () => {
+  if (housekeepingRouteTaskId) void loadHousekeepingTaskDetail(housekeepingRouteTaskId, { focus: true });
+ });
+ retry.addEventListener("click", () => {
+  if (housekeepingRouteTaskId) void loadHousekeepingTaskDetail(housekeepingRouteTaskId, { focus: true });
+ });
+ housekeepingTaskDetailPanel = panel;
+ return panel;
+ }
+  function housekeepingTaskDetailRequestIsCurrent(origin, panel) {
+ return origin.requestGeneration === housekeepingTaskDetailRequestGeneration && activeView === "housekeeping" &&
+  origin.property === propertySelect.value && origin.taskId === housekeepingRouteTaskId &&
+  panel.isConnected && panel.hidden === false && housekeepingView.classList.contains("is-task-detail") &&
+  location.pathname === canonicalHousekeepingTaskDetailPath(origin.property, origin.taskId) && location.search === "";
+ }
+  function renderHousekeepingTaskDetail(panel, task) {
+ panel.querySelector(".housekeeping-task-detail-title").textContent = `Room ${task.spaceCode}`;
+ const summary = node("div", "housekeeping-task-detail-summary");
+ summary.append(
+  housekeepingBadge("task-status", HOUSEKEEPING_STATUS_LABELS[task.taskStatus] || task.taskStatus, task.taskStatus),
+  housekeepingBadge("room-condition", HOUSEKEEPING_CONDITION_LABELS[task.roomCondition] || task.roomCondition, task.roomCondition),
+  node("span", "housekeeping-task-read-only", "Read only"),
+ );
+ const facts = node("dl", "housekeeping-task-detail-facts");
+ for (const [label, value] of [
+  ["Room", task.spaceCode], ["Floor", task.floor || "Not recorded"],
+  ["Assignment", task.assigned ? "Assigned" : "Not assigned"], ["Priority", String(task.priority)],
+  ["Due", housekeepingDate(task.dueAt)], ["Room evidence", housekeepingDate(task.roomUpdatedAt)],
+  ["Completed", housekeepingDate(task.completedAt)],
+ ]) facts.append(node("dt", "", label), node("dd", "", value));
+ const identifiers = node("details", "housekeeping-task-detail-identifiers");
+ identifiers.append(node("summary", "", "Recorded identifiers"));
+ const ids = node("dl", "housekeeping-task-detail-facts");
+ ids.append(node("dt", "", "Task ID"), node("dd", "", task.taskId),
+  node("dt", "", "Space ID"), node("dd", "", task.spaceId));
+ identifiers.append(ids);
+ panel.querySelector(".housekeeping-task-detail-content").replaceChildren(summary, facts, identifiers,
+  node("p", "field-note", "Read only. Task transitions remain on the governed Housekeeping board."));
+ panel.querySelector(".housekeeping-task-detail-content").hidden = false;
+ panel.querySelector(".housekeeping-task-detail-loading").hidden = true;
+ panel.querySelector(".housekeeping-task-detail-error").hidden = true;
+ panel.setAttribute("aria-busy", "false");
+ }
+  async function loadHousekeepingTaskDetail(taskId, { focus = false } = {}) {
+ const panel = ensureHousekeepingTaskDetailPanel();
+ const origin = Object.freeze({
+  requestGeneration: ++housekeepingTaskDetailRequestGeneration,
+  property: propertySelect.value,
+  taskId,
+ });
+ panel.setAttribute("aria-busy", "true");
+ panel.querySelector(".housekeeping-task-detail-loading").hidden = false;
+ panel.querySelector(".housekeeping-task-detail-error").hidden = true;
+ panel.querySelector(".housekeeping-task-detail-content").hidden = true;
+ panel.querySelector(".housekeeping-task-detail-refresh").disabled = true;
+ try {
+  const body = await request(`/api/v1/properties/${enc(origin.property)}/housekeeping/tasks/${enc(origin.taskId)}`);
+  if (!housekeepingTaskDetailRequestIsCurrent(origin, panel)) return;
+  const task = housekeepingTaskDetailResult(body, origin);
+  if (!housekeepingTaskDetailRequestIsCurrent(origin, panel)) return;
+  housekeepingTaskDetailData = task;
+  renderHousekeepingTaskDetail(panel, task);
+  housekeepingStatus.textContent = `Exact housekeeping task for room ${task.spaceCode} loaded from server truth.`;
+  if (focus) panel.querySelector(".housekeeping-task-detail-title").focus({ preventScroll: true });
+ } catch (error) {
+  if (!housekeepingTaskDetailRequestIsCurrent(origin, panel)) return;
+  housekeepingTaskDetailData = null;
+  panel.querySelector(".housekeeping-task-detail-loading").hidden = true;
+  panel.querySelector(".housekeeping-task-detail-error").hidden = false;
+  panel.querySelector(".housekeeping-task-detail-error p").textContent = error?.status === 404
+   ? "This eligible housekeeping task was not found in the current property."
+   : error?.status === 409 ? "Stored housekeeping truth is inconsistent; no detail was disclosed."
+    : error instanceof Error ? error.message : "The housekeeping-task detail is unavailable.";
+  panel.setAttribute("aria-busy", "false");
+  housekeepingStatus.textContent = "No housekeeping-task conclusion was made. Retry this read-only request.";
+  if (focus) panel.querySelector(".housekeeping-task-detail-retry").focus({ preventScroll: true });
+ } finally {
+  if (housekeepingTaskDetailRequestIsCurrent(origin, panel)) panel.querySelector(".housekeeping-task-detail-refresh").disabled = false;
+ }
+ }
+  function openHousekeepingTaskDetail(taskId, { push = true, trigger = null, focus = true } = {}) {
+ if (!canonicalUuid(taskId) || !propertySelect.value) return;
+ const panel = ensureHousekeepingTaskDetailPanel();
+ housekeepingRouteTaskId = taskId;
+ housekeepingTaskDetailReturnFocus = trigger || housekeepingTaskDetailReturnFocus;
+ if (housekeepingTaskDetailReturnFocus?.isConnected) housekeepingTaskDetailReturnFocus.setAttribute("aria-expanded", "true");
+ if (push) history.pushState({ yellowSurface: "housekeeping-task-detail" }, "", canonicalHousekeepingTaskDetailPath(propertySelect.value, taskId));
+ housekeepingView.classList.add("is-task-detail");
+ panel.hidden = false;
+ panel.querySelector(".housekeeping-task-detail-title").focus({ preventScroll: true });
+ void loadHousekeepingTaskDetail(taskId, { focus });
+ }
+  function closeHousekeepingTaskDetail({ history: updateHistory = true, restoreFocus = true } = {}) {
+ const returnFocus = housekeepingTaskDetailReturnFocus;
+ housekeepingTaskDetailRequestGeneration += 1;
+ housekeepingTaskDetailData = null;
+ housekeepingRouteTaskId = "";
+ housekeepingTaskDetailReturnFocus = null;
+ for (const action of housekeepingTaskList.querySelectorAll(".housekeeping-task-detail-action")) action.setAttribute("aria-expanded", "false");
+ housekeepingView.classList.remove("is-task-detail");
+ if (housekeepingTaskDetailPanel) {
+  housekeepingTaskDetailPanel.hidden = true;
+  housekeepingTaskDetailPanel.setAttribute("aria-busy", "false");
+ }
+ if (updateHistory && propertySelect.value) {
+  if (history.state?.yellowSurface === "housekeeping-task-detail") history.back();
+  else history.replaceState(null, "", `/p/${propertySelect.value}/housekeeping`);
+ }
+ if (restoreFocus) {
+  const target = returnFocus?.isConnected ? returnFocus : document.querySelector("#housekeeping-title");
+  target?.focus({ preventScroll: true });
+ }
+ }
+  function syncHousekeepingRoute({ focus = false } = {}) {
+ const route = housekeepingNavigationRoute();
+ if (route.kind === "detail" && route.property === propertySelect.value) {
+  openHousekeepingTaskDetail(route.taskId, { push: false, focus: true });
+  return;
+ }
+ if (route.kind !== "board" || route.property !== propertySelect.value) return;
+ const wasDetail = housekeepingRouteTaskId !== "";
+ const returnFocus = housekeepingTaskDetailReturnFocus;
+ closeHousekeepingTaskDetail({ history: false, restoreFocus: false });
+ if (housekeepingData.length === 0) void loadHousekeepingBoard({ focus: focus || wasDetail });
+ else if (focus || wasDetail) (returnFocus?.isConnected ? returnFocus : document.querySelector("#housekeeping-title"))?.focus({ preventScroll: true });
+ }
+  function clearHousekeepingTaskDetailState() {
+ closeHousekeepingTaskDetail({ history: false, restoreFocus: false });
+ housekeepingTaskDetailRequestGeneration += 1;
+ }
   function setHousekeepingState(state, message = "") {
  housekeepingLoading.hidden = state !== "loading";
  housekeepingError.hidden = state !== "error";
@@ -1985,6 +2189,11 @@ const RESERVATION_TRAVEL_MODE_LABELS = Object.freeze({
  ];
  for (const [term, value] of values) evidence.append(node("dt", "", term), node("dd", "", value));
  const actionArea = node("div", "housekeeping-task-action");
+ const detail = node("button", "secondary housekeeping-task-detail-action", "Open details");
+ detail.type = "button";
+ detail.dataset.taskId = task.taskId;
+ detail.setAttribute("aria-label", `Open housekeeping task details for room ${task.spaceCode}`);
+ detail.setAttribute("aria-expanded", "false");
  const allowedActions = Array.isArray(task.allowedActions) ? task.allowedActions.slice(0, 1) : [];
  if (allowedActions.length === 1 && HOUSEKEEPING_ACTION_LABELS[allowedActions[0]]) {
   const action = allowedActions[0];
@@ -2000,12 +2209,13 @@ const RESERVATION_TRAVEL_MODE_LABELS = Object.freeze({
  } else {
   actionArea.append(node("p", "field-note housekeeping-blocker", "No action is permitted for your current grant and this server state."));
  }
+ actionArea.prepend(detail);
  article.append(heading, evidence, actionArea);
  return article;
  }
   function restoreHousekeepingFocus() {
  if (!housekeepingReturnFocus || activeView !== "housekeeping") return;
- const control = [...housekeepingTaskList.querySelectorAll(".housekeeping-action")]
+ const control = [...housekeepingTaskList.querySelectorAll(".housekeeping-task-detail-action,.housekeeping-action")]
   .find((button) => button.dataset.taskId === housekeepingReturnFocus);
  (control || $("#housekeeping-title")).focus({ preventScroll: true });
  housekeepingReturnFocus = "";
@@ -6462,6 +6672,7 @@ function vehicleReturnPathFromState(state, property) {
  if (previousView === "folios" && activeView !== "folios") clearFolioState();
  if (previousView === "today" && activeView !== "today") todayGeneration += 1;
  if (previousView === "housekeeping" && activeView !== "housekeeping") {
+  closeHousekeepingTaskDetail({ history: false, restoreFocus: false });
   housekeepingGeneration += 1;
   housekeepingRequestGeneration += 1;
   housekeepingConditionGeneration += 1;
@@ -6504,11 +6715,21 @@ function vehicleReturnPathFromState(state, property) {
  }
  if (activeView === "operations") void loadOperationalBlocks();
  if (activeView === "housekeeping") {
-  void loadHousekeepingBoard();
-  void loadHousekeepingConditions();
-  if (housekeepingSheetDate.value) {
-  if (housekeepingSheetAttendant) void previewHousekeepingSheet();
-  else void loadHousekeepingSheetHistory();
+  if (propertySelect.value) {
+   const route = housekeepingNavigationRoute();
+   if (route.kind === "other" || route.property !== propertySelect.value) {
+    history.replaceState(null, "", `/p/${propertySelect.value}/housekeeping`);
+   }
+   if (housekeepingNavigationRoute().kind === "detail") syncHousekeepingRoute();
+   else {
+    syncHousekeepingRoute();
+    void loadHousekeepingBoard();
+    void loadHousekeepingConditions();
+    if (housekeepingSheetDate.value) {
+     if (housekeepingSheetAttendant) void previewHousekeepingSheet();
+     else void loadHousekeepingSheetHistory();
+    }
+   }
   }
  }
  if (activeView === "vehicles") {
@@ -8267,6 +8488,11 @@ function vehicleReturnPathFromState(state, property) {
  if (activeView === "folios" && event.key === "Escape" && !folioWorkspace.hidden) {
   event.preventDefault();
   folioWorkspaceBack.click();
+ return;
+ }
+ if (activeView === "housekeeping" && event.key === "Escape" && housekeepingRouteTaskId && housekeepingTaskDetailPanel?.hidden === false) {
+  event.preventDefault();
+  closeHousekeepingTaskDetail();
   return;
  }
  if (activeView === "vehicles" && event.key === "Escape" && vehicleRouteVehicleId && vehicleDetailPanel?.hidden === false) {
@@ -8309,6 +8535,7 @@ function vehicleReturnPathFromState(state, property) {
  }
  if (!reservationCreatePanel.hidden) closeReservationCreate({ history: false, force: true });
  closeReservationPickupTaskDetail({ history: false, restoreFocus: false });
+ clearHousekeepingTaskDetailState();
  reservationBookingSearchGeneration += 1;
  reservationBoardGeneration += 1;
  reservationDetailGeneration += 1;
@@ -8458,6 +8685,11 @@ function vehicleReturnPathFromState(state, property) {
  openVehicleDetail(action.dataset.vehicleId, { trigger: action });
  });
  housekeepingTaskList.addEventListener("click", (event) => {
+  const detail = event.target.closest?.(".housekeeping-task-detail-action");
+  if (detail instanceof HTMLButtonElement && canonicalUuid(detail.dataset.taskId || "")) {
+   openHousekeepingTaskDetail(detail.dataset.taskId, { trigger: detail });
+   return;
+  }
   const button = event.target.closest?.(".housekeeping-action");
   if (button && !button.disabled) void submitHousekeepingAction(button);
  });
@@ -8545,10 +8777,13 @@ function vehicleReturnPathFromState(state, property) {
   if (activeView !== "today") setView("today", false);
   return;
  }
- if (location.pathname === `/p/${propertySelect.value}/housekeeping`) {
+ const housekeepingRoute = housekeepingNavigationRoute();
+ if (housekeepingRoute.kind !== "other" && housekeepingRoute.property === propertySelect.value) {
   closeReservationDetail({ history: false, restoreFocus: false });
   if (activeView !== "housekeeping") setView("housekeeping", false);
+  else if (housekeepingRoute.kind === "detail") syncHousekeepingRoute({ focus: true });
   else {
+   syncHousekeepingRoute({ focus: true });
    void loadHousekeepingBoard();
    void loadHousekeepingConditions();
   }
@@ -9240,7 +9475,7 @@ function vehicleReturnPathFromState(state, property) {
  const initialView = location.pathname.endsWith("/inventory") ? "inventory" :
  location.pathname.endsWith("/today") ? "today" :
  location.pathname.endsWith("/operations") ? "operations" :
- location.pathname.endsWith("/housekeeping") ? "housekeeping" :
+ (/^\/p\/[0-9a-f-]+\/housekeeping(?:\/tasks\/[0-9a-f-]+)?$/.test(location.pathname)) ? "housekeeping" :
  (/^\/p\/[0-9a-f-]+\/vehicles(?:\/[0-9a-f-]+)?$/.test(location.pathname)) ? "vehicles" :
  (location.pathname.endsWith("/reservations") || /^\/p\/[0-9a-f-]+\/res\/[0-9a-f-]+(?:\/pickup-task\/[0-9a-f-]+)?$/.test(location.pathname)) ? "reservations" :
  (location.pathname.endsWith("/folios") || /^\/p\/[0-9a-f-]+\/folio\/[0-9a-f-]+$/.test(location.pathname)) ? "folios" :

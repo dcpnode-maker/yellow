@@ -100,6 +100,7 @@ export function createApp(options: AppOptions = {}) {
       .get("/p/:property/rates", ({ request }) => operatorAssets.html(options.operatorLocalReviewCredentials, request))
       .get("/p/:property/operations", ({ request }) => operatorAssets.html(options.operatorLocalReviewCredentials, request))
       .get("/p/:property/housekeeping", ({ request }) => operatorAssets.html(options.operatorLocalReviewCredentials, request))
+      .get("/p/:property/housekeeping/tasks/:task", ({ request }) => operatorAssets.html(options.operatorLocalReviewCredentials, request))
       .get("/p/:property/vehicles", ({ request }) => operatorAssets.html(options.operatorLocalReviewCredentials, request))
       .get("/p/:property/vehicles/:vehicle", ({ request }) => operatorAssets.html(options.operatorLocalReviewCredentials, request))
       .get("/p/:property/reservations", ({ request }) => operatorAssets.html(options.operatorLocalReviewCredentials, request))
@@ -385,6 +386,11 @@ export function createApp(options: AppOptions = {}) {
       )
       .get("/api/v1/properties/:property/housekeeping/tasks", ({ request, params, tenantContext }) =>
         withOperatorTenant(request, (context) => operator.housekeepingBoard(context, params.property))
+      )
+      .get("/api/v1/properties/:property/housekeeping/tasks/:task", ({ request, params, tenantContext }) =>
+        withOperatorTenant(request, (context) => operator.housekeepingTaskDetail(
+          context, params.property, params.task,
+        ))
       )
       .get("/api/v1/properties/:property/housekeeping/conditions", ({ request, params, tenantContext }) =>
         withOperatorTenant(request, (context) => operator.housekeepingConditions(context, params.property))

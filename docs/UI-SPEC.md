@@ -489,3 +489,50 @@ raised/inset shadows; ERP uses compact rectangular information density. The same
 and reading order remain authoritative across all six. Controls are at least 44
 pixels, identifiers wrap at 375 pixels and 200% zoom, forced colours restore system
 borders, and reduced motion removes loading animation.
+
+## 24. Housekeeping-task exact detail
+
+Every canonical task on the existing Housekeeping board exposes one semantic **Open
+details** action. It opens the exact nested route
+`/p/{property}/housekeeping/tasks/{task}` and reads only the dedicated property-scoped
+housekeeping-task endpoint. The board route remains
+`/p/{property}/housekeeping`. Direct navigation, refresh and Forward refetch the
+detail; a query on the nested route is removed so the pathname remains canonical.
+
+The single bounded panel identifies the physical room and presents literal task
+status and room condition, assignment presence, floor, priority, nullable due and
+completion instants, the room-condition evidence instant, and progressively disclosed
+task and space identifiers. Loading is exposed through `aria-busy`; failure is an
+alert with an explicit retry. Task truth is limited to **Assigned**, **In progress**
+and **Done**, while room truth is limited to **Clean**, **Dirty**, **Pickup** and
+**Inspected**. Text carries the complete meaning; colour, depth and material are
+supporting cues only.
+
+The surface is strictly read only. It does not offer assignment, transition,
+completion, cancellation or any other lifecycle command; governed task transitions
+remain on the Housekeeping board. It does not poll, persist browser state, reuse list
+data as detail authority, or disclose payload, notes, credits, sheet, assignee
+identity, Party/contact/updater, reservation, guest, occupancy or discrepancy data.
+It makes no inferred readiness, workload, SLA, urgency or availability claim. A
+missing or inconsistent record remains on the exact route and shows a retryable error
+without partial disclosure.
+
+Back, **Back to board** and Escape restore the plain Housekeeping route. Focus returns
+to the originating **Open details** action while it remains connected, or to the
+Housekeeping heading after a cold direct link or changed board. An operator-requested
+refresh focuses the refreshed room heading on success and the retry control on
+failure. Property, task, active-view, exact-pathname, mounted-panel and
+request-generation guards make late responses and detached focus attempts inert;
+leaving the route invalidates the pending read.
+
+Apple iOS uses a restrained translucent grouped panel with rounded inner surfaces;
+Android uses Material 3 shape, elevation and 48-pixel controls; Windows 95/98 uses
+square inset/outset system chrome and a navy title bar; glassmorphism uses layered
+translucent gradients, blur and luminous boundaries; neomorphism uses paired
+raised/inset shadows; ERP uses compact rectangular information density and a clear
+blue rule. The semantic order and server truth remain identical across all six.
+Controls are at least 44 pixels, long headings and identifiers wrap, facts collapse
+to one column, and actions become full width so the panel contains at 375 pixels and
+200% zoom. Keyboard focus remains visible. Forced colours replace decorative
+materials with explicit Canvas/CanvasText boundaries, and reduced motion removes the
+loading animation and nonessential transitions.

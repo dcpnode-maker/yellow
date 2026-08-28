@@ -348,6 +348,23 @@ occupancy, reservation/guest, OOO/OOS, readiness, source/reason or inferred stat
 No condition-write route exists, and the read has no task transition, condition,
 space, occupancy, reservation, fact, outbox or idempotency capability.
 
+### Housekeeping-task exact-detail containment
+
+Order 217 adds one read-only exact-task route behind the existing
+`housekeeping.tasks:read` scope and exact property grant. The adapter rejects every
+query parameter and validates both path identities before the service read. Missing
+scope is forbidden, while an ungranted property and concealed task identity share the
+same not-found boundary.
+
+The domain read independently re-proves an eligible housekeeping task, its active
+physical room and canonical room-condition truth under tenant-local RLS. Ambiguous or
+hostile stored shape fails closed as conflict without returning partial detail. The
+adapter explicitly re-minimizes the result to the Order 217 task fields, excludes
+assignee identity, payload, notes, guest, reservation, occupancy and financial data,
+and makes every response no-store. The human route serves the existing operator shell;
+it adds no transition, assignment, mutation, polling or generic task authority. The
+Order 201 board and lifecycle actions remain unchanged.
+
 ## 6. Statutory & privacy
 
 ### Token-only payment containment

@@ -136,7 +136,7 @@ test("Order 201 workbench is bounded, stale-safe, retry-safe and accessible in s
     'id="housekeeping-refresh"', 'id="housekeeping-retry"', 'id="housekeeping-status" role="status" aria-live="polite"',
   ]) expect(html).toContain(marker);
   expect(html).toContain("does not create, assign, cancel or reopen tasks");
-  expect(script).toContain('location.pathname.endsWith("/housekeeping") ? "housekeeping"');
+  expect(script).toContain(String.raw`(/^\/p\/[0-9a-f-]+\/housekeeping(?:\/tasks\/[0-9a-f-]+)?$/.test(location.pathname)) ? "housekeeping"`);
   expect(script).toContain('location.pathname === `/p/${property}/housekeeping`');
   expect(script).toContain("generation === housekeepingGeneration");
   expect(script).toContain("requestGeneration === housekeepingRequestGeneration");

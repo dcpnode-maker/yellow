@@ -886,3 +886,27 @@ idempotency write.
 `stay-operations.vehicles:read` scope and exact property grant, accepts no query and
 is `Cache-Control: no-store`. It adds no vehicle create/edit, entry/exit, parking,
 occupancy or generic lifecycle authority.
+
+## 28. Governed housekeeping-task exact-detail boundary
+
+`HousekeepingTaskService.get` accepts only one lowercase tenant UUID, property UUID
+and task UUID. One transaction-local tenant read admits only the existing board's
+`kind='housekeeping'`, `subject_type='space'`, `assigned|in_progress|done` task joined
+to one active physical room in the exact property and that room's canonical
+`unit_condition` row. Missing, foreign, wrong-property/kind/subject/status,
+inactive-room and missing-condition identities are indistinguishable not-found
+results. Malformed selected values fail the complete read as a conflict without
+partial disclosure.
+
+The deeply frozen service result is exactly `taskId`, `taskStatus`, `spaceId`,
+`spaceCode`, nullable `floor`, `roomCondition`, `roomUpdatedAt`, Boolean `assigned`,
+nullable `dueAt`, integer `priority` and nullable `completedAt`. Payload, notes,
+credits, sheet/assignee/Party/contact/updater identity, reservation, guest, occupancy,
+discrepancy, readiness, workload, SLA, urgency and room-availability inference are
+excluded. Repeated unchanged reads are byte-equivalent and perform no task, room,
+condition, occupancy, fact, outbox or idempotency write.
+
+`GET /api/v1/properties/{property}/housekeeping/tasks/{task}` requires the existing
+`housekeeping.tasks:read` scope and exact property grant, accepts no query and is
+`Cache-Control: no-store`. It is an exact read-only detail, not generic task authority;
+existing board transitions remain separate and unchanged.

@@ -1,8 +1,8 @@
 # Phase 6 — Stay operations and housekeeping
 
-**Status:** active; Orders 200–216 are built-unreviewed
+**Status:** active; Orders 200–217 are built-unreviewed
 **Entry point:** built-unreviewed Phase-5 composition through Order 199
-**Current order:** `217-housekeeping-task-detail.md` (ready)
+**Current order:** Order 217 built-unreviewed; next bounded slice not yet opened
 
 ## Outcome
 
@@ -224,7 +224,7 @@ route under the existing Order205 authority. It exposes only the already-approve
 minimized row, re-proves linked reservation/Party associations and adds no write,
 parking/occupancy inference or action, polling, scope, migration or event.
 
-Order 217 owns one exact read-only housekeeping-task detail endpoint and nested human
+Order 217 is built-unreviewed and owns one exact read-only housekeeping-task detail endpoint and nested human
 route under the existing Order201 board read authority. It exposes only exact eligible
 task/active-room/condition truth and adds no generic task API, lifecycle mutation,
 notes/payload/assignee identity, inference, polling, scope, migration or event.

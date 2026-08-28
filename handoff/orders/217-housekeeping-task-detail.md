@@ -1,6 +1,6 @@
 # Order 217 — Housekeeping-task exact detail
 
-**Status:** READY-D577 — intentional red must precede implementation
+**Status:** BUILT-UNREVIEWED-D578 — independent Tier-3 execution remains pending
 **Phase:** 6 — Stay operations and housekeeping
 **Branch:** `phase-6/housekeeping-task-detail`
 **Base:** `2963bfc` (built-unreviewed Order216)
@@ -85,9 +85,9 @@ admitted.
 
 ## Definition of done
 
-- [ ] Intentional red precedes implementation.
-- [ ] Service and endpoint return only exact eligible housekeeping-task truth.
-- [ ] Human detail route is stale-safe, accessible and read-only across six appearances.
-- [ ] Existing board actions and governed transitions remain unchanged.
-- [ ] Focused, standing and referee gates are green.
-- [ ] Result is recorded built-unreviewed; independent Tier-3 execution remains pending.
+- [x] Intentional red precedes implementation.
+- [x] Service and endpoint return only exact eligible housekeeping-task truth.
+- [x] Human detail route is stale-safe, accessible and read-only across six appearances.
+- [x] Existing board actions and governed transitions remain unchanged.
+- [x] Focused, standing and referee gates are green.
+- [x] Result is recorded built-unreviewed; independent Tier-3 execution remains pending.
