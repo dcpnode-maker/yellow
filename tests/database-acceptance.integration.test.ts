@@ -200,6 +200,11 @@ const EXPECTED_MIGRATIONS = [
     filename: "0039_parking_occupancy_definer_path_repair.sql",
     checksum_sha256: "365ffb951f4ea5f4febac97ed7a4d86d5c342891d0d5464e8a36a73653c1b841",
   },
+  {
+    version: 40,
+    filename: "0040_quoted_tax_hold_binding.sql",
+    checksum_sha256: "b61d1332acf17df9189612d355fb584754bdd7ddda9782e377bf73be44cc589b",
+  },
 ];
 
 if (REQUIRE_DATABASE && !DATABASE_URL) {
@@ -280,6 +285,105 @@ databaseDescribe("fresh deployment database acceptance", () => {
     expect(functions[0]!.wrong_owner).toBe(0);
   });
 
+  test("has the exact append-only quoted-tax hold-binding root and bounded capability", async () => {
+    const relation = await sql!<Array<{
+      owner: string; rls: boolean; tenantPolicy: boolean; appSelect: boolean;
+      appMutation: boolean; publicPrivileges: number; holdUnique: boolean;
+      attributionUnique: boolean; snapshotHashUnique: boolean;
+      compositeHoldFk: boolean; compositeAttributionFk: boolean;
+    }>>`
+      SELECT pg_catalog.pg_get_userbyid(class.relowner) AS owner,
+             class.relrowsecurity AS rls,
+             EXISTS (
+               SELECT 1 FROM pg_catalog.pg_policy
+                WHERE polrelid=class.oid AND polname='tenant_isolation'
+             ) AS "tenantPolicy",
+             pg_catalog.has_table_privilege('app_role', class.oid, 'SELECT') AS "appSelect",
+             (
+               pg_catalog.has_table_privilege('app_role', class.oid, 'INSERT')
+               OR pg_catalog.has_table_privilege('app_role', class.oid, 'UPDATE')
+               OR pg_catalog.has_table_privilege('app_role', class.oid, 'DELETE')
+               OR pg_catalog.has_table_privilege('app_role', class.oid, 'TRUNCATE')
+             ) AS "appMutation",
+             (
+               SELECT count(*)::int
+                 FROM pg_catalog.aclexplode(
+                   COALESCE(class.relacl, pg_catalog.acldefault('r', class.relowner))
+                 ) AS acl
+                WHERE acl.grantee=0
+             ) AS "publicPrivileges",
+             EXISTS (
+               SELECT 1 FROM pg_catalog.pg_constraint
+                WHERE conrelid=class.oid
+                  AND conname='tax_attribution_hold_binding_hold_uq' AND contype='u'
+             ) AS "holdUnique",
+             EXISTS (
+               SELECT 1 FROM pg_catalog.pg_constraint
+                WHERE conrelid=class.oid
+                  AND conname='tax_attribution_hold_binding_attribution_uq' AND contype='u'
+             ) AS "attributionUnique",
+             EXISTS (
+               SELECT 1 FROM pg_catalog.pg_constraint
+                WHERE conrelid=class.oid
+                  AND conname='tax_attribution_hold_binding_snapshot_hash_uq' AND contype='u'
+             ) AS "snapshotHashUnique",
+             EXISTS (
+               SELECT 1 FROM pg_catalog.pg_constraint
+                WHERE conrelid=class.oid
+                  AND conname='tax_attribution_hold_binding_hold_fk'
+                  AND confrelid='public.hold'::regclass
+             ) AS "compositeHoldFk",
+             EXISTS (
+               SELECT 1 FROM pg_catalog.pg_constraint
+                WHERE conrelid=class.oid
+                  AND conname='tax_attribution_hold_binding_attribution_fk'
+                  AND confrelid='public.tax_attribution_snapshot'::regclass
+             ) AS "compositeAttributionFk"
+        FROM pg_catalog.pg_class AS class
+       WHERE class.oid='public.tax_attribution_hold_binding'::regclass
+    `;
+    expect(relation).toEqual([{
+      owner: "yellow_owner",
+      rls: true,
+      tenantPolicy: true,
+      appSelect: true,
+      appMutation: false,
+      publicPrivileges: 0,
+      holdUnique: true,
+      attributionUnique: true,
+      snapshotHashUnique: true,
+      compositeHoldFk: true,
+      compositeAttributionFk: true,
+    }]);
+
+    const capability = await sql!<Array<{
+      signature: string; owner: string; securityDefiner: boolean; config: string[];
+      appExecute: boolean; runtimeExecute: boolean; publicExecute: boolean; result: string;
+    }>>`
+      SELECT procedure.oid::regprocedure::text AS signature,
+             pg_catalog.pg_get_userbyid(procedure.proowner) AS owner,
+             procedure.prosecdef AS "securityDefiner",
+             procedure.proconfig AS config,
+             pg_catalog.has_function_privilege('app_role', procedure.oid, 'EXECUTE') AS "appExecute",
+             pg_catalog.has_function_privilege('yellow_runtime', procedure.oid, 'EXECUTE') AS "runtimeExecute",
+             pg_catalog.has_function_privilege('public', procedure.oid, 'EXECUTE') AS "publicExecute",
+             pg_catalog.pg_get_function_result(procedure.oid) AS result
+        FROM pg_catalog.pg_proc AS procedure
+       WHERE procedure.oid =
+         'public.record_tax_attribution_hold_binding(uuid,uuid,uuid,uuid,uuid)'::regprocedure
+    `;
+    expect(capability).toEqual([{
+      signature: "record_tax_attribution_hold_binding(uuid,uuid,uuid,uuid,uuid)",
+      owner: "yellow_owner",
+      securityDefiner: true,
+      config: ["search_path=pg_catalog, public, pg_temp"],
+      appExecute: true,
+      runtimeExecute: false,
+      publicExecute: false,
+      result: "TABLE(binding_id uuid, property_node uuid, hold_id uuid, attribution_id uuid, origin_quote_hash text, snapshot_hash text, currency character, bound_by uuid, bound_at timestamp with time zone, created boolean)",
+    }]);
+  });
+
   test("keeps app_role as an unassumable internal policy role", async () => {
     const role = await sql!<Array<{
       canLogin: boolean;
@@ -348,7 +452,7 @@ databaseDescribe("fresh deployment database acceptance", () => {
         (SELECT count(*)::int FROM pg_catalog.pg_tables WHERE schemaname = 'public') AS tables,
         (SELECT count(*)::int FROM pg_catalog.pg_policies WHERE schemaname = 'public') AS policies
     `;
-    expect(shape).toEqual([{ tables: 94, policies: 84 }]);
+    expect(shape).toEqual([{ tables: 95, policies: 85 }]);
 
     const relations = await sql!<Array<{
       relation: string;
@@ -460,7 +564,7 @@ databaseDescribe("fresh deployment database acceptance", () => {
         has_column_privilege('app_role','public.journal','approval_request_id','UPDATE') AS "appApprovalUpdate"
     `;
     expect(shape).toEqual([{
-      tables: 94, policies: 84, directBill: 1,
+      tables: 95, policies: 85, directBill: 1,
       approvalNullable: true, compositeFk: true, oneUseIndex: true,
       appApprovalInsert: false, appApprovalUpdate: false,
     }]);

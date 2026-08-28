@@ -604,6 +604,24 @@ journal, posting, tax detail, document, series, submission or provider effect. A
 later authoritative re-quote and booking command must bind the evidence before any
 consumer may infer acceptance or money movement.
 
+### Quoted Tax Hold Binding aggregate — Tax/Fiscal
+
+**Root:** `tax_attribution_hold_binding`.
+
+Order248 creates one immutable tenant/property association between an existing cart
+hold and an existing `tax_attribution_snapshot`. Its duplicated quote and snapshot
+hashes must agree with the attribution root, and its sellable/stay identity must agree
+with the active cart hold at creation. Runtime receives no raw table DML; a bounded
+owner capability inserts only after those exact references and active-tenant context
+are proven.
+
+**Command:** `placeQuotedTaxHold(quote, ttl, idempotencyKey)` takes the release
+publication lock, authoritatively re-quotes, derives the canonical snapshot and calls
+the existing hold and attribution owners before binding them atomically. The root has
+no update or delete transition. Hold expiry/release is retained independently and
+does not erase the evidence association. The aggregate grants no reservation,
+posting, document, tax return or submission authority.
+
 ### Document aggregate — Tax/Fiscal
 
 **Root:** `document` under `document_series`.

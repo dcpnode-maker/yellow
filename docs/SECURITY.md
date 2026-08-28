@@ -669,6 +669,21 @@ other vehicle, stay, room, financial, business-day or statutory truth.
 
 ## 6. Statutory & privacy
 
+### Quoted-tax hold binding containment
+
+Order248 accepts no caller price, quote hash, snapshot or tax total. It re-normalizes
+the complete quote input, acquires the exact rate-plan publication advisory lock and
+requires a fresh exact-property/sellable bookable quote with complete calculated tax
+before any mutation. The existing hold and attribution services remain the only
+occupancy and snapshot writers; runtime cannot insert, update, delete or truncate the
+new binding root directly.
+
+The owner-mediated binding capability rechecks active-tenant property, actor, cart
+hold and attribution identity and emits only minimized ids/hashes/currency. Outer
+idempotency, root creation, fact and outbox share one rollback boundary. Expired or
+released holds do not delete evidence, and no binding reader or writer gains
+reservation, financial posting, document or fiscal-submission authority.
+
 ### Token-only payment containment
 
 Runtime may select and insert only the enumerated columns on payment operations,

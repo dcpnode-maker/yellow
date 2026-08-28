@@ -563,6 +563,24 @@ belongs to that property, was accepted, protected by a hold, committed to a
 reservation, posted, invoiced, submitted or fiscally finalized. Those links require
 separate authoritative commands.
 
+### Authoritative quoted-tax cart-hold binding
+
+Order248 adds that first authoritative link without accepting a reservation. The
+internal command accepts only the complete strict quote input, the canonical
+600-second cart-hold TTL, command idempotency and the actor-bound audit envelope. It takes the
+same tenant/rate-plan advisory lock used by release publication before resolving a
+fresh quote. The result must match the active tenant, exact property and sellable,
+remain live-bookable, have composition state `quoted`, and carry a calculated tax
+preview. A caller cannot provide or override quote hash, price, snapshot or tax.
+
+The command derives the canonical Order240 value from the fresh nightly quote and
+calculated tax evidence, then uses the existing hold and Order244 persistence owners.
+One append-only binding records the resulting hold, attribution, quote and snapshot
+identities; one minimized `tax.attribution_bound` fact/outbox pair and the idempotent
+receipt share the same transaction. Expiry or release changes only the existing hold
+state and never deletes binding evidence. Neither the receipt nor event is a price
+promise, hold consumption, reservation, posting, invoice or fiscal authorization.
+
 ## 8. Pure rate-model evaluator
 
 Order 067's in-process evaluator is a draft/simulation primitive, not a database or HTTP contract.

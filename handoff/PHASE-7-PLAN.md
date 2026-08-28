@@ -138,3 +138,24 @@ parking/occupancy behavior remain unchanged. The exact schema stays at 94 tables
 84 RLS policies; migration proof passes `36/36` with 160 assertions, acceptance
 passes `8/8` with 18 assertions and the referee passes `11/11`. This closes the
 Order244 executable gate without claiming independent approval or Phase completion.
+
+## Order 248 built boundary
+
+Order248 is the first authoritative booking-edge use of the persisted attribution
+root. One internal command takes the same advisory lock as release publication,
+normalizes and freshly resolves the complete quote input, and refuses any result that
+is not exact-property, exact-sellable, live-bookable, quoted and fully tax-calculated.
+Only that result may produce the canonical Order240 snapshot, existing cart hold,
+Order244 record and one new append-only binding in the same tenant transaction.
+
+The binding and minimized `tax.attribution_bound` fact/outbox evidence survive later
+hold expiry or release as audit history. They do not consume the hold, accept a
+reservation, guarantee price, mutate a folio/journal/posting/tax detail, issue a
+document or authorize fiscal submission. HTTP, UI and local runtime promotion remain
+separate work. Independent Tier-3 product review remains deferred under the founder's
+build-first direction.
+
+Order248 is built-unreviewed under D-646. Fresh PostgreSQL proof reaches migration40,
+95 tables and 85 policies; focused P0-P6 is 8/8, the native referee is 11/11, and the
+824-test standing suite is green. This records executable booking-edge evidence only;
+posting, fiscal documents/IRP and Phase7 completion remain pending.

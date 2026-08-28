@@ -172,7 +172,7 @@ financial, business-day or statutory effects.
 
 **distribution** · inbound.received {channel,external_id} · inbound.processed {reservation_id}/.failed · ari.push_requested {channel,unit_types,date_range} · map.changed
 
-**tax/fiscal/statutory** · tax.attribution_recorded {attribution_id,property_node,origin_kind,origin_quote_hash,snapshot_hash,currency} · document.issued {kind,doc_no,hash} · document.cleared/.rejected {authority_ref} · statutory.due {adapter,due_at} · statutory.submitted/.accepted/.failed · erasure.completed
+**tax/fiscal/statutory** · tax.attribution_recorded {attribution_id,property_node,origin_kind,origin_quote_hash,snapshot_hash,currency} · tax.attribution_bound {binding_id,attribution_id,hold_id,property_node,origin_quote_hash,snapshot_hash,currency} · document.issued {kind,doc_no,hash} · document.cleared/.rejected {authority_ref} · statutory.due {adapter,due_at} · statutory.submitted/.accepted/.failed · erasure.completed
 
 `tax.attribution_recorded` states only that one exact positive Order-240 `rate_quote`
 snapshot became an immutable tenant root under one contextual property and actor. The
@@ -183,6 +183,13 @@ hashes and currency only. It contains no full snapshot, guest/Party data, amount
 night, component, account, posting or document content. Consumers must not infer
 property ownership of the quote, offer acceptance, inventory protection, reservation,
 folio, posting, invoice, fiscal finality or submission from this evidence event.
+
+`tax.attribution_bound` states only that one authoritative fresh quote produced one
+temporary cart hold and its exact persisted positive attribution in the same tenant
+transaction. Its payload is identity-only and excludes guest/Party data, full quote,
+snapshot, amount, tax components, accounts and document content. Retention after hold
+expiry/release is audit evidence, not a reservation, price promise, posting, invoice
+or submission outcome.
 
 **kernel** · extension.activated {type,key,version} · automation.fired {automation_id,action,result} · approval.requested/.decided
 

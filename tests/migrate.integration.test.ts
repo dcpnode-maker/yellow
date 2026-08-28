@@ -516,7 +516,7 @@ databaseDescribe("Bun SQL migration runner", () => {
         const tableCount = await sql<{ count: number }[]>`
           SELECT count(*)::int AS count FROM pg_catalog.pg_tables WHERE schemaname = 'public'
         `;
-        expect(tableCount).toEqual([{ count: 94 }]);
+        expect(tableCount).toEqual([{ count: 95 }]);
       });
     },
     60_000,
@@ -701,7 +701,7 @@ databaseDescribe("Bun SQL migration runner", () => {
                   'open_cashier_session', 'append_cashier_count', 'close_cashier_session'
                 )) AS functions
         `;
-        expect(shape).toEqual([{ tables: 94, policies: 84, functions: 3 }]);
+        expect(shape).toEqual([{ tables: 95, policies: 85, functions: 3 }]);
       });
     },
     60_000,
@@ -748,7 +748,7 @@ databaseDescribe("Bun SQL migration runner", () => {
               WHERE table_schema = 'public' AND table_name = 'journal'
                 AND column_name = 'approval_request_id') AS "approvalColumns"
         `;
-        expect(shape).toEqual([{ tables: 94, policies: 84, functions: 1, approvalColumns: 1 }]);
+        expect(shape).toEqual([{ tables: 95, policies: 85, functions: 1, approvalColumns: 1 }]);
       });
     },
     60_000,
@@ -791,7 +791,7 @@ databaseDescribe("Bun SQL migration runner", () => {
               WHERE namespace.nspname = 'public'
                 AND procedure.proname = 'transition_housekeeping_task') AS functions
         `;
-        expect(shape).toEqual([{ tables: 94, policies: 84, functions: 1 }]);
+        expect(shape).toEqual([{ tables: 95, policies: 85, functions: 1 }]);
       });
     },
     60_000,
@@ -1309,6 +1309,183 @@ databaseDescribe("Bun SQL migration runner", () => {
   );
 
   test(
+    "applies the exact quoted-tax cart-hold binding migration and denies capability abuse",
+    async () => {
+      await withDatabase(async ({ databaseUrl: targetUrl, sql }) => {
+        const result = await runMigrations({
+          databaseUrl: targetUrl,
+          migrationsDirectory: PROJECT_MIGRATIONS,
+          logger: () => undefined,
+        });
+        expect(result.appliedFiles).toContain("0040_quoted_tax_hold_binding.sql");
+
+        const ledger = await sql<Array<{
+          version: number | bigint; filename: string; checksum_sha256: string;
+        }>>`
+          SELECT version, filename, checksum_sha256
+            FROM public.schema_migration
+           WHERE version = 40
+        `;
+        expect(ledger.map((row) => ({ ...row, version: Number(row.version) }))).toEqual([{
+          version: 40,
+          filename: "0040_quoted_tax_hold_binding.sql",
+          checksum_sha256: "b61d1332acf17df9189612d355fb584754bdd7ddda9782e377bf73be44cc589b",
+        }]);
+
+        const relation = await sql<Array<{
+          owner: string; rls: boolean; tenantPolicy: boolean; appSelect: boolean;
+          rawDmlDenied: boolean; propertyFk: boolean; actorFk: boolean;
+          holdFk: boolean; attributionFk: boolean; holdUnique: boolean;
+          attributionUnique: boolean; snapshotHashUnique: boolean; parentHoldIdentity: boolean;
+          parentAttributionIdentity: boolean;
+        }>>`
+          SELECT pg_catalog.pg_get_userbyid(cls.relowner) AS owner,
+                 cls.relrowsecurity AS rls,
+                 EXISTS (
+                   SELECT 1 FROM pg_catalog.pg_policy
+                    WHERE polrelid=cls.oid AND polname='tenant_isolation'
+                 ) AS "tenantPolicy",
+                 pg_catalog.has_table_privilege('app_role', cls.oid, 'SELECT') AS "appSelect",
+                 NOT (
+                   pg_catalog.has_table_privilege('app_role', cls.oid, 'INSERT')
+                   OR pg_catalog.has_table_privilege('app_role', cls.oid, 'UPDATE')
+                   OR pg_catalog.has_table_privilege('app_role', cls.oid, 'DELETE')
+                   OR pg_catalog.has_table_privilege('app_role', cls.oid, 'TRUNCATE')
+                 ) AS "rawDmlDenied",
+                 EXISTS (
+                   SELECT 1 FROM pg_catalog.pg_constraint
+                    WHERE conrelid=cls.oid
+                      AND conname='tax_attribution_hold_binding_property_fk'
+                      AND confrelid='public.org_node'::regclass
+                 ) AS "propertyFk",
+                 EXISTS (
+                   SELECT 1 FROM pg_catalog.pg_constraint
+                    WHERE conrelid=cls.oid
+                      AND conname='tax_attribution_hold_binding_actor_fk'
+                      AND confrelid='public.app_user'::regclass
+                 ) AS "actorFk",
+                 EXISTS (
+                   SELECT 1 FROM pg_catalog.pg_constraint
+                    WHERE conrelid=cls.oid
+                      AND conname='tax_attribution_hold_binding_hold_fk'
+                      AND confrelid='public.hold'::regclass
+                 ) AS "holdFk",
+                 EXISTS (
+                   SELECT 1 FROM pg_catalog.pg_constraint
+                    WHERE conrelid=cls.oid
+                      AND conname='tax_attribution_hold_binding_attribution_fk'
+                      AND confrelid='public.tax_attribution_snapshot'::regclass
+                 ) AS "attributionFk",
+                 EXISTS (
+                   SELECT 1 FROM pg_catalog.pg_constraint
+                    WHERE conrelid=cls.oid
+                      AND conname='tax_attribution_hold_binding_hold_uq'
+                      AND contype='u'
+                 ) AS "holdUnique",
+                 EXISTS (
+                   SELECT 1 FROM pg_catalog.pg_constraint
+                    WHERE conrelid=cls.oid
+                      AND conname='tax_attribution_hold_binding_attribution_uq'
+                      AND contype='u'
+                 ) AS "attributionUnique",
+                 EXISTS (
+                   SELECT 1 FROM pg_catalog.pg_constraint
+                    WHERE conrelid=cls.oid
+                      AND conname='tax_attribution_hold_binding_snapshot_hash_uq'
+                      AND contype='u'
+                 ) AS "snapshotHashUnique",
+                 EXISTS (
+                   SELECT 1 FROM pg_catalog.pg_constraint
+                    WHERE conrelid='public.hold'::regclass
+                      AND conname='hold_tax_binding_identity_uq'
+                      AND contype='u'
+                 ) AS "parentHoldIdentity",
+                 EXISTS (
+                   SELECT 1 FROM pg_catalog.pg_constraint
+                    WHERE conrelid='public.tax_attribution_snapshot'::regclass
+                      AND conname='tax_attribution_snapshot_binding_identity_uq'
+                      AND contype='u'
+                 ) AS "parentAttributionIdentity"
+            FROM pg_catalog.pg_class AS cls
+           WHERE cls.oid='public.tax_attribution_hold_binding'::regclass
+        `;
+        expect(relation).toEqual([{
+          owner: "yellow_owner",
+          rls: true,
+          tenantPolicy: true,
+          appSelect: true,
+          rawDmlDenied: true,
+          propertyFk: true,
+          actorFk: true,
+          holdFk: true,
+          attributionFk: true,
+          holdUnique: true,
+          attributionUnique: true,
+          snapshotHashUnique: true,
+          parentHoldIdentity: true,
+          parentAttributionIdentity: true,
+        }]);
+
+        const capability = await sql<Array<{
+          owner: string; securityDefiner: boolean; publicExecute: boolean;
+          appExecute: boolean; runtimeExecute: boolean; volatility: string;
+          config: string[] | null; result: string;
+        }>>`
+          SELECT pg_catalog.pg_get_userbyid(procedure.proowner) AS owner,
+                 procedure.prosecdef AS "securityDefiner",
+                 pg_catalog.has_function_privilege('public', procedure.oid, 'EXECUTE') AS "publicExecute",
+                 pg_catalog.has_function_privilege('app_role', procedure.oid, 'EXECUTE') AS "appExecute",
+                 pg_catalog.has_function_privilege('yellow_runtime', procedure.oid, 'EXECUTE') AS "runtimeExecute",
+                 procedure.provolatile::text AS volatility,
+                 procedure.proconfig AS config,
+                 pg_catalog.pg_get_function_result(procedure.oid) AS result
+            FROM pg_catalog.pg_proc AS procedure
+           WHERE procedure.oid =
+             'public.record_tax_attribution_hold_binding(uuid,uuid,uuid,uuid,uuid)'::regprocedure
+        `;
+        expect(capability).toEqual([{
+          owner: "yellow_owner",
+          securityDefiner: true,
+          publicExecute: false,
+          appExecute: true,
+          runtimeExecute: false,
+          volatility: "v",
+          config: ["search_path=pg_catalog, public, pg_temp"],
+          result: "TABLE(binding_id uuid, property_node uuid, hold_id uuid, attribution_id uuid, origin_quote_hash text, snapshot_hash text, currency character, bound_by uuid, bound_at timestamp with time zone, created boolean)",
+        }]);
+
+        const expectSqlstate = async (operation: () => Promise<unknown>, state: string) => {
+          try {
+            await operation();
+          } catch (error) {
+            expect((error as { errno?: string }).errno).toBe(state);
+            return;
+          }
+          throw new Error(`Expected SQLSTATE ${state}`);
+        };
+        await expectSqlstate(
+          () => sql.begin(async (tx) => {
+            await tx.unsafe("SET LOCAL ROLE app_role");
+            await tx`SELECT * FROM public.record_tax_attribution_hold_binding(
+              ${randomUUID()}::uuid, ${randomUUID()}::uuid, ${randomUUID()}::uuid,
+              ${randomUUID()}::uuid, ${randomUUID()}::uuid
+            )`;
+          }),
+          "42501",
+        );
+        await expectSqlstate(
+          () => sql.begin(async (tx) => {
+            await tx.unsafe("SET LOCAL ROLE app_role");
+            await tx.unsafe("INSERT INTO public.tax_attribution_hold_binding DEFAULT VALUES");
+          }),
+          "42501",
+        );
+      });
+    },
+    60_000,
+  );
+
+  test(
     "applies the exact account-folio integrity migration and rejects tenant-crossing references",
     async () => {
       await withDatabase(async ({ databaseUrl: targetUrl, sql }) => {
@@ -1431,7 +1608,7 @@ databaseDescribe("Bun SQL migration runner", () => {
         const tableCount = await sql<{ count: number }[]>`
           SELECT count(*)::int AS count FROM pg_tables WHERE schemaname = 'public'
         `;
-        expect(tableCount).toEqual([{ count: 94 }]);
+        expect(tableCount).toEqual([{ count: 95 }]);
 
         const privileges = await sql<{
           route_rls: boolean;

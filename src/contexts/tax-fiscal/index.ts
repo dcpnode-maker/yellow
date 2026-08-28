@@ -33,3 +33,14 @@ export type {
   TaxAttributionReceipt,
   TaxAttributionRecord,
 } from "./persistence";
+export {
+  QuotedTaxHoldBindingConflictError,
+  QuotedTaxHoldBindingNotFoundError,
+  QuotedTaxHoldBindingService,
+  QuotedTaxHoldBindingValidationError,
+} from "./quoted-holds";
+export type {
+  PlaceQuotedTaxHoldInput,
+  QuotedTaxHoldBindingReceipt,
+  QuotedTaxHoldBindingServiceOptions,
+} from "./quoted-holds";

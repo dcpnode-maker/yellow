@@ -494,6 +494,20 @@ complete fresh migration suite is `36/36` with 160 assertions, database acceptan
 91 boundaries, 23 licences, zero-vulnerability audit, four JavaScript syntax checks
 and diff hygiene are green. Independent review remains deferred.
 
+Order248 is built-unreviewed under D-646. It introduces one internal authoritative booking-edge
+command: acquire the exact release-publication lock, freshly resolve the complete
+server quote, require live bookability plus quoted/calculated-tax evidence, derive the
+canonical Order240 snapshot, place the existing cart hold, persist through Order244
+and append one tenant/property binding with minimized atomic
+`tax.attribution_bound` evidence. The binding is retained after hold expiry/release
+but is not a reservation, price promise, posting, document or fiscal submission. No
+caller price/hash/snapshot/tax authority, HTTP, UI or local promotion is admitted.
+Focused P0-P6 proof is 8/8 with 55 assertions; fresh PostgreSQL reaches migration40,
+95 tables and 85 policies with referee11/11. Standing proof is 824/824 with 727
+expected environment skips, typecheck/92-boundaries/licence/audit/diff green.
+Independent Tier-3 product review remains deferred under the founder's build-first
+direction.
+
 Order244 is ready under D-637 as the append-only persistence foundation. It gives one
 exact parsed Order240 positive quote snapshot a tenant/property-scoped PostgreSQL
 root, same-hash convergence, tenant-isolated read, idempotent receipt and one atomic
