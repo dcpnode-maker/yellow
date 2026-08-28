@@ -1,8 +1,8 @@
 # Phase 7 — Tax engine and India IRP
 
-**Status:** active; Orders 237-239 built-unreviewed
+**Status:** active; Orders 237-239 built-unreviewed; Order 240 ready
 **Entry point:** built-unreviewed Phase-6 composition through Order 236
-**Current order:** Order 239 attributable rate-quote tax preview is built-unreviewed under D-629
+**Current order:** Order 240 canonical positive tax-attribution snapshot is ready under D-630
 
 ## Outcome
 
@@ -86,3 +86,15 @@ environment skips. Typecheck, 89 import boundaries, 23 dependency licences,
 zero-vulnerability audit, JavaScript syntax and diff hygiene are green. The schema is
 unchanged and the disposable proof database was removed. Independent review remains
 deferred; folio attribution, posting, document and fiscal authority remain absent.
+
+## Order 240 boundary
+
+Order240 adds the pure persistence-boundary value that Order239 deliberately lacked:
+one canonical JSON-safe positive `rate_quote` attribution snapshot. It binds exact
+quote, nightly assignment, jurisdiction-version and evaluator evidence with fully
+reconciled decimal-string money and one deterministic snapshot hash. Hostile or
+non-canonical values fail closed; the result is deeply frozen and performs no write.
+
+This slice does not persist a quote, mutate a hold/reservation, post tax, change a
+folio, compose a correction/transfer or issue a fiscal document. Those runtime steps
+remain separately ordered after the immutable attribution contract exists.

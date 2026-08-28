@@ -459,6 +459,13 @@ audit, JavaScript syntax and diff hygiene are green. The disposable proof databa
 removed and no schema or local application was changed. Independent review remains
 deferred; folio attribution, posting, document and fiscal authority remain later.
 
+Order240 is ready under D-630. It creates the missing pure canonical positive-origin
+tax-attribution snapshot: exact Order239 quote/night/jurisdiction/evaluator evidence
+becomes deeply frozen JSON-safe decimal-string truth with strict reconciliation and a
+deterministic snapshot hash. It adds no persistence, reservation, posting, folio,
+correction, transfer, document, HTTP, UI or local-app authority. Independent review
+remains deferred under the founder's build-first direction.
+
 tax_assignment evaluation (percent/fixed/slab, compound, line-vs-document rounding)
 from EXTENSIONS §2; India GST slab per room-night; document issue path: series →
 gapless number → hash chain → document; IRP reporting adapter (sandbox), IRN + QR
