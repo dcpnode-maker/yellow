@@ -163,8 +163,8 @@ travel write, automation, event, occupancy or migration is introduced.
 
 ## Subsequent bounded slices
 
-Order 208 is admitted as the next bounded read-only slice: a canonical active-room
-condition board inside the existing Housekeeping workbench. It reads exact
+Order 208 is built-unreviewed as the next bounded read-only slice: a canonical
+active-room condition board inside the existing Housekeeping workbench. It reads exact
 `unit_condition` truth with tenant/property containment, keyset paging and an optional
 literal condition filter under existing read authority. It does not mutate condition
 or task truth and does not infer readiness, occupancy, discrepancy or room service

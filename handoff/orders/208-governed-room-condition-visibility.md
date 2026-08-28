@@ -1,6 +1,6 @@
 # Order 208 — Governed room-condition visibility
 
-**Status:** READY-D559 — intentional red committed before implementation
+**Status:** BUILT-UNREVIEWED-D560 — implementation and executable proof complete; independent product review deferred
 **Phase:** 6 — Stay operations and housekeeping
 **Branch:** `phase-6/governed-room-condition-visibility`
 **Base:** `f12fe18` (built-unreviewed Order207)
@@ -42,7 +42,9 @@ meaning.
   `src/http/operator/operator.css`
 - new `tests/housekeeping-condition-board.intentional-red.test.ts`,
   `tests/housekeeping-condition-board.integration.test.ts`, and
-  `tests/operator-housekeeping-condition-board.integration.test.ts`
+  `tests/operator-housekeeping-condition-board.integration.test.ts`, plus isolated
+  DOM/interaction assertions in
+  `tests/operator-housekeeping-condition-board-ui.integration.test.ts`
 - focused additions to `tests/review-seed.integration.test.ts` only if needed to
   prove existing deterministic condition fixtures; no seed mutation is admitted
 - room-condition read-only sections in `docs/CONTRACTS.md`,
@@ -96,8 +98,8 @@ reservation, financial, local or state mutation is admitted. Every migration and
 ## Definition of done
 
 - [x] Intentional red precedes implementation.
-- [ ] Canonical room conditions are exact, minimized, paged and mutation-free.
-- [ ] Exact API authorization/concealment/query/no-store behavior is proven.
-- [ ] A human can filter, page and refresh the accessible Housekeeping panel.
-- [ ] Result is recorded built-unreviewed without claiming mutation, discrepancy,
+- [x] Canonical room conditions are exact, minimized, paged and mutation-free.
+- [x] Exact API authorization/concealment/query/no-store behavior is proven.
+- [x] A human can filter, page and refresh the accessible Housekeeping panel.
+- [x] Result is recorded built-unreviewed without claiming mutation, discrepancy,
   Phase-6/app completion, local promotion, merge, push or deployment.

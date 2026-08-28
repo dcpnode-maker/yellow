@@ -219,6 +219,14 @@ task, pickup/drop-off interpretation or any operational effect. This slice adds 
 travel write, transfer automation, task, migration, event or authority and does not
 complete, independently approve or locally promote Phase 6.
 
+Order 208 is a built-unreviewed read-only Room conditions slice. The existing Housekeeping
+workbench exposes canonical active physical-room `unit_condition` truth through a
+tenant/property-scoped, filter-bound keyset page under existing housekeeping read
+authority. It returns only room identity, floor, literal condition and update instant,
+with no task, assignee, updater, occupancy, reservation, guest, readiness, OOO/OOS,
+source, reason or inferred status. This slice adds no write, migration, event, fact,
+authority or local promotion and cannot complete Phase 6.
+
 ## Phase 7 — Tax engine + India IRP
 
 tax_assignment evaluation (percent/fixed/slab, compound, line-vs-document rounding)

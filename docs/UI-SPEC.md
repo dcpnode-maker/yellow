@@ -281,3 +281,25 @@ The text wraps within the existing table cell and cards, follows the screen-read
 reading order, and retains current stale-response, focus, narrow-layout,
 reduced-motion, forced-colour and six-appearance protections. Arrival travel remains
 separately visible on the board and only in Today's **Due in** lane.
+
+## 16. Governed room-condition visibility
+
+The existing Housekeeping workbench begins with one bounded, read-only **Room
+conditions** panel sourced from canonical active physical-room truth. It shows room
+code, optional floor, the literal `clean`, `dirty`, `pickup` or `inspected` condition,
+and the condition update instant even when no housekeeping task exists. It never
+combines that evidence with task, assignee, occupancy, reservation, guest,
+out-of-order/service or readiness meaning.
+
+Operators may choose one literal condition or all conditions, refresh the first page
+and deliberately load the next opaque-cursor page. The counter is always labelled
+**rooms loaded** and explicitly described as a bounded loaded count, never a
+whole-property total. There is no polling, offset paging, browser persistence,
+condition mutation or inferred room status.
+
+Loading, filtered-empty, error/retry and next-page failure states preserve meaningful
+keyboard focus and keep previously loaded rows visible when only a later page fails.
+Property, Housekeeping view, route, filter, cycle and request-generation guards discard
+stale responses. Controls are at least 44 pixels, 48 pixels in Android appearance;
+the panel contains at 375 pixels and 200% zoom, respects reduced motion and forced
+colours, and has native material treatment in every current appearance.

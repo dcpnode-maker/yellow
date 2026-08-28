@@ -161,6 +161,7 @@ import {
   HousekeepingTaskService,
   HousekeepingUnsupportedCadenceError,
   HousekeepingValidationError,
+  type HousekeepingConditionPage,
   type HousekeepingTaskAction,
   type HousekeepingTaskBoardItem,
 } from "../contexts/housekeeping";
@@ -303,6 +304,45 @@ function vehicleRegisterJson(page: VehicleRegisterPage): JsonValue {
       partyId: vehicle.partyId,
       enteredAt: vehicle.enteredAt,
       exitedAt: vehicle.exitedAt,
+    })),
+    nextCursor: page.nextCursor,
+  });
+}
+
+function housekeepingConditionQuery(request: Request): {
+  condition?: "clean" | "dirty" | "pickup" | "inspected";
+  cursor?: string;
+  limit?: number;
+} | null {
+  const query = new URL(request.url).searchParams;
+  const allowed = ["condition", "cursor", "limit"] as const;
+  if ([...query.keys()].some((key) => !allowed.includes(key as typeof allowed[number])) ||
+      allowed.some((key) => query.getAll(key).length > 1)) return null;
+  const rawCondition = query.get("condition");
+  const condition = rawCondition === null
+    ? undefined
+    : (["clean", "dirty", "pickup", "inspected"] as const)
+      .find((candidate) => candidate === rawCondition);
+  if (rawCondition !== null && condition === undefined) return null;
+  const cursor = query.get("cursor");
+  const rawLimit = query.get("limit");
+  if (cursor !== null && !/^[A-Za-z0-9_-]{1,2048}$/.test(cursor)) return null;
+  if (rawLimit !== null && !/^(?:[1-9]|[1-9][0-9]|100)$/.test(rawLimit)) return null;
+  return Object.freeze({
+    ...(condition === undefined ? {} : { condition }),
+    ...(cursor === null ? {} : { cursor }),
+    ...(rawLimit === null ? {} : { limit: Number(rawLimit) }),
+  });
+}
+
+function housekeepingConditionJson(page: HousekeepingConditionPage): JsonValue {
+  return jsonValue({
+    rooms: page.rooms.map((room) => ({
+      spaceId: room.spaceId,
+      code: room.code,
+      floor: room.floor,
+      condition: room.condition,
+      updatedAt: room.updatedAt,
     })),
     nextCursor: page.nextCursor,
   });
@@ -1299,7 +1339,8 @@ interface CheckoutReadinessOperations {
     }>[];
   }>>;
 }
-type HousekeepingOperations = Pick<HousekeepingTaskService, "listBoard" | "transition">;
+type HousekeepingOperations = Pick<HousekeepingTaskService, "listBoard" | "transition"> &
+  Partial<Pick<HousekeepingTaskService, "listConditions">>;
 type HousekeepingSheetOperations = Pick<HousekeepingSheetService, "preview" | "list" | "generate">;
 type PartyOperations = Pick<PartyProfileService, "search" | "create">;
 type FolioStatementOperations = Pick<FolioStatementService, "get">;
@@ -3534,6 +3575,30 @@ export class OperatorHttpApi {
     return apiResponse(context.request, canonicalJson(jsonValue({
       tasks: board.map((item) => operatorHousekeepingItem(item, workGranted, inspectGranted)),
     })));
+  }
+
+  async housekeepingConditions(
+    context: TenantRequestContext,
+    propertyNode: string,
+  ): Promise<Response> {
+    const query = housekeepingConditionQuery(context.request);
+    if (!UUID.test(propertyNode) || !query) {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Room-condition input is invalid");
+    }
+    if (!hasScope(context, HOUSEKEEPING_READ_SCOPE)) {
+      return apiError(context.request, 403, "auth/scope_missing", "Forbidden", "Room-condition access is not granted");
+    }
+    const grants = await listGrantedProperties(context, HOUSEKEEPING_READ_SCOPE);
+    if (!grants.some(({ id }) => id === propertyNode)) {
+      return apiError(context.request, 404, "housekeeping/not_found", "Not found", "The referenced room conditions were not found");
+    }
+    if (!this.#housekeeping?.listConditions) return this.unavailable(context.request);
+    const page = await this.#housekeeping.listConditions({
+      tenantId: context.tenantId,
+      propertyNode,
+      ...query,
+    });
+    return apiResponse(context.request, canonicalJson(housekeepingConditionJson(page)));
   }
 
   async previewHousekeepingSheet(

@@ -375,6 +375,17 @@ travel/task identities, notes, Party/contact, vehicle/parking and inferred trans
 outcome remain undisclosed. Arrival and departure truth can coexist, but neither can
 filter, reorder or change the board cursor.
 
+Order 208 adds no aggregate, state or condition transition. It reads only active
+condition-bearing physical `space` rows in one exact tenant/property, where the
+same-tenant `unit_condition` association is the canonical physical-space condition
+discriminator; `profile_key` remains cross-vertical configuration and is not redefined
+as a room kind. The read is ordered by literal room code and id, optionally filtered by
+the four recorded condition literals, and paged with a canonical filter-bound keyset
+cursor. Its immutable projection contains only space id, code, floor, condition and
+condition update instant. Updater, task/assignee, occupancy, reservation/guest,
+OOO/OOS, readiness, source/reason and inferred status remain undisclosed, and repeated
+reads create no task, fact, event or state effect.
+
 ### Asset/Work Order aggregate — target extension
 
 Baseline `task`, `space`, relations, and OOO/OOS provide foundations, but there is no

@@ -9,6 +9,9 @@ export {
 } from "./tasks";
 export type {
   HousekeepingBoardInput,
+  HousekeepingConditionBoardRow,
+  HousekeepingConditionListInput,
+  HousekeepingConditionPage,
   HousekeepingRoomCondition,
   HousekeepingTaskAction,
   HousekeepingTaskBoardItem,

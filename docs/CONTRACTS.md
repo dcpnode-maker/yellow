@@ -783,3 +783,26 @@ The result is deeply frozen and deterministic for unchanged PostgreSQL truth. Th
 read does not infer onsite state, parking assignment, occupancy, access/security
 decisions or lifecycle. It performs no vehicle, reservation, Party, parking,
 occupancy, task, fact, outbox or idempotency write.
+
+## 25. Governed room-condition visibility boundary
+
+`HousekeepingTaskService.listConditions` accepts one lowercase tenant UUID, one
+lowercase property UUID, and only optional `condition`, `cursor` and `limit` read
+controls. `condition` is one exact `clean`, `dirty`, `pickup` or `inspected` literal;
+limit defaults to 50 and is capped at 100. The opaque canonical cursor is bound to
+that exact filter and represents the last `(space.code COLLATE "C",space.id)` pair,
+so changing or omitting the filter cannot reuse its authority.
+
+One tenant transaction reads only active physical rooms in the exact property joined
+to their canonical `unit_condition` row. The deeply frozen response is exactly
+`{rooms:[{spaceId,code,floor,condition,updatedAt}],nextCursor}`. UUIDs, condition
+literals and canonical timestamps are validated before disclosure; malformed stored
+truth fails the whole read closed. Updater identity, tasks and assignees, occupancy,
+reservations and guests, OOO/OOS state, readiness, sources, reasons and inferred room
+status are excluded.
+
+`GET /api/v1/properties/{property}/housekeeping/conditions` requires the existing
+`housekeeping.tasks:read` scope and exact property grant, rejects duplicate or extra
+query keys, and is `Cache-Control: no-store`. There is no companion write route. The
+read cannot mutate condition, task, space, occupancy, reservation, fact, outbox or
+idempotency truth.

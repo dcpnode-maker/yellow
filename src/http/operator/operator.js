@@ -61,6 +61,10 @@
  let housekeepingRequestGeneration = 0;
  let housekeepingData = [];
  let housekeepingReturnFocus = "";
+ let housekeepingConditionGeneration = 0;
+ let housekeepingConditionRequestGeneration = 0;
+ let housekeepingConditionRows = [];
+ let housekeepingConditionNextCursor = null;
  const housekeepingAttempts = new Map();
  let housekeepingSheetGeneration = 0;
  let housekeepingSheetRequestGeneration = 0;
@@ -177,6 +181,18 @@
  const housekeepingEmpty = $("#housekeeping-empty");
  const housekeepingTaskList = $("#housekeeping-task-list");
  const housekeepingStatus = $("#housekeeping-status");
+ const housekeepingConditionBoard = $("#housekeeping-condition-board");
+ const housekeepingConditionTitle = $("#housekeeping-condition-title");
+ const housekeepingConditionRefresh = $("#housekeeping-condition-refresh");
+ const housekeepingConditionFilter = $("#housekeeping-condition-filter");
+ const housekeepingConditionCount = $("#housekeeping-condition-count");
+ const housekeepingConditionLoading = $("#housekeeping-condition-loading");
+ const housekeepingConditionError = $("#housekeeping-condition-error");
+ const housekeepingConditionRetry = $("#housekeeping-condition-retry");
+ const housekeepingConditionEmpty = $("#housekeeping-condition-empty");
+ const housekeepingConditionList = $("#housekeeping-condition-list");
+ const housekeepingConditionStatus = $("#housekeeping-condition-status");
+ const housekeepingConditionMore = $("#housekeeping-condition-more");
  const housekeepingSheetForm = $("#housekeeping-sheet-form");
  const housekeepingSheetDate = $("#housekeeping-sheet-date");
  const housekeepingAttendantQuery = $("#housekeeping-attendant-query");
@@ -1446,6 +1462,156 @@
  }
  }
  }
+  function setHousekeepingConditionState(state, message = "") {
+ housekeepingConditionLoading.hidden = state !== "loading";
+ housekeepingConditionError.hidden = state !== "error";
+ housekeepingConditionEmpty.hidden = state !== "empty";
+ housekeepingConditionList.hidden = state !== "ready";
+ housekeepingConditionBoard.setAttribute("aria-busy", String(state === "loading"));
+ if (state === "error") housekeepingConditionError.querySelector("p").textContent = message;
+  }
+  function housekeepingConditionIsCurrent(generation, requestGeneration, property, condition) {
+ return generation === housekeepingConditionGeneration
+  && requestGeneration === housekeepingConditionRequestGeneration
+  && property === propertySelect.value && condition === housekeepingConditionFilter.value
+  && activeView === "housekeeping" && location.pathname === `/p/${property}/housekeeping`;
+  }
+  function housekeepingCanonicalInstant(value) {
+ if (typeof value !== "string" || !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{6}Z$/.test(value)) return false;
+ const millisecondInstant = `${value.slice(0, 23)}Z`;
+ const instant = new Date(millisecondInstant);
+ return Number.isFinite(instant.getTime()) && instant.toISOString() === millisecondInstant;
+  }
+  function housekeepingConditionResult(value) {
+ const topKeys = value && typeof value === "object" && !Array.isArray(value) ? Object.keys(value).sort() : [];
+ if (JSON.stringify(topKeys) !== JSON.stringify(["nextCursor", "rooms"]) || !Array.isArray(value.rooms)
+  || value.rooms.length > 100 || (value.nextCursor !== null
+   && (typeof value.nextCursor !== "string" || value.nextCursor.length === 0 || value.nextCursor.length > 8192))) {
+  throw new Error("The room-condition response was invalid.");
+ }
+ const valid = value.rooms.every((room) => room && typeof room === "object" && !Array.isArray(room)
+  && JSON.stringify(Object.keys(room).sort()) === JSON.stringify(["code", "condition", "floor", "spaceId", "updatedAt"])
+  && canonicalUuid(String(room.spaceId || "")) && typeof room.code === "string" && room.code.length > 0
+  && (room.floor === null || typeof room.floor === "string")
+  && Object.hasOwn(HOUSEKEEPING_CONDITION_LABELS, room.condition)
+  && housekeepingCanonicalInstant(room.updatedAt));
+ if (!valid) throw new Error("The room-condition response contained invalid room truth.");
+ return value;
+  }
+  function housekeepingConditionCard(room) {
+ const article = node("article", "housekeeping-condition-card");
+ article.setAttribute("role", "listitem");
+ article.tabIndex = -1;
+ article.dataset.spaceId = room.spaceId;
+ article.setAttribute("aria-label", `Room ${room.code}: ${HOUSEKEEPING_CONDITION_LABELS[room.condition]}`);
+ const head = node("div", "housekeeping-condition-card-head");
+ const identity = node("div", "housekeeping-room-identity");
+ identity.append(node("span", "eyebrow", room.floor ? `Floor ${room.floor}` : "Floor not set"), node("h4", "", `Room ${room.code}`));
+ head.append(identity, housekeepingBadge("room-condition", HOUSEKEEPING_CONDITION_LABELS[room.condition], room.condition));
+ const evidence = node("dl", "housekeeping-evidence");
+ evidence.append(node("dt", "", "Condition updated"), node("dd", "", housekeepingDate(room.updatedAt)));
+ article.append(head, evidence);
+ return article;
+  }
+  function restoreHousekeepingConditionFocus(target, previousLength) {
+ if (activeView !== "housekeeping") return;
+ if (target === "more") {
+  const appended = housekeepingConditionList.children[previousLength];
+  (appended || housekeepingConditionMore).focus({ preventScroll: true });
+  return;
+ }
+ if (target === "filter") housekeepingConditionFilter.focus({ preventScroll: true });
+ if (target === "refresh") housekeepingConditionRefresh.focus({ preventScroll: true });
+ if (target === "title") housekeepingConditionTitle.focus({ preventScroll: true });
+  }
+  function renderHousekeepingConditions(page, older, focusTarget) {
+ const previousLength = older ? housekeepingConditionRows.length : 0;
+ const combined = older ? housekeepingConditionRows.concat(page.rooms) : page.rooms.slice();
+ if (new Set(combined.map((room) => room.spaceId)).size !== combined.length) {
+  throw new Error("The room-condition response repeated a room across bounded pages.");
+ }
+ housekeepingConditionRows = combined;
+ housekeepingConditionNextCursor = page.nextCursor;
+ housekeepingConditionList.replaceChildren(...combined.map(housekeepingConditionCard));
+ housekeepingConditionCount.textContent = String(combined.length);
+ setHousekeepingConditionState(combined.length === 0 ? "empty" : "ready");
+ housekeepingConditionMore.hidden = combined.length === 0 || page.nextCursor === null;
+ housekeepingConditionMore.disabled = false;
+ const label = housekeepingConditionFilter.value
+  ? HOUSEKEEPING_CONDITION_LABELS[housekeepingConditionFilter.value].toLowerCase() : "all conditions";
+ housekeepingConditionStatus.textContent = `${combined.length} room${combined.length === 1 ? "" : "s"} loaded for ${label}. This is a bounded loaded count, not a whole-property total.`;
+ restoreHousekeepingConditionFocus(focusTarget, previousLength);
+  }
+  function clearHousekeepingConditionState() {
+ housekeepingConditionGeneration += 1;
+ housekeepingConditionRequestGeneration += 1;
+ housekeepingConditionRows = [];
+ housekeepingConditionNextCursor = null;
+ housekeepingConditionFilter.value = "";
+ housekeepingConditionCount.textContent = "0";
+ housekeepingConditionList.replaceChildren();
+ housekeepingConditionMore.hidden = true;
+ housekeepingConditionMore.disabled = false;
+ housekeepingConditionRefresh.disabled = false;
+ setHousekeepingConditionState("empty");
+ housekeepingConditionStatus.textContent = "Open Housekeeping to load one bounded page.";
+  }
+  async function loadHousekeepingConditions({ older = false, focus = "" } = {}) {
+ const property = propertySelect.value;
+ const condition = housekeepingConditionFilter.value;
+ if (!property || activeView !== "housekeeping") return;
+ const cursor = older ? housekeepingConditionNextCursor : null;
+ if (older && cursor === null) return;
+ const generation = older ? housekeepingConditionGeneration : ++housekeepingConditionGeneration;
+ const requestGeneration = ++housekeepingConditionRequestGeneration;
+ const previousRows = housekeepingConditionRows.slice();
+ housekeepingConditionRefresh.disabled = true;
+ housekeepingConditionMore.disabled = true;
+ if (older) {
+  housekeepingConditionBoard.setAttribute("aria-busy", "true");
+  housekeepingConditionStatus.textContent = "Loading the next bounded room page…";
+ } else {
+  housekeepingConditionRows = [];
+  housekeepingConditionNextCursor = null;
+  housekeepingConditionCount.textContent = "0";
+  housekeepingConditionMore.hidden = true;
+  setHousekeepingConditionState("loading");
+  housekeepingConditionStatus.textContent = "Loading canonical room conditions…";
+ }
+ try {
+  const query = new URLSearchParams({ limit: "50" });
+  if (condition) query.set("condition", condition);
+  if (cursor !== null) query.set("cursor", cursor);
+  const page = housekeepingConditionResult(await request(`/api/v1/properties/${enc(property)}/housekeeping/conditions?${query}`));
+  if (!housekeepingConditionIsCurrent(generation, requestGeneration, property, condition)) return;
+  renderHousekeepingConditions(page, older, focus);
+ } catch (error) {
+  if (!housekeepingConditionIsCurrent(generation, requestGeneration, property, condition)) return;
+  const message = error instanceof Error ? error.message : "Room conditions could not be loaded.";
+  if (older && previousRows.length > 0) {
+   housekeepingConditionRows = previousRows;
+   setHousekeepingConditionState("ready");
+   housekeepingConditionMore.hidden = housekeepingConditionNextCursor === null;
+   housekeepingConditionStatus.textContent = `${message} The ${previousRows.length} already loaded room${previousRows.length === 1 ? " remains" : "s remain"} visible.`;
+   housekeepingConditionMore.focus({ preventScroll: true });
+  } else {
+   housekeepingConditionRows = [];
+   housekeepingConditionNextCursor = null;
+   housekeepingConditionCount.textContent = "0";
+   setHousekeepingConditionState("error", message);
+   housekeepingConditionStatus.textContent = error?.status === 403
+    ? "Housekeeping room-condition read access is not granted."
+    : "No room-condition conclusion was made. Retry this read-only request.";
+   if (focus) housekeepingConditionRetry.focus({ preventScroll: true });
+  }
+ } finally {
+  if (housekeepingConditionIsCurrent(generation, requestGeneration, property, condition)) {
+   housekeepingConditionBoard.setAttribute("aria-busy", "false");
+   housekeepingConditionRefresh.disabled = false;
+   housekeepingConditionMore.disabled = false;
+  }
+ }
+  }
   function setHousekeepingState(state, message = "") {
  housekeepingLoading.hidden = state !== "loading";
  housekeepingError.hidden = state !== "error";
@@ -1578,14 +1744,14 @@
   housekeepingAttempts.delete(taskId);
   housekeepingReturnFocus = taskId;
   housekeepingStatus.textContent = result.replayed ? "The existing task transition was confirmed. Refreshing authoritative evidence…" : "Task transition recorded. Refreshing authoritative evidence…";
-  await loadHousekeepingBoard();
+  await Promise.all([loadHousekeepingBoard(), loadHousekeepingConditions()]);
  } catch (error) {
   if (generation !== housekeepingGeneration || property !== propertySelect.value || activeView !== "housekeeping") return;
   if (error?.status === 409) {
   housekeepingAttempts.delete(taskId);
   housekeepingReturnFocus = taskId;
   housekeepingStatus.textContent = "Task or room evidence changed. Refreshing the authoritative board before another action…";
-  await loadHousekeepingBoard();
+  await Promise.all([loadHousekeepingBoard(), loadHousekeepingConditions()]);
   } else {
   housekeepingStatus.textContent = `${error instanceof Error ? error.message : "Task action failed"}. Retry this unchanged action to keep the same idempotency key.`;
   button.disabled = false;
@@ -5538,6 +5704,8 @@ function departureEvidenceRow(term, value) {
  if (previousView === "housekeeping" && activeView !== "housekeeping") {
   housekeepingGeneration += 1;
   housekeepingRequestGeneration += 1;
+  housekeepingConditionGeneration += 1;
+  housekeepingConditionRequestGeneration += 1;
   housekeepingSheetGeneration += 1;
   housekeepingSheetRequestGeneration += 1;
  }
@@ -5574,6 +5742,7 @@ function departureEvidenceRow(term, value) {
  if (activeView === "operations") void loadOperationalBlocks();
  if (activeView === "housekeeping") {
   void loadHousekeepingBoard();
+  void loadHousekeepingConditions();
   if (housekeepingSheetDate.value) {
   if (housekeepingSheetAttendant) void previewHousekeepingSheet();
   else void loadHousekeepingSheetHistory();
@@ -6985,6 +7154,7 @@ function departureEvidenceRow(term, value) {
  housekeepingData = [];
  housekeepingReturnFocus = "";
  housekeepingAttempts.clear();
+ clearHousekeepingConditionState();
  clearHousekeepingSheetState();
  clearVehicleRegisterState();
  resetTodayState();
@@ -7013,7 +7183,10 @@ function departureEvidenceRow(term, value) {
   void loadOfflineLeases();
  }
  if (activeView === "operations") void loadOperationalBlocks();
- if (activeView === "housekeeping") void loadHousekeepingBoard();
+ if (activeView === "housekeeping") {
+  void loadHousekeepingBoard();
+  void loadHousekeepingConditions();
+ }
  if (activeView === "vehicles") {
   history.replaceState({ yellowSurface: "vehicle-register" }, "", canonicalVehiclePath(propertySelect.value));
   vehicleRegistration.value = "";
@@ -7058,12 +7231,17 @@ function departureEvidenceRow(term, value) {
  todayRefresh.addEventListener("click", loadToday);
  housekeepingRefresh.addEventListener("click", () => {
  void loadHousekeepingBoard({ focus: true });
+ void loadHousekeepingConditions();
  if (housekeepingSheetDate.value) {
   if (housekeepingSheetAttendant) void previewHousekeepingSheet();
   else void loadHousekeepingSheetHistory();
  }
  });
  housekeepingRetry.addEventListener("click", () => void loadHousekeepingBoard({ focus: true }));
+ housekeepingConditionRefresh.addEventListener("click", () => void loadHousekeepingConditions({ focus: "refresh" }));
+ housekeepingConditionRetry.addEventListener("click", () => void loadHousekeepingConditions({ focus: "title" }));
+ housekeepingConditionMore.addEventListener("click", () => void loadHousekeepingConditions({ older: true, focus: "more" }));
+ housekeepingConditionFilter.addEventListener("change", () => void loadHousekeepingConditions({ focus: "filter" }));
  housekeepingSheetForm.addEventListener("submit", (event) => {
  event.preventDefault();
  void previewHousekeepingSheet({ focus: true });
@@ -7193,7 +7371,10 @@ function departureEvidenceRow(term, value) {
  if (location.pathname === `/p/${propertySelect.value}/housekeeping`) {
   closeReservationDetail({ history: false, restoreFocus: false });
   if (activeView !== "housekeeping") setView("housekeeping", false);
-  else void loadHousekeepingBoard();
+  else {
+   void loadHousekeepingBoard();
+   void loadHousekeepingConditions();
+  }
  return;
  }
  const vehicleRoute = vehicleRouteFromLocation();

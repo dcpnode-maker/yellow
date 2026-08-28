@@ -263,6 +263,23 @@ Neither join changes the existing created-at/id keyset order, filters, cursor by
 limit; repeated reads are mutation-free and have no fact, outbox, idempotency,
 occupancy, task, queue or travel-write capability.
 
+### Room-condition board containment
+
+Order 208 adds one read-only route behind the existing
+`housekeeping.tasks:read` scope and exact property grant. The HTTP adapter accepts
+only one optional literal condition, one canonical opaque cursor and a bounded limit;
+duplicate, malformed and extra query authority is rejected. Missing grants and
+foreign properties are concealed before the service read. Every response, including
+failure, is `Cache-Control: no-store`.
+
+The domain read independently rebinds the server-derived tenant and exact property
+under transaction-local RLS and selects only active physical rooms with canonical
+condition truth. The adapter re-minimizes the response to room id, code, floor,
+condition and update instant. It cannot disclose updater identity, task/assignee,
+occupancy, reservation/guest, OOO/OOS, readiness, source/reason or inferred status.
+No condition-write route exists, and the read has no task transition, condition,
+space, occupancy, reservation, fact, outbox or idempotency capability.
+
 ## 6. Statutory & privacy
 
 ### Token-only payment containment

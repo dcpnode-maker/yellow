@@ -375,6 +375,9 @@ export function createApp(options: AppOptions = {}) {
       .get("/api/v1/properties/:property/housekeeping/tasks", ({ request, params, tenantContext }) =>
         withOperatorTenant(request, (context) => operator.housekeepingBoard(context, params.property))
       )
+      .get("/api/v1/properties/:property/housekeeping/conditions", ({ request, params, tenantContext }) =>
+        withOperatorTenant(request, (context) => operator.housekeepingConditions(context, params.property))
+      )
       .get("/api/v1/properties/:property/housekeeping/sheets/preview", ({ request, params, tenantContext }) =>
         withOperatorTenant(request, (context) => operator.previewHousekeepingSheet(context, params.property))
       )

@@ -10,6 +10,8 @@ import {
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 const IDEMPOTENCY_KEY = /^[\x21-\x7e]{8,200}$/;
+const CURSOR = /^[A-Za-z0-9_-]{1,2048}$/;
+const MICROSECOND_UTC = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{6}Z$/;
 
 export const HOUSEKEEPING_TASK_ACTIONS = Object.freeze(["start", "complete", "verify"] as const);
 export const HOUSEKEEPING_TASK_STATUSES = Object.freeze([
@@ -27,6 +29,27 @@ export interface HousekeepingBoardInput {
   readonly tenantId: string;
   readonly propertyNode: string;
   readonly limit?: number;
+}
+
+export interface HousekeepingConditionListInput {
+  readonly tenantId: string;
+  readonly propertyNode: string;
+  readonly condition?: HousekeepingRoomCondition;
+  readonly cursor?: string;
+  readonly limit?: number;
+}
+
+export interface HousekeepingConditionBoardRow {
+  readonly spaceId: string;
+  readonly code: string;
+  readonly floor: string | null;
+  readonly condition: HousekeepingRoomCondition;
+  readonly updatedAt: string;
+}
+
+export interface HousekeepingConditionPage {
+  readonly rooms: readonly HousekeepingConditionBoardRow[];
+  readonly nextCursor: string | null;
 }
 
 export interface HousekeepingTaskBoardItem {
@@ -97,6 +120,21 @@ interface CapabilityRow {
   readonly task_completed_at: Date | null;
 }
 
+interface HousekeepingConditionCursor {
+  readonly v: 1;
+  readonly condition: HousekeepingRoomCondition | null;
+  readonly code: string;
+  readonly id: string;
+}
+
+interface HousekeepingConditionSqlRow {
+  readonly id: string;
+  readonly code: string;
+  readonly floor: string | null;
+  readonly condition: string;
+  readonly updated_at: string;
+}
+
 export class HousekeepingValidationError extends Error {
   constructor(message: string) {
     super(message);
@@ -163,6 +201,117 @@ function condition(value: unknown, subject = "room condition"): HousekeepingRoom
     return value;
   }
   throw new HousekeepingValidationError(`${subject} is invalid`);
+}
+
+function encodeBase64Url(value: string): string {
+  return Buffer.from(value, "utf8").toString("base64url");
+}
+
+function decodeBase64Url(value: string): string {
+  return Buffer.from(value, "base64url").toString("utf8");
+}
+
+function encodeConditionCursor(cursor: HousekeepingConditionCursor): string {
+  return encodeBase64Url(JSON.stringify(cursor));
+}
+
+function decodeConditionCursor(value: unknown): HousekeepingConditionCursor | null {
+  if (value === undefined) return null;
+  if (typeof value !== "string" || !CURSOR.test(value)) {
+    throw new HousekeepingValidationError("cursor is invalid");
+  }
+  try {
+    const parsed: unknown = JSON.parse(decodeBase64Url(value));
+    plainObject(parsed, "cursor");
+    exactKeys(parsed, ["v", "condition", "code", "id"], [], "cursor");
+    if (parsed.v !== 1 ||
+        (parsed.condition !== null && !HOUSEKEEPING_ROOM_CONDITIONS.includes(parsed.condition as HousekeepingRoomCondition)) ||
+        typeof parsed.code !== "string" || parsed.code.length > 512 ||
+        typeof parsed.id !== "string" || !UUID.test(parsed.id)) {
+      throw new Error("cursor fields");
+    }
+    const cursor = Object.freeze({
+      v: 1 as const,
+      condition: parsed.condition as HousekeepingRoomCondition | null,
+      code: parsed.code,
+      id: parsed.id,
+    });
+    if (encodeConditionCursor(cursor) !== value) throw new Error("cursor is non-canonical");
+    return cursor;
+  } catch (error) {
+    if (error instanceof HousekeepingValidationError && error.message === "cursor is invalid") {
+      throw error;
+    }
+    throw new HousekeepingValidationError("cursor is invalid");
+  }
+}
+
+function conditionListInput(input: HousekeepingConditionListInput) {
+  plainObject(input, "housekeeping condition input");
+  exactKeys(
+    input,
+    ["tenantId", "propertyNode"],
+    ["condition", "cursor", "limit"],
+    "housekeeping condition input",
+  );
+  const normalizedCondition = input.condition === undefined ? null : condition(input.condition, "condition");
+  if (input.limit !== undefined &&
+      (!Number.isInteger(input.limit) || input.limit < 1 || input.limit > 100)) {
+    throw new HousekeepingValidationError("limit must be an integer from 1 to 100");
+  }
+  const cursor = decodeConditionCursor(input.cursor);
+  if (cursor !== null && cursor.condition !== normalizedCondition) {
+    throw new HousekeepingValidationError("cursor does not belong to this condition filter");
+  }
+  return Object.freeze({
+    tenantId: uuid(input.tenantId, "tenantId"),
+    propertyNode: uuid(input.propertyNode, "propertyNode"),
+    condition: normalizedCondition,
+    cursor,
+    limit: input.limit ?? 50,
+  });
+}
+
+function storedConditionText(value: unknown, subject: string): string {
+  if (typeof value !== "string" || value.length > 512) {
+    throw new HousekeepingConflictError(`Stored room ${subject} is invalid`);
+  }
+  return value;
+}
+
+function storedConditionUuid(value: unknown): string {
+  if (typeof value !== "string" || !UUID.test(value)) {
+    throw new HousekeepingConflictError("Stored room space id is invalid");
+  }
+  return value;
+}
+
+function storedConditionInstant(value: unknown): string {
+  if (typeof value !== "string" || !MICROSECOND_UTC.test(value)) {
+    throw new HousekeepingConflictError("Stored room condition timestamp is invalid");
+  }
+  const parsed = new Date(value);
+  if (!Number.isFinite(parsed.getTime()) || parsed.toISOString().slice(0, 23) !== value.slice(0, 23)) {
+    throw new HousekeepingConflictError("Stored room condition timestamp is invalid");
+  }
+  return value;
+}
+
+function storedRoomCondition(value: unknown): HousekeepingRoomCondition {
+  if (value === "clean" || value === "dirty" || value === "pickup" || value === "inspected") {
+    return value;
+  }
+  throw new HousekeepingConflictError("Stored room condition is invalid");
+}
+
+function canonicalConditionRow(row: HousekeepingConditionSqlRow): HousekeepingConditionBoardRow {
+  return Object.freeze({
+    spaceId: storedConditionUuid(row.id),
+    code: storedConditionText(row.code, "code"),
+    floor: row.floor === null ? null : storedConditionText(row.floor, "floor"),
+    condition: storedRoomCondition(row.condition),
+    updatedAt: storedConditionInstant(row.updated_at),
+  });
 }
 
 function instant(value: unknown, subject: string): string {
@@ -281,6 +430,59 @@ export class HousekeepingTaskService {
     this.#database = options.database;
     this.#events = options.events;
     this.#idempotency = options.idempotency;
+  }
+
+  async listConditions(input: HousekeepingConditionListInput): Promise<HousekeepingConditionPage> {
+    const page = conditionListInput(input);
+    const rows = await this.#database.withTenantTransaction(page.tenantId, async (tx) =>
+      tx<HousekeepingConditionSqlRow[]>`
+        WITH target_property AS MATERIALIZED (
+          SELECT property.id
+          FROM public.org_node AS property
+          WHERE property.tenant_id = ${page.tenantId}::uuid
+            AND property.tenant_id = current_setting('app.tenant_id', true)::uuid
+            AND property.id = ${page.propertyNode}::uuid
+            AND property.kind = 'property'
+        )
+        SELECT room.id, room.code, room.floor, room_condition.condition,
+               to_char(
+                 room_condition.updated_at AT TIME ZONE 'UTC',
+                 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"'
+               ) AS updated_at
+        FROM public.space AS room
+        JOIN target_property AS property ON property.id = room.property_node
+        JOIN public.unit_condition AS room_condition
+          ON room_condition.tenant_id = ${page.tenantId}::uuid
+         AND room_condition.tenant_id = current_setting('app.tenant_id', true)::uuid
+         AND room_condition.space_id = room.id
+        WHERE room.tenant_id = ${page.tenantId}::uuid
+          AND room.tenant_id = current_setting('app.tenant_id', true)::uuid
+          AND room.status = 'active'
+          AND (${page.condition}::text IS NULL OR room_condition.condition = ${page.condition}::text)
+          AND (
+            ${page.cursor?.code ?? null}::text IS NULL OR
+            room.code COLLATE "C" > ${page.cursor?.code ?? null}::text COLLATE "C" OR
+            (room.code COLLATE "C" = ${page.cursor?.code ?? null}::text COLLATE "C" AND
+             room.id > ${page.cursor?.id ?? null}::uuid)
+          )
+        ORDER BY room.code COLLATE "C", room.id
+        LIMIT ${page.limit + 1}
+      `,
+    );
+    const hasMore = rows.length > page.limit;
+    const rooms = Object.freeze(rows.slice(0, page.limit).map(canonicalConditionRow));
+    const last = rooms.at(-1);
+    return Object.freeze({
+      rooms,
+      nextCursor: hasMore && last
+        ? encodeConditionCursor({
+          v: 1,
+          condition: page.condition,
+          code: last.code,
+          id: last.spaceId,
+        })
+        : null,
+    });
   }
 
   async listBoard(input: HousekeepingBoardInput): Promise<readonly HousekeepingTaskBoardItem[]> {

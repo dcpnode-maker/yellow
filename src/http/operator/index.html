@@ -255,6 +255,29 @@
 </div>
 <button class="quiet" id="housekeeping-refresh" type="button">Refresh workspace</button>
 </div>
+<section class="card housekeeping-condition-board" id="housekeeping-condition-board" aria-labelledby="housekeeping-condition-title" aria-busy="false">
+<div class="housekeeping-condition-head">
+<div><span class="eyebrow">Canonical room truth</span><h3 id="housekeeping-condition-title" tabindex="-1">Room conditions</h3><p class="muted">Active physical rooms are shown whether or not a housekeeping task exists. No readiness, occupancy or guest meaning is inferred.</p></div>
+<button class="quiet" id="housekeeping-condition-refresh" type="button">Refresh conditions</button>
+</div>
+<div class="housekeeping-condition-toolbar">
+<label for="housekeeping-condition-filter">Condition
+<select id="housekeeping-condition-filter" name="condition">
+<option value="">All conditions</option>
+<option value="clean">Clean</option>
+<option value="dirty">Dirty</option>
+<option value="pickup">Pickup</option>
+<option value="inspected">Inspected</option>
+</select>
+</label>
+<div class="housekeeping-condition-count" aria-label="Loaded room count"><strong id="housekeeping-condition-count">0</strong><span>rooms loaded</span></div>
+</div>
+<div class="housekeeping-condition-loading" id="housekeeping-condition-loading" hidden aria-hidden="true"><span></span><span></span><span></span></div>
+<section class="housekeeping-condition-error" id="housekeeping-condition-error" hidden role="alert"><strong>Room conditions unavailable</strong><p></p><button class="secondary" id="housekeeping-condition-retry" type="button">Try again</button></section>
+<section class="housekeeping-condition-empty" id="housekeeping-condition-empty" hidden tabindex="-1"><strong>No rooms match this condition</strong><p class="muted">Choose another literal condition or refresh current room truth.</p></section>
+<div class="housekeeping-condition-list" id="housekeeping-condition-list" role="list" aria-label="Loaded room conditions" hidden></div>
+<div class="housekeeping-condition-footer"><p id="housekeeping-condition-status" role="status" aria-live="polite">Open Housekeeping to load one bounded page.</p><button class="quiet housekeeping-condition-more" id="housekeeping-condition-more" type="button" hidden>Load more rooms</button></div>
+</section>
 <section class="card housekeeping-sheet-workbench" id="housekeeping-sheet-generator" aria-labelledby="housekeeping-sheet-title">
 <div class="housekeeping-sheet-intro">
 <div><span class="eyebrow">Attendant sheet</span><h3 id="housekeeping-sheet-title">Preview rooms before generation</h3></div>
