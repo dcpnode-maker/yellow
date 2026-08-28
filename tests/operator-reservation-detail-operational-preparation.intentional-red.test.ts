@@ -6,8 +6,6 @@ test("Order 219 intentional red: reservation-detail operational preparation is a
   const css = readFileSync(new URL("../src/http/operator/operator.css", import.meta.url), "utf8");
 
   expect(script).not.toContain("function reservationOperationalPreparation(");
-  expect(script).not.toContain('"Prepare check-in"');
-  expect(script).not.toContain('"Prepare checkout"');
+  expect(script).not.toContain("function openReservationOperationalPreparation(");
   expect(css).not.toContain(".reservation-operational-preparation-action");
 });
-
