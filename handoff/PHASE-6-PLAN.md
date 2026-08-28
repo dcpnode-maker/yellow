@@ -2,7 +2,7 @@
 
 **Status:** active; Orders 200–218 are built-unreviewed
 **Entry point:** built-unreviewed Phase-5 composition through Order 199
-**Current order:** Order 218 built-unreviewed; next bounded slice not yet opened
+**Current order:** `219-reservation-detail-operational-preparation.md` (ready)
 
 ## Outcome
 
@@ -233,6 +233,11 @@ Order 218 is built-unreviewed as the UI-only composition from exact Order216 veh
 canonical reservation detail. It admits one action only for a validated non-null
 reservation association and adds no request, API, authority, mutation, parking
 inference, polling, schema or event.
+
+Order 219 is the UI-only composition from canonical reservation detail to the existing
+governed check-in or checkout preparation route. It maps only the already-admitted
+authoritative statuses, runs no command on navigation and adds no API, authority,
+mutation, schema or event.
 
 Statutory field semantics, validation, submission and receipts remain Phase 8. Tax and
 fiscal document work remains Phase 7. No country rule is hardcoded in Phase 6.
