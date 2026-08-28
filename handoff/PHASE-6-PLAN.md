@@ -239,6 +239,10 @@ governed check-in or checkout preparation route. It maps only the already-admitt
 authoritative statuses, runs no command on navigation and adds no API, authority,
 mutation, schema or event.
 
+Order 220 is the exact human composition of Order217 task detail with the existing
+Order201 governed transition. It adds no lifecycle meaning, command authority, schema,
+migration or event and remains subject to server revalidation.
+
 Statutory field semantics, validation, submission and receipts remain Phase 8. Tax and
 fiscal document work remains Phase 7. No country rule is hardcoded in Phase 6.
 
