@@ -209,6 +209,11 @@ It adds no generic automation catalogue claim, assignment, dispatch, cancellatio
 task transition, post-link edit, vehicle/parking, occupancy, finance or statutory
 effect. Canonical-detail task navigation remains a later read-only human slice.
 
+Order 214 owns only the first read-only human slice: canonical reservation detail
+shows honest arrival pickup state from existing travel/link truth. It adds no task
+identity, lifecycle, action, route, query, polling or mutation. Generic task detail
+and navigation remain later work.
+
 Statutory field semantics, validation, submission and receipts remain Phase 8. Tax and
 fiscal document work remains Phase 7. No country rule is hardcoded in Phase 6.
 
