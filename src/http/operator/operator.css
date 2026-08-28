@@ -1602,6 +1602,23 @@ to { opacity: 1; transform: none; }
 @media (prefers-reduced-motion: reduce) { .housekeeping-task-detail-loading span { animation: none; } }
 @media (forced-colors: active) { .housekeeping-task-detail-panel,.housekeeping-task-detail-summary,.housekeeping-task-detail-facts,.housekeeping-task-detail-identifiers,.housekeeping-task-read-only,.housekeeping-task-detail-error { border: 1px solid CanvasText; background: Canvas; color: CanvasText; box-shadow: none; -webkit-backdrop-filter: none; backdrop-filter: none; } }
 
+/* Order 222: exact contextual return from Folio to departure readiness. */
+.folio-departure-return { min-width: 0; min-height: 44px; max-width: 100%; display: inline-flex; align-items: center; justify-content: center; padding: .65rem 1rem; border: 1px solid var(--accent-strong); border-radius: var(--control-radius); background: color-mix(in srgb,var(--accent) 10%,var(--card)); color: var(--accent-strong); font: inherit; font-weight: 800; line-height: 1.2; text-align: center; white-space: normal; overflow-wrap: anywhere; cursor: pointer; box-shadow: var(--material-card-shadow); transition: transform var(--material-transition),box-shadow var(--material-transition),background-color var(--material-transition),border-color var(--material-transition); touch-action: manipulation; }
+.folio-departure-return:hover { transform: var(--material-hover-lift); background: color-mix(in srgb,var(--accent) 16%,var(--card)); }
+.folio-departure-return:active { transform: var(--material-press); }
+.folio-departure-return:focus-visible { outline: 3px solid var(--focus); outline-offset: 3px; }
+:root[data-theme="apple"] .folio-departure-return { border: .5px solid rgba(0,122,255,.38); border-radius: 13px; background: rgba(0,122,255,.1); color: #0059b7; box-shadow: inset 0 1px rgba(255,255,255,.65),0 6px 16px rgba(0,122,255,.12); font-weight: 700; }
+:root[data-theme="android"] .folio-departure-return { min-height: 48px; padding-inline: 1.5rem; border: 0; border-radius: 999px; background: #e8def8; color: #1d192b; box-shadow: 0 1px 2px rgba(29,25,43,.26),0 2px 6px rgba(29,25,43,.12); letter-spacing: .01em; }
+:root[data-theme="win95"] .folio-departure-return { border: 2px outset #fff; border-radius: 0; background: #c0c0c0; color: #000; box-shadow: 1px 1px #000; font-family: "MS Sans Serif",Tahoma,sans-serif; }
+:root[data-theme="win95"] .folio-departure-return:active { border-style: inset; transform: none; box-shadow: none; }
+:root[data-theme="glass"] .folio-departure-return { border: 1px solid rgba(255,255,255,.52); border-radius: 17px; background: linear-gradient(145deg,rgba(220,240,255,.26),rgba(92,150,230,.16)); color: #f8fbff; box-shadow: inset 0 1px rgba(255,255,255,.62),0 12px 30px rgba(0,5,22,.3); -webkit-backdrop-filter: blur(20px) saturate(170%); backdrop-filter: blur(20px) saturate(170%); }
+:root[data-theme="neo"] .folio-departure-return { border: 1px solid #a1adb3; border-radius: 16px; background: #e8eef1; color: #176f7b; box-shadow: -5px -5px 12px #fff,5px 5px 12px #bec8cd; }
+:root[data-theme="neo"] .folio-departure-return:active { transform: none; box-shadow: inset -3px -3px 7px #fff,inset 3px 3px 7px #c1cbd0; }
+:root[data-theme="erp"] .folio-departure-return { border: 1px solid #163ee9; border-radius: 5px; background: #f4f6ff; color: #0928a8; box-shadow: 0 2px 7px rgba(22,62,233,.14); font-weight: 750; }
+@media (max-width: 420px) { .folio-departure-return { width: 100%; } }
+@media (prefers-reduced-motion: reduce) { .folio-departure-return { animation: none; transition: none; transform: none; } }
+@media (forced-colors: active) { .folio-departure-return { border: 2px solid ButtonText; background: ButtonFace; color: ButtonText; box-shadow: none; -webkit-backdrop-filter: none; backdrop-filter: none; forced-color-adjust: auto; } .folio-departure-return:focus-visible { outline: 3px solid Highlight; } }
+
 /* Order 221: bounded transient receipt for generated housekeeping tasks. */
 .housekeeping-sheet-task-receipt { min-width: 0; max-width: 100%; padding: 1rem; display: grid; gap: .75rem; border: 1px solid var(--line); border-radius: var(--card-radius); background: var(--card); box-shadow: var(--material-card-shadow); overflow: hidden; }
 .housekeeping-sheet-task-receipt-head { min-width: 0; display: flex; align-items: start; justify-content: space-between; flex-wrap: wrap; gap: .5rem 1rem; }

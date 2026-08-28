@@ -199,7 +199,8 @@ test("Order 209: strict workbench intent survives refresh and same-reservation q
   expect(checkInReadiness).toContain("if (focus) checkInRefresh.focus({ preventScroll: true })");
   const checkoutReadiness = functionSource("loadCheckoutReadiness");
   expect(checkoutReadiness).toContain("if (focus) departureHeading.focus({ preventScroll: true })");
-  expect(checkoutReadiness).toContain("if (focus) departureRetry.focus({ preventScroll: true })");
+  expect(checkoutReadiness).toContain("restoreDepartureFolioReturnFocus(null)");
+  expect(checkoutReadiness).toContain("if (focus && departureFolioReturn === returning) departureRetry.focus({ preventScroll: true })");
   const close = functionSource("closeReservationDetail");
   expect(close).toContain("reservationDrawerReturnFocus?.isConnected ? reservationDrawerReturnFocus : $(\"#reservations-title\")");
 });

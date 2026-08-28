@@ -687,3 +687,45 @@ neomorphism uses paired raised/inset shadows, and ERP uses compact rectangular d
 with a blue rule. Reading order and truth remain identical across all six. Keyboard
 focus is explicit, forced colours replace decorative materials with system boundaries
 and button colours, and reduced motion removes nonessential transitions and transforms.
+
+## 29. Departure-to-Folio return continuity
+
+Only a successfully validated current Folio card inside the authoritative departure-
+readiness workbench may open Folio controls with departure return context. The frozen,
+minimized history descriptor binds exact property, reservation identifier,
+confirmation number, reservation status, checkout workbench, Folio identifier,
+canonical origin path and current reservation-detail and readiness generations. It
+adds no financial, checkout or permission meaning.
+
+Opening the card adds exactly one history entry and reuses the existing canonical
+Folio route and read. While the exact descriptor remains current, the existing Folio
+back control gains the contextual class `folio-departure-return` and its complete
+visible copy is **Back to departure**. Direct Folio lookup and every non-departure Folio
+open retain **Back to folio lookup** and their existing behavior. The descriptor lives
+only in the relevant history state; there is no browser storage, polling or second
+return authority.
+
+Before open or return, the client rechecks exact property, reservation, confirmation,
+status, Folio, path, active view, visible drawer, checkout workbench, originating card
+and detail/readiness generations. A stale, detached or mismatched identity is inert.
+The contextual control, Escape and browser Back restore the same canonical reservation
+route with `?workbench=checkout`, refetch existing reservation detail and checkout
+readiness, then focus the matching Folio card when it still exists or the departure
+heading otherwise. Refresh and Forward reconstruct context only from a descriptor that
+still validates. Existing dirty-Folio confirmation remains mandatory; cancelling it
+changes neither URL nor focus.
+
+Navigation runs no POST, PUT, PATCH or DELETE. Existing Folio writes, readiness and
+checkout confirmation, server grants, 403/404/409 handling and immutable finance rules
+remain unchanged. The contextual class and copy communicate navigation only and never
+claim that a Folio, reservation or departure state changed.
+
+The contextual control remains at least 44 pixels and wraps without horizontal
+overflow at 375 pixels and 200% zoom; Android raises it to 48 pixels. Apple iOS uses a
+restrained tinted rounded control, Android uses a Material 3 tonal pill, Windows 95/98
+uses square outset/inset system chrome, glassmorphism uses layered translucent blur,
+neomorphism uses paired raised and pressed inset shadows, and ERP uses compact
+rectangular density. The label, reading order and return target remain identical
+across all six. Keyboard focus is explicit, forced colours replace decorative
+materials with system button colours and boundaries, and reduced motion removes
+nonessential transition and transform effects.

@@ -138,7 +138,8 @@ describe("Order 203 operator governed departure readiness", () => {
     expect(current).toContain("location.pathname === `/p/${property}/res/${reservationId}`");
     expect(render).toContain("No checkout occurred here");
     expect(card).toContain("`${folio.currency} ${folio.balanceMinor} minor units`");
-    expect(card).toContain("openFolioWorkspace(folio.folioId");
+    expect(card).toContain("openDepartureFolioWorkspace(folio.folioId, card, open)");
+    expect(functionSource("openDepartureFolioWorkspace")).toContain("departureFolioReturnIsCurrent(descriptor, card, action)");
     expect(`${load}\n${render}\n${card}`).not.toMatch(/localStorage|sessionStorage|setInterval|BigInt|Number\(folio\.balanceMinor/);
     expect(script).not.toContain('id="departure-checkout"');
   });

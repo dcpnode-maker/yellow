@@ -301,7 +301,7 @@ already-governed task-detail journey. It adds only transient validated task link
 no server authority, mutation, persistent sheet-history claim, schema or event. This
 cannot complete Phase 6.
 
-Order 222 repairs the existing departure-readiness to Folio-controls round trip. It
+Order 222 is built-unreviewed and repairs the existing departure-readiness to Folio-controls round trip. It
 adds only a minimized validated history return descriptor and authoritative refetch/
 focus restoration; it changes no financial or checkout authority. This cannot complete Phase 6.
 

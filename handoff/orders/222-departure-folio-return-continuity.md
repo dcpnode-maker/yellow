@@ -1,6 +1,6 @@
 # Order 222 — Departure-to-Folio return continuity
 
-**Status:** READY-D587 — intentional red must precede implementation
+**Status:** BUILT-UNREVIEWED-D588
 **Phase:** 6 — Stay operations and housekeeping
 **Branch:** `phase-6/departure-folio-return-continuity`
 **Base:** `c70b1c5` (built-unreviewed Order221)
@@ -61,8 +61,20 @@ schema/migration/seed, dependency, scope/event or local promotion/deployment fil
 
 ## Definition of done
 
-- [ ] Intentional red precedes implementation.
-- [ ] Exact departure Folio origin survives only the intended history round trip.
-- [ ] Back/Escape/history restore authoritative checkout readiness and safe focus.
-- [ ] Direct Folio and immutable financial controls remain unchanged.
-- [ ] Standing gates are green and result is recorded built-unreviewed.
+- [x] Intentional red preceded implementation.
+- [x] Exact departure Folio origin survives only the intended history round trip.
+- [x] Back/Escape/history restore authoritative checkout readiness and safe focus.
+- [x] Direct Folio and immutable financial controls remain unchanged.
+- [x] Standing gates are green and result is recorded built-unreviewed.
+
+## Builder evidence
+
+- Focused Order222 plus Orders203/204/209/219 and Folio regression proof:
+  `72 passed, 6 skipped, 0 failed`, 776 assertions.
+- Standing suite: `576 passed, 629 skipped, 0 failed`, 6,293 assertions across
+  1,205 tests in 216 files.
+- Typecheck, 82 import boundaries, 23 dependency licences, audit with zero known
+  vulnerabilities, JavaScript syntax and diff checks are green.
+- The diff changes no TypeScript server/API/domain/database/schema/migration/seed/
+  dependency authority, so the exact inherited Order220 schema/referee evidence is
+  unchanged. Independent product review remains deferred by founder build-first direction.

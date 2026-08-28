@@ -1,8 +1,8 @@
 # Phase 6 — Stay operations and housekeeping
 
-**Status:** active; Orders 200–221 are built-unreviewed
+**Status:** active; Orders 200–222 are built-unreviewed
 **Entry point:** built-unreviewed Phase-5 composition through Order 199
-**Current order:** `222-departure-folio-return-continuity.md` (ready)
+**Current order:** next bounded build-first slice pending
 
 ## Outcome
 
@@ -248,7 +248,7 @@ the existing Order217/220 governed task-detail journey. It retains only a curren
 validated transient task receipt and adds no server authority, mutation, persistence,
 schema, migration or event.
 
-Order 222 repairs the existing checkout-readiness Folio-control navigation so its
+Order 222 is built-unreviewed and repairs the existing checkout-readiness Folio-control navigation so its
 visible Back/Escape/history journey returns to the same authoritative departure
 workbench rather than losing context or focusing hidden content. It changes no server,
 financial, checkout, schema, migration or event authority.

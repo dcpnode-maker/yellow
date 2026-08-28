@@ -91,7 +91,8 @@ test("Order 209: focused readiness settles only against the guarded current deta
   const checkout = functionSource("loadCheckoutReadiness");
   expect(checkout).toContain("checkoutReadinessIsCurrent");
   expect(checkout).toContain("if (focus) departureHeading.focus({ preventScroll: true })");
-  expect(checkout).toContain("if (focus) departureRetry.focus({ preventScroll: true })");
+  expect(checkout).toContain("restoreDepartureFolioReturnFocus(null)");
+  expect(checkout).toContain("if (focus && departureFolioReturn === returning) departureRetry.focus({ preventScroll: true })");
   expect(script).toContain('checkInForm.addEventListener("submit"');
   expect(script).toContain('departureCheckoutForm.addEventListener("submit"');
 });

@@ -144,6 +144,8 @@
  let folioRouteCursor = "";
  let folioWorkspaceProperty = "";
  let folioReturnFocus = null;
+ let departureFolioReturn = null;
+ let departureFolioExitConfirmed = false;
  let receivableTargets = [];
  let receivablePreview = null;
  let receivableApproval = null;
@@ -3343,6 +3345,51 @@ function ensureHousekeepingGenerationReceiptPanel() {
   && reservationDetailData?.reservation?.reservationId === reservationId
   && !reservationDetailDrawer.hidden && location.pathname === `/p/${property}/res/${reservationId}`;
  }
+ function departureFolioReturnIsCurrent(origin, card = null, action = null) {
+ const reservation = reservationDetailData?.reservation;
+ const currentPath = `${location.pathname}${location.search}`;
+ const folio = checkoutReadinessData?.folios?.find((item) => item.folioId === origin?.folioId);
+ if (card !== null || action !== null) {
+  return origin?.property === propertySelect.value && origin.reservationId === reservationRouteReservationId &&
+   origin.confirmationNo === reservation?.confirmationNo && origin.reservationStatus === reservation?.status &&
+   origin.workbench === "checkout" && currentReservationWorkbench === "checkout" &&
+   origin.readinessGeneration === checkoutReadinessGeneration && origin.detailGeneration === reservationDetailGeneration &&
+   checkoutReadinessData?.reservationId === origin.reservationId && checkoutReadinessData.reservationStatus === origin.reservationStatus &&
+   folio?.folioId === origin.folioId && activeView === "reservations" && currentPath === origin.originPath &&
+   reservationDetailDrawer.isConnected && reservationDetailDrawer.hidden === false &&
+   departureWorkbench.isConnected && departureWorkbench.hidden === false && departureContent.hidden === false &&
+   departureFolioList.isConnected && departureFolioList.contains(card) && card.isConnected && card.hidden === false &&
+   card.contains(action) && action.isConnected && action.hidden === false && action.disabled === false &&
+   card.dataset.folioId === origin.folioId && action.dataset.folioId === origin.folioId;
+ }
+ const folioPath = canonicalFolioPath(origin?.property, origin?.folioId, folioActiveTab, folioRouteCursor);
+ return origin?.property === propertySelect.value && origin.workbench === "checkout" &&
+  activeView === "folios" && folioWorkspace.isConnected && folioWorkspace.hidden === false &&
+  folioIdentity === origin.folioId && folioStatementData?.folio?.id === origin.folioId &&
+  (currentPath === folioPath || currentPath === origin.originPath);
+ }
+ function departureFolioReturnFromState(state, property, folioId) {
+ const value = state?.departureFolioReturn;
+ const expected = "confirmationNo,detailGeneration,folioId,originPath,property,readinessGeneration,reservationId,reservationStatus,workbench";
+ if (state?.yellowSurface !== "folio-workspace" || !value || typeof value !== "object" || Array.isArray(value) ||
+  Object.keys(value).sort().join(",") !== expected || value.property !== property || value.folioId !== folioId ||
+  !canonicalUuid(value.property) || !canonicalUuid(value.reservationId) || !canonicalUuid(value.folioId) ||
+  typeof value.confirmationNo !== "string" || value.confirmationNo.trim().length < 1 || value.confirmationNo.length > 120 ||
+  !["in_house", "due_out"].includes(value.reservationStatus) || value.workbench !== "checkout" ||
+  value.originPath !== `/p/${value.property}/res/${value.reservationId}?workbench=checkout` ||
+  !Number.isInteger(value.readinessGeneration) || value.readinessGeneration < 0 ||
+  !Number.isInteger(value.detailGeneration) || value.detailGeneration < 0) return null;
+ return Object.freeze({ ...value });
+ }
+ function syncDepartureFolioReturnControl() {
+ const current = departureFolioReturnIsCurrent(departureFolioReturn);
+ folioWorkspaceBack.textContent = current ? "Back to departure" : "Back to folio lookup";
+ folioWorkspaceBack.classList.toggle("folio-departure-return", current);
+ }
+ function folioWorkspaceHistoryState(folioId) {
+ const current = departureFolioReturn?.folioId === folioId ? departureFolioReturn : null;
+ return current ? { yellowSurface: "folio-workspace", departureFolioReturn: current } : { yellowSurface: "folio-workspace" };
+ }
 function departureEvidenceRow(term, value) {
  const row = node("div");
  row.append(node("dt", "", term), node("dd", "", value));
@@ -3350,6 +3397,7 @@ function departureEvidenceRow(term, value) {
  }
   function departureFolioCard(folio) {
  const card = node("article", "departure-folio-card");
+ card.dataset.folioId = folio.folioId;
  const head = node("div", "departure-folio-card-head");
  const identity = node("div");
  identity.append(
@@ -3363,8 +3411,9 @@ function departureEvidenceRow(term, value) {
  balance.append(node("span", "", "Exact server balance"), node("strong", "", `${folio.currency} ${folio.balanceMinor} minor units`));
  const open = node("button", "secondary departure-folio-open", "Open Folio controls");
  open.type = "button";
+ open.dataset.folioId = folio.folioId;
  open.setAttribute("aria-label", `Open governed Folio controls for ${folio.folioNo || `window ${folio.windowNo}`}`);
- open.addEventListener("click", () => openFolioWorkspace(folio.folioId, { trigger: open }));
+ open.addEventListener("click", () => openDepartureFolioWorkspace(folio.folioId, card, open));
  card.append(head, balance, open);
  return card;
  }
@@ -3395,6 +3444,33 @@ function departureEvidenceRow(term, value) {
  departureContent.hidden = false;
  departureWorkbench.setAttribute("aria-busy", "false");
  syncCheckoutConfirmation();
+ restoreDepartureFolioReturnFocus(readiness);
+ }
+ function restoreDepartureFolioReturnFocus(readiness) {
+ const returning = departureFolioReturn;
+ const reservation = reservationDetailData?.reservation;
+ if (!returning || activeView !== "reservations" || currentReservationWorkbench !== "checkout" ||
+  `${location.pathname}${location.search}` !== returning.originPath || returning.property !== propertySelect.value ||
+  returning.reservationId !== reservationRouteReservationId || returning.reservationId !== reservation?.reservationId ||
+  returning.confirmationNo !== reservation.confirmationNo || returning.reservationStatus !== reservation.status) return;
+ const card = readiness?.reservationId === returning.reservationId
+  ? [...departureFolioList.querySelectorAll(".departure-folio-card")].find((item) => item.dataset.folioId === returning.folioId) : null;
+ const action = card?.querySelector(".departure-folio-open");
+ (action?.isConnected ? action : departureHeading).focus({ preventScroll: true });
+ departureFolioReturn = null;
+ }
+ function openDepartureFolioWorkspace(folioId, card, action) {
+ const reservation = reservationDetailData?.reservation;
+ const property = propertySelect.value;
+ const reservationId = reservation?.reservationId;
+ const originPath = `/p/${property}/res/${reservationId}?workbench=checkout`;
+ const descriptor = Object.freeze({
+  property, reservationId, confirmationNo: reservation?.confirmationNo,
+  reservationStatus: reservation?.status, folioId, workbench: "checkout", originPath,
+  readinessGeneration: checkoutReadinessGeneration, detailGeneration: reservationDetailGeneration,
+ });
+ if (!departureFolioReturnIsCurrent(descriptor, card, action)) return;
+ openFolioWorkspace(folioId, { trigger: action, departureReturn: descriptor });
  }
   async function loadCheckoutReadiness({ focus = false } = {}) {
  if (!reservationDetailData) {
@@ -3435,7 +3511,9 @@ function departureEvidenceRow(term, value) {
   departureMessage.classList.add("error");
   departureMessage.textContent = "No readiness conclusion was made. Retry this read-only snapshot.";
   syncCheckoutConfirmation();
-  if (focus) departureRetry.focus({ preventScroll: true });
+  const returning = departureFolioReturn;
+  restoreDepartureFolioReturnFocus(null);
+  if (focus && departureFolioReturn === returning) departureRetry.focus({ preventScroll: true });
  } finally {
   if (checkoutReadinessIsCurrent(generation, detailGeneration, property, reservationId)) departureRefresh.disabled = false;
  }
@@ -5541,6 +5619,7 @@ function departureEvidenceRow(term, value) {
  resetFolioPresentation();
  folioStatementLookupForm.reset();
  formMessage(folioStatementLookupForm, "Enter the exact human-readable folio reference.");
+ syncDepartureFolioReturnControl();
  }
   function receivableTransferBody() {
  return {
@@ -6180,7 +6259,7 @@ function departureEvidenceRow(term, value) {
  }
  folioCorrectionPanel.hidden = next !== "correction";
  if (updateHistory && propertySelect.value && folioStatementData) {
-  history.pushState({ yellowSurface: "folio-workspace" }, "", canonicalFolioPath(propertySelect.value, folioStatementData.folio.id, next, folioRouteCursor));
+ history.pushState(folioWorkspaceHistoryState(folioStatementData.folio.id), "", canonicalFolioPath(propertySelect.value, folioStatementData.folio.id, next, folioRouteCursor));
  }
  if(next==="deposit")if(d)d.s();else if(!p){const g=folioGeneration;p=import("/assets/operator-deposits.js").then(m=>(d=m.default([
   () => [folioGeneration, propertySelect.value, folioIdentity, folioStatementData], request, renderFolioStatement,
@@ -6373,6 +6452,7 @@ function departureEvidenceRow(term, value) {
  }
  }
   async function loadFolioWorkspace(folioId, after = "", { focus = true } = {}) {
+ if (departureFolioReturn && departureFolioReturn.folioId !== folioId) departureFolioReturn = null;
  const generation = ++folioGeneration;
  const property = propertySelect.value;
  const identity = folioId;
@@ -6392,6 +6472,7 @@ function departureEvidenceRow(term, value) {
   if (statement.folio.id !== folioId) throw new Error("The server returned a different folio.");
   renderFolioStatement(statement);
   folioWorkspace.setAttribute("aria-busy", "false");
+  syncDepartureFolioReturnControl();
   if (focus) folioWorkspace.focus();
  } catch (error) {
   if (!isCurrentFolioRequest(generation, property, identity, folioId)) return;
@@ -6406,33 +6487,58 @@ function departureEvidenceRow(term, value) {
   function loadOlderFolioRows() {
  if (!folioStatementData || !folioNextCursor || !confirmFolioExit()) return;
  const cursor = folioNextCursor;
- history.pushState({ yellowSurface: "folio-workspace" }, "", canonicalFolioPath(propertySelect.value, folioStatementData.folio.id, folioActiveTab, cursor));
+ history.pushState(folioWorkspaceHistoryState(folioStatementData.folio.id), "", canonicalFolioPath(propertySelect.value, folioStatementData.folio.id, folioActiveTab, cursor));
  void loadFolioWorkspace(folioStatementData.folio.id, cursor);
  }
-  function openFolioWorkspace(folioId, { trigger = null } = {}) {
+  function openFolioWorkspace(folioId, { trigger = null, departureReturn = null } = {}) {
  if (activeView === "folios" && !confirmFolioExit()) return;
+ departureFolioReturn = departureReturn;
+ departureFolioExitConfirmed = false;
+ syncDepartureFolioReturnControl();
  folioReturnFocus = trigger;
  closeReservationDetail({ history: false, restoreFocus: false });
  setView("folios", false);
  folioActiveTab = "postings";
- history.pushState({ yellowSurface: "folio-workspace" }, "", canonicalFolioPath(propertySelect.value, folioId));
+ history.pushState(departureFolioReturn
+  ? { yellowSurface: "folio-workspace", departureFolioReturn }
+  : { yellowSurface: "folio-workspace" }, "", canonicalFolioPath(propertySelect.value, folioId));
  void loadFolioWorkspace(folioId);
+ }
+ function returnFromFolioWorkspaceToDeparture({ fromHistory = false } = {}) {
+ const returning = departureFolioReturn;
+ if (!departureFolioReturnIsCurrent(returning)) return false;
+ const departurePath = `/p/${returning.property}/res/${returning.reservationId}?workbench=checkout`;
+ if (returning.originPath !== departurePath) return false;
+ if (!fromHistory) {
+  if (!confirmFolioExit()) return false;
+  departureFolioExitConfirmed = true;
+  history.back();
+  return true;
+ }
+ clearFolioState();
+ setView("reservations", false);
+ void openReservationDetail(returning.reservationId, { push: false, workbench: "checkout" });
+ return true;
  }
   function syncFolioRoute() {
  const route = folioRouteFromLocation();
  if (route.kind === "other" || !propertySelect.value || route.property !== propertySelect.value) return;
  if (route.kind === "list") {
+  departureFolioReturn = null;
   clearFolioState();
+  syncDepartureFolioReturnControl();
   $("#folios-title")?.focus();
   return;
  }
+ departureFolioReturn = departureFolioReturnFromState(history.state, route.property, route.folioId);
  const canonical = canonicalFolioPath(route.property, route.folioId, route.tab, route.after);
- if (`${location.pathname}${location.search}` !== canonical) history.replaceState({ yellowSurface: "folio-workspace" }, "", canonical);
+ if (`${location.pathname}${location.search}` !== canonical) history.replaceState(folioWorkspaceHistoryState(route.folioId), "", canonical);
  folioActiveTab = route.tab;
  if (folioIdentity !== route.folioId || folioRouteCursor !== route.after || folioWorkspace.hidden) {
   void loadFolioWorkspace(route.folioId, route.after, { focus: false });
  } else {
   setFolioTab(route.tab, { updateHistory: false, focus: false });
+  syncDepartureFolioReturnControl();
  }
  }
   function folioChargeBody() {
@@ -7105,7 +7211,12 @@ function vehicleReturnPathFromState(state, property) {
   secondaryWorkspacesToggle.setAttribute("aria-expanded", "true");
   secondaryWorkspacesToggle.textContent = "Fewer workspaces";
  }
- if (previousView === "folios" && activeView !== "folios") clearFolioState();
+ if (previousView === "folios" && activeView !== "folios") {
+  clearFolioState();
+  if (activeView !== "reservations" || `${location.pathname}${location.search}` !== departureFolioReturn?.originPath) {
+   departureFolioReturn = null;
+  }
+ }
  if (previousView === "today" && activeView !== "today") todayGeneration += 1;
  if (previousView === "housekeeping" && activeView !== "housekeeping") {
   clearHousekeepingSheetReceipt();
@@ -8984,6 +9095,8 @@ function vehicleReturnPathFromState(state, property) {
  housekeepingTaskDetailAttempts.clear();
  clearHousekeepingConditionState();
  clearHousekeepingSheetState();
+ departureFolioReturn = null;
+ departureFolioExitConfirmed = false;
  clearVehicleRegisterState();
  vehicleLinkedReservationReturn = null;
  resetTodayState();
@@ -9239,11 +9352,16 @@ housekeepingSheetDate.addEventListener("change", () => {
   return;
  }
  const folioRoute = folioRouteFromLocation();
- if (activeView === "folios" && !folioWorkspace.hidden && !confirmFolioExit()) {
+ if (activeView === "folios" && !folioWorkspace.hidden && !departureFolioExitConfirmed && !confirmFolioExit()) {
   const currentId = folioStatementData?.folio.id || folioIdentity;
-  history.pushState({ yellowSurface: "folio-workspace" }, "", canonicalFolioPath(propertySelect.value, currentId, folioActiveTab, folioRouteCursor));
+  history.pushState(folioWorkspaceHistoryState(currentId), "", canonicalFolioPath(propertySelect.value, currentId, folioActiveTab, folioRouteCursor));
   return;
  }
+ departureFolioExitConfirmed = false;
+ const departureRoute = reservationNavigationRoute();
+ if (departureFolioReturn && departureRoute.kind === "detail" && departureRoute.workbench === "checkout" &&
+  `${location.pathname}${location.search}` === departureFolioReturn.originPath &&
+  returnFromFolioWorkspaceToDeparture({ fromHistory: true })) return;
  if (folioRoute.kind !== "other" && folioRoute.property === propertySelect.value) {
   setView("folios", false);
   syncFolioRoute();
@@ -9269,6 +9387,7 @@ housekeepingSheetDate.addEventListener("change", () => {
  });
  folioLoadOlder.addEventListener("click", () => void loadOlderFolioRows());
  folioWorkspaceBack.addEventListener("click", () => {
+ if (returnFromFolioWorkspaceToDeparture()) return;
  if (!confirmFolioExit()) return;
  const returnTarget = folioReturnFocus;
  clearFolioState();
