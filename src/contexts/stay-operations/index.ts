@@ -43,11 +43,13 @@ export type {
 
 export {
   VehicleRegisterConflictError,
+  VehicleRegisterNotFoundError,
   VehicleRegisterService,
   VehicleRegisterValidationError,
 } from "./vehicles";
 export type {
   VehicleRegisterInput,
+  VehicleRegisterDetailInput,
   VehicleRegisterPage,
   VehicleRegisterRow,
   VehicleRegisterServiceOptions,

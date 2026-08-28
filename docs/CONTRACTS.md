@@ -863,3 +863,26 @@ reservation, fact, outbox or idempotency write.
 requires the existing `reservations.lifecycle:read` scope and exact property grant,
 accepts no query and is `Cache-Control: no-store`. It is a reservation-scoped detail
 read, not generic task-list or task-lifecycle authority.
+
+## 27. Governed vehicle-register exact-detail boundary
+
+`VehicleRegisterService.get` accepts only one lowercase tenant UUID, property UUID
+and vehicle UUID. In one transaction-local tenant-bound read it proves the exact
+property and vehicle, then re-proves a nullable linked reservation against the same
+tenant and exact property and a nullable linked Party against the same tenant. Missing,
+foreign-tenant and wrong-property identities are indistinguishable not-found results;
+a selected row whose stored association or canonical field shape is inconsistent fails
+the complete read as a conflict without disclosing a foreign identifier.
+
+The deeply frozen result is exactly the existing Order-205 row: `vehicleId`, literal
+`registration`, nullable `make`, `model`, `colour`, `driverName`, `reservationId`,
+`partyId`, `enteredAt` and `exitedAt`. Notes, parking-space truth, tenant/property
+identity, Party/reservation content, contacts, occupancy, inferred onsite/security
+meaning and action flags are excluded. Repeated unchanged reads are byte-equivalent
+and perform no vehicle, reservation, Party, parking, occupancy, task, fact, outbox or
+idempotency write.
+
+`GET /api/v1/properties/{property}/vehicles/{vehicle}` requires the existing
+`stay-operations.vehicles:read` scope and exact property grant, accepts no query and
+is `Cache-Control: no-store`. It adds no vehicle create/edit, entry/exit, parking,
+occupancy or generic lifecycle authority.

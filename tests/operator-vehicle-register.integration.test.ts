@@ -190,6 +190,7 @@ describe("Order 205 operator Vehicle Register read", () => {
     const load = functionSource("loadVehicleRegister");
     const current = functionSource("vehicleRegisterIsCurrent");
     const result = functionSource("vehicleRegisterResult");
+    const row = functionSource("vehicleRecordResult");
     const card = functionSource("vehicleCard");
     expect(load).toContain("/vehicles?");
     expect(load).toContain('query.set("registration", registration)');
@@ -202,7 +203,8 @@ describe("Order 205 operator Vehicle Register read", () => {
     expect(current).toContain("propertySelect.value");
     expect(current).toContain("vehicleRegisterFilter");
     expect(current).toContain("vehicleRegisterCursor");
-    expect(result).toContain('Object.keys(vehicle).sort()');
+    expect(result).toContain("vehicleRecordResult(vehicle)");
+    expect(row).toContain('Object.keys(vehicle).sort()');
     expect(card).not.toMatch(/notes|parking|onsite|occupancy/i);
     expect(load).not.toMatch(/localStorage|sessionStorage|setInterval|trim\(|toUpperCase|toLowerCase|replaceAll/);
   });

@@ -154,9 +154,11 @@ import {
   CheckInService,
   CheckInValidationError,
   VehicleRegisterConflictError,
+  VehicleRegisterNotFoundError,
   VehicleRegisterService,
   VehicleRegisterValidationError,
   type VehicleRegisterPage,
+  type VehicleRegisterRow,
 } from "../contexts/stay-operations";
 import {
   HousekeepingConflictError,
@@ -298,20 +300,24 @@ function vehicleRegisterQuery(request: Request): {
   });
 }
 
+function vehicleRegisterRowJson(vehicle: VehicleRegisterRow): JsonValue {
+  return jsonValue({
+    vehicleId: vehicle.vehicleId,
+    registration: vehicle.registration,
+    make: vehicle.make,
+    model: vehicle.model,
+    colour: vehicle.colour,
+    driverName: vehicle.driverName,
+    reservationId: vehicle.reservationId,
+    partyId: vehicle.partyId,
+    enteredAt: vehicle.enteredAt,
+    exitedAt: vehicle.exitedAt,
+  });
+}
+
 function vehicleRegisterJson(page: VehicleRegisterPage): JsonValue {
   return jsonValue({
-    vehicles: page.vehicles.map((vehicle) => ({
-      vehicleId: vehicle.vehicleId,
-      registration: vehicle.registration,
-      make: vehicle.make,
-      model: vehicle.model,
-      colour: vehicle.colour,
-      driverName: vehicle.driverName,
-      reservationId: vehicle.reservationId,
-      partyId: vehicle.partyId,
-      enteredAt: vehicle.enteredAt,
-      exitedAt: vehicle.exitedAt,
-    })),
+    vehicles: page.vehicles.map(vehicleRegisterRowJson),
     nextCursor: page.nextCursor,
   });
 }
@@ -1376,7 +1382,8 @@ type ReservationDetailOperations = Pick<ReservationDetailService, "findById"> &
   Partial<Pick<ReservationDetailService, "pickupTaskDetail">>;
 type CheckInOperations = Pick<CheckInService, "getReadiness" | "checkIn">;
 type CheckoutOperations = Pick<CheckoutService, "checkout">;
-type VehicleRegisterOperations = Pick<VehicleRegisterService, "list">;
+type VehicleRegisterOperations = Pick<VehicleRegisterService, "list"> &
+  Partial<Pick<VehicleRegisterService, "get">>;
 interface CheckoutReadinessOperations {
   read(input: Readonly<{
     tenantId: string;
@@ -1902,6 +1909,9 @@ export class OperatorHttpApi {
   failure(request: Request, error: unknown): Response {
     if (error instanceof VehicleRegisterValidationError) {
       return apiError(request, 400, "request/invalid", "Invalid request", "Vehicle register input is invalid");
+    }
+    if (error instanceof VehicleRegisterNotFoundError) {
+      return apiError(request, 404, "vehicles/not_found", "Not found", "The referenced vehicle was not found");
     }
     if (error instanceof VehicleRegisterConflictError) {
       return apiError(request, 409, "vehicles/conflict", "Vehicle register unavailable", "Stored vehicle associations are inconsistent; no register data was disclosed");
@@ -3666,6 +3676,31 @@ export class OperatorHttpApi {
       ...query,
     });
     return apiResponse(context.request, canonicalJson(vehicleRegisterJson(page)));
+  }
+
+  async vehicleRegisterDetail(
+    context: TenantRequestContext,
+    propertyNode: string,
+    vehicleId: string,
+  ): Promise<Response> {
+    const query = new URL(context.request.url).searchParams;
+    if (!UUID.test(propertyNode) || !UUID.test(vehicleId) || [...query.keys()].length > 0) {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Vehicle detail input is invalid");
+    }
+    if (!hasScope(context, VEHICLE_REGISTER_READ_SCOPE)) {
+      return apiError(context.request, 403, "auth/scope_missing", "Forbidden", "Vehicle register access is not granted");
+    }
+    const grants = await listGrantedProperties(context, VEHICLE_REGISTER_READ_SCOPE);
+    if (!grants.some(({ id }) => id === propertyNode)) {
+      return apiError(context.request, 404, "vehicles/not_found", "Not found", "The referenced vehicle was not found");
+    }
+    if (!this.#vehicleRegister?.get) return this.unavailable(context.request);
+    const vehicle = await this.#vehicleRegister.get({
+      tenantId: context.tenantId,
+      propertyNode,
+      vehicleId,
+    });
+    return apiResponse(context.request, canonicalJson({ vehicle: vehicleRegisterRowJson(vehicle) }));
   }
 
   async housekeepingBoard(

@@ -84,6 +84,13 @@
  let vehicleRegisterNextCursor = null;
  let vehicleRegisterCursor = "";
  let vehicleRegisterFilter = "";
+ let vehicleRegisterRenderedPath = "";
+ let vehicleDetailData = null;
+ let vehicleDetailRequestGeneration = 0;
+ let vehicleRouteVehicleId = "";
+ let vehicleDetailReturnFocus = null;
+ let vehicleDetailReturnPath = "";
+ let vehicleDetailPanel = null;
  const todayLaneState = {
  due_in: { rows: [], nextCursor: null, requestGeneration: 0 },
  due_out: { rows: [], nextCursor: null, requestGeneration: 0 },
@@ -6099,6 +6106,9 @@ function departureEvidenceRow(term, value) {
  const suffix = query.toString();
  return `/p/${property}/vehicles${suffix ? `?${suffix}` : ""}`;
  }
+ function canonicalVehicleDetailPath(property, vehicleId) {
+ return `/p/${property}/vehicles/${vehicleId}`;
+ }
  function vehicleRouteFromLocation() {
  const match = location.pathname.match(/^\/p\/([0-9a-f-]+)\/vehicles$/);
  if (!match) return null;
@@ -6107,24 +6117,62 @@ function departureEvidenceRow(term, value) {
   query.getAll("registration").length > 1 || query.getAll("cursor").length > 1) return null;
  return { property: match[1], registration: query.get("registration") || "", cursor: query.get("cursor") || "" };
  }
+ function vehicleDetailRouteFromLocation() {
+ const match = location.pathname.match(/^\/p\/([0-9a-f-]+)\/vehicles\/([0-9a-f-]+)$/);
+ if (!match || !canonicalUuid(match[1]) || !canonicalUuid(match[2])) return null;
+ if (location.search) history.replaceState(history.state, "", location.pathname);
+ return { property: match[1], vehicleId: match[2] };
+ }
+ function vehicleNavigationRoute() {
+ const detail = vehicleDetailRouteFromLocation();
+ return detail ? { kind: "detail", ...detail } : vehicleRouteFromLocation() === null
+  ? { kind: "other" } : { kind: "register", ...vehicleRouteFromLocation() };
+ }
+function vehicleReturnPathFromState(state, property) {
+ if (typeof state?.vehicleReturnPath !== "string") return "";
+ if (state.vehicleReturnPath.includes("#") || state.vehicleReturnPath.split("?").length > 2) return "";
+ const [pathname, rawSearch = ""] = state.vehicleReturnPath.split("?");
+ const match = pathname.match(/^\/p\/([0-9a-f-]+)\/vehicles$/);
+ const query = new URLSearchParams(rawSearch);
+ if (!match || match[1] !== property || !canonicalUuid(match[1]) ||
+     [...query.keys()].some((key) => key !== "registration" && key !== "cursor") ||
+     query.getAll("registration").length > 1 || query.getAll("cursor").length > 1) return "";
+ return `${pathname}${rawSearch ? `?${rawSearch}` : ""}`;
+}
+ function vehicleRecordResult(vehicle, expectedId = "") {
+ const keys = ["colour", "driverName", "enteredAt", "exitedAt", "make", "model", "partyId", "registration", "reservationId", "vehicleId"];
+ const nullable = ["colour", "driverName", "enteredAt", "exitedAt", "make", "model", "partyId", "reservationId"];
+ if (!vehicle || typeof vehicle !== "object" || Array.isArray(vehicle) ||
+  Object.keys(vehicle).sort().join(",") !== keys.join(",") || !canonicalUuid(vehicle.vehicleId) ||
+  (expectedId !== "" && vehicle.vehicleId !== expectedId) ||
+  typeof vehicle.registration !== "string" || nullable.some((key) => vehicle[key] !== null && typeof vehicle[key] !== "string") ||
+  (vehicle.partyId !== null && !canonicalUuid(vehicle.partyId)) ||
+  (vehicle.reservationId !== null && !canonicalUuid(vehicle.reservationId)) ||
+  (vehicle.enteredAt !== null && !vehicleCanonicalInstant(vehicle.enteredAt)) ||
+  (vehicle.exitedAt !== null && !vehicleCanonicalInstant(vehicle.exitedAt))) {
+  throw new Error("The server returned an invalid vehicle-register row.");
+ }
+ return Object.freeze({ ...vehicle });
+ }
+ function vehicleCanonicalInstant(value) {
+ return typeof value === "string" &&
+  /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{6}Z$/.test(value) &&
+  Number.isFinite(Date.parse(value));
+ }
  function vehicleRegisterResult(value) {
  if (!value || typeof value !== "object" || Array.isArray(value) ||
   Object.keys(value).sort().join(",") !== "nextCursor,vehicles" || !Array.isArray(value.vehicles) ||
   (value.nextCursor !== null && typeof value.nextCursor !== "string")) {
   throw new Error("The server returned an invalid vehicle-register page.");
  }
- const keys = ["colour", "driverName", "enteredAt", "exitedAt", "make", "model", "partyId", "registration", "reservationId", "vehicleId"];
- const nullable = ["colour", "driverName", "enteredAt", "exitedAt", "make", "model", "partyId", "reservationId"];
- for (const vehicle of value.vehicles) {
-  if (!vehicle || typeof vehicle !== "object" || Array.isArray(vehicle) ||
-   Object.keys(vehicle).sort().join(",") !== keys.join(",") || !canonicalUuid(vehicle.vehicleId) ||
-   typeof vehicle.registration !== "string" || nullable.some((key) => vehicle[key] !== null && typeof vehicle[key] !== "string") ||
-   (vehicle.partyId !== null && !canonicalUuid(vehicle.partyId)) ||
-   (vehicle.reservationId !== null && !canonicalUuid(vehicle.reservationId))) {
-   throw new Error("The server returned an invalid vehicle-register row.");
-  }
+ return Object.freeze({ vehicles: Object.freeze(value.vehicles.map((vehicle) => vehicleRecordResult(vehicle))), nextCursor: value.nextCursor });
  }
- return value;
+ function vehicleDetailResult(value, origin) {
+ if (!value || typeof value !== "object" || Array.isArray(value) ||
+  Object.keys(value).sort().join(",") !== "vehicle") {
+  throw new Error("The server returned an invalid vehicle-detail envelope.");
+ }
+ return vehicleRecordResult(value.vehicle, origin.vehicleId);
  }
  function vehicleRegisterIsCurrent(generation, property, registration, cursor) {
  return generation === vehicleRegisterGeneration && activeView === "vehicles" &&
@@ -6145,7 +6193,13 @@ function departureEvidenceRow(term, value) {
  const head = node("div", "vehicle-register-card-head");
  const title = node("div");
  title.append(node("span", "eyebrow", "Recorded registration"), node("h3", "vehicle-registration", vehicle.registration));
- head.append(title, node("span", "vehicle-read-only", "Read only"));
+ const actions = node("div", "vehicle-card-actions");
+ const open = node("button", "secondary vehicle-detail-action", "Open vehicle");
+ open.type = "button";
+ open.dataset.vehicleId = vehicle.vehicleId;
+ open.setAttribute("aria-label", `Open vehicle ${vehicle.registration}`);
+ actions.append(node("span", "vehicle-read-only", "Read only"), open);
+ head.append(title, actions);
  const details = node("dl", "vehicle-register-meta");
  details.append(
   vehicleMeta("Make", vehicle.make), vehicleMeta("Model", vehicle.model),
@@ -6163,11 +6217,181 @@ function departureEvidenceRow(term, value) {
  card.append(head, details, linked);
  return card;
  }
+ function ensureVehicleDetailPanel() {
+ if (vehicleDetailPanel?.isConnected) return vehicleDetailPanel;
+ const panel = node("section", "card vehicle-detail-panel");
+ panel.hidden = true;
+ panel.setAttribute("aria-labelledby", "vehicle-detail-title");
+ panel.setAttribute("aria-busy", "false");
+ const head = node("div", "vehicle-detail-head");
+ const titleCopy = el("div");
+ titleCopy.append(node("p", "eyebrow", "Recorded vehicle"));
+ const title = node("h3", "vehicle-detail-title", "Vehicle detail");
+ title.id = "vehicle-detail-title";
+ title.tabIndex = -1;
+ titleCopy.append(title);
+ const actions = node("div", "vehicle-detail-actions");
+ const back = node("button", "quiet vehicle-detail-back", "Back to register");
+ back.type = "button";
+ const refresh = node("button", "secondary vehicle-detail-refresh", "Refresh detail");
+ refresh.type = "button";
+ actions.append(back, refresh);
+ head.append(titleCopy, actions);
+ const loading = node("div", "vehicle-detail-loading");
+ loading.hidden = true;
+ loading.setAttribute("aria-hidden", "true");
+ loading.append(el("span"), el("span"), el("span"));
+ const error = node("section", "vehicle-detail-error");
+ error.hidden = true;
+ error.setAttribute("role", "alert");
+ const errorCopy = node("p", "", "Vehicle detail is unavailable.");
+ const retry = node("button", "secondary vehicle-detail-retry", "Try again");
+ retry.type = "button";
+ error.append(node("strong", "", "Vehicle detail could not be loaded"), errorCopy, retry);
+ const content = node("div", "vehicle-detail-content");
+ content.hidden = true;
+ panel.append(head, loading, error, content);
+ vehicleRegister.after(panel);
+ back.addEventListener("click", () => closeVehicleDetail());
+ refresh.addEventListener("click", () => {
+  if (vehicleRouteVehicleId) void loadVehicleDetail(vehicleRouteVehicleId, { focus: true });
+ });
+ retry.addEventListener("click", () => {
+  if (vehicleRouteVehicleId) void loadVehicleDetail(vehicleRouteVehicleId, { focus: true });
+ });
+ vehicleDetailPanel = panel;
+ return panel;
+ }
+ function vehicleDetailRequestIsCurrent(origin, panel) {
+ return origin.requestGeneration === vehicleDetailRequestGeneration && activeView === "vehicles" &&
+  origin.property === propertySelect.value && origin.vehicleId === vehicleRouteVehicleId &&
+  panel.isConnected && panel.hidden === false && vehicleRegister.hidden === true &&
+  location.pathname === canonicalVehicleDetailPath(origin.property, origin.vehicleId) && location.search === "";
+ }
+ function renderVehicleDetail(panel, vehicle) {
+ const title = panel.querySelector(".vehicle-detail-title");
+ title.textContent = vehicle.registration;
+ const summary = node("div", "vehicle-detail-summary");
+ summary.append(node("span", "vehicle-read-only", "Read only"),
+  node("p", "", "Recorded vehicle-register truth for this property."));
+ const facts = node("dl", "vehicle-detail-facts");
+ for (const [label, value] of [
+  ["Make", vehicle.make], ["Model", vehicle.model], ["Colour", vehicle.colour],
+  ["Driver", vehicle.driverName], ["Entered at", vehicle.enteredAt], ["Exited at", vehicle.exitedAt],
+ ]) facts.append(vehicleMeta(label, value));
+ const identifiers = node("details", "vehicle-detail-identifiers");
+ identifiers.append(node("summary", "", "Recorded identifiers"));
+ const identityFacts = node("dl", "vehicle-detail-facts");
+ identityFacts.append(vehicleMeta("Vehicle ID", vehicle.vehicleId),
+  vehicleMeta("Reservation ID", vehicle.reservationId), vehicleMeta("Party ID", vehicle.partyId));
+ identifiers.append(identityFacts);
+ panel.querySelector(".vehicle-detail-content").replaceChildren(summary, facts, identifiers,
+  node("p", "field-note", "Read only. Entry, exit, parking, assignment and guest workflows remain separate governed operations."));
+ panel.querySelector(".vehicle-detail-content").hidden = false;
+ panel.querySelector(".vehicle-detail-loading").hidden = true;
+ panel.querySelector(".vehicle-detail-error").hidden = true;
+ panel.setAttribute("aria-busy", "false");
+ }
+ async function loadVehicleDetail(vehicleId, { focus = false } = {}) {
+ const panel = ensureVehicleDetailPanel();
+ const origin = Object.freeze({
+  requestGeneration: ++vehicleDetailRequestGeneration,
+  property: propertySelect.value,
+  vehicleId,
+ });
+ panel.setAttribute("aria-busy", "true");
+ panel.querySelector(".vehicle-detail-loading").hidden = false;
+ panel.querySelector(".vehicle-detail-error").hidden = true;
+ panel.querySelector(".vehicle-detail-content").hidden = true;
+ panel.querySelector(".vehicle-detail-refresh").disabled = true;
+ try {
+  const body = await request(`/api/v1/properties/${enc(origin.property)}/vehicles/${enc(origin.vehicleId)}`);
+  if (!vehicleDetailRequestIsCurrent(origin, panel)) return;
+  const vehicle = vehicleDetailResult(body, origin);
+  if (!vehicleDetailRequestIsCurrent(origin, panel)) return;
+  vehicleDetailData = vehicle;
+  renderVehicleDetail(panel, vehicle);
+  vehicleResultSummary.textContent = `Exact vehicle ${vehicle.registration} loaded from server truth.`;
+  if (focus) panel.querySelector(".vehicle-detail-title").focus({ preventScroll: true });
+ } catch (error) {
+  if (!vehicleDetailRequestIsCurrent(origin, panel)) return;
+  vehicleDetailData = null;
+  panel.querySelector(".vehicle-detail-loading").hidden = true;
+  panel.querySelector(".vehicle-detail-error").hidden = false;
+  panel.querySelector(".vehicle-detail-error p").textContent = error?.status === 404
+   ? "This vehicle was not found in the current property."
+   : error?.status === 409 ? "Stored vehicle associations are inconsistent; no detail was disclosed."
+    : error instanceof Error ? error.message : "The vehicle detail is unavailable.";
+  panel.setAttribute("aria-busy", "false");
+  vehicleResultSummary.textContent = "No vehicle-detail conclusion was made. Retry this read-only request.";
+  if (focus) panel.querySelector(".vehicle-detail-retry").focus({ preventScroll: true });
+ } finally {
+  if (vehicleDetailRequestIsCurrent(origin, panel)) panel.querySelector(".vehicle-detail-refresh").disabled = false;
+ }
+ }
+ function openVehicleDetail(vehicleId, { push = true, trigger = null, focus = true } = {}) {
+ if (!canonicalUuid(vehicleId) || !propertySelect.value) return;
+ const panel = ensureVehicleDetailPanel();
+ const returnPath = canonicalVehiclePath(propertySelect.value, vehicleRegisterFilter, vehicleRegisterCursor);
+ vehicleRouteVehicleId = vehicleId;
+ vehicleDetailReturnFocus = trigger || vehicleDetailReturnFocus;
+ vehicleDetailReturnPath = push ? returnPath : vehicleReturnPathFromState(history.state, propertySelect.value) || vehicleDetailReturnPath || canonicalVehiclePath(propertySelect.value);
+ if (push) history.pushState({ yellowSurface: "vehicle-detail", vehicleReturnPath: returnPath }, "", canonicalVehicleDetailPath(propertySelect.value, vehicleId));
+ vehicleRegister.hidden = true;
+ panel.hidden = false;
+ panel.querySelector(".vehicle-detail-title").focus({ preventScroll: true });
+ void loadVehicleDetail(vehicleId, { focus });
+ }
+ function closeVehicleDetail({ history: updateHistory = true, restoreFocus = true } = {}) {
+ const returnFocus = vehicleDetailReturnFocus;
+ const returnPath = vehicleDetailReturnPath || canonicalVehiclePath(propertySelect.value);
+ vehicleDetailRequestGeneration += 1;
+ vehicleDetailData = null;
+ vehicleRouteVehicleId = "";
+ vehicleDetailReturnFocus = null;
+ vehicleDetailReturnPath = "";
+ if (vehicleDetailPanel) {
+  vehicleDetailPanel.hidden = true;
+  vehicleDetailPanel.setAttribute("aria-busy", "false");
+ }
+ vehicleRegister.hidden = false;
+ if (updateHistory && propertySelect.value) {
+  if (history.state?.yellowSurface === "vehicle-detail") history.back();
+  else history.replaceState({ yellowSurface: "vehicle-register" }, "", returnPath);
+ }
+ if (restoreFocus) {
+  const target = returnFocus?.isConnected ? returnFocus : document.querySelector("#vehicles-title");
+  target?.focus({ preventScroll: true });
+ }
+ }
+ function syncVehicleRoute({ focus = false } = {}) {
+ const route = vehicleNavigationRoute();
+ if (route.kind === "detail" && route.property === propertySelect.value) {
+  openVehicleDetail(route.vehicleId, { push: false, focus: true });
+  return;
+ }
+ if (route.kind !== "register" || route.property !== propertySelect.value) return;
+ const targetPath = canonicalVehiclePath(route.property, route.registration, route.cursor);
+ const wasDetail = vehicleRouteVehicleId !== "";
+ const returnFocus = vehicleDetailReturnFocus;
+ closeVehicleDetail({ history: false, restoreFocus: false });
+ vehicleRegisterFilter = route.registration;
+ vehicleRegisterCursor = route.cursor;
+ vehicleRegistration.value = route.registration;
+ if (vehicleRegisterRenderedPath === targetPath && vehicleRegisterList.childElementCount > 0) {
+  vehicleRegister.hidden = false;
+  if (focus || wasDetail) (returnFocus?.isConnected ? returnFocus : vehicleResultSummary).focus({ preventScroll: true });
+  return;
+ }
+ void loadVehicleRegister({ cursor: route.cursor, focus: focus || wasDetail });
+ }
  function clearVehicleRegisterState() {
+ closeVehicleDetail({ history: false, restoreFocus: false });
  vehicleRegisterGeneration += 1;
  vehicleRegisterNextCursor = null;
  vehicleRegisterCursor = "";
  vehicleRegisterFilter = "";
+ vehicleRegisterRenderedPath = "";
  vehicleRegisterList.replaceChildren();
  vehicleRegisterList.hidden = true;
  vehicleRegisterLoading.hidden = true;
@@ -6178,6 +6402,7 @@ function departureEvidenceRow(term, value) {
  }
  function renderVehicleRegister(page, { focus = false } = {}) {
  vehicleRegisterNextCursor = page.nextCursor;
+ vehicleRegisterRenderedPath = canonicalVehiclePath(propertySelect.value, vehicleRegisterFilter, vehicleRegisterCursor);
  vehicleRegisterList.replaceChildren(...page.vehicles.map(vehicleCard));
  vehicleRegisterList.hidden = page.vehicles.length === 0;
  vehicleRegisterEmpty.hidden = page.vehicles.length !== 0;
@@ -6244,7 +6469,10 @@ function departureEvidenceRow(term, value) {
   housekeepingSheetGeneration += 1;
   housekeepingSheetRequestGeneration += 1;
  }
- if (previousView === "vehicles" && activeView !== "vehicles") vehicleRegisterGeneration += 1;
+ if (previousView === "vehicles" && activeView !== "vehicles") {
+  vehicleRegisterGeneration += 1;
+  vehicleDetailRequestGeneration += 1;
+ }
  todayView.hidden = activeView !== "today";
  housekeepingView.hidden = activeView !== "housekeeping";
  vehiclesView.hidden = activeView !== "vehicles";
@@ -6284,11 +6512,11 @@ function departureEvidenceRow(term, value) {
   }
  }
  if (activeView === "vehicles") {
-  const route = vehicleRouteFromLocation();
-  vehicleRegisterFilter = route?.property === propertySelect.value ? route.registration : "";
-  vehicleRegisterCursor = route?.property === propertySelect.value ? route.cursor : "";
-  vehicleRegistration.value = vehicleRegisterFilter;
-  void loadVehicleRegister({ cursor: vehicleRegisterCursor });
+  const route = vehicleNavigationRoute();
+  if (route.kind === "other" || route.property !== propertySelect.value) {
+   history.replaceState({ yellowSurface: "vehicle-register" }, "", canonicalVehiclePath(propertySelect.value));
+  }
+  syncVehicleRoute();
  }
  if (activeView === "restrictions") void loadRestrictions();
  if (activeView === "rates") void loadRates();
@@ -8041,6 +8269,11 @@ function departureEvidenceRow(term, value) {
   folioWorkspaceBack.click();
   return;
  }
+ if (activeView === "vehicles" && event.key === "Escape" && vehicleRouteVehicleId && vehicleDetailPanel?.hidden === false) {
+  event.preventDefault();
+  closeVehicleDetail();
+  return;
+ }
  if (activeView !== "reservations") return;
  const editable = event.target.closest?.("input, select, textarea, [contenteditable=true]");
  if (event.key === "Escape") {
@@ -8219,6 +8452,11 @@ function departureEvidenceRow(term, value) {
  vehicleRegisterNext.addEventListener("click", () => {
  if (vehicleRegisterNextCursor !== null) void loadVehicleRegister({ cursor: vehicleRegisterNextCursor, focus: true, updateHistory: true });
  });
+ vehicleRegisterList.addEventListener("click", (event) => {
+ const action = event.target.closest?.(".vehicle-detail-action");
+ if (!(action instanceof HTMLButtonElement) || !canonicalUuid(action.dataset.vehicleId || "")) return;
+ openVehicleDetail(action.dataset.vehicleId, { trigger: action });
+ });
  housekeepingTaskList.addEventListener("click", (event) => {
   const button = event.target.closest?.(".housekeeping-action");
   if (button && !button.disabled) void submitHousekeepingAction(button);
@@ -8316,13 +8554,10 @@ function departureEvidenceRow(term, value) {
   }
  return;
  }
- const vehicleRoute = vehicleRouteFromLocation();
- if (vehicleRoute && vehicleRoute.property === propertySelect.value) {
-  vehicleRegisterFilter = vehicleRoute.registration;
-  vehicleRegisterCursor = vehicleRoute.cursor;
-  vehicleRegistration.value = vehicleRoute.registration;
+ const vehicleRoute = vehicleNavigationRoute();
+ if (vehicleRoute.kind !== "other" && vehicleRoute.property === propertySelect.value) {
   if (activeView !== "vehicles") setView("vehicles", false);
-  else void loadVehicleRegister({ cursor: vehicleRoute.cursor });
+  else syncVehicleRoute({ focus: true });
   return;
  }
  const folioRoute = folioRouteFromLocation();
@@ -9006,7 +9241,7 @@ function departureEvidenceRow(term, value) {
  location.pathname.endsWith("/today") ? "today" :
  location.pathname.endsWith("/operations") ? "operations" :
  location.pathname.endsWith("/housekeeping") ? "housekeeping" :
- location.pathname.endsWith("/vehicles") ? "vehicles" :
+ (/^\/p\/[0-9a-f-]+\/vehicles(?:\/[0-9a-f-]+)?$/.test(location.pathname)) ? "vehicles" :
  (location.pathname.endsWith("/reservations") || /^\/p\/[0-9a-f-]+\/res\/[0-9a-f-]+(?:\/pickup-task\/[0-9a-f-]+)?$/.test(location.pathname)) ? "reservations" :
  (location.pathname.endsWith("/folios") || /^\/p\/[0-9a-f-]+\/folio\/[0-9a-f-]+$/.test(location.pathname)) ? "folios" :
  location.pathname.endsWith("/cashiers") ? "cashiers" :

@@ -12,6 +12,12 @@ export interface VehicleRegisterInput {
   readonly limit?: number;
 }
 
+export interface VehicleRegisterDetailInput {
+  readonly tenantId: string;
+  readonly propertyNode: string;
+  readonly vehicleId: string;
+}
+
 export interface VehicleRegisterRow {
   readonly vehicleId: string;
   readonly registration: string;
@@ -66,6 +72,13 @@ export class VehicleRegisterConflictError extends Error {
   constructor(message: string) {
     super(message);
     this.name = "VehicleRegisterConflictError";
+  }
+}
+
+export class VehicleRegisterNotFoundError extends Error {
+  constructor() {
+    super("Vehicle was not found");
+    this.name = "VehicleRegisterNotFoundError";
   }
 }
 
@@ -145,6 +158,25 @@ function validate(input: VehicleRegisterInput) {
   });
 }
 
+function validateDetail(input: VehicleRegisterDetailInput) {
+  if (typeof input !== "object" || input === null || Array.isArray(input) ||
+      (Object.getPrototypeOf(input) !== Object.prototype && Object.getPrototypeOf(input) !== null) ||
+      Object.getOwnPropertySymbols(input).length !== 0) {
+    throw new VehicleRegisterValidationError("vehicle detail input must be a plain object");
+  }
+  const allowed = new Set(["tenantId", "propertyNode", "vehicleId"]);
+  if (Object.getOwnPropertyNames(input).length !== allowed.size ||
+      Object.getOwnPropertyNames(input).some((key) => !allowed.has(key)) ||
+      !UUID.test(input.tenantId) || !UUID.test(input.propertyNode) || !UUID.test(input.vehicleId)) {
+    throw new VehicleRegisterValidationError("vehicle detail input is invalid");
+  }
+  return Object.freeze({
+    tenantId: input.tenantId,
+    propertyNode: input.propertyNode,
+    vehicleId: input.vehicleId,
+  });
+}
+
 function storedUuid(value: string, subject: string): string {
   if (!UUID.test(value)) throw new VehicleRegisterConflictError(`Stored vehicle ${subject} is invalid`);
   return value;
@@ -187,6 +219,52 @@ export class VehicleRegisterService {
 
   constructor(options: VehicleRegisterServiceOptions) {
     this.#database = options.database;
+  }
+
+  async get(input: VehicleRegisterDetailInput): Promise<VehicleRegisterRow> {
+    const target = validateDetail(input);
+    const rows = await this.#database.withTenantTransaction(target.tenantId, async (tx) =>
+      tx<VehicleSqlRow[]>`
+        WITH target_property AS MATERIALIZED (
+          SELECT property.id
+          FROM public.org_node AS property
+          WHERE property.tenant_id = ${target.tenantId}::uuid
+            AND property.tenant_id = current_setting('app.tenant_id', true)::uuid
+            AND property.id = ${target.propertyNode}::uuid
+            AND property.kind = 'property'
+        ), target_vehicle AS MATERIALIZED (
+          SELECT vehicle.*
+          FROM public.vehicle
+          JOIN target_property AS property ON property.id = vehicle.property_node
+          WHERE vehicle.tenant_id = ${target.tenantId}::uuid
+            AND vehicle.tenant_id = current_setting('app.tenant_id', true)::uuid
+            AND vehicle.id = ${target.vehicleId}::uuid
+        )
+        SELECT vehicle.id, vehicle.reg_no, vehicle.make, vehicle.model, vehicle.colour,
+               vehicle.driver_name, vehicle.reservation_id,
+               reservation.id AS visible_reservation_id,
+               vehicle.party_id, party.id AS visible_party_id,
+               CASE WHEN vehicle.entered_at IS NULL THEN NULL ELSE
+                 to_char(vehicle.entered_at AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"')
+               END AS entered_at,
+               CASE WHEN vehicle.exited_at IS NULL THEN NULL ELSE
+                 to_char(vehicle.exited_at AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"')
+               END AS exited_at
+        FROM target_vehicle AS vehicle
+        LEFT JOIN public.reservation
+          ON reservation.tenant_id = ${target.tenantId}::uuid
+         AND reservation.tenant_id = current_setting('app.tenant_id', true)::uuid
+         AND reservation.property_node = ${target.propertyNode}::uuid
+         AND reservation.id = vehicle.reservation_id
+        LEFT JOIN public.party
+          ON party.tenant_id = ${target.tenantId}::uuid
+         AND party.tenant_id = current_setting('app.tenant_id', true)::uuid
+         AND party.id = vehicle.party_id
+      `,
+    );
+    if (rows.length === 0) throw new VehicleRegisterNotFoundError();
+    if (rows.length !== 1) throw new VehicleRegisterConflictError("Vehicle detail is ambiguous");
+    return canonicalRow(rows[0]!);
   }
 
   async list(input: VehicleRegisterInput): Promise<VehicleRegisterPage> {

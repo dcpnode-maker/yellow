@@ -230,6 +230,22 @@ Literal plate lookup and canonical keyset pagination do not expand authority. Th
 read has no write capability and cannot call occupancy, parking, vehicle lifecycle,
 task, fact, outbox or idempotency paths.
 
+### Vehicle-register exact-detail containment
+
+Order 216 reuses `stay-operations.vehicles:read` and the exact server-derived property
+grant for one no-query vehicle UUID route. The service independently validates the
+server tenant, property and vehicle identities inside transaction-local RLS, then
+re-proves a linked reservation against the same tenant and exact property and a
+linked Party against the same tenant. Missing, foreign and wrong-property identities
+are concealed as not found. A hostile stored association fails the entire read as a
+bounded conflict without returning the foreign identifier or partial vehicle data.
+
+The no-store response is re-minimized to the already approved vehicle-register row:
+literal registration, nullable make/model/colour/driver, optional reservation/Party
+identifiers and literal entry/exit timestamps. It excludes notes, parking or space
+truth, names or contacts, occupancy, tasks, access decisions and inferred onsite
+state. The route has no mutation, polling or generic vehicle authority.
+
 ### Arrival-travel board containment
 
 Order 206 reuses the existing reservation-board route, exact property grant and

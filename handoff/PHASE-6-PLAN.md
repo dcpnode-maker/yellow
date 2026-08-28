@@ -1,8 +1,8 @@
 # Phase 6 — Stay operations and housekeeping
 
-**Status:** active; Orders 200–215 are built-unreviewed
+**Status:** active; Orders 200–216 are built-unreviewed
 **Entry point:** built-unreviewed Phase-5 composition through Order 199
-**Current order:** `216-vehicle-register-detail.md` (ready)
+**Current order:** `216-vehicle-register-detail.md` (built-unreviewed)
 
 ## Outcome
 
@@ -219,7 +219,7 @@ route under existing reservation read authority. It exposes minimized canonical 
 state only and adds no generic task scope, cross-kind board, lifecycle mutation or
 polling. Generic task navigation remains later work.
 
-Order 216 owns one exact read-only Vehicle Register detail endpoint and nested human
+Order 216 is built-unreviewed and owns one exact read-only Vehicle Register detail endpoint and nested human
 route under the existing Order205 authority. It exposes only the already-approved
 minimized row, re-proves linked reservation/Party associations and adds no write,
 parking/occupancy inference or action, polling, scope, migration or event.

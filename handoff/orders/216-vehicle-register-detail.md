@@ -1,6 +1,6 @@
 # Order 216 — Vehicle-register exact detail
 
-**Status:** READY-D575 — intentional red must precede implementation
+**Status:** BUILT-UNREVIEWED-D576 — implementation and builder proof green; independent execution deferred
 **Phase:** 6 — Stay operations and housekeeping
 **Branch:** `phase-6/vehicle-register-detail`
 **Base:** `f1ae7dd` (built-unreviewed Order215)
@@ -86,8 +86,8 @@ polling, second local, promotion, merge, push or deployment is admitted.
 
 ## Definition of done
 
-- [ ] Intentional red precedes implementation.
-- [ ] Service and endpoint return only the exact existing vehicle-register row truth.
-- [ ] Human detail route is stale-safe, accessible and read-only across six appearances.
-- [ ] Focused, standing and referee gates are green.
-- [ ] Result is recorded built-unreviewed; independent Tier-3 execution remains pending.
+- [x] Intentional red precedes implementation.
+- [x] Service and endpoint return only the exact existing vehicle-register row truth.
+- [x] Human detail route is stale-safe, accessible and read-only across six appearances.
+- [x] Focused, standing and referee gates are green.
+- [x] Result is recorded built-unreviewed; independent Tier-3 execution remains pending.

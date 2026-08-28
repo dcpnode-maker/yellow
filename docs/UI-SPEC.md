@@ -459,3 +459,33 @@ order and truth. Controls remain at least 44 pixels, or 48 pixels for Android. L
 identifiers and translated labels remain contained at 375 pixels and 200% zoom.
 Forced colours restore explicit system boundaries and focus, and reduced motion
 removes panel, control and loading animation.
+
+## 23. Vehicle-register exact detail
+
+Every validated row in the existing Vehicle Register exposes one semantic **Open
+vehicle** action. It opens `/p/{property}/vehicles/{vehicle}` and refetches the exact
+record through the dedicated no-store endpoint; the list object is never reused as
+detail authority. The response is accepted only when its envelope, ten approved
+Order205 keys, routed vehicle UUID and canonical microsecond UTC timestamps are exact.
+
+The read-only panel shows literal registration, nullable make/model/colour/driver,
+recorded entry/exit instants and progressively disclosed vehicle, reservation and
+Party identifiers. It does not show notes, parking or occupancy, infer onsite/access
+state, link to Party/reservation content, poll, or offer entry, exit, edit, assignment
+or parking controls. A missing or inconsistent record stays on the exact route and
+shows one deliberate retry without partial disclosure.
+
+Opening from the register records the exact literal registration/cursor return URL.
+Back, **Back to register**, and Escape restore that URL and originating action focus
+when it remains connected; a cold direct link falls back to the bounded first page
+and Vehicle Register heading. Refresh and Forward refetch the detail. Property,
+vehicle, pathname, active-view and request-generation guards make late responses
+inert.
+
+Apple iOS uses restrained translucent grouped material; Android uses Material 3
+shape and 48-pixel controls; Windows 95/98 uses square inset/outset system chrome;
+glassmorphism uses layered blur and translucent boundaries; neomorphism uses paired
+raised/inset shadows; ERP uses compact rectangular information density. The same text
+and reading order remain authoritative across all six. Controls are at least 44
+pixels, identifiers wrap at 375 pixels and 200% zoom, forced colours restore system
+borders, and reduced motion removes loading animation.
