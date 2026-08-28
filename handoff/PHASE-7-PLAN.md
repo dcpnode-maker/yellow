@@ -2,7 +2,7 @@
 
 **Status:** active; Orders 237-240 built-unreviewed
 **Entry point:** built-unreviewed Phase-6 composition through Order 236
-**Current order:** Order 256 authoritative positive-tax primary-folio eligibility is independently approved under D-666
+**Current order:** Order 257 founder-visible status through approved Order256 is built-unreviewed under D-668
 
 ## Outcome
 
@@ -199,3 +199,7 @@ It creates no folio or financial/fiscal artifact and selects no transaction code
 configured revenue/tax account. Independent Tier-3 review under D-666 reproduced the
 focused, acceptance, referee and static gates with no product finding. The next product
 dependency is configured semantic tax routing before any positive posting writer.
+
+Order257/D-668 refreshes only authenticated recorded founder truth to
+date2026-08-29/latest256/current257/review91/active7 and the compact Orders237–256
+milestone. Exact sole-local promotion remains a separate reversible order.

@@ -196,3 +196,7 @@ Order255/D-663 independently verifies the approved sole-local backup, migration0
 and app-only promotion. Order256/D-666 independently approves the exact read/lock/recheck
 quoted-tax primary-folio eligibility bridge. The next build dependency is configured
 semantic tax-route policy before any positive posting writer.
+
+Order257/D-668 is the bounded founder-visible status refresh through approved
+Order256. It changes recorded status truth only; the sole local remains a separate
+promotion concern and unfinished Phases5–7 remain active.

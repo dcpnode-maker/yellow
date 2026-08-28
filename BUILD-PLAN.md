@@ -556,6 +556,11 @@ document or India-policy authority is admitted. The reviewer personally reproduc
 focused, database-acceptance, referee and static proof with no product finding. The
 next bounded dependency is configured semantic transaction routing.
 
+Order257/D-668 records authenticated founder-visible truth through approved Order256:
+date2026-08-29/latest256/current257/review91/active7 with the compact Orders237–256
+milestone and every unfinished Phase5–7 dependency still explicit. It changes no
+runtime or product behavior; exact sole-local promotion is separate.
+
 tax_assignment evaluation (percent/fixed/slab, compound, line-vs-document rounding)
 from EXTENSIONS §2; India GST slab per room-night; document issue path: series →
 gapless number → hash chain → document; IRP reporting adapter (sandbox), IRN + QR
