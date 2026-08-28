@@ -145,6 +145,10 @@ import {
   CheckInNotFoundError,
   CheckInService,
   CheckInValidationError,
+  VehicleRegisterConflictError,
+  VehicleRegisterService,
+  VehicleRegisterValidationError,
+  type VehicleRegisterPage,
 } from "../contexts/stay-operations";
 import {
   HousekeepingConflictError,
@@ -222,6 +226,7 @@ const CHECKIN_COMMIT_SCOPE = "stay-operations.checkin:commit";
 const CHECKIN_DIRTY_ROOM_OVERRIDE_SCOPE = "stay-operations.checkin:dirty-room-override";
 const CHECKOUT_READINESS_SCOPE = "stay-operations.checkout:read";
 const CHECKOUT_COMMIT_SCOPE = "stay-operations.checkout:commit";
+const VEHICLE_REGISTER_READ_SCOPE = "stay-operations.vehicles:read";
 const HOUSEKEEPING_READ_SCOPE = "housekeeping.tasks:read";
 const HOUSEKEEPING_WORK_SCOPE = "housekeeping.tasks:work";
 const HOUSEKEEPING_INSPECT_SCOPE = "housekeeping.tasks:inspect";
@@ -259,6 +264,46 @@ function statementQuery(request: Request): { after?: string; limit?: number } | 
   return Object.freeze({
     ...(after === null ? {} : { after }),
     ...(rawLimit === null ? {} : { limit: Number(rawLimit) }),
+  });
+}
+
+function vehicleRegisterQuery(request: Request): {
+  registration?: string;
+  cursor?: string;
+  limit?: number;
+} | null {
+  const query = new URL(request.url).searchParams;
+  const allowed = ["registration", "cursor", "limit"] as const;
+  if ([...query.keys()].some((key) => !allowed.includes(key as typeof allowed[number])) ||
+      allowed.some((key) => query.getAll(key).length > 1)) return null;
+  const registration = query.get("registration");
+  const cursor = query.get("cursor");
+  const rawLimit = query.get("limit");
+  if (registration !== null && registration.length > 512) return null;
+  if (cursor !== null && !/^[A-Za-z0-9_-]{1,2048}$/.test(cursor)) return null;
+  if (rawLimit !== null && !/^(?:[1-9]|[1-9][0-9]|100)$/.test(rawLimit)) return null;
+  return Object.freeze({
+    ...(registration === null ? {} : { registration }),
+    ...(cursor === null ? {} : { cursor }),
+    ...(rawLimit === null ? {} : { limit: Number(rawLimit) }),
+  });
+}
+
+function vehicleRegisterJson(page: VehicleRegisterPage): JsonValue {
+  return jsonValue({
+    vehicles: page.vehicles.map((vehicle) => ({
+      vehicleId: vehicle.vehicleId,
+      registration: vehicle.registration,
+      make: vehicle.make,
+      model: vehicle.model,
+      colour: vehicle.colour,
+      driverName: vehicle.driverName,
+      reservationId: vehicle.reservationId,
+      partyId: vehicle.partyId,
+      enteredAt: vehicle.enteredAt,
+      exitedAt: vehicle.exitedAt,
+    })),
+    nextCursor: page.nextCursor,
   });
 }
 
@@ -1204,6 +1249,7 @@ type ReservationBoardOperations = Pick<ReservationBoardService, "list">;
 type ReservationDetailOperations = Pick<ReservationDetailService, "findById">;
 type CheckInOperations = Pick<CheckInService, "getReadiness" | "checkIn">;
 type CheckoutOperations = Pick<CheckoutService, "checkout">;
+type VehicleRegisterOperations = Pick<VehicleRegisterService, "list">;
 interface CheckoutReadinessOperations {
   read(input: Readonly<{
     tenantId: string;
@@ -1636,6 +1682,7 @@ export class OperatorHttpApi {
   readonly #checkouts?: CheckoutOperations;
   readonly #housekeeping?: HousekeepingOperations;
   readonly #housekeepingSheets?: HousekeepingSheetOperations;
+  readonly #vehicleRegister?: VehicleRegisterOperations;
 
   constructor(
     login: LocalLoginService,
@@ -1673,6 +1720,7 @@ export class OperatorHttpApi {
     housekeepingSheets?: HousekeepingSheetOperations,
     checkoutReadiness?: CheckoutReadinessOperations,
     checkouts?: CheckoutOperations,
+    vehicleRegister?: VehicleRegisterOperations,
   ) {
     this.#login = login;
     this.#availability = availability;
@@ -1709,6 +1757,7 @@ export class OperatorHttpApi {
     this.#housekeepingSheets = housekeepingSheets;
     this.#checkoutReadiness = checkoutReadiness;
     this.#checkouts = checkouts;
+    this.#vehicleRegister = vehicleRegister;
   }
 
   unavailable(request: Request): Response {
@@ -1720,6 +1769,12 @@ export class OperatorHttpApi {
   }
 
   failure(request: Request, error: unknown): Response {
+    if (error instanceof VehicleRegisterValidationError) {
+      return apiError(request, 400, "request/invalid", "Invalid request", "Vehicle register input is invalid");
+    }
+    if (error instanceof VehicleRegisterConflictError) {
+      return apiError(request, 409, "vehicles/conflict", "Vehicle register unavailable", "Stored vehicle associations are inconsistent; no register data was disclosed");
+    }
     if (error instanceof CheckoutValidationError) {
       return apiError(request, 400, "request/invalid", "Invalid request", "Checkout input is invalid");
     }
@@ -3396,6 +3451,30 @@ export class OperatorHttpApi {
       "idempotency-replayed": String(result.replayed),
       "x-correlation-id": requestId,
     });
+  }
+
+  async vehicleRegister(
+    context: TenantRequestContext,
+    propertyNode: string,
+  ): Promise<Response> {
+    const query = vehicleRegisterQuery(context.request);
+    if (!UUID.test(propertyNode) || !query) {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Vehicle register input is invalid");
+    }
+    if (!hasScope(context, VEHICLE_REGISTER_READ_SCOPE)) {
+      return apiError(context.request, 403, "auth/scope_missing", "Forbidden", "Vehicle register access is not granted");
+    }
+    const grants = await listGrantedProperties(context, VEHICLE_REGISTER_READ_SCOPE);
+    if (!grants.some(({ id }) => id === propertyNode)) {
+      return apiError(context.request, 404, "vehicles/not_found", "Not found", "The referenced vehicle register was not found");
+    }
+    if (!this.#vehicleRegister) return this.unavailable(context.request);
+    const page = await this.#vehicleRegister.list({
+      tenantId: context.tenantId,
+      propertyNode,
+      ...query,
+    });
+    return apiResponse(context.request, canonicalJson(vehicleRegisterJson(page)));
   }
 
   async housekeepingBoard(

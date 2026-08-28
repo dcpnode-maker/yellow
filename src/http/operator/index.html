@@ -108,6 +108,7 @@
 <span class="domain-nav-group">Property control</span>
 <button class="domain-tab" id="nav-operations" type="button" data-view="operations" aria-controls="operations-view"><svg class="domain-icon" aria-hidden="true"><use href="#i-operations"/></svg><span>Operations</span></button>
 <button class="domain-tab" id="nav-housekeeping" type="button" data-view="housekeeping" aria-controls="housekeeping-view"><svg class="domain-icon" aria-hidden="true"><use href="#i-operations"/></svg><span>Housekeeping</span></button>
+<button class="domain-tab" id="nav-vehicles" type="button" data-view="vehicles" aria-controls="vehicles-view"><svg class="domain-icon vehicle-domain-icon" aria-hidden="true" viewBox="0 0 24 24"><path d="m5 11 2-5h10l2 5M4 11h16v7H4zm3 7v2m10-2v2M7 14h.01M17 14h.01"/></svg><span>Vehicle register</span></button>
 <button class="domain-tab" id="nav-inventory" type="button" data-view="inventory" aria-controls="inventory-view"><svg class="domain-icon" aria-hidden="true"><use href="#i-inventory"/></svg><span>Inventory setup</span></button>
 <button class="domain-tab" id="nav-restrictions" type="button" data-view="restrictions" aria-controls="restrictions-view"><svg class="domain-icon" aria-hidden="true"><use href="#i-restrictions"/></svg><span>Restrictions</span></button>
 <button class="domain-tab" id="nav-rates" type="button" data-view="rates" aria-controls="rates-view"><svg class="domain-icon" aria-hidden="true"><use href="#i-rates"/></svg><span>Rates</span></button>
@@ -215,6 +216,35 @@
 <p class="inventory-status" data-today-status role="status" aria-live="polite"></p>
 </section>
 </div>
+</section>
+<section id="vehicles-view" hidden aria-labelledby="vehicles-title">
+<div class="section-heading vehicle-heading">
+<div>
+<p class="eyebrow">Security register</p>
+<h2 id="vehicles-title" tabindex="-1">Vehicle Register</h2>
+<p class="muted">Read the exact property register or find one literal, case-sensitive registration plate.</p>
+</div>
+<button class="quiet" id="vehicles-refresh" type="button">Refresh register</button>
+</div>
+<section class="card vehicle-register" aria-labelledby="vehicle-search-title" aria-busy="false">
+<div class="vehicle-register-intro">
+<div><span class="eyebrow">Read only</span><h3 id="vehicle-search-title">Find a recorded vehicle</h3></div>
+<p class="field-note">Registration is matched exactly as entered. Yellow does not trim, normalize, infer onsite status, disclose notes or assign parking.</p>
+</div>
+<form class="vehicle-search-form" id="vehicle-search-form" role="search">
+<label for="vehicle-registration">Registration plate
+<input id="vehicle-registration" name="registration" type="text" maxlength="512" autocomplete="off" spellcheck="false" aria-describedby="vehicle-registration-help" placeholder="MH12AB1234">
+</label>
+<p class="field-note" id="vehicle-registration-help">Leave empty for the bounded property register. Case and every character are significant.</p>
+<div class="vehicle-search-actions"><button class="primary" id="vehicle-search-submit" type="submit">Search register</button><button class="quiet" id="vehicle-search-clear" type="button">Clear exact search</button></div>
+</form>
+<p class="vehicle-result-summary" id="vehicle-result-summary" role="status" aria-live="polite" tabindex="-1">Open Vehicle Register to load one bounded page.</p>
+<div class="vehicle-register-loading" id="vehicle-register-loading" hidden aria-hidden="true"><span></span><span></span><span></span></div>
+<section class="vehicle-register-error" id="vehicle-register-error" hidden role="alert"><strong>Vehicle register unavailable</strong><p></p><button class="secondary" id="vehicle-register-retry" type="button">Try again</button></section>
+<section class="vehicle-register-empty" id="vehicle-register-empty" hidden tabindex="-1"><strong>No matching vehicle is recorded</strong><p class="muted">Check every character and case, or clear the exact search to return to the bounded register.</p></section>
+<div class="vehicle-register-list" id="vehicle-register-list" role="list" aria-label="Vehicle register results" hidden></div>
+<div class="vehicle-register-paging"><button class="quiet" id="vehicle-register-next" type="button" hidden>Next page</button></div>
+</section>
 </section>
 <section id="housekeeping-view" hidden aria-labelledby="housekeeping-title">
 <div class="section-heading housekeeping-heading">

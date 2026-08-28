@@ -189,6 +189,16 @@ The operator receives a deliberate confirmed checkout action and deterministic r
 fixture. Checkout performs no financial repair, room-condition change or housekeeping
 task creation and does not complete, independently approve or locally promote Phase 6.
 
+Order 205 is a built-unreviewed read-only Vehicle Register slice. One tenant transaction
+returns a minimized exact-property page ordered by `(reg_no,id)` with canonical keyset
+pagination, plus optional case-sensitive literal registration lookup. Linked reservation
+and Party associations are re-proven before disclosure, and any inconsistency fails the
+whole read closed. The human register supports deliberate search, paging and retry across
+all current appearances; its deterministic seed adds two distinguishable rows without
+notes, parking, inferred onsite state or lifecycle effects. This slice adds no vehicle
+write, occupancy, event or migration and does not complete, independently approve or
+locally promote Phase 6.
+
 ## Phase 7 — Tax engine + India IRP
 
 tax_assignment evaluation (percent/fixed/slab, compound, line-vs-document rounding)

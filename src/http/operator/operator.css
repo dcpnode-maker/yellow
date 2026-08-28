@@ -1085,6 +1085,53 @@ input:focus, select:focus, textarea:focus { box-shadow: var(--material-control-a
 :root[data-theme="neo"] :is(.departure-readiness-badge,.departure-readiness-evidence > div,.departure-blocker-panel,.departure-blockers li,.departure-folio-panel,.departure-folio-card,.departure-checkout-confirm) { border-color: #a1adb3; background: #e8eef1; box-shadow: inset -4px -4px 9px #fff,inset 4px 4px 9px #c1cbd0; }
 :root[data-theme="erp"] .departure-workbench { border: 1px solid #d9dee7; border-left: 4px solid #163ee9; border-radius: 8px; background: #fff; box-shadow: 0 1px 2px rgba(16,24,40,.04),0 8px 20px rgba(16,24,40,.05); }
 :root[data-theme="erp"] :is(.departure-readiness-evidence > div,.departure-blocker-panel,.departure-folio-panel,.departure-folio-card,.departure-checkout-confirm) { border-radius: 6px; background: #f7f8fa; }
+.vehicle-register { position: relative; display: grid; gap: 1rem; min-width: 0; overflow: clip; }
+.vehicle-register-intro, .vehicle-register-card-head, .vehicle-search-actions, .vehicle-register-paging { display: flex; align-items: flex-start; justify-content: space-between; gap: .75rem; flex-wrap: wrap; }
+.vehicle-register-intro :is(h3,p), .vehicle-register-card-head :is(h3,p), .vehicle-linked-records dl { margin: 0; }
+.vehicle-search-form { display: grid; grid-template-columns: minmax(220px,1fr) auto; align-items: end; gap: .55rem 1rem; }
+.vehicle-search-form > label { min-width: 0; }
+.vehicle-search-form .field-note { grid-column: 1; margin: 0; }
+.vehicle-search-actions { grid-column: 2; grid-row: 1 / span 2; align-self: stretch; align-items: end; }
+.vehicle-search-actions > button, .vehicle-register-error button, .vehicle-register-paging button { min-height: 44px; }
+.vehicle-result-summary { margin: 0; padding: .7rem .8rem; border-left: 4px solid var(--accent); background: var(--surface-subtle); overflow-wrap: anywhere; }
+.vehicle-result-summary:focus-visible, .vehicle-register-empty:focus-visible { outline: 3px solid var(--focus); outline-offset: 3px; }
+.vehicle-register-loading { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: .75rem; }
+.vehicle-register-loading span { min-height: 164px; border: 1px solid var(--line); border-radius: var(--card-radius); background: linear-gradient(105deg,var(--surface-subtle) 35%,var(--card) 48%,var(--surface-subtle) 61%); background-size: 220% 100%; animation: vehicle-loading 1.1s ease-in-out infinite; }
+.vehicle-register-error, .vehicle-register-empty { padding: 1rem; border: 1px solid var(--line); border-left: 4px solid var(--red); border-radius: var(--control-radius); background: var(--red-soft); }
+.vehicle-register-empty { border-left-color: var(--accent); background: var(--surface-subtle); }
+.vehicle-register-error p, .vehicle-register-empty p { margin: .35rem 0 .75rem; }
+.vehicle-register-list { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: .85rem; min-width: 0; }
+.vehicle-register-card { min-width: 0; padding: 1rem; border: 1px solid var(--line); border-radius: var(--card-radius); background: var(--card); box-shadow: var(--material-card-shadow); overflow-wrap: anywhere; }
+.vehicle-register-card-head h3 { margin: .15rem 0 0; font-size: clamp(1.2rem,2vw,1.55rem); letter-spacing: .015em; }
+.vehicle-read-only { display: inline-flex; align-items: center; min-height: 30px; padding: .2rem .6rem; border: 1px solid var(--line); border-radius: 999px; background: var(--surface-subtle); color: var(--accent-strong); font-size: .75rem; font-weight: 850; letter-spacing: .04em; text-transform: uppercase; }
+.vehicle-register-meta { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: .6rem; margin: .9rem 0 0; }
+.vehicle-meta-item { min-width: 0; padding: .6rem; border: 1px solid var(--line); border-radius: var(--control-radius); background: var(--surface-subtle); }
+.vehicle-meta-item dt { color: var(--muted); font-size: .75rem; font-weight: 800; letter-spacing: .04em; text-transform: uppercase; }
+.vehicle-meta-item dd { margin: .2rem 0 0; font-weight: 700; overflow-wrap: anywhere; }
+.vehicle-linked-records { margin-top: .75rem; border-top: 1px solid var(--line); padding-top: .75rem; }
+.vehicle-linked-records summary { min-height: 44px; padding: .65rem .1rem; color: var(--accent-strong); cursor: pointer; font-weight: 800; }
+.vehicle-linked-records summary:focus-visible { outline: 3px solid var(--focus); outline-offset: 3px; }
+@keyframes vehicle-loading { from { background-position: 100% 0; } to { background-position: -100% 0; } }
+:root[data-theme="apple"] .vehicle-register { border: .5px solid rgba(60,60,67,.22); border-radius: 26px; background: rgba(255,255,255,.9); box-shadow: 0 1px 2px rgba(0,0,0,.04),0 22px 55px rgba(0,0,0,.08); }
+:root[data-theme="apple"] :is(.vehicle-register-card,.vehicle-meta-item,.vehicle-result-summary) { border-width: .5px; border-radius: 18px; background: rgba(248,248,250,.88); }
+:root[data-theme="android"] .vehicle-register { border: 0; border-radius: 30px 30px 12px 30px; background: #f7fbf8; box-shadow: 0 1px 3px rgba(29,25,43,.18),0 8px 24px rgba(29,25,43,.08); }
+:root[data-theme="android"] :is(.vehicle-register-card,.vehicle-meta-item,.vehicle-result-summary) { border: 0; border-radius: 22px 22px 8px 22px; background: #eaddff; }
+:root[data-theme="android"] :is(.vehicle-search-actions > button,.vehicle-register-error button,.vehicle-register-paging button,.vehicle-linked-records summary) { min-height: 48px; border-radius: 999px; }
+:root[data-theme="win95"] .vehicle-register { gap: 6px; padding: 6px; border: 2px outset #fff; border-radius: 0; background: #c0c0c0; box-shadow: 1px 1px #000; }
+:root[data-theme="win95"] .vehicle-register-intro { padding: 4px; background: #000080; color: #fff; }
+:root[data-theme="win95"] :is(.vehicle-register-card,.vehicle-meta-item,.vehicle-result-summary,.vehicle-register-error,.vehicle-register-empty,.vehicle-read-only) { border: 2px inset #fff; border-radius: 0; background: #c0c0c0; color: #000; box-shadow: none; }
+:root[data-theme="glass"] .vehicle-register { border: 1px solid rgba(255,255,255,.38); border-radius: 30px; background: linear-gradient(145deg,rgba(244,250,255,.2),rgba(104,148,222,.08)); box-shadow: inset 0 1px rgba(255,255,255,.58),0 30px 72px rgba(0,5,22,.34); -webkit-backdrop-filter: blur(30px) saturate(172%); backdrop-filter: blur(30px) saturate(172%); }
+:root[data-theme="glass"] :is(.vehicle-register-card,.vehicle-meta-item,.vehicle-result-summary,.vehicle-read-only) { border-color: rgba(255,255,255,.42); background: rgba(238,247,255,.14); box-shadow: inset 0 1px rgba(255,255,255,.34); color: #f8fbff; -webkit-backdrop-filter: blur(20px) saturate(160%); backdrop-filter: blur(20px) saturate(160%); }
+:root[data-theme="neo"] .vehicle-register { border: 1px solid #a1adb3; border-radius: 28px; background: #e8eef1; box-shadow: -9px -9px 20px #fff,9px 9px 20px #bec8cd; }
+:root[data-theme="neo"] :is(.vehicle-register-card,.vehicle-result-summary) { border-color: #a1adb3; background: #e8eef1; box-shadow: -6px -6px 14px #fff,6px 6px 14px #bec8cd; }
+:root[data-theme="neo"] .vehicle-meta-item { border-color: #a1adb3; background: #e8eef1; box-shadow: inset -4px -4px 9px #fff,inset 4px 4px 9px #c1cbd0; }
+:root[data-theme="erp"] .vehicle-register { border: 1px solid #d9dee7; border-radius: 8px; background: #fff; box-shadow: 0 1px 2px rgba(16,24,40,.04),0 8px 20px rgba(16,24,40,.05); }
+:root[data-theme="erp"] .vehicle-register-list { gap: .45rem; }
+:root[data-theme="erp"] :is(.vehicle-register-card,.vehicle-meta-item,.vehicle-result-summary) { border-radius: 5px; background: #f7f8fa; box-shadow: none; }
+@media (max-width: 760px) { .vehicle-search-form { grid-template-columns: 1fr; } .vehicle-search-form .field-note, .vehicle-search-actions { grid-column: 1; grid-row: auto; } .vehicle-search-actions > button { flex: 1 1 180px; } .vehicle-register-list, .vehicle-register-loading { grid-template-columns: 1fr; } }
+@media (max-width: 420px) { .vehicle-register-meta { grid-template-columns: 1fr; } .vehicle-search-actions > button { flex-basis: 100%; width: 100%; } }
+@media (prefers-reduced-motion: reduce) { .vehicle-register-loading span { animation: none; } }
+@media (forced-colors: active) { .vehicle-register, .vehicle-register-card, .vehicle-meta-item, .vehicle-result-summary, .vehicle-read-only, .vehicle-register-error, .vehicle-register-empty, .vehicle-linked-records { border: 1px solid CanvasText; background: Canvas; color: CanvasText; box-shadow: none; backdrop-filter: none; } }
 :root[data-theme="apple"] .housekeeping-task-card { border: .5px solid rgba(60,60,67,.25); border-radius: 22px; background: rgba(255,255,255,.9); box-shadow: 0 1px 2px rgba(0,0,0,.04),0 18px 45px rgba(0,0,0,.08); }
 :root[data-theme="apple"] .housekeeping-badge { min-height: 28px; border-width: .5px; }
 :root[data-theme="apple"] .housekeeping-sheet-workbench { border: .5px solid rgba(60,60,67,.22); border-radius: 24px; background: rgba(255,255,255,.9); box-shadow: 0 1px 2px rgba(0,0,0,.04),0 22px 55px rgba(0,0,0,.08); }

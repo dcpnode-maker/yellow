@@ -225,3 +225,24 @@ readiness-generation guards discard stale results. The form adds no polling, bro
 storage, client arithmetic, optimistic state or client-authored authority and remains
 keyboard-operable, responsive, reduced-motion and forced-colour compatible in all six
 appearances.
+
+## 13. Governed Vehicle Register read
+
+`/p/{property}/vehicles` is a deep-linkable, read-only Security register. It shows one
+bounded page ordered by exact registration and stable server identity, with a deliberate
+**Next page** control rather than OFFSET or background polling. The single search field
+sends the registration exactly as entered: case, spaces and punctuation are significant;
+the browser does not trim, normalize, wildcard or fuzzy-match it.
+
+Each result displays only registration, make, model, colour, driver, literal entered/exited
+timestamps and the linked reservation/Party references returned by the server. It never
+shows notes or parking truth and never derives onsite status, access authority or occupancy.
+The surface does not create, edit, delete, enter, exit or assign a vehicle.
+
+The read requires `stay-operations.vehicles:read` plus the exact server-derived property
+grant. Foreign properties are concealed, and a server-detected inconsistent reservation or
+Party association fails the complete page closed. Property, route, exact search, cursor and
+request-generation guards discard stale responses. Loading, bounded-empty, error/retry and
+paging states are announced; operator-requested search, paging, refresh and retry restore
+meaningful keyboard focus. The list contains no browser persistence or automatic refresh and
+remains narrow-screen, reduced-motion, forced-colour and all-current-appearance compatible.

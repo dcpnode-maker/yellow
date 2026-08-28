@@ -69,6 +69,10 @@
  let housekeepingSheetCanGenerate = false;
  let housekeepingSheetAttemptKey = "";
  let housekeepingSheetAttemptDraft = "";
+ let vehicleRegisterGeneration = 0;
+ let vehicleRegisterNextCursor = null;
+ let vehicleRegisterCursor = "";
+ let vehicleRegisterFilter = "";
  const todayLaneState = {
  due_in: { rows: [], nextCursor: null, requestGeneration: 0 },
  due_out: { rows: [], nextCursor: null, requestGeneration: 0 },
@@ -189,6 +193,19 @@
  const housekeepingGenerateCopy = $("#housekeeping-generate-copy");
  const housekeepingGenerate = $("#housekeeping-generate");
  const housekeepingSheetList = $("#housekeeping-sheet-list");
+ const vehiclesView = $("#vehicles-view");
+ const vehiclesRefresh = $("#vehicles-refresh");
+ const vehicleRegister = $(".vehicle-register");
+ const vehicleSearchForm = $("#vehicle-search-form");
+ const vehicleRegistration = $("#vehicle-registration");
+ const vehicleSearchClear = $("#vehicle-search-clear");
+ const vehicleResultSummary = $("#vehicle-result-summary");
+ const vehicleRegisterLoading = $("#vehicle-register-loading");
+ const vehicleRegisterError = $("#vehicle-register-error");
+ const vehicleRegisterRetry = $("#vehicle-register-retry");
+ const vehicleRegisterEmpty = $("#vehicle-register-empty");
+ const vehicleRegisterList = $("#vehicle-register-list");
+ const vehicleRegisterNext = $("#vehicle-register-next");
  const inventoryView = $("#inventory-view");
  const restrictionsView = $("#restrictions-view");
  const ratesView = $("#rates-view");
@@ -624,7 +641,7 @@
  const MAX_MINOR = BigInt("9223372036854775807");
  const THEMES = new Set(["apple", "android", "win95", "glass", "neo", "erp"]);
  const EXPERIENCES = new Set(["simple", "advanced", "expert"]);
- const SECONDARY_VIEWS = new Set(["operations", "housekeeping", "inventory", "restrictions", "rates", "status"]);
+ const SECONDARY_VIEWS = new Set(["operations", "housekeeping", "vehicles", "inventory", "restrictions", "rates", "status"]);
   function motionPreference(query) {
  return typeof window.matchMedia === "function" ? window.matchMedia(query) : { matches: true, addEventListener() {} };
  }
@@ -842,6 +859,7 @@
  housekeepingReturnFocus = "";
  housekeepingAttempts.clear();
  clearHousekeepingSheetState();
+ clearVehicleRegisterState();
  reservationBoardRows = [];
  reservationBoardNextCursor = null;
  reservationRouteReservationId = "";
@@ -890,7 +908,7 @@
   propertySelect.disabled = true;
  } else {
   propertySelect.disabled = false;
-  const pathProperty = location.pathname.match(/^\/p\/([0-9a-f-]+)\/(?:today|availability|inventory|operations|housekeeping|reservations|folios|cashiers|restrictions|rates|status|res\/[0-9a-f-]+|folio\/[0-9a-f-]+)$/)?.[1];
+  const pathProperty = location.pathname.match(/^\/p\/([0-9a-f-]+)\/(?:today|availability|inventory|operations|housekeeping|vehicles|reservations|folios|cashiers|restrictions|rates|status|res\/[0-9a-f-]+|folio\/[0-9a-f-]+)$/)?.[1];
   if (pathProperty && body.properties.some(({ id }) => id === pathProperty)) propertySelect.value = pathProperty;
  }
  }
@@ -5322,9 +5340,143 @@ function departureEvidenceRow(term, value) {
  } catch (error) { if (cashierIsCurrent(generation, property, drawer.id)) cashierMessage(cashierCloseForm, `${error instanceof Error ? error.message : "Close failed"}. Retry keeps the same idempotency key.`, true); }
  finally { if (cashierIsCurrent(generation, property, drawer.id)) syncCashierConfirmations(); }
  }
+ function canonicalVehiclePath(property, registration = "", cursor = "") {
+ const query = new URLSearchParams();
+ if (registration !== "") query.set("registration", registration);
+ if (cursor !== "") query.set("cursor", cursor);
+ const suffix = query.toString();
+ return `/p/${property}/vehicles${suffix ? `?${suffix}` : ""}`;
+ }
+ function vehicleRouteFromLocation() {
+ const match = location.pathname.match(/^\/p\/([0-9a-f-]+)\/vehicles$/);
+ if (!match) return null;
+ const query = new URLSearchParams(location.search);
+ if ([...query.keys()].some((key) => key !== "registration" && key !== "cursor") ||
+  query.getAll("registration").length > 1 || query.getAll("cursor").length > 1) return null;
+ return { property: match[1], registration: query.get("registration") || "", cursor: query.get("cursor") || "" };
+ }
+ function vehicleRegisterResult(value) {
+ if (!value || typeof value !== "object" || Array.isArray(value) ||
+  Object.keys(value).sort().join(",") !== "nextCursor,vehicles" || !Array.isArray(value.vehicles) ||
+  (value.nextCursor !== null && typeof value.nextCursor !== "string")) {
+  throw new Error("The server returned an invalid vehicle-register page.");
+ }
+ const keys = ["colour", "driverName", "enteredAt", "exitedAt", "make", "model", "partyId", "registration", "reservationId", "vehicleId"];
+ const nullable = ["colour", "driverName", "enteredAt", "exitedAt", "make", "model", "partyId", "reservationId"];
+ for (const vehicle of value.vehicles) {
+  if (!vehicle || typeof vehicle !== "object" || Array.isArray(vehicle) ||
+   Object.keys(vehicle).sort().join(",") !== keys.join(",") || !canonicalUuid(vehicle.vehicleId) ||
+   typeof vehicle.registration !== "string" || nullable.some((key) => vehicle[key] !== null && typeof vehicle[key] !== "string") ||
+   (vehicle.partyId !== null && !canonicalUuid(vehicle.partyId)) ||
+   (vehicle.reservationId !== null && !canonicalUuid(vehicle.reservationId))) {
+   throw new Error("The server returned an invalid vehicle-register row.");
+  }
+ }
+ return value;
+ }
+ function vehicleRegisterIsCurrent(generation, property, registration, cursor) {
+ return generation === vehicleRegisterGeneration && activeView === "vehicles" &&
+  property === propertySelect.value && registration === vehicleRegisterFilter && cursor === vehicleRegisterCursor &&
+  location.pathname === `/p/${property}/vehicles`;
+ }
+ function vehicleValue(value) {
+ return value === null || value === "" ? "Not recorded" : value;
+ }
+ function vehicleMeta(term, value) {
+ const item = node("div", "vehicle-meta-item");
+ item.append(node("dt", "", term), node("dd", "", vehicleValue(value)));
+ return item;
+ }
+ function vehicleCard(vehicle) {
+ const card = node("article", "vehicle-register-card");
+ card.setAttribute("role", "listitem");
+ const head = node("div", "vehicle-register-card-head");
+ const title = node("div");
+ title.append(node("span", "eyebrow", "Recorded registration"), node("h3", "vehicle-registration", vehicle.registration));
+ head.append(title, node("span", "vehicle-read-only", "Read only"));
+ const details = node("dl", "vehicle-register-meta");
+ details.append(
+  vehicleMeta("Make", vehicle.make), vehicleMeta("Model", vehicle.model),
+  vehicleMeta("Colour", vehicle.colour), vehicleMeta("Driver", vehicle.driverName),
+  vehicleMeta("Entered at", vehicle.enteredAt), vehicleMeta("Exited at", vehicle.exitedAt),
+ );
+ const linked = node("details", "vehicle-linked-records");
+ linked.append(node("summary", "", "Linked record references"));
+ const linkedValues = node("dl", "vehicle-register-meta");
+ linkedValues.append(
+  vehicleMeta("Vehicle ID", vehicle.vehicleId), vehicleMeta("Reservation ID", vehicle.reservationId),
+  vehicleMeta("Party ID", vehicle.partyId),
+ );
+ linked.append(linkedValues);
+ card.append(head, details, linked);
+ return card;
+ }
+ function clearVehicleRegisterState() {
+ vehicleRegisterGeneration += 1;
+ vehicleRegisterNextCursor = null;
+ vehicleRegisterCursor = "";
+ vehicleRegisterFilter = "";
+ vehicleRegisterList.replaceChildren();
+ vehicleRegisterList.hidden = true;
+ vehicleRegisterLoading.hidden = true;
+ vehicleRegisterError.hidden = true;
+ vehicleRegisterEmpty.hidden = true;
+ vehicleRegisterNext.hidden = true;
+ vehicleRegister.setAttribute("aria-busy", "false");
+ }
+ function renderVehicleRegister(page, { focus = false } = {}) {
+ vehicleRegisterNextCursor = page.nextCursor;
+ vehicleRegisterList.replaceChildren(...page.vehicles.map(vehicleCard));
+ vehicleRegisterList.hidden = page.vehicles.length === 0;
+ vehicleRegisterEmpty.hidden = page.vehicles.length !== 0;
+ vehicleRegisterNext.hidden = page.nextCursor === null;
+ const context = vehicleRegisterFilter === "" ? "bounded property register" : `exact registration “${vehicleRegisterFilter}”`;
+ vehicleResultSummary.textContent = `${page.vehicles.length} vehicle${page.vehicles.length === 1 ? "" : "s"} shown for the ${context}.${page.nextCursor ? " Another page is available." : " End of this result."}`;
+ if (focus) (page.vehicles.length === 0 ? vehicleRegisterEmpty : vehicleResultSummary).focus({ preventScroll: true });
+ }
+ async function loadVehicleRegister({ cursor = "", focus = false, updateHistory = false } = {}) {
+ const property = propertySelect.value;
+ if (!property) return;
+ const registration = vehicleRegisterFilter;
+ vehicleRegisterCursor = cursor;
+ const generation = ++vehicleRegisterGeneration;
+ vehicleRegister.setAttribute("aria-busy", "true");
+ vehicleRegisterLoading.hidden = false;
+ vehicleRegisterError.hidden = true;
+ vehicleRegisterEmpty.hidden = true;
+ vehicleRegisterList.hidden = true;
+ vehicleRegisterNext.hidden = true;
+ vehiclesRefresh.disabled = true;
+ vehicleSearchForm.querySelector("button[type=submit]").disabled = true;
+ vehicleResultSummary.textContent = registration === "" ? "Loading one bounded vehicle-register page…" : `Searching for exact registration “${registration}”…`;
+ const query = new URLSearchParams({ limit: "25" });
+ if (registration !== "") query.set("registration", registration);
+ if (cursor !== "") query.set("cursor", cursor);
+ if (updateHistory) history.pushState({ yellowSurface: "vehicle-register" }, "", canonicalVehiclePath(property, registration, cursor));
+ try {
+  const page = vehicleRegisterResult(await request(`/api/v1/properties/${enc(property)}/vehicles?${query}`));
+  if (!vehicleRegisterIsCurrent(generation, property, registration, cursor)) return;
+  renderVehicleRegister(page, { focus });
+  vehicleRegisterError.hidden = true;
+ } catch (error) {
+  if (!vehicleRegisterIsCurrent(generation, property, registration, cursor)) return;
+  vehicleRegisterNextCursor = null;
+  vehicleRegisterError.hidden = false;
+  vehicleRegisterError.querySelector("p").textContent = error instanceof Error ? error.message : "The vehicle register could not be loaded.";
+  vehicleResultSummary.textContent = "No vehicle-register conclusion was made. Retry this read-only request.";
+  if (focus) vehicleRegisterRetry.focus({ preventScroll: true });
+ } finally {
+  if (vehicleRegisterIsCurrent(generation, property, registration, cursor)) {
+   vehicleRegisterLoading.hidden = true;
+   vehicleRegister.setAttribute("aria-busy", "false");
+   vehiclesRefresh.disabled = false;
+   vehicleSearchForm.querySelector("button[type=submit]").disabled = false;
+  }
+ }
+ }
   function setView(view, updateHistory = true) {
  const previousView = activeView;
- activeView = ["today", "availability", "inventory", "operations", "housekeeping", "reservations", "folios", "cashiers", "restrictions", "rates", "status"].includes(view) ? view : "availability";
+ activeView = ["today", "availability", "inventory", "operations", "housekeeping", "vehicles", "reservations", "folios", "cashiers", "restrictions", "rates", "status"].includes(view) ? view : "availability";
  if (document.documentElement.dataset.experience === "simple" && SECONDARY_VIEWS.has(activeView)) {
   secondaryWorkspaces.hidden = false;
   secondaryWorkspacesToggle.setAttribute("aria-expanded", "true");
@@ -5338,8 +5490,10 @@ function departureEvidenceRow(term, value) {
   housekeepingSheetGeneration += 1;
   housekeepingSheetRequestGeneration += 1;
  }
+ if (previousView === "vehicles" && activeView !== "vehicles") vehicleRegisterGeneration += 1;
  todayView.hidden = activeView !== "today";
  housekeepingView.hidden = activeView !== "housekeeping";
+ vehiclesView.hidden = activeView !== "vehicles";
  availabilityView.hidden = activeView !== "availability";
  inventoryView.hidden = activeView !== "inventory";
  restrictionsView.hidden = activeView !== "restrictions";
@@ -5350,7 +5504,7 @@ function departureEvidenceRow(term, value) {
  cashiersView.hidden = activeView !== "cashiers";
  statusView.hidden = activeView !== "status";
  workbenchTitle.textContent = activeView === "today" ? "Today" : activeView === "inventory" ? "Inventory setup" :
-  activeView === "operations" ? "Operations" : activeView === "housekeeping" ? "Housekeeping" : activeView === "reservations" ? "Reservations" : activeView === "folios" ? "Folios" : activeView === "cashiers" ? "Cashiers" : activeView === "restrictions" ? "Restrictions" :
+  activeView === "operations" ? "Operations" : activeView === "housekeeping" ? "Housekeeping" : activeView === "vehicles" ? "Vehicle Register" : activeView === "reservations" ? "Reservations" : activeView === "folios" ? "Folios" : activeView === "cashiers" ? "Cashiers" : activeView === "restrictions" ? "Restrictions" :
   activeView === "rates" ? "Rates" : activeView === "status" ? "Project status" : "Availability";
  for (const tab of navigation) {
   const selected = tab.dataset.view === activeView;
@@ -5373,6 +5527,13 @@ function departureEvidenceRow(term, value) {
   if (housekeepingSheetAttendant) void previewHousekeepingSheet();
   else void loadHousekeepingSheetHistory();
   }
+ }
+ if (activeView === "vehicles") {
+  const route = vehicleRouteFromLocation();
+  vehicleRegisterFilter = route?.property === propertySelect.value ? route.registration : "";
+  vehicleRegisterCursor = route?.property === propertySelect.value ? route.cursor : "";
+  vehicleRegistration.value = vehicleRegisterFilter;
+  void loadVehicleRegister({ cursor: vehicleRegisterCursor });
  }
  if (activeView === "restrictions") void loadRestrictions();
  if (activeView === "rates") void loadRates();
@@ -6774,6 +6935,7 @@ function departureEvidenceRow(term, value) {
  housekeepingReturnFocus = "";
  housekeepingAttempts.clear();
  clearHousekeepingSheetState();
+ clearVehicleRegisterState();
  resetTodayState();
  reservationBoardRows = [];
  reservationBoardNextCursor = null;
@@ -6801,6 +6963,11 @@ function departureEvidenceRow(term, value) {
  }
  if (activeView === "operations") void loadOperationalBlocks();
  if (activeView === "housekeeping") void loadHousekeepingBoard();
+ if (activeView === "vehicles") {
+  history.replaceState({ yellowSurface: "vehicle-register" }, "", canonicalVehiclePath(propertySelect.value));
+  vehicleRegistration.value = "";
+  void loadVehicleRegister();
+ }
  if (activeView === "restrictions") void loadRestrictions();
  if (activeView === "rates") void loadRates();
  if (activeView === "status") void loadSystemStatus();
@@ -6876,6 +7043,22 @@ function departureEvidenceRow(term, value) {
  if (housekeepingSheetDate.value) void loadHousekeepingSheetHistory();
  });
  housekeepingGenerate.addEventListener("click", () => void generateHousekeepingSheet());
+ vehicleSearchForm.addEventListener("submit", (event) => {
+ event.preventDefault();
+ if (!vehicleSearchForm.reportValidity()) return;
+ vehicleRegisterFilter = vehicleRegistration.value;
+ void loadVehicleRegister({ focus: true, updateHistory: true });
+ });
+ vehicleSearchClear.addEventListener("click", () => {
+ vehicleRegistration.value = "";
+ vehicleRegisterFilter = "";
+ void loadVehicleRegister({ focus: true, updateHistory: true });
+ });
+ vehiclesRefresh.addEventListener("click", () => void loadVehicleRegister({ cursor: vehicleRegisterCursor, focus: true }));
+ vehicleRegisterRetry.addEventListener("click", () => void loadVehicleRegister({ cursor: vehicleRegisterCursor, focus: true }));
+ vehicleRegisterNext.addEventListener("click", () => {
+ if (vehicleRegisterNextCursor !== null) void loadVehicleRegister({ cursor: vehicleRegisterNextCursor, focus: true, updateHistory: true });
+ });
  housekeepingTaskList.addEventListener("click", (event) => {
   const button = event.target.closest?.(".housekeeping-action");
   if (button && !button.disabled) void submitHousekeepingAction(button);
@@ -6960,6 +7143,15 @@ function departureEvidenceRow(term, value) {
   closeReservationDetail({ history: false, restoreFocus: false });
   if (activeView !== "housekeeping") setView("housekeeping", false);
   else void loadHousekeepingBoard();
+ return;
+ }
+ const vehicleRoute = vehicleRouteFromLocation();
+ if (vehicleRoute && vehicleRoute.property === propertySelect.value) {
+  vehicleRegisterFilter = vehicleRoute.registration;
+  vehicleRegisterCursor = vehicleRoute.cursor;
+  vehicleRegistration.value = vehicleRoute.registration;
+  if (activeView !== "vehicles") setView("vehicles", false);
+  else void loadVehicleRegister({ cursor: vehicleRoute.cursor });
   return;
  }
  const folioRoute = folioRouteFromLocation();
@@ -7673,6 +7865,7 @@ function departureEvidenceRow(term, value) {
  location.pathname.endsWith("/today") ? "today" :
  location.pathname.endsWith("/operations") ? "operations" :
  location.pathname.endsWith("/housekeeping") ? "housekeeping" :
+ location.pathname.endsWith("/vehicles") ? "vehicles" :
  (location.pathname.endsWith("/reservations") || /^\/p\/[0-9a-f-]+\/res\/[0-9a-f-]+$/.test(location.pathname)) ? "reservations" :
  (location.pathname.endsWith("/folios") || /^\/p\/[0-9a-f-]+\/folio\/[0-9a-f-]+$/.test(location.pathname)) ? "folios" :
  location.pathname.endsWith("/cashiers") ? "cashiers" :

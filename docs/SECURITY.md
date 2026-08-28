@@ -214,6 +214,22 @@ notes and payment instruments. Checkout has no authority over account/folio stat
 ledger, payment, business day, room condition, housekeeping, keys, documents,
 statutory or fiscal truth.
 
+### Vehicle-register read containment
+
+The Order-205 read route requires the exact `stay-operations.vehicles:read` scope and
+exact property grant before composition. The service independently validates the
+server-derived tenant/property identity and executes under transaction-local RLS.
+Linked reservation visibility is re-proven against both tenant and exact property;
+linked Party visibility is re-proven against tenant. A missing proof fails the entire
+read with one bounded association error and never returns the hostile identifier.
+
+The minimized response excludes vehicle notes and `parking_space`, as well as Party
+names, contacts, identity records and reservation content. Entry/exit timestamps are
+returned only as recorded and convey no inferred onsite, access or security verdict.
+Literal plate lookup and canonical keyset pagination do not expand authority. This
+read has no write capability and cannot call occupancy, parking, vehicle lifecycle,
+task, fact, outbox or idempotency paths.
+
 ## 6. Statutory & privacy
 
 ### Token-only payment containment

@@ -1,6 +1,6 @@
 # Order 205 — Governed vehicle-register read
 
-**Status:** READY-D553 — intentional red and implementation required
+**Status:** BUILT-UNREVIEWED-D554 — implementation and executable gates green; independent proof deferred
 **Phase:** 6 — Stay operations and housekeeping
 **Branch:** `phase-6/governed-vehicle-register-read`
 **Base:** `c4dc25e` (built-unreviewed Order204)
@@ -98,9 +98,9 @@ No migration, dependency, table, state, event or write authority is admitted.
 
 ## Definition of done
 
-- [ ] Intentional red precedes implementation.
-- [ ] Vehicle read and literal lookup are deterministic, minimized and mutation-free.
-- [ ] Human register/search/paging flow is usable across current appearances.
-- [ ] Seed/reseed and hostile association proofs are green.
-- [ ] Result is recorded built-unreviewed without claiming vehicle writes, parking,
+- [x] Intentional red precedes implementation.
+- [x] Vehicle read and literal lookup are deterministic, minimized and mutation-free.
+- [x] Human register/search/paging flow is usable across current appearances.
+- [x] Seed/reseed and hostile association proofs are green.
+- [x] Result is recorded built-unreviewed without claiming vehicle writes, parking,
   discrepancy, Phase6 or app completion.

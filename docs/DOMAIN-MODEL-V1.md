@@ -349,6 +349,15 @@ balance are preconditions, not effects; account, folio, journal, posting and pay
 truth remain byte-stable. Room condition and housekeeping scheduling are intentionally
 separate aggregates and receive no implicit checkout consequence.
 
+Order 205 adds no aggregate, state or parking model. The Vehicle Register is a
+read-only view of the existing `vehicle` primitive, ordered by registration and id.
+Registration is recorded text rather than a normalized identifier. Nullable
+reservation and Party references are descriptive associations only and must be
+re-proven against the active tenant/property before disclosure. `entered_at` and
+`exited_at` remain literal observations; their presence or absence does not create an
+onsite state. Parking remains a separate ordinary `space`/occupancy concern under
+D-41 and is not disclosed or inferred by this register.
+
 ### Asset/Work Order aggregate — target extension
 
 Baseline `task`, `space`, relations, and OOO/OOS provide foundations, but there is no

@@ -749,3 +749,24 @@ effect. Exact replay returns the prior frozen result; changed reuse conflicts.
 Checkout does not settle or close folios/accounts, post or reverse money, mutate a
 business day, mark a room dirty, or create housekeeping work. Those remain separate
 governed commands.
+
+## 24. Governed vehicle-register read boundary
+
+`VehicleRegisterService.list` accepts one lowercase tenant UUID, one lowercase
+property UUID, and only optional `registration`, `cursor` and `limit` read controls.
+`registration` is compared as literal, case-sensitive text: it is never trimmed,
+normalized or interpreted as a wildcard. Limit is 1–100. The opaque canonical cursor
+represents the last `(reg_no,id)` pair and the query uses matching PostgreSQL keyset
+ordering; OFFSET is not admitted.
+
+One tenant transaction returns only vehicle id, registration, nullable make, model,
+colour, driver name, reservation id, Party id and the literally recorded entry/exit
+timestamps. Notes and parking-space truth are excluded. A linked reservation must be
+same-tenant and exact-property; a linked Party must be same-tenant. Any association
+that cannot be re-proven fails the whole response closed without exposing the foreign
+identifier.
+
+The result is deeply frozen and deterministic for unchanged PostgreSQL truth. The
+read does not infer onsite state, parking assignment, occupancy, access/security
+decisions or lifecycle. It performs no vehicle, reservation, Party, parking,
+occupancy, task, fact, outbox or idempotency write.

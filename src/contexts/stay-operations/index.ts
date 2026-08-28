@@ -40,3 +40,15 @@ export type {
   CheckoutResult,
   CheckoutServiceOptions,
 } from "./checkout";
+
+export {
+  VehicleRegisterConflictError,
+  VehicleRegisterService,
+  VehicleRegisterValidationError,
+} from "./vehicles";
+export type {
+  VehicleRegisterInput,
+  VehicleRegisterPage,
+  VehicleRegisterRow,
+  VehicleRegisterServiceOptions,
+} from "./vehicles";

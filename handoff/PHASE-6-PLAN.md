@@ -1,8 +1,8 @@
 # Phase 6 — Stay operations and housekeeping
 
-**Status:** active; Orders 200–204 are built-unreviewed
+**Status:** active; Orders 200–205 are built-unreviewed
 **Entry point:** built-unreviewed Phase-5 composition through Order 199
-**Current order:** `204-governed-checkout-command.md` (built-unreviewed)
+**Current order:** `205-governed-vehicle-register-read.md` (built-unreviewed)
 
 ## Outcome
 
@@ -111,12 +111,29 @@ command effect. Checkout never settles, closes, transfers or repairs a folio, ch
 room condition or creates housekeeping work; Order202's departure-sheet workflow
 remains separate.
 
+## Built-unreviewed bounded slice — Order 205
+
+Order 205 adds exact no-store read authority and one deep-linkable human Vehicle
+Register under `stay-operations.vehicles:read`. One tenant transaction returns only
+the adopted minimized register fields for the exact property, ordered by
+`(reg_no,id)` with canonical keyset paging. Optional plate lookup is case-sensitive
+literal equality: case, spaces and punctuation are never normalized or interpreted.
+
+Linked reservations are re-proven against tenant and exact property, linked Parties
+against tenant; one inconsistent association fails the complete read closed. The
+deterministic review seed adds two distinguishable literal rows without notes,
+parking assignment, occupancy, commands, facts, outbox or inferred lifecycle. The
+operator workbench supports deliberate search, paging, empty/error/retry and stale
+request protection across every current appearance. No create/edit/delete,
+entry/exit command, parking truth, inferred onsite state, event or migration is
+introduced.
+
 ## Subsequent bounded slices
 
 1. Discrepancy, queue and service-message workflows only after their sleep/skip/person,
    queue-linkage and resolution semantics are recorded explicitly.
-2. Arrival travel/vehicle/parking capture; any parking occupancy must use the existing
-   occupancy choke point.
+2. Arrival travel visibility/capture, later vehicle writes, and parking assignment;
+   any parking occupancy must use the existing occupancy choke point.
 3. Optional key-provider port only after provider ownership, credential and recovery
    policy are fixed.
 
