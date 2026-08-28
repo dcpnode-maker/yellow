@@ -27,6 +27,7 @@ const todaySource = [
   "propertyLocalDate",
   "todayWindow",
   "todayBoardQuery",
+  "todayOperationalAction",
   "resetTodayState",
   "todayRequestIsCurrent",
   "todayReturnFocusDecision",
@@ -164,6 +165,35 @@ test("Order 177 D-454: detail return uses stable identity after lane replacement
   expect(restore).toContain("button.dataset.reservationId === todayReturnFocus.reservationId");
   expect(restore).toContain('decision === "row"');
   expect(restore).toContain('decision === "heading"');
+});
+
+test("Order 209: Today preparation routes use only exact lane/status truth and preserve stable return focus", () => {
+  const action = new Function(`return (${functionSource("todayOperationalAction")})`)() as
+    (lane: string, rowStatus: string) => { workbench: string; label: string } | null;
+  expect(action("due_in", "due_in")).toEqual({ workbench: "check-in", label: "Prepare check-in" });
+  expect(action("due_out", "due_out")).toEqual({ workbench: "checkout", label: "Prepare checkout" });
+  for (const [lane, rowStatus] of [
+    ["in_house", "in_house"], ["due_in", "in_house"], ["due_out", "in_house"],
+    ["due_in", "due_out"], ["due_out", "due_in"], ["unknown", "due_in"],
+  ] as const) expect(action(lane, rowStatus)).toBeNull();
+
+  const helper = functionSource("todayOperationalAction");
+  expect(helper).not.toMatch(/arrival|departureTravel|pickup|room|folio|readiness|request\(|method:\s*"POST"|submit/i);
+  const render = functionSource("renderTodayLane");
+  expect(render).toContain("operationalAction: todayOperationalAction(status, row.status)");
+  const card = functionSource("reservationCard");
+  expect(card).toContain('node("button", "today-operational-action", operationalAction.label)');
+  expect(card).toContain("trigger: action, workbench: operationalAction.workbench");
+  expect(card).not.toMatch(/method:\s*"POST"|submitCheckIn|submitCheckout|\.click\(\)/);
+
+  const open = functionSource("openReservationDetail");
+  expect(open).toContain('if (activeView === "today")');
+  expect(open).toContain("reservationDrawerReturnReservationId = reservationId");
+  const close = functionSource("closeReservationDetail");
+  expect(close).toContain("todayReturnFocus = { reservationId: returnReservationId, cycle: 0 }");
+  const restore = functionSource("restoreTodayReturnFocus");
+  expect(restore).toContain("button.dataset.reservationId === todayReturnFocus.reservationId");
+  expect(restore).toContain('if (decision === "heading") $("#today-title").focus()');
 });
 
 test("Order 206: arrival and pickup evidence is compact, accessible and due-in only on Today", () => {

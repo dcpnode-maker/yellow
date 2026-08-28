@@ -144,6 +144,62 @@ test("Order 168: deep-linked drawer gates lifecycle actions and follows Back, fo
   expect(script).toContain('reservationLifecycleCommand("reinstate")');
 });
 
+test("Order 209: strict workbench intent survives refresh and same-reservation query-only history without bypassing confirmation", () => {
+  const parse = executableFunction<(search: string) => { valid: boolean; value: string | null }>("reservationWorkbenchIntent");
+  expect(parse("")).toEqual({ valid: true, value: null });
+  expect(parse("?workbench=check-in")).toEqual({ valid: true, value: "check-in" });
+  expect(parse("?workbench=checkout")).toEqual({ valid: true, value: "checkout" });
+  for (const invalid of [
+    "?workbench=", "?workbench=checkin", "?workbench=CHECKOUT",
+    "?workbench=check-in&workbench=check-in", "?workbench=checkout&extra=1", "?extra=1",
+  ]) expect(parse(invalid)).toEqual({ valid: false, value: null });
+
+  const route = functionSource("reservationRoute");
+  expect(route).toContain("reservationWorkbenchIntent(location.search)");
+  expect(route).toContain('history.replaceState(history.state, "", `/p/${detail[1]}/res/${detail[2]}`)');
+  expect(route).toContain("workbench: parsed.value");
+
+  const open = functionSource("openReservationDetail");
+  expect(open).toContain('workbench === "check-in" || workbench === "checkout"');
+  expect(open).toContain('const query = currentReservationWorkbench ? `?${RESERVATION_WORKBENCH_QUERY[currentReservationWorkbench]}` : ""');
+  expect(open).toContain("await loadReservationDetail(reservationId)");
+  const sync = functionSource("syncReservationRoute");
+  expect(sync).toContain("currentReservationWorkbench !== route.workbench");
+  expect(sync).toContain("workbench: route.workbench");
+
+  const popstate = script.slice(script.indexOf('window.addEventListener("popstate"'), script.indexOf('document.addEventListener("keydown"'));
+  expect(popstate).toContain("const route = reservationRoute()");
+  expect(popstate).toContain('if (route.kind !== "other") setView("reservations", false)');
+  expect(popstate).toContain("syncReservationRoute()");
+
+  const canonicalize = functionSource("canonicalizeReservationWorkbenchIntent");
+  expect(canonicalize).toContain("currentReservationWorkbench = null");
+  expect(canonicalize).toContain("history.replaceState(history.state");
+  const apply = functionSource("applyReservationWorkbenchIntent");
+  expect(apply).toContain('intent === "check-in" && reservation.status === "due_in"');
+  expect(apply).toContain('intent === "checkout" && ["in_house", "due_out"].includes(reservation.status)');
+  expect(apply).toContain("loadCheckInReadiness({ focus: checkInCompatible })");
+  expect(apply).toContain("loadCheckoutReadiness({ focus: checkoutCompatible })");
+  expect(apply).toContain("reservationDetailDrawer.focus({ preventScroll: true })");
+  expect(apply).not.toMatch(/method:\s*"POST"|submitCheckIn|submitCheckout|crypto\.randomUUID|\.click\(\)/);
+
+  const checkInAction = script.slice(script.indexOf("const updateCheckInAction"), script.indexOf('departureRefresh.addEventListener'));
+  expect(checkInAction).toContain("!checkInConfirm.checked");
+  const checkoutAction = functionSource("syncCheckoutConfirmation");
+  expect(checkoutAction).toContain("!departureCheckoutConfirm.checked");
+  expect(script).toContain('checkInForm.addEventListener("submit"');
+  expect(script).toContain('departureCheckoutForm.addEventListener("submit"');
+
+  const checkInReadiness = functionSource("loadCheckInReadiness");
+  expect(checkInReadiness).toContain("if (focus) checkInHeading.focus({ preventScroll: true })");
+  expect(checkInReadiness).toContain("if (focus) checkInRefresh.focus({ preventScroll: true })");
+  const checkoutReadiness = functionSource("loadCheckoutReadiness");
+  expect(checkoutReadiness).toContain("if (focus) departureHeading.focus({ preventScroll: true })");
+  expect(checkoutReadiness).toContain("if (focus) departureRetry.focus({ preventScroll: true })");
+  const close = functionSource("closeReservationDetail");
+  expect(close).toContain("reservationDrawerReturnFocus?.isConnected ? reservationDrawerReturnFocus : $(\"#reservations-title\")");
+});
+
 test("Order 168: dirty exit, history and journey reset policies execute at exact boundaries", () => {
   const shouldConfirm = executableFunction<(visible: boolean, dirty: boolean, destination: string) => boolean>("shouldConfirmReservationExit");
   expect(shouldConfirm(true, true, "board")).toBe(true);

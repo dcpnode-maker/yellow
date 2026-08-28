@@ -86,6 +86,11 @@
  let reservationCreateDirty = false;
  let reservationCreateProperty = "";
  let reservationRouteReservationId = "";
+ let currentReservationWorkbench = null;
+ const RESERVATION_WORKBENCH_QUERY = Object.freeze({
+  "check-in": "workbench=check-in",
+  checkout: "workbench=checkout",
+ });
  let partyProfileGeneration = 0;
  let partyCreateAttemptKey = "";
  let partyCreateDraft = null;
@@ -879,6 +884,7 @@
  reservationBoardRows = [];
  reservationBoardNextCursor = null;
  reservationRouteReservationId = "";
+ currentReservationWorkbench = null;
  reservationPrimaryFolioAttemptKey = "";
  reservationPrimaryFolioReservationId = "";
  reservationDrawerReturnView = "";
@@ -945,9 +951,22 @@
  in_house: "In house", due_out: "Due out", checked_out: "Checked out",
  cancelled: "Cancelled", no_show: "No show",
  });
+  function reservationWorkbenchIntent(search) {
+ const query = new URLSearchParams(search);
+ const keys = [...query.keys()];
+ if (keys.length === 0) return { valid: true, value: null };
+ const values = query.getAll("workbench");
+ if (keys.length === 1 && keys[0] === "workbench" && values.length === 1
+  && ["check-in", "checkout"].includes(values[0])) return { valid: true, value: values[0] };
+ return { valid: false, value: null };
+ }
   function reservationRoute() {
  const detail = location.pathname.match(/^\/p\/([0-9a-f-]+)\/res\/([0-9a-f-]+)$/);
- if (detail) return { kind: "detail", property: detail[1], reservationId: detail[2] };
+ if (detail) {
+  const parsed = reservationWorkbenchIntent(location.search);
+  if (!parsed.valid) history.replaceState(history.state, "", `/p/${detail[1]}/res/${detail[2]}`);
+  return { kind: "detail", property: detail[1], reservationId: detail[2], workbench: parsed.value };
+ }
  const board = location.pathname.match(/^\/p\/([0-9a-f-]+)\/reservations$/);
  if (!board) return { kind: "other" };
  const query = new URLSearchParams(location.search);
@@ -1042,7 +1061,7 @@
  }
  return tr;
  }
-  function reservationCard(row, { showArrivalTravel = true, showDepartureTravel = true } = {}) {
+  function reservationCard(row, { showArrivalTravel = true, showDepartureTravel = true, operationalAction = null } = {}) {
  const article = node("article", "card reservation-board-card");
  const head = node("div", "reservation-board-card-head");
  head.append(reservationOpenButton(row), reservationStatusBadge(row.status));
@@ -1055,9 +1074,27 @@
  article.append(head, guest, stay, room, party);
  if (arrival) article.append(arrival);
  if (departure) article.append(departure);
+ if (operationalAction) {
+  const action = node("button", "today-operational-action", operationalAction.label);
+  action.type = "button";
+  action.setAttribute("aria-label", `${operationalAction.label} for reservation ${row.confirmationNo}`);
+  action.addEventListener("click", () => void openReservationDetail(row.reservationId, {
+   trigger: action, workbench: operationalAction.workbench,
+  }));
+  article.append(action);
+ }
  return article;
  }
  const TODAY_STATUSES = Object.freeze(["due_in", "due_out", "in_house"]);
+  function todayOperationalAction(laneStatus, rowStatus) {
+ if (laneStatus === "due_in" && rowStatus === "due_in") {
+  return { workbench: "check-in", label: "Prepare check-in" };
+ }
+ if (laneStatus === "due_out" && rowStatus === "due_out") {
+  return { workbench: "checkout", label: "Prepare checkout" };
+ }
+ return null;
+ }
   function todayLaneElements(status) {
  const lane = todayLanes.find((candidate) => candidate.dataset.todayLane === status);
  return {
@@ -1146,6 +1183,7 @@
  elements.list.replaceChildren(...state.rows.map((row) => reservationCard(row, {
   showArrivalTravel: status === "due_in",
   showDepartureTravel: status === "due_out",
+  operationalAction: todayOperationalAction(status, row.status),
  })));
  elements.more.hidden = state.nextCursor === null;
  const count = state.rows.length;
@@ -2219,7 +2257,7 @@
    || property !== propertySelect.value || reservationRouteReservationId !== reservationId) return;
   renderCheckInReadiness(result);
   checkInMessage.textContent = "Readiness refreshed from server truth.";
-  if (focus) checkInHeading.focus();
+  if (focus) checkInHeading.focus({ preventScroll: true });
  } catch (error) {
   if (generation !== checkInReadinessGeneration || detailGeneration !== reservationDetailGeneration
    || property !== propertySelect.value || reservationRouteReservationId !== reservationId) return;
@@ -2227,6 +2265,7 @@
   checkInWorkbench.setAttribute("aria-busy", "false");
   checkInMessage.classList.add("error");
   checkInMessage.textContent = `${error instanceof Error ? error.message : "Readiness could not be loaded"}. Refresh to retry.`;
+  if (focus) checkInRefresh.focus({ preventScroll: true });
  } finally {
   if (generation === checkInReadinessGeneration && detailGeneration === reservationDetailGeneration
    && property === propertySelect.value && reservationRouteReservationId === reservationId) checkInRefresh.disabled = false;
@@ -2547,6 +2586,27 @@ function departureEvidenceRow(term, value) {
   }
  }
  }
+  function canonicalizeReservationWorkbenchIntent(reservationId) {
+ currentReservationWorkbench = null;
+ const plainDetail = `/p/${propertySelect.value}/res/${reservationId}`;
+ if (location.pathname === plainDetail && location.search) {
+  history.replaceState(history.state, "", plainDetail);
+ }
+ }
+  function applyReservationWorkbenchIntent(reservation) {
+ const intent = currentReservationWorkbench;
+ const checkInCompatible = intent === "check-in" && reservation.status === "due_in";
+ const checkoutCompatible = intent === "checkout" && ["in_house", "due_out"].includes(reservation.status);
+ if (intent && !checkInCompatible && !checkoutCompatible) {
+  canonicalizeReservationWorkbenchIntent(reservation.reservationId);
+  reservationDetailStatus.textContent = `${intent === "check-in" ? "Check-in" : "Checkout"} preparation is no longer compatible with the authoritative reservation status. Plain detail remains open; no command was run.`;
+  announceOperation("Preparation route removed because the reservation status changed. No command was run.");
+  reservationDetailDrawer.focus({ preventScroll: true });
+ }
+ if (reservation.status === "due_in") void loadCheckInReadiness({ focus: checkInCompatible });
+ else clearCheckInWorkbench();
+ void loadCheckoutReadiness({ focus: checkoutCompatible });
+ }
   function renderReservationDetail(result) {
  clearReservationDrawerLifecycle();
  const reservation = result.reservation;
@@ -2579,9 +2639,7 @@ function departureEvidenceRow(term, value) {
  reservationDetailContent.hidden = false;
  reservationDetailStatus.textContent = "Complete reservation detail loaded from server truth.";
  reservationDetailDrawer.setAttribute("aria-busy", "false");
- if (reservation.status === "due_in") void loadCheckInReadiness();
- else clearCheckInWorkbench();
- void loadCheckoutReadiness();
+ applyReservationWorkbenchIntent(reservation);
  }
   async function loadReservationDetail(reservationId) {
  const generation = ++reservationDetailGeneration;
@@ -2620,7 +2678,7 @@ function departureEvidenceRow(term, value) {
   reservationDetailDrawer.setAttribute("aria-busy", "false");
  }
  }
-  async function openReservationDetail(reservationId, { push = true, trigger = null } = {}) {
+  async function openReservationDetail(reservationId, { push = true, trigger = null, workbench = null } = {}) {
  closeReservationCreate({ history: false, force: true });
  if (activeView === "today") {
   reservationDrawerReturnView = "today";
@@ -2628,8 +2686,13 @@ function departureEvidenceRow(term, value) {
   setView("reservations", false);
  }
  reservationDrawerReturnFocus = trigger;
+ currentReservationWorkbench = workbench === "check-in" || workbench === "checkout" ? workbench : null;
  reservationDetailDrawer.hidden = false;
- if (push) history.pushState({ yellowSurface: "reservation-detail" }, "", `/p/${propertySelect.value}/res/${reservationId}`);
+ if (push) {
+  const query = currentReservationWorkbench ? `?${RESERVATION_WORKBENCH_QUERY[currentReservationWorkbench]}` : "";
+  const path = `/p/${propertySelect.value}/res/${reservationId}${query}`;
+  history.pushState({ yellowSurface: "reservation-detail" }, "", path);
+ }
  reservationDetailDrawer.focus();
  await loadReservationDetail(reservationId);
  }
@@ -2637,6 +2700,7 @@ function departureEvidenceRow(term, value) {
  if (reservationDetailDrawer.hidden) return;
  reservationDetailGeneration += 1;
  reservationRouteReservationId = "";
+ currentReservationWorkbench = null;
  reservationPrimaryFolioAttemptKey = "";
  reservationPrimaryFolioReservationId = "";
  reservationDetailData = null;
@@ -2671,8 +2735,8 @@ function departureEvidenceRow(term, value) {
  const route = reservationRoute();
  if (route.kind === "other" || !propertySelect.value || route.property !== propertySelect.value) return;
  if (route.kind === "detail") {
-  if (reservationRouteReservationId !== route.reservationId || reservationDetailDrawer.hidden) {
-  void openReservationDetail(route.reservationId, { push: false });
+  if (reservationRouteReservationId !== route.reservationId || currentReservationWorkbench !== route.workbench || reservationDetailDrawer.hidden) {
+  void openReservationDetail(route.reservationId, { push: false, workbench: route.workbench });
   }
   return;
  }
@@ -7161,6 +7225,7 @@ function departureEvidenceRow(term, value) {
  reservationBoardRows = [];
  reservationBoardNextCursor = null;
  reservationRouteReservationId = "";
+ currentReservationWorkbench = null;
  reservationDrawerReturnView = "";
  reservationDrawerReturnReservationId = "";
  todayReturnFocus = { reservationId: "", cycle: 0 };

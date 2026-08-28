@@ -1,6 +1,6 @@
 # Order 209 — Today operational action routing
 
-**Status:** READY-D561 — intentional red committed before implementation
+**Status:** BUILT-UNREVIEWED-D562 — implementation and required executable gates green
 **Phase:** 6 — Stay operations and housekeeping
 **Branch:** `phase-6/today-operational-action-routing`
 **Base:** `8004f1f` (built-unreviewed Order208)
@@ -99,8 +99,8 @@ event or product-state change is admitted.
 ## Definition of done
 
 - [x] Intentional red precedes implementation.
-- [ ] Exact Today actions route without inferring or mutating product truth.
-- [ ] Refresh/history/same-id query and stale fallback remain exact.
-- [ ] Readiness focus is current, accessible and confirmation-gated.
-- [ ] Result is built-unreviewed without approval, Phase6/app completion, local
+- [x] Exact Today actions route without inferring or mutating product truth.
+- [x] Refresh/history/same-id query and stale fallback remain exact.
+- [x] Readiness focus is current, accessible and confirmation-gated.
+- [x] Result is built-unreviewed without approval, Phase6/app completion, local
   promotion, merge, push or deployment.

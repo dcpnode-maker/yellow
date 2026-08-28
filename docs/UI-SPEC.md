@@ -303,3 +303,24 @@ Property, Housekeeping view, route, filter, cycle and request-generation guards 
 stale responses. Controls are at least 44 pixels, 48 pixels in Android appearance;
 the panel contains at 375 pixels and 200% zoom, respects reduced motion and forced
 colours, and has native material treatment in every current appearance.
+
+## 17. Today operational action routing
+
+Today exposes one bounded **Prepare check-in** action only when both the lane and the
+server row status are exact `due_in`, and one **Prepare checkout** action only when
+both are exact `due_out`. Each semantic button opens the existing reservation detail
+at `/p/{property}/res/{reservation}?workbench=check-in|checkout`. In-house,
+mismatched and unknown lane/status combinations have no preparation action. Travel,
+room, folio and readiness evidence never creates or changes an action.
+
+The query carries presentation and focus intent only. Refresh, Back, Forward and a
+same-reservation query change reapply that intent after current authoritative detail
+settles. Invalid, duplicate, empty, extra or status-incompatible intent canonicalizes
+to the plain reservation detail, announces the fallback and performs no command.
+Existing server readiness and explicit confirmation remain mandatory for every
+check-in or checkout POST.
+
+Action groups wrap without a fixed inline measure. Buttons remain at least 44 pixels
+and 48 pixels in Android appearance, contain at 375 pixels and 200% zoom, expose a
+visible keyboard focus indicator, and remain operable under reduced motion and forced
+colours in Apple, Android, Windows 95/98, glass, neomorphism and ERP appearances.
