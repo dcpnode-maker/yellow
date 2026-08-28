@@ -42,7 +42,20 @@ const mock = {
     beforePeriod: input.expectedPeriod, departedPeriod: { from: input.expectedPeriod.from, to: "2049-01-02T10:00:00.000Z" },
     activePeriod: { from: "2049-01-02T10:00:00.000Z", to: input.expectedPeriod.to }, financialJournalId: null, replayed: false,
   }; },
-} satisfies Pick<ReservationSegmentService, "findByConfirmation" | "changeDeparture" | "moveRoom">;
+  async findDueInRoomAssignmentCandidates(_tx, input) { calls.push({ operation: "assignment-candidates", input: { ...input } }); return {
+    reservationId: input.reservationId, segmentId: SEG, expectedReservationStatus: "due_in" as const,
+    expectedSegmentStatus: "booked" as const, expectedUnitTypeId: UT, expectedSellableUnitId: null,
+    expectedPeriod: period, candidates: [],
+  }; },
+  async assignDueInRoom(_tx, input) { calls.push({ operation: "assign-room", input: { ...input } }); return {
+    reservationId: input.reservationId, segmentId: input.segmentId, unitTypeId: input.expectedUnitTypeId,
+    previousSellableUnitId: null, sellableUnitId: input.sellableUnitId,
+    spaceId: "00000000-0000-0000-0000-000000009862", period: input.expectedPeriod,
+    claimCount: 1 as const, replayed: false,
+  }; },
+} satisfies Pick<ReservationSegmentService,
+  "findByConfirmation" | "changeDeparture" | "moveRoom" |
+  "findDueInRoomAssignmentCandidates" | "assignDueInRoom">;
 
 const call = (path: string, init: RequestInit = {}) => app.handle(new Request(`http://yellow.test${path}`, init));
 const headers = (token: string, key?: string): HeadersInit => ({ "content-type": "application/json", authorization: `Bearer ${token}`,

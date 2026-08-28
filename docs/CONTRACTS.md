@@ -1009,3 +1009,48 @@ one `task.created` fact/outbox pair in the same transaction; returning an existi
 emits nothing. No generic task CRUD, condition or reservation mutation, check-in,
 occupancy, folio, financial, day, key, travel, vehicle, parking or statutory authority
 is introduced.
+
+## 32. Governed due-in room assignment
+
+`ReservationSegmentService.findDueInRoomAssignmentCandidates` accepts one exact
+lowercase tenant, property and reservation UUID. In one transaction-local tenant
+read it admits only an exact-property `due_in` reservation with exactly one latest
+`booked` segment, a null sellable-unit assignment and zero occupancy rows whose
+`slot_ref` is that segment. It derives availability for the segment's recorded
+period, occupants and unit type through the existing PostgreSQL-authoritative
+inventory path. Only active same-property sellable units of that exact type which
+map exclusively to one active physical room are candidates.
+
+`GET /api/v1/properties/{property}/reservations/{reservation}/due-in-room-assignment/candidates`
+accepts no query, requires existing `reservations.segments:read` authority and its
+exact property grant, and is `Cache-Control: no-store`. The minimized HTTP response is
+exactly `{candidates:[...]}`. Each candidate is exactly `sellableUnitId`,
+`sellableUnitName`, `spaceId`, `spaceCode`, nullable `floor` and nullable
+`roomCondition`. Current condition is evidence only: null, dirty, pickup, clean or
+inspected never changes availability authority and never implies check-in readiness.
+Status, segment, unit-type and period expectations come only from the already-current
+canonical reservation detail/readiness descriptor and are not duplicated in this
+response. Price, guest/contact, holds, occupancy rows, internal mapping, task and other
+reservation truth are absent.
+
+`ReservationSegmentService.assignDueInRoom` accepts only one actor-bound audit
+envelope, idempotency key and
+`{segmentId,expectedReservationStatus,expectedSegmentStatus,expectedUnitTypeId,expectedSellableUnitId:null,expectedPeriod:{from,to},sellableUnitId}`.
+The command locks reservation and segment, re-proves the complete candidate contract,
+claims the exact period only through
+`ReservationOccupancyService.claimForSegment`, then calls the bounded
+`public.assign_due_in_room` owner capability to set the still-null assignment.
+Assignment, the sanctioned occupancy chain, minimized `reservation.modified` and
+`occupancy.recorded` fact/outbox evidence and the idempotency receipt commit or roll
+back together. Exact replay is byte-equivalent; changed-key reuse, stale evidence,
+prior assignment/occupancy and contention fail closed.
+
+`POST /api/v1/properties/{property}/reservations/{reservation}/due-in-room-assignment`
+accepts no query, requires existing `reservations.segments:write` authority and its
+exact property grant, a valid `Idempotency-Key`, and only the command body above.
+The no-store minimized receipt exposes the selected reservation, segment, sellable
+unit, physical room, period, claim count and replay state with correlation/replay
+headers. Success does not mutate condition, task, folio, identity or reservation
+status and does not run check-in. The client must refetch canonical reservation detail
+and check-in readiness; it cannot infer the next blocker from candidate or command
+output. There is no generic assignment, room-move, bulk or automatic-allocation route.

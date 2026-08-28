@@ -70,9 +70,15 @@ export type {
 } from "./travel";
 export { ReservationSegmentService } from "./segments";
 export type {
+  AssignDueInRoomInput,
+  AssignDueInRoomResult,
   ChangeReservationDepartureInput,
   ChangeReservationDepartureResult,
+  DueInRoomAssignmentCandidate,
+  DueInRoomAssignmentCandidatesResult,
+  DueInRoomCondition,
   ExpectedSegmentPeriod,
+  FindDueInRoomAssignmentCandidatesInput,
   FindReservationSegmentsInput,
   MoveReservationRoomInput,
   MoveReservationRoomResult,

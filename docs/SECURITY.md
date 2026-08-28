@@ -430,6 +430,34 @@ payload and the HTTP candidate. The capability cannot mutate room condition,
 reservation, segment, occupancy, check-in, folio, financial, business-day, key,
 travel, vehicle, parking or statutory truth.
 
+### Governed due-in room-assignment containment (migration 0033)
+
+Migration0033 adds one fixed-search-path owner-mediated assignment capability
+executable only by the dedicated `yellow_runtime` session after it assumes `app_role`,
+with `yellow_owner` as current definer and an exact transaction-local tenant. The
+capability locks and re-proves active actor, exact-property due-in reservation, its
+one latest booked segment, expected unit type and period, prior null assignment, zero
+segment occupancy claims and one selected active same-property/same-type sellable unit
+mapping to exactly one active physical room. `PUBLIC`, direct-login execution and raw
+runtime reservation-segment or occupancy DML remain denied.
+
+Candidate read and command reuse the existing exact-property
+`reservations.segments:read` and `reservations.segments:write` permissions. The HTTP
+adapter accepts no query, validates canonical path/body identities and conceals
+ungranted properties and ineligible targets behind not-found. Tenant, actor, property,
+reservation status, segment status, occupants, availability, mappings and condition
+meaning remain server-owned. Candidate output is minimized to sellable/physical room
+identity plus nullable current condition evidence; it contains no guest, contact,
+price, hold or occupancy detail.
+
+Actor-bound idempotency, the only sanctioned occupancy claim, null-to-selected
+assignment and minimized existing `occupancy.recorded`/`reservation.modified`
+fact/outbox evidence commit atomically. Stale, foreign, previously assigned or claimed
+truth writes nothing; concurrent requests converge to one assignment and exact replay
+adds no effect. The capability cannot infer or mutate room condition/readiness, run
+check-in, move/split a segment, select an alternate automatically, or affect tasks,
+folios, identity, money, business day, statutory, vehicle, parking or queue truth.
+
 ## 6. Statutory & privacy
 
 ### Token-only payment containment

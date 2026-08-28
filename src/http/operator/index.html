@@ -783,6 +783,15 @@
 <div class="checkin-workbench-head"><div><p class="eyebrow">Arrival readiness</p><h4 id="checkin-workbench-heading" tabindex="-1">Check in this stay</h4></div><span class="checkin-readiness-badge" id="checkin-readiness-badge">Checking…</span></div>
 <p class="muted" id="checkin-readiness-summary">Yellow is checking the assigned room, primary folio and configured identity evidence.</p>
 <ul class="checkin-blockers" id="checkin-blockers" aria-label="Check-in blockers"></ul>
+<section class="checkin-room-assignment" id="checkin-room-assignment" hidden aria-labelledby="checkin-room-assignment-heading" aria-busy="false">
+<div class="checkin-room-assignment-head"><div><p class="eyebrow">Current availability</p><h5 id="checkin-room-assignment-heading" tabindex="-1">Assign a physical room</h5></div><button class="quiet" id="checkin-room-assignment-close" type="button">Close</button></div>
+<p class="muted" id="checkin-room-assignment-summary">Choose one server-admitted room for this exact stay. Assignment does not check in the guest or change housekeeping condition.</p>
+<form id="checkin-room-assignment-form" aria-busy="false">
+<fieldset><legend>Available physical rooms</legend><div class="checkin-room-assignment-candidates" id="checkin-room-assignment-candidates"></div></fieldset>
+<div class="checkin-room-assignment-controls"><button class="primary" id="checkin-room-assignment-submit" type="submit" disabled>Assign selected room</button><button class="quiet" id="checkin-room-assignment-refresh" type="button">Refresh rooms</button></div>
+</form>
+<p class="form-message" id="checkin-room-assignment-message" role="status" aria-live="assertive"></p>
+</section>
 <form id="checkin-form">
 <label id="checkin-override-label" hidden>Dirty-room exception reason<textarea id="checkin-override-reason" maxlength="500" rows="3" autocomplete="off" aria-describedby="checkin-override-note"></textarea></label>
 <p class="field-note" id="checkin-override-note" hidden>A dirty or pickup room can be accepted only with your separately granted authority and a recorded reason.</p>

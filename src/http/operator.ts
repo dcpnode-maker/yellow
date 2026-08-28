@@ -1299,6 +1299,35 @@ function parseSegmentMove(body: unknown): {
   }) : null;
 }
 
+function parseDueInRoomAssignment(body: unknown): {
+  segmentId: string;
+  expectedReservationStatus: "due_in";
+  expectedSegmentStatus: "booked";
+  expectedUnitTypeId: string;
+  expectedSellableUnitId: null;
+  expectedPeriod: ExpectedSegmentPeriod;
+  sellableUnitId: string;
+} | null {
+  if (!isObject(body) || !exactKeys(body, [
+    "segmentId", "expectedReservationStatus", "expectedSegmentStatus", "expectedUnitTypeId",
+    "expectedSellableUnitId", "expectedPeriod", "sellableUnitId",
+  ]) || typeof body.segmentId !== "string" || !UUID.test(body.segmentId) ||
+      body.expectedReservationStatus !== "due_in" || body.expectedSegmentStatus !== "booked" ||
+      typeof body.expectedUnitTypeId !== "string" || !UUID.test(body.expectedUnitTypeId) ||
+      body.expectedSellableUnitId !== null ||
+      typeof body.sellableUnitId !== "string" || !UUID.test(body.sellableUnitId)) return null;
+  const expectedPeriod = parseExpectedSegmentPeriod(body.expectedPeriod);
+  return expectedPeriod ? Object.freeze({
+    segmentId: body.segmentId,
+    expectedReservationStatus: "due_in",
+    expectedSegmentStatus: "booked",
+    expectedUnitTypeId: body.expectedUnitTypeId,
+    expectedSellableUnitId: null,
+    expectedPeriod,
+    sellableUnitId: body.sellableUnitId,
+  }) : null;
+}
+
 function parseOfflineLease(body: unknown): {
   sellableUnitId: string;
   from: Date;
@@ -1490,7 +1519,11 @@ type ReservationOperations = Pick<ReservationCommitService, "commitHeld" | "comm
 type ReservationOfferOperations = Pick<ReservationOfferSearchService, "search">;
 type ReservationGuestOperations = Pick<ReservationGuestService, "findByConfirmation" | "replace">;
 type ReservationLifecycleOperations = Pick<ReservationLifecycleService, "findByConfirmation" | "modify" | "cancel" | "reinstate">;
-type ReservationSegmentOperations = Pick<ReservationSegmentService, "findByConfirmation" | "changeDeparture" | "moveRoom">;
+type ReservationSegmentOperations = Pick<ReservationSegmentService,
+  "findByConfirmation" | "changeDeparture" | "moveRoom"
+> & Partial<Pick<ReservationSegmentService,
+  "findDueInRoomAssignmentCandidates" | "assignDueInRoom"
+>>;
 type ReservationTravelOperations = Pick<ReservationTravelService, "put">;
 type ReservationBoardOperations = Pick<ReservationBoardService, "list">;
 type ReservationDetailOperations = Pick<ReservationDetailService, "findById"> &
@@ -4500,6 +4533,72 @@ export class OperatorHttpApi {
       confirmationNo,
     });
     return apiResponse(context.request, canonicalJson({ reservation: jsonValue(reservation) }));
+  }
+
+  async dueInRoomAssignmentCandidates(
+    context: TenantRequestContext,
+    propertyNode: string,
+    reservationId: string,
+  ): Promise<Response> {
+    if (!UUID.test(propertyNode) || !UUID.test(reservationId) ||
+        new URL(context.request.url).search.length > 0) {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Due-in room assignment input is invalid");
+    }
+    if (!hasScope(context, RESERVATION_SEGMENT_READ_SCOPE)) {
+      return apiError(context.request, 403, "auth/scope_missing", "Forbidden", "Reservation segment access is not granted");
+    }
+    const grants = await listGrantedProperties(context, RESERVATION_SEGMENT_READ_SCOPE);
+    if (!grants.some(({ id }) => id === propertyNode)) {
+      return apiError(context.request, 404, "reservations/not_found", "Not found", "The referenced due-in room assignment was not found");
+    }
+    if (!this.#reservationSegments?.findDueInRoomAssignmentCandidates) return this.unavailable(context.request);
+    const result = await this.#reservationSegments.findDueInRoomAssignmentCandidates(context.tx, {
+      tenantId: context.tenantId,
+      propertyNode,
+      reservationId,
+    });
+    return apiResponse(context.request, canonicalJson(jsonValue({ candidates: result.candidates })));
+  }
+
+  async assignDueInRoom(
+    context: TenantRequestContext,
+    propertyNode: string,
+    reservationId: string,
+    body: unknown,
+  ): Promise<Response> {
+    const input = parseDueInRoomAssignment(body);
+    const idempotencyKey = context.request.headers.get("idempotency-key");
+    if (!UUID.test(propertyNode) || !UUID.test(reservationId) || !input ||
+        !idempotencyKey || !IDEMPOTENCY_KEY.test(idempotencyKey) ||
+        new URL(context.request.url).search.length > 0) {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Due-in room assignment input is invalid");
+    }
+    if (!hasScope(context, RESERVATION_SEGMENT_WRITE_SCOPE)) {
+      return apiError(context.request, 403, "auth/scope_missing", "Forbidden", "Due-in room assignment is not granted");
+    }
+    const grants = await listGrantedProperties(context, RESERVATION_SEGMENT_WRITE_SCOPE);
+    if (!grants.some(({ id }) => id === propertyNode)) {
+      return apiError(context.request, 404, "reservations/not_found", "Not found", "The referenced due-in room assignment was not found");
+    }
+    if (!this.#reservationSegments?.assignDueInRoom) return this.unavailable(context.request);
+    const requestId = correlationId(context.request);
+    const result = await this.#reservationSegments.assignDueInRoom(context.tx, {
+      reservationId,
+      ...input,
+      idempotencyKey,
+      envelope: createAuditEnvelope({
+        actorId: context.identity.actorId,
+        tenantId: context.tenantId,
+        propertyNode,
+        requestId,
+        operation: "reservation.modified",
+      }),
+    });
+    const { replayed, ...assignment } = result;
+    return apiResponse(context.request, canonicalJson({ assignment: jsonValue(assignment) }), 200, {
+      "idempotency-replayed": String(replayed),
+      "x-correlation-id": requestId,
+    });
   }
 
   async changeReservationDeparture(

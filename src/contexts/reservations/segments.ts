@@ -1,4 +1,5 @@
 import {
+  AvailabilityService,
   InventoryConflictError,
   InventoryNotFoundError,
   ReservationOccupancyService,
@@ -51,6 +52,59 @@ export interface MoveReservationRoomInput {
   readonly envelope: AuditEnvelope;
 }
 
+export interface FindDueInRoomAssignmentCandidatesInput {
+  readonly tenantId: string;
+  readonly propertyNode: string;
+  readonly reservationId: string;
+}
+
+export type DueInRoomCondition = "clean" | "dirty" | "pickup" | "inspected";
+
+export interface DueInRoomAssignmentCandidate {
+  readonly sellableUnitId: string;
+  readonly sellableUnitName: string;
+  readonly spaceId: string;
+  readonly spaceCode: string;
+  readonly floor: string | null;
+  readonly roomCondition: DueInRoomCondition | null;
+}
+
+export interface DueInRoomAssignmentCandidatesResult {
+  readonly reservationId: string;
+  readonly segmentId: string;
+  readonly expectedReservationStatus: "due_in";
+  readonly expectedSegmentStatus: "booked";
+  readonly expectedUnitTypeId: string;
+  readonly expectedSellableUnitId: null;
+  readonly expectedPeriod: ExpectedSegmentPeriod;
+  readonly candidates: readonly DueInRoomAssignmentCandidate[];
+}
+
+export interface AssignDueInRoomInput {
+  readonly reservationId: string;
+  readonly segmentId: string;
+  readonly expectedReservationStatus: "due_in";
+  readonly expectedSegmentStatus: "booked";
+  readonly expectedUnitTypeId: string;
+  readonly expectedSellableUnitId: null;
+  readonly expectedPeriod: ExpectedSegmentPeriod;
+  readonly sellableUnitId: string;
+  readonly idempotencyKey: string;
+  readonly envelope: AuditEnvelope;
+}
+
+export interface AssignDueInRoomResult {
+  readonly reservationId: string;
+  readonly segmentId: string;
+  readonly unitTypeId: string;
+  readonly previousSellableUnitId: null;
+  readonly sellableUnitId: string;
+  readonly spaceId: string;
+  readonly period: ExpectedSegmentPeriod;
+  readonly claimCount: 1;
+  readonly replayed: boolean;
+}
+
 export interface ChangeReservationDepartureResult {
   readonly reservationId: string;
   readonly segmentId: string;
@@ -87,6 +141,7 @@ export interface ReservationSegmentServiceOptions {
   readonly events: EventBus;
   readonly idempotency: PostgresIdempotency;
   readonly occupancy?: ReservationOccupancyService;
+  readonly availability?: AvailabilityService;
   readonly now?: () => Date;
   readonly idFactory?: () => string;
 }
@@ -121,10 +176,13 @@ type ChangeDepartureBody = Omit<ChangeReservationDepartureResult, "replayed">
   & Readonly<Record<string, JsonValue>>;
 type MoveRoomBody = Omit<MoveReservationRoomResult, "replayed">
   & Readonly<Record<string, JsonValue>>;
+type AssignDueInRoomBody = Omit<AssignDueInRoomResult, "replayed">
+  & Readonly<Record<string, JsonValue>>;
 
 interface ReservationRow {
   readonly id: string;
   readonly status: string;
+  readonly channel_code: string;
 }
 
 interface SegmentRow {
@@ -147,6 +205,36 @@ interface SegmentLookupRow extends SegmentRow {
   readonly reservation_status: string;
 }
 
+interface DueInAssignmentStateRow {
+  readonly reservation_id: string;
+  readonly channel_code: string;
+  readonly segment_id: string;
+  readonly unit_type_id: string;
+  readonly from_at: Date;
+  readonly to_at: Date;
+  readonly rate_plan_id: string;
+  readonly party_size: number;
+}
+
+interface DueInRoomRow {
+  readonly sellable_unit_id: string;
+  readonly sellable_unit_name: string;
+  readonly space_id: string;
+  readonly space_code: string;
+  readonly floor: string | null;
+  readonly room_condition: string | null;
+}
+
+interface DueInAssignmentCapabilityRow {
+  readonly segment_id: string;
+  readonly unit_type_id: string;
+  readonly previous_sellable_unit_id: string | null;
+  readonly sellable_unit_id: string;
+  readonly space_id: string;
+  readonly period_from: Date;
+  readonly period_to: Date;
+}
+
 function requireUuid(name: string, value: unknown): string {
   if (typeof value !== "string" || !UUID.test(value)) {
     throw new ReservationLifecycleValidationError(`${name} must be a UUID`);
@@ -159,6 +247,33 @@ function requireReservationStatus(value: string): ReservationStatus {
     throw new Error(`Database returned unsupported reservation status ${value}`);
   }
   return value as ReservationStatus;
+}
+
+function requireDueInRoomCondition(value: string | null): DueInRoomCondition | null {
+  if (value === null || value === "clean" || value === "dirty" ||
+      value === "pickup" || value === "inspected") return value;
+  throw new Error("Database returned an unsupported room condition");
+}
+
+function requireStoredText(name: string, value: string | null, maximum = 120): string | null {
+  if (value === null) return null;
+  if (typeof value !== "string" || value.length < 1 || value.length > maximum ||
+      value !== value.trim()) {
+    throw new Error(`Database returned invalid ${name}`);
+  }
+  return value;
+}
+
+function requirePartySize(segment: SegmentRow): number {
+  const children: unknown = JSON.parse(segment.children_json);
+  if (!Array.isArray(children)) {
+    throw new ReservationLifecycleConflictError("Reservation segment occupants are incoherent");
+  }
+  const partySize = segment.adults + children.length;
+  if (!Number.isInteger(partySize) || partySize < 1 || partySize > 32_767) {
+    throw new ReservationLifecycleConflictError("Reservation segment occupants are incoherent");
+  }
+  return partySize;
 }
 
 function requireOperation(envelope: AuditEnvelope, operation: string): void {
@@ -271,7 +386,7 @@ async function loadReservationAndSegments(
   reservationId: string,
 ): Promise<Readonly<{ reservation: ReservationRow; segments: readonly SegmentRow[] }>> {
   const reservations = await tx<ReservationRow[]>`
-    SELECT id, status
+    SELECT id, status, channel_code
     FROM reservation
     WHERE id = ${reservationId}::uuid
       AND tenant_id = ${envelope.tenantId}::uuid
@@ -299,6 +414,49 @@ async function loadReservationAndSegments(
     throw new ReservationLifecycleConflictError("Reservation has no segments");
   }
   return Object.freeze({ reservation, segments });
+}
+
+async function loadDueInRoomRows(
+  tx: Tx,
+  tenantId: string,
+  propertyNode: string,
+  unitTypeId: string,
+  sellableUnitIds: readonly string[],
+): Promise<readonly DueInRoomRow[]> {
+  if (sellableUnitIds.length === 0) return Object.freeze([]);
+  const rows = await tx<DueInRoomRow[]>`
+    SELECT sellable.id AS sellable_unit_id,
+           sellable.name AS sellable_unit_name,
+           (array_agg(room.id ORDER BY room.id))[1] AS space_id,
+           min(room.code) AS space_code,
+           min(room.floor) AS floor,
+           min(condition.condition) AS room_condition
+    FROM sellable_unit AS sellable
+    JOIN unit_type
+      ON unit_type.tenant_id = sellable.tenant_id
+     AND unit_type.id = sellable.unit_type_id
+    JOIN sellable_unit_space AS mapping
+      ON mapping.tenant_id = sellable.tenant_id
+     AND mapping.sellable_unit_id = sellable.id
+    JOIN space AS room
+      ON room.tenant_id = mapping.tenant_id
+     AND room.id = mapping.space_id
+    LEFT JOIN unit_condition AS condition
+      ON condition.tenant_id = room.tenant_id
+     AND condition.space_id = room.id
+    WHERE sellable.tenant_id = ${tenantId}::uuid
+      AND sellable.tenant_id = current_setting('app.tenant_id', true)::uuid
+      AND sellable.id IN ${tx(sellableUnitIds)}
+      AND sellable.unit_type_id = ${unitTypeId}::uuid
+      AND unit_type.property_node = ${propertyNode}::uuid
+    GROUP BY sellable.id, sellable.name
+    HAVING count(*) = 1
+       AND bool_and(sellable.status = 'active')
+       AND bool_and(mapping.claim_mode = 'exclusive')
+       AND bool_and(room.property_node = ${propertyNode}::uuid)
+       AND bool_and(room.status = 'active')
+  `;
+  return Object.freeze(rows);
 }
 
 function requireLatestSegment(
@@ -371,10 +529,31 @@ function mapInventoryError(error: unknown, message: string): never {
   throw error;
 }
 
+function mapDueInAssignmentCapabilityError(error: unknown): never {
+  if (error instanceof ReservationLifecycleConflictError ||
+      error instanceof ReservationLifecycleNotFoundError ||
+      error instanceof ReservationLifecycleValidationError) throw error;
+  const record = error as { errno?: unknown; code?: unknown };
+  const state = record.errno ?? record.code;
+  if (state === "42501") {
+    throw new ReservationLifecycleNotFoundError(
+      "Due-in room assignment was not found in the active property",
+    );
+  }
+  if (state === "40001" || state === "40P01" || state === "55000" || state === "23505") {
+    throw new ReservationLifecycleConflictError("Due-in room assignment truth changed concurrently");
+  }
+  if (state === "22023") {
+    throw new ReservationLifecycleValidationError("Due-in room assignment input is invalid");
+  }
+  throw error;
+}
+
 export class ReservationSegmentService {
   readonly #events: EventBus;
   readonly #idempotency: PostgresIdempotency;
   readonly #occupancy: ReservationOccupancyService;
+  readonly #availability: AvailabilityService;
   readonly #now: () => Date;
   readonly #idFactory: () => string;
 
@@ -382,8 +561,306 @@ export class ReservationSegmentService {
     this.#events = options.events;
     this.#idempotency = options.idempotency;
     this.#occupancy = options.occupancy ?? new ReservationOccupancyService(options.events);
+    this.#availability = options.availability ?? new AvailabilityService();
     this.#now = options.now ?? (() => new Date());
     this.#idFactory = options.idFactory ?? (() => crypto.randomUUID());
+  }
+
+  async findDueInRoomAssignmentCandidates(
+    tx: Tx,
+    input: FindDueInRoomAssignmentCandidatesInput,
+  ): Promise<DueInRoomAssignmentCandidatesResult> {
+    const tenantId = requireUuid("tenantId", input.tenantId);
+    const propertyNode = requireUuid("propertyNode", input.propertyNode);
+    const reservationId = requireUuid("reservationId", input.reservationId);
+    const rows = await tx<DueInAssignmentStateRow[]>`
+      SELECT reservation.id AS reservation_id,
+             reservation.channel_code,
+             segment.id AS segment_id,
+             segment.unit_type_id,
+             lower(segment.period) AS from_at,
+             upper(segment.period) AS to_at,
+             segment.rate_plan_id,
+             (segment.adults + jsonb_array_length(segment.children))::int AS party_size
+      FROM reservation
+      JOIN reservation_segment AS segment
+        ON segment.tenant_id = reservation.tenant_id
+       AND segment.reservation_id = reservation.id
+      WHERE reservation.tenant_id = ${tenantId}::uuid
+        AND reservation.tenant_id = current_setting('app.tenant_id', true)::uuid
+        AND reservation.property_node = ${propertyNode}::uuid
+        AND reservation.id = ${reservationId}::uuid
+        AND reservation.status = 'due_in'
+        AND segment.status = 'booked'
+        AND segment.period @> transaction_timestamp()
+        AND segment.sellable_unit_id IS NULL
+        AND jsonb_typeof(segment.children) = 'array'
+        AND segment.id = (
+          SELECT latest.id
+          FROM reservation_segment AS latest
+          WHERE latest.tenant_id = segment.tenant_id
+            AND latest.reservation_id = segment.reservation_id
+          ORDER BY latest.seq DESC, latest.id DESC
+          LIMIT 1
+        )
+        AND NOT EXISTS (
+          SELECT 1
+          FROM space_occupancy AS occupancy
+          WHERE occupancy.tenant_id = segment.tenant_id
+            AND occupancy.slot_kind = 'segment'
+            AND occupancy.slot_ref = segment.id
+        )
+      ORDER BY segment.seq, segment.id
+      LIMIT 2
+    `;
+    const state = rows[0];
+    if (rows.length !== 1 || !state || !Number.isInteger(state.party_size) ||
+        state.party_size < 1 || state.party_size > 32_767) {
+      throw new ReservationLifecycleNotFoundError(
+        "Due-in room assignment was not found in the active property",
+      );
+    }
+    const currentBooked = await tx<Array<{ count: number }>>`
+      SELECT count(*)::int AS count
+      FROM reservation_segment
+      WHERE tenant_id = ${tenantId}::uuid
+        AND tenant_id = current_setting('app.tenant_id', true)::uuid
+        AND reservation_id = ${reservationId}::uuid
+        AND status = 'booked'
+        AND period @> transaction_timestamp()
+    `;
+    if (Number(currentBooked[0]?.count) !== 1) {
+      throw new ReservationLifecycleNotFoundError(
+        "Due-in room assignment was not found in the active property",
+      );
+    }
+
+    const options = (await this.#availability.search(tx, {
+      propertyNode,
+      from: state.from_at,
+      to: state.to_at,
+      partySize: state.party_size,
+      ratePlanId: state.rate_plan_id,
+      channelCode: state.channel_code,
+    })).filter((option) => option.unitTypeId === state.unit_type_id &&
+      option.availableCount > 0 && option.bookable);
+    const rooms = await loadDueInRoomRows(
+      tx, tenantId, propertyNode, state.unit_type_id,
+      options.map((option) => option.sellableUnitId),
+    );
+    const bySellable = new Map(rooms.map((room) => [room.sellable_unit_id, room] as const));
+    const candidates = options.flatMap((option): DueInRoomAssignmentCandidate[] => {
+      const room = bySellable.get(option.sellableUnitId);
+      if (!room) return [];
+      return [Object.freeze({
+        sellableUnitId: requireUuid("stored sellable unit id", room.sellable_unit_id),
+        sellableUnitName: requireStoredText("sellable unit name", room.sellable_unit_name)!,
+        spaceId: requireUuid("stored room id", room.space_id),
+        spaceCode: requireStoredText("room code", room.space_code)!,
+        floor: requireStoredText("room floor", room.floor, 64),
+        roomCondition: requireDueInRoomCondition(room.room_condition),
+      })];
+    });
+    return Object.freeze({
+      reservationId: state.reservation_id,
+      segmentId: state.segment_id,
+      expectedReservationStatus: "due_in",
+      expectedSegmentStatus: "booked",
+      expectedUnitTypeId: state.unit_type_id,
+      expectedSellableUnitId: null,
+      expectedPeriod: freezePeriod(state.from_at, state.to_at),
+      candidates: Object.freeze(candidates),
+    });
+  }
+
+  async assignDueInRoom(tx: Tx, input: AssignDueInRoomInput): Promise<AssignDueInRoomResult> {
+    requireOperation(input.envelope, "reservation.modified");
+    const reservationId = requireUuid("reservationId", input.reservationId);
+    const segmentId = requireUuid("segmentId", input.segmentId);
+    if (input.expectedReservationStatus !== "due_in" || input.expectedSegmentStatus !== "booked") {
+      throw new ReservationLifecycleValidationError(
+        "expected reservation and segment statuses must be due_in and booked",
+      );
+    }
+    const expectedUnitTypeId = requireUuid("expectedUnitTypeId", input.expectedUnitTypeId);
+    if (input.expectedSellableUnitId !== null) {
+      throw new ReservationLifecycleValidationError("expectedSellableUnitId must be null");
+    }
+    const expected = normalizePeriod(input.expectedPeriod);
+    const sellableUnitId = requireUuid("sellableUnitId", input.sellableUnitId);
+    const idempotencyKey = requireIdempotencyKey(input.idempotencyKey);
+
+    try {
+      const outcome = await this.#idempotency.execute<AssignDueInRoomBody>(tx, {
+        tenantId: input.envelope.tenantId,
+        operation: "reservation.segment.assign_due_in_room",
+        key: idempotencyKey,
+        request: {
+          actorId: input.envelope.actorId,
+          propertyNode: input.envelope.propertyNode,
+          reservationId,
+          segmentId,
+          expectedReservationStatus: input.expectedReservationStatus,
+          expectedSegmentStatus: input.expectedSegmentStatus,
+          expectedUnitTypeId,
+          expectedSellableUnitId: null,
+          expectedPeriod: expected.json,
+          sellableUnitId,
+        },
+      }, async (commandTx) => {
+        const locked = await loadReservationAndSegments(commandTx, input.envelope, reservationId);
+        const target = requireLatestSegment(locked.segments, segmentId);
+        requireExpectedPeriod(target, expected);
+        if (locked.reservation.status !== input.expectedReservationStatus ||
+            target.status !== input.expectedSegmentStatus ||
+            target.unit_type_id !== expectedUnitTypeId || target.sellable_unit_id !== null) {
+          throw new ReservationLifecycleConflictError("Due-in room assignment truth changed concurrently");
+        }
+        const state = (await commandTx<Array<{
+          contains_now: boolean;
+          current_booked: number;
+          occupancy_count: number;
+        }>>`
+          SELECT segment.period @> transaction_timestamp() AS contains_now,
+                 (SELECT count(*)::int
+                  FROM reservation_segment AS current_segment
+                  WHERE current_segment.tenant_id = segment.tenant_id
+                    AND current_segment.reservation_id = segment.reservation_id
+                    AND current_segment.status = 'booked'
+                    AND current_segment.period @> transaction_timestamp()) AS current_booked,
+                 (SELECT count(*)::int
+                  FROM space_occupancy AS occupancy
+                  WHERE occupancy.tenant_id = segment.tenant_id
+                    AND occupancy.slot_kind = 'segment'
+                    AND occupancy.slot_ref = segment.id) AS occupancy_count
+          FROM reservation_segment AS segment
+          WHERE segment.tenant_id = ${input.envelope.tenantId}::uuid
+            AND segment.tenant_id = current_setting('app.tenant_id', true)::uuid
+            AND segment.reservation_id = ${reservationId}::uuid
+            AND segment.id = ${segmentId}::uuid
+        `)[0];
+        if (!state?.contains_now || Number(state.current_booked) !== 1 ||
+            Number(state.occupancy_count) !== 0) {
+          throw new ReservationLifecycleConflictError("Due-in room assignment truth changed concurrently");
+        }
+        const partySize = requirePartySize(target);
+        const options = (await this.#availability.search(commandTx, {
+          propertyNode: input.envelope.propertyNode,
+          from: expected.from,
+          to: expected.to,
+          partySize,
+          ratePlanId: target.rate_plan_id,
+          channelCode: locked.reservation.channel_code,
+          sellableUnitId,
+        })).filter((option) => option.sellableUnitId === sellableUnitId &&
+          option.unitTypeId === expectedUnitTypeId && option.availableCount > 0 && option.bookable);
+        if (options.length !== 1) {
+          throw new ReservationLifecycleConflictError("Selected room is no longer available");
+        }
+        const rooms = await loadDueInRoomRows(
+          commandTx,
+          input.envelope.tenantId,
+          input.envelope.propertyNode,
+          expectedUnitTypeId,
+          [sellableUnitId],
+        );
+        const room = rooms[0];
+        if (rooms.length !== 1 || !room || room.sellable_unit_id !== sellableUnitId) {
+          throw new ReservationLifecycleConflictError("Selected room is no longer available");
+        }
+        const expectedSpaceId = requireUuid("stored room id", room.space_id);
+
+        const capability = (await commandTx<DueInAssignmentCapabilityRow[]>`
+          SELECT segment_id, unit_type_id, previous_sellable_unit_id,
+                 sellable_unit_id, space_id, period_from, period_to
+          FROM public.assign_due_in_room(
+            ${input.envelope.tenantId}::uuid,
+            ${input.envelope.propertyNode}::uuid,
+            ${reservationId}::uuid,
+            ${segmentId}::uuid,
+            ${expectedUnitTypeId}::uuid,
+            tstzrange(
+              ${expected.from.toISOString()}::timestamptz,
+              ${expected.to.toISOString()}::timestamptz,
+              '[)'
+            ),
+            ${null}::uuid,
+            ${sellableUnitId}::uuid,
+            ${input.envelope.actorId}::uuid
+          )
+        `)[0];
+        if (!capability || capability.segment_id !== segmentId ||
+            capability.unit_type_id !== expectedUnitTypeId ||
+            capability.previous_sellable_unit_id !== null ||
+            capability.sellable_unit_id !== sellableUnitId ||
+            capability.space_id !== expectedSpaceId ||
+            !sameInstant(capability.period_from, expected.from) ||
+            !sameInstant(capability.period_to, expected.to)) {
+          throw new ReservationLifecycleConflictError("Due-in room assignment truth changed concurrently");
+        }
+
+        let claimed;
+        try {
+          claimed = await this.#occupancy.claimForSegment(commandTx, {
+            sellableUnitId,
+            segmentId,
+            from: expected.from,
+            to: expected.to,
+            envelope: occupancyEnvelope(input.envelope, "occupancy.recorded"),
+          });
+        } catch (error) {
+          mapInventoryError(error, "Selected room is no longer available");
+        }
+        const claim = requireOneExclusiveClaim(claimed.claims, "Assigned sellable unit");
+        requireClaimsPeriod(claimed.claims, expected.json, "Assigned sellable unit");
+        if (claimed.unitTypeId !== expectedUnitTypeId || claim.spaceId !== expectedSpaceId ||
+            claimed.claimCount !== 1) {
+          throw new ReservationLifecycleConflictError("Assigned room occupancy evidence is incoherent");
+        }
+
+        const evidence = Object.freeze({
+          reservation_id: reservationId,
+          segment_id: segmentId,
+          unit_type_id: expectedUnitTypeId,
+          previous_sellable_unit_id: null,
+          sellable_unit_id: sellableUnitId,
+          space_id: expectedSpaceId,
+          period: expected.json,
+          claim_count: 1,
+        });
+        const fact = await recordFact(commandTx, {
+          entityType: "reservation",
+          entityId: reservationId,
+          envelope: input.envelope,
+          payload: evidence,
+        });
+        await this.#events.publish(commandTx, {
+          tenantId: input.envelope.tenantId,
+          propertyNode: input.envelope.propertyNode,
+          businessDate: fact.businessDate,
+          aggregateType: "reservation",
+          aggregateId: reservationId,
+          eventType: "reservation.modified",
+          actorId: input.envelope.actorId,
+          correlationId: input.envelope.requestId,
+          payload: evidence,
+        });
+        const body: AssignDueInRoomBody = Object.freeze({
+          reservationId,
+          segmentId,
+          unitTypeId: expectedUnitTypeId,
+          previousSellableUnitId: null,
+          sellableUnitId,
+          spaceId: expectedSpaceId,
+          period: expected.json,
+          claimCount: 1,
+        });
+        return { status: 200, body };
+      });
+      return Object.freeze({ ...outcome.body, replayed: outcome.replayed });
+    } catch (error) {
+      return mapDueInAssignmentCapabilityError(error);
+    }
   }
 
   async findByConfirmation(

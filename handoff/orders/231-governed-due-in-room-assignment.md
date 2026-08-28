@@ -1,6 +1,6 @@
 # Order 231 — Governed due-in room assignment
 
-**Status:** READY-D606
+**Status:** BUILT-UNREVIEWED-D607
 **Phase:** 6 — Stay operations and housekeeping
 **Branch:** `phase-6/governed-due-in-room-assignment`
 **Base:** `e5224fe` (built-unreviewed Order230)
@@ -107,8 +107,8 @@ the existing `reservation.modified`, `occupancy.recorded` and
 
 ## Definition of done
 
-- [ ] Intentional red precedes implementation.
-- [ ] Candidate read and exact assignment are server-authoritative and bounded.
-- [ ] Occupancy choke point, atomic evidence, rollback, replay and contention pass.
-- [ ] The human check-in journey resolves assignment without automatic check-in.
-- [ ] Standing gates are green and the result is recorded built-unreviewed.
+- [x] Intentional red precedes implementation.
+- [x] Candidate read and exact assignment are server-authoritative and bounded.
+- [x] Occupancy choke point, atomic evidence, rollback, replay and contention pass.
+- [x] The human check-in journey resolves assignment without automatic check-in.
+- [x] Standing gates are green and the result is recorded built-unreviewed.

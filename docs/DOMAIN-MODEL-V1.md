@@ -767,3 +767,21 @@ cancelled and unrelated tasks remain distinct history and are never adopted or
 mutated. Creating or returning the task does not prove cleaning progress, readiness,
 occupancy or check-in and creates no financial, key, travel, vehicle, parking or
 statutory identity.
+
+### Due-in room-assignment identity (Order 231)
+
+Order 231 adds no aggregate, table, event or permission. It composes the existing
+due-in reservation, its one latest booked `reservation_segment`, unit type and period,
+PostgreSQL-authoritative availability, the sellable-unit-to-one-physical-room mapping,
+the occupancy choke point, fact/outbox and idempotency primitives. The segment remains
+the assignment owner: its nullable `sellable_unit_id` changes once from null to the
+deliberately selected server-admitted unit while `space_occupancy` remains the
+authoritative claim history for the exact period.
+
+Candidate room condition is only current nullable evidence owned by
+`unit_condition`; assignment neither creates nor changes it and never translates it
+into readiness. The command is not room move: it does not close, trim, split or create
+a segment and cannot edit an existing assignment. It is not check-in: reservation and
+segment statuses remain `due_in` and `booked` until the separate governed check-in
+command re-reads every blocker. No task, folio, identity, price, financial,
+business-day, statutory, vehicle, parking or queue identity is created or changed.

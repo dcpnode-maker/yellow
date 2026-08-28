@@ -944,6 +944,33 @@ databaseDescribe("Bun SQL migration runner", () => {
   );
 
   test(
+    "applies the exact governed due-in room-assignment migration",
+    async () => {
+      await withDatabase(async ({ databaseUrl: targetUrl, sql }) => {
+        const result = await runMigrations({
+          databaseUrl: targetUrl,
+          migrationsDirectory: PROJECT_MIGRATIONS,
+          logger: () => undefined,
+        });
+        expect(result.appliedFiles).toContain("0033_governed_due_in_room_assignment.sql");
+        const ledger = await sql<Array<{
+          version: number | bigint; filename: string; checksum_sha256: string;
+        }>>`
+          SELECT version, filename, checksum_sha256
+            FROM public.schema_migration
+           WHERE version = 33
+        `;
+        expect(ledger.map((row) => ({ ...row, version: Number(row.version) }))).toEqual([{
+          version: 33,
+          filename: "0033_governed_due_in_room_assignment.sql",
+          checksum_sha256: "cd983c31250bc5ace863fe156bc6aa15927eac74ba24ab449eff692e87aae82d",
+        }]);
+      });
+    },
+    60_000,
+  );
+
+  test(
     "applies the exact account-folio integrity migration and rejects tenant-crossing references",
     async () => {
       await withDatabase(async ({ databaseUrl: targetUrl, sql }) => {

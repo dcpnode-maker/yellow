@@ -156,6 +156,9 @@ const CHECKIN_EXAMPLES = Object.freeze([
     roomCode: "101", condition: "clean" as const, hasIdentityDocument: true }),
   Object.freeze({ key: "dirty", confirmationNo: "ARR-DIRTY", displayName: "Arrival Dirty Example",
     roomCode: "102", condition: "dirty" as const, hasIdentityDocument: true }),
+  Object.freeze({ key: "unassigned", confirmationNo: "ARR-UNASSIGNED",
+    displayName: "Arrival Unassigned Example", roomCode: null, condition: null,
+    hasIdentityDocument: true }),
   Object.freeze({ key: "identity-gated", confirmationNo: "ARR-IDENTITY", displayName: "Arrival Identity Gate Example",
     roomCode: "G01", condition: "clean" as const, hasIdentityDocument: false }),
 ]);
@@ -356,6 +359,8 @@ interface ReviewSeedBaseResult {
 interface ReviewCheckInExamples {
   readonly cleanReservationId: string;
   readonly dirtyReservationId: string;
+  readonly unassignedReservationId: string;
+  readonly unassignedSegmentId: string;
   readonly identityGatedReservationId: string;
   readonly identityGatePropertyId: string;
 }
@@ -1551,18 +1556,19 @@ async function provisionCheckInExamples(
   }
 
   const result: Record<string, string> = {};
+  let unassignedSegmentId: string | undefined;
   for (const spec of CHECKIN_EXAMPLES) {
     const identityGated = spec.key === "identity-gated";
     const baseUnitType = unitTypes.get("STD");
-    const baseSpace = spaces.get(spec.roomCode);
-    const baseSellableUnit = sellableUnits.get(spec.roomCode);
-    if (!identityGated && (!baseUnitType || !baseSpace || !baseSellableUnit)) {
+    const baseSpace = spec.roomCode === null ? undefined : spaces.get(spec.roomCode);
+    const baseSellableUnit = spec.roomCode === null ? undefined : sellableUnits.get(spec.roomCode);
+    if (!identityGated && (!baseUnitType || (spec.roomCode !== null && (!baseSpace || !baseSellableUnit)))) {
       throw new Error(`Local-review check-in inventory is absent for room ${spec.roomCode}`);
     }
     const propertyNode = identityGated ? identityPropertyId : SEED_PROPERTY.id;
     const unitTypeId = identityGated ? identityUnitTypeId : baseUnitType!.id;
-    const spaceId = identityGated ? identitySpaceId : baseSpace!.id;
-    const sellableUnitId = identityGated ? identitySellableId : baseSellableUnit!.id;
+    const spaceId = identityGated ? identitySpaceId : baseSpace?.id ?? null;
+    const sellableUnitId = identityGated ? identitySellableId : baseSellableUnit?.id ?? null;
     const fixtureRatePlanId = identityGated ? identityRatePlanId : ratePlanId;
     const base = `${REVIEW_CHECKIN_FIXTURE_UUID}/${spec.key}`;
     const partyId = await uuidV5(SEED_TENANT.id, `${base}/party`);
@@ -1695,15 +1701,17 @@ async function provisionCheckInExamples(
       if (folioRows.length !== 1) throw new Error(`Local-review ${spec.key} primary folio is ambiguous`);
     }
 
-    const conditionRows = await connection<Array<{ tenant_id: string; space_id: string; condition: string; updated_by: string | null }>>`
-      SELECT tenant_id, space_id, condition, updated_by FROM unit_condition WHERE space_id=${spaceId}::uuid FOR UPDATE
-    `;
-    const expectedCondition = { tenant_id: SEED_TENANT.id, space_id: spaceId,
-      condition: spec.condition, updated_by: userId };
-    if (conditionRows.length === 0) {
-      await connection`INSERT INTO unit_condition (tenant_id, space_id, condition, updated_by)
-        VALUES (${SEED_TENANT.id}::uuid, ${spaceId}::uuid, ${spec.condition}, ${userId}::uuid)`;
-    } else exact(conditionRows[0], expectedCondition, `Local-review room ${spec.roomCode} condition`);
+    if (spaceId !== null && spec.condition !== null) {
+      const conditionRows = await connection<Array<{ tenant_id: string; space_id: string; condition: string; updated_by: string | null }>>`
+        SELECT tenant_id, space_id, condition, updated_by FROM unit_condition WHERE space_id=${spaceId}::uuid FOR UPDATE
+      `;
+      const expectedCondition = { tenant_id: SEED_TENANT.id, space_id: spaceId,
+        condition: spec.condition, updated_by: userId };
+      if (conditionRows.length === 0) {
+        await connection`INSERT INTO unit_condition (tenant_id, space_id, condition, updated_by)
+          VALUES (${SEED_TENANT.id}::uuid, ${spaceId}::uuid, ${spec.condition}, ${userId}::uuid)`;
+      } else exact(conditionRows[0], expectedCondition, `Local-review room ${spec.roomCode} condition`);
+    }
 
     const identityDocuments = await connection<Array<Record<string, unknown>>>`
       SELECT id, tenant_id, party_id, kind, number_enc, issuing_country::text, expiry::text, scan_ref
@@ -1727,11 +1735,14 @@ async function provisionCheckInExamples(
     }
 
     result[spec.key] = reservationId;
+    if (spec.key === "unassigned") unassignedSegmentId = segmentId;
   }
 
   return Object.freeze({
     cleanReservationId: result.clean!,
     dirtyReservationId: result.dirty!,
+    unassignedReservationId: result.unassigned!,
+    unassignedSegmentId: unassignedSegmentId!,
     identityGatedReservationId: result["identity-gated"]!,
     identityGatePropertyId: identityPropertyId,
   });
@@ -2797,7 +2808,7 @@ export async function runReviewSeed(options: ReviewSeedOptions): Promise<ReviewS
     });
 
     logger(`review rate: plan=${rate.ratePlanId} active_release=${rate.activeReleaseId} version=${rate.activeReleaseVersion} state=${rate.created ? "created" : "existing"}`);
-    logger(`review check-in: clean=${checkInExamples.cleanReservationId} dirty=${checkInExamples.dirtyReservationId} identity_gated=${checkInExamples.identityGatedReservationId}`);
+    logger(`review check-in: clean=${checkInExamples.cleanReservationId} dirty=${checkInExamples.dirtyReservationId} unassigned=${checkInExamples.unassignedReservationId} identity_gated=${checkInExamples.identityGatedReservationId}`);
     logger(`review housekeeping: assigned_dirty=${housekeepingExamples.assignedDirtyTaskId} done_clean=${housekeepingExamples.doneCleanTaskId}`);
     logger(`review housekeeping sheet fixture: date=${housekeepingExamples.sheetDate} attendant=${housekeepingExamples.attendantPartyId} reservation=${housekeepingExamples.eligibleReservationId} segment=${housekeepingExamples.eligibleSegmentId} room=${housekeepingExamples.eligibleSpaceId}`);
     logger(`review departure readiness fixture: reservation=${housekeepingExamples.eligibleReservationId} segment=${housekeepingExamples.eligibleSegmentId} room=${housekeepingExamples.eligibleSpaceId} occupancy=${housekeepingExamples.eligibleOccupancyId} account=${housekeepingExamples.departureAccountId} folio=${housekeepingExamples.departureFolioId}`);

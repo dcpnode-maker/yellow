@@ -28,6 +28,16 @@ The transition does not alter occupancy, folio/account state, money, keys, busin
 day or statutory-submission state. Check-out and every other Phase-6 transition remain
 outside this active slice.
 
+Order 231's due-in room assignment is not a reservation or segment status transition.
+It admits only one `due_in` reservation whose one latest `booked` segment has null
+assignment and zero segment occupancy. One deliberate command revalidates a
+server-admitted same-type physical-room candidate, records occupancy through the
+existing choke point and changes only that segment's `sellable_unit_id` from null to
+the selected value in the same transaction as existing minimized evidence. Existing
+assignments cannot use this path; room moves still close/trim and append a segment.
+Assignment preserves `due_in`/`booked`, does not infer room condition or readiness and
+never invokes the separate `due_in -> in_house` check-in command.
+
 ## 2. Folio (`folio.status`) — open → settled → closed
 
 | From | To | Exact guard/effect |

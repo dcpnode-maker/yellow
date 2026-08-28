@@ -351,11 +351,13 @@ neither infers readiness nor runs check-in. Generic Housekeeping navigation rema
 unchanged. Focused `17/17`, adjacent continuity `36/36`, standing `695/0`, all static
 gates and the fresh invariant referee `11/11` are green.
 
-Order 231 is ready as the exact due-in room-assignment bridge. A current unassigned
-check-in blocker gains one server-authoritative candidate read and one deliberate,
-actor-bound command that uses the PostgreSQL occupancy choke point and commits exact
-assignment/evidence atomically before refetching check-in preparation. It is not room
-move, automatic allocation, readiness inference or automatic check-in.
+Order 231 is built-unreviewed as the exact due-in room-assignment bridge. A current
+unassigned check-in blocker now gains one server-authoritative candidate read and one
+deliberate actor-bound command that uses the PostgreSQL occupancy choke point and
+commits exact assignment/evidence atomically before refetching check-in preparation.
+Executable contention, rollback, authority, migration, seed, schema and standing
+proofs are green. It is not room move, automatic allocation, readiness inference or
+automatic check-in.
 
 ## Phase 7 — Tax engine + India IRP
 

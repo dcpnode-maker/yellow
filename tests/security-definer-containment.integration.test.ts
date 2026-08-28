@@ -170,7 +170,7 @@ dbDescribe("Order 108 SECURITY DEFINER shadow-path containment", () => {
            'open_cashier_session', 'append_cashier_count', 'close_cashier_session',
            'register_extension_type', 'transition_housekeeping_task',
            'initialize_unit_condition', 'transition_arrival_pickup_task',
-           'create_arrival_room_cleaning_task'
+           'create_arrival_room_cleaning_task', 'assign_due_in_room'
          ]::name[])
        ORDER BY signature
     `;
@@ -182,6 +182,8 @@ dbDescribe("Order 108 SECURITY DEFINER shadow-path containment", () => {
         config: ["search_path=pg_catalog, public, pg_temp"], appExecute: true, publicDenied: true },
       { signature: "assert_day_open()", securityDefiner: true,
         config: ["search_path=pg_catalog, public, pg_temp"], appExecute: false, publicDenied: true },
+      { signature: "assign_due_in_room(uuid,uuid,uuid,uuid,uuid,tstzrange,uuid,uuid,uuid)", securityDefiner: true,
+        config: ["search_path=pg_catalog, public, pg_temp"], appExecute: true, publicDenied: true },
       { signature: "close_cashier_session(uuid,uuid,uuid,uuid,uuid,uuid,text,boolean)", securityDefiner: true,
         config: ["search_path=pg_catalog, public, pg_temp"], appExecute: true, publicDenied: true },
       { signature: "create_arrival_room_cleaning_task(uuid,uuid,uuid,uuid,uuid)", securityDefiner: true,
@@ -223,6 +225,10 @@ dbDescribe("Order 108 SECURITY DEFINER shadow-path containment", () => {
     ]);
 
     const expectedQualifiedObjects = new Map<string, readonly string[]>([
+      ["assign_due_in_room(uuid,uuid,uuid,uuid,uuid,tstzrange,uuid,uuid,uuid)",
+        ["public.app_user", "public.reservation", "public.reservation_segment",
+          "public.space_occupancy", "public.sellable_unit", "public.unit_type",
+          "public.sellable_unit_space", "public.space"]],
       ["append_cashier_count(uuid,uuid,uuid,uuid,bigint[],bigint[])",
         ["public.org_node", "public.cashier_session", "public.business_day", "public.cash_drawer",
           "public.app_user", "public.cash_drawer_denomination", "public.cashier_count",
@@ -399,6 +405,15 @@ dbDescribe("Order 108 SECURITY DEFINER shadow-path containment", () => {
           '${TENANT}'::uuid, '${PROPERTY}'::uuid,
           '00000000-0000-0000-0000-000000011369'::uuid,
           '00000000-0000-0000-0000-00000001136a'::uuid,
+          '${ACTOR}'::uuid
+        )`,
+        `SELECT * FROM public.assign_due_in_room(
+          '${TENANT}'::uuid, '${PROPERTY}'::uuid,
+          '00000000-0000-0000-0000-00000001136b'::uuid,
+          '00000000-0000-0000-0000-00000001136c'::uuid,
+          '00000000-0000-0000-0000-00000001136d'::uuid,
+          tstzrange(now(), now() + interval '1 day', '[)'), NULL,
+          '00000000-0000-0000-0000-00000001136e'::uuid,
           '${ACTOR}'::uuid
         )`,
         `SELECT * FROM public.initialize_unit_condition(

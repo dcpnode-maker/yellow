@@ -479,6 +479,8 @@ databaseDescribe("Order 046 reproducible local-review seed", () => {
     });
     expect(first.checkInExamples.cleanReservationId).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/);
     expect(first.checkInExamples.dirtyReservationId).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/);
+    expect(first.checkInExamples.unassignedReservationId).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/);
+    expect(first.checkInExamples.unassignedSegmentId).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/);
     expect(first.checkInExamples.identityGatedReservationId).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/);
     expect(first.checkInExamples.identityGatePropertyId).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/);
     expect(first.housekeepingExamples.assignedDirtyTaskId).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/);
@@ -595,7 +597,7 @@ databaseDescribe("Order 046 reproducible local-review seed", () => {
     `;
     expect(rows[0]).toEqual({
       series: 1, revenue_accounts: 1, room_codes: 1, room_routes: 1, current_open_days: 1,
-      guest_accounts: 4, folios: 5, journals: 0, postings: 0, payments: 0, documents: 0,
+      guest_accounts: 5, folios: 6, journals: 0, postings: 0, payments: 0, documents: 0,
     });
   });
 
@@ -679,6 +681,50 @@ databaseDescribe("Order 046 reproducible local-review seed", () => {
       required_identity_fields: ["identity_document"], base_property_config: {}, occupancy_claims: 0,
       facts: 0, events: 0, journals: 0, postings: 0, payments: 0, documents: 0,
     });
+  });
+
+  test("Order 231 P6: provisions one exact unassigned due-in segment without occupancy or effects", async () => {
+    const rows = await admin<Array<{
+      reservation_id: string; confirmation_no: string; reservation_status: string;
+      segment_id: string; segment_status: string; segment_count: number;
+      unit_type_code: string; sellable_unit_id: string | null; folio_status: string;
+      window_no: number; occupancy_claims: number; facts: number; events: number;
+    }>>`
+      SELECT reservation.id AS reservation_id, reservation.confirmation_no,
+             reservation.status AS reservation_status, segment.id AS segment_id,
+             segment.status AS segment_status,
+             (SELECT count(*)::int FROM reservation_segment AS counted
+               WHERE counted.tenant_id=reservation.tenant_id
+                 AND counted.reservation_id=reservation.id) AS segment_count,
+             unit_type.code AS unit_type_code, segment.sellable_unit_id,
+             folio.status AS folio_status, folio.window_no,
+             (SELECT count(*)::int FROM space_occupancy
+               WHERE tenant_id=segment.tenant_id AND slot_ref=segment.id) AS occupancy_claims,
+             (SELECT count(*)::int FROM fact_log
+               WHERE tenant_id=reservation.tenant_id
+                 AND entity_id IN (reservation.id,segment.id)) AS facts,
+             (SELECT count(*)::int FROM outbox
+               WHERE tenant_id=reservation.tenant_id
+                 AND aggregate_id IN (reservation.id,segment.id)) AS events
+        FROM reservation
+        JOIN reservation_segment AS segment
+          ON segment.tenant_id=reservation.tenant_id
+         AND segment.reservation_id=reservation.id
+        JOIN unit_type
+          ON unit_type.tenant_id=segment.tenant_id AND unit_type.id=segment.unit_type_id
+        JOIN folio
+          ON folio.tenant_id=reservation.tenant_id
+         AND folio.reservation_id=reservation.id AND folio.window_no=1
+       WHERE reservation.tenant_id=${SEED_TENANT.id}::uuid
+         AND reservation.id=${first.checkInExamples.unassignedReservationId}::uuid
+    `;
+    expect(rows).toEqual([{
+      reservation_id: first.checkInExamples.unassignedReservationId,
+      confirmation_no: "ARR-UNASSIGNED", reservation_status: "due_in",
+      segment_id: first.checkInExamples.unassignedSegmentId, segment_status: "booked",
+      segment_count: 1, unit_type_code: "STD", sellable_unit_id: null,
+      folio_status: "open", window_no: 1, occupancy_claims: 0, facts: 0, events: 0,
+    }]);
   });
 
   test("Order 229 P6: reuses one exact dirty arrival and active attendant without pre-creating a cleaning task", async () => {
@@ -1118,6 +1164,7 @@ databaseDescribe("Order 046 reproducible local-review seed", () => {
     expect(await counts()).toEqual(before);
     expect(await housekeepingSnapshot()).toEqual(housekeepingBefore);
     expect(second.housekeepingExamples).toEqual(first.housekeepingExamples);
+    expect(second.checkInExamples).toEqual(first.checkInExamples);
     expect(second.vehicleExamples).toEqual(first.vehicleExamples);
     expect(second.arrivalTravelExamples).toEqual(first.arrivalTravelExamples);
     expect(second.departureTravelExamples).toEqual(first.departureTravelExamples);

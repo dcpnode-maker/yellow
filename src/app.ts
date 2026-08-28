@@ -381,6 +381,16 @@ export function createApp(options: AppOptions = {}) {
           context, params.property, params.reservation, body,
         ))
       )
+      .get("/api/v1/properties/:property/reservations/:reservation/due-in-room-assignment/candidates", ({ request, params, tenantContext }) =>
+        withOperatorTenant(request, (context) => operator.dueInRoomAssignmentCandidates(
+          context, params.property, params.reservation,
+        ))
+      )
+      .post("/api/v1/properties/:property/reservations/:reservation/due-in-room-assignment", ({ request, params, body, tenantContext }) =>
+        withOperatorTenant(request, (context) => operator.assignDueInRoom(
+          context, params.property, params.reservation, body,
+        ))
+      )
       .get("/api/v1/properties/:property/reservations/:reservation/check-in/readiness", ({ request, params, tenantContext }) =>
         withOperatorTenant(request, (context) => operator.checkInReadiness(
           context, params.property, params.reservation,

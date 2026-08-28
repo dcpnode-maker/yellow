@@ -982,3 +982,37 @@ dedicated native presentations without changing label semantics or reading order
 The native button is keyboard operable with explicit visible focus; reduced motion
 removes nonessential transforms and transitions, and forced colours replace
 decorative materials with system button colours and boundaries.
+
+## 37. Due-in room assignment from check-in preparation
+
+The assignment disclosure appears only for the exact current
+`room_assignment_missing` blocker on canonical reservation detail with
+`?workbench=check-in`. Property, reservation, confirmation, due-in status, blocker,
+detail/readiness generations, route and section containment must all remain current.
+Direct inventory navigation, another blocker, stale history or a detached disclosure
+shows no assignment action. Opening the disclosure performs only the exact no-store
+reservation-scoped candidate GET.
+
+Each candidate renders only sellable-unit name, physical room code, nullable floor
+and the recorded nullable room-condition evidence. Yellow labels condition as current
+evidence, never as availability or readiness: a null, dirty, pickup, clean or inspected
+value cannot make the browser hide, admit or rank a server-returned candidate. Price,
+guest, contact, hold, occupancy and internal mapping detail are absent. The operator
+must deliberately choose one candidate and activate **Assign room**; there is no
+default, automatic alternate, batch allocation or drag-to-assign behavior.
+
+Submission binds the exact frozen reservation, segment, status, unit type, period,
+prior null assignment and selected sellable unit, retains one idempotency key for an
+unchanged draft and locks related controls in flight. The browser paints no optimistic
+assignment, condition or readiness. A conflict remains in the disclosure with one
+authoritative refresh path. A current success refetches canonical reservation detail
+and check-in readiness, then focuses the next exact blocker action or the safe check-in
+heading. Assignment never runs check-in automatically.
+
+Late results are inert after any property, route, reservation, blocker, candidate,
+selection, descriptor, section or generation change. Browser Back returns to the
+unchanged check-in preparation view; refresh/Forward reconstruct only from valid
+canonical state. There is no polling or browser storage. Candidate selection and
+actions remain keyboard operable with visible focus, at least 44 pixels, 48 pixels on
+Android, and contained at 375 pixels and 200% zoom. All six current appearances,
+forced colours and reduced motion preserve identical semantic order and authority.

@@ -55,6 +55,11 @@
  let checkInReadinessGeneration = 0;
  let checkInHousekeepingReturn = null;
  let checkInHousekeepingActionOrigin = null;
+ let dueInRoomAssignmentData = null;
+ let dueInRoomAssignmentRequestGeneration = 0;
+ let dueInRoomAssignmentOrigin = null;
+ let dueInRoomAssignmentAttempt = null;
+ let dueInRoomAssignmentSuccessFocus = null;
  let checkInAttemptKey = "";
  let checkInAttemptDraft = "";
  let checkoutReadinessData = null;
@@ -613,6 +618,14 @@
  const checkInSummary = $("#checkin-readiness-summary");
  const checkInBlockers = $("#checkin-blockers");
  const checkInHousekeepingAction = $("#checkin-housekeeping-action");
+ const dueInRoomAssignment = $("#checkin-room-assignment");
+ const dueInRoomAssignmentHeading = $("#checkin-room-assignment-heading");
+ const dueInRoomAssignmentForm = $("#checkin-room-assignment-form");
+ const dueInRoomAssignmentCandidates = $("#checkin-room-assignment-candidates");
+ const dueInRoomAssignmentSubmit = $("#checkin-room-assignment-submit");
+ const dueInRoomAssignmentRefresh = $("#checkin-room-assignment-refresh");
+ const dueInRoomAssignmentClose = $("#checkin-room-assignment-close");
+ const dueInRoomAssignmentMessage = $("#checkin-room-assignment-message");
  const checkInForm = $("#checkin-form");
  const checkInOverrideLabel = $("#checkin-override-label");
  const checkInOverrideReason = $("#checkin-override-reason");
@@ -4002,9 +4015,270 @@ function ensureHousekeepingGenerationReceiptPanel() {
   }
  }
  }
+  function clearDueInRoomAssignment({ preserveAttempt = false } = {}) {
+ dueInRoomAssignmentRequestGeneration += 1;
+ dueInRoomAssignmentData = null;
+ dueInRoomAssignmentOrigin = null;
+ dueInRoomAssignment.hidden = true;
+ dueInRoomAssignment.setAttribute("aria-busy", "false");
+ dueInRoomAssignmentForm.setAttribute("aria-busy", "false");
+ dueInRoomAssignmentCandidates.replaceChildren();
+ dueInRoomAssignmentSubmit.disabled = true;
+ dueInRoomAssignmentRefresh.disabled = false;
+ dueInRoomAssignmentClose.disabled = false;
+ dueInRoomAssignmentMessage.textContent = "";
+ dueInRoomAssignmentMessage.classList.remove("error");
+ if (!preserveAttempt) dueInRoomAssignmentAttempt = null;
+ }
+  function dueInRoomAssignmentSegment() {
+ const segments = reservationDetailData?.reservation?.segments;
+ if (!Array.isArray(segments) || segments.length < 1) return null;
+ const latest = segments.reduce((selected, segment) =>
+  !selected || segment.sequence > selected.sequence ? segment : selected, null);
+ if (!latest || latest.status !== "booked" || latest.sellableUnitId !== null ||
+  !canonicalUuid(latest.segmentId) || !canonicalUuid(latest.unitTypeId) ||
+  typeof latest.from !== "string" || typeof latest.to !== "string") return null;
+ return latest;
+ }
+  function dueInRoomAssignmentActionIsCurrent(origin, action) {
+ const reservation = reservationDetailData?.reservation;
+ const segment = dueInRoomAssignmentSegment();
+ const item = checkInBlockers.querySelector('li[data-blocker="room_assignment_missing"]');
+ return origin === dueInRoomAssignmentOrigin && activeView === "reservations" &&
+  currentReservationWorkbench === "check-in" && origin.detailGeneration === reservationDetailGeneration &&
+  origin.readinessGeneration === checkInReadinessGeneration && origin.property === propertySelect.value &&
+  origin.reservationId === reservationRouteReservationId && reservation?.reservationId === origin.reservationId &&
+  reservation.confirmationNo === origin.confirmationNo && reservation.status === "due_in" &&
+  origin.expectedReservationStatus === "due_in" && origin.expectedSegmentStatus === "booked" &&
+  segment?.segmentId === origin.segmentId && segment.sequence === origin.segmentSequence &&
+  segment.status === "booked" && segment.unitTypeId === origin.expectedUnitTypeId &&
+  segment.sellableUnitId === null && segment.from === origin.expectedPeriod.from &&
+  segment.to === origin.expectedPeriod.to && checkInReadinessData?.reservationId === origin.reservationId &&
+  checkInReadinessData.status === "due_in" && checkInReadinessData.segmentId === origin.segmentId &&
+  checkInReadinessData.assignedSpaceId === null &&
+  checkInReadinessData.blockers.includes("room_assignment_missing") &&
+  origin.originPath === canonicalCheckInWorkbenchPath(origin.property, origin.reservationId) &&
+  `${location.pathname}${location.search}` === origin.originPath && checkInWorkbench.hidden === false &&
+  reservationDetailDrawer.isConnected && reservationDetailDrawer.hidden === false &&
+  item?.isConnected && checkInBlockers.contains(item) && item.dataset.blocker === "room_assignment_missing" &&
+  action?.isConnected && action.hidden === false && action.disabled === false && item.contains(action) &&
+  action.dataset.reservationId === origin.reservationId && action.dataset.segmentId === origin.segmentId;
+ }
+  function dueInRoomAssignmentResult(value, origin) {
+ const keys = value && typeof value === "object" && !Array.isArray(value) ? Object.keys(value).sort() : [];
+ if (keys.join(",") !== "candidates" || !Array.isArray(value.candidates)) {
+  throw new Error("The room-assignment candidate response was invalid.");
+ }
+ const sellableUnits = new Set();
+ const spaces = new Set();
+ const candidates = value.candidates.map((candidate) => {
+  const candidateKeys = candidate && typeof candidate === "object" && !Array.isArray(candidate)
+   ? Object.keys(candidate).sort().join(",") : "";
+  if (candidateKeys !== "floor,roomCondition,sellableUnitId,sellableUnitName,spaceCode,spaceId" ||
+   !canonicalUuid(candidate.sellableUnitId) || !canonicalUuid(candidate.spaceId) ||
+   typeof candidate.sellableUnitName !== "string" || candidate.sellableUnitName.trim() !== candidate.sellableUnitName ||
+   candidate.sellableUnitName.length < 1 || candidate.sellableUnitName.length > 120 ||
+   typeof candidate.spaceCode !== "string" || candidate.spaceCode.trim() !== candidate.spaceCode ||
+   candidate.spaceCode.length < 1 || candidate.spaceCode.length > 120 ||
+   (candidate.floor !== null && (typeof candidate.floor !== "string" || candidate.floor.trim() !== candidate.floor ||
+    candidate.floor.length < 1 || candidate.floor.length > 64)) ||
+   (candidate.roomCondition !== null && !CHECKIN_HOUSEKEEPING_CONDITIONS.includes(candidate.roomCondition)) ||
+   sellableUnits.has(candidate.sellableUnitId) || spaces.has(candidate.spaceId)) {
+   throw new Error("The room-assignment candidate response was invalid.");
+  }
+  sellableUnits.add(candidate.sellableUnitId);
+  spaces.add(candidate.spaceId);
+  return Object.freeze({ ...candidate });
+ });
+ return Object.freeze({
+  reservationId: origin.reservationId,
+  segmentId: origin.segmentId,
+  expectedReservationStatus: "due_in",
+  expectedSegmentStatus: "booked",
+  expectedUnitTypeId: origin.expectedUnitTypeId,
+  expectedSellableUnitId: null,
+  expectedPeriod: origin.expectedPeriod,
+  candidates: Object.freeze(candidates),
+ });
+ }
+  function dueInRoomAssignmentPanelIsCurrent(origin) {
+ const action = checkInBlockers.querySelector(
+  `.checkin-room-assignment-action[data-reservation-id="${origin.reservationId}"][data-segment-id="${origin.segmentId}"]`,
+ );
+ return dueInRoomAssignmentActionIsCurrent(origin, action) && dueInRoomAssignment.hidden === false &&
+  dueInRoomAssignment.isConnected && reservationDetailDrawer.contains(dueInRoomAssignment) &&
+  dueInRoomAssignmentForm.isConnected && dueInRoomAssignment.contains(dueInRoomAssignmentForm);
+ }
+  function renderDueInRoomAssignmentCandidates(origin, data) {
+ if (!dueInRoomAssignmentPanelIsCurrent(origin)) return false;
+ dueInRoomAssignmentData = data;
+ dueInRoomAssignmentCandidates.replaceChildren();
+ for (const candidate of data.candidates) {
+  const label = node("label", "checkin-room-assignment-candidate");
+  const input = el("input");
+  input.type = "radio";
+  input.name = "due-in-room-assignment";
+  input.value = candidate.sellableUnitId;
+  input.dataset.spaceId = candidate.spaceId;
+  const evidence = node("span", "checkin-room-assignment-candidate-evidence");
+  evidence.append(
+   node("strong", "", `Room ${candidate.spaceCode}`),
+   node("span", "", candidate.sellableUnitName),
+   node("span", "", candidate.floor === null ? "Floor not recorded" : `Floor ${candidate.floor}`),
+   node("span", "", candidate.roomCondition === null
+    ? "No condition recorded" : `Current condition: ${candidate.roomCondition.replaceAll("_", " ")}`),
+  );
+  input.addEventListener("change", () => {
+   if (!dueInRoomAssignmentPanelIsCurrent(origin) || !label.isConnected || !dueInRoomAssignmentCandidates.contains(label)) return;
+   dueInRoomAssignmentSubmit.disabled = false;
+   dueInRoomAssignmentMessage.classList.remove("error");
+   dueInRoomAssignmentMessage.textContent = `Room ${candidate.spaceCode} selected. Assignment still requires deliberate confirmation.`;
+  });
+  label.append(input, evidence);
+  dueInRoomAssignmentCandidates.append(label);
+ }
+ dueInRoomAssignmentSubmit.disabled = true;
+ dueInRoomAssignmentMessage.textContent = data.candidates.length === 0
+  ? "No currently admitted physical room is available. Refresh rooms after inventory truth changes."
+  : `${data.candidates.length} current room candidate${data.candidates.length === 1 ? "" : "s"}. Choose one to continue.`;
+ return true;
+ }
+  async function loadDueInRoomAssignmentCandidates(origin, { focus = false } = {}) {
+ if (!dueInRoomAssignmentPanelIsCurrent(origin)) return false;
+ const generation = ++dueInRoomAssignmentRequestGeneration;
+ dueInRoomAssignmentData = null;
+ dueInRoomAssignment.setAttribute("aria-busy", "true");
+ dueInRoomAssignmentForm.setAttribute("aria-busy", "true");
+ dueInRoomAssignmentCandidates.replaceChildren();
+ dueInRoomAssignmentSubmit.disabled = true;
+ dueInRoomAssignmentRefresh.disabled = true;
+ dueInRoomAssignmentClose.disabled = true;
+ dueInRoomAssignmentMessage.classList.remove("error");
+ dueInRoomAssignmentMessage.textContent = "Loading current server-admitted rooms…";
+ try {
+  const value = await request(`/api/v1/properties/${enc(origin.property)}/reservations/${enc(origin.reservationId)}/due-in-room-assignment/candidates`);
+  if (generation !== dueInRoomAssignmentRequestGeneration || !dueInRoomAssignmentPanelIsCurrent(origin)) return false;
+  const data = dueInRoomAssignmentResult(value, origin);
+  if (!renderDueInRoomAssignmentCandidates(origin, data)) return false;
+  if (focus) (dueInRoomAssignmentCandidates.querySelector("input") || dueInRoomAssignmentHeading).focus({ preventScroll: true });
+  return true;
+ } catch (error) {
+  if (generation !== dueInRoomAssignmentRequestGeneration || !dueInRoomAssignmentPanelIsCurrent(origin)) return false;
+  dueInRoomAssignmentMessage.classList.add("error");
+  dueInRoomAssignmentMessage.textContent = error?.status === 404
+   ? "This stay is no longer an assignable due-in arrival. Refresh check-in readiness."
+   : `${error instanceof Error ? error.message : "Current rooms could not be loaded"}. Refresh rooms to retry.`;
+  if (focus) dueInRoomAssignmentRefresh.focus({ preventScroll: true });
+  return false;
+ } finally {
+  if (generation === dueInRoomAssignmentRequestGeneration && dueInRoomAssignmentPanelIsCurrent(origin)) {
+   dueInRoomAssignment.setAttribute("aria-busy", "false");
+   dueInRoomAssignmentForm.setAttribute("aria-busy", "false");
+   dueInRoomAssignmentRefresh.disabled = false;
+   dueInRoomAssignmentClose.disabled = false;
+  }
+ }
+ }
+  function openDueInRoomAssignment(origin, action) {
+ if (!dueInRoomAssignmentActionIsCurrent(origin, action)) return false;
+ dueInRoomAssignment.hidden = false;
+ dueInRoomAssignmentHeading.focus({ preventScroll: true });
+ void loadDueInRoomAssignmentCandidates(origin);
+ return true;
+ }
+  function closeDueInRoomAssignment({ restoreFocus = true } = {}) {
+ if (dueInRoomAssignment.hidden) return false;
+ const origin = dueInRoomAssignmentOrigin;
+ const action = origin ? checkInBlockers.querySelector(
+  `.checkin-room-assignment-action[data-reservation-id="${origin.reservationId}"][data-segment-id="${origin.segmentId}"]`,
+ ) : null;
+ const exactAction = origin && dueInRoomAssignmentActionIsCurrent(origin, action) ? action : null;
+ clearDueInRoomAssignment();
+ if (restoreFocus) (exactAction?.isConnected ? exactAction : checkInHeading).focus({ preventScroll: true });
+ return true;
+ }
+  function restoreDueInRoomAssignmentSuccessFocus(readiness) {
+ const receipt = dueInRoomAssignmentSuccessFocus;
+ if (!receipt || receipt.property !== propertySelect.value || receipt.reservationId !== readiness.reservationId ||
+  activeView !== "reservations" || currentReservationWorkbench !== "check-in") return false;
+ dueInRoomAssignmentSuccessFocus = null;
+ const housekeeping = readiness.blockers.some((blocker) => CHECKIN_HOUSEKEEPING_BLOCKERS.includes(blocker)) &&
+  checkInHousekeepingAction.isConnected && checkInHousekeepingAction.hidden === false
+  ? checkInHousekeepingAction : null;
+ const folio = readiness.blockers.includes("primary_folio_not_open") &&
+  reservationPrimaryFolioCreate.isConnected && reservationPrimaryFolioCreate.hidden === false
+  ? reservationPrimaryFolioCreate : null;
+ (housekeeping || folio || checkInHeading).focus({ preventScroll: true });
+ return true;
+ }
+  async function submitDueInRoomAssignment(event) {
+ event.preventDefault();
+ const origin = dueInRoomAssignmentOrigin;
+ if (!origin || !dueInRoomAssignmentPanelIsCurrent(origin) || !dueInRoomAssignmentData) return;
+ const selected = dueInRoomAssignmentForm.querySelector('input[name="due-in-room-assignment"]:checked');
+ const candidate = dueInRoomAssignmentData.candidates.find((item) =>
+  item.sellableUnitId === selected?.value && item.spaceId === selected?.dataset.spaceId);
+ if (!candidate || !selected?.isConnected || !dueInRoomAssignmentCandidates.contains(selected)) {
+  dueInRoomAssignmentMessage.textContent = "Choose one current room candidate.";
+  dueInRoomAssignmentCandidates.querySelector("input")?.focus({ preventScroll: true });
+  return;
+ }
+ const body = {
+  segmentId: dueInRoomAssignmentData.segmentId,
+  expectedReservationStatus: dueInRoomAssignmentData.expectedReservationStatus,
+  expectedSegmentStatus: dueInRoomAssignmentData.expectedSegmentStatus,
+  expectedUnitTypeId: dueInRoomAssignmentData.expectedUnitTypeId,
+  expectedSellableUnitId: null,
+  expectedPeriod: dueInRoomAssignmentData.expectedPeriod,
+  sellableUnitId: candidate.sellableUnitId,
+ };
+ const draft = JSON.stringify({ property: origin.property, reservationId: origin.reservationId, body });
+ dueInRoomAssignmentAttempt = dueInRoomAssignmentAttempt?.draft === draft
+  ? dueInRoomAssignmentAttempt : Object.freeze({ draft, key: crypto.randomUUID() });
+ const attempt = dueInRoomAssignmentAttempt;
+ dueInRoomAssignmentForm.setAttribute("aria-busy", "true");
+ for (const control of dueInRoomAssignmentForm.elements) control.disabled = true;
+ dueInRoomAssignmentRefresh.disabled = true;
+ dueInRoomAssignmentClose.disabled = true;
+ dueInRoomAssignmentMessage.classList.remove("error");
+ dueInRoomAssignmentMessage.textContent = `Assigning room ${candidate.spaceCode} from current server truth…`;
+ try {
+  const value = await request(`/api/v1/properties/${enc(origin.property)}/reservations/${enc(origin.reservationId)}/due-in-room-assignment`, {
+   method: "POST", headers: { "idempotency-key": attempt.key }, body: JSON.stringify(body),
+  });
+  if (!dueInRoomAssignmentPanelIsCurrent(origin)) return;
+  const assignment = value?.assignment;
+  if (!assignment || assignment.reservationId !== origin.reservationId || assignment.segmentId !== origin.segmentId ||
+   assignment.sellableUnitId !== candidate.sellableUnitId || assignment.spaceId !== candidate.spaceId) {
+   throw new Error("The server returned a different room assignment");
+  }
+  dueInRoomAssignmentAttempt = null;
+  dueInRoomAssignmentSuccessFocus = Object.freeze({ property: origin.property, reservationId: origin.reservationId });
+  dueInRoomAssignmentMessage.textContent = `Room ${candidate.spaceCode} assigned. Rechecking check-in preparation…`;
+  await loadReservationDetail(origin.reservationId);
+ } catch (error) {
+  if (!dueInRoomAssignmentPanelIsCurrent(origin)) return;
+  dueInRoomAssignmentMessage.classList.add("error");
+  dueInRoomAssignmentMessage.textContent = error?.status === 409
+   ? "Room or stay truth changed concurrently. Refresh rooms before choosing again."
+   : `${error instanceof Error ? error.message : "Room assignment failed"}. Retry the unchanged selection safely.`;
+  for (const control of dueInRoomAssignmentForm.elements) control.disabled = false;
+  dueInRoomAssignmentSubmit.disabled = false;
+  dueInRoomAssignmentRefresh.disabled = false;
+  dueInRoomAssignmentClose.disabled = false;
+  if (error?.status === 409) {
+   selected.checked = false;
+   dueInRoomAssignmentSubmit.disabled = true;
+   dueInRoomAssignmentRefresh.focus({ preventScroll: true });
+  }
+ } finally {
+  if (dueInRoomAssignmentPanelIsCurrent(origin)) dueInRoomAssignmentForm.setAttribute("aria-busy", "false");
+ }
+ }
   function clearCheckInWorkbench({ preserveDraft = false } = {}) {
  checkInReadinessGeneration += 1;
  checkInReadinessData = null;
+ clearDueInRoomAssignment({ preserveAttempt: preserveDraft });
  checkInWorkbench.hidden = true;
  checkInWorkbench.setAttribute("aria-busy", "false");
  checkInBlockers.replaceChildren();
@@ -4023,6 +4297,7 @@ function ensureHousekeepingGenerationReceiptPanel() {
  checkInMessage.textContent = "";
  checkInMessage.classList.remove("error");
  if (!preserveDraft) {
+  dueInRoomAssignmentSuccessFocus = null;
   checkInOverrideReason.value = "";
   checkInAttemptKey = "";
   checkInAttemptDraft = "";
@@ -4182,8 +4457,11 @@ function ensureHousekeepingGenerationReceiptPanel() {
  });
   function renderCheckInReadiness(readiness) {
  checkInReadinessData = readiness;
+ clearDueInRoomAssignment({ preserveAttempt: true });
  checkInBlockers.replaceChildren();
  const blockers = readiness.blockers;
+ const exactCheckInRoute = currentReservationWorkbench === "check-in" &&
+  `${location.pathname}${location.search}` === canonicalCheckInWorkbenchPath(propertySelect.value, readiness.reservationId);
  checkInBadge.textContent = readiness.canCheckIn ? "Ready" : `${blockers.length} blocker${blockers.length === 1 ? "" : "s"}`;
  checkInBadge.dataset.state = readiness.canCheckIn ? "ready" : "blocked";
  checkInSummary.textContent = readiness.canCheckIn
@@ -4192,10 +4470,34 @@ function ensureHousekeepingGenerationReceiptPanel() {
  for (const blocker of blockers) {
   const item = node("li", "", checkInBlockerLabels[blocker] || blocker.replaceAll("_", " "));
   item.dataset.blocker = blocker;
+  if (blocker === "room_assignment_missing" && exactCheckInRoute) {
+   const segment = dueInRoomAssignmentSegment();
+   if (segment && readiness.segmentId === segment.segmentId && readiness.assignedSpaceId === null) {
+    const action = node("button", "quiet checkin-room-assignment-action", "Assign room");
+    action.type = "button";
+    action.dataset.reservationId = readiness.reservationId;
+    action.dataset.segmentId = segment.segmentId;
+    const origin = Object.freeze({
+     property: propertySelect.value,
+     reservationId: readiness.reservationId,
+     confirmationNo: reservationDetailData.reservation.confirmationNo,
+     segmentId: segment.segmentId,
+     segmentSequence: segment.sequence,
+     expectedReservationStatus: "due_in",
+     expectedSegmentStatus: "booked",
+     expectedUnitTypeId: segment.unitTypeId,
+     expectedPeriod: Object.freeze({ from: segment.from, to: segment.to }),
+     originPath: canonicalCheckInWorkbenchPath(propertySelect.value, readiness.reservationId),
+     detailGeneration: reservationDetailGeneration,
+     readinessGeneration: checkInReadinessGeneration,
+    });
+    dueInRoomAssignmentOrigin = origin;
+    action.addEventListener("click", () => openDueInRoomAssignment(origin, action));
+    item.append(action);
+   }
+  }
   checkInBlockers.append(item);
  }
- const exactCheckInRoute = currentReservationWorkbench === "check-in" &&
-  `${location.pathname}${location.search}` === canonicalCheckInWorkbenchPath(propertySelect.value, readiness.reservationId);
  const housekeepingBlocker = exactCheckInRoute
   ? blockers.find((blocker) => CHECKIN_HOUSEKEEPING_BLOCKERS.includes(blocker)) : null;
  if (housekeepingBlocker) {
@@ -4229,7 +4531,7 @@ function ensureHousekeepingGenerationReceiptPanel() {
  checkInConfirm.disabled = !readiness.canCheckIn;
  checkInSubmit.disabled = !readiness.canCheckIn || !checkInConfirm.checked || (needsReason && checkInOverrideReason.value.trim() === "");
  checkInWorkbench.setAttribute("aria-busy", "false");
- return restoreCheckInHousekeepingArrivalFocus(readiness);
+ return restoreDueInRoomAssignmentSuccessFocus(readiness) || restoreCheckInHousekeepingArrivalFocus(readiness);
  }
   async function loadCheckInReadiness({ focus = false, preserveDraft = false } = {}) {
  if (!reservationDetailData || reservationDetailData.reservation.status !== "due_in") {
@@ -4264,6 +4566,11 @@ function ensureHousekeepingGenerationReceiptPanel() {
   checkInWorkbench.setAttribute("aria-busy", "false");
   checkInMessage.classList.add("error");
   checkInMessage.textContent = `${error instanceof Error ? error.message : "Readiness could not be loaded"}. Refresh to retry.`;
+  if (dueInRoomAssignmentSuccessFocus?.property === property &&
+   dueInRoomAssignmentSuccessFocus.reservationId === reservationId) {
+   dueInRoomAssignmentSuccessFocus = null;
+   checkInHeading.focus({ preventScroll: true });
+  }
   if (checkInHousekeepingReturn && `${location.pathname}${location.search}` === checkInHousekeepingReturn.originPath) {
    checkInHeading.focus({ preventScroll: true });
    checkInHousekeepingReturn = null;
@@ -10375,6 +10682,11 @@ function vehicleReturnPathFromState(state, property) {
  if (activeView !== "reservations") return;
  const editable = event.target.closest?.("input, select, textarea, [contenteditable=true]");
  if (event.key === "Escape") {
+  if (!dueInRoomAssignment.hidden) {
+   event.preventDefault();
+   closeDueInRoomAssignment();
+   return;
+  }
   if (reservationRoutePickupTaskId && !reservationDetailDrawer.hidden) {
   event.preventDefault();
   closeReservationPickupTaskDetail();
@@ -10641,6 +10953,11 @@ housekeepingSheetDate.addEventListener("change", () => {
  void submitReservationTravelCommand();
  });
  reservationPrimaryFolioCreate.addEventListener("click", () => void openPrimaryFolio());
+ dueInRoomAssignmentForm.addEventListener("submit", (event) => void submitDueInRoomAssignment(event));
+ dueInRoomAssignmentRefresh.addEventListener("click", () => {
+  if (dueInRoomAssignmentOrigin) void loadDueInRoomAssignmentCandidates(dueInRoomAssignmentOrigin, { focus: true });
+ });
+ dueInRoomAssignmentClose.addEventListener("click", () => closeDueInRoomAssignment());
  checkInForm.addEventListener("submit", (event) => void submitCheckIn(event));
  checkInHousekeepingAction.addEventListener("click", () => {
   if (checkInHousekeepingActionOrigin) void openCheckInHousekeeping(checkInHousekeepingActionOrigin, checkInHousekeepingAction);
