@@ -1,6 +1,6 @@
 # Order 232 — Governed property-local due-in roll
 
-**Status:** ACTIVE-CAPABILITY-CORRECTED-D610
+**Status:** ACTIVE-POLICY-CORRECTED-D612
 **Phase:** 6 — Stay operations and housekeeping
 **Branch:** `phase-6/governed-property-local-due-in-roll`
 **Base:** `922c8a9` (built-unreviewed Order231)
@@ -17,13 +17,11 @@ check-in journey become reachable without fixture or operator database intervent
 
 ## Fixed policy
 
-- Admission is database-derived from one active tenant/property scope, its exact open
-  property business date and one coherent `reserved` reservation whose latest current
-  `booked` segment begins on that same local date. Browser or process wall-clock
-  arithmetic is never authoritative.
-- Because the schema has no unique-open-day constraint, zero or more than one
-  unsealed business-day row for the property fails closed. Discovery and transition
-  both require the same exactly-one-open-day invariant.
+- Admission is database-derived from one active tenant/property scope, its exact
+  transaction-stable property-local calendar business date and one coherent
+  `reserved` reservation whose latest current `booked` segment begins on that same
+  local date. Browser or process wall-clock arithmetic is never authoritative. The
+  expression is the same PostgreSQL property-timezone derivation used by `recordFact`.
 - Only the reservation parent `reserved -> due_in` transition is admitted. The exact
   current segment must remain `booked`: that is the canonical coherent arrival shape
   and the only segment state accepted by the later check-in transition.
@@ -68,7 +66,7 @@ check-in journey become reachable without fixture or operator database intervent
 
 `migrations/0001_init.sql` remains immutable. Executable preflight proved app-role
 already owns only the exact reservation status-column update needed, while
-`yellow_runtime` cannot read reservation or business-day tables and can execute only
+`yellow_runtime` cannot read reservation/property tables and can execute only
 owner-mediated discovery. Migration0034 therefore adds solely one stable bounded
 fixed-search-path function that returns due tenant/property scopes; PUBLIC/app-role
 execution and direct runtime table reads remain denied.
@@ -88,7 +86,8 @@ execution and direct runtime table reads remain denied.
 - **P0 red:** arrival-roll domain service, due-scope source, worker composition and
   production `reservation.due_in` emission are absent before implementation.
 - **P1 exact date:** a real committed reservation stays `reserved` before arrival and
-  rolls once only when the database-derived property business date equals arrival.
+  rolls once only when the transaction-stable database-derived property-local
+  calendar business date equals arrival.
 - **P2 containment:** future, past, foreign-property, cancelled, waitlist,
   already-due-in and incoherent segment truth produce no artifact.
 - **P3 atomicity:** the parent becomes due-in while the exact current segment remains

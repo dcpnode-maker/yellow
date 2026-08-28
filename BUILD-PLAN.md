@@ -359,8 +359,8 @@ Executable contention, rollback, authority, migration, seed, schema and standing
 proofs are green. It is not room move, automatic allocation, readiness inference or
 automatic check-in.
 
-Order 232 is ready as the missing canonical property-local arrival roll. A bounded
-server worker will use exact PostgreSQL business-date and current-segment truth to
+Order 232 is active as the missing canonical property-local arrival roll. A bounded
+server worker will use the transaction-stable PostgreSQL property-local calendar date and current-segment truth to
 change only the coherent `reserved` parent to `due_in` while its exact segment remains
 byte-equivalent `booked`, with one existing
 `reservation.due_in` evidence chain. This makes ordinary committed bookings visible

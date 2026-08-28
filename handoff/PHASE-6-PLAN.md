@@ -312,8 +312,8 @@ task, folio, identity, check-in, financial, day or statutory effect is admitted.
 Fresh database contention, rollback, hostile-authority, migration, seed, schema and
 standing proofs are green; independent Tier-3 approval remains deferred.
 
-Order 232 is ready as the missing property-local arrival roll. One bounded worker will
-derive exact open business-date scopes in PostgreSQL and move only coherent current
+Order 232 is active as the missing property-local arrival roll. One bounded worker will
+derive the transaction-stable property-local calendar date in PostgreSQL and move only coherent current
 `reserved`/`booked` arrival truth to parent `due_in` while the segment remains
 byte-equivalent `booked`, atomically recording the existing
 `reservation.due_in` evidence. This closes the fixture-only gap before Today and the
