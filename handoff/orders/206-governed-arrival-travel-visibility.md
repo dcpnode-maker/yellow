@@ -1,6 +1,6 @@
 # Order 206 — Governed arrival-travel visibility
 
-**Status:** READY-D555 — intentional red and implementation required
+**Status:** BUILT-UNREVIEWED-D556 — implementation and executable proof complete; independent product review deferred
 **Phase:** 6 — Stay operations and housekeeping
 **Branch:** `phase-6/governed-arrival-travel-visibility`
 **Base:** `c971b01` (built-unreviewed Order205)
@@ -97,9 +97,9 @@ byte-identical.
 
 ## Definition of done
 
-- [ ] Intentional red precedes implementation.
-- [ ] Arrival/pickup truth is exact, minimized, coherent and mutation-free.
-- [ ] Existing board ordering/cursor/authorization are byte-compatible.
-- [ ] Reservation board and Today surfaces make travel visible to a human operator.
-- [ ] Result is recorded built-unreviewed without claiming travel writes, pickup
+- [x] Intentional red precedes implementation.
+- [x] Arrival/pickup truth is exact, minimized, coherent and mutation-free.
+- [x] Existing board ordering/cursor/authorization are byte-compatible.
+- [x] Reservation board and Today surfaces make travel visible to a human operator.
+- [x] Result is recorded built-unreviewed without claiming travel writes, pickup
   automation, Phase6 or app completion.

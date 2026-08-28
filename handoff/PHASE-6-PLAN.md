@@ -1,8 +1,8 @@
 # Phase 6 — Stay operations and housekeeping
 
-**Status:** active; Orders 200–205 are built-unreviewed
+**Status:** active; Orders 200–206 are built-unreviewed
 **Entry point:** built-unreviewed Phase-5 composition through Order 199
-**Current order:** `205-governed-vehicle-register-read.md` (built-unreviewed)
+**Current order:** `206-governed-arrival-travel-visibility.md` (built-unreviewed)
 
 ## Outcome
 
@@ -128,11 +128,28 @@ request protection across every current appearance. No create/edit/delete,
 entry/exit command, parking truth, inferred onsite state, event or migration is
 introduced.
 
+## Built-unreviewed bounded slice — Order 206
+
+Order 206 extends the existing reservation-board result and minimized operator
+projection with one deeply frozen `arrivalTravel` value: recorded arrival mode,
+carrier, service number, scheduled instant, pickup-requested truth and only whether
+the recorded pickup-task link resolves in the same tenant and exact property.
+Arrival data never changes the board's existing route, permission, filters,
+`(created_at,id)` ordering, cursor or page bytes; hostile linked-task associations
+fail the complete read closed without disclosing their identifiers.
+
+Reservation-board rows/cards and Today due-in cards expose one accessible compact
+Arrival/Pickup line with existing stale, focus, responsive, reduced-motion,
+forced-colour and appearance protections. The review seed adds arrival rows to the
+existing clean and dirty due-in examples and remains an exact no-op on reseed. No
+departure travel, note, internal id, Party/contact or task state is returned, and no
+travel write, pickup automation, task, event, occupancy or migration is introduced.
+
 ## Subsequent bounded slices
 
 1. Discrepancy, queue and service-message workflows only after their sleep/skip/person,
    queue-linkage and resolution semantics are recorded explicitly.
-2. Arrival travel visibility/capture, later vehicle writes, and parking assignment;
+2. Arrival travel capture, later vehicle writes, and parking assignment;
    any parking occupancy must use the existing occupancy choke point.
 3. Optional key-provider port only after provider ownership, credential and recovery
    policy are fixed.

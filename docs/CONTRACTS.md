@@ -169,7 +169,15 @@ property scope. `GET /api/v1/properties/{property}/reservation-board` returns at
 only `status`, paired ISO-instant `from`/`to` stay overlap (maximum 366 days), canonical
 opaque `after`, and `limit`. OFFSET, guest/contact/search query parameters and contact,
 identity, note, history, payment, tax or inferred-total row fields are not part of the
-contract. `GET /api/v1/properties/{property}/reservations/{reservation UUID}` accepts no
+contract. Each row carries `arrivalTravel: null | {mode,carrier,serviceNo,scheduledAt,
+pickupRequested,pickupTaskLinked}` from only the recorded `direction='arrival'` travel
+row. Nullable mode/carrier/service/schedule values remain literal validated storage;
+`pickupTaskLinked` means only that the recorded task reference resolves in the same
+tenant and exact property. It exposes no travel/task id, note, Party/contact, task
+state or inferred pickup outcome. A hostile task association fails the complete board
+read closed. Travel does not alter the existing `(created_at,id)` order, filter,
+cursor, limit, permission or property boundary. `GET
+/api/v1/properties/{property}/reservations/{reservation UUID}` accepts no
 query parameters and returns the approved reservation aggregate plus server-derived
 `canModify`, `canCancel`, and `canReinstate` actions. Missing, foreign-tenant and
 foreign-property UUID details share one generic reservation not-found response. The

@@ -230,6 +230,23 @@ Literal plate lookup and canonical keyset pagination do not expand authority. Th
 read has no write capability and cannot call occupancy, parking, vehicle lifecycle,
 task, fact, outbox or idempotency paths.
 
+### Arrival-travel board containment
+
+Order 206 reuses the existing reservation-board route, exact property grant and
+`reservations.lifecycle:read` scope; it creates no travel-specific authority. The
+domain query remains inside transaction-local tenant RLS, selects only
+`travel_detail.direction='arrival'`, and re-proves an optional pickup-task reference
+against both the active tenant and exact property. A missing, cross-tenant or
+cross-property association fails the entire read with a bounded conflict and does not
+return the hostile identifier.
+
+The deeply frozen nested projection contains only validated literal mode, nullable
+carrier/service/schedule, pickup-requested and association-presence values. It excludes
+travel/task ids, notes, task state/assignment/payload, departure travel, Party/contact
+data and inferred pickup outcome. Its joins do not change the existing created-at/id
+keyset order, filters, cursor bytes or limit, and the read has no mutation, fact,
+outbox, idempotency, occupancy, queue or task capability.
+
 ## 6. Statutory & privacy
 
 ### Token-only payment containment

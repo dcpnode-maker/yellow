@@ -358,6 +358,15 @@ re-proven against the active tenant/property before disclosure. `entered_at` and
 onsite state. Parking remains a separate ordinary `space`/occupancy concern under
 D-41 and is not disclosed or inferred by this register.
 
+Order 206 adds no aggregate, state or automation. The existing reservation board
+projects only the one recorded arrival `travel_detail` row into a minimized immutable
+value: mode, carrier, service number, scheduled instant, pickup-requested and whether
+the optional pickup-task reference is coherent with the same tenant and exact
+property. Departure travel remains outside the projection. Task linkage is only an
+association-presence statement; it conveys no status, assignment, queue position,
+completion or transport outcome. Travel and task identities, notes and Party/contact
+truth remain undisclosed, and the projection cannot reorder the reservation board.
+
 ### Asset/Work Order aggregate — target extension
 
 Baseline `task`, `space`, relations, and OOO/OOS provide foundations, but there is no

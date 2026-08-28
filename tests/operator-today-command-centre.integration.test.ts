@@ -165,3 +165,27 @@ test("Order 177 D-454: detail return uses stable identity after lane replacement
   expect(restore).toContain('decision === "row"');
   expect(restore).toContain('decision === "heading"');
 });
+
+test("Order 206: arrival and pickup evidence is compact, accessible and due-in only on Today", () => {
+  const summary = functionSource("reservationArrivalTravelSummary");
+  for (const literal of [
+    '"Arrival"', '"pickup requested"', '"pickup not requested"',
+    '"pickup task linked"', '"no linked pickup task"', '"Time not recorded"',
+  ]) expect(summary).toContain(literal);
+  expect(summary).toContain('node("small", "reservation-arrival-travel", summary)');
+  expect(summary).toContain('line.setAttribute("aria-label", summary)');
+  expect(summary).not.toMatch(/taskStatus|taskState|queue|assignment|travelId|pickupTaskId|notes|party|contact|parking|vehicle/i);
+
+  expect(functionSource("reservationTableRow")).toContain("reservationStaySummary(row)");
+  expect(functionSource("reservationCard")).toContain("reservationArrivalTravelSummary(row)");
+  const today = functionSource("renderTodayLane");
+  expect(today).toContain('showArrivalTravel: status === "due_in"');
+  expect(today).not.toMatch(/sort\(|scheduledAt.*(?:<|>)|setInterval|setTimeout|localStorage|sessionStorage/i);
+
+  for (const contract of [
+    ".reservation-stay-summary { min-width: 0; display: grid;",
+    ".reservation-arrival-travel { display: block;",
+    '.today-lane[data-today-lane="due_in"] .reservation-arrival-travel',
+    "overflow-wrap: anywhere", "@media (forced-colors: active)",
+  ]) expect(css).toContain(contract);
+});

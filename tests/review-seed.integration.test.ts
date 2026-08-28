@@ -383,6 +383,25 @@ async function vehicleFixtureSnapshot() {
   `;
 }
 
+async function arrivalTravelFixtureSnapshot() {
+  return admin<Array<Record<string, unknown>>>`
+    SELECT travel.id, travel.reservation_id, travel.direction, travel.mode,
+           travel.carrier, travel.service_no,
+           to_char(travel.scheduled_at AT TIME ZONE 'UTC',
+             'YYYY-MM-DD"T"HH24:MI:SS.US"Z"') AS scheduled_at,
+           travel.pickup_requested, travel.pickup_task_id, travel.notes,
+           reservation.status AS reservation_status,
+           reservation.property_node AS reservation_property
+    FROM travel_detail AS travel
+    JOIN reservation ON reservation.id=travel.reservation_id
+      AND reservation.tenant_id=travel.tenant_id
+    WHERE travel.tenant_id=${SEED_TENANT.id}::uuid
+      AND travel.id IN (${first.arrivalTravelExamples.cleanTravelId}::uuid,
+        ${first.arrivalTravelExamples.dirtyTravelId}::uuid)
+    ORDER BY travel.scheduled_at, travel.id
+  `;
+}
+
 beforeAll(async () => {
   if (!DEPLOY_DATABASE_URL || !RUNTIME_DATABASE_URL || !PASSWORD) return;
   await runSeed({ databaseUrl: DEPLOY_DATABASE_URL, logger: () => undefined });
@@ -462,6 +481,8 @@ databaseDescribe("Order 046 reproducible local-review seed", () => {
       first.housekeepingExamples.checkoutFolioId,
       first.vehicleExamples.arrivalVehicleId,
       first.vehicleExamples.departureVehicleId,
+      first.arrivalTravelExamples.cleanTravelId,
+      first.arrivalTravelExamples.dirtyTravelId,
     ]) expect(id).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/);
     expect(first.cashAccountId).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/);
     expect(first.cashDrawerId).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/);
@@ -850,6 +871,77 @@ databaseDescribe("Order 046 reproducible local-review seed", () => {
     expect(guards[0]).toEqual({ facts: 0, events: 0, occupancy_references: 0, idempotency_records: 0 });
   });
 
+  test("Order 206 P5: provisions two exact arrival rows without pickup tasks or command effects", async () => {
+    expect(await arrivalTravelFixtureSnapshot()).toEqual([
+      {
+        id: first.arrivalTravelExamples.cleanTravelId,
+        reservation_id: first.checkInExamples.cleanReservationId,
+        direction: "arrival",
+        mode: "flight",
+        carrier: "Air India",
+        service_no: "AI141",
+        scheduled_at: "2026-09-18T07:15:30.123456Z",
+        pickup_requested: true,
+        pickup_task_id: null,
+        notes: null,
+        reservation_status: "due_in",
+        reservation_property: SEED_PROPERTY.id,
+      },
+      {
+        id: first.arrivalTravelExamples.dirtyTravelId,
+        reservation_id: first.checkInExamples.dirtyReservationId,
+        direction: "arrival",
+        mode: "train",
+        carrier: "Indian Railways",
+        service_no: "12952",
+        scheduled_at: "2026-09-18T08:45:00.654321Z",
+        pickup_requested: false,
+        pickup_task_id: null,
+        notes: null,
+        reservation_status: "due_in",
+        reservation_property: SEED_PROPERTY.id,
+      },
+    ]);
+
+    const guards = await admin<Array<{
+      departure_rows: number; pickup_tasks: number; task_subjects: number;
+      facts: number; events: number; occupancy_references: number; idempotency_records: number;
+    }>>`
+      SELECT
+        (SELECT count(*)::int FROM travel_detail
+          WHERE tenant_id=${SEED_TENANT.id}::uuid AND direction='departure'
+            AND reservation_id IN (${first.checkInExamples.cleanReservationId}::uuid,
+              ${first.checkInExamples.dirtyReservationId}::uuid)) AS departure_rows,
+        (SELECT count(*)::int FROM task WHERE id IN (
+          SELECT pickup_task_id FROM travel_detail
+          WHERE id IN (${first.arrivalTravelExamples.cleanTravelId}::uuid,
+            ${first.arrivalTravelExamples.dirtyTravelId}::uuid))) AS pickup_tasks,
+        (SELECT count(*)::int FROM task
+          WHERE subject_id IN (${first.arrivalTravelExamples.cleanTravelId}::uuid,
+            ${first.arrivalTravelExamples.dirtyTravelId}::uuid)) AS task_subjects,
+        (SELECT count(*)::int FROM fact_log
+          WHERE entity_id IN (${first.arrivalTravelExamples.cleanTravelId}::uuid,
+            ${first.arrivalTravelExamples.dirtyTravelId}::uuid)) AS facts,
+        (SELECT count(*)::int FROM outbox
+          WHERE aggregate_id IN (${first.arrivalTravelExamples.cleanTravelId}::uuid,
+            ${first.arrivalTravelExamples.dirtyTravelId}::uuid)) AS events,
+        (SELECT count(*)::int FROM space_occupancy
+          WHERE slot_ref IN (${first.arrivalTravelExamples.cleanTravelId}::uuid,
+            ${first.arrivalTravelExamples.dirtyTravelId}::uuid)) AS occupancy_references,
+        (SELECT count(*)::int FROM api_idempotency
+          WHERE tenant_id=${SEED_TENANT.id}::uuid) AS idempotency_records
+    `;
+    expect(guards[0]).toEqual({
+      departure_rows: 0,
+      pickup_tasks: 0,
+      task_subjects: 0,
+      facts: 0,
+      events: 0,
+      occupancy_references: 0,
+      idempotency_records: 0,
+    });
+  });
+
   test("P3: identical rerun is an exact no-op", async () => {
     const before = await counts();
     const housekeepingBefore = await housekeepingSnapshot();
@@ -857,6 +949,7 @@ databaseDescribe("Order 046 reproducible local-review seed", () => {
     const departureFixtureBefore = await departureReadinessFixtureSnapshot();
     const checkoutFixtureBefore = await checkoutCommandFixtureSnapshot();
     const vehicleFixtureBefore = await vehicleFixtureSnapshot();
+    const arrivalTravelFixtureBefore = await arrivalTravelFixtureSnapshot();
     const logLines: string[] = [];
     const second = await runReviewSeed({ databaseUrl: DEPLOY_DATABASE_URL!, password: PASSWORD!,
       approverPassword: APPROVER_PASSWORD!, logger: (line) => logLines.push(line) });
@@ -875,10 +968,12 @@ databaseDescribe("Order 046 reproducible local-review seed", () => {
     expect(await housekeepingSnapshot()).toEqual(housekeepingBefore);
     expect(second.housekeepingExamples).toEqual(first.housekeepingExamples);
     expect(second.vehicleExamples).toEqual(first.vehicleExamples);
+    expect(second.arrivalTravelExamples).toEqual(first.arrivalTravelExamples);
     expect(await housekeepingSheetFixtureSnapshot()).toEqual(sheetFixtureBefore);
     expect(await departureReadinessFixtureSnapshot()).toEqual(departureFixtureBefore);
     expect(await checkoutCommandFixtureSnapshot()).toEqual(checkoutFixtureBefore);
     expect(await vehicleFixtureSnapshot()).toEqual(vehicleFixtureBefore);
+    expect(await arrivalTravelFixtureSnapshot()).toEqual(arrivalTravelFixtureBefore);
     expect(logLines).toContain(
       `review departure readiness fixture: reservation=${first.housekeepingExamples.eligibleReservationId} segment=${first.housekeepingExamples.eligibleSegmentId} room=${first.housekeepingExamples.eligibleSpaceId} occupancy=${first.housekeepingExamples.eligibleOccupancyId} account=${first.housekeepingExamples.departureAccountId} folio=${first.housekeepingExamples.departureFolioId}`,
     );
@@ -887,6 +982,9 @@ databaseDescribe("Order 046 reproducible local-review seed", () => {
     );
     expect(logLines).toContain(
       `review vehicle fixtures: arrival=${first.vehicleExamples.arrivalVehicleId} departure=${first.vehicleExamples.departureVehicleId}`,
+    );
+    expect(logLines).toContain(
+      `review arrival travel fixtures: clean=${first.arrivalTravelExamples.cleanTravelId} dirty=${first.arrivalTravelExamples.dirtyTravelId}`,
     );
   });
 

@@ -131,6 +131,7 @@ import {
   type ReservationOfferSearchInput,
   type ReservationOfferSearchResult,
   type RequestedReservationGuest,
+  type ReservationBoardPage,
   type ReservationMutableFields,
   type ExpectedSegmentPeriod,
 } from "../contexts/reservations";
@@ -302,6 +303,29 @@ function vehicleRegisterJson(page: VehicleRegisterPage): JsonValue {
       partyId: vehicle.partyId,
       enteredAt: vehicle.enteredAt,
       exitedAt: vehicle.exitedAt,
+    })),
+    nextCursor: page.nextCursor,
+  });
+}
+
+function reservationBoardJson(page: ReservationBoardPage): JsonValue {
+  return jsonValue({
+    reservations: page.reservations.map((reservation) => ({
+      reservationId: reservation.reservationId,
+      confirmationNo: reservation.confirmationNo,
+      status: reservation.status,
+      primaryGuestDisplayName: reservation.primaryGuestDisplayName,
+      stayFrom: reservation.stayFrom,
+      stayTo: reservation.stayTo,
+      unitTypeLabel: reservation.unitTypeLabel,
+      sellableUnitLabel: reservation.sellableUnitLabel,
+      ratePlanLabel: reservation.ratePlanLabel,
+      adults: reservation.adults,
+      children: reservation.children,
+      channelCode: reservation.channelCode,
+      currency: reservation.currency,
+      createdAt: reservation.createdAt,
+      arrivalTravel: reservation.arrivalTravel,
     })),
     nextCursor: page.nextCursor,
   });
@@ -3315,7 +3339,7 @@ export class OperatorHttpApi {
       propertyNode,
       ...query,
     });
-    return apiResponse(context.request, canonicalJson(jsonValue(page)));
+    return apiResponse(context.request, canonicalJson(reservationBoardJson(page)));
   }
 
   async checkInReadiness(

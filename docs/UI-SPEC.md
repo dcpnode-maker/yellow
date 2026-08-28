@@ -246,3 +246,21 @@ request-generation guards discard stale responses. Loading, bounded-empty, error
 paging states are announced; operator-requested search, paging, refresh and retry restore
 meaningful keyboard focus. The list contains no browser persistence or automatic refresh and
 remains narrow-screen, reduced-motion, forced-colour and all-current-appearance compatible.
+
+## 14. Governed arrival-travel visibility
+
+The existing reservation board adds one compact **Arrival** line beneath each stay,
+and the same line appears on Today only for the **Due in** lane. It shows recorded
+arrival mode, optional carrier and service number, the literal scheduled instant,
+whether pickup was requested and whether the recorded pickup-task association is
+valid for the same property. A linked task is association evidence only: the browser
+does not infer assignment, queue position, task state, completed transport or a
+successful pickup.
+
+The existing reservation-board route, permission, filters, ordering, cursor and
+bounded-page replacement remain unchanged. There is no new request, polling, ETA
+sorting, travel edit, pickup action or browser persistence. Departure travel, notes,
+internal travel/task identifiers, Party/contact data, parking and vehicle truth are
+not transported. The text wraps within existing table cells and cards, remains in
+the screen-reader reading order, and retains current stale-response, focus,
+narrow-layout, reduced-motion, forced-colour and six-appearance protections.

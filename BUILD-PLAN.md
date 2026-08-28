@@ -199,6 +199,16 @@ notes, parking, inferred onsite state or lifecycle effects. This slice adds no v
 write, occupancy, event or migration and does not complete, independently approve or
 locally promote Phase 6.
 
+Order 206 is a built-unreviewed read-only arrival-travel visibility slice. Existing
+reservation-board rows and Today due-in cards now show only recorded arrival mode,
+carrier, service number, schedule, pickup-requested truth and whether the recorded
+pickup-task link resolves inside the same tenant and exact property. The existing
+route, read permission, filters, `(created_at,id)` ordering and cursor remain unchanged;
+hostile task associations fail the complete read closed. Deterministic clean and dirty
+due-in fixtures add arrival rows without notes, ids, Party/contact data, task or any
+other effect. This slice adds no travel write, pickup automation, migration, event or
+authority and does not complete, independently approve or locally promote Phase 6.
+
 ## Phase 7 — Tax engine + India IRP
 
 tax_assignment evaluation (percent/fixed/slab, compound, line-vs-document rounding)

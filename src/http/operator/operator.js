@@ -951,6 +951,33 @@
   function reservationStay(row) {
  return `${reservationDateTime(row.stayFrom)} – ${reservationDateTime(row.stayTo)}`;
  }
+ const RESERVATION_TRAVEL_MODE_LABELS = Object.freeze({
+ flight: "Flight", train: "Train", bus: "Bus", car: "Car", ferry: "Ferry", other: "Other",
+ });
+  function reservationArrivalTravelSummary(row) {
+ const travel = row?.arrivalTravel;
+ if (!travel) return null;
+ const identity = [travel.carrier, travel.serviceNo].filter((value) => typeof value === "string" && value.length > 0).join(" ");
+ const details = [
+  "Arrival",
+  RESERVATION_TRAVEL_MODE_LABELS[travel.mode] || "Mode not recorded",
+  identity,
+  travel.scheduledAt ? reservationDateTime(travel.scheduledAt) : "Time not recorded",
+  travel.pickupRequested ? "pickup requested" : "pickup not requested",
+  travel.pickupTaskLinked ? "pickup task linked" : "no linked pickup task",
+ ].filter(Boolean);
+ const summary = details.join(" · ");
+ const line = node("small", "reservation-arrival-travel", summary);
+ line.setAttribute("aria-label", summary);
+ return line;
+ }
+  function reservationStaySummary(row) {
+ const summary = node("div", "reservation-stay-summary");
+ summary.append(node("span", "", reservationStay(row)));
+ const arrival = reservationArrivalTravelSummary(row);
+ if (arrival) summary.append(arrival);
+ return summary;
+ }
   function reservationStatusBadge(status) {
  const badge = node("span", "reservation-status-badge");
  badge.dataset.status = status;
@@ -971,7 +998,7 @@
  const tr = el("tr");
  const values = [
   reservationOpenButton(row), row.primaryGuestDisplayName, reservationStatusBadge(row.status),
-  reservationStay(row), row.sellableUnitLabel || row.unitTypeLabel, row.ratePlanLabel,
+  reservationStaySummary(row), row.sellableUnitLabel || row.unitTypeLabel, row.ratePlanLabel,
   `${row.adults} adult${row.adults === 1 ? "" : "s"}${row.children ? ` · ${row.children} child${row.children === 1 ? "" : "ren"}` : ""}`,
   row.channelCode,
  ];
@@ -982,7 +1009,7 @@
  }
  return tr;
  }
-  function reservationCard(row) {
+  function reservationCard(row, { showArrivalTravel = true } = {}) {
  const article = node("article", "card reservation-board-card");
  const head = node("div", "reservation-board-card-head");
  head.append(reservationOpenButton(row), reservationStatusBadge(row.status));
@@ -990,7 +1017,9 @@
  const stay = node("span", "", reservationStay(row));
  const room = node("span", "", `${row.sellableUnitLabel || row.unitTypeLabel} · ${row.ratePlanLabel}`);
  const party = node("small", "", `${row.adults} adult${row.adults === 1 ? "" : "s"}${row.children ? ` · ${row.children} child${row.children === 1 ? "" : "ren"}` : ""} · ${row.channelCode}`);
+ const arrival = showArrivalTravel ? reservationArrivalTravelSummary(row) : null;
  article.append(head, guest, stay, room, party);
+ if (arrival) article.append(arrival);
  return article;
  }
  const TODAY_STATUSES = Object.freeze(["due_in", "due_out", "in_house"]);
@@ -1079,7 +1108,7 @@
  const elements = todayLaneElements(status);
  state.rows = Array.isArray(page.reservations) ? page.reservations.slice(0, 50) : [];
  state.nextCursor = typeof page.nextCursor === "string" ? page.nextCursor : null;
- elements.list.replaceChildren(...state.rows.map(reservationCard));
+ elements.list.replaceChildren(...state.rows.map((row) => reservationCard(row, { showArrivalTravel: status === "due_in" })));
  elements.more.hidden = state.nextCursor === null;
  const count = state.rows.length;
  elements.summary.textContent = `${count} shown on this bounded page${state.nextCursor ? " · more records available" : ""}.`;
