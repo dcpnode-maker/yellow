@@ -414,6 +414,16 @@ approval remains deferred under the founder's build-first direction.
 
 ## Phase 7 — Tax engine + India IRP
 
+Order 237 is ready under D-624 as the positive pure rules-driven tax-evaluation foundation.
+It validates the adopted jurisdiction contract, converts configuration rates to
+integer basis points, evaluates signed-safe `bigint` minor-unit inputs across the four
+existing modes, and makes inclusive/exclusive, line/document rounding, India per-night
+slabs and explicit acyclic compounding executable. It adds no database, HTTP, UI,
+posting, document, provider or event authority and may close only built-unreviewed.
+Credit-note rounding, progressive slabs, person-category derivation, rate-plan
+inclusion precedence, line allocation and India invoice decomposition remain explicit
+later policy/authority work.
+
 tax_assignment evaluation (percent/fixed/slab, compound, line-vs-document rounding)
 from EXTENSIONS §2; India GST slab per room-night; document issue path: series →
 gapless number → hash chain → document; IRP reporting adapter (sandbox), IRN + QR
