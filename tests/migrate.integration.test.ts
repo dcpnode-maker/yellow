@@ -516,7 +516,7 @@ databaseDescribe("Bun SQL migration runner", () => {
         const tableCount = await sql<{ count: number }[]>`
           SELECT count(*)::int AS count FROM pg_catalog.pg_tables WHERE schemaname = 'public'
         `;
-        expect(tableCount).toEqual([{ count: 95 }]);
+        expect(tableCount).toEqual([{ count: 97 }]);
       });
     },
     60_000,
@@ -701,7 +701,7 @@ databaseDescribe("Bun SQL migration runner", () => {
                   'open_cashier_session', 'append_cashier_count', 'close_cashier_session'
                 )) AS functions
         `;
-        expect(shape).toEqual([{ tables: 95, policies: 85, functions: 3 }]);
+        expect(shape).toEqual([{ tables: 97, policies: 87, functions: 3 }]);
       });
     },
     60_000,
@@ -748,7 +748,7 @@ databaseDescribe("Bun SQL migration runner", () => {
               WHERE table_schema = 'public' AND table_name = 'journal'
                 AND column_name = 'approval_request_id') AS "approvalColumns"
         `;
-        expect(shape).toEqual([{ tables: 95, policies: 85, functions: 1, approvalColumns: 1 }]);
+        expect(shape).toEqual([{ tables: 97, policies: 87, functions: 1, approvalColumns: 1 }]);
       });
     },
     60_000,
@@ -791,7 +791,7 @@ databaseDescribe("Bun SQL migration runner", () => {
               WHERE namespace.nspname = 'public'
                 AND procedure.proname = 'transition_housekeeping_task') AS functions
         `;
-        expect(shape).toEqual([{ tables: 95, policies: 85, functions: 1 }]);
+        expect(shape).toEqual([{ tables: 97, policies: 87, functions: 1 }]);
       });
     },
     60_000,
@@ -1486,6 +1486,99 @@ databaseDescribe("Bun SQL migration runner", () => {
   );
 
   test(
+    "applies the exact positive-tax semantic-route migration with SELECT-only app authority",
+    async () => {
+      await withDatabase(async ({ databaseUrl: targetUrl, sql }) => {
+        const result = await runMigrations({
+          databaseUrl: targetUrl,
+          migrationsDirectory: PROJECT_MIGRATIONS,
+          logger: () => undefined,
+        });
+        expect(result.appliedFiles).toContain("0043_positive_tax_semantic_route.sql");
+
+        const ledger = await sql<Array<{
+          version: number | bigint; filename: string; checksum_sha256: string;
+        }>>`
+          SELECT version, filename, checksum_sha256
+            FROM public.schema_migration
+           WHERE version = 43
+        `;
+        expect(ledger.map((row) => ({ ...row, version: Number(row.version) }))).toEqual([{
+          version: 43,
+          filename: "0043_positive_tax_semantic_route.sql",
+          checksum_sha256: "a5036df30f07c4c8add08c46cdb805c71b87597efa542e368e64aa35d572bf40",
+        }]);
+
+        const relation = await sql<Array<{
+          tables: number; policies: number; owner: string; rls: boolean;
+          appSelect: boolean; appMutation: boolean; publicPrivileges: number;
+          runtimePrivileges: number; constraintCount: number;
+          tenantLeadingLookup: boolean;
+        }>>`
+          SELECT
+            (SELECT count(*)::int FROM pg_catalog.pg_tables
+              WHERE schemaname = 'public') AS tables,
+            (SELECT count(*)::int FROM pg_catalog.pg_policies
+              WHERE schemaname = 'public') AS policies,
+            pg_catalog.pg_get_userbyid(class.relowner) AS owner,
+            class.relrowsecurity AS rls,
+            pg_catalog.has_table_privilege('app_role', class.oid, 'SELECT') AS "appSelect",
+            (
+              pg_catalog.has_table_privilege('app_role', class.oid, 'INSERT')
+              OR pg_catalog.has_table_privilege('app_role', class.oid, 'UPDATE')
+              OR pg_catalog.has_table_privilege('app_role', class.oid, 'DELETE')
+              OR pg_catalog.has_table_privilege('app_role', class.oid, 'TRUNCATE')
+            ) AS "appMutation",
+            (
+              SELECT count(*)::int
+                FROM pg_catalog.aclexplode(
+                  COALESCE(class.relacl, pg_catalog.acldefault('r', class.relowner))
+                ) AS acl
+               WHERE acl.grantee = 0
+            ) AS "publicPrivileges",
+            (
+              SELECT count(*)::int
+                FROM unnest(ARRAY[
+                  'SELECT','INSERT','UPDATE','DELETE','TRUNCATE','REFERENCES','TRIGGER'
+                ]) AS privilege
+               WHERE pg_catalog.has_table_privilege('yellow_runtime', class.oid, privilege)
+            ) AS "runtimePrivileges",
+            (
+              SELECT count(*)::int FROM pg_catalog.pg_constraint
+               WHERE conrelid = class.oid
+            ) AS "constraintCount",
+            EXISTS (
+              SELECT 1
+                FROM pg_catalog.pg_index AS index
+                JOIN pg_catalog.pg_class AS index_class ON index_class.oid = index.indexrelid
+                JOIN pg_catalog.pg_attribute AS leading_attribute
+                  ON leading_attribute.attrelid = class.oid
+                 AND leading_attribute.attnum = (index.indkey::smallint[])[0]
+               WHERE index.indrelid = class.oid
+                 AND index_class.relname = 'tax_semantic_route_lookup'
+                 AND leading_attribute.attname = 'tenant_id'
+            ) AS "tenantLeadingLookup"
+          FROM pg_catalog.pg_class AS class
+         WHERE class.oid = 'public.tax_semantic_route'::regclass
+        `;
+        expect(relation).toEqual([{
+          tables: 97,
+          policies: 87,
+          owner: "yellow_owner",
+          rls: true,
+          appSelect: true,
+          appMutation: false,
+          publicPrivileges: 0,
+          runtimePrivileges: 0,
+          constraintCount: 12,
+          tenantLeadingLookup: true,
+        }]);
+      });
+    },
+    60_000,
+  );
+
+  test(
     "applies the exact account-folio integrity migration and rejects tenant-crossing references",
     async () => {
       await withDatabase(async ({ databaseUrl: targetUrl, sql }) => {
@@ -1608,7 +1701,7 @@ databaseDescribe("Bun SQL migration runner", () => {
         const tableCount = await sql<{ count: number }[]>`
           SELECT count(*)::int AS count FROM pg_tables WHERE schemaname = 'public'
         `;
-        expect(tableCount).toEqual([{ count: 95 }]);
+        expect(tableCount).toEqual([{ count: 97 }]);
 
         const privileges = await sql<{
           route_rls: boolean;

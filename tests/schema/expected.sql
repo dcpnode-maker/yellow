@@ -7115,6 +7115,32 @@ CREATE TABLE public.tax_attribution_snapshot (
 
 
 --
+-- Name: tax_semantic_route; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.tax_semantic_route (
+    tenant_id uuid NOT NULL,
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    property_node uuid NOT NULL,
+    currency character(3) NOT NULL,
+    jurisdiction_extension_id uuid NOT NULL,
+    jurisdiction_owner_tenant_id uuid,
+    jurisdiction_key text NOT NULL,
+    jurisdiction_version integer NOT NULL,
+    jurisdiction_content_hash text NOT NULL,
+    semantic_kind text NOT NULL,
+    semantic_code text NOT NULL,
+    tx_code text NOT NULL,
+    CONSTRAINT tax_semantic_route_currency_ck CHECK ((currency ~ '^[A-Z]{3}$'::text)),
+    CONSTRAINT tax_semantic_route_jurisdiction_hash_ck CHECK ((jurisdiction_content_hash ~ '^[0-9a-f]{64}$'::text)),
+    CONSTRAINT tax_semantic_route_jurisdiction_key_ck CHECK ((jurisdiction_key ~ '^[a-z0-9][a-z0-9_.:-]{0,127}$'::text)),
+    CONSTRAINT tax_semantic_route_jurisdiction_owner_ck CHECK (((jurisdiction_owner_tenant_id IS NULL) OR (jurisdiction_owner_tenant_id = tenant_id))),
+    CONSTRAINT tax_semantic_route_jurisdiction_version_ck CHECK ((jurisdiction_version > 0)),
+    CONSTRAINT tax_semantic_route_semantic_ck CHECK ((((semantic_kind = 'revenue'::text) AND (semantic_code = 'room_revenue'::text)) OR ((semantic_kind = 'tax'::text) AND (semantic_code ~ '^[A-Z][A-Z0-9_]{0,63}$'::text))))
+);
+
+
+--
 -- Name: tenant; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -8480,6 +8506,22 @@ ALTER TABLE ONLY public.tax_attribution_snapshot
 
 
 --
+-- Name: tax_semantic_route tax_semantic_route_identity_uq; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.tax_semantic_route
+    ADD CONSTRAINT tax_semantic_route_identity_uq UNIQUE NULLS NOT DISTINCT (tenant_id, property_node, currency, jurisdiction_extension_id, jurisdiction_owner_tenant_id, jurisdiction_key, jurisdiction_version, jurisdiction_content_hash, semantic_kind, semantic_code);
+
+
+--
+-- Name: tax_semantic_route tax_semantic_route_pk; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.tax_semantic_route
+    ADD CONSTRAINT tax_semantic_route_pk PRIMARY KEY (tenant_id, id);
+
+
+--
 -- Name: tenant tenant_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -8993,6 +9035,13 @@ CREATE INDEX tax_attribution_snapshot_property_lookup ON public.tax_attribution_
 --
 
 CREATE INDEX tax_attribution_snapshot_quote_lookup ON public.tax_attribution_snapshot USING btree (tenant_id, origin_quote_hash, recorded_at, id);
+
+
+--
+-- Name: tax_semantic_route_lookup; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX tax_semantic_route_lookup ON public.tax_semantic_route USING btree (tenant_id, property_node, currency, jurisdiction_extension_id, semantic_kind, semantic_code);
 
 
 --
@@ -10398,6 +10447,38 @@ ALTER TABLE ONLY public.tax_attribution_snapshot
 
 
 --
+-- Name: tax_semantic_route tax_semantic_route_configured_route_fk; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.tax_semantic_route
+    ADD CONSTRAINT tax_semantic_route_configured_route_fk FOREIGN KEY (tenant_id, property_node, currency, tx_code) REFERENCES public.tx_code_route(tenant_id, property_node, currency, tx_code);
+
+
+--
+-- Name: tax_semantic_route tax_semantic_route_extension_fk; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.tax_semantic_route
+    ADD CONSTRAINT tax_semantic_route_extension_fk FOREIGN KEY (jurisdiction_extension_id) REFERENCES public.extension(id);
+
+
+--
+-- Name: tax_semantic_route tax_semantic_route_property_fk; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.tax_semantic_route
+    ADD CONSTRAINT tax_semantic_route_property_fk FOREIGN KEY (tenant_id, property_node) REFERENCES public.org_node(tenant_id, id);
+
+
+--
+-- Name: tax_semantic_route tax_semantic_route_tx_code_fk; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.tax_semantic_route
+    ADD CONSTRAINT tax_semantic_route_tx_code_fk FOREIGN KEY (tx_code) REFERENCES public.tx_code(code);
+
+
+--
 -- Name: travel_detail travel_detail_pickup_task_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -11008,6 +11089,12 @@ ALTER TABLE public.tax_attribution_reservation_binding ENABLE ROW LEVEL SECURITY
 ALTER TABLE public.tax_attribution_snapshot ENABLE ROW LEVEL SECURITY;
 
 --
+-- Name: tax_semantic_route; Type: ROW SECURITY; Schema: public; Owner: -
+--
+
+ALTER TABLE public.tax_semantic_route ENABLE ROW LEVEL SECURITY;
+
+--
 -- Name: account tenant_isolation; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -11558,6 +11645,13 @@ CREATE POLICY tenant_isolation ON public.tax_attribution_reservation_binding USI
 --
 
 CREATE POLICY tenant_isolation ON public.tax_attribution_snapshot USING ((tenant_id = (NULLIF(current_setting('app.tenant_id'::text, true), ''::text))::uuid)) WITH CHECK ((tenant_id = (NULLIF(current_setting('app.tenant_id'::text, true), ''::text))::uuid));
+
+
+--
+-- Name: tax_semantic_route tenant_isolation; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY tenant_isolation ON public.tax_semantic_route USING ((tenant_id = (NULLIF(current_setting('app.tenant_id'::text, true), ''::text))::uuid)) WITH CHECK ((tenant_id = (NULLIF(current_setting('app.tenant_id'::text, true), ''::text))::uuid));
 
 
 --
@@ -14539,6 +14633,13 @@ GRANT SELECT ON TABLE public.tax_attribution_reservation_binding TO app_role;
 --
 
 GRANT SELECT ON TABLE public.tax_attribution_snapshot TO app_role;
+
+
+--
+-- Name: TABLE tax_semantic_route; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT SELECT ON TABLE public.tax_semantic_route TO app_role;
 
 
 --

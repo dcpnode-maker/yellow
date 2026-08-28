@@ -68,3 +68,15 @@ export type {
   PositiveTaxFolioEligibilityInput,
   PositiveTaxFolioEligibilityResult,
 } from "./folio-eligibility";
+export {
+  PositiveTaxSemanticRouteConflictError,
+  PositiveTaxSemanticRouteNotFoundError,
+  PositiveTaxSemanticRouteService,
+} from "./semantic-route";
+export type {
+  PositiveTaxSemanticPolicyBlockedResult,
+  PositiveTaxSemanticResolvedResult,
+  PositiveTaxSemanticRevenueRoute,
+  PositiveTaxSemanticRouteResult,
+  PositiveTaxSemanticTaxRoute,
+} from "./semantic-route";

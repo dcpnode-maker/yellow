@@ -181,9 +181,7 @@ findings, the orders are underspecified and that is the architect's fault, not t
 builder's.
 # Current Phase 7 build
 
-Order252 has independently approved exact quoted-tax hold-to-reservation/segment lineage. The
-next dependency remains governed folio eligibility and configured semantic tax-route
-policy before any positive posting writer.
+Order252 has independently approved exact quoted-tax hold-to-reservation/segment lineage.
 
 Order253 is the current bounded status-only slice; it preserves the unfinished Phase7
 state while making approved Order252 visible to the founder after a separate promotion.
@@ -200,3 +198,11 @@ semantic tax-route policy before any positive posting writer.
 Order257/D-668 is the bounded founder-visible status refresh through approved
 Order256. It changes recorded status truth only; the sole local remains a separate
 promotion concern and unfinished Phases5–7 remain active.
+
+Order259/D-672 builds the explicit read-only semantic-route prerequisite: approved
+Order256 eligibility and the Order251 plan resolve only exact configured
+property/currency/jurisdiction revenue and tax credit routes, while policy blockers
+perform no lookup and every heuristic fallback is rejected. Migration43 reaches
+97 tables/87 policies with focused, acceptance, migration, schema and referee proof
+green. Independent Tier-3 execution remains the approval gate before a positive
+posting writer.

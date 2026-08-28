@@ -1,8 +1,8 @@
 # Phase 7 — Tax engine and India IRP
 
-**Status:** active; Orders 237-240 built-unreviewed
+**Status:** active; configured positive-tax routing built through Order259
 **Entry point:** built-unreviewed Phase-6 composition through Order 236
-**Current order:** Order 257 founder-visible status through approved Order256 is built-unreviewed under D-668
+**Current order:** Order259 configured positive-tax semantic routing is built pending independent Tier-3 review under D-672
 
 ## Outcome
 
@@ -203,3 +203,19 @@ dependency is configured semantic tax routing before any positive posting writer
 Order257/D-668 refreshes only authenticated recorded founder truth to
 date2026-08-29/latest256/current257/review91/active7 and the compact Orders237–256
 milestone. Exact sole-local promotion remains a separate reversible order.
+
+## Order 259 boundary
+
+Order259 adds a read-only tenant/RLS-scoped semantic route root and composes approved
+Order256 eligibility with the pure Order251 plan. An exact stored jurisdiction
+identity may resolve only explicitly configured room-revenue and canonical nonzero-tax
+transaction-code credit routes backed by coherent open exact-property/currency
+accounts. Policy-blocked plans perform no route lookup; names, role hints, generic tax
+codes and code coincidence never become fallback authority.
+
+The slice writes no journal, posting, tax detail, evidence, document or fiscal state
+and invents no guest-debit code, effective-date policy, India decomposition or
+document allocation. Fresh PostgreSQL16.15 proof reaches migration43/97 tables/87
+policies; focused9/9, acceptance11/11, migration38/38, schema drift4/4, referee11/11,
+standing837/837 plus755 environment skips and all static gates are green. It remains
+built pending mandatory non-implementing Tier-3 execution.

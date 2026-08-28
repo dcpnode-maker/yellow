@@ -561,6 +561,17 @@ date2026-08-29/latest256/current257/review91/active7 with the compact Orders237�
 milestone and every unfinished Phase5–7 dependency still explicit. It changes no
 runtime or product behavior; exact sole-local promotion is separate.
 
+Order259/D-672 is built pending independent Tier-3 review as the configured positive-
+tax semantic-routing prerequisite. Approved Order256 eligibility and the pure
+Order251 plan may resolve only explicit exact-property/currency/jurisdiction
+room-revenue and canonical nonzero-tax credit routes. The table is tenant/RLS scoped,
+SELECT-only to app_role and has no runtime authoring path. Policy-blocked plans issue
+zero semantic lookup; names, USALI labels, role defaults and generic TAX/GST/VAT
+codes never provide fallback. Fresh migration43/97 tables/87 policies, focused9/9,
+acceptance11/11, migration38/38, schema/referee/static and standing837/837 proof are
+green. No posting writer, India decomposition, document allocation or fiscal
+authority is yet admitted.
+
 tax_assignment evaluation (percent/fixed/slab, compound, line-vs-document rounding)
 from EXTENSIONS §2; India GST slab per room-night; document issue path: series →
 gapless number → hash chain → document; IRP reporting adapter (sandbox), IRN + QR
