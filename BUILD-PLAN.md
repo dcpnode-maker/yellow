@@ -309,7 +309,7 @@ Order 223 is built-unreviewed and extends the existing Today pure routing table 
 open the already-governed checkout-preparation workbench. It adds no command,
 authority, readiness meaning or new control family. This cannot complete Phase 6.
 
-Order 224 repairs the existing reservation-detail to Folio-controls round trip for
+Order 224 is built-unreviewed and repairs the existing reservation-detail to Folio-controls round trip for
 both existing and successfully resolved primary Folios. It adds only minimized
 history return context and no financial command or authority. This cannot complete Phase 6.
 

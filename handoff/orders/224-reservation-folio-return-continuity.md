@@ -1,6 +1,6 @@
 # Order 224 — Reservation-to-Folio return continuity
 
-**Status:** READY-D591 — intentional red must precede implementation
+**Status:** BUILT-UNREVIEWED-D592
 **Phase:** 6 — Stay operations and housekeeping
 **Branch:** `phase-6/reservation-folio-return-continuity`
 **Base:** `f70d69e` (built-unreviewed Order223)
@@ -60,7 +60,19 @@ seed, dependency, scope/event, local promotion/deployment file is admitted.
 
 ## Definition of done
 
-- [ ] Intentional red precedes implementation.
-- [ ] Both exact reservation origins round-trip through the canonical Folio route.
-- [ ] Dirty-exit, departure and direct-Folio compatibility remain exact.
-- [ ] Focused and standing gates are green and result is recorded built-unreviewed.
+- [x] Intentional red preceded implementation and failed on the absent continuity hooks.
+- [x] Both exact reservation origins round-trip through the canonical Folio route.
+- [x] Dirty-exit, departure and direct-Folio compatibility remain exact.
+- [x] Focused and standing gates are green and the result is recorded built-unreviewed.
+
+## Built-unreviewed evidence
+
+- Focused reservation/Folio/departure/navigation/UI regressions: 96 passed, 6
+  environment-skipped, 0 failed; 1,022 assertions.
+- Standing suite: 596 passed, 629 environment-skipped, 0 failed; 6,513 assertions
+  across 1,225 tests in 221 files.
+- `bun run typecheck`, 82-file import boundaries, 23-package licence policy,
+  `bun audit` (0 vulnerabilities), JavaScript syntax and `git diff --check` are green.
+- The diff changes no TypeScript server/API/domain/database/schema/migration/seed/
+  dependency authority, so the inherited schema and referee evidence remains exact.
+- Independent product review remains deferred under the founder's build-first direction.

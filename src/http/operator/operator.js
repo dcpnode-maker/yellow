@@ -146,6 +146,8 @@
  let folioReturnFocus = null;
  let departureFolioReturn = null;
  let departureFolioExitConfirmed = false;
+ let reservationFolioReturn = null;
+ let reservationFolioExitConfirmed = false;
  let receivableTargets = [];
  let receivablePreview = null;
  let receivableApproval = null;
@@ -3059,7 +3061,9 @@ function ensureHousekeepingGenerationReceiptPanel() {
   const state = node("small", "", `Window ${String(folio.windowNo)} · ${folio.status}`);
   button.append(identity, state);
   button.setAttribute("aria-label", `Open folio ${folio.folioNo || folio.folioId}, window ${String(folio.windowNo)}, ${folio.status}`);
-  button.addEventListener("click", () => openFolioWorkspace(folio.folioId, { trigger: button }));
+  button.addEventListener("click", () => openReservationFolioWorkspace(folio.folioId, {
+   source: "existing", control: button,
+  }));
   reservationDetailFolioList.append(button);
  }
  const canOpen = folios.length === 0 && result.actions?.canOpenPrimaryFolio === true;
@@ -3101,12 +3105,12 @@ function ensureHousekeepingGenerationReceiptPanel() {
   }));
   if (generation !== reservationDetailGeneration || property !== propertySelect.value || reservationRouteReservationId !== reservationId) return;
   if (result.reservationId !== reservationId || typeof result.folioId !== "string") throw new Error("The server returned a different reservation or folio.");
-  reservationPrimaryFolioAttemptKey = "";
-  reservationPrimaryFolioReservationId = "";
   reservationPrimaryFolioMessage.textContent = result.replayed
   ? "The existing primary folio was confirmed. Opening its immutable statement…"
   : result.changed ? "Primary folio created. Opening its immutable statement…" : "Primary folio already existed. Opening its immutable statement…";
-  openFolioWorkspace(result.folioId, { trigger: reservationPrimaryFolioCreate });
+  openReservationFolioWorkspace(result.folioId, {
+   source: "primary-receipt", control: reservationPrimaryFolioCreate, receipt: result, detailGeneration: generation,
+  });
  } catch (error) {
   if (generation !== reservationDetailGeneration || property !== propertySelect.value || reservationRouteReservationId !== reservationId) return;
   reservationPrimaryFolioMessage.classList.add("error");
@@ -3384,14 +3388,63 @@ function ensureHousekeepingGenerationReceiptPanel() {
   !Number.isInteger(value.detailGeneration) || value.detailGeneration < 0) return null;
  return Object.freeze({ ...value });
  }
+ function reservationFolioReturnIsCurrent(origin, control = null, receipt = null) {
+ const reservation = reservationDetailData?.reservation;
+ const currentPath = `${location.pathname}${location.search}`;
+ const expectedOrigin = `/p/${origin?.property}/res/${origin?.reservationId}${origin?.workbench
+  ? `?${RESERVATION_WORKBENCH_QUERY[origin.workbench]}` : ""}`;
+ const exactReservation = origin?.property === propertySelect.value && origin.reservationId === reservationRouteReservationId &&
+  origin.reservationId === reservation?.reservationId && origin.confirmationNo === reservation?.confirmationNo &&
+  origin.reservationStatus === reservation?.status && origin.workbench === currentReservationWorkbench &&
+  origin.detailGeneration === reservationDetailGeneration && origin.originPath === expectedOrigin &&
+  activeView === "reservations" && currentPath === origin.originPath && reservationDetailDrawer.isConnected &&
+  reservationDetailDrawer.hidden === false && reservationDetailFolios.isConnected && reservationDetailFolios.hidden === false;
+ if (control !== null || receipt !== null) {
+  if (!exactReservation || !["existing", "primary-receipt"].includes(origin?.source) ||
+   !control?.isConnected || control.hidden === true || !canonicalUuid(String(origin?.folioId || ""))) return false;
+  if (origin.source === "existing") {
+   return receipt === null && reservationDetailFolioList.contains(control) && control.disabled === false &&
+    control.classList.contains("reservation-folio-open") && control.dataset.folioId === origin.folioId &&
+    reservation.folios.some((item) => item.folioId === origin.folioId);
+  }
+  const primaryFolioReceipt = receipt;
+  return control === reservationPrimaryFolioCreate && reservationDetailFolios.contains(control) &&
+   reservationPrimaryFolioReservationId === origin.reservationId && control.disabled === true &&
+   primaryFolioReceipt?.reservationId === origin.reservationId && primaryFolioReceipt?.folioId === origin.folioId;
+ }
+ const folioPath = canonicalFolioPath(origin?.property, origin?.folioId, folioActiveTab, folioRouteCursor);
+ return ["existing", "primary-receipt"].includes(origin?.source) && origin?.property === propertySelect.value &&
+  activeView === "folios" && folioWorkspace.isConnected && folioWorkspace.hidden === false &&
+  folioIdentity === origin.folioId && folioStatementData?.folio?.id === origin.folioId &&
+  (currentPath === folioPath || currentPath === origin.originPath);
+ }
+ function reservationFolioReturnFromState(state, property, folioId) {
+ const value = state?.reservationFolioReturn;
+ const expected = "confirmationNo,detailGeneration,folioId,originPath,property,reservationId,reservationStatus,source,workbench";
+ if (state?.yellowSurface !== "folio-workspace" || !value || typeof value !== "object" || Array.isArray(value) ||
+  Object.keys(value).sort().join(",") !== expected || value.property !== property || value.folioId !== folioId ||
+  !canonicalUuid(value.property) || !canonicalUuid(value.reservationId) || !canonicalUuid(value.folioId) ||
+  typeof value.confirmationNo !== "string" || value.confirmationNo.trim().length < 1 || value.confirmationNo.length > 120 ||
+  !Object.hasOwn(reservationStatusLabels, value.reservationStatus) || !["existing", "primary-receipt"].includes(value.source) ||
+  ![null, "check-in", "checkout"].includes(value.workbench) ||
+  value.originPath !== `/p/${value.property}/res/${value.reservationId}${value.workbench
+   ? `?${RESERVATION_WORKBENCH_QUERY[value.workbench]}` : ""}` ||
+  !Number.isInteger(value.detailGeneration) || value.detailGeneration < 0) return null;
+ return Object.freeze({ ...value });
+ }
  function syncDepartureFolioReturnControl() {
- const current = departureFolioReturnIsCurrent(departureFolioReturn);
- folioWorkspaceBack.textContent = current ? "Back to departure" : "Back to folio lookup";
- folioWorkspaceBack.classList.toggle("folio-departure-return", current);
+ const departureCurrent = departureFolioReturnIsCurrent(departureFolioReturn);
+ const reservationCurrent = !departureCurrent && reservationFolioReturnIsCurrent(reservationFolioReturn);
+ folioWorkspaceBack.textContent = departureCurrent ? "Back to departure" : reservationCurrent ? "Back to reservation" : "Back to folio lookup";
+ folioWorkspaceBack.classList.toggle("folio-departure-return", departureCurrent);
+ folioWorkspaceBack.classList.toggle("folio-reservation-return", reservationCurrent);
  }
  function folioWorkspaceHistoryState(folioId) {
- const current = departureFolioReturn?.folioId === folioId ? departureFolioReturn : null;
- return current ? { yellowSurface: "folio-workspace", departureFolioReturn: current } : { yellowSurface: "folio-workspace" };
+ const departureCurrent = departureFolioReturn?.folioId === folioId ? departureFolioReturn : null;
+ const reservationCurrent = !departureCurrent && reservationFolioReturn?.folioId === folioId ? reservationFolioReturn : null;
+ return departureCurrent ? { yellowSurface: "folio-workspace", departureFolioReturn: departureCurrent }
+  : reservationCurrent ? { yellowSurface: "folio-workspace", reservationFolioReturn: reservationCurrent }
+   : { yellowSurface: "folio-workspace" };
  }
 function departureEvidenceRow(term, value) {
  const row = node("div");
@@ -3474,6 +3527,21 @@ function departureEvidenceRow(term, value) {
  });
  if (!departureFolioReturnIsCurrent(descriptor, card, action)) return;
  openFolioWorkspace(folioId, { trigger: action, departureReturn: descriptor });
+ }
+ function openReservationFolioWorkspace(folioId, {
+  source, control, receipt = null, detailGeneration = reservationDetailGeneration,
+ } = {}) {
+ const reservation = reservationDetailData?.reservation;
+ const property = propertySelect.value;
+ const reservationId = reservation?.reservationId;
+ const workbench = currentReservationWorkbench;
+ const originPath = `/p/${property}/res/${reservationId}${workbench ? `?${RESERVATION_WORKBENCH_QUERY[workbench]}` : ""}`;
+ const descriptor = Object.freeze({
+  source, property, reservationId, confirmationNo: reservation?.confirmationNo,
+  reservationStatus: reservation?.status, folioId, workbench, originPath, detailGeneration,
+ });
+ if (!reservationFolioReturnIsCurrent(descriptor, control, receipt)) return;
+ openFolioWorkspace(folioId, { trigger: control, reservationReturn: descriptor });
  }
   async function loadCheckoutReadiness({ focus = false } = {}) {
  if (!reservationDetailData) {
@@ -3735,6 +3803,26 @@ function departureEvidenceRow(term, value) {
  reservationDetailDrawer.setAttribute("aria-busy", "false");
  applyReservationWorkbenchIntent(reservation);
  restoreReservationOperationalPreparationFocus(reservation);
+ restoreReservationFolioReturnFocus(result);
+ }
+ function restoreReservationFolioReturnFocus(result) {
+ const returning = reservationFolioReturn;
+ const reservation = result?.reservation;
+ if (!returning) return;
+ const exact = activeView === "reservations" && `${location.pathname}${location.search}` === returning.originPath &&
+  returning.property === propertySelect.value && returning.reservationId === reservationRouteReservationId &&
+  returning.reservationId === reservation?.reservationId && returning.confirmationNo === reservation?.confirmationNo &&
+  returning.reservationStatus === reservation?.status && returning.workbench === currentReservationWorkbench &&
+  reservationDetailDrawer.isConnected && reservationDetailDrawer.hidden === false;
+ if (!exact) {
+  reservationFolioReturn = null;
+  return;
+ }
+ const action = [...reservationDetailFolioList.querySelectorAll(".reservation-folio-open")]
+  .find((item) => item.dataset.folioId === returning.folioId);
+ reservationDetailFolios.tabIndex = -1;
+ (action?.isConnected ? action : reservationDetailFolios).focus({ preventScroll: true });
+ reservationFolioReturn = null;
  }
   async function loadReservationDetail(reservationId) {
  const generation = ++reservationDetailGeneration;
@@ -6456,6 +6544,7 @@ function departureEvidenceRow(term, value) {
  }
   async function loadFolioWorkspace(folioId, after = "", { focus = true } = {}) {
  if (departureFolioReturn && departureFolioReturn.folioId !== folioId) departureFolioReturn = null;
+ if (reservationFolioReturn && reservationFolioReturn.folioId !== folioId) reservationFolioReturn = null;
  const generation = ++folioGeneration;
  const property = propertySelect.value;
  const identity = folioId;
@@ -6493,18 +6582,24 @@ function departureEvidenceRow(term, value) {
  history.pushState(folioWorkspaceHistoryState(folioStatementData.folio.id), "", canonicalFolioPath(propertySelect.value, folioStatementData.folio.id, folioActiveTab, cursor));
  void loadFolioWorkspace(folioStatementData.folio.id, cursor);
  }
-  function openFolioWorkspace(folioId, { trigger = null, departureReturn = null } = {}) {
+  function openFolioWorkspace(folioId, { trigger = null, departureReturn = null, reservationReturn = null } = {}) {
  if (activeView === "folios" && !confirmFolioExit()) return;
  departureFolioReturn = departureReturn;
+ reservationFolioReturn = departureReturn ? null : reservationReturn;
  departureFolioExitConfirmed = false;
+ reservationFolioExitConfirmed = false;
  syncDepartureFolioReturnControl();
  folioReturnFocus = trigger;
  closeReservationDetail({ history: false, restoreFocus: false });
  setView("folios", false);
  folioActiveTab = "postings";
- history.pushState(departureFolioReturn
+ const departureHistoryState = departureFolioReturn
   ? { yellowSurface: "folio-workspace", departureFolioReturn }
-  : { yellowSurface: "folio-workspace" }, "", canonicalFolioPath(propertySelect.value, folioId));
+  : { yellowSurface: "folio-workspace" };
+ const folioHistoryState = reservationFolioReturn
+  ? { yellowSurface: "folio-workspace", reservationFolioReturn }
+  : departureHistoryState;
+ history.pushState(folioHistoryState, "", canonicalFolioPath(propertySelect.value, folioId));
  void loadFolioWorkspace(folioId);
  }
  function returnFromFolioWorkspaceToDeparture({ fromHistory = false } = {}) {
@@ -6523,17 +6618,37 @@ function departureEvidenceRow(term, value) {
  void openReservationDetail(returning.reservationId, { push: false, workbench: "checkout" });
  return true;
  }
+ function returnFromFolioWorkspaceToReservation({ fromHistory = false } = {}) {
+ const returning = reservationFolioReturn;
+ if (!reservationFolioReturnIsCurrent(returning)) return false;
+ const reservationPath = `/p/${returning.property}/res/${returning.reservationId}${returning.workbench
+  ? `?${RESERVATION_WORKBENCH_QUERY[returning.workbench]}` : ""}`;
+ if (returning.originPath !== reservationPath) return false;
+ if (!fromHistory) {
+  if (!confirmFolioExit()) return false;
+  reservationFolioExitConfirmed = true;
+  history.back();
+  return true;
+ }
+ clearFolioState();
+ setView("reservations", false);
+ void openReservationDetail(returning.reservationId, { push: false, workbench: returning.workbench });
+ return true;
+ }
   function syncFolioRoute() {
  const route = folioRouteFromLocation();
  if (route.kind === "other" || !propertySelect.value || route.property !== propertySelect.value) return;
  if (route.kind === "list") {
   departureFolioReturn = null;
+  reservationFolioReturn = null;
   clearFolioState();
   syncDepartureFolioReturnControl();
   $("#folios-title")?.focus();
   return;
  }
  departureFolioReturn = departureFolioReturnFromState(history.state, route.property, route.folioId);
+ reservationFolioReturn = departureFolioReturn ? null
+  : reservationFolioReturnFromState(history.state, route.property, route.folioId);
  const canonical = canonicalFolioPath(route.property, route.folioId, route.tab, route.after);
  if (`${location.pathname}${location.search}` !== canonical) history.replaceState(folioWorkspaceHistoryState(route.folioId), "", canonical);
  folioActiveTab = route.tab;
@@ -7218,6 +7333,9 @@ function vehicleReturnPathFromState(state, property) {
   clearFolioState();
   if (activeView !== "reservations" || `${location.pathname}${location.search}` !== departureFolioReturn?.originPath) {
    departureFolioReturn = null;
+  }
+  if (activeView !== "reservations" || `${location.pathname}${location.search}` !== reservationFolioReturn?.originPath) {
+   reservationFolioReturn = null;
   }
  }
  if (previousView === "today" && activeView !== "today") todayGeneration += 1;
@@ -9100,6 +9218,8 @@ function vehicleReturnPathFromState(state, property) {
  clearHousekeepingSheetState();
  departureFolioReturn = null;
  departureFolioExitConfirmed = false;
+ reservationFolioReturn = null;
+ reservationFolioExitConfirmed = false;
  clearVehicleRegisterState();
  vehicleLinkedReservationReturn = null;
  resetTodayState();
@@ -9355,16 +9475,20 @@ housekeepingSheetDate.addEventListener("change", () => {
   return;
  }
  const folioRoute = folioRouteFromLocation();
- if (activeView === "folios" && !folioWorkspace.hidden && !departureFolioExitConfirmed && !confirmFolioExit()) {
+ if (activeView === "folios" && !folioWorkspace.hidden && !departureFolioExitConfirmed && !reservationFolioExitConfirmed && !confirmFolioExit()) {
   const currentId = folioStatementData?.folio.id || folioIdentity;
   history.pushState(folioWorkspaceHistoryState(currentId), "", canonicalFolioPath(propertySelect.value, currentId, folioActiveTab, folioRouteCursor));
   return;
  }
  departureFolioExitConfirmed = false;
+ reservationFolioExitConfirmed = false;
  const departureRoute = reservationNavigationRoute();
  if (departureFolioReturn && departureRoute.kind === "detail" && departureRoute.workbench === "checkout" &&
   `${location.pathname}${location.search}` === departureFolioReturn.originPath &&
   returnFromFolioWorkspaceToDeparture({ fromHistory: true })) return;
+ if (reservationFolioReturn && departureRoute.kind === "detail" &&
+  `${location.pathname}${location.search}` === reservationFolioReturn.originPath &&
+  returnFromFolioWorkspaceToReservation({ fromHistory: true })) return;
  if (folioRoute.kind !== "other" && folioRoute.property === propertySelect.value) {
   setView("folios", false);
   syncFolioRoute();
@@ -9391,6 +9515,7 @@ housekeepingSheetDate.addEventListener("change", () => {
  folioLoadOlder.addEventListener("click", () => void loadOlderFolioRows());
  folioWorkspaceBack.addEventListener("click", () => {
  if (returnFromFolioWorkspaceToDeparture()) return;
+ if (returnFromFolioWorkspaceToReservation()) return;
  if (!confirmFolioExit()) return;
  const returnTarget = folioReturnFocus;
  clearFolioState();

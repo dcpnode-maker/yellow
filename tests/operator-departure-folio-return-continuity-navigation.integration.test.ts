@@ -88,7 +88,7 @@ describe("Order 222 departure-to-Folio return continuity", () => {
     expect(control).toContain("departureFolioReturnIsCurrent(departureFolioReturn)");
     expect(control).toContain('"Back to departure"');
     expect(control).toContain('"Back to folio lookup"');
-    expect(control).toContain('classList.toggle("folio-departure-return", current)');
+    expect(control).toContain('classList.toggle("folio-departure-return", departureCurrent)');
     const backHandler = script.slice(script.indexOf('folioWorkspaceBack.addEventListener("click"'),
       script.indexOf("for (const [tab, element] of tabs)"));
     expect(backHandler).toContain("returnFromFolioWorkspaceToDeparture");

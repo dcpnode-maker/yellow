@@ -1,8 +1,8 @@
 # Phase 6 — Stay operations and housekeeping
 
-**Status:** active; Orders 200–223 are built-unreviewed
+**Status:** active; Orders 200–224 are built-unreviewed
 **Entry point:** built-unreviewed Phase-5 composition through Order 199
-**Current order:** `224-reservation-folio-return-continuity.md` (ready)
+**Current order:** next bounded build slice is being scoped
 
 ## Outcome
 
@@ -258,7 +258,7 @@ rows route to the already-supported checkout-readiness workbench. Existing
 authoritative blockers and explicit confirmation remain mandatory; no command,
 authority, mutation, schema, migration or event is added.
 
-Order 224 repairs reservation-detail Folio navigation so existing and successfully
+Order 224 is built-unreviewed and repairs reservation-detail Folio navigation so existing and successfully
 resolved primary Folios can return through authoritative reservation detail with
 safe focus. Order222 departure and direct Folio behavior remain unchanged; no
 financial command, authority, mutation, schema, migration or event is added.

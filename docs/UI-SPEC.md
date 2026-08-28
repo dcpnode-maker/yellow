@@ -735,3 +735,49 @@ rectangular density. The label, reading order and return target remain identical
 across all six. Keyboard focus is explicit, forced colours replace decorative
 materials with system button colours and boundaries, and reduced motion removes
 nonessential transition and transform effects.
+
+## 30. Reservation-to-Folio return continuity
+
+Only an exact current connected existing-Folio control in canonical reservation detail,
+or the exact current successful primary-Folio command receipt, may open Folio controls
+with reservation return context. Its minimized frozen history descriptor binds source,
+property, reservation identifier, confirmation number, reservation status, Folio
+identifier, canonical reservation origin path and workbench intent, and the current
+reservation-detail generation. The existing-Folio source additionally rechecks the
+visible connected control and exact Folio list; the primary-receipt source rechecks its
+command generation, identity and validated response. Neither source adds financial,
+checkout, readiness, balance, occupancy or permission meaning.
+
+Opening adds exactly one history entry and reuses the existing canonical Folio route
+and read. While the descriptor remains exact and current, the existing Folio back
+control gains the contextual class `folio-reservation-return` and its complete visible
+copy is **Back to reservation**. Copy precedence is exact: a current Order222 departure
+descriptor presents **Back to departure**; otherwise a current reservation descriptor
+presents **Back to reservation**; otherwise the direct and non-contextual control
+presents **Back to folio lookup**. The descriptor lives only in the relevant history
+state; there is no browser storage, polling, second route or new request.
+
+Before open or return, the client rechecks exact source, property, reservation,
+confirmation, status, Folio, origin path, workbench, active view, visible connected
+drawer and control, and detail or command generation. A stale, detached or mismatched
+identity is inert. The contextual control, Escape and browser Back restore the exact
+canonical reservation/workbench route, refetch authoritative reservation detail and
+restore the matching Folio button when it still exists or the Folios heading otherwise.
+Refresh and Forward reconstruct context only from a descriptor that still validates.
+Existing dirty-Folio confirmation remains mandatory; cancelling it changes neither URL
+nor focus.
+
+Navigation runs no POST, PUT, PATCH or DELETE and no financial or checkout command.
+Existing Folio reads and writes, server grants, status handling and immutable finance
+rules remain unchanged. The contextual class and copy communicate navigation only and
+never claim that a Folio, reservation, balance, departure or occupancy state changed.
+
+The contextual control remains at least 44 pixels and wraps without horizontal
+overflow at 375 pixels and 200% zoom; Android raises it to 48 pixels. Apple iOS uses a
+restrained violet-tinted rounded control, Android uses a Material 3 tertiary tonal
+pill, Windows 95/98 uses square outset/inset system chrome, glassmorphism uses layered
+violet translucent blur, neomorphism uses paired raised and pressed inset shadows, and
+ERP uses compact rectangular density. The label, reading order and return target remain
+identical across all six. Keyboard focus is explicit, forced colours replace decorative
+materials with system button colours and boundaries, and reduced motion removes
+nonessential transition and transform effects.
