@@ -21,6 +21,9 @@ check-in journey become reachable without fixture or operator database intervent
   property business date and one coherent `reserved` reservation whose latest current
   `booked` segment begins on that same local date. Browser or process wall-clock
   arithmetic is never authoritative.
+- Because the schema has no unique-open-day constraint, zero or more than one
+  unsealed business-day row for the property fails closed. Discovery and transition
+  both require the same exactly-one-open-day invariant.
 - Only the reservation parent `reserved -> due_in` transition is admitted. The exact
   current segment must remain `booked`: that is the canonical coherent arrival shape
   and the only segment state accepted by the later check-in transition.
