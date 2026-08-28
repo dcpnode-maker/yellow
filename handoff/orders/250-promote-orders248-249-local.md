@@ -1,6 +1,6 @@
 # Order 250 — Promote Orders248–249 to the sole local app
 
-**Status:** READY-D649
+**Status:** APPROVED-LOCALLY-D650
 **Phase:** 7 — Tax engine and India IRP
 **Branch:** `phase-7/promote-orders248-249-local`
 **Base:** `d15424f` (built Order249 descendant of built Order248)
@@ -50,3 +50,16 @@ review approval, Phase or application-complete claim.
 Build failure leaves the app untouched. Migration failure uses the verified backup
 only if required. App failure after the additive migration first restores the retained
 rollback image; database restore is reserved for exact pre-order schema restoration.
+
+## Promotion evidence
+
+The restricted verified backup and retained rollback image preceded a 34.9-second app
+maintenance window. Exactly migration0040 applied, reaching migration40/95 tables/85
+policies with an empty binding root and no prior-table count drift. PostgreSQL, Valkey,
+their volume, both hotel properties and protected authorities remained unchanged.
+
+One healthy replacement app now serves only loopback3000 with protected populated
+masked one-click sign-in and exact status248/249/review91/active7 for both properties.
+Independent non-operating verification is recorded in
+`handoff/reviews/250-promote-orders248-249-local.md`. This is local-only approval and
+not deferred product review.
