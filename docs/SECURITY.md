@@ -282,6 +282,23 @@ cannot touch Party/contact, vehicle/parking, occupancy, financial or statutory t
 Only a changed tuple is coupled to one actor-bound fact and one same-transaction outbox
 event; idempotency, fact and event publication roll back with the travel write.
 
+### Governed arrival pickup-task automation
+
+Order 213 adds one fixed-search-path owner capability for the specialized durable
+consumer. Only a `yellow_runtime` session that assumed `app_role` under the exact
+transaction-local tenant may execute it. The capability independently locks and
+re-proves active actor, exact property, exact `reserved|due_in` reservation and its
+current arrival row. It creates only the canonical minimized transport guest-request
+task and links only that newly created same-tenant, same-property task. Raw runtime
+and app-role `task` and `travel_detail` write authority remains denied.
+
+The consumer never trusts source payload identity or eligibility. Its marker, task,
+link, fact and outbox event share one transaction, so crashes and concurrent drainers
+cannot duplicate work. Foreign tenant/property/association, false pickup, missing
+schedule, terminal state and an existing link are no-op or fail closed. No capability
+exists here to mutate task lifecycle, assignee, priority, travel, Party/contact,
+vehicle/parking, occupancy, finance or statutory truth.
+
 ### Room-condition board containment
 
 Order 208 adds one read-only route behind the existing

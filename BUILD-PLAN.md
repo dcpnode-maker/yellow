@@ -253,6 +253,14 @@ already linked to pickup work, and reuses reservation.modified evidence. Canonic
 reservation detail hosts the editor. Pickup automation, delete, notes, vehicle,
 parking, occupancy, financial and statutory effects remain outside this slice.
 
+Order 213 is built-unreviewed as the create-only arrival pickup automation slice. A durable
+`reservation.modified` consumer re-reads current arrival truth and atomically creates
+and links exactly one existing-kind transport guest-request task only for scheduled,
+pickup-requested, unlinked `reserved|due_in` stays. Consumer marker and `task.created`
+evidence commit with the task/link. Assignment, cancellation, post-link travel edits,
+manual UI, vehicle/parking, occupancy, finance and statutory effects remain outside
+this slice. This cannot complete Phase 6.
+
 ## Phase 7 — Tax engine + India IRP
 
 tax_assignment evaluation (percent/fixed/slab, compound, line-vs-document rounding)

@@ -24,6 +24,7 @@ export interface OperatorRuntimeStatus {
   readonly workbenchEnabled: boolean;
   readonly holdExpiryWorkerEnabled: boolean;
   readonly availabilityProjectionWorkerEnabled: boolean;
+  readonly pickupTaskWorkerEnabled: boolean;
   readonly processStartedAt: string;
 }
 
@@ -31,6 +32,7 @@ export const DEFAULT_OPERATOR_RUNTIME_STATUS: OperatorRuntimeStatus = Object.fre
   workbenchEnabled: false,
   holdExpiryWorkerEnabled: false,
   availabilityProjectionWorkerEnabled: false,
+  pickupTaskWorkerEnabled: false,
   processStartedAt: new Date(0).toISOString(),
 });
 

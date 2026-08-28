@@ -52,3 +52,10 @@ export type {
   VehicleRegisterRow,
   VehicleRegisterServiceOptions,
 } from "./vehicles";
+
+export { ArrivalPickupTaskAutomationConsumer } from "./pickup-task-automation";
+export type {
+  ArrivalPickupTaskAutomationDrainResult,
+  ArrivalPickupTaskAutomationOptions,
+  ArrivalPickupTaskAutomationRunOptions,
+} from "./pickup-task-automation";

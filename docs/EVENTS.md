@@ -50,6 +50,15 @@ no travel id, note, pickup-task id, Party/contact, vehicle/parking, occupancy, f
 or statutory data. Consumers must not infer pickup-task creation, transport completion,
 onsite presence, room occupancy or any charge from the recorded intent.
 
+Order 213 consumes `reservation.modified` only as a wake-up signal and re-reads the
+current locked arrival row. A qualifying unlinked pickup request produces exactly one
+`task.created` fact/outbox pair with aggregate type `task`. Its minimized payload is
+`{taskId,kind:'guest_request',subjectType:'reservation',subjectId,department:'transport',
+dueAt}`. Actor and correlation are copied from the source event and causation is the
+source event id. The consumer marker, task, travel link, fact and event commit in one
+transaction. No-op source truth emits nothing. Consumers must not infer assignment,
+dispatch, driver/vehicle, contact, onsite arrival, completion, charge or occupancy.
+
 **financials** · journal.posted {kind,lines:[{account,folio?,tx_code,amount_minor}],payment_id?,operation_id?} · folio.opened {folio_id,account_id,reservation_id,window_no,folio_no,name?} · folio.settled/.closed {folio_id,account_id,reservation_id,window_no,previous_status,status} · payment.authorized/.incrementally_authorized/.captured/.refunded/.voided/.failed/.indeterminate/.reconciled {operation_id,payment_id,phase,outcome,amount_minor,currency,journal_id?} · credit.limit_breached · cashier.opened/.counted/.closed {session_id,drawer_id,count_id?,over_short_minor?} · business_day.opened/.sealed · deposit.requested {hosted_request_id,operation_id,folio_id,amount_minor,currency,expires_at,generation} · deposit.applied {application_id,hosted_request_id,operation_id,folio_id,amount_minor,journal_id} · deposit.matured
 → documents, AR, trust splits (Automation), dashboards, GL export
 

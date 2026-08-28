@@ -145,6 +145,11 @@ const EXPECTED_MIGRATIONS = [
     filename: "0028_governed_reservation_travel.sql",
     checksum_sha256: "c282ca42fe52d7ea6bc0de077fa3842c5d578a56de5ecc6ceb108963f61391b6",
   },
+  {
+    version: 29,
+    filename: "0029_governed_arrival_pickup_task.sql",
+    checksum_sha256: "44bfef33a0cb775ed790a7df6d6510e23286cb1570fe5565473e8b422a2d1576",
+  },
 ];
 
 if (REQUIRE_DATABASE && !DATABASE_URL) {

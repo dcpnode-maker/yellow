@@ -209,6 +209,19 @@ changed command fails closed when the travel row is already linked to pickup wor
 it never creates, detaches or edits a task and has no vehicle, parking, occupancy,
 financial, statutory or board-read effect.
 
+Order 213 pickup automation is a specialized durable consumer, not a generic
+automation-engine claim and not an operator command. On `reservation.modified` it
+re-reads current database truth and acts only for an exact `reserved|due_in`
+reservation whose arrival row still has `pickup_requested=true`, a recorded
+`scheduled_at`, and no linked task. It atomically creates one existing
+`kind='guest_request'`, `status='open'`, `subject_type='reservation'` task for the
+exact property, with department `transport`, due time equal to the recorded arrival,
+no assignee, default priority and payload exactly `{requestType:'arrival_pickup'}`;
+the same capability links that task to the arrival row. Every ineligible or already
+linked current state is a consumed no-op. Task/link and one minimized `task.created`
+fact/outbox pair commit with the durable consumer marker. This create-only contract
+cannot edit, cancel, assign, transition, detach or delete pickup work.
+
 Order 200 active check-in contract: `GET
 /api/v1/properties/{property}/reservations/{reservation}/check-in/readiness` requires
 `stay-operations.checkin:read` and the exact property grant. It returns a no-store, server-owned

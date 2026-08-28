@@ -98,6 +98,11 @@ Open/assignment, cancellation, reopen and non-housekeeping task transitions rema
 non-executable in this slice. Emits `task.status_changed` and, only where the room
 condition changes, `unit.condition_changed`.
 
+Order 213 may create one `open` `guest_request` task as a create-only effect of
+current arrival pickup intent. It does not execute an `open -> assigned` or any other
+task transition. The task stays governed by this canonical machine; assignment,
+cancellation and transport-specific completion remain later commands.
+
 ## 5. Block (`reservation_group`, kind=block) — statuses come from `block_status_def`
 (tenant config); the ONLY semantic the engine reads is `deducts`. Transitions between
 statuses re-sync `availability_projection` deltas. Cutoff & wash run as Automations

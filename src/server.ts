@@ -6,7 +6,7 @@ import { PartyProfileService } from "./contexts/crm";
 import { CashierService, ChargeCorrectionService, ChargeService, FolioService, FolioSettlementService, FolioStatementService, FolioTransferService, HostedDepositService, LocalPaymentProvider, PaymentService, ReceivableService } from "./contexts/financials";
 import { AvailabilityProjectionConsumer, AvailabilityProjectionService, AvailabilityService, HoldExpiryWorker, HoldService, InventoryPolicyService, InventoryService, OperationalBlockService, ReservationOccupancyService, RestrictionService } from "./contexts/inventory";
 import { ReservationBoardService, ReservationCommitService, ReservationDetailService, ReservationGuestService, ReservationLifecycleService, ReservationOfferSearchService, ReservationSegmentService, ReservationTravelService } from "./contexts/reservations";
-import { CheckInService, CheckoutReadinessService, CheckoutService, VehicleRegisterService } from "./contexts/stay-operations";
+import { ArrivalPickupTaskAutomationConsumer, CheckInService, CheckoutReadinessService, CheckoutService, VehicleRegisterService } from "./contexts/stay-operations";
 import { HousekeepingSheetService, HousekeepingTaskService } from "./contexts/housekeeping";
 import {
   createRateIntentProposalAdapterFromEnvironment,
@@ -30,6 +30,7 @@ const hostedDepositEnabled = Bun.env.YELLOW_HOSTED_DEPOSIT_WORKBENCH === "1";
 const hostedProviderOnly = Bun.env.YELLOW_HOSTED_PROVIDER_ONLY === "1";
 const holdExpiryEnabled = workbenchEnabled && Bun.env.YELLOW_HOLD_EXPIRY_WORKER === "1";
 const projectionWorkerEnabled = workbenchEnabled && Bun.env.YELLOW_AVAILABILITY_PROJECTION_WORKER === "1";
+const pickupTaskWorkerEnabled = workbenchEnabled && Bun.env.YELLOW_PICKUP_TASK_WORKER === "1";
 const maxRequestBodySize = 16 * 1024;
 const processStartedAt = new Date().toISOString();
 
@@ -177,6 +178,7 @@ function runtimeApp() {
     workbenchEnabled,
     holdExpiryWorkerEnabled: holdExpiryEnabled,
     availabilityProjectionWorkerEnabled: projectionWorkerEnabled,
+    pickupTaskWorkerEnabled,
     processStartedAt,
   };
   if (projectionWorkerEnabled) {
@@ -195,6 +197,12 @@ function runtimeApp() {
         }
       },
     }).catch(() => console.error("hold expiry worker stopped unexpectedly"));
+  }
+  if (pickupTaskWorkerEnabled) {
+    const pickupTasks = new ArrivalPickupTaskAutomationConsumer(events);
+    pickupTasks.run({
+      onError() { console.error("arrival pickup task consumer failed"); },
+    }).catch(() => console.error("arrival pickup task consumer stopped unexpectedly"));
   }
   return createApp({
     database,

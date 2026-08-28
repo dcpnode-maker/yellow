@@ -202,6 +202,13 @@ status.
 3. Optional key-provider port only after provider ownership, credential and recovery
    policy are fixed.
 
+Order 213 is built-unreviewed and owns only create-only arrival pickup automation. It consumes current
+scheduled pickup-requested `reserved|due_in` truth into one existing-kind open
+transport guest-request task, links it atomically and records `task.created` evidence.
+It adds no generic automation catalogue claim, assignment, dispatch, cancellation,
+task transition, post-link edit, vehicle/parking, occupancy, finance or statutory
+effect. Canonical-detail task navigation remains a later read-only human slice.
+
 Statutory field semantics, validation, submission and receipts remain Phase 8. Tax and
 fiscal document work remains Phase 7. No country rule is hardcoded in Phase 6.
 

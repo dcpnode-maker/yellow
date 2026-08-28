@@ -1,6 +1,6 @@
 # Order 213 — Governed arrival pickup-task automation
 
-**Status:** READY-D569 — intentional red committed before implementation
+**Status:** BUILT-UNREVIEWED-D570 — implementation and executable build gates complete; independent Tier-3 review deferred
 **Phase:** 6 — Stay operations and housekeeping
 **Branch:** `phase-6/governed-reservation-travel-capture`
 **Base:** `2114474` (built-unreviewed Order212)
@@ -41,7 +41,9 @@ duplicate source events and concurrent workers cannot create duplicate work.
   detaches or deletes the task and never changes travel truth.
 - The workbench starts this consumer with one explicit environment-controlled worker
   and records its enabled state in project status. No new operator route or form is
-  needed: canonical reservation detail already shows requested versus linked truth.
+  added. Existing board/Today projections can show linked truth after their ordinary
+  authoritative refresh; canonical-detail task status/navigation is explicitly
+  deferred to a later read-only human-journey slice and is not claimed here.
 
 ## Exact scope
 
@@ -87,7 +89,7 @@ local, merge, push or deployment is admitted.
 ## Definition of done
 
 - [x] Intentional red precedes implementation.
-- [ ] Qualifying current arrival pickup truth creates and links exactly one task.
-- [ ] Raw DML and every unrelated or stale path fail closed or no-op as contracted.
-- [ ] Focused, standing and referee proofs are green.
-- [ ] Result is recorded built-unreviewed; independent Tier-3 execution remains pending.
+- [x] Qualifying current arrival pickup truth creates and links exactly one task.
+- [x] Raw DML and every unrelated or stale path fail closed or no-op as contracted.
+- [x] Focused, standing and referee proofs are green.
+- [x] Result is recorded built-unreviewed; independent Tier-3 execution remains pending.
