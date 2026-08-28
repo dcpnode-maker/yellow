@@ -1,6 +1,6 @@
 # Phase 6 — Stay operations and housekeeping
 
-**Status:** active; Orders 200–228 are built-unreviewed
+**Status:** active; Orders 200–230 are built-unreviewed; Order231 is ready
 **Entry point:** built-unreviewed Phase-5 composition through Order 199
 **Current order:** the next build-first Phase-6 slice is being scoped
 
@@ -302,6 +302,13 @@ reservation and readiness truth. Generic Housekeeping task detail, transition au
 and direct navigation remain unchanged; no browser readiness inference or automatic
 check-in is admitted. Focused `17/17`, adjacent continuity `36/36`, standing `695/0`,
 all static gates and fresh referee `11/11` are green.
+
+Order 231 is ready as the governed resolution of the exact current
+`room_assignment_missing` check-in blocker. One due-in, latest-booked, unassigned
+segment may select only a reservation-scoped server-admitted room and claim it through
+the occupancy choke point in the same transaction as the assignment and minimized
+evidence. Success returns to authoritative check-in preparation; no room condition,
+task, folio, identity, check-in, financial, day or statutory effect is admitted.
 
 Statutory field semantics, validation, submission and receipts remain Phase 8. Tax and
 fiscal document work remains Phase 7. No country rule is hardcoded in Phase 6.
