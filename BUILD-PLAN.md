@@ -387,6 +387,14 @@ authoritative checked-out reservation-detail refresh and presents a deliberate R
 room in Housekeeping action. The existing Housekeeping condition board owns room truth;
 the browser neither dirties the room, creates work, infers discrepancy nor reruns
 checkout. Direct Housekeeping and every server/database authority remain unchanged.
+
+Order 235 is ready as the governed room-discrepancy slice. One authorized deliberate
+room observation is compared in PostgreSQL with coherent current segment and exact
+exclusive occupancy truth, producing only sleep, skip or person discrepancy evidence;
+matching truth produces nothing. It reuses the existing discrepancy primitive and
+event, keeps raw DML denied, permits one unresolved row per room, and explicitly
+defers resolution, queue/message linkage, shared/positional semantics and all source
+condition/task/reservation/occupancy/financial mutation.
 Focused `13/13`, adjacent `104/104`, standing `741/0`, static/exact-schema gates and a
 fresh referee `11/11` are green; independent product review remains deferred.
 
