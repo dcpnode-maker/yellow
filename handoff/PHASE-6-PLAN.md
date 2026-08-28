@@ -314,7 +314,8 @@ standing proofs are green; independent Tier-3 approval remains deferred.
 
 Order 232 is ready as the missing property-local arrival roll. One bounded worker will
 derive exact open business-date scopes in PostgreSQL and move only coherent current
-`reserved`/`booked` arrival truth to `due_in`, atomically recording the existing
+`reserved`/`booked` arrival truth to parent `due_in` while the segment remains
+byte-equivalent `booked`, atomically recording the existing
 `reservation.due_in` evidence. This closes the fixture-only gap before Today and the
 governed check-in journey; it adds no operator control, no no-show/due-out/day-close
 meaning and no occupancy, folio, identity, financial or statutory effect.

@@ -1,6 +1,6 @@
 # Order 232 — Governed property-local due-in roll
 
-**Status:** READY-D608
+**Status:** READY-D609
 **Phase:** 6 — Stay operations and housekeeping
 **Branch:** `phase-6/governed-property-local-due-in-roll`
 **Base:** `922c8a9` (built-unreviewed Order231)
@@ -21,8 +21,9 @@ check-in journey become reachable without fixture or operator database intervent
   property business date and one coherent `reserved` reservation whose latest current
   `booked` segment begins on that same local date. Browser or process wall-clock
   arithmetic is never authoritative.
-- Only `reserved -> due_in` and the matching current `booked -> due_in` segment status
-  transition are admitted. Parent and segment remain coherent in one transaction.
+- Only the reservation parent `reserved -> due_in` transition is admitted. The exact
+  current segment must remain `booked`: that is the canonical coherent arrival shape
+  and the only segment state accepted by the later check-in transition.
 - The roll reuses the existing `reservation.due_in` event, fact/outbox/idempotency and
   actor/correlation/causation conventions. No table, event, permission or browser
   command is added.
@@ -78,8 +79,9 @@ scope correction precedes it.
   rolls once only when the database-derived property business date equals arrival.
 - **P2 containment:** future, past, foreign-property, cancelled, waitlist,
   already-due-in and incoherent segment truth produce no artifact.
-- **P3 atomicity:** parent and current segment become due-in with one minimized
-  `reservation.due_in` fact/outbox/idempotency result and no unrelated row change.
+- **P3 atomicity:** the parent becomes due-in while the exact current segment remains
+  byte-equivalent `booked`, with one minimized `reservation.due_in`
+  fact/outbox/idempotency result and no unrelated row change.
 - **P4 contention/replay:** rerun and twenty contenders converge to one transition and
   one evidence effect.
 - **P5 rollback:** injected fact/publication failure leaves parent, segment,
@@ -96,6 +98,7 @@ scope correction precedes it.
 
 - [ ] Intentional red precedes implementation.
 - [ ] Property-local due admission is database-authoritative and bounded.
-- [ ] Parent/segment/evidence transition is atomic, replay-safe and contention-safe.
+- [ ] Parent transition/evidence is atomic, replay-safe and contention-safe while the
+  coherent current booked segment remains unchanged.
 - [ ] Existing Today and check-in journeys become reachable from a real commit.
 - [ ] Standing gates are green and the result is recorded built-unreviewed.
