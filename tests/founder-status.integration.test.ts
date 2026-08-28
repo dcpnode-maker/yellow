@@ -165,10 +165,10 @@ describe("Order 064 recorded build snapshot", () => {
     const rows = manifestRows(manifest);
     expect(rows.length).toBeGreaterThan(0);
     expect(PROJECT_BUILD_SNAPSHOT.recordedAt).toBe("2026-08-28");
-    expect(PROJECT_BUILD_SNAPSHOT.roadmap.latestBuiltOrder).toBe(240);
+    expect(PROJECT_BUILD_SNAPSHOT.roadmap.latestBuiltOrder).toBe(245);
     expect(PROJECT_BUILD_SNAPSHOT.review.gate3Debt).toBe(0);
     expect(PROJECT_BUILD_SNAPSHOT.review.state).toBe("built_unverified");
-    expect(PROJECT_BUILD_SNAPSHOT.roadmap.currentOrder).toBe(242);
+    expect(PROJECT_BUILD_SNAPSHOT.roadmap.currentOrder).toBe(246);
     expect(PROJECT_BUILD_SNAPSHOT.roadmap.activePhase).toBe(7);
     expect(PROJECT_BUILD_SNAPSHOT.roadmap.phaseCount).toBe(13);
     expect(reviewCoverage.throughOrder).toBe(91);
@@ -421,10 +421,10 @@ describe("Order 064 recorded build snapshot", () => {
         remaining: "Builder proof only; independent high-risk review and Phase-6 completion remain pending.",
       },
       {
-        order: 240,
+        order: 245,
         state: "built_unverified",
-        summary: "Orders 237–240 built pure tax evaluation, effective jurisdiction resolution, attributable quote preview and the canonical positive attribution snapshot.",
-        remaining: "Builder proof only; persistence, posting, fiscal documents/IRP, independent review and Phase-7 completion remain pending.",
+        summary: "Orders 237–245 built pure tax evaluation, effective jurisdiction resolution, attributable quote preview, the canonical positive attribution snapshot, governed append-only persistence and the inherited occupancy definer-path repair.",
+        remaining: "Builder proof only; posting, fiscal documents/IRP, independent review and Phase-7 completion remain pending.",
       },
     ]);
     const recordedOrders = PROJECT_BUILD_SNAPSHOT.recordedWork.map(({ order }) => Number(order));
@@ -432,7 +432,7 @@ describe("Order 064 recorded build snapshot", () => {
       126, 127, 148, 154, 155, 156, 160, 161, 162, 163, 164,
       165, 166, 168, 169, 170, 171, 173, 174, 175, 176, 177, 178,
       179, 180, 181, 182, 183, 184, 185, 186, 188, 189,
-      190, 191, 192, 193, 195, 199, 236, 240,
+      190, 191, 192, 193, 195, 199, 236, 245,
     ]);
     expect(recordedOrders).not.toContain(167);
     expect(recordedOrders).not.toContain(172);
@@ -442,10 +442,15 @@ describe("Order 064 recorded build snapshot", () => {
       .filter(({ state }) => state === "independently_approved").map(({ order }) => Number(order)))
       .toEqual([190, 191, 192, 193, 195]);
     expect(PROJECT_BUILD_SNAPSHOT.recordedWork.filter(({ state }) => state === "built_unverified")
-      .map(({ order }) => Number(order))).toEqual([199, 236, 240]);
+      .map(({ order }) => Number(order))).toEqual([199, 236, 245]);
     expect(PROJECT_BUILD_SNAPSHOT.recordedWork.find(({ order }) => order === 199)?.summary).toMatch(/196–199/);
     expect(PROJECT_BUILD_SNAPSHOT.recordedWork.find(({ order }) => order === 236)?.summary).toMatch(/200–236/);
-    expect(PROJECT_BUILD_SNAPSHOT.recordedWork.find(({ order }) => order === 240)?.summary).toMatch(/237–240/);
+    const order245: { readonly summary: string; readonly remaining?: string } | undefined =
+      PROJECT_BUILD_SNAPSHOT.recordedWork.find(({ order }) => order === 245);
+    expect(order245?.summary).toMatch(/237–245/);
+    expect(order245?.summary).toMatch(/append-only persistence/i);
+    expect(order245?.summary).toMatch(/occupancy definer-path repair/i);
+    expect(order245?.remaining).toMatch(/posting, fiscal documents\/IRP, independent review and Phase-7 completion remain pending/i);
     const order178: { readonly summary: string; readonly remaining?: string } | undefined =
       PROJECT_BUILD_SNAPSHOT.recordedWork.find(({ order }) => order === 178);
     expect(`${order178?.summary} ${order178?.remaining}`).toMatch(/offline/i);

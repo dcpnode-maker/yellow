@@ -15,7 +15,7 @@ export interface ProjectRecordedWorkSnapshot {
     | 126 | 127 | 148 | 154 | 155 | 156 | 160 | 161 | 162 | 163 | 164
     | 165 | 166 | 168 | 169 | 170 | 171 | 173 | 174 | 175 | 176 | 177 | 178
     | 179 | 180 | 181 | 182 | 183 | 184 | 185 | 186 | 188 | 189
-    | 190 | 191 | 192 | 193 | 195 | 199 | 236 | 240;
+    | 190 | 191 | 192 | 193 | 195 | 199 | 236 | 245;
   readonly state: ProjectRecordedWorkState;
   readonly summary: string;
   readonly remaining?: string;
@@ -47,8 +47,8 @@ export const PROJECT_BUILD_SNAPSHOT = Object.freeze({
   label: "Recorded build snapshot",
   roadmap: Object.freeze({
     phaseCount: 13,
-    latestBuiltOrder: 240,
-    currentOrder: 242,
+    latestBuiltOrder: 245,
+    currentOrder: 246,
     activePhase: 7,
   }),
   review: Object.freeze({
@@ -297,10 +297,10 @@ export const PROJECT_BUILD_SNAPSHOT = Object.freeze({
       remaining: "Builder proof only; independent high-risk review and Phase-6 completion remain pending.",
     }),
     Object.freeze({
-      order: 240,
+      order: 245,
       state: "built_unverified" as const,
-      summary: "Orders 237–240 built pure tax evaluation, effective jurisdiction resolution, attributable quote preview and the canonical positive attribution snapshot.",
-      remaining: "Builder proof only; persistence, posting, fiscal documents/IRP, independent review and Phase-7 completion remain pending.",
+      summary: "Orders 237–245 built pure tax evaluation, effective jurisdiction resolution, attributable quote preview, the canonical positive attribution snapshot, governed append-only persistence and the inherited occupancy definer-path repair.",
+      remaining: "Builder proof only; posting, fiscal documents/IRP, independent review and Phase-7 completion remain pending.",
     }),
   ] satisfies readonly ProjectRecordedWorkSnapshot[]),
   phases: Object.freeze([
