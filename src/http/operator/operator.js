@@ -31,6 +31,7 @@
  let reservationGuestData = null;
  let reservationLifecycleData = null;
  let reservationSegmentData = null;
+ let reservationSegmentRequestGeneration = 0;
  let reservationBookingOffers = [];
  let reservationBookingSelection = null;
  let reservationBookingHold = null;
@@ -484,6 +485,7 @@
  const reservationLifecycleHome = reservationLifecycleEditor.parentElement;
  const reservationSegmentLookupForm = $("#reservation-segment-lookup-form");
  const reservationSegmentEditor = $("#reservation-segment-editor");
+ const reservationSegmentHome = reservationSegmentEditor.parentElement;
  const segmentConfirmation = $("#segment-confirmation");
  const segmentReservationStatus = $("#segment-reservation-status");
  const reservationSegmentHistory = $("#reservation-segment-history");
@@ -2032,6 +2034,7 @@
  };
  }
   function clearReservationDrawerLifecycle() {
+ restoreReservationSegmentEditorHome();
  reservationLifecycleData = null;
  reservationMetadataForm.hidden = true;
  reservationCancelForm.hidden = true;
@@ -2047,6 +2050,18 @@
  reservationDetailActions.replaceChildren();
  reservationDetailActions.hidden = true;
  }
+  function restoreReservationSegmentEditorHome() {
+ reservationSegmentRequestGeneration += 1;
+ reservationSegmentData = null;
+ reservationSegmentEditor.hidden = true;
+ reservationDepartureForm.hidden = true;
+ reservationRoomMoveForm.hidden = true;
+ segmentCommandMessage.textContent = "";
+ segmentCommandMessage.classList.remove("error");
+ if (reservationSegmentEditor.parentElement !== reservationSegmentHome) {
+  reservationSegmentHome.append(reservationSegmentEditor);
+ }
+ }
   function drawerLifecycleButton(label, target) {
  const button = el("button");
  button.type = "button";
@@ -2055,12 +2070,18 @@
  button.setAttribute("aria-controls", target.id);
  button.setAttribute("aria-expanded", "false");
  button.addEventListener("click", () => {
+  const stayChangesPanel = reservationDetailActions.querySelector(".reservation-stay-changes-panel");
+  if (stayChangesPanel && !stayChangesPanel.hidden) {
+  stayChangesPanel.hidden = true;
+  restoreReservationSegmentEditorHome();
+  }
   for (const peer of reservationDetailActions.querySelectorAll(".reservation-detail-action-menu button")) {
   peer.setAttribute("aria-expanded", String(peer === button));
   }
   reservationMetadataForm.hidden = target !== reservationMetadataForm;
   reservationCancelForm.hidden = target !== reservationCancelForm;
   reservationReinstatePanel.hidden = target !== reservationReinstatePanel;
+  reservationLifecycleEditor.hidden = false;
   target.hidden = false;
   target.querySelector("textarea, input, button")?.focus();
  });
@@ -2076,19 +2097,49 @@
   function renderReservationDrawerLifecycle(result) {
  const lifecycle = reservationLifecycleFromDetail(result);
  const actionNames = reservationDrawerActionNames(lifecycle.actions);
- if (actionNames.length === 0) return;
- renderReservationLifecycle(lifecycle);
- reservationMetadataForm.hidden = true;
- reservationCancelForm.hidden = true;
- reservationReinstatePanel.hidden = true;
  const menu = node("div", "reservation-detail-action-menu");
+ const stayChangesPanel = node("section", "reservation-stay-changes-panel");
+ stayChangesPanel.id = "reservation-stay-changes-panel";
+ stayChangesPanel.hidden = true;
+ const stayChangesHeading = node("h4", "", "Stay changes");
+ stayChangesHeading.id = "reservation-stay-changes-heading";
+ stayChangesPanel.setAttribute("aria-labelledby", stayChangesHeading.id);
+ stayChangesPanel.append(stayChangesHeading,
+  node("p", "muted", "Authoritative segment history and server-permitted departure or room changes for this reservation."));
+ const stayChangesAction = el("button");
+ stayChangesAction.type = "button";
+ stayChangesAction.className = "secondary reservation-stay-changes-action";
+ stayChangesAction.textContent = "Stay changes";
+ stayChangesAction.setAttribute("aria-controls", stayChangesPanel.id);
+ stayChangesAction.setAttribute("aria-expanded", "false");
+ stayChangesAction.addEventListener("click", () => {
+  for (const peer of reservationDetailActions.querySelectorAll(".reservation-detail-action-menu button")) {
+  peer.setAttribute("aria-expanded", String(peer === stayChangesAction));
+  }
+  reservationMetadataForm.hidden = true;
+  reservationCancelForm.hidden = true;
+  reservationReinstatePanel.hidden = true;
+  reservationLifecycleEditor.hidden = true;
+  stayChangesPanel.hidden = false;
+  void openReservationStayChanges(result.reservation, { focus: true });
+ });
+ menu.append(stayChangesAction);
+ if (actionNames.length > 0) {
+  renderReservationLifecycle(lifecycle);
+  reservationMetadataForm.hidden = true;
+  reservationCancelForm.hidden = true;
+  reservationReinstatePanel.hidden = true;
+ }
  for (const name of actionNames) {
   if (name === "modify") menu.append(drawerLifecycleButton("Edit details", reservationMetadataForm));
   if (name === "cancel") menu.append(drawerLifecycleButton("Cancel", reservationCancelForm));
   if (name === "reinstate") menu.append(drawerLifecycleButton("Reinstate", reservationReinstatePanel));
  }
- reservationDetailActions.append(menu, reservationLifecycleEditor);
- reservationLifecycleEditor.hidden = false;
+ reservationDetailActions.append(menu, stayChangesPanel);
+ if (actionNames.length > 0) {
+  reservationDetailActions.append(reservationLifecycleEditor);
+  reservationLifecycleEditor.hidden = false;
+ }
  reservationDetailActions.hidden = false;
  }
   function renderReservationFolios(result) {
@@ -5985,14 +6036,97 @@ function departureEvidenceRow(term, value) {
   reservationSegmentEditor.focus();
  }
  }
+  function reservationSegmentDetailRequestIsCurrent(origin) {
+ return origin.requestGeneration === reservationSegmentRequestGeneration
+  && origin.detailGeneration === reservationDetailGeneration
+  && origin.property === propertySelect.value
+  && origin.reservationId === reservationRouteReservationId
+  && reservationDetailData?.reservation?.reservationId === origin.reservationId
+  && reservationDetailData.reservation.confirmationNo === origin.confirmationNo
+  && reservationDetailDrawer.hidden === false
+  && reservationSegmentEditor.parentElement?.classList.contains("reservation-stay-changes-panel");
+ }
+  async function requestReservationSegments(property, confirmationNo) {
+ return request(`/api/v1/properties/${enc(property)}/reservation-segments?confirmationNo=${enc(confirmationNo)}`);
+ }
+  async function openReservationStayChanges(reservation = reservationDetailData?.reservation, { focus = true } = {}) {
+ const panel = reservationDetailActions.querySelector(".reservation-stay-changes-panel");
+ const action = reservationDetailActions.querySelector(".reservation-stay-changes-action");
+ if (!panel || !action || !reservation || reservationDetailDrawer.hidden
+  || reservation.reservationId !== reservationRouteReservationId
+  || reservationDetailData?.reservation?.reservationId !== reservation.reservationId
+  || reservationDetailData.reservation.confirmationNo !== reservation.confirmationNo) {
+  restoreReservationSegmentEditorHome();
+  return false;
+ }
+ restoreReservationSegmentEditorHome();
+ panel.hidden = false;
+ panel.append(reservationSegmentEditor);
+ const confirmationNo = reservation.confirmationNo;
+ reservationSegmentLookupForm.elements.confirmationNo.value = confirmationNo;
+ const origin = {
+  requestGeneration: ++reservationSegmentRequestGeneration,
+  detailGeneration: reservationDetailGeneration,
+  property: propertySelect.value,
+  reservationId: reservation.reservationId,
+  confirmationNo,
+ };
+ reservationDetailStatus.textContent = "Loading authoritative stay changes…";
+ action.textContent = "Stay changes";
+ try {
+  const body = await requestReservationSegments(origin.property, confirmationNo);
+  if (!reservationSegmentDetailRequestIsCurrent(origin)) return false;
+  if (body?.reservation?.reservationId !== origin.reservationId
+   || body.reservation.confirmationNo !== origin.confirmationNo) {
+  throw new Error("Segment history did not match the current reservation.");
+  }
+  renderReservationSegments(body.reservation, focus);
+  reservationDetailStatus.textContent = "Stay changes loaded from authoritative segment truth.";
+  return true;
+ } catch (error) {
+  if (!reservationSegmentDetailRequestIsCurrent(origin)) return false;
+  reservationSegmentData = null;
+  reservationSegmentEditor.hidden = true;
+  reservationDetailStatus.textContent = error instanceof Error ? error.message : "Stay changes could not be loaded.";
+  action.textContent = "Retry stay changes";
+  if (focus) action.focus({ preventScroll: true });
+  return false;
+ }
+ }
   async function loadReservationSegments(focus = false) {
  const confirmationNo = String(new FormData(reservationSegmentLookupForm).get("confirmationNo") || "");
- const body = await request(`/api/v1/properties/${enc(propertySelect.value)}/reservation-segments?confirmationNo=${enc(confirmationNo)}`);
+ const body = await requestReservationSegments(propertySelect.value, confirmationNo);
  renderReservationSegments(body.reservation, focus);
+ }
+  function reservationSegmentCommandOrigin() {
+ const hosted = reservationSegmentEditor.parentElement?.classList.contains("reservation-stay-changes-panel") === true;
+ return {
+  kind: hosted ? "drawer" : "legacy",
+  requestGeneration: reservationSegmentRequestGeneration,
+  detailGeneration: reservationDetailGeneration,
+  property: propertySelect.value,
+  reservationId: reservationSegmentData?.reservationId || "",
+  confirmationNo: reservationSegmentData?.confirmationNo || "",
+ };
+ }
+  async function refreshReservationDetailAfterSegmentCommand(origin) {
+ if (origin.kind !== "drawer") {
+  await loadReservationSegments(true);
+  return true;
+ }
+ if (!reservationSegmentDetailRequestIsCurrent(origin)) return false;
+ await loadReservationDetail(origin.reservationId);
+ const current = reservationDetailData?.reservation;
+ if (propertySelect.value !== origin.property || reservationRouteReservationId !== origin.reservationId
+  || reservationDetailDrawer.hidden || current?.reservationId !== origin.reservationId
+  || current.confirmationNo !== origin.confirmationNo) return false;
+ return openReservationStayChanges(current, { focus: true });
  }
   async function submitSegmentCommand(path, method, body, form, successMessage) {
  const latest = reservationSegmentData?.segments.at(-1);
  if (!reservationSegmentData || !latest) return false;
+ const origin = reservationSegmentCommandOrigin();
+ if (origin.kind === "drawer" && !reservationSegmentDetailRequestIsCurrent(origin)) return false;
  const identity = `reservation-segment:${path}:${reservationSegmentData.reservationId}:${latest.segmentId}:${JSON.stringify(body)}`;
  const key = pendingKeys.get(identity) || crypto.randomUUID();
  pendingKeys.set(identity, key);
@@ -6001,17 +6135,19 @@ function departureEvidenceRow(term, value) {
  segmentCommandMessage.textContent = "Applying the audited segment command…";
  segmentCommandMessage.classList.remove("error");
  try {
-  await request(`/api/v1/properties/${enc(propertySelect.value)}/reservations/${enc(reservationSegmentData.reservationId)}/segments/${enc(latest.segmentId)}${path}`, {
+  await request(`/api/v1/properties/${enc(origin.property)}/reservations/${enc(reservationSegmentData.reservationId)}/segments/${enc(latest.segmentId)}${path}`, {
   method,
   headers: { "idempotency-key": key },
   body: JSON.stringify(body),
   });
   pendingKeys.delete(identity);
-  await loadReservationSegments(true);
+  const refreshed = await refreshReservationDetailAfterSegmentCommand(origin);
+  if (origin.kind === "drawer" && !refreshed) return true;
   segmentCommandMessage.textContent = successMessage;
   segmentCommandMessage.classList.remove("error");
   return true;
  } catch (error) {
+  if (origin.kind === "drawer" && !reservationSegmentDetailRequestIsCurrent(origin)) return false;
   segmentCommandMessage.textContent = error instanceof Error ? error.message : "Reservation segment command failed";
   segmentCommandMessage.classList.add("error");
   return false;

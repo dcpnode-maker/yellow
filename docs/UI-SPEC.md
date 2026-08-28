@@ -324,3 +324,26 @@ Action groups wrap without a fixed inline measure. Buttons remain at least 44 pi
 and 48 pixels in Android appearance, contain at 375 pixels and 200% zoom, expose a
 visible keyboard focus indicator, and remain operable under reduced motion and forced
 colours in Apple, Android, Windows 95/98, glass, neomorphism and ERP appearances.
+
+## 18. Reservation-detail stay changes
+
+The current reservation drawer offers one semantic **Stay changes** action in the
+same action group as the governed reservation controls. It opens the existing
+segment editor inside the drawer for the exact loaded confirmation, so the operator
+can read segment history and use only the departure-change or room-move forms that
+the latest server segment explicitly allows. The detached advanced confirmation
+lookup remains inert and is not presented as a second journey.
+
+The panel announces loading, success, failure and retry in the current drawer. A
+successful governed command refreshes current segment truth and the exact reservation
+detail before focus returns to the live Stay changes panel. Closing the drawer,
+changing property, signing out or opening another reservation returns the editor to
+its inert home; late results and detached focus are discarded.
+
+The action and every editor control remain at least 44 pixels, and 48 pixels in the
+Android appearance. The panel has no fixed inline measure, contains long identifiers
+and forms at 375 pixels and 200% zoom, uses a visible keyboard focus indicator, and
+respects reduced motion and forced colours. Apple, Android, Windows 95/98, glass,
+neomorphism and ERP appearances each preserve their native material treatment without
+changing server authority, endpoint, method, request body, idempotency or confirmation
+semantics.

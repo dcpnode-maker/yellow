@@ -168,7 +168,7 @@ check-in and checkout readiness workbenches. Exact due-in and due-out lane/statu
 pairs receive presentation actions; in-house and mismatches receive none. The strict
 deep-link query changes no server authority, readiness result or confirmation rule.
 
-Order 210 is admitted as a UI-only integration of existing governed stay-segment
+Order 210 is built-unreviewed as a UI-only integration of existing governed stay-segment
 changes into canonical reservation detail. It reuses server action flags and exact
 departure/move commands while adding current-detail identity, stale and focus guards;
 it creates no new mutation authority or second workflow.

@@ -200,6 +200,157 @@ test("Order 209: strict workbench intent survives refresh and same-reservation q
   expect(close).toContain("reservationDrawerReturnFocus?.isConnected ? reservationDrawerReturnFocus : $(\"#reservations-title\")");
 });
 
+test("Order 210: Stay changes reuses server-governed segment truth and exact mutation transport", () => {
+  const open = functionSource("openReservationStayChanges");
+  expect(open).toContain("reservation.reservationId !== reservationRouteReservationId");
+  expect(open).toContain("reservationDetailData.reservation.confirmationNo !== reservation.confirmationNo");
+  expect(open).toContain("panel.append(reservationSegmentEditor)");
+  expect(open).toContain("reservationSegmentLookupForm.elements.confirmationNo.value = confirmationNo");
+  expect(open).toContain("requestReservationSegments(origin.property, confirmationNo)");
+  expect(open).toContain("if (!reservationSegmentDetailRequestIsCurrent(origin)) return false");
+  expect(open).toContain("body?.reservation?.reservationId !== origin.reservationId");
+  expect(open).toContain("body.reservation.confirmationNo !== origin.confirmationNo");
+  expect(open).toContain("renderReservationSegments(body.reservation, focus)");
+  expect(open).not.toMatch(/method:\s*["'](?:PATCH|POST)["']|submitSegmentCommand|\.click\(\)/);
+
+  const render = functionSource("renderReservationSegments");
+  expect(render).toContain("reservationDepartureForm.hidden = !latest?.actions.canChangeDeparture");
+  expect(render).toContain("reservationRoomMoveForm.hidden = !latest?.actions.canMoveRoom");
+  expect(render).not.toMatch(/canChangeDeparture\s*=|canMoveRoom\s*=/);
+
+  const submit = functionSource("submitSegmentCommand");
+  expect(submit).toContain("const origin = reservationSegmentCommandOrigin()");
+  expect(submit).toContain("if (origin.kind === \"drawer\" && !reservationSegmentDetailRequestIsCurrent(origin)) return false");
+  expect(submit).toContain("`reservation-segment:${path}:${reservationSegmentData.reservationId}:${latest.segmentId}:${JSON.stringify(body)}`");
+  expect(submit).toContain("pendingKeys.get(identity) || crypto.randomUUID()");
+  expect(submit).toContain("/reservations/${enc(reservationSegmentData.reservationId)}/segments/${enc(latest.segmentId)}${path}");
+  expect(submit).toContain("method,");
+  expect(submit).toContain('headers: { "idempotency-key": key }');
+  expect(submit).toContain("body: JSON.stringify(body)");
+  expect(submit.match(/refreshReservationDetailAfterSegmentCommand\(origin\)/g)).toHaveLength(1);
+
+  const listenerRegion = script.slice(
+    script.indexOf('reservationDepartureForm.addEventListener("submit"'),
+    script.indexOf('reservationMetadataForm.addEventListener("submit"'),
+  );
+  expect(listenerRegion).toContain('submitSegmentCommand("/departure", "PATCH"');
+  expect(listenerRegion).toContain("expectedPeriod: latest.period");
+  expect(listenerRegion).toContain("newDeparture: departure.toISOString()");
+  expect(listenerRegion).toContain('submitSegmentCommand("/move", "POST"');
+  expect(listenerRegion).toContain("expectedSellableUnitId: latest.sellableUnitId");
+  expect(listenerRegion).toContain("destinationSellableUnitId: reservationRoomMoveForm.elements.destinationSellableUnitId.value");
+});
+
+test("Order 210: request identity fails closed across close, property and different-detail boundaries", () => {
+  const guardSource = functionSource("reservationSegmentDetailRequestIsCurrent");
+  const evaluate = new Function("state", `
+    let reservationSegmentRequestGeneration = state.requestGeneration;
+    let reservationDetailGeneration = state.detailGeneration;
+    const propertySelect = { value: state.property };
+    let reservationRouteReservationId = state.reservationId;
+    let reservationDetailData = state.detailData;
+    const reservationDetailDrawer = { hidden: state.drawerHidden };
+    const reservationSegmentEditor = {
+      parentElement: { classList: { contains: () => state.hosted } },
+    };
+    ${guardSource}
+    return reservationSegmentDetailRequestIsCurrent(state.origin);
+  `) as (state: Record<string, unknown>) => boolean;
+  const origin = {
+    requestGeneration: 11,
+    detailGeneration: 7,
+    property: "p-1",
+    reservationId: "r-1",
+    confirmationNo: "Y-1",
+  };
+  const current = {
+    requestGeneration: 11,
+    detailGeneration: 7,
+    property: "p-1",
+    reservationId: "r-1",
+    detailData: { reservation: { reservationId: "r-1", confirmationNo: "Y-1" } },
+    drawerHidden: false,
+    hosted: true,
+    origin,
+  };
+  expect(evaluate(current)).toBe(true);
+  for (const stale of [
+    { requestGeneration: 12 },
+    { detailGeneration: 8 },
+    { property: "p-2" },
+    { reservationId: "r-2" },
+    { detailData: { reservation: { reservationId: "r-2", confirmationNo: "Y-1" } } },
+    { detailData: { reservation: { reservationId: "r-1", confirmationNo: "Y-2" } } },
+    { drawerHidden: true },
+    { hosted: false },
+  ]) expect(evaluate({ ...current, ...stale })).toBe(false);
+
+  const clear = functionSource("clearReservationDrawerLifecycle");
+  expect(clear).toContain("restoreReservationSegmentEditorHome()");
+  expect(functionSource("loadReservationDetail")).toContain("clearReservationDrawerLifecycle()");
+  expect(functionSource("closeReservationDetail")).toContain("clearReservationDrawerLifecycle()");
+  expect(functionSource("showLogin")).toContain("clearReservationDrawerLifecycle()");
+  const propertyChangeStart = script.indexOf('propertySelect.addEventListener("change"');
+  const propertyChange = script.slice(
+    propertyChangeStart,
+    script.indexOf("for (const tab of navigation)", propertyChangeStart),
+  );
+  expect(propertyChange).toContain("clearReservationDrawerLifecycle()");
+});
+
+test("Order 210: editor returns home and success refreshes detail plus segment truth exactly once", () => {
+  const restoreSource = functionSource("restoreReservationSegmentEditorHome");
+  const restore = new Function(`
+    let reservationSegmentRequestGeneration = 4;
+    let reservationSegmentData = { stale: true };
+    const otherParent = {};
+    const reservationSegmentEditor = { hidden: false, parentElement: otherParent };
+    const reservationDepartureForm = { hidden: false };
+    const reservationRoomMoveForm = { hidden: false };
+    const segmentCommandMessage = {
+      textContent: "stale",
+      classList: { error: true, remove(name) { if (name === "error") this.error = false; } },
+    };
+    let appendCount = 0;
+    const reservationSegmentHome = {
+      append(node) { appendCount += 1; node.parentElement = this; },
+    };
+    ${restoreSource}
+    restoreReservationSegmentEditorHome();
+    return {
+      requestGeneration: reservationSegmentRequestGeneration,
+      data: reservationSegmentData,
+      editorHidden: reservationSegmentEditor.hidden,
+      departureHidden: reservationDepartureForm.hidden,
+      moveHidden: reservationRoomMoveForm.hidden,
+      message: segmentCommandMessage.textContent,
+      error: segmentCommandMessage.classList.error,
+      appendCount,
+      atHome: reservationSegmentEditor.parentElement === reservationSegmentHome,
+    };
+  `) as () => Record<string, unknown>;
+  expect(restore()).toEqual({
+    requestGeneration: 5,
+    data: null,
+    editorHidden: true,
+    departureHidden: true,
+    moveHidden: true,
+    message: "",
+    error: false,
+    appendCount: 1,
+    atHome: true,
+  });
+
+  const refresh = functionSource("refreshReservationDetailAfterSegmentCommand");
+  expect(refresh.match(/loadReservationSegments\(true\)/g)).toHaveLength(1);
+  expect(refresh.match(/loadReservationDetail\(origin\.reservationId\)/g)).toHaveLength(1);
+  expect(refresh.match(/openReservationStayChanges\(current, \{ focus: true \}\)/g)).toHaveLength(1);
+  expect(refresh).toContain("if (!reservationSegmentDetailRequestIsCurrent(origin)) return false");
+  expect(refresh).toContain("propertySelect.value !== origin.property");
+  expect(refresh).toContain("reservationRouteReservationId !== origin.reservationId");
+  expect(refresh).toContain("current.confirmationNo !== origin.confirmationNo");
+});
+
 test("Order 168: dirty exit, history and journey reset policies execute at exact boundaries", () => {
   const shouldConfirm = executableFunction<(visible: boolean, dirty: boolean, destination: string) => boolean>("shouldConfirmReservationExit");
   expect(shouldConfirm(true, true, "board")).toBe(true);

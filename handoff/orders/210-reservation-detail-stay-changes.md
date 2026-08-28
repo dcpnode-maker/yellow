@@ -1,6 +1,6 @@
 # Order 210 — Reservation-detail stay changes
 
-**Status:** READY-D563 — intentional red required before implementation
+**Status:** BUILT-UNREVIEWED-D564 — implementation and required executable gates green
 **Phase:** 6 — Stay operations and housekeeping
 **Branch:** `phase-6/reservation-detail-stay-changes`
 **Base:** `ae54d44` (built-unreviewed Order209)
@@ -87,9 +87,9 @@ local, schema or product-state authority change is admitted.
 
 ## Definition of done
 
-- [ ] Intentional red precedes implementation.
-- [ ] Exact current-detail stay changes are usable without copied identifiers.
-- [ ] Server authority and governed mutation semantics are unchanged.
-- [ ] Stale paint/focus and detached editor states fail closed.
-- [ ] Result is built-unreviewed without approval, Phase6/app completion, local
+- [x] Intentional red precedes implementation.
+- [x] Exact current-detail stay changes are usable without copied identifiers.
+- [x] Server authority and governed mutation semantics are unchanged.
+- [x] Stale paint/focus and detached editor states fail closed.
+- [x] Result is built-unreviewed without approval, Phase6/app completion, local
   promotion, merge, push or deployment.
