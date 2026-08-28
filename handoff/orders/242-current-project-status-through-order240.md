@@ -1,6 +1,6 @@
 # Order 242 — Current project status through Order 240
 
-**Status:** READY-D632
+**Status:** BUILT-UNREVIEWED-D633
 **Phase:** 7 — Tax engine and India IRP
 **Branch:** `phase-7/current-project-status-order240`
 **Base:** `7d0adce` (built-unreviewed Order240)
@@ -19,9 +19,10 @@ or changing product, database, credential or runtime behavior.
 - `tests/founder-status.integration.test.ts`;
 - this order, `DECISIONS.log` and `handoff/LEDGER.md`.
 
-No HTML, CSS, client JavaScript, API shape, schema, migration, seed, credential,
-Compose, runtime, local promotion, permission, dependency, merge or production change
-is admitted.
+No HTML, CSS, client JavaScript, endpoint or field-structure, schema, migration, seed,
+credential, Compose, runtime, local promotion, permission, dependency, merge or
+production change is admitted. Only the recorded snapshot values and the additive
+`built_unverified` recorded-work state literal change.
 
 ## Required truth
 
@@ -35,8 +36,9 @@ is admitted.
 4. Append compact built-unverified milestone ranges at Order199 for Orders196–199,
    Order236 for Orders200–236 and Order240 for Orders237–240, each with explicit
    remaining review and no-completion boundaries.
-5. Phase states are exactly reviewed 0–3, built-unverified 4–6, active 7 and planned
-   8–12. Exactly one phase is active.
+5. Phase states are exactly reviewed 0–3, built-unverified 4, active 5–7 and planned
+   8–12. `roadmap.activePhase` remains 7 as the currently advancing phase while the
+   unfinished Phase5 and Phase6 plans remain honestly active.
 6. The existing authenticated endpoint remains the only rendering source and returns
    the exact deeply immutable snapshot without credentials or invented live truth.
 
@@ -53,4 +55,15 @@ is admitted.
 - claiming Phase5, Phase6, Phase7 or application completion;
 - local rebuild/promotion, database or credential mutation in this order.
 
-This order may close only as built-unreviewed.
+This order closes only as built-unreviewed.
+
+## Built evidence
+
+The intentional stale-snapshot proof failed before implementation. The focused
+founder-status proof is green at 5/5 plus 2 expected database skips with 81
+assertions. The standing suite is green at 820/820 plus 708 environment skips with
+8,365 assertions across 1,528 tests/276 files. Strict typecheck, 90 import
+boundaries, 23 dependency licences, zero-vulnerability audit, all four tracked
+JavaScript syntax checks and diff hygiene are green. The change is confined to the
+recorded snapshot, its exact proof and this order's governance files; review coverage
+remains 91 and no local runtime was changed by Order242.

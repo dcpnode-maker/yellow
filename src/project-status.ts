@@ -8,13 +8,14 @@ export interface ProjectPhaseSnapshot {
   readonly state: PhaseBuildState;
 }
 
-export type ProjectRecordedWorkState = "independently_approved" | "proof_in_progress";
+export type ProjectRecordedWorkState = "independently_approved" | "proof_in_progress" | "built_unverified";
 
 export interface ProjectRecordedWorkSnapshot {
   readonly order:
     | 126 | 127 | 148 | 154 | 155 | 156 | 160 | 161 | 162 | 163 | 164
     | 165 | 166 | 168 | 169 | 170 | 171 | 173 | 174 | 175 | 176 | 177 | 178
-    | 179 | 180 | 181 | 182 | 183 | 184 | 185 | 186 | 188 | 189;
+    | 179 | 180 | 181 | 182 | 183 | 184 | 185 | 186 | 188 | 189
+    | 190 | 191 | 192 | 193 | 195 | 199 | 236 | 240;
   readonly state: ProjectRecordedWorkState;
   readonly summary: string;
   readonly remaining?: string;
@@ -42,13 +43,13 @@ export const DEFAULT_OPERATOR_RUNTIME_STATUS: OperatorRuntimeStatus = Object.fre
 
 export const PROJECT_BUILD_SNAPSHOT = Object.freeze({
   schemaVersion: 1,
-  recordedAt: "2026-08-27",
+  recordedAt: "2026-08-28",
   label: "Recorded build snapshot",
   roadmap: Object.freeze({
     phaseCount: 13,
-    latestBuiltOrder: 189,
-    currentOrder: 190,
-    activePhase: 5,
+    latestBuiltOrder: 240,
+    currentOrder: 242,
+    activePhase: 7,
   }),
   review: Object.freeze({
     independentlyReviewedThroughOrder: INDEPENDENTLY_REVIEWED_THROUGH_ORDER,
@@ -253,6 +254,54 @@ export const PROJECT_BUILD_SNAPSHOT = Object.freeze({
       summary: "Order 189 independently approved the exact Order 188 product on the sole founder-local application.",
       remaining: "Founder CRUD drift and persistent data were preserved; no public or production deployment is claimed.",
     }),
+    Object.freeze({
+      order: 190,
+      state: "independently_approved" as const,
+      summary: "Order 190 independently approved recorded project-status truth through Order 189 (D-501).",
+      remaining: "Approval changed recorded status only and did not advance review coverage or promote a runtime.",
+    }),
+    Object.freeze({
+      order: 191,
+      state: "independently_approved" as const,
+      summary: "Order 191 independently approved the sole-local Order 190 app-only promotion (D-504).",
+      remaining: "Approval was loopback-local only and changed no database, credential, permission or product truth.",
+    }),
+    Object.freeze({
+      order: 192,
+      state: "independently_approved" as const,
+      summary: "Order 192 independently approved the token-only payment foundation (D-509).",
+      remaining: "Approval did not promote it locally or authorize a real payment provider, public deployment or Phase completion.",
+    }),
+    Object.freeze({
+      order: 193,
+      state: "independently_approved" as const,
+      summary: "Order 193 independently approved the hosted-payment and deposit workbench (D-518).",
+      remaining: "Approval remained provider-synthetic and did not authorize public exposure, production or Phase completion.",
+    }),
+    Object.freeze({
+      order: 195,
+      state: "independently_approved" as const,
+      summary: "Order 195 independently approved the retained six-appearance product (D-530).",
+      remaining: "Approval was limited to retaining that exact candidate on the sole loopback-local app; it did not authorize public or production deployment or Phase completion.",
+    }),
+    Object.freeze({
+      order: 199,
+      state: "built_unverified" as const,
+      summary: "Orders 196–199 built folio settlement, cashier sessions, governed receivable transfer and the composed Phase-5 financial journey gate.",
+      remaining: "Builder proof is green; independent high-risk review, remaining Phase-5 work and Phase completion are not claimed.",
+    }),
+    Object.freeze({
+      order: 236,
+      state: "built_unverified" as const,
+      summary: "Orders 200–236 built the current Stay operations & Housekeeping descendant stack through governed parking-slot assignment.",
+      remaining: "Builder proof only; independent high-risk review and Phase-6 completion remain pending.",
+    }),
+    Object.freeze({
+      order: 240,
+      state: "built_unverified" as const,
+      summary: "Orders 237–240 built pure tax evaluation, effective jurisdiction resolution, attributable quote preview and the canonical positive attribution snapshot.",
+      remaining: "Builder proof only; persistence, posting, fiscal documents/IRP, independent review and Phase-7 completion remain pending.",
+    }),
   ] satisfies readonly ProjectRecordedWorkSnapshot[]),
   phases: Object.freeze([
     Object.freeze({ number: 0, name: "Bootstrap", state: "reviewed" as const }),
@@ -261,8 +310,8 @@ export const PROJECT_BUILD_SNAPSHOT = Object.freeze({
     Object.freeze({ number: 3, name: "Rates & policies", state: INDEPENDENTLY_REVIEWED_THROUGH_ORDER >= 79 ? "reviewed" as const : "built_unverified" as const }),
     Object.freeze({ number: 4, name: "Reservations", state: "built_unverified" as const }),
     Object.freeze({ number: 5, name: "Financials", state: "active" as const }),
-    Object.freeze({ number: 6, name: "Stay operations & housekeeping", state: "planned" as const }),
-    Object.freeze({ number: 7, name: "Tax & India IRP", state: "planned" as const }),
+    Object.freeze({ number: 6, name: "Stay operations & housekeeping", state: "active" as const }),
+    Object.freeze({ number: 7, name: "Tax & India IRP", state: "active" as const }),
     Object.freeze({ number: 8, name: "Statutory reporting & ZATCA", state: "planned" as const }),
     Object.freeze({ number: 9, name: "Distribution", state: "planned" as const }),
     Object.freeze({ number: 10, name: "Progressive web app", state: "planned" as const }),

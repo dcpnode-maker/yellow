@@ -406,7 +406,7 @@ describe("Order 064 recorded build snapshot", () => {
         order: 195,
         state: "independently_approved",
         summary: "Order 195 independently approved the retained six-appearance product (D-530).",
-        remaining: "Approval covered the product candidate only and did not itself replace the founder-local application.",
+        remaining: "Approval was limited to retaining that exact candidate on the sole loopback-local app; it did not authorize public or production deployment or Phase completion.",
       },
       {
         order: 199,
@@ -458,11 +458,11 @@ describe("Order 064 recorded build snapshot", () => {
     expect(PROJECT_BUILD_SNAPSHOT.phases[2]?.state).toBe("reviewed");
     expect(PROJECT_BUILD_SNAPSHOT.phases[3]?.state).toBe("reviewed");
     expect(PROJECT_BUILD_SNAPSHOT.phases[4]?.state).toBe("built_unverified");
-    expect(PROJECT_BUILD_SNAPSHOT.phases[5]?.state).toBe("built_unverified");
-    expect(PROJECT_BUILD_SNAPSHOT.phases[6]?.state).toBe("built_unverified");
+    expect(PROJECT_BUILD_SNAPSHOT.phases[5]?.state).toBe("active");
+    expect(PROJECT_BUILD_SNAPSHOT.phases[6]?.state).toBe("active");
     expect(PROJECT_BUILD_SNAPSHOT.phases[7]?.state).toBe("active");
     expect(PROJECT_BUILD_SNAPSHOT.phases.slice(8).every(({ state }) => state === "planned")).toBe(true);
-    expect(PROJECT_BUILD_SNAPSHOT.phases.filter(({ state }) => state === "active").map(({ number }) => number)).toEqual([7]);
+    expect(PROJECT_BUILD_SNAPSHOT.phases.filter(({ state }) => state === "active").map(({ number }) => number)).toEqual([5, 6, 7]);
   });
 
   test("P4/P5: health stays exact and assets contain honest same-origin status UI", async () => {
