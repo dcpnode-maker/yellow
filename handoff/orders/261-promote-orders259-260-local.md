@@ -1,6 +1,6 @@
 # Order 261 — Promote approved Order259 and status Order260 to the sole local app
 
-**Status:** READY-D676
+**Status:** APPROVED-LOCALLY-D677
 **Phase:** 7 — Tax engine and India IRP
 **Branch:** `phase-7/promote-orders259-260-local`
 **Base:** `2ae5f2a` (approved Order259 plus built Order260 status)
@@ -64,7 +64,29 @@ irreversible authorization.
 
 ## Definition of done
 
-- [ ] Exact preflight, backup and rollback image are verified.
-- [ ] Only migration0043 and the app container change.
-- [ ] Login, two hotels, exact status and one-local topology are green.
-- [ ] Independent non-operating verification records approval or findings.
+- [x] Exact preflight, backup and rollback image are verified.
+- [x] Only migration0043 and the app container change.
+- [x] Login, two hotels, exact status and one-local topology are green.
+- [x] Independent non-operating verification records approval or findings.
+
+## Promotion evidence
+
+The owner/SYSTEM-only 692,752-byte custom-format backup at
+`D:\Yellow\backups\yellow-pre-order261-20260828T230253Z.dump` has SHA-256
+`9f77cff0b1321e9ec96448547d0be242cf5c91c9f6208ed555f1dcc00c681038`
+and 1,269 readable restore entries. The rollback tag retains exact prior image
+`19c4546a…`.
+
+The production runner applied only migration0043 and immediately reported no-op on
+rerun. Live truth is migration43/97 tables/87 policies, exact migration hash
+`a5036df3…bf40`, zero semantic-route rows, two retained properties and zero drift in
+all 95 pre-existing non-ledger table counts. PostgreSQL `b0a92182a16a`, Valkey
+`ae62afc8df69` and the retained volume remain exact.
+
+Only the app was replaced, now `d23532f1782a` from image `dab955b933ed`. Protected
+environment values are byte-identical. The sole healthy loopback3000 app returns
+root/health/login HTTP200 with populated masked no-store sign-in, exactly two hotels
+and both exact status snapshots date2026-08-29/latest259/current260/review91/active7;
+ports3002/3188 are closed. Served project-status and semantic-route source hashes are
+exact. Independent non-operating PASS is recorded at
+`handoff/reviews/261-promote-orders259-260-local.md`.
