@@ -1,6 +1,6 @@
 # Order 212 — Governed reservation travel capture
 
-**Status:** READY-D567 — intentional red must precede implementation
+**Status:** BUILT-UNREVIEWED-D568 — implementation and required builder gates green
 **Phase:** 6 — Stay operations and housekeeping
 **Branch:** `phase-6/governed-reservation-travel-capture`
 **Base:** `790740b` (built-unreviewed Order211)
@@ -98,9 +98,8 @@ board contract/cursor change, second local, merge, push or deployment is admitte
 
 ## Definition of done
 
-- [ ] Intentional red precedes implementation.
-- [ ] Exact governed arrival and departure capture works from reservation detail.
-- [ ] Raw runtime DML, linked-task desynchronization and all unrelated effects fail closed.
-- [ ] Migration/schema, focused, standing and referee proofs are green.
-- [ ] Result is built-unreviewed; independent Tier-3 execution remains pending.
-
+- [x] Intentional red precedes implementation.
+- [x] Exact governed arrival and departure capture works from reservation detail.
+- [x] Raw runtime DML, linked-task desynchronization and all unrelated effects fail closed.
+- [x] Migration/schema, focused, standing and referee proofs are green.
+- [x] Result is built-unreviewed; independent Tier-3 execution remains pending.

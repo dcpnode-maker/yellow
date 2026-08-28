@@ -115,6 +115,10 @@ import {
   ReservationLifecycleService,
   ReservationLifecycleValidationError,
   ReservationSegmentService,
+  ReservationTravelConflictError,
+  ReservationTravelNotFoundError,
+  ReservationTravelService,
+  ReservationTravelValidationError,
   ReservationBoardConflictError,
   ReservationBoardService,
   ReservationBoardValidationError,
@@ -134,6 +138,9 @@ import {
   type ReservationBoardPage,
   type ReservationMutableFields,
   type ExpectedSegmentPeriod,
+  type ReservationTravelDirection,
+  type ReservationTravelMode,
+  type ReservationTravelTuple,
 } from "../contexts/reservations";
 import {
   CheckoutConflictError,
@@ -944,6 +951,59 @@ function parseReservationGuests(body: unknown): {
   });
 }
 
+const RESERVATION_TRAVEL_MODES = Object.freeze([
+  "flight", "train", "bus", "car", "ferry", "other",
+] as const satisfies readonly ReservationTravelMode[]);
+const RESERVATION_TRAVEL_INSTANT = /^(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3})(?:\d{3})?Z$/;
+
+function parseReservationTravelText(value: unknown, maximumCodePoints: number): string | null | undefined {
+  if (value === null) return null;
+  if (typeof value !== "string") return undefined;
+  const normalized = value.trim();
+  return normalized.length > 0 && Array.from(normalized).length <= maximumCodePoints
+    ? normalized
+    : undefined;
+}
+
+function parseReservationTravelInstant(value: unknown): string | null | undefined {
+  if (value === null) return null;
+  if (typeof value !== "string") return undefined;
+  const match = RESERVATION_TRAVEL_INSTANT.exec(value);
+  if (!match?.[1]) return undefined;
+  const milliseconds = `${match[1]}Z`;
+  const instant = new Date(milliseconds);
+  return Number.isFinite(instant.getTime()) && instant.toISOString() === milliseconds ? value : undefined;
+}
+
+function parseReservationTravelTuple(value: unknown): ReservationTravelTuple | undefined {
+  if (!isObject(value) || !exactKeys(value, [
+    "mode", "carrier", "serviceNo", "scheduledAt", "pickupRequested",
+  ])) return undefined;
+  const mode = value.mode === null
+    ? null
+    : RESERVATION_TRAVEL_MODES.find((candidate) => candidate === value.mode);
+  const carrier = parseReservationTravelText(value.carrier, 120);
+  const serviceNo = parseReservationTravelText(value.serviceNo, 64);
+  const scheduledAt = parseReservationTravelInstant(value.scheduledAt);
+  if (mode === undefined || carrier === undefined || serviceNo === undefined || scheduledAt === undefined ||
+      typeof value.pickupRequested !== "boolean") return undefined;
+  return Object.freeze({ mode, carrier, serviceNo, scheduledAt, pickupRequested: value.pickupRequested });
+}
+
+function parseReservationTravel(
+  body: unknown,
+  direction: ReservationTravelDirection,
+): Readonly<{ expected: ReservationTravelTuple | null; travel: ReservationTravelTuple }> | null {
+  if (!isObject(body) || !exactKeys(body, ["expected", "travel"])) return null;
+  const expected = body.expected === null ? null : parseReservationTravelTuple(body.expected);
+  const travel = parseReservationTravelTuple(body.travel);
+  if (expected === undefined || !travel ||
+      (direction === "departure" && (travel.pickupRequested || expected?.pickupRequested === true)) ||
+      (travel.mode === null && travel.carrier === null && travel.serviceNo === null &&
+        travel.scheduledAt === null && !travel.pickupRequested)) return null;
+  return Object.freeze({ expected, travel });
+}
+
 function confirmationQuery(request: Request): string | null {
   const query = new URL(request.url).searchParams;
   if ([...query.keys()].some((key) => key !== "confirmationNo") ||
@@ -1310,6 +1370,7 @@ type ReservationOfferOperations = Pick<ReservationOfferSearchService, "search">;
 type ReservationGuestOperations = Pick<ReservationGuestService, "findByConfirmation" | "replace">;
 type ReservationLifecycleOperations = Pick<ReservationLifecycleService, "findByConfirmation" | "modify" | "cancel" | "reinstate">;
 type ReservationSegmentOperations = Pick<ReservationSegmentService, "findByConfirmation" | "changeDeparture" | "moveRoom">;
+type ReservationTravelOperations = Pick<ReservationTravelService, "put">;
 type ReservationBoardOperations = Pick<ReservationBoardService, "list">;
 type ReservationDetailOperations = Pick<ReservationDetailService, "findById">;
 type CheckInOperations = Pick<CheckInService, "getReadiness" | "checkIn">;
@@ -1749,6 +1810,7 @@ export class OperatorHttpApi {
   readonly #housekeeping?: HousekeepingOperations;
   readonly #housekeepingSheets?: HousekeepingSheetOperations;
   readonly #vehicleRegister?: VehicleRegisterOperations;
+  readonly #reservationTravel?: ReservationTravelOperations;
 
   constructor(
     login: LocalLoginService,
@@ -1787,6 +1849,7 @@ export class OperatorHttpApi {
     checkoutReadiness?: CheckoutReadinessOperations,
     checkouts?: CheckoutOperations,
     vehicleRegister?: VehicleRegisterOperations,
+    reservationTravel?: ReservationTravelOperations,
   ) {
     this.#login = login;
     this.#availability = availability;
@@ -1824,6 +1887,7 @@ export class OperatorHttpApi {
     this.#checkoutReadiness = checkoutReadiness;
     this.#checkouts = checkouts;
     this.#vehicleRegister = vehicleRegister;
+    this.#reservationTravel = reservationTravel;
   }
 
   unavailable(request: Request): Response {
@@ -1956,6 +2020,9 @@ export class OperatorHttpApi {
     if (error instanceof ReservationGuestConflictError) {
       return apiError(request, 409, "reservations/conflict", "Conflict", "Reservation guest allocation conflicts with existing state");
     }
+    if (error instanceof ReservationTravelConflictError) {
+      return apiError(request, 409, "reservations/conflict", "Conflict", "Reservation travel conflicts with current recorded truth");
+    }
     if (error instanceof ReservationBoardConflictError || error instanceof ReservationDetailConflictError) {
       return apiError(request, 409, "reservations/read_conflict", "Conflict", "Stored reservation data is incoherent");
     }
@@ -1979,6 +2046,7 @@ export class OperatorHttpApi {
     }
     if (error instanceof ReservationValidationError || error instanceof ReservationOfferValidationError ||
         error instanceof ReservationGuestValidationError || error instanceof ReservationLifecycleValidationError ||
+        error instanceof ReservationTravelValidationError ||
         error instanceof ReservationBoardValidationError || error instanceof ReservationDetailValidationError) {
       return apiError(request, 400, "request/invalid", "Invalid request", "Reservation input is invalid");
     }
@@ -1986,6 +2054,7 @@ export class OperatorHttpApi {
       return apiError(request, 404, "inventory/not_found", "Not found", "Referenced inventory was not found");
     }
     if (error instanceof ReservationNotFoundError || error instanceof ReservationGuestNotFoundError ||
+        error instanceof ReservationTravelNotFoundError ||
         error instanceof ReservationLifecycleNotFoundError || error instanceof ReservationDetailNotFoundError) {
       return apiError(request, 404, "reservations/not_found", "Not found", "Referenced reservation input was not found");
     }
@@ -3356,6 +3425,60 @@ export class OperatorHttpApi {
     const { replayed, ...reservation } = result;
     return apiResponse(context.request, canonicalJson({ reservation: jsonValue(reservation) }), 200, {
       "idempotency-replayed": String(replayed),
+      "x-correlation-id": requestId,
+    });
+  }
+
+  async putReservationTravel(
+    context: TenantRequestContext,
+    propertyNode: string,
+    reservationId: string,
+    directionValue: string,
+    body: unknown,
+  ): Promise<Response> {
+    const direction = directionValue === "arrival" || directionValue === "departure"
+      ? directionValue
+      : null;
+    const input = direction ? parseReservationTravel(body, direction) : null;
+    const idempotencyKey = context.request.headers.get("idempotency-key");
+    if (!UUID.test(propertyNode) || !UUID.test(reservationId) || !direction || !input ||
+        !idempotencyKey || !IDEMPOTENCY_KEY.test(idempotencyKey) ||
+        new URL(context.request.url).search.length > 0) {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Reservation travel input is invalid");
+    }
+    if (!hasScope(context, RESERVATION_LIFECYCLE_WRITE_SCOPE)) {
+      return apiError(context.request, 403, "auth/scope_missing", "Forbidden", "Reservation travel changes are not granted");
+    }
+    const grants = await listGrantedProperties(context, RESERVATION_LIFECYCLE_WRITE_SCOPE);
+    if (!grants.some(({ id }) => id === propertyNode)) {
+      return apiError(context.request, 404, "reservations/not_found", "Not found", "The referenced reservation was not found");
+    }
+    if (!this.#reservationTravel) return this.unavailable(context.request);
+    const requestId = correlationId(context.request);
+    const result = await this.#reservationTravel.put(context.tx, {
+      reservationId,
+      direction,
+      expected: input.expected,
+      travel: input.travel,
+      idempotencyKey,
+      envelope: createAuditEnvelope({
+        actorId: context.identity.actorId,
+        tenantId: context.tenantId,
+        propertyNode,
+        requestId,
+        operation: "reservation.modified",
+      }),
+    });
+    return apiResponse(context.request, canonicalJson({
+      travel: jsonValue({
+        reservationId: result.reservationId,
+        status: result.status,
+        direction: result.direction,
+        travel: result.travel,
+        changed: result.changed,
+      }),
+    }), 200, {
+      "idempotency-replayed": String(result.replayed),
       "x-correlation-id": requestId,
     });
   }

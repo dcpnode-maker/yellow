@@ -5,7 +5,7 @@ import { BearerTenantResolver, Hs256TokenSigner, LocalLoginGuard, LocalLoginServ
 import { PartyProfileService } from "./contexts/crm";
 import { CashierService, ChargeCorrectionService, ChargeService, FolioService, FolioSettlementService, FolioStatementService, FolioTransferService, HostedDepositService, LocalPaymentProvider, PaymentService, ReceivableService } from "./contexts/financials";
 import { AvailabilityProjectionConsumer, AvailabilityProjectionService, AvailabilityService, HoldExpiryWorker, HoldService, InventoryPolicyService, InventoryService, OperationalBlockService, ReservationOccupancyService, RestrictionService } from "./contexts/inventory";
-import { ReservationBoardService, ReservationCommitService, ReservationDetailService, ReservationGuestService, ReservationLifecycleService, ReservationOfferSearchService, ReservationSegmentService } from "./contexts/reservations";
+import { ReservationBoardService, ReservationCommitService, ReservationDetailService, ReservationGuestService, ReservationLifecycleService, ReservationOfferSearchService, ReservationSegmentService, ReservationTravelService } from "./contexts/reservations";
 import { CheckInService, CheckoutReadinessService, CheckoutService, VehicleRegisterService } from "./contexts/stay-operations";
 import { HousekeepingSheetService, HousekeepingTaskService } from "./contexts/housekeeping";
 import {
@@ -137,6 +137,7 @@ function runtimeApp() {
   const reservationSegments = new ReservationSegmentService({
     events, idempotency: new PostgresIdempotency(), occupancy: reservationOccupancy,
   });
+  const reservationTravel = new ReservationTravelService({ events, idempotency: new PostgresIdempotency() });
   const parties = new PartyProfileService({ events, idempotency: new PostgresIdempotency() });
   const folioStatements = new FolioStatementService();
   const charges = new ChargeService({ events, idempotency: new PostgresIdempotency() });
@@ -198,7 +199,7 @@ function runtimeApp() {
   return createApp({
     database,
     tenantResolver: new BearerTenantResolver(tokens),
-    operatorApi: new OperatorHttpApi(login, availability, inventory, new PostgresIdempotency(), restrictions, rates, pricing, blocks, policy, holds, projection, runtimeStatus, rateBuilder, reservations, reservationOffers, reservationGuests, reservationLifecycle, reservationSegments, parties, folioStatements, charges, new ReservationBoardService(), new ReservationDetailService(), folios, chargeCorrections, folioTransfers, hostedRuntime?.hostedDeposits, folioSettlements, cashiers, receivables, checkIns, housekeeping, housekeepingSheets, checkoutReadiness, checkouts, vehicleRegister),
+    operatorApi: new OperatorHttpApi(login, availability, inventory, new PostgresIdempotency(), restrictions, rates, pricing, blocks, policy, holds, projection, runtimeStatus, rateBuilder, reservations, reservationOffers, reservationGuests, reservationLifecycle, reservationSegments, parties, folioStatements, charges, new ReservationBoardService(), new ReservationDetailService(), folios, chargeCorrections, folioTransfers, hostedRuntime?.hostedDeposits, folioSettlements, cashiers, receivables, checkIns, housekeeping, housekeepingSheets, checkoutReadiness, checkouts, vehicleRegister, reservationTravel),
     operatorLocalReviewCredentials: localReviewCredentials(),
     ...(hostedRuntime ? { hostedDepositRoutes: hostedRuntime.routes, hostedDepositSurface: "guest" as const } : {}),
   });

@@ -140,6 +140,11 @@ const EXPECTED_MIGRATIONS = [
     filename: "0027_governed_housekeeping_task_sheet_generation.sql",
     checksum_sha256: "fb46db4af1ebca0dd1d66501e51ed2064c5dc108a40701a6a7b00d170b30be43",
   },
+  {
+    version: 28,
+    filename: "0028_governed_reservation_travel.sql",
+    checksum_sha256: "c282ca42fe52d7ea6bc0de077fa3842c5d578a56de5ecc6ceb108963f61391b6",
+  },
 ];
 
 if (REQUIRE_DATABASE && !DATABASE_URL) {

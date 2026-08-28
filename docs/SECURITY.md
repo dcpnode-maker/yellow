@@ -263,6 +263,25 @@ Neither join changes the existing created-at/id keyset order, filters, cursor by
 limit; repeated reads are mutation-free and have no fact, outbox, idempotency,
 occupancy, task, queue or travel-write capability.
 
+### Governed reservation-travel capture
+
+Order 212 adds one fixed-search-path `SECURITY DEFINER` capability for the exact
+arrival/departure resource command. It admits only a `yellow_runtime` session that has
+assumed `app_role`, executes as `yellow_owner`, and matches the transaction-local
+tenant context. The capability independently re-proves the active actor, exact property,
+exact reservation and a modifiable reservation state while locking reservation and
+travel truth. Direct app-role and runtime `INSERT`, `UPDATE`, `DELETE` and `TRUNCATE`
+authority on `travel_detail` remains denied.
+
+Create requires expected absence; replacement requires exact normalized tuple evidence.
+The capability refuses stale evidence, all-empty desired truth, departure pickup intent,
+wrong property/tenant/state and a changed row already linked to pickup work. An existing
+task reference must resolve in the same tenant and exact property even for an exact
+no-op. The command cannot accept or return notes or task ids, cannot mutate tasks, and
+cannot touch Party/contact, vehicle/parking, occupancy, financial or statutory truth.
+Only a changed tuple is coupled to one actor-bound fact and one same-transaction outbox
+event; idempotency, fact and event publication roll back with the travel write.
+
 ### Room-condition board containment
 
 Order 208 adds one read-only route behind the existing

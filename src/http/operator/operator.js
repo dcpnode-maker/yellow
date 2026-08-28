@@ -33,6 +33,8 @@
  let reservationLifecycleData = null;
  let reservationSegmentData = null;
  let reservationSegmentRequestGeneration = 0;
+ let reservationTravelData = null;
+ let reservationTravelRequestGeneration = 0;
  let reservationBookingOffers = [];
  let reservationBookingSelection = null;
  let reservationBookingHold = null;
@@ -494,6 +496,15 @@
  const segmentCommandMessage = $("#segment-command-message");
  const reservationDepartureForm = $("#reservation-departure-form");
  const reservationRoomMoveForm = $("#reservation-room-move-form");
+ const reservationTravelForm = $("#reservation-travel-form");
+ const reservationTravelHome = reservationTravelForm.parentElement;
+ const reservationTravelConfirmation = $("#reservation-travel-confirmation");
+ const reservationTravelStatus = $("#reservation-travel-status");
+ const reservationTravelDirection = $("#reservation-travel-direction");
+ const reservationTravelFieldsLegend = $("#reservation-travel-fields-legend");
+ const reservationTravelPickup = reservationTravelForm.querySelector(".reservation-travel-pickup");
+ const reservationTravelBoundary = reservationTravelForm.querySelector(".reservation-travel-boundary");
+ const reservationTravelSummary = $("#reservation-travel-summary");
  const reservationBookingForm = $("#reservation-booking-form");
  const reservationBookingOptions = $("#reservation-booking-options");
  const reservationBookingCommit = $("#reservation-booking-commit");
@@ -2038,6 +2049,7 @@
   function clearReservationDrawerLifecycle() {
  restoreReservationGuestEditorHome();
  restoreReservationSegmentEditorHome();
+ restoreReservationTravelEditorHome();
  reservationLifecycleData = null;
  reservationMetadataForm.hidden = true;
  reservationCancelForm.hidden = true;
@@ -2081,6 +2093,22 @@
   reservationSegmentHome.append(reservationSegmentEditor);
  }
  }
+  function restoreReservationTravelEditorHome() {
+ reservationTravelRequestGeneration += 1;
+ reservationTravelData = null;
+ reservationTravelForm.hidden = true;
+ reservationTravelForm.reset();
+ reservationTravelForm.setAttribute("aria-busy", "false");
+ reservationTravelForm.querySelector("button[type=submit]").disabled = false;
+ reservationTravelConfirmation.textContent = "—";
+ reservationTravelStatus.textContent = "—";
+ reservationTravelSummary.textContent = "No travel direction loaded.";
+ reservationTravelForm.querySelector(".form-message").textContent = "";
+ reservationTravelForm.querySelector(".form-message").classList.remove("error");
+ if (reservationTravelForm.parentElement !== reservationTravelHome) {
+  reservationTravelHome.append(reservationTravelForm);
+ }
+ }
   function drawerLifecycleButton(label, target) {
  const button = el("button");
  button.type = "button";
@@ -2098,6 +2126,11 @@
   if (guestAllocationPanel && !guestAllocationPanel.hidden) {
   guestAllocationPanel.hidden = true;
   restoreReservationGuestEditorHome();
+  }
+  const travelPanel = reservationDetailActions.querySelector(".reservation-travel-panel");
+  if (travelPanel && !travelPanel.hidden) {
+  travelPanel.hidden = true;
+  restoreReservationTravelEditorHome();
   }
   for (const peer of reservationDetailActions.querySelectorAll(".reservation-detail-action-menu button")) {
   peer.setAttribute("aria-expanded", String(peer === button));
@@ -2147,6 +2180,9 @@
   const guestAllocationPanel = reservationDetailActions.querySelector(".reservation-guest-allocation-panel");
   if (guestAllocationPanel) guestAllocationPanel.hidden = true;
   restoreReservationGuestEditorHome();
+  const travelPanel = reservationDetailActions.querySelector(".reservation-travel-panel");
+  if (travelPanel) travelPanel.hidden = true;
+  restoreReservationTravelEditorHome();
   stayChangesPanel.hidden = false;
   void openReservationStayChanges(result.reservation, { focus: true });
  });
@@ -2175,10 +2211,44 @@
   reservationLifecycleEditor.hidden = true;
   stayChangesPanel.hidden = true;
   restoreReservationSegmentEditorHome();
+  const travelPanel = reservationDetailActions.querySelector(".reservation-travel-panel");
+  if (travelPanel) travelPanel.hidden = true;
+  restoreReservationTravelEditorHome();
   guestAllocationPanel.hidden = false;
   void openReservationGuestAllocation(result.reservation, { focus: true });
  });
  menu.append(guestAllocationAction);
+ const travelPanel = node("section", "reservation-travel-panel");
+ travelPanel.id = "reservation-travel-panel";
+ travelPanel.hidden = true;
+ const travelHeading = node("h4", "", "Travel details");
+ travelHeading.id = "reservation-travel-heading";
+ travelHeading.tabIndex = -1;
+ travelPanel.setAttribute("aria-labelledby", travelHeading.id);
+ travelPanel.append(travelHeading,
+  node("p", "muted", "Record one exact arrival or departure leg. Pickup requests record intent only and never claim a linked task."));
+ const travelAction = el("button");
+ travelAction.type = "button";
+ travelAction.className = "secondary reservation-travel-action";
+ travelAction.textContent = "Travel details";
+ travelAction.setAttribute("aria-controls", travelPanel.id);
+ travelAction.setAttribute("aria-expanded", "false");
+ travelAction.addEventListener("click", () => {
+  for (const peer of reservationDetailActions.querySelectorAll(".reservation-detail-action-menu button")) {
+  peer.setAttribute("aria-expanded", String(peer === travelAction));
+  }
+  reservationMetadataForm.hidden = true;
+  reservationCancelForm.hidden = true;
+  reservationReinstatePanel.hidden = true;
+  reservationLifecycleEditor.hidden = true;
+  stayChangesPanel.hidden = true;
+  guestAllocationPanel.hidden = true;
+  restoreReservationSegmentEditorHome();
+  restoreReservationGuestEditorHome();
+  travelPanel.hidden = false;
+  void openReservationTravelEditor(result.reservation, { focus: true });
+ });
+ if (lifecycle.actions.canModify) menu.append(travelAction);
  if (actionNames.length > 0) {
   renderReservationLifecycle(lifecycle);
   reservationMetadataForm.hidden = true;
@@ -2190,7 +2260,7 @@
   if (name === "cancel") menu.append(drawerLifecycleButton("Cancel", reservationCancelForm));
   if (name === "reinstate") menu.append(drawerLifecycleButton("Reinstate", reservationReinstatePanel));
  }
- reservationDetailActions.append(menu, stayChangesPanel, guestAllocationPanel);
+ reservationDetailActions.append(menu, stayChangesPanel, guestAllocationPanel, travelPanel);
  if (actionNames.length > 0) {
   reservationDetailActions.append(reservationLifecycleEditor);
   reservationLifecycleEditor.hidden = false;
@@ -6156,6 +6226,183 @@ function departureEvidenceRow(term, value) {
   button.disabled = false;
  }
  }
+  function reservationTravelTuple(item, direction) {
+ if (!item || item.direction !== direction) return null;
+ return Object.freeze({
+  mode: item.mode ?? null,
+  carrier: item.carrier ?? null,
+  serviceNo: item.serviceNo ?? null,
+  scheduledAt: item.scheduledAt ?? null,
+  pickupRequested: direction === "arrival" && item.pickupRequested === true,
+ });
+ }
+  function reservationTravelDirectionItem(direction) {
+ return reservationTravelData?.travel.find((item) => item.direction === direction) || null;
+ }
+  function renderReservationTravelDirection({ focus = false } = {}) {
+ if (!reservationTravelData) return false;
+ const direction = reservationTravelDirection.value === "departure" ? "departure" : "arrival";
+ const tuple = reservationTravelTuple(reservationTravelDirectionItem(direction), direction);
+ const fields = reservationTravelForm.elements;
+ formMessage(reservationTravelForm, "");
+ fields.mode.value = tuple?.mode || "";
+ fields.carrier.value = tuple?.carrier || "";
+ fields.serviceNo.value = tuple?.serviceNo || "";
+ fields.scheduledAt.value = tuple?.scheduledAt ? utcInstantInputValue(tuple.scheduledAt) : "";
+ fields.pickupRequested.checked = tuple?.pickupRequested === true;
+ const arrival = direction === "arrival";
+ reservationTravelFieldsLegend.textContent = arrival ? "Arrival details" : "Departure details";
+ reservationTravelPickup.hidden = !arrival;
+ reservationTravelBoundary.hidden = !arrival;
+ fields.pickupRequested.disabled = !arrival;
+ reservationTravelSummary.textContent = tuple
+  ? `${arrival ? "Arrival" : "Departure"} truth loaded. Saving replaces only this exact recorded tuple.`
+  : `No ${direction} leg is recorded. Saving creates one without task, vehicle or parking effects.`;
+ reservationTravelForm.hidden = false;
+ if (focus) {
+  const heading = reservationTravelForm.parentElement?.querySelector("#reservation-travel-heading");
+  if (heading) heading.focus({ preventScroll: true });
+  else reservationTravelDirection.focus({ preventScroll: true });
+ }
+ return true;
+ }
+  function reservationTravelDetailRequestIsCurrent(origin) {
+ return origin.requestGeneration === reservationTravelRequestGeneration
+  && origin.detailGeneration === reservationDetailGeneration
+  && origin.property === propertySelect.value
+  && origin.reservationId === reservationRouteReservationId
+  && location.pathname === `/p/${origin.property}/res/${origin.reservationId}`
+  && reservationDetailData?.reservation?.reservationId === origin.reservationId
+  && reservationDetailData.reservation.confirmationNo === origin.confirmationNo
+  && reservationDetailDrawer.hidden === false
+  && reservationTravelForm.parentElement?.classList.contains("reservation-travel-panel");
+ }
+  async function openReservationTravelEditor(reservation = reservationDetailData?.reservation, { focus = true } = {}) {
+ const panel = reservationDetailActions.querySelector(".reservation-travel-panel");
+ const action = reservationDetailActions.querySelector(".reservation-travel-action");
+ if (!panel || !action || !reservation || reservationDetailDrawer.hidden
+  || reservation.reservationId !== reservationRouteReservationId
+  || reservationDetailData?.reservation?.reservationId !== reservation.reservationId
+  || reservationDetailData.reservation.confirmationNo !== reservation.confirmationNo) {
+  restoreReservationTravelEditorHome();
+  return false;
+ }
+ restoreReservationTravelEditorHome();
+ panel.hidden = false;
+ panel.append(reservationTravelForm);
+ reservationTravelData = Object.freeze({
+  reservationId: reservation.reservationId,
+  confirmationNo: reservation.confirmationNo,
+  status: reservation.status,
+  travel: Object.freeze(Array.isArray(reservation.travel) ? [...reservation.travel] : []),
+ });
+ reservationTravelDirection.value = reservationTravelData.travel.some(({ direction }) => direction === "arrival")
+  ? "arrival"
+  : reservationTravelData.travel.some(({ direction }) => direction === "departure") ? "departure" : "arrival";
+ const origin = {
+  requestGeneration: ++reservationTravelRequestGeneration,
+  detailGeneration: reservationDetailGeneration,
+  property: propertySelect.value,
+  reservationId: reservation.reservationId,
+  confirmationNo: reservation.confirmationNo,
+ };
+ if (!reservationTravelDetailRequestIsCurrent(origin)) return false;
+ reservationTravelConfirmation.textContent = reservation.confirmationNo;
+ reservationTravelStatus.textContent = String(reservation.status).replaceAll("_", " ");
+ action.textContent = "Travel details";
+ reservationDetailStatus.textContent = "Travel editor loaded from authoritative reservation detail.";
+ return renderReservationTravelDirection({ focus });
+ }
+  function reservationTravelCommandOrigin() {
+ return {
+  requestGeneration: reservationTravelRequestGeneration,
+  detailGeneration: reservationDetailGeneration,
+  property: propertySelect.value,
+  reservationId: reservationTravelData?.reservationId || "",
+  confirmationNo: reservationTravelData?.confirmationNo || "",
+ };
+ }
+  function desiredReservationTravel(direction) {
+ const fields = reservationTravelForm.elements;
+ const scheduledValue = String(fields.scheduledAt.value || "");
+ const loaded = reservationTravelTuple(reservationTravelDirectionItem(direction), direction);
+ let scheduledAt = null;
+ if (scheduledValue) {
+  if (loaded?.scheduledAt && scheduledValue === utcInstantInputValue(loaded.scheduledAt)) {
+  scheduledAt = loaded.scheduledAt;
+  } else {
+  const instant = new Date(`${scheduledValue}Z`);
+  if (!Number.isFinite(instant.getTime())) throw new Error("Scheduled date and time must be a valid UTC instant.");
+  scheduledAt = instant.toISOString();
+  }
+ }
+ const travel = {
+  mode: fields.mode.value || null,
+  carrier: fields.carrier.value.trim() || null,
+  serviceNo: fields.serviceNo.value.trim() || null,
+  scheduledAt,
+  pickupRequested: direction === "arrival" && fields.pickupRequested.checked,
+ };
+ if (travel.mode === null && travel.carrier === null && travel.serviceNo === null
+  && travel.scheduledAt === null && travel.pickupRequested === false) {
+  throw new Error("Record at least one travel value; empty travel and deletion are not available.");
+ }
+ return travel;
+ }
+  async function refreshReservationDetailAfterTravelCommand(origin) {
+ if (!reservationTravelDetailRequestIsCurrent(origin)) return false;
+ await loadReservationDetail(origin.reservationId);
+ const current = reservationDetailData?.reservation;
+ if (propertySelect.value !== origin.property || reservationRouteReservationId !== origin.reservationId
+  || reservationDetailDrawer.hidden || reservationDetailError.hidden === false || reservationDetailContent.hidden
+  || current?.reservationId !== origin.reservationId || current.confirmationNo !== origin.confirmationNo) return false;
+ return openReservationTravelEditor(current, { focus: true });
+ }
+  async function submitReservationTravelCommand() {
+ if (!reservationTravelData) return false;
+ const origin = reservationTravelCommandOrigin();
+ if (!reservationTravelDetailRequestIsCurrent(origin)) return false;
+ const direction = reservationTravelDirection.value === "departure" ? "departure" : "arrival";
+ let travel;
+ try {
+  travel = desiredReservationTravel(direction);
+ } catch (error) {
+  formMessage(reservationTravelForm, error instanceof Error ? error.message : "Travel details are invalid.", true);
+  reservationTravelForm.elements.mode.focus({ preventScroll: true });
+  return false;
+ }
+ const expected = reservationTravelTuple(reservationTravelDirectionItem(direction), direction);
+ const body = { expected, travel };
+ const identity = `reservation-travel:${origin.reservationId}:${direction}:${JSON.stringify(body)}`;
+ const key = pendingKeys.get(identity) || crypto.randomUUID();
+ pendingKeys.set(identity, key);
+ const button = reservationTravelForm.querySelector("button[type=submit]");
+ button.disabled = true;
+ reservationTravelForm.setAttribute("aria-busy", "true");
+ formMessage(reservationTravelForm, `Saving exact ${direction} truth through the audited reservation command…`);
+ try {
+  await request(`/api/v1/properties/${enc(origin.property)}/reservations/${enc(origin.reservationId)}/travel/${enc(direction)}`, {
+  method: "PUT",
+  headers: { "idempotency-key": key },
+  body: JSON.stringify(body),
+  });
+  pendingKeys.delete(identity);
+  const refreshed = await refreshReservationDetailAfterTravelCommand(origin);
+  if (!refreshed) return true;
+  formMessage(reservationTravelForm, `${direction === "arrival" ? "Arrival" : "Departure"} travel saved and refreshed from authoritative truth.`);
+  return true;
+ } catch (error) {
+  if (!reservationTravelDetailRequestIsCurrent(origin)) return false;
+  formMessage(reservationTravelForm, error instanceof Error ? error.message : "Travel details could not be saved.", true);
+  reservationTravelForm.querySelector(".form-message").focus?.({ preventScroll: true });
+  return false;
+ } finally {
+  if (reservationTravelDetailRequestIsCurrent(origin)) {
+  button.disabled = false;
+  reservationTravelForm.setAttribute("aria-busy", "false");
+  }
+ }
+ }
   function lifecycleFieldValue(value) {
  return value === null ? "" : value;
  }
@@ -7700,6 +7947,14 @@ function departureEvidenceRow(term, value) {
  reservationDetailClose.addEventListener("click", () => closeReservationDetail());
  reservationDetailRetry.addEventListener("click", () => {
  if (reservationRouteReservationId) void loadReservationDetail(reservationRouteReservationId);
+ });
+ reservationTravelDirection.addEventListener("change", () => {
+ if (reservationTravelData) renderReservationTravelDirection({ focus: false });
+ });
+ reservationTravelForm.addEventListener("submit", (event) => {
+ event.preventDefault();
+ if (!reservationTravelForm.reportValidity()) return;
+ void submitReservationTravelCommand();
  });
  reservationPrimaryFolioCreate.addEventListener("click", () => void openPrimaryFolio());
  checkInForm.addEventListener("submit", (event) => void submitCheckIn(event));

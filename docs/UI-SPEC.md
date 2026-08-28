@@ -371,3 +371,33 @@ zoom, with visible focus, reduced-motion and forced-colour support. Apple, Andro
 Windows 95/98, glass, neomorphism and ERP appearances retain distinct native material
 treatment without changing server authority, endpoint, method, body, idempotency or
 allocation semantics.
+
+## 20. Governed reservation travel capture
+
+The canonical reservation drawer exposes one semantic **Travel details** action only
+when current server actions permit reservation modification. It hosts one reusable
+editor and selects exactly one `arrival` or `departure` resource at a time. Mode,
+optional carrier/provider, optional service number and an optional canonical UTC
+scheduled instant are explicit labelled controls; pickup-requested intent is shown
+only for arrival. Departure always submits pickup requested as false. Empty desired
+truth and deletion are not offered.
+
+The form binds `expected` to the exact normalized tuple already loaded in canonical
+reservation detail, including `null` when that direction is absent. One per-direction
+PUT carries the exact desired tuple and a retained Idempotency-Key. The browser never
+sends a travel id, task id, notes, actor, tenant or policy evidence, never detaches a
+linked pickup task, and never claims pickup automation, task state, vehicle, parking
+or transport outcome. A conflict preserves the draft and reports current server
+rejection; success reloads authoritative reservation detail exactly once before the
+live Travel details editor is restored.
+
+Travel details, Stay changes, Guests & shares and lifecycle editors are mutually
+exclusive. Property, route, reservation id, confirmation, detail generation, request
+generation and mounted-panel guards suppress every stale paint or focus attempt.
+Closing the drawer, changing property, signing out or opening another reservation
+returns the single form to its inert home. The action and controls are at least 44
+pixels, and 48 pixels in Android appearance; two-column fields collapse to one at 375
+pixels and 200% zoom. Long values wrap, keyboard focus remains visible, and reduced
+motion and forced colours are explicit. Apple, Android, Windows 95/98, glass,
+neomorphism and ERP each retain distinct native material treatment without changing
+the governed endpoint, CAS, idempotency or audit semantics.

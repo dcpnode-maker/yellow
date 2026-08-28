@@ -400,6 +400,11 @@ export function createApp(options: AppOptions = {}) {
           context, params.property, params.reservation, body,
         ))
       )
+      .put("/api/v1/properties/:property/reservations/:reservation/travel/:direction", ({ request, params, body, tenantContext }) =>
+        withOperatorTenant(request, (context) => operator.putReservationTravel(
+          context, params.property, params.reservation, params.direction, body,
+        ))
+      )
       .patch("/api/v1/properties/:property/reservations/:reservation", ({ request, params, body, tenantContext }) =>
         withOperatorTenant(request, (context) => operator.modifyReservation(context, params.property, params.reservation, body))
       )

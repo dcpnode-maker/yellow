@@ -1,8 +1,8 @@
 # Phase 6 — Stay operations and housekeeping
 
-**Status:** active; Orders 200–211 are built-unreviewed; Order212 ready
+**Status:** active; Orders 200–212 are built-unreviewed
 **Entry point:** built-unreviewed Phase-5 composition through Order 199
-**Current order:** `212-governed-reservation-travel-capture.md` (ready)
+**Current order:** `212-governed-reservation-travel-capture.md` (built-unreviewed)
 
 ## Outcome
 
@@ -179,7 +179,7 @@ server-owned primary truth and exact PUT/idempotency while adding current-detail
 identity, mutual-exclusion, stale and focus guards; it creates no new mutation
 authority, Party identity or financial allocation.
 
-Order 212 is ready as the first governed travel write. One per-direction exact-property
+Order 212 is built-unreviewed as the first governed travel write. One per-direction exact-property
 command uses CAS and actor-bound idempotency to create or replace recorded arrival or
 departure fields through a new owner capability while raw app-role travel DML stays
 denied. A changed row emits minimized reservation.modified evidence; no-op emits none.

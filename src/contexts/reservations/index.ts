@@ -53,6 +53,21 @@ export type {
   ReservationGuestRole,
   ReservationGuestServiceOptions,
 } from "./guests";
+export {
+  ReservationTravelConflictError,
+  ReservationTravelNotFoundError,
+  ReservationTravelService,
+  ReservationTravelValidationError,
+} from "./travel";
+export type {
+  PutReservationTravelInput,
+  PutReservationTravelResult,
+  ReservationTravelDirection,
+  ReservationTravelMode,
+  ReservationTravelServiceOptions,
+  ReservationTravelTuple,
+  TravelEditableReservationStatus,
+} from "./travel";
 export { ReservationSegmentService } from "./segments";
 export type {
   ChangeReservationDepartureInput,

@@ -246,7 +246,7 @@ reservation without copied identifiers. Server-owned primary identity, explicit
 share semantics, existing PUT/idempotency/fact/event behavior and detached lookup
 containment remain unchanged. This cannot complete Phase 6.
 
-Order 212 is ready as governed per-direction reservation travel capture. It adds one
+Order 212 is built-unreviewed as governed per-direction reservation travel capture. It adds one
 owner-mediated CAS create/replace capability while raw runtime travel DML remains
 denied, records only adopted arrival/departure travel fields, blocks changes to rows
 already linked to pickup work, and reuses reservation.modified evidence. Canonical

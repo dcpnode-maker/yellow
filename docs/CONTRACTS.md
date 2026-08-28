@@ -188,6 +188,27 @@ query parameters and returns the approved reservation aggregate plus server-deri
 foreign-property UUID details share one generic reservation not-found response. The
 existing exact `GET .../reservations?confirmationNo=...` lifecycle lookup is unchanged.
 
+Order 212 travel capture is `PUT
+/api/v1/properties/{property}/reservations/{reservation}/travel/{arrival|departure}`
+with `reservations.lifecycle:write`, the exact property grant, a mandatory printable
+visible-ASCII `Idempotency-Key`, and body exactly `{expected,travel}`. `expected` is
+`null` for create or the exact current tuple for replacement; `travel` is always the
+exact tuple `{mode,carrier,serviceNo,scheduledAt,pickupRequested}`. Mode is nullable or
+`flight|train|bus|car|ferry|other`; schedule is nullable or a canonical UTC instant;
+carrier and service number are nullable trimmed nonblank Unicode strings bounded to
+120 and 64 code points. At least one desired value must be recorded, departure cannot
+request pickup, and there is no delete command.
+
+The command derives tenant, property, reservation, direction, actor and audit envelope,
+locks the exact reservation in `reserved|due_in|in_house|due_out`, and performs one
+normalized tuple compare-and-set. Stale evidence is a bounded conflict. A changed
+command writes only the travel row plus one minimized `reservation.modified` fact and
+same-transaction outbox event; an exact no-op writes neither evidence row, and exact
+replay is stable. Notes and pickup-task ids are neither accepted nor returned. A
+changed command fails closed when the travel row is already linked to pickup work;
+it never creates, detaches or edits a task and has no vehicle, parking, occupancy,
+financial, statutory or board-read effect.
+
 Order 200 active check-in contract: `GET
 /api/v1/properties/{property}/reservations/{reservation}/check-in/readiness` requires
 `stay-operations.checkin:read` and the exact property grant. It returns a no-store, server-owned

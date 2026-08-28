@@ -42,6 +42,14 @@ field values. Override authority is recorded only as use/reason after server-der
 authorization. Consumers must not infer key issue, occupancy mutation, posting/payment,
 folio settlement, statutory submission, business-day movement or checkout.
 
+Order 212 reuses `reservation.modified` for a changed travel compare-and-set. Its
+minimized diff is `{travel:{direction,before,after}}`, where each present tuple contains
+only mode, carrier, service number, canonical scheduled instant and pickup-requested
+intent. Create has `before:null`; exact no-op emits no fact or event. The event contains
+no travel id, note, pickup-task id, Party/contact, vehicle/parking, occupancy, financial
+or statutory data. Consumers must not infer pickup-task creation, transport completion,
+onsite presence, room occupancy or any charge from the recorded intent.
+
 **financials** · journal.posted {kind,lines:[{account,folio?,tx_code,amount_minor}],payment_id?,operation_id?} · folio.opened {folio_id,account_id,reservation_id,window_no,folio_no,name?} · folio.settled/.closed {folio_id,account_id,reservation_id,window_no,previous_status,status} · payment.authorized/.incrementally_authorized/.captured/.refunded/.voided/.failed/.indeterminate/.reconciled {operation_id,payment_id,phase,outcome,amount_minor,currency,journal_id?} · credit.limit_breached · cashier.opened/.counted/.closed {session_id,drawer_id,count_id?,over_short_minor?} · business_day.opened/.sealed · deposit.requested {hosted_request_id,operation_id,folio_id,amount_minor,currency,expires_at,generation} · deposit.applied {application_id,hosted_request_id,operation_id,folio_id,amount_minor,journal_id} · deposit.matured
 → documents, AR, trust splits (Automation), dashboards, GL export
 

@@ -723,6 +723,55 @@
 <p class="form-message" role="status" aria-live="polite"></p>
 </form>
 </section>
+<section class="reservation-travel-home" aria-labelledby="reservation-travel-home-title">
+<h3 id="reservation-travel-home-title">Travel details</h3>
+<form class="card reservation-travel-editor" id="reservation-travel-form" hidden aria-busy="false">
+<div class="reservation-summary">
+<div><span>Confirmation</span><strong id="reservation-travel-confirmation">—</strong></div>
+<div><span>Server status</span><strong id="reservation-travel-status">—</strong></div>
+</div>
+<fieldset class="progressive-fields reservation-travel-direction">
+<legend>Recorded travel leg</legend>
+<p class="field-note">Choose one direction. Yellow saves an exact arrival or departure tuple from the current reservation; it never detaches a linked pickup task.</p>
+<label>Direction
+<select id="reservation-travel-direction" name="direction" required>
+<option value="arrival">Arrival</option>
+<option value="departure">Departure</option>
+</select>
+</label>
+</fieldset>
+<fieldset class="progressive-fields">
+<legend id="reservation-travel-fields-legend">Arrival details</legend>
+<div class="reservation-travel-grid">
+<label>Mode
+<select name="mode">
+<option value="">Not recorded</option>
+<option value="flight">Flight</option>
+<option value="train">Train</option>
+<option value="bus">Bus</option>
+<option value="car">Car</option>
+<option value="ferry">Ferry</option>
+<option value="other">Other</option>
+</select>
+</label>
+<label>Carrier or provider (optional)
+<input name="carrier" maxlength="120" autocomplete="off" placeholder="Airline, rail or transport provider">
+</label>
+<label>Service number (optional)
+<input name="serviceNo" maxlength="64" autocomplete="off" placeholder="Flight, train or service reference">
+</label>
+<label>Scheduled date and time (UTC)
+<input name="scheduledAt" type="datetime-local" step="0.001">
+</label>
+</div>
+<label class="check-field reservation-travel-pickup"><input name="pickupRequested" type="checkbox"> Pickup requested on arrival</label>
+<p class="field-note reservation-travel-boundary">Pickup requested records intent only. Task creation, vehicle and parking remain separate governed work.</p>
+</fieldset>
+<div class="reservation-travel-summary" id="reservation-travel-summary" aria-live="polite">No travel direction loaded.</div>
+<button class="primary" type="submit">Save travel details</button>
+<p class="form-message" role="status" aria-live="polite" tabindex="-1"></p>
+</form>
+</section>
 </details>
 <aside class="reservation-detail-drawer" id="reservation-detail-drawer" hidden aria-labelledby="reservation-detail-title" tabindex="-1">
 <div class="reservation-detail-head"><div><p class="eyebrow">Reservation</p><h3 id="reservation-detail-title">Loading reservation…</h3></div><button class="quiet" id="reservation-detail-close" type="button" aria-label="Close reservation details">Close</button></div>
