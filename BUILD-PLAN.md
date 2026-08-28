@@ -344,6 +344,11 @@ current executable `dirty_room_override_unauthorized` blocker, not the reserved
 `room_not_ready` literal, and actors already granted the exact property-scoped dirty-room
 override are concealed by both the candidate read and owner capability.
 
+Order 230 is ready as the UI-only continuation from that exact cleaning task back to
+canonical check-in preparation. Context survives existing governed task work, but only
+one deliberate return refetches reservation and readiness truth; the browser neither
+infers readiness nor runs check-in. Generic Housekeeping navigation remains unchanged.
+
 ## Phase 7 — Tax engine + India IRP
 
 tax_assignment evaluation (percent/fixed/slab, compound, line-vs-document rounding)
