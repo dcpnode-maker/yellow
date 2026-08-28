@@ -581,6 +581,54 @@ receipt share the same transaction. Expiry or release changes only the existing 
 state and never deletes binding evidence. Neither the receipt nor event is a price
 promise, hold consumption, reservation, posting, invoice or fiscal authorization.
 
+### Canonical positive tax posting plan
+
+Order251 adds `derivePositiveTaxPostingPlan(snapshot: unknown)` as a pure value
+boundary over the Order240 snapshot. It always re-parses the complete hostile input
+through `parsePositiveTaxAttributionSnapshot`; a caller cannot bypass canonical
+snapshot validation by supplying an object that merely has the expected TypeScript
+shape. The function does not mutate its input and returns one recursively frozen
+`PositiveTaxPostingPlanV1`.
+
+The version-1 result has exactly these public fields: `schemaVersion`, `quoteHash`,
+`snapshotHash`, `currency`, `state`, `blockers`, `revenueLine`, `taxLineage`,
+`lines` and `balanceMinor`. It carries `schemaVersion=1`, the exact quote hash,
+snapshot hash and currency, and copied positive-origin revenue and ordered tax
+lineage from the reparsed snapshot. It neither re-resolves jurisdiction nor
+recalculates, averages, allocates or changes any amount. Its state is exactly
+`route_ready` or `policy_blocked`. Blockers are deduplicated in canonical order:
+document rounding adds `document_tax_allocation_required`; country `IN` or a tax code
+matching `/^GST(?:_|$)/` adds
+`india_place_of_supply_decomposition_required`. Both blockers may be present.
+`route_ready` means only line-rounded, non-India evidence with no aggregate GST code;
+it is not financial, legal or fiscal authorization.
+
+The account-agnostic line topology is fixed and ordered under Yellow's
+debit-positive, credit-negative convention:
+
+1. one guest-receivable debit for positive `grandTotalMinor`;
+2. one room-revenue credit for negative `baseTotalMinor`;
+3. one tax-payable credit for each non-zero `taxMinor`, negative and in the
+   snapshot's canonical tax order.
+
+Zero tax is valid and emits no tax-payable line, while its exact zero entry remains in
+`taxLineage`; positive tax entries emit the ordered credit lines above. Every line
+amount is a canonical signed-int64 decimal string, all arithmetic and sign inversion
+use `bigint`, and the exact line sum is exposed as `balanceMinor="0"`. `revenueLine`
+copies the stable revenue-line identity/group and `taxLineage` copies every ordered
+tax-code/component entry needed by a later governed router; the plan invents no
+residual, component split or account identity.
+
+This plan has zero execution authority. It accepts no `Tx`, performs no SQL or other
+I/O, selects no account, tx code, route, folio, property business date or posting
+kind, and writes no journal, `posting_line`, `tax_detail`, fact, outbox event,
+idempotency result, document, series, hash chain, submission or provider request. It
+does not consume or extend a hold, bind a reservation or folio, authorize a charge,
+resolve document-rounding residuals, or derive CGST/SGST/IGST or place of supply.
+Those blockers require later explicit policy and a separately authorized,
+transactional financial command; no consumer may treat this pure plan as evidence
+that posting or fiscal issue occurred.
+
 ## 8. Pure rate-model evaluator
 
 Order 067's in-process evaluator is a draft/simulation primitive, not a database or HTTP contract.

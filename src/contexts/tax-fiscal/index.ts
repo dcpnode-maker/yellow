@@ -44,3 +44,17 @@ export type {
   QuotedTaxHoldBindingReceipt,
   QuotedTaxHoldBindingServiceOptions,
 } from "./quoted-holds";
+export {
+  PositiveTaxPostingPlanError,
+  derivePositiveTaxPostingPlan,
+} from "./posting-plan";
+export type {
+  PositiveTaxPostingPlanBlocker,
+  PositiveTaxPostingPlanGuestReceivableLineV1,
+  PositiveTaxPostingPlanLineV1,
+  PositiveTaxPostingPlanRevenueLineV1,
+  PositiveTaxPostingPlanRoomRevenueLineV1,
+  PositiveTaxPostingPlanTaxLineageV1,
+  PositiveTaxPostingPlanTaxPayableLineV1,
+  PositiveTaxPostingPlanV1,
+} from "./posting-plan";

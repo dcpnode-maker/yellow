@@ -514,6 +514,14 @@ builder milestone while preserving independent review through Order91 and keepin
 unfinished Phases5-7 active. Focused status proof is 5/5 and the 824-test standing
 suite is green. Exact local promotion remains separate.
 
+Order251 is built-unreviewed under D-652 as the first pure account-agnostic posting topology.
+It reparses exact Order240 truth, proves D-323 signed bigint balance across guest,
+revenue and ordered tax sides, and blocks document-rounding allocation and India GST
+decomposition rather than inventing legal policy. It has no account routing or write
+authority.
+Focused proof is 8/8, adjacent tax proof is 31/31 and the 832-test standing suite plus
+fresh referee11/11 are green. Independent Tier-3 product review remains deferred.
+
 Order244 is ready under D-637 as the append-only persistence foundation. It gives one
 exact parsed Order240 positive quote snapshot a tenant/property-scoped PostgreSQL
 root, same-hash convergence, tenant-isolated read, idempotent receipt and one atomic

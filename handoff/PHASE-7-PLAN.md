@@ -163,3 +163,15 @@ posting, fiscal documents/IRP and Phase7 completion remain pending.
 Order249 is built-unreviewed under D-648 as the status-only boundary through built Order248/current Order249. It may
 change only authenticated founder snapshot values and their exact proof; review91,
 unfinished phase states and pending posting/fiscal/review truth remain unchanged.
+
+## Order 251 boundary
+
+Order251 derives only a pure canonical positive posting plan from exact Order240
+evidence: guest debit, room-revenue credit and ordered tax-code credits must sum to
+zero under D-323. Document rounding and India aggregate GST remain explicit unresolved
+policy blockers. No account route, financial mutation, document or fiscal authority is
+admitted.
+
+Order251 is built-unreviewed under D-652 with focused8/8, adjacent31/31, standing
+832/832 and fresh referee11/11 green. It adds no database, account route or write
+authority; independent Tier-3 product review remains deferred.
