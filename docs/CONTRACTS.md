@@ -405,6 +405,47 @@ prepare(document)→jurisdiction payload (UBL/PINT/IRP-JSON) · submit(payload)�
 Implement: `sa-zatca` (clearance, XAdES, PIH chain, TLV QR) · `in-irp` (IRN+signed QR) ·
 `ae-asp:<provider>` (PINT AE generate + hand-off; ASP does transmission — UAE law).
 
+### Pure rules-driven tax evaluator
+
+Order 237 adds one in-process positive-charge evaluator for a caller-supplied
+`tax_jurisdiction` content value and immutable attributable lines. It performs no
+extension/assignment read and accepts no caller-selected rate outside that content.
+Each line supplies exact identity, revenue group, positive signed-safe `bigint`
+amount, non-negative integer nights and person-nights and, for room revenue, exact
+positive per-night components. It derives no property, date, guest category,
+occupancy, currency, price, discount or jurisdiction.
+
+The evaluator validates explicit `tax_inclusive|tax_exclusive` price display,
+`line|document` rounding and the four adopted modes. Rates must be finite,
+non-negative and exactly convertible to integer basis points. Percent, fixed/night,
+fixed/person-night and whole-band slab calculations use rational/intermediate
+`bigint` arithmetic bounded to signed-safe minor units. `applies_to` matches only the
+line's explicit revenue group. A slab chooses the first ordered inclusive
+`upto_minor` band for each room-night component and requires exactly one final null
+band; averaging a stay or applying progressive/marginal bands is invalid.
+
+Rounding is exact positive half-up. Line rounding rounds every attributable
+component; room-night rule evaluation therefore retains ordered per-night components
+instead of collapsing mixed rates. Document rounding sums exact rational components
+and rounds once per tax code without allocating residual minor units back to lines. `tax_exclusive` adds tax
+to the supplied base; `tax_inclusive` extracts the included component without
+increasing the supplied gross. `compound_on` may reference only earlier unique tax
+codes, and missing, duplicate, forward, self or cyclic dependencies reject the whole
+evaluation. Line-rounded compounding consumes the already-rounded attributable
+component. Document-rounded compounding is rejected until a document allocation
+policy exists; it may not use an invisible per-line residual allocation.
+
+The deeply frozen result retains jurisdiction identity, display and rounding modes,
+exact input/base/tax/grand totals and ordered per-code attribution. It writes no row,
+fact, outbox event, journal, posting, folio, document or fiscal submission. Precedence
+with `rate_plan.tax_inclusive`, negative corrections, person-category derivation,
+document residual allocation and India CGST/SGST/IGST place-of-supply decomposition
+remain unresolved. Aggregate `GST_ROOM` output is calculation evidence only, never a
+legally final invoice or authority to post or issue a fiscal document.
+Input lines, room-night components, tax definitions, application groups, dependency
+lists, slab bands and rational representation complexity are explicitly bounded so a
+valid value cannot become an unbounded arithmetic-work request.
+
 ## 8. Pure rate-model evaluator
 
 Order 067's in-process evaluator is a draft/simulation primitive, not a database or HTTP contract.

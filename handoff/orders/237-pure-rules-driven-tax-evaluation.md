@@ -1,6 +1,6 @@
 # Order 237 — Pure rules-driven tax evaluation
 
-**Status:** READY-SCOPE-CORRECTED-D624
+**Status:** BUILT-UNREVIEWED-D625
 **Phase:** 7 — Tax engine and India IRP
 **Branch:** `phase-7/rules-driven-tax-evaluation`
 **Base:** `0708df1` (built-unreviewed Order236)
@@ -39,10 +39,16 @@ provider or floating-point money authority.
   null band is required. Progressive/marginal slabs require a future schema version.
 - `compound_on` may name only earlier unique tax codes and must be acyclic. A compound
   tax includes the named already-calculated tax components in its basis. Missing,
-  duplicate, forward or cyclic references fail the whole evaluation.
+  duplicate, forward or cyclic references fail the whole evaluation. Line-rounded
+  compounding consumes already-rounded attributable components. Document-rounded
+  compounding fails closed because this version has no document-to-line allocation
+  policy.
 - Results are deeply frozen and include jurisdiction identity, price-display mode,
   rounding mode, exact input/base/tax/grand-total minor units, and ordered per-code
-  components sufficient for later quote/posting attribution. No event is emitted.
+  components sufficient for later quote/posting attribution. Mixed room-night rates
+  remain ordered per-night components. No event is emitted.
+- Input collections, rule collections, dependency breadth and rational representation
+  complexity are bounded; oversized hostile work requests fail closed.
 - This order deliberately does not settle negative tax corrections, person-category
   derivation, `rate_plan.tax_inclusive` precedence, document residual allocation, or
   India CGST/SGST/IGST decomposition. Those meanings must be resolved before posting or
@@ -88,11 +94,26 @@ provider or floating-point money authority.
 
 ## Definition of done
 
-- [ ] Intentional red precedes implementation.
-- [ ] Pure validated engine covers all four adopted modes and both price displays.
-- [ ] India boundary, rounding, compounding and hostile-shape vectors are executable.
-- [ ] Result attribution and deep immutability are proven.
-- [ ] Focused and standing proof totals are transcribed.
+- [x] Intentional red precedes implementation (`57d1f96`: 0/2 before production).
+- [x] Pure validated engine covers all four adopted modes and both price displays.
+- [x] India boundary, rounding, compounding and hostile-shape vectors are executable.
+- [x] Result attribution and deep immutability are proven.
+- [x] Focused and standing proof totals are transcribed.
 
 Independent review remains deferred under the founder's build-first direction. This
 order can close only as built-unreviewed.
+
+## Built evidence
+
+- Focused evaluator plus preregistered proof: `17 passed, 0 failed`, 48 assertions.
+- Adjacent rate/financial static proof: `24 passed, 18` expected database skips,
+  `0 failed`, 244 assertions.
+- Standing repository suite: `788 passed, 704` environment skips, `0 failed`,
+  8,146 assertions across 1,492 tests / 270 files.
+- Typecheck, 88-file import boundaries, 23-package licence policy, dependency audit
+  (`0` vulnerabilities), four-file JavaScript syntax and diff checks are green.
+- The exact schema and one-local PostgreSQL evidence are inherited unchanged from
+  Order236; this pure order adds no migration, table, function, role or grant.
+- Independent tax-computation approval remains deliberately deferred by the founder's
+  build-first direction. No quote, posting, document, fiscal or legal-finality claim is
+  made.

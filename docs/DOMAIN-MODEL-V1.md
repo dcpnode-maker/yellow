@@ -474,6 +474,31 @@ previous days.
 **Invariants:** property-local date; readiness exceptions visible; sealing deterministic
 and idempotent; post-seal history is corrected only by new journals/documents.
 
+### Tax Evaluation value service — Tax/Fiscal
+
+Order 237 is a pure positive-charge calculation service, not an aggregate or state
+machine. Its caller supplies one adopted jurisdiction content value and immutable
+attributable lines containing exact positive `bigint` minor-unit bases, explicit
+revenue groups, nights/person-nights and per-room-night components. The service owns
+strict rule validation, exact basis-point/rational arithmetic, positive half-up
+rounding, ordered compounding and deeply frozen result attribution. It owns no tenant,
+property, date, currency conversion, guest category, assignment or price discovery.
+
+`tax_exclusive` adds the evaluated component; `tax_inclusive` extracts it from the
+configured gross. Line rounding occurs per attributable component. Document rounding
+produces one rounded total per tax code and deliberately has no line-residual
+allocation. Slab-percent is whole-band per room-night: ordered inclusive upper bounds
+end in exactly one null band. Stay-average and progressive classification are outside
+this model. Ordered per-night output preserves mixed-band evidence. Line-rounded
+compounding consumes rounded earlier components; document-rounded compounding fails
+closed until allocation semantics are separately authorized.
+
+The service creates no entity and emits no event. Its aggregate India `GST_ROOM`
+result is not a legal invoice. Rate-plan/display precedence, negative corrections,
+person-category meaning, document allocation and CGST/SGST/IGST place-of-supply
+decomposition must be decided by later assignment, posting and fiscal-document
+contracts before any economic or legal state change.
+
 ### Document aggregate — Tax/Fiscal
 
 **Root:** `document` under `document_series`.

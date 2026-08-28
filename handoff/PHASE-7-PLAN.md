@@ -1,8 +1,8 @@
 # Phase 7 — Tax engine and India IRP
 
-**Status:** active; implementation begins with Order 237
+**Status:** active; Order 237 built-unreviewed
 **Entry point:** built-unreviewed Phase-6 composition through Order 236
-**Current order:** Order 237 pure rules-driven tax evaluation is ready under D-624
+**Current order:** Order 237 pure rules-driven tax evaluation is built-unreviewed under D-625
 
 ## Outcome
 
@@ -44,3 +44,12 @@ without line allocation, and `slab_percent` is whole-band over the selected comp
 Credit notes, progressive slabs, person-category derivation, rate-plan inclusion
 precedence, tax-line allocation and India CGST/SGST/IGST decomposition require later
 policy/authority orders before any posting or fiscal-document claim.
+
+Order237 proof is green: focused `17/17`, adjacent `24/24` plus 18 expected
+database skips, standing `788/788` plus 704 environment skips, typecheck, import
+boundaries, licence, audit, JavaScript and diff checks. The result preserves mixed
+room-night attribution, uses exact bigint inclusive arithmetic, compounds only from
+visible rounded components under line rounding, rejects document-rounding compounding
+without an allocation policy, and bounds hostile arithmetic work. Independent review
+remains deferred; the next build slice is effective property/date jurisdiction
+resolution without quote, posting or document authority.

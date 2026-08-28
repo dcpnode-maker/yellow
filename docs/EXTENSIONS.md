@@ -125,6 +125,44 @@ Launch instances (seed these four):
   } }
 ```
 
+Order 237 evaluates this content as a pure positive-charge rule value. For that
+evaluator, `price_display` and `rounding` must be supplied explicitly; the schema's
+rounding default is an authoring hint, not a hidden runtime default. Rates must be
+finite, non-negative and exactly convertible to integer basis points. Money and
+intermediate values are exact bounded `bigint` minor units; JavaScript-number money is
+never admitted.
+
+The four modes have these exact v1 meanings:
+
+- `percent` applies one configured basis-point rate to each matching attributable
+  component;
+- `fixed_per_night` and `fixed_per_person_night` multiply `amount_minor` only by the
+  caller's explicit non-negative integer quantity;
+- `slab_percent` is whole-band, not progressive: each explicit room-night component
+  selects the first ordered inclusive `upto_minor`, with exactly one final null band.
+  Stay-average selection is forbidden.
+
+`applies_to` matches only explicit revenue-group values. `compound_on` may name only
+earlier unique tax codes and is rejected when missing, duplicated, forward, self or
+cyclic. Positive half-up rounding is the engine convention: `line` rounds each
+attributable component, while `document` sums exact rational components and rounds
+once per tax code without allocating residual minor units to lines. Inclusive display
+extracts tax from the supplied gross; exclusive display adds tax to the supplied base.
+This convention is calculation behavior, not jurisdiction certification.
+
+Room-night evaluation retains ordered per-night components, including mixed slab
+rates. Line-rounded compounding consumes those already-rounded earlier components.
+Document-rounded compounding is rejected because v1 has no authorized allocation of a
+rounded document tax back to attributable lines. Collection sizes and rational
+representation complexity are bounded and hostile oversized values fail closed.
+
+The evaluator does not read extensions or assignments, infer guest categories/dates,
+or decide precedence against `rate_plan.tax_inclusive`. Negative corrections,
+person-category rules, document residual allocation, progressive slabs and India
+CGST/SGST/IGST place-of-supply decomposition require later versioned contracts.
+Aggregate `GST_ROOM` output is not a legally final invoice and authorizes no posting,
+document number/hash or fiscal submission.
+
 India GST launch instance (CBIC 15/2025 slabs, slab on transaction value per night):
 
 ```json

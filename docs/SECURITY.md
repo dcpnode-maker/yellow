@@ -131,6 +131,30 @@ atomically writes the global type plus one insert-only tenant fact; identical re
 returns false without another fact and divergence fails. Runtime, `app_role` and
 `PUBLIC` cannot execute it or directly insert the catalogue row.
 
+### Pure tax-evaluation containment
+
+Order 237's evaluator is an in-process pure function with no database, HTTP, browser,
+extension-registry, assignment, provider or event capability. Callers cannot override
+a jurisdiction rate: one complete supplied `tax_jurisdiction` content value is
+validated as hostile input, and unknown fields, hidden display/rounding defaults,
+duplicate codes, malformed slabs or dependencies, fractional/unsafe quantities and
+non-basis-point rates reject the whole evaluation without a partial result.
+
+Money and intermediate values remain bounded signed-safe `bigint`; JavaScript-number
+money and unbounded arithmetic are invalid. Input lines, room-night components, tax
+definitions, application groups, dependency lists, slab bands and rational complexity
+have explicit limits. Inputs are positive only and results are
+deeply frozen. The evaluator derives no tenant, property, date, guest category,
+occupancy, currency, discount, rate-plan precedence or legal place of supply. It has
+no authority to mutate a folio, journal, posting, tax detail, document number/hash,
+fiscal submission, fact or outbox row. A computed tax component therefore cannot be
+treated as posted money, a finalized quote or an issued/legally valid invoice.
+
+Negative corrections, tax-line residual allocation, person-category rules,
+`rate_plan.tax_inclusive` precedence and India CGST/SGST/IGST decomposition remain
+explicitly outside this trust boundary and must fail closed at later integrations
+until separately authorized.
+
 Named residual capability debt remains for approval decisions, extension
 publication/retirement, hold transitions, inventory-policy and projection
 replacement, operational-block updates, reservation/segment/guest lifecycle,
