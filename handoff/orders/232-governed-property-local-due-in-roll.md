@@ -1,0 +1,101 @@
+# Order 232 — Governed property-local due-in roll
+
+**Status:** READY-D608
+**Phase:** 6 — Stay operations and housekeeping
+**Branch:** `phase-6/governed-property-local-due-in-roll`
+**Base:** `922c8a9` (built-unreviewed Order231)
+**Risk tier:** 3 — reservation lifecycle transition and time-bound worker evidence
+**Owner:** Codex implementation; independent high-risk review remains deferred by founder build-first direction
+
+## Outcome
+
+An ordinarily committed `reserved` reservation reaches the canonical `due_in` state
+exactly when its database-derived property-local business date equals its current
+arrival date. The bounded server worker performs the already-recorded transition and
+emits the existing `reservation.due_in` evidence once, so Today and the governed
+check-in journey become reachable without fixture or operator database intervention.
+
+## Fixed policy
+
+- Admission is database-derived from one active tenant/property scope, its exact open
+  property business date and one coherent `reserved` reservation whose latest current
+  `booked` segment begins on that same local date. Browser or process wall-clock
+  arithmetic is never authoritative.
+- Only `reserved -> due_in` and the matching current `booked -> due_in` segment status
+  transition are admitted. Parent and segment remain coherent in one transaction.
+- The roll reuses the existing `reservation.due_in` event, fact/outbox/idempotency and
+  actor/correlation/causation conventions. No table, event, permission or browser
+  command is added.
+- A bounded worker discovers only currently due property scopes, processes a bounded
+  batch, is restart-safe and supports deterministic one-cycle execution. Startup,
+  shutdown and disabled-state behavior follow the existing worker composition.
+- Exact rerun is a no-op. Concurrent workers and twenty contenders converge to one
+  parent/segment transition and one fact/outbox effect. Publication or evidence
+  failure rolls back the whole transition before an exact retry succeeds.
+- Future arrivals, already-past missed arrivals, foreign properties, incoherent or
+  absent current segments, and every non-`reserved` parent state fail closed without
+  mutation. No no-show, due-out, check-in, checkout or repair inference is admitted.
+- Success becomes visible through the existing Today due-in lane, reservation detail
+  and check-in readiness. This order adds no new operator control or automatic
+  check-in.
+
+## Exact scope
+
+- this order and focused intentional-red/domain/worker/server-wiring tests;
+- `src/contexts/reservations/arrival-roll.ts`, `src/contexts/reservations/index.ts`;
+- `src/workers/postgres-due-arrival-scopes.ts` and `src/server.ts`;
+- `src/app.ts` and project-status response/tests only if the existing worker-health
+  contract requires the exact enabled flag already exposed for sibling workers;
+- existing reservation lifecycle/idempotency/fact/outbox interfaces only where a
+  narrow reuse or export is required;
+- `scripts/seed-review.ts` only if a real committed reserved-arrival fixture is needed
+  for deterministic end-to-end proof;
+- directly affected reservation lifecycle, worker wiring, database authority,
+  review-seed, Today, reservation-detail and check-in regression tests;
+- relevant contract/event/state/domain/security/operator documentation;
+- Phase-6 entries in `BUILD-PLAN.md`, `handoff/PHASE-6-PLAN.md`, this order,
+  `DECISIONS.log` and `handoff/LEDGER.md`.
+
+`migrations/0001_init.sql` remains immutable. No migration is admitted unless an
+executable app-role preflight proves an exact missing owner capability and a recorded
+scope correction precedes it.
+
+## Forbidden
+
+- browser, caller or process wall clock deciding property business date;
+- broad lifecycle repair, past-arrival catch-up, no-show, due-out or day-close logic;
+- occupancy, assignment, condition, housekeeping-task, folio, identity, financial,
+  statutory, key, document or travel mutation;
+- automatic check-in, user-visible transition control or a new API route;
+- new table/event/permission/dependency, generic scheduler framework or external job;
+- local promotion, merge, push, deployment, Phase-6 or app-complete claim.
+
+## Pre-registered proof
+
+- **P0 red:** arrival-roll domain service, due-scope source, worker composition and
+  production `reservation.due_in` emission are absent before implementation.
+- **P1 exact date:** a real committed reservation stays `reserved` before arrival and
+  rolls once only when the database-derived property business date equals arrival.
+- **P2 containment:** future, past, foreign-property, cancelled, waitlist,
+  already-due-in and incoherent segment truth produce no artifact.
+- **P3 atomicity:** parent and current segment become due-in with one minimized
+  `reservation.due_in` fact/outbox/idempotency result and no unrelated row change.
+- **P4 contention/replay:** rerun and twenty contenders converge to one transition and
+  one evidence effect.
+- **P5 rollback:** injected fact/publication failure leaves parent, segment,
+  idempotency, fact and outbox unchanged; exact retry succeeds once.
+- **P6 worker:** bounded scope/batch discovery, enabled/disabled server wiring,
+  abort/shutdown and one-cycle behavior are executable.
+- **P7 journey:** the rolled reservation appears through existing Today due-in,
+  reservation-detail and check-in readiness without new UI authority.
+- **P8 standing:** focused reservation/check-in/Today regressions plus typecheck,
+  boundaries, licence, audit, JavaScript, full suite, exact schema and referee remain
+  green.
+
+## Definition of done
+
+- [ ] Intentional red precedes implementation.
+- [ ] Property-local due admission is database-authoritative and bounded.
+- [ ] Parent/segment/evidence transition is atomic, replay-safe and contention-safe.
+- [ ] Existing Today and check-in journeys become reachable from a real commit.
+- [ ] Standing gates are green and the result is recorded built-unreviewed.

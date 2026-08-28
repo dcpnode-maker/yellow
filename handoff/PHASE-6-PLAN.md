@@ -312,6 +312,13 @@ task, folio, identity, check-in, financial, day or statutory effect is admitted.
 Fresh database contention, rollback, hostile-authority, migration, seed, schema and
 standing proofs are green; independent Tier-3 approval remains deferred.
 
+Order 232 is ready as the missing property-local arrival roll. One bounded worker will
+derive exact open business-date scopes in PostgreSQL and move only coherent current
+`reserved`/`booked` arrival truth to `due_in`, atomically recording the existing
+`reservation.due_in` evidence. This closes the fixture-only gap before Today and the
+governed check-in journey; it adds no operator control, no no-show/due-out/day-close
+meaning and no occupancy, folio, identity, financial or statutory effect.
+
 Statutory field semantics, validation, submission and receipts remain Phase 8. Tax and
 fiscal document work remains Phase 7. No country rule is hardcoded in Phase 6.
 

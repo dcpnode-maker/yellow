@@ -359,6 +359,13 @@ Executable contention, rollback, authority, migration, seed, schema and standing
 proofs are green. It is not room move, automatic allocation, readiness inference or
 automatic check-in.
 
+Order 232 is ready as the missing canonical property-local arrival roll. A bounded
+server worker will use exact PostgreSQL business-date and current-segment truth to
+change only coherent `reserved`/`booked` arrivals to `due_in` with one existing
+`reservation.due_in` evidence chain. This makes ordinary committed bookings visible
+to the existing Today/check-in journey without adding a browser command, no-show,
+due-out, occupancy, financial, identity or statutory behavior.
+
 ## Phase 7 — Tax engine + India IRP
 
 tax_assignment evaluation (percent/fixed/slab, compound, line-vs-document rounding)
