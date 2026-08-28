@@ -371,6 +371,15 @@ financial, identity or statutory behavior. Focused `14/14`, database authority,
 exact schema, standing gates and fresh referee `11/11` are green; independent Tier-3
 approval remains deferred.
 
+Order 233 is active as the mirrored canonical property-local departure roll. A
+bounded opt-in worker will use PostgreSQL's transaction-stable property-local
+calendar date and the latest current `in_house` segment's local upper bound to change
+only its coherent `in_house` parent to `due_out`. The complete segment remains
+byte-equivalent, and one existing `reservation.due_out` fact/outbox/idempotency chain
+must commit atomically. Existing Today, reservation-detail and checkout-readiness
+surfaces consume the result; checkout, occupancy release, finance, day and product UI
+behavior remain unchanged.
+
 ## Phase 7 — Tax engine + India IRP
 
 tax_assignment evaluation (percent/fixed/slab, compound, line-vs-document rounding)
