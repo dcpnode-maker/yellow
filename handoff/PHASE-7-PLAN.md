@@ -159,3 +159,7 @@ Order248 is built-unreviewed under D-646. Fresh PostgreSQL proof reaches migrati
 95 tables and 85 policies; focused P0-P6 is 8/8, the native referee is 11/11, and the
 824-test standing suite is green. This records executable booking-edge evidence only;
 posting, fiscal documents/IRP and Phase7 completion remain pending.
+
+Order249 is built-unreviewed under D-648 as the status-only boundary through built Order248/current Order249. It may
+change only authenticated founder snapshot values and their exact proof; review91,
+unfinished phase states and pending posting/fiscal/review truth remain unchanged.

@@ -508,6 +508,12 @@ expected environment skips, typecheck/92-boundaries/licence/audit/diff green.
 Independent Tier-3 product review remains deferred under the founder's build-first
 direction.
 
+Order249 is built-unreviewed under D-648 as a status-only refresh through built Order248/current
+Order249 truth. It advances only the recorded founder snapshot and compact Phase7
+builder milestone while preserving independent review through Order91 and keeping
+unfinished Phases5-7 active. Focused status proof is 5/5 and the 824-test standing
+suite is green. Exact local promotion remains separate.
+
 Order244 is ready under D-637 as the append-only persistence foundation. It gives one
 exact parsed Order240 positive quote snapshot a tenant/property-scoped PostgreSQL
 root, same-hash convergence, tenant-isolated read, idempotent receipt and one atomic
