@@ -432,6 +432,13 @@ database skips, standing `788/788` plus 704 environment skips and all required s
 gates are green. Independent tax review remains deferred by the founder's build-first
 direction.
 
+Order238 is ready under D-626 as the next smallest read-only authority slice. It binds
+one exact active-tenant property/business-date assignment to exactly one active visible
+`tax_jurisdiction` extension id/version/content hash through existing PostgreSQL and
+runtime-extension authority. Missing/overlapping assignments and missing/ambiguous
+versions fail closed. No precedence, migration, mutation, quote, posting, document,
+provider, HTTP or UI behavior is admitted.
+
 tax_assignment evaluation (percent/fixed/slab, compound, line-vs-document rounding)
 from EXTENSIONS §2; India GST slab per room-night; document issue path: series →
 gapless number → hash chain → document; IRP reporting adapter (sandbox), IRN + QR

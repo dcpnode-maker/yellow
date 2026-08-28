@@ -2,7 +2,7 @@
 
 **Status:** active; Order 237 built-unreviewed
 **Entry point:** built-unreviewed Phase-6 composition through Order 236
-**Current order:** Order 237 pure rules-driven tax evaluation is built-unreviewed under D-625
+**Current order:** Order 238 effective tax-jurisdiction resolution is ready under D-626
 
 ## Outcome
 
@@ -53,3 +53,13 @@ visible rounded components under line rounding, rejects document-rounding compou
 without an allocation policy, and bounds hostile arithmetic work. Independent review
 remains deferred; the next build slice is effective property/date jurisdiction
 resolution without quote, posting or document authority.
+
+## Order 238 boundary
+
+Order238 resolves one caller-supplied property/date through active-tenant PostgreSQL
+`tax_assignment` truth and the established runtime-visible extension adapter. It
+requires one assignment and exactly one active visible global-or-tenant jurisdiction
+version, binds exact content hash evidence, and returns a deeply frozen read-only
+result. It invents no global/tenant precedence or extension-effective-time policy and
+adds no migration, write, event, evaluator, quote, posting, document, provider, HTTP
+or UI authority.
