@@ -381,6 +381,13 @@ checkout, occupancy release, finance, day and product UI behavior remain unchang
 Focused `14/14`, database authority, migration `33/33`, exact schema, standing gates
 and fresh referee `11/11` are green; independent Tier-3 approval remains deferred.
 
+Order 234 is active as UI-only checkout-to-Housekeeping continuity. One exact current
+checkout success may retain only its validated released-room identity through the
+authoritative checked-out reservation-detail refresh and present a deliberate Review
+room in Housekeeping action. The existing Housekeeping condition board owns room truth;
+the browser neither dirties the room, creates work, infers discrepancy nor reruns
+checkout. Direct Housekeeping and every server/database authority remain unchanged.
+
 ## Phase 7 — Tax engine + India IRP
 
 tax_assignment evaluation (percent/fixed/slab, compound, line-vs-document rounding)

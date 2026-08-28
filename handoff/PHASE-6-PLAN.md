@@ -335,6 +335,12 @@ occupancy release, finance, business day and product UI remain separate. Focused
 contention, rollback, migration, authority, exact-schema, standing and fresh-referee
 proofs are green; independent Tier-3 approval remains deferred.
 
+Order 234 is active as UI-only continuity from an exact successful checkout to the
+existing Housekeeping condition board. The validated released-room identity survives
+only the authoritative checked-out reservation-detail refresh; one deliberate action
+opens and focuses existing room truth. It cannot mutate condition, create a task,
+infer cleaning/discrepancy, rerun checkout or change direct Housekeeping behavior.
+
 Statutory field semantics, validation, submission and receipts remain Phase 8. Tax and
 fiscal document work remains Phase 7. No country rule is hardcoded in Phase 6.
 
