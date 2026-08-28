@@ -173,6 +173,12 @@ changes into canonical reservation detail. It reuses server action flags and exa
 departure/move commands while adding current-detail identity, stale and focus guards;
 it creates no new mutation authority or second workflow.
 
+Order 211 is admitted as a UI-only integration of the existing governed reservation
+guest allocation into canonical reservation detail. It reuses the one audited editor,
+server-owned primary truth and exact PUT/idempotency while adding current-detail
+identity, mutual-exclusion, stale and focus guards; it creates no new mutation
+authority, Party identity or financial allocation.
+
 Order 208 is built-unreviewed as the next bounded read-only slice: a canonical
 active-room condition board inside the existing Housekeeping workbench. It reads exact
 `unit_condition` truth with tenant/property containment, keyset paging and an optional
