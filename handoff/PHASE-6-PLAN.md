@@ -2,7 +2,7 @@
 
 **Status:** active; Orders 200–216 are built-unreviewed
 **Entry point:** built-unreviewed Phase-5 composition through Order 199
-**Current order:** `216-vehicle-register-detail.md` (built-unreviewed)
+**Current order:** `217-housekeeping-task-detail.md` (ready)
 
 ## Outcome
 
@@ -223,6 +223,11 @@ Order 216 is built-unreviewed and owns one exact read-only Vehicle Register deta
 route under the existing Order205 authority. It exposes only the already-approved
 minimized row, re-proves linked reservation/Party associations and adds no write,
 parking/occupancy inference or action, polling, scope, migration or event.
+
+Order 217 owns one exact read-only housekeeping-task detail endpoint and nested human
+route under the existing Order201 board read authority. It exposes only exact eligible
+task/active-room/condition truth and adds no generic task API, lifecycle mutation,
+notes/payload/assignee identity, inference, polling, scope, migration or event.
 
 Statutory field semantics, validation, submission and receipts remain Phase 8. Tax and
 fiscal document work remains Phase 7. No country rule is hardcoded in Phase 6.

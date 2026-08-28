@@ -276,6 +276,12 @@ route. It reuses the Order205 minimized row truth, re-proves linked reservation 
 Party associations, and adds no vehicle write, parking/occupancy inference or action,
 polling, scope, migration or event. This cannot complete Phase 6.
 
+Order 217 owns one exact read-only housekeeping-task detail endpoint and nested human
+route. It admits only the existing board's housekeeping/space/active-room and
+assigned/in-progress/done truth, exposes no notes/payload/assignee identity or inferred
+operational meaning, and adds no task mutation, scope, migration or event. This cannot
+complete Phase 6.
+
 ## Phase 7 — Tax engine + India IRP
 
 tax_assignment evaluation (percent/fixed/slab, compound, line-vs-document rounding)
