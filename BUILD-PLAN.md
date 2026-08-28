@@ -335,11 +335,13 @@ in progress and done through actor-bound idempotent CAS and one same-transaction
 cancellation, travel/vehicle/parking/occupancy/financial effects and inferred
 transport outcome remain outside this slice.
 
-Order 229 is ready as the bounded `room_not_ready` arrival-to-cleaning-task slice. One
+Order 229 is ready as the bounded dirty/pickup-room arrival-to-cleaning-task slice. One
 authorized operator may select an active property attendant and create at most one
 assigned housekeeping task for the exact dirty/pickup assigned room, with atomic
 `task.created` evidence and existing-task duplicate containment. It changes no room
-condition, reservation, occupancy, check-in or financial truth.
+condition, reservation, occupancy, check-in or financial truth. Admission uses the
+current executable `dirty_room_override_unauthorized` blocker, not the reserved
+`room_not_ready` literal.
 
 ## Phase 7 — Tax engine + India IRP
 

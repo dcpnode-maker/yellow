@@ -1,6 +1,6 @@
 # Order 229 — Governed arrival room-cleaning task creation
 
-**Status:** READY-D601
+**Status:** READY-D602
 **Phase:** 6 — Stay operations and housekeeping
 **Branch:** `phase-6/governed-arrival-room-cleaning-task`
 **Base:** `c58a734` (built-unreviewed Order228)
@@ -9,7 +9,8 @@
 
 ## Outcome
 
-An authorized operator following the exact current `room_not_ready` arrival blocker can
+An authorized operator following the exact current `dirty_room_override_unauthorized`
+arrival blocker can
 select one active property staff attendant and deliberately create the one governed
 housekeeping task needed for the assigned dirty or pickup room, then continue through
 the existing task-detail and check-in preparation journeys.
@@ -18,7 +19,7 @@ the existing task-detail and check-in preparation journeys.
 
 - Eligibility is server-owned: one exact due-in reservation, its unique current segment,
   exact assigned active physical room, current canonical condition `dirty` or `pickup`,
-  and current check-in readiness blocker `room_not_ready` must agree inside one tenant
+  and current check-in readiness blocker `dirty_room_override_unauthorized` must agree inside one tenant
   transaction. Missing, foreign, inactive, wrong-property or incoherent truth conceals.
 - If an actionable housekeeping/space task already exists for that exact room in
   `assigned` or `in_progress`, no duplicate may be created; the exact current task is
@@ -74,7 +75,8 @@ the existing task-detail and check-in preparation journeys.
    current arrival/room/condition/task/attendant evidence in the command transaction.
 4. Add no-store exact-reservation candidate GET and POST routes with strict parsing,
    property grants, 404 concealment, 409 conflict, 201/200 replay and correlation headers.
-5. Extend only the exact current `room_not_ready` Housekeeping return context with active-
+5. Extend Order226 admission only for the exact current
+   `dirty_room_override_unauthorized` Housekeeping return context, with active-
    staff search, deliberate Create cleaning task, retained-key retry, locked in-flight
    controls, authoritative refetch and navigation into existing task detail.
 6. Preserve direct Housekeeping and all six appearances, 44px controls (Android 48px),
@@ -96,7 +98,7 @@ the existing task-detail and check-in preparation journeys.
 - **P1 authority:** fresh migrations1–32 expose only the exact owner capability; PUBLIC,
   direct login, direct capability and raw runtime task DML remain denied.
 - **P2 admission:** only coherent due-in + assigned active room + dirty/pickup + exact
-  `room_not_ready` + active staff truth can create; hostile and foreign paths conceal.
+  `dirty_room_override_unauthorized` + active staff truth can create; hostile and foreign paths conceal.
 - **P3 duplicate containment:** one existing assigned/in-progress exact-room housekeeping
   task is returned; every other task shape is ignored without mutation and cannot be adopted.
 - **P4 replay/concurrency:** exact replay is stable, changed reuse conflicts and twenty
