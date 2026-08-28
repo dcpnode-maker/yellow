@@ -1,6 +1,6 @@
 # Order 232 — Governed property-local due-in roll
 
-**Status:** READY-D609
+**Status:** ACTIVE-CAPABILITY-CORRECTED-D610
 **Phase:** 6 — Stay operations and housekeeping
 **Branch:** `phase-6/governed-property-local-due-in-roll`
 **Base:** `922c8a9` (built-unreviewed Order231)
@@ -45,6 +45,8 @@ check-in journey become reachable without fixture or operator database intervent
 - this order and focused intentional-red/domain/worker/server-wiring tests;
 - `src/contexts/reservations/arrival-roll.ts`, `src/contexts/reservations/index.ts`;
 - `src/workers/postgres-due-arrival-scopes.ts` and `src/server.ts`;
+- `migrations/0034_runtime_due_arrival_scopes.sql` for one bounded read-only
+  `yellow_runtime` scope-discovery function only;
 - `src/app.ts` and project-status response/tests only if the existing worker-health
   contract requires the exact enabled flag already exposed for sibling workers;
 - existing reservation lifecycle/idempotency/fact/outbox interfaces only where a
@@ -52,14 +54,21 @@ check-in journey become reachable without fixture or operator database intervent
 - `scripts/seed-review.ts` only if a real committed reserved-arrival fixture is needed
   for deterministic end-to-end proof;
 - directly affected reservation lifecycle, worker wiring, database authority,
-  review-seed, Today, reservation-detail and check-in regression tests;
+  migration/SECURITY-DEFINER/schema, review-seed, Today, reservation-detail and
+  check-in regression tests;
+- `tests/schema/expected.sql`, migration/database-acceptance/runtime-DML/
+  SECURITY-DEFINER containment manifests, and `setup.sh` only for exact migration
+  count/name text if required;
 - relevant contract/event/state/domain/security/operator documentation;
 - Phase-6 entries in `BUILD-PLAN.md`, `handoff/PHASE-6-PLAN.md`, this order,
   `DECISIONS.log` and `handoff/LEDGER.md`.
 
-`migrations/0001_init.sql` remains immutable. No migration is admitted unless an
-executable app-role preflight proves an exact missing owner capability and a recorded
-scope correction precedes it.
+`migrations/0001_init.sql` remains immutable. Executable preflight proved app-role
+already owns only the exact reservation status-column update needed, while
+`yellow_runtime` cannot read reservation or business-day tables and can execute only
+owner-mediated discovery. Migration0034 therefore adds solely one stable bounded
+fixed-search-path function that returns due tenant/property scopes; PUBLIC/app-role
+execution and direct runtime table reads remain denied.
 
 ## Forbidden
 
