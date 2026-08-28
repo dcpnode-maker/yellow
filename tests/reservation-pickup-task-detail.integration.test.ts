@@ -164,9 +164,12 @@ databaseDescribe("Order 215 fresh-PostgreSQL pickup-task detail proof", () => {
       priority: 3,
       createdAt: CREATED_AT,
       completedAt: null,
+      assigneePartyId: null,
+      eligibleAction: "assign",
     });
     expect(Object.keys(first)).toEqual([
       "taskId", "reservationId", "confirmationNo", "status", "dueAt", "priority", "createdAt", "completedAt",
+      "assigneePartyId", "eligibleAction",
     ]);
     expect(Object.isFrozen(first)).toBeTrue();
     expect(JSON.stringify(second)).toBe(JSON.stringify(first));

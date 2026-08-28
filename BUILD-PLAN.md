@@ -328,7 +328,7 @@ record canonical condition truth plus same-transaction `unit.condition_changed`
 evidence. It cannot overwrite an existing condition, initialize `inspected`, or
 change task, reservation, check-in, occupancy or financial truth.
 
-Order 228 is ready as the governed exact arrival pickup-task dispatch lifecycle. Only
+Order 228 is built-unreviewed as the governed exact arrival pickup-task dispatch lifecycle. Only
 the currently linked canonical task may advance open to assigned active staff, then
 in progress and done through actor-bound idempotent CAS and one same-transaction
 `task.status_changed` fact/outbox per change. Generic task CRUD, reassignment,

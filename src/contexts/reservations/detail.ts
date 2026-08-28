@@ -43,6 +43,8 @@ export interface ReservationPickupTaskDetail {
   readonly priority: number;
   readonly createdAt: string;
   readonly completedAt: string | null;
+  readonly assigneePartyId: string | null;
+  readonly eligibleAction: "assign" | "start" | "complete" | null;
 }
 
 export interface ReservationDetailSegment {
@@ -245,6 +247,7 @@ interface PickupTaskDetailRow {
   readonly task_payload: JsonValue | null;
   readonly task_created_at: string | null;
   readonly task_completed_at: string | null;
+  readonly task_assignee_party: string | null;
 }
 
 interface FactRow {
@@ -395,6 +398,16 @@ function pickupTaskStatus(value: string | null): ReservationPickupTaskStatus {
   throw new ReservationDetailConflictError("Stored arrival pickup task status is invalid");
 }
 
+function pickupTaskEligibleAction(
+  status: ReservationPickupTaskStatus,
+  assigneePartyId: string | null,
+): ReservationPickupTaskDetail["eligibleAction"] {
+  if (status === "open" && assigneePartyId === null) return "assign";
+  if (status === "assigned" && assigneePartyId !== null) return "start";
+  if (status === "in_progress" && assigneePartyId !== null) return "complete";
+  return null;
+}
+
 function isArrivalPickupPayload(value: JsonValue | null): boolean {
   if (typeof value !== "object" || value === null || Array.isArray(value)) return false;
   const payload = value as { readonly [key: string]: JsonValue };
@@ -463,6 +476,7 @@ export class ReservationDetailService {
                to_char(pickup_task.due_at AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"')
              END AS task_due_at,
              pickup_task.priority AS task_priority, pickup_task.payload AS task_payload,
+             pickup_task.assignee_party AS task_assignee_party,
              CASE WHEN pickup_task.created_at IS NULL THEN NULL ELSE
                to_char(pickup_task.created_at AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"')
              END AS task_created_at,
@@ -509,15 +523,22 @@ export class ReservationDetailService {
       throw new ReservationDetailConflictError("Stored reservation confirmation number is invalid");
     }
 
+    const status = pickupTaskStatus(row.task_status);
+    const assigneePartyId = requireStoredUuid(
+      "arrival pickup task assignee Party id",
+      row.task_assignee_party,
+    );
     return Object.freeze({
       taskId: requireStoredUuid("arrival pickup task id", row.task_id)!,
       reservationId: requireStoredUuid("reservation id", row.reservation_id)!,
       confirmationNo: row.confirmation_no,
-      status: pickupTaskStatus(row.task_status),
+      status,
       dueAt,
       priority: row.task_priority,
       createdAt: requireStoredRequiredInstant("arrival pickup task creation time", row.task_created_at),
       completedAt: requireStoredInstant("arrival pickup task completion time", row.task_completed_at),
+      assigneePartyId,
+      eligibleAction: pickupTaskEligibleAction(status, assigneePartyId),
     });
   }
 

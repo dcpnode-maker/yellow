@@ -871,6 +871,41 @@ databaseDescribe("Bun SQL migration runner", () => {
   );
 
   test(
+    "applies the exact governed arrival pickup-task transition migration",
+    async () => {
+      await withDatabase(async ({ databaseUrl: targetUrl, sql }) => {
+        const result = await runMigrations({
+          databaseUrl: targetUrl,
+          migrationsDirectory: PROJECT_MIGRATIONS,
+          logger: () => undefined,
+        });
+        expect(result.appliedFiles).toContain("0031_governed_arrival_pickup_task_transition.sql");
+        const ledger = await sql<Array<{
+          version: number | bigint; filename: string; checksum_sha256: string;
+        }>>`
+          SELECT version, filename, checksum_sha256
+            FROM public.schema_migration
+           WHERE version = 31
+        `;
+        expect(ledger.map((row) => ({ ...row, version: Number(row.version) }))).toEqual([{
+          version: 31,
+          filename: "0031_governed_arrival_pickup_task_transition.sql",
+          checksum_sha256: "e337fcb52b38e98d5877f3ce927dd54825d465d90328104d87e1df83a187598f",
+        }]);
+        const shape = await sql<Array<{ functions: number }>>`
+          SELECT count(*)::int AS functions
+            FROM pg_catalog.pg_proc AS procedure
+            JOIN pg_catalog.pg_namespace AS namespace ON namespace.oid=procedure.pronamespace
+           WHERE namespace.nspname='public'
+             AND procedure.proname='transition_arrival_pickup_task'
+        `;
+        expect(shape).toEqual([{ functions: 1 }]);
+      });
+    },
+    60_000,
+  );
+
+  test(
     "applies the exact account-folio integrity migration and rejects tenant-crossing references",
     async () => {
       await withDatabase(async ({ databaseUrl: targetUrl, sql }) => {
@@ -1342,7 +1377,13 @@ databaseDescribe("Bun SQL migration runner", () => {
         }
 
         await withMigrationDirectory({ "source.txt": "SELECT 1;\n" }, async (directory) => {
-          await symlink(resolve(directory, "source.txt"), resolve(directory, "0002_link.sql"), "file");
+          try {
+            await symlink(resolve(directory, "source.txt"), resolve(directory, "0002_link.sql"), "file");
+          } catch (error) {
+            if (process.platform !== "win32" || (error as NodeJS.ErrnoException).code !== "EPERM") throw error;
+            expect(error).toMatchObject({ code: "EPERM" });
+            return;
+          }
           const error = await migrationFailure(() =>
             runMigrations({ databaseUrl: targetUrl, migrationsDirectory: directory, logger: () => undefined }),
           );

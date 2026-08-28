@@ -1,6 +1,6 @@
 # Order 228 — Governed arrival pickup-task dispatch
 
-**Status:** READY-D599
+**Status:** BUILT-UNREVIEWED-D600
 **Phase:** 6 — Stay operations and housekeeping
 **Branch:** `phase-6/governed-arrival-pickup-task-dispatch`
 **Base:** `0a11bb6` (built-unreviewed Order227)
@@ -65,7 +65,9 @@ truth and records one same-transaction lifecycle fact and outbox event.
   `tests/database-acceptance.integration.test.ts`,
   `tests/runtime-dml-authority.integration.test.ts`,
   `tests/security-definer-containment.integration.test.ts`,
-  `tests/review-seed.integration.test.ts`, and `tests/schema/expected.sql`;
+  `tests/review-seed.integration.test.ts`, the superseded exact composition oracle in
+  `tests/operator-reservation-travel.integration.test.ts`, and
+  `tests/schema/expected.sql`;
 - pickup-task-only notes in `docs/CONTRACTS.md`, `docs/EVENTS.md`,
   `docs/STATE-MACHINES.md`, `docs/DOMAIN-MODEL-V1.md`, `docs/SECURITY.md`, and
   `docs/UI-SPEC.md`;
@@ -119,8 +121,8 @@ occupancy, vehicle, parking, finance, business-day and statutory truth remain un
 
 ## Definition of done
 
-- [ ] Intentional red precedes implementation.
-- [ ] Exact arrival pickup task assignment/start/completion is atomic and executable.
-- [ ] Authority, hostile boundaries, rollback, replay and convergence are proved.
-- [ ] The exact human dispatch journey is accessible and stale-safe.
-- [ ] Standing gates are green and the result is recorded built-unreviewed.
+- [x] Intentional red precedes implementation.
+- [x] Exact arrival pickup task assignment/start/completion is atomic and executable.
+- [x] Authority, hostile boundaries, rollback, replay and convergence are proved.
+- [x] The exact human dispatch journey is accessible and stale-safe.
+- [x] Standing gates are green and the result is recorded built-unreviewed.

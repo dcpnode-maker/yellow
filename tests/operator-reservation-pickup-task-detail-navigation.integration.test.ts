@@ -50,11 +50,12 @@ describe("Order 215 reservation pickup-task detail navigation", () => {
     expect(result).toContain('Object.keys(value).sort().join(",") !== "pickupTask"');
     for (const field of [
       "taskId", "reservationId", "confirmationNo", "status", "dueAt", "priority", "createdAt", "completedAt",
+      "assigneePartyId",
     ]) expect(result).toContain(field);
     for (const status of ["open", "assigned", "in_progress", "done", "verified", "cancelled"]) {
       expect(result).toContain(`"${status}"`);
     }
-    expect(result).not.toMatch(/payload|assignee|contact|driver|vehicle|dispatch|queue|sheet|credit/i);
+    expect(result).not.toMatch(/payload|displayName|legalName|email|phone|whatsapp|contact|driver|vehicle|dispatch|queue|sheet|credit/i);
     const instant = functionSource("reservationPickupTaskCanonicalInstant");
     expect(instant).toContain("(?:\\.\\d{1,6})?Z");
     expect(instant).toContain("Number.isFinite(Date.parse(value))");

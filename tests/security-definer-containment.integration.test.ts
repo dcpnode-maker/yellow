@@ -169,7 +169,7 @@ dbDescribe("Order 108 SECURITY DEFINER shadow-path containment", () => {
            'govern_arrival_pickup_task', 'govern_housekeeping_task_sheet',
            'open_cashier_session', 'append_cashier_count', 'close_cashier_session',
            'register_extension_type', 'transition_housekeeping_task',
-           'initialize_unit_condition'
+           'initialize_unit_condition', 'transition_arrival_pickup_task'
          ]::name[])
        ORDER BY signature
     `;
@@ -213,6 +213,8 @@ dbDescribe("Order 108 SECURITY DEFINER shadow-path containment", () => {
         config: ["search_path=pg_catalog, public, pg_temp"], appExecute: true, publicDenied: true },
       { signature: "seal_business_day(uuid,uuid,date,uuid)", securityDefiner: true,
         config: ["search_path=pg_catalog, public, pg_temp"], appExecute: false, publicDenied: true },
+      { signature: "transition_arrival_pickup_task(uuid,uuid,uuid,uuid,text,text,uuid,uuid,uuid)", securityDefiner: true,
+        config: ["search_path=pg_catalog, public, pg_temp"], appExecute: true, publicDenied: true },
       { signature: "transition_housekeeping_task(uuid,uuid,uuid,text,text,text,timestamp with time zone,uuid)", securityDefiner: true,
         config: ["search_path=pg_catalog, public, pg_temp"], appExecute: true, publicDenied: true },
     ]);
@@ -259,6 +261,9 @@ dbDescribe("Order 108 SECURITY DEFINER shadow-path containment", () => {
       ["seal_business_day(uuid,uuid,date,uuid)", ["public.business_day"]],
       ["transition_housekeeping_task(uuid,uuid,uuid,text,text,text,timestamp with time zone,uuid)",
         ["public.app_user", "public.org_node", "public.task", "public.space", "public.unit_condition"]],
+      ["transition_arrival_pickup_task(uuid,uuid,uuid,uuid,text,text,uuid,uuid,uuid)",
+        ["public.app_user", "public.org_node", "public.reservation", "public.travel_detail",
+          "public.task", "public.party", "public.party_role"]],
     ]);
     for (const definition of functions) {
       for (const object of expectedQualifiedObjects.get(definition.signature) ?? []) {
@@ -374,6 +379,14 @@ dbDescribe("Order 108 SECURITY DEFINER shadow-path containment", () => {
           '${TENANT}'::uuid, '${PROPERTY}'::uuid,
           '00000000-0000-0000-0000-000000011364'::uuid,
           'start', 'assigned', 'dirty', now(), '${ACTOR}'::uuid
+        )`,
+        `SELECT * FROM public.transition_arrival_pickup_task(
+          '${TENANT}'::uuid, '${PROPERTY}'::uuid,
+          '00000000-0000-0000-0000-000000011366'::uuid,
+          '00000000-0000-0000-0000-000000011367'::uuid,
+          'assign', 'open', NULL,
+          '00000000-0000-0000-0000-000000011368'::uuid,
+          '${ACTOR}'::uuid
         )`,
         `SELECT * FROM public.initialize_unit_condition(
           '${TENANT}'::uuid, '${PROPERTY}'::uuid,

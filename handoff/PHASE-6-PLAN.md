@@ -1,8 +1,8 @@
 # Phase 6 — Stay operations and housekeeping
 
-**Status:** active; Orders 200–227 are built-unreviewed
+**Status:** active; Orders 200–228 are built-unreviewed
 **Entry point:** built-unreviewed Phase-5 composition through Order 199
-**Current order:** Order228 governed arrival pickup-task dispatch is ready
+**Current order:** the next build-first Phase-6 slice is being scoped
 
 ## Outcome
 
@@ -281,7 +281,7 @@ same-transaction `unit.condition_changed` evidence. Existing conditions cannot b
 overwritten, `inspected` remains verification-only, and task, reservation, check-in,
 occupancy and financial truth remain unchanged.
 
-Order 228 is ready as the exact currently linked arrival pickup-task dispatch slice.
+Order 228 is built-unreviewed as the exact currently linked arrival pickup-task dispatch slice.
 It admits only active-staff assignment and adjacent start/complete transitions with
 actor-bound idempotency, expected status/assignee evidence and one same-transaction
 `task.status_changed` fact/outbox. It adds no generic task CRUD, reassignment,

@@ -287,6 +287,7 @@ databaseDescribe("Order 150 positive runtime DML authority", () => {
             'lock_financial_rows', 'lock_financial_business_days', 'create_charge_correction_header',
             'create_folio_transfer', 'create_receivable_transfer',
             'govern_housekeeping_task_sheet', 'initialize_unit_condition',
+            'transition_arrival_pickup_task',
             'open_cashier_session', 'append_cashier_count', 'close_cashier_session',
            'runtime_resolve_active_tenant', 'runtime_due_hold_scopes', 'runtime_consumer_begin',
            'runtime_consumer_read', 'runtime_consumer_mark', 'runtime_consumer_advance',
@@ -310,6 +311,8 @@ databaseDescribe("Order 150 positive runtime DML authority", () => {
     expect(functions.find(({ signature }) => signature.startsWith("create_receivable_transfer(")))
       .toEqual(expect.objectContaining({ app: true, runtime: false }));
     expect(functions.find(({ signature }) => signature.startsWith("initialize_unit_condition(")))
+      .toEqual(expect.objectContaining({ app: true, runtime: false }));
+    expect(functions.find(({ signature }) => signature.startsWith("transition_arrival_pickup_task(")))
       .toEqual(expect.objectContaining({ app: true, runtime: false }));
     expect(functions.find(({ signature }) => signature.startsWith("govern_housekeeping_task_sheet(")))
       .toEqual(expect.objectContaining({ app: true, runtime: false }));

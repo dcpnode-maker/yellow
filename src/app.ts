@@ -356,6 +356,21 @@ export function createApp(options: AppOptions = {}) {
           context, params.property, params.reservation, params.task,
         ))
       )
+      .post("/api/v1/properties/:property/reservations/:reservation/arrival-pickup-task/:task/assign", ({ request, params, body, tenantContext }) =>
+        withOperatorTenant(request, (context) => operator.transitionReservationPickupTask(
+          context, params.property, params.reservation, params.task, "assign", body,
+        ))
+      )
+      .post("/api/v1/properties/:property/reservations/:reservation/arrival-pickup-task/:task/start", ({ request, params, body, tenantContext }) =>
+        withOperatorTenant(request, (context) => operator.transitionReservationPickupTask(
+          context, params.property, params.reservation, params.task, "start", body,
+        ))
+      )
+      .post("/api/v1/properties/:property/reservations/:reservation/arrival-pickup-task/:task/complete", ({ request, params, body, tenantContext }) =>
+        withOperatorTenant(request, (context) => operator.transitionReservationPickupTask(
+          context, params.property, params.reservation, params.task, "complete", body,
+        ))
+      )
       .get("/api/v1/properties/:property/reservations/:reservation/check-in/readiness", ({ request, params, tenantContext }) =>
         withOperatorTenant(request, (context) => operator.checkInReadiness(
           context, params.property, params.reservation,

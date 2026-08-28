@@ -6,7 +6,7 @@ import { PartyProfileService } from "./contexts/crm";
 import { CashierService, ChargeCorrectionService, ChargeService, FolioService, FolioSettlementService, FolioStatementService, FolioTransferService, HostedDepositService, LocalPaymentProvider, PaymentService, ReceivableService } from "./contexts/financials";
 import { AvailabilityProjectionConsumer, AvailabilityProjectionService, AvailabilityService, HoldExpiryWorker, HoldService, InventoryPolicyService, InventoryService, OperationalBlockService, ReservationOccupancyService, RestrictionService } from "./contexts/inventory";
 import { ReservationBoardService, ReservationCommitService, ReservationDetailService, ReservationGuestService, ReservationLifecycleService, ReservationOfferSearchService, ReservationSegmentService, ReservationTravelService } from "./contexts/reservations";
-import { ArrivalPickupTaskAutomationConsumer, CheckInService, CheckoutReadinessService, CheckoutService, VehicleRegisterService } from "./contexts/stay-operations";
+import { ArrivalPickupTaskAutomationConsumer, ArrivalPickupTaskDispatchService, CheckInService, CheckoutReadinessService, CheckoutService, VehicleRegisterService } from "./contexts/stay-operations";
 import { HousekeepingSheetService, HousekeepingTaskService } from "./contexts/housekeeping";
 import {
   createRateIntentProposalAdapterFromEnvironment,
@@ -161,6 +161,11 @@ function runtimeApp() {
     occupancy: reservationOccupancy,
   });
   const vehicleRegister = new VehicleRegisterService({ database });
+  const pickupTaskDispatch = new ArrivalPickupTaskDispatchService({
+    database,
+    events,
+    idempotency: new PostgresIdempotency(),
+  });
   const housekeeping = new HousekeepingTaskService({ database, events, idempotency: new PostgresIdempotency() });
   const housekeepingSheets = new HousekeepingSheetService({ database, events, idempotency: new PostgresIdempotency() });
   const projection = new AvailabilityProjectionService();
@@ -207,7 +212,7 @@ function runtimeApp() {
   return createApp({
     database,
     tenantResolver: new BearerTenantResolver(tokens),
-    operatorApi: new OperatorHttpApi(login, availability, inventory, new PostgresIdempotency(), restrictions, rates, pricing, blocks, policy, holds, projection, runtimeStatus, rateBuilder, reservations, reservationOffers, reservationGuests, reservationLifecycle, reservationSegments, parties, folioStatements, charges, new ReservationBoardService(), new ReservationDetailService(), folios, chargeCorrections, folioTransfers, hostedRuntime?.hostedDeposits, folioSettlements, cashiers, receivables, checkIns, housekeeping, housekeepingSheets, checkoutReadiness, checkouts, vehicleRegister, reservationTravel),
+    operatorApi: new OperatorHttpApi(login, availability, inventory, new PostgresIdempotency(), restrictions, rates, pricing, blocks, policy, holds, projection, runtimeStatus, rateBuilder, reservations, reservationOffers, reservationGuests, reservationLifecycle, reservationSegments, parties, folioStatements, charges, new ReservationBoardService(), new ReservationDetailService(), folios, chargeCorrections, folioTransfers, hostedRuntime?.hostedDeposits, folioSettlements, cashiers, receivables, checkIns, housekeeping, housekeepingSheets, checkoutReadiness, checkouts, vehicleRegister, reservationTravel, pickupTaskDispatch),
     operatorLocalReviewCredentials: localReviewCredentials(),
     ...(hostedRuntime ? { hostedDepositRoutes: hostedRuntime.routes, hostedDepositSurface: "guest" as const } : {}),
   });

@@ -143,6 +143,10 @@ import {
   type ReservationTravelTuple,
 } from "../contexts/reservations";
 import {
+  ArrivalPickupTaskDispatchConflictError,
+  ArrivalPickupTaskDispatchNotFoundError,
+  ArrivalPickupTaskDispatchService,
+  ArrivalPickupTaskDispatchValidationError,
   CheckoutConflictError,
   CheckoutNotFoundError,
   CheckoutReadinessNotFoundError,
@@ -239,6 +243,8 @@ const CHECKIN_DIRTY_ROOM_OVERRIDE_SCOPE = "stay-operations.checkin:dirty-room-ov
 const CHECKOUT_READINESS_SCOPE = "stay-operations.checkout:read";
 const CHECKOUT_COMMIT_SCOPE = "stay-operations.checkout:commit";
 const VEHICLE_REGISTER_READ_SCOPE = "stay-operations.vehicles:read";
+const PICKUP_TASK_DISPATCH_SCOPE = "stay-operations.pickup-tasks:dispatch";
+const PICKUP_TASK_WORK_SCOPE = "stay-operations.pickup-tasks:work";
 const HOUSEKEEPING_READ_SCOPE = "housekeeping.tasks:read";
 const HOUSEKEEPING_WORK_SCOPE = "housekeeping.tasks:work";
 const HOUSEKEEPING_INSPECT_SCOPE = "housekeeping.tasks:inspect";
@@ -413,6 +419,49 @@ interface ReceivableTransferDraft extends ReceivableAccountDraft {
 }
 
 interface CheckInDraft { readonly reason?: string; }
+
+type PickupTaskTransitionDraft =
+  | Readonly<{
+    action: "assign";
+    expectedTaskStatus: "open";
+    expectedAssigneePartyId: null;
+    staffPartyId: string;
+  }>
+  | Readonly<{
+    action: "start";
+    expectedTaskStatus: "assigned";
+    expectedAssigneePartyId: string;
+  }>
+  | Readonly<{
+    action: "complete";
+    expectedTaskStatus: "in_progress";
+    expectedAssigneePartyId: string;
+  }>;
+
+function parsePickupTaskTransition(
+  action: "assign" | "start" | "complete",
+  body: unknown,
+): PickupTaskTransitionDraft | null {
+  if (!isObject(body)) return null;
+  if (action === "assign") {
+    if (!exactKeys(body, ["expectedTaskStatus", "expectedAssigneePartyId", "staffPartyId"]) ||
+        body.expectedTaskStatus !== "open" || body.expectedAssigneePartyId !== null ||
+        typeof body.staffPartyId !== "string" || !UUID.test(body.staffPartyId)) return null;
+    return Object.freeze({
+      action,
+      expectedTaskStatus: "open",
+      expectedAssigneePartyId: null,
+      staffPartyId: body.staffPartyId,
+    });
+  }
+  if (!exactKeys(body, ["expectedTaskStatus", "expectedAssigneePartyId"]) ||
+      (action === "start" ? body.expectedTaskStatus !== "assigned" : body.expectedTaskStatus !== "in_progress") ||
+      typeof body.expectedAssigneePartyId !== "string" ||
+      !UUID.test(body.expectedAssigneePartyId)) return null;
+  return action === "start"
+    ? Object.freeze({ action, expectedTaskStatus: "assigned", expectedAssigneePartyId: body.expectedAssigneePartyId })
+    : Object.freeze({ action, expectedTaskStatus: "in_progress", expectedAssigneePartyId: body.expectedAssigneePartyId });
+}
 
 interface HousekeepingTransitionDraft {
   readonly action: HousekeepingTaskAction;
@@ -1429,6 +1478,7 @@ type ReservationTravelOperations = Pick<ReservationTravelService, "put">;
 type ReservationBoardOperations = Pick<ReservationBoardService, "list">;
 type ReservationDetailOperations = Pick<ReservationDetailService, "findById"> &
   Partial<Pick<ReservationDetailService, "pickupTaskDetail">>;
+type PickupTaskDispatchOperations = Pick<ArrivalPickupTaskDispatchService, "transition">;
 type CheckInOperations = Pick<CheckInService, "getReadiness" | "checkIn">;
 type CheckoutOperations = Pick<CheckoutService, "checkout">;
 type VehicleRegisterOperations = Pick<VehicleRegisterService, "list"> &
@@ -1895,6 +1945,7 @@ export class OperatorHttpApi {
   readonly #housekeepingSheets?: HousekeepingSheetOperations;
   readonly #vehicleRegister?: VehicleRegisterOperations;
   readonly #reservationTravel?: ReservationTravelOperations;
+  readonly #pickupTaskDispatch?: PickupTaskDispatchOperations;
 
   constructor(
     login: LocalLoginService,
@@ -1934,6 +1985,7 @@ export class OperatorHttpApi {
     checkouts?: CheckoutOperations,
     vehicleRegister?: VehicleRegisterOperations,
     reservationTravel?: ReservationTravelOperations,
+    pickupTaskDispatch?: PickupTaskDispatchOperations,
   ) {
     this.#login = login;
     this.#availability = availability;
@@ -1972,6 +2024,7 @@ export class OperatorHttpApi {
     this.#checkouts = checkouts;
     this.#vehicleRegister = vehicleRegister;
     this.#reservationTravel = reservationTravel;
+    this.#pickupTaskDispatch = pickupTaskDispatch;
   }
 
   unavailable(request: Request): Response {
@@ -1986,6 +2039,15 @@ export class OperatorHttpApi {
     const conditionIngress = /^\/api\/v1\/properties\/[0-9a-f-]+\/housekeeping\/conditions\/[0-9a-f-]+\/(?:candidate|initialize)$/.test(
       new URL(request.url).pathname,
     );
+    if (error instanceof ArrivalPickupTaskDispatchValidationError) {
+      return apiError(request, 400, "request/invalid", "Invalid request", "Arrival pickup task transition input is invalid");
+    }
+    if (error instanceof ArrivalPickupTaskDispatchNotFoundError) {
+      return apiError(request, 404, "reservations/not_found", "Not found", "The referenced arrival pickup task or staff candidate was not found");
+    }
+    if (error instanceof ArrivalPickupTaskDispatchConflictError) {
+      return apiError(request, 409, "reservations/conflict", "Conflict", "Arrival pickup task truth changed; refresh the task and try again");
+    }
     if (error instanceof VehicleRegisterValidationError) {
       return apiError(request, 400, "request/invalid", "Invalid request", "Vehicle register input is invalid");
     }
@@ -4203,6 +4265,78 @@ export class OperatorHttpApi {
       taskId,
     });
     return apiResponse(context.request, canonicalJson({ pickupTask: jsonValue(task) }));
+  }
+
+  async transitionReservationPickupTask(
+    context: TenantRequestContext,
+    propertyNode: string,
+    reservationId: string,
+    taskId: string,
+    action: "assign" | "start" | "complete",
+    body: unknown,
+  ): Promise<Response> {
+    const input = parsePickupTaskTransition(action, body);
+    const idempotencyKey = context.request.headers.get("idempotency-key");
+    if (!UUID.test(propertyNode) || !UUID.test(reservationId) || !UUID.test(taskId) || !input ||
+        !idempotencyKey || !IDEMPOTENCY_KEY.test(idempotencyKey) ||
+        new URL(context.request.url).search.length > 0) {
+      return apiError(
+        context.request,
+        400,
+        "request/invalid",
+        "Invalid request",
+        "Arrival pickup task transition input is invalid",
+      );
+    }
+    const requiredScope = action === "assign" ? PICKUP_TASK_DISPATCH_SCOPE : PICKUP_TASK_WORK_SCOPE;
+    if (!hasScope(context, requiredScope)) {
+      return apiError(
+        context.request,
+        403,
+        "auth/scope_missing",
+        "Forbidden",
+        "Arrival pickup task transition access is not granted",
+      );
+    }
+    if (!this.#pickupTaskDispatch) return this.unavailable(context.request);
+    const grants = await listGrantedProperties(context, requiredScope);
+    if (!grants.some(({ id }) => id === propertyNode)) {
+      return apiError(
+        context.request,
+        404,
+        "reservations/not_found",
+        "Not found",
+        "The referenced arrival pickup task was not found",
+      );
+    }
+    const requestId = correlationId(context.request);
+    const result = await this.#pickupTaskDispatch.transition({
+      tenantId: context.tenantId,
+      propertyNode,
+      reservationId,
+      taskId,
+      ...input,
+      idempotencyKey,
+      envelope: createAuditEnvelope({
+        actorId: context.identity.actorId,
+        tenantId: context.tenantId,
+        propertyNode,
+        requestId,
+        operation: "task.status_changed",
+      }),
+    });
+    return apiResponse(context.request, canonicalJson({
+      taskId: result.taskId,
+      reservationId: result.reservationId,
+      taskStatus: result.taskStatus,
+      assigneePartyId: result.assigneePartyId,
+      completedAt: result.completedAt,
+      eligibleAction: result.eligibleAction,
+      replayed: result.replayed,
+    }), 200, {
+      "idempotency-replayed": String(result.replayed),
+      "x-correlation-id": requestId,
+    });
   }
 
   async reservationLifecycle(context: TenantRequestContext, propertyNode: string): Promise<Response> {

@@ -61,3 +61,19 @@ export type {
   ArrivalPickupTaskAutomationOptions,
   ArrivalPickupTaskAutomationRunOptions,
 } from "./pickup-task-automation";
+
+export {
+  ARRIVAL_PICKUP_TASK_ACTIONS,
+  ARRIVAL_PICKUP_TASK_STATUSES,
+  ArrivalPickupTaskDispatchConflictError,
+  ArrivalPickupTaskDispatchNotFoundError,
+  ArrivalPickupTaskDispatchService,
+  ArrivalPickupTaskDispatchValidationError,
+} from "./pickup-task-dispatch";
+export type {
+  ArrivalPickupTaskAction,
+  ArrivalPickupTaskDispatchServiceOptions,
+  ArrivalPickupTaskStatus,
+  ArrivalPickupTaskTransitionInput,
+  ArrivalPickupTaskTransitionResult,
+} from "./pickup-task-dispatch";

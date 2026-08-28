@@ -27,6 +27,8 @@ const PICKUP_TASK = Object.freeze({
   priority: 3,
   createdAt: "2027-05-05T12:00:00.000000Z",
   completedAt: null,
+  assigneePartyId: null,
+  eligibleAction: "assign" as const,
 });
 
 type DetailFailure = "validation" | "not-found" | "conflict" | null;

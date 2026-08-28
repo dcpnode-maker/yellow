@@ -48,6 +48,9 @@
  let reservationPickupTaskData = null;
  let reservationPickupTaskRequestGeneration = 0;
  let reservationPickupTaskReturnFocus = null;
+ let reservationPickupTaskStaffSearchGeneration = 0;
+ let reservationPickupTaskStaffSelection = null;
+ const reservationPickupTaskAttempts = new Map();
  let checkInReadinessData = null;
  let checkInReadinessGeneration = 0;
  let checkInHousekeepingReturn = null;
@@ -1065,6 +1068,9 @@
  open: "Open", assigned: "Assigned", in_progress: "In progress", done: "Done",
  verified: "Verified", cancelled: "Cancelled",
  });
+ const RESERVATION_PICKUP_TASK_ACTION_LABELS = Object.freeze({
+ assign: "Assign pickup", start: "Start pickup", complete: "Complete pickup",
+ });
   function reservationPickupTaskCanonicalInstant(value) {
  if (typeof value !== "string" ||
   !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,6})?Z$/.test(value)) return false;
@@ -1076,7 +1082,12 @@
   throw new Error("The server returned an invalid pickup-task detail envelope.");
  }
  const task = value.pickupTask;
- const keys = ["completedAt", "confirmationNo", "createdAt", "dueAt", "priority", "reservationId", "status", "taskId"];
+ const keys = ["assigneePartyId", "completedAt", "confirmationNo", "createdAt", "dueAt", "eligibleAction", "priority", "reservationId", "status", "taskId"];
+ const eligibleAction = task && typeof task === "object" ? task.eligibleAction : undefined;
+ const compatibleAction = eligibleAction === null ||
+  (eligibleAction === "assign" && task.status === "open" && task.assigneePartyId === null) ||
+  (eligibleAction === "start" && task.status === "assigned" && canonicalUuid(String(task.assigneePartyId || ""))) ||
+  (eligibleAction === "complete" && task.status === "in_progress" && canonicalUuid(String(task.assigneePartyId || "")));
  if (!task || typeof task !== "object" || Array.isArray(task) ||
   Object.keys(task).sort().join(",") !== keys.join(",") ||
   !canonicalUuid(task.taskId) || task.taskId !== origin.taskId ||
@@ -1084,6 +1095,9 @@
   typeof task.confirmationNo !== "string" || task.confirmationNo !== origin.confirmationNo ||
   task.confirmationNo.length < 1 || task.confirmationNo.length > 120 ||
   !["open", "assigned", "in_progress", "done", "verified", "cancelled"].includes(task.status) ||
+  (task.assigneePartyId !== null && !canonicalUuid(String(task.assigneePartyId))) ||
+  (eligibleAction !== null && !Object.hasOwn(RESERVATION_PICKUP_TASK_ACTION_LABELS, eligibleAction)) ||
+  !compatibleAction ||
   task.priority !== 3 || !reservationPickupTaskCanonicalInstant(task.dueAt) ||
   !reservationPickupTaskCanonicalInstant(task.createdAt) ||
   (task.completedAt !== null && !reservationPickupTaskCanonicalInstant(task.completedAt))) {
@@ -1145,18 +1159,257 @@
   && panel.dataset.reservationId === origin.reservationId && panel.dataset.taskId === origin.taskId
   && location.pathname === canonicalReservationPickupTaskPath(origin.property, origin.reservationId, origin.taskId);
  }
-  function renderReservationPickupTaskDetail(panel, task) {
+ function clearReservationPickupTaskActionDraft({ clearAttempts = false } = {}) {
+ reservationPickupTaskStaffSearchGeneration += 1;
+ reservationPickupTaskStaffSelection = null;
+ if (clearAttempts) reservationPickupTaskAttempts.clear();
+ }
+ function reservationPickupTaskActionIsCurrent(origin, panel, control) {
+ const task = reservationPickupTaskData;
+ const content = panel?.querySelector(".pickup-task-detail-content");
+ return origin.requestGeneration === reservationPickupTaskRequestGeneration &&
+  origin.detailGeneration === reservationDetailGeneration && origin.property === propertySelect.value &&
+  origin.reservationId === reservationRouteReservationId && origin.taskId === reservationRoutePickupTaskId &&
+  origin.confirmationNo === reservationDetailData?.reservation?.confirmationNo &&
+  task !== null && task.taskId === origin.taskId && task.reservationId === origin.reservationId &&
+  task.confirmationNo === origin.confirmationNo && task.status === origin.taskStatus &&
+  task.assigneePartyId === origin.assigneePartyId && task.eligibleAction === origin.action &&
+  panel === reservationDetailDrawer.querySelector(".pickup-task-detail-panel") && panel.isConnected &&
+  panel.hidden === false && reservationDetailDrawer.hidden === false &&
+  reservationDetailDrawer.classList.contains("is-pickup-task-detail") && content?.hidden === false &&
+  control?.isConnected && content.contains(control) &&
+  control.dataset.taskId === origin.taskId && control.dataset.action === origin.action &&
+  control.dataset.expectedTaskStatus === origin.taskStatus &&
+  control.dataset.expectedAssigneePartyId === (origin.assigneePartyId || "") &&
+  location.pathname === canonicalReservationPickupTaskPath(origin.property, origin.reservationId, origin.taskId) &&
+  location.search === "";
+ }
+ function reservationPickupTaskActionOrigin(task) {
+ return Object.freeze({
+  requestGeneration: reservationPickupTaskRequestGeneration,
+  detailGeneration: reservationDetailGeneration,
+  property: propertySelect.value,
+  reservationId: task.reservationId,
+  confirmationNo: task.confirmationNo,
+  taskId: task.taskId,
+  taskStatus: task.status,
+  assigneePartyId: task.assigneePartyId,
+  action: task.eligibleAction,
+ });
+ }
+ function reservationPickupTaskStaffSearchIsCurrent(origin, panel, picker, generation) {
+ const search = picker?.querySelector(".pickup-task-assignee-search");
+ return generation === reservationPickupTaskStaffSearchGeneration && origin.action === "assign" &&
+  reservationPickupTaskActionIsCurrent(origin, panel, search) && picker.isConnected &&
+  panel.querySelector(".pickup-task-detail-content")?.contains(picker);
+ }
+ function chooseReservationPickupTaskStaff(origin, panel, picker, profile) {
+ const search = picker.querySelector(".pickup-task-assignee-search");
+ if (!reservationPickupTaskActionIsCurrent(origin, panel, search) || !canonicalUuid(profile.partyId)) return;
+ reservationPickupTaskStaffSearchGeneration += 1;
+ reservationPickupTaskStaffSelection = Object.freeze({ partyId: profile.partyId, displayName: profile.displayName });
+ picker.querySelector(".pickup-task-assignee-search-row").hidden = true;
+ picker.querySelector(".pickup-task-assignee-results").replaceChildren();
+ const selected = picker.querySelector(".pickup-task-assignee-selected");
+ selected.querySelector("strong").textContent = profile.displayName;
+ selected.hidden = false;
+ const submit = picker.querySelector(".pickup-task-detail-governed-action");
+ submit.disabled = false;
+ submit.setAttribute("aria-label", `Assign arrival pickup to ${profile.displayName}`);
+ selected.focus({ preventScroll: true });
+ picker.querySelector(".pickup-task-assignee-status").textContent = "Staff selected. The server will revalidate active staff truth before assignment.";
+ }
+ function reservationPickupTaskStaffCard(origin, panel, picker, profile) {
+ const card = node("article", "pickup-task-assignee-result");
+ card.append(node("strong", "", profile.displayName));
+ const use = node("button", "secondary", "Choose staff");
+ use.type = "button";
+ use.setAttribute("aria-label", `Choose ${profile.displayName} for this arrival pickup`);
+ use.addEventListener("click", () => chooseReservationPickupTaskStaff(origin, panel, picker, profile));
+ card.append(use);
+ return card;
+ }
+ async function searchReservationPickupTaskStaff(origin, panel, picker) {
+ const query = picker.querySelector(".pickup-task-assignee-query").value.trim();
+ const search = picker.querySelector(".pickup-task-assignee-search");
+ const status = picker.querySelector(".pickup-task-assignee-status");
+ const results = picker.querySelector(".pickup-task-assignee-results");
+ if (!reservationPickupTaskActionIsCurrent(origin, panel, search)) return;
+ if (query.length < 2) {
+  status.textContent = "Enter at least two characters to find an active staff Party.";
+  picker.querySelector(".pickup-task-assignee-query").focus({ preventScroll: true });
+  return;
+ }
+ const generation = ++reservationPickupTaskStaffSearchGeneration;
+ search.disabled = true;
+ results.replaceChildren();
+ status.textContent = "Searching canonical Party profiles…";
+ try {
+  const result = await request(`/api/v1/properties/${enc(origin.property)}/parties:search`, {
+   method: "POST", body: JSON.stringify({ query, limit: 20 }),
+  });
+  if (!reservationPickupTaskStaffSearchIsCurrent(origin, panel, picker, generation)) return;
+  const staff = (Array.isArray(result.profiles) ? result.profiles : []).flatMap((profile) =>
+   canonicalUuid(String(profile?.partyId || "")) && typeof profile?.displayName === "string" &&
+   profile.displayName.length > 0 && profile.displayName.length <= 120 &&
+   Array.isArray(profile.roles) && profile.roles.includes("staff")
+    ? [Object.freeze({ partyId: String(profile.partyId), displayName: profile.displayName })] : []);
+  results.replaceChildren(...staff.map((profile) => reservationPickupTaskStaffCard(origin, panel, picker, profile)));
+  if (staff.length === 0) results.append(node("p", "field-note", "No active staff-labelled Party matched. Refine the search."));
+  results.tabIndex = -1;
+  results.focus({ preventScroll: true });
+  status.textContent = `${staff.length} staff-labelled Party result${staff.length === 1 ? "" : "s"}.`;
+ } catch (error) {
+  if (!reservationPickupTaskStaffSearchIsCurrent(origin, panel, picker, generation)) return;
+  status.textContent = error instanceof Error ? error.message : "Staff search failed. Try again.";
+ } finally {
+  if (reservationPickupTaskStaffSearchIsCurrent(origin, panel, picker, generation)) search.disabled = false;
+ }
+ }
+ function reservationPickupTaskAssignmentPicker(panel, task) {
+ const origin = reservationPickupTaskActionOrigin(task);
+ const form = node("form", "pickup-task-assignee-picker");
+ form.setAttribute("aria-labelledby", "pickup-task-assignee-title");
+ const fieldset = el("fieldset");
+ const legend = node("legend", "", "Assign pickup");
+ legend.id = "pickup-task-assignee-title";
+ fieldset.append(legend, node("p", "field-note", "Choose one active staff Party. Contact details are never copied into this task."));
+ const row = node("div", "pickup-task-assignee-search-row");
+ const label = node("label", "", "Find active staff");
+ const query = el("input");
+ query.type = "search";
+ query.className = "pickup-task-assignee-query";
+ query.minLength = 2;
+ query.maxLength = 120;
+ query.autocomplete = "off";
+ query.placeholder = "Name or Party ID";
+ label.append(query);
+ const search = node("button", "secondary pickup-task-assignee-search", "Search staff");
+ search.type = "button";
+ search.dataset.taskId = task.taskId;
+ search.dataset.action = "assign";
+ search.dataset.expectedTaskStatus = task.status;
+ search.dataset.expectedAssigneePartyId = "";
+ search.addEventListener("click", () => void searchReservationPickupTaskStaff(origin, panel, form));
+ query.addEventListener("keydown", (event) => {
+  if (event.key === "Enter") { event.preventDefault(); void searchReservationPickupTaskStaff(origin, panel, form); }
+ });
+ row.append(label, search);
+ const results = node("div", "pickup-task-assignee-results");
+ results.setAttribute("role", "region");
+ results.setAttribute("aria-label", "Active staff Party results");
+ results.setAttribute("aria-live", "polite");
+ const selected = node("div", "pickup-task-assignee-selected");
+ selected.hidden = true;
+ selected.tabIndex = -1;
+ selected.append(node("div", "", "Selected staff: "), node("strong", "", ""));
+ const change = node("button", "quiet", "Change staff");
+ change.type = "button";
+ change.addEventListener("click", () => {
+  if (!reservationPickupTaskActionIsCurrent(origin, panel, search)) return;
+  reservationPickupTaskStaffSearchGeneration += 1;
+  reservationPickupTaskStaffSelection = null;
+  selected.hidden = true;
+  row.hidden = false;
+  results.replaceChildren();
+  form.querySelector(".pickup-task-detail-governed-action").disabled = true;
+  form.querySelector(".pickup-task-assignee-status").textContent = "Choose an active staff Party before assigning pickup.";
+  query.focus({ preventScroll: true });
+ });
+ selected.append(change);
+ const submit = node("button", "primary pickup-task-detail-governed-action", "Assign pickup");
+ submit.type = "submit";
+ submit.disabled = true;
+ submit.dataset.taskId = task.taskId;
+ submit.dataset.action = "assign";
+ submit.dataset.expectedTaskStatus = task.status;
+ submit.dataset.expectedAssigneePartyId = "";
+ const status = node("p", "field-note pickup-task-assignee-status", "Choose an active staff Party before assigning pickup.");
+ status.setAttribute("role", "status");
+ status.setAttribute("aria-live", "polite");
+ fieldset.append(row, results, selected, submit, status);
+ form.append(fieldset);
+ form.addEventListener("submit", (event) => {
+  event.preventDefault();
+  const selection = reservationPickupTaskStaffSelection;
+  if (!selection || !canonicalUuid(selection.partyId)) return;
+  void submitReservationPickupTaskAction(submit, selection.partyId);
+ });
+ return form;
+ }
+ function focusReservationPickupTaskCurrentAction() {
+ const panel = reservationDetailDrawer.querySelector(".pickup-task-detail-panel");
+ if (!panel || panel.hidden || !reservationDetailDrawer.classList.contains("is-pickup-task-detail")) return;
+ const target = panel.querySelector(".pickup-task-assignee-query,.pickup-task-detail-governed-action:not(:disabled),#pickup-task-detail-title");
+ target?.focus({ preventScroll: true });
+ }
+ async function refreshReservationPickupTaskActionTruth(origin) {
+ const reservation = reservationDetailData?.reservation;
+ if (!reservation || reservation.reservationId !== origin.reservationId || reservation.confirmationNo !== origin.confirmationNo ||
+  location.pathname !== canonicalReservationPickupTaskPath(origin.property, origin.reservationId, origin.taskId)) return;
+ const panel = reservationDetailDrawer.querySelector(".pickup-task-detail-panel");
+ if (!panel) return;
+ await loadReservationPickupTaskDetail(panel, reservation, origin.taskId);
+ focusReservationPickupTaskCurrentAction();
+ }
+ async function submitReservationPickupTaskAction(control, staffPartyId = null) {
+ const task = reservationPickupTaskData;
+ const panel = reservationDetailDrawer.querySelector(".pickup-task-detail-panel");
+ if (!task || !panel || !task.eligibleAction) return;
+ const origin = reservationPickupTaskActionOrigin(task);
+ if (!reservationPickupTaskActionIsCurrent(origin, panel, control)) return;
+ if (origin.action === "assign" && (!canonicalUuid(String(staffPartyId || "")) ||
+  reservationPickupTaskStaffSelection?.partyId !== staffPartyId)) return;
+ const body = origin.action === "assign"
+  ? { expectedTaskStatus: "open", expectedAssigneePartyId: null, staffPartyId }
+  : { expectedTaskStatus: origin.taskStatus, expectedAssigneePartyId: origin.assigneePartyId };
+ const draft = JSON.stringify({ property: origin.property, reservationId: origin.reservationId, taskId: origin.taskId, action: origin.action, ...body });
+ const existing = reservationPickupTaskAttempts.get(origin.taskId);
+ const attempt = existing?.draft === draft ? existing : { draft, key: crypto.randomUUID() };
+ reservationPickupTaskAttempts.set(origin.taskId, attempt);
+ reservationPickupTaskStaffSearchGeneration += 1;
+ const controls = [...panel.querySelectorAll(".pickup-task-detail-governed-actions button,.pickup-task-detail-governed-actions input")];
+ const disabled = controls.map((item) => item.disabled);
+ for (const item of controls) item.disabled = true;
+ panel.setAttribute("aria-busy", "true");
+ reservationDetailStatus.textContent = `${RESERVATION_PICKUP_TASK_ACTION_LABELS[origin.action]} using exact current task and assignment evidence…`;
+ try {
+  await request(`/api/v1/properties/${enc(origin.property)}/reservations/${enc(origin.reservationId)}/arrival-pickup-task/${enc(origin.taskId)}/${enc(origin.action)}`, {
+   method: "POST", headers: { "idempotency-key": attempt.key }, body: JSON.stringify(body),
+  });
+  if (!reservationPickupTaskActionIsCurrent(origin, panel, control)) return;
+  reservationPickupTaskAttempts.delete(origin.taskId);
+  reservationDetailStatus.textContent = "Pickup task action recorded. Refreshing authoritative detail…";
+  await refreshReservationPickupTaskActionTruth(origin);
+ } catch (error) {
+  if (!reservationPickupTaskActionIsCurrent(origin, panel, control)) return;
+  if (error?.status === 409) {
+   reservationPickupTaskAttempts.delete(origin.taskId);
+   reservationDetailStatus.textContent = "Pickup task or assignment evidence changed. Refreshing authoritative detail…";
+   await refreshReservationPickupTaskActionTruth(origin);
+  } else {
+   panel.setAttribute("aria-busy", "false");
+   controls.forEach((item, index) => { item.disabled = disabled[index]; });
+   reservationDetailStatus.textContent = `${error instanceof Error ? error.message : "Pickup task action failed"}. Retry this unchanged action to keep the same idempotency key.`;
+   control.focus({ preventScroll: true });
+  }
+ }
+ }
+ function renderReservationPickupTaskDetail(panel, task) {
+ clearReservationPickupTaskActionDraft();
  const content = panel.querySelector(".pickup-task-detail-content");
  const status = node("span", "pickup-task-detail-status", RESERVATION_PICKUP_TASK_STATUS_LABELS[task.status]);
  status.dataset.taskStatus = task.status;
  status.setAttribute("aria-label", `Task status: ${RESERVATION_PICKUP_TASK_STATUS_LABELS[task.status]}`);
  const summary = node("div", "pickup-task-detail-summary");
- summary.append(node("span", "eyebrow", "Current task state"), status);
+ summary.append(node("span", "eyebrow", "Current task state"), status,
+  node("span", "pickup-task-detail-governed-label", "Server governed"));
  const facts = el("dl");
  for (const [label, value] of [
   ["Reservation", task.confirmationNo],
   ["Due", reservationDateTime(task.dueAt)],
   ["Priority", String(task.priority)],
+  ["Assignment", task.assigneePartyId === null ? "Unassigned" : "Assigned"],
   ["Created", reservationDateTime(task.createdAt)],
   ["Completed", task.completedAt === null ? "Not completed" : reservationDateTime(task.completedAt)],
  ]) facts.append(node("dt", "", label), node("dd", "", value));
@@ -1166,14 +1419,31 @@
  identityFacts.append(node("dt", "", "Task ID"), node("dd", "", task.taskId),
   node("dt", "", "Reservation ID"), node("dd", "", task.reservationId));
  identifiers.append(identityFacts);
- content.replaceChildren(summary, facts, identifiers,
-  node("p", "field-note", "Read only. Operational changes remain separate governed workflows."));
+ const governedActions = node("section", "pickup-task-detail-governed-actions");
+ governedActions.setAttribute("aria-label", "Pickup task actions");
+ if (task.eligibleAction === "assign") {
+  governedActions.append(reservationPickupTaskAssignmentPicker(panel, task));
+ } else if (task.eligibleAction === "start" || task.eligibleAction === "complete") {
+  const action = node("button", "primary pickup-task-detail-governed-action", RESERVATION_PICKUP_TASK_ACTION_LABELS[task.eligibleAction]);
+  action.type = "button";
+  action.dataset.taskId = task.taskId;
+  action.dataset.action = task.eligibleAction;
+  action.dataset.expectedTaskStatus = task.status;
+  action.dataset.expectedAssigneePartyId = task.assigneePartyId || "";
+  action.setAttribute("aria-label", `${RESERVATION_PICKUP_TASK_ACTION_LABELS[task.eligibleAction]} for reservation ${task.confirmationNo}`);
+  action.addEventListener("click", () => void submitReservationPickupTaskAction(action));
+  governedActions.append(action);
+ } else {
+  governedActions.append(node("p", "field-note pickup-task-detail-action-blocker", "No action is permitted for your current grant and this server state."));
+ }
+ content.replaceChildren(summary, facts, governedActions, identifiers,
+  node("p", "field-note", "Task evidence is authoritative. Any offered action remains governed and revalidated by the server."));
  content.hidden = false;
  panel.querySelector(".pickup-task-detail-loading").hidden = true;
  panel.querySelector(".pickup-task-detail-error").hidden = true;
  panel.setAttribute("aria-busy", "false");
  }
-  async function loadReservationPickupTaskDetail(panel, reservation, taskId, { focus = false } = {}) {
+ async function loadReservationPickupTaskDetail(panel, reservation, taskId, { focus = false } = {}) {
  const origin = Object.freeze({
   requestGeneration: ++reservationPickupTaskRequestGeneration,
   detailGeneration: reservationDetailGeneration,
@@ -1235,6 +1505,7 @@
  reservationPickupTaskRequestGeneration += 1;
  reservationPickupTaskData = null;
  reservationPickupTaskReturnFocus = null;
+ clearReservationPickupTaskActionDraft({ clearAttempts: true });
  reservationRoutePickupTaskId = "";
  reservationDetailDrawer.classList.remove("is-pickup-task-detail");
  for (const action of reservationDetailContent.querySelectorAll(".pickup-task-detail-action")) action.setAttribute("aria-expanded", "false");

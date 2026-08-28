@@ -85,7 +85,7 @@ describe("Order 212 exact operator reservation travel adapter", () => {
     expect(source).toContain("operator.putReservationTravel(");
     expect(source).toContain("context, params.property, params.reservation, params.direction, body");
     expect(server).toContain("new ReservationTravelService({ events, idempotency: new PostgresIdempotency() })");
-    expect(server).toContain("vehicleRegister, reservationTravel)");
+    expect(server).toContain("vehicleRegister, reservationTravel, pickupTaskDispatch)");
   });
 
   test("P4: exact authority, normalized transport and minimized no-store response are server-bound", async () => {

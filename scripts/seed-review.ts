@@ -51,6 +51,14 @@ export const REVIEW_HOUSEKEEPING_INSPECT_PERMISSION = Object.freeze({
   code: "housekeeping.tasks:inspect",
   description: "Independently verify completed property housekeeping tasks",
 });
+export const REVIEW_PICKUP_TASK_DISPATCH_PERMISSION = Object.freeze({
+  code: "stay-operations.pickup-tasks:dispatch",
+  description: "Assign the exact linked arrival pickup task to active property staff",
+});
+export const REVIEW_PICKUP_TASK_WORK_PERMISSION = Object.freeze({
+  code: "stay-operations.pickup-tasks:work",
+  description: "Start and complete the exact linked arrival pickup task",
+});
 export const REVIEW_PERMISSION = "inventory.availability:read";
 export const REVIEW_PERMISSIONS = Object.freeze([
   { code: "crm.parties:read", description: "Search tenant-scoped Party profiles" },
@@ -100,6 +108,8 @@ export const REVIEW_PERMISSIONS = Object.freeze([
   { code: "stay-operations.checkout:read", description: "Read server-owned property departure readiness" },
   { code: "stay-operations.checkout:commit", description: "Commit an eligible property checkout" },
   { code: "stay-operations.vehicles:read", description: "Read the governed property vehicle register" },
+  REVIEW_PICKUP_TASK_DISPATCH_PERMISSION,
+  REVIEW_PICKUP_TASK_WORK_PERMISSION,
 ]);
 const REVIEW_USER_NAME = `${TENANT_NAME}/review-user/${REVIEW_EMAIL}`;
 const REVIEW_APPROVER_USER_NAME = `${TENANT_NAME}/review-user/${REVIEW_APPROVER_EMAIL}`;
@@ -119,6 +129,7 @@ const REVIEW_HOUSEKEEPING_FIXTURE_UUID = `${TENANT_NAME}/review-housekeeping`;
 const REVIEW_VEHICLE_FIXTURE_UUID = `${TENANT_NAME}/review-vehicles`;
 const REVIEW_ARRIVAL_TRAVEL_FIXTURE_UUID = `${TENANT_NAME}/review-arrival-travel`;
 const REVIEW_DEPARTURE_TRAVEL_FIXTURE_UUID = `${TENANT_NAME}/review-departure-travel`;
+const REVIEW_PICKUP_TASK_DISPATCH_FIXTURE_UUID = `${TENANT_NAME}/review-pickup-task-dispatch`;
 export const REVIEW_CASH_DRAWER_CODE = "FRONT-DESK-1";
 export const REVIEW_CASH_DENOMINATIONS = Object.freeze([1n, 5n, 10n, 25n, 100n, 500n, 1000n, 2000n, 5000n, 10000n]);
 
@@ -171,6 +182,14 @@ const DEPARTURE_TRAVEL_EXAMPLE = Object.freeze({
   carrier: "Air Canada",
   serviceNo: "AC43",
   scheduledAt: "2026-09-17T18:25:45.987654Z",
+});
+
+const PICKUP_TASK_DISPATCH_EXAMPLE = Object.freeze({
+  mode: "car" as const,
+  carrier: "Yellow Guest Transport",
+  serviceNo: "PICKUP-OPEN-1",
+  scheduledAt: "2026-09-18T09:30:00.123456Z",
+  createdAt: "2026-09-17T12:00:00.000Z",
 });
 
 const HOUSEKEEPING_EXAMPLES = Object.freeze([
@@ -371,6 +390,13 @@ interface ReviewDepartureTravelExamples {
   readonly checkoutTravelId: string;
 }
 
+interface ReviewPickupTaskDispatchExample {
+  readonly reservationId: string;
+  readonly travelId: string;
+  readonly taskId: string;
+  readonly staffPartyId: string;
+}
+
 interface ReviewSeedRateResult {
   readonly ratePlanId: string;
   readonly activeReleaseId: string;
@@ -386,6 +412,7 @@ export interface PublishedReviewSeedResult extends ReviewSeedBaseResult {
   readonly vehicleExamples: ReviewVehicleExamples;
   readonly arrivalTravelExamples: ReviewArrivalTravelExamples;
   readonly departureTravelExamples: ReviewDepartureTravelExamples;
+  readonly pickupTaskDispatchExample: ReviewPickupTaskDispatchExample;
   readonly conditionInitializationSpaceId: string;
 }
 
@@ -397,6 +424,7 @@ export interface IdentityInventoryReviewSeedResult extends ReviewSeedBaseResult 
   readonly vehicleExamples: null;
   readonly arrivalTravelExamples: null;
   readonly departureTravelExamples: null;
+  readonly pickupTaskDispatchExample: null;
 }
 
 export type ReviewSeedResult = PublishedReviewSeedResult | IdentityInventoryReviewSeedResult;
@@ -1855,6 +1883,126 @@ async function provisionDepartureTravelExamples(
   return Object.freeze({ checkoutTravelId: travelId });
 }
 
+async function provisionPickupTaskDispatchExample(
+  connection: ReservedSQL,
+  checkInExamples: ReviewCheckInExamples,
+  housekeepingExamples: ReviewHousekeepingExamples,
+): Promise<ReviewPickupTaskDispatchExample> {
+  await connection`SELECT pg_advisory_xact_lock(hashtextextended('yellow.local.review.seed.pickup-task-dispatch', 0))`;
+  const reservationId = checkInExamples.identityGatedReservationId;
+  const propertyNode = checkInExamples.identityGatePropertyId;
+  const staffPartyId = housekeepingExamples.attendantPartyId;
+  const travelId = await uuidV5(SEED_TENANT.id, `${REVIEW_PICKUP_TASK_DISPATCH_FIXTURE_UUID}/travel`);
+  const taskId = await uuidV5(SEED_TENANT.id, `${REVIEW_PICKUP_TASK_DISPATCH_FIXTURE_UUID}/task`);
+
+  const reservations = await connection<Array<{
+    id: string; tenant_id: string; property_node: string; status: string;
+  }>>`
+    SELECT id, tenant_id, property_node, status
+    FROM reservation
+    WHERE id=${reservationId}::uuid
+    FOR UPDATE
+  `;
+  const reservation = reservations[0];
+  if (!reservation || reservations.length !== 1 || reservation.tenant_id !== SEED_TENANT.id ||
+      reservation.property_node !== propertyNode || reservation.status !== "due_in") {
+    throw new Error("Local-review pickup dispatch reservation is absent or inconsistent");
+  }
+
+  const staff = await connection<Array<{
+    id: string; tenant_id: string; status: string; role: string | null;
+  }>>`
+    SELECT party.id, party.tenant_id, party.status, role.role
+    FROM party
+    LEFT JOIN party_role AS role
+      ON role.tenant_id=party.tenant_id AND role.party_id=party.id AND role.role='staff'
+    WHERE party.id=${staffPartyId}::uuid
+    FOR UPDATE OF party
+  `;
+  if (staff.length !== 1 || staff[0]?.tenant_id !== SEED_TENANT.id ||
+      staff[0]?.status !== "active" || staff[0]?.role !== "staff") {
+    throw new Error("Local-review pickup dispatch staff candidate is absent or inconsistent");
+  }
+
+  const payload = Object.freeze({ requestType: "arrival_pickup" });
+  const taskRows = await connection<Array<Record<string, unknown>>>`
+    SELECT id, tenant_id, property_node, kind, status, subject_type, subject_id,
+           assignee_party, department,
+           scheduled.due_at, priority, credits, sheet_id, payload,
+           scheduled.created_at, completed_at
+    FROM task
+    CROSS JOIN LATERAL (
+      SELECT
+        task.due_at=${PICKUP_TASK_DISPATCH_EXAMPLE.scheduledAt}::timestamptz AS due_at,
+        task.created_at=${PICKUP_TASK_DISPATCH_EXAMPLE.createdAt}::timestamptz AS created_at
+    ) AS scheduled
+    WHERE id=${taskId}::uuid
+    FOR UPDATE OF task
+  `;
+  const expectedTask = {
+    id: taskId, tenant_id: SEED_TENANT.id, property_node: propertyNode,
+    kind: "guest_request", status: "open", subject_type: "reservation",
+    subject_id: reservationId, assignee_party: null, department: "transport",
+    due_at: true, priority: 3, credits: null, sheet_id: null, payload,
+    created_at: true, completed_at: null,
+  };
+  if (taskRows.length === 0) {
+    await connection`
+      INSERT INTO task (
+        id, tenant_id, property_node, kind, status, subject_type, subject_id,
+        assignee_party, department, due_at, priority, credits, sheet_id, payload,
+        created_at, completed_at
+      ) VALUES (
+        ${taskId}::uuid, ${SEED_TENANT.id}::uuid, ${propertyNode}::uuid,
+        'guest_request', 'open', 'reservation', ${reservationId}::uuid,
+        NULL, 'transport', ${PICKUP_TASK_DISPATCH_EXAMPLE.scheduledAt}::timestamptz,
+        3, NULL, NULL, ${JSON.stringify(payload)}::text::jsonb,
+        ${PICKUP_TASK_DISPATCH_EXAMPLE.createdAt}::timestamptz, NULL
+      )
+    `;
+  } else {
+    exact(taskRows[0], expectedTask, "Local-review open arrival pickup task");
+    if (taskRows.length !== 1) throw new Error("Local-review open arrival pickup task is ambiguous");
+  }
+
+  const travelRows = await connection<Array<Record<string, unknown>>>`
+    SELECT id, tenant_id, reservation_id, direction, mode, carrier, service_no,
+           scheduled_at=${PICKUP_TASK_DISPATCH_EXAMPLE.scheduledAt}::timestamptz AS exact_scheduled_at,
+           pickup_requested, pickup_task_id, notes
+    FROM travel_detail
+    WHERE id=${travelId}::uuid
+       OR (tenant_id=${SEED_TENANT.id}::uuid AND reservation_id=${reservationId}::uuid
+           AND direction='arrival')
+    ORDER BY id
+    FOR UPDATE
+  `;
+  const expectedTravel = {
+    id: travelId, tenant_id: SEED_TENANT.id, reservation_id: reservationId,
+    direction: "arrival", mode: PICKUP_TASK_DISPATCH_EXAMPLE.mode,
+    carrier: PICKUP_TASK_DISPATCH_EXAMPLE.carrier,
+    service_no: PICKUP_TASK_DISPATCH_EXAMPLE.serviceNo,
+    exact_scheduled_at: true, pickup_requested: true, pickup_task_id: taskId, notes: null,
+  };
+  if (travelRows.length === 0) {
+    await connection`
+      INSERT INTO travel_detail (
+        id, tenant_id, reservation_id, direction, mode, carrier, service_no,
+        scheduled_at, pickup_requested, pickup_task_id, notes
+      ) VALUES (
+        ${travelId}::uuid, ${SEED_TENANT.id}::uuid, ${reservationId}::uuid,
+        'arrival', ${PICKUP_TASK_DISPATCH_EXAMPLE.mode},
+        ${PICKUP_TASK_DISPATCH_EXAMPLE.carrier}, ${PICKUP_TASK_DISPATCH_EXAMPLE.serviceNo},
+        ${PICKUP_TASK_DISPATCH_EXAMPLE.scheduledAt}::timestamptz, true, ${taskId}::uuid, NULL
+      )
+    `;
+  } else {
+    exact(travelRows[0], expectedTravel, "Local-review linked arrival pickup travel");
+    if (travelRows.length !== 1) throw new Error("Local-review linked arrival pickup travel is ambiguous");
+  }
+
+  return Object.freeze({ reservationId, travelId, taskId, staffPartyId });
+}
+
 async function provisionHousekeepingExamples(
   connection: ReservedSQL,
   userId: string,
@@ -2572,7 +2720,8 @@ export async function runReviewSeed(options: ReviewSeedOptions): Promise<ReviewS
     if (mode === "identity_inventory") {
       logger("review rate: omitted by explicit identity_inventory fixture mode");
       return { ...common, mode, rate: null, checkInExamples: null, housekeepingExamples: null,
-        vehicleExamples: null, arrivalTravelExamples: null, departureTravelExamples: null };
+        vehicleExamples: null, arrivalTravelExamples: null, departureTravelExamples: null,
+        pickupTaskDispatchExample: null };
     }
 
     const previewSellable = sellableUnits.get("101");
@@ -2601,6 +2750,7 @@ export async function runReviewSeed(options: ReviewSeedOptions): Promise<ReviewS
     let vehicleExamples: ReviewVehicleExamples | undefined;
     let arrivalTravelExamples: ReviewArrivalTravelExamples | undefined;
     let departureTravelExamples: ReviewDepartureTravelExamples | undefined;
+    let pickupTaskDispatchExample: ReviewPickupTaskDispatchExample | undefined;
     await withIdentityTransaction(identityPool, async (tx) => {
       checkInExamples = await provisionCheckInExamples(
         tx,
@@ -2622,6 +2772,11 @@ export async function runReviewSeed(options: ReviewSeedOptions): Promise<ReviewS
         sellableUnits,
       );
       departureTravelExamples = await provisionDepartureTravelExamples(tx, housekeepingExamples);
+      pickupTaskDispatchExample = await provisionPickupTaskDispatchExample(
+        tx,
+        checkInExamples,
+        housekeepingExamples,
+      );
       vehicleExamples = await provisionVehicleExamples(tx, checkInExamples, housekeepingExamples);
     });
     if (!checkInExamples) throw new Error("Local-review check-in examples were not provisioned");
@@ -2629,6 +2784,7 @@ export async function runReviewSeed(options: ReviewSeedOptions): Promise<ReviewS
     if (!vehicleExamples) throw new Error("Local-review vehicle examples were not provisioned");
     if (!arrivalTravelExamples) throw new Error("Local-review arrival travel examples were not provisioned");
     if (!departureTravelExamples) throw new Error("Local-review departure travel example was not provisioned");
+    if (!pickupTaskDispatchExample) throw new Error("Local-review pickup task dispatch example was not provisioned");
 
     const conditionInitializationSpace = spaces.get(INITIAL_CONDITION_FIXTURE_ROOM_CODE);
     if (!conditionInitializationSpace) throw new Error("Local-review condition initialization room is missing");
@@ -2647,8 +2803,10 @@ export async function runReviewSeed(options: ReviewSeedOptions): Promise<ReviewS
     logger(`review vehicle fixtures: arrival=${vehicleExamples.arrivalVehicleId} departure=${vehicleExamples.departureVehicleId}`);
     logger(`review arrival travel fixtures: clean=${arrivalTravelExamples.cleanTravelId} dirty=${arrivalTravelExamples.dirtyTravelId}`);
     logger(`review departure travel fixture: checkout=${departureTravelExamples.checkoutTravelId}`);
+    logger(`review pickup task dispatch fixture: reservation=${pickupTaskDispatchExample.reservationId} travel=${pickupTaskDispatchExample.travelId} task=${pickupTaskDispatchExample.taskId} staff=${pickupTaskDispatchExample.staffPartyId}`);
     return { ...common, mode, rate, checkInExamples, housekeepingExamples, vehicleExamples,
       arrivalTravelExamples, departureTravelExamples,
+      pickupTaskDispatchExample,
       conditionInitializationSpaceId: conditionInitializationSpace.id };
   } finally {
     await database.close();
