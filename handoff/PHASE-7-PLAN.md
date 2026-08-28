@@ -2,7 +2,7 @@
 
 **Status:** active; Orders 237-240 built-unreviewed
 **Entry point:** built-unreviewed Phase-6 composition through Order 236
-**Current order:** Order 256 authoritative positive-tax primary-folio eligibility is built pending independent review under D-665
+**Current order:** Order 256 authoritative positive-tax primary-folio eligibility is independently approved under D-666
 
 ## Outcome
 
@@ -196,5 +196,6 @@ lineage and canonical stored snapshot to the reservation's open primary window a
 coherent open guest account. It uses the existing bounded owner-mediated financial
 lock, revalidates after lock acquisition and returns deeply frozen internal evidence.
 It creates no folio or financial/fiscal artifact and selects no transaction code or
-configured revenue/tax account. The next product dependency is configured semantic
-tax routing before any positive posting writer. Independent Tier-3 approval is pending.
+configured revenue/tax account. Independent Tier-3 review under D-666 reproduced the
+focused, acceptance, referee and static gates with no product finding. The next product
+dependency is configured semantic tax routing before any positive posting writer.

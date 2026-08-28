@@ -1,6 +1,6 @@
 # Order 256 — Authoritative positive-tax primary-folio eligibility
 
-**Status:** BUILT-D665
+**Status:** APPROVED-D666
 **Phase:** 7 — Tax engine and India IRP
 **Branch:** `phase-7/positive-tax-folio-eligibility`
 **Base:** `3139f09` (approved sole-local Order255 descendant)
@@ -78,7 +78,7 @@ merge, public/production deploy, Phase7 or application-complete claim.
 - [x] Intentional red precedes implementation.
 - [x] Exact read/lock/recheck eligibility contract passes P1-P6.
 - [x] All standing gates and fresh referee pass.
-- [ ] A non-implementing Tier-3 reviewer personally executes and records the proof.
+- [x] A non-implementing Tier-3 reviewer personally executes and records the proof.
 
 ## Built evidence
 
@@ -91,4 +91,11 @@ passed `39/39` with 208 assertions. The standing suite passed `835/835` plus 743
 expected environment skips with 8,494 assertions across 1,578 tests/285 files.
 Typecheck, 94 import boundaries, 23-package licence policy, zero-vulnerability audit,
 diff hygiene, fresh migration42/96-table/86-policy schema and referee11/11 are green.
-Independent Tier-3 approval remains pending.
+Independent Tier-3 review at
+`handoff/reviews/256-positive-tax-folio-eligibility.md` APPROVED the exact candidate
+commit with no product finding. The reviewer personally reproduced focused `7/7`,
+database acceptance `10/10`, referee `11/11`, migrations1–42 with 96 tables/86
+policies, typecheck, 94 boundaries and diff hygiene. The review also records a
+disposable-harness isolation incident and complete recovery of the same sole-local
+container identities, volume, two properties and HTTP health; no `yellow_dev` product
+data changed. Approval grants only this read/lock/recheck prerequisite.
