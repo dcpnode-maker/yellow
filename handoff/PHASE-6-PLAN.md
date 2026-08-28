@@ -168,6 +168,11 @@ check-in and checkout readiness workbenches. Exact due-in and due-out lane/statu
 pairs receive presentation actions; in-house and mismatches receive none. The strict
 deep-link query changes no server authority, readiness result or confirmation rule.
 
+Order 210 is admitted as a UI-only integration of existing governed stay-segment
+changes into canonical reservation detail. It reuses server action flags and exact
+departure/move commands while adding current-detail identity, stale and focus guards;
+it creates no new mutation authority or second workflow.
+
 Order 208 is built-unreviewed as the next bounded read-only slice: a canonical
 active-room condition board inside the existing Housekeeping workbench. It reads exact
 `unit_condition` truth with tenant/property containment, keyset paging and an optional

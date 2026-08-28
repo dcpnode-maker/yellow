@@ -234,6 +234,12 @@ mismatched rows receive no action; readiness and explicit confirmation remain
 server-governed. This adds no API, domain authority, product mutation or local
 promotion and cannot complete Phase 6.
 
+Order 210 is admitted as a UI-only reservation-detail stay-change integration. The
+existing governed segment history, departure-change and room-move controls become
+reachable from the exact current reservation without copied identifiers. Server
+action flags, occupancy arbitration, idempotency and endpoints remain unchanged;
+stale drawer requests fail closed. This cannot complete Phase 6.
+
 ## Phase 7 — Tax engine + India IRP
 
 tax_assignment evaluation (percent/fixed/slab, compound, line-vs-document rounding)
