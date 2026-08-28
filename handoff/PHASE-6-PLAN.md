@@ -234,7 +234,7 @@ canonical reservation detail. It admits one action only for a validated non-null
 reservation association and adds no request, API, authority, mutation, parking
 inference, polling, schema or event.
 
-Order 219 is the UI-only composition from canonical reservation detail to the existing
+Order 219 is built-unreviewed as the UI-only composition from canonical reservation detail to the existing
 governed check-in or checkout preparation route. It maps only the already-admitted
 authoritative statuses, runs no command on navigation and adds no API, authority,
 mutation, schema or event.

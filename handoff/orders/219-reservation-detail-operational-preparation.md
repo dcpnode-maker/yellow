@@ -1,6 +1,6 @@
 # Order 219 — Reservation-detail operational preparation routing
 
-**Status:** READY-D581 — intentional red must precede implementation
+**Status:** BUILT-UNREVIEWED-D582 — implementation and executable gates green; independent product review deferred
 **Phase:** 6 — Stay operations and housekeeping
 **Branch:** `phase-6/reservation-detail-operational-preparation`
 **Base:** `01f740f` (built-unreviewed Order218)
@@ -61,9 +61,22 @@ dependency, scope/event or local promotion/deployment file is admitted.
 
 ## Definition of done
 
-- [ ] Intentional red precedes implementation.
-- [ ] Exact authoritative status emits only the matching preparation action.
-- [ ] Existing readiness/confirmation authority remains unchanged.
-- [ ] History, focus, six-appearance and accessibility containment is green.
-- [ ] Standing gates are green and result is recorded built-unreviewed.
+- [x] Intentional red preceded implementation (`50b24a2`).
+- [x] Exact authoritative status emits only the matching preparation action.
+- [x] Existing readiness/confirmation authority remains unchanged.
+- [x] History, focus, six-appearance and accessibility containment is green.
+- [x] Standing gates are green and the result is recorded built-unreviewed in D-582.
 
+## Build evidence
+
+- Order219 focused proof: 13 passed, 0 failed, 133 assertions.
+- Existing check-in, checkout, Today routing, reservation-detail and vehicle-link
+  regressions remained green; the full standing suite passed 530, skipped 629
+  environment-gated cases and failed 0 across 1,159 tests / 206 files.
+- TypeScript, 82-file import boundaries, 23-package licence policy, audit with zero
+  vulnerabilities, JavaScript syntax and diff checks passed.
+- Fresh PostgreSQL 16.15 migrations 1–29 and fixtures produced the current 93-table
+  schema; the canonical schema matched and the independent invariant referee passed
+  11/11. The setup wrapper's obsolete 89-table assertion was not treated as schema
+  authority. The disposable stack was removed with zero matching containers, volumes
+  or networks retained.

@@ -108,6 +108,7 @@
  let reservationRouteReservationId = "";
  let reservationRoutePickupTaskId = "";
  let currentReservationWorkbench = null;
+ let reservationOperationalPreparationReturn = null;
  const RESERVATION_WORKBENCH_QUERY = Object.freeze({
   "check-in": "workbench=check-in",
   checkout: "workbench=checkout",
@@ -920,6 +921,7 @@
  reservationBoardNextCursor = null;
  reservationRouteReservationId = "";
  currentReservationWorkbench = null;
+ reservationOperationalPreparationReturn = null;
  reservationPrimaryFolioAttemptKey = "";
  reservationPrimaryFolioReservationId = "";
  reservationDrawerReturnView = "";
@@ -2642,6 +2644,23 @@ const RESERVATION_TRAVEL_MODE_LABELS = Object.freeze({
  const lifecycle = reservationLifecycleFromDetail(result);
  const actionNames = reservationDrawerActionNames(lifecycle.actions);
  const menu = node("div", "reservation-detail-action-menu");
+ const preparation = reservationOperationalPreparation(result.reservation.status);
+ const plainDetailPath = `/p/${propertySelect.value}/res/${result.reservation.reservationId}`;
+ if (preparation && currentReservationWorkbench === null && location.pathname === plainDetailPath && location.search === "") {
+  const action = node("button", "primary reservation-operational-preparation-action", preparation.label);
+  action.type = "button";
+  action.setAttribute("aria-label", `${preparation.label} for reservation ${result.reservation.confirmationNo}`);
+  const origin = Object.freeze({
+   property: propertySelect.value,
+   reservationId: result.reservation.reservationId,
+   confirmationNo: result.reservation.confirmationNo,
+   status: result.reservation.status,
+   workbench: preparation.workbench,
+   detailGeneration: reservationDetailGeneration,
+  });
+  action.addEventListener("click", () => openReservationOperationalPreparation(origin, action));
+  menu.append(action);
+ }
  const stayChangesPanel = node("section", "reservation-stay-changes-panel");
  stayChangesPanel.id = "reservation-stay-changes-panel";
  stayChangesPanel.hidden = true;
@@ -3256,6 +3275,72 @@ function departureEvidenceRow(term, value) {
   history.replaceState(history.state, "", plainDetail);
  }
  }
+  function reservationOperationalPreparation(status) {
+  if (status === "due_in") return Object.freeze({ workbench: "check-in", label: "Prepare check-in" });
+  if (status === "in_house" || status === "due_out") {
+   return Object.freeze({ workbench: "checkout", label: "Prepare checkout" });
+  }
+  return null;
+ }
+  function reservationOperationalPreparationReturnFromState(state, property, reservationId) {
+  const value = state?.reservationOperationalPreparationReturn;
+  if (state?.yellowSurface !== "reservation-detail" || !value || typeof value !== "object" || Array.isArray(value) ||
+   Object.keys(value).sort().join(",") !== "confirmationNo,exitAction,property,reservationId,status,workbench" ||
+   value.property !== property || value.reservationId !== reservationId || !canonicalUuid(value.property) ||
+   !canonicalUuid(value.reservationId) || typeof value.confirmationNo !== "string" || value.confirmationNo.length < 1 ||
+   value.confirmationNo.length > 120 || !["back", "replace"].includes(value.exitAction) ||
+   reservationOperationalPreparation(value.status)?.workbench !== value.workbench) return null;
+  return Object.freeze({ ...value });
+ }
+  function reservationOperationalPreparationActionIsCurrent(origin, action) {
+  const reservation = reservationDetailData?.reservation;
+  const preparation = reservationOperationalPreparation(reservation?.status);
+  return activeView === "reservations" && origin.detailGeneration === reservationDetailGeneration &&
+   origin.property === propertySelect.value && origin.reservationId === reservationRouteReservationId &&
+   reservation?.reservationId === origin.reservationId && reservation.confirmationNo === origin.confirmationNo &&
+   reservation.status === origin.status && preparation?.workbench === origin.workbench &&
+   location.pathname === `/p/${origin.property}/res/${origin.reservationId}` && location.search === "" &&
+   reservationDetailDrawer.isConnected && reservationDetailDrawer.hidden === false &&
+   reservationDetailContent.isConnected && reservationDetailContent.hidden === false &&
+   reservationDetailActions.isConnected && reservationDetailActions.hidden === false &&
+   action?.isConnected && action.hidden === false && action.disabled === false && reservationDetailDrawer.contains(action);
+ }
+  function openReservationOperationalPreparation(origin, action) {
+  if (!reservationOperationalPreparationActionIsCurrent(origin, action)) return;
+  const returnState = Object.freeze({
+   property: origin.property,
+   reservationId: origin.reservationId,
+   confirmationNo: origin.confirmationNo,
+   status: origin.status,
+   workbench: origin.workbench,
+   exitAction: reservationExitHistoryAction(history.state, "reservation-detail"),
+  });
+  const path = `/p/${origin.property}/res/${origin.reservationId}?${RESERVATION_WORKBENCH_QUERY[origin.workbench]}`;
+  history.pushState({
+   yellowSurface: "reservation-detail",
+   reservationOperationalPreparationReturn: returnState,
+  }, "", path);
+  const route = reservationRoute();
+  if (route.kind !== "detail" || route.property !== origin.property || route.reservationId !== origin.reservationId ||
+   route.workbench !== origin.workbench) return;
+  reservationOperationalPreparationReturn = returnState;
+  currentReservationWorkbench = route.workbench;
+  reservationDetailStatus.textContent = `${origin.workbench === "check-in" ? "Check-in" : "Checkout"} preparation opened. Authoritative readiness and explicit confirmation remain required; no command was run.`;
+  applyReservationWorkbenchIntent(reservationDetailData.reservation);
+ }
+  function restoreReservationOperationalPreparationFocus(reservation) {
+  const returning = reservationOperationalPreparationReturn;
+  if (!returning || currentReservationWorkbench !== null || activeView !== "reservations" ||
+   location.pathname !== `/p/${propertySelect.value}/res/${reservation.reservationId}` || location.search !== "") return;
+  const preparation = reservationOperationalPreparation(reservation.status);
+  const action = reservationDetailActions.querySelector(".reservation-operational-preparation-action");
+  const exact = returning.property === propertySelect.value && returning.reservationId === reservation.reservationId &&
+   returning.confirmationNo === reservation.confirmationNo && returning.status === reservation.status &&
+   preparation?.workbench === returning.workbench && action?.isConnected && action.hidden === false;
+  reservationDetailTitle.tabIndex = -1;
+  (exact ? action : reservationDetailTitle).focus({ preventScroll: true });
+  reservationOperationalPreparationReturn = null;
+ }
   function applyReservationWorkbenchIntent(reservation) {
  const intent = currentReservationWorkbench;
  const checkInCompatible = intent === "check-in" && reservation.status === "due_in";
@@ -3302,6 +3387,7 @@ function departureEvidenceRow(term, value) {
  reservationDetailStatus.textContent = "Complete reservation detail loaded from server truth.";
  reservationDetailDrawer.setAttribute("aria-busy", "false");
  applyReservationWorkbenchIntent(reservation);
+ restoreReservationOperationalPreparationFocus(reservation);
  }
   async function loadReservationDetail(reservationId) {
  const generation = ++reservationDetailGeneration;
@@ -3348,6 +3434,9 @@ function departureEvidenceRow(term, value) {
  }
   async function openReservationDetail(reservationId, { push = true, trigger = null, workbench = null } = {}) {
  closeReservationCreate({ history: false, force: true });
+ const reopeningSameDetail = reservationDetailDrawer.hidden === false && reservationRouteReservationId === reservationId;
+ const operationalReturn = reservationOperationalPreparationReturnFromState(history.state, propertySelect.value, reservationId);
+ if (operationalReturn) reservationOperationalPreparationReturn = operationalReturn;
  const linkedVehicleReturn = vehicleLinkedReservationReturnFromState(history.state, propertySelect.value, reservationId);
  if (linkedVehicleReturn) {
   vehicleLinkedReservationReturn = linkedVehicleReturn;
@@ -3362,7 +3451,7 @@ function departureEvidenceRow(term, value) {
   reservationDrawerReturnView = "";
   reservationDrawerReturnReservationId = "";
  }
- reservationDrawerReturnFocus = trigger;
+ if (!reopeningSameDetail || trigger !== null) reservationDrawerReturnFocus = trigger;
  currentReservationWorkbench = workbench === "check-in" || workbench === "checkout" ? workbench : null;
  reservationDetailDrawer.hidden = false;
  if (push) {
@@ -3382,6 +3471,9 @@ function departureEvidenceRow(term, value) {
  }
   function closeReservationDetail({ history: updateHistory = true, restoreFocus = true } = {}) {
  if (reservationDetailDrawer.hidden) return;
+ const operationalReturn = reservationOperationalPreparationReturnFromState(
+  history.state, propertySelect.value, reservationRouteReservationId,
+ );
  const linkedVehicleReturn = reservationDrawerReturnView === "vehicles"
   ? vehicleLinkedReservationReturnFromState(history.state, propertySelect.value, reservationRouteReservationId)
   : null;
@@ -3389,6 +3481,7 @@ function departureEvidenceRow(term, value) {
  reservationDetailGeneration += 1;
  reservationRouteReservationId = "";
  currentReservationWorkbench = null;
+ reservationOperationalPreparationReturn = null;
  reservationPrimaryFolioAttemptKey = "";
  reservationPrimaryFolioReservationId = "";
  reservationDetailData = null;
@@ -3404,6 +3497,8 @@ function departureEvidenceRow(term, value) {
  const returnReservationId = reservationDrawerReturnReservationId;
  if (updateHistory && propertySelect.value) {
   if (returnView === "today") history.replaceState(null, "", `/p/${propertySelect.value}/today`);
+  else if (operationalReturn?.exitAction === "back") history.go(-2);
+  else if (operationalReturn?.exitAction === "replace") history.replaceState(null, "", `/p/${propertySelect.value}/reservations`);
   else if (returnView === "vehicles") history.back();
   else if (reservationExitHistoryAction(history.state, "reservation-detail") === "back") history.back();
   else history.replaceState(null, "", `/p/${propertySelect.value}/reservations`);
@@ -8628,6 +8723,7 @@ function vehicleReturnPathFromState(state, property) {
  reservationBoardNextCursor = null;
  reservationRouteReservationId = "";
  currentReservationWorkbench = null;
+ reservationOperationalPreparationReturn = null;
  reservationDrawerReturnView = "";
  reservationDrawerReturnReservationId = "";
  todayReturnFocus = { reservationId: "", cycle: 0 };

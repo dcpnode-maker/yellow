@@ -287,7 +287,7 @@ reservation-detail route. Only a validated non-null reservation association rece
 one stale-safe read-only navigation action; no API, authority, mutation, parking
 inference, polling, schema or event is added. This cannot complete Phase 6.
 
-Order 219 composes canonical reservation detail with the existing governed check-in
+Order 219 is built-unreviewed and composes canonical reservation detail with the existing governed check-in
 or checkout preparation route according only to current authoritative status. The
 action opens readiness and explicit confirmation; it runs no command and adds no API,
 authority, status meaning, mutation, schema or event. This cannot complete Phase 6.

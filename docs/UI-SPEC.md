@@ -572,3 +572,40 @@ rectangular density. The same label, target and reading order remain authoritati
 across all six. Keyboard focus is explicit, forced colours replace decorative
 materials with system button colours and boundaries, and reduced motion removes
 transition and transform effects.
+
+## 26. Reservation-detail operational preparation
+
+A successfully validated current reservation detail exposes at most one semantic
+preparation action from authoritative status: **Prepare check-in** for `due_in`,
+**Prepare checkout** for `in_house` or `due_out`, and no preparation action for every
+other status. This is presentation composition only; it introduces no new status,
+eligibility or lifecycle meaning.
+
+The action targets the same canonical `/p/{property}/res/{reservation}` route with
+the existing exact `?workbench=check-in` or `?workbench=checkout` query. The existing
+strict query parser, readiness endpoints, server permissions and explicit confirmation
+flows remain the sole authority. Navigation adds exactly one same-reservation history
+entry and performs no POST or lifecycle command. Refresh and Forward reapply the
+existing preparation intent. Back returns to plain reservation detail and restores
+focus to the matching action while it remains authoritative, otherwise to the
+reservation heading. Close and Escape retain the existing reservation-detail return
+and focus behavior.
+
+Immediately before navigation, the client rechecks the exact property, routed and
+validated reservation identifiers, confirmation, authoritative status, detail
+generation, plain canonical pathname, current Reservations view, and connected
+visible drawer, content and action. Any changed, detached or stale identity is inert.
+Existing 403, 404 and 409 readiness or command outcomes remain unchanged; this
+composition cannot bypass readiness or confirmation and performs no automatic
+check-in, checkout, folio repair, occupancy mutation, room-condition change or
+housekeeping-task creation.
+
+The action remains at least 44 pixels and wraps without horizontal overflow at 375
+pixels and 200% zoom; Android raises the target to 48 pixels. Apple iOS uses a
+restrained blue rounded control, Android uses a Material 3 filled pill, Windows 95/98
+uses square outset/inset system chrome, glassmorphism uses layered translucent blur,
+neomorphism uses paired raised and pressed inset shadows, and ERP uses compact
+rectangular density. The label, target, reading order and governed behavior remain
+identical across all six. Keyboard focus is explicit, forced colours replace
+decorative materials with system button colours and boundaries, and reduced motion
+removes transition and transform effects.
