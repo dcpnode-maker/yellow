@@ -184,3 +184,6 @@ builder's.
 Order252 has independently approved exact quoted-tax hold-to-reservation/segment lineage. The
 next dependency remains governed folio eligibility and configured semantic tax-route
 policy before any positive posting writer.
+
+Order253 is the current bounded status-only slice; it preserves the unfinished Phase7
+state while making approved Order252 visible to the founder after a separate promotion.

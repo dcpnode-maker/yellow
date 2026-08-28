@@ -538,6 +538,10 @@ and first segment only inside the existing successful held-reservation transacti
 unquoted/direct commits remain unchanged. The edge chooses no folio, account, tx code
 or route and grants no posting, document, India-policy or fiscal authority.
 
+Order253/D-657 is the bounded founder-visible status refresh through approved
+Order252. It changes recorded status truth only; the sole local remains a separate
+promotion concern and unfinished Phases5–7 remain active.
+
 tax_assignment evaluation (percent/fixed/slab, compound, line-vs-document rounding)
 from EXTENSIONS §2; India GST slab per room-night; document issue path: series →
 gapless number → hash chain → document; IRP reporting adapter (sandbox), IRN + QR

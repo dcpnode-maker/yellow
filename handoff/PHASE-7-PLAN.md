@@ -181,3 +181,6 @@ Order252/D-656 adds the independently approved immutable, same-transaction linea
 quoted-tax hold binding to the exact reservation and first segment created when that
 hold is consumed. It deliberately stops before folio selection, tax routing, posting,
 document allocation and India place-of-supply policy.
+
+Order253/D-657 refreshes only the authenticated founder-visible build snapshot through
+that approved lineage. It does not change Phase7 product behavior or local runtime.
