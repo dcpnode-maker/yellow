@@ -51,6 +51,10 @@ truth and records one same-transaction lifecycle fact and outbox event.
   generated `tests/schema/expected.sql`;
 - one focused `src/contexts/stay-operations/pickup-task-dispatch.ts` plus exports from
   `src/contexts/stay-operations/index.ts`;
+- focused extension of the existing minimized pickup-task detail in
+  `src/contexts/reservations/detail.ts` (and its existing export surface only if
+  required) to return nullable `assigneePartyId` and one nullable server-derived
+  `eligibleAction`; no Party/contact fields or generic task read is admitted;
 - minimal adapter/route/composition changes in `src/http/operator.ts`, `src/app.ts`
   and `src/server.ts` only as constructor wiring requires;
 - `src/http/operator/operator.js` and focused `operator.css` presentation;
