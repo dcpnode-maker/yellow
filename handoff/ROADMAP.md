@@ -193,5 +193,6 @@ forward-only migration0042. Sole-local promotion is the next bounded operational
 no product scope or phase state changes.
 
 Order255/D-663 independently verifies the approved sole-local backup, migration0042
-and app-only promotion. The next build remains governed folio eligibility and
-configured semantic tax-route policy before any positive posting writer.
+and app-only promotion. Order256/D-665 builds the exact read/lock/recheck quoted-tax
+primary-folio eligibility bridge pending independent review. The next build dependency
+is configured semantic tax-route policy before any positive posting writer.

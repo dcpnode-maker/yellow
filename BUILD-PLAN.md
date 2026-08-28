@@ -547,6 +547,15 @@ already applied by an Order252 proof setup incident and carries the final no-bin
 compatibility correction forward in migration0042. Direct local app promotion remains
 separate and requires its own protected backup and verification order.
 
+Order256/D-665 builds the exact positive-tax primary-folio eligibility prerequisite.
+It resolves one immutable Order252 reservation lineage to its canonical open primary
+folio and coherent open guest account, acquires the existing bounded financial locks,
+then re-reads and revalidates the full graph before returning frozen evidence. It is
+strictly read/lock-only: no account routing, financial write, posting, tax detail,
+document or India-policy authority is admitted. Independent Tier-3 executable review
+remains required before approval; the next bounded dependency is configured semantic
+transaction routing.
+
 tax_assignment evaluation (percent/fixed/slab, compound, line-vs-document rounding)
 from EXTENSIONS §2; India GST slab per room-night; document issue path: series →
 gapless number → hash chain → document; IRP reporting adapter (sandbox), IRN + QR

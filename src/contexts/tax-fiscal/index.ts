@@ -58,3 +58,13 @@ export type {
   PositiveTaxPostingPlanTaxPayableLineV1,
   PositiveTaxPostingPlanV1,
 } from "./posting-plan";
+export {
+  PositiveTaxFolioEligibilityConflictError,
+  PositiveTaxFolioEligibilityNotFoundError,
+  PositiveTaxFolioEligibilityService,
+  PositiveTaxFolioEligibilityValidationError,
+} from "./folio-eligibility";
+export type {
+  PositiveTaxFolioEligibilityInput,
+  PositiveTaxFolioEligibilityResult,
+} from "./folio-eligibility";

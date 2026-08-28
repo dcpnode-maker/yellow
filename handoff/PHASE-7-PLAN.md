@@ -2,7 +2,7 @@
 
 **Status:** active; Orders 237-240 built-unreviewed
 **Entry point:** built-unreviewed Phase-6 composition through Order 236
-**Current order:** Order 240 canonical positive tax-attribution snapshot is built-unreviewed under D-631
+**Current order:** Order 256 authoritative positive-tax primary-folio eligibility is built pending independent review under D-665
 
 ## Outcome
 
@@ -188,3 +188,13 @@ that approved lineage. It does not change Phase7 product behavior or local runti
 Order254/D-661 independently approves the forward-only migration-lineage reconciliation prerequisite for
 promoting that snapshot: historical0041 bytes become exact to the applied ledger and
 the final compatibility correction moves to migration0042.
+
+## Order 256 boundary
+
+Order256 adds the exact read/lock/recheck bridge from approved quoted-tax reservation
+lineage and canonical stored snapshot to the reservation's open primary window and
+coherent open guest account. It uses the existing bounded owner-mediated financial
+lock, revalidates after lock acquisition and returns deeply frozen internal evidence.
+It creates no folio or financial/fiscal artifact and selects no transaction code or
+configured revenue/tax account. The next product dependency is configured semantic
+tax routing before any positive posting writer. Independent Tier-3 approval is pending.
