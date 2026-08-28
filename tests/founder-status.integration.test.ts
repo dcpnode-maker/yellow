@@ -164,12 +164,12 @@ describe("Order 064 recorded build snapshot", () => {
     const reviewCoverage = await deriveIndependentReviewCoverage();
     const rows = manifestRows(manifest);
     expect(rows.length).toBeGreaterThan(0);
-    expect(PROJECT_BUILD_SNAPSHOT.recordedAt).toBe("2026-08-27");
-    expect(PROJECT_BUILD_SNAPSHOT.roadmap.latestBuiltOrder).toBe(189);
+    expect(PROJECT_BUILD_SNAPSHOT.recordedAt).toBe("2026-08-28");
+    expect(PROJECT_BUILD_SNAPSHOT.roadmap.latestBuiltOrder).toBe(240);
     expect(PROJECT_BUILD_SNAPSHOT.review.gate3Debt).toBe(0);
     expect(PROJECT_BUILD_SNAPSHOT.review.state).toBe("built_unverified");
-    expect(PROJECT_BUILD_SNAPSHOT.roadmap.currentOrder).toBe(190);
-    expect(PROJECT_BUILD_SNAPSHOT.roadmap.activePhase).toBe(5);
+    expect(PROJECT_BUILD_SNAPSHOT.roadmap.currentOrder).toBe(242);
+    expect(PROJECT_BUILD_SNAPSHOT.roadmap.activePhase).toBe(7);
     expect(PROJECT_BUILD_SNAPSHOT.roadmap.phaseCount).toBe(13);
     expect(reviewCoverage.throughOrder).toBe(91);
     expect(reviewCoverage.approvedReviewFiles).toContain("045-091-wave-a.md");
@@ -378,16 +378,74 @@ describe("Order 064 recorded build snapshot", () => {
         summary: "Order 189 independently approved the exact Order 188 product on the sole founder-local application.",
         remaining: "Founder CRUD drift and persistent data were preserved; no public or production deployment is claimed.",
       },
+      {
+        order: 190,
+        state: "independently_approved",
+        summary: "Order 190 independently approved recorded project-status truth through Order 189 (D-501).",
+        remaining: "Approval changed recorded status only and did not advance review coverage or promote a runtime.",
+      },
+      {
+        order: 191,
+        state: "independently_approved",
+        summary: "Order 191 independently approved the sole-local Order 190 app-only promotion (D-504).",
+        remaining: "Approval was loopback-local only and changed no database, credential, permission or product truth.",
+      },
+      {
+        order: 192,
+        state: "independently_approved",
+        summary: "Order 192 independently approved the token-only payment foundation (D-509).",
+        remaining: "Approval did not promote it locally or authorize a real payment provider, public deployment or Phase completion.",
+      },
+      {
+        order: 193,
+        state: "independently_approved",
+        summary: "Order 193 independently approved the hosted-payment and deposit workbench (D-518).",
+        remaining: "Approval remained provider-synthetic and did not authorize public exposure, production or Phase completion.",
+      },
+      {
+        order: 195,
+        state: "independently_approved",
+        summary: "Order 195 independently approved the retained six-appearance product (D-530).",
+        remaining: "Approval covered the product candidate only and did not itself replace the founder-local application.",
+      },
+      {
+        order: 199,
+        state: "built_unverified",
+        summary: "Orders 196–199 built folio settlement, cashier sessions, governed receivable transfer and the composed Phase-5 financial journey gate.",
+        remaining: "Builder proof is green; independent high-risk review, remaining Phase-5 work and Phase completion are not claimed.",
+      },
+      {
+        order: 236,
+        state: "built_unverified",
+        summary: "Orders 200–236 built the current Stay operations & Housekeeping descendant stack through governed parking-slot assignment.",
+        remaining: "Builder proof only; independent high-risk review and Phase-6 completion remain pending.",
+      },
+      {
+        order: 240,
+        state: "built_unverified",
+        summary: "Orders 237–240 built pure tax evaluation, effective jurisdiction resolution, attributable quote preview and the canonical positive attribution snapshot.",
+        remaining: "Builder proof only; persistence, posting, fiscal documents/IRP, independent review and Phase-7 completion remain pending.",
+      },
     ]);
     const recordedOrders = PROJECT_BUILD_SNAPSHOT.recordedWork.map(({ order }) => Number(order));
     expect(recordedOrders).toEqual([
       126, 127, 148, 154, 155, 156, 160, 161, 162, 163, 164,
       165, 166, 168, 169, 170, 171, 173, 174, 175, 176, 177, 178,
       179, 180, 181, 182, 183, 184, 185, 186, 188, 189,
+      190, 191, 192, 193, 195, 199, 236, 240,
     ]);
     expect(recordedOrders).not.toContain(167);
     expect(recordedOrders).not.toContain(172);
     expect(recordedOrders).not.toContain(187);
+    expect(recordedOrders).not.toContain(194);
+    expect(PROJECT_BUILD_SNAPSHOT.recordedWork.filter(({ order }) => Number(order) >= 190 && Number(order) <= 195)
+      .filter(({ state }) => state === "independently_approved").map(({ order }) => Number(order)))
+      .toEqual([190, 191, 192, 193, 195]);
+    expect(PROJECT_BUILD_SNAPSHOT.recordedWork.filter(({ state }) => state === "built_unverified")
+      .map(({ order }) => Number(order))).toEqual([199, 236, 240]);
+    expect(PROJECT_BUILD_SNAPSHOT.recordedWork.find(({ order }) => order === 199)?.summary).toMatch(/196–199/);
+    expect(PROJECT_BUILD_SNAPSHOT.recordedWork.find(({ order }) => order === 236)?.summary).toMatch(/200–236/);
+    expect(PROJECT_BUILD_SNAPSHOT.recordedWork.find(({ order }) => order === 240)?.summary).toMatch(/237–240/);
     const order178: { readonly summary: string; readonly remaining?: string } | undefined =
       PROJECT_BUILD_SNAPSHOT.recordedWork.find(({ order }) => order === 178);
     expect(`${order178?.summary} ${order178?.remaining}`).toMatch(/offline/i);
@@ -400,8 +458,11 @@ describe("Order 064 recorded build snapshot", () => {
     expect(PROJECT_BUILD_SNAPSHOT.phases[2]?.state).toBe("reviewed");
     expect(PROJECT_BUILD_SNAPSHOT.phases[3]?.state).toBe("reviewed");
     expect(PROJECT_BUILD_SNAPSHOT.phases[4]?.state).toBe("built_unverified");
-    expect(PROJECT_BUILD_SNAPSHOT.phases[5]?.state).toBe("active");
-    expect(PROJECT_BUILD_SNAPSHOT.phases.slice(6).every(({ state }) => state === "planned")).toBe(true);
+    expect(PROJECT_BUILD_SNAPSHOT.phases[5]?.state).toBe("built_unverified");
+    expect(PROJECT_BUILD_SNAPSHOT.phases[6]?.state).toBe("built_unverified");
+    expect(PROJECT_BUILD_SNAPSHOT.phases[7]?.state).toBe("active");
+    expect(PROJECT_BUILD_SNAPSHOT.phases.slice(8).every(({ state }) => state === "planned")).toBe(true);
+    expect(PROJECT_BUILD_SNAPSHOT.phases.filter(({ state }) => state === "active").map(({ number }) => number)).toEqual([7]);
   });
 
   test("P4/P5: health stays exact and assets contain honest same-origin status UI", async () => {
