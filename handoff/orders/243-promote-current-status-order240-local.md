@@ -1,6 +1,6 @@
 # Order 243 — Promote current status through Order 240 to the sole local app
 
-**Status:** READY-D635
+**Status:** APPROVED-LOCALLY-D636
 **Phase:** 7 — Tax engine and India IRP
 **Branch:** `phase-7/promote-current-status-order240-local`
 **Base:** `a1ec0d1` (built Order242 plus independently approved Order241 recovery)
@@ -43,9 +43,28 @@ second local, public bind, merge or production deployment change is admitted.
 
 ## Definition of done
 
-- [ ] Exact committed status descendant is served on the sole loopback port 3000.
-- [ ] Protected one-click sign-in and two-property reads succeed.
-- [ ] Database, cache, schema, data, credentials and ports remain unchanged.
-- [ ] Previous app image remains available for rollback.
-- [ ] Independent operational verification is recorded.
+- [x] Exact committed status descendant is served on the sole loopback port 3000.
+- [x] Protected one-click sign-in and two-property reads succeed.
+- [x] Database, cache, schema, data, credentials and ports remain unchanged.
+- [x] Previous app image remains available for rollback.
+- [x] Independent operational verification is recorded.
 
+## Built and review evidence
+
+Operator evidence records an app-only replacement from clean committed head
+`e315b55`, with the previous image retained as
+`yellow-order243-rollback:pre-status240`. PostgreSQL and Valkey retained container-id
+prefixes `89879fcaaff4` and `14e5534bc688`; port3000 remained the sole founder app
+listener and ports3002/3188 stayed closed.
+
+Fresh independent non-operating review in
+`handoff/reviews/243-promote-current-status-order240-local.md` reproduced health/root
+HTTP200, no-store masked protected prefill, operator login HTTP200, exactly two
+properties and both exact date2026-08-28/latest240/current242/review91/active7 status
+snapshots with Phases5–7 active and live app/database operational. The served status
+source is byte-exact to clean HEAD, all 93 public table counts match the owner-only
+pre-change backup with zero differences, required container identities are exact and
+the rollback tag exists. One corrected top-level `accessToken` verifier lookup was a
+proof-helper correction only, not a product failure. D-636 approves this local-only
+promotion without source, schema, data, credential, authority, public, merge,
+production, Phase or application-completion authority.
