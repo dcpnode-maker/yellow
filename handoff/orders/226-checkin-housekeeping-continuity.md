@@ -1,6 +1,6 @@
 # Order 226 — Check-in to Housekeeping continuity
 
-**Status:** READY-D595
+**Status:** BUILT-UNREVIEWED-D596
 **Phase:** 6 — Stay operations and housekeeping
 **Branch:** `phase-6/checkin-housekeeping-continuity`
 **Base:** `a752a54` (built-unreviewed Order225)
@@ -68,7 +68,20 @@ dependency, scope/event or local promotion/deployment file is admitted.
 
 ## Definition of done
 
-- [ ] Intentional red precedes implementation and fails on absent continuity hooks.
-- [ ] Only exact current room blockers open existing Housekeeping truth.
-- [ ] History, authoritative refetch, compatibility and focus containment are exact.
-- [ ] Focused and standing gates are green and the result is recorded built-unreviewed.
+- [x] Intentional red preceded implementation and failed on absent continuity hooks.
+- [x] Only exact current room blockers open existing Housekeeping truth.
+- [x] History, authoritative refetch, compatibility and focus containment are exact.
+- [x] Focused and standing gates are green and the result is recorded built-unreviewed.
+
+## Built-unreviewed evidence
+
+- Focused Order226 plus check-in/Housekeeping/Order219/Order208/Order201/Order217/
+  Order209 and reservation-workspace compatibility: 69 passed, 0 failed; 962
+  assertions across 12 files.
+- Standing suite: 620 passed, 629 environment-skipped, 0 failed; 6,834 assertions
+  across 1,249 tests in 227 files.
+- `bun run typecheck`, 82-file import boundaries, 23-package licence policy,
+  `bun audit` (0 vulnerabilities), JavaScript syntax and `git diff --check` are green.
+- The diff changes no TypeScript server/API/domain/database/schema/migration/seed/
+  dependency authority, so inherited schema and referee evidence remains exact.
+- Independent product review remains deferred under the founder's build-first direction.

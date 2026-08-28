@@ -50,6 +50,8 @@
  let reservationPickupTaskReturnFocus = null;
  let checkInReadinessData = null;
  let checkInReadinessGeneration = 0;
+ let checkInHousekeepingReturn = null;
+ let checkInHousekeepingActionOrigin = null;
  let checkInAttemptKey = "";
  let checkInAttemptDraft = "";
  let checkoutReadinessData = null;
@@ -212,6 +214,7 @@
  const todayLanes = [...document.querySelectorAll("[data-today-lane]")];
  const housekeepingView = $("#housekeeping-view");
  const housekeepingRefresh = $("#housekeeping-refresh");
+ const housekeepingArrivalReturnAction = $("#housekeeping-arrival-return");
  const housekeepingLoading = $("#housekeeping-loading");
  const housekeepingError = $("#housekeeping-error");
  const housekeepingErrorCopy = $("#housekeeping-error-copy");
@@ -599,6 +602,7 @@
  const checkInBadge = $("#checkin-readiness-badge");
  const checkInSummary = $("#checkin-readiness-summary");
  const checkInBlockers = $("#checkin-blockers");
+ const checkInHousekeepingAction = $("#checkin-housekeeping-action");
  const checkInForm = $("#checkin-form");
  const checkInOverrideLabel = $("#checkin-override-label");
  const checkInOverrideReason = $("#checkin-override-reason");
@@ -935,6 +939,8 @@
  reservationRouteReservationId = "";
  currentReservationWorkbench = null;
  reservationOperationalPreparationReturn = null;
+ checkInHousekeepingReturn = null;
+ if (housekeepingArrivalReturnAction) housekeepingArrivalReturnAction.hidden = true;
  reservationPrimaryFolioAttemptKey = "";
  reservationPrimaryFolioReservationId = "";
  reservationDrawerReturnView = "";
@@ -2742,7 +2748,7 @@ function ensureHousekeepingGenerationReceiptPanel() {
  }
  }
   function openReservationCreate({ push = true } = {}) {
- closeReservationDetail({ history: false, restoreFocus: false });
+ closeReservationDetail({ history: false, restoreFocus: false, preserveCheckInHousekeepingReturn: true });
  resetReservationCreateJourney();
  reservationBoard.hidden = true;
  reservationCreatePanel.hidden = false;
@@ -3131,6 +3137,11 @@ function ensureHousekeepingGenerationReceiptPanel() {
  checkInWorkbench.hidden = true;
  checkInWorkbench.setAttribute("aria-busy", "false");
  checkInBlockers.replaceChildren();
+ checkInHousekeepingAction.hidden = true;
+ checkInHousekeepingAction.disabled = false;
+ delete checkInHousekeepingAction.dataset.blocker;
+ delete checkInHousekeepingAction.dataset.reservationId;
+ checkInHousekeepingActionOrigin = null;
  checkInBadge.textContent = "Checking…";
  checkInSummary.textContent = "Yellow is checking the assigned room, primary folio and configured identity evidence.";
  checkInOverrideLabel.hidden = true;
@@ -3146,12 +3157,133 @@ function ensureHousekeepingGenerationReceiptPanel() {
   checkInAttemptDraft = "";
  }
  }
+ const CHECKIN_HOUSEKEEPING_BLOCKERS = Object.freeze(["room_condition_missing", "room_not_ready"]);
+ const CHECKIN_HOUSEKEEPING_CONDITIONS = Object.freeze(["clean", "dirty", "pickup", "inspected"]);
+  function canonicalCheckInWorkbenchPath(property, reservationId) {
+ return `/p/${property}/res/${reservationId}?${RESERVATION_WORKBENCH_QUERY["check-in"]}`;
+ }
+  function checkInHousekeepingReturnFromState(state, property) {
+ const value = state?.checkInHousekeepingReturn;
+ const keys = ["assignedSpaceId", "blocker", "confirmationNo", "detailGeneration", "drawerReturnView", "originPath", "property", "readinessGeneration", "reservationId", "roomCondition", "status"];
+ if (state?.yellowSurface !== "housekeeping" || !value || typeof value !== "object" || Array.isArray(value) ||
+  Object.keys(value).sort().join(",") !== keys.join(",") || value.property !== property ||
+  !canonicalUuid(value.property) || !canonicalUuid(value.reservationId) ||
+  typeof value.confirmationNo !== "string" || value.confirmationNo.length < 1 || value.confirmationNo.length > 120 ||
+  value.status !== "due_in" || !CHECKIN_HOUSEKEEPING_BLOCKERS.includes(value.blocker) ||
+  (value.assignedSpaceId !== null && !canonicalUuid(value.assignedSpaceId)) ||
+  (value.roomCondition !== null && !CHECKIN_HOUSEKEEPING_CONDITIONS.includes(value.roomCondition)) ||
+  value.originPath !== canonicalCheckInWorkbenchPath(value.property, value.reservationId) ||
+  !Number.isSafeInteger(value.detailGeneration) || value.detailGeneration < 1 ||
+  !Number.isSafeInteger(value.readinessGeneration) || value.readinessGeneration < 1 ||
+  !["", "today", "vehicles", "vehicle-register"].includes(value.drawerReturnView)) return null;
+ return Object.freeze({ ...value });
+ }
+  function checkInHousekeepingActionIsCurrent(origin, action) {
+ const reservation = reservationDetailData?.reservation;
+ const item = checkInBlockers.querySelector(`li[data-blocker="${origin.blocker}"]`);
+ return activeView === "reservations" && currentReservationWorkbench === "check-in" &&
+  origin.detailGeneration === reservationDetailGeneration && origin.readinessGeneration === checkInReadinessGeneration &&
+  origin.property === propertySelect.value && origin.reservationId === reservationRouteReservationId &&
+  origin.originPath === canonicalCheckInWorkbenchPath(origin.property, origin.reservationId) &&
+  `${location.pathname}${location.search}` === origin.originPath && origin.drawerReturnView === reservationDrawerReturnView &&
+  reservation?.reservationId === origin.reservationId && reservation.confirmationNo === origin.confirmationNo &&
+  reservation.status === origin.status && origin.status === "due_in" && checkInReadinessData?.reservationId === origin.reservationId &&
+  checkInReadinessData.status === origin.status && checkInReadinessData.assignedSpaceId === origin.assignedSpaceId &&
+  checkInReadinessData.roomCondition === origin.roomCondition && checkInReadinessData.blockers.includes(origin.blocker) &&
+  CHECKIN_HOUSEKEEPING_BLOCKERS.includes(origin.blocker) && checkInWorkbench.hidden === false &&
+  reservationDetailDrawer.isConnected && reservationDetailDrawer.hidden === false && item?.isConnected && checkInBlockers.contains(item) &&
+  item?.dataset.blocker === origin.blocker && action?.isConnected && action.hidden === false && action.disabled === false &&
+  action === checkInHousekeepingAction && action.dataset.blocker === origin.blocker &&
+  action.dataset.reservationId === origin.reservationId && checkInHousekeepingActionOrigin === origin;
+ }
+  function syncCheckInHousekeepingContext() {
+ const returning = checkInHousekeepingReturnFromState(history.state, propertySelect.value);
+ const action = housekeepingArrivalReturnAction;
+ checkInHousekeepingReturn = returning;
+ action.hidden = returning === null;
+ if (!returning) return null;
+ action.setAttribute("aria-label", `Back to arrival ${returning.confirmationNo}`);
+ action.dataset.reservationId = returning.reservationId;
+ action.dataset.blocker = returning.blocker;
+ housekeepingConditionFilter.value = returning.roomCondition !== null ? returning.roomCondition : "";
+ return returning;
+ }
+  function restoreCheckInHousekeepingRoomFocus(returning) {
+ const current = checkInHousekeepingReturnFromState(history.state, propertySelect.value);
+ if (!current || checkInHousekeepingReturn !== returning || activeView !== "housekeeping" ||
+  location.pathname !== `/p/${returning.property}/housekeeping` || location.search !== "" ||
+  housekeepingConditionFilter.value !== (returning.roomCondition || "")) return;
+ const row = returning.assignedSpaceId === null ? null :
+  housekeepingConditionRows.find((candidate) => candidate.spaceId === returning.assignedSpaceId);
+ const card = row ? [...housekeepingConditionList.querySelectorAll(".housekeeping-condition-card")]
+  .find((candidate) => candidate.dataset.spaceId === returning.assignedSpaceId) : null;
+ (card?.isConnected ? card : housekeepingConditionTitle).focus({ preventScroll: true });
+ }
+  async function openCheckInHousekeeping(origin, action) {
+ if (!checkInHousekeepingActionIsCurrent(origin, action)) return false;
+ const returning = Object.freeze({
+  property: origin.property,
+  reservationId: origin.reservationId,
+  confirmationNo: origin.confirmationNo,
+  status: origin.status,
+  blocker: origin.blocker,
+  assignedSpaceId: origin.assignedSpaceId,
+  roomCondition: origin.roomCondition,
+  originPath: origin.originPath,
+  detailGeneration: origin.detailGeneration,
+  readinessGeneration: origin.readinessGeneration,
+  drawerReturnView: origin.drawerReturnView,
+ });
+ checkInHousekeepingReturn = returning;
+ history.pushState({ yellowSurface: "housekeeping", checkInHousekeepingReturn: returning }, "", `/p/${origin.property}/housekeeping`);
+ closeReservationDetail({ history: false, restoreFocus: false });
+ setView("housekeeping", false);
+ return true;
+ }
+  function returnFromHousekeepingToCheckIn({ fromHistory = false } = {}) {
+ const returning = fromHistory ? checkInHousekeepingReturn :
+  checkInHousekeepingReturnFromState(history.state, propertySelect.value);
+ if (!returning || returning.property !== propertySelect.value ||
+  returning.originPath !== canonicalCheckInWorkbenchPath(returning.property, returning.reservationId)) return false;
+ if (!fromHistory) {
+  checkInHousekeepingReturn = returning;
+  history.back();
+  return true;
+ }
+ if (`${location.pathname}${location.search}` !== returning.originPath) return false;
+ if (housekeepingArrivalReturnAction) housekeepingArrivalReturnAction.hidden = true;
+ housekeepingConditionFilter.value = "";
+ setView("reservations", false);
+ reservationDrawerReturnView = returning.drawerReturnView;
+ reservationDrawerReturnReservationId = returning.reservationId;
+ return true;
+ }
+  function restoreCheckInHousekeepingArrivalFocus(readiness) {
+ const returning = checkInHousekeepingReturn;
+ const reservation = reservationDetailData?.reservation;
+ if (!returning || activeView !== "reservations" || currentReservationWorkbench !== "check-in" ||
+  `${location.pathname}${location.search}` !== returning.originPath ||
+  returning.property !== propertySelect.value || returning.reservationId !== reservationRouteReservationId ||
+  reservation?.reservationId !== returning.reservationId || reservation.confirmationNo !== returning.confirmationNo ||
+  reservation.status !== "due_in" || readiness.reservationId !== returning.reservationId) return false;
+ const action = [...checkInBlockers.querySelectorAll(".checkin-housekeeping-action")]
+  .find((candidate) => candidate === checkInHousekeepingAction &&
+   candidate.dataset.blocker === returning.blocker && candidate.dataset.reservationId === returning.reservationId);
+ const exact = readiness.status === returning.status && readiness.assignedSpaceId === returning.assignedSpaceId &&
+  readiness.roomCondition === returning.roomCondition && readiness.blockers.includes(returning.blocker) &&
+  action?.isConnected && action.hidden === false;
+ (exact ? action : checkInHeading).focus({ preventScroll: true });
+ checkInHousekeepingReturn = null;
+ return true;
+ }
   function checkInReadinessResult(value, reservationId) {
  if (!value || typeof value !== "object" || Array.isArray(value)
   || value.reservationId !== reservationId || typeof value.status !== "string"
   || !Array.isArray(value.blockers) || typeof value.canCheckIn !== "boolean"
   || typeof value.dirtyRoomOverrideRequired !== "boolean"
-  || typeof value.dirtyRoomOverrideAuthorized !== "boolean") {
+  || typeof value.dirtyRoomOverrideAuthorized !== "boolean"
+  || (value.assignedSpaceId !== null && !canonicalUuid(value.assignedSpaceId))
+  || (value.roomCondition !== null && !CHECKIN_HOUSEKEEPING_CONDITIONS.includes(value.roomCondition))) {
   throw new Error("The server returned an invalid check-in readiness result.");
  }
  for (const blocker of value.blockers) {
@@ -3159,7 +3291,7 @@ function ensureHousekeepingGenerationReceiptPanel() {
    throw new Error("The server returned an invalid check-in blocker.");
   }
  }
- return value;
+ return Object.freeze({ ...value, blockers: Object.freeze(value.blockers.slice()) });
  }
  const checkInBlockerLabels = Object.freeze({
  reservation_not_due_in: "Reservation is no longer due in.",
@@ -3187,6 +3319,34 @@ function ensureHousekeepingGenerationReceiptPanel() {
   item.dataset.blocker = blocker;
   checkInBlockers.append(item);
  }
+ const exactCheckInRoute = currentReservationWorkbench === "check-in" &&
+  `${location.pathname}${location.search}` === canonicalCheckInWorkbenchPath(propertySelect.value, readiness.reservationId);
+ const housekeepingBlocker = exactCheckInRoute
+  ? blockers.find((blocker) => CHECKIN_HOUSEKEEPING_BLOCKERS.includes(blocker)) : null;
+ if (housekeepingBlocker) {
+   checkInHousekeepingAction.hidden = false;
+   checkInHousekeepingAction.dataset.blocker = housekeepingBlocker;
+   checkInHousekeepingAction.dataset.reservationId = readiness.reservationId;
+   const origin = Object.freeze({
+    property: propertySelect.value,
+    reservationId: readiness.reservationId,
+    confirmationNo: reservationDetailData.reservation.confirmationNo,
+    status: reservationDetailData.reservation.status,
+    blocker: housekeepingBlocker,
+    assignedSpaceId: readiness.assignedSpaceId,
+    roomCondition: readiness.roomCondition,
+    originPath: canonicalCheckInWorkbenchPath(propertySelect.value, readiness.reservationId),
+    detailGeneration: reservationDetailGeneration,
+    readinessGeneration: checkInReadinessGeneration,
+    drawerReturnView: reservationDrawerReturnView,
+   });
+   checkInHousekeepingActionOrigin = origin;
+ } else {
+  checkInHousekeepingAction.hidden = true;
+  delete checkInHousekeepingAction.dataset.blocker;
+  delete checkInHousekeepingAction.dataset.reservationId;
+  checkInHousekeepingActionOrigin = null;
+ }
  const needsReason = readiness.dirtyRoomOverrideRequired === true && readiness.dirtyRoomOverrideAuthorized === true;
  checkInOverrideLabel.hidden = !needsReason;
  checkInOverrideNote.hidden = !needsReason;
@@ -3194,6 +3354,7 @@ function ensureHousekeepingGenerationReceiptPanel() {
  checkInConfirm.disabled = !readiness.canCheckIn;
  checkInSubmit.disabled = !readiness.canCheckIn || !checkInConfirm.checked || (needsReason && checkInOverrideReason.value.trim() === "");
  checkInWorkbench.setAttribute("aria-busy", "false");
+ return restoreCheckInHousekeepingArrivalFocus(readiness);
  }
   async function loadCheckInReadiness({ focus = false, preserveDraft = false } = {}) {
  if (!reservationDetailData || reservationDetailData.reservation.status !== "due_in") {
@@ -3208,6 +3369,8 @@ function ensureHousekeepingGenerationReceiptPanel() {
  checkInWorkbench.setAttribute("aria-busy", "true");
  checkInRefresh.disabled = true;
  checkInSubmit.disabled = true;
+ checkInHousekeepingAction.hidden = true;
+ checkInHousekeepingActionOrigin = null;
  checkInBadge.textContent = "Checking…";
  checkInMessage.classList.remove("error");
  checkInMessage.textContent = "Loading current arrival readiness…";
@@ -3216,9 +3379,9 @@ function ensureHousekeepingGenerationReceiptPanel() {
   const result = checkInReadinessResult(await request(`/api/v1/properties/${enc(property)}/reservations/${enc(reservationId)}/check-in/readiness`), reservationId);
   if (generation !== checkInReadinessGeneration || detailGeneration !== reservationDetailGeneration
    || property !== propertySelect.value || reservationRouteReservationId !== reservationId) return;
-  renderCheckInReadiness(result);
+  const restoredHousekeepingFocus = renderCheckInReadiness(result);
   checkInMessage.textContent = "Readiness refreshed from server truth.";
-  if (focus) checkInHeading.focus({ preventScroll: true });
+  if (focus && !restoredHousekeepingFocus) checkInHeading.focus({ preventScroll: true });
  } catch (error) {
   if (generation !== checkInReadinessGeneration || detailGeneration !== reservationDetailGeneration
    || property !== propertySelect.value || reservationRouteReservationId !== reservationId) return;
@@ -3226,7 +3389,10 @@ function ensureHousekeepingGenerationReceiptPanel() {
   checkInWorkbench.setAttribute("aria-busy", "false");
   checkInMessage.classList.add("error");
   checkInMessage.textContent = `${error instanceof Error ? error.message : "Readiness could not be loaded"}. Refresh to retry.`;
-  if (focus) checkInRefresh.focus({ preventScroll: true });
+  if (checkInHousekeepingReturn && `${location.pathname}${location.search}` === checkInHousekeepingReturn.originPath) {
+   checkInHeading.focus({ preventScroll: true });
+   checkInHousekeepingReturn = null;
+  } else if (focus) checkInRefresh.focus({ preventScroll: true });
  } finally {
   if (generation === checkInReadinessGeneration && detailGeneration === reservationDetailGeneration
    && property === propertySelect.value && reservationRouteReservationId === reservationId) checkInRefresh.disabled = false;
@@ -3915,7 +4081,8 @@ function departureEvidenceRow(term, value) {
  reservationRoutePickupTaskId = taskId;
  await openReservationPickupTaskDetail(reservationDetailData.reservation, taskId, { push: false });
  }
-  function closeReservationDetail({ history: updateHistory = true, restoreFocus = true } = {}) {
+  function closeReservationDetail({ history: updateHistory = true, restoreFocus = true,
+   preserveCheckInHousekeepingReturn = false } = {}) {
  if (reservationDetailDrawer.hidden) return;
  const operationalReturn = reservationOperationalPreparationReturnFromState(
   history.state, propertySelect.value, reservationRouteReservationId,
@@ -3932,6 +4099,10 @@ function departureEvidenceRow(term, value) {
  reservationRouteReservationId = "";
  currentReservationWorkbench = null;
  reservationOperationalPreparationReturn = null;
+ if (!preserveCheckInHousekeepingReturn) {
+  checkInHousekeepingReturn = null;
+  housekeepingArrivalReturnAction.hidden = true;
+ }
  reservationPrimaryFolioAttemptKey = "";
  reservationPrimaryFolioReservationId = "";
  reservationDetailData = null;
@@ -7488,6 +7659,10 @@ function vehicleReturnPathFromState(state, property) {
   housekeepingConditionRequestGeneration += 1;
   housekeepingSheetGeneration += 1;
   housekeepingSheetRequestGeneration += 1;
+  if (activeView !== "reservations" || `${location.pathname}${location.search}` !== checkInHousekeepingReturn?.originPath) {
+   checkInHousekeepingReturn = null;
+  }
+  if (housekeepingArrivalReturnAction) housekeepingArrivalReturnAction.hidden = true;
  }
  if (previousView === "vehicles" && activeView !== "vehicles") {
   vehicleRegisterGeneration += 1;
@@ -7525,6 +7700,7 @@ function vehicleReturnPathFromState(state, property) {
  if (activeView === "operations") void loadOperationalBlocks();
  if (activeView === "housekeeping") {
   if (propertySelect.value) {
+   const arrivalReturn = syncCheckInHousekeepingContext();
    const route = housekeepingNavigationRoute();
    if (route.kind === "other" || route.property !== propertySelect.value) {
     history.replaceState(null, "", `/p/${propertySelect.value}/housekeeping`);
@@ -7533,7 +7709,9 @@ function vehicleReturnPathFromState(state, property) {
    else {
     syncHousekeepingRoute();
     void loadHousekeepingBoard();
-    void loadHousekeepingConditions();
+    void loadHousekeepingConditions().then(() => {
+     if (arrivalReturn) restoreCheckInHousekeepingRoomFocus(arrivalReturn);
+    });
     if (housekeepingSheetDate.value) {
      if (housekeepingSheetAttendant) void previewHousekeepingSheet();
      else void loadHousekeepingSheetHistory();
@@ -9304,6 +9482,12 @@ function vehicleReturnPathFromState(state, property) {
   closeHousekeepingTaskDetail();
   return;
  }
+ if (activeView === "housekeeping" && event.key === "Escape" &&
+  checkInHousekeepingReturnFromState(history.state, propertySelect.value)) {
+  event.preventDefault();
+  void returnFromHousekeepingToCheckIn();
+  return;
+ }
  if (activeView === "vehicles" && event.key === "Escape" && vehicleRouteVehicleId && vehicleDetailPanel?.hidden === false) {
   event.preventDefault();
   closeVehicleDetail();
@@ -9447,6 +9631,7 @@ function vehicleReturnPathFromState(state, property) {
  });
  housekeepingRetry.addEventListener("click", () => void loadHousekeepingBoard({ focus: true }));
  housekeepingConditionRefresh.addEventListener("click", () => void loadHousekeepingConditions({ focus: "refresh" }));
+ housekeepingArrivalReturnAction.addEventListener("click", () => void returnFromHousekeepingToCheckIn());
  housekeepingConditionRetry.addEventListener("click", () => void loadHousekeepingConditions({ focus: "title" }));
  housekeepingConditionMore.addEventListener("click", () => void loadHousekeepingConditions({ older: true, focus: "more" }));
  housekeepingConditionFilter.addEventListener("change", () => void loadHousekeepingConditions({ focus: "filter" }));
@@ -9578,6 +9763,9 @@ housekeepingSheetDate.addEventListener("change", () => {
  });
  reservationPrimaryFolioCreate.addEventListener("click", () => void openPrimaryFolio());
  checkInForm.addEventListener("submit", (event) => void submitCheckIn(event));
+ checkInHousekeepingAction.addEventListener("click", () => {
+  if (checkInHousekeepingActionOrigin) void openCheckInHousekeeping(checkInHousekeepingActionOrigin, checkInHousekeepingAction);
+ });
  checkInRefresh.addEventListener("click", () => void loadCheckInReadiness({ focus: true, preserveDraft: true }));
  const updateCheckInAction = () => {
   const needsReason = checkInReadinessData?.dirtyRoomOverrideRequired === true;
@@ -9596,6 +9784,11 @@ housekeepingSheetDate.addEventListener("change", () => {
   if (activeView !== "today") setView("today", false);
   return;
  }
+ const arrivalRoute = reservationNavigationRoute();
+ if (checkInHousekeepingReturn && arrivalRoute.kind === "detail" && arrivalRoute.property === propertySelect.value &&
+  arrivalRoute.reservationId === checkInHousekeepingReturn.reservationId && arrivalRoute.workbench === "check-in" &&
+  `${location.pathname}${location.search}` === checkInHousekeepingReturn.originPath &&
+  returnFromHousekeepingToCheckIn({ fromHistory: true })) return;
  const housekeepingRoute = housekeepingNavigationRoute();
  if (housekeepingRoute.kind !== "other" && housekeepingRoute.property === propertySelect.value) {
   closeReservationDetail({ history: false, restoreFocus: false });

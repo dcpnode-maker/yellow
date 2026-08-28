@@ -253,7 +253,7 @@
 <h2 id="housekeeping-title" tabindex="-1">Housekeeping</h2>
 <p class="muted">Build one governed daily sheet, then work assigned rooms from current PostgreSQL truth.</p>
 </div>
-<button class="quiet" id="housekeeping-refresh" type="button">Refresh workspace</button>
+<div class="housekeeping-heading-actions"><button class="quiet housekeeping-arrival-return" id="housekeeping-arrival-return" type="button" hidden>Back to arrival</button><button class="quiet" id="housekeeping-refresh" type="button">Refresh workspace</button></div>
 </div>
 <section class="card housekeeping-condition-board" id="housekeeping-condition-board" aria-labelledby="housekeeping-condition-title" aria-busy="false">
 <div class="housekeeping-condition-head">
@@ -786,7 +786,7 @@
 <label id="checkin-override-label" hidden>Dirty-room exception reason<textarea id="checkin-override-reason" maxlength="500" rows="3" autocomplete="off" aria-describedby="checkin-override-note"></textarea></label>
 <p class="field-note" id="checkin-override-note" hidden>A dirty or pickup room can be accepted only with your separately granted authority and a recorded reason.</p>
 <label class="checkin-confirm"><input id="checkin-confirm" type="checkbox"> <span>I confirm the named arrival and server-owned readiness result.</span></label>
-<div class="checkin-actions"><button class="primary" id="checkin-submit" type="submit" disabled>Check in guest</button><button class="quiet" id="checkin-refresh" type="button">Refresh readiness</button></div>
+<div class="checkin-actions"><button class="primary" id="checkin-submit" type="submit" disabled>Check in guest</button><button class="quiet checkin-housekeeping-action" id="checkin-housekeeping-action" type="button" hidden>Review room in Housekeeping</button><button class="quiet" id="checkin-refresh" type="button">Refresh readiness</button></div>
 </form>
 <p class="form-message" id="checkin-message" role="status" aria-live="assertive"></p>
 </section>

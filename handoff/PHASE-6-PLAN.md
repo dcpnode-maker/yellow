@@ -1,8 +1,8 @@
 # Phase 6 — Stay operations and housekeeping
 
-**Status:** active; Orders 200–225 are built-unreviewed; Order226 is ready
+**Status:** active; Orders 200–226 are built-unreviewed
 **Entry point:** built-unreviewed Phase-5 composition through Order 199
-**Current order:** Order226 — check-in to Housekeeping continuity
+**Current order:** next bounded build slice is being scoped
 
 ## Outcome
 
@@ -267,6 +267,12 @@ Order 225 is built-unreviewed and composes exact current Vehicle Register rows w
 reservation-detail route. Only already-validated non-null associations may navigate;
 exact register filter/cursor history and focus are restored without a new request,
 vehicle/reservation mutation, parking/occupancy inference, schema or event.
+
+Order 226 is built-unreviewed and composes exact current room-owned check-in readiness blockers with the
+existing Housekeeping condition board. Only `room_condition_missing` or
+`room_not_ready` may navigate; one minimized history descriptor, authoritative
+condition/reservation/readiness refetch and exact-or-safe focus preserve the operator
+journey without a new request, command, task/occupancy inference, schema or event.
 
 Statutory field semantics, validation, submission and receipts remain Phase 8. Tax and
 fiscal document work remains Phase 7. No country rule is hardcoded in Phase 6.

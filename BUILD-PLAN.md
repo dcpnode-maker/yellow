@@ -317,6 +317,11 @@ Order 225 is built-unreviewed and composes exact current Vehicle Register row tr
 reservation-detail journey. It adds only minimized history return context and no new
 request, vehicle/reservation mutation, parking or occupancy authority. This cannot complete Phase 6.
 
+Order 226 is built-unreviewed and composes exact current room-owned check-in readiness blockers with the
+existing Housekeeping condition board. It adds only minimized history return context,
+authoritative condition/reservation/readiness refetch and exact-or-safe focus; it adds
+no request, command, task/occupancy inference, schema or event. This cannot complete Phase 6.
+
 ## Phase 7 — Tax engine + India IRP
 
 tax_assignment evaluation (percent/fixed/slab, compound, line-vs-document rounding)

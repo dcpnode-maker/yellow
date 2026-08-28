@@ -86,7 +86,8 @@ test("Order 209: focused readiness settles only against the guarded current deta
   expect(checkIn).toContain("generation !== checkInReadinessGeneration");
   expect(checkIn).toContain("detailGeneration !== reservationDetailGeneration");
   expect(checkIn).toContain("reservationRouteReservationId !== reservationId");
-  expect(checkIn).toContain("if (focus) checkInHeading.focus({ preventScroll: true })");
+  expect(checkIn).toContain("const restoredHousekeepingFocus = renderCheckInReadiness(result)");
+  expect(checkIn).toContain("if (focus && !restoredHousekeepingFocus) checkInHeading.focus({ preventScroll: true })");
   expect(checkIn).toContain("if (focus) checkInRefresh.focus({ preventScroll: true })");
 
   const checkout = functionSource("loadCheckoutReadiness");

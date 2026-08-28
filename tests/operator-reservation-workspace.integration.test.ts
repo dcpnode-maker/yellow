@@ -195,7 +195,8 @@ test("Order 209: strict workbench intent survives refresh and same-reservation q
   expect(script).toContain('departureCheckoutForm.addEventListener("submit"');
 
   const checkInReadiness = functionSource("loadCheckInReadiness");
-  expect(checkInReadiness).toContain("if (focus) checkInHeading.focus({ preventScroll: true })");
+  expect(checkInReadiness).toContain("const restoredHousekeepingFocus = renderCheckInReadiness(result)");
+  expect(checkInReadiness).toContain("if (focus && !restoredHousekeepingFocus) checkInHeading.focus({ preventScroll: true })");
   expect(checkInReadiness).toContain("if (focus) checkInRefresh.focus({ preventScroll: true })");
   const checkoutReadiness = functionSource("loadCheckoutReadiness");
   expect(checkoutReadiness).toContain("if (focus) departureHeading.focus({ preventScroll: true })");

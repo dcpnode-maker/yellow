@@ -812,3 +812,38 @@ blue blur, neomorphism uses paired raised and pressed inset shadows, and ERP use
 compact rectangular density. All six appearances preserve the same label, order and
 target. Keyboard focus is explicit, reduced motion removes nonessential movement, and
 forced colours replace decorative materials with system button colours and boundaries.
+
+## 32. Check-in-to-Housekeeping return continuity
+
+Only an exact current due-in reservation blocked by the server-owned
+`room_condition_missing` or `room_not_ready` readiness result exposes the semantic
+**Review room in Housekeeping** action. Every other blocker and ready state omits the
+action. Its minimized frozen history descriptor binds the current property,
+reservation and confirmation identifiers, due-in status, exact blocker, nullable
+assigned room and recorded condition, canonical reservation origin with
+`?workbench=check-in`, and the current detail and readiness generations. A detached,
+stale or mismatched action is inert.
+
+Opening creates exactly one history entry and reuses the existing canonical
+Housekeeping route and condition-board read. Housekeeping may select only the exact
+recorded room condition and may focus the exact assigned-room card only when current
+authoritative room truth contains that identity; otherwise focus moves to the safe
+Room conditions heading. It never infers a housekeeping task, occupancy or arrival
+readiness result.
+
+The contextual **Back to arrival** control, Escape and browser Back restore canonical
+reservation detail with `?workbench=check-in`, refetch current reservation and
+readiness truth, then restore focus to the matching current action or the safe check-in
+heading. Refresh and Forward reconstruct context only while the descriptor remains
+exact. Direct Housekeeping remains unchanged. The journey adds no request, mutation,
+polling, browser storage, task transition, check-in command or new authority.
+
+Both contextual controls remain at least 44 pixels, wrap without horizontal overflow
+at 375 pixels and 200% zoom, and rise to 48 pixels under Android. Apple iOS uses a
+restrained blue-tinted rounded control, Android uses a Material 3 tonal pill, Windows
+95/98 uses square outset/inset system chrome, glassmorphism uses layered translucent
+blue blur, neomorphism uses paired raised and pressed inset shadows, and ERP uses
+compact rectangular density. All six appearances preserve the same semantic labels,
+reading order and targets. Keyboard focus is explicit, reduced motion removes
+nonessential transitions and transforms, and forced colours replace decorative
+materials with system button colours and boundaries.
