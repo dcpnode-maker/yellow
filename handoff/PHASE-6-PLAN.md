@@ -1,8 +1,8 @@
 # Phase 6 — Stay operations and housekeeping
 
-**Status:** active; Orders 200–206 are built-unreviewed
+**Status:** active; Orders 200–211 are built-unreviewed; Order212 ready
 **Entry point:** built-unreviewed Phase-5 composition through Order 199
-**Current order:** `206-governed-arrival-travel-visibility.md` (built-unreviewed)
+**Current order:** `212-governed-reservation-travel-capture.md` (ready)
 
 ## Outcome
 
@@ -179,6 +179,14 @@ server-owned primary truth and exact PUT/idempotency while adding current-detail
 identity, mutual-exclusion, stale and focus guards; it creates no new mutation
 authority, Party identity or financial allocation.
 
+Order 212 is ready as the first governed travel write. One per-direction exact-property
+command uses CAS and actor-bound idempotency to create or replace recorded arrival or
+departure fields through a new owner capability while raw app-role travel DML stays
+denied. A changed row emits minimized reservation.modified evidence; no-op emits none.
+Linked pickup work blocks change. The reservation drawer hosts one stale-safe editor;
+pickup automation, delete, notes, vehicle, parking, occupancy and financial effects
+remain deferred.
+
 Order 208 is built-unreviewed as the next bounded read-only slice: a canonical
 active-room condition board inside the existing Housekeeping workbench. It reads exact
 `unit_condition` truth with tenant/property containment, keyset paging and an optional
@@ -188,8 +196,9 @@ status.
 
 1. Discrepancy, queue and service-message workflows only after their sleep/skip/person,
    queue-linkage and resolution semantics are recorded explicitly.
-2. Arrival travel capture, later vehicle writes, and parking assignment;
-   any parking occupancy must use the existing occupancy choke point.
+2. Order212 owns travel capture; pickup-task automation, later vehicle writes and
+   parking assignment remain subsequent, and parking occupancy must use the existing
+   occupancy choke point.
 3. Optional key-provider port only after provider ownership, credential and recovery
    policy are fixed.
 
