@@ -1,8 +1,8 @@
 # Order 276 — independent Tier-3 review
 
-**Reviewed commit:** `9a4a958fe22773547cfffc7d136046df8410d22e`  
-**Reviewer:** independent non-implementing Codex Tier-3 reviewer  
-**Date:** 2026-08-29  
+**Reviewed commit:** `9a4a958fe22773547cfffc7d136046df8410d22e`
+**Reviewer:** independent non-implementing Codex Tier-3 reviewer
+**Date:** 2026-08-29
 **Verdict:** **CHANGES REQUIRED**
 
 ## Blocking finding
