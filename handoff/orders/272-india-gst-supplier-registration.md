@@ -1,6 +1,6 @@
 # Order 272 — Resolve exact India GST supplier-registration evidence
 
-**Status:** BUILT-PENDING-REVIEW-D710
+**Status:** APPROVED-D711
 **Phase:** 7 — Tax engine and India IRP
 **Branch:** `phase-7/india-gst-supplier-registration`
 **Base:** `3c9fb7c` (independently approved Order271 descendant)
@@ -96,4 +96,4 @@ Phase7 or application-complete claim.
 
 - [x] Exact schema/ACL/RLS and resolver behavior are built.
 - [x] Focused, adjacent, migration/schema/referee, standing and static proof is green.
-- [ ] Fresh independent Tier-3 executable review is recorded.
+- [x] Fresh independent Tier-3 executable review is recorded.

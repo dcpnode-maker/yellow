@@ -249,8 +249,8 @@ sole-local topology and protected press-only two-hotel status result without a
 finding. Phase7 remains active; partial/India/negative-tax correction, fiscal
 documents/IRP and Phase completion remain later work.
 
-Order272/D-710 is built pending mandatory independent review. Exact configured India
+Order272/D-711 is independently approved. Exact configured India
 GST supplier-registration evidence is bound to the frozen jurisdiction identity with
 SELECT-only runtime authority, canonical validation, deterministic hashing and zero
-writes. Fresh PostgreSQL reaches47 migrations/99 tables/89 policies/referee11/11;
-place-of-supply, tax decomposition, documents and IRP remain later work.
+writes. Fresh reviewer-executed PostgreSQL reaches47 migrations/99 tables/89
+policies/referee11/11; place-of-supply, tax decomposition, documents and IRP remain later work.
