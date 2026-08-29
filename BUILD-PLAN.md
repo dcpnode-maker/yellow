@@ -611,12 +611,17 @@ personally reproduced focused12/0+2 skips(149), exact operator47/0(711), adjacen
 security52/0(440), standing842/0+765 skips(8528) and every static gate with no
 blocking finding. Sole-local promotion is governed separately by Order264 below.
 
-Order264 has promoted exact approved Orders262–263 to the sole local app pending
-independent operational verification. Only the app changed; PostgreSQL, Valkey,
+Order264 promoted exact approved Orders262–263 to the sole local app, but independent
+verification recorded CHANGES REQUIRED after an internal hashing-tool alias error
+rendered protected app environment values into agent/tool output. Only the app had
+changed; PostgreSQL, Valkey,
 retained volume, protected environment, two properties, migration44/98-table/
 88-policy catalogue and exact all-table row-count digest remain unchanged. The
 healthy no-store loopback3000 sign-in has three populated masked defaults and both
 properties report exact latest262/current263/review91/active7;3002/3188 are closed.
+The reviewer made no mutation and independently confirmed non-secret continuity;
+all exposed application credentials/secrets require a separate governed rotation
+and logging-safe re-review before local approval.
 
 tax_assignment evaluation (percent/fixed/slab, compound, line-vs-document rounding)
 from EXTENSIONS §2; India GST slab per room-night; document issue path: series →

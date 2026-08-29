@@ -1,6 +1,6 @@
 # Order 264 — Promote approved Orders262–263 to the sole local app
 
-**Status:** PROMOTED-D685 — independent operational verification pending
+**Status:** CHANGES-REQUIRED-D686 — protected values require governed rotation
 **Phase:** 7 — Tax engine and India IRP
 **Branch:** `phase-7/promote-orders262-263-local`
 **Base:** `10f78fa` (independently approved Orders262 and 263)
@@ -64,7 +64,7 @@ authorized by this order and requires separate emergency authority.
 - [x] Exact preflight, restricted backup and rollback image are verified.
 - [x] Only the app container changes; database/cache/data remain byte-equivalent.
 - [x] Login, two hotels, exact status and one-local topology are green.
-- [ ] Independent non-operating verification records approval or findings.
+- [x] Independent non-operating verification records approval or findings.
 
 ## Promotion evidence — D685
 
@@ -91,3 +91,16 @@ is byte-exact and the helper contains private Map retention, DOM-attribute delet
 the exact cancelable restore event and `preventDefault`. Both retained properties
 return exact 262/263/review91/active7. Only loopback3000 is open;3002/3188 remain
 closed. Independent verification remains pending.
+
+## Independent finding — D686
+
+Independent verification recorded CHANGES REQUIRED. A PowerShell helper-name/alias
+collision during protected-environment hashing rendered protected app environment
+values inside an internal agent/tool log. The reviewer stopped immediately, did not
+repeat any value in the review record and made no Git, runtime, container, image,
+database, cache or volume mutation. Completed non-secret evidence independently
+confirms source/image identity, service/volume continuity, restricted backup and
+rollback image, migration44/98/88, two properties and the exact 98-table count
+digest. Every exposed application credential/secret must now rotate under a separate
+governed order, followed by logging-safe independent verification. Order264 is not
+approved.
