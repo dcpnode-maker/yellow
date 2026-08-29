@@ -2,7 +2,7 @@
 
 **Status:** active; governed positive-tax posting and complete correction approved through Order266
 **Entry point:** built-unreviewed Phase-6 composition through Order 236
-**Current order:** Order271 guarded sole-local promotion of approved Orders266–270 is admitted under D-706
+**Current order:** Order273 authenticated founder status through approved Order272 is admitted under D-712
 
 ## Outcome
 
@@ -256,3 +256,11 @@ evidence hash, or fails closed without writes. It does not decide place of suppl
 CGST/SGST/IGST decomposition, document allocation or IRP payloads; those remain later
 separately governed slices. Fresh PostgreSQL proof is47 migrations/99 tables/89
 policies/referee11/11 under fresh Tier-3 execution.
+
+## Order 273 boundary
+
+Order273 is a recorded-status-only bridge through independently approved Order272.
+It may advance exact authenticated snapshot truth to latest272/current273 and the
+compact Orders237–272 milestone while preserving review91, the phase vector, every
+unfinished India/document/IRP dependency and the aggregate built-unverified state.
+Product, database, runtime and sole-local promotion are outside this order.
