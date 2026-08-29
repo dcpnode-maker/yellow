@@ -2,7 +2,7 @@
 
 **Status:** active; governed positive-tax posting and complete correction approved through Order266
 **Entry point:** built-unreviewed Phase-6 composition through Order 236
-**Current order:** Order275 exact India IRP 1.1 seller details is independently approved under D-719
+**Current order:** Order276 exact India GST registered-recipient candidate evidence is admitted under D-720
 
 ## Outcome
 
@@ -286,3 +286,13 @@ submission, API, HTTP or UI authority and decides no buyer, place of supply, sup
 type, tax decomposition, item or value. Fresh independent Tier-3 execution approves
 the exact immutable candidate under D-719 with no finding; no Phase7 completion is
 claimed.
+
+## Order 276 boundary
+
+Order276 adds one typed tenant/RLS Party GST-registration root and an exact read-only
+registration-id resolver. The Natural-Solution Test rejects mutable Party profile,
+address and role truth as statutory evidence while preserving Party as the sole person/
+organisation primitive. The result is registered-recipient candidate evidence only;
+invoice-window buyer designation, `BuyerDtls`, place of supply, supply type, India tax
+decomposition, documents and submission remain separate future authority. Fresh
+PostgreSQL and independent Tier-3 execution are mandatory.

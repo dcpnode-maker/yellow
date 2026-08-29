@@ -274,3 +274,10 @@ recursive freeze. Buyer, place-of-supply, supply type, CGST/SGST/IGST, items, va
 documents, numbering/hash chains, submission/providers, database and UI remain out of
 scope. Fresh non-implementing Tier-3 execution approves the exact immutable candidate
 with no finding; Phase7 remains active.
+
+Order276/D-720 is the admitted current product slice. It may add only a typed
+tenant/RLS Party GST-registration root plus an exact read-only registration-id
+resolver for active registered-recipient candidate evidence. It grants no legal
+invoice-buyer, folio-window, `BuyerDtls`, place-of-supply, decomposition, document,
+submission, UI or local authority and requires fresh PostgreSQL plus independent
+Tier-3 executable proof.
