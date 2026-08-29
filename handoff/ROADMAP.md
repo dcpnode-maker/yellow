@@ -248,3 +248,9 @@ operating verification approved the exact backup, database, retained identities,
 sole-local topology and protected press-only two-hotel status result without a
 finding. Phase7 remains active; partial/India/negative-tax correction, fiscal
 documents/IRP and Phase completion remain later work.
+
+Order272/D-709 is the active next product slice: exact configured India GST supplier-
+registration evidence bound to the frozen jurisdiction identity. It is read-only
+runtime authority and deliberately stops before place-of-supply, tax decomposition,
+documents or IRP. Schema, resolver and proof/docs lanes may build concurrently; one
+fresh non-implementing Tier-3 review remains mandatory.

@@ -702,6 +702,13 @@ stored on document; fiscal_submission log.
 KSA/AE flat VAT · document numbers gapless under 100 concurrent issues · IRP sandbox
 round-trip stores IRN.
 
+**Current Order272 prerequisite:** add exact SELECT-only India supplier GST
+registration evidence bound to the frozen jurisdiction extension identity. Canonical
+GSTIN/state/legal identity/address/pincode and a deterministic evidence hash must
+resolve without fallback or writes before later place-of-supply, CGST/SGST/IGST or
+IRP seller-payload work. Target catalogue after this slice:47 migrations/99 tables/89
+policies; independent Tier-3 executable review is mandatory.
+
 ## Phase 8 — Statutory registration + ZATCA
 
 Statutory scheduler consuming check-in events; adapters: it-alloggiati (168-char),
