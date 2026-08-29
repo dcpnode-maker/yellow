@@ -316,8 +316,8 @@ document, journal, posting and submission rows byte/count unchanged.
 
 This boundary is candidate evidence, not persisted or legal buyer designation. It has
 no `Pos`, `SupTyp`, B2C/URP, export/SEZ/deemed-export, tax decomposition, document,
-submission, provider, API, HTTP or UI authority. Order279 is built under D-730 with
-fresh independent Tier-3 executable review pending.
+submission, provider, API, HTTP or UI authority. Fresh independent Tier-3 execution
+approves exact Order279 under D-731 with no finding.
 
 ### Tax-attribution persistence containment
 

@@ -648,8 +648,8 @@ substitute the explicit identities.
 This service writes and locks nothing and owns no persisted or legal buyer
 designation. It does not determine place of supply, supply type, B2C/export/SEZ/
 deemed-export treatment, tax decomposition, posting/correction, document allocation/
-issue/number/hash chain, provider/submission, API, HTTP or UI behavior. Order279 is
-built under D-730 with independent Tier-3 executable review pending.
+issue/number/hash chain, provider/submission, API, HTTP or UI behavior. Fresh
+independent Tier-3 execution approves exact Order279 under D-731 with no finding.
 
 ### Positive Tax Attribution Snapshot value service — Tax/Fiscal
 

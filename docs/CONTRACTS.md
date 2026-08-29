@@ -855,8 +855,8 @@ Party/registration truth fails closed. This read persists and locks nothing, emi
 fact/event, and creates no idempotency evidence. It is a candidate association only:
 it does not designate a legal invoice buyer, decide `Pos`, `SupTyp`, B2C `URP`, export,
 SEZ, deemed export or CGST/SGST/IGST, or authorize tax, posting, correction, document,
-numbering/hash-chain, submission, provider, API, HTTP or UI behavior. Order279 is built
-under D-730 with independent Tier-3 executable review pending.
+numbering/hash-chain, submission, provider, API, HTTP or UI behavior. Fresh independent
+Tier-3 execution approves exact Order279 under D-731 with no finding.
 
 ## 8. Pure rate-model evaluator
 
