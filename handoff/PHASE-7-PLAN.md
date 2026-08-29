@@ -2,7 +2,7 @@
 
 **Status:** active; governed positive-tax posting and complete correction approved through Order266
 **Entry point:** built-unreviewed Phase-6 composition through Order 236
-**Current order:** Order276 exact India GST registered-recipient candidate evidence is built pending review under D-721
+**Current order:** Order276 exact India GST registered-recipient candidate evidence requires the bounded setup-oracle correction recorded at D-722
 
 ## Outcome
 
@@ -296,4 +296,6 @@ organisation primitive. The result is registered-recipient candidate evidence on
 invoice-window buyer designation, `BuyerDtls`, place of supply, supply type, India tax
 decomposition, documents and submission remain separate future authority. Fresh
 PostgreSQL proof is green at exact48 migrations/100 tables/90 policies with
-referee11/11. Fresh independent Tier-3 execution remains mandatory.
+standalone referee11/11. Independent Tier-3 review found no product defect but the
+canonical setup gate remains red on its stale 99-table/migrations1–47 oracle. A
+separate bounded correction and fresh complete execution are mandatory.

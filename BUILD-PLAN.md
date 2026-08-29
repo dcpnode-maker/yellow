@@ -731,7 +731,10 @@ recipient candidate evidence only. Exact48-migration/100-table/90-policy Postgre
 referee11/11, focused, hostile, standing and static proof are green. It never infers a
 legal invoice buyer from reservation, account, Party display/profile/address or role
 truth and creates no `BuyerDtls`, place-of-supply, decomposition, document or
-submission authority. Fresh independent Tier-3 approval remains mandatory.
+submission authority. Fresh independent Tier-3 review at D-722 found no product
+defect but correctly withheld approval because canonical `setup.sh --db-only` still
+asserts the pre-migration48 table count. A separate bounded harness correction and
+fresh complete re-execution are mandatory.
 
 ## Phase 8 — Statutory registration + ZATCA
 

@@ -280,5 +280,7 @@ root plus exact read-only registration-id resolver provide only active registere
 recipient candidate evidence. Exact48-migration/100-table/90-policy PostgreSQL,
 referee11/11, hostile, standing and static proof are green. It grants no legal invoice-
 buyer, folio-window, `BuyerDtls`, place-of-supply, decomposition, document,
-submission, UI or local authority; fresh independent Tier-3 approval remains
-mandatory.
+submission, UI or local authority. Independent review at D-722 found no product
+defect but withheld approval because the canonical setup gate still asserts the
+pre-migration48 count. A bounded harness correction and fresh complete Tier-3
+execution remain mandatory.

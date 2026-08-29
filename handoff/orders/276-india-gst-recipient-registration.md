@@ -1,6 +1,6 @@
 # Order 276 — Resolve exact India GST registered-recipient candidate evidence
 
-**Status:** BUILT-PENDING-REVIEW-D721
+**Status:** CHANGES-REQUIRED-D722
 **Phase:** 7 — Tax engine and India IRP
 **Branch:** `phase-7/india-gst-recipient-registration`
 **Base:** `3114d24` (independently approved Order275 descendant)
