@@ -1,10 +1,10 @@
 # Order 278 — Independent Tier-3 review
 
-**Verdict:** **APPROVED — no finding**  
-**Reviewer:** fresh non-implementing Codex Tier-3 reviewer (`/root/order278_review`)  
-**Reviewed commit:** `e31b71ebdabb2cf61603d643fc595985b044b5ff`  
-**Reviewed base:** `5fe42f5` (independently approved Orders276–277 descendant)  
-**Reviewed range:** `5fe42f5..e31b71e`  
+**Verdict:** **APPROVED — no finding**
+**Reviewer:** fresh non-implementing Codex Tier-3 reviewer (`/root/order278_review`)
+**Reviewed commit:** `e31b71ebdabb2cf61603d643fc595985b044b5ff`
+**Reviewed base:** `5fe42f5` (independently approved Orders276–277 descendant)
+**Reviewed range:** `5fe42f5..e31b71e`
 **Date:** 2026-08-29
 
 ## Independence, constitution and exact scope
