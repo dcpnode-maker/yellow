@@ -629,6 +629,40 @@ Those blockers require later explicit policy and a separately authorized,
 transactional financial command; no consumer may treat this pure plan as evidence
 that posting or fiscal issue occurred.
 
+### Governed positive-tax journal posting
+
+Order262 adds the internal financials-owned
+`PositiveTaxPostingService.post(tx,{tenantId,propertyNode,reservationId,
+idempotencyKey,envelope})`. The caller supplies identity, idempotency and an audit
+envelope only. Orders251/256/259 derive and recheck the immutable lineage, primary
+open folio and guest account, exact signed-int64 amounts, configured transaction
+codes and explicit revenue/tax accounts. A `policy_blocked` result preserves the
+exact ordered `document_tax_allocation_required` and/or
+`india_place_of_supply_decomposition_required` blockers and writes no journal,
+line, binding, fact, outbox or idempotency row.
+
+A route-ready result writes exactly one balanced `charge` journal: sequence 1 is the
+positive grand-total guest debit on the primary folio, sequence 2 is the negative
+base room-revenue credit, and later sequences are negative canonical nonzero-tax
+credits in tax order. Quantity is `1.000`; zero tax remains in lineage without a
+zero posting. The application inserts only the journal header and complete null-tax
+credit-line set. The fixed-search-path owner capability revalidates the locked
+lineage, snapshot, folio, journal and exact semantic routes, proves sequence 1 is
+absent, then inserts that root line once with the exact minimized version-1
+`tax_detail` and appends one immutable `tax_attribution_journal_binding`.
+`posting_line` remains insert-only; the app receives no direct `tax_detail` insert or
+update and no binding-table mutation authority.
+
+All distinct guest, revenue and tax accounts are locked in global UUID order with
+the primary folio before the existing locking resolver and property business-day
+recheck. The journal, every line, binding, durable idempotency receipt and exactly one
+`journal.posted` plus one `tax.attribution_posted` fact/outbox pair commit atomically;
+replay adds no domain row, and one immutable lineage converges to one journal across
+different keys. This command does not implement document-rounding allocation, India
+GST/place-of-supply decomposition, negative tax, correction or reversal, fiscal
+documents/numbering/hash chains, IRP/provider submission, payment, settlement,
+transfer, HTTP, UI or local promotion.
+
 ## 8. Pure rate-model evaluator
 
 Order 067's in-process evaluator is a draft/simulation primitive, not a database or HTTP contract.

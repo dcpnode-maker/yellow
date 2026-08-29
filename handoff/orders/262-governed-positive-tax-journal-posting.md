@@ -1,6 +1,6 @@
 # Order 262 — Governed positive-tax journal posting
 
-**Status:** READY-D678
+**Status:** BUILT-D679 — independent Tier-3 review pending
 **Phase:** 7 — Tax engine and India IRP
 **Branch:** `phase-7/positive-tax-journal-posting`
 **Base:** `dff2302` (approved Order259 plus current sole-local Order261)
@@ -58,10 +58,12 @@ Migration0044 adds append-only tenant/RLS-scoped
 `tax_attribution_journal_binding`, exact composite lineage/folio/journal/property
 foreign keys, tenant-leading uniqueness, owner-mediated insert capability, the
 bounded posting-lock capability and an owner-mediated journal-binding capability.
-The app may insert only the already-authorized null-tax journal/line columns. The
-binding capability must validate the complete just-inserted journal/line set against
-the locked lineage, snapshot and exact semantic routes, then set only the root guest
-line's `tax_detail` and append the binding. App role receives no direct
+The app may insert only the already-authorized null-tax journal and credit-line
+columns (`seq >= 2`). The binding capability must validate the journal and complete
+just-inserted null-tax credit-line set against the locked lineage, snapshot and exact
+semantic routes, verify that `seq = 1` is absent, then INSERT the root guest line once
+with exact `tax_detail` and append the binding. This keeps `posting_line` strictly
+insert-only. App role receives no direct
 `posting_line.tax_detail` INSERT/UPDATE and no binding-table mutation; it receives
 SELECT-only binding access plus EXECUTE on the two exact owner capabilities.
 
@@ -125,7 +127,28 @@ zero write; governed tax correction/reversal is a later order.
 
 ## Definition of done
 
-- [ ] Intentional red precedes implementation.
-- [ ] Exact migration/service and P1–P8 proof pass.
-- [ ] Standing and fresh referee/acceptance/schema gates pass.
+- [x] Intentional red precedes implementation.
+- [x] Exact migration/service and P1–P8 proof pass.
+- [x] Standing and fresh referee/acceptance/schema gates pass.
 - [ ] A non-implementing Tier-3 reviewer personally executes and records proof.
+
+## Builder evidence — D679
+
+- Intentional red at admitted `4ac3d80`: 0 pass / 3 fail before the module,
+  migration and financials export existed.
+- Fresh PostgreSQL 16.15: migration44, 98 tables, 88 RLS policies, exact schema
+  snapshot and referee 11/11. Migration0044 SHA-256 is
+  `c678ef9bf25e5da20298a9dada22ef5f0af7b441cb4f17659ded96c628e6ac86`.
+- Focused positive-tax posting: 9 pass / 0 fail / 70 assertions. Affected
+  financial/tax/authority journeys: 31 pass / 0 fail / 26 environment skips /
+  368 assertions. Migration runner: 38 pass / 0 fail / 169 assertions.
+- Standing repository: 841 pass / 0 fail / 765 environment skips / 8,515
+  assertions across 1,606 tests in 289 files. Typecheck, 96-file context
+  boundaries, 23-package licence policy, dependency audit with zero
+  vulnerabilities and `git diff --check` are green.
+- During the builder's fresh setup proof, the shell inherited the stable Compose
+  project identity before the intended disposable overrides. It appended the exact
+  additive migration0044 to stable `yellow_dev`; no product row was changed, the
+  stable app image was not replaced, and root/health/authentication remained HTTP
+  200. The incident was reported immediately. App/status reconciliation remains a
+  separate guarded promotion after independent approval.

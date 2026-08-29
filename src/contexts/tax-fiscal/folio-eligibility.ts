@@ -314,6 +314,19 @@ function sameIdentity(
 }
 
 export class PositiveTaxFolioEligibilityService {
+  async discover(
+    tx: Tx,
+    input: PositiveTaxFolioEligibilityInput,
+  ): Promise<PositiveTaxFolioEligibilityResult> {
+    if (typeof tx !== "function") {
+      throw new PositiveTaxFolioEligibilityValidationError(
+        "tenant transaction is unavailable",
+      );
+    }
+    const normalized = normalize(input);
+    return (await read(tx, normalized)).result;
+  }
+
   async resolve(
     tx: Tx,
     input: PositiveTaxFolioEligibilityInput,

@@ -578,6 +578,20 @@ Order259: date2026-08-29/latest259/current260/review91/active7 and compact
 Orders237–259 truth. It changes no product, schema, database, credential or runtime;
 sole-local promotion remains a separate guarded order.
 
+Order262 is built-unreviewed as the first governed financials-owned positive-tax
+journal writer. It accepts only tenant/property/reservation identity, idempotency and
+audit authority; Orders251/256/259 derive the exact eligible primary folio, signed
+amounts and configured revenue/tax routes. Route-ready line-rounded non-India truth
+creates one balanced charge journal, insert-only root-only version-1 `tax_detail`, one
+immutable attribution-to-journal binding and atomic `journal.posted` plus
+`tax.attribution_posted` fact/outbox evidence. The app inserts only the null-tax
+credit set; an owner capability validates locked lineage/snapshot/routes, proves
+sequence 1 absent, then inserts the exact guest root and binding. Exact policy
+blockers write nothing. Document allocation, India GST/place-of-supply decomposition,
+negative tax, correction/reversal, fiscal documents/IRP, HTTP/UI/local promotion and
+Phase7 completion remain explicit later work; mandatory independent Tier-3 execution
+is still pending.
+
 tax_assignment evaluation (percent/fixed/slab, compound, line-vs-document rounding)
 from EXTENSIONS §2; India GST slab per room-night; document issue path: series →
 gapless number → hash chain → document; IRP reporting adapter (sandbox), IRN + QR

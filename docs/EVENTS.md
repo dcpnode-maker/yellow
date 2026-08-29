@@ -172,7 +172,7 @@ financial, business-day or statutory effects.
 
 **distribution** · inbound.received {channel,external_id} · inbound.processed {reservation_id}/.failed · ari.push_requested {channel,unit_types,date_range} · map.changed
 
-**tax/fiscal/statutory** · tax.attribution_recorded {attribution_id,property_node,origin_kind,origin_quote_hash,snapshot_hash,currency} · tax.attribution_bound {binding_id,attribution_id,hold_id,property_node,origin_quote_hash,snapshot_hash,currency} · document.issued {kind,doc_no,hash} · document.cleared/.rejected {authority_ref} · statutory.due {adapter,due_at} · statutory.submitted/.accepted/.failed · erasure.completed
+**tax/fiscal/statutory** · tax.attribution_recorded {attribution_id,property_node,origin_kind,origin_quote_hash,snapshot_hash,currency} · tax.attribution_bound {binding_id,attribution_id,hold_id,property_node,origin_quote_hash,snapshot_hash,currency} · tax.attribution_posted {posting_binding_id,journal_id,lineage_id,attribution_id,reservation_id,segment_id,folio_id,origin_quote_hash,snapshot_hash,currency} · document.issued {kind,doc_no,hash} · document.cleared/.rejected {authority_ref} · statutory.due {adapter,due_at} · statutory.submitted/.accepted/.failed · erasure.completed
 
 `tax.attribution_recorded` states only that one exact positive Order-240 `rate_quote`
 snapshot became an immutable tenant root under one contextual property and actor. The
@@ -190,6 +190,18 @@ transaction. Its payload is identity-only and excludes guest/Party data, full qu
 snapshot, amount, tax components, accounts and document content. Retention after hold
 expiry/release is audit evidence, not a reservation, price promise, posting, invoice
 or submission outcome.
+
+Order262 emits `journal.posted` and `tax.attribution_posted` only after the same
+transaction has appended the exact balanced positive-tax charge, its insert-only
+root guest line and one immutable attribution-to-journal binding. The journal event
+uses the existing contract and adds only journal kind, lineage/reservation/folio
+identity and the exact configured account/folio/transaction-code/amount line facts.
+The tax event is identity-only: binding, journal, lineage, attribution, reservation,
+segment, folio, quote/snapshot hashes and currency. It carries no full snapshot,
+`tax_detail`, guest/Party data or document/provider content. Policy-blocked truth,
+replay and a converging contender emit neither pair. Consumers may treat the pair as
+posting evidence only; they must not infer an invoice, fiscal finality, India
+decomposition, correction/reversal, payment, settlement, transfer or submission.
 
 **kernel** · extension.activated {type,key,version} · automation.fired {automation_id,action,result} · approval.requested/.decided
 

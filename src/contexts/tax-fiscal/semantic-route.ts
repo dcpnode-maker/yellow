@@ -15,6 +15,10 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 const TX_CODE = /^[A-Z][A-Z0-9_]{0,63}$/;
 
 interface PositiveTaxEligibilityResolver {
+  discover?(
+    tx: Tx,
+    input: PositiveTaxFolioEligibilityInput,
+  ): Promise<PositiveTaxFolioEligibilityResult>;
   resolve(
     tx: Tx,
     input: PositiveTaxFolioEligibilityInput,
@@ -153,16 +157,12 @@ export class PositiveTaxSemanticRouteService {
       new PositiveTaxFolioEligibilityService(),
   ) {}
 
-  async resolve(
+  private async route(
     tx: Tx,
-    input: PositiveTaxFolioEligibilityInput,
+    tenantId: string,
+    propertyNode: string,
+    eligibility: PositiveTaxFolioEligibilityResult,
   ): Promise<PositiveTaxSemanticRouteResult> {
-    // Eligibility validates this exact object synchronously before its first read.
-    // Retain that validated identity across later awaits rather than re-reading a
-    // caller-owned object that could be mutated while the transaction is pending.
-    const tenantId = input.tenantId;
-    const propertyNode = input.propertyNode;
-    const eligibility = await this.eligibility.resolve(tx, input);
     let plan: PositiveTaxPostingPlanV1;
     try {
       plan = derivePositiveTaxPostingPlan(eligibility.snapshot);
@@ -307,5 +307,35 @@ export class PositiveTaxSemanticRouteService {
       revenueRoute,
       taxRoutes,
     });
+  }
+
+  async discover(
+    tx: Tx,
+    input: PositiveTaxFolioEligibilityInput,
+  ): Promise<PositiveTaxSemanticRouteResult> {
+    if (!this.eligibility.discover) {
+      throw new PositiveTaxSemanticRouteConflictError(
+        "Read-only positive-tax eligibility discovery is unavailable",
+      );
+    }
+    // Retain caller identity before the first await. Eligibility owns exact input
+    // validation; this method only prevents later mutation from changing route keys.
+    const tenantId = input.tenantId;
+    const propertyNode = input.propertyNode;
+    const eligibility = await this.eligibility.discover(tx, input);
+    return this.route(tx, tenantId, propertyNode, eligibility);
+  }
+
+  async resolve(
+    tx: Tx,
+    input: PositiveTaxFolioEligibilityInput,
+  ): Promise<PositiveTaxSemanticRouteResult> {
+    // Eligibility validates this exact object synchronously before its first read.
+    // Retain that validated identity across later awaits rather than re-reading a
+    // caller-owned object that could be mutated while the transaction is pending.
+    const tenantId = input.tenantId;
+    const propertyNode = input.propertyNode;
+    const eligibility = await this.eligibility.resolve(tx, input);
+    return this.route(tx, tenantId, propertyNode, eligibility);
   }
 }

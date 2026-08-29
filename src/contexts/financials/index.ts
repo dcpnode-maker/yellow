@@ -130,6 +130,20 @@ export {
   CashierValidationError,
 } from "./cashiers";
 
+export {
+  PositiveTaxPostingConflictError,
+  PositiveTaxPostingNotFoundError,
+  PositiveTaxPostingService,
+  PositiveTaxPostingValidationError,
+} from "./positive-tax-postings";
+export type {
+  PositiveTaxPostingInput,
+  PositiveTaxPostingPolicyBlockedResult,
+  PositiveTaxPostingReceipt,
+  PositiveTaxPostingResult,
+  PositiveTaxPostingServiceOptions,
+} from "./positive-tax-postings";
+
 export { ReceivableConflictError, ReceivableNotFoundError, ReceivableService, ReceivableValidationError } from "./receivables";
 export type { DecideReceivableApprovalInput, ReceivableApprovalResult, ReceivablePreview, ReceivablePreviewInput, ReceivableServiceOptions, ReceivableTarget, ReceivableTargetListInput, ReceivableTransferInput, ReceivableTransferResult, RequestReceivableApprovalInput } from "./receivables";
 export type {

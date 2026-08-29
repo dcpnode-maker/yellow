@@ -220,6 +220,11 @@ const EXPECTED_MIGRATIONS = [
     filename: "0043_positive_tax_semantic_route.sql",
     checksum_sha256: "a5036df30f07c4c8add08c46cdb805c71b87597efa542e368e64aa35d572bf40",
   },
+  {
+    version: 44,
+    filename: "0044_governed_positive_tax_posting.sql",
+    checksum_sha256: "c678ef9bf25e5da20298a9dada22ef5f0af7b441cb4f17659ded96c628e6ac86",
+  },
 ];
 
 if (REQUIRE_DATABASE && !DATABASE_URL) {
@@ -765,7 +770,7 @@ databaseDescribe("fresh deployment database acceptance", () => {
         (SELECT count(*)::int FROM pg_catalog.pg_tables WHERE schemaname = 'public') AS tables,
         (SELECT count(*)::int FROM pg_catalog.pg_policies WHERE schemaname = 'public') AS policies
     `;
-    expect(shape).toEqual([{ tables: 97, policies: 87 }]);
+    expect(shape).toEqual([{ tables: 98, policies: 88 }]);
 
     const relations = await sql!<Array<{
       relation: string;
@@ -877,7 +882,7 @@ databaseDescribe("fresh deployment database acceptance", () => {
         has_column_privilege('app_role','public.journal','approval_request_id','UPDATE') AS "appApprovalUpdate"
     `;
     expect(shape).toEqual([{
-      tables: 97, policies: 87, directBill: 1,
+      tables: 98, policies: 88, directBill: 1,
       approvalNullable: true, compositeFk: true, oneUseIndex: true,
       appApprovalInsert: false, appApprovalUpdate: false,
     }]);
