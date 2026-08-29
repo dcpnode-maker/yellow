@@ -333,3 +333,12 @@ all static gates are green and the stable local is unchanged. Fresh non-implemen
 Tier-3 execution at D-737 independently reproduced the full proof with no finding and
 approved Order281. No later item/tax/document/submission, local promotion, Phase-7 or
 application-complete authority is implied.
+
+Order282/D-738 is admitted as the smallest safe next prerequisite. It may compose only
+approved seller-registration, explicit folio/buyer, physical-property location and
+accommodation-classification evidence into an exact read-only lodging place-of-supply
+candidate. The prospective `pos` comes only from the property's state under IGST Act
+section12(3)(b); no supplier/recipient/guest/config fallback, intra/inter-state
+conclusion, decomposition, `SupTyp`, `ItemList`, item amount, document, submission,
+API, UI or local authority is admitted. No schema is added. Exact composition proof,
+canonical referee and fresh independent Tier-3 execution remain mandatory.

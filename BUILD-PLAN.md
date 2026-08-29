@@ -793,6 +793,17 @@ complete focused, adjacent, migration, catalogue, schema, referee, standing and 
 proof with no finding. Order281 is approved; this grants no later item, tax, document,
 submission, local-promotion, Phase-7-complete or application-complete authority.
 
+**Admitted Order282 product slice:** compose approved seller-registration, explicit
+folio/buyer, physical-property location and accommodation-classification truth into one
+exact read-only Indian lodging place-of-supply candidate. Under IGST Act section
+12(3)(b), `pos` is sourced only from the immovable property's state; supplier,
+recipient, guest, account, org/profile or mutable config never substitutes. The
+candidate is deeply frozen, fixed-order, tenant-bound and deterministic, but grants no
+intra/inter-state result, CGST/SGST/IGST decomposition, `SupTyp`, `ItemList`, item
+values, document, submission, API, UI or local authority. No schema is added. Exact
+composition proof, canonical referee and fresh independent Tier-3 execution are
+mandatory under D-738.
+
 ## Phase 8 — Statutory registration + ZATCA
 
 Statutory scheduler consuming check-in events; adapters: it-alloggiati (168-char),

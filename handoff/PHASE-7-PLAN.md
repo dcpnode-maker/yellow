@@ -2,7 +2,7 @@
 
 **Status:** active; governed positive-tax posting and complete correction approved through Order266
 **Entry point:** built-unreviewed Phase-6 composition through Order 236
-**Current order:** Order281 exact India GST accommodation-classification evidence is independently approved under D-737
+**Current order:** Order282 exact India accommodation place-of-supply candidate is admitted under D-738
 
 ## Outcome
 
@@ -368,3 +368,17 @@ plus 825 database-only skips. All static gates are green and the stable local re
 unchanged. Fresh non-implementing Tier-3 execution independently reproduced the full
 proof under D-737 with no finding. This approval grants no later item, tax, document,
 submission, local-promotion, Phase-7-complete or application-complete authority.
+
+## Order 282 boundary
+
+Order282 may compose only exact approved seller registration, explicit folio/buyer
+association, physical-property fiscal location and accommodation classification into a
+read-only lodging place-of-supply candidate. IGST Act section12(3)(b) makes the
+immovable property's state the only admitted `pos`; supplier/recipient/guest/account/
+org/profile/config state cannot substitute. Exact tenant, property, reservation,
+folio, INR, frozen jurisdiction, Party/registration and classification lineage must
+agree and the result is fixed-order, deeply frozen and tenant-hashed. No schema,
+writer, intra/inter-state conclusion, decomposition, `SupTyp`, `ItemList`, item value,
+document, submission, API, UI or local authority is admitted. Exact composition,
+canonical referee and fresh non-implementing Tier-3 execution are mandatory under
+D-738.
