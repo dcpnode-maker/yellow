@@ -725,23 +725,23 @@ submission, API, HTTP or UI authority and decides no buyer, place of supply, sup
 type, tax decomposition, item or value. Fresh independent Tier-3 execution approves
 the exact immutable candidate under D-719 with no finding; Phase7 is not complete.
 
-**Built-pending-review Order276 prerequisite:** one typed tenant/RLS Party GST-
+**Independently approved Order276 prerequisite:** one typed tenant/RLS Party GST-
 registration root and exact read-only registration-id resolver now provide registered-
 recipient candidate evidence only. Exact48-migration/100-table/90-policy PostgreSQL,
 referee11/11, focused, hostile, standing and static proof are green. It never infers a
 legal invoice buyer from reservation, account, Party display/profile/address or role
 truth and creates no `BuyerDtls`, place-of-supply, decomposition, document or
-submission authority. Fresh independent Tier-3 review at D-722 found no product
-defect but correctly withheld approval because canonical `setup.sh --db-only` still
-asserts the pre-migration48 table count. A separate bounded harness correction and
-fresh complete re-execution are mandatory.
+submission authority. D-722 found no product defect and correctly withheld approval
+for the stale canonical setup oracle. Order277 repaired only that exact oracle; fresh
+independent execution at D-725 now approves the complete descendant at48 migrations/
+100 tables/90 policies/referee11/11 with no remaining finding.
 
-**Built-pending-review Order277 proof repair:** changed only the canonical `setup.sh` exact public-
+**Independently approved Order277 proof repair:** changed only the canonical `setup.sh` exact public-
 table oracle/message from99 after migrations1–47 to committed truth100 after
 migrations1–48. No product, migration, schema, test, referee, runtime or local change
 is admitted. Fresh isolated canonical setup now exits0 at48 migrations/100 tables and
-referee11/11; standing/static gates are green. Fresh independent Tier-3 execution is
-mandatory before Order276 approval.
+referee11/11; standing/static gates are green. Fresh independent Tier-3 execution at
+D-725 approves the exact repair and corrected Order276 descendant with no finding.
 
 ## Phase 8 — Statutory registration + ZATCA
 

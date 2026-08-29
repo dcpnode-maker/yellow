@@ -1,6 +1,6 @@
 # Order 277 — Reconcile the Order276 canonical setup table-count oracle
 
-**Status:** BUILT-PENDING-REVIEW-D724
+**Status:** APPROVED-D725
 **Phase:** 7 — Tax engine and India IRP
 **Branch:** `phase-7/order276-setup-oracle`
 **Base:** `fcdec1f` (Order276 CHANGES-REQUIRED evidence descendant)
@@ -43,4 +43,4 @@ execution; no merge/public deploy/Phase7/application-complete claim.
 
 - [x] Exact two-literal setup correction is committed.
 - [x] Fresh canonical setup/referee and standing/static proof are green.
-- [ ] Fresh independent Tier-3 approval of the corrected Order276 descendant is recorded.
+- [x] Fresh independent Tier-3 approval of the corrected Order276 descendant is recorded.

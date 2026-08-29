@@ -1,6 +1,6 @@
 # Order 276 — Resolve exact India GST registered-recipient candidate evidence
 
-**Status:** CHANGES-REQUIRED-D722
+**Status:** APPROVED-D725
 **Phase:** 7 — Tax engine and India IRP
 **Branch:** `phase-7/india-gst-recipient-registration`
 **Base:** `3114d24` (independently approved Order275 descendant)
@@ -81,4 +81,4 @@ or application-complete claim.
 - [x] Intentional red precedes implementation.
 - [x] Exact schema/resolver and hostile proof are green.
 - [x] Fresh schema/referee/standing/static gates are green.
-- [ ] Fresh independent Tier-3 approval is recorded.
+- [x] Fresh independent Tier-3 approval is recorded.

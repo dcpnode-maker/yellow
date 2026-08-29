@@ -285,9 +285,10 @@ defect but withheld approval because the canonical setup gate still asserts the
 pre-migration48 count. A bounded harness correction and fresh complete Tier-3
 execution remain mandatory.
 
-Order277/D-724 is built pending review. It changes only the canonical
+Order277/D-725 is independently approved. It changes only the canonical
 `setup.sh` exact count/message from99 after migrations1–47 to100 after migrations1–48,
 and has rerun the complete isolated setup/referee and standing/static gates green at
 exact48 migrations/100 tables/referee11/11. No product, migration, schema, test,
-referee, runtime or local change is admitted; fresh independent Tier-3 execution
-remains mandatory before Order276 approval.
+referee, runtime or local change is admitted. Fresh independent Tier-3 execution
+approves both the exact repair and corrected Order276 candidate-evidence descendant
+with no remaining finding.

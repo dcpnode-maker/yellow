@@ -288,8 +288,8 @@ not invoice-window or legal-buyer designation. It grants no `BuyerDtls`, `URP`,
 export/SEZ/deemed-export, `Pos`, `SupTyp`, CGST/SGST/IGST decomposition, item/value/tax
 calculation, allocation, posting/correction, document/number/hash-chain,
 provider/submission, API, HTTP or UI authority. These protections are built with
-executable product/database proof under D-721; fresh independent Tier-3 approval
-remains mandatory before Order276 is approved.
+executable product/database proof and are independently Tier-3 approved under D-725
+with no remaining finding.
 
 ### Tax-attribution persistence containment
 

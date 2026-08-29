@@ -784,9 +784,8 @@ the legal invoice buyer or invoice/folio window, build IRP `BuyerDtls`, select B
 `URP`, export, SEZ or deemed-export treatment, decide `Pos` or `SupTyp`, or authorize
 CGST/SGST/IGST decomposition, item/value/tax calculation, allocation, posting,
 correction, documents, numbering/hash chains, submission, provider, API, HTTP or UI
-behavior. Order276 has built and executable-proved this exact candidate boundary at
-D-721. Fresh independent Tier-3 approval remains mandatory before it becomes approved
-runtime authority.
+behavior. Order276 and its corrected canonical setup descendant are independently
+Tier-3 approved under D-725 with no remaining finding.
 
 ## 8. Pure rate-model evaluator
 

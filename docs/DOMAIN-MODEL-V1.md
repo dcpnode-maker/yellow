@@ -619,8 +619,7 @@ This root records candidate evidence, not legal buyer authority. It does not sel
 the invoice or folio buyer, build `BuyerDtls`, determine B2C/export/SEZ/deemed-export
 treatment, place of supply or supply type, decompose CGST/SGST/IGST, or own tax,
 posting, correction, document, provider, submission, HTTP or UI behavior. Its schema
-and resolver are built with executable proof under D-721; fresh independent Tier-3
-approval remains pending.
+and resolver are independently Tier-3 approved under D-725 with no remaining finding.
 
 ### Positive Tax Attribution Snapshot value service — Tax/Fiscal
 
