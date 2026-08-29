@@ -867,6 +867,14 @@ stable-runtime proof are green; disposable proof is removed. Approval remains
 bounded to section2(15)(a) evidence and grants none of the forbidden downstream
 authority.
 
+**Ready Order285 recipient SEZ-status slice:** add one explicit SELECT-only status
+root bound to exact current Order276 recipient registration/hash. Admit only official
+active regular, SEZ-unit/Form-G or SEZ-developer/Form-B-or-C evidence as of an
+explicit date; absence never means non-SEZ. This does not cover supplier-side SEZ,
+authorized operations/zero rating, supply nature, levy, `SupTyp`, item, document,
+API/UI/local authority. Intentional red, exact52/104/94/94/4 PostgreSQL/schema/
+referee, hostile zero-write proof and fresh Tier-3 are mandatory under D-749.
+
 ## Phase 8 — Statutory registration + ZATCA
 
 Statutory scheduler consuming check-in events; adapters: it-alloggiati (168-char),

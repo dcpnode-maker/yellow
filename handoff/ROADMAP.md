@@ -399,3 +399,12 @@ finding under D-748. Reviewer-personal official-law, no-inference, exact
 51/103/93/93/3, schema/setup/referee11/11, focused/database/standing/static and
 stable-runtime proof are green; disposable proof is removed. Approval remains
 bounded to section2(15)(a) evidence and grants no downstream authority.
+
+Order285/D-749 is ready as the smallest recipient exception prerequisite: one
+explicit tenant/RLS/SELECT-only status root bound to exact current Order276 recipient
+registration/hash, admitting only affirmative active regular, SEZ-unit/Form-G or
+SEZ-developer/Form-B-or-C evidence at an explicit as-of date. Absence never means
+non-SEZ. Supplier-side SEZ, authorized operations/zero rating, supply nature, levy,
+`SupTyp`, item, document, API/UI/local authority remain separate. Intentional red,
+exact52/104/94/94/4 PostgreSQL/schema/referee, hostile proof and fresh Tier-3 are
+mandatory.
