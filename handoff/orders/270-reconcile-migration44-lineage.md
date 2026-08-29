@@ -1,6 +1,6 @@
 # Order 270 — Reconcile historical migration0044 lineage forward-only
 
-**Status:** BUILT-PENDING-REVIEW-D704
+**Status:** APPROVED-D705
 **Phase:** 7 — Tax engine and India IRP
 **Branch:** `phase-7/reconcile-migration44-lineage`
 **Base:** `38c419d` (built Order269 status through approved Order266)
@@ -68,7 +68,7 @@ second local app, merge, public deployment, Phase7 or application-complete claim
 - [x] Exact historical0044 bytes are restored and the delta moves to0046.
 - [x] Fresh and historical-upgrade executable convergence is green.
 - [x] Focused, standing, schema and referee gates are green.
-- [ ] Independent Tier-3 approval is recorded.
+- [x] Independent Tier-3 approval is recorded.
 - [x] Stable local remains untouched; a later order owns promotion.
 
 ## Builder evidence — D704
@@ -108,3 +108,14 @@ second local app, merge, public deployment, Phase7 or application-complete claim
 - The disposable project, containers, network and volume were removed. Stable app,
   PostgreSQL and Valkey retain exact full IDs, healthy/restart0 state, the retained
   volume and sole loopback3000; ports3002/3188 and all proof ports are closed.
+
+## Independent approval — D705
+
+A fresh non-implementing Tier-3 reviewer inspected exact commit
+`6547862165c23ff64392c288cd8726a3c0d46137` and personally reproduced the fresh,
+historical-archive, migration, finance, authority, schema, referee, standing and
+static proof with no blocking finding. All disposable resources were removed and
+the reviewer verified the exact stable containers remained healthy/restart0 with
+sole loopback3000. Full evidence is recorded in
+`handoff/reviews/270-reconcile-migration44-lineage.md`. Approval is limited to this
+lineage reconciliation; local promotion remains a separate order.

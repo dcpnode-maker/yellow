@@ -2,7 +2,7 @@
 
 **Status:** active; governed positive-tax posting and complete correction approved through Order266
 **Entry point:** built-unreviewed Phase-6 composition through Order 236
-**Current order:** Order270 forward-only migration0044 lineage reconciliation is built pending mandatory Tier-3 review under D-704
+**Current order:** Order270 forward-only migration0044 lineage reconciliation is independently approved under D-705; guarded sole-local promotion is next
 
 ## Outcome
 
@@ -241,5 +241,6 @@ and referee11/11; the migration runner proves historical1–44 binary ledger byt
 including applied timestamps, survive45/46 and the next run is a no-op. An isolated
 restore of the retained Order267 archive also preserves every historical ledger byte
 and every product-table row count while reaching46/98/88. Standing848/0 and all static
-gates are green. Stable3000 was untouched and independent Tier-3 approval is mandatory
-before any separately ordered local promotion.
+gates are green. A fresh non-implementing Tier-3 reviewer reproduced the complete
+proof and approved exact commit6547862 at D705. Stable3000 was untouched; a separately
+ordered guarded local promotion is next.

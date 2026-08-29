@@ -236,8 +236,9 @@ Order266: exact latest266/current269/review91/active7, unchanged phase states an
 honest built-unverified aggregate. The stable local remains262/263 until historical
 migration44 lineage is reconciled and a separate guarded promotion is approved.
 
-Order270/D-704 is built pending mandatory independent Tier-3 review. Exact historical
+Order270/D-705 is independently approved. Exact historical
 migration0044 bytes are restored in Git and only the later deterministic join repair
 moves to forward0046. Fresh and real historical-upgrade executable proof preserves
 ledger/data truth, reaches46/98/88, reruns no-op and passes referee/schema/standing and
-static gates. Stable3000 remains unchanged; local promotion is a later bounded order.
+static gates. A fresh non-implementing reviewer reproduced the proof without a finding.
+Stable3000 remains unchanged; local promotion is the next bounded order.
