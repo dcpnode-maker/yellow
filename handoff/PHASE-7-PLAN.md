@@ -2,7 +2,7 @@
 
 **Status:** active; governed positive-tax posting and complete correction approved through Order266
 **Entry point:** built-unreviewed Phase-6 composition through Order 236
-**Current order:** Order285 exact India GST recipient SEZ-status evidence is built pending fresh Tier-3 review under D-750
+**Current order:** Order285 exact India GST recipient SEZ-status evidence is independently approved under D-751
 
 ## Outcome
 
@@ -442,6 +442,11 @@ migration39/0(187), acceptance16/0, runtime-DML5/0, exact51/103/93/93/3 normaliz
 schema/referee11/11 and standing927/0 plus841 skips. Type/107-boundary/23-licence/
 audit0/diff are green; disposable proof is absent and the sole stable local remains
 exact, healthy and unchanged. Fresh non-implementing Tier-3 review is mandatory.
+Fresh non-implementing Tier-3 review approves exact candidate `8630639` with no
+finding under D-751. Reviewer-personal official-law, exact52/104/94/94/4,
+schema/setup/referee11/11, focused/database/standing/static and stable-runtime proof
+are green; disposable proof is absent. Approval grants only affirmative recipient
+registration/SEZ-status evidence and no downstream authority.
 Fresh non-implementing Tier-3 review approves exact candidate `9c222c4` with no
 finding under D-748. Reviewer-personal official-law, no-inference, exact
 51/103/93/93/3, schema/setup/referee11/11, focused/database/standing/static and

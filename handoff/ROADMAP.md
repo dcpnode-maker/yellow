@@ -394,6 +394,11 @@ The Order284 candidate is built under D-747: intentional red0/1 preceded focused
 normalized schema/referee11/11 and standing927/0 plus841 skips. All static gates are
 green, disposable proof is removed and the sole stable local is exact, healthy and
 unchanged. Fresh non-implementing Tier-3 review remains mandatory.
+Fresh non-implementing Tier-3 review approves exact candidate `8630639` with no
+finding under D-751. Reviewer-personal official-law, exact52/104/94/94/4,
+schema/setup/referee11/11, focused/database/standing/static and stable-runtime proof
+are green; disposable proof is removed. Approval grants only affirmative recipient
+registration/SEZ-status evidence and no downstream authority.
 Fresh non-implementing Tier-3 review approves exact candidate `9c222c4` with no
 finding under D-748. Reviewer-personal official-law, no-inference, exact
 51/103/93/93/3, schema/setup/referee11/11, focused/database/standing/static and
