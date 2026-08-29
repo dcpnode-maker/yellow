@@ -906,14 +906,15 @@ stable-runtime proof are green; disposable proof is removed. Approval remains
 bounded to affirmative supplier registration/SEZ-status evidence and grants none of
 the forbidden downstream authority.
 
-**Ready Order287 India accommodation supply-nature slice:** add one pure exact
-composer over complete approved Orders283–286. Require both affirmative supplier and
-recipient SEZ-status dates to equal an explicit supply date, apply the to-or-by-SEZ
-inter-State override before ordinary same/different-state rules, and return only
-deterministic frozen intra/inter-State evidence. No schema/write, levy/decomposition,
-`SupTyp`, authorized operations/zero rating, item, document, API/UI/local authority.
-Intentional red, exhaustive18-way hostile proof, unchanged exact53/105/95/95/5
-schema/referee and fresh Tier-3 are mandatory under D-755.
+**Built Order287 India accommodation supply-nature slice:** the pure exact composer
+over complete approved Orders283–286 is built under D-757. Intentional red0/1
+preceded focused12/0(398), including exhaustive18-way statutory precedence and
+hostile lineage/date/shape/hash/zero-effect proof; standing957/0 plus861 skips
+(14,668 assertions;1,818 tests/318 files), type/110-boundary/23-licence/audit0/diff
+are green. No schema/runtime/dependency artifact changed, so approved-base exact
+53/105/95/95/5 schema/referee proof is unchanged. Fresh Tier-3 review is mandatory;
+no levy/decomposition, `SupTyp`, authorized operations/zero rating, item, document,
+API/UI/local authority is granted.
 
 ## Phase 8 — Statutory registration + ZATCA
 

@@ -1,6 +1,6 @@
 # Order 287 — Build exact India accommodation supply-nature evidence
 
-**Status:** READY-D755
+**Status:** BUILT-PENDING-REVIEW-D757
 **Phase:** 7 — Tax engine and India IRP
 **Branch:** `phase-7/india-accommodation-supply-nature`
 **Base:** `c2a8c76` (independently approved Order286 descendant)
@@ -81,8 +81,12 @@ dependency/merge/public deploy, Phase-7 or application-complete claim.
    other pair reaches7(5)(b), with exact none/to/by/both direction evidence.
 3. Both status dates must exactly equal the explicit valid supply date; malformed,
    impossible, earlier/future/mismatched dates fail closed with no clock/latest path.
-4. Independently rehash complete Orders283–286 and reject every property/reservation/
-   folio/jurisdiction/Pos/state/Party/registration/location/status id/hash cross-mix.
+4. Independently rehash complete Orders283–286 and reject every cross-mix for lineage
+   duplicated across those inputs: property, jurisdiction, Pos/state, Party,
+   registration and service-location/status id/hash references. Reservation/folio
+   and each status root's own id remain bound by their originating approved hash;
+   this pure composer does not invent a second authority for identities no other
+   input repeats.
 5. Reject exact-shape, frozen, accessor/proxy/symbol, candidate JSON, nested approval,
    validity/status/source/rule and post-build mutation defects.
 6. Recipient registered-state mutation never participates; GSTIN/address/name/config,
@@ -96,9 +100,33 @@ dependency/merge/public deploy, Phase-7 or application-complete claim.
 10. Focused, adjacent roots, unchanged exact53/105/95/95/5 schema/referee,
     standing/static and fresh non-implementing Tier-3 execution are green.
 
+## Proof-contract clarification — D-756
+
+The intentional-red/exhaustive lane identified that no input other than Order283
+carries reservation/folio identity and no sibling input independently carries each
+status root's own id. A fully self-consistent rehashed approved-result shape cannot
+be rejected on those isolated identities by a pure no-DB composer without inventing
+an authority explicitly forbidden by this order. Proof therefore rejects every
+duplicated lineage cross-mix and independently rehashes every complete source;
+isolated identities remain transitively bound by their originating approved hash.
+This clarification changes no outcome, precedence, scope or authority.
+
 ## Definition of done
 
-- [ ] Intentional red precedes implementation.
-- [ ] Exact exhaustive/hostile supply-nature proof is green.
-- [ ] Standing/static/schema gates are green and no authority expands.
+- [x] Intentional red precedes implementation.
+- [x] Exact exhaustive/hostile supply-nature proof is green.
+- [x] Standing/static/schema gates are green and no authority expands.
 - [ ] Fresh independent Tier-3 approval is recorded.
+
+## Builder proof — D-757
+
+The exact pure candidate is built. Intentional red was `0 pass / 1 fail` before
+implementation. Final focused proof is `12 pass / 0 fail / 398 assertions`, including
+all 18 statutory combinations, hostile lineage/date/shape/hash cases, exact candidate
+bytes and zero-effect/static-containment oracles. The full repository proof is
+`957 pass / 861 environment skips / 0 fail / 14,668 assertions / 1,818 tests / 318
+files`; typecheck, 110-file import boundaries, 23-package licence policy, audit with
+zero vulnerabilities and `git diff --check` are green. Order287 changes no schema,
+database, runtime or dependency artifact, so independently approved base
+`c2a8c76`'s exact `53/105/95/95/5` schema/referee proof remains byte-unchanged. Fresh
+non-implementing Tier-3 review remains mandatory.

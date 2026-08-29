@@ -1143,6 +1143,80 @@ Form-F2 renewal, authorized-operations endorsement, zero rating/refund/payment m
 levy, `SupTyp`, `IgstOnIntra`, item, posting, document, submission, API, HTTP, UI,
 local-runtime or promotion authority.
 
+### Exact India accommodation supply-nature evidence
+
+Order287 specifies the pure in-process
+`buildIndiaGstAccommodationSupplyNature(input)` value boundary. Its input is exactly
+the plain, accessor-free, proxy-free and symbol-free six-key object
+`{tenantId,supplyDate,registeredStateComparison,supplierServiceLocation,
+recipientSezStatus,supplierSezStatus}`. `tenantId` is one canonical UUID;
+`supplyDate` is one canonical `YYYY-MM-DD` property-local applicability date; and
+the remaining values are the complete exact recursively frozen approved Orders283,
+284, 285 and 286 results. Null, arrays, non-plain prototypes, missing or surplus
+keys, unfrozen evidence and malformed nested shapes fail closed.
+
+The builder independently revalidates every fixed-order upstream field and
+recomputes every Order283 candidate JSON/hash and Order284-286 evidence hash with
+the supplied, unexposed tenant. Property, reservation, folio, complete jurisdiction,
+place-of-supply `pos`, supplier registration and service-location, and recipient
+Party/registration lineage must agree at every point where the four roots overlap.
+Carried hashes are not trusted. No value is normalized, repaired, supplemented,
+mutated or replaced by a
+GSTIN, address, name, profile, configuration or recipient-state fallback.
+
+Both exact SEZ-status `statusAsOf` dates must equal `supplyDate`. An earlier, latest
+or nearest snapshot is never selected; a status date earlier or later than the
+supply date, or malformed, impossible or stale evidence, fails closed. The boundary
+neither reads a server clock
+nor determines the statutory time of supply: it only requires exact equality to the
+explicit date supplied to this evidence composition.
+
+Precedence is exhaustive. If both affirmative statuses are regular/non-SEZ, the
+Order283 relationship alone applies: `same_state_or_union_territory` yields
+`intra_state` under `IGST_ACT_8_2`, while
+`different_state_or_union_territory` yields `inter_state` under
+`IGST_ACT_7_3`; the determination basis is
+`ordinary_registered_state_comparison` and direction is `none`. Any SEZ-unit or
+SEZ-developer status on the recipient makes the direction `to_sez`; any such
+supplier status makes it `by_sez`; and a positive SEZ status on both sides makes it
+`to_and_by_sez`. Each SEZ direction yields `inter_state` under the overriding
+`IGST_ACT_7_5_B` with `sez_override` basis, regardless of the ordinary
+same/different-state relationship. Only affirmative regular/regular evidence may
+reach the ordinary section 7(3)/8(2) branch.
+
+The recursively frozen fixed-order candidate body has exactly the keys
+`propertyNode,reservationId,folioId,supplyDate,jurisdiction,supplier,recipient,
+buyerAssociation,classification,placeOfSupply,registeredStateComparison,
+supplyNature,determinationBasis,sezDirection,legalRule`. `supplier` is exactly
+`{registrationId,evidenceHash,stateCode,serviceLocation,status}` where
+`serviceLocation` is `{id,evidenceHash,kind,stateCode}` and `status` is
+`{id,evidenceHash,statusAsOf,taxpayerType,sezStatus}`. `recipient` is exactly
+`{partyId,registrationId,evidenceHash,status}` with the same exact status shape.
+`buyerAssociation` is `{associationHash,payloadHash}`; `classification` is
+`{classificationId,evidenceHash}`; `placeOfSupply` is
+`{candidateHash,legalRule,pos}`; and `registeredStateComparison` is
+`{candidateHash,comparisonRule,stateRelationship}`. Upstream approval details are
+fully revalidated but minimized behind their status `evidenceHash`, which already
+binds them; they are not duplicated into the candidate.
+
+The result appends `candidateJson`, the exact fixed-order candidate-body JSON, and
+`candidateHash`, the SHA-256 of fixed-order
+`JSON.stringify({tenantId,candidate:body})`. Tenant identity is hash-bound but
+unexposed. Identical inputs replay byte-identically; successful and rejected calls
+leave every caller byte unchanged and perform no transaction, SQL, read, lock,
+write, fact, event, journal, posting, tax-detail, document, submission or
+idempotency effect.
+
+This contract determines only the narrow intra-State/inter-State character of the
+approved accommodation evidence. It grants no levy, exemption, reverse-charge,
+CGST/SGST/UTGST/IGST decomposition, rate, amount, rounding, residual, `SupTyp`,
+`IgstOnIntra`, `ItemList`, posting, correction, fiscal-document, provider,
+submission, API, HTTP, UI, local-runtime or promotion authority. Form F2 renewal
+continuity is a separate future supplier-status evidence problem. Specified-officer
+endorsement for authorized operations and any resulting zero-rating/refund/payment-
+mode decision are separate future evidence and decision boundaries; neither may be
+inferred from SEZ status or this supply-nature result.
+
 ## 8. Pure rate-model evaluator
 
 Order 067's in-process evaluator is a draft/simulation primitive, not a database or HTTP contract.

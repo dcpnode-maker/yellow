@@ -196,3 +196,16 @@ export type {
   IndiaGstSupplierSezStatusInput,
   IndiaGstSupplierSezStatusResult,
 } from "./india-gst-supplier-sez-status";
+export {
+  buildIndiaGstAccommodationSupplyNature,
+  IndiaGstAccommodationSupplyNatureError,
+} from "./india-gst-accommodation-supply-nature";
+export type {
+  IndiaGstAccommodationSezDirection,
+  IndiaGstAccommodationSupplyDeterminationBasis,
+  IndiaGstAccommodationSupplyNature,
+  IndiaGstAccommodationSupplyNatureCandidate,
+  IndiaGstAccommodationSupplyNatureInput,
+  IndiaGstAccommodationSupplyNatureLegalRule,
+  IndiaGstAccommodationSupplyNatureResult,
+} from "./india-gst-accommodation-supply-nature";

@@ -533,6 +533,50 @@ cannot select a supplier result. Approval evidence does not prove authorized
 operations or zero rating. Bilateral supply nature, levy, `SupTyp`, `IgstOnIntra`,
 item, document, submission, network/API/UI/local authority remain excluded.
 
+### India accommodation supply-nature containment
+
+Order287 adds no schema, relation, role, grant, capability, transaction, resolver or
+writer. Its pure function accepts only the exact plain, accessor-free, proxy-free and
+symbol-free `{tenantId,supplyDate,registeredStateComparison,
+supplierServiceLocation,recipientSezStatus,supplierSezStatus}` shape. Each upstream
+value must be a complete exact recursively frozen approved Order283-286 result;
+unknown keys, hostile prototypes, accessors, symbols, proxies, thawed objects or
+malformed canonical identities fail closed before any result is exposed.
+
+The boundary does not trust carried hashes. It independently revalidates complete
+fixed-order upstream shapes and recomputes every tenant-bound candidate/evidence
+hash. Property, reservation, folio, jurisdiction, Pos, supplier registration/
+location and recipient Party/registration lineage must remain coherent at every
+overlap exposed by the approved roots. Cross-
+tenant, cross-property, cross-reservation, cross-folio, cross-jurisdiction, cross-
+registration, cross-location or cross-status substitution, malformed candidate JSON
+and stale/tampered hashes fail closed without revealing foreign truth. No source is
+normalized, repaired, supplemented or mutated.
+
+Both exact upstream `statusAsOf` dates must equal the canonical explicit
+`supplyDate`. The function cannot select an earlier/latest/nearest row, consult a
+clock, infer a property date or determine statutory time of supply. GSTIN/address,
+recipient registered state, property/org/profile/configuration labels and Order283
+alone cannot substitute for explicit bilateral status and location evidence.
+
+The only legal branching is the admitted precedence: affirmative recipient or
+supplier SEZ-unit/developer status forces `inter_state` under
+`IGST_ACT_7_5_B`, with exact to/by/both direction evidence, before any ordinary
+state comparison. Only affirmative regular/regular status may map Order283 same
+State/UT to `intra_state` under `IGST_ACT_8_2` or different State/UT to
+`inter_state` under `IGST_ACT_7_3`. The result, fixed-order body JSON and
+tenant-bound hash are recursively frozen and byte-identical on replay. Success and
+every rejection preserve caller and source bytes and perform no SQL, read, lock,
+write, fact, event, financial or fiscal effect.
+
+The result has zero levy, exemption, reverse-charge, component/rate/amount,
+rounding/residual, `SupTyp`, `IgstOnIntra`, item/value, posting, correction,
+document/series/number/hash-chain, provider/submission, network, API, HTTP, UI,
+local-runtime or promotion authority. Form F2 renewal continuity is not accepted or
+inferred and remains a separate future supplier-status evidence boundary. SEZ status
+does not prove authorized operations: specified-officer endorsement and any
+zero-rating/refund/payment-mode decision remain separate future authority boundaries.
+
 ### Tax-attribution persistence containment
 
 Order 244 accepts only a value that survives the exact hostile Order-240 parser. All

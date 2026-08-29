@@ -874,6 +874,45 @@ recipient Order285 status cannot infer or replace supplier status. Bilateral sup
 nature, authorized operations, zero rating, levy, IRP/item/document/provider/API/UI
 and local identity remain separate future primitives.
 
+### India Accommodation Supply Nature — Tax/Fiscal
+
+Order287 adds one pure composed value, not an aggregate, entity, stored root,
+configuration or state machine. The Natural-Solution Test reuses the complete frozen
+Order283 registered-state comparison, Order284 supplier service location and
+Orders285-286 affirmative recipient/supplier SEZ-status evidence. Their existing
+identifiers and tenant-bound hashes provide all facts required by this narrow legal
+precedence step, so no table, column, extension, resolver transaction, lifecycle,
+writer, fact or event is introduced.
+
+The exact input carries one explicit canonical property-local `supplyDate` and the
+complete four approved roots. Each upstream shape, fixed-order JSON and hash is
+independently revalidated. Property/reservation/folio/jurisdiction/Pos, supplier
+registration and location, and recipient Party/registration lineage must agree at
+every overlap exposed by the approved roots.
+Both affirmative status evidence dates must equal the explicit supply date. There is
+no prior/latest/nearest selection, server-clock use, inferred date or recipient-state,
+address, GSTIN, name, profile or configuration fallback. The date is an explicit
+applicability coordinate; this value does not determine statutory time of supply.
+
+The statutory precedence is closed and deterministic. Any supply to or by an
+affirmatively proven SEZ unit/developer is inter-State under IGST section 7(5)(b),
+including an otherwise same-State/UT relationship. Direction is retained as to-SEZ,
+by-SEZ or both. Only affirmative regular/regular evidence reaches the ordinary
+comparison: same State/UT is intra-State under section 8(2), while different
+State/UT is inter-State under section 7(3). The fixed result preserves minimized but
+complete approved lineage, exact supply nature/basis/direction/legal-rule evidence,
+fixed-order candidate JSON and a tenant-bound SHA-256, and is recursively frozen and
+byte-identical on replay.
+
+This value owns only the bilateral accommodation intra/inter-State evidence. It does
+not own levy, exemption, reverse charge, CGST/SGST/UTGST/IGST decomposition, rate,
+amount, rounding, `SupTyp`, `IgstOnIntra`, item/value, posting, correction, fiscal
+document, provider/submission, API, HTTP, UI or runtime identity. Form F2 renewal
+continuity remains a future supplier-status primitive. Authorized-operations proof,
+including specified-officer endorsement, and any zero-rating/refund/payment-mode
+decision remain separate future primitives; SEZ status and inter-State character do
+not imply either.
+
 ### Positive Tax Attribution Snapshot value service — Tax/Fiscal
 
 Order 240 is a pure immutable value service, not an aggregate, entity or state
