@@ -1,8 +1,8 @@
 # Phase 7 — Tax engine and India IRP
 
-**Status:** active; configured positive-tax routing built through Order259
+**Status:** active; governed positive-tax posting and complete correction approved through Order266
 **Entry point:** built-unreviewed Phase-6 composition through Order 236
-**Current order:** Order260 authenticated founder status through approved Order259 is built-unreviewed under D-675
+**Current order:** Order269 authenticated founder status through approved Order266 is admitted under D-701
 
 ## Outcome
 
