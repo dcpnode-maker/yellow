@@ -2,7 +2,7 @@
 
 **Status:** active; governed positive-tax posting and complete correction approved through Order266
 **Entry point:** built-unreviewed Phase-6 composition through Order 236
-**Current order:** Order274 guarded sole-local promotion of Orders272–273 is independently approved under D-716
+**Current order:** Order275 exact India IRP 1.1 seller details is admitted under D-717
 
 ## Outcome
 
@@ -272,3 +272,11 @@ local after a restricted backup and recoverable app capture. Final truth is47/99
 two unchanged hotels and exact272/273/review91/active7 on healthy loopback3000.
 Fresh non-operating Tier-3 verification reproduced the complete read-only proof with
 no finding.
+
+## Order 275 boundary
+
+Order275 projects only approved Order272 supplier-registration evidence into exact
+notified IRP1.1 `SellerDtls`, with strict fail-closed field limits, deterministic JSON
+and separately retained lineage/hash. It creates no document, database or provider
+authority and decides no buyer, place of supply or tax decomposition. Fresh
+independent Tier-3 executable review is mandatory.
