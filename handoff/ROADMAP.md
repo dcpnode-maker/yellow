@@ -235,3 +235,9 @@ Order269/D-702 is the built-unreviewed authenticated status bridge through appro
 Order266: exact latest266/current269/review91/active7, unchanged phase states and an
 honest built-unverified aggregate. The stable local remains262/263 until historical
 migration44 lineage is reconciled and a separate guarded promotion is approved.
+
+Order270/D-704 is built pending mandatory independent Tier-3 review. Exact historical
+migration0044 bytes are restored in Git and only the later deterministic join repair
+moves to forward0046. Fresh and real historical-upgrade executable proof preserves
+ledger/data truth, reaches46/98/88, reruns no-op and passes referee/schema/standing and
+static gates. Stable3000 remains unchanged; local promotion is a later bounded order.

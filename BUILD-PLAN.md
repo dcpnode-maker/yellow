@@ -685,6 +685,14 @@ independent product review and Phase7 completion remain pending. Focused5/0 plus
 database skips, standing846/0 plus775 environment skips and static gates are green;
 local visibility remains behind lineage reconciliation and guarded promotion.
 
+Order270 is BUILT-PENDING-REVIEW at D704. Repository0044 is now exact to retained
+applied bytes and its later deterministic posting-ordinal delta is forward-only0046.
+Fresh and historical1–44 upgrade proof reaches46 migrations/98 tables/88 policies,
+preserves historical ledger binary bytes and product row counts, and reruns no-op;
+referee11/11, strict fresh schema, migration39/0, directly affected finance/security,
+standing848/0 plus775 skips and static gates are green. Stable3000 is unchanged;
+independent Tier-3 review and a separate guarded promotion remain mandatory.
+
 tax_assignment evaluation (percent/fixed/slab, compound, line-vs-document rounding)
 from EXTENSIONS §2; India GST slab per room-night; document issue path: series →
 gapless number → hash chain → document; IRP reporting adapter (sandbox), IRN + QR

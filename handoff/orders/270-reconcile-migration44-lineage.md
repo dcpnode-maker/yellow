@@ -1,6 +1,6 @@
 # Order 270 — Reconcile historical migration0044 lineage forward-only
 
-**Status:** READY-D703
+**Status:** BUILT-PENDING-REVIEW-D704
 **Phase:** 7 — Tax engine and India IRP
 **Branch:** `phase-7/reconcile-migration44-lineage`
 **Base:** `38c419d` (built Order269 status through approved Order266)
@@ -65,8 +65,46 @@ second local app, merge, public deployment, Phase7 or application-complete claim
 
 ## Definition of done
 
-- [ ] Exact historical0044 bytes are restored and the delta moves to0046.
-- [ ] Fresh and historical-upgrade executable convergence is green.
-- [ ] Focused, standing, schema and referee gates are green.
+- [x] Exact historical0044 bytes are restored and the delta moves to0046.
+- [x] Fresh and historical-upgrade executable convergence is green.
+- [x] Focused, standing, schema and referee gates are green.
 - [ ] Independent Tier-3 approval is recorded.
-- [ ] Stable local remains untouched; a later order owns promotion.
+- [x] Stable local remains untouched; a later order owns promotion.
+
+## Builder evidence — D704
+
+- Intentional red was exactly `0 pass / 2 fail`; final static lineage is `2/0`.
+  Migration0044 is exactly34,363 bytes/878 LF lines/SHA-256
+  `5ea338b18aabb3cb2c5a4613c00ebf57806be881b956b13df1e2c95262cce55c`.
+  Migration0046 is exactly26,030 bytes/663 LF lines/SHA-256
+  `b18e4eec5a208c773d32df7b7c1ba65b6d452a8d850cc50fad3aa614ffe7c45f`
+  and contains exactly the two explicit posting-ordinal joins in the complete
+  replacement function with unchanged owner/revoke/grant containment.
+- A collision-proof disposable PostgreSQL16.15 project bootstrapped migrations1–46
+  for both dev/test at98 public tables/88 policies and referee `11/11`. Acceptance
+  is `11/0`; Order262/266 posting/correction is `9/0 + 8/0`; inherited correction
+  and statement adjacency is `9/0 + 12/0`; runtime-DML/SECURITY-DEFINER is `5/0 +
+  3/0`; strict fresh schema snapshot is green.
+- The migration runner is `39/0`. Its Order270 case first stages1–44, snapshots all
+  44 ledger rows through PostgreSQL binary encodings including `applied_at`, applies
+  exactly0045/0046, proves every historical byte unchanged, records46 rows, and proves
+  the next run has zero transaction PIDs and `applied=0 status=no-op` with all46 rows
+  byte-identical.
+- The retained630,690-byte Order267 archive was restored only into the disposable
+  database. Applying0045/0046 preserved every historical-ledger binary digest and
+  every non-ledger public-table row-count digest, reached exact46/98/88, and reran as
+  a no-op. That archive intentionally contains no ACL entries and a dump/restore
+  canonicalizes redundant CHECK-expression parentheses, so it is not used as a
+  strict ACL/textual-schema oracle; the fresh1–46 schema, function authority and
+  security suites are the executable schema oracle.
+- Native standing is `848 pass / 0 fail / 775 skip` with8,547 assertions across1,623
+  tests/292 files. Typecheck,97-file boundaries,23-package licence policy,
+  zero-vulnerability audit and diff hygiene are green.
+- Two discarded harness attempts are recorded rather than hidden: a login-shell
+  lifecycle stopped the first disposable database before a Windows test invocation,
+  and an adjacent finance invocation initially used the runtime role where the legacy
+  suites require deploy proof authority (`42501`, four setup failures). Both were
+  corrected without product edits and the exact final commands are green.
+- The disposable project, containers, network and volume were removed. Stable app,
+  PostgreSQL and Valkey retain exact full IDs, healthy/restart0 state, the retained
+  volume and sole loopback3000; ports3002/3188 and all proof ports are closed.

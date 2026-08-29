@@ -2,7 +2,7 @@
 
 **Status:** active; governed positive-tax posting and complete correction approved through Order266
 **Entry point:** built-unreviewed Phase-6 composition through Order 236
-**Current order:** Order270 forward-only migration0044 lineage reconciliation is admitted under D-703
+**Current order:** Order270 forward-only migration0044 lineage reconciliation is built pending mandatory Tier-3 review under D-704
 
 ## Outcome
 
@@ -231,3 +231,15 @@ or phase state.
 Order260 is built-unreviewed under D-675 with focused5/5 plus two expected database
 skips, standing837/837 plus755 environment skips and all static gates green. Exact
 sole-local schema/app promotion remains a separate reversible order.
+
+## Order 270 built boundary
+
+Order270 restores repository migration0044 byte-for-byte to its exact retained
+applied identity and moves only the later two posting-ordinal joins into forward-only
+migration0046. Fresh1–46 reaches46 migrations/98 tables/88 policies with strict schema
+and referee11/11; the migration runner proves historical1–44 binary ledger bytes,
+including applied timestamps, survive45/46 and the next run is a no-op. An isolated
+restore of the retained Order267 archive also preserves every historical ledger byte
+and every product-table row count while reaching46/98/88. Standing848/0 and all static
+gates are green. Stable3000 was untouched and independent Tier-3 approval is mandatory
+before any separately ordered local promotion.

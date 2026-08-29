@@ -1,208 +1,7 @@
--- Order 262: bind one governed positive-tax journal to the immutable quoted-tax
--- reservation lineage. The application may create the header and the null-tax
--- credit lines only. The owner capability validates those rows against canonical
--- snapshot and configured-route truth, inserts the guest root with tax evidence,
--- and appends the binding. posting_line remains strictly insert-only.
+-- Order 270: carry the two post-application Order262 posting-ordinal join
+-- repairs forward without rewriting the historically applied migration0044.
 
-ALTER TABLE public.tax_attribution_reservation_binding
-  ADD CONSTRAINT tax_attribution_reservation_binding_posting_identity_uq
-  UNIQUE (
-    tenant_id, id, property_node, binding_id, attribution_id,
-    reservation_id, segment_id, origin_quote_hash, snapshot_hash, currency
-  );
-
-ALTER TABLE public.journal
-  ADD CONSTRAINT journal_positive_tax_binding_identity_uq
-  UNIQUE (tenant_id, id, property_node, business_date, currency);
-
-CREATE TABLE public.tax_attribution_journal_binding (
-  tenant_id uuid NOT NULL,
-  id uuid NOT NULL DEFAULT pg_catalog.gen_random_uuid(),
-  property_node uuid NOT NULL,
-  posted_by uuid NOT NULL,
-  lineage_id uuid NOT NULL,
-  hold_binding_id uuid NOT NULL,
-  attribution_id uuid NOT NULL,
-  reservation_id uuid NOT NULL,
-  segment_id uuid NOT NULL,
-  folio_id uuid NOT NULL,
-  guest_account_id uuid NOT NULL,
-  journal_id uuid NOT NULL,
-  origin_quote_hash text NOT NULL,
-  snapshot_hash text NOT NULL,
-  currency character(3) NOT NULL,
-  business_date date NOT NULL,
-  posted_at timestamptz NOT NULL DEFAULT pg_catalog.transaction_timestamp(),
-  CONSTRAINT tax_attribution_journal_binding_pk PRIMARY KEY (tenant_id, id),
-  CONSTRAINT tax_attribution_journal_binding_lineage_uq
-    UNIQUE (tenant_id, lineage_id),
-  CONSTRAINT tax_attribution_journal_binding_attribution_uq
-    UNIQUE (tenant_id, attribution_id),
-  CONSTRAINT tax_attribution_journal_binding_reservation_uq
-    UNIQUE (tenant_id, reservation_id),
-  CONSTRAINT tax_attribution_journal_binding_journal_uq
-    UNIQUE (tenant_id, journal_id),
-  CONSTRAINT tax_attribution_journal_binding_quote_hash_ck CHECK (
-    origin_quote_hash ~ '^[0-9a-f]{64}$'
-  ),
-  CONSTRAINT tax_attribution_journal_binding_snapshot_hash_ck CHECK (
-    snapshot_hash ~ '^[0-9a-f]{64}$'
-  ),
-  CONSTRAINT tax_attribution_journal_binding_currency_ck CHECK (
-    currency ~ '^[A-Z]{3}$'
-  ),
-  CONSTRAINT tax_attribution_journal_binding_business_date_ck CHECK (
-    pg_catalog.isfinite(business_date)
-  ),
-  CONSTRAINT tax_attribution_journal_binding_property_fk
-    FOREIGN KEY (tenant_id, property_node)
-    REFERENCES public.org_node (tenant_id, id),
-  CONSTRAINT tax_attribution_journal_binding_actor_fk
-    FOREIGN KEY (tenant_id, posted_by)
-    REFERENCES public.app_user (tenant_id, id),
-  CONSTRAINT tax_attribution_journal_binding_lineage_fk
-    FOREIGN KEY (
-      tenant_id, lineage_id, property_node, hold_binding_id, attribution_id,
-      reservation_id, segment_id, origin_quote_hash, snapshot_hash, currency
-    ) REFERENCES public.tax_attribution_reservation_binding (
-      tenant_id, id, property_node, binding_id, attribution_id,
-      reservation_id, segment_id, origin_quote_hash, snapshot_hash, currency
-    ),
-  CONSTRAINT tax_attribution_journal_binding_account_fk
-    FOREIGN KEY (tenant_id, property_node, currency, guest_account_id)
-    REFERENCES public.account (tenant_id, property_node, currency, id),
-  CONSTRAINT tax_attribution_journal_binding_folio_fk
-    FOREIGN KEY (tenant_id, guest_account_id, folio_id)
-    REFERENCES public.folio (tenant_id, account_id, id),
-  CONSTRAINT tax_attribution_journal_binding_journal_fk
-    FOREIGN KEY (
-      tenant_id, journal_id, property_node, business_date, currency
-    ) REFERENCES public.journal (
-      tenant_id, id, property_node, business_date, currency
-    )
-);
-
-CREATE INDEX tax_attribution_journal_binding_property_lookup
-  ON public.tax_attribution_journal_binding
-  (tenant_id, property_node, business_date, posted_at, id);
-CREATE INDEX tax_attribution_journal_binding_snapshot_lookup
-  ON public.tax_attribution_journal_binding
-  (tenant_id, snapshot_hash, posted_at, id);
-
-ALTER TABLE public.tax_attribution_journal_binding ENABLE ROW LEVEL SECURITY;
-CREATE POLICY tenant_isolation ON public.tax_attribution_journal_binding
-  USING (
-    tenant_id = NULLIF(
-      pg_catalog.current_setting('app.tenant_id', true), ''
-    )::uuid
-  )
-  WITH CHECK (
-    tenant_id = NULLIF(
-      pg_catalog.current_setting('app.tenant_id', true), ''
-    )::uuid
-  );
-
--- The existing two-account capability remains unchanged. This dedicated path
--- accepts the bounded positive-tax maximum (guest + revenue + 64 tax accounts)
--- and acquires every account in one global UUID order before the primary folio.
-CREATE FUNCTION public.lock_positive_tax_posting_rows(
-  p_tenant_id uuid,
-  p_account_ids uuid[],
-  p_folio_id uuid
-) RETURNS void
-LANGUAGE plpgsql
-VOLATILE
-SECURITY DEFINER
-SET search_path = pg_catalog, public, pg_temp
-AS $$
-DECLARE
-  v_context_tenant uuid;
-  v_requested_accounts integer;
-  v_locked_accounts integer;
-  v_locked_folios integer;
-BEGIN
-  IF session_user <> 'yellow_runtime'
-     OR pg_catalog.current_setting('role', true) IS DISTINCT FROM 'app_role'
-     OR current_user <> 'yellow_owner' THEN
-    RAISE EXCEPTION USING ERRCODE = '42501',
-      MESSAGE = 'positive-tax posting lock requires the governed runtime app role';
-  END IF;
-
-  BEGIN
-    v_context_tenant := NULLIF(
-      pg_catalog.current_setting('app.tenant_id', true), ''
-    )::uuid;
-  EXCEPTION WHEN invalid_text_representation THEN
-    RAISE EXCEPTION USING ERRCODE = '42501',
-      MESSAGE = 'positive-tax posting lock tenant context is invalid';
-  END;
-  IF v_context_tenant IS NULL OR p_tenant_id IS NULL
-     OR v_context_tenant <> p_tenant_id THEN
-    RAISE EXCEPTION USING ERRCODE = '42501',
-      MESSAGE = 'positive-tax posting lock tenant context is invalid';
-  END IF;
-
-  v_requested_accounts := pg_catalog.cardinality(p_account_ids);
-  IF p_folio_id IS NULL OR v_requested_accounts IS NULL
-     OR v_requested_accounts < 2 OR v_requested_accounts > 66
-     OR EXISTS (
-       SELECT 1
-         FROM pg_catalog.unnest(p_account_ids) AS requested(id)
-        WHERE requested.id IS NULL
-     )
-     OR (
-       SELECT pg_catalog.count(DISTINCT requested.id)
-         FROM pg_catalog.unnest(p_account_ids) AS requested(id)
-     ) <> v_requested_accounts THEN
-    RAISE EXCEPTION USING ERRCODE = '22023',
-      MESSAGE = 'positive-tax posting lock account set is invalid';
-  END IF;
-
-  SELECT pg_catalog.count(*)::integer
-    INTO v_locked_accounts
-    FROM (
-      SELECT account.id
-        FROM public.account AS account
-       WHERE account.tenant_id = p_tenant_id
-         AND account.id = ANY (p_account_ids)
-         AND account.status = 'open'
-         AND account.role IN ('guest', 'revenue', 'tax_payable')
-       ORDER BY account.id
-       FOR UPDATE
-    ) AS locked;
-  IF v_locked_accounts <> v_requested_accounts THEN
-    RAISE EXCEPTION USING ERRCODE = '55000',
-      MESSAGE = 'positive-tax posting lock targets are unavailable';
-  END IF;
-
-  SELECT pg_catalog.count(*)::integer
-    INTO v_locked_folios
-    FROM (
-      SELECT folio.id
-        FROM public.folio AS folio
-        JOIN public.account AS account
-          ON account.tenant_id = folio.tenant_id
-         AND account.id = folio.account_id
-       WHERE folio.tenant_id = p_tenant_id
-         AND folio.id = p_folio_id
-         AND folio.account_id = ANY (p_account_ids)
-         AND folio.window_no = 1
-         AND folio.status = 'open'
-         AND account.role = 'guest'
-         AND account.status = 'open'
-       FOR UPDATE OF folio
-    ) AS locked;
-  IF v_locked_folios <> 1 THEN
-    RAISE EXCEPTION USING ERRCODE = '55000',
-      MESSAGE = 'positive-tax posting lock targets are unavailable';
-  END IF;
-END;
-$$;
-
--- Validate the just-created charge header and credit rows against the immutable
--- attribution and explicit semantic routes. Only this function can insert the
--- guest root carrying tax_detail or append the posting binding.
-CREATE FUNCTION public.record_positive_tax_journal_binding(
+CREATE OR REPLACE FUNCTION public.record_positive_tax_journal_binding(
   p_tenant_id uuid,
   p_property_node uuid,
   p_actor_id uuid,
@@ -623,7 +422,8 @@ BEGIN
            mapping.id AS mapping_id, mapping.tx_code,
            route.credit_account_id
       FROM canonical_taxes
-      JOIN requested USING (ordinality)
+      JOIN requested
+        ON requested.ordinality = canonical_taxes.posting_ordinal
       JOIN public.tax_semantic_route AS mapping
         ON mapping.tenant_id = p_tenant_id
        AND mapping.id = requested.mapping_id
@@ -763,7 +563,8 @@ BEGIN
            mapping.tx_code, route.credit_account_id,
            -((canonical_taxes.value ->> 'taxMinor')::bigint) AS amount_minor
       FROM canonical_taxes
-      JOIN requested USING (ordinality)
+      JOIN requested
+        ON requested.ordinality = canonical_taxes.posting_ordinal
       JOIN public.tax_semantic_route AS mapping
         ON mapping.tenant_id = p_tenant_id
        AND mapping.id = requested.mapping_id
@@ -850,16 +651,6 @@ BEGIN
 END;
 $$;
 
-ALTER FUNCTION public.lock_positive_tax_posting_rows(
-  uuid,uuid[],uuid
-) OWNER TO yellow_owner;
-REVOKE ALL ON FUNCTION public.lock_positive_tax_posting_rows(
-  uuid,uuid[],uuid
-) FROM PUBLIC, app_role, yellow_runtime;
-GRANT EXECUTE ON FUNCTION public.lock_positive_tax_posting_rows(
-  uuid,uuid[],uuid
-) TO app_role;
-
 ALTER FUNCTION public.record_positive_tax_journal_binding(
   uuid,uuid,uuid,uuid,uuid,uuid,uuid,uuid[],jsonb
 ) OWNER TO yellow_owner;
@@ -870,9 +661,3 @@ GRANT EXECUTE ON FUNCTION public.record_positive_tax_journal_binding(
   uuid,uuid,uuid,uuid,uuid,uuid,uuid,uuid[],jsonb
 ) TO app_role;
 
-ALTER TABLE public.tax_attribution_journal_binding OWNER TO yellow_owner;
-REVOKE ALL ON TABLE public.tax_attribution_journal_binding
-  FROM PUBLIC, app_role;
-REVOKE ALL ON TABLE public.tax_attribution_journal_binding
-  FROM yellow_runtime;
-GRANT SELECT ON TABLE public.tax_attribution_journal_binding TO app_role;

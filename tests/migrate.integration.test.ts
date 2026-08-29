@@ -1579,28 +1579,127 @@ databaseDescribe("Bun SQL migration runner", () => {
   );
 
   test(
-    "applies the exact governed positive-tax correction migration without schema expansion",
+    "applies the exact positive-tax correction and forward posting-ordinal repair without schema expansion",
     async () => {
       await withDatabase(async ({ databaseUrl: targetUrl, sql }) => {
+        const predecessorFiles = await readdir(PROJECT_MIGRATIONS);
+        const predecessor = Object.fromEntries(await Promise.all(
+          predecessorFiles
+            .filter((filename) => {
+              const version = Number(filename.slice(0, 4));
+              return filename.endsWith(".sql") && version >= 2 && version <= 44;
+            })
+            .map(async (filename) => [
+              filename,
+              await readFile(resolve(PROJECT_MIGRATIONS, filename)),
+            ] as const),
+        ));
+
+        await withMigrationDirectory(predecessor, async (directory) => {
+          const predecessorResult = await runMigrations({
+            databaseUrl: targetUrl,
+            migrationsDirectory: directory,
+            logger: () => undefined,
+          });
+          expect(predecessorResult.appliedFiles).toHaveLength(44);
+        });
+
+        const predecessorLedger = await sql<Array<{
+          version_bytes: string; filename_bytes: string; checksum_bytes: string; applied_at_bytes: string;
+        }>>`
+          SELECT pg_catalog.encode(pg_catalog.int8send(version), 'hex') AS version_bytes,
+                 pg_catalog.encode(pg_catalog.textsend(filename), 'hex') AS filename_bytes,
+                 pg_catalog.encode(pg_catalog.textsend(checksum_sha256), 'hex') AS checksum_bytes,
+                 pg_catalog.encode(pg_catalog.timestamptz_send(applied_at), 'hex') AS applied_at_bytes
+            FROM public.schema_migration
+           WHERE version <= 44
+           ORDER BY version
+        `;
+
         const result = await runMigrations({
           databaseUrl: targetUrl,
           migrationsDirectory: PROJECT_MIGRATIONS,
           logger: () => undefined,
         });
-        expect(result.appliedFiles).toContain("0045_governed_positive_tax_correction.sql");
+        expect(result.appliedFiles).toEqual([
+          "0045_governed_positive_tax_correction.sql",
+          "0046_positive_tax_posting_ordinal_repair.sql",
+        ]);
+
+        const preservedLedger = await sql<Array<{
+          version_bytes: string; filename_bytes: string; checksum_bytes: string; applied_at_bytes: string;
+        }>>`
+          SELECT pg_catalog.encode(pg_catalog.int8send(version), 'hex') AS version_bytes,
+                 pg_catalog.encode(pg_catalog.textsend(filename), 'hex') AS filename_bytes,
+                 pg_catalog.encode(pg_catalog.textsend(checksum_sha256), 'hex') AS checksum_bytes,
+                 pg_catalog.encode(pg_catalog.timestamptz_send(applied_at), 'hex') AS applied_at_bytes
+            FROM public.schema_migration
+           WHERE version <= 44
+           ORDER BY version
+        `;
+        expect(preservedLedger).toEqual(predecessorLedger);
+
+        const upgradedLedger = await sql<Array<{
+          version_bytes: string; filename_bytes: string; checksum_bytes: string; applied_at_bytes: string;
+        }>>`
+          SELECT pg_catalog.encode(pg_catalog.int8send(version), 'hex') AS version_bytes,
+                 pg_catalog.encode(pg_catalog.textsend(filename), 'hex') AS filename_bytes,
+                 pg_catalog.encode(pg_catalog.textsend(checksum_sha256), 'hex') AS checksum_bytes,
+                 pg_catalog.encode(pg_catalog.timestamptz_send(applied_at), 'hex') AS applied_at_bytes
+            FROM public.schema_migration
+           ORDER BY version
+        `;
+        expect(upgradedLedger).toHaveLength(46);
+
+        const noOpLog: string[] = [];
+        const noOp = await runMigrations({
+          databaseUrl: targetUrl,
+          migrationsDirectory: PROJECT_MIGRATIONS,
+          logger: (message) => noOpLog.push(message),
+        });
+        expect(noOp.appliedFiles).toEqual([]);
+        expect(noOp.discoveredFiles).toBe(46);
+        expect(noOp.transactionBackendPids).toEqual([]);
+        expect(noOpLog).toHaveLength(1);
+        expect(noOpLog[0]).toContain("applied=0 status=no-op");
+
+        const noOpLedger = await sql<Array<{
+          version_bytes: string; filename_bytes: string; checksum_bytes: string; applied_at_bytes: string;
+        }>>`
+          SELECT pg_catalog.encode(pg_catalog.int8send(version), 'hex') AS version_bytes,
+                 pg_catalog.encode(pg_catalog.textsend(filename), 'hex') AS filename_bytes,
+                 pg_catalog.encode(pg_catalog.textsend(checksum_sha256), 'hex') AS checksum_bytes,
+                 pg_catalog.encode(pg_catalog.timestamptz_send(applied_at), 'hex') AS applied_at_bytes
+            FROM public.schema_migration
+           ORDER BY version
+        `;
+        expect(noOpLedger).toEqual(upgradedLedger);
 
         const ledger = await sql<Array<{
           version: number | bigint; filename: string; checksum_sha256: string;
         }>>`
           SELECT version, filename, checksum_sha256
             FROM public.schema_migration
-           WHERE version = 45
+           WHERE version IN (44, 45, 46)
+           ORDER BY version
         `;
-        expect(ledger.map((row) => ({ ...row, version: Number(row.version) }))).toEqual([{
-          version: 45,
-          filename: "0045_governed_positive_tax_correction.sql",
-          checksum_sha256: "aec7f04eaa0536568adf68d51d7e2fa3ff578cd043b3079c080a680d6e210dba",
-        }]);
+        expect(ledger.map((row) => ({ ...row, version: Number(row.version) }))).toEqual([
+          {
+            version: 44,
+            filename: "0044_governed_positive_tax_posting.sql",
+            checksum_sha256: "5ea338b18aabb3cb2c5a4613c00ebf57806be881b956b13df1e2c95262cce55c",
+          },
+          {
+            version: 45,
+            filename: "0045_governed_positive_tax_correction.sql",
+            checksum_sha256: "aec7f04eaa0536568adf68d51d7e2fa3ff578cd043b3079c080a680d6e210dba",
+          },
+          {
+            version: 46,
+            filename: "0046_positive_tax_posting_ordinal_repair.sql",
+            checksum_sha256: "b18e4eec5a208c773d32df7b7c1ba65b6d452a8d850cc50fad3aa614ffe7c45f",
+          },
+        ]);
 
         const authority = await sql<Array<{
           signature: string; owner: string; securityDefiner: boolean;
