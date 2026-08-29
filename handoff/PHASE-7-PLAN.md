@@ -2,7 +2,7 @@
 
 **Status:** active; governed positive-tax posting and complete correction approved through Order266
 **Entry point:** built-unreviewed Phase-6 composition through Order 236
-**Current order:** Order270 forward-only migration0044 lineage reconciliation is independently approved under D-705; guarded sole-local promotion is next
+**Current order:** Order271 guarded sole-local promotion of approved Orders266–270 is admitted under D-706
 
 ## Outcome
 
