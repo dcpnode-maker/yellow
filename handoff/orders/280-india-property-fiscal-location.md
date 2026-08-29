@@ -1,6 +1,6 @@
 # Order 280 — Build exact India property fiscal-location evidence
 
-**Status:** READY-D732
+**Status:** BUILT-PENDING-REVIEW-D733
 **Phase:** 7 — Tax engine and India IRP
 **Branch:** `phase-7/india-property-fiscal-location`
 **Base:** `4a0f3ed` (independently approved Order279 descendant)
@@ -81,7 +81,7 @@ or application-complete claim.
 
 ## Definition of done
 
-- [ ] Intentional red precedes implementation.
-- [ ] Exact schema/resolver and hostile PostgreSQL proof are green.
-- [ ] Standing/static gates are green and no authority expands.
+- [x] Intentional red precedes implementation.
+- [x] Exact schema/resolver and hostile PostgreSQL proof are green.
+- [x] Standing/static gates are green and no authority expands.
 - [ ] Fresh independent Tier-3 approval is recorded.

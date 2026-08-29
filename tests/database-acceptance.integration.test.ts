@@ -245,6 +245,11 @@ const EXPECTED_MIGRATIONS = [
     filename: "0048_party_fiscal_registration.sql",
     checksum_sha256: "d57c5db53f75d719ef2e802a738f815cd03a54a87dbdec1f8813574666e0012f",
   },
+  {
+    version: 49,
+    filename: "0049_property_fiscal_location.sql",
+    checksum_sha256: "7efed30ed6d84b7229ec298425925c38d28c13dc570f8e03eabc35fe17c276b4",
+  },
 ];
 
 if (REQUIRE_DATABASE && !DATABASE_URL) {
@@ -669,6 +674,181 @@ databaseDescribe("fresh deployment database acceptance", () => {
         await tx.unsafe("INSERT INTO public.property_fiscal_registration DEFAULT VALUES");
       });
       throw new Error("app_role unexpectedly mutated property_fiscal_registration");
+    } catch (error) {
+      expect((error as { errno?: string }).errno).toBe("42501");
+    }
+  });
+
+  test("has exact India property fiscal-location schema, forced RLS and SELECT-only app authority", async () => {
+    const relation = await sql!<Array<{
+      owner: string;
+      rls: boolean;
+      forceRls: boolean;
+      columns: string;
+      types: string;
+      notNull: string;
+      appSelect: boolean;
+      appMutation: boolean;
+      publicPrivileges: number;
+      runtimePrivileges: number;
+      policyCount: number;
+      policyUsesNullifContext: boolean;
+      constraintCount: number;
+      requiredConstraints: number;
+      primaryKeyIsTenantProperty: boolean;
+      tenantLeadingIndexes: number;
+      totalIndexes: number;
+    }>>`
+      SELECT pg_catalog.pg_get_userbyid(cls.relowner) AS owner,
+             cls.relrowsecurity AS rls,
+             cls.relforcerowsecurity AS "forceRls",
+             (
+               SELECT pg_catalog.string_agg(attribute.attname, ',' ORDER BY attribute.attnum)
+                 FROM pg_catalog.pg_attribute AS attribute
+                WHERE attribute.attrelid = cls.oid
+                  AND attribute.attnum > 0
+                  AND NOT attribute.attisdropped
+             ) AS columns,
+             (
+               SELECT pg_catalog.string_agg(
+                 pg_catalog.format_type(attribute.atttypid, attribute.atttypmod),
+                 ',' ORDER BY attribute.attnum
+               )
+                 FROM pg_catalog.pg_attribute AS attribute
+                WHERE attribute.attrelid = cls.oid
+                  AND attribute.attnum > 0
+                  AND NOT attribute.attisdropped
+             ) AS types,
+             (
+               SELECT pg_catalog.string_agg(attribute.attnotnull::text, ',' ORDER BY attribute.attnum)
+                 FROM pg_catalog.pg_attribute AS attribute
+                WHERE attribute.attrelid = cls.oid
+                  AND attribute.attnum > 0
+                  AND NOT attribute.attisdropped
+             ) AS "notNull",
+             pg_catalog.has_table_privilege('app_role', cls.oid, 'SELECT') AS "appSelect",
+             (
+               pg_catalog.has_table_privilege('app_role', cls.oid, 'INSERT')
+               OR pg_catalog.has_table_privilege('app_role', cls.oid, 'UPDATE')
+               OR pg_catalog.has_table_privilege('app_role', cls.oid, 'DELETE')
+               OR pg_catalog.has_table_privilege('app_role', cls.oid, 'TRUNCATE')
+             ) AS "appMutation",
+             (
+               SELECT count(*)::int
+                 FROM pg_catalog.aclexplode(
+                   COALESCE(cls.relacl, pg_catalog.acldefault('r', cls.relowner))
+                 ) AS acl
+                WHERE acl.grantee = 0
+             ) AS "publicPrivileges",
+             (
+               SELECT count(*)::int
+                 FROM unnest(ARRAY[
+                   'SELECT','INSERT','UPDATE','DELETE','TRUNCATE','REFERENCES','TRIGGER'
+                 ]) AS privilege
+                WHERE pg_catalog.has_table_privilege('yellow_runtime', cls.oid, privilege)
+             ) AS "runtimePrivileges",
+             (
+               SELECT count(*)::int FROM pg_catalog.pg_policy
+                WHERE polrelid = cls.oid AND polname = 'tenant_isolation'
+             ) AS "policyCount",
+             EXISTS (
+               SELECT 1 FROM pg_catalog.pg_policy AS policy
+                WHERE policy.polrelid = cls.oid
+                  AND policy.polname = 'tenant_isolation'
+                  AND pg_catalog.pg_get_expr(policy.polqual, policy.polrelid)
+                    LIKE '%NULLIF(current_setting(''app.tenant_id''::text, true), ''''::text)%'
+                  AND pg_catalog.pg_get_expr(policy.polwithcheck, policy.polrelid)
+                    LIKE '%NULLIF(current_setting(''app.tenant_id''::text, true), ''''::text)%'
+             ) AS "policyUsesNullifContext",
+             (
+               SELECT count(*)::int FROM pg_catalog.pg_constraint
+                WHERE conrelid = cls.oid
+             ) AS "constraintCount",
+             (
+               SELECT count(*)::int FROM pg_catalog.pg_constraint
+                WHERE conrelid = cls.oid
+                  AND conname = ANY(ARRAY[
+                    'property_fiscal_location_pk',
+                    'property_fiscal_location_property_fk',
+                    'property_fiscal_location_country_ck',
+                    'property_fiscal_location_state_ck',
+                    'property_fiscal_location_address_line1_ck',
+                    'property_fiscal_location_locality_ck',
+                    'property_fiscal_location_pin_ck'
+                  ])
+             ) AS "requiredConstraints",
+             EXISTS (
+               SELECT 1 FROM pg_catalog.pg_constraint AS constraint_row
+                WHERE constraint_row.conrelid = cls.oid
+                  AND constraint_row.conname = 'property_fiscal_location_pk'
+                  AND pg_catalog.pg_get_constraintdef(constraint_row.oid)
+                    = 'PRIMARY KEY (tenant_id, property_node)'
+             ) AS "primaryKeyIsTenantProperty",
+             (
+               SELECT count(*)::int
+                 FROM pg_catalog.pg_index AS index
+                 JOIN pg_catalog.pg_attribute AS leading_attribute
+                   ON leading_attribute.attrelid = cls.oid
+                  AND leading_attribute.attnum = (index.indkey::smallint[])[0]
+                WHERE index.indrelid = cls.oid
+                  AND leading_attribute.attname = 'tenant_id'
+             ) AS "tenantLeadingIndexes",
+             (
+               SELECT count(*)::int FROM pg_catalog.pg_index AS index
+                WHERE index.indrelid = cls.oid
+             ) AS "totalIndexes"
+        FROM pg_catalog.pg_class AS cls
+       WHERE cls.oid = 'public.property_fiscal_location'::regclass
+    `;
+    expect(relation).toEqual([{
+      owner: "yellow_owner",
+      rls: true,
+      forceRls: true,
+      columns: "tenant_id,property_node,country_code,state_code,address_line1,locality,pin",
+      types: "uuid,uuid,character(2),text,text,text,text",
+      notNull: "true,true,true,true,true,true,true",
+      appSelect: true,
+      appMutation: false,
+      publicPrivileges: 0,
+      runtimePrivileges: 0,
+      policyCount: 1,
+      policyUsesNullifContext: true,
+      constraintCount: 7,
+      requiredConstraints: 7,
+      primaryKeyIsTenantProperty: true,
+      tenantLeadingIndexes: 1,
+      totalIndexes: 1,
+    }]);
+
+    const foreignKeys = await sql!<Array<{ name: string; definition: string }>>`
+      SELECT constraint_row.conname AS name,
+             pg_catalog.pg_get_constraintdef(constraint_row.oid) AS definition
+        FROM pg_catalog.pg_constraint AS constraint_row
+       WHERE constraint_row.conrelid = 'public.property_fiscal_location'::regclass
+         AND constraint_row.contype = 'f'
+       ORDER BY constraint_row.conname
+    `;
+    expect(foreignKeys).toEqual([{
+      name: "property_fiscal_location_property_fk",
+      definition: "FOREIGN KEY (tenant_id, property_node) REFERENCES org_node(tenant_id, id)",
+    }]);
+
+    const appRead = await sql!.begin(async (tx) => {
+      await tx.unsafe("SET LOCAL ROLE app_role");
+      await tx`SELECT set_config('app.tenant_id', ${SEED_TENANT.id}, true)`;
+      return tx<{ count: number }[]>`
+        SELECT count(*)::int AS count FROM public.property_fiscal_location
+      `;
+    });
+    expect(appRead).toEqual([{ count: 0 }]);
+
+    try {
+      await sql!.begin(async (tx) => {
+        await tx.unsafe("SET LOCAL ROLE app_role");
+        await tx`SELECT set_config('app.tenant_id', ${SEED_TENANT.id}, true)`;
+        await tx.unsafe("INSERT INTO public.property_fiscal_location DEFAULT VALUES");
+      });
+      throw new Error("app_role unexpectedly mutated property_fiscal_location");
     } catch (error) {
       expect((error as { errno?: string }).errno).toBe("42501");
     }
@@ -1154,7 +1334,7 @@ databaseDescribe("fresh deployment database acceptance", () => {
         (SELECT count(*)::int FROM pg_catalog.pg_tables WHERE schemaname = 'public') AS tables,
         (SELECT count(*)::int FROM pg_catalog.pg_policies WHERE schemaname = 'public') AS policies
     `;
-    expect(shape).toEqual([{ tables: 100, policies: 90 }]);
+    expect(shape).toEqual([{ tables: 101, policies: 91 }]);
 
     const relations = await sql!<Array<{
       relation: string;
@@ -1266,7 +1446,7 @@ databaseDescribe("fresh deployment database acceptance", () => {
         has_column_privilege('app_role','public.journal','approval_request_id','UPDATE') AS "appApprovalUpdate"
     `;
     expect(shape).toEqual([{
-      tables: 100, policies: 90, directBill: 1,
+      tables: 101, policies: 91, directBill: 1,
       approvalNullable: true, compositeFk: true, oneUseIndex: true,
       appApprovalInsert: false, appApprovalUpdate: false,
     }]);

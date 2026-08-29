@@ -651,6 +651,37 @@ deemed-export treatment, tax decomposition, posting/correction, document allocat
 issue/number/hash chain, provider/submission, API, HTTP or UI behavior. Fresh
 independent Tier-3 execution approves exact Order279 under D-731 with no finding.
 
+### Property Fiscal Location — Tax/Fiscal
+
+**Root:** `property_fiscal_location`.
+
+Order280 introduces one typed physical-property evidence root because supplier GST
+registration state is not necessarily the location of the immovable hotel property.
+The Natural-Solution Test rejects `property_fiscal_registration`, recipient
+registration, `org_node` name/config/path, profiles, spaces, unit types and tax-code
+labels as substitutes for this distinct legal fact.
+
+The tenant-leading sole identity `(tenant_id, property_node)` binds one exact
+same-tenant `org_node.kind='property'`. The row stores only canonical current Indian
+property-location evidence: country `IN`, one current two-digit GST state/UT code,
+address line 1, locality and an exact six-digit nonzero PIN. Tenant RLS contains the
+row. Runtime receives SELECT only; provisioning and maintenance stay outside the
+application contract.
+
+The Order280 value service accepts only an exact tenant/property tuple, reads exactly
+that typed row under transaction-local tenant context and returns a recursively
+frozen fixed-shape value with a deterministic evidence hash. The hash binds tenant,
+property and all location evidence while tenant identity stays outside the returned
+value. Missing, foreign, malformed, noncanonical or incoherent truth fails closed
+without fallback, locks, facts, events, idempotency evidence or any mutation.
+
+This root is physical-property evidence only. It is a future place-of-supply input,
+not a `Pos` or `SupTyp` decision. It does not own accommodation/service
+classification, HSN/SAC, B2C/URP, export, SEZ or deemed-export treatment,
+CGST/SGST/IGST decomposition or tax rates, reservation/folio/buyer association,
+posting/correction, documents/series/number/hash chains, providers, submissions, API,
+HTTP or UI behavior.
+
 ### Positive Tax Attribution Snapshot value service — Tax/Fiscal
 
 Order 240 is a pure immutable value service, not an aggregate, entity or state

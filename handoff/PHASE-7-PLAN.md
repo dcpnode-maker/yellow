@@ -2,7 +2,7 @@
 
 **Status:** active; governed positive-tax posting and complete correction approved through Order266
 **Entry point:** built-unreviewed Phase-6 composition through Order 236
-**Current order:** Order280 exact India property fiscal-location evidence is admitted under D-732
+**Current order:** Order280 exact India property fiscal-location evidence is built pending independent review under D-733
 
 ## Outcome
 
@@ -345,3 +345,7 @@ spaces, profiles, unit types and tax codes cannot substitute. The result is futu
 place-of-supply evidence only: no `Pos`, supply type, service classification,
 decomposition, reservation/folio association, document, submission, API, UI or local
 authority. Fresh PostgreSQL/referee and independent Tier-3 execution are mandatory.
+Intentional red0/1 preceded focused12/0, database acceptance14/0, runtime-DML5/0,
+migration39/0, exact49/101/91/referee11/11 and standing889/0+815 environment skips;
+all static gates are green and the sole stable local remains unchanged. Fresh
+independent Tier-3 execution remains mandatory.

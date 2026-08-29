@@ -319,6 +319,37 @@ no `Pos`, `SupTyp`, B2C/URP, export/SEZ/deemed-export, tax decomposition, docume
 submission, provider, API, HTTP or UI authority. Fresh independent Tier-3 execution
 approves exact Order279 under D-731 with no finding.
 
+### India property fiscal-location containment
+
+Order280 adds one tenant-leading `property_fiscal_location` root. Its sole
+`(tenant_id, property_node)` identity and same-tenant composite property reference
+prevent duplicate or cross-tenant property binding. Every index is tenant-leading,
+RLS is enabled and forced, and the policy uses the transaction-local
+`app.tenant_id`. `PUBLIC` and `yellow_runtime` receive no table authority.
+`app_role` receives SELECT only; insert, update, delete and truncate remain denied,
+with no owner-mediated writer or runtime provisioning capability.
+
+The resolver accepts only the exact plain, accessor-free, proxy-free and symbol-free
+`{tenantId,propertyNode}` tuple. It retains tenant context, equality-binds both UUIDs
+and returns evidence only for one exact tenant-owned property row carrying country
+`IN`, a current GST state/UT code, canonical address line 1 and locality, and an exact
+six-digit nonzero PIN. It must revalidate stored truth before returning the exact
+recursively frozen result and deterministic SHA-256. Tenant identity is included in
+the fixed-order hash evidence but is not exposed in the result.
+
+Missing, duplicate, foreign, malformed, noncanonical or incoherent truth fails
+closed. Supplier and recipient GSTIN states, `org_node` name/config/path, profiles,
+spaces, unit types and GST-like tax codes are not trusted as fallback. Successful and
+failed reads acquire no lock and leave location, registrations, tax lineage, facts,
+outbox, financial/fiscal documents, journals, postings and submissions byte/count
+unchanged.
+
+This boundary is typed physical-property evidence only. It grants no IRP `Pos` or
+`SupTyp`, accommodation/service classification, HSN/SAC, B2C/URP, export, SEZ or
+deemed-export treatment, CGST/SGST/IGST decomposition, tax-rate, reservation/folio/
+buyer association, posting/correction, document/number/hash-chain,
+provider/submission, API, HTTP or UI authority.
+
 ### Tax-attribution persistence containment
 
 Order 244 accepts only a value that survives the exact hostile Order-240 parser. All

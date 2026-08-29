@@ -7839,6 +7839,28 @@ CREATE TABLE public.promotion (
 
 
 --
+-- Name: property_fiscal_location; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.property_fiscal_location (
+    tenant_id uuid NOT NULL,
+    property_node uuid NOT NULL,
+    country_code character(2) NOT NULL,
+    state_code text NOT NULL,
+    address_line1 text NOT NULL,
+    locality text NOT NULL,
+    pin text NOT NULL,
+    CONSTRAINT property_fiscal_location_address_line1_ck CHECK ((((char_length(address_line1) >= 1) AND (char_length(address_line1) <= 100)) AND (btrim(address_line1) = address_line1))),
+    CONSTRAINT property_fiscal_location_country_ck CHECK ((country_code = 'IN'::character(2))),
+    CONSTRAINT property_fiscal_location_locality_ck CHECK ((((char_length(locality) >= 1) AND (char_length(locality) <= 50)) AND (btrim(locality) = locality))),
+    CONSTRAINT property_fiscal_location_pin_ck CHECK ((pin ~ '^[1-9][0-9]{5}$'::text)),
+    CONSTRAINT property_fiscal_location_state_ck CHECK ((state_code = ANY (ARRAY['01'::text, '02'::text, '03'::text, '04'::text, '05'::text, '06'::text, '07'::text, '08'::text, '09'::text, '10'::text, '11'::text, '12'::text, '13'::text, '14'::text, '15'::text, '16'::text, '17'::text, '18'::text, '19'::text, '20'::text, '21'::text, '22'::text, '23'::text, '24'::text, '26'::text, '27'::text, '29'::text, '30'::text, '31'::text, '32'::text, '33'::text, '34'::text, '35'::text, '36'::text, '37'::text, '38'::text])))
+);
+
+ALTER TABLE ONLY public.property_fiscal_location FORCE ROW LEVEL SECURITY;
+
+
+--
 -- Name: property_fiscal_registration; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -9429,6 +9451,14 @@ ALTER TABLE ONLY public.promotion
 
 ALTER TABLE ONLY public.promotion
     ADD CONSTRAINT promotion_tenant_id_code_key UNIQUE (tenant_id, code);
+
+
+--
+-- Name: property_fiscal_location property_fiscal_location_pk; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.property_fiscal_location
+    ADD CONSTRAINT property_fiscal_location_pk PRIMARY KEY (tenant_id, property_node);
 
 
 --
@@ -11409,6 +11439,14 @@ ALTER TABLE ONLY public.preference
 
 
 --
+-- Name: property_fiscal_location property_fiscal_location_property_fk; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.property_fiscal_location
+    ADD CONSTRAINT property_fiscal_location_property_fk FOREIGN KEY (tenant_id, property_node) REFERENCES public.org_node(tenant_id, id);
+
+
+--
 -- Name: property_fiscal_registration property_fiscal_registration_extension_fk; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -12409,6 +12447,12 @@ ALTER TABLE public.preference ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.promotion ENABLE ROW LEVEL SECURITY;
 
 --
+-- Name: property_fiscal_location; Type: ROW SECURITY; Schema: public; Owner: -
+--
+
+ALTER TABLE public.property_fiscal_location ENABLE ROW LEVEL SECURITY;
+
+--
 -- Name: property_fiscal_registration; Type: ROW SECURITY; Schema: public; Owner: -
 --
 
@@ -12960,6 +13004,13 @@ CREATE POLICY tenant_isolation ON public.preference USING ((tenant_id = (current
 --
 
 CREATE POLICY tenant_isolation ON public.promotion USING ((tenant_id = (current_setting('app.tenant_id'::text, true))::uuid)) WITH CHECK ((tenant_id = (current_setting('app.tenant_id'::text, true))::uuid));
+
+
+--
+-- Name: property_fiscal_location tenant_isolation; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY tenant_isolation ON public.property_fiscal_location USING ((tenant_id = (NULLIF(current_setting('app.tenant_id'::text, true), ''::text))::uuid)) WITH CHECK ((tenant_id = (NULLIF(current_setting('app.tenant_id'::text, true), ''::text))::uuid));
 
 
 --
@@ -15420,6 +15471,13 @@ GRANT SELECT ON TABLE public.preference TO app_role;
 --
 
 GRANT SELECT ON TABLE public.promotion TO app_role;
+
+
+--
+-- Name: TABLE property_fiscal_location; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT SELECT ON TABLE public.property_fiscal_location TO app_role;
 
 
 --

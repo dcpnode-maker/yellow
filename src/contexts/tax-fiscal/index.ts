@@ -126,3 +126,13 @@ export type {
   IndiaGstFolioBuyerCandidateInput,
   IndiaGstFolioBuyerCandidateResult,
 } from "./india-gst-folio-buyer-candidate";
+export {
+  IndiaGstPropertyLocationConflictError,
+  IndiaGstPropertyLocationNotFoundError,
+  IndiaGstPropertyLocationService,
+  IndiaGstPropertyLocationValidationError,
+} from "./india-gst-property-location";
+export type {
+  IndiaGstPropertyLocationInput,
+  IndiaGstPropertyLocationResult,
+} from "./india-gst-property-location";

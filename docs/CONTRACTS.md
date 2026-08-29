@@ -858,6 +858,36 @@ SEZ, deemed export or CGST/SGST/IGST, or authorize tax, posting, correction, doc
 numbering/hash-chain, submission, provider, API, HTTP or UI behavior. Fresh independent
 Tier-3 execution approves exact Order279 under D-731 with no finding.
 
+### Exact India property fiscal-location evidence
+
+Order280 specifies the internal SELECT-only
+`IndiaGstPropertyLocationService.resolve(tx, {tenantId,propertyNode})` boundary. Its
+input must be one exact plain accessor-free, proxy-free and symbol-free object with
+only two canonical UUIDs. The service requires the caller-established transaction-local
+tenant context and reads exactly one `property_fiscal_location` row equality-bound to
+that tenant and property. The same-tenant property reference must resolve to one
+`org_node.kind='property'`; neither the node's name, config or path nor any profile,
+space or unit-type data may substitute for the typed row.
+
+Resolution requires country `IN`, one current two-digit GST state/UT code, canonical
+address line 1 and locality, and an exact six-digit nonzero PIN. It returns only the
+recursively frozen fixed-shape value
+`{propertyNode,countryCode,stateCode,addressLine1,locality,pin,evidenceHash}`.
+`evidenceHash` is deterministic SHA-256 over fixed-order tenant, property and complete
+location evidence; tenant identity is hash-bound but remains outside the returned
+value. Replay over identical stored truth is byte-identical.
+
+Missing, duplicate, foreign, malformed, noncanonical or incoherent truth fails
+closed. There is no fallback to supplier or recipient GSTIN state,
+`property_fiscal_registration`, `party_fiscal_registration`, tax-code coincidence or
+mutable display/configuration data. The boundary locks and writes nothing, emits no
+fact or event and creates no idempotency evidence. It is a future place-of-supply
+prerequisite only: it does not emit or decide IRP `Pos` or `SupTyp`, classify
+accommodation or service supply, select HSN/SAC, choose B2C/URP, export, SEZ or
+deemed-export treatment, derive CGST/SGST/IGST or tax rates, associate a reservation,
+folio or buyer, or authorize posting, correction, document allocation/issue/number/
+hash-chain, submission, provider, API, HTTP or UI behavior.
+
 ## 8. Pure rate-model evaluator
 
 Order 067's in-process evaluator is a draft/simulation primitive, not a database or HTTP contract.
