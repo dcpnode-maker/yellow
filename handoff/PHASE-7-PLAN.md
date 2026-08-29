@@ -442,6 +442,17 @@ migration39/0(187), acceptance16/0, runtime-DML5/0, exact51/103/93/93/3 normaliz
 schema/referee11/11 and standing927/0 plus841 skips. Type/107-boundary/23-licence/
 audit0/diff are green; disposable proof is absent and the sole stable local remains
 exact, healthy and unchanged. Fresh non-implementing Tier-3 review is mandatory.
+
+## Order 289 boundary
+
+Order289 adds one exact tenant-leading forced-RLS SELECT-only source root for active
+GST Portal registration status/taxpayer type of the exact Order272 supplier
+registration reached through complete Order284 lineage at one explicit evidence
+date. That date grants no statutory time-of-supply applicability. Historical Form-G/
+Form-F2 approval remains separate; no live lookup, latest/clock inference, effective
+renewed status, supply-nature V2, zero rating, levy, document/API/UI/local authority
+is admitted. D-765 requires intentional red, exact55/107/97/97/7 schema/setup/
+referee, hostile zero-write proof and fresh Tier-3.
 Fresh non-implementing Tier-3 review approves exact candidate `8630639` with no
 finding under D-751. Reviewer-personal official-law, exact52/104/94/94/4,
 schema/setup/referee11/11, focused/database/standing/static and stable-runtime proof

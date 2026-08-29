@@ -992,3 +992,14 @@ Peppol · payroll/inventory-procurement ERP edges · native apps (Tauri wrap exi
 multi-currency folio settlement (schema is ready: single-currency journals + kind
 `fx` for gain/loss pairs; v1 settles in property currency, acquirer converts —
 trigger: first tenant contractually needing cross-currency folios).
+
+**Ready Order289 current supplier GST-registration-status slice:** add one exact
+tenant-leading forced-RLS SELECT-only snapshot and resolver for independently
+changeable active GST Portal status/taxpayer type of approved Order272 supplier
+registration reached through complete Order284 lineage at one explicit evidence
+date. Order286 historical approval and Order288 Form-F2 continuity cannot substitute
+for current GST status. The date is evidence time only; consumption awaits separately
+approved service-supply/time-of-supply authority. D-765 requires intentional red,
+exact55/107/97/97/7 schema/setup/referee, hostile zero-write proof and fresh Tier-3.
+Effective renewed status, supply-nature V2, zero rating, levy, document/API/UI/local
+authority remain separate.

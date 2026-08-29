@@ -394,6 +394,15 @@ The Order284 candidate is built under D-747: intentional red0/1 preceded focused
 normalized schema/referee11/11 and standing927/0 plus841 skips. All static gates are
 green, disposable proof is removed and the sole stable local is exact, healthy and
 unchanged. Fresh non-implementing Tier-3 review remains mandatory.
+
+Order289/D-765 is ready as the exact current supplier GST-registration-status
+prerequisite: one tenant-leading forced-RLS SELECT-only exact-date snapshot of active
+GST Portal status/type, bound to complete approved Order284/272 lineage. Its date is
+evidence time only and cannot decide statutory time of supply. Historical Form-G and
+renewed Form-F2 evidence remain separate. Intentional red, exact55/107/97/97/7
+schema/setup/referee, hostile zero-write proof and fresh Tier-3 are mandatory; no
+effective renewed status, supply-nature V2, zero rating, levy, document/API/UI/local
+authority is admitted.
 Fresh non-implementing Tier-3 review approves exact candidate `8630639` with no
 finding under D-751. Reviewer-personal official-law, exact52/104/94/94/4,
 schema/setup/referee11/11, focused/database/standing/static and stable-runtime proof
