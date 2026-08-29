@@ -2,7 +2,7 @@
 
 **Status:** active; governed positive-tax posting and complete correction approved through Order266
 **Entry point:** built-unreviewed Phase-6 composition through Order 236
-**Current order:** Order278 pure exact India IRP BuyerDtls candidate is independently approved under D-728
+**Current order:** Order279 exact read-only India GST folio-buyer candidate association is admitted under D-729
 
 ## Outcome
 
@@ -322,3 +322,14 @@ preceded focused/adjacent22/0+10
 database-only skips and standing879/0+798 database-only skips; all static gates are
 green. Fresh independent Tier-3 execution approves exact commit e31b71e under D-728
 with no finding.
+
+## Order 279 boundary
+
+Order279 may only read one exact tenant/property folio-account-reservation anchor,
+compose the explicitly selected approved Order276 registration and approved Order278
+BuyerDtls bytes, and return deterministic frozen candidate-association evidence.
+Account Party, reservation primary/booker Party, guest role, window name and folio
+number cannot substitute for explicit selection. Status and currency are evidence only.
+No persistence, legal designation, `Pos`, supply type, tax, document, submission, API,
+UI or local authority is admitted. Fresh PostgreSQL/referee and independent Tier-3
+execution are mandatory.

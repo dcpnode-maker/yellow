@@ -300,3 +300,11 @@ decomposition, document, submission, database, API, UI or local authority. Inten
 red0/1, focused/adjacent22/0+10 database-only skips, standing879/0+798 database-only
 skips and every static gate are green; fresh independent Tier-3 execution reproduced
 the complete proof with no finding.
+
+Order279/D-729 is the admitted current product slice. It resolves only a read-only,
+exact association between an explicit folio window and explicit approved recipient
+registration, reusing approved Order278 BuyerDtls bytes. Shared-account sibling windows
+remain distinct, and no account/reservation/Party/window inference is allowed. No
+persistence, legal designation, `Pos`, tax, document, submission, API, UI or local
+authority is admitted; fresh PostgreSQL/referee and independent Tier-3 execution are
+mandatory.
