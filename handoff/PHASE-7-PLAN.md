@@ -2,7 +2,7 @@
 
 **Status:** active; governed positive-tax posting and complete correction approved through Order266
 **Entry point:** built-unreviewed Phase-6 composition through Order 236
-**Current order:** Order279 exact read-only India GST folio-buyer candidate association is independently approved under D-731
+**Current order:** Order280 exact India property fiscal-location evidence is admitted under D-732
 
 ## Outcome
 
@@ -335,3 +335,13 @@ UI or local authority is admitted. Intentional red0/1, corrected fresh-PostgreSQ
 focused/adjacent33/0, exact48/100/90/referee11/11, standing884/0+805 skips and all
 static gates are green. Fresh independent Tier-3 execution approves exact commit
 6ae170f under D-731 with no finding.
+
+## Order 280 boundary
+
+Order280 may add only one tenant-leading/RLS/SELECT-only property fiscal-location root
+with canonical IN state/address/locality/PIN evidence and one exact deterministic
+read-only resolver. Supplier/recipient registrations, org-node config/name/path,
+spaces, profiles, unit types and tax codes cannot substitute. The result is future
+place-of-supply evidence only: no `Pos`, supply type, service classification,
+decomposition, reservation/folio association, document, submission, API, UI or local
+authority. Fresh PostgreSQL/referee and independent Tier-3 execution are mandatory.

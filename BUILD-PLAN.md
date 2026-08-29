@@ -765,6 +765,14 @@ adjacent33/0, exact48 migrations/100 tables/90 policies/referee11/11 and standin
 Fresh independent Tier-3 execution at D-731 reproduces the complete PostgreSQL,
 referee, migration, standing and authority proof with no finding.
 
+**Admitted Order280 product slice:** add one exact tenant/RLS SELECT-only Indian
+physical-property fiscal-location root and deterministic read-only resolver. This truth
+is deliberately separate from supplier/recipient GST registration state and every
+mutable org/property/profile display source. It is a future hotel-accommodation
+place-of-supply prerequisite only and emits no `Pos`, supply type, classification, tax,
+document or submission authority. Fresh PostgreSQL/referee and independent Tier-3
+execution are mandatory.
+
 ## Phase 8 — Statutory registration + ZATCA
 
 Statutory scheduler consuming check-in events; adapters: it-alloggiati (168-char),

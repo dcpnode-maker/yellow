@@ -309,3 +309,10 @@ persistence, legal designation, `Pos`, tax, document, submission, API, UI or loc
 authority is admitted. Corrected fresh PostgreSQL proves focused/adjacent33/0 and
 exact48/100/90/referee11/11; standing884/0+805 skips and all static gates are green.
 Fresh independent Tier-3 execution reproduces the complete proof with no finding.
+
+Order280/D-732 is the admitted current product slice. It adds only exact tenant/RLS
+SELECT-only Indian physical-property fiscal-location evidence and a deterministic
+read-only resolver, separately from supplier/recipient registration and mutable org/
+property/profile truth. It emits no `Pos`, supply type, classification, decomposition,
+document, submission, API, UI or local authority and requires fresh PostgreSQL/referee
+plus independent Tier-3 execution.
