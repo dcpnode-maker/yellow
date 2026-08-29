@@ -211,3 +211,15 @@ allocation and taxed correction semantics remain later policy work.
 Order260/D-674 is a bounded authenticated founder-status refresh through approved
 Order259. It advances only recorded latest/current truth and the compact Phase7
 milestone; runtime promotion is separate and unfinished Phases5–7 remain active.
+
+Order262/D-680 independently approves the governed line-rounded non-India positive-
+tax journal: exact configured semantic routes, balanced guest/base/tax postings,
+insert-only canonical tax root and immutable attribution-to-journal binding commit
+with atomic evidence. Order263/D-683 makes that exact truth founder-visible, and
+Order265/D-690 closes the sole-local credential incident with logging-safe independent
+approval while preserving both hotels and the complete database.
+
+Order266/D-691 is the active next financial boundary: one exact complete immutable
+contra journal may reverse an Order262 posting with database-derived full-reversal
+tax lineage and verified post-seal authority. Partial/India/negative-tax correction,
+refund/payment, fiscal document/IRP and Phase7 completion remain later work.

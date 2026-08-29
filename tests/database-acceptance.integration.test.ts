@@ -225,6 +225,11 @@ const EXPECTED_MIGRATIONS = [
     filename: "0044_governed_positive_tax_posting.sql",
     checksum_sha256: "c678ef9bf25e5da20298a9dada22ef5f0af7b441cb4f17659ded96c628e6ac86",
   },
+  {
+    version: 45,
+    filename: "0045_governed_positive_tax_correction.sql",
+    checksum_sha256: "aec7f04eaa0536568adf68d51d7e2fa3ff578cd043b3079c080a680d6e210dba",
+  },
 ];
 
 if (REQUIRE_DATABASE && !DATABASE_URL) {

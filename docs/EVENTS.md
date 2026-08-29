@@ -172,7 +172,7 @@ financial, business-day or statutory effects.
 
 **distribution** · inbound.received {channel,external_id} · inbound.processed {reservation_id}/.failed · ari.push_requested {channel,unit_types,date_range} · map.changed
 
-**tax/fiscal/statutory** · tax.attribution_recorded {attribution_id,property_node,origin_kind,origin_quote_hash,snapshot_hash,currency} · tax.attribution_bound {binding_id,attribution_id,hold_id,property_node,origin_quote_hash,snapshot_hash,currency} · tax.attribution_posted {posting_binding_id,journal_id,lineage_id,attribution_id,reservation_id,segment_id,folio_id,origin_quote_hash,snapshot_hash,currency} · document.issued {kind,doc_no,hash} · document.cleared/.rejected {authority_ref} · statutory.due {adapter,due_at} · statutory.submitted/.accepted/.failed · erasure.completed
+**tax/fiscal/statutory** · tax.attribution_recorded {attribution_id,property_node,origin_kind,origin_quote_hash,snapshot_hash,currency} · tax.attribution_bound {binding_id,attribution_id,hold_id,property_node,origin_quote_hash,snapshot_hash,currency} · tax.attribution_posted {posting_binding_id,journal_id,lineage_id,attribution_id,reservation_id,segment_id,folio_id,origin_quote_hash,snapshot_hash,currency} · tax.attribution_reversed {posting_binding_id,original_journal_id,reversal_journal_id,lineage_id,attribution_id,reservation_id,segment_id,folio_id,origin_quote_hash,snapshot_hash,currency,effect} · document.issued {kind,doc_no,hash} · document.cleared/.rejected {authority_ref} · statutory.due {adapter,due_at} · statutory.submitted/.accepted/.failed · erasure.completed
 
 `tax.attribution_recorded` states only that one exact positive Order-240 `rate_quote`
 snapshot became an immutable tenant root under one contextual property and actor. The
@@ -202,6 +202,17 @@ segment, folio, quote/snapshot hashes and currency. It carries no full snapshot,
 replay and a converging contender emit neither pair. Consumers may treat the pair as
 posting evidence only; they must not infer an invoice, fiscal finality, India
 decomposition, correction/reversal, payment, settlement, transfer or submission.
+
+Order266 emits `journal.posted` and `tax.attribution_reversed` only after one complete
+balanced adjustment has sign-negated every posting of an exact Order262 journal and
+the database has created its canonical version-2 full-reversal root evidence. The tax
+event contains only the immutable original posting-binding and lineage identities,
+the original and reversal journal ids, quote/snapshot hashes, currency and
+`effect:'full_reversal'`; it contains no guest/Party data, route configuration, full
+tax detail or document/provider content. Replay and a losing concurrent contender
+emit neither pair. Consumers may net the financial posting but must not infer a cash
+refund, replacement invoice, fiscal credit note, India decomposition, tax return
+amendment, settlement or submission.
 
 **kernel** · extension.activated {type,key,version} · automation.fired {automation_id,action,result} · approval.requested/.decided
 

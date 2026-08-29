@@ -1579,6 +1579,79 @@ databaseDescribe("Bun SQL migration runner", () => {
   );
 
   test(
+    "applies the exact governed positive-tax correction migration without schema expansion",
+    async () => {
+      await withDatabase(async ({ databaseUrl: targetUrl, sql }) => {
+        const result = await runMigrations({
+          databaseUrl: targetUrl,
+          migrationsDirectory: PROJECT_MIGRATIONS,
+          logger: () => undefined,
+        });
+        expect(result.appliedFiles).toContain("0045_governed_positive_tax_correction.sql");
+
+        const ledger = await sql<Array<{
+          version: number | bigint; filename: string; checksum_sha256: string;
+        }>>`
+          SELECT version, filename, checksum_sha256
+            FROM public.schema_migration
+           WHERE version = 45
+        `;
+        expect(ledger.map((row) => ({ ...row, version: Number(row.version) }))).toEqual([{
+          version: 45,
+          filename: "0045_governed_positive_tax_correction.sql",
+          checksum_sha256: "aec7f04eaa0536568adf68d51d7e2fa3ff578cd043b3079c080a680d6e210dba",
+        }]);
+
+        const authority = await sql<Array<{
+          signature: string; owner: string; securityDefiner: boolean;
+          config: string[]; appExecute: boolean; runtimeExecute: boolean;
+        }>>`
+          SELECT p.oid::regprocedure::text AS signature,
+                 pg_catalog.pg_get_userbyid(p.proowner) AS owner,
+                 p.prosecdef AS "securityDefiner",
+                 p.proconfig AS config,
+                 pg_catalog.has_function_privilege('app_role', p.oid, 'EXECUTE')
+                   AS "appExecute",
+                 pg_catalog.has_function_privilege('yellow_runtime', p.oid, 'EXECUTE')
+                   AS "runtimeExecute"
+            FROM pg_catalog.pg_proc AS p
+            JOIN pg_catalog.pg_namespace AS n ON n.oid = p.pronamespace
+           WHERE n.nspname = 'public'
+             AND p.proname IN (
+               'create_positive_tax_correction_header',
+               'record_positive_tax_correction_root'
+             )
+           ORDER BY signature
+        `;
+        expect(authority).toEqual([
+          {
+            signature: "create_positive_tax_correction_header(uuid,uuid,uuid,text,uuid)",
+            owner: "yellow_owner", securityDefiner: true,
+            config: ["search_path=pg_catalog, public, pg_temp"],
+            appExecute: true, runtimeExecute: false,
+          },
+          {
+            signature: "record_positive_tax_correction_root(uuid,uuid,uuid,uuid)",
+            owner: "yellow_owner", securityDefiner: true,
+            config: ["search_path=pg_catalog, public, pg_temp"],
+            appExecute: true, runtimeExecute: false,
+          },
+        ]);
+
+        const counts = await sql<Array<{ tables: number; policies: number }>>`
+          SELECT
+            (SELECT pg_catalog.count(*)::int FROM pg_catalog.pg_tables
+              WHERE schemaname = 'public') AS tables,
+            (SELECT pg_catalog.count(*)::int FROM pg_catalog.pg_policies
+              WHERE schemaname = 'public') AS policies
+        `;
+        expect(counts).toEqual([{ tables: 98, policies: 88 }]);
+      });
+    },
+    60_000,
+  );
+
+  test(
     "applies the exact account-folio integrity migration and rejects tenant-crossing references",
     async () => {
       await withDatabase(async ({ databaseUrl: targetUrl, sql }) => {

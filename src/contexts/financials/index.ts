@@ -144,6 +144,19 @@ export type {
   PositiveTaxPostingServiceOptions,
 } from "./positive-tax-postings";
 
+export {
+  PositiveTaxCorrectionAuthorizationError,
+  PositiveTaxCorrectionConflictError,
+  PositiveTaxCorrectionNotFoundError,
+  PositiveTaxCorrectionService,
+  PositiveTaxCorrectionValidationError,
+} from "./positive-tax-corrections";
+export type {
+  PositiveTaxCorrectionInput,
+  PositiveTaxCorrectionResult,
+  PositiveTaxCorrectionServiceOptions,
+} from "./positive-tax-corrections";
+
 export { ReceivableConflictError, ReceivableNotFoundError, ReceivableService, ReceivableValidationError } from "./receivables";
 export type { DecideReceivableApprovalInput, ReceivableApprovalResult, ReceivablePreview, ReceivablePreviewInput, ReceivableServiceOptions, ReceivableTarget, ReceivableTargetListInput, ReceivableTransferInput, ReceivableTransferResult, RequestReceivableApprovalInput } from "./receivables";
 export type {

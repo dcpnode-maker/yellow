@@ -285,6 +285,7 @@ databaseDescribe("Order 150 positive runtime DML authority", () => {
        WHERE n.nspname = 'public'
           AND p.proname IN ('record_occupancy', 'release_occupancy', 'seal_business_day',
             'lock_financial_rows', 'lock_financial_business_days', 'create_charge_correction_header',
+            'create_positive_tax_correction_header', 'record_positive_tax_correction_root',
             'create_folio_transfer', 'create_receivable_transfer',
             'govern_housekeeping_task_sheet', 'initialize_unit_condition',
             'report_room_discrepancy',
@@ -315,6 +316,12 @@ databaseDescribe("Order 150 positive runtime DML authority", () => {
       .toEqual(expect.objectContaining({ app: true, runtime: false }));
     expect(functions.find(({ signature }) => signature.startsWith("create_charge_correction_header(")))
       .toEqual(expect.objectContaining({ app: true, runtime: false }));
+    for (const capability of [
+      "create_positive_tax_correction_header(", "record_positive_tax_correction_root(",
+    ]) {
+      expect(functions.find(({ signature }) => signature.startsWith(capability)))
+        .toEqual(expect.objectContaining({ app: true, runtime: false }));
+    }
     expect(functions.find(({ signature }) => signature.startsWith("create_folio_transfer(")))
       .toEqual(expect.objectContaining({ app: true, runtime: false }));
     expect(functions.find(({ signature }) => signature.startsWith("create_receivable_transfer(")))

@@ -663,6 +663,37 @@ GST/place-of-supply decomposition, negative tax, correction or reversal, fiscal
 documents/numbering/hash chains, IRP/provider submission, payment, settlement,
 transfer, HTTP, UI or local promotion.
 
+### Governed positive-tax journal correction
+
+Order266 adds the internal financials-owned
+`PositiveTaxCorrectionService.reverse(tx,{tenantId,propertyNode,
+reversesJournalId,reason,postSealAuthorized,idempotencyKey,envelope})`. It accepts no
+money, tax, account, folio, route, business-date or posting-line input. PostgreSQL
+must prove the target is one exact Order262 positive-tax journal with its immutable
+posting binding, attribution, reservation/segment/primary-folio lineage, frozen
+configured routes and complete balanced posting set.
+
+After globally ordered account/folio and original-identity locks, the command rechecks
+all authority and data, locks the original and current financial business days, and
+creates one current property-local `adjustment` journal with `reverses=original.id`.
+Every original posting is copied in exact sequence with its amount sign-negated;
+accounts, folio, transaction codes, descriptions, quantities and currency are not
+re-routed or recalculated. The original journal, lines, attribution, binding and route
+evidence never change. Existing `journal_one_reversal` permits at most one contra
+journal and makes concurrent attempts converge.
+
+Only the reversal root receives database-derived version-2 tax evidence with
+`effect="full_reversal"`, exact original/reversal journal and posting-binding lineage,
+quote/snapshot identity and the exact original version-1 root evidence. The caller
+cannot provide or modify that JSON. Before seal, verified
+`financials.adjustments:write` authority is sufficient; when either relevant day is
+sealed, the same property's verified `financials.adjustments:post-seal` authority is
+also required. A body or header cannot manufacture that authority. Header, complete
+contra lines, root evidence, durable receipt and exactly one `journal.posted` plus one
+`tax.attribution_reversed` fact/outbox pair commit atomically. Partial correction,
+replacement/refund/payment/transfer, India or negative-tax handling, document/IRP and
+local promotion remain outside this contract.
+
 ## 8. Pure rate-model evaluator
 
 Order 067's in-process evaluator is a draft/simulation primitive, not a database or HTTP contract.

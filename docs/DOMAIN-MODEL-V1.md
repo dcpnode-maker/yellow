@@ -548,6 +548,22 @@ canonically retain revenue group, service night, person-night, quote lineage,
 correction attribution and transfer attribution together, so those values may not be
 reconstructed from USALI labels or descriptive quantity.
 
+### Positive-tax correction — Financials / Tax-Fiscal
+
+Order266 does not mutate the Tax Attribution Snapshot aggregate or its journal
+binding. It appends one financial `adjustment` aggregate whose `reverses` identity
+targets an exact governed Order262 charge. Its complete posting set is the exact
+sequence-preserving sign inverse of the original, so every account effect nets to
+zero without deleting, editing, reclassifying or re-routing historical truth.
+
+The correction root carries database-derived version-2 full-reversal evidence that
+references the immutable original journal/binding/attribution lineage and embeds the
+exact original version-1 tax evidence. `journal_one_reversal` makes the original the
+concurrency root for at most one reversal. The new journal, lines, fact and outbox
+events are atomic and immutable. This is accounting correction evidence only; it is
+not a refund, settlement, replacement invoice, fiscal credit note, India allocation
+or tax-return amendment.
+
 ### Positive Tax Attribution Snapshot value service — Tax/Fiscal
 
 Order 240 is a pure immutable value service, not an aggregate, entity or state
