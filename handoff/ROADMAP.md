@@ -233,12 +233,17 @@ Phase7 completion remain later.
 
 Order269/D-702 is the built-unreviewed authenticated status bridge through approved
 Order266: exact latest266/current269/review91/active7, unchanged phase states and an
-honest built-unverified aggregate. The stable local remains262/263 until historical
-migration44 lineage is reconciled and a separate guarded promotion is approved.
+honest built-unverified aggregate. Order271 now serves that exact snapshot locally.
 
 Order270/D-705 is independently approved. Exact historical
 migration0044 bytes are restored in Git and only the later deterministic join repair
 moves to forward0046. Fresh and real historical-upgrade executable proof preserves
 ledger/data truth, reaches46/98/88, reruns no-op and passes referee/schema/standing and
 static gates. A fresh non-implementing reviewer reproduced the proof without a finding.
-Stable3000 remains unchanged; local promotion is the next bounded order.
+Order271/D-707 has promoted only migrations45/46 and the clean status descendant to
+the retained sole local: binary ledger1–44, all97 non-ledger counts, both hotel
+identities, PostgreSQL, Valkey, network, volume and protected sign-in remain exact;
+healthy loopback3000 now serves exact266/269/review91/active7. Fresh independent non-
+operating verification is still mandatory before local approval. Phase7 remains
+active; partial/India/negative-tax correction, fiscal documents/IRP and Phase
+completion remain later work.
