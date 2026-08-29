@@ -1,6 +1,6 @@
 # Order 262 — Governed positive-tax journal posting
 
-**Status:** BUILT-D679 — independent Tier-3 review pending
+**Status:** APPROVED-D680
 **Phase:** 7 — Tax engine and India IRP
 **Branch:** `phase-7/positive-tax-journal-posting`
 **Base:** `dff2302` (approved Order259 plus current sole-local Order261)
@@ -130,7 +130,7 @@ zero write; governed tax correction/reversal is a later order.
 - [x] Intentional red precedes implementation.
 - [x] Exact migration/service and P1–P8 proof pass.
 - [x] Standing and fresh referee/acceptance/schema gates pass.
-- [ ] A non-implementing Tier-3 reviewer personally executes and records proof.
+- [x] A non-implementing Tier-3 reviewer personally executes and records proof.
 
 ## Builder evidence — D679
 
@@ -152,3 +152,10 @@ zero write; governed tax correction/reversal is a later order.
   stable app image was not replaced, and root/health/authentication remained HTTP
   200. The incident was reported immediately. App/status reconciliation remains a
   separate guarded promotion after independent approval.
+
+Independent non-implementing Tier-3 review is APPROVED with no blocking product
+finding in `handoff/reviews/262-governed-positive-tax-journal-posting.md`. The
+reviewer personally reproduced migration44/98/88, referee11/11, focused9/9,
+adjacent21/21, acceptance11/11, migration38/38, exact live schema, clean correction
+and statement regressions, standing841/841 and all static gates on a uniquely named
+disposable stack, then verified zero disposable containers, volumes and networks.

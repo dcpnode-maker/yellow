@@ -578,7 +578,7 @@ Order259: date2026-08-29/latest259/current260/review91/active7 and compact
 Orders237–259 truth. It changes no product, schema, database, credential or runtime;
 sole-local promotion remains a separate guarded order.
 
-Order262 is built-unreviewed as the first governed financials-owned positive-tax
+Order262 is independently approved as the first governed financials-owned positive-tax
 journal writer. It accepts only tenant/property/reservation identity, idempotency and
 audit authority; Orders251/256/259 derive the exact eligible primary folio, signed
 amounts and configured revenue/tax routes. Route-ready line-rounded non-India truth
@@ -589,8 +589,11 @@ credit set; an owner capability validates locked lineage/snapshot/routes, proves
 sequence 1 absent, then inserts the exact guest root and binding. Exact policy
 blockers write nothing. Document allocation, India GST/place-of-supply decomposition,
 negative tax, correction/reversal, fiscal documents/IRP, HTTP/UI/local promotion and
-Phase7 completion remain explicit later work; mandatory independent Tier-3 execution
-is still pending.
+Phase7 completion remain explicit later work. A non-implementing Tier-3 reviewer
+personally reproduced migration44/98 tables/88 policies, referee11/11, focused9/9,
+adjacent21/21, acceptance11/11, migration38/38, exact live schema, clean correction
+and statement regressions, standing841/841 and the static gates with no blocking
+product finding.
 
 tax_assignment evaluation (percent/fixed/slab, compound, line-vs-document rounding)
 from EXTENSIONS §2; India GST slab per room-night; document issue path: series →
