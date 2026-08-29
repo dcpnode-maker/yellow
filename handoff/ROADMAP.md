@@ -301,10 +301,11 @@ red0/1, focused/adjacent22/0+10 database-only skips, standing879/0+798 database-
 skips and every static gate are green; fresh independent Tier-3 execution reproduced
 the complete proof with no finding.
 
-Order279/D-729 is the admitted current product slice. It resolves only a read-only,
+Order279/D-730 is built pending independent review. It resolves only a read-only,
 exact association between an explicit folio window and explicit approved recipient
 registration, reusing approved Order278 BuyerDtls bytes. Shared-account sibling windows
 remain distinct, and no account/reservation/Party/window inference is allowed. No
 persistence, legal designation, `Pos`, tax, document, submission, API, UI or local
-authority is admitted; fresh PostgreSQL/referee and independent Tier-3 execution are
-mandatory.
+authority is admitted. Corrected fresh PostgreSQL proves focused/adjacent33/0 and
+exact48/100/90/referee11/11; standing884/0+805 skips and all static gates are green.
+Independent Tier-3 execution is mandatory.

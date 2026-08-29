@@ -291,6 +291,34 @@ provider/submission, API, HTTP or UI authority. These protections are built with
 executable product/database proof and are independently Tier-3 approved under D-725
 with no remaining finding.
 
+### India GST folio-window buyer candidate containment
+
+Order279 specifies one exact read-only tenant-transaction association. The boundary
+accepts only the accessor-free five-key
+`{tenantId,propertyNode,folioId,recipientPartyId,registrationId}` object, retains the
+transaction-local tenant context and equality-binds tenant/property/folio to exactly
+one account and reservation anchor. Account property and the explicit property must
+match, and account/reservation currencies must agree. Missing, duplicate, foreign,
+malformed or incoherent anchors fail closed.
+
+Window/status, account role/status, reservation status and currency are returned only
+as stored evidence. They confer no legal, issue, settlement or transition authority.
+The query does not read account Party, reservation primary/booker Party, guest role,
+folio name or folio number to infer the buyer. Only the exact explicit Party and
+registration may enter the approved Order276 resolver and approved Order278 builder.
+
+The result is recursively frozen and deterministically hashes its complete fixed-order
+folio/account/reservation/window/status/currency, Party/registration/evidence and exact
+BuyerDtls payload evidence. Exact sibling windows remain cryptographically distinct
+even when Party and registration match. Discovery and resolution acquire no lock and
+must leave folio, account, reservation, Party registration, fact, outbox, idempotency,
+document, journal, posting and submission rows byte/count unchanged.
+
+This boundary is candidate evidence, not persisted or legal buyer designation. It has
+no `Pos`, `SupTyp`, B2C/URP, export/SEZ/deemed-export, tax decomposition, document,
+submission, provider, API, HTTP or UI authority. Order279 is built under D-730 with
+fresh independent Tier-3 executable review pending.
+
 ### Tax-attribution persistence containment
 
 Order 244 accepts only a value that survives the exact hostile Order-240 parser. All

@@ -823,6 +823,41 @@ calculation, allocation, posting, correction, document issue/number/hash-chain,
 submission, provider, transaction, SQL, database, API, HTTP or UI authority. Fresh
 independent Tier-3 execution approves exact Order278 under D-728 with no finding.
 
+### Exact India GST folio-window buyer candidate association
+
+Order279 specifies one read-only
+`IndiaGstFolioBuyerCandidateService.resolve(tx, input)` boundary. Its input
+is the exact plain accessor-free five-key object
+`{tenantId,propertyNode,folioId,recipientPartyId,registrationId}` with canonical UUIDs
+and no surplus truth. One tenant-scoped query must return exactly one folio anchor and
+equality-bind the tenant, explicit property and folio together with the folio's exact
+account and reservation. Account property must equal the explicit property and the
+account and reservation currencies must agree.
+
+The stored folio window number and status, account role and status, reservation status
+and common currency are lineage evidence only. No status, role or currency value makes
+the candidate a legal buyer or authorizes issue, settlement or any other transition.
+The resolver neither reads nor requires a relationship to the account Party,
+reservation primary or booker Party, guest role, folio name or folio number. Party and
+registration are always the exact explicitly selected Order276 identities.
+
+After resolving exact approved Order276 recipient evidence, the service applies the
+approved Order278 builder without changing either value. Its recursively frozen result
+has fixed-order property, folio, account, reservation, window/status/currency lineage;
+the exact Party, registration and evidence-hash lineage; exact BuyerDtls payload bytes
+and payload hash; and one deterministic SHA-256 `associationHash` over that complete
+fixed-order evidence. Identical reads are byte-identical. Two sibling windows remain
+distinct candidates even when they use the same Party and registration because each
+window's exact folio identity and window number are bound into its evidence and hash.
+
+Missing, duplicate, foreign, malformed or incoherent folio/account/reservation or
+Party/registration truth fails closed. This read persists and locks nothing, emits no
+fact/event, and creates no idempotency evidence. It is a candidate association only:
+it does not designate a legal invoice buyer, decide `Pos`, `SupTyp`, B2C `URP`, export,
+SEZ, deemed export or CGST/SGST/IGST, or authorize tax, posting, correction, document,
+numbering/hash-chain, submission, provider, API, HTTP or UI behavior. Order279 is built
+under D-730 with independent Tier-3 executable review pending.
+
 ## 8. Pure rate-model evaluator
 
 Order 067's in-process evaluator is a draft/simulation primitive, not a database or HTTP contract.

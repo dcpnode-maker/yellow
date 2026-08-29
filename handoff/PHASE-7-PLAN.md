@@ -2,7 +2,7 @@
 
 **Status:** active; governed positive-tax posting and complete correction approved through Order266
 **Entry point:** built-unreviewed Phase-6 composition through Order 236
-**Current order:** Order279 exact read-only India GST folio-buyer candidate association is admitted under D-729
+**Current order:** Order279 exact read-only India GST folio-buyer candidate association is built pending review under D-730
 
 ## Outcome
 
@@ -331,5 +331,6 @@ BuyerDtls bytes, and return deterministic frozen candidate-association evidence.
 Account Party, reservation primary/booker Party, guest role, window name and folio
 number cannot substitute for explicit selection. Status and currency are evidence only.
 No persistence, legal designation, `Pos`, supply type, tax, document, submission, API,
-UI or local authority is admitted. Fresh PostgreSQL/referee and independent Tier-3
-execution are mandatory.
+UI or local authority is admitted. Intentional red0/1, corrected fresh-PostgreSQL
+focused/adjacent33/0, exact48/100/90/referee11/11, standing884/0+805 skips and all
+static gates are green under D-730; independent Tier-3 execution is mandatory.

@@ -753,14 +753,16 @@ Intentional red0/1 preceded focused/adjacent22/0+10 database-only skips and stan
 Fresh independent Tier-3 execution at D-728 reproduces the complete proof with no
 finding.
 
-**Admitted Order279 product slice:** resolve one exact read-only association between an
+**Built-pending-review Order279 product slice:** resolve one exact read-only association between an
 explicit folio window and explicit approved Order276 recipient registration, then
 compose exact approved Order278 BuyerDtls bytes and deterministic association evidence.
 Sibling windows remain distinct even when they share an account. Account Party,
 reservation primary/booker Party, guest role, window name and folio number are never
 buyer inference. No persistence, legal designation, `Pos`, tax, document or submission
-authority is admitted. Fresh PostgreSQL/referee and independent Tier-3 proof are
-mandatory.
+authority is admitted. Intentional red0/1 preceded corrected fresh-PostgreSQL focused/
+adjacent33/0, exact48 migrations/100 tables/90 policies/referee11/11 and standing
+884/0+805 environment skips; type/102-boundary/23-licence/audit0/diff are green.
+Independent Tier-3 proof is mandatory.
 
 ## Phase 8 — Statutory registration + ZATCA
 

@@ -1,6 +1,6 @@
 # Order 279 — Resolve exact India GST folio-window buyer candidate association
 
-**Status:** READY-D729
+**Status:** BUILT-PENDING-REVIEW-D730
 **Phase:** 7 — Tax engine and India IRP
 **Branch:** `phase-7/india-gst-folio-buyer-candidate`
 **Base:** `8e001e9` (independently approved Order278 descendant)
@@ -82,7 +82,7 @@ public deploy, Phase7 or application-complete claim.
 
 ## Definition of done
 
-- [ ] Intentional red precedes implementation.
-- [ ] Exact read-only candidate association and hostile PostgreSQL proof are green.
-- [ ] Standing/static gates are green and no authority expands.
+- [x] Intentional red precedes implementation.
+- [x] Exact read-only candidate association and hostile PostgreSQL proof are green.
+- [x] Standing/static gates are green and no authority expands.
 - [ ] Fresh independent Tier-3 approval is recorded.

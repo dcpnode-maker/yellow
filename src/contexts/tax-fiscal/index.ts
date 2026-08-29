@@ -116,3 +116,13 @@ export type {
   IndiaIrpBuyerDetailsResultV1,
   IndiaIrpBuyerDetailsV1,
 } from "./india-irp-buyer-details";
+export {
+  IndiaGstFolioBuyerCandidateConflictError,
+  IndiaGstFolioBuyerCandidateNotFoundError,
+  IndiaGstFolioBuyerCandidateService,
+  IndiaGstFolioBuyerCandidateValidationError,
+} from "./india-gst-folio-buyer-candidate";
+export type {
+  IndiaGstFolioBuyerCandidateInput,
+  IndiaGstFolioBuyerCandidateResult,
+} from "./india-gst-folio-buyer-candidate";

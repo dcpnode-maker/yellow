@@ -621,6 +621,36 @@ treatment, place of supply or supply type, decompose CGST/SGST/IGST, or own tax,
 posting, correction, document, provider, submission, HTTP or UI behavior. Its schema
 and resolver are independently Tier-3 approved under D-725 with no remaining finding.
 
+### Folio-window Buyer Candidate Association — Tax/Fiscal
+
+Order279 specifies a read-only value service rather than an aggregate or new entity.
+The Natural-Solution Test keeps `folio`, `account`, `reservation`, Party and
+`party_fiscal_registration` as the sole stored primitives: designation authoring,
+lifecycle, supersession and approval policy do not yet exist and therefore must not be
+invented as a table or mutable folio attribute.
+
+The service starts from one explicitly selected tenant/property/folio and one
+explicitly selected Party/registration pair. It equality-binds the folio to its exact
+account and reservation, proves account property equality and account/reservation
+currency coherence, then composes approved Order276 recipient evidence with approved
+Order278 BuyerDtls bytes. Folio window/status, account role/status, reservation status
+and currency are preserved as exact lineage evidence only; they are not eligibility,
+settlement, issue or legal-designation policy.
+
+The recursively frozen candidate retains fixed-order property/folio/account/
+reservation/window/status/currency lineage, exact Party/registration/evidence lineage,
+the exact BuyerDtls payload bytes/hash and one deterministic association hash. A
+sibling window is a distinct candidate even for the same Party/registration because
+its folio identity and window number are different bound evidence. No account Party,
+reservation primary/booker Party, guest role, window name or folio number may infer or
+substitute the explicit identities.
+
+This service writes and locks nothing and owns no persisted or legal buyer
+designation. It does not determine place of supply, supply type, B2C/export/SEZ/
+deemed-export treatment, tax decomposition, posting/correction, document allocation/
+issue/number/hash chain, provider/submission, API, HTTP or UI behavior. Order279 is
+built under D-730 with independent Tier-3 executable review pending.
+
 ### Positive Tax Attribution Snapshot value service — Tax/Fiscal
 
 Order 240 is a pure immutable value service, not an aggregate, entity or state
