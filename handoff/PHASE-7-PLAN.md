@@ -2,7 +2,7 @@
 
 **Status:** active; governed positive-tax posting and complete correction approved through Order266
 **Entry point:** built-unreviewed Phase-6 composition through Order 236
-**Current order:** Orders276–277 exact recipient evidence and canonical proof repair are independently approved under D-725; next product order is not yet admitted
+**Current order:** Order278 pure exact India IRP BuyerDtls candidate is admitted under D-726
 
 ## Outcome
 
@@ -299,6 +299,8 @@ PostgreSQL proof is green at exact48 migrations/100 tables/90 policies with
 standalone referee11/11. Independent Tier-3 review found no product defect but the
 canonical setup gate remains red on its stale 99-table/migrations1–47 oracle. A
 separate bounded correction and fresh complete execution are mandatory.
+Independent execution at D-725 subsequently approves the corrected exact descendant
+with no remaining finding.
 
 ## Order 277 boundary
 
@@ -308,3 +310,12 @@ migrations, schema, tests, referee, product, runtime and local stay byte-unchang
 Fresh isolated canonical setup exits0 at48 migrations/100 tables/referee11/11 and all
 standing/static gates are green. Fresh independent Tier-3 execution at D-725 approves
 the repair and corrected Order276 descendant with no remaining finding.
+
+## Order 278 boundary
+
+Order278 may only project the exact approved Order276 registered-recipient evidence
+into fixed-order notified `BuyerDtls` identity/address fields with isolated Party/
+registration/evidence lineage, deterministic JSON/hash and recursive freeze. The
+officially separate `Pos` attribute, legal folio-window buyer designation, supply type,
+tax decomposition, documents and submission remain later authority. Fresh independent
+Tier-3 execution is mandatory.

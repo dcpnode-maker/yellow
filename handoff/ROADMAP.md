@@ -275,15 +275,14 @@ documents, numbering/hash chains, submission/providers, database and UI remain o
 scope. Fresh non-implementing Tier-3 execution approves the exact immutable candidate
 with no finding; Phase7 remains active.
 
-Order276/D-721 is built pending review. Its typed tenant/RLS Party GST-registration
+Order276/D-725 is independently approved. Its typed tenant/RLS Party GST-registration
 root plus exact read-only registration-id resolver provide only active registered-
 recipient candidate evidence. Exact48-migration/100-table/90-policy PostgreSQL,
 referee11/11, hostile, standing and static proof are green. It grants no legal invoice-
 buyer, folio-window, `BuyerDtls`, place-of-supply, decomposition, document,
 submission, UI or local authority. Independent review at D-722 found no product
-defect but withheld approval because the canonical setup gate still asserts the
-pre-migration48 count. A bounded harness correction and fresh complete Tier-3
-execution remain mandatory.
+defect but withheld approval for the stale setup count; independently approved
+Order277 corrected only that oracle and D-725 approves the exact descendant.
 
 Order277/D-725 is independently approved. It changes only the canonical
 `setup.sh` exact count/message from99 after migrations1–47 to100 after migrations1–48,
@@ -292,3 +291,10 @@ exact48 migrations/100 tables/referee11/11. No product, migration, schema, test,
 referee, runtime or local change is admitted. Fresh independent Tier-3 execution
 approves both the exact repair and corrected Order276 candidate-evidence descendant
 with no remaining finding.
+
+Order278/D-726 is the admitted current product slice. It may project only exact
+approved Order276 recipient evidence into fixed-order notified IRP1.1 `BuyerDtls`
+identity/address fields with Party/registration/evidence lineage outside deterministic
+JSON. It grants no legal invoice-window buyer, separate `Pos`, supply type, tax
+decomposition, document, submission, database, API, UI or local authority and requires
+fresh independent Tier-3 execution.
