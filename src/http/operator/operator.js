@@ -930,6 +930,10 @@
  loginMessage.textContent = message;
  loginMessage.classList.toggle("error", isError);
  }
+  function restoreLocalLoginDefaults() {
+ const event = new Event("yellow:restore-local-login-defaults", { cancelable: true });
+ if (loginForm.dispatchEvent(event)) loginForm.elements.password.value = "";
+ }
   function showLogin() {
  closeReservationPickupTaskDetail({ history: false, restoreFocus: false });
  accessToken = "";
@@ -1016,7 +1020,7 @@
  pendingKeys.clear();
  history.replaceState(null, "", "/");
  applyExperience("simple", { preserveActive: false });
- loginForm.elements.password.value = "";
+ restoreLocalLoginDefaults();
  loginForm.elements.email.focus();
  }
   async function loadProperties() {
@@ -11033,12 +11037,13 @@ function vehicleReturnPathFromState(state, property) {
   });
   accessToken = body.accessToken;
   operator = body.user;
-  loginForm.elements.password.value = "";
+  restoreLocalLoginDefaults();
   await loadProperties();
   showWorkbench();
   setLoginMessage("");
  } catch (error) {
   accessToken = "";
+  restoreLocalLoginDefaults();
   setLoginMessage(error instanceof Error ? error.message : "Sign-in failed", true);
  } finally {
   button.disabled = false;

@@ -65,6 +65,56 @@ describe("Order194 local sign-in prefill", () => {
     expect(script).not.toMatch(/yellow-demo|operator@|password|local-deposit/i);
   });
 
+  test("one cancelable internal event restores private defaults and controls password clearing", async () => {
+    const response = operatorAssets.localPrefillJs();
+    const script = await response.text();
+    expect(script).toContain("f.addEventListener('yellow:restore-local-login-defaults',h)");
+    expect(script).toContain("e.preventDefault()");
+    expect(script).not.toMatch(/localStorage|sessionStorage|indexedDB|document\.cookie/);
+
+    class TestInput {
+      readonly dataset: Record<string, string>;
+      value = "";
+      constructor(localDefault: string) { this.dataset = { localDefault }; }
+    }
+    const inputs = ["first", "second", "third"].map((value) => new TestInput(value));
+    const listeners = new Map<string, (event: Event) => void>();
+    const form = {
+      elements: inputs,
+      addEventListener(type: string, listener: (event: Event) => void) { listeners.set(type, listener); },
+      dispatchEvent(event: Event) {
+        listeners.get(event.type)?.(event);
+        return !event.defaultPrevented;
+      },
+    };
+    new Function("document", "HTMLInputElement", "addEventListener", "setTimeout", "requestAnimationFrame", script)(
+      { querySelector: () => form },
+      TestInput,
+      () => undefined,
+      (callback: () => void) => { callback(); },
+      (callback: (timestamp: number) => void) => { callback(0); },
+    );
+    expect(inputs.map((input) => input.dataset)).toEqual([{}, {}, {}]);
+    inputs.forEach((input) => { input.value = ""; });
+    const restore = new Event("yellow:restore-local-login-defaults", { cancelable: true });
+    expect(form.dispatchEvent(restore)).toBeFalse();
+    expect(restore.defaultPrevented).toBeTrue();
+    expect(inputs.map((input) => input.value)).toEqual(["first", "second", "third"]);
+
+    const operator = await Bun.file(new URL("../src/http/operator/operator.js", import.meta.url)).text();
+    expect(operator).toContain('new Event("yellow:restore-local-login-defaults", { cancelable: true })');
+    expect(operator).toContain('if (loginForm.dispatchEvent(event)) loginForm.elements.password.value = "";');
+
+    const showLogin = operator.slice(operator.indexOf("function showLogin()"), operator.indexOf("async function loadProperties()"));
+    expect(showLogin).toContain("restoreLocalLoginDefaults();");
+    const submit = operator.slice(
+      operator.indexOf('loginForm.addEventListener("submit"'),
+      operator.indexOf('availabilityForm.addEventListener("submit"'),
+    );
+    expect(submit).toContain("operator = body.user;\n  restoreLocalLoginDefaults();");
+    expect(submit).toContain('} catch (error) {\n  accessToken = "";\n  restoreLocalLoginDefaults();');
+  });
+
   test("server source gates a complete process-only trio behind loopback and explicit enablement", async () => {
     const source = await Bun.file(new URL("../src/server.ts", import.meta.url)).text();
     expect(source).toContain('Bun.env.YELLOW_LOCAL_REVIEW_PREFILL !== "1"');

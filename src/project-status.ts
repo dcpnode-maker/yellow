@@ -15,7 +15,7 @@ export interface ProjectRecordedWorkSnapshot {
     | 126 | 127 | 148 | 154 | 155 | 156 | 160 | 161 | 162 | 163 | 164
     | 165 | 166 | 168 | 169 | 170 | 171 | 173 | 174 | 175 | 176 | 177 | 178
     | 179 | 180 | 181 | 182 | 183 | 184 | 185 | 186 | 188 | 189
-    | 190 | 191 | 192 | 193 | 195 | 199 | 236 | 259;
+    | 190 | 191 | 192 | 193 | 195 | 199 | 236 | 262;
   readonly state: ProjectRecordedWorkState;
   readonly summary: string;
   readonly remaining?: string;
@@ -47,8 +47,8 @@ export const PROJECT_BUILD_SNAPSHOT = Object.freeze({
   label: "Recorded build snapshot",
   roadmap: Object.freeze({
     phaseCount: 13,
-    latestBuiltOrder: 259,
-    currentOrder: 260,
+    latestBuiltOrder: 262,
+    currentOrder: 263,
     activePhase: 7,
   }),
   review: Object.freeze({
@@ -297,10 +297,10 @@ export const PROJECT_BUILD_SNAPSHOT = Object.freeze({
       remaining: "Builder proof only; independent high-risk review and Phase-6 completion remain pending.",
     }),
     Object.freeze({
-      order: 259,
+      order: 262,
       state: "built_unverified" as const,
-      summary: "Orders 237–259 built pure tax evaluation, effective jurisdiction resolution, attributable quote preview, the canonical positive attribution snapshot, governed append-only persistence, the inherited occupancy definer-path repair, authoritative quoted-tax cart-hold binding, canonical positive posting topology, authoritative quoted-tax hold-to-reservation/first-segment lineage, the independently approved primary-folio eligibility read/lock/recheck prerequisite and independently approved exact configured positive-tax semantic credit routing.",
-      remaining: "Governed positive posting and correction/reversal, fiscal documents/IRP, independent product review and Phase-7 completion remain pending.",
+      summary: "Orders 237–262 built pure tax evaluation, effective jurisdiction resolution, attributable quote preview, the canonical positive attribution snapshot, governed append-only persistence, the inherited occupancy definer-path repair, authoritative quoted-tax cart-hold binding, canonical positive posting topology, authoritative quoted-tax hold-to-reservation/first-segment lineage, the independently approved primary-folio eligibility read/lock/recheck prerequisite, independently approved exact configured positive-tax semantic credit routing and independently approved governed line-rounded non-India positive-tax journal posting.",
+      remaining: "Governed taxed correction/reversal, India GST and fiscal documents/IRP, independent product review and Phase-7 completion remain pending.",
     }),
   ] satisfies readonly ProjectRecordedWorkSnapshot[]),
   phases: Object.freeze([

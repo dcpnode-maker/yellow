@@ -165,10 +165,10 @@ describe("Order 064 recorded build snapshot", () => {
     const rows = manifestRows(manifest);
     expect(rows.length).toBeGreaterThan(0);
     expect(PROJECT_BUILD_SNAPSHOT.recordedAt).toBe("2026-08-29");
-    expect(PROJECT_BUILD_SNAPSHOT.roadmap.latestBuiltOrder).toBe(259);
+    expect(PROJECT_BUILD_SNAPSHOT.roadmap.latestBuiltOrder).toBe(262);
     expect(PROJECT_BUILD_SNAPSHOT.review.gate3Debt).toBe(0);
     expect(PROJECT_BUILD_SNAPSHOT.review.state).toBe("built_unverified");
-    expect(PROJECT_BUILD_SNAPSHOT.roadmap.currentOrder).toBe(260);
+    expect(PROJECT_BUILD_SNAPSHOT.roadmap.currentOrder).toBe(263);
     expect(PROJECT_BUILD_SNAPSHOT.roadmap.activePhase).toBe(7);
     expect(PROJECT_BUILD_SNAPSHOT.roadmap.phaseCount).toBe(13);
     expect(reviewCoverage.throughOrder).toBe(91);
@@ -421,10 +421,10 @@ describe("Order 064 recorded build snapshot", () => {
         remaining: "Builder proof only; independent high-risk review and Phase-6 completion remain pending.",
       },
       {
-        order: 259,
+        order: 262,
         state: "built_unverified",
-        summary: "Orders 237–259 built pure tax evaluation, effective jurisdiction resolution, attributable quote preview, the canonical positive attribution snapshot, governed append-only persistence, the inherited occupancy definer-path repair, authoritative quoted-tax cart-hold binding, canonical positive posting topology, authoritative quoted-tax hold-to-reservation/first-segment lineage, the independently approved primary-folio eligibility read/lock/recheck prerequisite and independently approved exact configured positive-tax semantic credit routing.",
-        remaining: "Governed positive posting and correction/reversal, fiscal documents/IRP, independent product review and Phase-7 completion remain pending.",
+        summary: "Orders 237–262 built pure tax evaluation, effective jurisdiction resolution, attributable quote preview, the canonical positive attribution snapshot, governed append-only persistence, the inherited occupancy definer-path repair, authoritative quoted-tax cart-hold binding, canonical positive posting topology, authoritative quoted-tax hold-to-reservation/first-segment lineage, the independently approved primary-folio eligibility read/lock/recheck prerequisite, independently approved exact configured positive-tax semantic credit routing and independently approved governed line-rounded non-India positive-tax journal posting.",
+        remaining: "Governed taxed correction/reversal, India GST and fiscal documents/IRP, independent product review and Phase-7 completion remain pending.",
       },
     ]);
     const recordedOrders = PROJECT_BUILD_SNAPSHOT.recordedWork.map(({ order }) => Number(order));
@@ -432,7 +432,7 @@ describe("Order 064 recorded build snapshot", () => {
       126, 127, 148, 154, 155, 156, 160, 161, 162, 163, 164,
       165, 166, 168, 169, 170, 171, 173, 174, 175, 176, 177, 178,
       179, 180, 181, 182, 183, 184, 185, 186, 188, 189,
-      190, 191, 192, 193, 195, 199, 236, 259,
+      190, 191, 192, 193, 195, 199, 236, 262,
     ]);
     expect(recordedOrders).not.toContain(167);
     expect(recordedOrders).not.toContain(172);
@@ -442,30 +442,31 @@ describe("Order 064 recorded build snapshot", () => {
       .filter(({ state }) => state === "independently_approved").map(({ order }) => Number(order)))
       .toEqual([190, 191, 192, 193, 195]);
     expect(PROJECT_BUILD_SNAPSHOT.recordedWork.filter(({ state }) => state === "built_unverified")
-      .map(({ order }) => Number(order))).toEqual([199, 236, 259]);
+      .map(({ order }) => Number(order))).toEqual([199, 236, 262]);
     expect(PROJECT_BUILD_SNAPSHOT.recordedWork.find(({ order }) => order === 199)?.summary).toMatch(/196–199/);
     expect(PROJECT_BUILD_SNAPSHOT.recordedWork.find(({ order }) => order === 236)?.summary).toMatch(/200–236/);
-    const order259: { readonly state: string; readonly summary: string; readonly remaining?: string } | undefined =
-      PROJECT_BUILD_SNAPSHOT.recordedWork.find(({ order }) => order === 259);
-    expect(order259?.state).toBe("built_unverified");
-    expect(order259?.summary).toMatch(/237–259/);
-    expect(order259?.summary).toMatch(/pure tax evaluation/i);
-    expect(order259?.summary).toMatch(/jurisdiction resolution/i);
-    expect(order259?.summary).toMatch(/quote preview/i);
-    expect(order259?.summary).toMatch(/canonical positive attribution snapshot/i);
-    expect(order259?.summary).toMatch(/append-only persistence/i);
-    expect(order259?.summary).toMatch(/occupancy definer-path repair/i);
-    expect(order259?.summary).toMatch(/authoritative quoted-tax cart-hold binding/i);
-    expect(order259?.summary).toMatch(/canonical positive posting topology/i);
-    expect(order259?.summary).toMatch(/authoritative quoted-tax hold-to-reservation\/first-segment lineage/i);
-    expect(order259?.summary).toMatch(/independently approved primary-folio eligibility read\/lock\/recheck prerequisite/i);
-    expect(order259?.summary).toMatch(/independently approved exact configured positive-tax semantic credit routing/i);
-    expect(order259?.remaining).not.toMatch(/configured semantic routing/i);
-    expect(order259?.remaining).toMatch(/governed positive posting/i);
-    expect(order259?.remaining).toMatch(/correction\/reversal/i);
-    expect(order259?.remaining).toMatch(/fiscal documents\/IRP/i);
-    expect(order259?.remaining).toMatch(/independent product review/i);
-    expect(order259?.remaining).toMatch(/Phase-7 completion remain pending/i);
+    const order262: { readonly state: string; readonly summary: string; readonly remaining?: string } | undefined =
+      PROJECT_BUILD_SNAPSHOT.recordedWork.find(({ order }) => order === 262);
+    expect(order262?.state).toBe("built_unverified");
+    expect(order262?.summary).toMatch(/237–262/);
+    expect(order262?.summary).toMatch(/pure tax evaluation/i);
+    expect(order262?.summary).toMatch(/jurisdiction resolution/i);
+    expect(order262?.summary).toMatch(/quote preview/i);
+    expect(order262?.summary).toMatch(/canonical positive attribution snapshot/i);
+    expect(order262?.summary).toMatch(/append-only persistence/i);
+    expect(order262?.summary).toMatch(/occupancy definer-path repair/i);
+    expect(order262?.summary).toMatch(/authoritative quoted-tax cart-hold binding/i);
+    expect(order262?.summary).toMatch(/canonical positive posting topology/i);
+    expect(order262?.summary).toMatch(/authoritative quoted-tax hold-to-reservation\/first-segment lineage/i);
+    expect(order262?.summary).toMatch(/independently approved primary-folio eligibility read\/lock\/recheck prerequisite/i);
+    expect(order262?.summary).toMatch(/independently approved exact configured positive-tax semantic credit routing/i);
+    expect(order262?.summary).toMatch(/independently approved governed line-rounded non-India positive-tax journal posting/i);
+    expect(order262?.remaining).not.toMatch(/governed positive posting/i);
+    expect(order262?.remaining).toMatch(/governed taxed correction\/reversal/i);
+    expect(order262?.remaining).toMatch(/India GST/i);
+    expect(order262?.remaining).toMatch(/fiscal documents\/IRP/i);
+    expect(order262?.remaining).toMatch(/independent product review/i);
+    expect(order262?.remaining).toMatch(/Phase-7 completion remain pending/i);
     const order178: { readonly summary: string; readonly remaining?: string } | undefined =
       PROJECT_BUILD_SNAPSHOT.recordedWork.find(({ order }) => order === 178);
     expect(`${order178?.summary} ${order178?.remaining}`).toMatch(/offline/i);

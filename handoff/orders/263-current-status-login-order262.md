@@ -1,6 +1,6 @@
 # Order 263 — Current status through approved Order262 and persistent local sign-in defaults
 
-**Status:** READY-D681
+**Status:** BUILT-D682 — independent review pending
 **Phase:** 7 — Tax engine and India IRP
 **Branch:** `phase-7/current-status-login-order262`
 **Base:** `06ead97` (independently approved Order262)
@@ -65,7 +65,24 @@ be exposed to an agent message, command output, committed fixture or user respon
 
 ## Definition of done
 
-- [ ] Intentional stale/security red precedes implementation.
-- [ ] Exact source and P1–P4 proof pass.
-- [ ] Standing/static gates pass.
+- [x] Intentional stale/security red precedes implementation.
+- [x] Exact source and P1–P4 proof pass.
+- [x] Standing/static gates pass.
 - [ ] Independent non-implementing review records approval or findings.
+
+## Builder evidence — D682
+
+- Status tests-first stale proof: 4 pass / 1 expected fail / 2 environment skips,
+  expected latest262 and received untouched latest259/current260.
+- Local-helper security red: 6 pass / 1 expected fail before the cancelable private
+  restore event existed.
+- Final combined status/security proof: 12 pass / 0 fail / 2 environment skips /
+  149 assertions. The wider relevant operator security/UI set passes 47/47 with 711
+  assertions.
+- Standing repository: 842 pass / 0 fail / 765 environment skips / 8,528 assertions
+  across 1,607 tests in 289 files. Typecheck, 96-file context boundaries, 23-package
+  licence policy, zero-vulnerability audit and diff hygiene are green.
+- Integration corrected one lane overclaim: the Orders237–262 aggregate recorded-work
+  card remains `built_unverified` because earlier Phase7 slices still lack aggregate
+  product review, while its text records Order262 posting itself as independently
+  approved. Review coverage91 and all phase states remain unchanged.
