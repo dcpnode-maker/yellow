@@ -1,6 +1,6 @@
 # Order 271 — Promote approved Orders266–270 to the retained sole local
 
-**Status:** PROMOTED-PENDING-REVIEW-D707
+**Status:** APPROVED-LOCALLY-D708
 **Phase:** 7 — Tax engine and India IRP
 **Branch:** `phase-7/promote-orders266-270-local`
 **Base:** `070528a` (independently approved Order270 descendant)
@@ -67,4 +67,4 @@ forbidden without a separate emergency order.
 - [x] Preflight, backup and rollback evidence is verified.
 - [x] Only migrations45/46 and the app container change.
 - [x] Login, two properties, exact status and sole-local topology are green.
-- [ ] Independent non-operating review is recorded.
+- [x] Independent non-operating review is recorded.
