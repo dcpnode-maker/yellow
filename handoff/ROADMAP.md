@@ -351,12 +351,16 @@ the full proof with no finding and approved exact candidate `4047684`. No
 intra/inter-state, decomposition, `SupTyp`, item, document, submission, local,
 Phase-7 or application-complete authority is implied.
 
-Order283/D-741 is admitted as the exact next statutory prerequisite. It may purely
-compare approved Order272 property-bound supplier-registration state with approved
+Order283/D-742 is built-pending-review as the exact next statutory prerequisite. It
+purely compares approved Order272 property-bound supplier-registration state with approved
 Order282 property-derived lodging `pos`, returning only same/different state-or-UT
 relationship evidence and a deterministic tenant-bound hash. It must not call that
 relationship intra/inter-State: SEZ accommodation overrides ordinary same-code
 treatment under IGST sections7(5)(b)/8(2) and CBIC Circular48/22/2018, and current
 truth does not model the exception. Recipient state and every fallback are forbidden.
 No schema, lock, write, tax-component, `SupTyp`, item, document, submission, API, UI or
-local authority is admitted; exhaustive hostile proof and fresh Tier-3 remain mandatory.
+local authority is admitted. Intentional red0/1 preceded focused12/0, four-root50/0,
+Order28212/0, SellerDtls9/0, eligibility7/0, acceptance15/0, runtime-DML5/0,
+migration39/0, exact50/102/92/schema/referee11/11 and standing916/0 plus831 skips;
+all static gates are green and the sole local is unchanged. Fresh Tier-3 remains
+mandatory.

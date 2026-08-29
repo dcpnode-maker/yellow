@@ -812,7 +812,7 @@ candidate `4047684`. This grants no intra/inter-state conclusion, decomposition,
 `SupTyp`, item, document, submission, local-promotion, Phase-7-complete or
 application-complete authority.
 
-**Admitted Order283 product slice:** purely compare exact approved property-bound
+**Built-pending-review Order283 product slice:** purely compare exact approved property-bound
 supplier-registration state evidence with exact approved property-derived lodging
 `pos`. Return only `same_state_or_union_territory` or
 `different_state_or_union_territory`, fixed source lineage, deterministic JSON and a
@@ -823,6 +823,13 @@ never participates. No SQL/schema/lock/write, `SupTyp`, `IgstOnIntra`, levy rout
 rate/amount, rounding/residual, item/document/submission/API/UI/local authority is
 admitted. Intentional red, exhaustive36×36 hostile proof, exact unchanged PostgreSQL/
 referee and fresh non-implementing Tier-3 execution are mandatory under D-741.
+Intentional red0/1 preceded exact focused12/0(4,187 expectations), four approved-root
+suites50/0, Order28212/0, SellerDtls9/0, eligibility7/0, acceptance15/0,
+runtime-DML5/0, migration39/0, exact50 migrations/102 tables/92 forced-RLS
+tables+policies/schema/referee11/11 and standing916/0 plus831 database-only skips
+(13,655 expectations;1,747 tests/310 files). Type/106-boundary/23-licence/audit0/
+diff are green under D-742; disposable proof is removed and the sole local is
+healthy and unchanged. Fresh non-implementing Tier-3 execution remains mandatory.
 
 ## Phase 8 — Statutory registration + ZATCA
 

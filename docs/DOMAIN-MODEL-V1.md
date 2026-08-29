@@ -760,6 +760,47 @@ or infer intra-state/inter-state status, CGST/SGST/IGST decomposition or rates,
 assessable/tax/value fields, posting/correction, document allocation/series/issue/
 number/hash chains, providers, submissions, API, HTTP or UI behavior.
 
+### India Accommodation Registered-State Comparison — Tax/Fiscal
+
+Order283 adds one pure composed value, not an aggregate, entity, stored root,
+configuration or state machine. The Natural-Solution Test reuses the complete frozen
+Order272 supplier-registration evidence and complete frozen Order282 accommodation
+place-of-supply evidence. Their existing identifiers, statutory lineage and hashes
+already provide every fact this narrow comparison requires, so no new table, column,
+extension, service resolver, transaction, lifecycle, writer, fact or event is
+introduced.
+
+The exact input is `{tenantId,supplier,placeOfSupply}`. The builder validates both
+approved source shapes recursively, independently recomputes the Order272 evidence
+hash and Order282 candidate JSON/hash with the supplied tenant, and requires their
+property and complete frozen jurisdiction identity to agree. It compares only the
+canonical two-digit Order272 `supplier.stateCode` with the exact Order282
+`placeOfSupply.pos`. Recipient, guest, account, organisation, profile, configuration
+and address states neither participate nor act as fallback.
+
+The deeply frozen fixed-order body has exactly
+`propertyNode,reservationId,folioId,jurisdiction,supplier,recipient,buyerAssociation,
+classification,placeOfSupply,comparisonRule,stateRelationship`. The source lineage
+is minimized but retained exactly: supplier registration/hash/state; recipient Party,
+registration and hash; buyer association/payload hashes; classification id/hash; and
+place-of-supply candidate hash, legal rule and `pos`. The comparison rule is
+`SUPPLIER_REGISTERED_STATE_VS_ACCOMMODATION_POS`; the only relationship values are
+`same_state_or_union_territory` and `different_state_or_union_territory`. The result
+appends fixed-order body JSON and a SHA-256 over
+`JSON.stringify({tenantId,candidate:body})`, binding the unexposed tenant. Identical
+source bytes replay byte-identically; successful and rejected construction leave the
+sources unchanged.
+
+This value records only ordinary registered-state-versus-property-Pos equality. It
+does not select the supplier establishment or legally decide location of supplier,
+intra-State/inter-State supply or levy routing. In particular, SEZ supplies can be
+inter-State despite matching state codes, and the approved sources contain no
+bilateral SEZ status or exception-selection evidence. The value does not own SEZ/
+non-SEZ, B2C/URP, export/deemed-export, `SupTyp`, `IgstOnIntra`, reverse charge,
+CGST/SGST/UTGST/IGST route/rate/amount, rounding/residual, `ItemList` or other item/
+value fields. It creates no tax, financial, fiscal-document, provider, submission,
+API, HTTP, UI, local-runtime or promotion authority.
+
 ### Positive Tax Attribution Snapshot value service — Tax/Fiscal
 
 Order 240 is a pure immutable value service, not an aggregate, entity or state

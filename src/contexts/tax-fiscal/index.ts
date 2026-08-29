@@ -156,3 +156,13 @@ export type {
   IndiaGstAccommodationPlaceOfSupplyInput,
   IndiaGstAccommodationPlaceOfSupplyResult,
 } from "./india-gst-accommodation-place-of-supply";
+export {
+  buildIndiaGstAccommodationRegisteredStateComparison,
+  IndiaGstAccommodationRegisteredStateComparisonError,
+} from "./india-gst-accommodation-registered-state-comparison";
+export type {
+  IndiaGstAccommodationRegisteredStateComparisonCandidate,
+  IndiaGstAccommodationRegisteredStateComparisonInput,
+  IndiaGstAccommodationRegisteredStateComparisonResult,
+  IndiaGstAccommodationRegisteredStateRelationship,
+} from "./india-gst-accommodation-registered-state-comparison";

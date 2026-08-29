@@ -2,7 +2,7 @@
 
 **Status:** active; governed positive-tax posting and complete correction approved through Order266
 **Entry point:** built-unreviewed Phase-6 composition through Order 236
-**Current order:** Order283 exact India accommodation registered-state comparison is ready under D-741
+**Current order:** Order283 exact India accommodation registered-state comparison is built-pending-review under D-742
 
 ## Outcome
 
@@ -403,3 +403,9 @@ does not model that exception. Recipient state is irrelevant. No intra/inter-sta
 SEZ, `SupTyp`, `IgstOnIntra`, levy component/rate/amount, rounding, item, document,
 submission, API, UI or local authority is admitted. D-741 requires intentional red,
 exhaustive36×36 hostile proof, unchanged schema/referee and fresh Tier-3 execution.
+The implementation is built under D-742: intentional red0/1 preceded focused12/0
+(4,187 expectations), four approved-root suites50/0, Order28212/0, SellerDtls9/0,
+eligibility7/0, acceptance15/0, runtime-DML5/0, migration39/0, exact50/102/92/
+schema/referee11/11 and standing916/0 plus831 database-only skips. Type/106-boundary/
+23-licence/audit0/diff are green; disposable proof is absent and the sole local is
+healthy and unchanged. Fresh non-implementing Tier-3 review remains mandatory.

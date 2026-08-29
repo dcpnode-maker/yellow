@@ -425,6 +425,43 @@ resolvers. It grants no intra/inter-state conclusion, CGST/SGST/IGST rate or
 decomposition, `SupTyp`, `ItemList`, item values, posting/correction, document issue/
 number/hash-chain, provider/submission, API, HTTP or UI authority.
 
+### India accommodation registered-state comparison containment
+
+Order283 adds no schema, role, grant, capability, resolver, transaction or writer. Its
+pure value function accepts only the exact plain, accessor-free, proxy-free and
+symbol-free `{tenantId,supplier,placeOfSupply}` shape. The supplier and place-of-
+supply inputs must be complete, recursively frozen Order272 and Order282 values;
+unknown keys, hostile prototypes, accessors, symbols, proxies, unfrozen objects or
+malformed identities fail closed before any result is exposed.
+
+The boundary does not trust carried hashes. It independently revalidates the complete
+fixed source shapes and recomputes the tenant-bound supplier evidence hash and
+place-of-supply candidate JSON/hash. Property, reservation, folio, registration,
+classification and every jurisdiction/source hash must remain coherent. Cross-tenant,
+cross-property or cross-lineage substitution, tampered JSON/hash and stale or
+malformed nested evidence fail closed without revealing foreign truth. Neither source
+is normalized, repaired or mutated.
+
+The only computation compares exact `supplier.stateCode` with exact
+`placeOfSupply.pos`. Recipient GSTIN/address state, guest/account/organisation/profile
+state and display/configuration truth never enter the relationship and cannot serve
+as lookup, inference or fallback. The fixed body and nested lineage use the exact
+Order283 shapes; `candidateJson` is its fixed-order body JSON and `candidateHash`
+hashes `JSON.stringify({tenantId,candidate:body})`. Tenant remains unexposed. The
+body, result and all nested values are recursively frozen, replay is byte-identical,
+and successful or rejected calls perform no SQL, lock, read, write, fact, event,
+financial or fiscal effect.
+
+`same_state_or_union_territory` and `different_state_or_union_territory` are evidence
+literals, not statutory intra-State/inter-State conclusions. Registered state does
+not prove the applicable supplier establishment, and SEZ rules can make an otherwise
+same-code supply inter-State. The boundary therefore grants no SEZ/non-SEZ or
+supplier-location selection, B2C/URP, export/deemed-export, `SupTyp`, `IgstOnIntra`,
+reverse charge, CGST/SGST/UTGST/IGST route/rate/amount, rounding/residual, `ItemList`
+or item/value authority. It cannot post/correct money, allocate/issue/number/hash-chain
+a document, call a provider/submission, or authorize API, HTTP, UI, local-runtime,
+status or promotion behavior.
+
 ### Tax-attribution persistence containment
 
 Order 244 accepts only a value that survives the exact hostile Order-240 parser. All

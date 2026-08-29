@@ -987,6 +987,59 @@ or any item description/quantity/UQC/unit/gross/assessable/tax/value field, or
 authorize posting, correction, document allocation/issue/number/hash chain,
 provider/submission, API, HTTP or UI behavior.
 
+### Exact India accommodation registered-state comparison
+
+Order283 specifies the pure in-process
+`buildIndiaGstAccommodationRegisteredStateComparison(input)` value boundary. Its
+input is exactly the plain, accessor-free, proxy-free and symbol-free three-key object
+`{tenantId,supplier,placeOfSupply}`. `tenantId` is one canonical UUID; `supplier` is
+the complete exact recursively frozen approved Order272 result and `placeOfSupply`
+is the complete exact recursively frozen approved Order282 result. Null, arrays,
+non-plain prototypes, missing or surplus keys, unfrozen evidence and malformed nested
+shapes fail before comparison.
+
+The builder independently revalidates every fixed-order source field and recomputes
+the Order272 supplier evidence hash and the Order282 `candidateJson`/`candidateHash`
+from the complete source values, including the unexposed tenant. Supplier property,
+complete frozen jurisdiction, registration id and evidence hash must remain coherent
+with the place-of-supply property and lineage. Property, reservation and folio come
+only from the approved place-of-supply candidate. No source value is normalized,
+repaired, supplemented or mutated.
+
+The fixed-order comparison body contains exactly
+`{propertyNode,reservationId,folioId,jurisdiction,supplier,recipient,
+buyerAssociation,classification,placeOfSupply,comparisonRule,stateRelationship}`.
+`jurisdiction` is the complete frozen
+`{extensionId,ownerTenantId,key,version,contentHash}` identity. `supplier` is exactly
+`{registrationId,evidenceHash,stateCode}`; `recipient` is exactly
+`{partyId,registrationId,evidenceHash}`; `buyerAssociation` is exactly
+`{associationHash,payloadHash}`; `classification` is exactly
+`{classificationId,evidenceHash}`; and `placeOfSupply` is exactly
+`{candidateHash,legalRule,pos}`. `comparisonRule` is
+`SUPPLIER_REGISTERED_STATE_VS_ACCOMMODATION_POS`. `stateRelationship` is exactly
+`same_state_or_union_territory` when the canonical two-digit supplier `stateCode`
+equals `placeOfSupply.pos`, otherwise exactly
+`different_state_or_union_territory`.
+
+The result appends `candidateJson`, the exact fixed-order `JSON.stringify` of that
+body, and `candidateHash`, the SHA-256 of fixed-order
+`JSON.stringify({tenantId,candidate:body})`. Tenant identity is hash-bound but remains
+outside the body, JSON and result. The result and every nested object are recursively
+frozen; identical source bytes replay byte-identically. Successful and rejected calls
+leave caller bytes unchanged and perform no transaction, SQL, read, lock, write,
+fact, event, journal, posting, document, submission or idempotency effect.
+
+The relationship is comparison evidence only. It is not an intra-State or inter-State
+conclusion: the registered state is not a supplier-establishment/location selection,
+and IGST Act sections 7(5)(b) and 8(2), together with the SEZ rule, can override an
+ordinary same-code comparison. Recipient state is retained only through approved
+lineage and never participates in the comparison. Order283 does not infer SEZ or
+non-SEZ status, B2C/URP, export or deemed-export treatment, `SupTyp`, `IgstOnIntra`,
+reverse charge, CGST/SGST/UTGST/IGST route/rate/amount, rounding or residuals. It does
+not build `ItemList` or any item/value field and grants no posting, correction,
+document allocation/issue/number/hash-chain, provider/submission, API, HTTP, UI,
+local-runtime or promotion authority.
+
 ## 8. Pure rate-model evaluator
 
 Order 067's in-process evaluator is a draft/simulation primitive, not a database or HTTP contract.

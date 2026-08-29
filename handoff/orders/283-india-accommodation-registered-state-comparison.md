@@ -1,6 +1,6 @@
 # Order 283 — Build exact India accommodation registered-state comparison
 
-**Status:** READY-D741
+**Status:** BUILT-PENDING-REVIEW-D742
 **Phase:** 7 — Tax engine and India IRP
 **Branch:** `phase-7/india-accommodation-registered-state-comparison`
 **Base:** `b257949` (independently approved Order282 descendant)
@@ -90,7 +90,31 @@ dependency/merge/public deploy, Phase-7 or application-complete claim.
 
 ## Definition of done
 
-- [ ] Intentional red precedes implementation.
-- [ ] Exact hostile and exhaustive comparison proof is green.
-- [ ] Standing/static/schema/referee gates are green and no authority expands.
+- [x] Intentional red precedes implementation.
+- [x] Exact hostile and exhaustive comparison proof is green.
+- [x] Standing/static/schema/referee gates are green and no authority expands.
 - [ ] Fresh independent Tier-3 approval is recorded.
+
+## Builder proof — D-742
+
+Intentional red failed0/1 before the product file/export existed. The completed
+candidate then passed exact focused12/0 with4,187 expectations, including the
+exhaustive36×36 matrix and real approved Order272+282 PostgreSQL composition. Four
+approved-root suites passed50/0; Order282 passed12/0; SellerDtls passed9/0;
+positive-tax folio eligibility passed7/0; database acceptance passed15/0;
+runtime-DML passed5/0; migration replay passed39/0. The isolated catalogue remained
+exact50 migrations/102 public tables/92 forced-RLS tenant tables/92 policies, schema
+matched and the protected referee passed11/11. Standing `bun test` passed916 with831
+database/environment skips,0 failures,13,655 expectations across1,747 tests/310
+files. Typecheck,106-file import boundaries,23-package licence policy,audit0 and
+diff checks are green.
+
+The first database composition attempt intentionally stopped before a product
+assertion because the manually migrated runner lacked the canonical extension-type
+fixture; loading the same fixture used by `setup.sh` made it green. The first
+acceptance invocation was pointed at that invariant fixture and correctly rejected
+its two non-demo tenants; rerunning against the separately seeded canonical
+deployment database passed15/15. These were runner-target corrections, not product
+failures. The isolated PostgreSQL container/network/volume are removed. The sole
+stable app/PostgreSQL/Valkey remain the exact healthy containers, restart0, with
+`/health` HTTP200; no local promotion occurred.
