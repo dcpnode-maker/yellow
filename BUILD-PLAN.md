@@ -649,7 +649,10 @@ review. A fresh owner/SYSTEM-only D-drive backup is readable; literal target che
 removed only `yellow_order266_migration`. The unchanged app and replacement
 PostgreSQL/Valkey now pass exact catalog44/98/88/two-hotel/digest, HTTP/no-store
 populated masked login, both262/263/review91/active7 snapshots and sole-port proof
-without any container restart or product mutation.
+without any container restart or product mutation. Independent review subsequently
+recorded CHANGES REQUIRED because all three retained containers exited together with
+code255 before live reproof. Their exact identities/image/volume/restart0 remain;
+restoring those same containers and fresh independent live proof is now required.
 
 tax_assignment evaluation (percent/fixed/slab, compound, line-vs-document rounding)
 from EXTENSIONS §2; India GST slab per room-night; document issue path: series →

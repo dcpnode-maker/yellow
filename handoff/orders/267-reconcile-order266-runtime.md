@@ -1,6 +1,6 @@
 # Order 267 — Reconcile Order266 sole-local runtime incident
 
-**Status:** RECONCILED-D694 — independent verification pending
+**Status:** CHANGES-REQUIRED-D695 — retained containers exited before review
 **Phase:** 7 — Tax engine and India IRP
 **Branch:** `phase-7/reconcile-order266-runtime`
 **Base:** `c8b4fb9` (paused Order266 implementation checkpoint)
@@ -93,3 +93,14 @@ with masked password, authenticated two-property discovery, both snapshots
 digest739b6a2d…8763 and scratch count0. No container, image, volume, app, credential,
 cache, product database or product row was restarted, replaced or mutated by the
 reconciliation beyond the exact disclosed scratch-database removal.
+
+## Independent finding — D695
+
+The independent reviewer approved exact Git scope and independently reproduced the
+restricted backup's size, SHA, pg_restore readability and ACL. Before live proof, all
+three retained containers exited simultaneously with code255 at
+`2026-08-29T02:52:03Z`. Exact app/PostgreSQL/Valkey identities, approved image and
+retained volume remain present with restart count0, but port3000 is closed. Live
+database, HTTP, login and status assertions are therefore unavailable rather than
+disproven. A separate order must start the same retained containers without recreate
+or volume mutation and obtain a fresh independent review. Order267 is not approved.
