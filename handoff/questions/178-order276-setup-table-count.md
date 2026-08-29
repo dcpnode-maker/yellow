@@ -22,4 +22,3 @@ after migrations1–47 to 100 after migrations1–48, then personally rerun the 
 canonical isolated command and every standing/static gate. Do not weaken an exact
 count, touch any migration/product/test/referee/runtime/local, or claim Order276
 approval until a fresh non-implementing Tier-3 reviewer executes the corrected gate.
-
