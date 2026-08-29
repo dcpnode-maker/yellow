@@ -1,10 +1,10 @@
 # Order 285 — Independent Tier-3 review
 
-**Verdict:** **APPROVED — no finding**  
-**Reviewer:** fresh non-implementing Codex Tier-3 reviewer (`/root/order285_tier3_review`)  
-**Reviewed commit:** `86306397796a4ce0838f8fdb63a0c6d50e2cd945`  
-**Reviewed base:** `ab32439af60fb5a28c7786d7b9267f8443721860` (independently approved Order284 descendant)  
-**Reviewed range:** `ab32439..8630639`  
+**Verdict:** **APPROVED — no finding**
+**Reviewer:** fresh non-implementing Codex Tier-3 reviewer (`/root/order285_tier3_review`)
+**Reviewed commit:** `86306397796a4ce0838f8fdb63a0c6d50e2cd945`
+**Reviewed base:** `ab32439af60fb5a28c7786d7b9267f8443721860` (independently approved Order284 descendant)
+**Reviewed range:** `ab32439..8630639`
 **Date:** 2026-08-29
 
 ## Independence, required reads and exact scope
