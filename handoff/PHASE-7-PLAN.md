@@ -2,7 +2,7 @@
 
 **Status:** active; governed positive-tax posting and complete correction approved through Order266
 **Entry point:** built-unreviewed Phase-6 composition through Order 236
-**Current order:** Order283 exact India accommodation registered-state comparison requires one governance-proof correction under D-743
+**Current order:** Order283 exact India accommodation registered-state comparison is corrected and built-pending-review under D-744
 
 ## Outcome
 
@@ -405,11 +405,15 @@ submission, API, UI or local authority is admitted. D-741 requires intentional r
 exhaustive36×36 hostile proof, unchanged schema/referee and fresh Tier-3 execution.
 The implementation is built under D-742: intentional red0/1 preceded focused12/0
 (4,187 expectations), four approved-root suites50/0, Order28212/0, SellerDtls9/0,
-eligibility7/0, acceptance15/0, runtime-DML5/0, migration39/0, exact50/102/92/
-schema/referee11/11 and standing916/0 plus831 database-only skips. Type/106-boundary/
+eligibility7/0, acceptance15/0, runtime-DML5/0, migration39/0, exact50 migrations/
+102 tables/92 RLS-enabled tenant tables/92 policies/2 FORCE-RLS tables/schema/
+referee11/11 and standing916/0 plus831 database-only skips. Type/106-boundary/
 23-licence/audit0/diff are green; disposable proof is absent and the sole local is
 healthy and unchanged. Fresh non-implementing Tier-3 review remains mandatory.
 Fresh Tier-3 execution at exact `1cea37f` found no product/legal/containment defect but
 returned CHANGES REQUIRED under D-743 because current records call all 92
 RLS-enabled tables FORCE-RLS. The corrected descendant must record exact 92
 RLS-enabled tables, 92 policies and 2 FORCE-RLS tables before fresh review.
+That exact mutable wording is corrected under D-744 without changing product, test,
+schema or runtime bytes. The corrected descendant is built-pending-review and fresh
+independent approval remains mandatory.

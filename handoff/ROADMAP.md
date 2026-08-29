@@ -361,7 +361,8 @@ truth does not model the exception. Recipient state and every fallback are forbi
 No schema, lock, write, tax-component, `SupTyp`, item, document, submission, API, UI or
 local authority is admitted. Intentional red0/1 preceded focused12/0, four-root50/0,
 Order28212/0, SellerDtls9/0, eligibility7/0, acceptance15/0, runtime-DML5/0,
-migration39/0, exact50/102/92/schema/referee11/11 and standing916/0 plus831 skips;
+migration39/0, exact50 migrations/102 tables/92 RLS-enabled tenant tables/92 policies/
+2 FORCE-RLS tables/schema/referee11/11 and standing916/0 plus831 skips;
 all static gates are green and the sole local is unchanged. Fresh Tier-3 remains
 mandatory.
 Fresh Tier-3 execution at exact `1cea37f` returned CHANGES REQUIRED under D-743 for
@@ -369,3 +370,6 @@ one proof-wording defect only: all product and executable gates are green, but t
 candidate overstates FORCE-RLS coverage. The corrected descendant must say exact 92
 RLS-enabled tenant tables, 92 policies and 2 FORCE-RLS tables, then receive fresh
 independent review.
+The exact mutable claim is corrected under D-744 with no product, test, schema or
+runtime change. Order283 is again built-pending-review; fresh independent approval
+remains mandatory.

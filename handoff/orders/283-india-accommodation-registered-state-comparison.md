@@ -1,6 +1,6 @@
 # Order 283 — Build exact India accommodation registered-state comparison
 
-**Status:** CHANGES-REQUIRED-D743
+**Status:** BUILT-PENDING-REVIEW-D744
 **Phase:** 7 — Tax engine and India IRP
 **Branch:** `phase-7/india-accommodation-registered-state-comparison`
 **Base:** `b257949` (independently approved Order282 descendant)
@@ -86,7 +86,8 @@ dependency/merge/public deploy, Phase-7 or application-complete claim.
    relationship with byte/count zero-write oracles.
 9. Focused, adjacent roots/eligibility, database acceptance, runtime-DML, migration,
    exact schema/referee, standing/static and fresh non-implementing Tier-3 execution
-   are green; schema counts stay exact50 migrations/102 tables/92 forced-RLS policies.
+   are green; schema counts stay exact50 migrations/102 tables/92 RLS-enabled tenant
+   tables/92 policies/2 FORCE-RLS tables.
 
 ## Definition of done
 
@@ -103,7 +104,8 @@ exhaustive36×36 matrix and real approved Order272+282 PostgreSQL composition. F
 approved-root suites passed50/0; Order282 passed12/0; SellerDtls passed9/0;
 positive-tax folio eligibility passed7/0; database acceptance passed15/0;
 runtime-DML passed5/0; migration replay passed39/0. The isolated catalogue remained
-exact50 migrations/102 public tables/92 forced-RLS tenant tables/92 policies, schema
+exact50 migrations/102 public tables/92 RLS-enabled tenant tables/92 policies/2
+FORCE-RLS tables, schema
 matched and the protected referee passed11/11. Standing `bun test` passed916 with831
 database/environment skips,0 failures,13,655 expectations across1,747 tests/310
 files. Typecheck,106-file import boundaries,23-package licence policy,audit0 and
@@ -118,3 +120,18 @@ deployment database passed15/15. These were runner-target corrections, not produ
 failures. The isolated PostgreSQL container/network/volume are removed. The sole
 stable app/PostgreSQL/Valkey remain the exact healthy containers, restart0, with
 `/health` HTTP200; no local promotion occurred.
+
+## Governance-proof correction — D-744
+
+Fresh review of exact candidate `1cea37f` found no product, legal or containment
+defect but correctly rejected the builder's false wording that all92 RLS tables were
+FORCE-RLS. The executable catalogue is exactly92 RLS-enabled tenant tables,92
+tenant-isolation policies and2 FORCE-RLS tables (`property_fiscal_location` and
+`india_gst_item_classification`). D-743 preserves that finding and corrects D-742
+append-only; this mutable order and current plans now use the exact catalogue terms.
+No source, test, migration, schema, dependency or runtime byte changed. The corrected
+descendant remains subject to fresh independent Tier-3 approval. An initial read-only
+schema command correctly found that the unpromoted stable local remains on its older
+47/99/89 approved catalogue and therefore is not a candidate-proof target. A fresh
+isolated candidate database then reproduced exact50/102/92/92/2 and normalized
+schema equality; its sole container, network and volume were removed.

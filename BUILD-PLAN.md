@@ -825,8 +825,8 @@ admitted. Intentional red, exhaustive36×36 hostile proof, exact unchanged Postg
 referee and fresh non-implementing Tier-3 execution are mandatory under D-741.
 Intentional red0/1 preceded exact focused12/0(4,187 expectations), four approved-root
 suites50/0, Order28212/0, SellerDtls9/0, eligibility7/0, acceptance15/0,
-runtime-DML5/0, migration39/0, exact50 migrations/102 tables/92 forced-RLS
-tables+policies/schema/referee11/11 and standing916/0 plus831 database-only skips
+runtime-DML5/0, migration39/0, exact50 migrations/102 tables/92 RLS-enabled tenant
+tables/92 policies/2 FORCE-RLS tables/schema/referee11/11 and standing916/0 plus831 database-only skips
 (13,655 expectations;1,747 tests/310 files). Type/106-boundary/23-licence/audit0/
 diff are green under D-742; disposable proof is removed and the sole local is
 healthy and unchanged. Fresh non-implementing Tier-3 execution remains mandatory.
@@ -835,6 +835,9 @@ D-743 for one governance-proof wording defect only: the product and every execut
 gate are green, but current records overstate FORCE-RLS coverage. The corrected
 descendant must record 92 RLS-enabled tenant tables, 92 policies and 2 FORCE-RLS
 tables, then receive fresh independent review.
+The mutable proof claim is corrected exactly under D-744; no product, test, schema or
+runtime byte changed. Order283 is again built-pending-review on the corrected
+descendant and still requires fresh independent approval.
 
 ## Phase 8 — Statutory registration + ZATCA
 
