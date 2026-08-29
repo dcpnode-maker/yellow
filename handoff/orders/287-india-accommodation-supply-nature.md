@@ -1,6 +1,6 @@
 # Order 287 — Build exact India accommodation supply-nature evidence
 
-**Status:** BUILT-PENDING-REVIEW-D757
+**Status:** APPROVED-D758
 **Phase:** 7 — Tax engine and India IRP
 **Branch:** `phase-7/india-accommodation-supply-nature`
 **Base:** `c2a8c76` (independently approved Order286 descendant)
@@ -116,7 +116,7 @@ This clarification changes no outcome, precedence, scope or authority.
 - [x] Intentional red precedes implementation.
 - [x] Exact exhaustive/hostile supply-nature proof is green.
 - [x] Standing/static/schema gates are green and no authority expands.
-- [ ] Fresh independent Tier-3 approval is recorded.
+- [x] Fresh independent Tier-3 approval is recorded.
 
 ## Builder proof — D-757
 
@@ -130,3 +130,13 @@ zero vulnerabilities and `git diff --check` are green. Order287 changes no schem
 database, runtime or dependency artifact, so independently approved base
 `c2a8c76`'s exact `53/105/95/95/5` schema/referee proof remains byte-unchanged. Fresh
 non-implementing Tier-3 review remains mandatory.
+
+## Independent review — D-758
+
+A fresh non-implementing Tier-3 reviewer approves exact candidate `4f25f8e` with no
+finding. Reviewer-personal proof reproduced focused `12/0/398`, all 18 statutory
+combinations, adjacent Orders283–286 `36/0` plus 30 expected database skips, standing
+`957/0` plus 861 skips, all static gates, official-law precedence, exact source/hash/
+lineage/date containment, approved-base `53/105/95/95/5` schema/referee evidence and
+unchanged healthy port-3000 runtime. Approval grants only this pure supply-nature
+evidence and none of the forbidden downstream authority.

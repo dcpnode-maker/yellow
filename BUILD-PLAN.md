@@ -915,6 +915,10 @@ are green. No schema/runtime/dependency artifact changed, so approved-base exact
 53/105/95/95/5 schema/referee proof is unchanged. Fresh Tier-3 review is mandatory;
 no levy/decomposition, `SupTyp`, authorized operations/zero rating, item, document,
 API/UI/local authority is granted.
+Fresh non-implementing Tier-3 review approves exact candidate `4f25f8e` with no
+finding under D-758. Reviewer-personal official-law, exhaustive18-way, adjacent,
+standing/static, exact approved-base schema/referee and unchanged stable-local proof
+are green. Approval remains bounded to pure accommodation supply-nature evidence.
 
 ## Phase 8 — Statutory registration + ZATCA
 
