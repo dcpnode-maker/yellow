@@ -929,6 +929,10 @@ licence/audit0/diff green. It supports only the first directly contiguous five-y
 or shorter issued renewal. Form-F1, later chains, AO/specified-officer/BLUT, GST
 substitution, zero rating, tax, document/API/UI/local authority remain excluded.
 Fresh Tier-3 is mandatory.
+Fresh non-implementing Tier-3 review approves exact candidate `d65c236` with no
+finding under D-764. Reviewer-personal official-law, focused/database/migration/
+schema/setup/referee, adjacent/standing/static and stable-preservation proof are
+green. Approval remains bounded to first directly contiguous Form-F2 continuity.
 
 ## Phase 8 — Statutory registration + ZATCA
 

@@ -1,6 +1,6 @@
 # Order 288 — Build exact first-renewal India SEZ-unit LoA continuity evidence
 
-**Status:** BUILT-PENDING-REVIEW-D763
+**Status:** APPROVED-D764
 **Phase:** 7 — Tax engine and India IRP
 **Branch:** `phase-7/india-sez-unit-loa-renewal`
 **Base:** `39219a8` (independently approved Order287 descendant)
@@ -119,7 +119,7 @@ dependency/merge/public deploy, Phase-7 or application-complete claim.
 - [x] Intentional red precedes implementation.
 - [x] Exact schema/RLS/ACL and hostile continuity proof is green.
 - [x] Standing/static/referee gates are green and no authority expands.
-- [ ] Fresh independent Tier-3 approval is recorded.
+- [x] Fresh independent Tier-3 approval is recorded.
 
 ## Proof-scope clarification — D-760
 
@@ -159,3 +159,13 @@ are green. Migration0054 SHA-256 is
 `54a65ae32acfc5e232037129685a7c7edfb950aa66b54d4ea053c7acf11bb717`.
 Disposable proof resources are removed and the sole stable local remains unchanged.
 Fresh non-implementing Tier-3 review remains mandatory.
+
+## Independent review — D-764
+
+A fresh non-implementing Tier-3 reviewer approves exact candidate `d65c236` with no
+finding. Reviewer-personal official Rule19(6A)/Form-F1/Form-F2/five-year-or-shorter
+audit, focused PostgreSQL `10/0/227`, migration `39/0/187`, acceptance `19/0/55`,
+runtime DML `5/0/113`, exact `54/106/96/96/6`, schema/setup/referee `11/11`, adjacent
+`46/0` plus 28 expected skips, standing `967/0` plus 863 skips and every static/
+scope/hash gate are green. Disposable proof was removed and the sole stable local
+remained exact and healthy. Approval grants only first-renewal LoA continuity.
