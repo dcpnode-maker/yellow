@@ -874,6 +874,31 @@ recipient Order285 status cannot infer or replace supplier status. Bilateral sup
 nature, authorized operations, zero rating, levy, IRP/item/document/provider/API/UI
 and local identity remain separate future primitives.
 
+### India SEZ Unit LoA First Renewal — Tax/Fiscal
+
+Order288 adds one narrow tenant-leading read root for the first issued Form-F2
+renewal of one approved Order286 supplier SEZ-unit Form-G status. It neither extends
+the registration/status aggregate nor adds a lifecycle writer, fact or event. The
+root stores the original Form-G citation, the issued Form-F2 citation, exact
+Development Commissioner status evidence and one finite canonical renewal validity.
+
+The only supported relation is direct first-renewal continuity: the renewal lower
+bound equals the upstream Form-G exclusive upper bound. The original reference and
+evidence hash equal Order286; stored issue chronology is Form-G citation, then Form
+F2, then or on the explicit status date; and that date lies inside the renewal `[)`
+range. The issued five-year or shorter range is accepted exactly without calculating
+or imposing duration. Gap, overlap, later-chain, Form-F1, developer, regular, missing
+or stale evidence is unresolved.
+
+The read service fully revalidates and rehashes exact frozen Order286 evidence,
+equality-binds the requested tenant/status/root/date, and returns fixed recursively
+frozen minimized lineage plus original LoA, renewal, exact-continuity relation, legal
+rule and tenant-bound SHA-256. The Form-F2 document hash binds its cited original
+issue date; Order286 does not expose that date, so no independent date comparison is
+claimed. This root owns no supply-nature, authorized-operations endorsement, BLUT,
+zero rating/refund/payment route, levy, IRP/item/document/provider/API/UI or runtime
+identity.
+
 ### India Accommodation Supply Nature — Tax/Fiscal
 
 Order287 adds one pure composed value, not an aggregate, entity, stored root,

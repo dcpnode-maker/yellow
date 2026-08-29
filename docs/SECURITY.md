@@ -533,6 +533,30 @@ cannot select a supplier result. Approval evidence does not prove authorized
 operations or zero rating. Bilateral supply nature, levy, `SupTyp`, `IgstOnIntra`,
 item, document, submission, network/API/UI/local authority remain excluded.
 
+### India SEZ-unit first LoA-renewal containment
+
+Order288 adds one tenant-leading same-tenant FK root with forced RLS and `app_role`
+SELECT only. PUBLIC, runtime and app raw INSERT/UPDATE/DELETE/TRUNCATE are denied; no
+capability, writer, seed, fact, event or lifecycle command exists. The resolver
+accepts exactly seven canonical coordinates, fully revalidates and rehashes complete
+frozen Order286 evidence, and equality-selects only the requested tenant, renewal id,
+supplier-status id and explicit status date. It never selects latest or consults a
+clock.
+
+Only active supplier SEZ-unit Form-G evidence can proceed. Reference/hash lineage,
+canonical strings and dates, Form-G-to-F2 issue chronology, finite `[)` renewal
+validity, status-date containment and exact lower-to-upper continuity are rechecked
+in process rather than trusted to database constraints. Cross-tenant/property/
+reservation/location/registration/status/root/date evidence, gaps, overlaps, upper
+boundaries, later chains, hostile shapes and stale hashes fail closed before result
+exposure. Results are recursively frozen, fixed-order and tenant-hash-bound; replay
+and rejection preserve caller/source bytes and write nothing.
+
+Form F1 is not authority and this root cannot author Form F2 or assert authorized
+operations, specified-officer endorsement, BLUT, zero rating, refund/payment mode,
+supply nature, levy, rate/amount, `SupTyp`, `IgstOnIntra`, item/invoice/document,
+posting, submission, network, API, HTTP, UI, local-runtime or promotion truth.
+
 ### India accommodation supply-nature containment
 
 Order287 adds no schema, relation, role, grant, capability, transaction, resolver or

@@ -1143,6 +1143,46 @@ Form-F2 renewal, authorized-operations endorsement, zero rating/refund/payment m
 levy, `SupTyp`, `IgstOnIntra`, item, posting, document, submission, API, HTTP, UI,
 local-runtime or promotion authority.
 
+### Exact India SEZ-unit first LoA-renewal continuity evidence
+
+Order288 specifies `IndiaSezUnitLoaRenewalService.resolve(tx,input)` with the exact
+plain accessor-free, proxy-free and symbol-free input
+`{tenantId,propertyNode,reservationId,supplierServiceLocationId,
+supplierSezStatusId,supplierLoaRenewalId,statusAsOf}`. It first resolves complete
+exact Order286 evidence, independently revalidates its fixed frozen shape and
+tenant-bound hash, and requires an active `sez_unit` with an in-force Form G. It then
+equality-selects only the requested tenant, renewal id, supplier-status id and exact
+renewal status date from `india_sez_unit_loa_renewal`.
+
+The selected row is exactly the first directly contiguous Form-F2 renewal:
+`lower(renewal_validity) = upper(original Form-G validity)`. Its original Form-G
+reference and evidence hash equal Order286, the original issue date cannot follow
+the Form-F2 issue date, the Form-F2 issue date cannot follow `statusAsOf`, and the
+finite non-empty canonical `[fromInclusive,toExclusive)` renewal validity contains
+that date. The resolver accepts the five-year or shorter period exactly recorded; it
+does not infer, measure or require a duration. Gaps, overlaps, upper-boundary dates,
+later renewal chains, non-Form-G/developer/regular status and stale or malformed
+evidence fail closed.
+
+The recursively frozen result is exactly
+`{supplierLoaRenewalId,supplierSezStatusId,propertyNode,
+supplierServiceLocation:{id,evidenceHash},supplier:{registrationId,evidenceHash},
+statusAsOf,originalLoa,renewal,continuity,legalRule,evidenceHash}`. `originalLoa` is
+the exact Form-G reference, cited issue date, Order286 validity/status and evidence
+hash. `renewal` is the exact Form-F2 file number, issue date, validity, status date,
+`in_force` status, `development_commissioner_record` source and both status/document
+hashes. `continuity` is exactly `{from:'sez_rules_form_g',
+to:'sez_rules_form_f2',exactlyContiguous:true}` and the legal rule is
+`SEZ_RULES_19_6_AND_19_6A_3_FORM_F2_CONTINUITY`. The final hash covers fixed-order
+`JSON.stringify({tenantId,...complete body except evidenceHash})`; tenant is bound
+but unexposed.
+
+This read-only contract grants no Form-F1 authority, Form-F2 authoring, later-renewal
+selection, authorized-operations or specified-officer truth, BLUT, zero rating,
+refund/payment route, supply-nature change, levy, rate/amount, `SupTyp`,
+`IgstOnIntra`, invoice/item/document/submission, posting, API, HTTP, UI, runtime or
+promotion authority.
+
 ### Exact India accommodation supply-nature evidence
 
 Order287 specifies the pure in-process

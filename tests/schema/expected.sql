@@ -7555,6 +7555,41 @@ ALTER TABLE ONLY public.india_gst_supplier_sez_status FORCE ROW LEVEL SECURITY;
 
 
 --
+-- Name: india_sez_unit_loa_renewal; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.india_sez_unit_loa_renewal (
+    tenant_id uuid NOT NULL,
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    supplier_sez_status_id uuid NOT NULL,
+    original_loa_reference text NOT NULL,
+    original_loa_issue_date date NOT NULL,
+    original_loa_evidence_sha256 text NOT NULL,
+    form_f2_file_number text NOT NULL,
+    form_f2_issue_date date NOT NULL,
+    renewal_validity daterange NOT NULL,
+    renewal_status_as_of date NOT NULL,
+    renewal_status text NOT NULL,
+    renewal_status_source text NOT NULL,
+    renewal_status_evidence_sha256 text NOT NULL,
+    form_f2_evidence_sha256 text NOT NULL,
+    legal_rule text NOT NULL,
+    CONSTRAINT india_sez_unit_loa_renewal_file_number_ck CHECK ((((char_length(form_f2_file_number) >= 1) AND (char_length(form_f2_file_number) <= 128)) AND (btrim(form_f2_file_number) = form_f2_file_number) AND (form_f2_file_number IS NFC NORMALIZED) AND (form_f2_file_number !~ '[[:cntrl:]]'::text))),
+    CONSTRAINT india_sez_unit_loa_renewal_form_hash_ck CHECK ((form_f2_evidence_sha256 ~ '^[0-9a-f]{64}$'::text)),
+    CONSTRAINT india_sez_unit_loa_renewal_issue_chronology_ck CHECK (((original_loa_issue_date <= form_f2_issue_date) AND (form_f2_issue_date <= renewal_status_as_of))),
+    CONSTRAINT india_sez_unit_loa_renewal_legal_rule_ck CHECK ((legal_rule = 'SEZ_RULES_19_6_AND_19_6A_3_FORM_F2_CONTINUITY'::text)),
+    CONSTRAINT india_sez_unit_loa_renewal_original_hash_ck CHECK ((original_loa_evidence_sha256 ~ '^[0-9a-f]{64}$'::text)),
+    CONSTRAINT india_sez_unit_loa_renewal_original_reference_ck CHECK ((((char_length(original_loa_reference) >= 1) AND (char_length(original_loa_reference) <= 128)) AND (btrim(original_loa_reference) = original_loa_reference) AND (original_loa_reference IS NFC NORMALIZED) AND (original_loa_reference !~ '[[:cntrl:]]'::text))),
+    CONSTRAINT india_sez_unit_loa_renewal_source_ck CHECK ((renewal_status_source = 'development_commissioner_record'::text)),
+    CONSTRAINT india_sez_unit_loa_renewal_status_ck CHECK ((renewal_status = 'in_force'::text)),
+    CONSTRAINT india_sez_unit_loa_renewal_status_hash_ck CHECK ((renewal_status_evidence_sha256 ~ '^[0-9a-f]{64}$'::text)),
+    CONSTRAINT india_sez_unit_loa_renewal_validity_ck CHECK (((NOT isempty(renewal_validity)) AND (NOT lower_inf(renewal_validity)) AND (NOT upper_inf(renewal_validity)) AND lower_inc(renewal_validity) AND (NOT upper_inc(renewal_validity)) AND (renewal_validity @> renewal_status_as_of)))
+);
+
+ALTER TABLE ONLY public.india_sez_unit_loa_renewal FORCE ROW LEVEL SECURITY;
+
+
+--
 -- Name: inventory_authority; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -9260,6 +9295,22 @@ ALTER TABLE ONLY public.india_gst_supplier_sez_status
 
 ALTER TABLE ONLY public.india_gst_supplier_sez_status
     ADD CONSTRAINT india_gst_supplier_sez_status_pk PRIMARY KEY (tenant_id, id);
+
+
+--
+-- Name: india_sez_unit_loa_renewal india_sez_unit_loa_renewal_identity_uq; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.india_sez_unit_loa_renewal
+    ADD CONSTRAINT india_sez_unit_loa_renewal_identity_uq UNIQUE (tenant_id, supplier_sez_status_id, form_f2_file_number, form_f2_issue_date);
+
+
+--
+-- Name: india_sez_unit_loa_renewal india_sez_unit_loa_renewal_pk; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.india_sez_unit_loa_renewal
+    ADD CONSTRAINT india_sez_unit_loa_renewal_pk PRIMARY KEY (tenant_id, id);
 
 
 --
@@ -11264,6 +11315,14 @@ ALTER TABLE ONLY public.india_gst_supplier_sez_status
 
 
 --
+-- Name: india_sez_unit_loa_renewal india_sez_unit_loa_renewal_supplier_status_fk; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.india_sez_unit_loa_renewal
+    ADD CONSTRAINT india_sez_unit_loa_renewal_supplier_status_fk FOREIGN KEY (tenant_id, supplier_sez_status_id) REFERENCES public.india_gst_supplier_sez_status(tenant_id, id);
+
+
+--
 -- Name: inventory_authority inventory_authority_property_node_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -12564,6 +12623,12 @@ ALTER TABLE public.india_gst_supplier_service_location ENABLE ROW LEVEL SECURITY
 ALTER TABLE public.india_gst_supplier_sez_status ENABLE ROW LEVEL SECURITY;
 
 --
+-- Name: india_sez_unit_loa_renewal; Type: ROW SECURITY; Schema: public; Owner: -
+--
+
+ALTER TABLE public.india_sez_unit_loa_renewal ENABLE ROW LEVEL SECURITY;
+
+--
 -- Name: inventory_authority; Type: ROW SECURITY; Schema: public; Owner: -
 --
 
@@ -13127,6 +13192,13 @@ CREATE POLICY tenant_isolation ON public.india_gst_supplier_service_location USI
 --
 
 CREATE POLICY tenant_isolation ON public.india_gst_supplier_sez_status USING ((tenant_id = (NULLIF(current_setting('app.tenant_id'::text, true), ''::text))::uuid)) WITH CHECK ((tenant_id = (NULLIF(current_setting('app.tenant_id'::text, true), ''::text))::uuid));
+
+
+--
+-- Name: india_sez_unit_loa_renewal tenant_isolation; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY tenant_isolation ON public.india_sez_unit_loa_renewal USING ((tenant_id = (NULLIF(current_setting('app.tenant_id'::text, true), ''::text))::uuid)) WITH CHECK ((tenant_id = (NULLIF(current_setting('app.tenant_id'::text, true), ''::text))::uuid));
 
 
 --
@@ -15125,6 +15197,13 @@ GRANT SELECT ON TABLE public.india_gst_supplier_service_location TO app_role;
 --
 
 GRANT SELECT ON TABLE public.india_gst_supplier_sez_status TO app_role;
+
+
+--
+-- Name: TABLE india_sez_unit_loa_renewal; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT SELECT ON TABLE public.india_sez_unit_loa_renewal TO app_role;
 
 
 --

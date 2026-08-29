@@ -432,13 +432,14 @@ finding under D-758. Reviewer-personal official-law, exhaustive18-way, adjacent,
 standing/static, approved-base schema/referee and unchanged stable-local proof are
 green. Approval remains bounded to pure accommodation supply-nature evidence.
 
-Order288/D-759 is ready as the first-renewal SEZ-unit LoA continuity prerequisite:
-one exact tenant-leading forced-RLS SELECT-only Form-F2 root bound to complete
-approved Order286 Form-G status, supporting only a directly contiguous five-year or
-shorter issued period at an explicit status date. Form-F1, later renewal chains,
-authorized operations/specified officer/BLUT, GST-current-status substitution, zero
-rating, tax, document/API/UI/local authority remain separate. Intentional red,
-exact54/106/96/96/6 schema/referee, hostile proof and fresh Tier-3 are mandatory.
+Order288/D-763 is built as the first-renewal SEZ-unit LoA continuity prerequisite:
+the exact tenant-leading forced-RLS SELECT-only Form-F2 root is bound through
+complete approved Order286 and supports only a directly contiguous five-year or
+shorter issued period at an explicit status date. Intentional red0/1 preceded
+focused10/0(227), exact54/106/96/96/6 schema/setup/referee11/11 and standing967/0
+plus863 skips; all static gates are green. Form-F1, later chains, AO/specified-
+officer/BLUT, GST substitution, zero rating, tax, document/API/UI/local authority
+remain separate. Fresh Tier-3 is mandatory.
 Fresh non-implementing Tier-3 review approves exact candidate `9c222c4` with no
 finding under D-748. Reviewer-personal official-law, no-inference, exact
 51/103/93/93/3, schema/setup/referee11/11, focused/database/standing/static and

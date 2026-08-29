@@ -501,6 +501,11 @@ continuity evidence. Form-F1, second/later renewal chains, AO/specified-officer/
 GST-current-status substitution, zero rating, levy, document/API/UI/local authority
 remain separate. D-759 requires intentional red, exact54/106/96/96/6 schema/referee,
 hostile zero-write proof and fresh Tier-3.
+The D-763 candidate is built: intentional red0/1 preceded isolated focused10/0(227),
+migration39/0, acceptance19/0, runtime-DML5/0, exact54/106/96/96/6 schema/setup/
+referee11/11 and standing967/0 plus863 skips. Type/111-boundary/23-licence/audit0/
+diff are green; disposable proof is removed and sole stable local unchanged. Fresh
+non-implementing Tier-3 review is mandatory.
 Fresh non-implementing Tier-3 review approves exact candidate `9c222c4` with no
 finding under D-748. Reviewer-personal official-law, no-inference, exact
 51/103/93/93/3, schema/setup/referee11/11, focused/database/standing/static and

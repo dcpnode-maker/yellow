@@ -1,6 +1,6 @@
 # Order 288 — Build exact first-renewal India SEZ-unit LoA continuity evidence
 
-**Status:** READY-D759
+**Status:** BUILT-PENDING-REVIEW-D763
 **Phase:** 7 — Tax engine and India IRP
 **Branch:** `phase-7/india-sez-unit-loa-renewal`
 **Base:** `39219a8` (independently approved Order287 descendant)
@@ -116,9 +116,9 @@ dependency/merge/public deploy, Phase-7 or application-complete claim.
 
 ## Definition of done
 
-- [ ] Intentional red precedes implementation.
-- [ ] Exact schema/RLS/ACL and hostile continuity proof is green.
-- [ ] Standing/static/referee gates are green and no authority expands.
+- [x] Intentional red precedes implementation.
+- [x] Exact schema/RLS/ACL and hostile continuity proof is green.
+- [x] Standing/static/referee gates are green and no authority expands.
 - [ ] Fresh independent Tier-3 approval is recorded.
 
 ## Proof-scope clarification — D-760
@@ -144,3 +144,18 @@ The required `./setup.sh --db-only` gate contains an exact final-table assertion
 diagnostic pinned to the approved predecessor. D-762 adds only `105` to `106` and
 `migrations 1-53` to `migrations 1-54` in that gate. The check remains equally
 strict; no setup behavior, role, credential, data, seed or runtime authority changes.
+
+## Builder proof — D-763
+
+The exact candidate is built. Intentional red was `0 pass / 1 fail` before migration,
+source and export existed. Reviewer-style isolated focused proof is `10 pass / 0
+fail / 227 assertions`; migration is `39/0/187`, database acceptance `19/0/55`,
+runtime DML `5/0/113`, schema exact `54/106/96/96/6`, canonical setup/referee and
+standalone referee are each `11/11`. Adjacent Orders284/286/288 are `27/0` plus 19
+expected environment skips. Standing proof is `967 pass / 863 environment skips /
+0 fail / 14,892 assertions / 1,830 tests / 320 files`; typecheck, 111 import
+boundaries, 23-package licence policy, audit with zero vulnerabilities and diff check
+are green. Migration0054 SHA-256 is
+`54a65ae32acfc5e232037129685a7c7edfb950aa66b54d4ea053c7acf11bb717`.
+Disposable proof resources are removed and the sole stable local remains unchanged.
+Fresh non-implementing Tier-3 review remains mandatory.

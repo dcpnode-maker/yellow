@@ -209,3 +209,13 @@ export type {
   IndiaGstAccommodationSupplyNatureLegalRule,
   IndiaGstAccommodationSupplyNatureResult,
 } from "./india-gst-accommodation-supply-nature";
+export {
+  IndiaSezUnitLoaRenewalConflictError,
+  IndiaSezUnitLoaRenewalNotFoundError,
+  IndiaSezUnitLoaRenewalService,
+  IndiaSezUnitLoaRenewalValidationError,
+} from "./india-sez-unit-loa-renewal";
+export type {
+  IndiaSezUnitLoaRenewalInput,
+  IndiaSezUnitLoaRenewalResult,
+} from "./india-sez-unit-loa-renewal";
