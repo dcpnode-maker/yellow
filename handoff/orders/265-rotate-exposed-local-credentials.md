@@ -1,6 +1,6 @@
 # Order 265 — Rotate exposed sole-local application credentials
 
-**Status:** ROTATED-D689 — independent logging-safe verification pending
+**Status:** APPROVED-LOCALLY-D690
 **Phase:** 7 — Tax engine and India IRP
 **Branch:** `phase-7/rotate-exposed-local-credentials`
 **Base:** `347f24c` (Order264 changes-required incident record)
@@ -74,7 +74,7 @@ forbidden; recover forward under this order.
 - [x] All five exposed protected values rotate without output or scope drift.
 - [x] Old credentials fail, new credentials work and all non-auth data are exact.
 - [x] Sole local is healthy/current with populated masked one-click sign-in.
-- [ ] Independent logging-safe non-operating review records approval or findings.
+- [x] Independent logging-safe non-operating review records approval or findings.
 
 ## Rotation evidence — D689
 
@@ -106,3 +106,17 @@ redirection text was parsed as part of the database name; its unused protected t
 files were removed. None exposed a value. The final proof moved credential checks to
 a transient container over the SCRAM-authenticated Compose network and passed every
 required old/new assertion.
+
+## Independent approval — D690
+
+An independent non-operating Tier-3 reviewer approved exact commit `86e772e`. The
+reviewer personally reproduced the current rotated generation, protected handoff
+matching and owner/SYSTEM-only ACLs, external-network SCRAM authentication for both
+rotated database roles, the canonical Argon2id local identity, exact restricted role
+attributes/membership, read-only catalog44/98/88/two-property truth and the exact
+all-table digest. Root, health, login and assets are HTTP200; the no-store sign-in is
+populated and masked; both project snapshots remain262/263/review91/active7; only
+port3000 is open. The reviewer restarted or mutated nothing and emitted no protected
+value. Historical old-value rejection remains bounded to D689 provenance because
+recovering compromised values solely to replay it would violate the logging-safety
+boundary.

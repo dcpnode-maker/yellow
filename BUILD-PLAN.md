@@ -623,13 +623,16 @@ The reviewer made no mutation and independently confirmed non-secret continuity;
 all exposed application credentials/secrets require a separate governed rotation
 and logging-safe re-review before local approval.
 
-Order265 completed that governed forward rotation pending independent logging-safe
-review. Five protected app values changed while every other environment value stayed
+Order265 completed and independently approved that governed forward rotation. Five
+protected app values changed while every other environment value stayed
 exact; new runtime/registrar/local credentials work and the captured immediately
 prior database credentials, local password and JWT all fail. Both protected ignored
 handoff files retain owner/SYSTEM-only ACL. Sole local app remains approved image
 83a7bb59bd70 with exact PostgreSQL/Valkey/volume, two hotels, catalog44/98/88,
-all-table row-count digest and both262/263/review91/active7 snapshots unchanged.
+all-table row-count digest and both262/263/review91/active7 snapshots unchanged. A
+fresh non-operating Tier-3 reviewer personally reproduced every safely repeatable
+current-generation credential, SCRAM, identity, integrity, HTTP and sole-port gate
+without exposing protected values or mutating the runtime.
 
 tax_assignment evaluation (percent/fixed/slab, compound, line-vs-document rounding)
 from EXTENSIONS §2; India GST slab per room-night; document issue path: series →
