@@ -2,7 +2,7 @@
 
 **Status:** active; governed positive-tax posting and complete correction approved through Order266
 **Entry point:** built-unreviewed Phase-6 composition through Order 236
-**Current order:** Order284 exact India GST supplier service-location evidence is built-pending-review under D-747
+**Current order:** Order284 exact India GST supplier service-location evidence is independently approved under D-748; Order285 admission is next
 
 ## Outcome
 
@@ -442,3 +442,8 @@ migration39/0(187), acceptance16/0, runtime-DML5/0, exact51/103/93/93/3 normaliz
 schema/referee11/11 and standing927/0 plus841 skips. Type/107-boundary/23-licence/
 audit0/diff are green; disposable proof is absent and the sole stable local remains
 exact, healthy and unchanged. Fresh non-implementing Tier-3 review is mandatory.
+Fresh non-implementing Tier-3 review approves exact candidate `9c222c4` with no
+finding under D-748. Reviewer-personal official-law, no-inference, exact
+51/103/93/93/3, schema/setup/referee11/11, focused/database/standing/static and
+stable-runtime proof are green; disposable proof is absent. Approval remains bounded
+to section2(15)(a) evidence and grants no downstream authority.

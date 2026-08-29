@@ -846,7 +846,7 @@ removed. Approval remains bounded to relationship evidence and grants none of th
 forbidden supplier-location, supply-nature, levy, item, document, submission, local,
 merge, deploy, Phase-7-complete or application-complete authority.
 
-**Built-pending-review Order284 supplier service-location slice:** add one explicit SELECT-only
+**Independently approved Order284 supplier service-location slice:** add one explicit SELECT-only
 IGST section2(15)(a) assignment proving that the lodging supply is made from the
 exact registered place represented by current approved Order272 registration/hash.
 It returns frozen tenant-bound evidence only. It must not infer the establishment
@@ -860,6 +860,12 @@ policies/3 FORCE-RLS tables/schema/referee11/11 and standing927/0 plus841 skips
 (13,842 expectations;1,768 tests/312 files). Type/107-boundary/23-licence/audit0/
 diff are green under D-747; disposable proof is removed and the sole stable local is
 healthy/unchanged. Fresh non-implementing Tier-3 execution remains mandatory.
+Fresh non-implementing Tier-3 review approves exact candidate `9c222c4` with no
+finding under D-748. Reviewer-personal official-law, ancestry/scope, no-inference,
+exact51/103/93/93/3, schema/setup/referee11/11, focused/database/standing/static and
+stable-runtime proof are green; disposable proof is removed. Approval remains
+bounded to section2(15)(a) evidence and grants none of the forbidden downstream
+authority.
 
 ## Phase 8 — Statutory registration + ZATCA
 
