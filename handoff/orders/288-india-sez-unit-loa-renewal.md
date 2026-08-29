@@ -68,6 +68,8 @@ authorized-operations/zero-rating decision would conflate separate evidence.
 - `tests/schema/expected.sql`, `tests/database-acceptance.integration.test.ts`,
   `tests/runtime-dml-authority.integration.test.ts` only for exact 0054/schema/ACL
   catalogue changes;
+- `tests/migrate.integration.test.ts` only for the three exact public-table/RLS/
+  tenant-policy catalogue counts advanced by the admitted table;
 - new `src/contexts/tax-fiscal/india-sez-unit-loa-renewal.ts` and bounded-context
   index export only;
 - new intentional-red and exact hostile integration tests;
@@ -115,3 +117,11 @@ dependency/merge/public deploy, Phase-7 or application-complete claim.
 - [ ] Exact schema/RLS/ACL and hostile continuity proof is green.
 - [ ] Standing/static/referee gates are green and no authority expands.
 - [ ] Fresh independent Tier-3 approval is recorded.
+
+## Proof-scope clarification — D-760
+
+The fresh migration gate exposed three exact pre-Order288 catalogue counts in
+`tests/migrate.integration.test.ts`. That gate cannot remain green after the admitted
+table/RLS/policy addition unless those three values advance from `105/95/95` to
+`106/96/96`. D-760 explicitly adds only those mechanical expectations to scope.
+No assertion, product behavior, migration contract, outcome or authority changes.
