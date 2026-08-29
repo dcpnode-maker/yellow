@@ -564,6 +564,32 @@ events are atomic and immutable. This is accounting correction evidence only; it
 not a refund, settlement, replacement invoice, fiscal credit note, India allocation
 or tax-return amendment.
 
+### Property Fiscal Registration — Tax/Fiscal
+
+**Root:** `property_fiscal_registration`.
+
+Order272 introduces one configuration root because a property's statutory supplier
+identity is neither versioned jurisdiction policy content nor a person/guest role,
+money movement, document or event behavior. Its tenant-leading identity binds one
+tenant-owned `org_node.kind='property'`, exact `in-gstin` scheme and `INR`, and the
+complete frozen jurisdiction extension id, nullable owner, key, positive version and
+content hash. `UNIQUE NULLS NOT DISTINCT` makes one exact mapping structural rather
+than a resolver preference.
+
+The root stores only canonical supplier registration evidence: GSTIN, matching current state/UT
+code, legal and optional trade name, address line, locality and pincode. It has no
+lifecycle or current/effective selection rule. Runtime receives tenant-isolated
+SELECT only; provisioning/maintenance is deliberately outside the application
+contract. The Order272 value service composes this row with an existing frozen
+Order256 eligibility result and returns recursively frozen, deterministic hashed
+evidence without creating a fact, event or any financial/fiscal effect.
+
+This root is supplier evidence only. Buyer registrations and customer identity stay
+outside it. It does not own SEZ classification, place of supply, CGST/SGST/IGST
+decomposition, tax calculation or residual allocation, journals/postings,
+correction/credit-note semantics, documents/series/hash chains, IRP payloads,
+providers, submissions, UI or HTTP behavior.
+
 ### Positive Tax Attribution Snapshot value service — Tax/Fiscal
 
 Order 240 is a pure immutable value service, not an aggregate, entity or state

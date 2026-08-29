@@ -362,6 +362,7 @@ databaseDescribe("Order 150 positive runtime DML authority", () => {
     await expectAppRoleDenied("INSERT INTO public.org_node (id, tenant_id, path, kind, name) VALUES ('00000000-0000-0000-0000-000000000902', '00000000-0000-0000-0000-000000000001', 'order150.hostile', 'property', 'Hostile')");
     await expectAppRoleDenied("INSERT INTO public.permission (code, description) VALUES ('identity.order150:hostile', 'Hostile')");
     await expectAppRoleDenied("UPDATE public.document SET content = '{}'::jsonb WHERE false");
+    await expectAppRoleDenied("INSERT INTO public.property_fiscal_registration DEFAULT VALUES");
     await expectAppRoleDenied("UPDATE public.rate_price SET pricing = '{}'::jsonb WHERE false");
     await expectAppRoleDenied("INSERT INTO public.channel (code, name) VALUES ('order150-hostile', 'Hostile')");
     await expectAppRoleDenied("UPDATE public.outbox SET published_at = now() WHERE false");

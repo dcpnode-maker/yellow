@@ -237,6 +237,32 @@ submission or fiscal-final result. Consumers must obtain separately authorized
 persistence, posting, correction, transfer and document semantics rather than treating
 the snapshot as money or legal finality.
 
+### India GST supplier-registration containment
+
+Order272 adds one tenant-leading `property_fiscal_registration` root protected by
+RLS. Its composite property reference prevents cross-tenant property binding; its
+exact identity is structurally unique including nullable jurisdiction owner, and its
+checks bound the sole `in-gstin`/`INR` scheme, hashes, names/address/locality,
+GSTIN/current-state allowlist and pincode. `PUBLIC` and `yellow_runtime` have no table authority.
+`app_role` receives SELECT only; raw runtime insert, update, delete and truncate stay
+denied. Tenant context remains transaction-local, and cross-tenant rows are invisible.
+
+The internal resolver accepts only canonical tenant/property/reservation identity and
+reads the table only after the existing positive-tax eligibility owner returns frozen
+snapshot evidence. Exact `IN`/`INR` plus property kind, extension id, nullable owner,
+key, version and content hash are equality-bound in the query. Stored GSTIN
+checksum/state, NFC text, control characters and every duplicated identity are
+revalidated before a recursively frozen result and deterministic evidence hash are
+returned. Missing, duplicate, malformed, stale, mismatched and cross-scope truth
+fails closed without a fallback to mutable extension lookup, `org_node.config`,
+display names, Party/guest records or code coincidence.
+
+The boundary is read-only: it cannot author registration data or change journal,
+posting, document, outbox, fiscal-submission or idempotency counts. It grants no buyer
+GST/SEZ/place-of-supply decision, CGST/SGST/IGST split, document allocation,
+posting/correction/credit note, numbering/hash-chain, IRP/provider request or
+submission authority.
+
 ### Tax-attribution persistence containment
 
 Order 244 accepts only a value that survives the exact hostile Order-240 parser. All

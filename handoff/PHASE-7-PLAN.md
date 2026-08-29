@@ -247,11 +247,12 @@ ordered guarded local promotion is next.
 
 ## Order 272 boundary
 
-Order272 adds the exact configured India GST supplier-registration evidence that the
-existing India posting blocker lacks. One tenant/property root binds scheme
+Order272/D-710 has built the exact configured India GST supplier-registration evidence
+that the existing India posting blocker lacks. One tenant/property root binds scheme
 `in-gstin` and INR supplier identity to the already-frozen jurisdiction extension
 id/owner/key/version/content hash. A read-only resolver reuses positive-tax eligibility
 and returns canonical GSTIN/state/legal-name/address/locality/pincode plus a stable
 evidence hash, or fails closed without writes. It does not decide place of supply,
 CGST/SGST/IGST decomposition, document allocation or IRP payloads; those remain later
-separately governed slices. Fresh independent Tier-3 execution is mandatory.
+separately governed slices. Fresh PostgreSQL proof is47 migrations/99 tables/89
+policies/referee11/11; independent Tier-3 execution remains mandatory for approval.

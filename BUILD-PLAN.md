@@ -702,12 +702,12 @@ stored on document; fiscal_submission log.
 KSA/AE flat VAT · document numbers gapless under 100 concurrent issues · IRP sandbox
 round-trip stores IRN.
 
-**Current Order272 prerequisite:** add exact SELECT-only India supplier GST
-registration evidence bound to the frozen jurisdiction extension identity. Canonical
-GSTIN/state/legal identity/address/pincode and a deterministic evidence hash must
-resolve without fallback or writes before later place-of-supply, CGST/SGST/IGST or
-IRP seller-payload work. Target catalogue after this slice:47 migrations/99 tables/89
-policies; independent Tier-3 executable review is mandatory.
+**Built Order272 prerequisite:** exact SELECT-only India supplier GST registration
+evidence is now bound to the frozen jurisdiction extension identity. Canonical
+GSTIN/state/legal identity/address/pincode and a deterministic evidence hash resolve
+without fallback or writes. Fresh PostgreSQL proof reaches47 migrations/99 tables/89
+policies with referee11/11; independent Tier-3 executable review remains mandatory
+before approval. Place-of-supply, CGST/SGST/IGST and IRP seller payload remain later.
 
 ## Phase 8 — Statutory registration + ZATCA
 

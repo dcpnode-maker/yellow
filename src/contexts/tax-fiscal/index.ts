@@ -80,3 +80,13 @@ export type {
   PositiveTaxSemanticRouteResult,
   PositiveTaxSemanticTaxRoute,
 } from "./semantic-route";
+export {
+  IndiaGstSupplierRegistrationConflictError,
+  IndiaGstSupplierRegistrationNotFoundError,
+  IndiaGstSupplierRegistrationService,
+  IndiaGstSupplierRegistrationValidationError,
+} from "./india-gst-supplier-registration";
+export type {
+  IndiaGstSupplierRegistrationInput,
+  IndiaGstSupplierRegistrationResult,
+} from "./india-gst-supplier-registration";

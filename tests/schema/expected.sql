@@ -7811,6 +7811,45 @@ CREATE TABLE public.promotion (
 
 
 --
+-- Name: property_fiscal_registration; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.property_fiscal_registration (
+    tenant_id uuid NOT NULL,
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    property_node uuid NOT NULL,
+    scheme text NOT NULL,
+    currency character(3) NOT NULL,
+    jurisdiction_extension_id uuid NOT NULL,
+    jurisdiction_owner_tenant_id uuid,
+    jurisdiction_key text NOT NULL,
+    jurisdiction_version integer NOT NULL,
+    jurisdiction_content_hash text NOT NULL,
+    registration_number text NOT NULL,
+    region_code text NOT NULL,
+    legal_name text NOT NULL,
+    trade_name text,
+    address_line text NOT NULL,
+    locality text NOT NULL,
+    postal_code text NOT NULL,
+    CONSTRAINT property_fiscal_registration_address_line_ck CHECK ((((char_length(address_line) >= 1) AND (char_length(address_line) <= 300)) AND (btrim(address_line) = address_line))),
+    CONSTRAINT property_fiscal_registration_currency_ck CHECK ((currency = 'INR'::bpchar)),
+    CONSTRAINT property_fiscal_registration_jurisdiction_hash_ck CHECK ((jurisdiction_content_hash ~ '^[0-9a-f]{64}$'::text)),
+    CONSTRAINT property_fiscal_registration_jurisdiction_key_ck CHECK ((jurisdiction_key ~ '^[a-z0-9][a-z0-9_.:-]{0,127}$'::text)),
+    CONSTRAINT property_fiscal_registration_jurisdiction_owner_ck CHECK (((jurisdiction_owner_tenant_id IS NULL) OR (jurisdiction_owner_tenant_id = tenant_id))),
+    CONSTRAINT property_fiscal_registration_jurisdiction_version_ck CHECK ((jurisdiction_version > 0)),
+    CONSTRAINT property_fiscal_registration_legal_name_ck CHECK ((((char_length(legal_name) >= 1) AND (char_length(legal_name) <= 200)) AND (btrim(legal_name) = legal_name))),
+    CONSTRAINT property_fiscal_registration_locality_ck CHECK ((((char_length(locality) >= 1) AND (char_length(locality) <= 120)) AND (btrim(locality) = locality))),
+    CONSTRAINT property_fiscal_registration_postal_code_ck CHECK ((postal_code ~ '^[1-9][0-9]{5}$'::text)),
+    CONSTRAINT property_fiscal_registration_region_ck CHECK ((region_code = ANY (ARRAY['01'::text, '02'::text, '03'::text, '04'::text, '05'::text, '06'::text, '07'::text, '08'::text, '09'::text, '10'::text, '11'::text, '12'::text, '13'::text, '14'::text, '15'::text, '16'::text, '17'::text, '18'::text, '19'::text, '20'::text, '21'::text, '22'::text, '23'::text, '24'::text, '26'::text, '27'::text, '29'::text, '30'::text, '31'::text, '32'::text, '33'::text, '34'::text, '35'::text, '36'::text, '37'::text, '38'::text]))),
+    CONSTRAINT property_fiscal_registration_registration_ck CHECK ((registration_number ~ '^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z][1-9A-Z]Z[0-9A-Z]$'::text)),
+    CONSTRAINT property_fiscal_registration_registration_region_ck CHECK ((substr(registration_number, 1, 2) = region_code)),
+    CONSTRAINT property_fiscal_registration_scheme_ck CHECK ((scheme = 'in-gstin'::text)),
+    CONSTRAINT property_fiscal_registration_trade_name_ck CHECK (((trade_name IS NULL) OR (((char_length(trade_name) >= 1) AND (char_length(trade_name) <= 200)) AND (btrim(trade_name) = trade_name))))
+);
+
+
+--
 -- Name: provider_event_receipt; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -9349,6 +9388,22 @@ ALTER TABLE ONLY public.promotion
 
 
 --
+-- Name: property_fiscal_registration property_fiscal_registration_identity_uq; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.property_fiscal_registration
+    ADD CONSTRAINT property_fiscal_registration_identity_uq UNIQUE NULLS NOT DISTINCT (tenant_id, property_node, scheme, currency, jurisdiction_extension_id, jurisdiction_owner_tenant_id, jurisdiction_key, jurisdiction_version, jurisdiction_content_hash);
+
+
+--
+-- Name: property_fiscal_registration property_fiscal_registration_pk; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.property_fiscal_registration
+    ADD CONSTRAINT property_fiscal_registration_pk PRIMARY KEY (tenant_id, id);
+
+
+--
 -- Name: provider_event_receipt provider_event_receipt_pk; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -10168,6 +10223,13 @@ CREATE INDEX posting_folio ON public.posting_line USING btree (tenant_id, folio_
 --
 
 CREATE INDEX posting_line_transfer_root_lookup ON public.posting_line USING btree (tenant_id, folio_transfer_root_line_id) WHERE (folio_transfer_root_line_id IS NOT NULL);
+
+
+--
+-- Name: property_fiscal_registration_lookup; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX property_fiscal_registration_lookup ON public.property_fiscal_registration USING btree (tenant_id, property_node, scheme, currency, jurisdiction_extension_id, jurisdiction_key, jurisdiction_version);
 
 
 --
@@ -11288,6 +11350,22 @@ ALTER TABLE ONLY public.preference
 
 
 --
+-- Name: property_fiscal_registration property_fiscal_registration_extension_fk; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.property_fiscal_registration
+    ADD CONSTRAINT property_fiscal_registration_extension_fk FOREIGN KEY (jurisdiction_extension_id) REFERENCES public.extension(id);
+
+
+--
+-- Name: property_fiscal_registration property_fiscal_registration_property_fk; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.property_fiscal_registration
+    ADD CONSTRAINT property_fiscal_registration_property_fk FOREIGN KEY (tenant_id, property_node) REFERENCES public.org_node(tenant_id, id);
+
+
+--
 -- Name: provider_event_receipt provider_event_receipt_operation_fk; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -12266,6 +12344,12 @@ ALTER TABLE public.preference ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.promotion ENABLE ROW LEVEL SECURITY;
 
 --
+-- Name: property_fiscal_registration; Type: ROW SECURITY; Schema: public; Owner: -
+--
+
+ALTER TABLE public.property_fiscal_registration ENABLE ROW LEVEL SECURITY;
+
+--
 -- Name: provider_event_receipt; Type: ROW SECURITY; Schema: public; Owner: -
 --
 
@@ -12804,6 +12888,13 @@ CREATE POLICY tenant_isolation ON public.preference USING ((tenant_id = (current
 --
 
 CREATE POLICY tenant_isolation ON public.promotion USING ((tenant_id = (current_setting('app.tenant_id'::text, true))::uuid)) WITH CHECK ((tenant_id = (current_setting('app.tenant_id'::text, true))::uuid));
+
+
+--
+-- Name: property_fiscal_registration tenant_isolation; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY tenant_isolation ON public.property_fiscal_registration USING ((tenant_id = (NULLIF(current_setting('app.tenant_id'::text, true), ''::text))::uuid)) WITH CHECK ((tenant_id = (NULLIF(current_setting('app.tenant_id'::text, true), ''::text))::uuid));
 
 
 --
@@ -15250,6 +15341,13 @@ GRANT SELECT ON TABLE public.preference TO app_role;
 --
 
 GRANT SELECT ON TABLE public.promotion TO app_role;
+
+
+--
+-- Name: TABLE property_fiscal_registration; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT SELECT ON TABLE public.property_fiscal_registration TO app_role;
 
 
 --

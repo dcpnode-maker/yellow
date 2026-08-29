@@ -694,6 +694,36 @@ contra lines, root evidence, durable receipt and exactly one `journal.posted` pl
 replacement/refund/payment/transfer, India or negative-tax handling, document/IRP and
 local promotion remain outside this contract.
 
+### Exact India GST supplier-registration evidence
+
+Order272 adds the internal read-only
+`IndiaGstSupplierRegistrationService.discover|resolve(tx,
+{tenantId,propertyNode,reservationId})`. Both operations first obtain the existing
+Order256 positive-tax eligibility; `discover` preserves its non-locking semantics and
+`resolve` preserves its bounded financial lock/re-read semantics. The caller supplies
+only tenant, property and reservation identity. Country, currency and the complete
+jurisdiction extension id, nullable owner, key, version and content hash come only
+from the already-frozen attribution snapshot.
+
+Resolution requires exact `IN`/`INR` truth and one SELECT-only
+`property_fiscal_registration` row for scheme `in-gstin` bound to that complete
+frozen identity and an exact tenant-owned property. It returns only a recursively
+frozen supplier-evidence value containing registration and property ids,
+scheme/currency, frozen jurisdiction identity, canonical checksum-valid GSTIN and
+matching current two-digit GST state/UT code, legal name, nullable trade name, address line, locality, six-digit
+pincode and a deterministic SHA-256 over the canonical supplier-registration
+evidence. Replaying identical stored and eligibility truth returns byte-identical
+evidence.
+
+Missing, duplicate, cross-tenant, cross-property, non-India, non-INR, malformed,
+checksum-invalid, stale or mismatched evidence fails closed. There is no lookup by
+current/effective extension, display name, GST-like code, property config, Party or
+guest data. This resolver writes no registration, journal, posting, document,
+outbox, fiscal submission or idempotency state. It does not determine buyer GST
+identity, SEZ status, place of supply, CGST/SGST/IGST decomposition, rounding or
+allocation, posting/correction/credit notes, invoice numbering/hash chains, IRP
+payloads, provider calls or submission authority.
+
 ## 8. Pure rate-model evaluator
 
 Order 067's in-process evaluator is a draft/simulation primitive, not a database or HTTP contract.
