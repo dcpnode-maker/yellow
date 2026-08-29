@@ -1,6 +1,6 @@
 # Order 283 — Build exact India accommodation registered-state comparison
 
-**Status:** BUILT-PENDING-REVIEW-D742
+**Status:** CHANGES-REQUIRED-D743
 **Phase:** 7 — Tax engine and India IRP
 **Branch:** `phase-7/india-accommodation-registered-state-comparison`
 **Base:** `b257949` (independently approved Order282 descendant)

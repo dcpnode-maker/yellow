@@ -830,6 +830,11 @@ tables+policies/schema/referee11/11 and standing916/0 plus831 database-only skip
 (13,655 expectations;1,747 tests/310 files). Type/106-boundary/23-licence/audit0/
 diff are green under D-742; disposable proof is removed and the sole local is
 healthy and unchanged. Fresh non-implementing Tier-3 execution remains mandatory.
+Fresh Tier-3 execution at exact candidate `1cea37f` returned CHANGES REQUIRED under
+D-743 for one governance-proof wording defect only: the product and every executable
+gate are green, but current records overstate FORCE-RLS coverage. The corrected
+descendant must record 92 RLS-enabled tenant tables, 92 policies and 2 FORCE-RLS
+tables, then receive fresh independent review.
 
 ## Phase 8 — Statutory registration + ZATCA
 

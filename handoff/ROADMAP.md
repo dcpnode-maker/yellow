@@ -364,3 +364,8 @@ Order28212/0, SellerDtls9/0, eligibility7/0, acceptance15/0, runtime-DML5/0,
 migration39/0, exact50/102/92/schema/referee11/11 and standing916/0 plus831 skips;
 all static gates are green and the sole local is unchanged. Fresh Tier-3 remains
 mandatory.
+Fresh Tier-3 execution at exact `1cea37f` returned CHANGES REQUIRED under D-743 for
+one proof-wording defect only: all product and executable gates are green, but the
+candidate overstates FORCE-RLS coverage. The corrected descendant must say exact 92
+RLS-enabled tenant tables, 92 policies and 2 FORCE-RLS tables, then receive fresh
+independent review.
