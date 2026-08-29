@@ -2,7 +2,7 @@
 
 **Status:** active; governed positive-tax posting and complete correction approved through Order266
 **Entry point:** built-unreviewed Phase-6 composition through Order 236
-**Current order:** Order276 exact India GST registered-recipient candidate evidence requires the bounded setup-oracle correction recorded at D-722
+**Current order:** Order277 bounded Order276 setup table-count oracle reconciliation is admitted under D-723
 
 ## Outcome
 
@@ -299,3 +299,11 @@ PostgreSQL proof is green at exact48 migrations/100 tables/90 policies with
 standalone referee11/11. Independent Tier-3 review found no product defect but the
 canonical setup gate remains red on its stale 99-table/migrations1–47 oracle. A
 separate bounded correction and fresh complete execution are mandatory.
+
+## Order 277 boundary
+
+Order277 changes only `setup.sh`'s exact public-table oracle and adjacent message from
+99 after migrations1–47 to committed truth100 after migrations1–48. Setup sequencing,
+migrations, schema, tests, referee, product, runtime and local stay byte-unchanged.
+Fresh isolated canonical setup/referee plus independent Tier-3 execution are mandatory
+before Order276 can be approved.

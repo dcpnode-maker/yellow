@@ -736,6 +736,12 @@ defect but correctly withheld approval because canonical `setup.sh --db-only` st
 asserts the pre-migration48 table count. A separate bounded harness correction and
 fresh complete re-execution are mandatory.
 
+**Admitted Order277 proof repair:** change only the canonical `setup.sh` exact public-
+table oracle/message from99 after migrations1–47 to committed truth100 after
+migrations1–48. No product, migration, schema, test, referee, runtime or local change
+is admitted. Fresh complete isolated setup/referee and independent Tier-3 execution
+are mandatory before Order276 approval.
+
 ## Phase 8 — Statutory registration + ZATCA
 
 Statutory scheduler consuming check-in events; adapters: it-alloggiati (168-char),
