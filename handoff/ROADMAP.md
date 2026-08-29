@@ -318,3 +318,11 @@ document, submission, API, UI or local authority. Intentional red0/1 preceded
 focused12/0, acceptance14/0, runtime-DML5/0, migration39/0, exact49/101/91/
 referee11/11 and standing889/0+815 skips; all static gates are green. Fresh independent
 Tier-3 execution reproduced the complete proof with no finding.
+
+Order281/D-735 is admitted. It may add only one exact tenant/RLS SELECT-only Indian
+GST accommodation-classification assignment and deterministic read-only resolver,
+explicitly bound to the frozen positive-tax jurisdiction. The launch set is exactly
+`996311`, `996312`, `996313`, `996321`, `996322`, `996329` as `SAC` service evidence.
+No commercial/operational inference, `ItemList`, `Pos`, `SupTyp`, tax, document,
+submission, API, UI or local authority is admitted. Fresh PostgreSQL/referee and
+independent Tier-3 execution are mandatory.

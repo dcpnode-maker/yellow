@@ -776,6 +776,16 @@ policies/referee11/11 and standing889/0+815 environment skips; type/103-boundary
 23-licence/audit0/diff are green. Fresh independent Tier-3 execution at D-734
 reproduces the complete proof with no finding.
 
+**Admitted Order281 product slice:** add one exact tenant/RLS SELECT-only Indian GST
+accommodation-classification assignment and deterministic read-only resolver. The
+assignment is explicitly selected, equality-bound to the already frozen positive-tax
+jurisdiction, and limited to the official launch SAC set `996311`, `996312`, `996313`,
+`996321`, `996322`, `996329` with service flag `Y`. Commercial route, tax-code, USALI,
+rate-plan, profile, space and unit truth cannot substitute. This is future item
+evidence only: no `ItemList`, `Pos`, `SupTyp`, tax, document, submission, API, UI or
+local authority. New schema/RLS/statutory evidence is Tier 3 and requires fresh
+PostgreSQL/referee proof plus independent executable review under D-735.
+
 ## Phase 8 — Statutory registration + ZATCA
 
 Statutory scheduler consuming check-in events; adapters: it-alloggiati (168-char),

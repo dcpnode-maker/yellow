@@ -2,7 +2,7 @@
 
 **Status:** active; governed positive-tax posting and complete correction approved through Order266
 **Entry point:** built-unreviewed Phase-6 composition through Order 236
-**Current order:** Order280 exact India property fiscal-location evidence is independently approved under D-734
+**Current order:** Order281 exact India GST accommodation-classification evidence is admitted under D-735
 
 ## Outcome
 
@@ -349,3 +349,16 @@ Intentional red0/1 preceded focused12/0, database acceptance14/0, runtime-DML5/0
 migration39/0, exact49/101/91/referee11/11 and standing889/0+815 environment skips;
 all static gates are green and the sole stable local remains unchanged. Fresh
 independent Tier-3 execution reproduced the complete proof under D-734 with no finding.
+
+## Order 281 boundary
+
+Order281 may add only one tenant-leading/RLS/SELECT-only accommodation-classification
+assignment with exact frozen-jurisdiction lineage and one deterministic read-only
+resolver. The allowed launch evidence is `SAC` plus service flag `Y` and exactly
+`996311`, `996312`, `996313`, `996321`, `996322`, `996329`. `room_revenue`,
+`GST_ROOM`, USALI, transaction codes, semantic routes, rate plans, profiles, spaces,
+unit types and org display truth cannot infer classification. The result is a future
+IRP item prerequisite only: no `ItemList`, `Pos`, `SupTyp`, tax/decomposition,
+seller/buyer/folio composition, document, submission, API, UI, writer or local
+authority. Fresh PostgreSQL/referee proof and independent Tier-3 execution are
+mandatory under D-735.
