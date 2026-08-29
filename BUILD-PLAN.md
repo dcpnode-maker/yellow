@@ -634,6 +634,16 @@ fresh non-operating Tier-3 reviewer personally reproduced every safely repeatabl
 current-generation credential, SCRAM, identity, integrity, HTTP and sole-port gate
 without exposing protected values or mutating the runtime.
 
+Order266 is paused at D692 after its migration lane accidentally targeted the stable
+Compose project while preparing disposable database proof. PostgreSQL and Valkey were
+recreated against the retained data volume; the app remained unchanged and healthy.
+Read-only containment proves `yellow_dev` still has exact migration44/98 tables/88
+policies/two hotels and the byte-exact pre-incident all-table digest. Migration0045 did
+not reach the product database, but one seeded scratch database remains in the cluster.
+No Order266 database-execution, local-promotion or completion claim is valid until a
+separate governed reconciliation removes only that scratch state and independently
+approves the replacement runtime identities.
+
 tax_assignment evaluation (percent/fixed/slab, compound, line-vs-document rounding)
 from EXTENSIONS §2; India GST slab per room-night; document issue path: series →
 gapless number → hash chain → document; IRP reporting adapter (sandbox), IRN + QR

@@ -1,6 +1,6 @@
 # Order 266 — Governed positive-tax journal correction
 
-**Status:** READY-D691
+**Status:** PAUSED-D692 — sole-local runtime reconciliation required
 **Phase:** 7 — Tax engine and India IRP
 **Branch:** `phase-7/governed-positive-tax-correction`
 **Base:** `252254b` (independently approved Order265 sole-local credential remediation)
@@ -91,3 +91,24 @@ application-complete claim.
 - [ ] Independent Tier-3 review records approval or findings.
 - [ ] A later separately governed status/local-promotion order may expose approved
   work on the sole local; this order does not mutate it.
+
+## Runtime-scope incident — D692
+
+During the migration lane, an attempted disposable database setup incorrectly used
+the stable Compose project with alternate host-port variables. Compose recreated the
+sole-local PostgreSQL and Valkey containers and PostgreSQL was subsequently restarted;
+the app container was not recreated. The retained PostgreSQL volume remained mounted,
+but a seeded scratch database `yellow_order266_migration` was added to that cluster.
+Migration0045 did not apply to `yellow_dev` because its runner stopped at the existing
+migration44 checksum identity guard.
+
+The coordinator immediately stopped all worker runtime activity and quarantined every
+promotion claim. Read-only verification proves the unchanged app is healthy on sole
+loopback3000, `yellow_dev` remains exact migration44/98 tables/88 policies/two
+properties, and its canonical all-table row-count digest remains byte-exact
+`739b6a2d929a2278064e35935351f32fcc9290c16da2db9b5072e9640ed28763`.
+The prior PostgreSQL/Valkey container identities are nevertheless lost, cache identity
+changed, and the scratch database remains. A separate governed reconciliation order
+must back up and prove product truth, remove only the disclosed scratch database,
+accept the replacement container identities, and obtain independent non-operating
+verification before Order266 database execution resumes.
