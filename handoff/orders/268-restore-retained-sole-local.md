@@ -1,6 +1,6 @@
 # Order 268 — Restore exact retained sole-local containers
 
-**Status:** READY-D696
+**Status:** RESTORED-PENDING-REVIEW-D697
 **Phase:** 7 — Tax engine and India IRP
 **Branch:** `phase-7/restore-retained-sole-local`
 **Base:** `c6a30f1` (Order267 changes-required review)
@@ -54,6 +54,27 @@ replace. Never restore over `yellow_dev` without a separate order.
 
 ## Definition of done
 
-- [ ] Exact retained containers are healthy with unchanged identity and topology.
-- [ ] Database, application, authenticated status and sole-port truth are exact.
+- [x] Exact retained containers are healthy with unchanged identity and topology.
+- [x] Database, application, authenticated status and sole-port truth are exact.
 - [ ] Independent non-operating Tier-3 review records approval or findings.
+
+## Restoration evidence — D697
+
+The authorized literal-full-ID start completed in dependency order: retained
+PostgreSQL and Valkey reached their existing healthy states before the retained app
+was started. Exact app `b084c60b9fe6`, PostgreSQL `f4f02655770a` and Valkey
+`aa3061bdf231` are healthy with restart count0. The app remains approved image
+`83a7bb59bd70`; the exact named PostgreSQL volume remains mounted at
+`/var/lib/postgresql/data`. No Compose, create, recreate, build, pull, replace,
+remove, restart or configuration action ran.
+
+Fresh logging-safe read-only proof reproduced backup630690 bytes/SHA256
+`b427ea1a…5201`/891 `pg_restore -l` lines/owner+SYSTEM-only ACL; product database
+migration44/98 public tables/88 policies/two properties/scratch0; and the exact
+all-table digest `739b6a2d…8763`. Root, health, login and all operator assets are
+HTTP200; root is no-store with exact populated tenant/email/masked-password defaults.
+Protected current login succeeds without exposing its value, discovery returns both
+hotels, and each reports exact latest262/current263/review91/active7. Only port3000
+is open;3002/3188 are closed. At capture, app/PostgreSQL/Valkey used approximately
+87.82/83.18/4.65 MiB RAM and13.61/4.60/0.19% CPU respectively, with no resource risk.
+Independent non-operating Tier-3 re-execution remains mandatory before approval.

@@ -654,6 +654,14 @@ recorded CHANGES REQUIRED because all three retained containers exited together 
 code255 before live reproof. Their exact identities/image/volume/restart0 remain;
 restoring those same containers and fresh independent live proof is now required.
 
+Order268 has restored those exact retained containers with literal full-ID starts in
+dependency order. Fresh logging-safe proof confirms the same healthy app image,
+PostgreSQL/Valkey identities, retained volume and restart0; restricted backup;
+unchanged product migration44/98 tables/88 policies/two hotels/all-table digest;
+scratch absence; populated masked protected login; both262/263/review91/active7
+snapshots; and sole loopback3000. Independent non-operating Tier-3 approval remains
+pending, so Order266 database execution is still paused.
+
 tax_assignment evaluation (percent/fixed/slab, compound, line-vs-document rounding)
 from EXTENSIONS §2; India GST slab per room-night; document issue path: series →
 gapless number → hash chain → document; IRP reporting adapter (sandbox), IRN + QR
