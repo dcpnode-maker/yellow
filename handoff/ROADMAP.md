@@ -342,8 +342,11 @@ section12(3)(b); no supplier/recipient/guest/config fallback, intra/inter-state
 conclusion, decomposition, `SupTyp`, `ItemList`, item amount, document, submission,
 API, UI or local authority is admitted. No schema is added. Exact composition proof,
 canonical referee and fresh independent Tier-3 execution remain mandatory.
-The exact Order282 candidate is built-pending-review under D-739. Intentional red0/1
+The exact Order282 candidate was built under D-739. Intentional red0/1
 preceded focused12/0, adjacent roots42/0 plus eligibility6/0, acceptance15/0,
 runtime-DML5/0, migration39/0, exact50/102/92/schema/referee11/11 and standing905/0
 plus828 database-only skips; all static gates are green and the stable local is
-unchanged. Fresh Tier-3 approval remains mandatory before later product work.
+unchanged. Fresh non-implementing Tier-3 execution at D-740 independently reproduced
+the full proof with no finding and approved exact candidate `4047684`. No
+intra/inter-state, decomposition, `SupTyp`, item, document, submission, local,
+Phase-7 or application-complete authority is implied.

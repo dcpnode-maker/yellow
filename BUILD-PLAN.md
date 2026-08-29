@@ -806,8 +806,11 @@ mandatory under D-738.
 Intentional red0/1 now precedes focused12/0, adjacent governed roots42/0 plus
 eligibility6/0, acceptance15/0, runtime-DML5/0, migration39/0, exact50/102/92/schema/
 referee11/11 and standing905/0 plus828 database-only skips; type/105-boundary/
-23-licence/audit0/diff are green under D-739. The exact candidate remains
-built-pending-review until fresh non-implementing Tier-3 execution approves it.
+23-licence/audit0/diff are green under D-739. Fresh non-implementing Tier-3 execution
+at D-740 independently reproduces the full proof with no finding and approves exact
+candidate `4047684`. This grants no intra/inter-state conclusion, decomposition,
+`SupTyp`, item, document, submission, local-promotion, Phase-7-complete or
+application-complete authority.
 
 ## Phase 8 — Statutory registration + ZATCA
 

@@ -1,6 +1,6 @@
 # Order 282 — Build exact India accommodation place-of-supply candidate
 
-**Status:** BUILT-PENDING-REVIEW-D739
+**Status:** APPROVED-D740
 **Phase:** 7 — Tax engine and India IRP
 **Branch:** `phase-7/india-accommodation-place-of-supply`
 **Base:** `2c45c6d` (independently approved Order281 descendant)
@@ -92,7 +92,7 @@ application-complete claim.
 - [x] Intentional red precedes implementation.
 - [x] Exact composition and hostile proof are green.
 - [x] Standing/static gates are green and no authority expands.
-- [ ] Fresh independent Tier-3 approval is recorded.
+- [x] Fresh independent Tier-3 approval is recorded.
 
 ## Builder proof — D739
 
@@ -116,3 +116,18 @@ application-complete claim.
   above are green and no product assertion failed;
 - all disposable builder proof resources were removed; the stable sole local app,
   PostgreSQL and Valkey were not changed.
+
+## Independent review — D740
+
+A fresh non-implementing Tier-3 reviewer independently approved exact immutable
+candidate `4047684a8c7b8300d8631ff99fc668104bd7d337` with no finding. Reviewer-personal
+execution reproduced focused12/0(353), adjacent integration42/0 (broader50/0),
+eligibility6/0 (broader7/0), acceptance15/0, runtime-DML5/0, migration39/0,
+exact50 migrations/102 public tables/92 forced-RLS tables and policies/schema exact/
+referee11/11, standing905/0 plus828 skips(9,484), type/105-boundary/23-licence/
+audit0/diff/scope. The official CBIC/IRP audit confirmed property-only `pos` and the
+continued exclusion of intra/inter-state conclusions, decomposition, `SupTyp`,
+`ItemList`, item values, document and submission authority. All disposable reviewer
+resources were removed; the sole stable app, PostgreSQL and Valkey remained healthy,
+restart0 and unchanged. Full evidence is recorded in
+`handoff/reviews/282-india-accommodation-place-of-supply.md`.
