@@ -399,6 +399,15 @@ finding under D-751. Reviewer-personal official-law, exact52/104/94/94/4,
 schema/setup/referee11/11, focused/database/standing/static and stable-runtime proof
 are green; disposable proof is removed. Approval grants only affirmative recipient
 registration/SEZ-status evidence and no downstream authority.
+
+Order286/D-752 is ready as the matching supplier exception prerequisite: one
+explicit tenant/RLS/SELECT-only status root bound to exact current Order272 supplier
+registration/hash and reached through approved Order284 service-location evidence.
+It admits only affirmative active regular, SEZ-unit/Form-G or SEZ-developer/Form-B-
+or-C evidence at an explicit as-of date; absence never means non-SEZ. Form-F2 renewal,
+bilateral supply nature, authorized operations/zero rating, levy, `SupTyp`, item,
+document, API/UI/local authority remain separate. Intentional red, exact
+53/105/95/95/5 PostgreSQL/schema/referee, hostile proof and fresh Tier-3 are mandatory.
 Fresh non-implementing Tier-3 review approves exact candidate `9c222c4` with no
 finding under D-748. Reviewer-personal official-law, no-inference, exact
 51/103/93/93/3, schema/setup/referee11/11, focused/database/standing/static and

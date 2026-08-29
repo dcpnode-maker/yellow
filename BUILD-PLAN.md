@@ -886,6 +886,15 @@ stable-runtime proof are green; disposable proof is removed. Approval remains
 bounded to affirmative recipient registration/SEZ-status evidence and grants none
 of the forbidden downstream authority.
 
+**Ready Order286 supplier SEZ-status slice:** add one explicit SELECT-only status
+root bound to the exact current Order272 supplier registration/hash reached through
+approved Order284 service-location evidence. Admit only affirmative active regular,
+SEZ-unit/Form-G or SEZ-developer/Form-B-or-C evidence at an explicit date; absence
+never means non-SEZ. This does not cover Form-F2 renewals, bilateral supply nature,
+authorized operations/zero rating, levy, `SupTyp`, item, document, API/UI/local
+authority. Intentional red, exact53/105/95/95/5 PostgreSQL/schema/referee, hostile
+zero-write proof and fresh Tier-3 are mandatory under D-752.
+
 ## Phase 8 — Statutory registration + ZATCA
 
 Statutory scheduler consuming check-in events; adapters: it-alloggiati (168-char),

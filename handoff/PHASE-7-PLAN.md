@@ -2,7 +2,7 @@
 
 **Status:** active; governed positive-tax posting and complete correction approved through Order266
 **Entry point:** built-unreviewed Phase-6 composition through Order 236
-**Current order:** Order285 exact India GST recipient SEZ-status evidence is independently approved under D-751
+**Current order:** Order286 exact India GST supplier SEZ-status evidence is ready under D-752
 
 ## Outcome
 
@@ -447,6 +447,17 @@ finding under D-751. Reviewer-personal official-law, exact52/104/94/94/4,
 schema/setup/referee11/11, focused/database/standing/static and stable-runtime proof
 are green; disposable proof is absent. Approval grants only affirmative recipient
 registration/SEZ-status evidence and no downstream authority.
+
+## Order 286 boundary
+
+Order286 adds one explicit tenant/RLS/SELECT-only supplier status root bound to the
+exact current Order272 registration/hash reached through approved Order284 service-
+location evidence. It admits only affirmative active regular, SEZ-unit/Form-G or
+SEZ-developer/Form-B-or-C evidence at an explicit as-of date; absence remains
+unresolved. Form-F2 renewal evidence, bilateral supply nature, authorized operations/
+zero rating, levy, `SupTyp`, item, document, API/UI/local authority remain separate.
+D-752 requires intentional red, exact53/105/95/95/5 PostgreSQL/schema/referee,
+hostile zero-write proof and fresh Tier-3.
 Fresh non-implementing Tier-3 review approves exact candidate `9c222c4` with no
 finding under D-748. Reviewer-personal official-law, no-inference, exact
 51/103/93/93/3, schema/setup/referee11/11, focused/database/standing/static and
