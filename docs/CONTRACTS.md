@@ -1076,6 +1076,36 @@ equality. It grants no SEZ/non-SEZ, supply-nature, levy, `SupTyp`, `IgstOnIntra`
 rate/amount, item, posting, document, submission, API, HTTP, UI, local-runtime or
 promotion authority.
 
+### Exact India GST recipient SEZ-status evidence
+
+Order285 specifies `IndiaGstRecipientSezStatusService.resolve(tx,input)` with exact
+plain accessor-free, proxy-free and symbol-free
+`{tenantId,recipientPartyId,recipientRegistrationId,recipientSezStatusId}` canonical
+UUID input. It first resolves complete exact current Order276 recipient evidence,
+independently revalidates its fixed shape/GSTIN/hash, then equality-selects the
+requested tenant/registration/hash-bound `india_gst_recipient_sez_status` row.
+
+The status row records an explicit `statusAsOf`, active GST registration status,
+official GST source and exactly regular, SEZ-unit or SEZ-developer taxpayer type.
+Regular is affirmative official non-SEZ evidence and requires no approval tuple.
+SEZ unit requires complete in-force Form G evidence; SEZ developer requires complete
+in-force Form B or C evidence. Positive approval validity is finite `[)` and contains
+the status-as-of date. Missing, unsupported, stale, suspended/cancelled, expired,
+foreign, malformed or incoherent truth fails closed; absence never becomes non-SEZ.
+
+The recursively frozen result is exactly
+`{recipientSezStatusId,recipient,statusAsOf,gstRegistration,sezStatus,approval,
+legalRule,evidenceHash}`. Approval is null for affirmative regular evidence or exact
+`{form,reference,validity:{fromInclusive,toExclusive},status,evidenceSha256}` for
+positive SEZ evidence. The final hash covers fixed-order
+`JSON.stringify({tenantId,...complete body except evidenceHash})`; tenant is bound
+but unexposed. `statusAsOf` is evidence time only, not a latest-row or future supply-
+date decision.
+
+This contract grants no supplier-side SEZ status, authorized-operations endorsement,
+zero rating/refund/payment mode, supply nature, levy, `SupTyp`, `IgstOnIntra`, item,
+posting, document, submission, API, HTTP, UI, local-runtime or promotion authority.
+
 ## 8. Pure rate-model evaluator
 
 Order 067's in-process evaluator is a draft/simulation primitive, not a database or HTTP contract.

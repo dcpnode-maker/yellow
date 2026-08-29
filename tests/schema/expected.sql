@@ -7468,6 +7468,38 @@ ALTER TABLE ONLY public.india_gst_item_classification FORCE ROW LEVEL SECURITY;
 
 
 --
+-- Name: india_gst_recipient_sez_status; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.india_gst_recipient_sez_status (
+    tenant_id uuid NOT NULL,
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    recipient_registration_id uuid NOT NULL,
+    recipient_registration_evidence_hash text NOT NULL,
+    status_as_of date NOT NULL,
+    gst_registration_status text NOT NULL,
+    gst_taxpayer_type text NOT NULL,
+    gst_status_source text NOT NULL,
+    gst_status_evidence_sha256 text NOT NULL,
+    approval_form text,
+    approval_reference text,
+    approval_validity daterange,
+    approval_status text,
+    approval_evidence_sha256 text,
+    legal_rule text NOT NULL,
+    CONSTRAINT india_gst_recipient_sez_status_approval_shape_ck CHECK ((((gst_taxpayer_type = 'regular'::text) AND (approval_form IS NULL) AND (approval_reference IS NULL) AND (approval_validity IS NULL) AND (approval_status IS NULL) AND (approval_evidence_sha256 IS NULL)) OR ((gst_taxpayer_type = 'sez_unit'::text) AND (approval_form = 'sez_rules_form_g'::text) AND (approval_reference IS NOT NULL) AND ((char_length(approval_reference) >= 1) AND (char_length(approval_reference) <= 128)) AND (btrim(approval_reference) = approval_reference) AND (approval_reference !~ '[[:cntrl:]]'::text) AND (approval_validity IS NOT NULL) AND (NOT isempty(approval_validity)) AND (NOT lower_inf(approval_validity)) AND (NOT upper_inf(approval_validity)) AND lower_inc(approval_validity) AND (NOT upper_inc(approval_validity)) AND (approval_validity @> status_as_of) AND (approval_status = 'in_force'::text) AND (approval_evidence_sha256 ~ '^[0-9a-f]{64}$'::text)) OR ((gst_taxpayer_type = 'sez_developer'::text) AND (approval_form = ANY (ARRAY['sez_rules_form_b'::text, 'sez_rules_form_c'::text])) AND (approval_reference IS NOT NULL) AND ((char_length(approval_reference) >= 1) AND (char_length(approval_reference) <= 128)) AND (btrim(approval_reference) = approval_reference) AND (approval_reference !~ '[[:cntrl:]]'::text) AND (approval_validity IS NOT NULL) AND (NOT isempty(approval_validity)) AND (NOT lower_inf(approval_validity)) AND (NOT upper_inf(approval_validity)) AND lower_inc(approval_validity) AND (NOT upper_inc(approval_validity)) AND (approval_validity @> status_as_of) AND (approval_status = 'in_force'::text) AND (approval_evidence_sha256 ~ '^[0-9a-f]{64}$'::text)))),
+    CONSTRAINT india_gst_recipient_sez_status_legal_rule_ck CHECK ((legal_rule = 'IGST_ACT_7_5_B_AND_8_2_RECIPIENT_STATUS'::text)),
+    CONSTRAINT india_gst_recipient_sez_status_recipient_hash_ck CHECK ((recipient_registration_evidence_hash ~ '^[0-9a-f]{64}$'::text)),
+    CONSTRAINT india_gst_recipient_sez_status_registration_status_ck CHECK ((gst_registration_status = 'active'::text)),
+    CONSTRAINT india_gst_recipient_sez_status_source_ck CHECK ((gst_status_source = 'gst_common_portal'::text)),
+    CONSTRAINT india_gst_recipient_sez_status_status_hash_ck CHECK ((gst_status_evidence_sha256 ~ '^[0-9a-f]{64}$'::text)),
+    CONSTRAINT india_gst_recipient_sez_status_taxpayer_type_ck CHECK ((gst_taxpayer_type = ANY (ARRAY['regular'::text, 'sez_unit'::text, 'sez_developer'::text])))
+);
+
+ALTER TABLE ONLY public.india_gst_recipient_sez_status FORCE ROW LEVEL SECURITY;
+
+
+--
 -- Name: india_gst_supplier_service_location; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -9148,6 +9180,22 @@ ALTER TABLE ONLY public.india_gst_item_classification
 
 ALTER TABLE ONLY public.india_gst_item_classification
     ADD CONSTRAINT india_gst_item_classification_pk PRIMARY KEY (tenant_id, id);
+
+
+--
+-- Name: india_gst_recipient_sez_status india_gst_recipient_sez_status_identity_uq; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.india_gst_recipient_sez_status
+    ADD CONSTRAINT india_gst_recipient_sez_status_identity_uq UNIQUE (tenant_id, recipient_registration_id, recipient_registration_evidence_hash, status_as_of);
+
+
+--
+-- Name: india_gst_recipient_sez_status india_gst_recipient_sez_status_pk; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.india_gst_recipient_sez_status
+    ADD CONSTRAINT india_gst_recipient_sez_status_pk PRIMARY KEY (tenant_id, id);
 
 
 --
@@ -11144,6 +11192,14 @@ ALTER TABLE ONLY public.india_gst_item_classification
 
 
 --
+-- Name: india_gst_recipient_sez_status india_gst_recipient_sez_status_registration_fk; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.india_gst_recipient_sez_status
+    ADD CONSTRAINT india_gst_recipient_sez_status_registration_fk FOREIGN KEY (tenant_id, recipient_registration_id) REFERENCES public.party_fiscal_registration(tenant_id, id);
+
+
+--
 -- Name: india_gst_supplier_service_location india_gst_supplier_service_location_registration_fk; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -12434,6 +12490,12 @@ ALTER TABLE public.inbound_message ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.india_gst_item_classification ENABLE ROW LEVEL SECURITY;
 
 --
+-- Name: india_gst_recipient_sez_status; Type: ROW SECURITY; Schema: public; Owner: -
+--
+
+ALTER TABLE public.india_gst_recipient_sez_status ENABLE ROW LEVEL SECURITY;
+
+--
 -- Name: india_gst_supplier_service_location; Type: ROW SECURITY; Schema: public; Owner: -
 --
 
@@ -12982,6 +13044,13 @@ CREATE POLICY tenant_isolation ON public.inbound_message USING ((tenant_id = (cu
 --
 
 CREATE POLICY tenant_isolation ON public.india_gst_item_classification USING ((tenant_id = (NULLIF(current_setting('app.tenant_id'::text, true), ''::text))::uuid)) WITH CHECK ((tenant_id = (NULLIF(current_setting('app.tenant_id'::text, true), ''::text))::uuid));
+
+
+--
+-- Name: india_gst_recipient_sez_status tenant_isolation; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY tenant_isolation ON public.india_gst_recipient_sez_status USING ((tenant_id = (NULLIF(current_setting('app.tenant_id'::text, true), ''::text))::uuid)) WITH CHECK ((tenant_id = (NULLIF(current_setting('app.tenant_id'::text, true), ''::text))::uuid));
 
 
 --
@@ -14966,6 +15035,13 @@ GRANT SELECT ON TABLE public.inbound_message TO app_role;
 --
 
 GRANT SELECT ON TABLE public.india_gst_item_classification TO app_role;
+
+
+--
+-- Name: TABLE india_gst_recipient_sez_status; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT SELECT ON TABLE public.india_gst_recipient_sez_status TO app_role;
 
 
 --

@@ -408,3 +408,8 @@ non-SEZ. Supplier-side SEZ, authorized operations/zero rating, supply nature, le
 `SupTyp`, item, document, API/UI/local authority remain separate. Intentional red,
 exact52/104/94/94/4 PostgreSQL/schema/referee, hostile proof and fresh Tier-3 are
 mandatory.
+The D-750 candidate is built: intentional red0/1 preceded focused16/0(301), migration
+39/0(182), acceptance17/0(49), runtime-DML5/0(111), exact52/104/94/94/4 normalized
+schema/referee11/11 and standing936/0 plus851 skips. All static gates are green,
+disposable proof is removed and the sole stable local remains exact, healthy and
+unchanged. Fresh non-implementing Tier-3 review remains mandatory.

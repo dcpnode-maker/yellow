@@ -260,6 +260,11 @@ const EXPECTED_MIGRATIONS = [
     filename: "0051_india_gst_supplier_service_location.sql",
     checksum_sha256: "af457264bb976d64930022eb4686a55096248bf0b9e1f13151454b47d47b2496",
   },
+  {
+    version: 52,
+    filename: "0052_india_gst_recipient_sez_status.sql",
+    checksum_sha256: "7a318a99c4e3e40722fc97c0445b3475e7cedc10feb651b4c5049f4e3afd65da",
+  },
 ];
 
 if (REQUIRE_DATABASE && !DATABASE_URL) {
@@ -336,7 +341,7 @@ databaseDescribe("fresh deployment database acceptance", () => {
             AND class.relforcerowsecurity) AS "forceRlsTables"
     `;
     expect(catalogue).toEqual([{
-      migrations: 51, tables: 103, rlsTables: 93, policies: 93, forceRlsTables: 3,
+      migrations: 52, tables: 104, rlsTables: 94, policies: 94, forceRlsTables: 4,
     }]);
   });
 
@@ -1226,6 +1231,162 @@ databaseDescribe("fresh deployment database acceptance", () => {
     }
   });
 
+  test("has exact India GST recipient SEZ-status schema, forced RLS and SELECT-only app authority", async () => {
+    const relation = await sql!<Array<{
+      owner: string; rls: boolean; forceRls: boolean;
+      columns: string; types: string; notNull: string;
+      appSelect: boolean; appMutation: boolean;
+      publicPrivileges: number; runtimePrivileges: number;
+      policyCount: number; policyUsesNullifContext: boolean;
+      constraintCount: number; requiredConstraints: number;
+      exactIdentity: boolean; compositeRegistrationForeignKey: boolean;
+      tenantLeadingIndexes: number; totalIndexes: number;
+    }>>`
+      SELECT pg_catalog.pg_get_userbyid(cls.relowner) AS owner,
+             cls.relrowsecurity AS rls,
+             cls.relforcerowsecurity AS "forceRls",
+             (
+               SELECT pg_catalog.string_agg(attribute.attname, ',' ORDER BY attribute.attnum)
+                 FROM pg_catalog.pg_attribute AS attribute
+                WHERE attribute.attrelid = cls.oid
+                  AND attribute.attnum > 0
+                  AND NOT attribute.attisdropped
+             ) AS columns,
+             (
+               SELECT pg_catalog.string_agg(
+                 pg_catalog.format_type(attribute.atttypid, attribute.atttypmod),
+                 ',' ORDER BY attribute.attnum
+               )
+                 FROM pg_catalog.pg_attribute AS attribute
+                WHERE attribute.attrelid = cls.oid
+                  AND attribute.attnum > 0
+                  AND NOT attribute.attisdropped
+             ) AS types,
+             (
+               SELECT pg_catalog.string_agg(attribute.attnotnull::text, ',' ORDER BY attribute.attnum)
+                 FROM pg_catalog.pg_attribute AS attribute
+                WHERE attribute.attrelid = cls.oid
+                  AND attribute.attnum > 0
+                  AND NOT attribute.attisdropped
+             ) AS "notNull",
+             pg_catalog.has_table_privilege('app_role', cls.oid, 'SELECT') AS "appSelect",
+             (
+               pg_catalog.has_table_privilege('app_role', cls.oid, 'INSERT')
+               OR pg_catalog.has_table_privilege('app_role', cls.oid, 'UPDATE')
+               OR pg_catalog.has_table_privilege('app_role', cls.oid, 'DELETE')
+               OR pg_catalog.has_table_privilege('app_role', cls.oid, 'TRUNCATE')
+             ) AS "appMutation",
+             (
+               SELECT count(*)::int
+                 FROM pg_catalog.aclexplode(
+                   COALESCE(cls.relacl, pg_catalog.acldefault('r', cls.relowner))
+                 ) AS acl
+                WHERE acl.grantee = 0
+             ) AS "publicPrivileges",
+             (
+               SELECT count(*)::int
+                 FROM unnest(ARRAY[
+                   'SELECT','INSERT','UPDATE','DELETE','TRUNCATE','REFERENCES','TRIGGER'
+                 ]) AS privilege
+                WHERE pg_catalog.has_table_privilege('yellow_runtime', cls.oid, privilege)
+             ) AS "runtimePrivileges",
+             (
+               SELECT count(*)::int FROM pg_catalog.pg_policy
+                WHERE polrelid = cls.oid AND polname = 'tenant_isolation'
+             ) AS "policyCount",
+             EXISTS (
+               SELECT 1 FROM pg_catalog.pg_policy AS policy
+                WHERE policy.polrelid = cls.oid
+                  AND policy.polname = 'tenant_isolation'
+                  AND pg_catalog.pg_get_expr(policy.polqual, policy.polrelid)
+                    LIKE '%NULLIF(current_setting(''app.tenant_id''::text, true), ''''::text)%'
+                  AND pg_catalog.pg_get_expr(policy.polwithcheck, policy.polrelid)
+                    LIKE '%NULLIF(current_setting(''app.tenant_id''::text, true), ''''::text)%'
+             ) AS "policyUsesNullifContext",
+             (
+               SELECT count(*)::int FROM pg_catalog.pg_constraint
+                WHERE conrelid = cls.oid
+             ) AS "constraintCount",
+             (
+               SELECT count(*)::int FROM pg_catalog.pg_constraint
+                WHERE conrelid = cls.oid
+                  AND conname = ANY(ARRAY[
+                    'india_gst_recipient_sez_status_pk',
+                    'india_gst_recipient_sez_status_identity_uq',
+                    'india_gst_recipient_sez_status_registration_fk',
+                    'india_gst_recipient_sez_status_recipient_hash_ck',
+                    'india_gst_recipient_sez_status_registration_status_ck',
+                    'india_gst_recipient_sez_status_taxpayer_type_ck',
+                    'india_gst_recipient_sez_status_source_ck',
+                    'india_gst_recipient_sez_status_status_hash_ck',
+                    'india_gst_recipient_sez_status_approval_shape_ck',
+                    'india_gst_recipient_sez_status_legal_rule_ck'
+                  ])
+             ) AS "requiredConstraints",
+             EXISTS (
+               SELECT 1 FROM pg_catalog.pg_constraint AS constraint_row
+                WHERE constraint_row.conrelid = cls.oid
+                  AND constraint_row.conname = 'india_gst_recipient_sez_status_identity_uq'
+                  AND pg_catalog.pg_get_constraintdef(constraint_row.oid)
+                    = 'UNIQUE (tenant_id, recipient_registration_id, recipient_registration_evidence_hash, status_as_of)'
+             ) AS "exactIdentity",
+             EXISTS (
+               SELECT 1 FROM pg_catalog.pg_constraint AS constraint_row
+                WHERE constraint_row.conrelid = cls.oid
+                  AND constraint_row.conname = 'india_gst_recipient_sez_status_registration_fk'
+                  AND pg_catalog.pg_get_constraintdef(constraint_row.oid)
+                    = 'FOREIGN KEY (tenant_id, recipient_registration_id) REFERENCES party_fiscal_registration(tenant_id, id)'
+             ) AS "compositeRegistrationForeignKey",
+             (
+               SELECT count(*)::int
+                 FROM pg_catalog.pg_index AS index
+                 JOIN pg_catalog.pg_attribute AS leading_attribute
+                   ON leading_attribute.attrelid = cls.oid
+                  AND leading_attribute.attnum = (index.indkey::smallint[])[0]
+                WHERE index.indrelid = cls.oid
+                  AND leading_attribute.attname = 'tenant_id'
+             ) AS "tenantLeadingIndexes",
+             (
+               SELECT count(*)::int FROM pg_catalog.pg_index AS index
+                WHERE index.indrelid = cls.oid
+             ) AS "totalIndexes"
+        FROM pg_catalog.pg_class AS cls
+       WHERE cls.oid = 'public.india_gst_recipient_sez_status'::regclass
+    `;
+    expect(relation).toEqual([{
+      owner: "yellow_owner", rls: true, forceRls: true,
+      columns: "tenant_id,id,recipient_registration_id,recipient_registration_evidence_hash,status_as_of,gst_registration_status,gst_taxpayer_type,gst_status_source,gst_status_evidence_sha256,approval_form,approval_reference,approval_validity,approval_status,approval_evidence_sha256,legal_rule",
+      types: "uuid,uuid,uuid,text,date,text,text,text,text,text,text,daterange,text,text,text",
+      notNull: "true,true,true,true,true,true,true,true,true,false,false,false,false,false,true",
+      appSelect: true, appMutation: false,
+      publicPrivileges: 0, runtimePrivileges: 0,
+      policyCount: 1, policyUsesNullifContext: true,
+      constraintCount: 10, requiredConstraints: 10,
+      exactIdentity: true, compositeRegistrationForeignKey: true,
+      tenantLeadingIndexes: 2, totalIndexes: 2,
+    }]);
+
+    const appRead = await sql!.begin(async (tx) => {
+      await tx.unsafe("SET LOCAL ROLE app_role");
+      await tx`SELECT set_config('app.tenant_id', ${SEED_TENANT.id}, true)`;
+      return tx<{ count: number }[]>`
+        SELECT count(*)::int AS count FROM public.india_gst_recipient_sez_status
+      `;
+    });
+    expect(appRead).toEqual([{ count: 0 }]);
+
+    try {
+      await sql!.begin(async (tx) => {
+        await tx.unsafe("SET LOCAL ROLE app_role");
+        await tx`SELECT set_config('app.tenant_id', ${SEED_TENANT.id}, true)`;
+        await tx.unsafe("INSERT INTO public.india_gst_recipient_sez_status DEFAULT VALUES");
+      });
+      throw new Error("app_role unexpectedly mutated india_gst_recipient_sez_status");
+    } catch (error) {
+      expect((error as { errno?: string }).errno).toBe("42501");
+    }
+  });
+
   test("has exact India GST Party-registration schema, tenant coherence and SELECT-only app authority", async () => {
     const relation = await sql!<Array<{
       owner: string;
@@ -1706,7 +1867,7 @@ databaseDescribe("fresh deployment database acceptance", () => {
         (SELECT count(*)::int FROM pg_catalog.pg_tables WHERE schemaname = 'public') AS tables,
         (SELECT count(*)::int FROM pg_catalog.pg_policies WHERE schemaname = 'public') AS policies
     `;
-    expect(shape).toEqual([{ tables: 103, policies: 93 }]);
+    expect(shape).toEqual([{ tables: 104, policies: 94 }]);
 
     const relations = await sql!<Array<{
       relation: string;
@@ -1818,7 +1979,7 @@ databaseDescribe("fresh deployment database acceptance", () => {
         has_column_privilege('app_role','public.journal','approval_request_id','UPDATE') AS "appApprovalUpdate"
     `;
     expect(shape).toEqual([{
-      tables: 103, policies: 93, directBill: 1,
+      tables: 104, policies: 94, directBill: 1,
       approvalNullable: true, compositeFk: true, oneUseIndex: true,
       appApprovalInsert: false, appApprovalUpdate: false,
     }]);

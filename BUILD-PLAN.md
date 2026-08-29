@@ -867,13 +867,18 @@ stable-runtime proof are green; disposable proof is removed. Approval remains
 bounded to section2(15)(a) evidence and grants none of the forbidden downstream
 authority.
 
-**Ready Order285 recipient SEZ-status slice:** add one explicit SELECT-only status
+**Built-pending-review Order285 recipient SEZ-status slice:** add one explicit SELECT-only status
 root bound to exact current Order276 recipient registration/hash. Admit only official
 active regular, SEZ-unit/Form-G or SEZ-developer/Form-B-or-C evidence as of an
 explicit date; absence never means non-SEZ. This does not cover supplier-side SEZ,
 authorized operations/zero rating, supply nature, levy, `SupTyp`, item, document,
 API/UI/local authority. Intentional red, exact52/104/94/94/4 PostgreSQL/schema/
 referee, hostile zero-write proof and fresh Tier-3 are mandatory under D-749.
+The D-750 candidate passed intentional red0/1, focused16/0(301), migration39/0(182),
+acceptance17/0(49), runtime-DML5/0(111), exact52/104/94/94/4 normalized schema and
+referee11/11, plus standing936/0 with851 environment skips and all static gates.
+Disposable proof is removed and the sole stable local remains healthy and unchanged.
+Fresh non-implementing Tier-3 execution remains mandatory.
 
 ## Phase 8 — Statutory registration + ZATCA
 

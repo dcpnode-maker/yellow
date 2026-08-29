@@ -828,6 +828,28 @@ no SEZ status, supply nature, levy, rate/amount, `SupTyp`, `IgstOnIntra`, item,
 posting, fiscal document, provider/submission, API, HTTP, UI, local-runtime or
 promotion identity.
 
+### India GST Recipient SEZ Status — Tax/Fiscal
+
+Order285 adds one narrow typed status root belonging to one exact Party fiscal GST
+registration and its current approved Order276 evidence hash. It does not extend the
+Party or registration aggregate and adds no lifecycle writer, fact or event. The
+root records affirmative official active GST taxpayer-type evidence as of one date;
+positive SEZ role additionally carries in-force official approval-form evidence.
+
+The exact statuses are SEZ unit, SEZ developer and affirmatively proven regular/non-
+SEZ. Unit evidence is Form G; developer evidence is Form B or co-developer Form C.
+Absence, unknown type, inactive GST status, incomplete/expired approval or stale
+Order276 hash is unresolved rather than non-SEZ. Multiple evidence dates remain
+history selected by exact id; neither the database nor resolver picks a latest row.
+
+The read service revalidates and rehashes complete Order276 truth, equality-binds the
+requested status, returns a fixed recursively frozen value and hashes the complete
+ordered evidence with the unexposed tenant. GSTIN/address, Party role/profile,
+BuyerDtls, account/reservation/folio association, property/Pos or Order283 equality
+cannot infer or replace the status. Supplier-side SEZ, authorized operations, zero
+rating, supply nature, levy, IRP/item/document/provider/API/UI/local identity remain
+separate future primitives.
+
 ### Positive Tax Attribution Snapshot value service — Tax/Fiscal
 
 Order 240 is a pure immutable value service, not an aggregate, entity or state

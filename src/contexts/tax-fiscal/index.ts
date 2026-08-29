@@ -176,3 +176,13 @@ export type {
   IndiaGstSupplierServiceLocationInput,
   IndiaGstSupplierServiceLocationResult,
 } from "./india-gst-supplier-service-location";
+export {
+  IndiaGstRecipientSezStatusConflictError,
+  IndiaGstRecipientSezStatusNotFoundError,
+  IndiaGstRecipientSezStatusService,
+  IndiaGstRecipientSezStatusValidationError,
+} from "./india-gst-recipient-sez-status";
+export type {
+  IndiaGstRecipientSezStatusInput,
+  IndiaGstRecipientSezStatusResult,
+} from "./india-gst-recipient-sez-status";

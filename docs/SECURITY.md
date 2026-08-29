@@ -486,6 +486,29 @@ equality cannot select a location. Section2(15)(b–d), SEZ, authorized operatio
 supply nature, levy/rate/amount, `SupTyp`, `IgstOnIntra`, item, posting, document,
 submission, API/HTTP/UI, local-runtime and promotion authority remain excluded.
 
+### India GST recipient SEZ-status containment
+
+Order285 adds one tenant-leading root with a same-tenant Party fiscal-registration
+FK, constrained active official status/type/approval evidence, RLS enabled and forced,
+and `app_role` SELECT only. PUBLIC, runtime and app raw DML/TRUNCATE are denied; no
+capability, owner-mediated writer, seed, fact, event or lifecycle command exists.
+
+The resolver accepts only four canonical UUIDs in an exact plain object, obtains and
+independently revalidates complete current Order276 recipient evidence, and selects
+only the requested tenant/id/registration/hash row. Cross-tenant/Party/registration,
+missing, stale, unsupported, inactive, expired, future, malformed, proxy/accessor/
+symbol or thawed truth fails closed. Results are recursively frozen, fixed-order and
+tenant-hash-bound; reads and rejections are zero-write.
+
+Affirmative regular official evidence is the only non-SEZ path; absence never
+substitutes. Unit/developer status requires a complete type-compatible in-force
+approval tuple whose finite validity contains the explicit evidence date. Party/
+account/reservation/folio labels, GSTIN/address, BuyerDtls, property/Pos, Order283,
+config/SAC/tax-code truth cannot select a result. Approval evidence does not prove
+authorized operations or zero rating. Supplier-side SEZ, supply nature, levy,
+`SupTyp`, `IgstOnIntra`, item, document, submission, network/API/UI/local authority
+remain excluded.
+
 ### Tax-attribution persistence containment
 
 Order 244 accepts only a value that survives the exact hostile Order-240 parser. All

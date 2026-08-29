@@ -2,7 +2,7 @@
 
 **Status:** active; governed positive-tax posting and complete correction approved through Order266
 **Entry point:** built-unreviewed Phase-6 composition through Order 236
-**Current order:** Order285 exact India GST recipient SEZ-status evidence is ready under D-749
+**Current order:** Order285 exact India GST recipient SEZ-status evidence is built pending fresh Tier-3 review under D-750
 
 ## Outcome
 
@@ -457,3 +457,8 @@ date; absence, stale or unsupported truth remains unresolved. Supplier-side SEZ,
 authorized operations/zero rating, supply nature, levy, `SupTyp`, item, document,
 API/UI/local authority remain separate. D-749 requires intentional red, exact
 52/104/94/94/4 PostgreSQL/schema/referee, hostile zero-write proof and fresh Tier-3.
+The D-750 candidate is built: intentional red0/1 preceded focused16/0(301), migration
+39/0(182), acceptance17/0(49), runtime-DML5/0(111), exact52/104/94/94/4 normalized
+schema/referee11/11 and standing936/0 plus851 skips. Type/108-boundary/23-licence/
+audit0/diff are green; disposable proof is absent and the sole stable local remains
+exact, healthy and unchanged. Fresh non-implementing Tier-3 review is mandatory.
