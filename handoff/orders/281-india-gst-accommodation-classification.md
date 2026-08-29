@@ -1,6 +1,6 @@
 # Order 281 — Build exact India GST accommodation-classification evidence
 
-**Status:** READY-D735
+**Status:** BUILT-PENDING-REVIEW-D736
 **Phase:** 7 — Tax engine and India IRP
 **Branch:** `phase-7/india-gst-accommodation-classification`
 **Base:** `1e01fe2` (independently approved Order280 descendant)
@@ -85,7 +85,27 @@ Phase-7 or application-complete claim.
 
 ## Definition of done
 
-- [ ] Intentional red precedes implementation.
-- [ ] Exact schema/resolver and hostile PostgreSQL proof are green.
-- [ ] Standing/static gates are green and no authority expands.
+- [x] Intentional red precedes implementation.
+- [x] Exact schema/resolver and hostile PostgreSQL proof are green.
+- [x] Standing/static gates are green and no authority expands.
 - [ ] Fresh independent Tier-3 approval is recorded.
+
+## Builder proof — D736
+
+- intentional red: 0 passed / 1 failed because migration0050 was absent, before any
+  source or migration existed;
+- focused classification: 12/0 (196 expectations); four-suite classification/location/
+  supplier/folio integration: 39/0 (406 expectations), including 28 adjacent prerequisites;
+- database acceptance15/0, runtime-DML5/0, migration replay39/0 (186 expectations),
+  exact50 migrations / 102 public tables / 92 RLS tables+policies, normalized schema
+  exact, and fresh referee11/11;
+- standing894/0 plus 825 database-only skips (9,148 expectations; 1,719 tests across
+  306 files), TypeScript, 104-file boundary, 23-package licence, audit0 and diff green;
+- official source audit: notified IRP schema keeps `IsServc` and `HsnCd` as separate
+  mandatory item fields, while CBIC Notification11 annexure lists exactly the admitted
+  accommodation-service SAC set;
+- discarded harness invocations were infrastructure-only: a WSL proof container was
+  host-stopped after a green referee, one combined acceptance run targeted invariant
+  fixtures rather than the canonical seed, and one schema invocation omitted compose
+  authority variables. Corrected Windows-Docker executions above are green. No stable
+  local application resource was changed.

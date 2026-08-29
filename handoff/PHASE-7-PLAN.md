@@ -2,7 +2,7 @@
 
 **Status:** active; governed positive-tax posting and complete correction approved through Order266
 **Entry point:** built-unreviewed Phase-6 composition through Order 236
-**Current order:** Order281 exact India GST accommodation-classification evidence is admitted under D-735
+**Current order:** Order281 exact India GST accommodation-classification evidence is built-pending-review under D-736
 
 ## Outcome
 
@@ -362,3 +362,7 @@ IRP item prerequisite only: no `ItemList`, `Pos`, `SupTyp`, tax/decomposition,
 seller/buyer/folio composition, document, submission, API, UI, writer or local
 authority. Fresh PostgreSQL/referee proof and independent Tier-3 execution are
 mandatory under D-735.
+Intentional red0/1 preceded focused12/0, adjacent28/0, acceptance15/0,
+runtime-DML5/0, migration39/0, exact50/102/92/schema/referee11/11 and standing894/0
+plus 825 database-only skips. All static gates are green and the stable local remains
+unchanged. Fresh non-implementing Tier-3 execution is still mandatory.

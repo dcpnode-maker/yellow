@@ -136,3 +136,13 @@ export type {
   IndiaGstPropertyLocationInput,
   IndiaGstPropertyLocationResult,
 } from "./india-gst-property-location";
+export {
+  IndiaGstAccommodationClassificationConflictError,
+  IndiaGstAccommodationClassificationNotFoundError,
+  IndiaGstAccommodationClassificationService,
+  IndiaGstAccommodationClassificationValidationError,
+} from "./india-gst-accommodation-classification";
+export type {
+  IndiaGstAccommodationClassificationInput,
+  IndiaGstAccommodationClassificationResult,
+} from "./india-gst-accommodation-classification";

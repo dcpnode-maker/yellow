@@ -785,6 +785,11 @@ rate-plan, profile, space and unit truth cannot substitute. This is future item
 evidence only: no `ItemList`, `Pos`, `SupTyp`, tax, document, submission, API, UI or
 local authority. New schema/RLS/statutory evidence is Tier 3 and requires fresh
 PostgreSQL/referee proof plus independent executable review under D-735.
+Intentional red0/1 now precedes focused12/0, adjacent28/0, acceptance15/0,
+runtime-DML5/0, migration39/0, exact50/102/92/schema/referee11/11 and standing894/0
+plus 825 database-only skips; type/104-boundary/23-licence/audit0/diff are green under
+D-736. The exact candidate remains built-pending-review until fresh non-implementing
+Tier-3 execution approves it.
 
 ## Phase 8 — Statutory registration + ZATCA
 

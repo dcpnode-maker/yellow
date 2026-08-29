@@ -7434,6 +7434,40 @@ CREATE TABLE public.inbound_message (
 
 
 --
+-- Name: india_gst_item_classification; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.india_gst_item_classification (
+    tenant_id uuid NOT NULL,
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    property_node uuid NOT NULL,
+    jurisdiction_extension_id uuid NOT NULL,
+    jurisdiction_owner_tenant_id uuid,
+    jurisdiction_key text NOT NULL,
+    jurisdiction_version integer NOT NULL,
+    jurisdiction_content_hash text NOT NULL,
+    country_code character(2) NOT NULL,
+    line_id text NOT NULL,
+    revenue_group text NOT NULL,
+    classification_system text NOT NULL,
+    classification_code text NOT NULL,
+    is_service_code character(1) NOT NULL,
+    CONSTRAINT india_gst_item_classification_code_ck CHECK ((classification_code = ANY (ARRAY['996311'::text, '996312'::text, '996313'::text, '996321'::text, '996322'::text, '996329'::text]))),
+    CONSTRAINT india_gst_item_classification_country_ck CHECK ((country_code = 'IN'::character(2))),
+    CONSTRAINT india_gst_item_classification_jurisdiction_hash_ck CHECK ((jurisdiction_content_hash ~ '^[0-9a-f]{64}$'::text)),
+    CONSTRAINT india_gst_item_classification_jurisdiction_key_ck CHECK ((jurisdiction_key ~ '^[a-z0-9][a-z0-9_.:-]{0,127}$'::text)),
+    CONSTRAINT india_gst_item_classification_jurisdiction_owner_ck CHECK (((jurisdiction_owner_tenant_id IS NULL) OR (jurisdiction_owner_tenant_id = tenant_id))),
+    CONSTRAINT india_gst_item_classification_jurisdiction_version_ck CHECK ((jurisdiction_version > 0)),
+    CONSTRAINT india_gst_item_classification_line_ck CHECK ((line_id = 'room'::text)),
+    CONSTRAINT india_gst_item_classification_revenue_group_ck CHECK ((revenue_group = 'room_revenue'::text)),
+    CONSTRAINT india_gst_item_classification_service_ck CHECK ((is_service_code = 'Y'::character(1))),
+    CONSTRAINT india_gst_item_classification_system_ck CHECK ((classification_system = 'SAC'::text))
+);
+
+ALTER TABLE ONLY public.india_gst_item_classification FORCE ROW LEVEL SECURITY;
+
+
+--
 -- Name: inventory_authority; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -9075,6 +9109,22 @@ ALTER TABLE ONLY public.inbound_message
 
 ALTER TABLE ONLY public.inbound_message
     ADD CONSTRAINT inbound_message_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: india_gst_item_classification india_gst_item_classification_identity_uq; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.india_gst_item_classification
+    ADD CONSTRAINT india_gst_item_classification_identity_uq UNIQUE NULLS NOT DISTINCT (tenant_id, property_node, jurisdiction_extension_id, jurisdiction_owner_tenant_id, jurisdiction_key, jurisdiction_version, jurisdiction_content_hash, line_id);
+
+
+--
+-- Name: india_gst_item_classification india_gst_item_classification_pk; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.india_gst_item_classification
+    ADD CONSTRAINT india_gst_item_classification_pk PRIMARY KEY (tenant_id, id);
 
 
 --
@@ -11039,6 +11089,22 @@ ALTER TABLE ONLY public.inbound_message
 
 
 --
+-- Name: india_gst_item_classification india_gst_item_classification_extension_fk; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.india_gst_item_classification
+    ADD CONSTRAINT india_gst_item_classification_extension_fk FOREIGN KEY (jurisdiction_extension_id) REFERENCES public.extension(id);
+
+
+--
+-- Name: india_gst_item_classification india_gst_item_classification_property_fk; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.india_gst_item_classification
+    ADD CONSTRAINT india_gst_item_classification_property_fk FOREIGN KEY (tenant_id, property_node) REFERENCES public.org_node(tenant_id, id);
+
+
+--
 -- Name: inventory_authority inventory_authority_property_node_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -12315,6 +12381,12 @@ ALTER TABLE public.identity_document ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.inbound_message ENABLE ROW LEVEL SECURITY;
 
 --
+-- Name: india_gst_item_classification; Type: ROW SECURITY; Schema: public; Owner: -
+--
+
+ALTER TABLE public.india_gst_item_classification ENABLE ROW LEVEL SECURITY;
+
+--
 -- Name: inventory_authority; Type: ROW SECURITY; Schema: public; Owner: -
 --
 
@@ -12850,6 +12922,13 @@ CREATE POLICY tenant_isolation ON public.identity_document USING ((tenant_id = (
 --
 
 CREATE POLICY tenant_isolation ON public.inbound_message USING ((tenant_id = (current_setting('app.tenant_id'::text, true))::uuid)) WITH CHECK ((tenant_id = (current_setting('app.tenant_id'::text, true))::uuid));
+
+
+--
+-- Name: india_gst_item_classification tenant_isolation; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY tenant_isolation ON public.india_gst_item_classification USING ((tenant_id = (NULLIF(current_setting('app.tenant_id'::text, true), ''::text))::uuid)) WITH CHECK ((tenant_id = (NULLIF(current_setting('app.tenant_id'::text, true), ''::text))::uuid));
 
 
 --
@@ -14820,6 +14899,13 @@ GRANT SELECT ON TABLE public.identity_document TO app_role;
 --
 
 GRANT SELECT ON TABLE public.inbound_message TO app_role;
+
+
+--
+-- Name: TABLE india_gst_item_classification; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT SELECT ON TABLE public.india_gst_item_classification TO app_role;
 
 
 --

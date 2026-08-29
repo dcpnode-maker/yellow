@@ -888,6 +888,47 @@ deemed-export treatment, derive CGST/SGST/IGST or tax rates, associate a reserva
 folio or buyer, or authorize posting, correction, document allocation/issue/number/
 hash-chain, submission, provider, API, HTTP or UI behavior.
 
+### Exact India GST accommodation-classification evidence
+
+Order281 specifies the internal SELECT-only
+`IndiaGstAccommodationClassificationService.resolve(tx,
+{tenantId,propertyNode,reservationId,classificationId})` boundary. Its input must be
+one exact plain, accessor-free, proxy-free and symbol-free object containing only four
+canonical UUIDs. The caller-established transaction-local tenant context must equal
+the supplied tenant. Before reading classification truth, the service reuses the exact
+frozen positive-tax eligibility for the supplied tenant, property and reservation.
+
+Resolution then reads exactly the explicitly selected
+`india_gst_item_classification` row and equality-binds it to the same tenant and
+property and to the eligibility result's complete frozen jurisdiction identity:
+extension id, nullable owner tenant id, key, version string and content hash. The row
+must carry country `IN`, line `room`, revenue group `room_revenue`, classification
+system `SAC`, service flag `Y` and exactly one of the six admitted accommodation codes
+`996311`, `996312`, `996313`, `996321`, `996322` or `996329`.
+
+The recursively frozen fixed-shape result is
+`{classificationId,propertyNode,jurisdiction:{extensionId,ownerTenantId,key,version,
+contentHash},lineId:"room",revenueGroup:"room_revenue",classificationSystem:"SAC",
+classificationCode,isServiceCode:"Y",evidenceHash}`. `evidenceHash` is deterministic
+SHA-256 over fixed-order unexposed tenant plus every returned evidence field, including
+the complete nested jurisdiction. Identical eligibility and stored truth replay
+byte-identically.
+
+Absent, duplicate, foreign, malformed, stale or jurisdiction-incoherent evidence
+fails closed. Goods flag, HSN system, arbitrary/non-accommodation code and any
+mismatched tenant, property, reservation, classification, line or jurisdiction fail
+closed as well. There is no inference or fallback from `GST_ROOM`, `room_revenue`,
+USALI, transaction codes, semantic posting routes, rate plans, profiles, spaces, unit
+types or property display/configuration truth. Successful and failed classification
+reads write no classification, eligibility, tax-lineage, fact, outbox, journal,
+posting, document, fiscal-submission or idempotency state.
+
+This evidence is a future item prerequisite only. It does not build IRP `ItemList`,
+decide `Pos` or `SupTyp`, choose B2C/URP, export, SEZ or deemed-export treatment,
+derive a tax rate or CGST/SGST/IGST decomposition, compose seller, buyer or folio-
+window truth, or authorize posting, correction, document allocation/issue/number/
+hash-chain, submission, provider, API, HTTP or UI behavior.
+
 ## 8. Pure rate-model evaluator
 
 Order 067's in-process evaluator is a draft/simulation primitive, not a database or HTTP contract.

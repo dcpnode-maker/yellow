@@ -682,6 +682,43 @@ CGST/SGST/IGST decomposition or tax rates, reservation/folio/buyer association,
 posting/correction, documents/series/number/hash chains, providers, submissions, API,
 HTTP or UI behavior.
 
+### India GST Item Classification — Tax/Fiscal
+
+**Root:** `india_gst_item_classification`.
+
+Order281 introduces one typed statutory assignment root because commercial revenue
+group, tax code, USALI mapping, posting route, rate plan, profile, space and unit-type
+truth are not statutory item identity. The Natural-Solution Test also rejects adding
+classification to frozen jurisdiction evidence because that would change the prior
+jurisdiction content and evidence hash. This root is therefore one narrow explicit
+assignment, not a new product, room, revenue or tax-calculation primitive.
+
+The tenant-leading identity binds one caller-selected classification UUID to one
+same-tenant property and the complete frozen positive-tax jurisdiction lineage:
+extension id, nullable owner tenant id, key, positive version string and content hash.
+One tenant/property/frozen-jurisdiction/room-line assignment is structurally unique. The
+stored classification is fixed to country `IN`, line `room`, revenue group
+`room_revenue`, system `SAC` and service flag `Y`; its code must be exactly one of
+`996311`, `996312`, `996313`, `996321`, `996322` or `996329`. It has no lifecycle,
+precedence or inferred-current rule.
+
+Tenant RLS contains the root and runtime receives SELECT only; provisioning and
+maintenance stay outside the application contract. The Order281 service accepts only
+an exact tenant/property/reservation/classification tuple, reuses exact frozen
+positive-tax eligibility and equality-binds the selected row to its complete
+jurisdiction identity. It returns only recursively frozen fixed-shape classification
+evidence and a deterministic hash over fixed-order unexposed tenant plus every
+returned property, jurisdiction and classification field. Missing, foreign, stale,
+malformed or incoherent evidence fails closed without fallback, classification writes,
+facts, events, idempotency evidence or mutation.
+
+This root is accommodation service-classification evidence only. It is not an IRP
+item, place-of-supply or supply-type decision and does not own `ItemList`, `Pos`,
+`SupTyp`, B2C/URP, export, SEZ or deemed-export treatment, tax rates or
+CGST/SGST/IGST decomposition, seller/buyer/folio-window composition,
+posting/correction, documents/series/number/hash chains, providers, submissions, API,
+HTTP or UI behavior.
+
 ### Positive Tax Attribution Snapshot value service — Tax/Fiscal
 
 Order 240 is a pure immutable value service, not an aggregate, entity or state

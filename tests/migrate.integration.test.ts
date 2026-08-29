@@ -516,7 +516,7 @@ databaseDescribe("Bun SQL migration runner", () => {
         const tableCount = await sql<{ count: number }[]>`
           SELECT count(*)::int AS count FROM pg_catalog.pg_tables WHERE schemaname = 'public'
         `;
-        expect(tableCount).toEqual([{ count: 101 }]);
+        expect(tableCount).toEqual([{ count: 102 }]);
       });
     },
     60_000,
@@ -701,7 +701,7 @@ databaseDescribe("Bun SQL migration runner", () => {
                   'open_cashier_session', 'append_cashier_count', 'close_cashier_session'
                 )) AS functions
         `;
-        expect(shape).toEqual([{ tables: 101, policies: 91, functions: 3 }]);
+        expect(shape).toEqual([{ tables: 102, policies: 92, functions: 3 }]);
       });
     },
     60_000,
@@ -748,7 +748,7 @@ databaseDescribe("Bun SQL migration runner", () => {
               WHERE table_schema = 'public' AND table_name = 'journal'
                 AND column_name = 'approval_request_id') AS "approvalColumns"
         `;
-        expect(shape).toEqual([{ tables: 101, policies: 91, functions: 1, approvalColumns: 1 }]);
+        expect(shape).toEqual([{ tables: 102, policies: 92, functions: 1, approvalColumns: 1 }]);
       });
     },
     60_000,
@@ -791,7 +791,7 @@ databaseDescribe("Bun SQL migration runner", () => {
               WHERE namespace.nspname = 'public'
                 AND procedure.proname = 'transition_housekeeping_task') AS functions
         `;
-        expect(shape).toEqual([{ tables: 101, policies: 91, functions: 1 }]);
+        expect(shape).toEqual([{ tables: 102, policies: 92, functions: 1 }]);
       });
     },
     60_000,
@@ -1562,8 +1562,8 @@ databaseDescribe("Bun SQL migration runner", () => {
          WHERE class.oid = 'public.tax_semantic_route'::regclass
         `;
         expect(relation).toEqual([{
-          tables: 101,
-          policies: 91,
+          tables: 102,
+          policies: 92,
           owner: "yellow_owner",
           rls: true,
           appSelect: true,
@@ -1627,6 +1627,7 @@ databaseDescribe("Bun SQL migration runner", () => {
           "0047_property_fiscal_registration.sql",
           "0048_party_fiscal_registration.sql",
           "0049_property_fiscal_location.sql",
+          "0050_india_gst_item_classification.sql",
         ]);
 
         const preservedLedger = await sql<Array<{
@@ -1652,7 +1653,7 @@ databaseDescribe("Bun SQL migration runner", () => {
             FROM public.schema_migration
            ORDER BY version
         `;
-        expect(upgradedLedger).toHaveLength(49);
+        expect(upgradedLedger).toHaveLength(50);
 
         const noOpLog: string[] = [];
         const noOp = await runMigrations({
@@ -1661,7 +1662,7 @@ databaseDescribe("Bun SQL migration runner", () => {
           logger: (message) => noOpLog.push(message),
         });
         expect(noOp.appliedFiles).toEqual([]);
-        expect(noOp.discoveredFiles).toBe(49);
+        expect(noOp.discoveredFiles).toBe(50);
         expect(noOp.transactionBackendPids).toEqual([]);
         expect(noOpLog).toHaveLength(1);
         expect(noOpLog[0]).toContain("applied=0 status=no-op");
@@ -1683,7 +1684,7 @@ databaseDescribe("Bun SQL migration runner", () => {
         }>>`
           SELECT version, filename, checksum_sha256
             FROM public.schema_migration
-           WHERE version IN (44, 45, 46, 47, 48, 49)
+           WHERE version IN (44, 45, 46, 47, 48, 49, 50)
            ORDER BY version
         `;
         expect(ledger.map((row) => ({ ...row, version: Number(row.version) }))).toEqual([
@@ -1716,6 +1717,11 @@ databaseDescribe("Bun SQL migration runner", () => {
             version: 49,
             filename: "0049_property_fiscal_location.sql",
             checksum_sha256: "7efed30ed6d84b7229ec298425925c38d28c13dc570f8e03eabc35fe17c276b4",
+          },
+          {
+            version: 50,
+            filename: "0050_india_gst_item_classification.sql",
+            checksum_sha256: "a3eeba9a7a4b00c580c822126b8c48d17053c9acaccbf15538cadfddb47d9433",
           },
         ]);
 
@@ -1762,7 +1768,7 @@ databaseDescribe("Bun SQL migration runner", () => {
             (SELECT pg_catalog.count(*)::int FROM pg_catalog.pg_policies
               WHERE schemaname = 'public') AS policies
         `;
-        expect(counts).toEqual([{ tables: 101, policies: 91 }]);
+        expect(counts).toEqual([{ tables: 102, policies: 92 }]);
 
         const registration = await sql<Array<{
           owner: string; rls: boolean; policies: number;
@@ -1884,6 +1890,100 @@ databaseDescribe("Bun SQL migration runner", () => {
           constraintCount: 7, requiredConstraints: 7,
           primaryKeyIsTenantProperty: true, compositePropertyForeignKey: true,
           tenantLeadingIndexes: 1, totalIndexes: 1,
+        }]);
+
+        const itemClassification = await sql<Array<{
+          owner: string; rls: boolean; forceRls: boolean; policies: number;
+          appSelect: boolean; appMutation: boolean; runtimePrivileges: number;
+          constraintCount: number; requiredConstraints: number;
+          identityNullsNotDistinct: boolean; compositePropertyForeignKey: boolean;
+          extensionForeignKey: boolean; tenantLeadingIndexes: number; totalIndexes: number;
+        }>>`
+          SELECT pg_catalog.pg_get_userbyid(class.relowner) AS owner,
+                 class.relrowsecurity AS rls,
+                 class.relforcerowsecurity AS "forceRls",
+                 (SELECT count(*)::int FROM pg_catalog.pg_policy
+                   WHERE polrelid = class.oid AND polname = 'tenant_isolation') AS policies,
+                 pg_catalog.has_table_privilege('app_role', class.oid, 'SELECT') AS "appSelect",
+                 (
+                   pg_catalog.has_table_privilege('app_role', class.oid, 'INSERT')
+                   OR pg_catalog.has_table_privilege('app_role', class.oid, 'UPDATE')
+                   OR pg_catalog.has_table_privilege('app_role', class.oid, 'DELETE')
+                   OR pg_catalog.has_table_privilege('app_role', class.oid, 'TRUNCATE')
+                 ) AS "appMutation",
+                 (
+                   SELECT count(*)::int
+                     FROM unnest(ARRAY[
+                       'SELECT','INSERT','UPDATE','DELETE','TRUNCATE','REFERENCES','TRIGGER'
+                     ]) AS privilege
+                    WHERE pg_catalog.has_table_privilege('yellow_runtime', class.oid, privilege)
+                 ) AS "runtimePrivileges",
+                 (SELECT count(*)::int FROM pg_catalog.pg_constraint
+                   WHERE conrelid = class.oid) AS "constraintCount",
+                 (
+                   SELECT count(*)::int FROM pg_catalog.pg_constraint
+                    WHERE conrelid = class.oid
+                      AND conname = ANY(ARRAY[
+                        'india_gst_item_classification_pk',
+                        'india_gst_item_classification_identity_uq',
+                        'india_gst_item_classification_property_fk',
+                        'india_gst_item_classification_extension_fk',
+                        'india_gst_item_classification_jurisdiction_owner_ck',
+                        'india_gst_item_classification_jurisdiction_key_ck',
+                        'india_gst_item_classification_jurisdiction_version_ck',
+                        'india_gst_item_classification_jurisdiction_hash_ck',
+                        'india_gst_item_classification_country_ck',
+                        'india_gst_item_classification_line_ck',
+                        'india_gst_item_classification_revenue_group_ck',
+                        'india_gst_item_classification_system_ck',
+                        'india_gst_item_classification_code_ck',
+                        'india_gst_item_classification_service_ck'
+                      ])
+                 ) AS "requiredConstraints",
+                 EXISTS (
+                   SELECT 1
+                     FROM pg_catalog.pg_index AS index
+                     JOIN pg_catalog.pg_class AS index_class ON index_class.oid = index.indexrelid
+                    WHERE index.indrelid = class.oid
+                      AND index_class.relname = 'india_gst_item_classification_identity_uq'
+                      AND index.indisunique
+                      AND index.indnullsnotdistinct
+                 ) AS "identityNullsNotDistinct",
+                 EXISTS (
+                   SELECT 1 FROM pg_catalog.pg_constraint AS constraint_row
+                    WHERE constraint_row.conrelid = class.oid
+                      AND constraint_row.conname = 'india_gst_item_classification_property_fk'
+                      AND pg_catalog.pg_get_constraintdef(constraint_row.oid)
+                        = 'FOREIGN KEY (tenant_id, property_node) REFERENCES org_node(tenant_id, id)'
+                 ) AS "compositePropertyForeignKey",
+                 EXISTS (
+                   SELECT 1 FROM pg_catalog.pg_constraint AS constraint_row
+                    WHERE constraint_row.conrelid = class.oid
+                      AND constraint_row.conname = 'india_gst_item_classification_extension_fk'
+                      AND pg_catalog.pg_get_constraintdef(constraint_row.oid)
+                        = 'FOREIGN KEY (jurisdiction_extension_id) REFERENCES extension(id)'
+                 ) AS "extensionForeignKey",
+                 (
+                   SELECT count(*)::int
+                     FROM pg_catalog.pg_index AS index
+                     JOIN pg_catalog.pg_attribute AS leading_attribute
+                       ON leading_attribute.attrelid = class.oid
+                      AND leading_attribute.attnum = (index.indkey::smallint[])[0]
+                    WHERE index.indrelid = class.oid
+                      AND leading_attribute.attname = 'tenant_id'
+                 ) AS "tenantLeadingIndexes",
+                 (SELECT count(*)::int FROM pg_catalog.pg_index AS index
+                   WHERE index.indrelid = class.oid) AS "totalIndexes"
+            FROM pg_catalog.pg_class AS class
+           WHERE class.oid = 'public.india_gst_item_classification'::regclass
+        `;
+        expect(itemClassification).toEqual([{
+          owner: "yellow_owner", rls: true, forceRls: true, policies: 1,
+          appSelect: true, appMutation: false, runtimePrivileges: 0,
+          constraintCount: 14, requiredConstraints: 14,
+          identityNullsNotDistinct: true,
+          compositePropertyForeignKey: true, extensionForeignKey: true,
+          tenantLeadingIndexes: 2, totalIndexes: 2,
         }]);
 
         const partyRegistration = await sql<Array<{
@@ -2067,7 +2167,7 @@ databaseDescribe("Bun SQL migration runner", () => {
         const tableCount = await sql<{ count: number }[]>`
           SELECT count(*)::int AS count FROM pg_tables WHERE schemaname = 'public'
         `;
-        expect(tableCount).toEqual([{ count: 101 }]);
+        expect(tableCount).toEqual([{ count: 102 }]);
 
         const privileges = await sql<{
           route_rls: boolean;

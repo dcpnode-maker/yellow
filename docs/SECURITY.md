@@ -350,6 +350,42 @@ deemed-export treatment, CGST/SGST/IGST decomposition, tax-rate, reservation/fol
 buyer association, posting/correction, document/number/hash-chain,
 provider/submission, API, HTTP or UI authority.
 
+### India GST accommodation-classification containment
+
+Order281 adds one tenant-leading `india_gst_item_classification` assignment. Its
+same-tenant property reference and exact unique tenant/property/frozen-jurisdiction/
+room-line identity prevent duplicate and cross-scope assignments. Every index is
+tenant-leading. RLS is enabled and forced and uses transaction-local
+`app.tenant_id`; `PUBLIC` and `yellow_runtime` receive no table authority, while
+`app_role` receives SELECT only. Insert, update, delete and truncate remain denied,
+with no owner-mediated writer, application provisioning capability or runtime
+classification mutation.
+
+The resolver accepts only the exact plain, accessor-free, proxy-free and symbol-free
+`{tenantId,propertyNode,reservationId,classificationId}` tuple. It retains tenant
+context, obtains exact frozen positive-tax eligibility and equality-binds the selected
+row to tenant, property and the eligibility result's complete jurisdiction extension
+id, nullable owner, key, version and content hash. The row must revalidate as country
+`IN`, line `room`, revenue group `room_revenue`, system `SAC`, service flag `Y` and
+one exact launch code from `996311`, `996312`, `996313`, `996321`, `996322` or
+`996329` before returning recursively frozen evidence.
+
+The deterministic SHA-256 binds fixed-order unexposed tenant plus every returned
+property, nested jurisdiction and classification field. Missing, duplicate,
+cross-tenant, cross-property, foreign-reservation, malformed, stale or incoherent
+evidence fails closed. HSN, goods flag, arbitrary code and mismatch of any lineage
+field fail closed. `GST_ROOM`, `room_revenue`, USALI, transaction codes, semantic
+routes, rate plans, profiles, spaces, unit types and property display/configuration
+are not trusted as lookup, inference or fallback.
+
+Successful and failed classification reads leave classification, eligibility,
+registrations, tax lineage, facts, outbox, journals, postings, documents, fiscal
+submissions and idempotency state byte/count unchanged. The boundary grants no IRP
+`ItemList`, `Pos` or `SupTyp`, B2C/URP, export, SEZ or deemed-export treatment,
+tax-rate or CGST/SGST/IGST decision, seller/buyer/folio-window composition,
+posting/correction, document/number/hash-chain, provider/submission, API, HTTP or UI
+authority.
+
 ### Tax-attribution persistence containment
 
 Order 244 accepts only a value that survives the exact hostile Order-240 parser. All

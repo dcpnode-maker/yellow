@@ -130,8 +130,8 @@ compose exec -T postgres psql -U yellow_deploy -d yellow_test -v ON_ERROR_STOP=1
 
 tables=$(compose exec -T postgres psql -U yellow_deploy -d yellow_test -tAc \
   "SELECT count(*) FROM pg_tables WHERE schemaname='public';" | tr -d '[:space:]')
-[ "$tables" = '101' ] || { printf 'yellow_test has %s public tables; expected 101 after migrations 1-49.\n' "$tables" >&2; exit 1; }
-echo 'yellow_test tables: 101 after migrations 1-49'
+[ "$tables" = '102' ] || { printf 'yellow_test has %s public tables; expected 102 after migrations 1-50.\n' "$tables" >&2; exit 1; }
+echo 'yellow_test tables: 102 after migrations 1-50'
 
 YELLOW_DSN="dbname=yellow_test user=yellow_deploy password=${deploy_password} host=127.0.0.1 port=${YELLOW_POSTGRES_PORT}" \
 PYTHONIOENCODING=utf-8 python3 tests/run_invariants.py yellow_test
