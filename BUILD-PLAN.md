@@ -707,11 +707,23 @@ evidence is now bound to the frozen jurisdiction extension identity. Canonical
 GSTIN/state/legal identity/address/pincode and a deterministic evidence hash resolve
 without fallback or writes. Fresh PostgreSQL proof reaches47 migrations/99 tables/89
 policies with referee11/11; fresh independent Tier-3 execution approved the exact
-candidate. Place-of-supply, CGST/SGST/IGST and IRP seller payload remain later.
+candidate. At that boundary, place-of-supply, CGST/SGST/IGST and IRP seller payload
+remained later work.
 
 **Built Order273 status bridge:** authenticated recorded status now reflects exact
 latest272/current273/review91/active7 and the compact Orders237–272 milestone. Phase
 states and review coverage are unchanged; guarded sole-local promotion is separate.
+
+**Admitted Order275 product slice:** project only the approved Order272 supplier
+evidence into exact notified IRP 1.1 `SellerDtls`
+(`Gstin`,`LglNm`,`TrdNm?`,`Addr1`,`Loc`,`Pin`,`Stcd`). Exact field limits,
+GSTIN/state/PIN validation, null-only trade-name omission, fixed-order JSON,
+SHA-256 payload identity, separately retained registration/evidence lineage, source
+immutability and recursive freeze fail closed without trimming, truncation,
+coercion or synthesis. This pure boundary creates no database, document, provider,
+submission, API, HTTP or UI authority and decides no buyer, place of supply, supply
+type, tax decomposition, item or value. Exact implementation proof is green; fresh
+independent Tier-3 executable approval remains pending and Phase7 is not complete.
 
 ## Phase 8 — Statutory registration + ZATCA
 

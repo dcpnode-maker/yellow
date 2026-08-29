@@ -265,3 +265,12 @@ restricted verified backup and rollback capture. The retained two-hotel database
 PostgreSQL, Valkey, network, volume, credentials and all97 prior table counts are
 preserved; sole healthy loopback3000 serves exact272/273/review91/active7. Fresh
 non-operating verification reproduced the complete read-only proof with no finding.
+
+Order275/D-717 is the admitted current product slice. It may project only the exact
+approved Order272 supplier-registration result into notified IRP 1.1 `SellerDtls`,
+with strict field/checksum/state/PIN validation, null-only trade-name omission,
+fixed-order deterministic JSON/SHA-256, isolated registration/evidence lineage and
+recursive freeze. Buyer, place-of-supply, supply type, CGST/SGST/IGST, items, values,
+documents, numbering/hash chains, submission/providers, database and UI remain out of
+scope. Exact implementation proof is green; a fresh non-implementing Tier-3
+executable review is still required and Phase7 remains active.

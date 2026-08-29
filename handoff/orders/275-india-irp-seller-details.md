@@ -1,6 +1,6 @@
 # Order 275 — Build exact India IRP 1.1 seller details
 
-**Status:** READY-D717
+**Status:** BUILT-PENDING-REVIEW-D718
 **Phase:** 7 — Tax engine and India IRP
 **Branch:** `phase-7/india-irp-seller-details`
 **Base:** `71b2c34` (independently approved Order274 descendant)
@@ -64,7 +64,7 @@ complete claim.
 
 ## Definition of done
 
-- [ ] Intentional red precedes implementation.
-- [ ] Exact pure projection and hostile proof are green.
-- [ ] Standing/static gates are green and no authority expands.
+- [x] Intentional red precedes implementation.
+- [x] Exact pure projection and hostile proof are green.
+- [x] Standing/static gates are green and no authority expands.
 - [ ] Fresh independent Tier-3 approval is recorded.

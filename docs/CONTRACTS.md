@@ -724,6 +724,36 @@ identity, SEZ status, place of supply, CGST/SGST/IGST decomposition, rounding or
 allocation, posting/correction/credit notes, invoice numbering/hash chains, IRP
 payloads, provider calls or submission authority.
 
+### Pure India IRP 1.1 seller-details projection
+
+Order275 admits one pure `buildIndiaIrpSellerDetails(source: unknown)` boundary over
+the exact approved Order272 `IndiaGstSupplierRegistrationResult`. The input must be
+one exact plain, accessor-free result with scheme `in-gstin`, currency `INR`, complete
+frozen jurisdiction identity and canonical evidence hash. It projects only this
+notified payload shape, in fixed key order:
+
+```json
+{"SellerDtls":{"Gstin":"...","LglNm":"...","TrdNm":"...","Addr1":"...","Loc":"...","Pin":560001,"Stcd":".."}}
+```
+
+`TrdNm` is omitted only when the exact source trade name is null. GSTIN is exactly 15
+characters; legal and trade names are at most 100 characters; address line 1 is at
+most 100; locality is at most 50; PIN is an exact six-digit nonzero numeric string
+before numeric projection; and state is an exact current GST state/UT code. Missing,
+surplus, accessor-backed, checksum-invalid, stale, mismatched or over-limit evidence
+fails closed. The builder never trims, truncates, splits, coerces or synthesizes legal
+identity.
+
+The frozen wrapper identifies format `irp_json_1_1`, retains the exact
+`registrationId` and `evidenceHash` outside the transmitted JSON, and exposes
+deterministic `payloadJson` plus its SHA-256 `payloadHash`. Replay is byte-identical;
+the source is unchanged; wrapper, lineage, payload and seller details are recursively
+frozen. This contract grants no buyer/recipient, SEZ, place-of-supply, supply-type,
+tax decomposition, item/value/document, numbering/hash-chain, submission, provider,
+database, transaction, API, HTTP or UI authority. The exact pure boundary and its
+executable proof are built; fresh non-implementing Tier-3 approval remains required
+before this boundary is independently approved.
+
 ## 8. Pure rate-model evaluator
 
 Order 067's in-process evaluator is a draft/simulation primitive, not a database or HTTP contract.

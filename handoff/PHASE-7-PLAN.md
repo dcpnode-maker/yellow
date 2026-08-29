@@ -276,7 +276,13 @@ no finding.
 ## Order 275 boundary
 
 Order275 projects only approved Order272 supplier-registration evidence into exact
-notified IRP1.1 `SellerDtls`, with strict fail-closed field limits, deterministic JSON
-and separately retained lineage/hash. It creates no document, database or provider
-authority and decides no buyer, place of supply or tax decomposition. Fresh
-independent Tier-3 executable review is mandatory.
+notified IRP1.1 `SellerDtls`
+(`Gstin`,`LglNm`,`TrdNm?`,`Addr1`,`Loc`,`Pin`,`Stcd`). Exact GSTIN, length,
+current-state and six-digit nonzero PIN validation; null-only trade-name omission;
+fixed-order JSON/SHA-256; separately retained registration/evidence lineage; source
+immutability and recursive freeze all fail closed without trimming, truncation,
+splitting, coercion or synthesis. It creates no document, database, provider,
+submission, API, HTTP or UI authority and decides no buyer, place of supply, supply
+type, tax decomposition, item or value. Exact implementation proof is green; fresh
+independent Tier-3 executable review remains pending and no Phase7 completion is
+claimed.

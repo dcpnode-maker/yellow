@@ -222,6 +222,16 @@ India GST launch instance (CBIC 15/2025 slabs, slab on transaction value per nig
 KSA and AE launch instances: flat `percent` VAT 0.15 / 0.05 on all revenue groups,
 `price_display":"tax_inclusive"`.
 
+Order275's admitted India IRP seller-details projection does not add an extension
+schema or read mutable extension content. It accepts only the exact frozen Order272
+supplier-registration result already bound to the jurisdiction extension
+id/nullable-owner/key/version/content hash, and projects the notified IRP 1.1
+`SellerDtls` fields without fallback. Registration/evidence lineage and the payload
+hash remain outside the transmitted JSON. Buyer, place-of-supply, tax decomposition,
+items, values, documents and submission/provider routing remain separate future
+authority. The pure projection and its executable proof are built; fresh Tier-3
+executable approval remains pending.
+
 ---
 
 ## 3. `policy` — cancellation / deposit / guarantee / no-show

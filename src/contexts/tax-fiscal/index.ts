@@ -90,3 +90,11 @@ export type {
   IndiaGstSupplierRegistrationInput,
   IndiaGstSupplierRegistrationResult,
 } from "./india-gst-supplier-registration";
+export {
+  IndiaIrpSellerDetailsError,
+  buildIndiaIrpSellerDetails,
+} from "./india-irp-seller-details";
+export type {
+  IndiaIrpSellerDetailsResultV1,
+  IndiaIrpSellerDetailsV1,
+} from "./india-irp-seller-details";
