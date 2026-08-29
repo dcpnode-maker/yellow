@@ -812,7 +812,7 @@ candidate `4047684`. This grants no intra/inter-state conclusion, decomposition,
 `SupTyp`, item, document, submission, local-promotion, Phase-7-complete or
 application-complete authority.
 
-**Built-pending-review Order283 product slice:** purely compare exact approved property-bound
+**Independently approved Order283 product slice:** purely compare exact approved property-bound
 supplier-registration state evidence with exact approved property-derived lodging
 `pos`. Return only `same_state_or_union_territory` or
 `different_state_or_union_territory`, fixed source lineage, deterministic JSON and a
@@ -838,6 +838,13 @@ tables, then receive fresh independent review.
 The mutable proof claim is corrected exactly under D-744; no product, test, schema or
 runtime byte changed. Order283 is again built-pending-review on the corrected
 descendant and still requires fresh independent approval.
+Fresh non-implementing Tier-3 review approves exact corrected candidate `2b4d2d8`
+with no finding under D-745. Reviewer-personal law, ancestry, product-byte identity,
+exact50/102/92/92/2 catalogue, schema/referee11/11, focused/adjacent/database/
+standing/static/scope proof and stable-runtime recheck are green; disposable proof is
+removed. Approval remains bounded to relationship evidence and grants none of the
+forbidden supplier-location, supply-nature, levy, item, document, submission, local,
+merge, deploy, Phase-7-complete or application-complete authority.
 
 ## Phase 8 — Statutory registration + ZATCA
 

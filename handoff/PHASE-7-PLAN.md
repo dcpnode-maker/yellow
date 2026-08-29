@@ -2,7 +2,7 @@
 
 **Status:** active; governed positive-tax posting and complete correction approved through Order266
 **Entry point:** built-unreviewed Phase-6 composition through Order 236
-**Current order:** Order283 exact India accommodation registered-state comparison is corrected and built-pending-review under D-744
+**Current order:** Order283 exact India accommodation registered-state comparison is independently approved under D-745; Order284 admission is next
 
 ## Outcome
 
@@ -417,3 +417,10 @@ RLS-enabled tables, 92 policies and 2 FORCE-RLS tables before fresh review.
 That exact mutable wording is corrected under D-744 without changing product, test,
 schema or runtime bytes. The corrected descendant is built-pending-review and fresh
 independent approval remains mandatory.
+Fresh non-implementing Tier-3 review approves exact corrected candidate `2b4d2d8`
+with no finding under D-745. Reviewer-personal official-law, ancestry, byte-identity,
+exact50/102/92/92/2 catalogue, schema/referee11/11, focused/adjacent/database/
+standing/static/scope and stable-runtime proof are green; disposable proof is absent.
+The approval remains bounded to exact registered-state/property-Pos relationship
+evidence and grants no supplier-location, intra/inter-State, SEZ, levy, item,
+document, submission, local, merge, deploy, Phase-7 or application completion.

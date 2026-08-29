@@ -1,6 +1,6 @@
 # Order 283 — Build exact India accommodation registered-state comparison
 
-**Status:** BUILT-PENDING-REVIEW-D744
+**Status:** APPROVED-D745
 **Phase:** 7 — Tax engine and India IRP
 **Branch:** `phase-7/india-accommodation-registered-state-comparison`
 **Base:** `b257949` (independently approved Order282 descendant)
@@ -94,7 +94,7 @@ dependency/merge/public deploy, Phase-7 or application-complete claim.
 - [x] Intentional red precedes implementation.
 - [x] Exact hostile and exhaustive comparison proof is green.
 - [x] Standing/static/schema/referee gates are green and no authority expands.
-- [ ] Fresh independent Tier-3 approval is recorded.
+- [x] Fresh independent Tier-3 approval is recorded.
 
 ## Builder proof — D-742
 
@@ -135,3 +135,20 @@ schema command correctly found that the unpromoted stable local remains on its o
 47/99/89 approved catalogue and therefore is not a candidate-proof target. A fresh
 isolated candidate database then reproduced exact50/102/92/92/2 and normalized
 schema equality; its sole container, network and volume were removed.
+
+## Independent approval — D-745
+
+A fresh non-implementing Tier-3 reviewer approves exact corrected candidate
+`2b4d2d85669c53461ff3c682e6e1bd3bc9c39175` with no finding. The reviewer proved
+source/test/product-document byte identity with original product candidate `1cea37f`,
+the append-only D-742/D-743/D-744 correction chain, exact50 migrations/102 public
+tables/92 RLS-enabled tenant tables/92 tenant policies/2 FORCE-RLS tables, normalized
+schema equality and referee11/11. Reviewer-personal focused12/0(4,187), approved
+roots50/0(551), Order28212/0(353), SellerDtls9/0(111), eligibility7/0(48),
+acceptance15/0(42), runtime-DML5/0(109), migration39/0(186), standing916/0 plus831
+skips(13,655 expectations;1,747 tests/310 files), type/106-boundary/23-licence/audit0
+and static/scope/diff gates are green. Disposable resources are absent and the sole
+stable app/PostgreSQL/Valkey remain exact, healthy, restart0 and HTTP200. Approval is
+limited to registered-state/property-Pos relationship evidence and grants no
+supplier-location, intra/inter-State, SEZ, levy, item, document, submission, local
+promotion, merge, deploy, Phase-7-complete or application-complete authority.
