@@ -2,7 +2,7 @@
 
 **Status:** active; governed positive-tax posting and complete correction approved through Order266
 **Entry point:** built-unreviewed Phase-6 composition through Order 236
-**Current order:** Order286 exact India GST supplier SEZ-status evidence is independently approved under D-754
+**Current order:** Order287 exact India accommodation supply-nature evidence is ready under D-755
 
 ## Outcome
 
@@ -469,6 +469,17 @@ finding under D-754. Reviewer-personal official-law/Form-F2 boundary, exact
 53/105/95/95/5, schema/setup/referee11/11, focused/database/standing/static and
 stable-runtime proof are green; disposable proof is absent. Approval grants only
 affirmative supplier registration/SEZ-status evidence and no downstream authority.
+
+## Order 287 boundary
+
+Order287 is one pure composer over complete approved Orders283–286. Both affirmative
+SEZ-status dates must equal one explicit property-local supply date. Any unit/
+developer on either side invokes the section7(5)(b) inter-State override; only
+regular/regular reaches ordinary section7(3)/8(2) same/different-state comparison.
+It returns deterministic frozen supply-nature evidence only. Schema/write, Form-F2,
+authorized operations/zero rating, levy/decomposition, `SupTyp`, item, document,
+API/UI/local authority remain separate. D-755 requires intentional red, exhaustive
+18-way hostile proof, unchanged exact53/105/95/95/5 schema/referee and fresh Tier-3.
 Fresh non-implementing Tier-3 review approves exact candidate `9c222c4` with no
 finding under D-748. Reviewer-personal official-law, no-inference, exact
 51/103/93/93/3, schema/setup/referee11/11, focused/database/standing/static and

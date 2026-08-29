@@ -418,6 +418,14 @@ finding under D-754. Reviewer-personal official-law/Form-F2 boundary, exact
 53/105/95/95/5, schema/setup/referee11/11, focused/database/standing/static and
 stable-runtime proof are green; disposable proof is removed. Approval grants only
 affirmative supplier registration/SEZ-status evidence and no downstream authority.
+
+Order287/D-755 is ready as the first lawful bilateral supply-nature composer: one
+pure exact function over approved Orders283–286, with both affirmative status dates
+equal to an explicit supply date and the to-or-by-SEZ inter-State override evaluated
+before ordinary same/different-state rules. No schema/write, levy/decomposition,
+`SupTyp`, authorized operations/zero rating, item, document, API/UI/local authority.
+Intentional red, exhaustive18-way hostile proof, unchanged exact53/105/95/95/5
+schema/referee and fresh Tier-3 are mandatory.
 Fresh non-implementing Tier-3 review approves exact candidate `9c222c4` with no
 finding under D-748. Reviewer-personal official-law, no-inference, exact
 51/103/93/93/3, schema/setup/referee11/11, focused/database/standing/static and
