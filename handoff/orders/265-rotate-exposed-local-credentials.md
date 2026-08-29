@@ -1,6 +1,6 @@
 # Order 265 — Rotate exposed sole-local application credentials
 
-**Status:** READY-D687
+**Status:** ROTATED-D689 — independent logging-safe verification pending
 **Phase:** 7 — Tax engine and India IRP
 **Branch:** `phase-7/rotate-exposed-local-credentials`
 **Base:** `347f24c` (Order264 changes-required incident record)
@@ -71,7 +71,38 @@ forbidden; recover forward under this order.
 
 ## Definition of done
 
-- [ ] All five exposed protected values rotate without output or scope drift.
-- [ ] Old credentials fail, new credentials work and all non-auth data are exact.
-- [ ] Sole local is healthy/current with populated masked one-click sign-in.
+- [x] All five exposed protected values rotate without output or scope drift.
+- [x] Old credentials fail, new credentials work and all non-auth data are exact.
+- [x] Sole local is healthy/current with populated masked one-click sign-in.
 - [ ] Independent logging-safe non-operating review records approval or findings.
+
+## Rotation evidence — D689
+
+The final forward rotation used five fresh 64-character cryptographic values, each
+explicitly different from the captured immediately prior generation. Exactly five
+protected app environment values changed and every other environment value remained
+byte-exact. New runtime and registrar credentials authenticated across the Compose
+network's SCRAM path while both prior credentials failed. New local sign-in returned
+HTTP200; the immediately prior password and JWT returned HTTP401. The hosted callback
+secret changed. No value entered command arguments, output, Git or evidence.
+
+Both ignored handoff files are owner/SYSTEM-only and match the running app; deploy
+and the distinct unexposed approver password remain exact. Role attributes,
+membership and permissions remain exact. Only the canonical active review-user auth
+field changed to Argon2id.
+
+Only app was recreated, finally `b084c60b9fe6` on approved image `83a7bb59bd70`.
+PostgreSQL `b0a92182a16a`, Valkey `ae62afc8df69`, retained volume, two properties,
+catalog44/98/88 and all-98-table row-count digest
+`739b6a2d929a2278064e35935351f32fcc9290c16da2db9b5072e9640ed28763`
+remain exact. Root/health/new-login are200; root is no-store with three populated
+masked fields; both properties report262/263/review91/active7; only3000 is open and
+3002/3188 are closed. No temporary credential file remains.
+
+Two earlier secure forward rotations stopped only at a flawed old-database-password
+assertion that used PostgreSQL's trusted localhost HBA and therefore could not prove
+rejection. A later script attempt stopped before its transaction because compressed
+redirection text was parsed as part of the database name; its unused protected temp
+files were removed. None exposed a value. The final proof moved credential checks to
+a transient container over the SCRAM-authenticated Compose network and passed every
+required old/new assertion.
