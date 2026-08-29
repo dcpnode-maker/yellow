@@ -660,7 +660,11 @@ PostgreSQL/Valkey identities, retained volume and restart0; restricted backup;
 unchanged product migration44/98 tables/88 policies/two hotels/all-table digest;
 scratch absence; populated masked protected login; both262/263/review91/active7
 snapshots; and sole loopback3000. Independent non-operating Tier-3 approval remains
-pending, so Order266 database execution is still paused.
+pending, so Order266 database execution is still paused. A fresh independent
+non-operating Tier-3 reviewer subsequently reproduced every safely repeatable live
+assertion and approved Order268 at D698 without protected output or runtime mutation.
+The sole-local prerequisite is restored; Order266 may now resume only in its separate
+collision-proof proof environment while stable3000 remains untouched.
 
 tax_assignment evaluation (percent/fixed/slab, compound, line-vs-document rounding)
 from EXTENSIONS §2; India GST slab per room-night; document issue path: series →

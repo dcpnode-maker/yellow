@@ -1,6 +1,6 @@
 # Order 268 — Restore exact retained sole-local containers
 
-**Status:** RESTORED-PENDING-REVIEW-D697
+**Status:** APPROVED-LOCALLY-D698
 **Phase:** 7 — Tax engine and India IRP
 **Branch:** `phase-7/restore-retained-sole-local`
 **Base:** `c6a30f1` (Order267 changes-required review)
@@ -56,7 +56,7 @@ replace. Never restore over `yellow_dev` without a separate order.
 
 - [x] Exact retained containers are healthy with unchanged identity and topology.
 - [x] Database, application, authenticated status and sole-port truth are exact.
-- [ ] Independent non-operating Tier-3 review records approval or findings.
+- [x] Independent non-operating Tier-3 review records approval or findings.
 
 ## Restoration evidence — D697
 
@@ -78,3 +78,15 @@ hotels, and each reports exact latest262/current263/review91/active7. Only port3
 is open;3002/3188 are closed. At capture, app/PostgreSQL/Valkey used approximately
 87.82/83.18/4.65 MiB RAM and13.61/4.60/0.19% CPU respectively, with no resource risk.
 Independent non-operating Tier-3 re-execution remains mandatory before approval.
+
+## Independent approval — D698
+
+The independent non-operating Tier-3 reviewer inspected exact commit `713a6a7` and
+personally reproduced every safely repeatable Git, backup, ACL, container identity,
+image, volume, health, restart, topology, resource, read-only database, catalog,
+all-table digest, scratch-absence, HTTP, asset, no-store populated masked sign-in,
+authenticated two-property status and sole-port assertion. The reviewer emitted no
+protected value and performed no container, database, cache, credential or runtime
+mutation. The historical start commands were correctly bounded as non-repeatable
+without violating this order. Verdict: APPROVED. Order266 may resume only under its
+own isolated proof authority.
