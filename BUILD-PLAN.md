@@ -709,6 +709,10 @@ without fallback or writes. Fresh PostgreSQL proof reaches47 migrations/99 table
 policies with referee11/11; fresh independent Tier-3 execution approved the exact
 candidate. Place-of-supply, CGST/SGST/IGST and IRP seller payload remain later.
 
+**Built Order273 status bridge:** authenticated recorded status now reflects exact
+latest272/current273/review91/active7 and the compact Orders237–272 milestone. Phase
+states and review coverage are unchanged; guarded sole-local promotion is separate.
+
 ## Phase 8 — Statutory registration + ZATCA
 
 Statutory scheduler consuming check-in events; adapters: it-alloggiati (168-char),

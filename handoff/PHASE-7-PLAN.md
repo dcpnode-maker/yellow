@@ -2,7 +2,7 @@
 
 **Status:** active; governed positive-tax posting and complete correction approved through Order266
 **Entry point:** built-unreviewed Phase-6 composition through Order 236
-**Current order:** Order273 authenticated founder status through approved Order272 is admitted under D-712
+**Current order:** Order273 authenticated founder status through approved Order272 is built-unreviewed under D-713
 
 ## Outcome
 
@@ -259,7 +259,7 @@ policies/referee11/11 under fresh Tier-3 execution.
 
 ## Order 273 boundary
 
-Order273 is a recorded-status-only bridge through independently approved Order272.
+Order273/D-713 is a built-unreviewed recorded-status-only bridge through independently approved Order272.
 It may advance exact authenticated snapshot truth to latest272/current273 and the
 compact Orders237–272 milestone while preserving review91, the phase vector, every
 unfinished India/document/IRP dependency and the aggregate built-unverified state.

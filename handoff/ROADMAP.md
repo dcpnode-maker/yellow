@@ -254,3 +254,8 @@ GST supplier-registration evidence is bound to the frozen jurisdiction identity 
 SELECT-only runtime authority, canonical validation, deterministic hashing and zero
 writes. Fresh reviewer-executed PostgreSQL reaches47 migrations/99 tables/89
 policies/referee11/11; place-of-supply, tax decomposition, documents and IRP remain later work.
+
+Order273/D-713 is the built-unreviewed authenticated status bridge through approved
+Order272: exact latest272/current273/review91/active7, unchanged phase states and an
+honest built-unverified Orders237–272 aggregate. Sole-local visibility remains a
+separate guarded promotion; no product or runtime change is claimed here.
