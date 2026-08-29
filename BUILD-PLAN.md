@@ -920,6 +920,15 @@ finding under D-758. Reviewer-personal official-law, exhaustive18-way, adjacent,
 standing/static, exact approved-base schema/referee and unchanged stable-local proof
 are green. Approval remains bounded to pure accommodation supply-nature evidence.
 
+**Ready Order288 first-renewal SEZ-unit LoA continuity slice:** add one exact
+tenant-leading forced-RLS SELECT-only Form-F2 root bound to complete approved
+Order286 Form-G status and resolve only the first directly contiguous issued renewal
+at an explicit status date. Accept five-year or shorter official periods without
+duration inference. Form-F1, later renewal chains, authorized operations/specified-
+officer/BLUT, GST-current-status substitution, zero rating, tax, document/API/UI/
+local authority remain excluded. Intentional red, exact54/106/96/96/6 schema/
+referee, hostile zero-write proof and fresh Tier-3 are mandatory under D-759.
+
 ## Phase 8 — Statutory registration + ZATCA
 
 Statutory scheduler consuming check-in events; adapters: it-alloggiati (168-char),

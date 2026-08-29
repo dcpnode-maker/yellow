@@ -490,6 +490,17 @@ Fresh non-implementing Tier-3 review approves exact candidate `4f25f8e` with no
 finding under D-758. Reviewer-personal official-law, exhaustive18-way, adjacent,
 standing/static, approved-base schema/referee and stable-local proof are green.
 Approval grants only the pure supply-nature evidence and no downstream authority.
+
+## Order 288 boundary
+
+Order288 adds one exact tenant-leading forced-RLS SELECT-only source root for the
+first directly contiguous Form-G-to-issued-Form-F2 SEZ-unit LoA renewal. It accepts
+the official five-year or shorter period exactly as issued, resolves only one
+explicit id/date through complete approved Order286 lineage, and returns frozen
+continuity evidence. Form-F1, second/later renewal chains, AO/specified-officer/BLUT,
+GST-current-status substitution, zero rating, levy, document/API/UI/local authority
+remain separate. D-759 requires intentional red, exact54/106/96/96/6 schema/referee,
+hostile zero-write proof and fresh Tier-3.
 Fresh non-implementing Tier-3 review approves exact candidate `9c222c4` with no
 finding under D-748. Reviewer-personal official-law, no-inference, exact
 51/103/93/93/3, schema/setup/referee11/11, focused/database/standing/static and
