@@ -1,0 +1,71 @@
+# Order 263 — Current status through approved Order262 and persistent local sign-in defaults
+
+**Status:** READY-D681
+**Phase:** 7 — Tax engine and India IRP
+**Branch:** `phase-7/current-status-login-order262`
+**Base:** `06ead97` (independently approved Order262)
+**Risk tier:** 3 — authenticated status plus protected loopback credential presentation
+**Owner:** Codex implementation; independent non-implementing review required
+
+## Outcome
+
+Refresh the authenticated founder-visible build snapshot through independently
+approved Order262 and make the already-approved loopback-only one-click sign-in
+defaults survive sign-out and failed attempts. The founder can always return to the
+sole local sign-in page and press the login button without re-entering credentials;
+ordinary and non-loopback documents retain the existing password-clearing behavior.
+
+## Fixed truth
+
+- recorded date `2026-08-29`, latest built Order262, current Order263, active Phase7;
+- generated independent review coverage remains exactly through Order91 and the
+  reviewed/built/active/planned phase vector does not change;
+- compact Phase7 recorded work ends at independently approved governed line-rounded
+  non-India positive-tax journal posting;
+- remaining Phase7 work includes governed taxed correction/reversal, India GST and
+  fiscal document/IRP paths, independent product review and Phase7 completion;
+- the server-injected local helper keeps the escaped defaults only in its private
+  closure after deleting temporary `data-local-default` attributes;
+- the helper alone handles one cancelable internal restore event and prevents its
+  default. Operator code dispatches that event on sign-in restoration and after
+  success/failure; when no helper handles it, password clearing remains exact;
+- no credential literal enters committed JavaScript, tests, Git, logs, API or browser
+  storage. Password remains type=password, the credential HTML remains no-store and
+  request-time loopback gating remains exact.
+
+## Exact scope
+
+- `src/project-status.ts`;
+- `tests/founder-status.integration.test.ts`;
+- `src/http/operator.ts` local-prefill helper only;
+- `src/http/operator/operator.js` sign-in restoration calls only;
+- `tests/local-login-prefill.security.test.ts`;
+- this order plus narrow build/decision/ledger evidence.
+
+## Forbidden
+
+No authentication, token, throttle, credential value/file/environment, permission,
+endpoint, database, schema, migration, seed, financial, tax, reservation, UI theme,
+navigation, dependency, runtime, local container, port, merge, public/production
+deployment, review-coverage, Phase7 or application-complete change. No credential may
+be exposed to an agent message, command output, committed fixture or user response.
+
+## Pre-registered proof
+
+- P0 stale status expects latest262/current263 and fails against exact prior259/260.
+- P1 local helper restores all three escaped defaults on load/pageshow and the exact
+  cancelable internal event while retaining no browser storage or credential literal.
+- P2 operator sign-in restore/success/failure calls use the handled-event result;
+  ordinary/non-loopback behavior still clears password and receives no helper.
+- P3 explicit loopback credential HTML remains masked/no-store; malformed, partial,
+  disabled and non-loopback configuration remains credential-free/fail-closed.
+- P4 exact status catalogue, focused security/status, standing, type, boundary,
+  licence, audit and diff gates pass.
+- P5 an independent non-implementing reviewer inspects and executes the bounded proof.
+
+## Definition of done
+
+- [ ] Intentional stale/security red precedes implementation.
+- [ ] Exact source and P1–P4 proof pass.
+- [ ] Standing/static gates pass.
+- [ ] Independent non-implementing review records approval or findings.
