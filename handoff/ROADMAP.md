@@ -326,8 +326,10 @@ explicitly bound to the frozen positive-tax jurisdiction. The launch set is exac
 No commercial/operational inference, `ItemList`, `Pos`, `SupTyp`, tax, document,
 submission, API, UI or local authority is admitted. Fresh PostgreSQL/referee and
 independent Tier-3 execution are mandatory.
-The exact Order281 candidate is built-pending-review under D-736. Intentional red0/1
+The exact Order281 candidate was built under D-736. Intentional red0/1
 preceded focused12/0, adjacent28/0, acceptance15/0, runtime-DML5/0, migration39/0,
 exact50/102/92/schema/referee11/11 and standing894/0 plus 825 database-only skips;
-all static gates are green and the stable local is unchanged. Fresh Tier-3 approval
-remains mandatory before any later product implementation.
+all static gates are green and the stable local is unchanged. Fresh non-implementing
+Tier-3 execution at D-737 independently reproduced the full proof with no finding and
+approved Order281. No later item/tax/document/submission, local promotion, Phase-7 or
+application-complete authority is implied.

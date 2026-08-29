@@ -1,6 +1,6 @@
 # Order 281 — Build exact India GST accommodation-classification evidence
 
-**Status:** BUILT-PENDING-REVIEW-D736
+**Status:** APPROVED-D737
 **Phase:** 7 — Tax engine and India IRP
 **Branch:** `phase-7/india-gst-accommodation-classification`
 **Base:** `1e01fe2` (independently approved Order280 descendant)
@@ -88,7 +88,20 @@ Phase-7 or application-complete claim.
 - [x] Intentional red precedes implementation.
 - [x] Exact schema/resolver and hostile PostgreSQL proof are green.
 - [x] Standing/static gates are green and no authority expands.
-- [ ] Fresh independent Tier-3 approval is recorded.
+- [x] Fresh independent Tier-3 approval is recorded.
+
+## Independent review — D737
+
+Fresh non-implementing Tier-3 review at exact candidate
+`d65ab22ceec415b0be858f06d7a82c85b9fb29ad` is APPROVED with no finding. The
+reviewer personally reproduced focused12/0, the four-suite39/0 including 28 adjacent
+tests, acceptance15/0, runtime-DML5/0, migration39/0, exact50 migrations / 102 public
+tables / 92 forced-RLS tables and policies, exact schema and referee11/11, plus
+standing894/0 with 825 database-only skips and every static gate. Primary IRIS,
+FORM GST INV-01 and CBIC sources independently confirm separate `IsServc`/`HsnCd`
+item fields and the exact six accommodation SACs. Review evidence is recorded in
+`handoff/reviews/281-india-gst-accommodation-classification.md`; disposable reviewer
+proof was removed and the stable local remained healthy and unchanged.
 
 ## Builder proof — D736
 

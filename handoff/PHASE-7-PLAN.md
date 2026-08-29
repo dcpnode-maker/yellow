@@ -2,7 +2,7 @@
 
 **Status:** active; governed positive-tax posting and complete correction approved through Order266
 **Entry point:** built-unreviewed Phase-6 composition through Order 236
-**Current order:** Order281 exact India GST accommodation-classification evidence is built-pending-review under D-736
+**Current order:** Order281 exact India GST accommodation-classification evidence is independently approved under D-737
 
 ## Outcome
 
@@ -365,4 +365,6 @@ mandatory under D-735.
 Intentional red0/1 preceded focused12/0, adjacent28/0, acceptance15/0,
 runtime-DML5/0, migration39/0, exact50/102/92/schema/referee11/11 and standing894/0
 plus 825 database-only skips. All static gates are green and the stable local remains
-unchanged. Fresh non-implementing Tier-3 execution is still mandatory.
+unchanged. Fresh non-implementing Tier-3 execution independently reproduced the full
+proof under D-737 with no finding. This approval grants no later item, tax, document,
+submission, local-promotion, Phase-7-complete or application-complete authority.
