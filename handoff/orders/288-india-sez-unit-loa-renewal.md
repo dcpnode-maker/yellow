@@ -71,6 +71,8 @@ authorized-operations/zero-rating decision would conflate separate evidence.
 - `tests/migrate.integration.test.ts` only for exact post-0054 migration-ledger,
   discovered/applied-file and public-table/RLS/policy/FORCE-RLS catalogue
   expectations advanced by the admitted migration;
+- `setup.sh` only for its exact post-migration table count `105` to `106` and
+  migration-range diagnostic `1-53` to `1-54`;
 - new `src/contexts/tax-fiscal/india-sez-unit-loa-renewal.ts` and bounded-context
   index export only;
 - new intentional-red and exact hostile integration tests;
@@ -135,3 +137,10 @@ cutoff/full-chain locations and that the staged applied-file/ledger oracle must 
 `tests/migrate.integration.test.ts` may advance only for migration0054, including
 `106/96/96/6`, discovered count54 and the exact 0054 filename/version/checksum row.
 No assertion removal, relaxation, unrelated path or product authority is admitted.
+
+## Canonical-setup clarification — D-762
+
+The required `./setup.sh --db-only` gate contains an exact final-table assertion and
+diagnostic pinned to the approved predecessor. D-762 adds only `105` to `106` and
+`migrations 1-53` to `migrations 1-54` in that gate. The check remains equally
+strict; no setup behavior, role, credential, data, seed or runtime authority changes.
