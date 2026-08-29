@@ -812,6 +812,18 @@ candidate `4047684`. This grants no intra/inter-state conclusion, decomposition,
 `SupTyp`, item, document, submission, local-promotion, Phase-7-complete or
 application-complete authority.
 
+**Admitted Order283 product slice:** purely compare exact approved property-bound
+supplier-registration state evidence with exact approved property-derived lodging
+`pos`. Return only `same_state_or_union_territory` or
+`different_state_or_union_territory`, fixed source lineage, deterministic JSON and a
+tenant-bound hash. This is not an intra/inter-State conclusion: same-code hotel
+supplies to/by an SEZ remain inter-State under IGST sections7(5)(b)/8(2) and CBIC
+Circular48/22/2018, while current truth has no bilateral SEZ evidence. Recipient state
+never participates. No SQL/schema/lock/write, `SupTyp`, `IgstOnIntra`, levy route,
+rate/amount, rounding/residual, item/document/submission/API/UI/local authority is
+admitted. Intentional red, exhaustive36×36 hostile proof, exact unchanged PostgreSQL/
+referee and fresh non-implementing Tier-3 execution are mandatory under D-741.
+
 ## Phase 8 — Statutory registration + ZATCA
 
 Statutory scheduler consuming check-in events; adapters: it-alloggiati (168-char),

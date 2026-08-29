@@ -2,7 +2,7 @@
 
 **Status:** active; governed positive-tax posting and complete correction approved through Order266
 **Entry point:** built-unreviewed Phase-6 composition through Order 236
-**Current order:** Order282 exact India accommodation place-of-supply candidate is independently approved under D-740
+**Current order:** Order283 exact India accommodation registered-state comparison is ready under D-741
 
 ## Outcome
 
@@ -389,3 +389,17 @@ local is unchanged. Fresh non-implementing Tier-3 execution at D-740 independent
 reproduced the full proof with no finding and approved exact candidate `4047684`.
 This approval grants no intra/inter-state, decomposition, `SupTyp`, item, document,
 submission, local-promotion, Phase-7-complete or application-complete authority.
+
+## Order 283 boundary
+
+Order283 may purely compare only approved Order272 property-bound supplier-registration
+`stateCode` with approved Order282 property-derived `pos`, after independently
+revalidating the complete frozen shapes and tenant-bound hashes. It returns exact
+`same_state_or_union_territory` or `different_state_or_union_territory` evidence,
+fixed-order JSON and tenant-bound SHA-256 with no SQL, lock or write. This comparison
+is not legal supply nature: IGST sections7(5)(b)/8(2) and CBIC Circular48/22/2018 make
+SEZ accommodation inter-State even when ordinary codes match, and current evidence
+does not model that exception. Recipient state is irrelevant. No intra/inter-state,
+SEZ, `SupTyp`, `IgstOnIntra`, levy component/rate/amount, rounding, item, document,
+submission, API, UI or local authority is admitted. D-741 requires intentional red,
+exhaustive36×36 hostile proof, unchanged schema/referee and fresh Tier-3 execution.

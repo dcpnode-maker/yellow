@@ -350,3 +350,13 @@ unchanged. Fresh non-implementing Tier-3 execution at D-740 independently reprod
 the full proof with no finding and approved exact candidate `4047684`. No
 intra/inter-state, decomposition, `SupTyp`, item, document, submission, local,
 Phase-7 or application-complete authority is implied.
+
+Order283/D-741 is admitted as the exact next statutory prerequisite. It may purely
+compare approved Order272 property-bound supplier-registration state with approved
+Order282 property-derived lodging `pos`, returning only same/different state-or-UT
+relationship evidence and a deterministic tenant-bound hash. It must not call that
+relationship intra/inter-State: SEZ accommodation overrides ordinary same-code
+treatment under IGST sections7(5)(b)/8(2) and CBIC Circular48/22/2018, and current
+truth does not model the exception. Recipient state and every fallback are forbidden.
+No schema, lock, write, tax-component, `SupTyp`, item, document, submission, API, UI or
+local authority is admitted; exhaustive hostile proof and fresh Tier-3 remain mandatory.
