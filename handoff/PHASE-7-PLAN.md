@@ -2,7 +2,7 @@
 
 **Status:** active; governed positive-tax posting and complete correction approved through Order266
 **Entry point:** built-unreviewed Phase-6 composition through Order 236
-**Current order:** Order274 guarded sole-local promotion of Orders272–273 is built pending review under D-715
+**Current order:** Order274 guarded sole-local promotion of Orders272–273 is independently approved under D-716
 
 ## Outcome
 
@@ -267,7 +267,8 @@ Product, database, runtime and sole-local promotion are outside this order.
 
 ## Order 274 local boundary
 
-Order274/D-715 has promoted migration47 and exact Order273 status to the retained sole
+Order274/D-716 independently approves migration47 and exact Order273 status on the retained sole
 local after a restricted backup and recoverable app capture. Final truth is47/99/89,
 two unchanged hotels and exact272/273/review91/active7 on healthy loopback3000.
-Independent non-operating Tier-3 verification remains mandatory before approval.
+Fresh non-operating Tier-3 verification reproduced the complete read-only proof with
+no finding.

@@ -1,6 +1,6 @@
 # Order 274 — Promote approved Order272 and status Order273 to the retained sole local
 
-**Status:** BUILT-PENDING-REVIEW-D715
+**Status:** APPROVED-LOCALLY-D716
 **Phase:** 7 — Tax engine and India IRP
 **Branch:** `phase-7/promote-orders272-273-local`
 **Base:** `2cc2622` (approved Order272 product plus built Order273 status)
@@ -65,7 +65,7 @@ forbidden without a separate emergency order.
 - [x] Preflight, backup and rollback evidence is verified.
 - [x] Only migration47 and the app container change.
 - [x] Login, two properties, exact status and sole-local topology are green.
-- [ ] Independent non-operating review is recorded.
+- [x] Independent non-operating review is recorded.
 
 ## Build evidence — D715
 
