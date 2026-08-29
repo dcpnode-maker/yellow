@@ -25,6 +25,9 @@ a fresh logging-safe independent review.
   passwords plus the exact canonical local-review operator Argon2id credential;
 - atomically replace ignored `.yellow/runtime-database-authority.env` with deploy
   password retained and new runtime/registrar values, preserving owner-only ACL;
+- atomically replace only `YELLOW_REVIEW_PASSWORD` in ignored protected
+  `.yellow/current-founder-login.env`, retaining its distinct unexposed approver
+  password and preserving owner-only ACL;
 - recreate only the app from already-approved image `83a7bb59bd70` with new protected
   values and unchanged non-secret environment/configuration;
 - invalidate old local sign-in and JWT/database credentials; verify new credentials
@@ -36,8 +39,8 @@ a fresh logging-safe independent review.
 1. Preflight one healthy loopback3000 app, exact PostgreSQL/Valkey/volume, two
    properties, catalog44/98/88 and exact all-table digest from D-686.
 2. Replacement values are pairwise distinct, bounded and never passed as command-line
-   arguments, printed, committed or persisted outside the protected authority file,
-   database password verifier/Argon2id record and app environment.
+   arguments, printed, committed or persisted outside the two protected ignored
+   handoff files, database password verifier/Argon2id record and app environment.
 3. Exact role attributes/membership/ACL remain unchanged; new runtime and registrar
    credentials authenticate and captured old credentials fail.
 4. Exactly one canonical review-user auth field changes; the new password succeeds,
@@ -72,4 +75,3 @@ forbidden; recover forward under this order.
 - [ ] Old credentials fail, new credentials work and all non-auth data are exact.
 - [ ] Sole local is healthy/current with populated masked one-click sign-in.
 - [ ] Independent logging-safe non-operating review records approval or findings.
-
