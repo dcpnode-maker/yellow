@@ -1,6 +1,6 @@
 # Order 284 — Build exact India GST supplier service-location evidence
 
-**Status:** READY-D746
+**Status:** BUILT-PENDING-REVIEW-D747
 **Phase:** 7 — Tax engine and India IRP
 **Branch:** `phase-7/india-gst-supplier-service-location`
 **Base:** `2a9527a` (independently approved Order283 descendant)
@@ -98,7 +98,28 @@ deploy, Phase-7-complete or application-complete claim.
 
 ## Definition of done
 
-- [ ] Intentional red precedes implementation.
-- [ ] Exact schema/resolver and hostile PostgreSQL proof are green.
-- [ ] Standing/static gates are green and no authority expands.
+- [x] Intentional red precedes implementation.
+- [x] Exact schema/resolver and hostile PostgreSQL proof are green.
+- [x] Standing/static gates are green and no authority expands.
 - [ ] Fresh independent Tier-3 approval is recorded.
+
+## Builder proof — D-747
+
+Intentional red failed0/1 before migration0051, the resolver and export existed. The
+complete candidate then passed fresh isolated PostgreSQL focused18/0(238), migration
+replay39/0(187), database acceptance16/0(46), runtime-DML5/0(110), normalized schema
+equality and protected referee11/11. The catalogue is exact51 migrations/103 public
+tables/93 RLS-enabled tenant tables/93 tenant policies/3 FORCE-RLS tables. Migration
+0051 SHA-256 is
+`af457264bb976d64930022eb4686a55096248bf0b9e1f13151454b47d47b2496`.
+
+Focused proof covers exact principal/additional assignments, current Order272
+registration/hash/property/reservation/jurisdiction binding, independent upstream
+rehash, recursive freeze, replay, hostile shapes, stale/missing/foreign evidence,
+unique/FK/CHECK SQLSTATEs, RLS isolation, app-role DML denial, non-substitution and
+complete zero-effect digests. Native standing `bun test` passed927 with841 database/
+environment skips,0 failures and13,842 expectations across1,768 tests/312 files.
+Typecheck,107-file boundaries,23-package licence policy,audit0, setup syntax and diff
+checks are green. Disposable builder PostgreSQL resources are absent. The sole stable
+app/PostgreSQL/Valkey remain exact, healthy, restart0 and `/health` HTTP200; no local
+promotion occurred. Fresh non-implementing Tier-3 execution remains mandatory.

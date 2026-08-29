@@ -462,6 +462,30 @@ or item/value authority. It cannot post/correct money, allocate/issue/number/has
 a document, call a provider/submission, or authorize API, HTTP, UI, local-runtime,
 status or promotion behavior.
 
+### India GST supplier service-location containment
+
+Order284 adds one tenant-leading root with a same-tenant fiscal-registration FK,
+exact constrained literals, RLS enabled and forced, and an `app_role` SELECT-only
+grant. PUBLIC, runtime and app raw INSERT/UPDATE/DELETE/TRUNCATE remain denied; there
+is no capability, owner-mediated writer, seed, fact, event or lifecycle command.
+
+The resolver accepts only four canonical UUIDs in an exact plain object. It enters
+transaction-local tenant context through established Order272 behavior, revalidates
+complete current supplier evidence, and equality-selects one requested assignment by
+tenant/id/registration/hash/scope. Cross-tenant, cross-property, cross-reservation,
+missing, duplicate, stale, malformed, proxy/accessor/symbol or thawed evidence fails
+closed without revealing a row. Result and nested evidence are recursively frozen,
+the fixed hash binds the unexposed tenant, and all successful/rejected calls are
+zero-write.
+
+The assignment supplies only explicit section2(15)(a) supply-from and place-kind
+truth. State/address/locality/PIN are copied only from the independently revalidated
+Order272 result. GSTIN prefix, stored address alone, property fiscal location,
+physical co-location, SellerDtls, recipient/folio/org/profile/config or Order283
+equality cannot select a location. Section2(15)(b–d), SEZ, authorized operations,
+supply nature, levy/rate/amount, `SupTyp`, `IgstOnIntra`, item, posting, document,
+submission, API/HTTP/UI, local-runtime and promotion authority remain excluded.
+
 ### Tax-attribution persistence containment
 
 Order 244 accepts only a value that survives the exact hostile Order-240 parser. All

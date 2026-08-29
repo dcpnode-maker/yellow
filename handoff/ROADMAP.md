@@ -389,3 +389,8 @@ Order283 equality, support section2(15)(b–d), classify SEZ/supply nature, or e
 levy, `SupTyp`, item, document, API/UI/local authority. Intentional red, exact
 51/103/93/93/3 PostgreSQL/schema/referee, hostile zero-write proof and fresh Tier-3
 execution are mandatory.
+The Order284 candidate is built under D-747: intentional red0/1 preceded focused
+18/0(238), migration39/0(187), acceptance16/0, runtime-DML5/0, exact51/103/93/93/3
+normalized schema/referee11/11 and standing927/0 plus841 skips. All static gates are
+green, disposable proof is removed and the sole stable local is exact, healthy and
+unchanged. Fresh non-implementing Tier-3 review remains mandatory.

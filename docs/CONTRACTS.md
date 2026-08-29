@@ -1040,6 +1040,42 @@ not build `ItemList` or any item/value field and grants no posting, correction,
 document allocation/issue/number/hash-chain, provider/submission, API, HTTP, UI,
 local-runtime or promotion authority.
 
+### Exact India GST supplier service-location evidence
+
+Order284 specifies `IndiaGstSupplierServiceLocationService.resolve(tx,input)` with
+the exact plain, accessor-free, proxy-free and symbol-free four-key input
+`{tenantId,propertyNode,reservationId,supplierServiceLocationId}`. All four values are
+canonical UUIDs. The service first obtains complete exact current Order272 supplier
+evidence for that tenant/property/reservation, revalidates its fixed shape and hash,
+then selects exactly the requested coherent `india_gst_supplier_service_location`
+assignment under transaction-local tenant context.
+
+The assignment is current only when its `supplier_registration_id` and
+`supplier_evidence_hash` equal the just-resolved Order272 identity. It carries only
+the fixed lodging-accommodation scope, explicit `principal_place_of_business` or
+`additional_place_of_business` kind,
+`supply_made_from_registered_place_of_business` basis and `IGST_ACT_2_15_A` rule.
+It never selects latest/effective truth by time. Missing, duplicate, foreign, stale,
+malformed or incoherent evidence fails closed.
+
+The recursively frozen fixed-order result is exactly
+`{supplierServiceLocationId,propertyNode,jurisdiction,supplier,serviceScope,
+registeredPlace,locationBasis,legalRule,evidenceHash}`. `supplier` is exact
+`{registrationId,evidenceHash}`. `registeredPlace` is exact
+`{kind,stateCode,addressLine,locality,postalCode}`; every location byte comes from
+revalidated Order272 rather than the assignment. The final hash is SHA-256 over
+fixed-order `JSON.stringify({tenantId,...complete result body except evidenceHash})`,
+binding but not returning the tenant. Replay is byte-identical and every success or
+rejection leaves all source and effect rows unchanged.
+
+This result proves only the explicit IGST section2(15)(a) registered-place premise.
+It does not support section2(15)(b) fixed establishment, (c) most-directly-concerned
+multi-establishment selection or (d) usual residence. It does not infer location
+from GSTIN/address, property co-location, org/profile/config, SellerDtls or Order283
+equality. It grants no SEZ/non-SEZ, supply-nature, levy, `SupTyp`, `IgstOnIntra`,
+rate/amount, item, posting, document, submission, API, HTTP, UI, local-runtime or
+promotion authority.
+
 ## 8. Pure rate-model evaluator
 
 Order 067's in-process evaluator is a draft/simulation primitive, not a database or HTTP contract.

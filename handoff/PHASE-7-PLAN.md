@@ -2,7 +2,7 @@
 
 **Status:** active; governed positive-tax posting and complete correction approved through Order266
 **Entry point:** built-unreviewed Phase-6 composition through Order 236
-**Current order:** Order284 exact India GST supplier service-location evidence is ready under D-746
+**Current order:** Order284 exact India GST supplier service-location evidence is built-pending-review under D-747
 
 ## Outcome
 
@@ -437,3 +437,8 @@ Order283 equality. Section2(15)(b–d), SEZ, supply nature, levy, `SupTyp`, item
 document, API/UI/local authority remain forbidden. D-746 requires intentional red,
 exact51/103/93/93/3 PostgreSQL/schema/referee, hostile zero-write proof and fresh
 non-implementing Tier-3 execution.
+The candidate is built under D-747: intentional red0/1 preceded focused18/0(238),
+migration39/0(187), acceptance16/0, runtime-DML5/0, exact51/103/93/93/3 normalized
+schema/referee11/11 and standing927/0 plus841 skips. Type/107-boundary/23-licence/
+audit0/diff are green; disposable proof is absent and the sole stable local remains
+exact, healthy and unchanged. Fresh non-implementing Tier-3 review is mandatory.

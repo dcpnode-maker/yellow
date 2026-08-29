@@ -166,3 +166,13 @@ export type {
   IndiaGstAccommodationRegisteredStateComparisonResult,
   IndiaGstAccommodationRegisteredStateRelationship,
 } from "./india-gst-accommodation-registered-state-comparison";
+export {
+  IndiaGstSupplierServiceLocationConflictError,
+  IndiaGstSupplierServiceLocationNotFoundError,
+  IndiaGstSupplierServiceLocationService,
+  IndiaGstSupplierServiceLocationValidationError,
+} from "./india-gst-supplier-service-location";
+export type {
+  IndiaGstSupplierServiceLocationInput,
+  IndiaGstSupplierServiceLocationResult,
+} from "./india-gst-supplier-service-location";

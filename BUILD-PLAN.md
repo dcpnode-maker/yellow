@@ -846,7 +846,7 @@ removed. Approval remains bounded to relationship evidence and grants none of th
 forbidden supplier-location, supply-nature, levy, item, document, submission, local,
 merge, deploy, Phase-7-complete or application-complete authority.
 
-**Ready Order284 supplier service-location slice:** add one explicit SELECT-only
+**Built-pending-review Order284 supplier service-location slice:** add one explicit SELECT-only
 IGST section2(15)(a) assignment proving that the lodging supply is made from the
 exact registered place represented by current approved Order272 registration/hash.
 It returns frozen tenant-bound evidence only. It must not infer the establishment
@@ -854,6 +854,12 @@ from GSTIN/address/property/org/config, support section2(15)(b–d), classify SE
 supply nature, or emit levy, `SupTyp`, item, document, API/UI/local authority.
 Intentional red, exact51/103/93/93/3 PostgreSQL/schema/referee, hostile zero-write
 proof and fresh non-implementing Tier-3 execution are mandatory under D-746.
+Intentional red0/1 preceded focused18/0(238), migration39/0(187), acceptance16/0,
+runtime-DML5/0, exact51 migrations/103 public tables/93 RLS-enabled tenant tables/93
+policies/3 FORCE-RLS tables/schema/referee11/11 and standing927/0 plus841 skips
+(13,842 expectations;1,768 tests/312 files). Type/107-boundary/23-licence/audit0/
+diff are green under D-747; disposable proof is removed and the sole stable local is
+healthy/unchanged. Fresh non-implementing Tier-3 execution remains mandatory.
 
 ## Phase 8 — Statutory registration + ZATCA
 

@@ -801,6 +801,33 @@ CGST/SGST/UTGST/IGST route/rate/amount, rounding/residual, `ItemList` or other i
 value fields. It creates no tax, financial, fiscal-document, provider, submission,
 API, HTTP, UI, local-runtime or promotion authority.
 
+### India GST Supplier Service Location — Tax/Fiscal
+
+Order284 adds one narrow typed assignment root because a property-bound GST
+registration and physical property address are separate from the statutory location
+of supplier of services. `india_gst_supplier_service_location` belongs to one tenant
+and exact property fiscal registration/evidence hash. It records only explicit
+lodging-accommodation supply from one registered place, its principal/additional
+place kind and the fixed IGST section2(15)(a) basis. It is not an establishment,
+registration or property aggregate and introduces no lifecycle, writer, event or
+mutable configuration authority.
+
+The read service composes the root with complete current approved Order272 evidence
+for an explicit tenant/property/reservation. Registration id and evidence hash must
+match exactly, so a changed registration, address, jurisdiction or upstream hash
+makes the assignment stale rather than silently current. The returned registered-
+place state/address/locality/PIN are projections of Order272 only; the assignment
+cannot duplicate or repair them. The fixed result is recursively frozen and its
+SHA-256 binds the unexposed tenant and complete ordered evidence.
+
+This primitive is limited to section2(15)(a). Fixed-establishment, multi-establishment
+most-directly-concerned selection and usual-residence rules remain separate future
+evidence. GSTIN/address/property co-location, SellerDtls, org/profile/config and the
+Order283 same/different relationship cannot infer or replace the assignment. It owns
+no SEZ status, supply nature, levy, rate/amount, `SupTyp`, `IgstOnIntra`, item,
+posting, fiscal document, provider/submission, API, HTTP, UI, local-runtime or
+promotion identity.
+
 ### Positive Tax Attribution Snapshot value service — Tax/Fiscal
 
 Order 240 is a pure immutable value service, not an aggregate, entity or state

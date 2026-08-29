@@ -7468,6 +7468,29 @@ ALTER TABLE ONLY public.india_gst_item_classification FORCE ROW LEVEL SECURITY;
 
 
 --
+-- Name: india_gst_supplier_service_location; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.india_gst_supplier_service_location (
+    tenant_id uuid NOT NULL,
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    supplier_registration_id uuid NOT NULL,
+    supplier_evidence_hash text NOT NULL,
+    service_scope text NOT NULL,
+    registered_place_kind text NOT NULL,
+    location_basis text NOT NULL,
+    legal_rule text NOT NULL,
+    CONSTRAINT india_gst_supplier_service_location_basis_ck CHECK ((location_basis = 'supply_made_from_registered_place_of_business'::text)),
+    CONSTRAINT india_gst_supplier_service_location_legal_rule_ck CHECK ((legal_rule = 'IGST_ACT_2_15_A'::text)),
+    CONSTRAINT india_gst_supplier_service_location_registered_place_ck CHECK ((registered_place_kind = ANY (ARRAY['principal_place_of_business'::text, 'additional_place_of_business'::text]))),
+    CONSTRAINT india_gst_supplier_service_location_scope_ck CHECK ((service_scope = 'lodging_accommodation'::text)),
+    CONSTRAINT india_gst_supplier_service_location_supplier_hash_ck CHECK ((supplier_evidence_hash ~ '^[0-9a-f]{64}$'::text))
+);
+
+ALTER TABLE ONLY public.india_gst_supplier_service_location FORCE ROW LEVEL SECURITY;
+
+
+--
 -- Name: inventory_authority; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -9125,6 +9148,22 @@ ALTER TABLE ONLY public.india_gst_item_classification
 
 ALTER TABLE ONLY public.india_gst_item_classification
     ADD CONSTRAINT india_gst_item_classification_pk PRIMARY KEY (tenant_id, id);
+
+
+--
+-- Name: india_gst_supplier_service_location india_gst_supplier_service_location_identity_uq; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.india_gst_supplier_service_location
+    ADD CONSTRAINT india_gst_supplier_service_location_identity_uq UNIQUE (tenant_id, supplier_registration_id, supplier_evidence_hash, service_scope);
+
+
+--
+-- Name: india_gst_supplier_service_location india_gst_supplier_service_location_pk; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.india_gst_supplier_service_location
+    ADD CONSTRAINT india_gst_supplier_service_location_pk PRIMARY KEY (tenant_id, id);
 
 
 --
@@ -11105,6 +11144,14 @@ ALTER TABLE ONLY public.india_gst_item_classification
 
 
 --
+-- Name: india_gst_supplier_service_location india_gst_supplier_service_location_registration_fk; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.india_gst_supplier_service_location
+    ADD CONSTRAINT india_gst_supplier_service_location_registration_fk FOREIGN KEY (tenant_id, supplier_registration_id) REFERENCES public.property_fiscal_registration(tenant_id, id);
+
+
+--
 -- Name: inventory_authority inventory_authority_property_node_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -12387,6 +12434,12 @@ ALTER TABLE public.inbound_message ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.india_gst_item_classification ENABLE ROW LEVEL SECURITY;
 
 --
+-- Name: india_gst_supplier_service_location; Type: ROW SECURITY; Schema: public; Owner: -
+--
+
+ALTER TABLE public.india_gst_supplier_service_location ENABLE ROW LEVEL SECURITY;
+
+--
 -- Name: inventory_authority; Type: ROW SECURITY; Schema: public; Owner: -
 --
 
@@ -12929,6 +12982,13 @@ CREATE POLICY tenant_isolation ON public.inbound_message USING ((tenant_id = (cu
 --
 
 CREATE POLICY tenant_isolation ON public.india_gst_item_classification USING ((tenant_id = (NULLIF(current_setting('app.tenant_id'::text, true), ''::text))::uuid)) WITH CHECK ((tenant_id = (NULLIF(current_setting('app.tenant_id'::text, true), ''::text))::uuid));
+
+
+--
+-- Name: india_gst_supplier_service_location tenant_isolation; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY tenant_isolation ON public.india_gst_supplier_service_location USING ((tenant_id = (NULLIF(current_setting('app.tenant_id'::text, true), ''::text))::uuid)) WITH CHECK ((tenant_id = (NULLIF(current_setting('app.tenant_id'::text, true), ''::text))::uuid));
 
 
 --
@@ -14906,6 +14966,13 @@ GRANT SELECT ON TABLE public.inbound_message TO app_role;
 --
 
 GRANT SELECT ON TABLE public.india_gst_item_classification TO app_role;
+
+
+--
+-- Name: TABLE india_gst_supplier_service_location; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT SELECT ON TABLE public.india_gst_supplier_service_location TO app_role;
 
 
 --
