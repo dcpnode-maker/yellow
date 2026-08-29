@@ -76,8 +76,8 @@ second local app, merge, public deployment, Phase7 or application-complete claim
 - Intentional red was exactly `0 pass / 2 fail`; final static lineage is `2/0`.
   Migration0044 is exactly34,363 bytes/878 LF lines/SHA-256
   `5ea338b18aabb3cb2c5a4613c00ebf57806be881b956b13df1e2c95262cce55c`.
-  Migration0046 is exactly26,030 bytes/663 LF lines/SHA-256
-  `b18e4eec5a208c773d32df7b7c1ba65b6d452a8d850cc50fad3aa614ffe7c45f`
+  Migration0046 is exactly26,029 bytes/662 LF lines/SHA-256
+  `bd7fb83f619aabf76b7247246a096ca09275823d07cbdceeb2deec8a1e76b574`
   and contains exactly the two explicit posting-ordinal joins in the complete
   replacement function with unchanged owner/revoke/grant containment.
 - A collision-proof disposable PostgreSQL16.15 project bootstrapped migrations1–46

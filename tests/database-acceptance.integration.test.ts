@@ -233,7 +233,7 @@ const EXPECTED_MIGRATIONS = [
   {
     version: 46,
     filename: "0046_positive_tax_posting_ordinal_repair.sql",
-    checksum_sha256: "b18e4eec5a208c773d32df7b7c1ba65b6d452a8d850cc50fad3aa614ffe7c45f",
+    checksum_sha256: "bd7fb83f619aabf76b7247246a096ca09275823d07cbdceeb2deec8a1e76b574",
   },
 ];
 

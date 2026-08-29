@@ -660,4 +660,3 @@ REVOKE ALL ON FUNCTION public.record_positive_tax_journal_binding(
 GRANT EXECUTE ON FUNCTION public.record_positive_tax_journal_binding(
   uuid,uuid,uuid,uuid,uuid,uuid,uuid,uuid[],jsonb
 ) TO app_role;
-
