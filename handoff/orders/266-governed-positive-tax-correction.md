@@ -1,6 +1,6 @@
 # Order 266 — Governed positive-tax journal correction
 
-**Status:** PAUSED-D692 — sole-local runtime reconciliation required
+**Status:** BUILT-PENDING-REVIEW-D699 — complete isolated proof green
 **Phase:** 7 — Tax engine and India IRP
 **Branch:** `phase-7/governed-positive-tax-correction`
 **Base:** `252254b` (independently approved Order265 sole-local credential remediation)
@@ -86,8 +86,8 @@ application-complete claim.
 
 ## Definition of done
 
-- [ ] Migration and service implement the exact immutable full reversal.
-- [ ] Focused, adjacent, standing, schema and referee proofs are green.
+- [x] Migration and service implement the exact immutable full reversal.
+- [x] Focused, adjacent, standing, schema and referee proofs are green.
 - [ ] Independent Tier-3 review records approval or findings.
 - [ ] A later separately governed status/local-promotion order may expose approved
   work on the sole local; this order does not mutate it.
@@ -112,3 +112,36 @@ changed, and the scratch database remains. A separate governed reconciliation or
 must back up and prove product truth, remove only the disclosed scratch database,
 accept the replacement container identities, and obtain independent non-operating
 verification before Order266 database execution resumes.
+
+## Builder proof — D699
+
+After approved Orders267–268 restored and independently proved the sole local, the
+Order266 database lane resumed only in a uniquely named disposable WSL Compose
+project on ports30266/55266/65266. It never created an application container and
+never targeted the stable project. Two focused defects found by executable proof were
+corrected: SQL count aliases now preserve the camel-case `ArtifactCounts` contract,
+and a narrow transaction-local tenant-context guard precedes idempotency insertion
+without moving mutable original/account validation ahead of completed replay. A new
+regression proves exact replay still succeeds after the credited account later closes.
+
+Fresh PostgreSQL proof applied migration0045 at checksum
+`aec7f04eaa0536568adf68d51d7e2fa3ff578cd043b3079c080a680d6e210dba`
+and produced exact45 migrations/98 tables/88 policies/referee11/11. The intentional
+base reconstruction failed0/3 as required; the final correction suite passed8/0,
+positive posting9/0, posting plan6/0, folio eligibility6/0, semantic route9/0,
+financial corrections9/0, financial statements12/0, database acceptance11/0,
+runtime DML5/0, SECURITY DEFINER3/0, migration39/0, schema drift4/0 and exact schema
+check. Native Windows standing proof on the exact same product/test hashes passed
+846/0 with775 skips across1621 tests/291 files, followed by typecheck,
+97-file boundaries,23-package licence, audit0 and diff checks. The WSL standing run
+passed843 with776 skips but its two Git-fixture tests could not resolve a
+Windows-created worktree `.git` pointer; the canonical native run proves those tests
+and the full tree green. `setup.sh` still prints a stale human phrase saying
+"migrations 1-44" while its direct ledger and schema assertions correctly prove45;
+no product oracle is affected.
+
+All disposable proof containers, volumes, networks, ports, scripts and D-drive
+worktrees were removed after proof. The sole app remains the independently approved
+Order268 runtime at exact migration44/latest262/current263/review91/active7. This
+builder checkpoint grants no independent approval, local promotion, merge, public
+deployment, Phase7 or application-complete claim.

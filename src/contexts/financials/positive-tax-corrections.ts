@@ -682,6 +682,14 @@ export class PositiveTaxCorrectionService {
     }
     const normalized = normalize(input);
     try {
+      const tenantContext = (await tx<Array<{ tenant_id: string | null }>>`
+        SELECT current_setting('app.tenant_id', true) AS tenant_id
+      `)[0];
+      if (tenantContext?.tenant_id !== normalized.tenantId) {
+        throw new PositiveTaxCorrectionNotFoundError(
+          "Governed positive-tax journal was not found in the audit property",
+        );
+      }
       const outcome = await this.#idempotency.execute<CorrectionBody>(tx, {
         tenantId: normalized.tenantId,
         operation: IDEMPOTENCY_OPERATION,

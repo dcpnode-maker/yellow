@@ -425,9 +425,9 @@ async function artifactCounts(tenantId = TENANT_A): Promise<ArtifactCounts> {
         AND reverses IS NOT NULL)) facts,
     (SELECT count(*)::int FROM outbox WHERE tenant_id=${tenantId}::uuid
       AND aggregate_id IN (SELECT id FROM journal WHERE tenant_id=${tenantId}::uuid
-        AND reverses IS NOT NULL) AND event_type='journal.posted') journal_events,
+        AND reverses IS NOT NULL) AND event_type='journal.posted') "journalEvents",
     (SELECT count(*)::int FROM outbox WHERE tenant_id=${tenantId}::uuid
-      AND event_type='tax.attribution_reversed') reversed_events,
+      AND event_type='tax.attribution_reversed') "reversedEvents",
     (SELECT count(*)::int FROM api_idempotency WHERE tenant_id=${tenantId}::uuid) keys`)[0]!;
 }
 
@@ -716,6 +716,10 @@ dbDescribe("Order 266 governed positive-tax correction", () => {
     const exactFixture = await seedPositive();
     const exact = correctionInput(exactFixture, "order266-exact-replay");
     const first = await reverse(exactFixture, exact);
+    expect(await reverse(exactFixture, exact)).toEqual({ ...first, replayed: true });
+    await deploy!`UPDATE account SET status='closed'
+      WHERE tenant_id=${exactFixture.tenantId}::uuid
+        AND id=${exactFixture.revenueRoute.accountId}::uuid`;
     expect(await reverse(exactFixture, exact)).toEqual({ ...first, replayed: true });
     await expect(reverse(exactFixture, {
       ...exact,

@@ -223,3 +223,9 @@ Order266/D-691 is the active next financial boundary: one exact complete immutab
 contra journal may reverse an Order262 posting with database-derived full-reversal
 tax lineage and verified post-seal authority. Partial/India/negative-tax correction,
 refund/payment, fiscal document/IRP and Phase7 completion remain later work.
+
+Order266/D-699 is built pending mandatory independent Tier-3 execution. Exact
+migration45/98 tables/88 policies/referee11/11, correction8/0, adjacent financial,
+migration/schema/static and native standing846/0 proof is green; the sole local is
+unchanged until a later separately governed promotion. Partial/India/negative-tax
+correction, refund/payment, fiscal document/IRP and Phase7 completion remain later.
