@@ -595,7 +595,7 @@ adjacent21/21, acceptance11/11, migration38/38, exact live schema, clean correct
 and statement regressions, standing841/841 and the static gates with no blocking
 product finding.
 
-Order263 is built-unreviewed as a bounded authenticated status and loopback sign-in
+Order263 is independently approved as a bounded authenticated status and loopback sign-in
 restoration slice. Recorded truth is date2026-08-29/latest262/current263/review91/
 active7; the aggregate Orders237–262 card remains `built_unverified` while naming the
 Order262 posting slice independently approved. The existing D-520 no-store loopback
@@ -606,8 +606,10 @@ handler and therefore keep clearing the password. No credential value, storage,
 authentication, token, throttle, endpoint, database or runtime authority changes.
 Status stale4/1+2 skips and helper security6/1 intentional reds precede combined
 12/0+2 skips(149), relevant operator47/0(711), standing842/0+765 skips(8528),
-type/96-boundary/23-licence/audit0/diff green. Independent review and sole-local
-promotion remain separate.
+type/96-boundary/23-licence/audit0/diff green. A non-implementing Tier-3 reviewer
+personally reproduced focused12/0+2 skips(149), exact operator47/0(711), adjacent
+security52/0(440), standing842/0+765 skips(8528) and every static gate with no
+blocking finding. Sole-local promotion remains separate.
 
 tax_assignment evaluation (percent/fixed/slab, compound, line-vs-document rounding)
 from EXTENSIONS §2; India GST slab per room-night; document issue path: series →

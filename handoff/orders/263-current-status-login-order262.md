@@ -1,6 +1,6 @@
 # Order 263 — Current status through approved Order262 and persistent local sign-in defaults
 
-**Status:** BUILT-D682 — independent review pending
+**Status:** APPROVED-D683 — independently reviewed; local promotion pending
 **Phase:** 7 — Tax engine and India IRP
 **Branch:** `phase-7/current-status-login-order262`
 **Base:** `06ead97` (independently approved Order262)
@@ -68,7 +68,7 @@ be exposed to an agent message, command output, committed fixture or user respon
 - [x] Intentional stale/security red precedes implementation.
 - [x] Exact source and P1–P4 proof pass.
 - [x] Standing/static gates pass.
-- [ ] Independent non-implementing review records approval or findings.
+- [x] Independent non-implementing review records approval or findings.
 
 ## Builder evidence — D682
 
@@ -86,3 +86,17 @@ be exposed to an agent message, command output, committed fixture or user respon
   card remains `built_unverified` because earlier Phase7 slices still lack aggregate
   product review, while its text records Order262 posting itself as independently
   approved. Review coverage91 and all phase states remain unchanged.
+
+## Independent approval — D683
+
+An independent non-implementing Tier-3 reviewer APPROVED exact commit `db42940`
+with no blocking finding. The reviewer personally reproduced focused status/sign-in
+proof 12/0+2 environment skips (149 assertions), the exact wider operator set 47/0
+(711), an independently selected status/security/UI set 32/0+10 environment skips
+(528), adjacent authentication/token/throttle/security 52/0 (440), standing 842/0
++765 environment skips (8,528 across 1,607 tests/289 files), and all static gates.
+The review proves the exact 262/263/review91/active7 snapshot, retained
+`built_unverified` aggregate Phase7 card, private closure/attribute deletion and
+cancelable restore event, plus password clearing when the helper is absent. The
+reviewer did not query or mutate the stable runtime or database. Sole-local
+promotion remains a separate guarded order.
