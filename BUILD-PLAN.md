@@ -609,7 +609,14 @@ Status stale4/1+2 skips and helper security6/1 intentional reds precede combined
 type/96-boundary/23-licence/audit0/diff green. A non-implementing Tier-3 reviewer
 personally reproduced focused12/0+2 skips(149), exact operator47/0(711), adjacent
 security52/0(440), standing842/0+765 skips(8528) and every static gate with no
-blocking finding. Sole-local promotion remains separate.
+blocking finding. Sole-local promotion is governed separately by Order264 below.
+
+Order264 has promoted exact approved Orders262–263 to the sole local app pending
+independent operational verification. Only the app changed; PostgreSQL, Valkey,
+retained volume, protected environment, two properties, migration44/98-table/
+88-policy catalogue and exact all-table row-count digest remain unchanged. The
+healthy no-store loopback3000 sign-in has three populated masked defaults and both
+properties report exact latest262/current263/review91/active7;3002/3188 are closed.
 
 tax_assignment evaluation (percent/fixed/slab, compound, line-vs-document rounding)
 from EXTENSIONS §2; India GST slab per room-night; document issue path: series →

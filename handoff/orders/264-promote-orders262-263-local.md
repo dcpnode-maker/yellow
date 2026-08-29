@@ -1,6 +1,6 @@
 # Order 264 — Promote approved Orders262–263 to the sole local app
 
-**Status:** READY-D684
+**Status:** PROMOTED-D685 — independent operational verification pending
 **Phase:** 7 — Tax engine and India IRP
 **Branch:** `phase-7/promote-orders262-263-local`
 **Base:** `10f78fa` (independently approved Orders262 and 263)
@@ -61,8 +61,33 @@ authorized by this order and requires separate emergency authority.
 
 ## Definition of done
 
-- [ ] Exact preflight, restricted backup and rollback image are verified.
-- [ ] Only the app container changes; database/cache/data remain byte-equivalent.
-- [ ] Login, two hotels, exact status and one-local topology are green.
+- [x] Exact preflight, restricted backup and rollback image are verified.
+- [x] Only the app container changes; database/cache/data remain byte-equivalent.
+- [x] Login, two hotels, exact status and one-local topology are green.
 - [ ] Independent non-operating verification records approval or findings.
 
+## Promotion evidence — D685
+
+The owner/SYSTEM-only 741,065-byte custom-format backup at
+`D:\Yellow\backups\yellow-pre-order264-20260829T011005Z.dump` has SHA-256
+`cec27896e2f77d80b27a692c840e190fd370463b7656da4cd47632fe5321bda0`
+and 1,320 readable restore-catalogue entries. Rollback tag
+`yellow-order264-rollback:pre-orders262-263` retains exact prior image
+`dab955b933ed`.
+
+Clean candidate image `83a7bb59bd70` matched all three changed production-source
+hashes before replacement. Only app `d23532f1782a` was replaced by healthy app
+`cadd8c3bded8`; PostgreSQL `b0a92182a16a`, Valkey `ae62afc8df69`, retained volume
+and protected environment SHA-256
+`8e77c869466ce4213be1b98ff4e3a0cd8c67452abc7e06448e78ac75bc2a2bfa`
+remain exact.
+
+No migration or SQL write ran. Migration/table/policy catalogue remains 44/98/88
+and exact all-table row-count digest remains
+`739b6a2d929a2278064e35935351f32fcc9290c16da2db9b5072e9640ed28763`.
+Root, health, login, operator asset and loopback-helper asset return HTTP200; root is
+no-store with all three fields populated and password masked. Served operator source
+is byte-exact and the helper contains private Map retention, DOM-attribute deletion,
+the exact cancelable restore event and `preventDefault`. Both retained properties
+return exact 262/263/review91/active7. Only loopback3000 is open;3002/3188 remain
+closed. Independent verification remains pending.
