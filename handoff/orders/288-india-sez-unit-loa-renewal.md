@@ -68,8 +68,9 @@ authorized-operations/zero-rating decision would conflate separate evidence.
 - `tests/schema/expected.sql`, `tests/database-acceptance.integration.test.ts`,
   `tests/runtime-dml-authority.integration.test.ts` only for exact 0054/schema/ACL
   catalogue changes;
-- `tests/migrate.integration.test.ts` only for the three exact public-table/RLS/
-  tenant-policy catalogue counts advanced by the admitted table;
+- `tests/migrate.integration.test.ts` only for exact post-0054 migration-ledger,
+  discovered/applied-file and public-table/RLS/policy/FORCE-RLS catalogue
+  expectations advanced by the admitted migration;
 - new `src/contexts/tax-fiscal/india-sez-unit-loa-renewal.ts` and bounded-context
   index export only;
 - new intentional-red and exact hostile integration tests;
@@ -125,3 +126,12 @@ The fresh migration gate exposed three exact pre-Order288 catalogue counts in
 table/RLS/policy addition unless those three values advance from `105/95/95` to
 `106/96/96`. D-760 explicitly adds only those mechanical expectations to scope.
 No assertion, product behavior, migration contract, outcome or authority changes.
+
+## Proof-scope correction — D-761
+
+Full execution showed the same exact catalogue truth is asserted at additional
+cutoff/full-chain locations and that the staged applied-file/ledger oracle must name
+0054. D-761 corrects D-760's undercount: every existing post-0054 expectation in
+`tests/migrate.integration.test.ts` may advance only for migration0054, including
+`106/96/96/6`, discovered count54 and the exact 0054 filename/version/checksum row.
+No assertion removal, relaxation, unrelated path or product authority is admitted.
