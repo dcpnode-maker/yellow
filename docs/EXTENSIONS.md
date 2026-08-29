@@ -232,6 +232,17 @@ items, values, documents and submission/provider routing remain separate future
 authority. The pure projection and its executable proof are independently Tier-3
 approved under D-719 with no finding.
 
+Order278's specified India IRP buyer-details candidate likewise adds no extension
+schema and reads no extension content. It accepts only the exact approved, deeply
+frozen Order276 registered-recipient candidate evidence and projects fixed-order
+`BuyerDtls` fields `Gstin`, `LglNm`, nullable-omitted `TrdNm`, `Addr1`, `Loc`, numeric
+`Pin` and `Stcd`. Exact Party, registration and evidence-hash lineage stays outside
+the transmitted JSON; canonical bytes and SHA-256 are deterministic. `Pos` remains a
+separate notified field and is neither included nor inferred. This candidate does not
+designate the legal invoice/folio-window buyer and grants no full payload, tax,
+document, database, API, HTTP or UI authority. It is built under D-727 with independent
+Tier-3 executable review pending.
+
 ---
 
 ## 3. `policy` — cancellation / deposit / guarantee / no-show

@@ -292,9 +292,10 @@ referee, runtime or local change is admitted. Fresh independent Tier-3 execution
 approves both the exact repair and corrected Order276 candidate-evidence descendant
 with no remaining finding.
 
-Order278/D-726 is the admitted current product slice. It may project only exact
+Order278/D-727 is built pending independent review. It projects only exact
 approved Order276 recipient evidence into fixed-order notified IRP1.1 `BuyerDtls`
 identity/address fields with Party/registration/evidence lineage outside deterministic
 JSON. It grants no legal invoice-window buyer, separate `Pos`, supply type, tax
-decomposition, document, submission, database, API, UI or local authority and requires
-fresh independent Tier-3 execution.
+decomposition, document, submission, database, API, UI or local authority. Intentional
+red0/1, focused/adjacent22/0+10 database-only skips, standing879/0+798 database-only
+skips and every static gate are green; fresh independent Tier-3 execution is mandatory.

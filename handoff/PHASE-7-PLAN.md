@@ -2,7 +2,7 @@
 
 **Status:** active; governed positive-tax posting and complete correction approved through Order266
 **Entry point:** built-unreviewed Phase-6 composition through Order 236
-**Current order:** Order278 pure exact India IRP BuyerDtls candidate is admitted under D-726
+**Current order:** Order278 pure exact India IRP BuyerDtls candidate is built pending review under D-727
 
 ## Outcome
 
@@ -313,9 +313,11 @@ the repair and corrected Order276 descendant with no remaining finding.
 
 ## Order 278 boundary
 
-Order278 may only project the exact approved Order276 registered-recipient evidence
+Order278 projects only the exact approved Order276 registered-recipient evidence
 into fixed-order notified `BuyerDtls` identity/address fields with isolated Party/
 registration/evidence lineage, deterministic JSON/hash and recursive freeze. The
 officially separate `Pos` attribute, legal folio-window buyer designation, supply type,
 tax decomposition, documents and submission remain later authority. Fresh independent
-Tier-3 execution is mandatory.
+Tier-3 execution is mandatory. Intentional red0/1 preceded focused/adjacent22/0+10
+database-only skips and standing879/0+798 database-only skips; all static gates are
+green under D-727.

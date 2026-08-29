@@ -108,3 +108,11 @@ export type {
   IndiaGstRecipientRegistrationInput,
   IndiaGstRecipientRegistrationResult,
 } from "./india-gst-recipient-registration";
+export {
+  IndiaIrpBuyerDetailsError,
+  buildIndiaIrpBuyerDetails,
+} from "./india-irp-buyer-details";
+export type {
+  IndiaIrpBuyerDetailsResultV1,
+  IndiaIrpBuyerDetailsV1,
+} from "./india-irp-buyer-details";

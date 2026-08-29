@@ -787,6 +787,42 @@ correction, documents, numbering/hash chains, submission, provider, API, HTTP or
 behavior. Order276 and its corrected canonical setup descendant are independently
 Tier-3 approved under D-725 with no remaining finding.
 
+### Pure India IRP 1.1 buyer-details candidate projection
+
+Order278 specifies one pure `buildIndiaIrpBuyerDetails(source: unknown)` boundary
+over the exact approved Order276 `IndiaGstRecipientRegistrationResult`. The input
+must be one exact deeply frozen plain, accessor-free result with canonical Party and
+registration UUIDs, scheme `in-gstin`, complete statutory identity/address evidence
+and canonical evidence hash. It projects only this candidate payload shape, in fixed
+key order:
+
+```json
+{"BuyerDtls":{"Gstin":"...","LglNm":"...","TrdNm":"...","Addr1":"...","Loc":"...","Pin":560001,"Stcd":".."}}
+```
+
+`TrdNm` is omitted only when the exact source trade name is null. GSTIN is exactly 15
+characters with a valid checksum and its state prefix must equal `Stcd`; legal and
+trade names are at most 100 characters; address line 1 is at most 100; locality is at
+most 50; PIN is an exact six-digit nonzero numeric string before numeric projection;
+and state is an exact current GST state/UT code. Missing, surplus, accessor-backed,
+proxy, malformed, checksum-invalid, mismatched or over-limit evidence fails closed.
+The builder never trims, truncates, splits, coerces, normalizes or synthesizes legal
+evidence.
+
+The recursively frozen wrapper identifies format `irp_json_1_1`, retains an exact
+three-field lineage `{partyId,registrationId,evidenceHash}` outside the transmitted
+JSON, and exposes fixed-order deterministic `payloadJson` plus its SHA-256
+`payloadHash`. The lineage never enters `payload`, `BuyerDtls` or `payloadJson`.
+Replay over identical evidence is byte-identical, the source stays unchanged, and
+wrapper, lineage, payload and buyer details are recursively frozen.
+
+This is a payload candidate only. It neither designates the legal invoice or folio-
+window buyer nor includes or decides `Pos`, `SupTyp`, B2C `URP`, export, SEZ, deemed-
+export, seller, item, value, tax or document fields. It grants no CGST/SGST/IGST,
+calculation, allocation, posting, correction, document issue/number/hash-chain,
+submission, provider, transaction, SQL, database, API, HTTP or UI authority. Order278
+is built under D-727 with its independent Tier-3 executable review pending.
+
 ## 8. Pure rate-model evaluator
 
 Order 067's in-process evaluator is a draft/simulation primitive, not a database or HTTP contract.
