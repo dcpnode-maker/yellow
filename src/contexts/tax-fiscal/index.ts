@@ -98,3 +98,13 @@ export type {
   IndiaIrpSellerDetailsResultV1,
   IndiaIrpSellerDetailsV1,
 } from "./india-irp-seller-details";
+export {
+  IndiaGstRecipientRegistrationConflictError,
+  IndiaGstRecipientRegistrationNotFoundError,
+  IndiaGstRecipientRegistrationService,
+  IndiaGstRecipientRegistrationValidationError,
+} from "./india-gst-recipient-registration";
+export type {
+  IndiaGstRecipientRegistrationInput,
+  IndiaGstRecipientRegistrationResult,
+} from "./india-gst-recipient-registration";

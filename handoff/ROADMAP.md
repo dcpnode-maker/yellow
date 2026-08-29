@@ -275,9 +275,10 @@ documents, numbering/hash chains, submission/providers, database and UI remain o
 scope. Fresh non-implementing Tier-3 execution approves the exact immutable candidate
 with no finding; Phase7 remains active.
 
-Order276/D-720 is the admitted current product slice. It may add only a typed
-tenant/RLS Party GST-registration root plus an exact read-only registration-id
-resolver for active registered-recipient candidate evidence. It grants no legal
-invoice-buyer, folio-window, `BuyerDtls`, place-of-supply, decomposition, document,
-submission, UI or local authority and requires fresh PostgreSQL plus independent
-Tier-3 executable proof.
+Order276/D-721 is built pending review. Its typed tenant/RLS Party GST-registration
+root plus exact read-only registration-id resolver provide only active registered-
+recipient candidate evidence. Exact48-migration/100-table/90-policy PostgreSQL,
+referee11/11, hostile, standing and static proof are green. It grants no legal invoice-
+buyer, folio-window, `BuyerDtls`, place-of-supply, decomposition, document,
+submission, UI or local authority; fresh independent Tier-3 approval remains
+mandatory.

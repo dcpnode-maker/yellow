@@ -753,6 +753,41 @@ tax decomposition, item/value/document, numbering/hash-chain, submission, provid
 database, transaction, API, HTTP or UI authority. The exact pure boundary and its
 executable proof are independently Tier-3 approved under D-719 with no finding.
 
+### Exact India GST registered-recipient candidate evidence
+
+Order276 specifies the internal read-only
+`IndiaGstRecipientRegistrationService.discover|resolve(tx,
+{tenantId,recipientPartyId,registrationId})`. The input must be one exact plain tuple;
+the registration UUID is caller-selected rather than inferred from a reservation,
+folio, account, Party role or mutable customer profile. Both operations must set and
+retain the transaction-local tenant context and select only that exact registration
+and its exact Party inside the same tenant.
+
+Resolution requires one active Party and one exact `party_fiscal_registration` row
+whose scheme is `in-gstin`. The registration must carry a canonical checksum-valid
+15-character GSTIN, its matching current two-digit GST state/UT code, legal name,
+nullable trade name, address line 1, locality and an exact six-digit nonzero PIN.
+Legal and trade names are bounded at 100 characters, address line 1 at 100 and
+locality at 50. The returned recursively frozen candidate contains only the
+registration and Party ids, scheme, statutory identity/address fields and a
+deterministic SHA-256 `evidenceHash`. Replay over identical stored truth must be
+byte-identical.
+
+Missing, foreign, inactive, merged, anonymised, malformed, checksum-invalid or
+state/PIN/text-mismatched evidence must fail closed without heuristic fallback or a
+write. `party.display_name`, `party.legal_name`, `party.attrs`, contact/address rows,
+roles, accounts, reservations and folios may neither substitute for nor enrich the
+selected statutory registration.
+
+This value is registered-recipient **candidate evidence only**. It does not designate
+the legal invoice buyer or invoice/folio window, build IRP `BuyerDtls`, select B2C
+`URP`, export, SEZ or deemed-export treatment, decide `Pos` or `SupTyp`, or authorize
+CGST/SGST/IGST decomposition, item/value/tax calculation, allocation, posting,
+correction, documents, numbering/hash chains, submission, provider, API, HTTP or UI
+behavior. Order276 has built and executable-proved this exact candidate boundary at
+D-721. Fresh independent Tier-3 approval remains mandatory before it becomes approved
+runtime authority.
+
 ## 8. Pure rate-model evaluator
 
 Order 067's in-process evaluator is a draft/simulation primitive, not a database or HTTP contract.

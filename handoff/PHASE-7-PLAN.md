@@ -2,7 +2,7 @@
 
 **Status:** active; governed positive-tax posting and complete correction approved through Order266
 **Entry point:** built-unreviewed Phase-6 composition through Order 236
-**Current order:** Order276 exact India GST registered-recipient candidate evidence is admitted under D-720
+**Current order:** Order276 exact India GST registered-recipient candidate evidence is built pending review under D-721
 
 ## Outcome
 
@@ -295,4 +295,5 @@ address and role truth as statutory evidence while preserving Party as the sole 
 organisation primitive. The result is registered-recipient candidate evidence only;
 invoice-window buyer designation, `BuyerDtls`, place of supply, supply type, India tax
 decomposition, documents and submission remain separate future authority. Fresh
-PostgreSQL and independent Tier-3 execution are mandatory.
+PostgreSQL proof is green at exact48 migrations/100 tables/90 policies with
+referee11/11. Fresh independent Tier-3 execution remains mandatory.

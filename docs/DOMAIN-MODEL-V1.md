@@ -590,6 +590,38 @@ decomposition, tax calculation or residual allocation, journals/postings,
 correction/credit-note semantics, documents/series/hash chains, IRP payloads,
 providers, submissions, UI or HTTP behavior.
 
+### Party Fiscal Registration — Tax/Fiscal
+
+**Candidate root:** `party_fiscal_registration`.
+
+Order276 specifies one typed statutory-registration child of the existing Party
+primitive. The Natural-Solution Test rejects mutable Party profile, role, contact and
+address data as exact statutory evidence and rejects an extension because registration
+is Party-owned legal identity rather than configuration. Party remains the sole
+person/organisation primitive; this root does not create a second customer or buyer
+entity.
+
+Its tenant-leading identity binds one exact registration UUID to one same-tenant Party
+and the sole admitted scheme `in-gstin`. The row contains only canonical registered-
+recipient candidate evidence: checksum-valid GSTIN, matching current state/UT code,
+legal and optional trade name, address line 1, locality and exact six-digit nonzero
+PIN. Tenant RLS and composite tenant/Party identity contain the row. Runtime receives
+SELECT only; provisioning and maintenance are outside the application contract.
+
+The Order276 candidate value service requires an exact caller-selected tenant, Party
+and registration tuple and accepts only a Party whose status is `active`. Missing,
+foreign, merged, anonymised, malformed or mismatched truth fails closed without
+falling back to Party profile/role/address, account, reservation or folio data. A
+successful read exposes only recursively frozen canonical registration evidence and a
+deterministic evidence hash; it creates no fact, event or financial/fiscal effect.
+
+This root records candidate evidence, not legal buyer authority. It does not select
+the invoice or folio buyer, build `BuyerDtls`, determine B2C/export/SEZ/deemed-export
+treatment, place of supply or supply type, decompose CGST/SGST/IGST, or own tax,
+posting, correction, document, provider, submission, HTTP or UI behavior. Its schema
+and resolver are built with executable proof under D-721; fresh independent Tier-3
+approval remains pending.
+
 ### Positive Tax Attribution Snapshot value service — Tax/Fiscal
 
 Order 240 is a pure immutable value service, not an aggregate, entity or state

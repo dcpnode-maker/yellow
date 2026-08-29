@@ -263,6 +263,34 @@ GST/SEZ/place-of-supply decision, CGST/SGST/IGST split, document allocation,
 posting/correction/credit note, numbering/hash-chain, IRP/provider request or
 submission authority.
 
+### India GST registered-recipient candidate containment
+
+Order276 specifies one tenant-leading `party_fiscal_registration` root. Its composite
+tenant/Party reference must prevent cross-tenant Party binding, every index must lead
+with `tenant_id`, and RLS must use the transaction-local `app.tenant_id` context.
+`PUBLIC` and `yellow_runtime` receive no table authority. `app_role` receives SELECT
+only; insert, update, delete and truncate remain denied, including hostile direct DML.
+
+The resolver must accept only the exact plain
+`{tenantId,recipientPartyId,registrationId}` tuple and equality-bind all three values.
+It may return evidence only when the exact Party is active and the exact registration
+is visible under the same tenant. It must revalidate the `in-gstin` scheme, GSTIN
+checksum/current-state match, NFC/control-character and text-length constraints, and
+the exact six-digit nonzero PIN before returning a recursively frozen result with a
+deterministic evidence hash. Missing, foreign, merged, anonymised, malformed or
+mismatched truth fails closed with no registration, fact, outbox, journal, posting,
+document, submission or idempotency write.
+
+Mutable Party display/legal names, attributes, contacts, address rows and roles are
+not trusted as registration fallback. Accounts, reservations and folios may not infer
+the registration UUID. A successful read is registered-recipient candidate evidence,
+not invoice-window or legal-buyer designation. It grants no `BuyerDtls`, `URP`,
+export/SEZ/deemed-export, `Pos`, `SupTyp`, CGST/SGST/IGST decomposition, item/value/tax
+calculation, allocation, posting/correction, document/number/hash-chain,
+provider/submission, API, HTTP or UI authority. These protections are built with
+executable product/database proof under D-721; fresh independent Tier-3 approval
+remains mandatory before Order276 is approved.
+
 ### Tax-attribution persistence containment
 
 Order 244 accepts only a value that survives the exact hostile Order-240 parser. All

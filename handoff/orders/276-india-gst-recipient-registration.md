@@ -1,6 +1,6 @@
 # Order 276 — Resolve exact India GST registered-recipient candidate evidence
 
-**Status:** READY-D720
+**Status:** BUILT-PENDING-REVIEW-D721
 **Phase:** 7 — Tax engine and India IRP
 **Branch:** `phase-7/india-gst-recipient-registration`
 **Base:** `3114d24` (independently approved Order275 descendant)
@@ -78,8 +78,7 @@ or application-complete claim.
 
 ## Definition of done
 
-- [ ] Intentional red precedes implementation.
-- [ ] Exact schema/resolver and hostile proof are green.
-- [ ] Fresh schema/referee/standing/static gates are green.
+- [x] Intentional red precedes implementation.
+- [x] Exact schema/resolver and hostile proof are green.
+- [x] Fresh schema/referee/standing/static gates are green.
 - [ ] Fresh independent Tier-3 approval is recorded.
-

@@ -7648,6 +7648,34 @@ CREATE TABLE public.party (
 
 
 --
+-- Name: party_fiscal_registration; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.party_fiscal_registration (
+    tenant_id uuid NOT NULL,
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    party_id uuid NOT NULL,
+    scheme text NOT NULL,
+    registration_number text NOT NULL,
+    region_code text NOT NULL,
+    legal_name text NOT NULL,
+    trade_name text,
+    address_line1 text NOT NULL,
+    locality text NOT NULL,
+    pin text NOT NULL,
+    CONSTRAINT party_fiscal_registration_address_line1_ck CHECK ((((char_length(address_line1) >= 1) AND (char_length(address_line1) <= 100)) AND (btrim(address_line1) = address_line1))),
+    CONSTRAINT party_fiscal_registration_legal_name_ck CHECK ((((char_length(legal_name) >= 1) AND (char_length(legal_name) <= 100)) AND (btrim(legal_name) = legal_name))),
+    CONSTRAINT party_fiscal_registration_locality_ck CHECK ((((char_length(locality) >= 1) AND (char_length(locality) <= 50)) AND (btrim(locality) = locality))),
+    CONSTRAINT party_fiscal_registration_pin_ck CHECK ((pin ~ '^[1-9][0-9]{5}$'::text)),
+    CONSTRAINT party_fiscal_registration_region_ck CHECK ((region_code = ANY (ARRAY['01'::text, '02'::text, '03'::text, '04'::text, '05'::text, '06'::text, '07'::text, '08'::text, '09'::text, '10'::text, '11'::text, '12'::text, '13'::text, '14'::text, '15'::text, '16'::text, '17'::text, '18'::text, '19'::text, '20'::text, '21'::text, '22'::text, '23'::text, '24'::text, '26'::text, '27'::text, '29'::text, '30'::text, '31'::text, '32'::text, '33'::text, '34'::text, '35'::text, '36'::text, '37'::text, '38'::text]))),
+    CONSTRAINT party_fiscal_registration_registration_ck CHECK ((registration_number ~ '^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z][1-9A-Z]Z[0-9A-Z]$'::text)),
+    CONSTRAINT party_fiscal_registration_registration_region_ck CHECK ((substr(registration_number, 1, 2) = region_code)),
+    CONSTRAINT party_fiscal_registration_scheme_ck CHECK ((scheme = 'in-gstin'::text)),
+    CONSTRAINT party_fiscal_registration_trade_name_ck CHECK (((trade_name IS NULL) OR (((char_length(trade_name) >= 1) AND (char_length(trade_name) <= 100)) AND (btrim(trade_name) = trade_name))))
+);
+
+
+--
 -- Name: party_relationship; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -9196,6 +9224,22 @@ ALTER TABLE ONLY public.package
 
 
 --
+-- Name: party_fiscal_registration party_fiscal_registration_identity_uq; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.party_fiscal_registration
+    ADD CONSTRAINT party_fiscal_registration_identity_uq UNIQUE (tenant_id, scheme, registration_number);
+
+
+--
+-- Name: party_fiscal_registration party_fiscal_registration_pk; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.party_fiscal_registration
+    ADD CONSTRAINT party_fiscal_registration_pk PRIMARY KEY (tenant_id, id);
+
+
+--
 -- Name: party party_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -10149,6 +10193,13 @@ CREATE INDEX outbox_unpublished ON public.outbox USING btree (seq) WHERE (publis
 
 
 --
+-- Name: party_fiscal_registration_lookup; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX party_fiscal_registration_lookup ON public.party_fiscal_registration USING btree (tenant_id, party_id, id, scheme);
+
+
+--
 -- Name: party_name_trgm; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -11099,6 +11150,14 @@ ALTER TABLE ONLY public.overbooking_limit
 
 ALTER TABLE ONLY public.package_element
     ADD CONSTRAINT package_element_package_id_fkey FOREIGN KEY (package_id) REFERENCES public.package(id);
+
+
+--
+-- Name: party_fiscal_registration party_fiscal_registration_party_fk; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.party_fiscal_registration
+    ADD CONSTRAINT party_fiscal_registration_party_fk FOREIGN KEY (tenant_id, party_id) REFERENCES public.party(tenant_id, id);
 
 
 --
@@ -12290,6 +12349,12 @@ ALTER TABLE public.package_element ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.party ENABLE ROW LEVEL SECURITY;
 
 --
+-- Name: party_fiscal_registration; Type: ROW SECURITY; Schema: public; Owner: -
+--
+
+ALTER TABLE public.party_fiscal_registration ENABLE ROW LEVEL SECURITY;
+
+--
 -- Name: party_relationship; Type: ROW SECURITY; Schema: public; Owner: -
 --
 
@@ -12825,6 +12890,13 @@ CREATE POLICY tenant_isolation ON public.package_element USING ((tenant_id = (cu
 --
 
 CREATE POLICY tenant_isolation ON public.party USING ((tenant_id = (current_setting('app.tenant_id'::text, true))::uuid)) WITH CHECK ((tenant_id = (current_setting('app.tenant_id'::text, true))::uuid));
+
+
+--
+-- Name: party_fiscal_registration tenant_isolation; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY tenant_isolation ON public.party_fiscal_registration USING ((tenant_id = (NULLIF(current_setting('app.tenant_id'::text, true), ''::text))::uuid)) WITH CHECK ((tenant_id = (NULLIF(current_setting('app.tenant_id'::text, true), ''::text))::uuid));
 
 
 --
@@ -14984,6 +15056,13 @@ GRANT INSERT(display_name) ON TABLE public.party TO app_role;
 --
 
 GRANT INSERT(legal_name) ON TABLE public.party TO app_role;
+
+
+--
+-- Name: TABLE party_fiscal_registration; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT SELECT ON TABLE public.party_fiscal_registration TO app_role;
 
 
 --

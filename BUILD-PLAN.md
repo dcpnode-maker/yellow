@@ -725,12 +725,13 @@ submission, API, HTTP or UI authority and decides no buyer, place of supply, sup
 type, tax decomposition, item or value. Fresh independent Tier-3 execution approves
 the exact immutable candidate under D-719 with no finding; Phase7 is not complete.
 
-**Admitted Order276 prerequisite:** add one typed tenant/RLS Party GST-registration
-root and exact read-only registration-id resolver. This is registered-recipient
-candidate evidence only: it never infers a legal invoice buyer from reservation,
-account, Party display/profile/address or role truth and creates no `BuyerDtls`,
-place-of-supply, decomposition, document or submission authority. Fresh PostgreSQL
-and independent Tier-3 proof are mandatory.
+**Built-pending-review Order276 prerequisite:** one typed tenant/RLS Party GST-
+registration root and exact read-only registration-id resolver now provide registered-
+recipient candidate evidence only. Exact48-migration/100-table/90-policy PostgreSQL,
+referee11/11, focused, hostile, standing and static proof are green. It never infers a
+legal invoice buyer from reservation, account, Party display/profile/address or role
+truth and creates no `BuyerDtls`, place-of-supply, decomposition, document or
+submission authority. Fresh independent Tier-3 approval remains mandatory.
 
 ## Phase 8 — Statutory registration + ZATCA
 
