@@ -1,6 +1,6 @@
 # Order 269 — Current project status through approved Order266
 
-**Status:** READY-D701
+**Status:** BUILT-UNREVIEWED-D702
 **Phase:** 7 — Tax engine and India IRP
 **Branch:** `phase-7/current-project-status-order266`
 **Base:** `00f0960` (independently approved Order266)
@@ -54,7 +54,24 @@ public/production deploy, Phase7 or application-complete claim.
 
 ## Definition of done
 
-- [ ] Intentional stale-status proof precedes source implementation.
-- [ ] Exact focused and standing gates pass.
-- [ ] Snapshot records no runtime or product authority.
+- [x] Intentional stale-status proof precedes source implementation.
+- [x] Exact focused and standing gates pass.
+- [x] Snapshot records no runtime or product authority.
 - [ ] A later separately governed local promotion may expose the committed snapshot.
+
+## Build evidence — D702
+
+The new exact status oracle ran against the prior committed source first and produced
+the required stale result:4 pass/1 fail/2 skips, expected latest266 but received262.
+After the bounded source update, focused founder-status proof passed5/0 with2 expected
+database skips and107 assertions. Standing proof passed846/0 with775 expected
+environment skips and8,541 assertions across1,621 tests/291 files. Typecheck,
+97-file context boundaries,23-package licence policy, zero-vulnerability audit and
+diff hygiene are green.
+
+The committed snapshot is exact date2026-08-29/latest266/current269/review91/active7;
+its phase vector and review coverage are unchanged. The Orders237–266 aggregate is
+still `built_unverified` while naming the independently approved complete correction
+and retaining partial/India/negative-tax correction, India GST decomposition,
+documents/IRP, product review and Phase7 completion as pending. No endpoint, UI,
+database, schema, credential, runtime, local or product behavior changed.

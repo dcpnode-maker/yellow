@@ -676,6 +676,15 @@ disposable proof resources were removed and stable3000 remains unchanged at
 personally reproduced the exact proof with no blocking finding; status refresh,
 historical migration44 reconciliation and local promotion remain separate work.
 
+Order269 is BUILT-UNREVIEWED at D702. The authenticated recorded snapshot now says
+exact date2026-08-29/latest266/current269/review91/active7 while keeping the complete
+phase vector and generated review coverage unchanged. Its Orders237–266 aggregate
+remains built-unverified and records approved complete positive-tax correction while
+partial/India/negative-tax correction, India GST decomposition, documents/IRP,
+independent product review and Phase7 completion remain pending. Focused5/0 plus2
+database skips, standing846/0 plus775 environment skips and static gates are green;
+local visibility remains behind lineage reconciliation and guarded promotion.
+
 tax_assignment evaluation (percent/fixed/slab, compound, line-vs-document rounding)
 from EXTENSIONS §2; India GST slab per room-night; document issue path: series →
 gapless number → hash chain → document; IRP reporting adapter (sandbox), IRN + QR

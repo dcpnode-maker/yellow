@@ -2,7 +2,7 @@
 
 **Status:** active; governed positive-tax posting and complete correction approved through Order266
 **Entry point:** built-unreviewed Phase-6 composition through Order 236
-**Current order:** Order269 authenticated founder status through approved Order266 is admitted under D-701
+**Current order:** Order269 authenticated founder status through approved Order266 is built-unreviewed under D-702
 
 ## Outcome
 

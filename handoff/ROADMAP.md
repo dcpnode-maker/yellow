@@ -230,3 +230,8 @@ migration/schema/static and native standing846/0 proof is green; the sole local 
 unchanged until a later separately governed status/lineage/promotion sequence.
 Partial/India/negative-tax correction, refund/payment, fiscal document/IRP and
 Phase7 completion remain later.
+
+Order269/D-702 is the built-unreviewed authenticated status bridge through approved
+Order266: exact latest266/current269/review91/active7, unchanged phase states and an
+honest built-unverified aggregate. The stable local remains262/263 until historical
+migration44 lineage is reconciled and a separate guarded promotion is approved.
