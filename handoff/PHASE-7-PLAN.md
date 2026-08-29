@@ -2,7 +2,7 @@
 
 **Status:** active; governed positive-tax posting and complete correction approved through Order266
 **Entry point:** built-unreviewed Phase-6 composition through Order 236
-**Current order:** Order273 authenticated founder status through approved Order272 is built-unreviewed under D-713
+**Current order:** Order274 guarded sole-local promotion of Orders272–273 is built pending review under D-715
 
 ## Outcome
 
@@ -264,3 +264,10 @@ It may advance exact authenticated snapshot truth to latest272/current273 and th
 compact Orders237–272 milestone while preserving review91, the phase vector, every
 unfinished India/document/IRP dependency and the aggregate built-unverified state.
 Product, database, runtime and sole-local promotion are outside this order.
+
+## Order 274 local boundary
+
+Order274/D-715 has promoted migration47 and exact Order273 status to the retained sole
+local after a restricted backup and recoverable app capture. Final truth is47/99/89,
+two unchanged hotels and exact272/273/review91/active7 on healthy loopback3000.
+Independent non-operating Tier-3 verification remains mandatory before approval.

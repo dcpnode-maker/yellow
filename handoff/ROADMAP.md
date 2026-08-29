@@ -259,3 +259,9 @@ Order273/D-713 is the built-unreviewed authenticated status bridge through appro
 Order272: exact latest272/current273/review91/active7, unchanged phase states and an
 honest built-unverified Orders237–272 aggregate. Sole-local visibility remains a
 separate guarded promotion; no product or runtime change is claimed here.
+
+Order274/D-715 has applied only migration47 and replaced only the app after a
+restricted verified backup and rollback capture. The retained two-hotel database,
+PostgreSQL, Valkey, network, volume, credentials and all97 prior table counts are
+preserved; sole healthy loopback3000 serves exact272/273/review91/active7. Fresh
+independent non-operating verification remains mandatory.

@@ -1,6 +1,6 @@
 # Order 274 — Promote approved Order272 and status Order273 to the retained sole local
 
-**Status:** READY-D714
+**Status:** BUILT-PENDING-REVIEW-D715
 **Phase:** 7 — Tax engine and India IRP
 **Branch:** `phase-7/promote-orders272-273-local`
 **Base:** `2cc2622` (approved Order272 product plus built Order273 status)
@@ -62,7 +62,36 @@ forbidden without a separate emergency order.
 
 ## Definition of done
 
-- [ ] Preflight, backup and rollback evidence is verified.
-- [ ] Only migration47 and the app container change.
-- [ ] Login, two properties, exact status and sole-local topology are green.
+- [x] Preflight, backup and rollback evidence is verified.
+- [x] Only migration47 and the app container change.
+- [x] Login, two properties, exact status and sole-local topology are green.
 - [ ] Independent non-operating review is recorded.
+
+## Build evidence — D715
+
+Exact clean product/status source `2cc2622` was built before the mutation window.
+The owner+SYSTEM-only restricted backup is
+`D:\Yellow\backups\yellow-order274-20260829T063345Z`: custom dump761,344 bytes,
+SHA-256 `fe535af1…ca99c`, readable1,324-line catalogue,97 prior-table counts,
+two property identities and binary ledger1–46 manifests. Building the new tag removed
+the old manifest-list layers while the old container was still healthy; before any
+stop, the complete147,425,792-byte running root filesystem was exported with SHA-256
+`970c8fef…e0191` and imported as recoverable image
+`bd0a7e73…d4024` with the exact runtime user/workdir/command.
+
+Only the app was stopped. The committed production runner applied exact migration47
+`7e5b8a91…c95bf0` once on PID35543 and immediately reran
+`applied=0/status=no-op/transaction_pids=none`. Binary ledger1–46, all97 prior table
+counts and both property identities compare byte-exact. Final database truth is
+47 migrations/99 tables/89 policies/two properties, empty new registration root and
+zero other transactions; its owner/RLS/ACL is exact `yellow_owner`/enabled/app-role
+SELECT-only with no app/runtime/PUBLIC DML.
+
+Only the app container changed to `92cffafb…1abf` on image `54d252ae…0ed2a7e7`.
+PostgreSQL `f4f02655…52d12`, Valkey `aa3061bd…052fa`, network
+`ba56ef58…65161a` and retained volume are unchanged with restart0. Sole loopback3000
+is healthy;3002/3123/3188 remain closed. Root/health/all three assets are200 with
+root no-store; populated masked protected login returns200 without emitting values;
+exactly two properties each return latest272/current273/review91/active7 and live app/
+database operational. Fresh independent non-operating Tier-3 verification remains
+mandatory.
