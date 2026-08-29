@@ -644,6 +644,13 @@ No Order266 database-execution, local-promotion or completion claim is valid unt
 separate governed reconciliation removes only that scratch state and independently
 approves the replacement runtime identities.
 
+Order267 completed that guarded reconciliation pending independent non-operating
+review. A fresh owner/SYSTEM-only D-drive backup is readable; literal target checks
+removed only `yellow_order266_migration`. The unchanged app and replacement
+PostgreSQL/Valkey now pass exact catalog44/98/88/two-hotel/digest, HTTP/no-store
+populated masked login, both262/263/review91/active7 snapshots and sole-port proof
+without any container restart or product mutation.
+
 tax_assignment evaluation (percent/fixed/slab, compound, line-vs-document rounding)
 from EXTENSIONS §2; India GST slab per room-night; document issue path: series →
 gapless number → hash chain → document; IRP reporting adapter (sandbox), IRN + QR

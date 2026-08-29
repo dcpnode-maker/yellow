@@ -1,6 +1,6 @@
 # Order 267 — Reconcile Order266 sole-local runtime incident
 
-**Status:** READY-D693
+**Status:** RECONCILED-D694 — independent verification pending
 **Phase:** 7 — Tax engine and India IRP
 **Branch:** `phase-7/reconcile-order266-runtime`
 **Base:** `c8b4fb9` (paused Order266 implementation checkpoint)
@@ -66,7 +66,30 @@ runtime for independent diagnosis; never overwrite product state.
 
 ## Definition of done
 
-- [ ] Fresh restricted product backup is readable and recorded.
-- [ ] Only exact `yellow_order266_migration` is removed.
-- [ ] Product data, app, sole port and replacement runtime identities are exact.
+- [x] Fresh restricted product backup is readable and recorded.
+- [x] Only exact `yellow_order266_migration` is removed.
+- [x] Product data, app, sole port and replacement runtime identities are exact.
 - [ ] Independent non-operating Tier-3 review records approval or findings.
+
+## Reconciliation evidence — D694
+
+Preflight confirmed unchanged healthy app `b084c60b9fe6` on approved image
+`83a7bb59bd70`, healthy PostgreSQL `f4f02655770a` and Valkey `aa3061bdf231`, exact
+retained volume and sole loopback3000. `yellow_dev` was read-only exact44/98/88/two
+properties and canonical digest739b6a2d…8763.
+
+Fresh custom backup
+`D:\Yellow\backups\yellow-order267-reconcile-20260829T022152Z.dump` is630690 bytes,
+SHA-256 `b427ea1ae369ddd6c6aa043f154aedcc304671b7886b4213c54d1dd0662c5201`,
+has891 readable `pg_restore -l` lines and exact owner/SYSTEM-only FullControl ACL.
+The literal target was separately proven present and unequal to configured product DB
+`yellow_dev`; only its sessions were terminated and only
+`yellow_order266_migration` was dropped. The complete pre-existing database set is
+otherwise exact.
+
+Post-cleanup proof is root/health/login/assets200, no-store, three populated fields
+with masked password, authenticated two-property discovery, both snapshots
+262/263/review91/active7, sole3000/no3002/no3188, catalog44/98/88/two properties,
+digest739b6a2d…8763 and scratch count0. No container, image, volume, app, credential,
+cache, product database or product row was restarted, replaced or mutated by the
+reconciliation beyond the exact disclosed scratch-database removal.
