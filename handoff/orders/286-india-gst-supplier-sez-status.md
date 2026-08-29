@@ -1,6 +1,6 @@
 # Order 286 — Build exact India GST supplier SEZ-status evidence
 
-**Status:** BUILT-PENDING-REVIEW-D753
+**Status:** APPROVED-D754
 **Phase:** 7 — Tax engine and India IRP
 **Branch:** `phase-7/india-gst-supplier-sez-status`
 **Base:** `20ae4e9` (independently approved Order285 descendant)
@@ -114,7 +114,7 @@ completion.
 - [x] Intentional red precedes implementation.
 - [x] Exact schema/resolver and hostile PostgreSQL proof are green.
 - [x] Standing/static gates are green and no authority expands.
-- [ ] Fresh independent Tier-3 approval is recorded.
+- [x] Fresh independent Tier-3 approval is recorded.
 
 ## Builder proof — D-753
 
@@ -138,3 +138,17 @@ standing `bun test` passed945 with861 database/environment skips,0 failures and
 builder PostgreSQL resources are absent. The sole stable app/PostgreSQL/Valkey remain
 exact, healthy, restart0 and `/health` HTTP200; no local promotion occurred. Fresh
 non-implementing Tier-3 execution remains mandatory.
+
+## Independent approval — D-754
+
+A fresh non-implementing Tier-3 reviewer approves exact candidate
+`03d68cc9902f49a81d5a629cc3150d7fb8846c43` with no finding. Reviewer-personal
+official-source, Form-F2 exclusion, ancestry/scope, legal-containment and no-
+inference audits are green. Fresh isolated proof reproduces focused16/0(317),
+migration39/0(187), acceptance18/0(52), runtime-DML5/0(112), exact53/105/95/95/5,
+normalized schema, canonical setup/referee11/11, standing945/0 plus861 skips,
+type/109-boundary/23-licence/audit0 and static gates. Disposable resources are absent
+and the sole stable app/PostgreSQL/Valkey remain exact, healthy, restart0 and HTTP200.
+Approval grants no Form-F2, bilateral supply nature, authorized operations, zero
+rating, levy, item, document, local, merge, deploy, Phase-7-complete or application-
+complete authority.
