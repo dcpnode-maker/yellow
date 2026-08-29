@@ -386,6 +386,45 @@ tax-rate or CGST/SGST/IGST decision, seller/buyer/folio-window composition,
 posting/correction, document/number/hash-chain, provider/submission, API, HTTP or UI
 authority.
 
+### India accommodation place-of-supply candidate containment
+
+Order282 adds no schema, grant, role, capability or writer. The resolver accepts only
+the exact plain, accessor-free, proxy-free and symbol-free seven-UUID tuple
+`{tenantId,propertyNode,reservationId,folioId,recipientPartyId,
+recipientRegistrationId,classificationId}` and runs inside the already established
+transaction-local tenant context. It delegates only to the approved supplier,
+explicit folio/buyer, physical-property-location and accommodation-classification
+resolvers; it adds no direct SQL or independent inference source.
+
+Every returned root must revalidate as exact, deeply frozen evidence. Tenant,
+property, reservation, folio, explicit Party/registration, classification and the
+complete jurisdiction identity must be coherent; Indian country, `INR`, lodging SAC
+service and each deterministic source hash must remain exact. Missing, duplicate,
+foreign, stale, malformed, proxy/accessor-backed, surplus or mixed evidence fails
+closed. Supplier or recipient GSTIN state, guest/account addresses, org/profile
+fields, rate/tax-code labels and display/configuration values are never used as lookup,
+comparison, inference or fallback for `pos`.
+
+The sole place rule is `IGST_ACT_12_3_B`, and the exact Order280 physical-property
+state is the sole `pos`. The fixed-order candidate body has exactly
+`propertyNode,reservationId,folioId,jurisdiction,supplier,recipient,buyerAssociation,
+classification,propertyLocation,legalRule,pos`; the nested jurisdiction retains its
+full frozen identity, while every other evidence group contains only its specified
+identifiers and hashes. Raw supplier/recipient states, SAC/service/line/group and raw
+location state are validated but omitted. `candidateJson` is the exact fixed-order
+body JSON and `candidateHash` hashes
+`JSON.stringify({tenantId,candidate:body})`, so tenant identity is bound but remains
+outside the body, JSON and returned result. Result and nested values are recursively
+frozen; replay is byte-identical and caller inputs/source results stay unchanged.
+
+Successful and rejected composition leaves supplier, recipient, folio/account/
+reservation, classification, location, tax-lineage, facts, outbox, idempotency,
+journals, postings, documents and submissions byte/count unchanged. Order282 adds no
+advisory or row lock beyond locks inherited from its approved governed source
+resolvers. It grants no intra/inter-state conclusion, CGST/SGST/IGST rate or
+decomposition, `SupTyp`, `ItemList`, item values, posting/correction, document issue/
+number/hash-chain, provider/submission, API, HTTP or UI authority.
+
 ### Tax-attribution persistence containment
 
 Order 244 accepts only a value that survives the exact hostile Order-240 parser. All

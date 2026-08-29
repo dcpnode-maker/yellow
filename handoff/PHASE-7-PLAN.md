@@ -2,7 +2,7 @@
 
 **Status:** active; governed positive-tax posting and complete correction approved through Order266
 **Entry point:** built-unreviewed Phase-6 composition through Order 236
-**Current order:** Order282 exact India accommodation place-of-supply candidate is admitted under D-738
+**Current order:** Order282 exact India accommodation place-of-supply candidate is built-pending-review under D-739
 
 ## Outcome
 
@@ -382,3 +382,7 @@ writer, intra/inter-state conclusion, decomposition, `SupTyp`, `ItemList`, item 
 document, submission, API, UI or local authority is admitted. Exact composition,
 canonical referee and fresh non-implementing Tier-3 execution are mandatory under
 D-738.
+Intentional red0/1 preceded focused12/0, adjacent roots42/0 plus eligibility6/0,
+acceptance15/0, runtime-DML5/0, migration39/0, exact50/102/92/schema/referee11/11 and
+standing905/0 plus828 database-only skips. All static gates are green and the stable
+local is unchanged. Fresh non-implementing Tier-3 execution remains mandatory.

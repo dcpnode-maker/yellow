@@ -929,6 +929,64 @@ derive a tax rate or CGST/SGST/IGST decomposition, compose seller, buyer or foli
 window truth, or authorize posting, correction, document allocation/issue/number/
 hash-chain, submission, provider, API, HTTP or UI behavior.
 
+### Exact India accommodation place-of-supply candidate
+
+Order282 specifies the read-only
+`IndiaGstAccommodationPlaceOfSupplyService.resolve(tx, input)` boundary. `input` is
+exactly the plain, accessor-free, proxy-free and symbol-free seven-UUID object
+`{tenantId,propertyNode,reservationId,folioId,recipientPartyId,
+recipientRegistrationId,classificationId}`; null, arrays, non-plain prototypes,
+missing or surplus keys and noncanonical UUIDs fail before composition. The
+caller-established transaction-local tenant context remains authoritative.
+
+The service composes, without rewriting, four exact approved roots: Order272 supplier
+registration for the tenant/property/reservation; Order279 explicit folio-window buyer
+candidate for the tenant/property/folio and exact recipient Party/registration;
+Order280 physical property fiscal location for the same tenant/property; and Order281
+accommodation classification for the same tenant/property/reservation and exact
+classification id. Supplier and classification must carry identical complete frozen
+jurisdiction extension id, nullable owner, key, version and content hash. Buyer folio
+property and reservation must equal the selected property and reservation, every
+currency must be `INR`, the location and both statutory roots must be Indian, and the
+classification must remain exact `room`/`room_revenue`/`SAC`/`Y` accommodation
+evidence. No source result is normalized, repaired or mutated.
+
+The fixed-order candidate body contains exactly
+`{propertyNode,reservationId,folioId,jurisdiction,supplier,recipient,
+buyerAssociation,classification,propertyLocation,legalRule,pos}`. `jurisdiction`
+retains the full frozen `{extensionId,ownerTenantId,key,version,contentHash}` identity;
+`supplier` is exactly `{registrationId,evidenceHash}`; `recipient` is exactly
+`{partyId,registrationId,evidenceHash}`; `buyerAssociation` is exactly
+`{associationHash,payloadHash}`; `classification` is exactly
+`{classificationId,evidenceHash}`; and `propertyLocation` is exactly
+`{propertyNode,evidenceHash}`. `legalRule` is `IGST_ACT_12_3_B` and `pos` is the exact
+physical-property state. Raw supplier/recipient states, SAC/service/line/group and raw
+location state are validated source truth but are not duplicated into those evidence
+subobjects.
+
+The result appends `candidateJson`, the exact fixed-order `JSON.stringify` of that
+candidate body, and `candidateHash`, the SHA-256 of fixed-order
+`JSON.stringify({tenantId,candidate:body})`. Tenant identity is therefore hash-bound
+but remains outside the body, JSON and returned result. Identical inputs and source
+bytes replay byte-identically; the result and every nested object are frozen.
+
+IGST Act section 12(3)(b) is the only admitted legal rule: hotel accommodation is
+located at the immovable property. Supplier GSTIN state and recipient GSTIN state are
+retained only in their source evidence and never substitute for, compare with or
+change `pos`. Missing, duplicate, stale, foreign, malformed, mixed-tenant/property/
+reservation/folio/Party/registration/classification/jurisdiction or hash-incoherent
+truth fails closed. There is no fallback to org/profile/address/account/guest/rate/
+tax-code/display configuration.
+
+Successful replay and every rejection leave source roots, facts, outbox, idempotency,
+journals, postings, documents and submissions byte/count unchanged. Order282 adds no
+advisory or row lock beyond any lock already acquired by the approved governed source
+resolvers. This is evidence only: it does not decide intra-state versus inter-state,
+derive CGST/SGST/IGST or any rate/component/allocation, emit `SupTyp`, build `ItemList`
+or any item description/quantity/UQC/unit/gross/assessable/tax/value field, or
+authorize posting, correction, document allocation/issue/number/hash chain,
+provider/submission, API, HTTP or UI behavior.
+
 ## 8. Pure rate-model evaluator
 
 Order 067's in-process evaluator is a draft/simulation primitive, not a database or HTTP contract.

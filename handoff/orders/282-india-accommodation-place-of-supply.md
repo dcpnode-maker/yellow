@@ -1,6 +1,6 @@
 # Order 282 — Build exact India accommodation place-of-supply candidate
 
-**Status:** READY-D738
+**Status:** BUILT-PENDING-REVIEW-D739
 **Phase:** 7 — Tax engine and India IRP
 **Branch:** `phase-7/india-accommodation-place-of-supply`
 **Base:** `2c45c6d` (independently approved Order281 descendant)
@@ -89,7 +89,30 @@ application-complete claim.
 
 ## Definition of done
 
-- [ ] Intentional red precedes implementation.
-- [ ] Exact composition and hostile proof are green.
-- [ ] Standing/static gates are green and no authority expands.
+- [x] Intentional red precedes implementation.
+- [x] Exact composition and hostile proof are green.
+- [x] Standing/static gates are green and no authority expands.
 - [ ] Fresh independent Tier-3 approval is recorded.
+
+## Builder proof — D739
+
+- intentional red: 0 passed / 1 failed because the source module was absent before
+  implementation;
+- focused hostile plus real default-service PostgreSQL composition: 12/0 with 353
+  expectations; all36 current state/UT codes, seller27/recipient29/property36→pos36,
+  replay/freeze/hash, wrong-classification concealment and zero-write oracles pass;
+- adjacent governed supplier/buyer-folio/property-location/classification roots42/0
+  plus positive-tax folio eligibility6/0; database acceptance15/0, runtime-DML5/0 and
+  migration replay39/0 with186 expectations pass;
+- exact50 migrations / 102 public tables / 92 forced-RLS tables and policies, normalized
+  schema exact and fresh referee11/11;
+- standing905/0 plus828 database-only skips (9,484 expectations;1,733 tests across308
+  files), TypeScript,105-file boundary,23-package licence,audit0 and diff are green;
+- official IGST Act section12(3)(b) and notified IRP audit confirms lodging `Pos` comes
+  from the immovable property and service quantity/unit are optional rather than
+  invented. The first WSL proof daemon host-stopped after a green setup referee; one
+  migration invocation correctly rejected a protected database target; one referee
+  rerun encountered prior referee fixture state. Corrected fresh Windows-Docker proofs
+  above are green and no product assertion failed;
+- all disposable builder proof resources were removed; the stable sole local app,
+  PostgreSQL and Valkey were not changed.

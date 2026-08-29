@@ -719,6 +719,47 @@ CGST/SGST/IGST decomposition, seller/buyer/folio-window composition,
 posting/correction, documents/series/number/hash chains, providers, submissions, API,
 HTTP or UI behavior.
 
+### India Accommodation Place-of-Supply Candidate — Tax/Fiscal
+
+Order282 adds a read-only composed value, not an aggregate, entity, stored root or
+state machine. The Natural-Solution Test reuses four approved primitives: Order272
+property supplier-registration evidence, Order279 explicit folio-window buyer
+candidate evidence, Order280 physical property fiscal-location evidence and Order281
+accommodation-classification evidence. No new table, configuration, lifecycle,
+writer, fact or event exists for the candidate.
+
+One exact seven-UUID selection names tenant, property, reservation, folio, recipient
+Party, recipient registration and classification. Composition requires all roots to
+agree on tenant, property and reservation/folio lineage as applicable, to preserve
+one complete frozen jurisdiction identity, and to prove `IN`/`INR` lodging service
+truth. The explicit Party/registration and folio association stay distinct from the
+supplier registration; neither registration state owns the immovable property's
+location. Absent, duplicate, stale, malformed, foreign or incoherent evidence fails
+closed without fallback to guest, account, org, profile, address or display/config
+truth.
+
+The deeply frozen fixed-order candidate body has exactly the keys
+`propertyNode,reservationId,folioId,jurisdiction,supplier,recipient,buyerAssociation,
+classification,propertyLocation,legalRule,pos`. The nested jurisdiction is the full
+frozen extension id/nullable owner/key/version/content-hash identity. Supplier,
+recipient, buyer association, classification and property location retain only their
+canonical identifiers and evidence/payload/association hashes: raw registration
+states, SAC/service/line/group and location state are validated but not duplicated.
+`legalRule` is `IGST_ACT_12_3_B`; `pos` comes only from the Order280 property state.
+
+The result appends the fixed-order candidate-body JSON and a SHA-256 over
+`JSON.stringify({tenantId,candidate:body})`; tenant is bound but remains outside the
+candidate body, JSON and returned value. Replay over identical roots is byte-identical
+and neither successful nor rejected composition changes caller or database bytes.
+The composing boundary introduces no lock beyond locks inherited from the approved
+source resolvers.
+
+The candidate models only the section 12(3)(b) property-place rule. It does not own
+or infer intra-state/inter-state status, CGST/SGST/IGST decomposition or rates,
+`SupTyp`, `ItemList`, item grouping/ordinal/description/quantity/UQC/unit/gross/
+assessable/tax/value fields, posting/correction, document allocation/series/issue/
+number/hash chains, providers, submissions, API, HTTP or UI behavior.
+
 ### Positive Tax Attribution Snapshot value service — Tax/Fiscal
 
 Order 240 is a pure immutable value service, not an aggregate, entity or state

@@ -803,6 +803,11 @@ intra/inter-state result, CGST/SGST/IGST decomposition, `SupTyp`, `ItemList`, it
 values, document, submission, API, UI or local authority. No schema is added. Exact
 composition proof, canonical referee and fresh independent Tier-3 execution are
 mandatory under D-738.
+Intentional red0/1 now precedes focused12/0, adjacent governed roots42/0 plus
+eligibility6/0, acceptance15/0, runtime-DML5/0, migration39/0, exact50/102/92/schema/
+referee11/11 and standing905/0 plus828 database-only skips; type/105-boundary/
+23-licence/audit0/diff are green under D-739. The exact candidate remains
+built-pending-review until fresh non-implementing Tier-3 execution approves it.
 
 ## Phase 8 — Statutory registration + ZATCA
 
