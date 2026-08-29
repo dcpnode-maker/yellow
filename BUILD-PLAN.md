@@ -666,14 +666,15 @@ assertion and approved Order268 at D698 without protected output or runtime muta
 The sole-local prerequisite is restored; Order266 may now resume only in its separate
 collision-proof proof environment while stable3000 remains untouched.
 
-Order266 is now BUILT-PENDING-REVIEW at D699. Its isolated PostgreSQL proof applies
+Order266 is independently APPROVED at D700. Its isolated PostgreSQL proof applies
 migration0045 with exact98 tables/88 policies/referee11/11; focused correction8/0,
 all named adjacent database suites, migration/schema/static gates and canonical
 native standing846/0 are green. The proof corrected count-alias and pre-idempotency
 cross-tenant behavior while retaining exact replay after later account closure. All
 disposable proof resources were removed and stable3000 remains unchanged at
-44/latest262/current263/review91/active7. Fresh non-implementing Tier-3 execution is
-mandatory before approval or any separately governed status/local promotion.
+44/latest262/current263/review91/active7. A fresh non-implementing Tier-3 reviewer
+personally reproduced the exact proof with no blocking finding; status refresh,
+historical migration44 reconciliation and local promotion remain separate work.
 
 tax_assignment evaluation (percent/fixed/slab, compound, line-vs-document rounding)
 from EXTENSIONS §2; India GST slab per room-night; document issue path: series →

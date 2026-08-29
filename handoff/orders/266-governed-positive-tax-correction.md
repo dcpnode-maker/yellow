@@ -1,6 +1,6 @@
 # Order 266 — Governed positive-tax journal correction
 
-**Status:** BUILT-PENDING-REVIEW-D699 — complete isolated proof green
+**Status:** APPROVED-D700 — independent Tier-3 execution green
 **Phase:** 7 — Tax engine and India IRP
 **Branch:** `phase-7/governed-positive-tax-correction`
 **Base:** `252254b` (independently approved Order265 sole-local credential remediation)
@@ -88,7 +88,7 @@ application-complete claim.
 
 - [x] Migration and service implement the exact immutable full reversal.
 - [x] Focused, adjacent, standing, schema and referee proofs are green.
-- [ ] Independent Tier-3 review records approval or findings.
+- [x] Independent Tier-3 review records approval or findings.
 - [ ] A later separately governed status/local-promotion order may expose approved
   work on the sole local; this order does not mutate it.
 
@@ -144,4 +144,17 @@ All disposable proof containers, volumes, networks, ports, scripts and D-drive
 worktrees were removed after proof. The sole app remains the independently approved
 Order268 runtime at exact migration44/latest262/current263/review91/active7. This
 builder checkpoint grants no independent approval, local promotion, merge, public
+deployment, Phase7 or application-complete claim.
+
+## Independent approval — D700
+
+A fresh non-implementing Tier-3 reviewer inspected exact commit `f0bc28b` and
+personally reproduced migration45/checksum/catalog/referee, focused correction,
+posting/plan/eligibility/route, financial correction/statements, acceptance,
+runtime-DML, SECURITY-DEFINER, migration/schema, intentional-red, full standing and
+static gates in collision-proof disposable environments. The reviewer records
+focused8/0, intentional red0/3, standing846/0 with775 skips and no blocking finding.
+Stable app/database/cache identities, restart counts, migration44/two-property truth
+and sole3000 remained unchanged; all disposable resources were removed. Approval is
+bounded to this product slice and grants no local promotion, merge, public
 deployment, Phase7 or application-complete claim.
