@@ -2,7 +2,7 @@
 
 **Status:** active; governed positive-tax posting and complete correction approved through Order266
 **Entry point:** built-unreviewed Phase-6 composition through Order 236
-**Current order:** Order283 exact India accommodation registered-state comparison is independently approved under D-745; Order284 admission is next
+**Current order:** Order284 exact India GST supplier service-location evidence is ready under D-746
 
 ## Outcome
 
@@ -424,3 +424,16 @@ standing/static/scope and stable-runtime proof are green; disposable proof is ab
 The approval remains bounded to exact registered-state/property-Pos relationship
 evidence and grants no supplier-location, intra/inter-State, SEZ, levy, item,
 document, submission, local, merge, deploy, Phase-7 or application completion.
+
+## Order 284 boundary
+
+Order284 adds one explicit tenant/RLS/SELECT-only IGST section2(15)(a) assignment
+bound to the exact current Order272 registration id and evidence hash, plus an exact
+read-only resolver for principal/additional registered-place evidence. All returned
+state/address bytes come only from revalidated Order272; the assignment supplies
+only explicit supply-from/place-kind/legal-basis truth. It must fail closed for stale
+or absent evidence and must not infer from GSTIN, physical property, org/config or
+Order283 equality. Section2(15)(b–d), SEZ, supply nature, levy, `SupTyp`, item,
+document, API/UI/local authority remain forbidden. D-746 requires intentional red,
+exact51/103/93/93/3 PostgreSQL/schema/referee, hostile zero-write proof and fresh
+non-implementing Tier-3 execution.

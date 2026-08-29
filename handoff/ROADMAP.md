@@ -380,3 +380,12 @@ standing/static/scope and stable-runtime proof are green; disposable proof is
 removed. Approval is bounded to registered-state/property-Pos relationship evidence
 and grants no supplier-location, intra/inter-State, SEZ, levy, item, document,
 submission, local, merge, deploy, Phase-7 or application completion.
+
+Order284/D-746 is ready as the smallest foundational next prerequisite: one explicit
+tenant/RLS/SELECT-only IGST section2(15)(a) assignment bound to exact current Order272
+registration/hash, returning frozen tenant-bound supplier-service-location evidence.
+It must not infer the establishment from GSTIN/address/property/org/config or
+Order283 equality, support section2(15)(b–d), classify SEZ/supply nature, or emit
+levy, `SupTyp`, item, document, API/UI/local authority. Intentional red, exact
+51/103/93/93/3 PostgreSQL/schema/referee, hostile zero-write proof and fresh Tier-3
+execution are mandatory.

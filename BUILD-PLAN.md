@@ -846,6 +846,15 @@ removed. Approval remains bounded to relationship evidence and grants none of th
 forbidden supplier-location, supply-nature, levy, item, document, submission, local,
 merge, deploy, Phase-7-complete or application-complete authority.
 
+**Ready Order284 supplier service-location slice:** add one explicit SELECT-only
+IGST section2(15)(a) assignment proving that the lodging supply is made from the
+exact registered place represented by current approved Order272 registration/hash.
+It returns frozen tenant-bound evidence only. It must not infer the establishment
+from GSTIN/address/property/org/config, support section2(15)(b–d), classify SEZ or
+supply nature, or emit levy, `SupTyp`, item, document, API/UI/local authority.
+Intentional red, exact51/103/93/93/3 PostgreSQL/schema/referee, hostile zero-write
+proof and fresh non-implementing Tier-3 execution are mandatory under D-746.
+
 ## Phase 8 — Statutory registration + ZATCA
 
 Statutory scheduler consuming check-in events; adapters: it-alloggiati (168-char),
