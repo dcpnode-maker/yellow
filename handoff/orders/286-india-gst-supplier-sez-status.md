@@ -1,6 +1,6 @@
 # Order 286 — Build exact India GST supplier SEZ-status evidence
 
-**Status:** READY-D752
+**Status:** BUILT-PENDING-REVIEW-D753
 **Phase:** 7 — Tax engine and India IRP
 **Branch:** `phase-7/india-gst-supplier-sez-status`
 **Base:** `20ae4e9` (independently approved Order285 descendant)
@@ -111,7 +111,30 @@ completion.
 
 ## Definition of done
 
-- [ ] Intentional red precedes implementation.
-- [ ] Exact schema/resolver and hostile PostgreSQL proof are green.
-- [ ] Standing/static gates are green and no authority expands.
+- [x] Intentional red precedes implementation.
+- [x] Exact schema/resolver and hostile PostgreSQL proof are green.
+- [x] Standing/static gates are green and no authority expands.
 - [ ] Fresh independent Tier-3 approval is recorded.
+
+## Builder proof — D-753
+
+Intentional red failed0/1 before migration0053, the resolver and export existed. The
+complete candidate then passed fresh isolated PostgreSQL focused16/0(317), migration
+replay39/0(187), database acceptance18/0(52), runtime-DML5/0(112), normalized schema
+equality, canonical `./setup.sh --db-only` and protected referee11/11. The catalogue
+is exact53 migrations/105 public tables/95 RLS-enabled tenant tables/95 tenant
+policies/5 FORCE-RLS tables. Migration0053 SHA-256 is
+`e5208a1698c06db64842946876c90912c03d9aa0481ed0ceced6fa0295020c3d`.
+
+Focused proof covers affirmative regular, unit/Form-G, developer/Form-B and co-
+developer/Form-C through principal/additional Order284 evidence; exact Order284 and
+underlying Order272 registration/hash revalidation; finite validity/boundaries;
+fixed bytes/hash/freeze/replay; hostile input/stored shapes; stale, missing, foreign
+or unsupported evidence; conditional CHECK/FK/unique failures; RLS isolation;
+app-role DML denial; non-substitution and complete zero-effect digests. Native
+standing `bun test` passed945 with861 database/environment skips,0 failures and
+14,270 expectations across1,806 tests/316 files. Typecheck,109-file boundaries,
+23-package licence policy,audit0, setup syntax and diff checks are green. Disposable
+builder PostgreSQL resources are absent. The sole stable app/PostgreSQL/Valkey remain
+exact, healthy, restart0 and `/health` HTTP200; no local promotion occurred. Fresh
+non-implementing Tier-3 execution remains mandatory.

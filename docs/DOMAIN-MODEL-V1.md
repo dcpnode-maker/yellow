@@ -850,6 +850,30 @@ cannot infer or replace the status. Supplier-side SEZ, authorized operations, ze
 rating, supply nature, levy, IRP/item/document/provider/API/UI/local identity remain
 separate future primitives.
 
+### India GST Supplier SEZ Status — Tax/Fiscal
+
+Order286 adds one narrow typed status root belonging to one exact property fiscal GST
+registration and its current approved Order272 evidence hash. The resolver reaches
+that registration only through complete approved Order284 supplier service-location
+lineage. Status is not duplicated per principal or additional registered place; the
+location identifies the supplier establishment while the status root remains owned
+by the underlying registration. No lifecycle writer, fact or event is added.
+
+The exact statuses are SEZ unit, SEZ developer and affirmatively proven regular/non-
+SEZ. Unit evidence is Form G; developer evidence is Form B or co-developer Form C.
+Absence, unknown type, inactive GST status, incomplete/expired approval, unsupported
+Form F2 renewal or a stale Order272 hash is unresolved rather than non-SEZ. Multiple
+evidence dates remain history selected by exact id; neither database nor resolver
+picks a latest row or applies a snapshot to a later supply date.
+
+The read service independently validates and rehashes complete frozen Order284 truth,
+binds its Order272 registration id/hash to the requested row, returns a fixed
+recursively frozen value and hashes the complete ordered evidence with the unexposed
+tenant. GSTIN/address, property/org/profile/config, SellerDtls, Order283 equality or
+recipient Order285 status cannot infer or replace supplier status. Bilateral supply
+nature, authorized operations, zero rating, levy, IRP/item/document/provider/API/UI
+and local identity remain separate future primitives.
+
 ### Positive Tax Attribution Snapshot value service — Tax/Fiscal
 
 Order 240 is a pure immutable value service, not an aggregate, entity or state

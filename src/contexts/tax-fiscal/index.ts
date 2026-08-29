@@ -186,3 +186,13 @@ export type {
   IndiaGstRecipientSezStatusInput,
   IndiaGstRecipientSezStatusResult,
 } from "./india-gst-recipient-sez-status";
+export {
+  IndiaGstSupplierSezStatusConflictError,
+  IndiaGstSupplierSezStatusNotFoundError,
+  IndiaGstSupplierSezStatusService,
+  IndiaGstSupplierSezStatusValidationError,
+} from "./india-gst-supplier-sez-status";
+export type {
+  IndiaGstSupplierSezStatusInput,
+  IndiaGstSupplierSezStatusResult,
+} from "./india-gst-supplier-sez-status";

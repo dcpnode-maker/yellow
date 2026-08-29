@@ -2,7 +2,7 @@
 
 **Status:** active; governed positive-tax posting and complete correction approved through Order266
 **Entry point:** built-unreviewed Phase-6 composition through Order 236
-**Current order:** Order286 exact India GST supplier SEZ-status evidence is ready under D-752
+**Current order:** Order286 exact India GST supplier SEZ-status evidence is built pending fresh Tier-3 review under D-753
 
 ## Outcome
 
@@ -458,6 +458,12 @@ unresolved. Form-F2 renewal evidence, bilateral supply nature, authorized operat
 zero rating, levy, `SupTyp`, item, document, API/UI/local authority remain separate.
 D-752 requires intentional red, exact53/105/95/95/5 PostgreSQL/schema/referee,
 hostile zero-write proof and fresh Tier-3.
+The D-753 candidate is built: intentional red0/1 preceded focused16/0(317), migration
+39/0(187), acceptance18/0(52), runtime-DML5/0(112), exact53/105/95/95/5 normalized
+schema, canonical setup/referee11/11 and standing945/0 plus861 skips. Type/109-
+boundary/23-licence/audit0/diff are green; disposable proof is absent and the sole
+stable local remains exact, healthy and unchanged. Fresh non-implementing Tier-3
+review is mandatory.
 Fresh non-implementing Tier-3 review approves exact candidate `9c222c4` with no
 finding under D-748. Reviewer-personal official-law, no-inference, exact
 51/103/93/93/3, schema/setup/referee11/11, focused/database/standing/static and

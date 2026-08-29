@@ -1106,6 +1106,43 @@ This contract grants no supplier-side SEZ status, authorized-operations endorsem
 zero rating/refund/payment mode, supply nature, levy, `SupTyp`, `IgstOnIntra`, item,
 posting, document, submission, API, HTTP, UI, local-runtime or promotion authority.
 
+### Exact India GST supplier SEZ-status evidence
+
+Order286 specifies `IndiaGstSupplierSezStatusService.resolve(tx,input)` with exact
+plain accessor-free, proxy-free and symbol-free
+`{tenantId,propertyNode,reservationId,supplierServiceLocationId,
+supplierSezStatusId}` canonical UUID input. It first resolves complete exact current
+Order284 supplier service-location evidence, independently revalidates and rehashes
+its complete frozen shape and underlying Order272 registration id/hash, then
+equality-selects the requested tenant/registration/hash-bound
+`india_gst_supplier_sez_status` row.
+
+The status row records an explicit `statusAsOf`, active GST registration status,
+official GST source and exactly regular, SEZ-unit or SEZ-developer taxpayer type.
+Regular is affirmative official non-SEZ evidence and requires no approval tuple.
+SEZ unit requires complete in-force Form G evidence; SEZ developer requires complete
+in-force Form B or C evidence. Positive approval validity is finite canonical `[)`,
+contains the status-as-of date and carries a positive canonical reference. Missing,
+unsupported, stale, suspended/cancelled, expired, foreign, malformed or incoherent
+truth fails closed; absence never becomes non-SEZ. Form F2 renewal is unsupported.
+
+The recursively frozen result is exactly
+`{supplierSezStatusId,propertyNode,supplierServiceLocation:{id,evidenceHash},
+supplier:{registrationId,evidenceHash},statusAsOf,gstRegistration,sezStatus,
+approval,legalRule,evidenceHash}`. Official status and approval hashes are exposed as
+`evidenceSha256`; lineage and the final result use `evidenceHash`. Approval is null
+for affirmative regular evidence or exact
+`{form,reference,validity:{fromInclusive,toExclusive},status,evidenceSha256}` for
+positive SEZ evidence. The final hash covers fixed-order
+`JSON.stringify({tenantId,...complete body except evidenceHash})`; tenant is bound
+but unexposed. `statusAsOf` is evidence time only, never latest-row inference or a
+future supply-date applicability decision.
+
+This contract grants no recipient-status inference, bilateral supply-nature result,
+Form-F2 renewal, authorized-operations endorsement, zero rating/refund/payment mode,
+levy, `SupTyp`, `IgstOnIntra`, item, posting, document, submission, API, HTTP, UI,
+local-runtime or promotion authority.
+
 ## 8. Pure rate-model evaluator
 
 Order 067's in-process evaluator is a draft/simulation primitive, not a database or HTTP contract.

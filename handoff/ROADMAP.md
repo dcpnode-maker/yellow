@@ -408,6 +408,11 @@ or-C evidence at an explicit as-of date; absence never means non-SEZ. Form-F2 re
 bilateral supply nature, authorized operations/zero rating, levy, `SupTyp`, item,
 document, API/UI/local authority remain separate. Intentional red, exact
 53/105/95/95/5 PostgreSQL/schema/referee, hostile proof and fresh Tier-3 are mandatory.
+The D-753 candidate is built: intentional red0/1 preceded focused16/0(317), migration
+39/0(187), acceptance18/0(52), runtime-DML5/0(112), exact53/105/95/95/5 normalized
+schema, canonical setup/referee11/11 and standing945/0 plus861 skips. All static gates
+are green, disposable proof is removed and the sole stable local remains exact,
+healthy and unchanged. Fresh non-implementing Tier-3 review remains mandatory.
 Fresh non-implementing Tier-3 review approves exact candidate `9c222c4` with no
 finding under D-748. Reviewer-personal official-law, no-inference, exact
 51/103/93/93/3, schema/setup/referee11/11, focused/database/standing/static and
