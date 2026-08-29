@@ -714,7 +714,7 @@ remained later work.
 latest272/current273/review91/active7 and the compact Orders237–272 milestone. Phase
 states and review coverage are unchanged; guarded sole-local promotion is separate.
 
-**Admitted Order275 product slice:** project only the approved Order272 supplier
+**Approved Order275 product slice:** project only the approved Order272 supplier
 evidence into exact notified IRP 1.1 `SellerDtls`
 (`Gstin`,`LglNm`,`TrdNm?`,`Addr1`,`Loc`,`Pin`,`Stcd`). Exact field limits,
 GSTIN/state/PIN validation, null-only trade-name omission, fixed-order JSON,
@@ -722,8 +722,8 @@ SHA-256 payload identity, separately retained registration/evidence lineage, sou
 immutability and recursive freeze fail closed without trimming, truncation,
 coercion or synthesis. This pure boundary creates no database, document, provider,
 submission, API, HTTP or UI authority and decides no buyer, place of supply, supply
-type, tax decomposition, item or value. Exact implementation proof is green; fresh
-independent Tier-3 executable approval remains pending and Phase7 is not complete.
+type, tax decomposition, item or value. Fresh independent Tier-3 execution approves
+the exact immutable candidate under D-719 with no finding; Phase7 is not complete.
 
 ## Phase 8 — Statutory registration + ZATCA
 

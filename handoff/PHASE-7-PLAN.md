@@ -2,7 +2,7 @@
 
 **Status:** active; governed positive-tax posting and complete correction approved through Order266
 **Entry point:** built-unreviewed Phase-6 composition through Order 236
-**Current order:** Order275 exact India IRP 1.1 seller details is admitted under D-717
+**Current order:** Order275 exact India IRP 1.1 seller details is independently approved under D-719
 
 ## Outcome
 
@@ -283,6 +283,6 @@ fixed-order JSON/SHA-256; separately retained registration/evidence lineage; sou
 immutability and recursive freeze all fail closed without trimming, truncation,
 splitting, coercion or synthesis. It creates no document, database, provider,
 submission, API, HTTP or UI authority and decides no buyer, place of supply, supply
-type, tax decomposition, item or value. Exact implementation proof is green; fresh
-independent Tier-3 executable review remains pending and no Phase7 completion is
+type, tax decomposition, item or value. Fresh independent Tier-3 execution approves
+the exact immutable candidate under D-719 with no finding; no Phase7 completion is
 claimed.

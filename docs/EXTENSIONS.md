@@ -229,8 +229,8 @@ id/nullable-owner/key/version/content hash, and projects the notified IRP 1.1
 `SellerDtls` fields without fallback. Registration/evidence lineage and the payload
 hash remain outside the transmitted JSON. Buyer, place-of-supply, tax decomposition,
 items, values, documents and submission/provider routing remain separate future
-authority. The pure projection and its executable proof are built; fresh Tier-3
-executable approval remains pending.
+authority. The pure projection and its executable proof are independently Tier-3
+approved under D-719 with no finding.
 
 ---
 

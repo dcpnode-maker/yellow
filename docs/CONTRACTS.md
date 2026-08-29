@@ -751,8 +751,7 @@ the source is unchanged; wrapper, lineage, payload and seller details are recurs
 frozen. This contract grants no buyer/recipient, SEZ, place-of-supply, supply-type,
 tax decomposition, item/value/document, numbering/hash-chain, submission, provider,
 database, transaction, API, HTTP or UI authority. The exact pure boundary and its
-executable proof are built; fresh non-implementing Tier-3 approval remains required
-before this boundary is independently approved.
+executable proof are independently Tier-3 approved under D-719 with no finding.
 
 ## 8. Pure rate-model evaluator
 

@@ -1,6 +1,6 @@
 # Order 275 — Build exact India IRP 1.1 seller details
 
-**Status:** BUILT-PENDING-REVIEW-D718
+**Status:** APPROVED-D719
 **Phase:** 7 — Tax engine and India IRP
 **Branch:** `phase-7/india-irp-seller-details`
 **Base:** `71b2c34` (independently approved Order274 descendant)
@@ -67,4 +67,4 @@ complete claim.
 - [x] Intentional red precedes implementation.
 - [x] Exact pure projection and hostile proof are green.
 - [x] Standing/static gates are green and no authority expands.
-- [ ] Fresh independent Tier-3 approval is recorded.
+- [x] Fresh independent Tier-3 approval is recorded.
