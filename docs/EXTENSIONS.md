@@ -240,8 +240,8 @@ frozen Order276 registered-recipient candidate evidence and projects fixed-order
 the transmitted JSON; canonical bytes and SHA-256 are deterministic. `Pos` remains a
 separate notified field and is neither included nor inferred. This candidate does not
 designate the legal invoice/folio-window buyer and grants no full payload, tax,
-document, database, API, HTTP or UI authority. It is built under D-727 with independent
-Tier-3 executable review pending.
+document, database, API, HTTP or UI authority. Fresh independent Tier-3 execution
+approves exact Order278 under D-728 with no finding.
 
 ---
 

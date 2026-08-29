@@ -743,14 +743,15 @@ is admitted. Fresh isolated canonical setup now exits0 at48 migrations/100 table
 referee11/11; standing/static gates are green. Fresh independent Tier-3 execution at
 D-725 approves the exact repair and corrected Order276 descendant with no finding.
 
-**Built-pending-review Order278 product slice:** project only exact approved Order276 recipient
+**Independently approved Order278 product slice:** project only exact approved Order276 recipient
 evidence into the notified IRP1.1 `BuyerDtls` identity/address fields. The wrapper
 retains Party/registration/evidence lineage and deterministic bytes/hash. Official
 schema lists buyer POS separately as `Pos`; this pure candidate projection cannot
 invent it, select a legal invoice-window buyer or authorize tax/document/submission.
 Intentional red0/1 preceded focused/adjacent22/0+10 database-only skips and standing
 879/0+798 database-only skips; type/101-boundary/23-licence/audit0/diff are green.
-Fresh independent Tier-3 execution is mandatory.
+Fresh independent Tier-3 execution at D-728 reproduces the complete proof with no
+finding.
 
 ## Phase 8 — Statutory registration + ZATCA
 

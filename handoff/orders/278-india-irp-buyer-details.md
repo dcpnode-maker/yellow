@@ -1,6 +1,6 @@
 # Order 278 — Build exact India IRP 1.1 buyer-details candidate
 
-**Status:** BUILT-PENDING-REVIEW-D727
+**Status:** APPROVED-D728
 **Phase:** 7 — Tax engine and India IRP
 **Branch:** `phase-7/india-irp-buyer-details`
 **Base:** `5fe42f5` (independently approved Orders276–277 descendant)
@@ -78,4 +78,4 @@ Phase7 or application-complete claim.
 - [x] Intentional red precedes implementation.
 - [x] Exact pure candidate projection and hostile proof are green.
 - [x] Standing/static gates are green and no authority expands.
-- [ ] Fresh independent Tier-3 approval is recorded.
+- [x] Fresh independent Tier-3 approval is recorded.

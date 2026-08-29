@@ -820,8 +820,8 @@ This is a payload candidate only. It neither designates the legal invoice or fol
 window buyer nor includes or decides `Pos`, `SupTyp`, B2C `URP`, export, SEZ, deemed-
 export, seller, item, value, tax or document fields. It grants no CGST/SGST/IGST,
 calculation, allocation, posting, correction, document issue/number/hash-chain,
-submission, provider, transaction, SQL, database, API, HTTP or UI authority. Order278
-is built under D-727 with its independent Tier-3 executable review pending.
+submission, provider, transaction, SQL, database, API, HTTP or UI authority. Fresh
+independent Tier-3 execution approves exact Order278 under D-728 with no finding.
 
 ## 8. Pure rate-model evaluator
 
