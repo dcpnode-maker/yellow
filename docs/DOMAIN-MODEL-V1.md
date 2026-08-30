@@ -1516,3 +1516,13 @@ the inclusive Rule 47 day-30 boundary, otherwise section 13(2)(b). The selected 
 the earlier of invoice/payment for (a), or service/payment for (b). All three candidate
 dates remain explicit inputs; no clock, timezone conversion, fallback or inference is
 permitted.
+
+### India GST recipient registration at time of supply (Order 296)
+
+Order296 introduces no entity or inferred registration interval. It composes the
+immutable Order285 recipient registration/status snapshot with the complete Order294
+ordinary accommodation time-of-supply chain only when their explicit dates are equal.
+The result is one affirmative evidence state,
+`active_recipient_registration_at_time_of_supply`, with complete predecessor hashes
+and identity but without tenant, GSTIN or address disclosure. Recipient buyer status,
+place of supply, supply nature, levy and document semantics remain separate decisions.

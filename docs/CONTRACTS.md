@@ -2204,3 +2204,18 @@ writer, API, UI or network authority is granted.
 composer for ordinary CGST section 13(2)(a)/(b). It equality-binds approved service,
 payment, invoice, reservation-lineage and attribution evidence in one read and returns
 deterministic frozen evidence; it does not issue documents, calculate tax, or write.
+
+## Order296: India GST recipient registration at exact time of supply
+
+`resolveIndiaGstRecipientRegistrationAtTimeOfSupply(tx,input)` is a migration-free,
+SELECT-only composer over complete approved Order285 recipient-status evidence and
+complete Order294 accommodation time-of-supply evidence. One tenant-leading,
+equality-bound read independently reconstructs both public predecessor envelopes and
+requires their caller-selected hashes to match. `statusAsOf` must equal
+`timeOfSupplyDate`; no effective interval, nearest/latest status, or portal lookup is
+inferred. The recursively frozen result states only
+`active_recipient_registration_at_time_of_supply`, preserves complete predecessor
+identity/evidence, and hides tenant identity, GSTIN and address. Missing, duplicate,
+malformed, crossed, stale or contradictory evidence fails closed. It grants no legal
+buyer, B2B/B2C, place-of-supply, supply-nature, rate, levy, tax, document or IRP
+authority.

@@ -56,7 +56,7 @@ order. No current-rate or historical rate evidence may be consumed.
 
 ## Definition of done
 
-- [ ] Intentional red precedes implementation.
-- [ ] Focused hostile and fresh live predecessor proof are green.
-- [ ] Standing/static/setup/referee gates are green.
+- [x] Intentional red precedes implementation.
+- [x] Focused hostile and fresh live predecessor proof are green.
+- [x] Standing/static/setup/referee gates are green.
 - [ ] Fresh independent Tier-3 approval is recorded against the exact candidate.

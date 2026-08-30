@@ -294,3 +294,14 @@ export type {
   IndiaGstRegistrationAtTimeOfSupplyInput,
   IndiaGstRegistrationAtTimeOfSupplyResult,
 } from "./india-gst-registration-at-time-of-supply";
+export {
+  IndiaGstRecipientRegistrationAtTimeOfSupplyConflictError,
+  IndiaGstRecipientRegistrationAtTimeOfSupplyNotFoundError,
+  IndiaGstRecipientRegistrationAtTimeOfSupplyService,
+  IndiaGstRecipientRegistrationAtTimeOfSupplyValidationError,
+  resolveIndiaGstRecipientRegistrationAtTimeOfSupply,
+} from "./india-gst-recipient-registration-at-time-of-supply";
+export type {
+  IndiaGstRecipientRegistrationAtTimeOfSupplyInput,
+  IndiaGstRecipientRegistrationAtTimeOfSupplyResult,
+} from "./india-gst-recipient-registration-at-time-of-supply";

@@ -1085,3 +1085,13 @@ tenant-bound read. Require exact `statusAsOf === timeOfSupplyDate`, revalidate a
 predecessor envelopes and hashes, and return only frozen
 `active_at_time_of_supply` evidence. No validity interval, rate, levy, tax,
 document, posting, submission, API, UI or writer authority is admitted.
+
+## Order296 delivery note
+
+Compose approved Order285 recipient registration/status with complete approved
+Order294 ordinary accommodation time-of-supply evidence through one migration-free,
+tenant-bound read. Require exact `statusAsOf === timeOfSupplyDate`, complete
+predecessor-envelope/hash revalidation and tenant/GSTIN/address concealment. Return
+only frozen `active_recipient_registration_at_time_of_supply` evidence. No buyer,
+place-of-supply, supply-nature, rate, levy, tax, document, IRP, API or UI authority is
+admitted.

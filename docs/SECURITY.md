@@ -1235,3 +1235,14 @@ cross-tenant, cross-lineage or contradictory evidence fails closed. The output i
 recursively frozen and limited to `active_at_time_of_supply`; rates, levies, tax
 calculation, documents, postings, submissions and operational APIs remain outside
 the boundary.
+
+## Order296 security boundary
+
+The recipient-registration-at-time-of-supply composer performs one transaction-local,
+tenant-leading equality SELECT and independently rehashes complete Order285 and
+Order294 envelopes. Exact selected predecessor hashes and exact status/time date
+equality are mandatory. It never calls predecessor resolvers, selects latest truth,
+uses a clock or network, locks, or writes. Cross-tenant, crossed-lineage, malformed,
+duplicate, unsupported or contradictory truth fails closed. Output is recursively
+frozen and excludes tenant identity, recipient GSTIN and address; it cannot authorize
+buyer designation, place of supply, supply nature, tax, documents or submission.

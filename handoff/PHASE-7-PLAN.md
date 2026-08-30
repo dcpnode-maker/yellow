@@ -632,3 +632,14 @@ predecessor envelopes;
 no effective interval, rate, levy, tax, document, posting, IRP or API authority is
 produced. Hostile, duplicate, stale, malformed and cross-lineage evidence must
 fail closed and the result must be recursively frozen and tenant-hidden.
+
+## Order 296 boundary
+
+Order296 is the recipient-side exact-date companion to Order295. It composes complete
+approved Order285 recipient registration/status and Order294 time-of-supply evidence
+in one migration-free SELECT, requires exact status/date and complete-hash equality,
+and returns only frozen tenant/GSTIN/address-hidden affirmative evidence. Buyer/B2B,
+place-of-supply, supply-nature, `SupTyp`, `Pos`, `IgstOnIntra`, rate, levy, tax,
+document, IRP, API/UI/local and phase-complete authority remain separate. D-798
+requires intentional red, hostile/live PG16.15 zero-write proof, setup/referee and a
+fresh Tier-3 review.

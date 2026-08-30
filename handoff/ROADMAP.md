@@ -550,3 +550,11 @@ and standing validation.
 Compose approved Order289 supplier registration status and Order294 ordinary
 accommodation time-of-supply evidence only when the status snapshot is dated exactly
 at the selected time of supply. No effective interval, rate, levy or tax computation.
+
+## Order296 roadmap entry
+
+Compose approved Order285 recipient registration/status and complete Order294 ordinary
+accommodation time-of-supply evidence only at exact status/time date equality. Require
+complete predecessor hash replay and produce only frozen, tenant/GSTIN/address-hidden
+affirmative evidence; legal buyer, place-of-supply, supply-nature, tax and document
+composition remain future bounded slices.
