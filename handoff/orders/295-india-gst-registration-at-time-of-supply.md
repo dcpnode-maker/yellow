@@ -55,4 +55,4 @@ not consume, repeat or silently correct it.
 - [x] Intentional red precedes implementation.
 - [x] Focused hostile and fresh live predecessor proof are green.
 - [x] Standing/static/setup/referee gates are green.
-- [ ] Fresh independent Tier-3 approval is recorded against the exact candidate.
+- [x] Fresh independent Tier-3 approval is recorded against the exact candidate.
