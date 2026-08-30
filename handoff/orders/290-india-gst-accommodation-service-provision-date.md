@@ -1,6 +1,6 @@
 # Order 290 — Build exact India GST accommodation service-provision-date evidence
 
-**Status:** BUILT-PENDING-REVIEW-D769
+**Status:** APPROVED-D770
 **Phase:** 7 — Tax engine and India IRP
 **Branch:** `phase-7/india-gst-accommodation-service-provision-date`
 **Base:** `8f5c600` (independently approved Order289 descendant)
@@ -109,7 +109,7 @@ correction, submission, provider, merge/deploy/Phase7/application-complete claim
 - [x] Intentional red precedes implementation.
 - [x] Exact schema/RLS/ACL and hostile lineage/non-substitution proof is green.
 - [x] Standing/static/referee gates are green and no authority expands.
-- [ ] Fresh independent Tier-3 approval is recorded.
+- [x] Fresh independent Tier-3 approval is recorded.
 
 ## Builder evidence — D769
 
@@ -128,3 +128,15 @@ The first canonical setup attempt reused a retained proof port and encountered o
 Compose bind conflict; a clean isolated project then passed exactly. The sole stable
 port-3000 app remains healthy, restart-free and unchanged. Fresh independent Tier-3
 review remains mandatory before approval.
+
+## Independent approval — D770
+
+A fresh non-implementing Tier-3 reviewer independently approved exact candidate
+`4476cc59342de6a0faba7069612fef25afb02426` with no finding. Reviewer-personal proof
+is recorded in
+`handoff/reviews/290-india-gst-accommodation-service-provision-date.md`: focused
+`10/0` (`178`), acceptance `21/0` (`61`), runtime-DML `5/0` (`115`), migrations
+`39/0` (`187`), normalized exact `56/108/98/98/8` schema, canonical referee `11/11`,
+standing `985/0` plus `867` skips and all static/scope/stable-local gates green. The
+reviewer also executed the actual resolver against exact seeded lineage. Disposable
+review resources are absent; the stable port-3000 app remains healthy and unchanged.

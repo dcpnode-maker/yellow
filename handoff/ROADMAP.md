@@ -409,13 +409,14 @@ are green. The stable port-3000 local is unchanged; fresh non-implementing Tier-
 review is green on exact candidate `35ad434`; no finding remains and no downstream
 authority is granted.
 
-Order290/D-769 is built pending independent review as the next honest time-of-supply
+Order290/D-770 is independently approved as the next honest time-of-supply
 prerequisite: one explicit
 externally evidenced service-provision date bound to complete approved Order252/240
 accommodation tax lineage. It grants no section13 result and cannot reuse supply,
 quote-night, reservation, operational, checkout, posting or clock dates. Exact
 56/108/98/98/8 schema/setup/referee and hostile zero-write/non-substitution proof are
-green; fresh Tier3 remains mandatory. Invoice/payment, Order289 consumption, levy, document,
+green; fresh Tier3 approves exact candidate `4476cc5` with no finding. Invoice/payment,
+Order289 consumption, levy, document,
 API/UI/local authority remain separate.
 Fresh non-implementing Tier-3 review approves exact candidate `8630639` with no
 finding under D-751. Reviewer-personal official-law, exact52/104/94/94/4,
