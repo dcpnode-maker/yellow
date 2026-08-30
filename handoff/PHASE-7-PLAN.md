@@ -463,6 +463,18 @@ finding under D-767. Reviewer-personal official-law, focused/database/migration/
 schema/referee, adjacent/standing/static and stable-local preservation proof are
 green. Approval remains bounded to exact-date affirmative supplier GST registration
 status/type evidence.
+
+## Order 290 boundary
+
+Order290 adds one exact tenant-leading forced-RLS SELECT-only service-provision-date
+source root bound to complete approved Order252 reservation lineage and canonical
+Order240 `rate_quote` room/room-revenue attribution. The date is separately governed
+external evidence and only a later CGST section13 input. D-768 explicitly forbids
+deriving it from Order287 supply date, quote room-night business dates, reservation
+period, check-in/occupancy/checkout, journal/posting dates or clocks and admits no
+invoice/payment/time-of-supply result, Order289 composition, tax/document/API/UI/local
+authority. Intentional red, exact56/108/98/98/8 schema/setup/referee, hostile
+non-substitution/zero-write proof and fresh Tier3 are mandatory.
 Fresh non-implementing Tier-3 review approves exact candidate `8630639` with no
 finding under D-751. Reviewer-personal official-law, exact52/104/94/94/4,
 schema/setup/referee11/11, focused/database/standing/static and stable-runtime proof
