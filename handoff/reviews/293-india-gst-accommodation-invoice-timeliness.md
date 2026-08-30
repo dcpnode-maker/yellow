@@ -1,10 +1,10 @@
 # Order 293 independent Tier-3 review — India GST accommodation invoice timeliness
 
-**Verdict:** CHANGES REQUIRED  
-**Reviewer:** OpenAI Codex independent review agent `/root/order293_review`  
-**Candidate:** `95e43a5ffd780dacc7e200ec7f6e35ebff58499a`  
-**Base:** `b5b2d452f2ab87b8eca7c710fcc5eef0176cb0cd`  
-**Branch:** `phase-7/india-gst-accommodation-invoice-timeliness`  
+**Verdict:** CHANGES REQUIRED
+**Reviewer:** OpenAI Codex independent review agent `/root/order293_review`
+**Candidate:** `95e43a5ffd780dacc7e200ec7f6e35ebff58499a`
+**Base:** `b5b2d452f2ab87b8eca7c710fcc5eef0176cb0cd`
+**Branch:** `phase-7/india-gst-accommodation-invoice-timeliness`
 **Reviewed:** 2026-08-30
 
 ## Independence, governing material and scope

@@ -4,6 +4,8 @@ import { parsePositiveTaxAttributionSnapshot } from "./attribution";
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 const SHA256 = /^[0-9a-f]{64}$/;
+const CURRENCY = /^[A-Z]{3}$/;
+const DECIMAL = /^(0|[1-9][0-9]*)$/;
 const DATE = /^(\d{4})-(\d{2})-(\d{2})$/;
 const INPUT_KEYS = [
   "tenantId",
@@ -33,6 +35,22 @@ export interface IndiaGstAccommodationInvoiceTimelinessResult {
   readonly invoiceIssueSnapshotId: string;
   readonly serviceProvisionSnapshotId: string;
   readonly propertyNode: string;
+  readonly reservationId: string;
+  readonly reservationLineage: Readonly<{
+    lineageId: string;
+    holdBindingId: string;
+    attributionId: string;
+    reservationId: string;
+    segmentId: string;
+    originQuoteHash: string;
+    snapshotHash: string;
+    currency: string;
+  }>;
+  readonly attribution: Readonly<{
+    originKind: "rate_quote";
+    lineId: "room";
+    revenueGroup: "room_revenue";
+  }>;
   readonly serviceProvisionDate: string;
   readonly invoiceIssueDate: string;
   readonly deadlineDate: string;
@@ -42,8 +60,13 @@ export interface IndiaGstAccommodationInvoiceTimelinessResult {
   readonly ordinaryRegimeEvidenceSha256: string;
   readonly invoiceSeries: string;
   readonly invoiceSerial: string;
+  readonly coverageScope: "full_attribution";
+  readonly invoiceIssueSource: "governed_supplier_tax_invoice_record";
+  readonly invoiceIssueLegalRule: "CGST_ACT_13_2_INVOICE_DATE_INPUT_ONLY";
+  readonly serviceProvisionSource: "governed_service_provision_record";
   readonly invoiceIssueEvidenceSha256: string;
   readonly serviceProvisionEvidenceSha256: string;
+  readonly serviceProvisionLegalRule: "CGST_ACT_13_2_B_SERVICE_PROVISION_DATE_INPUT_ONLY";
   readonly result: IndiaGstAccommodationInvoiceTimeliness;
   readonly amountMinor: string;
   readonly currency: string;
@@ -117,6 +140,19 @@ function hash(value: unknown, subject: string): string {
       `${subject} is invalid`,
     );
   return value;
+}
+function currency(value: unknown, subject: string): string {
+  if (typeof value !== "string" || !CURRENCY.test(value))
+    throw new IndiaGstAccommodationInvoiceTimelinessConflictError(`${subject} is invalid`);
+  return value;
+}
+function amount(value: unknown, subject: string): string {
+  if (typeof value !== "string" && typeof value !== "bigint")
+    throw new IndiaGstAccommodationInvoiceTimelinessConflictError(`${subject} is invalid`);
+  const text = String(value);
+  if (!DECIMAL.test(text) || BigInt(text) <= 0n)
+    throw new IndiaGstAccommodationInvoiceTimelinessConflictError(`${subject} is invalid`);
+  return text;
 }
 function civil(
   value: unknown,
@@ -235,8 +271,11 @@ function build(
   ] as const;
   for (const key of lineageKeys) {
     if (key.endsWith("_hash")) hash(row[key], `stored ${key}`);
-    else if (key !== "currency") uuid(row[key], `stored ${key}`);
+    else if (key === "currency") currency(row[key], `stored ${key}`);
+    else uuid(row[key], `stored ${key}`);
   }
+  const rowCurrency = currency(row.currency, "stored currency");
+  const rowAmount = amount(row.amount_minor, "stored amount");
   hash(row.invoice_issue_evidence_sha256, "stored invoice evidence hash");
   hash(row.service_provision_evidence_sha256, "stored service evidence hash");
   if (
@@ -280,7 +319,7 @@ function build(
       attribution.revenueLine.lineId !== "room" ||
       attribution.revenueLine.revenueGroup !== "room_revenue" ||
       attribution.evaluation.grandTotalMinor.toString() !==
-        String(row.amount_minor)
+        rowAmount
     )
       throw new Error();
   } catch {
@@ -289,10 +328,28 @@ function build(
     );
   }
   const deadlineDate = addDays(serviceDate, 30);
+  const reservationLineage = Object.freeze({
+      lineageId: String(row.lineage_id),
+      holdBindingId: String(row.lineage_hold_binding_id),
+      attributionId: String(row.lineage_attribution_id),
+      reservationId: String(row.lineage_reservation_id),
+      segmentId: String(row.lineage_segment_id),
+      originQuoteHash: String(row.lineage_origin_quote_hash),
+      snapshotHash: String(row.lineage_snapshot_hash),
+      currency: String(row.lineage_currency),
+    }),
+    attribution = Object.freeze({
+      originKind: "rate_quote" as const,
+      lineId: "room" as const,
+      revenueGroup: "room_revenue" as const,
+    });
   const evidence = {
     invoiceIssueSnapshotId: invoiceId,
     serviceProvisionSnapshotId: serviceId,
     propertyNode: property,
+    reservationId: reservation,
+    reservationLineage,
+    attribution,
     serviceProvisionDate: serviceDate,
     invoiceIssueDate: invoiceDate,
     deadlineDate,
@@ -302,13 +359,18 @@ function build(
     ordinaryRegimeEvidenceSha256: input.ordinaryRegimeEvidenceSha256,
     invoiceSeries,
     invoiceSerial,
+    coverageScope: "full_attribution" as const,
+    invoiceIssueSource: "governed_supplier_tax_invoice_record" as const,
+    invoiceIssueLegalRule: "CGST_ACT_13_2_INVOICE_DATE_INPUT_ONLY" as const,
+    serviceProvisionSource: "governed_service_provision_record" as const,
     invoiceIssueEvidenceSha256: row.invoice_issue_evidence_sha256 as string,
     serviceProvisionEvidenceSha256: row.service_provision_evidence_sha256 as string,
+    serviceProvisionLegalRule: "CGST_ACT_13_2_B_SERVICE_PROVISION_DATE_INPUT_ONLY" as const,
     result: (invoiceDate <= deadlineDate
       ? "timely"
       : "late") as IndiaGstAccommodationInvoiceTimeliness,
-    amountMinor: String(row.amount_minor),
-    currency: String(row.currency),
+    amountMinor: rowAmount,
+    currency: rowCurrency,
   };
   return Object.freeze({
     ...evidence,
