@@ -345,18 +345,37 @@ describe("Order 238 effective tax-jurisdiction resolver pure contract", () => {
         { propertyNode: PROPERTY_A, businessDate: "2026-01-01" })).rejects.toThrow();
     }
 
-    const resolveWith = (property_timezone: string, business_day_from_instant: string) =>
+    const resolveWith = (
+      property_timezone: string,
+      business_day_from_instant: string,
+      business_day_to_instant: string,
+    ) =>
       serviceWith([extension()]).resolve(fakeTx({
         propertyRows: [{ tenant_id: TENANT_A, property_timezone,
-          business_day_from_instant, business_day_to_instant: "2026-01-02T00:00:00.000000Z" }],
+          business_day_from_instant, business_day_to_instant }],
         assignmentRows: [assignment()],
       }).tx, { propertyNode: PROPERTY_A, businessDate: "2026-01-01" });
-    const first = await resolveWith("UTC", "2026-01-01T00:00:00.000000Z");
-    const changed = await resolveWith("Asia/Kolkata", "2025-12-31T18:30:00.000000Z");
-    if (first.state !== "resolved" || changed.state !== "resolved") throw new Error("expected resolved");
-    expect(first.assignment.evidenceRef).not.toBe(changed.assignment.evidenceRef);
-    expect(first.jurisdiction.evidenceRef).not.toBe(changed.jurisdiction.evidenceRef);
-    expect(isDeeplyFrozen(changed)).toBe(true);
+    const baseline = await resolveWith(
+      "UTC", "2026-01-01T00:00:00.000000Z", "2026-01-02T00:00:00.000000Z",
+    );
+    const changedTimezoneOnly = await resolveWith(
+      "Etc/UTC", "2026-01-01T00:00:00.000000Z", "2026-01-02T00:00:00.000000Z",
+    );
+    const changedLowerOnly = await resolveWith(
+      "UTC", "2026-01-01T00:00:01.000000Z", "2026-01-02T00:00:00.000000Z",
+    );
+    const changedUpperOnly = await resolveWith(
+      "UTC", "2026-01-01T00:00:00.000000Z", "2026-01-02T00:00:01.000000Z",
+    );
+    if (baseline.state !== "resolved" || changedTimezoneOnly.state !== "resolved"
+        || changedLowerOnly.state !== "resolved" || changedUpperOnly.state !== "resolved") {
+      throw new Error("expected resolved");
+    }
+    for (const changed of [changedTimezoneOnly, changedLowerOnly, changedUpperOnly]) {
+      expect(baseline.assignment.evidenceRef).not.toBe(changed.assignment.evidenceRef);
+      expect(baseline.jurisdiction.evidenceRef).not.toBe(changed.jurisdiction.evidenceRef);
+      expect(isDeeplyFrozen(changed)).toBe(true);
+    }
   });
 });
 

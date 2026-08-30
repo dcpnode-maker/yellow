@@ -1,6 +1,6 @@
 # Order 300 — Property-local business-day instant evidence
 
-**Status:** BUILT-PENDING-FRESH-TIER3-REVIEW-D821
+**Status:** REPAIRED-PENDING-FRESH-TIER3-REREVIEW-D823
 **Phase:** 7 — Tax and India IRP
 **Branch:** `phase-7/property-local-business-day-instant-evidence`
 **Base:** `0b90973` (independently approved Order 299)
@@ -83,3 +83,6 @@ promotion, merge/deploy or Phase/application-complete claim.
   policy, dependency audit and whitespace checks are green.
 - Fresh isolated setup preserves 59 migrations, 110 public tables and referee `11/11`.
   Order300 adds no schema or local product instance.
+- D-822's proof gap is repaired: permanent assertions vary timezone, lower instant and
+  upper instant independently and require both assignment and jurisdiction evidence
+  references to change. The reviewer's exact upper-bound-removal mutant is red.
