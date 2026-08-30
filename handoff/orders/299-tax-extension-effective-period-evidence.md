@@ -1,6 +1,6 @@
 # Order 299 — Tax extension effective-period evidence
 
-**Status:** BUILT-PENDING-FRESH-TIER3-REVIEW-D818
+**Status:** APPROVED-D819
 **Phase:** 7 — Tax and India IRP
 **Branch:** `phase-7/tax-extension-effective-period-evidence`
 **Base:** `465d791` (independently approved Order 298)
@@ -72,7 +72,7 @@ promotion, merge/deploy or Phase/application-complete claim.
 - [x] Intentional red precedes implementation.
 - [x] Exact effective-period projection and immutable resolver evidence are green.
 - [x] Fresh setup, schema, standing/static and referee gates are green.
-- [ ] Fresh non-implementing Tier-3 reviewer personally executes hostile proof and approves.
+- [x] Fresh non-implementing Tier-3 reviewer personally executes hostile proof and approves.
 
 ## Built evidence
 

@@ -581,3 +581,6 @@ Expose and preserve the exact effective-period bounds of the already-selected ta
 extension through a narrow tenant-safe runtime capability. This is evidence plumbing,
 not date-to-instant applicability or tax computation; all downstream fiscal behavior
 remains separately ordered.
+Fresh non-implementing Tier-3 review approves exact candidate `6b943bb` with no finding
+under D-819 after reviewer-personal tenant/global, role-assumption, temp-shadow,
+microsecond, schema/setup/referee, standing and static proof.
