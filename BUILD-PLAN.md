@@ -1036,12 +1036,12 @@ invoice series/serial and issue date for later Rule47/section13 composition; do 
 issue an invoice or decide validity, numbering, timeliness or time of supply. D-774
 requires fresh intentional-red, exact `58/110/100/100/10` schema/setup/referee and
 independent Tier3 review; no writer, rendering, IRP, API/UI/local or completion authority.
-issue an invoice or decide validity, numbering, timeliness or time of supply. D-774
-requires fresh intentional-red, exact `58/110/100/100/10` schema/setup/referee and
-independent Tier3 review; no writer, rendering, IRP, API/UI/local or completion authority.
 Builder D-775 proof is intentional red0/1(1), focused7/0(78), acceptance23/0(65),
 runtime-DML5/0(117), migration39/0(187), exact schema58/110/100/100/10 with SHA
 `227cba82339bc69d9c9263b854ea7954dc82a0dc16e19ca852304dc0d2eab19d`, migration SHA
 `d2eaf70479a602ec82dc5abe73442475abb80ed8ec3f2ef3ec333b182c30dddf`, setup/referee
 11/11, standing998/0 plus871 skips(15449;1869 tests/328 files), type/115-boundary/
-23-licence/diff green. Independent review remains pending.
+23-licence/diff green. Independent review approves exact candidate `cc7d44b` with no
+product finding under D-776; the reviewer-recorded duplicate three-line paragraph
+was removed as nonblocking documentation cleanup. Approval remains limited to
+invoice identity/issue-date evidence.

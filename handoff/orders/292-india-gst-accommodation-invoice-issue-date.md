@@ -1,6 +1,6 @@
 # Order 292 — Build exact India GST accommodation invoice-issue-date evidence
 
-**Status:** BUILT-PENDING-REVIEW-D775
+**Status:** APPROVED-D776
 **Phase:** 7 — Tax engine and India IRP  
 **Branch:** `phase-7/india-gst-accommodation-invoice-issue-date`  
 **Base:** `1037f9d` (independently approved Order291 descendant)  
@@ -97,4 +97,4 @@ posting/submission, merge/deploy/Phase7/application-complete claim.
 - [x] Intentional red precedes implementation.
 - [x] Exact schema/RLS/ACL and hostile lineage/non-substitution proof is green.
 - [x] Standing/static/referee gates are green and no authority expands.
-- [ ] Fresh independent Tier-3 approval is recorded.
+- [x] Fresh independent Tier-3 approval is recorded.
