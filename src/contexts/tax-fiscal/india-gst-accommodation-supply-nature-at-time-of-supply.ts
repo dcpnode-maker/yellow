@@ -90,7 +90,8 @@ export interface IndiaGstAccommodationSupplyNatureAtTimeOfSupplyResult {
   readonly recipientSezStatusId: string;
   readonly recipientRegistrationStatusEvidenceHash: string;
   readonly timeOfSupplyDate: string;
-  readonly timeOfSupplyEvidenceHash: string;
+  readonly supplierTimeOfSupplyEvidenceHash: string;
+  readonly recipientTimeOfSupplyEvidenceHash: string;
   readonly result: "supply_nature_and_registrations_bound_at_time_of_supply";
   readonly evidenceHash: string;
 }
@@ -276,7 +277,14 @@ function validateGst(value: unknown, subject: string): void {
   hash(gst.evidenceSha256, `${subject} evidence hash`);
 }
 
-function validateTimeOfSupply(value: unknown, subject: string, tenantId: string): RecordValue {
+type TimeOfSupplyHashMode = "order295" | "order296";
+
+function validateTimeOfSupply(
+  value: unknown,
+  subject: string,
+  tenantId: string,
+  hashMode: TimeOfSupplyHashMode,
+): RecordValue {
   const time = exactRecord(value, TOS_KEYS, subject);
   for (const key of ["serviceProvisionSnapshotId", "paymentReceiptSnapshotId", "invoiceIssueSnapshotId", "propertyNode", "reservationId"] as const) uuid(time[key], `${subject} ${key}`);
   for (const key of ["serviceProvisionDate", "paymentReceiptDate", "invoiceIssueDate", "deadlineDate", "timeOfSupplyDate", "supplierBooksEntryDate", "supplierBankCreditDate"] as const) date(time[key], `${subject} ${key}`);
@@ -309,9 +317,10 @@ function validateTimeOfSupply(value: unknown, subject: string, tenantId: string)
       time.serviceProvisionSource !== "governed_service_provision_record" || time.serviceProvisionLegalRule !== "CGST_ACT_13_2_B_SERVICE_PROVISION_DATE_INPUT_ONLY" || time.paymentReceiptSource !== "governed_supplier_payment_receipt_record" || time.paymentReceiptLegalRule !== "CGST_ACT_13_2_EXPLANATION_II_PAYMENT_RECEIPT_DATE_INPUT_ONLY" || time.invoiceIssueSource !== "governed_supplier_tax_invoice_record" || time.invoiceIssueLegalRule !== "CGST_ACT_13_2_INVOICE_DATE_INPUT_ONLY" ||
       !/^[A-Za-z0-9][A-Za-z0-9._/-]{0,63}$/.test(time.invoiceSeries as string) || !/^[A-Za-z0-9][A-Za-z0-9._/-]{0,63}$/.test(time.invoiceSerial as string)) return fail(`${subject} date and ordinary-regime semantics are inconsistent`);
   const body = Object.fromEntries(TOS_KEYS.slice(0, -1).map((key) => [key, time[key]]));
-  const bodyHash = digest(body);
-  const tenantBodyHash = digest({ tenantId, ...body });
-  if (time.regime !== "ordinary_rule47_30_day" || time.source !== "governed_rule47_ordinary_regime_record" || time.ordinaryRegimeSource !== time.source || time.legalRule !== "CGST_ACT_13_2_A_OR_B_ORDINARY_TIME_OF_SUPPLY" || time.coverageScope !== "full_attribution" || (time.evidenceHash !== bodyHash && time.evidenceHash !== tenantBodyHash)) return fail(`${subject} envelope is inconsistent`);
+  const expectedHash = hashMode === "order295"
+    ? digest(body)
+    : digest({ tenantId, ...body });
+  if (time.regime !== "ordinary_rule47_30_day" || time.source !== "governed_rule47_ordinary_regime_record" || time.ordinaryRegimeSource !== time.source || time.legalRule !== "CGST_ACT_13_2_A_OR_B_ORDINARY_TIME_OF_SUPPLY" || time.coverageScope !== "full_attribution" || time.evidenceHash !== expectedHash) return fail(`${subject} envelope is inconsistent`);
   return time;
 }
 
@@ -328,8 +337,9 @@ function validateSupplier(value: unknown, tenantId: string): IndiaGstRegistratio
   if (location.id !== root.supplierServiceLocationId || supplier.registrationId !== root.supplierRegistrationId) return fail("Order295 supplier timing identity is inconsistent");
   hash(location.evidenceHash, "supplier timing location hash"); hash(supplier.evidenceHash, "supplier timing registration hash"); hash(root.supplierRegistrationStatusEvidenceHash, "supplier timing status hash"); hash(root.timeOfSupplyEvidenceHash, "supplier timing time hash");
   validateGst(root.gstRegistration, "supplier timing GST registration");
-  const time = validateTimeOfSupply(root.timeOfSupply, "Order295 time-of-supply", tenantId);
-  if (time.propertyNode !== propertyNode || time.reservationId !== reservationId || time.timeOfSupplyDate !== timeDate || root.timeOfSupplyEvidenceHash !== time.evidenceHash || root.evidenceHash !== digest(Object.fromEntries(SUPPLIER_KEYS.slice(0, -1).map((key) => [key, root[key]])))) return fail("Order295 supplier timing envelope is inconsistent");
+  const time = validateTimeOfSupply(root.timeOfSupply, "Order295 time-of-supply", tenantId, "order295");
+  const evidence = Object.fromEntries(SUPPLIER_KEYS.slice(0, -1).map((key) => [key, root[key]]));
+  if (time.propertyNode !== propertyNode || time.reservationId !== reservationId || time.timeOfSupplyDate !== timeDate || root.timeOfSupplyEvidenceHash !== time.evidenceHash || root.evidenceHash !== digest({ tenantId, ...evidence })) return fail("Order295 supplier timing envelope is inconsistent");
   assertFrozen(root);
   return root as unknown as IndiaGstRegistrationAtTimeOfSupplyResult;
 }
@@ -348,8 +358,9 @@ function validateRecipient(value: unknown, tenantId: string): IndiaGstRecipientR
   validateGst(root.gstRegistration, "recipient timing GST registration");
   if (root.sezStatus !== "affirmatively_non_sez_regular" && root.sezStatus !== "sez_unit" && root.sezStatus !== "sez_developer") return fail("recipient timing SEZ status is invalid");
   if (root.approval !== null) exactRecord(root.approval, ["form", "reference", "validity", "status", "evidenceSha256"], "recipient timing SEZ approval");
-  const time = validateTimeOfSupply(root.timeOfSupply, "Order296 time-of-supply", tenantId);
-  if (time.propertyNode !== propertyNode || time.reservationId !== reservationId || time.timeOfSupplyDate !== timeDate || root.timeOfSupplyEvidenceHash !== time.evidenceHash || root.evidenceHash !== digest(Object.fromEntries(RECIPIENT_KEYS.slice(0, -1).map((key) => [key, root[key]])))) return fail("Order296 recipient timing envelope is inconsistent");
+  const time = validateTimeOfSupply(root.timeOfSupply, "Order296 time-of-supply", tenantId, "order296");
+  const evidence = Object.fromEntries(RECIPIENT_KEYS.slice(0, -1).map((key) => [key, root[key]]));
+  if (time.propertyNode !== propertyNode || time.reservationId !== reservationId || time.timeOfSupplyDate !== timeDate || root.timeOfSupplyEvidenceHash !== time.evidenceHash || root.evidenceHash !== digest({ tenantId, ...evidence })) return fail("Order296 recipient timing envelope is inconsistent");
   assertFrozen(root);
   return root as unknown as IndiaGstRecipientRegistrationAtTimeOfSupplyResult;
 }
@@ -364,10 +375,10 @@ export function composeIndiaGstAccommodationSupplyNatureAtTimeOfSupply(
   const recipient = validateRecipient(input.recipientRegistrationAtTimeOfSupply, tenantId);
   if (nature.propertyNode !== supplier.propertyNode || nature.propertyNode !== recipient.propertyNode || nature.reservationId !== supplier.reservationId || nature.reservationId !== recipient.reservationId ||
       nature.supplyDate !== supplier.statusAsOf || nature.supplyDate !== recipient.statusAsOf || nature.supplyDate !== supplier.timeOfSupplyDate || nature.supplyDate !== recipient.timeOfSupplyDate ||
-      nature.supplier.registrationId !== supplier.supplier.registrationId || nature.supplier.evidenceHash !== supplier.supplier.evidenceHash || nature.supplier.serviceLocation.id !== supplier.supplierServiceLocation.id || nature.supplier.serviceLocation.evidenceHash !== supplier.supplierServiceLocation.evidenceHash || nature.supplier.status.id !== supplier.supplierGstRegistrationStatusId ||
-      nature.recipient.partyId !== recipient.recipientPartyId || nature.recipient.registrationId !== recipient.recipientRegistrationId || nature.recipient.evidenceHash !== recipient.recipient.evidenceHash || nature.recipient.status.id !== recipient.recipientSezStatusId ||
-      supplier.timeOfSupplyEvidenceHash !== recipient.timeOfSupplyEvidenceHash || !equalTimeOfSupply(supplier.timeOfSupply as unknown as RecordValue, recipient.timeOfSupply as unknown as RecordValue)) return fail("approved roots do not describe one transaction at one time of supply");
-  const body = Object.freeze({ propertyNode: nature.propertyNode, reservationId: nature.reservationId, folioId: nature.folioId, supplyDate: nature.supplyDate, supplyNature: nature.supplyNature, determinationBasis: nature.determinationBasis, sezDirection: nature.sezDirection, legalRule: nature.legalRule, supplierRegistrationId: supplier.supplierRegistrationId, supplierGstRegistrationStatusId: supplier.supplierGstRegistrationStatusId, supplierServiceLocationId: supplier.supplierServiceLocationId, supplierRegistrationStatusEvidenceHash: supplier.supplierRegistrationStatusEvidenceHash, recipientPartyId: recipient.recipientPartyId, recipientRegistrationId: recipient.recipientRegistrationId, recipientSezStatusId: recipient.recipientSezStatusId, recipientRegistrationStatusEvidenceHash: recipient.recipientRegistrationStatusEvidenceHash, timeOfSupplyDate: nature.supplyDate, timeOfSupplyEvidenceHash: supplier.timeOfSupplyEvidenceHash, result: "supply_nature_and_registrations_bound_at_time_of_supply" as const });
+      nature.supplier.registrationId !== supplier.supplier.registrationId || nature.supplier.evidenceHash !== supplier.supplier.evidenceHash || nature.supplier.serviceLocation.id !== supplier.supplierServiceLocation.id || nature.supplier.serviceLocation.evidenceHash !== supplier.supplierServiceLocation.evidenceHash || nature.supplier.status.id !== supplier.supplierGstRegistrationStatusId || nature.supplier.status.evidenceHash !== supplier.supplierRegistrationStatusEvidenceHash || nature.supplier.status.taxpayerType !== supplier.gstRegistration.taxpayerType || nature.supplier.status.sezStatus !== (supplier.gstRegistration.taxpayerType === "regular" ? "affirmatively_non_sez_regular" : supplier.gstRegistration.taxpayerType) ||
+      nature.recipient.partyId !== recipient.recipientPartyId || nature.recipient.registrationId !== recipient.recipientRegistrationId || nature.recipient.evidenceHash !== recipient.recipient.evidenceHash || nature.recipient.status.id !== recipient.recipientSezStatusId || nature.recipient.status.evidenceHash !== recipient.recipientRegistrationStatusEvidenceHash || nature.recipient.status.taxpayerType !== recipient.gstRegistration.taxpayerType || nature.recipient.status.sezStatus !== recipient.sezStatus ||
+       !equalTimeOfSupply(supplier.timeOfSupply as unknown as RecordValue, recipient.timeOfSupply as unknown as RecordValue)) return fail("approved roots do not describe one transaction at one time of supply");
+  const body = Object.freeze({ propertyNode: nature.propertyNode, reservationId: nature.reservationId, folioId: nature.folioId, supplyDate: nature.supplyDate, supplyNature: nature.supplyNature, determinationBasis: nature.determinationBasis, sezDirection: nature.sezDirection, legalRule: nature.legalRule, supplierRegistrationId: supplier.supplierRegistrationId, supplierGstRegistrationStatusId: supplier.supplierGstRegistrationStatusId, supplierServiceLocationId: supplier.supplierServiceLocationId, supplierRegistrationStatusEvidenceHash: supplier.supplierRegistrationStatusEvidenceHash, recipientPartyId: recipient.recipientPartyId, recipientRegistrationId: recipient.recipientRegistrationId, recipientSezStatusId: recipient.recipientSezStatusId, recipientRegistrationStatusEvidenceHash: recipient.recipientRegistrationStatusEvidenceHash, timeOfSupplyDate: nature.supplyDate, supplierTimeOfSupplyEvidenceHash: supplier.timeOfSupplyEvidenceHash, recipientTimeOfSupplyEvidenceHash: recipient.timeOfSupplyEvidenceHash, result: "supply_nature_and_registrations_bound_at_time_of_supply" as const });
   return Object.freeze({ ...body, evidenceHash: digest({ tenantId, ...body }) });
 }
 

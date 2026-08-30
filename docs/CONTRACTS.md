@@ -2233,3 +2233,6 @@ dates to be identical. The result is recursively frozen and tenant-hidden, with 
 mutable, stale, crossed, reduced, surplus or contradictory roots fail closed. No
 buyer/B2B, `Pos`, `SupTyp`, `IgstOnIntra`, rate, levy, tax, document, IRP, writer,
 network, API, UI or database authority is granted.
+The minimized result preserves `supplierTimeOfSupplyEvidenceHash` and
+`recipientTimeOfSupplyEvidenceHash` separately; the predecessor-specific hash
+algorithms are never conflated into one cross-root hash.

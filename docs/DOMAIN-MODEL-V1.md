@@ -1536,3 +1536,7 @@ composition result is the minimized affirmative state
 `supply_nature_and_registrations_bound_at_time_of_supply`; it hides tenant identity
 and retains no GSTIN/address payload. Buyer designation, place of supply, levy,
 rates, tax, documents and IRP submission remain separate boundaries.
+The public evidence projection carries separate supplier and recipient
+time-of-supply hashes, `supplierTimeOfSupplyEvidenceHash` and
+`recipientTimeOfSupplyEvidenceHash`, because their approved predecessor hash
+algorithms differ.

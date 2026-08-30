@@ -14,6 +14,31 @@ const SUPPLIER_STATUS = id(29709), RECIPIENT_STATUS = id(29710), EXTENSION = id(
 const SERVICE = id(29713), PAYMENT = id(29714), INVOICE = id(29715), LINEAGE = id(29716), HOLD = id(29717), ATTRIBUTION = id(29718), SEGMENT = id(29719);
 const DATE = "2043-06-15";
 const QUOTE = "a".repeat(64), SNAPSHOT = "b".repeat(64), HASH = "c".repeat(64);
+const TOS_KEYS = [
+  "serviceProvisionSnapshotId", "paymentReceiptSnapshotId", "invoiceIssueSnapshotId", "propertyNode", "reservationId",
+  "reservationLineage", "attribution", "serviceProvisionDate", "paymentReceiptDate", "invoiceIssueDate", "deadlineDate",
+  "candidateDates", "branch", "timeOfSupplyDate", "regime", "source", "legalRule", "ordinaryRegimeSource",
+  "ordinaryRegimeEvidenceSha256", "invoiceSeries", "invoiceSerial", "supplierBooksEntryDate", "supplierBankCreditDate",
+  "coverageScope", "serviceProvisionSource", "serviceProvisionLegalRule", "paymentReceiptSource", "paymentReceiptLegalRule",
+  "invoiceIssueSource", "invoiceIssueLegalRule", "serviceProvisionEvidenceSha256", "paymentReceiptEvidenceSha256",
+  "invoiceIssueEvidenceSha256", "amountMinor", "currency",
+] as const;
+const SUPPLIER_KEYS = [
+  "supplierRegistrationId", "supplierGstRegistrationStatusId", "supplierServiceLocationId", "propertyNode", "reservationId",
+  "statusAsOf", "timeOfSupplyDate", "result", "supplierServiceLocation", "supplier", "gstRegistration",
+  "supplierRegistrationStatusEvidenceHash", "timeOfSupplyEvidenceHash", "timeOfSupply", "registrationLegalRule",
+  "timeOfSupplyLegalRule",
+] as const;
+const RECIPIENT_KEYS = [
+  "recipientPartyId", "recipientRegistrationId", "recipientSezStatusId", "propertyNode", "reservationId", "statusAsOf",
+  "timeOfSupplyDate", "result", "recipient", "gstRegistration", "sezStatus", "approval",
+  "recipientRegistrationStatusEvidenceHash", "timeOfSupplyEvidenceHash", "timeOfSupply", "recipientRegistrationLegalRule",
+  "timeOfSupplyLegalRule",
+] as const;
+const SUPPLY_KEYS = [
+  "propertyNode", "reservationId", "folioId", "supplyDate", "jurisdiction", "supplier", "recipient", "buyerAssociation",
+  "classification", "placeOfSupply", "registeredStateComparison", "supplyNature", "determinationBasis", "sezDirection", "legalRule",
+] as const;
 const freeze = <T>(v: T, seen = new Set<object>()): T => {
   if (typeof v !== "object" || v === null || seen.has(v)) return v;
   seen.add(v); for (const k of Reflect.ownKeys(v)) freeze((v as Mutable)[k], seen);
@@ -42,18 +67,18 @@ function supplyNature() {
   return freeze({ ...candidate, candidateJson, candidateHash: digest({ tenantId: TENANT, candidate }) });
 }
 
-function timeOfSupply() {
+function timeOfSupply(tenantBound = false) {
   const body = {
     serviceProvisionSnapshotId: SERVICE, paymentReceiptSnapshotId: PAYMENT, invoiceIssueSnapshotId: INVOICE,
     propertyNode: PROPERTY, reservationId: RESERVATION,
     reservationLineage: { lineageId: LINEAGE, holdBindingId: HOLD, attributionId: ATTRIBUTION, reservationId: RESERVATION, segmentId: SEGMENT, originQuoteHash: QUOTE, snapshotHash: SNAPSHOT, currency: "INR" },
     attribution: { originKind: "rate_quote", lineId: "room", revenueGroup: "room_revenue" }, serviceProvisionDate: "2043-06-01", paymentReceiptDate: DATE, invoiceIssueDate: "2043-07-01", deadlineDate: "2043-07-01", candidateDates: { invoiceIssueDate: "2043-07-01", paymentReceiptDate: DATE }, branch: "section13_2_a_invoice_or_payment", timeOfSupplyDate: DATE, regime: "ordinary_rule47_30_day", source: "governed_rule47_ordinary_regime_record", legalRule: "CGST_ACT_13_2_A_OR_B_ORDINARY_TIME_OF_SUPPLY", ordinaryRegimeSource: "governed_rule47_ordinary_regime_record", ordinaryRegimeEvidenceSha256: "8".repeat(64), invoiceSeries: "FY2043", invoiceSerial: "000297", supplierBooksEntryDate: DATE, supplierBankCreditDate: DATE, coverageScope: "full_attribution", serviceProvisionSource: "governed_service_provision_record", serviceProvisionLegalRule: "CGST_ACT_13_2_B_SERVICE_PROVISION_DATE_INPUT_ONLY", paymentReceiptSource: "governed_supplier_payment_receipt_record", paymentReceiptLegalRule: "CGST_ACT_13_2_EXPLANATION_II_PAYMENT_RECEIPT_DATE_INPUT_ONLY", invoiceIssueSource: "governed_supplier_tax_invoice_record", invoiceIssueLegalRule: "CGST_ACT_13_2_INVOICE_DATE_INPUT_ONLY", serviceProvisionEvidenceSha256: "9".repeat(64), paymentReceiptEvidenceSha256: "a".repeat(64), invoiceIssueEvidenceSha256: "b".repeat(64), amountMinor: "10500", currency: "INR",
   };
-  return freeze({ ...body, evidenceHash: digest(body) });
+  return freeze({ ...body, evidenceHash: tenantBound ? digest({ tenantId: TENANT, ...body }) : digest(body) });
 }
 
 function supplier() {
-  const tos = timeOfSupply();
+  const tos = timeOfSupply(false);
   const evidence = {
     supplierRegistrationId: SUPPLIER,
     supplierGstRegistrationStatusId: SUPPLIER_STATUS,
@@ -72,11 +97,11 @@ function supplier() {
     registrationLegalRule: "CGST_ACT_25_29_30_AND_RULE_21A_REGISTRATION_STATUS",
     timeOfSupplyLegalRule: "CGST_ACT_13_2_A_OR_B_ORDINARY_TIME_OF_SUPPLY",
   };
-  return freeze({ ...evidence, evidenceHash: digest(evidence) });
+  return freeze({ ...evidence, evidenceHash: digest({ tenantId: TENANT, ...evidence }) });
 }
 
 function recipient() {
-  const tos = timeOfSupply();
+  const tos = timeOfSupply(true);
   const evidence = {
     recipientPartyId: RECIPIENT_PARTY,
     recipientRegistrationId: RECIPIENT,
@@ -96,11 +121,30 @@ function recipient() {
     recipientRegistrationLegalRule: "IGST_ACT_7_5_B_AND_8_2_RECIPIENT_STATUS",
     timeOfSupplyLegalRule: "CGST_ACT_13_2_A_OR_B_ORDINARY_TIME_OF_SUPPLY",
   };
-  return freeze({ ...evidence, evidenceHash: digest(evidence) });
+  return freeze({ ...evidence, evidenceHash: digest({ tenantId: TENANT, ...evidence }) });
 }
 
 const base = () => freeze({ tenantId: TENANT, supplyNature: supplyNature(), supplierRegistrationAtTimeOfSupply: supplier(), recipientRegistrationAtTimeOfSupply: recipient() });
 const tx = (input: unknown) => input;
+const bodyWithoutHash = (value: Mutable, keys: readonly string[]) => Object.fromEntries(keys.map((key) => [key, value[key]]));
+const tosBody = (value: Mutable) => Object.fromEntries(TOS_KEYS.map((key) => [key, value[key]]));
+const rehashTime = (value: Mutable, tenantBound: boolean) => {
+  const body = tosBody(value);
+  value.evidenceHash = tenantBound ? digest({ tenantId: TENANT, ...body }) : digest(body);
+};
+const rehashSupplier = (value: Mutable) => {
+  value.timeOfSupplyEvidenceHash = value.timeOfSupply.evidenceHash;
+  value.evidenceHash = digest(bodyWithoutHash(value, SUPPLIER_KEYS));
+};
+const rehashRecipient = (value: Mutable) => {
+  value.timeOfSupplyEvidenceHash = value.timeOfSupply.evidenceHash;
+  value.evidenceHash = digest(bodyWithoutHash(value, RECIPIENT_KEYS));
+};
+const rehashSupplyNature = (value: Mutable) => {
+  const candidate = bodyWithoutHash(value, SUPPLY_KEYS);
+  value.candidateJson = JSON.stringify(candidate);
+  value.candidateHash = digest({ tenantId: TENANT, candidate });
+};
 
 describe("Order 297 complete-root GST applicability binding", () => {
   test("composes same transaction/date and returns minimized frozen evidence deterministically", () => {
@@ -112,6 +156,9 @@ describe("Order 297 complete-root GST applicability binding", () => {
     expect(first.propertyNode).toBe(PROPERTY);
     expect(first.reservationId).toBe(RESERVATION);
     expect(first.supplyDate).toBe(DATE);
+    expect(first.supplierTimeOfSupplyEvidenceHash).toBe(input.supplierRegistrationAtTimeOfSupply.timeOfSupplyEvidenceHash);
+    expect(first.recipientTimeOfSupplyEvidenceHash).toBe(input.recipientRegistrationAtTimeOfSupply.timeOfSupplyEvidenceHash);
+    expect(first).not.toHaveProperty("timeOfSupplyEvidenceHash");
     expect(first).not.toHaveProperty("tenantId");
     expect(JSON.stringify(first)).not.toContain(TENANT);
     expect(Object.keys(first).sort()).toEqual([
@@ -119,7 +166,7 @@ describe("Order 297 complete-root GST applicability binding", () => {
       "recipientRegistrationId", "recipientRegistrationStatusEvidenceHash", "recipientSezStatusId",
       "reservationId", "result", "sezDirection", "supplyDate", "supplyNature",
       "supplierGstRegistrationStatusId", "supplierRegistrationId", "supplierRegistrationStatusEvidenceHash",
-      "supplierServiceLocationId", "timeOfSupplyDate", "timeOfSupplyEvidenceHash", "determinationBasis",
+      "supplierServiceLocationId", "timeOfSupplyDate", "supplierTimeOfSupplyEvidenceHash", "recipientTimeOfSupplyEvidenceHash", "determinationBasis",
     ].sort());
     expect(first).not.toHaveProperty("gstin");
     expect(first).not.toHaveProperty("address");
@@ -194,6 +241,34 @@ describe("Order 297 complete-root GST applicability binding", () => {
       const candidate = clone(base()) as Mutable; mutate(candidate); freeze(candidate);
       expect(() => composeIndiaGstAccommodationSupplyNatureAtTimeOfSupply(candidate as never)).toThrow(IndiaGstAccommodationSupplyNatureAtTimeOfSupplyConflictError);
     }
+  });
+
+  test("rejects self-consistent Order287 status-evidence crossings after candidate replay", () => {
+    const supplierStatus = clone(base()) as Mutable;
+    supplierStatus.supplyNature.supplier.status.evidenceHash = "0".repeat(64);
+    rehashSupplyNature(supplierStatus.supplyNature);
+    freeze(supplierStatus);
+    expect(() => composeIndiaGstAccommodationSupplyNatureAtTimeOfSupply(supplierStatus as never)).toThrow(IndiaGstAccommodationSupplyNatureAtTimeOfSupplyConflictError);
+
+    const recipientStatus = clone(base()) as Mutable;
+    recipientStatus.supplyNature.recipient.status.evidenceHash = "0".repeat(64);
+    rehashSupplyNature(recipientStatus.supplyNature);
+    freeze(recipientStatus);
+    expect(() => composeIndiaGstAccommodationSupplyNatureAtTimeOfSupply(recipientStatus as never)).toThrow(IndiaGstAccommodationSupplyNatureAtTimeOfSupplyConflictError);
+  });
+
+  test("rejects self-consistent roots using the wrong predecessor-specific time hash algorithm", () => {
+    const supplierTenantHash = clone(base()) as Mutable;
+    rehashTime(supplierTenantHash.supplierRegistrationAtTimeOfSupply.timeOfSupply, true);
+    rehashSupplier(supplierTenantHash.supplierRegistrationAtTimeOfSupply);
+    freeze(supplierTenantHash);
+    expect(() => composeIndiaGstAccommodationSupplyNatureAtTimeOfSupply(supplierTenantHash as never)).toThrow(IndiaGstAccommodationSupplyNatureAtTimeOfSupplyConflictError);
+
+    const recipientPublicHash = clone(base()) as Mutable;
+    rehashTime(recipientPublicHash.recipientRegistrationAtTimeOfSupply.timeOfSupply, false);
+    rehashRecipient(recipientPublicHash.recipientRegistrationAtTimeOfSupply);
+    freeze(recipientPublicHash);
+    expect(() => composeIndiaGstAccommodationSupplyNatureAtTimeOfSupply(recipientPublicHash as never)).toThrow(IndiaGstAccommodationSupplyNatureAtTimeOfSupplyConflictError);
   });
 
   test("returns only applicability evidence and has no write, clock, network or downstream tax authority", async () => {

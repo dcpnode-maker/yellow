@@ -1258,3 +1258,6 @@ write, clock, network call or predecessor resolver call. Proxy/accessor/symbol,
 surplus, reduced, stale, cross-tenant, cross-lineage and caller-hash-only inputs fail
 closed. The output grants no buyer/B2B, place-of-supply, `Pos`, `SupTyp`,
 `IgstOnIntra`, rate, levy, tax, document, IRP, API or UI authority.
+The output exposes `supplierTimeOfSupplyEvidenceHash` and
+`recipientTimeOfSupplyEvidenceHash` as distinct frozen evidence fields; it never
+collapses the approved Order295 non-tenant and Order296 tenant-bound hashes.

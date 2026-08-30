@@ -1,8 +1,8 @@
 # Order 297 — Bind India GST accommodation supply nature at time of supply
 
-**Branch:** `phase-7/india-gst-accommodation-supply-nature-at-time-of-supply`  
-**Base:** `a9cb63e` (independently approved Order296 governance descendant)  
-**Risk tier:** 3 — statutory supply-nature applicability composition; fresh independent executable review mandatory  
+**Branch:** `phase-7/india-gst-accommodation-supply-nature-at-time-of-supply`
+**Base:** `a9cb63e` (independently approved Order296 governance descendant)
+**Risk tier:** 3 — statutory supply-nature applicability composition; fresh independent executable review mandatory
 **Owner:** Codex implementation
 
 ## Outcome
