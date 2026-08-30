@@ -493,6 +493,16 @@ Reviewer-personal official-law, database, seeded resolver, schema/setup/referee,
 standing/static and stable-runtime proof are green; approval remains limited to
 full-attribution payment-receipt evidence and grants no downstream authority.
 
+## Order 292 boundary
+
+Order292/D-774 is ready after approved Order291: an exact tenant-leading forced-RLS
+SELECT-only full-attribution invoice-issue-date evidence root bound to complete
+Order290→252→240 truth. It preserves only external invoice series/serial and issue
+date for later Rule47 and section13 composition. No invoice writer, rendering,
+validity/numbering/timeliness decision, IRP, document, API/UI/local or application-
+complete authority is admitted; exact `58/110/100/100/10` setup/referee and fresh
+Tier3 review remain mandatory.
+
 ## Order 286 boundary
 
 Order286 adds one explicit tenant/RLS/SELECT-only supplier status root bound to the

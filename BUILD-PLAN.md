@@ -1028,3 +1028,11 @@ journal, document, folio, operational or clock timestamps and admits no partial/
 refund allocation, invoice/timeliness or time-of-supply result. Exact
 `57/109/99/99/9` schema, hostile zero-write/non-substitution proof, referee `11/11`
 and fresh Tier3 are mandatory. D-772 records focused8/0(105), acceptance22/0(63), runtime-DML5/0(116), migration39/0(187), exact57/109/99/99/9, setup/referee11/11, standing992/0 plus869 skips(15377), schema SHA `400a7da729b8fad3c0def0a22f0a8eda43a68021898ed495060c158ce7b81dbe`, and type/boundary/license/audit/diff green. D-773 records fresh non-implementing Tier3 approval of exact candidate `10e9adf` with no finding; approval remains limited to the full-attribution payment-receipt evidence input.
+
+**Ready Order292 accommodation invoice-issue-date evidence:** following approved
+Order291/D-773, add one exact tenant-leading forced-RLS SELECT-only full-attribution
+external tax-invoice issue-date input bound to Order290/252/240 truth. Preserve only
+invoice series/serial and issue date for later Rule47/section13 composition; do not
+issue an invoice or decide validity, numbering, timeliness or time of supply. D-774
+requires fresh intentional-red, exact `58/110/100/100/10` schema/setup/referee and
+independent Tier3 review; no writer, rendering, IRP, API/UI/local or completion authority.

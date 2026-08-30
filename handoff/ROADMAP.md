@@ -432,6 +432,14 @@ plus869 skips(15377), type/114-boundary/23-license/audit0/diff green, schema SHA
 `400a7da729b8fad3c0def0a22f0a8eda43a68021898ed495060c158ce7b81dbe`;
 fresh independent Tier3 approval under D-773 found no issue for exact candidate `10e9adf`; approval remains limited to the full-attribution payment-receipt evidence input;
 tax/document/API/UI/local authority remain separate.
+
+Order292/D-774 is ready as the next prerequisite after approved Order291: one
+externally evidenced full-attribution accommodation tax-invoice issue-date input
+bound to Order290/252/240 truth. It preserves invoice series, serial and issue date
+only for later Rule47/section13 composition; it does not issue an invoice or decide
+validity, numbering, timeliness or time of supply. Exact `58/110/100/100/10`
+schema/setup/referee and fresh independent Tier3 proof are mandatory; writer,
+rendering, IRP and API/UI/local authority remain excluded.
 Fresh non-implementing Tier-3 review approves exact candidate `8630639` with no
 finding under D-751. Reviewer-personal official-law, exact52/104/94/94/4,
 schema/setup/referee11/11, focused/database/standing/static and stable-runtime proof
