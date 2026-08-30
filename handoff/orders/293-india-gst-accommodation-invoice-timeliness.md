@@ -61,4 +61,4 @@ must fail closed rather than produce `timely` or `late`.
 - [x] Intentional red precedes implementation.
 - [x] Exact pure input/output and hostile fail-closed proof is green.
 - [x] Standing/static gates are green and no authority expands.
-- [ ] Fresh independent Tier-3 approval is recorded.
+- [x] Fresh independent Tier-3 approval is recorded (`D-783`, exact candidate `89e6bdcd32233fe7eb6d21c752831d31f75a2e71`).
