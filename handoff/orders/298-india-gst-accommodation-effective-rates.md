@@ -63,4 +63,4 @@ submission, API/UI/local promotion, merge/deploy or Phase/application-complete c
 - [x] Intentional red proves the stale nil/5% launch fixture before correction.
 - [x] Exact sourced 12%/18% boundaries and quote-preview behavior are green.
 - [x] Standing/static/setup/referee preservation gates are green.
-- [ ] Fresh independent Tier-3 approval is recorded against the exact candidate.
+- [x] Fresh independent Tier-3 approval is recorded against the exact candidate.
