@@ -89,6 +89,18 @@ function serviceWith(
       calls.push(tenantId);
       return visible;
     },
+    async readVisibleEffectivePeriod(tenantId: string, extensionId: string) {
+      const selected = visible.find((candidate) => candidate.id === extensionId);
+      if (!selected || (selected.tenantId !== null && selected.tenantId !== tenantId)) {
+        throw new Error("mock effective-period row is not visible");
+      }
+      return Object.freeze({
+        extensionId,
+        ownerTenantId: selected.tenantId,
+        effectiveFromInstant: "2026-01-01T00:00:00.000000Z",
+        effectiveToInstant: null,
+      });
+    },
   } as unknown as ExtensionRegistry;
   return new TaxJurisdictionResolutionService(registry);
 }
@@ -164,6 +176,8 @@ describe("Order 238 effective tax-jurisdiction resolver pure contract", () => {
       ownerTenantId: null,
       key: GLOBAL_KEY,
       version: 1,
+      effectiveFromInstant: "2026-01-01T00:00:00.000000Z",
+      effectiveToInstant: null,
     });
     expect(registryCalls).toEqual([TENANT_A]);
   });
@@ -194,6 +208,8 @@ describe("Order 238 effective tax-jurisdiction resolver pure contract", () => {
       ownerTenantId: TENANT_A,
       key: TENANT_KEY,
       version: 7,
+      effectiveFromInstant: "2026-01-01T00:00:00.000000Z",
+      effectiveToInstant: null,
     });
   });
 

@@ -574,3 +574,10 @@ Correct the quarantined 2026 India hotel-accommodation extension to sourced 12%/
 value-of-supply bands using the existing effective-dated extension and evaluator.
 Prove exact INR7,500 boundary behavior; do not infer section14, SEZ zero-rating,
 decomposition, fiscal document, API/UI or local authority.
+
+## Order299 roadmap entry
+
+Expose and preserve the exact effective-period bounds of the already-selected tax
+extension through a narrow tenant-safe runtime capability. This is evidence plumbing,
+not date-to-instant applicability or tax computation; all downstream fiscal behavior
+remains separately ordered.

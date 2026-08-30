@@ -1111,3 +1111,11 @@ nil/5/18 India accommodation fixture for the explicit 2026 extension with source
 effective-dated extension/assignment/evaluator architecture; no migration, section14,
 SEZ zero-rating, decomposition, document/IRP/API/UI/local authority. D-810 requires
 intentional red, exact boundary proof, setup/referee preservation and fresh Tier3.
+
+**Ready Order299 tax-extension effective-period evidence:** add one narrow
+runtime-only PostgreSQL projection for the exact lower/upper `tstzrange` bounds of an
+already-selected tenant-visible extension id, then bind those bounds into Order238's
+frozen jurisdiction evidence. This closes only the documented temporal-evidence gap;
+it does not map a property-local date to an instant, select by clock/latest, decide
+applicability, calculate tax, decompose GST or authorize fiscal/UI work. D-817 requires
+intentional red, hostile tenant/role/temp-shadow proof, setup/referee and fresh Tier3.

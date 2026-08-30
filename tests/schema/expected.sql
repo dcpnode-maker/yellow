@@ -6142,6 +6142,66 @@ $_$;
 
 
 --
+-- Name: runtime_visible_extension_effective_period(uuid, uuid); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.runtime_visible_extension_effective_period(p_tenant uuid, p_extension uuid) RETURNS TABLE(extension_id uuid, owner_tenant_id uuid, effective_from_instant timestamp with time zone, effective_to_instant timestamp with time zone)
+    LANGUAGE plpgsql STABLE SECURITY DEFINER
+    SET search_path TO 'pg_catalog', 'public', 'pg_temp'
+    AS $$
+DECLARE
+  v_ranges tstzrange[];
+  v_extension_ids uuid[];
+  v_owner_tenant_ids uuid[];
+  v_effective tstzrange;
+BEGIN
+  IF session_user <> 'yellow_runtime' THEN
+    RAISE EXCEPTION 'extension effective-period capability requires yellow_runtime'
+      USING ERRCODE = '42501';
+  END IF;
+  IF p_tenant IS NULL OR p_extension IS NULL THEN
+    RAISE EXCEPTION 'tenant id and selected extension id are required'
+      USING ERRCODE = '22023';
+  END IF;
+
+  SELECT pg_catalog.array_agg(e.id ORDER BY e.id),
+         pg_catalog.array_agg(e.tenant_id ORDER BY e.id),
+         pg_catalog.array_agg(e.effective ORDER BY e.id)
+    INTO v_extension_ids, v_owner_tenant_ids, v_ranges
+    FROM public.extension AS e
+   WHERE e.id = p_extension
+     AND (e.tenant_id IS NULL OR e.tenant_id = p_tenant);
+
+  IF COALESCE(pg_catalog.cardinality(v_ranges), 0) <> 1 THEN
+    RAISE EXCEPTION 'selected visible extension identity is invalid'
+      USING ERRCODE = '22023';
+  END IF;
+  v_effective := v_ranges[1];
+
+  IF v_effective IS NULL
+     OR pg_catalog.isempty(v_effective)
+     OR (NOT pg_catalog.lower_inf(v_effective)
+         AND (NOT pg_catalog.isfinite(pg_catalog.lower(v_effective))
+              OR NOT pg_catalog.lower_inc(v_effective)))
+     OR (NOT pg_catalog.upper_inf(v_effective)
+         AND (NOT pg_catalog.isfinite(pg_catalog.upper(v_effective))
+              OR pg_catalog.upper_inc(v_effective))) THEN
+    RAISE EXCEPTION 'selected extension effective period is malformed'
+      USING ERRCODE = '22023';
+  END IF;
+
+  RETURN QUERY SELECT
+    v_extension_ids[1],
+    v_owner_tenant_ids[1],
+    CASE WHEN pg_catalog.lower_inf(v_effective)
+      THEN NULL::timestamptz ELSE pg_catalog.lower(v_effective) END,
+    CASE WHEN pg_catalog.upper_inf(v_effective)
+      THEN NULL::timestamptz ELSE pg_catalog.upper(v_effective) END;
+END
+$$;
+
+
+--
 -- Name: runtime_visible_extensions(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -14286,6 +14346,14 @@ GRANT ALL ON FUNCTION public.runtime_prune_outbox(p_retention_seconds integer) T
 
 REVOKE ALL ON FUNCTION public.runtime_resolve_active_tenant(p_slug text) FROM PUBLIC;
 GRANT ALL ON FUNCTION public.runtime_resolve_active_tenant(p_slug text) TO yellow_runtime;
+
+
+--
+-- Name: FUNCTION runtime_visible_extension_effective_period(p_tenant uuid, p_extension uuid); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.runtime_visible_extension_effective_period(p_tenant uuid, p_extension uuid) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.runtime_visible_extension_effective_period(p_tenant uuid, p_extension uuid) TO yellow_runtime;
 
 
 --

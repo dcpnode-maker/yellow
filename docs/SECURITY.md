@@ -164,17 +164,18 @@ caller-supplied tenant, jurisdiction key, extension id, version, content or prec
 is trusted. Missing assignment is explicit, overlap fails closed and `[)` range
 semantics require no process clock or timezone inference.
 
-Global-plus-tenant extension visibility remains confined to the existing
-yellow-runtime-only `ExtensionRegistry.listVisible()` adapter. There is no raw
-extension-table read, new database capability, RLS/ACL change or app-role/PUBLIC
-access. Exactly one active visible matching `tax_jurisdiction` is required; ambiguity
-fails rather than selecting by tenant ownership or row order. Because the adapter
-does not expose `extension.effective`, the resolver cannot assert or defeat extension
-temporal applicability.
+Global-plus-tenant extension visibility remains confined to yellow-runtime-only
+registry projections. After `ExtensionRegistry.listVisible()` selects exactly one
+active jurisdiction, `readVisibleEffectivePeriod(tenant,id)` may read only that
+row's identity and `tstzrange` bounds. PUBLIC and `app_role` have no execute grant;
+foreign, missing, malformed, ambiguous or identity-changed results fail closed. The
+canonical UTC bounds are evidence only and grant no clock, timezone conversion or
+temporal-containment authority.
 
 The recursively copied result is deeply frozen and binds exact assignment bounds,
-extension identity/version, canonical content, SHA-256 content hash and deterministic
-evidence references. Resolution writes no assignment, extension, fact, outbox,
+extension identity/version/effective bounds, canonical content, SHA-256 content hash
+and deterministic evidence references. Either bound changes the jurisdiction
+reference. Resolution writes no assignment, extension, fact, outbox,
 journal, posting, document, series/hash, submission or provider state and emits no
 event. Its evidence permits only later pure calculation; it is not quote, posting,
 fiscal-issue or legal-invoice authority.

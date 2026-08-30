@@ -511,10 +511,11 @@ adapter. Missing or multiple active versions fail closed, with no tenant-over-gl
 preference.
 
 The resolved value binds exact assignment bounds, extension id and owner, key,
-version, canonical copied content, SHA-256 content hash and deterministic evidence
-references, and is deeply frozen. The extension adapter does not expose
-`extension.effective`; resolution therefore neither interprets nor bypasses that
-field. The service creates no entity, emits no event and changes no configuration or
+version, exact database-derived effective-period UTC bounds (nullable when
+unbounded), canonical copied content, SHA-256 content hash and deterministic evidence
+references, and is deeply frozen. The bounds enter the jurisdiction reference;
+resolution does not map a property-local date to an instant or decide containment in
+the `tstzrange`. The service creates no entity, emits no event and changes no configuration or
 financial/fiscal state. Its output authorizes only a later invocation of the pure tax
 evaluator.
 

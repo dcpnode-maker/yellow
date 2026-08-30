@@ -460,12 +460,17 @@ An assigned key is resolved only through `ExtensionRegistry.listVisible()` using
 database-derived tenant. Exactly one visible active `tax_jurisdiction` row with that
 key is required across the existing platform-global-plus-tenant result; zero or
 multiple active versions fail closed, and no tenant-over-global preference is
-invented. The approved adapter does not expose `extension.effective`, so this
-contract neither applies nor bypasses that temporal meaning.
+invented. After selecting that exact row, the resolver uses the narrow runtime-only
+`runtime_visible_extension_effective_period(tenant,id)` projection. It preserves the
+database `tstzrange` bounds as canonical UTC instants (or null for an unbounded end),
+rechecks extension id and owner, and fails closed on malformed or changed identity.
+The bounds are evidence only: this contract does not convert the property-local date
+to an instant or decide containment by the extension period.
 
 A resolved value deeply freezes the exact assignment bounds and extension
-id/owner/key/version, a recursively canonical copied content value, its SHA-256 hash
-and deterministic evidence references. It is input authority for the pure evaluator
+id/owner/key/version/effective UTC bounds, a recursively canonical copied content
+value, its SHA-256 hash and deterministic evidence references. Either bound changes
+the jurisdiction evidence reference. It is input authority for the pure evaluator
 only. Resolution performs no calculation or write and authorizes no quote, posting,
 journal, document, number/hash chain, provider action, fiscal submission, fact or
 event.

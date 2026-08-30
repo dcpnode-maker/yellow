@@ -62,6 +62,13 @@ export interface ExtensionInstance {
   readonly status: "draft" | "active" | "retired";
 }
 
+export interface VisibleExtensionEffectivePeriod {
+  readonly extensionId: string;
+  readonly ownerTenantId: string | null;
+  readonly effectiveFromInstant: string | null;
+  readonly effectiveToInstant: string | null;
+}
+
 export interface CompatibilityFailure {
   readonly extensionId: string;
   readonly issues: readonly ValidationIssue[];
@@ -75,6 +82,23 @@ interface ExtensionRow {
   readonly version: number;
   readonly content: JsonObject;
   readonly status: ExtensionInstance["status"];
+}
+
+interface VisibleExtensionEffectivePeriodRow {
+  readonly extension_id: string;
+  readonly owner_tenant_id: string | null;
+  readonly effective_from_instant: unknown;
+  readonly effective_to_instant: unknown;
+}
+
+function canonicalUtcInstant(value: unknown, subject: string): string {
+  if (typeof value !== "string"
+      || !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{6}Z$/.test(value)) {
+    throw new Error(`${subject} is not a valid UTC instant`);
+  }
+  const parsed = new Date(value);
+  if (!Number.isFinite(parsed.getTime())) throw new Error(`${subject} is not a valid UTC instant`);
+  return value;
 }
 
 function isObject(value: unknown): value is JsonObject {
@@ -417,6 +441,48 @@ export class ExtensionRegistry {
         FROM runtime_visible_extensions(${tenantId}::uuid)
       `;
       return rows.map(toInstance);
+    } finally {
+      connection.release();
+    }
+  }
+
+  async readVisibleEffectivePeriod(
+    tenantId: string,
+    extensionId: string,
+  ): Promise<VisibleExtensionEffectivePeriod> {
+    const connection = await this.#platformPool.reserve();
+    try {
+      const rows = await connection<VisibleExtensionEffectivePeriodRow[]>`
+        SELECT extension_id, owner_tenant_id,
+               CASE WHEN effective_from_instant IS NULL THEN NULL
+                    ELSE pg_catalog.to_char(
+                      effective_from_instant AT TIME ZONE 'UTC',
+                      'YYYY-MM-DD"T"HH24:MI:SS.US"Z"'
+                    ) END AS effective_from_instant,
+               CASE WHEN effective_to_instant IS NULL THEN NULL
+                    ELSE pg_catalog.to_char(
+                      effective_to_instant AT TIME ZONE 'UTC',
+                      'YYYY-MM-DD"T"HH24:MI:SS.US"Z"'
+                    ) END AS effective_to_instant
+        FROM public.runtime_visible_extension_effective_period(
+          ${tenantId}::uuid,
+          ${extensionId}::uuid
+        )
+      `;
+      const row = rows[0];
+      if (rows.length !== 1 || !row) {
+        throw new Error("PostgreSQL did not return one visible extension effective period");
+      }
+      return Object.freeze({
+        extensionId: row.extension_id,
+        ownerTenantId: row.owner_tenant_id,
+        effectiveFromInstant: row.effective_from_instant === null
+          ? null
+          : canonicalUtcInstant(row.effective_from_instant, "extension effective lower bound"),
+        effectiveToInstant: row.effective_to_instant === null
+          ? null
+          : canonicalUtcInstant(row.effective_to_instant, "extension effective upper bound"),
+      });
     } finally {
       connection.release();
     }

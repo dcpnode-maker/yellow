@@ -663,3 +663,12 @@ D-791-quarantined launch nil/5/18 fixture. Existing extension effective periods,
 assignment resolution and the typed evaluator remain unchanged; there is no
 migration, section14, SEZ zero-rating, decomposition, document/IRP/API/UI/local
 authority. D-810 requires exact boundaries and fresh Tier3 statutory review.
+
+## Order 299 boundary
+
+Order299 exposes only the exact lower/upper instant bounds of one already-selected
+tenant-visible extension id through a narrow yellow-runtime-only projection and binds
+them into immutable tax-jurisdiction evidence. It does not interpret a property date
+as an instant or determine extension applicability, and adds no rate calculation,
+section14, decomposition, posting, document, IRP, API/UI or local authority. D-817
+requires role/tenant/temp-shadow hostile proof, fresh setup/referee and fresh Tier3.

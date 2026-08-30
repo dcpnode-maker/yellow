@@ -1,7 +1,12 @@
-import type { ExtensionInstance, ExtensionRegistry, Tx } from "../../kernel";
+import type {
+  ExtensionInstance,
+  ExtensionRegistry,
+  Tx,
+} from "../../kernel";
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 const DATE = /^(\d{4})-(\d{2})-(\d{2})$/;
+const UTC_INSTANT = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})\.(\d{6})Z$/;
 const JURISDICTION_KEY = /^[a-z0-9][a-z0-9_.:-]{0,127}$/;
 const MAX_CONTENT_DEPTH = 64;
 const MAX_CONTENT_NODES = 10_000;
@@ -28,7 +33,10 @@ interface CanonicalValue {
   readonly encoded: string;
 }
 
-type VisibleExtensionRegistry = Pick<ExtensionRegistry, "listVisible">;
+type VisibleExtensionRegistry = Pick<ExtensionRegistry, "listVisible" | "readVisibleEffectivePeriod">;
+type VisibleExtensionEffectivePeriod = Awaited<
+  ReturnType<VisibleExtensionRegistry["readVisibleEffectivePeriod"]>
+>;
 
 export interface ResolveTaxJurisdictionInput {
   readonly propertyNode: string;
@@ -49,6 +57,8 @@ export interface TaxJurisdictionResolutionEvidence {
   readonly version: number;
   readonly content: Readonly<Record<string, unknown>>;
   readonly contentHash: string;
+  readonly effectiveFromInstant: string | null;
+  readonly effectiveToInstant: string | null;
   readonly evidenceRef: string;
 }
 
@@ -122,6 +132,20 @@ function requireDate(value: unknown, subject: string): string {
   if (year < 1 || month < 1 || month > 12 || day < 1) fail(`${subject} is not a calendar date`);
   const daysInMonth = [31, isLeapYear(year) ? 29 : 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
   if (day > (daysInMonth[month - 1] ?? 0)) fail(`${subject} is not a calendar date`);
+  return value;
+}
+
+function requireCanonicalUtcInstant(value: unknown, subject: string): string {
+  if (typeof value !== "string") fail(`${subject} must be a canonical UTC instant`);
+  const match = UTC_INSTANT.exec(value);
+  if (!match) fail(`${subject} must be a canonical UTC instant`);
+  requireDate(`${match[1]}-${match[2]}-${match[3]}`, subject);
+  const hour = Number(match[4]);
+  const minute = Number(match[5]);
+  const second = Number(match[6]);
+  if (hour > 23 || minute > 59 || second > 59) {
+    fail(`${subject} must be a canonical UTC instant`);
+  }
   return value;
 }
 
@@ -267,7 +291,7 @@ function normalizeExtension(
   extension: ExtensionInstance,
   tenantId: string,
   jurisdictionKey: string,
-): Omit<TaxJurisdictionResolutionEvidence, "evidenceRef"> {
+): Omit<TaxJurisdictionResolutionEvidence, "evidenceRef" | "effectiveFromInstant" | "effectiveToInstant"> {
   requirePlainRecord(extension, "visible extension");
   const extensionId = requireUuid(extension.id, "extension id");
   const ownerTenantId = extension.tenantId === null
@@ -286,11 +310,45 @@ function normalizeExtension(
   return { extensionId, ownerTenantId, key, version, content, contentHash: sha256(encoded) };
 }
 
+
+function normalizeEffectivePeriod(
+  period: VisibleExtensionEffectivePeriod,
+  selected: Omit<TaxJurisdictionResolutionEvidence, "evidenceRef" | "effectiveFromInstant" | "effectiveToInstant">,
+): Pick<TaxJurisdictionResolutionEvidence, "effectiveFromInstant" | "effectiveToInstant"> {
+  requirePlainRecord(period, "visible extension effective period");
+  requireExactKeys(period, [
+    "extensionId",
+    "ownerTenantId",
+    "effectiveFromInstant",
+    "effectiveToInstant",
+  ], "visible extension effective period");
+  const extensionId = requireUuid(period.extensionId, "effective-period extension id");
+  const ownerTenantId = period.ownerTenantId === null
+    ? null
+    : requireUuid(period.ownerTenantId, "effective-period owner tenant id");
+  if (extensionId !== selected.extensionId || ownerTenantId !== selected.ownerTenantId) {
+    fail("extension identity changed while reading its effective period");
+  }
+  const effectiveFromInstant = period.effectiveFromInstant === null
+    ? null
+    : requireCanonicalUtcInstant(period.effectiveFromInstant, "extension effective lower bound");
+  const effectiveToInstant = period.effectiveToInstant === null
+    ? null
+    : requireCanonicalUtcInstant(period.effectiveToInstant, "extension effective upper bound");
+  if (effectiveFromInstant !== null && effectiveToInstant !== null
+      && effectiveFromInstant >= effectiveToInstant) {
+    fail("extension effective bounds are not an increasing period");
+  }
+  return { effectiveFromInstant, effectiveToInstant };
+}
+
 export class TaxJurisdictionResolutionService {
   readonly #registry: VisibleExtensionRegistry;
 
   constructor(registry: VisibleExtensionRegistry) {
-    if (typeof registry !== "object" || registry === null || typeof registry.listVisible !== "function") {
+    if (typeof registry !== "object" || registry === null
+        || typeof registry.listVisible !== "function"
+        || typeof registry.readVisibleEffectivePeriod !== "function") {
       fail("extension registry is unavailable");
     }
     this.#registry = registry;
@@ -365,14 +423,20 @@ export class TaxJurisdictionResolutionService {
       tenantId,
       assignment.jurisdictionKey,
     );
+    const effectivePeriod = normalizeEffectivePeriod(
+      await this.#registry.readVisibleEffectivePeriod(tenantId, jurisdictionValue.extensionId),
+      jurisdictionValue,
+    );
     const jurisdiction = Object.freeze({
       ...jurisdictionValue,
+      ...effectivePeriod,
       evidenceRef: evidenceRef("tax-jurisdiction", {
         extensionId: jurisdictionValue.extensionId,
         ownerTenantId: jurisdictionValue.ownerTenantId,
         key: jurisdictionValue.key,
         version: jurisdictionValue.version,
         contentHash: jurisdictionValue.contentHash,
+        ...effectivePeriod,
       }),
     });
 

@@ -1,6 +1,6 @@
 # Order 299 — Tax extension effective-period evidence
 
-**Status:** READY — implementation and fresh Tier-3 review required
+**Status:** BUILT-PENDING-FRESH-TIER3-REVIEW-D818
 **Phase:** 7 — Tax and India IRP
 **Branch:** `phase-7/tax-extension-effective-period-evidence`
 **Base:** `465d791` (independently approved Order 298)
@@ -69,8 +69,19 @@ promotion, merge/deploy or Phase/application-complete claim.
 
 ## Definition of done
 
-- [ ] Intentional red precedes implementation.
-- [ ] Exact effective-period projection and immutable resolver evidence are green.
-- [ ] Fresh setup, schema, standing/static and referee gates are green.
+- [x] Intentional red precedes implementation.
+- [x] Exact effective-period projection and immutable resolver evidence are green.
+- [x] Fresh setup, schema, standing/static and referee gates are green.
 - [ ] Fresh non-implementing Tier-3 reviewer personally executes hostile proof and approves.
 
+## Built evidence
+
+- Intentional red failed `0/1` before migration, registry method or evidence fields existed.
+- Focused/adjacent proof passes `21/0` with 13 expected environment skips and 120
+  assertions; the required live PostgreSQL authority/range proof passes `2/0` with 38
+  assertions after the integration precision repair.
+- Standing passes `1056/0` with 881 expected database skips, 16,054 assertions and
+  1,937 tests across 344 files. Typecheck, 120-file boundaries, 23-package licence
+  policy, dependency audit, schema drift and whitespace checks are green.
+- Fresh isolated setup applies 59 migrations, preserves 110 public tables and referee
+  `11/11`. No local app was promoted; the disposable proof stack is not product state.

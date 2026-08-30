@@ -171,6 +171,8 @@ function resolvedJurisdiction(
       version,
       content: structuredClone(taxContent),
       contentHash,
+      effectiveFromInstant: "2026-01-01T00:00:00.000000Z",
+      effectiveToInstant: null,
       evidenceRef: `tax-jurisdiction:${version}:${contentHash}`,
     },
   });

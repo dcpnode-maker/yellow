@@ -173,10 +173,12 @@ platform-global-plus-tenant runtime adapter. Zero or multiple active matches fai
 tenant ownership and row order provide no preference.
 
 The resolver returns deeply frozen exact assignment bounds, extension id/owner/key/
-version, recursively canonical copied content, a SHA-256 content hash and
-deterministic evidence references. The runtime adapter omits `extension.effective`,
-so Order 238 neither applies nor bypasses that field; effective extension publication
-requires a later explicit contract and capability. Resolution writes no extension or
+version, exact database-derived effective lower/upper UTC instants (null for an
+unbounded end), recursively canonical copied content, a SHA-256 content hash and
+deterministic evidence references. The narrow runtime-only projection is called only
+after exact visible-row selection, and its identity must still match. The bounds enter
+the jurisdiction evidence reference but do not authorize date-to-instant conversion
+or temporal containment. Resolution writes no extension or
 assignment, emits no event and grants only input authority for the pure evaluator,
 not posting, document issue or fiscal submission authority.
 
