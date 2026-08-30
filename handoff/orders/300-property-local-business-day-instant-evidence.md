@@ -1,6 +1,6 @@
 # Order 300 — Property-local business-day instant evidence
 
-**Status:** READY — implementation and fresh Tier-3 review required
+**Status:** BUILT-PENDING-FRESH-TIER3-REVIEW-D821
 **Phase:** 7 — Tax and India IRP
 **Branch:** `phase-7/property-local-business-day-instant-evidence`
 **Base:** `0b90973` (independently approved Order 299)
@@ -67,8 +67,19 @@ promotion, merge/deploy or Phase/application-complete claim.
 
 ## Definition of done
 
-- [ ] Intentional red precedes implementation.
-- [ ] Exact PostgreSQL-derived local-day evidence and DST/tenant hostile proof are green.
-- [ ] Standing/static/setup/referee preservation gates are green.
+- [x] Intentional red precedes implementation.
+- [x] Exact PostgreSQL-derived local-day evidence and DST/tenant hostile proof are green.
+- [x] Standing/static/setup/referee preservation gates are green.
 - [ ] Fresh non-implementing Tier-3 reviewer personally executes proof and approves.
 
+## Built evidence
+
+- Intentional red failed `0/1` before the property timezone/day evidence existed.
+- Focused/adjacent proof passes `20/0` with 13 expected database skips; required live
+  PostgreSQL proof passes `18/0` with 103 assertions, including UTC, Kolkata, New York
+  23/25-hour DST dates and Kathmandu.
+- Standing passes `1058/0` with 882 expected database skips, 16,069 assertions and
+  1,940 tests across 345 files. Typecheck, 120-file boundaries, 23-package licence
+  policy, dependency audit and whitespace checks are green.
+- Fresh isolated setup preserves 59 migrations, 110 public tables and referee `11/11`.
+  Order300 adds no schema or local product instance.

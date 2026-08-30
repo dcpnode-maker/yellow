@@ -467,6 +467,21 @@ rechecks extension id and owner, and fails closed on malformed or changed identi
 The bounds are evidence only: this contract does not convert the property-local date
 to an instant or decide containment by the extension period.
 
+Order 300 extends that evidence contract without deciding applicability. In the same
+tenant transaction and snapshot, the active property read supplies its database-owned
+IANA timezone and PostgreSQL derives the UTC instants for local midnight on the
+already-derived business date and local midnight on the next local calendar date.
+Resolved and unassigned results both bind `propertyTimezone`,
+`businessDayFromInstant` and `businessDayToInstant` as canonical six-digit UTC strings;
+resolved evidence references bind the same envelope beside the selected extension's
+Order-299 bounds. The interval is a local-calendar day, not a fixed 24 hours: DST may
+make it 23 or 25 hours, and non-whole-hour offsets are preserved exactly. Callers may
+not provide the timezone or either instant, and JavaScript or the host clock does not
+derive them. These property-day and extension-period bounds are evidence only:
+containment, overlap, start-instant, split-day, section-14, or any other extension-
+applicability/legal rule remains explicitly forbidden until a later bounded policy is
+authorized.
+
 A resolved value deeply freezes the exact assignment bounds and extension
 id/owner/key/version/effective UTC bounds, a recursively canonical copied content
 value, its SHA-256 hash and deterministic evidence references. Either bound changes

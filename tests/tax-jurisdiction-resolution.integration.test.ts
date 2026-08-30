@@ -55,7 +55,12 @@ function fakeTx(options: FakeTxOptions = {}) {
     const statement = strings.join("?");
     statements.push(statement);
     if (/FROM\s+org_node/i.test(statement)) {
-      return options.propertyRows ?? [{ tenant_id: TENANT_A }];
+      return options.propertyRows ?? [{
+        tenant_id: TENANT_A,
+        property_timezone: "UTC",
+        business_day_from_instant: "2026-01-01T00:00:00.000000Z",
+        business_day_to_instant: "2026-01-02T00:00:00.000000Z",
+      }];
     }
     if (/FROM\s+tax_assignment/i.test(statement)) {
       return options.assignmentRows ?? [];
@@ -140,6 +145,9 @@ describe("Order 238 effective tax-jurisdiction resolver pure contract", () => {
       tenantId: TENANT_A,
       propertyNode: PROPERTY_A,
       businessDate: "2026-01-01",
+      propertyTimezone: "UTC",
+      businessDayFromInstant: "2026-01-01T00:00:00.000000Z",
+      businessDayToInstant: "2026-01-02T00:00:00.000000Z",
     });
     expect(isDeeplyFrozen(result)).toBe(true);
     expect(registryCalls).toEqual([]);
@@ -324,6 +332,32 @@ describe("Order 238 effective tax-jurisdiction resolver pure contract", () => {
       )).rejects.toThrow();
     }
   });
+
+  test("Order300 P3/P4: malformed property-day rows fail closed and the envelope changes evidence", async () => {
+    const badRows = [
+      { tenant_id: TENANT_A, property_timezone: "", business_day_from_instant: "2026-01-01T00:00:00.000000Z", business_day_to_instant: "2026-01-02T00:00:00.000000Z" },
+      { tenant_id: TENANT_A, property_timezone: " UTC", business_day_from_instant: "2026-01-01T00:00:00.000000Z", business_day_to_instant: "2026-01-02T00:00:00.000000Z" },
+      { tenant_id: TENANT_A, property_timezone: "UTC", business_day_from_instant: "2026-01-01T00:00:00Z", business_day_to_instant: "2026-01-02T00:00:00.000000Z" },
+      { tenant_id: TENANT_A, property_timezone: "UTC", business_day_from_instant: "2026-01-02T00:00:00.000000Z", business_day_to_instant: "2026-01-01T00:00:00.000000Z" },
+    ];
+    for (const row of badRows) {
+      await expect(serviceWith([]).resolve(fakeTx({ propertyRows: [row] }).tx,
+        { propertyNode: PROPERTY_A, businessDate: "2026-01-01" })).rejects.toThrow();
+    }
+
+    const resolveWith = (property_timezone: string, business_day_from_instant: string) =>
+      serviceWith([extension()]).resolve(fakeTx({
+        propertyRows: [{ tenant_id: TENANT_A, property_timezone,
+          business_day_from_instant, business_day_to_instant: "2026-01-02T00:00:00.000000Z" }],
+        assignmentRows: [assignment()],
+      }).tx, { propertyNode: PROPERTY_A, businessDate: "2026-01-01" });
+    const first = await resolveWith("UTC", "2026-01-01T00:00:00.000000Z");
+    const changed = await resolveWith("Asia/Kolkata", "2025-12-31T18:30:00.000000Z");
+    if (first.state !== "resolved" || changed.state !== "resolved") throw new Error("expected resolved");
+    expect(first.assignment.evidenceRef).not.toBe(changed.assignment.evidenceRef);
+    expect(first.jurisdiction.evidenceRef).not.toBe(changed.jurisdiction.evidenceRef);
+    expect(isDeeplyFrozen(changed)).toBe(true);
+  });
 });
 
 const databaseDescribe = DEPLOY_DATABASE_URL && RUNTIME_DATABASE_URL
@@ -453,6 +487,26 @@ afterAll(async () => {
 });
 
 databaseDescribe("Order 238 PostgreSQL assignment and containment proof", () => {
+  test("Order300 P1: PostgreSQL derives exact UTC, Kolkata, DST and Kathmandu local-day bounds", async () => {
+    const cases = [
+      ["UTC", "2026-01-01", "2026-01-01T00:00:00.000000Z", "2026-01-02T00:00:00.000000Z"],
+      ["Asia/Kolkata", "2026-01-01", "2025-12-31T18:30:00.000000Z", "2026-01-01T18:30:00.000000Z"],
+      ["America/New_York", "2026-03-08", "2026-03-08T05:00:00.000000Z", "2026-03-09T04:00:00.000000Z"],
+      ["America/New_York", "2026-11-01", "2026-11-01T04:00:00.000000Z", "2026-11-02T05:00:00.000000Z"],
+      ["Asia/Kathmandu", "2026-01-01", "2025-12-31T18:15:00.000000Z", "2026-01-01T18:15:00.000000Z"],
+    ] as const;
+    try {
+      for (const [timezone, businessDate, from, to] of cases) {
+        await admin!`UPDATE org_node SET timezone = ${timezone} WHERE id = ${PROPERTY_UNASSIGNED}::uuid`;
+        const result = await resolveDatabase(TENANT_A, PROPERTY_UNASSIGNED, businessDate);
+        expect(result).toMatchObject({ state: "unassigned", propertyTimezone: timezone,
+          businessDayFromInstant: from, businessDayToInstant: to });
+      }
+    } finally {
+      await admin!`UPDATE org_node SET timezone = 'UTC' WHERE id = ${PROPERTY_UNASSIGNED}::uuid`;
+    }
+  });
+
   test("P1: lower-inclusive, upper-exclusive adjacent bounded/unbounded ranges resolve exactly", async () => {
     const lower = await resolveDatabase(TENANT_A, PROPERTY_A, "2026-01-01");
     const boundedLast = await resolveDatabase(TENANT_A, PROPERTY_A, "2026-01-31");

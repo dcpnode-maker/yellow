@@ -672,3 +672,17 @@ them into immutable tax-jurisdiction evidence. It does not interpret a property 
 as an instant or determine extension applicability, and adds no rate calculation,
 section14, decomposition, posting, document, IRP, API/UI or local authority. D-817
 requires role/tenant/temp-shadow hostile proof, fresh setup/referee and fresh Tier3.
+
+## Order 300 boundary
+
+Order300 binds only the database-owned IANA timezone of the exact active same-tenant
+property and PostgreSQL-derived UTC bounds for the already-derived property-local
+business date. The envelope is local midnight through the next local calendar midnight,
+not fixed 24-hour arithmetic; DST 23/25-hour dates and awkward offsets are mandatory
+proof. Resolved and unassigned evidence both freeze the timezone and canonical six-digit
+bounds, and resolved references bind them beside Order299's extension-period evidence.
+No caller timezone/instant, JavaScript conversion or host clock is admitted. No
+containment, overlap, start-instant, split-day, section14 or other extension-
+applicability/legal rule is selected; that policy is explicitly forbidden until a
+later bounded order. D-820 requires intentional red, hostile temporal/tenant proof,
+unchanged setup/referee and fresh Tier3.

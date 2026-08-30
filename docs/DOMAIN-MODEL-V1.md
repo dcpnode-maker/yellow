@@ -1554,3 +1554,18 @@ Tax (Rate), effective 18 July 2022, and the current CBIC services-rate table.
 `GST_FNB` remains a separate restaurant example. This content feeds the existing
 evaluator only and does not infer effective dates or create section 14, levy
 decomposition, tax posting, document, or IRP authority.
+
+### Property-local business-day instant evidence (Order 300)
+
+Order300 adds no entity, schema or inferred legal state. For Order238's already-derived
+business date, the exact active same-tenant property owns the IANA timezone and
+PostgreSQL derives the half-open UTC envelope from local midnight to the next local
+calendar midnight in one transaction. The frozen resolved and unassigned projections
+retain the timezone and canonical six-digit `businessDayFromInstant` /
+`businessDayToInstant`; resolved references retain those fields beside the selected
+extension's Order299 effective bounds. A local calendar day is deliberately not modeled
+as 24 hours: daylight-saving transitions can produce 23- or 25-hour envelopes and
+awkward offsets remain database truth. This is temporal evidence, not an extension-
+applicability or legal conclusion. Containment, overlap, start-instant, split-day,
+section-14 and every other rule choosing which extension applies remain forbidden and
+require a later authorized policy.

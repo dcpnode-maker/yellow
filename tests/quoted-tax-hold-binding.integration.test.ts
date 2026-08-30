@@ -225,6 +225,9 @@ function quoteHarness() {
           tenantId: TENANT_A,
           propertyNode: PROPERTY_A,
           businessDate: input.businessDate,
+          propertyTimezone: "UTC",
+          businessDayFromInstant: `${input.businessDate}T00:00:00.000000Z`,
+          businessDayToInstant: "2030-01-02T00:00:00.000000Z",
         });
       }
       return Object.freeze({
@@ -232,6 +235,9 @@ function quoteHarness() {
         tenantId: TENANT_A,
         propertyNode: PROPERTY_A,
         businessDate: input.businessDate,
+        propertyTimezone: "UTC",
+        businessDayFromInstant: `${input.businessDate}T00:00:00.000000Z`,
+        businessDayToInstant: "2030-01-02T00:00:00.000000Z",
         assignment: Object.freeze({
           jurisdictionKey: "in.gst.hotel",
           effectiveFrom: "2030-01-01",

@@ -12,8 +12,11 @@ const MAX_CONTENT_DEPTH = 64;
 const MAX_CONTENT_NODES = 10_000;
 const MAX_CANONICAL_BYTES = 1_048_576;
 
-interface TenantRow {
+interface PropertyDayRow {
   readonly tenant_id: string;
+  readonly property_timezone: string;
+  readonly business_day_from_instant: string;
+  readonly business_day_to_instant: string;
 }
 
 interface AssignmentRow {
@@ -67,6 +70,9 @@ export interface UnassignedTaxJurisdictionResolution {
   readonly tenantId: string;
   readonly propertyNode: string;
   readonly businessDate: string;
+  readonly propertyTimezone: string;
+  readonly businessDayFromInstant: string;
+  readonly businessDayToInstant: string;
 }
 
 export interface ResolvedTaxJurisdictionResolution {
@@ -74,6 +80,9 @@ export interface ResolvedTaxJurisdictionResolution {
   readonly tenantId: string;
   readonly propertyNode: string;
   readonly businessDate: string;
+  readonly propertyTimezone: string;
+  readonly businessDayFromInstant: string;
+  readonly businessDayToInstant: string;
   readonly assignment: TaxAssignmentResolutionEvidence;
   readonly jurisdiction: TaxJurisdictionResolutionEvidence;
 }
@@ -147,6 +156,26 @@ function requireCanonicalUtcInstant(value: unknown, subject: string): string {
     fail(`${subject} must be a canonical UTC instant`);
   }
   return value;
+}
+
+function normalizePropertyDay(row: PropertyDayRow) {
+  requirePlainRecord(row, "property-day evidence");
+  requireExactKeys(row, ["tenant_id", "property_timezone", "business_day_from_instant",
+    "business_day_to_instant"], "property-day evidence");
+  const tenantId = requireUuid(row.tenant_id, "database tenant id");
+  if (typeof row.property_timezone !== "string" || row.property_timezone.length === 0
+      || row.property_timezone.trim() !== row.property_timezone) {
+    fail("property timezone is invalid");
+  }
+  const businessDayFromInstant = requireCanonicalUtcInstant(
+    row.business_day_from_instant, "business-day lower bound");
+  const businessDayToInstant = requireCanonicalUtcInstant(
+    row.business_day_to_instant, "business-day upper bound");
+  if (businessDayFromInstant >= businessDayToInstant) {
+    fail("business-day bounds are not an increasing period");
+  }
+  return { tenantId, propertyTimezone: row.property_timezone,
+    businessDayFromInstant, businessDayToInstant };
 }
 
 function requireJurisdictionKey(value: unknown, subject: string): string {
@@ -358,8 +387,14 @@ export class TaxJurisdictionResolutionService {
     if (typeof tx !== "function") fail("tenant transaction is unavailable");
     const normalized = normalizeInput(input);
 
-    const tenantRows = await tx<TenantRow[]>`
-      SELECT property.tenant_id::text AS tenant_id
+    const propertyRows = await tx<PropertyDayRow[]>`
+      SELECT property.tenant_id::text AS tenant_id,
+             property.timezone AS property_timezone,
+             to_char((${normalized.businessDate}::date::timestamp AT TIME ZONE property.timezone)
+               AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"') AS business_day_from_instant,
+             to_char(((((${normalized.businessDate}::date + 1)::date)::timestamp
+               AT TIME ZONE property.timezone) AT TIME ZONE 'UTC'),
+               'YYYY-MM-DD"T"HH24:MI:SS.US"Z"') AS business_day_to_instant
       FROM org_node AS property
       JOIN tenant ON tenant.id = property.tenant_id
       WHERE property.id = ${normalized.propertyNode}::uuid
@@ -367,8 +402,9 @@ export class TaxJurisdictionResolutionService {
         AND property.kind = 'property'
         AND tenant.status = 'active'
     `;
-    if (tenantRows.length !== 1) fail("property is unavailable");
-    const tenantId = requireUuid(tenantRows[0]?.tenant_id, "database tenant id");
+    if (propertyRows.length !== 1) fail("property is unavailable");
+    const { tenantId, propertyTimezone, businessDayFromInstant, businessDayToInstant } =
+      normalizePropertyDay(propertyRows[0]!);
 
     const assignmentRows = await tx<AssignmentRow[]>`
       SELECT jurisdiction_key,
@@ -388,6 +424,9 @@ export class TaxJurisdictionResolutionService {
         tenantId,
         propertyNode: normalized.propertyNode,
         businessDate: normalized.businessDate,
+        propertyTimezone,
+        businessDayFromInstant,
+        businessDayToInstant,
       });
     }
 
@@ -398,6 +437,9 @@ export class TaxJurisdictionResolutionService {
         tenantId,
         propertyNode: normalized.propertyNode,
         businessDate: normalized.businessDate,
+        propertyTimezone,
+        businessDayFromInstant,
+        businessDayToInstant,
         ...assignmentValue,
       }),
     });
@@ -436,6 +478,9 @@ export class TaxJurisdictionResolutionService {
         key: jurisdictionValue.key,
         version: jurisdictionValue.version,
         contentHash: jurisdictionValue.contentHash,
+        propertyTimezone,
+        businessDayFromInstant,
+        businessDayToInstant,
         ...effectivePeriod,
       }),
     });
@@ -445,6 +490,9 @@ export class TaxJurisdictionResolutionService {
       tenantId,
       propertyNode: normalized.propertyNode,
       businessDate: normalized.businessDate,
+      propertyTimezone,
+      businessDayFromInstant,
+      businessDayToInstant,
       assignment,
       jurisdiction,
     });

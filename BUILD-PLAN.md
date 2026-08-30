@@ -1119,3 +1119,13 @@ frozen jurisdiction evidence. This closes only the documented temporal-evidence 
 it does not map a property-local date to an instant, select by clock/latest, decide
 applicability, calculate tax, decompose GST or authorize fiscal/UI work. D-817 requires
 intentional red, hostile tenant/role/temp-shadow proof, setup/referee and fresh Tier3.
+
+**Ready Order300 property-local business-day instant evidence:** bind the exact active
+same-tenant property's database-owned IANA timezone and PostgreSQL-derived local-
+midnight-to-next-local-calendar-midnight UTC bounds into Order238's frozen resolved and
+unassigned evidence. Preserve canonical six-digit instants and prove DST 23/25-hour
+days plus awkward offsets; never substitute JavaScript, a host clock or fixed-24-hour
+math. This closes only the property-day instant-evidence gap. Extension-period
+containment, overlap, start-instant, split-day, section14 and every other applicability/
+legal rule remain explicitly forbidden for a later bounded order. D-820 requires
+intentional red, hostile temporal/tenant proof, unchanged setup/referee and fresh Tier3.

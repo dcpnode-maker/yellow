@@ -1274,3 +1274,20 @@ and 18% above, with no nil/5% accommodation fallback. The restaurant `GST_FNB`
 example remains unrelated. No section 14 change-in-rate, CGST/SGST/UTGST/IGST
 split, posting, correction, document, IRP, API, HTTP, UI or local-runtime
 authority is granted.
+
+## Order300 security boundary
+
+The resolver accepts only the exact property id and already-derived `YYYY-MM-DD`
+business date. In the same tenant-scoped transaction and snapshot, PostgreSQL reads the
+active same-tenant property's stored IANA timezone and converts local midnight plus the
+next local calendar midnight to canonical six-digit UTC instants. Caller-supplied
+timezone/instants, JavaScript timezone conversion, host/process clocks, fixed-offset
+tables and fixed-24-hour arithmetic are rejected; DST 23/25-hour days and awkward
+offsets are expected evidence. Missing, foreign, non-property or inactive identity,
+invalid timezone/date, malformed or non-increasing returned bounds, and changed
+database evidence fail closed before partial truth is exposed. Resolved and unassigned
+outputs are recursively frozen and bind the same property-day envelope; timezone or
+either bound changes the resolved evidence reference. The read grants no write or
+extension-applicability authority. In particular, containment, overlap, start-instant,
+split-day, section-14 and every other legal rule for choosing an effective extension
+remain forbidden pending a separate bounded decision.

@@ -16,7 +16,12 @@ const KEY = "in-order299-effective";
 function tx(): Tx {
   return (async (strings: TemplateStringsArray) => {
     const sql = strings.join("?");
-    if (/FROM\s+org_node/i.test(sql)) return [{ tenant_id: TENANT }];
+    if (/FROM\s+org_node/i.test(sql)) return [{
+      tenant_id: TENANT,
+      property_timezone: "UTC",
+      business_day_from_instant: "2026-06-01T00:00:00.000000Z",
+      business_day_to_instant: "2026-06-02T00:00:00.000000Z",
+    }];
     if (/FROM\s+tax_assignment/i.test(sql)) {
       return [{ jurisdiction_key: KEY, effective_from: "2026-01-01", effective_to: null }];
     }

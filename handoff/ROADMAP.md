@@ -584,3 +584,13 @@ remains separately ordered.
 Fresh non-implementing Tier-3 review approves exact candidate `6b943bb` with no finding
 under D-819 after reviewer-personal tenant/global, role-assumption, temp-shadow,
 microsecond, schema/setup/referee, standing and static proof.
+
+## Order300 roadmap entry
+
+Bind the exact active same-tenant property's database-owned IANA timezone and
+PostgreSQL-derived local-midnight-to-next-local-calendar-midnight UTC bounds into both
+resolved and unassigned tax-jurisdiction evidence. Prove canonical instants across DST
+23/25-hour days and awkward offsets without JavaScript, host-clock or fixed-24-hour
+derivation. This supplies property-day instant evidence only: extension containment,
+overlap, start-instant, split-day, section14 and every other applicability/legal rule
+remain explicitly forbidden for a later bounded slice. Fresh Tier-3 proof is mandatory.

@@ -158,6 +158,9 @@ function resolvedJurisdiction(
     tenantId,
     propertyNode: PROPERTY,
     businessDate,
+    propertyTimezone: "UTC",
+    businessDayFromInstant: `${businessDate}T00:00:00.000000Z`,
+    businessDayToInstant: "2026-07-02T00:00:00.000000Z",
     assignment: {
       jurisdictionKey: "in-gst-lodging",
       effectiveFrom: "2026-01-01",
@@ -184,6 +187,9 @@ function unassignedJurisdiction(businessDate: string): TaxJurisdictionResolution
     tenantId: TENANT,
     propertyNode: PROPERTY,
     businessDate,
+    propertyTimezone: "UTC",
+    businessDayFromInstant: `${businessDate}T00:00:00.000000Z`,
+    businessDayToInstant: "2026-07-02T00:00:00.000000Z",
   });
 }
 
