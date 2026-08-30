@@ -54,6 +54,6 @@ IRP/submission, Phase or application-complete claim.
 ## Definition of done
 
 - [x] Intentional red precedes implementation.
-- [ ] Focused hostile proof is green; live predecessor proof remains pending.
-- [ ] Standing/static/setup/referee gates are green.
-- [ ] Fresh independent Tier-3 approval is recorded.
+- [x] Focused hostile and fresh live predecessor proof are green.
+- [x] Standing/static/setup/referee gates are green.
+- [x] Fresh independent Tier-3 approval is recorded (`D-790`, exact candidate `f77aba35ab4832e080063f0422d7edcd77a08ed9`).
