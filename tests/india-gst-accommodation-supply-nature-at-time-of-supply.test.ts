@@ -27,7 +27,7 @@ const SUPPLIER_STATUS_EVIDENCE_HASH = digest({
 const RECIPIENT_STATUS_EVIDENCE_HASH = digest({
   tenantId: TENANT,
   recipientSezStatusId: RECIPIENT_STATUS,
-  recipient: { registrationId: RECIPIENT, evidenceHash: "1".repeat(64) },
+  recipient: { partyId: RECIPIENT_PARTY, registrationId: RECIPIENT, evidenceHash: "1".repeat(64) },
   statusAsOf: DATE,
   gstRegistration: { status: "active", taxpayerType: "regular", source: "gst_common_portal", evidenceSha256: "2".repeat(64) },
   sezStatus: "affirmatively_non_sez_regular",
@@ -281,6 +281,20 @@ describe("Order 297 complete-root GST applicability binding", () => {
     const candidate = clone(base()) as Mutable;
     candidate.supplierRegistrationAtTimeOfSupply.timeOfSupply.reservationLineage.segmentId = "not-a-uuid";
     candidate.recipientRegistrationAtTimeOfSupply.timeOfSupply.reservationLineage.segmentId = "not-a-uuid";
+    rehashTime(candidate.supplierRegistrationAtTimeOfSupply.timeOfSupply, false);
+    rehashTime(candidate.recipientRegistrationAtTimeOfSupply.timeOfSupply, true);
+    rehashSupplier(candidate.supplierRegistrationAtTimeOfSupply);
+    rehashRecipient(candidate.recipientRegistrationAtTimeOfSupply);
+    freeze(candidate);
+    expect(() => composeIndiaGstAccommodationSupplyNatureAtTimeOfSupply(candidate as never)).toThrow(IndiaGstAccommodationSupplyNatureAtTimeOfSupplyConflictError);
+  });
+
+  test("rejects self-consistent non-INR timing roots after both predecessor hashes are replayed", () => {
+    const candidate = clone(base()) as Mutable;
+    for (const root of [candidate.supplierRegistrationAtTimeOfSupply, candidate.recipientRegistrationAtTimeOfSupply]) {
+      root.timeOfSupply.currency = "CAD";
+      root.timeOfSupply.reservationLineage.currency = "CAD";
+    }
     rehashTime(candidate.supplierRegistrationAtTimeOfSupply.timeOfSupply, false);
     rehashTime(candidate.recipientRegistrationAtTimeOfSupply.timeOfSupply, true);
     rehashSupplier(candidate.supplierRegistrationAtTimeOfSupply);

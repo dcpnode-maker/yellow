@@ -407,7 +407,7 @@ function validateRecipient(value: unknown, tenantId: string): IndiaGstRecipientR
   const expectedStatusHash = digest({
     tenantId,
     recipientSezStatusId: root.recipientSezStatusId,
-    recipient: { registrationId: recipient.registrationId, evidenceHash: recipient.evidenceHash },
+    recipient: { partyId: root.recipientPartyId, registrationId: recipient.registrationId, evidenceHash: recipient.evidenceHash },
     statusAsOf,
     gstRegistration: {
       status: gst.status,
