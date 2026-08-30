@@ -53,6 +53,6 @@ not consume, repeat or silently correct it.
 ## Definition of done
 
 - [x] Intentional red precedes implementation.
-- [ ] Focused hostile and fresh live predecessor proof are green.
-- [ ] Standing/static/setup/referee gates are green.
+- [x] Focused hostile and fresh live predecessor proof are green.
+- [x] Standing/static/setup/referee gates are green.
 - [ ] Fresh independent Tier-3 approval is recorded against the exact candidate.
