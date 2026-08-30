@@ -14,6 +14,14 @@ const id = (suffix: number): string =>
   `00000000-0000-0000-0000-${String(suffix).padStart(12, "0")}`;
 const sha256 = (value: unknown): string =>
   new Bun.CryptoHasher("sha256").update(JSON.stringify(value)).digest("hex");
+const deeplyFrozen = (value: unknown, seen = new Set<object>()): void => {
+  if (typeof value !== "object" || value === null || seen.has(value)) return;
+  seen.add(value);
+  expect(Object.isFrozen(value)).toBeTrue();
+  for (const key of Reflect.ownKeys(value)) {
+    deeplyFrozen((value as Record<PropertyKey, unknown>)[key], seen);
+  }
+};
 
 type Fixture = ReturnType<typeof fixture>;
 
@@ -399,6 +407,7 @@ live("Order 295 real PostgreSQL predecessor-chain proof", () => {
     expect(result).not.toHaveProperty("gstin");
     expect(result.timeOfSupply.amountMinor).toBe("10500");
     expect(result.timeOfSupply.currency).toBe("INR");
+    deeplyFrozen(result);
     expect(await effects()).toEqual(before);
   }, 30_000);
 
@@ -407,6 +416,8 @@ live("Order 295 real PostgreSQL predecessor-chain proof", () => {
     await expect(resolve(A, {}, B.tenant)).rejects.toBeInstanceOf(IndiaGstRegistrationAtTimeOfSupplyNotFoundError);
     await expect(resolve(B, {}, A.tenant)).rejects.toBeInstanceOf(IndiaGstRegistrationAtTimeOfSupplyNotFoundError);
     await expect(resolve(A, { supplierRegistrationStatusEvidenceHash: "9".repeat(64) })).rejects
+      .toBeInstanceOf(IndiaGstRegistrationAtTimeOfSupplyConflictError);
+    await expect(resolve(A, { timeOfSupplyEvidenceHash: "8".repeat(64) })).rejects
       .toBeInstanceOf(IndiaGstRegistrationAtTimeOfSupplyConflictError);
     await expect(resolve(A, { timeOfSupplyDate: "2043-06-16" })).rejects
       .toBeInstanceOf(IndiaGstRegistrationAtTimeOfSupplyValidationError);
