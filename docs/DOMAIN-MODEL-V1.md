@@ -1479,3 +1479,19 @@ SELECT-only `app_role` authority apply, with no writer, ingestion or document
 authority. This is only future Rule47/section13 input: it does not issue/render an
 invoice or decide validity, numbering, regime, deadline, timeliness, late status or
 time of supply, and no operational or financial timestamp is a substitute.
+
+### India GST accommodation invoice timeliness (Order 293)
+
+Order293 adds no entity or table. Its read-only composer uses one equality-bound
+tenant-scoped query over approved Order290 service-provision and Order292 invoice-
+issue evidence plus explicit ordinary Rule47 policy. The nine-key input includes
+`ordinaryRegimeSource` and `ordinaryRegimeEvidenceSha256`; source is
+`governed_rule47_ordinary_regime_record`,
+legal rule `CGST_RULE_47_ORDINARY_SERVICE_INVOICE_30_DAY_INPUT`; output regime is
+fixed `ordinary_rule47_30_day`. It computes the
+date-only `serviceProvisionDate + 30 calendar days`; day 30 is timely and day 31
+late. It returns frozen evidence only, including both dates, deadline, policy,
+complete attribution and `ordinaryRegimeEvidenceSha256` in a tenant-bound evidence
+hash. Exceptions, ambiguity, stale or mixed
+lineage fail closed; no regime inference, invoice issuance/validity/numbering,
+Rule47 selection, section13 result, tax, document, API, UI or local authority exists.

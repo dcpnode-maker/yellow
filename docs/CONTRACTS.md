@@ -2153,3 +2153,25 @@ does not issue an invoice, decide validity, numbering, Rule47 regime/deadline,
 timely/late status or section13 time of supply, and grants no tax, payment, voucher,
 document, IRP, submission, API, UI or local authority. No operational, payment,
 provider, folio, journal, posting, reservation or clock date substitutes.
+
+## 39. India GST accommodation invoice timeliness (Order 293)
+
+`resolveIndiaGstAccommodationInvoiceTimeliness` is a read-only composer using one
+equality-bound tenant-scoped query over approved Order290 service-date and Order292
+invoice-date evidence plus explicit ordinary Rule47 policy. Its exact plain input has
+nine keys: `tenantId`, `propertyNode`, `reservationId`, `serviceProvisionSnapshotId`,
+`invoiceIssueSnapshotId`, `serviceProvisionDate`, `invoiceIssueDate`,
+`ordinaryRegimeSource`, and `ordinaryRegimeEvidenceSha256`. Only source
+`governed_rule47_ordinary_regime_record`, and legal literal
+`CGST_RULE_47_ORDINARY_SERVICE_INVOICE_30_DAY_INPUT` is accepted; output regime is
+fixed `ordinary_rule47_30_day`; no regime is inferred. Date-only arithmetic sets `deadlineDate = serviceProvisionDate + 30
+calendar days`; day 30 is `timely`, day 31 is `late`.
+
+The input rejects accessors, proxies and symbols. The fixed-order recursively frozen
+result retains both dates, deadline, output regime, policy source, legal literal,
+`ordinaryRegimeEvidenceSha256`, complete attribution and deterministic tenant-bound
+evidence hash without tenant identity.
+Missing, malformed, duplicate, stale, exception-bearing, mixed or contradictory
+evidence fails closed. No clock, timezone conversion, latest/nearest/fallback,
+write, migration, invoice issuance/validity/numbering, regime selection, section13
+result, tax, document, API, UI or local authority is produced.

@@ -523,4 +523,10 @@ service-provision and Order292 invoice-issue dates with affirmative governed ord
 Rule47 evidence into only timely/late evidence using the fixed inclusive 30-calendar-
 day boundary; every exception regime fails closed. No migration, regime inference,
 invoice issuance/validity, section13 result, tax/document/API/UI/local authority is
-admitted; fresh independent Tier3 proof is mandatory.
+admitted; fresh independent Tier3 proof is mandatory. D-778 builder proof is
+intentional red0/1(1) before implementation, focused including intentional11/0(124),
+adjacent40/0+3 skips(834), unchanged setup58/110/100/100/referee11/11,
+standing1009/0+871 skips(15573;1880 tests/330 files), type/boundaries116,
+licences23, audit0 and diff clean; no migration/schema change. Disposable setup
+resources were removed and stable local remains stopped by founder authorization.
+Independent review remains pending.

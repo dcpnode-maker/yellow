@@ -1191,3 +1191,21 @@ payment/provider, reservation, service-provision, room-night, business-day,
 operational and clock dates cannot substitute. No validity, Rule47 regime/deadline,
 timely/late or section13 result is computed, and no tax, payment, voucher, document,
 IRP, submission, API, UI or local-runtime authority is granted.
+
+### India GST accommodation invoice-timeliness containment (Order 293)
+
+This no-write, read-only composer performs one equality-bound tenant-scoped query to
+revalidate exact approved Order290/292 evidence. It accepts only the exact plain
+nine-key shape, with `ordinaryRegimeSource` and `ordinaryRegimeEvidenceSha256`, from
+`governed_rule47_ordinary_regime_record` under
+`CGST_RULE_47_ORDINARY_SERVICE_INVOICE_30_DAY_INPUT`; output regime is fixed to
+`ordinary_rule47_30_day`. Date-only comparison uses a
+30-calendar-day deadline: day 30 timely, day 31 late. No regime is inferred and no
+clock, timezone, latest/nearest or fallback is consulted.
+
+Missing, malformed, duplicate, stale, exception, contradictory or mixed-lineage
+evidence fails closed. The result is recursively frozen and tenant-bound without
+tenant disclosure and includes `ordinaryRegimeEvidenceSha256` in the evidence hash.
+No migration, writer, invoice issuance/validity/numbering,
+Rule47 selection, section13 result, tax, document, IRP, submission, API, UI or
+local-runtime authority is granted.

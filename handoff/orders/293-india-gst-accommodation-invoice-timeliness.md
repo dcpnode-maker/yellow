@@ -1,6 +1,6 @@
 # Order 293 — Compose India GST accommodation invoice timeliness evidence
 
-**Status:** READY-D777
+**Status:** BUILT-PENDING-REVIEW-D778
 **Phase:** 7 — Tax engine and India IRP
 **Branch:** `phase-7/india-gst-accommodation-invoice-timeliness`
 **Base:** `b5b2d45` (independently approved Order292 descendant)
@@ -58,7 +58,7 @@ must fail closed rather than produce `timely` or `late`.
 
 ## Definition of done
 
-- [ ] Intentional red precedes implementation.
-- [ ] Exact pure input/output and hostile fail-closed proof is green.
-- [ ] Standing/static gates are green and no authority expands.
+- [x] Intentional red precedes implementation.
+- [x] Exact pure input/output and hostile fail-closed proof is green.
+- [x] Standing/static gates are green and no authority expands.
 - [ ] Fresh independent Tier-3 approval is recorded.
