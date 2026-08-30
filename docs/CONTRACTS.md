@@ -2164,13 +2164,17 @@ nine keys: `tenantId`, `propertyNode`, `reservationId`, `serviceProvisionSnapsho
 `ordinaryRegimeSource`, and `ordinaryRegimeEvidenceSha256`. Only source
 `governed_rule47_ordinary_regime_record`, and legal literal
 `CGST_RULE_47_ORDINARY_SERVICE_INVOICE_30_DAY_INPUT` is accepted; output regime is
-fixed `ordinary_rule47_30_day`; no regime is inferred. Date-only arithmetic sets `deadlineDate = serviceProvisionDate + 30
-calendar days`; day 30 is `timely`, day 31 is `late`.
+fixed `ordinary_rule47_30_day`; no regime is inferred. Date-only arithmetic sets
+`deadlineDate = serviceProvisionDate + 30 calendar days`; day 30 is `timely`, day 31
+is `late`. Arithmetic is explicit proleptic-Gregorian YYYY date-only arithmetic with
+low-year handling and fail-closed overflow; JavaScript `Date.UTC` is not an authority.
 
 The input rejects accessors, proxies and symbols. The fixed-order recursively frozen
 result retains both dates, deadline, output regime, policy source, legal literal,
-`ordinaryRegimeEvidenceSha256`, complete attribution and deterministic tenant-bound
-evidence hash without tenant identity.
+`ordinaryRegimeEvidenceSha256`, `invoiceSeries`, `invoiceSerial`,
+`invoiceIssueEvidenceSha256`, `serviceProvisionEvidenceSha256`, complete lineage and
+deterministic tenant-bound evidence hash without tenant identity; both predecessor
+evidence hashes are revalidated and bound into that hash.
 Missing, malformed, duplicate, stale, exception-bearing, mixed or contradictory
 evidence fails closed. No clock, timezone conversion, latest/nearest/fallback,
 write, migration, invoice issuance/validity/numbering, regime selection, section13

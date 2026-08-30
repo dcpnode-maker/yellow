@@ -40,6 +40,10 @@ export interface IndiaGstAccommodationInvoiceTimelinessResult {
   readonly source: "governed_rule47_ordinary_regime_record";
   readonly legalRule: "CGST_RULE_47_ORDINARY_SERVICE_INVOICE_30_DAY_INPUT";
   readonly ordinaryRegimeEvidenceSha256: string;
+  readonly invoiceSeries: string;
+  readonly invoiceSerial: string;
+  readonly invoiceIssueEvidenceSha256: string;
+  readonly serviceProvisionEvidenceSha256: string;
   readonly result: IndiaGstAccommodationInvoiceTimeliness;
   readonly amountMinor: string;
   readonly currency: string;
@@ -114,7 +118,7 @@ function hash(value: unknown, subject: string): string {
     );
   return value;
 }
-function date(
+function civil(
   value: unknown,
   subject: string,
   ErrorType = IndiaGstAccommodationInvoiceTimelinessConflictError,
@@ -143,13 +147,19 @@ function digest(value: unknown): string {
     .digest("hex");
 }
 function addDays(value: string, days: number): string {
-  const [year, month, day] = value.split("-").map(Number) as [
+  let [year, month, day] = value.split("-").map(Number) as [
     number,
     number,
     number,
   ];
-  const result = new Date(Date.UTC(year, month - 1, day + days));
-  return `${String(result.getUTCFullYear()).padStart(4, "0")}-${String(result.getUTCMonth() + 1).padStart(2, "0")}-${String(result.getUTCDate()).padStart(2, "0")}`;
+  for (let remaining = days; remaining > 0; remaining -= 1) {
+    day += 1;
+    const leap = year % 4 === 0 && (year % 100 !== 0 || year % 400 === 0);
+    const monthDays = [31, leap ? 29 : 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31][month - 1]!;
+    if (day > monthDays) { day = 1; month += 1; if (month > 12) { month = 1; year += 1; } }
+    if (year > 9999) throw new IndiaGstAccommodationInvoiceTimelinessConflictError("invoice deadline exceeds supported calendar");
+  }
+  return `${String(year).padStart(4, "0")}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
 }
 
 const ROW_KEYS = [
@@ -160,6 +170,8 @@ const ROW_KEYS = [
   "reservation_id",
   "service_provision_date",
   "invoice_issue_date",
+  "invoice_series",
+  "invoice_serial",
   "currency",
   "amount_minor",
   "coverage_scope",
@@ -206,8 +218,11 @@ function build(
       "stored service snapshot",
     ),
     invoiceId = uuid(row.invoice_issue_snapshot_id, "stored invoice snapshot");
-  const serviceDate = date(row.service_provision_date, "stored service date"),
-    invoiceDate = date(row.invoice_issue_date, "stored invoice date");
+  const serviceDate = civil(row.service_provision_date, "stored service date"),
+    invoiceDate = civil(row.invoice_issue_date, "stored invoice date");
+  const invoiceSeries = row.invoice_series;
+  const invoiceSerial = row.invoice_serial;
+  if (typeof invoiceSeries !== "string" || invoiceSeries.length < 1 || invoiceSeries.length > 64 || typeof invoiceSerial !== "string" || invoiceSerial.length < 1 || invoiceSerial.length > 64) throw new IndiaGstAccommodationInvoiceTimelinessConflictError("invoice identity is invalid");
   const lineageKeys = [
     "reservation_lineage_id",
     "hold_binding_id",
@@ -285,6 +300,10 @@ function build(
     source: "governed_rule47_ordinary_regime_record" as const,
     legalRule: "CGST_RULE_47_ORDINARY_SERVICE_INVOICE_30_DAY_INPUT" as const,
     ordinaryRegimeEvidenceSha256: input.ordinaryRegimeEvidenceSha256,
+    invoiceSeries,
+    invoiceSerial,
+    invoiceIssueEvidenceSha256: row.invoice_issue_evidence_sha256 as string,
+    serviceProvisionEvidenceSha256: row.service_provision_evidence_sha256 as string,
     result: (invoiceDate <= deadlineDate
       ? "timely"
       : "late") as IndiaGstAccommodationInvoiceTimeliness,
@@ -336,12 +355,12 @@ export class IndiaGstAccommodationInvoiceTimelinessService {
         "invoiceIssueSnapshotId",
         IndiaGstAccommodationInvoiceTimelinessValidationError,
       );
-    date(
+    civil(
       input.serviceProvisionDate,
       "serviceProvisionDate",
       IndiaGstAccommodationInvoiceTimelinessValidationError,
     );
-    date(
+    civil(
       input.invoiceIssueDate,
       "invoiceIssueDate",
       IndiaGstAccommodationInvoiceTimelinessValidationError,
@@ -356,7 +375,7 @@ export class IndiaGstAccommodationInvoiceTimelinessService {
       );
     const rows = await tx<
       Row[]
-    >`SELECT invoice.id::text AS invoice_issue_snapshot_id, invoice.service_provision_snapshot_id::text AS service_provision_snapshot_id, invoice.tenant_id::text AS tenant_id, service_date.property_node::text AS property_node, service_date.reservation_id::text AS reservation_id, service_date.service_provision_date::text AS service_provision_date, invoice.invoice_issue_date::text AS invoice_issue_date, invoice.currency::text AS currency, invoice.amount_minor::text AS amount_minor, invoice.coverage_scope, invoice.invoice_issue_source, invoice.invoice_issue_evidence_sha256, invoice.legal_rule AS invoice_legal_rule, service_date.service_provision_source, service_date.service_provision_evidence_sha256, service_date.legal_rule AS service_legal_rule, service_date.reservation_lineage_id::text AS reservation_lineage_id, service_date.hold_binding_id::text AS hold_binding_id, service_date.attribution_id::text AS attribution_id, service_date.segment_id::text AS segment_id, service_date.origin_quote_hash, service_date.snapshot_hash, service_date.currency::text AS service_currency, lineage.id::text AS lineage_id, lineage.property_node::text AS lineage_property_node, lineage.binding_id::text AS lineage_hold_binding_id, lineage.attribution_id::text AS lineage_attribution_id, lineage.reservation_id::text AS lineage_reservation_id, lineage.segment_id::text AS lineage_segment_id, lineage.origin_quote_hash AS lineage_origin_quote_hash, lineage.snapshot_hash AS lineage_snapshot_hash, lineage.currency::text AS lineage_currency, attribution.snapshot AS attribution_snapshot FROM public.india_gst_accommodation_invoice_issue_snapshot AS invoice JOIN public.india_gst_accommodation_service_provision_snapshot AS service_date ON service_date.tenant_id = invoice.tenant_id AND service_date.id = invoice.service_provision_snapshot_id JOIN public.tax_attribution_reservation_binding AS lineage ON lineage.tenant_id = service_date.tenant_id AND lineage.id = service_date.reservation_lineage_id JOIN public.tax_attribution_snapshot AS attribution ON attribution.tenant_id = service_date.tenant_id AND attribution.id = service_date.attribution_id WHERE invoice.tenant_id = ${tenant}::uuid AND invoice.tenant_id = current_setting('app.tenant_id', true)::uuid AND invoice.id = ${invoiceId}::uuid AND invoice.service_provision_snapshot_id = ${serviceId}::uuid AND service_date.property_node = ${property}::uuid AND service_date.reservation_id = ${reservation}::uuid AND service_date.service_provision_date = ${input.serviceProvisionDate}::date AND invoice.invoice_issue_date = ${input.invoiceIssueDate}::date AND invoice.coverage_scope = 'full_attribution' AND invoice.invoice_issue_source = 'governed_supplier_tax_invoice_record' AND invoice.legal_rule = 'CGST_ACT_13_2_INVOICE_DATE_INPUT_ONLY' AND service_date.service_provision_source = 'governed_service_provision_record' AND service_date.legal_rule = 'CGST_ACT_13_2_B_SERVICE_PROVISION_DATE_INPUT_ONLY'`;
+    >`SELECT invoice.id::text AS invoice_issue_snapshot_id, invoice.service_provision_snapshot_id::text AS service_provision_snapshot_id, invoice.tenant_id::text AS tenant_id, service_date.property_node::text AS property_node, service_date.reservation_id::text AS reservation_id, service_date.service_provision_date::text AS service_provision_date, invoice.invoice_issue_date::text AS invoice_issue_date, invoice.invoice_series, invoice.invoice_serial, invoice.currency::text AS currency, invoice.amount_minor::text AS amount_minor, invoice.coverage_scope, invoice.invoice_issue_source, invoice.invoice_issue_evidence_sha256, invoice.legal_rule AS invoice_legal_rule, service_date.service_provision_source, service_date.service_provision_evidence_sha256, service_date.legal_rule AS service_legal_rule, service_date.reservation_lineage_id::text AS reservation_lineage_id, service_date.hold_binding_id::text AS hold_binding_id, service_date.attribution_id::text AS attribution_id, service_date.segment_id::text AS segment_id, service_date.origin_quote_hash, service_date.snapshot_hash, service_date.currency::text AS service_currency, lineage.id::text AS lineage_id, lineage.property_node::text AS lineage_property_node, lineage.binding_id::text AS lineage_hold_binding_id, lineage.attribution_id::text AS lineage_attribution_id, lineage.reservation_id::text AS lineage_reservation_id, lineage.segment_id::text AS lineage_segment_id, lineage.origin_quote_hash AS lineage_origin_quote_hash, lineage.snapshot_hash AS lineage_snapshot_hash, lineage.currency::text AS lineage_currency, attribution.snapshot AS attribution_snapshot FROM public.india_gst_accommodation_invoice_issue_snapshot AS invoice JOIN public.india_gst_accommodation_service_provision_snapshot AS service_date ON service_date.tenant_id = invoice.tenant_id AND service_date.id = invoice.service_provision_snapshot_id JOIN public.tax_attribution_reservation_binding AS lineage ON lineage.tenant_id = service_date.tenant_id AND lineage.id = service_date.reservation_lineage_id JOIN public.tax_attribution_snapshot AS attribution ON attribution.tenant_id = service_date.tenant_id AND attribution.id = service_date.attribution_id WHERE invoice.tenant_id = ${tenant}::uuid AND invoice.tenant_id = current_setting('app.tenant_id', true)::uuid AND invoice.id = ${invoiceId}::uuid AND invoice.service_provision_snapshot_id = ${serviceId}::uuid AND service_date.property_node = ${property}::uuid AND service_date.reservation_id = ${reservation}::uuid AND service_date.service_provision_date = ${input.serviceProvisionDate}::date AND invoice.invoice_issue_date = ${input.invoiceIssueDate}::date AND invoice.coverage_scope = 'full_attribution' AND invoice.invoice_issue_source = 'governed_supplier_tax_invoice_record' AND invoice.legal_rule = 'CGST_ACT_13_2_INVOICE_DATE_INPUT_ONLY' AND service_date.service_provision_source = 'governed_service_provision_record' AND service_date.legal_rule = 'CGST_ACT_13_2_B_SERVICE_PROVISION_DATE_INPUT_ONLY'`;
     if (rows.length === 0)
       throw new IndiaGstAccommodationInvoiceTimelinessNotFoundError(
         "selected invoice timeliness evidence is unavailable",

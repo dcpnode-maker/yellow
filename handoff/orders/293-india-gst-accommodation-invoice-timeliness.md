@@ -1,6 +1,6 @@
 # Order 293 — Compose India GST accommodation invoice timeliness evidence
 
-**Status:** BUILT-PENDING-REVIEW-D778
+**Status:** REPAIRED-PENDING-REREVIEW-D780
 **Phase:** 7 — Tax engine and India IRP
 **Branch:** `phase-7/india-gst-accommodation-invoice-timeliness`
 **Base:** `b5b2d45` (independently approved Order292 descendant)

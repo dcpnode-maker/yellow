@@ -1058,4 +1058,17 @@ intentional11/0(124), adjacent40/0+3 skips(834), unchanged setup58/110/100/100 w
 referee11/11, standing1009/0+871 skips(15573;1880 tests/330 files), typecheck,
 boundaries116, licences23, audit0 and diff clean. No migration/schema change;
 disposable proof resources were removed and stable local remains stopped by founder
-authorization. Independent review remains pending.
+authorization. Independent review of candidate `95e43a5` under D-779 is CHANGES
+REQUIRED for two blockers: Date.UTC low-year/overflow arithmetic and incomplete
+Order290/292 invoice identity/evidence rehash binding. Repair requires explicit
+proleptic-Gregorian date arithmetic with overflow fail-closed behavior and inclusion
+of invoice series/serial plus both predecessor evidence hashes in result/hash.
+D-780 records refreshed REPAIRED-PENDING-REREVIEW proof: focused including
+intentional15/0(146), adjacent44/0+3 skips(856), unchanged setup58/110/100/100/
+referee11/11, standing1013/0+871 skips(15595;1884 tests/330 files),
+typecheck/boundaries116/licences23/audit0/diff green. Repair uses explicit
+proleptic-Gregorian arithmetic with no JavaScript Date, low-year/leap/century/
+month/year regressions and overflow fail-closed, plus complete invoice
+series/serial and invoice/service evidence hashes in result/hash. No migration/
+schema change; fresh independent Tier3 re-review remains pending and no approval
+is claimed.

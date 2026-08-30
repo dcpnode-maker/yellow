@@ -1200,12 +1200,15 @@ nine-key shape, with `ordinaryRegimeSource` and `ordinaryRegimeEvidenceSha256`, 
 `governed_rule47_ordinary_regime_record` under
 `CGST_RULE_47_ORDINARY_SERVICE_INVOICE_30_DAY_INPUT`; output regime is fixed to
 `ordinary_rule47_30_day`. Date-only comparison uses a
-30-calendar-day deadline: day 30 timely, day 31 late. No regime is inferred and no
-clock, timezone, latest/nearest or fallback is consulted.
+30-calendar-day deadline: day 30 timely, day 31 late, using explicit proleptic-
+Gregorian YYYY date-only arithmetic with low-year handling and overflow fail-closed.
+No regime is inferred and no clock, timezone, latest/nearest or fallback is consulted.
 
 Missing, malformed, duplicate, stale, exception, contradictory or mixed-lineage
 evidence fails closed. The result is recursively frozen and tenant-bound without
-tenant disclosure and includes `ordinaryRegimeEvidenceSha256` in the evidence hash.
+tenant disclosure and includes invoice series/serial, `invoiceIssueEvidenceSha256`,
+`serviceProvisionEvidenceSha256` and `ordinaryRegimeEvidenceSha256` in the evidence
+hash; both predecessor evidence hashes are equality-bound and revalidated.
 No migration, writer, invoice issuance/validity/numbering,
 Rule47 selection, section13 result, tax, document, IRP, submission, API, UI or
 local-runtime authority is granted.

@@ -1490,8 +1490,11 @@ issue evidence plus explicit ordinary Rule47 policy. The nine-key input includes
 legal rule `CGST_RULE_47_ORDINARY_SERVICE_INVOICE_30_DAY_INPUT`; output regime is
 fixed `ordinary_rule47_30_day`. It computes the
 date-only `serviceProvisionDate + 30 calendar days`; day 30 is timely and day 31
-late. It returns frozen evidence only, including both dates, deadline, policy,
-complete attribution and `ordinaryRegimeEvidenceSha256` in a tenant-bound evidence
-hash. Exceptions, ambiguity, stale or mixed
+late. Arithmetic is explicit proleptic-Gregorian YYYY date-only arithmetic with
+low-year handling and overflow fail-closed. It returns frozen evidence including
+both dates, deadline, policy, invoice series/serial, `invoiceIssueEvidenceSha256`,
+`serviceProvisionEvidenceSha256`, complete attribution and
+`ordinaryRegimeEvidenceSha256` in a tenant-bound evidence hash. Exceptions,
+ambiguity, stale or mixed
 lineage fail closed; no regime inference, invoice issuance/validity/numbering,
 Rule47 selection, section13 result, tax, document, API, UI or local authority exists.
