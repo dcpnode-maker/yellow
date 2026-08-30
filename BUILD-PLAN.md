@@ -1018,3 +1018,13 @@ checkout, posting date or clocks; invoice/payment/time-of-supply, Order289 consu
 tax/document/API/UI/local authority remain separate. Exact56/108/98/98/8 schema,
 hostile non-substitution proof and referee11/11 are green under D-769. Fresh Tier3
 review approves exact candidate `4476cc5` with no finding under D-770.
+
+**Ready Order291 accommodation payment-receipt-date evidence:** add one exact
+tenant-leading forced-RLS SELECT-only full-attribution payment-receipt root bound to
+approved Order290/252/240 truth. Preserve supplier-books entry and supplier-bank
+credit dates and require the stored receipt date to be their earlier date under CGST
+section13 explanation(ii). D-771 forbids substituting payment, provider-receipt,
+journal, document, folio, operational or clock timestamps and admits no partial/cash/
+refund allocation, invoice/timeliness or time-of-supply result. Exact
+`57/109/99/99/9` schema, hostile zero-write/non-substitution proof, referee `11/11`
+and fresh Tier3 are mandatory.

@@ -418,6 +418,15 @@ quote-night, reservation, operational, checkout, posting or clock dates. Exact
 green; fresh Tier3 approves exact candidate `4476cc5` with no finding. Invoice/payment,
 Order289 consumption, levy, document,
 API/UI/local authority remain separate.
+
+Order291/D-771 is ready as the next honest section13 prerequisite: one explicit
+externally evidenced full-attribution payment-receipt root bound to approved
+Order290/252/240 truth. It preserves both statutory source dates and their earlier
+date while granting no payment ingestion, partial/cash/refund allocation, invoice
+timeliness or time-of-supply result. Existing payment/provider/journal/document/
+operational timestamps cannot substitute. Exact `57/109/99/99/9` schema/setup/
+referee, hostile zero-write/non-substitution proof and fresh Tier3 are mandatory;
+tax/document/API/UI/local authority remain separate.
 Fresh non-implementing Tier-3 review approves exact candidate `8630639` with no
 finding under D-751. Reviewer-personal official-law, exact52/104/94/94/4,
 schema/setup/referee11/11, focused/database/standing/static and stable-runtime proof
