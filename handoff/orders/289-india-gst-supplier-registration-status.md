@@ -1,6 +1,6 @@
 # Order 289 — Build exact date-specific India GST supplier-registration-status evidence
 
-**Status:** READY-D765
+**Status:** BUILT-PENDING-REVIEW-D766
 **Phase:** 7 — Tax engine and India IRP
 **Branch:** `phase-7/india-gst-supplier-registration-status`
 **Base:** `bb22dd7` (independently approved Order288 descendant)
@@ -107,8 +107,33 @@ merge/public deploy, Phase-7 or application-complete claim.
 
 ## Definition of done
 
-- [ ] Intentional red precedes implementation.
-- [ ] Exact schema/RLS/ACL and hostile lineage proof is green.
-- [ ] Standing/static/referee gates are green and no authority expands.
+- [x] Intentional red precedes implementation.
+- [x] Exact schema/RLS/ACL and hostile lineage proof is green.
+- [x] Standing/static/referee gates are green and no authority expands.
 - [ ] Fresh independent Tier-3 approval is recorded.
 
+## Builder proof — D-766
+
+Intentional red `0/1` preceded implementation. The exact candidate then passed the
+focused hostile/live PostgreSQL suite `10/0` (`225` expectations), fresh deployment
+acceptance `20/0` (`58`), runtime-DML authority `5/0` (`114`) and migration runner
+`39/0` (`187`). Normalized schema mirror and exact catalogue
+`55 migrations / 107 public tables / 97 RLS tables / 97 policies / 7 FORCE-RLS`
+match; canonical setup and standalone referee each report `11 passed, 0 failed`.
+Standing proof is `976/0` plus `865` database-only skips (`15,108` expectations;
+`1,841` tests / `322` files). Typecheck, `112`-file boundaries, `23`-package licence
+policy, audit `0`, schema mirror and diff checks are green. Adjacent Orders284–289
+produce `81` behavioral passes (`1,702` expectations); the only two deliberate
+historical failures are Orders285/286 catalogue locks for their independently
+approved 52/53-migration snapshots, left unchanged rather than weakened.
+
+Migration 0055 SHA-256 is
+`c0f50dc59178da55cd89ad06bcbd4ee48f36a48e154c07e41b089a7608cb1f80`.
+An earlier disposable compose proof printed setup/referee `11/11` and was removed by
+an overlapping cleanup before later suites, causing only connection-closed harness
+results; no product assertion failed and no such result is counted. All recorded
+proof above was rerun sequentially against a fresh exact isolated PostgreSQL 16.15
+container. The sole stable local retains the same app/PostgreSQL/Valkey identities,
+is healthy at port 3000 with restart count zero, and received no Order289 promotion.
+Fresh non-implementing Tier-3 execution on the exact committed candidate remains
+mandatory.

@@ -395,14 +395,18 @@ normalized schema/referee11/11 and standing927/0 plus841 skips. All static gates
 green, disposable proof is removed and the sole stable local is exact, healthy and
 unchanged. Fresh non-implementing Tier-3 review remains mandatory.
 
-Order289/D-765 is ready as the exact current supplier GST-registration-status
+Order289/D-766 is built pending fresh review as the exact current supplier GST-registration-status
 prerequisite: one tenant-leading forced-RLS SELECT-only exact-date snapshot of active
 GST Portal status/type, bound to complete approved Order284/272 lineage. Its date is
 evidence time only and cannot decide statutory time of supply. Historical Form-G and
 renewed Form-F2 evidence remain separate. Intentional red, exact55/107/97/97/7
 schema/setup/referee, hostile zero-write proof and fresh Tier-3 are mandatory; no
 effective renewed status, supply-nature V2, zero rating, levy, document/API/UI/local
-authority is admitted.
+authority is admitted. Intentional-red precedence, focused `10/0`, acceptance
+`20/0`, runtime-DML `5/0`, migration `39/0`, exact `55/107/97/97/7` normalized
+schema/setup/referee `11/11`, standing `976/0` plus `865` skips and all static gates
+are green. The stable port-3000 local is unchanged; fresh non-implementing Tier-3
+review remains mandatory.
 Fresh non-implementing Tier-3 review approves exact candidate `8630639` with no
 finding under D-751. Reviewer-personal official-law, exact52/104/94/94/4,
 schema/setup/referee11/11, focused/database/standing/static and stable-runtime proof

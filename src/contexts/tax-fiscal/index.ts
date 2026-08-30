@@ -219,3 +219,13 @@ export type {
   IndiaSezUnitLoaRenewalInput,
   IndiaSezUnitLoaRenewalResult,
 } from "./india-sez-unit-loa-renewal";
+export {
+  IndiaGstSupplierRegistrationStatusConflictError,
+  IndiaGstSupplierRegistrationStatusNotFoundError,
+  IndiaGstSupplierRegistrationStatusService,
+  IndiaGstSupplierRegistrationStatusValidationError,
+} from "./india-gst-supplier-registration-status";
+export type {
+  IndiaGstSupplierRegistrationStatusInput,
+  IndiaGstSupplierRegistrationStatusResult,
+} from "./india-gst-supplier-registration-status";

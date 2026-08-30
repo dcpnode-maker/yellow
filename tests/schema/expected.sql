@@ -7500,6 +7500,32 @@ ALTER TABLE ONLY public.india_gst_recipient_sez_status FORCE ROW LEVEL SECURITY;
 
 
 --
+-- Name: india_gst_supplier_registration_status_snapshot; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.india_gst_supplier_registration_status_snapshot (
+    tenant_id uuid NOT NULL,
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    supplier_registration_id uuid NOT NULL,
+    supplier_registration_evidence_hash text NOT NULL,
+    status_as_of date NOT NULL,
+    gst_registration_status text NOT NULL,
+    gst_taxpayer_type text NOT NULL,
+    gst_status_source text NOT NULL,
+    gst_status_evidence_sha256 text NOT NULL,
+    legal_rule text NOT NULL,
+    CONSTRAINT india_gst_supplier_registration_status_snapshot_legal_rule_ck CHECK ((legal_rule = 'CGST_ACT_25_29_30_AND_RULE_21A_REGISTRATION_STATUS'::text)),
+    CONSTRAINT india_gst_supplier_registration_status_snapshot_source_ck CHECK ((gst_status_source = 'gst_common_portal'::text)),
+    CONSTRAINT india_gst_supplier_registration_status_snapshot_status_ck CHECK ((gst_registration_status = 'active'::text)),
+    CONSTRAINT india_gst_supplier_status_snapshot_portal_evidence_ck CHECK ((gst_status_evidence_sha256 ~ '^[0-9a-f]{64}$'::text)),
+    CONSTRAINT india_gst_supplier_status_snapshot_supplier_evidence_ck CHECK ((supplier_registration_evidence_hash ~ '^[0-9a-f]{64}$'::text)),
+    CONSTRAINT india_gst_supplier_status_snapshot_taxpayer_type_ck CHECK ((gst_taxpayer_type = ANY (ARRAY['regular'::text, 'sez_unit'::text, 'sez_developer'::text])))
+);
+
+ALTER TABLE ONLY public.india_gst_supplier_registration_status_snapshot FORCE ROW LEVEL SECURITY;
+
+
+--
 -- Name: india_gst_supplier_service_location; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -9263,6 +9289,22 @@ ALTER TABLE ONLY public.india_gst_recipient_sez_status
 
 ALTER TABLE ONLY public.india_gst_recipient_sez_status
     ADD CONSTRAINT india_gst_recipient_sez_status_pk PRIMARY KEY (tenant_id, id);
+
+
+--
+-- Name: india_gst_supplier_registration_status_snapshot india_gst_supplier_registration_status_snapshot_identity_uq; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.india_gst_supplier_registration_status_snapshot
+    ADD CONSTRAINT india_gst_supplier_registration_status_snapshot_identity_uq UNIQUE (tenant_id, supplier_registration_id, supplier_registration_evidence_hash, status_as_of);
+
+
+--
+-- Name: india_gst_supplier_registration_status_snapshot india_gst_supplier_registration_status_snapshot_pk; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.india_gst_supplier_registration_status_snapshot
+    ADD CONSTRAINT india_gst_supplier_registration_status_snapshot_pk PRIMARY KEY (tenant_id, id);
 
 
 --
@@ -11299,6 +11341,14 @@ ALTER TABLE ONLY public.india_gst_recipient_sez_status
 
 
 --
+-- Name: india_gst_supplier_registration_status_snapshot india_gst_supplier_registration_status_snapshot_registration_fk; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.india_gst_supplier_registration_status_snapshot
+    ADD CONSTRAINT india_gst_supplier_registration_status_snapshot_registration_fk FOREIGN KEY (tenant_id, supplier_registration_id) REFERENCES public.property_fiscal_registration(tenant_id, id);
+
+
+--
 -- Name: india_gst_supplier_service_location india_gst_supplier_service_location_registration_fk; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -12611,6 +12661,12 @@ ALTER TABLE public.india_gst_item_classification ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.india_gst_recipient_sez_status ENABLE ROW LEVEL SECURITY;
 
 --
+-- Name: india_gst_supplier_registration_status_snapshot; Type: ROW SECURITY; Schema: public; Owner: -
+--
+
+ALTER TABLE public.india_gst_supplier_registration_status_snapshot ENABLE ROW LEVEL SECURITY;
+
+--
 -- Name: india_gst_supplier_service_location; Type: ROW SECURITY; Schema: public; Owner: -
 --
 
@@ -13178,6 +13234,13 @@ CREATE POLICY tenant_isolation ON public.india_gst_item_classification USING ((t
 --
 
 CREATE POLICY tenant_isolation ON public.india_gst_recipient_sez_status USING ((tenant_id = (NULLIF(current_setting('app.tenant_id'::text, true), ''::text))::uuid)) WITH CHECK ((tenant_id = (NULLIF(current_setting('app.tenant_id'::text, true), ''::text))::uuid));
+
+
+--
+-- Name: india_gst_supplier_registration_status_snapshot tenant_isolation; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY tenant_isolation ON public.india_gst_supplier_registration_status_snapshot USING ((tenant_id = (NULLIF(current_setting('app.tenant_id'::text, true), ''::text))::uuid)) WITH CHECK ((tenant_id = (NULLIF(current_setting('app.tenant_id'::text, true), ''::text))::uuid));
 
 
 --
@@ -15183,6 +15246,13 @@ GRANT SELECT ON TABLE public.india_gst_item_classification TO app_role;
 --
 
 GRANT SELECT ON TABLE public.india_gst_recipient_sez_status TO app_role;
+
+
+--
+-- Name: TABLE india_gst_supplier_registration_status_snapshot; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT SELECT ON TABLE public.india_gst_supplier_registration_status_snapshot TO app_role;
 
 
 --

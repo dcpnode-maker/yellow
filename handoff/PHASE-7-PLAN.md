@@ -453,6 +453,11 @@ Form-F2 approval remains separate; no live lookup, latest/clock inference, effec
 renewed status, supply-nature V2, zero rating, levy, document/API/UI/local authority
 is admitted. D-765 requires intentional red, exact55/107/97/97/7 schema/setup/
 referee, hostile zero-write proof and fresh Tier-3.
+The D-766 candidate is built: intentional red `0/1` preceded focused `10/0` (`225`),
+acceptance `20/0` (`58`), runtime-DML `5/0` (`114`), migration `39/0` (`187`), exact
+`55/107/97/97/7` normalized schema/setup/referee `11/11`, standing `976/0` plus
+`865` skips and all static gates. The stable port-3000 local is unchanged. Fresh
+non-implementing Tier-3 review remains mandatory.
 Fresh non-implementing Tier-3 review approves exact candidate `8630639` with no
 finding under D-751. Reviewer-personal official-law, exact52/104/94/94/4,
 schema/setup/referee11/11, focused/database/standing/static and stable-runtime proof

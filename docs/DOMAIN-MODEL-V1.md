@@ -1385,3 +1385,19 @@ and clears the current pointer; replacement/manual release, entry/exit, unrelate
 vehicles, history and automatic allocation remain separate future workflows. Parking
 does not change reservation, segment, room, condition, task, folio, financial,
 business-day or statutory identity.
+
+### India GST supplier registration-status snapshot (Order 289)
+
+This tenant-leading read root belongs to one exact approved Order272 supplier
+registration id/evidence hash and is reached only through complete approved Order284
+service-location lineage. Its identity is one explicit evidence date. It records only
+affirmative active GST Common Portal status, the exact regular/SEZ-unit/SEZ-developer
+taxpayer type, portal-source evidence hash and legal-rule label. Forced RLS and
+SELECT-only runtime authority preserve tenant isolation and immutability.
+
+The snapshot is deliberately separate from Order286 historical Form-G/B/C approval
+and Order288 Form-F2 continuity because GST registration and SEZ approval can change
+independently. Its date is not a caller-selected statutory supply date. A later
+composer may consume it only after equality-binding independently approved service-
+supply/time-of-supply evidence. Absence, date mismatch, inactive/suspended/cancelled
+or unsupported truth remains unresolved.

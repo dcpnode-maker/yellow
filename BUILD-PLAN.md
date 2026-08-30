@@ -993,7 +993,7 @@ multi-currency folio settlement (schema is ready: single-currency journals + kin
 `fx` for gain/loss pairs; v1 settles in property currency, acquirer converts —
 trigger: first tenant contractually needing cross-currency folios).
 
-**Ready Order289 current supplier GST-registration-status slice:** add one exact
+**Built-pending-review Order289 current supplier GST-registration-status slice:** one exact
 tenant-leading forced-RLS SELECT-only snapshot and resolver for independently
 changeable active GST Portal status/taxpayer type of approved Order272 supplier
 registration reached through complete Order284 lineage at one explicit evidence
@@ -1002,4 +1002,7 @@ for current GST status. The date is evidence time only; consumption awaits separ
 approved service-supply/time-of-supply authority. D-765 requires intentional red,
 exact55/107/97/97/7 schema/setup/referee, hostile zero-write proof and fresh Tier-3.
 Effective renewed status, supply-nature V2, zero rating, levy, document/API/UI/local
-authority remain separate.
+authority remain separate. D-766 records intentional-red precedence, focused
+`10/0`, acceptance `20/0`, runtime-DML `5/0`, migration `39/0`, exact
+`55/107/97/97/7` schema/setup/referee `11/11`, standing `976/0` plus `865` skips and
+all static gates green. Fresh non-implementing Tier-3 review remains mandatory.

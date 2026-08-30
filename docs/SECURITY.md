@@ -1092,3 +1092,18 @@ application retain separate scopes and exact property grants.
 - No WAF beyond Cloudflare free rules; revisit at first attack pattern.
 - No field-level encryption beyond identity docs; revisit with first Gulf
   enterprise contract.
+
+### India GST supplier current-status containment (Order 289)
+
+The exact ten-column snapshot is tenant-leading, same-tenant FK-bound to the approved
+supplier registration, forced-RLS protected and granted only SELECT to `app_role`.
+INSERT, UPDATE, DELETE and TRUNCATE remain owner-mediated and denied at runtime. The
+resolver first reconstructs and rehashes complete Order284/272 lineage, then performs
+one equality-only id/date/registration/hash read under the caller transaction.
+
+No live GST Portal request, latest/nearest query, server clock, GSTIN/address fallback
+or Form-G/Form-F2 substitution exists. The explicit date is evidence time only and
+cannot select or prove statutory time of supply. Canonical input/row validation,
+tenant-bound hashing, recursive freeze and zero-write rejection contain proxy,
+accessor, duplicate, cross-lineage and stale-date attacks. The root grants no current
+LoA, supply-nature, zero-rating, tax, document, API or UI authority.

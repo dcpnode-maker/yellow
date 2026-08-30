@@ -2032,3 +2032,21 @@ Migration0042 is the forward-only compatibility correction: when no quoted-tax h
 binding exists, the capability returns zero rows before product authority checks;
 when a binding exists, all tenant/property/actor and exact lineage checks remain
 mandatory. Neither migration authorizes a ledger checksum rewrite.
+
+## Exact date-specific India GST supplier-registration-status evidence (Order 289)
+
+`IndiaGstSupplierRegistrationStatusService.resolve(tx,input)` accepts exactly
+`tenantId`, `propertyNode`, `reservationId`, `supplierServiceLocationId`,
+`supplierGstRegistrationStatusId` and `statusAsOf`. The hardened plain input is
+resolved through complete approved Order284/272 service-location and supplier-
+registration truth. One explicit snapshot row must equality-match tenant,
+registration id, registration evidence hash and date; no latest, nearest, clock or
+network lookup exists.
+
+The immutable result exposes the selected root id, property, minimized supplier
+service-location/registration lineage, evidence date, exact active GST Portal status,
+regular/SEZ-unit/SEZ-developer taxpayer type, source, evidence hash, legal rule and a
+deterministic tenant-bound SHA-256. It is recursively frozen and fixed-order; the
+tenant remains unexposed. The date is evidence time only. It does not establish
+statutory time of supply or authorize renewed SEZ status, supply nature, zero rating,
+levy, invoice or submission.
