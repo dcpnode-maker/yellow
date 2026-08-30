@@ -15,7 +15,7 @@ describe("Order 298 intentional red: effective India GST accommodation rates", (
     const quoteText = await Bun.file(quoteProof).text();
 
     expect(seedText).toContain('"upto_minor":750000,"rate":0.12,"itc_eligible":true');
-    expect(seedText).toContain('"upto_minor":null,"rate":0.18');
+    expect(seedText).toContain('"upto_minor":null,"rate":0.18,"itc_eligible":true');
     expect(seedText).not.toContain(
       '"slabs":[{"upto_minor":100000,"rate":0,"itc_eligible":false},{"upto_minor":750000,"rate":0.05,"itc_eligible":false}',
     );
@@ -24,6 +24,7 @@ describe("Order 298 intentional red: effective India GST accommodation rates", (
     expect(extensionText).not.toContain('"upto_minor":100000,  "rate":0');
     expect(extensionText).not.toContain('"upto_minor":750000,  "rate":0.05');
     expect(extensionText).toContain('"upto_minor":750000,  "rate":0.12, "itc_eligible":true');
+    expect(extensionText).toContain('"upto_minor":null,    "rate":0.18, "itc_eligible":true');
     for (const proof of [evaluatorText, quoteText]) {
       expect(proof).toContain("{ upto_minor: 750_000, rate: 0.12, itc_eligible: true }");
       expect(proof).toContain("{ upto_minor: null, rate: 0.18, itc_eligible: true }");
