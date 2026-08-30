@@ -177,6 +177,13 @@ function hash(value: unknown, subject: string): string {
   if (typeof value !== "string" || !SHA256.test(value)) return fail(`${subject} is invalid`);
   return value;
 }
+function canonicalText(value: unknown, subject: string, max: number): string {
+  if (typeof value !== "string" || value.length === 0 || value.length > max ||
+      value !== value.trim() || value !== value.normalize("NFC") || /[\u0000-\u001f\u007f]/.test(value)) {
+    return fail(`${subject} is invalid`);
+  }
+  return value;
+}
 function date(value: unknown, subject: string): string {
   if (typeof value !== "string" || !DATE.test(value)) return fail(`${subject} is invalid`);
   const [yearText, monthText, dayText] = value.split("-");
@@ -291,9 +298,9 @@ function validateTimeOfSupply(
   for (const key of ["ordinaryRegimeEvidenceSha256", "serviceProvisionEvidenceSha256", "paymentReceiptEvidenceSha256", "invoiceIssueEvidenceSha256"] as const) hash(time[key], `${subject} ${key}`);
   if (typeof time.invoiceSeries !== "string" || typeof time.invoiceSerial !== "string" || typeof time.amountMinor !== "string" || !/^[1-9][0-9]*$/.test(time.amountMinor) || typeof time.currency !== "string" || !/^[A-Z]{3}$/.test(time.currency)) return fail(`${subject} money/identity fields are invalid`);
   const lineageEvidence = exactRecord(time.reservationLineage, LINEAGE_KEYS, `${subject} reservation lineage`);
-  for (const key of ["lineageId", "holdBindingId", "attributionId", "reservationId"] as const) uuid(lineageEvidence[key], `${subject} lineage ${key}`);
+  for (const key of ["lineageId", "holdBindingId", "attributionId", "reservationId", "segmentId"] as const) uuid(lineageEvidence[key], `${subject} lineage ${key}`);
   for (const key of ["originQuoteHash", "snapshotHash"] as const) hash(lineageEvidence[key], `${subject} lineage ${key}`);
-  if (lineageEvidence.currency !== time.currency) return fail(`${subject} lineage currency conflicts`);
+  if (time.currency !== "INR" || lineageEvidence.currency !== "INR" || lineageEvidence.currency !== time.currency) return fail(`${subject} lineage currency conflicts`);
   const attribution = exactRecord(time.attribution, ATTRIBUTION_KEYS, `${subject} attribution`);
   if (attribution.originKind !== "rate_quote" || attribution.lineId !== "room" || attribution.revenueGroup !== "room_revenue") return fail(`${subject} attribution is invalid`);
   const candidateKeys = time.branch === "section13_2_a_invoice_or_payment" ? CANDIDATE_DATES_A : time.branch === "section13_2_b_service_or_payment" ? CANDIDATE_DATES_B : null;
@@ -336,10 +343,26 @@ function validateSupplier(value: unknown, tenantId: string): IndiaGstRegistratio
   uuid(root.supplierRegistrationId, "supplier timing registration id"); uuid(root.supplierGstRegistrationStatusId, "supplier timing status id"); uuid(root.supplierServiceLocationId, "supplier timing service location id");
   if (location.id !== root.supplierServiceLocationId || supplier.registrationId !== root.supplierRegistrationId) return fail("Order295 supplier timing identity is inconsistent");
   hash(location.evidenceHash, "supplier timing location hash"); hash(supplier.evidenceHash, "supplier timing registration hash"); hash(root.supplierRegistrationStatusEvidenceHash, "supplier timing status hash"); hash(root.timeOfSupplyEvidenceHash, "supplier timing time hash");
-  validateGst(root.gstRegistration, "supplier timing GST registration");
+  const gst = exactRecord(root.gstRegistration, GST_KEYS, "supplier timing GST registration");
+  validateGst(gst, "supplier timing GST registration");
+  const expectedStatusHash = digest({
+    tenantId,
+    supplierGstRegistrationStatusId: root.supplierGstRegistrationStatusId,
+    propertyNode,
+    supplierServiceLocation: { id: location.id, evidenceHash: location.evidenceHash },
+    supplier: { registrationId: supplier.registrationId, evidenceHash: supplier.evidenceHash },
+    statusAsOf,
+    gstRegistration: {
+      status: gst.status,
+      taxpayerType: gst.taxpayerType,
+      source: gst.source,
+      evidenceSha256: gst.evidenceSha256,
+    },
+    legalRule: "CGST_ACT_25_29_30_AND_RULE_21A_REGISTRATION_STATUS",
+  });
   const time = validateTimeOfSupply(root.timeOfSupply, "Order295 time-of-supply", tenantId, "order295");
   const evidence = Object.fromEntries(SUPPLIER_KEYS.slice(0, -1).map((key) => [key, root[key]]));
-  if (time.propertyNode !== propertyNode || time.reservationId !== reservationId || time.timeOfSupplyDate !== timeDate || root.timeOfSupplyEvidenceHash !== time.evidenceHash || root.evidenceHash !== digest({ tenantId, ...evidence })) return fail("Order295 supplier timing envelope is inconsistent");
+  if (root.supplierRegistrationStatusEvidenceHash !== expectedStatusHash || time.propertyNode !== propertyNode || time.reservationId !== reservationId || time.timeOfSupplyDate !== timeDate || root.timeOfSupplyEvidenceHash !== time.evidenceHash || root.evidenceHash !== digest({ tenantId, ...evidence })) return fail("Order295 supplier timing envelope is inconsistent");
   assertFrozen(root);
   return root as unknown as IndiaGstRegistrationAtTimeOfSupplyResult;
 }
@@ -355,12 +378,50 @@ function validateRecipient(value: unknown, tenantId: string): IndiaGstRecipientR
   uuid(root.recipientPartyId, "recipient timing party id"); uuid(root.recipientRegistrationId, "recipient timing registration id"); uuid(root.recipientSezStatusId, "recipient timing status id");
   if (recipient.registrationId !== root.recipientRegistrationId) return fail("Order296 recipient timing registration is inconsistent");
   hash(recipient.evidenceHash, "recipient timing registration hash"); hash(root.recipientRegistrationStatusEvidenceHash, "recipient timing status hash"); hash(root.timeOfSupplyEvidenceHash, "recipient timing time hash");
-  validateGst(root.gstRegistration, "recipient timing GST registration");
+  const gst = exactRecord(root.gstRegistration, GST_KEYS, "recipient timing GST registration");
+  validateGst(gst, "recipient timing GST registration");
   if (root.sezStatus !== "affirmatively_non_sez_regular" && root.sezStatus !== "sez_unit" && root.sezStatus !== "sez_developer") return fail("recipient timing SEZ status is invalid");
-  if (root.approval !== null) exactRecord(root.approval, ["form", "reference", "validity", "status", "evidenceSha256"], "recipient timing SEZ approval");
+  const expectedSezStatus = gst.taxpayerType === "regular" ? "affirmatively_non_sez_regular" : gst.taxpayerType;
+  if (root.sezStatus !== expectedSezStatus) return fail("recipient timing SEZ status conflicts with GST taxpayer type");
+  let approval: RecordValue | null = null;
+  if (gst.taxpayerType === "regular") {
+    if (root.approval !== null) return fail("regular recipient status cannot carry SEZ approval evidence");
+  } else {
+    const candidate = exactRecord(root.approval, ["form", "reference", "validity", "status", "evidenceSha256"], "recipient timing SEZ approval");
+    if ((gst.taxpayerType === "sez_unit" && candidate.form !== "sez_rules_form_g") ||
+        (gst.taxpayerType === "sez_developer" && candidate.form !== "sez_rules_form_b" && candidate.form !== "sez_rules_form_c")) return fail("recipient timing SEZ approval form conflicts with GST taxpayer type");
+    const validity = exactRecord(candidate.validity, ["fromInclusive", "toExclusive"], "recipient timing SEZ approval validity");
+    const fromInclusive = date(validity.fromInclusive, "recipient timing SEZ approval validity start");
+    const toExclusive = date(validity.toExclusive, "recipient timing SEZ approval validity end");
+    if (fromInclusive >= toExclusive || statusAsOf < fromInclusive || statusAsOf >= toExclusive || candidate.status !== "in_force") return fail("recipient timing SEZ approval is not in force");
+    canonicalText(candidate.reference, "recipient timing SEZ approval reference", 128);
+    hash(candidate.evidenceSha256, "recipient timing SEZ approval evidence hash");
+    approval = {
+      form: candidate.form,
+      reference: candidate.reference,
+      validity: { fromInclusive, toExclusive },
+      status: candidate.status,
+      evidenceSha256: candidate.evidenceSha256,
+    };
+  }
+  const expectedStatusHash = digest({
+    tenantId,
+    recipientSezStatusId: root.recipientSezStatusId,
+    recipient: { registrationId: recipient.registrationId, evidenceHash: recipient.evidenceHash },
+    statusAsOf,
+    gstRegistration: {
+      status: gst.status,
+      taxpayerType: gst.taxpayerType,
+      source: gst.source,
+      evidenceSha256: gst.evidenceSha256,
+    },
+    sezStatus: root.sezStatus,
+    approval,
+    legalRule: "IGST_ACT_7_5_B_AND_8_2_RECIPIENT_STATUS",
+  });
   const time = validateTimeOfSupply(root.timeOfSupply, "Order296 time-of-supply", tenantId, "order296");
   const evidence = Object.fromEntries(RECIPIENT_KEYS.slice(0, -1).map((key) => [key, root[key]]));
-  if (time.propertyNode !== propertyNode || time.reservationId !== reservationId || time.timeOfSupplyDate !== timeDate || root.timeOfSupplyEvidenceHash !== time.evidenceHash || root.evidenceHash !== digest({ tenantId, ...evidence })) return fail("Order296 recipient timing envelope is inconsistent");
+  if (root.recipientRegistrationStatusEvidenceHash !== expectedStatusHash || time.propertyNode !== propertyNode || time.reservationId !== reservationId || time.timeOfSupplyDate !== timeDate || root.timeOfSupplyEvidenceHash !== time.evidenceHash || root.evidenceHash !== digest({ tenantId, ...evidence })) return fail("Order296 recipient timing envelope is inconsistent");
   assertFrozen(root);
   return root as unknown as IndiaGstRecipientRegistrationAtTimeOfSupplyResult;
 }

@@ -14,6 +14,26 @@ const SUPPLIER_STATUS = id(29709), RECIPIENT_STATUS = id(29710), EXTENSION = id(
 const SERVICE = id(29713), PAYMENT = id(29714), INVOICE = id(29715), LINEAGE = id(29716), HOLD = id(29717), ATTRIBUTION = id(29718), SEGMENT = id(29719);
 const DATE = "2043-06-15";
 const QUOTE = "a".repeat(64), SNAPSHOT = "b".repeat(64), HASH = "c".repeat(64);
+const SUPPLIER_STATUS_EVIDENCE_HASH = digest({
+  tenantId: TENANT,
+  supplierGstRegistrationStatusId: SUPPLIER_STATUS,
+  propertyNode: PROPERTY,
+  supplierServiceLocation: { id: LOCATION, evidenceHash: "e".repeat(64) },
+  supplier: { registrationId: SUPPLIER, evidenceHash: "d".repeat(64) },
+  statusAsOf: DATE,
+  gstRegistration: { status: "active", taxpayerType: "regular", source: "gst_common_portal", evidenceSha256: "c".repeat(64) },
+  legalRule: "CGST_ACT_25_29_30_AND_RULE_21A_REGISTRATION_STATUS",
+});
+const RECIPIENT_STATUS_EVIDENCE_HASH = digest({
+  tenantId: TENANT,
+  recipientSezStatusId: RECIPIENT_STATUS,
+  recipient: { registrationId: RECIPIENT, evidenceHash: "1".repeat(64) },
+  statusAsOf: DATE,
+  gstRegistration: { status: "active", taxpayerType: "regular", source: "gst_common_portal", evidenceSha256: "2".repeat(64) },
+  sezStatus: "affirmatively_non_sez_regular",
+  approval: null,
+  legalRule: "IGST_ACT_7_5_B_AND_8_2_RECIPIENT_STATUS",
+});
 const TOS_KEYS = [
   "serviceProvisionSnapshotId", "paymentReceiptSnapshotId", "invoiceIssueSnapshotId", "propertyNode", "reservationId",
   "reservationLineage", "attribution", "serviceProvisionDate", "paymentReceiptDate", "invoiceIssueDate", "deadlineDate",
@@ -55,8 +75,8 @@ function supplyNature() {
   const jurisdiction = { extensionId: EXTENSION, ownerTenantId: TENANT, key: "in.order297.gst.27", version: "7", contentHash: HASH };
   const candidate = {
     propertyNode: PROPERTY, reservationId: RESERVATION, folioId: FOLIO, supplyDate: DATE, jurisdiction,
-    supplier: { registrationId: SUPPLIER, evidenceHash: "d".repeat(64), stateCode: "27", serviceLocation: { id: LOCATION, evidenceHash: "e".repeat(64), kind: "principal_place_of_business", stateCode: "27" }, status: { id: SUPPLIER_STATUS, evidenceHash: "f".repeat(64), statusAsOf: DATE, taxpayerType: "regular", sezStatus: "affirmatively_non_sez_regular" } },
-    recipient: { partyId: RECIPIENT_PARTY, registrationId: RECIPIENT, evidenceHash: "1".repeat(64), status: { id: RECIPIENT_STATUS, evidenceHash: "2".repeat(64), statusAsOf: DATE, taxpayerType: "regular", sezStatus: "affirmatively_non_sez_regular" } },
+    supplier: { registrationId: SUPPLIER, evidenceHash: "d".repeat(64), stateCode: "27", serviceLocation: { id: LOCATION, evidenceHash: "e".repeat(64), kind: "principal_place_of_business", stateCode: "27" }, status: { id: SUPPLIER_STATUS, evidenceHash: SUPPLIER_STATUS_EVIDENCE_HASH, statusAsOf: DATE, taxpayerType: "regular", sezStatus: "affirmatively_non_sez_regular" } },
+    recipient: { partyId: RECIPIENT_PARTY, registrationId: RECIPIENT, evidenceHash: "1".repeat(64), status: { id: RECIPIENT_STATUS, evidenceHash: RECIPIENT_STATUS_EVIDENCE_HASH, statusAsOf: DATE, taxpayerType: "regular", sezStatus: "affirmatively_non_sez_regular" } },
     buyerAssociation: { associationHash: "3".repeat(64), payloadHash: "4".repeat(64) },
     classification: { classificationId: CLASSIFICATION, evidenceHash: "5".repeat(64) },
     placeOfSupply: { candidateHash: "6".repeat(64), legalRule: "IGST_ACT_12_3_B", pos: "29" },
@@ -91,7 +111,7 @@ function supplier() {
     supplierServiceLocation: { id: LOCATION, evidenceHash: "e".repeat(64) },
     supplier: { registrationId: SUPPLIER, evidenceHash: "d".repeat(64) },
     gstRegistration: { status: "active", taxpayerType: "regular", source: "gst_common_portal", evidenceSha256: "c".repeat(64) },
-    supplierRegistrationStatusEvidenceHash: "f".repeat(64),
+    supplierRegistrationStatusEvidenceHash: SUPPLIER_STATUS_EVIDENCE_HASH,
     timeOfSupplyEvidenceHash: tos.evidenceHash,
     timeOfSupply: tos,
     registrationLegalRule: "CGST_ACT_25_29_30_AND_RULE_21A_REGISTRATION_STATUS",
@@ -115,7 +135,7 @@ function recipient() {
     gstRegistration: { status: "active", taxpayerType: "regular", source: "gst_common_portal", evidenceSha256: "2".repeat(64) },
     sezStatus: "affirmatively_non_sez_regular",
     approval: null,
-    recipientRegistrationStatusEvidenceHash: "2".repeat(64),
+    recipientRegistrationStatusEvidenceHash: RECIPIENT_STATUS_EVIDENCE_HASH,
     timeOfSupplyEvidenceHash: tos.evidenceHash,
     timeOfSupply: tos,
     recipientRegistrationLegalRule: "IGST_ACT_7_5_B_AND_8_2_RECIPIENT_STATUS",
@@ -134,11 +154,11 @@ const rehashTime = (value: Mutable, tenantBound: boolean) => {
 };
 const rehashSupplier = (value: Mutable) => {
   value.timeOfSupplyEvidenceHash = value.timeOfSupply.evidenceHash;
-  value.evidenceHash = digest(bodyWithoutHash(value, SUPPLIER_KEYS));
+  value.evidenceHash = digest({ tenantId: TENANT, ...bodyWithoutHash(value, SUPPLIER_KEYS) });
 };
 const rehashRecipient = (value: Mutable) => {
   value.timeOfSupplyEvidenceHash = value.timeOfSupply.evidenceHash;
-  value.evidenceHash = digest(bodyWithoutHash(value, RECIPIENT_KEYS));
+  value.evidenceHash = digest({ tenantId: TENANT, ...bodyWithoutHash(value, RECIPIENT_KEYS) });
 };
 const rehashSupplyNature = (value: Mutable) => {
   const candidate = bodyWithoutHash(value, SUPPLY_KEYS);
@@ -255,6 +275,62 @@ describe("Order 297 complete-root GST applicability binding", () => {
     rehashSupplyNature(recipientStatus.supplyNature);
     freeze(recipientStatus);
     expect(() => composeIndiaGstAccommodationSupplyNatureAtTimeOfSupply(recipientStatus as never)).toThrow(IndiaGstAccommodationSupplyNatureAtTimeOfSupplyConflictError);
+  });
+
+  test("rejects self-consistent non-UUID reservation segments in either predecessor timing root", () => {
+    const candidate = clone(base()) as Mutable;
+    candidate.supplierRegistrationAtTimeOfSupply.timeOfSupply.reservationLineage.segmentId = "not-a-uuid";
+    candidate.recipientRegistrationAtTimeOfSupply.timeOfSupply.reservationLineage.segmentId = "not-a-uuid";
+    rehashTime(candidate.supplierRegistrationAtTimeOfSupply.timeOfSupply, false);
+    rehashTime(candidate.recipientRegistrationAtTimeOfSupply.timeOfSupply, true);
+    rehashSupplier(candidate.supplierRegistrationAtTimeOfSupply);
+    rehashRecipient(candidate.recipientRegistrationAtTimeOfSupply);
+    freeze(candidate);
+    expect(() => composeIndiaGstAccommodationSupplyNatureAtTimeOfSupply(candidate as never)).toThrow(IndiaGstAccommodationSupplyNatureAtTimeOfSupplyConflictError);
+  });
+
+  test("rejects malformed regular-recipient approval even when its outer hash is recomputed", () => {
+    const candidate = clone(base()) as Mutable;
+    candidate.recipientRegistrationAtTimeOfSupply.approval = {
+      form: "invalid",
+      reference: 7,
+      validity: null,
+      status: "expired",
+      evidenceSha256: "0".repeat(64),
+    };
+    rehashRecipient(candidate.recipientRegistrationAtTimeOfSupply);
+    freeze(candidate);
+    expect(() => composeIndiaGstAccommodationSupplyNatureAtTimeOfSupply(candidate as never)).toThrow(IndiaGstAccommodationSupplyNatureAtTimeOfSupplyConflictError);
+  });
+
+  test("rejects changed supplier GST evidence with a stale status evidence hash", () => {
+    const candidate = clone(base()) as Mutable;
+    candidate.supplierRegistrationAtTimeOfSupply.gstRegistration.evidenceSha256 = "0".repeat(64);
+    rehashSupplier(candidate.supplierRegistrationAtTimeOfSupply);
+    freeze(candidate);
+    expect(() => composeIndiaGstAccommodationSupplyNatureAtTimeOfSupply(candidate as never)).toThrow(IndiaGstAccommodationSupplyNatureAtTimeOfSupplyConflictError);
+  });
+
+  test("rejects self-consistent taxpayer and SEZ semantic crossings between Order287 and timing roots", () => {
+    const supplierCrossing = clone(base()) as Mutable;
+    supplierCrossing.supplyNature.supplier.status.taxpayerType = "sez_unit";
+    supplierCrossing.supplyNature.supplier.status.sezStatus = "sez_unit";
+    supplierCrossing.supplyNature.determinationBasis = "sez_override";
+    supplierCrossing.supplyNature.sezDirection = "by_sez";
+    supplierCrossing.supplyNature.legalRule = "IGST_ACT_7_5_B";
+    rehashSupplyNature(supplierCrossing.supplyNature);
+    freeze(supplierCrossing);
+    expect(() => composeIndiaGstAccommodationSupplyNatureAtTimeOfSupply(supplierCrossing as never)).toThrow(IndiaGstAccommodationSupplyNatureAtTimeOfSupplyConflictError);
+
+    const recipientCrossing = clone(base()) as Mutable;
+    recipientCrossing.supplyNature.recipient.status.taxpayerType = "sez_unit";
+    recipientCrossing.supplyNature.recipient.status.sezStatus = "sez_unit";
+    recipientCrossing.supplyNature.determinationBasis = "sez_override";
+    recipientCrossing.supplyNature.sezDirection = "to_sez";
+    recipientCrossing.supplyNature.legalRule = "IGST_ACT_7_5_B";
+    rehashSupplyNature(recipientCrossing.supplyNature);
+    freeze(recipientCrossing);
+    expect(() => composeIndiaGstAccommodationSupplyNatureAtTimeOfSupply(recipientCrossing as never)).toThrow(IndiaGstAccommodationSupplyNatureAtTimeOfSupplyConflictError);
   });
 
   test("rejects self-consistent roots using the wrong predecessor-specific time hash algorithm", () => {
