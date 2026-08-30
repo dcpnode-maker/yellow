@@ -44,4 +44,4 @@ numbering, journal/posting, IRP/submission, seed, Phase/application-complete cla
 - [x] Intentional red precedes implementation.
 - [x] Complete predecessor replay and exhaustive hostile proof are green.
 - [x] Standing/static/setup/referee preservation gates are green.
-- [ ] Fresh independent Tier-3 approval is recorded against the exact candidate.
+- [x] Fresh independent Tier-3 approval is recorded against the exact candidate.
