@@ -3,7 +3,7 @@ bun test v1.3.14 (0d9b296a)
 tests\india-gst-accommodation-time-of-supply.intentional-red.test.ts:
  6 | );
  7 | const index = new URL("../src/contexts/tax-fiscal/index.ts", import.meta.url);
- 8 | 
+ 8 |
  9 | describe("Order 294 intentional red: accommodation time of supply", () => {
 10 |   test("the exact resolver and tax-fiscal export are absent before implementation", async () => {
 11 |     expect(await Bun.file(source).exists()).toBeTrue();
