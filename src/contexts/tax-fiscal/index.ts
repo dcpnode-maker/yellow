@@ -229,3 +229,13 @@ export type {
   IndiaGstSupplierRegistrationStatusInput,
   IndiaGstSupplierRegistrationStatusResult,
 } from "./india-gst-supplier-registration-status";
+export {
+  IndiaGstAccommodationServiceProvisionDateConflictError,
+  IndiaGstAccommodationServiceProvisionDateNotFoundError,
+  IndiaGstAccommodationServiceProvisionDateService,
+  IndiaGstAccommodationServiceProvisionDateValidationError,
+} from "./india-gst-accommodation-service-provision-date";
+export type {
+  IndiaGstAccommodationServiceProvisionDateInput,
+  IndiaGstAccommodationServiceProvisionDateResult,
+} from "./india-gst-accommodation-service-provision-date";

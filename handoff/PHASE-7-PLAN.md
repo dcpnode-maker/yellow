@@ -473,8 +473,8 @@ external evidence and only a later CGST section13 input. D-768 explicitly forbid
 deriving it from Order287 supply date, quote room-night business dates, reservation
 period, check-in/occupancy/checkout, journal/posting dates or clocks and admits no
 invoice/payment/time-of-supply result, Order289 composition, tax/document/API/UI/local
-authority. Intentional red, exact56/108/98/98/8 schema/setup/referee, hostile
-non-substitution/zero-write proof and fresh Tier3 are mandatory.
+authority. Intentional red, exact56/108/98/98/8 schema/setup/referee and hostile
+non-substitution/zero-write proof are green under D-769. Fresh Tier3 remains mandatory.
 Fresh non-implementing Tier-3 review approves exact candidate `8630639` with no
 finding under D-751. Reviewer-personal official-law, exact52/104/94/94/4,
 schema/setup/referee11/11, focused/database/standing/static and stable-runtime proof

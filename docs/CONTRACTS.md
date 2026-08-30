@@ -2050,3 +2050,40 @@ deterministic tenant-bound SHA-256. It is recursively frozen and fixed-order; th
 tenant remains unexposed. The date is evidence time only. It does not establish
 statutory time of supply or authorize renewed SEZ status, supply nature, zero rating,
 levy, invoice or submission.
+
+## Exact externally evidenced accommodation service-provision date (Order 290)
+
+`IndiaGstAccommodationServiceProvisionDateService.resolve(tx,input)` accepts exactly
+`tenantId`, `propertyNode`, `reservationId`, `serviceProvisionSnapshotId` and
+`serviceProvisionDate`. The accessor-, proxy- and symbol-free plain input reaches one
+explicit 15-column
+`india_gst_accommodation_service_provision_snapshot(tenant_id,id,property_node,
+reservation_lineage_id,hold_binding_id,attribution_id,reservation_id,segment_id,
+origin_quote_hash,snapshot_hash,currency,service_provision_date,
+service_provision_source,service_provision_evidence_sha256,legal_rule)` row by equality
+on the requested tenant, property, reservation, root id and exact date. No latest,
+nearest, clock or network lookup exists.
+
+Before accepting that row, the resolver independently revalidates the complete
+immutable Order252 reservation/first-segment posting-identity tuple and reparses the
+canonical Order240 attribution. The lineage must retain the exact hold binding,
+attribution, reservation, first segment, origin quote hash, snapshot hash and currency;
+the attribution must still be `rate_quote`, line `room` and revenue group
+`room_revenue`. Missing, duplicate, malformed, cross-lineage or stale-hash evidence
+fails closed.
+
+The fixed-order recursively frozen result contains minimized Order252/240 lineage,
+the explicit service-provision date, exact source
+`governed_service_provision_record`, evidence SHA-256, legal literal
+`CGST_ACT_13_2_B_SERVICE_PROVISION_DATE_INPUT_ONLY` and a deterministic tenant-bound
+evidence hash while leaving the tenant unexposed. The table is forced-RLS protected
+and `app_role` has SELECT only; no application/runtime writer, ingestion command or
+attestation policy exists yet. Deployment fixtures stand only for already governed
+external evidence.
+
+This date is an input root, not a derived operational date and not a statutory result.
+It is never derived from or compared with Order287 `supplyDate`, an Order240 room-night
+`businessDate`, the Order252 reservation period, arrival/departure, check-in,
+occupancy, checkout, journal or posting dates, or any clock. It does not decide CGST
+section 13 time of supply and grants no invoice, payment, tax, item, document,
+submission, API, UI or local-runtime authority.

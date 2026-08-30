@@ -1,6 +1,6 @@
 # Order 290 — Build exact India GST accommodation service-provision-date evidence
 
-**Status:** READY-D768
+**Status:** BUILT-PENDING-REVIEW-D769
 **Phase:** 7 — Tax engine and India IRP
 **Branch:** `phase-7/india-gst-accommodation-service-provision-date`
 **Base:** `8f5c600` (independently approved Order289 descendant)
@@ -106,7 +106,25 @@ correction, submission, provider, merge/deploy/Phase7/application-complete claim
 
 ## Definition of done
 
-- [ ] Intentional red precedes implementation.
-- [ ] Exact schema/RLS/ACL and hostile lineage/non-substitution proof is green.
-- [ ] Standing/static/referee gates are green and no authority expands.
+- [x] Intentional red precedes implementation.
+- [x] Exact schema/RLS/ACL and hostile lineage/non-substitution proof is green.
+- [x] Standing/static/referee gates are green and no authority expands.
 - [ ] Fresh independent Tier-3 approval is recorded.
+
+## Builder evidence — D769
+
+Intentional red failed before implementation with `0` passes, `1` failure and `2`
+expectations. The integrated candidate then passed focused live proof `10/0` (`178`
+expectations), database acceptance `21/0` (`61`), runtime-DML authority `5/0`
+(`115`), migration proof `39/0` (`187`), exact normalized
+`56/108/98/98/8` schema, and canonical clean setup/referee `11/11`. Standing proof
+is `985/0` plus `867` expected skips (`15278` expectations; `1852` tests in `324`
+files); typecheck, `113`-file boundaries, `23` licences, audit-zero and diff checks
+are green. Migration SHA-256 is
+`920b98c03e65e7ed968b2fe277f6f9d67185be125a68aec3123b9ad0b8f27658`; normalized
+schema SHA-256 is
+`15955a37996c71d9eb7a12401fa075205eac93a0fa3168d271b02c1b9e00cea8`.
+The first canonical setup attempt reused a retained proof port and encountered only a
+Compose bind conflict; a clean isolated project then passed exactly. The sole stable
+port-3000 app remains healthy, restart-free and unchanged. Fresh independent Tier-3
+review remains mandatory before approval.

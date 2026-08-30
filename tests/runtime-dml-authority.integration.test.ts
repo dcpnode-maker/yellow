@@ -370,6 +370,7 @@ databaseDescribe("Order 150 positive runtime DML authority", () => {
     await expectAppRoleDenied("INSERT INTO public.india_gst_supplier_sez_status DEFAULT VALUES");
     await expectAppRoleDenied("INSERT INTO public.india_sez_unit_loa_renewal DEFAULT VALUES");
     await expectAppRoleDenied("INSERT INTO public.india_gst_supplier_registration_status_snapshot DEFAULT VALUES");
+    await expectAppRoleDenied("INSERT INTO public.india_gst_accommodation_service_provision_snapshot DEFAULT VALUES");
     await expectAppRoleDenied("INSERT INTO public.party_fiscal_registration DEFAULT VALUES");
     await expectAppRoleDenied("UPDATE public.rate_price SET pricing = '{}'::jsonb WHERE false");
     await expectAppRoleDenied("INSERT INTO public.channel (code, name) VALUES ('order150-hostile', 'Hostile')");

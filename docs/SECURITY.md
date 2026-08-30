@@ -1107,3 +1107,32 @@ cannot select or prove statutory time of supply. Canonical input/row validation,
 tenant-bound hashing, recursive freeze and zero-write rejection contain proxy,
 accessor, duplicate, cross-lineage and stale-date attacks. The root grants no current
 LoA, supply-nature, zero-rating, tax, document, API or UI authority.
+
+### India GST accommodation service-provision-date containment (Order 290)
+
+The exact 15-column snapshot is tenant-leading, exact-composite-FK-bound to the
+complete Order252 reservation/first-segment posting-identity tuple, protected by
+forced RLS and granted only SELECT to `app_role`. PUBLIC, `yellow_runtime` and
+`app_role` receive no INSERT, UPDATE, DELETE or TRUNCATE authority. No application or
+runtime writer, ingestion command, operator identity, attestation workflow or network
+source lookup is admitted; deployment fixtures may stand only for already governed
+external evidence.
+
+The resolver accepts one exact plain five-key input and first reconstructs and
+rehashes the complete Order252 lineage, then independently reparses the canonical
+Order240 attribution and requires exact `rate_quote`/`room`/`room_revenue` plus
+quote/snapshot/currency coherence. Only then may an equality-only tenant/property/
+reservation/root-id/date read return the exact source
+`governed_service_provision_record`, legal literal
+`CGST_ACT_13_2_B_SERVICE_PROVISION_DATE_INPUT_ONLY` and evidence digest. Strict row
+shape, finite-date and hash checks, deterministic tenant-bound hashing, fixed-order
+recursive freeze and zero-write failure contain proxy/accessor/symbol, duplicate,
+cross-tenant, cross-lineage and stale-hash attacks while keeping tenant identity
+unexposed.
+
+No latest, nearest, server clock or fallback participates. Order287 `supplyDate`, the
+Order240 room-night `businessDate`, Order252 planned period, reservation arrival or
+departure, check-in, occupancy, checkout, journal and posting dates may neither derive,
+substitute for nor be compared with the root date. The result is evidence input only:
+it does not decide CGST section 13 time of supply and grants no invoice, payment, tax,
+item, posting, document, submission, API, UI or local-runtime authority.

@@ -1009,11 +1009,12 @@ all static gates green. Fresh non-implementing Tier-3 review approves exact cand
 `35ad434` with no finding under D-767 after personally rerunning every mandatory
 database, migration, schema, referee, standing, static and stable-local proof.
 
-**Ready Order290 accommodation service-provision-date evidence:** add one exact
+**Built Order290 accommodation service-provision-date evidence (review pending):** one exact
 tenant-leading forced-RLS SELECT-only asserted service-date root bound to complete
 approved Order252 reservation lineage and canonical Order240 room-revenue attribution.
 It is only an input for later CGST section13 composition. D-768 forbids deriving it
 from Order287 supply date, quote nights, reservation period, check-in/occupancy/
 checkout, posting date or clocks; invoice/payment/time-of-supply, Order289 consumption,
 tax/document/API/UI/local authority remain separate. Exact56/108/98/98/8 schema,
-hostile non-substitution proof, referee11/11 and fresh Tier3 are mandatory.
+hostile non-substitution proof and referee11/11 are green under D-769. Fresh Tier3
+approval remains mandatory.

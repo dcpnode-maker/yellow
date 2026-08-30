@@ -1401,3 +1401,30 @@ independently. Its date is not a caller-selected statutory supply date. A later
 composer may consume it only after equality-binding independently approved service-
 supply/time-of-supply evidence. Absence, date mismatch, inactive/suspended/cancelled
 or unsupported truth remains unresolved.
+
+### India GST accommodation service-provision-date snapshot (Order 290)
+
+This exact 15-column tenant-leading read root belongs to one complete immutable
+Order252 reservation/first-segment lineage tuple: property, lineage id, hold binding,
+Order240 attribution, reservation, first segment, origin quote hash, canonical snapshot
+hash and currency. One finite externally evidenced `service_provision_date` completes
+its unique tenant/lineage/date identity. The only admitted provenance is
+`governed_service_provision_record`, one lowercase SHA-256 evidence digest and legal
+literal `CGST_ACT_13_2_B_SERVICE_PROVISION_DATE_INPUT_ONLY`.
+
+The root does not duplicate reservation or attribution authority. Resolution must
+reconstruct the entire Order252 tuple, independently parse the canonical Order240
+attribution and require its exact `rate_quote`/`room`/`room_revenue` identity and
+quote/snapshot/currency coherence before selecting the explicit root id/date. Forced
+RLS, the tenant-leading composite foreign key and SELECT-only `app_role` authority
+make it immutable and tenant isolated. There is no application/runtime writer,
+ingestion command, source-attestation policy, state transition or event yet;
+deployment fixtures represent only externally governed evidence.
+
+The stored date is deliberately independent from Order287 rule-applicability
+`supplyDate`, Order240 room-night `businessDate`, Order252 planned period and all
+arrival, departure, check-in, occupancy, checkout, journal and posting dates. None is
+a fallback, derivation, equality check or substitute, and no clock or latest value may
+participate. This root is only a future CGST section 13(2)(b) input. It creates no
+time-of-supply result, invoice/payment/tax authority, item, posting, document,
+submission, API, UI or local-runtime meaning.
