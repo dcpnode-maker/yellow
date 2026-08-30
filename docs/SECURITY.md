@@ -1170,3 +1170,24 @@ not statutory source substitutes. No latest, nearest, fallback or inference is
 allowed. This root is evidence input only: it computes no section 13 result and
 grants no payment, invoice, voucher, tax, item, posting, journal, document,
 submission, API, UI or local-runtime authority.
+
+### India GST accommodation invoice-issue-date containment (Order 292)
+
+The exact twelve-column invoice-issue snapshot is tenant-leading, forced-RLS,
+SELECT-only and bound through Order290 to complete Order252→Order240 lineage.
+`PUBLIC`, `yellow_runtime` and `app_role` receive no mutation authority. The
+resolver accepts only the exact plain eight-key shape, independently rechecks the
+lineage and canonical `rate_quote`/`room`/`room_revenue` attribution, and requires
+full positive amount, matching currency, exact series/serial/date, source, legal
+literal and lowercase evidence SHA-256. Source is exactly
+`governed_supplier_tax_invoice_record`; legal literal is exactly
+`CGST_ACT_13_2_INVOICE_DATE_INPUT_ONLY`.
+
+Duplicate, missing, malformed, partial, stale, mixed-lineage, cross-tenant,
+identity, amount/currency or shape evidence fails closed. No writer, ingestion,
+network lookup, document rendering or invoice-number allocation exists. Series,
+serial and issue date are evidence only: generic documents, folio, journal, posting,
+payment/provider, reservation, service-provision, room-night, business-day,
+operational and clock dates cannot substitute. No validity, Rule47 regime/deadline,
+timely/late or section13 result is computed, and no tax, payment, voucher, document,
+IRP, submission, API, UI or local-runtime authority is granted.

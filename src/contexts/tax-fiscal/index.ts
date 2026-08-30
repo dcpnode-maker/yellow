@@ -249,3 +249,13 @@ export type {
   IndiaGstAccommodationPaymentReceiptDateInput,
   IndiaGstAccommodationPaymentReceiptDateResult,
 } from "./india-gst-accommodation-payment-receipt-date";
+export {
+  IndiaGstAccommodationInvoiceIssueDateConflictError,
+  IndiaGstAccommodationInvoiceIssueDateNotFoundError,
+  IndiaGstAccommodationInvoiceIssueDateService,
+  IndiaGstAccommodationInvoiceIssueDateValidationError,
+} from "./india-gst-accommodation-invoice-issue-date";
+export type {
+  IndiaGstAccommodationInvoiceIssueDateInput,
+  IndiaGstAccommodationInvoiceIssueDateResult,
+} from "./india-gst-accommodation-invoice-issue-date";

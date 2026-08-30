@@ -2125,3 +2125,31 @@ It is never derived from or compared with Order287 `supplyDate`, an Order240 roo
 occupancy, checkout, journal or posting dates, or any clock. It does not decide CGST
 section 13 time of supply and grants no invoice, payment, tax, item, document,
 submission, API, UI or local-runtime authority.
+
+## 38. Governed India GST accommodation invoice-issue-date evidence
+
+`IndiaGstAccommodationInvoiceIssueDateService.resolve(tx,input)` accepts exactly
+the eight plain keys `tenantId`, `propertyNode`, `reservationId`,
+`serviceProvisionSnapshotId`, `invoiceIssueSnapshotId`, `invoiceIssueDate`,
+`invoiceSeries`, and `invoiceSerial`; accessor, proxy and symbol inputs fail closed.
+It equality-selects the exact root and revalidates approved Order290 service
+provision plus complete Order252 reservation/segment to Order240 canonical
+`rate_quote`/`room`/`room_revenue` attribution lineage.
+
+The sole root is forced-RLS, SELECT-only and has exactly twelve columns:
+`tenant_id`, `id`, `service_provision_snapshot_id`, `currency`, `amount_minor`,
+`coverage_scope`, `invoice_series`, `invoice_serial`, `invoice_issue_date`,
+`invoice_issue_source`, `invoice_issue_evidence_sha256`, `legal_rule`. Positive
+amount equals full attribution grand total; currency agrees across lineage;
+`coverage_scope` is exactly `full_attribution`; source is exactly
+`governed_supplier_tax_invoice_record`; legal rule is exactly
+`CGST_ACT_13_2_INVOICE_DATE_INPUT_ONLY`; evidence is lowercase SHA-256.
+
+The frozen result returns minimized lineage and tenant-bound evidence only. Missing,
+duplicate, malformed, mixed-lineage, stale-hash, identity, amount/currency or
+non-full evidence fails closed. `PUBLIC`, `yellow_runtime` and `app_role` cannot
+mutate it; no writer, ingestion, rendering or network lookup exists. This evidence
+does not issue an invoice, decide validity, numbering, Rule47 regime/deadline,
+timely/late status or section13 time of supply, and grants no tax, payment, voucher,
+document, IRP, submission, API, UI or local authority. No operational, payment,
+provider, folio, journal, posting, reservation or clock date substitutes.

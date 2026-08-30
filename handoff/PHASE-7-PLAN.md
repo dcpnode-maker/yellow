@@ -501,7 +501,12 @@ Order290→252→240 truth. It preserves only external invoice series/serial and
 date for later Rule47 and section13 composition. No invoice writer, rendering,
 validity/numbering/timeliness decision, IRP, document, API/UI/local or application-
 complete authority is admitted; exact `58/110/100/100/10` setup/referee and fresh
-Tier3 review remain mandatory.
+Tier3 review remain mandatory. D-775 records builder proof: intentional red0/1(1),
+focused7/0(78), acceptance23/0(65), runtime-DML5/0(117), migration39/0(187),
+exact58/110/100/100/10 schema/setup/referee11/11, standing998/0 plus871 skips
+(15449;1869 tests/328 files), type/115-boundary/23-licence/diff green, schema SHA
+`227cba82339bc69d9c9263b854ea7954dc82a0dc16e19ca852304dc0d2eab19d`. Independent
+review remains pending.
 
 ## Order 286 boundary
 

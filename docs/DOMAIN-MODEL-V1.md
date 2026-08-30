@@ -1459,3 +1459,23 @@ attestation policy exists. This root is only future section 13 input evidence: i
 cannot infer from payment, operation, provider-receipt, journal, posting, folio,
 reservation, operational or clock dates, and grants no payment, invoice, voucher,
 tax, item, posting, journal, document, submission, API, UI or local authority.
+
+### India GST accommodation invoice-issue-date snapshot (Order 292)
+
+This exact tenant-leading twelve-column root belongs to one approved Order290
+service-provision snapshot and the complete Order290→Order252→Order240 property,
+reservation, first-segment and canonical room-revenue lineage. It stores external
+invoice series, serial and finite issue date as evidence only, plus positive full
+attribution amount and matching currency. The exact source is
+`governed_supplier_tax_invoice_record`, evidence is lowercase SHA-256, and legal
+rule is `CGST_ACT_13_2_INVOICE_DATE_INPUT_ONLY`; coverage is exactly
+`full_attribution`.
+
+The eight-key resolver revalidates every lineage id/hash and reparses
+`rate_quote`/`room`/`room_revenue` before equality-selecting the root. Results are
+fixed-order, recursively frozen and tenant-bound without exposing tenant identity;
+missing, duplicate, malformed, stale or mixed evidence fails closed. Forced RLS and
+SELECT-only `app_role` authority apply, with no writer, ingestion or document
+authority. This is only future Rule47/section13 input: it does not issue/render an
+invoice or decide validity, numbering, regime, deadline, timeliness, late status or
+time of supply, and no operational or financial timestamp is a substitute.

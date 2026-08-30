@@ -290,6 +290,11 @@ const EXPECTED_MIGRATIONS = [
     filename: "0057_india_gst_accommodation_payment_receipt_date.sql",
     checksum_sha256: "12108a774929f7541090c628d28972b313498d51cd84b0d3a9ccd6b541d25117",
   },
+  {
+    version: 58,
+    filename: "0058_india_gst_accommodation_invoice_issue_date.sql",
+    checksum_sha256: "d2eaf70479a602ec82dc5abe73442475abb80ed8ec3f2ef3ec333b182c30dddf",
+  },
 ];
 
 if (REQUIRE_DATABASE && !DATABASE_URL) {
@@ -366,7 +371,7 @@ databaseDescribe("fresh deployment database acceptance", () => {
             AND class.relforcerowsecurity) AS "forceRlsTables"
     `;
     expect(catalogue).toEqual([{
-      migrations: 57, tables: 109, rlsTables: 99, policies: 99, forceRlsTables: 9,
+      migrations: 58, tables: 110, rlsTables: 100, policies: 100, forceRlsTables: 10,
     }]);
   });
 
@@ -2482,7 +2487,7 @@ databaseDescribe("fresh deployment database acceptance", () => {
         (SELECT count(*)::int FROM pg_catalog.pg_tables WHERE schemaname = 'public') AS tables,
         (SELECT count(*)::int FROM pg_catalog.pg_policies WHERE schemaname = 'public') AS policies
     `;
-    expect(shape).toEqual([{ tables: 109, policies: 99 }]);
+    expect(shape).toEqual([{ tables: 110, policies: 100 }]);
 
     const relations = await sql!<Array<{
       relation: string;
@@ -2594,7 +2599,7 @@ databaseDescribe("fresh deployment database acceptance", () => {
         has_column_privilege('app_role','public.journal','approval_request_id','UPDATE') AS "appApprovalUpdate"
     `;
     expect(shape).toEqual([{
-      tables: 109, policies: 99, directBill: 1,
+      tables: 110, policies: 100, directBill: 1,
       approvalNullable: true, compositeFk: true, oneUseIndex: true,
       appApprovalInsert: false, appApprovalUpdate: false,
     }]);
@@ -2639,6 +2644,28 @@ databaseDescribe("fresh deployment database acceptance", () => {
       "india_gst_accommodation_payment_receipt_currency_ck", "india_gst_accommodation_payment_receipt_date_ck",
       "india_gst_accommodation_payment_receipt_evidence_ck", "india_gst_accommodation_payment_receipt_legal_rule_ck",
       "india_gst_accommodation_payment_receipt_source_ck",
+    ]);
+  });
+
+  test("has exact Order292 invoice-issue snapshot shape, FK, checks and SELECT-only ACL", async () => {
+    const shape = await sql!<Array<{ columns: string; owner: string; rls: boolean; force: boolean; policies: number; appSelect: boolean; appMutation: boolean; fk: boolean; serviceUnique: boolean; identityUnique: boolean }>>`
+      SELECT (SELECT string_agg(column_name, ',' ORDER BY ordinal_position) FROM information_schema.columns WHERE table_schema='public' AND table_name='india_gst_accommodation_invoice_issue_snapshot') columns,
+        pg_get_userbyid(c.relowner) owner, c.relrowsecurity rls, c.relforcerowsecurity force,
+        (SELECT count(*)::int FROM pg_policy WHERE polrelid=c.oid) policies,
+        has_table_privilege('app_role',c.oid,'SELECT') "appSelect",
+        (has_table_privilege('app_role',c.oid,'INSERT') OR has_table_privilege('app_role',c.oid,'UPDATE') OR has_table_privilege('app_role',c.oid,'DELETE') OR has_table_privilege('app_role',c.oid,'TRUNCATE')) "appMutation",
+        EXISTS (SELECT 1 FROM pg_constraint WHERE conrelid=c.oid AND contype='f' AND conname='india_gst_accommodation_invoice_issue_service_fk') fk,
+        EXISTS (SELECT 1 FROM pg_constraint WHERE conrelid=c.oid AND contype='u' AND conname='india_gst_accommodation_invoice_issue_service_uq') "serviceUnique",
+        EXISTS (SELECT 1 FROM pg_constraint WHERE conrelid=c.oid AND contype='u' AND conname='india_gst_accommodation_invoice_issue_identity_uq') "identityUnique"
+      FROM pg_class c WHERE c.oid='public.india_gst_accommodation_invoice_issue_snapshot'::regclass`;
+    expect(shape).toEqual([{ columns: "tenant_id,id,service_provision_snapshot_id,currency,amount_minor,coverage_scope,invoice_series,invoice_serial,invoice_issue_date,invoice_issue_source,invoice_issue_evidence_sha256,legal_rule", owner: "yellow_owner", rls: true, force: true, policies: 1, appSelect: true, appMutation: false, fk: true, serviceUnique: true, identityUnique: true }]);
+    const checks = await sql!<{ name: string }[]>`SELECT conname name FROM pg_constraint WHERE conrelid='public.india_gst_accommodation_invoice_issue_snapshot'::regclass AND contype='c' ORDER BY conname`;
+    expect(checks.map((x) => x.name)).toEqual([
+      "india_gst_accommodation_invoice_issue_amount_ck", "india_gst_accommodation_invoice_issue_coverage_ck",
+      "india_gst_accommodation_invoice_issue_currency_ck", "india_gst_accommodation_invoice_issue_date_ck",
+      "india_gst_accommodation_invoice_issue_evidence_ck", "india_gst_accommodation_invoice_issue_legal_rule_ck",
+      "india_gst_accommodation_invoice_issue_serial_ck", "india_gst_accommodation_invoice_issue_series_ck",
+      "india_gst_accommodation_invoice_issue_source_ck",
     ]);
   });
 

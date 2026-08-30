@@ -7434,6 +7434,37 @@ CREATE TABLE public.inbound_message (
 
 
 --
+-- Name: india_gst_accommodation_invoice_issue_snapshot; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.india_gst_accommodation_invoice_issue_snapshot (
+    tenant_id uuid NOT NULL,
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    service_provision_snapshot_id uuid NOT NULL,
+    currency character(3) NOT NULL,
+    amount_minor bigint NOT NULL,
+    coverage_scope text NOT NULL,
+    invoice_series text NOT NULL,
+    invoice_serial text NOT NULL,
+    invoice_issue_date date NOT NULL,
+    invoice_issue_source text NOT NULL,
+    invoice_issue_evidence_sha256 text NOT NULL,
+    legal_rule text NOT NULL,
+    CONSTRAINT india_gst_accommodation_invoice_issue_amount_ck CHECK ((amount_minor > 0)),
+    CONSTRAINT india_gst_accommodation_invoice_issue_coverage_ck CHECK ((coverage_scope = 'full_attribution'::text)),
+    CONSTRAINT india_gst_accommodation_invoice_issue_currency_ck CHECK ((currency ~ '^[A-Z]{3}$'::text)),
+    CONSTRAINT india_gst_accommodation_invoice_issue_date_ck CHECK (isfinite(invoice_issue_date)),
+    CONSTRAINT india_gst_accommodation_invoice_issue_evidence_ck CHECK ((invoice_issue_evidence_sha256 ~ '^[0-9a-f]{64}$'::text)),
+    CONSTRAINT india_gst_accommodation_invoice_issue_legal_rule_ck CHECK ((legal_rule = 'CGST_ACT_13_2_INVOICE_DATE_INPUT_ONLY'::text)),
+    CONSTRAINT india_gst_accommodation_invoice_issue_serial_ck CHECK (((char_length(invoice_serial) >= 1) AND (char_length(invoice_serial) <= 64))),
+    CONSTRAINT india_gst_accommodation_invoice_issue_series_ck CHECK (((char_length(invoice_series) >= 1) AND (char_length(invoice_series) <= 64))),
+    CONSTRAINT india_gst_accommodation_invoice_issue_source_ck CHECK ((invoice_issue_source = 'governed_supplier_tax_invoice_record'::text))
+);
+
+ALTER TABLE ONLY public.india_gst_accommodation_invoice_issue_snapshot FORCE ROW LEVEL SECURITY;
+
+
+--
 -- Name: india_gst_accommodation_payment_receipt_snapshot; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -9320,6 +9351,30 @@ ALTER TABLE ONLY public.inbound_message
 
 ALTER TABLE ONLY public.inbound_message
     ADD CONSTRAINT inbound_message_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: india_gst_accommodation_invoice_issue_snapshot india_gst_accommodation_invoice_issue_identity_uq; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.india_gst_accommodation_invoice_issue_snapshot
+    ADD CONSTRAINT india_gst_accommodation_invoice_issue_identity_uq UNIQUE (tenant_id, invoice_series, invoice_serial);
+
+
+--
+-- Name: india_gst_accommodation_invoice_issue_snapshot india_gst_accommodation_invoice_issue_service_uq; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.india_gst_accommodation_invoice_issue_snapshot
+    ADD CONSTRAINT india_gst_accommodation_invoice_issue_service_uq UNIQUE (tenant_id, service_provision_snapshot_id);
+
+
+--
+-- Name: india_gst_accommodation_invoice_issue_snapshot india_gst_accommodation_invoice_issue_snapshot_pk; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.india_gst_accommodation_invoice_issue_snapshot
+    ADD CONSTRAINT india_gst_accommodation_invoice_issue_snapshot_pk PRIMARY KEY (tenant_id, id);
 
 
 --
@@ -11412,6 +11467,14 @@ ALTER TABLE ONLY public.inbound_message
 
 
 --
+-- Name: india_gst_accommodation_invoice_issue_snapshot india_gst_accommodation_invoice_issue_service_fk; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.india_gst_accommodation_invoice_issue_snapshot
+    ADD CONSTRAINT india_gst_accommodation_invoice_issue_service_fk FOREIGN KEY (tenant_id, service_provision_snapshot_id) REFERENCES public.india_gst_accommodation_service_provision_snapshot(tenant_id, id);
+
+
+--
 -- Name: india_gst_accommodation_payment_receipt_snapshot india_gst_accommodation_payment_receipt_service_fk; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -12760,6 +12823,12 @@ ALTER TABLE public.identity_document ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.inbound_message ENABLE ROW LEVEL SECURITY;
 
 --
+-- Name: india_gst_accommodation_invoice_issue_snapshot; Type: ROW SECURITY; Schema: public; Owner: -
+--
+
+ALTER TABLE public.india_gst_accommodation_invoice_issue_snapshot ENABLE ROW LEVEL SECURITY;
+
+--
 -- Name: india_gst_accommodation_payment_receipt_snapshot; Type: ROW SECURITY; Schema: public; Owner: -
 --
 
@@ -13343,6 +13412,13 @@ CREATE POLICY tenant_isolation ON public.identity_document USING ((tenant_id = (
 --
 
 CREATE POLICY tenant_isolation ON public.inbound_message USING ((tenant_id = (current_setting('app.tenant_id'::text, true))::uuid)) WITH CHECK ((tenant_id = (current_setting('app.tenant_id'::text, true))::uuid));
+
+
+--
+-- Name: india_gst_accommodation_invoice_issue_snapshot tenant_isolation; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY tenant_isolation ON public.india_gst_accommodation_invoice_issue_snapshot USING ((tenant_id = (NULLIF(current_setting('app.tenant_id'::text, true), ''::text))::uuid)) WITH CHECK ((tenant_id = (NULLIF(current_setting('app.tenant_id'::text, true), ''::text))::uuid));
 
 
 --
@@ -15369,6 +15445,13 @@ GRANT SELECT ON TABLE public.identity_document TO app_role;
 --
 
 GRANT SELECT ON TABLE public.inbound_message TO app_role;
+
+
+--
+-- Name: TABLE india_gst_accommodation_invoice_issue_snapshot; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT SELECT ON TABLE public.india_gst_accommodation_invoice_issue_snapshot TO app_role;
 
 
 --
