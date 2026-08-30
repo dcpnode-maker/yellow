@@ -1,11 +1,11 @@
 # Order 289 independent Tier-3 review — India GST supplier registration status
 
-**Verdict:** APPROVED  
-**Reviewer:** OpenAI Codex independent review agent `/root/order289_reviewer`  
-**Candidate:** `35ad4349c579f45d613ba49bf223c6ced9132c9b`  
-**Base:** `bb22dd7`  
-**Branch:** `phase-7/india-gst-supplier-registration-status`  
-**Reviewed:** 2026-08-30  
+**Verdict:** APPROVED
+**Reviewer:** OpenAI Codex independent review agent `/root/order289_reviewer`
+**Candidate:** `35ad4349c579f45d613ba49bf223c6ced9132c9b`
+**Base:** `bb22dd7`
+**Branch:** `phase-7/india-gst-supplier-registration-status`
+**Reviewed:** 2026-08-30
 
 ## Independence and scope
 
