@@ -1,6 +1,6 @@
 # Order 289 — Build exact date-specific India GST supplier-registration-status evidence
 
-**Status:** BUILT-PENDING-REVIEW-D766
+**Status:** APPROVED-D767
 **Phase:** 7 — Tax engine and India IRP
 **Branch:** `phase-7/india-gst-supplier-registration-status`
 **Base:** `bb22dd7` (independently approved Order288 descendant)
@@ -110,7 +110,7 @@ merge/public deploy, Phase-7 or application-complete claim.
 - [x] Intentional red precedes implementation.
 - [x] Exact schema/RLS/ACL and hostile lineage proof is green.
 - [x] Standing/static/referee gates are green and no authority expands.
-- [ ] Fresh independent Tier-3 approval is recorded.
+- [x] Fresh independent Tier-3 approval is recorded.
 
 ## Builder proof — D-766
 
@@ -137,3 +137,15 @@ container. The sole stable local retains the same app/PostgreSQL/Valkey identiti
 is healthy at port 3000 with restart count zero, and received no Order289 promotion.
 Fresh non-implementing Tier-3 execution on the exact committed candidate remains
 mandatory.
+
+## Independent review — D-767
+
+Fresh non-implementing Tier-3 reviewer `/root/order289_reviewer` personally inspected
+official GST Portal/CBIC registration, cancellation, revocation and suspension
+sources and exact candidate `35ad4349c579f45d613ba49bf223c6ced9132c9b`. Reviewer-
+executed focused `10/0`, acceptance `20/0`, runtime-DML `5/0`, migration `39/0`,
+normalized schema, exact `55/107/97/97/7`, referee `11/11`, adjacent dependency,
+standing `976/0` plus `865` skips, static and stable-local preservation proofs are
+green. No finding remains. Approval is bounded to exact-date affirmative supplier
+GST registration status/type evidence and grants no time-of-supply, effective
+renewed-status, zero-rating, tax, document, API, UI or local-promotion authority.

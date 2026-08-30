@@ -458,6 +458,11 @@ acceptance `20/0` (`58`), runtime-DML `5/0` (`114`), migration `39/0` (`187`), e
 `55/107/97/97/7` normalized schema/setup/referee `11/11`, standing `976/0` plus
 `865` skips and all static gates. The stable port-3000 local is unchanged. Fresh
 non-implementing Tier-3 review remains mandatory.
+Fresh non-implementing Tier-3 review approves exact candidate `35ad434` with no
+finding under D-767. Reviewer-personal official-law, focused/database/migration/
+schema/referee, adjacent/standing/static and stable-local preservation proof are
+green. Approval remains bounded to exact-date affirmative supplier GST registration
+status/type evidence.
 Fresh non-implementing Tier-3 review approves exact candidate `8630639` with no
 finding under D-751. Reviewer-personal official-law, exact52/104/94/94/4,
 schema/setup/referee11/11, focused/database/standing/static and stable-runtime proof
