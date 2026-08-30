@@ -2179,3 +2179,9 @@ Missing, malformed, duplicate, stale, exception-bearing, mixed or contradictory
 evidence fails closed. No clock, timezone conversion, latest/nearest/fallback,
 write, migration, invoice issuance/validity/numbering, regime selection, section13
 result, tax, document, API, UI or local authority is produced.
+# Order294: India GST accommodation time of supply
+
+`resolveIndiaGstAccommodationTimeOfSupply(tx, input)` is a tenant-scoped, SELECT-only
+composer for ordinary CGST section 13(2)(a)/(b). It equality-binds approved service,
+payment, invoice, reservation-lineage and attribution evidence in one read and returns
+deterministic frozen evidence; it does not issue documents, calculate tax, or write.

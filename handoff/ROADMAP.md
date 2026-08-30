@@ -539,3 +539,8 @@ proleptic-Gregorian no-Date arithmetic with low-year/leap/century/month/year
 regressions and overflow fail-closed, plus complete invoice series/serial and
 invoice/service evidence hash binding in result/hash. No migration/schema change;
 fresh Tier3 re-review remains pending and no approval is claimed.
+# Order294 roadmap entry
+
+Next Phase 7 evidence slice: independently review the one-read ordinary India GST
+accommodation time-of-supply composer after focused, adjacent, type, boundary, licence,
+and standing validation.

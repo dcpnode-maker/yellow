@@ -1072,3 +1072,7 @@ month/year regressions and overflow fail-closed, plus complete invoice
 series/serial and invoice/service evidence hashes in result/hash. No migration/
 schema change; fresh independent Tier3 re-review remains pending and no approval
 is claimed.
+# Order294 delivery note
+
+Phase 7 includes the migration-free India GST ordinary accommodation time-of-supply
+composer and its focused hostile/read-only proof.

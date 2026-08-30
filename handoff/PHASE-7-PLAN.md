@@ -616,3 +616,8 @@ The D-750 candidate is built: intentional red0/1 preceded focused16/0(301), migr
 schema/referee11/11 and standing936/0 plus851 skips. Type/108-boundary/23-licence/
 audit0/diff are green; disposable proof is absent and the sole stable local remains
 exact, healthy and unchanged. Fresh non-implementing Tier-3 review is mandatory.
+# Order294 slice
+
+Compose approved Order290 service-provision, Order291 payment-receipt and Order292
+invoice-issue evidence through Order293 timeliness into ordinary section 13(2)(a)/(b)
+time-of-supply evidence. No tax, document, posting, submission, or write authority.

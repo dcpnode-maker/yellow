@@ -1212,3 +1212,9 @@ hash; both predecessor evidence hashes are equality-bound and revalidated.
 No migration, writer, invoice issuance/validity/numbering,
 Rule47 selection, section13 result, tax, document, IRP, submission, API, UI or
 local-runtime authority is granted.
+# Order294 security boundary
+
+The composer performs one tenant-leading equality-bound read with transaction-local
+`app.tenant_id` verification and no writes, locks, network calls, latest-row selection,
+or tenant disclosure. Missing, duplicate, stale, crossed, malformed, or contradictory
+predecessor evidence fails closed.

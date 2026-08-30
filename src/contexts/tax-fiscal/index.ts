@@ -271,3 +271,15 @@ export type {
   IndiaGstAccommodationInvoiceTimelinessInput,
   IndiaGstAccommodationInvoiceTimelinessResult,
 } from "./india-gst-accommodation-invoice-timeliness";
+export {
+  IndiaGstAccommodationTimeOfSupplyConflictError,
+  IndiaGstAccommodationTimeOfSupplyNotFoundError,
+  IndiaGstAccommodationTimeOfSupplyService,
+  IndiaGstAccommodationTimeOfSupplyValidationError,
+  resolveIndiaGstAccommodationTimeOfSupply,
+} from "./india-gst-accommodation-time-of-supply";
+export type {
+  IndiaGstAccommodationTimeOfSupplyBranch,
+  IndiaGstAccommodationTimeOfSupplyInput,
+  IndiaGstAccommodationTimeOfSupplyResult,
+} from "./india-gst-accommodation-time-of-supply";

@@ -1498,3 +1498,10 @@ both dates, deadline, policy, invoice series/serial, `invoiceIssueEvidenceSha256
 ambiguity, stale or mixed
 lineage fail closed; no regime inference, invoice issuance/validity/numbering,
 Rule47 selection, section13 result, tax, document, API, UI or local authority exists.
+# Order294 time-of-supply evidence
+
+Ordinary accommodation evidence selects section 13(2)(a) when invoice issue is within
+the inclusive Rule 47 day-30 boundary, otherwise section 13(2)(b). The selected date is
+the earlier of invoice/payment for (a), or service/payment for (b). All three candidate
+dates remain explicit inputs; no clock, timezone conversion, fallback or inference is
+permitted.
