@@ -2236,3 +2236,16 @@ network, API, UI or database authority is granted.
 The minimized result preserves `supplierTimeOfSupplyEvidenceHash` and
 `recipientTimeOfSupplyEvidenceHash` separately; the predecessor-specific hash
 algorithms are never conflated into one cross-root hash.
+
+## Order298: India GST accommodation effective rates
+
+The existing effective-dated `in-gst-lodging` extension retains its tax-exclusive,
+document-rounded, transaction-value `slab_percent` shape and `room_revenue` scope.
+The launch fixture follows CBIC Notification 20/2019-Central Tax (Rate), effective
+1 October 2019, and Notification 04/2022-Central Tax (Rate), effective 18 July 2022.
+For one accommodation unit per day, a value at or below 750000 minor INR uses
+`0.12`; a value above it uses `0.18` in the final null upper band. There is no nil
+or 0.05 accommodation band. The unrelated restaurant/F&B `GST_FNB` example remains
+independent. This is content for the existing evaluator only: no rate-date
+selection, section 14 change-in-rate composition, levy decomposition, posting,
+invoice or fiscal-submission authority is added.

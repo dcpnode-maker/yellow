@@ -1261,3 +1261,15 @@ closed. The output grants no buyer/B2B, place-of-supply, `Pos`, `SupTyp`,
 The output exposes `supplierTimeOfSupplyEvidenceHash` and
 `recipientTimeOfSupplyEvidenceHash` as distinct frozen evidence fields; it never
 collapses the approved Order295 non-tenant and Order296 tenant-bound hashes.
+
+## Order298 security boundary
+
+Order298 updates only the content of the existing effective-dated
+`in-gst-lodging` extension; it adds no relation, grant, table, writer or runtime
+latest/clock selection. The evaluator receives the immutable selected
+version/content and applies `GST_ROOM` only to `room_revenue` under the existing
+transaction-value, document-rounded contract: 12% at or below 750000 minor INR
+and 18% above, with no nil/5% accommodation fallback. The restaurant `GST_FNB`
+example remains unrelated. No section 14 change-in-rate, CGST/SGST/UTGST/IGST
+split, posting, correction, document, IRP, API, HTTP, UI or local-runtime
+authority is granted.

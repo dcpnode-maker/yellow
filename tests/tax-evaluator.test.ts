@@ -67,8 +67,7 @@ const INDIA_GST = content(
       slab_basis: "transaction_value",
       applies_to: ["room_revenue"],
       slabs: [
-        { upto_minor: 100_000, rate: 0, itc_eligible: false },
-        { upto_minor: 750_000, rate: 0.05, itc_eligible: false },
+        { upto_minor: 750_000, rate: 0.12, itc_eligible: true },
         { upto_minor: null, rate: 0.18, itc_eligible: true },
       ],
     },
@@ -155,8 +154,18 @@ describe("Order 237 pure rules-driven tax evaluator", () => {
     });
   });
 
-  test("selects all five India GST room-night boundaries exactly", () => {
-    const amounts = [99_900n, 100_000n, 100_100n, 750_000n, 750_100n] as const;
+  test("selects exact India GST value bands at ₹0/1,000/1,001/7,500/7,501", () => {
+    // Zero is not a valid charge line; use the smallest positive minor unit to
+    // exercise the lower edge and prove the zero boundary is rejected.
+    expect(() =>
+      evaluate(
+        INDIA_GST,
+        [line({ lineId: "india-zero", amountMinor: 0n, roomNightAmountsMinor: [0n] })],
+        "in-gst-lodging",
+      ),
+    ).toThrow("positive signed-range bigint minor-unit value");
+
+    const amounts = [1n, 100_000n, 100_100n, 750_000n, 750_100n] as const;
     const result = evaluate(
       INDIA_GST,
       amounts.map((amountMinor, index) =>
@@ -174,13 +183,13 @@ describe("Order 237 pure rules-driven tax evaluator", () => {
       country: "IN",
       priceDisplay: "tax_exclusive",
       rounding: "document",
-      inputTotalMinor: 1_800_100n,
-      baseTotalMinor: 1_800_100n,
-      taxTotalMinor: 177_523n,
-      grandTotalMinor: 1_977_623n,
+      inputTotalMinor: 1_700_201n,
+      baseTotalMinor: 1_700_201n,
+      taxTotalMinor: 249_030n,
+      grandTotalMinor: 1_949_231n,
     });
     expect(result.taxes.map(({ code, taxMinor }) => ({ code, taxMinor }))).toEqual([
-      { code: "GST_ROOM", taxMinor: 177_523n },
+      { code: "GST_ROOM", taxMinor: 249_030n },
     ]);
   });
 
@@ -199,9 +208,9 @@ describe("Order 237 pure rules-driven tax evaluator", () => {
       "in-gst-lodging",
     );
 
-    expect(result.taxes[0]?.taxMinor).toBe(135_018n);
-    expect(result.taxTotalMinor).toBe(135_018n);
-    expect(result.grandTotalMinor).toBe(985_118n);
+    expect(result.taxes[0]?.taxMinor).toBe(147_018n);
+    expect(result.taxTotalMinor).toBe(147_018n);
+    expect(result.grandTotalMinor).toBe(997_118n);
     expect(result.taxTotalMinor).not.toBe(42_505n);
     expect(result.taxes[0]?.components).toEqual([
       {
@@ -209,7 +218,7 @@ describe("Order 237 pure rules-driven tax evaluator", () => {
         revenueGroup: "room_revenue",
         baseMinor: 100_000n,
         taxMinor: null,
-        rateBasisPoints: 0,
+        rateBasisPoints: 1_200,
       },
       {
         lineId: "mixed-stay",

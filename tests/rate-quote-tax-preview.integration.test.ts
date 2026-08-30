@@ -35,8 +35,7 @@ const INDIA_GST = {
     slab_basis: "transaction_value",
     applies_to: ["room_revenue"],
     slabs: [
-      { upto_minor: 100_000, rate: 0, itc_eligible: false },
-      { upto_minor: 750_000, rate: 0.05, itc_eligible: false },
+      { upto_minor: 750_000, rate: 0.12, itc_eligible: true },
       { upto_minor: null, rate: 0.18, itc_eligible: true },
     ],
   }],
@@ -314,7 +313,7 @@ function harness(options: HarnessOptions = {}) {
 }
 
 describe("Order 239 attributable rate-quote tax preview", () => {
-  test("P1: mixed 99,900/100,100 room nights select India slabs per night, never by stay average", async () => {
+  test("P1: mixed 99,900/100,100 room nights use the 12% value band per night, never by stay average", async () => {
     const result = await harness({
       taxContent: {
         ...INDIA_GST,
@@ -336,8 +335,8 @@ describe("Order 239 attributable rate-quote tax preview", () => {
         priceDisplay: "tax_exclusive",
         inputTotalMinor: 200_000n,
         baseTotalMinor: 200_000n,
-        taxTotalMinor: 5_011n,
-        grandTotalMinor: 205_011n,
+        taxTotalMinor: 24_006n,
+        grandTotalMinor: 224_006n,
       },
     });
     if (result.taxPreview.state !== "calculated") throw new Error("expected calculated tax preview");
@@ -347,14 +346,14 @@ describe("Order 239 attributable rate-quote tax preview", () => {
         revenueGroup: "room_revenue",
         baseMinor: 99_900n,
         taxMinor: null,
-        rateBasisPoints: 0,
+        rateBasisPoints: 1_200,
       },
       {
         lineId: "room",
         revenueGroup: "room_revenue",
         baseMinor: 100_100n,
         taxMinor: null,
-        rateBasisPoints: 500,
+        rateBasisPoints: 1_200,
       },
     ]);
     expect(result.taxPreview.evaluation.taxes[1]).toMatchObject({
@@ -363,11 +362,38 @@ describe("Order 239 attributable rate-quote tax preview", () => {
     });
   });
 
+  test("P1: quote preview preserves the exact 0/1,000/1,001/7,500/7,501 INR boundaries", async () => {
+    const result = await harness({
+      // Zero is not a valid sellable room-night amount; the smallest positive
+      // minor unit exercises the lower edge while the evaluator enforces it.
+      nightlyAmounts: [1n, 100_000n, 100_100n, 750_000n, 750_100n],
+    }).resolve();
+
+    expect(result.taxPreview).toMatchObject({
+      state: "calculated",
+      reason: null,
+      evaluation: {
+        inputTotalMinor: 1_700_201n,
+        baseTotalMinor: 1_700_201n,
+        taxTotalMinor: 249_030n,
+        grandTotalMinor: 1_949_231n,
+      },
+    });
+    if (result.taxPreview.state !== "calculated") throw new Error("expected calculated tax preview");
+    expect(result.taxPreview.evaluation.taxes[0]?.components).toEqual([
+      { lineId: "room", revenueGroup: "room_revenue", baseMinor: 1n, taxMinor: null, rateBasisPoints: 1_200 },
+      { lineId: "room", revenueGroup: "room_revenue", baseMinor: 100_000n, taxMinor: null, rateBasisPoints: 1_200 },
+      { lineId: "room", revenueGroup: "room_revenue", baseMinor: 100_100n, taxMinor: null, rateBasisPoints: 1_200 },
+      { lineId: "room", revenueGroup: "room_revenue", baseMinor: 750_000n, taxMinor: null, rateBasisPoints: 1_200 },
+      { lineId: "room", revenueGroup: "room_revenue", baseMinor: 750_100n, taxMinor: null, rateBasisPoints: 1_800 },
+    ]);
+  });
+
   test("P2: exclusive addition and inclusive extraction remain exact, while inclusion mismatch fails closed", async () => {
     const exclusive = await harness({ nightlyAmounts: [100_100n] }).resolve();
     expect(exclusive.taxPreview).toMatchObject({
       state: "calculated",
-      evaluation: { baseTotalMinor: 100_100n, taxTotalMinor: 5_005n, grandTotalMinor: 105_105n },
+      evaluation: { baseTotalMinor: 100_100n, taxTotalMinor: 12_012n, grandTotalMinor: 112_112n },
     });
 
     const inclusive = await harness({

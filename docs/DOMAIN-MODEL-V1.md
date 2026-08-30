@@ -1540,3 +1540,16 @@ The public evidence projection carries separate supplier and recipient
 time-of-supply hashes, `supplierTimeOfSupplyEvidenceHash` and
 `recipientTimeOfSupplyEvidenceHash`, because their approved predecessor hash
 algorithms differ.
+
+### India GST accommodation effective rates (Order 298)
+
+Order298 changes no entity or schema. The existing effective-dated
+`in-gst-lodging` extension carries the ordinary accommodation `GST_ROOM` slab:
+transaction-value based and document-rounded, 12% through and including INR 7,500
+(750000 minor INR), then 18% above it in a null upper band. No nil or 5%
+accommodation launch band remains. The fixture and wording follow CBIC Notification
+20/2019-Central Tax (Rate), effective 1 October 2019, Notification 04/2022-Central
+Tax (Rate), effective 18 July 2022, and the current CBIC services-rate table.
+`GST_FNB` remains a separate restaurant example. This content feeds the existing
+evaluator only and does not infer effective dates or create section 14, levy
+decomposition, tax posting, document, or IRP authority.

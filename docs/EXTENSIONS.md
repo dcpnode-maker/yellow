@@ -204,7 +204,9 @@ revenue-group, service-night, person-night, quote-lineage, correction and transf
 attribution. Those inputs must not be inferred from USALI labels or descriptive
 quantity.
 
-India GST launch instance (CBIC 15/2025 slabs, slab on transaction value per night):
+India GST accommodation launch instance (CBIC Notification 20/2019-Central Tax
+(Rate), effective 1 October 2019; Notification 04/2022-Central Tax (Rate), effective
+18 July 2022; current CBIC services-rate table; slab on transaction value per night):
 
 ```json
 { "key":"in-gst-lodging", "content": { "country":"IN",
@@ -212,12 +214,16 @@ India GST launch instance (CBIC 15/2025 slabs, slab on transaction value per nig
   "taxes":[{ "code":"GST_ROOM", "name":"GST on accommodation", "mode":"slab_percent",
     "slab_basis":"transaction_value", "applies_to":["room_revenue"],
     "slabs":[
-      {"upto_minor":100000,  "rate":0,    "itc_eligible":false},
-      {"upto_minor":750000,  "rate":0.05, "itc_eligible":false},
+      {"upto_minor":750000,  "rate":0.12, "itc_eligible":false},
       {"upto_minor":null,    "rate":0.18, "itc_eligible":true}] },
    { "code":"GST_FNB", "name":"GST on F&B (restaurant in hotel)", "mode":"percent",
      "rate":0.05, "applies_to":["fnb_revenue"] }] } }
 ```
+
+For one accommodation unit per day, this transaction-value slab is 12% through INR 7,500 per accommodation unit per day (at or below 750000 minor INR) and 18% above INR 7,500. Notification 04/2022 removed
+the earlier below-INR-1,000 exemption, so this launch fixture contains no nil
+accommodation band. The unrelated 5% `GST_FNB` restaurant example remains
+unchanged.
 
 KSA and AE launch instances: flat `percent` VAT 0.15 / 0.05 on all revenue groups,
 `price_display":"tax_inclusive"`.
