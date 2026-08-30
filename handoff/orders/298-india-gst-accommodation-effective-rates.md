@@ -1,7 +1,7 @@
 # Order 298 — India GST accommodation effective rates
 
-**Status:** READY — implementation and fresh Tier-3 review required  
-**Phase:** 7 — Tax and India IRP  
+**Status:** READY — implementation and fresh Tier-3 review required
+**Phase:** 7 — Tax and India IRP
 **Branch:** `phase-7/india-gst-accommodation-effective-rates`
 
 ## Outcome

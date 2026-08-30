@@ -214,13 +214,13 @@ India GST accommodation launch instance (CBIC Notification 20/2019-Central Tax
   "taxes":[{ "code":"GST_ROOM", "name":"GST on accommodation", "mode":"slab_percent",
     "slab_basis":"transaction_value", "applies_to":["room_revenue"],
     "slabs":[
-      {"upto_minor":750000,  "rate":0.12, "itc_eligible":false},
+      {"upto_minor":750000,  "rate":0.12, "itc_eligible":true},
       {"upto_minor":null,    "rate":0.18, "itc_eligible":true}] },
    { "code":"GST_FNB", "name":"GST on F&B (restaurant in hotel)", "mode":"percent",
      "rate":0.05, "applies_to":["fnb_revenue"] }] } }
 ```
 
-For one accommodation unit per day, this transaction-value slab is 12% through INR 7,500 per accommodation unit per day (at or below 750000 minor INR) and 18% above INR 7,500. Notification 04/2022 removed
+For one accommodation unit per day, this transaction-value slab is 12% through INR 7,500 per accommodation unit per day (at or below 750000 minor INR) and 18% above INR 7,500. The notified row has no no-ITC condition, so both bands retain ITC eligibility. Notification 04/2022 removed
 the earlier below-INR-1,000 exemption, so this launch fixture contains no nil
 accommodation band. The unrelated 5% `GST_FNB` restaurant example remains
 unchanged.

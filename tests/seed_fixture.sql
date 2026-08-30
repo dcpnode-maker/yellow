@@ -47,7 +47,7 @@ INSERT INTO extension (id, tenant_id, type, key, version, effective, content, st
 INSERT INTO extension (id, tenant_id, type, key, version, effective, content, status) VALUES
   ('00000000-0000-0000-0000-000000000102', NULL, 'tax_jurisdiction', 'in-gst-lodging', 1,
    tstzrange('2026-01-01', NULL),
-   '{"country":"IN","price_display":"tax_exclusive","rounding":"document","taxes":[{"code":"GST_ROOM","name":"GST on accommodation","mode":"slab_percent","slab_basis":"transaction_value","applies_to":["room_revenue"],"slabs":[{"upto_minor":750000,"rate":0.12,"itc_eligible":false},{"upto_minor":null,"rate":0.18,"itc_eligible":true}]}]}',
+   '{"country":"IN","price_display":"tax_exclusive","rounding":"document","taxes":[{"code":"GST_ROOM","name":"GST on accommodation","mode":"slab_percent","slab_basis":"transaction_value","applies_to":["room_revenue"],"slabs":[{"upto_minor":750000,"rate":0.12,"itc_eligible":true},{"upto_minor":null,"rate":0.18,"itc_eligible":true}]}]}',
    'active');
 
 -- Deterministic reservation owner for the protected TC-12 occupancy referee.
