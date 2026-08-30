@@ -594,3 +594,9 @@ resolved and unassigned tax-jurisdiction evidence. Prove canonical instants acro
 derivation. This supplies property-day instant evidence only: extension containment,
 overlap, start-instant, split-day, section14 and every other applicability/legal rule
 remain explicitly forbidden for a later bounded slice. Fresh Tier-3 proof is mandatory.
+Fresh Tier-3 review at D822 requires changes: exact candidate `bfdda8e` passes live
+PostgreSQL temporal/tenant/zero-write, isolated 59/110/referee11/11, standing and
+static gates, but a hostile mutation removing the business-day upper instant from
+both evidence hashes still passes the committed focused proof. Add independent
+timezone-only, lower-only and upper-only evidence-reference assertions, rerun all
+gates and obtain a fresh review before closing Order300.
