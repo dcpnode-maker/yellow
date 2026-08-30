@@ -479,7 +479,7 @@ candidate `4476cc5` with no finding under D-770.
 
 ## Order 291 boundary
 
-Order291 adds one exact tenant-leading forced-RLS SELECT-only full-attribution
+Order291 is built pending independent review as one exact tenant-leading forced-RLS SELECT-only full-attribution
 payment-receipt source root bound to complete approved Order290→252→240 service,
 reservation and canonical room-revenue attribution truth. It preserves the supplier-
 books entry date, supplier-bank credit date and their statutory earlier date only.

@@ -285,6 +285,11 @@ const EXPECTED_MIGRATIONS = [
     filename: "0056_india_gst_accommodation_service_provision_date.sql",
     checksum_sha256: "920b98c03e65e7ed968b2fe277f6f9d67185be125a68aec3123b9ad0b8f27658",
   },
+  {
+    version: 57,
+    filename: "0057_india_gst_accommodation_payment_receipt_date.sql",
+    checksum_sha256: "12108a774929f7541090c628d28972b313498d51cd84b0d3a9ccd6b541d25117",
+  },
 ];
 
 if (REQUIRE_DATABASE && !DATABASE_URL) {
@@ -361,7 +366,7 @@ databaseDescribe("fresh deployment database acceptance", () => {
             AND class.relforcerowsecurity) AS "forceRlsTables"
     `;
     expect(catalogue).toEqual([{
-      migrations: 56, tables: 108, rlsTables: 98, policies: 98, forceRlsTables: 8,
+      migrations: 57, tables: 109, rlsTables: 99, policies: 99, forceRlsTables: 9,
     }]);
   });
 
@@ -2477,7 +2482,7 @@ databaseDescribe("fresh deployment database acceptance", () => {
         (SELECT count(*)::int FROM pg_catalog.pg_tables WHERE schemaname = 'public') AS tables,
         (SELECT count(*)::int FROM pg_catalog.pg_policies WHERE schemaname = 'public') AS policies
     `;
-    expect(shape).toEqual([{ tables: 108, policies: 98 }]);
+    expect(shape).toEqual([{ tables: 109, policies: 99 }]);
 
     const relations = await sql!<Array<{
       relation: string;
@@ -2589,7 +2594,7 @@ databaseDescribe("fresh deployment database acceptance", () => {
         has_column_privilege('app_role','public.journal','approval_request_id','UPDATE') AS "appApprovalUpdate"
     `;
     expect(shape).toEqual([{
-      tables: 108, policies: 98, directBill: 1,
+      tables: 109, policies: 99, directBill: 1,
       approvalNullable: true, compositeFk: true, oneUseIndex: true,
       appApprovalInsert: false, appApprovalUpdate: false,
     }]);
@@ -2614,6 +2619,27 @@ databaseDescribe("fresh deployment database acceptance", () => {
       config: ["search_path=pg_catalog, public, pg_temp"],
       appExecute: true, runtimeExecute: false, publicExecute: false,
     }]);
+  });
+
+  test("has exact Order291 payment-receipt snapshot shape, FK, checks and SELECT-only ACL", async () => {
+    const shape = await sql!<Array<{ columns: string; owner: string; rls: boolean; force: boolean; policies: number; appSelect: boolean; appMutation: boolean; fk: boolean; serviceUnique: boolean }>>`
+      SELECT (SELECT string_agg(column_name, ',' ORDER BY ordinal_position) FROM information_schema.columns WHERE table_schema='public' AND table_name='india_gst_accommodation_payment_receipt_snapshot') columns,
+        pg_get_userbyid(c.relowner) owner, c.relrowsecurity rls, c.relforcerowsecurity force,
+        (SELECT count(*)::int FROM pg_policy WHERE polrelid=c.oid) policies,
+        has_table_privilege('app_role',c.oid,'SELECT') "appSelect",
+        (has_table_privilege('app_role',c.oid,'INSERT') OR has_table_privilege('app_role',c.oid,'UPDATE') OR has_table_privilege('app_role',c.oid,'DELETE') OR has_table_privilege('app_role',c.oid,'TRUNCATE')) "appMutation",
+        EXISTS (SELECT 1 FROM pg_constraint WHERE conrelid=c.oid AND contype='f' AND conname='india_gst_accommodation_payment_receipt_service_fk') fk,
+        EXISTS (SELECT 1 FROM pg_constraint WHERE conrelid=c.oid AND contype='u' AND conname='india_gst_accommodation_payment_receipt_service_uq') "serviceUnique"
+      FROM pg_class c WHERE c.oid='public.india_gst_accommodation_payment_receipt_snapshot'::regclass`;
+    expect(shape).toEqual([{ columns: "tenant_id,id,service_provision_snapshot_id,currency,amount_minor,coverage_scope,supplier_books_entry_date,supplier_bank_credit_date,payment_receipt_date,payment_receipt_source,payment_receipt_evidence_sha256,legal_rule", owner: "yellow_owner", rls: true, force: true, policies: 1, appSelect: true, appMutation: false, fk: true, serviceUnique: true }]);
+    const checks = await sql!<{ name: string }[]>`SELECT conname name FROM pg_constraint WHERE conrelid='public.india_gst_accommodation_payment_receipt_snapshot'::regclass AND contype='c' ORDER BY conname`;
+    expect(checks.map((x) => x.name)).toEqual([
+      "india_gst_accommodation_payment_receipt_amount_ck", "india_gst_accommodation_payment_receipt_bank_date_ck",
+      "india_gst_accommodation_payment_receipt_books_date_ck", "india_gst_accommodation_payment_receipt_coverage_ck",
+      "india_gst_accommodation_payment_receipt_currency_ck", "india_gst_accommodation_payment_receipt_date_ck",
+      "india_gst_accommodation_payment_receipt_evidence_ck", "india_gst_accommodation_payment_receipt_legal_rule_ck",
+      "india_gst_accommodation_payment_receipt_source_ck",
+    ]);
   });
 
   test("contains only the exact canonical demo tenant and property", async () => {

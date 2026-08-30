@@ -1428,3 +1428,34 @@ a fallback, derivation, equality check or substitute, and no clock or latest val
 participate. This root is only a future CGST section 13(2)(b) input. It creates no
 time-of-supply result, invoice/payment/tax authority, item, posting, document,
 submission, API, UI or local-runtime meaning.
+
+### India GST accommodation payment-receipt-date snapshot (Order 291)
+
+Order 291 adds one narrow externally evidenced payment-date input root:
+`india_gst_accommodation_payment_receipt_snapshot(tenant_id,id,
+service_provision_snapshot_id,currency,amount_minor,coverage_scope,
+supplier_books_entry_date,supplier_bank_credit_date,payment_receipt_date,
+payment_receipt_source,payment_receipt_evidence_sha256,legal_rule)`. This exact
+twelve-column tenant-leading root belongs to one approved Order290 service-provision
+snapshot and its complete Order290→Order252→Order240 property, reservation,
+first-segment, hold-binding, attribution, quote-hash, snapshot-hash and currency
+lineage. It is not a parallel payment or reservation authority.
+
+Only full canonical Order240 `rate_quote` / `room` / `room_revenue` attribution is
+admissible. Positive `amount_minor` must equal its grand total, currency must agree,
+and `coverage_scope` is exactly `full_attribution`. Both statutory operands are
+retained: supplier-books entry date and supplier-bank-credit date. The stored
+`payment_receipt_date` is exactly their `LEAST`, including equal dates. Exact source
+is `governed_supplier_payment_receipt_record`, with lowercase SHA-256 evidence and
+legal literal `CGST_ACT_13_2_EXPLANATION_II_PAYMENT_RECEIPT_DATE_INPUT_ONLY`.
+
+The six-key resolver requires exact tenant, property, reservation, service root,
+payment root and receipt date; it revalidates all lineage, attribution, dates,
+amount/currency, source, digest and legal rule before returning a fixed-order,
+recursively frozen minimized result and tenant-bound evidence hash. Missing,
+duplicate, stale, mixed, partial or malformed evidence fails closed. Forced RLS and
+SELECT-only `app_role` authority apply; no writer, ingestion, bank/provider lookup or
+attestation policy exists. This root is only future section 13 input evidence: it
+cannot infer from payment, operation, provider-receipt, journal, posting, folio,
+reservation, operational or clock dates, and grants no payment, invoice, voucher,
+tax, item, posting, journal, document, submission, API, UI or local authority.

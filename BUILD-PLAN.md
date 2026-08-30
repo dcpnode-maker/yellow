@@ -1019,7 +1019,7 @@ tax/document/API/UI/local authority remain separate. Exact56/108/98/98/8 schema,
 hostile non-substitution proof and referee11/11 are green under D-769. Fresh Tier3
 review approves exact candidate `4476cc5` with no finding under D-770.
 
-**Ready Order291 accommodation payment-receipt-date evidence:** add one exact
+**Built-pending-review Order291 accommodation payment-receipt-date evidence:** add one exact
 tenant-leading forced-RLS SELECT-only full-attribution payment-receipt root bound to
 approved Order290/252/240 truth. Preserve supplier-books entry and supplier-bank
 credit dates and require the stored receipt date to be their earlier date under CGST
@@ -1027,4 +1027,4 @@ section13 explanation(ii). D-771 forbids substituting payment, provider-receipt,
 journal, document, folio, operational or clock timestamps and admits no partial/cash/
 refund allocation, invoice/timeliness or time-of-supply result. Exact
 `57/109/99/99/9` schema, hostile zero-write/non-substitution proof, referee `11/11`
-and fresh Tier3 are mandatory.
+and fresh Tier3 are mandatory. D-772 records focused8/0(105), acceptance22/0(63), runtime-DML5/0(116), migration39/0(187), exact57/109/99/99/9, setup/referee11/11, standing992/0 plus869 skips(15377), schema SHA `400a7da729b8fad3c0def0a22f0a8eda43a68021898ed495060c158ce7b81dbe`, and type/boundary/license/audit/diff green. Fresh independent Tier3 approval remains mandatory.

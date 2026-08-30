@@ -2019,7 +2019,45 @@ delegating room/unit release in the same transaction.
 parameters and are `Cache-Control: no-store`. GET uses the existing vehicle read
 authority; POST requires `stay-operations.vehicles:park`, an exact idempotency header
 and only `{parkingSpaceId}`. V1 is create-only: replacement, manual release, entry/exit,
-staff/visitor parking, history and automatic allocation are not commands.
+ staff/visitor parking, history and automatic allocation are not commands.
+
+## 37. Governed India GST accommodation payment-receipt-date evidence
+
+`IndiaGstAccommodationPaymentReceiptDateService.resolve(tx,input)` accepts exactly
+`tenantId`, `propertyNode`, `reservationId`, `serviceProvisionSnapshotId`,
+`paymentReceiptSnapshotId` and `paymentReceiptDate`. The input is an exact plain,
+accessor/proxy/symbol-free six-key object. Resolution reconstructs the approved
+Order290 service-provision root, Order252 reservation/first-segment lineage and
+Order240 canonical positive room-revenue attribution, then equality-selects one
+explicit payment-receipt root id/date. Missing, duplicate, malformed, stale-hash,
+mixed-lineage or non-full-coverage evidence fails closed.
+
+The sole tenant-leading, forced-RLS, SELECT-only root is
+`india_gst_accommodation_payment_receipt_snapshot` with exactly twelve columns:
+`tenant_id`, `id`, `service_provision_snapshot_id`, `currency`, `amount_minor`,
+`coverage_scope`, `supplier_books_entry_date`, `supplier_bank_credit_date`,
+`payment_receipt_date`, `payment_receipt_source`,
+`payment_receipt_evidence_sha256`, `legal_rule`. Its exact service-root FK prevents
+parallel property/reservation truth. `amount_minor` is positive and equals the
+reparsed full Order240 attribution grand total; currency agrees across the complete
+lineage; `coverage_scope` is exactly `full_attribution`.
+
+Both statutory source dates are retained and finite, with
+`payment_receipt_date = LEAST(supplier_books_entry_date,
+supplier_bank_credit_date)`, including equal dates. The exact source is
+`governed_supplier_payment_receipt_record`; the legal literal is
+`CGST_ACT_13_2_EXPLANATION_II_PAYMENT_RECEIPT_DATE_INPUT_ONLY`; the evidence digest
+is lowercase SHA-256. The frozen result returns both source dates, the earlier date,
+full amount/currency, source, digest, legal rule, minimized complete lineage and a
+tenant-bound evidence hash without exposing tenant identity.
+
+There is no writer, ingestion, bank/provider lookup, attestation, allocation, refund
+or reversal authority. `PUBLIC`, `yellow_runtime` and `app_role` cannot INSERT,
+UPDATE, DELETE or TRUNCATE. Payment-operation, provider-receipt, journal, posting,
+folio, reservation, operational and clock dates are forbidden substitutes; no latest,
+nearest, fallback or one-source-only path exists. This is input evidence only and
+cannot decide section 13 time of supply or issue/allocate payment, invoice, receipt
+voucher, tax, item, posting, journal, document, submission, API, UI or local state.
 # Quoted-tax reservation lineage
 
 A quoted-tax attribution bound to a cart hold becomes reservation evidence only when

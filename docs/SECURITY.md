@@ -1136,3 +1136,37 @@ departure, check-in, occupancy, checkout, journal and posting dates may neither 
 substitute for nor be compared with the root date. The result is evidence input only:
 it does not decide CGST section 13 time of supply and grants no invoice, payment, tax,
 item, posting, document, submission, API, UI or local-runtime authority.
+
+### India GST accommodation payment-receipt-date containment (Order 291)
+
+The exact twelve-column payment-receipt snapshot is tenant-leading, forced-RLS and
+bound by the exact service-provision root to the complete Order290→Order252→Order240
+property/reservation/first-segment/attribution lineage. `PUBLIC`, `yellow_runtime` and
+`app_role` receive no INSERT, UPDATE, DELETE or TRUNCATE authority; `app_role` is
+SELECT-only. No application writer, ingestion command, bank/provider lookup, operator
+attestation or payment allocation workflow exists.
+
+The resolver accepts only the exact plain six-key input
+`{tenantId,propertyNode,reservationId,serviceProvisionSnapshotId,
+paymentReceiptSnapshotId,paymentReceiptDate}`. It reconstructs complete lineage,
+reparses canonical `rate_quote` / `room` / `room_revenue` attribution, and requires
+full positive amount, matching currency, exact ids/hashes, source and legal literal
+before an equality-only read. It returns both statutory dates and requires
+`payment_receipt_date = LEAST(supplier_books_entry_date,
+supplier_bank_credit_date)`.
+
+Exact source `governed_supplier_payment_receipt_record`, lowercase evidence SHA-256,
+and legal literal `CGST_ACT_13_2_EXPLANATION_II_PAYMENT_RECEIPT_DATE_INPUT_ONLY` are
+mandatory. Missing, duplicate, malformed, cross-tenant, cross-property,
+cross-reservation, cross-service-root, cross-attribution, stale-hash, wrong
+amount/currency, partial coverage, one-source-only and shape/proxy/accessor/symbol
+attacks fail closed. Fixed ordering, recursive freezing, deterministic tenant-bound
+hashing and zero-write behavior contain replay and result tampering without exposing
+tenant identity.
+
+Payment-operation/provider-receipt, journal/posting, folio, reservation, invoice,
+voucher, settlement, refund, reversal, business-day, operational and clock dates are
+not statutory source substitutes. No latest, nearest, fallback or inference is
+allowed. This root is evidence input only: it computes no section 13 result and
+grants no payment, invoice, voucher, tax, item, posting, journal, document,
+submission, API, UI or local-runtime authority.
