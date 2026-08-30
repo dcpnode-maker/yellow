@@ -643,3 +643,14 @@ place-of-supply, supply-nature, `SupTyp`, `Pos`, `IgstOnIntra`, rate, levy, tax,
 document, IRP, API/UI/local and phase-complete authority remain separate. D-798
 requires intentional red, hostile/live PG16.15 zero-write proof, setup/referee and a
 fresh Tier-3 review.
+
+## Order 297 boundary
+
+Order297 is the pure composition boundary that binds complete approved Order287
+supply-nature evidence to Order295 supplier-active-at-time and Order296
+recipient-active-at-time evidence. Every predecessor envelope and tenant hash is
+recomputed; all transaction, registration, service-location, lineage and exact-date
+identities must agree. The frozen, tenant-hidden result grants no new buyer, place of
+supply, levy, rate, tax, document, IRP, database, API/UI or local authority. D-801
+requires intentional red, exhaustive hostile zero-effect proof, unchanged setup and
+referee gates, and fresh independent Tier-3 review.

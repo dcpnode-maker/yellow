@@ -2219,3 +2219,17 @@ identity/evidence, and hides tenant identity, GSTIN and address. Missing, duplic
 malformed, crossed, stale or contradictory evidence fails closed. It grants no legal
 buyer, B2B/B2C, place-of-supply, supply-nature, rate, levy, tax, document or IRP
 authority.
+
+## Order297: India GST supply nature and registrations at exact time of supply
+
+`composeIndiaGstAccommodationSupplyNatureAtTimeOfSupply(input)` is a pure,
+migration-free composition boundary over complete approved Order287 supply-nature,
+Order295 supplier-active-at-time and Order296 recipient-active-at-time results.
+It independently replays each complete frozen envelope, binds property, reservation,
+registration, service-location, lineage, hashes and every relevant date, and requires
+the Order287 `supplyDate` plus both registration status dates and both time-of-supply
+dates to be identical. The result is recursively frozen and tenant-hidden, with only
+`supply_nature_and_registrations_bound_at_time_of_supply` evidence. Malformed,
+mutable, stale, crossed, reduced, surplus or contradictory roots fail closed. No
+buyer/B2B, `Pos`, `SupTyp`, `IgstOnIntra`, rate, levy, tax, document, IRP, writer,
+network, API, UI or database authority is granted.

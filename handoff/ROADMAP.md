@@ -558,3 +558,12 @@ accommodation time-of-supply evidence only at exact status/time date equality. R
 complete predecessor hash replay and produce only frozen, tenant/GSTIN/address-hidden
 affirmative evidence; legal buyer, place-of-supply, supply-nature, tax and document
 composition remain future bounded slices.
+
+## Order297 roadmap entry
+
+Compose the complete approved Order287 supply-nature result with the approved
+Order295 supplier and Order296 recipient active-at-time results. Require exact shared
+transaction, lineage, registration/service-location and date equality plus complete
+predecessor hash replay. Return only frozen tenant-hidden applicability evidence;
+buyer/B2B, `Pos`, `SupTyp`, `IgstOnIntra`, levy, rate, tax, document, IRP, API/UI,
+database and local authority remain separate. Fresh Tier-3 proof is mandatory.

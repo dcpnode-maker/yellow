@@ -1526,3 +1526,13 @@ The result is one affirmative evidence state,
 `active_recipient_registration_at_time_of_supply`, with complete predecessor hashes
 and identity but without tenant, GSTIN or address disclosure. Recipient buyer status,
 place of supply, supply nature, levy and document semantics remain separate decisions.
+
+### India GST supply nature and registrations at time of supply (Order 297)
+
+Order297 adds no entity, table or new statutory decision. It binds complete frozen
+Order287 supply-nature evidence to the already approved Order295 supplier and Order296
+recipient active-registration evidence at one explicit transaction and date. The
+composition result is the minimized affirmative state
+`supply_nature_and_registrations_bound_at_time_of_supply`; it hides tenant identity
+and retains no GSTIN/address payload. Buyer designation, place of supply, levy,
+rates, tax, documents and IRP submission remain separate boundaries.

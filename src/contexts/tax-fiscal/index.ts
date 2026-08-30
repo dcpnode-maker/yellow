@@ -295,6 +295,17 @@ export type {
   IndiaGstRegistrationAtTimeOfSupplyResult,
 } from "./india-gst-registration-at-time-of-supply";
 export {
+  IndiaGstAccommodationSupplyNatureAtTimeOfSupplyConflictError,
+  IndiaGstAccommodationSupplyNatureAtTimeOfSupplyValidationError,
+  IndiaGstAccommodationSupplyNatureAtTimeOfSupplyService,
+  composeIndiaGstAccommodationSupplyNatureAtTimeOfSupply,
+  buildIndiaGstAccommodationSupplyNatureAtTimeOfSupply,
+} from "./india-gst-accommodation-supply-nature-at-time-of-supply";
+export type {
+  IndiaGstAccommodationSupplyNatureAtTimeOfSupplyInput,
+  IndiaGstAccommodationSupplyNatureAtTimeOfSupplyResult,
+} from "./india-gst-accommodation-supply-nature-at-time-of-supply";
+export {
   IndiaGstRecipientRegistrationAtTimeOfSupplyConflictError,
   IndiaGstRecipientRegistrationAtTimeOfSupplyNotFoundError,
   IndiaGstRecipientRegistrationAtTimeOfSupplyService,

@@ -1095,3 +1095,12 @@ predecessor-envelope/hash revalidation and tenant/GSTIN/address concealment. Ret
 only frozen `active_recipient_registration_at_time_of_supply` evidence. No buyer,
 place-of-supply, supply-nature, rate, levy, tax, document, IRP, API or UI authority is
 admitted.
+
+**Built-pending-review Order297 supply-nature/registration time binding:** compose
+complete approved Orders287, 295 and 296 into one pure migration-free exact-date
+boundary. Recompute all predecessor envelopes and hashes; bind property,
+reservation, registration, service-location, lineage and dates; return only frozen,
+tenant-hidden `supply_nature_and_registrations_bound_at_time_of_supply`. No database,
+writer, buyer/B2B, `Pos`, `SupTyp`, `IgstOnIntra`, rate, levy, tax, document, IRP,
+API/UI or local authority. Intentional-red, exhaustive hostile proof and fresh
+independent Tier-3 review remain mandatory under D-801.

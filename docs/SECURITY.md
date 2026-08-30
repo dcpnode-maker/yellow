@@ -1246,3 +1246,15 @@ uses a clock or network, locks, or writes. Cross-tenant, crossed-lineage, malfor
 duplicate, unsupported or contradictory truth fails closed. Output is recursively
 frozen and excludes tenant identity, recipient GSTIN and address; it cannot authorize
 buyer designation, place of supply, supply nature, tax, documents or submission.
+
+## Order297 security boundary
+
+The pure composer accepts exactly one frozen tenant identifier and the complete
+Order287/295/296 public result envelopes. It revalidates each envelope and its
+tenant-bound hash, then equality-binds all transaction, registration,
+service-location, reservation-lineage, time-of-supply and date identities before
+returning recursively frozen tenant-hidden evidence. It performs no database read,
+write, clock, network call or predecessor resolver call. Proxy/accessor/symbol,
+surplus, reduced, stale, cross-tenant, cross-lineage and caller-hash-only inputs fail
+closed. The output grants no buyer/B2B, place-of-supply, `Pos`, `SupTyp`,
+`IgstOnIntra`, rate, levy, tax, document, IRP, API or UI authority.
