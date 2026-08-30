@@ -567,3 +567,10 @@ transaction, lineage, registration/service-location and date equality plus compl
 predecessor hash replay. Return only frozen tenant-hidden applicability evidence;
 buyer/B2B, `Pos`, `SupTyp`, `IgstOnIntra`, levy, rate, tax, document, IRP, API/UI,
 database and local authority remain separate. Fresh Tier-3 proof is mandatory.
+
+## Order298 roadmap entry
+
+Correct the quarantined 2026 India hotel-accommodation extension to sourced 12%/18%
+value-of-supply bands using the existing effective-dated extension and evaluator.
+Prove exact INR7,500 boundary behavior; do not infer section14, SEZ zero-rating,
+decomposition, fiscal document, API/UI or local authority.

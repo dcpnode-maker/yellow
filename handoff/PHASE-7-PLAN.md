@@ -654,3 +654,12 @@ identities must agree. The frozen, tenant-hidden result grants no new buyer, pla
 supply, levy, rate, tax, document, IRP, database, API/UI or local authority. D-801
 requires intentional red, exhaustive hostile zero-effect proof, unchanged setup and
 referee gates, and fresh independent Tier-3 review.
+
+## Order 298 boundary
+
+Order298 corrects only the explicit 2026 ordinary India accommodation rate content:
+12% through INR7,500 value of supply per unit/day and 18% above, replacing the
+D-791-quarantined launch nil/5/18 fixture. Existing extension effective periods,
+assignment resolution and the typed evaluator remain unchanged; there is no
+migration, section14, SEZ zero-rating, decomposition, document/IRP/API/UI/local
+authority. D-810 requires exact boundaries and fresh Tier3 statutory review.

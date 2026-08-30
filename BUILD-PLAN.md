@@ -1104,3 +1104,10 @@ tenant-hidden `supply_nature_and_registrations_bound_at_time_of_supply`. No data
 writer, buyer/B2B, `Pos`, `SupTyp`, `IgstOnIntra`, rate, levy, tax, document, IRP,
 API/UI or local authority. Intentional-red, exhaustive hostile proof and fresh
 independent Tier-3 review remain mandatory under D-801.
+
+**Ready Order298 effective accommodation rates:** supersede the quarantined launch
+nil/5/18 India accommodation fixture for the explicit 2026 extension with sourced
+12% through INR 7,500 per accommodation unit per day and 18% above. Reuse the
+effective-dated extension/assignment/evaluator architecture; no migration, section14,
+SEZ zero-rating, decomposition, document/IRP/API/UI/local authority. D-810 requires
+intentional red, exact boundary proof, setup/referee preservation and fresh Tier3.
