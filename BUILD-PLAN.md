@@ -1045,3 +1045,11 @@ runtime-DML5/0(117), migration39/0(187), exact schema58/110/100/100/10 with SHA
 product finding under D-776; the reviewer-recorded duplicate three-line paragraph
 was removed as nonblocking documentation cleanup. Approval remains limited to
 invoice identity/issue-date evidence.
+
+**Ready Order293 accommodation invoice-timeliness composer:** after approved
+Order292/D-776, add one pure deterministic composer consuming approved Order290
+service-date and Order292 invoice-date evidence plus affirmative governed ordinary-
+Rule47 evidence. It returns only timely/late evidence using the inclusive fixed
+30-calendar-day boundary; all exception regimes fail closed. No migration, writer,
+regime inference, invoice validity/issuance, section13 result, tax/document/API/UI/
+local authority. D-777 requires hostile proof and fresh independent Tier3 review.

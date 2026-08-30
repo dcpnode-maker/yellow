@@ -443,6 +443,15 @@ schema/referee11/11 and standing927/0 plus841 skips. Type/107-boundary/23-licenc
 audit0/diff are green; disposable proof is absent and the sole stable local remains
 exact, healthy and unchanged. Fresh non-implementing Tier-3 review is mandatory.
 
+## Order 293 boundary
+
+Order293/D-777 is ready as a pure composer over approved Order290 service-provision
+and Order292 invoice-issue evidence plus affirmative governed ordinary-Rule47
+evidence. It returns only timely/late evidence using the fixed inclusive 30-calendar-
+day boundary; every exception regime fails closed. No migration, writer, regime
+inference, invoice validity/issuance, section13 result, tax/document/API/UI/local
+authority. Hostile pure proof and fresh Tier3 review remain mandatory.
+
 ## Order 289 boundary
 
 Order289 adds one exact tenant-leading forced-RLS SELECT-only source root for active

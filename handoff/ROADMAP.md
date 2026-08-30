@@ -517,3 +517,10 @@ The D-750 candidate is built: intentional red0/1 preceded focused16/0(301), migr
 schema/referee11/11 and standing936/0 plus851 skips. All static gates are green,
 disposable proof is removed and the sole stable local remains exact, healthy and
 unchanged. Fresh non-implementing Tier-3 review remains mandatory.
+
+Order293/D-777 is ready as the next pure prerequisite: compose approved Order290
+service-provision and Order292 invoice-issue dates with affirmative governed ordinary-
+Rule47 evidence into only timely/late evidence using the fixed inclusive 30-calendar-
+day boundary; every exception regime fails closed. No migration, regime inference,
+invoice issuance/validity, section13 result, tax/document/API/UI/local authority is
+admitted; fresh independent Tier3 proof is mandatory.
