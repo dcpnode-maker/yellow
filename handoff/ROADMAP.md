@@ -544,3 +544,9 @@ fresh Tier3 re-review remains pending and no approval is claimed.
 Next Phase 7 evidence slice: independently review the one-read ordinary India GST
 accommodation time-of-supply composer after focused, adjacent, type, boundary, licence,
 and standing validation.
+
+## Order295 roadmap entry
+
+Compose approved Order289 supplier registration status and Order294 ordinary
+accommodation time-of-supply evidence only when the status snapshot is dated exactly
+at the selected time of supply. No effective interval, rate, levy or tax computation.
