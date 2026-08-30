@@ -1498,6 +1498,17 @@ both dates, deadline, policy, invoice series/serial, `invoiceIssueEvidenceSha256
 ambiguity, stale or mixed
 lineage fail closed; no regime inference, invoice issuance/validity/numbering,
 Rule47 selection, section13 result, tax, document, API, UI or local authority exists.
+
+### India GST registration at time of supply (Order 295)
+
+Order295 is a composed evidence read, not a new entity or validity interval. It
+revalidates the immutable supplier registration, service-location and exact-date
+active-status roots from Order289 together with the complete ordinary
+accommodation time-of-supply chain from Order294. The status snapshot is effective
+for this result only when its `statusAsOf` equals the explicit time-of-supply date;
+no nearest/latest status or historical interval is inferred. The result is the
+single affirmative state `active_at_time_of_supply`, with complete predecessor
+identity/evidence and a deterministic recursively frozen tenant-bound hash.
 # Order294 time-of-supply evidence
 
 Ordinary accommodation evidence selects section 13(2)(a) when invoice issue is within

@@ -1218,3 +1218,20 @@ The composer performs one tenant-leading equality-bound read with transaction-lo
 `app.tenant_id` verification and no writes, locks, network calls, latest-row selection,
 or tenant disclosure. Missing, duplicate, stale, crossed, malformed, or contradictory
 predecessor evidence fails closed.
+
+## Order295 security boundary
+
+The registration-at-time-of-supply composer executes one equality-bound SELECT
+with transaction-local `app.tenant_id` verification. It joins and independently
+rehashes the complete Order289 and Order294 public predecessor chain
+and requires caller-selected Order289/294 result hashes to equal independently
+recomputed complete predecessor envelopes. Supplying plausible identities or hashes
+without exact full-envelope equality never grants affirmative evidence.
+It never
+calls predecessor resolvers sequentially, uses a clock/latest lookup, writes,
+locks, performs network access, or exposes tenant identity. Exact status/date
+equality is mandatory. Missing, duplicate, malformed, inactive, stale,
+cross-tenant, cross-lineage or contradictory evidence fails closed. The output is
+recursively frozen and limited to `active_at_time_of_supply`; rates, levies, tax
+calculation, documents, postings, submissions and operational APIs remain outside
+the boundary.

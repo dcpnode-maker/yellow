@@ -15,14 +15,16 @@ and Order294 evidence and grants no rate, levy or tax-computation authority.
 ## Exact contract
 
 - expose `resolveIndiaGstRegistrationAtTimeOfSupply(tx, input)` through the tax-fiscal
-  boundary with exact explicit predecessor identities, dates and evidence hashes;
+  boundary with exact explicit predecessor identities, dates,
+  `supplierRegistrationStatusEvidenceHash` and `timeOfSupplyEvidenceHash`;
 - one tenant-leading, transaction-local, equality-bound SELECT composes the approved
   Order289 active-status root and Order294 complete time-of-supply chain; no sequential
   resolver calls, latest/nearest selection, clock, network or write;
 - require `statusAsOf` to equal `timeOfSupplyDate`; a snapshot at any other date is not
   an effective interval and fails closed;
 - revalidate the complete public predecessor envelopes and deterministic hashes rather
-  than trusting only two supplied hashes;
+  than trusting only the two supplied hashes; both recomputed hashes must equal the
+  caller-selected approved hashes;
 - return a recursively frozen, fixed-order, tenant-bound result stating only
   `active_at_time_of_supply`, with complete predecessor identity and evidence;
 - missing, malformed, duplicate, stale, contradictory, unsupported or cross-lineage

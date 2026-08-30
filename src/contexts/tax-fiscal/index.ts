@@ -283,3 +283,14 @@ export type {
   IndiaGstAccommodationTimeOfSupplyInput,
   IndiaGstAccommodationTimeOfSupplyResult,
 } from "./india-gst-accommodation-time-of-supply";
+export {
+  IndiaGstRegistrationAtTimeOfSupplyConflictError,
+  IndiaGstRegistrationAtTimeOfSupplyNotFoundError,
+  IndiaGstRegistrationAtTimeOfSupplyService,
+  IndiaGstRegistrationAtTimeOfSupplyValidationError,
+  resolveIndiaGstRegistrationAtTimeOfSupply,
+} from "./india-gst-registration-at-time-of-supply";
+export type {
+  IndiaGstRegistrationAtTimeOfSupplyInput,
+  IndiaGstRegistrationAtTimeOfSupplyResult,
+} from "./india-gst-registration-at-time-of-supply";

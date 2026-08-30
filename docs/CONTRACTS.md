@@ -2179,6 +2179,25 @@ Missing, malformed, duplicate, stale, exception-bearing, mixed or contradictory
 evidence fails closed. No clock, timezone conversion, latest/nearest/fallback,
 write, migration, invoice issuance/validity/numbering, regime selection, section13
 result, tax, document, API, UI or local authority is produced.
+
+## Order295: India GST registration at exact time of supply
+
+`resolveIndiaGstRegistrationAtTimeOfSupply(tx,input)` is a migration-free,
+read-only composer. It performs one tenant-leading, transaction-local equality
+read joining the approved Order289 registration/status roots and complete
+Order294 service, payment, invoice, reservation-lineage and attribution roots.
+`statusAsOf` must equal the selected `timeOfSupplyDate` exactly; the snapshot date
+is evidence time only and never an inferred validity interval. The resolver
+revalidates every public predecessor envelope, identity, source, legal literal,
+date, currency, amount, attribution and deterministic evidence hash. Exact input
+fields `supplierRegistrationStatusEvidenceHash` and `timeOfSupplyEvidenceHash`
+must equal the independently recomputed approved predecessor hashes; hash-only
+trust is forbidden. The result returns
+only `active_at_time_of_supply` with fixed-order recursively frozen, tenant-hidden
+evidence. Missing, duplicate, stale, malformed, contradictory or cross-lineage
+evidence fails closed. No rate, levy, tax, section14, document, posting, IRP,
+writer, API, UI or network authority is granted.
+
 # Order294: India GST accommodation time of supply
 
 `resolveIndiaGstAccommodationTimeOfSupply(tx, input)` is a tenant-scoped, SELECT-only

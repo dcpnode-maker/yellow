@@ -621,3 +621,14 @@ exact, healthy and unchanged. Fresh non-implementing Tier-3 review is mandatory.
 Compose approved Order290 service-provision, Order291 payment-receipt and Order292
 invoice-issue evidence through Order293 timeliness into ordinary section 13(2)(a)/(b)
 time-of-supply evidence. No tax, document, posting, submission, or write authority.
+
+## Order295 registration-at-time-of-supply evidence
+
+Consume the approved Order289 active supplier registration snapshot and the
+complete approved Order294 ordinary accommodation chain in one equality-bound
+SELECT. Accept only exact status/time date equality and affirmative active status;
+require supplied Order289 and Order294 evidence hashes to equal complete recomputed
+predecessor envelopes;
+no effective interval, rate, levy, tax, document, posting, IRP or API authority is
+produced. Hostile, duplicate, stale, malformed and cross-lineage evidence must
+fail closed and the result must be recursively frozen and tenant-hidden.
