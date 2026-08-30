@@ -419,7 +419,7 @@ green; fresh Tier3 approves exact candidate `4476cc5` with no finding. Invoice/p
 Order289 consumption, levy, document,
 API/UI/local authority remain separate.
 
-Order291/D-772 is built pending independent review as the next honest section13 prerequisite: one explicit
+Order291/D-773 is approved as the next honest section13 prerequisite: one explicit
 externally evidenced full-attribution payment-receipt root bound to approved
 Order290/252/240 truth. It preserves both statutory source dates and their earlier
 date while granting no payment ingestion, partial/cash/refund allocation, invoice
@@ -430,7 +430,7 @@ Builder proof is focused8/0(105), acceptance22/0(63), runtime-DML5/0(116),
 migration39/0(187), exact57/109/99/99/9 schema/setup/referee11/11, standing992/0
 plus869 skips(15377), type/114-boundary/23-license/audit0/diff green, schema SHA
 `400a7da729b8fad3c0def0a22f0a8eda43a68021898ed495060c158ce7b81dbe`;
-fresh independent Tier3 approval remains mandatory;
+fresh independent Tier3 approval under D-773 found no issue for exact candidate `10e9adf`; approval remains limited to the full-attribution payment-receipt evidence input;
 tax/document/API/UI/local authority remain separate.
 Fresh non-implementing Tier-3 review approves exact candidate `8630639` with no
 finding under D-751. Reviewer-personal official-law, exact52/104/94/94/4,

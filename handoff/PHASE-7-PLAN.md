@@ -479,20 +479,19 @@ candidate `4476cc5` with no finding under D-770.
 
 ## Order 291 boundary
 
-Order291 is built pending independent review as one exact tenant-leading forced-RLS SELECT-only full-attribution
+Order291 is approved under D-773 as one exact tenant-leading forced-RLS SELECT-only full-attribution
 payment-receipt source root bound to complete approved Order290→252→240 service,
 reservation and canonical room-revenue attribution truth. It preserves the supplier-
 books entry date, supplier-bank credit date and their statutory earlier date only.
 D-771 forbids substitution from existing payment/operation/provider-receipt/journal/
 document/folio/reservation/operational timestamps or clocks, admits no partial/cash/
 refund allocation and grants no invoice/timeliness/time-of-supply, tax, document,
-API/UI/local authority. Intentional red, exact `57/109/99/99/9` schema/setup/referee,
-hostile non-substitution/zero-write proof and fresh Tier3 are mandatory.
-Fresh non-implementing Tier-3 review approves exact candidate `8630639` with no
-finding under D-751. Reviewer-personal official-law, exact52/104/94/94/4,
-schema/setup/referee11/11, focused/database/standing/static and stable-runtime proof
-are green; disposable proof is absent. Approval grants only affirmative recipient
-registration/SEZ-status evidence and no downstream authority.
+API/UI/local authority. Exact `57/109/99/99/9` schema/setup/referee, hostile
+non-substitution/zero-write proof and fresh Tier3 are green. Fresh non-implementing
+Tier-3 review approves exact candidate `10e9adf` with no finding under D-773.
+Reviewer-personal official-law, database, seeded resolver, schema/setup/referee,
+standing/static and stable-runtime proof are green; approval remains limited to
+full-attribution payment-receipt evidence and grants no downstream authority.
 
 ## Order 286 boundary
 
