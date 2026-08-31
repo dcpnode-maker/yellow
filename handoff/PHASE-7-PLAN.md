@@ -728,3 +728,14 @@ hostile microsecond/identity/content/hash and live zero-effect proof, unchanged
 setup/referee and fresh Tier3. D838 records fresh independent approval of exact
 candidate `bb746f202a53bedc997519262bcffda14db7025f` with no finding; approval is
 limited to this frozen evidence pair and grants no downstream authority.
+
+## Order 305 boundary
+
+Order305 changes only fresh bootstrap/demo seed truth from one incorrectly flattened
+active lodging version into the exact Order304-approved retired-v1/active-v2 history.
+Both deterministic ids, adjacent Kolkata-midnight periods, statuses, canonical rates
+and ITC flags must be exact and replay/collision fail closed transactionally. Existing
+installed databases are never rewritten by this order, and the active-only resolver
+remains unchanged. No historical stay selection, section14, tax/fiscal/API/UI/local
+authority is admitted. D-839 requires intentional red, fresh seed/replay/collision/
+resolver proof, unchanged schema/setup/referee and fresh Tier3.

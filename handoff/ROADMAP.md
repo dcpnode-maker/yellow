@@ -643,3 +643,12 @@ finding; mutation, live 2/0(19), standing1077/0+885 skips, static, schema and
 referee11/11 proof are recorded in `handoff/reviews/304-india-gst-accommodation-rate-version-pair-independent.md`.
 The disposable proof project was removed and the founder local was untouched. Approval
 is limited to this frozen evidence pair; no downstream authority is claimed.
+
+## Order305 roadmap entry
+
+Replace the flattened fresh-bootstrap India lodging seed with the exact approved
+retired-v1/active-v2 history, deterministic ids and adjacent Kolkata-midnight periods.
+Prove exact first insert, byte-equivalent replay, collision rollback and preservation
+of active-only v2 resolution. Existing installed data conversion, historical stay
+selection, section14, tax, fiscal documents, IRP and operator surfaces remain later
+bounded work.

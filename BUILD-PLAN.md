@@ -1163,3 +1163,12 @@ exact candidate `bb746f202a53bedc997519262bcffda14db7025f` with no finding; the 
 review, mutation proof and cleanup are recorded in `handoff/reviews/304-india-gst-accommodation-rate-version-pair-independent.md`.
 Disposable proof resources were removed and the founder local was untouched. Approval
 is limited to this frozen evidence pair; no downstream authority is claimed.
+
+**Ready Order305 India accommodation launch-history seed:** make fresh bootstrap and
+the invariant fixture carry exact deterministic retired-v1/active-v2 global lodging
+extensions with Order304-approved adjacent periods, rates and ITC flags. Seed replay
+must be exact and every collision must roll back without repair; current active-only
+resolution remains v2. No existing-database conversion, migration/schema, historical
+stay selection, section14, tax/fiscal/API/UI/local authority. D-839 requires
+intentional red, fresh live seed/replay/collision/resolver proof, preservation gates
+and fresh Tier3 review.
