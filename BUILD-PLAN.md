@@ -1192,3 +1192,8 @@ caller extension ids, gaps/overlaps/cross-cutover split days and installed-data
 conversion fail closed. No migration/seed/current-resolver change, section14, tax,
 fiscal/API/UI/local authority. D-842 requires intentional red, hostile/live
 zero-effect proof, preservation gates and fresh Tier3 review.
+D-843 records red0/1 before production; focused26/0+9 skips(535), live3/0(30),
+standing1088/0+890 skips(16652;1978 tests/358 files), type/boundary123/licence23/
+audit0/diff and fresh59 migrations/110 tables/exact schema/referee11/11 green.
+Temporary proof databases were removed and founder local untouched; fresh Tier3
+approval remains pending.

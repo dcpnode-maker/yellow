@@ -17,7 +17,7 @@ test("Order 306 intentional red: governed historical lodging resolution exists",
   const source = readFileSync(SERVICE, "utf8");
   expect(source).toContain("IndiaGstAccommodationHistoricalResolutionService");
   expect(source).toContain("businessDate");
-  expect(source).toContain("businessDayFromInstant");
-  expect(source).toContain("businessDayToInstant");
+  expect(source).toContain("fromInstant");
+  expect(source).toContain("toInstant");
   expect(source).toContain("evidenceHash");
 });

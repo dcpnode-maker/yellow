@@ -672,3 +672,8 @@ one version to contain the whole day and fail closed for gaps, overlaps or a
 cross-cutover local day. Return frozen tenant-hidden evidence only. Installed-data
 conversion, section14/calendar, tax, fiscal documents, IRP and operator surfaces
 remain later bounded work.
+Build D843 is green: intentional red preceded production; focused hostile and live
+PostgreSQL proof covers exact cutover selection, tenant/property concealment, DST,
+awkward offsets, cross-cutover rejection, frozen/hash-bound evidence and zero writes.
+Standing/static plus fresh 59-migration/110-table/exact-schema/referee11/11
+preservation pass. Fresh independent Tier-3 approval remains mandatory.

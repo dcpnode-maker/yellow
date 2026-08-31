@@ -1359,3 +1359,24 @@ The Order305 live proof is opt-in through an explicit Order305 database variable
 uses a disposable PostgreSQL database; without that variable it skips. Its final
 read proof requires zero unexpected changes to extension, fact, outbox, journal,
 posting, document or fiscal-submission state.
+
+## Order306 historical-resolution boundary
+
+The historical accommodation resolver is a read-only, transaction-local tenant
+capability. Its only caller fields are the exact property id and canonical business
+date; tenant, timezone, UTC bounds, assignment and extension identities come from
+PostgreSQL and the existing visibility projections. It requires one active same-tenant
+property, exactly one lodging assignment, and the complete deterministic retired-v1/
+active-v2 pair. A single pair member must contain the entire database-derived local
+day. Missing, foreign, duplicate, altered, overlapping, gapped, or cross-cutover truth
+fails closed without partial evidence.
+
+The result recursively freezes property/day, assignment, selected-extension and pair
+evidence, omits tenant identity, and hashes tenant ownership internally. Local days
+are not treated as fixed 24-hour spans: PostgreSQL remains authoritative for DST
+23/25-hour days and awkward offsets. The proof uses transaction-local
+`set_config('app.tenant_id', ..., true)` plus `app_role`, and repeated reads must leave
+extension, assignment, fact, outbox, journal, posting, document and fiscal state
+byte-identical. No clock/latest/max-version lookup, caller extension ids, split-day
+allocation, historical tax use, section 14, posting, fiscal document, IRP, API, UI or
+installed-database conversion authority is granted.

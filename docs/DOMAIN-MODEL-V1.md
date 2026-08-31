@@ -1605,6 +1605,23 @@ insert unit, returns exact replay as a no-op, and leaves collisions untouched af
 rollback. Existing installed databases and historical stay selection remain out of
 scope. The active-only resolver continues to expose v2 as current truth.
 
+### Historical accommodation resolution (Order 306)
+
+Order306 adds no entity, table, migration, or writer. Its read model combines one
+active same-tenant property and canonical business date with PostgreSQL-derived local
+day bounds, one exact `in-gst-lodging` assignment, and the approved retired-v1/
+active-v2 launch history. The selected version must contain the complete half-open
+property-local day; v1 applies to whole days before the Kolkata-midnight cutover and
+v2 to whole days at/after it. A cross-cutover day, gap, overlap, missing/duplicate
+assignment, or altered pair fails closed.
+
+The frozen result carries property/day, assignment, selected-extension and pair
+evidence while hiding tenant identity and binding it inside a deterministic evidence
+hash. Database-derived DST 23/25-hour and awkward-offset envelopes remain temporal
+evidence only. No historical stay selection, rate calculation, section 14, tax,
+posting, fiscal document, IRP, API, UI, latest-version choice, or installed-database
+conversion is implied; the current active-only resolver remains v2-only.
+
 ### Property-local business-day instant evidence (Order 300)
 
 Order300 adds no entity, schema or inferred legal state. For Order238's already-derived

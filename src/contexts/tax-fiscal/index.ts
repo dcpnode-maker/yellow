@@ -338,3 +338,16 @@ export type {
   IndiaGstAccommodationRateVersionPairInput,
   IndiaGstAccommodationRateVersionPairResult,
 } from "./india-gst-accommodation-rate-version-pair";
+export {
+  IndiaGstAccommodationHistoricalResolutionConflictError,
+  IndiaGstAccommodationHistoricalResolutionNotFoundError,
+  IndiaGstAccommodationHistoricalResolutionService,
+  IndiaGstAccommodationHistoricalResolutionValidationError,
+} from "./india-gst-accommodation-historical-resolution";
+export type {
+  IndiaGstAccommodationHistoricalAssignmentEvidence,
+  IndiaGstAccommodationHistoricalBusinessDayEvidence,
+  IndiaGstAccommodationHistoricalPropertyEvidence,
+  IndiaGstAccommodationHistoricalResolutionInput,
+  IndiaGstAccommodationHistoricalResolutionResult,
+} from "./india-gst-accommodation-historical-resolution";

@@ -2342,3 +2342,22 @@ exact no-op on replay, and fails closed on any collision. The current resolver
 remains active-only and therefore returns version 2; no historical stay selection,
 rate calculation, section 14, fiscal or installed-database conversion authority is
 introduced.
+
+## Order306: India GST accommodation historical resolution
+
+`IndiaGstAccommodationHistoricalResolutionService.resolve(tx, input)` accepts exactly
+`propertyNode` and `businessDate`. PostgreSQL supplies the active same-tenant property,
+its IANA timezone, and the exact UTC envelope from local midnight to the next local
+calendar midnight. Exactly one `in-gst-lodging` assignment and the complete approved
+Order304/305 retired-v1/active-v2 pair are required. The member whose effective period
+contains the complete property-local day is selected: whole days before the Kolkata
+cutover select retired v1, and whole days at/after it select active v2. Equality at
+period bounds is valid; a gap, overlap, or day crossing the cutover fails closed.
+
+The result is recursively frozen tenant-hidden property/day, assignment,
+selected-extension and pair evidence with a deterministic evidence hash. PostgreSQL
+owns DST 23/25-hour and awkward-offset day bounds; no clock, JavaScript timezone/date
+arithmetic, latest/max-version lookup, caller-supplied extension identity, split-day
+allocation, tax calculation, section 14, posting, fiscal, IRP, API, UI or installed
+database conversion authority is exposed. The existing active-only current resolver is
+unchanged.

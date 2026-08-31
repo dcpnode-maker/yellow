@@ -1,6 +1,6 @@
 # Order 306 — India GST accommodation historical resolution
 
-**Status:** READY-D842
+**Status:** BUILT-PENDING-FRESH-TIER3-REVIEW-D843
 **Phase:** 7 — Tax and India IRP
 **Branch:** `phase-7/india-gst-accommodation-historical-resolution`
 **Base:** `1fca2ce` (independently approved Order 305 governance head)
@@ -74,7 +74,28 @@ or Phase/application-complete claim.
 
 ## Definition of done
 
-- [ ] Intentional red precedes production.
-- [ ] Focused hostile and live PostgreSQL proofs are green.
-- [ ] Standing/static/setup/schema/referee preservation gates are green.
+- [x] Intentional red precedes production (`639913c`: 0 pass / 1 fail before the
+  historical-resolution service existed).
+- [x] Focused hostile and live PostgreSQL proofs are green (focused 26 pass / 9
+  expected skips / 535 assertions; live 3 pass / 0 fail / 30 assertions).
+- [x] Standing/static/setup/schema/referee preservation gates are green (standing
+  1,088 pass / 890 skip / 0 fail / 16,652 assertions; typecheck; 123-file boundary;
+  23-package licence; audit 0; exact schema; 59 migrations / 110 tables and referee
+  11/11).
 - [ ] Fresh non-implementing Tier-3 reviewer personally executes proof and approves.
+
+## Build evidence — D843
+
+The bounded resolver accepts only property plus canonical business date, derives the
+same-transaction PostgreSQL local-day envelope and exact lodging assignment, then
+revalidates the canonical deterministic pair internally before selecting the sole
+whole-day-containing member. Permanent proof rejects hostile input, foreign or
+inactive property, missing/ambiguous assignment, altered identity/status/version/
+period/content/source evidence, gaps, overlaps, microsecond truncation and a local day
+crossing the Kolkata cutover. It proves v1/v2 equality edges, DST 23/25-hour and
+awkward-offset envelopes, recursive freezing, tenant concealment, evidence-hash
+sensitivity, zero writes and preservation of current active-only v2 resolution.
+Direct disposable PostgreSQL proof is 3/0(30); fresh preservation is 59 migrations,
+110 tables, exact schema and referee11/11. Full standing and static results are
+recorded above. Temporary proof databases were dropped; the daemon-hung inherited
+Order305 container remains unchanged and the founder local was untouched.

@@ -1168,3 +1168,24 @@ and fiscal-submission snapshots unchanged. It must not touch an installed databa
 or select retired content for a stay. Missing `YELLOW_ORDER305_*` configuration
 skips this live block; `YELLOW_REQUIRE_ORDER305_DATABASE=1` with no explicit
 Order305 deploy/admin URL fails before execution.
+
+## Order 306 — historical India GST accommodation resolution
+
+The live proof creates a disposable PostgreSQL database, applies all migrations, runs
+the exact Order305 fresh seed, and adds only bounded tenant/property/assignment test
+fixtures. It must establish that one active same-tenant property and one exact
+`in-gst-lodging` assignment resolve whole Kolkata local days before the cutover to
+retired v1 and days at/after the cutover to active v2. A foreign property is concealed
+from the wrong tenant while its own tenant can resolve it. PostgreSQL-derived DST
+23/25-hour and awkward-offset envelopes are asserted where the database permits.
+
+The proof must reject a local day whose UTC envelope crosses the Kolkata cutover,
+return recursively frozen tenant-hidden evidence with a deterministic hash, and leave
+extension, assignment, fact, outbox, journal, posting, document and fiscal-submission
+snapshots byte-identical across repeated successful and failed reads. It must use a
+transaction-local tenant setting and `app_role`, and must never choose by clock,
+latest/max version or caller extension id, mutate installed data, select a retired rate
+for a stay, calculate tax, apply section 14, or touch downstream fiscal/API/UI state.
+Missing `YELLOW_ORDER306_*` URLs skip this live block; setting
+`YELLOW_REQUIRE_ORDER306_DATABASE=1` without explicit deploy/admin and runtime URLs
+fails before execution.
