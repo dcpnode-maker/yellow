@@ -70,4 +70,3 @@ business-day upper instant from either evidence hash. The final Order 300 DoD ch
 remains unchecked. No applicability, section 14, tax calculation, fiscal, API/UI,
 local, integration, merge, deployment, Phase-complete or application-complete
 authority is granted.
-

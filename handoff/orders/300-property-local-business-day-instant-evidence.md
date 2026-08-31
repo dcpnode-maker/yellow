@@ -1,6 +1,6 @@
 # Order 300 — Property-local business-day instant evidence
 
-**Status:** CHANGES-REQUIRED-D824
+**Status:** REPAIRED-PENDING-FRESH-TIER3-REREVIEW-D825
 **Phase:** 7 — Tax and India IRP
 **Branch:** `phase-7/property-local-business-day-instant-evidence`
 **Base:** `0b90973` (independently approved Order 299)
@@ -89,3 +89,5 @@ promotion, merge/deploy or Phase/application-complete claim.
 - D-824's fresh final rereview finds the executable product and mutation proof green,
   but the exact candidate fails `git diff --check` because the prior review file has a
   surplus blank line at EOF. Final DoD remains unchecked pending repair and rereview.
+- D-825 removes only that surplus EOF blank. Product code, executable proof and review
+  content are unchanged; fresh Tier 3 approval remains mandatory.
