@@ -1,6 +1,6 @@
 # Order 302 — India GST section 14 payment-proviso fail-closed primitive
 
-**Status:** BUILT-PENDING-FRESH-TIER3-REVIEW-D831
+**Status:** APPROVED-D832
 **Phase:** 7 — Tax and India IRP
 **Branch:** `phase-7/india-gst-section14-payment-proviso-gate`
 **Base:** `5c4414a` (independently approved Order 301)
@@ -64,7 +64,7 @@ document, IRP, merge/deploy or Phase/application-complete claim.
 - [x] Intentional red precedes implementation.
 - [x] Focused hostile and mutation-sensitive proof is green.
 - [x] Standing/static/setup/referee preservation gates are green.
-- [ ] Fresh non-implementing Tier-3 reviewer personally executes proof and approves.
+- [x] Fresh non-implementing Tier-3 reviewer personally executes proof and approves.
 
 ## Built evidence
 
@@ -80,4 +80,7 @@ document, IRP, merge/deploy or Phase/application-complete claim.
 - A fresh disposable PostgreSQL 16 proof applies the unchanged 59 migrations, loads
   110 public tables and passes referee `11/11`; the exact proof containers, network
   and volume were removed. Order302 adds no migration or retained local runtime.
-- Fresh non-implementing Tier-3 approval remains mandatory.
+- Fresh non-implementing Tier-3 reviewer `/root/order302_fresh_review` approves exact
+  candidate `1d0e8f94417f13368b6ec6c2f676b27e5b75dbc0` under D-832 after personally
+  proving the bank-after guard mutation red, standing/static preservation, isolated
+  59-migration/110-table truth and referee `11/11`; isolated resources were removed.
