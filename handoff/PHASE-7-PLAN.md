@@ -812,6 +812,13 @@ approved component family only when tenant-hidden property/date/jurisdiction lin
 agrees. It preserves the selected GST_ROOM schedule without splitting rates or
 calculating money. D852 requires intentional red, hostile join proof, preservation
 gates and fresh Tier3 review; Section14, rounding, posting and fiscal authority remain later.
+D853 strengthens the input with complete approved Order287 supply-nature evidence so
+Order308 is re-derived and exact-matched; a reproducible public result hash is not
+treated as provenance. The evidence-only boundary and downstream exclusions are unchanged.
+Build D854 is green: red preceded production; exact Order287→308 re-derivation and
+Order306/304 selected-day join pass focused/adjacent38/0(716), standing1117/0 plus
+890 skips(16981) and all static gates. D844 database evidence is preserved; fresh
+Tier3 review remains mandatory.
 **D847 review complete:** A fresh non-implementing Tier-3 reviewer approves exact
 candidate `6e0824df2a6afff5a83573d463bbee4cf73b436e` with no finding. Reviewer-owned
 tenant/pair-hash, identity/version/status/period, GST_ROOM, source/date, freeze/hash

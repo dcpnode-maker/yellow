@@ -2389,3 +2389,38 @@ yields `igst`; ordinary intra-State yields `cgst_sgst`, except UTGST codes
 `34` remain State-tax-side. The frozen result carries source identifiers,
 predecessor hash and deterministic evidence hash. No rate, amount, split,
 rounding, posting, document, IRP, API/UI, calendar or Section 14 authority exists.
+
+## Order309: India GST accommodation levy-input bundle
+
+`deriveIndiaGstAccommodationLevyInputBundle({tenantId,historicalResolution,
+supplyNature,componentFamily})` accepts exactly one complete approved Order306
+historical resolution, one complete approved Order287 supply-nature result and its
+complete supplied Order308 component-family result. It independently recomputes the
+Order306 resolution hash and Order287 candidate hash, revalidates the complete
+Order304 rate-version pair, and requires `selectedExtension` to be exactly the pair
+member that contains the complete property-local civil day. It then re-derives
+Order308 from the approved supply-nature evidence and requires exact equality with
+the supplied component-family result; a result hash alone is not provenance. The
+predecessors bind only when their property and civil supply date agree and the
+selected extension's id, key, version and canonical content hash exactly equal both
+the supply-nature and component-family jurisdiction.
+
+The recursively frozen, tenant-hidden result contains only the shared property,
+reservation, folio and civil date; exact selected-version identity and its complete
+aggregate `GST_ROOM` slabs, including threshold, rate, ITC and nil-band truth; the
+already-derived component family and statutory source; both predecessor evidence
+hashes; and one deterministic tenant-bound evidence hash. It preserves the aggregate
+schedule beside the family—it neither divides that rate among components nor chooses
+a taxable value.
+
+Property/date/jurisdiction mismatch, a substituted selected member, altered pair or
+predecessor hash, malformed or recomputed semantic mutant, and thawed, proxy,
+accessor, symbol-bearing or surplus input fail closed. Caller-supplied rate, value,
+amount, split, rounding, residual-allocation or calendar fields are surplus and fail
+closed. A fully rehashed family relabel fails because Order308 is re-derived, including
+D-850's `regular` ↔ `affirmatively_non_sez_regular` and exact SEZ taxpayer-type ↔
+SEZ-status ancestry guards. This pure evidence bridge performs no SQL or write and grants no component-
+rate split, taxable-value or amount calculation, rounding, residual allocation,
+account route, posting/correction, reverse charge, Section 14/calendar, zero-rating/
+authorized-operations, payer, `SupTyp`, `IgstOnIntra`, item, document, IRP, API, UI,
+local-runtime or application-complete authority.

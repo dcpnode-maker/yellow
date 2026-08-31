@@ -1407,3 +1407,34 @@ rule, source and hash mutations—including rehashed semantic mutations—must f
 closed. Output is recursively frozen and tenant-hidden. No SQL/write, amount or
 split arithmetic, rate, posting, document, IRP, API/UI, calendar or Section 14
 authority is granted.
+
+## Order309 levy-input bundle security boundary
+
+The exact `{tenantId,historicalResolution,supplyNature,componentFamily}` boundary
+accepts only complete, recursively frozen Order306, Order287 and Order308 evidence.
+It independently recomputes the Order306 resolution hash and Order287 candidate hash,
+revalidates the complete approved Order304 version pair and its uniquely selected
+whole-day member, then re-derives Order308 and requires exact equality with the
+supplied component-family result. A component-family result hash alone is not
+provenance. Property, civil supply date, and selected-extension jurisdiction
+id/key/version/content hash are equality-bound across every predecessor. Tenant
+identity participates in every hash preimage but is absent from returned evidence.
+
+Cross-tenant, property, date, jurisdiction, version, content, family, selected-member,
+pair-hash or evidence-hash substitution fails closed even when the attacker fully
+recomputes exposed JSON and hashes. A fully rehashed family relabel cannot pass the
+independent Order308 derivation. D-850 ancestry is retained on both supplier and
+recipient: `regular` requires `affirmatively_non_sez_regular`, and each SEZ taxpayer
+type requires the identical SEZ status. Thawed objects, proxies, accessors, symbol keys,
+non-plain prototypes, malformed graphs and any surplus caller field also fail closed;
+surplus rate, value, amount, split, rounding, residual or calendar vocabulary cannot
+smuggle authority into the bundle. Successful output is recursively frozen and
+byte-stable, preserves only the exact aggregate `GST_ROOM` slabs beside the approved
+family and source lineage, and discloses no tenant id.
+
+The builder is pure: it has no SQL, database, migration, schema, RLS, grant, seed or
+writer path. It grants no component-rate split, taxable-value/amount calculation,
+rounding/residual allocation, account route, posting/correction, reverse charge,
+Section 14/calendar, zero-rating/authorized operations, payer, `SupTyp`,
+`IgstOnIntra`, item, document, IRP, API/UI, local-runtime or application-complete
+authority.

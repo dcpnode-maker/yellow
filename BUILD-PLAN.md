@@ -1253,3 +1253,10 @@ lineage pass. Approval is limited to frozen rate-change-date evidence.
 aggregate GST_ROOM schedule evidence to approved Order308 family evidence on exact
 property/date/jurisdiction lineage. No component split, money, rounding, Section14,
 posting, document/IRP/API/UI/local authority. Intentional red and fresh Tier3 mandatory.
+**Order309 contract correction — D853:** exact input also carries complete approved
+Order287 supply-nature evidence; Order308 is re-derived and exact-matched. This closes
+the coherent fully-rehashed family-relabel gap without expanding downstream authority.
+**Order309 built pending review — D854:** exact historical selected-day plus
+Order287→308 ancestry join is green: focused/adjacent38/0(716), standing1117/0 plus
+890 skips(16981), type/boundary126/licence23/audit0/diff. D844 database proof remains
+governing; fresh Tier3 is mandatory and no downstream authority is claimed.

@@ -1218,3 +1218,36 @@ or rehashed semantic fields, source/hash evidence, hostile object shapes, or
 surplus rate/value/amount/split fields fail closed. This test grants no rate,
 amount, split, posting, document, IRP, Section 14, calendar, API/UI or write
 authority.
+
+### TC-8.8 🔒 Order309 accommodation levy-input bundle boundary
+
+Call exactly `{tenantId,historicalResolution,supplyNature,componentFamily}` with
+complete approved Order306, Order287 and Order308 evidence. For the predecessor day,
+successor day and every approved `igst`, `cgst_sgst` and `cgst_utgst` family, the bundle succeeds only when
+property, civil supply date and selected-extension jurisdiction id/key/version/content
+hash agree. It must independently recompute the Order306 resolution hash and Order287
+candidate hash, revalidate the exact Order304 pair, prove that the selected member
+uniquely contains the complete property-local day, re-derive Order308 from the full
+Order287 evidence and require exact equality with the supplied component-family
+result. A component-family result hash alone is not accepted as provenance.
+
+Assert the returned projection is recursively frozen, byte-stable and tenant-hidden;
+contains only property/reservation/folio/date, exact selected-version identity and
+complete aggregate `GST_ROOM` slabs, component family/statutory source, predecessor
+hashes and its deterministic evidence hash; and preserves exact slab order,
+`750000` threshold, 12%-with-ITC or 5%-without-ITC lower band, 18%-with-ITC unbounded
+upper band and nil-band absence for the selected version.
+
+Mutation-sensitive proof must reject cross-tenant/property/date/jurisdiction id/key/
+version/content/family mutations, wrong selected members, altered pair or evidence
+hashes, partial/malformed evidence, and fully recomputed semantic mutants. Explicitly
+relabel each family and recompute every exposed JSON/hash; each mutant must still fail
+the independent derivation. Repeat D-850 ancestry mutants for supplier and recipient:
+`regular` with an SEZ status, and an SEZ taxpayer type with non-SEZ or the other SEZ
+status, must fail even when fully rehashed. Thawed,
+proxy, accessor, symbol-bearing, non-plain or surplus shapes fail closed, including
+surplus caller rate/value/amount/split/rounding/residual/calendar fields. Static proof
+must show no SQL/write or downstream amount, decomposition, posting, correction,
+reverse-charge, Section 14/calendar, zero-rating/authorized-operations, payer,
+`SupTyp`, `IgstOnIntra`, item/document/IRP/API/UI/local authority, while unchanged
+schema and referee evidence remain green.

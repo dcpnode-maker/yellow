@@ -1680,3 +1680,34 @@ malformed, surplus or rehashed semantic evidence fails closed. No rate/value,
 amount/split, rounding, account/posting, correction, zero-rating, reverse-charge,
 `SupTyp`, `IgstOnIntra`, item, document, IRP, API/UI, calendar or Section 14
 authority is introduced.
+
+### India GST accommodation levy-input bundle (Order309)
+
+Order309 adds no entity, table, migration, seed or writer. Its pure builder accepts
+exactly `{tenantId,historicalResolution,supplyNature,componentFamily}` and composes
+one complete approved Order306 historical resolution with complete approved Order287
+supply-nature and supplied Order308 component-family evidence. The Order306 resolution
+hash and Order287 candidate hash are recomputed; the exact approved Order304
+predecessor/successor pair is revalidated; and the selected member must be the unique
+version containing the complete property-local civil day. Order308 is independently
+re-derived from the complete Order287 evidence and must exactly equal the supplied
+component-family result; its result hash alone is not provenance. Property and civil
+supply day must agree across all inputs, as must selected-extension jurisdiction id,
+key, version and canonical content hash.
+
+The result is a recursively frozen, tenant-hidden evidence projection containing only
+shared property/reservation/folio/date identity, the exact selected version and its
+complete aggregate `GST_ROOM` schedule, the already-approved component family and
+statutory source, both predecessor hashes and one deterministic tenant-bound evidence
+hash. Aggregate slab order, threshold, rate, ITC eligibility and nil-band truth are
+preserved without deriving a component rate or money.
+
+Missing, substituted, altered, partial, malformed, surplus or fully rehashed semantic
+evidence fails closed, including a selected member inconsistent with the approved
+pair or day and a family relabel inconsistent with the re-derived Order308 result.
+The derivation preserves D-850 ancestry: `regular` must pair with
+`affirmatively_non_sez_regular`, while each SEZ taxpayer type must pair with its exact
+SEZ status for both supplier and recipient. This projection has no SQL/write, component-rate split, taxable-value,
+amount, rounding/residual, account/posting/correction, reverse-charge, Section 14/
+calendar, zero-rating/authorized-operations, payer, `SupTyp`, `IgstOnIntra`, item,
+document, IRP, API/UI, local-runtime or application-complete authority.

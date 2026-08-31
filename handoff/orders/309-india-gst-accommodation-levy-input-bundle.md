@@ -1,6 +1,6 @@
 # Order 309 — India GST accommodation levy-input bundle
 
-**Status:** READY-D852
+**Status:** BUILT-PENDING-FRESH-TIER3-REVIEW-D854
 **Phase:** 7 — Tax engine and India IRP
 **Branch:** `phase-7/india-gst-accommodation-levy-input-bundle`
 **Base:** `4e1b109` (independently approved Order308 governance head)
@@ -15,9 +15,12 @@ GST_ROOM schedule and component family together, without splitting rates or calc
 
 ## Exact contract
 
-- Accept exactly `{tenantId,historicalResolution,componentFamily}`.
+- Accept exactly `{tenantId,historicalResolution,supplyNature,componentFamily}`.
 - Recompute the tenant-bound Order306 resolution evidence hash and Order308 family
   evidence hash; revalidate the exact Order304 rate-version pair and selected member.
+- Re-derive the component-family result from the complete approved Order287
+  `supplyNature` predecessor and require exact equality with `componentFamily`; a
+  caller-recomputed public result hash is never provenance by itself.
 - Require exact property and civil date agreement, and exact selected-extension
   jurisdiction id/key/version/content-hash agreement with the component-family result.
 - Return only property/reservation/folio/date, exact selected version identity and
@@ -46,7 +49,7 @@ Phase/application-complete authority.
 - **P1 join:** predecessor/successor days and every approved component family bind only
   when property, date and jurisdiction identity agree.
 - **P2 hostility:** cross-tenant/property/date/jurisdiction/version/content/family,
-  selected-member, pair/evidence hash, thawed/proxy/accessor/symbol and surplus caller
+  selected-member, supply-nature ancestry, pair/evidence hash, thawed/proxy/accessor/symbol and surplus caller
   rate/value/amount/calendar fields fail closed, including fully recomputed mutants.
 - **P3 evidence:** exact aggregate slabs/threshold/ITC/nil/source lineage is preserved;
   output is recursively frozen, byte-stable, tenant-hidden and hash-bound.
@@ -55,7 +58,7 @@ Phase/application-complete authority.
 
 ## Definition of done
 
-- [ ] Intentional red precedes production.
-- [ ] Focused mutation-sensitive proof is green.
-- [ ] Standing/static/setup/schema/referee preservation gates are green.
+- [x] Intentional red precedes production.
+- [x] Focused mutation-sensitive proof is green.
+- [x] Standing/static/setup/schema/referee preservation gates are green.
 - [ ] Fresh non-implementing Tier-3 reviewer personally executes proof and approves.

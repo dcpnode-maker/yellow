@@ -731,3 +731,7 @@ pass. No calendar, section14, tax/fiscal or operator authority is granted.
 Bind approved historical accommodation aggregate-rate evidence to approved GST-family
 evidence for the same property, civil day and jurisdiction. Return frozen lineage only;
 component splits, values, amounts, rounding, Section14 and downstream fiscal work remain excluded.
+D853 adds complete approved supply-nature evidence so the family is re-derived and
+exact-matched rather than trusted through a caller-reproducible public hash.
+Build D854 passes focused/adjacent38/0(716), standing1117/0 plus890 skips(16981)
+and all static gates. Fresh Tier3 approval remains pending.
