@@ -32,6 +32,7 @@ describe("Order 302: India GST section 14 payment proviso", () => {
     ] as const) {
       const actual = evaluate({ ...base, supplierBooksEntryDate: books, supplierBankCreditDate: bank });
       expect(actual.state).toBe("proviso_not_triggered_on_recorded_dates");
+      if (actual.state !== "proviso_not_triggered_on_recorded_dates") throw new Error("unexpected state");
       expect(actual.paymentReceiptDate).toBe(expected);
     }
   });
@@ -72,7 +73,7 @@ describe("Order 302: India GST section 14 payment proviso", () => {
       const changed = evaluate({ ...base, [key]: key === "rateChangeDate" ? "2043-06-17" : "2043-06-14" });
       expect(changed.evidenceHash).not.toBe(first.evidenceHash);
     }
-    expect(() => ((first as Mutable).evidenceHash = "x")).toThrow();
+    expect(() => (((first as unknown) as Mutable).evidenceHash = "x")).toThrow();
   });
 
   test("implementation is pure and does not introduce a guessed calendar", async () => {

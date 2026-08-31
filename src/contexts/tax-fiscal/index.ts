@@ -316,3 +316,13 @@ export type {
   IndiaGstRecipientRegistrationAtTimeOfSupplyInput,
   IndiaGstRecipientRegistrationAtTimeOfSupplyResult,
 } from "./india-gst-recipient-registration-at-time-of-supply";
+export {
+  IndiaGstSection14PaymentProvisoValidationError,
+  resolveIndiaGstSection14PaymentProviso,
+} from "./india-gst-section14-payment-proviso";
+export type {
+  IndiaGstSection14PaymentProvisoInput,
+  IndiaGstSection14PaymentProvisoResult,
+  IndiaGstSection14ProvisoNotTriggeredResult,
+  IndiaGstSection14WorkingDayCalendarRequiredResult,
+} from "./india-gst-section14-payment-proviso";
