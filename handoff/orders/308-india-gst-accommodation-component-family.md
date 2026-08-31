@@ -1,6 +1,6 @@
 # Order 308 — India GST accommodation component-family evidence
 
-**Status:** REMEDIATED-PENDING-FRESH-TIER3-REREVIEW-D850
+**Status:** APPROVED-D851
 **Phase:** 7 — Tax engine and India IRP
 **Branch:** `phase-7/india-gst-accommodation-component-family`
 **Base:** `0659658` (independently approved Order307 governance head)
@@ -64,4 +64,4 @@ work is neither consumed nor altered.
 - [x] Intentional red precedes production.
 - [x] Focused mutation-sensitive proof is green.
 - [x] Standing/static/setup/schema/referee preservation gates are green.
-- [ ] Fresh non-implementing Tier-3 reviewer personally executes proof and approves.
+- [x] Fresh non-implementing Tier-3 reviewer personally executes proof and approves.

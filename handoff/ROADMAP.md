@@ -714,6 +714,11 @@ tenant-bound upstream revalidation. Focused/adjacent21/0(474), standing1107/0 pl
 fresh59/110/referee11/11 evidence is retained. Fresh Tier3 approval is pending.
 D850 records remediation of the fresh-review taxpayer-type/SEZ-status pairing finding
 on both supplier and recipient. Candidate8a02c464 was rejected; fresh rereview is pending.
+D851 records fresh independent approval of exact remediated candidate
+`b6590425c563a0da17517454c7b028dc282cba58`, preserving the rejected candidate history.
+Separate reviewer supplier/recipient guard mutants each turned fully rehashed proof red;
+focused/adjacent21/0(476), standing1107/0+890 skips(16824), static gates and unchanged
+D844 fresh59/110/referee11/11 lineage pass. No downstream authority is granted.
 **D847 independent approval:** Exact candidate
 `6e0824df2a6afff5a83573d463bbee4cf73b436e` is approved with no finding after
 reviewer-owned tenant/pair, identity/period, complete GST_ROOM, source/date,

@@ -798,6 +798,12 @@ preserved. Fresh Tier3 review remains mandatory and no downstream authority is c
 Fresh review then found a fully rehashed taxpayer-type/SEZ-status mismatch. D850
 records the supplier and recipient exact-pair remediation and permanent hostile proof;
 the rejected candidate was not approved and fresh Tier3 rereview remains mandatory.
+D851 approves exact remediated candidate
+`b6590425c563a0da17517454c7b028dc282cba58` after a fresh non-implementing rereviewer
+made separate supplier and recipient guard mutants turn fully rehashed permanent proof
+red8/1, restored exact source, and passed focused/adjacent21/0(476), standing1107/0 plus
+890 skips(16824), static gates and unchanged D844 fresh59/110/referee11/11 lineage.
+Approval remains component-family evidence only, with no downstream authority.
 **D847 review complete:** A fresh non-implementing Tier-3 reviewer approves exact
 candidate `6e0824df2a6afff5a83573d463bbee4cf73b436e` with no finding. Reviewer-owned
 tenant/pair-hash, identity/version/status/period, GST_ROOM, source/date, freeze/hash

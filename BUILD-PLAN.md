@@ -1235,6 +1235,12 @@ D844 fresh59/110/referee11/11 evidence remains governing. Fresh Tier3 is mandato
 fully rehashed regular-taxpayer/SEZ-status contradiction was accepted. Supplier and
 recipient exact pairing is now enforced with permanent hostile proof; focused/adjacent
 21/0(476), type/diff pass. Fresh Tier3 rereview is mandatory; no approval is claimed.
+**Order308 independently approved — D851:** Fresh non-implementing rereview approves
+exact remediated candidate `b6590425c563a0da17517454c7b028dc282cba58`, retaining
+the rejected `8a02c464` history. Separate reviewer supplier/recipient guard mutants
+each made fully rehashed permanent proof red8/1 before exact restoration. Focused/
+adjacent21/0(476), standing1107/0+890 skips(16824), static gates and unchanged D844
+fresh59/110/referee11/11 lineage pass. Approval is component-family evidence only.
 **Order307 independently approved — D847:** Fresh non-implementing Tier-3 review
 approves exact candidate `6e0824df2a6afff5a83573d463bbee4cf73b436e` with no finding.
 Reviewer-owned tenant/pair hash, deterministic identity/period, complete GST_ROOM,
