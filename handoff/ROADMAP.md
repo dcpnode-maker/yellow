@@ -637,6 +637,9 @@ only; production seed conversion, retired historical resolution, section14, tax,
 fiscal documents, IRP and operator surfaces remain later bounded work.
 Build evidence under D837 is green: intentional red preceded production; focused
 hostile and live PostgreSQL proof, schema, standing/static and fresh 59-migration /
-110-table / referee-11/11 preservation all pass. The exact disposable proof project
-was removed and the founder local was untouched. Fresh non-implementing Tier-3 review
-remains mandatory; no approval is claimed.
+110-table / referee-11/11 preservation all pass. Fresh independent Tier-3 review
+D838 approves exact candidate `bb746f202a53bedc997519262bcffda14db7025f` with no
+finding; mutation, live 2/0(19), standing1077/0+885 skips, static, schema and
+referee11/11 proof are recorded in `handoff/reviews/304-india-gst-accommodation-rate-version-pair-independent.md`.
+The disposable proof project was removed and the founder local was untouched. Approval
+is limited to this frozen evidence pair; no downstream authority is claimed.

@@ -725,4 +725,6 @@ into a frozen tenant-hidden result through existing registry projections. It doe
 create or seed the historical version, mutate status, let the resolver select retired
 content, calculate historical tax or decide section14. D-836 requires intentional red,
 hostile microsecond/identity/content/hash and live zero-effect proof, unchanged
-setup/referee and fresh Tier3.
+setup/referee and fresh Tier3. D838 records fresh independent approval of exact
+candidate `bb746f202a53bedc997519262bcffda14db7025f` with no finding; approval is
+limited to this frozen evidence pair and grants no downstream authority.

@@ -1158,5 +1158,8 @@ fresh Tier3 review.
 D-837 records red-before-production, focused 9/0+2 live skips, live PostgreSQL 2/0
 (19 assertions), standing 1077/0+885 skips (16425 assertions; 1962 tests/352 files),
 typecheck/boundaries122/licences23/audit0/diff/schema green, and fresh 59-migration /
-110-table / referee11/11 preservation. Disposable proof resources were removed and
-the founder local was untouched. Fresh Tier-3 approval remains pending.
+110-table / referee11/11 preservation. Fresh independent Tier-3 review D838 approves
+exact candidate `bb746f202a53bedc997519262bcffda14db7025f` with no finding; the complete
+review, mutation proof and cleanup are recorded in `handoff/reviews/304-india-gst-accommodation-rate-version-pair-independent.md`.
+Disposable proof resources were removed and the founder local was untouched. Approval
+is limited to this frozen evidence pair; no downstream authority is claimed.

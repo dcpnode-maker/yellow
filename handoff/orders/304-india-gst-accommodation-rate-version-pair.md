@@ -1,6 +1,6 @@
 # Order 304 — India GST accommodation rate-version pair evidence
 
-**Status:** BUILT-PENDING-FRESH-TIER3-REVIEW-D837
+**Status:** APPROVED-D838
 **Phase:** 7 — Tax and India IRP
 **Branch:** `phase-7/india-gst-accommodation-rate-version-pair`
 **Base:** `7010f75` (independently approved Order 303 governance head)
@@ -95,7 +95,7 @@ merge/deploy or Phase/application-complete claim.
   pass / 885 skip / 0 fail / 16,425 assertions; typecheck; 122-file boundary;
   23-package licence; audit 0; schema match; 59 migrations / 110 tables and
   referee 11/11).
-- [ ] Fresh non-implementing Tier-3 reviewer personally executes proof and approves.
+- [x] Fresh non-implementing Tier-3 reviewer personally executes proof and approves.
 
 ## Build evidence — D837
 
@@ -109,3 +109,19 @@ rebuilt seeded disposable database applied all 59 migrations and passed the inva
 referee 11/11. Full standing and static gates are recorded above. The exact disposable
 `yellow-order304-proof` containers, network and volume were verified and removed;
 the founder local was untouched. No approval or downstream authority is claimed.
+
+Fresh independent Tier-3 review `handoff/reviews/304-india-gst-accommodation-rate-version-pair-independent.md`
+approves exact candidate `bb746f202a53bedc997519262bcffda14db7025f` with no finding.
+Reviewer-personal focused proof is 9/0 (265 assertions), with separate cutover, lower/
+upper-rate, ITC, threshold, source-hash, evidence-preimage and tenant-concealment
+mutations each turning the permanent proof red. A fresh migration-only PostgreSQL
+database passes live 2/0 (19 assertions), all 59 migrations, 110 public tables,
+schema drift and referee 11/11; standing/static gates are 1077/0 plus 885 expected
+skips and all type/boundary/licence/audit/diff checks pass. The standard seeded
+database's inherited active extension was not used for the isolated current-resolver
+assertion because it makes that assertion ambiguous; no oracle or product code was
+changed. The Windows setup wrapper's inherited stale 89-table assertion stopped after
+setup reached the completed 59-migration/fixture state; direct inspection confirmed
+110 tables and the stale oracle was not weakened. Disposable resources and mutation worktree were removed and the founder
+local was untouched. Approval remains limited to this order's frozen evidence pair;
+no downstream authority is claimed.
