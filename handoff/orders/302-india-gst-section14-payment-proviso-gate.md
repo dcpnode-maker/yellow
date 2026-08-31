@@ -1,0 +1,67 @@
+# Order 302 — India GST section 14 payment-proviso fail-closed primitive
+
+**Status:** READY-D830
+**Phase:** 7 — Tax and India IRP
+**Branch:** `phase-7/india-gst-section14-payment-proviso-gate`
+**Base:** `5c4414a` (independently approved Order 301)
+**Risk tier:** 3 — statutory payment-date proviso primitive; fresh independent executable review mandatory
+
+## Outcome
+
+Build one migration-free pure primitive that classifies whether CGST Act section 14's
+bank-credit proviso can safely retain the ordinary Explanation payment-receipt date or
+must stop for governed four-working-day calendar evidence. It is not section 14
+applicability authority and does not implement the six-case old/new-rate matrix.
+
+## Fixed contract
+
+- exact input is `supplierBooksEntryDate`, `supplierBankCreditDate` and an explicitly
+  asserted `rateChangeDate`, each a canonical civil date;
+- if bank credit is on or before the asserted rate-change date, the proviso cannot be
+  triggered and the frozen result may retain the ordinary earlier-of-books/bank date;
+- if bank credit is after the asserted rate-change date, return a frozen
+  `working_day_calendar_required` result with no statutory payment-receipt date and no
+  inferred elapsed-working-day count;
+- equality is in the safe branch; malformed dates, extra/missing keys and unsupported
+  values fail closed;
+- deterministic fixed-order evidence is SHA-256 bound and recursively frozen;
+- no JavaScript `Date`, weekday/weekend/holiday guess, property timezone, clock,
+  database, network or mutation participates.
+
+## Scope
+
+- this order, `DECISIONS.log`, `handoff/LEDGER.md`, and bounded Phase-7 plan/roadmap text;
+- new `src/contexts/tax-fiscal/india-gst-section14-payment-proviso.ts`;
+- value/type/error exports only in `src/contexts/tax-fiscal/index.ts`;
+- focused intentional-red and permanent pure hostile tests;
+- bounded contract/domain/security documentation.
+
+## Forbidden boundary
+
+No migration/schema/query/writer/RLS/grant/seed/API/UI/local promotion; no governed
+rate-change event or calendar source; no claim that the asserted date establishes
+section 14 applicability; no old/new extension pairing, four-working-day calculation,
+six-case section 14 time-of-supply matrix, rate/levy/tax/decomposition, posting,
+document, IRP, merge/deploy or Phase/application-complete claim.
+
+## Pre-registered proof
+
+- **P0 red:** no production primitive exists before the intentional-red proof.
+- **P1 exact branches:** bank before/equal boundary returns ordinary earlier-of date;
+  bank one or many days after returns only calendar-required.
+- **P2 hostile dates/shapes:** invalid civil dates, noncanonical forms, missing/extra
+  keys and prototype tricks reject.
+- **P3 no guessed calendar:** weekend/weekday/holiday-shaped examples after the change
+  are indistinguishable and always calendar-required; source contains no `Date` or
+  weekday/holiday calculation.
+- **P4 evidence:** each input independently changes the deterministic evidence hash;
+  output and nested evidence are frozen.
+- **P5 preservation:** focused/standing/static/setup/referee gates remain green and no
+  migration, schema, database or retained local changes.
+
+## Definition of done
+
+- [ ] Intentional red precedes implementation.
+- [ ] Focused hostile and mutation-sensitive proof is green.
+- [ ] Standing/static/setup/referee preservation gates are green.
+- [ ] Fresh non-implementing Tier-3 reviewer personally executes proof and approves.

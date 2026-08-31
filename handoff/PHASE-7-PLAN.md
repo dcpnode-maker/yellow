@@ -697,3 +697,13 @@ lower bound is corrected to Kolkata civil midnight. No section14 working-day pol
 old/new version pairing, rate change, tax/fiscal/API/UI/local authority is admitted.
 D-827 requires intentional red, hostile DST/offset/tenant/zero-write proof, unchanged
 setup/referee and fresh Tier3.
+
+## Order 302 boundary
+
+Order302 adds only a pure fail-closed section14 payment-proviso primitive. Given an
+explicitly asserted rate-change civil date and the preserved supplier books/bank dates,
+bank credit on/before the boundary may retain ordinary earlier-of payment truth; any
+later credit yields only `working_day_calendar_required`. It does not invent working
+days or establish rate-change applicability, and grants no section14 matrix, rate, tax,
+fiscal, database, API/UI or local authority. D-830 requires intentional red,
+mutation-sensitive pure proof, preservation gates and fresh Tier3.

@@ -609,3 +609,11 @@ accept equal/unbounded edges and reject every partial-day relation. Correct the 
 2026 fixture temporal bound to the UTC instant of Kolkata civil midnight. Section14,
 working-day policy, old/new rate pairing and all downstream tax/fiscal/UI behavior
 remain separate.
+
+## Order302 roadmap entry
+
+Add a pure, migration-free fail-closed classifier for section14's payment-date proviso:
+retain ordinary earlier-of-books/bank truth only when bank credit is on/before an
+explicitly asserted rate-change date; otherwise require governed four-working-day
+calendar evidence and produce no statutory receipt-date conclusion. Governed
+rate-change applicability and the complete six-case matrix remain later bounded work.
