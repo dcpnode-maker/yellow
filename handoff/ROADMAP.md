@@ -652,3 +652,8 @@ Prove exact first insert, byte-equivalent replay, collision rollback and preserv
 of active-only v2 resolution. Existing installed data conversion, historical stay
 selection, section14, tax, fiscal documents, IRP and operator surfaces remain later
 bounded work.
+Build D840 completes the implementation side with red-before-production, exact
+catalogue/fixture proof, live first-seed/replay/seven-collision rollback and active-v2
+resolution, existing seed integration10/0, standing/static/schema and fresh
+59-migration/110-table/referee11/11 preservation. The exact disposable project was
+removed and the founder local remained untouched. Fresh Tier3 remains mandatory.

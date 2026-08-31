@@ -140,7 +140,8 @@ export const LAUNCH_EXTENSIONS = Object.freeze([
   { type: "vertical_profile", key: "hostel", content: { terminology: { space: "Room", unit_type: "Bed Category" }, claim_mode_default: "positional", features: { ...verticalFeatures, dorm_beds: true }, default_policies: ["flex_24h"], housekeeping_cadence: "daily", default_unit_types: [{ code: "DORM6", name: "6-Bed Mixed Dorm", claim_mode: "positional", capacity: 6 }, { code: "DORM6F", name: "6-Bed Female Dorm", claim_mode: "positional", capacity: 6 }, { code: "PRIV", name: "Private Room", claim_mode: "exclusive", capacity: 2 }] } },
   { type: "vertical_profile", key: "serviced_apartment", content: { terminology: { space: "Apartment", unit_type: "Apartment Type" }, claim_mode_default: "exclusive", features: { ...verticalFeatures, long_stay_billing: true, owner_statements: true, kiosk_checkin: false }, default_policies: ["long_stay_30d", "deposit_one_month"], housekeeping_cadence: "weekly", default_unit_types: [{ code: "STU", name: "Studio", claim_mode: "exclusive", capacity: 2 }, { code: "1BR", name: "1 Bedroom", claim_mode: "exclusive", capacity: 3 }] } },
   { type: "vertical_profile", key: "str", content: { terminology: { space: "Property", unit_type: "Listing" }, claim_mode_default: "exclusive", features: { ...verticalFeatures, owner_statements: true }, default_policies: ["str_strict_5d", "deposit_damage"], housekeeping_cadence: "on_departure", default_unit_types: [{ code: "UNIT", name: "Entire Unit", claim_mode: "exclusive", capacity: 6 }] } },
-  { type: "tax_jurisdiction", key: "in-gst-lodging", content: { country: "IN", price_display: "tax_exclusive", rounding: "document", taxes: [{ code: "GST_ROOM", name: "GST on accommodation", mode: "slab_percent", slab_basis: "transaction_value", applies_to: ["room_revenue"], slabs: [{ upto_minor: 750000, rate: 0.05, itc_eligible: false }, { upto_minor: null, rate: 0.18, itc_eligible: true }] }, { code: "GST_FNB", name: "GST on F&B (restaurant in hotel)", mode: "percent", rate: 0.05, applies_to: ["fnb_revenue"] }] } },
+  { type: "tax_jurisdiction", key: "in-gst-lodging", version: 1, effectiveFromInstant: "2022-07-17T18:30:00.000000Z", effectiveToInstant: "2025-09-21T18:30:00.000000Z", status: "retired", content: { country: "IN", price_display: "tax_exclusive", rounding: "document", taxes: [{ code: "GST_ROOM", name: "GST on accommodation", mode: "slab_percent", slab_basis: "transaction_value", applies_to: ["room_revenue"], slabs: [{ upto_minor: 750000, rate: 0.12, itc_eligible: true }, { upto_minor: null, rate: 0.18, itc_eligible: true }] }, { code: "GST_FNB", name: "GST on F&B (restaurant in hotel)", mode: "percent", rate: 0.05, applies_to: ["fnb_revenue"] }] } },
+  { type: "tax_jurisdiction", key: "in-gst-lodging", version: 2, effectiveFromInstant: "2025-09-21T18:30:00.000000Z", effectiveToInstant: null, status: "active", content: { country: "IN", price_display: "tax_exclusive", rounding: "document", taxes: [{ code: "GST_ROOM", name: "GST on accommodation", mode: "slab_percent", slab_basis: "transaction_value", applies_to: ["room_revenue"], slabs: [{ upto_minor: 750000, rate: 0.05, itc_eligible: false }, { upto_minor: null, rate: 0.18, itc_eligible: true }] }, { code: "GST_FNB", name: "GST on F&B (restaurant in hotel)", mode: "percent", rate: 0.05, applies_to: ["fnb_revenue"] }] } },
   { type: "tax_jurisdiction", key: "sa-vat", content: { country: "SA", price_display: "tax_inclusive", rounding: "line", taxes: [{ code: "VAT", name: "VAT", mode: "percent", rate: 0.15, applies_to: ["room_revenue", "fnb_revenue", "other_revenue"] }] } },
   { type: "tax_jurisdiction", key: "ae-vat", content: { country: "AE", price_display: "tax_inclusive", rounding: "line", taxes: [{ code: "VAT", name: "VAT", mode: "percent", rate: 0.05, applies_to: ["room_revenue", "fnb_revenue", "other_revenue"] }] } },
   { type: "policy", key: "flex_24h", content: { kind: "cancellation", rules: [{ before_hours: 24, penalty: { basis: "nights", value: 1 } }] } },
@@ -427,7 +428,11 @@ async function handleLaunchRegistry(connection: ReservedSQL): Promise<SeedResult
   }
 
   for (const instance of LAUNCH_EXTENSIONS) {
-    const id = await uuidV5(URL_NAMESPACE_UUID, `https://yellow.local/extension/${instance.type}/${instance.key}/1`);
+    const version = "version" in instance && typeof instance.version === "number" ? instance.version : 1;
+    const effectiveFromInstant = "effectiveFromInstant" in instance && typeof instance.effectiveFromInstant === "string" ? instance.effectiveFromInstant : undefined;
+    const effectiveToInstant = "effectiveToInstant" in instance && (typeof instance.effectiveToInstant === "string" || instance.effectiveToInstant === null) ? instance.effectiveToInstant : undefined;
+    const status = "status" in instance && (instance.status === "draft" || instance.status === "active" || instance.status === "retired") ? instance.status : "active";
+    const id = await uuidV5(URL_NAMESPACE_UUID, `https://yellow.local/extension/${instance.type}/${instance.key}/${version}`);
     const encodedContent = JSON.stringify(instance.content);
     const existing = await connection<Array<{ exact: boolean }>>`
       SELECT
@@ -435,29 +440,56 @@ async function handleLaunchRegistry(connection: ReservedSQL): Promise<SeedResult
         AND tenant_id IS NULL
         AND type = ${instance.type}
         AND key = ${instance.key}
-        AND version = 1
+        AND version = ${version}
+        AND (
+          ${effectiveFromInstant === undefined}::boolean
+          OR (
+            lower(effective) = ${effectiveFromInstant ?? null}::timestamptz
+            AND upper(effective) IS NOT DISTINCT FROM ${effectiveToInstant ?? null}::timestamptz
+            AND lower_inc(effective)
+            AND NOT upper_inc(effective)
+          )
+        )
         AND content = ${encodedContent}::text::jsonb
-        AND status = 'active' AS exact
+        AND status = ${status} AS exact
       FROM extension
       WHERE id = ${id}::uuid
-         OR (tenant_id IS NULL AND type = ${instance.type} AND key = ${instance.key} AND version = 1)
+         OR (tenant_id IS NULL AND type = ${instance.type} AND key = ${instance.key} AND version = ${version})
       FOR UPDATE
     `;
     if (existing.length > 1 || existing[0]?.exact === false) {
       throw new Error(`Extension instance seed collision for ${instance.type}/${instance.key}`);
     }
     if (existing.length === 0) {
-      await connection`
-        INSERT INTO extension (id, tenant_id, type, key, version, content, status)
-        VALUES (${id}::uuid, NULL, ${instance.type}, ${instance.key}, 1, ${encodedContent}::text::jsonb, 'active')
-      `;
-      await writeSeedAudit(connection, "extension", id, "extension.seeded", {
-        type: instance.type,
-        key: instance.key,
-        version: 1,
-        content: instance.content,
-        status: "active",
-      });
+      if (effectiveFromInstant === undefined) {
+        // Preserve the existing launch behavior for generic entries: PostgreSQL
+        // supplies their normal insertion-time default effective range.
+        await connection`
+          INSERT INTO extension (id, tenant_id, type, key, version, content, status)
+          VALUES (${id}::uuid, NULL, ${instance.type}, ${instance.key}, ${version}, ${encodedContent}::text::jsonb, ${status})
+        `;
+      } else {
+        await connection`
+          INSERT INTO extension (id, tenant_id, type, key, version, effective, content, status)
+          VALUES (
+            ${id}::uuid, NULL, ${instance.type}, ${instance.key}, ${version},
+            tstzrange(${effectiveFromInstant}::timestamptz, ${effectiveToInstant ?? null}::timestamptz, '[)'),
+            ${encodedContent}::text::jsonb, ${status}
+          )
+        `;
+      }
+      await writeSeedAudit(connection, "extension", id, "extension.seeded",
+        effectiveFromInstant === undefined
+          ? { type: instance.type, key: instance.key, version, content: instance.content, status }
+          : {
+            type: instance.type,
+            key: instance.key,
+            version,
+            effectiveFromInstant,
+            effectiveToInstant: effectiveToInstant ?? null,
+            content: instance.content,
+            status,
+          });
       inserted += 1;
     }
   }

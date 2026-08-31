@@ -739,3 +739,7 @@ installed databases are never rewritten by this order, and the active-only resol
 remains unchanged. No historical stay selection, section14, tax/fiscal/API/UI/local
 authority is admitted. D-839 requires intentional red, fresh seed/replay/collision/
 resolver proof, unchanged schema/setup/referee and fresh Tier3.
+Build D840 is green: red preceded production; permanent catalogue/fixture proof,
+live seed/replay/seven-collision/active-v2 proof, existing seed integration10/0,
+standing1079/0+887 skips, static, schema and fresh59/110/referee11/11 pass. The stale
+setup 89-table oracle remains recorded without weakening. Fresh Tier3 is pending.

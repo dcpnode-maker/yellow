@@ -1148,3 +1148,23 @@ rate, use a clock/latest lookup, calculate tax, apply section 14, or touch fisca
 documents, IRP, API, UI or downstream state. Missing `YELLOW_ORDER304_*` URLs skip
 the live block unless `YELLOW_REQUIRE_ORDER304_DATABASE=1`, in which case the test
 fails closed before execution.
+
+## Order 305 — fresh-bootstrap India GST accommodation launch history
+
+The live proof creates a disposable real PostgreSQL database, runs the complete
+migration set, and then runs the production seed. It must establish exactly one
+global `in-gst-lodging` predecessor/successor pair: retired v1 over
+`[2022-07-17T18:30:00.000000Z,2025-09-21T18:30:00.000000Z)` with 12%-with-ITC then
+18%-with-ITC bands, and active v2 over
+`[2025-09-21T18:30:00.000000Z,infinity)` with 5%-without-ITC then 18%-with-ITC
+bands. Both use the INR 7,500 threshold and preserve the unchanged 5% `GST_FNB`
+example.
+
+The proof must cover first insert, exact replay with no new audit/effect rows, a
+collision that rolls the complete seed transaction back without repair, exact
+runtime visibility of both rows, and the existing active-only resolver returning
+v2. Resolver reads must leave extension, fact, outbox, journal, posting, document
+and fiscal-submission snapshots unchanged. It must not touch an installed database
+or select retired content for a stay. Missing `YELLOW_ORDER305_*` configuration
+skips this live block; `YELLOW_REQUIRE_ORDER305_DATABASE=1` with no explicit
+Order305 deploy/admin URL fails before execution.

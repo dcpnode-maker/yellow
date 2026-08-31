@@ -45,7 +45,7 @@ let tokenB = "";
 let tokenWithoutPlatform = "";
 
 describe("Order 024 launch extension catalogue", () => {
-  test("all ten schemas accept all 40 launch instances", () => {
+  test("all ten schemas accept all 41 launch instances", () => {
     const schemas = new Map<string, (typeof LAUNCH_EXTENSION_TYPES)[number]["jsonSchema"]>(
       LAUNCH_EXTENSION_TYPES.map(({ type, jsonSchema }) => [type, jsonSchema]),
     );
@@ -54,7 +54,7 @@ describe("Order 024 launch extension catalogue", () => {
       return issues.length === 0 ? [] : [{ type, key, issues }];
     });
     expect(schemas.size).toBe(10);
-    expect(LAUNCH_EXTENSIONS).toHaveLength(40);
+    expect(LAUNCH_EXTENSIONS).toHaveLength(41);
     expect(invalid).toEqual([]);
   });
 });

@@ -484,3 +484,19 @@ date condition, policy formula or publish state.
 - **Tier C** — clearance/registration mandates needing code: ZATCA, India IRP,
   UAE ASP, Alloggiati/SIBA/Form-C/eVisitor. Each is one adapter module conforming to
   the FiscalDocumentProvider / StatutoryAdapter port. Never touch the core.
+
+## Order305 fresh-bootstrap accommodation history
+
+Fresh bootstrap owns one deterministic global `in-gst-lodging` history. Version 1 is
+retired for `[2022-07-17T18:30:00.000000Z,2025-09-21T18:30:00.000000Z)`: its
+`GST_ROOM` bands are 12% with ITC through INR 7,500 and 18% with ITC above that
+threshold. Version 2 is active for `[2025-09-21T18:30:00.000000Z,infinity)`: its
+bands are 5% without ITC through INR 7,500 and 18% with ITC above it. Both retain
+the tax-exclusive, document-rounded, transaction-value and `room_revenue` rules;
+the 5% `GST_FNB` example is unchanged.
+
+The seed inserts both rows as one transaction, records deterministic audit facts,
+returns `already exact` on byte-equivalent replay, and rejects any identity,
+period, content or status collision without repair. Existing installed databases
+are not rewritten. The runtime catalogue may expose both rows, while the existing
+active-only tax resolver selects version 2 only.

@@ -2,8 +2,9 @@
 -- PMS QA TEST SEED FIXTURE
 -- Run this before executing any test cases from PMS_QA_Test_Suite.md
 -- Tenant: Acme Hotels | Property: Downtown Dubai | 15 rooms | Currency: AED
--- Order301 temporal fixture reference: Asia/Kolkata local midnight is
--- 2025-12-31T18:30:00.000000Z (not UTC midnight) for business date 2026-01-01.
+-- Order301 temporal reference: active v2 begins at Kolkata civil midnight on
+-- 2025-09-22 and contains business date 2026-01-01, whose exact Kolkata day starts
+-- at 2025-12-31T18:30:00.000000Z (not UTC midnight).
 -- ============================================================================
 
 -- Set tenant context
@@ -45,11 +46,16 @@ INSERT INTO extension (id, tenant_id, type, key, version, effective, content, st
    '{"country":"AE","price_display":"tax_inclusive","rounding":"line","taxes":[{"code":"VAT","name":"Value Added Tax","mode":"percent","rate":0.05,"applies_to":["room_revenue","fnb_revenue"]}]}',
    'active');
 
--- India GST accommodation effective-rate boundary testing
+-- India GST accommodation launch history: retired Notification 20/2019 predecessor
+-- followed by active Notification 15/2025 successor at Kolkata midnight.
 INSERT INTO extension (id, tenant_id, type, key, version, effective, content, status) VALUES
-  ('00000000-0000-0000-0000-000000000102', NULL, 'tax_jurisdiction', 'in-gst-lodging', 1,
-   tstzrange('2025-12-31T18:30:00Z', NULL),
-   '{"country":"IN","price_display":"tax_exclusive","rounding":"document","taxes":[{"code":"GST_ROOM","name":"GST on accommodation","mode":"slab_percent","slab_basis":"transaction_value","applies_to":["room_revenue"],"slabs":[{"upto_minor":750000,"rate":0.05,"itc_eligible":false},{"upto_minor":null,"rate":0.18,"itc_eligible":true}]}]}',
+  ('a806f516-fed6-5768-b310-94aa03286adb', NULL, 'tax_jurisdiction', 'in-gst-lodging', 1,
+   tstzrange('2022-07-17T18:30:00.000000Z', '2025-09-21T18:30:00.000000Z', '[)'),
+   '{"country":"IN","price_display":"tax_exclusive","rounding":"document","taxes":[{"code":"GST_ROOM","name":"GST on accommodation","mode":"slab_percent","slab_basis":"transaction_value","applies_to":["room_revenue"],"slabs":[{"upto_minor":750000,"rate":0.12,"itc_eligible":true},{"upto_minor":null,"rate":0.18,"itc_eligible":true}]},{"code":"GST_FNB","name":"GST on F&B (restaurant in hotel)","mode":"percent","rate":0.05,"applies_to":["fnb_revenue"]}]}',
+   'retired'),
+  ('0b21daf2-ea6e-5568-9c21-69e4d4424574', NULL, 'tax_jurisdiction', 'in-gst-lodging', 2,
+   tstzrange('2025-09-21T18:30:00.000000Z', NULL, '[)'),
+   '{"country":"IN","price_display":"tax_exclusive","rounding":"document","taxes":[{"code":"GST_ROOM","name":"GST on accommodation","mode":"slab_percent","slab_basis":"transaction_value","applies_to":["room_revenue"],"slabs":[{"upto_minor":750000,"rate":0.05,"itc_eligible":false},{"upto_minor":null,"rate":0.18,"itc_eligible":true}]},{"code":"GST_FNB","name":"GST on F&B (restaurant in hotel)","mode":"percent","rate":0.05,"applies_to":["fnb_revenue"]}]}',
    'active');
 
 -- Deterministic reservation owner for the protected TC-12 occupancy referee.

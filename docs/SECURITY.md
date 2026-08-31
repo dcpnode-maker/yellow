@@ -1342,3 +1342,20 @@ cannot cause retired historical content to be used. No rate calculation, section
 applicability, decomposition, posting, fiscal document, IRP, API, UI, network, or
 downstream authority is granted. Live proof must demonstrate zero changes to extension,
 fact, outbox, financial, or fiscal rows after fixture setup.
+
+## Order305 seed boundary
+
+The fresh-bootstrap seed is the sole authority for creating the deterministic global
+`in-gst-lodging` retired-v1/active-v2 pair. It must insert both rows and their audit
+facts in one transaction, return `already exact` only for equality-bound replay, and
+rollback completely on any id, owner, type, key, version, period, content or status
+collision. A collision is never repaired in place. This applies only to a newly
+bootstrapped database; installed databases and referenced fiscal history are not
+rewritten.
+
+The runtime visibility projection may show both exact rows, but the existing
+active-only resolver must select active v2 and never infer or select retired v1.
+The Order305 live proof is opt-in through an explicit Order305 database variable and
+uses a disposable PostgreSQL database; without that variable it skips. Its final
+read proof requires zero unexpected changes to extension, fact, outbox, journal,
+posting, document or fiscal-submission state.

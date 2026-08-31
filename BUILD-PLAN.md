@@ -1172,3 +1172,8 @@ resolution remains v2. No existing-database conversion, migration/schema, histor
 stay selection, section14, tax/fiscal/API/UI/local authority. D-839 requires
 intentional red, fresh live seed/replay/collision/resolver proof, preservation gates
 and fresh Tier3 review.
+D-840 records red0/1 before production; focused2/0+2 live skips(20), live2/0(72),
+adjacent4/0+21 skips(562), existing seed integration10/0(63), standing1079/0+887
+skips(16446;1966 tests/355 files), type/boundary122/licence23/audit0/diff/schema and
+fresh59 migrations/110 tables/referee11/11 green. The exact disposable project was
+removed and founder local untouched; fresh Tier3 approval remains pending.

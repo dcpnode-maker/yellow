@@ -21,7 +21,8 @@ describe("Order 303 intentional red: Notification 15 accommodation correction", 
 
     expect(fixtureText).toContain(FIXTURE_BANDS);
     expect(launchText).toContain(LAUNCH_BANDS);
-    expect(fixtureText).not.toContain('"rate":0.12,"itc_eligible":true');
+    expect(fixtureText.match(/"rate":0\.12,"itc_eligible":true/g)).toHaveLength(1);
+    expect(launchText.match(/rate: 0\.12, itc_eligible: true/g)).toHaveLength(1);
     expect(fixtureText).not.toContain('"upto_minor":100000,"rate":0');
     expect(launchText).not.toContain("upto_minor: 100000, rate: 0");
 

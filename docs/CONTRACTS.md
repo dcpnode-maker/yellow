@@ -2325,3 +2325,20 @@ identity, periods, content and source hashes into its evidence hash.
 This is evidence composition only. It does not create history, mutate extension
 state, choose a retired rate, consult a clock/latest version, calculate tax, apply
 section 14, or expose fiscal-document, IRP, API, UI, or downstream authority.
+
+## Order305: fresh-bootstrap India GST accommodation history
+
+Fresh seed truth contains the deterministic global `in-gst-lodging` predecessor and
+successor as one exact history: retired version 1 covers
+`[2022-07-17T18:30:00.000000Z,2025-09-21T18:30:00.000000Z)` with 12%-with-ITC then
+18%-with-ITC `GST_ROOM` bands; active version 2 covers
+`[2025-09-21T18:30:00.000000Z,infinity)` with 5%-without-ITC then 18%-with-ITC
+bands. The threshold is INR 7,500 (`750000` minor INR), and the unchanged
+tax-exclusive/document-rounded/transaction-value/`room_revenue` and `GST_FNB`
+semantics remain in force.
+
+The seed transaction is all-or-nothing, writes deterministic audit evidence, is an
+exact no-op on replay, and fails closed on any collision. The current resolver
+remains active-only and therefore returns version 2; no historical stay selection,
+rate calculation, section 14, fiscal or installed-database conversion authority is
+introduced.

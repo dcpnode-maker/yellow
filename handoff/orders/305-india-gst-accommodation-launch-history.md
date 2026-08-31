@@ -1,6 +1,6 @@
 # Order 305 — India GST accommodation launch-history seed
 
-**Status:** READY-D839
+**Status:** BUILT-PENDING-FRESH-TIER3-REVIEW-D840
 **Phase:** 7 — Tax and India IRP
 **Branch:** `phase-7/india-gst-accommodation-launch-history`
 **Base:** `b7a5b50` (independently approved Order 304 governance head)
@@ -70,7 +70,29 @@ application-complete claim.
 
 ## Definition of done
 
-- [ ] Intentional red precedes production.
-- [ ] Fresh seed, exact replay, collision rollback and active-only proof are green.
-- [ ] Standing/static/setup/schema/referee preservation gates are green.
+- [x] Intentional red precedes production (`4920b3d`: 0 pass / 1 fail before the
+  launch-history implementation).
+- [x] Fresh seed, exact replay, collision rollback and active-only proof are green
+  (live 2/0 with 72 assertions; existing seed integration 10/0 with 63 assertions).
+- [x] Standing/static/setup/schema/referee preservation gates are green (standing
+  1,079 pass / 887 skip / 0 fail / 16,446 assertions; typecheck; 122-file boundary;
+  23-package licence; audit 0; schema match; 59 migrations / 110 tables and referee
+  11/11).
 - [ ] Fresh non-implementing Tier-3 reviewer personally executes proof and approves.
+
+## Build evidence — D840
+
+Fresh catalogue and invariant-fixture truth now carry deterministic global retired v1
+and active v2 rows with exact adjacent Kolkata-midnight periods, complete predecessor/
+successor room-rate content and unchanged F&B content. The seed preserves generic
+launch behavior, inserts exact ranges only for the governed history, audits both ids,
+returns byte-equivalent `already exact` on replay, and fails the complete transaction
+closed for content, predecessor/successor status, microsecond bound, range-inclusivity,
+version and deterministic-id collisions. Runtime/app-role proof preserves the current
+active-only resolver and selects v2. Focused/adjacent, full seed integration, standing,
+static, schema and fresh database/referee results are recorded above. The inherited
+`setup.ps1` 89-table oracle stopped only after successful migrations, seeds and fixture
+load showed the actual committed 110 tables; it was not edited or weakened. The exact
+`yellow-order305-proof` containers, network and volume were verified and removed;
+the founder local was untouched. No installed-database conversion or approval is
+claimed.

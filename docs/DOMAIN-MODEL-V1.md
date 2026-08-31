@@ -1593,6 +1593,18 @@ Tenant identity is hidden from the result but included in its evidence hash. No
 history is seeded, extension state is changed, retired content is selected for a
 stay, and no section14, tax, fiscal-document, IRP, API, or UI behavior is implied.
 
+### Fresh launch-history seed (Order 305)
+
+Fresh Yellow bootstrap data carries the exact global `in-gst-lodging` version pair
+approved by Order304: retired v1 from
+`2022-07-17T18:30:00.000000Z` through the Kolkata-midnight cutover, and active v2
+from `2025-09-21T18:30:00.000000Z` to infinity. Their lower `GST_ROOM` bands are
+12% with ITC and 5% without ITC respectively, both through `750000` minor INR;
+the upper band remains 18% with ITC. The seed treats the pair as one deterministic
+insert unit, returns exact replay as a no-op, and leaves collisions untouched after
+rollback. Existing installed databases and historical stay selection remain out of
+scope. The active-only resolver continues to expose v2 as current truth.
+
 ### Property-local business-day instant evidence (Order 300)
 
 Order300 adds no entity, schema or inferred legal state. For Order238's already-derived
