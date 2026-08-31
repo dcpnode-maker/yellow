@@ -819,6 +819,9 @@ Build D854 is green: red preceded production; exact Order287→308 re-derivation
 Order306/304 selected-day join pass focused/adjacent38/0(716), standing1117/0 plus
 890 skips(16981) and all static gates. D844 database evidence is preserved; fresh
 Tier3 review remains mandatory.
+D855 records remediation of the fresh-review mutation-sensitivity gap: coherent
+fully-rehashed Order287 property/date/jurisdiction crossings now reach and pin each
+historical join conjunct. Candidatec56fd9e was not approved; fresh rereview is pending.
 **D847 review complete:** A fresh non-implementing Tier-3 reviewer approves exact
 candidate `6e0824df2a6afff5a83573d463bbee4cf73b436e` with no finding. Reviewer-owned
 tenant/pair-hash, identity/version/status/period, GST_ROOM, source/date, freeze/hash

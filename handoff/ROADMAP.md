@@ -735,3 +735,5 @@ D853 adds complete approved supply-nature evidence so the family is re-derived a
 exact-matched rather than trusted through a caller-reproducible public hash.
 Build D854 passes focused/adjacent38/0(716), standing1117/0 plus890 skips(16981)
 and all static gates. Fresh Tier3 approval remains pending.
+D855 adds direct coherent property/date/jurisdiction join-conjunct mutation proof after
+the first reviewer correctly withheld approval. Fresh Tier3 rereview remains pending.

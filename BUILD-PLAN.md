@@ -1260,3 +1260,7 @@ the coherent fully-rehashed family-relabel gap without expanding downstream auth
 Order287→308 ancestry join is green: focused/adjacent38/0(716), standing1117/0 plus
 890 skips(16981), type/boundary126/licence23/audit0/diff. D844 database proof remains
 governing; fresh Tier3 is mandatory and no downstream authority is claimed.
+**Order309 remediation — D855:** Candidatec56fd9e was not approved because three join
+conjunct removals stayed green. Permanent coherent fully-rehashed property/date/
+jurisdiction crossings now pin those paths; focused11/0(165), type/diff pass. Fresh
+Tier3 rereview remains mandatory.

@@ -217,6 +217,32 @@ describe("Order 309: India GST accommodation levy-input bundle", () => {
     reject(input(history, reorderedFamily, TENANT, baseNature));
   });
 
+  test("rejects coherent fully rehashed property, date and jurisdiction crossings at the historical join", async () => {
+    const history = await historical() as Mutable;
+    const baseNature = nature(history, "igst");
+    for (const mutate of [
+      (value: Mutable) => { value.propertyNode = id(30992); },
+      (value: Mutable) => {
+        value.supplyDate = "2025-09-23";
+        value.supplier.status.statusAsOf = "2025-09-23";
+        value.recipient.status.statusAsOf = "2025-09-23";
+      },
+      (value: Mutable) => { value.jurisdiction.extensionId = id(30993); },
+      (value: Mutable) => { value.jurisdiction.version = "1"; },
+      (value: Mutable) => { value.jurisdiction.contentHash = "0".repeat(64); },
+    ]) {
+      const suppliedNature = structuredClone(baseNature);
+      mutate(suppliedNature);
+      rehashNature(suppliedNature);
+      const frozenNature = freeze(suppliedNature);
+      const suppliedFamily = deriveIndiaGstAccommodationComponentFamily({
+        tenantId: TENANT,
+        supplyNature: frozenNature,
+      } as never) as Mutable;
+      reject(bundleInput(history, frozenNature, suppliedFamily));
+    }
+  });
+
   test("revalidates selected member, exact pair and both predecessor evidence hashes after full public rehash", async () => {
     const original = await historical() as Mutable, family = component(original, "igst");
     for (const mutate of [
