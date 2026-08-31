@@ -1,6 +1,6 @@
 # Order 303 — India GST Notification 15 accommodation rate correction
 
-**Status:** BUILT-PENDING-FRESH-TIER3-REVIEW-D834
+**Status:** APPROVED-D835
 **Phase:** 7 — Tax and India IRP
 **Branch:** `phase-7/india-gst-notification15-accommodation-rate-correction`
 **Base:** `845cb82` (independently approved Order 302 governance head)
@@ -74,7 +74,7 @@ local promotion, merge/deploy or Phase/application-complete claim.
 - [x] Intentional red precedes implementation.
 - [x] Corrected fixture/default-seed boundaries and mutation-sensitive ITC proof are green.
 - [x] Standing/static/setup/referee preservation gates are green.
-- [ ] Fresh non-implementing Tier-3 reviewer personally executes proof and approves.
+- [x] Fresh non-implementing Tier-3 reviewer personally executes proof and approves.
 
 ## Built evidence
 
@@ -94,3 +94,8 @@ local promotion, merge/deploy or Phase/application-complete claim.
   before referee artifacts and passes referee `11/11`. The stale Windows wrapper's
   inherited 89-table assertion is recorded rather than weakened; disposable proof
   containers, network and volume were removed.
+- Fresh independent Tier-3 review `handoff/reviews/303-india-gst-notification15-
+  accommodation-rate-correction.md` approves exact candidate `eb31746` with no
+  finding. Reviewer mutation proof detects both lower-band ITC and threshold drift.
+  The inherited migration-list oracle omission of 0059 remains explicitly recorded
+  as out of scope and was not weakened.
