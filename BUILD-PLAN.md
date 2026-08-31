@@ -1221,6 +1221,12 @@ migration, schema, role or runtime-writer path changed, preserving D844's approv
 fresh59/110/referee11/11 baseline; a new direct-port disposable rerun was
 precondition-blocked by PostgreSQL28P01 before mutation. Fresh Tier3 review remains
 mandatory and no downstream authority is claimed.
+**Ready Order308 India accommodation component family:** consume complete approved
+Order287 supply-nature evidence and derive only IGST, CGST+SGST or CGST+UTGST. Use
+the current UTGST Act territory-code set04/26/31/35/38; State-tax-side01/07/34 are
+explicit hostile boundaries. No rate/value/amount/split arithmetic, posting,
+zero-rating, document/IRP/API/UI/local authority. D848 requires intentional red,
+exhaustive state/UT/SEZ and hostile rehash proof, preservation gates and fresh Tier3.
 **Order307 independently approved — D847:** Fresh non-implementing Tier-3 review
 approves exact candidate `6e0824df2a6afff5a83573d463bbee4cf73b436e` with no finding.
 Reviewer-owned tenant/pair hash, deterministic identity/period, complete GST_ROOM,

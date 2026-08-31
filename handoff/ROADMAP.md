@@ -701,6 +701,13 @@ plus890 skips(16743), type/boundary124/licence23/audit0/diff pass. No schema or
 runtime-writer path changed; approved fresh59/110/referee11/11 evidence is preserved.
 A fresh direct-port rerun was precondition-blocked by PostgreSQL28P01 before any
 mutation. Fresh Tier3 approval remains mandatory.
+
+## Order308 roadmap entry
+
+Derive only the statutory component family from complete approved India accommodation
+supply-nature evidence: inter-State/SEZ to IGST; ordinary intra-State to CGST+SGST or
+CGST+UTGST using the exact current UTGST Act code set04/26/31/35/38. Rate, value,
+amount allocation, posting, zero-rating, document and IRP remain later boundaries.
 **D847 independent approval:** Exact candidate
 `6e0824df2a6afff5a83573d463bbee4cf73b436e` is approved with no finding after
 reviewer-owned tenant/pair, identity/period, complete GST_ROOM, source/date,

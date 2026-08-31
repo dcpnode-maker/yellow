@@ -782,6 +782,15 @@ boundary124/licence23/audit0/diff pass. No schema/runtime-writer path changed, s
 approved D844 fresh59/110/referee11/11 baseline remains exact; a fresh direct-port
 rerun was precondition-blocked by PostgreSQL28P01 before mutation. Fresh Tier3 review
 remains mandatory and no downstream authority is claimed.
+
+## Order308 — accommodation component family
+
+Order308 is the next policy-independent decomposition prerequisite. From one complete
+approved Order287 supply-nature result it derives only IGST, CGST+SGST or CGST+UTGST.
+The current consolidated UTGST Act makes codes04/26/31/35/38 the exact UTGST side;
+01/07/34 remain State-tax-side. No rate/value/amount arithmetic, zero-rating,
+posting, document or IRP authority is admitted. D848 requires intentional red,
+exhaustive State/UT/SEZ proof, preservation gates and fresh Tier3 review.
 **D847 review complete:** A fresh non-implementing Tier-3 reviewer approves exact
 candidate `6e0824df2a6afff5a83573d463bbee4cf73b436e` with no finding. Reviewer-owned
 tenant/pair-hash, identity/version/status/period, GST_ROOM, source/date, freeze/hash
