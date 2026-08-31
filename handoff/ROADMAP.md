@@ -626,3 +626,12 @@ effective 22 September 2025: 5% without ITC through INR7500 and 18% with ITC abo
 The notification does not restore the below-INR1000 exemption. Prove exact evaluator,
 quote and production-seed parity while
 leaving historical old/new version pairing and section14 composition to later orders.
+
+## Order304 roadmap entry
+
+Compose one exact retired-predecessor/active-successor `in-gst-lodging` pair through
+the existing tenant-visible registry and selected-extension effective-period
+projection. Require exact Kolkata-midnight adjacency and the sourced 12%-to-5% lower-
+band/ITC transition while preserving the 18% upper band. Return frozen pair evidence
+only; production seed conversion, retired historical resolution, section14, tax,
+fiscal documents, IRP and operator surfaces remain later bounded work.

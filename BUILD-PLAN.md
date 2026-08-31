@@ -1146,3 +1146,12 @@ restored. Bind test fixture,
 default production seed, evaluator and quote boundaries without adding schema,
 historical version pairing, section14 composition, fiscal/API/UI or local authority.
 D-833 requires intentional red, preservation gates and fresh Tier3 review.
+
+**Ready Order304 India accommodation rate-version pair evidence:** select exact
+caller-identified tenant-visible retired predecessor and active successor extensions,
+replay both effective periods, and bind their adjacent Kolkata-midnight transition,
+canonical 12%-to-5% lower-band/ITC delta, unchanged 18% upper band, contents and
+official-source hashes into one frozen tenant-hidden result. No seed conversion,
+resolver/retired-rate selection, section14 calculation, fiscal/API/UI/local authority.
+D-836 requires intentional red, hostile/live zero-effect proof, preservation gates and
+fresh Tier3 review.

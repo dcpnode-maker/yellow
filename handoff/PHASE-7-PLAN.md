@@ -714,3 +714,15 @@ Order303 retains Order298 as historical predecessor evidence and corrects the cu
 not restore the below-INR1000 exemption and binds fixture/default-seed parity,
 without adding historical version pairing, section14, schema, fiscal/API/UI or local
 authority. D-833 requires intentional red, preservation gates and fresh Tier3.
+
+## Order 304 boundary
+
+Order304 composes only governed evidence that one caller-identified visible retired
+predecessor and one active exact successor are the lawful `in-gst-lodging` version
+pair. It binds the exact Kolkata-midnight cutover, adjacent effective periods,
+canonical old/new room slabs, ITC flags, content hashes and official-source hashes
+into a frozen tenant-hidden result through existing registry projections. It does not
+create or seed the historical version, mutate status, let the resolver select retired
+content, calculate historical tax or decide section14. D-836 requires intentional red,
+hostile microsecond/identity/content/hash and live zero-effect proof, unchanged
+setup/referee and fresh Tier3.
