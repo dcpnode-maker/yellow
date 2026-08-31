@@ -600,3 +600,12 @@ static gates, but a hostile mutation removing the business-day upper instant fro
 both evidence hashes still passes the committed focused proof. Add independent
 timezone-only, lower-only and upper-only evidence-reference assertions, rerun all
 gates and obtain a fresh review before closing Order300.
+
+## Order301 roadmap entry
+
+Consume approved Order299 extension bounds and Order300 property-day bounds through
+one migration-free whole-day containment gate. Preserve half-open exact instants,
+accept equal/unbounded edges and reject every partial-day relation. Correct the India
+2026 fixture temporal bound to the UTC instant of Kolkata civil midnight. Section14,
+working-day policy, old/new rate pairing and all downstream tax/fiscal/UI behavior
+remain separate.

@@ -1129,3 +1129,11 @@ math. This closes only the property-day instant-evidence gap. Extension-period
 containment, overlap, start-instant, split-day, section14 and every other applicability/
 legal rule remain explicitly forbidden for a later bounded order. D-820 requires
 intentional red, hostile temporal/tenant proof, unchanged setup/referee and fresh Tier3.
+
+**Ready Order301 property-day extension containment:** require the exact selected
+extension `[from,to)` to contain the complete PostgreSQL-derived property-local day
+before resolution. Equality and unbounded edges pass; partial overlap, start-only and
+one-microsecond truncation fail closed across DST and awkward offsets. Correct only the
+India 2026 fixture temporal lower instant to Kolkata civil midnight. No section14,
+working-day calendar, old/new version pairing, tax calculation, fiscal/API/UI/local
+authority. D-827 requires intentional red, hostile proof, setup/referee and fresh Tier3.

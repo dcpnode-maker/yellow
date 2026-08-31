@@ -686,3 +686,14 @@ containment, overlap, start-instant, split-day, section14 or other extension-
 applicability/legal rule is selected; that policy is explicitly forbidden until a
 later bounded order. D-820 requires intentional red, hostile temporal/tenant proof,
 unchanged setup/referee and fresh Tier3.
+
+## Order 301 boundary
+
+Order301 consumes the exact Order299 extension `[from,to)` and Order300 property-day
+`[from,to)` envelopes through one migration-free whole-day containment gate. Equal
+and unbounded edges qualify; a one-microsecond truncation, partial overlap, start-only
+match or disjoint range fails closed. The explicit India 2026 test fixture temporal
+lower bound is corrected to Kolkata civil midnight. No section14 working-day policy,
+old/new version pairing, rate change, tax/fiscal/API/UI/local authority is admitted.
+D-827 requires intentional red, hostile DST/offset/tenant/zero-write proof, unchanged
+setup/referee and fresh Tier3.
