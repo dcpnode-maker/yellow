@@ -725,3 +725,9 @@ reviewer-owned tenant/pair, identity/period, complete GST_ROOM, source/date,
 freeze/evidence-hash and no-SQL mutation proof. Focused9/0(91), adjacent8/0(258),
 standing1097/0+890 skips(16743), static gates and unchanged D844 database lineage
 pass. No calendar, section14, tax/fiscal or operator authority is granted.
+
+## Order309 roadmap entry
+
+Bind approved historical accommodation aggregate-rate evidence to approved GST-family
+evidence for the same property, civil day and jurisdiction. Return frozen lineage only;
+component splits, values, amounts, rounding, Section14 and downstream fiscal work remain excluded.

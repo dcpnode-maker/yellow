@@ -1248,3 +1248,8 @@ source/date, freeze/evidence hash and forbidden-SQL mutations all made the perma
 proof red before exact restoration. Focused9/0(91), adjacent8/0(258), standing1097/0
 plus890 skips(16743), static gates and unchanged D844 fresh59/110/referee11/11
 lineage pass. Approval is limited to frozen rate-change-date evidence.
+
+**Ready Order309 levy-input bundle — D852:** join complete approved Order306 historical
+aggregate GST_ROOM schedule evidence to approved Order308 family evidence on exact
+property/date/jurisdiction lineage. No component split, money, rounding, Section14,
+posting, document/IRP/API/UI/local authority. Intentional red and fresh Tier3 mandatory.

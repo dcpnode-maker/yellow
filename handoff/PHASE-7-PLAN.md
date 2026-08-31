@@ -804,6 +804,14 @@ made separate supplier and recipient guard mutants turn fully rehashed permanent
 red8/1, restored exact source, and passed focused/adjacent21/0(476), standing1107/0 plus
 890 skips(16824), static gates and unchanged D844 fresh59/110/referee11/11 lineage.
 Approval remains component-family evidence only, with no downstream authority.
+
+## Order309 — accommodation levy-input bundle
+
+Order309 joins the complete approved historical aggregate-rate resolution to the
+approved component family only when tenant-hidden property/date/jurisdiction lineage
+agrees. It preserves the selected GST_ROOM schedule without splitting rates or
+calculating money. D852 requires intentional red, hostile join proof, preservation
+gates and fresh Tier3 review; Section14, rounding, posting and fiscal authority remain later.
 **D847 review complete:** A fresh non-implementing Tier-3 reviewer approves exact
 candidate `6e0824df2a6afff5a83573d463bbee4cf73b436e` with no finding. Reviewer-owned
 tenant/pair-hash, identity/version/status/period, GST_ROOM, source/date, freeze/hash
