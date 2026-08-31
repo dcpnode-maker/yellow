@@ -1,6 +1,6 @@
 # Order 306 — India GST accommodation historical resolution
 
-**Status:** BUILT-PENDING-FRESH-TIER3-REVIEW-D843
+**Status:** APPROVED-D844
 **Phase:** 7 — Tax and India IRP
 **Branch:** `phase-7/india-gst-accommodation-historical-resolution`
 **Base:** `1fca2ce` (independently approved Order 305 governance head)
@@ -82,7 +82,8 @@ or Phase/application-complete claim.
   1,088 pass / 890 skip / 0 fail / 16,652 assertions; typecheck; 123-file boundary;
   23-package licence; audit 0; exact schema; 59 migrations / 110 tables and referee
   11/11).
-- [ ] Fresh non-implementing Tier-3 reviewer personally executes proof and approves.
+- [x] Fresh non-implementing Tier-3 reviewer personally executes proof and approves
+  (**D844**).
 
 ## Build evidence — D843
 
@@ -99,3 +100,20 @@ Direct disposable PostgreSQL proof is 3/0(30); fresh preservation is 59 migratio
 110 tables, exact schema and referee11/11. Full standing and static results are
 recorded above. Temporary proof databases were dropped; the daemon-hung inherited
 Order305 container remains unchanged and the founder local was untouched.
+
+## Independent review evidence — D844
+
+Fresh non-implementing Tier-3 review approved exact candidate
+`1d14b36a4b5433a58dcfa31461e0946f22c42de0` against approved base
+`1fca2ce3711a5742a1c63c98056369e8a010c6e9` with no finding. The reviewer
+personally ran source mutations for lower and upper containment, deterministic ID,
+status, version, governed content, source hash, assignment binding, tenant
+concealment and evidence hashing; every mutant made the permanent proof red and was
+restored exactly. Reviewer-owned direct-port PostgreSQL proof passed 3/0(30), focused
+and adjacent proof passed 27/0(538), full standing passed 1088/0+890 skips(16652),
+and fresh migration-only fixture proof passed 59 migrations, 110 public tables and
+referee11/11. No migration, schema snapshot or protected referee delta exists in the
+candidate; schema-normalizer tests pass. The direct `pg_dump` snapshot command remains
+unavailable without the unsuitable Docker CLI, so no schema snapshot result is claimed
+beyond the unchanged protected range and live catalogue. All reviewer-created
+databases were dropped; the founder local was untouched.

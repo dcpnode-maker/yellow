@@ -1197,3 +1197,13 @@ standing1088/0+890 skips(16652;1978 tests/358 files), type/boundary123/licence23
 audit0/diff and fresh59 migrations/110 tables/exact schema/referee11/11 green.
 Temporary proof databases were removed and founder local untouched; fresh Tier3
 approval remains pending.
+**Order306 independently approved — D844:** Fresh non-implementing Tier-3 review
+approves exact candidate `1d14b36a4b5433a58dcfa31461e0946f22c42de0` against approved
+base `1fca2ce3711a5742a1c63c98056369e8a010c6e9` with no product finding. Reviewer-owned
+lower/upper containment, deterministic ID/status/version/content/source, assignment,
+tenant-concealment and evidence-hash mutants all made permanent proof red before exact
+restoration. Direct-port live3/0(30), focused/adjacent27/0(538), standing1088/0+890
+skips(16652), type/boundary123/licence23/audit0, fresh59/110/referee11/11 and clean
+candidate/protected ranges pass. The Docker-backed textual schema snapshot is
+precondition-blocked; no migration or schema-snapshot delta exists. Approval remains
+limited to historical-resolution evidence, not downstream tax/fiscal authority.

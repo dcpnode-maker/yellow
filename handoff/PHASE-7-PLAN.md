@@ -761,3 +761,11 @@ tax, fiscal, API/UI and local-promotion authority remain excluded.
 Build D843 completes the implementation side with red-before-production, focused
 26/0+9 skips(535), live3/0(30), standing1088/0+890 skips(16652), static and fresh
 59/110/schema/referee11/11 preservation. Fresh Tier-3 review remains mandatory.
+
+**D844 review complete:** A fresh non-implementing Tier-3 reviewer approves exact
+candidate `1d14b36a4b5433a58dcfa31461e0946f22c42de0` with no finding. Mutating either
+whole-day containment bound, pair ID/status/version/content/source evidence,
+assignment, tenant concealment or evidence hash makes the permanent proof red; exact
+candidate restoration, direct-port live3/0(30), focused/adjacent27/0(538), full
+standing1088/0+890 skips(16652), static gates and fresh59/110/referee11/11 pass.
+Approval remains evidence-only and grants no tax, fiscal or operator authority.

@@ -677,3 +677,13 @@ PostgreSQL proof covers exact cutover selection, tenant/property concealment, DS
 awkward offsets, cross-cutover rejection, frozen/hash-bound evidence and zero writes.
 Standing/static plus fresh 59-migration/110-table/exact-schema/referee11/11
 preservation pass. Fresh independent Tier-3 approval remains mandatory.
+**D844 independent approval:** Exact candidate
+`1d14b36a4b5433a58dcfa31461e0946f22c42de0` is approved against base
+`1fca2ce3711a5742a1c63c98056369e8a010c6e9` with no finding. Reviewer-owned permanent
+mutations of both containment bounds, ID/status/version/content/source truth,
+assignment, tenant concealment and evidence hashing fail red and were restored;
+direct-port live3/0(30), focused/adjacent27/0(538), standing1088/0+890 skips(16652),
+static gates and fresh59/110/referee11/11 pass. No migration, schema snapshot or
+protected referee delta exists; the Docker-backed normalized snapshot remains
+precondition-blocked. All reviewer disposable databases were dropped and the founder
+local remained untouched. Approval is only this historical evidence boundary.
