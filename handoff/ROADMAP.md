@@ -687,3 +687,10 @@ static gates and fresh59/110/referee11/11 pass. No migration, schema snapshot or
 protected referee delta exists; the Docker-backed normalized snapshot remains
 precondition-blocked. All reviewer disposable databases were dropped and the founder
 local remained untouched. Approval is only this historical evidence boundary.
+## Order307 roadmap entry
+
+Bind the exact approved India lodging predecessor/successor pair to the fixed
+Notification15/2025 statutory rate-change date `2025-09-22`. Derive that date from
+the source-bound Kolkata-midnight transition and return frozen evidence only; caller
+dates, clocks, calendars and section14/tax conclusions remain forbidden. A governed
+working-day calendar remains a later policy-authority order.

@@ -769,3 +769,9 @@ assignment, tenant concealment or evidence hash makes the permanent proof red; e
 candidate restoration, direct-port live3/0(30), focused/adjacent27/0(538), full
 standing1088/0+890 skips(16652), static gates and fresh59/110/referee11/11 pass.
 Approval remains evidence-only and grants no tax, fiscal or operator authority.
+## Order307 — governed accommodation rate-change date
+
+Order307 is a pure evidence bridge from the independently approved rate-version pair
+to fixed statutory date 2025-09-22. It accepts no date/calendar/clock authority and
+does not decide section14 or tax. The unresolved production working-day calendar
+remains fail closed and separate.

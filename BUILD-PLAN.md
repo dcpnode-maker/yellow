@@ -1207,3 +1207,9 @@ skips(16652), type/boundary123/licence23/audit0, fresh59/110/referee11/11 and cl
 candidate/protected ranges pass. The Docker-backed textual schema snapshot is
 precondition-blocked; no migration or schema-snapshot delta exists. Approval remains
 limited to historical-resolution evidence, not downstream tax/fiscal authority.
+**Ready Order307 governed accommodation rate-change date:** revalidate the exact
+approved lodging pair and derive fixed Notification15/2025 change date 2025-09-22
+from its Kolkata-midnight transition. Return frozen source/pair/hash evidence only;
+no caller date, clock/timezone/latest selection, calendar, section14 matrix, tax,
+fiscal/API/UI/local authority. D-845 requires intentional red, hostile proof,
+preservation gates and fresh Tier3 review.
