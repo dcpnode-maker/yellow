@@ -1,6 +1,6 @@
 # Order 300 — Property-local business-day instant evidence
 
-**Status:** REPAIRED-PENDING-FRESH-TIER3-REREVIEW-D825
+**Status:** APPROVED-D826
 **Phase:** 7 — Tax and India IRP
 **Branch:** `phase-7/property-local-business-day-instant-evidence`
 **Base:** `0b90973` (independently approved Order 299)
@@ -70,7 +70,7 @@ promotion, merge/deploy or Phase/application-complete claim.
 - [x] Intentional red precedes implementation.
 - [x] Exact PostgreSQL-derived local-day evidence and DST/tenant hostile proof are green.
 - [x] Standing/static/setup/referee preservation gates are green.
-- [ ] Fresh non-implementing Tier-3 reviewer personally executes proof and approves.
+- [x] Fresh non-implementing Tier-3 reviewer personally executes proof and approves.
 
 ## Built evidence
 
@@ -90,4 +90,9 @@ promotion, merge/deploy or Phase/application-complete claim.
   but the exact candidate fails `git diff --check` because the prior review file has a
   surplus blank line at EOF. Final DoD remains unchecked pending repair and rereview.
 - D-825 removes only that surplus EOF blank. Product code, executable proof and review
-  content are unchanged; fresh Tier 3 approval remains mandatory.
+  content are unchanged; fresh Tier 3 approval was mandatory and is recorded by D-826.
+- Fresh Tier-3 reviewer approval D-826 re-executes the reviewer-owned isolated
+  PostgreSQL setup/referee and live resolver proof on exact `27eff221`, independently
+  verifies clean exact-range whitespace, and proves each timezone/lower/upper hash-field
+  omission turns the permanent proof red. The isolated stack and all review resources
+  were removed after proof.
