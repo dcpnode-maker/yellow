@@ -1,6 +1,6 @@
 # Order 302 — India GST section 14 payment-proviso fail-closed primitive
 
-**Status:** READY-D830
+**Status:** BUILT-PENDING-FRESH-TIER3-REVIEW-D831
 **Phase:** 7 — Tax and India IRP
 **Branch:** `phase-7/india-gst-section14-payment-proviso-gate`
 **Base:** `5c4414a` (independently approved Order 301)
@@ -61,7 +61,23 @@ document, IRP, merge/deploy or Phase/application-complete claim.
 
 ## Definition of done
 
-- [ ] Intentional red precedes implementation.
-- [ ] Focused hostile and mutation-sensitive proof is green.
-- [ ] Standing/static/setup/referee preservation gates are green.
+- [x] Intentional red precedes implementation.
+- [x] Focused hostile and mutation-sensitive proof is green.
+- [x] Standing/static/setup/referee preservation gates are green.
 - [ ] Fresh non-implementing Tier-3 reviewer personally executes proof and approves.
+
+## Built evidence
+
+- Intentional red failed `0/1` before the production module/export existed.
+- Focused permanent plus historical-red proof passes `6/0` with 49 assertions. It
+  covers before/equal safe branches, every later-credit calendar-required branch,
+  books-before-bank hostility, exact shapes, invalid civil dates, accessors, proxies,
+  symbols, recursive freezing, deterministic replay and independent three-input hash
+  sensitivity. The source proof rejects clocks and guessed calendar vocabulary.
+- Standing passes `1067/0` with 883 expected database skips, 16,144 assertions and
+  1,950 tests across 348 files. Typecheck, 121-file boundaries, 23-package licence
+  policy, zero-vulnerability audit and diff hygiene are green.
+- A fresh disposable PostgreSQL 16 proof applies the unchanged 59 migrations, loads
+  110 public tables and passes referee `11/11`; the exact proof containers, network
+  and volume were removed. Order302 adds no migration or retained local runtime.
+- Fresh non-implementing Tier-3 approval remains mandatory.
