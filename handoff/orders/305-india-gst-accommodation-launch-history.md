@@ -1,6 +1,6 @@
 # Order 305 — India GST accommodation launch-history seed
 
-**Status:** BUILT-PENDING-FRESH-TIER3-REVIEW-D840
+**Status:** APPROVED-D841
 **Phase:** 7 — Tax and India IRP
 **Branch:** `phase-7/india-gst-accommodation-launch-history`
 **Base:** `b7a5b50` (independently approved Order 304 governance head)
@@ -78,7 +78,7 @@ application-complete claim.
   1,079 pass / 887 skip / 0 fail / 16,446 assertions; typecheck; 122-file boundary;
   23-package licence; audit 0; schema match; 59 migrations / 110 tables and referee
   11/11).
-- [ ] Fresh non-implementing Tier-3 reviewer personally executes proof and approves.
+- [x] Fresh non-implementing Tier-3 reviewer personally executes proof and approves (D841; exact schema comparison was precondition-blocked by the Docker daemon after all other gates passed; D840 recorded schema match).
 
 ## Build evidence — D840
 

@@ -743,3 +743,11 @@ Build D840 is green: red preceded production; permanent catalogue/fixture proof,
 live seed/replay/seven-collision/active-v2 proof, existing seed integration10/0,
 standing1079/0+887 skips, static, schema and fresh59/110/referee11/11 pass. The stale
 setup 89-table oracle remains recorded without weakening. Fresh Tier3 is pending.
+Fresh independent Tier3 review D841 approves exact candidate
+`1640a82806b367b12a90d2d8f04c2678d4f1debd` with no product finding. Reviewer-owned
+source mutants and live proof are recorded in
+`handoff/reviews/305-india-gst-accommodation-launch-history-independent.md`.
+The normalized schema command was precondition-blocked by a Docker daemon exec hang
+after all other gates passed; D840's schema-match evidence is retained. Disposable
+cleanup is pending daemon recovery; founder local remains untouched. Approval is
+limited to fresh seed history and grants no downstream authority.
