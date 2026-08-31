@@ -1207,3 +1207,14 @@ for a stay, calculate tax, apply section 14, or touch downstream fiscal/API/UI s
 Missing `YELLOW_ORDER306_*` URLs skip this live block; setting
 `YELLOW_REQUIRE_ORDER306_DATABASE=1` without explicit deploy/admin and runtime URLs
 fails before execution.
+
+### TC-8.7 🔒 Order308 component-family evidence boundary
+
+Resolve exactly `{tenantId,supplyNature}` after recomputing the tenant-bound
+candidate hash. Inter-State and every SEZ direction return frozen `igst`;
+ordinary intra-State returns `cgst_sgst`, except `04`, `26`, `31`, `35`, `38`,
+which return `cgst_utgst`; `01`, `07`, and `34` remain State-tax-side. Mutated
+or rehashed semantic fields, source/hash evidence, hostile object shapes, or
+surplus rate/value/amount/split fields fail closed. This test grants no rate,
+amount, split, posting, document, IRP, Section 14, calendar, API/UI or write
+authority.

@@ -1396,3 +1396,14 @@ extension, assignment, fact, outbox, journal, posting, document and fiscal state
 byte-identical. No clock/latest/max-version lookup, caller extension ids, split-day
 allocation, historical tax use, section 14, posting, fiscal document, IRP, API, UI or
 installed-database conversion authority is granted.
+
+## Order308 component-family security boundary
+
+The exact `{tenantId,supplyNature}` input recomputes the tenant-bound candidate
+hash before deriving a family. Inter-State and SEZ yield `igst`; ordinary
+intra-State uses `cgst_sgst`, except UTGST codes `04/26/31/35/38`, while
+`01/07/34` remain State-tax-side. Identity, state, nature, basis, SEZ, legal
+rule, source and hash mutations—including rehashed semantic mutations—must fail
+closed. Output is recursively frozen and tenant-hidden. No SQL/write, amount or
+split arithmetic, rate, posting, document, IRP, API/UI, calendar or Section 14
+authority is granted.

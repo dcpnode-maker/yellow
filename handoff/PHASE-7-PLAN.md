@@ -791,6 +791,10 @@ The current consolidated UTGST Act makes codes04/26/31/35/38 the exact UTGST sid
 01/07/34 remain State-tax-side. No rate/value/amount arithmetic, zero-rating,
 posting, document or IRP authority is admitted. D848 requires intentional red,
 exhaustive State/UT/SEZ proof, preservation gates and fresh Tier3 review.
+Build D849 is green: intentional red preceded production; focused/adjacent21/0(474),
+standing1107/0 plus890 skips(16822), type/boundary125/licence23/audit0/diff pass.
+No database path changed, so approved D844 fresh59/110/referee11/11 evidence is
+preserved. Fresh Tier3 review remains mandatory and no downstream authority is claimed.
 **D847 review complete:** A fresh non-implementing Tier-3 reviewer approves exact
 candidate `6e0824df2a6afff5a83573d463bbee4cf73b436e` with no finding. Reviewer-owned
 tenant/pair-hash, identity/version/status/period, GST_ROOM, source/date, freeze/hash

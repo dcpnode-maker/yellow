@@ -2378,3 +2378,14 @@ arithmetic, latest/max-version lookup, caller-supplied extension identity, split
 allocation, tax calculation, section 14, posting, fiscal, IRP, API, UI or installed
 database conversion authority is exposed. The existing active-only current resolver is
 unchanged.
+
+## 9. India GST accommodation component-family evidence (Order308)
+
+`deriveIndiaGstAccommodationComponentFamily({tenantId,supplyNature})` accepts
+exactly one complete approved `IndiaGstAccommodationSupplyNatureResult` and
+recomputes its tenant-bound candidate hash. Inter-State or either SEZ direction
+yields `igst`; ordinary intra-State yields `cgst_sgst`, except UTGST codes
+`04`, `26`, `31`, `35`, `38`, which yield `cgst_utgst`. Codes `01`, `07`, and
+`34` remain State-tax-side. The frozen result carries source identifiers,
+predecessor hash and deterministic evidence hash. No rate, amount, split,
+rounding, posting, document, IRP, API/UI, calendar or Section 14 authority exists.

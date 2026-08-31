@@ -1664,3 +1664,19 @@ timezone conversion, latest selection, working-day or holiday calendars, and it
 does not classify Section 14, apply a rate, calculate tax, post, issue fiscal
 documents, submit to IRP, or provide API/UI/local-runtime authority. Those are
 separate future policy boundaries.
+
+### India GST accommodation component-family evidence (Order308)
+
+Order308 adds no entity, table, migration, seed, or writer. Its pure builder
+accepts exactly `{tenantId,supplyNature}`, recomputes the tenant-bound candidate
+hash, and revalidates complete approved Order287 supply-nature evidence. It
+derives `igst` for inter-State or either SEZ direction, `cgst_sgst` for ordinary
+intra-State State-tax-side codes, and `cgst_utgst` for exact UTGST codes
+`04`, `26`, `31`, `35`, `38`; `01`, `07`, and `34` remain State-tax-side.
+
+The result is recursively frozen, tenant-hidden and hash-bound to all legally
+relevant predecessor and statutory-source fields. Missing, substituted, altered,
+malformed, surplus or rehashed semantic evidence fails closed. No rate/value,
+amount/split, rounding, account/posting, correction, zero-rating, reverse-charge,
+`SupTyp`, `IgstOnIntra`, item, document, IRP, API/UI, calendar or Section 14
+authority is introduced.

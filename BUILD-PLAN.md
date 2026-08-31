@@ -1227,6 +1227,10 @@ the current UTGST Act territory-code set04/26/31/35/38; State-tax-side01/07/34 a
 explicit hostile boundaries. No rate/value/amount/split arithmetic, posting,
 zero-rating, document/IRP/API/UI/local authority. D848 requires intentional red,
 exhaustive state/UT/SEZ and hostile rehash proof, preservation gates and fresh Tier3.
+**Order308 built pending review — D849:** Red0/1 preceded production. The exact pure
+component-family boundary passes focused/adjacent21/0(474), standing1107/0 plus890
+skips(16822), type/boundary125/licence23/audit0/diff. No database path changed, so
+D844 fresh59/110/referee11/11 evidence remains governing. Fresh Tier3 is mandatory.
 **Order307 independently approved — D847:** Fresh non-implementing Tier-3 review
 approves exact candidate `6e0824df2a6afff5a83573d463bbee4cf73b436e` with no finding.
 Reviewer-owned tenant/pair hash, deterministic identity/period, complete GST_ROOM,

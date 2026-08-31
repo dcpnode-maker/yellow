@@ -708,6 +708,10 @@ Derive only the statutory component family from complete approved India accommod
 supply-nature evidence: inter-State/SEZ to IGST; ordinary intra-State to CGST+SGST or
 CGST+UTGST using the exact current UTGST Act code set04/26/31/35/38. Rate, value,
 amount allocation, posting, zero-rating, document and IRP remain later boundaries.
+Build D849 completes the implementation side with red-before-production and exact
+tenant-bound upstream revalidation. Focused/adjacent21/0(474), standing1107/0 plus
+890 skips(16822), type/boundary125/licence23/audit0/diff pass; unchanged D844
+fresh59/110/referee11/11 evidence is retained. Fresh Tier3 approval is pending.
 **D847 independent approval:** Exact candidate
 `6e0824df2a6afff5a83573d463bbee4cf73b436e` is approved with no finding after
 reviewer-owned tenant/pair, identity/period, complete GST_ROOM, source/date,

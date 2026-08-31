@@ -360,3 +360,11 @@ export type {
   IndiaGstAccommodationRateChangeDateInput,
   IndiaGstAccommodationRateChangeDateResult,
 } from "./india-gst-accommodation-rate-change-date";
+export {
+  deriveIndiaGstAccommodationComponentFamily,
+  IndiaGstAccommodationComponentFamilyValidationError,
+} from "./india-gst-accommodation-component-family";
+export type {
+  IndiaGstAccommodationComponentFamilyInput,
+  IndiaGstAccommodationComponentFamilyResult,
+} from "./india-gst-accommodation-component-family";
