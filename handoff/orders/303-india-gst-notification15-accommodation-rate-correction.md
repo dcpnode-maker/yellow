@@ -1,6 +1,6 @@
 # Order 303 — India GST Notification 15 accommodation rate correction
 
-**Status:** READY — implementation and fresh Tier-3 review required
+**Status:** BUILT-PENDING-FRESH-TIER3-REVIEW-D834
 **Phase:** 7 — Tax and India IRP
 **Branch:** `phase-7/india-gst-notification15-accommodation-rate-correction`
 **Base:** `845cb82` (independently approved Order 302 governance head)
@@ -43,6 +43,8 @@ engine.
   `docs/DOMAIN-MODEL-V1.md` and `docs/SECURITY.md`;
 - `tests/tax-evaluator.test.ts`, `tests/rate-quote-tax-preview.integration.test.ts`,
   `tests/PMS_QA_Test_Suite.md`, and focused intentional-red/permanent Order303 proof;
+- the superseded `tests/india-gst-accommodation-effective-rates.intentional-red.test.ts`
+  standing assertion only, so historical Order298 expectations cannot keep the suite red;
 - production-seed parity proof only where needed to bind the exact corrected bands;
 - fresh independent Tier-3 review evidence.
 
@@ -69,7 +71,26 @@ local promotion, merge/deploy or Phase/application-complete claim.
 
 ## Definition of done
 
-- [ ] Intentional red precedes implementation.
-- [ ] Corrected fixture/default-seed boundaries and mutation-sensitive ITC proof are green.
-- [ ] Standing/static/setup/referee preservation gates are green.
+- [x] Intentional red precedes implementation.
+- [x] Corrected fixture/default-seed boundaries and mutation-sensitive ITC proof are green.
+- [x] Standing/static/setup/referee preservation gates are green.
 - [ ] Fresh non-implementing Tier-3 reviewer personally executes proof and approves.
+
+## Built evidence
+
+- Official CBIC notification record id `1010453` names
+  `15/2025-Central Tax (Rate)`, dated 17 September 2025, file
+  `15-2025-CTR-eng.pdf`; the retrieved official PDF SHA-256 is
+  `46c9447579017d8bf1fefd75b6e6a48856dab7b23e44c7e06babfdc99ae9d289`.
+- Intentional red failed `0/1` before correction. Corrected focused proof passes
+  `24/0` with 99 assertions; both historical-supersession and permanent Order303
+  artifact proofs pass.
+- Exact launch truth is two bands only: `<=750000` minor INR at 5%/no ITC and an
+  unbounded 18%/ITC band. Live default seed returned those exact two JSON rows.
+- Standing passes `1068/0` with 883 expected database skips and 16,160 assertions
+  across 1,951 tests/349 files. Typecheck, 121-file import boundaries, 23-package
+  licence policy, zero-vulnerability production audit and diff hygiene are green.
+- Fresh disposable PostgreSQL applies all 59 migrations, reports 110 public tables
+  before referee artifacts and passes referee `11/11`. The stale Windows wrapper's
+  inherited 89-table assertion is recorded rather than weakened; disposable proof
+  containers, network and volume were removed.

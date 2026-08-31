@@ -620,7 +620,9 @@ rate-change applicability and the complete six-case matrix remain later bounded 
 
 ## Order303 roadmap entry
 
-Urgently correct the 2026/default India hotel-accommodation extension content for
-Notification15/2025: 5% without ITC through INR7500 and 18% with ITC above, with no
-below-INR1000 nil band. Prove exact evaluator, quote and production-seed parity while
+Retain Order298 as historical predecessor evidence and urgently correct the
+2026/default India hotel-accommodation extension content for Notification15/2025,
+effective 22 September 2025: 5% without ITC through INR7500 and 18% with ITC above.
+The notification does not restore the below-INR1000 exemption. Prove exact evaluator,
+quote and production-seed parity while
 leaving historical old/new version pairing and section14 composition to later orders.

@@ -708,8 +708,9 @@ days or establish rate-change applicability, and grants no section14 matrix, rat
 fiscal, database, API/UI or local authority. D-830 requires intentional red,
 mutation-sensitive pure proof, preservation gates and fresh Tier3.
 
-Order303 corrects the current 2026/default India accommodation rate content under
-Notification15/2025 to 5% without ITC through INR7500 and 18% with ITC above. It
-removes the obsolete below-INR1000 nil band and binds fixture/default-seed parity,
+Order303 retains Order298 as historical predecessor evidence and corrects the current
+2026/default India accommodation rate content under Notification15/2025, effective
+22 September 2025, to 5% without ITC through INR7500 and 18% with ITC above. It does
+not restore the below-INR1000 exemption and binds fixture/default-seed parity,
 without adding historical version pairing, section14, schema, fiscal/API/UI or local
 authority. D-833 requires intentional red, preservation gates and fresh Tier3.

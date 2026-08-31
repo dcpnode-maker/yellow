@@ -1288,6 +1288,17 @@ example remains unrelated. No section 14 change-in-rate, CGST/SGST/UTGST/IGST
 split, posting, correction, document, IRP, API, HTTP, UI or local-runtime
 authority is granted.
 
+## Order303 security boundary
+
+The Order298 paragraph above records historical predecessor content. Order303
+corrects only the immutable selected content for the explicit 2026/default
+`in-gst-lodging` extension: Notification 15/2025 applies 5% without ITC at or below
+750000 minor INR and retains 18% with ITC above, with no below-INR-1,000 exemption.
+It adds no relation, grant, table, writer, runtime clock/latest selection or
+historical version pairing. Existing `room_revenue` containment and the exclusion of
+section 14, decomposition, posting, correction, fiscal documents, IRP, API, UI and
+local-runtime authority remain unchanged.
+
 ## Order300 security boundary
 
 The resolver accepts only the exact property id and already-derived `YYYY-MM-DD`

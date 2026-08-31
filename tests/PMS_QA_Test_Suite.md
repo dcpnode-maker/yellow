@@ -820,18 +820,18 @@ WHERE kind = 'invoice';
 **Setup:** Property in India, room rate = ₹7,500/night
 **Action:** Compute tax for 1 night
 **Expected:**
-- Slab: ≤₹7,500 → 12% GST with ITC
-- Tax = ₹900 (12% of 7,500)
-- Total = ₹8,400
+- Slab: ≤₹7,500 → 5% GST without ITC
+- Tax = ₹375 (5% of 7,500)
+- Total = ₹7,875
 - Document: IRN generated, signed QR stored
 
 **Boundary Tests:**
 | Rate | Expected GST | ITC |
 |------|-------------|-----|
-| ₹0 | 12% = ₹0 (policy boundary; zero-value postings remain invalid) | Yes |
-| ₹1,000 | 12% = ₹120 | Yes |
-| ₹1,001 | 12% = ₹120.12 | Yes |
-| ₹7,500 | 12% = ₹900 (boundary) | Yes |
+| ₹0 | Rejected (zero-value postings remain invalid) | No |
+| ₹1,000 | 5% = ₹50 | No |
+| ₹1,001 | 5% = ₹50.05 | No |
+| ₹7,500 | 5% = ₹375 (boundary) | No |
 | ₹7,501 | 18% = ₹1,350.18 | Yes |
 
 ---

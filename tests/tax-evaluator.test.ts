@@ -67,7 +67,7 @@ const INDIA_GST = content(
       slab_basis: "transaction_value",
       applies_to: ["room_revenue"],
       slabs: [
-        { upto_minor: 750_000, rate: 0.12, itc_eligible: true },
+        { upto_minor: 750_000, rate: 0.05, itc_eligible: false },
         { upto_minor: null, rate: 0.18, itc_eligible: true },
       ],
     },
@@ -185,11 +185,11 @@ describe("Order 237 pure rules-driven tax evaluator", () => {
       rounding: "document",
       inputTotalMinor: 1_700_201n,
       baseTotalMinor: 1_700_201n,
-      taxTotalMinor: 249_030n,
-      grandTotalMinor: 1_949_231n,
+      taxTotalMinor: 182_523n,
+      grandTotalMinor: 1_882_724n,
     });
     expect(result.taxes.map(({ code, taxMinor }) => ({ code, taxMinor }))).toEqual([
-      { code: "GST_ROOM", taxMinor: 249_030n },
+      { code: "GST_ROOM", taxMinor: 182_523n },
     ]);
   });
 
@@ -208,9 +208,9 @@ describe("Order 237 pure rules-driven tax evaluator", () => {
       "in-gst-lodging",
     );
 
-    expect(result.taxes[0]?.taxMinor).toBe(147_018n);
-    expect(result.taxTotalMinor).toBe(147_018n);
-    expect(result.grandTotalMinor).toBe(997_118n);
+    expect(result.taxes[0]?.taxMinor).toBe(140_018n);
+    expect(result.taxTotalMinor).toBe(140_018n);
+    expect(result.grandTotalMinor).toBe(990_118n);
     expect(result.taxTotalMinor).not.toBe(42_505n);
     expect(result.taxes[0]?.components).toEqual([
       {
@@ -218,7 +218,7 @@ describe("Order 237 pure rules-driven tax evaluator", () => {
         revenueGroup: "room_revenue",
         baseMinor: 100_000n,
         taxMinor: null,
-        rateBasisPoints: 1_200,
+        rateBasisPoints: 500,
       },
       {
         lineId: "mixed-stay",

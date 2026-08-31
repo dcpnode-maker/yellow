@@ -1567,6 +1567,17 @@ Tax (Rate), effective 18 July 2022, and the current CBIC services-rate table.
 evaluator only and does not infer effective dates or create section 14, levy
 decomposition, tax posting, document, or IRP authority.
 
+### Notification 15/2025 accommodation rate correction (Order 303)
+
+Order298 remains historical predecessor evidence. Order303 changes no entity or
+schema; it corrects the current explicit 2026/default `in-gst-lodging` content under
+Notification 15/2025-Central Tax (Rate), effective 22 September 2025. The
+transaction-value band through and including 750000 minor INR is 5% without ITC,
+followed by an unbounded 18% band with ITC. Notification 04/2022's removal of the
+below-INR-1,000 exemption remains effective, so no nil band returns. The evaluator,
+effective-dated assignment architecture, `room_revenue` scope and unrelated
+`GST_FNB` example are unchanged.
+
 ### Property-local business-day instant evidence (Order 300)
 
 Order300 adds no entity, schema or inferred legal state. For Order238's already-derived

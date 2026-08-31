@@ -2290,3 +2290,15 @@ or 0.05 accommodation band. The unrelated restaurant/F&B `GST_FNB` example remai
 independent. This is content for the existing evaluator only: no rate-date
 selection, section 14 change-in-rate composition, levy decomposition, posting,
 invoice or fiscal-submission authority is added.
+
+## Order303: Notification 15/2025 accommodation-rate correction
+
+The Order298 12%/18% description above is retained as historical predecessor
+evidence. For the current explicit 2026/default `in-gst-lodging` content,
+Notification 15/2025-Central Tax (Rate), effective 22 September 2025, supersedes its
+lower band: one accommodation unit per day at or below 750000 minor INR uses `0.05`
+with `itc_eligible:false`; value above INR 7,500 uses the unbounded `0.18` band with
+`itc_eligible:true`. There is no below-INR-1,000 exemption. The extension remains
+tax-exclusive, document-rounded, transaction-value based and limited to
+`room_revenue`; unrelated `GST_FNB` content and all Order298 containment boundaries
+remain unchanged.
