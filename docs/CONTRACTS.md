@@ -480,7 +480,15 @@ not provide the timezone or either instant, and JavaScript or the host clock doe
 derive them. These property-day and extension-period bounds are evidence only:
 containment, overlap, start-instant, split-day, section-14, or any other extension-
 applicability/legal rule remains explicitly forbidden until a later bounded policy is
-authorized.
+authorized. Order 301 applies one narrow containment predicate: canonical half-open
+UTC `[effectiveFrom,effectiveTo)` must contain the complete property-day
+`[businessDayFromInstant,businessDayToInstant)`. Missing edges are unbounded; equality
+passes. Partial, overlap-only, start-only, disjoint, or malformed/non-increasing
+intervals fail closed. Unassigned results skip the extension read. The India 2026
+fixture lower bound is `2025-12-31T18:30:00Z` (Kolkata civil midnight). No clock,
+JavaScript conversion, implicit timezone, or fixed 24-hour arithmetic participates.
+Section 14, working-day rules, rate changes, and old/new extension pairing remain
+excluded.
 
 A resolved value deeply freezes the exact assignment bounds and extension
 id/owner/key/version/effective UTC bounds, a recursively canonical copied content

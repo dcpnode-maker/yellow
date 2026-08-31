@@ -1568,4 +1568,10 @@ as 24 hours: daylight-saving transitions can produce 23- or 25-hour envelopes an
 awkward offsets remain database truth. This is temporal evidence, not an extension-
 applicability or legal conclusion. Containment, overlap, start-instant, split-day,
 section-14 and every other rule choosing which extension applies remain forbidden and
-require a later authorized policy.
+require a later authorized policy. Order 301 adds only whole-property-day containment:
+`[effectiveFrom,effectiveTo)` must contain `[businessDayFromInstant,businessDayToInstant)`.
+Null edges are unbounded and equal edges pass; partial, overlap-only, start-only,
+disjoint, or malformed/non-increasing intervals fail closed. The India 2026 lower
+instant is `2025-12-31T18:30:00Z` (Kolkata midnight); unassigned values skip extension
+reads. No fixed-duration or host/JavaScript clock is used. Section 14, working-day
+rules, rate changes, and old/new extension pairing are out of scope.

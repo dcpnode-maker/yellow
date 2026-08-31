@@ -1290,4 +1290,12 @@ outputs are recursively frozen and bind the same property-day envelope; timezone
 either bound changes the resolved evidence reference. The read grants no write or
 extension-applicability authority. In particular, containment, overlap, start-instant,
 split-day, section-14 and every other legal rule for choosing an effective extension
-remain forbidden pending a separate bounded decision.
+remain forbidden pending a separate bounded decision. Order 301 permits only a
+fail-closed whole-day check: `[effectiveFrom,effectiveTo)` must contain the complete
+`[businessDayFromInstant,businessDayToInstant)` envelope. Null edges are unbounded;
+equal edges pass. Partial-edge, overlap-only, start-only, disjoint, or malformed/
+non-increasing bounds disclose no jurisdiction or partial evidence. Unassigned
+resolution skips the extension read. The India 2026 lower instant is
+`2025-12-31T18:30:00Z` (Kolkata midnight). No server clock, JavaScript conversion,
+implicit timezone, or fixed 24-hour arithmetic is allowed. Section 14, working-day
+rules, rate changes, and old/new extension pairing remain excluded.

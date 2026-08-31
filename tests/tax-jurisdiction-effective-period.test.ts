@@ -129,6 +129,48 @@ describe("Order 299 tax-jurisdiction effective-period evidence", () => {
     expect(upperUnbounded.jurisdiction.evidenceRef).not.toBe(changedLower.jurisdiction.evidenceRef);
   });
 
+  test("Order301 accepts exact and unbounded whole-day effective periods", async () => {
+    const periods: Period[] = [
+      { extensionId: EXTENSION, ownerTenantId: TENANT,
+        effectiveFromInstant: "2026-06-01T00:00:00.000000Z",
+        effectiveToInstant: "2026-06-02T00:00:00.000000Z" },
+      { extensionId: EXTENSION, ownerTenantId: TENANT,
+        effectiveFromInstant: null, effectiveToInstant: "2026-06-02T00:00:00.000000Z" },
+      { extensionId: EXTENSION, ownerTenantId: TENANT,
+        effectiveFromInstant: "2026-06-01T00:00:00.000000Z", effectiveToInstant: null },
+      { extensionId: EXTENSION, ownerTenantId: TENANT,
+        effectiveFromInstant: null, effectiveToInstant: null },
+    ];
+    for (const period of periods) {
+      const result = await service(period).resolve(tx(), {
+        propertyNode: PROPERTY, businessDate: "2026-06-01",
+      });
+      expect(result.state).toBe("resolved");
+    }
+  });
+
+  test("Order301 rejects one-microsecond, overlap, start-only and disjoint periods", async () => {
+    const periods: Period[] = [
+      { extensionId: EXTENSION, ownerTenantId: TENANT,
+        effectiveFromInstant: "2026-06-01T00:00:00.000001Z",
+        effectiveToInstant: "2026-06-02T00:00:00.000000Z" },
+      { extensionId: EXTENSION, ownerTenantId: TENANT,
+        effectiveFromInstant: "2026-06-01T00:00:00.000000Z",
+        effectiveToInstant: "2026-06-01T23:59:59.999999Z" },
+      { extensionId: EXTENSION, ownerTenantId: TENANT,
+        effectiveFromInstant: "2026-06-01T12:00:00.000000Z",
+        effectiveToInstant: null },
+      { extensionId: EXTENSION, ownerTenantId: TENANT,
+        effectiveFromInstant: "2026-06-02T00:00:00.000001Z",
+        effectiveToInstant: "2026-06-03T00:00:00.000000Z" },
+    ];
+    for (const period of periods) {
+      await expect(service(period).resolve(tx(), {
+        propertyNode: PROPERTY, businessDate: "2026-06-01",
+      })).rejects.toThrow("whole property business day");
+    }
+  });
+
   test("fails closed on changed identity, malformed bounds and non-increasing periods", async () => {
     const cases: Period[] = [
       { extensionId: "00000000-0000-0000-0000-000000029929", ownerTenantId: TENANT,

@@ -13,8 +13,8 @@ describe("Order 301 intentional red: whole property-day extension containment", 
     const seedText = await Bun.file(seed).text();
 
     expect(source).toContain("requireWholeBusinessDayContainment");
-    expect(proofText).toContain("one microsecond after the day starts");
-    expect(proofText).toContain("one microsecond before the day ends");
+    expect(proofText).toContain("2026-06-01T00:00:00.000001Z");
+    expect(proofText).toContain("2026-06-01T23:59:59.999999Z");
     expect(seedText).toContain(
       "tstzrange('2025-12-31T18:30:00Z', NULL)",
     );

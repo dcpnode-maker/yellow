@@ -204,7 +204,15 @@ document/provider/fiscal, fact or event authority and adds no endpoint.
 Folio tax preview is explicitly deferred because current folio truth lacks canonical
 revenue-group, service-night, person-night, quote-lineage, correction and transfer
 attribution. Those inputs must not be inferred from USALI labels or descriptive
-quantity.
+quantity. Order 301 adds one applicability predicate: canonical half-open UTC
+`[effectiveFrom,effectiveTo)` must contain the entire property-day
+`[businessDayFromInstant,businessDayToInstant)`. Null edges are unbounded and equal
+edges pass; partial, overlap-only, start-only, disjoint, or malformed/non-increasing
+intervals fail closed. Unassigned results skip extension-period reads. The India 2026
+fixture lower instant is explicitly `2025-12-31T18:30:00Z` (Kolkata midnight).
+Database-derived instants only: no clock, JavaScript conversion, implicit timezone,
+or fixed 24-hour arithmetic. Section 14, working-day rules, rate changes, and old/new
+extension pairing remain outside this contract.
 
 India GST accommodation launch instance (CBIC Notification 20/2019-Central Tax
 (Rate), effective 1 October 2019; Notification 04/2022-Central Tax (Rate), effective

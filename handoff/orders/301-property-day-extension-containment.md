@@ -1,6 +1,6 @@
 # Order 301 — Property-day extension containment
 
-**Status:** ADMITTED-D827
+**Status:** BUILT-PENDING-FRESH-TIER3-REVIEW-D828
 **Phase:** 7 — Tax and India IRP
 **Branch:** `phase-7/property-day-extension-containment`
 **Base:** `e352a91` (independently approved Order 300)
@@ -68,11 +68,26 @@ any non-India fixture.
 
 ## Definition of done
 
-- [ ] Intentional red precedes implementation.
-- [ ] Exact whole-day containment, India fixture and hostile temporal proof are green.
-- [ ] Standing/static/setup/referee preservation gates are green.
+- [x] Intentional red precedes implementation.
+- [x] Exact whole-day containment, India fixture and hostile temporal proof are green.
+- [x] Standing/static/setup/referee preservation gates are green.
 - [ ] Fresh non-implementing Tier-3 reviewer personally executes proof and approves.
 
 ## Built evidence
 
-- Not built yet.
+- Intentional red failed `0/1` before production contained either interval.
+- The resolver adds one pure fail-closed whole-day predicate after both approved
+  envelopes are normalized and before jurisdiction evidence is constructed. Separate
+  lower-bound and upper-bound removal mutants each make permanent proof red.
+- Focused pure proof passes `15/0` with 6 expected database skips. Required live
+  PostgreSQL proof passes `21/0` with 123 assertions, including explicit Kolkata
+  legacy-UTC rejection, exact local-midnight acceptance, UTC, New York 23/25-hour
+  dates, Kathmandu, tenant concealment, stable frozen evidence and zero writes.
+- The exact India test fixture now stores `2025-12-31T18:30:00Z` as the extension
+  temporal lower instant; rates and every non-India fixture remain unchanged.
+- Standing passes `1061/0` with 883 expected database skips, 16,095 assertions and
+  1,944 tests across 346 files. Typecheck, 120-file boundaries, 23-package licence
+  policy, dependency audit and whitespace are green.
+- Fresh isolated setup applies 59 migrations, preserves 110 public tables and referee
+  `11/11`. Order301 adds no migration, schema or retained app instance.
+- Fresh non-implementing Tier-3 review remains mandatory.

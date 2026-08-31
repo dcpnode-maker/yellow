@@ -480,13 +480,16 @@ beforeAll(async () => {
       (${PROPERTY_FOREIGN}::uuid, ${TENANT_B}::uuid, 'order238_b.property', 'property', 'Order 238 Foreign', 'UTC', 'AED')
   `;
   await admin`
-    INSERT INTO extension (id, tenant_id, type, key, version, content, status)
+    INSERT INTO extension (id, tenant_id, type, key, version, effective, content, status)
     VALUES
       (${GLOBAL_EXTENSION}::uuid, NULL, 'tax_jurisdiction', ${GLOBAL_KEY}, 1,
+        tstzrange('2025-01-01T00:00:00Z', '2101-01-01T00:00:00Z', '[)'),
         '{"country":"IN","price_display":"tax_exclusive","rounding":"document","taxes":[]}'::jsonb, 'active'),
       (${TENANT_EXTENSION}::uuid, ${TENANT_A}::uuid, 'tax_jurisdiction', ${TENANT_KEY}, 7,
+        tstzrange('2025-01-01T00:00:00Z', '2101-01-01T00:00:00Z', '[)'),
         '{"country":"IN","price_display":"tax_exclusive","rounding":"line","taxes":[]}'::jsonb, 'active'),
       (${FOREIGN_EXTENSION}::uuid, ${TENANT_B}::uuid, 'tax_jurisdiction', ${FOREIGN_KEY}, 1,
+        tstzrange('2025-01-01T00:00:00Z', '2101-01-01T00:00:00Z', '[)'),
         '{"country":"AE","price_display":"tax_inclusive","rounding":"line","taxes":[]}'::jsonb, 'active')
   `;
   await admin`
@@ -523,6 +526,42 @@ databaseDescribe("Order 238 PostgreSQL assignment and containment proof", () => 
       }
     } finally {
       await admin!`UPDATE org_node SET timezone = 'UTC' WHERE id = ${PROPERTY_UNASSIGNED}::uuid`;
+    }
+  });
+
+  test("Order301 rejects a Kolkata UTC-midnight seed and accepts explicit local-midnight bounds", async () => {
+    const original = await admin!<{ effective: string }[]>`
+      SELECT effective::text AS effective FROM extension
+      WHERE id = ${GLOBAL_EXTENSION}::uuid
+    `;
+    try {
+      await admin!`UPDATE org_node SET timezone = 'Asia/Kolkata' WHERE id = ${PROPERTY_UNASSIGNED}::uuid`;
+      await admin!`INSERT INTO tax_assignment
+        (tenant_id, property_node, jurisdiction_key, effective)
+        VALUES (${TENANT_A}::uuid, ${PROPERTY_UNASSIGNED}::uuid, ${GLOBAL_KEY},
+          daterange('2026-01-01', '2026-01-02', '[)'))`;
+
+      await admin!`UPDATE extension SET effective = tstzrange(
+        '2026-01-01T00:00:00.000000Z', '2026-01-02T00:00:00.000000Z', '[)')
+        WHERE id = ${GLOBAL_EXTENSION}::uuid`;
+      await expect(resolveDatabase(TENANT_A, PROPERTY_UNASSIGNED, "2026-01-01"))
+        .rejects.toThrow("whole property business day");
+
+      await admin!`UPDATE extension SET effective = tstzrange(
+        '2025-12-31T18:30:00.000000Z', '2026-01-01T18:30:00.000000Z', '[)')
+        WHERE id = ${GLOBAL_EXTENSION}::uuid`;
+      const exact = await resolveDatabase(TENANT_A, PROPERTY_UNASSIGNED, "2026-01-01");
+      expect(exact.state).toBe("resolved");
+    } finally {
+      await admin!`DELETE FROM tax_assignment
+        WHERE property_node = ${PROPERTY_UNASSIGNED}::uuid
+          AND jurisdiction_key = ${GLOBAL_KEY}`;
+      await admin!`UPDATE org_node SET timezone = 'UTC' WHERE id = ${PROPERTY_UNASSIGNED}::uuid`;
+      const effective = original[0]?.effective;
+      if (effective) {
+        await admin!`UPDATE extension SET effective = ${effective}::tstzrange
+          WHERE id = ${GLOBAL_EXTENSION}::uuid`;
+      }
     }
   });
 

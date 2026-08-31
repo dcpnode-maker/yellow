@@ -2,6 +2,8 @@
 -- PMS QA TEST SEED FIXTURE
 -- Run this before executing any test cases from PMS_QA_Test_Suite.md
 -- Tenant: Acme Hotels | Property: Downtown Dubai | 15 rooms | Currency: AED
+-- Order301 temporal fixture reference: Asia/Kolkata local midnight is
+-- 2025-12-31T18:30:00.000000Z (not UTC midnight) for business date 2026-01-01.
 -- ============================================================================
 
 -- Set tenant context
@@ -46,7 +48,7 @@ INSERT INTO extension (id, tenant_id, type, key, version, effective, content, st
 -- India GST accommodation effective-rate boundary testing
 INSERT INTO extension (id, tenant_id, type, key, version, effective, content, status) VALUES
   ('00000000-0000-0000-0000-000000000102', NULL, 'tax_jurisdiction', 'in-gst-lodging', 1,
-   tstzrange('2026-01-01', NULL),
+   tstzrange('2025-12-31T18:30:00Z', NULL),
    '{"country":"IN","price_display":"tax_exclusive","rounding":"document","taxes":[{"code":"GST_ROOM","name":"GST on accommodation","mode":"slab_percent","slab_basis":"transaction_value","applies_to":["room_revenue"],"slabs":[{"upto_minor":750000,"rate":0.12,"itc_eligible":true},{"upto_minor":null,"rate":0.18,"itc_eligible":true}]}]}',
    'active');
 

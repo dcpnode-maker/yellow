@@ -371,6 +371,21 @@ function normalizeEffectivePeriod(
   return { effectiveFromInstant, effectiveToInstant };
 }
 
+function requireWholeBusinessDayContainment(
+  period: Pick<TaxJurisdictionResolutionEvidence, "effectiveFromInstant" | "effectiveToInstant">,
+  businessDayFromInstant: string,
+  businessDayToInstant: string,
+): void {
+  if (period.effectiveFromInstant !== null
+      && period.effectiveFromInstant > businessDayFromInstant) {
+    fail("extension effective period does not contain the whole property business day");
+  }
+  if (period.effectiveToInstant !== null
+      && period.effectiveToInstant < businessDayToInstant) {
+    fail("extension effective period does not contain the whole property business day");
+  }
+}
+
 export class TaxJurisdictionResolutionService {
   readonly #registry: VisibleExtensionRegistry;
 
@@ -468,6 +483,11 @@ export class TaxJurisdictionResolutionService {
     const effectivePeriod = normalizeEffectivePeriod(
       await this.#registry.readVisibleEffectivePeriod(tenantId, jurisdictionValue.extensionId),
       jurisdictionValue,
+    );
+    requireWholeBusinessDayContainment(
+      effectivePeriod,
+      businessDayFromInstant,
+      businessDayToInstant,
     );
     const jurisdiction = Object.freeze({
       ...jurisdictionValue,
