@@ -743,3 +743,10 @@ D857 independently approves exact candidate `7e1c5f492e2d5876935fdf1e762c07f4c27
 Nine separate join, ancestry, D850 pairing, containment and order-insensitive-family
 mutations each made permanent proof red and were restored exactly; focused/adjacent,
 full standing/static and unchanged D844 database lineage pass. No downstream authority.
+
+## Order310 roadmap entry
+
+Revalidate complete approved Order309 evidence and derive only ordered statutory levy
+identities. Preserve the aggregate GST_ROOM schedule once: IGST is the sole component,
+while CGST+SGST and CGST+UTGST remain explicitly blocked on future numeric split
+authority. No value, amount, rounding, Section14, posting, document or IRP authority.

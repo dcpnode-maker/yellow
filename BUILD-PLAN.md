@@ -1275,3 +1275,9 @@ recipient, whole-day member and order-insensitive-family mutations each made per
 proof red9/1 and were exactly restored. Focused/adjacent19/0(243), full standing
 1118/0+890 skips(16991) under the documented 30-second timeout, static gates and
 unchanged D844 fresh59/110/referee11/11 lineage pass. Approval is evidence-only.
+
+**Ready Order310 levy-component identity — D858:** Re-run complete approved Order309
+ancestry and derive only ordered IGST or CGST+SGST/UTGST identities. The aggregate
+GST_ROOM schedule remains one envelope-level schedule; dual-component numeric splits
+fail closed pending future official authority. No value, amount, rounding, Section14,
+posting, document/IRP/API/UI/local authority. Intentional red and fresh Tier3 mandatory.
