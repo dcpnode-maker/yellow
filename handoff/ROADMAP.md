@@ -617,3 +617,10 @@ retain ordinary earlier-of-books/bank truth only when bank credit is on/before a
 explicitly asserted rate-change date; otherwise require governed four-working-day
 calendar evidence and produce no statutory receipt-date conclusion. Governed
 rate-change applicability and the complete six-case matrix remain later bounded work.
+
+## Order303 roadmap entry
+
+Urgently correct the 2026/default India hotel-accommodation extension content for
+Notification15/2025: 5% without ITC through INR7500 and 18% with ITC above, with no
+below-INR1000 nil band. Prove exact evaluator, quote and production-seed parity while
+leaving historical old/new version pairing and section14 composition to later orders.

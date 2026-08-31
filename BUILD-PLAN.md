@@ -1137,3 +1137,10 @@ one-microsecond truncation fail closed across DST and awkward offsets. Correct o
 India 2026 fixture temporal lower instant to Kolkata civil midnight. No section14,
 working-day calendar, old/new version pairing, tax calculation, fiscal/API/UI/local
 authority. D-827 requires intentional red, hostile proof, setup/referee and fresh Tier3.
+
+**Ready Order303 Notification15 accommodation-rate correction:** supersede Order298's
+pre-change 2026/default India lodging content with 5% without ITC through INR7500 and
+18% with ITC above, removing the obsolete below-INR1000 nil band. Bind test fixture,
+default production seed, evaluator and quote boundaries without adding schema,
+historical version pairing, section14 composition, fiscal/API/UI or local authority.
+D-833 requires intentional red, preservation gates and fresh Tier3 review.

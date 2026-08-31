@@ -707,3 +707,9 @@ later credit yields only `working_day_calendar_required`. It does not invent wor
 days or establish rate-change applicability, and grants no section14 matrix, rate, tax,
 fiscal, database, API/UI or local authority. D-830 requires intentional red,
 mutation-sensitive pure proof, preservation gates and fresh Tier3.
+
+Order303 corrects the current 2026/default India accommodation rate content under
+Notification15/2025 to 5% without ITC through INR7500 and 18% with ITC above. It
+removes the obsolete below-INR1000 nil band and binds fixture/default-seed parity,
+without adding historical version pairing, section14, schema, fiscal/API/UI or local
+authority. D-833 requires intentional red, preservation gates and fresh Tier3.
