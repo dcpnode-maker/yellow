@@ -701,3 +701,9 @@ plus890 skips(16743), type/boundary124/licence23/audit0/diff pass. No schema or
 runtime-writer path changed; approved fresh59/110/referee11/11 evidence is preserved.
 A fresh direct-port rerun was precondition-blocked by PostgreSQL28P01 before any
 mutation. Fresh Tier3 approval remains mandatory.
+**D847 independent approval:** Exact candidate
+`6e0824df2a6afff5a83573d463bbee4cf73b436e` is approved with no finding after
+reviewer-owned tenant/pair, identity/period, complete GST_ROOM, source/date,
+freeze/evidence-hash and no-SQL mutation proof. Focused9/0(91), adjacent8/0(258),
+standing1097/0+890 skips(16743), static gates and unchanged D844 database lineage
+pass. No calendar, section14, tax/fiscal or operator authority is granted.

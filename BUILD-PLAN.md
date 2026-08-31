@@ -1221,3 +1221,10 @@ migration, schema, role or runtime-writer path changed, preserving D844's approv
 fresh59/110/referee11/11 baseline; a new direct-port disposable rerun was
 precondition-blocked by PostgreSQL28P01 before mutation. Fresh Tier3 review remains
 mandatory and no downstream authority is claimed.
+**Order307 independently approved — D847:** Fresh non-implementing Tier-3 review
+approves exact candidate `6e0824df2a6afff5a83573d463bbee4cf73b436e` with no finding.
+Reviewer-owned tenant/pair hash, deterministic identity/period, complete GST_ROOM,
+source/date, freeze/evidence hash and forbidden-SQL mutations all made the permanent
+proof red before exact restoration. Focused9/0(91), adjacent8/0(258), standing1097/0
+plus890 skips(16743), static gates and unchanged D844 fresh59/110/referee11/11
+lineage pass. Approval is limited to frozen rate-change-date evidence.

@@ -782,3 +782,9 @@ boundary124/licence23/audit0/diff pass. No schema/runtime-writer path changed, s
 approved D844 fresh59/110/referee11/11 baseline remains exact; a fresh direct-port
 rerun was precondition-blocked by PostgreSQL28P01 before mutation. Fresh Tier3 review
 remains mandatory and no downstream authority is claimed.
+**D847 review complete:** A fresh non-implementing Tier-3 reviewer approves exact
+candidate `6e0824df2a6afff5a83573d463bbee4cf73b436e` with no finding. Reviewer-owned
+tenant/pair-hash, identity/version/status/period, GST_ROOM, source/date, freeze/hash
+and forbidden-SQL mutations each made the proof red and were exactly restored.
+Focused9/0(91), adjacent8/0(258), standing1097/0+890 skips(16743), static gates and
+unchanged D844 fresh59/110/referee11/11 lineage pass. Approval is evidence-only.

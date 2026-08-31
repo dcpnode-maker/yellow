@@ -1,6 +1,6 @@
 # Order 307 — India GST accommodation rate-change date evidence
 
-**Status:** BUILT-PENDING-FRESH-TIER3-REVIEW-D846
+**Status:** APPROVED-D847
 **Phase:** 7 — Tax and India IRP
 **Branch:** `phase-7/india-gst-accommodation-rate-change-date`
 **Base:** `2c1edcc` (independently approved Order 306 governance head)
@@ -65,4 +65,15 @@ merge/deploy or Phase/application-complete claim.
 - [x] Standing/static gates are green and the unchanged-schema approved
   setup/schema/referee baseline is preserved; a fresh disposable rerun was
   precondition-blocked by PostgreSQL `28P01` before any mutation.
-- [ ] Fresh non-implementing Tier-3 reviewer personally executes proof and approves.
+- [x] Fresh non-implementing Tier-3 reviewer personally executes proof and approves.
+
+Fresh independent Tier-3 review
+`handoff/reviews/307-india-gst-accommodation-rate-change-date-independent.md`
+approves exact candidate `6e0824df2a6afff5a83573d463bbee4cf73b436e` with no finding.
+Reviewer-owned source mutations cover tenant/pair hashing, deterministic identity,
+versions/statuses/periods, complete GST_ROOM content/rates/threshold/ITC/nil flags,
+source hashes, derived date, freezing, evidence hashing and forbidden SQL; every
+mutation turned the permanent proof red and was restored exactly. Focused9/0(91),
+adjacent Order304 unit8/0(258), standing1097/0+890 expected skips(16743), typecheck,
+boundary124, licence23, audit0, diff/scope and unchanged-database lineage are green.
+Approval remains evidence-only and grants no downstream authority.
