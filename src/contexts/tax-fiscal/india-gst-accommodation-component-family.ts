@@ -128,10 +128,18 @@ function candidate(raw: unknown, tenantId: string): Readonly<{
   if (uuid(location.id, "supplier service location id") === "" || state(location.stateCode, "supplier service location state") !== supplierStateCode || (location.kind !== "principal_place_of_business" && location.kind !== "additional_place_of_business")) fail("supplier service location is invalid");
   const supplierStatus = lineageHash(supplier.status, SUPPLIER_STATUS_KEYS, "supplier status");
   if (uuid(supplierStatus.id, "supplier status id") === "" || date(supplierStatus.statusAsOf, "supplier status date") !== supplyDate || !["regular", "sez_unit", "sez_developer"].includes(String(supplierStatus.taxpayerType)) || !["affirmatively_non_sez_regular", "sez_unit", "sez_developer"].includes(String(supplierStatus.sezStatus))) fail("supplier status is invalid");
+  const expectedSupplierSezStatus = supplierStatus.taxpayerType === "regular"
+    ? "affirmatively_non_sez_regular"
+    : supplierStatus.taxpayerType;
+  if (supplierStatus.sezStatus !== expectedSupplierSezStatus) fail("supplier status conflicts with GST taxpayer type");
   const recipient = lineageHash(source.recipient, RECIPIENT_KEYS, "recipient");
   if (uuid(recipient.partyId, "recipient partyId") === "" || uuid(recipient.registrationId, "recipient registrationId") === "") fail("recipient identity is invalid");
   const recipientStatus = lineageHash(recipient.status, RECIPIENT_STATUS_KEYS, "recipient status");
   if (uuid(recipientStatus.id, "recipient status id") === "" || date(recipientStatus.statusAsOf, "recipient status date") !== supplyDate || !["regular", "sez_unit", "sez_developer"].includes(String(recipientStatus.taxpayerType)) || !["affirmatively_non_sez_regular", "sez_unit", "sez_developer"].includes(String(recipientStatus.sezStatus))) fail("recipient status is invalid");
+  const expectedRecipientSezStatus = recipientStatus.taxpayerType === "regular"
+    ? "affirmatively_non_sez_regular"
+    : recipientStatus.taxpayerType;
+  if (recipientStatus.sezStatus !== expectedRecipientSezStatus) fail("recipient status conflicts with GST taxpayer type");
   const buyer = lineageHash(source.buyerAssociation, BUYER_KEYS, "buyer association");
   const classification = lineageHash(source.classification, CLASSIFICATION_KEYS, "classification");
   if (uuid(classification.classificationId, "classification id") === "") fail("classification is invalid");

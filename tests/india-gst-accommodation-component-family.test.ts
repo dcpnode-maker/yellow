@@ -265,6 +265,17 @@ describe("Order 308: India GST accommodation component family", () => {
       rehashCandidate(nature);
       expectError(input(deepFreeze(nature)));
     }
+    for (const side of ["supplier", "recipient"] as const) {
+      const nature = clone(upstream());
+      nature[side].status.taxpayerType = "regular";
+      nature[side].status.sezStatus = "sez_unit";
+      nature.supplyNature = "inter_state";
+      nature.determinationBasis = "sez_override";
+      nature.sezDirection = side === "supplier" ? "by_sez" : "to_sez";
+      nature.legalRule = "IGST_ACT_7_5_B";
+      rehashCandidate(nature);
+      expectError(input(deepFreeze(nature)));
+    }
     const thawed = clone(upstream());
     expectError(input(thawed));
     const missing = clone(upstream());

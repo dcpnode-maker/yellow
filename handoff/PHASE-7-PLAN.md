@@ -795,6 +795,9 @@ Build D849 is green: intentional red preceded production; focused/adjacent21/0(4
 standing1107/0 plus890 skips(16822), type/boundary125/licence23/audit0/diff pass.
 No database path changed, so approved D844 fresh59/110/referee11/11 evidence is
 preserved. Fresh Tier3 review remains mandatory and no downstream authority is claimed.
+Fresh review then found a fully rehashed taxpayer-type/SEZ-status mismatch. D850
+records the supplier and recipient exact-pair remediation and permanent hostile proof;
+the rejected candidate was not approved and fresh Tier3 rereview remains mandatory.
 **D847 review complete:** A fresh non-implementing Tier-3 reviewer approves exact
 candidate `6e0824df2a6afff5a83573d463bbee4cf73b436e` with no finding. Reviewer-owned
 tenant/pair-hash, identity/version/status/period, GST_ROOM, source/date, freeze/hash

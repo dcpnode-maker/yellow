@@ -1231,6 +1231,10 @@ exhaustive state/UT/SEZ and hostile rehash proof, preservation gates and fresh T
 component-family boundary passes focused/adjacent21/0(474), standing1107/0 plus890
 skips(16822), type/boundary125/licence23/audit0/diff. No database path changed, so
 D844 fresh59/110/referee11/11 evidence remains governing. Fresh Tier3 is mandatory.
+**Order308 remediation — D850:** Fresh review rejected candidate8a02c464 because a
+fully rehashed regular-taxpayer/SEZ-status contradiction was accepted. Supplier and
+recipient exact pairing is now enforced with permanent hostile proof; focused/adjacent
+21/0(476), type/diff pass. Fresh Tier3 rereview is mandatory; no approval is claimed.
 **Order307 independently approved — D847:** Fresh non-implementing Tier-3 review
 approves exact candidate `6e0824df2a6afff5a83573d463bbee4cf73b436e` with no finding.
 Reviewer-owned tenant/pair hash, deterministic identity/period, complete GST_ROOM,

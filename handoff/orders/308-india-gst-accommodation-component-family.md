@@ -1,6 +1,6 @@
 # Order 308 — India GST accommodation component-family evidence
 
-**Status:** BUILT-PENDING-FRESH-TIER3-REVIEW-D849
+**Status:** REMEDIATED-PENDING-FRESH-TIER3-REREVIEW-D850
 **Phase:** 7 — Tax engine and India IRP
 **Branch:** `phase-7/india-gst-accommodation-component-family`
 **Base:** `0659658` (independently approved Order307 governance head)
