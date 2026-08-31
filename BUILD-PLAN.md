@@ -1184,3 +1184,11 @@ fresh59/110/referee11/11 proof. Exact schema comparison was precondition-blocked
 by a Docker daemon exec hang after the green database proofs; D840's schema-match
 evidence is retained. No installed-data conversion or downstream authority is
 implied.
+**Ready Order306 India accommodation historical resolution:** resolve one canonical
+property-local business date against the exact approved retired-v1/active-v2 lodging
+history. PostgreSQL owns property timezone/day bounds; exactly one lodging assignment
+and one whole-day-containing pair member are mandatory. Clock/latest/max-version,
+caller extension ids, gaps/overlaps/cross-cutover split days and installed-data
+conversion fail closed. No migration/seed/current-resolver change, section14, tax,
+fiscal/API/UI/local authority. D-842 requires intentional red, hostile/live
+zero-effect proof, preservation gates and fresh Tier3 review.

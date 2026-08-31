@@ -751,3 +751,10 @@ The normalized schema command was precondition-blocked by a Docker daemon exec h
 after all other gates passed; D840's schema-match evidence is retained. Disposable
 cleanup is pending daemon recovery; founder local remains untouched. Approval is
 limited to fresh seed history and grants no downstream authority.
+## Order306 — historical accommodation resolution
+
+Order306 consumes only independently approved Order299–305 evidence. It derives the
+property-local day in PostgreSQL, requires the exact lodging assignment, validates
+the complete launch-history pair and selects the sole version containing the whole
+day. It is read-only and migration-free; installed-data conversion and all section14,
+tax, fiscal, API/UI and local-promotion authority remain excluded.

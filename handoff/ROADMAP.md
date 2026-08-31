@@ -663,3 +663,12 @@ source mutations, live2/0(72), seed10/0(63), standing1079/0+887 skips and fresh
 59/110/referee11/11. The schema comparison was attempted but precondition-blocked
 by a Docker daemon exec hang; D840's schema evidence remains recorded. Disposable
 cleanup is pending daemon recovery, and no founder-local resource was touched.
+## Order306 roadmap entry
+
+Resolve one exact historical India lodging version for an active same-tenant property
+and canonical business date. Reuse PostgreSQL-owned property-local day bounds, the
+exact lodging assignment and the complete approved retired-v1/active-v2 pair; require
+one version to contain the whole day and fail closed for gaps, overlaps or a
+cross-cutover local day. Return frozen tenant-hidden evidence only. Installed-data
+conversion, section14/calendar, tax, fiscal documents, IRP and operator surfaces
+remain later bounded work.
