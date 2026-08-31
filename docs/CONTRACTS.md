@@ -2302,3 +2302,26 @@ with `itc_eligible:false`; value above INR 7,500 uses the unbounded `0.18` band 
 tax-exclusive, document-rounded, transaction-value based and limited to
 `room_revenue`; unrelated `GST_FNB` content and all Order298 containment boundaries
 remain unchanged.
+
+## Order304: India GST accommodation rate-version pair evidence
+
+`IndiaGstAccommodationRateVersionPairService.resolve(tx, input)` accepts exactly
+`propertyNode`, `predecessorExtensionId`, and `successorExtensionId`. The authenticated
+tenant is taken from the transaction-local PostgreSQL context; it is never accepted
+from caller input. Existing tenant-visible extension and selected-extension
+effective-period projections are the only registry truth. The property and both
+extensions must be visible in that tenant, share one owner, `tax_jurisdiction` type,
+and `in-gst-lodging` key, and have predecessor `retired`/version 1 followed by
+successor `active`/version 2.
+
+The predecessor period is exactly
+`[2022-07-17T18:30:00.000000Z,2025-09-21T18:30:00.000000Z)` and the successor is
+`[2025-09-21T18:30:00.000000Z,infinity)`. Their canonical `GST_ROOM` content is
+12% with ITC through INR 7,500 then 18% with ITC, and 5% without ITC through INR
+7,500 then 18% with ITC, respectively. Official source-byte hashes are retained as
+evidence. The recursively frozen result hides tenant identity and binds tenant,
+identity, periods, content and source hashes into its evidence hash.
+
+This is evidence composition only. It does not create history, mutate extension
+state, choose a retired rate, consult a clock/latest version, calculate tax, apply
+section 14, or expose fiscal-document, IRP, API, UI, or downstream authority.

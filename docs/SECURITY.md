@@ -1323,3 +1323,22 @@ resolution skips the extension read. The India 2026 lower instant is
 `2025-12-31T18:30:00Z` (Kolkata midnight). No server clock, JavaScript conversion,
 implicit timezone, or fixed 24-hour arithmetic is allowed. Section 14, working-day
 rules, rate changes, and old/new extension pairing remain excluded.
+
+## Order304 security boundary
+
+The rate-version pair is a read-only, tenant-bound evidence composition. The caller
+provides only the exact property and both extension ids; tenant identity comes from
+the authenticated transaction-local PostgreSQL setting. Existing registry projections
+must conceal foreign extensions, and the selected effective-period projection is
+queried for each exact id. Status, version, owner, type, key, period, canonical
+content, source hashes and Kolkata-midnight adjacency are all equality-bound; any
+microsecond drift, duplicate, substitution, malformed content, foreign visibility,
+or active-only mismatch fails closed. The recursively frozen result omits tenant
+identity and hashes it internally with every disclosed evidence field.
+
+No writer, seed conversion, activation/retirement operation, clock or latest-version
+selection is admitted. The current tax resolver remains active-only, so this proof
+cannot cause retired historical content to be used. No rate calculation, section14
+applicability, decomposition, posting, fiscal document, IRP, API, UI, network, or
+downstream authority is granted. Live proof must demonstrate zero changes to extension,
+fact, outbox, financial, or fiscal rows after fixture setup.

@@ -1118,3 +1118,33 @@ SELECT COUNT(*) FROM space; -- Should return 0 for non-existent tenant
 
 *Generated for the Yellow build. Share this document with Claude Code 
 as the canonical test specification for Phase 0-12 validation.*
+
+## Order 304 — India GST accommodation rate-version pair proof
+
+This Tier-3 compliance slice is a read-only composition over the existing extension
+registry and selected-extension effective-period projections. The live fixture uses
+two tenants and one property per tenant. Tenant A receives an explicitly inserted,
+retired version 1 and active version 2 of `in-gst-lodging`; their ranges are exactly
+`[2022-07-17T18:30:00.000000Z,2025-09-21T18:30:00.000000Z)` and
+`[2025-09-21T18:30:00.000000Z,infinity)`. Tenant B receives a separate pair.
+
+The integration proof must establish:
+
+- exact predecessor/successor ids, owner, key, type, status, version and periods;
+- 12%-with-ITC then 18%-with-ITC predecessor `GST_ROOM` slabs, and 5%-without-ITC
+  then 18%-with-ITC successor slabs, with no nil band;
+- all three official source-byte hashes and canonical content hashes are present in
+  the frozen evidence, while tenant identity is absent from the returned shape;
+- one-microsecond period drift, foreign ids, duplicate/invisible identities, status,
+  owner, version, key, type, threshold, rate, ITC, nil-band and source-hash changes
+  fail closed;
+- `runtime_visible_extensions` conceals Tenant B from Tenant A and the existing
+  tax-jurisdiction resolver still selects only active successor version 2;
+- after fixture setup, extension, fact, outbox, journal, posting and fiscal-submission
+  row snapshots are byte-identical following successful, foreign and failed reads.
+
+The proof may not seed production history, mutate extension state, choose a retired
+rate, use a clock/latest lookup, calculate tax, apply section 14, or touch fiscal
+documents, IRP, API, UI or downstream state. Missing `YELLOW_ORDER304_*` URLs skip
+the live block unless `YELLOW_REQUIRE_ORDER304_DATABASE=1`, in which case the test
+fails closed before execution.

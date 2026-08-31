@@ -1,6 +1,6 @@
 # Order 304 — India GST accommodation rate-version pair evidence
 
-**Status:** READY-D836
+**Status:** BUILT-PENDING-FRESH-TIER3-REVIEW-D837
 **Phase:** 7 — Tax and India IRP
 **Branch:** `phase-7/india-gst-accommodation-rate-version-pair`
 **Base:** `7010f75` (independently approved Order 303 governance head)
@@ -87,7 +87,25 @@ merge/deploy or Phase/application-complete claim.
 
 ## Definition of done
 
-- [ ] Intentional red precedes production.
-- [ ] Focused hostile and live zero-effect proof is green.
-- [ ] Standing/static/setup/referee preservation gates are green.
+- [x] Intentional red precedes production (`ae0e926`: 0 pass / 1 fail before the
+  production module existed).
+- [x] Focused hostile and live zero-effect proof is green (unit/intentional 9 pass,
+  live PostgreSQL 2 pass / 19 assertions).
+- [x] Standing/static/setup/referee preservation gates are green (standing 1,077
+  pass / 885 skip / 0 fail / 16,425 assertions; typecheck; 122-file boundary;
+  23-package licence; audit 0; schema match; 59 migrations / 110 tables and
+  referee 11/11).
 - [ ] Fresh non-implementing Tier-3 reviewer personally executes proof and approves.
+
+## Build evidence — D837
+
+The exact candidate composes caller-identified retired version 1 and active version 2
+through the existing tenant-visible registry and selected-period projection. Permanent
+hostile proof covers identity, ownership, status, versions, content, source hashes,
+microsecond adjacency, concealment, recursive freezing and evidence sensitivity. A
+fresh migration-only PostgreSQL database proved both live cases and byte-equivalent
+zero-effect snapshots; schema drift matched the committed snapshot. A separately
+rebuilt seeded disposable database applied all 59 migrations and passed the invariant
+referee 11/11. Full standing and static gates are recorded above. The exact disposable
+`yellow-order304-proof` containers, network and volume were verified and removed;
+the founder local was untouched. No approval or downstream authority is claimed.

@@ -326,3 +326,15 @@ export type {
   IndiaGstSection14ProvisoNotTriggeredResult,
   IndiaGstSection14WorkingDayCalendarRequiredResult,
 } from "./india-gst-section14-payment-proviso";
+export {
+  IndiaGstAccommodationRateVersionPairConflictError,
+  IndiaGstAccommodationRateVersionPairNotFoundError,
+  IndiaGstAccommodationRateVersionPairService,
+  IndiaGstAccommodationRateVersionPairValidationError,
+} from "./india-gst-accommodation-rate-version-pair";
+export type {
+  IndiaGstAccommodationRateSlabEvidence,
+  IndiaGstAccommodationRateVersionEvidence,
+  IndiaGstAccommodationRateVersionPairInput,
+  IndiaGstAccommodationRateVersionPairResult,
+} from "./india-gst-accommodation-rate-version-pair";

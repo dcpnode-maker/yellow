@@ -635,3 +635,8 @@ projection. Require exact Kolkata-midnight adjacency and the sourced 12%-to-5% l
 band/ITC transition while preserving the 18% upper band. Return frozen pair evidence
 only; production seed conversion, retired historical resolution, section14, tax,
 fiscal documents, IRP and operator surfaces remain later bounded work.
+Build evidence under D837 is green: intentional red preceded production; focused
+hostile and live PostgreSQL proof, schema, standing/static and fresh 59-migration /
+110-table / referee-11/11 preservation all pass. The exact disposable proof project
+was removed and the founder local was untouched. Fresh non-implementing Tier-3 review
+remains mandatory; no approval is claimed.

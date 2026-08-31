@@ -1578,6 +1578,21 @@ below-INR-1,000 exemption remains effective, so no nil band returns. The evaluat
 effective-dated assignment architecture, `room_revenue` scope and unrelated
 `GST_FNB` example are unchanged.
 
+### India GST accommodation rate-version pair evidence (Order 304)
+
+Order304 adds no entity or schema. It composes the existing tenant-visible extension
+registry and selected-extension effective-period projections for one explicit,
+caller-identified retired predecessor and active successor. Both are the same
+permitted-owner (derived tenant or global) `tax_jurisdiction`/`in-gst-lodging`
+lineage: version 1 is retired over
+`[2022-07-17T18:30:00.000000Z,2025-09-21T18:30:00.000000Z)`, and version 2 is active
+from `2025-09-21T18:30:00.000000Z` to infinity. The frozen evidence records the
+12%-with-ITC to 5%-without-ITC lower-band change while retaining the 18%-with-ITC
+upper band, canonical content hashes, and the three official source-byte hashes.
+Tenant identity is hidden from the result but included in its evidence hash. No
+history is seeded, extension state is changed, retired content is selected for a
+stay, and no section14, tax, fiscal-document, IRP, API, or UI behavior is implied.
+
 ### Property-local business-day instant evidence (Order 300)
 
 Order300 adds no entity, schema or inferred legal state. For Order238's already-derived
