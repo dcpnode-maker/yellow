@@ -739,3 +739,7 @@ D855 adds direct coherent property/date/jurisdiction join-conjunct mutation proo
 the first reviewer correctly withheld approval. Fresh Tier3 rereview remains pending.
 D856 adds direct D850 ancestry, whole-day member and family byte-order mutation proof
 after the second reviewer withheld approval. Fresh Tier3 rereview remains pending.
+D857 independently approves exact candidate `7e1c5f492e2d5876935fdf1e762c07f4c27b2759`.
+Nine separate join, ancestry, D850 pairing, containment and order-insensitive-family
+mutations each made permanent proof red and were restored exactly; focused/adjacent,
+full standing/static and unchanged D844 database lineage pass. No downstream authority.

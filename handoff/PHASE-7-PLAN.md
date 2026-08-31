@@ -825,6 +825,12 @@ historical join conjunct. Candidatec56fd9e was not approved; fresh rereview is p
 D856 records the next rereview remediation: coherent D850 supplier/recipient pairing,
 selected-day containment and exact family byte-order mutants now directly pin their
 guards. Candidate94d5f90 was not approved; fresh rereview remains mandatory.
+**D857 review complete:** A fresh non-implementing Tier3 rereviewer approves exact
+candidate `7e1c5f492e2d5876935fdf1e762c07f4c27b2759`. Nine separately executed
+join/ancestry/pairing/containment/order-insensitive-family mutations each made the
+permanent proof red9/1 and were exactly restored. Focused/adjacent19/0(243), standing
+1118/0+890 skips(16991), static gates and unchanged D844 database lineage pass.
+Approval remains frozen evidence-only with no downstream authority.
 **D847 review complete:** A fresh non-implementing Tier-3 reviewer approves exact
 candidate `6e0824df2a6afff5a83573d463bbee4cf73b436e` with no finding. Reviewer-owned
 tenant/pair-hash, identity/version/status/period, GST_ROOM, source/date, freeze/hash

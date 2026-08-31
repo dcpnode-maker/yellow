@@ -1268,3 +1268,10 @@ Tier3 rereview remains mandatory.
 D850 supplier/recipient, sole selected-day containment and byte-order mutations stayed
 green. Targeted coherent hostile fixtures now pin all four; focused/adjacent19/0(243),
 type/diff pass. Fresh Tier3 rereview remains mandatory.
+**Order309 independently approved — D857:** Fresh non-implementing Tier3 rereviewer
+approves exact candidate `7e1c5f492e2d5876935fdf1e762c07f4c27b2759` after nine separate
+property/date/jurisdiction-id/version/content, Order287→308 exact-match, D850 supplier/
+recipient, whole-day member and order-insensitive-family mutations each made permanent
+proof red9/1 and were exactly restored. Focused/adjacent19/0(243), full standing
+1118/0+890 skips(16991) under the documented 30-second timeout, static gates and
+unchanged D844 fresh59/110/referee11/11 lineage pass. Approval is evidence-only.

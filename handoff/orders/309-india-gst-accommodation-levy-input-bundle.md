@@ -1,6 +1,6 @@
 # Order 309 — India GST accommodation levy-input bundle
 
-**Status:** REMEDIATED-PENDING-FRESH-TIER3-REREVIEW-D856
+**Status:** APPROVED-D857
 **Phase:** 7 — Tax engine and India IRP
 **Branch:** `phase-7/india-gst-accommodation-levy-input-bundle`
 **Base:** `4e1b109` (independently approved Order308 governance head)
@@ -61,4 +61,4 @@ Phase/application-complete authority.
 - [x] Intentional red precedes production.
 - [x] Focused mutation-sensitive proof is green.
 - [x] Standing/static/setup/schema/referee preservation gates are green.
-- [ ] Fresh non-implementing Tier-3 reviewer personally executes proof and approves.
+- [x] Fresh non-implementing Tier-3 reviewer personally executes proof and approves.
