@@ -1041,6 +1041,24 @@ SELECT count(DISTINCT tenant_id) FROM current_rate_price; -- Expected: 1
 
 ## SQL Health Check Queries (Run After Any Test)
 
+### TC-8.6 🔒 Order307 rate-change-date evidence boundary
+
+**Setup:** Use the exact approved India accommodation predecessor/successor pair
+and its official Notification 15/2025 source evidence.
+
+**Action:** Resolve with exactly `{tenantId, rateVersionPair}`; recompute the
+tenant-bound pair hash before deriving the source-bound rate-change date.
+
+**Expected:** The result is recursively frozen and deterministically replayable,
+derives `2025-09-22` from Kolkata midnight at
+`2025-09-21T18:30:00.000000Z`, and includes pair/source/evidence hashes. Any
+substituted pair field, source hash, period, threshold, band, ITC flag, nil-band
+claim, caller date, clock, timezone, calendar field, or surplus input is rejected.
+
+**Authority boundary:** This test proves evidence only. It must not classify
+Section 14, count working days, select a tax rate, calculate GST, post, issue a
+document, submit to IRP, or mutate any database row.
+
 ```sql
 -- 1. All journals balance?
 SELECT j.id, j.kind, SUM(pl.amount_minor) as imbalance

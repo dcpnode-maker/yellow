@@ -775,3 +775,10 @@ Order307 is a pure evidence bridge from the independently approved rate-version 
 to fixed statutory date 2025-09-22. It accepts no date/calendar/clock authority and
 does not decide section14 or tax. The unresolved production working-day calendar
 remains fail closed and separate.
+Build D846 is green: intentional red preceded production; exact tenant/pair-hash and
+complete governed-content revalidation includes hostile fully rehashed semantic
+mutants. Focused/adjacent17/0(349), standing1097/0+890 skips(16743), type/
+boundary124/licence23/audit0/diff pass. No schema/runtime-writer path changed, so the
+approved D844 fresh59/110/referee11/11 baseline remains exact; a fresh direct-port
+rerun was precondition-blocked by PostgreSQL28P01 before mutation. Fresh Tier3 review
+remains mandatory and no downstream authority is claimed.

@@ -1213,3 +1213,11 @@ from its Kolkata-midnight transition. Return frozen source/pair/hash evidence on
 no caller date, clock/timezone/latest selection, calendar, section14 matrix, tax,
 fiscal/API/UI/local authority. D-845 requires intentional red, hostile proof,
 preservation gates and fresh Tier3 review.
+D-846 records the built candidate: red0/1 preceded production; exact tenant-bound
+pair-hash and complete governed-content revalidation, including hostile recomputed
+content/pair hashes, pass focused/adjacent17/0(349). Standing1097/0+890 skips(16743;
+1987 tests/360 files), type/boundary124/licence23/audit0/diff are green. No SQL,
+migration, schema, role or runtime-writer path changed, preserving D844's approved
+fresh59/110/referee11/11 baseline; a new direct-port disposable rerun was
+precondition-blocked by PostgreSQL28P01 before mutation. Fresh Tier3 review remains
+mandatory and no downstream authority is claimed.

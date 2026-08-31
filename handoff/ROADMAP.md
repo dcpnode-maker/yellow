@@ -694,3 +694,10 @@ Notification15/2025 statutory rate-change date `2025-09-22`. Derive that date fr
 the source-bound Kolkata-midnight transition and return frozen evidence only; caller
 dates, clocks, calendars and section14/tax conclusions remain forbidden. A governed
 working-day calendar remains a later policy-authority order.
+Build D846 completes the implementation side with red-before-production, exact
+tenant-bound pair-hash recomputation, complete governed-content revalidation and
+hostile fully rehashed semantic mutants. Focused/adjacent17/0(349), standing1097/0
+plus890 skips(16743), type/boundary124/licence23/audit0/diff pass. No schema or
+runtime-writer path changed; approved fresh59/110/referee11/11 evidence is preserved.
+A fresh direct-port rerun was precondition-blocked by PostgreSQL28P01 before any
+mutation. Fresh Tier3 approval remains mandatory.

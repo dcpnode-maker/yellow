@@ -405,6 +405,23 @@ prepare(document)→jurisdiction payload (UBL/PINT/IRP-JSON) · submit(payload)�
 Implement: `sa-zatca` (clearance, XAdES, PIH chain, TLV QR) · `in-irp` (IRN+signed QR) ·
 `ae-asp:<provider>` (PINT AE generate + hand-off; ASP does transmission — UAE law).
 
+## 8. India GST accommodation rate-change-date evidence (Order307)
+
+`deriveIndiaGstAccommodationRateChangeDate({ tenantId, rateVersionPair })` accepts
+only the database-derived tenant context and complete, approved predecessor/successor
+rate-version pair evidence. It recomputes the tenant-bound pair hash and revalidates the
+retired-v1/active-v2 identities, adjacent Kolkata-midnight periods, unchanged
+upper band, lower-band transition, thresholds, nil-band absence, and official
+source hashes. From the source-bound cutover instant
+`2025-09-21T18:30:00.000000Z` it derives the fixed statutory rate-change date
+`2025-09-22` and returns recursively frozen pair/source/hash evidence.
+
+This is an evidence-only internal surface: it accepts no caller date, clock,
+timezone, “latest” selector, or calendar input. It does not count working days,
+classify Section 14, apply a rate, calculate tax, post, issue fiscal documents,
+submit to IRP, or expose API/UI/local-runtime authority. Invalid, substituted,
+partial, or surplus evidence fails closed.
+
 ### Pure rules-driven tax evaluator
 
 Order 237 adds one in-process positive-charge evaluator for a caller-supplied

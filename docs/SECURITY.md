@@ -1094,6 +1094,22 @@ application retain separate scopes and exact property grants.
 - No field-level encryption beyond identity docs; revisit with first Gulf
   enterprise contract.
 
+## 9. Order307 statutory-date evidence boundary
+
+The accommodation rate-change date is derived only from the complete approved
+rate-version pair and its official Notification 15/2025 source evidence. The
+Kolkata-midnight cutover `2025-09-21T18:30:00.000000Z` yields the fixed date
+`2025-09-22`; the resolver does not trust caller-supplied dates, host clocks,
+timezone conversion, latest-version selection, or calendar interpretation.
+
+The result is recursively frozen, tenant-bound in its evidence hash, and carries
+no tenant identity publicly. Pair identity, periods, rates, thresholds, ITC/nil
+bands, source hashes, and the hidden-tenant pair hash are recomputed/revalidated;
+freezing a forged object grants no authority. Substitutions, omissions,
+duplicates, malformed or surplus fields fail closed. This read has no writer,
+database mutation, Section 14 classification, working-day count, tax/rate
+application, posting, fiscal/IRP, API/UI, or local-runtime authority.
+
 ### India GST supplier current-status containment (Order 289)
 
 The exact ten-column snapshot is tenant-leading, same-tenant FK-bound to the approved

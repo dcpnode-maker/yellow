@@ -351,3 +351,12 @@ export type {
   IndiaGstAccommodationHistoricalResolutionInput,
   IndiaGstAccommodationHistoricalResolutionResult,
 } from "./india-gst-accommodation-historical-resolution";
+export {
+  deriveIndiaGstAccommodationRateChangeDate,
+  IndiaGstAccommodationRateChangeDateValidationError,
+} from "./india-gst-accommodation-rate-change-date";
+export type {
+  IndiaGstAccommodationRateChangeDateIdentity,
+  IndiaGstAccommodationRateChangeDateInput,
+  IndiaGstAccommodationRateChangeDateResult,
+} from "./india-gst-accommodation-rate-change-date";

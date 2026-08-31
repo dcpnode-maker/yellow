@@ -1642,3 +1642,25 @@ disjoint, or malformed/non-increasing intervals fail closed. The India 2026 lowe
 instant is `2025-12-31T18:30:00Z` (Kolkata midnight); unassigned values skip extension
 reads. No fixed-duration or host/JavaScript clock is used. Section 14, working-day
 rules, rate changes, and old/new extension pairing are out of scope.
+
+### India GST accommodation rate-change-date evidence (Order307)
+
+Order307 adds no entity, table, migration, seed, or writer. Its pure evidence
+builder accepts exactly `{tenantId, rateVersionPair}`: database-derived tenant
+context plus one complete approved India accommodation rate-version pair, and
+recomputes the tenant-bound pair hash:
+retired v1 followed by active v2, adjacent at Kolkata midnight, with the
+unchanged upper band, the 12%-with-ITC to 5%-without-ITC lower-band transition,
+thresholds, nil-band absence, and official Notification 15/2025 source hashes.
+
+The source-bound cutover instant `2025-09-21T18:30:00.000000Z` derives the fixed
+statutory rate-change date `2025-09-22`. The output is frozen pair/source/hash
+evidence with tenant ownership included only inside its deterministic evidence
+hash. Missing, duplicate, altered, substituted, partial, malformed, or surplus
+evidence fails closed.
+
+This root is evidence only. It does not accept or use caller dates, clocks,
+timezone conversion, latest selection, working-day or holiday calendars, and it
+does not classify Section 14, apply a rate, calculate tax, post, issue fiscal
+documents, submit to IRP, or provide API/UI/local-runtime authority. Those are
+separate future policy boundaries.

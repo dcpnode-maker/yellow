@@ -1,6 +1,6 @@
 # Order 307 — India GST accommodation rate-change date evidence
 
-**Status:** READY-D845
+**Status:** BUILT-PENDING-FRESH-TIER3-REVIEW-D846
 **Phase:** 7 — Tax and India IRP
 **Branch:** `phase-7/india-gst-accommodation-rate-change-date`
 **Base:** `2c1edcc` (independently approved Order 306 governance head)
@@ -16,7 +16,9 @@ date, clock, timezone, calendar, “latest” selection or tax conclusion.
 
 ## Exact contract
 
-- Accept one exact `IndiaGstAccommodationRateVersionPairResult` only.
+- Accept exactly `{tenantId, rateVersionPair}`, where `tenantId` is the
+  database-derived tenant context and `rateVersionPair` is one exact
+  `IndiaGstAccommodationRateVersionPairResult`; recompute its tenant-bound hash.
 - Revalidate the complete deterministic ids, v1-retired/v2-active identity,
   Kolkata-midnight adjacent periods, unchanged upper band, 12%-ITC to 5%-no-ITC
   lower-band transition, thresholds, nil-band absence and official source hashes.
@@ -58,7 +60,9 @@ merge/deploy or Phase/application-complete claim.
 
 ## Definition of done
 
-- [ ] Intentional red precedes production.
-- [ ] Focused mutation-sensitive proof is green.
-- [ ] Standing/static/setup/schema/referee preservation gates are green.
+- [x] Intentional red precedes production.
+- [x] Focused mutation-sensitive proof is green.
+- [x] Standing/static gates are green and the unchanged-schema approved
+  setup/schema/referee baseline is preserved; a fresh disposable rerun was
+  precondition-blocked by PostgreSQL `28P01` before any mutation.
 - [ ] Fresh non-implementing Tier-3 reviewer personally executes proof and approves.
