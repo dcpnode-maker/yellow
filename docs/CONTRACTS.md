@@ -2265,6 +2265,19 @@ The minimized result preserves `supplierTimeOfSupplyEvidenceHash` and
 `recipientTimeOfSupplyEvidenceHash` separately; the predecessor-specific hash
 algorithms are never conflated into one cross-root hash.
 
+## Order302: India GST section 14 payment-proviso boundary
+
+`classifyIndiaGstSection14PaymentProviso(input)` is a pure, migration-free boundary
+classifier over exactly `supplierBooksEntryDate`, `supplierBankCreditDate`, and an
+explicitly asserted `rateChangeDate`, each a canonical civil date. Bank credit on or
+before the asserted change date (including equality) may retain the ordinary
+earlier-of-books/bank receipt date. A later credit returns only
+`working_day_calendar_required`, with no statutory receipt date or inferred working-day
+count. Malformed, noncanonical, missing/extra, accessor, proxy, symbol or unsupported
+inputs fail closed; recursively frozen fixed-order evidence is SHA-256 bound. The
+assertion grants no governed rate-change or section14 applicability, calendar, matrix,
+rate, tax, fiscal, database, API or UI authority.
+
 ## Order298: India GST accommodation effective rates
 
 The existing effective-dated `in-gst-lodging` extension retains its tax-exclusive,

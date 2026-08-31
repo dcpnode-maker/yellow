@@ -1263,6 +1263,19 @@ The output exposes `supplierTimeOfSupplyEvidenceHash` and
 `recipientTimeOfSupplyEvidenceHash` as distinct frozen evidence fields; it never
 collapses the approved Order295 non-tenant and Order296 tenant-bound hashes.
 
+## Order302 security boundary
+
+The pure classifier accepts only the three exact canonical civil-date fields: supplier
+books entry, supplier bank credit and an explicitly asserted rate-change date. Credit
+on/before the assertion, including equality, returns the ordinary earlier-of date;
+later credit returns only `working_day_calendar_required`. It performs no clock,
+JavaScript `Date`, timezone, weekday/weekend/holiday or working-day inference, database
+or network access, lock or mutation. Malformed, noncanonical, missing/extra,
+accessor/proxy/symbol and unsupported inputs fail closed. Output and fixed-order
+evidence are recursively frozen and SHA-256 bound. No governed rate-change or section14
+applicability, four-day calculation, six-case matrix, rate/tax/fiscal, database, API or
+UI authority is exposed.
+
 ## Order298 security boundary
 
 Order298 updates only the content of the existing effective-dated

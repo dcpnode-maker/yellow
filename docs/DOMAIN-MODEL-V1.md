@@ -1542,6 +1542,18 @@ time-of-supply hashes, `supplierTimeOfSupplyEvidenceHash` and
 `recipientTimeOfSupplyEvidenceHash`, because their approved predecessor hash
 algorithms differ.
 
+### India GST section 14 payment-proviso boundary (Order 302)
+
+Order302 adds no entity, table or migration. Its pure classifier accepts supplier-books
+entry, supplier-bank-credit and an explicitly asserted rate-change date as canonical
+civil-date evidence. Credit on/before the assertion, including equality, preserves
+the ordinary earlier-of-books/bank date; later credit yields only
+`working_day_calendar_required`, without a statutory receipt date or guessed working-day
+count. Frozen fixed-order evidence is hash-bound and malformed, surplus, missing or
+unsupported input fails closed. This is not governed rate-change or section14
+applicability authority and does not implement calendar inference, old/new pairing, the
+six-case matrix, rates, tax, posting, documents, API or UI behavior.
+
 ### India GST accommodation effective rates (Order 298)
 
 Order298 changes no entity or schema. The existing effective-dated
