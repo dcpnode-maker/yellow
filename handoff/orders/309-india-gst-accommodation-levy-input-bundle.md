@@ -1,6 +1,6 @@
 # Order 309 — India GST accommodation levy-input bundle
 
-**Status:** REMEDIATED-PENDING-FRESH-TIER3-REREVIEW-D855
+**Status:** REMEDIATED-PENDING-FRESH-TIER3-REREVIEW-D856
 **Phase:** 7 — Tax engine and India IRP
 **Branch:** `phase-7/india-gst-accommodation-levy-input-bundle`
 **Base:** `4e1b109` (independently approved Order308 governance head)

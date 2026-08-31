@@ -822,6 +822,9 @@ Tier3 review remains mandatory.
 D855 records remediation of the fresh-review mutation-sensitivity gap: coherent
 fully-rehashed Order287 property/date/jurisdiction crossings now reach and pin each
 historical join conjunct. Candidatec56fd9e was not approved; fresh rereview is pending.
+D856 records the next rereview remediation: coherent D850 supplier/recipient pairing,
+selected-day containment and exact family byte-order mutants now directly pin their
+guards. Candidate94d5f90 was not approved; fresh rereview remains mandatory.
 **D847 review complete:** A fresh non-implementing Tier-3 reviewer approves exact
 candidate `6e0824df2a6afff5a83573d463bbee4cf73b436e` with no finding. Reviewer-owned
 tenant/pair-hash, identity/version/status/period, GST_ROOM, source/date, freeze/hash

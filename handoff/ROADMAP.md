@@ -737,3 +737,5 @@ Build D854 passes focused/adjacent38/0(716), standing1117/0 plus890 skips(16981)
 and all static gates. Fresh Tier3 approval remains pending.
 D855 adds direct coherent property/date/jurisdiction join-conjunct mutation proof after
 the first reviewer correctly withheld approval. Fresh Tier3 rereview remains pending.
+D856 adds direct D850 ancestry, whole-day member and family byte-order mutation proof
+after the second reviewer withheld approval. Fresh Tier3 rereview remains pending.

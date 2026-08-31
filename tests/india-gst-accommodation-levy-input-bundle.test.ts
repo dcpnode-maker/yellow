@@ -214,6 +214,7 @@ describe("Order 309: India GST accommodation levy-input bundle", () => {
       ...reorderedBody,
       evidenceHash: digest({ tenantId: TENANT, ...reorderedBody }),
     });
+    expect(JSON.stringify(reorderedFamily)).not.toBe(JSON.stringify(baseFamily));
     reject(input(history, reorderedFamily, TENANT, baseNature));
   });
 
@@ -259,6 +260,13 @@ describe("Order 309: India GST accommodation levy-input bundle", () => {
       if (history.evidenceHash !== "2".repeat(64)) rehashHistory(history);
       reject(input(freeze(history), family));
     }
+    const crossedHistory = structuredClone(original);
+    crossedHistory.selectedExtension = crossedHistory.rateVersionPair.predecessor;
+    rehashHistory(crossedHistory);
+    const frozenHistory = freeze(crossedHistory);
+    const crossedNature = nature(frozenHistory, "igst");
+    const crossedFamily = component(frozenHistory, "igst", crossedNature);
+    reject(bundleInput(frozenHistory, crossedNature, crossedFamily));
   });
 
   test("reaches D-850 taxpayer-type versus SEZ-status ancestry through supplied nature", async () => {
@@ -267,8 +275,19 @@ describe("Order 309: India GST accommodation levy-input bundle", () => {
       const hostile = structuredClone(supply);
       hostile[side].status.taxpayerType = "regular";
       hostile[side].status.sezStatus = "sez_unit";
+      hostile.supplyNature = "inter_state";
+      hostile.determinationBasis = "sez_override";
+      hostile.sezDirection = side === "supplier" ? "by_sez" : "to_sez";
+      hostile.legalRule = "IGST_ACT_7_5_B";
       rehashNature(hostile);
-      reject(bundleInput(history, freeze(hostile), family));
+      const hostileFamily = structuredClone(family);
+      hostileFamily.supplyNature = "inter_state";
+      hostileFamily.determinationBasis = "sez_override";
+      hostileFamily.sezDirection = hostile.sezDirection;
+      hostileFamily.legalSources.supplyNature = "IGST_ACT_7_5_B";
+      hostileFamily.predecessorCandidateHash = hostile.candidateHash;
+      rehashComponent(hostileFamily);
+      reject(bundleInput(history, freeze(hostile), freeze(hostileFamily)));
     }
   });
 

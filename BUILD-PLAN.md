@@ -1264,3 +1264,7 @@ governing; fresh Tier3 is mandatory and no downstream authority is claimed.
 conjunct removals stayed green. Permanent coherent fully-rehashed property/date/
 jurisdiction crossings now pin those paths; focused11/0(165), type/diff pass. Fresh
 Tier3 rereview remains mandatory.
+**Order309 second remediation — D856:** Candidate94d5f90 was not approved because
+D850 supplier/recipient, sole selected-day containment and byte-order mutations stayed
+green. Targeted coherent hostile fixtures now pin all four; focused/adjacent19/0(243),
+type/diff pass. Fresh Tier3 rereview remains mandatory.
