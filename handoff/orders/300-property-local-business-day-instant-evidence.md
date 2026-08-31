@@ -1,6 +1,6 @@
 # Order 300 — Property-local business-day instant evidence
 
-**Status:** REPAIRED-PENDING-FRESH-TIER3-REREVIEW-D823
+**Status:** CHANGES-REQUIRED-D824
 **Phase:** 7 — Tax and India IRP
 **Branch:** `phase-7/property-local-business-day-instant-evidence`
 **Base:** `0b90973` (independently approved Order 299)
@@ -86,3 +86,6 @@ promotion, merge/deploy or Phase/application-complete claim.
 - D-822's proof gap is repaired: permanent assertions vary timezone, lower instant and
   upper instant independently and require both assignment and jurisdiction evidence
   references to change. The reviewer's exact upper-bound-removal mutant is red.
+- D-824's fresh final rereview finds the executable product and mutation proof green,
+  but the exact candidate fails `git diff --check` because the prior review file has a
+  surplus blank line at EOF. Final DoD remains unchecked pending repair and rereview.
