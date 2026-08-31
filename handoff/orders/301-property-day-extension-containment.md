@@ -1,6 +1,6 @@
 # Order 301 — Property-day extension containment
 
-**Status:** BUILT-PENDING-FRESH-TIER3-REVIEW-D828
+**Status:** APPROVED-D829
 **Phase:** 7 — Tax and India IRP
 **Branch:** `phase-7/property-day-extension-containment`
 **Base:** `e352a91` (independently approved Order 300)
@@ -71,7 +71,7 @@ any non-India fixture.
 - [x] Intentional red precedes implementation.
 - [x] Exact whole-day containment, India fixture and hostile temporal proof are green.
 - [x] Standing/static/setup/referee preservation gates are green.
-- [ ] Fresh non-implementing Tier-3 reviewer personally executes proof and approves.
+- [x] Fresh non-implementing Tier-3 reviewer personally executes proof and approves.
 
 ## Built evidence
 
