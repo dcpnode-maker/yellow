@@ -1,6 +1,6 @@
 # Order 311 — Recover and refresh the sole management-demo local
 
-**Status:** READY-D861
+**Status:** BUILT-PENDING-FRESH-TIER3-REVIEW-D862
 **Phase:** 7 — Tax engine and India IRP
 **Branch:** `phase-7/current-management-demo-local`
 **Base:** `3f50f7e` (independently approved Order310 governance head)
@@ -57,7 +57,31 @@ restoration requires closing the local and replaying the verified dump into a ne
 
 ## Definition of done
 
-- [ ] Status implementation and proof are green.
-- [ ] Verified hotel data is restored and migrated forward exactly once.
-- [ ] Sole local login and management-demo journeys are executable.
+- [x] Status implementation and proof are green.
+- [x] Verified hotel data is restored and migrated forward exactly once.
+- [x] Sole local login and management-demo journeys are executable.
 - [ ] Fresh independent verification is recorded.
+
+## Builder evidence — D862
+
+- Exact candidate: `2f7198c716fad2b260164a94010fc90a2baa1174`.
+- The retained Order274 dump SHA-256 is
+  `fe535af1da59b1aa95d11900dbddedf0c355f7b8407df1ec344597297dfca99c`;
+  its catalogue/manifests and protected authority/login files were present without
+  secret output.
+- A fresh volume restored the dump at migration46, applied committed migrations47–59,
+  and a second production-runner pass applied zero. The resulting database contains
+  59 migration records, 112 public tables, 100 policies and two authorized properties.
+- A separate Codex task accidentally inserted one synthetic Party into the first
+  restored volume. No destructive row repair was attempted: the local was replayed
+  cleanly from the verified dump into a replacement volume, exact clean counts were
+  re-established (`party=8`, `contact=0`, `party_role=8`, `fact=75`, `outbox=22`),
+  and only the contaminated disposable volume was removed.
+- Exactly one UI local is exposed at `127.0.0.1:3000`; ports3002,3123 and3188 are
+  closed. PostgreSQL has no host bind; the synthetic provider companion and Valkey are
+  loopback-only. All four exact Order311 containers are healthy.
+- Protected operator login succeeds, discovers both authorized properties, and each
+  property returns truthful `310/311/91/phase7` status. Twelve management pages per
+  property return HTTP200; bounded read APIs were exercised without business mutation.
+- Standing proof passes1125/0 with890 expected skips (17101 assertions;2015 tests/366
+  files); typecheck, boundaries6/0(27), licence23, audit0 and diff checks pass.

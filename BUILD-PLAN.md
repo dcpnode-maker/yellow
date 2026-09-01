@@ -1296,3 +1296,12 @@ focused/adjacent25/0(369), standing1124/0+890 skips(17117), type/boundary127/
 licence23/audit0/diff/ancestry/scope. D844 unchanged database/referee evidence remains
 governing. Approval grants only levy-component identity evidence and no numeric split
 or downstream fiscal authority.
+
+**Order311 management-demo local built pending review — D862:** The verified retained
+hotel backup was replayed into a clean replacement volume, committed migrations47–59
+were applied exactly once with a zero-work rerun, and the current truthful Order310/311
+product is healthy on the sole loopback UI port3000. Protected login, both authorized
+properties, status310/311/91/P7 and twelve existing management pages per property pass.
+Standing1125/0+890 skips plus static gates pass. This activates only already-built
+journeys for local demonstration; fresh independent non-operating review remains
+mandatory and no unfinished phase is claimed complete.
