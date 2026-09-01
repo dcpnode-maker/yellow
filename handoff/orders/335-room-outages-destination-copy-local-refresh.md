@@ -1,6 +1,6 @@
 # Order 335 — Room outages destination-copy local refresh
 
-**Status:** BUILT-LOCALLY-PENDING-FRESH-TIER3-REVIEW-D937
+**Status:** WITHHELD-FRESH-TIER3-D938
 **Phase:** 7 — founder-visible presentation of already-built journeys
 **Branch:** `phase-7/room-outages-destination-copy-local-refresh`
 **Base:** `fc5b048` (independently approved Order334 governance head)
@@ -28,8 +28,8 @@ permission,authority or post310 statutory change;no merge,push,deployment or rol
 ## Definition of done
 
 - [x] Exact image is sole healthy loopback3000 and Order333 is retained stopped.
-- [ ] Protected/browser/routes/status/database/topology proof passes.
-- [ ] Fresh non-operating Tier3 reviewer approves exact runtime.
+- [x] Protected/browser/routes/status/database proof passes.
+- [ ] Fresh non-operating Tier3 reviewer approves exact runtime (withheld D938: retained Order333 rollback exited 139, not required 0).
 
 ## Builder evidence — D937
 
@@ -41,3 +41,15 @@ permission,authority or post310 statutory change;no merge,push,deployment or rol
   PostgreSQL,provider,Valkey are healthy;3002/3123/3188 are closed.
 - No database,credential,status,permission,authority or post310 work occurred.
   Fresh Tier3 must personally prove live protected/browser/database truth.
+
+## Fresh independent Tier3 review — D938
+
+- Exact runtime/image, sole healthy loopback3000/restart0, 24-entry secret-safe
+  environment digest equality, inherited network/bind/health, healthy companions,
+  closed obsolete ports, image/source bytes, protected one-button login,2 properties,
+  24/24 no-store routes,status310/311/91/P7/11,live Room outages copy,72/72
+  responsive/accessibility cells,focused15/0(162),console/errors0,non-read network0
+  and unchanged read-only database59/110+2/100/2 plus8/0/8/75/22 all pass.
+- **WITHHOLD:** retained `yellow-order333-app-rollback-d932` is stopped with restart0
+  but exit code139, contradicting the required rollback0 and D937's exact claim.
+  The reviewer did not start,stop,restart,replace or delete any runtime/data surface.
