@@ -1038,6 +1038,11 @@ trailing/source/tenant hash omissions and a valid contiguous367-day acceptance. 
 closes only governed calendar evidence; payment-date conclusion,section14 matrix and
 all downstream tax/fiscal/runtime work remain bounded future orders.
 
+D970 readies Order344 after Order343 approval: implement the ratified accounting-only
+owner-trust negative guard with derived credit-normal availability and exact one-use
+four-eyes authorization. It is service/database only and grants no payout, statement,
+split, reconciliation, UI, tax/fiscal, checkout, day-close or local authority.
+
 D968 WITHHOLDS Order342 Phase6 exit approval solely on three stale permanent
 migration0059/runtime-capability oracles; all product journeys, hostile boundaries,
 schema, standing and referee proof pass. D969 opens Order343 as the exact test-only

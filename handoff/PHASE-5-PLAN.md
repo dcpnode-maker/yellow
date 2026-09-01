@@ -63,3 +63,14 @@ route owner funds without its approval-backed model.
 
 Every order requires its own Natural-Solution Test, exact Scope and Forbidden list,
 intentional red, fresh PostgreSQL proof and independent non-implementing review.
+
+## Order344 — governed owner-trust negative authorization
+
+D970 reactivates the founder-approved Question140-F guard after Order343. One
+accounting-only owner expense debits an exact party-owned credit-normal trust account
+and credits a configured same-property/currency payable. Available funds are derived
+only as the negated immutable posting sum; crossing below zero consumes one exact
+different-user approval bound relationally to the journal and before/after truth.
+Migration0060, one insert-only authorization table and one tightly scoped database
+capability are admitted. Payouts, owner splits/statements/commissions/reconciliation,
+HTTP/UI, tax/fiscal, checkout, day-close and local promotion remain excluded.
