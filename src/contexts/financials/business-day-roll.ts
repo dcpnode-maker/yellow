@@ -244,12 +244,14 @@ export class BusinessDayRollWorker {
       1, MAX_SCOPE_BATCH_SIZE);
   }
 
-  async drainOnce(): Promise<BusinessDayRollDrainResult> {
+  async drainOnce(signal?: AbortSignal): Promise<BusinessDayRollDrainResult> {
+    if (signal?.aborted) return Object.freeze({ scopes: 0, opened: 0, failures: Object.freeze([]) });
     const scopes = await this.#source.listDueScopes(this.#scopeBatchSize);
     if (scopes.length > this.#scopeBatchSize) throw new Error("due business-day scope source exceeded its requested limit");
     let opened = 0;
     const failures: BusinessDayRollFailure[] = [];
     for (const scope of scopes) {
+      if (signal?.aborted) break;
       try {
         const tenantId = uuid(scope.tenantId, "scope tenantId");
         const propertyNode = uuid(scope.propertyNode, "scope propertyNode");
@@ -277,7 +279,7 @@ export class BusinessDayRollWorker {
       const startedAt = Date.now();
       options.onPoll?.(startedAt);
       try {
-        options.onResult?.(await this.drainOnce());
+        options.onResult?.(await this.drainOnce(options.signal));
       } catch (error) {
         options.onError?.(error);
       }

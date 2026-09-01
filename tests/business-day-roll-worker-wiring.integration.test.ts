@@ -17,6 +17,73 @@ class StaticSource implements DueBusinessDayScopeSource {
 }
 
 describe("Order 347 business-day roll worker wiring", () => {
+  test("an already-aborted drain does not discover or execute scopes", async () => {
+    const controller = new AbortController();
+    controller.abort();
+    let discoveries = 0;
+    let writes = 0;
+    const worker = new BusinessDayRollWorker({
+      async openCurrentBusinessDay(input) {
+        writes += 1;
+        return { tenantId: input.tenantId, propertyNode: input.propertyNode,
+          businessDate: "2047-01-01", opened: true };
+      },
+    }, {
+      async listDueScopes() {
+        discoveries += 1;
+        return [{ tenantId: TENANT, propertyNode: PROPERTY }];
+      },
+    });
+
+    expect(await worker.drainOnce(controller.signal)).toEqual({ scopes: 0, opened: 0, failures: [] });
+    expect({ discoveries, writes }).toEqual({ discoveries: 0, writes: 0 });
+  });
+
+  test("abort during one scope finishes it but prevents later scopes and cycles", async () => {
+    const second = "00000000-0000-0000-0000-000000034703";
+    const controller = new AbortController();
+    const calls: string[] = [];
+    let discoveries = 0;
+    let results = 0;
+    let failures = 0;
+    let entered!: () => void;
+    let release!: () => void;
+    const firstEntered = new Promise<void>((resolve) => { entered = resolve; });
+    const firstReleased = new Promise<void>((resolve) => { release = resolve; });
+    const worker = new BusinessDayRollWorker({
+      async openCurrentBusinessDay(input) {
+        calls.push(input.propertyNode);
+        if (input.propertyNode === PROPERTY) {
+          entered();
+          await firstReleased;
+        }
+        return { tenantId: input.tenantId, propertyNode: input.propertyNode,
+          businessDate: "2047-01-01", opened: true };
+      },
+    }, {
+      async listDueScopes() {
+        discoveries += 1;
+        return [{ tenantId: TENANT, propertyNode: PROPERTY }, { tenantId: TENANT, propertyNode: second }];
+      },
+    }, { pollIntervalMs: 100 });
+
+    const running = worker.run({
+      signal: controller.signal,
+      onResult() { results += 1; },
+      onError() { failures += 1; },
+    });
+    await firstEntered;
+    controller.abort();
+    release();
+    await Promise.race([
+      running,
+      new Promise((_, reject) => setTimeout(() => reject(new Error("worker did not stop promptly")), 1_000)),
+    ]);
+
+    expect(calls).toEqual([PROPERTY]);
+    expect({ discoveries, results, failures }).toEqual({ discoveries: 1, results: 1, failures: 0 });
+  });
+
   test("one cycle binds a bounded scope to the server-created audit envelope", async () => {
     const calls: OpenCurrentBusinessDayInput[] = [];
     const worker = new BusinessDayRollWorker({
