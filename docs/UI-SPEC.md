@@ -53,7 +53,7 @@ CONTRACTS.md endpoint — no palette-only capabilities.
    with reason if guard fails).
 4. **Folio workbench** — one immutable postings workspace with a roving tablist of
    server-owned Business, Personal, Corrections or custom windows. Statement, Add
-   charge and Organize charges are inline tasks. Organize selects whole server groups,
+   charge and Separate charges are inline tasks. Separate charges selects whole server groups,
    one sibling destination, reason, server preview and acknowledgement before a new
    balanced transfer is appended. Drag in Advanced/Expert only populates that review;
    keyboard/buttons are complete equivalents. Correction is contextual from an

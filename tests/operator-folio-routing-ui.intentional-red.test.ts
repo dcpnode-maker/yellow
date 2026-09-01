@@ -27,7 +27,7 @@ test("Order188 P0/P6: one workbench has roving folio-window tabs and contextual 
   expect(html).toContain('id="folio-organize-form"');
   expect(html).toContain("Statement");
   expect(html).toContain("Add charge");
-  expect(html).toContain("Organize charges");
+  expect(html).toContain("Separate charges");
   expect(html).not.toContain('id="folio-tab-correction"');
   expect(`${html}\n${script}`).toContain("Correct a wrong charge");
 
