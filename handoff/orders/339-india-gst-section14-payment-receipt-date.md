@@ -1,6 +1,6 @@
 # Order 339 — India GST section 14 governed payment-receipt date
 
-**Status:** BUILT-PENDING-FRESH-TIER3-REVIEW-D950
+**Status:** REVIEW-WITHHELD-PROOF-SENSITIVITY-D951
 **Phase:** 7 — Tax engine and India IRP
 **Branch:** `phase-7/india-gst-section14-payment-receipt-date`
 **Base:** `3f91134` (independently approved Order338 governance head)
@@ -75,3 +75,27 @@ fiscal document, IRP, merge, deploy, Phase-complete or application-complete clai
   policy, zero-vulnerability audit and diff hygiene are green.
 - No migration/schema/seed/query/writer/database/runtime/local artifact changed.
   Fresh independent Tier3 executable review remains mandatory.
+
+## Fresh independent Tier3 review — D951
+
+- **WITHHOLD** exact candidate `ea190dd` on permanent-proof sensitivity only. Source
+  and statutory semantics have no product finding: official CGST Act section14 says
+  ordinary receipt is books/bank earlier-of and substitutes bank only when credit is
+  after four working days; production uses strict `>` with governed coverage.
+- Reviewer mutants for `>=`,always-bank,always-earlier,missing bank coverage,ignored
+  Order307/302/338 supplied-result replay and omitted tenant final-hash binding all
+  fail. Full ancestry,freeze,insertion-byte replay,scope and containment pass.
+- One non-equivalent mutant replacing returned `calendarSourceDigestSha256` with an
+  unrelated constant survives. The permanent proof recomputes the final hash over
+  the mutant's own body but never asserts that returned calendar authority/source
+  equal the rederived Order338 evidence. Permanently bind both returned source fields
+  to `workingDayEvidence`/calendar input and kill this mutant.
+- Removing the explicit calendar-required-state guard also survives because the
+  current negative case is rejected independently by missing coverage; under valid
+  Order302+338 ancestry the coverage invariant makes this guard behaviorally
+  redundant. Add an explicit structural/source assertion pinning the required guard,
+  or document/prove the redundancy without weakening the contract.
+- Personal focused Orders302/307/338/339 pass26/0(233);standing1169/0 plus890
+  expected skips(17686;2059 tests/380 files),typecheck,130 boundaries,23 licences,
+  audit0,ancestry/scope/diff pass. No repository product/test or runtime/data surface
+  was changed.

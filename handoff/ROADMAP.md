@@ -931,6 +931,14 @@ replay and exact through-fourth/strictly-after boundaries pass focused27/0,
 standing1169/0 plus890 expected skips and all static gates without DB/runtime change.
 Fresh Tier3 executable approval remains mandatory.
 
+D951 withholds Order339 on permanent-proof sensitivity only. Product/statutory
+semantics and all normal gates are green, but an unrelated returned calendar source
+digest survives because proof self-hashes the mutant body without equality-binding
+the returned authority/source to rederived Order338 truth. The explicit
+calendar-required guard is also not independently mutation-sensitive because valid
+bank coverage currently implies that branch. Repair the permanent proof and obtain a
+different fresh Tier3 rereview; no downstream authority is admitted.
+
 D948 independently approves exact Order338 implementation1d81944/governance53a495a
 with no finding. Official CGST section14 authority, exact source/ancestry/scope,
 focused23/0,standing1162/0 plus890 skips and static gates pass. Reviewer-owned
