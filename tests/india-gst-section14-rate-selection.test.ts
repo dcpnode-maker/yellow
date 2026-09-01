@@ -27,6 +27,7 @@ const QUOTE = "a".repeat(64), SERVICE_EVIDENCE = "b".repeat(64), PAYMENT_EVIDENC
 function stable(value: any): string { if (value === null || typeof value !== "object") return JSON.stringify(value); if (Array.isArray(value)) return `[${value.map(stable).join(",")}]`; return `{${Object.keys(value).sort().map((key) => `${JSON.stringify(key)}:${stable(value[key])}`).join(",")}}`; }
 const hash = (value: unknown) => new Bun.CryptoHasher("sha256").update(stable(value)).digest("hex");
 function freeze<T>(value: T, seen = new Set<object>()): T { if (typeof value !== "object" || value === null || seen.has(value)) return value; seen.add(value); for (const key of Reflect.ownKeys(value)) freeze((value as Mutable)[key], seen); return Object.freeze(value); }
+function expectDeepFrozen(value: unknown, seen = new Set<object>()): void { if (typeof value !== "object" || value === null || seen.has(value)) return; seen.add(value); expect(Object.isFrozen(value)).toBeTrue(); for (const key of Reflect.ownKeys(value)) expectDeepFrozen((value as Mutable)[key], seen); }
 function content(lower: number, itc: boolean) { return { country: "IN", price_display: "tax_exclusive", rounding: "document", taxes: [{ code: "GST_ROOM", name: "GST on accommodation", mode: "slab_percent", slab_basis: "transaction_value", applies_to: ["room_revenue"], slabs: [{ upto_minor: 750000, rate: lower, itc_eligible: itc }, { upto_minor: null, rate: 0.18, itc_eligible: true }] }] }; }
 function version(extensionId: string, number: 1 | 2, status: "retired" | "active", lower: number, itc: boolean, from: string, to: string | null) { const body = content(lower, itc); return { extensionId, key: "in-gst-lodging", version: number, status, effectiveFromInstant: from, effectiveToInstant: to, content: body, contentHash: hash(body), gstRoomSlabs: [{ uptoMinor: 750000, rate: lower, itcEligible: itc }, { uptoMinor: null, rate: 0.18, itcEligible: true }] }; }
 function pair(tenant = TENANT) { const predecessor = version(PREDECESSOR, 1, "retired", 0.12, true, PRE_FROM, CUTOVER), successor = version(SUCCESSOR, 2, "active", 0.05, false, CUTOVER, null); const body = { propertyNode: PROPERTY, predecessor, successor, cutoverInstant: CUTOVER, statutoryLowerBandDelta: { thresholdMinor: 750000, predecessorRate: 0.12, predecessorItcEligible: true, successorRate: 0.05, successorItcEligible: false, predecessorHasNilBand: false, successorHasNilBand: false }, sourceHashes: { notification20_2019: SOURCE20, notification04_2022: SOURCE04, notification15_2025: SOURCE15 } }; return freeze({ ...body, evidenceHash: hash({ tenantId: tenant, predecessorOwnerTenantId: null, successorOwnerTenantId: null, ...body }) }); }
@@ -63,11 +64,13 @@ async function fixture(serviceDate: string, booksDate: string, bankDate: string,
 describe("Order 340: India GST section14 six-case rate selection", () => {
   test("implements only the statutory six cases and both earlier-of directions", async () => {
     const cases = [
-      ["2025-09-21", "2025-09-23", "2025-09-24", "2025-09-23", "supply_before_invoice_after_payment_after", "2025-09-23", "successor"],
+      ["2025-09-21", "2025-09-24", "2025-09-25", "2025-09-23", "supply_before_invoice_after_payment_after", "2025-09-23", "successor"],
+      ["2025-09-21", "2025-09-23", "2025-09-24", "2025-09-25", "supply_before_invoice_after_payment_after", "2025-09-23", "successor"],
       ["2025-09-21", "2025-09-23", "2025-09-24", "2025-09-21", "supply_invoice_before_payment_after", "2025-09-21", "predecessor"],
       ["2025-09-21", "2025-09-21", "2025-09-23", "2025-09-23", "supply_payment_before_invoice_after", "2025-09-21", "predecessor"],
       ["2025-09-23", "2025-09-23", "2025-09-24", "2025-09-21", "supply_after_invoice_before_payment_after", "2025-09-23", "successor"],
       ["2025-09-23", "2025-09-21", "2025-09-20", "2025-09-21", "supply_after_invoice_payment_before", "2025-09-20", "predecessor"],
+      ["2025-09-23", "2025-09-21", "2025-09-20", "2025-09-19", "supply_after_invoice_payment_before", "2025-09-19", "predecessor"],
       ["2025-09-23", "2025-09-20", "2025-09-21", "2025-09-23", "supply_invoice_after_payment_before", "2025-09-23", "successor"],
     ] as const;
     for (const [service, books, bank, invoice, statutoryCase, time, side] of cases) {
@@ -94,22 +97,40 @@ describe("Order 340: India GST section14 six-case rate selection", () => {
       const changed = structuredClone(safe.input[key]) as Mutable; changed.evidenceHash = "0".repeat(64); freeze(changed);
       await expect(new IndiaGstSection14RateSelectionService().resolve(txFor(safe.rowSet), { ...safe.input, [key]: changed } as never)).rejects.toThrow();
     }
+    const changedSafe = structuredClone(safe.input.paymentEvidence) as Mutable; changedSafe.paymentProvisoEvidence.evidenceHash = "1".repeat(64); freeze(changedSafe);
+    await expect(new IndiaGstSection14RateSelectionService().resolve(txFor(safe.rowSet), { ...safe.input, paymentEvidence: changedSafe } as never)).rejects.toThrow();
+    for (const key of ["paymentProvisoEvidence", "workingDayEvidence", "paymentReceiptEvidence"] as const) {
+      const changed = structuredClone(calendar.input.paymentEvidence) as Mutable; changed[key].evidenceHash = "2".repeat(64); freeze(changed);
+      await expect(new IndiaGstSection14RateSelectionService().resolve(txFor(calendar.rowSet), { ...calendar.input, paymentEvidence: changed } as never)).rejects.toThrow();
+    }
   });
 
   test("fails closed for equality, non-enumerated arrangements, mutable results, and tenant/lineage swaps", async () => {
-    for (const dates of [["2025-09-22", "2025-09-20", "2025-09-21", "2025-09-23"], ["2025-09-21", "2025-09-20", "2025-09-21", "2025-09-20"], ["2025-09-23", "2025-09-23", "2025-09-24", "2025-09-23"]] as const) {
+    for (const dates of [["2025-09-22", "2025-09-20", "2025-09-21", "2025-09-23"], ["2025-09-21", "2025-09-20", "2025-09-21", "2025-09-22"], ["2025-09-21", "2025-09-22", "2025-09-22", "2025-09-23"], ["2025-09-21", "2025-09-20", "2025-09-21", "2025-09-20"], ["2025-09-23", "2025-09-23", "2025-09-24", "2025-09-23"]] as const) {
       const built = await fixture(dates[0], dates[1], dates[2], dates[3]); await expect(new IndiaGstSection14RateSelectionService().resolve(txFor(built.rowSet), built.input as never)).rejects.toThrow();
     }
     const built = await fixture("2025-09-21", "2025-09-20", "2025-09-21", "2025-09-23");
     await expect(new IndiaGstSection14RateSelectionService().resolve(txFor(built.rowSet), { ...built.input, serviceProvisionResult: { ...built.input.serviceProvisionResult } } as never)).rejects.toThrow();
     await expect(new IndiaGstSection14RateSelectionService().resolve(txFor(built.rowSet), { ...built.input, tenantId: OTHER } as never)).rejects.toThrow();
+    await expect(new IndiaGstSection14RateSelectionService().resolve(txFor(built.rowSet), { ...built.input, rate: 500 } as never)).rejects.toThrow();
+    await expect(new IndiaGstSection14RateSelectionService().resolve(txFor(built.rowSet), new Proxy(built.input, {}) as never)).rejects.toThrow();
+    const accessor = { ...built.input } as Mutable; Object.defineProperty(accessor, "reservationId", { enumerable: true, get: () => RESERVATION });
+    await expect(new IndiaGstSection14RateSelectionService().resolve(txFor(built.rowSet), accessor as never)).rejects.toThrow();
+    const symbolic = { ...built.input } as Mutable; symbolic[Symbol("x")] = true;
+    await expect(new IndiaGstSection14RateSelectionService().resolve(txFor(built.rowSet), symbolic as never)).rejects.toThrow();
   });
 
   test("returns frozen tenant-hidden version identity and tenant-bound complete hashes", async () => {
     const built = await fixture("2025-09-21", "2025-09-20", "2025-09-21", "2025-09-23");
     const actual = await new IndiaGstSection14RateSelectionService().resolve(txFor(built.rowSet), built.input as never);
-    expect(Object.isFrozen(actual)).toBeTrue(); expect(JSON.stringify(actual)).not.toContain(TENANT); expect(actual).not.toHaveProperty("rate"); expect(actual.selectedVersion).not.toHaveProperty("gstRoomSlabs");
-    expect(actual.predecessorHashes).toEqual(expect.objectContaining({ rateVersionPair: built.input.rateVersionPair.evidenceHash, serviceProvision: built.input.serviceProvisionResult.evidenceHash, paymentReceipt: built.input.paymentReceiptResult.evidenceHash, invoiceIssue: built.input.invoiceIssueResult.evidenceHash }));
+    expectDeepFrozen(actual); expect(JSON.stringify(actual)).not.toContain(TENANT); expect(actual).not.toHaveProperty("rate"); expect(actual.selectedVersion).not.toHaveProperty("gstRoomSlabs");
+    expect(actual.selectedVersion).toEqual({ extensionId: PREDECESSOR, version: 1, status: "retired", contentHash: built.input.rateVersionPair.predecessor.contentHash, effectiveFromInstant: PRE_FROM, effectiveToInstant: CUTOVER });
+    expect(actual.predecessorHashes).toEqual({ rateVersionPair: built.input.rateVersionPair.evidenceHash, rateChangeDate: built.input.rateChangeDateEvidence.evidenceHash, serviceProvision: built.input.serviceProvisionResult.evidenceHash, paymentReceipt: built.input.paymentReceiptResult.evidenceHash, invoiceIssue: built.input.invoiceIssueResult.evidenceHash, paymentProviso: built.input.paymentEvidence.paymentProvisoEvidence.evidenceHash, workingDayCalendar: null, governedPaymentReceipt: null });
     const { evidenceHash, ...body } = actual; expect(evidenceHash).toBe(new Bun.CryptoHasher("sha256").update(JSON.stringify({ tenantId: TENANT, propertyNode: PROPERTY, reservationId: RESERVATION, ...body })).digest("hex"));
+  });
+
+  test("production contains no ordinary-section13, default, numeric-rate, persistence, clock, or network authority", async () => {
+    const source = await Bun.file(new URL("../src/contexts/tax-fiscal/india-gst-section14-rate-selection.ts", import.meta.url)).text();
+    expect(source).not.toMatch(/IndiaGstAccommodationTimeOfSupply|section13|default\s*:|new\s+Date|Date\.now|fetch\s*\(|\b(?:INSERT\s+INTO|UPDATE\s+\S+\s+SET|DELETE\s+FROM)\b|gstRoomSlabs|rateBasisPoints|taxableValue|taxAmount/i);
   });
 });
