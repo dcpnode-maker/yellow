@@ -223,3 +223,7 @@ automation-engine (matches trigger_event, evaluates condition AST, executes acti
 ari-pusher (per channel, batched 5–30 s adaptive) · statutory-scheduler · document-issuer ·
 notifier (email/WA templates) · fiscal-submitter. Each stores its own cursor; all are
 disposable and rebuild from outbox (Doctrine 1).
+
+`business_day.opened {property_node,business_date,opened_at}` is emitted only by the
+transaction that first inserts the PostgreSQL/property-timezone-derived current day.
+It says nothing about older-day readiness, reconciliation or sealing.

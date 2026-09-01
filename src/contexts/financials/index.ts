@@ -134,6 +134,25 @@ export {
 } from "./cashiers";
 
 export {
+  BUSINESS_DAY_ROLL_ACTOR_ID,
+  BusinessDayRollNotFoundError,
+  BusinessDayRollService,
+  BusinessDayRollValidationError,
+  BusinessDayRollWorker,
+} from "./business-day-roll";
+export type {
+  BusinessDayRollDrainResult,
+  BusinessDayRollFailure,
+  BusinessDayRollResult,
+  BusinessDayRollRunOptions,
+  BusinessDayRollServiceOptions,
+  BusinessDayRollWorkerOptions,
+  DueBusinessDayScope,
+  DueBusinessDayScopeSource,
+  OpenCurrentBusinessDayInput,
+} from "./business-day-roll";
+
+export {
   PositiveTaxPostingConflictError,
   PositiveTaxPostingNotFoundError,
   PositiveTaxPostingService,

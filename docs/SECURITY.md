@@ -1515,3 +1515,15 @@ reservation, segment, primary folio, attribution and lineage before reparsing th
 canonical snapshot. Mutable, proxy, accessor, symbol, non-INR, non-positive, duplicate
 or unreconciled components fail closed. This boundary has no write, clock, latest-rate,
 tax-money, document, IRP, API, UI or local-runtime authority.
+
+Migration0061 adds only `runtime_due_business_day_scopes(integer)`: a stable,
+fixed-search-path owner-mediated discovery function returning bounded active
+tenant/property identifiers with no current PostgreSQL/property-local business day.
+Only `yellow_runtime` can execute it; `PUBLIC` and `app_role` cannot, and runtime
+retains no direct tenant-table read or write grant.
+
+Migration0061 also adds the sole app-facing `open_current_business_day(uuid,uuid)`
+capability. It is owner-mediated and fixed-search-path; `app_role` alone may execute
+it, while `PUBLIC` and `yellow_runtime` are denied. Direct `business_day` INSERT,
+UPDATE and DELETE remain denied to the app. The function binds transaction-local
+tenant context and exposes no date, seal, update or catch-up input.

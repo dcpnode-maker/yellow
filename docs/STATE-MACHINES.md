@@ -76,7 +76,7 @@ containment boundary. No application day-close command exists yet. Future applic
 execution requires an authorized, audited domain command with server-derived actor
 evidence; owner execution is not the completed continuous day-close product.
 **Roll ≠ seal.** The day ROLLS automatically: a scheduler opens the next business_day
-row at the property-local cutoff and emits `day.rolled` — it never waits for the prior
+row at the property-local cutoff and emits `business_day.opened` — it never waits for the prior
 day's seal. Operations always target the current OPEN day; multiple unsealed days may
 coexist (surfaced as a close-backlog alert, never an operational block).
 SEAL is the asynchronous financial finalisation. Pre-seal validation checklist

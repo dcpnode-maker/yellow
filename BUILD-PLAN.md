@@ -1582,3 +1582,9 @@ migrate39/0, exact schema, standing/static and referee11/11 pass. D978 is discha
 and the bounded accounting-only owner-trust guard is approved. Phase5 remains open for
 its separately documented day-close work; payout/UI/local and broader authority stay
 excluded.
+
+Order347 builds the policy-free automatic current-day roll. PostgreSQL transaction
+time plus each active property's stored timezone derives the exact date; the existing
+key arbitrates contenders and the winner records day/fact/`business_day.opened`
+atomically. Runtime discovery is bounded and activation opt-in. Older unsealed backlog
+never blocks roll. Seal/readiness/carry policy and Phase5 completion remain separate.

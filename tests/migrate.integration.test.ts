@@ -1638,6 +1638,7 @@ databaseDescribe("Bun SQL migration runner", () => {
           "0058_india_gst_accommodation_invoice_issue_date.sql",
           "0059_tax_extension_effective_period.sql",
           "0060_owner_trust_negative_authorization.sql",
+          "0061_runtime_due_business_day_scopes.sql",
         ]);
 
         const preservedLedger = await sql<Array<{
@@ -1663,7 +1664,7 @@ databaseDescribe("Bun SQL migration runner", () => {
             FROM public.schema_migration
            ORDER BY version
         `;
-        expect(upgradedLedger).toHaveLength(60);
+        expect(upgradedLedger).toHaveLength(61);
 
         const noOpLog: string[] = [];
         const noOp = await runMigrations({
@@ -1672,7 +1673,7 @@ databaseDescribe("Bun SQL migration runner", () => {
           logger: (message) => noOpLog.push(message),
         });
         expect(noOp.appliedFiles).toEqual([]);
-        expect(noOp.discoveredFiles).toBe(60);
+        expect(noOp.discoveredFiles).toBe(61);
         expect(noOp.transactionBackendPids).toEqual([]);
         expect(noOpLog).toHaveLength(1);
         expect(noOpLog[0]).toContain("applied=0 status=no-op");
@@ -1694,7 +1695,7 @@ databaseDescribe("Bun SQL migration runner", () => {
         }>>`
           SELECT version, filename, checksum_sha256
             FROM public.schema_migration
-           WHERE version IN (44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60)
+           WHERE version IN (44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61)
            ORDER BY version
         `;
         expect(ledger.map((row) => ({ ...row, version: Number(row.version) }))).toEqual([
@@ -1782,6 +1783,11 @@ databaseDescribe("Bun SQL migration runner", () => {
             version: 60,
             filename: "0060_owner_trust_negative_authorization.sql",
             checksum_sha256: "2379fed5d09385a19f6abcc2a27582b3d1d77495a7b3c1b49437d66baade4f11",
+          },
+          {
+            version: 61,
+            filename: "0061_runtime_due_business_day_scopes.sql",
+            checksum_sha256: "50cf8593ac385b74fbe61da9d28f0ecf59b78297c7aff46ad073f34409efc34f",
           },
         ]);
 

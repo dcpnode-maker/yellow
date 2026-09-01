@@ -353,13 +353,14 @@ databaseDescribe("Order 127 runtime database authority (kernel boundary; HTTP P4
        WHERE n.nspname = 'public' AND p.proname LIKE 'runtime_%'
        ORDER BY signature
     `;
-    expect(capabilities).toHaveLength(13);
+    expect(capabilities).toHaveLength(14);
     expect(capabilities.map(({ signature }) => signature).sort()).toEqual([
       "runtime_consumer_advance(text,bigint)",
       "runtime_consumer_begin(text)",
       "runtime_consumer_mark(text,uuid)",
       "runtime_consumer_read(text,bigint,integer,boolean)",
       "runtime_due_arrival_scopes(integer)",
+      "runtime_due_business_day_scopes(integer)",
       "runtime_due_departure_scopes(integer)",
       "runtime_due_hold_scopes(integer)",
       "runtime_extension_compatibility_inputs(text)",
@@ -376,11 +377,12 @@ databaseDescribe("Order 127 runtime database authority (kernel boundary; HTTP P4
         FROM pg_catalog.pg_proc AS p
         JOIN pg_catalog.pg_namespace AS namespace ON namespace.oid = p.pronamespace
        WHERE namespace.nspname = 'public'
-         AND p.proname IN ('runtime_due_arrival_scopes', 'runtime_due_departure_scopes', 'runtime_due_hold_scopes')
+         AND p.proname IN ('runtime_due_arrival_scopes', 'runtime_due_business_day_scopes', 'runtime_due_departure_scopes', 'runtime_due_hold_scopes')
        ORDER BY signature
     `;
     expect(dueScopeResults).toEqual([
       { signature: "runtime_due_arrival_scopes(integer)", result: "TABLE(tenant_id uuid, property_node uuid)" },
+      { signature: "runtime_due_business_day_scopes(integer)", result: "TABLE(tenant_id uuid, property_node uuid)" },
       { signature: "runtime_due_departure_scopes(integer)", result: "TABLE(tenant_id uuid, property_node uuid)" },
       { signature: "runtime_due_hold_scopes(integer)", result: "TABLE(tenant_id uuid, property_node uuid)" },
     ]);
@@ -460,12 +462,13 @@ databaseDescribe("Order 127 runtime database authority (kernel boundary; HTTP P4
         FROM pg_catalog.pg_proc p JOIN pg_catalog.pg_namespace n ON n.oid = p.pronamespace
        WHERE n.nspname = 'public' AND p.proname LIKE 'runtime_%' ORDER BY signature
     `;
-    expect(denied).toHaveLength(13);
+    expect(denied).toHaveLength(14);
     expect(denied.every((row) => !row.public_execute && !row.app_execute)).toBe(true);
 
     await database.withTenantTransaction(tenantA, async (tx) => {
       const deniedStatements = [
         () => tx`SELECT public.runtime_due_arrival_scopes(1)`,
+        () => tx`SELECT public.runtime_due_business_day_scopes(1)`,
         () => tx`SELECT public.runtime_due_departure_scopes(1)`,
         () => tx`SELECT public.runtime_due_hold_scopes(1)`,
         () => tx`SELECT public.runtime_resolve_active_tenant('x')`,
@@ -491,6 +494,8 @@ databaseDescribe("Order 127 runtime database authority (kernel boundary; HTTP P4
     const direct = runtimeSession!;
     expect(await captureSqlState(() => direct`SELECT public.runtime_due_arrival_scopes(0)`)).toBe("22023");
     expect(await captureSqlState(() => direct`SELECT public.runtime_due_arrival_scopes(1001)`)).toBe("22023");
+    expect(await captureSqlState(() => direct`SELECT public.runtime_due_business_day_scopes(0)`)).toBe("22023");
+    expect(await captureSqlState(() => direct`SELECT public.runtime_due_business_day_scopes(1001)`)).toBe("22023");
     expect(await captureSqlState(() => direct`SELECT public.runtime_due_departure_scopes(0)`)).toBe("22023");
     expect(await captureSqlState(() => direct`SELECT public.runtime_due_departure_scopes(1001)`)).toBe("22023");
     expect(await captureSqlState(() => direct`SELECT public.runtime_due_hold_scopes(0)`)).toBe("22023");

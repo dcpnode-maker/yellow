@@ -1,6 +1,6 @@
 # Order 347 — Automatic property-local business-day roll
 
-**Status:** ACTIVE-D984
+**Status:** BUILT-PENDING-FRESH-TIER3-REVIEW-D985
 **Phase:** 5 — Financials
 **Branch:** `phase-5/automatic-property-local-business-day-roll`
 **Base:** `282fd22` (D981 independently approved Orders346/344)
@@ -226,10 +226,10 @@ candidate and records commands/results before approval.
 
 ## Definition of done
 
-- [ ] Exact approved Order346/344 frontier and migration0061 allocation are recorded.
-- [ ] Intentional red precedes all production implementation.
-- [ ] Current-day opening is PostgreSQL/property-timezone authoritative, tenant-bound,
+- [x] Exact approved Order346/344 frontier and migration0061 allocation are recorded.
+- [x] Intentional red precedes all production implementation.
+- [x] Current-day opening is PostgreSQL/property-timezone authoritative, tenant-bound,
   backlog-independent, contention-safe and atomically evidenced.
-- [ ] Runtime discovery and worker lifecycle remain bounded, opt-in and least-authority.
-- [ ] Permanent standing/schema/referee gates are green without weakening.
+- [x] Runtime discovery and worker lifecycle remain bounded, opt-in and least-authority.
+- [x] Permanent standing/schema/referee gates are green without weakening.
 - [ ] Fresh independent non-implementing Tier-3 approval is recorded.

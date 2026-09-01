@@ -94,3 +94,8 @@ inherited trust-post plus its distinct negative-approval scope. All fresh databa
 trust hostility, standing/static/schema and referee gates pass. This closes only the
 owner-trust negative-authorization slice; Phase5 still requires its separate
 continuous business-day work and exit evidence.
+
+Order347 supplies only automatic current business-day roll. PostgreSQL transaction
+time plus property timezone is authoritative; the existing unique key and atomic
+fact/outbox evidence make reruns and races converge. Older unsealed days remain valid
+backlog. Seal/readiness/carry policy and the Phase exit gate remain outstanding.

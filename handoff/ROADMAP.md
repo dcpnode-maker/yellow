@@ -1084,3 +1084,8 @@ thereby approving Order344's accounting-only owner-trust guard. Fresh role/login
 60/111/101/10/2 database, trust hostility, permanent, standing/static/schema and
 referee11/11 evidence is green. No payout, UI/local, day-close, Phase5 or application
 completion is claimed.
+
+Order347 builds the bounded automatic property-local current-day roll without seal,
+readiness or catch-up authority. Its opt-in runtime worker discovers only due
+tenant/property scopes; the service derives the date in PostgreSQL and atomically
+records the single winning day/fact/event effect.

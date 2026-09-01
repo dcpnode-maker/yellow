@@ -1780,3 +1780,11 @@ Order337 shared scheduler splits that selected member's `GST_ROOM` slabs. Each o
 business date and canonical INR quote remains independent: no stay total, average or
 room-night date selects a version. It creates no new accommodation, allocation, tax,
 accounting or fiscal-document entity.
+
+### Automatic current business-day roll (Order 347)
+
+The existing `business_day` row is the sole current-day fact; there is no mutable
+pointer or scheduler ledger. PostgreSQL time and the stored property timezone derive
+the current date, the existing property/date key arbitrates the insert, and the
+winner atomically records fact/outbox evidence. Older unsealed rows coexist as close
+backlog and do not affect roll eligibility.

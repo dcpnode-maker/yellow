@@ -2454,6 +2454,7 @@ export class OperatorHttpApi {
           arrivalPickupTask: this.#runtimeStatus.pickupTaskWorkerEnabled ? "configured" : "disabled",
           reservationArrivalRoll: this.#runtimeStatus.reservationArrivalRollWorkerEnabled ? "configured" : "disabled",
           reservationDepartureRoll: this.#runtimeStatus.reservationDepartureRollWorkerEnabled ? "configured" : "disabled",
+          businessDayRoll: this.#runtimeStatus.businessDayRollWorkerEnabled ? "configured" : "disabled",
         },
         valkey: {
           state: "not_connected",

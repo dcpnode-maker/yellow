@@ -3,7 +3,7 @@ import { SQL } from "bun";
 import { app, createApp } from "./app";
 import { BearerTenantResolver, Hs256TokenSigner, LocalLoginGuard, LocalLoginService } from "./contexts/identity";
 import { PartyProfileService } from "./contexts/crm";
-import { CashierService, ChargeCorrectionService, ChargeService, FolioService, FolioSettlementService, FolioStatementService, FolioTransferService, HostedDepositService, LocalPaymentProvider, PaymentService, ReceivableService } from "./contexts/financials";
+import { BusinessDayRollService, BusinessDayRollWorker, CashierService, ChargeCorrectionService, ChargeService, FolioService, FolioSettlementService, FolioStatementService, FolioTransferService, HostedDepositService, LocalPaymentProvider, PaymentService, ReceivableService } from "./contexts/financials";
 import { AvailabilityProjectionConsumer, AvailabilityProjectionService, AvailabilityService, HoldExpiryWorker, HoldService, InventoryPolicyService, InventoryService, OperationalBlockService, ReservationOccupancyService, RestrictionService } from "./contexts/inventory";
 import { ReservationArrivalRollService, ReservationArrivalRollWorker, ReservationBoardService, ReservationCommitService, ReservationDepartureRollService, ReservationDepartureRollWorker, ReservationDetailService, ReservationGuestService, ReservationLifecycleService, ReservationOfferSearchService, ReservationSegmentService, ReservationTravelService } from "./contexts/reservations";
 import { ArrivalPickupTaskAutomationConsumer, ArrivalPickupTaskDispatchService, CheckInService, CheckoutReadinessService, CheckoutService, VehicleParkingAssignmentService, VehicleRegisterService } from "./contexts/stay-operations";
@@ -26,6 +26,7 @@ import type { OperatorRuntimeStatus } from "./project-status";
 import { PostgresDueArrivalScopeSource } from "./workers/postgres-due-arrival-scopes";
 import { PostgresDueDepartureScopeSource } from "./workers/postgres-due-departure-scopes";
 import { PostgresDueHoldScopeSource } from "./workers/postgres-due-hold-scopes";
+import { PostgresDueBusinessDayScopeSource } from "./workers/postgres-due-business-day-scopes";
 
 const port = Bun.env.PORT === undefined ? 3000 : Number(Bun.env.PORT);
 const workbenchEnabled = Bun.env.YELLOW_OPERATOR_WORKBENCH === "1";
@@ -36,6 +37,7 @@ const projectionWorkerEnabled = workbenchEnabled && Bun.env.YELLOW_AVAILABILITY_
 const pickupTaskWorkerEnabled = workbenchEnabled && Bun.env.YELLOW_PICKUP_TASK_WORKER === "1";
 const reservationArrivalRollEnabled = workbenchEnabled && Bun.env.YELLOW_RESERVATION_ARRIVAL_ROLL_WORKER === "1";
 const reservationDepartureRollEnabled = workbenchEnabled && Bun.env.YELLOW_RESERVATION_DEPARTURE_ROLL_WORKER === "1";
+const businessDayRollEnabled = workbenchEnabled && Bun.env.YELLOW_BUSINESS_DAY_ROLL_WORKER === "1";
 const maxRequestBodySize = 16 * 1024;
 const processStartedAt = new Date().toISOString();
 
@@ -154,6 +156,7 @@ function runtimeApp() {
     events,
     idempotency: new PostgresIdempotency(),
   });
+  const businessDayRolls = new BusinessDayRollService({ database, events });
   const parties = new PartyProfileService({ events, idempotency: new PostgresIdempotency() });
   const folioStatements = new FolioStatementService();
   const charges = new ChargeService({ events, idempotency: new PostgresIdempotency() });
@@ -217,6 +220,7 @@ function runtimeApp() {
     pickupTaskWorkerEnabled,
     reservationArrivalRollWorkerEnabled: reservationArrivalRollEnabled,
     reservationDepartureRollWorkerEnabled: reservationDepartureRollEnabled,
+    businessDayRollWorkerEnabled: businessDayRollEnabled,
     processStartedAt,
   };
   if (projectionWorkerEnabled) {
@@ -271,6 +275,21 @@ function runtimeApp() {
         }
       },
     }).catch(() => console.error("reservation departure-roll worker stopped unexpectedly"));
+  }
+  if (businessDayRollEnabled) {
+    const discoveryPool = new SQL(databaseUrl, { max: 2, prepare: false });
+    const worker = new BusinessDayRollWorker(
+      businessDayRolls,
+      new PostgresDueBusinessDayScopeSource(discoveryPool),
+    );
+    worker.run({
+      onError() { console.error("business-day roll worker discovery failed"); },
+      onResult(result) {
+        if (result.failures.length > 0) {
+          console.error(`business-day roll worker failed for ${result.failures.length} scope(s)`);
+        }
+      },
+    }).catch(() => console.error("business-day roll worker stopped unexpectedly"));
   }
   return createApp({
     database,
