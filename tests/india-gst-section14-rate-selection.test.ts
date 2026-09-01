@@ -233,6 +233,8 @@ describe("Order 340: India GST section14 six-case rate selection", () => {
       "payment.amountMinor !== invoice.amountMinor || payment.currency !== invoice.currency",
       "payment.currency !== service.reservationLineage.currency || invoice.currency !== service.reservationLineage.currency",
     ]) expect(source).toContain(fragment);
+    expect(source.match(/supplierBooksEntryDate: payment\.supplierBooksEntryDate/g)).toHaveLength(2);
+    expect(source.match(/supplierBankCreditDate: payment\.supplierBankCreditDate/g)).toHaveLength(2);
     expect(source).not.toMatch(/new\s+(?:Bun\.)?SQL|globalThis|process\.env/);
   });
 });
