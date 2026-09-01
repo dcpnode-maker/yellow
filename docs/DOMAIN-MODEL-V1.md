@@ -434,6 +434,13 @@ close.
 
 ### Journal aggregate — Financials
 
+Owner trust remains in the canonical ledger. A party-owned `account(role='trust')` is
+credit-normal, so available owner funds are the negated immutable posting sum under
+the shared account lock. Insert-only `trust_negative_authorization` is decision
+evidence, not a balance: it binds one exact approval, trust account, payable, journal,
+amount and before/projected availability. Owner statements remain derived from
+postings.
+
 **Root:** `journal`.
 **Entities:** `posting_line`.
 **Value objects:** money, business date, journal kind, account/folio/tx-code references.

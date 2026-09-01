@@ -273,6 +273,16 @@ identity documents, consent/preferences and profile editing remain planned.
 erasure request/execute
 **kernel**: extensions CRUD+activate · automations CRUD+test(dry_run) · approvals decide
 
+Implemented owner-trust guard: `TrustAccountingService.postOwnerExpense(tx,input)`
+accepts one exact trust account, canonical positive signed-int64 decimal amount,
+bounded reason, optional approval id, idempotency key and server audit envelope. The
+database derives the owner, property, currency, payable route, property-local business
+date and credit-normal availability. A projection below zero consumes one approved,
+different-user, single-use request and records exact relational evidence. One balanced
+`paidout` journal, two lines, fact, `journal.posted`, `trust.owner_expense_posted` and
+idempotency result commit atomically. No payout, statement, split or reconciliation is
+created.
+
 Implemented financial foundation: `FolioService.openPrimary(tx, input)` accepts only
 `tenantId`, `reservationId`, `idempotencyKey`, and the audit envelope. It locks and
 derives the eligible reservation's property, primary Party, and currency; reuses the

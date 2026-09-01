@@ -13,6 +13,9 @@ export type {
   OpenPrimaryFolioResult,
 } from "./folios";
 
+export { TrustAccountingConflictError, TrustAccountingNotFoundError, TrustAccountingService, TrustAccountingValidationError } from "./trust";
+export type { PostOwnerExpenseInput, PostOwnerExpenseResult, TrustAccountingServiceOptions } from "./trust";
+
 export {
   FolioTransferConflictError,
   FolioTransferNotFoundError,

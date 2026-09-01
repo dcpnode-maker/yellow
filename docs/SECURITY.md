@@ -30,6 +30,14 @@ access tokens and does not modify staff password hashes.
   override, erasure. Four-eyes by design, logged.
 - api_client tokens: least-scope, per-integration, revocable, hashed at rest.
 
+The owner-trust expense capability requires the runtime/app-role handshake,
+transaction-local tenant context and the maker's exact-property
+`financials.trust:post` grant. A negative projection additionally requires a distinct
+active checker with `financials.trust:approve-negative` at that property. PostgreSQL
+locks both accounts, recomputes immutable posting truth, exact-matches the approval
+payload and records one relational use. Runtime/app roles cannot directly mutate the
+journal approval lineage or `trust_negative_authorization`.
+
 ## 3. Data protection
 
 - At rest: full-disk on OCI volumes + pgcrypto column encryption for identity

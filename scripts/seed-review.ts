@@ -43,6 +43,10 @@ export const REVIEW_RECEIVABLE_APPROVE_PERMISSION = Object.freeze({
   code: "financials.receivables:approve",
   description: "Approve governed over-limit receivable transfers",
 });
+export const REVIEW_TRUST_NEGATIVE_APPROVE_PERMISSION = Object.freeze({
+  code: "financials.trust:approve-negative",
+  description: "Approve one exact negative owner trust expense",
+});
 export const REVIEW_DIRTY_ROOM_OVERRIDE_PERMISSION = Object.freeze({
   code: "stay-operations.checkin:dirty-room-override",
   description: "Override a dirty or pickup room check-in with an attributable reason",
@@ -73,6 +77,7 @@ export const REVIEW_PERMISSIONS = Object.freeze([
   { code: "financials.cashiers:operate", description: "Operate an attributable property cashier session" },
   { code: "financials.receivables:read", description: "Read governed property receivable targets and exposure" },
   { code: "financials.receivables:transfer", description: "Transfer exact guest debt to a governed receivable" },
+  { code: "financials.trust:post", description: "Post one governed owner trust expense accrual" },
   { code: "financials.transfers:write", description: "Preview and commit governed folio transfers" },
   { code: "housekeeping.tasks:read", description: "Read the governed property housekeeping task board" },
   { code: "housekeeping.tasks:work", description: "Start and complete governed property housekeeping tasks" },
@@ -628,6 +633,17 @@ async function provisionIdentity(
     exact(receivableApprovePermissions[0], REVIEW_RECEIVABLE_APPROVE_PERMISSION,
       "Receivable approve review permission");
   }
+  const trustApprovePermissions = await connection<Array<{ code: string; description: string }>>`
+    SELECT code, description FROM permission WHERE code = ${REVIEW_TRUST_NEGATIVE_APPROVE_PERMISSION.code}
+  `;
+  if (trustApprovePermissions.length === 0) {
+    await connection`INSERT INTO permission (code, description)
+      VALUES (${REVIEW_TRUST_NEGATIVE_APPROVE_PERMISSION.code},
+        ${REVIEW_TRUST_NEGATIVE_APPROVE_PERMISSION.description})`;
+  } else {
+    exact(trustApprovePermissions[0], REVIEW_TRUST_NEGATIVE_APPROVE_PERMISSION,
+      "Trust-negative approve review permission");
+  }
   const dirtyRoomOverridePermissions = await connection<Array<{ code: string; description: string }>>`
     SELECT code, description FROM permission WHERE code = ${REVIEW_DIRTY_ROOM_OVERRIDE_PERMISSION.code}
   `;
@@ -707,6 +723,11 @@ async function provisionIdentity(
   await connection`
     INSERT INTO role_permission (role_id, permission_code)
     VALUES (${approverRoleId}::uuid, ${REVIEW_RECEIVABLE_APPROVE_PERMISSION.code})
+    ON CONFLICT (role_id, permission_code) DO NOTHING
+  `;
+  await connection`
+    INSERT INTO role_permission (role_id, permission_code)
+    VALUES (${approverRoleId}::uuid, ${REVIEW_TRUST_NEGATIVE_APPROVE_PERMISSION.code})
     ON CONFLICT (role_id, permission_code) DO NOTHING
   `;
   await connection`
@@ -1048,6 +1069,57 @@ async function provisionReviewFinancials(
     exact(routes[0], expectedRoute, "Local-review ROOM transaction route");
     if (routes.length !== 1) throw new Error("Local-review ROOM transaction route is ambiguous");
   }
+
+  const ownerPartyId = await uuidV5(SEED_TENANT.id, "yellow.local.review.owner-trust.party");
+  const trustAccountId = await uuidV5(SEED_TENANT.id, "yellow.local.review.owner-trust.account");
+  const payableAccountId = await uuidV5(SEED_TENANT.id, "yellow.local.review.owner-payable.account");
+  await connection`
+    INSERT INTO party(id,tenant_id,kind,display_name,attrs,status)
+    VALUES(${ownerPartyId}::uuid,${SEED_TENANT.id}::uuid,'org','Yellow Review Owner',
+      '{"source":"local-review"}'::jsonb,'active')
+    ON CONFLICT (id) DO NOTHING
+  `;
+  await connection`
+    INSERT INTO party_role(tenant_id,party_id,role,detail)
+    VALUES(${SEED_TENANT.id}::uuid,${ownerPartyId}::uuid,'owner','{"source":"local-review"}'::jsonb)
+    ON CONFLICT (party_id,role) DO NOTHING
+  `;
+  await connection`
+    INSERT INTO account(id,tenant_id,property_node,role,party_id,name,currency,status)
+    VALUES
+      (${trustAccountId}::uuid,${SEED_TENANT.id}::uuid,${SEED_PROPERTY.id}::uuid,'trust',
+       ${ownerPartyId}::uuid,'Yellow Review Owner Trust',${SEED_PROPERTY.currency},'open'),
+      (${payableAccountId}::uuid,${SEED_TENANT.id}::uuid,${SEED_PROPERTY.id}::uuid,'payable',
+       NULL,'Yellow Review Owner Payable',${SEED_PROPERTY.currency},'open')
+    ON CONFLICT (id) DO NOTHING
+  `;
+  const trustTruth = await connection<Array<{ parties:number;roles:number;accounts:number }>>`
+    SELECT
+      (SELECT count(*)::int FROM party WHERE tenant_id=${SEED_TENANT.id}::uuid
+        AND id=${ownerPartyId}::uuid AND kind='org' AND display_name='Yellow Review Owner'
+        AND attrs='{"source":"local-review"}'::jsonb AND status='active') parties,
+      (SELECT count(*)::int FROM party_role WHERE tenant_id=${SEED_TENANT.id}::uuid
+        AND party_id=${ownerPartyId}::uuid AND role='owner' AND detail='{"source":"local-review"}'::jsonb) roles,
+      (SELECT count(*)::int FROM account WHERE tenant_id=${SEED_TENANT.id}::uuid
+        AND property_node=${SEED_PROPERTY.id}::uuid AND currency=${SEED_PROPERTY.currency}
+        AND status='open' AND ((id=${trustAccountId}::uuid AND role='trust' AND party_id=${ownerPartyId}::uuid
+          AND name='Yellow Review Owner Trust') OR (id=${payableAccountId}::uuid AND role='payable'
+          AND party_id IS NULL AND name='Yellow Review Owner Payable'))) accounts
+  `;
+  exact(trustTruth[0], { parties:1, roles:1, accounts:2 }, "Local-review owner-trust configuration");
+  await connection`
+    INSERT INTO tx_code_route(tenant_id,property_node,currency,tx_code,debit_account_id,credit_account_id)
+    VALUES(${SEED_TENANT.id}::uuid,${SEED_PROPERTY.id}::uuid,${SEED_PROPERTY.currency},
+      'OWNER_TRUST_EXPENSE',${trustAccountId}::uuid,${payableAccountId}::uuid)
+    ON CONFLICT (tenant_id,property_node,currency,tx_code) DO NOTHING
+  `;
+  const trustRoute = await connection<Array<{ debit_account_id:string|null;credit_account_id:string|null }>>`
+    SELECT debit_account_id,credit_account_id FROM tx_code_route
+    WHERE tenant_id=${SEED_TENANT.id}::uuid AND property_node=${SEED_PROPERTY.id}::uuid
+      AND currency=${SEED_PROPERTY.currency} AND tx_code='OWNER_TRUST_EXPENSE'
+  `;
+  exact(trustRoute, [{ debit_account_id:trustAccountId, credit_account_id:payableAccountId }],
+    "Local-review owner-trust route");
 
   const days = await connection<Array<{ tenant_id: string; business_date: string; sealed_at: string | null }>>`
     SELECT day.tenant_id, day.business_date::text, day.sealed_at::text
