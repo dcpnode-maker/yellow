@@ -2479,3 +2479,18 @@ fourth working day preserves the ordinary earlier of books/bank; bank credit str
 after it becomes the statutory receipt date. The frozen tenant-bound result records
 only that date decision, branch, calendar source lineage, and predecessor hashes. It
 does not decide the Section 14 old/new-rate matrix or calculate/post tax.
+
+## Order340: India GST Section 14 six-case rate-version selection
+
+`IndiaGstSection14RateSelectionService.resolve(tx, input)` is the sole
+transaction-bound composer for this slice. It reruns the governed Order290 service,
+Order291 payment, and Order292 invoice roots through the same tenant transaction,
+requires insertion-byte replay of every frozen supplied result, and reruns Order307
+from the supplied frozen Order304 pair. It privately normalizes payment only through
+the exact Order302 safe branch or the complete Order338/339 calendar branch.
+
+It admits precisely the six statutory before/after arrangements. Equality, all-before,
+all-after, and every other arrangement fail closed. The frozen tenant-hidden result
+returns the statutory date, exact predecessor/successor version identity and complete
+tenant-bound predecessor hashes; it returns no rate, value, amount, rounding, posting,
+document, IRP, API, or UI authority.

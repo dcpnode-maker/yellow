@@ -1485,3 +1485,14 @@ tenant-bound final hashing, recursive freezing, tenant-hidden output, and surplu
 rejection prevent callers from injecting rates, amounts, matrices, persistence, clock,
 or downstream fiscal authority. Calendar ingestion/authentication remains a separate
 future boundary and is not created here.
+
+### Order 340 Section 14 rate-selection containment
+
+The transaction-bound composer replays each Order290/291/292 root from the same
+tenant transaction and rejects any mutable, proxy, accessor, symbol-bearing, shallow,
+or insertion-byte-divergent supplied evidence. It binds the property, reservation,
+service lineage, attribution amount/currency, payment dates, invoice date, and exact
+approved rate pair before classifying a case. The final SHA-256 preimage includes the
+hidden tenant/property/reservation identities and every predecessor hash. No caller
+can supply a normalized payment date, numeric rate, or seventh/equality case; the only
+payment paths are the governed Order302 safe result and rederived Order338/339 branch.

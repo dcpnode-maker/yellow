@@ -346,6 +346,16 @@ export type {
   IndiaGstSection14PaymentReceiptDateResult,
 } from "./india-gst-section14-payment-receipt-date";
 export {
+  IndiaGstSection14RateSelectionService,
+  IndiaGstSection14RateSelectionValidationError,
+} from "./india-gst-section14-rate-selection";
+export type {
+  IndiaGstSection14PaymentEvidence,
+  IndiaGstSection14RateSelectionCase,
+  IndiaGstSection14RateSelectionInput,
+  IndiaGstSection14RateSelectionResult,
+} from "./india-gst-section14-rate-selection";
+export {
   IndiaGstAccommodationRateVersionPairConflictError,
   IndiaGstAccommodationRateVersionPairNotFoundError,
   IndiaGstAccommodationRateVersionPairService,

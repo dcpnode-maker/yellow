@@ -1753,3 +1753,13 @@ and bank dates, the fail-closed proviso result, and the externally governed four
 working-day evidence. Its branch is either ordinary earlier-of within the four-day
 boundary or bank-credit substitution strictly after it. It is not a rate-applicability
 matrix, tax calculation, posting, correction, fiscal document, or IRP aggregate.
+
+### India GST Section 14 six-case rate-version selection (Order 340)
+
+The selection value composes exactly one governed accommodation service root, invoice
+root, payment root, approved rate-version pair, and Section 14 payment branch. It
+stores only the classified statutory case, three source dates, selected time-of-supply
+date, and predecessor/successor version identity (id, version, status, content hash,
+and effective bounds). The selected version is identity evidence only: no numeric rate
+or tax result exists in this model. The six legal arrangements are exhaustive; equality
+and non-enumerated combinations are absent rather than represented as a default state.
