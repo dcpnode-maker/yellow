@@ -134,6 +134,11 @@ schema93/83 and referee11/11. The journey gate is closed, while the founder-appr
 owner-trust negative guard and audited continuous day-close remain Phase-5 work; no
 Phase-5 or application completion is claimed.
 
+Order344 is built pending fresh Tier-3 review. It adds only the accounting owner-expense
+trust debit/payable credit, immutable derived negative authorization evidence and exact
+maker/checker scopes. It adds no payout, statement, split, reconciliation, tax/fiscal,
+checkout, day-close, HTTP/UI or local authority; Phase 5 remains incomplete.
+
 ## Phase 6 — Stay ops & Housekeeping
 
 check_in (statutory field gate) / check_out (settlement) flows; travel_detail capture

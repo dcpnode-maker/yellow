@@ -74,3 +74,9 @@ different-user approval bound relationally to the journal and before/after truth
 Migration0060, one insert-only authorization table and one tightly scoped database
 capability are admitted. Payouts, owner splits/statements/commissions/reconciliation,
 HTTP/UI, tax/fiscal, checkout, day-close and local promotion remain excluded.
+
+D977 builds the bounded guard after an intentional red. Fresh PostgreSQL proves the
+credit-normal `10000 -> 6000 -> -1000` sequence, exact different-user one-use
+authorization, replay/content conflict, late-failure rollback, catalogue111/101/10/2
+and runtime containment. This is built only; fresh non-implementing Tier-3 review is
+still mandatory and Phase 5 is not declared complete.

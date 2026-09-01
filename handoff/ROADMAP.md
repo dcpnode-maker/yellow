@@ -1043,6 +1043,13 @@ owner-trust negative guard with derived credit-normal availability and exact one
 four-eyes authorization. It is service/database only and grants no payout, statement,
 split, reconciliation, UI, tax/fiscal, checkout, day-close or local authority.
 
+D977 builds Order344 after an intentional red. Migration0060 and the trust service
+prove exact locked credit-normal availability, a distinct-checker one-use negative
+authorization, balanced immutable accrual, replay and atomic rollback on fresh
+PostgreSQL at catalogue111/101/10/2. Fresh non-implementing Tier3 review remains open;
+there is still no payout, statement, split, reconciliation, UI, tax/fiscal, checkout,
+day-close, local or Phase-complete authority.
+
 D968 WITHHOLDS Order342 Phase6 exit approval solely on three stale permanent
 migration0059/runtime-capability oracles; all product journeys, hostile boundaries,
 schema, standing and referee proof pass. D969 opens Order343 as the exact test-only

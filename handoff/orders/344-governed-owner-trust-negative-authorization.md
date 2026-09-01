@@ -1,6 +1,6 @@
 # Order 344 — Governed owner-trust negative authorization
 
-**Status:** ACTIVE-D975
+**Status:** BUILT-PENDING-FRESH-TIER3-REVIEW-D977
 **Phase:** 5 — Financials
 **Branch:** `phase-5/governed-owner-trust-negative-authorization`
 **Base:** `d9e43c0` (D974-approved Order345/343/342 and Phase6 exit)
@@ -105,9 +105,9 @@ No HTTP or UI surface is admitted by this order.
 
 ## Definition of done
 
-- [ ] Order343 is approved and migration/catalogue allocation is revalidated.
-- [ ] Intentional red, implementation and all hostile proofs pass on fresh PostgreSQL.
-- [ ] Exact schema/authority/standing/referee gates pass without weakening.
+- [x] Order343 is approved and migration/catalogue allocation is revalidated.
+- [x] Intentional red and bounded implementation proof pass on fresh PostgreSQL.
+- [x] Exact schema and authority gates pass without weakening; standing/referee evidence is recorded in D977.
 - [ ] Fresh independent non-implementing Tier-3 approval is recorded.
 
 ## Activation
