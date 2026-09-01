@@ -1381,3 +1381,8 @@ fd1f7a6 and the sole local with no finding. Runtime/image/environment, rollback,
 companions, database, routes and served bytes pass; live login, both properties, root
 Today3/1/0, exact seven journeys, dirty protection, truthful status and console0 pass.
 The local now reflects the approved completed-journey fine-tune.
+**Ready Order318 Folio reservation discoverability — D881:** Close the one material
+promise/path gap in already-built financial navigation. Empty Folios lookup gains one
+truthful secondary bridge to Reservations, explaining that only an eligible stay may
+expose its existing Folio action. Reuse current dirty/history/focus behavior; add no
+request, financial authority, data or post310 work. Fresh Tier2 review is mandatory.

@@ -820,3 +820,10 @@ D880 independently approves exact fd1f7a6 and the sole live app after read-only
 runtime, database, route, byte-identity and live-browser acceptance. Port3000 now
 reflects the approved Order316 management-navigation fine-tune without changing
 unfinished-phase truth or granting broader authority.
+
+## Order318 roadmap entry
+
+Make the already-built reservation-to-Folio route discoverable from the empty Folios
+lookup with one eligibility-qualified secondary action. Preserve direct lookup,
+contextual return precedence and all existing financial authority; no new request,
+data, status or post310 work is introduced.
