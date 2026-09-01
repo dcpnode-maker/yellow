@@ -1342,3 +1342,11 @@ login evidence, then personally executed Simple disclosure/ARIA/focus behavior,
 Advanced and Expert direct controls, return-to-Simple and a zero-error/warning browser
 console. Exact candidate d08eff4 is approved for the sole loopback management demo.
 This does not change the truthful310/311/91/P7 snapshot or claim phase completion.
+
+**Ready Order316 management-demo navigation fine-tune — D874:** Present already-built
+Phase4–6 work without widening it: Today becomes the root/default, a compact truthful
+journey index links only existing top-level workspaces, and Simple secondary navigation
+collapses its fixed overlay and focuses the selected destination. Explicit routes,
+permissions, server actions, Advanced/Expert and all unfinished-phase truth remain
+unchanged. Intentional red and fresh Tier2 browser review are mandatory; local refresh
+is separate.

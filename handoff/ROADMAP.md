@@ -785,3 +785,10 @@ D873 independently approves exact candidate d08eff4 after full runtime and live-
 acceptance, including the initially unavailable connected-browser evidence. The sole
 management-demo local is current and approved; phase/review/status truth remains
 unchanged and unfinished product phases remain future work.
+
+## Order316 roadmap entry
+
+Fine-tune only the presentation of completed journeys: make Today the root command
+centre, add a compact index of existing Reservations/Financials/Stay-operations
+workspaces and ensure Simple secondary navigation closes its fixed overlay and focuses
+the destination. No new authority, data, status or post310 statutory work is admitted.
