@@ -1,6 +1,6 @@
 # Order 329 — Folio responsive local refresh
 
-**Status:** BUILT-LOCALLY-PENDING-FRESH-TIER3-REVIEW-D918
+**Status:** REVIEW-WITHHELD-D919
 **Phase:** 7 — founder-visible presentation of already-built financial journeys
 **Branch:** `phase-7/folio-responsive-local-refresh`
 **Base:** `c069220` (independently approved Order328 governance head)
@@ -52,3 +52,14 @@ rollback deletion.
   preserves environment internally without output, and restores the named rollback
   on bounded health failure. Fresh non-operating Tier3 browser/database review remains
   mandatory.
+
+## Review outcome — D919
+
+Fresh Tier 3 review reproduced the exact runtime, topology, environment, rollback,
+companion, port, protected-login, two-property, 24-route, status and read-only database
+preservation proofs. Exact Separate charges/ARIA/organize/correction and the 36-cell
+mode/appearance matrix passed. Approval is withheld because the live full document
+still overflows 64 px at actual 640 CSS pixels / DSF2: `HEADER.app-bar` is 625 px
+client / 689 px scroll with visible overflow. The 375 profile and both Folio workspace
+profiles are contained. A corrected candidate and fresh independent Tier 3 review are
+required.
