@@ -831,6 +831,15 @@ join/ancestry/pairing/containment/order-insensitive-family mutations each made t
 permanent proof red9/1 and were exactly restored. Focused/adjacent19/0(243), standing
 1118/0+890 skips(16991), static gates and unchanged D844 database lineage pass.
 Approval remains frozen evidence-only with no downstream authority.
+
+## Order340 — Section14 exact six-case rate-version selection
+
+After approved Order339/D953, D954 admits one transaction-bound composer that
+revalidates Orders290-292, derives books/bank only from Order291, privately normalizes
+the approved Order302-safe or Order339-calendar payment branch, implements exactly the
+six statutory before/after cases and selects only predecessor/successor version
+identity. Equality and every seventh combination fail closed. No separate normalization
+artifact, numeric rate/value/amount, posting, document, IRP, API/UI or local authority.
 **D847 review complete:** A fresh non-implementing Tier-3 reviewer approves exact
 candidate `6e0824df2a6afff5a83573d463bbee4cf73b436e` with no finding. Reviewer-owned
 tenant/pair-hash, identity/version/status/period, GST_ROOM, source/date, freeze/hash

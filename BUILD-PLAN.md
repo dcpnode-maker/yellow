@@ -451,6 +451,14 @@ finding: both D951 mutants and the strict-boundary, branch, coverage, replay and
 hash challenges fail; all focused, standing and static gates pass. Order339 is approved
 only for its bounded payment-receipt-date conclusion.
 
+Order340 is admitted by D954 as the complete six-case Section14 time-of-supply and
+old/new rate-version identity selector. It revalidates governed Orders290-292 in one
+tenant transaction, derives books/bank only from Order291 and privately normalizes
+either the Order302 safe branch or complete Order339 calendar branch. Equality and
+every seventh/non-enumerated combination fail closed. It returns no numeric rate,
+value, amount, rounding, posting or fiscal authority. Intentional red, hostile
+preservation proof and fresh Tier3 review are mandatory.
+
 Order 237 is built-unreviewed under D-625 as the positive pure rules-driven
 tax-evaluation foundation.
 It validates the adopted jurisdiction contract, converts configuration rates to

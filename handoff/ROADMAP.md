@@ -947,6 +947,14 @@ its removal. Focused27/0(240),standing1170/0 plus890 skips(17693),typecheck,
 boundaries130,licences23 and audit0 pass without product/runtime/database/local change.
 A different fresh Tier3 rereviewer must kill both reported mutants before approval.
 
+D953 independently approves repaired Order339 with both D951 mutants and the wider
+strict-boundary/replay/hash challenge set killed. D954 admits Order340 as the smallest
+next dependency: one transaction-bound exact six-case Section14 composer that
+revalidates governed service/invoice/payment evidence, derives books/bank only from
+Order291, privately normalizes the approved safe or calendar payment branch and selects
+only predecessor/successor version identity. No separate adapter, numeric rate/value/
+amount, posting, document, IRP, API/UI or local authority is admitted.
+
 D953 independently approves exact repaired head26682ab/implementationea190dd with no
 finding. Official CBIC section14 semantics, strict ancestry/scope and all gates pass.
 Reviewer-owned disposable mutants kill both D951 regressions plus >=,always-bank,
