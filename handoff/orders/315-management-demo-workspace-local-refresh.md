@@ -1,6 +1,6 @@
 # Order 315 — Management-demo workspace local refresh
 
-**Status:** BUILT-LOCALLY-PENDING-FRESH-REVIEW-D872
+**Status:** APPROVED-LOCALLY-D873
 **Phase:** 7 — Tax engine and India IRP (local presentation refresh)
 **Branch:** `phase-7/management-demo-workspace-local`
 **Base:** `13b8d60` (complete Order314 governance head)
@@ -55,7 +55,7 @@ Do not touch database or companion services.
 - [x] Exact image is built from clean Order314.
 - [x] Guarded app-only cutover and acceptance pass.
 - [x] Prior app rollback is retained and companions/data are unchanged.
-- [ ] Fresh non-operating Tier3 review approves.
+- [x] Fresh non-operating Tier3 review approves.
 
 ## Builder evidence — D872
 
@@ -77,3 +77,15 @@ Do not touch database or companion services.
   100 policies, 2 properties, party8/contact0/party-role8/fact75/outbox22.
 - Fresh independent non-operating Tier3 review remains mandatory; this builder record
   does not claim approval, phase completion, merge, push or deployment.
+
+## Fresh independent review — D873
+
+A non-implementing Tier3 reviewer personally inspected the exact runtime, rollback,
+companions, database digest, routes, assets and protected login. After first recording
+the absence of a connected browser as an explicit evidence gap, the reviewer opened
+and claimed the sole app tab and personally executed the live Simple disclosure,
+ARIA/focus collapse, Advanced and Expert controls, return-to-Simple and browser-console
+proof. The reviewer reports zero errors or warnings and **APPROVES** exact candidate
+`d08eff4430517ebaeefb0a2ad3d46b2e8969c2d1` with no remaining finding. Approval is
+local and presentation-only; it does not advance phase/review/status truth or grant
+public, merge, push, production, rollback-deletion or application-complete authority.

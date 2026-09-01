@@ -1336,3 +1336,9 @@ login, both properties,24/24 routes, exact310/311/91/P7 status, Simple/Advanced
 workspace discovery and unchanged59/110+2/100 database truth pass. Companion services
 were not restarted and obsolete ports remain closed. Fresh independent non-operating
 Tier3 approval remains pending.
+**Order315 approved locally — D873:** A fresh non-implementing reviewer independently
+passed the exact runtime, rollback, companion, route, asset, database and protected
+login evidence, then personally executed Simple disclosure/ARIA/focus behavior,
+Advanced and Expert direct controls, return-to-Simple and a zero-error/warning browser
+console. Exact candidate d08eff4 is approved for the sole loopback management demo.
+This does not change the truthful310/311/91/P7 snapshot or claim phase completion.

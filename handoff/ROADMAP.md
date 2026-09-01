@@ -781,3 +781,7 @@ D872 records the guarded app-only cutover as builder-green: exact Order314 is he
 on the sole loopback3000, the prior app is retained stopped, companions and database
 truth are unchanged, and browser plus24/24 route acceptance pass. Fresh independent
 non-operating Tier3 approval remains pending.
+D873 independently approves exact candidate d08eff4 after full runtime and live-browser
+acceptance, including the initially unavailable connected-browser evidence. The sole
+management-demo local is current and approved; phase/review/status truth remains
+unchanged and unfinished product phases remain future work.
