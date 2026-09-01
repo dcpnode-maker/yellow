@@ -1,6 +1,6 @@
 # Order 327 — Folio separate-charges local refresh
 
-**Status:** READY-D911
+**Status:** BUILT-LOCALLY-PENDING-FRESH-TIER3-REVIEW-D912
 **Phase:** 7 — founder-visible presentation of already-built financial journeys
 **Branch:** `phase-7/folio-separate-charges-local-refresh`
 **Base:** `10c8e03` (independently approved Order326 governance head)
@@ -29,7 +29,21 @@ rollback deletion.
 
 ## Definition of done
 
-- [ ] Exact approved image built and sole app refreshed.
-- [ ] Live acceptance and preservation proof pass.
-- [ ] Order325 remains stopped for rollback.
+- [x] Exact approved image built and sole app refreshed.
+- [x] Live acceptance and preservation proof pass.
+- [x] Order325 remains stopped for rollback.
 - [ ] Fresh non-operating Tier3 reviewer approves.
+
+## Builder evidence — D912
+
+- Exact approved runtime `5c37533` built image
+  `sha256:ea3c6cf5d901821ecf3af6f5d74e55de3024e9ea85f6b0307b33476eca857c98`
+  with exact OCI revision and now runs as the sole healthy loopback3000 app,
+  restart0.
+- Order325 is stopped as approved rollback; environment, network, health and bind are
+  inherited exactly. PostgreSQL/provider/Valkey remain healthy0; obsolete ports are
+  closed.
+- Protected prefill, credential-valid login,2 properties,status310/311/91/P7/11 and
+  live exact `Separate charges` with scoped old label absent pass.
+- Explicit read-only database proof remains59 migrations,110 base tables,2 views,100
+  policies,2 properties and8/0/8/75/22 party/contact/role/fact/outbox.
