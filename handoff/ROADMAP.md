@@ -892,3 +892,9 @@ Build D943 is green on exact candidate4f29fd5: intentional red preceded the pure
 component-rate boundary; focused/adjacent/standing/static proof passes and database
 lineage is unchanged. Fresh non-implementing Tier-3 executable approval remains
 mandatory before Order337 can close.
+
+D944 withholds Order337 on permanent-proof sensitivity only. The implementation and
+statutory source semantics are green, but the permanent proof must equality-bind both
+component rate and basis points for every historical/active slab and both dual
+families; sum-only assertions do not prove equal12% and18% halves. A different fresh
+Tier-3 rereviewer remains mandatory after repair.

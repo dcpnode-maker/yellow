@@ -1,6 +1,6 @@
 # Order 337 — India GST accommodation numeric component-rate split
 
-**Status:** BUILT-PENDING-FRESH-TIER3-REVIEW-D943
+**Status:** REVIEW-WITHHELD-PROOF-SENSITIVITY-D944
 **Phase:** 7 — Tax engine and India IRP
 **Branch:** `phase-7/india-gst-accommodation-numeric-component-rate-split`
 **Base:** `25db385` (approved Orders335–336 governance head)
@@ -83,3 +83,20 @@ merge/deploy or Phase/application-complete authority.
   changed, preserving the approved 59-migration/110-table/referee11/11 lineage.
 - Exact implementation candidate: `4f29fd5`. Fresh non-implementing Tier-3 review is
   mandatory before this statutory rate authority is approved.
+
+## Fresh independent Tier-3 review — D944
+
+- Reviewer `/root/order334_fresh_tier2` withholds exact candidate `4f29fd5` on
+  permanent-proof sensitivity only; source semantics and all executed gates have no
+  product finding.
+- The committed proof exact-checks component values only for the first 5% slab. For
+  12% and18% it checks only that component basis points sum to the aggregate. A
+  reviewer-only semantic mutant using 599+601 basis points for12% and 899+901 for18%
+  survives that assertion pattern, although both violate the required equal halves.
+- Fresh focused/adjacent proof passes48/0(961), standing1154/0 plus890 expected skips
+  (17579;2044 tests/376 files),typecheck,128 boundaries,23 licences,audit0,diff and
+  database/runtime/local preservation checks pass. Official CBIC material confirms
+  matching central and State/UT halves beside the integrated aggregate.
+- Required repair: permanently equality-bind `rateBasisPoints` and `rate` for every
+  component of every historical and active slab, including exact 6%+6% and9%+9%, for
+  both dual families; rerun all gates and obtain a different fresh Tier-3 rereview.
