@@ -1361,3 +1361,8 @@ bare-root Today discarded successful lane reads behind its canonical-route guard
 root now replaces history with the selected granted property's `/today` route before
 loading; focused46/0 and standing1131/0 pass. The rejected candidate remains recorded
 and exact07b7297 awaits fresh browser rereview; the approved local is still untouched.
+**Order316 approved — D877:** Fresh browser rereview closes the original root-read
+finding and approves exact d81de9c. Bare-root lane settlement, dirty cancellation,
+all journey and secondary navigation, history/restoration, six appearances,
+responsive/accessibility media and a clean console pass. This approves only the
+presentation slice; reflecting it on port3000 remains separate guarded runtime work.

@@ -801,3 +801,7 @@ D876 records the first browser review's approval-blocking root-read finding and 
 bounded remediation: canonicalize only authenticated bare root to the selected
 property's Today path before starting its guarded reads. Focused46/0 and standing1131/0
 pass; fresh Tier2 rereview and separate local-refresh authority remain mandatory.
+D877 independently approves exact d81de9c after personal browser proof of the repaired
+root Today settlement and every navigation, dirty-guard, history, appearance,
+responsive and accessibility requirement. Order316 is complete; sole-local promotion
+remains a separately admitted app-only operation.

@@ -1,18 +1,24 @@
 # Order 316 independent Tier 2 review
 
-**Disposition: WITHHOLD**
+**Disposition: APPROVE**
 
 **Reviewer:** Codex, fresh non-implementing Tier 2 reviewer
 
-**Candidate:** `997ae0521e33d8c5808051b3e6dc860d5a7370eb`
+**Candidate:** `d81de9ce4abf820c4aa529fe7ba8407bb990cc2c` (product remediation `07b7297`)
 
 **Approved base:** `721cbbc`
 
-## Finding
+## Re-review disposition
+
+The exact remediated governance candidate is approved. Product remediation `07b7297` fixes F1 by synchronously replacing authenticated bare root with `/p/<selected-property>/today` before `setView(activeView, false)` starts the guarded Today reads. Rejected candidate `997ae0521e33d8c5808051b3e6dc860d5a7370eb`, its finding, and D-876 remain in ancestry and audit history.
+
+No open findings remain.
+
+## Rejected-candidate finding (closed by `07b7297`)
 
 ### F1 — authenticated root renders Today but permanently discards its successful reads
 
-Severity: **P1 / approval-blocking**.
+Original severity: **P1 / approval-blocking**. Status: **closed and personally reverified**.
 
 The candidate makes Today the visual default at `/`, but it does not canonicalize the authenticated root to `/p/<property>/today`. `showWorkbench()` calls `setView(activeView, false)` while the URL remains `/`. Every Today response is then rejected by `todayRequestIsCurrent()`, whose currentness predicate requires `location.pathname === /p/<property>/today`.
 
@@ -20,7 +26,7 @@ I reproduced this in an isolated disposable browser harness on loopback port 331
 
 Relevant source: `src/http/operator/operator.js` lines 1048-1054 and 1804-1807.
 
-## Independently executed evidence
+## Original independently executed evidence
 
 ### Revision and scope
 
@@ -65,4 +71,53 @@ Standing suite:
 
 ## Approval boundary
 
-Approval is withheld. The permanent proof needs an authenticated-root case that returns successful Today payloads and asserts all lanes settle, so the visual default cannot pass while its guarded reads are silently discarded. After the root is made canonical or the currentness predicate deliberately supports `/`, rerun the full navigation, dirty-cancellation, direct restoration, appearance/accessibility, console/network, and standing proof under a fresh independent review.
+The original candidate was correctly withheld pending an authenticated-root settlement proof.
+
+## Remediated-candidate independent re-review
+
+### Exact revision, ancestry, and scope
+
+- `git rev-parse HEAD` → `d81de9ce4abf820c4aa529fe7ba8407bb990cc2c`.
+- `git merge-base --is-ancestor 997ae0521e33d8c5808051b3e6dc860d5a7370eb d81de9ce4abf820c4aa529fe7ba8407bb990cc2c` → exit 0; rejected history is preserved.
+- `git show --stat --oneline 07b7297` → only `src/http/operator/operator.js` and the Order 316 intentional-red test changed, seven inserted lines total.
+- The remediation adds no API, migration, database capability, status, business mutation, financial/statutory authority, aspirational promise, or post-310 workflow. Before this review-file update, status again showed only the pre-existing `.yellow/` directory.
+
+### Personally executed disposable-browser proof
+
+I reused the isolated Bun harness at `127.0.0.1:3316`, which serves the exact current candidate assets and bounded in-memory API responses. The approved local on port 3000 was not accessed, restarted, altered, or promoted.
+
+- Authenticated bare `/` synchronously became `/p/00000000-0000-0000-0000-000000000316/today` before guarded reads settled. Today was active. Due-in, due-out, and in-house each reached `aria-busy="false"`, hid loading, exposed its truthful empty state, and announced `0 records shown.`
+- The journey index contained exactly seven controls and labels: Today lanes (`today`), Reservations, Folios, Cashiers, Housekeeping, Vehicle register, and Operations. Copy remained bounded to existing connected workspaces.
+- Simple Housekeeping navigation closed the secondary overlay (`hidden=true`, `aria-expanded=false`), selected Housekeeping, produced the canonical route, and focused `housekeeping-title`.
+- All seven secondary controls were independently exercised. Operations, Housekeeping, Vehicle register, Inventory setup, Restrictions, Rates, and Project status each produced the correct canonical path, closed Simple disclosure, selected the correct view, and focused the exact destination heading.
+- Today → Reservations → Folios followed by Back restored Reservations and Forward restored Folios, with matching canonical URLs and active controls.
+- Dirty cancellation was personally exercised from reservation creation after entering child ages `7`. Dismissing the confirm retained the exact origin `/reservations?new=1&step=stay`, retained active Reservations and the entered value, and did not navigate to Operations.
+- A direct authenticated `/p/<property>/operations` restoration showed Operations unobscured with its view and heading visible and Simple secondary disclosure closed.
+- Advanced and Expert hid the Simple preview and exposed all exact seven secondary controls directly; returning to Simple restored the preview and collapsed the secondary grid. The disclosure retains `aria-describedby="secondary-workspaces-preview"`.
+- All six appearances were selected at 1280, 760, and 390 CSS-pixel widths. The active content and Simple preview remained present. The focused Chromium geometry proof below independently validates its contract widths. Reduced-motion emulation matched and reduced animation/transition durations to `0.00001s`; forced-colors emulation matched, retained a solid disclosure boundary, and kept the active heading present. Temporary viewport/media overrides were reset.
+- Browser console warnings/errors after the workflow: **0**.
+- Source inspection and permanent tests confirm Today remains GET-only and the Order 316 delta introduces no API request or business mutation.
+
+### Re-executed commands and results
+
+Focused/adjacent command:
+
+`bun test tests/operator-management-demo-navigation-finetune.intentional-red.test.ts tests/operator-today-command-centre.integration.test.ts tests/operator-adaptive-experience.test.ts tests/operator-appearance-geometry.test.ts tests/operator-ui-foundation.test.ts tests/operator-folio-routing-http.intentional-red.test.ts tests/operator-reservation-workspace.integration.test.ts`
+
+Final isolated result: **46 pass, 0 fail, 756 assertions**, including Chromium disclosure/Win95/ERP geometry. An immediately preceding run had one `EBUSY` on Chromium's temporary `DevToolsActivePort`; the clean sequential rerun passed the identical case and suite.
+
+Standing suite:
+
+`bun test` → **1131 pass, 890 skip, 0 fail, 17222 assertions** across 367 files.
+
+Static gates:
+
+- `bun run typecheck` → pass.
+- `bun run boundaries` → 127 TypeScript files scanned, pass.
+- `bun run license-check` → 23 packages, pass.
+- `bun audit` → no vulnerabilities.
+- `git diff --check` → pass.
+
+### Final approval boundary
+
+**APPROVE** exact candidate `d81de9ce4abf820c4aa529fe7ba8407bb990cc2c`. The original F1 is closed by executable browser evidence and permanent regression proof. This approval grants no downstream product, statutory, financial, database, status, or runtime authority.

@@ -1,6 +1,6 @@
 # Order 316 — Management-demo navigation fine-tune
 
-**Status:** REMEDIATED-PENDING-FRESH-TIER2-REREVIEW-D876
+**Status:** APPROVED-D877
 **Phase:** 7 — founder-visible presentation of already-built Phase 4–6 journeys
 **Branch:** `phase-7/management-demo-navigation-finetune`
 **Base:** `721cbbc` (independently approved Order315 governance head)
@@ -75,4 +75,4 @@ claim.
 - [x] Compact journey index links only already-built workspaces.
 - [x] Simple secondary navigation never obscures its destination.
 - [x] Focused, standing and static proof pass.
-- [ ] Fresh independent Tier2 browser review approves.
+- [x] Fresh independent Tier2 browser review approves.
