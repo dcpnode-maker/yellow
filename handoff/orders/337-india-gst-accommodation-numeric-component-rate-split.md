@@ -1,6 +1,6 @@
 # Order 337 — India GST accommodation numeric component-rate split
 
-**Status:** READY-D942
+**Status:** BUILT-PENDING-FRESH-TIER3-REVIEW-D943
 **Phase:** 7 — Tax engine and India IRP
 **Branch:** `phase-7/india-gst-accommodation-numeric-component-rate-split`
 **Base:** `25db385` (approved Orders335–336 governance head)
@@ -66,7 +66,20 @@ merge/deploy or Phase/application-complete authority.
 
 ## Definition of done
 
-- [ ] Intentional red precedes production.
-- [ ] Focused mutation-sensitive proof is green.
-- [ ] Standing/static and unchanged database/referee preservation gates are green.
+- [x] Intentional red precedes production.
+- [x] Focused mutation-sensitive proof is green.
+- [x] Standing/static and unchanged database/referee preservation gates are green.
 - [ ] Fresh non-implementing Tier-3 reviewer personally executes proof and approves.
+
+## Builder evidence — D943
+
+- Intentional red failed before production because the new export did not exist.
+- Focused Order310+337 proof passes `10/0` with 236 assertions; the adjacent
+  Orders306/308/309/310 set passes `37/0` with 679 assertions.
+- Standing proof passes `1154/0` plus 890 expected environment skips with 17,579
+  assertions across 2,044 tests/376 files.
+- Typecheck, 128 import boundaries, 23 dependency licences, audit0 and diff hygiene
+  pass. No database, migration, schema, seed, role, writer or local-runtime artifact
+  changed, preserving the approved 59-migration/110-table/referee11/11 lineage.
+- Exact implementation candidate: `4f29fd5`. Fresh non-implementing Tier-3 review is
+  mandatory before this statutory rate authority is approved.

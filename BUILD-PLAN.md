@@ -420,6 +420,10 @@ before deriving only statutory numeric component-rate schedules. IGST keeps the 
 aggregate schedule; CGST+SGST and CGST+UTGST receive equal ordered halves of each
 even aggregate basis-point rate. No taxable value, amount, rounding, Section14,
 posting, document, IRP, API/UI/local or Phase-complete authority is admitted.
+Build D943 completes Order337's implementation side after intentional red. Exact
+Order310 replay, IGST preservation and equal ordered dual-family rate decomposition
+pass focused10/0, adjacent37/0, standing1154/0 plus890 expected skips and every static
+gate. Database/referee lineage is unchanged; fresh Tier-3 approval is pending.
 
 Order 237 is built-unreviewed under D-625 as the positive pure rules-driven
 tax-evaluation foundation.

@@ -888,3 +888,7 @@ CGST+UTGST receive equal ordered halves of each exact even aggregate basis-point
 Taxable value, amount, rounding, Section14, posting, documents and IRP remain later
 bounded dependencies. D942 admits intentional-red, hostile ancestry proof,
 preservation gates and fresh non-implementing Tier-3 executable review.
+Build D943 is green on exact candidate4f29fd5: intentional red preceded the pure
+component-rate boundary; focused/adjacent/standing/static proof passes and database
+lineage is unchanged. Fresh non-implementing Tier-3 executable approval remains
+mandatory before Order337 can close.
