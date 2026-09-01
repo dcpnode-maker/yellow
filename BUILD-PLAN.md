@@ -1401,3 +1401,8 @@ Simple/Advanced/Expert, empty and loaded Folio paths, focus/history, dirty cance
 and acceptance, direct/context returns, responsive zoom/orientation, all six appearances,
 accessibility media, keyboard focus, console0 and mutations0 pass. Presentation is
 complete; reflecting it on the sole local remains a separate guarded refresh.
+**Ready Order319 Folio bridge local refresh — D885:** Build exact approved e46af12 and
+replace only the sole loopback3000 app, retaining Order317 for rollback and preserving
+database, companions, credentials and truthful status. Live acceptance must prove the
+bridge across both properties and every detail mode before fresh non-operating Tier3
+approval.

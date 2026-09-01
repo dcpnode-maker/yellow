@@ -838,3 +838,10 @@ D884 independently approves unchanged exact e46af12 after a fresh reviewer perso
 passes the complete isolated two-property/detail-mode, Folio navigation, dirty/history,
 responsive/theme/accessibility and zero-mutation browser matrix. Order318 is complete;
 sole-local reflection remains a separately admitted app-only operation.
+
+## Order319 roadmap entry
+
+Reflect approved Order318 in the sole founder local through an app-only guarded cutover.
+Retain Order317 for rollback; preserve database, companions, credentials and status; and
+prove the live Folios bridge across both properties and all detail modes under fresh
+non-operating Tier3 review.
