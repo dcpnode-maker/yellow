@@ -417,3 +417,9 @@ D973 admits Order345 to change only the masked runtime-authority expected catalo
 integers from `94/84/0/84` to exact current `110/100/10/100`, preserving the query and
 strict equality. Another different fresh Tier3 must rerun Order345 and the complete
 Order342 exit gate before Phase6 closes.
+
+D974 records the different fresh non-implementing Tier3 approval at exact `e1b030e`.
+The exact one-line Order345 repair and Orders343/342 pass all permanent, schema, seed,
+standing/static, complete journey/hostility and referee11/11 proof. The documented
+Phase6 DoD is approved complete; deferred discrepancy resolution, queue/message and
+later-phase/application work remain separate.

@@ -1059,3 +1059,11 @@ required; Phase6 and Order344's prerequisite remain unapproved.
 D973 opens Order345 as that exact four-integer, one-assertion repair. It retains the
 catalogue query and strict equality, changes no behavior, and requires another
 different fresh complete exit rereview.
+
+D974 independently approves exact Order345 candidatee1b030e and supersedes the
+D972/D968 withholdings. Fresh runtime authority10/0, migrate39/0, acceptance23/0,
+effective2/0, seed24/0, exact schema, complete Phase6 journey/hostility112/0,
+standing/static and referee11/11 pass. Orders345,343,342 and documented Phase6 are
+complete; deferred queue/message/discrepancy-resolution, Phase7/8 and application
+completion remain outside the approval. Order344's recorded after-Order343
+prerequisite is now satisfied, without reviewing or approving Order344 itself.

@@ -63,12 +63,12 @@ runtime, local or protected value is admitted.
 
 ## Definition of done
 
-- [ ] A fresh non-implementing Tier-3 reviewer personally executes every required
+- [x] A fresh non-implementing Tier-3 reviewer personally executes every required
       Phase-6 journey and hostile boundary on the exact integrated head.
-- [ ] Fresh PostgreSQL, schema, authority and referee evidence is recorded.
-- [ ] The reviewer records APPROVE with no remaining finding, or WITHHOLD with exact
+- [x] Fresh PostgreSQL, schema, authority and referee evidence is recorded.
+- [x] The reviewer records APPROVE with no remaining finding, or WITHHOLD with exact
       reproducible evidence and no self-authored repair.
-- [ ] Approval, if earned, is bounded to the documented Phase-6 DoD and does not claim
+- [x] Approval, if earned, is bounded to the documented Phase-6 DoD and does not claim
       discrepancy resolution, queue/message work, Phase 7/8 or application completion.
 
 ## Independent review result
@@ -78,3 +78,10 @@ Every Phase-6 journey, hostile boundary, normalized schema comparison, standing 
 and referee passed, but the mandatory migration, database-acceptance and runtime-
 authority gates retained pre-0059 catalogue expectations. Order343 is the separate
 test-only repair; a different fresh Tier-3 reviewer must rerun this exit gate.
+
+D974 supersedes D968 after the exact Orders343/345 permanent-oracle repairs. Fresh
+PostgreSQL proof at `e1b030e` passes the complete Phase6 journey/hostility matrix
+112/0, permanent gates10/0+39/0+23/0+2/0, seed24/0, exact schema, standing/static and
+referee11/11. Order342 and the documented Phase6 exit gate are approved, bounded to
+the recorded DoD and excluding unresolved discrepancy, queue/message, Phase7/8 and
+application completion.

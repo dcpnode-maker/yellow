@@ -63,12 +63,12 @@ bound, skip a gate, or change production truth to satisfy a stale test.
 
 ## Definition of done
 
-- [ ] Intentional red provenance is retained and the diff is limited to the exact
+- [x] Intentional red provenance is retained and the diff is limited to the exact
       three permanent test files plus governance.
-- [ ] Corrected migration, acceptance and runtime-authority gates are green on fresh
+- [x] Corrected migration, acceptance and runtime-authority gates are green on fresh
       PostgreSQL without weakening an assertion.
-- [ ] Migration-0059 focused proof, standing/static/schema and referee 11/11 pass.
-- [ ] A different fresh non-implementing Tier-3 reviewer personally executes the
+- [x] Migration-0059 focused proof, standing/static/schema and referee 11/11 pass.
+- [x] A different fresh non-implementing Tier-3 reviewer personally executes the
       repair proof and then reruns the complete Order342 exit gate.
 
 ## Scope correction
@@ -86,3 +86,8 @@ product exit matrix remains green. The repaired runtime-authority suite is still
 after the capability-count repair, its same P1 test reaches a masked pre-current-schema
 oracle expecting `94/84/0/84` instead of current `110/100/10/100`. A separate bounded
 repair and different fresh Tier3 rereview are mandatory.
+
+D974 supersedes the D972 withholding after Order345's exact bounded repair. Fresh
+runtime authority10/0, migration39/0, acceptance23/0, effective-period2/0, schema,
+seed, standing/static, referee11/11 and complete Order342 exit proof pass at
+`e1b030e`. Order343 is approved with no product or authority change.

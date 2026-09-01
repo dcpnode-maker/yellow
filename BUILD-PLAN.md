@@ -1554,3 +1554,10 @@ different fresh Tier3 are required; Phase6 and Order344's prerequisite remain cl
 runtime-authority catalogue integers from94/84/0/84 to current110/100/10/100. The
 query and strict equality remain; no product/migration/schema/authority/local change.
 Fresh database proof and another different complete Phase6 exit rereview are mandatory.
+
+**Phase6 approved complete — D974:** A different fresh non-implementing Tier3
+approves exact Order345 candidate `e1b030e`; the one-line/four-integer repair is exact
+and all permanent, effective-period, seed, schema, complete Phase6 journey/hostility,
+standing/static and referee11/11 proofs pass. Orders345,343,342 and the documented
+Phase6 DoD are complete. Deferred discrepancy resolution, queue/message workflows,
+Phase7/8 and application completion remain separate.

@@ -54,6 +54,16 @@ comparison, or modify production truth.
 
 ## Definition of done
 
-- [ ] The diff changes exactly four expected integers in one scoped test file.
-- [ ] All required fresh database and preservation gates pass.
-- [ ] A different fresh independent Tier-3 reviewer approves and reruns Order342.
+- [x] The diff changes exactly four expected integers in one scoped test file.
+- [x] All required fresh database and preservation gates pass.
+- [x] A different fresh independent Tier-3 reviewer approves and reruns Order342.
+
+## Independent review result
+
+D974 APPROVES exact candidate `e1b030e`. A fresh different non-implementing Tier3
+personally passed runtime authority10/0, migrate39/0, acceptance23/0, effective2/0,
+seed24/0, exact schema, standing/static, referee11/11 and the complete Order342
+Phase6 journey/hostility matrix112/0. The one-line four-integer repair preserves the
+catalogue query and strict equality. Order345, Order343, Order342 and documented
+Phase6 are approved; broader Phase7/8, application, local and deployment authority is
+not granted.
