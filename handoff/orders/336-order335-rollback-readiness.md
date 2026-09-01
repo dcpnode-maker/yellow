@@ -1,6 +1,6 @@
 # Order 336 — Order335 rollback readiness
 
-**Status:** DRILL-PASSED-PENDING-DIFFERENT-FRESH-TIER3-D940
+**Status:** APPROVED-D941
 **Phase:** 7 — founder-local operational integrity
 **Branch:** `phase-7/order335-rollback-readiness`
 **Base:** `d3363bd` (Order335 review-withheld governance head)
@@ -34,7 +34,7 @@ change,no merge,push or deployment.
 - [x] Retained Order333 starts healthy alone on3000.
 - [x] Order335 returns healthy alone on3000 with exact preserved configuration.
 - [x] Database/companions/ports remain unchanged.
-- [ ] Different fresh non-operating Tier3 reviewer approves Order335 plus readiness.
+- [x] Different fresh non-operating Tier3 reviewer approves Order335 plus readiness (D941).
 
 ## Operator evidence — D940
 
@@ -48,3 +48,15 @@ change,no merge,push or deployment.
   container/image/config/data/credential/status/authority was deleted or recreated.
 - D938's readiness uncertainty is executable-closed. A different fresh Tier3 reviewer
   must verify current truth and approve or withhold.
+
+## Different fresh independent Tier3 rereview — D941
+
+- **APPROVE.** The executable healthy restart in D940 supersedes D938's rollback
+  readiness uncertainty. The stopped rollback's Docker exit139 is retained as an
+  accurate observed stop result because its own logs explicitly identify polite
+  SIGTERM; it is not treated as exit0 or hidden.
+- Current exact Order335 is sole healthy loopback3000/restart0/exit0; exact Order333
+  is retained stopped/restart0, with matching secret-safe24-environment digest,
+  exact preserved images/configuration/network/bind/health and healthy companions.
+- Review was read-only and grants no operation,data,credential,status,authority,
+  post310,public,merge,push,deployment,rollback deletion or broader product authority.

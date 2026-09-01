@@ -1,6 +1,6 @@
 # Order 335 — Room outages destination-copy local refresh
 
-**Status:** WITHHELD-FRESH-TIER3-D938
+**Status:** APPROVED-D941
 **Phase:** 7 — founder-visible presentation of already-built journeys
 **Branch:** `phase-7/room-outages-destination-copy-local-refresh`
 **Base:** `fc5b048` (independently approved Order334 governance head)
@@ -29,7 +29,7 @@ permission,authority or post310 statutory change;no merge,push,deployment or rol
 
 - [x] Exact image is sole healthy loopback3000 and Order333 is retained stopped.
 - [x] Protected/browser/routes/status/database proof passes.
-- [ ] Fresh non-operating Tier3 reviewer approves exact runtime (withheld D938: retained Order333 rollback exited 139, not required 0).
+- [x] Different fresh non-operating Tier3 rereviewer approves exact runtime plus Order336 readiness (D941).
 
 ## Builder evidence — D937
 
@@ -53,3 +53,20 @@ permission,authority or post310 statutory change;no merge,push,deployment or rol
 - **WITHHOLD:** retained `yellow-order333-app-rollback-d932` is stopped with restart0
   but exit code139, contradicting the required rollback0 and D937's exact claim.
   The reviewer did not start,stop,restart,replace or delete any runtime/data surface.
+
+## Different fresh independent Tier3 rereview — D941
+
+- Current exact Order335 remains sole healthy loopback3000/restart0/exit0 with exact
+  source/image, inherited network/bind/health, healthy companions, closed obsolete
+  ports and secret-safe exact24-environment equality with the retained Order333.
+- D940's one-at-a-time executable start-health proof closes D938's readiness issue:
+  exact Order333 reached sole healthy3000/restart0/exit0, then its own log explicitly
+  recorded polite SIGTERM while Docker repeatably recorded139; exact Order335 then
+  returned sole healthy3000/restart0/exit0. Exit139 remains accurately recorded as
+  the observed Bun/Docker stop mapping and is not relabelled exit0.
+- D938's protected login,2-property,24-route,status,72/72 live matrix,console/write0,
+  focused proof and before/after database evidence remain coherent with unchanged
+  exact runtime/configuration. Reviewer-personal read-only topology,logs,health,
+  image labels,environment equality,focused proof and database continuity passed.
+- **APPROVE** Order335 plus Order336 readiness. No operation,data mutation or broader
+  authority is granted.
