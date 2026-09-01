@@ -1,6 +1,6 @@
 # Order 332 — Arrivals and departures lane focus
 
-**Status:** REVIEW-WITHHELD-ENVIRONMENT-D928
+**Status:** APPROVED-D929
 **Phase:** 7 — founder-visible presentation of already-built journeys
 **Branch:** `phase-7/arrivals-departures-lane-focus`
 **Base:** `8b5a7bc` (freshly approved Order331 governance head)
@@ -36,7 +36,7 @@ the Today catalogue/lanes; no merge, push or deployment.
 - [x] The exact control focuses the semantic lane target with no request or history
       change while all other seven journey identities preserve existing routing.
 - [x] Focused, standing and static gates pass.
-- [ ] Fresh non-implementing Tier2 browser reviewer approves the exact candidate.
+- [x] Fresh non-implementing Tier2 browser reviewer approves the exact candidate.
 
 ## Fresh Tier2 review — D928
 
@@ -44,6 +44,20 @@ the Today catalogue/lanes; no merge, push or deployment.
 - Reviewer-personal focused proof passed 11/0 with 183 assertions; exact diff, mutation pin and scope hygiene passed.
 - Approval is WITHHELD only because the mandatory complete disposable Chromium matrix could not finish: the system drive had about 92 MB free and isolated profile creation failed `UV_ENOSPC`, followed by an OS profile lock during cleanup. Partial actual-handler proof passed semantic focus/scroll, unchanged Today URL/history/loaded state, and other-six routing, but cannot substitute for every required matrix cell.
 - Port 3000 was untouched. Free disposable disk and assign a fresh independent Tier2 rereviewer.
+
+## Fresh Tier2 rereview — D929
+
+- Fresh independent non-implementing reviewer `/root/order332_fresh_rereview`
+  APPROVES exact candidate `86ec512` at governance head `fdae3bc`; D928's
+  environment-only withholding is superseded.
+- Reviewer-personal disposable Chromium actual-handler proof passed all 36 cells:
+  3 modes x 6 appearances x 375/640 at DSF2, with 758 assertions. Focus/scroll,
+  unchanged Today URL/history and loaded lane/action counts, six other routes/focus,
+  dirty guards, Back/Forward, native keyboard, reduced motion, forced colors,
+  console/errors zero and network/business writes zero passed; profile removed.
+- Focused proof passed40/0(547) across11 files. Typecheck,127 import boundaries,
+  23 licences, audit0, JavaScript syntax, exact four-file diff, hygiene and the
+  strict-assignment mutation pin passed. Port3000 and production were untouched.
 
 ## Builder evidence — D927
 
