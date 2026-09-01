@@ -49,6 +49,10 @@ test("Order 316 intentional red: authenticated root is synchronously Today", () 
   expect(html).toContain('<h1 id="workbench-title">Today</h1>');
   expect(script).toContain('let activeView = "today";');
   expect(script).toMatch(/location\.pathname\.endsWith\("\/status"\) \? "status" : "today";/);
+  const showWorkbench = functionSource("showWorkbench");
+  expect(showWorkbench).toContain('location.pathname === "/" && propertySelect.value');
+  expect(showWorkbench).toContain('history.replaceState({}, "", `/p/${enc(propertySelect.value)}/today`)');
+  expect(showWorkbench.indexOf("history.replaceState")).toBeLessThan(showWorkbench.indexOf("setView(activeView, false)"));
 });
 
 test("Order 316 intentional red: Today names only the seven existing connected journey destinations", () => {

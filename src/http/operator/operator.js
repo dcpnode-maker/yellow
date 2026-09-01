@@ -1051,6 +1051,9 @@
  sessionState.textContent = `${operator.displayName} · authenticated`;
  operatorName.textContent = `Signed in as ${operator.displayName}. Results come from live tenant-scoped PostgreSQL truth.`;
  propertySelect.focus();
+ if (location.pathname === "/" && propertySelect.value) {
+  history.replaceState({}, "", `/p/${enc(propertySelect.value)}/today`);
+ }
  setView(activeView, false);
  }
   function emptyList(container, message) {
