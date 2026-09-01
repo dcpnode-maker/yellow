@@ -1,6 +1,6 @@
 # Order 327 — Folio separate-charges local refresh
 
-**Status:** BUILT-LOCALLY-PENDING-FRESH-TIER3-REVIEW-D912
+**Status:** REVIEW-WITHHELD-D913
 **Phase:** 7 — founder-visible presentation of already-built financial journeys
 **Branch:** `phase-7/folio-separate-charges-local-refresh`
 **Base:** `10c8e03` (independently approved Order326 governance head)
@@ -33,6 +33,14 @@ rollback deletion.
 - [x] Live acceptance and preservation proof pass.
 - [x] Order325 remains stopped for rollback.
 - [ ] Fresh non-operating Tier3 reviewer approves.
+
+## Fresh Tier 3 review — D913
+
+Approval is withheld. The exact live loaded Folio reproduced 139 px of document-level
+horizontal overflow at an actual 375 CSS-pixel viewport and 64 px at 640 CSS pixels
+with device scale factor 2. Runtime, topology, database, routes, status, label,
+identity, organize behavior, console and focused proof otherwise passed. A fixed
+candidate and fresh non-operating Tier 3 review are required.
 
 ## Builder evidence — D912
 
