@@ -1429,3 +1429,6 @@ separate guarded operation.
 **Ready Order321 Folio copy local refresh — D891:** Build exact approved94e76a8 and
 replace only the sole loopback3000 app, retaining Order319 for rollback and preserving
 data, credentials, companions and truthful status. Fresh Tier3 approval is mandatory.
+**Order321 built locally — D892:** Exact94e76a8/image6e114234 is the sole healthy
+loopback3000 app with Order319 stopped for rollback. Prefill/login/two properties/all
+routes/two copy surfaces and unchanged data/companions/ports pass; fresh Tier3 pending.

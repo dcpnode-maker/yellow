@@ -1,6 +1,6 @@
 # Order 321 — Folio capability copy local refresh
 
-**Status:** READY-D891
+**Status:** BUILT-LOCALLY-PENDING-FRESH-TIER3-REVIEW-D892
 **Phase:** 7 — founder-visible presentation of already-built Phase 5 journeys
 **Branch:** `phase-7/folio-capability-copy-local-refresh`
 **Base:** `4910efe` (independently approved Order320 governance head)
@@ -29,7 +29,19 @@ rollback deletion.
 
 ## Definition of done
 
-- [ ] Exact approved image built and sole app refreshed.
-- [ ] Live acceptance and preservation proof pass.
-- [ ] Order319 remains stopped for rollback.
+- [x] Exact approved image built and sole app refreshed.
+- [x] Live acceptance and preservation proof pass.
+- [x] Order319 remains stopped for rollback.
 - [ ] Fresh non-operating Tier3 reviewer approves.
+
+## Builder evidence — D892
+
+- Exact approved source94e76a8 built image
+  `sha256:6e1142348cc76ff1f971bb04408586fba12b4771e6a1ccbff8f0f1bd494bd819`
+  with exact OCI revision and now runs as the sole healthy loopback3000 app, restart0.
+- Order319 remains stopped/restart0 for rollback; environment arrays match by secret-safe
+  digest. Temporary build source was removed.
+- Prefill3, protected login,2 properties,24/24 routes200/no-store and both approved copy
+  surfaces pass. PostgreSQL/provider/Valkey remain healthy0; obsolete ports are closed.
+- Read-only database truth remains59/110+2/100/2 and8/0/8/75/22. Fresh non-operating
+  Tier3 approval remains mandatory.
