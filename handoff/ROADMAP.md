@@ -905,3 +905,12 @@ historical12%/18% and active5%/18% schedules across both dual families; explicit
 599+601 and899+901 unequal mutants fail. Focused/adjacent/standing/static gates pass.
 Approval closes only numeric component-rate decomposition; all taxable-value,amount,
 rounding,posting,document,IRP and runtime dependencies remain bounded future work.
+
+## Order338 roadmap entry
+
+Close Order302's fail-closed calendar prerequisite without guessing Indian weekends or
+holidays. Validate a dense externally governed civil-day sequence after the asserted
+rate-change date and derive only the first four working dates and fourth-working-day
+evidence. D946 admits a pure tenant-bound, frozen, hostile-input boundary; no database,
+ingestion, payment-date conclusion, section14 matrix, tax, fiscal, API/UI or local
+authority. Intentional red and fresh non-implementing Tier3 review are mandatory.

@@ -425,6 +425,12 @@ Order310 replay, IGST preservation and equal ordered dual-family rate decomposit
 pass focused10/0, adjacent37/0, standing1154/0 plus890 expected skips and every static
 gate. Database/referee lineage is unchanged; fresh Tier-3 approval is pending.
 
+Order338 is admitted by D946 after Order337 approval. It validates only a complete,
+explicitly governed India working-day sequence and derives the first four working dates
+plus fourth-working-day evidence required by Order302's fail-closed branch. It never
+infers weekends/holidays and grants no payment-date, section14-matrix, tax/fiscal,
+API/UI/local or Phase-complete authority. Intentional red and fresh Tier3 are required.
+
 Order 237 is built-unreviewed under D-625 as the positive pure rules-driven
 tax-evaluation foundation.
 It validates the adopted jurisdiction contract, converts configuration rates to
