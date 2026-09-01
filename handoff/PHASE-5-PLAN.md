@@ -86,3 +86,11 @@ predates its exact `financials.trust:post` grant. D979 opens Order346 to add tha
 expected claim and the separately seeded approver's sequentially masked
 `financials.trust:approve-negative` expected claim. Exact equality, separation and all
 product/accounting proof remain mandatory; no seed or behavior changes.
+
+D981 independently approves exact Order346 candidate37cb8cf and the underlying
+Order344. The repair is exactly three sorted token additions across two strict login
+scope equalities; fresh role inspection proves operator trust-post only and approver
+inherited trust-post plus its distinct negative-approval scope. All fresh database,
+trust hostility, standing/static/schema and referee gates pass. This closes only the
+owner-trust negative-authorization slice; Phase5 still requires its separate
+continuous business-day work and exit evidence.

@@ -1573,3 +1573,12 @@ green. Review seed is red only because exact login expectations omit the new sep
 trust scopes. Order346 adds `financials.trust:post` only to the operator expectation
 and `financials.trust:approve-negative` only to the approver expectation, retaining
 exact equality and changing no seed/product/schema/runtime/local behavior.
+
+**Orders346 and344 independently approved — D981:** Fresh non-implementing Tier3
+proves the exact three-token/two-string oracle repair and intended role composition:
+operator has trust-post only; approver inherits trust-post and adds negative-approval.
+Fresh60/111/101/10/2, review-seed24/0, trust7/0, acceptance23/0, runtime10/0,
+migrate39/0, exact schema, standing/static and referee11/11 pass. D978 is discharged
+and the bounded accounting-only owner-trust guard is approved. Phase5 remains open for
+its separately documented day-close work; payout/UI/local and broader authority stay
+excluded.

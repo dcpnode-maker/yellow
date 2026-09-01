@@ -1078,3 +1078,9 @@ prerequisite is now satisfied, without reviewing or approving Order344 itself.
 D978 WITHHOLDS Order344 solely on a stale exact review-login scope oracle. D979 opens
 Order346 to add the operator post scope and separate approver negative-approval scope
 to their respective expected strings, with exact equality and no behavior change.
+
+D981 independently approves exact Order346 candidate37cb8cf and discharges D978,
+thereby approving Order344's accounting-only owner-trust guard. Fresh role/login,
+60/111/101/10/2 database, trust hostility, permanent, standing/static/schema and
+referee11/11 evidence is green. No payout, UI/local, day-close, Phase5 or application
+completion is claimed.

@@ -1,6 +1,6 @@
 # Order 346 — Review-seed trust scope oracle repair
 
-**Status:** READY-D979
+**Status:** APPROVED-D981
 **Phase:** 5 — Financials
 **Branch:** `phase-5/review-seed-trust-scope-oracle-repair`
 **Base:** `62b8582` (Order344 independent WITHHOLD)
@@ -61,9 +61,9 @@ equality—no contains, subset or generated expected value.
 
 ## Definition of done
 
-- [ ] The product diff is exactly three token additions in two expected scope strings.
-- [ ] Fresh permanent gates are green.
-- [ ] A different fresh independent Tier-3 reviewer approves Order346 and Order344.
+- [x] The product diff is exactly three token additions in two expected scope strings.
+- [x] Fresh permanent gates are green.
+- [x] A different fresh independent Tier-3 reviewer approves Order346 and Order344.
 
 ## Role-composition correction
 
@@ -72,3 +72,11 @@ only `trust:post`; the approver actual claim set contains both trust scopes beca
 seed deliberately grants every canonical review user the bounded operator role and the
 approver receives an additional role. Retain that established architecture and update
 the approver expectation with both exact tokens. No seed or authority changes.
+
+## Independent approval
+
+D981 records fresh non-implementing Tier-3 approval at exact candidate `37cb8cf`:
+review-seed24/0, owner-trust7/0, fresh60/111/101/10/2, acceptance23/0,
+runtime-authority10/0, migrate39/0, exact schema, standing1189/0 plus897 expected
+database skips, static gates and referee11/11. Order346 and the underlying Order344
+are approved within their exact accounting-only boundaries.
