@@ -1,6 +1,6 @@
 # Order 347 — Automatic property-local business-day roll
 
-**Status:** READY-D982
+**Status:** ACTIVE-D984
 **Phase:** 5 — Financials
 **Branch:** `phase-5/automatic-property-local-business-day-roll`
 **Base:** `282fd22` (D981 independently approved Orders346/344)
@@ -36,8 +36,9 @@ seal remains independent. The smallest natural implementation reuses:
 
 Do not add a mutable current-day pointer, scheduler ledger, clock table, advisory
 repair flag, new event or browser/API command. Within the tenant transaction, the
-service derives the current property-local date, attempts an insert with the existing
-unique constraints as arbiter, and only the transaction that inserted the row records
+service calls one narrowly scoped owner-mediated database capability that derives the
+current property-local date and attempts an insert with the existing unique constraints
+as arbiter. Only the transaction that inserted the row records
 the fact and emits the event. An event/fact failure rolls the insert back so a later
 cycle can retry cleanly. Finding the row already present is a deterministic no-op,
 not a synthetic replay event or history repair.
@@ -63,6 +64,16 @@ timezone, cutoff, status, force, seal or catch-up input. It:
 6. returns an immutable result identifying tenant, property, derived business date
    and whether this transaction opened it.
 
+The service has no direct `business_day` DML grant. It calls
+`open_current_business_day(tenant,property)`, an owner-mediated `SECURITY DEFINER`
+capability executable only by `app_role`. The function binds the requested tenant to
+transaction-local `app.tenant_id`, validates the active same-tenant property, derives
+the date from `transaction_timestamp()` and the stored timezone, inserts with the
+existing uniqueness arbiter, and returns only `{business_date,opened_at,opened}`.
+`PUBLIC` and `yellow_runtime` cannot execute it; `app_role` retains no direct INSERT,
+UPDATE or DELETE on `business_day`. Because the capability executes inside the same
+application transaction, any later fact/outbox failure rolls its insert back.
+
 The event payload is identifier/state evidence only:
 `{property_node,business_date,opened_at}`. `opened_at` is the database-authored row instant;
 it is not caller data. Actor, request, correlation and causation follow the existing
@@ -86,8 +97,10 @@ database-free.
 ## Migration and exact catalogue allocation
 
 - next migration: `0061_runtime_due_business_day_scopes.sql`;
-- it adds exactly one read-only runtime discovery function and no table, policy, view,
-  event, trigger or write capability;
+- it adds exactly two fixed-search-path functions: one read-only runtime discovery
+  capability executable only by `yellow_runtime`, and the narrowly scoped
+  `open_current_business_day` write capability executable only by `app_role`;
+- it adds no table, policy, view, event, trigger or direct table DML grant;
 - expected after build: 61 migrations, 111 public base tables, 101 tenant RLS
   tables/policies, 10 FORCE-RLS tables and 2 views;
 - update the exact migration, runtime-capability, SECURITY-DEFINER containment and
@@ -162,14 +175,20 @@ Concurrent different-property and different-tenant scopes each produce their own
 effect. Hostile tenant/property combinations cannot observe, suppress or create the
 other tenant's day. Existing older rows cannot become the contention key for today.
 
-### P5 — runtime least authority
+### P5 — runtime and application least authority
 
 Fresh migration1–61 proof requires the exact unchanged `111/101/10/2` catalogue,
-tenant-leading business-day constraints/RLS and one new bounded function. Prove
+tenant-leading business-day constraints/RLS and the new bounded runtime function. Prove
 limit `NULL`, zero, negative and over-maximum reject; deterministic bounded ordering
 and exact due/not-due discovery; `PUBLIC`/`app_role` denial; `yellow_runtime` execute-
 only access; fixed search path and hostile `pg_temp` resistance; no direct runtime
 read/write on tenant, property, business day, fact or outbox tables.
+Prove separately that `open_current_business_day` is owner-owned, fixed-search-path,
+hostile-`pg_temp` resistant and executable only by `app_role`; it rejects absent or
+mismatched transaction tenant, inactive/missing/foreign/non-property nodes and invalid
+timezones, returns only its three declared fields, and is the sole new application
+capability. `app_role` remains denied direct business-day DML and `yellow_runtime`
+cannot call the write capability.
 
 ### P6 — scheduler lifecycle and failure behavior
 
