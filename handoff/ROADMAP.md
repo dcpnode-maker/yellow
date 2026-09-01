@@ -967,6 +967,12 @@ predecessor bodies, Order291 safe/calendar provenance, calendar predecessor hash
 the exact transaction handle and explicit outer property/lineage/amount/currency
 guards. Bounded permanent-test repair and a different fresh Tier3 rereview are next;
 no downstream authority is admitted.
+D957 records the bounded test-only repair at eb315f9. It adds isolated invoice-equality,
+hash-preserving seven-result replay, exact calendar hashes/final preimage, hostile
+lineage and structural provenance/transaction/guard bindings. Focused11/0(122),
+dependencies40/0(570),standing1181/0 plus890 skips(17815) and all static gates pass.
+Product source,DB,runtime and stable local are unchanged; different fresh Tier3
+execution of all20 mutants is pending.
 
 D953 independently approves exact repaired head26682ab/implementationea190dd with no
 finding. Official CBIC section14 semantics, strict ancestry/scope and all gates pass.

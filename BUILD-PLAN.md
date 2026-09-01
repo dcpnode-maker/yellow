@@ -468,6 +468,12 @@ permanent bindings for isolated invoice equality, hash-preserving predecessor-bo
 replay, Order291 safe/calendar provenance, calendar predecessor hashes, the exact
 transaction handle and explicit property/lineage/amount/currency guards. Repair those
 proofs and obtain a different fresh Tier3 rereview before downstream authority.
+D957 records the bounded permanent-test repair with no product-source change. Exact
+invoice equality, hash-preserving bodies for all seven predecessors, calendar hashes,
+Order291 provenance, exact transaction identity and every masked outer guard are now
+permanently pinned. Focused11/0(122),dependencies40/0(570),standing1181/0 plus890
+skips(17815) and all static gates pass. Different fresh Tier3 mutant execution remains
+mandatory before approval.
 
 Order 237 is built-unreviewed under D-625 as the positive pure rules-driven
 tax-evaluation foundation.

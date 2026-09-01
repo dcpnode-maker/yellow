@@ -850,6 +850,10 @@ bindings for isolated invoice equality, hash-preserving seven-result replay,
 Order291 safe/calendar provenance, calendar predecessor hashes, the exact transaction
 handle and explicit outer property/lineage/amount/currency comparisons. Repair and a
 different fresh Tier3 rereview are mandatory before the next product order.
+D957 records the test-only repair at eb315f9: all20 survivor surfaces now have direct
+permanent assertions, with focused11/0(122),dependencies40/0(570),standing1181/0 plus
+890 skips(17815) and all static gates green. No product/runtime/database/local change;
+a different fresh Tier3 must still personally kill every exact mutant.
 **D847 review complete:** A fresh non-implementing Tier-3 reviewer approves exact
 candidate `6e0824df2a6afff5a83573d463bbee4cf73b436e` with no finding. Reviewer-owned
 tenant/pair-hash, identity/version/status/period, GST_ROOM, source/date, freeze/hash

@@ -60,3 +60,12 @@ personally kills all20 survivors. No product-source change is presently required
 **WITHHOLD** exact head `3441106`. This grants no numeric rate,value,amount,rounding,
 posting,correction,document,IRP,API/UI,local,merge,push,deployment or downstream
 authority.
+
+## D957 repair pending rereview
+
+Commit `eb315f9` changes only the permanent Order340 test and directly covers every
+survivor surface above. Builder verification passes focused **11/0 (122)**,
+dependencies **40/0 (570)**, standing **1,181/0 plus890 expected skips (17,815)**,
+typecheck,131 boundaries,23 licences,audit0 and diff hygiene. A different fresh Tier3
+reviewer must personally execute all20 exact mutants; this section does not supersede
+the withholding until that proof succeeds.
