@@ -32,7 +32,7 @@ function content(lower: number, itc: boolean) { return { country: "IN", price_di
 function version(extensionId: string, number: 1 | 2, status: "retired" | "active", lower: number, itc: boolean, from: string, to: string | null) { const body = content(lower, itc); return { extensionId, key: "in-gst-lodging", version: number, status, effectiveFromInstant: from, effectiveToInstant: to, content: body, contentHash: hash(body), gstRoomSlabs: [{ uptoMinor: 750000, rate: lower, itcEligible: itc }, { uptoMinor: null, rate: 0.18, itcEligible: true }] }; }
 function pair(tenant = TENANT) { const predecessor = version(PREDECESSOR, 1, "retired", 0.12, true, PRE_FROM, CUTOVER), successor = version(SUCCESSOR, 2, "active", 0.05, false, CUTOVER, null); const body = { propertyNode: PROPERTY, predecessor, successor, cutoverInstant: CUTOVER, statutoryLowerBandDelta: { thresholdMinor: 750000, predecessorRate: 0.12, predecessorItcEligible: true, successorRate: 0.05, successorItcEligible: false, predecessorHasNilBand: false, successorHasNilBand: false }, sourceHashes: { notification20_2019: SOURCE20, notification04_2022: SOURCE04, notification15_2025: SOURCE15 } }; return freeze({ ...body, evidenceHash: hash({ tenantId: tenant, predecessorOwnerTenantId: null, successorOwnerTenantId: null, ...body }) }); }
 
-function snapshot() { return createPositiveTaxAttributionSnapshot({ origin: { kind: "rate_quote", quoteHash: QUOTE }, currency: "INR", line: { lineId: "room", revenueGroup: "room_revenue", amountMinor: 10000n, nights: 1, personNights: 2, roomNights: [{ businessDate: "2025-09-21", amountMinor: 10000n }] }, assignments: [{ businessDate: "2025-09-21", jurisdictionKey: "in.order340.gst", evidenceRef: `tax-assignment:${QUOTE}` }], jurisdiction: { extensionId: EXTENSION, ownerTenantId: TENANT, key: "in.order340.gst", version: 1, contentHash: "f".repeat(64), evidenceRef: `tax-jurisdiction:${"1".repeat(64)}` }, evaluation: { schemaVersion: 1, jurisdictionKey: "in.order340.gst", country: "IN", priceDisplay: "tax_exclusive", rounding: "line", inputTotalMinor: 10000n, baseTotalMinor: 10000n, taxTotalMinor: 500n, grandTotalMinor: 10500n, taxes: [{ code: "GST_ROOM", name: "GST", taxMinor: 500n, components: [{ lineId: "room", revenueGroup: "room_revenue", baseMinor: 10000n, taxMinor: 500n, rateBasisPoints: 500 }] }] } }); }
+function snapshot(businessDate = "2025-09-21", quoteHash = QUOTE, currency = "INR") { return createPositiveTaxAttributionSnapshot({ origin: { kind: "rate_quote", quoteHash }, currency, line: { lineId: "room", revenueGroup: "room_revenue", amountMinor: 10000n, nights: 1, personNights: 2, roomNights: [{ businessDate, amountMinor: 10000n }] }, assignments: [{ businessDate, jurisdictionKey: "in.order340.gst", evidenceRef: `tax-assignment:${quoteHash}` }], jurisdiction: { extensionId: EXTENSION, ownerTenantId: TENANT, key: "in.order340.gst", version: 1, contentHash: "f".repeat(64), evidenceRef: `tax-jurisdiction:${"1".repeat(64)}` }, evaluation: { schemaVersion: 1, jurisdictionKey: "in.order340.gst", country: "IN", priceDisplay: "tax_exclusive", rounding: "line", inputTotalMinor: 10000n, baseTotalMinor: 10000n, taxTotalMinor: 500n, grandTotalMinor: 10500n, taxes: [{ code: "GST_ROOM", name: "GST", taxMinor: 500n, components: [{ lineId: "room", revenueGroup: "room_revenue", baseMinor: 10000n, taxMinor: 500n, rateBasisPoints: 500 }] }] } }); }
 
 function rows(serviceDate: string, booksDate: string, bankDate: string, invoiceDate: string) {
   const attribution = snapshot();
@@ -45,8 +45,9 @@ function rows(serviceDate: string, booksDate: string, bankDate: string, invoiceD
 }
 
 function txFor(rowSet: ReturnType<typeof rows>, calls?: string[]): Tx { return (async (strings: TemplateStringsArray) => { const sql = strings.join("?"); calls?.push(sql); if (sql.includes("payment_receipt_snapshot")) return [rowSet.payment]; if (sql.includes("invoice_issue_snapshot")) return [rowSet.invoice]; return [rowSet.service]; }) as unknown as Tx; }
-async function fixture(serviceDate: string, booksDate: string, bankDate: string, invoiceDate: string, paymentKind: "safe" | "calendar" = "safe") {
+async function fixture(serviceDate: string, booksDate: string, bankDate: string, invoiceDate: string, paymentKind: "safe" | "calendar" = "safe", mutateRows?: (value: ReturnType<typeof rows>) => void) {
   const rowSet = rows(serviceDate, booksDate, bankDate, invoiceDate);
+  mutateRows?.(rowSet);
   const serviceInput = { tenantId: TENANT, propertyNode: PROPERTY, reservationId: RESERVATION, serviceProvisionSnapshotId: SERVICE, serviceProvisionDate: serviceDate };
   const paymentInput = { tenantId: TENANT, propertyNode: PROPERTY, reservationId: RESERVATION, serviceProvisionSnapshotId: SERVICE, paymentReceiptSnapshotId: RECEIPT, paymentReceiptDate: booksDate < bankDate ? booksDate : bankDate };
   const invoiceInput = { tenantId: TENANT, propertyNode: PROPERTY, reservationId: RESERVATION, serviceProvisionSnapshotId: SERVICE, invoiceIssueSnapshotId: INVOICE, invoiceIssueDate: invoiceDate, invoiceSeries: "FY2025", invoiceSerial: "340" };
@@ -120,6 +121,15 @@ describe("Order 340: India GST section14 six-case rate selection", () => {
     await expect(new IndiaGstSection14RateSelectionService().resolve(txFor(built.rowSet), symbolic as never)).rejects.toThrow();
   });
 
+  test("rejects the isolated statutory classifier equality: service/payment after and invoice at the rate change", async () => {
+    const built = await fixture("2025-09-23", "2025-09-23", "2025-09-24", "2025-09-22", "calendar");
+    const paymentEvidence = built.input.paymentEvidence as Mutable;
+    expect(built.input.invoiceIssueResult.invoiceIssueDate).toBe(built.input.rateChangeDateEvidence.rateChangeDate);
+    expect(built.input.serviceProvisionResult.serviceProvisionDate > built.input.rateChangeDateEvidence.rateChangeDate).toBeTrue();
+    expect(paymentEvidence.paymentReceiptEvidence.paymentReceiptDate > built.input.rateChangeDateEvidence.rateChangeDate).toBeTrue();
+    await expect(new IndiaGstSection14RateSelectionService().resolve(txFor(built.rowSet), built.input as never)).rejects.toThrow(/equality/);
+  });
+
   test("returns frozen tenant-hidden version identity and tenant-bound complete hashes", async () => {
     const built = await fixture("2025-09-21", "2025-09-20", "2025-09-21", "2025-09-23");
     const actual = await new IndiaGstSection14RateSelectionService().resolve(txFor(built.rowSet), built.input as never);
@@ -129,8 +139,100 @@ describe("Order 340: India GST section14 six-case rate selection", () => {
     const { evidenceHash, ...body } = actual; expect(evidenceHash).toBe(new Bun.CryptoHasher("sha256").update(JSON.stringify({ tenantId: TENANT, propertyNode: PROPERTY, reservationId: RESERVATION, ...body })).digest("hex"));
   });
 
+  test("rejects a hash-preserving hostile body in every one of the seven supplied results", async () => {
+    const safe = await fixture("2025-09-21", "2025-09-20", "2025-09-21", "2025-09-23");
+    const calendar = await fixture("2025-09-23", "2025-09-23", "2025-09-30", "2025-09-21", "calendar");
+    const altered = <T>(value: T, change: (copy: Mutable) => void): T => {
+      const copy = structuredClone(value) as Mutable;
+      const originalHash = copy.evidenceHash;
+      change(copy);
+      expect(copy.evidenceHash).toBe(originalHash);
+      return freeze(copy) as T;
+    };
+    const hostile = [
+      { input: safe.input, rows: safe.rowSet, replace: { rateChangeDateEvidence: altered(safe.input.rateChangeDateEvidence, (v) => { v.rateChangeDate = "2025-09-23"; }) } },
+      { input: safe.input, rows: safe.rowSet, replace: { serviceProvisionResult: altered(safe.input.serviceProvisionResult, (v) => { v.serviceProvisionDate = "2025-09-20"; }) } },
+      { input: safe.input, rows: safe.rowSet, replace: { paymentReceiptResult: altered(safe.input.paymentReceiptResult, (v) => { v.paymentReceiptDate = "2025-09-21"; }) } },
+      { input: safe.input, rows: safe.rowSet, replace: { invoiceIssueResult: altered(safe.input.invoiceIssueResult, (v) => { v.invoiceIssueDate = "2025-09-20"; }) } },
+      { input: safe.input, rows: safe.rowSet, replace: { paymentEvidence: altered(safe.input.paymentEvidence, (v) => { v.paymentProvisoEvidence.supplierBooksEntryDate = "2025-09-19"; }) } },
+      { input: calendar.input, rows: calendar.rowSet, replace: { paymentEvidence: altered(calendar.input.paymentEvidence, (v) => { v.workingDayEvidence.fourthWorkingDayDate = "2025-09-30"; }) } },
+      { input: calendar.input, rows: calendar.rowSet, replace: { paymentEvidence: altered(calendar.input.paymentEvidence, (v) => { v.paymentReceiptEvidence.paymentReceiptDate = "2025-09-29"; }) } },
+    ];
+    for (const candidate of hostile) {
+      await expect(new IndiaGstSection14RateSelectionService().resolve(txFor(candidate.rows), { ...candidate.input, ...candidate.replace } as never)).rejects.toThrow();
+    }
+  });
+
+  test("isolates invoice byte equality instead of allowing a hash-only invoice replay", async () => {
+    const built = await fixture("2025-09-21", "2025-09-20", "2025-09-21", "2025-09-23");
+    const invoiceIssueResult = structuredClone(built.input.invoiceIssueResult) as Mutable;
+    invoiceIssueResult.invoiceIssueDate = "2025-09-20";
+    expect(invoiceIssueResult.evidenceHash).toBe(built.input.invoiceIssueResult.evidenceHash);
+    await expect(new IndiaGstSection14RateSelectionService().resolve(txFor(built.rowSet), { ...built.input, invoiceIssueResult: freeze(invoiceIssueResult) } as never)).rejects.toThrow();
+  });
+
+  test("pins calendar predecessor hashes and the complete calendar final preimage", async () => {
+    const built = await fixture("2025-09-23", "2025-09-23", "2025-09-30", "2025-09-21", "calendar");
+    const paymentEvidence = built.input.paymentEvidence as Mutable;
+    const actual = await new IndiaGstSection14RateSelectionService().resolve(txFor(built.rowSet), built.input as never);
+    expect(actual.predecessorHashes).toEqual({
+      rateVersionPair: built.input.rateVersionPair.evidenceHash,
+      rateChangeDate: built.input.rateChangeDateEvidence.evidenceHash,
+      serviceProvision: built.input.serviceProvisionResult.evidenceHash,
+      paymentReceipt: built.input.paymentReceiptResult.evidenceHash,
+      invoiceIssue: built.input.invoiceIssueResult.evidenceHash,
+      paymentProviso: paymentEvidence.paymentProvisoEvidence.evidenceHash,
+      workingDayCalendar: paymentEvidence.workingDayEvidence.evidenceHash,
+      governedPaymentReceipt: paymentEvidence.paymentReceiptEvidence.evidenceHash,
+    });
+    const { evidenceHash, ...body } = actual;
+    expect(evidenceHash).toBe(new Bun.CryptoHasher("sha256").update(JSON.stringify({ tenantId: TENANT, propertyNode: PROPERTY, reservationId: RESERVATION, ...body })).digest("hex"));
+  });
+
+  test("fails closed when one payment or invoice lineage coordinate disagrees with the service root", async () => {
+    const otherQuote = "9".repeat(64);
+    const mutations: Array<readonly ["payment" | "invoice", string, (target: Mutable) => void]> = [
+      ["payment", "hold", (target) => { target.hold_binding_id = id(34051); target.lineage_hold_binding_id = id(34051); }],
+      ["invoice", "attribution", (target) => { target.attribution_id = id(34052); target.lineage_attribution_id = id(34052); }],
+      ["payment", "segment", (target) => { target.segment_id = id(34053); target.lineage_segment_id = id(34053); }],
+      ["invoice", "origin", (target) => { const alternative = snapshot("2025-09-20", otherQuote); target.origin_quote_hash = otherQuote; target.lineage_origin_quote_hash = otherQuote; target.snapshot_hash = alternative.snapshotHash; target.lineage_snapshot_hash = alternative.snapshotHash; target.attribution_snapshot = alternative; }],
+      ["payment", "snapshot", (target) => { const alternative = snapshot("2025-09-20"); target.snapshot_hash = alternative.snapshotHash; target.lineage_snapshot_hash = alternative.snapshotHash; target.attribution_snapshot = alternative; }],
+      ["invoice", "currency", (target) => { const alternative = snapshot("2025-09-20", QUOTE, "USD"); target.currency = "USD"; target.service_currency = "USD"; target.lineage_currency = "USD"; target.snapshot_hash = alternative.snapshotHash; target.lineage_snapshot_hash = alternative.snapshotHash; target.attribution_snapshot = alternative; }],
+    ];
+    for (const [side, _label, mutate] of mutations) {
+      const built = await fixture("2025-09-21", "2025-09-20", "2025-09-21", "2025-09-23", "safe", (rowSet) => mutate(rowSet[side] as Mutable));
+      await expect(new IndiaGstSection14RateSelectionService().resolve(txFor(built.rowSet), built.input as never)).rejects.toThrow();
+    }
+  });
+
   test("production contains no ordinary-section13, default, numeric-rate, persistence, clock, or network authority", async () => {
     const source = await Bun.file(new URL("../src/contexts/tax-fiscal/india-gst-section14-rate-selection.ts", import.meta.url)).text();
     expect(source).not.toMatch(/IndiaGstAccommodationTimeOfSupply|section13|default\s*:|new\s+Date|Date\.now|fetch\s*\(|\b(?:INSERT\s+INTO|UPDATE\s+\S+\s+SET|DELETE\s+FROM)\b|gstRoomSlabs|rateBasisPoints|taxableValue|taxAmount/i);
+    for (const fragment of [
+      "proviso.paymentReceiptDate !== payment.paymentReceiptDate",
+      "supplierBooksEntryDate: payment.supplierBooksEntryDate",
+      "supplierBankCreditDate: payment.supplierBankCreditDate",
+      "this.#service.resolve(tx, input.serviceProvisionInput",
+      "this.#payment.resolve(tx, input.paymentReceiptInput",
+      "this.#invoice.resolve(tx, input.invoiceIssueInput",
+      "service.propertyNode !== propertyNode || payment.propertyNode !== propertyNode || invoice.propertyNode !== propertyNode",
+      "payment.serviceProvision.serviceProvisionSnapshotId !== service.serviceProvisionSnapshotId",
+      "invoice.serviceProvision.serviceProvisionSnapshotId !== service.serviceProvisionSnapshotId",
+      "payment.serviceProvision.reservationLineage.lineageId !== service.reservationLineage.lineageId",
+      "invoice.serviceProvision.reservationLineage.lineageId !== service.reservationLineage.lineageId",
+      "payment.serviceProvision.reservationLineage.holdBindingId !== service.reservationLineage.holdBindingId",
+      "invoice.serviceProvision.reservationLineage.holdBindingId !== service.reservationLineage.holdBindingId",
+      "payment.serviceProvision.reservationLineage.attributionId !== service.reservationLineage.attributionId",
+      "invoice.serviceProvision.reservationLineage.attributionId !== service.reservationLineage.attributionId",
+      "payment.serviceProvision.reservationLineage.segmentId !== service.reservationLineage.segmentId",
+      "invoice.serviceProvision.reservationLineage.segmentId !== service.reservationLineage.segmentId",
+      "payment.serviceProvision.reservationLineage.originQuoteHash !== service.reservationLineage.originQuoteHash",
+      "invoice.serviceProvision.reservationLineage.originQuoteHash !== service.reservationLineage.originQuoteHash",
+      "payment.serviceProvision.reservationLineage.snapshotHash !== service.reservationLineage.snapshotHash",
+      "invoice.serviceProvision.reservationLineage.snapshotHash !== service.reservationLineage.snapshotHash",
+      "payment.amountMinor !== invoice.amountMinor || payment.currency !== invoice.currency",
+      "payment.currency !== service.reservationLineage.currency || invoice.currency !== service.reservationLineage.currency",
+    ]) expect(source).toContain(fragment);
+    expect(source).not.toMatch(/new\s+(?:Bun\.)?SQL|globalThis|process\.env/);
   });
 });
