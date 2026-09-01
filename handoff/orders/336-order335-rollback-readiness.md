@@ -1,6 +1,6 @@
 # Order 336 — Order335 rollback readiness
 
-**Status:** READY-D939
+**Status:** DRILL-PASSED-PENDING-DIFFERENT-FRESH-TIER3-D940
 **Phase:** 7 — founder-local operational integrity
 **Branch:** `phase-7/order335-rollback-readiness`
 **Base:** `d3363bd` (Order335 review-withheld governance head)
@@ -31,8 +31,20 @@ change,no merge,push or deployment.
 
 ## Definition of done
 
-- [ ] Retained Order333 starts healthy alone on3000.
-- [ ] Order335 returns healthy alone on3000 with exact preserved configuration.
-- [ ] Database/companions/ports remain unchanged.
+- [x] Retained Order333 starts healthy alone on3000.
+- [x] Order335 returns healthy alone on3000 with exact preserved configuration.
+- [x] Database/companions/ports remain unchanged.
 - [ ] Different fresh non-operating Tier3 reviewer approves Order335 plus readiness.
 
+## Operator evidence — D940
+
+- Exactly one-at-a-time drill passed:Order335 stopped;retained Order333 started as
+  sole port3000 owner and reached running/healthy/restart0/exit0 with exact health body.
+- Order333 then stopped by polite SIGTERM and again records Docker exit139;its own log
+  explicitly says `terminated by signal SIGTERM (Polite quit request)`. This is a
+  repeatable stop-code mapping,not readiness failure.
+- Order335 restarted as sole healthy3000/restart0/exit0. Live and rollback exact
+  24-entry protected environment digests match;companions remained healthy. No
+  container/image/config/data/credential/status/authority was deleted or recreated.
+- D938's readiness uncertainty is executable-closed. A different fresh Tier3 reviewer
+  must verify current truth and approve or withhold.
