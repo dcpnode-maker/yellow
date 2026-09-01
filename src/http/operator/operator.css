@@ -404,6 +404,8 @@ input:hover, select:hover, textarea:hover { border-color: #8d978c; }
 .folio-lookup { max-width: 980px; padding: 1rem; display: grid; grid-template-columns: minmax(240px, 1fr) auto; gap: .8rem; align-items: end; }
 .folio-lookup input, .folio-lookup button, .folio-charge-form input, .folio-charge-form select, .folio-charge-form textarea, .folio-charge-form button, .folio-receivable-form input, .folio-receivable-form select, .folio-receivable-form button, .folio-correct-action, .folio-settlement-action, #folio-load-older { min-height: 44px; }
 .folio-lookup .form-message { grid-column: 1 / -1; }
+#folio-find-via-reservation-copy { min-width: 0; margin: 0; align-self: center; overflow-wrap: anywhere; }
+#folio-find-via-reservation { justify-self: end; }
 .folio-statement { min-width: 0; max-width: 100%; margin-top: 1rem; padding: 1rem; display: grid; gap: 1rem; }
 .folio-statement > #folio-statement { min-width: 0; max-width: 100%; }
 .folio-summary { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .75rem; }
@@ -618,6 +620,7 @@ input:hover, select:hover, textarea:hover { border-color: #8d978c; }
 .reservation-lookup, .reservation-summary, .reservation-guest-row { grid-template-columns: 1fr; }
 .folio-lookup, .folio-summary, .folio-charge-form fieldset { grid-template-columns: 1fr; }
 .folio-lookup .form-message, .folio-charge-form .field-note, .folio-charge-confirmation, .folio-charge-form .form-message { grid-column: 1; }
+#folio-find-via-reservation { width: 100%; justify-self: stretch; }
 .party-profile-search-form, .party-profile-result { grid-template-columns: 1fr; }
 .party-profile-search-form .form-message { grid-column: 1; }
 .party-profile-result button { width: 100%; }

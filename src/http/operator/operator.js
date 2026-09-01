@@ -676,6 +676,7 @@
  const departureRetry = $("#departure-readiness-retry");
  const departureMessage = $("#departure-readiness-message");
  const folioStatementLookupForm = $("#folio-statement-lookup-form");
+ const folioFindViaReservation = $("#folio-find-via-reservation");
  const folioWorkspace = $("#folio-workspace");
  const folioWorkspaceTitle = $("#folio-workspace-title");
  const folioWorkspaceBack = $("#folio-workspace-back");
@@ -11484,6 +11485,11 @@ function vehicleReturnPathFromState(state, property) {
   if (activeView === "folios" && control.dataset.journeyView !== "folios" && !folioWorkspace.hidden && !confirmFolioExit()) return;
   setView(control.dataset.journeyView);
   finishWorkspaceNavigation(control.dataset.journeyView);
+ });
+ folioFindViaReservation.addEventListener("click", () => {
+  if (!confirmFolioExit()) return;
+  setView("reservations");
+  finishWorkspaceNavigation("reservations");
  });
  availabilityReservationShortcut.addEventListener("click", () => {
  setView("reservations");

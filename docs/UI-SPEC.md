@@ -119,6 +119,13 @@ overlay and focuses the destination heading; Advanced and Expert keep their dire
 workspace controls. A cancelled dirty exit leaves the current route, overlay and
 focus unchanged. Explicit deep links continue to win over the Today default.
 
+The empty Folios lookup also provides one quiet **Find via reservation** bridge for
+operators who do not know a folio reference. Its eligibility-qualified copy directs
+the operator to Reservations, where an eligible stay may expose its existing Folio
+action. The bridge reuses canonical current-property navigation, dirty-exit,
+history and destination-focus behavior; it does not select a reservation, find,
+create or open a folio, or imply settlement or invoice eligibility.
+
 The index must never imply that an eligible row exists or that a conditional command
 will succeed. It must not advertise the tape chart, waitlist actions, generic payment
 capture or refund, day close, statutory or fiscal issue, mobile/offline/photo
