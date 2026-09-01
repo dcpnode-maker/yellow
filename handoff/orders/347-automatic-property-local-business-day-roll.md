@@ -1,6 +1,6 @@
 # Order 347 — Automatic property-local business-day roll
 
-**Status:** BUILT-PENDING-FRESH-TIER3-REVIEW-D985
+**Status:** REVIEW-WITHHELD-D986
 **Phase:** 5 — Financials
 **Branch:** `phase-5/automatic-property-local-business-day-roll`
 **Base:** `282fd22` (D981 independently approved Orders346/344)
