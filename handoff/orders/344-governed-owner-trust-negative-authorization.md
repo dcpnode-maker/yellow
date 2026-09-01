@@ -66,6 +66,7 @@ No HTTP or UI surface is admitted by this order.
 - new focused intentional-red/unit/integration tests for this command;
 - current exact migration/catalogue/schema/runtime-authority tests only as required by
   migration0060 and the one bounded capability;
+- `setup.sh` only for its exact post-migration base-table/policy catalogue oracle;
 - `tests/schema/expected.sql` and `scripts/seed-review.ts`;
 - trust-only sections of `docs/CONTRACTS.md`, `docs/EVENTS.md`,
   `docs/DOMAIN-MODEL-V1.md`, `docs/SECURITY.md`, `BUILD-PLAN.md` and
@@ -115,3 +116,10 @@ D975 activates implementation after D974 satisfies the prerequisite. Exact alloc
 is revalidated at 59 migrations ending0059, 110 base tables, 100 tenant RLS policies,
 10 FORCE-RLS tables and 2 views; migration0060 and expected111/101/10/2 remain free
 and exact. No product or schema path changed during activation.
+
+## Scope amendment
+
+D976 admits `setup.sh` before retaining its provisional edit because the repository's
+mandatory setup gate independently exact-counts the post-migration base tables and RLS
+policies. Only the expected 110→111 table and 100→101 policy totals may change; command
+behavior, referee expectations and every other setup assertion remain byte-equivalent.
