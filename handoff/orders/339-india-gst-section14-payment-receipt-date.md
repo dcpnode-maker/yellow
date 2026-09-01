@@ -1,6 +1,6 @@
 # Order 339 — India GST section 14 governed payment-receipt date
 
-**Status:** REPAIRED-PENDING-DIFFERENT-FRESH-TIER3-REREVIEW-D952
+**Status:** APPROVED-D953
 **Phase:** 7 — Tax engine and India IRP
 **Branch:** `phase-7/india-gst-section14-payment-receipt-date`
 **Base:** `3f91134` (independently approved Order338 governance head)
@@ -61,7 +61,7 @@ fiscal document, IRP, merge, deploy, Phase-complete or application-complete clai
 - [x] Intentional red precedes production.
 - [x] Exact boundary, replay and hostile proof passes.
 - [x] Standing/static preservation gates pass.
-- [ ] Fresh non-implementing Tier3 reviewer personally executes proof and approves.
+- [x] Fresh non-implementing Tier3 reviewer personally executes proof and approves.
 
 ## Built evidence
 
@@ -116,3 +116,18 @@ fiscal document, IRP, merge, deploy, Phase-complete or application-complete clai
   380 files. Typecheck, 130-file boundaries, 23-package licence policy and
   zero-vulnerability audit pass. No product, database, runtime or local artifact
   changed. A different fresh non-implementing Tier3 rereviewer remains mandatory.
+
+## Different fresh independent Tier3 rereview — D953
+
+- **APPROVED** exact repaired head `26682ab` (implementation `ea190dd`, approved base
+  `3f91134`) with no finding by `/root/order339_fresh_rereview_d952`.
+- Official CBIC CGST Act section14 confirms ordinary books/bank earlier-of and bank
+  substitution only when credit is strictly after four working days.
+- Disposable source mutants replacing returned calendar authority/source and removing
+  the explicit calendar-required guard both fail permanent proof. Independent mutants
+  for `>=`, always-bank, always-earlier, missing coverage, omitted Order338 replay and
+  tenant-free final hashing also fail.
+- Personal focused `27/0` (240), standing `1170/0` plus 890 expected skips (17,693;
+  2,060 tests/380 files), typecheck, 130 boundaries, 23 licences, audit0, ancestry,
+  scope and diff hygiene pass. `.yellow`, port3000, containers, DB/data, credentials
+  and local runtime were untouched. Approval grants no downstream authority.

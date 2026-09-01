@@ -947,6 +947,13 @@ its removal. Focused27/0(240),standing1170/0 plus890 skips(17693),typecheck,
 boundaries130,licences23 and audit0 pass without product/runtime/database/local change.
 A different fresh Tier3 rereviewer must kill both reported mutants before approval.
 
+D953 independently approves exact repaired head26682ab/implementationea190dd with no
+finding. Official CBIC section14 semantics, strict ancestry/scope and all gates pass.
+Reviewer-owned disposable mutants kill both D951 regressions plus >=,always-bank,
+always-earlier,missing-coverage,omitted-Order338-replay and tenant-free-hash faults.
+Focused27/0(240),standing1170/0 plus890 skips(17693),typecheck,boundaries130,
+licences23,audit0 and diff hygiene pass. No runtime/DB/local or downstream authority.
+
 D948 independently approves exact Order338 implementation1d81944/governance53a495a
 with no finding. Official CGST section14 authority, exact source/ancestry/scope,
 focused23/0,standing1162/0 plus890 skips and static gates pass. Reviewer-owned

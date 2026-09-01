@@ -446,7 +446,10 @@ that valid calendar coverage also implies. D952 repairs both proof gaps: returne
 lineage is exact-bound to admitted and rederived Order338 truth, and the deliberately
 redundant calendar-required guard is structurally pinned. Focused27/0(240), standing
 1170/0 plus890 skips(17693) and all static gates pass; different fresh Tier3 rereview
-is required before downstream use.
+is required before downstream use. D953 completes that different fresh review with no
+finding: both D951 mutants and the strict-boundary, branch, coverage, replay and tenant
+hash challenges fail; all focused, standing and static gates pass. Order339 is approved
+only for its bounded payment-receipt-date conclusion.
 
 Order 237 is built-unreviewed under D-625 as the positive pure rules-driven
 tax-evaluation foundation.

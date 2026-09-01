@@ -1,19 +1,36 @@
 # Order 339 fresh independent Tier3 executable review
 
-**Disposition:** WITHHOLD — permanent-proof sensitivity
+**Disposition:** APPROVED-D953 after D952 repair and different fresh executable rereview
 
-**Reviewer:** `/root/order335_fresh_rereview`, fresh independent non-implementing
+**Reviewer:** `/root/order339_fresh_rereview_d952`, different fresh independent non-implementing
 Tier3 reviewer
 
 **Implementation:** `ea190dd`
 
-**Governance reviewed:** `ede6749`
+**Repaired head reviewed:** `26682ab`
 
 **Approved base:** `3f91134`
 
 **Intentional red:** `7dc6339`
 
 ## Finding
+
+No finding. D952 closes both D951 permanent-proof sensitivity defects.
+
+## D952 repair verification
+
+Disposable reviewer-owned mutants were executed against exact `26682ab`:
+
+- replacing returned `calendarAuthorityId` and `calendarSourceDigestSha256` with
+  unrelated constants while retaining normal final self-hashing fails the permanent
+  lineage assertions;
+- removing the explicit `working_day_calendar_required` guard fails the permanent
+  source-structural assertion;
+- changing strict `>` to `>=`, always selecting bank, always selecting ordinary
+  earlier-of, removing bank-date coverage, omitting complete Order338 replay, and
+  omitting tenant identity from the final hash each fail permanent proof.
+
+## Superseded D951 finding
 
 **P1 — returned calendar source lineage is not mutation-bound by permanent proof.**
 
@@ -53,7 +70,7 @@ through-date and complete governed calendar input. Each supplied result must be
 deeply frozen and insertion-byte equal. Calendar bank-date coverage, exact input
 shape, hostile graph rejection and tenant-hidden final hashing are present.
 
-Strict ancestry `3f91134 -> 7dc6339 -> ea190dd -> ede6749` passes. The bounded diff
+Strict ancestry `3f91134 -> 7dc6339 -> ea190dd -> ede6749 -> 6d0794a -> 26682ab` passes. The bounded diff
 contains only the admitted pure module/export, two proofs, docs and governance; no
 migration,SQL,seed,role,writer,dependency,Compose,API/UI or runtime path changed.
 
@@ -62,13 +79,13 @@ migration,SQL,seed,role,writer,dependency,Compose,API/UI or runtime path changed
 - Killed: `>=` instead of strict `>`; always-bank; always-earlier; missing coverage;
   ignoring Order307,Order302 or Order338 supplied-result replay; omitting tenant from
   the final hash.
-- Survived: unrelated returned calendar source digest; removed explicit
-  calendar-required-state guard for the redundancy reason above.
+- Killed after D952: unrelated returned calendar authority/source constants with a
+  preserved self-consistent final hash; removed explicit calendar-required guard.
 
-## Personally executed gates
+## Personally executed gates — D953
 
-- Focused Orders302/307/338/339: **26 pass,0 fail,233 assertions**.
-- Standing: **1169 pass,0 fail,890 expected skips,17686 assertions**,2059 tests
+- Focused Orders302/307/338/339: **27 pass,0 fail,240 assertions**.
+- Standing: **1170 pass,0 fail,890 expected skips,17693 assertions**,2060 tests
   across380 files.
 - TypeScript passed; import boundaries passed for130 files; licence policy passed
   for23 packages; audit found0 vulnerabilities; ancestry,scope and diff hygiene pass.
@@ -77,6 +94,6 @@ migration,SQL,seed,role,writer,dependency,Compose,API/UI or runtime path changed
 
 ## Boundary
 
-**WITHHOLD** exact candidate `ea190dd` on proof completeness only. This grants no
+**APPROVE** exact repaired head `26682ab` and implementation `ea190dd`. This grants no
 section14 applicability/six-case matrix,rate,value,amount,rounding,posting,correction,
 document,IRP,API/UI/local,merge,push,deployment or downstream authority.
