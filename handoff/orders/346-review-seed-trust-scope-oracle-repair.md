@@ -11,8 +11,10 @@
 
 Repair only the two exact review-login scope strings made stale by Order344's
 intentional least-authority grants. The canonical operator expectation gains exactly
-`financials.trust:post`; the separate canonical approver expectation gains exactly
-`financials.trust:approve-negative`. Change no seed, permission, role or product behavior.
+`financials.trust:post`; the canonical approver expectation gains exactly both
+`financials.trust:post` from its inherited operator role and
+`financials.trust:approve-negative` from its additional approver role. Change no seed,
+permission, role or product behavior.
 
 ## Natural-solution boundary
 
@@ -21,7 +23,10 @@ first sequential least-scope assertion is red solely because its expected string
 pre-Order344. Exact seed inspection also proves the different approver role receives
 `financials.trust:approve-negative`; the second sequential expected string is equally
 stale but masked by the first failure. Updating both exact, alphabetically ordered
-expected claims prevents a second masked-oracle cycle. The test must continue exact
+expected claims prevents a second masked-oracle cycle. D267 establishes that the
+approver intentionally holds the same bounded operator role plus its additional
+approver role; four-eyes is enforced by different-user request/decision binding, not
+by preventing that user from separately initiating another request. The test must continue exact
 equality—no contains, subset or generated expected value.
 
 ## Exact scope
@@ -37,23 +42,33 @@ equality—no contains, subset or generated expected value.
 
 1. Preserve Order344 fresh red `23/1(104)` and its exact additional operator claim.
 2. Add only `financials.trust:post` to the operator's exact sorted `scp` string and
-   only `financials.trust:approve-negative` to the approver's exact sorted string.
+   both `financials.trust:post` and `financials.trust:approve-negative` to the
+   approver's exact sorted string.
 3. Run review seed `24/0`, focused owner trust `7/0`, fresh migrations60 catalogue
    `111/101/10/2`, acceptance/runtime/schema, standing/static and referee11/11.
 4. A different fresh Tier-3 reviewer personally verifies both exact identities,
-   absence of cross-grants, complete Order344 hostility and all mandatory gates.
+   exact inherited/additional role composition, complete Order344 hostility and all
+   mandatory gates.
 
 ## Forbidden
 
 - changes to seed, permissions, roles, production, migration, schema, API/UI, runtime,
   environment or credentials;
-- adding either trust scope to the wrong identity, adding any other scope, weakening
+- adding negative-approval to the operator, adding any other scope, weakening
   exact equality or deriving the expected string from actual claims;
 - `.yellow`, port3000, stable Order335, merge, push, deployment, self-review or
   Phase/application completion claims.
 
 ## Definition of done
 
-- [ ] The product diff is exactly two additions in two expected scope strings.
+- [ ] The product diff is exactly three token additions in two expected scope strings.
 - [ ] Fresh permanent gates are green.
 - [ ] A different fresh independent Tier-3 reviewer approves Order346 and Order344.
+
+## Role-composition correction
+
+D980 records the pre-commit executable discovery: the operator expectation passes with
+only `trust:post`; the approver actual claim set contains both trust scopes because the
+seed deliberately grants every canonical review user the bounded operator role and the
+approver receives an additional role. Retain that established architecture and update
+the approver expectation with both exact tokens. No seed or authority changes.
