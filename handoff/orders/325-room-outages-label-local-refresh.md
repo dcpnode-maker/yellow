@@ -1,6 +1,6 @@
 # Order 325 — Room outages label local refresh
 
-**Status:** READY-D905
+**Status:** BUILT-LOCALLY-PENDING-FRESH-TIER3-REVIEW-D906
 **Phase:** 7 — founder-visible presentation of already-built stay journeys
 **Branch:** `phase-7/room-outages-label-local-refresh`
 **Base:** `490a2f8` (independently approved Order324 governance head)
@@ -29,7 +29,22 @@ rollback deletion.
 
 ## Definition of done
 
-- [ ] Exact approved image built and sole app refreshed.
-- [ ] Live acceptance and preservation proof pass.
-- [ ] Order323 remains stopped for rollback.
+- [x] Exact approved image built and sole app refreshed.
+- [x] Live acceptance and preservation proof pass.
+- [x] Order323 remains stopped for rollback.
 - [ ] Fresh non-operating Tier3 reviewer approves.
+
+## Builder evidence — D906
+
+- Exact approved runtime `c3afab2` built image
+  `sha256:58ad2103d6d254bb2cd56b3b192ea9fc2f6d58ceed5ca312a88f3f37b9823456`
+  with exact OCI revision and now runs as the sole healthy loopback3000 app,
+  restart0.
+- Order323 is stopped as the approved rollback; its environment is byte-identical to
+  the replacement. PostgreSQL/provider/Valkey remain healthy with restart0 and ports
+  3002/3123/3188 remain closed.
+- Protected local prefill asset, credential-valid sign-in, two properties, no-store
+  property/status requests, exact status310/311/91/P7/11 and live `Room outages`
+  presentation pass.
+- Explicit read-only database proof confirms unchanged59 migrations,110 base tables,
+  2 views,100 policies,2 properties and8/0/8/75/22 party/contact/role/fact/outbox.
