@@ -918,3 +918,12 @@ D947 records the implementation side green: intentional red preceded a pure exac
 boundary; focused21/0, permanent8/0, standing1162/0 plus890 expected skips and all
 static gates pass. No database/runtime artifact changed. Fresh Tier3 approval remains
 mandatory before the evidence can compose with Order302.
+
+D948 independently approves exact Order338 implementation1d81944/governance53a495a
+with no finding. Official CGST section14 authority, exact source/ancestry/scope,
+focused23/0,standing1162/0 plus890 skips and static gates pass. Reviewer-owned
+in-memory mutants kill off-by-one start, non-working count, last-date selection,
+trailing/source/tenant hash omissions and a valid contiguous367-day acceptance. The
+4..366 bound is exact technical containment, not inferred statutory policy. Approval
+closes only governed calendar evidence; payment-date conclusion,section14 matrix and
+all downstream tax/fiscal/runtime work remain bounded future orders.

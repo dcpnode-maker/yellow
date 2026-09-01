@@ -1,6 +1,6 @@
 # Order 338 — India GST section 14 governed working-day calendar evidence
 
-**Status:** BUILT-PENDING-FRESH-TIER3-REVIEW-D947
+**Status:** APPROVED-D948
 **Phase:** 7 — Tax engine and India IRP
 **Branch:** `phase-7/india-gst-section14-working-day-calendar-evidence`
 **Base:** `9fd55d8` (independently approved Order337 governance head)
@@ -64,7 +64,7 @@ deploy, Phase-complete or application-complete claim.
 - [x] Intentional red precedes production.
 - [x] Exact and hostile permanent proof passes.
 - [x] Standing/static preservation gates pass.
-- [ ] Fresh non-implementing Tier-3 reviewer personally executes proof and approves.
+- [x] Fresh non-implementing Tier-3 reviewer personally executes proof and approves (D948).
 
 ## Built evidence
 
@@ -78,3 +78,23 @@ deploy, Phase-complete or application-complete claim.
   policy, zero-vulnerability audit and diff hygiene are green.
 - No migration, schema, seed, query, writer, database, container, credential or local
   runtime artifact changed. Fresh independent Tier3 executable review remains mandatory.
+
+## Fresh independent Tier-3 review — D948
+
+- **APPROVE** exact implementation `1d81944` / governance `53a495a` with no
+  finding. Official CBIC CGST Act section14 confirms the statutory phrase “after
+  four working days”; it supplies no weekend/holiday inference authority, matching
+  this evidence-only boundary.
+- Exact source/ancestry/scope inspection passes. The deeply frozen external `IN`
+  classification graph begins exactly the civil day after the asserted change,
+  remains dense through the exact supplied bound, counts only explicit `working`
+  states, selects the first four and preserves all trailing classifications.
+- Reviewer-owned in-memory mutants for off-by-one start, counting non-working days,
+  choosing the last classified date, omitting trailing classifications/source/tenant
+  from the hash, and accepting a valid contiguous367-day window were all killed.
+  The exact4..366 numerical boundary is pinned by production validation/error,
+  `docs/SECURITY.md` and D947 build evidence.
+- Focused Orders302/307/338 pass23/0(197);standing1162/0 plus890 expected skips
+  (17640;2052 tests/378 files),typecheck,129 boundaries,23 licences,audit0 and diff
+  hygiene pass. `.yellow`,port3000,containers,DB/data,credentials and stable local
+  were untouched.
