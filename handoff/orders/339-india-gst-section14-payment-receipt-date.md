@@ -1,6 +1,6 @@
 # Order 339 — India GST section 14 governed payment-receipt date
 
-**Status:** READY-D949
+**Status:** BUILT-PENDING-FRESH-TIER3-REVIEW-D950
 **Phase:** 7 — Tax engine and India IRP
 **Branch:** `phase-7/india-gst-section14-payment-receipt-date`
 **Base:** `3f91134` (independently approved Order338 governance head)
@@ -58,7 +58,20 @@ fiscal document, IRP, merge, deploy, Phase-complete or application-complete clai
 
 ## Definition of done
 
-- [ ] Intentional red precedes production.
-- [ ] Exact boundary, replay and hostile proof passes.
-- [ ] Standing/static preservation gates pass.
+- [x] Intentional red precedes production.
+- [x] Exact boundary, replay and hostile proof passes.
+- [x] Standing/static preservation gates pass.
 - [ ] Fresh non-implementing Tier3 reviewer personally executes proof and approves.
+
+## Built evidence
+
+- Intentional red failed `0/1` before the production composer/export existed.
+- Focused Orders302/307/338/339 pass `27/0` with 235 assertions; permanent Order339
+  passes `7/0` with 46 assertions across first/fourth/strictly-after boundaries,
+  ordinary earlier-of directions, missing bank coverage, exact predecessor replay,
+  hostile shapes, recursive freeze and complete tenant/predecessor hashing.
+- Standing passes `1169/0` with 890 expected database skips, 17,686 assertions and
+  2,059 tests across 380 files. Typecheck, 130-file boundaries, 23-package licence
+  policy, zero-vulnerability audit and diff hygiene are green.
+- No migration/schema/seed/query/writer/database/runtime/local artifact changed.
+  Fresh independent Tier3 executable review remains mandatory.

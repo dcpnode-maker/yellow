@@ -438,6 +438,8 @@ Order339 is admitted by D949 after Order338 approval. It replays Orders302/307/3
 and derives only the calendar-required statutory payment-receipt date: ordinary
 earlier-of through the fourth working day, bank credit strictly after it. Section14
 applicability/six-case rate selection and all tax/fiscal/runtime surfaces remain later.
+Build D950 is green after intentional red: focused27/0, standing1169/0 plus890 skips
+and all static gates pass with no database/runtime change. Fresh Tier3 is pending.
 
 Order 237 is built-unreviewed under D-625 as the positive pure rules-driven
 tax-evaluation foundation.

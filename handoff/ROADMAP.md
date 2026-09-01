@@ -926,6 +926,10 @@ evidence into only the Section14 payment-receipt-date result. D949 requires comp
 predecessor replay, strict after-four-working-days substitution and calendar coverage
 of bank credit. No applicability/six-case matrix, tax, fiscal, API/UI or local authority
 is admitted. Intentional red and fresh Tier3 review are mandatory.
+D950 records the implementation side green after intentional red. Complete predecessor
+replay and exact through-fourth/strictly-after boundaries pass focused27/0,
+standing1169/0 plus890 expected skips and all static gates without DB/runtime change.
+Fresh Tier3 executable approval remains mandatory.
 
 D948 independently approves exact Order338 implementation1d81944/governance53a495a
 with no finding. Official CGST section14 authority, exact source/ancestry/scope,
