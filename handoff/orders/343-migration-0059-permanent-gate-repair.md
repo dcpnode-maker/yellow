@@ -28,7 +28,7 @@ bound, skip a gate, or change production truth to satisfy a stale test.
 
 - `tests/migrate.integration.test.ts`;
 - `tests/database-acceptance.integration.test.ts`;
-- `tests/runtime-dml-authority.integration.test.ts`;
+- `tests/runtime-database-authority.integration.test.ts`;
 - this order;
 - `handoff/reviews/343-migration-0059-permanent-gate-repair.md`;
 - approval/status-only entries in `BUILD-PLAN.md`, `handoff/PHASE-6-PLAN.md`,
@@ -70,3 +70,10 @@ bound, skip a gate, or change production truth to satisfy a stale test.
 - [ ] Migration-0059 focused proof, standing/static/schema and referee 11/11 pass.
 - [ ] A different fresh non-implementing Tier-3 reviewer personally executes the
       repair proof and then reruns the complete Order342 exit gate.
+
+## Scope correction
+
+D971 corrects the third exact test path before implementation. Order342's red `8/2`
+gate is `tests/runtime-database-authority.integration.test.ts`; the similarly named
+runtime-DML suite was never the identified stale oracle and is excluded. Outcome,
+authority, proof and every forbidden boundary remain unchanged.
