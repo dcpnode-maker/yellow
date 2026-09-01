@@ -430,6 +430,9 @@ explicitly governed India working-day sequence and derives the first four workin
 plus fourth-working-day evidence required by Order302's fail-closed branch. It never
 infers weekends/holidays and grants no payment-date, section14-matrix, tax/fiscal,
 API/UI/local or Phase-complete authority. Intentional red and fresh Tier3 are required.
+Build D947 is green on the pure Order338 evidence boundary: focused21/0,
+standing1162/0 plus890 skips and all static gates pass without database/runtime change.
+Fresh non-implementing Tier3 executable approval remains pending.
 
 Order 237 is built-unreviewed under D-625 as the positive pure rules-driven
 tax-evaluation foundation.

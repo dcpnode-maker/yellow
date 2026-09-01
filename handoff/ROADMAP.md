@@ -914,3 +914,7 @@ rate-change date and derive only the first four working dates and fourth-working
 evidence. D946 admits a pure tenant-bound, frozen, hostile-input boundary; no database,
 ingestion, payment-date conclusion, section14 matrix, tax, fiscal, API/UI or local
 authority. Intentional red and fresh non-implementing Tier3 review are mandatory.
+D947 records the implementation side green: intentional red preceded a pure exact
+boundary; focused21/0, permanent8/0, standing1162/0 plus890 expected skips and all
+static gates pass. No database/runtime artifact changed. Fresh Tier3 approval remains
+mandatory before the evidence can compose with Order302.

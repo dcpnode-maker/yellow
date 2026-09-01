@@ -1,6 +1,6 @@
 # Order 338 — India GST section 14 governed working-day calendar evidence
 
-**Status:** READY-D946
+**Status:** BUILT-PENDING-FRESH-TIER3-REVIEW-D947
 **Phase:** 7 — Tax engine and India IRP
 **Branch:** `phase-7/india-gst-section14-working-day-calendar-evidence`
 **Base:** `9fd55d8` (independently approved Order337 governance head)
@@ -61,7 +61,20 @@ deploy, Phase-complete or application-complete claim.
 
 ## Definition of done
 
-- [ ] Intentional red precedes production.
-- [ ] Exact and hostile permanent proof passes.
-- [ ] Standing/static preservation gates pass.
+- [x] Intentional red precedes production.
+- [x] Exact and hostile permanent proof passes.
+- [x] Standing/static preservation gates pass.
 - [ ] Fresh non-implementing Tier-3 reviewer personally executes proof and approves.
+
+## Built evidence
+
+- Intentional red failed `0/1` before the production module/export existed.
+- Focused Order302/307/338 proof passes `21/0` with 191 assertions; the permanent
+  Order338 proof passes `8/0` with 57 assertions and covers explicit weekend-shaped
+  states, leap/non-leap-century/month/year boundaries, contiguous sequence hostility,
+  exact fourth-date selection, bounds, recursive freeze and tenant/source hash binding.
+- Standing passes `1162/0` with 890 expected database skips, 17,640 assertions and
+  2,052 tests across 378 files. Typecheck, 129-file boundaries, 23-package licence
+  policy, zero-vulnerability audit and diff hygiene are green.
+- No migration, schema, seed, query, writer, database, container, credential or local
+  runtime artifact changed. Fresh independent Tier3 executable review remains mandatory.
