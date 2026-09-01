@@ -888,6 +888,11 @@ D964 records that a different fresh reviewer killed15/16 D963 mutants at531fc4c;
 only removal of the outer recursive-freeze gate survived. Test-only cb73daf adds the
 isolated valid-graph/outer-mutable rejection plus hostile wrappers. A third fresh
 Tier3 must kill that exact final mutant; all other repaired proof remains green.
+D965 records third fresh Tier3 approval of exact reviewed head7aab21e. The exact
+outer-freeze mutant and sampled D963 regressions die; clean adjacent44/0(1356),
+standing1187/0 plus890 skips(18388) and all static/ancestry/scope gates pass. Approval
+closes Order341 only; final taxable value and every downstream tax/fiscal authority
+remain separate.
 **D847 review complete:** A fresh non-implementing Tier-3 reviewer approves exact
 candidate `6e0824df2a6afff5a83573d463bbee4cf73b436e` with no finding. Reviewer-owned
 tenant/pair-hash, identity/version/status/period, GST_ROOM, source/date, freeze/hash

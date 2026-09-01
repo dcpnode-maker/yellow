@@ -493,6 +493,11 @@ ordered positive INR room-night amount, never by stay total,average or room-nigh
 This remains quoted applicability—not final taxable value,tax amount,rounding,posting,
 document or IRP authority. Intentional red,hostile transaction-read proof and fresh
 Tier3 review are mandatory.
+D965 independently approves exact reviewed Order341 head7aab21e after the third fresh
+Tier3 kills the final outer-freeze mutant and sampled repaired faults. Clean adjacent
+44/0(1356),standing1187/0 plus890 skips(18388),static,ancestry and scope gates pass.
+Approval closes only quoted per-room-night rate applicability; final Section15 taxable
+value, tax amount, rounding, posting, documents and IRP remain separately governed.
 
 Order 237 is built-unreviewed under D-625 as the positive pure rules-driven
 tax-evaluation foundation.

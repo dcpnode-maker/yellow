@@ -1,6 +1,6 @@
 # Order 341 — India GST accommodation quoted rate-applicability partition
 
-**Status:** REVIEW-WITHHELD-PROOF-SENSITIVITY-D963
+**Status:** APPROVED-D965
 **Phase:** 7 — Tax engine and India IRP
 **Branch:** `phase-7/india-gst-accommodation-quoted-rate-applicability-partition`
 **Base:** `a31d3cd` (approved Order340 governance head)
@@ -180,3 +180,16 @@ Test-only commit `cb73daf` now presents an otherwise-valid graph with only its o
 object mutable, plus proxy/accessor/symbol wrappers, and requires rejection. Focused,
 standing and static gates are green. A third fresh Tier-3 reviewer must personally
 kill that exact final mutant before approval.
+
+## Third fresh Tier-3 approval — D965
+
+A third fresh independent non-implementing Tier-3 reviewer approves exact reviewed
+head `7aab21eb8e39469a8048727e2e6e121750778358`. Removing only `frozen(raw)` is
+red **4/1 (566)** at the isolated mutable-outer assertion; sampled unequal halves,
+projected hold/sellable aliases, caller-supplied selected side and tenant-free final
+hash mutations are also red. Clean adjacent proof is **44/0 (1,356)**, standing is
+**1,187/0** plus **890** expected skips (**18,388** assertions), and typecheck,
+132 boundaries, 23-package licence, audit, ancestry, scope, protected-path, blob and
+diff gates pass. Approval is bounded to the immutable quoted rate-applicability
+partition and grants no final taxable-value, tax-amount, rounding, posting, document,
+ItemList, IRP, API/UI/local or phase-complete authority.

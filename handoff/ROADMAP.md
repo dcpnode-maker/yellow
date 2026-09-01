@@ -1002,6 +1002,11 @@ D964 narrows the Order341 review debt to one proof surface:15/16 D963 mutants di
 531fc4c, while removing only outer `frozen(raw)` survives. Test-only cb73daf isolates
 an otherwise-valid mutable outer envelope and hostile wrappers; a third fresh Tier3
 must kill that exact mutant before approval.
+D965 independently approves exact reviewed Order341 head7aab21e after the third fresh
+Tier3 kills the final outer-freeze mutant and sampled repaired faults. Clean adjacent
+44/0(1356),standing1187/0 plus890 skips(18388),static,ancestry and scope gates pass.
+The approved output remains quoted rate applicability only; final Section15 taxable
+value, tax money, rounding, posting, documents and IRP remain later work.
 
 D953 independently approves exact repaired head26682ab/implementationea190dd with no
 finding. Official CBIC section14 semantics, strict ancestry/scope and all gates pass.
