@@ -1,6 +1,6 @@
 # Order 341 — India GST accommodation quoted rate-applicability partition
 
-**Status:** AMENDED-READY-D962
+**Status:** REVIEW-WITHHELD-PROOF-SENSITIVITY-D963
 **Phase:** 7 — Tax engine and India IRP
 **Branch:** `phase-7/india-gst-accommodation-quoted-rate-applicability-partition`
 **Base:** `a31d3cd` (approved Order340 governance head)
@@ -160,3 +160,14 @@ application-complete claim.
 This order is not approved by its creation. Downstream final taxable-value, tax-amount,
 rounding/allocation, India posting, fiscal document, IRP `ItemList` and IRP submission
 authority each remain separate governed work.
+
+## Fresh independent Tier-3 review — D963
+
+Exact candidate `9731aa8` is coherent and all clean gates pass, but approval is
+withheld on permanent-proof sensitivity. Reviewer-owned mutants show the Order341
+proof does not yet independently kill post-scheduler unequal `599+601`/`899+901`
+component copies, upper-band identity corruption, caller-selected side, omitted
+key/source/status, lineage id, full amount/INR/exact transaction, tenant final-hash,
+Section14 predecessor-hash or recursive-freeze guards. No separate product/statutory
+finding was made. Bounded permanent-test repair and a different fresh Tier-3 rereview
+are mandatory.

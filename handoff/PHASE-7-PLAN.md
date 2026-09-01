@@ -879,6 +879,11 @@ Order310 for shared pair/component identity, selects only Order340's exact pair 
 and reuses one extracted unchanged Order337 numeric scheduler. Permanent opposite-side,
 coincident-side,all-family/upper-band and unequal-half proof is mandatory; no extra
 order or broader authority is introduced.
+D963 records fresh Tier3 withholding on permanent-proof sensitivity only. Exact
+candidate9731aa8 and all normal gates have no product/statutory finding, but unequal
+post-scheduler component copies, upper identities and explicit side/source/status/
+lineage/amount/INR/transaction/hash/freeze guards survive. Bounded permanent proof
+repair and a different fresh Tier3 rereview are required before downstream authority.
 **D847 review complete:** A fresh non-implementing Tier-3 reviewer approves exact
 candidate `6e0824df2a6afff5a83573d463bbee4cf73b436e` with no finding. Reviewer-owned
 tenant/pair-hash, identity/version/status/period, GST_ROOM, source/date, freeze/hash

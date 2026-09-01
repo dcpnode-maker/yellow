@@ -993,6 +993,11 @@ Section14-selected versions. Order341 instead replays the shared pair/component-
 ancestry, chooses the exact pair member only through Order340, and applies the unchanged
 Order337 numeric decomposition through one shared scheduler. Cases1 and5 must prove the
 opposite-side result; no extra prerequisite order or broader authority is admitted.
+D963 withholds exact Order341 candidate9731aa8 on permanent-proof sensitivity only,
+not product/statutory semantics. Repair must exact-bind every copied component across
+six cases/three families/two bands and independently pin all selected-side,source,
+status,lineage,amount,INR,transaction,tenant/predecessor-hash and freeze guards before
+a different fresh Tier3 rereview.
 
 D953 independently approves exact repaired head26682ab/implementationea190dd with no
 finding. Official CBIC section14 semantics, strict ancestry/scope and all gates pass.
