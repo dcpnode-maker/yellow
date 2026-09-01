@@ -863,6 +863,16 @@ prooffc02337 with no finding. Exact M04 and seven high-value samples die; focuse
 dependencies54/0+5 skips,India267/0+99 skips,standing1181/0+890 skips(17817) and all
 static/ancestry/scope/protected/blob checks pass. Approval is Section14 version
 selection only; quoted per-night numeric applicability is the next bounded dependency.
+
+## Order341 — quoted per-room-night rate applicability
+
+D961 admits one transaction-read-only composer over approved Orders340/337 and exact
+persisted Orders240/244/252 lineage. It selects one GST_ROOM slab independently for
+each existing ordered positive INR room-night quoted amount while preserving the
+Section14-selected version and exact IGST or ordered dual component rates. Stay totals,
+averages,room-night-date version overrides,final taxable value,tax amounts,rounding,
+posting,documents,ItemList and IRP remain outside. Intentional red,hostile preservation
+proof and fresh Tier3 review are mandatory.
 **D847 review complete:** A fresh non-implementing Tier-3 reviewer approves exact
 candidate `6e0824df2a6afff5a83573d463bbee4cf73b436e` with no finding. Reviewer-owned
 tenant/pair-hash, identity/version/status/period, GST_ROOM, source/date, freeze/hash

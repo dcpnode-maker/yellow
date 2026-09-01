@@ -983,6 +983,11 @@ fc02337 with no finding. Exact M04 and seven high-value sampled faults die; focu
 dependencies,broad-India,standing1181/0 plus890 skips(17817),static,ancestry,scope,
 protected and blob checks pass. Approval grants six-case Section14 version identity
 only; numeric applicability and every downstream fiscal authority remain separate.
+D961 admits Order341 as the non-duplicative quoted per-room-night applicability
+partition over approved Orders340/337 and persisted Orders240/244/252. It must preserve
+Section14-selected version precedence and classify each existing positive INR unit-day
+amount independently; stay total/average/date override and final taxable value,tax
+money,rounding,posting,document/IRP remain forbidden. Fresh Tier3 review is mandatory.
 
 D953 independently approves exact repaired head26682ab/implementationea190dd with no
 finding. Official CBIC section14 semantics, strict ancestry/scope and all gates pass.

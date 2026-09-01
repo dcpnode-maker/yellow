@@ -486,6 +486,13 @@ replay,hash,transaction and guard mutants die; focused10/0,dependencies54/0 plus
 skips,India267/0 plus99 skips,standing1181/0 plus890 skips(17817) and all static,
 ancestry/scope/protected/blob checks pass. Approval remains bounded to six-case
 Section14 predecessor/successor version identity.
+Order341 is admitted by D961 as the first consumer of both approved Section14 version
+selection and approved numeric component schedules. It re-reads immutable quoted
+attribution/reservation lineage and selects one slab independently for each existing
+ordered positive INR room-night amount, never by stay total,average or room-night date.
+This remains quoted applicability—not final taxable value,tax amount,rounding,posting,
+document or IRP authority. Intentional red,hostile transaction-read proof and fresh
+Tier3 review are mandatory.
 
 Order 237 is built-unreviewed under D-625 as the positive pure rules-driven
 tax-evaluation foundation.
