@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { IndiaGstAccommodationHistoricalResolutionService, buildIndiaGstAccommodationSupplyNature, deriveIndiaGstAccommodationComponentFamily, deriveIndiaGstAccommodationLevyComponentIdentity, deriveIndiaGstAccommodationLevyInputBundle } from "../src/contexts/tax-fiscal";
+import { IndiaGstAccommodationHistoricalResolutionService, buildIndiaGstAccommodationSupplyNature, deriveIndiaGstAccommodationComponentFamily, deriveIndiaGstAccommodationLevyComponentIdentity, deriveIndiaGstAccommodationLevyComponentRateSchedule, deriveIndiaGstAccommodationLevyInputBundle } from "../src/contexts/tax-fiscal";
 
 type Mutable = Record<PropertyKey, any>;
 type Family = "igst" | "cgst_sgst" | "cgst_utgst";
@@ -36,6 +36,7 @@ function nature(history:Mutable,family:Family):Mutable{
 }
 function complete(history:Mutable,familyName:Family,tenantId=TENANT){const supplyNature=nature(history,familyName);const componentFamily=deriveIndiaGstAccommodationComponentFamily({tenantId:TENANT,supplyNature} as never) as Mutable;const bundleInput={tenantId:TENANT,historicalResolution:history,supplyNature,componentFamily};const levyInputBundle=deriveIndiaGstAccommodationLevyInputBundle(bundleInput as never) as Mutable;return{tenantId,historicalResolution:history,supplyNature,componentFamily,levyInputBundle};}
 const derive=(v:unknown)=>deriveIndiaGstAccommodationLevyComponentIdentity(v as never) as Mutable;
+const deriveRates=(v:unknown)=>deriveIndiaGstAccommodationLevyComponentRateSchedule(v as never) as Mutable;
 const reject=(v:unknown)=>expect(()=>derive(v)).toThrow();
 function rehashBundle(v:Mutable,tenantId=TENANT):void{const{evidenceHash:_old,...body}=v;v.evidenceHash=digestCanonical({tenantId,...body});}
 
@@ -73,5 +74,27 @@ describe("Order 310: India GST accommodation levy-component identity",()=>{
   test("returns the exact frozen tenant-hidden deterministic envelope and hash lineage",async()=>{
     const keys=["propertyNode","reservationId","folioId","supplyDate","selectedVersion","gstRoomSlabs","componentFamily","componentIdentities","readiness","legalSources","predecessorHashes","evidenceHash"];
     for(const day of ["2025-09-21","2025-09-22"] as const){const valid=complete(await historical(day) as Mutable,"igst"),first=derive(valid),second=derive(valid);expect(Object.keys(first)).toEqual(keys);expect(second).toEqual(first);expect(JSON.stringify(second)).toBe(JSON.stringify(first));deeplyFrozen(first);expect(first).not.toHaveProperty("tenantId");expect(JSON.stringify(first)).not.toContain(TENANT);expect(first.predecessorHashes).toEqual({...valid.levyInputBundle.predecessorHashes,levyInputBundle:valid.levyInputBundle.evidenceHash});const{evidenceHash,...body}=first;expect(evidenceHash).toBe(digest({tenantId:TENANT,...body}));expect(evidenceHash).not.toBe(digest(body));expect(evidenceHash).not.toBe(digest({tenantId:OTHER,...body}));expect(first.evidenceHash).toMatch(/^[0-9a-f]{64}$/);}
+  });
+});
+
+describe("Order 337: India GST accommodation numeric component-rate split",()=>{
+  test("derives exact ordered IGST, CGST+SGST and CGST+UTGST component rates",async()=>{
+    const expected={igst:[["igst",0.05]],cgst_sgst:[["cgst",0.025],["sgst",0.025]],cgst_utgst:[["cgst",0.025],["utgst",0.025]]} as const;
+    for(const family of ["igst","cgst_sgst","cgst_utgst"] as const){const input=complete(await historical() as Mutable,family),componentIdentity=derive(input),actual=deriveRates({...input,componentIdentity});expect(actual.componentRateSlabs[0].components.map((v:Mutable)=>[v.identity,v.rate])).toEqual(expected[family]);expect(actual.componentRateSlabs[0].aggregateRate).toBe(0.05);expect(actual.componentRateSlabs[1].aggregateRate).toBe(0.18);}
+  });
+
+  test("preserves historical and active aggregate schedules exactly once while splitting every even rate",async()=>{
+    for(const day of ["2025-09-21","2025-09-22"] as const){for(const family of ["igst","cgst_sgst","cgst_utgst"] as const){const input=complete(await historical(day) as Mutable,family),componentIdentity=derive(input),actual=deriveRates({...input,componentIdentity}),text=JSON.stringify(actual);expect(actual.componentRateSlabs.map((v:Mutable)=>({uptoMinor:v.uptoMinor,rate:v.aggregateRate,itcEligible:v.itcEligible}))).toEqual(input.levyInputBundle.gstRoomSlabs);for(const slab of actual.componentRateSlabs){expect(slab.components.reduce((sum:number,v:Mutable)=>sum+v.rateBasisPoints,0)).toBe(slab.aggregateRateBasisPoints);}expect(text.match(/componentRateSlabs/g)).toHaveLength(1);expect(text).not.toMatch(/taxableValue|taxMinor|taxAmount|rounding|residual|posting|document|irp/i);}}
+  });
+
+  test("replays complete Order310 ancestry and rejects coherent supplied-result mutations",async()=>{
+    const input=complete(await historical() as Mutable,"cgst_sgst"),componentIdentity=derive(input);expect(()=>deriveRates({...input,componentIdentity})).not.toThrow();
+    for(const mutate of [(v:Mutable)=>{v.componentIdentities=["sgst","cgst"];},(v:Mutable)=>{v.readiness="sole_component_aggregate_schedule";},(v:Mutable)=>{v.gstRoomSlabs[0].rate=0.12;},(v:Mutable)=>{v.predecessorHashes.levyInputBundle="9".repeat(64);},(v:Mutable)=>{v.evidenceHash="8".repeat(64);}]){const changed=structuredClone(componentIdentity) as Mutable;mutate(changed);freeze(changed);expect(()=>deriveRates({...input,componentIdentity:changed})).toThrow();}
+  });
+
+  test("rejects surplus authority and returns frozen tenant-hidden deterministic evidence",async()=>{
+    const input=complete(await historical() as Mutable,"cgst_utgst"),componentIdentity=derive(input),valid={...input,componentIdentity},first=deriveRates(valid),second=deriveRates(valid);expect(second).toEqual(first);expect(JSON.stringify(second)).toBe(JSON.stringify(first));deeplyFrozen(first);expect(first).not.toHaveProperty("tenantId");expect(JSON.stringify(first)).not.toContain(TENANT);expect(first.evidenceHash).toMatch(/^[0-9a-f]{64}$/);
+    for(const key of ["taxableValue","value","amount","taxMinor","taxAmount","rounding","residual","section14","posting","document","irp"]){expect(()=>deriveRates({...valid,[key]:1})).toThrow();}
+    expect(()=>deriveRates({...valid,componentIdentity:{...componentIdentity}})).toThrow();expect(()=>deriveRates(new Proxy(valid,{}))).toThrow();
   });
 });
