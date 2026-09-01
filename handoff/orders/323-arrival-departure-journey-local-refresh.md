@@ -1,10 +1,10 @@
 # Order 323 — Arrival/departure journey local refresh
 
-**Status:** WITHHELD-PREFILL-REMEDIATION-D899
+**Status:** REMEDIATED-PENDING-FRESH-TIER3-REREVIEW-D900
 **Phase:** 7 — founder-visible presentation of already-built stay journeys
 **Branch:** `phase-7/arrival-departure-journey-local-refresh`
 **Base:** `e2d2a36` (independently approved Order322 governance head)
-**Runtime source:** `e1113d5b38d7edb9b6abf93dd77160a9805da25e`
+**Runtime source:** `9bc9ad2e3463e8588d16b2c382cf15a589272628`
 **Risk tier:** 3 — sole founder-local replacement; fresh non-operating review mandatory
 
 ## Outcome
@@ -43,6 +43,23 @@ exposed; every other runtime, database, route, status, journey, responsive and
 accessibility check passed. Remediation is limited to strengthening the local-only,
 no-store, closure-held restoration helper without changing credentials or the normal
 credential-free document. Intentional red and fresh Tier3 rereview are mandatory.
+
+## Remediation evidence — D900
+
+- Intentional red was7 pass/1 fail/53 assertions and reproduced late browser clearing
+  after the original timeout/two-frame window.
+- The credential-free helper now restores only empty fields on later focus, pageshow
+  and visible visibilitychange; non-empty founder input is preserved. It still uses
+  no browser storage, cookie, embedded credential or cacheable response.
+- Focused proof is15 pass/0 fail/184 assertions. Standing proof is1140 pass/890
+  expected database skips/0 fail/17364 assertions across2030 tests/370 files;
+  typecheck, boundaries127, licences23, audit0 and diff hygiene pass.
+- Remediated runtime9bc9ad2 built image
+  `sha256:093fd44fb33cf1d8f4d4d4c0b0d7f77ae62df832549899968885e276ba999c93`
+  and is sole healthy loopback3000/restart0. The rejected D899 container and approved
+  Order321 rollback are retained stopped; environment and database authority are
+  unchanged. Live root contains the protected prefill payload and late-restoration
+  helper. Fresh Tier3 rereview remains mandatory.
 
 ## Builder evidence — D898
 
