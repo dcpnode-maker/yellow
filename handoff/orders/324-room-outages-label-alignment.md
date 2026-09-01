@@ -1,6 +1,6 @@
 # Order 324 — Room-outages label alignment
 
-**Status:** BUILT-PENDING-FRESH-TIER2-REVIEW-D903
+**Status:** APPROVED-D904
 **Phase:** 7 — founder-visible presentation of already-built room-state journeys
 **Branch:** `phase-7/room-outages-label-alignment`
 **Base:** `a01e4c2` (independently approved Order323 governance/local head)
@@ -34,7 +34,16 @@ local, post310 work, merge, push or deployment. Local reflection is a separate o
 - [x] All scoped visible labels say Room outages with exact old identities retained.
 - [x] Seven journey identities and canonical `/operations` route remain exact.
 - [x] Focused, standing and static proof pass.
-- [ ] Fresh independent Tier2 browser review approves.
+- [x] Fresh independent Tier2 browser review approves.
+
+## Fresh independent review — D904
+
+The fresh non-implementing Tier2 reviewer approved exact candidatec3afab2 with no
+finding. Focused proof was37 pass/0 fail/507 assertions. A disposable isolated
+Chromium matrix executed596 assertions across2 properties,3 modes and6 appearances,
+including exact labels/identities,canonical `/operations`,destination focus/heading,
+Back,keyboard,375,landscape,200%,reduced motion and forced colours. JS/CSS remained
+byte-exact,console0,write-business-network0,mutations0; port3000 was untouched.
 
 ## Builder evidence — D903
 
