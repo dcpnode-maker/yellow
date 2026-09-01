@@ -1,6 +1,6 @@
 # Order 331 — App-bar responsive local refresh
 
-**Status:** BUILT-LOCALLY-PENDING-FRESH-TIER3-REVIEW-D924
+**Status:** COMPLETE-D925-FRESH-TIER3-APPROVED
 **Phase:** 7 — founder-visible presentation of already-built journeys
 **Branch:** `phase-7/app-bar-responsive-local-refresh`
 **Base:** `78c526c` (independently approved Order330 governance head)
@@ -31,7 +31,7 @@ credential/status/authority/post310 work,merge,push,deploy or rollback deletion.
 
 - [x] Exact approved image is sole healthy loopback3000 app.
 - [x] Order329 is retained stopped for rollback and builder preservation proof passes.
-- [ ] Fresh non-operating Tier3 reviewer approves live browser/database truth.
+- [x] Fresh non-operating Tier3 reviewer approves live browser/database truth.
 
 ## Builder evidence — D924
 
@@ -43,3 +43,19 @@ credential/status/authority/post310 work,merge,push,deploy or rollback deletion.
   provider and Valkey are healthy.
 - No database,credential,status,authority or post310 work occurred. Fresh Tier3 must
   personally prove login/routes/status,read-only DB and live full-shell geometry.
+
+## Fresh independent Tier3 approval — D925
+
+- Fresh non-operating reviewer `/root/order331_fresh_tier3` personally approved exact
+  governance `fbb6dd8`, runtime `75f3359` and image `sha256:2abc6c5b` with no finding.
+- Sole healthy loopback3000/restart0, stopped Order329 rollback, exact environment,
+  inherited network/bind/health, healthy companions and closed obsolete ports pass.
+- Protected one-button login,2 properties,24/24 no-store routes,status310/311/91/P7/11
+  and focused48/0+6 expected database skips pass.
+- Live2 properties x3 modes x6 appearances x375/640 CSS px at DSF2 pass72/72:
+  document/body/header/workspace overflow0, local Folio rails only, exact native
+  controls/labels/brand/session,Separate charges/ARIA/organize/correction and
+  keyboard/deep-link/Back/focus contracts. Clean browser responses were all200;
+  console/errors0 and no browser404 occurred.
+- Explicit read-only before/after database truth stayed59/110+2/100/2 and8/0/8/75/22;
+  business mutations0. Approval grants no post310/public/merge/push/deploy authority.
