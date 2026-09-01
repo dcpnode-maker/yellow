@@ -295,6 +295,11 @@ const EXPECTED_MIGRATIONS = [
     filename: "0058_india_gst_accommodation_invoice_issue_date.sql",
     checksum_sha256: "d2eaf70479a602ec82dc5abe73442475abb80ed8ec3f2ef3ec333b182c30dddf",
   },
+  {
+    version: 59,
+    filename: "0059_tax_extension_effective_period.sql",
+    checksum_sha256: "b920169d3776ff8f9804b8273c27a35d750a704919f3f1012af50ec94166f2e8",
+  },
 ];
 
 if (REQUIRE_DATABASE && !DATABASE_URL) {
@@ -371,7 +376,7 @@ databaseDescribe("fresh deployment database acceptance", () => {
             AND class.relforcerowsecurity) AS "forceRlsTables"
     `;
     expect(catalogue).toEqual([{
-      migrations: 58, tables: 110, rlsTables: 100, policies: 100, forceRlsTables: 10,
+      migrations: 59, tables: 110, rlsTables: 100, policies: 100, forceRlsTables: 10,
     }]);
   });
 

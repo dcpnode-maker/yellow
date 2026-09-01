@@ -353,7 +353,7 @@ databaseDescribe("Order 127 runtime database authority (kernel boundary; HTTP P4
        WHERE n.nspname = 'public' AND p.proname LIKE 'runtime_%'
        ORDER BY signature
     `;
-    expect(capabilities).toHaveLength(12);
+    expect(capabilities).toHaveLength(13);
     expect(capabilities.map(({ signature }) => signature).sort()).toEqual([
       "runtime_consumer_advance(text,bigint)",
       "runtime_consumer_begin(text)",
@@ -366,6 +366,7 @@ databaseDescribe("Order 127 runtime database authority (kernel boundary; HTTP P4
       "runtime_mark_outbox_published(uuid[])",
       "runtime_prune_outbox(integer)",
       "runtime_resolve_active_tenant(text)",
+      "runtime_visible_extension_effective_period(uuid,uuid)",
       "runtime_visible_extensions(uuid)",
     ]);
     expect(capabilities.every((row) => row.owner === "yellow_owner" && !row.public_execute && !row.app_execute && row.runtime_execute && JSON.stringify(row.config) === JSON.stringify(["search_path=pg_catalog, public, pg_temp"]))).toBe(true);
@@ -459,7 +460,7 @@ databaseDescribe("Order 127 runtime database authority (kernel boundary; HTTP P4
         FROM pg_catalog.pg_proc p JOIN pg_catalog.pg_namespace n ON n.oid = p.pronamespace
        WHERE n.nspname = 'public' AND p.proname LIKE 'runtime_%' ORDER BY signature
     `;
-    expect(denied).toHaveLength(12);
+    expect(denied).toHaveLength(13);
     expect(denied.every((row) => !row.public_execute && !row.app_execute)).toBe(true);
 
     await database.withTenantTransaction(tenantA, async (tx) => {

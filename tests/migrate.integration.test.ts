@@ -1636,6 +1636,7 @@ databaseDescribe("Bun SQL migration runner", () => {
           "0056_india_gst_accommodation_service_provision_date.sql",
           "0057_india_gst_accommodation_payment_receipt_date.sql",
           "0058_india_gst_accommodation_invoice_issue_date.sql",
+          "0059_tax_extension_effective_period.sql",
         ]);
 
         const preservedLedger = await sql<Array<{
@@ -1661,7 +1662,7 @@ databaseDescribe("Bun SQL migration runner", () => {
             FROM public.schema_migration
            ORDER BY version
         `;
-        expect(upgradedLedger).toHaveLength(58);
+        expect(upgradedLedger).toHaveLength(59);
 
         const noOpLog: string[] = [];
         const noOp = await runMigrations({
@@ -1670,7 +1671,7 @@ databaseDescribe("Bun SQL migration runner", () => {
           logger: (message) => noOpLog.push(message),
         });
         expect(noOp.appliedFiles).toEqual([]);
-        expect(noOp.discoveredFiles).toBe(58);
+        expect(noOp.discoveredFiles).toBe(59);
         expect(noOp.transactionBackendPids).toEqual([]);
         expect(noOpLog).toHaveLength(1);
         expect(noOpLog[0]).toContain("applied=0 status=no-op");
@@ -1692,7 +1693,7 @@ databaseDescribe("Bun SQL migration runner", () => {
         }>>`
           SELECT version, filename, checksum_sha256
             FROM public.schema_migration
-           WHERE version IN (44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58)
+           WHERE version IN (44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59)
            ORDER BY version
         `;
         expect(ledger.map((row) => ({ ...row, version: Number(row.version) }))).toEqual([
@@ -1770,6 +1771,11 @@ databaseDescribe("Bun SQL migration runner", () => {
             version: 58,
             filename: "0058_india_gst_accommodation_invoice_issue_date.sql",
             checksum_sha256: "d2eaf70479a602ec82dc5abe73442475abb80ed8ec3f2ef3ec333b182c30dddf",
+          },
+          {
+            version: 59,
+            filename: "0059_tax_extension_effective_period.sql",
+            checksum_sha256: "b920169d3776ff8f9804b8273c27a35d750a704919f3f1012af50ec94166f2e8",
           },
         ]);
 
