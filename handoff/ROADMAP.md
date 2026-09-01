@@ -805,3 +805,10 @@ D877 independently approves exact d81de9c after personal browser proof of the re
 root Today settlement and every navigation, dirty-guard, history, appearance,
 responsive and accessibility requirement. Order316 is complete; sole-local promotion
 remains a separately admitted app-only operation.
+
+## Order317 roadmap entry
+
+Reflect independently approved Order316 in the sole founder local through a guarded
+app-only cutover. Retain Order315 for rollback; preserve database, companions,
+credentials and truthful status; verify live root Today settlement and existing
+journey navigation under fresh non-operating Tier3 review.

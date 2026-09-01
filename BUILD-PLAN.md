@@ -1366,3 +1366,8 @@ finding and approves exact d81de9c. Bare-root lane settlement, dirty cancellatio
 all journey and secondary navigation, history/restoration, six appearances,
 responsive/accessibility media and a clean console pass. This approves only the
 presentation slice; reflecting it on port3000 remains separate guarded runtime work.
+**Ready Order317 management-demo navigation local refresh — D878:** Build exact
+approved Order316 and replace only the sole loopback3000 app, retaining Order315 for
+rollback and preserving all data, credentials, companions and truthful status. Live
+acceptance must prove canonical root Today settlement, exact seven-journey navigation,
+both properties and all routes before fresh non-operating Tier3 approval.
