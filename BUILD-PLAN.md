@@ -412,6 +412,15 @@ entry/exit and history remain deferred. Focused `23/23`, adjacent `80/80`, stand
 static gates and a fresh 93-table referee `11/11` are green. Independent Tier-3
 approval remains deferred under the founder's build-first direction.
 
+D966 admits review-only Order342 as the Phase-6 independent exit gate. Orders200–236
+already implement the documented completion journeys; a fresh non-implementing
+Tier-3 reviewer must now execute actionable open-balance checkout denial, exact-zero
+checkout, supported cadence sheets, sleep/skip/person discrepancy classification,
+hostile occupancy/authority boundaries, standing/static/schema gates and a fresh
+referee11/11 on the exact integrated head. No product, test, migration, runtime or
+local change is admitted, and policy-bearing discrepancy resolution, queue and
+message work remains separate.
+
 ## Phase 7 — Tax engine + India IRP
 
 Order337 is ready under D942 after the founder explicitly lifted D-869. It is the

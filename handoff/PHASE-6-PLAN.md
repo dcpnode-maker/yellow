@@ -374,6 +374,16 @@ fiscal document work remains Phase 7. No country rule is hardcoded in Phase 6.
 
 Until those slices and proofs land, Phase 6 remains active and unapproved.
 
+## Order 342 — independent exit gate
+
+D966 records that Orders200–236 already cover the documented Phase-6 implementation
+journeys, while the required independent executable phase proof remains absent.
+Order342 adds no behavior: a fresh non-implementing Tier-3 reviewer must execute
+open-balance and exact-zero checkout, supported cadence sheets, sleep/skip/person
+discrepancies, hostile occupancy/authority boundaries, the standing/static/schema
+gates and a fresh referee11/11 on the exact integrated head. Findings require a
+separate repair order; unresolved-discrepancy, queue and message policy remain outside.
+
 ### Order 236 — governed vehicle parking-slot assignment
 
 Order 236 is built-unreviewed under D-622. It adds one create-only exact-property

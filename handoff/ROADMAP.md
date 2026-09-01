@@ -1008,6 +1008,14 @@ Tier3 kills the final outer-freeze mutant and sampled repaired faults. Clean adj
 The approved output remains quoted rate applicability only; final Section15 taxable
 value, tax money, rounding, posting, documents and IRP remain later work.
 
+D966 admits review-only Order342 as the smallest honest Phase-6 continuation. The
+documented Phase-6 journeys are built across Orders200–236 but lack their required
+fresh independent executable exit proof. The reviewer must execute the checkout,
+cadence-sheet, discrepancy, hostile-authority, standing/static/schema and referee11/11
+matrix on the exact integrated head without product/test/migration/runtime/local
+change. Findings return to a separate repair order; unresolved discrepancy,queue and
+message policy remains outside.
+
 D953 independently approves exact repaired head26682ab/implementationea190dd with no
 finding. Official CBIC section14 semantics, strict ancestry/scope and all gates pass.
 Reviewer-owned disposable mutants kill both D951 regressions plus >=,always-bank,
