@@ -173,6 +173,16 @@ describe("Order 341: India GST accommodation quoted-rate applicability", () => {
     const changedIdentity = structuredClone(built.input) as Mutable; changedIdentity.componentIdentityResult.componentIdentities = ["igst"]; await expect(service.resolve(txFor(built.rows), freeze(changedIdentity) as never)).rejects.toThrow();
     const other = componentInput(await historical("2025-09-23") as Mutable, "cgst_sgst"), mismatchedSupply = structuredClone(built.input) as Mutable; mismatchedSupply.componentIdentityInput = other.input; mismatchedSupply.componentIdentityResult = other.result; await expect(service.resolve(txFor(built.rows), freeze(mismatchedSupply) as never)).rejects.toThrow();
     await expect(service.resolve(txFor(built.rows), structuredClone(built.input) as never)).rejects.toThrow();
+    const mutableOuter = { ...built.input };
+    expect(Object.isFrozen(mutableOuter)).toBeFalse(); expect(Object.isFrozen(mutableOuter.section14Input)).toBeTrue();
+    await expect(service.resolve(txFor(built.rows), mutableOuter as never)).rejects.toThrow();
+    await expect(service.resolve(txFor(built.rows), new Proxy({ ...built.input }, {}) as never)).rejects.toThrow();
+    const accessorOuter = { ...built.input } as Mutable;
+    Object.defineProperty(accessorOuter, "tenantId", { enumerable: true, get: () => TENANT });
+    await expect(service.resolve(txFor(built.rows), accessorOuter as never)).rejects.toThrow();
+    const symbolOuter = { ...built.input } as Mutable;
+    symbolOuter[Symbol("hostile")]=true;
+    await expect(service.resolve(txFor(built.rows), symbolOuter as never)).rejects.toThrow();
     const mutations: readonly [string, (row: Mutable) => void][] = [
       ["tenant", (row) => { row.tenant_id = id(34189); }], ["lineage", (row) => { row.lineage_id = id(34190); }],
       ["property", (row) => { row.property_node = id(34191); }], ["hold binding", (row) => { row.hold_binding_id = id(34192); }],
