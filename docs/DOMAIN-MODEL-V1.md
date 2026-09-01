@@ -1724,3 +1724,16 @@ The readiness discriminator makes the unresolved authority explicit: only IGST h
 sole component; both dual families require later officially sourced numeric split
 authority. No taxable-value selection, component rate, money, rounding, posting,
 fiscal document, IRP or runtime behavior is introduced.
+
+### India GST accommodation numeric component-rate schedule (Order337)
+
+Order337 adds no entity, table, migration, seed or writer. Its pure evidence envelope
+revalidates complete Order310 ancestry and converts each approved aggregate
+`GST_ROOM` rate into exact basis points. IGST retains one component at the aggregate
+rate; CGST+SGST and CGST+UTGST receive ordered equal remainder-free halves. Each slab
+records its unchanged bound, aggregate rate and ITC truth once beside the component
+tuple.
+
+This closes only numeric rate decomposition. It does not choose a taxable value,
+calculate tax money, allocate rounding or residuals, post a journal, issue a fiscal
+document, construct IRP data or change any runtime surface.

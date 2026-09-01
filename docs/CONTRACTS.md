@@ -2440,3 +2440,20 @@ aggregate schedule, ordered identities, readiness, statutory sources and complet
 Order309 predecessor hashes plus the Order309 evidence hash. It provides no component
 percentage, value, amount, rounding, residual, Section 14, posting, document or IRP
 authority.
+
+## Order337: India GST accommodation numeric component-rate schedule
+
+`deriveIndiaGstAccommodationLevyComponentRateSchedule({tenantId,
+historicalResolution,supplyNature,componentFamily,levyInputBundle,
+componentIdentity})` re-runs complete Order310 ancestry and requires insertion-byte
+equality with the supplied Order310 result. Each approved `GST_ROOM` slab becomes one
+normalized `componentRateSlabs` row containing the unchanged aggregate rate and basis
+points exactly once plus its ordered component rates: IGST keeps the aggregate rate;
+CGST+SGST and CGST+UTGST receive equal exact halves.
+
+Every rate must be an exact non-negative basis-point value and every multi-component
+split must divide without a remainder. Slab bounds, ITC truth, family order, legal
+sources and all predecessor hashes remain bound. The frozen tenant-hidden result adds
+the Order310 evidence hash to its lineage. It grants no taxable-value selection, tax
+amount, rounding, residual allocation, Section14, account/posting, document or IRP
+authority.

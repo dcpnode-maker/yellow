@@ -384,3 +384,11 @@ export type {
   IndiaGstAccommodationLevyComponentIdentityInput,
   IndiaGstAccommodationLevyComponentIdentityResult,
 } from "./india-gst-accommodation-levy-component-identity";
+export {
+  deriveIndiaGstAccommodationLevyComponentRateSchedule,
+  IndiaGstAccommodationLevyComponentRateScheduleValidationError,
+} from "./india-gst-accommodation-levy-component-rate-schedule";
+export type {
+  IndiaGstAccommodationLevyComponentRateScheduleInput,
+  IndiaGstAccommodationLevyComponentRateScheduleResult,
+} from "./india-gst-accommodation-levy-component-rate-schedule";

@@ -402,6 +402,20 @@ rejected. The deterministic output is recursively frozen and tenant-hidden. No S
 write, component arithmetic, Section 14, posting, document, IRP, API/UI or local-runtime
 authority exists.
 
+## Order337 numeric component-rate security boundary
+
+The exact six-field input re-runs Order310 from complete Order309 ancestry and
+insertion-byte matches the supplied component-identity envelope. No public hash is
+accepted as standalone provenance. Aggregate rates are first required to be exact
+basis-point integers; dual families then require an exact remainder-free equal split
+in the already approved statutory identity order. IGST is never split.
+
+Changed ancestry, schedule, slab bounds, ITC/nil semantics, family/readiness,
+identity order, legal sources or hashes fail closed. Proxies, accessors, symbols,
+sparse or thawed evidence and surplus value/amount/rounding/posting/document fields
+are rejected. The boundary is pure and tenant-hidden and adds no SQL, role, writer,
+taxable value, amount, Section14, fiscal document, IRP, API/UI or local authority.
+
 ### India accommodation place-of-supply candidate containment
 
 Order282 adds no schema, grant, role, capability or writer. The resolver accepts only
