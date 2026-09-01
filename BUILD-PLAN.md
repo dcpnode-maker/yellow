@@ -1414,3 +1414,7 @@ closed obsolete ports are unchanged. Fresh non-operating Tier3 approval remains 
 587cdf6 and the sole live app with no finding. Runtime, rollback, environment, database,
 companions, routes and truthful status pass; the full live two-property/detail-mode
 Folio bridge, dirty/history, responsive/theme/accessibility and console0 matrix passes.
+**Ready Order320 Folio capability copy fine-tune — D888:** Replace the stale Folios
+denial and Today Financials description with conditional copy naming only already-built,
+server-authorized eligible-Folio tools and explicit tax/invoice/fiscal/check-out limits.
+No behavior, authority, data, status or local change; fresh presentation review required.

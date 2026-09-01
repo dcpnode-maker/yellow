@@ -853,3 +853,10 @@ D887 independently approves exact587cdf6 and the sole live app after read-only r
 database, route, status and full live-browser acceptance. Port3000 now reflects the
 approved Folio discoverability fine-tune without changing unfinished-phase truth or
 granting broader authority.
+
+## Order320 roadmap entry
+
+Correct only stale financial presentation copy so management users can see that an
+eligible loaded Folio may expose the already-built governed deposits, corrections,
+organization, direct billing and zero-balance settlement surfaces. Preserve explicit
+tax/invoice/fiscal/check-out boundaries and every behavior; local reflection is separate.
