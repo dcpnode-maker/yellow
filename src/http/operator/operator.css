@@ -407,7 +407,7 @@ input:hover, select:hover, textarea:hover { border-color: #8d978c; }
 #folio-find-via-reservation-copy { min-width: 0; margin: 0; align-self: center; overflow-wrap: anywhere; }
 #folio-find-via-reservation { justify-self: end; }
 .folio-statement { min-width: 0; max-width: 100%; margin-top: 1rem; padding: 1rem; display: grid; gap: 1rem; }
-.folio-statement > #folio-statement { min-width: 0; max-width: 100%; }
+.folio-statement > *, .folio-statement > #folio-statement { min-width: 0; max-width: 100%; }
 .folio-summary { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .75rem; }
 .folio-summary > div { min-width: 0; padding: .8rem; border-radius: 13px; background: color-mix(in srgb, var(--accent) 8%, var(--card)); }
 .folio-summary span, .folio-summary strong { display: block; overflow-wrap: anywhere; }
@@ -461,12 +461,12 @@ input:hover, select:hover, textarea:hover { border-color: #8d978c; }
 .folio-correction-form label[for="folio-correction-reason"], .folio-correction-actions { grid-column: 1 / -1; }
 .folio-correction-actions { display: flex; flex-wrap: wrap; gap: .65rem; }
 .folio-correct-action { margin-top: .45rem; }
-.folio-workspace-head { display: flex; align-items: center; gap: 1rem; }
+.folio-workspace-head { min-width: 0; max-width: 100%; display: flex; align-items: center; gap: 1rem; }
 .folio-workspace-head > div { min-width: 0; }
 .folio-workspace-head h3 { margin: 0; overflow-wrap: anywhere; }
 .operation-status { margin: .5rem auto; max-width: min(720px,calc(100% - 2rem)); color: var(--accent-strong); font-weight: 750; }
 .operation-status:empty { display: none; }
-.folio-window-rail { display: grid; gap: .65rem; }
+.folio-window-rail { min-width: 0; max-width: 100%; display: grid; gap: .65rem; }
 #folio-window-tabs button { min-height: 44px; max-width: 100%; text-align: left; overflow-wrap: anywhere; }
 .folio-window-new-form, .folio-organize-form fieldset { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: .7rem; }
 .folio-window-new-form .form-message, .folio-organize-form p, .folio-organize-groups, .folio-organize-preview, .folio-organize-form .folio-charge-confirmation { grid-column: 1/-1; }
@@ -481,8 +481,8 @@ input:hover, select:hover, textarea:hover { border-color: #8d978c; }
 .folio-organize-preview span { padding: .6rem; border: 1px solid var(--line); background: var(--card); }
 .folio-organize-preview span:nth-child(5) { grid-column: 1/-1; text-align: center; font-weight: 800; }
 #folio-organize-new-window-name:not(:placeholder-shown) { border-style: dashed; }
-.folio-workspace-tabs { display: flex; gap: .5rem; border-bottom: 1px solid var(--line); }
-.folio-workspace-tabs button { min-height: 44px; border-radius: var(--control-radius) var(--control-radius) 0 0; }
+.folio-workspace-tabs { width: 100%; min-width: 0; max-width: 100%; display: flex; gap: .5rem; overflow-x: auto; overscroll-behavior-inline: contain; scrollbar-width: thin; border-bottom: 1px solid var(--line); }
+.folio-workspace-tabs button { flex: 0 0 auto; min-height: 44px; max-width: 100%; border-radius: var(--control-radius) var(--control-radius) 0 0; white-space: normal; overflow-wrap: anywhere; }
 .folio-workspace-tabs button[aria-selected="true"] { color: var(--accent-strong); box-shadow: inset 0 -3px 0 var(--accent); }
 .folio-statement-loading { display: grid; gap: .55rem; }
 .folio-statement-loading span { min-height: 58px; border: 1px solid var(--line); border-radius: 10px; background: linear-gradient(90deg, var(--surface-subtle), color-mix(in srgb, var(--accent) 7%, var(--card)), var(--surface-subtle)); background-size: 220% 100%; animation: reservation-pulse 1.4s ease-in-out infinite; }
@@ -1130,7 +1130,7 @@ input, select, textarea { min-height: 44px; border-color: #bdcbca; background: #
 .pickup-task-detail-head .pickup-task-detail-back, .pickup-task-detail-action, .pickup-task-detail-retry, .pickup-task-detail-status { width: 100%; }
 .pickup-task-detail-content > dl, .pickup-task-detail-identifiers dl { grid-template-columns: minmax(0,1fr); gap: .15rem; }
 .pickup-task-detail-content dd + dt, .pickup-task-detail-identifiers dd + dt { margin-top: .5rem; }
-.folio-workspace-tabs button { flex: 1; }
+.folio-workspace-tabs button { flex: 0 0 auto; }
 .folio-posting-card dl { grid-template-columns: 1fr; gap: .12rem; }
 .folio-posting-card dd + dt { margin-top: .45rem; }
 .folio-settlement-state { grid-template-columns: 1fr; }

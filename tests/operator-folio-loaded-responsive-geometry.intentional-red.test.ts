@@ -54,10 +54,10 @@ const loadedFolioFixture = (stylesheet: string) => `<!doctype html>
 <div><span>Window</span><strong>Primary guest window</strong></div><div><span>Status</span><strong>Open</strong></div></div>
 <div class="folio-statement-cards"><article class="folio-posting-card"><strong>Room charge · Deluxe King</strong>
 <dl><dt>Business date</dt><dd>2026-09-01</dd><dt>Amount</dt><dd>982500</dd></dl></article></div></div>
-</section></section></div></main><pre id="result"></pre><script>
+</section></section></div></main><div style="height:1000px" aria-hidden="true"></div><pre id="result"></pre><script>
 requestAnimationFrame(()=>requestAnimationFrame(()=>{const workspace=document.querySelector('#folio-workspace');
 const rail=document.querySelector('#folio-workspace-tabs');const proof={viewport:innerWidth,deviceScaleFactor:devicePixelRatio,
-documentOverflow:Math.max(0,document.documentElement.scrollWidth-innerWidth),
+documentOverflow:Math.max(0,document.documentElement.scrollWidth-document.documentElement.clientWidth),
 workspaceOverflow:Math.max(0,workspace.scrollWidth-workspace.clientWidth),railOverflow:Math.max(0,rail.scrollWidth-rail.clientWidth),
 railLocallyScrollable:['auto','scroll'].includes(getComputedStyle(rail).overflowX)};
 document.querySelector('#result').textContent=JSON.stringify(proof);document.body.dataset.proof='ready';}));
@@ -66,7 +66,7 @@ document.querySelector('#result').textContent=JSON.stringify(proof);document.bod
 async function measure(htmlFile: string, profile: string, width: number): Promise<FolioGeometry> {
   if (!browserPath) throw new Error("Chrome or Chromium is required for Order328 geometry proof");
   const url = pathToFileURL(htmlFile).href;
-  const chrome = Bun.spawn([browserPath, "--headless=new", "--disable-gpu", "--no-sandbox", "--hide-scrollbars",
+  const chrome = Bun.spawn([browserPath, "--headless=new", "--disable-gpu", "--no-sandbox",
     "--allow-file-access-from-files", "--remote-debugging-port=0", `--user-data-dir=${profile}`, "about:blank"],
   { stdout: "ignore", stderr: "ignore" });
   try {
