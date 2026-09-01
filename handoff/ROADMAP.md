@@ -864,3 +864,6 @@ D889 records implementation green after intentional red. Only two static paragra
 one exact-copy assertion and the UI specification changed; focused38/0 plus6 skips,
 standing1137/0 plus890 skips and all static gates pass. Fresh presentation review is
 pending and the approved local remains unchanged.
+D890 independently approves exact94e76a8 after authority tracing, focused57/0 plus6
+skips and a153-assertion isolated responsive/theme/accessibility browser matrix. Order320
+is complete; sole-local reflection remains a separately admitted app-only operation.

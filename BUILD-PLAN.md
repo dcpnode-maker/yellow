@@ -1422,3 +1422,7 @@ No behavior, authority, data, status or local change; fresh presentation review 
 static-only correction. Conditional eligible-Folio capability and explicit authority
 boundaries now pass focused38/0 plus6 skips, standing1137/0 plus890 skips and all static
 gates. Fresh independent presentation review and separate local reflection remain.
+**Order320 approved — D890:** Fresh independent review approves exact94e76a8 after
+capability/authority tracing, focused57/0 plus6 skips and a153-assertion isolated browser
+matrix. The two paragraphs are truthful and contained; sole-local reflection remains a
+separate guarded operation.

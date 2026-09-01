@@ -1,6 +1,6 @@
 # Order 320 — Folio capability copy fine-tune
 
-**Status:** BUILT-PENDING-FRESH-PRESENTATION-REVIEW-D889
+**Status:** APPROVED-D890
 **Phase:** 7 — founder-visible presentation of already-built Phase 5 journeys
 **Branch:** `phase-7/folio-capability-copy-finetune`
 **Base:** `b69ed0a` (independently approved Order319 governance/local head)
@@ -38,7 +38,7 @@ automatic eligibility or successful settlement.
 - [x] Both copy surfaces are conditional, truthful and overclaim-free.
 - [x] Existing seven journeys, Folio bridge/tabs/actions and all routes remain exact.
 - [x] Focused, standing and static proof pass.
-- [ ] Fresh independent presentation review approves.
+- [x] Fresh independent presentation review approves.
 
 ## Builder evidence — D889
 
