@@ -1,6 +1,6 @@
 # Order 324 — Room-outages label alignment
 
-**Status:** READY-D902
+**Status:** BUILT-PENDING-FRESH-TIER2-REVIEW-D903
 **Phase:** 7 — founder-visible presentation of already-built room-state journeys
 **Branch:** `phase-7/room-outages-label-alignment`
 **Base:** `a01e4c2` (independently approved Order323 governance/local head)
@@ -30,8 +30,20 @@ local, post310 work, merge, push or deployment. Local reflection is a separate o
 
 ## Definition of done
 
-- [ ] Intentional red precedes production.
-- [ ] All scoped visible labels say Room outages with exact old identities retained.
-- [ ] Seven journey identities and canonical `/operations` route remain exact.
-- [ ] Focused, standing and static proof pass.
+- [x] Intentional red precedes production.
+- [x] All scoped visible labels say Room outages with exact old identities retained.
+- [x] Seven journey identities and canonical `/operations` route remain exact.
+- [x] Focused, standing and static proof pass.
 - [ ] Fresh independent Tier2 browser review approves.
+
+## Builder evidence — D903
+
+- Intentional red was1 pass/1 fail/22 assertions: only the stale visible label failed;
+  exact identities, shared router and `/operations` route stayed green.
+- Production changes four visible text surfaces plus their specification/assertion;
+  no JavaScript, CSS, id, data attribute or behavior changed.
+- Focused proof is19 pass/0 fail/278 assertions including real Chromium geometry.
+  Standing proof is1142 pass/890 expected database skips/0 fail/17389 assertions
+  across2032 tests/371 files.
+- Typecheck,127-file boundaries,23-package licence policy,audit0 and diff pass. The
+  sole local remains untouched pending independent review.
