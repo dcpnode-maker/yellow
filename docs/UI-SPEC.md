@@ -93,6 +93,15 @@ CONTRACTS.md endpoint — no palette-only capabilities.
     Corporate accounts assignable org-wide. A property should be enterable in
     under an hour without support.
 
+### Existing-workspace discoverability
+
+The safe Simple detail level keeps progressive disclosure, but it must not make
+already-built domains look absent. Before the secondary-workspace disclosure is
+opened, compact noninteractive copy names Operations, Housekeeping, Vehicle register,
+Inventory setup, Restrictions, Rates and Project status. The disclosure references
+that copy for assistive technology. Advanced and Expert show the real controls
+directly and suppress the preview; no workspace control or route is duplicated.
+
 ## 5b. Adopted from field prototype (Aug 2026)
 
 Observed in a working PMS build and folded into the spec because they solve real

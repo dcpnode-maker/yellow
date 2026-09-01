@@ -69,7 +69,7 @@ test("Order 314: Simple names every additional management workspace before discl
   ]) {
     expect(html).toContain(label);
   }
-  expect(html.match(/class="domain-tab"/g)).toHaveLength(12);
+  expect(html.match(/class="domain-tab(?: is-active)?"/g)).toHaveLength(12);
   expect(css).toContain(':root:not([data-experience="simple"]) .workspace-catalogue-preview { display: none; }');
   expect(css).toContain(".workspace-catalogue-preview");
 });
