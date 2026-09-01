@@ -64,3 +64,74 @@ governing unchanged database evidence; no database or runtime was contacted.
 **WITHHOLD** exact Order337 candidate `4f29fd5` on verification completeness only.
 This grants no taxable value, amount, rounding, Section14, posting, correction,
 document, IRP, API/UI/local, merge, push, deployment or downstream authority.
+
+---
+
+## Different fresh Tier-3 rereview — D945
+
+**Disposition:** APPROVE
+
+**Reviewer:** `/root/order335_fresh_rereview`, different fresh independent
+non-implementing Tier-3 reviewer
+
+**Exact implementation:** `4f29fd5`
+
+**Permanent-proof repair:** `59239083003aaae1fb125586e9af0c71795e78ab`
+
+**Prior WITHHOLD governance:** `26a44a1`
+
+### D944 closure
+
+The repair changes only the permanent proof. Its `expectedDual` table exact-binds the
+complete ordered component arrays for both civil-day schedule selections and both
+dual families:
+
+- historical12% is exactly6%/600bp +6%/600bp;
+- historical and active18% are exactly9%/900bp +9%/900bp;
+- active5% is exactly2.5%/250bp +2.5%/250bp;
+- the second identity is SGST or UTGST according to the already-approved family.
+
+The assertion compares identity,decimal `rate` and `rateBasisPoints` together. I
+personally challenged its equality shape with12% `599+601`/`.0599+.0601` and18%
+`899+901`/`.0899+.0901`; both mutants were rejected despite retaining the aggregate
+sum. This closes the exact D944 sensitivity gap. IGST remains protected by the
+existing single-component aggregate assertions.
+
+### Source, statutory and security inspection
+
+The pure implementation converts only the already-approved GST_ROOM aggregate
+schedule into exact integer basis points, rejects non-integral division, preserves
+IGST once and splits dual families by their exact approved ordered identities. It
+re-runs complete Order310 ancestry and insertion-byte compares the supplied frozen
+result; the final SHA-256 includes tenantId without exposing it. Slab bounds, ITC,
+family, legal sources and predecessor hashes remain transitively bound.
+
+The output is recursively frozen and tenant-hidden. Exact-input,proxy,accessor,
+symbol,sparse/thawed and surplus-authority proof remains green. No taxable-value,
+amount,rounding,residual,Section14,account,posting,correction,document,IRP,SQL,
+database,API/UI or local-runtime authority is introduced.
+
+Strict ancestry
+`25db385 -> 6037a53 -> 4f29fd5 -> 281e922 -> 26a44a1 -> 5923908` passed. Repair
+commit `5923908` changes only the bounded test file by5 insertions/1 replacement;
+the full Order337 range contains only the admitted module/export,proof,docs and
+governance paths. No migration,seed,role,writer,dependency,Compose or runtime path
+changed.
+
+### Personally executed proof
+
+- Focused Order310/337 and adjacent Orders287/307/308/309: **48 pass,0 fail,965
+  assertions**.
+- Standing: **1154 pass,0 fail,890 expected skips,17583 assertions**,2044 tests
+  across376 files.
+- TypeScript passed; import boundaries passed for128 files; licence policy passed
+  for23 packages; audit found0 vulnerabilities; diff hygiene passed.
+- Only the pre-existing untracked `.yellow/` remained; it was not touched. Port3000,
+  containers,database/data,credentials and local runtime were never contacted.
+
+### Boundary
+
+**APPROVE** exact implementation `4f29fd5` plus repaired permanent proof `5923908`.
+Approval closes only the numeric per-component accommodation-rate schedule described
+by Order337. It grants no taxable value,amount,rounding,Section14,posting,correction,
+document,IRP,API/UI/local,merge,push,deployment or downstream authority.

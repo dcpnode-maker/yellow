@@ -898,3 +898,10 @@ statutory source semantics are green, but the permanent proof must equality-bind
 component rate and basis points for every historical/active slab and both dual
 families; sum-only assertions do not prove equal12% and18% halves. A different fresh
 Tier-3 rereviewer remains mandatory after repair.
+
+D945 independently approves Order337 after exact proof repair5923908. The permanent
+proof now binds ordered identity,decimal rate and basis points for every component of
+historical12%/18% and active5%/18% schedules across both dual families; explicit
+599+601 and899+901 unequal mutants fail. Focused/adjacent/standing/static gates pass.
+Approval closes only numeric component-rate decomposition; all taxable-value,amount,
+rounding,posting,document,IRP and runtime dependencies remain bounded future work.

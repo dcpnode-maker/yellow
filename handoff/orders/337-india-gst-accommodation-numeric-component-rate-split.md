@@ -1,6 +1,6 @@
 # Order 337 — India GST accommodation numeric component-rate split
 
-**Status:** REVIEW-WITHHELD-PROOF-SENSITIVITY-D944
+**Status:** APPROVED-D945
 **Phase:** 7 — Tax engine and India IRP
 **Branch:** `phase-7/india-gst-accommodation-numeric-component-rate-split`
 **Base:** `25db385` (approved Orders335–336 governance head)
@@ -69,7 +69,7 @@ merge/deploy or Phase/application-complete authority.
 - [x] Intentional red precedes production.
 - [x] Focused mutation-sensitive proof is green.
 - [x] Standing/static and unchanged database/referee preservation gates are green.
-- [ ] Fresh non-implementing Tier-3 reviewer personally executes proof and approves.
+- [x] Fresh non-implementing Tier-3 reviewer personally executes proof and approves (D945).
 
 ## Builder evidence — D943
 
@@ -100,3 +100,19 @@ merge/deploy or Phase/application-complete authority.
 - Required repair: permanently equality-bind `rateBasisPoints` and `rate` for every
   component of every historical and active slab, including exact 6%+6% and9%+9%, for
   both dual families; rerun all gates and obtain a different fresh Tier-3 rereview.
+
+## Different fresh independent Tier-3 rereview — D945
+
+- **APPROVE** exact implementation `4f29fd5` plus permanent-proof repair `5923908`
+  with no finding. The repair exact-binds ordered identity,decimal `rate` and
+  `rateBasisPoints` for every component of historical12%/18% and active5%/18% slabs
+  across both CGST+SGST and CGST+UTGST.
+- Reviewer challenges confirm unequal12% `599+601` and18% `899+901` pairs fail the
+  repaired exact structural comparison even though their sums remain unchanged.
+  IGST remains one unchanged aggregate component.
+- Complete Order310 ancestry replay, insertion-byte supplied-result equality,
+  tenant-hidden evidence hashing, recursive freeze/hostility and forbidden-authority
+  containment are coherent. Strict ancestry and bounded scope pass.
+- Personal focused/adjacent proof passes48/0(965);standing1154/0 plus890 expected
+  skips(17583;2044 tests/376 files),typecheck,128 boundaries,23 licences,audit0 and
+  diff hygiene pass. No database/runtime/local surface was contacted or changed.
