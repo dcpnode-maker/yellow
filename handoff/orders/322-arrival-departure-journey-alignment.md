@@ -1,6 +1,6 @@
 # Order 322 — Arrival/departure journey alignment
 
-**Status:** BUILT-PENDING-FRESH-TIER2-REVIEW-D895
+**Status:** APPROVED-D896
 **Phase:** 7 — founder-visible presentation of already-built stay journeys
 **Branch:** `phase-7/arrival-departure-journey-alignment`
 **Base:** `ae97d37` (independently approved Order321 governance/local head)
@@ -37,7 +37,16 @@ order does not refresh the sole local; that requires a separate guarded order.
 - [x] Reservations contains only its existing Reservations destination.
 - [x] Seven destination identities and routing behavior remain exact.
 - [x] Focused, standing and static proof pass.
-- [ ] Fresh independent Tier2 browser review approves.
+- [x] Fresh independent Tier2 browser review approves.
+
+## Fresh independent review — D896
+
+The fresh non-implementing Tier2 reviewer approved exact candidate `e1113d5` with no
+finding. Reviewer-personal focused proof was 35 pass / 0 fail / 482 assertions. An
+isolated Chromium matrix executed 552 assertions across two properties, three detail
+modes, six appearances, portrait, landscape, 200% scale, reduced motion, forced
+colors and keyboard navigation. Canonical Today route/focus, exact seven identities,
+lanes/actions, console0 and business mutations0 passed; port3000 was untouched.
 
 ## Builder evidence — D895
 
