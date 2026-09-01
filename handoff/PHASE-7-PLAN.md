@@ -884,6 +884,10 @@ candidate9731aa8 and all normal gates have no product/statutory finding, but une
 post-scheduler component copies, upper identities and explicit side/source/status/
 lineage/amount/INR/transaction/hash/freeze guards survive. Bounded permanent proof
 repair and a different fresh Tier3 rereview are required before downstream authority.
+D964 records that a different fresh reviewer killed15/16 D963 mutants at531fc4c;
+only removal of the outer recursive-freeze gate survived. Test-only cb73daf adds the
+isolated valid-graph/outer-mutable rejection plus hostile wrappers. A third fresh
+Tier3 must kill that exact final mutant; all other repaired proof remains green.
 **D847 review complete:** A fresh non-implementing Tier-3 reviewer approves exact
 candidate `6e0824df2a6afff5a83573d463bbee4cf73b436e` with no finding. Reviewer-owned
 tenant/pair-hash, identity/version/status/period, GST_ROOM, source/date, freeze/hash

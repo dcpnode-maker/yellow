@@ -171,3 +171,12 @@ key/source/status, lineage id, full amount/INR/exact transaction, tenant final-h
 Section14 predecessor-hash or recursive-freeze guards. No separate product/statutory
 finding was made. Bounded permanent-test repair and a different fresh Tier-3 rereview
 are mandatory.
+
+## Different fresh Tier-3 rereview and final proof repair — D964
+
+At exact repair `531fc4c`, a different reviewer killed 15/16 D963 mutants and
+withheld only because removing the outer `frozen(raw)` admission gate still passed.
+Test-only commit `cb73daf` now presents an otherwise-valid graph with only its outer
+object mutable, plus proxy/accessor/symbol wrappers, and requires rejection. Focused,
+standing and static gates are green. A third fresh Tier-3 reviewer must personally
+kill that exact final mutant before approval.

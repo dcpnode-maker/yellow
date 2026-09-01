@@ -998,6 +998,10 @@ not product/statutory semantics. Repair must exact-bind every copied component a
 six cases/three families/two bands and independently pin all selected-side,source,
 status,lineage,amount,INR,transaction,tenant/predecessor-hash and freeze guards before
 a different fresh Tier3 rereview.
+D964 narrows the Order341 review debt to one proof surface:15/16 D963 mutants die at
+531fc4c, while removing only outer `frozen(raw)` survives. Test-only cb73daf isolates
+an otherwise-valid mutable outer envelope and hostile wrappers; a third fresh Tier3
+must kill that exact mutant before approval.
 
 D953 independently approves exact repaired head26682ab/implementationea190dd with no
 finding. Official CBIC section14 semantics, strict ancestry/scope and all gates pass.
