@@ -1,6 +1,6 @@
 # Order 329 — Folio responsive local refresh
 
-**Status:** READY-D917
+**Status:** BUILT-LOCALLY-PENDING-FRESH-TIER3-REVIEW-D918
 **Phase:** 7 — founder-visible presentation of already-built financial journeys
 **Branch:** `phase-7/folio-responsive-local-refresh`
 **Base:** `c069220` (independently approved Order328 governance head)
@@ -30,8 +30,25 @@ rollback deletion.
 
 ## Definition of done
 
-- [ ] Exact approved image built and sole app refreshed.
-- [ ] Live acceptance and preservation proof pass.
-- [ ] Order327 remains stopped for rollback.
+- [x] Exact approved image built and sole app refreshed.
+- [x] Builder live acceptance and preservation proof pass.
+- [x] Order327 remains stopped for rollback.
 - [ ] Fresh non-operating Tier3 reviewer approves.
 
+## Builder evidence — D918
+
+- Exact approved runtime `f11440e` built image
+  `sha256:fc8cbf2500bcc6e70d5852b52f927663a59d2487a382c6cdc9f1922238828e09`
+  with exact OCI revision and now runs as the sole healthy loopback3000 app,
+  restart0. Order327 is stopped as rollback.
+- The first cutover health wait exposed a Docker Desktop engine stall after the old
+  app had stopped. No application, network, volume or data deletion occurred. Docker
+  Desktop was recovered; the existing PostgreSQL/provider/Valkey containers were
+  restarted healthy and the already-created exact replacement became healthy.
+- Current and rollback environment hashes are identical, network/bind/health are
+  inherited, obsolete ports3002/3123/3188 are closed, and the live no-store CSS has
+  exact component containment/local-scroller rules with no root/body overflow hiding.
+- A reusable guarded cutover helper now validates exact Yellow container/image names,
+  preserves environment internally without output, and restores the named rollback
+  on bounded health failure. Fresh non-operating Tier3 browser/database review remains
+  mandatory.
