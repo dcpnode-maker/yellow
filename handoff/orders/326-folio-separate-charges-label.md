@@ -1,6 +1,6 @@
 # Order 326 — Folio separate-charges label
 
-**Status:** BUILT-PENDING-FRESH-TIER2-REVIEW-D909
+**Status:** APPROVED-D910
 **Phase:** 7 — founder-visible presentation of already-built financial journeys
 **Branch:** `phase-7/folio-separate-charges-label`
 **Base:** `5f64011` (independently approved Order325 governance head)
@@ -30,8 +30,17 @@ new correction tab or unconditional financial claim; no merge, push or deploymen
 
 - [x] Intentional red proves only the stale visible label.
 - [x] Production/spec/assertion alignment passes focused and standing gates.
-- [ ] Fresh independent Tier2 reviewer approves exact source/browser behavior.
+- [x] Fresh independent Tier2 reviewer approves exact source/browser behavior.
 - [ ] Local reflection remains a separate Tier3 order.
+
+## Fresh independent review — D910
+
+A fresh non-implementing Tier2 reviewer approved exact candidate `5c37533` with no
+finding after39 focused passes/6 expected database skips/456 assertions and an
+isolated Chromium matrix across2 properties,3 modes and6 appearances. Exact label,
+identity, ARIA, organize routing, contextual correction, keyboard/deep-link/Back/
+focus, responsive/accessibility containment, console0, write-network0 and mutations0
+all pass; JavaScript/CSS remain byte-identical and port3000 was untouched.
 
 ## Builder evidence — D909
 
