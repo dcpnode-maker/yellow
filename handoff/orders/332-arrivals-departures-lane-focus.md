@@ -1,6 +1,6 @@
 # Order 332 — Arrivals and departures lane focus
 
-**Status:** BUILT-PENDING-FRESH-TIER2-REVIEW-D927
+**Status:** REVIEW-WITHHELD-ENVIRONMENT-D928
 **Phase:** 7 — founder-visible presentation of already-built journeys
 **Branch:** `phase-7/arrivals-departures-lane-focus`
 **Base:** `8b5a7bc` (freshly approved Order331 governance head)
@@ -37,6 +37,13 @@ the Today catalogue/lanes; no merge, push or deployment.
       change while all other seven journey identities preserve existing routing.
 - [x] Focused, standing and static gates pass.
 - [ ] Fresh non-implementing Tier2 browser reviewer approves the exact candidate.
+
+## Fresh Tier2 review — D928
+
+- Reviewer `/root/order332_fresh_tier2` found no production-diff or focused-proof defect in exact candidate `86ec512` / governance `dc87336`.
+- Reviewer-personal focused proof passed 11/0 with 183 assertions; exact diff, mutation pin and scope hygiene passed.
+- Approval is WITHHELD only because the mandatory complete disposable Chromium matrix could not finish: the system drive had about 92 MB free and isolated profile creation failed `UV_ENOSPC`, followed by an OS profile lock during cleanup. Partial actual-handler proof passed semantic focus/scroll, unchanged Today URL/history/loaded state, and other-six routing, but cannot substitute for every required matrix cell.
+- Port 3000 was untouched. Free disposable disk and assign a fresh independent Tier2 rereviewer.
 
 ## Builder evidence — D927
 
