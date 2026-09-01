@@ -1312,3 +1312,10 @@ Tier3 rereviewer approved exact candidate `400a57696b096382714ad31a6bfa14d8d224d
 The sole loopback UI remains healthy at port3000 with protected sign-in, both properties,
 truthful310/311/91/P7 status and the already-built management journeys. This is local
 demonstration authority only; unfinished phases remain honestly unfinished.
+
+**Ready Order314 management-demo workspace discoverability — D869:** Keep the safe
+Simple default and the same twelve workspace controls, while visible compact preview
+copy names the seven secondary workspaces before the existing disclosure. Advanced and
+Expert retain direct controls without duplicated preview. This is presentation and
+accessibility copy only; it adds no route, authority, business behavior or completion
+claim, and a local app refresh remains separately guarded.

@@ -760,3 +760,10 @@ that mutation red5/1 and independently passes focused/adjacent25/0(369), standin
 plus890 skips(17117), static, ancestry and scope gates. Approval remains bounded to
 component identities and one aggregate schedule; numeric splits and every downstream
 fiscal surface remain future work.
+
+## Order314 roadmap entry
+
+Make the already-built management workspace catalogue legible in Simple mode without
+changing the progressive-disclosure model: name the seven secondary workspaces in a
+compact preview bound to the existing disclosure. Advanced/Expert keep the same direct
+controls. No new application behavior or completion authority is introduced.
