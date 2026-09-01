@@ -792,3 +792,8 @@ Fine-tune only the presentation of completed journeys: make Today the root comma
 centre, add a compact index of existing Reservations/Financials/Stay-operations
 workspaces and ensure Simple secondary navigation closes its fixed overlay and focuses
 the destination. No new authority, data, status or post310 statutory work is admitted.
+D875 records the implementation side as green after intentional red. Root/default,
+exact seven-destination catalogue, Simple overlay settlement/focus, explicit routes,
+Advanced/Expert and six-appearance preservation pass focused19/0, broad78/0 plus1
+environment skip, standing1131/0 plus890 skips and all static gates. Fresh Tier2
+browser approval remains mandatory; the sole founder local is unchanged.

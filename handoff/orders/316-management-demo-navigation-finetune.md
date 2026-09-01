@@ -1,6 +1,6 @@
 # Order 316 — Management-demo navigation fine-tune
 
-**Status:** READY-D874
+**Status:** BUILT-PENDING-FRESH-TIER2-REVIEW-D875
 **Phase:** 7 — founder-visible presentation of already-built Phase 4–6 journeys
 **Branch:** `phase-7/management-demo-navigation-finetune`
 **Base:** `721cbbc` (independently approved Order315 governance head)
@@ -71,8 +71,8 @@ claim.
 
 ## Definition of done
 
-- [ ] Today is the truthful root/default view.
-- [ ] Compact journey index links only already-built workspaces.
-- [ ] Simple secondary navigation never obscures its destination.
-- [ ] Focused, standing and static proof pass.
+- [x] Today is the truthful root/default view.
+- [x] Compact journey index links only already-built workspaces.
+- [x] Simple secondary navigation never obscures its destination.
+- [x] Focused, standing and static proof pass.
 - [ ] Fresh independent Tier2 browser review approves.

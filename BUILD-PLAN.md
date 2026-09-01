@@ -1350,3 +1350,9 @@ collapses its fixed overlay and focuses the selected destination. Explicit route
 permissions, server actions, Advanced/Expert and all unfinished-phase truth remain
 unchanged. Intentional red and fresh Tier2 browser review are mandatory; local refresh
 is separate.
+**Order316 built — D875:** Intentional red preceded the bounded presentation change.
+Today is now the authenticated root/default, its compact index links exactly seven
+already-built workspaces, and successful Simple secondary navigation closes the fixed
+catalogue and focuses the destination. Focused19/0, broad78/0 plus1 environment skip,
+standing1131/0 plus890 skips and all static gates pass. The approved sole local remains
+untouched pending fresh Tier2 browser review and a separate guarded refresh order.
