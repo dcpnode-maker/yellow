@@ -15,7 +15,7 @@ export interface ProjectRecordedWorkSnapshot {
     | 126 | 127 | 148 | 154 | 155 | 156 | 160 | 161 | 162 | 163 | 164
     | 165 | 166 | 168 | 169 | 170 | 171 | 173 | 174 | 175 | 176 | 177 | 178
     | 179 | 180 | 181 | 182 | 183 | 184 | 185 | 186 | 188 | 189
-    | 190 | 191 | 192 | 193 | 195 | 199 | 236 | 272;
+    | 190 | 191 | 192 | 193 | 195 | 199 | 236 | 310;
   readonly state: ProjectRecordedWorkState;
   readonly summary: string;
   readonly remaining?: string;
@@ -43,12 +43,12 @@ export const DEFAULT_OPERATOR_RUNTIME_STATUS: OperatorRuntimeStatus = Object.fre
 
 export const PROJECT_BUILD_SNAPSHOT = Object.freeze({
   schemaVersion: 1,
-  recordedAt: "2026-08-29",
+  recordedAt: "2026-09-01",
   label: "Recorded build snapshot",
   roadmap: Object.freeze({
     phaseCount: 13,
-    latestBuiltOrder: 272,
-    currentOrder: 273,
+    latestBuiltOrder: 310,
+    currentOrder: 311,
     activePhase: 7,
   }),
   review: Object.freeze({
@@ -297,10 +297,10 @@ export const PROJECT_BUILD_SNAPSHOT = Object.freeze({
       remaining: "Builder proof only; independent high-risk review and Phase-6 completion remain pending.",
     }),
     Object.freeze({
-      order: 272,
-      state: "built_unverified" as const,
-      summary: "Orders 237–272 built pure tax evaluation, effective jurisdiction resolution, attributable quote preview, the canonical positive attribution snapshot, governed append-only persistence, the inherited occupancy definer-path repair, authoritative quoted-tax cart-hold binding, canonical positive posting topology, authoritative quoted-tax hold-to-reservation/first-segment lineage, the independently approved primary-folio eligibility read/lock/recheck prerequisite, independently approved exact configured positive-tax semantic credit routing, independently approved governed line-rounded non-India positive-tax journal posting, independently approved governed complete positive-tax correction through one exact sign-negated contra journal, immutable original posting/binding/attribution/routes, root-only full-reversal lineage, atomic journal.posted and tax.attribution_reversed evidence, verified post-seal authority, and independently approved exact configured India GST supplier-registration evidence bound to the frozen jurisdiction identity with canonical GSTIN/state/legal/trade name/address/locality/pincode, deterministic evidence hashing, SELECT-only runtime authority and zero writes.",
-      remaining: "Partial reversal, India and negative-tax correction, final India place-of-supply and CGST/SGST/IGST decomposition, fiscal documents/IRP, independent product review and Phase-7 completion remain pending.",
+      order: 310,
+      state: "independently_approved" as const,
+      summary: "Orders 237–310 built the Phase-7 tax lineage through independently approved India GST supplier and recipient registration evidence, property fiscal location, accommodation classification and place of supply, registered-state comparison, supplier service location, SEZ status, supply nature, statutory time-of-supply evidence, effective accommodation rate history, property-local day containment, component-family derivation, levy-input lineage and ordered IGST or CGST+SGST/UTGST component identities. The earlier approved stack also includes pure tax evaluation, attributable quote preview, canonical positive attribution persistence, quoted-tax hold and reservation lineage, configured semantic routing, governed line-rounded non-India posting and immutable full correction/reversal evidence.",
+      remaining: "Numeric dual-component rate authority, taxable-value and amount calculation, rounding, India fiscal documents and IRP submission, final Phase-7 integration and Phase completion remain pending.",
     }),
   ] satisfies readonly ProjectRecordedWorkSnapshot[]),
   phases: Object.freeze([
