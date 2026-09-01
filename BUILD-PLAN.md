@@ -1588,3 +1588,11 @@ time plus each active property's stored timezone derives the exact date; the exi
 key arbitrates contenders and the winner records day/fact/`business_day.opened`
 atomically. Runtime discovery is bounded and activation opt-in. Older unsealed backlog
 never blocks roll. Seal/readiness/carry policy and Phase5 completion remain separate.
+
+**Orders348 and347 independently approved — D989:** A fresh different Tier3
+reproduces both D986 parent reds, then proves cancellation before discovery and
+between scopes, in-flight completion with no later scope/cycle, strict current
+financial catalogue truth, fresh61/111/101/10/2 schema, complete roll/finance/
+authority/permanent gates, standing/static and referee11/11. The automatic current-day
+roll is approved; seal/readiness/carry, local promotion and Phase5 completion remain
+separate.

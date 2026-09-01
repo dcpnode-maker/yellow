@@ -1,6 +1,6 @@
 # Order 347 — Automatic property-local business-day roll
 
-**Status:** REVIEW-WITHHELD-D986
+**Status:** APPROVED-D989
 **Phase:** 5 — Financials
 **Branch:** `phase-5/automatic-property-local-business-day-roll`
 **Base:** `282fd22` (D981 independently approved Orders346/344)
@@ -232,4 +232,4 @@ candidate and records commands/results before approval.
   backlog-independent, contention-safe and atomically evidenced.
 - [x] Runtime discovery and worker lifecycle remain bounded, opt-in and least-authority.
 - [x] Permanent standing/schema/referee gates are green without weakening.
-- [ ] Fresh independent non-implementing Tier-3 approval is recorded.
+- [x] Fresh independent non-implementing Tier-3 approval is recorded.

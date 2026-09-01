@@ -99,3 +99,9 @@ Order347 supplies only automatic current business-day roll. PostgreSQL transacti
 time plus property timezone is authoritative; the existing unique key and atomic
 fact/outbox evidence make reruns and races converge. Older unsealed days remain valid
 backlog. Seal/readiness/carry policy and the Phase exit gate remain outstanding.
+
+D989 independently approves Orders348 and347. The fresh reviewer reproduces both
+D986 reds, proves corrected cancellation and the exact current financial catalogue,
+then passes fresh61/111/101/10/2 schema, complete roll/finance/authority/permanent
+gates, standing/static and referee11/11. Automatic roll is closed; seal/readiness/
+carry policy and the Phase5 exit gate remain outstanding.

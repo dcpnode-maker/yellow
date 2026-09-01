@@ -1,6 +1,6 @@
 # Order 348 — Business-day roll abort and posting-oracle repair
 
-**Status:** BUILT-PENDING-FRESH-TIER3-REVIEW-D988
+**Status:** APPROVED-D989
 **Phase:** 5 — Financials
 **Branch:** `phase-5/business-day-roll-abort-oracle-repair`
 **Base:** `50cd867` (D986 independent Order347 WITHHOLD)

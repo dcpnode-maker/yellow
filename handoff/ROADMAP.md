@@ -1089,3 +1089,8 @@ Order347 builds the bounded automatic property-local current-day roll without se
 readiness or catch-up authority. Its opt-in runtime worker discovers only due
 tenant/property scopes; the service derives the date in PostgreSQL and atomically
 records the single winning day/fact/event effect.
+
+D989 independently approves Orders348 and347 after exact parent-red reproduction and
+fresh corrected cancellation, finance, schema, authority, standing/static and
+referee11/11 proof. This closes automatic current-day roll only; seal/readiness/carry,
+local promotion and the Phase5 exit remain separate.
