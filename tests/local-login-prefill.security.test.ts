@@ -115,6 +115,67 @@ describe("Order194 local sign-in prefill", () => {
     expect(submit).toContain('} catch (error) {\n  accessToken = "";\n  restoreLocalLoginDefaults();');
   });
 
+  test("late browser clearing is repaired on later lifecycle signals without overriding founder input", async () => {
+    const response = operatorAssets.localPrefillJs();
+    const script = await response.text();
+    expect(script).not.toMatch(/localStorage|sessionStorage|indexedDB|document\.cookie/);
+    expect(script).not.toMatch(/yellow-demo|operator@|password|local-deposit/i);
+
+    class TestInput {
+      readonly dataset: Record<string, string>;
+      value = "";
+      constructor(localDefault: string) { this.dataset = { localDefault }; }
+    }
+    const inputs = ["tenant-default", "email-default", "secret-default"].map((value) => new TestInput(value));
+    const windowListeners = new Map<string, (event: Event) => void>();
+    const documentListeners = new Map<string, (event: Event) => void>();
+    const formListeners = new Map<string, (event: Event) => void>();
+    const timers: Array<() => void> = [];
+    const frames: Array<(timestamp: number) => void> = [];
+    const form = {
+      elements: inputs,
+      addEventListener(type: string, listener: (event: Event) => void) { formListeners.set(type, listener); },
+    };
+    const documentHarness = {
+      visibilityState: "visible",
+      querySelector: () => form,
+      addEventListener(type: string, listener: (event: Event) => void) { documentListeners.set(type, listener); },
+    };
+    new Function("document", "HTMLInputElement", "addEventListener", "setTimeout", "requestAnimationFrame", script)(
+      documentHarness,
+      TestInput,
+      (type: string, listener: (event: Event) => void) => { windowListeners.set(type, listener); },
+      (callback: () => void) => { timers.push(callback); },
+      (callback: (timestamp: number) => void) => { frames.push(callback); },
+    );
+
+    for (const callback of timers.splice(0)) callback();
+    while (frames.length > 0) frames.shift()?.(0);
+    expect(inputs.map((input) => input.value)).toEqual(["tenant-default", "email-default", "secret-default"]);
+
+    inputs.forEach((input) => { input.value = ""; });
+    windowListeners.get("focus")?.(new Event("focus"));
+    expect(inputs.map((input) => input.value)).toEqual(["tenant-default", "email-default", "secret-default"]);
+
+    inputs.forEach((input) => { input.value = ""; });
+    windowListeners.get("pageshow")?.(new Event("pageshow"));
+    expect(inputs.map((input) => input.value)).toEqual(["tenant-default", "email-default", "secret-default"]);
+
+    inputs.forEach((input) => { input.value = ""; });
+    documentListeners.get("visibilitychange")?.(new Event("visibilitychange"));
+    expect(inputs.map((input) => input.value)).toEqual(["tenant-default", "email-default", "secret-default"]);
+
+    inputs[0]!.value = "founder-tenant";
+    inputs[1]!.value = "founder@example.test";
+    inputs[2]!.value = "founder-entered-secret";
+    windowListeners.get("focus")?.(new Event("focus"));
+    expect(inputs.map((input) => input.value)).toEqual([
+      "founder-tenant",
+      "founder@example.test",
+      "founder-entered-secret",
+    ]);
+  });
+
   test("server source gates a complete process-only trio behind loopback and explicit enablement", async () => {
     const source = await Bun.file(new URL("../src/server.ts", import.meta.url)).text();
     expect(source).toContain('Bun.env.YELLOW_LOCAL_REVIEW_PREFILL !== "1"');
