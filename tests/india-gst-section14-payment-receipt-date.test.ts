@@ -59,6 +59,15 @@ describe("Order 339: India GST section14 governed payment-receipt date",()=>{
     expect(()=>deriveIndiaGstSection14PaymentReceiptDate({...absent,throughDate:"2025-09-29",calendarEvidence,workingDayEvidence} as never)).toThrow(/contain/);
   });
 
+  test("permanently pins the explicit calendar-required statutory branch guard",async()=>{
+    // Order338 calendars necessarily begin after the rate-change date, so a safe
+    // Order302 bank date cannot also satisfy calendar coverage. Pin the explicit
+    // guard structurally so that this independently redundant fail-closed boundary
+    // cannot disappear unnoticed during later refactors.
+    const source=await Bun.file(new URL("../src/contexts/tax-fiscal/india-gst-section14-payment-receipt-date.ts",import.meta.url)).text();
+    expect(source).toMatch(/if\s*\(proviso\.state\s*!==\s*["']working_day_calendar_required["']\)\s*\{\s*fail\(["']payment proviso evidence is not in the calendar-required branch["']\);\s*\}/);
+  });
+
   test("replays every supplied predecessor and rejects coherent or shallow copies",()=>{
     const valid=build();
     for(const key of ["rateChangeDateEvidence","paymentProvisoEvidence","workingDayEvidence"] as const){const changed=structuredClone(valid[key]) as Mutable;changed.evidenceHash="a".repeat(64);freeze(changed);expect(()=>deriveIndiaGstSection14PaymentReceiptDate({...valid,[key]:changed} as never)).toThrow();expect(()=>deriveIndiaGstSection14PaymentReceiptDate({...valid,[key]:{...valid[key]}} as never)).toThrow();}
@@ -74,7 +83,7 @@ describe("Order 339: India GST section14 governed payment-receipt date",()=>{
   });
 
   test("returns deterministic frozen tenant-hidden and complete predecessor-bound evidence",()=>{
-    const valid=build(),first=deriveIndiaGstSection14PaymentReceiptDate(valid as never),second=deriveIndiaGstSection14PaymentReceiptDate(valid as never);expect(second).toEqual(first);expect(JSON.stringify(second)).toBe(JSON.stringify(first));deepFrozen(first);expect(first).not.toHaveProperty("tenantId");expect(JSON.stringify(first)).not.toContain(TENANT);expect(first.predecessorHashes).toEqual({rateChangeDate:valid.rateChangeDateEvidence.evidenceHash,paymentProviso:valid.paymentProvisoEvidence.evidenceHash,workingDayCalendar:valid.workingDayEvidence.evidenceHash});expect(first.evidenceHash).toMatch(/^[0-9a-f]{64}$/);const{evidenceHash,...body}=first;expect(evidenceHash).toBe(new Bun.CryptoHasher("sha256").update(JSON.stringify({tenantId:TENANT,...body})).digest("hex"));
+    const valid=build(),first=deriveIndiaGstSection14PaymentReceiptDate(valid as never),second=deriveIndiaGstSection14PaymentReceiptDate(valid as never);expect(second).toEqual(first);expect(JSON.stringify(second)).toBe(JSON.stringify(first));deepFrozen(first);expect(first).not.toHaveProperty("tenantId");expect(JSON.stringify(first)).not.toContain(TENANT);expect(first.calendarAuthorityId).toBe(AUTHORITY);expect(first.calendarAuthorityId).toBe(valid.calendarEvidence.authorityId);expect(first.calendarAuthorityId).toBe(valid.workingDayEvidence.authorityId);expect(first.calendarSourceDigestSha256).toBe(CAL_SOURCE);expect(first.calendarSourceDigestSha256).toBe(valid.calendarEvidence.sourceDigestSha256);expect(first.calendarSourceDigestSha256).toBe(valid.workingDayEvidence.sourceDigestSha256);expect(first.predecessorHashes).toEqual({rateChangeDate:valid.rateChangeDateEvidence.evidenceHash,paymentProviso:valid.paymentProvisoEvidence.evidenceHash,workingDayCalendar:valid.workingDayEvidence.evidenceHash});expect(first.evidenceHash).toMatch(/^[0-9a-f]{64}$/);const{evidenceHash,...body}=first;expect(evidenceHash).toBe(new Bun.CryptoHasher("sha256").update(JSON.stringify({tenantId:TENANT,...body})).digest("hex"));
     const other=build("2025-09-30","2025-09-23",OTHER);expect(deriveIndiaGstSection14PaymentReceiptDate(other as never).evidenceHash).not.toBe(first.evidenceHash);
   });
 

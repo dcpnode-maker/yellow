@@ -1,6 +1,6 @@
 # Order 339 — India GST section 14 governed payment-receipt date
 
-**Status:** REVIEW-WITHHELD-PROOF-SENSITIVITY-D951
+**Status:** REPAIRED-PENDING-DIFFERENT-FRESH-TIER3-REREVIEW-D952
 **Phase:** 7 — Tax engine and India IRP
 **Branch:** `phase-7/india-gst-section14-payment-receipt-date`
 **Base:** `3f91134` (independently approved Order338 governance head)
@@ -99,3 +99,20 @@ fiscal document, IRP, merge, deploy, Phase-complete or application-complete clai
   expected skips(17686;2059 tests/380 files),typecheck,130 boundaries,23 licences,
   audit0,ancestry/scope/diff pass. No repository product/test or runtime/data surface
   was changed.
+
+## Permanent-proof repair — D952
+
+- The permanent result proof now exact-binds returned `calendarAuthorityId` and
+  `calendarSourceDigestSha256` independently to both the admitted governed calendar
+  input and the completely rederived Order338 result. A returned-source substitution
+  can no longer hide behind a self-consistent recomputed final hash.
+- A dedicated source-structural assertion pins the explicit
+  `working_day_calendar_required` guard and exact failure boundary. This is necessary
+  because valid Order338 calendars start after the rate-change date, so their required
+  bank-date coverage independently implies Order302's calendar-required branch; the
+  structural proof preserves the deliberately redundant fail-closed guard.
+- Focused Orders302/307/338/339 pass `27/0` with 240 assertions. Standing passes
+  `1170/0` with 890 expected database skips, 17,693 assertions and 2,060 tests across
+  380 files. Typecheck, 130-file boundaries, 23-package licence policy and
+  zero-vulnerability audit pass. No product, database, runtime or local artifact
+  changed. A different fresh non-implementing Tier3 rereviewer remains mandatory.

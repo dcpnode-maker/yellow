@@ -440,6 +440,13 @@ earlier-of through the fourth working day, bank credit strictly after it. Sectio
 applicability/six-case rate selection and all tax/fiscal/runtime surfaces remain later.
 Build D950 is green after intentional red: focused27/0, standing1169/0 plus890 skips
 and all static gates pass with no database/runtime change. Fresh Tier3 is pending.
+D951 withheld approval only because permanent proof did not independently bind the
+returned calendar authority/source and could not detect removal of an explicit guard
+that valid calendar coverage also implies. D952 repairs both proof gaps: returned
+lineage is exact-bound to admitted and rederived Order338 truth, and the deliberately
+redundant calendar-required guard is structurally pinned. Focused27/0(240), standing
+1170/0 plus890 skips(17693) and all static gates pass; different fresh Tier3 rereview
+is required before downstream use.
 
 Order 237 is built-unreviewed under D-625 as the positive pure rules-driven
 tax-evaluation foundation.

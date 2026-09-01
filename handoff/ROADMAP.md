@@ -939,6 +939,14 @@ calendar-required guard is also not independently mutation-sensitive because val
 bank coverage currently implies that branch. Repair the permanent proof and obtain a
 different fresh Tier3 rereview; no downstream authority is admitted.
 
+D952 records the bounded permanent-proof repair. Returned calendar authority and
+source are now exact-bound to both admitted calendar input and completely rederived
+Order338 evidence. The explicit calendar-required guard is structurally pinned because
+valid Order338 coverage independently implies the same branch and would otherwise mask
+its removal. Focused27/0(240),standing1170/0 plus890 skips(17693),typecheck,
+boundaries130,licences23 and audit0 pass without product/runtime/database/local change.
+A different fresh Tier3 rereviewer must kill both reported mutants before approval.
+
 D948 independently approves exact Order338 implementation1d81944/governance53a495a
 with no finding. Official CGST section14 authority, exact source/ancestry/scope,
 focused23/0,standing1162/0 plus890 skips and static gates pass. Reviewer-owned
