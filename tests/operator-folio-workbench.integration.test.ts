@@ -67,7 +67,8 @@ describe("Order 105 operator folio workbench", () => {
     expect(html).toContain('id="folio-charge-code" name="txCode"');
     expect(html).toContain("I understand this irreversibly posts an untaxed charge.");
     expect(html).toContain('id="folio-error" role="alert" aria-live="assertive"');
-    expect(html).toContain("This is not tax calculation, invoicing, payment, settlement, fiscalization or checkout.");
+    expect(html).toContain("An eligible loaded folio may expose server-authorized deposits, immutable corrections, charge organization, direct billing and zero-balance settlement.");
+    expect(html).toContain("This workspace does not calculate tax, issue invoices or fiscal documents, or check out a stay.");
     expect(css).toContain(".folio-lines");
     expect(css).toContain("min-height: 44px");
     expect(css).toContain("prefers-reduced-motion: reduce");

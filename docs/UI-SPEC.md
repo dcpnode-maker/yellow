@@ -126,6 +126,13 @@ action. The bridge reuses canonical current-property navigation, dirty-exit,
 history and destination-focus behavior; it does not select a reservation, find,
 create or open a folio, or imply settlement or invoice eligibility.
 
+Once an eligible Folio is loaded, its existing workspace may expose only the tools
+authorized by current server truth: deposits, immutable corrections, charge
+organization, direct billing and zero-balance settlement. This presentation does not
+promise availability or success and does not add generic payment or refund, tax
+calculation, invoice or fiscal-document issuance, or guest checkout authority.
+Cashiers remains a separate workbench.
+
 The index must never imply that an eligible row exists or that a conditional command
 will succeed. It must not advertise the tape chart, waitlist actions, generic payment
 capture or refund, day close, statutory or fiscal issue, mobile/offline/photo
