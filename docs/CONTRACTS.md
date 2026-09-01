@@ -2457,3 +2457,15 @@ sources and all predecessor hashes remain bound. The frozen tenant-hidden result
 the Order310 evidence hash to its lineage. It grants no taxable-value selection, tax
 amount, rounding, residual allocation, Section14, account/posting, document or IRP
 authority.
+## Order338: India GST section 14 governed working-day calendar evidence
+
+`deriveIndiaGstSection14WorkingDayCalendarEvidence(input)` accepts only a tenant id,
+an asserted rate-change civil date, a bounded through date, and a deeply frozen India
+calendar-evidence envelope. The envelope identifies its external authority and source
+digest and supplies every contiguous civil day after the change through the bound as
+explicitly `working` or `non_working`. Yellow derives the ordered first four working
+dates and the fourth date without weekday, holiday, locale, timezone, network, or
+clock inference. The complete sequence and source lineage are preserved in a frozen,
+tenant-hidden, tenant-bound result. The boundary supplies evidence only: it does not
+decide payment receipt, section 14 applicability, rate selection, tax, posting,
+documents, IRP, API, or UI behavior.

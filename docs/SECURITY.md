@@ -1467,3 +1467,12 @@ rounding/residual allocation, account route, posting/correction, reverse charge,
 Section 14/calendar, zero-rating/authorized operations, payer, `SupTyp`,
 `IgstOnIntra`, item, document, IRP, API/UI, local-runtime or application-complete
 authority.
+### Order 338 working-day evidence containment
+
+The working-day boundary accepts only deeply frozen exact plain data, caps the day
+window at 366 entries, requires a dense contiguous civil sequence, and rejects
+proxies, accessors, symbols, repeated references, mutable graphs, malformed authority
+or digest identities, and surplus downstream authority. No host calendar, locale,
+timezone, current time, database, or network participates. The tenant identifier is
+included only in the SHA-256 preimage and never returned; every supplied
+classification and source field remains hash-bound and recursively frozen.

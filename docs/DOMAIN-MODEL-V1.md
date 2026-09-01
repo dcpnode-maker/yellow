@@ -1737,3 +1737,12 @@ tuple.
 This closes only numeric rate decomposition. It does not choose a taxable value,
 calculate tax money, allocate rounding or residuals, post a journal, issue a fiscal
 document, construct IRP data or change any runtime surface.
+### India GST governed fourth-working-day evidence (Order 338)
+
+The Section 14 calendar evidence value is an immutable tenant-bound snapshot of an
+externally governed India civil-day classification window. Its identity comprises the
+asserted rate-change date, through date, authority id, source SHA-256, every ordered
+day/state pair, the first four working dates, and the fourth-working-day date. The
+model deliberately separates evidence from conclusion: no payment-date result,
+old/new-rate matrix, value, amount, rounding, posting, fiscal document, or IRP state
+is created by this value.
