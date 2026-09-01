@@ -1,6 +1,6 @@
 # Order 335 — Room outages destination-copy local refresh
 
-**Status:** READY-D936
+**Status:** BUILT-LOCALLY-PENDING-FRESH-TIER3-REVIEW-D937
 **Phase:** 7 — founder-visible presentation of already-built journeys
 **Branch:** `phase-7/room-outages-destination-copy-local-refresh`
 **Base:** `fc5b048` (independently approved Order334 governance head)
@@ -27,7 +27,17 @@ permission,authority or post310 statutory change;no merge,push,deployment or rol
 
 ## Definition of done
 
-- [ ] Exact image is sole healthy loopback3000 and Order333 is retained stopped.
+- [x] Exact image is sole healthy loopback3000 and Order333 is retained stopped.
 - [ ] Protected/browser/routes/status/database/topology proof passes.
 - [ ] Fresh non-operating Tier3 reviewer approves exact runtime.
 
+## Builder evidence — D937
+
+- Exact runtime `1551617` built image
+  `sha256:b826c789d413410db1f2bdbb67540feb15ba72d468a730760e77ec4c7da2f059`
+  with exact full OCI revision and is sole healthy loopback3000,restart0.
+- Guarded cutover completed normally;Order333 remains stopped rollback0. Exact
+  inherited24-entry protected environment digest,network,bind and health match.
+  PostgreSQL,provider,Valkey are healthy;3002/3123/3188 are closed.
+- No database,credential,status,permission,authority or post310 work occurred.
+  Fresh Tier3 must personally prove live protected/browser/database truth.
