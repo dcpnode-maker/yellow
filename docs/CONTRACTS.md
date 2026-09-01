@@ -2494,3 +2494,15 @@ all-after, and every other arrangement fail closed. The frozen tenant-hidden res
 returns the statutory date, exact predecessor/successor version identity and complete
 tenant-bound predecessor hashes; it returns no rate, value, amount, rounding, posting,
 document, IRP, API, or UI authority.
+
+## Order341: India GST quoted accommodation rate applicability
+
+`IndiaGstAccommodationQuotedRateApplicabilityService.resolve(tx,input)` is a
+transaction-read-only bridge. It replays frozen Order340 and Order310
+component-identity evidence, byte-matches their shared rate-version pair, then uses
+the Order337 shared numeric scheduler only on the pair member named by fresh
+Section14. It rereads the exact tenant-scoped hold, reservation, segment, primary
+folio, Order252 lineage and Order244/240 snapshot before selecting one `GST_ROOM`
+slab independently for each existing positive INR room-night quote. The result has
+quoted amounts and rate identity only: no final taxable value, tax amount, rounding,
+posting, document, ItemList or IRP data.

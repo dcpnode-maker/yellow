@@ -1496,3 +1496,14 @@ approved rate pair before classifying a case. The final SHA-256 preimage include
 hidden tenant/property/reservation identities and every predecessor hash. No caller
 can supply a normalized payment date, numeric rate, or seventh/equality case; the only
 payment paths are the governed Order302 safe result and rederived Order338/339 branch.
+
+### Order 341 quoted-rate-applicability containment
+
+Order341 accepts only an exact recursively frozen graph and replays Order340 and
+Order310 rather than trusting public hashes. It requires their complete shared pair to
+byte-match, then selects its schedule only by fresh `selectedVersionSide` through the
+shared Order337 scheduler. Its one read pins `app.tenant_id`, hold binding/hold/period,
+reservation, segment, primary folio, attribution and lineage before reparsing the
+canonical snapshot. Mutable, proxy, accessor, symbol, non-INR, non-positive, duplicate
+or unreconciled components fail closed. This boundary has no write, clock, latest-rate,
+tax-money, document, IRP, API, UI or local-runtime authority.

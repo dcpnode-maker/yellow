@@ -129,6 +129,36 @@ function split(
   return Object.freeze(identities.map((identity) => Object.freeze({ identity, rate, rateBasisPoints })));
 }
 
+/** Shared Order337 numeric scheduler; callers must already have governed slab identity. */
+export function deriveIndiaGstAccommodationComponentRateSlabs(
+  componentIdentities: IndiaGstAccommodationLevyComponentIdentityResult["componentIdentities"],
+  gstRoomSlabs: readonly Readonly<{ readonly uptoMinor: number | null; readonly rate: number; readonly itcEligible: boolean }>[],
+): IndiaGstAccommodationLevyComponentRateScheduleResult["componentRateSlabs"] {
+  frozenGraph(componentIdentities);
+  frozenGraph(gstRoomSlabs);
+  const allowed = [["igst"], ["cgst", "sgst"], ["cgst", "utgst"]] as const;
+  if (!allowed.some((identities) => identities.length === componentIdentities.length
+      && identities.every((identity, index) => identity === componentIdentities[index]))) {
+    fail("component identities are not one admitted ordered statutory family");
+  }
+  if (gstRoomSlabs.length !== 2 || gstRoomSlabs[0]?.uptoMinor !== 750000
+      || gstRoomSlabs[1]?.uptoMinor !== null
+      || gstRoomSlabs.some((slab) => typeof slab.itcEligible !== "boolean" || !Number.isFinite(slab.rate) || slab.rate <= 0)) {
+    fail("GST_ROOM slabs are not one admitted two-band partition");
+  }
+  const result = Object.freeze(gstRoomSlabs.map((slab) => {
+    const aggregateRateBasisPoints = basisPoints(slab.rate);
+    return Object.freeze({
+      uptoMinor: slab.uptoMinor,
+      aggregateRate: slab.rate,
+      aggregateRateBasisPoints,
+      itcEligible: slab.itcEligible,
+      components: split(componentIdentities, slab.rate),
+    });
+  }));
+  return result as IndiaGstAccommodationLevyComponentRateScheduleResult["componentRateSlabs"];
+}
+
 export function deriveIndiaGstAccommodationLevyComponentRateSchedule(
   raw: IndiaGstAccommodationLevyComponentRateScheduleInput,
 ): IndiaGstAccommodationLevyComponentRateScheduleResult {
@@ -155,16 +185,10 @@ export function deriveIndiaGstAccommodationLevyComponentRateSchedule(
     fail("supplied levy-component identity does not byte-match its complete ancestry");
   }
 
-  const componentRateSlabs = Object.freeze(rederived.gstRoomSlabs.map((slab) => {
-    const aggregateRateBasisPoints = basisPoints(slab.rate);
-    return Object.freeze({
-      uptoMinor: slab.uptoMinor,
-      aggregateRate: slab.rate,
-      aggregateRateBasisPoints,
-      itcEligible: slab.itcEligible,
-      components: split(rederived.componentIdentities, slab.rate),
-    });
-  }));
+  const componentRateSlabs = deriveIndiaGstAccommodationComponentRateSlabs(
+    rederived.componentIdentities,
+    rederived.gstRoomSlabs,
+  );
   const predecessorHashes = Object.freeze({
     ...rederived.predecessorHashes,
     levyComponentIdentity: rederived.evidenceHash,

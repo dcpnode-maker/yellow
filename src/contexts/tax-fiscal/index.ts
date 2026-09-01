@@ -421,3 +421,13 @@ export type {
   IndiaGstAccommodationLevyComponentRateScheduleInput,
   IndiaGstAccommodationLevyComponentRateScheduleResult,
 } from "./india-gst-accommodation-levy-component-rate-schedule";
+export {
+  IndiaGstAccommodationQuotedRateApplicabilityConflictError,
+  IndiaGstAccommodationQuotedRateApplicabilityNotFoundError,
+  IndiaGstAccommodationQuotedRateApplicabilityService,
+  IndiaGstAccommodationQuotedRateApplicabilityValidationError,
+} from "./india-gst-accommodation-quoted-rate-applicability";
+export type {
+  IndiaGstAccommodationQuotedRateApplicabilityInput,
+  IndiaGstAccommodationQuotedRateApplicabilityResult,
+} from "./india-gst-accommodation-quoted-rate-applicability";

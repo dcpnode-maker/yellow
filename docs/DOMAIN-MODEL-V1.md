@@ -1763,3 +1763,13 @@ date, and predecessor/successor version identity (id, version, status, content h
 and effective bounds). The selected version is identity evidence only: no numeric rate
 or tax result exists in this model. The six legal arrangements are exhaustive; equality
 and non-enumerated combinations are absent rather than represented as a default state.
+
+### India GST quoted accommodation rate applicability (Order 341)
+
+Order341 is an immutable partition of pre-existing positive quoted room-night inputs,
+not a taxable-value or tax-money value. Order310 contributes only family and ordered
+component identity while Order340 chooses the exact member of their shared pair; the
+Order337 shared scheduler splits that selected member's `GST_ROOM` slabs. Each ordinal,
+business date and canonical INR quote remains independent: no stay total, average or
+room-night date selects a version. It creates no new accommodation, allocation, tax,
+accounting or fiscal-document entity.
