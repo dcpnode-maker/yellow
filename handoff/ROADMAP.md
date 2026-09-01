@@ -849,3 +849,7 @@ D886 records the guarded app-only cutover as builder-green: exact approved sourc
 sole healthy port3000 app, Order317 is retained stopped, protected prefilled login, both
 properties, all routes and served bridge pass, and database/companions remain unchanged.
 Fresh non-operating Tier3 live approval is pending.
+D887 independently approves exact587cdf6 and the sole live app after read-only runtime,
+database, route, status and full live-browser acceptance. Port3000 now reflects the
+approved Folio discoverability fine-tune without changing unfinished-phase truth or
+granting broader authority.

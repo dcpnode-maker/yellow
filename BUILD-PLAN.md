@@ -1410,3 +1410,7 @@ approval.
 healthy loopback3000 app with Order317 stopped for rollback. Prefilled protected login,
 two properties,24 routes and the bridge pass; environment, database, companions and
 closed obsolete ports are unchanged. Fresh non-operating Tier3 approval remains required.
+**Order319 approved locally — D887:** Fresh non-operating Tier3 review approves exact
+587cdf6 and the sole live app with no finding. Runtime, rollback, environment, database,
+companions, routes and truthful status pass; the full live two-property/detail-mode
+Folio bridge, dirty/history, responsive/theme/accessibility and console0 matrix passes.

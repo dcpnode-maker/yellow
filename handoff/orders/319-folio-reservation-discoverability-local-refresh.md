@@ -1,6 +1,6 @@
 # Order 319 — Folio reservation discoverability local refresh
 
-**Status:** BUILT-LOCALLY-PENDING-FRESH-TIER3-REVIEW-D886
+**Status:** APPROVED-LOCALLY-D887
 **Phase:** 7 — founder-visible presentation of already-built Phase 4–6 journeys
 **Branch:** `phase-7/folio-reservation-discoverability-local-refresh`
 **Base:** `5850018` (independently approved Order318 governance head)
@@ -44,7 +44,7 @@ Order317 on the exact loopback bind, and verify its approved health.
 - [x] Exact approved Order318 runtime image built.
 - [x] Guarded app-only cutover and live acceptance pass.
 - [x] Prior app retained; companions and data unchanged.
-- [ ] Fresh non-operating Tier3 reviewer approves.
+- [x] Fresh non-operating Tier3 reviewer approves.
 
 ## Builder evidence — D886
 
@@ -63,3 +63,14 @@ Order317 on the exact loopback bind, and verify its approved health.
   policies/2 properties and party8/contact0/party-role8/fact75/outbox22.
 - Focused presentation proof is52 pass/6 database skips/0 fail/796 assertions and
   typecheck/diff hygiene pass. Fresh non-operating Tier3 live review remains mandatory.
+
+## Fresh independent review — D887
+
+A fresh non-operating Tier3 reviewer personally verified exact candidate/image/runtime,
+sole healthy loopback3000, retained stopped rollback, secret-safe environment equality,
+healthy companions, closed obsolete ports, unchanged read-only database counts,
+prefilled protected login, two properties,24/24 routes and truthful310/311/91/P7/11.
+The live browser matrix passed both properties across all three detail modes, empty and
+loaded Folio navigation, focus/Back/context return, dirty dismiss/accept exactly once,
+responsive/zoom/orientation, all six appearances, reduced/forced/keyboard and console0
+with no business mutation. Exact candidate `587cdf6` is **APPROVED** with no finding.
