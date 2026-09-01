@@ -1,6 +1,6 @@
 # Order 322 — Arrival/departure journey alignment
 
-**Status:** READY-D894
+**Status:** BUILT-PENDING-FRESH-TIER2-REVIEW-D895
 **Phase:** 7 — founder-visible presentation of already-built stay journeys
 **Branch:** `phase-7/arrival-departure-journey-alignment`
 **Base:** `ae97d37` (independently approved Order321 governance/local head)
@@ -32,9 +32,22 @@ order does not refresh the sole local; that requires a separate guarded order.
 
 ## Definition of done
 
-- [ ] Intentional red precedes production.
-- [ ] Today is labelled `Arrivals & departures` exactly once under Stay operations.
-- [ ] Reservations contains only its existing Reservations destination.
-- [ ] Seven destination identities and routing behavior remain exact.
-- [ ] Focused, standing and static proof pass.
+- [x] Intentional red precedes production.
+- [x] Today is labelled `Arrivals & departures` exactly once under Stay operations.
+- [x] Reservations contains only its existing Reservations destination.
+- [x] Seven destination identities and routing behavior remain exact.
+- [x] Focused, standing and static proof pass.
 - [ ] Fresh independent Tier2 browser review approves.
+
+## Builder evidence — D895
+
+- Intentional red was 1 pass / 1 expected fail / 15 assertions: only the Today
+  category placement failed; seven identities and the shared router stayed green.
+- Focused proof is 17 pass / 0 fail / 268 assertions. Standing proof is 1139 pass /
+  890 expected database skips / 0 fail / 17355 assertions across 2029 tests and 370
+  files.
+- Typecheck, 127-file import boundaries, 23-package licence policy, audit0 and diff
+  hygiene pass.
+- Production delta is one moved/renamed existing button, one explanatory paragraph
+  and the UI specification. No JavaScript, request, authority, data, status, local or
+  post310 path changed.
