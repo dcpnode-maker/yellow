@@ -1,6 +1,6 @@
 # Order 344 — Governed owner-trust negative authorization
 
-**Status:** BUILT-PENDING-FRESH-TIER3-REVIEW-D977
+**Status:** REVIEW-WITHHELD — stale review-seed least-scope oracle
 **Phase:** 5 — Financials
 **Branch:** `phase-5/governed-owner-trust-negative-authorization`
 **Base:** `d9e43c0` (D974-approved Order345/343/342 and Phase6 exit)
