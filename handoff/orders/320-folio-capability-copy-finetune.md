@@ -1,6 +1,6 @@
 # Order 320 — Folio capability copy fine-tune
 
-**Status:** READY-D888
+**Status:** BUILT-PENDING-FRESH-PRESENTATION-REVIEW-D889
 **Phase:** 7 — founder-visible presentation of already-built Phase 5 journeys
 **Branch:** `phase-7/folio-capability-copy-finetune`
 **Base:** `b69ed0a` (independently approved Order319 governance/local head)
@@ -34,8 +34,19 @@ automatic eligibility or successful settlement.
 
 ## Definition of done
 
-- [ ] Intentional red precedes production.
-- [ ] Both copy surfaces are conditional, truthful and overclaim-free.
-- [ ] Existing seven journeys, Folio bridge/tabs/actions and all routes remain exact.
-- [ ] Focused, standing and static proof pass.
+- [x] Intentional red precedes production.
+- [x] Both copy surfaces are conditional, truthful and overclaim-free.
+- [x] Existing seven journeys, Folio bridge/tabs/actions and all routes remain exact.
+- [x] Focused, standing and static proof pass.
 - [ ] Fresh independent presentation review approves.
+
+## Builder evidence — D889
+
+- Intentional red was1 pass/2 fail/48 assertions: only the two stale copy surfaces
+  failed while seven journeys and every existing Folio control identity remained green.
+- Production changes only two static paragraphs; the existing exact-copy test and UI
+  specification now record the conditional capability and boundary language.
+- Focused proof is38 pass/6 database skips/0 fail/514 assertions. Standing proof is
+  1137 pass/890 skips/0 fail/17336 assertions across2027 tests/369 files.
+- Typecheck,127-file import boundaries,23-package licence policy, audit0 and diff hygiene
+  pass. No behavior/request/authority/data/status/local change was made.

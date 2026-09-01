@@ -1418,3 +1418,7 @@ Folio bridge, dirty/history, responsive/theme/accessibility and console0 matrix 
 denial and Today Financials description with conditional copy naming only already-built,
 server-authorized eligible-Folio tools and explicit tax/invoice/fiscal/check-out limits.
 No behavior, authority, data, status or local change; fresh presentation review required.
+**Order320 built — D889:** Intentional red isolated the two stale paragraphs before a
+static-only correction. Conditional eligible-Folio capability and explicit authority
+boundaries now pass focused38/0 plus6 skips, standing1137/0 plus890 skips and all static
+gates. Fresh independent presentation review and separate local reflection remain.
