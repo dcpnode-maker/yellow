@@ -1319,3 +1319,8 @@ copy names the seven secondary workspaces before the existing disclosure. Advanc
 Expert retain direct controls without duplicated preview. This is presentation and
 accessibility copy only; it adds no route, authority, business behavior or completion
 claim, and a local app refresh remains separately guarded.
+**Order314 complete — D870:** Intentional red preceded exact static implementation.
+Simple visibly names all seven secondary workspaces and binds that preview to the
+existing disclosure; Advanced/Expert suppress it and the twelve controls remain
+singular. Focused22/0, standing1126/0 plus890 skips, type/boundary/licence/audit/diff
+pass. No application authority changed; local visibility remains separately guarded.

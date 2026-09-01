@@ -1,6 +1,6 @@
 # Order 314 — Management-demo workspace discoverability
 
-**Status:** READY-D869
+**Status:** COMPLETE-D870
 **Phase:** 7 — Tax engine and India IRP (presentation-only local demo refinement)
 **Branch:** `phase-7/management-demo-workspace-discoverability`
 **Base:** `9ca6d38` (independently approved Order311 governance head)
@@ -50,8 +50,20 @@ Order176 safe Simple default or the Order195 fixed-menu/focus behavior.
 
 ## Definition of done
 
-- [ ] Intentional red precedes implementation.
-- [ ] Exact discoverability and accessibility proof passes.
-- [ ] Focused and standing/static preservation gates pass.
+- [x] Intentional red precedes implementation.
+- [x] Exact discoverability and accessibility proof passes.
+- [x] Focused and standing/static preservation gates pass.
 - [ ] Sole-local guarded refresh is separately evidenced.
 
+## Completion evidence — D870
+
+- Intentional red failed `0/1` before product source changed.
+- Exact adaptive, geometry and asset proof passes `22/0` with 293 assertions;
+  the twelve semantic workspace controls remain singular.
+- Standing proof passes `1126/0` with 890 expected database skips, 17,114
+  assertions and 2,016 tests across 366 files.
+- Typecheck, 6/0 import boundaries (27 assertions), 23-package licence policy,
+  zero audit findings and diff checks pass.
+- Product delta is limited to static preview/accessibility copy, styling, one
+  regression test and bounded UI specification text. No JavaScript, API, domain,
+  database, dependency, credential or runtime source changed.

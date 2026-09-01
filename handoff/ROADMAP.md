@@ -767,3 +767,6 @@ Make the already-built management workspace catalogue legible in Simple mode wit
 changing the progressive-disclosure model: name the seven secondary workspaces in a
 compact preview bound to the existing disclosure. Advanced/Expert keep the same direct
 controls. No new application behavior or completion authority is introduced.
+D870 completes the static product slice after intentional red. Focused22/0,
+standing1126/0 plus890 skips and static gates pass; the sole local is unchanged until
+a separate guarded app-only refresh.
