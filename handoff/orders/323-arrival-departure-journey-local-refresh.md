@@ -1,6 +1,6 @@
 # Order 323 — Arrival/departure journey local refresh
 
-**Status:** REMEDIATED-PENDING-FRESH-TIER3-REREVIEW-D900
+**Status:** APPROVED-LOCALLY-D901
 **Phase:** 7 — founder-visible presentation of already-built stay journeys
 **Branch:** `phase-7/arrival-departure-journey-local-refresh`
 **Base:** `e2d2a36` (independently approved Order322 governance head)
@@ -32,7 +32,18 @@ rollback deletion.
 - [x] Exact approved image built and sole app refreshed.
 - [x] Live acceptance and preservation proof pass.
 - [x] Order321 remains stopped for rollback.
-- [ ] Fresh non-operating Tier3 reviewer approves.
+- [x] Fresh non-operating Tier3 reviewer approves.
+
+## Fresh rereview — D901
+
+A different fresh non-operating Tier3 reviewer approved exact candidate6e11d4c,
+runtime9bc9ad2 and image093fd44f with no finding. The original P1 is closed live:
+all three fields remained populated after1.8s; focus/pageshow/visible visibilitychange
+restored deliberately cleared fields; non-empty founder markers survived; one-button
+login succeeded. Reviewer also reconfirmed exact topology/environment/companions/
+ports, unchanged database before/after,2 properties,24 routes,status,6/6 alignment,
+canonical Today/focus/lanes, six appearances/mobile containment,console0 and business
+mutations0. Focused proof was43 pass/0 fail/540 assertions.
 
 ## First fresh review — D899
 
