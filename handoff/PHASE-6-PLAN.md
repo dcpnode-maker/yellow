@@ -407,3 +407,8 @@ thirteenth governed runtime capability are already live and independently inspec
 D969 admits Order343 as a test-only exact-oracle repair. A different fresh Tier-3
 reviewer must personally rerun the corrected gates and the complete Order342 exit gate
 before Phase6 can close.
+
+D972 records that the intended Order343 edits and every Phase6 product proof pass, but
+the corrected runtime-authority test still fails one masked stale exact RLS catalogue
+assertion (`94/84/0/84` versus current `110/100/10/100`). Order343, Order342 and Phase6
+remain unapproved pending a bounded repair and different fresh Tier3 rerun.

@@ -1542,3 +1542,10 @@ database-acceptance and runtime-authority permanent oracles stop at migration005
 twelve runtime functions while correct live truth includes migration0059 and thirteen.
 Order343 may repair only those exact test expectations; a different fresh Tier3 must
 rerun the complete exit gate. No product, schema, authority or stable-local change.
+
+**Order343 review withheld — D972:** The exact migration0059 and thirteenth-capability
+edits pass migrate39/0, acceptance23/0 and focused2/0, and the complete Phase6 product,
+schema, standing/static and referee11/11 rerun remains green. Runtime authority is
+still9/1 because the repaired capability assertion unmasks a stale exact RLS catalogue
+oracle (`94/84/0/84` versus current `110/100/10/100`). A bounded test repair and a
+different fresh Tier3 are required; Phase6 and Order344's prerequisite remain closed.

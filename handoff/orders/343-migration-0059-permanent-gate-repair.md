@@ -1,6 +1,6 @@
 # Order 343 — Migration-0059 permanent gate repair
 
-**Status:** READY-D969
+**Status:** WITHHELD-D972
 **Phase:** 6 — Stay operations and housekeeping
 **Branch:** `phase-6/migration-0059-permanent-gate-repair`
 **Base:** `72aadad` (Order342 independent WITHHOLD review)
@@ -77,3 +77,12 @@ D971 corrects the third exact test path before implementation. Order342's red `8
 gate is `tests/runtime-database-authority.integration.test.ts`; the similarly named
 runtime-DML suite was never the identified stale oracle and is excluded. Outcome,
 authority, proof and every forbidden boundary remain unchanged.
+
+## Independent review result
+
+D972 WITHHOLDS exact candidate `04e5e12`. The intended migration0059 and thirteenth-
+capability edits are exact, migrate and acceptance are green, and the complete Order342
+product exit matrix remains green. The repaired runtime-authority suite is still `9/1`:
+after the capability-count repair, its same P1 test reaches a masked pre-current-schema
+oracle expecting `94/84/0/84` instead of current `110/100/10/100`. A separate bounded
+repair and different fresh Tier3 rereview are mandatory.

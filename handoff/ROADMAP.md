@@ -1048,3 +1048,10 @@ migration0059/runtime-capability oracles; all product journeys, hostile boundari
 schema, standing and referee proof pass. D969 opens Order343 as the exact test-only
 repair, followed by a different fresh Tier3 complete exit rereview. The sole local and
 all product/schema/authority surfaces remain unchanged.
+
+D972 WITHHOLDS Order343 exact candidate04e5e12 on one masked stale permanent oracle.
+The intended migration0059 and thirteenth-capability repairs are exact and all other
+Order343/342 proof is green, but the runtime-authority suite still expects old exact
+RLS catalogue totals94/84/0/84 instead of current110/100/10/100 after its earlier
+capability assertion is repaired. A bounded test repair plus different fresh Tier3 is
+required; Phase6 and Order344's prerequisite remain unapproved.
