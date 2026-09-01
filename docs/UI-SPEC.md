@@ -97,7 +97,7 @@ CONTRACTS.md endpoint — no palette-only capabilities.
 
 The safe Simple detail level keeps progressive disclosure, but it must not make
 already-built domains look absent. Before the secondary-workspace disclosure is
-opened, compact noninteractive copy names Operations, Housekeeping, Vehicle register,
+opened, compact noninteractive copy names Room outages, Housekeeping, Vehicle register,
 Inventory setup, Restrictions, Rates and Project status. The disclosure references
 that copy for assistive technology. Advanced and Expert show the real controls
 directly and suppress the preview; no workspace control or route is duplicated.
@@ -106,7 +106,7 @@ directly and suppress the preview; no workspace control or route is duplicated.
 
 The authenticated root opens **Today**. Its management journey index is a compact,
 presentation-only map of the already-connected operator journeys: Today,
-Reservations, Folios, Cashiers, Housekeeping, Vehicle register and Operations. Each
+Reservations, Folios, Cashiers, Housekeeping, Vehicle register and Room outages. Each
 entry explains the authoritative condition needed to continue—for example, selecting
 an eligible reservation, folio or vehicle—then delegates to the existing
 current-property workspace router. It stores no identifiers, chooses no record,

@@ -68,7 +68,7 @@ test("Order 316 intentional red: Today names only the seven existing connected j
   for (const truth of [
     "search/create", "reservation board", "eligible reservation detail",
     "Folios", "eligible reservation", "Cashier",
-    "due-in", "due-out", "in-house", "Housekeeping", "Vehicle", "Operations",
+    "due-in", "due-out", "in-house", "Housekeeping", "Vehicle", "Room outages",
   ]) expect(index).toContain(truth);
 });
 
