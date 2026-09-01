@@ -1,6 +1,6 @@
 # Order 328 — Loaded Folio responsive containment
 
-**Status:** BUILT-PENDING-FRESH-TIER2-REVIEW-D915
+**Status:** APPROVED-D916
 **Phase:** 7 — founder-visible presentation of already-built financial journeys
 **Branch:** `phase-7/folio-loaded-responsive-containment`
 **Base:** `ec85c5d` (Order327 review-withheld governance head)
@@ -34,7 +34,15 @@ deployment. Local reflection remains a separate guarded Tier3 order.
 - [x] Minimal component-scoped CSS produces zero document overflow while retaining a
       usable local tab rail.
 - [x] Focused/standing/static gates pass.
-- [ ] Fresh non-implementing Tier2 reviewer approves exact source/browser behavior.
+- [x] Fresh non-implementing Tier2 reviewer approves exact source/browser behavior.
+
+## Fresh Tier 2 review — D916
+
+Fresh independent non-implementing reviewer `/root/order328_fresh_tier2` approved
+exact application candidate `f11440e` and governance head `3eecb74` with no finding.
+Reviewer-run intentional-red, focused/static and 72-cell real-Chromium proof confirms
+zero document/workspace overflow at actual 375 and 640 CSS px/DSF2, local tab-rail
+scrolling only, preserved identities/behavior/authority and no port3000 touch.
 
 ## Builder evidence — D915
 
