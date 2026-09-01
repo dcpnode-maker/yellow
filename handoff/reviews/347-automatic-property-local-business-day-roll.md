@@ -1,6 +1,6 @@
 # Order 347 builder evidence — pending fresh Tier-3 review
 
-**Builder:** `/root/order347_builder`  
+**Builder:** `/root/order347_builder`
 **Status:** built only; this is not independent review or approval.
 
 Intentional-red commit `2c6bfc7` failed the exact absence proof before production.
