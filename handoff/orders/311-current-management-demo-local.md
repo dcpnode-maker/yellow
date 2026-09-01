@@ -1,6 +1,6 @@
 # Order 311 — Recover and refresh the sole management-demo local
 
-**Status:** BUILT-PENDING-FRESH-TIER3-REVIEW-D862
+**Status:** REMEDIATED-PENDING-FRESH-TIER3-REREVIEW-D863
 **Phase:** 7 — Tax engine and India IRP
 **Branch:** `phase-7/current-management-demo-local`
 **Base:** `3f50f7e` (independently approved Order310 governance head)
@@ -71,7 +71,8 @@ restoration requires closing the local and replaying the verified dump into a ne
   secret output.
 - A fresh volume restored the dump at migration46, applied committed migrations47–59,
   and a second production-runner pass applied zero. The resulting database contains
-  59 migration records, 112 public tables, 100 policies and two authorized properties.
+  59 migration records, 110 base tables plus 2 views (112 table-like public relations),
+  100 policies and two authorized properties.
 - A separate Codex task accidentally inserted one synthetic Party into the first
   restored volume. No destructive row repair was attempted: the local was replayed
   cleanly from the verified dump into a replacement volume, exact clean counts were
@@ -85,3 +86,6 @@ restoration requires closing the local and replaying the verified dump into a ne
   property return HTTP200; bounded read APIs were exercised without business mutation.
 - Standing proof passes1125/0 with890 expected skips (17101 assertions;2015 tests/366
   files); typecheck, boundaries6/0(27), licence23, audit0 and diff checks pass.
+- The first fresh review withheld approval solely because D862 called all 112 relations
+  tables. D863 corrects that exact evidence label to 110 base tables plus 2 views; no
+  runtime, database, test or product change was made.
