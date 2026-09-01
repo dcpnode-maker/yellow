@@ -1395,3 +1395,9 @@ a separate guarded local refresh remain mandatory.
 focused52/0 plus6 database skips, but correctly withheld because its disposable browser
 harness failed before execution. The unchanged exact candidate remains pending a fresh
 isolated-browser matrix; sole port3000 remains untouched.
+**Order318 approved — D884:** A fresh non-implementing reviewer rebuilt the disposable
+proof from ordinary files and personally approved exact e46af12. Both properties in
+Simple/Advanced/Expert, empty and loaded Folio paths, focus/history, dirty cancellation
+and acceptance, direct/context returns, responsive zoom/orientation, all six appearances,
+accessibility media, keyboard focus, console0 and mutations0 pass. Presentation is
+complete; reflecting it on the sole local remains a separate guarded refresh.

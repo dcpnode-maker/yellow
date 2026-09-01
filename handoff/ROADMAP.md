@@ -834,3 +834,7 @@ review remains mandatory; the sole approved local is unchanged.
 D883 records a review-evidence precondition failure only: automated/source proof is
 green, but the malformed disposable harness never launched a browser. Candidate e46af12
 is unchanged and requires fresh isolated-browser retry; the approved local is untouched.
+D884 independently approves unchanged exact e46af12 after a fresh reviewer personally
+passes the complete isolated two-property/detail-mode, Folio navigation, dirty/history,
+responsive/theme/accessibility and zero-mutation browser matrix. Order318 is complete;
+sole-local reflection remains a separately admitted app-only operation.
