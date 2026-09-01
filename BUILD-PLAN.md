@@ -1534,3 +1534,11 @@ routes/two copy surfaces and unchanged data/companions/ports pass; fresh Tier3 p
 **Order321 approved locally — D893:** Fresh Tier3 review approves exact608bc00 and the
 sole app with no finding. Runtime/data/topology/status and the full live two-property/
 mode/copy/conditional-controls/theme/accessibility matrix pass with console0/mutations0.
+
+**Phase6 exit review withheld; Order343 ready — D968/D969:** Fresh Order342 execution
+passes every documented stay/housekeeping journey, hostile boundary, exact schema,
+standing1187/0 and referee11/11. Approval is withheld because the migration,
+database-acceptance and runtime-authority permanent oracles stop at migration0058 and
+twelve runtime functions while correct live truth includes migration0059 and thirteen.
+Order343 may repair only those exact test expectations; a different fresh Tier3 must
+rerun the complete exit gate. No product, schema, authority or stable-local change.

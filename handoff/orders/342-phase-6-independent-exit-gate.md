@@ -1,6 +1,6 @@
 # Order 342 — Phase-6 independent exit gate
 
-**Status:** READY-D966
+**Status:** WITHHELD-D968
 **Phase:** 6 — Stay operations and housekeeping
 **Branch:** `phase-6/independent-exit-gate`
 **Base:** `b42c534` (approved Order341 governance head)
@@ -71,3 +71,10 @@ runtime, local or protected value is admitted.
 - [ ] Approval, if earned, is bounded to the documented Phase-6 DoD and does not claim
       discrepancy resolution, queue/message work, Phase 7/8 or application completion.
 
+## Independent review result
+
+D968 records WITHHOLD at exact subject `91dd0cf73a6662825508f93d602ece246e1d4550`.
+Every Phase-6 journey, hostile boundary, normalized schema comparison, standing suite
+and referee passed, but the mandatory migration, database-acceptance and runtime-
+authority gates retained pre-0059 catalogue expectations. Order343 is the separate
+test-only repair; a different fresh Tier-3 reviewer must rerun this exit gate.

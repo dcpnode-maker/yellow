@@ -396,3 +396,14 @@ parking, entry/exit, history and auto-allocation remain later policy. Focused `2
 adjacent `80/80`, standing `771/771`, fresh migration/acceptance/runtime authority and
 review-seed proof, exact schema, static gates and fresh 93-table referee `11/11` are
 green. Independent Tier-3 review remains deferred by the founder's build-first direction.
+
+## Order342 review and Order343 repair
+
+D968 records the fresh Order342 WITHHOLD. Every documented Phase-6 product journey,
+hostile authority boundary, exact schema comparison, standing suite and referee11/11
+passed. The exit gate remains unapproved only because three permanent catalogue tests
+still describe migration0058/twelve runtime functions although migration0059 and its
+thirteenth governed runtime capability are already live and independently inspected.
+D969 admits Order343 as a test-only exact-oracle repair. A different fresh Tier-3
+reviewer must personally rerun the corrected gates and the complete Order342 exit gate
+before Phase6 can close.

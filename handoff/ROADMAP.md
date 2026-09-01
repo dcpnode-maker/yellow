@@ -1037,3 +1037,9 @@ trailing/source/tenant hash omissions and a valid contiguous367-day acceptance. 
 4..366 bound is exact technical containment, not inferred statutory policy. Approval
 closes only governed calendar evidence; payment-date conclusion,section14 matrix and
 all downstream tax/fiscal/runtime work remain bounded future orders.
+
+D968 WITHHOLDS Order342 Phase6 exit approval solely on three stale permanent
+migration0059/runtime-capability oracles; all product journeys, hostile boundaries,
+schema, standing and referee proof pass. D969 opens Order343 as the exact test-only
+repair, followed by a different fresh Tier3 complete exit rereview. The sole local and
+all product/schema/authority surfaces remain unchanged.
