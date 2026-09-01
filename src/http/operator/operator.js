@@ -9518,7 +9518,7 @@ function vehicleReturnPathFromState(state, property) {
  cashiersView.hidden = activeView !== "cashiers";
  statusView.hidden = activeView !== "status";
  workbenchTitle.textContent = activeView === "today" ? "Today" : activeView === "inventory" ? "Inventory setup" :
-  activeView === "operations" ? "Operations" : activeView === "housekeeping" ? "Housekeeping" : activeView === "vehicles" ? "Vehicle Register" : activeView === "reservations" ? "Reservations" : activeView === "folios" ? "Folios" : activeView === "cashiers" ? "Cashiers" : activeView === "restrictions" ? "Restrictions" :
+  activeView === "operations" ? "Room outages" : activeView === "housekeeping" ? "Housekeeping" : activeView === "vehicles" ? "Vehicle Register" : activeView === "reservations" ? "Reservations" : activeView === "folios" ? "Folios" : activeView === "cashiers" ? "Cashiers" : activeView === "restrictions" ? "Restrictions" :
   activeView === "rates" ? "Rates" : activeView === "status" ? "Project status" : "Availability";
  for (const tab of navigation) {
   const selected = tab.dataset.view === activeView;
