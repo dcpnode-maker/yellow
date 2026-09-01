@@ -1,6 +1,6 @@
 # Order 348 — Business-day roll abort and posting-oracle repair
 
-**Status:** READY-D987
+**Status:** BUILT-PENDING-FRESH-TIER3-REVIEW-D988
 **Phase:** 5 — Financials
 **Branch:** `phase-5/business-day-roll-abort-oracle-repair`
 **Base:** `50cd867` (D986 independent Order347 WITHHOLD)
@@ -64,4 +64,3 @@ Anything outside this list requires a separately recorded scope decision.
   changing posting behavior/query, weakening equality or editing other oracles;
 - `.yellow`, credentials, Docker/stable-local mutation, port3000, local promotion,
   merge, push, deployment, seal/readiness/carry, Phase5 or application completion.
-
