@@ -21,6 +21,7 @@ import {
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 const HASH = /^[0-9a-f]{64}$/;
+const PERIOD_BOUND = /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}(?:\.\d{1,6})?(?:Z|[+-]\d{2}(?::?\d{2})?)$/;
 const INPUT_KEYS = [
   "tenantId", "propertyNode", "reservationId", "folioId", "reservationLineageId", "attributionId",
   "section14Input", "section14Result", "componentIdentityInput", "componentIdentityResult",
@@ -28,6 +29,9 @@ const INPUT_KEYS = [
 const ROW_KEYS = [
   "tenant_id", "lineage_id", "property_node", "hold_binding_id", "hold_id", "attribution_id", "reservation_id", "segment_id", "sellable_unit_id", "folio_id",
   "origin_quote_hash", "snapshot_hash", "currency", "snapshot",
+  "binding_row_id", "binding_hold_id", "hold_row_id", "binding_sellable_unit_id", "hold_sellable_unit_id", "segment_sellable_unit_id",
+  "lineage_period", "binding_period", "hold_period", "segment_period",
+  "binding_attribution_id", "attribution_row_id", "binding_origin_quote_hash", "binding_snapshot_hash", "binding_currency",
 ] as const;
 
 type RecordValue = Record<string, unknown>;
@@ -49,6 +53,21 @@ interface PersistedLineageRow {
   readonly snapshot_hash: string;
   readonly currency: string;
   readonly snapshot: unknown;
+  readonly binding_row_id: string;
+  readonly binding_hold_id: string;
+  readonly hold_row_id: string;
+  readonly binding_sellable_unit_id: string;
+  readonly hold_sellable_unit_id: string;
+  readonly segment_sellable_unit_id: string;
+  readonly lineage_period: string;
+  readonly binding_period: string;
+  readonly hold_period: string;
+  readonly segment_period: string;
+  readonly binding_attribution_id: string;
+  readonly attribution_row_id: string;
+  readonly binding_origin_quote_hash: string;
+  readonly binding_snapshot_hash: string;
+  readonly binding_currency: string;
 }
 
 export interface IndiaGstAccommodationQuotedRateApplicabilityInput {
@@ -74,10 +93,8 @@ export interface IndiaGstAccommodationQuotedRateApplicabilityResult {
   readonly reservationLineage: Readonly<{
     readonly lineageId: string;
     readonly holdBindingId: string;
-    readonly holdId: string;
     readonly reservationId: string;
     readonly segmentId: string;
-    readonly sellableUnitId: string;
     readonly folioId: string;
     readonly attributionId: string;
     readonly originQuoteHash: string;
@@ -149,6 +166,16 @@ function frozen(value: unknown, seen = new Set<object>()): void {
 }
 function uuid(value: unknown, subject: string): string { return typeof value === "string" && UUID.test(value) ? value : validation(`${subject} must be a canonical UUID`); }
 function hash(value: unknown, subject: string): string { return typeof value === "string" && HASH.test(value) ? value : conflict(`${subject} must be a canonical SHA-256`); }
+function period(value: unknown, subject: string): string {
+  if (typeof value !== "string") conflict(`${subject} must be a canonical PostgreSQL period`);
+  const match = /^\[(?:\"([^\"]+)\"|([^,\[\]\(\)]+)),(?:\"([^\"]+)\"|([^,\[\]\(\)]+))\)$/.exec(value);
+  const lower = match?.[1] ?? match?.[2], upper = match?.[3] ?? match?.[4];
+  if (!lower || !upper || !PERIOD_BOUND.test(lower) || !PERIOD_BOUND.test(upper)
+      || !Number.isFinite(Date.parse(lower)) || !Number.isFinite(Date.parse(upper)) || Date.parse(lower) >= Date.parse(upper)) {
+    conflict(`${subject} must be a canonical non-empty PostgreSQL period`);
+  }
+  return value;
+}
 function equal(supplied: unknown, fresh: unknown, subject: string): void { if (JSON.stringify(supplied) !== JSON.stringify(fresh)) conflict(`${subject} does not byte-match rederived truth`); }
 function digest(value: unknown): string { return new Bun.CryptoHasher("sha256").update(JSON.stringify(value)).digest("hex"); }
 function positiveMinor(value: unknown): string {
@@ -190,7 +217,19 @@ async function persisted(tx: Tx, input: IndiaGstAccommodationQuotedRateApplicabi
            lineage.sellable_unit_id::text AS sellable_unit_id,
            folio.id::text AS folio_id,
            lineage.origin_quote_hash, lineage.snapshot_hash, lineage.currency::text AS currency,
-           attribution.snapshot AS snapshot
+           attribution.snapshot AS snapshot,
+           hold_binding.id::text AS binding_row_id, hold_binding.hold_id::text AS binding_hold_id,
+           hold.id::text AS hold_row_id,
+           hold_binding.sellable_unit_id::text AS binding_sellable_unit_id,
+           hold.sellable_unit_id::text AS hold_sellable_unit_id,
+           segment.sellable_unit_id::text AS segment_sellable_unit_id,
+           lineage.period::text AS lineage_period, hold_binding.period::text AS binding_period,
+           hold.period::text AS hold_period, segment.period::text AS segment_period,
+           hold_binding.attribution_id::text AS binding_attribution_id,
+           attribution.id::text AS attribution_row_id,
+           hold_binding.origin_quote_hash AS binding_origin_quote_hash,
+           hold_binding.snapshot_hash AS binding_snapshot_hash,
+           hold_binding.currency::text AS binding_currency
       FROM public.tax_attribution_reservation_binding AS lineage
       JOIN public.tax_attribution_hold_binding AS hold_binding
         ON hold_binding.tenant_id = lineage.tenant_id AND hold_binding.id = lineage.binding_id
@@ -251,7 +290,13 @@ export class IndiaGstAccommodationQuotedRateApplicabilityService {
       const componentRateSlabs = deriveIndiaGstAccommodationComponentRateSlabs(componentIdentity.componentIdentities, selectedPairMember.gstRoomSlabs);
       const row = exact(await persisted(tx, input), ROW_KEYS, "persisted quoted-tax reservation lineage") as unknown as PersistedLineageRow;
       const serviceLineage = input.section14Input.serviceProvisionResult.reservationLineage;
-      if (uuid(row.tenant_id, "stored tenant") !== tenantId || uuid(row.lineage_id, "stored lineage") !== lineageId || uuid(row.property_node, "stored property") !== propertyNode || uuid(row.hold_binding_id, "stored hold binding") !== serviceLineage.holdBindingId || uuid(row.attribution_id, "stored attribution") !== attributionId || uuid(row.reservation_id, "stored reservation") !== reservationId || uuid(row.segment_id, "stored segment") !== serviceLineage.segmentId || uuid(row.folio_id, "stored folio") !== folioId || row.currency !== "INR") conflict("persisted quoted-tax lineage conflicts with supplied identity");
+      const storedHoldBindingId = uuid(row.hold_binding_id, "stored hold binding"), storedHoldId = uuid(row.hold_id, "stored hold"), storedSellableUnitId = uuid(row.sellable_unit_id, "stored sellable unit"), storedPeriod = period(row.lineage_period, "stored lineage period");
+      if (uuid(row.tenant_id, "stored tenant") !== tenantId || uuid(row.lineage_id, "stored lineage") !== lineageId || uuid(row.property_node, "stored property") !== propertyNode || storedHoldBindingId !== serviceLineage.holdBindingId || uuid(row.attribution_id, "stored attribution") !== attributionId || uuid(row.reservation_id, "stored reservation") !== reservationId || uuid(row.segment_id, "stored segment") !== serviceLineage.segmentId || uuid(row.folio_id, "stored folio") !== folioId || row.currency !== "INR"
+          || uuid(row.binding_row_id, "binding row") !== storedHoldBindingId || uuid(row.binding_hold_id, "binding hold") !== storedHoldId || uuid(row.hold_row_id, "hold row") !== storedHoldId
+          || uuid(row.binding_sellable_unit_id, "binding sellable unit") !== storedSellableUnitId || uuid(row.hold_sellable_unit_id, "hold sellable unit") !== storedSellableUnitId || uuid(row.segment_sellable_unit_id, "segment sellable unit") !== storedSellableUnitId
+          || storedPeriod !== row.binding_period || storedPeriod !== row.hold_period || storedPeriod !== row.segment_period
+          || uuid(row.binding_attribution_id, "binding attribution") !== attributionId || uuid(row.attribution_row_id, "attribution row") !== attributionId
+          || row.binding_origin_quote_hash !== row.origin_quote_hash || row.binding_snapshot_hash !== row.snapshot_hash || row.binding_currency !== row.currency) conflict("persisted quoted-tax lineage conflicts with independently projected provenance");
       const snapshotHash = hash(row.snapshot_hash, "stored snapshot hash"), originQuoteHash = hash(row.origin_quote_hash, "stored quote hash");
       const snapshot = parsePositiveTaxAttributionSnapshot(row.snapshot);
       if (snapshot.origin.kind !== "rate_quote" || snapshot.origin.quoteHash !== originQuoteHash || snapshot.snapshotHash !== snapshotHash || snapshot.currency !== "INR" || snapshot.revenueLine.lineId !== "room" || snapshot.revenueLine.revenueGroup !== "room_revenue" || serviceLineage.lineageId !== lineageId || serviceLineage.attributionId !== attributionId || serviceLineage.reservationId !== reservationId || serviceLineage.originQuoteHash !== originQuoteHash || serviceLineage.snapshotHash !== snapshotHash || serviceLineage.currency !== "INR") conflict("persisted canonical attribution conflicts with reservation lineage");
@@ -265,8 +310,9 @@ export class IndiaGstAccommodationQuotedRateApplicabilityService {
       });
       if (components.length === 0 || total.toString() !== snapshot.revenueLine.inputAmountMinor || snapshot.evaluation.grandTotalMinor !== input.section14Input.paymentReceiptResult.amountMinor || input.section14Input.paymentReceiptResult.currency !== "INR" || input.section14Input.invoiceIssueResult.amountMinor !== snapshot.evaluation.grandTotalMinor || input.section14Input.invoiceIssueResult.currency !== "INR") conflict("quoted room-night components do not reconcile to the full attribution");
       const section = Object.freeze({ case: section14.case, timeOfSupplyDate: section14.timeOfSupplyDate, selectedVersionSide: section14.selectedVersionSide, selectedVersion: section14.selectedVersion });
-      const lineage = Object.freeze({ lineageId, holdBindingId: uuid(row.hold_binding_id, "stored hold binding"), holdId: uuid(row.hold_id, "stored hold"), reservationId, segmentId: uuid(row.segment_id, "stored segment"), sellableUnitId: uuid(row.sellable_unit_id, "stored sellable unit"), folioId, attributionId, originQuoteHash, snapshotHash, currency: "INR" as const });
-      const predecessorHashes = Object.freeze({ section14: section14.evidenceHash, levyComponentIdentity: componentIdentity.evidenceHash, reservationLineage: digest({ tenantId, ...lineage }), attributionSnapshot: snapshot.snapshotHash });
+      const lineage = Object.freeze({ lineageId, holdBindingId: storedHoldBindingId, reservationId, segmentId: uuid(row.segment_id, "stored segment"), folioId, attributionId, originQuoteHash, snapshotHash, currency: "INR" as const });
+      const provenLineage = Object.freeze({ ...lineage, holdId: storedHoldId, sellableUnitId: storedSellableUnitId, period: storedPeriod });
+      const predecessorHashes = Object.freeze({ section14: section14.evidenceHash, levyComponentIdentity: componentIdentity.evidenceHash, reservationLineage: digest({ tenantId, ...provenLineage }), attributionSnapshot: snapshot.snapshotHash });
       const body = Object.freeze({ section14: section, reservationLineage: lineage, components: Object.freeze(components), predecessorHashes });
       return Object.freeze({ ...body, evidenceHash: digest({ tenantId, propertyNode, reservationId, folioId, ...body }) });
     } catch (error) {

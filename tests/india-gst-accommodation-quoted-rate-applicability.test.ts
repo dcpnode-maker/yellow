@@ -17,6 +17,7 @@ import {
   IndiaGstSection14RateSelectionService,
   resolveIndiaGstSection14PaymentProviso,
 } from "../src/contexts/tax-fiscal";
+import { deriveIndiaGstAccommodationComponentRateSlabs } from "../src/contexts/tax-fiscal/india-gst-accommodation-levy-component-rate-schedule";
 import type { Tx } from "../src/kernel";
 
 type Mutable = Record<PropertyKey, any>;
@@ -28,6 +29,8 @@ const SERVICE_SNAPSHOT = id(34110), RECEIPT = id(34111), INVOICE = id(34112), SU
 const PREDECESSOR = "a806f516-fed6-5768-b310-94aa03286adb", SUCCESSOR = "0b21daf2-ea6e-5568-9c21-69e4d4424574";
 const PRE_FROM = "2022-07-17T18:30:00.000000Z", CUTOVER = "2025-09-21T18:30:00.000000Z";
 const QUOTE = "a".repeat(64), SERVICE_EVIDENCE = "b".repeat(64), PAYMENT_EVIDENCE = "c".repeat(64), INVOICE_EVIDENCE = "d".repeat(64), CAL_SOURCE = "e".repeat(64);
+const PERIOD = "[\"2025-09-20 18:30:00+00\",\"2025-09-22 18:30:00+00\")";
+const OTHER_PERIOD = "[\"2025-09-21 18:30:00+00\",\"2025-09-23 18:30:00+00\")";
 
 function canonical(value: any): string { if (value === null || typeof value !== "object") return JSON.stringify(Object.is(value, -0) ? 0 : value); if (Array.isArray(value)) return `[${value.map(canonical).join(",")}]`; return `{${Object.keys(value).sort().map((key) => `${JSON.stringify(key)}:${canonical(value[key])}`).join(",")}}`; }
 const hash = (value: unknown) => new Bun.CryptoHasher("sha256").update(canonical(value)).digest("hex");
@@ -85,11 +88,24 @@ function rowSet(serviceDate: string, booksDate: string, bankDate: string, invoic
   const serviceJoin = { service_tenant_id: TENANT, service_id: SERVICE_SNAPSHOT, property_node: PROPERTY, reservation_lineage_id: LINEAGE, hold_binding_id: HOLD, attribution_id: ATTRIBUTION, reservation_id: RESERVATION, segment_id: SEGMENT, origin_quote_hash: QUOTE, snapshot_hash: attribution.snapshotHash, service_currency: "INR", service_provision_date: serviceDate, service_provision_source: "governed_service_provision_record", service_provision_evidence_sha256: SERVICE_EVIDENCE, service_legal_rule: "CGST_ACT_13_2_B_SERVICE_PROVISION_DATE_INPUT_ONLY", lineage_id: LINEAGE, lineage_property_node: PROPERTY, lineage_hold_binding_id: HOLD, lineage_attribution_id: ATTRIBUTION, lineage_reservation_id: RESERVATION, lineage_segment_id: SEGMENT, lineage_origin_quote_hash: QUOTE, lineage_snapshot_hash: attribution.snapshotHash, lineage_currency: "INR", attribution_snapshot: attribution };
   const payment = { tenant_id: TENANT, id: RECEIPT, service_provision_snapshot_id: SERVICE_SNAPSHOT, currency: "INR", amount_minor: total, coverage_scope: "full_attribution", supplier_books_entry_date: booksDate, supplier_bank_credit_date: bankDate, payment_receipt_date: booksDate < bankDate ? booksDate : bankDate, payment_receipt_source: "governed_supplier_payment_receipt_record", payment_receipt_evidence_sha256: PAYMENT_EVIDENCE, legal_rule: "CGST_ACT_13_2_EXPLANATION_II_PAYMENT_RECEIPT_DATE_INPUT_ONLY", ...serviceJoin };
   const invoice = { tenant_id: TENANT, id: INVOICE, service_provision_snapshot_id: SERVICE_SNAPSHOT, currency: "INR", amount_minor: total, coverage_scope: "full_attribution", invoice_series: "FY2025", invoice_serial: "341", invoice_issue_date: invoiceDate, invoice_issue_source: "governed_supplier_tax_invoice_record", invoice_issue_evidence_sha256: INVOICE_EVIDENCE, legal_rule: "CGST_ACT_13_2_INVOICE_DATE_INPUT_ONLY", ...serviceJoin };
-  const persisted = { tenant_id: TENANT, lineage_id: LINEAGE, property_node: PROPERTY, hold_binding_id: HOLD, hold_id: HOLD, attribution_id: ATTRIBUTION, reservation_id: RESERVATION, segment_id: SEGMENT, sellable_unit_id: SELLABLE, folio_id: FOLIO, origin_quote_hash: QUOTE, snapshot_hash: attribution.snapshotHash, currency: "INR", snapshot: attribution };
+  const persisted = { tenant_id: TENANT, lineage_id: LINEAGE, property_node: PROPERTY, hold_binding_id: HOLD, hold_id: HOLD, attribution_id: ATTRIBUTION, reservation_id: RESERVATION, segment_id: SEGMENT, sellable_unit_id: SELLABLE, folio_id: FOLIO, origin_quote_hash: QUOTE, snapshot_hash: attribution.snapshotHash, currency: "INR", snapshot: attribution, binding_row_id: HOLD, binding_hold_id: HOLD, hold_row_id: HOLD, binding_sellable_unit_id: SELLABLE, hold_sellable_unit_id: SELLABLE, segment_sellable_unit_id: SELLABLE, lineage_period: PERIOD, binding_period: PERIOD, hold_period: PERIOD, segment_period: PERIOD, binding_attribution_id: ATTRIBUTION, attribution_row_id: ATTRIBUTION, binding_origin_quote_hash: QUOTE, binding_snapshot_hash: attribution.snapshotHash, binding_currency: "INR" };
   return { service, payment, invoice, persisted, attribution };
 }
 
 function txFor(rows: ReturnType<typeof rowSet>, calls?: string[]): Tx { return (async (strings: TemplateStringsArray) => { const sql = strings.join("?"); calls?.push(sql); if (sql.includes("tax_attribution_hold_binding")) return [rows.persisted]; if (sql.includes("payment_receipt_snapshot")) return [rows.payment]; if (sql.includes("invoice_issue_snapshot")) return [rows.invoice]; if (sql.includes("service_provision_snapshot")) return [rows.service]; throw new Error(`unexpected resolver SQL: ${sql}`); }) as unknown as Tx; }
+
+async function freshExpectedSchedule(built: Awaited<ReturnType<typeof fixture>>) {
+  const section14 = await new IndiaGstSection14RateSelectionService().resolve(txFor(built.rows), built.input.section14Input);
+  const componentIdentity = deriveIndiaGstAccommodationLevyComponentIdentity(built.input.componentIdentityInput);
+  const selected = section14.selectedVersionSide === "predecessor"
+    ? built.input.section14Input.rateVersionPair.predecessor
+    : built.input.section14Input.rateVersionPair.successor;
+  return { section14, componentIdentity, slabs: deriveIndiaGstAccommodationComponentRateSlabs(componentIdentity.componentIdentities, selected.gstRoomSlabs) };
+}
+
+function expectedComponents(slab: Awaited<ReturnType<typeof freshExpectedSchedule>>["slabs"][number]) {
+  return slab.components.map((component) => ({ identity: component.identity, rate: component.rate, rateBasisPoints: component.rateBasisPoints }));
+}
 
 async function fixture(family: Family, serviceDate: "2025-09-21" | "2025-09-23", booksDate: string, bankDate: string, invoiceDate: string, amounts: readonly bigint[] = [700000n, 800000n]) {
   const rows = rowSet(serviceDate, booksDate, bankDate, invoiceDate, amounts);
@@ -124,13 +140,23 @@ describe("Order 341: India GST accommodation quoted-rate applicability", () => {
     ] as const;
     for (const [serviceDate, booksDate, bankDate, invoiceDate, statutoryCase, side, lowerRate] of cases) for (const family of ["igst", "cgst_sgst", "cgst_utgst"] as const) {
       const built = await fixture(family, serviceDate, booksDate, bankDate, invoiceDate), calls: string[] = [];
-      const actual = await new IndiaGstAccommodationQuotedRateApplicabilityService().resolve(txFor(built.rows, calls), built.input);
+      const transaction = txFor(built.rows, calls);
+      const actual = await new IndiaGstAccommodationQuotedRateApplicabilityService().resolve(transaction, built.input);
+      const fresh = await freshExpectedSchedule(built);
       expect(actual.section14).toMatchObject({ case: statutoryCase, selectedVersionSide: side });
       expect(actual.components.map((component) => [component.quotedAmountMinor, component.slab.uptoMinor, component.slab.aggregateRateBasisPoints])).toEqual([["700000", 750000, lowerRate], ["800000", null, 1800]]);
+      expect(actual.components.map((component) => component.slab.components)).toEqual([
+        expectedComponents(fresh.slabs[0]!),
+        expectedComponents(fresh.slabs[1]!),
+      ]);
       expect(actual.components.every((component) => component.slab.components.reduce((sum, rate) => sum + rate.rateBasisPoints, 0) === component.slab.aggregateRateBasisPoints)).toBeTrue();
-      expect(actual.components[0]!.slab.components.map((component) => component.identity)).toEqual(family === "igst" ? ["igst"] : family === "cgst_sgst" ? ["cgst", "sgst"] : ["cgst", "utgst"]);
-      expect(actual.reservationLineage).toMatchObject({ lineageId: LINEAGE, holdBindingId: HOLD, holdId: HOLD, reservationId: RESERVATION, segmentId: SEGMENT, sellableUnitId: SELLABLE, folioId: FOLIO, attributionId: ATTRIBUTION, originQuoteHash: QUOTE, snapshotHash: built.rows.attribution.snapshotHash, currency: "INR" });
-      expectDeepFrozen(actual); expect(JSON.stringify(actual)).not.toContain(TENANT); expect(calls.some((sql) => sql.includes("tax_attribution_hold_binding"))).toBeTrue();
+      expect(actual.reservationLineage).toEqual({ lineageId: LINEAGE, holdBindingId: HOLD, reservationId: RESERVATION, segmentId: SEGMENT, folioId: FOLIO, attributionId: ATTRIBUTION, originQuoteHash: QUOTE, snapshotHash: built.rows.attribution.snapshotHash, currency: "INR" });
+      expect(actual.predecessorHashes.section14).toBe(fresh.section14.evidenceHash);
+      const { evidenceHash, ...body } = actual;
+      expect(evidenceHash).toBe(jsonHash({ tenantId: TENANT, propertyNode: PROPERTY, reservationId: RESERVATION, folioId: FOLIO, ...body }));
+      expectDeepFrozen(actual); expect(JSON.stringify(actual)).not.toContain(TENANT);
+      expect(calls).toHaveLength(4); expect(calls.every((sql) => /^\s*SELECT\b/i.test(sql) && !/\b(?:INSERT|UPDATE|DELETE|MERGE|CALL)\b/i.test(sql))).toBeTrue();
+      expect(calls.some((sql) => sql.includes("tax_attribution_hold_binding"))).toBeTrue();
     }
   });
 
@@ -141,19 +167,60 @@ describe("Order 341: India GST accommodation quoted-rate applicability", () => {
     expect(actual.components[0]!.slab.components.map((component) => component.rateBasisPoints)).toEqual([250, 250]);
   });
 
-  test("fails closed for rederived input/result and persisted-lineage mutations", async () => {
+  test("fails closed for supplied truth, deep-freeze, and every persisted-lineage coordinate mutation", async () => {
     const built = await fixture("cgst_sgst", "2025-09-21", "2025-09-23", "2025-09-24", "2025-09-24"), service = new IndiaGstAccommodationQuotedRateApplicabilityService();
     const changedSection14 = structuredClone(built.input) as Mutable; changedSection14.section14Result.selectedVersionSide = "predecessor"; await expect(service.resolve(txFor(built.rows), freeze(changedSection14) as never)).rejects.toThrow();
     const changedIdentity = structuredClone(built.input) as Mutable; changedIdentity.componentIdentityResult.componentIdentities = ["igst"]; await expect(service.resolve(txFor(built.rows), freeze(changedIdentity) as never)).rejects.toThrow();
     const other = componentInput(await historical("2025-09-23") as Mutable, "cgst_sgst"), mismatchedSupply = structuredClone(built.input) as Mutable; mismatchedSupply.componentIdentityInput = other.input; mismatchedSupply.componentIdentityResult = other.result; await expect(service.resolve(txFor(built.rows), freeze(mismatchedSupply) as never)).rejects.toThrow();
-    for (const mutate of [(row: Mutable) => { row.hold_binding_id = id(34190); }, (row: Mutable) => { row.snapshot_hash = "9".repeat(64); }, (row: Mutable) => { row.folio_id = id(34191); }]) {
-      const rows = structuredClone(built.rows) as Mutable; mutate(rows.persisted); await expect(service.resolve(txFor(rows as never), built.input)).rejects.toThrow();
+    await expect(service.resolve(txFor(built.rows), structuredClone(built.input) as never)).rejects.toThrow();
+    const mutations: readonly [string, (row: Mutable) => void][] = [
+      ["tenant", (row) => { row.tenant_id = id(34189); }], ["lineage", (row) => { row.lineage_id = id(34190); }],
+      ["property", (row) => { row.property_node = id(34191); }], ["hold binding", (row) => { row.hold_binding_id = id(34192); }],
+      ["hold", (row) => { row.hold_id = id(34193); }], ["attribution", (row) => { row.attribution_id = id(34194); }],
+      ["reservation", (row) => { row.reservation_id = id(34195); }], ["segment", (row) => { row.segment_id = id(34196); }],
+      ["sellable unit", (row) => { row.sellable_unit_id = id(34197); }], ["folio", (row) => { row.folio_id = id(34198); }],
+      ["quote", (row) => { row.origin_quote_hash = "8".repeat(64); }], ["snapshot", (row) => { row.snapshot_hash = "9".repeat(64); }],
+      ["currency", (row) => { row.currency = "USD"; }],
+      ["binding row", (row) => { row.binding_row_id = id(34199); }], ["binding hold", (row) => { row.binding_hold_id = id(34200); }],
+      ["hold row", (row) => { row.hold_row_id = id(34201); }], ["binding sellable unit", (row) => { row.binding_sellable_unit_id = id(34202); }],
+      ["hold sellable unit", (row) => { row.hold_sellable_unit_id = id(34203); }], ["segment sellable unit", (row) => { row.segment_sellable_unit_id = id(34204); }],
+      ["lineage period", (row) => { row.lineage_period = OTHER_PERIOD; }], ["binding period", (row) => { row.binding_period = OTHER_PERIOD; }],
+      ["hold period", (row) => { row.hold_period = OTHER_PERIOD; }], ["segment period", (row) => { row.segment_period = OTHER_PERIOD; }],
+      ["binding attribution", (row) => { row.binding_attribution_id = id(34205); }], ["attribution row", (row) => { row.attribution_row_id = id(34206); }],
+      ["binding quote", (row) => { row.binding_origin_quote_hash = "7".repeat(64); }], ["binding snapshot", (row) => { row.binding_snapshot_hash = "6".repeat(64); }],
+      ["binding currency", (row) => { row.binding_currency = "USD"; }],
+    ];
+    const survivors: string[] = [];
+    for (const [name, mutate] of mutations) {
+      const rows = structuredClone(built.rows) as Mutable; mutate(rows.persisted);
+      try { await service.resolve(txFor(rows as never), built.input); survivors.push(name); } catch { /* required fail-closed path */ }
     }
+    expect(survivors).toEqual([]);
+  });
+
+  test("passes the exact caller transaction through to the fresh Section14 resolver", async () => {
+    const built = await fixture("igst", "2025-09-21", "2025-09-23", "2025-09-24", "2025-09-24"), transaction = txFor(built.rows);
+    const prototype = IndiaGstSection14RateSelectionService.prototype as unknown as Mutable, original = prototype.resolve;
+    prototype.resolve = async function(this: unknown, received: Tx, input: unknown) { expect(received).toBe(transaction); return original.call(this, received, input); };
+    try { await new IndiaGstAccommodationQuotedRateApplicabilityService().resolve(transaction, built.input); }
+    finally { prototype.resolve = original; }
   });
 
   test("retains static scope pins only as supplemental guards", async () => {
     const source = await Bun.file(new URL("../src/contexts/tax-fiscal/india-gst-accommodation-quoted-rate-applicability.ts", import.meta.url)).text();
     expect(source).toContain("componentIdentity.supplyDate !== section14.serviceProvisionDate");
+    expect(source).toContain("const section14 = await this.#section14.resolve(tx, input.section14Input)");
+    expect(source).toContain("section14.selectedVersionSide === \"predecessor\"");
+    expect(source).toContain("selectedPairMember.key !== \"in-gst-lodging\"");
+    expect(source).toContain("sourceHashes.notification15_2025 !== rateChange.notification15SourceHash");
+    expect(source).toContain("selectedPairMember.status !== section14.selectedVersion.status");
+    expect(source).toContain("uuid(row.lineage_id, \"stored lineage\") !== lineageId");
+    expect(source).toContain("snapshot.evaluation.grandTotalMinor !== input.section14Input.paymentReceiptResult.amountMinor");
+    expect(source).toContain("input.section14Input.paymentReceiptResult.currency !== \"INR\"");
+    expect(source).toContain("input.section14Input.invoiceIssueResult.currency !== \"INR\"");
+    expect(source).toContain("snapshot.currency !== \"INR\"");
+    expect(source).toContain("row.currency !== \"INR\"");
+    expect(source).toContain("digest({ tenantId, propertyNode, reservationId, folioId, ...body })");
     expect(source).toContain("deriveIndiaGstAccommodationComponentRateSlabs(componentIdentity.componentIdentities, selectedPairMember.gstRoomSlabs)");
     expect(source).not.toMatch(/INSERT\s+INTO|UPDATE\s+\S+\s+SET|DELETE\s+FROM|taxableValue|taxAmount|rounding|posting|document|irp/i);
   });
