@@ -753,3 +753,10 @@ authority. No value, amount, rounding, Section14, posting, document or IRP autho
 Build D859 completes the implementation side after intentional red. Exact family
 tuples, readiness, byte ancestry and single aggregate schedule pass focused6/0,
 adjacent25/0, standing1124/0 and all static gates. Fresh Tier3 approval remains pending.
+D860 independently approves exact remediated candidate
+`41fb7f01263476aa524106aef6ea7c1470c02eee`. The first review withheld approval because
+tenant removal from the final hash was not mutation-pinned; permanent proof now makes
+that mutation red5/1 and independently passes focused/adjacent25/0(369), standing1124/0
+plus890 skips(17117), static, ancestry and scope gates. Approval remains bounded to
+component identities and one aggregate schedule; numeric splits and every downstream
+fiscal surface remain future work.

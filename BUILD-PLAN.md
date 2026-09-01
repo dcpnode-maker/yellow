@@ -1286,3 +1286,13 @@ Exact identities/readiness and single aggregate schedule pass focused6/0(120), a
 25/0(363), standing1124/0+890 skips(17111), type/boundary127/licence23/audit0/diff.
 The database path is unchanged and D844 fresh59/110/referee11/11 remains governing.
 Fresh Tier3 approval is mandatory; no downstream authority is claimed.
+**Order310 independently approved — D860:** Exact remediated candidate
+`41fb7f01263476aa524106aef6ea7c1470c02eee` is approved. The first review correctly
+withheld approval because removing tenant identity from the final evidence-hash
+preimage left permanent proof green; the permanent proof now binds the exact tenant,
+rejects an unbound hash and rejects the same body under another tenant. The rereviewer
+personally made tenant removal red5/1(102), restored exact source, and passed
+focused/adjacent25/0(369), standing1124/0+890 skips(17117), type/boundary127/
+licence23/audit0/diff/ancestry/scope. D844 unchanged database/referee evidence remains
+governing. Approval grants only levy-component identity evidence and no numeric split
+or downstream fiscal authority.
