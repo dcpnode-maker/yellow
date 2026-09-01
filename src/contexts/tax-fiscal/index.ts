@@ -376,3 +376,11 @@ export type {
   IndiaGstAccommodationLevyInputBundleInput,
   IndiaGstAccommodationLevyInputBundleResult,
 } from "./india-gst-accommodation-levy-input-bundle";
+export {
+  deriveIndiaGstAccommodationLevyComponentIdentity,
+  IndiaGstAccommodationLevyComponentIdentityValidationError,
+} from "./india-gst-accommodation-levy-component-identity";
+export type {
+  IndiaGstAccommodationLevyComponentIdentityInput,
+  IndiaGstAccommodationLevyComponentIdentityResult,
+} from "./india-gst-accommodation-levy-component-identity";

@@ -1,6 +1,6 @@
 # Order 310 — India GST accommodation levy-component identity
 
-**Status:** READY-D858
+**Status:** BUILT-PENDING-FRESH-TIER3-REVIEW-D859
 **Phase:** 7 — Tax engine and India IRP
 **Branch:** `phase-7/india-gst-accommodation-levy-component-identity`
 **Base:** `dc52855` (independently approved Order309 governance head)
@@ -54,7 +54,7 @@ IRP/API/UI/local/merge/deploy or Phase/application-complete authority.
 
 ## Definition of done
 
-- [ ] Intentional red precedes production.
-- [ ] Focused mutation-sensitive proof is green.
-- [ ] Standing/static/setup/schema/referee preservation gates are green.
+- [x] Intentional red precedes production.
+- [x] Focused mutation-sensitive proof is green.
+- [x] Standing/static/setup/schema/referee preservation gates are green.
 - [ ] Fresh non-implementing Tier-3 reviewer personally executes proof and approves.

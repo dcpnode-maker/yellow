@@ -387,6 +387,21 @@ tax-rate or CGST/SGST/IGST decision, seller/buyer/folio-window composition,
 posting/correction, document/number/hash-chain, provider/submission, API, HTTP or UI
 authority.
 
+## Order310 levy-component identity security boundary
+
+The exact five-field input re-runs Order309 from complete Order306/287/308 ancestry;
+the supplied public hash is never trusted by itself and reordered-but-equivalent bundle
+bytes are rejected. Family mapping is exhaustive and ordered. The aggregate schedule
+occurs once at envelope level, and dual families can only return
+`numeric_component_split_authority_required`; they cannot acquire rates or amounts.
+
+Hostile tenant, ancestry, family, schedule, version, source, predecessor and evidence
+mutations fail closed, including fully recomputed public hashes. Proxies, accessors,
+symbols, sparse or thawed graphs and surplus rate/value/amount/split/rounding fields are
+rejected. The deterministic output is recursively frozen and tenant-hidden. No SQL,
+write, component arithmetic, Section 14, posting, document, IRP, API/UI or local-runtime
+authority exists.
+
 ### India accommodation place-of-supply candidate containment
 
 Order282 adds no schema, grant, role, capability or writer. The resolver accepts only

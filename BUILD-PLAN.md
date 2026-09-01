@@ -1281,3 +1281,8 @@ ancestry and derive only ordered IGST or CGST+SGST/UTGST identities. The aggrega
 GST_ROOM schedule remains one envelope-level schedule; dual-component numeric splits
 fail closed pending future official authority. No value, amount, rounding, Section14,
 posting, document/IRP/API/UI/local authority. Intentional red and fresh Tier3 mandatory.
+**Order310 built pending review — D859:** Intentional red0/1 preceded production.
+Exact identities/readiness and single aggregate schedule pass focused6/0(120), adjacent
+25/0(363), standing1124/0+890 skips(17111), type/boundary127/licence23/audit0/diff.
+The database path is unchanged and D844 fresh59/110/referee11/11 remains governing.
+Fresh Tier3 approval is mandatory; no downstream authority is claimed.

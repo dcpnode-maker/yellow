@@ -2424,3 +2424,19 @@ rate split, taxable-value or amount calculation, rounding, residual allocation,
 account route, posting/correction, reverse charge, Section 14/calendar, zero-rating/
 authorized-operations, payer, `SupTyp`, `IgstOnIntra`, item, document, IRP, API, UI,
 local-runtime or application-complete authority.
+
+## Order310: India GST accommodation levy-component identity
+
+`deriveIndiaGstAccommodationLevyComponentIdentity({tenantId,historicalResolution,
+supplyNature,componentFamily,levyInputBundle})` re-runs the complete approved Order309
+derivation and requires insertion-byte equality with the supplied bundle. It maps the
+approved family only to `[igst]`, `[cgst,sgst]`, or `[cgst,utgst]` and preserves the
+aggregate `GST_ROOM` schedule once at envelope level. IGST is marked
+`sole_component_aggregate_schedule`; both dual families are marked
+`numeric_component_split_authority_required`.
+
+The frozen tenant-hidden result carries the existing property/stay/date/version,
+aggregate schedule, ordered identities, readiness, statutory sources and complete
+Order309 predecessor hashes plus the Order309 evidence hash. It provides no component
+percentage, value, amount, rounding, residual, Section 14, posting, document or IRP
+authority.

@@ -750,3 +750,6 @@ Revalidate complete approved Order309 evidence and derive only ordered statutory
 identities. Preserve the aggregate GST_ROOM schedule once: IGST is the sole component,
 while CGST+SGST and CGST+UTGST remain explicitly blocked on future numeric split
 authority. No value, amount, rounding, Section14, posting, document or IRP authority.
+Build D859 completes the implementation side after intentional red. Exact family
+tuples, readiness, byte ancestry and single aggregate schedule pass focused6/0,
+adjacent25/0, standing1124/0 and all static gates. Fresh Tier3 approval remains pending.

@@ -1711,3 +1711,16 @@ SEZ status for both supplier and recipient. This projection has no SQL/write, co
 amount, rounding/residual, account/posting/correction, reverse-charge, Section 14/
 calendar, zero-rating/authorized-operations, payer, `SupTyp`, `IgstOnIntra`, item,
 document, IRP, API/UI, local-runtime or application-complete authority.
+
+### India GST accommodation levy-component identity (Order310)
+
+Order310 adds no entity, table, migration, seed or writer. Its pure evidence envelope
+revalidates the complete approved Order309 ancestry and requires the caller-supplied
+bundle to retain exact insertion bytes. It derives only ordered statutory identities:
+IGST, CGST+SGST, or CGST+UTGST. The already-approved aggregate schedule remains one
+envelope-level value and is never copied onto dual components.
+
+The readiness discriminator makes the unresolved authority explicit: only IGST has a
+sole component; both dual families require later officially sourced numeric split
+authority. No taxable-value selection, component rate, money, rounding, posting,
+fiscal document, IRP or runtime behavior is introduced.
