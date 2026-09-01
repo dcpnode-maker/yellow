@@ -109,3 +109,78 @@ permanent-proof repair and a different fresh Tier-3 rereview. This review grants
 final taxable-value, tax amount, rounding, posting, correction, document, `ItemList`,
 IRP, API/UI/local, merge, push, deployment, Phase-7-complete or
 application-complete authority.
+
+---
+
+## Different fresh independent Tier-3 rereview — repaired head 531fc4c
+
+**Disposition:** WITHHOLD — one D963 permanent-proof survivor remains
+
+**Reviewer:** `/root/order341_fresh_rereview_d963`, different fresh independent
+non-implementing OpenAI Codex Tier-3 reviewer
+
+**Exact repaired head:** `531fc4cbd0def2e257ca9dd5cb38e0a599b68535`
+
+**Implementation:** `9731aa8741f8740ff247598619242650484b79df`
+
+**D962 governance:** `f3c06db01bd82bea6b3463de148906c0f06baf8f`
+
+**D963 record:** `f48bf9a06e3d1d009fe6fab214a0dd33ab1182dd`
+
+### Finding
+
+The bounded repair kills every requested D963 survivor except removal of Order341's
+own recursive input-freeze gate. I removed only `frozen(raw);` from `normalize` and
+personally ran the complete repaired focused/adjacent command. It still passed
+**44/0 with 1,350 assertions** across the Order304/309/310/337/340/341 files. The
+new mutable-input challenge is rejected transitively by predecessor services, so it
+does not prove that this bridge preserves its explicit exact deeply frozen input
+boundary. Approval remains withheld on that one permanent-proof sensitivity gap. I
+found no separate product-source or statutory-semantic defect.
+
+The other **15 of 16 individually executed requested mutations were red**: copied
+post-scheduler `599+601`/`899+901` dual components; upper-band component identity;
+caller-supplied selected side; removed key, Notification15 source, and status guards
+(each executed separately); removed persisted lineage id; removed both full-amount
+bindings; removed all INR guards; wrapped rather than exact caller transaction;
+tenant-free final hash; zeroed Section14 predecessor hash; top-level `hold_id` and
+sellable-unit projection-alias bypasses; and removed `supplyDate` binding. Every
+disposable mutation was restored. Final Order341 source/test blobs exactly match HEAD:
+`9344acbba2bbe2b256acfb884cc7407734a44fb2` and
+`7368b8875dd0a3fd317c61aa42217a4c5f8bddfb`.
+
+### Clean proof and containment
+
+- Focused Order341 passed **5/0, 564 assertions**. Complete focused/adjacent passed
+  **44/0, 1,350 assertions**.
+- Standing passed **1,187/0** with **890 expected environment skips**, **18,382
+  assertions**, 2,077 tests across 384 files.
+- TypeScript passed; import boundaries passed for **132 TypeScript files**; licence
+  policy passed for **23 installed packages**; production audit found **0
+  vulnerabilities**.
+- Exact ancestry is
+  `acae77d -> f3c06db -> 9731aa8 -> 50064a8 -> f48bf9a -> 531fc4c`, with approved
+  base `a31d3cd` an ancestor. Repair scope is exactly the Order341 source and permanent
+  test; full order scope and both diff checks pass.
+- No migration, seed, dependency, Compose, server/runtime or protected path changed.
+  Baseline, referee, package, lockfile and Compose blobs match the approved base.
+- The repair does not broaden output: public `reservationLineage` is exact and removes
+  the candidate's internal `holdId`/`sellableUnitId` disclosure while retaining those
+  identities only in the tenant-bound internal lineage hash. No taxable value, tax
+  amount, rounding, posting, document or IRP field is added.
+- Order337 scheduler, permanent test and tax-fiscal export blobs are byte-identical
+  from candidate to repaired head: `21832e692a5a893892917d6d54e19e41bca5d1c3`,
+  `8abaf15becc1c7a5f6581aaad90550812d68bf80`, and
+  `b26a5c0682931573135648d632e7016eacde22fc`.
+
+The isolated rereview checkout contained no `.yellow`; database, containers, stable
+local runtime, credentials and port 3000 were not contacted or changed.
+
+### Boundary
+
+**WITHHOLD** exact repaired head `531fc4cbd0def2e257ca9dd5cb38e0a599b68535`
+until the permanent Order341 proof independently kills removal of `frozen(raw);` and
+another different fresh Tier-3 reviewer executes that repaired proof. This rereview
+grants no final taxable-value, tax amount, rounding, posting, correction, document,
+`ItemList`, IRP, API/UI/local, merge, push, deployment, Phase-7-complete or
+application-complete authority.
