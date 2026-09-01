@@ -954,6 +954,12 @@ revalidates governed service/invoice/payment evidence, derives books/bank only f
 Order291, privately normalizes the approved safe or calendar payment branch and selects
 only predecessor/successor version identity. No separate adapter, numeric rate/value/
 amount, posting, document, IRP, API/UI or local authority is admitted.
+D955 records Order340 builder-green after intentional red. The transaction-bound
+composer and hardened proof cover all six cases, both earlier-of directions, every
+equality position, non-enumerated arrangements, safe/calendar normalization, complete
+predecessor replay and exact version/hash/freeze containment. Focused6/0(70),standing
+1176/0 plus890 skips and all static gates pass without DB/runtime/local change. Fresh
+Tier3 executable review remains mandatory.
 
 D953 independently approves exact repaired head26682ab/implementationea190dd with no
 finding. Official CBIC section14 semantics, strict ancestry/scope and all gates pass.

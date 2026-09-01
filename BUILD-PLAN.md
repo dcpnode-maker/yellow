@@ -458,6 +458,10 @@ either the Order302 safe branch or complete Order339 calendar branch. Equality a
 every seventh/non-enumerated combination fail closed. It returns no numeric rate,
 value, amount, rounding, posting or fiscal authority. Intentional red, hostile
 preservation proof and fresh Tier3 review are mandatory.
+Build D955 is green after intentional red. Exact six-case selection, both earlier-of
+directions, equality/non-enumerated rejection, same-transaction governed roots and
+complete safe/calendar ancestry pass focused6/0(70), standing1176/0 plus890 skips and
+all static gates. No migration/database/runtime/local change; fresh Tier3 is pending.
 
 Order 237 is built-unreviewed under D-625 as the positive pure rules-driven
 tax-evaluation foundation.

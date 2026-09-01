@@ -1,6 +1,6 @@
 # Order 340 — India GST section 14 six-case rate-version selection
 
-**Status:** READY-D954
+**Status:** BUILT-PENDING-FRESH-TIER3-REVIEW-D955
 **Phase:** 7 — Tax engine and India IRP
 **Branch:** `phase-7/india-gst-section14-rate-selection`
 **Base:** `0961648` (independently approved Order339 governance head)
@@ -81,7 +81,22 @@ fiscal document, IRP/submission, merge, deploy, Phase/application-complete claim
 
 ## Definition of done
 
-- [ ] Intentional red precedes production.
-- [ ] Exact six-case, branch, replay and hostile proof passes.
-- [ ] Standing/static preservation gates pass.
+- [x] Intentional red precedes production.
+- [x] Exact six-case, branch, replay and hostile proof passes.
+- [x] Standing/static preservation gates pass.
 - [ ] Fresh non-implementing Tier3 reviewer personally executes mutants and approves.
+
+## Built evidence — D955
+
+- Intentional red failed `0/1` before the module/export existed.
+- Exact implementation `67cd364` plus permanent-proof hardening `a218c8d` passes the
+  six cases, both operand directions for both earlier-of cases, all three equality
+  positions, all-before/all-after rejection, safe/calendar normalization, complete
+  Order307/290/291/292/302/338/339 replay, three-root same-transaction access, hostile
+  shape/freeze/tenant checks, exact selected-version identity and complete hash proof.
+- Focused Order340 passes `6/0` with 70 assertions. Focused dependencies pass `32/0`
+  with 310 assertions. Standing passes `1176/0` with 890 expected database skips,
+  17,763 assertions and 2,066 tests across 382 files. Typecheck, 131-file boundaries,
+  23-package licence policy, zero-vulnerability audit and diff hygiene pass.
+- No migration, database mutation, runtime, Docker, credential or stable-local artifact
+  changed. Fresh non-implementing Tier3 executable review remains mandatory.

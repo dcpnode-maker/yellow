@@ -840,6 +840,10 @@ the approved Order302-safe or Order339-calendar payment branch, implements exact
 six statutory before/after cases and selects only predecessor/successor version
 identity. Equality and every seventh combination fail closed. No separate normalization
 artifact, numeric rate/value/amount, posting, document, IRP, API/UI or local authority.
+Builder D955 is green after red-before-production: exact six cases, both earlier-of
+directions, equality/non-enumerated rejection, same-transaction governed roots and
+complete safe/calendar replay pass focused6/0(70),standing1176/0 plus890 skips and all
+static gates. No migration/DB/runtime/local change; fresh Tier3 review is pending.
 **D847 review complete:** A fresh non-implementing Tier-3 reviewer approves exact
 candidate `6e0824df2a6afff5a83573d463bbee4cf73b436e` with no finding. Reviewer-owned
 tenant/pair-hash, identity/version/status/period, GST_ROOM, source/date, freeze/hash
