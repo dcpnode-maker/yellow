@@ -52,7 +52,7 @@ test("Order 332 intentional red: seven exact journey identities and all other sh
   const handler = managementJourneyHandler();
   expect(handler.match(/setView\(control\.dataset\.journeyView\)/g)).toHaveLength(1);
   expect(handler.match(/finishWorkspaceNavigation\(control\.dataset\.journeyView\)/g)).toHaveLength(1);
-  expect(handler).not.toMatch(/data\.journeyView\s*=|dataset\.journeyView\s*=|\.click\(\)|method:\s*["'](?:POST|PUT|PATCH|DELETE)["']/);
+  expect(handler).not.toMatch(/data\.journeyView\s*=(?!=)|dataset\.journeyView\s*=(?!=)|\.click\(\)|method:\s*["'](?:POST|PUT|PATCH|DELETE)["']/);
   for (const journey of JOURNEYS.filter((journey) => journey !== "today")) {
     expect(html).toContain(`id="nav-${journey}"`);
     expect(html).toContain(`id="${journey}-view"`);

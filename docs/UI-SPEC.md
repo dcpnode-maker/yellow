@@ -115,7 +115,9 @@ executes no command and adds no API or business authority.
 Within that index, the existing Today destination is presented under **Stay
 operations** as **Arrivals & departures**, alongside the already-built due-in,
 due-out and in-house lanes. Reservations contains its reservation-workspace entry;
-the Today route and shared router remain unchanged.
+the Today route and shared router remain unchanged. Because that control is already
+on Today, it focuses and scrolls to the operational lanes without reloading their
+server truth or adding another history entry.
 
 The index is not another navigation system. Its controls reuse the same route, dirty
 exit, history, loading and focus settlement as the canonical workspace controls. In

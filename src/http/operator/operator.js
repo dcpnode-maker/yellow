@@ -11483,6 +11483,12 @@ function vehicleReturnPathFromState(state, property) {
  for (const control of managementJourneyControls) control.addEventListener("click", () => {
   if (control.dataset.journeyView !== "reservations" && !reservationCreatePanel.hidden && !closeReservationCreate({ history: false })) return;
   if (activeView === "folios" && control.dataset.journeyView !== "folios" && !folioWorkspace.hidden && !confirmFolioExit()) return;
+  if (control.dataset.journeyView === "today") {
+   const operationalLanes = $("#today-operational-lanes");
+   operationalLanes.focus({ preventScroll: true });
+   operationalLanes.scrollIntoView({ block: "start" });
+   return;
+  }
   setView(control.dataset.journeyView);
   finishWorkspaceNavigation(control.dataset.journeyView);
  });
