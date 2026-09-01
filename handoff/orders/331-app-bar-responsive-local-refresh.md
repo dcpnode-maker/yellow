@@ -1,6 +1,6 @@
 # Order 331 — App-bar responsive local refresh
 
-**Status:** READY-D923
+**Status:** BUILT-LOCALLY-PENDING-FRESH-TIER3-REVIEW-D924
 **Phase:** 7 — founder-visible presentation of already-built journeys
 **Branch:** `phase-7/app-bar-responsive-local-refresh`
 **Base:** `78c526c` (independently approved Order330 governance head)
@@ -29,7 +29,17 @@ credential/status/authority/post310 work,merge,push,deploy or rollback deletion.
 
 ## Definition of done
 
-- [ ] Exact approved image is sole healthy loopback3000 app.
-- [ ] Order329 is retained stopped for rollback and preservation proof passes.
+- [x] Exact approved image is sole healthy loopback3000 app.
+- [x] Order329 is retained stopped for rollback and builder preservation proof passes.
 - [ ] Fresh non-operating Tier3 reviewer approves live browser/database truth.
 
+## Builder evidence — D924
+
+- Exact approved runtime `75f3359` built image
+  `sha256:2abc6c5b7062f4eb039734bde1e14e8ddf2315fc880786aa25ca32c523ce4609`
+  with exact OCI revision and is sole healthy loopback3000,restart0.
+- Guarded cutover completed normally; Order329 remains stopped rollback. Environment
+  hashes are identical and network,bind,health contract are inherited. PostgreSQL,
+  provider and Valkey are healthy.
+- No database,credential,status,authority or post310 work occurred. Fresh Tier3 must
+  personally prove login/routes/status,read-only DB and live full-shell geometry.
