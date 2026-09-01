@@ -474,6 +474,12 @@ Order291 provenance, exact transaction identity and every masked outer guard are
 permanently pinned. Focused11/0(122),dependencies40/0(570),standing1181/0 plus890
 skips(17815) and all static gates pass. Different fresh Tier3 mutant execution remains
 mandatory before approval.
+D958 rereview kills19 of20 exact survivors but withholds on M04: the calendar Order339
+call can still substitute transitively equivalent Order302 proviso books/bank because
+the source proof matches the earlier call. D959 exact-counts both intended fresh
+Order291 operand occurrences; M04 is now red9/1, clean focused10/0(123), standing
+1181/0 plus890 skips(17817) and all static gates pass. Another different fresh Tier3
+rereview remains mandatory.
 
 Order 237 is built-unreviewed under D-625 as the positive pure rules-driven
 tax-evaluation foundation.

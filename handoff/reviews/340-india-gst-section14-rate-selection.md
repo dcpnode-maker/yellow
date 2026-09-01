@@ -69,3 +69,17 @@ dependencies **40/0 (570)**, standing **1,181/0 plus890 expected skips (17,815)*
 typecheck,131 boundaries,23 licences,audit0 and diff hygiene. A different fresh Tier3
 reviewer must personally execute all20 exact mutants; this section does not supersede
 the withholding until that proof succeeds.
+
+## D958 rereview and D959 second repair
+
+Different fresh reviewer `/root/order340_fresh_rereview_d957` kills19 of20 exact D956
+mutants but withholds repaired head `eb315f9` because M04 survives: changing only the
+calendar Order339 call from fresh Order291 books/bank operands to the transitively
+equivalent Order302 proviso values leaves the shared structural fragments elsewhere.
+Personal focused10/0(119),dependencies54/0+5 skips(816),India-adjacent231/0+99 skips
+(8153),standing rerun1181/0+890 skips(17815),all static/ancestry/scope gates pass.
+
+Second test-only repair `fc02337` requires exactly two fresh Order291 occurrences for
+each books/bank operand. The exact M04 mutant is now red9/1; restored focused10/0(123),
+standing1181/0+890 skips(17817) and static gates pass. Product source and runtime remain
+unchanged. Another different fresh Tier3 rereview is mandatory before approval.

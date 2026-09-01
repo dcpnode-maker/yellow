@@ -973,6 +973,11 @@ lineage and structural provenance/transaction/guard bindings. Focused11/0(122),
 dependencies40/0(570),standing1181/0 plus890 skips(17815) and all static gates pass.
 Product source,DB,runtime and stable local are unchanged; different fresh Tier3
 execution of all20 mutants is pending.
+D958 records a different fresh Tier3 rereview:19/20 exact mutants die, but M04 still
+survives because a shared source fragment does not distinguish the calendar Order339
+call from the earlier Order302 derivation. D959's two-line test-only repair exact-counts
+both fresh Order291 books/bank uses; clean focused10/0(123),M04 red9/1,standing1181/0
+plus890 skips(17817) and static gates pass. Another different fresh Tier3 must approve.
 
 D953 independently approves exact repaired head26682ab/implementationea190dd with no
 finding. Official CBIC section14 semantics, strict ancestry/scope and all gates pass.

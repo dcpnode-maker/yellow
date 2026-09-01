@@ -854,6 +854,10 @@ D957 records the test-only repair at eb315f9: all20 survivor surfaces now have d
 permanent assertions, with focused11/0(122),dependencies40/0(570),standing1181/0 plus
 890 skips(17815) and all static gates green. No product/runtime/database/local change;
 a different fresh Tier3 must still personally kill every exact mutant.
+D958 kills19/20 exact mutants but withholds on the remaining calendar-call provenance
+substitution. D959 exact-counts both intended fresh Order291 books/bank uses; the exact
+M04 mutant is now red9/1 while clean focused10/0(123),standing1181/0 plus890 skips
+(17817) and all static gates pass. Another different fresh Tier3 rereview is mandatory.
 **D847 review complete:** A fresh non-implementing Tier-3 reviewer approves exact
 candidate `6e0824df2a6afff5a83573d463bbee4cf73b436e` with no finding. Reviewer-owned
 tenant/pair-hash, identity/version/status/period, GST_ROOM, source/date, freeze/hash
