@@ -112,6 +112,11 @@ an eligible reservation, folio or vehicle—then delegates to the existing
 current-property workspace router. It stores no identifiers, chooses no record,
 executes no command and adds no API or business authority.
 
+Within that index, the existing Today destination is presented under **Stay
+operations** as **Arrivals & departures**, alongside the already-built due-in,
+due-out and in-house lanes. Reservations contains its reservation-workspace entry;
+the Today route and shared router remain unchanged.
+
 The index is not another navigation system. Its controls reuse the same route, dirty
 exit, history, loading and focus settlement as the canonical workspace controls. In
 Simple, a completed journey navigation closes the temporary secondary-workspace
