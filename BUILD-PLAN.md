@@ -1376,3 +1376,8 @@ loopback3000 after a guarded cutover that retained Order315 stopped for rollback
 Protected login, two properties,24 routes, root Today/index, source-identical assets,
 truthful310/311/91/P7 and unchanged database/companions pass. Fresh non-operating Tier3
 browser approval remains mandatory.
+**Order317 approved locally — D880:** Fresh non-operating Tier3 review approves exact
+fd1f7a6 and the sole local with no finding. Runtime/image/environment, rollback,
+companions, database, routes and served bytes pass; live login, both properties, root
+Today3/1/0, exact seven journeys, dirty protection, truthful status and console0 pass.
+The local now reflects the approved completed-journey fine-tune.

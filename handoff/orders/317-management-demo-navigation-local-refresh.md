@@ -1,6 +1,6 @@
 # Order 317 — Management-demo navigation local refresh
 
-**Status:** BUILT-LOCALLY-PENDING-FRESH-TIER3-REVIEW-D879
+**Status:** APPROVED-LOCALLY-D880
 **Phase:** 7 — founder-visible presentation of already-built Phase 4–6 journeys
 **Branch:** `phase-7/management-demo-navigation-local-refresh`
 **Base:** `d2522e2` (independently approved Order316 governance head)
@@ -45,7 +45,7 @@ Order315 app name and exact loopback bind, then verify its prior approved health
 - [x] Exact approved Order316 runtime image built.
 - [x] Guarded app-only cutover and live acceptance pass.
 - [x] Prior app retained; companions and data unchanged.
-- [ ] Fresh non-operating Tier3 reviewer approves.
+- [x] Fresh non-operating Tier3 reviewer approves.
 
 ## Builder evidence — D879
 
@@ -65,3 +65,14 @@ Order315 app name and exact loopback bind, then verify its prior approved health
   is unchanged at59 migrations/110 base tables/2 views/100 policies/2 properties and
   party8/contact0/party-role8/fact75/outbox22.
 - Fresh non-operating Tier3 live-browser review remains mandatory.
+
+## Fresh independent review — D880
+
+A fresh non-operating Tier3 reviewer personally verified the exact image/revision,
+sole loopback bind, retained rollback, identical secret-safe environment digest,
+healthy zero-restart companions, closed obsolete ports, read-only database digest,
+source-identical served assets, 24/24 routes and protected live browser workflow.
+Bare-root Today settled at due-in3/due-out1/in-house0, the exact seven index and Simple
+close/focus behavior passed, dirty cancellation retained origin/value, project status
+remained310/311/91/P7/11 and the console was clean. Exact candidate `fd1f7a6` is
+**APPROVED** with no finding, bounded to this local presentation refresh only.
