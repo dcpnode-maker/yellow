@@ -1324,3 +1324,9 @@ Simple visibly names all seven secondary workspaces and binds that preview to th
 existing disclosure; Advanced/Expert suppress it and the twelve controls remain
 singular. Focused22/0, standing1126/0 plus890 skips, type/boundary/licence/audit/diff
 pass. No application authority changed; local visibility remains separately guarded.
+
+**Ready Order315 management-demo local refresh — D871:** Build exact Order314 and
+replace only the sole loopback3000 app, retaining the approved Order311 app container
+and image for rollback. Preserve PostgreSQL, both properties, provider, Valkey,
+credentials, status truth and business counts. Protected login,24/24 routes and exact
+workspace preview require fresh independent non-operating verification.

@@ -770,3 +770,10 @@ controls. No new application behavior or completion authority is introduced.
 D870 completes the static product slice after intentional red. Focused22/0,
 standing1126/0 plus890 skips and static gates pass; the sole local is unchanged until
 a separate guarded app-only refresh.
+
+## Order315 roadmap entry
+
+Refresh only the sole loopback management-demo app from complete Order314, retain the
+prior app rollback and preserve every database, credential and companion identity.
+Acceptance covers one-click login, both properties, all twelve routes, truthful status
+and the visible workspace catalogue under fresh non-operating review.
