@@ -1,8 +1,9 @@
 # Order 311 — independent non-operating Tier-3 review
 
-**Verdict:** FINDING — NOT APPROVED
+**Verdict:** APPROVED AFTER D863 EVIDENCE-LABEL REMEDIATION
 **Reviewer:** fresh non-operating OpenAI Codex Tier-3 reviewer `/root/order311_fresh_tier3_review`
-**Candidate:** `9a1673b7ce4d5f146b519191005b7cfb6dc10b31`
+**Approved candidate:** `400a57696b096382714ad31a6bfa14d8d224dcf5`
+**Initially rejected candidate:** `9a1673b7ce4d5f146b519191005b7cfb6dc10b31`
 **Runtime image source candidate:** `2f7198c716fad2b260164a94010fc90a2baa1174`
 **Approved base:** `3f50f7e32c122b73d94ad4a64cdba1aa2b21b18c` (Order310 governance head)
 **Date:** 2026-09-01
@@ -15,7 +16,7 @@ delete, reseed or otherwise operate its local resources. I read PROJECT.md, ran
 container, database and HTTP reads. Protected credentials were parsed in memory;
 neither password nor bearer token was printed.
 
-The candidate is an exact four-commit descendant of the approved Order310 governance
+The initially rejected candidate is an exact four-commit descendant of the approved Order310 governance
 head: admission `12d4995`, intentional red `42984bd`, status build `2f7198c`, and
 local-evidence record `9a1673b`. Its seven-path diff is limited to the order/governance,
 `src/project-status.ts`, and the two exact status tests. `git diff --check`, ancestry,
@@ -100,12 +101,36 @@ property/status/page/API GETs; `docker exec ... psql` transactions beginning
 30000`; `bun run typecheck`; the import-boundary test; `bun run license-check`; `bun
 audit`; and `git diff --check`. I issued no container-control or database-write command.
 
-## Verdict
+## Fresh D863 rereview
 
-Exact candidate `9a1673b7ce4d5f146b519191005b7cfb6dc10b31` is **NOT APPROVED** solely
-because exact catalogue evidence is mislabeled. Correct every Order311/D862 occurrence
-of `112 public tables` to `110 base tables + 2 views (112 table-like public relations)`,
-commit the remediation, and request a fresh rereview. The live local otherwise passed
-all reviewed management-demo checks. No public deployment, phase-complete, merge,
-push, financial/statutory mutation, credential-rotation or broader application authority
-is granted.
+I freshly inspected exact remediated candidate
+`400a57696b096382714ad31a6bfa14d8d224dcf5`. Its sole delta over the initially
+rejected candidate is the existing independent-review record plus bounded Order311
+governance/evidence wording. `git diff --exit-code` from runtime image source candidate
+`2f7198c...` through the remediated candidate is empty for `src`, `tests`, `migrations`,
+`scripts`, container definitions, package manifest and lockfile. Therefore D863 made no
+runtime, database, test, product or dependency change.
+
+The current Order311 builder evidence and LEDGER now say **110 base tables plus 2 views
+(112 table-like public relations)**. D863 append-only-corrects the historical D862
+sentence and records the exact **59 migrations / 110 base tables / 2 views / 100
+policies** truth. Historical D862 and this review's rejected-candidate section retain
+the old wording only as explicit audit evidence of the finding; they are no longer the
+current claim.
+
+I personally reran the catalogue read in a `BEGIN READ ONLY` transaction followed by
+`ROLLBACK`: `migrations=59`, `BASE TABLE=110`, `VIEW=2`, `relations=112`,
+`policies=100`, and `properties=2`. Clean business truth remains `party=8`,
+`contact=0`, `party_role=8`, `fact=75`, `outbox=22`, with zero matching synthetic
+Order311 guests. The same four exact Order311 containers remain healthy, PostgreSQL
+remains host-unbound, the app remains image `yellow-order311-app:2f7198c`, and app
+health remains HTTP200 `{"status":"ok"}`. No restart or mutation was performed.
+
+## Final verdict
+
+Exact remediated candidate `400a57696b096382714ad31a6bfa14d8d224dcf5` is
+**APPROVED** with no remaining finding. Approval is limited to recovery and local
+promotion of the truthful Order310/311 management-demo app and its already-built
+journeys on the sole loopback local. It grants no public deployment, phase-complete,
+merge, push, new business-function, financial/statutory mutation, credential-rotation
+or broader application-complete authority.

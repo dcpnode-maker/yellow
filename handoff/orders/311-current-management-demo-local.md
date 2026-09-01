@@ -1,6 +1,6 @@
 # Order 311 — Recover and refresh the sole management-demo local
 
-**Status:** REMEDIATED-PENDING-FRESH-TIER3-REREVIEW-D863
+**Status:** APPROVED-LOCALLY-D864
 **Phase:** 7 — Tax engine and India IRP
 **Branch:** `phase-7/current-management-demo-local`
 **Base:** `3f50f7e` (independently approved Order310 governance head)
@@ -60,7 +60,7 @@ restoration requires closing the local and replaying the verified dump into a ne
 - [x] Status implementation and proof are green.
 - [x] Verified hotel data is restored and migrated forward exactly once.
 - [x] Sole local login and management-demo journeys are executable.
-- [ ] Fresh independent verification is recorded.
+- [x] Fresh independent verification is recorded.
 
 ## Builder evidence — D862
 

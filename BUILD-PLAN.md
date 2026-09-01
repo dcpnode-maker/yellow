@@ -1305,3 +1305,10 @@ properties, status310/311/91/P7 and twelve existing management pages per propert
 Standing1125/0+890 skips plus static gates pass. This activates only already-built
 journeys for local demonstration; fresh independent non-operating review remains
 mandatory and no unfinished phase is claimed complete.
+
+**Order311 management-demo local independently approved — D864:** After D863 corrected
+the sole evidence-label finding to 110 base tables plus 2 views, a fresh non-operating
+Tier3 rereviewer approved exact candidate `400a57696b096382714ad31a6bfa14d8d224dcf5`.
+The sole loopback UI remains healthy at port3000 with protected sign-in, both properties,
+truthful310/311/91/P7 status and the already-built management journeys. This is local
+demonstration authority only; unfinished phases remain honestly unfinished.
