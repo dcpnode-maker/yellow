@@ -1,6 +1,6 @@
 # Order 199 — Phase-5 financial journey gate
 
-**Status:** BUILT-UNREVIEWED-D540 — executable journey and builder proof complete; independent review deferred
+**Status:** APPROVED-D967 — fresh independent Tier-3 financial journey proof complete
 **Phase:** 5 — Financials
 **Branch:** `phase-5/financial-journey-gate`
 **Base:** `101bc90bf721` (built-unreviewed Order198)
@@ -81,3 +81,15 @@ is admitted. `migrations/0001_init.sql` remains byte-identical.
 - [x] No production authority or new product behavior is invented for the gate.
 - [x] Built result is recorded without claiming checkout, independent approval, Phase5
       completion or application completion.
+
+## Fresh independent Tier-3 approval — D967
+
+A fresh non-implementing reviewer approves exact candidate
+`f138f996a74dec616df83ee76d27fcb9867a76ff`. Historical intentional red is **0/1**;
+the exact journey is **7/0 (62)**, adjacent receivable **10/0**, settlement **6/0**,
+tenant isolation **6/0**, acceptance **8/0**, runtime authority **5/0**, definer
+containment **3/0**, and the fresh PostgreSQL16.15 migration1–25 schema is exact at
+93 tables/83 policies with referee **11/11**. Standing is **328/0** plus 548 expected
+skips; typecheck,74 boundaries,23 licences,audit,JavaScript,ancestry,scope,protected
+paths and diff hygiene pass. Approval closes only the financial journey gate and does
+not claim trust,day-close,external PSP,checkout,fiscal or Phase-5 completion.
