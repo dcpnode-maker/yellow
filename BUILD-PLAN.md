@@ -1566,3 +1566,10 @@ and all permanent, effective-period, seed, schema, complete Phase6 journey/hosti
 standing/static and referee11/11 proofs pass. Orders345,343,342 and the documented
 Phase6 DoD are complete. Deferred discrepancy resolution, queue/message workflows,
 Phase7/8 and application completion remain separate.
+
+**Order344 review withheld; Order346 ready — D978/D979:** The owner-trust product,
+fresh60/111/101/10/2 database, focused hostility, standing/static and referee11/11 are
+green. Review seed is red only because exact login expectations omit the new separated
+trust scopes. Order346 adds `financials.trust:post` only to the operator expectation
+and `financials.trust:approve-negative` only to the approver expectation, retaining
+exact equality and changing no seed/product/schema/runtime/local behavior.

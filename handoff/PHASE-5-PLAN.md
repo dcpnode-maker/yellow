@@ -80,3 +80,9 @@ credit-normal `10000 -> 6000 -> -1000` sequence, exact different-user one-use
 authorization, replay/content conflict, late-failure rollback, catalogue111/101/10/2
 and runtime containment. This is built only; fresh non-implementing Tier-3 review is
 still mandatory and Phase 5 is not declared complete.
+
+D978 WITHHOLDS Order344 only because the permanent review-seed operator scope string
+predates its exact `financials.trust:post` grant. D979 opens Order346 to add that
+expected claim and the separately seeded approver's sequentially masked
+`financials.trust:approve-negative` expected claim. Exact equality, separation and all
+product/accounting proof remain mandatory; no seed or behavior changes.

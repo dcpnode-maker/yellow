@@ -1074,3 +1074,7 @@ standing/static and referee11/11 pass. Orders345,343,342 and documented Phase6 a
 complete; deferred queue/message/discrepancy-resolution, Phase7/8 and application
 completion remain outside the approval. Order344's recorded after-Order343
 prerequisite is now satisfied, without reviewing or approving Order344 itself.
+
+D978 WITHHOLDS Order344 solely on a stale exact review-login scope oracle. D979 opens
+Order346 to add the operator post scope and separate approver negative-approval scope
+to their respective expected strings, with exact equality and no behavior change.
