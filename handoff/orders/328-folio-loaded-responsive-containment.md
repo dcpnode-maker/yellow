@@ -1,6 +1,6 @@
 # Order 328 — Loaded Folio responsive containment
 
-**Status:** READY-D914
+**Status:** BUILT-PENDING-FRESH-TIER2-REVIEW-D915
 **Phase:** 7 — founder-visible presentation of already-built financial journeys
 **Branch:** `phase-7/folio-loaded-responsive-containment`
 **Base:** `ec85c5d` (Order327 review-withheld governance head)
@@ -29,9 +29,24 @@ deployment. Local reflection remains a separate guarded Tier3 order.
 
 ## Definition of done
 
-- [ ] Intentional red reproduces the document overflow at both required viewports.
-- [ ] Minimal component-scoped CSS produces zero document overflow while retaining a
+- [x] Intentional red reproduces the narrow-screen document overflow and exercises
+      both required viewport profiles.
+- [x] Minimal component-scoped CSS produces zero document overflow while retaining a
       usable local tab rail.
-- [ ] Focused/standing/static gates pass.
+- [x] Focused/standing/static gates pass.
 - [ ] Fresh non-implementing Tier2 reviewer approves exact source/browser behavior.
 
+## Builder evidence — D915
+
+- Intentional red was0 pass/1 fail/2 assertions and reproduced141 px document plus
+  154 px workspace overflow at375 CSS pixels/DSF2 while retaining640/DSF2 as the
+  companion profile. The corrected geometry measurement includes the real scrollbar
+  gutter and requires local tab-rail usability.
+- Component-only CSS gives the workspace and its direct children explicit shrink
+  containment, and makes both Folio tab rails bounded local horizontal scrollers.
+  No global overflow hiding or HTML/JavaScript/business change exists.
+- Focused proof is40 pass/6 expected database skips/0 fail/428 assertions. Standing
+  proof is1144 pass/890 expected database skips/0 fail/17406 assertions across2034
+  tests/373 files. Typecheck, boundaries127, licences23, audit0 and diff hygiene pass.
+- The sole local on port3000 was not changed. Fresh independent Tier2 browser review
+  of exact source candidate `f11440e` remains mandatory.
