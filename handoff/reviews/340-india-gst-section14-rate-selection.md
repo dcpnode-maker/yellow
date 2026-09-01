@@ -83,3 +83,18 @@ Second test-only repair `fc02337` requires exactly two fresh Order291 occurrence
 each books/bank operand. The exact M04 mutant is now red9/1; restored focused10/0(123),
 standing1181/0+890 skips(17817) and static gates pass. Product source and runtime remain
 unchanged. Another different fresh Tier3 rereview is mandatory before approval.
+
+## D960 final fresh approval
+
+Different fresh reviewer `/root/order340_final_fresh_rereview_d959` **APPROVES** exact
+head `cdb12ef`, implementation `67cd364` and proof repair `fc02337` with no finding.
+Exact M04 is red9/1 while clean focused is10/0; invoice-equality,hash-only supplied
+trust,omitted calendar predecessor hash,alternate/global transaction and omitted
+amount,currency and property samples also die. Personal dependencies54/0+5 skips
+(816),broad India267/0+99 skips(8377),standing1181/0+890 skips(17817;2071/382),
+typecheck,131 boundaries,23 licences,audit0,diff,ancestry,scope,protected and exact blob
+checks pass. No DB,Docker,credentials,port3000 or runtime was touched.
+
+Approval is bounded to the exact Section14 six-case time-of-supply and selected
+predecessor/successor rate-version identity. It grants no numeric applicability,value,
+amount,rounding,posting,correction,document,IRP,API/UI,local,merge or deployment authority.

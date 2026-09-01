@@ -858,6 +858,11 @@ D958 kills19/20 exact mutants but withholds on the remaining calendar-call prove
 substitution. D959 exact-counts both intended fresh Order291 books/bank uses; the exact
 M04 mutant is now red9/1 while clean focused10/0(123),standing1181/0 plus890 skips
 (17817) and all static gates pass. Another different fresh Tier3 rereview is mandatory.
+D960 records different fresh Tier3 approval of exact headcdb12ef/implementation67cd364/
+prooffc02337 with no finding. Exact M04 and seven high-value samples die; focused10/0,
+dependencies54/0+5 skips,India267/0+99 skips,standing1181/0+890 skips(17817) and all
+static/ancestry/scope/protected/blob checks pass. Approval is Section14 version
+selection only; quoted per-night numeric applicability is the next bounded dependency.
 **D847 review complete:** A fresh non-implementing Tier-3 reviewer approves exact
 candidate `6e0824df2a6afff5a83573d463bbee4cf73b436e` with no finding. Reviewer-owned
 tenant/pair-hash, identity/version/status/period, GST_ROOM, source/date, freeze/hash

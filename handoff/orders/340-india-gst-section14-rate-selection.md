@@ -1,6 +1,6 @@
 # Order 340 — India GST section 14 six-case rate-version selection
 
-**Status:** SECOND-REPAIR-PENDING-DIFFERENT-FRESH-TIER3-REREVIEW-D959
+**Status:** APPROVED-D960
 **Phase:** 7 — Tax engine and India IRP
 **Branch:** `phase-7/india-gst-section14-rate-selection`
 **Base:** `0961648` (independently approved Order339 governance head)

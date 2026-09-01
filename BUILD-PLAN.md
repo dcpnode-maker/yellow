@@ -480,6 +480,12 @@ the source proof matches the earlier call. D959 exact-counts both intended fresh
 Order291 operand occurrences; M04 is now red9/1, clean focused10/0(123), standing
 1181/0 plus890 skips(17817) and all static gates pass. Another different fresh Tier3
 rereview remains mandatory.
+D960 independently approves exact headcdb12ef/implementation67cd364/prooffc02337 with
+no finding. The exact M04 calendar-operand mutant and seven high-value equality,
+replay,hash,transaction and guard mutants die; focused10/0,dependencies54/0 plus5
+skips,India267/0 plus99 skips,standing1181/0 plus890 skips(17817) and all static,
+ancestry/scope/protected/blob checks pass. Approval remains bounded to six-case
+Section14 predecessor/successor version identity.
 
 Order 237 is built-unreviewed under D-625 as the positive pure rules-driven
 tax-evaluation foundation.

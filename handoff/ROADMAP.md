@@ -978,6 +978,11 @@ survives because a shared source fragment does not distinguish the calendar Orde
 call from the earlier Order302 derivation. D959's two-line test-only repair exact-counts
 both fresh Order291 books/bank uses; clean focused10/0(123),M04 red9/1,standing1181/0
 plus890 skips(17817) and static gates pass. Another different fresh Tier3 must approve.
+D960 independently approves exact Order340 headcdb12ef/implementation67cd364/proof
+fc02337 with no finding. Exact M04 and seven high-value sampled faults die; focused,
+dependencies,broad-India,standing1181/0 plus890 skips(17817),static,ancestry,scope,
+protected and blob checks pass. Approval grants six-case Section14 version identity
+only; numeric applicability and every downstream fiscal authority remain separate.
 
 D953 independently approves exact repaired head26682ab/implementationea190dd with no
 finding. Official CBIC section14 semantics, strict ancestry/scope and all gates pass.
