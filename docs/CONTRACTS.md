@@ -2469,3 +2469,13 @@ clock inference. The complete sequence and source lineage are preserved in a fro
 tenant-hidden, tenant-bound result. The boundary supplies evidence only: it does not
 decide payment receipt, section 14 applicability, rate selection, tax, posting,
 documents, IRP, API, or UI behavior.
+## Order339: India GST section 14 governed payment-receipt date
+
+`deriveIndiaGstSection14PaymentReceiptDate(input)` rederives complete approved
+rate-change-date, payment-proviso, and governed working-day evidence and requires each
+supplied result to insertion-byte match. It accepts only the calendar-required branch
+and a calendar window containing bank credit. Bank credit on or before the established
+fourth working day preserves the ordinary earlier of books/bank; bank credit strictly
+after it becomes the statutory receipt date. The frozen tenant-bound result records
+only that date decision, branch, calendar source lineage, and predecessor hashes. It
+does not decide the Section 14 old/new-rate matrix or calculate/post tax.

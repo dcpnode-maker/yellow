@@ -46,8 +46,9 @@ fiscal document, IRP, merge, deploy, Phase-complete or application-complete clai
 - **P0 intentional red:** no production composer/export exists.
 - **P1 statutory boundary:** bank on/before fourth working date retains ordinary
   earlier-of; bank one civil day after substitutes bank date.
-- **P2 complete replay:** any coherent mutation of pair/date/proviso/calendar evidence
-  fails even if a public hash is recomputed.
+- **P2 complete replay:** any supplied date/proviso/calendar result mutation without
+  the corresponding complete input ancestry fails even if a public hash is recomputed;
+  pair-input mutations continue to fail under Order307's governed statutory contract.
 - **P3 calendar containment:** calendar must include bank date and establish the exact
   fourth working date; off-by-one, missing and unrelated windows fail.
 - **P4 evidence/containment:** recursively frozen, deterministic, tenant-hidden,

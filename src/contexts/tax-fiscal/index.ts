@@ -336,6 +336,15 @@ export type {
   IndiaGstSection14WorkingDayCalendarEvidenceResult,
   IndiaGstWorkingDayState,
 } from "./india-gst-section14-working-day-calendar-evidence";
+
+export {
+  deriveIndiaGstSection14PaymentReceiptDate,
+  IndiaGstSection14PaymentReceiptDateValidationError,
+} from "./india-gst-section14-payment-receipt-date";
+export type {
+  IndiaGstSection14PaymentReceiptDateInput,
+  IndiaGstSection14PaymentReceiptDateResult,
+} from "./india-gst-section14-payment-receipt-date";
 export {
   IndiaGstAccommodationRateVersionPairConflictError,
   IndiaGstAccommodationRateVersionPairNotFoundError,

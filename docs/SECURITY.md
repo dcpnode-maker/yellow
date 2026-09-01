@@ -1476,3 +1476,12 @@ or digest identities, and surplus downstream authority. No host calendar, locale
 timezone, current time, database, or network participates. The tenant identifier is
 included only in the SHA-256 preimage and never returned; every supplied
 classification and source field remains hash-bound and recursively frozen.
+### Order 339 statutory payment-date composition
+
+The composer does not trust public predecessor hashes: it reruns Orders307, 302, and
+338 from their complete inputs, requires deeply frozen insertion-byte-equal supplied
+results, and verifies that the governed calendar contains bank credit. Exact shapes,
+tenant-bound final hashing, recursive freezing, tenant-hidden output, and surplus-field
+rejection prevent callers from injecting rates, amounts, matrices, persistence, clock,
+or downstream fiscal authority. Calendar ingestion/authentication remains a separate
+future boundary and is not created here.

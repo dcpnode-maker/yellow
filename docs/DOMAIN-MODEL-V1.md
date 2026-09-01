@@ -1746,3 +1746,10 @@ day/state pair, the first four working dates, and the fourth-working-day date. T
 model deliberately separates evidence from conclusion: no payment-date result,
 old/new-rate matrix, value, amount, rounding, posting, fiscal document, or IRP state
 is created by this value.
+### India GST Section 14 payment-receipt-date conclusion (Order 339)
+
+This immutable evidence value composes the governed rate-change date, recorded books
+and bank dates, the fail-closed proviso result, and the externally governed fourth
+working-day evidence. Its branch is either ordinary earlier-of within the four-day
+boundary or bank-credit substitution strictly after it. It is not a rate-applicability
+matrix, tax calculation, posting, correction, fiscal document, or IRP aggregate.
