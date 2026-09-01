@@ -867,3 +867,9 @@ pending and the approved local remains unchanged.
 D890 independently approves exact94e76a8 after authority tracing, focused57/0 plus6
 skips and a153-assertion isolated responsive/theme/accessibility browser matrix. Order320
 is complete; sole-local reflection remains a separately admitted app-only operation.
+
+## Order321 roadmap entry
+
+Reflect approved Order320 in the sole founder local through a guarded app-only cutover.
+Retain Order319 for rollback and preserve database, companions, credentials and truthful
+status under fresh non-operating Tier3 review.

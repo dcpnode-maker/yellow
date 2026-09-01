@@ -1426,3 +1426,6 @@ gates. Fresh independent presentation review and separate local reflection remai
 capability/authority tracing, focused57/0 plus6 skips and a153-assertion isolated browser
 matrix. The two paragraphs are truthful and contained; sole-local reflection remains a
 separate guarded operation.
+**Ready Order321 Folio copy local refresh — D891:** Build exact approved94e76a8 and
+replace only the sole loopback3000 app, retaining Order319 for rollback and preserving
+data, credentials, companions and truthful status. Fresh Tier3 approval is mandatory.
