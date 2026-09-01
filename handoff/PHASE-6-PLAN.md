@@ -412,3 +412,8 @@ D972 records that the intended Order343 edits and every Phase6 product proof pas
 the corrected runtime-authority test still fails one masked stale exact RLS catalogue
 assertion (`94/84/0/84` versus current `110/100/10/100`). Order343, Order342 and Phase6
 remain unapproved pending a bounded repair and different fresh Tier3 rerun.
+
+D973 admits Order345 to change only the masked runtime-authority expected catalogue
+integers from `94/84/0/84` to exact current `110/100/10/100`, preserving the query and
+strict equality. Another different fresh Tier3 must rerun Order345 and the complete
+Order342 exit gate before Phase6 closes.

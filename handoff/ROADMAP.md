@@ -1055,3 +1055,7 @@ Order343/342 proof is green, but the runtime-authority suite still expects old e
 RLS catalogue totals94/84/0/84 instead of current110/100/10/100 after its earlier
 capability assertion is repaired. A bounded test repair plus different fresh Tier3 is
 required; Phase6 and Order344's prerequisite remain unapproved.
+
+D973 opens Order345 as that exact four-integer, one-assertion repair. It retains the
+catalogue query and strict equality, changes no behavior, and requires another
+different fresh complete exit rereview.

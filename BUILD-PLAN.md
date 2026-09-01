@@ -1549,3 +1549,8 @@ schema, standing/static and referee11/11 rerun remains green. Runtime authority 
 still9/1 because the repaired capability assertion unmasks a stale exact RLS catalogue
 oracle (`94/84/0/84` versus current `110/100/10/100`). A bounded test repair and a
 different fresh Tier3 are required; Phase6 and Order344's prerequisite remain closed.
+
+**Ready Order345 masked catalogue repair — D973:** Change only the four exact expected
+runtime-authority catalogue integers from94/84/0/84 to current110/100/10/100. The
+query and strict equality remain; no product/migration/schema/authority/local change.
+Fresh database proof and another different complete Phase6 exit rereview are mandatory.
