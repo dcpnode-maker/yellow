@@ -1,6 +1,6 @@
 # Order 326 — Folio separate-charges label
 
-**Status:** READY-D908
+**Status:** BUILT-PENDING-FRESH-TIER2-REVIEW-D909
 **Phase:** 7 — founder-visible presentation of already-built financial journeys
 **Branch:** `phase-7/folio-separate-charges-label`
 **Base:** `5f64011` (independently approved Order325 governance head)
@@ -28,7 +28,20 @@ new correction tab or unconditional financial claim; no merge, push or deploymen
 
 ## Definition of done
 
-- [ ] Intentional red proves only the stale visible label.
-- [ ] Production/spec/assertion alignment passes focused and standing gates.
+- [x] Intentional red proves only the stale visible label.
+- [x] Production/spec/assertion alignment passes focused and standing gates.
 - [ ] Fresh independent Tier2 reviewer approves exact source/browser behavior.
 - [ ] Local reflection remains a separate Tier3 order.
+
+## Builder evidence — D909
+
+- Intentional red was0 pass/1 fail/14 assertions; its only failure was the stale
+  visible tab text while identity, ARIA, routing and contextual correction stayed
+  green.
+- Production changes one visible tab string; specification and one exact-copy
+  assertion align. JavaScript and CSS are byte-unchanged from approved Order325.
+- Focused proof is38 pass/6 expected database skips/0 fail/440 assertions. Standing
+  proof is1143 pass/890 expected database skips/0 fail/17403 assertions across2033
+  tests/372 files.
+- Typecheck, boundaries127, licences23, audit0, diff hygiene and scoped JS/CSS
+  byte-equivalence pass. The sole local on port3000 was not touched.
