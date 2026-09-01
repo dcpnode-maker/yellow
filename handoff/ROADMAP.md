@@ -845,3 +845,7 @@ Reflect approved Order318 in the sole founder local through an app-only guarded 
 Retain Order317 for rollback; preserve database, companions, credentials and status; and
 prove the live Folios bridge across both properties and all detail modes under fresh
 non-operating Tier3 review.
+D886 records the guarded app-only cutover as builder-green: exact approved source is the
+sole healthy port3000 app, Order317 is retained stopped, protected prefilled login, both
+properties, all routes and served bridge pass, and database/companions remain unchanged.
+Fresh non-operating Tier3 live approval is pending.

@@ -1406,3 +1406,7 @@ replace only the sole loopback3000 app, retaining Order317 for rollback and pres
 database, companions, credentials and truthful status. Live acceptance must prove the
 bridge across both properties and every detail mode before fresh non-operating Tier3
 approval.
+**Order319 built locally — D886:** Exact approved e46af12/image9daa7e70 is now the sole
+healthy loopback3000 app with Order317 stopped for rollback. Prefilled protected login,
+two properties,24 routes and the bridge pass; environment, database, companions and
+closed obsolete ports are unchanged. Fresh non-operating Tier3 approval remains required.
