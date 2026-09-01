@@ -55,3 +55,21 @@ test("Order 176: every detail level retains target and responsive safety rules",
   expect(css).toContain("prefers-reduced-motion: reduce");
   expect(css).not.toContain("overflow-x: hidden");
 });
+
+test("Order 314: Simple names every additional management workspace before disclosure", async () => {
+  const html = await Bun.file(htmlFile).text();
+  const css = await Bun.file(cssFile).text();
+
+  expect(html).toContain('id="secondary-workspaces-toggle" type="button" aria-expanded="false" aria-controls="secondary-workspaces" aria-describedby="secondary-workspaces-preview"');
+  expect(html).toContain('id="secondary-workspaces-preview"');
+  expect(html).toContain("7 additional workspaces:");
+  for (const label of [
+    "Operations", "Housekeeping", "Vehicle register", "Inventory setup",
+    "Restrictions", "Rates", "Project status",
+  ]) {
+    expect(html).toContain(label);
+  }
+  expect(html.match(/class="domain-tab"/g)).toHaveLength(12);
+  expect(css).toContain(':root:not([data-experience="simple"]) .workspace-catalogue-preview { display: none; }');
+  expect(css).toContain(".workspace-catalogue-preview");
+});
