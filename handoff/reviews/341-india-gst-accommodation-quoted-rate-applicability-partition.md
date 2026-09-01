@@ -184,3 +184,80 @@ another different fresh Tier-3 reviewer executes that repaired proof. This rerev
 grants no final taxable-value, tax amount, rounding, posting, correction, document,
 `ItemList`, IRP, API/UI/local, merge, push, deployment, Phase-7-complete or
 application-complete authority.
+
+---
+
+## THIRD FRESH REREVIEW — final outer-freeze proof at 7aab21e
+
+**Disposition:** APPROVE — the final D964 permanent-proof survivor is killed
+
+**Reviewer:** `/root/order341_final_freeze_rereview`, third fresh independent
+non-implementing OpenAI Codex Tier-3 reviewer
+
+**Exact reviewed head:** `7aab21eb8e39469a8048727e2e6e121750778358`
+
+**Final proof repair:** `cb73dafc68e6ec1a92fc8f9ca9c114bc4e938b63`
+
+**Implementation:** `9731aa8741f8740ff247598619242650484b79df`
+
+**Approved base:** `a31d3cd` (approved Order340 governance head)
+
+### Finding and final D964 proof
+
+No product-source, statutory-semantic, containment, or permanent-proof finding
+remains. I removed only the `frozen(raw);` statement from Order341 `normalize` and
+personally executed the repaired permanent Order341 test. The new otherwise-valid
+mutable-outer-envelope challenge failed at its exact rejection assertion: **4 pass,
+1 fail, 566 assertions**. The promise resolved instead of rejecting at line 178.
+Before mutation the same focused proof passed **5/0 with 570 assertions**. I restored
+the exact statement by reverse patch and verified the source blob returned to
+`9344acbba2bbe2b256acfb884cc7407734a44fb2` with no source diff. The permanent test
+blob is `033da7e3d00dd2520c3cffc8942c8c0abc422077`.
+
+I also independently sampled the repaired D963 surfaces one mutation at a time:
+
+- post-scheduler dual components changed by `-1/+1` basis point, including the
+  upper `899+901` corruption: **3 pass, 2 fail, 76 assertions**;
+- projected hold and sellable-unit aliases substituted for their top-level lineage
+  coordinates: **4 pass, 1 fail, 570 assertions**, naming both `hold` and
+  `sellable unit` as survivors;
+- pair selection changed from the fresh local Section14 result to the caller-supplied
+  selected side: **4 pass, 1 fail, 558 assertions**;
+- tenant identity removed from the final evidence-hash preimage: **3 pass, 2 fail,
+  50 assertions**, including the independent expected-hash mismatch.
+
+Every disposable mutation was reverse-patched immediately. Final Order341 source and
+test blobs exactly match reviewed HEAD, and their tracked diff is empty.
+
+### Reviewer-executed clean and preservation proof
+
+- Order341 plus adjacent Orders337/340 and shared Orders304/309/310 passed **44/0,
+  1,356 assertions** across the six focused files.
+- The standing suite passed **1,187/0** with **890 expected environment skips** and
+  **18,388 assertions**, 2,077 tests across 384 files.
+- TypeScript passed; import boundaries passed for **132 TypeScript files**; licence
+  policy passed for **23 installed packages**; production audit found **0
+  vulnerabilities**.
+- Approved base `a31d3cd` is an ancestor of HEAD and the exact ten-parent Order341
+  chain passes **10/10** through `c36cde9 -> acae77d -> f3c06db -> 9731aa8 ->
+  50064a8 -> f48bf9a -> 531fc4c -> cb73daf -> 489c51c -> 7aab21e`.
+- Exact order scope passes **15/15** with no extra or missing changed path;
+  `git diff --check a31d3cd..HEAD` passes; protected-path inspection reports **0
+  changed**.
+- Baseline migration `dce210b`, referee `7f721e2`, root package `9b96d8c`, lockfile
+  `56434f7`, and Compose `5e811f8` blobs match the approved base. Order337 scheduler
+  `21832e6`, its permanent test `8abaf15`, and the tax-fiscal export `b26a5c0` match
+  the implementation candidate at reviewed HEAD.
+
+Per the exact order boundary, I did not contact or change `.yellow`, Docker, the
+database, any stable runtime, credentials, or port 3000. The pre-existing untracked
+`.yellow/` directory was left untouched.
+
+### Boundary
+
+**APPROVE** exact reviewed head `7aab21eb8e39469a8048727e2e6e121750778358`
+for Order341's bounded immutable, tenant-hidden, per-room-night quoted
+rate-applicability partition. This approval closes only the final D964 proof debt. It
+grants no final taxable-value, tax amount, rounding, posting, correction, document,
+`ItemList`, IRP, API/UI/local, merge, push, deployment, Phase-7-complete or
+application-complete authority.
