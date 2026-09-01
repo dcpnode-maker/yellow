@@ -2,7 +2,7 @@
  "use strict";
  let accessToken = "";
  let operator = null;
- let activeView = "availability";
+ let activeView = "today";
  let inventoryData = { unitTypes: [], spaces: [], sellableUnits: [] };
  let propertiesData = [];
  let restrictionsData = [];
@@ -347,6 +347,7 @@
  const cashierEvidence = $("#cashier-evidence");
  const cashierEvidenceList = $("#cashier-evidence-list");
  const navigation = document.querySelectorAll(".domain-tab");
+ const managementJourneyControls = document.querySelectorAll("[data-journey-view]");
  const refreshInventory = $("#refresh-inventory");
  const inventoryStatus = $("#inventory-status");
  const unitTypeList = $("#unit-type-list");
@@ -9461,11 +9462,9 @@ function vehicleReturnPathFromState(state, property) {
  }
   function setView(view, updateHistory = true) {
  const previousView = activeView;
- activeView = ["today", "availability", "inventory", "operations", "housekeeping", "vehicles", "reservations", "folios", "cashiers", "restrictions", "rates", "status"].includes(view) ? view : "availability";
+ activeView = ["today", "availability", "inventory", "operations", "housekeeping", "vehicles", "reservations", "folios", "cashiers", "restrictions", "rates", "status"].includes(view) ? view : "today";
  if (document.documentElement.dataset.experience === "simple" && SECONDARY_VIEWS.has(activeView)) {
-  secondaryWorkspaces.hidden = false;
-  secondaryWorkspacesToggle.setAttribute("aria-expanded", "true");
-  secondaryWorkspacesToggle.textContent = "Fewer workspaces";
+  closeSecondaryWorkspaces();
  }
  if (previousView === "folios" && activeView !== "folios") {
   clearFolioState();
@@ -9575,6 +9574,16 @@ function vehicleReturnPathFromState(state, property) {
  }
  if (activeView === "folios") syncFolioRoute();
  if (activeView === "cashiers") void loadCashierSession();
+ }
+ function finishWorkspaceNavigation(view) {
+  if (document.documentElement.dataset.experience === "simple" && SECONDARY_VIEWS.has(view)) closeSecondaryWorkspaces();
+  const heading = document.getElementById(`${view}-title`);
+  requestAnimationFrame(() => {
+   if (activeView !== view || !heading || heading.closest("section")?.hidden) return;
+   if (!heading.hasAttribute("tabindex")) heading.setAttribute("tabindex", "-1");
+   heading.focus({ preventScroll: true });
+   heading.scrollIntoView({ block: "start" });
+  });
  }
   function formMessage(form, message, isError = false) {
  const target = form.querySelector(".form-message");
@@ -11465,6 +11474,13 @@ function vehicleReturnPathFromState(state, property) {
  if (tab.dataset.view !== "reservations" && !reservationCreatePanel.hidden && !closeReservationCreate({ history: false })) return;
  if (activeView === "folios" && tab.dataset.view !== "folios" && !folioWorkspace.hidden && !confirmFolioExit()) return;
  setView(tab.dataset.view);
+ finishWorkspaceNavigation(tab.dataset.view);
+ });
+ for (const control of managementJourneyControls) control.addEventListener("click", () => {
+  if (control.dataset.journeyView !== "reservations" && !reservationCreatePanel.hidden && !closeReservationCreate({ history: false })) return;
+  if (activeView === "folios" && control.dataset.journeyView !== "folios" && !folioWorkspace.hidden && !confirmFolioExit()) return;
+  setView(control.dataset.journeyView);
+  finishWorkspaceNavigation(control.dataset.journeyView);
  });
  availabilityReservationShortcut.addEventListener("click", () => {
  setView("reservations");
@@ -12384,6 +12400,7 @@ housekeepingSheetDate.addEventListener("change", () => {
  setBuilderStep(1);
  setBuilderMode("guided", false);
  const initialView = location.pathname.endsWith("/inventory") ? "inventory" :
+ location.pathname.endsWith("/availability") ? "availability" :
  location.pathname.endsWith("/today") ? "today" :
  location.pathname.endsWith("/operations") ? "operations" :
  (/^\/p\/[0-9a-f-]+\/housekeeping(?:\/tasks\/[0-9a-f-]+)?$/.test(location.pathname)) ? "housekeeping" :
@@ -12393,7 +12410,7 @@ housekeepingSheetDate.addEventListener("change", () => {
  location.pathname.endsWith("/cashiers") ? "cashiers" :
  location.pathname.endsWith("/restrictions") ? "restrictions" :
  location.pathname.endsWith("/rates") ? "rates" :
- location.pathname.endsWith("/status") ? "status" : "availability";
+ location.pathname.endsWith("/status") ? "status" : "today";
  setView(initialView, false);
  loginForm.querySelector("button[type=submit]").disabled = false;
 })();

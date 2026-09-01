@@ -86,7 +86,7 @@
 <div class="workbench-head">
 <div>
 <p class="eyebrow">Live property operations</p>
-<h1 id="workbench-title">Availability</h1>
+<h1 id="workbench-title">Today</h1>
 <p class="muted" id="operator-name"></p>
 </div>
 <button class="quiet" id="sign-out" type="button">Sign out</button>
@@ -98,8 +98,8 @@
 <p class="domain-nav-label">Workspace</p>
 <nav class="domain-nav" aria-label="Workbench domains">
 <span class="domain-nav-group">Front desk</span>
-<button class="domain-tab" id="nav-today" type="button" data-view="today" aria-controls="today-view"><svg class="domain-icon" aria-hidden="true"><use href="#i-today"/></svg><span>Today</span></button>
-<button class="domain-tab is-active" id="nav-availability" type="button" data-view="availability" aria-controls="availability-view"><svg class="domain-icon" aria-hidden="true"><use href="#i-availability"/></svg><span>Availability</span></button>
+<button class="domain-tab is-active" id="nav-today" type="button" data-view="today" aria-controls="today-view"><svg class="domain-icon" aria-hidden="true"><use href="#i-today"/></svg><span>Today</span></button>
+<button class="domain-tab" id="nav-availability" type="button" data-view="availability" aria-controls="availability-view"><svg class="domain-icon" aria-hidden="true"><use href="#i-availability"/></svg><span>Availability</span></button>
 <button class="domain-tab" id="nav-reservations" type="button" data-view="reservations" aria-controls="reservations-view"><svg class="domain-icon" aria-hidden="true"><use href="#i-reservations"/></svg><span>Reservations</span></button>
 <button class="domain-tab" id="nav-folios" type="button" data-view="folios" aria-controls="folios-view"><svg class="domain-icon" aria-hidden="true"><use href="#i-folios"/></svg><span>Folios</span></button>
 <button class="domain-tab" id="nav-cashiers" type="button" data-view="cashiers" aria-controls="cashiers-view"><svg class="domain-icon cashier-domain-icon" aria-hidden="true"><use href="#i-operations"/></svg><span>Cashiers</span></button>
@@ -178,7 +178,7 @@
 <p class="inventory-status" id="status-message" role="status" aria-live="polite">Open Project status to run authenticated live checks.</p>
 </section>
 </section>
-<section id="today-view" hidden aria-labelledby="today-title">
+<section id="today-view" aria-labelledby="today-title">
 <div class="section-heading today-heading">
 <div>
 <p class="eyebrow">Front desk</p>
@@ -187,6 +187,29 @@
 </div>
 <button class="quiet" id="today-refresh" type="button">Refresh Today</button>
 </div>
+<section class="management-journey-index card" aria-labelledby="management-journey-title">
+<div class="management-journey-intro">
+<div><p class="eyebrow">Connected workbench</p><h3 id="management-journey-title">Explore today’s hotel journey</h3></div>
+<p class="muted">Open an existing workspace for this property. Every action remains subject to current server truth and eligibility.</p>
+</div>
+<div class="management-journey-categories">
+<div class="management-journey-category">
+<strong>Reservations</strong>
+<p>Use search/create, the reservation board and an eligible reservation detail.</p>
+<div class="management-journey-actions"><button class="secondary" type="button" data-journey-view="today">Today lanes</button><button class="secondary" type="button" data-journey-view="reservations">Reservations</button></div>
+</div>
+<div class="management-journey-category">
+<strong>Financials</strong>
+<p>Open Folios by reference or from an eligible reservation, then use the current Cashier workbench.</p>
+<div class="management-journey-actions"><button class="secondary" type="button" data-journey-view="folios">Folios</button><button class="secondary" type="button" data-journey-view="cashiers">Cashiers</button></div>
+</div>
+<div class="management-journey-category">
+<strong>Stay operations</strong>
+<p>Prepare due-in, due-out and in-house work; review Housekeeping, an eligible Vehicle and room Operations.</p>
+<div class="management-journey-actions"><button class="secondary" type="button" data-journey-view="housekeeping">Housekeeping</button><button class="secondary" type="button" data-journey-view="vehicles">Vehicle register</button><button class="secondary" type="button" data-journey-view="operations">Operations</button></div>
+</div>
+</div>
+</section>
 <p class="field-note today-boundary" id="today-boundary">Due-in, due-out and in-house reservations overlapping this property-local day. Each list is one bounded server page, not a hotel-wide total.</p>
 <div class="today-lanes">
 <section class="card today-lane" data-today-lane="due_in" aria-labelledby="today-due-in-title">
@@ -348,7 +371,7 @@
 <div class="housekeeping-task-list" id="housekeeping-task-list" hidden aria-label="Existing housekeeping tasks"></div>
 <p class="inventory-status" id="housekeeping-status" role="status" aria-live="polite"></p>
 </section>
-<section id="availability-view" aria-labelledby="availability-title">
+<section id="availability-view" hidden aria-labelledby="availability-title">
 <div class="section-heading availability-heading">
 <div>
 <p class="eyebrow">Front desk</p>

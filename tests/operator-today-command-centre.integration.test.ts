@@ -43,7 +43,8 @@ test("Order 177: Today is the first truthful Front desk route", async () => {
   expect(todayIndex).toBeGreaterThan(0);
   expect(todayIndex).toBeLessThan(availabilityIndex);
   expect(html).toContain('data-view="today" aria-controls="today-view"');
-  expect(html).toContain('id="today-view" hidden aria-labelledby="today-title"');
+  expect(html).toContain('id="today-view" aria-labelledby="today-title"');
+  expect(html).not.toContain('id="today-view" hidden aria-labelledby="today-title"');
   expect(html).toContain("Each list is one bounded server page, not a hotel-wide total.");
   expect(script).toContain("(?:today|availability|inventory|");
   expect(script).toContain('location.pathname.endsWith("/today") ? "today"');

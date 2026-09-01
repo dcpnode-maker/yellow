@@ -102,6 +102,30 @@ Inventory setup, Restrictions, Rates and Project status. The disclosure referenc
 that copy for assistive technology. Advanced and Expert show the real controls
 directly and suppress the preview; no workspace control or route is duplicated.
 
+### Management journey index
+
+The authenticated root opens **Today**. Its management journey index is a compact,
+presentation-only map of the already-connected operator journeys: Today,
+Reservations, Folios, Cashiers, Housekeeping, Vehicle register and Operations. Each
+entry explains the authoritative condition needed to continue—for example, selecting
+an eligible reservation, folio or vehicle—then delegates to the existing
+current-property workspace router. It stores no identifiers, chooses no record,
+executes no command and adds no API or business authority.
+
+The index is not another navigation system. Its controls reuse the same route, dirty
+exit, history, loading and focus settlement as the canonical workspace controls. In
+Simple, a completed journey navigation closes the temporary secondary-workspace
+overlay and focuses the destination heading; Advanced and Expert keep their direct
+workspace controls. A cancelled dirty exit leaves the current route, overlay and
+focus unchanged. Explicit deep links continue to win over the Today default.
+
+The index must never imply that an eligible row exists or that a conditional command
+will succeed. It must not advertise the tape chart, waitlist actions, generic payment
+capture or refund, day close, statutory or fiscal issue, mobile/offline/photo
+housekeeping, queues or messaging, kiosk, reports, owner portal, blocks,
+distribution, phase completion, review completion or application completion. Those
+remain absent until separately ordered and authorized.
+
 ## 5b. Adopted from field prototype (Aug 2026)
 
 Observed in a working PMS build and folded into the spec because they solve real
