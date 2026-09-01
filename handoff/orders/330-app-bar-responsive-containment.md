@@ -1,6 +1,6 @@
 # Order 330 — App-bar responsive containment
 
-**Status:** BUILT-PENDING-FRESH-TIER2-REVIEW-D921
+**Status:** COMPLETE-APPROVED-D922
 **Phase:** 7 — founder-visible presentation of already-built journeys
 **Branch:** `phase-7/app-bar-responsive-containment`
 **Base:** `1d89bd9` (Order329 review-withheld governance head)
@@ -32,7 +32,19 @@ permission/status/authority/post310/local change; no merge, push or deployment.
 - [x] Minimal app-bar-scoped CSS produces zero document/body/header overflow at both
       required profiles while preserving controls and focus.
 - [x] Focused/standing/static gates pass.
-- [ ] Fresh non-implementing Tier2 reviewer approves exact source/browser behavior.
+- [x] Fresh non-implementing Tier2 reviewer approves exact source/browser behavior.
+
+## Fresh Tier 2 review — D922
+
+Independent non-implementing Codex reviewer `/root/order330_fresh_tier2` approves
+exact application candidate `75f3359`, governance head `124fbc7`, intentional-red
+base `70178e6` and runtime base `f11440e`. The reviewer personally reproduced the
+25 px 640/DSF2 red, passed corrected focused proof and a fresh 72-cell real-Chrome
+full-shell matrix with real scrollbars, zero document/body/app-bar/workspace overflow,
+local-only usable Folio rails, retained native controls/labels/brand/session and exact
+Separate charges/ARIA/organize/correction identities. Static/source inspection found
+only seven app-bar-scoped CSS declarations and no global overflow hiding or
+HTML/JavaScript/API/business/data mutation. Port 3000 was not accessed or changed.
 
 ## Builder evidence — D921
 
