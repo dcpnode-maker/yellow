@@ -1,6 +1,6 @@
 # Order 323 — Arrival/departure journey local refresh
 
-**Status:** BUILT-LOCALLY-PENDING-FRESH-TIER3-REVIEW-D898
+**Status:** WITHHELD-PREFILL-REMEDIATION-D899
 **Phase:** 7 — founder-visible presentation of already-built stay journeys
 **Branch:** `phase-7/arrival-departure-journey-local-refresh`
 **Base:** `e2d2a36` (independently approved Order322 governance head)
@@ -33,6 +33,16 @@ rollback deletion.
 - [x] Live acceptance and preservation proof pass.
 - [x] Order321 remains stopped for rollback.
 - [ ] Fresh non-operating Tier3 reviewer approves.
+
+## First fresh review — D899
+
+The fresh reviewer withheld because Chrome cleared the email/password after the
+credential-free helper's initial restoration window, leaving the founder without the
+required one-button sign-in. Runtime credentials themselves authenticate and were not
+exposed; every other runtime, database, route, status, journey, responsive and
+accessibility check passed. Remediation is limited to strengthening the local-only,
+no-store, closure-held restoration helper without changing credentials or the normal
+credential-free document. Intentional red and fresh Tier3 rereview are mandatory.
 
 ## Builder evidence — D898
 
