@@ -1432,3 +1432,6 @@ data, credentials, companions and truthful status. Fresh Tier3 approval is manda
 **Order321 built locally — D892:** Exact94e76a8/image6e114234 is the sole healthy
 loopback3000 app with Order319 stopped for rollback. Prefill/login/two properties/all
 routes/two copy surfaces and unchanged data/companions/ports pass; fresh Tier3 pending.
+**Order321 approved locally — D893:** Fresh Tier3 review approves exact608bc00 and the
+sole app with no finding. Runtime/data/topology/status and the full live two-property/
+mode/copy/conditional-controls/theme/accessibility matrix pass with console0/mutations0.

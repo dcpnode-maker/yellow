@@ -876,3 +876,6 @@ status under fresh non-operating Tier3 review.
 D892 records builder-green local reflection: exact approved source is the sole healthy
 port3000 app, Order319 is retained stopped, both copy surfaces and all preserved runtime/
 data/topology checks pass. Fresh non-operating Tier3 approval remains pending.
+D893 independently approves exact608bc00 and the sole live app after complete read-only
+runtime/database/status and live-browser acceptance. Port3000 now truthfully exposes the
+already-built eligible-Folio capabilities without changing authority or unfinished truth.

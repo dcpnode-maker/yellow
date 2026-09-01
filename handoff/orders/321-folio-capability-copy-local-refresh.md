@@ -1,6 +1,6 @@
 # Order 321 — Folio capability copy local refresh
 
-**Status:** BUILT-LOCALLY-PENDING-FRESH-TIER3-REVIEW-D892
+**Status:** APPROVED-LOCALLY-D893
 **Phase:** 7 — founder-visible presentation of already-built Phase 5 journeys
 **Branch:** `phase-7/folio-capability-copy-local-refresh`
 **Base:** `4910efe` (independently approved Order320 governance head)
@@ -32,7 +32,17 @@ rollback deletion.
 - [x] Exact approved image built and sole app refreshed.
 - [x] Live acceptance and preservation proof pass.
 - [x] Order319 remains stopped for rollback.
-- [ ] Fresh non-operating Tier3 reviewer approves.
+- [x] Fresh non-operating Tier3 reviewer approves.
+
+## Fresh independent review — D893
+
+A fresh non-operating Tier3 reviewer approved exact candidate608bc00/runtime94e76a8/
+image6e114234 with no finding after read-only runtime, rollback, environment, companion,
+port, database, login, route and truthful-status proof. Live browser acceptance passed
+both properties across all detail modes, both paragraphs, conditional loaded-Folio
+controls, separate Cashiers, six appearances, responsive/zoom/orientation,
+reduced/forced/keyboard, console0 and no business mutation. Focused proof was57 pass/
+6 skips/0 fail/744 assertions.
 
 ## Builder evidence — D892
 
