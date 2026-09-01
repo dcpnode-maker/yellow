@@ -919,6 +919,14 @@ boundary; focused21/0, permanent8/0, standing1162/0 plus890 expected skips and a
 static gates pass. No database/runtime artifact changed. Fresh Tier3 approval remains
 mandatory before the evidence can compose with Order302.
 
+## Order339 roadmap entry
+
+Compose approved rate-change, fail-closed payment-proviso and governed working-day
+evidence into only the Section14 payment-receipt-date result. D949 requires complete
+predecessor replay, strict after-four-working-days substitution and calendar coverage
+of bank credit. No applicability/six-case matrix, tax, fiscal, API/UI or local authority
+is admitted. Intentional red and fresh Tier3 review are mandatory.
+
 D948 independently approves exact Order338 implementation1d81944/governance53a495a
 with no finding. Official CGST section14 authority, exact source/ancestry/scope,
 focused23/0,standing1162/0 plus890 skips and static gates pass. Reviewer-owned

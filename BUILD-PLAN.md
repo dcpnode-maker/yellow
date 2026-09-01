@@ -434,6 +434,11 @@ Build D947 is green on the pure Order338 evidence boundary: focused21/0,
 standing1162/0 plus890 skips and all static gates pass without database/runtime change.
 Fresh non-implementing Tier3 executable approval remains pending.
 
+Order339 is admitted by D949 after Order338 approval. It replays Orders302/307/338
+and derives only the calendar-required statutory payment-receipt date: ordinary
+earlier-of through the fourth working day, bank credit strictly after it. Section14
+applicability/six-case rate selection and all tax/fiscal/runtime surfaces remain later.
+
 Order 237 is built-unreviewed under D-625 as the positive pure rules-driven
 tax-evaluation foundation.
 It validates the adopted jurisdiction contract, converts configuration rates to
