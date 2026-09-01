@@ -1,6 +1,6 @@
 # Order 316 — Management-demo navigation fine-tune
 
-**Status:** BUILT-PENDING-FRESH-TIER2-REVIEW-D875
+**Status:** REMEDIATED-PENDING-FRESH-TIER2-REREVIEW-D876
 **Phase:** 7 — founder-visible presentation of already-built Phase 4–6 journeys
 **Branch:** `phase-7/management-demo-navigation-finetune`
 **Base:** `721cbbc` (independently approved Order315 governance head)

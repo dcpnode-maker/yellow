@@ -797,3 +797,7 @@ exact seven-destination catalogue, Simple overlay settlement/focus, explicit rou
 Advanced/Expert and six-appearance preservation pass focused19/0, broad78/0 plus1
 environment skip, standing1131/0 plus890 skips and all static gates. Fresh Tier2
 browser approval remains mandatory; the sole founder local is unchanged.
+D876 records the first browser review's approval-blocking root-read finding and the
+bounded remediation: canonicalize only authenticated bare root to the selected
+property's Today path before starting its guarded reads. Focused46/0 and standing1131/0
+pass; fresh Tier2 rereview and separate local-refresh authority remain mandatory.

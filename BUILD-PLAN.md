@@ -1356,3 +1356,8 @@ already-built workspaces, and successful Simple secondary navigation closes the 
 catalogue and focuses the destination. Focused19/0, broad78/0 plus1 environment skip,
 standing1131/0 plus890 skips and all static gates pass. The approved sole local remains
 untouched pending fresh Tier2 browser review and a separate guarded refresh order.
+**Order316 remediation — D876:** The first browser review correctly withheld because
+bare-root Today discarded successful lane reads behind its canonical-route guard. The
+root now replaces history with the selected granted property's `/today` route before
+loading; focused46/0 and standing1131/0 pass. The rejected candidate remains recorded
+and exact07b7297 awaits fresh browser rereview; the approved local is still untouched.
