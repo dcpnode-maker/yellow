@@ -1,6 +1,6 @@
 # Order 341 — India GST accommodation quoted rate-applicability partition
 
-**Status:** READY-D961
+**Status:** AMENDED-READY-D962
 **Phase:** 7 — Tax engine and India IRP
 **Branch:** `phase-7/india-gst-accommodation-quoted-rate-applicability-partition`
 **Base:** `a31d3cd` (approved Order340 governance head)
@@ -9,7 +9,7 @@
 ## Outcome
 
 Compose the approved Order340 CGST Act section14 selected rate-version identity with
-the approved Order337 numeric component schedule and the persisted positive
+the approved Order337 numeric component-decomposition rule and the persisted positive
 Order240/Order252 room-revenue lineage. Return one immutable, tenant-hidden,
 per-attributed-room-night **quoted rate-applicability partition**.
 
@@ -40,8 +40,8 @@ or calculate a tax invoice, or calculate tax money.
 
 - Expose one transaction-read-only resolver through the tax-fiscal boundary. It
   accepts only an exact plain, deeply frozen, accessor/proxy/symbol-free input
-  containing the complete Order340 input/result graph, the complete Order337
-  input/result graph, and the exact persisted Order252 reservation-lineage and
+  containing the complete Order340 input/result graph, the complete Order310
+  component-identity input/result graph, and the exact persisted Order252 reservation-lineage and
   Order244 attribution-record identifiers. Supplied tenant identity is equality-bound,
   while runtime tenant authority comes only from transaction-local context.
 - In the same tenant transaction, re-read the persisted Order244 record and rederive
@@ -49,20 +49,29 @@ or calculate a tax invoice, or calculate tax money.
   caller snapshot content, money, tenant, version or component values are never
   authority.
 - Re-run Order340 and require byte-exact equality with its supplied, recursively
-  frozen result. Re-run Order337 through its complete approved Order310 input/result
-  graph and require byte-exact equality with its supplied result.
+  frozen result. Re-run Order310 through its complete approved ancestry and require
+  byte-exact equality with its supplied result. Order310 supplies only the exact
+  component family, ordered component identities and shared rate-version-pair
+  ancestry; its historical supply-date-selected member is not Section14 authority.
 - Equality-bind tenant, property, reservation, folio, attribution/snapshot identity,
   full quoted amount, currency, jurisdiction identity, component family and all
-  required predecessor identities. The Order337 schedule version id, version number,
-  content hash, effective bounds and official-source identity must exactly equal
-  Order340's selected predecessor or successor version. A matching public hash alone
-  is not provenance.
+  required predecessor identities. The exact Order304 pair inside Order310 ancestry
+  must byte-match the pair replayed by Order340. Select only the pair member named by
+  Order340's `selectedVersionSide`, then equality-bind its id, version, status,
+  content hash, effective bounds, GST_ROOM slabs and official-source identity to the
+  Order340 result. A matching public hash alone is not provenance.
+- Reuse one shared pure numeric scheduler extracted from Order337 without changing
+  Order337's public input/output bytes: IGST preserves each selected aggregate slab
+  as its sole component; CGST+SGST and CGST+UTGST divide every selected aggregate
+  basis-point rate into exact ordered equal halves. Odd/non-integral, unequal,
+  reordered or duplicated component schedules fail closed. No second numeric policy
+  may be implemented in this composer.
 - Reparse the exact positive Order240 snapshot and use only its existing ordered
   `room_revenue` room-night components. Their canonical amount total must reconcile
   exactly to the persisted full attribution; each component must be a positive INR
   minor-unit amount with one unique ordinal and business-date assignment.
 - For each component independently, select exactly one `GST_ROOM` slab from the
-  Order337 schedule belonging to the Order340-selected version. Preserve its exact
+  selected pair member using the shared Order337 scheduler. Preserve its exact
   lower/upper bound, ITC condition, aggregate basis points and the ordered numeric
   component rates `[igst]`, `[cgst,sgst]`, or `[cgst,utgst]`. Missing, overlapping,
   gapped, duplicate, non-positive, non-INR or non-matching components fail closed.
@@ -77,6 +86,8 @@ or calculate a tax invoice, or calculate tax money.
 
 - this order, bounded Phase-7 plan/roadmap/decision/ledger/review evidence;
 - one transaction-read-only tax-fiscal resolver and exact context exports;
+- a bounded extraction of Order337's existing pure equal-split scheduler, preserving
+  Order337's approved public contract and byte output;
 - focused intentional-red, transaction-read, hostile and mutation-sensitive proof;
 - bounded contract/domain/security/QA documentation needed to state this exact
   quoted-applicability boundary;
@@ -111,11 +122,19 @@ application-complete claim.
   version, including both directions of its section14 earlier-of cases, is the only
   rate-version authority. A room-night business date on the opposite side of the
   2025-09-22 cutover cannot override it.
+- **P2a opposite-side correctness:** Section14 case 1 selects successor 5% even when
+  the historical supply-date member is predecessor 12%; case 5 selects predecessor
+  12% even when the historical member is successor 5%. Restoring direct version
+  equality must fail this proof.
+- **P2b shared numeric rule:** all four coincident-side cases byte-match Order337's
+  schedule; both 18% upper bands and all three component families retain exact
+  identity/order. Unequal 599+601 and 899+901 half-split mutants fail.
 - **P3 component integrity:** IGST remains one aggregate component; CGST+SGST and
   CGST+UTGST retain exact ordered equal halves. Historical 12%/18% and successor
   5%/18% values, slab bounds and ITC semantics are exact.
 - **P4 complete lineage:** independent fully rehashed mutations of Order340 selected
-  side/case/version/source, Order337 schedule/version/content/source/component family,
+  side/case/version/source, Order304 pair member schedule/content/source, Order310
+  component family/identity/pair ancestry,
   Order252 reservation lineage, Order244 record, Order240 snapshot hash, property,
   folio, currency or full quoted amount fail closed.
 - **P5 hostile partition:** reordered, duplicated, missing, non-positive, non-INR,

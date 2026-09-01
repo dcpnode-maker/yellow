@@ -873,6 +873,12 @@ Section14-selected version and exact IGST or ordered dual component rates. Stay 
 averages,room-night-date version overrides,final taxable value,tax amounts,rounding,
 posting,documents,ItemList and IRP remain outside. Intentional red,hostile preservation
 proof and fresh Tier3 review are mandatory.
+D962 corrects D961 before any production commit: Order337's historical supply-date
+selection differs lawfully from Order340 in Section14 cases1 and5. Order341 now replays
+Order310 for shared pair/component identity, selects only Order340's exact pair member,
+and reuses one extracted unchanged Order337 numeric scheduler. Permanent opposite-side,
+coincident-side,all-family/upper-band and unequal-half proof is mandatory; no extra
+order or broader authority is introduced.
 **D847 review complete:** A fresh non-implementing Tier-3 reviewer approves exact
 candidate `6e0824df2a6afff5a83573d463bbee4cf73b436e` with no finding. Reviewer-owned
 tenant/pair-hash, identity/version/status/period, GST_ROOM, source/date, freeze/hash
