@@ -1391,3 +1391,7 @@ truthful eligibility copy. The handler reuses existing Folio dirty confirmation 
 canonical Reservations history/focus without a request or mutation. Focused49/0,
 standing1134/0 plus890 skips and all static gates pass. Fresh Tier2 browser review and
 a separate guarded local refresh remain mandatory.
+**Order318 review retry — D883:** The first reviewer found no product defect and passed
+focused52/0 plus6 database skips, but correctly withheld because its disposable browser
+harness failed before execution. The unchanged exact candidate remains pending a fresh
+isolated-browser matrix; sole port3000 remains untouched.

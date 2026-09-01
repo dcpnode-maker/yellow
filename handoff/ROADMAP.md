@@ -831,3 +831,6 @@ D882 records the implementation side as green after intentional red. One semanti
 bridge, eligibility copy, dirty confirmation and canonical Reservations navigation
 pass focused49/0, standing1134/0 plus890 skips and static gates. Fresh Tier2 browser
 review remains mandatory; the sole approved local is unchanged.
+D883 records a review-evidence precondition failure only: automated/source proof is
+green, but the malformed disposable harness never launched a browser. Candidate e46af12
+is unchanged and requires fresh isolated-browser retry; the approved local is untouched.

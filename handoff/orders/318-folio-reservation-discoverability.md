@@ -1,6 +1,6 @@
 # Order 318 — Folio reservation discoverability
 
-**Status:** BUILT-PENDING-FRESH-TIER2-REVIEW-D882
+**Status:** BUILT-PENDING-FRESH-TIER2-BROWSER-RETRY-D883
 **Phase:** 7 — founder-visible presentation of already-built Phase 4–6 journeys
 **Branch:** `phase-7/folio-reservation-discoverability`
 **Base:** `d1b9cc7` (independently approved Order317 governance/local head)
