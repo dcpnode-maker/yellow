@@ -5851,7 +5851,7 @@ export const operatorAssets = Object.freeze({
   depositCss(): Response { return assetResponse(ASSET_URLS.depositCss, "text/css; charset=utf-8"); },
   depositJs(): Response { return assetResponse(ASSET_URLS.depositJs, "text/javascript; charset=utf-8"); },
   localPrefillJs(): Response {
-    return new Response("(()=>{const f=document.querySelector('#login-form[autocomplete=off]'),v=new Map;if(!f)return;for(const e of f.elements)if(e instanceof HTMLInputElement&&e.dataset.localDefault){v.set(e,e.dataset.localDefault);delete e.dataset.localDefault}const r=()=>{for(const[e,s]of v)e.value=s},h=e=>{r();e.preventDefault()};r();addEventListener('pageshow',r,{once:true});f.addEventListener('yellow:restore-local-login-defaults',h);setTimeout(r,0);requestAnimationFrame(()=>requestAnimationFrame(r))})()", {
+    return new Response("(()=>{const f=document.querySelector('#login-form[autocomplete=off]'),v=new Map;if(!f)return;for(const e of f.elements)if(e instanceof HTMLInputElement&&e.dataset.localDefault){v.set(e,e.dataset.localDefault);delete e.dataset.localDefault}const r=(o=false)=>{for(const[e,s]of v)if(o||!e.value)e.value=s},h=e=>{r(true);e.preventDefault()},w=()=>r();r(true);addEventListener('pageshow',w);addEventListener('focus',w);document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')r()});f.addEventListener('yellow:restore-local-login-defaults',h);setTimeout(w,0);requestAnimationFrame(()=>requestAnimationFrame(w))})()", {
       headers: { "cache-control": "no-store", "content-type": "text/javascript; charset=utf-8" },
     });
   },

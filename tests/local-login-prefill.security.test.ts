@@ -60,7 +60,9 @@ describe("Order194 local sign-in prefill", () => {
     expect(response.headers.get("cache-control")).toBe("no-store");
     expect(script).toContain("e.dataset.localDefault");
     expect(script).toContain("delete e.dataset.localDefault");
-    expect(script).toContain("addEventListener('pageshow',r,{once:true})");
+    expect(script).toContain("addEventListener('pageshow',w)");
+    expect(script).toContain("addEventListener('focus',w)");
+    expect(script).toContain("document.addEventListener('visibilitychange'");
     expect(script).toContain("e.value=s");
     expect(script).not.toMatch(/yellow-demo|operator@|password|local-deposit/i);
   });
@@ -88,7 +90,7 @@ describe("Order194 local sign-in prefill", () => {
       },
     };
     new Function("document", "HTMLInputElement", "addEventListener", "setTimeout", "requestAnimationFrame", script)(
-      { querySelector: () => form },
+      { querySelector: () => form, visibilityState: "visible", addEventListener: () => undefined },
       TestInput,
       () => undefined,
       (callback: () => void) => { callback(); },
