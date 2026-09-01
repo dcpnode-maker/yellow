@@ -1,6 +1,6 @@
 # Order 318 — Folio reservation discoverability
 
-**Status:** READY-D881
+**Status:** BUILT-PENDING-FRESH-TIER2-REVIEW-D882
 **Phase:** 7 — founder-visible presentation of already-built Phase 4–6 journeys
 **Branch:** `phase-7/folio-reservation-discoverability`
 **Base:** `d1b9cc7` (independently approved Order317 governance/local head)
@@ -39,8 +39,8 @@ no post310 statutory work, local refresh, second/public local, merge, push or de
 
 ## Definition of done
 
-- [ ] Intentional red precedes production.
-- [ ] Empty Folios lookup visibly exposes the truthful reservation bridge.
-- [ ] Successful navigation is canonical, focused and history-safe; cancellation is inert.
-- [ ] Focused, standing and static proof pass.
+- [x] Intentional red precedes production.
+- [x] Empty Folios lookup visibly exposes the truthful reservation bridge.
+- [x] Successful navigation is canonical, focused and history-safe; cancellation is inert.
+- [x] Focused, standing and static proof pass.
 - [ ] Fresh independent Tier2 browser review approves.

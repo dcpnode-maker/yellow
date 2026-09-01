@@ -827,3 +827,7 @@ Make the already-built reservation-to-Folio route discoverable from the empty Fo
 lookup with one eligibility-qualified secondary action. Preserve direct lookup,
 contextual return precedence and all existing financial authority; no new request,
 data, status or post310 work is introduced.
+D882 records the implementation side as green after intentional red. One semantic
+bridge, eligibility copy, dirty confirmation and canonical Reservations navigation
+pass focused49/0, standing1134/0 plus890 skips and static gates. Fresh Tier2 browser
+review remains mandatory; the sole approved local is unchanged.

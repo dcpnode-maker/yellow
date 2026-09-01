@@ -1386,3 +1386,8 @@ promise/path gap in already-built financial navigation. Empty Folios lookup gain
 truthful secondary bridge to Reservations, explaining that only an eligible stay may
 expose its existing Folio action. Reuse current dirty/history/focus behavior; add no
 request, financial authority, data or post310 work. Fresh Tier2 review is mandatory.
+**Order318 built — D882:** Intentional red preceded one semantic quiet bridge and
+truthful eligibility copy. The handler reuses existing Folio dirty confirmation and
+canonical Reservations history/focus without a request or mutation. Focused49/0,
+standing1134/0 plus890 skips and all static gates pass. Fresh Tier2 browser review and
+a separate guarded local refresh remain mandatory.
