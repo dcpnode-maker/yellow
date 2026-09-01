@@ -414,6 +414,13 @@ approval remains deferred under the founder's build-first direction.
 
 ## Phase 7 — Tax engine + India IRP
 
+Order337 is ready under D942 after the founder explicitly lifted D-869. It is the
+smallest next dependency after approved Order310: exact Order310 ancestry is replayed
+before deriving only statutory numeric component-rate schedules. IGST keeps the sole
+aggregate schedule; CGST+SGST and CGST+UTGST receive equal ordered halves of each
+even aggregate basis-point rate. No taxable value, amount, rounding, Section14,
+posting, document, IRP, API/UI/local or Phase-complete authority is admitted.
+
 Order 237 is built-unreviewed under D-625 as the positive pure rules-driven
 tax-evaluation foundation.
 It validates the adopted jurisdiction contract, converts configuration rates to

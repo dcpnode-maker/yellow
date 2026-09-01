@@ -879,3 +879,12 @@ data/topology checks pass. Fresh non-operating Tier3 approval remains pending.
 D893 independently approves exact608bc00 and the sole live app after complete read-only
 runtime/database/status and live-browser acceptance. Port3000 now truthfully exposes the
 already-built eligible-Folio capabilities without changing authority or unfinished truth.
+## Order337 roadmap entry
+
+Resume the remaining build plan after the founder explicitly lifted D-869. Revalidate
+complete approved Order310 evidence and derive only numeric per-component rate
+schedules: IGST preserves the sole aggregate GST_ROOM schedule, while CGST+SGST and
+CGST+UTGST receive equal ordered halves of each exact even aggregate basis-point rate.
+Taxable value, amount, rounding, Section14, posting, documents and IRP remain later
+bounded dependencies. D942 admits intentional-red, hostile ancestry proof,
+preservation gates and fresh non-implementing Tier-3 executable review.
