@@ -844,6 +844,12 @@ Builder D955 is green after red-before-production: exact six cases, both earlier
 directions, equality/non-enumerated rejection, same-transaction governed roots and
 complete safe/calendar replay pass focused6/0(70),standing1176/0 plus890 skips and all
 static gates. No migration/DB/runtime/local change; fresh Tier3 review is pending.
+D956 withholds approval on proof sensitivity only. The fresh reviewer found no
+product/statutory defect and killed52 of72 mutants;20 survivors require permanent
+bindings for isolated invoice equality, hash-preserving seven-result replay,
+Order291 safe/calendar provenance, calendar predecessor hashes, the exact transaction
+handle and explicit outer property/lineage/amount/currency comparisons. Repair and a
+different fresh Tier3 rereview are mandatory before the next product order.
 **D847 review complete:** A fresh non-implementing Tier-3 reviewer approves exact
 candidate `6e0824df2a6afff5a83573d463bbee4cf73b436e` with no finding. Reviewer-owned
 tenant/pair-hash, identity/version/status/period, GST_ROOM, source/date, freeze/hash

@@ -1,6 +1,7 @@
 # Order 340 — India GST section 14 six-case rate-version selection
 
-**Status:** BUILT-PENDING-FRESH-TIER3-REVIEW-D955
+**Status:** REVIEW-WITHHELD-PROOF-SENSITIVITY-D956 — no product/statutory finding;
+permanent proof repair and different fresh Tier3 rereview required
 **Phase:** 7 — Tax engine and India IRP
 **Branch:** `phase-7/india-gst-section14-rate-selection`
 **Base:** `0961648` (independently approved Order339 governance head)

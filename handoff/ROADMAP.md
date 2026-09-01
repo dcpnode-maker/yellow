@@ -960,6 +960,13 @@ equality position, non-enumerated arrangements, safe/calendar normalization, com
 predecessor replay and exact version/hash/freeze containment. Focused6/0(70),standing
 1176/0 plus890 skips and all static gates pass without DB/runtime/local change. Fresh
 Tier3 executable review remains mandatory.
+D956 records the fresh Tier3 withholding on permanent-proof sensitivity only. The
+product and statutory semantics have no finding, but20 of72 reviewer mutants survive
+where the committed proof does not independently bind invoice equality, hash-preserved
+predecessor bodies, Order291 safe/calendar provenance, calendar predecessor hashes,
+the exact transaction handle and explicit outer property/lineage/amount/currency
+guards. Bounded permanent-test repair and a different fresh Tier3 rereview are next;
+no downstream authority is admitted.
 
 D953 independently approves exact repaired head26682ab/implementationea190dd with no
 finding. Official CBIC section14 semantics, strict ancestry/scope and all gates pass.

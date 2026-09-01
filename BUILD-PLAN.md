@@ -462,6 +462,12 @@ Build D955 is green after intentional red. Exact six-case selection, both earlie
 directions, equality/non-enumerated rejection, same-transaction governed roots and
 complete safe/calendar ancestry pass focused6/0(70), standing1176/0 plus890 skips and
 all static gates. No migration/database/runtime/local change; fresh Tier3 is pending.
+D956 withholds approval on permanent-proof sensitivity only, with no product or
+statutory finding. A fresh reviewer executed72 mutants:52 die and20 expose missing
+permanent bindings for isolated invoice equality, hash-preserving predecessor-body
+replay, Order291 safe/calendar provenance, calendar predecessor hashes, the exact
+transaction handle and explicit property/lineage/amount/currency guards. Repair those
+proofs and obtain a different fresh Tier3 rereview before downstream authority.
 
 Order 237 is built-unreviewed under D-625 as the positive pure rules-driven
 tax-evaluation foundation.
