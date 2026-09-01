@@ -777,3 +777,7 @@ Refresh only the sole loopback management-demo app from complete Order314, retai
 prior app rollback and preserve every database, credential and companion identity.
 Acceptance covers one-click login, both properties, all twelve routes, truthful status
 and the visible workspace catalogue under fresh non-operating review.
+D872 records the guarded app-only cutover as builder-green: exact Order314 is healthy
+on the sole loopback3000, the prior app is retained stopped, companions and database
+truth are unchanged, and browser plus24/24 route acceptance pass. Fresh independent
+non-operating Tier3 approval remains pending.

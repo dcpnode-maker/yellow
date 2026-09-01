@@ -1,6 +1,6 @@
 # Order 315 — Management-demo workspace local refresh
 
-**Status:** READY-D871
+**Status:** BUILT-LOCALLY-PENDING-FRESH-REVIEW-D872
 **Phase:** 7 — Tax engine and India IRP (local presentation refresh)
 **Branch:** `phase-7/management-demo-workspace-local`
 **Base:** `13b8d60` (complete Order314 governance head)
@@ -52,8 +52,28 @@ Do not touch database or companion services.
 
 ## Definition of done
 
-- [ ] Exact image is built from clean Order314.
-- [ ] Guarded app-only cutover and acceptance pass.
-- [ ] Prior app rollback is retained and companions/data are unchanged.
+- [x] Exact image is built from clean Order314.
+- [x] Guarded app-only cutover and acceptance pass.
+- [x] Prior app rollback is retained and companions/data are unchanged.
 - [ ] Fresh non-operating Tier3 review approves.
 
+## Builder evidence — D872
+
+- Exact source `13b8d601fd714e97a3425ec040675dc29bbd197e` built image
+  `sha256:7fa43d0d93293cfeb1a823036e083f43adcb4a2b41751079c6e89c5191e51289`.
+- `yellow-order315-app` is healthy with zero restarts on only
+  `127.0.0.1:3000`; the prior app remains stopped as
+  `yellow-order311-app-rollback-d864` with its image intact.
+- PostgreSQL, provider and Valkey remained running with zero restarts. Ports 3002,
+  3123 and 3188 remain closed.
+- Browser-personal one-click protected login, exactly two properties, exact
+  Order310/current311/review91/phase7 status, Simple preview, collapsed disclosure,
+  Advanced direct controls and zero console errors pass. The verified tab was marked
+  as the deliverable.
+- All 24 property/workspace HTML routes return 200 with `no-store`. Served CSS and JS
+  hashes are respectively `E2B988E51FF9A713345504350ED4DDE824B85775E942A0CFCF59EBED5CFE6276`
+  and `6D4015B4A2CB46C4C5695DCAD0B984D6D183D51B3451937EB53421CF15A6FDDE`.
+- Read-only database truth is unchanged: 59 migrations, 110 base tables, 2 views,
+  100 policies, 2 properties, party8/contact0/party-role8/fact75/outbox22.
+- Fresh independent non-operating Tier3 review remains mandatory; this builder record
+  does not claim approval, phase completion, merge, push or deployment.

@@ -1330,3 +1330,9 @@ replace only the sole loopback3000 app, retaining the approved Order311 app cont
 and image for rollback. Preserve PostgreSQL, both properties, provider, Valkey,
 credentials, status truth and business counts. Protected login,24/24 routes and exact
 workspace preview require fresh independent non-operating verification.
+**Order315 built locally — D872:** Exact Order314 is now the sole healthy loopback3000
+app with its Order311 predecessor retained stopped for rollback. Protected one-click
+login, both properties,24/24 routes, exact310/311/91/P7 status, Simple/Advanced
+workspace discovery and unchanged59/110+2/100 database truth pass. Companion services
+were not restarted and obsolete ports remain closed. Fresh independent non-operating
+Tier3 approval remains pending.
