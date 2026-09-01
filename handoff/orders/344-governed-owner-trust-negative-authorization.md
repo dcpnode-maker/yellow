@@ -1,9 +1,9 @@
 # Order 344 — Governed owner-trust negative authorization
 
-**Status:** READY-AFTER-ORDER343-D970
+**Status:** ACTIVE-D975
 **Phase:** 5 — Financials
 **Branch:** `phase-5/governed-owner-trust-negative-authorization`
-**Base:** first approved descendant of Order343; revalidate allocation before build
+**Base:** `d9e43c0` (D974-approved Order345/343/342 and Phase6 exit)
 **Risk tier:** 3 — immutable owner trust accounting and four-eyes authorization
 **Owner:** Codex implementation; fresh independent non-implementing Tier-3 reviewer
 
@@ -108,3 +108,10 @@ No HTTP or UI surface is admitted by this order.
 - [ ] Intentional red, implementation and all hostile proofs pass on fresh PostgreSQL.
 - [ ] Exact schema/authority/standing/referee gates pass without weakening.
 - [ ] Fresh independent non-implementing Tier-3 approval is recorded.
+
+## Activation
+
+D975 activates implementation after D974 satisfies the prerequisite. Exact allocation
+is revalidated at 59 migrations ending0059, 110 base tables, 100 tenant RLS policies,
+10 FORCE-RLS tables and 2 views; migration0060 and expected111/101/10/2 remain free
+and exact. No product or schema path changed during activation.
