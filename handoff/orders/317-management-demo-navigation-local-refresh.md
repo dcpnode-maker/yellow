@@ -1,6 +1,6 @@
 # Order 317 — Management-demo navigation local refresh
 
-**Status:** READY-D878
+**Status:** BUILT-LOCALLY-PENDING-FRESH-TIER3-REVIEW-D879
 **Phase:** 7 — founder-visible presentation of already-built Phase 4–6 journeys
 **Branch:** `phase-7/management-demo-navigation-local-refresh`
 **Base:** `d2522e2` (independently approved Order316 governance head)
@@ -42,7 +42,26 @@ Order315 app name and exact loopback bind, then verify its prior approved health
 
 ## Definition of done
 
-- [ ] Exact approved Order316 runtime image built.
-- [ ] Guarded app-only cutover and live acceptance pass.
-- [ ] Prior app retained; companions and data unchanged.
+- [x] Exact approved Order316 runtime image built.
+- [x] Guarded app-only cutover and live acceptance pass.
+- [x] Prior app retained; companions and data unchanged.
 - [ ] Fresh non-operating Tier3 reviewer approves.
+
+## Builder evidence — D879
+
+- Exact approved source `d81de9ce4abf820c4aa529fe7ba8407bb990cc2c` built image
+  `sha256:56f4caafd3ad54102e14fd4490818b60813acfa4545433b00717dc47a4958477`.
+- The first guarded attempt correctly restored Order315 because its explicit health
+  metadata had not been copied. The corrected attempt preserves that exact health
+  command and now runs `yellow-order317-app` healthy with zero restarts on only
+  `127.0.0.1:3000`; `yellow-order315-app-rollback-d873` is retained stopped.
+- Protected local login succeeds, exactly two properties are granted, all 24 property
+  workspace routes return 200/no-store, root contains Today plus the exact journey
+  index, and one-click fields remain prefilled. Served/runtime CSS and JS hashes exactly
+  match the approved source.
+- Status remains truthful at latest-built310/current311/review91/active-phase7/referee11.
+  Ports3002/3123/3188 remain closed.
+- PostgreSQL/provider/Valkey remain healthy with zero restarts. Read-only database truth
+  is unchanged at59 migrations/110 base tables/2 views/100 policies/2 properties and
+  party8/contact0/party-role8/fact75/outbox22.
+- Fresh non-operating Tier3 live-browser review remains mandatory.

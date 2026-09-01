@@ -812,3 +812,7 @@ Reflect independently approved Order316 in the sole founder local through a guar
 app-only cutover. Retain Order315 for rollback; preserve database, companions,
 credentials and truthful status; verify live root Today settlement and existing
 journey navigation under fresh non-operating Tier3 review.
+D879 records the guarded runtime cutover as builder-green: exact approved source is
+the sole healthy port3000 app, Order315 is retained stopped, login/two properties/all
+routes/root Today and source assets pass, and status, database and companions remain
+unchanged. Fresh non-operating Tier3 browser approval remains pending.

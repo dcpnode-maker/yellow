@@ -1371,3 +1371,8 @@ approved Order316 and replace only the sole loopback3000 app, retaining Order315
 rollback and preserving all data, credentials, companions and truthful status. Live
 acceptance must prove canonical root Today settlement, exact seven-journey navigation,
 both properties and all routes before fresh non-operating Tier3 approval.
+**Order317 built locally — D879:** Exact approved source d81de9c is healthy on the sole
+loopback3000 after a guarded cutover that retained Order315 stopped for rollback.
+Protected login, two properties,24 routes, root Today/index, source-identical assets,
+truthful310/311/91/P7 and unchanged database/companions pass. Fresh non-operating Tier3
+browser approval remains mandatory.
