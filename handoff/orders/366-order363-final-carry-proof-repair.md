@@ -1,6 +1,6 @@
 # Order 366 — Order363 final carry-proof repair
 
-**Status:** ACTIVE-D1031
+**Status:** BUILT-PENDING-DIFFERENT-FRESH-TIER3 — exact candidate `2f631a5`
 **Phase:** 5 — Financials
 **Branch:** `phase-5/order363-final-carry-proof-repair`
 **Base:** exact withheld proof `80b696d` / governance `b270746`
@@ -33,3 +33,15 @@ different fresh non-implementing Tier-3 reviewer must personally approve.
 No production/migration/schema/catalogue/policy/window/event/permission/route/UI/
 financial mutation/local/deploy/merge/`.yellow`/port3000 change. No assertion may rely
 on a second guard to mask the authority it claims to prove.
+
+## Builder evidence
+
+Exact test-only candidate `2f631a5` modifies only the permanent carry integration
+suite. A fresh isolated PostgreSQL 16 run passes 11/0 with 726 assertions; typecheck
+and diff hygiene pass. It binds an authorized alternate decider before inactivation,
+inserts the canonical outbox event before injected failure, expands deterministic
+financial/cashier/trust/tax/fiscal observations, covers both capabilities' ACLs,
+compares same-key response identities/bodies, and isolates approval/request/target
+reuse. Disposable resources were removed; the stable local and `.yellow` were not
+touched. These builder results do not substitute for the required different fresh
+Tier-3 review.
