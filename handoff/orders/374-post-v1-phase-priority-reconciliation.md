@@ -1,6 +1,6 @@
 # Order 374 — Post-v1 phase identity and founder-priority reconciliation
 
-**Status:** REPAIRED-PENDING-DIFFERENT-FRESH-TIER2-D1064
+**Status:** APPROVED-D1065
 **Phase:** 13 — Voice and Conversational Command Layer  
 **Branch:** `phase-13/order374-post-v1-priority-reconciliation`  
 **Base:** exact independently approved Order355/373 frontier
@@ -101,7 +101,7 @@ runtime, local or other documentation file is out of scope.
 - [x] Voice, training and tenant-data boundaries are consistent across documents.
 - [x] Phase17 capability/dependency boundaries are explicit and non-duplicative.
 - [x] Existing Phase0–12 evidence and stable local remain untouched.
-- [ ] Fresh independent Tier-2 review records exact scope and wording proof.
+- [x] Fresh independent Tier-2 review records exact scope and wording proof.
 
 ## Builder evidence — D1062
 
@@ -144,3 +144,20 @@ Phase17 reuse, standing and static proof pass. The blocking finding is the unres
 provider contradiction: `docs/UI-SPEC.md` still prescribes Whisper.cpp and Piper while
 this order and `docs/AI-ARCHITECTURE.md` require benchmarked local-first adapters with
 no canonical provider. Repair and a fresh Tier-2 re-review are mandatory.
+
+## Different fresh Tier-2 rereview — D1065
+
+Different fresh independent non-implementing reviewer
+`/root/order374_fresh_rereview` approves repaired exact candidate
+`ca9b0bbdfdccf986566a5bd8cc8a2dfa7a1cc0d4` with no finding. Reviewer-personal
+proof confirms that `docs/UI-SPEC.md` no longer names Whisper.cpp/Piper and instead
+requires benchmarked local-first replaceable speech adapters, the same intent parser,
+optional speech output and deterministic text/manual fallback. Phase0–12 definitions
+are byte-identical; Phase13–17 headers and exact `[13, 17, 14, 15, 16]` priority are
+unique in both plans; Phase14 has no Phase16 dependency cycle; and Phase17 reuses
+Phase11 truth without duplication. Structural assertions40, `git diff --check`,
+typecheck, boundaries139, licences23, audit0 and standing1217/0+949 expected skips/
+18,524 assertions pass. Scope is exactly the eight authorized governance/design/review
+files; `.yellow`, source, tests, migrations, dependencies, database and local runtime
+remain untouched. Approval grants roadmap governance only and no runtime, provider,
+deployment, phase-completion or merge authority.

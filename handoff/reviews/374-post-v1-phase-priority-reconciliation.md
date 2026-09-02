@@ -1,6 +1,6 @@
 # Order 374 post-v1 phase-priority reconciliation — fresh Tier-2 review
 
-**Disposition:** CHANGES REQUIRED
+**Disposition:** APPROVED AFTER REPAIR — D1065
 
 **Reviewer:** `/root/order374_fresh_tier2`, fresh independent non-implementing Tier-2
 
@@ -54,5 +54,42 @@ intent parser, optional speech response and deterministic text/manual fallback. 
 rerun the scoped structural/static/standing proof and obtain a fresh independent
 Tier-2 re-review of the repaired exact candidate.
 
-Order374 remains unapproved. This review grants no product, runtime, local, provider,
-deployment, phase-completion or merge authority.
+At D1063, Order374 remained unapproved. That initial review granted no product,
+runtime, local, provider, deployment, phase-completion or merge authority.
+
+## Different fresh Tier-2 rereview — D1065
+
+**Reviewer:** `/root/order374_fresh_rereview`, different fresh independent
+non-implementing Tier-2
+
+**Exact repaired candidate reviewed:**
+`ca9b0bbdfdccf986566a5bd8cc8a2dfa7a1cc0d4`
+
+**Disposition:** APPROVED with no finding.
+
+The D1063 contradiction is removed. The active UI contract no longer names
+Whisper.cpp or Piper. It requires a benchmarked local-first speech-to-text adapter,
+an optional replaceable speech-output adapter, the same intent parser and deterministic
+text/manual operation whenever speech adapters are absent or unavailable. This matches
+the AI architecture's benchmark-first, no-canonical-provider boundary and selects no
+model, provider, dependency or runtime.
+
+Reviewer-personal structural assertions **40 passed, 0 failed**. They prove exact
+byte-equivalence of every Phase0–12 `BUILD-PLAN.md` definition; exactly one Phase13–17
+header and one exact `[13, 17, 14, 15, 16]` priority in each authoritative plan; no
+Phase14→Phase16 dependency cycle; one server-selected authorized query/typed-command
+pipeline; authenticated tenant/property injection; raw/model-authored SQL prohibition;
+no shared raw-production training; Phase17 reuse of Phase11 group/block truth; and the
+clean-room/proprietary-copy boundary.
+
+The exact base-to-candidate diff contains only the eight authorized files: four
+governance/design documents, the order, decisions, ledger and this review. Phase0–12
+definitions have matching per-phase SHA-256 evidence. `git diff --check`, TypeScript
+typecheck, import boundaries **139 files**, dependency licence policy **23 packages**,
+`bun audit` **0 vulnerabilities**, and the complete standing suite **1,217 passed**,
+**949 expected skips**, **0 failed**, **18,524 assertions** across 2,166 tests/400 files
+all pass under this reviewer. No database or local stack was started or mutated;
+`.yellow/` remained untracked and unread.
+
+Approval is limited to Order374 roadmap/design governance. It grants no product,
+runtime, provider, dependency, local, deployment, phase-completion or merge authority.
