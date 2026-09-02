@@ -88,9 +88,9 @@ the existing public result remain unchanged.
 ## Definition of done
 
 - [x] D1055 exploit is a permanent isolated intentional red before product edits.
-- [ ] Source property/date is exact-bound to exactly one canonical typed source report
+- [x] Source property/date is exact-bound to exactly one canonical typed source report
       event and every hostile variant fails closed.
-- [ ] Valid ordinary and carried behavior plus all permanent gates remain green.
+- [x] Valid ordinary and carried behavior plus all permanent gates remain green.
 - [ ] Different fresh Tier-3 approval is recorded before Orders355/373 close.
 
 ## Intentional-red evidence — D1057
@@ -102,3 +102,16 @@ case: **13 pass / 1 fail, 1,860 assertions**. The isolated pattern run was **0 p
 1 fail**, with thirteen filtered cases and one assertion: expected unresolved zero,
 received one at the new assertion. The disposable cluster was removed; stable port
 3000 and `.yellow` were untouched. Production remained unedited.
+
+## Builder evidence — D1058
+
+Exact product `c988e8885aabc0eb9063e12a54543e4767cedb1c` changes only the two
+scoped product/proof files. Fresh PostgreSQL 16.15 proof passed the combined
+readiness/carry matrix **27/0 (1,989 assertions)**, including the isolated D1055
+exploit and a mutation that removes only the source-report date equality. Migration,
+acceptance, runtime-DML, SECURITY-DEFINER, deterministic/review seed, schema,
+catalogue (`63/116/106/106/15/2`), type, boundaries, licences and audit gates passed.
+The standing suite passed **1,217/0** with 949 expected skips and 18,524 assertions;
+fresh setup-equivalent and separate referee databases each passed **11/11**. All
+disposable resources were removed; stable port 3000 remained healthy and untouched.
+Independent Tier-3 approval remains deliberately unchecked.
