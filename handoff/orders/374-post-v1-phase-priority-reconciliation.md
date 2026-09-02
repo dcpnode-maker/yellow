@@ -1,6 +1,6 @@
 # Order 374 — Post-v1 phase identity and founder-priority reconciliation
 
-**Status:** ACTIVE-D1061  
+**Status:** BUILT-PENDING-FRESH-TIER2-D1062
 **Phase:** 13 — Voice and Conversational Command Layer  
 **Branch:** `phase-13/order374-post-v1-priority-reconciliation`  
 **Base:** exact independently approved Order355/373 frontier
@@ -97,8 +97,27 @@ runtime, local or other documentation file is out of scope.
 
 ## Definition of done
 
-- [ ] Stable Phase13–17 identities and exact delivery priority are authoritative.
-- [ ] Voice, training and tenant-data boundaries are consistent across documents.
-- [ ] Phase17 capability/dependency boundaries are explicit and non-duplicative.
-- [ ] Existing Phase0–12 evidence and stable local remain untouched.
+- [x] Stable Phase13–17 identities and exact delivery priority are authoritative.
+- [x] Voice, training and tenant-data boundaries are consistent across documents.
+- [x] Phase17 capability/dependency boundaries are explicit and non-duplicative.
+- [x] Existing Phase0–12 evidence and stable local remain untouched.
 - [ ] Fresh independent Tier-2 review records exact scope and wording proof.
+
+## Builder evidence — D1062
+
+- Exact scoped implementation diff: `BUILD-PLAN.md`, `handoff/ROADMAP.md`,
+  `docs/AI-ARCHITECTURE.md`, and `docs/UI-SPEC.md`; governance updates remain limited
+  to this order, `DECISIONS.log`, and `handoff/LEDGER.md`.
+- Order374 governance assertions: 16 passed; Phase13–17 headings occur exactly once
+  in each authoritative plan, and `[13, 17, 14, 15, 16]` occurs exactly once in each.
+- Self-review removed a Phase14→Phase16 sequencing cycle. Phase14 now requires its
+  separately approved canonical metric/data-readiness contracts; Phase16 later
+  productizes broader reporting and does not block Phase14.
+- `git diff --check`, TypeScript typecheck, import boundaries (139 files), dependency
+  licence policy (23 packages), and `bun audit` (0 vulnerabilities) pass.
+- Standing suite: 1,217 passed, 949 expected skips, 0 failed, 18,524 assertions across
+  2,166 tests/400 files.
+- No product, test, migration, schema, API, permission, dependency, runtime or local
+  artifact changed. A read-only health observation found port 3000 already stopped;
+  this order did not start, stop, replace, seed or otherwise mutate the local stack.
+- Fresh independent Tier-2 review remains mandatory before approval.

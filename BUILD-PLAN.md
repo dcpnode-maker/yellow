@@ -1097,6 +1097,119 @@ dry-run report; go-live checklist generator.
 **DoD**: PINT AE doc round-trips ASP sandbox · aging report ties to GL ·
 dry-run import of 1k-reservation fixture reconciles to the rupee/fils.
 
+## Post-v1 delivery priority
+
+Phase numbers below are stable scope identities, not a numeric execution dependency.
+After the Phase-12 exit gate, the founder-directed delivery sequence is exactly
+`[13, 17, 14, 15, 16]`. Every phase still requires its declared prerequisites,
+bounded orders, executable exit proof and independent review. This neither skips
+unfinished Phases 0–12 nor grants implementation authority from roadmap prose.
+
+## Phase 13 — Voice and Conversational Command Layer
+
+One text/voice pipeline over deterministic Yellow capabilities: consented microphone
+or text input; local-first multilingual speech-to-text; strict structured intent/query
+validation; ordinary tenant/property-authorized evidence retrieval or an existing typed
+command; cited answer with data period, scope, freshness and deep links; optional local
+text-to-speech. Models never choose tenancy, receive database credentials, execute raw
+or model-authored SQL, invent a voice-only capability or make mutation authoritative.
+Live hotel facts come from PostgreSQL retrieval, not model memory. Read-only questions
+land before commands; later commands retain their existing scopes, confirmations,
+approvals, idempotency, audit and fail-closed behavior.
+
+Planned order boundaries: intent/query/command catalogue plus data classification;
+tenant/property-authorized cited retrieval; typed command-draft gateway; local/open
+speech adapter ports with deterministic text fallback; accessible palette/voice UX and
+disambiguation; multilingual/adversarial/evaluation/audit proof; phase exit. Training
+begins only with Yellow terminology, schemas, synthetic scenarios and approved
+question/query pairs. Raw tenant, guest or financial production databases are never a
+shared training corpus; provider, retention and cross-tenant learning require separate
+policy.
+
+**Prerequisites**: approved identity/RLS/audit kernel; independently approved domain
+reads/commands; Phase-10 command palette/PWA and browser consent surface.
+**DoD**: authorized questions across both seeded properties return exact cited results
+with correct period/scope/deep links · cross-tenant, unsupported, ambiguous and injected
+requests fail closed · multilingual speech and text converge to the same validated
+intent · provider/model outage preserves deterministic manual operation · no raw audio
+or tenant data leaves or persists without explicit policy · commands use only ordinary
+independently approved endpoints and confirmations.
+
+## Phase 14 — Adaptive RMS and Revenue Intelligence
+
+Activate `docs/AI-ARCHITECTURE.md`'s governed destination: authoritative pace/pickup
+evidence, data-readiness profiling, versioned forecasts/backtests, channel/campaign
+economics, contribution/bid-price and displacement optimization, explainable
+recommendations, approval UX, guarded distribution publication, causal outcome
+measurement and champion/challenger monitoring. Online automation remains bounded by
+property policy and proven channel capability; negotiated/group decisions remain with
+management unless separately authorized.
+
+**Prerequisites**: approved rates, reservations, finance, distribution and groups plus
+separately approved canonical metric/data-readiness contracts for each bounded order.
+Phase 16 later productizes broader reporting and does not block Phase 14.
+**DoD**: reproducible versioned backtests · recommendations state currency/basis/costs/
+confidence/downside and source snapshot · unsupported channel actions cannot publish ·
+outcome evidence distinguishes uplift from cannibalization · PostgreSQL remains
+sellability and price-history authority.
+
+## Phase 15 — CRM, CRS and Direct Booking
+
+Make the constitution's CRM/CRS/booking-engine promise executable: governed guest
+profile and consent history, preferences and loyalty/relationship services;
+multi-property CRS search; corporate/negotiated eligibility; a branded accessible
+multilingual direct-booking journey with packages/upsells, payment, confirmation and
+governed change/cancel; and staff guest-service/conversation workbenches. No marketing
+purpose or cross-property identity merge is inferred from an operational stay.
+
+**Prerequisites**: approved Party/consent, reservation, rate, payment, distribution and
+PWA contracts.
+**DoD**: direct booking completes search→price/policy→guest→payment→confirmation with
+exact retry behavior · consent/purpose and property visibility are enforceable · profile
+merge and loyalty value cannot alter financial/reservation truth · accessible and
+multilingual journeys pass end to end.
+
+## Phase 16 — Reporting, Forecasting and Executive Intelligence
+
+Authoritative operational, financial, USALI-oriented, pace/pickup, forecast and
+portfolio/executive reporting over governed PostgreSQL facts. Every metric declares
+currency, time basis, denominator, inclusions, exclusions, source freshness and access
+scope. Synthetic scenario demand is never presented as actual production performance.
+
+**Prerequisites**: approved source contexts for each metric and Phase-10 report/owner
+surfaces.
+**DoD**: reports reconcile to source ledgers/occupancy/reservations · pace snapshots are
+reproducible as-of booking time · property/portfolio grants are independently proven ·
+exports preserve filters, provenance and rounding · stale/incomplete evidence is
+visible rather than silently imputed.
+
+## Phase 17 — Events, Outlets and Hotel Interfaces
+
+Activate existing clean-room Groups/Events/Banquets and Ancillary Operations research
+without duplicating Phase 11. Cover function-space inventory and setup/teardown buffers;
+event/catering/BEO/menu/resource lifecycles; outlet/service catalogues; spa/service
+appointments and fulfilment; governed outlet/POS room-charge ingress; and minimized,
+replay-safe adapter contracts for PBX, locks, Wi-Fi, TV, minibar and energy systems.
+Money, occupancy, guest privacy and tenant truth remain in existing bounded contexts.
+Vendor protocols, credentials, retention, certification and spending stay separate
+decisions.
+
+Planned order boundaries: capability/interface inventory and classification; outlet
+catalogue plus transaction-code/USALI routing; spa/service lifecycle; function-space,
+event/catering/BEO model; idempotent outlet-to-folio ingress and corrections; generic
+inbox/outbox adapter ports; operator workbenches; integrated phase exit. Specialist
+scheduling may remain an integration while its guest record and financial effects stay
+inside Yellow.
+
+**Prerequisites**: approved inventory/occupancy, reservations, finance, stay operations,
+tax/fiscal, distribution, PWA, groups and AR capabilities used by a bounded order; Phase
+13 exit precedes Phase 17 by founder priority.
+**DoD**: one function event proves booking→resources/BEO→group billing without double
+occupancy · one outlet/spa service proves fulfilment→room charge→immutable correction→
+separate legal-invoice routing · duplicate/offline/late interface messages converge or
+enter a worked error queue · cross-tenant/guest-privacy hostility fails closed · provider
+outage cannot corrupt occupancy or financial truth.
+
 ## Parked (post-v1, triggers in Architecture v3 §13)
 
 Marina/campground/coworking profiles · OR-Tools matching sidecar · ClickHouse ·

@@ -42,6 +42,17 @@ Palette parses intents: "move 204 to 310", "post minibar 45 to Sharma",
 back confirmations. One grammar, two inputs. Every palette action maps to a
 CONTRACTS.md endpoint — no palette-only capabilities.
 
+Phase 13 generalizes the grammar to authorized hotel-data questions before enabling
+additional commands. A microphone is explicit and consented; text remains complete and
+voice is never required. Speech-to-text produces only a bounded transcript/intent draft.
+The server selects a fixed authorized query or existing typed command, injects the
+authenticated tenant/property context, and returns a cited answer showing period, scope,
+freshness and deep links. The browser/model never receives database credentials, chooses
+tenant scope or executes raw SQL. Ambiguity asks for clarification; unavailable speech,
+model or network falls back to text/manual operation. Raw audio is not retained by
+default. Multilingual voice and text must converge to the same validated intent, result
+and confirmation behavior, with keyboard, screen-reader and reduced-motion equivalents.
+
 ## 5. Screen inventory (v1, in build order)
 
 1. **Arrivals / Departures / In-House boards** — the three home tabs. Columns

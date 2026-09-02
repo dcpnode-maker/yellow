@@ -118,8 +118,11 @@ A phase is complete when its `BUILD-PLAN.md` DoD lines each have a **named execu
 proof** — not a description, a command with output. The phase exit review checks those
 proofs and nothing else; per-order reviews already covered the code.
 
-No phase starts before the previous phase's exit review passes and its integration PR is
-on `main`.
+No Phase 0–12 phase starts before the previous phase's exit review passes and its
+integration PR is on `main`. After Phase 12, stable phase numbers identify scope while
+the explicit founder priority controls execution: `[13, 17, 14, 15, 16]`. Phase 17
+therefore follows Phase 13, then Phases 14–16 resume. Every declared prerequisite and
+exit gate still applies; this is sequencing, not authority to skip work.
 
 ## Order budget and gate map
 
@@ -142,18 +145,59 @@ the load-bearing part of this table.
 | 10 — PWA | 9 | 3 | CSP relaxation for ALTCHA WASM |
 | 11 — Groups & Blocks | 5 | 2 | block→reservation occupancy |
 | 12 — UAE ASP + AR + migration | 7 | 3 | ASP routing, legacy migration |
+| 13 — Voice + conversational commands | 7 | TBD at Phase-12 exit | authorized retrieval/command gateway, tenant/PII evaluation |
+| 14 — Adaptive RMS | 9 | TBD before activation | evidence/optimizer, guarded publish, causal evaluation |
+| 15 — CRM + CRS + direct booking | 8 | TBD before activation | consent/profile merge, booking/payment journey |
+| 16 — Reporting + forecasting | 7 | TBD before activation | financial reconciliation, portfolio grants |
+| 17 — Events + outlets + interfaces | 8 | TBD after Phase-13 exit | space occupancy, outlet money, interface privacy/replay |
 
-Roughly 88 orders and ~33 review gates for the whole system, against ~88 gates under the
-old one-per-order rule. Phases 2 and 5 are where the review effort concentrates, and they
-should — that is where money and double-bookings live.
+### Phase 13 — Voice and Conversational Command Layer
+
+Plan only after approved Phase-10 surfaces and domain commands: classified intent/query
+catalogue; tenant/property-authorized cited read retrieval; typed command-draft gateway;
+local-first multilingual speech ports and deterministic text fallback; accessible UI;
+adversarial evaluation and exit proof. No raw SQL, model tenancy or shared raw-tenant
+training.
+
+### Phase 14 — Adaptive RMS and Revenue Intelligence
+
+Plan bounded canonical metrics/readiness, model/backtest, channel/campaign economics,
+optimizer, explanation/approval, guarded publish, causal outcomes and champion/challenger
+orders after their rates/reservation/finance/distribution/group prerequisites. Phase 16
+later productizes broader reporting and is not a Phase-14 prerequisite.
+
+### Phase 15 — CRM, CRS and Direct Booking
+
+Plan consent/profile/loyalty, multi-property CRS, direct-booking journey and guest-service
+workbench orders after Party, reservation, rate, payment, distribution and PWA authority.
+
+### Phase 16 — Reporting, Forecasting and Executive Intelligence
+
+Plan reconciled operational/financial/USALI, pace/pickup, forecast and portfolio reporting
+after each source context and access scope is approved.
+
+### Phase 17 — Events, Outlets and Hotel Interfaces
+
+Plan classified interface inventory; outlet catalogue/routing; spa/service lifecycle;
+function-space, event/catering/BEO authority; governed outlet-to-folio ingress; minimized
+replay-safe adapter ports; UI and integrated exit proof. Reuse Phase11 group/block truth;
+do not duplicate it. Provider protocols, credentials, retention and certification remain
+separate decisions.
+
+The original Phase0–12 estimate remains roughly 88 orders and ~33 review gates. The
+post-v1 Phase13–17 rows add 39 planning-order placeholders; their batch and final review
+counts are deliberately deferred until prerequisites are approved. Phases 2 and 5 are
+where current review effort concentrates, and they should — that is where money and
+double-bookings live.
 
 ## Detail level, and why it stops where it does
 
 - **Phase 1 is decomposed** in `handoff/PHASE-1-PLAN.md` — orders 019–026, with tiers,
   dependencies, and three decisions deliberately deferred to just before their order.
 - **Phase 2 gets decomposed at Phase 1's exit review**, not now.
-- **Phases 3–12 are named, budgeted, and their Tier-3 surfaces identified — and nothing
-  more.** Writing order-level detail for Phase 8 today would be inventing requirements
+- **Phases 3–12 are named, budgeted, and their Tier-3 surfaces identified. Phases 13–17
+  have capability-level founder outcomes and an explicit priority, but their estimates
+  remain planning figures.** Writing implementation orders far ahead would be inventing requirements
   eighteen months before the code, and every phase so far has changed shape once its
   predecessor landed. A roadmap that pretends otherwise reads well and ages badly.
 

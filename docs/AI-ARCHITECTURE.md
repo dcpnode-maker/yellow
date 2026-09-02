@@ -224,3 +224,47 @@ and approval UX; distribution preflight/publish; causal measurement; group displ
 and champion/challenger monitoring. Schema, events, states, RLS, cross-property learning and pricing
 history changes each require their own architect-approved order and executable proof.
 
+## 8. Phase 13 governed voice and conversational destination
+
+Phase 13 turns the existing human/voice/automation ingress into one usable, local-first
+multilingual question and command layer. The pipeline is exact:
+
+```text
+consented microphone or text
+  -> bounded multilingual speech-to-text (when voice)
+  -> strict intent/query JSON validation
+  -> server-selected authorized query catalogue or existing typed command
+  -> tenant/property context injected by the authenticated transaction
+  -> PostgreSQL/RLS evidence or ordinary command result
+  -> cited answer with period, scope, freshness and deep links
+  -> optional local text-to-speech
+```
+
+The model receives neither database credentials nor authority to choose tenancy, SQL,
+tables, permissions or mutation routes. It cannot execute raw or model-authored SQL. An
+authorized query catalogue may grow until it covers Yellow's governed data, but every
+entry has fixed parameters, classification, result limits, evidence shape and property/
+tenant authorization. Unsupported or ambiguous questions fail closed or ask a bounded
+clarifying question; answers never fill missing facts from model memory.
+
+Read-only retrieval lands before command execution. A later command draft must map to
+an already approved `CONTRACTS.md` capability and preserve that capability's permission,
+confirmation, separation-of-duties, approval, idempotency, audit and transaction rules.
+Voice has no capability unavailable to text/manual operation.
+
+Local/open-source speech and compact quantized language models are preferred deployment
+candidates because latency, privacy and marginal cost matter, but no vendor/model is
+canonical until reproducible multilingual domain benchmarks measure accuracy, latency,
+memory, licensing, failure behavior and supported hardware. Provider-compatible cloud
+fallback remains opt-in deployment policy and cannot receive ineligible data.
+
+Training teaches Yellow vocabulary, schema relationships, workflow language and the
+validated intent/query grammar using documentation, synthetic scenarios and reviewed
+question/query pairs. Changing hotel facts are retrieved live. Raw guest, financial or
+tenant production databases are not copied into shared model weights; tenant-specific
+learning, retention, deletion and cross-property use require separate explicit policy.
+
+Post-v1 scope identities are Phase13 Voice/Conversational, Phase14 Adaptive RMS,
+Phase15 CRM/CRS/Direct Booking, Phase16 Reporting/Forecasting/Executive Intelligence
+and Phase17 Events/Outlets/Hotel Interfaces. Founder delivery priority after Phase12 is
+`[13, 17, 14, 15, 16]`; this does not relax any prerequisite or grant implementation.
