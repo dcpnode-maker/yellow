@@ -484,6 +484,51 @@ databaseDescribe("Order 359 fresh PostgreSQL hostile discrepancy-carry proof", (
     expect(otherProperty.counts.unknownAttribution).toBe(0);
   });
 
+  test("fails closed when carried source date disagrees with the canonical source report event", async () => {
+    const readiness = new BusinessDayCloseReadinessService({ database: database! });
+    await resetCase();
+    const approval = await requestApproval();
+    await decide(approval.approvalId);
+    await carry(approval.approvalId, approval.requestHash);
+
+    const thirdDate = (await deploy!<Array<{ d: string }>>`
+      SELECT (${sourceDate}::date - 1)::text AS d`)[0]!.d;
+    await deploy!`INSERT INTO business_day(tenant_id,property_node,business_date)
+      VALUES(${TENANT}::uuid,${PROPERTY}::uuid,${thirdDate}::date)`;
+
+    await deploy!`WITH canonical AS (
+      SELECT carry.id,
+        encode(digest(jsonb_build_object(
+          'v',1,'tenantId',carry.tenant_id,'propertyNode',carry.property_node,
+          'discrepancyId',source_discrepancy.id,
+          'sourceBusinessDate',${thirdDate}::date,
+          'targetBusinessDate',carry.target_business_date,'reason',carry.reason,
+          'discrepancyStateHash',carry.discrepancy_state_hash,
+          'targetOpenedAt',carry.target_opened_at
+        )::text,'sha256'),'hex') AS request_hash
+      FROM business_day_discrepancy_carry AS carry
+      JOIN discrepancy AS source_discrepancy
+        ON source_discrepancy.tenant_id=carry.tenant_id
+       AND source_discrepancy.id=carry.source_discrepancy_id
+      WHERE carry.tenant_id=${TENANT}::uuid
+    )
+    UPDATE business_day_discrepancy_carry AS carry
+       SET source_business_date=${thirdDate}::date,
+           request_hash=canonical.request_hash
+      FROM canonical
+     WHERE carry.tenant_id=${TENANT}::uuid AND carry.id=canonical.id`;
+
+    const snapshot = await readiness.read({
+      tenantId: TENANT,
+      propertyNode: PROPERTY,
+      businessDate: targetDate,
+      actorId: REQUESTER,
+    });
+    expect(snapshot.counts.unresolvedDiscrepancies).toBe(0);
+    expect(snapshot.counts.unknownAttribution).toBeGreaterThanOrEqual(1);
+    expect(snapshot.ready).toBe(false);
+  });
+
   test("carried readiness fails closed for missing, mixed or mismatched typed lineage and ignores payload", async () => {
     const readiness = new BusinessDayCloseReadinessService({ database: database! });
     const readTarget = () => readiness.read({

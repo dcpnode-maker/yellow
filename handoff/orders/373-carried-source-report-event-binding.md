@@ -87,9 +87,18 @@ the existing public result remain unchanged.
 
 ## Definition of done
 
-- [ ] D1055 exploit is a permanent isolated intentional red before product edits.
+- [x] D1055 exploit is a permanent isolated intentional red before product edits.
 - [ ] Source property/date is exact-bound to exactly one canonical typed source report
       event and every hostile variant fails closed.
 - [ ] Valid ordinary and carried behavior plus all permanent gates remain green.
 - [ ] Different fresh Tier-3 approval is recorded before Orders355/373 close.
 
+## Intentional-red evidence — D1057
+
+On exact activation frontier `2fedd59`, a fresh isolated PostgreSQL 16.15 cluster
+applied migrations 1–63. The complete carry integration file passed all thirteen
+existing cases and failed only the new permanent third-day/source-report binding
+case: **13 pass / 1 fail, 1,860 assertions**. The isolated pattern run was **0 pass /
+1 fail**, with thirteen filtered cases and one assertion: expected unresolved zero,
+received one at the new assertion. The disposable cluster was removed; stable port
+3000 and `.yellow` were untouched. Production remained unedited.
