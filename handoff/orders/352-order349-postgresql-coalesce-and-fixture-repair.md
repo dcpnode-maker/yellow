@@ -1,6 +1,6 @@
 # Order 352 — Order349 PostgreSQL COALESCE and hostile-fixture repair
 
-**Status:** ACTIVE-D997
+**Status:** BUILT-PENDING-DIFFERENT-FRESH-TIER3-REREVIEW-D1002
 **Phase:** 5 — Financials
 **Branch:** `phase-5/order349-postgresql-coalesce-fixture-repair`
 **Base:** exact Order349 candidate `64f31a4` / implementation `533217e`
