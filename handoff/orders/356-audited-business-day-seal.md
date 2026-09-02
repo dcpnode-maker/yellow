@@ -1,10 +1,11 @@
 # Order 356 — Audited business-day seal
 
-**Status:** DRAFT — activation required after approved Orders349/352 and
-independently approved Orders351/355  
+**Status:** ACTIVE-D1066
 **Phase:** 5 — Financials  
 **Branch:** `phase-5/audited-business-day-seal`  
-**Base:** activation must bind the exact approved post-Order355 frontier  
+**Base:** exact approved Order374 governance tip
+`74ce41c743212419b251e5a333dce5b1504012db`; unchanged product frontier
+`c988e8885aabc0eb9063e12a54543e4767cedb1c`
 **Risk tier:** 3 — tenant-scoped financial close transition, immutable evidence and
 concurrent posting/close authority  
 **Owner:** Codex implementation; fresh independent non-implementing Tier-3 reviewer
@@ -25,28 +26,15 @@ snapshot returned by an earlier read is never a seal token. The legacy
 `yellow_runtime` and `app_role` retain no execute privilege on it, and `app_role`
 retains no direct `business_day` DML.
 
-## Authority and activation prerequisites
+## Authority and satisfied activation prerequisites
 
-No intentional red, production edit or test edit is authorized until activation
-records all of the following against one exact commit frontier:
-
-- Order349 and Order352 are approved at the exact D1004 ancestry;
-- Order351's carry table, capability, event and atomic proof are independently
-  approved;
-- Order355's carried-lineage readiness extension is independently approved;
-- the actual post-351/355 function, table, typed outbox columns, readiness query,
-  decoder, context export and focused tests have been re-read, not inferred from
-  these drafts; and
-- the exact migration allocation, catalogue counts, file list and review ancestry
-  are amended here if the actual frontier differs.
-
-The draft currently expects the next migration after the approved carry frontier to
-be `0064_audited_business_day_seal.sql`. This is a reservation, not an allocation:
-activation must recalculate the migration and catalogue frontier and stop on any
-collision. Assuming Orders350/351 remain as contracted and Orders355 is migration-
-free, the provisional post-build catalogue is 64 migrations, 116 public base
-tables, 106 tenant-RLS tables/policies, 15 FORCE-RLS tables and 2 views; no count is
-authority until activation rechecks it.
+Order349/352 are approved at D1004; Orders351/359/363/366/368 are approved at
+D1043; Orders355/373 are approved and closed at D1059/D1060. Activation re-read the
+actual carry table/capability/event, typed outbox columns, readiness query/decoder,
+context export, focused proof and migration catalogue at exact frontier D1065.
+Migration `0064_audited_business_day_seal.sql` is allocated. Post-build catalogue is
+exactly 64 migrations, 116 public base tables, 106 tenant-RLS tables and policies,
+15 FORCE-RLS tables and two views.
 
 ## Ratified policy and natural solution
 
@@ -78,7 +66,7 @@ then appends one minimized fact and one `business_day.sealed` outbox row in that
 same transaction. Any capability, fact, event, idempotency or commit failure rolls
 back the seal.
 
-## Exact command contract (provisional pending activation gaps)
+## Exact command contract
 
 `BusinessDaySealService.seal(tx,input)` accepts only an exact server-bound object:
 
@@ -108,20 +96,22 @@ The command must:
    `business_day.sealed` outbox row, returning a deeply frozen bounded result whose
    `sealedAt` is database-authored.
 
-An exact replay must never append a second fact/event. A divergent reuse of the
-same idempotency key must conflict. The already-sealed-day behavior must be bound
-at activation (see policy gaps below), not silently selected from the legacy
-owner-only function's current `P0012` behavior.
+The durable operation is `financials.business-day.seal`; its request identity is
+exactly actor, property and business date. Exact same-key/content replay returns the
+stored byte-identical 200 receipt with `replayed: true` and no second effect. Divergent
+same-key reuse conflicts. A different key against an already-sealed, missing or stale
+day conflicts rather than becoming a no-op. Concurrent distinct keys yield exactly one
+success; every loser conflicts.
 
-The result contains only tenant/property/day identity, prior state, sealed state,
-database-authored `sealedAt`, actor identity and canonical idempotency/evidence
-identity. It exposes no readiness source rows, payloads, guest data, payment
-tokens, queue bodies or arbitrary database error text.
+The result is exactly tenant/property/day identity, `previousState: "open"`,
+`state: "sealed"`, database-authored `sealedAt`, actor identity and `replayed`. It
+exposes no readiness source rows, payloads, guest data, payment tokens, queue bodies
+or arbitrary database error text.
 
 ## Database capability and evidence
 
-Migration0064 may add exactly one fixed-search-path `SECURITY DEFINER` capability
-(provisional name `seal_business_day_audited`) and no table, view, event, trigger,
+Migration0064 adds exactly one fixed-search-path `SECURITY DEFINER` capability
+`seal_business_day_audited(uuid,uuid,date,uuid)` and no table, view, event, trigger,
 role or generic approval surface. The capability is owned by `yellow_owner`, has
 `SET search_path = pg_catalog, public, pg_temp`, schema-qualifies every relation and
 helper, and is executable only by a `yellow_runtime` session after it has assumed
@@ -138,24 +128,26 @@ database-authored seal evidence. It must not call the legacy function or grant
 `business_day`, `fact_log` and `outbox` remain denied except for their existing
 sanctioned privileges.
 
-The fact uses the established `business_day` entity/fact vocabulary and the event
-uses the already registered `business_day.sealed` type with typed tenant, property,
-business-date, actor, correlation and database-authored seal instant. Payload is
-minimized identifier/state evidence only. Exact fact type, payload keys, event
-version and idempotency/evidence binding must be fixed at activation from the
-existing event/fact conventions; this draft does not invent a second event.
+The service, not the capability, owns idempotency, fact and event publication in the
+same transaction. The fact is `entity_type=business_day`, `entity_id=propertyNode`,
+`fact_type=business_day.sealed`; the version-1 event uses the same type,
+`aggregate_type=business_day`, `aggregate_id=propertyNode`, the audit correlation,
+null causation, typed property/date/actor, and the same minimized payload:
+`{property_node,business_date,previous_state:"open",state:"sealed",sealed_at,sealed_by}`.
+The established fact writer may additionally bind its server-authored request id.
 
-## Exact scope (to be made final at activation)
+## Exact activated scope
 
-- `migrations/0064_audited_business_day_seal.sql` (or the exact collision-free
-  successor allocated at activation);
-- one financials seal service and the existing financials context export;
-- the transaction-bound readiness loader seam only where needed to reuse the
-  approved Order349/352/355 query without changing its public result or semantics;
-- focused intentional-red, unit, fresh-PostgreSQL, authorization, concurrency,
-  rollback, idempotency and zero-write/atomic-evidence tests;
-- directly affected migration, schema, database-acceptance, runtime-authority,
-  runtime-DML and SECURITY-DEFINER containment oracles;
+- `migrations/0064_audited_business_day_seal.sql`;
+- `src/contexts/financials/business-day-seal.ts`,
+  `src/contexts/financials/business-day-close-readiness.ts` only for a byte-equivalent
+  shared readiness fragment if required, and `src/contexts/financials/index.ts`;
+- `tests/business-day-seal.test.ts`, `tests/business-day-seal.integration.test.ts`;
+- directly affected `tests/migrate.integration.test.ts`,
+  `tests/database-acceptance.integration.test.ts`,
+  `tests/security-definer-containment.integration.test.ts`, and only if their exact
+  catalogues require it, runtime-database-authority/runtime-DML oracles;
+- `setup.sh` only for the exact migration/table catalogue assertion;
 - seal-only wording in `docs/CONTRACTS.md`, `docs/STATE-MACHINES.md`,
   `docs/DOMAIN-MODEL-V1.md`, `docs/SECURITY.md`, `BUILD-PLAN.md`,
   `handoff/PHASE-5-PLAN.md` and `handoff/ROADMAP.md`;
@@ -163,44 +155,33 @@ existing event/fact conventions; this draft does not invent a second event.
 
 No HTTP/API/operator/UI route, browser authority, local promotion, seed, Docker,
 `.yellow`, stable port3000, deployment, merge or Phase/application completion claim
-is in scope. Any required file outside the activated list requires a scope question
-or recorded amendment before editing. `migrations/0001_init.sql`, DECISIONS.log and
-`handoff/LEDGER.md` are not edited by this draft.
+is in scope. This order, its review, `DECISIONS.log` and `handoff/LEDGER.md` are
+governance scope. Any other file requires a scope question or recorded amendment.
+`migrations/0001_init.sql` remains immutable.
 
-## Activation policy gaps — do not invent
+## Resolved activation authority — D1066
 
-D990 resolves readiness, interface attribution and discrepancy carry, but it does
-not specify the following seal-specific policy. Activation must obtain a founder or
-already-authoritative decision for each item, record the answer in the activation
-amendment, and then freeze the implementation contract:
+The founder explicitly approved both recommended actor policies. One active,
+authenticated, same-tenant property-scoped actor whose role grants the existing
+`business_day.seal` permission may seal directly. There is no maker/checker approval
+for this command. Phase-7 evidence later uses the same authenticated property-scoped
+fiscal actor rather than an unattended internal job.
 
-1. **Seal authorization:** the exact property-scoped permission/scope for the actor
-   and whether seal is single-actor or requires a separate maker/checker approval.
-   Question179 says “audited actor-bound seal command” but does not choose either
-   model; existing Security text only names approval as a gate and does not define
-   its binding.
-2. **Serialization boundary:** the exact rows/locks or transaction isolation that
-   make all Order349/355 sources and concurrent posting, cashier, discrepancy,
-   interface and outbox changes reject/retry rather than letting readiness drift
-   between the re-read and latch. Existing readiness is intentionally lock-free and
-   Order349 expressly leaves this boundary to the later seal order.
-3. **Replay and already-sealed behavior:** whether same-key replay returns the
-   original result, whether a different key on an already-sealed day is a stable
-   idempotent no-op or conflict, and the exact error/status mapping for missing,
-   stale, sealed and concurrent targets. The state model says sealing is deterministic
-   and idempotent, while the legacy function currently raises `P0012`.
-4. **Canonical audit evidence:** exact fact discriminator, minimized payload keys,
-   event version, causation/correlation binding and whether the approved service or
-   capability owns the fact/outbox insert. Existing `business_day.sealed` is
-   registered, but no audited application seal evidence shape is specified.
-5. **Readiness-source closure:** after Orders351/355, the exact typed carry-link and
-   event columns/constraints and resulting catalogue must be re-read; this order
-   cannot assume draft names or treat any unresolved source as safe merely because
-   the old Order349 snapshot was ready.
+At activation the exact frontier is 63 migrations through 0063, 116 public base
+tables, 106 tenant-RLS tables/policies, 15 FORCE-RLS tables and two security-invoker
+views. Migration0064 adds one function only, producing exact catalogue
+64/116/106/106/15/2.
 
-These are the exact gaps. Until they are resolved and activation records the
-resulting contract, the legacy owner-only seal remains the only executable seal
-authority and no application seal capability may be added.
+Serialization is database-enforced inside the capability before readiness. It takes
+fixed-lexical SHARE locks over every mutable authorization/readiness relation derived
+from the final CTE (including actor, tenant, property, role grant, day, reservation,
+cashier, discrepancy/carry, payment/operation, document, fiscal/statutory submission,
+inbound message and outbox sources), then locks the exact business-day row `FOR UPDATE`,
+reruns the complete Order349/352/355 readiness predicate at one
+`transaction_timestamp()`, and latches only a ready open day. A permanent assertion
+must fail if the final readiness/auth query adds a mutable relation without adding it
+to the lock set. The public lock-free read service remains unchanged and is never a
+seal token.
 
 ## Hostile executable proof
 
@@ -278,12 +259,12 @@ not proof.
   journal/payment/tax/fiscal/document/statutory/channel mutation or new generic
   approval authority;
 - HTTP/UI/local/deployment/`.yellow`/stable-port changes, edits to `migrations/0001_init.sql`,
-  DECISIONS.log or `handoff/LEDGER.md`, self-review, merge, push or Phase/application
+  self-review, merge, push or Phase/application
   completion claim.
 
 ## Definition of done
 
-- [ ] Activation binds approved Orders349/352 and independently approved Orders351/355,
+- [x] Activation binds approved Orders349/352 and independently approved Orders351/355,
       exact post-frontier catalogue and resolved seal policy gaps.
 - [ ] Intentional red precedes implementation and the exact new app capability is
       absent before production edits.
@@ -297,6 +278,6 @@ not proof.
 - [ ] Fresh independent non-implementing Tier-3 reviewer executes and records all
       high-risk proof before approval.
 
-Creation of this draft grants no implementation or seal authority. Completion would
+Activation grants only the exact implementation and proof above. Completion would
 grant only the exact audited application seal command; it would not complete Phase 5
 or the application.
