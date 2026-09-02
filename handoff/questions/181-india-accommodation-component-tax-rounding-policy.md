@@ -1,6 +1,6 @@
 # Question 181 — India accommodation component-tax rounding authority
 
-**Status:** OPEN
+**Status:** RESOLVED — founder approved both recommended policies (D-1005)
 **Raised by:** Codex future-readiness audit after Order350 build
 **Date:** 2026-09-02
 
@@ -80,3 +80,12 @@ residual allocation or defer all integer tax money until invoice grouping is dec
   is the smallest safe boundary. Persisting tax money would be a later insert-only,
   forced-RLS migration after this calculation contract is independently approved.
 
+## Resolution
+
+On 2026-09-02 the founder explicitly replied **“approve both recommended
+policies”**. D-1005 therefore binds both parts of the recommendation: reselect the
+approved slab from each persisted positive final room-night value, and calculate
+each ordered levy component independently with half-up INR-minor-unit rounding before
+summing components without an aggregate residual. Clauses 1–5 above are binding.
+Document/item grouping, section 170 settlement rounding, posting, fiscal issue and
+correction remain outside this decision and require their later bounded orders.
