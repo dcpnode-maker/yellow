@@ -166,6 +166,14 @@ databaseDescribe("Order 356 fresh PostgreSQL seal proof", () => {
       ${TENANT}::uuid,${PROPERTY}::uuid,${DAY}::date,${ACTOR}::uuid)`)).toBe("42501");
     expect(await sqlState(() => database!.withTenantTransaction(TENANT, (tx) => tx`
       UPDATE business_day SET sealed_at=transaction_timestamp() WHERE tenant_id=${TENANT}::uuid`))).toBe("42501");
+    for (const directMutation of [
+      () => database!.withTenantTransaction(TENANT, (tx) => tx`UPDATE fact_log SET payload='{}'::jsonb WHERE tenant_id=${TENANT}::uuid`),
+      () => database!.withTenantTransaction(TENANT, (tx) => tx`DELETE FROM fact_log WHERE tenant_id=${TENANT}::uuid`),
+      () => database!.withTenantTransaction(TENANT, (tx) => tx`TRUNCATE TABLE fact_log`),
+      () => database!.withTenantTransaction(TENANT, (tx) => tx`UPDATE outbox SET published_at=NULL WHERE tenant_id=${TENANT}::uuid`),
+      () => database!.withTenantTransaction(TENANT, (tx) => tx`DELETE FROM outbox WHERE tenant_id=${TENANT}::uuid`),
+      () => database!.withTenantTransaction(TENANT, (tx) => tx`TRUNCATE TABLE outbox`),
+    ]) expect(await sqlState(directMutation)).toBe("42501");
     expect(await evidence()).toEqual({sealed:false,sealed_by:null,facts:0,events:0,keys:0});
   }, 40_000);
 
@@ -222,6 +230,36 @@ databaseDescribe("Order 356 fresh PostgreSQL seal proof", () => {
     expect(outcomes.filter((result) => result.status==="rejected")).toHaveLength(19);
     expect(await evidence()).toEqual({sealed:true,sealed_by:ACTOR,facts:1,events:1,keys:1});
   }, 90_000);
+
+  test("twenty exact-same-key calls replay one effect", async () => {
+    const request = command("order356-same-key-concurrency");
+    const outcomes = await Promise.all(Array.from({length:20},() =>
+      database!.withTenantTransaction(TENANT,(tx) => service!.seal(tx,request))));
+    expect(outcomes.filter((result) => result.replayed===false)).toHaveLength(1);
+    expect(outcomes.filter((result) => result.replayed===true)).toHaveLength(19);
+    const canonical = outcomes.find((result) => result.replayed===false)!;
+    for (const result of outcomes) expect({...result,replayed:false}).toEqual(canonical);
+    expect(await evidence()).toEqual({sealed:true,sealed_by:ACTOR,facts:1,events:1,keys:1});
+  }, 90_000);
+
+  test("seal racing an unpublished financial event observes the committed blocker", async () => {
+    let blockerInserted!: () => void;
+    const inserted = new Promise<void>((resolve) => { blockerInserted=resolve; });
+    const mutation = database!.withTenantTransaction(TENANT,async (tx) => {
+      await tx`INSERT INTO outbox(tenant_id,property_node,business_date,aggregate_type,aggregate_id,event_type,
+        actor_id,correlation_id,payload) VALUES(${TENANT}::uuid,${PROPERTY}::uuid,${DAY}::date,
+        'inventory',${PROPERTY}::uuid,'ari.push_requested',${ACTOR}::uuid,gen_random_uuid(),'{}'::jsonb)`;
+      blockerInserted();
+      await tx`SELECT pg_sleep(0.2)`;
+    });
+    await inserted;
+    const attemptedSeal = seal("order356-outbox-race");
+    const [mutationResult,sealResult] = await Promise.allSettled([mutation,attemptedSeal]);
+    expect(mutationResult.status).toBe("fulfilled");
+    expect(sealResult.status).toBe("rejected");
+    if (sealResult.status==="rejected") expect(sealResult.reason).toBeInstanceOf(BusinessDaySealConflictError);
+    expect(await evidence()).toEqual({sealed:false,sealed_by:null,facts:0,events:0,keys:0});
+  }, 40_000);
 
   test("event failure rolls back latch/fact/outbox/key and a clean retry wins", async () => {
     let observed = false;
