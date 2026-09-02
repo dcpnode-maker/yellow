@@ -448,3 +448,14 @@ export type {
   IndiaGstAccommodationFinalValuationServiceOptions,
   IndiaGstFinalValuationSourceInput,
 } from "./india-gst-accommodation-final-valuation";
+export {
+  IndiaGstAccommodationFinalComponentTaxService,
+  IndiaGstAccommodationFinalComponentTaxValidationError,
+  calculateIndiaGstAccommodationFinalComponentTax,
+} from "./india-gst-accommodation-final-component-tax";
+export type {
+  IndiaGstAccommodationFinalComponentTaxInput,
+  IndiaGstAccommodationFinalComponentTaxResult,
+  IndiaGstAccommodationFinalComponentTaxRoomNight,
+  IndiaGstAccommodationFinalComponentTaxValuation,
+} from "./india-gst-accommodation-final-component-tax";
