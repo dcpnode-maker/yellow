@@ -1,6 +1,6 @@
 # Order 351 — Governed business-day discrepancy carry
 
-**Status:** ACTIVE-D1013
+**Status:** BUILT-PENDING-FRESH-TIER3-D1015
 **Phase:** 5 — Financials
 **Branch:** `phase-5/governed-business-day-discrepancy-carry`
 **Base:** exact approved D1004 Order349/352 and D1012 Order350/354/357/358 frontier `f634d16`
