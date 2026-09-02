@@ -105,3 +105,9 @@ D986 reds, proves corrected cancellation and the exact current financial catalog
 then passes fresh61/111/101/10/2 schema, complete roll/finance/authority/permanent
 gates, standing/static and referee11/11. Automatic roll is closed; seal/readiness/
 carry policy and the Phase5 exit gate remain outstanding.
+
+Order349 now builds D990's audited close-readiness boundary: an immutable, read-only
+exact-day PostgreSQL snapshot with strict sub-five-minute outbox lag and fail-closed
+interface attribution. It does not seal or carry discrepancies. After fresh Tier3
+approval, the remaining Phase5 sequence is discrepancy carry, audited seal and the
+Phase5 exit gate.

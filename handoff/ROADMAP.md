@@ -1094,3 +1094,9 @@ D989 independently approves Orders348 and347 after exact parent-red reproduction
 fresh corrected cancellation, finance, schema, authority, standing/static and
 referee11/11 proof. This closes automatic current-day roll only; seal/readiness/carry,
 local promotion and the Phase5 exit remain separate.
+
+Order349 is the first D990 close slice: one immutable exact-day readiness snapshot,
+strict `<5m` oldest exact-target outbox lag, typed relational blockers and explicit
+unknown/fail-closed incomplete interface attribution. It is read-only and migration-
+free; discrepancy carry, audited seal and Phase5 exit remain subsequent reviewed
+closures.

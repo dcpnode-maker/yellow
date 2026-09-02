@@ -1596,3 +1596,10 @@ financial catalogue truth, fresh61/111/101/10/2 schema, complete roll/finance/
 authority/permanent gates, standing/static and referee11/11. The automatic current-day
 roll is approved; seal/readiness/carry, local promotion and Phase5 completion remain
 separate.
+
+Order349 implements the separately bounded audited close-readiness snapshot approved
+by D990. One tenant transaction and one PostgreSQL statement bind the exact open
+backlog day, typed operational/fiscal evidence, strict oldest exact-target unpublished
+lag below five minutes, and explicit unknown/fail-closed incomplete interface
+attribution. It changes no schema and grants no carry, seal or UI authority. Fresh
+Tier3 executable approval remains required before this readiness slice is closed.

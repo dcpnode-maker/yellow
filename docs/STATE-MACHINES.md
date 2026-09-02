@@ -87,6 +87,13 @@ to the open day via approval_request (emits `discrepancy.carried`) so a seal is 
 hostage to absent staff. Post-seal: only adjustment/correction journals (DB-enforced).
 Emits business_day.sealed.
 
+Order 349 makes the pre-seal checklist executable as a read-only snapshot only. It
+binds an exact open backlog day and reports typed operational blockers, strict
+sub-five-minute exact-target outbox lag, and unknown/fail-closed interface work where
+the present schema cannot safely attribute an exact business date. It performs no
+transition and cannot be reused as seal authorization; carry and seal remain separate
+commands that must revalidate current PostgreSQL truth.
+
 ### 3a. Cashier session — open → closed
 
 Opening binds one property drawer, one custodian and the current property-local open

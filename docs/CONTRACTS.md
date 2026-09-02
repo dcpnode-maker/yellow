@@ -2535,3 +2535,21 @@ same caller transaction. Only `app_role` may execute it; `PUBLIC` and
 `yellow_runtime` cannot. It binds transaction-local tenant context, validates the
 active property and timezone, derives the date, unique-arbitrates the insert and
 returns only `{business_date,opened_at,opened}`.
+
+### Audited business-day close readiness (Order 349)
+
+`BusinessDayCloseReadinessService.read` returns one deeply frozen, read-only snapshot
+for an exact authenticated tenant, active actor, property and existing unsealed
+backlog `business_day`. It executes one CTE statement inside one transaction-local
+tenant transaction and derives its capture instant from PostgreSQL
+`transaction_timestamp()`.
+
+Typed relational evidence owns due-in/out, open-cashier, unresolved-discrepancy and
+fiscal attribution. Exact-target unpublished outbox lag is acceptable only when the
+oldest row is strictly younger than five minutes; no matching row is zero lag.
+Pending payment, statutory or channel work without typed exact business-date
+attribution is reported as `source_attribution_unknown` and fails closed. Payload
+JSON, browser booleans, process clocks and current-timezone reconstruction have no
+authority. The snapshot writes nothing and never authorizes carry, seal, reopen,
+retry, acknowledgement or any other state change; the later seal command must rerun
+the evidence under its own guarded transaction.
