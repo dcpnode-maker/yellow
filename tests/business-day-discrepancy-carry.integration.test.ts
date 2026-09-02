@@ -24,12 +24,17 @@ const ROLE_APPROVE = "00000000-0000-0000-0000-000000035932";
 const SPACE = "00000000-0000-0000-0000-000000035941";
 const DISCREPANCY = "00000000-0000-0000-0000-000000035951";
 const FOREIGN_DISCREPANCY = "00000000-0000-0000-0000-000000035952";
+const REUSE_TARGET = "00000000-0000-0000-0000-000000035961";
+const REUSE_SOURCE = "00000000-0000-0000-0000-000000035962";
+const REUSE_REQUEST = "00000000-0000-0000-0000-000000035963";
+const REUSE_REQUEST_2 = "00000000-0000-0000-0000-000000035964";
 
 let deploy: SQL | undefined;
 let runtime: SQL | undefined;
 let runtimePool: SQL | undefined;
 let database: Database | undefined;
 let service: BusinessDayDiscrepancyCarryService | undefined;
+let eventBus: EventBus | undefined;
 let targetDate = "";
 let sourceDate = "";
 
@@ -66,7 +71,24 @@ async function counts() {
 }
 
 const CANONICAL_FINANCIAL_TABLES = [
-  "account", "folio", "journal", "posting_line", "payment_instrument", "payment",
+  "account", "folio", "folio_balance", "journal", "posting_line", "payment_instrument", "payment",
+  "cash_drawer", "cash_drawer_denomination", "cashier_session", "cashier_count", "cashier_count_line", "trust_negative_authorization",
+  "document_series", "document", "tax_assignment", "tax_attribution_snapshot",
+  "tax_attribution_hold_binding", "tax_attribution_reservation_binding",
+  "tax_attribution_journal_binding", "tax_semantic_route", "fiscal_submission",
+  "statutory_submission", "payment_operation", "provider_event_receipt", "hosted_payment_request",
+  "property_fiscal_registration", "party_fiscal_registration", "property_fiscal_location",
+  "india_gst_item_classification", "india_gst_supplier_service_location",
+  "india_gst_recipient_sez_status", "india_gst_supplier_sez_status", "india_sez_unit_loa_renewal",
+  "india_gst_supplier_registration_status_snapshot", "india_gst_accommodation_payment_receipt_snapshot",
+  "india_gst_accommodation_service_provision_snapshot", "india_gst_accommodation_invoice_issue_snapshot",
+  "india_gst_accommodation_final_valuation", "india_gst_accommodation_valuation_source",
+  "india_gst_accommodation_valuation_room_night", "india_gst_accommodation_valuation_allocation",
+] as const;
+
+const EXPECTED_FINANCIAL_SNAPSHOT_TABLES = [
+  "account", "folio", "folio_balance", "journal", "posting_line", "payment_instrument", "payment",
+  "cash_drawer", "cash_drawer_denomination", "cashier_session", "cashier_count", "cashier_count_line", "trust_negative_authorization",
   "document_series", "document", "tax_assignment", "tax_attribution_snapshot",
   "tax_attribution_hold_binding", "tax_attribution_reservation_binding",
   "tax_attribution_journal_binding", "tax_semantic_route", "fiscal_submission",
@@ -94,6 +116,19 @@ async function financialSnapshot(): Promise<Record<string, string>> {
     snapshot[table] = rows[0]?.bytes ?? "";
   }
   return snapshot;
+}
+
+function assertFinancialSnapshotSurface(snapshot: Record<string, string>): void {
+  expect(Object.keys(snapshot).sort()).toEqual([...EXPECTED_FINANCIAL_SNAPSHOT_TABLES].sort());
+  for (const table of EXPECTED_FINANCIAL_SNAPSHOT_TABLES) expect(typeof snapshot[table]).toBe("string");
+}
+
+function stableBodyBytes(value: unknown): string {
+  if (Array.isArray(value)) return `[${value.map(stableBodyBytes).join(",")}]`;
+  if (value && typeof value === "object") {
+    return `{${Object.keys(value).sort().map((key) => `${JSON.stringify(key)}:${stableBodyBytes((value as Record<string, unknown>)[key])}`).join(",")}}`;
+  }
+  return JSON.stringify(value);
 }
 
 async function expectRuntimeDenied(statement: string): Promise<void> {
@@ -194,13 +229,49 @@ async function carry(approvalId: string, requestHash: string, key = `order359-ca
 }
 
 async function carryAs(approvalId: string, requestHash: string, options: {
-  key?: string; tenantId?: string; actorId?: string; propertyNode?: string;
+  key?: string; tenantId?: string; actorId?: string; propertyNode?: string; requestId?: string;
 } = {}) {
   const tenantId = options.tenantId ?? TENANT;
   return database!.withTenantTransaction(tenantId, (tx) => service!.carry(tx, {
     tenantId, approvalId, expectedRequestHash: requestHash, idempotencyKey: options.key ?? `order359-carry-${crypto.randomUUID()}`,
-    envelope: { tenantId, propertyNode: options.propertyNode ?? PROPERTY, actorId: options.actorId ?? REQUESTER, requestId: crypto.randomUUID(), operation: "discrepancy.carried" },
+    envelope: { tenantId, propertyNode: options.propertyNode ?? PROPERTY, actorId: options.actorId ?? REQUESTER, requestId: options.requestId ?? crypto.randomUUID(), operation: "discrepancy.carried" },
   }));
+}
+
+async function insertCarryFixture(approvalId: string, values: {
+  readonly requestId: string;
+  readonly sourceDiscrepancyId: string;
+  readonly targetDiscrepancyId: string;
+}): Promise<void> {
+  await deploy!`INSERT INTO business_day_discrepancy_carry(
+    tenant_id,request_id,property_node,source_discrepancy_id,target_discrepancy_id,
+    source_business_date,target_business_date,target_opened_at,space_id,discrepancy_state_hash,
+    reason,request_hash,approval_request_id,requested_by,approved_by,approval_requested_at,approval_decided_at
+  )
+  SELECT ${TENANT}::uuid,${values.requestId}::uuid,${PROPERTY}::uuid,
+    ${values.sourceDiscrepancyId}::uuid,${values.targetDiscrepancyId}::uuid,
+    ${sourceDate}::date,${targetDate}::date,day.opened_at,${SPACE}::uuid,
+    approval.payload->>'discrepancyStateHash','Order 366 reuse fixture',approval.payload->>'requestHash',
+    approval.id,approval.requested_by,approval.decided_by,approval.created_at,approval.decided_at
+  FROM approval_request approval
+  CROSS JOIN business_day day
+  WHERE approval.tenant_id=${TENANT}::uuid AND approval.id=${approvalId}::uuid
+    AND day.tenant_id=${TENANT}::uuid AND day.property_node=${PROPERTY}::uuid AND day.business_date=${targetDate}::date`;
+}
+
+async function insertReuseDiscrepancies(): Promise<void> {
+  await deploy!`INSERT INTO discrepancy(id,tenant_id,space_id,reported,system_state,reported_by,resolved_at,resolution)
+    VALUES
+      (${REUSE_TARGET}::uuid,${TENANT}::uuid,${SPACE}::uuid,'occupied','vacant',${REQUESTER}::uuid,transaction_timestamp(),'carried_forward'),
+      (${REUSE_SOURCE}::uuid,${TENANT}::uuid,${SPACE}::uuid,'occupied','vacant',${REQUESTER}::uuid,transaction_timestamp(),'carried_forward')`;
+}
+
+async function expectSqlState(operation: () => Promise<unknown>, state: string): Promise<void> {
+  try { await operation(); } catch (error) {
+    expect(error).toMatchObject({ errno: state });
+    return;
+  }
+  throw new Error(`expected PostgreSQL ${state}`);
 }
 
 databaseDescribe("Order 359 fresh PostgreSQL hostile discrepancy-carry proof", () => {
@@ -218,6 +289,7 @@ databaseDescribe("Order 359 fresh PostgreSQL hostile discrepancy-carry proof", (
       },
       consumeBatch: (...args) => canonicalEvents.consumeBatch(...args),
     };
+    eventBus = normalizingEvents;
     service = new BusinessDayDiscrepancyCarryService({ events: normalizingEvents, idempotency: new Order359Idempotency() });
     targetDate = (await deploy<Array<{ d: string }>>`SELECT (transaction_timestamp() AT TIME ZONE 'UTC')::date::text d`)[0]!.d;
     sourceDate = (await deploy<Array<{ d: string }>>`SELECT (${targetDate}::date - 1)::text d`)[0]!.d;
@@ -243,7 +315,8 @@ databaseDescribe("Order 359 fresh PostgreSQL hostile discrepancy-carry proof", (
       (${ROLE_APPROVE}::uuid,'financials.business-day:approve-discrepancy-carry')`;
     await deploy!`INSERT INTO user_role(tenant_id,user_id,role_id,scope_node) VALUES
       (${TENANT}::uuid,${REQUESTER}::uuid,${ROLE_REQUEST}::uuid,${PROPERTY}::uuid),
-      (${TENANT}::uuid,${APPROVER}::uuid,${ROLE_APPROVE}::uuid,${PROPERTY}::uuid)`;
+      (${TENANT}::uuid,${APPROVER}::uuid,${ROLE_APPROVE}::uuid,${PROPERTY}::uuid),
+      (${TENANT}::uuid,${INACTIVE}::uuid,${ROLE_APPROVE}::uuid,${PROPERTY}::uuid)`;
     await deploy!`INSERT INTO space(id,tenant_id,property_node,code,profile_key,capacity,status)
       VALUES(${SPACE}::uuid,${TENANT}::uuid,${PROPERTY}::uuid,'ORDER359','hotel',1,'active')`;
     await resetCase();
@@ -338,6 +411,7 @@ databaseDescribe("Order 359 fresh PostgreSQL hostile discrepancy-carry proof", (
 
   test("success is atomic, immutable, one-use and financially isolated", async () => {
     const before = await financialSnapshot();
+    assertFinancialSnapshotSurface(before);
     const approval = await requestApproval(); await decide(approval.approvalId);
     const beforeDays = await deploy!<Array<{ business_date: string; opened_at: string; sealed_at: string | null }>>`SELECT business_date::text,opened_at::text,sealed_at::text FROM business_day WHERE tenant_id=${TENANT}::uuid AND property_node=${PROPERTY}::uuid ORDER BY business_date`;
     const result = await carry(approval.approvalId, approval.requestHash, "order359-replay-key");
@@ -354,6 +428,7 @@ databaseDescribe("Order 359 fresh PostgreSQL hostile discrepancy-carry proof", (
     expect(await deploy!<Array<{ business_date: string; opened_at: string; sealed_at: string | null }>>`SELECT business_date::text,opened_at::text,sealed_at::text FROM business_day WHERE tenant_id=${TENANT}::uuid AND property_node=${PROPERTY}::uuid ORDER BY business_date`).toEqual(beforeDays);
     await expect(runtime!.begin(async tx => { await tx`SELECT set_config('app.tenant_id',${TENANT},true)`; await tx.unsafe("SET LOCAL ROLE app_role"); return tx`INSERT INTO business_day_discrepancy_carry(tenant_id,request_id,property_node,source_discrepancy_id,target_discrepancy_id,source_business_date,target_business_date,target_opened_at,space_id,discrepancy_state_hash,reason,request_hash,approval_request_id,requested_by,approved_by,approval_requested_at,approval_decided_at) VALUES(${TENANT}::uuid,gen_random_uuid(),${PROPERTY}::uuid,${DISCREPANCY}::uuid,gen_random_uuid(),${sourceDate}::date,${targetDate}::date,now(),${SPACE}::uuid,${"0".repeat(64)},'raw',${"0".repeat(64)},${approval.approvalId}::uuid,${REQUESTER}::uuid,${APPROVER}::uuid,now(),now())` })).rejects.toThrow();
     const after = await financialSnapshot();
+    assertFinancialSnapshotSurface(after);
     expect(after).toEqual(before);
   });
 
@@ -362,9 +437,16 @@ databaseDescribe("Order 359 fresh PostgreSQL hostile discrepancy-carry proof", (
       await resetCase();
       const approval = await requestApproval(); await decide(approval.approvalId);
       const before = await financialSnapshot();
+      assertFinancialSnapshotSurface(before);
       const key = `order359-${boundary}-rollback`;
       if (boundary === "event") {
-        const failing: EventBus = { publish: async () => { throw new Error(`order359 injected ${boundary} failure`); } } as unknown as EventBus;
+        const failing: EventBus = {
+          publish: async (tx, event) => {
+            await eventBus!.publish(tx, event);
+            throw new Error(`order359 injected ${boundary} failure`);
+          },
+          consumeBatch: (...args) => eventBus!.consumeBatch(...args),
+        };
         const broken = new BusinessDayDiscrepancyCarryService({ events: failing, idempotency: new PostgresIdempotency() });
         await expect(database!.withTenantTransaction(TENANT, (tx) => broken.carry(tx, {
           tenantId: TENANT, approvalId: approval.approvalId, expectedRequestHash: approval.requestHash, idempotencyKey: key,
@@ -374,7 +456,9 @@ databaseDescribe("Order 359 fresh PostgreSQL hostile discrepancy-carry proof", (
         await injectBoundaryFailure(boundary, () => carry(approval.approvalId, approval.requestHash, key));
       }
       expect(await counts()).toMatchObject({ carries: 0, discrepancies: 1, facts: 0, events: 0, keys: 0 });
-      expect(await financialSnapshot()).toEqual(before);
+      const after = await financialSnapshot();
+      assertFinancialSnapshotSurface(after);
+      expect(after).toEqual(before);
       expect((await carry(approval.approvalId, approval.requestHash, key)).replayed).toBe(false);
     }
   });
@@ -385,6 +469,13 @@ databaseDescribe("Order 359 fresh PostgreSQL hostile discrepancy-carry proof", (
     const same = await Promise.allSettled(Array.from({ length: 20 }, () => carry(approval.approvalId, approval.requestHash, sameKey)));
     expect(same.filter((r) => r.status === "fulfilled")).toHaveLength(20);
     expect(same.filter((r) => r.status === "rejected")).toHaveLength(0);
+    const sameResults = same.filter((r): r is PromiseFulfilledResult<Awaited<ReturnType<typeof carry>>> => r.status === "fulfilled").map((r) => r.value);
+    const sameBodies = sameResults.map(({ replayed: _replayed, ...body }) => stableBodyBytes(body));
+    expect(new Set(sameResults.map((result) => result.carryId)).size).toBe(1);
+    expect(new Set(sameBodies).size).toBe(1);
+    const exactReplay = await carry(approval.approvalId, approval.requestHash, sameKey);
+    const { replayed: _replayed, ...exactBody } = exactReplay;
+    expect(sameBodies[0]).toBe(stableBodyBytes(exactBody));
     expect(await counts()).toMatchObject({ carries: 1, facts: 1, events: 1, keys: 1 });
 
     await resetCase();
@@ -401,6 +492,43 @@ databaseDescribe("Order 359 fresh PostgreSQL hostile discrepancy-carry proof", (
     expect(await deploy!<Array<{ carries: number }>>`SELECT count(*)::int carries FROM business_day_discrepancy_carry WHERE tenant_id=${TENANT}::uuid`).toEqual([{ carries: 1 }]);
     expect(await database!.withTenantTransaction(FOREIGN_TENANT, (tx) => tx<Array<Record<string, unknown>>>`SELECT * FROM business_day_discrepancy_carry WHERE tenant_id=${TENANT}::uuid`)).toEqual([]);
     expect(await deploy!<Array<{ count: number }>>`SELECT count(*)::int FROM business_day_discrepancy_carry WHERE tenant_id=${FOREIGN_TENANT}::uuid`).toEqual([{ count: 0 }]);
+  });
+
+  test("approval, request and target one-use constraints are independently load-bearing", async () => {
+    await resetCase();
+    const consumedApproval = await requestApproval(); await decide(consumedApproval.approvalId);
+    await insertReuseDiscrepancies();
+    await insertCarryFixture(consumedApproval.approvalId, {
+      requestId: REUSE_REQUEST, sourceDiscrepancyId: DISCREPANCY, targetDiscrepancyId: REUSE_TARGET,
+    });
+    await rejected(() => carry(consumedApproval.approvalId, consumedApproval.requestHash, "order366-approval-reuse"));
+    expect(await deploy!<Array<{ resolved_at: Date | null; resolution: string | null }>>`SELECT resolved_at,resolution FROM discrepancy WHERE tenant_id=${TENANT}::uuid AND id=${DISCREPANCY}::uuid`).toEqual([{ resolved_at: null, resolution: null }]);
+    expect(await deploy!<Array<{ count: number }>>`SELECT count(*)::int FROM business_day_discrepancy_carry WHERE tenant_id=${TENANT}::uuid`).toEqual([{ count: 1 }]);
+
+    await resetCase();
+    const requestOwner = await requestApproval(); await decide(requestOwner.approvalId);
+    const requestCandidate = await requestApproval(); await decide(requestCandidate.approvalId);
+    await insertReuseDiscrepancies();
+    await insertCarryFixture(requestOwner.approvalId, {
+      requestId: REUSE_REQUEST, sourceDiscrepancyId: DISCREPANCY, targetDiscrepancyId: REUSE_TARGET,
+    });
+    await rejected(() => carryAs(requestCandidate.approvalId, requestCandidate.requestHash, {
+      key: "order366-request-reuse", requestId: REUSE_REQUEST,
+    }));
+    expect(await deploy!<Array<{ resolved_at: Date | null; resolution: string | null }>>`SELECT resolved_at,resolution FROM discrepancy WHERE tenant_id=${TENANT}::uuid AND id=${DISCREPANCY}::uuid`).toEqual([{ resolved_at: null, resolution: null }]);
+    expect(await deploy!<Array<{ count: number }>>`SELECT count(*)::int FROM business_day_discrepancy_carry WHERE tenant_id=${TENANT}::uuid`).toEqual([{ count: 1 }]);
+
+    await resetCase();
+    const targetOwner = await requestApproval(); await decide(targetOwner.approvalId);
+    const targetCandidate = await requestApproval(); await decide(targetCandidate.approvalId);
+    await insertReuseDiscrepancies();
+    await insertCarryFixture(targetOwner.approvalId, {
+      requestId: REUSE_REQUEST, sourceDiscrepancyId: REUSE_SOURCE, targetDiscrepancyId: REUSE_TARGET,
+    });
+    await expectSqlState(() => insertCarryFixture(targetCandidate.approvalId, {
+      requestId: REUSE_REQUEST_2, sourceDiscrepancyId: DISCREPANCY, targetDiscrepancyId: REUSE_TARGET,
+    }), "23505");
+    expect(await deploy!<Array<{ count: number }>>`SELECT count(*)::int FROM business_day_discrepancy_carry WHERE tenant_id=${TENANT}::uuid`).toEqual([{ count: 1 }]);
   });
 
   test("every tenant, property, room, day, approval and actor binding fails closed with zero artifacts", async () => {
@@ -440,7 +568,15 @@ databaseDescribe("Order 359 fresh PostgreSQL hostile discrepancy-carry proof", (
     });
 
     await resetCase();
-    const inactiveDecider = await requestApproval(); await decide(inactiveDecider.approvalId, { decider: INACTIVE });
+    const inactiveDecider = await requestApproval();
+    expect(await deploy!<Array<{ status: string; scope_node: string; permission_code: string }>>`SELECT u.status,ur.scope_node,rp.permission_code
+      FROM app_user u JOIN user_role ur ON ur.tenant_id=u.tenant_id AND ur.user_id=u.id
+      JOIN role_permission rp ON rp.role_id=ur.role_id
+      WHERE u.tenant_id=${TENANT}::uuid AND u.id=${INACTIVE}::uuid`).toEqual([
+      { status: "active", scope_node: PROPERTY, permission_code: "financials.business-day:approve-discrepancy-carry" },
+    ]);
+    await decide(inactiveDecider.approvalId, { decider: INACTIVE });
+    await deploy!`UPDATE app_user SET status='inactive' WHERE tenant_id=${TENANT}::uuid AND id=${INACTIVE}::uuid`;
     await rejected(() => carry(inactiveDecider.approvalId, inactiveDecider.requestHash));
     expect(await counts()).toMatchObject({ carries: 0, discrepancies: 1, facts: 0, events: 0, keys: 0 });
 
@@ -470,10 +606,13 @@ databaseDescribe("Order 359 fresh PostgreSQL hostile discrepancy-carry proof", (
       has_table_privilege('app_role','public.business_day_discrepancy_carry','DELETE') AS del,
       has_table_privilege('app_role','public.business_day_discrepancy_carry','TRUNCATE') AS trunc,
       has_table_privilege('yellow_runtime','public.business_day_discrepancy_carry','SELECT') AS runtime_sel,
+      has_function_privilege('app_role','public.prepare_business_day_discrepancy_carry(uuid,uuid,uuid,date,date,text,uuid,uuid)','EXECUTE') AS prepare_app_exec,
+      has_function_privilege('yellow_runtime','public.prepare_business_day_discrepancy_carry(uuid,uuid,uuid,date,date,text,uuid,uuid)','EXECUTE') AS prepare_runtime_exec,
+      has_function_privilege('public','public.prepare_business_day_discrepancy_carry(uuid,uuid,uuid,date,date,text,uuid,uuid)','EXECUTE') AS prepare_public_exec,
       has_function_privilege('app_role','public.carry_business_day_discrepancy(uuid,uuid,text,uuid,uuid)','EXECUTE') AS app_exec,
       has_function_privilege('yellow_runtime','public.carry_business_day_discrepancy(uuid,uuid,text,uuid,uuid)','EXECUTE') AS runtime_exec,
       has_function_privilege('public','public.carry_business_day_discrepancy(uuid,uuid,text,uuid,uuid)','EXECUTE') AS public_exec`;
-    expect(privileges).toEqual([{ sel: true, ins: false, upd: false, del: false, trunc: false, runtime_sel: false, app_exec: true, runtime_exec: false, public_exec: false }]);
+    expect(privileges).toEqual([{ sel: true, ins: false, upd: false, del: false, trunc: false, runtime_sel: false, prepare_app_exec: true, prepare_runtime_exec: false, prepare_public_exec: false, app_exec: true, runtime_exec: false, public_exec: false }]);
     for (const statement of [
       "INSERT INTO public.business_day_discrepancy_carry DEFAULT VALUES",
       "UPDATE public.business_day_discrepancy_carry SET reason=reason",
@@ -484,6 +623,15 @@ databaseDescribe("Order 359 fresh PostgreSQL hostile discrepancy-carry proof", (
     expect(sequences).toEqual([]);
     const runtimeConnection = await runtimePool!.reserve();
     try {
+      await runtimeConnection.unsafe("BEGIN");
+      await runtimeConnection`SELECT set_config('app.tenant_id',${TENANT},true)`;
+      try {
+        await runtimeConnection.unsafe(`SELECT * FROM public.prepare_business_day_discrepancy_carry('${TENANT}'::uuid,'${PROPERTY}'::uuid,'${DISCREPANCY}'::uuid,'${sourceDate}'::date,'${targetDate}'::date,'Order 366 ACL','${crypto.randomUUID()}'::uuid,'${REQUESTER}'::uuid)`);
+        throw new Error("yellow_runtime unexpectedly executed prepare function");
+      } catch (error) {
+        expect(error).toMatchObject({ errno: "42501" });
+      }
+      await runtimeConnection.unsafe("ROLLBACK");
       await runtimeConnection.unsafe("BEGIN");
       await runtimeConnection`SELECT set_config('app.tenant_id',${TENANT},true)`;
       try {
@@ -507,6 +655,10 @@ databaseDescribe("Order 359 fresh PostgreSQL hostile discrepancy-carry proof", (
       await connection.unsafe("SET LOCAL ROLE app_role");
       await connection.unsafe("SET LOCAL search_path=pg_temp,public");
       await connection.unsafe("CREATE TEMP TABLE business_day_discrepancy_carry(tenant_id uuid)");
+      const prepared = await connection`SELECT * FROM public.prepare_business_day_discrepancy_carry(
+        ${TENANT}::uuid,${PROPERTY}::uuid,${DISCREPANCY}::uuid,${sourceDate}::date,${targetDate}::date,
+        'Order 366 prepare ACL',${crypto.randomUUID()}::uuid,${REQUESTER}::uuid)`;
+      expect(prepared).toHaveLength(1);
       const rows = await connection`SELECT * FROM public.carry_business_day_discrepancy(
         ${TENANT}::uuid,${approval.approvalId}::uuid,${approval.requestHash},${crypto.randomUUID()}::uuid,${REQUESTER}::uuid)`;
       expect(rows).toHaveLength(1);
