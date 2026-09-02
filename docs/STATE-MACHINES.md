@@ -104,6 +104,14 @@ the present schema cannot safely attribute an exact business date. It performs n
 transition and cannot be reused as seal authorization; carry and seal remain separate
 commands that must revalidate current PostgreSQL truth.
 
+Order 355 extends only that read snapshot's discrepancy attribution. A carried
+target blocks its exact target day through one canonical typed
+`discrepancy.carried` event plus one immutable source-to-target carry link whose
+state/request hashes recompute exactly. It does not block the source day. Ordinary
+report and governed-carry creation lineages are mutually exclusive; absent,
+duplicate, mixed or mismatched typed evidence remains unknown/fail-closed, and event
+payload JSON has no authority. No transition or seal authority is added.
+
 ### 3a. Cashier session — open → closed
 
 Opening binds one property drawer, one custodian and the current property-local open

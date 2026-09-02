@@ -1,6 +1,7 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from "bun:test";
 import { SQL } from "bun";
 import {
+  BusinessDayCloseReadinessService,
   BusinessDayDiscrepancyCarryService,
 } from "../src/contexts/financials";
 import { Database, PostgresEventBus, PostgresIdempotency, type EventBus, type IdempotencyCommandResult, type IdempotencyInput, type IdempotencyResult, type JsonValue, type Tx } from "../src/kernel";
@@ -14,6 +15,7 @@ const databaseDescribe = DEPLOY && RUNTIME ? describe.serial : describe.skip;
 const TENANT = "00000000-0000-0000-0000-000000035901";
 const FOREIGN_TENANT = "00000000-0000-0000-0000-000000035902";
 const PROPERTY = "00000000-0000-0000-0000-000000035911";
+const OTHER_PROPERTY = "00000000-0000-0000-0000-000000035913";
 const FOREIGN_PROPERTY = "00000000-0000-0000-0000-000000035912";
 const REQUESTER = "00000000-0000-0000-0000-000000035921";
 const APPROVER = "00000000-0000-0000-0000-000000035922";
@@ -22,6 +24,7 @@ const INACTIVE = "00000000-0000-0000-0000-000000035924";
 const ROLE_REQUEST = "00000000-0000-0000-0000-000000035931";
 const ROLE_APPROVE = "00000000-0000-0000-0000-000000035932";
 const SPACE = "00000000-0000-0000-0000-000000035941";
+const OTHER_SPACE = "00000000-0000-0000-0000-000000035942";
 const DISCREPANCY = "00000000-0000-0000-0000-000000035951";
 const FOREIGN_DISCREPANCY = "00000000-0000-0000-0000-000000035952";
 const REUSE_TARGET = "00000000-0000-0000-0000-000000035961";
@@ -195,7 +198,9 @@ async function resetCase(): Promise<void> {
     await tx`DELETE FROM business_day WHERE tenant_id=${TENANT}::uuid`;
     await tx`INSERT INTO business_day(tenant_id,property_node,business_date)
       VALUES(${TENANT}::uuid,${PROPERTY}::uuid,${sourceDate}::date),
-            (${TENANT}::uuid,${PROPERTY}::uuid,${targetDate}::date)`;
+            (${TENANT}::uuid,${PROPERTY}::uuid,${targetDate}::date),
+            (${TENANT}::uuid,${OTHER_PROPERTY}::uuid,${sourceDate}::date),
+            (${TENANT}::uuid,${OTHER_PROPERTY}::uuid,${targetDate}::date)`;
     await tx`INSERT INTO discrepancy(id,tenant_id,space_id,reported,system_state,reported_by)
       VALUES(${DISCREPANCY}::uuid,${TENANT}::uuid,${SPACE}::uuid,'occupied','vacant',${REQUESTER}::uuid)`;
     await tx`INSERT INTO outbox(tenant_id,property_node,business_date,aggregate_type,aggregate_id,event_type,
@@ -297,6 +302,7 @@ databaseDescribe("Order 359 fresh PostgreSQL hostile discrepancy-carry proof", (
       (${FOREIGN_TENANT}::uuid,'order359-foreign','Order 359 foreign','shared','active')`;
     await deploy!`INSERT INTO org_node(id,tenant_id,path,kind,name,timezone,currency) VALUES
       (${PROPERTY}::uuid,${TENANT}::uuid,'order359','property','Order 359','UTC','USD'),
+      (${OTHER_PROPERTY}::uuid,${TENANT}::uuid,'order359.other','property','Order 359 other','UTC','USD'),
       (${FOREIGN_PROPERTY}::uuid,${FOREIGN_TENANT}::uuid,'order359f','property','Order 359 foreign','UTC','USD')`;
     await deploy!`INSERT INTO app_user(id,tenant_id,email,display_name,status) VALUES
       (${REQUESTER}::uuid,${TENANT}::uuid,'requester@order359.test','Order 359 requester','active'),
@@ -316,8 +322,9 @@ databaseDescribe("Order 359 fresh PostgreSQL hostile discrepancy-carry proof", (
       (${TENANT}::uuid,${REQUESTER}::uuid,${ROLE_REQUEST}::uuid,${PROPERTY}::uuid),
       (${TENANT}::uuid,${APPROVER}::uuid,${ROLE_APPROVE}::uuid,${PROPERTY}::uuid),
       (${TENANT}::uuid,${INACTIVE}::uuid,${ROLE_APPROVE}::uuid,${PROPERTY}::uuid)`;
-    await deploy!`INSERT INTO space(id,tenant_id,property_node,code,profile_key,capacity,status)
-      VALUES(${SPACE}::uuid,${TENANT}::uuid,${PROPERTY}::uuid,'ORDER359','hotel',1,'active')`;
+    await deploy!`INSERT INTO space(id,tenant_id,property_node,code,profile_key,capacity,status) VALUES
+      (${SPACE}::uuid,${TENANT}::uuid,${PROPERTY}::uuid,'ORDER359','hotel',1,'active'),
+      (${OTHER_SPACE}::uuid,${TENANT}::uuid,${OTHER_PROPERTY}::uuid,'ORDER355OTHER','hotel',1,'active')`;
     await resetCase();
   }, 40_000);
 
@@ -434,6 +441,149 @@ databaseDescribe("Order 359 fresh PostgreSQL hostile discrepancy-carry proof", (
     for (const relation of relations.filter((name) => !EXPECTED_CARRY_MUTATION_SURFACES.has(name))) {
       expect(after[relation]).toBe(before[relation]);
     }
+  });
+
+  test("carried target is a safely attributed readiness blocker", async () => {
+    const approval = await requestApproval();
+    await decide(approval.approvalId);
+    const result = await carry(approval.approvalId, approval.requestHash, "order355-readiness-lineage");
+    const readiness = new BusinessDayCloseReadinessService({ database: database! });
+
+    const target = await readiness.read({
+      tenantId: TENANT,
+      propertyNode: PROPERTY,
+      businessDate: targetDate,
+      actorId: REQUESTER,
+    });
+    expect(result.targetBusinessDate).toBe(`${targetDate}T00:00:00.000Z`);
+    expect(target.counts.unresolvedDiscrepancies).toBe(1);
+    expect(target.counts.unknownAttribution).toBe(0);
+    expect(target.reasons).toContainEqual({
+      code: "unresolved_discrepancy",
+      source: "discrepancies",
+      count: 1,
+    });
+    expect(target.ready).toBe(false);
+
+    const source = await readiness.read({
+      tenantId: TENANT,
+      propertyNode: PROPERTY,
+      businessDate: sourceDate,
+      actorId: REQUESTER,
+    });
+    expect(source.counts.unresolvedDiscrepancies).toBe(0);
+    expect(source.counts.unknownAttribution).toBe(0);
+
+    const otherProperty = await readiness.read({
+      tenantId: TENANT,
+      propertyNode: OTHER_PROPERTY,
+      businessDate: targetDate,
+      actorId: REQUESTER,
+    });
+    expect(otherProperty.counts.unresolvedDiscrepancies).toBe(0);
+    expect(otherProperty.counts.unknownAttribution).toBe(0);
+  });
+
+  test("carried readiness fails closed for missing, mixed or mismatched typed lineage and ignores payload", async () => {
+    const readiness = new BusinessDayCloseReadinessService({ database: database! });
+    const readTarget = () => readiness.read({
+      tenantId: TENANT,
+      propertyNode: PROPERTY,
+      businessDate: targetDate,
+      actorId: REQUESTER,
+    });
+    const carried = async () => {
+      await resetCase();
+      const approval = await requestApproval();
+      await decide(approval.approvalId);
+      return carry(approval.approvalId, approval.requestHash);
+    };
+    const unknownAfter = async (mutation: (targetId: string) => Promise<unknown>) => {
+      const result = await carried();
+      await mutation(result.targetDiscrepancyId);
+      const snapshot = await readTarget();
+      expect(snapshot.counts.unresolvedDiscrepancies).toBe(0);
+      expect(snapshot.counts.unknownAttribution).toBeGreaterThanOrEqual(1);
+      expect(snapshot.ready).toBe(false);
+    };
+
+    await unknownAfter((targetId) => deploy!`DELETE FROM outbox
+      WHERE tenant_id=${TENANT}::uuid AND aggregate_id=${targetId}::uuid AND event_type='discrepancy.carried'`);
+    await unknownAfter(() => deploy!`DELETE FROM business_day_discrepancy_carry
+      WHERE tenant_id=${TENANT}::uuid`);
+    await unknownAfter((targetId) => deploy!`INSERT INTO outbox(
+      tenant_id,property_node,business_date,aggregate_type,aggregate_id,event_type,actor_id,correlation_id,payload
+    ) VALUES(${TENANT}::uuid,${PROPERTY}::uuid,${targetDate}::date,'discrepancy',${targetId}::uuid,
+      'discrepancy.reported',${REQUESTER}::uuid,gen_random_uuid(),'{}')`);
+    await unknownAfter((targetId) => deploy!`INSERT INTO outbox(
+      tenant_id,property_node,business_date,aggregate_type,aggregate_id,event_type,actor_id,correlation_id,payload
+    ) SELECT tenant_id,property_node,business_date,aggregate_type,aggregate_id,event_type,actor_id,
+        gen_random_uuid(),payload FROM outbox
+      WHERE tenant_id=${TENANT}::uuid AND aggregate_id=${targetId}::uuid AND event_type='discrepancy.carried'`);
+    await unknownAfter((targetId) => deploy!`UPDATE outbox SET aggregate_type='unsupported'
+      WHERE tenant_id=${TENANT}::uuid AND aggregate_id=${targetId}::uuid AND event_type='discrepancy.carried'`);
+    await unknownAfter((targetId) => deploy!`UPDATE outbox SET aggregate_id=${DISCREPANCY}::uuid
+      WHERE tenant_id=${TENANT}::uuid AND aggregate_id=${targetId}::uuid AND event_type='discrepancy.carried'`);
+    await unknownAfter((targetId) => deploy!`UPDATE outbox SET property_node=${OTHER_PROPERTY}::uuid
+      WHERE tenant_id=${TENANT}::uuid AND aggregate_id=${targetId}::uuid AND event_type='discrepancy.carried'`);
+    await unknownAfter((targetId) => deploy!`UPDATE outbox SET business_date=${sourceDate}::date
+      WHERE tenant_id=${TENANT}::uuid AND aggregate_id=${targetId}::uuid AND event_type='discrepancy.carried'`);
+    await unknownAfter((targetId) => deploy!`UPDATE outbox SET actor_id=${APPROVER}::uuid
+      WHERE tenant_id=${TENANT}::uuid AND aggregate_id=${targetId}::uuid AND event_type='discrepancy.carried'`);
+    await unknownAfter((targetId) => deploy!`UPDATE outbox SET correlation_id=gen_random_uuid()
+      WHERE tenant_id=${TENANT}::uuid AND aggregate_id=${targetId}::uuid AND event_type='discrepancy.carried'`);
+    await unknownAfter((targetId) => deploy!`UPDATE outbox SET created_at=created_at+interval '1 microsecond'
+      WHERE tenant_id=${TENANT}::uuid AND aggregate_id=${targetId}::uuid AND event_type='discrepancy.carried'`);
+    await unknownAfter(() => deploy!`UPDATE business_day_discrepancy_carry
+      SET source_discrepancy_id=target_discrepancy_id
+      WHERE tenant_id=${TENANT}::uuid`);
+    await unknownAfter(() => deploy!`UPDATE business_day_discrepancy_carry
+      SET source_business_date=target_business_date
+      WHERE tenant_id=${TENANT}::uuid`);
+    await unknownAfter(() => deploy!`UPDATE business_day_discrepancy_carry
+      SET target_business_date=source_business_date
+      WHERE tenant_id=${TENANT}::uuid`);
+    await unknownAfter(() => deploy!`UPDATE business_day_discrepancy_carry
+      SET property_node=${OTHER_PROPERTY}::uuid
+      WHERE tenant_id=${TENANT}::uuid`);
+    await unknownAfter(() => deploy!`UPDATE business_day_discrepancy_carry
+      SET space_id=${OTHER_SPACE}::uuid
+      WHERE tenant_id=${TENANT}::uuid`);
+    await unknownAfter(() => deploy!`UPDATE business_day_discrepancy_carry
+      SET target_opened_at=target_opened_at+interval '1 microsecond'
+      WHERE tenant_id=${TENANT}::uuid`);
+    await unknownAfter(() => deploy!`UPDATE business_day_discrepancy_carry
+      SET request_id=gen_random_uuid()
+      WHERE tenant_id=${TENANT}::uuid`);
+    await unknownAfter(() => deploy!`UPDATE business_day_discrepancy_carry
+      SET carried_at=carried_at+interval '1 microsecond'
+      WHERE tenant_id=${TENANT}::uuid`);
+    await unknownAfter(() => deploy!`UPDATE business_day_discrepancy_carry
+      SET discrepancy_state_hash=${"0".repeat(64)}
+      WHERE tenant_id=${TENANT}::uuid`);
+    await unknownAfter(() => deploy!`UPDATE business_day_discrepancy_carry
+      SET request_hash=${"0".repeat(64)}
+      WHERE tenant_id=${TENANT}::uuid`);
+
+    const payloadResult = await carried();
+    await deploy!`UPDATE outbox SET payload=jsonb_build_object(
+        'tenant_id',${FOREIGN_TENANT}::text,'property_node',${OTHER_PROPERTY}::text,
+        'target_discrepancy_id',${DISCREPANCY}::text,'request_hash',${"0".repeat(64)}::text
+      ) WHERE tenant_id=${TENANT}::uuid AND aggregate_id=${payloadResult.targetDiscrepancyId}::uuid
+        AND event_type='discrepancy.carried'`;
+    const relations = await tenantRelationCatalogue();
+    const before = await financialSnapshot(relations);
+    const payloadIgnored = await readTarget();
+    const after = await financialSnapshot(relations);
+    expect(payloadIgnored.counts.unresolvedDiscrepancies).toBe(1);
+    expect(payloadIgnored.counts.unknownAttribution).toBe(0);
+    expect(after).toEqual(before);
+
+    await deploy!`UPDATE discrepancy SET resolved_at=transaction_timestamp(),resolution='verified'
+      WHERE tenant_id=${TENANT}::uuid AND id=${payloadResult.targetDiscrepancyId}::uuid`;
+    const resolved = await readTarget();
+    expect(resolved.counts.unresolvedDiscrepancies).toBe(0);
+    expect(resolved.counts.unknownAttribution).toBe(0);
   });
 
   test("rolls back after every governed boundary and permits one clean retry", async () => {

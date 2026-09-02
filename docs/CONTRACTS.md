@@ -2564,6 +2564,13 @@ tenant transaction and derives its capture instant from PostgreSQL
 Typed relational evidence owns due-in/out, open-cashier, unresolved-discrepancy and
 fiscal attribution. Exact-target unpublished outbox lag is acceptable only when the
 oldest row is strictly younger than five minutes; no matching row is zero lag.
+An ordinary unresolved discrepancy requires exactly one same-room/property/date
+`discrepancy.reported` event. A governed carried target instead requires exactly one
+immutable carry link and exactly one typed `discrepancy.carried` event, with the
+migration-0063 state and request hashes recomputed from typed source/link truth.
+These creation paths are mutually exclusive; missing, duplicate, mixed, foreign or
+mismatched evidence is unknown and fails closed, while event payload JSON remains
+irrelevant.
 Pending payment, statutory or channel work without typed exact business-date
 attribution is reported as `source_attribution_unknown` and fails closed. Payload
 JSON, browser booleans, process clocks and current-timezone reconstruction have no
