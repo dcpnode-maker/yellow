@@ -80,6 +80,36 @@ async function addEvent(options: {
       CASE WHEN ${options.published ?? false} THEN transaction_timestamp() ELSE NULL END)`;
 }
 
+/** Catalogue truth for every tenant-bearing public relation a readiness read must leave unchanged. */
+async function tenantRelationCatalogue(): Promise<string[]> {
+  const rows = await admin!<Array<{ relation_name: string }>>`
+    SELECT DISTINCT relation.relname relation_name
+      FROM pg_catalog.pg_class relation
+      JOIN pg_catalog.pg_namespace namespace ON namespace.oid=relation.relnamespace
+      JOIN pg_catalog.pg_attribute tenant_column
+        ON tenant_column.attrelid=relation.oid AND tenant_column.attname='tenant_id'
+        AND tenant_column.attnum>0 AND NOT tenant_column.attisdropped
+     WHERE namespace.nspname='public' AND relation.relkind IN ('r','p','v','m','f')
+     ORDER BY relation.relname`;
+  return rows.map((row) => row.relation_name);
+}
+
+/** Byte-stable tenant-row evidence catches updates as well as inserts and deletes. */
+async function tenantRelationSnapshot(relations: readonly string[]): Promise<Record<string, string>> {
+  const snapshot: Record<string, string> = {};
+  for (const relation of relations) {
+    const rows = await admin!.unsafe<Array<{ bytes: string }>>(`
+      SELECT encode(convert_to(COALESCE(
+        string_agg(pg_catalog.row_to_json(t)::text, E'\\n' ORDER BY pg_catalog.row_to_json(t)::text), ''
+      ), 'UTF8'), 'hex') AS bytes
+        FROM public.${relation} AS t
+       WHERE t.tenant_id='${TENANT}'::uuid
+    `);
+    snapshot[relation] = rows[0]?.bytes ?? "";
+  }
+  return snapshot;
+}
+
 databaseDescribe("Order 349 PostgreSQL-authoritative close readiness", () => {
   beforeAll(async () => {
     admin = new SQL(DEPLOY!, { max: 4, prepare: false });
@@ -238,6 +268,27 @@ databaseDescribe("Order 349 PostgreSQL-authoritative close readiness", () => {
     expect(result.counts.unknownAttribution).toBe(0);
 
     await admin!`DELETE FROM outbox WHERE tenant_id=${TENANT}::uuid`;
+    await addEvent({ aggregateType: "discrepancy", aggregateId: discrepancyId,
+      eventType: "discrepancy.reported", businessDate: "2047-05-07",
+      payload: { business_date: DAY }, published: true });
+    result = await service!.read(input());
+    expect(result.counts.unresolvedDiscrepancies).toBe(0);
+    expect(result.counts.unknownAttribution).toBe(1);
+    expect(result.ready).toBe(false);
+    expect(result.reasons).toContainEqual({ code: "source_attribution_unknown", source: "discrepancies", count: 1 });
+
+    let nullDateError: unknown;
+    try {
+      await admin!`INSERT INTO outbox(tenant_id,property_node,business_date,aggregate_type,aggregate_id,event_type,
+        actor_id,correlation_id,payload)
+        VALUES(${TENANT}::uuid,${PROPERTY}::uuid,NULL,'discrepancy',${discrepancyId}::uuid,
+          'discrepancy.reported',${ACTOR}::uuid,${crypto.randomUUID()}::uuid,'{}')`;
+    } catch (error) {
+      nullDateError = error;
+    }
+    expect(nullDateError).toMatchObject({ errno: "23502" });
+
+    await admin!`DELETE FROM outbox WHERE tenant_id=${TENANT}::uuid`;
     result = await service!.read(input());
     expect(result.counts.unresolvedDiscrepancies).toBe(0);
     expect(result.reasons).toContainEqual({ code: "source_attribution_unknown", source: "discrepancies", count: 1 });
@@ -290,21 +341,13 @@ databaseDescribe("Order 349 PostgreSQL-authoritative close readiness", () => {
   test("P5 is one snapshot statement, read-only, immutable and coherent across a publication race", async () => {
     await clearEvidence();
     await addEvent({ createdOffset: "-10 minutes" });
-    const tables = ["business_day", "reservation", "cashier_session", "discrepancy", "payment",
-      "document", "fiscal_submission", "statutory_submission", "inbound_message", "outbox", "fact_log"];
-    const census = async () => {
-      const counts: Record<string, number> = {};
-      for (const table of tables) {
-        const rows = await admin!.unsafe<Array<{ n: number }>>(`SELECT count(*)::int AS n FROM ${table} WHERE tenant_id=$1::uuid`, [TENANT]);
-        counts[table] = rows[0]!.n;
-      }
-      return counts;
-    };
-    const before = await census();
+    const relations = await tenantRelationCatalogue();
+    expect(relations).toContain("folio_balance");
+    const before = await tenantRelationSnapshot(relations);
     await admin!.unsafe("SELECT order352_proof.pg_stat_statements_reset()");
     const first = await service!.read(input());
     expect(Object.isFrozen(first)).toBe(true);
-    expect(await census()).toEqual(before);
+    expect(await tenantRelationSnapshot(relations)).toEqual(before);
     const statements = await admin!<Array<{ calls: bigint | number }>>`
       SELECT calls FROM order352_proof.pg_stat_statements
        WHERE query LIKE '%WITH target AS MATERIALIZED%'

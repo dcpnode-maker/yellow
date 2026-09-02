@@ -320,7 +320,9 @@ export class BusinessDayCloseReadinessService {
           AND event_property=(SELECT property_node FROM target)
           AND event_date=(SELECT business_date FROM target))::bigint AS discrepancies,
                count(*) FILTER (WHERE event_count<>1 OR space_property IS NULL OR event_property IS NULL
-                 OR space_property<>event_property)::bigint AS unknown_discrepancy
+                 OR space_property<>event_property
+                 OR (event_property=(SELECT property_node FROM target)
+                   AND event_date IS DISTINCT FROM (SELECT business_date FROM target)))::bigint AS unknown_discrepancy
           FROM discrepancy_evidence
       ),
       target_outbox AS MATERIALIZED (
