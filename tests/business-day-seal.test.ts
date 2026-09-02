@@ -46,6 +46,7 @@ interface HarnessOptions {
   readonly sealRows?: readonly Record<string, unknown>[];
   readonly idempotencyFailure?: unknown;
   readonly replayed?: boolean;
+  readonly replayBody?: unknown;
 }
 
 function harness(options: HarnessOptions = {}) {
@@ -81,6 +82,9 @@ function harness(options: HarnessOptions = {}) {
     ): Promise<IdempotencyResult<T>> => {
       idempotencyInput = commandInput;
       if (options.idempotencyFailure) throw options.idempotencyFailure;
+      if (options.replayBody !== undefined) {
+        return { status: 200, body: options.replayBody as T, replayed: true };
+      }
       const result = await command(commandTx);
       return { ...result, replayed: options.replayed ?? false };
     },
@@ -148,6 +152,23 @@ describe("Order 356 audited business-day seal", () => {
     const result = await proof.service.seal(proof.tx, input());
     expect(result).toEqual({ tenantId: TENANT, propertyNode: PROPERTY, businessDate: DAY,
       previousState: "open", state: "sealed", sealedAt: SEALED_AT, actorId: ACTOR, replayed: true });
+  });
+
+  test("P4 fails closed for a malformed, stale or surplus stored replay receipt", async () => {
+    const canonical = { tenantId: TENANT, propertyNode: PROPERTY, businessDate: DAY,
+      previousState: "open", state: "sealed", sealedAt: SEALED_AT, actorId: ACTOR, replayed: false };
+    for (const replayBody of [
+      { ...canonical, tenantId: crypto.randomUUID() },
+      { ...canonical, state: "open" },
+      { ...canonical, sealedAt: "not-an-instant" },
+      { ...canonical, replayed: true },
+      { ...canonical, surplus: "must-not-escape" },
+    ]) {
+      const proof = harness({ replayBody });
+      await expect(proof.service.seal(proof.tx, input())).rejects.toBeInstanceOf(Error);
+      expect(proof.evidence().statements).toEqual([]);
+      expect(proof.evidence().events).toEqual([]);
+    }
   });
 
   test("P2 rejects surplus/caller authority and malformed targets before SQL", async () => {

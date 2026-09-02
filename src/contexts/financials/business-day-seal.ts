@@ -112,6 +112,28 @@ function databaseText(value: unknown, expected: string, name: string): string {
   return value;
 }
 
+function receipt(value: unknown, target: Readonly<BusinessDaySealInput>): BusinessDaySealResult {
+  plain(value, "stored seal receipt");
+  exact(value, ["tenantId", "propertyNode", "businessDate", "previousState", "state", "sealedAt", "actorId", "replayed"], "stored seal receipt");
+  databaseText(value.tenantId, target.tenantId, "receipt tenant");
+  databaseText(value.propertyNode, target.propertyNode, "receipt property");
+  databaseText(value.businessDate, target.businessDate, "receipt date");
+  databaseText(value.previousState, "open", "receipt previous state");
+  databaseText(value.state, "sealed", "receipt state");
+  databaseText(value.actorId, target.actorId, "receipt actor");
+  if (value.replayed !== false) throw new Error("Stored seal receipt has invalid replay marker");
+  return Object.freeze({
+    tenantId: target.tenantId,
+    propertyNode: target.propertyNode,
+    businessDate: target.businessDate,
+    previousState: "open",
+    state: "sealed",
+    sealedAt: instant(value.sealedAt),
+    actorId: target.actorId,
+    replayed: false,
+  });
+}
+
 function envelope(value: unknown, expected: {
   tenantId: string;
   propertyNode: string;
@@ -238,7 +260,8 @@ export class BusinessDaySealService {
           },
         };
       });
-      return Object.freeze({ ...result.body, replayed: result.replayed });
+      const bounded = receipt(result.body, target);
+      return Object.freeze({ ...bounded, replayed: result.replayed });
     } catch (error) {
       return translate(error);
     }
