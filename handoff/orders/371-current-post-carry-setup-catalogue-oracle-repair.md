@@ -1,9 +1,9 @@
 # Order 371 — Current post-carry setup catalogue oracle repair
 
-**Status:** DRAFT — activate only after Order 368's fresh verdict
+**Status:** ACTIVE-D1046 — intentional-red required before repair
 **Phase:** 5 — Financials
 **Branch:** `phase-5/current-post-carry-setup-catalogue-oracle-repair`
-**Base:** activation must bind the exact independently approved Order 368/366/363/359/351 frontier
+**Base:** exact independently approved Order 368/366/363/359/351 frontier `9a88152` / product candidate `5b9b9dd`
 **Risk tier:** 3 — permanent referee catalogue oracle
 **Owner:** Codex implementation; fresh independent non-implementing Tier-3 reviewer
 
@@ -33,6 +33,17 @@ The current stale assertion is in `setup.sh`: it expects 115 public tables after
 migrations 1–62 although migration 0063 is now in the canonical runner. Creation of
 this draft is not activation authority and grants no edit before the prerequisite
 verdict.
+
+## Activation — D1046
+
+Fresh independent D1043 approval binds the governed carry product candidate
+`5b9b9dd3f18b3bdb8f9cfd6dc7fdeb69684888f3` and governance frontier `9a88152`.
+Reviewer-personal official PostgreSQL 16.15 proof derives exactly 63 migrations, 116
+public base tables, 106 tenant-RLS tables/policies, 15 FORCE-RLS tables and 2
+security-invoker views, while migration, acceptance, authority, schema, standing and
+referee gates are green. The only admitted production edit is therefore the exact
+stale setup catalogue literal/text correction described below, preceded by an
+intentional red against the unmodified script.
 
 ## Exact scope
 
