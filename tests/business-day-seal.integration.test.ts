@@ -100,6 +100,8 @@ beforeAll(async () => {
     (${UNAUTHORIZED}::uuid,${TENANT}::uuid,'unauthorized@order356.test','Unauthorized','active'),
     (${INACTIVE}::uuid,${TENANT}::uuid,'inactive@order356.test','Inactive','inactive'),
     (${FOREIGN_ACTOR}::uuid,${FOREIGN_TENANT}::uuid,'foreign@order356.test','Foreign','active')`;
+  await deploy`INSERT INTO permission(code,description) VALUES(
+    'business_day.seal','Seal a ready business day') ON CONFLICT DO NOTHING`;
   await deploy`INSERT INTO role(id,tenant_id,name) VALUES(${ROLE}::uuid,${TENANT}::uuid,'Order 356 auditor')`;
   await deploy`INSERT INTO role_permission(role_id,permission_code) VALUES(${ROLE}::uuid,'business_day.seal')`;
   await deploy`INSERT INTO user_role(tenant_id,user_id,role_id,scope_node) VALUES
@@ -123,6 +125,7 @@ afterAll(async () => {
   await deploy`DELETE FROM user_role WHERE tenant_id=${TENANT}::uuid`;
   await deploy`DELETE FROM role_permission WHERE role_id=${ROLE}::uuid`;
   await deploy`DELETE FROM role WHERE tenant_id=${TENANT}::uuid`;
+  await deploy`DELETE FROM permission WHERE code='business_day.seal'`;
   await deploy`DELETE FROM app_user WHERE tenant_id IN (${TENANT}::uuid,${FOREIGN_TENANT}::uuid)`;
   await deploy`DELETE FROM org_node WHERE tenant_id IN (${TENANT}::uuid,${FOREIGN_TENANT}::uuid)`;
   await deploy`DELETE FROM tenant WHERE id IN (${TENANT}::uuid,${FOREIGN_TENANT}::uuid)`;
