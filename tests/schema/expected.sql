@@ -3729,6 +3729,7 @@ BEGIN
     PERFORM 1 FROM public.approval_request ar JOIN public.app_user decider ON decider.tenant_id=ar.tenant_id AND decider.id=ar.decided_by AND decider.status='active'
       WHERE ar.tenant_id=p_tenant AND ar.id=p_approval AND ar.kind='india_gst_legal_buyer_override' AND ar.subject_type='folio' AND ar.subject_id=p_folio
         AND ar.status='approved' AND ar.requested_by=p_actor AND ar.decided_by<>p_actor AND ar.decided_at IS NOT NULL
+        AND ar.decided_at<=transaction_timestamp() AND ar.decided_at<ar.valid_until AND ar.valid_until > transaction_timestamp()
         AND ar.payload=jsonb_build_object('propertyNode',p_property::text,'reservationId',p_reservation::text,'folioId',p_folio::text,'windowNo',v_folio.window_no,'buyerPartyId',p_buyer::text,'relationshipSetHash',v_relationship_set_hash,'requestHash',p_request_hash,'order341EvidenceHash',p_order341_hash)
       FOR UPDATE OF ar;
     IF NOT FOUND THEN RAISE EXCEPTION USING ERRCODE='55000',MESSAGE='exact different-user buyer approval unavailable'; END IF;
@@ -7210,6 +7211,8 @@ CREATE TABLE public.approval_request (
     decided_by uuid,
     decided_at timestamp with time zone,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
+    valid_until timestamp with time zone,
+    CONSTRAINT approval_request_buyer_override_validity_ck CHECK (((kind <> 'india_gst_legal_buyer_override'::text) OR ((valid_until IS NOT NULL) AND (valid_until > created_at)))),
     CONSTRAINT approval_request_status_check CHECK ((status = ANY (ARRAY['pending'::text, 'approved'::text, 'rejected'::text, 'expired'::text])))
 );
 

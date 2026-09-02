@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { allocateSignedLargestRemainder, IndiaGstAccommodationFinalValuationService, IndiaGstAccommodationFinalValuationValidationError, SignedLargestRemainderError } from "../src/contexts/tax-fiscal";
+import { allocateSignedLargestRemainder, IndiaGstAccommodationFinalValuationService, IndiaGstAccommodationFinalValuationValidationError, IndiaGstAccommodationQuotedRateApplicabilityService, SignedLargestRemainderError } from "../src/contexts/tax-fiscal";
 
 const weights=(...values:string[])=>Object.freeze(values.map((weightMinor,index)=>Object.freeze({ordinal:String(index),weightMinor})));
 
@@ -60,4 +60,31 @@ describe("Order 354 governed valuation input boundary",()=>{
     const source={postingRootId:U,sourceKind:"section15_2_addition",additionSubtype:null,discountEligibility:null,evidenceSource:"operator_attestation",evidenceReference:"SOURCE-350"};
     await expect(validator.finalize({} as any,valuation({sources:[source]}))).rejects.toBeInstanceOf(IndiaGstAccommodationFinalValuationValidationError);
   });
+});
+
+test("Order 357 buyer override is valid only before PostgreSQL transaction-time expiry",async()=>{
+  const migration=await Bun.file(new URL("../migrations/0062_india_gst_accommodation_final_valuation.sql",import.meta.url)).text();
+  expect(migration).toContain("ar.valid_until > transaction_timestamp()");
+});
+
+test("Order 357 service replays exact idempotency and rejects same-key content conflict",async()=>{
+  const replay=freeze({evidenceHash:"a".repeat(64),reservationLineage:{reservationId:U,folioId:U},components:[{ordinal:"0",businessDate:"2030-01-01",quotedAmountMinor:"1000"}]}) as any;
+  const original=IndiaGstAccommodationQuotedRateApplicabilityService.prototype.resolve;
+  IndiaGstAccommodationQuotedRateApplicabilityService.prototype.resolve=async()=>replay;
+  let storedRequest="",storedBody:Record<string,unknown>|null=null,executions=0;
+  const idempotency={execute:async(_tx:unknown,request:{key:string;request:unknown},work:(tx:unknown)=>Promise<{status:number;body:Record<string,unknown>}> )=>{
+    const canonical=JSON.stringify(request.request);
+    if(storedBody){if(canonical!==storedRequest)throw new Error("idempotency content conflict");return {status:201,body:storedBody,replayed:true};}
+    executions+=1;
+    const q=async(strings:TemplateStringsArray)=>strings[0]!.includes("record_india_gst")?[{valuation_id:U,generation:0,disposition:"ordinary_final",transaction_value_minor:"1000",evidence_hash:"b".repeat(64)}]:[{root_id:U,amount_minor:"1000"}];
+    const created=await work(q);storedRequest=canonical;storedBody=created.body;return {...created,replayed:false};
+  }} as any;
+  const input=(reference:string)=>freeze({...valuation(),quotedRateApplicabilityInput:{tenantId:U,propertyNode:U,attributionId:U,reservationLineageId:U},quotedRateApplicabilityResult:replay,sources:[{postingRootId:U,sourceKind:"room_consideration",additionSubtype:null,discountEligibility:null,evidenceSource:"operator_attestation",evidenceReference:reference}]}) as any;
+  try{
+    const service=new IndiaGstAccommodationFinalValuationService({idempotency});
+    expect((await service.finalize({} as any,input("SOURCE-350"))).replayed).toBeFalse();
+    expect((await service.finalize({} as any,input("SOURCE-350"))).replayed).toBeTrue();
+    expect(executions).toBe(1);
+    await expect(service.finalize({} as any,input("SOURCE-CHANGED"))).rejects.toThrow("idempotency content conflict");
+  }finally{IndiaGstAccommodationQuotedRateApplicabilityService.prototype.resolve=original;}
 });

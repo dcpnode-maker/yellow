@@ -1793,7 +1793,7 @@ databaseDescribe("Bun SQL migration runner", () => {
           {
             version: 62,
             filename: "0062_india_gst_accommodation_final_valuation.sql",
-            checksum_sha256: "e97246c45bde154e4a964fee48b6bde56865245f2f10cf507bdaee8a4362faca",
+            checksum_sha256: "0107247dd397886cdfdb5444c841d536f4288fcbc8407cc2a55e76279820d10c",
           },
         ]);
 
