@@ -1,6 +1,6 @@
 # Order 366 — Order363 final carry-proof repair
 
-**Status:** BUILT-PENDING-DIFFERENT-FRESH-TIER3 — exact candidate `2f631a5`
+**Status:** REVIEW-WITHHELD-D1035 — exact candidate `2f631a5`
 **Phase:** 5 — Financials
 **Branch:** `phase-5/order363-final-carry-proof-repair`
 **Base:** exact withheld proof `80b696d` / governance `b270746`
@@ -45,3 +45,8 @@ compares same-key response identities/bodies, and isolates approval/request/targ
 reuse. Disposable resources were removed; the stable local and `.yellow` were not
 touched. These builder results do not substitute for the required different fresh
 Tier-3 review.
+
+Fresh independent review withholds this candidate because approval and request reuse
+remain masked by source uniqueness, removing the canonical event insert survives the
+rollback case, and removing `folio_balance` from both duplicate snapshot arrays
+survives the isolation case. Order368 is the only activated repair.
