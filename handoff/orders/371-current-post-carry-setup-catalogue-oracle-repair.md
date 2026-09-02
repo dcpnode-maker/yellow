@@ -1,6 +1,6 @@
 # Order 371 — Current post-carry setup catalogue oracle repair
 
-**Status:** ACTIVE-D1046 — intentional-red required before repair
+**Status:** BUILT-PENDING-FRESH-TIER3-D1047 — exact candidate `8d96974`
 **Phase:** 5 — Financials
 **Branch:** `phase-5/current-post-carry-setup-catalogue-oracle-repair`
 **Base:** exact independently approved Order 368/366/363/359/351 frontier `9a88152` / product candidate `5b9b9dd`
@@ -79,8 +79,27 @@ all other migrations, schema snapshots and product code are forbidden.
 
 ## Definition of done
 
-- [ ] Activation records the exact approved post-Order368 frontier and catalogue.
-- [ ] Intentional red proves only the stale 115/1–62 setup oracle.
-- [ ] The exact minimal setup literals match 116/1–63 with all other bytes preserved.
-- [ ] Fresh setup/referee and complete preservation gates pass.
+- [x] Activation records the exact approved post-Order368 frontier and catalogue.
+- [x] Intentional red proves only the stale 115/1–62 setup oracle.
+- [x] The exact minimal setup literals match 116/1–63 with all other bytes preserved.
+- [x] Builder fresh setup/referee and complete preservation gates pass.
 - [ ] Fresh independent Tier-3 approval is recorded.
+
+## Builder evidence — D1047
+
+Exact candidate `8d969744a38370cab5637338305099261da04049` changes only the
+two setup oracle/text lines and one permanent catalogue-derived test. Before the
+setup edit, the corrected test is red 0/1 after deriving 63 migration files, highest
+migration 63 and 116 `CREATE TABLE public.*` statements from the canonical expected
+schema; it fails only because setup still requires 115/1–62. After the edit it passes
+1/0 with five assertions.
+
+A disposable, separately named proof stack on PostgreSQL port 5551 and Valkey port
+6391 applies all 63 migrations to both development and referee databases, observes
+`yellow_test tables: 116 after migrations 1-63`, and prints exactly **11 passed, 0
+failed of 11**. Full standing is **1217/0** plus 946 expected database skips and
+18,524 assertions across 400 files. Typecheck, 139 import boundaries, 23-package
+licence policy, production audit zero and diff hygiene pass. The exact proof
+containers, network, volume and D: worktree were removed; stable port3000, Docker
+resources and protected `.yellow` were untouched. Fresh independent Tier-3 review
+remains mandatory.
