@@ -289,6 +289,7 @@ databaseDescribe("Order 150 positive runtime DML authority", () => {
             'create_folio_transfer', 'create_receivable_transfer',
             'govern_housekeeping_task_sheet', 'initialize_unit_condition',
             'report_room_discrepancy',
+            'prepare_business_day_discrepancy_carry', 'carry_business_day_discrepancy',
             'transition_arrival_pickup_task', 'create_arrival_room_cleaning_task',
             'assign_due_in_room',
             'open_current_business_day',
@@ -339,6 +340,10 @@ databaseDescribe("Order 150 positive runtime DML authority", () => {
       .toEqual(expect.objectContaining({ app: true, runtime: false }));
     expect(functions.find(({ signature }) => signature.startsWith("report_room_discrepancy(")))
       .toEqual(expect.objectContaining({ app: true, runtime: false }));
+    for (const capability of ["prepare_business_day_discrepancy_carry(", "carry_business_day_discrepancy("]) {
+      expect(functions.find(({ signature }) => signature.startsWith(capability)))
+        .toEqual(expect.objectContaining({ app: true, runtime: false }));
+    }
     expect(functions.find(({ signature }) => signature.startsWith("open_current_business_day(")))
       .toEqual(expect.objectContaining({ app: true, runtime: false }));
     for (const capability of [

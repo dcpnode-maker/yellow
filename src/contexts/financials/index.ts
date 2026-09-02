@@ -146,6 +146,8 @@ export {
   BusinessDayCloseReadinessUnavailableError,
   BusinessDayCloseReadinessValidationError,
 } from "./business-day-close-readiness";
+export { BusinessDayDiscrepancyCarryConflictError, BusinessDayDiscrepancyCarryService, BusinessDayDiscrepancyCarryValidationError } from "./business-day-discrepancy-carry";
+export type { BusinessDayDiscrepancyCarryApproval, BusinessDayDiscrepancyCarryResult, BusinessDayDiscrepancyCarryServiceOptions, ConsumeBusinessDayDiscrepancyCarryInput, RequestBusinessDayDiscrepancyCarryApprovalInput } from "./business-day-discrepancy-carry";
 export type {
   BusinessDayCloseReadiness,
   BusinessDayCloseReadinessInput,

@@ -172,7 +172,8 @@ dbDescribe("Order 108 SECURITY DEFINER shadow-path containment", () => {
            'register_extension_type', 'transition_housekeeping_task',
            'initialize_unit_condition', 'transition_arrival_pickup_task',
            'create_arrival_room_cleaning_task', 'assign_due_in_room',
-           'report_room_discrepancy'
+           'report_room_discrepancy', 'prepare_business_day_discrepancy_carry',
+           'carry_business_day_discrepancy'
          ]::name[])
        ORDER BY signature
     `;
@@ -186,6 +187,8 @@ dbDescribe("Order 108 SECURITY DEFINER shadow-path containment", () => {
         config: ["search_path=pg_catalog, public, pg_temp"], appExecute: false, publicDenied: true },
       { signature: "assign_due_in_room(uuid,uuid,uuid,uuid,uuid,tstzrange,uuid,uuid,uuid)", securityDefiner: true,
         config: ["search_path=pg_catalog, public, pg_temp"], appExecute: true, publicDenied: true },
+      { signature: "carry_business_day_discrepancy(uuid,uuid,text,uuid,uuid)", securityDefiner: true,
+        config: ["search_path=pg_catalog, public"], appExecute: true, publicDenied: true },
       { signature: "close_cashier_session(uuid,uuid,uuid,uuid,uuid,uuid,text,boolean)", securityDefiner: true,
         config: ["search_path=pg_catalog, public, pg_temp"], appExecute: true, publicDenied: true },
       { signature: "create_arrival_room_cleaning_task(uuid,uuid,uuid,uuid,uuid)", securityDefiner: true,
@@ -212,6 +215,8 @@ dbDescribe("Order 108 SECURITY DEFINER shadow-path containment", () => {
         config: ["search_path=pg_catalog, public, pg_temp"], appExecute: true, publicDenied: true },
       { signature: "open_cashier_session(uuid,uuid,uuid,uuid,bigint[],bigint[])", securityDefiner: true,
         config: ["search_path=pg_catalog, public, pg_temp"], appExecute: true, publicDenied: true },
+      { signature: "prepare_business_day_discrepancy_carry(uuid,uuid,uuid,date,date,text,uuid,uuid)", securityDefiner: true,
+        config: ["search_path=pg_catalog, public"], appExecute: true, publicDenied: true },
       { signature: "prune_outbox(interval)", securityDefiner: true,
         config: ["search_path=pg_catalog, public, pg_temp"], appExecute: false, publicDenied: true },
       { signature: "record_occupancy(uuid,uuid,tstzrange,uuid,text,boolean)", securityDefiner: true,
@@ -247,6 +252,10 @@ dbDescribe("Order 108 SECURITY DEFINER shadow-path containment", () => {
       ["close_cashier_session(uuid,uuid,uuid,uuid,uuid,uuid,text,boolean)",
         ["public.org_node", "public.cashier_session", "public.business_day", "public.cash_drawer",
           "public.app_user", "public.cashier_count", "public.approval_request"]],
+      ["carry_business_day_discrepancy(uuid,uuid,text,uuid,uuid)",
+        ["public.approval_request", "public.app_user", "public.user_role", "public.role_permission",
+          "public.org_node", "public.discrepancy", "public.space", "public.outbox", "public.business_day",
+          "public.business_day_discrepancy_carry"]],
       ["create_charge_correction_header(uuid,uuid,uuid,character,text,uuid)",
         ["public.org_node", "public.app_user", "public.journal"]],
       ["create_positive_tax_correction_header(uuid,uuid,uuid,text,uuid)",
@@ -279,6 +288,9 @@ dbDescribe("Order 108 SECURITY DEFINER shadow-path containment", () => {
           "public.app_user", "public.cash_drawer_denomination", "public.cashier_session",
           "public.cashier_count", "public.cashier_count_line"]],
       ["prune_outbox(interval)", ["public.outbox"]],
+      ["prepare_business_day_discrepancy_carry(uuid,uuid,uuid,date,date,text,uuid,uuid)",
+        ["public.app_user", "public.user_role", "public.role_permission", "public.org_node",
+          "public.discrepancy", "public.space", "public.outbox", "public.business_day"]],
       ["record_positive_tax_correction_root(uuid,uuid,uuid,uuid)",
         ["public.tax_attribution_journal_binding", "public.tax_attribution_reservation_binding",
           "public.tax_attribution_snapshot", "public.journal", "public.app_user",
