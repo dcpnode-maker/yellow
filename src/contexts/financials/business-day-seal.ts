@@ -112,6 +112,14 @@ function databaseText(value: unknown, expected: string, name: string): string {
   return value;
 }
 
+function databaseDate(value: unknown, expected: string): string {
+  const rendered = value instanceof Date ? value.toISOString().slice(0, 10) : value;
+  if (typeof rendered !== "string" || rendered !== expected) {
+    throw new Error("Database returned invalid seal date");
+  }
+  return rendered;
+}
+
 function receipt(value: unknown, target: Readonly<BusinessDaySealInput>): BusinessDaySealResult {
   plain(value, "stored seal receipt");
   exact(value, ["tenantId", "propertyNode", "businessDate", "previousState", "state", "sealedAt", "actorId", "replayed"], "stored seal receipt");
@@ -172,7 +180,10 @@ function normalize(input: BusinessDaySealInput): Readonly<BusinessDaySealInput> 
 
 function translate(error: unknown): never {
   if (error instanceof IdempotencyConflictError) throw new BusinessDaySealConflictError(error.message);
-  const code = (error as { code?: string; errno?: string }).code ?? (error as { errno?: string }).errno;
+  const candidate = error as { code?: unknown; errno?: unknown };
+  const code = [candidate.errno, candidate.code].find(
+    (value): value is string => typeof value === "string" && /^[0-9A-Z]{5}$/.test(value),
+  );
   if (["23503", "23505", "40001", "40P01", "42501", "55000", "P0002", "P0012"].includes(code ?? "")) {
     throw new BusinessDaySealConflictError();
   }
@@ -214,7 +225,7 @@ export class BusinessDaySealService {
         const sealedAt = instant(row.sealed_at);
         databaseText(row.tenant_id, target.tenantId, "seal tenant");
         databaseText(row.property_node, target.propertyNode, "seal property");
-        databaseText(row.business_date, target.businessDate, "seal date");
+        databaseDate(row.business_date, target.businessDate);
         databaseText(row.sealed_by, target.actorId, "seal actor");
         databaseText(row.previous_state, "open", "previous state");
         databaseText(row.state, "sealed", "state");

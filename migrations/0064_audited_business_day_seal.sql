@@ -45,26 +45,27 @@ BEGIN
     RAISE EXCEPTION USING ERRCODE='42501', MESSAGE='invalid audited business-day seal context';
   END IF;
 
-  -- Fixed lexical relation order. SHARE conflicts with every ordinary writer, so
-  -- the readiness snapshot cannot be invalidated before this transaction commits.
-  LOCK TABLE public.app_user IN SHARE MODE;
-  LOCK TABLE public.business_day IN SHARE MODE;
-  LOCK TABLE public.business_day_discrepancy_carry IN SHARE MODE;
-  LOCK TABLE public.cashier_session IN SHARE MODE;
-  LOCK TABLE public.discrepancy IN SHARE MODE;
-  LOCK TABLE public.document IN SHARE MODE;
-  LOCK TABLE public.fiscal_submission IN SHARE MODE;
-  LOCK TABLE public.inbound_message IN SHARE MODE;
-  LOCK TABLE public.org_node IN SHARE MODE;
-  LOCK TABLE public.outbox IN SHARE MODE;
-  LOCK TABLE public.payment IN SHARE MODE;
-  LOCK TABLE public.payment_operation IN SHARE MODE;
-  LOCK TABLE public.reservation IN SHARE MODE;
-  LOCK TABLE public.role_permission IN SHARE MODE;
-  LOCK TABLE public.space IN SHARE MODE;
-  LOCK TABLE public.statutory_submission IN SHARE MODE;
-  LOCK TABLE public.tenant IN SHARE MODE;
-  LOCK TABLE public.user_role IN SHARE MODE;
+  -- Fixed lexical relation order. SHARE ROW EXCLUSIVE conflicts with every ordinary
+  -- writer and with another seal before either can acquire row/update locks, avoiding
+  -- lock-upgrade deadlocks while preserving one coherent readiness transaction.
+  LOCK TABLE public.app_user IN SHARE ROW EXCLUSIVE MODE;
+  LOCK TABLE public.business_day IN SHARE ROW EXCLUSIVE MODE;
+  LOCK TABLE public.business_day_discrepancy_carry IN SHARE ROW EXCLUSIVE MODE;
+  LOCK TABLE public.cashier_session IN SHARE ROW EXCLUSIVE MODE;
+  LOCK TABLE public.discrepancy IN SHARE ROW EXCLUSIVE MODE;
+  LOCK TABLE public.document IN SHARE ROW EXCLUSIVE MODE;
+  LOCK TABLE public.fiscal_submission IN SHARE ROW EXCLUSIVE MODE;
+  LOCK TABLE public.inbound_message IN SHARE ROW EXCLUSIVE MODE;
+  LOCK TABLE public.org_node IN SHARE ROW EXCLUSIVE MODE;
+  LOCK TABLE public.outbox IN SHARE ROW EXCLUSIVE MODE;
+  LOCK TABLE public.payment IN SHARE ROW EXCLUSIVE MODE;
+  LOCK TABLE public.payment_operation IN SHARE ROW EXCLUSIVE MODE;
+  LOCK TABLE public.reservation IN SHARE ROW EXCLUSIVE MODE;
+  LOCK TABLE public.role_permission IN SHARE ROW EXCLUSIVE MODE;
+  LOCK TABLE public.space IN SHARE ROW EXCLUSIVE MODE;
+  LOCK TABLE public.statutory_submission IN SHARE ROW EXCLUSIVE MODE;
+  LOCK TABLE public.tenant IN SHARE ROW EXCLUSIVE MODE;
+  LOCK TABLE public.user_role IN SHARE ROW EXCLUSIVE MODE;
 
   PERFORM 1
     FROM public.tenant AS t

@@ -1805,7 +1805,7 @@ databaseDescribe("Bun SQL migration runner", () => {
           {
             version: 64,
             filename: "0064_audited_business_day_seal.sql",
-            checksum_sha256: "8a855b788bf60cac111fc4d68caee88d0b02b1b04f5718a6eb834faca5cd819d",
+            checksum_sha256: "75a98d0b9845896f61cc35311d28f23bc32095d35125c4b60f61877128602317",
           },
         ]);
 

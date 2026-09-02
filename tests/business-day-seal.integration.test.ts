@@ -51,7 +51,7 @@ async function seal(key: string, overrides: Parameters<typeof command>[1] = {}) 
 async function sqlState(operation: () => Promise<unknown>): Promise<string> {
   try { await operation(); } catch (error) {
     const failure = error as { code?: string; errno?: string };
-    return failure.code ?? failure.errno ?? "unknown";
+    return [failure.errno, failure.code].find((value) => typeof value === "string" && /^[0-9A-Z]{5}$/.test(value)) ?? "unknown";
   }
   throw new Error("Expected PostgreSQL failure");
 }
@@ -135,7 +135,7 @@ afterAll(async () => {
 describe("Order 356 audited seal static serialization contract", () => {
   test("lock set covers each mutable authorization/readiness source", async () => {
     const migration = await Bun.file(new URL("../migrations/0064_audited_business_day_seal.sql", import.meta.url)).text();
-    const locked = [...migration.matchAll(/LOCK TABLE public\.([a-z_]+) IN SHARE MODE/g)].map((match) => match[1]);
+    const locked = [...migration.matchAll(/LOCK TABLE public\.([a-z_]+) IN SHARE ROW EXCLUSIVE MODE/g)].map((match) => match[1]);
     expect(locked).toEqual(["app_user","business_day","business_day_discrepancy_carry","cashier_session",
       "discrepancy","document","fiscal_submission","inbound_message","org_node","outbox","payment",
       "payment_operation","reservation","role_permission","space","statutory_submission","tenant","user_role"]);

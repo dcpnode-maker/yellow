@@ -1551,7 +1551,7 @@ remains owner-only, while `app_role` retains no direct `business_day`, `fact_log
 The capability verifies transaction-local tenant context, active tenant, exact active
 property, active same-tenant actor and a property-scoped role grant for
 `business_day.seal`. The approved direct-actor policy adds no maker/checker or generic
-approval authority. Before readiness it takes fixed-lexical SHARE locks over every
+approval authority. Before readiness it takes fixed-lexical SHARE ROW EXCLUSIVE locks over every
 mutable relation read by authorization or the Order349/352/355 predicate, then locks
 the exact open day `FOR UPDATE`. Complete readiness, including strict sub-five-minute
 lag, typed interface attribution and immutable carry lineage, is recomputed at the

@@ -208,6 +208,8 @@ describe("Order 356 audited business-day seal", () => {
         previous_state: "sealed", state: "sealed", sealed_at: SEALED_AT, sealed_by: ACTOR }],
       [{ tenant_id: TENANT, property_node: PROPERTY, business_date: DAY,
         previous_state: "open", state: "sealed", sealed_at: "not-an-instant", sealed_by: ACTOR }],
+      [{ tenant_id: TENANT, property_node: PROPERTY, business_date: new Date("2047-05-07T00:00:00.000Z"),
+        previous_state: "open", state: "sealed", sealed_at: SEALED_AT, sealed_by: ACTOR }],
     ] as const;
     for (const rows of hostileRows) {
       const proof = harness({ sealRows: rows });

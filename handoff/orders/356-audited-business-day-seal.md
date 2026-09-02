@@ -173,7 +173,7 @@ views. Migration0064 adds one function only, producing exact catalogue
 64/116/106/106/15/2.
 
 Serialization is database-enforced inside the capability before readiness. It takes
-fixed-lexical SHARE locks over every mutable authorization/readiness relation derived
+fixed-lexical SHARE ROW EXCLUSIVE locks over every mutable authorization/readiness relation derived
 from the final CTE (including actor, tenant, property, role grant, day, reservation,
 cashier, discrepancy/carry, payment/operation, document, fiscal/statutory submission,
 inbound message and outbox sources), then locks the exact business-day row `FOR UPDATE`,
