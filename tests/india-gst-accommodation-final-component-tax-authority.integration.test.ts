@@ -20,12 +20,17 @@ const replay=freeze({
   predecessorHashes:{section14:h("d"),levyComponentIdentity:h("e"),reservationLineage:h("f"),attributionSnapshot:h("1")},evidenceHash:h("2"),
 });
 const rate={extensionId:id(36020),version:1,status:"retired",contentHash:h("a"),effectiveFromInstant:"2020-01-01T00:00:00.000000Z",effectiveToInstant:"2025-09-21T00:00:00.000000Z",key:"in-gst-lodging",gstRoomSlabs:[{uptoMinor:750000,rate:0.05,itcEligible:false},{uptoMinor:null,rate:0.18,itcEligible:true}]};
-let input:any, order341Hash="";
+let input:any, igstInput:any, utgstInput:any, order341Hash="", igstHash="", utgstHash="";
 
 run("Order 360 persisted valuation PostgreSQL authority",()=>{
   const db=new SQL(url!);
   beforeAll(async()=>{
-    const built=await fixture("cgst_sgst","2025-09-21","2025-09-23","2025-09-24","2025-09-24",[700000n,800000n]);input=freeze({tenantId:T,propertyNode:P,reservationId:R,folioId:F,quotedRateApplicabilityInput:built.input});
+    const built=await fixture("cgst_sgst","2025-09-21","2025-09-23","2025-09-24","2025-09-24",[700000n,800000n]);
+    const igst=await fixture("igst","2025-09-21","2025-09-23","2025-09-24","2025-09-24",[700000n,800000n]);
+    const utgst=await fixture("cgst_utgst","2025-09-21","2025-09-23","2025-09-24","2025-09-24",[700000n,800000n]);
+    input=freeze({tenantId:T,propertyNode:P,reservationId:R,folioId:F,quotedRateApplicabilityInput:built.input});
+    igstInput=freeze({tenantId:T,propertyNode:P,reservationId:R,folioId:F,quotedRateApplicabilityInput:igst.input});
+    utgstInput=freeze({tenantId:T,propertyNode:P,reservationId:R,folioId:F,quotedRateApplicabilityInput:utgst.input});
     const setup=await db.reserve();try{
       await setup.unsafe("SET session_replication_role=replica; SET ROLE yellow_owner");
       await setup`SELECT set_config('app.tenant_id',${T},false)`;
@@ -52,6 +57,8 @@ run("Order 360 persisted valuation PostgreSQL authority",()=>{
       await setup`INSERT INTO india_gst_accommodation_payment_receipt_snapshot(tenant_id,id,service_provision_snapshot_id,currency,amount_minor,coverage_scope,supplier_books_entry_date,supplier_bank_credit_date,payment_receipt_date,payment_receipt_source,payment_receipt_evidence_sha256,legal_rule) VALUES(${T}::uuid,${payment.id}::uuid,${service.id}::uuid,'INR',${payment.amount_minor},${payment.coverage_scope},${payment.supplier_books_entry_date}::date,${payment.supplier_bank_credit_date}::date,${payment.payment_receipt_date}::date,${payment.payment_receipt_source},${payment.payment_receipt_evidence_sha256},${payment.legal_rule})`;
       await setup`INSERT INTO india_gst_accommodation_invoice_issue_snapshot(tenant_id,id,service_provision_snapshot_id,currency,amount_minor,coverage_scope,invoice_series,invoice_serial,invoice_issue_date,invoice_issue_source,invoice_issue_evidence_sha256,legal_rule) VALUES(${T}::uuid,${invoice.id}::uuid,${service.id}::uuid,'INR',${invoice.amount_minor},${invoice.coverage_scope},${invoice.invoice_series},${invoice.invoice_serial},${invoice.invoice_issue_date}::date,${invoice.invoice_issue_source},${invoice.invoice_issue_evidence_sha256},${invoice.legal_rule})`;
       order341Hash=(await new IndiaGstAccommodationQuotedRateApplicabilityService().resolve(setup,input.quotedRateApplicabilityInput)).evidenceHash;
+      igstHash=(await new IndiaGstAccommodationQuotedRateApplicabilityService().resolve(setup,igstInput.quotedRateApplicabilityInput)).evidenceHash;
+      utgstHash=(await new IndiaGstAccommodationQuotedRateApplicabilityService().resolve(setup,utgstInput.quotedRateApplicabilityInput)).evidenceHash;
       await setup`INSERT INTO india_gst_accommodation_final_valuation(tenant_id,id,property_node,reservation_id,folio_id,folio_account_id,window_no,buyer_party_id,attribution_id,request_id,generation,disposition,currency,transaction_value_minor,source_set_hash,order341_evidence_hash,request_hash,evidence_hash,ordinary_evidence_hashes,manual_reasons,relationship_conclusion,consideration_conclusion,section15_2_conclusion,section15_3_conclusion,source_completeness_conclusion,attestation_evidence_source,attestation_evidence_reference,relationship_set_hash,attested_by,actor_id) VALUES(${T}::uuid,${V}::uuid,${P}::uuid,${R}::uuid,${F}::uuid,${id(36007)}::uuid,1,${id(36008)}::uuid,${id(36024)}::uuid,${id(36009)}::uuid,0,'ordinary_final','INR',1500000,${h("3")},${order341Hash},${h("4")},${h("5")},ARRAY[${h("6")},${h("7")},${h("8")},${h("9")},${h("a")}],ARRAY[]::text[],'unrelated_not_distinct','money_only','all_additions_enumerated','all_discounts_eligible','all_sources_classified','operator_attestation','ORDER360',${h("b")},${U}::uuid,${U}::uuid)`;
       await setup`INSERT INTO india_gst_accommodation_valuation_room_night(tenant_id,valuation_id,ordinal,business_date,quoted_weight_minor,transaction_value_minor,currency) VALUES(${T}::uuid,${V}::uuid,0,'2025-09-21',700000,700000,'INR'),(${T}::uuid,${V}::uuid,1,'2025-09-22',800000,800000,'INR')`;
       await setup.unsafe("RESET ROLE; SET session_replication_role=origin");
@@ -62,7 +69,7 @@ run("Order 360 persisted valuation PostgreSQL authority",()=>{
   async function execute(candidate:typeof input=input){
     const connection=await db.reserve();try{await connection.unsafe("BEGIN");await connection`SELECT set_config('app.tenant_id',${candidate.tenantId},true)`;await connection.unsafe("SET LOCAL ROLE app_role");const result=await new IndiaGstAccommodationFinalComponentTaxService().calculate(connection,candidate as never);await connection.unsafe("ROLLBACK");return result;}catch(error){await connection.unsafe("ROLLBACK");throw error;}finally{connection.release();}
   }
-  async function owner(sql:string){const connection=await db.reserve();try{await connection.unsafe("SET session_replication_role=replica");await connection`SELECT set_config('app.tenant_id',${T},false)`;await connection.unsafe("SET ROLE yellow_owner");await connection.unsafe(sql);await connection.unsafe("RESET ROLE; SET session_replication_role=origin");}finally{connection.release();}}
+  async function owner(sql:string){const connection=await db.reserve();try{await connection.unsafe("SET session_replication_role=replica");await connection`SELECT set_config('app.tenant_id',${T},false)`;await connection.unsafe("SET ROLE yellow_owner");await connection.unsafe(sql);}finally{try{await connection.unsafe("RESET ROLE; SET session_replication_role=origin");}catch{}connection.release();}}
   async function withMutation(sql:string,restore:string){
     await owner(sql);try{await expect(execute()).rejects.toThrow();}finally{await owner(restore);}
   }
@@ -71,6 +78,23 @@ run("Order 360 persisted valuation PostgreSQL authority",()=>{
     const census=()=>db<Array<Record<string,number>>>`SELECT (SELECT count(*)::int FROM fact_log WHERE tenant_id=${T}::uuid) facts,(SELECT count(*)::int FROM outbox WHERE tenant_id=${T}::uuid) events,(SELECT count(*)::int FROM india_gst_accommodation_final_valuation WHERE tenant_id=${T}::uuid) valuations,(SELECT count(*)::int FROM india_gst_accommodation_valuation_room_night WHERE tenant_id=${T}::uuid) nights,(SELECT count(*)::int FROM document WHERE tenant_id=${T}::uuid) documents,(SELECT count(*)::int FROM fiscal_submission WHERE tenant_id=${T}::uuid) fiscal,(SELECT count(*)::int FROM journal WHERE tenant_id=${T}::uuid) journals,(SELECT count(*)::int FROM posting_line WHERE tenant_id=${T}::uuid) postings`;
     const before=await census();const actual=await execute();expect(actual).toMatchObject({valuationId:V,generation:0,taxMinor:"179000",grandTotalMinor:"1679000"});expect(actual.roomNights.map(n=>n.slab.components.map(c=>c.taxMinor))).toEqual([["17500","17500"],["72000","72000"]]);expect(Object.isFrozen(actual)).toBeTrue();expect(Object.isFrozen(actual.roomNights)).toBeTrue();expect(Object.isFrozen(actual.roomNights[0]!.slab.components)).toBeTrue();
     expect(await census()).toEqual(before);
+  });
+  test("persists every component family, exact threshold, half-up fractions and overflow hostility",async()=>{
+    const restore="UPDATE india_gst_accommodation_final_valuation SET transaction_value_minor=1500000,order341_evidence_hash='"+order341Hash+"' WHERE id='"+V+"'; DELETE FROM india_gst_accommodation_valuation_room_night WHERE valuation_id='"+V+"'; INSERT INTO india_gst_accommodation_valuation_room_night(tenant_id,valuation_id,ordinal,business_date,quoted_weight_minor,transaction_value_minor,currency) VALUES('"+T+"','"+V+"',0,'2025-09-21',700000,700000,'INR'),('"+T+"','"+V+"',1,'2025-09-22',800000,800000,'INR')";
+    const persist=async(hashValue:string,a:string,b:string,total:string)=>owner("UPDATE india_gst_accommodation_final_valuation SET transaction_value_minor="+total+",order341_evidence_hash='"+hashValue+"' WHERE id='"+V+"'; DELETE FROM india_gst_accommodation_valuation_room_night WHERE valuation_id='"+V+"'; INSERT INTO india_gst_accommodation_valuation_room_night(tenant_id,valuation_id,ordinal,business_date,quoted_weight_minor,transaction_value_minor,currency) VALUES('"+T+"','"+V+"',0,'2025-09-21',1,"+a+",'INR'),('"+T+"','"+V+"',1,'2025-09-22',1,"+b+",'INR')");
+    try{
+      await persist(igstHash,"700000","800000","1500000");const igst=await execute(igstInput);expect(igst.roomNights.map(n=>n.slab.components.map(c=>c.identity))).toEqual([["igst"],["igst"]]);expect(igst.taxMinor).toBe("179000");
+      await persist(utgstHash,"700000","800000","1500000");const utgst=await execute(utgstInput);expect(utgst.roomNights[0]!.slab.components.map(c=>c.identity)).toEqual(["cgst","utgst"]);
+      await persist(order341Hash,"750000","750000","1500000");const threshold=await execute();expect(threshold.roomNights.every(n=>n.slab.uptoMinor===750000)).toBeTrue();
+      await persist(order341Hash,"100","1499900","1500000");const half=await execute();expect(half.roomNights[0]!.slab.components.map(c=>c.taxMinor)).toEqual(["3","3"]);
+      await persist(order341Hash,"101","1499899","1500000");const fractional=await execute();expect(fractional.roomNights[0]!.slab.components.map(c=>c.taxMinor)).toEqual(["3","3"]);
+      await persist(order341Hash,"1","9223372036854775806","9223372036854775807");await expect(execute()).rejects.toThrow("signed int64");
+    }finally{await owner(restore);}
+  },30000);
+  test("database constraints prevent a second current ordinary head",async()=>{
+    const duplicate=id(36050);
+    await expect(owner("INSERT INTO india_gst_accommodation_final_valuation SELECT tenant_id,'"+duplicate+"',property_node,reservation_id,folio_id,folio_account_id,window_no,buyer_party_id,attribution_id,'"+id(36051)+"',generation,disposition,currency,transaction_value_minor,source_set_hash,order341_evidence_hash,'"+h("d")+"','"+h("e")+"',ordinary_evidence_hashes,manual_reasons,relationship_conclusion,consideration_conclusion,section15_2_conclusion,section15_3_conclusion,source_completeness_conclusion,attestation_evidence_source,attestation_evidence_reference,relationship_set_hash,attested_by,attested_at,NULL,NULL,actor_id,recorded_at FROM india_gst_accommodation_final_valuation WHERE id='"+V+"'")).rejects.toThrow();
+    expect(await execute()).toMatchObject({valuationId:V});
   });
   test("fails closed for hash mismatch and incomplete, null, negative or gapped nights",async()=>{
     const restoreNight="DELETE FROM india_gst_accommodation_valuation_room_night WHERE valuation_id='"+V+"'; INSERT INTO india_gst_accommodation_valuation_room_night(tenant_id,valuation_id,ordinal,business_date,quoted_weight_minor,transaction_value_minor,currency) VALUES('"+T+"','"+V+"',0,'2025-09-21',700000,700000,'INR'),('"+T+"','"+V+"',1,'2025-09-22',800000,800000,'INR')";
