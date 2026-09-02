@@ -1,6 +1,6 @@
 # Order 357 — Order354 buyer-approval expiry and proof completion
 
-**Status:** BUILT-PENDING-DIFFERENT-FRESH-TIER3-REVIEW-D1010
+**Status:** REVIEW-WITHHELD-D1011
 **Phase:** 7 — Tax engine and India IRP
 **Branch:** `phase-7/order354-buyer-expiry-proof-completion`
 **Base:** exact withheld repair `62a5870` / governance `bf1d8b5`
