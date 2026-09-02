@@ -1,6 +1,6 @@
 # Order 355 — Order349 carried-discrepancy lineage readiness
 
-**Status:** WITHHELD-D1055
+**Status:** APPROVED-D1060
 **Phase:** 5 — Financials
 **Branch:** `phase-5/order349-carried-discrepancy-lineage-readiness`
 **Base:** exact approved D1051 frontier `2a78dfa`; product ancestry includes approved Order349/352, Order351/359/363/366/368, Order371 and Order372 candidate `c640c5c`
@@ -228,18 +228,37 @@ record commands and results before approval.
       unknown/fail-closed with zero payload authority.
 - [x] Complete Order349/352 and Order351 preservation, zero-write, static, standing
       and fresh referee gates pass with the activated catalogue unchanged.
-- [ ] Fresh independent non-implementing Tier-3 approval and reviewer-run proof are
+- [x] Fresh independent non-implementing Tier-3 approval and reviewer-run proof are
       recorded before closure.
 
-Fresh review D1055 withholds the exact candidate. A reviewer-only fresh PostgreSQL
+## Final closure — D1060
+
+Fresh independent non-implementing Tier-3 `/root/order373_fresh_tier3` separately
+audited this order's complete P0–P5 contract after the D1055 repair. On exact combined
+product `c988e8885aabc0eb9063e12a54543e4767cedb1c` and governance `1629f9f`, the
+reviewer-personal 27-case readiness/carry matrix, isolated D1055 exploit, full hostile
+source-event matrix, load-bearing repair mutation, official PostgreSQL 16.15 gates,
+catalogue/schema proofs, standing/static gates and separate referee cover every
+Order355 completion requirement. The permanent matrix includes both persisted hash
+mismatch families, exact-one/mutual-exclusion hostility, tenant/property/date/room/
+source-target containment, payload irrelevance, snapshot/concurrency preservation and
+catalogue-derived zero writes. No additional product or local proof was required.
+
+Order355 is therefore approved and closed. Exact evidence and the requirement-by-
+requirement coverage map are recorded in
+`handoff/reviews/355-order349-carried-discrepancy-lineage-readiness-final-closure.md`.
+This closure adds no seal, carry mutation, schema, API, UI, local, deployment, merge,
+Phase-5 or application-completion authority.
+
+Historical review D1055 withheld the original exact candidate. A reviewer-only fresh PostgreSQL
 case moved the carry link's source date to a third existing same-property day and
 recomputed the canonical request hash; readiness incorrectly returned one known
 unresolved blocker instead of fail-closed unknown attribution because the query does
 not bind source property/date to the source discrepancy's canonical typed
 `discrepancy.reported` event. See
 `handoff/reviews/355-order349-carried-discrepancy-lineage-readiness.md`. Product and
-permanent test candidate bytes remain unchanged; a separately scoped repair and
-different fresh Tier-3 approval are mandatory before closure.
+permanent test candidate bytes remained unchanged; it required the separately scoped
+Order373 repair and different fresh Tier-3 approval now completed by D1059/D1060.
 
 Creation of this draft grants no implementation authority. Completion would extend
 only read-only readiness attribution for the exact governed carried-target lineage;
