@@ -1,6 +1,6 @@
 # Order 354 — Order350 governed evidence and proof repair
 
-**Status:** REVIEW-WITHHELD-D1007
+**Status:** APPROVED-D1012
 **Phase:** 7 — Tax engine and India IRP
 **Branch:** `phase-7/order350-governed-evidence-proof-repair`
 **Base:** exact withheld candidate `6e82a7c` / implementation `6b61e72`

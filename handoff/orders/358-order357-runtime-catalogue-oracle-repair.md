@@ -1,6 +1,6 @@
 # Order 358 — Order357 runtime catalogue oracle repair
 
-**Status:** ACTIVE-INTENTIONAL-RED-D1011
+**Status:** APPROVED-D1012
 **Phase:** 7 — Tax engine and India IRP
 **Branch:** `phase-7/order357-runtime-catalogue-oracle-repair`
 **Base:** exact withheld governance `4888831` / implementation `9070222`
