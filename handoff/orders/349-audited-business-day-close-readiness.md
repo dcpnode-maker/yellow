@@ -1,6 +1,6 @@
 # Order 349 — Audited business-day close readiness
 
-**Status:** ACTIVE-INTENTIONAL-RED-D994  
+**Status:** ACTIVE-INTENTIONAL-RED-D994
 **Phase:** 5 — Financials  
 **Branch:** `phase-5/audited-business-day-close-readiness`  
 **Base:** `3638c96` (D990/D991 founder policy ratification)  
