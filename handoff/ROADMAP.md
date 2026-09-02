@@ -1008,6 +1008,13 @@ Tier3 kills the final outer-freeze mutant and sampled repaired faults. Clean adj
 The approved output remains quoted rate applicability only; final Section15 taxable
 value, tax money, rounding, posting, documents and IRP remain later work.
 
+D998 builds Order350's governed final-valuation evidence on migration0062. Four
+insert-only forced-RLS tables preserve exact locked sources, room nights, signed
+allocations, legal buyer, ordinary/manual disposition and superseding generations.
+Fresh62/115/105/14/2 plus executable atomic-command proof is green; independent Tier3
+review is pending. The next Phase7 slice remains component tax/rounding over approved
+evidence, not a document or IRP shortcut.
+
 D966 admits review-only Order342 as the smallest honest Phase-6 continuation. The
 documented Phase-6 journeys are built across Orders200–236 but lack their required
 fresh independent executable exit proof. The reviewer must execute the checkout,

@@ -1516,6 +1516,17 @@ canonical snapshot. Mutable, proxy, accessor, symbol, non-INR, non-positive, dup
 or unreconciled components fail closed. This boundary has no write, clock, latest-rate,
 tax-money, document, IRP, API, UI or local-runtime authority.
 
+### Order 350 final-valuation evidence containment
+
+All four valuation tables are owner-owned, insert-only, tenant-leading and forced
+RLS. `app_role` has SELECT only and can execute one fixed-search-path SECURITY
+DEFINER recording capability; `PUBLIC` and `yellow_runtime` cannot execute it or
+write the tables. The command re-locks the exact folio and complete posting roots,
+binds legal-buyer approval where required, and appends corrections through one
+single-successor lineage. Caller JSON, floating-point money, descriptions and USALI
+labels cannot create statutory value authority. No document, IRP or posting authority
+is granted.
+
 Migration0061 adds only `runtime_due_business_day_scopes(integer)`: a stable,
 fixed-search-path owner-mediated discovery function returning bounded active
 tenant/property identifiers with no current PostgreSQL/property-local business day.

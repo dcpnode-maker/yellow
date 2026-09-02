@@ -174,6 +174,8 @@ financial, business-day or statutory effects.
 
 **tax/fiscal/statutory** · tax.attribution_recorded {attribution_id,property_node,origin_kind,origin_quote_hash,snapshot_hash,currency} · tax.attribution_bound {binding_id,attribution_id,hold_id,property_node,origin_quote_hash,snapshot_hash,currency} · tax.attribution_posted {posting_binding_id,journal_id,lineage_id,attribution_id,reservation_id,segment_id,folio_id,origin_quote_hash,snapshot_hash,currency} · tax.attribution_reversed {posting_binding_id,original_journal_id,reversal_journal_id,lineage_id,attribution_id,reservation_id,segment_id,folio_id,origin_quote_hash,snapshot_hash,currency,effect} · document.issued {kind,doc_no,hash} · document.cleared/.rejected {authority_ref} · statutory.due {adapter,due_at} · statutory.submitted/.accepted/.failed · erasure.completed
 
+`india_gst.accommodation_final_valuation_recorded {valuationId,reservationId,folioId,windowNo,buyerPartyId,generation,disposition,evidenceHash}` states only that one immutable governed valuation-evidence generation was recorded. It contains no guest profile, posting amounts, tax amounts, invoice content or IRP payload. Consumers must not infer calculation, posting, document issue or fiscal submission.
+
 `tax.attribution_recorded` states only that one exact positive Order-240 `rate_quote`
 snapshot became an immutable tenant root under one contextual property and actor. The
 new root, matching fact, minimized outbox row and idempotent receipt commit in one

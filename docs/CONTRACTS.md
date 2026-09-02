@@ -2517,6 +2517,23 @@ slab independently for each existing positive INR room-night quote. The result h
 quoted amounts and rate identity only: no final taxable value, tax amount, rounding,
 posting, document, ItemList or IRP data.
 
+## Order350: governed India accommodation final-valuation evidence
+
+`IndiaGstAccommodationFinalValuationService.finalize` locks one exact reservation,
+open folio window, legal buyer, attribution root and complete current INR posting-root
+set. It records one append-only evidence bundle through the app-only owner-mediated
+`record_india_gst_accommodation_final_valuation` capability. Ordinary Section 15
+requires explicit unrelated/not-distinct, sole-money, addition and eligible-discount
+evidence; ambiguous, special, related, non-money, pure-agent or tax-inclusive cases
+record only `manual_valuation_required`.
+
+Every signed source amount is allocated deterministically over the exact ordered room
+nights with the shared integer largest-remainder allocator. Corrections append one
+single-successor generation and never update an earlier bundle. The command records
+one minimized fact and `india_gst.accommodation_final_valuation_recorded` event
+atomically. This evidence is not a GST amount, journal, invoice, document number,
+ItemList, IRP payload or submission authorization.
+
 ### Automatic property-local business-day roll (Order 347)
 
 `BusinessDayRollService.openCurrentBusinessDay` accepts only an exact tenant,

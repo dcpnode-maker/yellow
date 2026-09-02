@@ -70,6 +70,16 @@ settlement, checkout, invoice/document issue, fiscalization, tax or business-day
 Later corrections post through a separately governed open window; immutable history is
 never edited.
 
+### 2a. India accommodation final valuation — absent → generation 0 → generation N
+
+Order350 has no mutable status transition. The first governed fiscal-finalization
+request appends generation zero as either `ordinary_final` or
+`manual_valuation_required`. A correction locks the unique current head and appends
+exactly one successor generation referencing it; predecessors are never updated.
+Manual-required evidence cannot authorize tax calculation or document issue. Every
+generation atomically appends its source/night/allocation evidence, one fact and one
+recorded event.
+
 ## 3. Business day — open → **sealed** via `seal_business_day()`.
 The function is currently deployment-owner-only as a temporary least-privilege
 containment boundary. No application day-close command exists yet. Future application

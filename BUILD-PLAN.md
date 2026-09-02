@@ -518,6 +518,14 @@ Tier3 kills the final outer-freeze mutant and sampled repaired faults. Clean adj
 Approval closes only quoted per-room-night rate applicability; final Section15 taxable
 value, tax amount, rounding, posting, documents and IRP remain separately governed.
 
+Order350 is built under D998 as the D991-governed final-valuation evidence root.
+Migration0062 records locked posting sources, exact room nights and deterministic
+signed allocations in four insert-only forced-RLS tables; ordinary Section15 evidence
+or manual-required disposition, legal buyer approval and append-only correction
+lineage are preserved atomically. Fresh62/115/105/14/2 and focused command proof are
+green; fresh Tier3 approval remains required. Tax-component money, rounding, posting,
+documents and IRP remain separate subsequent orders.
+
 Order 237 is built-unreviewed under D-625 as the positive pure rules-driven
 tax-evaluation foundation.
 It validates the adopted jurisdiction contract, converts configuration rates to

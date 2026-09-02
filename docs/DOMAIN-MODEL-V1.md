@@ -1781,6 +1781,17 @@ business date and canonical INR quote remains independent: no stay total, averag
 room-night date selects a version. It creates no new accommodation, allocation, tax,
 accounting or fiscal-document entity.
 
+### India GST accommodation final-valuation evidence (Order 350)
+
+Four normalized insert-only roots preserve one governed generation, its complete
+current folio posting sources, exact ordered room nights and signed source-to-night
+allocations. They are statutory evidence over the existing reservation, folio,
+account, party, attribution, journal and posting primitives—not a parallel ledger.
+The current generation is the unique head with no later row naming it as predecessor;
+corrections append one successor. Ordinary evidence stores positive INR per-night
+transaction values, while indeterminable/special cases store only
+`manual_valuation_required`. No tax amount, invoice, document or IRP entity is created.
+
 ### Automatic current business-day roll (Order 347)
 
 The existing `business_day` row is the sole current-day fact; there is no mutable
