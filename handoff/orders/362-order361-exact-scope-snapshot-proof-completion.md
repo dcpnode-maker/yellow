@@ -1,6 +1,6 @@
 # Order 362 — Order361 exact-scope and snapshot proof completion
 
-**Status:** ACTIVE-D1023
+**Status:** BUILT-PENDING-DIFFERENT-FRESH-TIER3-D1026
 **Phase:** 7 — Tax engine and India IRP
 **Branch:** `phase-7/order361-exact-scope-snapshot-proof-completion`
 **Base:** exact withheld product/proof `b6aaa1f` + `e79b935` + `d4d6662` / governance `7557112`
@@ -36,3 +36,18 @@ must personally approve.
 
 No mocked resolver, weaker substitute, migration/schema/catalogue/write/permission/
 route/UI/posting/document/IRP change, local/deploy/merge/`.yellow`/port3000 mutation.
+
+## Builder evidence — D1026
+
+Exact proof candidate `b89d422` plus fixture hardening `a90d3a6` changes only
+`tests/india-gst-accommodation-final-component-tax-authority.integration.test.ts`.
+Fresh PostgreSQL authority passes **14/0 (608)**; exact catalogue remains
+`63/116/106/15/2`; acceptance passes **23/0 (65)**; runtime-DML **5/0 (120)**;
+SECURITY-DEFINER **3/0 (192)**; real Order341 ancestor **5/0**; migration integration
+**39/0 (187)**; and seed **10/0 (63)**. Typecheck is green. The initial acceptance
+attempt shared authority fixtures and is excluded; a rebuilt clean volume passed.
+The first migration invocation correctly refused protected `yellow_dev`; the fresh
+unprotected run passed. Disposable containers, network and volume were removed; a
+transient Windows handle prevented deletion of one non-secret temp directory.
+Fresh independent Tier-3 review remains mandatory and no downstream tax authority
+follows from builder evidence.
