@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { allocateSignedLargestRemainder, SignedLargestRemainderError } from "../src/contexts/tax-fiscal";
+import { allocateSignedLargestRemainder, IndiaGstAccommodationFinalValuationService, IndiaGstAccommodationFinalValuationValidationError, SignedLargestRemainderError } from "../src/contexts/tax-fiscal";
 
 const weights=(...values:string[])=>Object.freeze(values.map((weightMinor,index)=>Object.freeze({ordinal:String(index),weightMinor})));
 
@@ -33,5 +33,31 @@ describe("Order 350 signed largest-remainder allocator",()=>{
       ()=>allocateSignedLargestRemainder("1",Object.freeze([Object.freeze({ordinal:"0",weightMinor:"0"})])),
       ()=>allocateSignedLargestRemainder("1",Object.freeze([Object.freeze({ordinal:"0",weightMinor:"1"}),Object.freeze({ordinal:"0",weightMinor:"2"})])),
     ]) expect(run).toThrow(SignedLargestRemainderError);
+  });
+});
+
+const U="00000000-0000-4000-8000-000000000001";
+function freeze<T>(value:T):T{if(value&&typeof value==="object"){for(const child of Object.values(value as object))freeze(child);Object.freeze(value);}return value;}
+function valuation(overrides:Record<string,unknown>={}){
+  return freeze({tenantId:U,propertyNode:U,reservationId:U,folioId:U,buyerPartyId:U,
+    quotedRateApplicabilityInput:{},quotedRateApplicabilityResult:{},
+    sources:[{postingRootId:U,sourceKind:"room_consideration",additionSubtype:null,discountEligibility:null,evidenceSource:"operator_attestation",evidenceReference:"SOURCE-350"}],
+    ordinaryAttestation:{relationshipConclusion:"unrelated_not_distinct",considerationConclusion:"money_only",section152Conclusion:"all_additions_enumerated",section153Conclusion:"all_discounts_eligible",sourceCompletenessConclusion:"all_sources_classified",evidenceSource:"operator_attestation",evidenceReference:"ROOT-350"},
+    manualReasons:[],expectedCurrentValuationId:null,expectedCurrentEvidenceHash:null,approvalRequestId:null,idempotencyKey:"order350-proof",
+    envelope:{tenantId:U,propertyNode:U,actorId:U,requestId:U,operation:"india_gst.accommodation_final_valuation_recorded"},...overrides} as any);
+}
+const validator=new IndiaGstAccommodationFinalValuationService({idempotency:{} as any});
+describe("Order 354 governed valuation input boundary",()=>{
+  test("rejects non-canonical manual vocabulary before database access",async()=>{
+    await expect(validator.finalize({} as any,valuation({ordinaryAttestation:null,manualReasons:["operator_choice"]}))).rejects.toBeInstanceOf(IndiaGstAccommodationFinalValuationValidationError);
+  });
+  test("rejects mixed ordinary/manual partitions and surplus source hashes",async()=>{
+    await expect(validator.finalize({} as any,valuation({manualReasons:["related_person"]}))).rejects.toBeInstanceOf(IndiaGstAccommodationFinalValuationValidationError);
+    const source={postingRootId:U,sourceKind:"room_consideration",additionSubtype:null,discountEligibility:null,evidenceSource:"operator_attestation",evidenceReference:"SOURCE-350",classificationHash:"a".repeat(64)};
+    await expect(validator.finalize({} as any,valuation({sources:[source]}))).rejects.toBeInstanceOf(IndiaGstAccommodationFinalValuationValidationError);
+  });
+  test("rejects mismatched Section 15 source classifications",async()=>{
+    const source={postingRootId:U,sourceKind:"section15_2_addition",additionSubtype:null,discountEligibility:null,evidenceSource:"operator_attestation",evidenceReference:"SOURCE-350"};
+    await expect(validator.finalize({} as any,valuation({sources:[source]}))).rejects.toBeInstanceOf(IndiaGstAccommodationFinalValuationValidationError);
   });
 });

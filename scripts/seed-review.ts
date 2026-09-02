@@ -118,6 +118,7 @@ export const REVIEW_PERMISSIONS = Object.freeze([
   { code: "stay-operations.checkout:commit", description: "Commit an eligible property checkout" },
   { code: "stay-operations.vehicles:read", description: "Read the governed property vehicle register" },
   { code: "stay-operations.vehicles:park", description: "Assign onsite reservation-linked vehicles to governed parking spaces" },
+  { code: "tax-fiscal.india-valuation:finalize", description: "Finalize governed India accommodation valuation evidence" },
   REVIEW_PICKUP_TASK_DISPATCH_PERMISSION,
   REVIEW_PICKUP_TASK_WORK_PERMISSION,
 ]);
