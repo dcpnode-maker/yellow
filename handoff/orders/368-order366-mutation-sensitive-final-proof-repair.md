@@ -1,6 +1,6 @@
 # Order 368 — Order366 mutation-sensitive final carry-proof repair
 
-**Status:** ACTIVE-D1035
+**Status:** BUILT-PENDING-DIFFERENT-FRESH-TIER3-D1041
 **Phase:** 5 — Financials
 **Branch:** `phase-5/order366-mutation-sensitive-final-proof-repair`
 **Base:** exact withheld candidate `2f631a5` / governance `e4c6e35`
@@ -35,3 +35,19 @@ permission, financial behavior, UI, local, Docker-stable, `.yellow`, port3000,
 merge, deploy or downstream change. No second guard may mask the named constraint,
 and no expected observation surface may be generated from the same mutable list as
 the snapshot it checks.
+
+## Builder evidence — D1041
+
+- Exact test-only candidate: `5b9b9dd3f18b3bdb8f9cfd6dc7fdeb69684888f3`.
+- Fresh focused PostgreSQL proof passes11/0 with1,782 assertions.
+- The exact approval-reuse,request-reuse,canonical-event-publication and
+  `folio_balance`-observation mutants each independently make its named proof red;
+  exact candidate bytes are restored after every mutation.
+- The event proof observes the typed outbox insertion inside the supplied transaction
+  and rejection outside after rollback. The zero-write snapshot derives its complete
+  tenant-bearing public-relation catalogue independently and permits changes only to
+  `api_idempotency`,`business_day_discrepancy_carry`,`discrepancy`,`fact_log`,`outbox`;
+  every other relation must remain byte-equal.
+- Runtime-DML5/0(120),SECURITY-DEFINER3/0(192),typecheck,139 import boundaries,
+  licence23 and diff hygiene pass. A different fresh non-implementing Tier3 is
+  executing the exact mutants and full Order366/363/359/351 gates before approval.
