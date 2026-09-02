@@ -173,7 +173,7 @@ dbDescribe("Order 108 SECURITY DEFINER shadow-path containment", () => {
            'initialize_unit_condition', 'transition_arrival_pickup_task',
            'create_arrival_room_cleaning_task', 'assign_due_in_room',
            'report_room_discrepancy', 'prepare_business_day_discrepancy_carry',
-           'carry_business_day_discrepancy'
+           'carry_business_day_discrepancy', 'seal_business_day_audited'
          ]::name[])
        ORDER BY signature
     `;
@@ -233,6 +233,8 @@ dbDescribe("Order 108 SECURITY DEFINER shadow-path containment", () => {
         config: ["search_path=pg_catalog, public"], appExecute: true, publicDenied: true },
       { signature: "seal_business_day(uuid,uuid,date,uuid)", securityDefiner: true,
         config: ["search_path=pg_catalog, public, pg_temp"], appExecute: false, publicDenied: true },
+      { signature: "seal_business_day_audited(uuid,uuid,date,uuid)", securityDefiner: true,
+        config: ["search_path=pg_catalog, public, pg_temp"], appExecute: true, publicDenied: true },
       { signature: "transition_arrival_pickup_task(uuid,uuid,uuid,uuid,text,text,uuid,uuid,uuid)", securityDefiner: true,
         config: ["search_path=pg_catalog, public, pg_temp"], appExecute: true, publicDenied: true },
       { signature: "transition_housekeeping_task(uuid,uuid,uuid,text,text,text,timestamp with time zone,uuid)", securityDefiner: true,
@@ -311,6 +313,13 @@ dbDescribe("Order 108 SECURITY DEFINER shadow-path containment", () => {
           "public.space_occupancy", "public.reservation_segment", "public.reservation",
           "public.discrepancy"]],
       ["seal_business_day(uuid,uuid,date,uuid)", ["public.business_day"]],
+      ["seal_business_day_audited(uuid,uuid,date,uuid)",
+        ["public.app_user", "public.business_day", "public.business_day_discrepancy_carry",
+          "public.cashier_session", "public.discrepancy", "public.document",
+          "public.fiscal_submission", "public.inbound_message", "public.org_node",
+          "public.outbox", "public.payment", "public.payment_operation", "public.reservation",
+          "public.role_permission", "public.space", "public.statutory_submission", "public.tenant",
+          "public.user_role"]],
       ["transition_housekeeping_task(uuid,uuid,uuid,text,text,text,timestamp with time zone,uuid)",
         ["public.app_user", "public.org_node", "public.task", "public.space", "public.unit_condition"]],
       ["transition_arrival_pickup_task(uuid,uuid,uuid,uuid,text,text,uuid,uuid,uuid)",

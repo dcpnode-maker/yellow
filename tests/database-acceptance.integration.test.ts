@@ -320,6 +320,11 @@ const EXPECTED_MIGRATIONS = [
     filename: "0063_governed_business_day_discrepancy_carry.sql",
     checksum_sha256: "2b9dc9c73b77b68a06cae3e2dd05da88e00f3f073a41232bada2569c7d49702b",
   },
+  {
+    version: 64,
+    filename: "0064_audited_business_day_seal.sql",
+    checksum_sha256: "8a855b788bf60cac111fc4d68caee88d0b02b1b04f5718a6eb834faca5cd819d",
+  },
 ];
 
 if (REQUIRE_DATABASE && !DATABASE_URL) {
@@ -396,7 +401,7 @@ databaseDescribe("fresh deployment database acceptance", () => {
             AND class.relforcerowsecurity) AS "forceRlsTables"
     `;
     expect(catalogue).toEqual([{
-      migrations: 63, tables: 116, rlsTables: 106, policies: 106, forceRlsTables: 15,
+      migrations: 64, tables: 116, rlsTables: 106, policies: 106, forceRlsTables: 15,
     }]);
   });
 

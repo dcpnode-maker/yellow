@@ -1641,6 +1641,7 @@ databaseDescribe("Bun SQL migration runner", () => {
           "0061_runtime_due_business_day_scopes.sql",
           "0062_india_gst_accommodation_final_valuation.sql",
           "0063_governed_business_day_discrepancy_carry.sql",
+          "0064_audited_business_day_seal.sql",
         ]);
 
         const preservedLedger = await sql<Array<{
@@ -1666,7 +1667,7 @@ databaseDescribe("Bun SQL migration runner", () => {
             FROM public.schema_migration
            ORDER BY version
         `;
-        expect(upgradedLedger).toHaveLength(63);
+        expect(upgradedLedger).toHaveLength(64);
 
         const noOpLog: string[] = [];
         const noOp = await runMigrations({
@@ -1675,7 +1676,7 @@ databaseDescribe("Bun SQL migration runner", () => {
           logger: (message) => noOpLog.push(message),
         });
         expect(noOp.appliedFiles).toEqual([]);
-        expect(noOp.discoveredFiles).toBe(63);
+        expect(noOp.discoveredFiles).toBe(64);
         expect(noOp.transactionBackendPids).toEqual([]);
         expect(noOpLog).toHaveLength(1);
         expect(noOpLog[0]).toContain("applied=0 status=no-op");
@@ -1697,7 +1698,7 @@ databaseDescribe("Bun SQL migration runner", () => {
         }>>`
           SELECT version, filename, checksum_sha256
             FROM public.schema_migration
-           WHERE version IN (44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63)
+           WHERE version IN (44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64)
            ORDER BY version
         `;
         expect(ledger.map((row) => ({ ...row, version: Number(row.version) }))).toEqual([
@@ -1800,6 +1801,11 @@ databaseDescribe("Bun SQL migration runner", () => {
             version: 63,
             filename: "0063_governed_business_day_discrepancy_carry.sql",
             checksum_sha256: "2b9dc9c73b77b68a06cae3e2dd05da88e00f3f073a41232bada2569c7d49702b",
+          },
+          {
+            version: 64,
+            filename: "0064_audited_business_day_seal.sql",
+            checksum_sha256: "8a855b788bf60cac111fc4d68caee88d0b02b1b04f5718a6eb834faca5cd819d",
           },
         ]);
 
