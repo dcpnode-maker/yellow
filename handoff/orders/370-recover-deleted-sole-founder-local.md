@@ -1,6 +1,6 @@
 # Order 370 — Recover the unexpectedly deleted sole founder local
 
-**Status:** BUILT-PENDING-FRESH-NON-OPERATING-TIER3-REVIEW
+**Status:** APPROVED-LOCALLY-D1042
 **Phase:** 7 — operational recovery only
 **Branch:** `phase-7/governed-owner-trust-negative-authorization`
 **Base:** `5b9b9dd`
@@ -63,7 +63,7 @@ closing this sole local and replaying the verified dump into a replacement exact
 - [x] Verified two-hotel database restored and migrated through59 once.
 - [x] Exactly one healthy founder local is available on loopback3000.
 - [x] Protected authentication and bounded management journeys pass.
-- [ ] Fresh independent non-operating review is recorded.
+- [x] Fresh independent non-operating review is recorded.
 
 ## Builder evidence — D1040
 
@@ -90,3 +90,22 @@ closing this sole local and replaying the verified dump into a replacement exact
   operational database and tenant context true. Existing12 routes per property were
   24/24 HTTP200. The recorded approved runtime snapshot remains310/311/91/P7; this
   recovery intentionally does not claim later product/status promotion.
+
+## Fresh independent non-operating Tier-3 review — D1042
+
+- Fresh reviewer `/root/order370_fresh_nonoperating_tier3` personally rehashed the
+  exact restricted dump, reproduced its readable1,324-line PostgreSQL catalogue,
+  verified owner+SYSTEM-only inherited ACLs and approved the exact candidate
+  `4dd2368d0dedd4f8df7a1b59b6245437f637b341` with no finding.
+- Reviewer-executed read-only database proof passes exact59/110 base+2 views/100/2
+  plus8/0/8/75/22, zero other open transactions and exact role/membership/ownership/
+  direct-ACL containment.
+- Exactly four intended containers are running healthy/restart0 on the one named
+  network and volume. Exact approved-source app/provider plus pinned PostgreSQL and
+  Valkey expose only loopback3000/3001/6389; PostgreSQL is host-unbound and obsolete
+  app ports3002/3123/3188 are closed.
+- Protected in-memory login, exactly2 authorized properties, both exact
+  310/311/91/P7/13 operational status responses and24/24 no-store pages pass without
+  exposing credentials or tokens. The final database snapshot and container health
+  remain byte/count exact. Approval is recovery-local only and grants no later
+  product, migration, Phase, merge, push or deployment authority.
