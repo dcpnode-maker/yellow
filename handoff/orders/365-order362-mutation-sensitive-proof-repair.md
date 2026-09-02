@@ -1,6 +1,6 @@
 # Order 365 — Order362 mutation-sensitive proof repair
 
-**Status:** ACTIVE-D1030
+**Status:** BUILT-PENDING-DIFFERENT-FRESH-TIER3-D1032
 **Phase:** 7 — Tax engine and India IRP
 **Branch:** `phase-7/order362-mutation-sensitive-proof-repair`
 **Base:** exact withheld proof `b89d422` + `a90d3a6` / governance `cd392b4`
@@ -30,3 +30,13 @@ approval.
 No product/service/migration/schema/catalogue/write/permission/route/UI/posting/
 document/IRP/local/deploy/merge/`.yellow`/port3000 change. Do not combine mutations
 so another guard masks the named authority.
+
+## Builder evidence — D1032
+
+Exact test-only candidate `cb22cb5` adds isolated ordinal-only, coherent-total zero
+night and post-transaction tenant-context reset proofs. Removing ordinal comparisons,
+removing positivity and changing transaction-local `set_config(..., true)` to `false`
+each makes its exact permanent case red. Restored fresh PostgreSQL authority passes
+**17/0 (612)**; runtime-DML **5/0**; SECURITY-DEFINER **3/0**; canonical acceptance
+**23/0**; typecheck and diff hygiene pass. Disposable resources were removed. Fresh
+independent Tier-3 review remains mandatory.
