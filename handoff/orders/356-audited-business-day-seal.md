@@ -1,6 +1,6 @@
 # Order 356 — Audited business-day seal
 
-**Status:** ACTIVE-D1066
+**Status:** APPROVED-D1068
 **Phase:** 5 — Financials  
 **Branch:** `phase-5/audited-business-day-seal`  
 **Base:** exact approved Order374 governance tip
@@ -276,16 +276,16 @@ not proof.
 
 - [x] Activation binds approved Orders349/352 and independently approved Orders351/355,
       exact post-frontier catalogue and resolved seal policy gaps.
-- [ ] Intentional red precedes implementation and the exact new app capability is
+- [x] Intentional red precedes implementation and the exact new app capability is
       absent before production edits.
-- [ ] One guarded transaction reruns complete readiness/lineage, fails closed on
+- [x] One guarded transaction reruns complete readiness/lineage, fails closed on
       every blocker/unknown, and serializes the latch against financial races.
-- [ ] Legacy owner-only seal and all direct app/runtime DML denials remain green.
-- [ ] One-way seal, one fact and one `business_day.sealed` event are atomic,
+- [x] Legacy owner-only seal and all direct app/runtime DML denials remain green.
+- [x] One-way seal, one fact and one `business_day.sealed` event are atomic,
       database-authored, tenant-contained, immutable and replay-safe.
-- [ ] Full preservation, static/schema/standing/referee gates pass, including fresh
+- [x] Full preservation, static/schema/standing/referee gates pass, including fresh
       `11 passed, 0 failed of 11`.
-- [ ] Fresh independent non-implementing Tier-3 reviewer executes and records all
+- [x] Fresh independent non-implementing Tier-3 reviewer executes and records all
       high-risk proof before approval.
 
 Activation grants only the exact implementation and proof above. Completion would
