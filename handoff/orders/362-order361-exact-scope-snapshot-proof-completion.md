@@ -1,6 +1,6 @@
 # Order 362 — Order361 exact-scope and snapshot proof completion
 
-**Status:** BUILT-PENDING-DIFFERENT-FRESH-TIER3-D1026
+**Status:** APPROVED-D1044 — fresh independent Tier-3 statutory proof complete
 **Phase:** 7 — Tax engine and India IRP
 **Branch:** `phase-7/order361-exact-scope-snapshot-proof-completion`
 **Base:** exact withheld product/proof `b6aaa1f` + `e79b935` + `d4d6662` / governance `7557112`

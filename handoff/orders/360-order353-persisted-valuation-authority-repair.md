@@ -1,6 +1,6 @@
 # Order 360 — Order353 persisted valuation authority repair
 
-**Status:** REVIEW-WITHHELD-D1020 — proof-completion Order361 active
+**Status:** APPROVED-D1044 — fresh independent Tier-3 statutory proof complete
 **Phase:** 7 — Tax engine and India IRP
 **Branch:** `phase-7/order353-persisted-valuation-authority-repair`
 **Base:** exact withheld implementation `15a1a06` / governance `1adc277`

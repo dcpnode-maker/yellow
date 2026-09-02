@@ -1,6 +1,6 @@
 # Order 365 — Order362 mutation-sensitive proof repair
 
-**Status:** REVIEW-WITHHELD-D1036 — stale Order311 standing-oracle repair required
+**Status:** APPROVED-D1044 — fresh independent Tier-3 statutory proof complete
 **Phase:** 7 — Tax engine and India IRP
 **Branch:** `phase-7/order362-mutation-sensitive-proof-repair`
 **Base:** exact withheld proof `b89d422` + `a90d3a6` / governance `cd392b4`
