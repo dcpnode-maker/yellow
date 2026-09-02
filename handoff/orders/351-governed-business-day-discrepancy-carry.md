@@ -1,6 +1,6 @@
 # Order 351 — Governed business-day discrepancy carry
 
-**Status:** REVIEW-WITHHELD-D1017 — repair Order359 active
+**Status:** INDEPENDENTLY-APPROVED-D1043 — exact candidate `5b9b9dd`
 **Phase:** 5 — Financials
 **Branch:** `phase-5/governed-business-day-discrepancy-carry`
 **Base:** exact approved D1004 Order349/352 and D1012 Order350/354/357/358 frontier `f634d16`

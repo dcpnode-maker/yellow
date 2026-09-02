@@ -1,6 +1,6 @@
 # Order 359 — Order351 decision-time and hostile-proof repair
 
-**Status:** BUILT-PENDING-DIFFERENT-FRESH-TIER3-D1021
+**Status:** INDEPENDENTLY-APPROVED-D1043 — exact candidate `5b9b9dd`
 **Phase:** 5 — Financials
 **Branch:** `phase-5/order351-decision-time-proof-repair`
 **Base:** exact withheld implementation `728d944` / governance `d36fa0a`

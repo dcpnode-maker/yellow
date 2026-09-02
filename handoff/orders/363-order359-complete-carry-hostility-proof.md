@@ -1,6 +1,6 @@
 # Order 363 — Order359 complete carry-hostility proof
 
-**Status:** BUILT-PENDING-DIFFERENT-FRESH-TIER3-D1029
+**Status:** INDEPENDENTLY-APPROVED-D1043 — exact candidate `5b9b9dd`
 **Phase:** 5 — Financials
 **Branch:** `phase-5/order359-complete-carry-hostility-proof`
 **Base:** exact withheld repair `986f4da` / governance `d57b9fd`

@@ -1,6 +1,6 @@
 # Order 366 — Order363 final carry-proof repair
 
-**Status:** REVIEW-WITHHELD-D1035 — exact candidate `2f631a5`
+**Status:** INDEPENDENTLY-APPROVED-D1043 — exact candidate `5b9b9dd`
 **Phase:** 5 — Financials
 **Branch:** `phase-5/order363-final-carry-proof-repair`
 **Base:** exact withheld proof `80b696d` / governance `b270746`

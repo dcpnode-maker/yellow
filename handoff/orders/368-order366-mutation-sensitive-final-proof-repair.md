@@ -1,6 +1,6 @@
 # Order 368 — Order366 mutation-sensitive final carry-proof repair
 
-**Status:** BUILT-PENDING-DIFFERENT-FRESH-TIER3-D1041
+**Status:** INDEPENDENTLY-APPROVED-D1043 — exact candidate `5b9b9dd`
 **Phase:** 5 — Financials
 **Branch:** `phase-5/order366-mutation-sensitive-final-proof-repair`
 **Base:** exact withheld candidate `2f631a5` / governance `e4c6e35`
