@@ -478,8 +478,14 @@ disputes, and FX remain explicit.
 **Root:** property + business date.
 **States:** open → sealed. Roll opens/advances current operation independently of sealing
 previous days.
-**Invariants:** property-local date; readiness exceptions visible; sealing deterministic
-and idempotent; post-seal history is corrected only by new journals/documents.
+**Invariants:** property-local date; readiness exceptions visible; sealing is a
+one-way database latch, deterministic, audited and idempotent; post-seal history is
+corrected only by new journals/documents. The application seal actor is active,
+same-tenant and property-scoped by `business_day.seal`; it may act directly without a
+maker/checker. Complete readiness and carried lineage are revalidated under the same
+locked PostgreSQL transaction as the latch. A successful aggregate transition owns
+exactly one immutable fact and one `business_day.sealed` outbox event; no prior
+snapshot, caller time or payload can confer authority.
 
 ### Tax Evaluation value service — Tax/Fiscal
 
@@ -1799,3 +1805,19 @@ pointer or scheduler ledger. PostgreSQL time and the stored property timezone de
 the current date, the existing property/date key arbitrates the insert, and the
 winner atomically records fact/outbox evidence. Older unsealed rows coexist as close
 backlog and do not affect roll eligibility.
+
+### Audited business-day seal (Order 356)
+
+The existing `(tenant_id, property_node, business_date)` `business_day` row remains
+the aggregate root and sole seal truth. Order356 adds no parallel close entity or
+mutable readiness record. Its owner-mediated capability locks the complete mutable
+authorization/readiness relation set and exact open root before recomputing the
+Order349/352/355 predicate at one database transaction instant. It updates only
+`sealed_at` and `sealed_by` on the winning open row.
+
+The service owns durable request identity, the immutable fact and the canonical
+event, all in the latch transaction. Same-key/same-content replay returns stored
+evidence; conflicting reuse, a different key after the latch, or any concurrent loser
+cannot create a second aggregate transition. Fact/event payloads contain only exact
+property/date, `open -> sealed`, database seal instant and actor. No API/UI, reopen,
+automatic seal, local deployment or broader Phase-5 aggregate is introduced.

@@ -111,3 +111,15 @@ exact-day PostgreSQL snapshot with strict sub-five-minute outbox lag and fail-cl
 interface attribution. It does not seal or carry discrepancies. After fresh Tier3
 approval, the remaining Phase5 sequence is discrepancy carry, audited seal and the
 Phase5 exit gate.
+
+Orders352/355 close the discrepancy-carry and carried-lineage readiness prerequisites.
+Order356 is the bounded audited seal implementation: the authenticated active
+same-tenant actor must hold property-scoped `business_day.seal` and may seal directly,
+with no maker/checker. Its fixed-search-path owner-mediated capability locks the full
+mutable authorization/readiness source set and exact day, reruns complete readiness at
+one PostgreSQL transaction instant, and permits only the one-way ready `open ->
+sealed` latch. The service owns durable replay/content conflict plus exactly one
+atomic minimized fact and canonical event. No caller readiness/time/payload authority,
+reopen, auto/batch seal, HTTP/UI/local promotion or Phase5 completion is implied.
+Fresh non-implementing Tier3 executable review and the separate Phase5 exit gate
+remain mandatory.

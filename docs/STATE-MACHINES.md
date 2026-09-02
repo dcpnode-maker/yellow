@@ -80,11 +80,18 @@ Manual-required evidence cannot authorize tax calculation or document issue. Eve
 generation atomically appends its source/night/allocation evidence, one fact and one
 recorded event.
 
-## 3. Business day — open → **sealed** via `seal_business_day()`.
-The function is currently deployment-owner-only as a temporary least-privilege
-containment boundary. No application day-close command exists yet. Future application
-execution requires an authorized, audited domain command with server-derived actor
-evidence; owner execution is not the completed continuous day-close product.
+## 3. Business day — open → **sealed**.
+
+The application transition is the bounded audited Order356 command. One active,
+authenticated, same-tenant actor whose property-scoped role grants
+`business_day.seal` may seal directly; there is no maker/checker transition. The
+command accepts the exact existing backlog day only, locks the complete mutable
+authorization/readiness source set and exact day, reruns the full Order349/352/355
+predicate at PostgreSQL transaction time, then performs the sole one-way latch through
+`seal_business_day_audited`. A prior read snapshot, caller clock, payload or readiness
+claim cannot authorize the transition. Missing, already-sealed, unauthorized,
+ambiguous, stale or unknown state conflicts and writes nothing. The legacy
+`seal_business_day()` remains deployment-owner-only and is not application authority.
 **Roll ≠ seal.** The day ROLLS automatically: a scheduler opens the next business_day
 row at the property-local cutoff and emits `business_day.opened` — it never waits for the prior
 day's seal. Operations always target the current OPEN day; multiple unsealed days may
@@ -111,6 +118,13 @@ state/request hashes recompute exactly. It does not block the source day. Ordina
 report and governed-carry creation lineages are mutually exclusive; absent,
 duplicate, mixed or mismatched typed evidence remains unknown/fail-closed, and event
 payload JSON has no authority. No transition or seal authority is added.
+
+Order 356 consumes that exact predicate without changing its meaning. A winning
+transition atomically records the database-authored seal, one immutable minimized
+fact and one canonical `business_day.sealed` event. Exact idempotent replay has no
+second state transition or evidence; divergent reuse and every later/different-key
+attempt conflict. There is no sealed → open edge, auto-seal, batch-seal or catch-up
+edge, and this bounded command does not itself complete Phase 5.
 
 ### 3a. Cashier session — open → closed
 

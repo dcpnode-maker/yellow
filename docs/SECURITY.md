@@ -1538,3 +1538,31 @@ capability. It is owner-mediated and fixed-search-path; `app_role` alone may exe
 it, while `PUBLIC` and `yellow_runtime` are denied. Direct `business_day` INSERT,
 UPDATE and DELETE remain denied to the app. The function binds transaction-local
 tenant context and exposes no date, seal, update or catch-up input.
+
+### Order 356 audited business-day seal containment
+
+Migration0064 adds one fixed-search-path, `yellow_owner`-owned SECURITY DEFINER
+capability, `seal_business_day_audited(uuid,uuid,date,uuid)`. It is callable only by a
+`yellow_runtime` session after governed assumption of `app_role`; direct `PUBLIC`,
+runtime and deployment-owner bypasses fail closed. The legacy `seal_business_day`
+remains owner-only, while `app_role` retains no direct `business_day`, `fact_log` or
+`outbox` mutation grant.
+
+The capability verifies transaction-local tenant context, active tenant, exact active
+property, active same-tenant actor and a property-scoped role grant for
+`business_day.seal`. The approved direct-actor policy adds no maker/checker or generic
+approval authority. Before readiness it takes fixed-lexical SHARE locks over every
+mutable relation read by authorization or the Order349/352/355 predicate, then locks
+the exact open day `FOR UPDATE`. Complete readiness, including strict sub-five-minute
+lag, typed interface attribution and immutable carry lineage, is recomputed at the
+single database transaction timestamp. Missing, sealed, foreign, unauthorized,
+changed, ambiguous or unknown evidence fails closed.
+
+The function can update only the winning row's `sealed_at` and `sealed_by`, both bound
+to database/verified actor evidence, and returns only the declared seal fields. The
+application service separately owns durable idempotency plus one minimized immutable
+fact and canonical event in that same transaction; failure at any stage rolls back
+all effects. Caller readiness, time, threshold, timezone, payload, queue, force,
+reopen and arbitrary database-error authority are excluded. No route, browser,
+automatic worker, batch, local-runtime promotion or Phase-5 completion authority is
+created.

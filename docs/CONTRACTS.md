@@ -2577,3 +2577,38 @@ JSON, browser booleans, process clocks and current-timezone reconstruction have 
 authority. The snapshot writes nothing and never authorizes carry, seal, reopen,
 retry, acknowledgement or any other state change; the later seal command must rerun
 the evidence under its own guarded transaction.
+
+### Audited business-day seal command (Order 356)
+
+`BusinessDaySealService.seal(tx,input)` is the sole application command for the
+one-way `open -> sealed` latch. Its exact server-bound input is tenant, property,
+existing backlog business date, authenticated actor, idempotency key and a
+`business_day.sealed` audit envelope. The actor must be active, same-tenant and
+property-scoped through an existing role grant for `business_day.seal`; the approved
+policy permits that actor to seal directly and adds no maker/checker step. Caller
+readiness, timestamps, thresholds, timezones, current dates, force/reopen flags,
+payloads and queue assertions are not accepted.
+
+The service executes inside one tenant transaction. The fixed-search-path,
+owner-mediated `seal_business_day_audited(tenant,property,date,actor)` capability
+first locks the complete mutable authorization/readiness relation set in fixed lexical
+order, then locks the exact open day, reruns the full Order349/352/355 readiness and
+carried-lineage predicate at one PostgreSQL `transaction_timestamp()`, and latches
+only a still-ready row. The earlier lock-free readiness snapshot is never a seal
+token. Missing, sealed, stale, unauthorized, foreign, ambiguous or unknown evidence
+fails closed; there is no fallback to payload JSON or application time.
+
+Durable idempotency operation `financials.business-day.seal` identifies request
+content by actor, property and business date. Same-key/same-content replay returns the
+stored receipt with `replayed:true` and writes nothing; divergent same-key reuse and a
+different key against a no-longer-open day conflict. Concurrent distinct keys admit
+exactly one winner. The bounded result is tenant/property/date, previous state
+`open`, state `sealed`, database-authored `sealedAt`, actor and replay status only.
+
+The service appends one `business_day` fact and one version-1
+`business_day.sealed` outbox event in the same transaction as the latch, using the
+same minimized property/date/state/seal-instant/actor payload. Idempotency, fact,
+event or commit failure rolls the complete effect back. The legacy
+`seal_business_day` remains owner-only; direct application/runtime day, fact and
+outbox DML remains denied. This contract adds no HTTP/API/UI route, automatic or batch
+seal, reopen, catch-up, local promotion or Phase-5 completion claim.

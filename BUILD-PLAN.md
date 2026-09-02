@@ -1724,3 +1724,14 @@ backlog day, typed operational/fiscal evidence, strict oldest exact-target unpub
 lag below five minutes, and explicit unknown/fail-closed incomplete interface
 attribution. It changes no schema and grants no carry, seal or UI authority. Fresh
 Tier3 executable approval remains required before this readiness slice is closed.
+
+Order356 implements the bounded audited seal command without changing that readiness
+policy. One authenticated, active, same-tenant property-scoped actor holding
+`business_day.seal` may act directly. One guarded PostgreSQL transaction locks the
+complete mutable authorization/readiness set and exact open day, reruns the full
+Order349/352/355 predicate, latches `open -> sealed`, and appends one minimized fact
+plus one `business_day.sealed` event. Service-owned durable idempotency makes exact
+replay write-free and all divergent/already-sealed/concurrent losers conflict. Legacy
+owner-only seal and direct application/runtime DML denials remain. This adds no
+API/UI/local, auto-seal, batch, reopen or Phase5 completion claim and remains subject
+to fresh independent Tier3 executable review.

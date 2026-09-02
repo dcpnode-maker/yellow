@@ -1151,3 +1151,15 @@ strict `<5m` oldest exact-target outbox lag, typed relational blockers and expli
 unknown/fail-closed incomplete interface attribution. It is read-only and migration-
 free; discrepancy carry, audited seal and Phase5 exit remain subsequent reviewed
 closures.
+
+Orders352/355 supply the separately reviewed carry mutation and exact carried-lineage
+readiness semantics. Order356 now implements only the next audited-seal closure. One
+active authenticated same-tenant actor with property-scoped `business_day.seal` may
+act directly; no checker is introduced. The database locks all mutable
+authorization/readiness sources and the exact open day, reruns complete readiness at
+one transaction timestamp, and admits only one `open -> sealed` winner. Durable
+service idempotency, one immutable fact and one canonical event share that transaction;
+replay is write-free and every divergent/already-sealed/concurrent loser conflicts.
+The candidate adds no route, UI, local promotion, automatic/batch/reopen behavior or
+Phase5/application completion. Fresh independent Tier3 executable approval and the
+separate Phase5 exit gate remain required.
