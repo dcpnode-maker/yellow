@@ -77,6 +77,7 @@ BEGIN
       ON rp.role_id=ur.role_id AND rp.permission_code='business_day.seal'
     JOIN public.org_node AS grant_node
       ON grant_node.tenant_id=ur.tenant_id AND grant_node.id=ur.scope_node
+      AND grant_node.kind='property' AND grant_node.id=p_property
     JOIN public.org_node AS property
       ON property.tenant_id=t.id AND property.id=p_property
       AND property.kind='property' AND grant_node.path @> property.path

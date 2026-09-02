@@ -323,7 +323,7 @@ const EXPECTED_MIGRATIONS = [
   {
     version: 64,
     filename: "0064_audited_business_day_seal.sql",
-    checksum_sha256: "75a98d0b9845896f61cc35311d28f23bc32095d35125c4b60f61877128602317",
+    checksum_sha256: "82a1c49f936c0ae13ddc8325f9ca54002958ac382bda607edd544dfe71284db7",
   },
 ];
 

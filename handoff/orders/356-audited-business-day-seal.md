@@ -185,6 +185,16 @@ seal token.
 
 ## Hostile executable proof
 
+### Executable-review amendment — D1067
+
+Fresh native PostgreSQL review exposed two activation-level implementation details
+that required an explicit correction. The actor grant is exact-property only:
+hierarchical path containment cannot authorize a descendant property. The fixed
+lexical relation lock set uses `SHARE ROW EXCLUSIVE`, not `SHARE`, so competing seals
+serialize before later row/update locks instead of entering deterministic lock-upgrade
+deadlocks. This preserves D1066's direct-actor, complete-readiness, single-winner and
+fail-closed policy while narrowing authorization and strengthening serialization.
+
 ### P0 — intentional red and exact frontier
 
 On the activated post-Order355 frontier, prove the new service/export and audited
