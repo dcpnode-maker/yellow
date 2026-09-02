@@ -1,6 +1,6 @@
 # Order 363 — Order359 complete carry-hostility proof
 
-**Status:** ACTIVE-D1024
+**Status:** BUILT-PENDING-DIFFERENT-FRESH-TIER3-D1029
 **Phase:** 5 — Financials
 **Branch:** `phase-5/order359-complete-carry-hostility-proof`
 **Base:** exact withheld repair `986f4da` / governance `d57b9fd`
@@ -43,3 +43,14 @@ No product-policy/window/schema/catalogue/event/permission/route/UI change unles
 required executable red proves the exact existing implementation defective. No
 seal, readiness, reopen, roll, monetary mutation, local/deploy/merge/`.yellow` or
 port3000 change. Never weaken a gate or substitute reviewer-temporary proof.
+
+## Builder evidence — D1029
+
+Exact candidate `80b696d` changes only the permanent discrepancy-carry PostgreSQL
+integration suite. It adds mutation-sensitive trigger failures at transition,
+target, carry-link, fact and deferred-commit boundaries plus event failure; true
+same-key/distinct-key/two-approval races; expanded actor/authority/reuse hostility;
+deterministic financial, tax and fiscal row-byte snapshots; and raw DML, ACL,
+execute, sequence and hostile-`pg_temp` containment. Fresh focused PostgreSQL passes
+**10/0 (110)**; typecheck and diff hygiene pass. Disposable resources were removed.
+Fresh independent Tier-3 approval and all full gates remain mandatory.
