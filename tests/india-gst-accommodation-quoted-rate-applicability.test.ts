@@ -23,8 +23,8 @@ import type { Tx } from "../src/kernel";
 type Mutable = Record<PropertyKey, any>;
 type Family = "igst" | "cgst_sgst" | "cgst_utgst";
 const id = (n: number) => `00000000-0000-0000-0000-${String(n).padStart(12, "0")}`;
-const TENANT = id(34101), PROPERTY = id(34102), RESERVATION = id(34103), FOLIO = id(34104);
-const LINEAGE = id(34105), HOLD = id(34106), ATTRIBUTION = id(34107), SEGMENT = id(34108), SELLABLE = id(34109);
+export const TENANT = id(34101), PROPERTY = id(34102), RESERVATION = id(34103), FOLIO = id(34104);
+export const LINEAGE = id(34105), HOLD = id(34106), ATTRIBUTION = id(34107), SEGMENT = id(34108), SELLABLE = id(34109);
 const SERVICE_SNAPSHOT = id(34110), RECEIPT = id(34111), INVOICE = id(34112), SUPPLIER = id(34113), RECIPIENT = id(34114), RECIPIENT_REG = id(34115), SERVICE_LOCATION = id(34116), SUPPLIER_STATUS = id(34117), RECIPIENT_STATUS = id(34118), CLASSIFICATION = id(34119);
 const PREDECESSOR = "a806f516-fed6-5768-b310-94aa03286adb", SUCCESSOR = "0b21daf2-ea6e-5568-9c21-69e4d4424574";
 const PRE_FROM = "2022-07-17T18:30:00.000000Z", CUTOVER = "2025-09-21T18:30:00.000000Z";
@@ -107,7 +107,7 @@ function expectedComponents(slab: Awaited<ReturnType<typeof freshExpectedSchedul
   return slab.components.map((component) => ({ identity: component.identity, rate: component.rate, rateBasisPoints: component.rateBasisPoints }));
 }
 
-async function fixture(family: Family, serviceDate: "2025-09-21" | "2025-09-23", booksDate: string, bankDate: string, invoiceDate: string, amounts: readonly bigint[] = [700000n, 800000n]) {
+export async function fixture(family: Family, serviceDate: "2025-09-21" | "2025-09-23", booksDate: string, bankDate: string, invoiceDate: string, amounts: readonly bigint[] = [700000n, 800000n]) {
   const rows = rowSet(serviceDate, booksDate, bankDate, invoiceDate, amounts);
   const serviceProvisionInput = { tenantId: TENANT, propertyNode: PROPERTY, reservationId: RESERVATION, serviceProvisionSnapshotId: SERVICE_SNAPSHOT, serviceProvisionDate: serviceDate };
   const paymentReceiptInput = { tenantId: TENANT, propertyNode: PROPERTY, reservationId: RESERVATION, serviceProvisionSnapshotId: SERVICE_SNAPSHOT, paymentReceiptSnapshotId: RECEIPT, paymentReceiptDate: booksDate < bankDate ? booksDate : bankDate };
