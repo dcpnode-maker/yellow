@@ -1,6 +1,6 @@
 # Order 353 — India accommodation final component-tax calculation
 
-**Status:** BUILT-PENDING-FRESH-TIER3-D1016
+**Status:** REVIEW-WITHHELD-D1018 — repair Order360 active
 **Phase:** 7 — Tax engine and India IRP
 **Branch:** `phase-7/india-accommodation-final-component-tax-calculation`
 **Base:** exact approved D1012 production frontier `f634d16`; coordination head `bed36c0`
