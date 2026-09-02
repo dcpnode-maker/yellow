@@ -12,6 +12,7 @@ describe("Order 351 governed business-day discrepancy carry", () => {
     expect(migration).toContain("financials.business-day:carry-discrepancy");
     expect(migration).toContain("financials.business-day:approve-discrepancy-carry");
     expect(migration).toContain("transaction_timestamp()>=a.created_at+interval '30 minutes'");
+    expect(migration).toContain("a.decided_at <= transaction_timestamp()");
     expect(migration).toContain("a.decided_by=p_actor");
     expect(migration).toContain("resolution='carried_forward'");
     expect(migration).toContain("ALTER TABLE public.business_day_discrepancy_carry FORCE ROW LEVEL SECURITY");
