@@ -1,6 +1,6 @@
 # Order 372 — Order349 typed discrepancy-date fail-closed repair
 
-**Status:** ACTIVE-D1049 — intentional-red required before repair
+**Status:** BUILT-PENDING-FRESH-TIER3-D1050
 **Phase:** 5 — Financials
 **Branch:** `phase-5/order349-typed-discrepancy-date-fail-closed-repair`
 **Base:** exact approved Order371 governance frontier `bb925c8` / product candidate `8d96974`, carrying approved Orders349/352 and 368/366/363/359/351
@@ -89,7 +89,33 @@ scope amendment.
 ## Definition of done
 
 - [x] Activation records exact prerequisite approvals, frontier and unchanged catalogue.
-- [ ] Intentional red isolates wrong typed report-date disappearance and catalogue proof rejects null.
-- [ ] Wrong typed date fails closed while canonical ordinary lineage and payload hostility remain green.
-- [ ] One-statement, zero-write, standing/static and fresh referee gates pass.
+- [x] Intentional red isolates wrong typed report-date disappearance and catalogue proof rejects null.
+- [x] Wrong typed date fails closed while canonical ordinary lineage and payload hostility remain green.
+- [x] One-statement, zero-write, standing/static and fresh referee gates pass.
 - [ ] Fresh independent Tier-3 approval is recorded before Order355 activation.
+
+## Builder evidence — D1050
+
+Exact product candidate `c640c5cc7431c8b1a410c4146ad07dd57d61f03c` adds only
+the target-property-guarded, null-safe typed-date mismatch predicate and permanent
+proof in the existing readiness integration file. Before the production edit, fresh
+PostgreSQL 16.15 returned `unknownAttribution=0` for the wrong typed date and the
+new named case failed exactly once; ordinary lineage remained green. After repair:
+
+- readiness integration passes 7/0 with 52 assertions, including actual SQLSTATE
+  23502 for a null outbox business date, one recorded readiness statement, the
+  publication race and byte-stable snapshots of every catalogue-derived public
+  tenant-bearing relation;
+- Order349/352 unit preservation plus approved Order351/359 carry preservation pass
+  18/0 with 1,843 assertions;
+- standing passes 1,217/0 with 946 expected database skips and 18,524 assertions;
+- typecheck, 139-file import boundaries, 23-package licence policy, production audit
+  zero and diff hygiene pass; and
+- a separately created, migrated and fixture-loaded referee database passes 11/11.
+
+The packaged fallback server exposes the distro-suffixed version string instead of
+the exact source-build string required by acceptance, and Docker's API was
+non-responsive, so builder acceptance/setup output is not offered as approval proof.
+Fresh independent Tier-3 must personally use the exact required environment and run
+the complete executable matrix. Stable port 3000 remained read-only and returned
+`200 {"status":"ok"}`; no `.yellow` or stable named resource was changed.
