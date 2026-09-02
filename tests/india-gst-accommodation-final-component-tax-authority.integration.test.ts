@@ -66,8 +66,21 @@ run("Order 360 persisted valuation PostgreSQL authority",()=>{
   });
   afterAll(async()=>{await db.close();});
 
-  async function execute(candidate:typeof input=input){
-    const connection=await db.reserve();try{await connection.unsafe("BEGIN");await connection`SELECT set_config('app.tenant_id',${candidate.tenantId},true)`;await connection.unsafe("SET LOCAL ROLE app_role");const result=await new IndiaGstAccommodationFinalComponentTaxService().calculate(connection,candidate as never);await connection.unsafe("ROLLBACK");return result;}catch(error){await connection.unsafe("ROLLBACK");throw error;}finally{connection.release();}
+  async function execute(candidate:typeof input=input,assertTenantReset=false){
+    const connection=await db.reserve();let inTransaction=false;
+    try{
+      await connection.unsafe("RESET app.tenant_id");
+      await connection.unsafe("BEGIN");inTransaction=true;
+      await connection`SELECT set_config('app.tenant_id',${candidate.tenantId},true)`;
+      await connection.unsafe("SET LOCAL ROLE app_role");
+      const result=await new IndiaGstAccommodationFinalComponentTaxService().calculate(connection,candidate as never);
+      await connection.unsafe(assertTenantReset ? "COMMIT" : "ROLLBACK");inTransaction=false;
+      if(assertTenantReset){
+        const state=await connection<Array<{tenant_reset:boolean}>>`SELECT NULLIF(current_setting('app.tenant_id', true), '') IS NULL AS tenant_reset`;
+        expect(state).toEqual([{tenant_reset:true}]);
+      }
+      return result;
+    }catch(error){if(inTransaction){try{await connection.unsafe("ROLLBACK");}catch{}}throw error;}finally{connection.release();}
   }
   async function executeInstrumented(){
     const connection=await db.reserve();
@@ -145,6 +158,21 @@ run("Order 360 persisted valuation PostgreSQL authority",()=>{
       "UPDATE india_gst_accommodation_final_valuation SET transaction_value_minor=1500001 WHERE id='"+V+"'",
     ];
     for(const mutation of mutations)await withMutation(mutation,restore);
+  },30000);
+  test("ordinal-only corruption is rejected while dates, values and total remain coherent",async()=>{
+    const restore="UPDATE india_gst_accommodation_valuation_room_night SET ordinal=1 WHERE valuation_id='"+V+"' AND ordinal=2";
+    await owner("UPDATE india_gst_accommodation_valuation_room_night SET ordinal=2 WHERE valuation_id='"+V+"' AND ordinal=1");
+    try{await expect(execute()).rejects.toThrow("final room-night ordering or lineage does not match fresh Order341 evidence");}
+    finally{await owner(restore);}
+  },30000);
+  test("zero-valued room night is rejected when valuation total matches the remaining positive sum",async()=>{
+    const restore="UPDATE india_gst_accommodation_final_valuation SET transaction_value_minor=1500000 WHERE id='"+V+"'; UPDATE india_gst_accommodation_valuation_room_night SET transaction_value_minor=700000 WHERE valuation_id='"+V+"' AND ordinal=0";
+    await owner("UPDATE india_gst_accommodation_final_valuation SET transaction_value_minor=800000 WHERE id='"+V+"'; UPDATE india_gst_accommodation_valuation_room_night SET transaction_value_minor=0 WHERE valuation_id='"+V+"' AND ordinal=0");
+    try{await expect(execute()).rejects.toThrow("final room-night values must be positive");}
+    finally{await owner(restore);}
+  },30000);
+  test("transaction-local tenant context is absent after the reserved connection transaction completes",async()=>{
+    await expect(execute(input,true)).resolves.toMatchObject({valuationId:V});
   },30000);
   test("RLS isolates colliding valuation and room-night UUIDs in a second tenant",async()=>{
     const other=id(36210);
