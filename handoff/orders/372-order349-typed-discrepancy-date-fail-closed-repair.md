@@ -1,6 +1,6 @@
 # Order 372 — Order349 typed discrepancy-date fail-closed repair
 
-**Status:** BUILT-PENDING-FRESH-TIER3-D1050
+**Status:** APPROVED-D1051
 **Phase:** 5 — Financials
 **Branch:** `phase-5/order349-typed-discrepancy-date-fail-closed-repair`
 **Base:** exact approved Order371 governance frontier `bb925c8` / product candidate `8d96974`, carrying approved Orders349/352 and 368/366/363/359/351
@@ -92,7 +92,7 @@ scope amendment.
 - [x] Intentional red isolates wrong typed report-date disappearance and catalogue proof rejects null.
 - [x] Wrong typed date fails closed while canonical ordinary lineage and payload hostility remain green.
 - [x] One-statement, zero-write, standing/static and fresh referee gates pass.
-- [ ] Fresh independent Tier-3 approval is recorded before Order355 activation.
+- [x] Fresh independent Tier-3 approval is recorded before Order355 activation.
 
 ## Builder evidence — D1050
 
