@@ -70,42 +70,28 @@ async function counts() {
   return rows[0]!;
 }
 
-const CANONICAL_FINANCIAL_TABLES = [
-  "account", "folio", "folio_balance", "journal", "posting_line", "payment_instrument", "payment",
-  "cash_drawer", "cash_drawer_denomination", "cashier_session", "cashier_count", "cashier_count_line", "trust_negative_authorization",
-  "document_series", "document", "tax_assignment", "tax_attribution_snapshot",
-  "tax_attribution_hold_binding", "tax_attribution_reservation_binding",
-  "tax_attribution_journal_binding", "tax_semantic_route", "fiscal_submission",
-  "statutory_submission", "payment_operation", "provider_event_receipt", "hosted_payment_request",
-  "property_fiscal_registration", "party_fiscal_registration", "property_fiscal_location",
-  "india_gst_item_classification", "india_gst_supplier_service_location",
-  "india_gst_recipient_sez_status", "india_gst_supplier_sez_status", "india_sez_unit_loa_renewal",
-  "india_gst_supplier_registration_status_snapshot", "india_gst_accommodation_payment_receipt_snapshot",
-  "india_gst_accommodation_service_provision_snapshot", "india_gst_accommodation_invoice_issue_snapshot",
-  "india_gst_accommodation_final_valuation", "india_gst_accommodation_valuation_source",
-  "india_gst_accommodation_valuation_room_night", "india_gst_accommodation_valuation_allocation",
-] as const;
+const EXPECTED_CARRY_MUTATION_SURFACES = new Set([
+  "api_idempotency", "business_day_discrepancy_carry", "discrepancy", "fact_log", "outbox",
+]);
 
-const EXPECTED_FINANCIAL_SNAPSHOT_TABLES = [
-  "account", "folio", "folio_balance", "journal", "posting_line", "payment_instrument", "payment",
-  "cash_drawer", "cash_drawer_denomination", "cashier_session", "cashier_count", "cashier_count_line", "trust_negative_authorization",
-  "document_series", "document", "tax_assignment", "tax_attribution_snapshot",
-  "tax_attribution_hold_binding", "tax_attribution_reservation_binding",
-  "tax_attribution_journal_binding", "tax_semantic_route", "fiscal_submission",
-  "statutory_submission", "payment_operation", "provider_event_receipt", "hosted_payment_request",
-  "property_fiscal_registration", "party_fiscal_registration", "property_fiscal_location",
-  "india_gst_item_classification", "india_gst_supplier_service_location",
-  "india_gst_recipient_sez_status", "india_gst_supplier_sez_status", "india_sez_unit_loa_renewal",
-  "india_gst_supplier_registration_status_snapshot", "india_gst_accommodation_payment_receipt_snapshot",
-  "india_gst_accommodation_service_provision_snapshot", "india_gst_accommodation_invoice_issue_snapshot",
-  "india_gst_accommodation_final_valuation", "india_gst_accommodation_valuation_source",
-  "india_gst_accommodation_valuation_room_night", "india_gst_accommodation_valuation_allocation",
-] as const;
+/** Catalogue truth for every tenant-bearing public relation untouched by carry. */
+async function tenantRelationCatalogue(): Promise<string[]> {
+  const rows = await deploy!<Array<{ relation_name: string }>>`
+    SELECT DISTINCT relation.relname relation_name
+    FROM pg_catalog.pg_class relation
+    JOIN pg_catalog.pg_namespace namespace ON namespace.oid=relation.relnamespace
+    JOIN pg_catalog.pg_attribute tenant_column
+      ON tenant_column.attrelid=relation.oid AND tenant_column.attname='tenant_id'
+      AND tenant_column.attnum>0 AND NOT tenant_column.attisdropped
+    WHERE namespace.nspname='public' AND relation.relkind IN ('r','p','v','m','f')
+    ORDER BY relation.relname`;
+  return rows.map((row) => row.relation_name);
+}
 
-/** A byte-stable snapshot of every canonical financial row owned by this tenant. */
-async function financialSnapshot(): Promise<Record<string, string>> {
+/** A byte-stable, zero-write snapshot of catalogue-derived tenant-owned rows. */
+async function financialSnapshot(relations: readonly string[]): Promise<Record<string, string>> {
   const snapshot: Record<string, string> = {};
-  for (const table of CANONICAL_FINANCIAL_TABLES) {
+  for (const table of relations) {
     const rows = await deploy!.unsafe<Array<{ bytes: string }>>(`
       SELECT encode(convert_to(COALESCE(
         string_agg(pg_catalog.row_to_json(t)::text, E'\\n' ORDER BY pg_catalog.row_to_json(t)::text), ''
@@ -118,9 +104,22 @@ async function financialSnapshot(): Promise<Record<string, string>> {
   return snapshot;
 }
 
-function assertFinancialSnapshotSurface(snapshot: Record<string, string>): void {
-  expect(Object.keys(snapshot).sort()).toEqual([...EXPECTED_FINANCIAL_SNAPSHOT_TABLES].sort());
-  for (const table of EXPECTED_FINANCIAL_SNAPSHOT_TABLES) expect(typeof snapshot[table]).toBe("string");
+async function assertFinancialSnapshotSurface(snapshot: Record<string, string>, relations: readonly string[]): Promise<void> {
+  expect(Object.keys(snapshot).sort()).toEqual([...relations].sort());
+  const observed = JSON.stringify(Object.keys(snapshot));
+  const missing = await deploy!<Array<{ relation_name: string }>>`
+    SELECT DISTINCT relation.relname relation_name
+    FROM pg_catalog.pg_class relation
+    JOIN pg_catalog.pg_namespace namespace ON namespace.oid=relation.relnamespace
+    JOIN pg_catalog.pg_attribute tenant_column
+      ON tenant_column.attrelid=relation.oid AND tenant_column.attname='tenant_id'
+      AND tenant_column.attnum>0 AND NOT tenant_column.attisdropped
+    WHERE namespace.nspname='public' AND relation.relkind IN ('r','p','v','m','f')
+      AND NOT relation.relname=ANY(ARRAY(SELECT jsonb_array_elements_text(${observed}::jsonb)))
+    ORDER BY relation.relname`;
+  expect(missing).toEqual([]);
+  expect(relations).toContain("folio_balance");
+  for (const table of relations) expect(typeof snapshot[table]).toBe("string");
 }
 
 function stableBodyBytes(value: unknown): string {
@@ -410,9 +409,10 @@ databaseDescribe("Order 359 fresh PostgreSQL hostile discrepancy-carry proof", (
   });
 
   test("success is atomic, immutable, one-use and financially isolated", async () => {
-    const before = await financialSnapshot();
-    assertFinancialSnapshotSurface(before);
     const approval = await requestApproval(); await decide(approval.approvalId);
+    const relations = await tenantRelationCatalogue();
+    const before = await financialSnapshot(relations);
+    await assertFinancialSnapshotSurface(before, relations);
     const beforeDays = await deploy!<Array<{ business_date: string; opened_at: string; sealed_at: string | null }>>`SELECT business_date::text,opened_at::text,sealed_at::text FROM business_day WHERE tenant_id=${TENANT}::uuid AND property_node=${PROPERTY}::uuid ORDER BY business_date`;
     const result = await carry(approval.approvalId, approval.requestHash, "order359-replay-key");
     expect(result).toMatchObject({ sourceDiscrepancyId: DISCREPANCY, targetBusinessDate: `${targetDate}T00:00:00.000Z`, resolution: "carried_forward", replayed: false });
@@ -427,22 +427,32 @@ databaseDescribe("Order 359 fresh PostgreSQL hostile discrepancy-carry proof", (
     expect(await deploy!<Array<{ carries: number; resolved: number; source: number }>>`SELECT count(*)::int carries,count(*) FILTER (WHERE resolution='carried_forward')::int resolved,count(*) FILTER (WHERE source_discrepancy_id=${DISCREPANCY}::uuid)::int source FROM business_day_discrepancy_carry WHERE tenant_id=${TENANT}::uuid`).toEqual([{ carries: 1, resolved: 1, source: 1 }]);
     expect(await deploy!<Array<{ business_date: string; opened_at: string; sealed_at: string | null }>>`SELECT business_date::text,opened_at::text,sealed_at::text FROM business_day WHERE tenant_id=${TENANT}::uuid AND property_node=${PROPERTY}::uuid ORDER BY business_date`).toEqual(beforeDays);
     await expect(runtime!.begin(async tx => { await tx`SELECT set_config('app.tenant_id',${TENANT},true)`; await tx.unsafe("SET LOCAL ROLE app_role"); return tx`INSERT INTO business_day_discrepancy_carry(tenant_id,request_id,property_node,source_discrepancy_id,target_discrepancy_id,source_business_date,target_business_date,target_opened_at,space_id,discrepancy_state_hash,reason,request_hash,approval_request_id,requested_by,approved_by,approval_requested_at,approval_decided_at) VALUES(${TENANT}::uuid,gen_random_uuid(),${PROPERTY}::uuid,${DISCREPANCY}::uuid,gen_random_uuid(),${sourceDate}::date,${targetDate}::date,now(),${SPACE}::uuid,${"0".repeat(64)},'raw',${"0".repeat(64)},${approval.approvalId}::uuid,${REQUESTER}::uuid,${APPROVER}::uuid,now(),now())` })).rejects.toThrow();
-    const after = await financialSnapshot();
-    assertFinancialSnapshotSurface(after);
-    expect(after).toEqual(before);
+    const after = await financialSnapshot(relations);
+    await assertFinancialSnapshotSurface(after, relations);
+    const changed = relations.filter((relation) => after[relation] !== before[relation]);
+    expect(changed.sort()).toEqual([...EXPECTED_CARRY_MUTATION_SURFACES].sort());
+    for (const relation of relations.filter((name) => !EXPECTED_CARRY_MUTATION_SURFACES.has(name))) {
+      expect(after[relation]).toBe(before[relation]);
+    }
   });
 
   test("rolls back after every governed boundary and permits one clean retry", async () => {
     for (const boundary of ["transition", "target", "carry-link", "fact", "event", "deferred-commit"] as const) {
       await resetCase();
       const approval = await requestApproval(); await decide(approval.approvalId);
-      const before = await financialSnapshot();
-      assertFinancialSnapshotSurface(before);
+      const relations = await tenantRelationCatalogue();
+      const before = await financialSnapshot(relations);
+      await assertFinancialSnapshotSurface(before, relations);
       const key = `order359-${boundary}-rollback`;
       if (boundary === "event") {
+        const observation: { insertedEvents: number | null } = { insertedEvents: null };
         const failing: EventBus = {
           publish: async (tx, event) => {
             await eventBus!.publish(tx, event);
+            const inserted = await tx<Array<{ count: number }>>`SELECT count(*)::int count FROM outbox
+              WHERE tenant_id=${TENANT}::uuid AND event_type='discrepancy.carried'
+                AND aggregate_id=${event.aggregateId}::uuid`;
+            observation.insertedEvents = inserted[0]?.count ?? null;
             throw new Error(`order359 injected ${boundary} failure`);
           },
           consumeBatch: (...args) => eventBus!.consumeBatch(...args),
@@ -452,12 +462,13 @@ databaseDescribe("Order 359 fresh PostgreSQL hostile discrepancy-carry proof", (
           tenantId: TENANT, approvalId: approval.approvalId, expectedRequestHash: approval.requestHash, idempotencyKey: key,
           envelope: { tenantId: TENANT, propertyNode: PROPERTY, actorId: REQUESTER, requestId: crypto.randomUUID(), operation: "discrepancy.carried" },
         }))).rejects.toThrow(`order359 injected ${boundary}`);
+        expect(observation.insertedEvents).toBe(1);
       } else {
         await injectBoundaryFailure(boundary, () => carry(approval.approvalId, approval.requestHash, key));
       }
       expect(await counts()).toMatchObject({ carries: 0, discrepancies: 1, facts: 0, events: 0, keys: 0 });
-      const after = await financialSnapshot();
-      assertFinancialSnapshotSurface(after);
+      const after = await financialSnapshot(relations);
+      await assertFinancialSnapshotSurface(after, relations);
       expect(after).toEqual(before);
       expect((await carry(approval.approvalId, approval.requestHash, key)).replayed).toBe(false);
     }
@@ -499,7 +510,7 @@ databaseDescribe("Order 359 fresh PostgreSQL hostile discrepancy-carry proof", (
     const consumedApproval = await requestApproval(); await decide(consumedApproval.approvalId);
     await insertReuseDiscrepancies();
     await insertCarryFixture(consumedApproval.approvalId, {
-      requestId: REUSE_REQUEST, sourceDiscrepancyId: DISCREPANCY, targetDiscrepancyId: REUSE_TARGET,
+      requestId: REUSE_REQUEST, sourceDiscrepancyId: REUSE_SOURCE, targetDiscrepancyId: REUSE_TARGET,
     });
     await rejected(() => carry(consumedApproval.approvalId, consumedApproval.requestHash, "order366-approval-reuse"));
     expect(await deploy!<Array<{ resolved_at: Date | null; resolution: string | null }>>`SELECT resolved_at,resolution FROM discrepancy WHERE tenant_id=${TENANT}::uuid AND id=${DISCREPANCY}::uuid`).toEqual([{ resolved_at: null, resolution: null }]);
@@ -510,7 +521,7 @@ databaseDescribe("Order 359 fresh PostgreSQL hostile discrepancy-carry proof", (
     const requestCandidate = await requestApproval(); await decide(requestCandidate.approvalId);
     await insertReuseDiscrepancies();
     await insertCarryFixture(requestOwner.approvalId, {
-      requestId: REUSE_REQUEST, sourceDiscrepancyId: DISCREPANCY, targetDiscrepancyId: REUSE_TARGET,
+      requestId: REUSE_REQUEST, sourceDiscrepancyId: REUSE_SOURCE, targetDiscrepancyId: REUSE_TARGET,
     });
     await rejected(() => carryAs(requestCandidate.approvalId, requestCandidate.requestHash, {
       key: "order366-request-reuse", requestId: REUSE_REQUEST,
