@@ -1,6 +1,6 @@
 # Question 179 — Phase-5 audited-close blocking and carry policy
 
-**Status:** OPEN-FOUNDER
+**Status:** RESOLVED-D990
 **Raised by:** Codex Phase-5 exact gap audit after approved Order347/D989
 **Date:** 2026-09-02
 
@@ -52,3 +52,8 @@ After resolution, implementation remains four independently reviewable closures:
 Until then, no agent may infer exact-zero lag, choose arbitrary queue consumers, treat
 generic approval expiry as a TTL, or implement carry/seal under owner authority.
 
+## Resolution
+
+On 2026-09-02 the founder explicitly replied **“approve both recommended policies”**.
+Clauses 1–4 above are binding product policy under D990. Implementation may proceed
+only through the four bounded closures listed above and their independent reviews.

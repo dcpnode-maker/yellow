@@ -1,6 +1,6 @@
 # Question 180 — Phase-7 final valuation and invoice-buyer authority
 
-**Status:** OPEN-FOUNDER
+**Status:** RESOLVED-D991
 **Raised by:** Codex post-Order341 Phase-7 evidence audit
 **Date:** 2026-09-02
 
@@ -53,3 +53,9 @@ submission state → IRP sandbox round-trip → operator journey and exit gate.
 Until then, no agent may calculate final GST money from Order341 quote evidence,
 `price_override`, folio balance, generic posting lines or untyped JSON.
 
+## Resolution
+
+On 2026-09-02 the founder explicitly replied **“approve both recommended policies”**.
+Clauses 1–6 above are binding product policy under D991. Phase-7 final valuation may
+now begin with append-only governed evidence; tax money and fiscal issue remain later
+bounded orders.
