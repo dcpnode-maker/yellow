@@ -342,6 +342,9 @@ export class BusinessDayCloseReadinessService {
                  AND source_space.property_node=carry.property_node
                  AND source_discrepancy.resolution='carried_forward'
                  AND source_discrepancy.resolved_at=carry.carried_at
+                 AND source_report.event_count=1
+                 AND source_report.event_property=carry.property_node
+                 AND source_report.event_date=carry.source_business_date
                  AND target_discrepancy.reported=source_discrepancy.reported
                  AND target_discrepancy.system_state=source_discrepancy.system_state
                  AND target_discrepancy.reported_by=carry.requested_by
@@ -376,6 +379,16 @@ export class BusinessDayCloseReadinessService {
           LEFT JOIN business_day AS source_day ON source_day.tenant_id=carry.tenant_id
             AND source_day.property_node=carry.property_node
             AND source_day.business_date=carry.source_business_date
+          LEFT JOIN LATERAL (
+            SELECT count(event.seq)::bigint AS event_count,
+                   min(event.property_node::text)::uuid AS event_property,
+                   min(event.business_date) AS event_date
+              FROM outbox AS event
+             WHERE event.tenant_id=carry.tenant_id
+               AND event.aggregate_type='discrepancy'
+               AND event.aggregate_id=source_discrepancy.id
+               AND event.event_type='discrepancy.reported'
+          ) AS source_report ON carry.id IS NOT NULL AND source_discrepancy.id IS NOT NULL
           LEFT JOIN business_day AS target_day ON target_day.tenant_id=carry.tenant_id
             AND target_day.property_node=carry.property_node
             AND target_day.business_date=carry.target_business_date

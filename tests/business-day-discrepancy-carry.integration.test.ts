@@ -552,6 +552,27 @@ databaseDescribe("Order 359 fresh PostgreSQL hostile discrepancy-carry proof", (
       expect(snapshot.ready).toBe(false);
     };
 
+    await unknownAfter(() => deploy!`DELETE FROM outbox
+      WHERE tenant_id=${TENANT}::uuid AND aggregate_id=${DISCREPANCY}::uuid
+        AND event_type='discrepancy.reported'`);
+    await unknownAfter(() => deploy!`INSERT INTO outbox(
+      tenant_id,property_node,business_date,aggregate_type,aggregate_id,event_type,actor_id,correlation_id,payload
+    ) SELECT tenant_id,property_node,business_date,aggregate_type,aggregate_id,event_type,actor_id,
+        gen_random_uuid(),payload FROM outbox
+      WHERE tenant_id=${TENANT}::uuid AND aggregate_id=${DISCREPANCY}::uuid
+        AND event_type='discrepancy.reported'`);
+    await unknownAfter(() => deploy!`UPDATE outbox SET aggregate_type='unsupported'
+      WHERE tenant_id=${TENANT}::uuid AND aggregate_id=${DISCREPANCY}::uuid
+        AND event_type='discrepancy.reported'`);
+    await unknownAfter((targetId) => deploy!`UPDATE outbox SET aggregate_id=${targetId}::uuid
+      WHERE tenant_id=${TENANT}::uuid AND aggregate_id=${DISCREPANCY}::uuid
+        AND event_type='discrepancy.reported'`);
+    await unknownAfter(() => deploy!`UPDATE outbox SET property_node=${OTHER_PROPERTY}::uuid
+      WHERE tenant_id=${TENANT}::uuid AND aggregate_id=${DISCREPANCY}::uuid
+        AND event_type='discrepancy.reported'`);
+    await unknownAfter(() => deploy!`UPDATE outbox SET business_date=${targetDate}::date
+      WHERE tenant_id=${TENANT}::uuid AND aggregate_id=${DISCREPANCY}::uuid
+        AND event_type='discrepancy.reported'`);
     await unknownAfter((targetId) => deploy!`DELETE FROM outbox
       WHERE tenant_id=${TENANT}::uuid AND aggregate_id=${targetId}::uuid AND event_type='discrepancy.carried'`);
     await unknownAfter(() => deploy!`DELETE FROM business_day_discrepancy_carry
