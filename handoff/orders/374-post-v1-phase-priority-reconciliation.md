@@ -1,6 +1,6 @@
 # Order 374 — Post-v1 phase identity and founder-priority reconciliation
 
-**Status:** CHANGES-REQUIRED-D1063
+**Status:** REPAIRED-PENDING-DIFFERENT-FRESH-TIER2-D1064
 **Phase:** 13 — Voice and Conversational Command Layer  
 **Branch:** `phase-13/order374-post-v1-priority-reconciliation`  
 **Base:** exact independently approved Order355/373 frontier
@@ -121,6 +121,19 @@ runtime, local or other documentation file is out of scope.
   artifact changed. A read-only health observation found port 3000 already stopped;
   this order did not start, stop, replace, seed or otherwise mutate the local stack.
 - Fresh independent Tier-2 review remains mandatory before approval.
+
+## D1063 repair evidence — D1064
+
+- The legacy fixed Whisper.cpp/Piper prescription is removed. UI wording now requires
+  benchmarked local-first, replaceable speech-input/output adapters, the same intent
+  parser, optional speech output, and deterministic text/manual fallback.
+- No provider, model, dependency, runtime behavior or implementation is selected.
+- The repair is confined to the already-scoped `docs/UI-SPEC.md` plus governance
+  evidence. All other D1062 proof remains byte-identical.
+- Governance assertions16, `git diff --check`, typecheck, boundaries139, licences23,
+  audit0 and standing1217/0+949 expected skips/18,524 assertions remain green.
+- A different fresh independent Tier-2 reviewer must re-review the repaired exact
+  candidate; D1063's reviewer cannot approve its own finding repair.
 
 ## Fresh Tier-2 review — D1063
 

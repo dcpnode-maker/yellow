@@ -38,9 +38,11 @@ back (workbench → drawer → screen), never data loss.
 ## 4. Command palette + voice (same pipeline)
 
 Palette parses intents: "move 204 to 310", "post minibar 45 to Sharma",
-"seal yesterday". Voice (Whisper.cpp) feeds the SAME intent parser; Piper reads
-back confirmations. One grammar, two inputs. Every palette action maps to a
-CONTRACTS.md endpoint — no palette-only capabilities.
+"seal yesterday". A benchmarked local-first speech-to-text adapter feeds the SAME
+intent parser; an optional replaceable speech-output adapter may read back
+confirmations. Text/manual operation remains deterministic when either adapter is
+absent or unavailable. One grammar, two inputs. Every palette action maps to a
+CONTRACTS.md endpoint — no palette-only capabilities and no provider is canonical.
 
 Phase 13 generalizes the grammar to authorized hotel-data questions before enabling
 additional commands. A microphone is explicit and consented; text remains complete and
