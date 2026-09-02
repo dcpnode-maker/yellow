@@ -1,6 +1,6 @@
 # Order 371 — Current post-carry setup catalogue oracle repair
 
-**Status:** BUILT-PENDING-FRESH-TIER3-D1047 — exact candidate `8d96974`
+**Status:** APPROVED-D1048 — exact candidate `8d96974`
 **Phase:** 5 — Financials
 **Branch:** `phase-5/current-post-carry-setup-catalogue-oracle-repair`
 **Base:** exact independently approved Order 368/366/363/359/351 frontier `9a88152` / product candidate `5b9b9dd`
@@ -83,7 +83,7 @@ all other migrations, schema snapshots and product code are forbidden.
 - [x] Intentional red proves only the stale 115/1–62 setup oracle.
 - [x] The exact minimal setup literals match 116/1–63 with all other bytes preserved.
 - [x] Builder fresh setup/referee and complete preservation gates pass.
-- [ ] Fresh independent Tier-3 approval is recorded.
+- [x] Fresh independent Tier-3 approval is recorded.
 
 ## Builder evidence — D1047
 
@@ -103,3 +103,16 @@ licence policy, production audit zero and diff hygiene pass. The exact proof
 containers, network, volume and D: worktree were removed; stable port3000, Docker
 resources and protected `.yellow` were untouched. Fresh independent Tier-3 review
 remains mandatory.
+
+## Fresh Tier-3 approval — D1048
+
+Fresh independent non-implementing Tier-3 `/root/order371_fresh_tier3` approves exact
+product candidate `8d969744a38370cab5637338305099261da04049` at governance frontier
+`17080f983ebe936c3fceabe18f00793143fc642b`. Reviewer-personal proof reproduces the
+stale setup red only at 116-versus-115, restores the exact candidate, obtains focused
+1/0 (5), fresh setup/referee 11/11 and official upstream PostgreSQL 16.15 truth
+63/highest63/116/106/106/15/2. Migration39/0, acceptance23/0, runtime-DML5/0,
+SECURITY-DEFINER3/0, seeds10/0+24/0, exact schema, standing1217/0+946 skips (18,524),
+type/boundary/licence/audit/diff gates are green. Approval is limited to the setup
+catalogue oracle repair and grants no migration, schema, runtime, local or downstream
+authority.
