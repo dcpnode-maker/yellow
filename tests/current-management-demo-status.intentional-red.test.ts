@@ -12,6 +12,6 @@ test("Order 311 intentional red: management demo status reflects approved Order3
   expect(PROJECT_BUILD_SNAPSHOT.recordedWork.at(-1)?.state).toBe("independently_approved");
   expect(PROJECT_BUILD_SNAPSHOT.phases.map(({ state }) => state)).toEqual([
     "reviewed", "reviewed", "reviewed", "reviewed", "built_unverified",
-    "active", "active", "active", "planned", "planned", "planned", "planned", "planned",
+    "active", "reviewed", "active", "planned", "planned", "planned", "planned", "planned",
   ]);
 });
