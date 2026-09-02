@@ -217,13 +217,16 @@ record commands and results before approval.
 
 - [x] Activation records exact approved Order349/352 and Order351 ancestry,
       catalogue and scope before intentional red or implementation.
-- [ ] Intentional red proves only the valid carried-target recognition gap.
-- [ ] Exactly one canonical carried event plus exactly one immutable carry link admits
+- [x] Intentional red proves only the valid carried-target recognition gap. At exact
+      activated frontier `f986e52`, the real governed carry suite passes its eleven
+      existing cases and fails only the new target-readiness assertion: expected one
+      unresolved discrepancy, received zero (`11 pass / 1 fail`, 1,784 assertions).
+- [x] Exactly one canonical carried event plus exactly one immutable carry link admits
       one existing unresolved-discrepancy blocker with no public result-shape change.
-- [ ] Exactly-one lineage and tenant/property/date/room/source-target/hash containment
+- [x] Exactly-one lineage and tenant/property/date/room/source-target/hash containment
       are executable; missing, duplicate, mixed, foreign or mismatched evidence stays
       unknown/fail-closed with zero payload authority.
-- [ ] Complete Order349/352 and Order351 preservation, zero-write, static, standing
+- [x] Complete Order349/352 and Order351 preservation, zero-write, static, standing
       and fresh referee gates pass with the activated catalogue unchanged.
 - [ ] Fresh independent non-implementing Tier-3 approval and reviewer-run proof are
       recorded before closure.
@@ -231,3 +234,21 @@ record commands and results before approval.
 Creation of this draft grants no implementation authority. Completion would extend
 only read-only readiness attribution for the exact governed carried-target lineage;
 it would grant no carry, seal, write, UI, local or Phase5 completion authority.
+
+## Builder evidence — D1054
+
+Exact product candidate `40eed2b7d4a32a114121023688b9561a052b5c8d` recomputes the
+migration0063 state/request hashes from typed source/link truth and admits only one
+mutually exclusive link/event pair. The real carry/readiness preservation matrix is
+26/0 with 1,968 assertions; its hostile case covers missing link/event, duplicate and
+mixed events, wrong aggregate/property/date/actor/request/time, room/property/date/
+source-target/link-time/hash mismatches, resolved targets, forged payload irrelevance,
+source/other-property silence and catalogue-derived byte-stable zero writes. Standing
+is 1,217/0 with 948 expected database skips and 18,524 assertions. Typecheck, 139-file
+boundaries, 23-package licence policy, runtime-DML 5/0, SECURITY-DEFINER 3/0 and a
+fresh 63-migration/116-table referee database 11/11 pass; live catalogue remains
+63/116/106/106/15/2. The inherited distro server makes the authentication-redaction
+migration harness green only 38/39 because its deploy role is trusted and reports a
+distro-suffixed version; this is not approval proof and the fresh exact-environment
+Tier-3 reviewer must rerun every permanent gate. Stable port3000 and `.yellow` were
+untouched.
