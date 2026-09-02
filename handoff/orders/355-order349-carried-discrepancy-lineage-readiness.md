@@ -1,9 +1,9 @@
 # Order 355 — Order349 carried-discrepancy lineage readiness
 
-**Status:** DRAFT — activation required after Orders349/351 approval
+**Status:** ACTIVE-D1052
 **Phase:** 5 — Financials
 **Branch:** `phase-5/order349-carried-discrepancy-lineage-readiness`
-**Base:** activation must bind the approved Order349/352 and implemented, independently approved Order351 frontier
+**Base:** exact approved D1051 frontier `2a78dfa`; product ancestry includes approved Order349/352, Order351/359/363/366/368, Order371 and Order372 candidate `c640c5c`
 **Risk tier:** 3 — tenant-scoped financial close evidence and immutable discrepancy lineage
 **Owner:** Codex implementation; fresh independent non-implementing Tier-3 reviewer
 
@@ -44,6 +44,34 @@ exact commit frontier:
 
 Creation of this draft grants no implementation authority. No intentional red or
 production edit may begin before activation records those prerequisites.
+
+## Activation — D1052
+
+D1051 independently approves Order372 at exact governance frontier `2a78dfa` and
+product candidate `c640c5c`; D1043 independently approves the complete governed-carry
+ancestry. Fresh executable truth remains 63 sequential migrations, 116 public base
+tables, 106 tenant-RLS policies, 15 FORCE-RLS tables and two security-invoker views.
+All activation prerequisites are satisfied and no founder-policy question remains.
+
+Re-reading migration0063 and the current readiness/carry proofs establishes that
+outbox exposes no typed carry hashes. The read model must therefore recompute the
+canonical state/request hashes from immutable typed relational/link values using the
+exact migration0063 formula; payload JSON remains wholly irrelevant. To reuse the
+real governed request/approval/carry transition and avoid a duplicate fixture, the
+exact product/test scope is corrected to:
+
+- `src/contexts/financials/business-day-close-readiness.ts`;
+- `tests/business-day-discrepancy-carry.integration.test.ts`;
+- directly affected readiness-only wording in `docs/CONTRACTS.md` and
+  `docs/STATE-MACHINES.md` only if clarification is required; and
+- this order, its review, `DECISIONS.log`, `handoff/LEDGER.md`, and directly affected
+  Phase tracker wording only after executable proof.
+
+The existing readiness integration/unit files are preservation gates, not expected
+edit scope. Intentional red must execute the real carry and prove the current target
+is unknown solely because carried lineage is unrecognized. No schema/write/API/UI/
+local/seal authority is admitted. Any additional product/test file requires a
+recorded pre-edit scope amendment.
 
 ## Exact read-only lineage contract
 
@@ -187,7 +215,7 @@ record commands and results before approval.
 
 ## Definition of done
 
-- [ ] Activation records exact approved Order349/352 and Order351 ancestry,
+- [x] Activation records exact approved Order349/352 and Order351 ancestry,
       catalogue and scope before intentional red or implementation.
 - [ ] Intentional red proves only the valid carried-target recognition gap.
 - [ ] Exactly one canonical carried event plus exactly one immutable carry link admits
