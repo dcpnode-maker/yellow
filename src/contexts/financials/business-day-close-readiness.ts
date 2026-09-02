@@ -279,7 +279,7 @@ export class BusinessDayCloseReadinessService {
                count(*) FILTER (WHERE reservation.status='due_out' AND transition.safe
           AND transition.property_node=(SELECT property_node FROM target)
           AND transition.business_date=(SELECT business_date FROM target))::bigint AS due_out,
-               count(*) FILTER (WHERE NOT pg_catalog.coalesce(transition.safe,false))::bigint AS unknown_due
+               count(*) FILTER (WHERE NOT COALESCE(transition.safe,false))::bigint AS unknown_due
           FROM reservation
           LEFT JOIN LATERAL (
             SELECT event.property_node, event.business_date,
