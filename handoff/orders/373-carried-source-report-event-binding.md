@@ -1,6 +1,6 @@
 # Order 373 — Carried-source canonical report-event binding
 
-**Status:** ACTIVE-D1056
+**Status:** APPROVED-D1059
 **Phase:** 5 — Financials
 **Branch:** `phase-5/order373-carried-source-report-event-binding`
 **Base:** exact withheld Order355 governance frontier `d9db3f55a5da948b040001b016eec609630bdac7`; product candidate `40eed2b7d4a32a114121023688b9561a052b5c8d`
@@ -91,7 +91,15 @@ the existing public result remain unchanged.
 - [x] Source property/date is exact-bound to exactly one canonical typed source report
       event and every hostile variant fails closed.
 - [x] Valid ordinary and carried behavior plus all permanent gates remain green.
-- [ ] Different fresh Tier-3 approval is recorded before Orders355/373 close.
+- [x] Different fresh Tier-3 approval is recorded before Orders355/373 close.
+
+## Independent approval — D1059
+
+Fresh non-implementing Tier-3 `/root/order373_fresh_tier3` approved exact product
+`c988e8885aabc0eb9063e12a54543e4767cedb1c` at governance `6f05380` after personally
+executing the D1055 exploit, complete hostile source-event matrix, load-bearing date
+mutation, focused and permanent gates. Exact evidence is recorded in
+`handoff/reviews/373-carried-source-report-event-binding.md`.
 
 ## Intentional-red evidence — D1057
 
