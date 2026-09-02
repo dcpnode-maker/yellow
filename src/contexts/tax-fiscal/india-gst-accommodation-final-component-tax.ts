@@ -11,37 +11,31 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 const HASH = /^[0-9a-f]{64}$/;
 const INTEGER = /^(?:0|[1-9][0-9]*)$/;
 const MAX = 9223372036854775807n;
-const INPUT_KEYS = ["tenantId", "propertyNode", "reservationId", "folioId", "finalValuation", "roomNights", "quotedRateApplicabilityInput", "quotedRateApplicabilityResult"] as const;
-const VALUATION_KEYS = ["valuationId", "generation", "disposition", "transactionValueMinor", "evidenceHash", "replayed"] as const;
-const NIGHT_KEYS = ["ordinal", "businessDate", "transactionValueMinor"] as const;
+const INPUT_KEYS = ["tenantId", "propertyNode", "reservationId", "folioId", "quotedRateApplicabilityInput"] as const;
 
 type AnyRecord = Record<string, unknown>;
 type ComponentIdentity = "igst" | "cgst" | "sgst" | "utgst";
-
-export interface IndiaGstAccommodationFinalComponentTaxValuation {
-  readonly valuationId: string;
-  readonly generation: number;
-  readonly disposition: "ordinary_final";
-  readonly transactionValueMinor: string;
-  readonly evidenceHash: string;
-  readonly replayed: true;
-}
-
-export interface IndiaGstAccommodationFinalComponentTaxRoomNight {
-  readonly ordinal: string;
-  readonly businessDate: string;
-  readonly transactionValueMinor: string;
-}
 
 export interface IndiaGstAccommodationFinalComponentTaxInput {
   readonly tenantId: string;
   readonly propertyNode: string;
   readonly reservationId: string;
   readonly folioId: string;
-  readonly finalValuation: IndiaGstAccommodationFinalComponentTaxValuation;
-  readonly roomNights: readonly IndiaGstAccommodationFinalComponentTaxRoomNight[];
   readonly quotedRateApplicabilityInput: IndiaGstAccommodationQuotedRateApplicabilityInput;
-  readonly quotedRateApplicabilityResult: IndiaGstAccommodationQuotedRateApplicabilityResult;
+}
+
+interface PersistedValuation {
+  readonly valuation_id: string;
+  readonly generation: number;
+  readonly transaction_value_minor: string;
+  readonly evidence_hash: string;
+  readonly order341_evidence_hash: string;
+}
+
+interface PersistedRoomNight {
+  readonly ordinal: number;
+  readonly business_date: string;
+  readonly transaction_value_minor: string | null;
 }
 
 export interface IndiaGstAccommodationFinalComponentTaxResult extends Readonly<Record<string, unknown>> {
@@ -121,7 +115,6 @@ function integer(value: unknown, subject: string): bigint {
 }
 function add(a: bigint, b: bigint, subject: string): bigint { const result = a + b; if (result > MAX) return fail(`${subject} exceeds signed int64`); return result; }
 function digest(value: unknown): string { return new Bun.CryptoHasher("sha256").update(JSON.stringify(value)).digest("hex"); }
-function same(a: unknown, b: unknown): boolean { return JSON.stringify(a) === JSON.stringify(b); }
 
 function halfUp(numerator: bigint, denominator: bigint, subject: string): bigint {
   const quotient = numerator / denominator, remainder = numerator % denominator;
@@ -130,32 +123,29 @@ function halfUp(numerator: bigint, denominator: bigint, subject: string): bigint
   return result;
 }
 
-function validateRoomNights(input: IndiaGstAccommodationFinalComponentTaxInput, replay: IndiaGstAccommodationQuotedRateApplicabilityResult): readonly bigint[] {
-  if (input.roomNights.length === 0 || input.roomNights.length !== replay.components.length || input.roomNights.length > 366) return fail("final room-night evidence is incomplete");
+function validateRoomNights(rows: readonly PersistedRoomNight[], replay: IndiaGstAccommodationQuotedRateApplicabilityResult): readonly bigint[] {
+  if (rows.length === 0 || rows.length !== replay.components.length || rows.length > 366) return fail("final room-night evidence is incomplete");
   const values: bigint[] = [];
-  for (const [index, raw] of input.roomNights.entries()) {
-    const night = exact(raw, NIGHT_KEYS, "final room-night");
-    if (night.ordinal !== replay.components[index]?.ordinal || night.businessDate !== replay.components[index]?.businessDate) return fail("final room-night ordering or lineage does not match fresh Order341 evidence");
-    const value = integer(night.transactionValueMinor, "final room-night value"); if (value <= 0n) return fail("final room-night values must be positive");
+  for (const [index, night] of rows.entries()) {
+    if (night.ordinal !== index || String(night.ordinal) !== replay.components[index]?.ordinal || night.business_date !== replay.components[index]?.businessDate) return fail("final room-night ordering or lineage does not match fresh Order341 evidence");
+    const value = integer(night.transaction_value_minor, "final room-night value"); if (value <= 0n) return fail("final room-night values must be positive");
     values.push(value);
   }
   return Object.freeze(values);
 }
 
-function calculate(input: IndiaGstAccommodationFinalComponentTaxInput, replay: IndiaGstAccommodationQuotedRateApplicabilityResult): IndiaGstAccommodationFinalComponentTaxResult {
+function calculate(input: IndiaGstAccommodationFinalComponentTaxInput, replay: IndiaGstAccommodationQuotedRateApplicabilityResult, valuation: PersistedValuation, persistedNights: readonly PersistedRoomNight[]): IndiaGstAccommodationFinalComponentTaxResult {
   const tenant = uuid(input.tenantId, "tenantId"), property = uuid(input.propertyNode, "propertyNode"), reservation = uuid(input.reservationId, "reservationId"), folio = uuid(input.folioId, "folioId");
-  const valuation = exact(input.finalValuation, VALUATION_KEYS, "final valuation");
-  const valuationId = uuid(valuation.valuationId, "valuationId");
-  if (!Number.isSafeInteger(valuation.generation) || (valuation.generation as number) < 0) return fail("valuation generation is invalid");
-  const generation = valuation.generation as number;
-  if (valuation.disposition !== "ordinary_final" || valuation.replayed !== true) return fail("only replayed ordinary-final valuation evidence is calculable");
-  const valuationValue = integer(valuation.transactionValueMinor, "valuation transaction value");
+  const valuationId = uuid(valuation.valuation_id, "valuationId");
+  if (!Number.isSafeInteger(valuation.generation) || valuation.generation < 0) return fail("valuation generation is invalid");
+  const generation = valuation.generation;
+  const valuationValue = integer(valuation.transaction_value_minor, "valuation transaction value");
   if (valuationValue <= 0n) return fail("valuation transaction value must be positive");
-  const valuationHash = hash(valuation.evidenceHash, "valuation evidence hash");
+  const valuationHash = hash(valuation.evidence_hash, "valuation evidence hash");
   if (replay.reservationLineage.reservationId !== reservation || replay.reservationLineage.folioId !== folio || replay.reservationLineage.currency !== "INR") return fail("Order341 lineage does not match final valuation scope");
   if (input.quotedRateApplicabilityInput.tenantId !== tenant || input.quotedRateApplicabilityInput.propertyNode !== property || input.quotedRateApplicabilityInput.reservationId !== reservation || input.quotedRateApplicabilityInput.folioId !== folio) return fail("Order341 input scope does not match final valuation scope");
-  if (!same(replay, input.quotedRateApplicabilityResult)) return fail("supplied Order341 result does not byte-match fresh replay");
-  const values = validateRoomNights(input, replay);
+  if (hash(valuation.order341_evidence_hash, "persisted Order341 evidence hash") !== replay.evidenceHash) return fail("persisted valuation does not match fresh Order341 evidence");
+  const values = validateRoomNights(persistedNights, replay);
   const total = values.reduce((sum, value) => add(sum, value, "final valuation total"), 0n);
   if (total !== valuationValue) return fail("room-night values do not reconcile to final valuation");
   const selectedVersion = replay.section14.selectedVersionSide === "predecessor" ? input.quotedRateApplicabilityInput.section14Input.rateVersionPair.predecessor : input.quotedRateApplicabilityInput.section14Input.rateVersionPair.successor;
@@ -180,12 +170,34 @@ export class IndiaGstAccommodationFinalComponentTaxService {
     frozen(raw);
     exact(raw, INPUT_KEYS, "final component-tax input");
     const replay = await new IndiaGstAccommodationQuotedRateApplicabilityService().resolve(tx, raw.quotedRateApplicabilityInput);
-    return calculate(raw, replay);
+    const heads = await tx<PersistedValuation[]>`
+      SELECT v.id::text AS valuation_id, v.generation, v.transaction_value_minor::text,
+             v.evidence_hash, v.order341_evidence_hash
+        FROM india_gst_accommodation_final_valuation v
+       WHERE v.tenant_id = ${raw.tenantId}::uuid
+         AND v.property_node = ${raw.propertyNode}::uuid
+         AND v.reservation_id = ${raw.reservationId}::uuid
+         AND v.folio_id = ${raw.folioId}::uuid
+         AND v.disposition = 'ordinary_final'
+         AND v.currency = 'INR'
+         AND v.transaction_value_minor > 0
+         AND NOT EXISTS (
+           SELECT 1 FROM india_gst_accommodation_final_valuation successor
+            WHERE successor.tenant_id = v.tenant_id
+              AND successor.supersedes_valuation_id = v.id
+         )
+       ORDER BY v.generation DESC, v.id
+       LIMIT 2
+    `;
+    if (heads.length !== 1) fail("exactly one current ordinary-final valuation is required");
+    const valuation = heads[0]!;
+    const roomNights = await tx<PersistedRoomNight[]>`
+      SELECT ordinal, business_date::text, transaction_value_minor::text
+        FROM india_gst_accommodation_valuation_room_night
+       WHERE tenant_id = ${raw.tenantId}::uuid
+         AND valuation_id = ${valuation.valuation_id}::uuid
+       ORDER BY ordinal
+    `;
+    return calculate(raw, replay, valuation, roomNights);
   }
-}
-
-/** Pure calculation hook for a previously fresh-replayed Order341 result. */
-export function calculateIndiaGstAccommodationFinalComponentTax(raw: IndiaGstAccommodationFinalComponentTaxInput, replay: IndiaGstAccommodationQuotedRateApplicabilityResult): IndiaGstAccommodationFinalComponentTaxResult {
-  frozen(raw); exact(raw, INPUT_KEYS, "final component-tax input"); frozen(replay);
-  return calculate(raw, replay);
 }
