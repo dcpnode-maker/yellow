@@ -1,6 +1,6 @@
 # Order 364 — Phase-6 recorded-status truth correction
 
-**Status:** ACTIVE-D1027
+**Status:** COMPLETE-D1028
 **Phase:** 6 — Stay operations and housekeeping (status-only correction)
 **Branch:** `phase-6/status-truth-correction`
 **Base:** current descendant head containing approved D974 ancestry
@@ -34,3 +34,10 @@ Order199 remains `built_unverified`. Typecheck and diff hygiene must pass.
 No generated review coverage, endpoint/client/UI, product behavior, schema,
 migration, seed, database, credentials, runtime/local promotion, Docker, `.yellow`,
 merge, push, deployment, or Phase5/7/application completion claim.
+
+## Evidence
+
+Focused founder-status integration passes **5/0 with 2 expected database skips and
+96 expectations**. Typecheck and exact diff hygiene pass. The phase vector now marks
+only Phase6 reviewed, preserves Phase5/7 active and leaves the sole built-unverified
+recorded-work row at Order199.

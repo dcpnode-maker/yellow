@@ -417,9 +417,9 @@ describe("Order 064 recorded build snapshot", () => {
       },
       {
         order: 236,
-        state: "built_unverified",
-        summary: "Orders 200–236 built the current Stay operations & Housekeeping descendant stack through governed parking-slot assignment.",
-        remaining: "Builder proof only; independent high-risk review and Phase-6 completion remain pending.",
+        state: "independently_approved",
+        summary: "Orders 200–236 and the bounded Orders 342–345 Phase-6 exit gate were independently approved (D-974).",
+        remaining: "Approval excludes deferred discrepancy resolution, queue and message workflows, later phases, local refresh, merge and deployment.",
       },
       {
         order: 310,
@@ -443,9 +443,16 @@ describe("Order 064 recorded build snapshot", () => {
       .filter(({ state }) => state === "independently_approved").map(({ order }) => Number(order)))
       .toEqual([190, 191, 192, 193, 195]);
     expect(PROJECT_BUILD_SNAPSHOT.recordedWork.filter(({ state }) => state === "built_unverified")
-      .map(({ order }) => Number(order))).toEqual([199, 236]);
+      .map(({ order }) => Number(order))).toEqual([199]);
     expect(PROJECT_BUILD_SNAPSHOT.recordedWork.find(({ order }) => order === 199)?.summary).toMatch(/196–199/);
-    expect(PROJECT_BUILD_SNAPSHOT.recordedWork.find(({ order }) => order === 236)?.summary).toMatch(/200–236/);
+    const order236: { readonly state: string; readonly summary: string; readonly remaining?: string } | undefined =
+      PROJECT_BUILD_SNAPSHOT.recordedWork.find(({ order }) => order === 236);
+    expect(order236?.state).toBe("independently_approved");
+    expect(order236?.summary).toMatch(/200–236/);
+    expect(order236?.summary).toMatch(/342–345/);
+    expect(order236?.summary).toMatch(/D-974/);
+    expect(order236?.remaining).toMatch(/deferred discrepancy resolution/i);
+    expect(order236?.remaining).toMatch(/queue and message workflows/i);
     const order310: { readonly state: string; readonly summary: string; readonly remaining?: string } | undefined =
       PROJECT_BUILD_SNAPSHOT.recordedWork.find(({ order }) => order === 310);
     expect(order310?.state).toBe("independently_approved");
@@ -472,10 +479,10 @@ describe("Order 064 recorded build snapshot", () => {
     expect(PROJECT_BUILD_SNAPSHOT.phases[3]?.state).toBe("reviewed");
     expect(PROJECT_BUILD_SNAPSHOT.phases[4]?.state).toBe("built_unverified");
     expect(PROJECT_BUILD_SNAPSHOT.phases[5]?.state).toBe("active");
-    expect(PROJECT_BUILD_SNAPSHOT.phases[6]?.state).toBe("active");
+    expect(PROJECT_BUILD_SNAPSHOT.phases[6]?.state).toBe("reviewed");
     expect(PROJECT_BUILD_SNAPSHOT.phases[7]?.state).toBe("active");
     expect(PROJECT_BUILD_SNAPSHOT.phases.slice(8).every(({ state }) => state === "planned")).toBe(true);
-    expect(PROJECT_BUILD_SNAPSHOT.phases.filter(({ state }) => state === "active").map(({ number }) => number)).toEqual([5, 6, 7]);
+    expect(PROJECT_BUILD_SNAPSHOT.phases.filter(({ state }) => state === "active").map(({ number }) => number)).toEqual([5, 7]);
   });
 
   test("P4/P5: health stays exact and assets contain honest same-origin status UI", async () => {

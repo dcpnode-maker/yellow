@@ -294,9 +294,9 @@ export const PROJECT_BUILD_SNAPSHOT = Object.freeze({
     }),
     Object.freeze({
       order: 236,
-      state: "built_unverified" as const,
-      summary: "Orders 200–236 built the current Stay operations & Housekeeping descendant stack through governed parking-slot assignment.",
-      remaining: "Builder proof only; independent high-risk review and Phase-6 completion remain pending.",
+      state: "independently_approved" as const,
+      summary: "Orders 200–236 and the bounded Orders 342–345 Phase-6 exit gate were independently approved (D-974).",
+      remaining: "Approval excludes deferred discrepancy resolution, queue and message workflows, later phases, local refresh, merge and deployment.",
     }),
     Object.freeze({
       order: 310,
@@ -312,7 +312,7 @@ export const PROJECT_BUILD_SNAPSHOT = Object.freeze({
     Object.freeze({ number: 3, name: "Rates & policies", state: INDEPENDENTLY_REVIEWED_THROUGH_ORDER >= 79 ? "reviewed" as const : "built_unverified" as const }),
     Object.freeze({ number: 4, name: "Reservations", state: "built_unverified" as const }),
     Object.freeze({ number: 5, name: "Financials", state: "active" as const }),
-    Object.freeze({ number: 6, name: "Stay operations & housekeeping", state: "active" as const }),
+    Object.freeze({ number: 6, name: "Stay operations & housekeeping", state: "reviewed" as const }),
     Object.freeze({ number: 7, name: "Tax & India IRP", state: "active" as const }),
     Object.freeze({ number: 8, name: "Statutory reporting & ZATCA", state: "planned" as const }),
     Object.freeze({ number: 9, name: "Distribution", state: "planned" as const }),
