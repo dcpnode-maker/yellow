@@ -15,8 +15,9 @@ catalogue unchanged unless an executable red proves an exact defect.
 
 ## Exact scope and executable proof
 
-Extend `tests/business-day-discrepancy-carry.integration.test.ts` and bounded test
-helpers only to prove through the real migration-0063 command on fresh PostgreSQL:
+Extend `tests/business-day-discrepancy-carry.integration.test.ts`, the exact
+migration-0063 checksum oracle already required by Order359, and bounded test helpers
+only to prove through the real migration-0063 command on fresh PostgreSQL:
 
 1. injected failure after each transition, target, carry-link, fact, event and
    deferred-commit boundary leaves byte-identical pre-state and permits one clean

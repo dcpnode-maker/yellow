@@ -1799,7 +1799,7 @@ databaseDescribe("Bun SQL migration runner", () => {
           {
             version: 63,
             filename: "0063_governed_business_day_discrepancy_carry.sql",
-            checksum_sha256: "0ec6110e2ba4cc1cc0a0372cf0895377036c962564d9425d926646b96b485c17",
+            checksum_sha256: "2b9dc9c73b77b68a06cae3e2dd05da88e00f3f073a41232bada2569c7d49702b",
           },
         ]);
 
