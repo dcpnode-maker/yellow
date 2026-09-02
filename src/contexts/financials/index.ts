@@ -140,6 +140,21 @@ export {
   BusinessDayRollValidationError,
   BusinessDayRollWorker,
 } from "./business-day-roll";
+
+export {
+  BusinessDayCloseReadinessService,
+  BusinessDayCloseReadinessUnavailableError,
+  BusinessDayCloseReadinessValidationError,
+} from "./business-day-close-readiness";
+export type {
+  BusinessDayCloseReadiness,
+  BusinessDayCloseReadinessInput,
+  BusinessDayCloseReadinessServiceOptions,
+  OutboxLag,
+  ReadinessReason,
+  ReadinessReasonCode,
+  ReadinessSource,
+} from "./business-day-close-readiness";
 export type {
   BusinessDayRollDrainResult,
   BusinessDayRollFailure,
