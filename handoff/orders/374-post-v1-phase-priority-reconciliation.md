@@ -1,6 +1,6 @@
 # Order 374 — Post-v1 phase identity and founder-priority reconciliation
 
-**Status:** BUILT-PENDING-FRESH-TIER2-D1062
+**Status:** CHANGES-REQUIRED-D1063
 **Phase:** 13 — Voice and Conversational Command Layer  
 **Branch:** `phase-13/order374-post-v1-priority-reconciliation`  
 **Base:** exact independently approved Order355/373 frontier
@@ -121,3 +121,13 @@ runtime, local or other documentation file is out of scope.
   artifact changed. A read-only health observation found port 3000 already stopped;
   this order did not start, stop, replace, seed or otherwise mutate the local stack.
 - Fresh independent Tier-2 review remains mandatory before approval.
+
+## Fresh Tier-2 review — D1063
+
+Fresh independent non-implementing reviewer `/root/order374_fresh_tier2` withholds
+approval of exact candidate `5eac1da26920d6d009166f33e9cdfe65b77855cb`.
+Structural scope, phase identity/priority, Phase0–12 preservation, dependency,
+Phase17 reuse, standing and static proof pass. The blocking finding is the unresolved
+provider contradiction: `docs/UI-SPEC.md` still prescribes Whisper.cpp and Piper while
+this order and `docs/AI-ARCHITECTURE.md` require benchmarked local-first adapters with
+no canonical provider. Repair and a fresh Tier-2 re-review are mandatory.
