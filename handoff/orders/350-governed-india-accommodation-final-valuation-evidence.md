@@ -1,6 +1,6 @@
 # Order 350 — Governed India accommodation final-valuation evidence
 
-**Status:** ACTIVE-D993
+**Status:** ACTIVE-INTENTIONAL-RED-D995
 **Phase:** 7 — Tax engine and India IRP
 **Branch:** `phase-7/governed-india-accommodation-final-valuation-evidence`
 **Base:** `3638c96` (D991 founder-ratified final-valuation policy; approved Order341 ancestry)
