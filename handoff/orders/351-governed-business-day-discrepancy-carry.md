@@ -1,9 +1,9 @@
 # Order 351 — Governed business-day discrepancy carry
 
-**Status:** DRAFT — activation required after Order350
+**Status:** ACTIVE-D1013
 **Phase:** 5 — Financials
 **Branch:** `phase-5/governed-business-day-discrepancy-carry`
-**Base:** activation must bind the approved Order349/implemented Order350 frontier
+**Base:** exact approved D1004 Order349/352 and D1012 Order350/354/357/358 frontier `f634d16`
 **Risk tier:** 3 — four-eyes day attribution, mutable discrepancy transition and tenant-scoped evidence
 **Owner:** Codex implementation; fresh independent non-implementing Tier-3 reviewer
 
@@ -231,5 +231,6 @@ contract admits the typed carry link/event. This order does not silently widen i
 readiness. Activation must record that follow-on dependency; it is not authority to
 emit an extra report event or weaken fail-closed attribution.
 
-Creation of this draft grants no implementation authority. Completion grants only the
-governed carry transition; no seal, readiness override or financial mutation follows.
+Activation at D1013 revalidated migration0063 as the next free allocation and exact
+post-Order350 catalogue `62/115/105/14/2`. Completion grants only the governed carry
+transition; no seal, readiness override or financial mutation follows.
