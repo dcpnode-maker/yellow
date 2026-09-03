@@ -2749,3 +2749,25 @@ event or commit failure rolls the complete effect back. The legacy
 `seal_business_day` remains owner-only; direct application/runtime day, fact and
 outbox DML remains denied. This contract adds no HTTP/API/UI route, automatic or batch
 seal, reopen, catch-up, local promotion or Phase-5 completion claim.
+
+### Persisted India quoted-rate applicability evidence (Order 400)
+
+`IndiaGstAccommodationQuotedRateApplicabilityRecorderService.record(tx,input)` reruns
+the approved Order341 resolver in the caller transaction and persists its complete
+typed result through the sole 51-argument owner-mediated capability. The immutable
+root binds the exact tenant/property/reservation/folio lineage, attribution, governed
+service/payment/invoice snapshots, current ordinary final valuation, selected
+jurisdiction extension and every persisted component-family selector. Dense child
+rows retain at most 366 room nights and their ordered component rates; calendar cases
+retain at most 366 classified dates with their authority id, source digest and
+through-date. Quoted money, slabs, rates, ITC flags and statutory dates are typed
+columns rather than JSON authority.
+
+The database independently derives the GST component family, validates all six
+Section14 partitions, locks the selected extension content/effective period and
+reconstructs the exact Order341 evidence preimage. Same request and evidence replay
+without writes; divergent replay, stale ancestry, gaps, duplicates, excess bounds,
+foreign scope or forged evidence fail closed. The root, children, minimized fact and
+outbox event, and service-owned idempotency receipt commit atomically. This evidence
+does not calculate or persist final component tax, post a journal, issue a document,
+submit IRP data, expose a route/UI, or claim Phase completion.

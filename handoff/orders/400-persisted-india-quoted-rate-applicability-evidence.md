@@ -1,6 +1,6 @@
 # Order 400 — Persisted India quoted-rate applicability evidence
 
-**Status:** ACTIVE-D1174
+**Status:** BUILT-PENDING-FRESH-TIER3-REVIEW-D1175
 **Phase:** 7 — Tax engine and India IRP
 **Branch:** `phase-7/persisted-india-quoted-rate-applicability-evidence`
 **Base:** exact current Order367 implementation working state on `d77c81d`; approved product base remains `6bba460`
@@ -21,7 +21,7 @@ tables: a root for scope, selected version/family, typed predecessor identities 
 hashes; a dense quoted room-night/slab table; and an ordered typed component-rate
 table. Calendar-governed cases retain bounded non-money authority id, source digest
 and dense classified dates as validated evidence. Quoted money and rates remain
-typed columns, never JSONB authority. Exact catalogue becomes `69/119/109/18/2`.
+typed columns, never JSONB authority. Exact catalogue becomes `69/119/109/109/18/2`.
 
 One fixed-search-path owner capability is the sole writer. The application reruns
 Order341 in the caller transaction; the capability rechecks active tenant,

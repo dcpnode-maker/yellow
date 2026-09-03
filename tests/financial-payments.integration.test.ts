@@ -240,7 +240,7 @@ dbDescribe("Order 192 fresh PostgreSQL P1-P5", () => {
       SELECT (SELECT count(*)::int FROM information_schema.tables WHERE table_schema='public' AND table_type='BASE TABLE') tables,
         (SELECT count(*)::int FROM pg_class WHERE relnamespace='public'::regnamespace AND relkind='r' AND relrowsecurity) rls,
         (SELECT count(*)::int FROM pg_policies WHERE schemaname='public') policies`)[0]!;
-    expect(counts).toEqual({ tables: 116, rls: 106, policies: 106 });
+    expect(counts).toEqual({ tables: 119, rls: 109, policies: 109 });
     const acl = (await admin!<Array<{ op_select: boolean; op_insert: boolean; op_mutate: boolean;
       receipt_select: boolean; receipt_insert: boolean; receipt_mutate: boolean; payment_mutate: boolean }>>`
       SELECT has_table_privilege('app_role','payment_operation','SELECT') op_select,

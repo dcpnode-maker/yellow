@@ -191,7 +191,7 @@ describe("Order 104 balanced charge posting", () => {
 
 dbDescribe("Order 104 fresh-PostgreSQL financial posting proof", () => {
   test("P1: exact migration truth, ACL, composite constraints and database guards", async () => {
-    expect((await admin!<Array<{ n: number }>>`SELECT count(*)::int n FROM information_schema.tables WHERE table_schema='public' AND table_type='BASE TABLE'`)[0]!.n).toBe(116);
+    expect((await admin!<Array<{ n: number }>>`SELECT count(*)::int n FROM information_schema.tables WHERE table_schema='public' AND table_type='BASE TABLE'`)[0]!.n).toBe(119);
     const acl = (await admin!<Array<{ rls: boolean; select_ok: boolean; insert_ok: boolean; tx_mutate: boolean }>>`
       SELECT c.relrowsecurity rls,has_table_privilege('app_role','tx_code_route','SELECT') select_ok,
         has_table_privilege('app_role','tx_code_route','INSERT') insert_ok,

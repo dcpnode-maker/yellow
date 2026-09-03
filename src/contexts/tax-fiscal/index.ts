@@ -432,6 +432,17 @@ export type {
   IndiaGstAccommodationQuotedRateApplicabilityResult,
 } from "./india-gst-accommodation-quoted-rate-applicability";
 export {
+  IndiaGstAccommodationQuotedRateApplicabilityRecorderConflictError,
+  IndiaGstAccommodationQuotedRateApplicabilityRecorderNotFoundError,
+  IndiaGstAccommodationQuotedRateApplicabilityRecorderService,
+  IndiaGstAccommodationQuotedRateApplicabilityRecorderValidationError,
+} from "./india-gst-accommodation-quoted-rate-applicability-recorder";
+export type {
+  IndiaGstAccommodationQuotedRateApplicabilityRecorderInput,
+  IndiaGstAccommodationQuotedRateApplicabilityRecorderResult,
+  IndiaGstAccommodationQuotedRateApplicabilityRecorderServiceOptions,
+} from "./india-gst-accommodation-quoted-rate-applicability-recorder";
+export {
   allocateSignedLargestRemainder,
   SignedLargestRemainderError,
 } from "./signed-largest-remainder";

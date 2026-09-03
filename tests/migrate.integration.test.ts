@@ -701,7 +701,7 @@ databaseDescribe("Bun SQL migration runner", () => {
                   'open_cashier_session', 'append_cashier_count', 'close_cashier_session'
                 )) AS functions
         `;
-        expect(shape).toEqual([{ tables: 116, policies: 106, functions: 3 }]);
+        expect(shape).toEqual([{ tables: 119, policies: 109, functions: 3 }]);
       });
     },
     60_000,
@@ -748,7 +748,7 @@ databaseDescribe("Bun SQL migration runner", () => {
               WHERE table_schema = 'public' AND table_name = 'journal'
                 AND column_name = 'approval_request_id') AS "approvalColumns"
         `;
-        expect(shape).toEqual([{ tables: 116, policies: 106, functions: 1, approvalColumns: 1 }]);
+        expect(shape).toEqual([{ tables: 119, policies: 109, functions: 1, approvalColumns: 1 }]);
       });
     },
     60_000,
@@ -791,7 +791,7 @@ databaseDescribe("Bun SQL migration runner", () => {
               WHERE namespace.nspname = 'public'
                 AND procedure.proname = 'transition_housekeeping_task') AS functions
         `;
-        expect(shape).toEqual([{ tables: 116, policies: 106, functions: 1 }]);
+        expect(shape).toEqual([{ tables: 119, policies: 109, functions: 1 }]);
       });
     },
     60_000,
@@ -1562,8 +1562,8 @@ databaseDescribe("Bun SQL migration runner", () => {
          WHERE class.oid = 'public.tax_semantic_route'::regclass
         `;
         expect(relation).toEqual([{
-          tables: 116,
-          policies: 106,
+          tables: 119,
+          policies: 109,
           owner: "yellow_owner",
           rls: true,
           appSelect: true,
@@ -1646,6 +1646,7 @@ databaseDescribe("Bun SQL migration runner", () => {
           "0066_business_day_read_permission.sql",
           "0067_business_day_seal_permission.sql",
           "0068_prepare_owner_trust_expense.sql",
+          "0069_india_gst_accommodation_quoted_rate_applicability.sql",
         ]);
 
         const preservedLedger = await sql<Array<{
@@ -1831,6 +1832,11 @@ databaseDescribe("Bun SQL migration runner", () => {
             filename: "0068_prepare_owner_trust_expense.sql",
             checksum_sha256: "19eedaa18ae6816825535c98a794c5fa0ed420c4c12776f960183dced1966884",
           },
+          {
+            version: 69,
+            filename: "0069_india_gst_accommodation_quoted_rate_applicability.sql",
+            checksum_sha256: "c7b36bc7cf9d59d67d70426b59cd16b88d9de9e7097ce55d21b176190f293ade",
+          },
         ]);
 
         const authority = await sql<Array<{
@@ -1891,7 +1897,7 @@ databaseDescribe("Bun SQL migration runner", () => {
                 AND class.relforcerowsecurity) AS "forceRlsTables"
         `;
         expect(counts).toEqual([{
-          tables: 116, rlsTables: 106, policies: 106, forceRlsTables: 15,
+          tables: 119, rlsTables: 109, policies: 109, forceRlsTables: 18,
         }]);
 
         const registration = await sql<Array<{

@@ -184,6 +184,8 @@ financial, business-day or statutory effects.
 
 `india_gst.accommodation_final_valuation_recorded {valuationId,reservationId,folioId,windowNo,buyerPartyId,generation,disposition,evidenceHash}` states only that one immutable governed valuation-evidence generation was recorded. It contains no guest profile, posting amounts, tax amounts, invoice content or IRP payload. Consumers must not infer calculation, posting, document issue or fiscal submission.
 
+`india_gst.accommodation_quoted_rate_applicability_recorded {applicabilityId,reservationId,folioId,evidenceHash}` states only that one immutable, typed Order341 quoted-rate applicability bundle passed persisted ancestry and evidence reconstruction. It contains no guest profile, calendar payload, quoted amount, tax amount, component detail, posting, invoice or IRP content. Consumers must not infer final tax calculation, a financial posting, document issue, fiscal submission or Phase completion.
+
 `tax.attribution_recorded` states only that one exact positive Order-240 `rate_quote`
 snapshot became an immutable tenant root under one contextual property and actor. The
 new root, matching fact, minimized outbox row and idempotent receipt commit in one
