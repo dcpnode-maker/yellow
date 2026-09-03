@@ -1,6 +1,6 @@
 # Order 390 — Close-workbench carry-coherence repair
 
-**Status:** BUILT-PENDING-FRESH-TIER3-REVIEW-D1123
+**Status:** REVIEW-WITHHELD-D1124
 **Phase:** 5 — Financials operator delivery repair
 **Branch:** `phase-5/operator-business-day-close-workbench`
 **Base:** exact withheld Order384 review tip `86e5032`
