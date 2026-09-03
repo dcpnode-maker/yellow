@@ -1,6 +1,6 @@
 # Order 395 — Order387 executable proof repair
 
-**Status:** ACTIVE-D1143
+**Status:** BUILT-PENDING-DIFFERENT-FRESH-TIER3-REVIEW-D1145
 **Phase:** 5 — Financials operator delivery proof repair
 **Base:** exact Order387 executable `c0e2d5d`, governance `7d2a6b6`
 **Risk tier:** 3 — proof of audited discrepancy-carry behavior
