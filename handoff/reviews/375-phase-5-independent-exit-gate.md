@@ -1,58 +1,47 @@
-# Order 375 — Phase-5 independent exit-gate full-rereview
+# Order 375 — Phase-5 independent exit-gate final full rereview
 
 **Verdict:** CHANGES REQUIRED / WITHHELD
 
-**Candidate reviewed:** D1074 activation
-`dd09ac24e776398dfb452365f07d2a10e26bcd00`; frozen product frontier
-`91fbe1facba34a3edac24e0a08bf974e267da44c`
+**Activation reviewed:** `c9e225df14e83c10d6f2fd3a84abb30280e4c1e5`
 
-**Reviewer:** `/root/order375_fresh_full_rereviewer`, fresh non-implementing Tier 3,
-distinct from the D1070 Order375 reviewer and the Order376 reviewer
+**Frozen product frontier:** `4ce9732`
+
+**Reviewer:** `/root/order375_final_distinct_reviewer`, fresh non-implementing Tier 3,
+distinct from every prior Order375, 376 and 377 reviewer
 
 **Date:** 2026-09-03
 
-## Verdict and blocking findings
+## Blocking finding
 
-The full exit proof restarted from item 1 and is withheld on two reproducible stale
-strict catalogue assertions. The authoritative freshly migrated Order375 frontier is
-`64 migrations / 116 public base tables / 106 RLS relations / 106 policies /
-15 FORCE-RLS relations / 2 views`.
+The item-1 restart is withheld on one deterministic stale strict catalogue assertion.
+After a fresh Windows-native PostgreSQL 17 cluster applied migrations 1–64,
+`tests/business-day-discrepancy-carry.integration.test.ts:908` expected 63 migration
+ledger rows while the required and observed frontier contains 64. The same assertion's
+other catalogue values were exact: 116 public tables, 106 RLS relations, 15 forced-RLS
+relations and 2 views.
 
-1. `tests/financial-owner-trust.integration.test.ts:50` expects `115` tables and
-   `105` policies. The fresh 64-migration database returns `116` and `106`; the ACL
-   values in the same assertion remain the expected `insert=false, select=true`.
-2. `tests/financial-payments.integration.test.ts:243` expects `89` tables, `79` RLS
-   relations and `79` policies. The fresh frontier returns `116/106/106`.
-
-The payment assertion failed in the aggregate batch and again in an isolated run.
-The trust assertion failed in the aggregate batch and again on a second database
-created and migrated from zero through all 64 files, ruling out interrupted-fixture
-residue. These are test-oracle defects rather than observed product defects, but
-Order375 forbids test repair and red waiver. A separate exact-oracle repair and a
-different fresh Tier3 full restart are required.
+This is a test-oracle defect, not an observed product failure, but Order375 forbids
+test repair or red waiver. A separately scoped repair and another distinct full
+rereview are mandatory.
 
 ## Reviewer-personal evidence before the mandatory stop
 
-- Windows-native PostgreSQL 17 was initialized under an exact disposable
-  `E:\yellow\order375-rereview-<guid>` root; authority roles were provisioned and
-  migrations 1–64 applied successfully.
-- The complete first financial batch passed **53/0, 362 assertions** across canonical
-  folios, balanced posting, statements, corrections, multi-window transfer and its
-  migration contract.
-- That batch includes the real **500 charges / 1,000 balanced immutable posting
-  lines** zero-drift case, exact replay/rollback, sealed-day denial, tenant hostility,
-  original-byte preservation and correction/transfer race arbitration.
-- Before the second batch was stopped, complete folio-settlement proof passed 6/0;
-  completed cashier, receivable, payment and owner-trust functional cases shown by the
-  runner were green. They are not promoted to complete-suite evidence because the
-  registered reds terminate the exit review.
-- No prior D1070 proof was reused as the verdict and no remaining day-close,
-  authority, standing/static or referee gate is claimed after the blockers.
+- A fresh exact disposable PostgreSQL 17 cluster accepted all 64 migrations.
+- Folio, posting, statement, correction and multi-window proof passed **53/0** with
+  **362 assertions**, including 500 charges / 1,000 balanced immutable lines.
+- Payment, hosted deposit, settlement, cashier, receivable, complete financial
+  journey and owner-trust proof passed **58/0** with **1,701 assertions**.
+- The day-close batch reached **41/2** with **2,044 assertions**. One red was the
+  decisive stale migration-count oracle above. The other was an environment-only
+  `pg_stat_statements` preload prerequisite on this disposable server; it does not
+  alter the mandatory stop caused by the deterministic repository red.
+- No earlier Order375 partial output was reused as the verdict. Remaining aggregate,
+  static and referee gates stopped unclaimed after the registered red.
 
 ## Teardown and boundaries
 
-The PG17 server stopped cleanly; port 55477 refused connections. The exact disposable
-root was removed and verified absent. No WSL crash dump was generated. No product,
-test, migration, schema, permission, seed, dependency, HTTP/UI, local, Docker or
-`.yellow` file was read or changed. Phase5, UI/status wiring and local promotion remain
+The reviewer stopped the PostgreSQL server, verified port 55479 refused connections,
+removed the exact disposable root and checked that no new WSL crash dump remained.
+No product, test, migration, schema, permission, seed, dependency, HTTP/UI, local,
+Docker or `.yellow` file was read or changed. Phase5 and local/UI/status wiring remain
 unapproved.

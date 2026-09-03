@@ -1,6 +1,6 @@
 # Order 375 — Phase-5 independent exit gate
 
-**Status:** ACTIVE-FINAL-FULL-REREVIEW-D1079
+**Status:** CHANGES-REQUIRED-D1080
 **Phase:** 5 — Financials
 **Branch:** `phase-5/exit-gate`
 **Base:** exact independently approved Order356 tip
@@ -116,3 +116,15 @@ Order377 is independently approved at D1078 after fresh complete trust/payment
 17/0(1,407) on exact migration64 truth. Order375 again restarts from item1 under a
 new distinct reviewer at exact tip `4ce9732`; neither D1070 nor D1075 partial output
 is reused as the exit verdict.
+
+## Final-rereview finding — D1080
+
+The new distinct Tier3 reviewer restarted at exact activation `c9e225d` and frozen
+product frontier `4ce9732` on a fresh Windows-native PostgreSQL17 cluster. Migrations
+1–64 applied; the complete first two financial batches passed 53/0(362) and
+58/0(1,701). The day-close batch then reproduced a stale strict catalogue assertion:
+`tests/business-day-discrepancy-carry.integration.test.ts:908` expects 63 migration
+rows while the exact frontier returns 64; its 116-table, 106-RLS, 15-force and 2-view
+values remain exact. Order375 cannot repair or waive this red. Remaining gates stop
+unclaimed; a bounded oracle repair and another distinct from-item1 review are
+mandatory. Phase5 remains unapproved.
