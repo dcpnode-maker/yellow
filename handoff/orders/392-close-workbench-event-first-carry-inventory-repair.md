@@ -1,6 +1,6 @@
 # Order 392 — Close-workbench event-first carry inventory repair
 
-**Status:** BUILT-PENDING-FRESH-TIER3-REVIEW-D1129
+**Status:** APPROVED-CLOSED-D1130
 **Phase:** 5 — Financials operator delivery repair
 **Branch:** `phase-5/operator-business-day-close-workbench`
 **Base:** exact withheld Order391 review tip `b9c73bc`
@@ -35,6 +35,6 @@ server, dependency, local runtime, `.yellow`, carry mutation, deploy, merge or p
 
 ## Definition of done
 
-- [ ] Carried-event inventory does not depend on an existing discrepancy join.
-- [ ] Every relevant event has exactly one aggregate and one coherent safe target link.
-- [ ] Fresh Tier3 approval is recorded from reviewer-executed PostgreSQL proof.
+- [x] Carried-event inventory does not depend on an existing discrepancy join.
+- [x] Every relevant event has exactly one aggregate and one coherent safe target link.
+- [x] Fresh Tier3 approval is recorded from reviewer-executed PostgreSQL proof.
