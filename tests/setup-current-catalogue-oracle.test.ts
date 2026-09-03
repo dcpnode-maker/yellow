@@ -18,8 +18,8 @@ describe("Order 371 current setup catalogue oracle", () => {
       publicBaseTables: 116,
     });
     expect(setup).toContain("[ \"$tables\" = '116' ]");
-    expect(setup).toContain("expected 116 after migrations 1-63");
-    expect(setup).toContain("yellow_test tables: 116 after migrations 1-63");
+    expect(setup).toContain("expected 116 after migrations 1-64");
+    expect(setup).toContain("yellow_test tables: 116 after migrations 1-64");
     expect(setup).not.toContain("expected 115 after migrations 1-62");
   });
 });

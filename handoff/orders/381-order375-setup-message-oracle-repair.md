@@ -1,6 +1,6 @@
 # Order 381 — Order375 setup-message oracle repair
 
-**Status:** ACTIVE-D1094
+**Status:** BUILT-PENDING-FRESH-REVIEW-D1095
 **Phase:** 5 — Financials
 **Branch:** `phase-5/setup-message-oracle-repair`
 **Base:** exact withheld Order380 governance `bae06a4c4023e257bffcf3b4878510957cd52184`
@@ -17,5 +17,11 @@ restarts.
 ## Definition of done
 
 - [x] Fresh review reproduced both expected `1-63` strings versus actual `1-64`.
-- [ ] Exact two-string candidate is ready for complete focused proof.
+- [x] Exact two-string candidate is ready for complete focused proof.
 - [ ] Fresh non-implementing reviewer approves the bounded repair.
+
+## Builder note
+
+D1095 changes exactly the two authorized expected string fragments from `1-63` to
+`1-64`. No source, setup script, migration, schema, other test, UI, status or local
+artifact changed.
