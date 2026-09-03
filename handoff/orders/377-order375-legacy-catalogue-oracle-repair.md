@@ -1,6 +1,6 @@
 # Order 377 — Order375 legacy catalogue-oracle repair
 
-**Status:** ACTIVE-D1076
+**Status:** BUILT-PENDING-FRESH-REVIEW-D1077
 **Phase:** 5 — Financials
 **Branch:** `phase-5/legacy-catalogue-oracle-repair`
 **Base:** exact withheld Order375 governance `677beb835532518bc66de2e7ccc99084cf7bd06d`
@@ -23,6 +23,11 @@ are mandatory before another from-item1 Order375 restart.
 ## Definition of done
 
 - [x] Both stale expectations are independently reproduced on fresh migration64 truth.
-- [ ] Exact numeric-only repair makes both complete suites green.
+- [x] Exact numeric-only candidate is committed; executable confirmation is reviewer-owned.
 - [ ] Fresh non-implementing reviewer approves exact scope and proof.
 
+## Builder candidate — D1077
+
+The only product-tree delta is the five pre-authorized numeric literals across the two
+named tests. No source, migration, schema or other test changed. Fresh independent
+execution remains mandatory.
