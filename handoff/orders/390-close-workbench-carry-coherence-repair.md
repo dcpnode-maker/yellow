@@ -1,6 +1,6 @@
 # Order 390 — Close-workbench carry-coherence repair
 
-**Status:** ACTIVE-D1122
+**Status:** BUILT-PENDING-FRESH-TIER3-REVIEW-D1123
 **Phase:** 5 — Financials operator delivery repair
 **Branch:** `phase-5/operator-business-day-close-workbench`
 **Base:** exact withheld Order384 review tip `86e5032`
@@ -51,4 +51,3 @@ mismatched evidence fails the entire read closed.
 - [ ] D1121 red is converted to a permanent passing regression.
 - [ ] Full mutation-sensitive predicate proof is green on PostgreSQL16.15.
 - [ ] Fresh Tier-3 repair approval and complete Order384 rereview are recorded.
-

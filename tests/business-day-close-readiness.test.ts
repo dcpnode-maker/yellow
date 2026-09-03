@@ -68,7 +68,8 @@ describe("Order 349 business-day close readiness read model", () => {
     expect(stats().sql).toContain("ORDER BY event.seq DESC");
     expect(stats().sql).toContain("interval '5 minutes'");
     expect(stats().sql).not.toContain("->>");
-    expect(stats().sql).not.toContain("payload");
+    expect(stats().sql).not.toContain("event.payload");
+    expect(stats().sql).toContain("approval.payload=canonical.approval_binding");
   });
 
   test("decodes every blocker in fixed order and collapses unsafe attribution once", async () => {

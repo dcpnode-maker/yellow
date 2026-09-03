@@ -548,65 +548,197 @@ export async function loadBusinessDayCloseReadinessEvidence(
       ),
       workbench_reported_lineage AS MATERIALIZED (
         SELECT discrepancy.id AS discrepancy_id, discrepancy.space_id, space.code AS space_code,
-               count(event.seq)::bigint AS event_count,
-               count(event.seq) FILTER (WHERE event.property_node=(SELECT property_node FROM target)
-                 AND event.business_date=(SELECT business_date FROM target))::bigint AS selected_event_count,
-               min(event.business_date) FILTER (WHERE event.property_node=(SELECT property_node FROM target)
-                 AND event.business_date=(SELECT business_date FROM target)) AS selected_event_date
+               discrepancy.reported, discrepancy.system_state, discrepancy.reported_by,
+               discrepancy.reported_at, discrepancy.resolved_at, discrepancy.resolution,
+               reported.event_count, reported.selected_event_count, reported.selected_event_date,
+               carried.event_count AS carried_event_count,
+               carried.selected_event_count AS selected_carried_event_count
           FROM discrepancy
           JOIN space ON space.tenant_id=discrepancy.tenant_id AND space.id=discrepancy.space_id
-          LEFT JOIN outbox AS event ON event.tenant_id=discrepancy.tenant_id
-            AND event.aggregate_type='discrepancy' AND event.aggregate_id=discrepancy.id
-            AND event.event_type='discrepancy.reported'
+          CROSS JOIN LATERAL (
+            SELECT count(event.seq)::bigint AS event_count,
+                   count(event.seq) FILTER (WHERE event.property_node=(SELECT property_node FROM target)
+                     AND event.business_date=(SELECT business_date FROM target))::bigint AS selected_event_count,
+                   min(event.business_date) FILTER (WHERE event.property_node=(SELECT property_node FROM target)
+                     AND event.business_date=(SELECT business_date FROM target)) AS selected_event_date
+              FROM outbox AS event
+             WHERE event.tenant_id=discrepancy.tenant_id
+               AND event.aggregate_type='discrepancy' AND event.aggregate_id=discrepancy.id
+               AND event.event_type='discrepancy.reported'
+          ) AS reported
+          CROSS JOIN LATERAL (
+            SELECT count(event.seq)::bigint AS event_count,
+                   count(event.seq) FILTER (WHERE event.property_node=(SELECT property_node FROM target)
+                     AND event.business_date=(SELECT business_date FROM target))::bigint AS selected_event_count
+              FROM outbox AS event
+             WHERE event.tenant_id=discrepancy.tenant_id
+               AND event.aggregate_type='discrepancy' AND event.aggregate_id=discrepancy.id
+               AND event.event_type='discrepancy.carried'
+          ) AS carried
          WHERE discrepancy.tenant_id=(SELECT tenant_id FROM target)
            AND space.property_node=(SELECT property_node FROM target)
-           AND discrepancy.resolved_at IS NULL
-         GROUP BY discrepancy.id, discrepancy.space_id, space.code
+      ),
+      workbench_related_carry_evidence AS MATERIALIZED (
+        SELECT lineage.discrepancy_id, carry.id,
+               (source_discrepancy.id IS NOT NULL AND target_discrepancy.id IS NOT NULL
+                 AND source_discrepancy.id<>target_discrepancy.id
+                 AND carry.property_node=(SELECT property_node FROM target)
+                 AND carry.source_business_date<>carry.target_business_date
+                 AND carry.space_id=source_discrepancy.space_id
+                 AND carry.space_id=target_discrepancy.space_id
+                 AND source_space.property_node=carry.property_node
+                 AND target_space.property_node=carry.property_node
+                 AND source_day.tenant_id IS NOT NULL AND target_day.tenant_id IS NOT NULL
+                 AND target_day.opened_at=carry.target_opened_at
+                 AND source_discrepancy.resolution='carried_forward'
+                 AND source_discrepancy.resolved_at=carry.carried_at
+                 AND source_report.event_count=1
+                 AND source_report.event_property=carry.property_node
+                 AND source_report.event_date=carry.source_business_date
+                 AND target_discrepancy.resolved_at IS NULL
+                 AND target_discrepancy.resolution IS NULL
+                 AND target_discrepancy.reported=source_discrepancy.reported
+                 AND target_discrepancy.system_state=source_discrepancy.system_state
+                 AND target_discrepancy.reported_by=carry.requested_by
+                 AND target_discrepancy.reported_at=carry.carried_at
+                 AND target_report.event_count=0
+                 AND target_carried.event_count=1
+                 AND target_carried.event_property=carry.property_node
+                 AND target_carried.event_date=carry.target_business_date
+                 AND target_carried.event_actor=carry.requested_by
+                 AND target_carried.event_request=carry.request_id
+                 AND target_carried.event_created_at=carry.carried_at
+                 AND carry.resolution='carried_forward'
+                 AND carry.requested_by<>carry.approved_by
+                 AND carry.approval_requested_at<=carry.approval_decided_at
+                 AND carry.approval_decided_at<=carry.carried_at
+                 AND approval.id IS NOT NULL
+                 AND approval.kind='business_day_discrepancy_carry'
+                 AND approval.subject_type='discrepancy'
+                 AND approval.subject_id=carry.source_discrepancy_id
+                 AND approval.requested_by=carry.requested_by
+                 AND approval.status='approved'
+                 AND approval.decided_by=carry.approved_by
+                 AND approval.created_at=carry.approval_requested_at
+                 AND approval.decided_at=carry.approval_decided_at
+                 AND approval.decided_at<=carry.carried_at
+                 AND approval.decided_at<approval.created_at+interval '30 minutes'
+                 AND carry.carried_at<approval.created_at+interval '30 minutes'
+                 AND carry.discrepancy_state_hash=canonical.discrepancy_state_hash
+                 AND carry.request_hash=canonical.request_hash
+                 AND approval.payload=canonical.approval_binding
+                 AND ((carry.source_discrepancy_id=lineage.discrepancy_id
+                       AND carry.source_business_date=(SELECT business_date FROM target)
+                       AND carry.target_business_date=(SELECT business_date FROM workbench_current))
+                   OR (carry.target_discrepancy_id=lineage.discrepancy_id
+                       AND carry.target_business_date=(SELECT business_date FROM target)))) AS safe
+          FROM workbench_reported_lineage AS lineage
+          JOIN business_day_discrepancy_carry AS carry
+            ON carry.tenant_id=(SELECT tenant_id FROM target)
+           AND ((carry.source_discrepancy_id=lineage.discrepancy_id
+                 AND (lineage.selected_event_count>0
+                   OR carry.source_business_date=(SELECT business_date FROM target)))
+             OR (carry.target_discrepancy_id=lineage.discrepancy_id
+                 AND (lineage.selected_carried_event_count>0
+                   OR carry.target_business_date=(SELECT business_date FROM target))))
+          LEFT JOIN discrepancy AS source_discrepancy ON source_discrepancy.tenant_id=carry.tenant_id
+            AND source_discrepancy.id=carry.source_discrepancy_id
+          LEFT JOIN discrepancy AS target_discrepancy ON target_discrepancy.tenant_id=carry.tenant_id
+            AND target_discrepancy.id=carry.target_discrepancy_id
+          LEFT JOIN space AS source_space ON source_space.tenant_id=carry.tenant_id
+            AND source_space.id=source_discrepancy.space_id
+          LEFT JOIN space AS target_space ON target_space.tenant_id=carry.tenant_id
+            AND target_space.id=target_discrepancy.space_id
+          LEFT JOIN business_day AS source_day ON source_day.tenant_id=carry.tenant_id
+            AND source_day.property_node=carry.property_node
+            AND source_day.business_date=carry.source_business_date
+          LEFT JOIN business_day AS target_day ON target_day.tenant_id=carry.tenant_id
+            AND target_day.property_node=carry.property_node
+            AND target_day.business_date=carry.target_business_date
+          LEFT JOIN approval_request AS approval ON approval.tenant_id=carry.tenant_id
+            AND approval.id=carry.approval_request_id
+          LEFT JOIN LATERAL (
+            SELECT count(event.seq)::bigint AS event_count,
+                   min(event.property_node::text)::uuid AS event_property,
+                   min(event.business_date) AS event_date
+              FROM outbox AS event WHERE event.tenant_id=carry.tenant_id
+               AND event.aggregate_type='discrepancy' AND event.aggregate_id=source_discrepancy.id
+               AND event.event_type='discrepancy.reported'
+          ) AS source_report ON true
+          LEFT JOIN LATERAL (
+            SELECT count(event.seq)::bigint AS event_count FROM outbox AS event
+             WHERE event.tenant_id=carry.tenant_id AND event.aggregate_type='discrepancy'
+               AND event.aggregate_id=target_discrepancy.id AND event.event_type='discrepancy.reported'
+          ) AS target_report ON true
+          LEFT JOIN LATERAL (
+            SELECT count(event.seq)::bigint AS event_count,
+                   min(event.property_node::text)::uuid AS event_property,
+                   min(event.business_date) AS event_date,
+                   min(event.actor_id::text)::uuid AS event_actor,
+                   min(event.correlation_id::text)::uuid AS event_request,
+                   min(event.created_at) AS event_created_at
+              FROM outbox AS event WHERE event.tenant_id=carry.tenant_id
+               AND event.aggregate_type='discrepancy' AND event.aggregate_id=target_discrepancy.id
+               AND event.event_type='discrepancy.carried'
+          ) AS target_carried ON true
+          LEFT JOIN LATERAL (
+            SELECT state.discrepancy_state_hash,
+                   encode(digest(jsonb_build_object(
+                     'v',1,'tenantId',carry.tenant_id,'propertyNode',carry.property_node,
+                     'discrepancyId',source_discrepancy.id,
+                     'sourceBusinessDate',carry.source_business_date,
+                     'targetBusinessDate',carry.target_business_date,'reason',carry.reason,
+                     'discrepancyStateHash',state.discrepancy_state_hash,
+                     'targetOpenedAt',carry.target_opened_at
+                   )::text,'sha256'),'hex') AS request_hash,
+                   jsonb_build_object('propertyNode',carry.property_node::text,
+                     'sourceDiscrepancyId',source_discrepancy.id::text,
+                     'sourceBusinessDate',carry.source_business_date::text,
+                     'targetBusinessDate',carry.target_business_date::text,'reason',carry.reason,
+                     'discrepancyStateHash',state.discrepancy_state_hash,
+                     'requestHash',encode(digest(jsonb_build_object(
+                       'v',1,'tenantId',carry.tenant_id,'propertyNode',carry.property_node,
+                       'discrepancyId',source_discrepancy.id,
+                       'sourceBusinessDate',carry.source_business_date,
+                       'targetBusinessDate',carry.target_business_date,'reason',carry.reason,
+                       'discrepancyStateHash',state.discrepancy_state_hash,
+                       'targetOpenedAt',carry.target_opened_at
+                     )::text,'sha256'),'hex'),
+                     'targetOpenedAt',to_char(carry.target_opened_at AT TIME ZONE 'UTC',
+                     'YYYY-MM-DD"T"HH24:MI:SS.US"Z"')) AS approval_binding
+              FROM LATERAL (
+                SELECT encode(digest(jsonb_build_object(
+                  'v',1,'tenantId',carry.tenant_id,'discrepancyId',source_discrepancy.id,
+                  'spaceId',source_discrepancy.space_id,'reported',source_discrepancy.reported,
+                  'systemState',source_discrepancy.system_state,
+                  'reportedBy',source_discrepancy.reported_by,
+                  'reportedAt',source_discrepancy.reported_at,'resolvedAt',NULL
+                )::text,'sha256'),'hex') AS discrepancy_state_hash
+              ) AS state
+          ) AS canonical ON source_discrepancy.id IS NOT NULL
       ),
       workbench_carry_lineage AS MATERIALIZED (
         SELECT lineage.discrepancy_id,
-               count(DISTINCT source_carry.id)::bigint AS source_count,
-               count(DISTINCT source_carry.id) FILTER (WHERE
-                 source_carry.property_node=(SELECT property_node FROM target)
-                 AND source_carry.source_business_date=(SELECT business_date FROM target)
-                 AND source_carry.target_business_date=(SELECT business_date FROM workbench_current)
-                 AND source_carry.space_id=lineage.space_id
-                 AND source_carry.source_discrepancy_id=lineage.discrepancy_id
-                 AND source_carry.target_discrepancy_id<>lineage.discrepancy_id
-                 AND target_discrepancy.id IS NOT NULL
-                 AND target_discrepancy.space_id=lineage.space_id
-                 AND target_day.opened_at=source_carry.target_opened_at
-                 AND source_carry.discrepancy_state_hash~'^[0-9a-f]{64}$'
-                 AND source_carry.request_hash~'^[0-9a-f]{64}$'
-               )::bigint AS valid_source_count,
-               count(DISTINCT target_carry.id)::bigint AS target_count
+               count(evidence.id)::bigint AS link_count,
+               count(evidence.id) FILTER (WHERE evidence.safe)::bigint AS safe_link_count
           FROM workbench_reported_lineage AS lineage
-          LEFT JOIN business_day_discrepancy_carry AS source_carry
-            ON source_carry.tenant_id=(SELECT tenant_id FROM target)
-            AND source_carry.source_discrepancy_id=lineage.discrepancy_id
-          LEFT JOIN business_day_discrepancy_carry AS target_carry
-            ON target_carry.tenant_id=(SELECT tenant_id FROM target)
-            AND target_carry.target_discrepancy_id=lineage.discrepancy_id
-          LEFT JOIN discrepancy AS target_discrepancy
-            ON target_discrepancy.tenant_id=(SELECT tenant_id FROM target)
-            AND target_discrepancy.id=source_carry.target_discrepancy_id
-          LEFT JOIN business_day AS target_day
-            ON target_day.tenant_id=(SELECT tenant_id FROM target)
-            AND target_day.property_node=source_carry.property_node
-            AND target_day.business_date=source_carry.target_business_date
-            AND target_day.sealed_at IS NULL
+          LEFT JOIN workbench_related_carry_evidence AS evidence
+            ON evidence.discrepancy_id=lineage.discrepancy_id
          GROUP BY lineage.discrepancy_id
       ),
       workbench_candidate_evidence AS MATERIALIZED (
-        SELECT lineage.*, carry.source_count, carry.valid_source_count, carry.target_count,
-               (lineage.event_count=1 AND lineage.selected_event_count=1
-                 AND carry.source_count=0 AND carry.target_count=0) AS safe,
-               (lineage.event_count<>1 OR lineage.selected_event_count<>1
-                 OR carry.source_count<>carry.valid_source_count
-                 OR carry.source_count>1 OR carry.target_count>0) AS unsafe
+        SELECT lineage.*, carry.link_count, carry.safe_link_count,
+               (lineage.resolved_at IS NULL AND lineage.resolution IS NULL
+                 AND lineage.event_count=1 AND lineage.selected_event_count=1
+                 AND lineage.carried_event_count=0 AND carry.link_count=0) AS safe,
+               (carry.link_count<>carry.safe_link_count
+                 OR carry.link_count>1
+                 OR (lineage.selected_event_count>0 AND
+                   (lineage.event_count<>1 OR lineage.selected_event_count<>1))) AS unsafe
           FROM workbench_reported_lineage AS lineage
           JOIN workbench_carry_lineage AS carry USING (discrepancy_id)
-         WHERE lineage.selected_event_count>0
+         WHERE (lineage.selected_event_count>0 OR lineage.selected_carried_event_count>0
+             OR carry.link_count>0)
            AND (SELECT business_date FROM target)<>(SELECT business_date FROM workbench_current)
       ),
       workbench_candidates AS MATERIALIZED (
