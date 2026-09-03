@@ -1,6 +1,6 @@
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { SQL } from "bun";
-import { BusinessDayCloseWorkbenchService, BusinessDayCloseWorkbenchUnavailableError } from "../src/contexts/financials";
+import { BusinessDayCloseWorkbenchService, BusinessDayCloseWorkbenchUnavailableError, loadBusinessDayCloseWorkbenchEntry } from "../src/contexts/financials";
 import { Database } from "../src/kernel";
 
 const DEPLOY = process.env.YELLOW_DEPLOY_DATABASE_URL;
@@ -20,6 +20,8 @@ const CARRY_SOURCE = "00000000-0000-0000-0000-000000038420";
 const CARRY_TARGET = "00000000-0000-0000-0000-000000038421";
 const CARRY_APPROVAL = "00000000-0000-0000-0000-000000038422";
 const CARRY_REQUEST = "00000000-0000-0000-0000-000000038423";
+const ROLE = "00000000-0000-0000-0000-000000038424";
+const FOREIGN_TENANT = "00000000-0000-0000-0000-000000038425";
 let admin: SQL | undefined;
 let database: Database | undefined;
 let service: BusinessDayCloseWorkbenchService | undefined;
@@ -107,11 +109,36 @@ databaseDescribe("Order384 PostgreSQL close workbench",()=>{
     await admin`INSERT INTO app_user(id,tenant_id,email,display_name,status) VALUES
       (${A}::uuid,${T}::uuid,'o384@example.invalid','Order384','active'),(${IA}::uuid,${T}::uuid,'o384i@example.invalid','Inactive','inactive'),
       (${APPROVER}::uuid,${T}::uuid,'o384a@example.invalid','Approver','active')`;
+    await admin`INSERT INTO role(id,tenant_id,name) VALUES(${ROLE}::uuid,${T}::uuid,'Order393 reader')`;
+    await admin`INSERT INTO role_permission(role_id,permission_code) VALUES(${ROLE}::uuid,'financials.business-days:read')`;
+    await admin`INSERT INTO user_role(tenant_id,user_id,role_id,scope_node) VALUES(${T}::uuid,${A}::uuid,${ROLE}::uuid,${P}::uuid)`;
     await admin`INSERT INTO space(id,tenant_id,property_node,code,profile_key,capacity,status) VALUES
       (${S}::uuid,${T}::uuid,${P}::uuid,'384','hotel',1,'active'),
       (${S2}::uuid,${T}::uuid,${P}::uuid,'385','hotel',1,'active')`;
   });
-  afterAll(async()=>{ await reset(); await admin!`DELETE FROM space WHERE tenant_id=${T}::uuid`; await admin!`DELETE FROM app_user WHERE tenant_id=${T}::uuid`; await admin!`DELETE FROM org_node WHERE tenant_id=${T}::uuid`; await admin!`DELETE FROM tenant WHERE id=${T}::uuid`; await database?.close(); await admin?.close(); },15000);
+  afterAll(async()=>{ await reset(); await admin!`DELETE FROM space WHERE tenant_id=${T}::uuid`; await admin!`DELETE FROM user_role WHERE tenant_id=${T}::uuid`; await admin!`DELETE FROM role_permission WHERE role_id=${ROLE}::uuid`; await admin!`DELETE FROM role WHERE id=${ROLE}::uuid`; await admin!`DELETE FROM app_user WHERE tenant_id=${T}::uuid`; await admin!`DELETE FROM org_node WHERE tenant_id=${T}::uuid`; await admin!`DELETE FROM tenant WHERE id=${T}::uuid`; await database?.close(); await admin?.close(); },15000);
+
+  test("discovers the earliest persisted unsealed day without a clock or write",async()=>{
+    await reset(); await day("1999-12-31",P,true); await day("2048-01-03"); await day("2048-01-01"); await day("2048-01-02"); await day("1900-01-01",P2);
+    const before=(await admin!<{count:string}[]>`SELECT count(*)::text AS count FROM business_day WHERE tenant_id=${T}::uuid`)[0]!.count;
+    const result=await database!.withTenantTransaction(T,(tx)=>loadBusinessDayCloseWorkbenchEntry(tx,{tenantId:T,propertyNode:P,actorId:A}));
+    expect(result).toEqual({businessDate:"2048-01-01"});
+    const after=(await admin!<{count:string}[]>`SELECT count(*)::text AS count FROM business_day WHERE tenant_id=${T}::uuid`)[0]!.count;
+    expect(after).toBe(before);
+  });
+
+  test("makes inactive actor, foreign property, absent grant and no open day equally unavailable",async()=>{
+    await reset(); await day("2048-01-01"); await day("2048-01-02",P2);
+    const read=(propertyNode:string,actorId:string)=>database!.withTenantTransaction(T,(tx)=>loadBusinessDayCloseWorkbenchEntry(tx,{tenantId:T,propertyNode,actorId}));
+    await expect(read(P,IA)).rejects.toBeInstanceOf(BusinessDayCloseWorkbenchUnavailableError);
+    await expect(read(P2,A)).rejects.toBeInstanceOf(BusinessDayCloseWorkbenchUnavailableError);
+    await expect(database!.withTenantTransaction(T,(tx)=>loadBusinessDayCloseWorkbenchEntry(tx,{tenantId:FOREIGN_TENANT,propertyNode:P,actorId:A}))).rejects.toBeInstanceOf(BusinessDayCloseWorkbenchUnavailableError);
+    await admin!`DELETE FROM user_role WHERE tenant_id=${T}::uuid AND user_id=${A}::uuid`;
+    await expect(read(P,A)).rejects.toBeInstanceOf(BusinessDayCloseWorkbenchUnavailableError);
+    await admin!`INSERT INTO user_role(tenant_id,user_id,role_id,scope_node) VALUES(${T}::uuid,${A}::uuid,${ROLE}::uuid,${P}::uuid)`;
+    await admin!`UPDATE business_day SET sealed_at=now() WHERE tenant_id=${T}::uuid AND property_node=${P}::uuid`;
+    await expect(read(P,A)).rejects.toBeInstanceOf(BusinessDayCloseWorkbenchUnavailableError);
+  });
 
   test("parses one statement and binds active actor, property, selected unsealed day and persisted current",async()=>{
     await reset(); await day("2048-01-01"); await day("2048-01-02"); await day("2048-01-03"); await day("2047-12-31",P,true); await day("2048-01-04",P2);

@@ -7,6 +7,8 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 const DATE = /^\d{4}-\d{2}-\d{2}$/;
 
 export interface BusinessDayCloseWorkbenchInput { readonly tenantId: string; readonly propertyNode: string; readonly businessDate: string; readonly actorId: string }
+export interface BusinessDayCloseWorkbenchEntryInput { readonly tenantId: string; readonly propertyNode: string; readonly actorId: string }
+export interface BusinessDayCloseWorkbenchEntry { readonly businessDate: string }
 export interface BusinessDayCloseWorkbenchDay { readonly businessDate: string; readonly openedAt: string; readonly isCurrent: boolean }
 export interface BusinessDayCloseWorkbenchCarryCandidate { readonly discrepancyId: string; readonly spaceId: string; readonly spaceCode: string; readonly reportedBusinessDate: string }
 export interface BusinessDayCloseWorkbench { readonly tenantId: string; readonly propertyNode: string; readonly businessDate: string; readonly capturedAt: string; readonly currentOpenBusinessDate: string; readonly openDays: readonly BusinessDayCloseWorkbenchDay[]; readonly readiness: BusinessDayCloseReadiness; readonly carryCandidates: readonly BusinessDayCloseWorkbenchCarryCandidate[] }
@@ -22,6 +24,13 @@ function normalize(input: BusinessDayCloseWorkbenchInput): Readonly<BusinessDayC
   if (typeof input.businessDate !== "string" || !DATE.test(input.businessDate)) throw new BusinessDayCloseWorkbenchValidationError("businessDate must be canonical YYYY-MM-DD");
   const parsed = new Date(`${input.businessDate}T00:00:00.000Z`);
   if (!Number.isFinite(parsed.valueOf()) || parsed.toISOString().slice(0, 10) !== input.businessDate) throw new BusinessDayCloseWorkbenchValidationError("businessDate must be a real canonical date");
+  return Object.freeze({ ...input });
+}
+function normalizeEntry(input: BusinessDayCloseWorkbenchEntryInput): Readonly<BusinessDayCloseWorkbenchEntryInput> {
+  if (typeof input !== "object" || input === null || Array.isArray(input) || (Object.getPrototypeOf(input) !== Object.prototype && Object.getPrototypeOf(input) !== null) || Object.getOwnPropertySymbols(input).length !== 0) throw new BusinessDayCloseWorkbenchValidationError("business-day close workbench entry input must be a plain object");
+  const keys = ["tenantId", "propertyNode", "actorId"];
+  if (Object.keys(input).length !== keys.length || keys.some((key) => !Object.hasOwn(input, key))) throw new BusinessDayCloseWorkbenchValidationError("business-day close workbench entry input shape is invalid");
+  for (const key of keys as readonly (keyof BusinessDayCloseWorkbenchEntryInput)[]) if (typeof input[key] !== "string" || !UUID.test(input[key])) throw new BusinessDayCloseWorkbenchValidationError(`${key} must be a lowercase UUID`);
   return Object.freeze({ ...input });
 }
 function text(value: unknown, field: string, pattern?: RegExp): string { if (typeof value !== "string" || (pattern && !pattern.test(value))) throw new Error(`Database returned invalid ${field}`); return value; }
@@ -49,6 +58,43 @@ export async function loadBusinessDayCloseWorkbench(tx: Tx, input: BusinessDayCl
   if (rawCandidates.length !== candidateCount || (target.businessDate === currentOpenBusinessDate && candidateCount !== 0)) throw new Error("Database returned incoherent carry candidates");
   const carryCandidates = Object.freeze(rawCandidates.map((row) => { exactObject(row, ["discrepancyId", "spaceId", "spaceCode", "reportedBusinessDate"], "carry candidate"); const reportedBusinessDate = text(row.reportedBusinessDate, "reported business date", DATE); if (reportedBusinessDate !== target.businessDate) throw new BusinessDayCloseWorkbenchUnavailableError(); return Object.freeze({ discrepancyId: text(row.discrepancyId, "discrepancy id", UUID), spaceId: text(row.spaceId, "space id", UUID), spaceCode: text(row.spaceCode, "space code"), reportedBusinessDate }); }));
   return Object.freeze({ tenantId: target.tenantId, propertyNode: target.propertyNode, businessDate: target.businessDate, capturedAt: evidence.readiness.capturedAt, currentOpenBusinessDate, openDays, readiness: evidence.readiness, carryCandidates });
+}
+
+export async function loadBusinessDayCloseWorkbenchEntry(tx: Tx, input: BusinessDayCloseWorkbenchEntryInput): Promise<BusinessDayCloseWorkbenchEntry> {
+  const target = normalizeEntry(input);
+  const rows = await tx<Array<{ business_date: unknown }>>`
+    SELECT to_char(MIN(day.business_date), 'YYYY-MM-DD') AS business_date
+    FROM tenant
+    JOIN app_user AS actor
+      ON actor.tenant_id = tenant.id
+     AND actor.id = ${target.actorId}::uuid
+     AND actor.status = 'active'
+    JOIN org_node AS property
+      ON property.tenant_id = tenant.id
+     AND property.id = ${target.propertyNode}::uuid
+     AND property.kind = 'property'
+    JOIN user_role AS grant_role
+      ON grant_role.tenant_id = tenant.id
+     AND grant_role.user_id = actor.id
+    JOIN role AS granted_role
+      ON granted_role.tenant_id = tenant.id
+     AND granted_role.id = grant_role.role_id
+    JOIN role_permission AS grant_permission
+      ON grant_permission.role_id = granted_role.id
+     AND grant_permission.permission_code = 'financials.business-days:read'
+    JOIN org_node AS grant_node
+      ON grant_node.tenant_id = tenant.id
+     AND grant_node.id = grant_role.scope_node
+     AND property.path <@ grant_node.path
+    JOIN business_day AS day
+      ON day.tenant_id = tenant.id
+     AND day.property_node = property.id
+     AND day.sealed_at IS NULL
+    WHERE tenant.id = ${target.tenantId}::uuid
+      AND tenant.status = 'active'
+  `;
+  if (rows.length !== 1 || rows[0]?.business_date === null || rows[0]?.business_date === undefined) throw new BusinessDayCloseWorkbenchUnavailableError();
+  return Object.freeze({ businessDate: text(rows[0].business_date, "entry business date", DATE) });
 }
 
 export class BusinessDayCloseWorkbenchService {

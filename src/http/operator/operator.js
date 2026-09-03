@@ -9534,10 +9534,11 @@ function vehicleReturnPathFromState(state, property) {
   try {
    let selected = businessDate;
    if (!selected) {
-    dayCloseError.hidden = false;
-    dayCloseError.querySelector("p").textContent = "Choose a persisted open business day from an authoritative snapshot.";
-    dayCloseStatus.textContent = "No close-readiness conclusion was made.";
-    return;
+    dayCloseDate.replaceChildren();
+    dayCloseDate.value = "";
+    const entry = await request(`/api/v1/properties/${enc(property)}/business-days/close-workbench`);
+    if (generation !== dayCloseRequestGeneration || activeView !== "day-close" || property !== propertySelect.value) return;
+    selected = entry.businessDate;
    }
    const result = await request(`/api/v1/properties/${enc(property)}/business-days/${enc(selected)}/close-workbench`);
    if (generation !== dayCloseRequestGeneration || activeView !== "day-close" || property !== propertySelect.value) return;

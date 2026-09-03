@@ -13,6 +13,7 @@ const PROPERTY = "00000000-0000-0000-0000-000000384002";
 const ACTOR = "00000000-0000-0000-0000-000000384003";
 const DATE = "2026-09-02";
 const calls: unknown[] = [];
+const entryCalls: unknown[] = [];
 let receivedTx: Tx | null = null;
 const service = async (tx: Tx, input: unknown) => {
   receivedTx = tx;
@@ -34,9 +35,14 @@ const service = async (tx: Tx, input: unknown) => {
       spaceId: "00000000-0000-0000-0000-000000384005", spaceCode: "402", reportedBusinessDate: DATE }],
   } as const;
 };
+const entryService = async (tx: Tx, input: unknown) => {
+  receivedTx = tx;
+  entryCalls.push(input);
+  return { businessDate: DATE } as const;
+};
 
 const api = new (OperatorHttpApi as unknown as new (...args: unknown[]) => OperatorHttpApi)(
-  {}, {}, ...Array.from({ length: 39 }), service,
+  {}, {}, ...Array.from({ length: 39 }), service, entryService,
 );
 function context(scopes: readonly string[], granted = true, suffix = ""): TenantRequestContext {
   const tx = (() => Promise.resolve(granted ? [{ id: PROPERTY, name: "Hotel", timezone: "UTC", currency: "USD" }] : [])) as unknown as Tx;
@@ -64,6 +70,26 @@ describe("Order384 operator business-day close workbench", () => {
       readiness: { ready: false }, carryCandidates: [{ spaceCode: "402" }] });
     expect(calls).toEqual([{ tenantId: TENANT, propertyNode: PROPERTY, businessDate: DATE, actorId: ACTOR }]);
     expect(receivedTx as unknown).toBe(tenantContext.tx as unknown);
+  });
+
+  test("binds undated entry to the middleware transaction and returns exact least-data JSON", async () => {
+    entryCalls.length = 0;
+    receivedTx = null;
+    const tenantContext = context(["financials.business-days:read"]);
+    const response = await api.businessDayCloseWorkbenchEntry(tenantContext, PROPERTY);
+    expect(response.status).toBe(200);
+    expect(response.headers.get("cache-control")).toBe("no-store");
+    expect(await response.json()).toEqual({ businessDate: DATE });
+    expect(entryCalls).toEqual([{ tenantId: TENANT, propertyNode: PROPERTY, actorId: ACTOR }]);
+    expect(receivedTx as unknown).toBe(tenantContext.tx as unknown);
+  });
+
+  test("rejects unauthorized or malformed entry before PostgreSQL discovery", async () => {
+    entryCalls.length = 0;
+    expect((await api.businessDayCloseWorkbenchEntry(context([]), PROPERTY)).status).toBe(403);
+    expect((await api.businessDayCloseWorkbenchEntry(context(["financials.business-days:read"]), "bad")).status).toBe(400);
+    expect((await api.businessDayCloseWorkbenchEntry(context(["financials.business-days:read"], true, "?date=2026-09-02"), PROPERTY)).status).toBe(400);
+    expect(entryCalls).toEqual([]);
   });
 
   test("reuses the middleware transaction and runtime never constructs a nested transaction owner", () => {
@@ -97,6 +123,7 @@ describe("Order384 operator business-day close workbench", () => {
 
   test("exposes only GET plus a read-only deep link and stale-safe accessible UI", () => {
     expect(app).toContain('.get("/p/:property/day-close"');
+    expect(app).toContain('.get("/api/v1/properties/:property/business-days/close-workbench"');
     expect(app).toContain('.get("/api/v1/properties/:property/business-days/:businessDate/close-workbench"');
     expect(app).not.toContain('.post("/api/v1/properties/:property/business-days/:businessDate/close-workbench"');
     for (const id of ["day-close-view", "day-close-title", "day-close-refresh", "day-close-date",
@@ -105,6 +132,11 @@ describe("Order384 operator business-day close workbench", () => {
     expect(script).toContain("dayCloseRequestGeneration");
     expect(script).toContain('activeView !== "day-close"');
     expect(script).toContain("dayCloseRouteDate()");
+    const loader = script.slice(script.indexOf("async function loadDayCloseWorkbench"), script.indexOf("function setView", script.indexOf("async function loadDayCloseWorkbench")));
+    expect(loader).toContain("if (!selected)");
+    expect(loader).toContain("business-days/close-workbench");
+    expect(loader).toContain("business-days/${enc(selected)}/close-workbench");
+    expect(loader).not.toContain("new Date");
     expect(script).not.toMatch(/(?:seal|carry).{0,40}(?:submit|button)|(?:submit|button).{0,40}(?:seal|carry)/i);
   });
 

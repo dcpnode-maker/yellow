@@ -2595,6 +2595,17 @@ property and accepts no query, body or idempotency key. The response uses the
 canonical success/error envelope and request correlation contract and is
 `Cache-Control: no-store`.
 
+Ordinary undated entry uses the separate least-data route
+`GET /api/v1/properties/{property}/business-days/close-workbench`. Under the same
+middleware-owned tenant transaction and `financials.business-days:read` scope, one
+read-only PostgreSQL statement confirms the active tenant, actor, property and
+property grant, then returns exactly `{ businessDate }` for the least persisted
+unsealed business date. No match—whether caused by absent, inactive, foreign,
+ungranted or fully sealed truth—has the same unavailable response. This discovery
+never derives a date from any clock and returns no day list, counts, timestamps or
+financial evidence. The browser then calls the dated workbench; discovery does not
+replace or add a statement to that workbench snapshot.
+
 Application construction injects the workbench dependency into the operator routes;
 the server entry point performs only that exact construction and injection. It does
 not create an alternate route, transaction, data source, background read or clock.

@@ -3,6 +3,7 @@ import {
   BusinessDayCloseWorkbenchService,
   BusinessDayCloseWorkbenchUnavailableError,
   BusinessDayCloseWorkbenchValidationError,
+  loadBusinessDayCloseWorkbenchEntry,
 } from "../src/contexts/financials";
 
 const TENANT = "00000000-0000-0000-0000-000000000101";
@@ -57,6 +58,19 @@ function service(responses: unknown[][]) {
 }
 
 describe("BusinessDayCloseWorkbenchService", () => {
+  test("entry discovery accepts only exact input and exact one-row PostgreSQL truth", async () => {
+    let calls = 0;
+    const tx = (() => { calls += 1; return Promise.resolve([{ business_date: "2026-09-01" }]); }) as never;
+    const result = await loadBusinessDayCloseWorkbenchEntry(tx, { tenantId: TENANT, propertyNode: PROPERTY, actorId: ACTOR });
+    expect(result).toEqual({ businessDate: "2026-09-01" });
+    expect(Object.isFrozen(result)).toBe(true);
+    expect(calls).toBe(1);
+    await expect(loadBusinessDayCloseWorkbenchEntry((() => Promise.resolve([{ business_date: null }])) as never,
+      { tenantId: TENANT, propertyNode: PROPERTY, actorId: ACTOR })).rejects.toBeInstanceOf(BusinessDayCloseWorkbenchUnavailableError);
+    await expect(loadBusinessDayCloseWorkbenchEntry(tx,
+      { tenantId: TENANT, propertyNode: PROPERTY, actorId: ACTOR, extra: "bad" } as never)).rejects.toBeInstanceOf(BusinessDayCloseWorkbenchValidationError);
+  });
+
   test("composes deterministic backlog, exact readiness and minimized carry candidates", async () => {
     const result = await service([
       [

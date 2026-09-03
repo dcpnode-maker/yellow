@@ -1177,6 +1177,13 @@ server, in ascending date order; the greatest persisted date is visibly identifi
 the current open day. Direct links, refresh and browser Back/Forward preserve the
 selected date only while the newly loaded authoritative snapshot still contains it.
 
+When ordinary navigation has no date, it first requests the server's least persisted
+unsealed date, then loads the unchanged dated workbench and canonicalizes the URL from
+that authoritative response. A dated deep link skips discovery. Refresh and Retry use
+the selected or deep-linked date when one exists and rediscover only while no date is
+present. Discovery failure or a stale property, view or request generation never
+starts, paints or canonicalizes a dated workbench.
+
 The workbench presents four semantic regions in reading order: the open-day selector;
 selected and current-day summary; exact readiness state, reason counts and outbox-lag
 classification; and the minimized safe carry-candidate list. Candidate rows show only

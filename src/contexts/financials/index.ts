@@ -153,9 +153,12 @@ export {
   MAX_CARRY_CANDIDATES,
   MAX_OPEN_DAYS,
   loadBusinessDayCloseWorkbench,
+  loadBusinessDayCloseWorkbenchEntry,
 } from "./business-day-close-workbench";
 export type {
   BusinessDayCloseWorkbench,
+  BusinessDayCloseWorkbenchEntry,
+  BusinessDayCloseWorkbenchEntryInput,
   BusinessDayCloseWorkbenchCarryCandidate,
   BusinessDayCloseWorkbenchDay,
   BusinessDayCloseWorkbenchInput,

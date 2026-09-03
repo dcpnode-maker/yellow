@@ -152,6 +152,9 @@ export function createApp(options: AppOptions = {}) {
       .get("/api/v1/properties/:property/system-status", ({ request, params, tenantContext }) =>
         withOperatorTenant(request, (context) => operator.systemStatus(context, params.property))
       )
+      .get("/api/v1/properties/:property/business-days/close-workbench", ({ request, params, tenantContext }) =>
+        withOperatorTenant(request, (context) => operator.businessDayCloseWorkbenchEntry(context, params.property))
+      )
       .get("/api/v1/properties/:property/business-days/:businessDate/close-workbench", ({ request, params, tenantContext }) =>
         withOperatorTenant(request, (context) => operator.businessDayCloseWorkbench(
           context, params.property, params.businessDate,

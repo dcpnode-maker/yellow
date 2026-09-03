@@ -28,6 +28,7 @@ import {
   BusinessDayCloseWorkbenchUnavailableError,
   BusinessDayCloseWorkbenchValidationError,
   loadBusinessDayCloseWorkbench,
+  loadBusinessDayCloseWorkbenchEntry,
   type BusinessDayCloseWorkbench,
   type BusinessDayCloseWorkbenchInput,
   FolioConflictError,
@@ -1599,6 +1600,10 @@ type BusinessDayCloseWorkbenchLoader = (
   tx: Tx,
   input: BusinessDayCloseWorkbenchInput,
 ) => Promise<BusinessDayCloseWorkbench>;
+type BusinessDayCloseWorkbenchEntryLoader = (
+  tx: Tx,
+  input: Readonly<{ tenantId: string; propertyNode: string; actorId: string }>,
+) => Promise<Readonly<{ businessDate: string }>>;
 interface CheckoutReadinessOperations {
   read(input: Readonly<{
     tenantId: string;
@@ -2069,6 +2074,7 @@ export class OperatorHttpApi {
   readonly #housekeepingDiscrepancies?: HousekeepingDiscrepancyOperations;
   readonly #vehicleParking?: VehicleParkingOperations;
   readonly #businessDayCloseWorkbench: BusinessDayCloseWorkbenchLoader;
+  readonly #businessDayCloseWorkbenchEntry: BusinessDayCloseWorkbenchEntryLoader;
 
   constructor(
     login: LocalLoginService,
@@ -2113,6 +2119,7 @@ export class OperatorHttpApi {
     housekeepingDiscrepancies?: HousekeepingDiscrepancyOperations,
     vehicleParking?: VehicleParkingOperations,
     businessDayCloseWorkbench: BusinessDayCloseWorkbenchLoader = loadBusinessDayCloseWorkbench,
+    businessDayCloseWorkbenchEntry: BusinessDayCloseWorkbenchEntryLoader = loadBusinessDayCloseWorkbenchEntry,
   ) {
     this.#login = login;
     this.#availability = availability;
@@ -2156,6 +2163,7 @@ export class OperatorHttpApi {
     this.#housekeepingDiscrepancies = housekeepingDiscrepancies;
     this.#vehicleParking = vehicleParking;
     this.#businessDayCloseWorkbench = businessDayCloseWorkbench;
+    this.#businessDayCloseWorkbenchEntry = businessDayCloseWorkbenchEntry;
   }
 
   unavailable(request: Request): Response {
@@ -2510,6 +2518,26 @@ export class OperatorHttpApi {
       actorId: context.identity.actorId,
     });
     return apiResponse(context.request, canonicalJson(jsonValue(result)), 200, {
+      "x-correlation-id": correlationId(context.request),
+    });
+  }
+
+  async businessDayCloseWorkbenchEntry(
+    context: TenantRequestContext,
+    propertyNode: string,
+  ): Promise<Response> {
+    if (!hasScope(context, BUSINESS_DAY_READ_SCOPE)) {
+      return apiError(context.request, 403, "auth/scope_missing", "Forbidden", "Business-day close access is not granted");
+    }
+    if (new URL(context.request.url).search !== "" || !UUID.test(propertyNode)) {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Property identifier is invalid");
+    }
+    const result = await this.#businessDayCloseWorkbenchEntry(context.tx, {
+      tenantId: context.tenantId,
+      propertyNode,
+      actorId: context.identity.actorId,
+    });
+    return apiResponse(context.request, canonicalJson(result), 200, {
       "x-correlation-id": correlationId(context.request),
     });
   }
