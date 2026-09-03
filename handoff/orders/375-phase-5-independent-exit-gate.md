@@ -1,6 +1,6 @@
 # Order 375 — Phase-5 independent exit gate
 
-**Status:** ACTIVE-D1069
+**Status:** CHANGES-REQUIRED-D1070
 **Phase:** 5 — Financials
 **Branch:** `phase-5/exit-gate`
 **Base:** exact independently approved Order356 tip
@@ -80,4 +80,3 @@ recorded source truth, browser availability and runtime deployment are distinct 
 - [ ] A fresh non-implementing Tier-3 reviewer records an exact verdict and teardown.
 - [ ] Only after approval, authoritative plans state Phase 5 reviewed while separately
       naming unwired UI/status/local work truthfully.
-
