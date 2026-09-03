@@ -1,6 +1,6 @@
 # Order 402 — Order400 permanent PostgreSQL proof completion
 
-**Status:** BUILT-PENDING-FRESH-TIER3-REVIEW-D1187
+**Status:** APPROVED-CLOSED-D1188
 **Phase:** 7 — Tax engine and India IRP
 **Branch:** `phase-7/persisted-india-quoted-rate-applicability-evidence`
 **Base:** exact reviewed repaired candidate `22182d6` plus withholding governance `64efa50`
