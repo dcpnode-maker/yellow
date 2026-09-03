@@ -1,6 +1,6 @@
 # Order 375 — Phase-5 independent exit gate
 
-**Status:** CHANGES-REQUIRED-D1085
+**Status:** ACTIVE-FULL-REREVIEW-AFTER-APP-ROLE-D1089
 **Phase:** 5 — Financials
 **Branch:** `phase-5/exit-gate`
 **Base:** exact independently approved Order356 tip
@@ -137,6 +137,15 @@ therefore restarts again from item1 at exact approved tip
 `c84ab29f46541c58770b3a671f82b28e2bacf633` under a new distinct non-implementing
 Tier3 reviewer. No partial result from D1070, D1075 or D1080 is reused as the exit
 verdict. Every reviewer-personal proof item above remains mandatory.
+
+## Full restart after app-role-oracle approval — D1089
+
+Order379 is independently approved and closed at D1088 after fresh app-role
+containment proof 5/0 (25 assertions) on exact catalogue `64/116/106/106/15/2`.
+Order375 restarts from item1 at exact approved tip
+`ac87eea22268d80d8d73727908ff042b7ee7cda1` under another distinct non-implementing
+Tier3 reviewer. No previous partial output is reused as the exit verdict; every
+reviewer-personal proof item remains mandatory.
 
 ## Post-carry full-rereview finding — D1085
 
