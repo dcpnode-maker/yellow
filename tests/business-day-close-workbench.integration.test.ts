@@ -181,6 +181,46 @@ databaseDescribe("Order384 PostgreSQL close workbench",()=>{
     expect((await service!.read(input("2060-01-02"))).carryCandidates).toEqual([]);
   });
 
+  test("fails D1124 source/target orphan, duplicate and mixed carried evidence closed with zero writes",async()=>{
+    const orphan="00000000-0000-0000-0000-000000038425";
+    const cases: Array<readonly [string,()=>Promise<void>,string]> = [
+      ["source-day carried-only orphan",async()=>{
+        await day("2061-01-01"); await day("2061-01-02");
+        await discrepancy(orphan,"2061-01-01",0);
+        await admin!`INSERT INTO outbox(tenant_id,property_node,business_date,aggregate_type,aggregate_id,event_type,actor_id,correlation_id,payload)
+          VALUES(${T}::uuid,${P}::uuid,'2061-01-01','discrepancy',${orphan}::uuid,'discrepancy.carried',${A}::uuid,gen_random_uuid(),'{}')`;
+      },"2061-01-01"],
+      ["target-day orphan after its otherwise coherent link is absent",async()=>{
+        await coherentCarry();
+        await admin!`DELETE FROM business_day_discrepancy_carry WHERE tenant_id=${T}::uuid`;
+      },"2060-01-01"],
+      ["duplicate carried evidence",async()=>{
+        await coherentCarry();
+        await admin!`INSERT INTO outbox(tenant_id,property_node,business_date,aggregate_type,aggregate_id,event_type,actor_id,correlation_id,payload,created_at)
+          VALUES(${T}::uuid,${P}::uuid,'2060-01-02','discrepancy',${CARRY_TARGET}::uuid,'discrepancy.carried',${A}::uuid,gen_random_uuid(),'{}','2060-01-02 04:00:00+00')`;
+      },"2060-01-01"],
+      ["exact D1124 mixed ordinary plus source-day orphan",async()=>{
+        await day("2061-01-01"); await day("2061-01-02");
+        await discrepancy(orphan,"2061-01-01");
+        await admin!`INSERT INTO outbox(tenant_id,property_node,business_date,aggregate_type,aggregate_id,event_type,actor_id,correlation_id,payload)
+          VALUES(${T}::uuid,${P}::uuid,'2061-01-01','discrepancy',${orphan}::uuid,'discrepancy.carried',${A}::uuid,gen_random_uuid(),'{}')`;
+      },"2061-01-01"],
+    ];
+    for (const [name,arrange,selectedDate] of cases) {
+      await reset(); await arrange();
+      const before=await admin!<Array<{n:number}>>`SELECT
+        (SELECT count(*) FROM discrepancy WHERE tenant_id=${T}::uuid)+
+        (SELECT count(*) FROM business_day_discrepancy_carry WHERE tenant_id=${T}::uuid)+
+        (SELECT count(*) FROM outbox WHERE tenant_id=${T}::uuid) n`;
+      await expect(service!.read(input(selectedDate)),name)
+        .rejects.toBeInstanceOf(BusinessDayCloseWorkbenchUnavailableError);
+      expect(await admin!<Array<{n:number}>>`SELECT
+        (SELECT count(*) FROM discrepancy WHERE tenant_id=${T}::uuid)+
+        (SELECT count(*) FROM business_day_discrepancy_carry WHERE tenant_id=${T}::uuid)+
+        (SELECT count(*) FROM outbox WHERE tenant_id=${T}::uuid) n`).toEqual(before);
+    }
+  });
+
   test("turns D1121 and every load-bearing carry mutation into complete-read unavailable",async()=>{
     const mutations = [
       `UPDATE business_day_discrepancy_carry SET discrepancy_state_hash=repeat('a',64) WHERE tenant_id='${T}'`,

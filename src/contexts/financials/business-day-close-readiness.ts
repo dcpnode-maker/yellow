@@ -552,7 +552,8 @@ export async function loadBusinessDayCloseReadinessEvidence(
                discrepancy.reported_at, discrepancy.resolved_at, discrepancy.resolution,
                reported.event_count, reported.selected_event_count, reported.selected_event_date,
                carried.event_count AS carried_event_count,
-               carried.selected_event_count AS selected_carried_event_count
+               carried.selected_event_count AS selected_carried_event_count,
+               carried.current_event_count AS current_carried_event_count
           FROM discrepancy
           JOIN space ON space.tenant_id=discrepancy.tenant_id AND space.id=discrepancy.space_id
           CROSS JOIN LATERAL (
@@ -569,7 +570,9 @@ export async function loadBusinessDayCloseReadinessEvidence(
           CROSS JOIN LATERAL (
             SELECT count(event.seq)::bigint AS event_count,
                    count(event.seq) FILTER (WHERE event.property_node=(SELECT property_node FROM target)
-                     AND event.business_date=(SELECT business_date FROM target))::bigint AS selected_event_count
+                     AND event.business_date=(SELECT business_date FROM target))::bigint AS selected_event_count,
+                   count(event.seq) FILTER (WHERE event.property_node=(SELECT property_node FROM target)
+                     AND event.business_date=(SELECT business_date FROM workbench_current))::bigint AS current_event_count
               FROM outbox AS event
              WHERE event.tenant_id=discrepancy.tenant_id
                AND event.aggregate_type='discrepancy' AND event.aggregate_id=discrepancy.id
@@ -580,6 +583,7 @@ export async function loadBusinessDayCloseReadinessEvidence(
       ),
       workbench_related_carry_evidence AS MATERIALIZED (
         SELECT lineage.discrepancy_id, carry.id,
+               (carry.target_discrepancy_id=lineage.discrepancy_id) AS target_link,
                (source_discrepancy.id IS NOT NULL AND target_discrepancy.id IS NOT NULL
                  AND source_discrepancy.id<>target_discrepancy.id
                  AND carry.property_node=(SELECT property_node FROM target)
@@ -631,7 +635,8 @@ export async function loadBusinessDayCloseReadinessEvidence(
                        AND carry.source_business_date=(SELECT business_date FROM target)
                        AND carry.target_business_date=(SELECT business_date FROM workbench_current))
                    OR (carry.target_discrepancy_id=lineage.discrepancy_id
-                       AND carry.target_business_date=(SELECT business_date FROM target)))) AS safe
+                       AND carry.target_business_date IN ((SELECT business_date FROM target),
+                         (SELECT business_date FROM workbench_current))))) AS safe
           FROM workbench_reported_lineage AS lineage
           JOIN business_day_discrepancy_carry AS carry
             ON carry.tenant_id=(SELECT tenant_id FROM target)
@@ -639,8 +644,9 @@ export async function loadBusinessDayCloseReadinessEvidence(
                  AND (lineage.selected_event_count>0
                    OR carry.source_business_date=(SELECT business_date FROM target)))
              OR (carry.target_discrepancy_id=lineage.discrepancy_id
-                 AND (lineage.selected_carried_event_count>0
-                   OR carry.target_business_date=(SELECT business_date FROM target))))
+                 AND (lineage.selected_carried_event_count>0 OR lineage.current_carried_event_count>0
+                   OR carry.target_business_date IN ((SELECT business_date FROM target),
+                     (SELECT business_date FROM workbench_current)))))
           LEFT JOIN discrepancy AS source_discrepancy ON source_discrepancy.tenant_id=carry.tenant_id
             AND source_discrepancy.id=carry.source_discrepancy_id
           LEFT JOIN discrepancy AS target_discrepancy ON target_discrepancy.tenant_id=carry.tenant_id
@@ -720,7 +726,10 @@ export async function loadBusinessDayCloseReadinessEvidence(
       workbench_carry_lineage AS MATERIALIZED (
         SELECT lineage.discrepancy_id,
                count(evidence.id)::bigint AS link_count,
-               count(evidence.id) FILTER (WHERE evidence.safe)::bigint AS safe_link_count
+               count(evidence.id) FILTER (WHERE evidence.safe)::bigint AS safe_link_count,
+               count(evidence.id) FILTER (WHERE evidence.target_link)::bigint AS target_link_count,
+               count(evidence.id) FILTER (WHERE evidence.target_link AND evidence.safe)::bigint
+                 AS safe_target_link_count
           FROM workbench_reported_lineage AS lineage
           LEFT JOIN workbench_related_carry_evidence AS evidence
             ON evidence.discrepancy_id=lineage.discrepancy_id
@@ -728,16 +737,21 @@ export async function loadBusinessDayCloseReadinessEvidence(
       ),
       workbench_candidate_evidence AS MATERIALIZED (
         SELECT lineage.*, carry.link_count, carry.safe_link_count,
+               carry.target_link_count, carry.safe_target_link_count,
                (lineage.resolved_at IS NULL AND lineage.resolution IS NULL
                  AND lineage.event_count=1 AND lineage.selected_event_count=1
                  AND lineage.carried_event_count=0 AND carry.link_count=0) AS safe,
                (carry.link_count<>carry.safe_link_count
                  OR carry.link_count>1
+                 OR ((lineage.selected_carried_event_count>0 OR lineage.current_carried_event_count>0) AND
+                   (lineage.carried_event_count<>1 OR carry.target_link_count<>1
+                     OR carry.safe_target_link_count<>1))
                  OR (lineage.selected_event_count>0 AND
                    (lineage.event_count<>1 OR lineage.selected_event_count<>1))) AS unsafe
           FROM workbench_reported_lineage AS lineage
           JOIN workbench_carry_lineage AS carry USING (discrepancy_id)
          WHERE (lineage.selected_event_count>0 OR lineage.selected_carried_event_count>0
+             OR lineage.current_carried_event_count>0
              OR carry.link_count>0)
            AND (SELECT business_date FROM target)<>(SELECT business_date FROM workbench_current)
       ),
