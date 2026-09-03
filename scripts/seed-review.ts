@@ -66,11 +66,11 @@ export const REVIEW_PICKUP_TASK_WORK_PERMISSION = Object.freeze({
 export const REVIEW_PERMISSION = "inventory.availability:read";
 export const REVIEW_DISCREPANCY_CARRY_PERMISSION = Object.freeze({
   code: "financials.business-day:carry-discrepancy",
-  description: "Request and consume an approved governed business-day discrepancy carry",
+  description: "Carry an unresolved discrepancy to the current open business day",
 });
 export const REVIEW_DISCREPANCY_CARRY_APPROVE_PERMISSION = Object.freeze({
   code: "financials.business-day:approve-discrepancy-carry",
-  description: "Independently approve or reject a governed business-day discrepancy carry",
+  description: "Approve a discrepancy carry",
 });
 export const REVIEW_PERMISSIONS = Object.freeze([
   { code: "crm.parties:read", description: "Search tenant-scoped Party profiles" },
