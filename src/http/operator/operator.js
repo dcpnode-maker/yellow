@@ -309,6 +309,22 @@
  const foliosView = $("#folios-view");
  const cashiersView = $("#cashiers-view");
  const statusView = $("#status-view");
+ const dayCloseView = $("#day-close-view");
+ const dayCloseWorkbench = $("#day-close-workbench");
+ const dayCloseRefresh = $("#day-close-refresh");
+ const dayCloseDate = $("#day-close-date");
+ const dayCloseLoading = $("#day-close-loading");
+ const dayCloseError = $("#day-close-error");
+ const dayCloseRetry = $("#day-close-retry");
+ const dayCloseContent = $("#day-close-content");
+ const dayCloseSelected = $("#day-close-selected");
+ const dayCloseCurrent = $("#day-close-current");
+ const dayCloseReady = $("#day-close-ready");
+ const dayCloseOutboxLag = $("#day-close-outbox-lag");
+ const dayCloseReasons = $("#day-close-reasons");
+ const dayCloseCandidates = $("#day-close-candidates");
+ const dayCloseStatus = $("#day-close-status");
+ let dayCloseRequestGeneration = 0;
  const cashierRefresh = $("#cashier-refresh");
  const cashierLoading = $("#cashier-loading");
  const cashierError = $("#cashier-error");
@@ -346,7 +362,7 @@
  const cashierCloseCopy = $("#cashier-close-copy");
  const cashierEvidence = $("#cashier-evidence");
  const cashierEvidenceList = $("#cashier-evidence-list");
- const navigation = document.querySelectorAll(".domain-tab");
+ const navigation = document.querySelectorAll(".domain-tab,.day-close-nav");
  const managementJourneyControls = document.querySelectorAll("[data-journey-view]");
  const refreshInventory = $("#refresh-inventory");
  const inventoryStatus = $("#inventory-status");
@@ -1042,7 +1058,7 @@
   propertySelect.disabled = true;
  } else {
   propertySelect.disabled = false;
-  const pathProperty = location.pathname.match(/^\/p\/([0-9a-f-]+)\/(?:today|availability|inventory|operations|housekeeping(?:\/tasks\/[0-9a-f-]+)?|vehicles(?:\/[0-9a-f-]+)?|reservations|folios|cashiers|restrictions|rates|status|res\/[0-9a-f-]+(?:\/pickup-task\/[0-9a-f-]+)?|folio\/[0-9a-f-]+)$/)?.[1];
+  const pathProperty = location.pathname.match(/^\/p\/([0-9a-f-]+)\/(?:today|availability|inventory|operations|housekeeping(?:\/tasks\/[0-9a-f-]+)?|vehicles(?:\/[0-9a-f-]+)?|reservations|folios|cashiers|day-close|restrictions|rates|status|res\/[0-9a-f-]+(?:\/pickup-task\/[0-9a-f-]+)?|folio\/[0-9a-f-]+)$/)?.[1];
   if (pathProperty && body.properties.some(({ id }) => id === pathProperty)) propertySelect.value = pathProperty;
  }
  }
@@ -9464,9 +9480,86 @@ function vehicleReturnPathFromState(state, property) {
   }
  }
  }
+ function dayCloseRouteDate() {
+  const match = location.pathname.match(/^\/p\/([0-9a-f-]+)\/day-close$/);
+  if (!match || match[1] !== propertySelect.value) return null;
+  const query = new URLSearchParams(location.search);
+  const values = query.getAll("date");
+  return [...query.keys()].length === 1 && values.length === 1 && /^\d{4}-\d{2}-\d{2}$/.test(values[0])
+   ? values[0] : null;
+ }
+ function dayCloseCanonicalPath(date) {
+  return `/p/${propertySelect.value}/day-close${date ? `?date=${enc(date)}` : ""}`;
+ }
+ function dayCloseLagLabel(lag) {
+  if (lag.kind === "none") return "No unpublished events";
+  if (lag.kind === "unknown") return `Unknown (${lag.count})`;
+  return `${lag.kind === "over_threshold" ? "Over threshold" : "Within threshold"} · ${lag.ageMilliseconds}ms`;
+ }
+ function renderDayClose(result, focus = false) {
+  const selected = result.businessDate;
+  dayCloseDate.replaceChildren(...result.openDays.map((day) => {
+   const option = node("option", "", `${day.businessDate}${day.isCurrent ? " · current" : ""}`);
+   option.value = day.businessDate;
+   return option;
+  }));
+  dayCloseDate.value = selected;
+  dayCloseDate.disabled = false;
+  dayCloseSelected.textContent = selected;
+  dayCloseCurrent.textContent = result.currentOpenBusinessDate;
+  dayCloseReady.textContent = result.readiness.ready ? "Ready" : "Blocked";
+  dayCloseReady.dataset.state = result.readiness.ready ? "ready" : "blocked";
+  dayCloseOutboxLag.textContent = dayCloseLagLabel(result.readiness.outboxLag);
+  dayCloseReasons.replaceChildren(...(result.readiness.reasons.length ? result.readiness.reasons.map((reason) =>
+   node("li", "", `${reason.source.replaceAll("_", " ")} · ${reason.code.replaceAll("_", " ")} · ${reason.count}`)) :
+   [node("li", "list-empty", "No readiness blockers were reported.")]));
+  dayCloseCandidates.replaceChildren(...(result.carryCandidates.length ? result.carryCandidates.map((candidate) =>
+   node("li", "day-close-candidate", `${candidate.spaceCode} · reported ${candidate.reportedBusinessDate}`)) :
+   [node("li", "list-empty", selected === result.currentOpenBusinessDate ? "The current open day has no carry candidates." : "No safely attributable candidates were returned.")]));
+  dayCloseContent.hidden = false;
+  dayCloseError.hidden = true;
+  dayCloseStatus.textContent = `Authoritative snapshot captured ${reservationDateTime(result.capturedAt)}. No changes were made.`;
+  history.replaceState({ yellowSurface: "day-close" }, "", dayCloseCanonicalPath(selected));
+  if (focus) $("#day-close-workbench-title").focus({ preventScroll: true });
+ }
+ async function loadDayCloseWorkbench({ businessDate = dayCloseRouteDate(), focus = false } = {}) {
+  const property = propertySelect.value;
+  if (!property) return;
+  const generation = ++dayCloseRequestGeneration;
+  dayCloseWorkbench.setAttribute("aria-busy", "true");
+  dayCloseLoading.hidden = false;
+  dayCloseError.hidden = true;
+  dayCloseRefresh.disabled = true;
+  dayCloseDate.disabled = true;
+  try {
+   let selected = businessDate;
+   if (!selected) {
+    dayCloseError.hidden = false;
+    dayCloseError.querySelector("p").textContent = "Choose a persisted open business day from an authoritative snapshot.";
+    dayCloseStatus.textContent = "No close-readiness conclusion was made.";
+    return;
+   }
+   const result = await request(`/api/v1/properties/${enc(property)}/business-days/${enc(selected)}/close-workbench`);
+   if (generation !== dayCloseRequestGeneration || activeView !== "day-close" || property !== propertySelect.value) return;
+   renderDayClose(result, focus);
+  } catch (error) {
+   if (generation !== dayCloseRequestGeneration || activeView !== "day-close" || property !== propertySelect.value) return;
+   dayCloseContent.hidden = true;
+   dayCloseError.hidden = false;
+   dayCloseError.querySelector("p").textContent = error instanceof Error ? error.message : "No financial conclusion was made.";
+   dayCloseStatus.textContent = "Close readiness is unavailable. No changes were made.";
+   if (focus) dayCloseRetry.focus({ preventScroll: true });
+  } finally {
+   if (generation === dayCloseRequestGeneration && activeView === "day-close" && property === propertySelect.value) {
+    dayCloseLoading.hidden = true;
+    dayCloseWorkbench.setAttribute("aria-busy", "false");
+    dayCloseRefresh.disabled = false;
+   }
+  }
+ }
   function setView(view, updateHistory = true) {
  const previousView = activeView;
- activeView = ["today", "availability", "inventory", "operations", "housekeeping", "vehicles", "reservations", "folios", "cashiers", "restrictions", "rates", "status"].includes(view) ? view : "today";
+ activeView = ["today", "availability", "inventory", "operations", "housekeeping", "vehicles", "reservations", "folios", "cashiers", "day-close", "restrictions", "rates", "status"].includes(view) ? view : "today";
  if (document.documentElement.dataset.experience === "simple" && SECONDARY_VIEWS.has(activeView)) {
   closeSecondaryWorkspaces();
  }
@@ -9516,9 +9609,10 @@ function vehicleReturnPathFromState(state, property) {
  reservationsView.hidden = activeView !== "reservations";
  foliosView.hidden = activeView !== "folios";
  cashiersView.hidden = activeView !== "cashiers";
+ dayCloseView.hidden = activeView !== "day-close";
  statusView.hidden = activeView !== "status";
  workbenchTitle.textContent = activeView === "today" ? "Today" : activeView === "inventory" ? "Inventory setup" :
-  activeView === "operations" ? "Room outages" : activeView === "housekeeping" ? "Housekeeping" : activeView === "vehicles" ? "Vehicle Register" : activeView === "reservations" ? "Reservations" : activeView === "folios" ? "Folios" : activeView === "cashiers" ? "Cashiers" : activeView === "restrictions" ? "Restrictions" :
+  activeView === "operations" ? "Room outages" : activeView === "housekeeping" ? "Housekeeping" : activeView === "vehicles" ? "Vehicle Register" : activeView === "reservations" ? "Reservations" : activeView === "folios" ? "Folios" : activeView === "cashiers" ? "Cashiers" : activeView === "day-close" ? "Business-day close" : activeView === "restrictions" ? "Restrictions" :
   activeView === "rates" ? "Rates" : activeView === "status" ? "Project status" : "Availability";
  for (const tab of navigation) {
   const selected = tab.dataset.view === activeView;
@@ -9527,6 +9621,7 @@ function vehicleReturnPathFromState(state, property) {
  }
  if (propertySelect.value && updateHistory) {
   history.pushState(null, "", `/p/${propertySelect.value}/${activeView}`);
+  if (activeView === "day-close" && dayCloseDate.value) history.replaceState({ yellowSurface: "day-close" }, "", dayCloseCanonicalPath(dayCloseDate.value));
  }
  if (activeView === "inventory") void loadInventory();
  if (activeView === "today") loadToday();
@@ -9578,6 +9673,7 @@ function vehicleReturnPathFromState(state, property) {
  }
  if (activeView === "folios") syncFolioRoute();
  if (activeView === "cashiers") void loadCashierSession();
+ if (activeView === "day-close") void loadDayCloseWorkbench();
  }
  function finishWorkspaceNavigation(view) {
   if (document.documentElement.dataset.experience === "simple" && SECONDARY_VIEWS.has(view)) closeSecondaryWorkspaces();
@@ -11437,6 +11533,8 @@ function vehicleReturnPathFromState(state, property) {
  reservationCreateDirty = false;
  clearPartyProfileState();
  clearFolioState();
+ dayCloseRequestGeneration += 1;
+ dayCloseContent.hidden = true;
  if (propertySelect.value) history.replaceState(null, "", `/p/${propertySelect.value}/${activeView}`);
  if (activeView === "inventory") void loadInventory();
  if (activeView === "today") loadToday();
@@ -11459,6 +11557,7 @@ function vehicleReturnPathFromState(state, property) {
  if (activeView === "restrictions") void loadRestrictions();
  if (activeView === "rates") void loadRates();
  if (activeView === "status") void loadSystemStatus();
+ if (activeView === "day-close") void loadDayCloseWorkbench();
  reservationGuestData = null;
  reservationLifecycleData = null;
  reservationSegmentData = null;
@@ -11479,6 +11578,13 @@ function vehicleReturnPathFromState(state, property) {
  if (activeView === "folios" && tab.dataset.view !== "folios" && !folioWorkspace.hidden && !confirmFolioExit()) return;
  setView(tab.dataset.view);
  finishWorkspaceNavigation(tab.dataset.view);
+ });
+ dayCloseRefresh.addEventListener("click", () => void loadDayCloseWorkbench({ businessDate: dayCloseDate.value || dayCloseRouteDate(), focus: true }));
+ dayCloseRetry.addEventListener("click", () => void loadDayCloseWorkbench({ businessDate: dayCloseDate.value || dayCloseRouteDate(), focus: true }));
+ dayCloseDate.addEventListener("change", () => {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(dayCloseDate.value)) return;
+  history.pushState({ yellowSurface: "day-close" }, "", dayCloseCanonicalPath(dayCloseDate.value));
+  void loadDayCloseWorkbench({ businessDate: dayCloseDate.value, focus: true });
  });
  for (const control of managementJourneyControls) control.addEventListener("click", () => {
   if (control.dataset.journeyView !== "reservations" && !reservationCreatePanel.hidden && !closeReservationCreate({ history: false })) return;
@@ -11686,6 +11792,11 @@ housekeepingSheetDate.addEventListener("change", () => {
  departureCheckoutForm.addEventListener("submit", (event) => void submitCheckout(event));
  departureCheckoutConfirm.addEventListener("change", syncCheckoutConfirmation);
  window.addEventListener("popstate", () => {
+ if (/^\/p\/[0-9a-f-]+\/day-close$/.test(location.pathname)) {
+  if (activeView !== "day-close") setView("day-close", false);
+  else void loadDayCloseWorkbench({ businessDate: dayCloseRouteDate(), focus: true });
+  return;
+ }
  if (location.pathname === `/p/${propertySelect.value}/today`) {
   closeReservationDetail({ history: false, restoreFocus: false });
   if (activeView !== "today") setView("today", false);
@@ -12423,6 +12534,7 @@ housekeepingSheetDate.addEventListener("change", () => {
  (location.pathname.endsWith("/reservations") || /^\/p\/[0-9a-f-]+\/res\/[0-9a-f-]+(?:\/pickup-task\/[0-9a-f-]+)?$/.test(location.pathname)) ? "reservations" :
  (location.pathname.endsWith("/folios") || /^\/p\/[0-9a-f-]+\/folio\/[0-9a-f-]+$/.test(location.pathname)) ? "folios" :
  location.pathname.endsWith("/cashiers") ? "cashiers" :
+ location.pathname.endsWith("/day-close") ? "day-close" :
  location.pathname.endsWith("/restrictions") ? "restrictions" :
  location.pathname.endsWith("/rates") ? "rates" :
  location.pathname.endsWith("/status") ? "status" : "today";

@@ -25,6 +25,11 @@ import {
   CashierNotFoundError,
   CashierService,
   CashierValidationError,
+  BusinessDayCloseWorkbenchUnavailableError,
+  BusinessDayCloseWorkbenchValidationError,
+  loadBusinessDayCloseWorkbench,
+  type BusinessDayCloseWorkbench,
+  type BusinessDayCloseWorkbenchInput,
   FolioConflictError,
   FolioNotFoundError,
   FolioService,
@@ -251,6 +256,7 @@ const CASHIER_SUPERVISE_SCOPE = "financials.cashiers:supervise";
 const RECEIVABLE_READ_SCOPE = "financials.receivables:read";
 const RECEIVABLE_TRANSFER_SCOPE = "financials.receivables:transfer";
 const RECEIVABLE_APPROVE_SCOPE = "financials.receivables:approve";
+const BUSINESS_DAY_READ_SCOPE = "financials.business-days:read";
 const CHECKIN_READ_SCOPE = "stay-operations.checkin:read";
 const CHECKIN_COMMIT_SCOPE = "stay-operations.checkin:commit";
 const CHECKIN_DIRTY_ROOM_OVERRIDE_SCOPE = "stay-operations.checkin:dirty-room-override";
@@ -1589,6 +1595,10 @@ type CheckoutOperations = Pick<CheckoutService, "checkout">;
 type VehicleRegisterOperations = Pick<VehicleRegisterService, "list"> &
   Partial<Pick<VehicleRegisterService, "get">>;
 type VehicleParkingOperations = Pick<VehicleParkingAssignmentService, "read" | "assign">;
+type BusinessDayCloseWorkbenchLoader = (
+  tx: Tx,
+  input: BusinessDayCloseWorkbenchInput,
+) => Promise<BusinessDayCloseWorkbench>;
 interface CheckoutReadinessOperations {
   read(input: Readonly<{
     tenantId: string;
@@ -2058,6 +2068,7 @@ export class OperatorHttpApi {
   readonly #arrivalRoomCleaning?: ArrivalRoomCleaningOperations;
   readonly #housekeepingDiscrepancies?: HousekeepingDiscrepancyOperations;
   readonly #vehicleParking?: VehicleParkingOperations;
+  readonly #businessDayCloseWorkbench: BusinessDayCloseWorkbenchLoader;
 
   constructor(
     login: LocalLoginService,
@@ -2101,6 +2112,7 @@ export class OperatorHttpApi {
     arrivalRoomCleaning?: ArrivalRoomCleaningOperations,
     housekeepingDiscrepancies?: HousekeepingDiscrepancyOperations,
     vehicleParking?: VehicleParkingOperations,
+    businessDayCloseWorkbench: BusinessDayCloseWorkbenchLoader = loadBusinessDayCloseWorkbench,
   ) {
     this.#login = login;
     this.#availability = availability;
@@ -2143,6 +2155,7 @@ export class OperatorHttpApi {
     this.#arrivalRoomCleaning = arrivalRoomCleaning;
     this.#housekeepingDiscrepancies = housekeepingDiscrepancies;
     this.#vehicleParking = vehicleParking;
+    this.#businessDayCloseWorkbench = businessDayCloseWorkbench;
   }
 
   unavailable(request: Request): Response {
@@ -2154,6 +2167,12 @@ export class OperatorHttpApi {
   }
 
   failure(request: Request, error: unknown): Response {
+    if (error instanceof BusinessDayCloseWorkbenchValidationError) {
+      return apiError(request, 400, "request/invalid", "Invalid request", "Business-day close workbench input is invalid");
+    }
+    if (error instanceof BusinessDayCloseWorkbenchUnavailableError) {
+      return apiError(request, 404, "financials/not_found", "Not found", "The business-day close workbench is unavailable");
+    }
     const conditionIngress = /^\/api\/v1\/properties\/[0-9a-f-]+\/housekeeping\/conditions\/[0-9a-f-]+\/(?:candidate|initialize)$/.test(
       new URL(request.url).pathname,
     );
@@ -2465,6 +2484,33 @@ export class OperatorHttpApi {
           detail: "External CI is not queried by the local runtime; use the linked GitHub pull request evidence.",
         },
       },
+    });
+  }
+
+  async businessDayCloseWorkbench(
+    context: TenantRequestContext,
+    propertyNode: string,
+    businessDate: string,
+  ): Promise<Response> {
+    if (!hasScope(context, BUSINESS_DAY_READ_SCOPE)) {
+      return apiError(context.request, 403, "auth/scope_missing", "Forbidden", "Business-day close access is not granted");
+    }
+    if (new URL(context.request.url).search !== "" || !UUID.test(propertyNode) || !LOCAL_DATE.test(businessDate) ||
+        new Date(`${businessDate}T00:00:00.000Z`).toISOString().slice(0, 10) !== businessDate) {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Property or business date is invalid");
+    }
+    const grants = await listGrantedProperties(context, BUSINESS_DAY_READ_SCOPE);
+    if (!grants.some(({ id }) => id === propertyNode)) {
+      return apiError(context.request, 403, "auth/property_forbidden", "Forbidden", "Property access is not granted");
+    }
+    const result = await this.#businessDayCloseWorkbench(context.tx, {
+      tenantId: context.tenantId,
+      propertyNode,
+      businessDate,
+      actorId: context.identity.actorId,
+    });
+    return apiResponse(context.request, canonicalJson(jsonValue(result)), 200, {
+      "x-correlation-id": correlationId(context.request),
     });
   }
 

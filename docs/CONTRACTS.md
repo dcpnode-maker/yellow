@@ -2580,6 +2580,87 @@ authority. The snapshot writes nothing and never authorizes carry, seal, reopen,
 retry, acknowledgement or any other state change; the later seal command must rerun
 the evidence under its own guarded transaction.
 
+### Operator business-day close workbench (Order 384)
+
+`BusinessDayCloseWorkbenchService.read` is the standalone wrapper for one
+authoritative, read-only close snapshot. It accepts exactly the server-derived
+`tenantId`, `propertyNode`, `businessDate` and authenticated `actorId`, validates
+their canonical forms, opens one tenant transaction and delegates to the same
+transaction-aware loader used by HTTP. The loader itself never opens or nests a
+transaction. The operator route is exactly
+`GET /api/v1/properties/{property}/business-days/{businessDate}/close-workbench`;
+the existing tenant-context middleware owns its `Tx`, derives tenant and actor from
+the authenticated session, requires `financials.business-days:read` for the exact
+property and accepts no query, body or idempotency key. The response uses the
+canonical success/error envelope and request correlation contract and is
+`Cache-Control: no-store`.
+
+Application construction injects the workbench dependency into the operator routes;
+the server entry point performs only that exact construction and injection. It does
+not create an alternate route, transaction, data source, background read or clock.
+
+The transaction-aware loader executes exactly one composed PostgreSQL statement.
+Its CTEs share one database snapshot and one `transaction_timestamp()` capture
+instant; neither an application clock nor a second statement may select, classify or
+recheck any part of the result. The deeply frozen result is exactly:
+
+```text
+{
+  tenantId, propertyNode, businessDate, capturedAt,
+  currentOpenBusinessDate,
+  openDays: [{ businessDate, openedAt, isCurrent }],
+  readiness: {
+    tenantId, propertyNode, businessDate, capturedAt, ready,
+    reasons: [{ code, source, count }],
+    counts: {
+      unresolvedDueIn, unresolvedDueOut, openCashiers,
+      unresolvedDiscrepancies, financialInterface, fiscalInterface,
+      statutoryInterface, channelDelivery, unknownAttribution
+    },
+    outboxLag:
+      { kind: "none", ageMilliseconds: 0 }
+      | { kind: "within_threshold" | "over_threshold",
+          oldestCreatedAt, ageMilliseconds, thresholdMilliseconds: 300000 }
+      | { kind: "unknown", count }
+  },
+  carryCandidates: [{ discrepancyId, spaceId, spaceCode, reportedBusinessDate }]
+}
+```
+
+`openDays` contains every persisted unsealed day for the exact property, in ascending
+business-date order. `currentOpenBusinessDate` is the greatest date in that persisted
+set, never a date inferred from the browser, server clock, timezone reconstruction or
+an event timestamp. Exactly that row has `isCurrent:true`. The selected day must be
+one of those rows and remain unsealed in the same snapshot. Missing, inactive,
+foreign or ungranted tenant/actor/property truth and absent or sealed selected days
+share the unavailable boundary; no existence distinction is disclosed.
+
+`readiness` preserves the Order349 shape and semantics exactly, including all reason
+and unknown-attribution counts. Its `capturedAt` is the workbench `capturedAt`.
+Unpublished exact-target outbox work aged 299999 milliseconds is
+`within_threshold`; age 300000 is `over_threshold`, adds
+`outbox_lag_exceeded` and blocks readiness. Missing lineage stays
+`source_attribution_unknown`; the workbench does not infer attribution from dates,
+timestamps, payloads or clocks.
+
+Carry candidates exist only when the selected source day is older than the greatest
+persisted unsealed day. Each candidate is an unresolved exact-tenant/property room
+discrepancy with exactly one ordinary `discrepancy.reported` event attributed to that
+selected date and no source or target carry link. Already-carried source or target
+rows are excluded. Missing, duplicate, mixed, foreign, ambiguous or incoherent
+lineage makes the complete workbench unavailable rather than hiding only the bad row.
+The current open day always returns an empty candidate list. No event payload,
+approval material, state/request hash, guest, reservation, payment, journal, fiscal
+or other sensitive evidence is exposed.
+
+Both populations are complete-or-unavailable bounds. The statement probes at most
+367 open days (`366 + 1`) and at most 501 otherwise eligible candidates (`500 + 1`).
+Up to 366 days and 500 candidates are returned in full; detecting day 367 or candidate
+501 makes the entire read unavailable, with no truncation, partial list or readiness
+conclusion. The statement and materialization perform zero writes. This read neither
+authorizes nor exposes a carry or seal command, and its readiness result is never a
+seal token.
+
 ### Audited business-day seal command (Order 356)
 
 `BusinessDaySealService.seal(tx,input)` is the sole application command for the

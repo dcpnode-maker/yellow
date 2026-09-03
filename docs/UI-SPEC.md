@@ -77,8 +77,10 @@ and confirmation behavior, with keyboard, screen-reader and reduced-motion equiv
 5. **Availability & rates workbench** — calendar per unit_type: price, restrictions,
    overbooking limit; bulk edit by drag-select; bitemporal "as of" viewer.
 6. **Day-close readiness dashboard** — the checklist as live tiles (open cashier
-   sessions, unresolved discrepancies, outbox lag); seal button enables when green;
-   carry-forward flow for discrepancies with approval.
+   sessions, unresolved discrepancies, outbox lag). Order 384 delivers the read-only
+   operator slice described in §41. Carry-forward and seal are later, separately
+   governed command slices; this read-only delivery shows neither action nor a
+   decorative disabled substitute.
 7. **Housekeeping mobile view** — task list by floor, tap to advance state, photo
    attach for discrepancy, works offline, syncs.
 
@@ -1163,3 +1165,50 @@ assigned parking summary. Controls are at least 44 pixels and 48 pixels on Andro
 remain contained at 375 pixels and 200% zoom, and preserve identical semantic order
 across Apple iOS, Android, Windows 95/98, glassmorphism, neomorphism and ERP. Reduced
 motion removes nonessential effects and forced colours supplies system boundaries.
+
+## 41. Read-only business-day close workbench
+
+The authenticated operator route is
+`/p/{property}/day-close?date=YYYY-MM-DD`. It restores only a canonical real date and
+loads the no-store server workbench for the exact current property. The browser never
+uses today, its own timezone or a process clock to choose a business day. A successful
+snapshot replaces the date control with every persisted unsealed day returned by the
+server, in ascending date order; the greatest persisted date is visibly identified as
+the current open day. Direct links, refresh and browser Back/Forward preserve the
+selected date only while the newly loaded authoritative snapshot still contains it.
+
+The workbench presents four semantic regions in reading order: the open-day selector;
+selected and current-day summary; exact readiness state, reason counts and outbox-lag
+classification; and the minimized safe carry-candidate list. Candidate rows show only
+room code and reported business date. They disclose no internal identifier, payload,
+approval evidence, hash, guest, reservation, payment, journal or fiscal detail. The
+current open day explains that it has no carry candidates. An older day with none
+explains that no safely attributable candidates were returned. These are observations,
+not permissions: Order 384 contains no carry button, seal button, implicit gesture,
+voice command or disabled decorative version of either action.
+
+Loading marks the workbench busy and retains no optimistic readiness conclusion.
+Unavailable, forbidden, missing, sealed, malformed, over-bound and incoherent results
+all clear prior content and render one non-disclosing unavailable state with **Retry**;
+they never display a partial backlog, partial candidate list or stale readiness.
+Refresh and Retry reload the selected date from server truth. A current success moves
+focus to the workbench heading; a current failure moves focus to Retry. Status and
+completion text use the existing polite live region and explicitly state that no
+changes were made.
+
+Property, route, selected date, active view and request generation participate in
+stale-response rejection. Changing property or date, navigating away, retrying, or a
+newer refresh makes every older response inert: it cannot paint content, change the
+URL, announce status or move focus. Date changes create one canonical history entry;
+rendering the resulting snapshot normalizes that entry without creating another.
+Back/Forward reloads the route-selected date and never reuses cached financial truth.
+
+The selector, Refresh and Retry are fully keyboard operable with persistent visible
+focus. Semantic headings, labels, list markup, busy state and live status preserve
+screen-reader reading order. Controls are at least 44 pixels and 48 pixels in Android,
+remain contained at 375 pixels and 200% zoom, and may stack without horizontal page
+scroll. Apple iOS, Android, Windows 95/98, glassmorphism, neomorphism and ERP retain
+their six dedicated materials, density, borders, elevation and control treatment while
+preserving identical information, order and authority. Reduced motion removes
+nonessential transitions, and forced-colours mode replaces decorative material, blur and
+shadow with system colours and visible boundaries.

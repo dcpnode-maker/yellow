@@ -108,6 +108,7 @@ export function createApp(options: AppOptions = {}) {
       .get("/p/:property/folios", ({ request }) => operatorAssets.html(options.operatorLocalReviewCredentials, request))
       .get("/p/:property/folio/:folio", ({ request }) => operatorAssets.html(options.operatorLocalReviewCredentials, request))
       .get("/p/:property/cashiers", ({ request }) => operatorAssets.html(options.operatorLocalReviewCredentials, request))
+      .get("/p/:property/day-close", ({ request }) => operatorAssets.html(options.operatorLocalReviewCredentials, request))
       .get("/p/:property/status", ({ request }) => operatorAssets.html(options.operatorLocalReviewCredentials, request))
       .get("/assets/operator.css", () => operatorAssets.css())
       .get("/assets/operator.js", () => operatorAssets.js())
@@ -150,6 +151,11 @@ export function createApp(options: AppOptions = {}) {
       )
       .get("/api/v1/properties/:property/system-status", ({ request, params, tenantContext }) =>
         withOperatorTenant(request, (context) => operator.systemStatus(context, params.property))
+      )
+      .get("/api/v1/properties/:property/business-days/:businessDate/close-workbench", ({ request, params, tenantContext }) =>
+        withOperatorTenant(request, (context) => operator.businessDayCloseWorkbench(
+          context, params.property, params.businessDate,
+        ))
       )
       .get("/api/v1/properties/:property/cashier-sessions", ({ request, params, tenantContext }) =>
         withOperatorTenant(request, (context) => operator.cashierSessions(context, params.property))

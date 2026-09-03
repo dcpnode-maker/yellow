@@ -1,4 +1,4 @@
-import type { Database } from "../../kernel";
+import type { Database, Tx } from "../../kernel";
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 const DATE = /^\d{4}-\d{2}-\d{2}$/;
@@ -91,6 +91,20 @@ interface ReadinessRow {
   readonly oldest_unpublished: unknown;
   readonly outbox_age_ms: unknown;
   readonly outbox_over_threshold: unknown;
+  readonly workbench_open_days?: unknown;
+  readonly workbench_open_day_count?: unknown;
+  readonly workbench_candidates?: unknown;
+  readonly workbench_candidate_count?: unknown;
+  readonly workbench_unsafe_candidate_count?: unknown;
+}
+
+export interface BusinessDayCloseReadinessEvidence {
+  readonly readiness: BusinessDayCloseReadiness;
+  readonly openDays: unknown;
+  readonly openDayCount: unknown;
+  readonly carryCandidates: unknown;
+  readonly carryCandidateCount: unknown;
+  readonly unsafeCarryCandidateCount: unknown;
 }
 
 export class BusinessDayCloseReadinessValidationError extends Error {
@@ -248,16 +262,12 @@ function materialize(row: ReadinessRow, expected: Readonly<BusinessDayCloseReadi
   });
 }
 
-export class BusinessDayCloseReadinessService {
-  readonly #database: Database;
-
-  constructor(options: BusinessDayCloseReadinessServiceOptions) {
-    this.#database = options.database;
-  }
-
-  async read(input: BusinessDayCloseReadinessInput): Promise<BusinessDayCloseReadiness> {
+export async function loadBusinessDayCloseReadinessEvidence(
+  tx: Tx,
+  input: BusinessDayCloseReadinessInput,
+): Promise<BusinessDayCloseReadinessEvidence> {
     const target = normalize(input);
-    const rows = await this.#database.withTenantTransaction(target.tenantId, (tx) => tx<ReadinessRow[]>`
+    const rows = await tx<ReadinessRow[]>`
       WITH target AS MATERIALIZED (
         SELECT day.tenant_id, day.property_node, day.business_date,
                pg_catalog.transaction_timestamp() AS captured_at
@@ -523,6 +533,99 @@ export class BusinessDayCloseReadinessService {
                  AND property_node=(SELECT property_node FROM target)
                  AND business_date=(SELECT business_date FROM target)
                  AND event_type='ari.push_requested' AND published_at IS NULL))::bigint AS unknown_channel
+      ),
+      workbench_open_days AS MATERIALIZED (
+        SELECT day.business_date, day.opened_at
+          FROM business_day AS day
+         WHERE day.tenant_id=(SELECT tenant_id FROM target)
+           AND day.property_node=(SELECT property_node FROM target)
+           AND day.sealed_at IS NULL
+         ORDER BY day.business_date, day.opened_at, day.tenant_id, day.property_node
+         LIMIT 367
+      ),
+      workbench_current AS MATERIALIZED (
+        SELECT max(business_date) AS business_date FROM workbench_open_days
+      ),
+      workbench_reported_lineage AS MATERIALIZED (
+        SELECT discrepancy.id AS discrepancy_id, discrepancy.space_id, space.code AS space_code,
+               count(event.seq)::bigint AS event_count,
+               count(event.seq) FILTER (WHERE event.property_node=(SELECT property_node FROM target)
+                 AND event.business_date=(SELECT business_date FROM target))::bigint AS selected_event_count,
+               min(event.business_date) FILTER (WHERE event.property_node=(SELECT property_node FROM target)
+                 AND event.business_date=(SELECT business_date FROM target)) AS selected_event_date
+          FROM discrepancy
+          JOIN space ON space.tenant_id=discrepancy.tenant_id AND space.id=discrepancy.space_id
+          LEFT JOIN outbox AS event ON event.tenant_id=discrepancy.tenant_id
+            AND event.aggregate_type='discrepancy' AND event.aggregate_id=discrepancy.id
+            AND event.event_type='discrepancy.reported'
+         WHERE discrepancy.tenant_id=(SELECT tenant_id FROM target)
+           AND space.property_node=(SELECT property_node FROM target)
+           AND discrepancy.resolved_at IS NULL
+         GROUP BY discrepancy.id, discrepancy.space_id, space.code
+      ),
+      workbench_carry_lineage AS MATERIALIZED (
+        SELECT lineage.discrepancy_id,
+               count(DISTINCT source_carry.id)::bigint AS source_count,
+               count(DISTINCT source_carry.id) FILTER (WHERE
+                 source_carry.property_node=(SELECT property_node FROM target)
+                 AND source_carry.source_business_date=(SELECT business_date FROM target)
+                 AND source_carry.target_business_date=(SELECT business_date FROM workbench_current)
+                 AND source_carry.space_id=lineage.space_id
+                 AND source_carry.source_discrepancy_id=lineage.discrepancy_id
+                 AND source_carry.target_discrepancy_id<>lineage.discrepancy_id
+                 AND target_discrepancy.id IS NOT NULL
+                 AND target_discrepancy.space_id=lineage.space_id
+                 AND target_day.opened_at=source_carry.target_opened_at
+                 AND source_carry.discrepancy_state_hash~'^[0-9a-f]{64}$'
+                 AND source_carry.request_hash~'^[0-9a-f]{64}$'
+               )::bigint AS valid_source_count,
+               count(DISTINCT target_carry.id)::bigint AS target_count
+          FROM workbench_reported_lineage AS lineage
+          LEFT JOIN business_day_discrepancy_carry AS source_carry
+            ON source_carry.tenant_id=(SELECT tenant_id FROM target)
+            AND source_carry.source_discrepancy_id=lineage.discrepancy_id
+          LEFT JOIN business_day_discrepancy_carry AS target_carry
+            ON target_carry.tenant_id=(SELECT tenant_id FROM target)
+            AND target_carry.target_discrepancy_id=lineage.discrepancy_id
+          LEFT JOIN discrepancy AS target_discrepancy
+            ON target_discrepancy.tenant_id=(SELECT tenant_id FROM target)
+            AND target_discrepancy.id=source_carry.target_discrepancy_id
+          LEFT JOIN business_day AS target_day
+            ON target_day.tenant_id=(SELECT tenant_id FROM target)
+            AND target_day.property_node=source_carry.property_node
+            AND target_day.business_date=source_carry.target_business_date
+            AND target_day.sealed_at IS NULL
+         GROUP BY lineage.discrepancy_id
+      ),
+      workbench_candidate_evidence AS MATERIALIZED (
+        SELECT lineage.*, carry.source_count, carry.valid_source_count, carry.target_count,
+               (lineage.event_count=1 AND lineage.selected_event_count=1
+                 AND carry.source_count=0 AND carry.target_count=0) AS safe,
+               (lineage.event_count<>1 OR lineage.selected_event_count<>1
+                 OR carry.source_count<>carry.valid_source_count
+                 OR carry.source_count>1 OR carry.target_count>0) AS unsafe
+          FROM workbench_reported_lineage AS lineage
+          JOIN workbench_carry_lineage AS carry USING (discrepancy_id)
+         WHERE lineage.selected_event_count>0
+           AND (SELECT business_date FROM target)<>(SELECT business_date FROM workbench_current)
+      ),
+      workbench_candidates AS MATERIALIZED (
+        SELECT discrepancy_id, space_id, space_code, selected_event_date
+          FROM workbench_candidate_evidence WHERE safe
+         ORDER BY space_code, discrepancy_id LIMIT 501
+      ),
+      workbench_summary AS MATERIALIZED (
+        SELECT
+          (SELECT count(*)::bigint FROM workbench_open_days) AS open_day_count,
+          (SELECT count(*)::bigint FROM workbench_candidates) AS candidate_count,
+          (SELECT count(*)::bigint FROM workbench_candidate_evidence WHERE unsafe) AS unsafe_candidate_count,
+          (SELECT COALESCE(jsonb_agg(jsonb_build_object(
+             'businessDate',business_date::text,'openedAt',to_char(opened_at AT TIME ZONE 'UTC','YYYY-MM-DD"T"HH24:MI:SS.US"Z"'))
+             ORDER BY business_date,opened_at),'[]'::jsonb) FROM workbench_open_days) AS open_days,
+          (SELECT COALESCE(jsonb_agg(jsonb_build_object(
+             'discrepancyId',discrepancy_id::text,'spaceId',space_id::text,'spaceCode',space_code,
+             'reportedBusinessDate',selected_event_date::text) ORDER BY space_code,discrepancy_id),'[]'::jsonb)
+             FROM workbench_candidates) AS candidates
       )
       SELECT target.tenant_id::text, target.property_node::text, target.business_date::text,
              target.captured_at, due.due_in, due.due_out, cashiers.open_cashiers,
@@ -534,12 +637,44 @@ export class BusinessDayCloseReadinessService {
              CASE WHEN target_outbox.oldest_unpublished IS NULL THEN NULL ELSE
                floor(extract(epoch FROM (target.captured_at-target_outbox.oldest_unpublished))*1000)::bigint END AS outbox_age_ms,
              CASE WHEN target_outbox.oldest_unpublished IS NULL THEN NULL ELSE
-               target.captured_at-target_outbox.oldest_unpublished >= interval '5 minutes' END AS outbox_over_threshold
+               target.captured_at-target_outbox.oldest_unpublished >= interval '5 minutes' END AS outbox_over_threshold,
+             workbench_summary.open_days AS workbench_open_days,
+             workbench_summary.open_day_count AS workbench_open_day_count,
+             workbench_summary.candidates AS workbench_candidates,
+             workbench_summary.candidate_count AS workbench_candidate_count,
+             workbench_summary.unsafe_candidate_count AS workbench_unsafe_candidate_count
         FROM target CROSS JOIN due CROSS JOIN cashiers CROSS JOIN discrepancies
         CROSS JOIN target_outbox CROSS JOIN unsafe_outbox CROSS JOIN financial CROSS JOIN fiscal
-        CROSS JOIN statutory CROSS JOIN channel_work
-    `);
+        CROSS JOIN statutory CROSS JOIN channel_work CROSS JOIN workbench_summary
+    `;
     if (rows.length !== 1 || !rows[0]) throw new BusinessDayCloseReadinessUnavailableError();
-    return materialize(rows[0], target);
+    return Object.freeze({
+      readiness: materialize(rows[0], target),
+      openDays: rows[0].workbench_open_days,
+      openDayCount: rows[0].workbench_open_day_count,
+      carryCandidates: rows[0].workbench_candidates,
+      carryCandidateCount: rows[0].workbench_candidate_count,
+      unsafeCarryCandidateCount: rows[0].workbench_unsafe_candidate_count,
+    });
+}
+
+export async function loadBusinessDayCloseReadiness(
+  tx: Tx,
+  input: BusinessDayCloseReadinessInput,
+): Promise<BusinessDayCloseReadiness> {
+  return (await loadBusinessDayCloseReadinessEvidence(tx, input)).readiness;
+}
+
+export class BusinessDayCloseReadinessService {
+  readonly #database: Database;
+
+  constructor(options: BusinessDayCloseReadinessServiceOptions) {
+    this.#database = options.database;
+  }
+
+  async read(input: BusinessDayCloseReadinessInput): Promise<BusinessDayCloseReadiness> {
+    const target = normalize(input);
+    return this.#database.withTenantTransaction(target.tenantId, (tx) =>
+      loadBusinessDayCloseReadiness(tx, target));
   }
 }

@@ -103,6 +103,7 @@
 <button class="domain-tab" id="nav-reservations" type="button" data-view="reservations" aria-controls="reservations-view"><svg class="domain-icon" aria-hidden="true"><use href="#i-reservations"/></svg><span>Reservations</span></button>
 <button class="domain-tab" id="nav-folios" type="button" data-view="folios" aria-controls="folios-view"><svg class="domain-icon" aria-hidden="true"><use href="#i-folios"/></svg><span>Folios</span></button>
 <button class="domain-tab" id="nav-cashiers" type="button" data-view="cashiers" aria-controls="cashiers-view"><svg class="domain-icon cashier-domain-icon" aria-hidden="true"><use href="#i-operations"/></svg><span>Cashiers</span></button>
+<button class="day-close-nav" id="nav-day-close" type="button" data-view="day-close" aria-controls="day-close-view"><svg class="day-close-icon" aria-hidden="true" viewBox="0 0 24 24"><use href="#i-status"/></svg><span>Day close</span></button>
 <button class="workspace-disclosure" id="secondary-workspaces-toggle" type="button" aria-expanded="false" aria-controls="secondary-workspaces" aria-describedby="secondary-workspaces-preview">More workspaces</button>
 <p class="workspace-catalogue-preview" id="secondary-workspaces-preview"><strong>7 additional workspaces:</strong> Room outages · Housekeeping · Vehicle register · Inventory setup · Restrictions · Rates · Project status</p>
 <div class="secondary-workspaces" id="secondary-workspaces" hidden>
@@ -118,6 +119,33 @@
 </div>
 </nav>
 </aside>
+<section id="day-close-view" hidden aria-labelledby="day-close-title">
+<div class="section-heading day-close-heading">
+<div><p class="eyebrow">Financial control</p><h2 id="day-close-title" tabindex="-1">Business-day close</h2><p class="muted">Review persisted close readiness and safely attributable discrepancy candidates. This surface cannot seal or carry anything.</p></div>
+<button class="quiet" id="day-close-refresh" type="button">Refresh authoritative state</button>
+</div>
+<section class="day-close-workbench" id="day-close-workbench" aria-busy="false" aria-labelledby="day-close-workbench-title">
+<div class="day-close-command card">
+<div><p class="eyebrow">Persisted backlog</p><h3 id="day-close-workbench-title">Select an open business day</h3><p class="muted">Dates come only from the property’s unsealed PostgreSQL backlog.</p></div>
+<label for="day-close-date">Open business day<select id="day-close-date" name="businessDate" disabled><option value="">Loading open days…</option></select></label>
+</div>
+<div class="day-close-loading card" id="day-close-loading" hidden aria-hidden="true">Loading one coherent close snapshot…</div>
+<section class="day-close-error card" id="day-close-error" hidden role="alert"><strong>Close readiness is unavailable</strong><p>No financial conclusion was made.</p><button class="secondary" id="day-close-retry" type="button">Try again</button></section>
+<div id="day-close-content" hidden>
+<div class="day-close-summary" aria-label="Authoritative close readiness">
+<article class="card"><span>Selected day</span><strong id="day-close-selected">—</strong></article>
+<article class="card"><span>Current open day</span><strong id="day-close-current">—</strong></article>
+<article class="card"><span>Readiness</span><strong id="day-close-ready">—</strong></article>
+<article class="card"><span>Outbox lag</span><strong id="day-close-outbox-lag">—</strong></article>
+</div>
+<div class="day-close-detail-grid">
+<section class="card" aria-labelledby="day-close-reasons-title"><h3 id="day-close-reasons-title">Readiness reasons</h3><ul id="day-close-reasons"></ul></section>
+<section class="card" aria-labelledby="day-close-candidates-title"><h3 id="day-close-candidates-title">Carry candidates</h3><p class="muted">Visibility only. A separate governed command is required to carry a discrepancy.</p><ul id="day-close-candidates"></ul></section>
+</div>
+<p class="inventory-status" id="day-close-status" role="status" aria-live="polite"></p>
+</div>
+</section>
+</section>
 <section id="status-view" hidden aria-labelledby="status-title">
 <div class="section-heading status-heading">
 <div>

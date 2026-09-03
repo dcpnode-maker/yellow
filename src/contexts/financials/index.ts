@@ -146,6 +146,21 @@ export {
   BusinessDayCloseReadinessUnavailableError,
   BusinessDayCloseReadinessValidationError,
 } from "./business-day-close-readiness";
+export {
+  BusinessDayCloseWorkbenchService,
+  BusinessDayCloseWorkbenchUnavailableError,
+  BusinessDayCloseWorkbenchValidationError,
+  MAX_CARRY_CANDIDATES,
+  MAX_OPEN_DAYS,
+  loadBusinessDayCloseWorkbench,
+} from "./business-day-close-workbench";
+export type {
+  BusinessDayCloseWorkbench,
+  BusinessDayCloseWorkbenchCarryCandidate,
+  BusinessDayCloseWorkbenchDay,
+  BusinessDayCloseWorkbenchInput,
+  BusinessDayCloseWorkbenchServiceOptions,
+} from "./business-day-close-workbench";
 export { BusinessDayDiscrepancyCarryConflictError, BusinessDayDiscrepancyCarryService, BusinessDayDiscrepancyCarryValidationError } from "./business-day-discrepancy-carry";
 export type { BusinessDayDiscrepancyCarryApproval, BusinessDayDiscrepancyCarryResult, BusinessDayDiscrepancyCarryServiceOptions, ConsumeBusinessDayDiscrepancyCarryInput, RequestBusinessDayDiscrepancyCarryApprovalInput } from "./business-day-discrepancy-carry";
 export {

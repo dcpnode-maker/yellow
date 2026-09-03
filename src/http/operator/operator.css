@@ -2031,3 +2031,30 @@ to { opacity: 1; transform: none; }
 @media (max-width: 600px) { .management-journey-index { padding: .75rem; } .management-journey-intro { align-items: stretch; flex-direction: column; } .management-journey-categories,.management-journey-actions { grid-template-columns: minmax(0,1fr); } .management-journey-index [data-journey-view] { width: 100%; } }
 @media (prefers-reduced-motion: reduce) { .management-journey-index,.management-journey-category,.management-journey-index [data-journey-view],.pickup-task-detail-governed-action,.pickup-task-detail-governed-actions,.pickup-task-assignee-picker fieldset,.pickup-task-assignee-result,.pickup-task-assignee-selected { animation: none; transition: none; transform: none; } }
 @media (forced-colors: active) { .management-journey-index,.management-journey-category,.pickup-task-detail-governed-actions,.pickup-task-assignee-picker fieldset,.pickup-task-assignee-result,.pickup-task-assignee-selected,.housekeeping-task-detail-panel,.housekeeping-task-detail-summary,.housekeeping-task-detail-facts,.housekeeping-task-detail-identifiers,.housekeeping-task-read-only,.housekeeping-task-detail-error { border: 1px solid CanvasText; background: Canvas; color: CanvasText; box-shadow: none; -webkit-backdrop-filter: none; backdrop-filter: none; forced-color-adjust: auto; } .management-journey-index [data-journey-view],.pickup-task-detail-governed-action,.housekeeping-task-detail-governed-action { border: 2px solid ButtonText; background: ButtonFace; color: ButtonText; box-shadow: none; -webkit-backdrop-filter: none; backdrop-filter: none; forced-color-adjust: auto; } .management-journey-index [data-journey-view]:focus-visible,.pickup-task-detail-governed-action:focus-visible,.pickup-task-assignee-picker :focus-visible,.housekeeping-task-detail-governed-action:focus-visible { outline: 3px solid Highlight; } }
+.day-close-workbench { display:grid; gap:1rem; }
+.day-close-command { display:flex; align-items:end; justify-content:space-between; gap:1rem; padding:1.25rem; }
+.day-close-command label { min-width:min(19rem,100%); }
+.day-close-summary { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:.8rem; }
+.day-close-summary article { display:grid; gap:.35rem; padding:1rem; min-width:0; }
+.day-close-summary span { color:var(--muted); font-size:.78rem; text-transform:uppercase; letter-spacing:.06em; }
+.day-close-summary strong { font-size:clamp(1rem,2vw,1.35rem); overflow-wrap:anywhere; }
+.day-close-summary strong[data-state="ready"] { color:var(--success); }
+.day-close-summary strong[data-state="blocked"] { color:var(--danger); }
+.day-close-detail-grid { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:1rem; }
+.day-close-detail-grid > section { padding:1.15rem; min-width:0; }
+.day-close-detail-grid ul { display:grid; gap:.55rem; margin:.75rem 0 0; padding-left:1.2rem; }
+.day-close-error,.day-close-loading { padding:1.1rem; }
+:root[data-theme="apple"] .day-close-workbench .card { border-radius:22px; }
+:root[data-theme="android"] .day-close-workbench .card { border-radius:24px; }
+:root[data-theme="win95"] .day-close-workbench .card { border-radius:0; }
+:root[data-theme="glass"] .day-close-workbench .card { backdrop-filter:blur(24px) saturate(145%); -webkit-backdrop-filter:blur(24px) saturate(145%); }
+:root[data-theme="neo"] .day-close-workbench .card { box-shadow:var(--shadow-raised); }
+:root[data-theme="erp"] .day-close-workbench .card { border-radius:8px; }
+@media (max-width:760px) {
+ .day-close-command { align-items:stretch; flex-direction:column; }
+ .day-close-summary { grid-template-columns:repeat(2,minmax(0,1fr)); }
+ .day-close-detail-grid { grid-template-columns:1fr; }
+}
+@media (max-width:420px) { .day-close-summary { grid-template-columns:1fr; } }
+.day-close-nav { align-items:center; display:flex; gap:.55rem; min-height:44px; width:100%; }
+.day-close-icon { fill:none; height:1rem; stroke:currentColor; stroke-width:1.8; width:1rem; }

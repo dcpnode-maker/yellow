@@ -1,6 +1,6 @@
 # Order 384 — Operator business-day close workbench
 
-**Status:** ACTIVE-RESUMED-D1119
+**Status:** BUILT-PENDING-FRESH-TIER3-REVIEW-D1120
 **Phase:** 5 — Financials operator delivery
 **Branch:** `phase-5/operator-business-day-close-workbench`
 **Base:** exact independently approved Phase-5 domain tip `f681b3cc03325b9bf6fb4e5c92bbcc3b22011129`
@@ -95,9 +95,9 @@ disabled substitute.
 
 ## Definition of done
 
-- [ ] Intentional red recorded before implementation.
-- [ ] Exact bounded authoritative read and operator workbench implemented.
-- [ ] Builder gates green with no local/runtime mutation.
+- [x] Intentional red recorded before implementation.
+- [x] Exact bounded authoritative read and operator workbench implemented.
+- [x] Builder gates green with no local/runtime mutation.
 - [ ] Fresh independent Tier-3 approval recorded.
 
 ## Prerequisite hold — D1114
@@ -115,3 +115,25 @@ Questions182–184 are approved under D1119: the fail-closed limits are 366 open
 500 candidates, and `src/server.ts` is admitted only for exact dependency wiring. The
 implementation must compose one SQL statement on the middleware-owned transaction; it
 must not open a nested service transaction or weaken snapshot semantics.
+
+## Builder evidence — D1120
+
+Both domain and operator intentional reds preceded production source (0/1 each).
+Official Windows PostgreSQL16.15 applies migrations1–66 and passes the new workbench
+suite 5/0 (15 assertions): the one composed statement parses and executes; active actor,
+tenant, exact property, selected unsealed day and persisted current-day containment;
+ordinary/duplicate/missing lineage; current-day empty candidates; exact real 366/367
+day and 500/501 candidate boundaries; and zero business-day writes. Existing readiness
+proof additionally passes six semantic cases including typed blockers/unknown and the
+strict 299999/300000ms boundary; its statement-statistics case was not claimed from the
+builder's server because preload was absent and must run in fresh review.
+
+Focused combined domain/operator proof passes 14/0 (78 assertions), full operator proof
+passes 504/0 with 117 expected database skips (5,651 assertions), and standing passes
+1,241/0 with 968 expected skips (18,692 assertions). Typecheck, JavaScript syntax,
+141-file boundaries, 23-package licence policy, zero-vulnerability audit and diff
+hygiene pass. The operator uses `context.tx` directly; no `src/server.ts` change was
+needed despite its approved allowance. CONTRACTS/UI-SPEC record exact bounds, privacy,
+snapshot and accessible stale-safe read-only behavior. The disposable PG16 root was
+removed and port55484 is closed. Stable local and `.yellow` remain untouched. Fresh
+independent Tier-3 review is mandatory; builder evidence is not approval.
