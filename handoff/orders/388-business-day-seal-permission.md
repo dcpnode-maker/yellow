@@ -1,6 +1,6 @@
 # Order 388 — Business-day seal permission prerequisite
 
-**Status:** ACTIVE-D1147
+**Status:** WAITING-FOUNDER-QUESTION186-D1149
 **Phase:** 5 — Financials operator delivery prerequisite
 **Risk tier:** 3 — audited close authority
 
