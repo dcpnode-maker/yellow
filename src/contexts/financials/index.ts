@@ -167,6 +167,21 @@ export type {
 export { BusinessDayDiscrepancyCarryConflictError, BusinessDayDiscrepancyCarryService, BusinessDayDiscrepancyCarryValidationError } from "./business-day-discrepancy-carry";
 export type { BusinessDayDiscrepancyCarryApproval, BusinessDayDiscrepancyCarryResult, BusinessDayDiscrepancyCarryServiceOptions, ConsumeBusinessDayDiscrepancyCarryInput, RequestBusinessDayDiscrepancyCarryApprovalInput } from "./business-day-discrepancy-carry";
 export {
+  BusinessDayDiscrepancyCarryOperatorConflictError,
+  BusinessDayDiscrepancyCarryOperatorService,
+  BusinessDayDiscrepancyCarryOperatorUnavailableError,
+  BusinessDayDiscrepancyCarryOperatorValidationError,
+} from "./business-day-discrepancy-carry-operator";
+export type {
+  CarryApprovalDecisionResult,
+  CarryApprovalOperatorPage,
+  CarryApprovalOperatorView,
+  ConsumeCarryApprovalOperatorInput,
+  DecideCarryApprovalOperatorInput,
+  ListCarryApprovalsOperatorInput,
+  RequestCarryApprovalOperatorInput,
+} from "./business-day-discrepancy-carry-operator";
+export {
   BusinessDaySealConflictError,
   BusinessDaySealService,
   BusinessDaySealValidationError,

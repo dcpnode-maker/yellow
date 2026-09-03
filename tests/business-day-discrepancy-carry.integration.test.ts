@@ -2,6 +2,7 @@ import { afterAll, beforeAll, beforeEach, describe, expect, test } from "bun:tes
 import { SQL } from "bun";
 import {
   BusinessDayCloseReadinessService,
+  BusinessDayDiscrepancyCarryOperatorService,
   BusinessDayDiscrepancyCarryService,
 } from "../src/contexts/financials";
 import { Database, PostgresEventBus, PostgresIdempotency, type EventBus, type IdempotencyCommandResult, type IdempotencyInput, type IdempotencyResult, type JsonValue, type Tx } from "../src/kernel";
@@ -37,6 +38,7 @@ let runtime: SQL | undefined;
 let runtimePool: SQL | undefined;
 let database: Database | undefined;
 let service: BusinessDayDiscrepancyCarryService | undefined;
+let operatorService: BusinessDayDiscrepancyCarryOperatorService | undefined;
 let eventBus: EventBus | undefined;
 let targetDate = "";
 let sourceDate = "";
@@ -295,6 +297,7 @@ databaseDescribe("Order 359 fresh PostgreSQL hostile discrepancy-carry proof", (
     };
     eventBus = normalizingEvents;
     service = new BusinessDayDiscrepancyCarryService({ events: normalizingEvents, idempotency: new Order359Idempotency() });
+    operatorService = new BusinessDayDiscrepancyCarryOperatorService({ events: normalizingEvents, idempotency: new Order359Idempotency() });
     targetDate = (await deploy<Array<{ d: string }>>`SELECT (transaction_timestamp() AT TIME ZONE 'UTC')::date::text d`)[0]!.d;
     sourceDate = (await deploy<Array<{ d: string }>>`SELECT (${targetDate}::date - 1)::text d`)[0]!.d;
     await deploy!`INSERT INTO tenant(id,slug,name,tier,status) VALUES
@@ -347,6 +350,49 @@ databaseDescribe("Order 359 fresh PostgreSQL hostile discrepancy-carry proof", (
     await deploy`DELETE FROM org_node WHERE tenant_id IN (${TENANT}::uuid,${FOREIGN_TENANT}::uuid)`;
     await deploy`DELETE FROM tenant WHERE id IN (${TENANT}::uuid,${FOREIGN_TENANT}::uuid)`;
     await database?.close(); await runtimePool?.close({ timeout: 0 }); await runtime?.close({ timeout: 0 }); await deploy?.close({ timeout: 0 });
+  });
+
+  test("Order 387 operator facade derives authority and completes request, inbox, decision, carry and replay", async () => {
+    const requested = await database!.withTenantTransaction(TENANT, (tx) => operatorService!.requestApproval(tx, {
+      tenantId: TENANT, propertyNode: PROPERTY, sourceBusinessDate: sourceDate, discrepancyId: DISCREPANCY,
+      reason: "Order 387 operator proof", idempotencyKey: "order387-request-happy",
+      envelope: { tenantId: TENANT, propertyNode: PROPERTY, actorId: REQUESTER, requestId: crypto.randomUUID(), operation: "approval.requested" },
+    }));
+    const checkerInbox = await database!.withTenantTransaction(TENANT, (tx) => operatorService!.listApprovals(tx, {
+      tenantId: TENANT, propertyNode: PROPERTY, actorId: APPROVER,
+    }));
+    expect(checkerInbox.nextCursor).toBeNull();
+    expect(checkerInbox.approvals).toHaveLength(1);
+    expect(checkerInbox.approvals[0]).toMatchObject({
+      approvalId: requested.approvalId, sourceDiscrepancyId: DISCREPANCY, sourceBusinessDate: sourceDate,
+      targetBusinessDate: targetDate, roomCode: "ORDER359", reason: "Order 387 operator proof",
+      requesterLabel: "Order 359 requester", status: "pending", canDecide: true, canCarry: false,
+    });
+    expect(checkerInbox.approvals[0]).not.toHaveProperty("payload");
+    expect(checkerInbox.approvals[0]).not.toHaveProperty("requestHash");
+
+    const decisionInput = {
+      tenantId: TENANT, propertyNode: PROPERTY, approvalId: requested.approvalId, decision: "approved" as const,
+      idempotencyKey: "order387-decision-happy",
+      envelope: { tenantId: TENANT, propertyNode: PROPERTY, actorId: APPROVER, requestId: crypto.randomUUID(), operation: "approval.decided" },
+    };
+    const decision = await database!.withTenantTransaction(TENANT, (tx) => operatorService!.decideApproval(tx, decisionInput));
+    expect(decision).toMatchObject({ approvalId: requested.approvalId, status: "approved", replayed: false });
+    const replayedDecision = await database!.withTenantTransaction(TENANT, (tx) => operatorService!.decideApproval(tx, decisionInput));
+    expect(replayedDecision).toEqual({ ...decision, replayed: true });
+
+    const makerInbox = await database!.withTenantTransaction(TENANT, (tx) => operatorService!.listApprovals(tx, {
+      tenantId: TENANT, propertyNode: PROPERTY, actorId: REQUESTER,
+    }));
+    expect(makerInbox.approvals[0]).toMatchObject({ status: "approved", canDecide: false, canCarry: true });
+    const carryInput = {
+      tenantId: TENANT, propertyNode: PROPERTY, approvalId: requested.approvalId, idempotencyKey: "order387-carry-happy",
+      envelope: { tenantId: TENANT, propertyNode: PROPERTY, actorId: REQUESTER, requestId: crypto.randomUUID(), operation: "discrepancy.carried" },
+    };
+    const carried = await database!.withTenantTransaction(TENANT, (tx) => operatorService!.carry(tx, carryInput));
+    expect(carried).toMatchObject({ sourceDiscrepancyId: DISCREPANCY, propertyNode: PROPERTY, sourceBusinessDate: sourceDate, targetBusinessDate: targetDate, replayed: false });
+    const replayedCarry = await database!.withTenantTransaction(TENANT, (tx) => operatorService!.carry(tx, carryInput));
+    expect(replayedCarry).toEqual({ ...carried, replayed: true });
   });
 
   test("rejects a future decision and accepts past and transaction-time decisions", async () => {
