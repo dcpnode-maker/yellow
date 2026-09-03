@@ -1,4 +1,4 @@
-import { afterAll, beforeAll, describe, expect, test } from "bun:test";
+import { afterAll, beforeAll, describe, expect, setDefaultTimeout, test } from "bun:test";
 import { SQL } from "bun";
 import {
   IndiaGstAccommodationFinalComponentTaxSemanticRouteConflictError,
@@ -6,6 +6,8 @@ import {
   IndiaGstAccommodationFinalComponentTaxSemanticRouteService,
 } from "../src/contexts/tax-fiscal";
 import { Database, type Tx } from "../src/kernel";
+
+setDefaultTimeout(60_000);
 
 const id = (suffix: number): string =>
   `00000000-0000-0000-0000-${String(suffix).padStart(12, "0")}`;
@@ -394,8 +396,8 @@ databaseDescribe("Order406 real PostgreSQL/RLS proof", () => {
     reservationId: LIVE_RESERVATION, folioId: LIVE_FOLIO,
   });
 
-  async function census(): Promise<Record<string, number>> {
-    const [row] = await deploy<Array<Record<string, number>>>`SELECT
+  async function census(): Promise<Record<string, number | string | null>> {
+    const [row] = await deploy<Array<Record<string, number | string | null>>>`SELECT
       (SELECT count(*)::int FROM journal WHERE tenant_id=${LIVE_TENANT}::uuid) journals,
       (SELECT count(*)::int FROM posting_line WHERE tenant_id=${LIVE_TENANT}::uuid) postings,
       (SELECT count(*)::int FROM posting_line WHERE tenant_id=${LIVE_TENANT}::uuid
@@ -404,7 +406,38 @@ databaseDescribe("Order406 real PostgreSQL/RLS proof", () => {
       (SELECT count(*)::int FROM fiscal_submission WHERE tenant_id=${LIVE_TENANT}::uuid) submissions,
       (SELECT count(*)::int FROM fact_log WHERE tenant_id=${LIVE_TENANT}::uuid) facts,
       (SELECT count(*)::int FROM outbox WHERE tenant_id=${LIVE_TENANT}::uuid) events,
-      (SELECT count(*)::int FROM api_idempotency WHERE tenant_id=${LIVE_TENANT}::uuid) idempotency`;
+      (SELECT count(*)::int FROM api_idempotency WHERE tenant_id=${LIVE_TENANT}::uuid) idempotency,
+      (SELECT md5(coalesce(string_agg(id::text||':'||tenant_id::text||':'||valuation_id::text||':'||
+        applicability_id::text||':'||evidence_hash||':'||coalesce(supersedes_tax_id::text,''),',' ORDER BY id),''))
+        FROM india_gst_accommodation_final_component_tax
+        WHERE tenant_id=${LIVE_TENANT}::uuid OR id=${LIVE_TAX}::uuid) tax_roots,
+      (SELECT md5(coalesce(string_agg(id::text||':'||tenant_id::text||':'||evidence_hash||':'||
+        coalesce(supersedes_valuation_id::text,''),',' ORDER BY id),''))
+        FROM india_gst_accommodation_final_valuation
+        WHERE tenant_id=${LIVE_TENANT}::uuid OR id=${LIVE_VALUATION}::uuid) valuations,
+      (SELECT md5(coalesce(string_agg(id::text||':'||tenant_id::text||':'||evidence_hash,',' ORDER BY id),''))
+        FROM india_gst_accommodation_quoted_rate_applicability
+        WHERE tenant_id=${LIVE_TENANT}::uuid OR id=${LIVE_APPLICABILITY}::uuid) applicability,
+      (SELECT md5(coalesce(string_agg(tax_id::text||':'||room_night_ordinal::text||':'||
+        component_ordinal::text||':'||component_identity||':'||tax_amount_minor::text,','
+        ORDER BY tax_id,room_night_ordinal,component_ordinal),''))
+        FROM india_gst_accommodation_final_component_tax_component
+        WHERE tenant_id=${LIVE_TENANT}::uuid OR tax_id=${LIVE_TAX}::uuid) components,
+      (SELECT md5(coalesce(string_agg(tax_id::text||':'||ordinal::text||':'||business_date::text||':'||
+        final_value_minor::text||':'||tax_minor::text,',' ORDER BY tax_id,ordinal),''))
+        FROM india_gst_accommodation_final_component_tax_room_night
+        WHERE tenant_id=${LIVE_TENANT}::uuid OR tax_id=${LIVE_TAX}::uuid) room_nights,
+      (SELECT md5(coalesce(string_agg(id::text||':'||jurisdiction_content_hash||':'||
+        semantic_kind||':'||semantic_code||':'||tx_code,',' ORDER BY id),''))
+        FROM tax_semantic_route WHERE tenant_id=${LIVE_TENANT}::uuid) routes,
+      (SELECT md5(coalesce(string_agg(tx_code||':'||coalesce(debit_account_id::text,'')||':'||
+        coalesce(credit_account_id::text,''),',' ORDER BY tx_code),''))
+        FROM tx_code_route WHERE tenant_id=${LIVE_TENANT}::uuid) transaction_code_routes,
+      (SELECT md5(coalesce(string_agg(code||':'||grp||':'||coalesce(usali_line,''),',' ORDER BY code),''))
+        FROM tx_code WHERE code IN ('O406_LIVE_ROOM','O406_LIVE_IGST')) transaction_codes,
+      (SELECT md5(coalesce(string_agg(id::text||':'||property_node::text||':'||role||':'||
+        currency::text||':'||status,',' ORDER BY id),''))
+        FROM account WHERE tenant_id=${LIVE_TENANT}::uuid) accounts`;
     return row!;
   }
 
@@ -478,5 +511,134 @@ databaseDescribe("Order406 real PostgreSQL/RLS proof", () => {
       await tx`UPDATE account SET status='open' WHERE tenant_id=${LIVE_TENANT}::uuid AND id=${id(406851)}::uuid`;
     });
     expect(await census()).toEqual(before);
+  });
+
+  test("executes every hostile root, applicability, child and route class against PostgreSQL", async () => {
+    async function rejectWithoutEffects(
+      expected: new (message: string) => Error,
+    ): Promise<void> {
+      const before = await census();
+      await expect(database.withTenantTransaction(LIVE_TENANT, (tx) =>
+        service.resolve(tx, liveInput))).rejects.toBeInstanceOf(expected);
+      expect(await census()).toEqual(before);
+    }
+
+    // A current tax successor makes the selected root stale; a current valuation
+    // successor independently invalidates the linked valuation head.
+    await fixtureMutation(async (tx) => {
+      await tx`INSERT INTO india_gst_accommodation_final_component_tax(
+        tenant_id,id,property_node,reservation_id,folio_id,applicability_id,valuation_id,
+        valuation_generation,request_id,generation,currency,transaction_value_minor,tax_minor,
+        grand_total_minor,component_family,selected_version_side,selected_extension_id,
+        selected_extension_version,final_valuation_evidence_hash,
+        quoted_rate_applicability_evidence_hash,section14_evidence_hash,
+        levy_component_identity_evidence_hash,reservation_lineage_evidence_hash,
+        attribution_snapshot_evidence_hash,evidence_hash,supersedes_tax_id,
+        supersedes_tax_evidence_hash,actor_id)
+        VALUES(${LIVE_TENANT}::uuid,${id(406870)}::uuid,${LIVE_PROPERTY}::uuid,
+          ${LIVE_RESERVATION}::uuid,${LIVE_FOLIO}::uuid,${id(406871)}::uuid,${id(406872)}::uuid,
+          1,${id(406873)}::uuid,1,'INR',100001,18000,118001,'igst','successor',
+          ${LIVE_EXTENSION}::uuid,2,${H("1")},${H("2")},${H("3")},${H("4")},${H("5")},
+          ${H("6")},${H("7")},${LIVE_TAX}::uuid,${LIVE_TAX_HASH},${LIVE_ACTOR}::uuid)`;
+    });
+    await rejectWithoutEffects(IndiaGstAccommodationFinalComponentTaxSemanticRouteNotFoundError);
+    await fixtureMutation(async (tx) => {
+      await tx`DELETE FROM india_gst_accommodation_final_component_tax WHERE id=${id(406870)}::uuid`;
+      await tx`INSERT INTO india_gst_accommodation_final_valuation(
+        tenant_id,id,property_node,reservation_id,folio_id,folio_account_id,window_no,
+        buyer_party_id,attribution_id,request_id,generation,disposition,currency,
+        transaction_value_minor,source_set_hash,order341_evidence_hash,request_hash,evidence_hash,
+        ordinary_evidence_hashes,manual_reasons,relationship_conclusion,consideration_conclusion,
+        section15_2_conclusion,section15_3_conclusion,source_completeness_conclusion,
+        attestation_evidence_source,attestation_evidence_reference,relationship_set_hash,
+        attested_by,supersedes_valuation_id,actor_id)
+        VALUES(${LIVE_TENANT}::uuid,${id(406874)}::uuid,${LIVE_PROPERTY}::uuid,
+          ${LIVE_RESERVATION}::uuid,${LIVE_FOLIO}::uuid,${id(406875)}::uuid,1,${id(406876)}::uuid,
+          ${id(406877)}::uuid,${id(406878)}::uuid,1,'ordinary_final','INR',100001,${H("1")},
+          ${H("2")},${H("3")},${H("4")},ARRAY[${H("5")},${H("6")},${H("7")},${H("8")},${H("9")}],
+          ARRAY[]::text[],'unrelated_not_distinct','money_only','all_additions_enumerated',
+          'all_discounts_eligible','all_sources_classified','order406.fixture','successor',
+          ${H("a")},${LIVE_ACTOR}::uuid,${LIVE_VALUATION}::uuid,${LIVE_ACTOR}::uuid)`;
+    });
+    await rejectWithoutEffects(IndiaGstAccommodationFinalComponentTaxSemanticRouteNotFoundError);
+    await fixtureMutation(async (tx) => {
+      await tx`DELETE FROM india_gst_accommodation_final_valuation WHERE id=${id(406874)}::uuid`;
+    });
+
+    // Foreign roots disappear through RLS; hostile applicability ancestry is not
+    // accepted merely because all caller selectors remain unchanged.
+    await fixtureMutation(async (tx) => {
+      await tx`UPDATE india_gst_accommodation_final_component_tax SET tenant_id=${id(406998)}::uuid
+        WHERE id=${LIVE_TAX}::uuid`;
+    });
+    await rejectWithoutEffects(IndiaGstAccommodationFinalComponentTaxSemanticRouteNotFoundError);
+    await fixtureMutation(async (tx) => {
+      await tx`UPDATE india_gst_accommodation_final_component_tax SET tenant_id=${LIVE_TENANT}::uuid
+        WHERE id=${LIVE_TAX}::uuid`;
+      await tx`UPDATE india_gst_accommodation_quoted_rate_applicability SET
+        evidence_hash=${H("0")} WHERE id=${LIVE_APPLICABILITY}::uuid`;
+    });
+    await rejectWithoutEffects(IndiaGstAccommodationFinalComponentTaxSemanticRouteNotFoundError);
+    await fixtureMutation(async (tx) => {
+      await tx`UPDATE india_gst_accommodation_quoted_rate_applicability SET
+        evidence_hash=${LIVE_APPLICABILITY_HASH} WHERE id=${LIVE_APPLICABILITY}::uuid`;
+    });
+
+    // Missing, reordered/malformed and foreign children all fail through the real
+    // aggregate query. PostgreSQL itself rejects a duplicate child key.
+    await fixtureMutation(async (tx) => {
+      await tx`DELETE FROM india_gst_accommodation_final_component_tax_component
+        WHERE tenant_id=${LIVE_TENANT}::uuid AND tax_id=${LIVE_TAX}::uuid`;
+    });
+    await rejectWithoutEffects(IndiaGstAccommodationFinalComponentTaxSemanticRouteConflictError);
+    await fixtureMutation(async (tx) => {
+      await tx`INSERT INTO india_gst_accommodation_final_component_tax_component VALUES
+        (${LIVE_TENANT}::uuid,${LIVE_TAX}::uuid,0,0,'igst',1800,18000,'INR')`;
+      await tx`UPDATE india_gst_accommodation_final_component_tax_component SET
+        component_ordinal=1,component_identity='cgst' WHERE tenant_id=${LIVE_TENANT}::uuid
+        AND tax_id=${LIVE_TAX}::uuid`;
+    });
+    await rejectWithoutEffects(IndiaGstAccommodationFinalComponentTaxSemanticRouteConflictError);
+    await fixtureMutation(async (tx) => {
+      await tx`UPDATE india_gst_accommodation_final_component_tax_component SET
+        component_ordinal=0,component_identity='igst',tenant_id=${id(406998)}::uuid
+        WHERE tax_id=${LIVE_TAX}::uuid`;
+    });
+    await rejectWithoutEffects(IndiaGstAccommodationFinalComponentTaxSemanticRouteConflictError);
+    await fixtureMutation(async (tx) => {
+      await tx`UPDATE india_gst_accommodation_final_component_tax_component SET tenant_id=${LIVE_TENANT}::uuid
+        WHERE tax_id=${LIVE_TAX}::uuid`;
+    });
+    const duplicateGuards = await deploy<Array<{ table_name: string; unique_guards: number }>>`
+      SELECT table_name,count(*)::int unique_guards FROM (
+        SELECT 'tax_root' table_name FROM pg_constraint
+          WHERE conrelid='india_gst_accommodation_final_component_tax'::regclass AND contype='u'
+        UNION ALL SELECT 'valuation_root' FROM pg_constraint
+          WHERE conrelid='india_gst_accommodation_final_valuation'::regclass AND contype='u'
+        UNION ALL SELECT 'component_child' FROM pg_constraint
+          WHERE conrelid='india_gst_accommodation_final_component_tax_component'::regclass AND contype='u'
+      ) guards GROUP BY table_name ORDER BY table_name`;
+    expect(duplicateGuards).toEqual([
+      { table_name: "component_child", unique_guards: 1 },
+      { table_name: "tax_root", unique_guards: 6 },
+      { table_name: "valuation_root", unique_guards: 5 },
+    ]);
+
+    // Exact route identity is mandatory; a foreign hash is unavailable, while a
+    // malformed account role is an incoherent configured route.
+    await fixtureMutation(async (tx) => {
+      await tx`UPDATE tax_semantic_route SET jurisdiction_content_hash=${H("0")}
+        WHERE tenant_id=${LIVE_TENANT}::uuid AND semantic_code='IGST'`;
+    });
+    await rejectWithoutEffects(IndiaGstAccommodationFinalComponentTaxSemanticRouteNotFoundError);
+    await fixtureMutation(async (tx) => {
+      await tx`UPDATE tax_semantic_route SET jurisdiction_content_hash=${LIVE_EXTENSION_HASH}
+        WHERE tenant_id=${LIVE_TENANT}::uuid AND semantic_code='IGST'`;
+      await tx`UPDATE account SET role='guest' WHERE id=${id(406851)}::uuid`;
+    });
+    await rejectWithoutEffects(IndiaGstAccommodationFinalComponentTaxSemanticRouteConflictError);
+    await fixtureMutation(async (tx) => {
+      await tx`UPDATE account SET role='tax_payable' WHERE id=${id(406851)}::uuid`;
+    });
   });
 });
