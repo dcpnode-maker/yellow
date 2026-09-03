@@ -15,7 +15,7 @@ describe("Order 371 current setup catalogue oracle", () => {
     expect({ migrationCount: migrations.length, highestMigration, publicBaseTables }).toEqual({
       migrationCount: 69,
       highestMigration: 69,
-      publicBaseTables: 116,
+      publicBaseTables: 119,
     });
     expect(setup).toContain("[ \"$tables\" = '119' ]");
     expect(setup).toContain("expected 119 after migrations 1-69");
