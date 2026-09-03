@@ -305,6 +305,27 @@ different-user, single-use request and records exact relational evidence. One ba
 idempotency result commit atomically. No payout, statement, split or reconciliation is
 created.
 
+Implemented owner-trust operator workbench: `OwnerTrustExpenseWorkbenchService`
+accepts the middleware-owned tenant transaction for bounded same-property account
+discovery, exact amount/reason preview, negative-balance approval request and inbox,
+different-user decision, and final immutable expense posting. PostgreSQL
+`prepare_owner_trust_expense` takes the same deterministic financial-row locks as
+the posting command, rederives owner, payable route, currency and available/projected
+balance, returns complete approval evidence to the service, and writes nothing.
+Account and approval collections are complete-or-unavailable above 100 rows.
+
+The operator routes are `GET /api/v1/properties/{property}/trust/accounts`, `POST
+/api/v1/properties/{property}/trust/accounts/{accountId}/preview`, `POST .../
+approval-requests`, `GET /api/v1/properties/{property}/trust/approval-requests`,
+zero-byte `POST .../{approvalId}/approve|reject`, and `POST .../accounts/{accountId}/
+expenses`. Maker routes require exact-property `financials.trust:post`; decisions
+require a different active actor with exact-property
+`financials.trust:approve-negative`. Tenant, actor, audit envelopes, route/balance
+evidence and approval payload are server-owned. Responses expose only operator labels,
+currency/minor-unit balances, approval state and the final journal receipt—never the
+payable account, owner id, raw payload/hash, journal lines or ledger internals. This
+surface creates no bank payout, owner statement, split or reconciliation.
+
 Implemented financial foundation: `FolioService.openPrimary(tx, input)` accepts only
 `tenantId`, `reservationId`, `idempotencyKey`, and the audit envelope. It locks and
 derives the eligible reservation's property, primary Party, and currency; reuses the

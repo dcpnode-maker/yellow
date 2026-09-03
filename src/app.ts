@@ -155,6 +155,20 @@ export function createApp(options: AppOptions = {}) {
       .get("/api/v1/properties/:property/business-days/close-workbench", ({ request, params, tenantContext }) =>
         withOperatorTenant(request, (context) => operator.businessDayCloseWorkbenchEntry(context, params.property))
       )
+      .get("/api/v1/properties/:property/trust/accounts", ({ request, params, tenantContext }) =>
+        withOperatorTenant(request, (context) => operator.ownerTrustAccounts(context, params.property)))
+      .post("/api/v1/properties/:property/trust/accounts/:accountId/preview", ({ request, params, body, tenantContext }) =>
+        withOperatorTenant(request, (context) => operator.previewOwnerTrustExpense(context, params.property, params.accountId, body)))
+      .post("/api/v1/properties/:property/trust/accounts/:accountId/approval-requests", ({ request, params, body, tenantContext }) =>
+        withOperatorTenant(request, (context) => operator.requestOwnerTrustExpenseApproval(context, params.property, params.accountId, body)))
+      .get("/api/v1/properties/:property/trust/approval-requests", ({ request, params, tenantContext }) =>
+        withOperatorTenant(request, (context) => operator.ownerTrustExpenseApprovals(context, params.property)))
+      .post("/api/v1/properties/:property/trust/approval-requests/:approvalId/approve", ({ request, params, body, tenantContext }) =>
+        withOperatorTenant(request, (context) => operator.decideOwnerTrustExpenseApproval(context, params.property, params.approvalId, body, "approved")), { parse: "none" })
+      .post("/api/v1/properties/:property/trust/approval-requests/:approvalId/reject", ({ request, params, body, tenantContext }) =>
+        withOperatorTenant(request, (context) => operator.decideOwnerTrustExpenseApproval(context, params.property, params.approvalId, body, "rejected")), { parse: "none" })
+      .post("/api/v1/properties/:property/trust/accounts/:accountId/expenses", ({ request, params, body, tenantContext }) =>
+        withOperatorTenant(request, (context) => operator.postOwnerTrustExpense(context, params.property, params.accountId, body)))
       .get("/api/v1/properties/:property/business-days/:businessDate/close-workbench", ({ request, params, tenantContext }) =>
         withOperatorTenant(request, (context) => operator.businessDayCloseWorkbench(
           context, params.property, params.businessDate,

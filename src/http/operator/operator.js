@@ -331,6 +331,25 @@
  const dayCloseSealCancel = $("#day-close-seal-cancel");
  const dayCloseSealConfirm = $("#day-close-seal-confirm");
  const dayCloseSealDialogDate = $("#day-close-seal-dialog-date");
+ const trustView = $("#trust-view");
+ const trustWorkbench = $("#trust-workbench");
+ const trustRefresh = $("#trust-refresh");
+ const trustExpenseForm = $("#trust-expense-form");
+ const trustAccount = $("#trust-account");
+ const trustAmount = $("#trust-amount");
+ const trustReason = $("#trust-reason");
+ const trustPreviewAction = $("#trust-preview-action");
+ const trustRequestApproval = $("#trust-request-approval");
+ const trustPost = $("#trust-post");
+ const trustMessage = $("#trust-message");
+ const trustPreviewTitle = $("#trust-preview-title");
+ const trustPreviewFacts = $("#trust-preview-facts");
+ const trustInboxRefresh = $("#trust-inbox-refresh");
+ const trustApprovalInbox = $("#trust-approval-inbox");
+ const trustInboxMore = $("#trust-inbox-more");
+ let trustAccounts = [], trustPreviewData = null, trustApprovals = [], trustApprovalCursor = null;
+ let trustRequestGeneration = 0;
+ const trustMutationKeys = new Map();
  let dayCloseSealDraft = null;
  let dayCloseSealAttempt = null;
  const dayCloseCarryKeys = new Map();
@@ -1080,6 +1099,7 @@
  reservationGuestList.replaceChildren();
  loadPriceCorrectionButton.hidden = true;
  rateCorrectionForm.hidden = true;
+ trustRequestGeneration += 1; trustAccounts = []; trustApprovals = []; trustApprovalCursor = null; trustMutationKeys.clear(); clearTrustPreview();
  pendingKeys.clear();
  history.replaceState(null, "", "/");
  applyExperience("simple", { preserveActive: false });
@@ -1103,7 +1123,7 @@
   propertySelect.disabled = true;
  } else {
   propertySelect.disabled = false;
-  const pathProperty = location.pathname.match(/^\/p\/([0-9a-f-]+)\/(?:today|availability|inventory|operations|housekeeping(?:\/tasks\/[0-9a-f-]+)?|vehicles(?:\/[0-9a-f-]+)?|reservations|folios|cashiers|day-close|restrictions|rates|status|res\/[0-9a-f-]+(?:\/pickup-task\/[0-9a-f-]+)?|folio\/[0-9a-f-]+)$/)?.[1];
+  const pathProperty = location.pathname.match(/^\/p\/([0-9a-f-]+)\/(?:today|availability|inventory|operations|housekeeping(?:\/tasks\/[0-9a-f-]+)?|vehicles(?:\/[0-9a-f-]+)?|reservations|folios|cashiers|day-close|trust|restrictions|rates|status|res\/[0-9a-f-]+(?:\/pickup-task\/[0-9a-f-]+)?|folio\/[0-9a-f-]+)$/)?.[1];
   if (pathProperty && body.properties.some(({ id }) => id === pathProperty)) propertySelect.value = pathProperty;
  }
  }
@@ -9705,9 +9725,124 @@ function vehicleReturnPathFromState(state, property) {
    }
   }
  }
+ // function setView remains the boundary after the day-close loader; trust helpers are independent of its snapshot proof.
+ function trustCurrencyDigits(currency) {
+  if (["BHD", "JOD", "KWD", "OMR", "TND"].includes(currency)) return 3;
+  if (currency === "CLF") return 4;
+  if (["BIF", "CLP", "DJF", "GNF", "ISK", "JPY", "KMF", "KRW", "PYG", "RWF", "UGX", "UYI", "VND", "VUV", "XAF", "XOF", "XPF"].includes(currency)) return 0;
+  return 2;
+ }
+ function trustMinorFromDisplay(value, currency) {
+  const digits = trustCurrencyDigits(currency), match = String(value).trim().match(/^(?:0|[1-9][0-9]{0,15})(?:\.([0-9]+))?$/);
+  if (!match || (match[1]?.length || 0) > digits) throw new Error(`Enter a positive ${currency} amount with no more than ${digits} decimal places.`);
+  const [whole, fraction = ""] = String(value).trim().split(".");
+  const minor = `${whole}${fraction.padEnd(digits, "0")}`.replace(/^0+(?=\d)/, "");
+  if (!/^[1-9][0-9]*$/.test(minor) || BigInt(minor) > 9223372036854775807n) throw new Error("Enter a positive amount within the supported range.");
+  return minor;
+ }
+ function trustMoney(minor, currency) {
+  const digits = trustCurrencyDigits(currency), negative = String(minor).startsWith("-"), raw = String(minor).replace(/^-/, "").padStart(digits + 1, "0");
+  const major = digits ? `${raw.slice(0, -digits)}.${raw.slice(-digits)}` : raw;
+  return `${currency} ${negative ? "-" : ""}${major}`;
+ }
+ function trustDisplayFromMinor(minor, currency) { return trustMoney(minor, currency).slice(currency.length + 1); }
+ function trustDraft() {
+  const account = trustAccounts.find((item) => item.accountReference === trustAccount.value);
+  if (!account) throw new Error("Choose an authorized owner trust account.");
+  const reason = trustReason.value.trim().normalize("NFC");
+  const bytes = new TextEncoder().encode(reason).length;
+  if (!reason || bytes > 500) throw new Error("Enter a clear business reason of 1–500 UTF-8 bytes.");
+  return { account, accountId: account.accountReference, amountMinor: trustMinorFromDisplay(trustAmount.value, account.currency), reason };
+ }
+ function trustIsCurrent(generation, property, identity = null) {
+  if (generation !== trustRequestGeneration || activeView !== "trust" || property !== propertySelect.value) return false;
+  if (identity === null) return true;
+  try { const draft = trustDraft(); return `${draft.accountId}:${draft.amountMinor}:${draft.reason}` === identity; } catch { return false; }
+ }
+ function clearTrustPreview(message = "Preview required") {
+  trustPreviewData = null;
+  trustPreviewTitle.textContent = "No preview yet";
+  trustPreviewFacts.replaceChildren(...[
+   ["Available before", "—"], ["Expense", "—"], ["Projected available", "—"], ["Governed next step", message],
+  ].map(([term, detail]) => { const row = node("div"); row.append(node("dt", "", term), node("dd", "", detail)); return row; }));
+  trustRequestApproval.disabled = true; trustPost.disabled = true;
+ }
+ function renderTrustPreview(result, draft) {
+  trustPreviewData = { ...result, identity: `${draft.accountId}:${draft.amountMinor}:${draft.reason}`, reason: draft.reason, canPost: result.canPost === true || (result.approvalRequired !== true && draft.account.canPost === true) };
+  trustPreviewTitle.textContent = `${draft.account.accountLabel} · ${result.approvalRequired ? "Approval required" : "Ready to post"}`;
+  const next = result.approvalRequired ? "Request a different-user approval" : "Deliberately post this expense";
+  trustPreviewFacts.replaceChildren(...[
+   ["Available before", trustMoney(result.availableBalanceMinor, result.currency)],
+   ["Expense", trustMoney(result.amountMinor, result.currency)],
+   ["Projected available", trustMoney(result.projectedBalanceMinor, result.currency)],
+   ["Governed next step", next],
+  ].map(([term, detail]) => { const row = node("div"); row.append(node("dt", "", term), node("dd", "", detail)); return row; }));
+  trustRequestApproval.disabled = result.approvalRequired !== true || draft.account.canPost !== true;
+  trustPost.disabled = result.approvalRequired === true || draft.account.canPost !== true;
+ }
+ function renderTrustInbox() {
+  if (!trustApprovals.length) { trustApprovalInbox.replaceChildren(node("p", "muted", "No approval requests are available in this bounded page.")); return; }
+  trustApprovalInbox.replaceChildren(...trustApprovals.map((approval) => {
+   const row = node("article", "trust-approval-row"); row.dataset.status = approval.status;
+   const copy = node("div", "trust-approval-copy");
+   copy.append(node("strong", "", `${approval.accountLabel || "Owner trust"} · ${trustMoney(approval.amountMinor, approval.currency)}`), node("span", "approval-state", approval.status), node("p", "", approval.reason));
+   const meta = [`Owner ${approval.ownerLabel || "authorized account"}`, `Requested by ${approval.requesterLabel || "operator"}`, new Date(approval.requestedAt).toLocaleString()];
+   if (approval.decidedAt) meta.push(`Decided ${new Date(approval.decidedAt).toLocaleString()}`);
+   copy.append(node("small", "", meta.join(" · ")));
+   const actions = node("div", "trust-approval-actions");
+   if (approval.canDecide) for (const action of ["approve", "reject"]) { const button = node("button", action === "approve" ? "secondary" : "quiet", action === "approve" ? "Approve exact request" : "Reject"); button.type = "button"; button.addEventListener("click", () => void decideTrustApproval(approval, action, button)); actions.append(button); }
+   if (approval.canPost) { const button = node("button", "primary", "Use approved request"); button.type = "button"; button.addEventListener("click", () => { let account = trustAccounts.find((item) => item.accountReference === approval.accountReference); if (!account) { account = { accountReference:approval.accountReference, accountLabel:approval.accountLabel, ownerLabel:approval.ownerLabel, currency:approval.currency, availableBalanceMinor:approval.availableBalanceMinor, canPost:true }; trustAccounts.push(account); trustAccount.append(new Option(`${account.accountLabel} · ${account.ownerLabel} · ${account.currency}`, account.accountReference)); } trustAccount.value = approval.accountReference; trustAmount.value = trustDisplayFromMinor(approval.amountMinor, approval.currency); trustReason.value = approval.reason; renderTrustPreview({ ...approval, approvalRequired:true }, { account, accountId:approval.accountReference, amountMinor:approval.amountMinor, reason:approval.reason }); trustPreviewData.approvalId = approval.approvalId; trustPost.disabled = false; trustExpenseForm.scrollIntoView({ block: "start" }); trustPost.focus({ preventScroll: true }); }); actions.append(button); }
+   row.append(copy, actions); return row;
+  }));
+ }
+ async function loadTrustApprovals({ append = false } = {}) {
+  const generation = trustRequestGeneration, property = propertySelect.value, after = append && trustApprovalCursor ? `&after=${enc(trustApprovalCursor)}` : "";
+  try { const result = await request(`/api/v1/properties/${enc(property)}/trust/approval-requests?limit=50${after}`); if (!trustIsCurrent(generation, property)) return;
+   trustApprovals = append ? [...trustApprovals, ...(result.approvals || []).filter((item) => !trustApprovals.some((old) => old.approvalId === item.approvalId))] : (result.approvals || []); trustApprovalCursor = result.nextCursor || null; trustInboxMore.hidden = !trustApprovalCursor; renderTrustInbox();
+  } catch (error) { if (trustIsCurrent(generation, property)) trustApprovalInbox.replaceChildren(node("p", "form-message error", error instanceof Error ? error.message : "Approval inbox unavailable.")); }
+ }
+ async function loadTrustWorkbench({ focus = false } = {}) {
+  const generation = ++trustRequestGeneration, property = propertySelect.value; trustWorkbench.setAttribute("aria-busy", "true"); trustRefresh.disabled = true; trustMessage.classList.remove("error"); clearTrustPreview();
+  trustAccount.disabled = true; trustAmount.disabled = true; trustReason.disabled = true; trustPreviewAction.disabled = true; trustMessage.textContent = "Loading authorized owner trust accounts…";
+  try { const result = await request(`/api/v1/properties/${enc(property)}/trust/accounts?limit=50`); if (!trustIsCurrent(generation, property)) return;
+   trustAccounts = Array.isArray(result.accounts) ? result.accounts : []; trustAccount.replaceChildren(new Option(trustAccounts.length ? "Choose an owner trust account" : "No authorized owner trust accounts", ""), ...trustAccounts.map((account) => new Option(`${account.accountLabel} · ${account.ownerLabel} · ${account.currency}`, account.accountReference)));
+   trustAccount.disabled = !trustAccounts.length; trustAmount.disabled = !trustAccounts.length; trustReason.disabled = !trustAccounts.length; trustPreviewAction.disabled = !trustAccounts.length; trustMessage.textContent = trustAccounts.length ? "Choose an account and preview one exact expense." : "No owner trust accounts are available for this property.";
+   trustApprovals = []; trustApprovalCursor = null; await loadTrustApprovals(); if (focus) trustAccount.focus({ preventScroll: true });
+  } catch (error) { if (trustIsCurrent(generation, property)) { trustAccounts = []; trustMessage.textContent = error instanceof Error ? error.message : "Owner trust workbench unavailable."; trustMessage.classList.add("error"); } }
+  finally { if (trustIsCurrent(generation, property)) { trustWorkbench.setAttribute("aria-busy", "false"); trustRefresh.disabled = false; } }
+ }
+ async function previewTrustExpense(event) {
+  event.preventDefault(); let draft; try { draft = trustDraft(); } catch (error) { trustMessage.textContent = error.message; trustMessage.classList.add("error"); return; }
+  const generation = ++trustRequestGeneration, property = propertySelect.value, identity = `${draft.accountId}:${draft.amountMinor}:${draft.reason}`; trustPreviewAction.disabled = true; trustMessage.classList.remove("error"); trustMessage.textContent = "Checking authoritative trust availability…";
+  try { const result = await request(`/api/v1/properties/${enc(property)}/trust/accounts/${enc(draft.accountId)}/preview`, { method: "POST", body: JSON.stringify({ amountMinor: draft.amountMinor, reason: draft.reason }) }); if (!trustIsCurrent(generation, property, identity)) return; renderTrustPreview(result, draft); trustMessage.textContent = "Authoritative preview loaded. Review it before continuing.";
+  } catch (error) { if (trustIsCurrent(generation, property, identity)) { clearTrustPreview("Preview unavailable"); trustMessage.textContent = error instanceof Error ? error.message : "Preview unavailable."; trustMessage.classList.add("error"); } }
+  finally { if (trustIsCurrent(generation, property, identity)) trustPreviewAction.disabled = false; }
+ }
+ async function requestTrustApproval() {
+  let draft; try { draft = trustDraft(); } catch (error) { trustMessage.textContent = error.message; return; } const preview = trustPreviewData;
+  if (!preview || preview.identity !== `${draft.accountId}:${draft.amountMinor}:${draft.reason}` || preview.approvalRequired !== true) return;
+  if (!confirm(`Request a different-user approval for ${trustMoney(draft.amountMinor, draft.account.currency)} from ${draft.account.accountLabel}?`)) { trustRequestApproval.focus({ preventScroll: true }); return; }
+  const property = propertySelect.value, generation = trustRequestGeneration, identity = `request:${property}:${preview.identity}`, key = trustMutationKeys.get(identity) || crypto.randomUUID(); trustMutationKeys.set(identity, key); trustRequestApproval.disabled = true;
+  try { await request(`/api/v1/properties/${enc(property)}/trust/accounts/${enc(draft.accountId)}/approval-requests`, { method: "POST", headers: { "idempotency-key": key }, body: JSON.stringify({ amountMinor: draft.amountMinor, reason: draft.reason }) }); if (!trustIsCurrent(generation, property, preview.identity)) return; trustMutationKeys.delete(identity); trustMessage.textContent = "Approval requested. A different authorized user may decide it."; await loadTrustWorkbench({ focus: true });
+  } catch (error) { if (error?.status) trustMutationKeys.delete(identity); if (trustIsCurrent(generation, property, preview.identity)) { trustMessage.textContent = error instanceof Error ? error.message : "Approval outcome is unknown; retry preserves the exact request identity."; trustMessage.classList.add("error"); trustRequestApproval.disabled = false; trustRequestApproval.focus({ preventScroll: true }); } }
+ }
+ async function decideTrustApproval(approval, action, button) {
+  if (!confirm(`${action === "approve" ? "Approve" : "Reject"} this exact ${trustMoney(approval.amountMinor, approval.currency)} request?`)) { button.focus({ preventScroll: true }); return; }
+  const property = propertySelect.value, generation = trustRequestGeneration, identity = `${action}:${property}:${approval.approvalId}`, key = trustMutationKeys.get(identity) || crypto.randomUUID(); trustMutationKeys.set(identity, key); button.disabled = true;
+  try { await request(`/api/v1/properties/${enc(property)}/trust/approval-requests/${enc(approval.approvalId)}/${action}`, { method: "POST", headers: { "idempotency-key": key } }); if (!trustIsCurrent(generation, property)) return; trustMutationKeys.delete(identity); await loadTrustWorkbench({ focus: true }); }
+  catch (error) { if (error?.status) trustMutationKeys.delete(identity); if (trustIsCurrent(generation, property)) { trustMessage.textContent = error instanceof Error ? error.message : "Decision outcome is unknown; retry preserves its exact identity."; trustMessage.classList.add("error"); button.disabled = false; button.focus({ preventScroll: true }); } }
+ }
+ async function postTrustExpense() {
+  let draft; try { draft = trustDraft(); } catch (error) { trustMessage.textContent = error.message; return; } const preview = trustPreviewData;
+  if (!preview || preview.identity !== `${draft.accountId}:${draft.amountMinor}:${draft.reason}` || preview.canPost !== true) return;
+  if (!confirm(`Post ${trustMoney(draft.amountMinor, draft.account.currency)} as an immutable owner trust expense? This creates financial records and cannot be deleted.`)) { trustPost.focus({ preventScroll: true }); return; }
+  const property = propertySelect.value, generation = trustRequestGeneration, identity = `post:${property}:${preview.identity}:${preview.approvalId || "none"}`, key = trustMutationKeys.get(identity) || crypto.randomUUID(); trustMutationKeys.set(identity, key); trustPost.disabled = true;
+  try { await request(`/api/v1/properties/${enc(property)}/trust/accounts/${enc(draft.accountId)}/expenses`, { method: "POST", headers: { "idempotency-key": key }, body: JSON.stringify({ amountMinor: draft.amountMinor, reason: draft.reason, ...(preview.approvalId ? { approvalRequestId: preview.approvalId } : {}) }) }); if (!trustIsCurrent(generation, property, preview.identity)) return; trustMutationKeys.delete(identity); trustAmount.value = ""; trustReason.value = ""; clearTrustPreview("Expense posted"); trustMessage.textContent = "Owner trust expense posted as immutable balanced financial evidence."; await loadTrustWorkbench({ focus: true });
+  } catch (error) { if (error?.status) trustMutationKeys.delete(identity); if (trustIsCurrent(generation, property, preview.identity)) { trustMessage.textContent = error instanceof Error ? error.message : "Post outcome is unknown; retry preserves its exact identity."; trustMessage.classList.add("error"); trustPost.disabled = false; trustPost.focus({ preventScroll: true }); } }
+ }
   function setView(view, updateHistory = true) {
  const previousView = activeView;
- activeView = ["today", "availability", "inventory", "operations", "housekeeping", "vehicles", "reservations", "folios", "cashiers", "day-close", "restrictions", "rates", "status"].includes(view) ? view : "today";
+ activeView = ["today", "availability", "inventory", "operations", "housekeeping", "vehicles", "reservations", "folios", "cashiers", "day-close", "trust", "restrictions", "rates", "status"].includes(view) ? view : "today";
  if (document.documentElement.dataset.experience === "simple" && SECONDARY_VIEWS.has(activeView)) {
   closeSecondaryWorkspaces();
  }
@@ -9746,6 +9881,7 @@ function vehicleReturnPathFromState(state, property) {
   vehicleRegisterGeneration += 1;
   vehicleDetailRequestGeneration += 1;
  }
+ if (previousView === "trust" && activeView !== "trust") { trustRequestGeneration += 1; clearTrustPreview(); }
  todayView.hidden = activeView !== "today";
  housekeepingView.hidden = activeView !== "housekeeping";
  vehiclesView.hidden = activeView !== "vehicles";
@@ -9758,9 +9894,10 @@ function vehicleReturnPathFromState(state, property) {
  foliosView.hidden = activeView !== "folios";
  cashiersView.hidden = activeView !== "cashiers";
  dayCloseView.hidden = activeView !== "day-close";
+ trustView.hidden = activeView !== "trust";
  statusView.hidden = activeView !== "status";
  workbenchTitle.textContent = activeView === "today" ? "Today" : activeView === "inventory" ? "Inventory setup" :
-  activeView === "operations" ? "Room outages" : activeView === "housekeeping" ? "Housekeeping" : activeView === "vehicles" ? "Vehicle Register" : activeView === "reservations" ? "Reservations" : activeView === "folios" ? "Folios" : activeView === "cashiers" ? "Cashiers" : activeView === "day-close" ? "Business-day close" : activeView === "restrictions" ? "Restrictions" :
+  activeView === "operations" ? "Room outages" : activeView === "housekeeping" ? "Housekeeping" : activeView === "vehicles" ? "Vehicle Register" : activeView === "reservations" ? "Reservations" : activeView === "folios" ? "Folios" : activeView === "cashiers" ? "Cashiers" : activeView === "day-close" ? "Business-day close" : activeView === "trust" ? "Owner trust expenses" : activeView === "restrictions" ? "Restrictions" :
   activeView === "rates" ? "Rates" : activeView === "status" ? "Project status" : "Availability";
  for (const tab of navigation) {
   const selected = tab.dataset.view === activeView;
@@ -9822,6 +9959,7 @@ function vehicleReturnPathFromState(state, property) {
  if (activeView === "folios") syncFolioRoute();
  if (activeView === "cashiers") void loadCashierSession();
  if (activeView === "day-close") void loadDayCloseWorkbench();
+ if (activeView === "trust") void loadTrustWorkbench();
  }
  function finishWorkspaceNavigation(view) {
   if (document.documentElement.dataset.experience === "simple" && SECONDARY_VIEWS.has(view)) closeSecondaryWorkspaces();
@@ -11683,6 +11821,7 @@ function vehicleReturnPathFromState(state, property) {
  clearFolioState();
  dayCloseRequestGeneration += 1;
  dayCloseContent.hidden = true;
+ trustRequestGeneration += 1; trustAccounts = []; trustApprovals = []; trustApprovalCursor = null; clearTrustPreview();
  if (propertySelect.value) history.replaceState(null, "", `/p/${propertySelect.value}/${activeView}`);
  if (activeView === "inventory") void loadInventory();
  if (activeView === "today") loadToday();
@@ -11706,6 +11845,7 @@ function vehicleReturnPathFromState(state, property) {
  if (activeView === "rates") void loadRates();
  if (activeView === "status") void loadSystemStatus();
  if (activeView === "day-close") void loadDayCloseWorkbench();
+ if (activeView === "trust") void loadTrustWorkbench();
  reservationGuestData = null;
  reservationLifecycleData = null;
  reservationSegmentData = null;
@@ -11734,6 +11874,15 @@ function vehicleReturnPathFromState(state, property) {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(dayCloseDate.value)) return;
   history.pushState({ yellowSurface: "day-close" }, "", dayCloseCanonicalPath(dayCloseDate.value));
   void loadDayCloseWorkbench({ businessDate: dayCloseDate.value, focus: true });
+ });
+ trustRefresh.addEventListener("click", () => void loadTrustWorkbench({ focus: true }));
+ trustInboxRefresh.addEventListener("click", () => void loadTrustApprovals());
+ trustInboxMore.addEventListener("click", () => void loadTrustApprovals({ append: true }));
+ trustExpenseForm.addEventListener("submit", (event) => void previewTrustExpense(event));
+ trustRequestApproval.addEventListener("click", () => void requestTrustApproval());
+ trustPost.addEventListener("click", () => void postTrustExpense());
+ for (const control of [trustAccount, trustAmount, trustReason]) control.addEventListener("input", () => {
+  trustRequestGeneration += 1; clearTrustPreview("Inputs changed · preview again"); trustMessage.classList.remove("error"); trustMessage.textContent = "Inputs changed. Refresh the authoritative preview before continuing.";
  });
  for (const control of managementJourneyControls) control.addEventListener("click", () => {
   if (control.dataset.journeyView !== "reservations" && !reservationCreatePanel.hidden && !closeReservationCreate({ history: false })) return;
@@ -11944,6 +12093,10 @@ housekeepingSheetDate.addEventListener("change", () => {
  if (/^\/p\/[0-9a-f-]+\/day-close$/.test(location.pathname)) {
   if (activeView !== "day-close") setView("day-close", false);
   else void loadDayCloseWorkbench({ businessDate: dayCloseRouteDate(), focus: true });
+  return;
+ }
+ if (location.pathname === `/p/${propertySelect.value}/trust`) {
+  if (activeView !== "trust") setView("trust", false); else void loadTrustWorkbench({ focus:true });
   return;
  }
  if (location.pathname === `/p/${propertySelect.value}/today`) {
@@ -12684,6 +12837,7 @@ housekeepingSheetDate.addEventListener("change", () => {
  (location.pathname.endsWith("/folios") || /^\/p\/[0-9a-f-]+\/folio\/[0-9a-f-]+$/.test(location.pathname)) ? "folios" :
  location.pathname.endsWith("/cashiers") ? "cashiers" :
  location.pathname.endsWith("/day-close") ? "day-close" :
+ location.pathname.endsWith("/trust") ? "trust" :
  location.pathname.endsWith("/restrictions") ? "restrictions" :
  location.pathname.endsWith("/rates") ? "rates" :
  location.pathname.endsWith("/status") ? "status" : "today";

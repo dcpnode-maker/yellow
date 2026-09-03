@@ -1,6 +1,6 @@
 # Order 386 — Operator owner-trust expense workbench
 
-**Status:** ACTIVE-D1158
+**Status:** BUILT-PENDING-FRESH-TIER3-REVIEW-D1160
 **Phase:** 5 — Financials operator delivery
 **Branch:** `phase-5/operator-owner-trust-expense-workbench`
 **Base:** exact independently approved Order389 closure `418fe25`
@@ -49,7 +49,21 @@ of all pending approvals resolves Question185. D1158 activates this exact order.
   and financials public index;
 - `src/http/operator.ts`, `src/app.ts`, `src/server.ts` and operator HTML/JS/CSS;
 - focused intentional-red, unit, PostgreSQL, HTTP and browser tests;
-- only exact migration/catalogue/schema/runtime-authority oracles made stale by 0067;
+- exact new tests `tests/operator-owner-trust-expense-workbench.intentional-red.test.ts`,
+  `tests/operator-owner-trust-expense-workbench.test.ts`,
+  `tests/operator-owner-trust-expense-workbench.integration.test.ts`,
+  `tests/operator-owner-trust-expense.intentional-red.test.ts`,
+  `tests/operator-owner-trust-expense.test.ts`,
+  `tests/operator-owner-trust-workbench-browser.intentional-red.test.ts`, and
+  `tests/operator-owner-trust-workbench-browser.integration.test.ts`;
+- only exact migration/catalogue/schema/runtime-authority oracles made stale by 0068:
+  `setup.sh`, `tests/schema/expected.sql`, `tests/migrate.integration.test.ts`,
+  `tests/database-acceptance.integration.test.ts`,
+  `tests/setup-current-catalogue-oracle.test.ts`, and the exact inherited
+  `tests/business-day-discrepancy-carry.integration.test.ts` catalogue count;
+- only the two exact inherited navigation-count oracles made stale by the thirteenth
+  workspace: `tests/operator-adaptive-experience.test.ts` and
+  `tests/operator-management-demo-navigation-finetune.intentional-red.test.ts`;
 - exact trust sections in CONTRACTS/UI-SPEC/SECURITY/EVENTS;
 - order/review/decisions/ledger.
 

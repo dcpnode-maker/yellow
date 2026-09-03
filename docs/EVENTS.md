@@ -80,6 +80,14 @@ dispatch, driver/vehicle, contact, onsite arrival, completion, charge or occupan
 **financials** · journal.posted {kind,lines:[{account,folio?,tx_code,amount_minor}],payment_id?,operation_id?} · trust.owner_expense_posted {trustAccountId,payableAccountId,ownerPartyId,amountMinor,availableBeforeMinor,projectedAvailableMinor,approvalRequestId?} · folio.opened {folio_id,account_id,reservation_id,window_no,folio_no,name?} · folio.settled/.closed {folio_id,account_id,reservation_id,window_no,previous_status,status} · payment.authorized/.incrementally_authorized/.captured/.refunded/.voided/.failed/.indeterminate/.reconciled {operation_id,payment_id,phase,outcome,amount_minor,currency,journal_id?} · credit.limit_breached · cashier.opened/.counted/.closed {session_id,drawer_id,count_id?,over_short_minor?} · business_day.opened/.sealed · deposit.requested {hosted_request_id,operation_id,folio_id,amount_minor,currency,expires_at,generation} · deposit.applied {application_id,hosted_request_id,operation_id,folio_id,amount_minor,journal_id} · deposit.matured
 → documents, AR, trust splits (Automation), dashboards, GL export
 
+The owner-trust workbench adds no event type. Read-only discovery, preview and
+`prepare_owner_trust_expense` emit nothing. Negative authorization reuses the kernel
+`approval.requested` and `approval.decided` contracts with server-derived evidence;
+the final post alone emits the existing `journal.posted` and
+`trust.owner_expense_posted` events atomically with the balanced immutable journal.
+Consumers must not infer bank movement, payout completion, statement generation,
+reconciliation or settlement from those events.
+
 `folio.settled` and `folio.closed` describe only a monotonic, exact-zero folio-window
 state transition. Their producer writes one fact and one outbox row in the same tenant
 transaction as the bounded PostgreSQL transition and durable idempotent response. They

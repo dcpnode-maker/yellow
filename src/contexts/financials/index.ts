@@ -15,6 +15,28 @@ export type {
 
 export { TrustAccountingConflictError, TrustAccountingNotFoundError, TrustAccountingService, TrustAccountingValidationError } from "./trust";
 export type { PostOwnerExpenseInput, PostOwnerExpenseResult, TrustAccountingServiceOptions } from "./trust";
+export {
+  MAX_OWNER_TRUST_ACCOUNTS,
+  MAX_OWNER_TRUST_APPROVALS,
+  OwnerTrustExpenseWorkbenchNotFoundError,
+  OwnerTrustExpenseWorkbenchService,
+  OwnerTrustExpenseWorkbenchUnavailableError,
+  OwnerTrustExpenseWorkbenchValidationError,
+} from "./trust-workbench";
+export type {
+  DecideOwnerTrustApprovalInput,
+  ListOwnerTrustAccountsInput,
+  ListOwnerTrustApprovalsInput,
+  OwnerTrustAccountView,
+  OwnerTrustApprovalDecisionResult,
+  OwnerTrustApprovalRequestResult,
+  OwnerTrustApprovalView,
+  OwnerTrustExpensePreview,
+  OwnerTrustExpenseWorkbenchServiceOptions,
+  PostOwnerTrustExpenseWorkbenchInput,
+  PreviewOwnerTrustExpenseInput,
+  RequestOwnerTrustApprovalInput,
+} from "./trust-workbench";
 
 export {
   FolioTransferConflictError,

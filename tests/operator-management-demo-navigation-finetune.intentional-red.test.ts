@@ -106,7 +106,7 @@ test("Order 316 intentional red: Advanced and Expert remain direct while every e
   expect(applyExperience).toContain('secondaryWorkspacesToggle.hidden = next !== "simple"');
   expect(applyExperience).toContain('secondaryWorkspaces.hidden = next === "simple" && !keepSecondaryOpen');
   expect(script).toContain('const EXPERIENCES = new Set(["simple", "advanced", "expert"])');
-  expect(html.match(/class="domain-tab(?: is-active)?"/g)).toHaveLength(12);
+  expect(html.match(/class="domain-tab(?: is-active)?"/g)).toHaveLength(13);
 
   const property = "00000000-0000-0000-0000-000000000316";
   const app = createApp({ operatorApi: new OperatorHttpApi({} as never) });

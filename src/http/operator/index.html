@@ -104,6 +104,7 @@
 <button class="domain-tab" id="nav-folios" type="button" data-view="folios" aria-controls="folios-view"><svg class="domain-icon" aria-hidden="true"><use href="#i-folios"/></svg><span>Folios</span></button>
 <button class="domain-tab" id="nav-cashiers" type="button" data-view="cashiers" aria-controls="cashiers-view"><svg class="domain-icon cashier-domain-icon" aria-hidden="true"><use href="#i-operations"/></svg><span>Cashiers</span></button>
 <button class="day-close-nav" id="nav-day-close" type="button" data-view="day-close" aria-controls="day-close-view"><svg class="day-close-icon" aria-hidden="true" viewBox="0 0 24 24"><use href="#i-status"/></svg><span>Day close</span></button>
+<button class="domain-tab" id="nav-trust" type="button" data-view="trust" aria-controls="trust-view"><svg class="domain-icon" aria-hidden="true"><use href="#i-folios"/></svg><span>Owner trust</span></button>
 <button class="workspace-disclosure" id="secondary-workspaces-toggle" type="button" aria-expanded="false" aria-controls="secondary-workspaces" aria-describedby="secondary-workspaces-preview">More workspaces</button>
 <p class="workspace-catalogue-preview" id="secondary-workspaces-preview"><strong>7 additional workspaces:</strong> Room outages · Housekeeping · Vehicle register · Inventory setup · Restrictions · Rates · Project status</p>
 <div class="secondary-workspaces" id="secondary-workspaces" hidden>
@@ -148,6 +149,22 @@
 </section>
 </section>
 <dialog class="day-close-seal-dialog" id="day-close-seal-dialog" aria-labelledby="day-close-seal-dialog-title" aria-describedby="day-close-seal-dialog-copy"><form method="dialog" id="day-close-seal-form"><p class="eyebrow">Irreversible financial control</p><h3 id="day-close-seal-dialog-title">Seal this business day?</h3><p id="day-close-seal-dialog-copy">This permanently blocks ordinary posting to <strong id="day-close-seal-dialog-date">the selected day</strong>. It cannot be reopened from this workbench.</p><div class="day-close-seal-dialog-actions"><button class="secondary" id="day-close-seal-cancel" type="button">Cancel</button><button class="danger" id="day-close-seal-confirm" type="submit">Confirm seal</button></div></form></dialog>
+<section id="trust-view" hidden aria-labelledby="trust-title">
+<div class="section-heading trust-heading"><div><p class="eyebrow">Owner funds · governed financial control</p><h2 id="trust-title" tabindex="-1">Owner trust expenses</h2><p class="muted">Preview one property-owned trust expense against authoritative PostgreSQL balances. This does not move money to a bank or create an owner statement.</p></div><button class="quiet" id="trust-refresh" type="button">Refresh authoritative state</button></div>
+<div class="trust-workbench" id="trust-workbench" aria-busy="false">
+<form class="card trust-command" id="trust-expense-form">
+<div><p class="eyebrow">Maker workbench</p><h3>Prepare an owner expense</h3><p class="muted">Choose a server-discovered account, enter an exact amount and a clear business reason, then preview before any governed action.</p></div>
+<label>Owner trust account<select id="trust-account" name="accountId" required disabled><option value="">Loading authorized accounts…</option></select></label>
+<label>Expense amount<input id="trust-amount" name="amount" inputmode="decimal" autocomplete="off" maxlength="32" placeholder="0.00" required disabled></label>
+<p class="field-note" id="trust-amount-help">Enter a positive amount in the selected account currency. Yellow converts it to exact minor units locally only for transport; the server revalidates all financial truth.</p>
+<label>Business reason<textarea id="trust-reason" name="reason" minlength="1" maxlength="500" required disabled></textarea></label>
+<div class="trust-command-actions"><button class="secondary" id="trust-preview-action" type="submit" disabled>Preview authoritative impact</button><button class="secondary" id="trust-request-approval" type="button" disabled>Request approval</button><button class="primary" id="trust-post" type="button" disabled>Post expense</button></div>
+<p class="form-message" id="trust-message" role="status" aria-live="polite">Open Owner trust to load authorized accounts.</p>
+</form>
+<section class="card trust-preview" id="trust-preview" aria-labelledby="trust-preview-title"><div><p class="eyebrow">Authoritative preview</p><h3 id="trust-preview-title">No preview yet</h3></div><dl id="trust-preview-facts"><div><dt>Available before</dt><dd>—</dd></div><div><dt>Expense</dt><dd>—</dd></div><div><dt>Projected available</dt><dd>—</dd></div><div><dt>Governed next step</dt><dd>Preview required</dd></div></dl></section>
+<section class="card trust-inbox" aria-labelledby="trust-inbox-title"><div class="panel-heading"><div><p class="eyebrow">Different-user checker</p><h3 id="trust-inbox-title">Approval inbox</h3><p class="muted">Only minimized, property-scoped requests are shown. A maker cannot approve their own request.</p></div><button class="quiet" id="trust-inbox-refresh" type="button">Refresh inbox</button></div><div class="trust-approval-list" id="trust-approval-inbox" aria-live="polite"><p class="muted">No approval requests loaded.</p></div><button class="quiet" id="trust-inbox-more" type="button" hidden>Load older requests</button></section>
+</div>
+</section>
 <section id="status-view" hidden aria-labelledby="status-title">
 <div class="section-heading status-heading">
 <div>

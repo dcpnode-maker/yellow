@@ -57,6 +57,10 @@ import {
   HostedDepositNotFoundError,
   HostedDepositService,
   HostedDepositValidationError,
+  OwnerTrustExpenseWorkbenchNotFoundError,
+  OwnerTrustExpenseWorkbenchService,
+  OwnerTrustExpenseWorkbenchUnavailableError,
+  OwnerTrustExpenseWorkbenchValidationError,
   ReceivableConflictError,
   ReceivableNotFoundError,
   ReceivableService,
@@ -268,6 +272,8 @@ const BUSINESS_DAY_READ_SCOPE = "financials.business-days:read";
 const BUSINESS_DAY_SEAL_SCOPE = "financials.business-days:seal";
 const BUSINESS_DAY_CARRY_SCOPE = "financials.business-day:carry-discrepancy";
 const BUSINESS_DAY_CARRY_APPROVE_SCOPE = "financials.business-day:approve-discrepancy-carry";
+const OWNER_TRUST_POST_SCOPE = "financials.trust:post";
+const OWNER_TRUST_APPROVE_SCOPE = "financials.trust:approve-negative";
 const CHECKIN_READ_SCOPE = "stay-operations.checkin:read";
 const CHECKIN_COMMIT_SCOPE = "stay-operations.checkin:commit";
 const CHECKIN_DIRTY_ROOM_OVERRIDE_SCOPE = "stay-operations.checkin:dirty-room-override";
@@ -307,6 +313,32 @@ const CHARGE_TX_CODE = /^[A-Z0-9][A-Z0-9._-]{0,31}$/;
 const CHARGE_QUANTITY = /^(?:0\.[0-9]{1,3}|[1-9][0-9]{0,6}(?:\.[0-9]{1,3})?)$/;
 const IDEMPOTENCY_KEY = /^[\x21-\x7e]{8,200}$/;
 const FOLIO_REFERENCE = /^[A-Z0-9][A-Z0-9._\/-]{0,63}$/;
+
+function ownerTrustExpenseBody(body: unknown, approvalOptional = false): {
+  amountMinor: string;
+  reason: string;
+  approvalRequestId?: string;
+} | null {
+  if (!isObject(body) || !exactKeys(body, ["amountMinor", "reason"], approvalOptional ? ["approvalRequestId"] : []) ||
+      typeof body.amountMinor !== "string" || !POSITIVE_INT64.test(body.amountMinor) ||
+      BigInt(body.amountMinor) > INT64_MAX || typeof body.reason !== "string" || body.reason.trim() !== body.reason ||
+      body.reason.normalize("NFC") !== body.reason ||
+      new TextEncoder().encode(body.reason).length < 1 || new TextEncoder().encode(body.reason).length > 500 ||
+      /[\x00-\x1f\x7f\u200b-\u200d\u202a-\u202e\u2060\u2066-\u2069\ufeff]/u.test(body.reason) ||
+      (body.approvalRequestId !== undefined && (typeof body.approvalRequestId !== "string" || !UUID.test(body.approvalRequestId)))) return null;
+  return Object.freeze({ amountMinor: body.amountMinor, reason: body.reason,
+    ...(body.approvalRequestId === undefined ? {} : { approvalRequestId: body.approvalRequestId }) });
+}
+
+function ownerTrustPageQuery(request: Request): { after?: string; limit?: number } | null {
+  const query = new URL(request.url).searchParams;
+  if ([...query.keys()].some((key) => key !== "after" && key !== "limit") ||
+      query.getAll("after").length > 1 || query.getAll("limit").length > 1) return null;
+  const after = query.get("after"); const rawLimit = query.get("limit");
+  if (after !== null && !/^[A-Za-z0-9_-]{1,2048}$/.test(after)) return null;
+  if (rawLimit !== null && !/^(?:[1-9]|[1-9][0-9]|100)$/.test(rawLimit)) return null;
+  return Object.freeze({ ...(after === null ? {} : { after }), ...(rawLimit === null ? {} : { limit: Number(rawLimit) }) });
+}
 
 function statementQuery(request: Request): { after?: string; limit?: number } | null {
   const query = new URL(request.url).searchParams;
@@ -2090,6 +2122,8 @@ export class OperatorHttpApi {
   readonly #businessDayCloseWorkbenchEntry: BusinessDayCloseWorkbenchEntryLoader;
   readonly #businessDayCarry?: BusinessDayCarryOperations;
   readonly #businessDaySeal?: BusinessDaySealOperations;
+  readonly #ownerTrustExpenses?: Pick<OwnerTrustExpenseWorkbenchService,
+    "listAccounts" | "previewExpense" | "requestApproval" | "listApprovals" | "decideApproval" | "postExpense">;
 
   constructor(
     login: LocalLoginService,
@@ -2137,6 +2171,8 @@ export class OperatorHttpApi {
     businessDayCloseWorkbenchEntry: BusinessDayCloseWorkbenchEntryLoader = loadBusinessDayCloseWorkbenchEntry,
     businessDayCarry?: BusinessDayCarryOperations,
     businessDaySeal?: BusinessDaySealOperations,
+    ownerTrustExpenses?: Pick<OwnerTrustExpenseWorkbenchService,
+      "listAccounts" | "previewExpense" | "requestApproval" | "listApprovals" | "decideApproval" | "postExpense">,
   ) {
     this.#login = login;
     this.#availability = availability;
@@ -2183,6 +2219,7 @@ export class OperatorHttpApi {
     this.#businessDayCloseWorkbenchEntry = businessDayCloseWorkbenchEntry;
     this.#businessDayCarry = businessDayCarry;
     this.#businessDaySeal = businessDaySeal;
+    this.#ownerTrustExpenses = ownerTrustExpenses;
   }
 
   unavailable(request: Request): Response {
@@ -2194,6 +2231,15 @@ export class OperatorHttpApi {
   }
 
   failure(request: Request, error: unknown): Response {
+    if (error instanceof OwnerTrustExpenseWorkbenchValidationError) {
+      return apiError(request, 400, "request/invalid", "Invalid request", "Owner-trust expense input is invalid");
+    }
+    if (error instanceof OwnerTrustExpenseWorkbenchNotFoundError) {
+      return apiError(request, 404, "financials/not_found", "Not found", "The owner-trust expense resource is unavailable");
+    }
+    if (error instanceof OwnerTrustExpenseWorkbenchUnavailableError) {
+      return apiError(request, 409, "financials/conflict", "Conflict", "Owner-trust expense truth changed; refresh and try again");
+    }
     if (error instanceof BusinessDaySealValidationError) {
       return apiError(request, 400, "request/invalid", "Invalid request", "Business-day seal input is invalid");
     }
@@ -2620,6 +2666,136 @@ export class OperatorHttpApi {
       sealedAt: result.sealedAt,
       replayed: result.replayed,
     }), 200, { "x-correlation-id": requestId, "idempotency-replayed": String(result.replayed) });
+  }
+
+  private async requireOwnerTrustGrant(
+    context: TenantRequestContext,
+    propertyNode: string,
+    scope: typeof OWNER_TRUST_POST_SCOPE | typeof OWNER_TRUST_APPROVE_SCOPE,
+  ): Promise<Response | null> {
+    if (!context.identity.actorId) return this.unauthorized(context.request);
+    if (!hasScope(context, scope)) {
+      return apiError(context.request, 403, "auth/scope_missing", "Forbidden", "Owner-trust expense access is not granted");
+    }
+    if (!UUID.test(propertyNode)) {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Property identifier is invalid");
+    }
+    const grants = await listGrantedProperties(context, scope);
+    return grants.some(({ id }) => id === propertyNode) ? null :
+      apiError(context.request, 403, "auth/property_forbidden", "Forbidden", "Property access is not granted");
+  }
+
+  async ownerTrustAccounts(context: TenantRequestContext, propertyNode: string): Promise<Response> {
+    const denied = await this.requireOwnerTrustGrant(context, propertyNode, OWNER_TRUST_POST_SCOPE);
+    if (denied) return denied;
+    const actorId = context.identity.actorId; if (!actorId) return this.unauthorized(context.request);
+    const query = ownerTrustPageQuery(context.request);
+    if (!query) return apiError(context.request, 400, "request/invalid", "Invalid request", "Owner-trust account query is invalid");
+    if (!this.#ownerTrustExpenses) return this.unavailable(context.request);
+    const accounts = await this.#ownerTrustExpenses.listAccounts(context.tx, {
+      tenantId: context.tenantId, propertyNode, actorId,
+    });
+    const offset = query.after ? Number.parseInt(query.after, 10) : 0;
+    if (!Number.isSafeInteger(offset) || offset < 0 || (query.after !== undefined && String(offset) !== query.after)) {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Owner-trust account query is invalid");
+    }
+    const limit = query.limit ?? 50; const page = accounts.slice(offset, offset + limit);
+    return apiResponse(context.request, canonicalJson({ accounts: page.map((account) => ({
+      accountReference: account.accountReference, accountLabel: account.accountLabel, ownerLabel: account.ownerLabel,
+      currency: account.currency, availableBalanceMinor: account.availableBalanceMinor, canPost: account.canPost,
+    })), nextCursor: offset + page.length < accounts.length ? String(offset + page.length) : null }), 200,
+    { "x-correlation-id": correlationId(context.request) });
+  }
+
+  async previewOwnerTrustExpense(context: TenantRequestContext, propertyNode: string, accountId: string, body: unknown): Promise<Response> {
+    const denied = await this.requireOwnerTrustGrant(context, propertyNode, OWNER_TRUST_POST_SCOPE); if (denied) return denied;
+    const actorId = context.identity.actorId; if (!actorId) return this.unauthorized(context.request);
+    const input = ownerTrustExpenseBody(body);
+    if (!input || !UUID.test(accountId) || new URL(context.request.url).search !== "")
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Owner-trust expense preview input is invalid");
+    if (!this.#ownerTrustExpenses) return this.unavailable(context.request);
+    const result = await this.#ownerTrustExpenses.previewExpense(context.tx, { tenantId: context.tenantId, propertyNode,
+      actorId, trustAccountId: accountId, amountMinor: input.amountMinor, reason: input.reason });
+    return apiResponse(context.request, canonicalJson({ accountReference: result.accountReference, accountLabel: result.accountLabel,
+      ownerLabel: result.ownerLabel, currency: result.currency, amountMinor: result.amountMinor,
+      availableBalanceMinor: result.availableBalanceMinor, projectedBalanceMinor: result.projectedBalanceMinor,
+      approvalRequired: result.approvalRequired }), 200, { "x-correlation-id": correlationId(context.request) });
+  }
+
+  async requestOwnerTrustExpenseApproval(context: TenantRequestContext, propertyNode: string, accountId: string, body: unknown): Promise<Response> {
+    const denied = await this.requireOwnerTrustGrant(context, propertyNode, OWNER_TRUST_POST_SCOPE); if (denied) return denied;
+    const actorId = context.identity.actorId; if (!actorId) return this.unauthorized(context.request);
+    const input = ownerTrustExpenseBody(body); const key = context.request.headers.get("idempotency-key") ?? "";
+    if (!input || !UUID.test(accountId) || new URL(context.request.url).search !== "" || !IDEMPOTENCY_KEY.test(key))
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Owner-trust approval request input is invalid");
+    if (!this.#ownerTrustExpenses) return this.unavailable(context.request); const requestId = correlationId(context.request);
+    const result = await this.#ownerTrustExpenses.requestApproval(context.tx, { tenantId: context.tenantId, propertyNode,
+      actorId, trustAccountId: accountId, amountMinor: input.amountMinor, reason: input.reason,
+      idempotencyKey: key, envelope: createAuditEnvelope({ actorId, tenantId: context.tenantId,
+        propertyNode, requestId, operation: "approval.requested" }) });
+    return apiResponse(context.request, canonicalJson({ approvalId: result.approvalId, accountReference: result.accountReference,
+      currency: result.currency, amountMinor: result.amountMinor, projectedBalanceMinor: result.projectedBalanceMinor,
+      status: result.status, requestedAt: result.requestedAt, replayed: result.replayed }), result.replayed ? 200 : 201,
+    { "x-correlation-id": requestId, "idempotency-replayed": String(result.replayed) });
+  }
+
+  async ownerTrustExpenseApprovals(context: TenantRequestContext, propertyNode: string): Promise<Response> {
+    const actorId = context.identity.actorId; if (!actorId) return this.unauthorized(context.request);
+    const canCheck = hasScope(context, OWNER_TRUST_APPROVE_SCOPE); const canMake = hasScope(context, OWNER_TRUST_POST_SCOPE);
+    if (!canCheck && !canMake) return apiError(context.request, 403, "auth/scope_missing", "Forbidden", "Owner-trust expense access is not granted");
+    if (!UUID.test(propertyNode)) return apiError(context.request, 400, "request/invalid", "Invalid request", "Property identifier is invalid");
+    let propertyGranted = false;
+    if (hasScope(context, OWNER_TRUST_APPROVE_SCOPE)) propertyGranted = (await listGrantedProperties(context, OWNER_TRUST_APPROVE_SCOPE)).some(({ id }) => id === propertyNode);
+    if (!propertyGranted && hasScope(context, OWNER_TRUST_POST_SCOPE)) propertyGranted = (await listGrantedProperties(context, OWNER_TRUST_POST_SCOPE)).some(({ id }) => id === propertyNode);
+    if (!propertyGranted)
+      return apiError(context.request, 403, "auth/property_forbidden", "Forbidden", "Property access is not granted");
+    const query = ownerTrustPageQuery(context.request);
+    if (!query) return apiError(context.request, 400, "request/invalid", "Invalid request", "Owner-trust approval query is invalid");
+    if (!this.#ownerTrustExpenses) return this.unavailable(context.request);
+    const approvals = await this.#ownerTrustExpenses.listApprovals(context.tx, { tenantId: context.tenantId, propertyNode,
+      actorId });
+    const offset = query.after ? Number.parseInt(query.after, 10) : 0;
+    if (!Number.isSafeInteger(offset) || offset < 0 || (query.after !== undefined && String(offset) !== query.after))
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Owner-trust approval query is invalid");
+    const limit = query.limit ?? 50; const page = approvals.slice(offset, offset + limit);
+    return apiResponse(context.request, canonicalJson({ approvals: page.map((approval) => ({ ...approval })),
+      nextCursor: offset + page.length < approvals.length ? String(offset + page.length) : null }), 200,
+    { "x-correlation-id": correlationId(context.request) });
+  }
+
+  async decideOwnerTrustExpenseApproval(context: TenantRequestContext, propertyNode: string, approvalId: string, body: unknown,
+    decision: "approved" | "rejected"): Promise<Response> {
+    const denied = await this.requireOwnerTrustGrant(context, propertyNode, OWNER_TRUST_APPROVE_SCOPE); if (denied) return denied;
+    const actorId = context.identity.actorId; if (!actorId) return this.unauthorized(context.request);
+    const bytes = await context.request.clone().arrayBuffer(); const key = context.request.headers.get("idempotency-key") ?? "";
+    if (body !== undefined || bytes.byteLength !== 0 || new URL(context.request.url).search !== "" || !UUID.test(approvalId) ||
+        !IDEMPOTENCY_KEY.test(key)) return apiError(context.request, 400, "request/invalid", "Invalid request", "Owner-trust approval decision input is invalid");
+    if (!this.#ownerTrustExpenses) return this.unavailable(context.request); const requestId = correlationId(context.request);
+    const result = await this.#ownerTrustExpenses.decideApproval(context.tx, { tenantId: context.tenantId, propertyNode,
+      approvalId, decision, idempotencyKey: key, envelope: createAuditEnvelope({ actorId,
+        tenantId: context.tenantId, propertyNode, requestId, operation: "approval.decided" }) });
+    return apiResponse(context.request, canonicalJson({ approvalId: result.approvalId, status: result.status,
+      decidedAt: result.decidedAt, replayed: result.replayed }), 200,
+    { "x-correlation-id": requestId, "idempotency-replayed": String(result.replayed) });
+  }
+
+  async postOwnerTrustExpense(context: TenantRequestContext, propertyNode: string, accountId: string, body: unknown): Promise<Response> {
+    const denied = await this.requireOwnerTrustGrant(context, propertyNode, OWNER_TRUST_POST_SCOPE); if (denied) return denied;
+    const actorId = context.identity.actorId; if (!actorId) return this.unauthorized(context.request);
+    const input = ownerTrustExpenseBody(body, true); const key = context.request.headers.get("idempotency-key") ?? "";
+    if (!input || !UUID.test(accountId) || new URL(context.request.url).search !== "" || !IDEMPOTENCY_KEY.test(key))
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Owner-trust expense posting input is invalid");
+    if (!this.#ownerTrustExpenses) return this.unavailable(context.request); const requestId = correlationId(context.request);
+    const result = await this.#ownerTrustExpenses.postExpense(context.tx, { tenantId: context.tenantId, propertyNode,
+      trustAccountId: accountId, amountMinor: input.amountMinor, reason: input.reason,
+      ...(input.approvalRequestId === undefined ? {} : { approvalId: input.approvalRequestId }), idempotencyKey: key,
+      envelope: createAuditEnvelope({ actorId, tenantId: context.tenantId, propertyNode,
+        requestId, operation: "journal.posted" }) });
+    return apiResponse(context.request, canonicalJson({ journalId: result.journalId, propertyNode: result.propertyNode,
+      businessDate: result.businessDate, currency: result.currency, amountMinor: result.amountMinor,
+      availableBalanceMinor: result.availableBeforeMinor, projectedBalanceMinor: result.projectedAvailableMinor,
+      approvalId: result.approvalRequestId, replayed: result.replayed }), result.replayed ? 200 : 201,
+    { "x-correlation-id": requestId, "idempotency-replayed": String(result.replayed) });
   }
 
   private async requireCarryGrant(context: TenantRequestContext, propertyNode: string, scope: string): Promise<Response | null> {

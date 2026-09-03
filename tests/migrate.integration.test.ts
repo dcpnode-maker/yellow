@@ -1645,6 +1645,7 @@ databaseDescribe("Bun SQL migration runner", () => {
           "0065_business_day_roll_contention_repair.sql",
           "0066_business_day_read_permission.sql",
           "0067_business_day_seal_permission.sql",
+          "0068_prepare_owner_trust_expense.sql",
         ]);
 
         const preservedLedger = await sql<Array<{
@@ -1670,7 +1671,7 @@ databaseDescribe("Bun SQL migration runner", () => {
             FROM public.schema_migration
            ORDER BY version
         `;
-        expect(upgradedLedger).toHaveLength(67);
+        expect(upgradedLedger).toHaveLength(68);
 
         const noOpLog: string[] = [];
         const noOp = await runMigrations({
@@ -1679,7 +1680,7 @@ databaseDescribe("Bun SQL migration runner", () => {
           logger: (message) => noOpLog.push(message),
         });
         expect(noOp.appliedFiles).toEqual([]);
-        expect(noOp.discoveredFiles).toBe(67);
+        expect(noOp.discoveredFiles).toBe(68);
         expect(noOp.transactionBackendPids).toEqual([]);
         expect(noOpLog).toHaveLength(1);
         expect(noOpLog[0]).toContain("applied=0 status=no-op");
@@ -1701,7 +1702,7 @@ databaseDescribe("Bun SQL migration runner", () => {
         }>>`
           SELECT version, filename, checksum_sha256
             FROM public.schema_migration
-           WHERE version IN (44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67)
+           WHERE version IN (44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68)
            ORDER BY version
         `;
         expect(ledger.map((row) => ({ ...row, version: Number(row.version) }))).toEqual([
@@ -1824,6 +1825,11 @@ databaseDescribe("Bun SQL migration runner", () => {
             version: 67,
             filename: "0067_business_day_seal_permission.sql",
             checksum_sha256: "a2c3ae78442c29c56766eae6d718970f39fa493ae1ec30427ac44489cf42b2c5",
+          },
+          {
+            version: 68,
+            filename: "0068_prepare_owner_trust_expense.sql",
+            checksum_sha256: "19eedaa18ae6816825535c98a794c5fa0ed420c4c12776f960183dced1966884",
           },
         ]);
 

@@ -1,5 +1,30 @@
 # UI-SPEC.md — the seven surfaces, one PWA
 
+## Operator owner-trust expense workbench
+
+`/p/{property}/trust` is property-scoped financial control, not a payout, banking,
+owner-statement or reconciliation screen. A maker chooses only a bounded
+server-discovered trust account, enters a formatted positive amount and a 1–500
+UTF-8-byte reason, then requests a fresh authoritative preview. The preview shows
+only currency, available balance, expense, projected balance and whether a
+different-user approval is required; payable accounts, raw ledger rows, approval
+payloads and hashes never enter the browser, and internal ids are never staff-entry
+fields.
+
+Non-negative previews enable a deliberate **Post expense** action. Negative previews
+enable **Request approval** and the bounded checker inbox exposes only minimized
+labels, status, timestamps and server-derived action flags. A different checker may
+approve or reject an exact request; only its maker may use a valid approved request
+for posting. Native confirmation names the exact amount before every decision or
+immutable post. Cancel sends no request and restores action focus. Ambiguous outcomes
+retain the exact retry key; success and definitive rejection clear it and refresh
+authoritative state.
+
+Property, view, draft and request-generation changes suppress late responses. Sign
+out clears trust state. Controls are keyboard-labelled, at least 44px high (48px in
+Android), forced-colour and reduced-motion safe, and horizontally contained at 390px
+and desktop widths in all six approved appearances.
+
 The Day-close discrepancy-carry extension presents a deliberate in-app reason dialog beside authoritative candidates and a separate minimized approval inbox. A different checker may Approve or Reject; the original maker may Carry only after approval. Cancel closes without a request. Ambiguous failures retain the action idempotency key for exact retry, while success clears it and refreshes the whole workbench. Property, view and generation changes suppress stale inbox responses. Dialog, action and retry focus are keyboard-visible; controls are at least 44px and stack without overflow at narrow widths in all approved appearances.
 
 OPERA loses users at the interface: nested modal stacks, mouse-dependent flows,

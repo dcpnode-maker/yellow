@@ -42,6 +42,17 @@ locks both accounts, recomputes immutable posting truth, exact-matches the appro
 payload and records one relational use. Runtime/app roles cannot directly mutate the
 journal approval lineage or `trust_negative_authorization`.
 
+The owner-trust operator workbench preserves that boundary. The HTTP layer checks the
+maker or checker scope and exact property grant before invoking the caller-transaction
+facade. The browser selects only server-discovered opaque account/approval references;
+it cannot submit tenant, actor, payable route, owner identity, balance, evidence
+payload or hash. `prepare_owner_trust_expense` is owner-mediated, fixed-search-path,
+runtime/app-handshake protected and read-only; it locks and rederives the same
+financial truth that final posting rechecks. More than 100 accounts or relevant
+approvals fails the complete read closed. Approval request, decision and final posting
+are separately idempotent; self, stale, mismatched, reused or unauthorized evidence
+cannot confer authority.
+
 ## 3. Data protection
 
 - At rest: full-disk on OCI volumes + pgcrypto column encryption for identity

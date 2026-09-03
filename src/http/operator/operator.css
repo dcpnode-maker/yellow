@@ -2095,3 +2095,38 @@ to { opacity: 1; transform: none; }
 @media (max-width:600px) { .day-close-seal { align-items:stretch; flex-direction:column; } .day-close-seal-open,.day-close-seal-dialog-actions button { width:100%; } .day-close-seal-dialog-actions { flex-direction:column-reverse; } }
 @media (prefers-reduced-motion:reduce) { .day-close-seal,.day-close-seal-dialog,.day-close-seal button,.day-close-seal-dialog button { animation:none; transition:none; transform:none; } }
 @media (forced-colors:active) { .day-close-seal,.day-close-seal-dialog { background:Canvas; border:1px solid CanvasText; color:CanvasText; box-shadow:none; -webkit-backdrop-filter:none; backdrop-filter:none; } .day-close-seal .danger,.day-close-seal-dialog .danger,.day-close-seal-dialog .secondary { background:ButtonFace; border:2px solid ButtonText; color:ButtonText; forced-color-adjust:auto; } :is(.day-close-seal,.day-close-seal-dialog) button:focus-visible { outline:3px solid Highlight; outline-offset:3px; } }
+
+/* Order 386: property-scoped owner-trust expense workbench. */
+.trust-workbench { min-width:0; display:grid; grid-template-columns:minmax(0,1.15fr) minmax(18rem,.85fr); gap:1rem; }
+.trust-command,.trust-preview,.trust-inbox { min-width:0; padding:clamp(1rem,2vw,1.3rem); }
+.trust-command { display:grid; gap:.9rem; }
+.trust-command textarea { min-height:7rem; resize:vertical; }
+.trust-command-actions,.trust-approval-actions { display:flex; flex-wrap:wrap; gap:.65rem; }
+.trust-command-actions button,.trust-approval-actions button,.trust-inbox button { min-height:44px; }
+.trust-preview { align-self:start; display:grid; gap:1rem; }
+.trust-preview h3,.trust-inbox h3,.trust-command h3 { margin:.2rem 0; overflow-wrap:anywhere; }
+.trust-preview dl { margin:0; display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:.7rem; }
+.trust-preview dl > div { min-width:0; padding:.8rem; border:1px solid var(--line); border-radius:var(--control-radius); background:var(--surface-subtle); }
+.trust-preview dt { color:var(--muted); font-size:.72rem; font-weight:800; letter-spacing:.05em; text-transform:uppercase; }
+.trust-preview dd { margin:.35rem 0 0; font-weight:850; overflow-wrap:anywhere; }
+.trust-inbox { grid-column:1/-1; display:grid; gap:.8rem; }
+.trust-approval-list { min-width:0; display:grid; gap:.7rem; }
+.trust-approval-row { min-width:0; display:grid; grid-template-columns:minmax(0,1fr) auto; align-items:center; gap:1rem; padding:.9rem; border:1px solid var(--line); border-radius:var(--control-radius); background:var(--surface-subtle); }
+.trust-approval-copy { min-width:0; display:grid; grid-template-columns:minmax(0,1fr) auto; gap:.3rem .7rem; }
+.trust-approval-copy p,.trust-approval-copy small { grid-column:1/-1; margin:0; overflow-wrap:anywhere; }
+.trust-approval-copy p { line-height:1.45; }
+.trust-approval-copy small { color:var(--muted); }
+:root[data-theme="apple"] :is(.trust-command,.trust-preview,.trust-inbox) { border-width:.5px; border-radius:22px; background:rgba(255,255,255,.96); box-shadow:0 18px 55px rgba(0,0,0,.10); }
+:root[data-theme="android"] :is(.trust-command,.trust-preview,.trust-inbox) { border:0; border-radius:28px 28px 12px 28px; background:#f7fbf8; box-shadow:0 8px 24px rgba(29,25,43,.12); }
+:root[data-theme="android"] :is(.trust-command-actions,.trust-approval-actions,.trust-inbox) button { min-height:48px; border-radius:999px; }
+:root[data-theme="win95"] :is(.trust-command,.trust-preview,.trust-inbox,.trust-preview dl>div,.trust-approval-row) { border:2px outset #fff; border-radius:0; background:#c0c0c0; color:#000; box-shadow:none; font-family:"MS Sans Serif",Tahoma,sans-serif; }
+:root[data-theme="win95"] :is(.trust-preview dl>div,.trust-approval-row) { border-style:inset; }
+:root[data-theme="glass"] :is(.trust-command,.trust-preview,.trust-inbox) { border-color:rgba(255,255,255,.5); background:linear-gradient(145deg,rgba(255,255,255,.30),rgba(126,178,242,.12)); box-shadow:inset 0 1px rgba(255,255,255,.72),0 22px 58px rgba(0,10,40,.30); -webkit-backdrop-filter:blur(26px) saturate(175%); backdrop-filter:blur(26px) saturate(175%); }
+:root[data-theme="glass"] :is(.trust-preview dl>div,.trust-approval-row) { border-color:rgba(255,255,255,.48); background:rgba(255,255,255,.22); -webkit-backdrop-filter:blur(18px); backdrop-filter:blur(18px); }
+:root[data-theme="neo"] :is(.trust-command,.trust-preview,.trust-inbox) { border:0; background:#e8eef1; color:#24343a; box-shadow:-8px -8px 18px #fff,8px 8px 18px #bec8cd; }
+:root[data-theme="neo"] :is(.trust-preview dl>div,.trust-approval-row) { border:0; background:#e8eef1; box-shadow:inset -4px -4px 9px #fff,inset 4px 4px 9px #c1cbd0; }
+:root[data-theme="erp"] :is(.trust-command,.trust-preview,.trust-inbox) { border:1px solid #d9dee7; border-radius:7px; background:#fff; box-shadow:0 8px 20px rgba(16,24,40,.06); }
+@media (max-width:760px) { .trust-workbench { grid-template-columns:minmax(0,1fr); } .trust-inbox { grid-column:auto; } .trust-approval-row { grid-template-columns:minmax(0,1fr); } .trust-command-actions,.trust-command-actions button,.trust-approval-actions,.trust-approval-actions button { width:100%; } }
+@media (max-width:430px) { .trust-preview dl { grid-template-columns:minmax(0,1fr); } }
+@media (prefers-reduced-motion:reduce) { .trust-workbench * { animation:none!important; transition:none!important; transform:none!important; } }
+@media (forced-colors:active) { :is(.trust-command,.trust-preview,.trust-inbox,.trust-preview dl>div,.trust-approval-row) { border:1px solid CanvasText; background:Canvas; color:CanvasText; box-shadow:none; -webkit-backdrop-filter:none; backdrop-filter:none; } :is(.trust-command-actions,.trust-approval-actions,.trust-inbox) button { border:2px solid ButtonText; background:ButtonFace; color:ButtonText; forced-color-adjust:auto; } :is(.trust-command,.trust-preview,.trust-inbox) :focus-visible { outline:3px solid Highlight; outline-offset:3px; } }
