@@ -1,58 +1,37 @@
-# Order 406 — fresh independent Tier-3 review
+# Order 406 — fresh independent Tier-3 re-review after D1197
 
-**Verdict:** CHANGES-REQUIRED-D1197
+**Verdict:** CHANGES-REQUIRED-D1198
 
-**Reviewed candidate:** `79568f1`
+**Reviewed candidate:** `c90575b`
 
 **Approved base:** `c9521d0`
 
-**Reviewer:** `/root/order406_fresh_tier3`, fresh independent non-implementing Tier 3
+**Reviewer:** `/root/order406_rereview`, fresh independent non-implementing Tier 3
 
-## Blocking findings
+## Blocking finding
 
-1. The required PostgreSQL-backed proof is absent. The file named
-   `india-gst-accommodation-final-component-tax-semantic-route.integration.test.ts`
-   supplies a scripted `Tx` that returns caller-authored rows; it never executes the
-   production SQL against Orders259/367 tables, RLS or real constraints. Therefore it
-   cannot prove the order's required stale/superseded/fork/foreign/ambiguous root and
-   child behavior, tenant isolation, configured-route joins, or the complete zero-write
-   census across financial, fiscal, fact, outbox and idempotency state. Order406 is a
-   Tier-3 tenant-scoped statutory-money routing boundary, and D1195 expressly requires
-   complete current ancestry plus a complete zero-write census. Add a real isolated
-   PostgreSQL suite within the already-authorized Order406 integration-test scope and
-   make each required hostile and effect-free claim executable.
+The D1197 repair adds a real PostgreSQL suite, and that suite genuinely executes the production resolver under runtime RLS against exact Order259/367 tables and an actual approved global India extension identity. It does not, however, execute the complete hostile PostgreSQL matrix D1197 explicitly required. Its two live tests cover a valid success, foreign runtime tenant, changed valuation evidence hash and closed tax account. Superseded and forked tax roots, superseded and forked valuation roots, foreign or ambiguous roots, hostile applicability ancestry, and missing/duplicate/reordered/foreign/malformed component children remain covered only by scripted caller-authored rows or not covered at all. The live zero-write census also observes only journals, posting lines/tax detail, documents, fiscal submissions, facts, outbox and API idempotency; it does not census the persisted tax/valuation/applicability/component roots and configured route/account state around each hostile execution.
 
-2. The exact required diff-hygiene gate is red. `git diff --check c9521d0..79568f1`
-   exits 2 and reports a new blank line at EOF in both the production resolver at line
-   360 and the intentional-red test at line 29. Remove only those two extra EOF blank
-   lines.
+D1197 required each named hostile and effect-free claim to become executable against real isolated PostgreSQL. A two-case live smoke test is valuable but does not discharge that requirement. Extend the already-authorized integration test so the production SQL personally encounters every named current-root/current-valuation/applicability/child/route hostility and compare a complete before/after census for every rejection. Produce a new candidate and restart fresh Tier-3 review.
 
-No product correctness approval can be inferred from mock-only greens. A repaired
-candidate and a fresh independent Tier-3 restart are mandatory.
+## Repair inspection
+
+The production repair no longer attempts an RLS-invisible runtime join to global `extension`. It binds the exact two global India lodging extension ids, versions, statuses and approved content hashes already fixed by migrations 0069/0070, while retaining persisted applicability evidence as the selected authority. The route query now selects `semantic_kind`, allowing its existing strict decoder to validate the configured semantic group. The two D1197 EOF diff-hygiene findings are repaired.
 
 ## Reviewer-personal execution
 
-I read `PROJECT.md`, ran current state, read Orders406/259/367, D1195/D1196,
-roster/workflow, and the complete Yellow PostgreSQL, compliance and entity skills. I
-did not implement the candidate.
+Against exact `c90575b`, using a disposable PostgreSQL 16.15 container and databases only, I personally obtained:
 
-Against exact `79568f1`, I personally obtained:
-
-- focused Order406 plus adjacent Order259/367 no-database matrix: **23 pass, 16
-  expected skips, 0 fail, 733 assertions**; Order406 itself is **8/0 (60)**;
-- standing suite: **1,318 pass, 1,008 expected database skips, 0 fail, 19,578
-  assertions across 433 files**;
+- Order406 scripted plus live PostgreSQL/RLS suite: **10/10, 70 assertions**;
+- adjacent Order259 live PostgreSQL suite: **10/10, 139 assertions**;
+- adjacent Order367 live PostgreSQL suite: **18/18, 694 assertions**;
+- standing suite: **1,318 pass, 1,012 expected database skips, 0 fail, 19,578 assertions across 433 files**;
+- fresh referee: **11 passed, 0 failed of 11**;
 - strict TypeScript check passed;
 - import boundaries passed across **146 TypeScript files**;
 - dependency licence policy passed for **23 installed packages**;
 - production dependency audit reported no vulnerabilities;
-- exact candidate scope is nine authorized files, **684 insertions and one deletion**;
-- exact diff check failed as described above.
+- exact diff check `c9521d0..c90575b` passed;
+- exact candidate diff contains only the ten authorized Order406 product, test, documentation and governance paths.
 
-I did not run schema/referee gates because Order406 changes no migration or schema and
-the approval attempt was already blocked. More importantly, the missing focused live
-PostgreSQL proof cannot be substituted by a generic referee run.
-
-No product, test, migration, schema, stable database, local app, deployment, merge,
-push or credential mutation was performed. The untracked `.yellow/` directory already
-present when review began was not accessed or changed.
+No product, test, migration, schema, stable database, local app, deployment, merge, push or credential mutation was performed. The disposable review container, databases, network and volume were removed after proof. The pre-existing untracked `.yellow/` directory was not accessed or changed.
