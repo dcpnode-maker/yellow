@@ -86,7 +86,7 @@ describe("Order 212 exact operator reservation travel adapter", () => {
     expect(source).toContain("context, params.property, params.reservation, params.direction, body");
     expect(server).toContain("new ReservationTravelService({ events, idempotency: new PostgresIdempotency() })");
     expect(server).toContain(
-      "vehicleRegister, reservationTravel, pickupTaskDispatch, arrivalRoomCleaning, housekeepingDiscrepancies, vehicleParking)",
+      "vehicleRegister, reservationTravel, pickupTaskDispatch, arrivalRoomCleaning, housekeepingDiscrepancies, vehicleParking, undefined, undefined, businessDayCarry)",
     );
   });
 

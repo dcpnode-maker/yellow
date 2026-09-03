@@ -117,7 +117,7 @@ describe("Order 105 operator folio workbench", () => {
     const folioStart = script.indexOf("  function isCurrentFolioRequest(");
     const directBillingStart = script.indexOf("  function receivableTransferBody(", folioStart);
     const directBillingEnd = script.indexOf("  function folioCell(", directBillingStart);
-    const folioEnd = script.indexOf("  function setView(", folioStart);
+    const folioEnd = script.indexOf(" function dayCloseRouteDate(", folioStart);
     const folioSurface = `${script.slice(folioStart, directBillingStart)}${script.slice(directBillingEnd, folioEnd)}`;
     expect(folioSurface).toContain("cell.textContent");
     expect(folioSurface).toContain('folioBalance.textContent = exactFolioMinor(statement.balanceMinor, "server balance")');
