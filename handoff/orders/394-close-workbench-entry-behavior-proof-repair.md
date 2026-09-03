@@ -1,6 +1,6 @@
 # Order 394 — Close-workbench entry behavior-proof repair
 
-**Status:** ACTIVE-D1136
+**Status:** BUILT-PENDING-FRESH-TIER3-REVIEW-D1137
 **Phase:** 5 — Financials operator delivery proof repair
 **Branch:** `phase-5/operator-business-day-close-workbench`
 **Base:** exact withheld Order393 review tip `471c3f8`
