@@ -121,7 +121,7 @@ describe("Order384 operator business-day close workbench", () => {
     expect(JSON.stringify(await absent.json())).not.toContain("private");
   });
 
-  test("exposes only GET plus a read-only deep link and stale-safe accessible UI", () => {
+  test("preserves read-only workbench GETs beside the governed seal POST and stale-safe accessible UI", () => {
     expect(app).toContain('.get("/p/:property/day-close"');
     expect(app).toContain('.get("/api/v1/properties/:property/business-days/close-workbench"');
     expect(app).toContain('.get("/api/v1/properties/:property/business-days/:businessDate/close-workbench"');
@@ -137,7 +137,9 @@ describe("Order384 operator business-day close workbench", () => {
     expect(loader).toContain("business-days/close-workbench");
     expect(loader).toContain("business-days/${enc(selected)}/close-workbench");
     expect(loader).not.toContain("new Date");
-    expect(script).not.toMatch(/(?:seal).{0,40}(?:submit|button)|(?:submit|button).{0,40}(?:seal)/i);
+    expect(app.match(/\.post\("\/api\/v1\/properties\/:property\/business-days\/:businessDate\/seal"/g)).toHaveLength(1);
+    expect(script).toContain("dayCloseSealForm.addEventListener");
+    expect(script).toContain('method: "POST", headers: { "Idempotency-Key": key }');
     expect(script).toContain("Request carry approval");
   });
 

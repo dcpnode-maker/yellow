@@ -160,6 +160,10 @@ export function createApp(options: AppOptions = {}) {
           context, params.property, params.businessDate,
         ))
       )
+      .post("/api/v1/properties/:property/business-days/:businessDate/seal", ({ request, params, body, tenantContext }) =>
+        withOperatorTenant(request, (context) => operator.sealBusinessDay(
+          context, params.property, params.businessDate, body,
+        )), { parse: "none" })
       .post("/api/v1/properties/:property/business-days/:businessDate/close-workbench/carry-candidates/:discrepancyId/approvals", ({ request, params, body, tenantContext }) =>
         withOperatorTenant(request, (context) => operator.requestBusinessDayCarryApproval(context, params.property, params.businessDate, params.discrepancyId, body)))
       .get("/api/v1/properties/:property/business-days/close-workbench/carry-approvals", ({ request, params, tenantContext }) =>

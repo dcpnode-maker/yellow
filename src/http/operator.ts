@@ -27,6 +27,9 @@ import {
   CashierValidationError,
   BusinessDayCloseWorkbenchUnavailableError,
   BusinessDayCloseWorkbenchValidationError,
+  BusinessDaySealConflictError,
+  BusinessDaySealService,
+  BusinessDaySealValidationError,
   BusinessDayDiscrepancyCarryOperatorConflictError,
   BusinessDayDiscrepancyCarryOperatorService,
   BusinessDayDiscrepancyCarryOperatorUnavailableError,
@@ -262,6 +265,7 @@ const RECEIVABLE_READ_SCOPE = "financials.receivables:read";
 const RECEIVABLE_TRANSFER_SCOPE = "financials.receivables:transfer";
 const RECEIVABLE_APPROVE_SCOPE = "financials.receivables:approve";
 const BUSINESS_DAY_READ_SCOPE = "financials.business-days:read";
+const BUSINESS_DAY_SEAL_SCOPE = "financials.business-days:seal";
 const BUSINESS_DAY_CARRY_SCOPE = "financials.business-day:carry-discrepancy";
 const BUSINESS_DAY_CARRY_APPROVE_SCOPE = "financials.business-day:approve-discrepancy-carry";
 const CHECKIN_READ_SCOPE = "stay-operations.checkin:read";
@@ -1612,6 +1616,7 @@ type BusinessDayCloseWorkbenchEntryLoader = (
 ) => Promise<Readonly<{ businessDate: string }>>;
 type BusinessDayCarryOperations = Pick<BusinessDayDiscrepancyCarryOperatorService,
   "requestApproval" | "listApprovals" | "decideApproval" | "carry">;
+type BusinessDaySealOperations = Pick<BusinessDaySealService, "seal">;
 interface CheckoutReadinessOperations {
   read(input: Readonly<{
     tenantId: string;
@@ -2084,6 +2089,7 @@ export class OperatorHttpApi {
   readonly #businessDayCloseWorkbench: BusinessDayCloseWorkbenchLoader;
   readonly #businessDayCloseWorkbenchEntry: BusinessDayCloseWorkbenchEntryLoader;
   readonly #businessDayCarry?: BusinessDayCarryOperations;
+  readonly #businessDaySeal?: BusinessDaySealOperations;
 
   constructor(
     login: LocalLoginService,
@@ -2130,6 +2136,7 @@ export class OperatorHttpApi {
     businessDayCloseWorkbench: BusinessDayCloseWorkbenchLoader = loadBusinessDayCloseWorkbench,
     businessDayCloseWorkbenchEntry: BusinessDayCloseWorkbenchEntryLoader = loadBusinessDayCloseWorkbenchEntry,
     businessDayCarry?: BusinessDayCarryOperations,
+    businessDaySeal?: BusinessDaySealOperations,
   ) {
     this.#login = login;
     this.#availability = availability;
@@ -2175,6 +2182,7 @@ export class OperatorHttpApi {
     this.#businessDayCloseWorkbench = businessDayCloseWorkbench;
     this.#businessDayCloseWorkbenchEntry = businessDayCloseWorkbenchEntry;
     this.#businessDayCarry = businessDayCarry;
+    this.#businessDaySeal = businessDaySeal;
   }
 
   unavailable(request: Request): Response {
@@ -2186,6 +2194,12 @@ export class OperatorHttpApi {
   }
 
   failure(request: Request, error: unknown): Response {
+    if (error instanceof BusinessDaySealValidationError) {
+      return apiError(request, 400, "request/invalid", "Invalid request", "Business-day seal input is invalid");
+    }
+    if (error instanceof BusinessDaySealConflictError) {
+      return apiError(request, 409, "financials/conflict", "Conflict", "Business day could not be sealed; refresh and try again");
+    }
     if (error instanceof BusinessDayCloseWorkbenchValidationError) {
       return apiError(request, 400, "request/invalid", "Invalid request", "Business-day close workbench input is invalid");
     }
@@ -2560,6 +2574,52 @@ export class OperatorHttpApi {
     return apiResponse(context.request, canonicalJson(result), 200, {
       "x-correlation-id": correlationId(context.request),
     });
+  }
+
+  async sealBusinessDay(
+    context: TenantRequestContext,
+    propertyNode: string,
+    businessDate: string,
+    body: unknown,
+  ): Promise<Response> {
+    const actorId = context.identity.actorId;
+    if (!actorId) return this.unauthorized(context.request);
+    if (!hasScope(context, BUSINESS_DAY_SEAL_SCOPE)) {
+      return apiError(context.request, 403, "auth/scope_missing", "Forbidden", "Business-day seal access is not granted");
+    }
+    const requestBytes = await context.request.clone().arrayBuffer();
+    const idempotencyKey = context.request.headers.get("idempotency-key") ?? "";
+    const parsedBusinessDate = new Date(`${businessDate}T00:00:00.000Z`);
+    if (body !== undefined || requestBytes.byteLength !== 0 || new URL(context.request.url).search !== "" ||
+        !UUID.test(propertyNode) || !LOCAL_DATE.test(businessDate) ||
+        !Number.isFinite(parsedBusinessDate.valueOf()) ||
+        parsedBusinessDate.toISOString().slice(0, 10) !== businessDate ||
+        !IDEMPOTENCY_KEY.test(idempotencyKey)) {
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Business-day seal request is invalid");
+    }
+    const grants = await listGrantedProperties(context, BUSINESS_DAY_SEAL_SCOPE);
+    if (!grants.some(({ id }) => id === propertyNode)) {
+      return apiError(context.request, 403, "auth/property_forbidden", "Forbidden", "Property access is not granted");
+    }
+    if (!this.#businessDaySeal) return this.unavailable(context.request);
+    const requestId = correlationId(context.request);
+    const result = await this.#businessDaySeal.seal(context.tx, {
+      tenantId: context.tenantId,
+      propertyNode,
+      businessDate,
+      actorId,
+      idempotencyKey,
+      envelope: createAuditEnvelope({ actorId, tenantId: context.tenantId, propertyNode, requestId,
+        operation: "business_day.sealed" }),
+    });
+    return apiResponse(context.request, canonicalJson({
+      propertyNode: result.propertyNode,
+      businessDate: result.businessDate,
+      previousState: result.previousState,
+      state: result.state,
+      sealedAt: result.sealedAt,
+      replayed: result.replayed,
+    }), 200, { "x-correlation-id": requestId, "idempotency-replayed": String(result.replayed) });
   }
 
   private async requireCarryGrant(context: TenantRequestContext, propertyNode: string, scope: string): Promise<Response | null> {

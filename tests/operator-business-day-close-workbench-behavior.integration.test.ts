@@ -64,6 +64,8 @@ function createHarness(request: (url: string) => Promise<unknown>, routeDate: st
     const dayCloseRetry = { addEventListener(_event, listener) { listeners.retry = listener; }, focus() {} };
     const dayCloseDate = { value: "", disabled: false, replaceChildren() {} };
     const dayCloseStatus = { textContent: "" };
+    const dayCloseSeal = { hidden: true };
+    const dayCloseSealOpen = { disabled: true };
     const enc = encodeURIComponent;
     const dayCloseRouteDate = () => initialRouteDate;
     const renderDayClose = (result, focus) => {

@@ -324,6 +324,15 @@
  const dayCloseReasons = $("#day-close-reasons");
  const dayCloseCandidates = $("#day-close-candidates");
  const dayCloseStatus = $("#day-close-status");
+ const dayCloseSeal = $("#day-close-seal");
+ const dayCloseSealOpen = $("#day-close-seal-open");
+ const dayCloseSealDialog = $("#day-close-seal-dialog");
+ const dayCloseSealForm = $("#day-close-seal-form");
+ const dayCloseSealCancel = $("#day-close-seal-cancel");
+ const dayCloseSealConfirm = $("#day-close-seal-confirm");
+ const dayCloseSealDialogDate = $("#day-close-seal-dialog-date");
+ let dayCloseSealDraft = null;
+ let dayCloseSealAttempt = null;
  const dayCloseCarryKeys = new Map();
  let dayCloseApprovalGeneration = 0;
  const dayCloseApprovals = node("section", "card day-close-approvals");
@@ -9557,6 +9566,12 @@ function vehicleReturnPathFromState(state, property) {
    }); item.append(action); return item;
   }) :
    [node("li", "list-empty", selected === result.currentOpenBusinessDate ? "The current open day has no carry candidates." : "No safely attributable candidates were returned.")]));
+  if (typeof dayCloseSeal !== "undefined") {
+   dayCloseSeal.hidden = result.readiness.ready !== true;
+   dayCloseSealOpen.disabled = result.readiness.ready !== true;
+   if (result.readiness.ready === true) dayCloseSealOpen.dataset.businessDate = selected;
+   else delete dayCloseSealOpen.dataset.businessDate;
+  }
   dayCloseContent.hidden = false;
   dayCloseError.hidden = true;
   dayCloseStatus.textContent = `Authoritative snapshot captured ${reservationDateTime(result.capturedAt)}. No changes were made.`;
@@ -9564,6 +9579,66 @@ function vehicleReturnPathFromState(state, property) {
   if (focus) $("#day-close-workbench-title").focus({ preventScroll: true });
   void loadDayCloseCarryApprovals();
  }
+ function dayCloseSealIsCurrent(draft) {
+  return Boolean(draft && activeView === "day-close" && draft.property === propertySelect.value &&
+   draft.businessDate === dayCloseDate.value && draft.generation === dayCloseRequestGeneration);
+ }
+ function dayCloseSealOutcomeIsAmbiguous(error) {
+  return !Number.isInteger(error?.status) || error.status >= 500 || [408, 425, 429].includes(error.status);
+ }
+ function closeDayCloseSealDialog() {
+  if (dayCloseSealDialog.open) dayCloseSealDialog.close();
+ }
+ if (typeof dayCloseSealOpen !== "undefined") dayCloseSealOpen.addEventListener("click", () => {
+  const businessDate = dayCloseSealOpen.dataset.businessDate;
+  if (!businessDate || dayCloseSeal.hidden || dayCloseSealOpen.disabled) return;
+  dayCloseSealDraft = { property: propertySelect.value, businessDate, generation: dayCloseRequestGeneration, returnFocus: dayCloseSealOpen };
+  dayCloseSealDialogDate.textContent = businessDate;
+  dayCloseSealDialog.showModal();
+  dayCloseSealCancel.focus({ preventScroll: true });
+ });
+ if (typeof dayCloseSealCancel !== "undefined") dayCloseSealCancel.addEventListener("click", () => {
+  const control = dayCloseSealDraft?.returnFocus;
+  closeDayCloseSealDialog();
+  if (control?.isConnected && !control.hidden) control.focus({ preventScroll: true });
+ });
+ if (typeof dayCloseSealDialog !== "undefined") dayCloseSealDialog.addEventListener("close", () => {
+  const control = dayCloseSealDraft?.returnFocus;
+  dayCloseSealDraft = null;
+  if (control?.isConnected && !control.hidden) control.focus({ preventScroll: true });
+ });
+ if (typeof dayCloseSealForm !== "undefined") dayCloseSealForm.addEventListener("submit", async (event) => {
+  event.preventDefault();
+  const draft = dayCloseSealDraft;
+  if (!dayCloseSealIsCurrent(draft)) { closeDayCloseSealDialog(); return; }
+  const identity = `${draft.property}:${draft.businessDate}`;
+  const key = dayCloseSealAttempt?.identity === identity ? dayCloseSealAttempt.key : crypto.randomUUID();
+  if (!/^[\x20-\x7e]{8,200}$/.test(key)) throw new Error("The seal retry identity is invalid.");
+  dayCloseSealAttempt = { identity, key };
+  dayCloseSealConfirm.disabled = true;
+  dayCloseSealCancel.disabled = true;
+  let status = "Seal outcome is unknown. Authoritative state is being refreshed; retry will use the same identity.";
+  try {
+   await request(`/api/v1/properties/${enc(draft.property)}/business-days/${enc(draft.businessDate)}/seal`,
+    { method: "POST", headers: { "Idempotency-Key": key } });
+   dayCloseSealAttempt = null;
+   status = `Business day ${draft.businessDate} was sealed. Authoritative open-day state is being refreshed.`;
+  } catch (error) {
+   if (!dayCloseSealOutcomeIsAmbiguous(error)) dayCloseSealAttempt = null;
+   status = dayCloseSealOutcomeIsAmbiguous(error)
+    ? "Seal outcome is unknown. Authoritative state is being refreshed; retry will use the same identity."
+    : `${error instanceof Error ? error.message : "The business day was not sealed"}. Authoritative state is being refreshed.`;
+  } finally {
+   const current = dayCloseSealIsCurrent(draft);
+   closeDayCloseSealDialog();
+   dayCloseSealConfirm.disabled = false;
+   dayCloseSealCancel.disabled = false;
+   if (current) {
+    dayCloseStatus.textContent = status;
+    await loadDayCloseWorkbench({ businessDate: draft.businessDate, focus: true, recoverSealed: true, completionStatus: status });
+   }
+  }
+ });
  async function runDayCloseApprovalAction(approval, action, button) {
   const identity = `${action}:${approval.approvalId}`; const key = dayCloseCarryKeys.get(identity) || crypto.randomUUID(); dayCloseCarryKeys.set(identity, key);
   button.disabled = true;
@@ -9587,7 +9662,7 @@ function vehicleReturnPathFromState(state, property) {
    }) : [node("li", "list-empty", "No carry approvals are available.")]));
   } catch (error) { if (generation === dayCloseApprovalGeneration) dayCloseApprovalList.replaceChildren(node("li", "list-empty", error instanceof Error ? error.message : "Approvals are unavailable.")); }
  }
- async function loadDayCloseWorkbench({ businessDate = dayCloseRouteDate(), focus = false } = {}) {
+ async function loadDayCloseWorkbench({ businessDate = dayCloseRouteDate(), focus = false, recoverSealed = false, completionStatus = "" } = {}) {
   const property = propertySelect.value;
   if (!property) return;
   const generation = ++dayCloseRequestGeneration;
@@ -9596,6 +9671,8 @@ function vehicleReturnPathFromState(state, property) {
   dayCloseError.hidden = true;
   dayCloseRefresh.disabled = true;
   dayCloseDate.disabled = true;
+  dayCloseSeal.hidden = true;
+  dayCloseSealOpen.disabled = true;
   try {
    let selected = businessDate;
    if (!selected) {
@@ -9608,8 +9685,13 @@ function vehicleReturnPathFromState(state, property) {
    const result = await request(`/api/v1/properties/${enc(property)}/business-days/${enc(selected)}/close-workbench`);
    if (generation !== dayCloseRequestGeneration || activeView !== "day-close" || property !== propertySelect.value) return;
    renderDayClose(result, focus);
+   if (completionStatus) dayCloseStatus.textContent = completionStatus;
   } catch (error) {
    if (generation !== dayCloseRequestGeneration || activeView !== "day-close" || property !== propertySelect.value) return;
+   if (recoverSealed && businessDate && error?.status === 404) {
+    await loadDayCloseWorkbench({ businessDate: null, focus, completionStatus });
+    return;
+   }
    dayCloseContent.hidden = true;
    dayCloseError.hidden = false;
    dayCloseError.querySelector("p").textContent = error instanceof Error ? error.message : "No financial conclusion was made.";

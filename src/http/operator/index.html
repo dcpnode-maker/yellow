@@ -121,7 +121,7 @@
 </aside>
 <section id="day-close-view" hidden aria-labelledby="day-close-title">
 <div class="section-heading day-close-heading">
-<div><p class="eyebrow">Financial control</p><h2 id="day-close-title" tabindex="-1">Business-day close</h2><p class="muted">Review persisted close readiness and safely attributable discrepancy candidates. This surface cannot seal or carry anything.</p></div>
+<div><p class="eyebrow">Financial control</p><h2 id="day-close-title" tabindex="-1">Business-day close</h2><p class="muted">Review persisted close readiness, resolve safely attributable discrepancies, and deliberately seal a ready day.</p></div>
 <button class="quiet" id="day-close-refresh" type="button">Refresh authoritative state</button>
 </div>
 <section class="day-close-workbench" id="day-close-workbench" aria-busy="false" aria-labelledby="day-close-workbench-title">
@@ -142,10 +142,12 @@
 <section class="card" aria-labelledby="day-close-reasons-title"><h3 id="day-close-reasons-title">Readiness reasons</h3><ul id="day-close-reasons"></ul></section>
 <section class="card" aria-labelledby="day-close-candidates-title"><h3 id="day-close-candidates-title">Carry candidates</h3><p class="muted">Visibility only. A separate governed command is required to carry a discrepancy.</p><ul id="day-close-candidates"></ul></section>
 </div>
+<section class="card day-close-seal" id="day-close-seal" hidden aria-labelledby="day-close-seal-title"><div><p class="eyebrow">Irreversible financial control</p><h3 id="day-close-seal-title">Seal selected business day</h3><p class="muted">Sealing permanently closes ordinary posting for this property day. Readiness is checked again by the server.</p></div><button class="danger day-close-seal-open" id="day-close-seal-open" type="button">Seal business day</button></section>
 <p class="inventory-status" id="day-close-status" role="status" aria-live="polite"></p>
 </div>
 </section>
 </section>
+<dialog class="day-close-seal-dialog" id="day-close-seal-dialog" aria-labelledby="day-close-seal-dialog-title" aria-describedby="day-close-seal-dialog-copy"><form method="dialog" id="day-close-seal-form"><p class="eyebrow">Irreversible financial control</p><h3 id="day-close-seal-dialog-title">Seal this business day?</h3><p id="day-close-seal-dialog-copy">This permanently blocks ordinary posting to <strong id="day-close-seal-dialog-date">the selected day</strong>. It cannot be reopened from this workbench.</p><div class="day-close-seal-dialog-actions"><button class="secondary" id="day-close-seal-cancel" type="button">Cancel</button><button class="danger" id="day-close-seal-confirm" type="submit">Confirm seal</button></div></form></dialog>
 <section id="status-view" hidden aria-labelledby="status-title">
 <div class="section-heading status-heading">
 <div>

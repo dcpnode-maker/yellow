@@ -1221,3 +1221,28 @@ their six dedicated materials, density, borders, elevation and control treatment
 preserving identical information, order and authority. Reduced motion removes
 nonessential transitions, and forced-colours mode replaces decorative material, blur and
 shadow with system colours and visible boundaries.
+
+## 42. Audited business-day seal
+
+The day-close workbench exposes **Seal business day** only when the exact selected
+day's freshly loaded authoritative `readiness.ready` is `true`. It is absent—not a
+disabled promise—during loading, errors, blocked readiness, property/view/date changes
+and stale responses. The browser never supplies readiness, force, reopen, carry,
+batch or automatic-seal instructions.
+
+Activation opens one deliberate native dialog naming the selected business date and
+explaining that ordinary posting is permanently blocked. Cancel and Escape make no
+request and restore focus to the invoking control. Confirm sends an exact zero-byte
+`POST` with only the authenticated request headers and one visible-ASCII 8–200 byte
+idempotency key. A transport, timeout, rate-limit or server outcome retains that key;
+a success or definitive client rejection clears it. Keys are bound to exact property
+and business date and are never reused for a different seal attempt.
+
+Every current result—success, rejection or ambiguity—reloads authoritative workbench
+truth before presenting a conclusion. When a dated workbench becomes missing because
+the day was sealed, the browser performs the undated server discovery flow and loads
+the next persisted open day; it never computes a replacement date. Property, active
+view, selected date and request generation suppress late dialog, seal and refresh
+results. The control and dialog preserve semantic order, visible keyboard focus,
+44-pixel targets (48 pixels on Android), 375-pixel/200%-zoom containment, forced-colour
+boundaries, reduced motion and the six approved appearance materials.
