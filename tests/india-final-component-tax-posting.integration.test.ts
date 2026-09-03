@@ -147,15 +147,19 @@ databaseDescribe("Order 407 live PostgreSQL contract", () => {
       WHERE tenant_id=${FOREIGN_TENANT}::uuid`);
     expect(visible).toEqual([{ count: 0 }]);
 
-    let error: unknown;
-    try {
-      await database.withTenantTransaction(TENANT, (tx) => tx`
-        DELETE FROM india_gst_accommodation_final_component_tax_journal_binding
-        WHERE tenant_id=${TENANT}::uuid`);
-    } catch (caught) {
-      error = caught;
+    for (const statement of ["INSERT", "UPDATE", "DELETE"] as const) {
+      let error: unknown;
+      try {
+        await database.withTenantTransaction(TENANT, (tx) => {
+          if (statement === "INSERT") return tx`INSERT INTO india_gst_accommodation_final_component_tax_journal_binding(tenant_id,id,property_node,posted_by,tax_id,tax_generation,tax_evidence_hash,valuation_id,valuation_generation,applicability_id,reservation_id,folio_id,guest_account_id,journal_id,business_date,currency) VALUES(${TENANT}::uuid,${id(407020)}::uuid,${id(407021)}::uuid,${id(407022)}::uuid,${id(407023)}::uuid,0,${"0".repeat(64)},${id(407024)}::uuid,0,${id(407025)}::uuid,${id(407026)}::uuid,${id(407027)}::uuid,${id(407029)}::uuid,${id(407028)}::uuid,CURRENT_DATE,'INR')`;
+          if (statement === "UPDATE") return tx`UPDATE india_gst_accommodation_final_component_tax_journal_binding SET currency='INR' WHERE tenant_id=${TENANT}::uuid`;
+          return tx`DELETE FROM india_gst_accommodation_final_component_tax_journal_binding WHERE tenant_id=${TENANT}::uuid`;
+        });
+      } catch (caught) {
+        error = caught;
+      }
+      expect(sqlState(error), statement).toBe("42501");
     }
-    expect(sqlState(error)).toBe("42501");
   });
 
   test("every durable binding points to one exactly balanced canonical journal", async () => {
@@ -222,8 +226,23 @@ interface Journey {
   reservation: string;
   folio: string;
   tax: string;
+  valuation: string;
+  applicability: string;
+  guestAccount: string;
   revenueAccount: string;
   taxAccounts: readonly string[];
+  revenueMapping: string;
+  taxMappings: readonly string[];
+  roomCode: string;
+  taxCodes: readonly string[];
+  currentDay: string;
+}
+
+type ComponentFamily = "igst" | "cgst_sgst" | "cgst_utgst";
+interface JourneyOptions {
+  readonly value?: bigint;
+  readonly rateBasisPoints?: number;
+  readonly roomNights?: readonly Readonly<{ value: bigint; components: readonly bigint[] }>[];
 }
 
 class FailSecondPublish implements EventBus {
@@ -255,8 +274,9 @@ databaseDescribe("Order407 real governed service journeys", () => {
   }
 
   async function seedJourney(
-    family: "igst" | "cgst_sgst",
+    family: ComponentFamily,
     amounts: readonly bigint[],
+    options: JourneyOptions = {},
   ): Promise<Journey> {
     const n = ++serial;
     const tenant = crypto.randomUUID(), property = crypto.randomUUID(), actor = crypto.randomUUID();
@@ -268,12 +288,15 @@ databaseDescribe("Order407 real governed service journeys", () => {
     const valuation = crypto.randomUUID(), applicability = crypto.randomUUID(), tax = crypto.randomUUID();
     const quoteHash = hash(`${n}a`), valuationHash = hash(`${n}b`), applicabilityHash = hash(`${n}c`), taxHash = hash(`${n}d`);
     const currentDay = (await deploy<Array<{ business_date: string }>>`SELECT (transaction_timestamp() AT TIME ZONE 'UTC')::date::text business_date`)[0]!.business_date;
-    const value = 100000n, taxTotal = amounts.reduce((sum, amount) => sum + amount, 0n);
+    const nights = options.roomNights ?? [{ value: options.value ?? 100000n, components: amounts }];
+    const value = nights.reduce((sum, night) => sum + night.value, 0n);
+    const taxTotal = nights.reduce((sum, night) => sum + night.components.reduce((part, amount) => part + amount, 0n), 0n);
+    const nightDates = await deploy<Array<{ business_date: string }>>`SELECT (${currentDay}::date+ordinal::int)::text business_date FROM generate_series(0,${nights.length - 1}) ordinal ORDER BY ordinal`;
     const snapshot = createPositiveTaxAttributionSnapshot({
       origin: { kind: "rate_quote", quoteHash }, currency: "INR",
-      line: { lineId: "room", revenueGroup: "room_revenue", amountMinor: value, nights: 1, personNights: 2,
-        roomNights: [{ businessDate: currentDay, amountMinor: value }] },
-      assignments: [{ businessDate: currentDay, jurisdictionKey: "in-gst-lodging", evidenceRef: `tax-assignment:${quoteHash}` }],
+      line: { lineId: "room", revenueGroup: "room_revenue", amountMinor: value, nights: nights.length, personNights: nights.length * 2,
+        roomNights: nights.map((night, index) => ({ businessDate: nightDates[index]!.business_date, amountMinor: night.value })) },
+      assignments: nightDates.map(({ business_date }, index) => ({ businessDate: business_date, jurisdictionKey: "in-gst-lodging", evidenceRef: `tax-assignment:${hash(`${n}f${index}`)}` })),
       jurisdiction: { extensionId: extension, ownerTenantId: null, key: "in-gst-lodging", version: 2,
         contentHash: extensionHash, evidenceRef: `tax-jurisdiction:${hash(`${n}e`)}` },
       evaluation: { schemaVersion: 1, jurisdictionKey: "in-gst-lodging", country: "IN",
@@ -281,8 +304,8 @@ databaseDescribe("Order407 real governed service journeys", () => {
         baseTotalMinor: value, taxTotalMinor: taxTotal, grandTotalMinor: value + taxTotal,
         taxes: [{ code: "GST_ROOM", name: "GST", taxMinor: taxTotal, components: [] }] },
     });
-    const identities = family === "igst" ? ["igst"] : ["cgst", "sgst"];
-    const semantic = family === "igst" ? ["IGST"] : ["CGST", "SGST"];
+    const identities = family === "igst" ? ["igst"] : family === "cgst_sgst" ? ["cgst", "sgst"] : ["cgst", "utgst"];
+    const semantic = family === "igst" ? ["IGST"] : family === "cgst_sgst" ? ["CGST", "SGST"] : ["CGST", "UTGST"];
     const revenueAccount = crypto.randomUUID();
     const taxAccounts = identities.map(() => crypto.randomUUID());
     const revenueMapping = crypto.randomUUID();
@@ -311,8 +334,11 @@ databaseDescribe("Order407 real governed service journeys", () => {
       await tx`INSERT INTO india_gst_accommodation_final_valuation(tenant_id,id,property_node,reservation_id,folio_id,folio_account_id,window_no,buyer_party_id,attribution_id,request_id,generation,disposition,currency,transaction_value_minor,source_set_hash,order341_evidence_hash,request_hash,evidence_hash,ordinary_evidence_hashes,manual_reasons,relationship_conclusion,consideration_conclusion,section15_2_conclusion,section15_3_conclusion,source_completeness_conclusion,attestation_evidence_source,attestation_evidence_reference,relationship_set_hash,attested_by,actor_id) VALUES(${tenant}::uuid,${valuation}::uuid,${property}::uuid,${reservation}::uuid,${folio}::uuid,${guestAccount}::uuid,1,${party}::uuid,${attribution}::uuid,${crypto.randomUUID()}::uuid,0,'ordinary_final','INR',${value},${hash(`${n}1`)},${applicabilityHash},${hash(`${n}2`)},${valuationHash},ARRAY[${hash(`${n}3`)},${hash(`${n}4`)},${hash(`${n}5`)},${hash(`${n}6`)},${hash(`${n}7`)}],ARRAY[]::text[],'unrelated_not_distinct','money_only','all_additions_enumerated','all_discounts_eligible','all_sources_classified','order407.fixture','live',${hash(`${n}9`)},${actor}::uuid,${actor}::uuid)`;
       await tx`INSERT INTO india_gst_accommodation_quoted_rate_applicability(tenant_id,id,property_node,reservation_id,folio_id,reservation_lineage_id,attribution_id,service_provision_snapshot_id,payment_receipt_snapshot_id,invoice_issue_snapshot_id,family_jurisdiction_extension_id,classification_id,supplier_service_location_id,supplier_sez_status_id,recipient_sez_status_id,recipient_party_id,final_valuation_id,request_id,section14_case,service_provision_date,invoice_issue_date,payment_receipt_date,rate_change_date,time_of_supply_date,selected_version_side,selected_extension_id,selected_extension_version,selected_extension_status,selected_content_hash,selected_effective_from,component_family,section14_evidence_hash,levy_component_identity_evidence_hash,reservation_lineage_evidence_hash,attribution_snapshot_evidence_hash,evidence_hash,actor_id) VALUES(${tenant}::uuid,${applicability}::uuid,${property}::uuid,${reservation}::uuid,${folio}::uuid,${lineage}::uuid,${attribution}::uuid,${crypto.randomUUID()}::uuid,${crypto.randomUUID()}::uuid,${crypto.randomUUID()}::uuid,${extension}::uuid,${crypto.randomUUID()}::uuid,${crypto.randomUUID()}::uuid,${crypto.randomUUID()}::uuid,${crypto.randomUUID()}::uuid,${party}::uuid,${valuation}::uuid,${crypto.randomUUID()}::uuid,'supply_invoice_before_payment_after','2035-01-01','2035-01-01','2035-01-02','2025-09-22','2035-01-01','successor',${extension}::uuid,2,'active',${extensionHash},'2025-09-21 18:30:00+00',${family},${hash(`${n}5`)},${hash(`${n}6`)},${hash(`${n}7`)},${hash(`${n}8`)},${applicabilityHash},${actor}::uuid)`;
       await tx`INSERT INTO india_gst_accommodation_final_component_tax(tenant_id,id,property_node,reservation_id,folio_id,applicability_id,valuation_id,valuation_generation,request_id,generation,currency,transaction_value_minor,tax_minor,grand_total_minor,component_family,selected_version_side,selected_extension_id,selected_extension_version,final_valuation_evidence_hash,quoted_rate_applicability_evidence_hash,section14_evidence_hash,levy_component_identity_evidence_hash,reservation_lineage_evidence_hash,attribution_snapshot_evidence_hash,evidence_hash,actor_id) VALUES(${tenant}::uuid,${tax}::uuid,${property}::uuid,${reservation}::uuid,${folio}::uuid,${applicability}::uuid,${valuation}::uuid,0,${crypto.randomUUID()}::uuid,0,'INR',${value},${taxTotal},${value + taxTotal},${family},'successor',${extension}::uuid,2,${valuationHash},${applicabilityHash},${hash(`${n}5`)},${hash(`${n}6`)},${hash(`${n}7`)},${hash(`${n}8`)},${taxHash},${actor}::uuid)`;
-      await tx`INSERT INTO india_gst_accommodation_final_component_tax_room_night(tenant_id,tax_id,ordinal,business_date,final_value_minor,currency,slab_upto_minor,aggregate_rate_basis_points,itc_eligible,tax_minor) VALUES(${tenant}::uuid,${tax}::uuid,0,${currentDay}::date,${value},'INR',NULL,1800,true,${taxTotal})`;
-      for (const [index, identity] of identities.entries()) await tx`INSERT INTO india_gst_accommodation_final_component_tax_component(tenant_id,tax_id,room_night_ordinal,component_ordinal,component_identity,rate_basis_points,tax_amount_minor,currency) VALUES(${tenant}::uuid,${tax}::uuid,0,${index}::smallint,${identity},900,${amounts[index]!},'INR')`;
+      for (const [nightOrdinal, night] of nights.entries()) {
+        const nightTax = night.components.reduce((sum, amount) => sum + amount, 0n);
+        await tx`INSERT INTO india_gst_accommodation_final_component_tax_room_night(tenant_id,tax_id,ordinal,business_date,final_value_minor,currency,slab_upto_minor,aggregate_rate_basis_points,itc_eligible,tax_minor) VALUES(${tenant}::uuid,${tax}::uuid,${nightOrdinal}::smallint,${nightDates[nightOrdinal]!.business_date}::date,${night.value},'INR',NULL,${options.rateBasisPoints ?? 1800},true,${nightTax})`;
+        for (const [index, identity] of identities.entries()) await tx`INSERT INTO india_gst_accommodation_final_component_tax_component(tenant_id,tax_id,room_night_ordinal,component_ordinal,component_identity,rate_basis_points,tax_amount_minor,currency) VALUES(${tenant}::uuid,${tax}::uuid,${nightOrdinal}::smallint,${index}::smallint,${identity},${Math.trunc((options.rateBasisPoints ?? 1800) / identities.length)},${night.components[index]!},'INR')`;
+      }
       await tx`INSERT INTO account(id,tenant_id,property_node,role,name,currency,status) VALUES(${revenueAccount}::uuid,${tenant}::uuid,${property}::uuid,'revenue','Revenue','INR','open')`;
       for (const [index, account] of taxAccounts.entries()) await tx`INSERT INTO account(id,tenant_id,property_node,role,name,currency,status) VALUES(${account}::uuid,${tenant}::uuid,${property}::uuid,'tax_payable',${semantic[index]!},'INR','open')`;
       await tx`INSERT INTO tx_code(code,name,grp,usali_line,default_dr,default_cr) VALUES(${roomCode},'Room','revenue','Rooms','guest','revenue')`;
@@ -322,7 +348,9 @@ databaseDescribe("Order407 real governed service journeys", () => {
       await tx`INSERT INTO tax_semantic_route(tenant_id,id,property_node,currency,jurisdiction_extension_id,jurisdiction_owner_tenant_id,jurisdiction_key,jurisdiction_version,jurisdiction_content_hash,semantic_kind,semantic_code,tx_code) VALUES(${tenant}::uuid,${revenueMapping}::uuid,${property}::uuid,'INR',${extension}::uuid,NULL,'in-gst-lodging',2,${extensionHash},'revenue','room_revenue',${roomCode})`;
       for (const [index, code] of taxCodes.entries()) await tx`INSERT INTO tax_semantic_route(tenant_id,id,property_node,currency,jurisdiction_extension_id,jurisdiction_owner_tenant_id,jurisdiction_key,jurisdiction_version,jurisdiction_content_hash,semantic_kind,semantic_code,tx_code) VALUES(${tenant}::uuid,${taxMappings[index]!}::uuid,${property}::uuid,'INR',${extension}::uuid,NULL,'in-gst-lodging',2,${extensionHash},'tax',${semantic[index]!},${code})`;
     });
-    const journey = { tenant, property, actor, alternateActor, reservation, folio, tax, revenueAccount, taxAccounts };
+    const journey = { tenant, property, actor, alternateActor, reservation, folio, tax,
+      valuation, applicability, guestAccount, revenueAccount, taxAccounts, revenueMapping,
+      taxMappings, roomCode, taxCodes, currentDay };
     seeded.push(journey);
     return journey;
   }
@@ -336,6 +364,36 @@ databaseDescribe("Order407 real governed service journeys", () => {
 
   async function post(journey: Journey, key: string, using = service, actor = journey.actor) {
     return database.withTenantTransaction(journey.tenant, (tx) => using.post(tx, request(journey, key, actor)));
+  }
+
+  async function census(tenant: string): Promise<string> {
+    const [row] = await deploy<Array<{ snapshot: unknown }>>`SELECT jsonb_build_object(
+      'valuation',(SELECT coalesce(jsonb_agg(to_jsonb(x) ORDER BY x.id,x.generation),'[]') FROM india_gst_accommodation_final_valuation x WHERE x.tenant_id=${tenant}::uuid),
+      'applicability',(SELECT coalesce(jsonb_agg(to_jsonb(x) ORDER BY x.id),'[]') FROM india_gst_accommodation_quoted_rate_applicability x WHERE x.tenant_id=${tenant}::uuid),
+      'tax',(SELECT coalesce(jsonb_agg(to_jsonb(x) ORDER BY x.id,x.generation),'[]') FROM india_gst_accommodation_final_component_tax x WHERE x.tenant_id=${tenant}::uuid),
+      'nights',(SELECT coalesce(jsonb_agg(to_jsonb(x) ORDER BY x.tax_id,x.ordinal),'[]') FROM india_gst_accommodation_final_component_tax_room_night x WHERE x.tenant_id=${tenant}::uuid),
+      'components',(SELECT coalesce(jsonb_agg(to_jsonb(x) ORDER BY x.tax_id,x.room_night_ordinal,x.component_ordinal),'[]') FROM india_gst_accommodation_final_component_tax_component x WHERE x.tenant_id=${tenant}::uuid),
+      'semantic_routes',(SELECT coalesce(jsonb_agg(to_jsonb(x) ORDER BY x.id),'[]') FROM tax_semantic_route x WHERE x.tenant_id=${tenant}::uuid),
+      'tx_routes',(SELECT coalesce(jsonb_agg(to_jsonb(x) ORDER BY x.tx_code),'[]') FROM tx_code_route x WHERE x.tenant_id=${tenant}::uuid),
+      'accounts',(SELECT coalesce(jsonb_agg(to_jsonb(x) ORDER BY x.id),'[]') FROM account x WHERE x.tenant_id=${tenant}::uuid),
+      'folios',(SELECT coalesce(jsonb_agg(to_jsonb(x) ORDER BY x.id),'[]') FROM folio x WHERE x.tenant_id=${tenant}::uuid),
+      'days',(SELECT coalesce(jsonb_agg(to_jsonb(x) ORDER BY x.property_node,x.business_date),'[]') FROM business_day x WHERE x.tenant_id=${tenant}::uuid),
+      'journals',(SELECT coalesce(jsonb_agg(to_jsonb(x) ORDER BY x.id),'[]') FROM journal x WHERE x.tenant_id=${tenant}::uuid),
+      'lines',(SELECT coalesce(jsonb_agg(to_jsonb(x) ORDER BY x.journal_id,x.seq),'[]') FROM posting_line x WHERE x.tenant_id=${tenant}::uuid),
+      'bindings',(SELECT coalesce(jsonb_agg(to_jsonb(x) ORDER BY x.id),'[]') FROM india_gst_accommodation_final_component_tax_journal_binding x WHERE x.tenant_id=${tenant}::uuid),
+      'documents',(SELECT coalesce(jsonb_agg(to_jsonb(x) ORDER BY x.id),'[]') FROM document x WHERE x.tenant_id=${tenant}::uuid),
+      'submissions',(SELECT coalesce(jsonb_agg(to_jsonb(x) ORDER BY x.id),'[]') FROM fiscal_submission x WHERE x.tenant_id=${tenant}::uuid),
+      'facts',(SELECT coalesce(jsonb_agg(to_jsonb(x) ORDER BY x.id),'[]') FROM fact_log x WHERE x.tenant_id=${tenant}::uuid),
+      'outbox',(SELECT coalesce(jsonb_agg(to_jsonb(x) ORDER BY x.seq),'[]') FROM outbox x WHERE x.tenant_id=${tenant}::uuid),
+      'idempotency',(SELECT coalesce(jsonb_agg(to_jsonb(x) ORDER BY x.operation,x.key_hash),'[]') FROM api_idempotency x WHERE x.tenant_id=${tenant}::uuid)
+    ) snapshot`;
+    return JSON.stringify(row!.snapshot);
+  }
+
+  async function rejectUnchanged(journey: Journey, label: string): Promise<void> {
+    const before = await census(journey.tenant);
+    await expect(post(journey, `o407-reject-${label}-${crypto.randomUUID()}`)).rejects.toThrow();
+    expect(await census(journey.tenant), label).toBe(before);
   }
 
   beforeAll(async () => {
@@ -380,6 +438,209 @@ databaseDescribe("Order407 real governed service journeys", () => {
     ]);
     const hidden = await database.withTenantTransaction(split.tenant, (tx) => tx<Array<{ count: number }>>`SELECT count(*)::int count FROM india_gst_accommodation_final_component_tax_journal_binding WHERE tenant_id=${igst.tenant}::uuid`);
     expect(hidden).toEqual([{ count: 0 }]);
+  });
+
+  test("posts 5/12/18 percent, CGST+UTGST, multi-night residuals and signed-int64 values exactly", async () => {
+    const cases = [
+      { family: "igst" as const, amounts: [5000n], rate: 500, total: "105000", lines: 3 },
+      { family: "cgst_sgst" as const, amounts: [6000n, 6000n], rate: 1200, total: "112000", lines: 4 },
+      { family: "cgst_utgst" as const, amounts: [9000n, 9000n], rate: 1800, total: "118000", lines: 4 },
+    ];
+    for (const item of cases) {
+      const journey = await seedJourney(item.family, item.amounts, { rateBasisPoints: item.rate });
+      const receipt = await post(journey, `o407-rate-${item.rate}-${crypto.randomUUID()}`);
+      expect(receipt).toMatchObject({ grandTotalMinor: item.total, lineCount: item.lines });
+      const [proof] = await deploy<Array<{ balance: string; components: unknown }>>`SELECT
+        (SELECT sum(amount_minor)::text FROM posting_line WHERE tenant_id=${journey.tenant}::uuid AND journal_id=${receipt.journalId}::uuid) balance,
+        (SELECT tax_detail->'components' FROM posting_line WHERE tenant_id=${journey.tenant}::uuid AND journal_id=${receipt.journalId}::uuid AND seq=1) components`;
+      expect(proof!.balance).toBe("0");
+      expect((proof!.components as unknown[]).length).toBe(item.amounts.length);
+    }
+
+    const residual = await seedJourney("cgst_sgst", [1n, 1n], {
+      rateBasisPoints: 500,
+      roomNights: [{ value: 33n, components: [1n, 0n] }, { value: 34n, components: [0n, 1n] }],
+    });
+    const residualReceipt = await post(residual, `o407-residual-${crypto.randomUUID()}`);
+    expect(residualReceipt).toMatchObject({ grandTotalMinor: "69", lineCount: 4 });
+    const [residualProof] = await deploy<Array<{ balance: string; amounts: string[] }>>`SELECT
+      sum(amount_minor)::text balance,array_agg(amount_minor::text ORDER BY seq) amounts
+      FROM posting_line WHERE tenant_id=${residual.tenant}::uuid AND journal_id=${residualReceipt.journalId}::uuid`;
+    expect(residualProof).toEqual({ balance: "0", amounts: ["69", "-67", "-1", "-1"] });
+
+    const maxValue = 8_000_000_000_000_000_000n;
+    const boundary = await seedJourney("igst", [400_000_000_000_000_000n], { value: maxValue, rateBasisPoints: 500 });
+    const boundaryReceipt = await post(boundary, `o407-int64-${crypto.randomUUID()}`);
+    expect(boundaryReceipt.grandTotalMinor).toBe("8400000000000000000");
+    const [boundaryBalance] = await deploy<Array<{ balance: string }>>`SELECT sum(amount_minor)::text balance FROM posting_line WHERE tenant_id=${boundary.tenant}::uuid AND journal_id=${boundaryReceipt.journalId}::uuid`;
+    expect(boundaryBalance).toEqual({ balance: "0" });
+  });
+
+  test("simultaneous different keys converge on one durable tax-root posting", async () => {
+    const journey = await seedJourney("cgst_utgst", [9000n, 9000n]);
+    const receipts = await Promise.all(Array.from({ length: 12 }, (_, index) =>
+      post(journey, `o407-race-${index}-${crypto.randomUUID()}`)));
+    expect(new Set(receipts.map((receipt) => receipt.journalId)).size).toBe(1);
+    expect(new Set(receipts.map((receipt) => receipt.postingBindingId)).size).toBe(1);
+    const [counts] = await deploy<Array<{ journals: number; lines: number; bindings: number; facts: number; events: number; keys: number }>>`SELECT
+      (SELECT count(*)::int FROM journal WHERE tenant_id=${journey.tenant}::uuid) journals,
+      (SELECT count(*)::int FROM posting_line WHERE tenant_id=${journey.tenant}::uuid) lines,
+      (SELECT count(*)::int FROM india_gst_accommodation_final_component_tax_journal_binding WHERE tenant_id=${journey.tenant}::uuid) bindings,
+      (SELECT count(*)::int FROM fact_log WHERE tenant_id=${journey.tenant}::uuid) facts,
+      (SELECT count(*)::int FROM outbox WHERE tenant_id=${journey.tenant}::uuid) events,
+      (SELECT count(*)::int FROM api_idempotency WHERE tenant_id=${journey.tenant}::uuid) keys`;
+    expect(counts).toEqual({ journals: 1, lines: 4, bindings: 1, facts: 2, events: 2, keys: 12 });
+  });
+
+  test("fails closed through the posting service for every hostile lineage, component and route class", async () => {
+    async function hostile(label: string, mutate: (tx: SQL, journey: Journey) => Promise<void>): Promise<void> {
+      const journey = await seedJourney("igst", [18000n]);
+      await deploy.begin(async (tx) => {
+        await tx`SET LOCAL session_replication_role=replica`;
+        await mutate(tx, journey);
+      });
+      await rejectUnchanged(journey, label);
+    }
+
+    await hostile("superseded-tax", async (tx, j) => {
+      const nextValuation = crypto.randomUUID(), nextTax = crypto.randomUUID();
+      await tx`INSERT INTO india_gst_accommodation_final_valuation(
+        tenant_id,id,property_node,reservation_id,folio_id,folio_account_id,window_no,buyer_party_id,
+        attribution_id,request_id,generation,disposition,currency,transaction_value_minor,source_set_hash,
+        order341_evidence_hash,request_hash,evidence_hash,ordinary_evidence_hashes,manual_reasons,
+        relationship_conclusion,consideration_conclusion,section15_2_conclusion,section15_3_conclusion,
+        source_completeness_conclusion,attestation_evidence_source,attestation_evidence_reference,
+        relationship_set_hash,attested_by,supersedes_valuation_id,actor_id)
+        SELECT tenant_id,${nextValuation}::uuid,property_node,reservation_id,folio_id,folio_account_id,
+        window_no,buyer_party_id,attribution_id,gen_random_uuid(),generation+1,disposition,currency,
+        transaction_value_minor,${"3".repeat(64)},order341_evidence_hash,${"4".repeat(64)},${"5".repeat(64)},
+        ordinary_evidence_hashes,manual_reasons,relationship_conclusion,consideration_conclusion,
+        section15_2_conclusion,section15_3_conclusion,source_completeness_conclusion,
+        attestation_evidence_source,attestation_evidence_reference,${"6".repeat(64)},attested_by,id,actor_id
+        FROM india_gst_accommodation_final_valuation WHERE id=${j.valuation}::uuid`;
+      await tx`INSERT INTO india_gst_accommodation_final_component_tax(
+        tenant_id,id,property_node,reservation_id,folio_id,applicability_id,valuation_id,
+        valuation_generation,request_id,generation,currency,transaction_value_minor,tax_minor,
+        grand_total_minor,component_family,selected_version_side,selected_extension_id,
+        selected_extension_version,final_valuation_evidence_hash,quoted_rate_applicability_evidence_hash,
+        section14_evidence_hash,levy_component_identity_evidence_hash,reservation_lineage_evidence_hash,
+        attribution_snapshot_evidence_hash,evidence_hash,supersedes_tax_id,supersedes_tax_evidence_hash,actor_id)
+        SELECT tenant_id,${nextTax}::uuid,property_node,reservation_id,folio_id,applicability_id,
+        ${nextValuation}::uuid,valuation_generation+1,gen_random_uuid(),generation+1,currency,
+        transaction_value_minor,tax_minor,grand_total_minor,component_family,selected_version_side,
+        selected_extension_id,selected_extension_version,${"5".repeat(64)},
+        quoted_rate_applicability_evidence_hash,section14_evidence_hash,
+        levy_component_identity_evidence_hash,reservation_lineage_evidence_hash,
+        attribution_snapshot_evidence_hash,${"7".repeat(64)},id,evidence_hash,actor_id
+        FROM india_gst_accommodation_final_component_tax WHERE id=${j.tax}::uuid`;
+    });
+    await hostile("superseded-valuation", async (tx, j) => {
+      await tx`INSERT INTO india_gst_accommodation_final_valuation(
+        tenant_id,id,property_node,reservation_id,folio_id,folio_account_id,window_no,buyer_party_id,
+        attribution_id,request_id,generation,disposition,currency,transaction_value_minor,source_set_hash,
+        order341_evidence_hash,request_hash,evidence_hash,ordinary_evidence_hashes,manual_reasons,
+        relationship_conclusion,consideration_conclusion,section15_2_conclusion,section15_3_conclusion,
+        source_completeness_conclusion,attestation_evidence_source,attestation_evidence_reference,
+        relationship_set_hash,attested_by,supersedes_valuation_id,actor_id)
+        SELECT tenant_id,gen_random_uuid(),property_node,reservation_id,folio_id,folio_account_id,
+        window_no,buyer_party_id,attribution_id,gen_random_uuid(),generation+1,disposition,currency,
+        transaction_value_minor,${"8".repeat(64)},order341_evidence_hash,${"9".repeat(64)},${"a".repeat(64)},
+        ordinary_evidence_hashes,manual_reasons,relationship_conclusion,consideration_conclusion,
+        section15_2_conclusion,section15_3_conclusion,source_completeness_conclusion,
+        attestation_evidence_source,attestation_evidence_reference,${"b".repeat(64)},attested_by,id,actor_id
+        FROM india_gst_accommodation_final_valuation WHERE id=${j.valuation}::uuid`;
+    });
+    await hostile("foreign-tax", (tx, j) => tx`UPDATE india_gst_accommodation_final_component_tax SET tenant_id=${FOREIGN_TENANT}::uuid WHERE id=${j.tax}::uuid`);
+    await hostile("tax-hash", (tx, j) => tx`UPDATE india_gst_accommodation_final_component_tax SET final_valuation_evidence_hash=${"0".repeat(64)} WHERE id=${j.tax}::uuid`);
+    await hostile("valuation-hash", (tx, j) => tx`UPDATE india_gst_accommodation_final_valuation SET evidence_hash=${"0".repeat(64)} WHERE id=${j.valuation}::uuid`);
+    await hostile("foreign-valuation", (tx, j) => tx`UPDATE india_gst_accommodation_final_valuation SET tenant_id=${FOREIGN_TENANT}::uuid WHERE id=${j.valuation}::uuid`);
+    await hostile("applicability-hash", (tx, j) => tx`UPDATE india_gst_accommodation_quoted_rate_applicability SET evidence_hash=${"0".repeat(64)} WHERE id=${j.applicability}::uuid`);
+    await hostile("foreign-applicability", (tx, j) => tx`UPDATE india_gst_accommodation_quoted_rate_applicability SET tenant_id=${FOREIGN_TENANT}::uuid WHERE id=${j.applicability}::uuid`);
+    await hostile("missing-component", (tx, j) => tx`DELETE FROM india_gst_accommodation_final_component_tax_component WHERE tenant_id=${j.tenant}::uuid AND tax_id=${j.tax}::uuid`);
+    await hostile("reordered-component", (tx, j) => tx`UPDATE india_gst_accommodation_final_component_tax_component SET component_ordinal=1 WHERE tenant_id=${j.tenant}::uuid AND tax_id=${j.tax}::uuid`);
+    await hostile("malformed-component", (tx, j) => tx`UPDATE india_gst_accommodation_final_component_tax_component SET component_identity='cgst' WHERE tenant_id=${j.tenant}::uuid AND tax_id=${j.tax}::uuid`);
+    await hostile("foreign-component", (tx, j) => tx`UPDATE india_gst_accommodation_final_component_tax_component SET tenant_id=${FOREIGN_TENANT}::uuid WHERE tax_id=${j.tax}::uuid`);
+    await hostile("duplicate-component", async (tx, j) => {
+      await tx`INSERT INTO india_gst_accommodation_final_component_tax_component(tenant_id,tax_id,room_night_ordinal,component_ordinal,component_identity,rate_basis_points,tax_amount_minor,currency) VALUES(${j.tenant}::uuid,${j.tax}::uuid,0,1,'cgst',900,18000,'INR')`;
+    });
+    await hostile("missing-route", (tx, j) => tx`DELETE FROM tax_semantic_route WHERE id=${j.taxMappings[0]!}::uuid`);
+    await hostile("wrong-group", (tx, j) => tx`UPDATE tx_code SET grp='revenue' WHERE code=${j.taxCodes[0]!}`);
+    await hostile("route-currency", (tx, j) => tx`UPDATE tax_semantic_route SET currency='USD' WHERE id=${j.taxMappings[0]!}::uuid`);
+    await hostile("route-property", (tx, j) => tx`UPDATE tax_semantic_route SET property_node=${crypto.randomUUID()}::uuid WHERE id=${j.taxMappings[0]!}::uuid`);
+    await hostile("route-owner", (tx, j) => tx`UPDATE tax_semantic_route SET jurisdiction_owner_tenant_id=${j.tenant}::uuid WHERE id=${j.taxMappings[0]!}::uuid`);
+    await hostile("route-key", (tx, j) => tx`UPDATE tax_semantic_route SET jurisdiction_key='in-gst-lodging-hostile' WHERE id=${j.taxMappings[0]!}::uuid`);
+    await hostile("route-version", (tx, j) => tx`UPDATE tax_semantic_route SET jurisdiction_version=1 WHERE id=${j.taxMappings[0]!}::uuid`);
+    await hostile("route-hash", (tx, j) => tx`UPDATE tax_semantic_route SET jurisdiction_content_hash=${"0".repeat(64)} WHERE id=${j.taxMappings[0]!}::uuid`);
+    await hostile("closed-folio", (tx, j) => tx`UPDATE folio SET status='closed' WHERE id=${j.folio}::uuid`);
+    await hostile("closed-guest-account", (tx, j) => tx`UPDATE account SET status='closed' WHERE id=${j.guestAccount}::uuid`);
+    await hostile("closed-revenue-account", (tx, j) => tx`UPDATE account SET status='closed' WHERE id=${j.revenueAccount}::uuid`);
+    await hostile("closed-tax-account", (tx, j) => tx`UPDATE account SET status='closed' WHERE id=${j.taxAccounts[0]!}::uuid`);
+    await hostile("sealed-day", (tx, j) => tx`UPDATE business_day SET sealed_at=transaction_timestamp() WHERE tenant_id=${j.tenant}::uuid AND property_node=${j.property}::uuid`);
+  });
+
+  test("database constraints reject fork and duplicate evidence without effects", async () => {
+    const journey = await seedJourney("igst", [18000n]);
+    for (const [label, statement, expectedState] of [
+      ["forked tax", `INSERT INTO india_gst_accommodation_final_component_tax SELECT tenant_id,gen_random_uuid(),property_node,reservation_id,folio_id,applicability_id,valuation_id,valuation_generation,gen_random_uuid(),generation,currency,transaction_value_minor,tax_minor,grand_total_minor,component_family,selected_version_side,selected_extension_id,selected_extension_version,final_valuation_evidence_hash,quoted_rate_applicability_evidence_hash,section14_evidence_hash,levy_component_identity_evidence_hash,reservation_lineage_evidence_hash,attribution_snapshot_evidence_hash,repeat('a',64),supersedes_tax_id,supersedes_tax_evidence_hash,actor_id,recorded_at FROM india_gst_accommodation_final_component_tax WHERE id='${journey.tax}'::uuid`, "23505"],
+      ["duplicate route", `INSERT INTO tax_semantic_route SELECT tenant_id,gen_random_uuid(),property_node,currency,jurisdiction_extension_id,jurisdiction_owner_tenant_id,jurisdiction_key,jurisdiction_version,jurisdiction_content_hash,semantic_kind,semantic_code,tx_code FROM tax_semantic_route WHERE id='${journey.taxMappings[0]}'::uuid`, "23505"],
+      ["duplicate child", `INSERT INTO india_gst_accommodation_final_component_tax_component SELECT * FROM india_gst_accommodation_final_component_tax_component WHERE tenant_id='${journey.tenant}'::uuid AND tax_id='${journey.tax}'::uuid`, "23505"],
+      ["duplicate valuation", `INSERT INTO india_gst_accommodation_final_valuation SELECT * FROM india_gst_accommodation_final_valuation WHERE id='${journey.valuation}'::uuid`, "23505"],
+      ["duplicate applicability", `INSERT INTO india_gst_accommodation_quoted_rate_applicability SELECT * FROM india_gst_accommodation_quoted_rate_applicability WHERE id='${journey.applicability}'::uuid`, "23505"],
+    ] as const) {
+      const before = await census(journey.tenant);
+      let error: unknown;
+      try { await deploy.unsafe(statement); } catch (caught) { error = caught; }
+      expect(sqlState(error), label).toBe(expectedState);
+      expect(await census(journey.tenant), label).toBe(before);
+    }
+  });
+
+  test("post-resolve folio, account, route, tax and day drift is rejected after ordered lock barriers", async () => {
+    const pause = () => new Promise<void>((resolve) => setTimeout(resolve, 250));
+    async function barrierCase(
+      label: string,
+      lock: (tx: SQL, journey: Journey) => Promise<void>,
+      mutate: (tx: SQL, journey: Journey) => Promise<void>,
+    ): Promise<void> {
+      const journey = await seedJourney("igst", [18000n]);
+      const before = await census(journey.tenant);
+      let release!: () => void;
+      let announce!: () => void;
+      const released = new Promise<void>((resolve) => { release = resolve; });
+      const announced = new Promise<void>((resolve) => { announce = resolve; });
+      const blocker = deploy.begin(async (tx) => {
+        await lock(tx, journey);
+        announce();
+        await released;
+        await tx`SET LOCAL session_replication_role=replica`;
+        await mutate(tx, journey);
+      });
+      await announced;
+      const attempt = post(journey, `o407-after-lock-${label}-${crypto.randomUUID()}`);
+      await pause();
+      release();
+      await blocker;
+      await expect(attempt).rejects.toThrow();
+      const after = await census(journey.tenant);
+      // The hostile fixture mutation is the only permitted delta: prove all posting
+      // artifacts remain absent even though the authoritative row changed mid-call.
+      const [effects] = await deploy<Array<{ journals: number; lines: number; bindings: number; facts: number; events: number; keys: number; documents: number; submissions: number }>>`SELECT
+        (SELECT count(*)::int FROM journal WHERE tenant_id=${journey.tenant}::uuid) journals,
+        (SELECT count(*)::int FROM posting_line WHERE tenant_id=${journey.tenant}::uuid) lines,
+        (SELECT count(*)::int FROM india_gst_accommodation_final_component_tax_journal_binding WHERE tenant_id=${journey.tenant}::uuid) bindings,
+        (SELECT count(*)::int FROM fact_log WHERE tenant_id=${journey.tenant}::uuid) facts,
+        (SELECT count(*)::int FROM outbox WHERE tenant_id=${journey.tenant}::uuid) events,
+        (SELECT count(*)::int FROM api_idempotency WHERE tenant_id=${journey.tenant}::uuid) keys,
+        (SELECT count(*)::int FROM document WHERE tenant_id=${journey.tenant}::uuid) documents,
+        (SELECT count(*)::int FROM fiscal_submission WHERE tenant_id=${journey.tenant}::uuid) submissions`;
+      expect(effects, `${label}:${before.length}:${after.length}`).toEqual({ journals: 0, lines: 0, bindings: 0, facts: 0, events: 0, keys: 0, documents: 0, submissions: 0 });
+    }
+
+    await barrierCase("folio", (tx, j) => tx`SELECT id FROM folio WHERE id=${j.folio}::uuid FOR UPDATE`, (tx, j) => tx`UPDATE folio SET status='closed' WHERE id=${j.folio}::uuid`);
+    await barrierCase("guest-account", (tx, j) => tx`SELECT id FROM account WHERE id=${j.guestAccount}::uuid FOR UPDATE`, (tx, j) => tx`UPDATE account SET status='closed' WHERE id=${j.guestAccount}::uuid`);
+    await barrierCase("route", (tx, j) => tx`SELECT id FROM account WHERE id=${j.taxAccounts[0]!}::uuid FOR UPDATE`, (tx, j) => tx`UPDATE tax_semantic_route SET jurisdiction_version=1 WHERE id=${j.taxMappings[0]!}::uuid`);
+    await barrierCase("tax", (tx, j) => tx`SELECT id FROM account WHERE id=${j.taxAccounts[0]!}::uuid FOR UPDATE`, (tx, j) => tx`UPDATE india_gst_accommodation_final_component_tax SET evidence_hash=${"0".repeat(64)} WHERE id=${j.tax}::uuid`);
+    await barrierCase("business-day", (tx, j) => tx`SELECT business_date FROM business_day WHERE tenant_id=${j.tenant}::uuid AND property_node=${j.property}::uuid FOR UPDATE`, (tx, j) => tx`UPDATE business_day SET sealed_at=transaction_timestamp() WHERE tenant_id=${j.tenant}::uuid AND property_node=${j.property}::uuid`);
   });
 
   test("changed idempotency reuse, injected publication failure, sealed day and route drift leave no partial posting", async () => {
