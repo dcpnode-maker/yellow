@@ -1,6 +1,6 @@
 # Order 397 — Current project status through approved Order396
 
-**Status:** BUILT-PENDING-FRESH-TIER2-REVIEW-D1165
+**Status:** APPROVED-CLOSED-D1166
 **Phase:** 7 — truthful cross-phase coordination status
 **Base:** exact independently approved Orders386/396 closure `fb4edd0`
 **Risk tier:** 2 — authenticated founder-visible status truth
