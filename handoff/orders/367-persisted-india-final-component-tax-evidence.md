@@ -1,6 +1,6 @@
 # Order 367 — Persisted India final component-tax evidence
 
-**Status:** ACTIVE-D1173
+**Status:** PAUSED-PREREQUISITE-D1174
 **Phase:** 7 — Tax engine and India IRP
 **Branch:** `phase-7/persisted-india-final-component-tax-evidence`
 **Base:** exact current approved coordination head `6bba460`; product frontier includes approved Order353 and migrations through 0068
@@ -50,9 +50,10 @@ full amount payloads.
 
 ## Migration allocation
 
-The exact current frontier is migration0068 and `116/106/15/2`. This order owns only
-forward migration0069. Three new forced-RLS tables must yield `119/109/18/2`; the
-fresh migration/schema proof must bind those exact totals and preserve both views.
+After approved prerequisite Order400, the frontier will be migration0069 and
+`119/109/18/2`. This order then owns only forward migration0070. Three new forced-RLS
+tables must yield `122/112/21/2`; fresh migration/schema proof must bind those exact
+totals and preserve both views.
 
 ## Activation gap
 
@@ -62,9 +63,21 @@ The command reuses exact existing `tax-fiscal.india-valuation:finalize` authorit
 new permission or broader grant is introduced. The capability freshly rechecks this
 authority and the actor stored on the current final valuation.
 
+## D1174 prerequisite correction
+
+Executable pre-implementation analysis proved that Order350 persists only the
+one-way Order341 evidence hash, not the exact Section14 calendar and typed
+component-family ancestry needed for a SECURITY DEFINER writer to reconstruct that
+hash. Multiple lawful component families can therefore share the same currently
+persisted row shape. Order367 must not guess a family or trust direct app-role
+amount/rate/hash claims. It is paused without changing its outcome while prerequisite
+Order400 persists independently replayed Order341 evidence as typed immutable
+authority. Order367 resumes on that approved root as migration0070; its expected
+post-migration catalogue becomes `70/122/112/21/2`.
+
 ## Exact activated implementation scope
 
-- `migrations/0069_india_gst_accommodation_final_component_tax.sql`;
+- `migrations/0070_india_gst_accommodation_final_component_tax.sql`;
 - `src/contexts/tax-fiscal/india-gst-accommodation-final-component-tax-recorder.ts`;
 - `src/contexts/tax-fiscal/index.ts`;
 - `tests/india-gst-accommodation-final-component-tax-recording.intentional-red.test.ts`;
