@@ -78,6 +78,7 @@ export const REVIEW_PERMISSIONS = Object.freeze([
   { code: "financials.receivables:read", description: "Read governed property receivable targets and exposure" },
   { code: "financials.receivables:transfer", description: "Transfer exact guest debt to a governed receivable" },
   { code: "financials.trust:post", description: "Post one governed owner trust expense accrual" },
+  { code: "financials.business-days:read", description: "Read governed property business-day close truth" },
   { code: "financials.transfers:write", description: "Preview and commit governed folio transfers" },
   { code: "housekeeping.tasks:read", description: "Read the governed property housekeeping task board" },
   { code: "housekeeping.tasks:work", description: "Start and complete governed property housekeeping tasks" },
