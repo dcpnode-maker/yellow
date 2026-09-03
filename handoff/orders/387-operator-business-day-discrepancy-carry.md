@@ -1,6 +1,6 @@
 # Order 387 — Operator business-day discrepancy carry
 
-**Status:** CHANGES-REQUIRED-PROOF-GAP-D1143
+**Status:** APPROVED-CLOSED-D1146
 **Phase:** 5 — Financials operator delivery
 **Base:** exact independently approved Order384 tip `1196d89`
 **Risk tier:** 3 — audited discrepancy maker/checker and day attribution
