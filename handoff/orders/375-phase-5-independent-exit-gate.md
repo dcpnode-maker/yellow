@@ -1,6 +1,6 @@
 # Order 375 — Phase-5 independent exit gate
 
-**Status:** ACTIVE-FULL-REREVIEW-AFTER-CONTENTION-D1111
+**Status:** APPROVED-CLOSED-D1112
 **Phase:** 5 — Financials
 **Branch:** `phase-5/exit-gate`
 **Base:** exact independently approved Order356 tip
@@ -73,12 +73,12 @@ recorded source truth, browser availability and runtime deployment are distinct 
 ## Definition of done
 
 - [x] Exact D1068 frontier and complete approved Phase-5 ancestry are bound.
-- [ ] Every documented Phase-5 v1 DoD item has reviewer-personal executable evidence.
-- [ ] Fresh database catalogue, hostile authority, concurrency and immutable-money
+- [x] Every documented Phase-5 v1 DoD item has reviewer-personal executable evidence.
+- [x] Fresh database catalogue, hostile authority, concurrency and immutable-money
       preservation gates pass.
-- [ ] Standing/static/schema/referee gates pass without waiver.
-- [ ] A fresh non-implementing Tier-3 reviewer records an exact verdict and teardown.
-- [ ] Only after approval, authoritative plans state Phase 5 reviewed while separately
+- [x] Standing/static/schema/referee gates pass without waiver.
+- [x] A fresh non-implementing Tier-3 reviewer records an exact verdict and teardown.
+- [x] Only after approval, authoritative plans state Phase 5 reviewed while separately
       naming unwired UI/status/local work truthfully.
 
 ## Full restart authority — D1074
@@ -210,3 +210,34 @@ required-run concurrency failure cannot be waived. Remaining authority aggregate
 standing/static/acceptance/referee proof stops unclaimed. A separate bounded repair
 and another distinct full restart are mandatory; Phase5 and the four unwired
 operator services remain unapproved.
+
+## Independent Phase-5 exit approval — D1112
+
+A fresh distinct non-implementing Tier-3 reviewer restarted every proof item at exact
+activation `3b5ded47a117d08346ced8a6ecd2477da6e6753b` over approved product tip
+`1f9ecf67ccbc9434e5257eafca049e1f15f5a309`. Official Windows PostgreSQL 16.15
+with SCRAM and `pg_stat_statements` preloaded applied migrations 1–65 and returned
+exact catalogue `65/116/106/106/15/2`.
+
+The reviewer personally passed the complete folio, balanced posting, statement,
+correction, multi-window transfer, row-lock, payment, hosted-deposit, settlement,
+cashier, receivable, exact-zero journey, owner-trust, day-roll, close-readiness,
+discrepancy-carry and audited-seal suites. This includes 500 charges/1,000 immutable
+balanced lines, two full repeated twenty-contender roll executions, payment/trust/
+carry/seal races, rollback/retry, actor/property/tenant/role/`pg_temp` hostility and
+zero unauthorized mutation.
+
+Authority aggregation passed 30/0 (466 assertions), migration regression 39/0
+(187), canonical seeded acceptance 23/0 (65), normalized schema was byte-identical
+at SHA-256 `a5efaaae5ad3d2315cf2fc62a7dd2352e3992b9643f91784ca70994d1f89e8a9`,
+standing passed 1,225/0 with 956 expected database skips (18,611 assertions), and
+typecheck, 140-file boundaries, 23-package licence policy, zero-vulnerability audit,
+diff hygiene and a newly migrated/fixture-loaded referee 11/11 all passed. The
+reviewer discarded one misconfigured pre-proof database and reused none of its
+results; the accepted run was clean and complete.
+
+Phase 5's documented domain contract is independently reviewed. This does not claim
+the application is complete: `TrustAccountingService`,
+`BusinessDayCloseReadinessService`, `BusinessDayDiscrepancyCarryService` and
+`BusinessDaySealService` remain unwired in the operator API/UI/status/local app and
+require separately governed delivery.

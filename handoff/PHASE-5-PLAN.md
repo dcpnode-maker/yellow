@@ -130,3 +130,14 @@ atomic minimized fact and canonical event. No caller readiness/time/payload auth
 reopen, auto/batch seal, HTTP/UI/local promotion or Phase5 completion is implied.
 Fresh non-implementing Tier3 executable review and the separate Phase5 exit gate
 remain mandatory.
+
+## Phase-5 exit — D1112
+
+Order375 is independently approved and closed after a fresh complete PostgreSQL16.15
+review of every documented Phase-5 domain slice and all hostility, concurrency,
+immutable-money, migration, schema, acceptance, standing/static and referee11/11
+gates. Phase 5's documented domain contract is reviewed complete. The application and
+founder-visible integration are not complete: `TrustAccountingService`,
+`BusinessDayCloseReadinessService`, `BusinessDayDiscrepancyCarryService` and
+`BusinessDaySealService` remain unwired in the operator API/UI/status/local app and
+must be delivered through separate scoped orders.
