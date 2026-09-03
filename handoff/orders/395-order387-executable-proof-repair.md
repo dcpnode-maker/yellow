@@ -23,9 +23,11 @@ then requires a separately recorded repair amendment before editing production.
   minimized responses and exact operation names;
 - update only Order395/Order387 review and append-only governance evidence.
 
-No migration, schema, seed, permission, service, HTTP route, UI production, local,
-Docker, deploy, merge or push change is admitted by this order. If the stronger proof
-fails production, stop and record the exact defect before any repair.
+No migration, schema, seed, permission, service, HTTP route, local, Docker, deploy,
+merge or push change is admitted by this order. D1144 admits only the exact
+`src/http/operator/operator.js` focus-order repair exposed by the executable browser
+proof: re-enable the invoked approval action before restoring focus after failure.
+No other UI production change is admitted.
 
 ## Required gates
 
