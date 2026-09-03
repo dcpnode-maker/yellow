@@ -1,9 +1,9 @@
 # Order 386 — Operator owner-trust expense workbench
 
-**Status:** DRAFT-WAITING-ORDER384-AND-QUESTION185-D1117
+**Status:** ACTIVE-D1158
 **Phase:** 5 — Financials operator delivery
 **Branch:** `phase-5/operator-owner-trust-expense-workbench`
-**Prospective base:** exact independently approved Order384 tip
+**Base:** exact independently approved Order389 closure `418fe25`
 **Risk tier:** 3 — trust money, journals, approvals and tenant/property authority
 
 Deliver a truthful operator journey around the already approved
@@ -13,8 +13,8 @@ same-property owner-trust accounts, derives available/projected balances, prepar
 exact negative-authorization payload under the same deterministic locks as posting,
 and rederives it again at final post.
 
-Activation waits Order384 approval and Question185's founder decision. This draft grants
-no implementation authority.
+Order384 and Order389 are independently approved, and the founder's explicit approval
+of all pending approvals resolves Question185. D1158 activates this exact order.
 
 ## Proposed contract
 

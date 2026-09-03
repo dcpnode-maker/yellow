@@ -1,4 +1,4 @@
-# Question 185 — Owner-trust expense prepare capability
+# Question 185 — Owner-trust expense prepare capability — APPROVED D1158
 
 The approved posting capability safely derives and locks owner, property, currency,
 payable route and available balance. A browser-facing approval request must bind that
@@ -18,3 +18,9 @@ to the browser, and does not post, approve, pay out or mutate a journal.
 
 Founder decision requested: approve the recommended database-owned prepare capability.
 
+## Resolution
+
+The founder's explicit **“I authorise all pending approvals”** instruction approves
+this then-pending recommended policy. Under D1158, the database-owned read-only
+prepare capability is binding with the exact limits above; it grants no posting,
+approval, payout or mutation authority.
