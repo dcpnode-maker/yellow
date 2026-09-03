@@ -1,6 +1,6 @@
 # Order 382 — Business-day roll contention repair
 
-**Status:** REVIEW-WITHHELD-STALE-SCHEMA-SNAPSHOT-D1105
+**Status:** ACTIVE-FINAL-PG16-REREVIEW-AFTER-SNAPSHOT-D1109
 **Phase:** 5 — Financials
 **Branch:** `phase-5/business-day-roll-contention-repair`
 **Base:** exact withheld Order375 governance `2f087f0c596776e671b1e7685ca36a9023b45d34`
@@ -91,6 +91,14 @@ EDB PostgreSQL16.15 Windows binaries are now available at a bounded `E:\yellow`
 toolchain path. A fresh distinct reviewer must restart Order382 proof using that
 exact server version with `shared_preload_libraries=pg_stat_statements`; no gate,
 test, product byte or acceptance expectation is changed or waived.
+
+## Final rereview after snapshot approval — D1109
+
+Order383 is independently approved and closed at D1108 after official PG16.15 proves
+the normalized schema snapshot byte-identical to live migrations1–65. Order382 now
+restarts its complete proof from item1 at exact approved tip
+`bcf3ba0089b3100608a73130abe6b319b25dc97a` under another distinct non-implementing
+Tier3 reviewer. No D1103/D1105 partial output is reused as the approval verdict.
 
 ## Builder evidence
 
