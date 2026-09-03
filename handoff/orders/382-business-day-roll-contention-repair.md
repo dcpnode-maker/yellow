@@ -1,6 +1,6 @@
 # Order 382 — Business-day roll contention repair
 
-**Status:** BUILT-PENDING-FRESH-TIER3-REVIEW-D1102
+**Status:** REVIEW-WITHHELD-PLATFORM-GATES-D1103
 **Phase:** 5 — Financials
 **Branch:** `phase-5/business-day-roll-contention-repair`
 **Base:** exact withheld Order375 governance `2f087f0c596776e671b1e7685ca36a9023b45d34`
@@ -105,3 +105,27 @@ mandated PG17/Bun host. Acceptance's exact ledger/catalogue passes; its expected
 PG16.15 version and absent unseeded demo fixture are the only two environment reds.
 Fresh independent PG16 Tier3 execution of every mandatory gate remains required;
 the builder grants no approval.
+
+## Fresh Tier-3 review
+
+D1103's distinct non-implementing reviewer personally applied migrations 1–65 on a
+fresh Windows-native PostgreSQL 17.2 cluster and proved exact catalogue
+`65/116/106/106/15/2`, the exact two admitted business-day arbiters and both bound
+migration hashes. Two complete focused runs exercised ten reset-based twenty-client
+races (**200 concurrent calls**) without `23505`; each cycle produced exactly one
+opened result and one day/fact/outbox effect. Rollback/retry, backlog, different
+property/timezone, hostile tenant/property/role, fixed-path/`pg_temp`, runtime-DML and
+worker wiring proofs all pass. Standing passes **1225/0** with 956 expected database
+skips and 18,611 assertions; typecheck, boundaries, 23-package licence policy,
+zero-vulnerability audit, setup catalogue, diff hygiene and a fresh referee **11/11**
+also pass.
+
+Approval is nevertheless withheld because this order makes the permanent migration
+and acceptance gates mandatory. On the mandated PG17/Bun host, migration regression
+is **38/1**: Bun omits SQLSTATE `28P01` for the deliberate wrong-password connection.
+After the canonical seed, database acceptance is **22/1**: all ledger/catalogue,
+ownership, ACL and canonical-seed assertions pass, but the suite requires exact
+PostgreSQL `16.15` with `pg_stat_statements` preloaded while the mandated fresh host is
+PostgreSQL `17.2`. These are executable platform mismatches, not evidence against the
+contention repair, but the required gates are not green and may not be waived. The
+disposable server, port and root were removed; no WSL crash dump was generated.
