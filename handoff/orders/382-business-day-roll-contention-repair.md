@@ -48,6 +48,10 @@ remain byte-immutable. Any extra product behavior requires a separate order.
    serialization that hides contention.
 2. Fresh PostgreSQL applies migrations1–65 and returns exact catalogue
    `65/116/106/106/15/2`; migration ledger checksums and expected schema are exact.
+   Prove `business_day` has exactly the two admitted unique arbiters—primary key
+   `(property_node,business_date)` and tenant-leading unique
+   `(tenant_id,property_node,business_date)`—so a future unrelated uniqueness rule
+   cannot silently become targetless no-op behavior.
 3. Repeat the twenty-contender same-property proof enough times to exercise the
    race: every run resolves without `23505`, exactly one result is `opened=true`,
    and exactly one day/fact/outbox effect exists.
