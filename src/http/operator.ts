@@ -27,6 +27,10 @@ import {
   CashierValidationError,
   BusinessDayCloseWorkbenchUnavailableError,
   BusinessDayCloseWorkbenchValidationError,
+  BusinessDayDiscrepancyCarryOperatorConflictError,
+  BusinessDayDiscrepancyCarryOperatorService,
+  BusinessDayDiscrepancyCarryOperatorUnavailableError,
+  BusinessDayDiscrepancyCarryOperatorValidationError,
   loadBusinessDayCloseWorkbench,
   loadBusinessDayCloseWorkbenchEntry,
   type BusinessDayCloseWorkbench,
@@ -258,6 +262,8 @@ const RECEIVABLE_READ_SCOPE = "financials.receivables:read";
 const RECEIVABLE_TRANSFER_SCOPE = "financials.receivables:transfer";
 const RECEIVABLE_APPROVE_SCOPE = "financials.receivables:approve";
 const BUSINESS_DAY_READ_SCOPE = "financials.business-days:read";
+const BUSINESS_DAY_CARRY_SCOPE = "financials.business-day:carry-discrepancy";
+const BUSINESS_DAY_CARRY_APPROVE_SCOPE = "financials.business-day:approve-discrepancy-carry";
 const CHECKIN_READ_SCOPE = "stay-operations.checkin:read";
 const CHECKIN_COMMIT_SCOPE = "stay-operations.checkin:commit";
 const CHECKIN_DIRTY_ROOM_OVERRIDE_SCOPE = "stay-operations.checkin:dirty-room-override";
@@ -1604,6 +1610,8 @@ type BusinessDayCloseWorkbenchEntryLoader = (
   tx: Tx,
   input: Readonly<{ tenantId: string; propertyNode: string; actorId: string }>,
 ) => Promise<Readonly<{ businessDate: string }>>;
+type BusinessDayCarryOperations = Pick<BusinessDayDiscrepancyCarryOperatorService,
+  "requestApproval" | "listApprovals" | "decideApproval" | "carry">;
 interface CheckoutReadinessOperations {
   read(input: Readonly<{
     tenantId: string;
@@ -2075,6 +2083,7 @@ export class OperatorHttpApi {
   readonly #vehicleParking?: VehicleParkingOperations;
   readonly #businessDayCloseWorkbench: BusinessDayCloseWorkbenchLoader;
   readonly #businessDayCloseWorkbenchEntry: BusinessDayCloseWorkbenchEntryLoader;
+  readonly #businessDayCarry?: BusinessDayCarryOperations;
 
   constructor(
     login: LocalLoginService,
@@ -2120,6 +2129,7 @@ export class OperatorHttpApi {
     vehicleParking?: VehicleParkingOperations,
     businessDayCloseWorkbench: BusinessDayCloseWorkbenchLoader = loadBusinessDayCloseWorkbench,
     businessDayCloseWorkbenchEntry: BusinessDayCloseWorkbenchEntryLoader = loadBusinessDayCloseWorkbenchEntry,
+    businessDayCarry?: BusinessDayCarryOperations,
   ) {
     this.#login = login;
     this.#availability = availability;
@@ -2164,6 +2174,7 @@ export class OperatorHttpApi {
     this.#vehicleParking = vehicleParking;
     this.#businessDayCloseWorkbench = businessDayCloseWorkbench;
     this.#businessDayCloseWorkbenchEntry = businessDayCloseWorkbenchEntry;
+    this.#businessDayCarry = businessDayCarry;
   }
 
   unavailable(request: Request): Response {
@@ -2180,6 +2191,15 @@ export class OperatorHttpApi {
     }
     if (error instanceof BusinessDayCloseWorkbenchUnavailableError) {
       return apiError(request, 404, "financials/not_found", "Not found", "The business-day close workbench is unavailable");
+    }
+    if (error instanceof BusinessDayDiscrepancyCarryOperatorValidationError) {
+      return apiError(request, 400, "request/invalid", "Invalid request", "Business-day discrepancy carry input is invalid");
+    }
+    if (error instanceof BusinessDayDiscrepancyCarryOperatorUnavailableError) {
+      return apiError(request, 404, "financials/not_found", "Not found", "The discrepancy carry approval is unavailable");
+    }
+    if (error instanceof BusinessDayDiscrepancyCarryOperatorConflictError) {
+      return apiError(request, 409, "financials/conflict", "Conflict", "Discrepancy carry truth changed; refresh and try again");
     }
     const conditionIngress = /^\/api\/v1\/properties\/[0-9a-f-]+\/housekeeping\/conditions\/[0-9a-f-]+\/(?:candidate|initialize)$/.test(
       new URL(request.url).pathname,
@@ -2540,6 +2560,74 @@ export class OperatorHttpApi {
     return apiResponse(context.request, canonicalJson(result), 200, {
       "x-correlation-id": correlationId(context.request),
     });
+  }
+
+  private async requireCarryGrant(context: TenantRequestContext, propertyNode: string, scope: string): Promise<Response | null> {
+    if (!hasScope(context, scope)) return apiError(context.request, 403, "auth/scope_missing", "Forbidden", "Discrepancy carry access is not granted");
+    if (!UUID.test(propertyNode)) return apiError(context.request, 400, "request/invalid", "Invalid request", "Property identifier is invalid");
+    const grants = await listGrantedProperties(context, scope);
+    return grants.some(({ id }) => id === propertyNode) ? null :
+      apiError(context.request, 403, "auth/property_forbidden", "Forbidden", "Property access is not granted");
+  }
+
+  async requestBusinessDayCarryApproval(context: TenantRequestContext, propertyNode: string, businessDate: string, discrepancyId: string, body: unknown): Promise<Response> {
+    const denied = await this.requireCarryGrant(context, propertyNode, BUSINESS_DAY_CARRY_SCOPE);
+    if (denied) return denied;
+    const idempotencyKey = context.request.headers.get("idempotency-key") ?? "";
+    if (new URL(context.request.url).search !== "" || !LOCAL_DATE.test(businessDate) || !UUID.test(discrepancyId) ||
+        !isObject(body) || !exactKeys(body, ["reason"]) || typeof body.reason !== "string")
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Discrepancy carry approval input is invalid");
+    if (!this.#businessDayCarry) return this.unavailable(context.request);
+    const requestId = correlationId(context.request); const actorId = context.identity.actorId;
+    if (!actorId) return this.unauthorized(context.request); const reason = body.reason;
+    const result = await this.#businessDayCarry.requestApproval(context.tx, { tenantId: context.tenantId, propertyNode,
+      sourceBusinessDate: businessDate, discrepancyId, reason, idempotencyKey,
+      envelope: createAuditEnvelope({ actorId, tenantId: context.tenantId, propertyNode, requestId, operation: "approval.requested" }) });
+    return apiResponse(context.request, canonicalJson({ approvalId: result.approvalId, createdAt: result.createdAt, replayed: result.replayed }), 201, { "x-correlation-id": requestId,
+      "idempotency-replayed": String(result.replayed) });
+  }
+
+  async businessDayCarryApprovalInbox(context: TenantRequestContext, propertyNode: string): Promise<Response> {
+    if (!this.#businessDayCarry) return this.unavailable(context.request);
+    if (!hasScope(context, BUSINESS_DAY_CARRY_SCOPE) && !hasScope(context, BUSINESS_DAY_CARRY_APPROVE_SCOPE))
+      return apiError(context.request, 403, "auth/scope_missing", "Forbidden", "Discrepancy carry access is not granted");
+    if (!UUID.test(propertyNode)) return apiError(context.request, 400, "request/invalid", "Invalid request", "Property identifier is invalid");
+    const url = new URL(context.request.url); const keys = [...url.searchParams.keys()];
+    if (keys.some((key) => key !== "after" && key !== "limit") || url.searchParams.getAll("after").length > 1 || url.searchParams.getAll("limit").length > 1)
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Approval inbox query is invalid");
+    const scope = hasScope(context, BUSINESS_DAY_CARRY_APPROVE_SCOPE) ? BUSINESS_DAY_CARRY_APPROVE_SCOPE : BUSINESS_DAY_CARRY_SCOPE;
+    const denied = await this.requireCarryGrant(context, propertyNode, scope); if (denied) return denied;
+    const after = url.searchParams.get("after") ?? undefined; const rawLimit = url.searchParams.get("limit");
+    const result = await this.#businessDayCarry.listApprovals(context.tx, { tenantId: context.tenantId, propertyNode,
+      actorId: context.identity.actorId, ...(after ? { after } : {}), ...(rawLimit !== null ? { limit: Number(rawLimit) } : {}) });
+    return apiResponse(context.request, canonicalJson(jsonValue(result)), 200, { "x-correlation-id": correlationId(context.request) });
+  }
+
+  async decideBusinessDayCarryApproval(context: TenantRequestContext, propertyNode: string, approvalId: string, body: unknown, decision: "approved" | "rejected"): Promise<Response> {
+    const denied = await this.requireCarryGrant(context, propertyNode, BUSINESS_DAY_CARRY_APPROVE_SCOPE); if (denied) return denied;
+    const key = context.request.headers.get("idempotency-key") ?? "";
+    if (new URL(context.request.url).search !== "" || !UUID.test(approvalId) || !isObject(body) || !exactKeys(body, []))
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Approval decision input is invalid");
+    if (!this.#businessDayCarry) return this.unavailable(context.request); const requestId = correlationId(context.request); const actorId = context.identity.actorId;
+    if (!actorId) return this.unauthorized(context.request);
+    const result = await this.#businessDayCarry.decideApproval(context.tx, { tenantId: context.tenantId, propertyNode, approvalId, decision,
+      idempotencyKey: key, envelope: createAuditEnvelope({ actorId, tenantId: context.tenantId, propertyNode, requestId, operation: "approval.decided" }) });
+    return apiResponse(context.request, canonicalJson(jsonValue(result)), 200, { "x-correlation-id": requestId, "idempotency-replayed": String(result.replayed) });
+  }
+
+  async carryApprovedBusinessDayDiscrepancy(context: TenantRequestContext, propertyNode: string, approvalId: string, body: unknown): Promise<Response> {
+    const denied = await this.requireCarryGrant(context, propertyNode, BUSINESS_DAY_CARRY_SCOPE); if (denied) return denied;
+    const key = context.request.headers.get("idempotency-key") ?? "";
+    if (new URL(context.request.url).search !== "" || !UUID.test(approvalId) || !isObject(body) || !exactKeys(body, []))
+      return apiError(context.request, 400, "request/invalid", "Invalid request", "Approved carry input is invalid");
+    if (!this.#businessDayCarry) return this.unavailable(context.request); const requestId = correlationId(context.request); const actorId = context.identity.actorId;
+    if (!actorId) return this.unauthorized(context.request);
+    const result = await this.#businessDayCarry.carry(context.tx, { tenantId: context.tenantId, propertyNode, approvalId,
+      idempotencyKey: key, envelope: createAuditEnvelope({ actorId, tenantId: context.tenantId, propertyNode, requestId, operation: "discrepancy.carried" }) });
+    return apiResponse(context.request, canonicalJson({ carryId: result.carryId, sourceDiscrepancyId: result.sourceDiscrepancyId,
+      targetDiscrepancyId: result.targetDiscrepancyId, propertyNode: result.propertyNode, sourceBusinessDate: result.sourceBusinessDate,
+      targetBusinessDate: result.targetBusinessDate, resolution: result.resolution, replayed: result.replayed }), 200, { "x-correlation-id": requestId,
+      "idempotency-replayed": String(result.replayed) });
   }
 
   async cashierSessions(

@@ -160,6 +160,16 @@ export function createApp(options: AppOptions = {}) {
           context, params.property, params.businessDate,
         ))
       )
+      .post("/api/v1/properties/:property/business-days/:businessDate/close-workbench/carry-candidates/:discrepancyId/approvals", ({ request, params, body, tenantContext }) =>
+        withOperatorTenant(request, (context) => operator.requestBusinessDayCarryApproval(context, params.property, params.businessDate, params.discrepancyId, body)))
+      .get("/api/v1/properties/:property/business-days/close-workbench/carry-approvals", ({ request, params, tenantContext }) =>
+        withOperatorTenant(request, (context) => operator.businessDayCarryApprovalInbox(context, params.property)))
+      .post("/api/v1/properties/:property/business-days/close-workbench/carry-approvals/:approvalId/approve", ({ request, params, body, tenantContext }) =>
+        withOperatorTenant(request, (context) => operator.decideBusinessDayCarryApproval(context, params.property, params.approvalId, body, "approved")))
+      .post("/api/v1/properties/:property/business-days/close-workbench/carry-approvals/:approvalId/reject", ({ request, params, body, tenantContext }) =>
+        withOperatorTenant(request, (context) => operator.decideBusinessDayCarryApproval(context, params.property, params.approvalId, body, "rejected")))
+      .post("/api/v1/properties/:property/business-days/close-workbench/carry-approvals/:approvalId/carry", ({ request, params, body, tenantContext }) =>
+        withOperatorTenant(request, (context) => operator.carryApprovedBusinessDayDiscrepancy(context, params.property, params.approvalId, body)))
       .get("/api/v1/properties/:property/cashier-sessions", ({ request, params, tenantContext }) =>
         withOperatorTenant(request, (context) => operator.cashierSessions(context, params.property))
       )

@@ -1,5 +1,9 @@
 # SECURITY.md — threat model & controls (v1)
 
+## Business-day discrepancy carry boundary
+
+The HTTP boundary requires the exact maker or checker permission at the selected property and reuses the tenant middleware transaction. The browser never supplies tenant, actor, target date, payload or hashes; opaque approval ids confer no authority. The review seed grants `financials.business-day:carry-discrepancy` only to the ordinary review role and `financials.business-day:approve-discrepancy-carry` only to the distinct approver role. Responses expose a display label rather than email and exclude canonical evidence internals.
+
 What we hold: guest PII, passport/ID numbers (statutory), payment TOKENS (never
 PANs), owner financials, competitive rate data. What that makes us: a target.
 This file is the checklist every phase builds against; Phase 0 CI enforces the

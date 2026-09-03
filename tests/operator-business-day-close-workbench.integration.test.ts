@@ -137,7 +137,8 @@ describe("Order384 operator business-day close workbench", () => {
     expect(loader).toContain("business-days/close-workbench");
     expect(loader).toContain("business-days/${enc(selected)}/close-workbench");
     expect(loader).not.toContain("new Date");
-    expect(script).not.toMatch(/(?:seal|carry).{0,40}(?:submit|button)|(?:submit|button).{0,40}(?:seal|carry)/i);
+    expect(script).not.toMatch(/(?:seal).{0,40}(?:submit|button)|(?:submit|button).{0,40}(?:seal)/i);
+    expect(script).toContain("Request carry approval");
   });
 
   test("is responsive and deliberately composed in every approved appearance", () => {

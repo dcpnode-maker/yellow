@@ -64,6 +64,14 @@ export const REVIEW_PICKUP_TASK_WORK_PERMISSION = Object.freeze({
   description: "Start and complete the exact linked arrival pickup task",
 });
 export const REVIEW_PERMISSION = "inventory.availability:read";
+export const REVIEW_DISCREPANCY_CARRY_PERMISSION = Object.freeze({
+  code: "financials.business-day:carry-discrepancy",
+  description: "Request and consume an approved governed business-day discrepancy carry",
+});
+export const REVIEW_DISCREPANCY_CARRY_APPROVE_PERMISSION = Object.freeze({
+  code: "financials.business-day:approve-discrepancy-carry",
+  description: "Independently approve or reject a governed business-day discrepancy carry",
+});
 export const REVIEW_PERMISSIONS = Object.freeze([
   { code: "crm.parties:read", description: "Search tenant-scoped Party profiles" },
   { code: "crm.parties:write", description: "Create tenant-scoped Party profiles" },
@@ -79,6 +87,7 @@ export const REVIEW_PERMISSIONS = Object.freeze([
   { code: "financials.receivables:transfer", description: "Transfer exact guest debt to a governed receivable" },
   { code: "financials.trust:post", description: "Post one governed owner trust expense accrual" },
   { code: "financials.business-days:read", description: "Read governed property business-day close truth" },
+  REVIEW_DISCREPANCY_CARRY_PERMISSION,
   { code: "financials.transfers:write", description: "Preview and commit governed folio transfers" },
   { code: "housekeeping.tasks:read", description: "Read the governed property housekeeping task board" },
   { code: "housekeeping.tasks:work", description: "Start and complete governed property housekeeping tasks" },
@@ -615,6 +624,15 @@ async function provisionIdentity(
   } else {
     exact(postSealPermissions[0], REVIEW_POST_SEAL_PERMISSION, "Post-seal review permission");
   }
+  const carryApprovePermissions = await connection<Array<{ code: string; description: string }>>`
+    SELECT code, description FROM permission WHERE code = ${REVIEW_DISCREPANCY_CARRY_APPROVE_PERMISSION.code}
+  `;
+  if (carryApprovePermissions.length === 0) {
+    await connection`INSERT INTO permission (code, description) VALUES
+      (${REVIEW_DISCREPANCY_CARRY_APPROVE_PERMISSION.code}, ${REVIEW_DISCREPANCY_CARRY_APPROVE_PERMISSION.description})`;
+  } else {
+    exact(carryApprovePermissions[0], REVIEW_DISCREPANCY_CARRY_APPROVE_PERMISSION, "Discrepancy carry approver permission");
+  }
   const cashierSupervisePermissions = await connection<Array<{ code: string; description: string }>>`
     SELECT code, description FROM permission WHERE code = ${REVIEW_CASHIER_SUPERVISE_PERMISSION.code}
   `;
@@ -740,6 +758,11 @@ async function provisionIdentity(
   await connection`
     INSERT INTO role_permission (role_id, permission_code)
     VALUES (${approverRoleId}::uuid, ${REVIEW_HOUSEKEEPING_INSPECT_PERMISSION.code})
+    ON CONFLICT (role_id, permission_code) DO NOTHING
+  `;
+  await connection`
+    INSERT INTO role_permission (role_id, permission_code)
+    VALUES (${approverRoleId}::uuid, ${REVIEW_DISCREPANCY_CARRY_APPROVE_PERMISSION.code})
     ON CONFLICT (role_id, permission_code) DO NOTHING
   `;
 

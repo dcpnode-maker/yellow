@@ -13,7 +13,15 @@ import {
 import { TaxJurisdictionResolutionService } from "../src/contexts/tax-fiscal";
 import { OperatorHttpApi } from "../src/http/operator";
 import { ApprovalService, Database, ExtensionRegistry, PostgresEventBus } from "../src/kernel";
-import { runReviewSeed, REVIEW_APPROVER_EMAIL, REVIEW_EMAIL } from "../scripts/seed-review";
+import {
+  runReviewSeed,
+  REVIEW_APPROVER_EMAIL,
+  REVIEW_APPROVER_ROLE_NAME,
+  REVIEW_DISCREPANCY_CARRY_APPROVE_PERMISSION,
+  REVIEW_DISCREPANCY_CARRY_PERMISSION,
+  REVIEW_EMAIL,
+  REVIEW_ROLE_NAME,
+} from "../scripts/seed-review";
 import { runSeed, SEED_PROPERTY, SEED_TENANT } from "../scripts/seed";
 
 const DEPLOY_DATABASE_URL = process.env.YELLOW_DEPLOY_DATABASE_URL ?? process.env.YELLOW_REVIEW_SEED_URL;
@@ -449,6 +457,30 @@ afterAll(async () => {
 });
 
 databaseDescribe("Order 046 reproducible local-review seed", () => {
+  test("Order 387 grants maker and checker capability to distinct exact roles", async () => {
+    const grants = await admin<Array<{ role_name: string; permission_code: string }>>`
+      SELECT role.name AS role_name, role_permission.permission_code
+        FROM role_permission
+        JOIN role ON role.id=role_permission.role_id
+       WHERE role.name IN (${REVIEW_ROLE_NAME}, ${REVIEW_APPROVER_ROLE_NAME})
+         AND role_permission.permission_code IN (
+           ${REVIEW_DISCREPANCY_CARRY_PERMISSION.code},
+           ${REVIEW_DISCREPANCY_CARRY_APPROVE_PERMISSION.code}
+         )
+       ORDER BY role.name, role_permission.permission_code
+    `;
+    expect(grants).toEqual([
+      {
+        role_name: REVIEW_APPROVER_ROLE_NAME,
+        permission_code: REVIEW_DISCREPANCY_CARRY_APPROVE_PERMISSION.code,
+      },
+      {
+        role_name: REVIEW_ROLE_NAME,
+        permission_code: REVIEW_DISCREPANCY_CARRY_PERMISSION.code,
+      },
+    ]);
+  });
+
   test("Order 077 P0: provisions two deterministic property-scoped review identities", async () => {
     const reviewers = await admin<Array<{ email: string }>>`
       SELECT email

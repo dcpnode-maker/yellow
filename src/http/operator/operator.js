@@ -324,6 +324,42 @@
  const dayCloseReasons = $("#day-close-reasons");
  const dayCloseCandidates = $("#day-close-candidates");
  const dayCloseStatus = $("#day-close-status");
+ const dayCloseCarryKeys = new Map();
+ let dayCloseApprovalGeneration = 0;
+ const dayCloseApprovals = node("section", "card day-close-approvals");
+ dayCloseApprovals.setAttribute("aria-labelledby", "day-close-approvals-title");
+ const dayCloseApprovalsTitle = node("h3", "", "Discrepancy carry approvals");
+ dayCloseApprovalsTitle.id = "day-close-approvals-title";
+ dayCloseApprovalsTitle.tabIndex = -1;
+ const dayCloseApprovalList = node("ul", "day-close-approval-list");
+ const dayCloseApprovalRefresh = node("button", "secondary", "Refresh approvals");
+ dayCloseApprovalRefresh.type = "button";
+ dayCloseApprovals.append(dayCloseApprovalsTitle, dayCloseApprovalRefresh, dayCloseApprovalList);
+ dayCloseContent.append(dayCloseApprovals);
+ const dayCloseCarryDialog = document.createElement("dialog"); dayCloseCarryDialog.className = "day-close-carry-dialog";
+ const dayCloseCarryForm = document.createElement("form"); dayCloseCarryForm.method = "dialog";
+ const dayCloseCarryLabel = node("label", "", "Reason for carrying this discrepancy");
+ const dayCloseCarryReason = document.createElement("textarea"); dayCloseCarryReason.required = true; dayCloseCarryReason.maxLength = 500;
+ dayCloseCarryReason.setAttribute("aria-describedby", "day-close-carry-help"); dayCloseCarryLabel.append(dayCloseCarryReason);
+ const dayCloseCarryHelp = node("p", "muted", "Required. 1–500 UTF-8 bytes."); dayCloseCarryHelp.id = "day-close-carry-help";
+ const dayCloseCarryCancel = node("button", "secondary", "Cancel"); dayCloseCarryCancel.type = "button";
+ const dayCloseCarrySubmit = node("button", "primary", "Request approval"); dayCloseCarrySubmit.type = "submit";
+ dayCloseCarryForm.append(node("h3", "", "Request discrepancy carry approval"), dayCloseCarryLabel, dayCloseCarryHelp, dayCloseCarryCancel, dayCloseCarrySubmit);
+ dayCloseCarryDialog.append(dayCloseCarryForm); document.body.append(dayCloseCarryDialog);
+ let dayCloseCarryDraft = null;
+ dayCloseCarryCancel.addEventListener("click", () => { dayCloseCarryDraft = null; dayCloseCarryDialog.close(); });
+ dayCloseCarryForm.addEventListener("submit", async (event) => {
+  event.preventDefault(); const draft = dayCloseCarryDraft; if (!draft) return;
+  const reason = dayCloseCarryReason.value.trim().normalize("NFC");
+  if (!reason || new TextEncoder().encode(reason).length > 500) { dayCloseCarryHelp.textContent = "Enter 1–500 UTF-8 bytes."; dayCloseCarryReason.focus(); return; }
+  const identity = `request:${draft.candidate.discrepancyId}`; const key = dayCloseCarryKeys.get(identity) || crypto.randomUUID(); dayCloseCarryKeys.set(identity, key);
+  dayCloseCarrySubmit.disabled = true;
+  try { await request(`/api/v1/properties/${enc(propertySelect.value)}/business-days/${enc(draft.selected)}/close-workbench/carry-candidates/${enc(draft.candidate.discrepancyId)}/approvals`,
+    { method: "POST", headers: { "idempotency-key": key }, body: JSON.stringify({ reason }) });
+    dayCloseCarryKeys.delete(identity); dayCloseCarryDraft = null; dayCloseCarryDialog.close(); await loadDayCloseWorkbench({ businessDate: draft.selected, focus: true });
+  } catch (error) { dayCloseStatus.textContent = error instanceof Error ? error.message : "Approval request outcome is unknown; retry uses the same key."; dayCloseCarryReason.focus(); }
+  finally { dayCloseCarrySubmit.disabled = false; }
+ });
  let dayCloseRequestGeneration = 0;
  const cashierRefresh = $("#cashier-refresh");
  const cashierLoading = $("#cashier-loading");
@@ -9513,14 +9549,43 @@ function vehicleReturnPathFromState(state, property) {
   dayCloseReasons.replaceChildren(...(result.readiness.reasons.length ? result.readiness.reasons.map((reason) =>
    node("li", "", `${reason.source.replaceAll("_", " ")} · ${reason.code.replaceAll("_", " ")} · ${reason.count}`)) :
    [node("li", "list-empty", "No readiness blockers were reported.")]));
-  dayCloseCandidates.replaceChildren(...(result.carryCandidates.length ? result.carryCandidates.map((candidate) =>
-   node("li", "day-close-candidate", `${candidate.spaceCode} · reported ${candidate.reportedBusinessDate}`)) :
+  dayCloseCandidates.replaceChildren(...(result.carryCandidates.length ? result.carryCandidates.map((candidate) => {
+   const item = node("li", "day-close-candidate", `${candidate.spaceCode} · reported ${candidate.reportedBusinessDate} `);
+   const action = node("button", "secondary", "Request carry approval"); action.type = "button";
+   action.addEventListener("click", () => {
+    dayCloseCarryDraft = { candidate, selected, action }; dayCloseCarryReason.value = ""; dayCloseCarryDialog.showModal(); dayCloseCarryReason.focus();
+   }); item.append(action); return item;
+  }) :
    [node("li", "list-empty", selected === result.currentOpenBusinessDate ? "The current open day has no carry candidates." : "No safely attributable candidates were returned.")]));
   dayCloseContent.hidden = false;
   dayCloseError.hidden = true;
   dayCloseStatus.textContent = `Authoritative snapshot captured ${reservationDateTime(result.capturedAt)}. No changes were made.`;
   history.replaceState({ yellowSurface: "day-close" }, "", dayCloseCanonicalPath(selected));
   if (focus) $("#day-close-workbench-title").focus({ preventScroll: true });
+  void loadDayCloseCarryApprovals();
+ }
+ async function runDayCloseApprovalAction(approval, action, button) {
+  const identity = `${action}:${approval.approvalId}`; const key = dayCloseCarryKeys.get(identity) || crypto.randomUUID(); dayCloseCarryKeys.set(identity, key);
+  button.disabled = true;
+  try { await request(`/api/v1/properties/${enc(propertySelect.value)}/business-days/close-workbench/carry-approvals/${enc(approval.approvalId)}/${action}`,
+    { method: "POST", headers: { "idempotency-key": key }, body: "{}" });
+    dayCloseCarryKeys.delete(identity); await loadDayCloseWorkbench({ businessDate: dayCloseDate.value, focus: true });
+  } catch (error) { dayCloseStatus.textContent = error instanceof Error ? error.message : "Action outcome is unknown; retry uses the same key."; button.focus(); }
+  finally { button.disabled = false; }
+ }
+ async function loadDayCloseCarryApprovals() {
+  const property = propertySelect.value; const generation = ++dayCloseApprovalGeneration;
+  try {
+   const page = await request(`/api/v1/properties/${enc(property)}/business-days/close-workbench/carry-approvals`);
+   if (generation !== dayCloseApprovalGeneration || activeView !== "day-close" || property !== propertySelect.value) return;
+   dayCloseApprovalList.replaceChildren(...(page.approvals.length ? page.approvals.map((approval) => {
+    const item = node("li", "day-close-approval", `${approval.roomCode} · ${approval.sourceBusinessDate} → ${approval.targetBusinessDate} · ${approval.status} · ${approval.reason} `);
+    for (const action of approval.canDecide ? ["approve", "reject"] : approval.canCarry ? ["carry"] : []) {
+     const button = node("button", action === "reject" ? "secondary" : "primary", action[0].toUpperCase() + action.slice(1)); button.type = "button";
+     button.addEventListener("click", () => void runDayCloseApprovalAction(approval, action, button)); item.append(button);
+    } return item;
+   }) : [node("li", "list-empty", "No carry approvals are available.")]));
+  } catch (error) { if (generation === dayCloseApprovalGeneration) dayCloseApprovalList.replaceChildren(node("li", "list-empty", error instanceof Error ? error.message : "Approvals are unavailable.")); }
  }
  async function loadDayCloseWorkbench({ businessDate = dayCloseRouteDate(), focus = false } = {}) {
   const property = propertySelect.value;
@@ -11582,6 +11647,7 @@ function vehicleReturnPathFromState(state, property) {
  });
  dayCloseRefresh.addEventListener("click", () => void loadDayCloseWorkbench({ businessDate: dayCloseDate.value || dayCloseRouteDate(), focus: true }));
  dayCloseRetry.addEventListener("click", () => void loadDayCloseWorkbench({ businessDate: dayCloseDate.value || dayCloseRouteDate(), focus: true }));
+ dayCloseApprovalRefresh.addEventListener("click", () => void loadDayCloseCarryApprovals());
  dayCloseDate.addEventListener("change", () => {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(dayCloseDate.value)) return;
   history.pushState({ yellowSurface: "day-close" }, "", dayCloseCanonicalPath(dayCloseDate.value));

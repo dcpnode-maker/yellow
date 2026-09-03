@@ -2044,6 +2044,21 @@ to { opacity: 1; transform: none; }
 .day-close-detail-grid > section { padding:1.15rem; min-width:0; }
 .day-close-detail-grid ul { display:grid; gap:.55rem; margin:.75rem 0 0; padding-left:1.2rem; }
 .day-close-error,.day-close-loading { padding:1.1rem; }
+.day-close-candidate,.day-close-approval { align-items:center; display:flex; flex-wrap:wrap; gap:.6rem; justify-content:space-between; }
+.day-close-approvals { display:grid; gap:.75rem; padding:1.15rem; }
+.day-close-approval-list { display:grid; gap:.65rem; margin:0; padding-left:1.2rem; }
+.day-close-approvals button { min-height:44px; }
+.day-close-carry-dialog { background:var(--surface); border:1px solid var(--border); color:var(--text); max-width:min(32rem,calc(100vw - 2rem)); padding:1.25rem; }
+.day-close-carry-dialog::backdrop { background:rgb(0 0 0 / .55); }
+.day-close-carry-dialog form { display:grid; gap:.8rem; }
+.day-close-carry-dialog textarea { min-height:7rem; width:100%; }
+.day-close-candidate,.day-close-approval { align-items:center; display:flex; flex-wrap:wrap; gap:.6rem; justify-content:space-between; }
+.day-close-approvals { display:grid; gap:.75rem; padding:1.15rem; }
+.day-close-approval-list { display:grid; gap:.65rem; margin:0; padding-left:1.2rem; }
+.day-close-approvals button { min-height:44px; }
+:root[data-theme="apple"] .day-close-approvals,:root[data-theme="android"] .day-close-approvals,
+:root[data-theme="win95"] .day-close-approvals,:root[data-theme="glass"] .day-close-approvals,
+:root[data-theme="neo"] .day-close-approvals,:root[data-theme="erp"] .day-close-approvals { color:var(--text); }
 :root[data-theme="apple"] .day-close-workbench .card { border-radius:22px; }
 :root[data-theme="android"] .day-close-workbench .card { border-radius:24px; }
 :root[data-theme="win95"] .day-close-workbench .card { border-radius:0; }
@@ -2056,5 +2071,7 @@ to { opacity: 1; transform: none; }
  .day-close-detail-grid { grid-template-columns:1fr; }
 }
 @media (max-width:420px) { .day-close-summary { grid-template-columns:1fr; } }
+@media (max-width:760px) { .day-close-candidate,.day-close-approval { align-items:stretch; flex-direction:column; } .day-close-approvals button { width:100%; } }
+@media (max-width:760px) { .day-close-candidate,.day-close-approval { align-items:stretch; flex-direction:column; } .day-close-approvals button { width:100%; } }
 .day-close-nav { align-items:center; display:flex; gap:.55rem; min-height:44px; width:100%; }
 .day-close-icon { fill:none; height:1rem; stroke:currentColor; stroke-width:1.8; width:1rem; }

@@ -1,5 +1,9 @@
 # CONTRACTS.md — API conventions + the interfaces that must not drift
 
+## Business-day discrepancy carry operator
+
+The property Day-close surface accepts one authoritative candidate and a trimmed NFC reason of 1–500 UTF-8 bytes. The server derives tenant, property, actor, current open target, payload and hashes. The carry-only inbox is newest-first keyset paginated (default 50, maximum 100) and exposes only opaque approval id, source discrepancy/date, target date, room code, reason, requester label, status, timestamps, action flags and cursor. Approve, reject and final carry accept `{}` only. Every mutation requires a visible-ASCII `Idempotency-Key` and returns a correlation id; payloads, hashes, target-open instants, emails and permission names are never returned.
+
 ## 1. Conventions (every endpoint)
 Base `/api/v1`. Auth: bearer (staff JWT w/ tenant+scopes | api_client). Server derives
 `tenant_id` from the token — never from the body. JSON: money `{amount_minor,currency}`,

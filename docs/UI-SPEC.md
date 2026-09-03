@@ -1,5 +1,7 @@
 # UI-SPEC.md — the seven surfaces, one PWA
 
+The Day-close discrepancy-carry extension presents a deliberate in-app reason dialog beside authoritative candidates and a separate minimized approval inbox. A different checker may Approve or Reject; the original maker may Carry only after approval. Cancel closes without a request. Ambiguous failures retain the action idempotency key for exact retry, while success clears it and refreshes the whole workbench. Property, view and generation changes suppress stale inbox responses. Dialog, action and retry focus are keyboard-visible; controls are at least 44px and stack without overflow at narrow widths in all approved appearances.
+
 OPERA loses users at the interface: nested modal stacks, mouse-dependent flows,
 state lost on navigation. This spec is the displacement weapon. Phase 10 implements
 it; every earlier phase's API must make these surfaces possible (deep links, diffs,
