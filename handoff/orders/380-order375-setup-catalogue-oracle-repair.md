@@ -1,6 +1,6 @@
 # Order 380 — Order375 setup migration-oracle repair
 
-**Status:** ACTIVE-D1091
+**Status:** BUILT-PENDING-FRESH-REVIEW-D1092
 **Phase:** 5 — Financials
 **Branch:** `phase-5/setup-catalogue-oracle-repair`
 **Base:** exact withheld Order375 governance `ec75d1313e32b738a5609edb74901dc3f7a4413e`
@@ -17,5 +17,10 @@ and a different independent reviewer are mandatory before Order375 restarts.
 ## Definition of done
 
 - [x] Fresh full review reproduced derived `64/64` versus expected `63/63`.
-- [ ] Exact two-literal candidate is ready for focused proof.
+- [x] Exact two-literal candidate is ready for focused proof.
 - [ ] Fresh non-implementing reviewer approves the bounded repair.
+
+## Builder note
+
+D1092 changes exactly the two authorized expected values from 63 to 64. No source,
+setup script, migration, schema, other test, UI, status or local artifact changed.

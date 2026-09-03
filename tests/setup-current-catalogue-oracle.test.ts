@@ -13,8 +13,8 @@ describe("Order 371 current setup catalogue oracle", () => {
     const publicBaseTables = expectedSchema.match(/^CREATE TABLE public\./gm)?.length ?? 0;
 
     expect({ migrationCount: migrations.length, highestMigration, publicBaseTables }).toEqual({
-      migrationCount: 63,
-      highestMigration: 63,
+      migrationCount: 64,
+      highestMigration: 64,
       publicBaseTables: 116,
     });
     expect(setup).toContain("[ \"$tables\" = '116' ]");
