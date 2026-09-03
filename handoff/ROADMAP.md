@@ -1141,6 +1141,10 @@ readiness or catch-up authority. Its opt-in runtime worker discovers only due
 tenant/property scopes; the service derives the date in PostgreSQL and atomically
 records the single winning day/fact/event effect.
 
+Order382 repairs the fresh-review contention failure with forward-only migration0065.
+The unchanged capability uses targetless conflict handling across exactly the current
+property/date and tenant/property/date uniqueness arbiters; no broader behavior is added.
+
 D989 independently approves Orders348 and347 after exact parent-red reproduction and
 fresh corrected cancellation, finance, schema, authority, standing/static and
 referee11/11 proof. This closes automatic current-day roll only; seal/readiness/carry,

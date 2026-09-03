@@ -1706,9 +1706,13 @@ excluded.
 
 Order347 builds the policy-free automatic current-day roll. PostgreSQL transaction
 time plus each active property's stored timezone derives the exact date; the existing
-key arbitrates contenders and the winner records day/fact/`business_day.opened`
+property/date and tenant/property/date keys jointly arbitrate contenders and the winner records day/fact/`business_day.opened`
 atomically. Runtime discovery is bounded and activation opt-in. Older unsealed backlog
 never blocks roll. Seal/readiness/carry policy and Phase5 completion remain separate.
+
+Order382 repairs the independently reproduced roll race through migration0065: the
+same capability now uses targetless conflict handling across exactly those two
+redundant uniqueness arbiters. No date, authority, event or application contract changes.
 
 **Orders348 and347 independently approved — D989:** A fresh different Tier3
 reproduces both D986 parent reds, then proves cancellation before discovery and

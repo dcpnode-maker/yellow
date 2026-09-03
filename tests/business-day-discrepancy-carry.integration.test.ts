@@ -905,7 +905,7 @@ databaseDescribe("Order 359 fresh PostgreSQL hostile discrepancy-carry proof", (
       (SELECT count(*)::int FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace WHERE n.nspname='public' AND c.relrowsecurity) rls,
       (SELECT count(*)::int FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace WHERE n.nspname='public' AND c.relforcerowsecurity) forced,
       (SELECT count(*)::int FROM pg_views WHERE schemaname='public') views`;
-    expect(rows).toEqual([{ migrations: 64, tables: 116, rls: 106, forced: 15, views: 2 }]);
+    expect(rows).toEqual([{ migrations: 65, tables: 116, rls: 106, forced: 15, views: 2 }]);
     const authority = await deploy!`SELECT c.relforcerowsecurity forced,
       has_table_privilege('app_role',c.oid,'SELECT') sel,has_table_privilege('app_role',c.oid,'INSERT') ins,
       pg_get_userbyid(p.proowner) owner,p.prosecdef definer,p.proconfig config

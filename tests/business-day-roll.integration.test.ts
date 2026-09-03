@@ -100,17 +100,19 @@ databaseDescribe("Order 347 automatic property-local business-day roll", () => {
       dst_before: "2047-03-10 01:59:59", dst_after: "2047-03-10 03:00:00" });
   });
 
-  test("twenty contenders converge to one atomic effect", async () => {
-    await reset();
-    const results = await Promise.all(Array.from({ length: 20 }, () =>
-      service().openCurrentBusinessDay({ tenantId: T, propertyNode: P, envelope: envelope() })));
-    expect(results.filter(({ opened }) => opened)).toHaveLength(1);
-    const counts = await admin!<{ days: number; facts: number; events: number }[]>`
-      SELECT (SELECT count(*)::int FROM business_day WHERE tenant_id=${T}::uuid AND property_node=${P}::uuid) AS days,
-             (SELECT count(*)::int FROM fact_log WHERE tenant_id=${T}::uuid AND entity_type='business_day' AND entity_id=${P}::uuid) AS facts,
-             (SELECT count(*)::int FROM outbox WHERE tenant_id=${T}::uuid AND aggregate_type='business_day' AND aggregate_id=${P}::uuid) AS events`;
-    expect(counts).toEqual([{ days: 1, facts: 1, events: 1 }]);
-  });
+  test("repeated twenty-contender races converge to one atomic effect", async () => {
+    for (let attempt = 0; attempt < 5; attempt += 1) {
+      await reset();
+      const results = await Promise.all(Array.from({ length: 20 }, () =>
+        service().openCurrentBusinessDay({ tenantId: T, propertyNode: P, envelope: envelope() })));
+      expect(results.filter(({ opened }) => opened)).toHaveLength(1);
+      const counts = await admin!<{ days: number; facts: number; events: number }[]>`
+        SELECT (SELECT count(*)::int FROM business_day WHERE tenant_id=${T}::uuid AND property_node=${P}::uuid) AS days,
+               (SELECT count(*)::int FROM fact_log WHERE tenant_id=${T}::uuid AND entity_type='business_day' AND entity_id=${P}::uuid) AS facts,
+               (SELECT count(*)::int FROM outbox WHERE tenant_id=${T}::uuid AND aggregate_type='business_day' AND aggregate_id=${P}::uuid) AS events`;
+      expect(counts).toEqual([{ days: 1, facts: 1, events: 1 }]);
+    }
+  }, 30_000);
 
   test("late event failure rolls the insert and fact back, then retry succeeds", async () => {
     await reset();
@@ -142,6 +144,17 @@ databaseDescribe("Order 347 automatic property-local business-day roll", () => {
   });
 
   test("write capability is app-only while direct business-day DML stays denied", async () => {
+    const arbiters = await admin!<Array<{ name: string; definition: string }>>`
+      SELECT conname AS name, pg_get_constraintdef(oid) AS definition
+        FROM pg_constraint
+       WHERE conrelid = 'public.business_day'::regclass
+         AND contype IN ('p', 'u')
+       ORDER BY conname`;
+    expect(arbiters).toEqual([
+      { name: "business_day_pkey", definition: "PRIMARY KEY (property_node, business_date)" },
+      { name: "business_day_tenant_property_date_uq", definition: "UNIQUE (tenant_id, property_node, business_date)" },
+    ]);
+
     const authority = await admin!<Array<{ owner: string; definer: boolean; config: string[];
       app_execute: boolean; runtime_execute: boolean; public_execute: boolean;
       app_insert: boolean; app_update: boolean; app_delete: boolean }>>`

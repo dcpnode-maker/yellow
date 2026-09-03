@@ -2539,7 +2539,8 @@ ItemList, IRP payload or submission authorization.
 `BusinessDayRollService.openCurrentBusinessDay` accepts only an exact tenant,
 property and server-created `business_day.opened` audit envelope. PostgreSQL derives
 the date from `transaction_timestamp()` and the stored property timezone. The
-existing property/date key arbitrates concurrent opens; only the winning insert adds
+existing property/date and tenant/property/date keys jointly arbitrate concurrent opens;
+targetless conflict handling covers both redundant uniqueness arbiters, and only the winning insert adds
 one minimized fact and one canonical outbox event in the same transaction. Older
 unsealed days never block today's open. Existing current rows are no-ops; there is no
 caller date, catch-up, seal or reopen authority. The runtime discovery capability
@@ -2550,7 +2551,8 @@ The service has no direct `business_day` DML. It calls the owner-mediated,
 fixed-search-path `open_current_business_day(tenant,property)` capability inside the
 same caller transaction. Only `app_role` may execute it; `PUBLIC` and
 `yellow_runtime` cannot. It binds transaction-local tenant context, validates the
-active property and timezone, derives the date, unique-arbitrates the insert and
+active property and timezone, derives the date, arbitrates the insert across both
+existing uniqueness constraints and
 returns only `{business_date,opened_at,opened}`.
 
 ### Audited business-day close readiness (Order 349)

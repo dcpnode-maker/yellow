@@ -1,6 +1,6 @@
 # Order 382 — Business-day roll contention repair
 
-**Status:** ACTIVE-D1099
+**Status:** BUILT-PENDING-FRESH-TIER3-REVIEW-D1102
 **Phase:** 5 — Financials
 **Branch:** `phase-5/business-day-roll-contention-repair`
 **Base:** exact withheld Order375 governance `2f087f0c596776e671b1e7685ca36a9023b45d34`
@@ -79,6 +79,29 @@ remain byte-immutable. Any extra product behavior requires a separate order.
 ## Definition of done
 
 - [x] D1098's real SQLSTATE23505 race is preserved as executable review evidence.
-- [ ] Migration0065 repairs both redundant conflict arbiters without authority drift.
+- [x] Migration0065 repairs both redundant conflict arbiters without authority drift.
 - [ ] Repeated contention, rollback, tenancy, schema and permanent gates pass.
 - [ ] Fresh independent Tier3 approval is recorded before Order375 restarts.
+
+## Builder evidence
+
+D1102 adds only forward migration0065's replacement of the existing
+`open_current_business_day(uuid,uuid)` capability, its expected-schema line,
+repeated contention and exact-two-arbiter proof, direct migration/catalogue oracles,
+bounded roll documentation and governance. Migration0061 remains byte-identical at
+SHA-256 `50cf8593ac385b74fbe61da9d28f0ecf59b78297c7aff46ad073f34409efc34f`.
+Migration0065 is bound at SHA-256
+`8e28af137263ff23ecacb1f9e49b4f48b203d5f8c3773d1c2471c5a78cae331a`.
+
+Builder-personal Windows-native PostgreSQL17.2 applies migrations1–65 and proves
+exact catalogue `65/116/106/106/15/2`, the exact two admitted business-day arbiters,
+unchanged owner/fixed-search-path/app-only authority, and targetless arbitration.
+Five fresh resets with twenty concurrent contenders each plus worker, rollback,
+hostility and discovery pass **11/0 with 55 assertions**. Standing passes
+**1225/0 with 956 database skips and 18611 assertions**; typecheck, boundaries,
+licences, setup-current-catalogue and diff-check pass. Migration regression passes
+38/39; its unrelated wrong-password SQLSTATE-shape assertion is not portable on the
+mandated PG17/Bun host. Acceptance's exact ledger/catalogue passes; its expected
+PG16.15 version and absent unseeded demo fixture are the only two environment reds.
+Fresh independent PG16 Tier3 execution of every mandatory gate remains required;
+the builder grants no approval.

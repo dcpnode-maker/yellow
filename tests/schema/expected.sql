@@ -3477,7 +3477,7 @@ BEGIN
 
   INSERT INTO public.business_day AS day (tenant_id, property_node, business_date)
   VALUES (p_tenant, p_property, v_date)
-  ON CONFLICT ON CONSTRAINT business_day_pkey DO NOTHING
+  ON CONFLICT DO NOTHING
   RETURNING day.opened_at INTO v_opened_at;
 
   IF FOUND THEN

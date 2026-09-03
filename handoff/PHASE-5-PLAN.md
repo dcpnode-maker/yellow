@@ -96,9 +96,14 @@ owner-trust negative-authorization slice; Phase5 still requires its separate
 continuous business-day work and exit evidence.
 
 Order347 supplies only automatic current business-day roll. PostgreSQL transaction
-time plus property timezone is authoritative; the existing unique key and atomic
+time plus property timezone is authoritative; the existing property/date and
+tenant/property/date keys and atomic
 fact/outbox evidence make reruns and races converge. Older unsealed days remain valid
 backlog. Seal/readiness/carry policy and the Phase exit gate remain outstanding.
+
+Order382 adds forward-only migration0065 after a fresh Phase5 review reproduced a
+real SQLSTATE23505 race. Targetless conflict handling now covers exactly both
+redundant business-day uniqueness arbiters without changing authority or behavior.
 
 D989 independently approves Orders348 and347. The fresh reviewer reproduces both
 D986 reds, proves corrected cancellation and the exact current financial catalogue,
