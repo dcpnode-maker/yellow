@@ -1,9 +1,9 @@
 # Order 388 — fresh independent Tier 3 review
 
-**Verdict:** APPROVED  
-**Base:** `7ce8ccf`  
-**Executable candidate:** `465b9f3`  
-**Governance head reviewed:** `4187e55`  
+**Verdict:** APPROVED
+**Base:** `7ce8ccf`
+**Executable candidate:** `465b9f3`
+**Governance head reviewed:** `4187e55`
 **Reviewer:** `/root/order388_fresh_tier3`, fresh non-implementing Tier 3
 
 I independently approve the narrowly bounded business-day seal permission prerequisite.
