@@ -2771,3 +2771,30 @@ foreign scope or forged evidence fail closed. The root, children, minimized fact
 outbox event, and service-owned idempotency receipt commit atomically. This evidence
 does not calculate or persist final component tax, post a journal, issue a document,
 submit IRP data, expose a route/UI, or claim Phase completion.
+
+### Persisted India accommodation final component tax (Order 367)
+
+`IndiaGstAccommodationFinalComponentTaxRecorderService.record(tx,input)` records
+the current ordinary-final accommodation valuation's statutory component tax before
+routing or posting. Its caller supplies only tenant/property/reservation/folio
+identity, complete governed quoted-rate-applicability ancestry, an optional exact
+current tax head id/hash pair, idempotency key and authenticated audit envelope. It
+does not accept taxable values, rates, component amounts, totals or evidence hashes
+as financial authority.
+
+The service reruns the approved pure calculation in the caller transaction. The
+fixed-search-path owner capability independently locks and reloads the current
+ordinary-final valuation, dense room-night values, reservation/tax-attribution
+lineage, governed India lodging extension versions and authorized property-scoped
+actor. PostgreSQL derives the slab, IGST or CGST plus SGST/UTGST split, half-up
+component amounts, night totals, root totals and immutable evidence. Missing, stale,
+ambiguous, foreign, manual, nonpositive, over-366 or divergent ancestry fails closed.
+The application and database results must byte-match before a receipt is returned.
+
+The first taxable result is generation zero even when earlier valuation generations
+were manual. A correction requires the exact current tax id and evidence hash, binds
+the new current valuation and appends a successor; it never edits or deletes prior
+financial evidence. Same-key/same-content replay is write-free, divergent reuse and
+correction forks conflict, and root, dense night/component children, minimized
+fact/outbox pair and idempotency receipt commit atomically. This contract grants no
+posting, journal, invoice, document, IRP, submission, API or UI authority.

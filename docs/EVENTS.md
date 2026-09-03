@@ -186,6 +186,8 @@ financial, business-day or statutory effects.
 
 `india_gst.accommodation_quoted_rate_applicability_recorded {applicabilityId,reservationId,folioId,evidenceHash}` states only that one immutable, typed Order341 quoted-rate applicability bundle passed persisted ancestry and evidence reconstruction. It contains no guest profile, calendar payload, quoted amount, tax amount, component detail, posting, invoice or IRP content. Consumers must not infer final tax calculation, a financial posting, document issue, fiscal submission or Phase completion.
 
+`india_gst.accommodation_final_component_tax_recorded {taxId,reservationId,folioId,valuationId,valuationGeneration,generation,evidenceHash}` states only that one immutable, database-derived India accommodation component-tax generation was recorded for the current ordinary-final valuation. The bounded payload contains no guest/buyer data, taxable value, rate, component amount, total, account, journal, route, invoice, document or IRP payload. Root, room-night/component evidence, one matching fact, this outbox event and its idempotency receipt commit together. Replay and losing correction contenders emit no duplicate. Consumers must not infer posting, invoice issue, fiscal submission, payment, settlement or business-day completion.
+
 `tax.attribution_recorded` states only that one exact positive Order-240 `rate_quote`
 snapshot became an immutable tenant root under one contextual property and actor. The
 new root, matching fact, minimized outbox row and idempotent receipt commit in one

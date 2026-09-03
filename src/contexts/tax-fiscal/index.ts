@@ -467,3 +467,14 @@ export type {
   IndiaGstAccommodationFinalComponentTaxInput,
   IndiaGstAccommodationFinalComponentTaxResult,
 } from "./india-gst-accommodation-final-component-tax";
+export {
+  IndiaGstAccommodationFinalComponentTaxRecorderService,
+  IndiaGstAccommodationFinalComponentTaxRecordingConflictError,
+  IndiaGstAccommodationFinalComponentTaxRecordingNotFoundError,
+  IndiaGstAccommodationFinalComponentTaxRecordingValidationError,
+} from "./india-gst-accommodation-final-component-tax-recorder";
+export type {
+  IndiaGstAccommodationFinalComponentTaxRecorderServiceOptions,
+  IndiaGstAccommodationFinalComponentTaxRecordingInput,
+  IndiaGstAccommodationFinalComponentTaxRecordingResult,
+} from "./india-gst-accommodation-final-component-tax-recorder";
