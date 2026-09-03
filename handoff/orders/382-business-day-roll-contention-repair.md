@@ -16,9 +16,13 @@ least authority, rollback, backlog independence and no-op semantics.
 Migration0061 is immutable applied history. Add migration0065 to replace only
 `open_current_business_day(uuid,uuid)` with the same signature, owner, grants,
 fixed search path, validation and return contract, changing its insert arbitration
-to the existing `business_day_tenant_property_date_uq` key that actually represents
-the competing tenant/property/date identity. The deterministic primary key is derived
-from the same identity and must remain coherent. No table, policy, view, event,
+to targetless `ON CONFLICT DO NOTHING` so both existing redundant arbiters
+participate: primary key `(property_node,business_date)` and tenant-leading unique
+key `(tenant_id,property_node,business_date)`. This is not a blind domain insert: the
+capability first validates the exact active same-tenant property and derives the only
+admitted date from PostgreSQL. Both constraints encode the same validated identity,
+and the exact follow-up tenant/property/date read resolves the existing row. No table,
+policy, view, event,
 permission, direct DML grant or service/API/UI behavior is added.
 
 ## Exact scope
@@ -62,7 +66,8 @@ remain byte-immutable. Any extra product behavior requires a separate order.
 
 - editing migration0061 or any prior migration/checksum;
 - advisory locks, application mutexes, sleeps/retries that mask database arbitration,
-  or weakening/removing either business-day uniqueness constraint;
+  single-constraint conflict targeting, or weakening/removing either business-day
+  uniqueness constraint;
 - caller/browser/server date authority, catch-up/reopen/seal/readiness/carry behavior;
 - new tables, policies, permissions, events, APIs, UI, local promotion, deploy, merge
   or Phase/application-completion claim.
@@ -70,6 +75,6 @@ remain byte-immutable. Any extra product behavior requires a separate order.
 ## Definition of done
 
 - [x] D1098's real SQLSTATE23505 race is preserved as executable review evidence.
-- [ ] Migration0065 repairs the exact conflict target without authority drift.
+- [ ] Migration0065 repairs both redundant conflict arbiters without authority drift.
 - [ ] Repeated contention, rollback, tenancy, schema and permanent gates pass.
 - [ ] Fresh independent Tier3 approval is recorded before Order375 restarts.
