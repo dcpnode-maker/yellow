@@ -16,3 +16,22 @@ must grant exactly the authorized ordinary review/operator role, not infer appro
 other permissions. Intentional red, replay, exact grant/non-grant, catalogue/schema/
 migration/acceptance/standing/static/referee11/11 and fresh independent Tier3 proof are
 mandatory. No service, HTTP/UI, seal action, local promotion, deploy or merge authority.
+
+## Exact file scope (D1148)
+
+- `migrations/0067_business_day_seal_permission.sql`
+- `scripts/seed-review.ts`
+- `tests/seed_fixture.sql`
+- `tests/business-day-seal-permission.intentional-red.test.ts`
+- `tests/business-day-seal-permission.integration.test.ts`
+- `tests/database-acceptance.integration.test.ts`
+- `tests/migrate.integration.test.ts`
+- `tests/setup-current-catalogue-oracle.test.ts`
+- `tests/business-day-discrepancy-carry.integration.test.ts`
+- `tests/review-seed.integration.test.ts`
+- `setup.sh`
+- this order, its review record, `DECISIONS.log` and `handoff/LEDGER.md`
+
+The normalized schema snapshot is expected to remain byte-identical and is not in
+scope. Any required file outside this list stops the order for a recorded question or
+amendment.
