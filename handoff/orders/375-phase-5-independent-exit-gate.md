@@ -1,6 +1,6 @@
 # Order 375 — Phase-5 independent exit gate
 
-**Status:** CHANGES-REQUIRED-D1090
+**Status:** ACTIVE-FULL-REREVIEW-AFTER-SETUP-D1097
 **Phase:** 5 — Financials
 **Branch:** `phase-5/exit-gate`
 **Base:** exact independently approved Order356 tip
@@ -146,6 +146,14 @@ Order375 restarts from item1 at exact approved tip
 `ac87eea22268d80d8d73727908ff042b7ee7cda1` under another distinct non-implementing
 Tier3 reviewer. No previous partial output is reused as the exit verdict; every
 reviewer-personal proof item remains mandatory.
+
+## Full restart after setup-oracle approval — D1097
+
+Order381 is independently approved and closed at D1096 after the complete focused
+setup catalogue proof passes on derived `64/64/116` truth. Order375 restarts from
+item1 at exact approved tip `578ea1e3e6edf13e47bcc65fc28760c90ff9413f`
+under another distinct non-implementing Tier3 reviewer. No prior partial output is
+reused; every reviewer-personal proof item remains mandatory.
 
 ## Post-carry full-rereview finding — D1085
 
