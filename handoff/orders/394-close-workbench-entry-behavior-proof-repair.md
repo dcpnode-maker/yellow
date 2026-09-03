@@ -1,6 +1,6 @@
 # Order 394 — Close-workbench entry behavior-proof repair
 
-**Status:** BUILT-PENDING-FRESH-TIER3-REVIEW-D1137
+**Status:** APPROVED-CLOSED-D1138
 **Phase:** 5 — Financials operator delivery proof repair
 **Branch:** `phase-5/operator-business-day-close-workbench`
 **Base:** exact withheld Order393 review tip `471c3f8`
@@ -35,6 +35,6 @@ No domain/HTTP/server/docs/schema/migration/permission/seed/dependency/CSS/HTML/
 
 ## Definition of done
 
-- [ ] Stale discovery protection is executable and mutation-sensitive.
-- [ ] Failure/deep-link/refresh/retry paths are executable.
-- [ ] Fresh reviewer approves from personally executed mutation evidence.
+- [x] Stale discovery protection is executable and mutation-sensitive.
+- [x] Failure/deep-link/refresh/retry paths are executable.
+- [x] Fresh reviewer approves from personally executed mutation evidence.
