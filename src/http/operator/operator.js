@@ -9570,7 +9570,7 @@ function vehicleReturnPathFromState(state, property) {
   try { await request(`/api/v1/properties/${enc(propertySelect.value)}/business-days/close-workbench/carry-approvals/${enc(approval.approvalId)}/${action}`,
     { method: "POST", headers: { "idempotency-key": key }, body: "{}" });
     dayCloseCarryKeys.delete(identity); await loadDayCloseWorkbench({ businessDate: dayCloseDate.value, focus: true });
-  } catch (error) { dayCloseStatus.textContent = error instanceof Error ? error.message : "Action outcome is unknown; retry uses the same key."; button.focus(); }
+  } catch (error) { dayCloseStatus.textContent = error instanceof Error ? error.message : "Action outcome is unknown; retry uses the same key."; button.disabled = false; button.focus(); }
   finally { button.disabled = false; }
  }
  async function loadDayCloseCarryApprovals() {
