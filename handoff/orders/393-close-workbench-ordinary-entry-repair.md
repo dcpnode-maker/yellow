@@ -16,7 +16,8 @@ allowed.
 
 - `src/contexts/financials/business-day-close-workbench.ts` and its index export, only
   a minimized caller-Tx entry-date discovery;
-- `src/http/operator.ts`, only a read-only collection entry route using middleware Tx;
+- `src/http/operator.ts` and `src/app.ts`, only the read-only collection entry handler
+  and its exact route registration using middleware Tx;
 - `src/http/operator/operator.js`, only undated entry/refresh/retry bootstrap;
 - focused workbench domain/operator/browser tests, including a permanent executable
   D1131 regression;
