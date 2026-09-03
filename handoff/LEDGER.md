@@ -1093,3 +1093,4 @@
 2026-09-03 | Order380 | ACTIVE-D1091 | Test-only setup migration count/highest63/63→64/64 after D1090 fresh red;focused proof+different reviewer mandatory,no broader authority.
 2026-09-03 | Order380 | BUILT-PENDING-FRESH-REVIEW-D1092 | Exact two authorized setup migration literals63/63→64/64 only;fresh focused proof+different reviewer mandatory,no broader authority.
 2026-09-03 | Order380 | CHANGES-REQUIRED-D1093 | Fresh independent `/root/order380_fresh_reviewer` verifies bounded diff and derives64/64/116, but Windows-native focused proof is red0/1 on two additional stale setup-message assertions1-63 versus authoritative1-64;approval withheld,separate repair+fresh review required,no DB/WSL/product/local/`.yellow` change,wsl-crashes absent.
+2026-09-03 | Order381 | ACTIVE-D1094 | Test-only setup message fragments1-63→1-64 after D1093 fresh red;complete focused proof+different reviewer mandatory,no broader authority.
