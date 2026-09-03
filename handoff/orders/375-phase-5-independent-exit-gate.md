@@ -1,6 +1,6 @@
 # Order 375 — Phase-5 independent exit gate
 
-**Status:** ACTIVE-FULL-REREVIEW-AFTER-SETUP-D1097
+**Status:** CHANGES-REQUIRED-D1098
 **Phase:** 5 — Financials
 **Branch:** `phase-5/exit-gate`
 **Base:** exact independently approved Order356 tip
@@ -183,3 +183,20 @@ skips,1 fail (18,606 assertions). Order375 cannot repair or waive this red. Rema
 static/acceptance/referee completion is unclaimed; a bounded repair and another
 distinct full restart are mandatory. Phase5 and the four unwired operator services
 remain unapproved.
+
+## After-setup full-rereview finding — D1098
+
+The fresh distinct Tier3 reviewer restarted from item1 at exact activation
+`939913b69d4708132027ea5e5965615c450fe10e` and approved ancestry
+`578ea1e3e6edf13e47bcc65fc28760c90ff9413f`. Fresh native PostgreSQL17 applied
+migrations1–64 and exact catalogue `64/116/106/106/15/2`. Financial proof passed
+57/0 (385 assertions), and payment/trust/cashier/journey proof passed 55/0 (1,636).
+The day-close batch then produced a real SQLSTATE23505 race in the twenty-contender
+business-day roll: migration0061 handles only the primary-key conflict while the
+concurrent property-local identity is guarded by a different tenant/property/date
+unique constraint. The linked batch result is54/2 (2,187 assertions). The exact
+six-test file subsequently passed once on a second newly migrated database, but the
+required-run concurrency failure cannot be waived. Remaining authority aggregate,
+standing/static/acceptance/referee proof stops unclaimed. A separate bounded repair
+and another distinct full restart are mandatory; Phase5 and the four unwired
+operator services remain unapproved.
