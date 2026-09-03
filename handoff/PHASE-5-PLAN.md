@@ -104,6 +104,8 @@ backlog. Seal/readiness/carry policy and the Phase exit gate remain outstanding.
 Order382 adds forward-only migration0065 after a fresh Phase5 review reproduced a
 real SQLSTATE23505 race. Targetless conflict handling now covers exactly both
 redundant business-day uniqueness arbiters without changing authority or behavior.
+Fresh independent PostgreSQL16.15 proof approves and closes this repair at D1110;
+the separate Phase5 exit gate remains outstanding.
 
 D989 independently approves Orders348 and347. The fresh reviewer reproduces both
 D986 reds, proves corrected cancellation and the exact current financial catalogue,

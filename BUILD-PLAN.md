@@ -1713,6 +1713,8 @@ never blocks roll. Seal/readiness/carry policy and Phase5 completion remain sepa
 Order382 repairs the independently reproduced roll race through migration0065: the
 same capability now uses targetless conflict handling across exactly those two
 redundant uniqueness arbiters. No date, authority, event or application contract changes.
+Fresh independent exact-version proof approves and closes this bounded repair at D1110;
+the separate Phase5 exit gate remains outstanding.
 
 **Orders348 and347 independently approved — D989:** A fresh different Tier3
 reproduces both D986 parent reds, then proves cancellation before discovery and

@@ -1144,6 +1144,8 @@ records the single winning day/fact/event effect.
 Order382 repairs the fresh-review contention failure with forward-only migration0065.
 The unchanged capability uses targetless conflict handling across exactly the current
 property/date and tenant/property/date uniqueness arbiters; no broader behavior is added.
+Fresh independent PostgreSQL16.15 proof approves and closes this repair at D1110;
+the separate Phase5 exit gate remains outstanding.
 
 D989 independently approves Orders348 and347 after exact parent-red reproduction and
 fresh corrected cancellation, finance, schema, authority, standing/static and

@@ -113,3 +113,51 @@ snapshot omits both. Order382 forbids waiver and reviewer repair, so approval is
 withheld. The server stopped, port 55483 returned no response, the disposable root
 was removed, and the WSL crash path was absent. Reusable PG16.15 infrastructure
 remains under `E:\yellow` as required.
+
+## Final independent PG16.15 approval — D1110
+
+**Verdict:** APPROVED-CLOSED-D1110
+
+**Activation:** `2e143722c198cd5f257501f1f45086f37596eeac`
+
+**Approved tip:** `bcf3ba0089b3100608a73130abe6b319b25dc97a`
+
+**Reviewer:** `/root/order382_final_pg16_reviewer`, fresh distinct non-implementing
+Tier 3
+
+This reviewer restarted the entire Order382 proof without reusing D1103/D1105
+partial results. Official Windows PostgreSQL 16.15 with `pg_stat_statements`
+preloaded applied migrations 1–65 and returned exact catalogue
+`65/116/106/106/15/2`. The only unique business-day arbiters are
+`business_day_pkey(property_node,business_date)` and
+`business_day_tenant_property_date_uq(tenant_id,property_node,business_date)`.
+Migration0061 SHA-256 is
+`50cf8593ac385b74fbe61da9d28f0ecf59b78297c7aff46ad073f34409efc34f`; migration0065
+SHA-256 is `8e28af137263ff23ecacb1f9e49b4f48b203d5f8c3773d1c2471c5a78cae331a`.
+
+Two complete focused executions passed **14/0 (80 assertions)** and exercised ten
+reset-based twenty-client cycles (200 calls) with no `23505`, exactly one open
+result, and exactly one day/fact/outbox effect in every cycle. They also proved
+property-local PostgreSQL dates, backlog independence, exact no-op replay,
+injected-event rollback and one winning retry, hostile tenant/property/role inputs,
+app-only fixed-path capability authority and direct-DML denial. Worker,
+runtime-DML, SECURITY DEFINER/`pg_temp` containment and setup-oracle proof passed
+**14/0 (357 assertions)**.
+
+The normalized native PG16.15 schema is byte-identical to the committed snapshot at
+SHA-256 `a5efaaae5ad3d2315cf2fc62a7dd2352e3992b9643f91784ca70994d1f89e8a9`.
+Migration regression passed **39/0 (187 assertions)** including deliberate
+wrong-password `28P01`; canonical seed and exact-version acceptance passed **23/0
+(65 assertions)**. Standing passed **1225/0**, with 956 expected database skips and
+18,611 assertions. Typecheck, 140-file boundaries, 23-package licence policy,
+zero-vulnerability audit and diff hygiene passed. A newly created, migrated and
+fixture-loaded referee database passed **11/11**.
+
+The reviewed ancestry contains only the bounded migration0065 repair/oracles and
+documentation plus independently approved Order383's 393-line schema snapshot
+addition and governance. Migration0001, migration0061, production source,
+dependencies and protected referee bytes are unchanged. The server stopped, port
+55485 refused connections, exact root
+`E:\yellow\order382-final-review-a9472c6e` was removed, and no WSL crash path was
+created. This approval closes only Order382 and grants no Order375 restart/approval,
+UI/status/local/Docker/deploy/merge/push or Phase-completion authority.

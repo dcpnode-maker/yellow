@@ -1,6 +1,6 @@
 # Order 382 — Business-day roll contention repair
 
-**Status:** ACTIVE-FINAL-PG16-REREVIEW-AFTER-SNAPSHOT-D1109
+**Status:** APPROVED-CLOSED-D1110
 **Phase:** 5 — Financials
 **Branch:** `phase-5/business-day-roll-contention-repair`
 **Base:** exact withheld Order375 governance `2f087f0c596776e671b1e7685ca36a9023b45d34`
@@ -80,8 +80,8 @@ remain byte-immutable. Any extra product behavior requires a separate order.
 
 - [x] D1098's real SQLSTATE23505 race is preserved as executable review evidence.
 - [x] Migration0065 repairs both redundant conflict arbiters without authority drift.
-- [ ] Repeated contention, rollback, tenancy, schema and permanent gates pass.
-- [ ] Fresh independent Tier3 approval is recorded before Order375 restarts.
+- [x] Repeated contention, rollback, tenancy, schema and permanent gates pass.
+- [x] Fresh independent Tier3 approval is recorded before Order375 restarts.
 
 ## Exact-version rereview authority — D1104
 
@@ -99,6 +99,29 @@ the normalized schema snapshot byte-identical to live migrations1–65. Order382
 restarts its complete proof from item1 at exact approved tip
 `bcf3ba0089b3100608a73130abe6b319b25dc97a` under another distinct non-implementing
 Tier3 reviewer. No D1103/D1105 partial output is reused as the approval verdict.
+
+## Final independent approval — D1110
+
+Fresh distinct non-implementing Tier3 reviewer
+`/root/order382_final_pg16_reviewer` restarted every Order382 proof item against
+activation `2e143722c198cd5f257501f1f45086f37596eeac` and independently approved
+Order383 tip `bcf3ba0089b3100608a73130abe6b319b25dc97a`. Official Windows PostgreSQL
+16.15 with `pg_stat_statements` preloaded applied migrations 1–65 and returned
+exact catalogue `65/116/106/106/15/2`, the exact two business-day arbiters and
+the bound migration0061/0065 hashes.
+
+Two complete focused runs exercised ten reset-based twenty-contender cycles (200
+calls): no `23505`, exactly one `opened=true`, and exactly one atomic
+day/fact/outbox effect per cycle. Rollback/retry, backlog, property-local date,
+tenant/property/role/`pg_temp`, worker, runtime-DML and SECURITY DEFINER proofs
+passed. Migration regression passed **39/0 (187 assertions)** including deliberate
+wrong-password `28P01`; normalized PG16.15 schema is byte-identical at SHA-256
+`a5efaaae5ad3d2315cf2fc62a7dd2352e3992b9643f91784ca70994d1f89e8a9`; seeded
+acceptance passed **23/0 (65 assertions)**; standing passed **1225/0** with 956
+expected skips and 18,611 assertions; typecheck, 140-file boundaries, 23-package
+licence policy, zero-vulnerability audit, diff hygiene and fresh referee **11/11**
+passed. The exact server, port and disposable root were removed and no WSL crash
+path appeared. Approval closes only Order382; Order375 is not approved or restarted.
 
 ## Builder evidence
 
