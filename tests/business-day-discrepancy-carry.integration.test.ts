@@ -28,6 +28,7 @@ const SPACE = "00000000-0000-0000-0000-000000035941";
 const OTHER_SPACE = "00000000-0000-0000-0000-000000035942";
 const DISCREPANCY = "00000000-0000-0000-0000-000000035951";
 const FOREIGN_DISCREPANCY = "00000000-0000-0000-0000-000000035952";
+const OTHER_DISCREPANCY = "00000000-0000-0000-0000-000000035953";
 const REUSE_TARGET = "00000000-0000-0000-0000-000000035961";
 const REUSE_SOURCE = "00000000-0000-0000-0000-000000035962";
 const REUSE_REQUEST = "00000000-0000-0000-0000-000000035963";
@@ -188,6 +189,7 @@ async function injectBoundaryFailure(boundary: "transition" | "target" | "carry-
 
 async function resetCase(): Promise<void> {
   await deploy!.begin(async (tx) => {
+    await tx`DELETE FROM user_role WHERE tenant_id=${TENANT}::uuid AND user_id=${REQUESTER}::uuid AND scope_node=${OTHER_PROPERTY}::uuid`;
     await tx`UPDATE org_node SET timezone='UTC' WHERE id=${PROPERTY}::uuid`;
     await tx`UPDATE space SET property_node=${PROPERTY}::uuid WHERE id=${SPACE}::uuid`;
     await tx`UPDATE app_user SET status='active' WHERE tenant_id=${TENANT}::uuid AND id IN (${REQUESTER}::uuid,${APPROVER}::uuid,${UNAUTHORIZED}::uuid,${INACTIVE}::uuid)`;
@@ -221,6 +223,14 @@ async function requestApproval(): Promise<{ approvalId: string; requestHash: str
       requestId: crypto.randomUUID(), operation: "approval.requested" },
   }));
   return { approvalId: result.approvalId, requestHash: result.requestHash };
+}
+
+async function requestApprovals(count: number): Promise<readonly string[]> {
+  const ids: string[] = [];
+  for (let index = 0; index < count; index += 1) {
+    ids.push((await requestApproval()).approvalId);
+  }
+  return ids;
 }
 
 async function decide(approvalId: string, options: { status?: string; decider?: string; offset?: string } = {}) {
@@ -393,6 +403,114 @@ databaseDescribe("Order 359 fresh PostgreSQL hostile discrepancy-carry proof", (
     expect(carried).toMatchObject({ sourceDiscrepancyId: DISCREPANCY, propertyNode: PROPERTY, sourceBusinessDate: sourceDate, targetBusinessDate: targetDate, replayed: false });
     const replayedCarry = await database!.withTenantTransaction(TENANT, (tx) => operatorService!.carry(tx, carryInput));
     expect(replayedCarry).toEqual({ ...carried, replayed: true });
+  });
+
+  test("Order 395 executes default-50, explicit-100 and non-null cursor continuation over 101 stored approvals", async () => {
+    const approvalIds = await requestApprovals(101);
+    const list = (after?: string, limit?: number) => database!.withTenantTransaction(TENANT, (tx) => operatorService!.listApprovals(tx, {
+      tenantId: TENANT, propertyNode: PROPERTY, actorId: APPROVER,
+      ...(after === undefined ? {} : { after }), ...(limit === undefined ? {} : { limit }),
+    }));
+
+    const defaultPage = await list();
+    expect(defaultPage.approvals).toHaveLength(50);
+    expect(defaultPage.nextCursor).toBeString();
+    const defaultContinuation = await list(defaultPage.nextCursor!);
+    expect(defaultContinuation.approvals).toHaveLength(50);
+    expect(defaultContinuation.nextCursor).toBeString();
+    const defaultTail = await list(defaultContinuation.nextCursor!);
+    expect(defaultTail.approvals).toHaveLength(1);
+    expect(defaultTail.nextCursor).toBeNull();
+    expect(new Set([...defaultPage.approvals, ...defaultContinuation.approvals, ...defaultTail.approvals].map((row) => row.approvalId))).toEqual(new Set(approvalIds));
+
+    const maximumPage = await list(undefined, 100);
+    expect(maximumPage.approvals).toHaveLength(100);
+    expect(maximumPage.nextCursor).toBeString();
+    const maximumTail = await list(maximumPage.nextCursor!, 100);
+    expect(maximumTail.approvals.map((row) => row.approvalId)).toEqual([approvalIds[0]!]);
+    expect(maximumTail.nextCursor).toBeNull();
+  }, 40_000);
+
+  test("Order 395 keyset continuation is total for equal created_at ties", async () => {
+    const approvalIds = await requestApprovals(7);
+    const encodedApprovalIds = JSON.stringify(approvalIds);
+    await deploy!`UPDATE approval_request SET created_at='2026-09-03T00:00:00.000000Z'::timestamptz
+      WHERE tenant_id=${TENANT}::uuid AND id=ANY(ARRAY(SELECT jsonb_array_elements_text(${encodedApprovalIds}::jsonb)::uuid))`;
+    const expected = [...approvalIds].sort().reverse();
+    const first = await database!.withTenantTransaction(TENANT, (tx) => operatorService!.listApprovals(tx, {
+      tenantId: TENANT, propertyNode: PROPERTY, actorId: APPROVER, limit: 3,
+    }));
+    const second = await database!.withTenantTransaction(TENANT, (tx) => operatorService!.listApprovals(tx, {
+      tenantId: TENANT, propertyNode: PROPERTY, actorId: APPROVER, limit: 3, after: first.nextCursor!,
+    }));
+    const third = await database!.withTenantTransaction(TENANT, (tx) => operatorService!.listApprovals(tx, {
+      tenantId: TENANT, propertyNode: PROPERTY, actorId: APPROVER, limit: 3, after: second.nextCursor!,
+    }));
+    expect([...first.approvals, ...second.approvals, ...third.approvals].map((row) => row.approvalId)).toEqual(expected);
+    expect([first.approvals.length, second.approvals.length, third.approvals.length]).toEqual([3, 3, 1]);
+    expect(third.nextCursor).toBeNull();
+  });
+
+  test("Order 395 validates the actual MAX+1 row and fails the complete page closed for malformed stored evidence", async () => {
+    const approvalIds = await requestApprovals(101);
+    const encodedApprovalIds = JSON.stringify(approvalIds);
+    await deploy!`UPDATE approval_request SET created_at='2026-09-03T00:00:00.000000Z'::timestamptz
+      WHERE tenant_id=${TENANT}::uuid AND id=ANY(ARRAY(SELECT jsonb_array_elements_text(${encodedApprovalIds}::jsonb)::uuid))`;
+    const overflowId = [...approvalIds].sort()[0]!;
+    await deploy!`UPDATE approval_request SET payload=payload-'requestHash'
+      WHERE tenant_id=${TENANT}::uuid AND id=${overflowId}::uuid`;
+    await expect(database!.withTenantTransaction(TENANT, (tx) => operatorService!.listApprovals(tx, {
+      tenantId: TENANT, propertyNode: PROPERTY, actorId: APPROVER, limit: 100,
+    }))).rejects.toThrow("Business-day discrepancy carry approval is unavailable");
+  }, 40_000);
+
+  test("Order 395 inbox is tenant/property-contained and exposes only the minimized contract", async () => {
+    const requested = await requestApproval();
+    await deploy!`INSERT INTO user_role(tenant_id,user_id,role_id,scope_node)
+      VALUES(${TENANT}::uuid,${REQUESTER}::uuid,${ROLE_REQUEST}::uuid,${OTHER_PROPERTY}::uuid)`;
+    await deploy!`INSERT INTO discrepancy(id,tenant_id,space_id,reported,system_state,reported_by)
+      VALUES(${OTHER_DISCREPANCY}::uuid,${TENANT}::uuid,${OTHER_SPACE}::uuid,'occupied','vacant',${REQUESTER}::uuid)`;
+    await deploy!`INSERT INTO outbox(tenant_id,property_node,business_date,aggregate_type,aggregate_id,event_type,
+      actor_id,correlation_id,payload) VALUES(${TENANT}::uuid,${OTHER_PROPERTY}::uuid,${sourceDate}::date,
+      'discrepancy',${OTHER_DISCREPANCY}::uuid,'discrepancy.reported',${REQUESTER}::uuid,gen_random_uuid(),'{}'::jsonb)`;
+    const siblingRequested = await database!.withTenantTransaction(TENANT, (tx) => service!.requestApproval(tx, {
+      tenantId: TENANT, propertyNode: OTHER_PROPERTY, discrepancyId: OTHER_DISCREPANCY,
+      sourceBusinessDate: sourceDate, targetBusinessDate: targetDate, reason: "Order 395 sibling containment",
+      idempotencyKey: "order395-sibling-request",
+      envelope: { tenantId: TENANT, propertyNode: OTHER_PROPERTY, actorId: REQUESTER,
+        requestId: crypto.randomUUID(), operation: "approval.requested" },
+    }));
+    const page = await database!.withTenantTransaction(TENANT, (tx) => operatorService!.listApprovals(tx, {
+      tenantId: TENANT, propertyNode: PROPERTY, actorId: APPROVER,
+    }));
+    expect(page.approvals).toHaveLength(1);
+    expect(page.approvals[0]!.approvalId).toBe(requested.approvalId);
+    expect(Object.keys(page.approvals[0]!).sort()).toEqual([
+      "approvalId", "canCarry", "canDecide", "decidedAt", "expiresAt", "reason", "requestedAt",
+      "requesterLabel", "roomCode", "sourceBusinessDate", "sourceDiscrepancyId", "status", "targetBusinessDate",
+    ]);
+    expect(stableBodyBytes(page)).not.toContain("requestHash");
+    expect(stableBodyBytes(page)).not.toContain("discrepancyStateHash");
+    expect(stableBodyBytes(page)).not.toContain("@example.test");
+    expect(stableBodyBytes(page)).not.toContain("financials.business-day");
+    const sibling = await database!.withTenantTransaction(TENANT, (tx) => operatorService!.listApprovals(tx, {
+      tenantId: TENANT, propertyNode: OTHER_PROPERTY, actorId: APPROVER,
+    }));
+    expect(sibling.approvals.map((row) => row.approvalId)).toEqual([siblingRequested.approvalId]);
+    expect(sibling.approvals[0]!.sourceDiscrepancyId).toBe(OTHER_DISCREPANCY);
+    const foreign = await database!.withTenantTransaction(FOREIGN_TENANT, (tx) => operatorService!.listApprovals(tx, {
+      tenantId: FOREIGN_TENANT, propertyNode: FOREIGN_PROPERTY, actorId: APPROVER,
+    }));
+    expect(foreign).toEqual({ approvals: [], nextCursor: null });
+  });
+
+  test("Order 395 fails a one-row inbox closed for malformed stored payload shape", async () => {
+    const requested = await requestApproval();
+    await deploy!`UPDATE approval_request SET payload=jsonb_set(payload,'{reason}','null'::jsonb)
+      WHERE tenant_id=${TENANT}::uuid AND id=${requested.approvalId}::uuid`;
+    await expect(database!.withTenantTransaction(TENANT, (tx) => operatorService!.listApprovals(tx, {
+      tenantId: TENANT, propertyNode: PROPERTY, actorId: APPROVER,
+    }))).rejects.toThrow("Business-day discrepancy carry approval is unavailable");
   });
 
   test("rejects a future decision and accepts past and transaction-time decisions", async () => {
