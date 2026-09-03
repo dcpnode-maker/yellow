@@ -1,6 +1,6 @@
 # Order 391 — Close-workbench orphan carry-evidence repair
 
-**Status:** BUILT-PENDING-FRESH-TIER3-REVIEW-D1126
+**Status:** REVIEW-WITHHELD-D1127
 **Phase:** 5 — Financials operator delivery repair
 **Branch:** `phase-5/operator-business-day-close-workbench`
 **Base:** exact withheld Order390 review tip `afc7402`
@@ -39,3 +39,12 @@ server, dependency, local runtime, `.yellow`, carry mutation, deploy, merge or p
 - [ ] Every carried event binds to exactly one safe link or the whole read fails closed.
 - [ ] D1124 and mixed-event regressions are mutation-sensitive and green.
 - [ ] Fresh Tier3 approval is recorded with reviewer-executed PostgreSQL proof.
+
+## Fresh Tier-3 verdict
+
+Withheld at D1127. The candidate rejects carried evidence only after joining from an
+existing `discrepancy` row. A selected-day `discrepancy.carried` outbox event whose
+aggregate discrepancy is absent is therefore invisible to the candidate evidence
+CTEs and the complete workbench returns successfully. This violates the order's
+every-carried-event exact-bind requirement. See
+`handoff/reviews/391-close-workbench-orphan-carry-evidence-repair.md`.
