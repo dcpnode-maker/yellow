@@ -44,7 +44,7 @@ no implementation authority.
 
 ## Proposed exact scope after activation
 
-- `migrations/0067_prepare_owner_trust_expense.sql` if Question185 approves;
+- `migrations/0068_prepare_owner_trust_expense.sql` if Question185 approves;
 - new `src/contexts/financials/trust-workbench.ts`, minimal loader reuse in `trust.ts`,
   and financials public index;
 - `src/http/operator.ts`, `src/app.ts`, `src/server.ts` and operator HTML/JS/CSS;
@@ -67,4 +67,3 @@ requests/posts; two spenders serialize; seal races; byte-stable replay/change co
 rollback on late evidence failure; runtime DML denial; response privacy; bounded inbox;
 stale UI suppression,keyboard/focus/responsive/appearance; all database/static/referee
 11/11 gates and fresh non-implementing Tier3 review.
-
