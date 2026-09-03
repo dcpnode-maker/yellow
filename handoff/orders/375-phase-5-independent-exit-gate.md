@@ -1,6 +1,6 @@
 # Order 375 — Phase-5 independent exit gate
 
-**Status:** CHANGES-REQUIRED-D1070
+**Status:** ACTIVE-FULL-REREVIEW-D1074
 **Phase:** 5 — Financials
 **Branch:** `phase-5/exit-gate`
 **Base:** exact independently approved Order356 tip
@@ -80,3 +80,11 @@ recorded source truth, browser availability and runtime deployment are distinct 
 - [ ] A fresh non-implementing Tier-3 reviewer records an exact verdict and teardown.
 - [ ] Only after approval, authoritative plans state Phase 5 reviewed while separately
       naming unwired UI/status/local work truthfully.
+
+## Full restart authority — D1074
+
+Order376 is independently approved and closed at D1073 after fresh posting10/0(111)
+on the exact catalogue. Order375 therefore restarts from item1 under a different fresh
+non-implementing Tier3 reviewer at exact tip
+`91fbe1facba34a3edac24e0a08bf974e267da44c`; no D1070 partial output is reused as the
+exit verdict.
