@@ -249,7 +249,6 @@ INSERT INTO permission (code, description) VALUES
   ('reservation.checkin.dirty_room', 'Allow check-in to dirty room'),
   ('reservation.override.rate', 'Override rate above threshold'),
   ('finance.approval.trust_negative', 'Approve negative trust balance'),
-  ('business_day.seal', 'Seal business day'),
   ('business_day.reopen', 'Reopen sealed business day');
 
 INSERT INTO role (id, tenant_id, name) VALUES

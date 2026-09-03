@@ -335,6 +335,11 @@ const EXPECTED_MIGRATIONS = [
     filename: "0066_business_day_read_permission.sql",
     checksum_sha256: "9a479726039063c5d3f54997347a19e1da5c3542766bd0be2fc5b512b6b82d67",
   },
+  {
+    version: 67,
+    filename: "0067_business_day_seal_permission.sql",
+    checksum_sha256: "a2c3ae78442c29c56766eae6d718970f39fa493ae1ec30427ac44489cf42b2c5",
+  },
 ];
 
 if (REQUIRE_DATABASE && !DATABASE_URL) {
@@ -389,7 +394,7 @@ databaseDescribe("fresh deployment database acceptance", () => {
 
     const catalogue = await sql!<Array<{
       migrations: number; tables: number; rlsTables: number;
-      policies: number; forceRlsTables: number;
+      policies: number; forceRlsTables: number; permissions: number; permissionGrants: number;
     }>>`
       SELECT
         (SELECT count(*)::int FROM public.schema_migration) AS migrations,
@@ -403,6 +408,8 @@ databaseDescribe("fresh deployment database acceptance", () => {
             AND class.relrowsecurity) AS "rlsTables",
         (SELECT count(*)::int FROM pg_catalog.pg_policies
           WHERE schemaname = 'public') AS policies,
+        (SELECT count(*)::int FROM public.permission) AS permissions,
+        (SELECT count(*)::int FROM public.role_permission) AS "permissionGrants",
         (SELECT count(*)::int
            FROM pg_catalog.pg_class AS class
            JOIN pg_catalog.pg_namespace AS namespace ON namespace.oid = class.relnamespace
@@ -411,7 +418,8 @@ databaseDescribe("fresh deployment database acceptance", () => {
             AND class.relforcerowsecurity) AS "forceRlsTables"
     `;
     expect(catalogue).toEqual([{
-      migrations: 66, tables: 116, rlsTables: 106, policies: 106, forceRlsTables: 15,
+      migrations: 67, tables: 116, rlsTables: 106, policies: 106, forceRlsTables: 15,
+      permissions: 9, permissionGrants: 0,
     }]);
   });
 

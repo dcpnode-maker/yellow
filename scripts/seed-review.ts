@@ -72,6 +72,14 @@ export const REVIEW_DISCREPANCY_CARRY_APPROVE_PERMISSION = Object.freeze({
   code: "financials.business-day:approve-discrepancy-carry",
   description: "Approve a discrepancy carry",
 });
+export const REVIEW_BUSINESS_DAY_SEAL_PERMISSION = Object.freeze({
+  code: "business_day.seal",
+  description: "Seal business day",
+});
+export const REVIEW_BUSINESS_DAY_SEAL_EDGE_PERMISSION = Object.freeze({
+  code: "financials.business-days:seal",
+  description: "Seal governed property business days",
+});
 export const REVIEW_PERMISSIONS = Object.freeze([
   { code: "crm.parties:read", description: "Search tenant-scoped Party profiles" },
   { code: "crm.parties:write", description: "Create tenant-scoped Party profiles" },
@@ -87,6 +95,8 @@ export const REVIEW_PERMISSIONS = Object.freeze([
   { code: "financials.receivables:transfer", description: "Transfer exact guest debt to a governed receivable" },
   { code: "financials.trust:post", description: "Post one governed owner trust expense accrual" },
   { code: "financials.business-days:read", description: "Read governed property business-day close truth" },
+  REVIEW_BUSINESS_DAY_SEAL_EDGE_PERMISSION,
+  REVIEW_BUSINESS_DAY_SEAL_PERMISSION,
   REVIEW_DISCREPANCY_CARRY_PERMISSION,
   { code: "financials.transfers:write", description: "Preview and commit governed folio transfers" },
   { code: "housekeeping.tasks:read", description: "Read the governed property housekeeping task board" },
@@ -731,7 +741,9 @@ async function provisionIdentity(
     if (approverRoles.length !== 1) throw new Error("Post-seal review role is ambiguous");
   }
   for (const permission of REVIEW_PERMISSIONS) {
-    if (permission.code === REVIEW_DISCREPANCY_CARRY_PERMISSION.code) continue;
+    if (permission.code === REVIEW_DISCREPANCY_CARRY_PERMISSION.code ||
+      permission.code === REVIEW_BUSINESS_DAY_SEAL_PERMISSION.code ||
+      permission.code === REVIEW_BUSINESS_DAY_SEAL_EDGE_PERMISSION.code) continue;
     await connection`
       INSERT INTO role_permission (role_id, permission_code)
       VALUES (${approverRoleId}::uuid, ${permission.code})
