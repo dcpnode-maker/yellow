@@ -1,4 +1,4 @@
-# Question 184 — Order384 carry-candidate bound
+# Question 184 — Order384 carry-candidate bound — APPROVED D1119
 
 The Order384 response cannot be genuinely bounded by limiting only open business days:
 one selected day may contain an unlimited number of unresolved discrepancy carry
@@ -17,6 +17,4 @@ lineage for the selected day. The already-approved readiness snapshot owns detec
 of safely attributed versus unknown discrepancy work; no missing date is inferred from
 timestamps or clocks.
 
-Founder decision requested: approve the recommended 500-candidate fail-closed maximum,
-or state another exact integer.
-
+Founder approved the recommended 500-candidate fail-closed maximum under D1119.

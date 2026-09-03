@@ -1,4 +1,4 @@
-# Question 182 — Business-day close-workbench backlog bound
+# Question 182 — Business-day close-workbench backlog bound — APPROVED D1119
 
 Order384 promises both every unsealed backlog day and a bounded operator response, but
 the data model has no maximum backlog cardinality. The contract must fail closed at one
@@ -12,6 +12,4 @@ unavailable with an explicit operational escalation, never a partial list. This 
 above a healthy hotel's expected backlog while keeping response, memory and proof
 bounded.
 
-Founder decision requested: approve the recommended 366-day fail-closed maximum, or
-state another exact integer.
-
+Founder approved the recommended 366-day fail-closed maximum under D1119.

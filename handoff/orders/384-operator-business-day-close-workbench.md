@@ -1,6 +1,6 @@
 # Order 384 — Operator business-day close workbench
 
-**Status:** WAITING-PREREQUISITE-D1114
+**Status:** ACTIVE-RESUMED-D1119
 **Phase:** 5 — Financials operator delivery
 **Branch:** `phase-5/operator-business-day-close-workbench`
 **Base:** exact independently approved Phase-5 domain tip `f681b3cc03325b9bf6fb4e5c92bbcc3b22011129`
@@ -25,7 +25,8 @@ nor changes either policy.
   `src/contexts/financials/business-day-close-readiness.ts` when required to preserve
   one caller-owned tenant transaction;
 - `src/contexts/financials/index.ts`;
-- `src/http/operator.ts`, `src/app.ts`;
+- `src/http/operator.ts`, `src/app.ts`, `src/server.ts` only for exact service
+  construction/injection;
 - `src/http/operator/index.html`, `src/http/operator/operator.js`,
   `src/http/operator/operator.css`;
 - focused domain, PostgreSQL, operator HTTP and browser-behaviour tests named for this
@@ -40,8 +41,10 @@ or push is admitted.
 ## Contract
 
 `BusinessDayCloseWorkbenchService.read` accepts exact server-derived tenant, property,
-actor and persisted business date. One `Database.withTenantTransaction` and one
-PostgreSQL transaction snapshot produce one deeply frozen bounded result containing:
+actor and persisted business date for standalone callers. HTTP uses the corresponding
+transaction-aware loader on the existing middleware-owned `Tx`; it never opens a nested
+transaction. Exactly one composed PostgreSQL statement and one snapshot produce one
+deeply frozen bounded result containing:
 
 - tenant, property, selected business date and PostgreSQL capture instant;
 - the greatest currently unsealed property business date;
@@ -58,6 +61,12 @@ other sensitive evidence is returned. The current open day has no carry candidat
 Missing/foreign/inactive actor or property and absent/sealed selected dates are
 indistinguishable unavailable results. The read performs zero writes and derives no
 date or authority from browser/server wall clocks.
+
+At most 366 unsealed days and 500 eligible carry candidates are returned. Each
+population is queried as `MAX + 1`; 367 days or 501 candidates makes the entire result
+unavailable with no partial list or silent truncation. Missing-lineage discrepancy work
+is detected only through the already-approved readiness attribution/unknown semantics;
+no date is inferred from timestamps or clocks.
 
 The route is
 `GET /api/v1/properties/:property/business-days/:businessDate/close-workbench` through
@@ -102,7 +111,7 @@ reds were recorded; unapproved WIP remains uncommitted.
 The audit also proved that the operator middleware already owns the tenant transaction,
 default READ COMMITTED multi-statement reads do not satisfy the promised coherent
 snapshot, and an unlimited historical backlog cannot also be a bounded response.
-Question182 therefore holds final domain integration until the founder confirms the
-recommended fail-closed backlog maximum. The eventual implementation must compose one
-SQL statement on the middleware-owned transaction; it must not open a nested service
-transaction or weaken snapshot semantics.
+Questions182–184 are approved under D1119: the fail-closed limits are 366 open days and
+500 candidates, and `src/server.ts` is admitted only for exact dependency wiring. The
+implementation must compose one SQL statement on the middleware-owned transaction; it
+must not open a nested service transaction or weaken snapshot semantics.

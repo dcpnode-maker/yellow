@@ -1,4 +1,4 @@
-# Question 183 — Order384 server runtime wiring scope
+# Question 183 — Order384 server runtime wiring scope — APPROVED D1119
 
 Order384 names `src/app.ts` and the operator HTTP/UI surfaces but omitted
 `src/server.ts`, where the production `OperatorHttpApi` is actually constructed. Tests
@@ -12,5 +12,4 @@ injection edit needed by `BusinessDayCloseWorkbenchService`. No listener, enviro
 authentication, transaction, route, local or deployment behavior may otherwise change.
 The existing high-risk independent Order384 proof must cover this wiring.
 
-Founder decision requested: approve this exact one-file scope addition.
-
+Founder approved this exact one-file scope addition under D1119.
