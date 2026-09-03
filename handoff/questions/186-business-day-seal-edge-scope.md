@@ -24,4 +24,9 @@ review provisioning remains the sole role-grant surface. The alternative—broad
 the global token grammar to admit noncanonical dot-only permissions—is not recommended
 because it expands identity semantics for the entire application.
 
-Founder decision requested: approve the recommended two-layer seal authorization.
+## Resolution
+
+D1150 classifies this as a routine technical boundary mapping already determined by
+Yellow's approved identity grammar and PostgreSQL authority model, not missing business
+policy. Codex adopts the recommended two-layer authorization under its implementation
+authority; no founder decision remains required.
