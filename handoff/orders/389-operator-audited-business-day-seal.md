@@ -1,6 +1,6 @@
 # Order 389 — Operator audited business-day seal
 
-**Status:** BUILT-PENDING-FRESH-TIER3-REVIEW-D1156
+**Status:** APPROVED-CLOSED-D1157
 **Phase:** 5 — Financials operator delivery
 **Risk tier:** 3 — irreversible financial business-day latch
 
