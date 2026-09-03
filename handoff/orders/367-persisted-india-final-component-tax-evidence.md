@@ -1,6 +1,6 @@
 # Order 367 — Persisted India final component-tax evidence
 
-**Status:** CHANGES-REQUIRED-D1191
+**Status:** APPROVED-CLOSED-D1194
 **Phase:** 7 — Tax engine and India IRP
 **Branch:** `phase-7/persisted-india-final-component-tax-evidence`
 **Base:** exact current approved coordination head `6bba460`; product frontier includes approved Order353 and migrations through 0068
