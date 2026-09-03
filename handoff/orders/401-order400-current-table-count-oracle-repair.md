@@ -1,6 +1,6 @@
 # Order 401 — Order400 current table-count oracle repair
 
-**Status:** CHANGES-REQUIRED-D1179
+**Status:** BUILT-PENDING-FRESH-TIER3-REVIEW-D1187
 **Phase:** 7 — Tax engine and India IRP
 **Branch:** `phase-7/persisted-india-quoted-rate-applicability-evidence`
 **Base:** exact reviewed Order400 candidate `417c84d` plus withholding governance `62ece4a`

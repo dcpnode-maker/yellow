@@ -1,8 +1,13 @@
 import { afterAll, describe, expect, test } from "bun:test";
 import { SQL } from "bun";
 import {
+  deriveIndiaGstAccommodationRateChangeDate,
+  deriveIndiaGstSection14PaymentReceiptDate,
+  deriveIndiaGstSection14WorkingDayCalendarEvidence,
   IndiaGstAccommodationQuotedRateApplicabilityRecorderService,
   IndiaGstAccommodationQuotedRateApplicabilityService,
+  IndiaGstSection14RateSelectionService,
+  resolveIndiaGstSection14PaymentProviso,
 } from "../src/contexts/tax-fiscal";
 import { PostgresIdempotency, type Tx } from "../src/kernel";
 import {
@@ -287,6 +292,31 @@ databaseDescribe("Order 400 fresh PostgreSQL catalogue and authority", () => {
   test("real runtime records one atomic immutable bundle, replays write-free and rolls back cleanly", async () => {
     const built=await fixture("cgst_sgst","2025-09-21","2025-09-21","2025-09-23","2025-09-23");
     const canonicalContentHash="2160e1747afcb3c280f1fd66e55534a5be563a10f277e8fcc178324e51abaa08";
+    const successorContentHash="eb323eff707aad1e460b425c87b448d4e924d2eb17499094abad71b33c69a820";
+    const canonicalJson=(value:unknown):string => {
+      if (value===null || typeof value!=="object") return JSON.stringify(Object.is(value,-0)?0:value);
+      if (Array.isArray(value)) return `[${value.map(canonicalJson).join(",")}]`;
+      const record=value as Record<string,unknown>;
+      return `{${Object.keys(record).sort().map((key)=>`${JSON.stringify(key)}:${canonicalJson(record[key])}`).join(",")}}`;
+    };
+    const canonicalHash=(value:unknown)=>new Bun.CryptoHasher("sha256").update(canonicalJson(value)).digest("hex");
+    const predecessorContent={country:"IN",price_display:"tax_exclusive",rounding:"document",taxes:[
+      {code:"GST_ROOM",name:"GST on accommodation",mode:"slab_percent",slab_basis:"transaction_value",applies_to:["room_revenue"],slabs:[{upto_minor:750000,rate:0.12,itc_eligible:true},{upto_minor:null,rate:0.18,itc_eligible:true}]},
+      {code:"GST_FNB",name:"GST on F&B (restaurant in hotel)",mode:"percent",rate:0.05,applies_to:["fnb_revenue"]},
+    ]};
+    const successorContent={country:"IN",price_display:"tax_exclusive",rounding:"document",taxes:[
+      {code:"GST_ROOM",name:"GST on accommodation",mode:"slab_percent",slab_basis:"transaction_value",applies_to:["room_revenue"],slabs:[{upto_minor:750000,rate:0.05,itc_eligible:false},{upto_minor:null,rate:0.18,itc_eligible:true}]},
+      {code:"GST_FNB",name:"GST on F&B (restaurant in hotel)",mode:"percent",rate:0.05,applies_to:["fnb_revenue"]},
+    ]};
+    const pairBody={
+      propertyNode:PROPERTY,
+      predecessor:{extensionId:"a806f516-fed6-5768-b310-94aa03286adb",key:"in-gst-lodging",version:1,status:"retired",effectiveFromInstant:"2022-07-17T18:30:00.000000Z",effectiveToInstant:"2025-09-21T18:30:00.000000Z",content:predecessorContent,contentHash:canonicalContentHash,gstRoomSlabs:[{uptoMinor:750000,rate:0.12,itcEligible:true},{uptoMinor:null,rate:0.18,itcEligible:true}]},
+      successor:{extensionId:"0b21daf2-ea6e-5568-9c21-69e4d4424574",key:"in-gst-lodging",version:2,status:"active",effectiveFromInstant:"2025-09-21T18:30:00.000000Z",effectiveToInstant:null,content:successorContent,contentHash:successorContentHash,gstRoomSlabs:[{uptoMinor:750000,rate:0.05,itcEligible:false},{uptoMinor:null,rate:0.18,itcEligible:true}]},
+      cutoverInstant:"2025-09-21T18:30:00.000000Z",
+      statutoryLowerBandDelta:{thresholdMinor:750000,predecessorRate:0.12,predecessorItcEligible:true,successorRate:0.05,successorItcEligible:false,predecessorHasNilBand:false,successorHasNilBand:false},
+      sourceHashes:{notification20_2019:"ee920c82c30ed88d9bb515d7d79b975cc2ed599c6dad411d04d8b7fcd5a86901",notification04_2022:"c6d264f1906375e93466dd97b2c60bb9b21c0dec34b93900b15237b4a98b7716",notification15_2025:"46c9447579017d8bf1fefd75b6e6a48856dab7b23e44c7e06babfdc99ae9d289"},
+    } as const;
+    const rateVersionPair={...pairBody,evidenceHash:canonicalHash({tenantId:TENANT,predecessorOwnerTenantId:null,successorOwnerTenantId:null,...pairBody})};
     const resolverQuery=(async (strings:TemplateStringsArray) => {
       const sql=strings.join("?");
       if (sql.includes("tax_attribution_hold_binding")) return [built.rows.persisted];
@@ -295,23 +325,26 @@ databaseDescribe("Order 400 fresh PostgreSQL catalogue and authority", () => {
       if (sql.includes("service_provision_snapshot")) return [built.rows.service];
       throw new Error(`unexpected canonical Order400 resolver SQL: ${sql}`);
     }) as unknown as Tx;
-    const canonicalResolved=structuredClone(
+    const partialResolved=structuredClone(
       await new IndiaGstAccommodationQuotedRateApplicabilityService().resolve(resolverQuery,built.input),
     );
-    (canonicalResolved.section14.selectedVersion as {contentHash:string}).contentHash=canonicalContentHash;
-    const canonicalJson=(value:unknown):string => {
-      if (value===null || typeof value!=="object") return JSON.stringify(value);
-      if (Array.isArray(value)) return `[${value.map(canonicalJson).join(",")}]`;
-      const record=value as Record<string,unknown>;
-      return `{${Object.keys(record).sort().map((key)=>`${JSON.stringify(key)}:${canonicalJson(record[key])}`).join(",")}}`;
-    };
-    const canonicalSection14=structuredClone(built.section14Result);
-    (canonicalSection14.selectedVersion as {contentHash:string}).contentHash=canonicalContentHash;
-    const {evidenceHash:ignoredSection14Hash,...canonicalSection14Body}=canonicalSection14;
-    void ignoredSection14Hash;
-    (canonicalResolved.predecessorHashes as {section14:string}).section14=new Bun.CryptoHasher("sha256")
-      .update(canonicalJson({tenantId:TENANT,propertyNode:PROPERTY,reservationId:RESERVATION,...canonicalSection14Body}))
-      .digest("hex");
+    const deepFreeze=<T>(value:T,seen=new Set<object>()):T=>{if(value&&typeof value==="object"&&!seen.has(value as object)){seen.add(value as object);for(const key of Reflect.ownKeys(value as object))deepFreeze(Reflect.get(value as object,key),seen);Object.freeze(value);}return value;};
+    const canonicalInput=structuredClone(built.input) as any;
+    canonicalInput.section14Input.rateVersionPair=rateVersionPair;
+    canonicalInput.section14Input.rateChangeDateEvidence=deriveIndiaGstAccommodationRateChangeDate({tenantId:TENANT,rateVersionPair} as never);
+    const calendarInput=canonicalInput.section14Input.paymentEvidence;
+    if (calendarInput.kind!=="calendar_governed_receipt") throw new Error("Order403 requires calendar-governed fixture truth");
+    const boundedCalendarDates=Array.from({length:366},(_,offset)=>new Date(Date.UTC(2025,8,23+offset)).toISOString().slice(0,10));
+    calendarInput.throughDate=boundedCalendarDates.at(-1)!;
+    calendarInput.calendarEvidence.days=boundedCalendarDates.map((date)=>({date,state:"working" as const}));
+    const paymentProvisoEvidence=resolveIndiaGstSection14PaymentProviso({supplierBooksEntryDate:built.rows.payment.supplier_books_entry_date,supplierBankCreditDate:built.rows.payment.supplier_bank_credit_date,rateChangeDate:canonicalInput.section14Input.rateChangeDateEvidence.rateChangeDate});
+    deepFreeze(calendarInput.calendarEvidence);
+    const workingDayEvidence=deriveIndiaGstSection14WorkingDayCalendarEvidence({tenantId:TENANT,rateChangeDate:canonicalInput.section14Input.rateChangeDateEvidence.rateChangeDate,throughDate:calendarInput.throughDate,calendarEvidence:calendarInput.calendarEvidence} as never);
+    canonicalInput.section14Input.paymentEvidence={kind:"calendar_governed_receipt",paymentProvisoEvidence,throughDate:calendarInput.throughDate,calendarEvidence:calendarInput.calendarEvidence,workingDayEvidence,paymentReceiptEvidence:deriveIndiaGstSection14PaymentReceiptDate({tenantId:TENANT,rateVersionPair,rateChangeDateEvidence:canonicalInput.section14Input.rateChangeDateEvidence,supplierBooksEntryDate:built.rows.payment.supplier_books_entry_date,supplierBankCreditDate:built.rows.payment.supplier_bank_credit_date,paymentProvisoEvidence,throughDate:calendarInput.throughDate,calendarEvidence:calendarInput.calendarEvidence,workingDayEvidence} as never)};
+    canonicalInput.section14Input=deepFreeze(canonicalInput.section14Input);
+    canonicalInput.section14Result=await new IndiaGstSection14RateSelectionService().resolve(resolverQuery,canonicalInput.section14Input);
+    const canonicalSection14={case:canonicalInput.section14Result.case,timeOfSupplyDate:canonicalInput.section14Result.timeOfSupplyDate,selectedVersionSide:canonicalInput.section14Result.selectedVersionSide,selectedVersion:canonicalInput.section14Result.selectedVersion};
+    const canonicalResolved={...partialResolved,section14:canonicalSection14,predecessorHashes:{...partialResolved.predecessorHashes,section14:canonicalInput.section14Result.evidenceHash}};
     const {evidenceHash:ignoredEvidenceHash,...canonicalBody}=canonicalResolved;
     void ignoredEvidenceHash;
     (canonicalResolved as {evidenceHash:string}).evidenceHash=new Bun.CryptoHasher("sha256").update(JSON.stringify({
@@ -324,13 +357,13 @@ databaseDescribe("Order 400 fresh PostgreSQL catalogue and authority", () => {
     const recipient=selectors.recipient;
     const propertyLocation=selectors.placeOfSupply;
     const actor="00000000-0000-0000-0000-000000040010";
+    const alternateActor="00000000-0000-0000-0000-000000040011";
     const buyer=recipient.partyId;
     const account="00000000-0000-0000-0000-000000040012";
     const unitType="00000000-0000-0000-0000-000000040013";
     const ratePlan="00000000-0000-0000-0000-000000040014";
     const role="00000000-0000-0000-0000-000000040015";
     const request="00000000-0000-0000-0000-000000040016";
-    const deepFreeze=<T>(value:T,seen=new Set<object>()):T=>{if(value&&typeof value==="object"&&!seen.has(value as object)){seen.add(value as object);for(const key of Reflect.ownKeys(value as object))deepFreeze(Reflect.get(value as object,key),seen);Object.freeze(value);}return value;};
     const connection=await db.reserve();
     try {
       await connection.unsafe("BEGIN");
@@ -339,13 +372,17 @@ databaseDescribe("Order 400 fresh PostgreSQL catalogue and authority", () => {
       await connection`INSERT INTO tenant(id,slug,name) VALUES(${TENANT}::uuid,'order400','Order400')`;
       await connection`INSERT INTO org_node(id,tenant_id,path,kind,name,timezone,currency) VALUES(${PROPERTY}::uuid,${TENANT}::uuid,'order400'::ltree,'property','Order400','Asia/Kolkata','INR')`;
       await connection`INSERT INTO app_user(id,tenant_id,email,display_name,status) VALUES(${actor}::uuid,${TENANT}::uuid,'order400@example.test','Order400','active')`;
+      await connection`INSERT INTO app_user(id,tenant_id,email,display_name,status) VALUES(${alternateActor}::uuid,${TENANT}::uuid,'order402-alternate@example.test','Order402 alternate','active')`;
       await connection`INSERT INTO permission(code,description) VALUES('tax-fiscal.india-valuation:finalize','Finalize governed India accommodation valuation') ON CONFLICT DO NOTHING`;
       await connection`INSERT INTO role(id,tenant_id,name) VALUES(${role}::uuid,${TENANT}::uuid,'Order400 finalizer')`;
       await connection`INSERT INTO role_permission(role_id,permission_code) VALUES(${role}::uuid,'tax-fiscal.india-valuation:finalize')`;
       await connection`INSERT INTO user_role(tenant_id,user_id,role_id,scope_node) VALUES(${TENANT}::uuid,${actor}::uuid,${role}::uuid,${PROPERTY}::uuid)`;
+      await connection`INSERT INTO user_role(tenant_id,user_id,role_id,scope_node) VALUES(${TENANT}::uuid,${alternateActor}::uuid,${role}::uuid,${PROPERTY}::uuid)`;
       await connection`INSERT INTO party(id,tenant_id,kind,display_name,status) VALUES(${buyer}::uuid,${TENANT}::uuid,'person','Buyer','active')`;
       await connection`INSERT INTO extension_type(type,json_schema) VALUES('tax_jurisdiction','{"type":"object"}'::jsonb)`;
-      await connection`INSERT INTO extension(id,tenant_id,type,key,version,effective,content,status) VALUES('a806f516-fed6-5768-b310-94aa03286adb',NULL,'tax_jurisdiction','in-gst-lodging',1,tstzrange('2022-07-17T18:30:00Z','2025-09-21T18:30:00Z','[)'),' {"country":"IN","price_display":"tax_exclusive","rounding":"document","taxes":[{"code":"GST_ROOM","name":"GST on accommodation","mode":"slab_percent","slab_basis":"transaction_value","applies_to":["room_revenue"],"slabs":[{"upto_minor":750000,"rate":0.12,"itc_eligible":true},{"upto_minor":null,"rate":0.18,"itc_eligible":true}]},{"code":"GST_FNB","name":"GST on F&B (restaurant in hotel)","mode":"percent","rate":0.05,"applies_to":["fnb_revenue"]}]}'::jsonb,'retired')`;
+      await connection`INSERT INTO extension(id,tenant_id,type,key,version,effective,content,status) VALUES
+        ('a806f516-fed6-5768-b310-94aa03286adb',NULL,'tax_jurisdiction','in-gst-lodging',1,tstzrange('2022-07-17T18:30:00Z','2025-09-21T18:30:00Z','[)'),${JSON.stringify(predecessorContent)}::jsonb,'retired'),
+        ('0b21daf2-ea6e-5568-9c21-69e4d4424574',NULL,'tax_jurisdiction','in-gst-lodging',2,tstzrange('2025-09-21T18:30:00Z',NULL,'[)'),${JSON.stringify(successorContent)}::jsonb,'active')`;
       await connection`INSERT INTO property_fiscal_registration(tenant_id,id,property_node,scheme,currency,jurisdiction_extension_id,jurisdiction_owner_tenant_id,jurisdiction_key,jurisdiction_version,jurisdiction_content_hash,registration_number,region_code,legal_name,address_line,locality,postal_code) VALUES(${TENANT}::uuid,${supplier.registrationId}::uuid,${PROPERTY}::uuid,'in-gstin','INR',${jurisdiction.extensionId}::uuid,NULL,${jurisdiction.key},${jurisdiction.version}::integer,${canonicalContentHash},'27ABCDE1234F1Z5',${supplier.stateCode},'Order400 Supplier','1 Marine Drive','Mumbai','400001')`;
       await connection`INSERT INTO party_fiscal_registration(tenant_id,id,party_id,scheme,registration_number,region_code,legal_name,address_line1,locality,pin) VALUES(${TENANT}::uuid,${recipient.registrationId}::uuid,${buyer}::uuid,'in-gstin','27ABCDE1234F1Z5','27','Order400 Buyer','1 Buyer Road','Mumbai','400001')`;
       await connection`INSERT INTO property_fiscal_location(tenant_id,property_node,country_code,state_code,address_line1,locality,pin) VALUES(${TENANT}::uuid,${PROPERTY}::uuid,'IN',${propertyLocation.pos},'1 Marine Drive','Mumbai','400001')`;
@@ -377,9 +414,84 @@ databaseDescribe("Order 400 fresh PostgreSQL catalogue and authority", () => {
       await runtimeConnection`SELECT set_config('app.tenant_id',${TENANT},true)`;
       await runtimeConnection.unsafe("SET LOCAL ROLE app_role");
       const input=deepFreeze({tenantId:TENANT,propertyNode:PROPERTY,reservationId:RESERVATION,folioId:FOLIO,
-        quotedRateApplicabilityInput:built.input,idempotencyKey:"order400-real-replay",
+        quotedRateApplicabilityInput:deepFreeze(canonicalInput),idempotencyKey:"order400-real-replay",
         envelope:{tenantId:TENANT,propertyNode:PROPERTY,actorId:actor,requestId:request,
           operation:"india_gst.accommodation_quoted_rate_applicability_recorded"}});
+      const paymentEvidence=canonicalInput.section14Input.paymentEvidence;
+      if (paymentEvidence.kind!=="calendar_governed_receipt") throw new Error("Order402 requires calendar-governed fixture truth");
+      const postgresArray=(values:readonly (string|number|bigint|boolean|null)[])=>`{${values.map((value)=>value===null
+        ? "NULL"
+        : `"${String(value).replaceAll("\\","\\\\").replaceAll('"','\\"')}"`).join(",")}}`;
+      const selected=canonicalResolved.section14.selectedVersion;
+      const baseCapability={
+        tenant:TENANT,property:PROPERTY,reservation:RESERVATION,folio:FOLIO,
+        lineage:built.input.reservationLineageId,attribution:built.input.attributionId,
+        request:"00000000-0000-0000-0000-000000040020",actor,
+        serviceSnapshot:built.input.section14Input.serviceProvisionResult.serviceProvisionSnapshotId,
+        paymentSnapshot:built.input.section14Input.paymentReceiptResult.paymentReceiptSnapshotId,
+        invoiceSnapshot:built.input.section14Input.invoiceIssueResult.invoiceIssueSnapshotId,
+        familyJurisdiction:built.input.componentIdentityInput.supplyNature.jurisdiction.extensionId,
+        classification:built.input.componentIdentityInput.supplyNature.classification.classificationId,
+        supplierServiceLocation:built.input.componentIdentityInput.supplyNature.supplier.serviceLocation.id,
+        supplierSezStatus:built.input.componentIdentityInput.supplyNature.supplier.status.id,
+        recipientSezStatus:built.input.componentIdentityInput.supplyNature.recipient.status.id,
+        recipientParty:built.input.componentIdentityInput.supplyNature.recipient.partyId,
+        section14Case:canonicalResolved.section14.case,
+        serviceDate:canonicalInput.section14Result.serviceProvisionDate,
+        invoiceDate:canonicalInput.section14Result.invoiceIssueDate,
+        paymentDate:canonicalInput.section14Result.paymentReceiptDate,
+        rateChangeDate:canonicalInput.section14Result.rateChangeDate,
+        timeOfSupplyDate:canonicalResolved.section14.timeOfSupplyDate,
+        selectedSide:canonicalResolved.section14.selectedVersionSide,
+        selectedExtension:selected.extensionId,selectedVersion:selected.version,selectedStatus:selected.status,
+        selectedContentHash:selected.contentHash,selectedFrom:selected.effectiveFromInstant,
+        selectedTo:selected.effectiveToInstant,
+        componentFamily:built.input.componentIdentityResult.componentFamily,
+        section14Hash:canonicalResolved.predecessorHashes.section14,
+        levyHash:canonicalResolved.predecessorHashes.levyComponentIdentity,
+        lineageHash:canonicalResolved.predecessorHashes.reservationLineage,
+        attributionHash:canonicalResolved.predecessorHashes.attributionSnapshot,
+        evidenceHash:canonicalResolved.evidenceHash,
+        calendarAuthority:paymentEvidence.calendarEvidence.authorityId,
+        calendarSourceHash:paymentEvidence.calendarEvidence.sourceDigestSha256,
+        calendarThrough:paymentEvidence.throughDate,
+        calendarDates:paymentEvidence.calendarEvidence.days.map(({date}:{date:string})=>date),
+        calendarStates:paymentEvidence.calendarEvidence.days.map(({state}:{state:string})=>state),
+        nightOrdinals:canonicalResolved.components.map(({ordinal})=>Number(ordinal)),
+        nightDates:canonicalResolved.components.map(({businessDate})=>businessDate),
+        nightAmounts:canonicalResolved.components.map(({quotedAmountMinor})=>BigInt(quotedAmountMinor)),
+        slabUpto:canonicalResolved.components.map(({slab})=>slab.uptoMinor===null?null:BigInt(slab.uptoMinor)),
+        aggregateBps:canonicalResolved.components.map(({slab})=>slab.aggregateRateBasisPoints),
+        itcEligible:canonicalResolved.components.map(({slab})=>slab.itcEligible),
+        componentNightOrdinals:canonicalResolved.components.flatMap(({ordinal,slab})=>slab.components.map(()=>Number(ordinal))),
+        componentOrdinals:canonicalResolved.components.flatMap(({slab})=>slab.components.map((_,index)=>index)),
+        componentIdentities:canonicalResolved.components.flatMap(({slab})=>slab.components.map(({identity})=>identity)),
+        componentBps:canonicalResolved.components.flatMap(({slab})=>slab.components.map(({rateBasisPoints})=>rateBasisPoints)),
+      };
+      const invokeCapability=async(query:Tx,overrides:Partial<typeof baseCapability>={})=>{
+        const value={...baseCapability,...overrides};
+        return await query<Array<{applicability_id:string;evidence_hash:string;created:boolean}>>`
+          SELECT * FROM public.record_india_gst_accommodation_quoted_rate_applicability(
+            ${value.tenant}::uuid,${value.property}::uuid,${value.reservation}::uuid,${value.folio}::uuid,
+            ${value.lineage}::uuid,${value.attribution}::uuid,${value.request}::uuid,${value.actor}::uuid,
+            ${value.serviceSnapshot}::uuid,${value.paymentSnapshot}::uuid,${value.invoiceSnapshot}::uuid,
+            ${value.familyJurisdiction}::uuid,${value.classification}::uuid,${value.supplierServiceLocation}::uuid,
+            ${value.supplierSezStatus}::uuid,${value.recipientSezStatus}::uuid,${value.recipientParty}::uuid,
+            ${value.section14Case},${value.serviceDate}::date,${value.invoiceDate}::date,${value.paymentDate}::date,
+            ${value.rateChangeDate}::date,${value.timeOfSupplyDate}::date,${value.selectedSide},
+            ${value.selectedExtension}::uuid,${value.selectedVersion}::smallint,${value.selectedStatus},
+            ${value.selectedContentHash},${value.selectedFrom}::timestamptz,${value.selectedTo}::timestamptz,
+            ${value.componentFamily},${value.section14Hash},${value.levyHash},${value.lineageHash},
+            ${value.attributionHash},${value.evidenceHash},${value.calendarAuthority},${value.calendarSourceHash},
+            ${value.calendarThrough}::date,${postgresArray(value.calendarDates)}::date[],
+            ${postgresArray(value.calendarStates)}::text[],${postgresArray(value.nightOrdinals)}::integer[],
+            ${postgresArray(value.nightDates)}::date[],${postgresArray(value.nightAmounts)}::bigint[],
+            ${postgresArray(value.slabUpto)}::bigint[],${postgresArray(value.aggregateBps)}::integer[],
+            ${postgresArray(value.itcEligible)}::boolean[],${postgresArray(value.componentNightOrdinals)}::integer[],
+            ${postgresArray(value.componentOrdinals)}::smallint[],${postgresArray(value.componentIdentities)}::text[],
+            ${postgresArray(value.componentBps)}::integer[]
+          )`;
+      };
       const resolverPrototype=IndiaGstAccommodationQuotedRateApplicabilityService.prototype as unknown as {
         resolve:(tx:Tx,input:unknown)=>Promise<typeof canonicalResolved>;
       };
@@ -389,34 +501,142 @@ databaseDescribe("Order 400 fresh PostgreSQL catalogue and authority", () => {
       let replay:typeof first;
       try {
         const service=new IndiaGstAccommodationQuotedRateApplicabilityRecorderService({idempotency:new PostgresIdempotency()});
+        const zeroWriteCensus=()=>runtimeConnection<Array<{roots:number;nights:number;components:number;facts:number;events:number}>>`SELECT
+          (SELECT count(*)::int FROM public.india_gst_accommodation_quoted_rate_applicability WHERE tenant_id=${TENANT}::uuid) roots,
+          (SELECT count(*)::int FROM public.india_gst_accommodation_quoted_rate_applicability_room_night WHERE tenant_id=${TENANT}::uuid) nights,
+          (SELECT count(*)::int FROM public.india_gst_accommodation_quoted_rate_component WHERE tenant_id=${TENANT}::uuid) components,
+          (SELECT count(*)::int FROM public.fact_log WHERE tenant_id=${TENANT}::uuid AND entity_type=${root}) facts,
+          (SELECT count(*)::int FROM public.outbox WHERE tenant_id=${TENANT}::uuid AND event_type='india_gst.accommodation_quoted_rate_applicability_recorded') events`;
+        let challengeOrdinal=0;
+        const expectCapabilityRejection=async(overrides:Partial<typeof baseCapability>,errno:"22023"|"42501"|"55000"|"23505")=>{
+          const savepoint=`hostile_${++challengeOrdinal}`;
+          const before=await zeroWriteCensus();
+          await runtimeConnection.unsafe(`SAVEPOINT ${savepoint}`);
+          let failure:unknown;
+          try { await invokeCapability(runtimeConnection,overrides); }
+          catch(error) { failure=error; }
+          await runtimeConnection.unsafe(`ROLLBACK TO SAVEPOINT ${savepoint}`);
+          expect(failure).toMatchObject({errno});
+          expect(await zeroWriteCensus()).toEqual(before);
+        };
+        await expectCapabilityRejection({calendarSourceHash:"f".repeat(64)},"22023");
+        await expectCapabilityRejection({calendarAuthority:"FOREIGN_GOVERNED_CALENDAR"},"22023");
+        const changedCalendarDates=[...baseCapability.calendarDates];
+        changedCalendarDates[10]=changedCalendarDates[9]!;
+        await expectCapabilityRejection({calendarDates:changedCalendarDates},"22023");
+        const changedCalendarStates=[...baseCapability.calendarStates];
+        changedCalendarStates[changedCalendarStates.length-1]="non_working";
+        await expectCapabilityRejection({calendarStates:changedCalendarStates},"22023");
+        await expectCapabilityRejection({calendarThrough:baseCapability.calendarDates.at(-2)!},"22023");
+        await expectCapabilityRejection({calendarDates:[],calendarStates:[]},"22023");
+        const calendar367Date=new Date(Date.UTC(2025,8,23+366)).toISOString().slice(0,10);
+        await expectCapabilityRejection({calendarThrough:calendar367Date,calendarDates:[...baseCapability.calendarDates,calendar367Date],calendarStates:[...baseCapability.calendarStates,"working"]},"22023");
+        await expectCapabilityRejection({selectedExtension:"0b21daf2-ea6e-5568-9c21-69e4d4424574"},"55000");
+        await expectCapabilityRejection({selectedVersion:2},"55000");
+        await expectCapabilityRejection({selectedStatus:"active"},"55000");
+        await expectCapabilityRejection({selectedFrom:"2022-07-17T18:30:00.000001Z"},"55000");
+        await expectCapabilityRejection({selectedContentHash:"0".repeat(64)},"55000");
+        await expectCapabilityRejection({familyJurisdiction:"0b21daf2-ea6e-5568-9c21-69e4d4424574"},"55000");
+        await expectCapabilityRejection({classification:"00000000-0000-0000-0000-000000040099"},"55000");
+        await expectCapabilityRejection({lineage:"00000000-0000-0000-0000-000000040099"},"55000");
+        await expectCapabilityRejection({attribution:"00000000-0000-0000-0000-000000040099"},"55000");
+        await expectCapabilityRejection({serviceSnapshot:"00000000-0000-0000-0000-000000040099"},"55000");
+        await expectCapabilityRejection({recipientParty:"00000000-0000-0000-0000-000000040099"},"55000");
+        await expectCapabilityRejection({componentFamily:"igst"},"22023");
+        await expectCapabilityRejection({nightOrdinals:[0,2]},"22023");
+        await expectCapabilityRejection({nightOrdinals:[0,0]},"22023");
+        await expectCapabilityRejection({componentOrdinals:[0,2,0,1]},"22023");
+        await expectCapabilityRejection({componentOrdinals:[0,0,0,1]},"22023");
+        const hostilePredecessor=structuredClone(canonicalInput) as any;
+        hostilePredecessor.section14Input.paymentEvidence.calendarEvidence.authorityId="00000000-0000-0000-0000-000000040099";
+        const hostileInput=deepFreeze({
+          ...input,
+          quotedRateApplicabilityInput:hostilePredecessor,
+          idempotencyKey:"order400-foreign-calendar-authority",
+          envelope:{...input.envelope,requestId:"00000000-0000-0000-0000-000000040019"},
+        });
+        await runtimeConnection.unsafe("SAVEPOINT foreign_calendar_authority");
+        let hostileError:unknown;
+        try {
+          await service.record(runtimeConnection,hostileInput as never);
+        } catch (error) {
+          hostileError=error;
+        }
+        await runtimeConnection.unsafe("ROLLBACK TO SAVEPOINT foreign_calendar_authority");
+        expect(hostileError).toBeDefined();
+        await runtimeConnection.unsafe(`CREATE TEMP TABLE ${root}(marker text)`);
+        await runtimeConnection.unsafe(`INSERT INTO ${root}(marker) VALUES('pg_temp sentinel')`);
         first=await service.record(runtimeConnection,input as never);
+        expect(baseCapability.calendarDates).toHaveLength(366);
+        expect(await runtimeConnection.unsafe<Array<{marker:string}>>(`SELECT marker FROM pg_temp.${root}`)).toEqual([{marker:"pg_temp sentinel"}]);
+        const exactReplayCensus=await zeroWriteCensus();
+        const exactCapabilityReplay=await invokeCapability(runtimeConnection,{request});
+        expect(exactCapabilityReplay).toEqual([{applicability_id:first.applicabilityId,evidence_hash:first.evidenceHash,created:false}]);
+        expect(await zeroWriteCensus()).toEqual(exactReplayCensus);
+        await expectCapabilityRejection({request,actor:alternateActor},"23505");
         replay=await service.record(runtimeConnection,input as never);
       } finally {
         resolverPrototype.resolve=originalResolve;
       }
       expect(first).toMatchObject({created:true,replayed:false});
       expect(replay).toEqual({...first,replayed:true});
-      const evidence=await runtimeConnection<Array<{roots:number;nights:number;components:number;facts:number;events:number;keys:number;fact_payload:Record<string,unknown>;event_payload:Record<string,unknown>}>>`
+      const evidence=await runtimeConnection<Array<{roots:number;nights:number;components:number;facts:number;events:number;keys:number;calendar_count:number;fact_payload:Record<string,unknown>;event_payload:Record<string,unknown>}>>`
         SELECT
-          (SELECT count(*)::int FROM india_gst_accommodation_quoted_rate_applicability WHERE tenant_id=${TENANT}::uuid) roots,
-          (SELECT count(*)::int FROM india_gst_accommodation_quoted_rate_applicability_room_night WHERE tenant_id=${TENANT}::uuid) nights,
-          (SELECT count(*)::int FROM india_gst_accommodation_quoted_rate_component WHERE tenant_id=${TENANT}::uuid) components,
-          (SELECT count(*)::int FROM fact_log WHERE tenant_id=${TENANT}::uuid AND entity_type=${root}) facts,
-          (SELECT count(*)::int FROM outbox WHERE tenant_id=${TENANT}::uuid AND event_type='india_gst.accommodation_quoted_rate_applicability_recorded') events,
-          (SELECT count(*)::int FROM api_idempotency WHERE tenant_id=${TENANT}::uuid AND operation='tax-fiscal.india-quoted-rate-applicability.record') keys,
-          (SELECT payload FROM fact_log WHERE tenant_id=${TENANT}::uuid AND entity_type=${root} LIMIT 1) fact_payload,
-          (SELECT payload FROM outbox WHERE tenant_id=${TENANT}::uuid AND event_type='india_gst.accommodation_quoted_rate_applicability_recorded' LIMIT 1) event_payload
+          (SELECT count(*)::int FROM public.india_gst_accommodation_quoted_rate_applicability WHERE tenant_id=${TENANT}::uuid) roots,
+          (SELECT count(*)::int FROM public.india_gst_accommodation_quoted_rate_applicability_room_night WHERE tenant_id=${TENANT}::uuid) nights,
+          (SELECT count(*)::int FROM public.india_gst_accommodation_quoted_rate_component WHERE tenant_id=${TENANT}::uuid) components,
+          (SELECT count(*)::int FROM public.fact_log WHERE tenant_id=${TENANT}::uuid AND entity_type=${root}) facts,
+          (SELECT count(*)::int FROM public.outbox WHERE tenant_id=${TENANT}::uuid AND event_type='india_gst.accommodation_quoted_rate_applicability_recorded') events,
+          (SELECT count(*)::int FROM public.api_idempotency WHERE tenant_id=${TENANT}::uuid AND operation='tax-fiscal.india-quoted-rate-applicability.record') keys,
+          (SELECT cardinality(calendar_dates)::int FROM public.india_gst_accommodation_quoted_rate_applicability WHERE tenant_id=${TENANT}::uuid LIMIT 1) calendar_count,
+          (SELECT payload FROM public.fact_log WHERE tenant_id=${TENANT}::uuid AND entity_type=${root} LIMIT 1) fact_payload,
+          (SELECT payload FROM public.outbox WHERE tenant_id=${TENANT}::uuid AND event_type='india_gst.accommodation_quoted_rate_applicability_recorded' LIMIT 1) event_payload
       `;
-      expect(evidence).toEqual([{roots:1,nights:2,components:4,facts:1,events:1,keys:1,
+      expect(evidence).toEqual([{roots:1,nights:2,components:4,facts:1,events:1,keys:1,calendar_count:366,
         fact_payload:{applicabilityId:first.applicabilityId,evidenceHash:first.evidenceHash},
         event_payload:{applicabilityId:first.applicabilityId,reservationId:RESERVATION,folioId:FOLIO,evidenceHash:first.evidenceHash}}]);
       await runtimeConnection.unsafe("ROLLBACK");
       const absent=await db<Array<{roots:number;facts:number;events:number;keys:number}>>`SELECT
-        (SELECT count(*)::int FROM india_gst_accommodation_quoted_rate_applicability WHERE tenant_id=${TENANT}::uuid) roots,
-        (SELECT count(*)::int FROM fact_log WHERE tenant_id=${TENANT}::uuid AND entity_type=${root}) facts,
-        (SELECT count(*)::int FROM outbox WHERE tenant_id=${TENANT}::uuid AND event_type='india_gst.accommodation_quoted_rate_applicability_recorded') events,
-        (SELECT count(*)::int FROM api_idempotency WHERE tenant_id=${TENANT}::uuid AND operation='tax-fiscal.india-quoted-rate-applicability.record') keys`;
+        (SELECT count(*)::int FROM public.india_gst_accommodation_quoted_rate_applicability WHERE tenant_id=${TENANT}::uuid) roots,
+        (SELECT count(*)::int FROM public.fact_log WHERE tenant_id=${TENANT}::uuid AND entity_type=${root}) facts,
+        (SELECT count(*)::int FROM public.outbox WHERE tenant_id=${TENANT}::uuid AND event_type='india_gst.accommodation_quoted_rate_applicability_recorded') events,
+        (SELECT count(*)::int FROM public.api_idempotency WHERE tenant_id=${TENANT}::uuid AND operation='tax-fiscal.india-quoted-rate-applicability.record') keys`;
       expect(absent).toEqual([{roots:0,facts:0,events:0,keys:0}]);
+      const contender=await runtimeDb.reserve();
+      try {
+        await runtimeConnection.unsafe("BEGIN");
+        await runtimeConnection`SELECT set_config('app.tenant_id',${TENANT},true)`;
+        await runtimeConnection.unsafe("SET LOCAL ROLE app_role");
+        await contender.unsafe("BEGIN");
+        await contender`SELECT set_config('app.tenant_id',${TENANT},true)`;
+        await contender.unsafe("SET LOCAL ROLE app_role");
+        const contenderPid=(await contender<Array<{pid:number}>>`SELECT pg_backend_pid()::int pid`)[0]!.pid;
+        const arbitrationRequest="00000000-0000-0000-0000-000000040021";
+        const winner=(await invokeCapability(runtimeConnection,{request:arbitrationRequest}))[0]!;
+        const contenderResult=invokeCapability(contender,{request:arbitrationRequest});
+        let observedLock=false;
+        for(let attempt=0;attempt<100&&!observedLock;attempt++) {
+          const state=await db<Array<{waiting:boolean}>>`SELECT (wait_event_type='Lock') waiting FROM pg_stat_activity WHERE pid=${contenderPid}`;
+          observedLock=state[0]?.waiting===true;
+          if(!observedLock) await Bun.sleep(10);
+        }
+        expect(observedLock).toBeTrue();
+        await runtimeConnection.unsafe("COMMIT");
+        const loser=(await contenderResult)[0]!;
+        expect(winner).toMatchObject({evidence_hash:baseCapability.evidenceHash,created:true});
+        expect(loser).toEqual({...winner,created:false});
+        await contender.unsafe("ROLLBACK");
+        const arbitrationCensus=await db<Array<{roots:number;nights:number;components:number;facts:number;events:number}>>`SELECT
+          (SELECT count(*)::int FROM public.india_gst_accommodation_quoted_rate_applicability WHERE tenant_id=${TENANT}::uuid) roots,
+          (SELECT count(*)::int FROM public.india_gst_accommodation_quoted_rate_applicability_room_night WHERE tenant_id=${TENANT}::uuid) nights,
+          (SELECT count(*)::int FROM public.india_gst_accommodation_quoted_rate_component WHERE tenant_id=${TENANT}::uuid) components,
+          (SELECT count(*)::int FROM public.fact_log WHERE tenant_id=${TENANT}::uuid AND entity_type=${root}) facts,
+          (SELECT count(*)::int FROM public.outbox WHERE tenant_id=${TENANT}::uuid AND event_type='india_gst.accommodation_quoted_rate_applicability_recorded') events`;
+        expect(arbitrationCensus).toEqual([{roots:1,nights:2,components:4,facts:1,events:1}]);
+      } finally {
+        await contender.unsafe("ROLLBACK").catch(()=>undefined);
+        contender.release();
+      }
       } finally {
         await runtimeConnection.unsafe("ROLLBACK").catch(()=>undefined);
         runtimeConnection.release();

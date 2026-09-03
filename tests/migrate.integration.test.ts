@@ -1672,7 +1672,7 @@ databaseDescribe("Bun SQL migration runner", () => {
             FROM public.schema_migration
            ORDER BY version
         `;
-        expect(upgradedLedger).toHaveLength(68);
+        expect(upgradedLedger).toHaveLength(69);
 
         const noOpLog: string[] = [];
         const noOp = await runMigrations({
@@ -1681,7 +1681,7 @@ databaseDescribe("Bun SQL migration runner", () => {
           logger: (message) => noOpLog.push(message),
         });
         expect(noOp.appliedFiles).toEqual([]);
-        expect(noOp.discoveredFiles).toBe(68);
+        expect(noOp.discoveredFiles).toBe(69);
         expect(noOp.transactionBackendPids).toEqual([]);
         expect(noOpLog).toHaveLength(1);
         expect(noOpLog[0]).toContain("applied=0 status=no-op");
@@ -1703,7 +1703,7 @@ databaseDescribe("Bun SQL migration runner", () => {
         }>>`
           SELECT version, filename, checksum_sha256
             FROM public.schema_migration
-           WHERE version IN (44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68)
+           WHERE version IN (44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69)
            ORDER BY version
         `;
         expect(ledger.map((row) => ({ ...row, version: Number(row.version) }))).toEqual([
@@ -1835,7 +1835,7 @@ databaseDescribe("Bun SQL migration runner", () => {
           {
             version: 69,
             filename: "0069_india_gst_accommodation_quoted_rate_applicability.sql",
-            checksum_sha256: "c7b36bc7cf9d59d67d70426b59cd16b88d9de9e7097ce55d21b176190f293ade",
+            checksum_sha256: "622aed18c22baf6793cc8ff7ac8dea8b9af4c1688ced5dc341f21b6f3305688e",
           },
         ]);
 
@@ -2375,7 +2375,7 @@ databaseDescribe("Bun SQL migration runner", () => {
         const tableCount = await sql<{ count: number }[]>`
           SELECT count(*)::int AS count FROM pg_tables WHERE schemaname = 'public'
         `;
-        expect(tableCount).toEqual([{ count: 116 }]);
+        expect(tableCount).toEqual([{ count: 119 }]);
 
         const privileges = await sql<{
           route_rls: boolean;

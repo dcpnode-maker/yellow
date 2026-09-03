@@ -348,7 +348,7 @@ const EXPECTED_MIGRATIONS = [
   {
     version: 69,
     filename: "0069_india_gst_accommodation_quoted_rate_applicability.sql",
-    checksum_sha256: "c7b36bc7cf9d59d67d70426b59cd16b88d9de9e7097ce55d21b176190f293ade",
+    checksum_sha256: "622aed18c22baf6793cc8ff7ac8dea8b9af4c1688ced5dc341f21b6f3305688e",
   },
 ];
 
