@@ -1,6 +1,6 @@
 # Order 367 — Persisted India final component-tax evidence
 
-**Status:** READY-TO-RESUME-ON-APPROVED-B6DACC5-D1188
+**Status:** ACTIVE-RESUMED-D1189
 **Phase:** 7 — Tax engine and India IRP
 **Branch:** `phase-7/persisted-india-final-component-tax-evidence`
 **Base:** exact current approved coordination head `6bba460`; product frontier includes approved Order353 and migrations through 0068
@@ -82,6 +82,8 @@ post-migration catalogue becomes `70/122/112/21/2`.
 - `src/contexts/tax-fiscal/index.ts`;
 - `tests/india-gst-accommodation-final-component-tax-recording.intentional-red.test.ts`;
 - `tests/india-gst-accommodation-final-component-tax-recording.integration.test.ts`;
+- `tests/india-gst-accommodation-quoted-rate-applicability-recording.integration.test.ts`
+  only for the exact post-0070 catalogue-frontier assertion;
 - `tests/schema/expected.sql`;
 - exact current catalogue/oracle repairs in `setup.sh`,
   `tests/setup-current-catalogue-oracle.test.ts`,
@@ -98,6 +100,17 @@ post-migration catalogue becomes `70/122/112/21/2`.
 
 The approved pure Order353 calculator remains byte-identical. Any additional path or
 behavior requires a recorded scope amendment before editing.
+
+## D1189 resume binding
+
+Order367 resumes on independently approved substantive commit `b6dacc5` and
+coordination commit `5a65eb0`. Migration0070 must consume one mandatory persisted
+Order400 `applicabilityId`; that id is part of the application idempotency preimage,
+is passed to the sole database writer, is persisted as a tenant-scoped foreign key,
+and is independently revalidated against the current valuation and complete typed
+ancestry. The post-migration catalogue is exactly `70/122/112/112/21/2`. The
+Order400 integration file is admitted only to advance its exact migration/catalogue
+oracle; its approved product behavior remains frozen.
 
 ## Required proof
 
