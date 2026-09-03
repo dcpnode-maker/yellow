@@ -19,7 +19,6 @@ export interface IndiaGstAccommodationFinalComponentTaxSemanticRouteInput {
   readonly reservationId: string;
   readonly folioId: string;
 }
-
 export interface IndiaGstAccommodationFinalComponentTaxSemanticRoute {
   readonly mappingId: string;
   readonly semanticCode: "room_revenue" | SemanticCode;
@@ -190,9 +189,10 @@ export class IndiaGstAccommodationFinalComponentTaxSemanticRouteService {
              tax.quoted_rate_applicability_evidence_hash,
              tax.component_family, tax.currency::text AS currency,
              tax.transaction_value_minor::text, tax.tax_minor::text, tax.grand_total_minor::text,
-             extension.id::text AS selected_extension_id,
-             extension.tenant_id::text AS selected_extension_owner_tenant_id,
-             extension.key AS selected_extension_key, extension.version AS selected_extension_version,
+             tax.selected_extension_id::text AS selected_extension_id,
+             NULL::text AS selected_extension_owner_tenant_id,
+             'in-gst-lodging'::text AS selected_extension_key,
+             tax.selected_extension_version AS selected_extension_version,
              applicability.selected_content_hash AS selected_extension_content_hash
         FROM public.india_gst_accommodation_final_component_tax AS tax
         JOIN public.india_gst_accommodation_final_valuation AS valuation
@@ -209,17 +209,21 @@ export class IndiaGstAccommodationFinalComponentTaxSemanticRouteService {
          AND applicability.selected_extension_id=tax.selected_extension_id
          AND applicability.selected_extension_version=tax.selected_extension_version
          AND applicability.evidence_hash=tax.quoted_rate_applicability_evidence_hash
-        JOIN public.extension AS extension
-          ON extension.id=tax.selected_extension_id
-         AND extension.version=tax.selected_extension_version
-         AND extension.status=applicability.selected_extension_status
-         AND extension.type='tax_jurisdiction'
-         AND pg_catalog.encode(public.digest(pg_catalog.convert_to(extension.content::text,'UTF8'),'sha256'),'hex')
-               =applicability.selected_content_hash
        WHERE tax.tenant_id=${tenant}::uuid
          AND tax.tenant_id=current_setting('app.tenant_id',true)::uuid
          AND tax.property_node=${property}::uuid AND tax.reservation_id=${reservation}::uuid
          AND tax.folio_id=${folio}::uuid
+         AND (
+           (applicability.selected_extension_id='a806f516-fed6-5768-b310-94aa03286adb'::uuid
+            AND applicability.selected_extension_version=1
+            AND applicability.selected_extension_status='retired'
+            AND applicability.selected_content_hash='2160e1747afcb3c280f1fd66e55534a5be563a10f277e8fcc178324e51abaa08')
+           OR
+           (applicability.selected_extension_id='0b21daf2-ea6e-5568-9c21-69e4d4424574'::uuid
+            AND applicability.selected_extension_version=2
+            AND applicability.selected_extension_status='active'
+            AND applicability.selected_content_hash='eb323eff707aad1e460b425c87b448d4e924d2eb17499094abad71b33c69a820')
+         )
          AND NOT EXISTS (SELECT 1 FROM public.india_gst_accommodation_final_component_tax AS successor
                           WHERE successor.tenant_id=tax.tenant_id AND successor.supersedes_tax_id=tax.id)
          AND NOT EXISTS (SELECT 1 FROM public.india_gst_accommodation_final_valuation AS successor
@@ -302,7 +306,8 @@ export class IndiaGstAccommodationFinalComponentTaxSemanticRouteService {
     const extensionContentHash = storedHash(root.selected_extension_content_hash, "jurisdiction content hash");
     const required = ["room_revenue", ...familyIdentities.filter((identity) => componentTotals.get(identity)! > 0n).map(semanticCode)];
     const routeRows = await tx<Row[]>`
-      SELECT mapping.id::text AS mapping_id, mapping.semantic_code, mapping.tx_code,
+      SELECT mapping.id::text AS mapping_id, mapping.semantic_kind,
+             mapping.semantic_code, mapping.tx_code,
              route.credit_account_id::text AS route_credit_account_id,
              code.code AS tx_code_value, code.grp AS tx_code_group, code.usali_line,
              account.id::text AS account_id, account.property_node::text AS account_property_node,
@@ -357,4 +362,3 @@ export class IndiaGstAccommodationFinalComponentTaxSemanticRouteService {
     });
   }
 }
-
