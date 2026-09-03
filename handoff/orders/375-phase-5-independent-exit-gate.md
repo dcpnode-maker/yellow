@@ -1,6 +1,6 @@
 # Order 375 — Phase-5 independent exit gate
 
-**Status:** CHANGES-REQUIRED-D1098
+**Status:** ACTIVE-FULL-REREVIEW-AFTER-CONTENTION-D1111
 **Phase:** 5 — Financials
 **Branch:** `phase-5/exit-gate`
 **Base:** exact independently approved Order356 tip
@@ -40,8 +40,8 @@ recorded source truth, browser availability and runtime deployment are distinct 
 1. Prove exact approved ancestry and map every Phase-5 DoD item to its owning product,
    test and independent approval; stale intermediate headings cannot substitute for
    recorded decisions.
-2. On a fresh disposable PostgreSQL frontier apply migrations 1–64 and prove exact
-   catalogue `64/116/106/106/15/2`, schema, RLS, runtime DML and definer containment.
+2. On a fresh disposable PostgreSQL frontier apply migrations 1–65 and prove exact
+   catalogue `65/116/106/106/15/2`, schema, RLS, runtime DML and definer containment.
 3. Execute the real account/folio/window → balanced charge → immutable correction or
    transfer → token capture or receivable exact-zero → settle/close journeys, including
    approval and concurrency hostility, one effect and canonical balances.
@@ -146,6 +146,16 @@ Order375 restarts from item1 at exact approved tip
 `ac87eea22268d80d8d73727908ff042b7ee7cda1` under another distinct non-implementing
 Tier3 reviewer. No previous partial output is reused as the exit verdict; every
 reviewer-personal proof item remains mandatory.
+
+## Full restart after contention repair — D1111
+
+Order382 is independently approved and closed at D1110 after a fresh official
+PostgreSQL16.15 review proves migrations65, exact catalogue
+`65/116/106/106/15/2`, ten reset twenty-contender cycles (200 calls) without 23505,
+one atomic effect per cycle, byte-identical schema, migration39/0, acceptance23/0,
+standing1225/0 and referee11/11. Order375 restarts from item1 at exact approved tip
+`1f9ecf67ccbc9434e5257eafca049e1f15f5a309` under another distinct non-implementing
+Tier3 reviewer. No prior partial result is reused as the exit verdict.
 
 ## Full restart after setup-oracle approval — D1097
 
