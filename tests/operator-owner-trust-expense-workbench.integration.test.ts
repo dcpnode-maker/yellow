@@ -34,7 +34,7 @@ databaseDescribe("Order 386 owner-trust workbench PostgreSQL authority",()=>{
 
   test("P1 migration exposes only the read-only app-mediated capability",async()=>{
     const rows=await deploy!`SELECT count(*)::int migrations,has_function_privilege('app_role','prepare_owner_trust_expense(uuid,uuid,uuid,bigint,text)','EXECUTE') app_exec,has_function_privilege('yellow_runtime','prepare_owner_trust_expense(uuid,uuid,uuid,bigint,text)','EXECUTE') runtime_exec,prosecdef,provolatile FROM schema_migration,pg_proc WHERE proname='prepare_owner_trust_expense' GROUP BY prosecdef,provolatile`;
-    expect(rows).toEqual([{migrations:69,app_exec:true,runtime_exec:false,prosecdef:true,provolatile:"v"}]);
+    expect(rows).toEqual([{migrations:70,app_exec:true,runtime_exec:false,prosecdef:true,provolatile:"v"}]);
   });
 
   test("P2 discovery and preparation are minimized, exact-property and zero-write",async()=>{

@@ -17,7 +17,7 @@ const EVENT = "india_gst.accommodation_final_component_tax_recorded";
 const OPERATION = "tax-fiscal.india-accommodation-final-component-tax.record";
 const INPUT_KEYS = [
   "tenantId", "propertyNode", "reservationId", "folioId",
-  "quotedRateApplicabilityInput", "expectedCurrentTaxId",
+  "applicabilityId", "quotedRateApplicabilityInput", "expectedCurrentTaxId",
   "expectedCurrentEvidenceHash", "idempotencyKey", "envelope",
 ] as const;
 
@@ -26,6 +26,7 @@ export interface IndiaGstAccommodationFinalComponentTaxRecordingInput {
   readonly propertyNode: string;
   readonly reservationId: string;
   readonly folioId: string;
+  readonly applicabilityId: string;
   readonly quotedRateApplicabilityInput: IndiaGstAccommodationQuotedRateApplicabilityInput;
   readonly expectedCurrentTaxId: string | null;
   readonly expectedCurrentEvidenceHash: string | null;
@@ -152,6 +153,7 @@ export class IndiaGstAccommodationFinalComponentTaxRecorderService {
     const property = uuid(input.propertyNode, "propertyNode");
     const reservation = uuid(input.reservationId, "reservationId");
     const folio = uuid(input.folioId, "folioId");
+    const applicability = uuid(input.applicabilityId, "applicabilityId");
     const actor = uuid(input.envelope.actorId, "envelope.actorId");
     const requestId = uuid(input.envelope.requestId, "envelope.requestId");
     if (input.envelope.tenantId !== tenant || input.envelope.propertyNode !== property
@@ -183,7 +185,8 @@ export class IndiaGstAccommodationFinalComponentTaxRecorderService {
         operation: OPERATION,
         key: input.idempotencyKey,
         request: {
-          tenant, property, reservation, folio, lineageId, attributionId,
+          tenant, property, reservation, folio, applicabilityId: applicability,
+          lineageId, attributionId,
           predecessorExtensionId, successorExtensionId,
           valuationId: calculated.valuationId,
           valuationGeneration: calculated.generation,
@@ -194,8 +197,7 @@ export class IndiaGstAccommodationFinalComponentTaxRecorderService {
         const rows = await q<CapabilityRow[]>`
           SELECT * FROM public.record_india_gst_accommodation_final_component_tax(
             ${tenant}::uuid, ${property}::uuid, ${reservation}::uuid, ${folio}::uuid,
-            ${lineageId}::uuid, ${attributionId}::uuid,
-            ${predecessorExtensionId}::uuid, ${successorExtensionId}::uuid,
+            ${applicability}::uuid,
             ${requestId}::uuid, ${actor}::uuid, ${expected}::uuid, ${expectedHash}
           )
         `;

@@ -2,7 +2,7 @@ import { describe, expect, test } from "bun:test";
 import * as taxFiscal from "../src/contexts/tax-fiscal";
 
 const migration = Bun.file(new URL(
-  "../migrations/0069_india_gst_accommodation_final_component_tax.sql",
+  "../migrations/0070_india_gst_accommodation_final_component_tax.sql",
   import.meta.url,
 ));
 const recorder = Bun.file(new URL(
