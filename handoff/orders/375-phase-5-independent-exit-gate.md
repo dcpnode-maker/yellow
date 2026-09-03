@@ -1,6 +1,6 @@
 # Order 375 — Phase-5 independent exit gate
 
-**Status:** ACTIVE-FULL-REREVIEW-AFTER-CARRY-D1084
+**Status:** CHANGES-REQUIRED-D1085
 **Phase:** 5 — Financials
 **Branch:** `phase-5/exit-gate`
 **Base:** exact independently approved Order356 tip
@@ -137,3 +137,17 @@ therefore restarts again from item1 at exact approved tip
 `c84ab29f46541c58770b3a671f82b28e2bacf633` under a new distinct non-implementing
 Tier3 reviewer. No partial result from D1070, D1075 or D1080 is reused as the exit
 verdict. Every reviewer-personal proof item above remains mandatory.
+
+## Post-carry full-rereview finding — D1085
+
+The fresh distinct Tier3 reviewer restarted from item1 at exact activation
+`94431ca2c30761f093fdcb3d20b631c0408b1c3c` and approved product ancestry
+`c84ab29f46541c58770b3a671f82b28e2bacf633`. A fresh native PG17 frontier applied
+migrations 1–64 and returned exact `64/116/106/106/15/2`. Complete financial,
+payment/trust/cashier/journey and day-close batches passed before the authority batch
+reproduced one deterministic stale strict oracle:
+`tests/app-role-nonlogin.integration.test.ts:232` expects `89/79/79` tables/RLS/
+policies while live migration64 truth is `116/106/106`. Order375 cannot repair or
+waive this red. Remaining standing/static/acceptance/referee completion is unclaimed;
+a bounded oracle repair and another distinct full restart are mandatory. Phase5 and
+the separately unwired operator API/UI/status/local remain unapproved.
