@@ -1,6 +1,6 @@
 # Order 382 — Business-day roll contention repair
 
-**Status:** REVIEW-WITHHELD-PLATFORM-GATES-D1103
+**Status:** ACTIVE-COMPLIANT-PG16-REREVIEW-D1104
 **Phase:** 5 — Financials
 **Branch:** `phase-5/business-day-roll-contention-repair`
 **Base:** exact withheld Order375 governance `2f087f0c596776e671b1e7685ca36a9023b45d34`
@@ -82,6 +82,15 @@ remain byte-immutable. Any extra product behavior requires a separate order.
 - [x] Migration0065 repairs both redundant conflict arbiters without authority drift.
 - [ ] Repeated contention, rollback, tenancy, schema and permanent gates pass.
 - [ ] Fresh independent Tier3 approval is recorded before Order375 restarts.
+
+## Exact-version rereview authority — D1104
+
+D1103 found no product defect but correctly withheld because its assigned PG17.2
+host could not satisfy the non-waivable PG16.15 acceptance contract. The official
+EDB PostgreSQL16.15 Windows binaries are now available at a bounded `E:\yellow`
+toolchain path. A fresh distinct reviewer must restart Order382 proof using that
+exact server version with `shared_preload_libraries=pg_stat_statements`; no gate,
+test, product byte or acceptance expectation is changed or waived.
 
 ## Builder evidence
 
