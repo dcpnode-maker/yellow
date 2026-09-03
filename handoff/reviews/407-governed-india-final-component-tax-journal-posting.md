@@ -1,6 +1,6 @@
 # Order 407 — Fresh independent Tier-3 review
 
-**Verdict:** CHANGES-REQUIRED-D1203
+**Verdict:** CHANGES-REQUIRED-D1205
 
 **Reviewed candidate:** `11647dd`
 
@@ -79,3 +79,68 @@ No product, migration, schema, test, local application, deployment, merge, push 
 credential change was made. The pre-existing untracked `.yellow/` directory was not
 accessed or changed. Disposable review resources were removed after recording the
 result.
+
+## D-1205 different-fresh rereview of repaired candidate
+
+**Reviewed candidate:** `de12c1a`
+
+**Reviewer:** `/root/order407_d1204_fresh_tier3`, different fresh independent
+non-implementing Tier 3
+
+The D-1204 repair executes the previously absent 5/12/18-percent,
+CGST+UTGST, multi-night residual, signed-int64, 12-way simultaneous convergence,
+direct binding mutation-denial, complete hostile lineage/child/route classes,
+structural duplicate/fork, and post-resolve ordered-lock drift cases. Those cases
+pass against real PostgreSQL and their shared `rejectUnchanged` helper performs the
+complete source/route/account/financial/fiscal/fact/outbox/idempotency census.
+
+Approval remains withheld because the final permanent rollback/rejection case does
+not apply that complete census to every case as D-1203 expressly required:
+
+- the injected failure after the second real outbox publication checks only
+  `journal`, binding and idempotency counts; it does not prove unchanged posting
+  lines, facts, outbox, documents, fiscal submissions, source roots, routes,
+  accounts, folios or business-day truth;
+- the final sealed-day rejection and closed-tax-account route rejection assert only
+  that the call throws and perform no after-census at all.
+
+The hostile matrix separately covers a pre-call sealed day and closed tax account
+with a complete census, but that cannot substitute for the uniquely injected
+mid-transaction publication rollback. Amend the permanent test so the publication
+failure uses the complete before/after census, and either remove the redundant final
+sealed/route cases or give each its complete expected-mutation/effect census. Then
+produce a new candidate and restart review with another different fresh Tier-3
+reviewer. No product-source change is requested.
+
+### Reviewer-personal execution on `de12c1a`
+
+On named disposable PostgreSQL **16.15** at loopback port `55671`, never the
+stable/default database, I personally obtained:
+
+- fresh migrations **1–71**, exact catalogue **71 / 123 tables / 113 RLS tables /
+  113 policies / 22 forced-RLS tables / 2 security-invoker views**, and schema dump
+  byte-equivalent to `tests/schema/expected.sql`;
+- repaired Order407: **18 pass, 0 fail, 147 assertions** across the intentional-red,
+  structural, real-service, hostility, contention, lock-drift and rollback suite;
+- referee: **11 passed, 0 failed of 11**;
+- adjacent Order256 **6/0 (36)**, Order262 **12/0 (75)** on a fresh 300-connection
+  database, Order367 **17/0 (693)** at its exact migration-70 frontier, and Order406
+  **10/0 (117)**;
+- standing **1,324 pass, 1,028 expected skips, 0 fail, 19,610 assertions across
+  435 files**; strict TypeScript, **147-file** import boundaries, **23-package**
+  licence policy and exact diff checks green;
+- migration0071 SHA-256
+  `e0c377b9d881403a2b88742c7d2e09e3723526e76cedb52a465ef57f530919c5`;
+  schema snapshot SHA-256
+  `ffd24dd7c12af4aaed3094e4238e211cf84c1c0eb3f5037767c997815ba8bf23`.
+
+The first Order262 attempt used PostgreSQL's default 100-connection ceiling and its
+100-client race timed out; it was excluded. After increasing only the disposable
+review container to 300 connections, the fresh isolated rerun produced the reported
+12/0. `bun audit --production` again stalled after its header and is not counted;
+the dependency graph is unchanged from approved base `49e237f`, and a fresh OSV
+batch query of the six locked production packages returned **0 advisories**.
+
+No product, migration, schema, permanent test, local app, deployment, merge, push or
+credential change was made. The pre-existing `.yellow/` directory was not accessed
+or changed. Disposable resources were removed after recording the review.
