@@ -188,6 +188,18 @@ financial, business-day or statutory effects.
 
 `india_gst.accommodation_final_component_tax_recorded {taxId,reservationId,folioId,valuationId,valuationGeneration,generation,evidenceHash}` states only that one immutable, database-derived India accommodation component-tax generation was recorded for the current ordinary-final valuation. The bounded payload contains no guest/buyer data, taxable value, rate, component amount, total, account, journal, route, invoice, document or IRP payload. Root, room-night/component evidence, one matching fact, this outbox event and its idempotency receipt commit together. Replay and losing correction contenders emit no duplicate. Consumers must not infer posting, invoice issue, fiscal submission, payment, settlement or business-day completion.
 
+Order407 emits the existing `journal.posted` and
+`india_gst.accommodation_final_component_tax_posted {posting_binding_id,journal_id,tax_id,tax_generation,valuation_id,applicability_id,reservation_id,folio_id,currency}`
+only after one current Order367 tax root has become one balanced governed charge and
+the immutable root-to-journal binding exists. The journal event carries its normal
+canonical line facts; the India event is identity-only and contains no guest/buyer
+data, full tax detail, component amounts, route configuration, document or provider
+payload. Journal, lines, binding, both facts/outbox rows and the completed idempotency
+receipt commit atomically. Replay and losing same-root contenders emit neither pair.
+Consumers may infer only that the named final-tax root was financially posted; they
+must not infer correction/reversal, invoice issue, fiscal finality, IRP submission,
+payment, settlement, transfer or business-day completion.
+
 `tax.attribution_recorded` states only that one exact positive Order-240 `rate_quote`
 snapshot became an immutable tenant root under one contextual property and actor. The
 new root, matching fact, minimized outbox row and idempotent receipt commit in one

@@ -1760,3 +1760,17 @@ routes, and fails closed on incomplete, ambiguous, stale or foreign lineage.
 Intentional-red, complete hostile zero-write proof and fresh independent Tier3
 execution are mandatory. No posting, journal, document, IRP, API/UI/local or
 Phase7-completion authority is admitted.
+
+Order407 admits the first governed journal posting of an approved current Order367
+India accommodation final component-tax root. Order256 derives the exact open primary
+folio and guest account; Order406 supplies frozen persisted totals, statutory lineage
+and explicit exact-property INR routes. One balanced charge debits guest receivable,
+credits room revenue and credits each non-zero canonical component, while zero-rounded
+components remain lineage only. A new forced-RLS append-only root-to-journal binding,
+root-only canonical tax detail, ordered financial/day locks, byte-equivalent rechecks,
+database convergence, idempotency and atomic `journal.posted` plus
+`india_gst.accommodation_final_component_tax_posted` evidence are mandatory. This is
+ACTIVE admission only: intentional-red, complete PostgreSQL hostility/contention/
+rollback/ACL/census proof and fresh independent Tier3 review remain required. India
+correction, reversal, refund, payment, settlement, transfer, document, invoice, IRP,
+API/UI/local, deployment and Phase7 completion remain outside this order.

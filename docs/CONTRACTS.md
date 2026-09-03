@@ -2819,3 +2819,38 @@ malformed or incoherent evidence makes the whole resolution unavailable.
 This boundary performs no write and grants no journal, posting, tax-detail,
 correction/reversal, document, invoice number, IRP submission, HTTP/API/UI, local,
 deployment or Phase-completion authority.
+
+### Governed India final component-tax posting (Order 407)
+
+`IndiaFinalComponentTaxPostingService.post(tx,{tenantId,propertyNode,reservationId,
+idempotencyKey,envelope})` accepts identity, idempotency and audit authority only. In
+one tenant transaction it uses Order256 to derive and lock the exact open primary
+folio and coherent guest account, and uses Order406 before idempotency, inside the
+callback and after globally ordered financial and current property-business-day locks.
+All three frozen routing results must be byte-equivalent and the current business day
+must exist and remain unsealed.
+
+One current immutable Order367 final-tax root produces exactly one balanced INR charge
+journal: the primary-folio guest account is debited by `grandTotalMinor`, room revenue
+is credited by `transactionValueMinor`, and each non-zero persisted component is
+credited in Order406 canonical order to its configured tax-payable account. Zero-rounded
+components remain durable lineage and create no zero posting. No amount, folio, date,
+account, transaction code, route, tax detail or component payload is caller authority;
+no room-night recomputation or rerounding occurs.
+
+Only the guest root line carries canonical immutable
+`india_accommodation_component_tax_v1` detail. It binds the tax generation/hash,
+valuation and applicability identities/hashes, reservation/folio/property, exact INR
+totals, component family, global jurisdiction identity, revenue route and every ordered
+component, including zero components with a null route. Every credit line has null tax
+detail. The owner capability validates the complete already-inserted credit set against
+current persisted evidence and routes, inserts the absent guest line, and appends one
+forced-RLS, insert-only tax-root-to-journal binding.
+
+The operation key is `financials.india-final-component-tax.post`. Exact same-key replay
+is byte-equivalent, changed reuse conflicts, and different keys for one tax root converge
+through `(tenant_id,tax_id)` uniqueness. Journal, lines, binding, completed idempotency
+receipt and both required fact/outbox pairs commit atomically. This initial posting
+contract grants no correction, reversal, refund, payment, settlement, transfer,
+document, invoice number, IRP/provider submission, HTTP/API/UI, local deployment or
+Phase-completion authority.

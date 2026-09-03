@@ -1,6 +1,6 @@
 # Order 407 — Governed India final component-tax journal posting
 
-**Status:** OPEN
+**Status:** BUILT — AWAITING FRESH INDEPENDENT TIER-3 REVIEW
 **Phase:** 7 — Tax engine and India IRP
 **Branch:** `phase-7/persisted-india-final-component-tax-evidence`
 **Base:** independently approved Order406 coordination head `49e237f`
