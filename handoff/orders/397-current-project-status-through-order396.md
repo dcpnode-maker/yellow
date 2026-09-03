@@ -1,6 +1,6 @@
 # Order 397 — Current project status through approved Order396
 
-**Status:** ACTIVE-D1164
+**Status:** BUILT-PENDING-FRESH-TIER2-REVIEW-D1165
 **Phase:** 7 — truthful cross-phase coordination status
 **Base:** exact independently approved Orders386/396 closure `fb4edd0`
 **Risk tier:** 2 — authenticated founder-visible status truth
@@ -37,3 +37,13 @@ Intentional red must precede implementation. Run both focused status tests, ever
 project-status/operator-status test discovered by exact search, complete standing,
 typecheck, boundaries, licence, audit and diff checks. Fresh independent Tier-2
 review must verify every claim against orders/decisions/reviews before approval.
+
+## Builder evidence — D1165
+
+Intentional red failed 0/1 on the stale recorded date before implementation. Focused
+status proof passes 6/0 with 2 expected database skips; all seven discovered status
+files pass 22/0 with 8 expected skips. The complete standing suite passes 1287/0 with
+996 expected skips and 19032 assertions across 426 files, with temporary files routed
+to E: because C: is critically constrained. Typecheck, 143-file import boundaries,
+23-package licence policy, audit zero and diff checks pass. The delta is exactly the
+status source and two named tests; no local or product behavior changed.

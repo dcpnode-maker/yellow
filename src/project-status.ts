@@ -15,7 +15,7 @@ export interface ProjectRecordedWorkSnapshot {
     | 126 | 127 | 148 | 154 | 155 | 156 | 160 | 161 | 162 | 163 | 164
     | 165 | 166 | 168 | 169 | 170 | 171 | 173 | 174 | 175 | 176 | 177 | 178
     | 179 | 180 | 181 | 182 | 183 | 184 | 185 | 186 | 188 | 189
-    | 190 | 191 | 192 | 193 | 195 | 199 | 236 | 310;
+    | 190 | 191 | 192 | 193 | 195 | 199 | 236 | 310 | 396;
   readonly state: ProjectRecordedWorkState;
   readonly summary: string;
   readonly remaining?: string;
@@ -45,12 +45,12 @@ export const DEFAULT_OPERATOR_RUNTIME_STATUS: OperatorRuntimeStatus = Object.fre
 
 export const PROJECT_BUILD_SNAPSHOT = Object.freeze({
   schemaVersion: 1,
-  recordedAt: "2026-09-01",
+  recordedAt: "2026-09-03",
   label: "Recorded build snapshot",
   roadmap: Object.freeze({
-    phaseCount: 13,
-    latestBuiltOrder: 310,
-    currentOrder: 311,
+    phaseCount: 18,
+    latestBuiltOrder: 396,
+    currentOrder: 397,
     activePhase: 7,
   }),
   review: Object.freeze({
@@ -304,20 +304,31 @@ export const PROJECT_BUILD_SNAPSHOT = Object.freeze({
       summary: "Orders 237–310 built the Phase-7 tax lineage through independently approved India GST supplier and recipient registration evidence, property fiscal location, accommodation classification and place of supply, registered-state comparison, supplier service location, SEZ status, supply nature, statutory time-of-supply evidence, effective accommodation rate history, property-local day containment, component-family derivation, levy-input lineage and ordered IGST or CGST+SGST/UTGST component identities. The earlier approved stack also includes pure tax evaluation, attributable quote preview, canonical positive attribution persistence, quoted-tax hold and reservation lineage, configured semantic routing, governed line-rounded non-India posting and immutable full correction/reversal evidence.",
       remaining: "Numeric dual-component rate authority, taxable-value and amount calculation, rounding, India fiscal documents and IRP submission, final Phase-7 integration and Phase completion remain pending.",
     }),
+    Object.freeze({
+      order: 396,
+      state: "independently_approved" as const,
+      summary: "Orders 384–396 independently approved the Phase-5 business-day readiness, discrepancy carry, audited seal, and owner-trust operator delivery.",
+      remaining: "Final Phase-5 integration and exit plus founder-local reflection remain pending; no application-completion, deployment, or local-promotion authority is claimed.",
+    }),
   ] satisfies readonly ProjectRecordedWorkSnapshot[]),
   phases: Object.freeze([
-    Object.freeze({ number: 0, name: "Bootstrap", state: "reviewed" as const }),
-    Object.freeze({ number: 1, name: "Kernel", state: INDEPENDENTLY_REVIEWED_THROUGH_ORDER >= 26 ? "reviewed" as const : "built_unverified" as const }),
-    Object.freeze({ number: 2, name: "Inventory & occupancy", state: INDEPENDENTLY_REVIEWED_THROUGH_ORDER >= 44 ? "reviewed" as const : "built_unverified" as const }),
-    Object.freeze({ number: 3, name: "Rates & policies", state: INDEPENDENTLY_REVIEWED_THROUGH_ORDER >= 79 ? "reviewed" as const : "built_unverified" as const }),
-    Object.freeze({ number: 4, name: "Reservations", state: "built_unverified" as const }),
-    Object.freeze({ number: 5, name: "Financials", state: "active" as const }),
-    Object.freeze({ number: 6, name: "Stay operations & housekeeping", state: "reviewed" as const }),
-    Object.freeze({ number: 7, name: "Tax & India IRP", state: "active" as const }),
-    Object.freeze({ number: 8, name: "Statutory reporting & ZATCA", state: "planned" as const }),
-    Object.freeze({ number: 9, name: "Distribution", state: "planned" as const }),
-    Object.freeze({ number: 10, name: "Progressive web app", state: "planned" as const }),
-    Object.freeze({ number: 11, name: "Groups & blocks", state: "planned" as const }),
-    Object.freeze({ number: 12, name: "UAE ASP, accounts receivable & migration", state: "planned" as const }),
+    Object.freeze({ number: 0, name: "Bootstrap (repo that proves the loop)", state: "reviewed" as const }),
+    Object.freeze({ number: 1, name: "Kernel (tenancy, extension registry, outbox, fact_log)", state: "reviewed" as const }),
+    Object.freeze({ number: 2, name: "Inventory & Occupancy (the choke point goes live)", state: "reviewed" as const }),
+    Object.freeze({ number: 3, name: "Rates & Policies", state: "reviewed" as const }),
+    Object.freeze({ number: 4, name: "Reservations (search → hold → commit honest end-to-end)", state: "built_unverified" as const }),
+    Object.freeze({ number: 5, name: "Financials (the ledger)", state: "active" as const }),
+    Object.freeze({ number: 6, name: "Stay ops & Housekeeping", state: "reviewed" as const }),
+    Object.freeze({ number: 7, name: "Tax engine + India IRP", state: "active" as const }),
+    Object.freeze({ number: 8, name: "Statutory registration + ZATCA", state: "planned" as const }),
+    Object.freeze({ number: 9, name: "Distribution (direct OTA first)", state: "planned" as const }),
+    Object.freeze({ number: 10, name: "PWA (seven surfaces, one codebase)", state: "planned" as const }),
+    Object.freeze({ number: 11, name: "Groups & Blocks", state: "planned" as const }),
+    Object.freeze({ number: 12, name: "UAE ASP + AR + migration tooling", state: "planned" as const }),
+    Object.freeze({ number: 13, name: "Voice and Conversational Command Layer", state: "planned" as const }),
+    Object.freeze({ number: 14, name: "Adaptive RMS and Revenue Intelligence", state: "planned" as const }),
+    Object.freeze({ number: 15, name: "CRM, CRS and Direct Booking", state: "planned" as const }),
+    Object.freeze({ number: 16, name: "Reporting, Forecasting and Executive Intelligence", state: "planned" as const }),
+    Object.freeze({ number: 17, name: "Events, Outlets and Hotel Interfaces", state: "planned" as const }),
   ] satisfies readonly ProjectPhaseSnapshot[]),
 });

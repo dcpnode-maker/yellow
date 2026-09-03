@@ -165,13 +165,13 @@ describe("Order 064 recorded build snapshot", () => {
     const reviewCoverage = await deriveIndependentReviewCoverage();
     const rows = manifestRows(manifest);
     expect(rows.length).toBeGreaterThan(0);
-    expect(PROJECT_BUILD_SNAPSHOT.recordedAt).toBe("2026-09-01");
-    expect(PROJECT_BUILD_SNAPSHOT.roadmap.latestBuiltOrder).toBe(310);
+    expect(PROJECT_BUILD_SNAPSHOT.recordedAt).toBe("2026-09-03");
+    expect(PROJECT_BUILD_SNAPSHOT.roadmap.latestBuiltOrder).toBe(396);
     expect(PROJECT_BUILD_SNAPSHOT.review.gate3Debt).toBe(0);
     expect(PROJECT_BUILD_SNAPSHOT.review.state).toBe("built_unverified");
-    expect(PROJECT_BUILD_SNAPSHOT.roadmap.currentOrder).toBe(311);
+    expect(PROJECT_BUILD_SNAPSHOT.roadmap.currentOrder).toBe(397);
     expect(PROJECT_BUILD_SNAPSHOT.roadmap.activePhase).toBe(7);
-    expect(PROJECT_BUILD_SNAPSHOT.roadmap.phaseCount).toBe(13);
+    expect(PROJECT_BUILD_SNAPSHOT.roadmap.phaseCount).toBe(18);
     expect(reviewCoverage.throughOrder).toBe(91);
     expect(reviewCoverage.approvedReviewFiles).toContain("045-091-wave-a.md");
     expect(reviewCoverage.approvedReviewFiles).toContain("045-091-wave-b.md");
@@ -427,13 +427,19 @@ describe("Order 064 recorded build snapshot", () => {
         summary: "Orders 237–310 built the Phase-7 tax lineage through independently approved India GST supplier and recipient registration evidence, property fiscal location, accommodation classification and place of supply, registered-state comparison, supplier service location, SEZ status, supply nature, statutory time-of-supply evidence, effective accommodation rate history, property-local day containment, component-family derivation, levy-input lineage and ordered IGST or CGST+SGST/UTGST component identities. The earlier approved stack also includes pure tax evaluation, attributable quote preview, canonical positive attribution persistence, quoted-tax hold and reservation lineage, configured semantic routing, governed line-rounded non-India posting and immutable full correction/reversal evidence.",
         remaining: "Numeric dual-component rate authority, taxable-value and amount calculation, rounding, India fiscal documents and IRP submission, final Phase-7 integration and Phase completion remain pending.",
       },
+      {
+        order: 396,
+        state: "independently_approved",
+        summary: "Orders 384–396 independently approved the Phase-5 business-day readiness, discrepancy carry, audited seal, and owner-trust operator delivery.",
+        remaining: "Final Phase-5 integration and exit plus founder-local reflection remain pending; no application-completion, deployment, or local-promotion authority is claimed.",
+      },
     ]);
     const recordedOrders = PROJECT_BUILD_SNAPSHOT.recordedWork.map(({ order }) => Number(order));
     expect(recordedOrders).toEqual([
       126, 127, 148, 154, 155, 156, 160, 161, 162, 163, 164,
       165, 166, 168, 169, 170, 171, 173, 174, 175, 176, 177, 178,
       179, 180, 181, 182, 183, 184, 185, 186, 188, 189,
-      190, 191, 192, 193, 195, 199, 236, 310,
+      190, 191, 192, 193, 195, 199, 236, 310, 396,
     ]);
     expect(recordedOrders).not.toContain(167);
     expect(recordedOrders).not.toContain(172);
@@ -466,13 +472,43 @@ describe("Order 064 recorded build snapshot", () => {
     expect(order310?.remaining).toMatch(/taxable-value and amount calculation/i);
     expect(order310?.remaining).toMatch(/fiscal documents and IRP submission/i);
     expect(order310?.remaining).toMatch(/Phase completion remain pending/i);
+    const order396: { readonly state: string; readonly summary: string; readonly remaining?: string } | undefined =
+      PROJECT_BUILD_SNAPSHOT.recordedWork.find(({ order }) => order === 396);
+    expect(order396?.state).toBe("independently_approved");
+    expect(order396?.summary).toMatch(/384–396/);
+    expect(order396?.summary).toMatch(/business-day readiness/i);
+    expect(order396?.summary).toMatch(/discrepancy carry/i);
+    expect(order396?.summary).toMatch(/audited seal/i);
+    expect(order396?.summary).toMatch(/owner-trust operator delivery/i);
+    expect(order396?.remaining).toMatch(/Phase-5 integration and exit/i);
+    expect(order396?.remaining).toMatch(/founder-local reflection/i);
     const order178: { readonly summary: string; readonly remaining?: string } | undefined =
       PROJECT_BUILD_SNAPSHOT.recordedWork.find(({ order }) => order === 178);
     expect(`${order178?.summary} ${order178?.remaining}`).toMatch(/offline/i);
     expect(order178?.remaining).toMatch(/have not been imported into the application/i);
     expect(PROJECT_BUILD_SNAPSHOT.review.independentlyReviewedThroughOrder).toBe(91);
-    expect(PROJECT_BUILD_SNAPSHOT.phases).toHaveLength(13);
-    expect(PROJECT_BUILD_SNAPSHOT.phases.map(({ number }) => Number(number))).toEqual([...Array(13).keys()]);
+    expect(PROJECT_BUILD_SNAPSHOT.phases).toHaveLength(18);
+    expect(PROJECT_BUILD_SNAPSHOT.phases.map(({ number }) => Number(number))).toEqual([...Array(18).keys()]);
+    expect(PROJECT_BUILD_SNAPSHOT.phases.map(({ name }) => name)).toEqual([
+      "Bootstrap (repo that proves the loop)",
+      "Kernel (tenancy, extension registry, outbox, fact_log)",
+      "Inventory & Occupancy (the choke point goes live)",
+      "Rates & Policies",
+      "Reservations (search → hold → commit honest end-to-end)",
+      "Financials (the ledger)",
+      "Stay ops & Housekeeping",
+      "Tax engine + India IRP",
+      "Statutory registration + ZATCA",
+      "Distribution (direct OTA first)",
+      "PWA (seven surfaces, one codebase)",
+      "Groups & Blocks",
+      "UAE ASP + AR + migration tooling",
+      "Voice and Conversational Command Layer",
+      "Adaptive RMS and Revenue Intelligence",
+      "CRM, CRS and Direct Booking",
+      "Reporting, Forecasting and Executive Intelligence",
+      "Events, Outlets and Hotel Interfaces",
+    ]);
     expect(PROJECT_BUILD_SNAPSHOT.phases[0]?.state).toBe("reviewed");
     expect(PROJECT_BUILD_SNAPSHOT.phases[1]?.state).toBe("reviewed");
     expect(PROJECT_BUILD_SNAPSHOT.phases[2]?.state).toBe("reviewed");
