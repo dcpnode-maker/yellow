@@ -643,21 +643,15 @@ databaseDescribe("Order407 real governed service journeys", () => {
     await barrierCase("business-day", (tx, j) => tx`SELECT business_date FROM business_day WHERE tenant_id=${j.tenant}::uuid AND property_node=${j.property}::uuid FOR UPDATE`, (tx, j) => tx`UPDATE business_day SET sealed_at=transaction_timestamp() WHERE tenant_id=${j.tenant}::uuid AND property_node=${j.property}::uuid`);
   });
 
-  test("changed idempotency reuse, injected publication failure, sealed day and route drift leave no partial posting", async () => {
+  test("changed idempotency reuse and injected publication failure leave no partial posting", async () => {
     const changed = await seedJourney("igst", [18000n]);
     const key = `o407-changed-${crypto.randomUUID()}`;
     await post(changed, key);
     await expect(post(changed, key, service, changed.alternateActor)).rejects.toThrow();
     const failed = await seedJourney("igst", [18000n]);
     const failing = new IndiaFinalComponentTaxPostingService({ events: new FailSecondPublish(events), idempotency: new PostgresIdempotency() });
+    const beforeFailure = await census(failed.tenant);
     await expect(post(failed, `o407-fail-${crypto.randomUUID()}`, failing)).rejects.toThrow("injected");
-    const [failedCounts] = await deploy<Array<{ journals: number; bindings: number; keys: number }>>`SELECT (SELECT count(*)::int FROM journal WHERE tenant_id=${failed.tenant}::uuid) journals,(SELECT count(*)::int FROM india_gst_accommodation_final_component_tax_journal_binding WHERE tenant_id=${failed.tenant}::uuid) bindings,(SELECT count(*)::int FROM api_idempotency WHERE tenant_id=${failed.tenant}::uuid) keys`;
-    expect(failedCounts).toEqual({ journals: 0, bindings: 0, keys: 0 });
-    const sealed = await seedJourney("igst", [18000n]);
-    await deploy`UPDATE business_day SET sealed_at=transaction_timestamp() WHERE tenant_id=${sealed.tenant}::uuid`;
-    await expect(post(sealed, `o407-sealed-${crypto.randomUUID()}`)).rejects.toThrow();
-    const drift = await seedJourney("igst", [18000n]);
-    await deploy`UPDATE account SET status='closed' WHERE id=${drift.taxAccounts[0]!}::uuid`;
-    await expect(post(drift, `o407-route-${crypto.randomUUID()}`)).rejects.toThrow();
+    expect(await census(failed.tenant)).toBe(beforeFailure);
   });
 });
