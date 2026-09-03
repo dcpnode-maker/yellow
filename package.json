@@ -7,6 +7,7 @@
     "db:migrate": "bun scripts/migrate.ts",
     "db:seed": "bun scripts/seed.ts",
     "db:seed-review": "bun scripts/seed-review.ts",
+    "db:reconcile-local-review-permissions": "bun scripts/reconcile-local-review-permissions.ts",
     "dev": "bun --watch src/server.ts",
     "license-check": "bun scripts/license-check.ts",
     "schema:check": "bun scripts/schema-drift.ts --check",

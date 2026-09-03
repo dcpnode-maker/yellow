@@ -56,6 +56,22 @@ by the distinct approver and published through the normal immutable publication 
 Shared passwords or conflicting users, roles, inventory, policy, plan or active-release
 data stop the run rather than rewriting hotel configuration.
 
+### Existing local after forward migration
+
+An older retained review database may be migrated forward without rerunning the broad
+review seed. If newly delivered business-day or owner-trust pages return
+`auth/scope_missing`, run the bounded reconciliation command with deployment authority:
+
+```bash
+bun run db:reconcile-local-review-permissions
+```
+
+The command accepts only `YELLOW_DEPLOY_DATABASE_URL`, requires the exact canonical
+two-property review identities and migration ledger, changes only the approved missing
+permission catalogue/grant rows in one transaction, and is idempotent. It never changes
+passwords or hotel/financial facts. Sign out and sign in again afterward because an
+existing in-memory bearer token intentionally retains its original scopes.
+
 ## Current review surface
 
 - local database-backed staff login;
