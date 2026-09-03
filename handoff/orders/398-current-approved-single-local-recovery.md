@@ -1,6 +1,6 @@
 # Order 398 — Current approved single-local recovery
 
-**Status:** BUILT-PENDING-FRESH-TIER3-REVIEW-D1171
+**Status:** APPROVED-CLOSED-D1172
 **Phase:** 7 — founder-review runtime reflection
 **Base:** exact independently approved Order397 closure `d1f6f45`
 **Risk tier:** 3 — retained hotel data, forward migrations and local replacement
