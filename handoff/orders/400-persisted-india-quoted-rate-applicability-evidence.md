@@ -1,6 +1,6 @@
 # Order 400 — Persisted India quoted-rate applicability evidence
 
-**Status:** BUILT-PENDING-FRESH-TIER3-REVIEW-D1175
+**Status:** CHANGES-REQUIRED-D1176
 **Phase:** 7 — Tax engine and India IRP
 **Branch:** `phase-7/persisted-india-quoted-rate-applicability-evidence`
 **Base:** exact current Order367 implementation working state on `d77c81d`; approved product base remains `6bba460`
