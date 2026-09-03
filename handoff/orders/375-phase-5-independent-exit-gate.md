@@ -1,6 +1,6 @@
 # Order 375 — Phase-5 independent exit gate
 
-**Status:** CHANGES-REQUIRED-D1080
+**Status:** ACTIVE-FULL-REREVIEW-AFTER-CARRY-D1084
 **Phase:** 5 — Financials
 **Branch:** `phase-5/exit-gate`
 **Base:** exact independently approved Order356 tip
@@ -128,3 +128,12 @@ rows while the exact frontier returns 64; its 116-table, 106-RLS, 15-force and 2
 values remain exact. Order375 cannot repair or waive this red. Remaining gates stop
 unclaimed; a bounded oracle repair and another distinct from-item1 review are
 mandatory. Phase5 remains unapproved.
+
+## Full restart after carry-oracle approval — D1084
+
+Order378 is independently approved and closed at D1083 after a fresh complete carry
+proof of 16/0 (1,891 assertions) on exact catalogue `64/116/106/106/15/2`. Order375
+therefore restarts again from item1 at exact approved tip
+`c84ab29f46541c58770b3a671f82b28e2bacf633` under a new distinct non-implementing
+Tier3 reviewer. No partial result from D1070, D1075 or D1080 is reused as the exit
+verdict. Every reviewer-personal proof item above remains mandatory.
