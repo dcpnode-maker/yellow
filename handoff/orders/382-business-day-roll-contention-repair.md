@@ -1,6 +1,6 @@
 # Order 382 — Business-day roll contention repair
 
-**Status:** ACTIVE-COMPLIANT-PG16-REREVIEW-D1104
+**Status:** REVIEW-WITHHELD-STALE-SCHEMA-SNAPSHOT-D1105
 **Phase:** 5 — Financials
 **Branch:** `phase-5/business-day-roll-contention-repair`
 **Base:** exact withheld Order375 governance `2f087f0c596776e671b1e7685ca36a9023b45d34`
@@ -138,3 +138,25 @@ PostgreSQL `16.15` with `pg_stat_statements` preloaded while the mandated fresh 
 PostgreSQL `17.2`. These are executable platform mismatches, not evidence against the
 contention repair, but the required gates are not green and may not be waived. The
 disposable server, port and root were removed; no WSL crash dump was generated.
+
+## Exact PostgreSQL 16.15 rereview — D1105
+
+A fresh distinct non-implementing Tier-3 reviewer restarted the proof on official
+Windows PostgreSQL `16.15` with `pg_stat_statements` preloaded. Migrations 1–65
+applied and live catalogue `65/116/106/106/15/2`, both business-day arbiters and
+both migration hashes were exact. Two complete runs exercised ten reset-based
+twenty-contender races (200 calls) with one open/day/fact/outbox effect per cycle
+and no `23505`; rollback, backlog, tenant, role, `pg_temp`, worker, runtime-DML and
+definer proofs passed. Migration regression passed **39/0**, including deliberate
+wrong-password `28P01`; seeded exact-version acceptance passed **23/0**; standing
+passed **1225/0** with 956 expected skips and 18,611 assertions; static gates passed.
+
+Approval is withheld because the mandatory canonical schema comparison is red.
+The PG16.15 dump contains migration0064's
+`seal_business_day_audited(uuid,uuid,date,uuid)` definition and ACL, while
+`tests/schema/expected.sql` contains neither. Its first normalized mismatch is line
+6660, where the snapshot advances directly to `transition_arrival_pickup_task(...)`.
+This is not version noise and cannot be waived or repaired by the reviewer. The
+server stopped, port 55483 refused connections, the exact disposable root was
+removed, and no WSL crash path was present. A separate scoped repair and fresh
+review are required before Order375 restarts.

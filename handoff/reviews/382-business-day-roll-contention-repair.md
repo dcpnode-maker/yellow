@@ -1,6 +1,6 @@
 # Order 382 — fresh independent Tier-3 review
 
-**Verdict:** WITHHELD — mandatory platform gates are not green
+**Verdict:** WITHHELD — canonical PG16.15 schema snapshot is stale
 
 **Candidate:** `4ce27983bc5abeef64b54ad1f0d77cd7046f1d90`
 
@@ -75,3 +75,41 @@ The disposable PostgreSQL server was stopped, port 55482 refused connections, an
 the exact `E:\yellow\order382-review-5d6c2a1b` root was removed. The exact
 `C:\Users\astha\AppData\Local\Temp\wsl-crashes` path is absent. The stable local,
 Docker, `.yellow`, deployment, merge and push surfaces were untouched.
+
+## Fresh exact-version rereview — D1105
+
+**Activation:** `329bc4ba8ead99987b4e2929c396674be1d313d8`
+
+**Unchanged product candidate:** `4ce27983bc5abeef64b54ad1f0d77cd7046f1d90`
+
+**Reviewer:** `/root/order382_pg16_fresh_reviewer`, fresh distinct non-implementing
+Tier 3
+
+The reviewer used only official Windows PostgreSQL 16.15 at
+`E:\yellow\toolchains\postgresql-16.15\pgsql\bin` and Bun 1.3.14. A fresh cluster
+preloaded `pg_stat_statements`, applied migrations 1–65, and proved catalogue
+`65/116/106/106/15/2`; exact arbiters
+`business_day_pkey(property_node,business_date)` and
+`business_day_tenant_property_date_uq(tenant_id,property_node,business_date)`;
+migration0061 SHA-256
+`50cf8593ac385b74fbe61da9d28f0ecf59b78297c7aff46ad073f34409efc34f`; and
+migration0065 SHA-256
+`8e28af137263ff23ecacb1f9e49b4f48b203d5f8c3773d1c2471c5a78cae331a`.
+
+Two roll runs pass **12/0 with 68 assertions**, including ten reset-based
+twenty-client races (200 calls), one exact effect per cycle, rollback/retry,
+backlog, property-local date, hostile authority and direct-DML denial. Worker,
+runtime-DML, definer containment and setup-oracle tests pass **14/0 with 357
+assertions**. Migration regression passes **39/0 with 187 assertions**, including
+wrong-password `28P01`. Canonical seed succeeds and database acceptance passes
+**23/0 with 65 assertions**. Standing passes **1225/0**, 956 expected skips and
+18,611 assertions; typecheck, 140-file boundaries, 23-package licence policy and
+zero-vulnerability audit pass.
+
+The required schema gate is red. A normalized native PG16.15 dump diverges at line
+6660: live truth correctly contains migration0064's
+`seal_business_day_audited(uuid,uuid,date,uuid)` function and ACL, but the committed
+snapshot omits both. Order382 forbids waiver and reviewer repair, so approval is
+withheld. The server stopped, port 55483 returned no response, the disposable root
+was removed, and the WSL crash path was absent. Reusable PG16.15 infrastructure
+remains under `E:\yellow` as required.
