@@ -46,7 +46,7 @@ dependency, deploy, merge or push is admitted.
 - [x] Intentional red precedes migration/source edits.
 - [x] Exact permission and ordinary review-role provisioning implemented.
 - [x] Every required builder gate is green on official PostgreSQL16.15.
-- [ ] Fresh independent Tier-3 approval recorded before Order384 resumes.
+- [x] Fresh independent Tier-3 approval recorded before Order384 resumes.
 
 ## Builder evidence — D1115
 
@@ -62,3 +62,27 @@ zero-vulnerability audit and diff hygiene pass. Migration0066 SHA-256 is
 The disposable PostgreSQL server is stopped and port 55487 is closed. No service,
 HTTP/UI, local or protected `.yellow` surface changed. Fresh independent Tier-3
 review remains mandatory; builder evidence is not approval.
+
+## Fresh independent Tier-3 review — D1116
+
+Fresh non-implementing reviewer `/root/order385_fresh_reviewer` approves exact
+activation `0b97944` and candidate `9646ac3`. The reviewer restarted the proof on
+official Windows PostgreSQL 16.15 with SCRAM and `pg_stat_statements`, personally
+passing migration 39/0 (187 assertions, including wrong-password `28P01`), seeded
+acceptance 23/0 (65), and focused permission 3/0 (7). Migration0066 has the exact
+code/description, catalogue-only SQL, no migration-time role grant, byte-stable
+no-op replay, ordinary `Local Availability Reviewer` grant exactly one, specialized
+`Local Post-Seal Financial Approver` grant zero, and unchanged unrelated grants on
+review-seed replay. Catalogue is `66/116/106/106/15/2`; migrations0001–0065 are
+byte-immutable and migration0066 SHA-256 is
+`9a479726039063c5d3f54997347a19e1da5c3542766bd0be2fc5b512b6b82d67`.
+Normalized schema is byte-identical at
+`a5efaaae5ad3d2315cf2fc62a7dd2352e3992b9643f91784ca70994d1f89e8a9`.
+Standing tests pass 1,227/0 with 961 expected skips (18,614 assertions); typecheck,
+140 boundaries, 23-package licence policy, zero-vulnerability audit, diff hygiene,
+and a fresh referee 11/11 pass. An initial trust-auth disposable run was rejected as
+invalid environment evidence and fully restarted under SCRAM; it is not reused.
+Accepted disposable databases/server/root were removed and the review port closed.
+No stable local, Docker, `.yellow`, deploy, merge, or push surface changed. Approval
+closes Order385 only and allows Order384 to resume; it grants no service/UI/local
+promotion authority.
