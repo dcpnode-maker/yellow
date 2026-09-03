@@ -1,6 +1,6 @@
 # Order 406 — India final component-tax semantic-route resolver
 
-**Status:** CHANGES-REQUIRED-D1199
+**Status:** APPROVED-CLOSED-D1200
 **Phase:** 7 — Tax engine and India IRP
 **Branch:** `phase-7/persisted-india-final-component-tax-evidence`
 **Base:** independently approved Order367/405 coordination head `c9521d0`
