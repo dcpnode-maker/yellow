@@ -1,6 +1,6 @@
 # Order 383 — Audited-seal schema snapshot repair
 
-**Status:** BUILT-PENDING-FRESH-REVIEW-D1107
+**Status:** APPROVED-CLOSED-D1108
 **Phase:** 5 — Financials
 **Branch:** `phase-5/audited-seal-schema-snapshot-repair`
 **Base:** exact withheld Order382 governance `bc4bede3433ed4e3e6392e512f18fbda1541feab`
@@ -45,7 +45,30 @@ HTTP/UI/status/local, Docker, deploy or `.yellow` change is admitted.
 
 - [x] D1105 independently proves the exact missing function and ACL.
 - [x] Candidate adds only the two canonical PG16.15 snapshot blocks.
-- [ ] Fresh exact-version schema comparison and independent approval are recorded.
+- [x] Fresh exact-version schema comparison and independent approval are recorded.
+
+## Independent review — D1108
+
+Fresh non-implementing reviewer `/root/order383_fresh_pg16_reviewer` independently
+reviewed exact candidate `0acde6e1e0a6b546bd8416ea6a1fc623e6776811` against activation
+`70319e15098a4517debeaeeb08d892b8fcc18c71`. An official Windows PostgreSQL
+16.15 cluster with `pg_stat_statements` preloaded applied migrations 1–65 and
+returned exact catalogue `65/116/106/106/15/2`. The repository-normalized native
+dump and `tests/schema/expected.sql` are byte-identical at SHA-256
+`a5efaaae5ad3d2315cf2fc62a7dd2352e3992b9643f91784ca70994d1f89e8a9`.
+
+The candidate adds exactly 393 snapshot lines and deletes none. Migration0064,
+migration0065, production source and protected referee bytes are unchanged. The
+live audited-seal signature, result, `yellow_owner`, SECURITY DEFINER fixed path and
+app/PUBLIC ACL exactly match the committed dump. Reviewer-personal focused proof
+passes 22/0 (379 assertions), acceptance 23/0 (65), migration regression 39/0
+(182, including wrong-password `28P01`), standing 1225/0 with 956 expected skips
+(18,611), typecheck, 140-file boundaries, 23-package licence policy, zero-vulnerability
+audit, diff-check and a fresh referee 11/11. The initial focused import and referee
+attempts stopped only on reviewer-harness environment/console encoding before a
+complete result; both were corrected and the complete proofs restarted. The exact
+server, port and disposable root were removed; no WSL crash dump appeared. Order383
+is approved and closed only; Order382/375 are not approved or restarted here.
 
 ## Builder evidence — D1107
 
