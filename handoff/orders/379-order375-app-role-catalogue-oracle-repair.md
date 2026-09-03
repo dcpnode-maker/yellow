@@ -1,6 +1,6 @@
 # Order 379 — Order375 app-role catalogue-oracle repair
 
-**Status:** ACTIVE-D1086
+**Status:** BUILT-PENDING-FRESH-REVIEW-D1087
 **Phase:** 5 — Financials
 **Branch:** `phase-5/app-role-catalogue-oracle-repair`
 **Base:** exact withheld Order375 governance `0124f7367fce092c73a5cc17bb0287fd2b380fea`
@@ -17,5 +17,11 @@ and a different independent reviewer are mandatory before another Order375 resta
 ## Definition of done
 
 - [x] Fresh review reproduced expected `89/79/79` versus live `116/106/106`.
-- [ ] Exact three-literal candidate is ready for complete app-role proof.
+- [x] Exact three-literal candidate is ready for complete app-role proof.
 - [ ] Fresh non-implementing reviewer approves the bounded repair.
+
+## Builder note
+
+D1087 changes only the three authorized catalogue literals to `116/106/106`. No
+source, migration, schema, other test, UI, status or local artifact changed. Complete
+app-role execution remains reserved for the fresh reviewer.
