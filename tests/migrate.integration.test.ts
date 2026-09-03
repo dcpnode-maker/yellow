@@ -1647,6 +1647,7 @@ databaseDescribe("Bun SQL migration runner", () => {
           "0067_business_day_seal_permission.sql",
           "0068_prepare_owner_trust_expense.sql",
           "0069_india_gst_accommodation_quoted_rate_applicability.sql",
+          "0070_india_gst_accommodation_final_component_tax.sql",
         ]);
 
         const preservedLedger = await sql<Array<{
