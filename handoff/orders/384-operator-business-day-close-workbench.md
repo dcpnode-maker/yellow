@@ -1,6 +1,6 @@
 # Order 384 — Operator business-day close workbench
 
-**Status:** REVIEW-WITHHELD-D1121 — incoherent carry lineage can be silently hidden
+**Status:** REVIEW-WITHHELD-D1131 — ordinary operator entry cannot load the persisted backlog
 **Phase:** 5 — Financials operator delivery
 **Branch:** `phase-5/operator-business-day-close-workbench`
 **Base:** exact independently approved Phase-5 domain tip `f681b3cc03325b9bf6fb4e5c92bbcc3b22011129`
@@ -146,3 +146,16 @@ needed despite its approved allowance. CONTRACTS/UI-SPEC record exact bounds, pr
 snapshot and accessible stale-safe read-only behavior. The disposable PG16 root was
 removed and port55484 is closed. Stable local and `.yellow` remain untouched. Fresh
 independent Tier-3 review is mandatory; builder evidence is not approval.
+
+## Complete fresh independent restart — D1131
+
+Approval remains withheld after the separately approved D1121/D1124/D1127 repairs.
+The complete fresh Tier-3 restart proved the database, carry-lineage, permission,
+HTTP, static and standing gates green, but an executable operator-entry probe found
+that the ordinary **Day close** navigation path is unusable. Navigation pushes
+`/p/{property}/day-close` without a date, the only date selector begins disabled,
+and `loadDayCloseWorkbench` returns before its only server request when the route has
+no date. The selector is populated only after that impossible first successful
+request. A manually crafted `?date=YYYY-MM-DD` URL works, but the visible operator
+entry cannot discover or select the authoritative persisted backlog. See the D1131
+section of `handoff/reviews/384-operator-business-day-close-workbench.md`.
