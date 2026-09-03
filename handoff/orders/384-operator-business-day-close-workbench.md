@@ -1,6 +1,6 @@
 # Order 384 — Operator business-day close workbench
 
-**Status:** ACTIVE-D1113
+**Status:** WAITING-PREREQUISITE-D1114
 **Phase:** 5 — Financials operator delivery
 **Branch:** `phase-5/operator-business-day-close-workbench`
 **Base:** exact independently approved Phase-5 domain tip `f681b3cc03325b9bf6fb4e5c92bbcc3b22011129`
@@ -91,3 +91,18 @@ disabled substitute.
 - [ ] Builder gates green with no local/runtime mutation.
 - [ ] Fresh independent Tier-3 approval recorded.
 
+## Prerequisite hold — D1114
+
+Read-only contract audit proved that the named
+`financials.business-days:read` permission does not exist. Order385 must add and
+independently approve only that least-privilege catalogue/ordinary-review-role
+permission before HTTP/UI production wiring resumes. Domain and operator intentional
+reds were recorded; unapproved WIP remains uncommitted.
+
+The audit also proved that the operator middleware already owns the tenant transaction,
+default READ COMMITTED multi-statement reads do not satisfy the promised coherent
+snapshot, and an unlimited historical backlog cannot also be a bounded response.
+Question182 therefore holds final domain integration until the founder confirms the
+recommended fail-closed backlog maximum. The eventual implementation must compose one
+SQL statement on the middleware-owned transaction; it must not open a nested service
+transaction or weaken snapshot semantics.
