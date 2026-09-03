@@ -548,7 +548,7 @@ databaseDescribe("Order 046 reproducible local-review seed", () => {
     expect(first.companyReceivableAccountId).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/);
     expect(first.agentReceivableAccountId).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/);
     expect(await counts()).toEqual({
-      users: 2, roles: 1, grants: 6, unit_types: 2, spaces: 9,
+      users: 2, roles: 1, grants: 4, unit_types: 2, spaces: 9,
       sellables: 6, requester_facts: 26, requester_events: 23,
       approver_facts: 2, approver_events: 2, policies: 4, rate_plans: 1,
       model_versions: 1, target_versions: 1, release_versions: 1,

@@ -730,6 +730,14 @@ async function provisionIdentity(
       name: REVIEW_APPROVER_ROLE_NAME }, "Post-seal review role");
     if (approverRoles.length !== 1) throw new Error("Post-seal review role is ambiguous");
   }
+  for (const permission of REVIEW_PERMISSIONS) {
+    if (permission.code === REVIEW_DISCREPANCY_CARRY_PERMISSION.code) continue;
+    await connection`
+      INSERT INTO role_permission (role_id, permission_code)
+      VALUES (${approverRoleId}::uuid, ${permission.code})
+      ON CONFLICT (role_id, permission_code) DO NOTHING
+    `;
+  }
   await connection`
     INSERT INTO role_permission (role_id, permission_code)
     VALUES (${approverRoleId}::uuid, ${REVIEW_POST_SEAL_PERMISSION.code})
@@ -773,6 +781,7 @@ async function provisionIdentity(
   ]);
   for (const user of users) {
     await provisionReviewUser(connection, user.password, user);
+    if (user.id === approverUserId) continue;
     const grants = await connection<Array<{ tenant_id: string; user_id: string; role_id: string; scope_node: string }>>`
       SELECT tenant_id, user_id, role_id, scope_node FROM user_role
       WHERE user_id = ${user.id}::uuid AND role_id = ${roleId}::uuid AND scope_node = ${SEED_PROPERTY.id}::uuid
@@ -788,6 +797,11 @@ async function provisionIdentity(
       if (grants.length !== 1) throw new Error(`${user.label} role grant is not canonical`);
     }
   }
+  await connection`DELETE FROM user_role
+    WHERE tenant_id = ${SEED_TENANT.id}::uuid
+      AND user_id = ${approverUserId}::uuid
+      AND role_id = ${roleId}::uuid
+      AND scope_node = ${SEED_PROPERTY.id}::uuid`;
   await connection`
     INSERT INTO user_role (tenant_id, user_id, role_id, scope_node)
     VALUES (${SEED_TENANT.id}::uuid, ${approverUserId}::uuid,
@@ -1609,7 +1623,6 @@ async function provisionCheckInExamples(
 
   for (const grant of [
     { userId, roleId },
-    { userId: approverUserId, roleId },
     { userId: approverUserId, roleId: approverRoleId },
   ]) {
     await connection`INSERT INTO user_role (tenant_id, user_id, role_id, scope_node)
@@ -1617,6 +1630,11 @@ async function provisionCheckInExamples(
         ${identityPropertyId}::uuid)
       ON CONFLICT (user_id, role_id, scope_node) DO NOTHING`;
   }
+  await connection`DELETE FROM user_role
+    WHERE tenant_id = ${SEED_TENANT.id}::uuid
+      AND user_id = ${approverUserId}::uuid
+      AND role_id = ${roleId}::uuid
+      AND scope_node = ${identityPropertyId}::uuid`;
 
   const identityUnitTypeId = await uuidV5(SEED_TENANT.id, `${REVIEW_CHECKIN_FIXTURE_UUID}/identity-property/unit-type`);
   const identitySpaceId = await uuidV5(SEED_TENANT.id, `${REVIEW_CHECKIN_FIXTURE_UUID}/identity-property/space`);
