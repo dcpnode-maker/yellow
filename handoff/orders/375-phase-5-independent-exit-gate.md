@@ -1,6 +1,6 @@
 # Order 375 — Phase-5 independent exit gate
 
-**Status:** ACTIVE-FULL-REREVIEW-AFTER-APP-ROLE-D1089
+**Status:** CHANGES-REQUIRED-D1090
 **Phase:** 5 — Financials
 **Branch:** `phase-5/exit-gate`
 **Base:** exact independently approved Order356 tip
@@ -160,3 +160,18 @@ policies while live migration64 truth is `116/106/106`. Order375 cannot repair o
 waive this red. Remaining standing/static/acceptance/referee completion is unclaimed;
 a bounded oracle repair and another distinct full restart are mandatory. Phase5 and
 the separately unwired operator API/UI/status/local remain unapproved.
+
+## Final full-rereview finding — D1090
+
+The fresh distinct Tier3 reviewer restarted from item1 at exact activation
+`7b0864fbcb466cd7260a7ae188318c0e8ea17e85` and approved product ancestry
+`ac87eea22268d80d8d73727908ff042b7ee7cda1`. Fresh native PostgreSQL17 applied
+migrations1–64 and exact catalogue `64/116/106/106/15/2`. Complete financial57/0
+(362 assertions), payment/trust/cashier/journey55/0 (1,636), day-close56/0 (2,191)
+and authority/catalogue17/0 (374) proofs pass. The full standing suite then reproduces
+one stale permanent oracle: `tests/setup-current-catalogue-oracle.test.ts:15` derives
+migration count/highest `64/64` but expects `63/63`; standing is1,224 pass,956 expected
+skips,1 fail (18,606 assertions). Order375 cannot repair or waive this red. Remaining
+static/acceptance/referee completion is unclaimed; a bounded repair and another
+distinct full restart are mandatory. Phase5 and the four unwired operator services
+remain unapproved.
