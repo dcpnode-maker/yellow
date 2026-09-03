@@ -1,9 +1,9 @@
 # Order 367 — Persisted India final component-tax evidence
 
-**Status:** DRAFT — activation waits approved Orders365/362/361/360/353
+**Status:** ACTIVE-D1173
 **Phase:** 7 — Tax engine and India IRP
 **Branch:** `phase-7/persisted-india-final-component-tax-evidence`
-**Base:** activation must bind the exact approved post-Order353 frontier
+**Base:** exact current approved coordination head `6bba460`; product frontier includes approved Order353 and migrations through 0068
 **Risk tier:** 3 — statutory money evidence, tenancy and immutable correction lineage
 **Owner:** Codex implementation; fresh independent non-implementing Tier-3 reviewer
 
@@ -38,7 +38,7 @@ full amount payloads.
 
 ## Authority and dependencies
 
-- Activation waits fresh approval of Orders365/362/361/360/353.
+- Orders365/362/361/360/353 are independently approved under D1044.
 - Re-run approved Orders341/340/337/310/309 and exact Order350 current-head ancestry
   in one transaction; caller values/hashes never authorize persistence.
 - Direct table DML is denied to PUBLIC/runtime/app roles. One fixed-search-path,
@@ -50,16 +50,41 @@ full amount payloads.
 
 ## Migration allocation
 
-Migration0064 remains reserved for draft Order356's audited Phase5 seal. Activation
-must re-read the actual frontier and use 0065 only if 0064 has landed; it must never
-steal or guess the reservation. From current `116/106/15/2`, three tables would yield
-`119/109/18/2`, subject to fresh activation proof.
+The exact current frontier is migration0068 and `116/106/15/2`. This order owns only
+forward migration0069. Three new forced-RLS tables must yield `119/109/18/2`; the
+fresh migration/schema proof must bind those exact totals and preserve both views.
 
 ## Activation gap
 
-Before activation, bind whether recording is invoked only by the same authenticated
-property-scoped actor/fiscal-issue workflow that finalized valuation, or may run as an
-internal automatic command. No implementation may invent that product/audit policy.
+D1066 resolves this gap: recording is invoked only by the same active authenticated
+property-scoped fiscal actor that finalized the valuation, never an unattended job.
+The command reuses exact existing `tax-fiscal.india-valuation:finalize` authority; no
+new permission or broader grant is introduced. The capability freshly rechecks this
+authority and the actor stored on the current final valuation.
+
+## Exact activated implementation scope
+
+- `migrations/0069_india_gst_accommodation_final_component_tax.sql`;
+- `src/contexts/tax-fiscal/india-gst-accommodation-final-component-tax-recorder.ts`;
+- `src/contexts/tax-fiscal/index.ts`;
+- `tests/india-gst-accommodation-final-component-tax-recording.intentional-red.test.ts`;
+- `tests/india-gst-accommodation-final-component-tax-recording.integration.test.ts`;
+- `tests/schema/expected.sql`;
+- exact current catalogue/oracle repairs in `setup.sh`,
+  `tests/setup-current-catalogue-oracle.test.ts`,
+  `tests/database-acceptance.integration.test.ts`, `tests/migrate.integration.test.ts`,
+  `tests/app-role-nonlogin.integration.test.ts`,
+  `tests/runtime-database-authority.integration.test.ts`,
+  `tests/business-day-discrepancy-carry.integration.test.ts`,
+  `tests/financial-owner-trust.integration.test.ts`,
+  `tests/financial-payments.integration.test.ts`, and
+  `tests/financial-postings.integration.test.ts`, plus
+  `tests/operator-owner-trust-expense-workbench.integration.test.ts`;
+- bounded contract/event documentation in `docs/CONTRACTS.md` and `docs/EVENTS.md`;
+- this order, its review, `handoff/LEDGER.md` and `DECISIONS.log`.
+
+The approved pure Order353 calculator remains byte-identical. Any additional path or
+behavior requires a recorded scope amendment before editing.
 
 ## Required proof
 
@@ -72,6 +97,5 @@ fresh independent Tier-3 execution.
 
 ## Forbidden
 
-No activation or implementation before dependencies and the audit-actor policy are
-resolved. No route, posting, journal, document, fiscal submission, IRP, API/UI/local,
+No route, posting, journal, document, fiscal submission, IRP, API/UI/local,
 merge, deployment or Phase/application completion authority.
