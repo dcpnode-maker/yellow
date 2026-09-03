@@ -1,6 +1,6 @@
 # Order 403 — Order400 calendar ancestry binding repair
 
-**Status:** ACTIVE-D1182
+**Status:** ACTIVE-SCOPE-CLARIFIED-D1183
 **Phase:** 7 — Tax engine and India IRP
 **Branch:** `phase-7/persisted-india-quoted-rate-applicability-evidence`
 **Base:** exact Order402 red working state after `64efa50`
@@ -32,6 +32,13 @@ The capability signature, recorder, three tables and catalogue counts stay uncha
 unless executable proof demonstrates they cannot support the repair; any such change
 requires a recorded scope correction first. Pure predecessor implementation/tests,
 setup, API/UI/local and all unrelated files are byte-frozen.
+
+The executable hash audit additionally requires the capability's governed receipt
+date to match the approved pure rule (bank-credit date when it is later than the
+fourth working day; otherwise the earlier of books-entry and bank-credit dates), and
+requires the admitted integration fixture to use the full production extension and
+true insertion-order predecessor hashes. Sorted-key or partial-extension fixture
+hashes must not define or weaken production truth.
 
 ## Required proof
 
