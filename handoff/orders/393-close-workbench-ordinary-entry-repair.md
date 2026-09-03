@@ -1,6 +1,6 @@
 # Order 393 — Close-workbench ordinary entry repair
 
-**Status:** BUILT-PENDING-FRESH-TIER3-REVIEW-D1134
+**Status:** REVIEW-WITHHELD-D1135
 **Phase:** 5 — Financials operator delivery repair
 **Branch:** `phase-5/operator-business-day-close-workbench`
 **Base:** exact withheld full-review tip `44ec326`
