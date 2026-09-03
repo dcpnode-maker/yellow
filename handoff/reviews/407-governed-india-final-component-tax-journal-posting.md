@@ -1,6 +1,6 @@
 # Order 407 — Fresh independent Tier-3 review
 
-**Verdict:** CHANGES-REQUIRED-D1205
+**Verdict:** CHANGES-REQUIRED-D1207
 
 **Reviewed candidate:** `11647dd`
 
@@ -144,3 +144,63 @@ batch query of the six locked production packages returned **0 advisories**.
 No product, migration, schema, permanent test, local app, deployment, merge, push or
 credential change was made. The pre-existing `.yellow/` directory was not accessed
 or changed. Disposable resources were removed after recording the review.
+
+## D-1207 another-different-fresh review of D-1206 candidate
+
+**Reviewed candidate:** `09dceedbd4d1634eb668588bb3fd37adf98fa1d6`
+
+**Approved base:** `49e237fd6add1a91308797d32e0439ad67fdbb89`
+
+**Reviewer:** `/root/order407_d1206_final_review`, another different fresh independent
+non-implementing Tier 3
+
+**Verdict:** CHANGES REQUIRED
+
+The D-1206 edit itself closes D-1205's census finding: the injected second-publication
+failure now compares the complete tenant census, and the deleted sealed-day and closed
+tax-account cases are redundant with complete-census hostile cases already present.
+Approval is nevertheless withheld because the order's permanent real-service suite
+does not complete reliably. On two separately rebuilt named disposable PostgreSQL
+16.15 databases, including a filter run containing only the affected test, the
+`post-resolve folio, account, route, tax and day drift` case timed out at exactly
+90 seconds. During the isolated rerun PostgreSQL showed the runtime transaction idle
+in transaction immediately after `lock_financial_business_days`, rather than blocked
+on a database lock. The timed-out process then required interruption because cleanup
+did not terminate. A full Tier-3 approval cannot exclude this required ordered-lock
+proof.
+
+Repair the permanent ordered-lock harness or the production async path, as the
+executable diagnosis establishes, so the complete Order407 suite terminates and
+passes without manual interruption. Preserve all D-1203/D-1205 matrix and complete
+census coverage, then route the new candidate to a fresh non-implementing Tier-3
+reviewer.
+
+### Reviewer-personal execution on `09dceed`
+
+- fresh migrations **1–71** applied twice; exact catalogue **71 / 123 tables / 113
+  RLS tables / 113 policies / 22 forced-RLS tables / 2 views**;
+- schema dump byte-equivalent to `tests/schema/expected.sql`;
+- Order407 first run: **15 passes before one required ordered-lock timeout**; the
+  later injected-publication complete-census case passed; isolated fresh rerun of the
+  ordered-lock case timed out again at **90,013 ms**;
+- referee: **11 passed, 0 failed of 11**;
+- adjacent Order256 **7/0 (48)**, Order262 **12/0 (75)** and Order406 **11/0 (122)**
+  passed. Order367's current-frontier run was not counted because its permanent
+  catalogue assertion intentionally requires migration 70 and the shared database
+  had also been populated by prior adjacent tests; the preceding fresh review's
+  independent migration-70 result remains **17/0 (693)**;
+- standing **1,324 pass, 1,028 expected skips, 0 fail, 19,610 assertions across 435
+  files**; strict TypeScript, **147-file** import boundaries, **23-package** licence
+  policy and exact diff checks passed;
+- dependency manifests are byte-unchanged from approved base `49e237f`; a fresh OSV
+  batch query for all six locked production packages returned six empty results,
+  **0 advisories**;
+- migration0071 SHA-256
+  `e0c377b9d881403a2b88742c7d2e09e3723526e76cedb52a465ef57f530919c5`;
+  schema snapshot SHA-256
+  `ffd24dd7c12af4aaed3094e4238e211cf84c1c0eb3f5037767c997815ba8bf23`;
+  permanent Order407 test SHA-256
+  `be2693ede05f8facb7c6c75eaa5acfceb69ab24c0867d52e6e25bc29c4036d6e`.
+
+Stable/default databases, local port 3000, deployment, merge, push and `.yellow/`
+were not accessed or changed. Disposable review resources were removed after proof.
