@@ -478,3 +478,15 @@ export type {
   IndiaGstAccommodationFinalComponentTaxRecordingInput,
   IndiaGstAccommodationFinalComponentTaxRecordingResult,
 } from "./india-gst-accommodation-final-component-tax-recorder";
+export {
+  IndiaGstAccommodationFinalComponentTaxSemanticRouteConflictError,
+  IndiaGstAccommodationFinalComponentTaxSemanticRouteNotFoundError,
+  IndiaGstAccommodationFinalComponentTaxSemanticRouteService,
+  IndiaGstAccommodationFinalComponentTaxSemanticRouteValidationError,
+} from "./india-gst-accommodation-final-component-tax-semantic-route";
+export type {
+  IndiaGstAccommodationFinalComponentTaxSemanticComponent,
+  IndiaGstAccommodationFinalComponentTaxSemanticRoute,
+  IndiaGstAccommodationFinalComponentTaxSemanticRouteInput,
+  IndiaGstAccommodationFinalComponentTaxSemanticRouteResult,
+} from "./india-gst-accommodation-final-component-tax-semantic-route";

@@ -1750,3 +1750,13 @@ replay write-free and all divergent/already-sealed/concurrent losers conflict. L
 owner-only seal and direct application/runtime DML denials remain. This adds no
 API/UI/local, auto-seal, batch, reopen or Phase5 completion claim and remains subject
 to fresh independent Tier3 executable review.
+
+Order406 admits the next bounded Phase7 bridge after independently approved
+Orders367/405: a migration-free, read-only semantic-route resolver over persisted final
+component-tax evidence and Order259's configured routing authority. It aggregates
+stored component amounts without recalculation, resolves room revenue and every
+non-zero IGST/CGST/SGST/UTGST component only through explicit exact-property open INR
+routes, and fails closed on incomplete, ambiguous, stale or foreign lineage.
+Intentional-red, complete hostile zero-write proof and fresh independent Tier3
+execution are mandatory. No posting, journal, document, IRP, API/UI/local or
+Phase7-completion authority is admitted.

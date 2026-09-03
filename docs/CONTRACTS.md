@@ -2798,3 +2798,24 @@ financial evidence. Same-key/same-content replay is write-free, divergent reuse 
 correction forks conflict, and root, dense night/component children, minimized
 fact/outbox pair and idempotency receipt commit atomically. This contract grants no
 posting, journal, invoice, document, IRP, submission, API or UI authority.
+
+### India final component-tax semantic-route resolver (Order 406)
+
+The migration-free `IndiaGstAccommodationFinalComponentTaxSemanticRouteService.resolve`
+is a read-only tenant-transaction boundary over the approved current Order367 tax head
+and its linked final-valuation lineage. It accepts exact identity selectors only,
+reloads the persisted evidence, and aggregates stored child component amounts without
+recalculating or rerounding tax.
+
+Room revenue and each non-zero `igst`, `cgst`, `sgst` or `utgst` component resolve only
+through the explicitly configured Order259 semantic route, transaction-code group,
+transaction code and exact-property open INR account. Names, code prefixes, USALI
+numbers and defaults are never routing authority; zero-valued statutory components
+remain in the evidence lineage but require no payable route. The recursively frozen
+result retains complete tax, valuation, applicability, component, route,
+transaction-code and account evidence. Missing, duplicate, stale, superseded, foreign,
+malformed or incoherent evidence makes the whole resolution unavailable.
+
+This boundary performs no write and grants no journal, posting, tax-detail,
+correction/reversal, document, invoice number, IRP submission, HTTP/API/UI, local,
+deployment or Phase-completion authority.
