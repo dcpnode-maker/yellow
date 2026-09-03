@@ -1,6 +1,6 @@
 # Order 375 — Phase-5 independent exit gate
 
-**Status:** ACTIVE-FULL-REREVIEW-D1074
+**Status:** CHANGES-REQUIRED-D1075
 **Phase:** 5 — Financials
 **Branch:** `phase-5/exit-gate`
 **Base:** exact independently approved Order356 tip
@@ -88,3 +88,24 @@ on the exact catalogue. Order375 therefore restarts from item1 under a different
 non-implementing Tier3 reviewer at exact tip
 `91fbe1facba34a3edac24e0a08bf974e267da44c`; no D1070 partial output is reused as the
 exit verdict.
+
+## Full-rereview finding — D1075
+
+The distinct fresh Tier3 reviewer restarted at activation
+`dd09ac24e776398dfb452365f07d2a10e26bcd00` and product frontier
+`91fbe1facba34a3edac24e0a08bf974e267da44c`. Fresh native PG17 applied all 64
+migrations. The first financial batch passed 53/0, including the complete folio,
+posting, statement, correction and multi-window transfer proofs. The next batch
+found two deterministic stale catalogue assertions:
+
+- `tests/financial-owner-trust.integration.test.ts:50` expects `115` tables and
+  `105` policies; the required fresh frontier returns `116` and `106`;
+- `tests/financial-payments.integration.test.ts:243` expects `89/79/79`
+  tables/RLS/policies; the required fresh frontier returns `116/106/106`.
+
+The payment failure reproduced in isolation. The trust failure reproduced on a
+second newly migrated 64-migration database, excluding fixture residue. Functional
+cases completed before the stop were green, but this review cannot repair or waive
+either red. Remaining aggregate/static/referee proof was stopped. A separate bounded
+oracle-repair order and another distinct full rereview are mandatory; Phase5 remains
+unapproved.

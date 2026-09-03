@@ -1,58 +1,58 @@
-# Order 375 — Phase-5 independent exit-gate review
+# Order 375 — Phase-5 independent exit-gate full-rereview
 
 **Verdict:** CHANGES REQUIRED / WITHHELD
 
-**Candidate reviewed:** activation `19ef8559e99096afc9524c73ddb31f94b5949d42`; frozen product frontier `c164056e1b17735f7f9527065271a99750e5839d`
+**Candidate reviewed:** D1074 activation
+`dd09ac24e776398dfb452365f07d2a10e26bcd00`; frozen product frontier
+`91fbe1facba34a3edac24e0a08bf974e267da44c`
 
-**Reviewer:** `/root/order375_phase5_exit_review`, fresh non-implementing Tier 3
+**Reviewer:** `/root/order375_fresh_full_rereviewer`, fresh non-implementing Tier 3,
+distinct from the D1070 Order375 reviewer and the Order376 reviewer
 
 **Date:** 2026-09-03
 
-## Blocking finding
+## Verdict and blocking findings
 
-The pre-registered aggregate proof is red on the frozen candidate. The Order 104
-posting suite contains a stale exact-catalogue assertion at
-`tests/financial-postings.integration.test.ts:194`: it expects 115 public base tables,
-while Order375 and the freshly migrated database require and produce 116.
+The full exit proof restarted from item 1 and is withheld on two reproducible stale
+strict catalogue assertions. The authoritative freshly migrated Order375 frontier is
+`64 migrations / 116 public base tables / 106 RLS relations / 106 policies /
+15 FORCE-RLS relations / 2 views`.
 
-This is deterministic and independently reproduced:
+1. `tests/financial-owner-trust.integration.test.ts:50` expects `115` tables and
+   `105` policies. The fresh 64-migration database returns `116` and `106`; the ACL
+   values in the same assertion remain the expected `insert=false, select=true`.
+2. `tests/financial-payments.integration.test.ts:243` expects `89` tables, `79` RLS
+   relations and `79` policies. The fresh frontier returns `116/106/106`.
 
-- complete suite: `9 passed, 1 failed`, 102 expectations;
-- isolated `P1: exact migration truth` rerun: `0 passed, 1 failed`, with
-  `Expected: 115`, `Received: 116`;
-- the same complete suite nevertheless passed its real 500-charge / 1,000-posting-line
-  zero-drift proof and every other functional, replay, rollback, sealed-day, malformed,
-  tenant and RLS case.
+The payment assertion failed in the aggregate batch and again in an isolated run.
+The trust assertion failed in the aggregate batch and again on a second database
+created and migrated from zero through all 64 files, ruling out interrupted-fixture
+residue. These are test-oracle defects rather than observed product defects, but
+Order375 forbids test repair and red waiver. A separate exact-oracle repair and a
+different fresh Tier3 full restart are required.
 
-Order375 explicitly forbids changing tests inside the review, requires exact
-`64/116/106/106/15/2`, and forbids waiving any red. Approval is therefore withheld.
-A separately scoped repair must update the stale oracle to the already-authoritative
-116-table frontier, prove that no other Phase-5 aggregate oracle is stale, and route
-the repaired candidate to a different fresh Tier-3 reviewer for the full exit proof.
+## Reviewer-personal evidence before the mandatory stop
 
-## Reviewer-personal evidence before the stop
-
-- Windows-native PostgreSQL 17 disposable cluster was initialized under
-  `E:\yellow\order375-review-87717fa83acb4856946681dc56e5f3ba` with a dedicated
-  ephemeral database and roles.
-- The repository migration runner applied migrations 1–64 successfully.
-- Live catalogue was exactly `64 migrations / 116 tables / 106 RLS relations /
-  106 policies / 15 FORCE RLS relations / 2 views`.
-- `financial-folios.integration.test.ts` passed `12/0` on the corrected registered
-  fixture connection.
-- `financial-postings.integration.test.ts` produced the blocking `9/1` result and
-  the isolated assertion reproduced it.
-
-The remaining Phase-5 aggregate suites, standing/static gates and referee were not
-claimed after the non-waivable blocker. Continuing could not convert this candidate
-to an approvable state and would spend proof resources without changing the verdict.
+- Windows-native PostgreSQL 17 was initialized under an exact disposable
+  `E:\yellow\order375-rereview-<guid>` root; authority roles were provisioned and
+  migrations 1–64 applied successfully.
+- The complete first financial batch passed **53/0, 362 assertions** across canonical
+  folios, balanced posting, statements, corrections, multi-window transfer and its
+  migration contract.
+- That batch includes the real **500 charges / 1,000 balanced immutable posting
+  lines** zero-drift case, exact replay/rollback, sealed-day denial, tenant hostility,
+  original-byte preservation and correction/transfer race arbitration.
+- Before the second batch was stopped, complete folio-settlement proof passed 6/0;
+  completed cashier, receivable, payment and owner-trust functional cases shown by the
+  runner were green. They are not promoted to complete-suite evidence because the
+  registered reds terminate the exit review.
+- No prior D1070 proof was reused as the verdict and no remaining day-close,
+  authority, standing/static or referee gate is claimed after the blockers.
 
 ## Teardown and boundaries
 
-The PostgreSQL server stopped cleanly and port 55475 returned no response. The exact
-disposable review directory was removed and verified absent. Bun regenerated one
-1,078,730,752-byte WSL crash dump even though the proof itself used Windows-native
-binaries; it was recorded, deleted under the founder's standing crash-dump authority,
-and the crash directory was verified absent. No product, test, migration, schema,
-permission, seed, dependency, HTTP/UI, local, Docker or `.yellow` file was changed.
-Phase 5, its UI/status wiring and local promotion remain unapproved.
+The PG17 server stopped cleanly; port 55477 refused connections. The exact disposable
+root was removed and verified absent. No WSL crash dump was generated. No product,
+test, migration, schema, permission, seed, dependency, HTTP/UI, local, Docker or
+`.yellow` file was read or changed. Phase5, UI/status wiring and local promotion remain
+unapproved.
