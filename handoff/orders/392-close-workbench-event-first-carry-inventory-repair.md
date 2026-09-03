@@ -1,6 +1,6 @@
 # Order 392 — Close-workbench event-first carry inventory repair
 
-**Status:** ACTIVE-D1128
+**Status:** BUILT-PENDING-FRESH-TIER3-REVIEW-D1129
 **Phase:** 5 — Financials operator delivery repair
 **Branch:** `phase-5/operator-business-day-close-workbench`
 **Base:** exact withheld Order391 review tip `b9c73bc`

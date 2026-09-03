@@ -221,6 +221,45 @@ databaseDescribe("Order384 PostgreSQL close workbench",()=>{
     }
   });
 
+  test("permanently rejects D1127 carried evidence whose aggregate and carry link are both absent",async()=>{
+    await reset(); await day("2062-01-01"); await day("2062-01-02");
+    const missing="00000000-0000-0000-0000-000000038426";
+    await admin!`INSERT INTO outbox(tenant_id,property_node,business_date,aggregate_type,aggregate_id,event_type,actor_id,correlation_id,payload)
+      VALUES(${T}::uuid,${P}::uuid,'2062-01-01','discrepancy',${missing}::uuid,'discrepancy.carried',${A}::uuid,gen_random_uuid(),'{}')`;
+    const before=await admin!<Array<{n:number}>>`SELECT
+      (SELECT count(*) FROM discrepancy WHERE tenant_id=${T}::uuid)+
+      (SELECT count(*) FROM business_day_discrepancy_carry WHERE tenant_id=${T}::uuid)+
+      (SELECT count(*) FROM outbox WHERE tenant_id=${T}::uuid) n`;
+    await expect(service!.read(input("2062-01-01")))
+      .rejects.toBeInstanceOf(BusinessDayCloseWorkbenchUnavailableError);
+    expect(await admin!<Array<{n:number}>>`SELECT
+      (SELECT count(*) FROM discrepancy WHERE tenant_id=${T}::uuid)+
+      (SELECT count(*) FROM business_day_discrepancy_carry WHERE tenant_id=${T}::uuid)+
+      (SELECT count(*) FROM outbox WHERE tenant_id=${T}::uuid) n`).toEqual(before);
+  });
+
+  test("rejects selected carried evidence bound to a foreign-property aggregate with zero writes",async()=>{
+    await reset(); await day("2062-02-01"); await day("2062-02-02");
+    const foreignSpace="00000000-0000-0000-0000-000000038427";
+    const foreignDiscrepancy="00000000-0000-0000-0000-000000038428";
+    await admin!`INSERT INTO space(id,tenant_id,property_node,code,profile_key,capacity,status)
+      VALUES(${foreignSpace}::uuid,${T}::uuid,${P2}::uuid,'386','hotel',1,'active') ON CONFLICT DO NOTHING`;
+    await admin!`INSERT INTO discrepancy(id,tenant_id,space_id,reported,system_state,reported_by)
+      VALUES(${foreignDiscrepancy}::uuid,${T}::uuid,${foreignSpace}::uuid,'occupied','vacant',${A}::uuid)`;
+    await admin!`INSERT INTO outbox(tenant_id,property_node,business_date,aggregate_type,aggregate_id,event_type,actor_id,correlation_id,payload)
+      VALUES(${T}::uuid,${P}::uuid,'2062-02-01','discrepancy',${foreignDiscrepancy}::uuid,'discrepancy.carried',${A}::uuid,gen_random_uuid(),'{}')`;
+    const before=await admin!<Array<{n:number}>>`SELECT
+      (SELECT count(*) FROM discrepancy WHERE tenant_id=${T}::uuid)+
+      (SELECT count(*) FROM business_day_discrepancy_carry WHERE tenant_id=${T}::uuid)+
+      (SELECT count(*) FROM outbox WHERE tenant_id=${T}::uuid) n`;
+    await expect(service!.read(input("2062-02-01")))
+      .rejects.toBeInstanceOf(BusinessDayCloseWorkbenchUnavailableError);
+    expect(await admin!<Array<{n:number}>>`SELECT
+      (SELECT count(*) FROM discrepancy WHERE tenant_id=${T}::uuid)+
+      (SELECT count(*) FROM business_day_discrepancy_carry WHERE tenant_id=${T}::uuid)+
+      (SELECT count(*) FROM outbox WHERE tenant_id=${T}::uuid) n`).toEqual(before);
+  });
+
   test("turns D1121 and every load-bearing carry mutation into complete-read unavailable",async()=>{
     const mutations = [
       `UPDATE business_day_discrepancy_carry SET discrepancy_state_hash=repeat('a',64) WHERE tenant_id='${T}'`,

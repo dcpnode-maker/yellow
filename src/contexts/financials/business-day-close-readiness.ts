@@ -546,6 +546,18 @@ export async function loadBusinessDayCloseReadinessEvidence(
       workbench_current AS MATERIALIZED (
         SELECT max(business_date) AS business_date FROM workbench_open_days
       ),
+      workbench_carried_event_inventory AS MATERIALIZED (
+        SELECT event.aggregate_id AS discrepancy_id,
+               count(event.seq)::bigint AS relevant_event_count
+          FROM outbox AS event
+         WHERE event.tenant_id=(SELECT tenant_id FROM target)
+           AND event.property_node=(SELECT property_node FROM target)
+           AND event.aggregate_type='discrepancy'
+           AND event.event_type='discrepancy.carried'
+           AND event.business_date IN ((SELECT business_date FROM target),
+             (SELECT business_date FROM workbench_current))
+         GROUP BY event.aggregate_id
+      ),
       workbench_reported_lineage AS MATERIALIZED (
         SELECT discrepancy.id AS discrepancy_id, discrepancy.space_id, space.code AS space_code,
                discrepancy.reported, discrepancy.system_state, discrepancy.reported_by,
@@ -735,6 +747,22 @@ export async function loadBusinessDayCloseReadinessEvidence(
             ON evidence.discrepancy_id=lineage.discrepancy_id
          GROUP BY lineage.discrepancy_id
       ),
+      workbench_carried_event_validation AS MATERIALIZED (
+        SELECT inventory.discrepancy_id, inventory.relevant_event_count,
+               (discrepancy.id IS NOT NULL AND space.id IS NOT NULL) AS aggregate_exists,
+               count(evidence.id)::bigint AS target_link_count,
+               count(evidence.id) FILTER (WHERE evidence.safe)::bigint AS safe_target_link_count
+          FROM workbench_carried_event_inventory AS inventory
+          LEFT JOIN discrepancy ON discrepancy.tenant_id=(SELECT tenant_id FROM target)
+            AND discrepancy.id=inventory.discrepancy_id
+          LEFT JOIN space ON space.tenant_id=discrepancy.tenant_id
+            AND space.id=discrepancy.space_id
+            AND space.property_node=(SELECT property_node FROM target)
+          LEFT JOIN workbench_related_carry_evidence AS evidence
+            ON evidence.discrepancy_id=inventory.discrepancy_id AND evidence.target_link
+         GROUP BY inventory.discrepancy_id, inventory.relevant_event_count,
+                  discrepancy.id, space.id
+      ),
       workbench_candidate_evidence AS MATERIALIZED (
         SELECT lineage.*, carry.link_count, carry.safe_link_count,
                carry.target_link_count, carry.safe_target_link_count,
@@ -764,7 +792,11 @@ export async function loadBusinessDayCloseReadinessEvidence(
         SELECT
           (SELECT count(*)::bigint FROM workbench_open_days) AS open_day_count,
           (SELECT count(*)::bigint FROM workbench_candidates) AS candidate_count,
-          (SELECT count(*)::bigint FROM workbench_candidate_evidence WHERE unsafe) AS unsafe_candidate_count,
+           ((SELECT count(*) FROM workbench_candidate_evidence WHERE unsafe)
+             + (SELECT count(*) FROM workbench_carried_event_validation
+                 WHERE relevant_event_count<>1 OR NOT aggregate_exists
+                   OR target_link_count<>1 OR safe_target_link_count<>1))::bigint
+               AS unsafe_candidate_count,
           (SELECT COALESCE(jsonb_agg(jsonb_build_object(
              'businessDate',business_date::text,'openedAt',to_char(opened_at AT TIME ZONE 'UTC','YYYY-MM-DD"T"HH24:MI:SS.US"Z"'))
              ORDER BY business_date,opened_at),'[]'::jsonb) FROM workbench_open_days) AS open_days,
