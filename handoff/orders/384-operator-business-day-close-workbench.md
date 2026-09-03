@@ -1,6 +1,6 @@
 # Order 384 — Operator business-day close workbench
 
-**Status:** BUILT-PENDING-FRESH-TIER3-REVIEW-D1120
+**Status:** REVIEW-WITHHELD-D1121 — incoherent carry lineage can be silently hidden
 **Phase:** 5 — Financials operator delivery
 **Branch:** `phase-5/operator-business-day-close-workbench`
 **Base:** exact independently approved Phase-5 domain tip `f681b3cc03325b9bf6fb4e5c92bbcc3b22011129`
@@ -99,6 +99,15 @@ disabled substitute.
 - [x] Exact bounded authoritative read and operator workbench implemented.
 - [x] Builder gates green with no local/runtime mutation.
 - [ ] Fresh independent Tier-3 approval recorded.
+
+## Fresh independent review — D1121
+
+Approval is withheld. On a fresh official PostgreSQL 16.15 cluster, a reviewer
+personally reproduced a fail-closed violation: an unresolved ordinary source
+discrepancy linked to a forged carry row with deliberately noncanonical but
+well-shaped 64-character hashes returned a successful workbench with zero carry
+candidates and zero unknown attribution. The complete read was required to be
+unavailable. See `handoff/reviews/384-operator-business-day-close-workbench.md`.
 
 ## Prerequisite hold — D1114
 
