@@ -1,6 +1,6 @@
 # Order 384 — Operator business-day close workbench
 
-**Status:** REVIEW-WITHHELD-D1131 — ordinary operator entry cannot load the persisted backlog
+**Status:** APPROVED-CLOSED-D1139
 **Phase:** 5 — Financials operator delivery
 **Branch:** `phase-5/operator-business-day-close-workbench`
 **Base:** exact independently approved Phase-5 domain tip `f681b3cc03325b9bf6fb4e5c92bbcc3b22011129`
@@ -98,7 +98,7 @@ disabled substitute.
 - [x] Intentional red recorded before implementation.
 - [x] Exact bounded authoritative read and operator workbench implemented.
 - [x] Builder gates green with no local/runtime mutation.
-- [ ] Fresh independent Tier-3 approval recorded.
+- [x] Fresh independent Tier-3 approval recorded.
 
 ## Fresh independent review — D1121
 
@@ -159,3 +159,16 @@ no date. The selector is populated only after that impossible first successful
 request. A manually crafted `?date=YYYY-MM-DD` URL works, but the visible operator
 entry cannot discover or select the authoritative persisted backlog. See the D1131
 section of `handoff/reviews/384-operator-business-day-close-workbench.md`.
+
+## Complete fresh independent restart — D1139
+
+A different fresh non-implementing Tier-3 reviewer restarted the complete Order384
+definition at exact tip `9f05b00`, including approved repaired product `1807b6f`,
+ordinary-entry product `f32cc2c` and behavior proof `cb2f1f0`. Official Windows
+PostgreSQL16.15 with SCRAM and preloaded `pg_stat_statements` passes the complete
+readiness/workbench/carry, permission, migration, seed, acceptance, schema and
+referee proof. Full operator, standing and static gates also pass. The reviewer
+personally removed the post-discovery stale guard: exactly the three stale cases
+failed, and byte-exact restoration returned the proof green. Order384 is therefore
+approved and closed; it grants no carry, seal, stable-local, deploy, merge or push
+authority. See `handoff/reviews/384-operator-business-day-close-workbench.md`.

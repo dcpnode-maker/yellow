@@ -1,9 +1,9 @@
 # Order 384 — fresh independent Tier-3 review
 
-**Verdict:** WITHHELD-D1121
+**Verdict:** APPROVED-CLOSED-D1139
 **Activation:** `61b6da1`
-**Candidate:** `7e81901`
-**Reviewer:** `/root/order384_fresh_reviewer`, fresh non-implementing Tier 3
+**Candidate:** `9f05b00`
+**Reviewer:** `/root/order384_final_restart_r2`, different fresh non-implementing Tier 3
 
 The candidate cannot be approved because its promised complete-read fail-closed
 carry-lineage contract is false. `workbench_carry_lineage` accepts an existing
@@ -93,3 +93,54 @@ review server is stopped and port 55494 is closed. No production, permanent test
 schema, seed, stable local, `.yellow`, deploy, merge or push surface was changed by
 the reviewer. The verified stopped disposable review roots remain because recursive
 cleanup was blocked by execution policy.
+
+---
+
+## Complete fresh restart after Orders 393–394
+
+**Verdict:** APPROVED-CLOSED-D1139
+**Reviewed tip:** `9f05b00`
+**Original implementation:** `7e81901`
+**Approved repaired product:** `1807b6f`, `f32cc2c`, `cb2f1f0`
+**Reviewer:** `/root/order384_final_restart_r2`, different fresh non-implementing Tier 3
+
+I independently approve the complete read-only operator business-day close
+workbench. Inspection confirms one middleware-owned tenant transaction, one composed
+dated PostgreSQL statement/snapshot, a separate one-statement least-data undated
+entry discovery, exact permission and property/actor containment, no browser or
+server-clock date authority, no nested transaction, no write path, no carry/seal
+control, minimized output and documented read-only operator wiring. Ordinary undated
+navigation discovers the least persisted open day, dated deep links bypass discovery,
+and Refresh/Retry plus Back/Forward preserve authoritative date and stale-response
+safety across all six appearances and responsive/accessibility boundaries.
+
+Reviewer-personal execution used a new official Windows PostgreSQL16.15 cluster with
+SCRAM login roles and `pg_stat_statements` preloaded, then applied migrations1–66.
+The complete focused readiness/workbench/operator matrix passed 48/0 (364
+assertions), including one snapshot/statistics proof, strict five-minute boundary,
+D1121/D1124/D1127, all 48 carry-field mutations, coherent source/target exclusion,
+ordinary candidate retention, zero writes and exact 366/367 plus 500/501 bounds.
+The exact permission proof passed 3/0 (7). Migration, seed and database acceptance
+passed 72/0 (315), comprising 39/0, 10/0 and 23/0; the live catalogue was
+66 migrations, 116 public tables, 106 policies, 290 public indexes, 3 non-internal
+triggers and 2 security-invoker views. A normalized native PG16 dump was byte-identical
+to `tests/schema/expected.sql`, and a separately recreated fixture database passed
+the referee 11/11.
+
+Full operator proof passed 513/0 with 117 expected database skips (5,700 assertions),
+and standing proof passed 1,251/0 with 976 expected skips (18,747 assertions).
+TypeScript, JavaScript syntax, 141 import boundaries, 23 dependency licences,
+zero-vulnerability audit and scoped diff hygiene pass. The reviewer also removed only
+the exact post-discovery generation/view/property guard: exactly the three stale
+cases became red (3 failures of 7), while failure/deep-link/Refresh/Retry stayed
+green; byte-exact restoration returned 7/0 and left no product diff.
+
+One initial combined focused invocation omitted the permission fixture password and
+was discarded; the permission proof was rerun with its required fixture and passed.
+One initial referee invocation hit only Windows console encoding before printing its
+result; the database was destroyed and recreated before the accepted UTF-8 referee
+run. No failed or partial result is used as evidence. The disposable PostgreSQL
+server is stopped and port55490 is closed; policy blocked recursive removal of its
+verified stopped review root. Stable local, `.yellow`, product, permanent tests,
+schema, seed, deploy, merge and push remain untouched. Order384 is approved and
+closed; later carry and seal commands remain separate orders.
