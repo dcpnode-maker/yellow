@@ -1,6 +1,6 @@
 # Order 396 — Order386 ancestor-oracle repair
 
-**Status:** BUILT-PENDING-DIFFERENT-FRESH-TIER3-REVIEW-D1162
+**Status:** APPROVED-CLOSED-D1163
 **Phase:** 5 — Financials operator delivery proof repair
 **Base:** exact Order386 candidate `696f472`
 **Risk tier:** 3 — mandatory standing-proof repair for trust-money delivery

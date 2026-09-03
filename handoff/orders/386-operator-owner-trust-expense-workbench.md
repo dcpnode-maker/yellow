@@ -1,6 +1,6 @@
 # Order 386 — Operator owner-trust expense workbench
 
-**Status:** REVIEW-WITHHELD-PENDING-ORDER396-D1161
+**Status:** APPROVED-CLOSED-D1163
 **Phase:** 5 — Financials operator delivery
 **Branch:** `phase-5/operator-owner-trust-expense-workbench`
 **Base:** exact independently approved Order389 closure `418fe25`
