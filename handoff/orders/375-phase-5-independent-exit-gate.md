@@ -1,6 +1,6 @@
 # Order 375 — Phase-5 independent exit gate
 
-**Status:** CHANGES-REQUIRED-D1075
+**Status:** ACTIVE-FINAL-FULL-REREVIEW-D1079
 **Phase:** 5 — Financials
 **Branch:** `phase-5/exit-gate`
 **Base:** exact independently approved Order356 tip
@@ -109,3 +109,10 @@ cases completed before the stop were green, but this review cannot repair or wai
 either red. Remaining aggregate/static/referee proof was stopped. A separate bounded
 oracle-repair order and another distinct full rereview are mandatory; Phase5 remains
 unapproved.
+
+## Final full restart authority — D1079
+
+Order377 is independently approved at D1078 after fresh complete trust/payment
+17/0(1,407) on exact migration64 truth. Order375 again restarts from item1 under a
+new distinct reviewer at exact tip `4ce9732`; neither D1070 nor D1075 partial output
+is reused as the exit verdict.
