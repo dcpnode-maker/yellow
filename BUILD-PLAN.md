@@ -1867,3 +1867,9 @@ assertions prove every5/12/18-percent component family,1/2/366 nights,zero compo
 canonical decimals/serials/totals,optional-field absence,deep freeze,deterministic
 replay,input preservation and correctly rehashed unsupported/topology/lineage
 hostility. Standing/static gates and fresh independent Tier3 remain mandatory.
+The D1252 proof repair makes the ordinary-B2B gate load-bearing with a coherently
+rehashed CGST+SGST export that Order414 admits and Order415 alone rejects. Different
+fresh Tier3 D1253 approves exact candidate623faea after the removal mutant fails4/1,
+the restored candidate passes6/0, combined proof passes40/0, standing passes1374/0
+plus1054 expected skips and every static gate is green. Order419 is closed. Live IRP
+Qty/UQC validation remains a separately governed full-provider-payload decision.

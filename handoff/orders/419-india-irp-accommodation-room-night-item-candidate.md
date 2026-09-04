@@ -1,6 +1,6 @@
 # Order 419 — India IRP accommodation room-night item candidate
 
-**Status:** REPAIRED — AWAITING DIFFERENT FRESH INDEPENDENT TIER-3 REREVIEW — D1252
+**Status:** INDEPENDENTLY APPROVED — CLOSED — D1253
 **Phase:** 7 — Tax engine and India IRP
 **Branch:** `phase-7/persisted-india-final-component-tax-evidence`
 **Base:** independently approved Order415 coordination head `d42b0fc`
