@@ -66,7 +66,7 @@ document.querySelector('#result').textContent=JSON.stringify(proof);document.bod
 async function measure(htmlFile: string, profile: string, width: number): Promise<FolioGeometry> {
   if (!browserPath) throw new Error("Chrome or Chromium is required for Order328 geometry proof");
   const url = pathToFileURL(htmlFile).href;
-  const chrome = Bun.spawn([browserPath, "--headless=new", "--disable-gpu", "--no-sandbox",
+  const chrome = Bun.spawn([browserPath, "--headless=new", "--disable-gpu", "--no-sandbox", "--disable-dev-shm-usage", "--no-first-run", "--no-default-browser-check",
     "--allow-file-access-from-files", "--remote-debugging-port=0", `--user-data-dir=${profile}`, "about:blank"],
   { stdout: "ignore", stderr: "ignore" });
   try {
@@ -126,7 +126,7 @@ async function measure(htmlFile: string, profile: string, width: number): Promis
   }
 }
 
-test.skipIf(!browserPath)("Order328 intentional red: loaded Folio is document-contained at 375px and 640px / DSF2", async () => {
+test("Order328 intentional red: loaded Folio is document-contained at 375px and 640px / DSF2", async () => {
   const folder = await mkdtemp(resolve(tmpdir(), "yellow-order328-red-"));
   try {
     const fixture = resolve(folder, "loaded-folio.html");

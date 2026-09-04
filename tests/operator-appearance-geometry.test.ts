@@ -51,7 +51,7 @@ document.querySelector('#result').textContent=JSON.stringify(proof);document.bod
 const measureInBrowser = async (htmlFile: string, profile: string, width: number, theme: string): Promise<GeometryProof> => {
   if (!browserPath) throw new Error("Chrome or Chromium is required for Order195 geometry proof");
   const url = `${pathToFileURL(htmlFile).href}?theme=${theme}`;
-  const chrome = Bun.spawn([browserPath, "--headless=new", "--disable-gpu", "--no-sandbox", "--hide-scrollbars", "--allow-file-access-from-files", "--remote-debugging-port=0", `--user-data-dir=${profile}`, "about:blank"], { stdout: "ignore", stderr: "ignore" });
+  const chrome = Bun.spawn([browserPath, "--headless=new", "--disable-gpu", "--no-sandbox", "--disable-dev-shm-usage", "--no-first-run", "--no-default-browser-check", "--hide-scrollbars", "--allow-file-access-from-files", "--remote-debugging-port=0", `--user-data-dir=${profile}`, "about:blank"], { stdout: "ignore", stderr: "ignore" });
   try {
     const activePortFile = resolve(profile, "DevToolsActivePort");
     let port = "";

@@ -1,4 +1,5 @@
 import { describe, expect, test } from "bun:test";
+import { fileURLToPath } from "node:url";
 
 import {
   composeIndiaIrpAccommodationPreDocumentEvidenceAssembly,
@@ -124,8 +125,8 @@ function childProbe(
       process.exit(exact ? 0 : 2);
     }
   `;
-  return Bun.spawnSync([process.execPath, "-e", script], {
-    cwd: new URL("..", import.meta.url).pathname.slice(1), stdout: "pipe", stderr: "pipe",
+  return Bun.spawnSync([Bun.which("bun") ?? process.execPath, "-e", script], {
+    cwd: fileURLToPath(new URL("..", import.meta.url)), stdout: "pipe", stderr: "pipe",
   });
 }
 

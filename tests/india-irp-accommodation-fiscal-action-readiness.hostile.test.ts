@@ -1,4 +1,5 @@
 import { expect, test } from "bun:test";
+import { fileURLToPath } from "node:url";
 
 test("Order429 mutation-sensitive proof rejects child and output authority mutations", () => {
   const sourceUrl = new URL("../src/contexts/tax-fiscal/india-irp-accommodation-source.ts", import.meta.url).href;
@@ -32,7 +33,7 @@ test("Order429 mutation-sensitive proof rejects child and output authority mutat
     sourceMode="conflict"; try { await service.resolve(tx,input); process.exit(17); } catch(e) { if(e.name!=="IndiaIrpAccommodationFiscalActionReadinessConflictError" || !(e instanceof IndiaIrpAccommodationFiscalActionReadinessConflictError)) process.exit(18); }
     process.exit(0);
   `;
-  const result = Bun.spawnSync([process.execPath, "-e", script], { cwd: new URL("..", import.meta.url).pathname.slice(1), stdout: "pipe", stderr: "pipe" });
+  const result = Bun.spawnSync([Bun.which("bun") ?? process.execPath, "-e", script], { cwd: fileURLToPath(new URL("..", import.meta.url)), stdout: "pipe", stderr: "pipe" });
   if (result.exitCode !== 0) console.error(result.stdout.toString(), result.stderr.toString());
   expect(result.exitCode).toBe(0);
 });

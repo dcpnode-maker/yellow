@@ -91,7 +91,7 @@ document.querySelector('#result').textContent=JSON.stringify(proof);document.bod
 async function measure(htmlFile: string, profile: string, width: number): Promise<Geometry> {
   if (!browserPath) throw new Error("Chrome or Chromium is required for Order330 geometry proof");
   const url = pathToFileURL(htmlFile).href;
-  const chrome = Bun.spawn([browserPath, "--headless=new", "--disable-gpu", "--no-sandbox", "--allow-file-access-from-files",
+  const chrome = Bun.spawn([browserPath, "--headless=new", "--disable-gpu", "--no-sandbox", "--disable-dev-shm-usage", "--no-first-run", "--no-default-browser-check", "--allow-file-access-from-files",
     "--remote-debugging-port=0", `--user-data-dir=${profile}`, "about:blank"], { stdout: "ignore", stderr: "ignore" });
   try {
     const portFile = resolve(profile, "DevToolsActivePort"); let port = "";
@@ -134,7 +134,7 @@ async function measure(htmlFile: string, profile: string, width: number): Promis
   } finally { chrome.kill(); await chrome.exited; }
 }
 
-test.skipIf(!browserPath)("Order330 intentional red: full app bar and loaded Folio are contained at 375px and 640px / DSF2", async () => {
+test("Order330 intentional red: full app bar and loaded Folio are contained at 375px and 640px / DSF2", async () => {
   const folder = await mkdtemp(resolve(tmpdir(), "yellow-order330-red-"));
   try {
     const fixture = resolve(folder, "full-shell-loaded-folio.html");

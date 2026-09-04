@@ -1,4 +1,5 @@
 import { describe, expect, test } from "bun:test";
+import { fileURLToPath } from "node:url";
 import {
   composeIndiaIrpAccommodationInvoiceValueCandidate,
   composeIndiaIrpAccommodationPartyDetailsCandidate,
@@ -73,8 +74,8 @@ function nestedLineageCorruptionProbe(
       process.exit(0);
     }
   `;
-  return Bun.spawnSync([process.execPath, "-e", script], {
-    cwd: new URL("..", import.meta.url).pathname.slice(1),
+  return Bun.spawnSync([Bun.which("bun") ?? process.execPath, "-e", script], {
+    cwd: fileURLToPath(new URL("..", import.meta.url)),
     stdout: "pipe",
     stderr: "pipe",
   });

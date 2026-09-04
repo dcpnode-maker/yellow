@@ -13,6 +13,9 @@ const browser = [
   process.env["PROGRAMFILES(X86)"] && resolve(process.env["PROGRAMFILES(X86)"], "Google/Chrome/Application/chrome.exe"),
   process.env.LOCALAPPDATA && resolve(process.env.LOCALAPPDATA, "Google/Chrome/Application/chrome.exe"),
   process.env.PROGRAMFILES && resolve(process.env.PROGRAMFILES, "Microsoft/Edge/Application/msedge.exe"),
+  Bun.which("google-chrome"),
+  Bun.which("chromium"),
+  Bun.which("chromium-browser"),
 ].find((path): path is string => Boolean(path && existsSync(path)));
 
 const trustMarkup = markup.match(/<section id="trust-view"[\s\S]*?<section id="status-view"/)?.[0].replace(/<section id="status-view"$/, "");
@@ -27,7 +30,7 @@ async function chromium(width: number, theme: string) {
   </script></body></html>`;
   await writeFile(file, html);
   try {
-    const proc = Bun.spawn([browser, "--headless=new", "--disable-gpu", "--no-sandbox", "--allow-file-access-from-files", `--window-size=${width},900`, "--virtual-time-budget=2000", "--dump-dom", file], { stdout: "pipe", stderr: "ignore" });
+    const proc = Bun.spawn([browser, "--headless=new", "--disable-gpu", "--no-sandbox", "--disable-dev-shm-usage", "--no-first-run", "--no-default-browser-check", "--allow-file-access-from-files", `--window-size=${width},900`, "--virtual-time-budget=2000", "--dump-dom", file], { stdout: "pipe", stderr: "ignore" });
     const output = await new Response(proc.stdout).text(); expect(await proc.exited).toBe(0);
     const encoded = output.match(/<pre id="proof">([^<]+)<\/pre>/)?.[1]; if (!encoded) throw new Error("browser proof did not complete");
     return JSON.parse(encoded.replaceAll("&quot;", '"').replaceAll("&amp;", "&"));
