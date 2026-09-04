@@ -1,6 +1,6 @@
 # Order 424 — India IRP accommodation pre-document evidence assembly
 
-**Status:** ACTIVE — D1269
+**Status:** ACTIVE — OUTPUT CLARIFIED — D1270
 **Phase:** 7 — Tax engine and India IRP
 **Branch:** `phase-7/persisted-india-final-component-tax-evidence`
 **Base:** independently approved Order423 coordination head `e729666`
@@ -29,16 +29,28 @@ all four approved composers independently, and returns exact fixed-order:
 
 - state `incomplete_non_submit_ready_irp_accommodation_pre_document_evidence`;
 - format `irp_json_1_1` and `submissionReady:false`;
-- `explicitlyExcludedEvidence:["DocDtls","ItemList[].Qty","ItemList[].Unit"]`;
-- `sections` with exact `Version:"1.1"`, `TranDtls`, `SellerDtls`, `BuyerDtls`,
-  `ItemList` and `ValDtls` projections, plus canonical `sectionsJson`;
-- lineage containing common source hash and each child evidence hash, then the common
+- exact outer key order `state`, `format`, `submissionReady`,
+  `explicitlyExcludedEvidence`, `sections`, `sectionsJson`, `lineage`,
+  `sourceEvidenceHash`, `evidenceHash`;
+- `explicitlyExcludedEvidence:["DocDtls","ItemList[].Qty","ItemList[].Unit"]` as
+  known governed omissions that keep readiness false, not an exhaustive provider
+  validation result;
+- `sections` in exact key order `Version`, `TranDtls`, `SellerDtls`, `BuyerDtls`,
+  `ItemList`, `ValDtls`, with `Version:"1.1"` only as the fixed assembly-format
+  discriminator authorized by both formatted child results, plus canonical
+  `sectionsJson`;
+- lineage in exact key order `sourceEvidenceHash`,
+  `transactionDetailsEvidenceHash`, `partyDetailsEvidenceHash`,
+  `itemCandidatesEvidenceHash`, `invoiceValueEvidenceHash`, then the common outer
   source hash and one tenant-bound deterministic final evidence hash.
 
-All child source hashes must equal the supplied Order413 hash. Formats, B2B code, INR
-currency, item count, component family, item-source lineage and Order420's Order419
-hash must agree exactly. No values may be recalculated, rerounded or defaulted. The
-result is deeply frozen and tenant-hidden.
+All child source hashes must equal the supplied Order413 hash. Orders422/423 formats
+must equal `irp_json_1_1`; Orders419/420 are intentionally formatless. Order423
+`TranDtls.SupTyp`, Orders419/420 supply-type and currency, every Order419 per-item
+component family, Order420 lineage family/item count/item-candidate hash and every
+item-source backlink must agree at their actual approved locations. No financial or
+tax value may be recalculated, rerounded or defaulted. The result is deeply frozen
+and tenant-hidden.
 
 ## Exact scope
 
@@ -53,8 +65,9 @@ Any other path requires a recorded scope amendment before edit.
 ## Required proof
 
 1. Genuine intentional red proves the exact module/export absent.
-2. Exact shape/order/JSON and explicit false readiness/exclusions are stable; no
-   `DocDtls`, `Qty`, `Unit` or uninvented optional fields occur.
+2. Exact shape/order/JSON and explicit false readiness/exclusions are stable; a
+   recursive structural key census proves no `DocDtls`, `Qty`, `Unit` or uninvented
+   optional field occurs without confusing legitimate text values for field names.
 3. Exact 5/12/18-percent IGST, CGST+SGST and CGST+UTGST across one, multiple and 366
    nights remain byte-exact child projections with coherent totals/families/counts.
 4. Each child composer is separately demonstrably load-bearing under permanent
