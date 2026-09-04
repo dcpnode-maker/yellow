@@ -120,7 +120,6 @@ YELLOW_DEPLOY_DATABASE_URL="$dev_url" YELLOW_RUNTIME_DATABASE_PASSWORD="$runtime
   YELLOW_EXTENSION_REGISTRAR_DATABASE_PASSWORD="$registrar_password" \
   bun scripts/provision-local-database-authority.ts
 YELLOW_DEPLOY_DATABASE_URL="$dev_url" bun scripts/migrate.ts
-YELLOW_DEPLOY_DATABASE_URL="$dev_url" bun scripts/seed.ts
 
 compose exec -T postgres psql -U yellow_deploy -d postgres -v ON_ERROR_STOP=1 \
   -c 'DROP DATABASE IF EXISTS yellow_test WITH (FORCE)' \
@@ -135,6 +134,10 @@ echo 'yellow_test tables: 124 after migrations 1-73'
 
 YELLOW_DSN="dbname=yellow_test user=yellow_deploy password=${deploy_password} host=127.0.0.1 port=${YELLOW_POSTGRES_PORT}" \
 PYTHONIOENCODING=utf-8 python3 tests/run_invariants.py yellow_test
+
+compose exec -T postgres psql -U yellow_deploy -d postgres -v ON_ERROR_STOP=1 \
+  -c 'DROP DATABASE IF EXISTS yellow_test WITH (FORCE)'
+echo 'Removed disposable yellow_test proof database.'
 
 if [ "$DB_ONLY" -eq 0 ]; then
   need curl 'Install curl to run the application health check.'
