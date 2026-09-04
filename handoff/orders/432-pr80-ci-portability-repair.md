@@ -1,6 +1,6 @@
 # Order 432 — PR80 CI portability repair
 
-**Status:** BUILT — AWAITING THIRD GITHUB CI — D1311
+**Status:** REPAIRED — AWAITING FOURTH GITHUB CI — D1313
 **Phase:** Delivery infrastructure
 **Branch:** `phase-7/persisted-india-final-component-tax-evidence`
 **Risk tier:** 1 — test harness and CI portability only
@@ -22,6 +22,9 @@ path, browser launch assumptions and shallow Git history.
 - `tests/project-mcp-config.test.ts` and
   `tests/referee-typed-parent-fixtures.integration.test.ts` only to make their exact
   preregistered historical blob/path resolution portable under a full Linux clone;
+- `tests/rate-quote.integration.test.ts` only to derive its aged stay fixture from a
+  bounded future offset, make the seeded tax-jurisdiction effective period deterministic,
+  and bind effective-period reads to the already-provisioned runtime role;
 - one existing/new test-only executable/browser helper if needed;
 - focused tests for the helper/launcher behavior;
 - this order, `DECISIONS.log`, and `handoff/LEDGER.md`.
@@ -37,6 +40,11 @@ path, browser launch assumptions and shallow Git history.
    accept generic errors.
 5. Re-run the complete quality job; then run the container/database jobs when the
    quality gate is green.
+6. The Phase-3 quote proof retains exact date relationships and tax-resolution
+   assertions; only its disposable database fixture may use one bounded clock-relative
+   future stay and normalize the launch extension's
+   insertion-time default effective bound, and jurisdiction resolution must exercise
+   the runtime-only effective-period capability through the runtime role.
 
 ## Excluded
 

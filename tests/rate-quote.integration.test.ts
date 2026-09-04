@@ -23,8 +23,27 @@ import {
 import { runSeed, SEED_TENANT } from "../scripts/seed";
 
 const DATABASE_URL = process.env.YELLOW_RATE_QUOTE_URL;
+const RUNTIME_DATABASE_URL = process.env.YELLOW_RUNTIME_DATABASE_URL;
 const REQUIRE_DATABASE = process.env.YELLOW_REQUIRE_RATE_QUOTE === "1";
 const TENANT = SEED_TENANT.id;
+const TAX_JURISDICTION_EFFECTIVE_FROM = "2020-01-01T00:00:00.000000Z";
+const DAY_MILLISECONDS = 86_400_000;
+const FIXTURE_TODAY = new Date();
+FIXTURE_TODAY.setUTCHours(0, 0, 0, 0);
+
+function futureDate(days: number): string {
+  const date = new Date(FIXTURE_TODAY);
+  date.setUTCDate(date.getUTCDate() + days);
+  return date.toISOString().slice(0, 10);
+}
+
+const BOOKING_DATE = futureDate(0);
+const STAY_DATES = Object.freeze(Array.from({ length: 91 }, (_, index) => futureDate(30 + index)));
+const STAY_START_DATE = STAY_DATES[0]!;
+const STAY_SECOND_DATE = STAY_DATES[1]!;
+const STAY_THIRD_DATE = STAY_DATES[2]!;
+const STAY_END_DATE = futureDate(33);
+const TAX_ASSIGNMENT_END_DATE = futureDate(121);
 const PROPERTY = "00000000-0000-0000-0000-000000007012";
 const FOREIGN_TENANT = "00000000-0000-0000-0000-0000000070b0";
 const FOREIGN_PROPERTY = "00000000-0000-0000-0000-0000000070b1";
@@ -47,16 +66,18 @@ const PLANS = Object.freeze({
   boundaryRms: "00000000-0000-0000-0000-000000007007",
 });
 
-if (REQUIRE_DATABASE && !DATABASE_URL) {
-  throw new Error("YELLOW_RATE_QUOTE_URL is required by the Order 070 proof");
+if ((REQUIRE_DATABASE || DATABASE_URL) && (!DATABASE_URL || !RUNTIME_DATABASE_URL)) {
+  throw new Error("YELLOW_RATE_QUOTE_URL and YELLOW_RUNTIME_DATABASE_URL are required by the Order 070 proof");
 }
 
 const databaseDescribe = DATABASE_URL ? describe.serial : describe.skip;
 let admin: SQL;
 let platformPool: SQL;
+let resolutionPool: SQL;
 let eventPool: SQL;
 let database: Database;
 let registry: ExtensionRegistry;
+let resolutionRegistry: ExtensionRegistry;
 let approvals: ApprovalService;
 let models: RateModelService;
 let targets: RateTargetService;
@@ -128,10 +149,10 @@ function previewCell(key: string, overrides: Record<string, unknown> = {}) {
     key,
     evaluationContext: {
       propertyTimeZone: "UTC",
-      bookingInstant: "2026-08-22T00:00:00.000Z",
-      stayStartInstant: "2026-09-01T15:00:00.000Z",
-      stayEndInstant: "2026-09-04T11:00:00.000Z",
-      nightDate: "2026-09-01",
+      bookingInstant: `${BOOKING_DATE}T00:00:00.000Z`,
+      stayStartInstant: `${STAY_START_DATE}T15:00:00.000Z`,
+      stayEndInstant: `${STAY_END_DATE}T11:00:00.000Z`,
+      nightDate: STAY_START_DATE,
       occupancyBasisPoints: 6_000,
       occupancyEvidenceRef: "projection:order-070-preview",
     },
@@ -224,8 +245,8 @@ function quoteInput(planId: string = PLANS.main, days = 3, channelCode = "direct
     propertyNode: PROPERTY,
     ratePlanId: planId,
     sellableUnitId: SELLABLE,
-    stayStart: new Date("2026-09-01T15:00:00.000Z"),
-    stayEnd: new Date(Date.parse("2026-09-01T15:00:00.000Z") + days * 86_400_000),
+    stayStart: new Date(`${STAY_START_DATE}T15:00:00.000Z`),
+    stayEnd: new Date(Date.parse(`${STAY_START_DATE}T15:00:00.000Z`) + days * DAY_MILLISECONDS),
     guests: { adults: 2, childAges: [] },
     selectedPromotionCodes: planId === PLANS.main ? ["WELCOME"] : [],
     commercial: {},
@@ -286,9 +307,29 @@ beforeAll(async () => {
   await runSeed({ databaseUrl: DATABASE_URL, logger: () => undefined });
   admin = new SQL(DATABASE_URL, { max: 8 });
   platformPool = new SQL(DATABASE_URL, { max: 8 });
+  resolutionPool = new SQL(RUNTIME_DATABASE_URL!, { max: 8 });
   eventPool = new SQL(DATABASE_URL, { max: 12 });
+  const normalizedJurisdiction = await admin<Array<{
+    effective_from: string;
+    effective_to: string | null;
+  }>>`
+    UPDATE extension
+    SET effective = tstzrange(${TAX_JURISDICTION_EFFECTIVE_FROM}::timestamptz, NULL, '[)')
+    WHERE tenant_id IS NULL
+      AND type = 'tax_jurisdiction'
+      AND key = 'ae-vat'
+      AND version = 1
+      AND status = 'active'
+    RETURNING to_char(lower(effective) AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"') AS effective_from,
+              upper(effective)::text AS effective_to
+  `;
+  expect(normalizedJurisdiction).toEqual([{
+    effective_from: TAX_JURISDICTION_EFFECTIVE_FROM,
+    effective_to: null,
+  }]);
   database = Database.connect(DATABASE_URL, { maxConnections: 48 });
   registry = new ExtensionRegistry(platformPool);
+  resolutionRegistry = new ExtensionRegistry(resolutionPool);
   const events = new PostgresEventBus(eventPool);
   approvals = new ApprovalService(events);
   models = new RateModelService(registry);
@@ -299,7 +340,7 @@ beforeAll(async () => {
     events,
     new RateRecommendationRegistry([recommendationAdapter]),
   );
-  quote = new RateQuoteService(publication, new TaxJurisdictionResolutionService(registry));
+  quote = new RateQuoteService(publication, new TaxJurisdictionResolutionService(resolutionRegistry));
 
   await admin`
     INSERT INTO tenant (id, slug, name, tier, status)
@@ -361,15 +402,15 @@ beforeAll(async () => {
   `;
   await admin`
     INSERT INTO tax_assignment (tenant_id, property_node, jurisdiction_key, effective)
-    VALUES (${TENANT}::uuid, ${PROPERTY}::uuid, 'ae-vat', daterange('2026-09-01', '2026-12-01', '[)'))
+    VALUES (${TENANT}::uuid, ${PROPERTY}::uuid, 'ae-vat', daterange(${STAY_START_DATE}::date, ${TAX_ASSIGNMENT_END_DATE}::date, '[)'))
   `;
   await admin`
     INSERT INTO availability_projection (
       tenant_id, property_node, unit_type_id, stay_date, physical, sold, held, blocked, ooo, updated_at
     )
     SELECT ${TENANT}::uuid, ${PROPERTY}::uuid, ${UNIT_TYPE}::uuid, day::date,
-           10, 6, 0, 0, 0, '2026-08-22T00:00:00.000Z'::timestamptz
-    FROM generate_series('2026-09-01'::date, '2026-11-30'::date, interval '1 day') AS day
+           10, 6, 0, 0, 0, ${BOOKING_DATE}::date::timestamptz
+    FROM generate_series(${STAY_START_DATE}::date, ${STAY_DATES.at(-1)!}::date, interval '1 day') AS day
   `;
 
   const main = await createRelease(PLANS.main, {
@@ -458,6 +499,7 @@ afterAll(async () => {
   if (!DATABASE_URL) return;
   await admin.close();
   await platformPool.close();
+  await resolutionPool.close();
   await eventPool.close();
   await database.close();
 }, 30_000);
@@ -483,8 +525,8 @@ databaseDescribe("Order 070 live PostgreSQL universal quote", () => {
       ratePlanId: PLANS.main,
       sellableUnitId: SELLABLE,
       unitTypeId: UNIT_TYPE,
-      stayStartDate: "2026-09-01",
-      stayEndDate: "2026-09-04",
+      stayStartDate: STAY_START_DATE,
+      stayEndDate: STAY_END_DATE,
       taxAssignmentState: "configured",
       result: {
         state: "quoted",
@@ -499,21 +541,21 @@ databaseDescribe("Order 070 live PostgreSQL universal quote", () => {
       nightDate,
       evaluationResult.amountMinor,
     ])).toEqual([
-      ["2026-09-01", 10_000n],
-      ["2026-09-02", 10_000n],
-      ["2026-09-03", 10_000n],
+      [STAY_START_DATE, 10_000n],
+      [STAY_SECOND_DATE, 10_000n],
+      [STAY_THIRD_DATE, 10_000n],
     ]);
     expect(first.result.policyEvidence).toEqual(policyEvidence());
     expect(first.result.mandatoryPolicyEvidence).toHaveLength(3);
     expect(first.occupancyEvidence).toHaveLength(3);
     expect(first.occupancyEvidence[0]).toMatchObject({
-      nightDate: "2026-09-01",
+      nightDate: STAY_START_DATE,
       signal: { basisPoints: 6_000, sellableCapacity: 10, sold: 6, held: 0 },
     });
     expect(first.taxAssignments).toEqual([
-      expect.objectContaining({ nightDate: "2026-09-01", jurisdictionKey: "ae-vat" }),
-      expect.objectContaining({ nightDate: "2026-09-02", jurisdictionKey: "ae-vat" }),
-      expect.objectContaining({ nightDate: "2026-09-03", jurisdictionKey: "ae-vat" }),
+      expect.objectContaining({ nightDate: STAY_START_DATE, jurisdictionKey: "ae-vat" }),
+      expect.objectContaining({ nightDate: STAY_SECOND_DATE, jurisdictionKey: "ae-vat" }),
+      expect.objectContaining({ nightDate: STAY_THIRD_DATE, jurisdictionKey: "ae-vat" }),
     ]);
   });
 
@@ -522,7 +564,7 @@ databaseDescribe("Order 070 live PostgreSQL universal quote", () => {
     await admin`
       INSERT INTO restriction (id, tenant_id, scope_node, unit_type_id, rate_plan_id, kind, stay_dates)
       VALUES (${restrictionId}::uuid, ${TENANT}::uuid, ${PROPERTY}::uuid, ${UNIT_TYPE}::uuid,
-              ${PLANS.main}::uuid, 'closed', daterange('2026-09-01', '2026-09-04', '[)'))
+              ${PLANS.main}::uuid, 'closed', daterange(${STAY_START_DATE}::date, ${STAY_END_DATE}::date, '[)'))
     `;
     const before = await admin<Array<{ facts: number; events: number }>>`
       SELECT (SELECT count(*)::int FROM fact_log) AS facts,
@@ -556,7 +598,7 @@ databaseDescribe("Order 070 live PostgreSQL universal quote", () => {
 
     await admin`
       UPDATE availability_projection SET sold = 10
-      WHERE property_node = ${PROPERTY}::uuid AND unit_type_id = ${UNIT_TYPE}::uuid AND stay_date = '2026-09-01'
+      WHERE property_node = ${PROPERTY}::uuid AND unit_type_id = ${UNIT_TYPE}::uuid AND stay_date = ${STAY_START_DATE}::date
     `;
     const fullProjection = await database.withTenantTransaction(TENANT, (tx) =>
       quote.resolve(tx, quoteInput(PLANS.occupancy))
@@ -565,12 +607,12 @@ databaseDescribe("Order 070 live PostgreSQL universal quote", () => {
     expect(fullProjection.occupancyEvidence[0]?.signal?.basisPoints).toBe(10_000);
     await admin`
       UPDATE availability_projection SET sold = 6
-      WHERE property_node = ${PROPERTY}::uuid AND unit_type_id = ${UNIT_TYPE}::uuid AND stay_date = '2026-09-01'
+      WHERE property_node = ${PROPERTY}::uuid AND unit_type_id = ${UNIT_TYPE}::uuid AND stay_date = ${STAY_START_DATE}::date
     `;
 
     await admin`
       DELETE FROM availability_projection
-      WHERE property_node = ${PROPERTY}::uuid AND unit_type_id = ${UNIT_TYPE}::uuid AND stay_date = '2026-09-02'
+      WHERE property_node = ${PROPERTY}::uuid AND unit_type_id = ${UNIT_TYPE}::uuid AND stay_date = ${STAY_SECOND_DATE}::date
     `;
     try {
       await expect(database.withTenantTransaction(TENANT, (tx) =>
@@ -580,8 +622,8 @@ databaseDescribe("Order 070 live PostgreSQL universal quote", () => {
       await admin`
         INSERT INTO availability_projection (
           tenant_id, property_node, unit_type_id, stay_date, physical, sold, held, blocked, ooo, updated_at
-        ) VALUES (${TENANT}::uuid, ${PROPERTY}::uuid, ${UNIT_TYPE}::uuid, '2026-09-02', 10, 6, 0, 0, 0,
-                  '2026-08-22T00:00:00.000Z'::timestamptz)
+        ) VALUES (${TENANT}::uuid, ${PROPERTY}::uuid, ${UNIT_TYPE}::uuid, ${STAY_SECOND_DATE}::date, 10, 6, 0, 0, 0,
+                  ${BOOKING_DATE}::date::timestamptz)
       `;
     }
 
@@ -613,7 +655,7 @@ databaseDescribe("Order 070 live PostgreSQL universal quote", () => {
     const missingPublication = new RatePublicationService(registry, approvals, events);
     const missingQuote = new RateQuoteService(
       missingPublication,
-      new TaxJurisdictionResolutionService(registry),
+      new TaxJurisdictionResolutionService(resolutionRegistry),
     );
     const missing = await database.withTenantTransaction(TENANT, (tx) => missingQuote.resolve(tx, quoteInput(PLANS.rms, 1)));
     expect(missing.result.roomAmountMinor).toBe(9_000n);
@@ -690,7 +732,7 @@ databaseDescribe("Order 070 live PostgreSQL universal quote", () => {
 
     await admin`
       INSERT INTO tax_assignment (tenant_id, property_node, jurisdiction_key, effective)
-      VALUES (${TENANT}::uuid, ${PROPERTY}::uuid, 'order-070-overlap', daterange('2026-09-02', '2026-09-04', '[)'))
+      VALUES (${TENANT}::uuid, ${PROPERTY}::uuid, 'order-070-overlap', daterange(${STAY_SECOND_DATE}::date, ${STAY_END_DATE}::date, '[)'))
     `;
     try {
       await expect(database.withTenantTransaction(TENANT, (tx) =>
@@ -711,7 +753,7 @@ databaseDescribe("Order 070 live PostgreSQL universal quote", () => {
     )).toBe(true);
     await admin`
       INSERT INTO tax_assignment (tenant_id, property_node, jurisdiction_key, effective)
-      VALUES (${TENANT}::uuid, ${PROPERTY}::uuid, 'ae-vat', daterange('2026-09-01', '2026-09-02', '[)'))
+      VALUES (${TENANT}::uuid, ${PROPERTY}::uuid, 'ae-vat', daterange(${STAY_START_DATE}::date, ${STAY_SECOND_DATE}::date, '[)'))
     `;
     const partialTax = await database.withTenantTransaction(TENANT, (tx) => quote.resolve(tx, quoteInput()));
     expect(partialTax.taxAssignmentState).toBe("partial");
@@ -721,14 +763,14 @@ databaseDescribe("Order 070 live PostgreSQL universal quote", () => {
     await admin`DELETE FROM tax_assignment WHERE property_node = ${PROPERTY}::uuid`;
     await admin`
       INSERT INTO tax_assignment (tenant_id, property_node, jurisdiction_key, effective)
-      VALUES (${TENANT}::uuid, ${PROPERTY}::uuid, 'ae-vat', daterange('2026-09-01', '2026-12-01', '[)'))
+      VALUES (${TENANT}::uuid, ${PROPERTY}::uuid, 'ae-vat', daterange(${STAY_START_DATE}::date, ${TAX_ASSIGNMENT_END_DATE}::date, '[)'))
     `;
   });
 
   test("P6: hostile input, cross-tenant ids and stored reference cycles fail closed", async () => {
     await expect(database.withTenantTransaction(TENANT, (tx) => quote.resolve(tx, {
       ...quoteInput(),
-      bookingInstant: "2026-08-22T00:00:00.000Z",
+      bookingInstant: `${BOOKING_DATE}T00:00:00.000Z`,
     } as never))).rejects.toBeInstanceOf(RateQuoteError);
     await expect(database.withTenantTransaction(FOREIGN_TENANT, (tx) =>
       quote.resolve(tx, quoteInput())
