@@ -1890,3 +1890,15 @@ overflowing or inconsistent evidence fails closed. Discount, cess, other-charge,
 round-off, quantity/UQC, document, provider, API/UI/local and Phase-completion
 authority remain forbidden. Intentional-red, permanent load-bearing Order419 proof
 and fresh independent Tier3 review are mandatory.
+
+Order422 is built awaiting fresh independent Tier3 review under D1263. Its pure
+composer invokes Order414 as the complete validation-only descendant of Order413,
+then discards numeric output and emits only exact approved `SellerDtls` plus exact
+approved `BuyerDtls` with property `Pos`. Fixed lineage binds the source, both party
+payload hashes and place-of-supply candidate hash. Intentional-red preceded focused
+7/0 and adjacent Order414 proof20/0; trade-name presence/absence, fixed field order,
+caller-POS exclusion, coherent party forgery, replay/input preservation, recursive
+freeze and tenant-hidden authority hashes pass. Orders413–422 pass56/0 plus7 expected
+database skips; standing passes1389/0 plus1054 expected skips, with type/155-boundary/
+23-licence/audit0/image-pins/diff green. No schema/database/runtime/local or downstream
+fiscal authority is added; fresh Tier3 review remains mandatory.

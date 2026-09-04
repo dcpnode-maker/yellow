@@ -3005,6 +3005,27 @@ no `ItemList` or `DocDtls`, issues or numbers no document, calls no provider, su
 nothing and exposes no database, API, UI, runtime, local, deployment or Phase-
 completion authority.
 
+### India IRP accommodation party-details candidate (Order 422)
+
+`composeIndiaIrpAccommodationPartyDetailsCandidate({tenantId,source})` is a pure,
+migration-free Tax-Fiscal boundary over the exact deeply frozen Order413 source. It
+invokes Order414 only to revalidate the complete source, requires the returned source
+hash to match, and discards every numeric field before composing party details.
+
+The fixed-order payload preserves the exact approved `SellerDtls` and exact approved
+`BuyerDtls` identity/address fields, adding only `BuyerDtls.Pos` from the separately
+approved property place-of-supply candidate. Trade names remain present or absent
+exactly as approved. Lineage contains only the Order413 source hash, seller and buyer
+payload hashes, and place-of-supply candidate hash. Canonical JSON and the final
+SHA-256 are deterministic; the result is recursively frozen and returns no tenant
+identifier.
+
+Caller-provided POS, mutable or malformed graphs, and incoherent or stale party,
+payload, hash or place-of-supply evidence fail closed through the approved Order414
+validation boundary. This intermediate candidate contains no transaction details,
+items, values, tax calculation, document identity, provider call, submission, IRN,
+QR, database operation, API, UI, runtime or Phase-completion authority.
+
 ### India IRP accommodation room-night item candidates (Order 419)
 
 `composeIndiaIrpAccommodationRoomNightItemCandidates({tenantId,source})` is a pure,
