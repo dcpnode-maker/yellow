@@ -1,6 +1,6 @@
 # Order 424 — India IRP accommodation pre-document evidence assembly
 
-**Status:** BUILT — AWAITING FRESH INDEPENDENT TIER-3 REVIEW — D1271
+**Status:** REVIEW REJECTED — CHILD LINEAGE COHERENCE REPAIR REQUIRED — D1272
 **Phase:** 7 — Tax engine and India IRP
 **Branch:** `phase-7/persisted-india-final-component-tax-evidence`
 **Base:** independently approved Order423 coordination head `e729666`
