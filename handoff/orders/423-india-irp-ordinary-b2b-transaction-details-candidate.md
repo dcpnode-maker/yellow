@@ -1,6 +1,6 @@
 # Order 423 — India IRP ordinary-B2B transaction-details candidate
 
-**Status:** BUILT — AWAITING FRESH INDEPENDENT TIER-3 — D1267
+**Status:** INDEPENDENTLY APPROVED — CLOSED — D1268
 **Phase:** 7 — Tax engine and India IRP
 **Branch:** `phase-7/persisted-india-final-component-tax-evidence`
 **Base:** independently approved Order422 coordination head `b77f129`
@@ -71,3 +71,10 @@ e-commerce GSTIN; no SellerDtls/BuyerDtls/DocDtls/ItemList/ValDtls, Qty/UQC, tax
 value calculation, document/series/number/hash-chain/issue, provider/submission/IRN/
 QR, API/UI/seed/runtime/local/deploy/merge/push, Phase7 or application-completion
 authority.
+
+Fresh independent non-implementing Tier-3 review approves exact candidate `457d098`
+under D1268. Reviewer-personal focused, Orders413–423 composition, standing and
+static proofs are green. A controlled Order415 admission bypass makes the unchanged
+unsupported-export permanent fixture incorrectly eligible and the focused suite red
+5/1; byte-exact restoration is green 6/0. Approval remains bounded to the pure fixed
+GST/B2B `TranDtls` candidate and grants none of the forbidden downstream authority.
