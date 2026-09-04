@@ -45,12 +45,12 @@ export const DEFAULT_OPERATOR_RUNTIME_STATUS: OperatorRuntimeStatus = Object.fre
 
 export const PROJECT_BUILD_SNAPSHOT = Object.freeze({
   schemaVersion: 1,
-  recordedAt: "2026-09-03",
+  recordedAt: "2026-09-04",
   label: "Recorded build snapshot",
   roadmap: Object.freeze({
     phaseCount: 18,
-    latestBuiltOrder: 396,
-    currentOrder: 397,
+    latestBuiltOrder: 410,
+    currentOrder: 411,
     activePhase: 7,
   }),
   review: Object.freeze({
@@ -288,9 +288,9 @@ export const PROJECT_BUILD_SNAPSHOT = Object.freeze({
     }),
     Object.freeze({
       order: 199,
-      state: "built_unverified" as const,
-      summary: "Orders 196–199 built folio settlement, cashier sessions, governed receivable transfer and the composed Phase-5 financial journey gate.",
-      remaining: "Builder proof is green; independent high-risk review, remaining Phase-5 work and Phase completion are not claimed.",
+      state: "independently_approved" as const,
+      summary: "Orders 196–199 delivered folio settlement, cashier sessions, governed receivable transfer and the independently approved Phase-5 financial journey gate (D-967).",
+      remaining: "The complete Phase-5 domain contract was later independently approved by Order 375 (D-1112); external provider settlement, full AR, fiscal issue and application completion remain separate.",
     }),
     Object.freeze({
       order: 236,
@@ -308,7 +308,7 @@ export const PROJECT_BUILD_SNAPSHOT = Object.freeze({
       order: 396,
       state: "independently_approved" as const,
       summary: "Orders 384–396 independently approved the Phase-5 business-day readiness, discrepancy carry, audited seal, and owner-trust operator delivery.",
-      remaining: "Final Phase-5 integration and exit plus founder-local reflection remain pending; no application-completion, deployment, or local-promotion authority is claimed.",
+      remaining: "These operator journeys are integrated and were reflected in the sole founder local by approved Orders 398–399; no public or production deployment, later financial expansion, or application completion is claimed.",
     }),
   ] satisfies readonly ProjectRecordedWorkSnapshot[]),
   phases: Object.freeze([
@@ -317,7 +317,7 @@ export const PROJECT_BUILD_SNAPSHOT = Object.freeze({
     Object.freeze({ number: 2, name: "Inventory & Occupancy (the choke point goes live)", state: "reviewed" as const }),
     Object.freeze({ number: 3, name: "Rates & Policies", state: "reviewed" as const }),
     Object.freeze({ number: 4, name: "Reservations (search → hold → commit honest end-to-end)", state: "built_unverified" as const }),
-    Object.freeze({ number: 5, name: "Financials (the ledger)", state: "active" as const }),
+    Object.freeze({ number: 5, name: "Financials (the ledger)", state: "reviewed" as const }),
     Object.freeze({ number: 6, name: "Stay ops & Housekeeping", state: "reviewed" as const }),
     Object.freeze({ number: 7, name: "Tax engine + India IRP", state: "active" as const }),
     Object.freeze({ number: 8, name: "Statutory registration + ZATCA", state: "planned" as const }),

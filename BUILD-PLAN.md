@@ -107,46 +107,46 @@ one locked balance-capped capture, bounded linked partial refunds and determinis
 local reconciliation. Order 193 adds the zero-cost hosted deposit workbench: expiring
 hash-only guest links, a separately originated synthetic provider with signed bounded
 callbacks, deposit-liability capture and separately authorized capped partial/full
-folio application. Built-unreviewed Order 196 adds the governed per-window lifecycle:
+folio application. Independently approved Order 196 adds the governed per-window lifecycle:
 `open -> settled -> closed` is available only through the exact tenant/property
 PostgreSQL capability after shared financial locks and an exact-zero canonical balance,
 with durable idempotency and same-transaction fact/outbox evidence. It creates no
-journal and does not close the account or reservation. Real PSPs, delivery, deposit
-refunds/chargebacks, provider settlement, checkout, account closure,
-invoice/fiscal issue, trust safeguards and audited business-day close remain work in
-this active phase; Phase 5 is not complete. Built-unreviewed Order 197 adds governed property
+journal and does not close the account or reservation. Independently approved Order 197 adds governed property
 cash drawers, blind immutable denomination counts and approval-bound over/short close;
 it creates no cash posting, balancing journal or business-day seal authority.
-Built-unreviewed Order 198 adds the missing direct-billing path: one locked positive guest-folio
+Independently approved Order 198 adds the missing direct-billing path: one locked positive guest-folio
 balance may move to one party-specific company/travel-agent receivable under derived
 credit authority, leaving the folio at zero for existing settlement. It is not a full
 AR ledger, invoice, allocation, aging, checkout or accounting-provider integration.
-Built-unreviewed Order 199 executes the Order 114 Phase-5 composition gate on pristine
+Independently approved Order 199 executes the Order 114 Phase-5 composition gate on pristine
 PostgreSQL: charge-to-payment and charge-to-receivable paths both reach exact zero,
 settle and close, while over-limit four-eyes, hostile runtime/property authority and
 capture/transfer/settlement arbitration remain coherent. It adds no product authority.
-Independent review remains deferred under the founder's build-first direction; this
-does not yet claim checkout, external provider settlement, Phase-5 approval or app
+This does not claim checkout, external provider settlement, fiscal issue or application
 completion.
 D967 independently approves exact Order199 candidatef138f99 after fresh execution of
 both exact-zero settlement paths, hostile approvals, concurrency, migration1–25 exact
-schema93/83 and referee11/11. The journey gate is closed, while the founder-approved
-owner-trust negative guard and audited continuous day-close remain Phase-5 work; no
-Phase-5 or application completion is claimed.
+schema93/83 and referee11/11. The journey gate is closed; the then-remaining
+owner-trust and audited continuous day-close slices were subsequently delivered and
+independently approved before the D1112 Phase-5 exit.
 
-Order344 is built pending fresh Tier-3 review. It adds only the accounting owner-expense
+Order344 is independently approved under D981. It adds only the accounting owner-expense
 trust debit/payable credit, immutable derived negative authorization evidence and exact
 maker/checker scopes. It adds no payout, statement, split, reconciliation, tax/fiscal,
-checkout, day-close, HTTP/UI or local authority; Phase 5 remains incomplete.
+checkout or day-close authority.
 
 **Phase 5 independently reviewed complete — D1112:** A fresh distinct Tier-3 reviewer
 restarted the complete domain exit gate on official PostgreSQL16.15 and passed every
 financial, trust, payment, cashier, receivable, day-roll, readiness, carry, audited-seal,
 authority, migration, schema, standing/static and referee11/11 proof. This completes
 the documented Phase-5 domain contract. It does not complete the application:
-`TrustAccountingService`, `BusinessDayCloseReadinessService`,
-`BusinessDayDiscrepancyCarryService` and `BusinessDaySealService` remain unwired in
-operator API/UI/status/local truth and require separate delivery orders.
+Orders384, 386, 387 and 389, together with their independently approved repairs,
+subsequently wired `BusinessDayCloseReadinessService`,
+`BusinessDayDiscrepancyCarryService`, `BusinessDaySealService` and the governed
+owner-trust workbench into the operator API/UI. Phase 5 is independently reviewed
+complete. This does not claim real-provider settlement, deposit chargebacks, full AR,
+owner payout/statement automation, fiscal issue, multi-currency FX, local-runtime
+promotion, deployment, Phase 7 completion or application completion.
 
 ## Phase 6 — Stay ops & Housekeeping
 
@@ -1709,36 +1709,38 @@ proves the exact three-token/two-string oracle repair and intended role composit
 operator has trust-post only; approver inherits trust-post and adds negative-approval.
 Fresh60/111/101/10/2, review-seed24/0, trust7/0, acceptance23/0, runtime10/0,
 migrate39/0, exact schema, standing/static and referee11/11 pass. D978 is discharged
-and the bounded accounting-only owner-trust guard is approved. Phase5 remains open for
-its separately documented day-close work; payout/UI/local and broader authority stay
-excluded.
+and the bounded accounting-only owner-trust guard is approved. Phase5 was still open for
+its separately documented day-close work at that recorded frontier; the day-close
+domain and operator journeys were subsequently completed and independently approved.
+Payout, local promotion and broader authority stay excluded.
 
 Order347 builds the policy-free automatic current-day roll. PostgreSQL transaction
 time plus each active property's stored timezone derives the exact date; the existing
 property/date and tenant/property/date keys jointly arbitrate contenders and the winner records day/fact/`business_day.opened`
 atomically. Runtime discovery is bounded and activation opt-in. Older unsealed backlog
-never blocks roll. Seal/readiness/carry policy and Phase5 completion remain separate.
+never blocks roll. Seal/readiness/carry policy and Phase5 completion were separate
+follow-on gates and are now independently approved.
 
 Order382 repairs the independently reproduced roll race through migration0065: the
 same capability now uses targetless conflict handling across exactly those two
 redundant uniqueness arbiters. No date, authority, event or application contract changes.
 Fresh independent exact-version proof approves and closes this bounded repair at D1110;
-the separate Phase5 exit gate remains outstanding.
+the separate Phase5 exit gate was subsequently approved at D1112.
 
 **Orders348 and347 independently approved — D989:** A fresh different Tier3
 reproduces both D986 parent reds, then proves cancellation before discovery and
 between scopes, in-flight completion with no later scope/cycle, strict current
 financial catalogue truth, fresh61/111/101/10/2 schema, complete roll/finance/
 authority/permanent gates, standing/static and referee11/11. The automatic current-day
-roll is approved; seal/readiness/carry, local promotion and Phase5 completion remain
-separate.
+roll is approved; seal/readiness/carry and Phase5 completion were separately proved
+later, while local promotion remains outside that proof.
 
 Order349 implements the separately bounded audited close-readiness snapshot approved
 by D990. One tenant transaction and one PostgreSQL statement bind the exact open
 backlog day, typed operational/fiscal evidence, strict oldest exact-target unpublished
 lag below five minutes, and explicit unknown/fail-closed incomplete interface
 attribution. It changes no schema and grants no carry, seal or UI authority. Fresh
-Tier3 executable approval remains required before this readiness slice is closed.
+Tier3 executable approval subsequently closed this readiness slice before D1112.
 
 Order356 implements the bounded audited seal command without changing that readiness
 policy. One authenticated, active, same-tenant property-scoped actor holding
@@ -1748,8 +1750,8 @@ Order349/352/355 predicate, latches `open -> sealed`, and appends one minimized 
 plus one `business_day.sealed` event. Service-owned durable idempotency makes exact
 replay write-free and all divergent/already-sealed/concurrent losers conflict. Legacy
 owner-only seal and direct application/runtime DML denials remain. This adds no
-API/UI/local, auto-seal, batch, reopen or Phase5 completion claim and remains subject
-to fresh independent Tier3 executable review.
+auto-seal, batch, reopen or local-promotion claim. Its fresh independent Tier3
+executable review and the later operator API/UI delivery are complete.
 
 Order406 admits the next bounded Phase7 bridge after independently approved
 Orders367/405: a migration-free, read-only semantic-route resolver over persisted final

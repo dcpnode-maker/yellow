@@ -165,11 +165,11 @@ describe("Order 064 recorded build snapshot", () => {
     const reviewCoverage = await deriveIndependentReviewCoverage();
     const rows = manifestRows(manifest);
     expect(rows.length).toBeGreaterThan(0);
-    expect(PROJECT_BUILD_SNAPSHOT.recordedAt).toBe("2026-09-03");
-    expect(PROJECT_BUILD_SNAPSHOT.roadmap.latestBuiltOrder).toBe(396);
+    expect(PROJECT_BUILD_SNAPSHOT.recordedAt).toBe("2026-09-04");
+    expect(PROJECT_BUILD_SNAPSHOT.roadmap.latestBuiltOrder).toBe(410);
     expect(PROJECT_BUILD_SNAPSHOT.review.gate3Debt).toBe(0);
     expect(PROJECT_BUILD_SNAPSHOT.review.state).toBe("built_unverified");
-    expect(PROJECT_BUILD_SNAPSHOT.roadmap.currentOrder).toBe(397);
+    expect(PROJECT_BUILD_SNAPSHOT.roadmap.currentOrder).toBe(411);
     expect(PROJECT_BUILD_SNAPSHOT.roadmap.activePhase).toBe(7);
     expect(PROJECT_BUILD_SNAPSHOT.roadmap.phaseCount).toBe(18);
     expect(reviewCoverage.throughOrder).toBe(91);
@@ -411,9 +411,9 @@ describe("Order 064 recorded build snapshot", () => {
       },
       {
         order: 199,
-        state: "built_unverified",
-        summary: "Orders 196–199 built folio settlement, cashier sessions, governed receivable transfer and the composed Phase-5 financial journey gate.",
-        remaining: "Builder proof is green; independent high-risk review, remaining Phase-5 work and Phase completion are not claimed.",
+        state: "independently_approved",
+        summary: "Orders 196–199 delivered folio settlement, cashier sessions, governed receivable transfer and the independently approved Phase-5 financial journey gate (D-967).",
+        remaining: "The complete Phase-5 domain contract was later independently approved by Order 375 (D-1112); external provider settlement, full AR, fiscal issue and application completion remain separate.",
       },
       {
         order: 236,
@@ -431,7 +431,7 @@ describe("Order 064 recorded build snapshot", () => {
         order: 396,
         state: "independently_approved",
         summary: "Orders 384–396 independently approved the Phase-5 business-day readiness, discrepancy carry, audited seal, and owner-trust operator delivery.",
-        remaining: "Final Phase-5 integration and exit plus founder-local reflection remain pending; no application-completion, deployment, or local-promotion authority is claimed.",
+        remaining: "These operator journeys are integrated and were reflected in the sole founder local by approved Orders 398–399; no public or production deployment, later financial expansion, or application completion is claimed.",
       },
     ]);
     const recordedOrders = PROJECT_BUILD_SNAPSHOT.recordedWork.map(({ order }) => Number(order));
@@ -448,9 +448,9 @@ describe("Order 064 recorded build snapshot", () => {
     expect(PROJECT_BUILD_SNAPSHOT.recordedWork.filter(({ order }) => Number(order) >= 190 && Number(order) <= 195)
       .filter(({ state }) => state === "independently_approved").map(({ order }) => Number(order)))
       .toEqual([190, 191, 192, 193, 195]);
-    expect(PROJECT_BUILD_SNAPSHOT.recordedWork.filter(({ state }) => state === "built_unverified")
-      .map(({ order }) => Number(order))).toEqual([199]);
+    expect(PROJECT_BUILD_SNAPSHOT.recordedWork.every(({ state }) => state === "independently_approved")).toBeTrue();
     expect(PROJECT_BUILD_SNAPSHOT.recordedWork.find(({ order }) => order === 199)?.summary).toMatch(/196–199/);
+    expect(PROJECT_BUILD_SNAPSHOT.recordedWork.find(({ order }) => order === 199)?.state).toBe("independently_approved");
     const order236: { readonly state: string; readonly summary: string; readonly remaining?: string } | undefined =
       PROJECT_BUILD_SNAPSHOT.recordedWork.find(({ order }) => order === 236);
     expect(order236?.state).toBe("independently_approved");
@@ -480,8 +480,9 @@ describe("Order 064 recorded build snapshot", () => {
     expect(order396?.summary).toMatch(/discrepancy carry/i);
     expect(order396?.summary).toMatch(/audited seal/i);
     expect(order396?.summary).toMatch(/owner-trust operator delivery/i);
-    expect(order396?.remaining).toMatch(/Phase-5 integration and exit/i);
-    expect(order396?.remaining).toMatch(/founder-local reflection/i);
+    expect(order396?.remaining).toMatch(/integrated/i);
+    expect(order396?.remaining).toMatch(/sole founder local/i);
+    expect(order396?.remaining).toMatch(/Orders 398–399/i);
     const order178: { readonly summary: string; readonly remaining?: string } | undefined =
       PROJECT_BUILD_SNAPSHOT.recordedWork.find(({ order }) => order === 178);
     expect(`${order178?.summary} ${order178?.remaining}`).toMatch(/offline/i);
@@ -514,11 +515,11 @@ describe("Order 064 recorded build snapshot", () => {
     expect(PROJECT_BUILD_SNAPSHOT.phases[2]?.state).toBe("reviewed");
     expect(PROJECT_BUILD_SNAPSHOT.phases[3]?.state).toBe("reviewed");
     expect(PROJECT_BUILD_SNAPSHOT.phases[4]?.state).toBe("built_unverified");
-    expect(PROJECT_BUILD_SNAPSHOT.phases[5]?.state).toBe("active");
+    expect(PROJECT_BUILD_SNAPSHOT.phases[5]?.state).toBe("reviewed");
     expect(PROJECT_BUILD_SNAPSHOT.phases[6]?.state).toBe("reviewed");
     expect(PROJECT_BUILD_SNAPSHOT.phases[7]?.state).toBe("active");
     expect(PROJECT_BUILD_SNAPSHOT.phases.slice(8).every(({ state }) => state === "planned")).toBe(true);
-    expect(PROJECT_BUILD_SNAPSHOT.phases.filter(({ state }) => state === "active").map(({ number }) => number)).toEqual([5, 7]);
+    expect(PROJECT_BUILD_SNAPSHOT.phases.filter(({ state }) => state === "active").map(({ number }) => number)).toEqual([7]);
   });
 
   test("P4/P5: health stays exact and assets contain honest same-origin status UI", async () => {

@@ -1,6 +1,6 @@
 # Order 411 — Phase-5 recorded-status truth correction
 
-**Status:** ACTIVE — D1219
+**Status:** BUILT — AWAITING FRESH TIER-2 REVIEW — D1220
 **Phase:** 5 — Financials
 **Branch:** `phase-7/persisted-india-final-component-tax-evidence`
 **Base:** independently approved Order410 coordination head `7639ed9`
@@ -50,3 +50,19 @@ push or deployment change is outside scope.
 No product/API/UI/server behavior, database/schema/migration/seed, credential,
 permission, dependency, runtime/local/container/image, deployment/merge/push,
 generated-review-coverage, Phase7 or application-completion authority.
+
+## Builder evidence — D1220
+
+The old snapshot was first made red by the Order411 assertions at the stale
+`2026-09-03` date. The implementation now records `2026-09-04`, latest approved built
+Order410, current Order411, active Phase7, Phase5 and Phase6 reviewed, and Order199 as
+independently approved. Order396 and both Phase-5 plans record the delivered operator
+integration while retaining the explicit later-product and deployment exclusions.
+
+Focused status proof passes 6 with 2 expected database skips and 115 assertions; the
+Order411 exact snapshot test passes 1 with 8 assertions. Standing passes 1330 with
+1040 expected database-gated skips and 19,664 assertions across 439 files. Strict
+typecheck, 148-file context boundaries, 23-package licence policy and diff checks pass.
+The registry audit transport remained silent/network-bound and is not claimed; no
+dependency or lockfile changed. `.yellow`, database, runtime and local port3000 were
+untouched. Fresh non-implementing Tier-2 review remains mandatory.

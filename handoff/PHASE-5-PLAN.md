@@ -31,24 +31,24 @@ they satisfy the correction/transfer foundation without silently importing payme
 AR, document, tax or settlement behavior.
 
 Order196 delivered exact-zero per-window settlement and Order197 delivered governed
-cashier custody. Built-unreviewed Order198 now completes the approved Order113 direct-billing
+cashier custody. Independently approved Order198 completes the approved Order113 direct-billing
 half: exact positive guest debt moves only to a party-specific company/travel-agent
 receivable under locked derived credit authority. Full AR invoices, allocations,
 aging/statements and external accounting remain Phase12.
 
-Built-unreviewed Order199 now executes Order114's Phase-5 financial journey on pristine
+Independently approved Order199 executes Order114's Phase-5 financial journey on pristine
 PostgreSQL: the same reservation and folio reach exact-zero settlement through either
 governed token-only payment capture or the new receivable transfer; exact four-eyes,
 hostile property/runtime authority and concurrent capture/transfer/settlement paths
-leave coherent immutable truth. The independent high-risk gate is deferred until the
-built candidate is ready for review. This does not imply checkout, fiscal issue,
-external provider settlement or Phase-5 approval.
+leave coherent immutable truth. This does not imply checkout, fiscal issue, external
+provider settlement or application completion.
 
 D967 independently approves exact Order199 candidatef138f99. The fresh reviewer
 executes both exact-zero paths, approval hostility, concurrency, tenant/authority,
 migration1–25 exact schema93/83 and referee11/11 plus standing/static gates with no
 finding. This closes the financial journey gate only; the founder-approved owner-trust
-negative guard and audited continuous day-close remain Phase-5 product work.
+negative guard and audited continuous day-close were the then-remaining Phase-5 work
+and were subsequently delivered and independently approved before the D1112 exit.
 
 Current founder-visible delivery: Order 171 wires the already-approved primary-folio
 command behind its own property permission and an explicit reservation action, then
@@ -78,8 +78,8 @@ HTTP/UI, tax/fiscal, checkout, day-close and local promotion remain excluded.
 D977 builds the bounded guard after an intentional red. Fresh PostgreSQL proves the
 credit-normal `10000 -> 6000 -> -1000` sequence, exact different-user one-use
 authorization, replay/content conflict, late-failure rollback, catalogue111/101/10/2
-and runtime containment. This is built only; fresh non-implementing Tier-3 review is
-still mandatory and Phase 5 is not declared complete.
+and runtime containment. At that recorded frontier it was built only; D981's fresh
+non-implementing Tier-3 review subsequently approved it.
 
 D978 WITHHOLDS Order344 only because the permanent review-seed operator scope string
 predates its exact `financials.trust:post` grant. D979 opens Order346 to add that
@@ -92,8 +92,8 @@ Order344. The repair is exactly three sorted token additions across two strict l
 scope equalities; fresh role inspection proves operator trust-post only and approver
 inherited trust-post plus its distinct negative-approval scope. All fresh database,
 trust hostility, standing/static/schema and referee gates pass. This closes only the
-owner-trust negative-authorization slice; Phase5 still requires its separate
-continuous business-day work and exit evidence.
+owner-trust negative-authorization slice; continuous business-day work and exit
+evidence were subsequently delivered and independently approved.
 
 Order347 supplies only automatic current business-day roll. PostgreSQL transaction
 time plus property timezone is authoritative; the existing property/date and
@@ -105,7 +105,7 @@ Order382 adds forward-only migration0065 after a fresh Phase5 review reproduced 
 real SQLSTATE23505 race. Targetless conflict handling now covers exactly both
 redundant business-day uniqueness arbiters without changing authority or behavior.
 Fresh independent PostgreSQL16.15 proof approves and closes this repair at D1110;
-the separate Phase5 exit gate remains outstanding.
+the separate Phase5 exit gate was subsequently approved at D1112.
 
 D989 independently approves Orders348 and347. The fresh reviewer reproduces both
 D986 reds, proves corrected cancellation and the exact current financial catalogue,
@@ -137,7 +137,10 @@ Order375 is independently approved and closed after a fresh complete PostgreSQL1
 review of every documented Phase-5 domain slice and all hostility, concurrency,
 immutable-money, migration, schema, acceptance, standing/static and referee11/11
 gates. Phase 5's documented domain contract is reviewed complete. The application and
-founder-visible integration are not complete: `TrustAccountingService`,
-`BusinessDayCloseReadinessService`, `BusinessDayDiscrepancyCarryService` and
-`BusinessDaySealService` remain unwired in the operator API/UI/status/local app and
-must be delivered through separate scoped orders.
+founder-visible application as a whole is not complete. Orders384, 386, 387 and 389,
+together with their independently approved repairs, subsequently wired the close
+readiness, discrepancy carry, audited seal and governed owner-trust journeys into the
+operator API/UI. Phase 5 is independently reviewed complete. Real-provider settlement,
+deposit chargebacks, full AR, owner payout/statement automation, fiscal issue,
+multi-currency FX, local-runtime promotion, deployment, Phase 7 completion and
+application completion remain outside this claim.
