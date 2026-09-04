@@ -1835,3 +1835,10 @@ unique, cross-linked, non-output lineage rather than false authenticity claims a
 pure boundary. Focused14/0(197), standing1347/0+1054 skips(19872), type/151-boundary/
 23-licence/image-pins/diff are green; a different fresh independent Tier3 review
 remains mandatory.
+
+Order415 admits the next migration-free pure statutory composition after independently
+approved Order414. It reuses Order414 to validate the exact complete Order413 source,
+then derives only the notified ordinary registered non-SEZ IRP supply-type code `B2B`
+from the already-approved at-time supply-nature and party/classification evidence.
+SEZ, export, deemed-export, B2C/URP, reverse charge, TranDtls, ItemList, document,
+provider, API/UI/local and Phase completion remain separate and fail closed.
