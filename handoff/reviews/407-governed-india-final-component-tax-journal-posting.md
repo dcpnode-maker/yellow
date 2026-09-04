@@ -204,3 +204,54 @@ reviewer.
 
 Stable/default databases, local port 3000, deployment, merge, push and `.yellow/`
 were not accessed or changed. Disposable review resources were removed after proof.
+
+## D-1209 fresh independent review of D-1208 candidate
+
+**Reviewed candidate:** `3b0a77f4019fef17ea0e2a6fe229c7b94354b9cc`
+
+**Approved base:** `49e237fd6add1a91308797d32e0439ad67fdbb89`
+
+**Reviewer:** `/root/order407_d1208_review`, fresh independent non-implementing Tier 3
+
+**Verdict:** APPROVED — CLOSED
+
+No finding remains. The D-1208 permanent proof replaces the timer rendezvous with a
+bounded observation of an ungranted PostgreSQL lock held by the exact runtime role,
+applies each hostile mutation inside the still-uncommitted blocker transaction before
+the posting call reaches its ordered lock, observes rejection, and releases the blocker
+unconditionally. I personally reproduced the complete Order407 suite without timeout;
+all five post-resolve folio/account/route/tax/day races reject without any posting,
+binding, evidence, document, submission or idempotency artifact. The complete
+D-1203/D-1205 rate/family/rounding/int64, lineage/component/route, contention, ACL/RLS,
+rollback and census matrix remains executable and green.
+
+On the uniquely named disposable PostgreSQL **16.15** review container at explicit
+loopback port `55708`, never the stable/default database, I personally obtained:
+
+- fresh migrations **1–71** and exact catalogue **71 migrations / 123 public tables /
+  113 RLS tables / 113 policies / 22 forced-RLS tables / 2 security-invoker views**;
+- normalized schema byte-equivalent to `tests/schema/expected.sql`;
+- complete Order407: **18 pass, 0 fail, 150 assertions**;
+- referee: **11 passed, 0 failed of 11**;
+- adjacent Order256 **7/0 (48)**, Order262 **12/0 (75)**, Order367 **18/0 (694)**
+  on a separately reconstructed exact migration-70 frontier, and Order406
+  **11/0 (122)**;
+- standing **1,324 pass, 1,028 expected skips, 0 fail, 19,610 assertions across
+  435 files**;
+- strict TypeScript, **147-file** import boundaries, **23-package** licence policy
+  and exact diff checks green;
+- migration0071 SHA-256
+  `e0c377b9d881403a2b88742c7d2e09e3723526e76cedb52a465ef57f530919c5`;
+  schema snapshot SHA-256
+  `ffd24dd7c12af4aaed3094e4238e211cf84c1c0eb3f5037767c997815ba8bf23`;
+  permanent Order407 test SHA-256
+  `b99a8f21eedb2effac932fbb60ab495ac1cf925c6e116c4f4a7cd6e0eaaa1a45`.
+
+Fresh `bun audit --production` stalled after its header and was stopped without being
+counted green. Dependency manifests are byte-unchanged from approved base `49e237f`;
+a fresh OSV batch query of all six locked production packages returned **0
+advisories**. No product, migration, schema, permanent test, local app, deployment,
+merge, push or credential change was made by the reviewer. The pre-existing untracked
+`.yellow/` directory was not accessed or changed. Disposable review resources were
+removed after proof. This approval closes only Order407; India correction, documents,
+IRP, API/UI/local promotion and Phase7 completion remain separate authority.
