@@ -1,6 +1,6 @@
 # Order 428 — Effective tax resolution and quote-preview proof repair
 
-**Status:** BUILT-AWAITING-DIFFERENT-FRESH-TIER3 — D1291
+**Status:** PRODUCT-PROOF-APPROVED; CLOSURE-WITHHELD-PENDING-SAFE-CLEANUP — D1292
 **Phase:** 7 — Tax engine and India IRP
 **Branch:** `phase-7/persisted-india-final-component-tax-evidence`
 **Base:** independently approved Order426 coordination head `e2b4ac7`
@@ -84,3 +84,16 @@ claim. Never reuse invalid local credentials as proof and never alter the stable
   20,651 expectations across 2,512 tests/462 files.
 - Fresh non-implementing Tier-3 review remains mandatory. This builder evidence is not
   a review or approval.
+
+## Independent review — D1292
+
+Fresh non-implementing Tier-3 reviewer `/root/order428_tier3` reproduced all five
+exact mutation-red proofs, authenticated SCRAM `yellow_runtime` as
+`NOSUPERUSER NOBYPASSRLS`, ran every Order238 PostgreSQL case **15/0** (81 assertions),
+the unchanged referee **11/11**, exact schema comparison, standing **1,458/0** plus
+1,054 expected environment skips, and all static/scope gates. Product proof is
+approved with no finding. Closure alone remains withheld because tool policy blocked
+safe same-shell removal of the stopped 78,769,906-byte disposable directory at
+`E:\yellow\temp\order428-tier3-review`; port 55493 is closed. The coordinator must
+remove that exact directory safely and record completion before closing Orders238,
+239 and 428.

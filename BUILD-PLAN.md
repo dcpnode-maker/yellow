@@ -591,6 +591,15 @@ Order428 standing proof is `1,458 pass, 1,054 expected environment skips, 0 fail
 (20,651 expectations across 2,512 tests/462 files). This does not replace the required
 fresh Tier-3 database and mutation reproduction.
 
+Order428/D1292 fresh Tier-3 review independently approves the product proof after
+personally making all five exact-message guards red, authenticating a non-bypass
+runtime role, running all PostgreSQL cases `15/0`, the unchanged referee `11/11`,
+exact schema and every standing/static gate. Only order closure remains withheld:
+the stopped disposable cluster's exact 78,769,906-byte directory remains at
+`E:\yellow\temp\order428-tier3-review` after PowerShell deletion was blocked by tool
+policy; port 55493 is closed. Safe same-shell removal and one recorded cleanup receipt
+are the sole remaining Order238/239/428 gate.
+
 Order240 is ready under D-630. It creates the missing pure canonical positive-origin
 tax-attribution snapshot: exact Order239 quote/night/jurisdiction/evaluator evidence
 becomes deeply frozen JSON-safe decimal-string truth with strict reconciliation and a

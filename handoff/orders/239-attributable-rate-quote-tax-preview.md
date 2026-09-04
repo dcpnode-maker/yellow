@@ -1,6 +1,6 @@
 # Order 239 — Attributable rate-quote tax preview
 
-**Status:** REPAIRED-AWAITING-DIFFERENT-FRESH-TIER3 — D1291
+**Status:** PRODUCT-PROOF-APPROVED; ORDER428-CLEANUP-PENDING — D1292
 **Phase:** 7 — Tax engine and India IRP
 **Branch:** `phase-7/quote-tax-preview`
 **Base:** `537f2c1` (built-unreviewed Order238)
