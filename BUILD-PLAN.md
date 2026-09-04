@@ -1853,3 +1853,11 @@ mutation is now permanent and fails closed. Focused20/0(250), restarted standing
 resource-pressure Chromium timing run was discarded only after the unchanged test
 passed alone and the complete top-of-gate restart passed. Different fresh Tier3
 rereview remains mandatory.
+Order419 admits the next migration-free statutory-field composition after approved
+Orders414/415. It preserves one item candidate per already-governed dense room-night
+and emits only notified mandatory IRP item fields plus exact persisted applicable tax
+component amounts. UTGST occupies the portal's SGST/UTGST `SgstAmt` slot. Exact INR
+minor units and basis points serialize to two-decimal strings without float,
+recalculation, rerounding, aggregation or residual allocation. Quantity/UQC,
+description, discount, cess, other charges, document identity, provider, API/UI/local
+and Phase completion remain separate.
