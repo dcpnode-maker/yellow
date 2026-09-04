@@ -1,6 +1,6 @@
 # Order 421 — Founder priority 11 → 13 → 17
 
-**Status:** BUILT — AWAITING FRESH TIER-2 GOVERNANCE REVIEW — D1258
+**Status:** INDEPENDENTLY APPROVED — CLOSED — D1260
 **Phase:** cross-phase roadmap governance
 **Branch:** `phase-7/persisted-india-final-component-tax-evidence`
 **Risk tier:** 2 — authoritative sequencing documentation

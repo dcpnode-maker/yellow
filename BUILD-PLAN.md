@@ -1876,6 +1876,10 @@ fresh Tier3 D1253 approves exact candidate623faea after the removal mutant fails
 the restored candidate passes6/0, combined proof passes40/0, standing passes1374/0
 plus1054 expected skips and every static gate is green. Order419 is closed. Live IRP
 Qty/UQC validation remains a separately governed full-provider-payload decision.
+Order420 is independently approved at D1259. Exact approved Order419 items aggregate
+with bigint only into applicable IRP `ValDtls`; fresh review passes the full1382/0
+suite,static gates,exact Order419-removal mutation and ceiling/overflow/family/freeze/
+tenant probes. Provider-facing14,2 numeric limits remain an explicit later boundary.
 
 Order420 is the next migration-free pure IRP `ValDtls` candidate after approved
 Order419. It invokes Order419, aggregates only canonical item `AssAmt`, applicable

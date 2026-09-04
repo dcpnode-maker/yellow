@@ -1,6 +1,6 @@
 # Order 420 — India IRP accommodation invoice-value candidate
 
-**Status:** BUILT AND HARDENED — AWAITING FRESH INDEPENDENT TIER-3 REVIEW — D1256
+**Status:** INDEPENDENTLY APPROVED — CLOSED — D1259
 **Phase:** 7 — Tax engine and India IRP
 **Branch:** `phase-7/persisted-india-final-component-tax-evidence`
 **Base:** independently approved Order419 coordination head `1ebb3f5`
