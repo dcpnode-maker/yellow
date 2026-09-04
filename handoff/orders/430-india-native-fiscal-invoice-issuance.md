@@ -75,8 +75,16 @@ be created but their issue paths remain absent until correction evidence is appr
 
 ## Atomic issue capability
 
-`issue_india_native_fiscal_invoice` is the only issuance writer. In one transaction
-it must:
+The TypeScript Order430 service is the only public issuance writer. It reruns and
+validates Order429, then invokes one internal owner-mediated PostgreSQL capability
+`commit_india_native_fiscal_invoice`. The capability may accept only the service's
+exact frozen Order429 hashes, canonical pre-document JSON and server-derived typed
+identities because PostgreSQL cannot invoke the approved TypeScript composers; it
+must independently revalidate the actor, current unreversed persisted source,
+journal/tax/folio/buyer/supplier identities, INR totals, same-origin absence and
+series scope before trusting that internal evidence. It—not TypeScript—derives the
+clock, property-local date/FY, number, `DocDtls`, stored-content canonical hash and
+chain tail. In one transaction the combined service/capability must:
 
 1. require exact `yellow_runtime` → `app_role`, transaction-local tenant, active
    actor and exact-property `tax-fiscal.documents:issue` grant;
