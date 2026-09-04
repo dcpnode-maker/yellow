@@ -1,6 +1,6 @@
 # Order 411 — Phase-5 recorded-status truth correction
 
-**Status:** BUILT — AWAITING FRESH TIER-2 REVIEW — D1220
+**Status:** APPROVED — CLOSED — D1221
 **Phase:** 5 — Financials
 **Branch:** `phase-7/persisted-india-final-component-tax-evidence`
 **Base:** independently approved Order410 coordination head `7639ed9`
