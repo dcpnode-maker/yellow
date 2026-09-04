@@ -1,7 +1,7 @@
 # Order 430 — India native fiscal invoice issuance
 
-**Verdict:** CHANGES REQUIRED — D1306  
-**Candidate:** uncommitted Order430 candidate over `2fa3e78`  
+**Verdict:** CHANGES REQUIRED — D1306
+**Candidate:** uncommitted Order430 candidate over `2fa3e78`
 **Reviewer:** `/root/order430_fresh_tier3`, fresh non-implementing Tier-3 reviewer
 
 ## Blocking product findings
