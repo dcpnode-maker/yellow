@@ -1,6 +1,6 @@
 # Order 432 — PR80 CI portability repair
 
-**Status:** BUILT — AWAITING GITHUB CI — D1308
+**Status:** LOCALLY GREEN — AWAITING SECOND GITHUB CI — D1310
 **Phase:** Delivery infrastructure
 **Branch:** `phase-7/persisted-india-final-component-tax-evidence`
 **Risk tier:** 1 — test harness and CI portability only
@@ -19,6 +19,9 @@ path, browser launch assumptions and shallow Git history.
 - the four failing Order424/425/426/429 hostile or mutation test files identified by
   the PR80 quality log;
 - the six failing browser proof files for Orders195/328/330/386/389/395;
+- `tests/project-mcp-config.test.ts` and
+  `tests/referee-typed-parent-fixtures.integration.test.ts` only to make their exact
+  preregistered historical blob/path resolution portable under a full Linux clone;
 - one existing/new test-only executable/browser helper if needed;
 - focused tests for the helper/launcher behavior;
 - this order, `DECISIONS.log`, and `handoff/LEDGER.md`.

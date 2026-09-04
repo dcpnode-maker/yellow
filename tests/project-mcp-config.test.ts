@@ -116,7 +116,12 @@ test("validator fails closed on duplicate tables and prohibited control characte
 });
 
 test("parent red diagnostics identify package, tag and credential markers", () => {
-  const readAtParent = (path: string) => String(Bun.spawnSync(["git", "show", `5c147b2:${path}`]).stdout);
+  const parent = "b602af932370196c1f0f82b68c3c2a8936e678fa";
+  const readAtParent = (path: string) => {
+    const result = Bun.spawnSync(["git", "show", `${parent}:${path}`], { stdout: "pipe", stderr: "pipe" });
+    if (result.exitCode !== 0) throw new Error(`preregistered MCP parent fixture is unavailable: ${path}`);
+    return result.stdout.toString();
+  };
   const result = validateProjectMcpConfigs(
     readAtParent(".mcp.json"),
     readAtParent(".codex/config.toml"),

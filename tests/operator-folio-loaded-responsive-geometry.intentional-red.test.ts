@@ -1,6 +1,6 @@
 import { expect, test } from "bun:test";
 import { existsSync } from "node:fs";
-import { mkdtemp, rm } from "node:fs/promises";
+import { mkdir, mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 import { pathToFileURL } from "node:url";
@@ -66,18 +66,23 @@ document.querySelector('#result').textContent=JSON.stringify(proof);document.bod
 async function measure(htmlFile: string, profile: string, width: number): Promise<FolioGeometry> {
   if (!browserPath) throw new Error("Chrome or Chromium is required for Order328 geometry proof");
   const url = pathToFileURL(htmlFile).href;
+  await mkdir(profile, { recursive: true });
   const chrome = Bun.spawn([browserPath, "--headless=new", "--disable-gpu", "--no-sandbox", "--disable-dev-shm-usage", "--no-first-run", "--no-default-browser-check",
-    "--allow-file-access-from-files", "--remote-debugging-port=0", `--user-data-dir=${profile}`, "about:blank"],
-  { stdout: "ignore", stderr: "ignore" });
+    "--allow-file-access-from-files", "--remote-debugging-address=127.0.0.1", "--remote-debugging-port=0", `--user-data-dir=${profile}`, "about:blank"],
+  { stdout: "ignore", stderr: "pipe" });
   try {
     const portFile = resolve(profile, "DevToolsActivePort");
     let port = "";
-    for (let attempt = 0; attempt < 100; attempt += 1) {
+    for (let attempt = 0; attempt < 400; attempt += 1) {
       if (existsSync(portFile)) port = (await Bun.file(portFile).text()).split(/\r?\n/, 1)[0] ?? "";
       if (port) break;
       await Bun.sleep(25);
     }
-    if (!port) throw new Error("Chromium did not expose a DevTools port");
+    if (!port) {
+      chrome.kill();
+      const diagnostic = (await new Response(chrome.stderr).text()).trim().slice(-500);
+      throw new Error(`Chromium did not expose a DevTools port${diagnostic ? `: ${diagnostic}` : ""}`);
+    }
     const response = await fetch(`http://127.0.0.1:${port}/json/new?${encodeURIComponent(url)}`, { method: "PUT" });
     if (!response.ok) throw new Error(`Chromium target creation failed (${response.status})`);
     const target = await response.json() as { webSocketDebuggerUrl?: string };
@@ -123,6 +128,7 @@ async function measure(htmlFile: string, profile: string, width: number): Promis
   } finally {
     chrome.kill();
     await chrome.exited;
+    await Bun.sleep(250);
   }
 }
 
@@ -131,7 +137,8 @@ test("Order328 intentional red: loaded Folio is document-contained at 375px and 
   try {
     const fixture = resolve(folder, "loaded-folio.html");
     await Bun.write(fixture, loadedFolioFixture(pathToFileURL(cssFile).href));
-    const proofs = await Promise.all([375, 640].map((width) => measure(fixture, resolve(folder, `chrome-${width}`), width)));
+    const proofs: FolioGeometry[] = [];
+    for (const width of [375, 640]) proofs.push(await measure(fixture, resolve(folder, `chrome-${width}`), width));
     expect(proofs.map(({ viewport, deviceScaleFactor }) => ({ viewport, deviceScaleFactor }))).toEqual([
       { viewport: 375, deviceScaleFactor: 2 }, { viewport: 640, deviceScaleFactor: 2 },
     ]);
@@ -141,6 +148,6 @@ test("Order328 intentional red: loaded Folio is document-contained at 375px and 
     ]);
     expect(proofs.every(({ railOverflow, railLocallyScrollable }) => railOverflow === 0 || railLocallyScrollable)).toBe(true);
   } finally {
-    await rm(folder, { recursive: true, force: true });
+    await rm(folder, { recursive: true, force: true, maxRetries: 10, retryDelay: 100 });
   }
 }, 30_000);

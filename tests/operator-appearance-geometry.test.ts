@@ -1,6 +1,6 @@
 import { expect, test } from "bun:test";
 import { existsSync } from "node:fs";
-import { mkdtemp, rm } from "node:fs/promises";
+import { mkdir, mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 import { pathToFileURL } from "node:url";
@@ -51,18 +51,23 @@ document.querySelector('#result').textContent=JSON.stringify(proof);document.bod
 const measureInBrowser = async (htmlFile: string, profile: string, width: number, theme: string): Promise<GeometryProof> => {
   if (!browserPath) throw new Error("Chrome or Chromium is required for Order195 geometry proof");
   const url = `${pathToFileURL(htmlFile).href}?theme=${theme}`;
-  const chrome = Bun.spawn([browserPath, "--headless=new", "--disable-gpu", "--no-sandbox", "--disable-dev-shm-usage", "--no-first-run", "--no-default-browser-check", "--hide-scrollbars", "--allow-file-access-from-files", "--remote-debugging-port=0", `--user-data-dir=${profile}`, "about:blank"], { stdout: "ignore", stderr: "ignore" });
+  await mkdir(profile, { recursive: true });
+  const chrome = Bun.spawn([browserPath, "--headless=new", "--disable-gpu", "--no-sandbox", "--disable-dev-shm-usage", "--no-first-run", "--no-default-browser-check", "--hide-scrollbars", "--allow-file-access-from-files", "--remote-debugging-address=127.0.0.1", "--remote-debugging-port=0", `--user-data-dir=${profile}`, "about:blank"], { stdout: "ignore", stderr: "pipe" });
   try {
     const activePortFile = resolve(profile, "DevToolsActivePort");
     let port = "";
-    for (let attempt = 0; attempt < 100; attempt += 1) {
+    for (let attempt = 0; attempt < 400; attempt += 1) {
       if (existsSync(activePortFile)) {
         port = (await Bun.file(activePortFile).text()).split(/\r?\n/, 1)[0] ?? "";
         if (port) break;
       }
       await Bun.sleep(25);
     }
-    if (!port) throw new Error("Chromium did not expose a DevTools port");
+    if (!port) {
+      chrome.kill();
+      const diagnostic = (await new Response(chrome.stderr).text()).slice(-500);
+      throw new Error(`Chromium did not expose a DevTools port${diagnostic ? `: ${diagnostic}` : ""}`);
+    }
     const targetResponse = await fetch(`http://127.0.0.1:${port}/json/new?${encodeURIComponent(url)}`, { method: "PUT" });
     if (!targetResponse.ok) throw new Error(`Chromium target creation failed (${targetResponse.status})`);
     const target = await targetResponse.json() as { webSocketDebuggerUrl?: string };
@@ -106,6 +111,7 @@ const measureInBrowser = async (htmlFile: string, profile: string, width: number
   } finally {
     chrome.kill();
     await chrome.exited;
+    await Bun.sleep(250);
   }
 };
 
@@ -141,7 +147,7 @@ test("Order195: Enterprise ERP owns a command row and asymmetric bento hierarchy
   expect(css).toMatch(/data-theme="erp"\] :is\(\.status-summary-grid,\.metric-grid\) > :first-child \{[^}]*grid-column:\s*span 6/);
 });
 
-test.skipIf(!browserPath)("Order195: Chromium measures disclosure, Win95 and ERP geometry at contract widths", async () => {
+test("Order195: Chromium measures disclosure, Win95 and ERP geometry at contract widths", async () => {
   const folder = await mkdtemp(resolve(tmpdir(), "yellow-order195-"));
   try {
     const fixture = resolve(folder, "geometry.html");
@@ -161,6 +167,6 @@ test.skipIf(!browserPath)("Order195: Chromium measures disclosure, Win95 and ERP
     expect(erp.erp.commandRow).toBe(true);
     expect(erp.erp.leadMetricRatio).toBeGreaterThan(1.7);
   } finally {
-    await rm(folder, { recursive: true, force: true });
+    await rm(folder, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 });
   }
 }, 30_000);
