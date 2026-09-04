@@ -1,6 +1,6 @@
 # Order 422 — India IRP accommodation party-details candidate
 
-**Status:** BUILT — AWAITING FRESH INDEPENDENT TIER-3 REVIEW — D1263
+**Status:** INDEPENDENTLY APPROVED — CLOSED — D1264
 **Phase:** 7 — Tax engine and India IRP
 **Branch:** `phase-7/persisted-india-final-component-tax-evidence`
 **Base:** independently approved Order420 coordination head `ea97120`
