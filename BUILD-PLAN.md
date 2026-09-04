@@ -1066,6 +1066,18 @@ image-pins/diff are green. No schema, database, runtime or local state changed.
 `RegRev`, `IgstOnIntra`, `EcmGstin` and every downstream fiscal section remain absent;
 fresh Tier-3 approval is mandatory before use.
 
+Order424 is built awaiting fresh independent Tier-3 review under D1271. Its pure
+composer independently invokes approved Orders423/422/419/420, validates exact common
+source, format, B2B, INR, item-count, component-family and item-lineage coherence, then
+copies their approved sections into one fixed canonical pre-document assembly without
+recalculation or defaulting. The result remains explicitly `submissionReady:false` and
+identifies `DocDtls`, `ItemList[].Qty` and `ItemList[].Unit` as known governed omissions.
+Genuine intentional red0/1 preceded focused7/0(70), IRP composition88/0 plus7 expected
+database skips(1009), standing1403/0 plus1054 expected skips(20465;2457 tests/458
+files), type/157-boundary/23-licence/audit0/image-pins/diff green. No schema, database,
+document, provider, API, UI, runtime or local state changed; fresh Tier-3 approval is
+mandatory before downstream use.
+
 ## Phase 8 — Statutory registration + ZATCA
 
 Statutory scheduler consuming check-in events; adapters: it-alloggiati (168-char),

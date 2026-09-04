@@ -3089,3 +3089,27 @@ evidence fails closed. Optional discount, cess, state cess, other-charge and rou
 fields are never inferred or emitted. This intermediate candidate is not an invoice,
 complete IRP payload, document, number, provider call, submission, API, UI or runtime
 authority.
+
+### India IRP accommodation pre-document evidence assembly (Order 424)
+
+`composeIndiaIrpAccommodationPreDocumentEvidenceAssembly({tenantId,source})` is a
+pure, migration-free Tax-Fiscal integration boundary over the exact deeply frozen
+Order413 source. It independently invokes approved Orders423, 422, 419 and 420 and
+fails closed unless their source hashes, formatted-child versions, ordinary-B2B code,
+INR currency, item count, per-item component family/source backlinks and Order420-to-
+Order419 evidence backlink agree at their approved locations.
+
+The fixed-order `sections` projection contains only `Version`, `TranDtls`,
+`SellerDtls`, `BuyerDtls`, `ItemList` and `ValDtls`; it copies child evidence without
+recalculation, rerounding or defaulting and records canonical `sectionsJson`. The
+lineage contains only the common source hash and the four child evidence hashes. The
+complete result and deterministic tenant-bound hash are recursively frozen and tenant-
+hidden.
+
+The state is explicitly
+`incomplete_non_submit_ready_irp_accommodation_pre_document_evidence`, with
+`submissionReady:false` and the known governed omissions `DocDtls`, `ItemList[].Qty`
+and `ItemList[].Unit`. Those omissions are not an exhaustive provider-validation
+result. This internal evidence assembly is not an invoice, fiscal document or provider
+payload; it issues or numbers nothing, persists nothing, submits nothing and exposes no
+database, provider, API, UI, runtime, local or Phase-completion authority.

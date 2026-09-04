@@ -175,6 +175,8 @@ export type {
   IndiaIrpAccommodationInvoiceValueCandidateLineage,
   IndiaIrpAccommodationInvoiceValueIrpFields,
 } from "./india-irp-accommodation-invoice-value-candidate";
+export { composeIndiaIrpAccommodationPreDocumentEvidenceAssembly, IndiaIrpAccommodationPreDocumentEvidenceAssemblyValidationError } from "./india-irp-accommodation-pre-document-evidence-assembly";
+export type { IndiaIrpAccommodationPreDocumentEvidenceAssembly, IndiaIrpAccommodationPreDocumentEvidenceAssemblyInput, IndiaIrpAccommodationPreDocumentEvidenceLineage, IndiaIrpAccommodationPreDocumentEvidenceSections } from "./india-irp-accommodation-pre-document-evidence-assembly";
 export {
   composeIndiaIrpAccommodationPartyDetailsCandidate,
   IndiaIrpAccommodationPartyDetailsCandidateValidationError,
