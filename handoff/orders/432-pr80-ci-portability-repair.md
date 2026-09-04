@@ -1,6 +1,6 @@
 # Order 432 — PR80 CI portability repair
 
-**Status:** REPAIRED — AWAITING FOURTH GITHUB CI — D1313
+**Status:** REPAIRED — AWAITING FIFTH GITHUB CI — D1315
 **Phase:** Delivery infrastructure
 **Branch:** `phase-7/persisted-india-final-component-tax-evidence`
 **Risk tier:** 1 — test harness and CI portability only
@@ -25,6 +25,9 @@ path, browser launch assumptions and shallow Git history.
 - `tests/rate-quote.integration.test.ts` only to derive its aged stay fixture from a
   bounded future offset, make the seeded tax-jurisdiction effective period deterministic,
   and bind effective-period reads to the already-provisioned runtime role;
+- `tests/operator-rate-builder.integration.test.ts` only to derive its aged quote
+  fixture from the same bounded future-date pattern and bind jurisdiction resolution
+  to the already-provisioned runtime role;
 - one existing/new test-only executable/browser helper if needed;
 - focused tests for the helper/launcher behavior;
 - this order, `DECISIONS.log`, and `handoff/LEDGER.md`.
@@ -45,6 +48,11 @@ path, browser launch assumptions and shallow Git history.
    future stay and normalize the launch extension's
    insertion-time default effective bound, and jurisdiction resolution must exercise
    the runtime-only effective-period capability through the runtime role.
+7. The operator rate-builder proof retains its exact four-eyes, publication, quote,
+   tax-truth and undo assertions while using a bounded clock-relative future stay and
+   the runtime-only effective-period capability through the runtime role. Its
+   tax-inclusive USD plan uses the existing tax-inclusive launch jurisdiction rather
+   than an incompatible tax-exclusive fixture.
 
 ## Excluded
 

@@ -23,10 +23,24 @@ import { REVIEW_EMAIL, runReviewSeed } from "../scripts/seed-review";
 import { runSeed, SEED_PROPERTY, SEED_TENANT } from "../scripts/seed";
 
 const DATABASE_URL = process.env.YELLOW_OPERATOR_RATE_BUILDER_URL;
+const RUNTIME_DATABASE_URL = process.env.YELLOW_RUNTIME_DATABASE_URL;
 const PASSWORD = process.env.YELLOW_OPERATOR_RATE_BUILDER_PASSWORD;
 const APPROVER_PASSWORD = PASSWORD ? `${PASSWORD}-approver` : undefined;
 const REQUIRE_DATABASE = process.env.YELLOW_REQUIRE_OPERATOR_RATE_BUILDER === "1";
 const SECRET = "yellow-order-071-test-token-secret-exactly-long-enough";
+const FIXTURE_TODAY = new Date();
+FIXTURE_TODAY.setUTCHours(0, 0, 0, 0);
+
+function futureDate(days: number): string {
+  const date = new Date(FIXTURE_TODAY);
+  date.setUTCDate(date.getUTCDate() + days);
+  return date.toISOString().slice(0, 10);
+}
+
+const BOOKING_DATE = futureDate(0);
+const STAY_START_DATE = futureDate(9);
+const STAY_END_DATE = futureDate(10);
+const TAX_ASSIGNMENT_END_DATE = futureDate(30);
 const FOREIGN_PROPERTY = "00000000-0000-0000-0000-000000007191";
 const POLICY = Object.freeze({
   cancellation: "00000000-0000-0000-0000-000000007161",
@@ -51,8 +65,8 @@ const FULL_SCOPES = Object.freeze([
 ]);
 type RateBuilderTestOperations = NonNullable<ConstructorParameters<typeof OperatorHttpApi>[12]>;
 
-if (REQUIRE_DATABASE && (!DATABASE_URL || !PASSWORD)) {
-  throw new Error("YELLOW_OPERATOR_RATE_BUILDER_URL and YELLOW_OPERATOR_RATE_BUILDER_PASSWORD are required by Order 071");
+if ((REQUIRE_DATABASE || DATABASE_URL) && (!DATABASE_URL || !RUNTIME_DATABASE_URL || !PASSWORD)) {
+  throw new Error("YELLOW_OPERATOR_RATE_BUILDER_URL, YELLOW_RUNTIME_DATABASE_URL and YELLOW_OPERATOR_RATE_BUILDER_PASSWORD are required by Order 071");
 }
 
 const databaseDescribe = DATABASE_URL && PASSWORD ? describe.serial : describe.skip;
@@ -60,6 +74,7 @@ let admin: SQL;
 let loginPool: SQL;
 let eventPool: SQL;
 let extensionPool: SQL;
+let resolutionPool: SQL;
 let database: Database;
 let tokens: Hs256TokenSigner;
 let approvals: ApprovalService;
@@ -139,20 +154,20 @@ function policyEvidence() {
   ];
 }
 
-function previewCell(key = "cell-2026-09-10") {
+function previewCell(key = `cell-${STAY_START_DATE}`) {
   return {
     key,
     evaluationContext: {
       propertyTimeZone: "UTC",
-      bookingInstant: "2026-09-01T00:00:00.000Z",
-      stayStartInstant: "2026-09-10T15:00:00.000Z",
-      stayEndInstant: "2026-09-11T11:00:00.000Z",
-      nightDate: "2026-09-10",
+      bookingInstant: `${BOOKING_DATE}T00:00:00.000Z`,
+      stayStartInstant: `${STAY_START_DATE}T15:00:00.000Z`,
+      stayEndInstant: `${STAY_END_DATE}T11:00:00.000Z`,
+      nightDate: STAY_START_DATE,
     },
     targetContext: { unitTypeId, sellableUnitId, commercial: {} },
     guests: { adults: 2, childAges: [] },
     selectedPromotionCodes: [],
-    mandatoryPolicyEvidence: [{ key: "tax-assignment", evidenceRef: "tax:in-gst-lodging" }],
+    mandatoryPolicyEvidence: [{ key: "tax-assignment", evidenceRef: "tax:ae-vat" }],
     availabilityEvidence: {
       sellableUnitId,
       availableCount: 1,
@@ -221,6 +236,7 @@ beforeAll(async () => {
   loginPool = new SQL(DATABASE_URL, { max: 4 });
   eventPool = new SQL(DATABASE_URL, { max: 8 });
   extensionPool = new SQL(DATABASE_URL, { max: 8 });
+  resolutionPool = new SQL(RUNTIME_DATABASE_URL!, { max: 8 });
   database = Database.connect(DATABASE_URL, { maxConnections: 24 });
   tokens = new Hs256TokenSigner(SECRET);
   const events = new PostgresEventBus(eventPool);
@@ -229,7 +245,10 @@ beforeAll(async () => {
   models = new RateModelService(registry);
   targets = new RateTargetService(registry);
   publication = new RatePublicationService(registry, approvals, events);
-  quote = new RateQuoteService(publication, new TaxJurisdictionResolutionService(registry));
+  quote = new RateQuoteService(
+    publication,
+    new TaxJurisdictionResolutionService(new ExtensionRegistry(resolutionPool)),
+  );
 
   const inventory = await admin<Array<{ unit_type_id: string; sellable_unit_id: string }>>`
     SELECT unit.id AS unit_type_id, sellable.id AS sellable_unit_id
@@ -261,7 +280,8 @@ beforeAll(async () => {
   `;
   await admin`
     INSERT INTO tax_assignment (tenant_id, property_node, jurisdiction_key, effective)
-    VALUES (${SEED_TENANT.id}::uuid, ${SEED_PROPERTY.id}::uuid, 'in-gst-lodging', daterange('2026-09-01', '2026-10-01', '[)'))
+    VALUES (${SEED_TENANT.id}::uuid, ${SEED_PROPERTY.id}::uuid, 'ae-vat',
+            daterange(${BOOKING_DATE}::date, ${TAX_ASSIGNMENT_END_DATE}::date, '[)'))
   `;
   requesterToken = await tokens.issue({ userId: requester, tenantId: SEED_TENANT.id, scopes: FULL_SCOPES });
   approverToken = await tokens.issue({ userId: approver, tenantId: SEED_TENANT.id, scopes: FULL_SCOPES });
@@ -271,6 +291,7 @@ beforeAll(async () => {
 afterAll(async () => {
   if (!DATABASE_URL || !PASSWORD) return;
   await database.close();
+  await resolutionPool.close();
   await extensionPool.close();
   await eventPool.close();
   await loginPool.close();
@@ -574,8 +595,8 @@ databaseDescribe("Order 071 operator universal rate builder", () => {
       headers: headers(approverToken),
       body: JSON.stringify({
         sellableUnitId,
-        stayStart: "2026-09-10T15:00:00.000Z",
-        stayEnd: "2026-09-11T11:00:00.000Z",
+        stayStart: `${STAY_START_DATE}T15:00:00.000Z`,
+        stayEnd: `${STAY_END_DATE}T11:00:00.000Z`,
         guests: { adults: 2, childAges: [] },
         selectedPromotionCodes: [],
         commercial: {},
@@ -585,6 +606,9 @@ databaseDescribe("Order 071 operator universal rate builder", () => {
     expect(quoteResponse.status).toBe(200);
     const quoteBody = (await quoteResponse.json() as { quote: Record<string, unknown> }).quote;
     expect(quoteBody.taxAssignmentState).toBe("configured");
+    expect(quoteBody.taxAssignments).toEqual([
+      expect.objectContaining({ nightDate: STAY_START_DATE, jurisdictionKey: "ae-vat" }),
+    ]);
     expect((quoteBody.result as Record<string, unknown>).preTaxSubtotalMinor).toBe("12500");
 
     const undo = await request(builderPath(PLANS.main, `/releases/${mainReleaseId}/undo`), {
