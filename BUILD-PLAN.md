@@ -535,8 +535,11 @@ lineage are preserved atomically. Fresh62/115/105/14/2 and focused command proof
 green; fresh Tier3 approval remains required. Tax-component money, rounding, posting,
 documents and IRP remain separate subsequent orders.
 
-Order 237 is built-unreviewed under D-625 as the positive pure rules-driven
-tax-evaluation foundation.
+Order237's pure evaluator is independently approved and closed under D1288. The
+reviewer personally reproduced the exact India per-night schedule boundaries, UAE 5%
+and KSA 15% inclusive bigint results, hostile content, rounding and compounding proof;
+the slab-boundary mutation turns the permanent suite red. This approval remains pure
+calculation evidence only.
 It validates the adopted jurisdiction contract, converts configuration rates to
 integer basis points, evaluates signed-safe `bigint` minor-unit inputs across the four
 existing modes, and makes inclusive/exclusive, line/document rounding, India per-night
@@ -550,20 +553,21 @@ Exact inclusive bigint arithmetic, ordered mixed-night attribution, visible
 line-rounded compounding, fail-closed document compounding without allocation and
 bounded hostile work are executable. Focused `17/17`, adjacent `24/24` plus 18
 database skips, standing `788/788` plus 704 environment skips and all required static
-gates are green. Independent tax review remains deferred by the founder's build-first
-direction.
+gates are green. The current focused and standing gates remain green as recorded in
+D1288.
 
-Order238 is built-unreviewed under D-627 as the read-only authority slice. It binds
+Order238 remains changes-required under D1288 as the read-only authority slice. It binds
 one exact active-tenant property/business-date assignment to exactly one active visible
 `tax_jurisdiction` extension id/version/content hash through existing PostgreSQL and
 runtime-extension authority. Missing/overlapping assignments and missing/ambiguous
 versions fail closed. No precedence, migration, mutation, quote, posting, document,
 provider, HTTP or UI behavior is admitted.
 
-The real-database focused proof passes `13/13`, adjacent extension/rate/tax proof
-passes `17/17` plus 12 expected database skips, and the standing suite passes
-`797/797` plus 708 environment skips. Typecheck, 89 import boundaries, 23 dependency
-licences, zero-vulnerability audit, JavaScript syntax and diff hygiene are green.
+Current pure/static/standing gates are green, but removing assignment-date containment
+leaves the permanent non-database suite green and the approved local authority secret
+does not authenticate to the currently running PostgreSQL service. Current PostgreSQL
+containment proof plus an isolated mutation-sensitive assignment-date test and a
+different fresh Tier-3 rereview are mandatory.
 
 Order239 is ready under D-628. It composes effective nightly resolution and the pure
 evaluator into one exact room-only quote tax preview, binds the frozen evidence before
@@ -572,13 +576,13 @@ jurisdiction, unsupported package/promotion allocation, over-366-night calculati
 and rate-plan/display disagreement. No price mutation, folio/posting/document/fiscal
 authority, migration or new endpoint is admitted.
 
-Order239 is built-unreviewed under D-629. Its focused contract passes `7/7` with 33
-assertions, fresh isolated PostgreSQL quote proof passes `8/8` with 49 assertions and
-exact zero-write truth, and the standing suite passes `808/808` plus 708 environment
-skips. Typecheck, 89 import boundaries, 23 dependency licences, zero-vulnerability
-audit, JavaScript syntax and diff hygiene are green. The disposable proof database was
-removed and no schema or local application was changed. Independent review remains
-deferred; folio attribution, posting, document and fiscal authority remain later.
+Order239 remains changes-required under D1288. Current focused, composition, standing
+and static gates are green, and currency/India exact-money mutations are caught. The
+permanent proof is nevertheless false-green when the 366-night admission becomes 365,
+when resolver property/business-date scope checks are removed, and when the explicit
+package-evidence attribution guard is removed. Isolated mutation-sensitive repairs and
+a different fresh Tier-3 rereview are mandatory; folio attribution, posting, document
+and fiscal authority remain later.
 
 Order240 is ready under D-630. It creates the missing pure canonical positive-origin
 tax-attribution snapshot: exact Order239 quote/night/jurisdiction/evaluator evidence

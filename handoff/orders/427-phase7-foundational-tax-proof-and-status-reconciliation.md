@@ -1,6 +1,6 @@
 # Order 427 — Phase 7 foundational tax proof and status reconciliation
 
-**Status:** ACTIVE — D1285
+**Status:** CHANGES REQUIRED — D1288
 **Phase:** 7 — Tax engine and India IRP
 **Branch:** `phase-7/persisted-india-final-component-tax-evidence`
 **Base:** Order426 repair candidate coordination head `5db5f60`

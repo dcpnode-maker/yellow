@@ -1,11 +1,11 @@
 # Order 237 — Pure rules-driven tax evaluation
 
-**Status:** BUILT-UNREVIEWED-D625
+**Status:** INDEPENDENTLY APPROVED — CLOSED — D1288
 **Phase:** 7 — Tax engine and India IRP
 **Branch:** `phase-7/rules-driven-tax-evaluation`
 **Base:** `0708df1` (built-unreviewed Order236)
 **Risk tier:** 2 — tax computation and money presentation evidence
-**Owner:** Codex implementation; independent review remains deferred by founder build-first direction
+**Owner:** Codex implementation; fresh independent Tier-3 review `/root/order427_tax_review`
 
 ## Outcome
 
@@ -100,8 +100,9 @@ provider or floating-point money authority.
 - [x] Result attribution and deep immutability are proven.
 - [x] Focused and standing proof totals are transcribed.
 
-Independent review remains deferred under the founder's build-first direction. This
-order can close only as built-unreviewed.
+Fresh independent Tier-3 review closes this pure calculation slice under D1288. The
+approval is bounded to the exact evaluator contract and grants no database, quote,
+posting, document, provider, fiscal-finality or Phase-7 authority.
 
 ## Built evidence
 

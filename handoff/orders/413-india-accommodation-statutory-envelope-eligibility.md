@@ -1,6 +1,6 @@
 # Order 413 — India accommodation statutory-envelope eligibility
 
-**Status:** BUILT — AWAITING FRESH INDEPENDENT TIER-3 REVIEW — D1229
+**Status:** INDEPENDENTLY APPROVED — CLOSED — D1230 (header reconciled D1288)
 **Phase:** 7 — Tax engine and India IRP
 **Branch:** `phase-7/persisted-india-final-component-tax-evidence`
 **Base:** independently approved Order412 coordination head `0317c5f`

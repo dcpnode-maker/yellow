@@ -1,11 +1,11 @@
 # Order 239 — Attributable rate-quote tax preview
 
-**Status:** BUILT-UNREVIEWED-D629
+**Status:** CHANGES REQUIRED — D1288
 **Phase:** 7 — Tax engine and India IRP
 **Branch:** `phase-7/quote-tax-preview`
 **Base:** `537f2c1` (built-unreviewed Order238)
 **Risk tier:** 2 — read-only tax calculation evidence
-**Owner:** Codex implementation; independent review remains deferred by founder build-first direction
+**Owner:** Codex implementation; fresh independent Tier-3 review `/root/order427_tax_review`
 
 ## Outcome
 
@@ -100,8 +100,12 @@ room-tax preview bound into the quote hash and exposed through the existing offe
 - [x] Unsupported, conflicting and hostile cases fail without fabricated totals.
 - [x] Focused, adjacent and standing totals are transcribed.
 
-Independent review remains deferred under the founder's build-first direction. This
-order can close only as built-unreviewed.
+Fresh independent Tier-3 review under D1288 retains this order as unapproved. Three
+required permanent proofs are false-green: changing the maximum from 366 to 365
+nights, removing the resolver property/business-date scope checks, or removing the
+explicit package-evidence attribution guard leaves the complete focused suite green.
+Repair each with an isolated mutation-sensitive case and obtain a different fresh
+Tier-3 rereview.
 
 ## Built evidence
 

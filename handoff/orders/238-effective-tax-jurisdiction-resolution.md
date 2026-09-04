@@ -1,11 +1,11 @@
 # Order 238 — Effective tax-jurisdiction resolution
 
-**Status:** BUILT-UNREVIEWED-D627
+**Status:** CHANGES REQUIRED — D1288
 **Phase:** 7 — Tax engine and India IRP
 **Branch:** `phase-7/effective-tax-jurisdiction-resolution`
 **Base:** `e764ed2` (built-unreviewed Order237)
 **Risk tier:** 2 — read-only tax authority and version binding
-**Owner:** Codex implementation; independent review remains deferred by founder build-first direction
+**Owner:** Codex implementation; fresh independent Tier-3 review `/root/order427_tax_review`
 
 ## Outcome
 
@@ -107,8 +107,12 @@ jurisdiction:{ extensionId,ownerTenantId,key,version,content,contentHash,evidenc
 - [x] Canonical content hash, deep freeze, isolation and zero-write evidence execute.
 - [x] Focused, adjacent and standing totals are transcribed.
 
-Independent review remains deferred under the founder's build-first direction. This
-order can close only as built-unreviewed.
+Fresh independent Tier-3 review under D1288 retains this order as unapproved. The
+effective assignment-date guard is not load-bearing in the permanent non-database
+suite, and the required PostgreSQL proof could not authenticate against the currently
+running PostgreSQL service with the approved local authority file. Repair must add an
+isolated permanent assignment-containment probe and obtain current authenticated
+PostgreSQL proof before a different fresh Tier-3 rereview.
 
 ## Built evidence
 
