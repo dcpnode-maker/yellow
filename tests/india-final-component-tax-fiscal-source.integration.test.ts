@@ -283,13 +283,20 @@ live("Order412 live India fiscal-source eligibility", () => {
   });
 
   test("altered root, child ordering, posting topology and account role all fail closed", async () => {
-    const root = roots.find((candidate) => candidate.family === "igst")!;
+    const root = roots.find((candidate) => candidate.family === "igst" && candidate.zeroes === 0)!;
     const [line] = await deploy<Array<{ id: string; amount: string }>>`SELECT id::text,amount_minor::text amount FROM posting_line
       WHERE tenant_id=${root.tenant_id}::uuid AND journal_id=${root.journal_id}::uuid ORDER BY seq DESC LIMIT 1`;
     const missingTaxId = crypto.randomUUID();
     const [account] = await deploy<Array<{ id: string; role: string }>>`SELECT a.id::text,a.role FROM account a
       JOIN posting_line l ON l.tenant_id=a.tenant_id AND l.account_id=a.id
       WHERE l.tenant_id=${root.tenant_id}::uuid AND l.journal_id=${root.journal_id}::uuid AND l.seq>1 ORDER BY l.seq LIMIT 1`;
+    const [routeIds] = await deploy<Array<{ revenue_mapping: string; component_mapping: string }>>`
+      SELECT tax_detail#>>'{revenueRoute,mappingId}' revenue_mapping,
+        tax_detail#>>'{components,0,route,mappingId}' component_mapping
+      FROM posting_line WHERE tenant_id=${root.tenant_id}::uuid AND journal_id=${root.journal_id}::uuid AND seq=1`;
+    expect(routeIds?.revenue_mapping).toMatch(/^[0-9a-f-]{36}$/);
+    expect(routeIds?.component_mapping).toMatch(/^[0-9a-f-]{36}$/);
+    expect(routeIds!.component_mapping).not.toBe(routeIds!.revenue_mapping);
 
     await sabotage`SET session_replication_role=replica`;
     try {
@@ -350,6 +357,26 @@ live("Order412 live India fiscal-source eligibility", () => {
           AND target.id=${line!.id}::uuid AND source.seq=1`;
       await expectConflictWithoutWrites(root);
       await sabotage`UPDATE posting_line SET tax_detail=NULL WHERE tenant_id=${root.tenant_id}::uuid AND id=${line!.id}::uuid`;
+
+      // Keep every semantic code, tx code, account and durable route row intact;
+      // swapping only the embedded mapping identity must still fail byte-exactly.
+      await sabotage`UPDATE posting_line SET tax_detail=jsonb_set(
+          tax_detail,'{revenueRoute,mappingId}',to_jsonb(${routeIds!.component_mapping}::text),false)
+        WHERE tenant_id=${root.tenant_id}::uuid AND journal_id=${root.journal_id}::uuid AND seq=1`;
+      await expectConflictWithoutWrites(root);
+      await sabotage`UPDATE posting_line SET tax_detail=jsonb_set(
+          tax_detail,'{revenueRoute,mappingId}',to_jsonb(${routeIds!.revenue_mapping}::text),false)
+        WHERE tenant_id=${root.tenant_id}::uuid AND journal_id=${root.journal_id}::uuid AND seq=1`;
+
+      // This also creates a duplicate revenue mapping identity across two distinct
+      // semantic slots, proving mapping-to-semantic binding rather than ID existence.
+      await sabotage`UPDATE posting_line SET tax_detail=jsonb_set(
+          tax_detail,'{components,0,route,mappingId}',to_jsonb(${routeIds!.revenue_mapping}::text),false)
+        WHERE tenant_id=${root.tenant_id}::uuid AND journal_id=${root.journal_id}::uuid AND seq=1`;
+      await expectConflictWithoutWrites(root);
+      await sabotage`UPDATE posting_line SET tax_detail=jsonb_set(
+          tax_detail,'{components,0,route,mappingId}',to_jsonb(${routeIds!.component_mapping}::text),false)
+        WHERE tenant_id=${root.tenant_id}::uuid AND journal_id=${root.journal_id}::uuid AND seq=1`;
 
       await sabotage`UPDATE account SET role='house' WHERE tenant_id=${root.tenant_id}::uuid AND id=${account!.id}::uuid`;
       await expectConflictWithoutWrites(root);

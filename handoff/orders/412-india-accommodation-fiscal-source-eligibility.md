@@ -1,6 +1,6 @@
 # Order 412 — India accommodation fiscal-source eligibility
 
-**Status:** BUILT — AWAITING FRESH INDEPENDENT TIER-3 REVIEW — D1223
+**Status:** REPAIRED — AWAITING DIFFERENT FRESH INDEPENDENT TIER-3 REVIEW — D1225
 **Phase:** 7 — Tax engine and India IRP
 **Branch:** `phase-7/persisted-india-final-component-tax-evidence`
 **Base:** independently approved Order411 coordination head `0ce9033`
@@ -102,3 +102,14 @@ Production byte validation remains strict. Intentional-red is 2/0, typecheck,
 149-file import-boundary, 23-package licence and diff checks are green. This is
 builder evidence only; fresh non-implementing Tier-3 inspection and personal proof
 remain mandatory before approval.
+
+## D1224 repair evidence — D1225
+
+Each route mapping identity is now uniquely and directly joined to its exact semantic
+kind/code, transaction code, credit account, account role, property, currency and
+jurisdiction identity/version/content hash. The permanent PostgreSQL hostility swaps
+and duplicates only mapping identities while preserving the surrounding display tuple
+and proves conflict with a complete unchanged census. A fresh builder database at
+migrations 1–73 passes the repaired live suite 5/5 with 192 assertions; typecheck,
+intentional-red 2/0 and diff checks remain green. A different fresh reviewer must
+restart the complete Tier-3 proof.
