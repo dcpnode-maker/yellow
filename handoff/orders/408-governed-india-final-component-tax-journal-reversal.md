@@ -1,6 +1,6 @@
 # Order 408 — Governed India final component-tax journal reversal
 
-**Status:** CHANGES REQUIRED — D1213 SCHEMA SNAPSHOT HEADER
+**Status:** REPAIRED BY ORDER409 — AWAITING DIFFERENT FRESH TIER-3 REVIEW
 **Phase:** 7 — Tax engine and India IRP
 **Branch:** `phase-7/persisted-india-final-component-tax-evidence`
 **Base:** independently approved Order407 coordination head `907ef6d`
