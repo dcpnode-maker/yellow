@@ -2949,3 +2949,34 @@ allocation; issue or number a document; build a hash chain; call a provider; sub
 fiscal record; obtain an IRN/QR; or expose an API/UI/local/deployment or Phase-7
 completion surface. A later issuer must rerun this source inside its own locked write
 transaction.
+
+### India accommodation IRP numeric item-source composition (Order 414)
+
+`composeIndiaIrpAccommodationNumericItemSources({tenantId,source})` is a pure,
+migration-free Tax-Fiscal boundary over the exact deeply frozen Order413 statutory
+envelope. It revalidates both tenant-bound Order413 and Financials source hashes,
+requires an eligible INR accommodation source, and binds the existing property,
+reservation, folio, legal-buyer, seller, classification, supply-date and component-
+family identities. It accepts no caller-supplied amount, rate, component, grouping or
+presentation choice.
+
+The composer requires one through 366 dense ordered room nights and the exact flat
+component topology already persisted by Orders353/367. It groups those unchanged
+components by their existing room-night ordinal, while proving canonical non-negative
+minor units, safe integer rates, component-to-night rate and tax equality, night-to-
+root transaction and tax equality, and signed-int64-safe grand-total reconciliation.
+Malformed, unsafe, overflowing, missing, duplicated, surplus, reordered, wrong-family
+or mixed-lineage evidence fails closed. It does not recalculate tax, reround a value or
+allocate a residual.
+
+The recursively frozen `eligible_irp_accommodation_numeric_item_sources` result keeps
+the exact currency, component family, classification, per-night numeric evidence,
+ordered components and root totals. `sourceEvidenceHash` is the exact Order413 hash;
+the new canonical SHA-256 binds the tenant without returning it. Repeated composition
+of unchanged input is byte-equivalent and leaves the entire input byte-unchanged.
+
+This is numeric source evidence for a later serializer only. It creates no `ItemList`,
+`SlNo`, `PrdDesc`, quantity, unit/UQC, unit price, IRP-named value/tax field, grouping,
+`DocDtls`, `TranDtls`, `SupTyp`, `RegRev`, `IgstOnIntra`, SEZ or reverse-charge
+decision. It issues, numbers and submits no document and exposes no provider, API, UI,
+runtime, local, deployment or Phase-completion surface.

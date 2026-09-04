@@ -1,6 +1,6 @@
 # Order 414 — India accommodation IRP numeric item-source composition
 
-**Status:** ACTIVE — D1231
+**Status:** BUILT — AWAITING FRESH INDEPENDENT TIER-3 REVIEW — D1232
 **Phase:** 7 — Tax engine and India IRP
 **Branch:** `phase-7/persisted-india-final-component-tax-evidence`
 **Base:** independently approved Order413 coordination head `4969c8a`

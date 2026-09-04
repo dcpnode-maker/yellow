@@ -127,6 +127,15 @@ export type {
   IndiaIrpAccommodationSourceResult,
 } from "./india-irp-accommodation-source";
 export {
+  composeIndiaIrpAccommodationNumericItemSources,
+  IndiaIrpAccommodationNumericItemSourceValidationError,
+} from "./india-irp-accommodation-numeric-item-source";
+export type {
+  IndiaIrpAccommodationNumericItemSourceInput,
+  IndiaIrpAccommodationNumericItemSourcesResult,
+  IndiaIrpAccommodationNumericRoomNightSource,
+} from "./india-irp-accommodation-numeric-item-source";
+export {
   IndiaGstFolioBuyerCandidateConflictError,
   IndiaGstFolioBuyerCandidateNotFoundError,
   IndiaGstFolioBuyerCandidateService,
