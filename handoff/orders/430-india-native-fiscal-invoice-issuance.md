@@ -1,6 +1,6 @@
 # Order 430 — India native fiscal invoice issuance
 
-**Status:** DRAFT — BLOCKED ONLY ON QUESTION187 FOUNDER POLICY
+**Status:** ACTIVE — D1302
 **Phase:** 7 — Tax engine and India IRP
 **Branch:** `phase-7/india-native-fiscal-invoice-issuance`
 **Base:** independently approved Order429/D1300 at `25d1db3`
@@ -9,10 +9,9 @@
 
 ## Activation condition
 
-This order must not become ACTIVE and no product/schema code may be written until the
-founder approves or replaces Question187's fiscal origin, series, format/reset,
-correction, grouping, rounding and actor policies. Design preparation is not policy
-approval.
+Satisfied by the founder's explicit 2026-09-04 approval recorded in Question187 and
+D1302. The complete recommended fiscal origin, series, format/reset, correction,
+grouping, rounding and actor policy is binding; Order430 is ACTIVE.
 
 ## Outcome after activation
 

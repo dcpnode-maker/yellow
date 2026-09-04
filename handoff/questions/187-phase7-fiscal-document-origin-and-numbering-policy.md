@@ -1,6 +1,6 @@
 # Question 187 — Phase 7 fiscal document origin and numbering policy
 
-**Status:** FOUNDER DECISION REQUIRED
+**Status:** RESOLVED — founder approved the complete recommendation (D1302)
 **Raised by:** Codex after independently approved Order429/D1300
 **Date:** 2026-09-04
 
@@ -62,3 +62,14 @@ RLS/ACL containment, exact schema, referee 11/11, and fresh independent Tier-3 r
 
 No provider credential, sandbox submission, deployment, stable-local promotion or
 Phase 7 completion is implied by approving this policy.
+
+## Resolution
+
+On 2026-09-04 the founder explicitly replied **“Approve recommended Phase 7 fiscal
+issuance policy.”** Clauses 1–7 are binding in full. Yellow therefore originates the
+native invoice; uses one supplier-GST-registration/property/document-kind/FY-bound
+gapless series with the approved default format/reset and property-local issue date;
+keeps issued numbers immutable and unreclaimed; corrects through separately numbered
+credit/debit evidence; treats each folio window/legal payer as its own invoice; sums
+the already approved integer tax components without a new document residual; and
+keeps allocation/date/hash authority server-side behind exact actor permissions.

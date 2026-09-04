@@ -615,6 +615,15 @@ static gates. The disposable cluster was stopped and removed. Document origin,
 legal number format and series binding remain unresolved product/legal policy and
 no downstream issuance or Phase7 authority is implied.
 
+Question187 is resolved and Order430 is active under D1302. The founder approved
+Yellow-native India invoice origin, supplier-GST-registration/property/kind/FY-bound
+gapless series, Rule-46-valid default/reset, immutable unreclaimed numbers, separately
+numbered corrections, folio-window/legal-payer invoice splitting, approved integer
+component totals without new residual, property-local issue date and server-owned
+actor authority. Order430 may implement the complete atomic number + `DocDtls` +
+canonical hash-chain + document/origin/fact/outbox/idempotency transaction. IRP
+provider submission, IRN/QR and Phase7 completion remain later gated work.
+
 Order240 is ready under D-630. It creates the missing pure canonical positive-origin
 tax-attribution snapshot: exact Order239 quote/night/jurisdiction/evaluator evidence
 becomes deeply frozen JSON-safe decimal-string truth with strict reconciliation and a
