@@ -1,6 +1,6 @@
 # Order 426 — India IRP accommodation validation-compatibility pre-document evidence assembly
 
-**Status:** CHANGES REQUIRED — PER-ITEM SOURCE PROOF FALSE-GREEN — D1283
+**Status:** REPAIRED — AWAITING DIFFERENT FRESH INDEPENDENT TIER-3 REVIEW — D1284
 **Phase:** 7 — Tax engine and India IRP
 **Branch:** `phase-7/persisted-india-final-component-tax-evidence`
 **Base:** independently approved Order425 coordination head `e9d4ef1`
@@ -102,3 +102,22 @@ also corrupts outer source fields caught earlier. Add an isolated coherently reh
 item-source-only projection, prove this guard mutation-red, rerun complete gates and
 obtain a different fresh independent Tier-3 review. Product source was restored
 byte-exact; no downstream authority exists.
+
+## D1284 proof repair after D1283
+
+D1283 correctly found that the compatibility-source mock changed outer, nested and
+per-item source truth together. The harness now changes those three locations in
+separate coherently tenant-rehashed child projections. Removing only the production
+per-item `sourceEvidenceHash` guard makes its dedicated exact-class/exact-message test
+red `0/1`; restoring the guard returns the focused suite to green.
+
+The same audit separated child item count from declared count and child component
+family from per-item family. Dedicated probes also cover Order424 tax scheme, format
+and readiness plus Order425 state, so bundled earlier failures cannot stand in for
+those assertions. Product code remains byte-exact to candidate `602f4ae`.
+
+Repaired evidence: focused `31/0` (68 assertions), full India-IRP composition `138/0`
+plus seven expected DB skips (1,182 assertions), standing `1,453/0` plus 1,054 expected
+DB skips (20,638 assertions; 2,507 tests / 462 files), strict TypeScript, 159 import
+boundaries, 23 licences, audit zero, image pins, protected inputs and diff green. A
+different fresh non-implementing Tier-3 reviewer remains mandatory.

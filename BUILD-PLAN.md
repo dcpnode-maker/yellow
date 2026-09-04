@@ -1130,6 +1130,15 @@ preceded implementation; complete focused/composition/standing/static evidence i
 recorded in Order426. Fresh non-implementing Tier-3 approval remains mandatory, and no
 schema, database, document, provider, API/UI, runtime, local or Phase authority follows.
 
+D1283 withheld approval because the compatibility-source probe bundled outer, nested
+and per-item source changes, allowing an earlier guard to mask removal of the per-item
+backlink guard. D1284 repairs the proof without changing product code: outer source,
+nested source and per-item source are now three separately tenant-rehashed exact-message
+probes. Count versus declared count and child-family versus per-item family are likewise
+separated, and child format/state/readiness/tax-scheme guards receive dedicated probes.
+The required per-item guard-removal mutation is red and restored proof is green. A
+different fresh non-implementing Tier-3 rereview remains mandatory.
+
 ## Phase 8 — Statutory registration + ZATCA
 
 Statutory scheduler consuming check-in events; adapters: it-alloggiati (168-char),

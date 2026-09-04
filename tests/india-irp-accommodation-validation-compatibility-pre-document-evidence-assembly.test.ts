@@ -74,9 +74,13 @@ function childProbe(
         let changed;
         if (${JSON.stringify(child)} === "pre") {
           const mutations = {
-            source: () => ({ ...result, sourceEvidenceHash: "0".repeat(64), lineage: { ...result.lineage, sourceEvidenceHash: "0".repeat(64) } }),
+            source: () => ({ ...result, sourceEvidenceHash: "0".repeat(64) }),
+            lineageSource: () => ({ ...result, lineage: { ...result.lineage, sourceEvidenceHash: "0".repeat(64) } }),
             count: () => ({ ...result, sections: { ...result.sections, ItemList: result.sections.ItemList.slice(0, 1) } }),
             b2b: () => ({ ...result, sections: { ...result.sections, TranDtls: { ...result.sections.TranDtls, SupTyp: "SEZWP" } } }),
+            taxScheme: () => ({ ...result, sections: { ...result.sections, TranDtls: { ...result.sections.TranDtls, TaxSch: "VAT" } } }),
+            format: () => ({ ...result, format: "irp_json_2_0" }),
+            readiness: () => ({ ...result, submissionReady: true }),
             ancestry: () => ({ ...result, lineage: { ...result.lineage, itemCandidatesEvidenceHash: "0".repeat(64) } }),
             evidence: () => ({ ...result, evidenceHash: "0".repeat(64) }),
           };
@@ -84,11 +88,16 @@ function childProbe(
         } else {
           const [first, ...rest] = result.items;
           const mutations = {
-            source: () => ({ ...result, sourceEvidenceHash: "0".repeat(64), lineage: { ...result.lineage, sourceEvidenceHash: "0".repeat(64) }, items: result.items.map((item) => ({ ...item, lineage: { ...item.lineage, sourceEvidenceHash: "0".repeat(64) } })) }),
-            count: () => ({ ...result, items: [first], lineage: { ...result.lineage, itemCount: 1 } }),
+            source: () => ({ ...result, sourceEvidenceHash: "0".repeat(64) }),
+            lineageSource: () => ({ ...result, lineage: { ...result.lineage, sourceEvidenceHash: "0".repeat(64) } }),
+            itemSource: () => ({ ...result, items: result.items.map((item) => ({ ...item, lineage: { ...item.lineage, sourceEvidenceHash: "0".repeat(64) } })) }),
+            count: () => ({ ...result, items: [first] }),
+            lineageCount: () => ({ ...result, lineage: { ...result.lineage, itemCount: 1 } }),
             family: () => ({ ...result, lineage: { ...result.lineage, componentFamily: "cgst_sgst" }, items: result.items.map((item) => ({ ...item, lineage: { ...item.lineage, componentFamily: "cgst_sgst" } })) }),
+            itemFamily: () => ({ ...result, items: result.items.map((item) => ({ ...item, lineage: { ...item.lineage, componentFamily: "cgst_sgst" } })) }),
             currency: () => ({ ...result, currency: "USD" }),
             b2b: () => ({ ...result, supplyTypeCode: "SEZWP" }),
+            state: () => ({ ...result, state: "ineligible" }),
             ancestry: () => ({ ...result, lineage: { ...result.lineage, itemCandidateEvidenceHash: "0".repeat(64) } }),
             order: () => ({ ...result, items: [first, { ...rest[0], lineage: { ...rest[0].lineage, roomNightOrdinal: "9" } }, ...rest.slice(1)] }),
             qty: () => ({ ...result, items: [{ ...first, irp: { ...first.irp, Qty: "2.000" } }, ...rest] }),
@@ -232,15 +241,24 @@ describe("Order426 India IRP validation-compatibility pre-document evidence asse
 
   const childCases = [
     ["pre", "source", "child source evidence is inconsistent"],
+    ["pre", "lineageSource", "child source evidence is inconsistent"],
     ["pre", "count", "child item count evidence is inconsistent"],
     ["pre", "b2b", "child B2B or currency evidence is inconsistent"],
+    ["pre", "taxScheme", "child B2B or currency evidence is inconsistent"],
+    ["pre", "format", "child state evidence is inconsistent"],
+    ["pre", "readiness", "child state evidence is inconsistent"],
     ["pre", "ancestry", "inherited item-candidate evidence is inconsistent"],
     ["pre", "evidence", "child evidence hash is inconsistent"],
     ["compatibility", "source", "child source evidence is inconsistent"],
+    ["compatibility", "lineageSource", "child source evidence is inconsistent"],
+    ["compatibility", "itemSource", "compatibility item order, family or source evidence is inconsistent"],
     ["compatibility", "count", "child item count evidence is inconsistent"],
+    ["compatibility", "lineageCount", "child item count evidence is inconsistent"],
     ["compatibility", "family", "compatibility item order, family or source evidence is inconsistent"],
+    ["compatibility", "itemFamily", "compatibility item order, family or source evidence is inconsistent"],
     ["compatibility", "currency", "child B2B or currency evidence is inconsistent"],
     ["compatibility", "b2b", "child B2B or currency evidence is inconsistent"],
+    ["compatibility", "state", "child state evidence is inconsistent"],
     ["compatibility", "ancestry", "inherited item-candidate evidence is inconsistent"],
     ["compatibility", "order", "compatibility item order, family or source evidence is inconsistent"],
     ["compatibility", "qty", "compatibility item order, family or source evidence is inconsistent"],

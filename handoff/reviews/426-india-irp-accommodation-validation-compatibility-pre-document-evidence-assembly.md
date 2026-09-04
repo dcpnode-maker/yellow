@@ -56,3 +56,23 @@ test red. A different fresh Tier-3 reviewer is required after repair.
 No migration, schema, database, Docker, local app, runtime or `.yellow` state was
 started or mutated. This rejection grants no downstream, document, provider,
 submission, IRN/QR, Phase 7 or application-completion authority.
+
+## D1284 — Implementation proof repair awaiting different fresh Tier-3
+
+The implementation owner accepted D1283 and split the compatibility child source
+mutation into exact outer-source-only, nested-source-only and per-item-source-only
+projections. Each recomputes the child tenant-bound evidence hash and requires the
+exact Order426 validation class/message. Removing only the per-item production source
+guard makes the dedicated per-item probe red `0/1`; restored production is green.
+
+The audit found and split two analogous bundled projections: actual item count versus
+declared item count, and child component family versus each item lineage family. It
+also added isolated Order424 tax-scheme/format/readiness and Order425 state probes.
+The repaired focused suite passes `31/0` (68 assertions); all 24 India-IRP test files
+pass `138/0` with seven expected DB skips (1,182 assertions); standing passes
+`1,453/0` with 1,054 expected DB skips (20,638 assertions; 2,507 tests / 462 files).
+TypeScript, 159 boundaries, 23 licences, audit zero, image pins, protected-input and
+diff checks pass. Product source remains byte-exact to `602f4ae`.
+
+This is implementer evidence, not approval. A different fresh non-implementing Tier-3
+reviewer must personally challenge the repaired probes and approve an exact candidate.
