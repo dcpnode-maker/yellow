@@ -1,7 +1,7 @@
 # Order 421 — Fresh independent Tier-2 governance review
 
-**Reviewer:** independent non-implementing governance reviewer  
-**Candidate:** `4523a2d` (`[codex] record founder priority phases 11 13 17`)  
+**Reviewer:** independent non-implementing governance reviewer
+**Candidate:** `4523a2d` (`[codex] record founder priority phases 11 13 17`)
 **Verdict:** APPROVED
 
 ## Scope and source review
