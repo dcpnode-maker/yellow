@@ -1,6 +1,6 @@
 # Order 408 — Governed India final component-tax journal reversal
 
-**Status:** BUILT — AWAITING FRESH INDEPENDENT TIER-3 REVIEW
+**Status:** CHANGES REQUIRED — D1213 SCHEMA SNAPSHOT HEADER
 **Phase:** 7 — Tax engine and India IRP
 **Branch:** `phase-7/persisted-india-final-component-tax-evidence`
 **Base:** independently approved Order407 coordination head `907ef6d`
@@ -107,3 +107,12 @@ assertions are excluded from builder evidence and remain mandatory for the fresh
 reviewer's pinned disposable environment. Stable/default databases, local port3000
 and retained `.yellow` were untouched. Fresh non-implementing Tier-3 execution is
 mandatory before approval.
+
+## Fresh independent review — D1213
+
+Fresh Tier-3 execution on the exact standalone PostgreSQL 16.15 toolchain proves
+database acceptance 23/0 and Order408 10/0, but the raw normalized schema comparison
+fails because `tests/schema/expected.sql` hard-codes Ubuntu package suffixes in its
+two informational dump-header lines. The schema body is otherwise byte-equivalent.
+Correct only those two snapshot header lines from an exact accepted dump, then use a
+different fresh reviewer for the complete proof. No production change is requested.
