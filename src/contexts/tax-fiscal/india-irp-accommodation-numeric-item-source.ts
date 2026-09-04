@@ -306,7 +306,8 @@ function validateInnerStatutoryEvidence(
   }
 }
 
-function validateFinancialEnvelope(financial: IndiaFinalComponentTaxFiscalSourceResult): void {
+function validateFinancialEnvelope(source: IndiaIrpAccommodationSourceResult): void {
+  const financial = source.financialSource;
   for (const [value, subject] of [
     [financial.postingBindingId, "posting binding id"], [financial.journalId, "journal id"],
     [financial.taxId, "tax id"], [financial.valuationId, "valuation id"],
@@ -346,6 +347,97 @@ function validateFinancialEnvelope(financial: IndiaFinalComponentTaxFiscalSource
       exactRecord(line.taxDetail, ["schemaVersion", "tax", "valuation", "applicability", "posting", "totals", "componentFamily", "jurisdiction", "revenueRoute", "components"], "canonical tax detail");
     } else if (line.taxDetail !== null) return fail("only the journal root may contain tax detail");
   }
+
+  const identities = expectedIdentities(financial.componentFamily);
+  const totals = new Map<ComponentIdentity, bigint>();
+  for (const component of financial.components) {
+    totals.set(
+      component.componentIdentity,
+      (totals.get(component.componentIdentity) ?? 0n) + money(component.taxAmountMinor, "component tax"),
+    );
+  }
+  const positive = identities.filter((identity) => (totals.get(identity) ?? 0n) > 0n);
+  const lines = financial.journalLines;
+  if (lines.length !== 2 + positive.length || lines[0]?.accountId !== financial.guestAccountId ||
+      lines[0]?.accountRole !== "guest" || lines[0]?.folioId !== financial.folioId ||
+      lines[0]?.description !== "India accommodation component tax" ||
+      lines[0]?.amountMinor !== financial.grandTotalMinor || lines[0]?.quantity !== "1.000" ||
+      lines[0]?.businessDate !== financial.businessDate ||
+      lines.slice(1).some((line) => line.folioId !== null || line.taxDetail !== null ||
+        line.quantity !== "1.000" || line.businessDate !== financial.businessDate) ||
+      new Set(lines.map((line) => line.id)).size !== lines.length ||
+      lines.reduce((sum, line) => sum + BigInt(line.amountMinor), 0n) !== 0n) {
+    return fail("financial journal is not the exact balanced posting topology");
+  }
+
+  const detail = exactRecord(lines[0]!.taxDetail, ["schemaVersion", "tax", "valuation", "applicability", "posting", "totals", "componentFamily", "jurisdiction", "revenueRoute", "components"], "canonical tax detail");
+  const tax = exactRecord(detail.tax, ["taxId", "taxGeneration", "evidenceHash"], "canonical tax identity");
+  const valuation = exactRecord(detail.valuation, ["valuationId", "valuationGeneration", "evidenceHash"], "canonical valuation identity");
+  const applicability = exactRecord(detail.applicability, ["applicabilityId", "evidenceHash"], "canonical applicability identity");
+  const posting = exactRecord(detail.posting, ["propertyNode", "reservationId", "folioId", "journalId", "currency"], "canonical posting identity");
+  const detailTotals = exactRecord(detail.totals, ["transactionValueMinor", "taxMinor", "grandTotalMinor"], "canonical posting totals");
+  const jurisdiction = exactRecord(detail.jurisdiction, JURISDICTION_KEYS, "canonical posting jurisdiction");
+  const revenueRoute = exactRecord(detail.revenueRoute, ["mappingId", "semanticCode", "txCode", "creditAccountId"], "canonical revenue route");
+  if (!Array.isArray(detail.components)) return fail("canonical component route set is invalid");
+  const detailComponents = detail.components as readonly unknown[];
+
+  if (detail.schemaVersion !== "india_accommodation_component_tax_v1" ||
+      tax.taxId !== financial.taxId || tax.taxGeneration !== financial.taxGeneration ||
+      tax.evidenceHash !== financial.taxEvidenceHash || valuation.valuationId !== financial.valuationId ||
+      valuation.valuationGeneration !== financial.valuationGeneration ||
+      valuation.evidenceHash !== financial.finalValuationEvidenceHash ||
+      applicability.applicabilityId !== financial.applicabilityId ||
+      applicability.evidenceHash !== financial.applicabilityEvidenceHash ||
+      posting.propertyNode !== financial.propertyNode || posting.reservationId !== financial.reservationId ||
+      posting.folioId !== financial.folioId || posting.journalId !== financial.journalId || posting.currency !== "INR" ||
+      detailTotals.transactionValueMinor !== financial.transactionValueMinor ||
+      detailTotals.taxMinor !== financial.taxMinor || detailTotals.grandTotalMinor !== financial.grandTotalMinor ||
+      detail.componentFamily !== financial.componentFamily ||
+      jurisdiction.extensionId !== source.classification.jurisdiction.extensionId ||
+      jurisdiction.ownerTenantId !== source.classification.jurisdiction.ownerTenantId ||
+      jurisdiction.key !== source.classification.jurisdiction.key ||
+      String(jurisdiction.version) !== source.classification.jurisdiction.version ||
+      jurisdiction.contentHash !== source.classification.jurisdiction.contentHash ||
+      revenueRoute.semanticCode !== "room_revenue" ||
+      revenueRoute.creditAccountId !== lines[1]?.accountId || revenueRoute.txCode !== lines[1]?.txCode ||
+      lines[0]?.txCode !== revenueRoute.txCode ||
+      lines[1]?.description !== "Room revenue" || lines[1]?.amountMinor !== (-BigInt(financial.transactionValueMinor)).toString() ||
+      lines[1]?.accountRole !== "revenue" || detailComponents.length !== identities.length) {
+    return fail("canonical journal root evidence is inconsistent");
+  }
+  canonicalUuid(revenueRoute.mappingId, "revenue mapping id");
+  canonicalUuid(revenueRoute.creditAccountId, "revenue credit account id");
+
+  let lineIndex = 2;
+  const mappingIds = new Set<string>([String(revenueRoute.mappingId)]);
+  for (const [index, identity] of identities.entries()) {
+    const component = exactRecord(
+      detailComponents[index],
+      ["componentIdentity", "semanticCode", "amountMinor", "route"],
+      "canonical component route",
+    );
+    const amount = totals.get(identity) ?? 0n;
+    const semanticCode = identity.toUpperCase();
+    if (component.componentIdentity !== identity || component.semanticCode !== semanticCode ||
+        component.amountMinor !== amount.toString()) return fail("canonical component detail is inconsistent");
+    if (amount === 0n) {
+      if (component.route !== null) return fail("zero component must not have a posting route");
+      continue;
+    }
+    const route = exactRecord(component.route, ["mappingId", "semanticCode", "txCode", "creditAccountId"], "canonical component posting route");
+    const line = lines[lineIndex];
+    if (route.semanticCode !== semanticCode || route.creditAccountId !== line?.accountId ||
+        route.txCode !== line?.txCode || line?.description !== semanticCode ||
+        line?.amountMinor !== (-amount).toString() || line?.accountRole !== "tax_payable") {
+      return fail("canonical component posting line is inconsistent");
+    }
+    const mappingId = canonicalUuid(route.mappingId, "component mapping id");
+    canonicalUuid(route.creditAccountId, "component credit account id");
+    if (mappingIds.has(mappingId)) return fail("canonical posting routes are duplicated");
+    mappingIds.add(mappingId);
+    lineIndex += 1;
+  }
+  if (lineIndex !== lines.length) return fail("canonical posting line set is incomplete");
 }
 
 function recursivelyFreeze<T>(value: T, seen = new Set<object>()): T {
@@ -396,7 +488,7 @@ function composeValidated(
   }
   validateSourceHash(tenantId, source);
   validateInnerStatutoryEvidence(tenantId, source);
-  validateFinancialEnvelope(financial);
+  validateFinancialEnvelope(source);
 
   const family = financial.componentFamily;
   if (family !== "igst" && family !== "cgst_sgst" && family !== "cgst_utgst") {

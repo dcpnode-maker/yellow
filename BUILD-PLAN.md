@@ -1828,7 +1828,10 @@ and proves exact signed-int64 INR transaction/tax/grand-total and rate/component
 reconciliation. It returns only frozen tenant-hidden numeric item-source evidence for
 a later serializer. It does not emit ItemList or choose SlNo/description/quantity/UQC,
 grouping, supply type, document identity, provider, API/UI/local or Phase completion.
-The built D1232 candidate additionally rejects ten independently executed correctly
-rehashed nested-envelope forgeries; focused12/0(194), standing1345/0+1054 skips
-(19869), exact migrations73/acceptance23/0/referee11/11, type/151-boundary/23-licence/
-image pins/diff are green. Fresh independent Tier3 review remains mandatory.
+The D1234 repair additionally binds the exact balanced journal topology and complete
+nested tax detail, with permanent correctly rehashed mutation proof for every
+reproducible semantic field. One-use random line/mapping UUIDs remain canonical,
+unique, cross-linked, non-output lineage rather than false authenticity claims at this
+pure boundary. Focused14/0(197), standing1347/0+1054 skips(19872), type/151-boundary/
+23-licence/image-pins/diff are green; a different fresh independent Tier3 review
+remains mandatory.

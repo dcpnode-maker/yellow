@@ -1,6 +1,6 @@
 # Order 414 — India accommodation IRP numeric item-source composition
 
-**Status:** CHANGES REQUIRED — D1233
+**Status:** REPAIRED — AWAITING DIFFERENT FRESH TIER-3 — D1234
 **Phase:** 7 — Tax engine and India IRP
 **Branch:** `phase-7/persisted-india-final-component-tax-evidence`
 **Base:** independently approved Order413 coordination head `4969c8a`
@@ -45,6 +45,15 @@ then returns `eligible_irp_accommodation_numeric_item_sources` with:
 No `SlNo` or new item total is introduced. All public source/classification/component
 types must be imported through existing context indexes rather than copied.
 
+“Independently validates” means exact structure plus every reproducible semantic,
+financial, statutory and cross-linked field. The one-use random journal-line and
+route-mapping UUIDs are canonical, unique lineage identifiers only: they are not
+returned, used for authorization, or treated as authenticity claims. A pure composer
+cannot distinguish a coherently substituted random UUID after a caller recomputes the
+documented unkeyed hashes. Those hashes prove deterministic integrity lineage, not
+secret-key authenticity. Malformed, duplicated or cross-link-breaking identifiers
+still fail closed.
+
 ## Exact scope
 
 - new `src/contexts/tax-fiscal/india-irp-accommodation-numeric-item-source.ts` and
@@ -64,7 +73,10 @@ Any other path requires a recorded scope amendment before edit.
    zero-rounded-component sources preserve every exact Order413 numeric field.
 3. Missing, duplicated, surplus, reordered or wrong-family components; ordinal gaps;
    wrong rate/tax/night/root/grand-total reconciliation; malformed/unsafe/overflow
-   values; mixed lineage and any Order413 identity/hash mutation fail closed.
+   values; mixed lineage and every reproducibly verifiable Order413 identity/hash or
+   journal/tax-detail semantic mutation fail closed. Malformed, duplicated and
+   cross-link-breaking opaque IDs fail closed; coherent substitution of a distinct
+   canonical one-use lineage UUID is explicitly outside this pure authority boundary.
 4. Input remains byte-unchanged; two calls are byte-equivalent; every output object
    and array is deeply frozen; tenant is absent outside the hash preimage.
 5. Orders353/367/407/412/413, acceptance, exact catalogue/schema, referee11/11,

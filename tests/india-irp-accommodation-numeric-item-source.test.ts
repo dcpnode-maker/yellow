@@ -76,10 +76,86 @@ function makeSource(options: FixtureOptions = {}, tenantId = TENANT): IndiaIrpAc
   );
   const transactionValueMinor = values.reduce((sum, value) => sum + BigInt(value), 0n).toString();
   const taxMinor = components.reduce((sum, component) => sum + BigInt(component.taxAmountMinor), 0n).toString();
+  const grandTotalMinor = (BigInt(transactionValueMinor) + BigInt(taxMinor)).toString();
+  const propertyNode = "b0000000-0000-4000-8000-00000000000b";
+  const reservationId = "80000000-0000-4000-8000-000000000008";
+  const folioId = "90000000-0000-4000-8000-000000000009";
+  const journalId = "40000000-0000-4000-8000-000000000004";
+  const guestAccountId = "a0000000-0000-4000-8000-00000000000a";
+  const revenueAccountId = "05000000-0000-4000-8000-000000000050";
+  const jurisdiction = {
+    extensionId: "d0000000-0000-4000-8000-00000000000d",
+    ownerTenantId: null,
+    key: "in-gst-lodging",
+    version: "1",
+    contentHash: "3".repeat(64),
+  } as const;
+  const componentTotals = ids.map((identity) => ({
+    identity,
+    amount: components
+      .filter((component) => component.componentIdentity === identity)
+      .reduce((sum, component) => sum + BigInt(component.taxAmountMinor), 0n),
+  }));
+  const detailComponents = componentTotals.map(({ identity, amount }, index) => ({
+    componentIdentity: identity,
+    semanticCode: identity.toUpperCase(),
+    amountMinor: amount.toString(),
+    route: amount === 0n ? null : {
+      mappingId: `1${index}000000-0000-4000-8000-00000000001${index}`,
+      semanticCode: identity.toUpperCase(),
+      txCode: identity.toUpperCase(),
+      creditAccountId: `2${index}000000-0000-4000-8000-00000000002${index}`,
+    },
+  }));
+  const taxDetail = {
+    schemaVersion: "india_accommodation_component_tax_v1",
+    tax: { taxId: "50000000-0000-4000-8000-000000000005", taxGeneration: 0, evidenceHash: "b".repeat(64) },
+    valuation: { valuationId: "60000000-0000-4000-8000-000000000006", valuationGeneration: 0, evidenceHash: "c".repeat(64) },
+    applicability: { applicabilityId: "70000000-0000-4000-8000-000000000007", evidenceHash: "d".repeat(64) },
+    posting: { propertyNode, reservationId, folioId, journalId, currency: "INR" },
+    totals: { transactionValueMinor, taxMinor, grandTotalMinor },
+    componentFamily: family,
+    jurisdiction,
+    revenueRoute: {
+      mappingId: "09000000-0000-4000-8000-000000000090",
+      semanticCode: "room_revenue",
+      txCode: "ROOM",
+      creditAccountId: revenueAccountId,
+    },
+    components: detailComponents,
+  };
+  const journalLines = [
+    {
+      id: "02000000-0000-4000-8000-000000000020", seq: 1,
+      accountId: guestAccountId, accountRole: "guest", folioId, txCode: "ROOM",
+      description: "India accommodation component tax", amountMinor: grandTotalMinor, quantity: "1.000",
+      businessDate: "2044-01-01", currency: "INR", taxDetail,
+    },
+    {
+      id: "04000000-0000-4000-8000-000000000040", seq: 2,
+      accountId: revenueAccountId, accountRole: "revenue", folioId: null, txCode: "ROOM",
+      description: "Room revenue", amountMinor: `-${transactionValueMinor}`, quantity: "1.000",
+      businessDate: "2044-01-01", currency: "INR", taxDetail: null,
+    },
+    ...detailComponents.filter((component) => component.route !== null).map((component, index) => ({
+      id: `3${index}000000-0000-4000-8000-00000000003${index}`,
+      seq: index + 3,
+      accountId: component.route!.creditAccountId,
+      accountRole: "tax_payable",
+      folioId: null,
+      txCode: component.route!.txCode,
+      description: component.componentIdentity.toUpperCase(),
+      amountMinor: `-${component.amountMinor}`,
+      quantity: "1.000",
+      businessDate: "2044-01-01",
+      currency: "INR",
+      taxDetail: null,
+    })),
+  ];
   const financialBody = {
     state: "eligible_current_posted_source",
     postingBindingId: "30000000-0000-4000-8000-000000000003",
-    journalId: "40000000-0000-4000-8000-000000000004",
+    journalId,
     taxId: "50000000-0000-4000-8000-000000000005",
     taxGeneration: 0,
     taxEvidenceHash: "b".repeat(64),
@@ -88,15 +164,15 @@ function makeSource(options: FixtureOptions = {}, tenantId = TENANT): IndiaIrpAc
     finalValuationEvidenceHash: "c".repeat(64),
     applicabilityId: "70000000-0000-4000-8000-000000000007",
     applicabilityEvidenceHash: "d".repeat(64),
-    reservationId: "80000000-0000-4000-8000-000000000008",
-    folioId: "90000000-0000-4000-8000-000000000009",
-    guestAccountId: "a0000000-0000-4000-8000-00000000000a",
-    propertyNode: "b0000000-0000-4000-8000-00000000000b",
+    reservationId,
+    folioId,
+    guestAccountId,
+    propertyNode,
     businessDate: "2044-01-01",
     currency: "INR",
     transactionValueMinor,
     taxMinor,
-    grandTotalMinor: (BigInt(transactionValueMinor) + BigInt(taxMinor)).toString(),
+    grandTotalMinor,
     componentFamily: family,
     predecessorHashes: {
       section14: "e".repeat(64),
@@ -106,40 +182,7 @@ function makeSource(options: FixtureOptions = {}, tenantId = TENANT): IndiaIrpAc
     },
     roomNights,
     components,
-    journalLines: [
-      {
-        id: "02000000-0000-4000-8000-000000000020",
-        seq: 1,
-        accountId: "03000000-0000-4000-8000-000000000030",
-        accountRole: "guest",
-        folioId: "90000000-0000-4000-8000-000000000009",
-        txCode: "ROOM",
-        description: "Accommodation",
-        amountMinor: (BigInt(transactionValueMinor) + BigInt(taxMinor)).toString(),
-        quantity: "1",
-        businessDate: "2044-01-01",
-        currency: "INR",
-        taxDetail: {
-          schemaVersion: "india_accommodation_component_tax_v1",
-          tax: {}, valuation: {}, applicability: {}, posting: {}, totals: {},
-          componentFamily: family, jurisdiction: {}, revenueRoute: {}, components: [],
-        },
-      },
-      {
-        id: "04000000-0000-4000-8000-000000000040",
-        seq: 2,
-        accountId: "05000000-0000-4000-8000-000000000050",
-        accountRole: "revenue",
-        folioId: null,
-        txCode: "ROOM",
-        description: "Accommodation revenue",
-        amountMinor: `-${transactionValueMinor}`,
-        quantity: "1",
-        businessDate: "2044-01-01",
-        currency: "INR",
-        taxDetail: null,
-      },
-    ],
+    journalLines,
   } as const;
   const financialSource = {
     ...financialBody,
@@ -148,13 +191,7 @@ function makeSource(options: FixtureOptions = {}, tenantId = TENANT): IndiaIrpAc
   const classification = {
     classificationId: "c0000000-0000-4000-8000-00000000000c",
     propertyNode: financialBody.propertyNode,
-    jurisdiction: {
-      extensionId: "d0000000-0000-4000-8000-00000000000d",
-      ownerTenantId: null,
-      key: "in-gst-lodging",
-      version: "1",
-      contentHash: "3".repeat(64),
-    },
+    jurisdiction,
     lineId: "room",
     revenueGroup: "room_revenue",
     classificationSystem: "SAC",
@@ -594,6 +631,108 @@ describe("Order 414 India accommodation numeric item-source composition", () => 
       (source) => { source.classification.tenantId = TENANT; },
     ];
     for (const forge of forgeries) expectRejected(rebuilt(forge));
+  });
+
+  test("every correctly rehashed journal scalar, balance and canonical tax-detail mutation fails closed", () => {
+    const cases: readonly [string, (source: MutableRecord) => void][] = [
+      ["root id duplicated", (source) => { source.financialSource.journalLines[0].id = source.financialSource.journalLines[1].id; }],
+      ["root id malformed", (source) => { source.financialSource.journalLines[0].id = "not-a-uuid"; }],
+      ["root seq", (source) => { source.financialSource.journalLines[0].seq = 2; }],
+      ["root account", (source) => { source.financialSource.journalLines[0].accountId = "ffffffff-ffff-4fff-8fff-ffffffffffff"; }],
+      ["root role", (source) => { source.financialSource.journalLines[0].accountRole = "revenue"; }],
+      ["root folio", (source) => { source.financialSource.journalLines[0].folioId = null; }],
+      ["root tx code", (source) => { source.financialSource.journalLines[0].txCode = "EVIL"; }],
+      ["root description", (source) => { source.financialSource.journalLines[0].description = "Altered"; }],
+      ["root amount and balance", (source) => { source.financialSource.journalLines[0].amountMinor = "10251"; }],
+      ["root quantity", (source) => { source.financialSource.journalLines[0].quantity = "2"; }],
+      ["root date", (source) => { source.financialSource.journalLines[0].businessDate = "2044-01-02"; }],
+      ["root currency", (source) => { source.financialSource.journalLines[0].currency = "USD"; }],
+      ["root tax detail absent", (source) => { source.financialSource.journalLines[0].taxDetail = null; }],
+      ["credit id duplicated", (source) => { source.financialSource.journalLines[1].id = source.financialSource.journalLines[0].id; }],
+      ["credit id malformed", (source) => { source.financialSource.journalLines[1].id = "not-a-uuid"; }],
+      ["credit seq", (source) => { source.financialSource.journalLines[1].seq = 9; }],
+      ["credit account", (source) => { source.financialSource.journalLines[1].accountId = "ffffffff-ffff-4fff-8fff-ffffffffffff"; }],
+      ["credit role", (source) => { source.financialSource.journalLines[1].accountRole = "tax_payable"; }],
+      ["credit folio", (source) => { source.financialSource.journalLines[1].folioId = source.financialSource.folioId; }],
+      ["credit tx code", (source) => { source.financialSource.journalLines[1].txCode = "EVIL"; }],
+      ["credit description", (source) => { source.financialSource.journalLines[1].description = "Altered"; }],
+      ["credit amount and balance", (source) => { source.financialSource.journalLines[1].amountMinor = "-9999"; }],
+      ["credit quantity", (source) => { source.financialSource.journalLines[1].quantity = "2"; }],
+      ["credit date", (source) => { source.financialSource.journalLines[1].businessDate = "2044-01-02"; }],
+      ["credit currency", (source) => { source.financialSource.journalLines[1].currency = "USD"; }],
+      ["credit tax detail", (source) => { source.financialSource.journalLines[1].taxDetail = {}; }],
+      ["tax-credit id duplicated", (source) => { source.financialSource.journalLines[2].id = source.financialSource.journalLines[0].id; }],
+      ["tax-credit id malformed", (source) => { source.financialSource.journalLines[2].id = "not-a-uuid"; }],
+      ["tax-credit seq", (source) => { source.financialSource.journalLines[2].seq = 9; }],
+      ["tax-credit account", (source) => { source.financialSource.journalLines[2].accountId = "ffffffff-ffff-4fff-8fff-ffffffffffff"; }],
+      ["tax-credit role", (source) => { source.financialSource.journalLines[2].accountRole = "revenue"; }],
+      ["tax-credit folio", (source) => { source.financialSource.journalLines[2].folioId = source.financialSource.folioId; }],
+      ["tax-credit tx code", (source) => { source.financialSource.journalLines[2].txCode = "EVIL"; }],
+      ["tax-credit description", (source) => { source.financialSource.journalLines[2].description = "Altered"; }],
+      ["tax-credit amount", (source) => { source.financialSource.journalLines[2].amountMinor = "-249"; }],
+      ["tax-credit quantity", (source) => { source.financialSource.journalLines[2].quantity = "2"; }],
+      ["tax-credit date", (source) => { source.financialSource.journalLines[2].businessDate = "2044-01-02"; }],
+      ["tax-credit currency", (source) => { source.financialSource.journalLines[2].currency = "USD"; }],
+      ["tax-credit tax detail", (source) => { source.financialSource.journalLines[2].taxDetail = {}; }],
+      ["line reorder", (source) => { source.financialSource.journalLines.reverse(); }],
+      ["tax schema", (source) => { source.financialSource.journalLines[0].taxDetail.schemaVersion = "evil"; }],
+      ["tax id", (source) => { source.financialSource.journalLines[0].taxDetail.tax.taxId = "ffffffff-ffff-4fff-8fff-ffffffffffff"; }],
+      ["tax generation", (source) => { source.financialSource.journalLines[0].taxDetail.tax.taxGeneration = 1; }],
+      ["tax hash", (source) => { source.financialSource.journalLines[0].taxDetail.tax.evidenceHash = "0".repeat(64); }],
+      ["valuation id", (source) => { source.financialSource.journalLines[0].taxDetail.valuation.valuationId = "ffffffff-ffff-4fff-8fff-ffffffffffff"; }],
+      ["valuation generation", (source) => { source.financialSource.journalLines[0].taxDetail.valuation.valuationGeneration = 1; }],
+      ["valuation hash", (source) => { source.financialSource.journalLines[0].taxDetail.valuation.evidenceHash = "0".repeat(64); }],
+      ["applicability id", (source) => { source.financialSource.journalLines[0].taxDetail.applicability.applicabilityId = "ffffffff-ffff-4fff-8fff-ffffffffffff"; }],
+      ["applicability hash", (source) => { source.financialSource.journalLines[0].taxDetail.applicability.evidenceHash = "0".repeat(64); }],
+      ["posting property", (source) => { source.financialSource.journalLines[0].taxDetail.posting.propertyNode = "ffffffff-ffff-4fff-8fff-ffffffffffff"; }],
+      ["posting reservation", (source) => { source.financialSource.journalLines[0].taxDetail.posting.reservationId = "ffffffff-ffff-4fff-8fff-ffffffffffff"; }],
+      ["posting folio", (source) => { source.financialSource.journalLines[0].taxDetail.posting.folioId = "ffffffff-ffff-4fff-8fff-ffffffffffff"; }],
+      ["posting journal", (source) => { source.financialSource.journalLines[0].taxDetail.posting.journalId = "ffffffff-ffff-4fff-8fff-ffffffffffff"; }],
+      ["posting currency", (source) => { source.financialSource.journalLines[0].taxDetail.posting.currency = "USD"; }],
+      ["totals transaction", (source) => { source.financialSource.journalLines[0].taxDetail.totals.transactionValueMinor = "9999"; }],
+      ["totals tax", (source) => { source.financialSource.journalLines[0].taxDetail.totals.taxMinor = "999"; }],
+      ["totals grand", (source) => { source.financialSource.journalLines[0].taxDetail.totals.grandTotalMinor = "9999"; }],
+      ["detail family", (source) => { source.financialSource.journalLines[0].taxDetail.componentFamily = "cgst_sgst"; }],
+      ["jurisdiction extension", (source) => { source.financialSource.journalLines[0].taxDetail.jurisdiction.extensionId = "ffffffff-ffff-4fff-8fff-ffffffffffff"; }],
+      ["jurisdiction owner", (source) => { source.financialSource.journalLines[0].taxDetail.jurisdiction.ownerTenantId = TENANT; }],
+      ["jurisdiction key", (source) => { source.financialSource.journalLines[0].taxDetail.jurisdiction.key = "evil"; }],
+      ["jurisdiction version", (source) => { source.financialSource.journalLines[0].taxDetail.jurisdiction.version = "2"; }],
+      ["jurisdiction hash", (source) => { source.financialSource.journalLines[0].taxDetail.jurisdiction.contentHash = "0".repeat(64); }],
+      ["revenue mapping duplicated", (source) => { source.financialSource.journalLines[0].taxDetail.revenueRoute.mappingId = source.financialSource.journalLines[0].taxDetail.components[0].route.mappingId; }],
+      ["revenue mapping malformed", (source) => { source.financialSource.journalLines[0].taxDetail.revenueRoute.mappingId = "not-a-uuid"; }],
+      ["revenue semantic", (source) => { source.financialSource.journalLines[0].taxDetail.revenueRoute.semanticCode = "evil"; }],
+      ["revenue tx code", (source) => { source.financialSource.journalLines[0].taxDetail.revenueRoute.txCode = "EVIL"; }],
+      ["revenue account", (source) => { source.financialSource.journalLines[0].taxDetail.revenueRoute.creditAccountId = "ffffffff-ffff-4fff-8fff-ffffffffffff"; }],
+      ["component identity", (source) => { source.financialSource.journalLines[0].taxDetail.components[0].componentIdentity = "sgst"; }],
+      ["component semantic", (source) => { source.financialSource.journalLines[0].taxDetail.components[0].semanticCode = "SGST"; }],
+      ["component amount", (source) => { source.financialSource.journalLines[0].taxDetail.components[0].amountMinor = "999"; }],
+      ["component route absent", (source) => { source.financialSource.journalLines[0].taxDetail.components[0].route = null; }],
+      ["component route mapping duplicated", (source) => { source.financialSource.journalLines[0].taxDetail.components[0].route.mappingId = source.financialSource.journalLines[0].taxDetail.revenueRoute.mappingId; }],
+      ["component route mapping malformed", (source) => { source.financialSource.journalLines[0].taxDetail.components[0].route.mappingId = "not-a-uuid"; }],
+      ["component route semantic", (source) => { source.financialSource.journalLines[0].taxDetail.components[0].route.semanticCode = "SGST"; }],
+      ["component route tx", (source) => { source.financialSource.journalLines[0].taxDetail.components[0].route.txCode = "EVIL"; }],
+      ["component route account", (source) => { source.financialSource.journalLines[0].taxDetail.components[0].route.creditAccountId = "ffffffff-ffff-4fff-8fff-ffffffffffff"; }],
+    ];
+    const accepted: string[] = [];
+    for (const [name, mutate] of cases) {
+      try { composeIndiaIrpAccommodationNumericItemSources(rebuilt(mutate)); }
+      catch { continue; }
+      accepted.push(name);
+    }
+    expect(accepted).toEqual([]);
+  });
+
+  test("coherent distinct canonical opaque line and mapping identifiers remain valid lineage", () => {
+    const candidate = rebuilt((source) => {
+      source.financialSource.journalLines[0].id = "a1000000-0000-4000-8000-000000000001";
+      source.financialSource.journalLines[1].id = "a2000000-0000-4000-8000-000000000002";
+      source.financialSource.journalLines[2].id = "a3000000-0000-4000-8000-000000000003";
+      source.financialSource.journalLines[0].taxDetail.revenueRoute.mappingId = "a4000000-0000-4000-8000-000000000004";
+      source.financialSource.journalLines[0].taxDetail.components[0].route.mappingId = "a5000000-0000-4000-8000-000000000005";
+    });
+    const result = composeIndiaIrpAccommodationNumericItemSources(candidate);
+    expect(result.state).toBe("eligible_irp_accommodation_numeric_item_sources");
+    expect(result.sourceEvidenceHash).toBe(candidate.source.evidenceHash);
   });
 
   test("tenant identifiers and tenant-named fields are absent recursively from accepted output", () => {
