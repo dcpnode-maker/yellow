@@ -1,6 +1,6 @@
 # Order 418 — Single-footprint host cleanup
 
-**Status:** ACTIVE — INVENTORY AND INDEPENDENT REVIEW REQUIRED
+**Status:** GUARDED EXECUTION PARTIAL — DOCKER APPROVED/CLEAN, FILESYSTEM PENDING
 **Phase:** Cross-phase build hygiene
 **Risk tier:** 3 — destructive host artifact handling
 **Owner:** Codex inventory/coordination; fresh independent non-operating Tier-3 reviewer required before deletion or global Docker compaction
@@ -45,3 +45,12 @@ Recover space from obsolete Yellow proof, review, database-cluster, diagnostic a
 ## Forbidden
 
 No source/history/order/review/research deletion; no Ollama model deletion; no founder-file cleanup; no broad drive-root or wildcard deletion; no live Docker-VHD file deletion; no production/external mutation; no merge, push or deployment.
+
+## Approved manifest and execution progress
+
+- Fresh independent Tier-3 review approved 49 exact filesystem targets totaling 7,478,069,564 bytes and excluded the canonical repository, registered active worktree, auth configuration, Ollama, toolchains and Docker substrate.
+- The exact host execution is recorded in `handoff/order418-approved-cleanup.ps1`; it validates preserved/registered paths and unlinks the two inspected external junction leaves before deleting only listed targets. It has not been executed because host recursive deletion is blocked in this environment.
+- Docker's approved 146-image removal manifest hash was `2C00AE22D55988E48A80E6CEF69EC65C7DB5A236FD3FD31899325CA49DD97D39`. Execution reduced 152 images to the exact six approved keep IDs; zero non-keep images remain.
+- Fresh independent post-execution review confirms the three intended stopped containers remain image-backed, mount-free and volume-free; only default networks plus empty intended `yellow_order311_local` remain. Build cache is retained at 215.7 MB because it currently reports zero reclaimable bytes.
+- Review-side Ollama inspection auto-started two preserved processes; the operator stopped only those exact Ollama-path processes afterward. The 6.6 GB `qwen3.5:9b` model remains present.
+- VHD compaction remains pending until filesystem cleanup and the approved full Docker/WSL shutdown sequence.
