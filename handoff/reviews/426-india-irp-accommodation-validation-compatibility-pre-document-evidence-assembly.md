@@ -113,3 +113,25 @@ shared head advanced to Order427 while this review ran, but the reviewed product
 test blobs remain byte-exact to `5db5f60`. No database, Docker, runtime, local app or
 `.yellow` state was used or mutated. This rejection grants no downstream, document,
 provider, submission, IRN/QR, Phase 7 or application-completion authority.
+
+## D1287 — Implementer count-proof repair awaiting another different Tier-3
+
+The actual-count child projection now shortens `items` and changes
+`lineage.itemCount` to the same coherent value while Order424 stays unchanged. Removal
+of only the child-versus-pre-document count guard makes its exact named probe red
+`0/1`; it reaches a different later error and therefore cannot pass its exact-message
+oracle. The declared-count projection changes only `lineage.itemCount`; removal of
+only that production guard independently makes its named probe red `0/1`. Restored
+production passes both `2/0` and remains byte-exact to `602f4ae`.
+
+All same-message mutations were re-audited: outer/nested/per-item source, actual/
+declared count, child/per-item family, tax scheme/B2B/currency, format/readiness/state,
+ancestry, item order/content, Qty/Unit and evidence hashes have distinct projections.
+Complete restored gate results are recorded in D1287. This remains implementation
+evidence only; another different fresh non-implementing Tier-3 reviewer is mandatory.
+
+Restored complete execution passes focused `31/0` (68), India-IRP composition
+`138/0` plus seven expected DB skips (1,182), and standing `1,452/0` plus 1,054
+expected DB skips with one unrelated Order330 Chromium cleanup failure; that exact
+test immediately passes in isolation `1/0` (4), consistent with D1283's recorded host
+cleanup flake. Static, protected/product-byte, scope and diff checks are green.

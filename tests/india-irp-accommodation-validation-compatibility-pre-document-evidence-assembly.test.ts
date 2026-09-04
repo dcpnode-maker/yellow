@@ -91,7 +91,7 @@ function childProbe(
             source: () => ({ ...result, sourceEvidenceHash: "0".repeat(64) }),
             lineageSource: () => ({ ...result, lineage: { ...result.lineage, sourceEvidenceHash: "0".repeat(64) } }),
             itemSource: () => ({ ...result, items: result.items.map((item) => ({ ...item, lineage: { ...item.lineage, sourceEvidenceHash: "0".repeat(64) } })) }),
-            count: () => ({ ...result, items: [first] }),
+            count: () => ({ ...result, items: [first], lineage: { ...result.lineage, itemCount: 1 } }),
             lineageCount: () => ({ ...result, lineage: { ...result.lineage, itemCount: 1 } }),
             family: () => ({ ...result, lineage: { ...result.lineage, componentFamily: "cgst_sgst" }, items: result.items.map((item) => ({ ...item, lineage: { ...item.lineage, componentFamily: "cgst_sgst" } })) }),
             itemFamily: () => ({ ...result, items: result.items.map((item) => ({ ...item, lineage: { ...item.lineage, componentFamily: "cgst_sgst" } })) }),

@@ -1,6 +1,6 @@
 # Order 426 — India IRP accommodation validation-compatibility pre-document evidence assembly
 
-**Status:** CHANGES REQUIRED — D1286
+**Status:** REPAIRED — AWAITING ANOTHER DIFFERENT FRESH TIER-3 REVIEW — D1287
 **Phase:** 7 — Tax engine and India IRP
 **Branch:** `phase-7/persisted-india-final-component-tax-evidence`
 **Base:** independently approved Order425 coordination head `e9d4ef1`
@@ -132,3 +132,28 @@ message. Add a coherently rehashed count mutation that changes both actual items
 declared count while preserving the pre-document count, prove the actual-count guard
 red independently, rerun complete gates and obtain another different fresh Tier-3
 review. Product source was restored byte-exact; no downstream authority exists.
+
+## D1287 actual-versus-declared count proof repair
+
+The compatibility `count` projection now coherently shortens both `items` and
+`lineage.itemCount` while leaving the independently composed Order424 child unchanged.
+It therefore reaches only the actual compatibility-child-versus-pre-document count
+guard. Removing that guard makes the exact named test red `0/1` (the subprocess
+reports the different later item-preservation error); restored production is green.
+
+The separate `lineageCount` projection changes only `lineage.itemCount`. Removing only
+the declared-count production guard makes its named exact-message test red `0/1`, and
+restoration returns both isolated probes to green `2/0`. The remaining same-message
+source, family, state and ancestry projections stay separated as recorded in D1284;
+no other bundled mutation can satisfy either count oracle.
+
+Product code remains byte-exact to `602f4ae`. Repaired complete gate evidence is
+recorded in D1287 and the ledger. This implementer does not approve the repair; another
+different fresh Tier-3 reviewer must personally execute the proof.
+
+Restored gates: focused `31/0` (68 assertions), all India-IRP composition `138/0`
+plus seven expected DB skips (1,182 assertions), and standing `1,452/0` plus 1,054
+expected DB skips with one unrelated Order330 Chromium cleanup failure; immediate
+isolated rerun passes `1/0` (4 assertions), matching the same transient previously
+recorded by D1283. TypeScript, 159 boundaries, 23 licences, audit zero, image pins,
+protected/product bytes and diff checks are green.

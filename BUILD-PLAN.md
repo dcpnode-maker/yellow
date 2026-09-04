@@ -1139,6 +1139,14 @@ separated, and child format/state/readiness/tax-scheme guards receive dedicated 
 The required per-item guard-removal mutation is red and restored proof is green. A
 different fresh non-implementing Tier-3 rereview remains mandatory.
 
+D1286 then found the actual-count projection still shared its expected error with the
+declared-count guard. D1287 makes the actual-count projection coherently change both
+the compatibility items and its declared count against unchanged Order424 truth; the
+declared-count projection changes only its declaration. Removing either production
+guard now turns only its corresponding exact-message test red, while restored product
+remains byte-exact to the original Order426 candidate. Another different fresh Tier-3
+rereview is mandatory.
+
 ## Phase 8 — Statutory registration + ZATCA
 
 Statutory scheduler consuming check-in events; adapters: it-alloggiati (168-char),
