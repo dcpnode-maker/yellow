@@ -1,6 +1,6 @@
 # Order 423 — India IRP ordinary-B2B transaction-details candidate
 
-**Status:** ACTIVE — D1265
+**Status:** ACTIVE — OUTPUT CLARIFIED — D1266
 **Phase:** 7 — Tax engine and India IRP
 **Branch:** `phase-7/persisted-india-final-component-tax-evidence`
 **Base:** independently approved Order422 coordination head `b77f129`
@@ -30,8 +30,10 @@ Order414/415 pure input shape. It must invoke Order415, require source evidence-
 equality, and derive only:
 
 - fixed `irp_json_1_1` payload `{TranDtls:{TaxSch:"GST",SupTyp:"B2B"}}`;
-- fixed lineage containing the Order413 source evidence hash and Order415 evidence
-  hash;
+- exact outer key order `state`, `format`, `payload`, `payloadJson`, `lineage`,
+  `sourceEvidenceHash`, `evidenceHash`, matching the approved Order422 convention;
+- exact lineage key order `sourceEvidenceHash`, `supplyTypeEvidenceHash`, containing
+  the Order413 source evidence hash and Order415 evidence hash;
 - deterministic fixed-order JSON and a tenant-bound evidence hash.
 
 It must reject every malformed, mutable, proxy, accessor, symbol, sparse, cyclic,
@@ -53,8 +55,9 @@ Any other path requires a recorded scope amendment before edit.
 1. Genuine intentional red proves the exact module/export absent.
 2. Exact payload and field order are stable; `RegRev`, `IgstOnIntra`, `EcmGstin` and
    all unrelated transaction fields are absent.
-3. Order415 is demonstrably load-bearing under a permanent coherently rehashed
-   unsupported-supply mutation that Order414 alone accepts.
+3. Order415 is demonstrably load-bearing using the unchanged permanent
+   `makeOrder419UnsupportedExportInput()` fixture: Order414 accepts its coherently
+   rehashed numeric source while Order415 must reject it.
 4. Input remains byte-unchanged; replay is byte-equivalent; output is deeply frozen;
    tenant affects only evidence-hash preimages and is absent from output.
 5. Orders413–422, schema/catalogue/referee, standing and static gates remain green;
