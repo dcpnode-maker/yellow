@@ -3026,6 +3026,26 @@ validation boundary. This intermediate candidate contains no transaction details
 items, values, tax calculation, document identity, provider call, submission, IRN,
 QR, database operation, API, UI, runtime or Phase-completion authority.
 
+### India IRP ordinary-B2B transaction-details candidate (Order 423)
+
+`composeIndiaIrpOrdinaryB2bTransactionDetailsCandidate({tenantId,source})` is a
+pure, migration-free Tax-Fiscal boundary over the exact deeply frozen Order413
+source. It invokes the approved Order415 ordinary registered B2B composer, requires
+its returned source hash to match the supplied Order413 evidence hash, and emits only
+the fixed-order IRP payload `{TranDtls:{TaxSch:"GST",SupTyp:"B2B"}}`.
+
+The fixed lineage contains only `sourceEvidenceHash` and
+`supplyTypeEvidenceHash`. Canonical JSON and the final tenant-bound SHA-256 are
+deterministic; the result is recursively frozen and returns no tenant identifier.
+Malformed, mutable, proxy, accessor, symbol, sparse, cyclic, surplus, stale, foreign
+and coherently rehashed unsupported supply evidence fails closed through Order415.
+
+`RegRev`, `IgstOnIntra` and `EcmGstin` are deliberately absent because the approved
+source establishes no reverse-charge, same-state IGST override or e-commerce GSTIN
+authority. This intermediate candidate includes no parties, document details, items,
+values, provider call, submission, IRN, QR, database operation, API, UI, runtime or
+Phase-completion authority.
+
 ### India IRP accommodation room-night item candidates (Order 419)
 
 `composeIndiaIrpAccommodationRoomNightItemCandidates({tenantId,source})` is a pure,

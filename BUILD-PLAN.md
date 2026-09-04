@@ -1055,6 +1055,17 @@ finding under D-764. Reviewer-personal official-law, focused/database/migration/
 schema/setup/referee, adjacent/standing/static and stable-preservation proof are
 green. Approval remains bounded to first directly contiguous Form-F2 continuity.
 
+Order423 is built awaiting fresh independent Tier-3 review under D1267. Its pure
+composer invokes approved Order415 and emits only fixed-order
+`TranDtls:{TaxSch:"GST",SupTyp:"B2B"}` with exact Order413/415 hash lineage. The
+coherently rehashed unsupported-export fixture accepted by Order414 remains rejected
+through Order415, making that admission gate load-bearing. Genuine intentional red
+0/1 preceded focused7/0(70) and Orders413–423 composition63/0 plus7 expected database
+skips(720); standing1396/0 plus1054 expected skips, type/156-boundary/23-licence/audit0/
+image-pins/diff are green. No schema, database, runtime or local state changed.
+`RegRev`, `IgstOnIntra`, `EcmGstin` and every downstream fiscal section remain absent;
+fresh Tier-3 approval is mandatory before use.
+
 ## Phase 8 — Statutory registration + ZATCA
 
 Statutory scheduler consuming check-in events; adapters: it-alloggiati (168-char),

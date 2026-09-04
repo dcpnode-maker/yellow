@@ -144,6 +144,16 @@ export type {
   IndiaIrpOrdinaryRegisteredB2bSupplyTypeResult,
 } from "./india-irp-ordinary-registered-b2b-supply-type";
 export {
+  composeIndiaIrpOrdinaryB2bTransactionDetailsCandidate,
+  IndiaIrpOrdinaryB2bTransactionDetailsCandidateValidationError,
+} from "./india-irp-ordinary-b2b-transaction-details-candidate";
+export type {
+  IndiaIrpOrdinaryB2bTransactionDetailsCandidate,
+  IndiaIrpOrdinaryB2bTransactionDetailsCandidateInput,
+  IndiaIrpOrdinaryB2bTransactionDetailsCandidateLineage,
+  IndiaIrpOrdinaryB2bTransactionDetailsV1,
+} from "./india-irp-ordinary-b2b-transaction-details-candidate";
+export {
   composeIndiaIrpAccommodationRoomNightItemCandidates,
   IndiaIrpAccommodationRoomNightItemCandidateValidationError,
 } from "./india-irp-accommodation-room-night-item-candidate";

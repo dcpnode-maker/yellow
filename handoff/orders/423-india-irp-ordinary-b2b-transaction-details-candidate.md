@@ -1,6 +1,6 @@
 # Order 423 — India IRP ordinary-B2B transaction-details candidate
 
-**Status:** ACTIVE — OUTPUT CLARIFIED — D1266
+**Status:** BUILT — AWAITING FRESH INDEPENDENT TIER-3 — D1267
 **Phase:** 7 — Tax engine and India IRP
 **Branch:** `phase-7/persisted-india-final-component-tax-evidence`
 **Base:** independently approved Order422 coordination head `b77f129`
