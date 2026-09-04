@@ -94,16 +94,28 @@ async function measure(htmlFile: string, profile: string, width: number): Promis
   await mkdir(profile, { recursive: true });
   const chrome = Bun.spawn([browserPath, "--headless=new", "--disable-gpu", "--no-sandbox", "--disable-dev-shm-usage", "--no-first-run", "--no-default-browser-check", "--allow-file-access-from-files",
     "--remote-debugging-address=127.0.0.1", "--remote-debugging-port=0", `--user-data-dir=${profile}`, "about:blank"], { stdout: "ignore", stderr: "pipe" });
+  let diagnostic = "";
+  const stderrDone = (async () => {
+    const reader = chrome.stderr.getReader(); const decoder = new TextDecoder();
+    try {
+      while (true) {
+        const { done, value } = await reader.read(); if (done) break;
+        diagnostic = (diagnostic + decoder.decode(value, { stream: true })).slice(-4000);
+      }
+      diagnostic = (diagnostic + decoder.decode()).slice(-4000);
+    } finally { reader.releaseLock(); }
+  })();
   try {
     const portFile = resolve(profile, "DevToolsActivePort"); let port = "";
-    for (let attempt = 0; attempt < 400; attempt += 1) {
+    for (let attempt = 0; attempt < 800; attempt += 1) {
       if (existsSync(portFile)) port = (await Bun.file(portFile).text()).split(/\r?\n/, 1)[0] ?? "";
-      if (port) break; await Bun.sleep(25);
+      port ||= diagnostic.match(/DevTools listening on ws:\/\/(?:127\.0\.0\.1|localhost|\[::1\]):(\d+)\//)?.[1] ?? "";
+      if (port || chrome.exitCode !== null) break; await Bun.sleep(25);
     }
     if (!port) {
       chrome.kill();
-      const diagnostic = (await new Response(chrome.stderr).text()).trim().slice(-500);
-      throw new Error(`Chromium did not expose a DevTools port${diagnostic ? `: ${diagnostic}` : ""}`);
+      await chrome.exited; await stderrDone;
+      throw new Error(`Chromium did not expose a DevTools port (exit ${chrome.exitCode ?? "unknown"})${diagnostic ? `: ${diagnostic.trim().slice(-500)}` : ""}`);
     }
     const response = await fetch(`http://127.0.0.1:${port}/json/new?${encodeURIComponent(url)}`, { method: "PUT" });
     if (!response.ok) throw new Error(`Chromium target creation failed (${response.status})`);
@@ -136,7 +148,7 @@ async function measure(htmlFile: string, profile: string, width: number): Promis
     }
     socket.close(); if (!proof) throw new Error(`Chromium produced no full-shell geometry at ${width}px`);
     return JSON.parse(proof) as Geometry;
-  } finally { chrome.kill(); await chrome.exited; await Bun.sleep(250); }
+  } finally { chrome.kill(); await chrome.exited; await stderrDone; await Bun.sleep(250); }
 }
 
 test("Order330 intentional red: full app bar and loaded Folio are contained at 375px and 640px / DSF2", async () => {
@@ -159,4 +171,4 @@ test("Order330 intentional red: full app bar and loaded Folio are contained at 3
       { viewport: 640, documentOverflow: 0, bodyOverflow: 0, headerOverflow: 0, workspaceOverflow: 0 },
     ]);
   } finally { await rm(folder, { recursive: true, force: true, maxRetries: 10, retryDelay: 100 }); }
-}, 30_000);
+}, 60_000);

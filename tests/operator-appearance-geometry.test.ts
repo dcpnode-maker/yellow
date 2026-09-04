@@ -53,20 +53,32 @@ const measureInBrowser = async (htmlFile: string, profile: string, width: number
   const url = `${pathToFileURL(htmlFile).href}?theme=${theme}`;
   await mkdir(profile, { recursive: true });
   const chrome = Bun.spawn([browserPath, "--headless=new", "--disable-gpu", "--no-sandbox", "--disable-dev-shm-usage", "--no-first-run", "--no-default-browser-check", "--hide-scrollbars", "--allow-file-access-from-files", "--remote-debugging-address=127.0.0.1", "--remote-debugging-port=0", `--user-data-dir=${profile}`, "about:blank"], { stdout: "ignore", stderr: "pipe" });
+  let diagnostic = "";
+  const stderrDone = (async () => {
+    const reader = chrome.stderr.getReader(); const decoder = new TextDecoder();
+    try {
+      while (true) {
+        const { done, value } = await reader.read(); if (done) break;
+        diagnostic = (diagnostic + decoder.decode(value, { stream: true })).slice(-4000);
+      }
+      diagnostic = (diagnostic + decoder.decode()).slice(-4000);
+    } finally { reader.releaseLock(); }
+  })();
   try {
     const activePortFile = resolve(profile, "DevToolsActivePort");
     let port = "";
-    for (let attempt = 0; attempt < 400; attempt += 1) {
+    for (let attempt = 0; attempt < 800; attempt += 1) {
       if (existsSync(activePortFile)) {
         port = (await Bun.file(activePortFile).text()).split(/\r?\n/, 1)[0] ?? "";
-        if (port) break;
       }
+      port ||= diagnostic.match(/DevTools listening on ws:\/\/(?:127\.0\.0\.1|localhost|\[::1\]):(\d+)\//)?.[1] ?? "";
+      if (port || chrome.exitCode !== null) break;
       await Bun.sleep(25);
     }
     if (!port) {
       chrome.kill();
-      const diagnostic = (await new Response(chrome.stderr).text()).slice(-500);
-      throw new Error(`Chromium did not expose a DevTools port${diagnostic ? `: ${diagnostic}` : ""}`);
+      await chrome.exited; await stderrDone;
+      throw new Error(`Chromium did not expose a DevTools port (exit ${chrome.exitCode ?? "unknown"})${diagnostic ? `: ${diagnostic.trim().slice(-500)}` : ""}`);
     }
     const targetResponse = await fetch(`http://127.0.0.1:${port}/json/new?${encodeURIComponent(url)}`, { method: "PUT" });
     if (!targetResponse.ok) throw new Error(`Chromium target creation failed (${targetResponse.status})`);
@@ -111,6 +123,7 @@ const measureInBrowser = async (htmlFile: string, profile: string, width: number
   } finally {
     chrome.kill();
     await chrome.exited;
+    await stderrDone;
     await Bun.sleep(250);
   }
 };

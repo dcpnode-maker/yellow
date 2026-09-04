@@ -1,6 +1,6 @@
 # Order 432 — PR80 CI portability repair
 
-**Status:** LOCALLY GREEN — AWAITING SECOND GITHUB CI — D1310
+**Status:** BUILT — AWAITING THIRD GITHUB CI — D1311
 **Phase:** Delivery infrastructure
 **Branch:** `phase-7/persisted-india-final-component-tax-evidence`
 **Risk tier:** 1 — test harness and CI portability only
