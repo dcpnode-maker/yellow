@@ -1089,7 +1089,7 @@ focused `10/0`, standing `1406/0` plus 1,054 expected skips and every static/sco
 gate pass. Approval remains limited to the explicitly incomplete false-readiness
 pre-document evidence assembly.
 
-Order425 is built awaiting fresh Tier-3 review under D1277. Its pure composer invokes
+Order425 is independently approved and closed under D1280. Its pure composer invokes
 approved Order419 and inserts only compatibility constants `Qty:"1.000"` and
 `Unit:"OTH"` into each exact one-item-per-room-night service projection, preserving
 all inherited values, count/order, lineage, component family and B2B/INR evidence.
@@ -1105,7 +1105,19 @@ child mutation now has its own exact-class/exact-message oracle, inherited count
 bound to source room nights, and the Order419 evidence hash is independently
 revalidated. Guard-removal mutations are red; restored focused `16/0`, composition
 `89/0` plus 7 expected database skips, standing `1422/0` plus 1,054 expected skips
-and static gates are green. Different fresh Tier-3 approval remains mandatory.
+and static gates are green. The different fresh reviewer personally proved every one
+of the nine named guards red, Qty/Unit change and removal red, and Order419 admission
+load-bearing before restoring the exact candidate and closing it under D1280.
+
+Order426 is active under D1281. It composes independently approved Orders424 and425
+into one still-incomplete validation-compatibility pre-document evidence assembly.
+Every Order424 section remains byte-exact except `ItemList`, which becomes the exact
+Order425 Qty/Unit-enriched projection; stripping only those two fields must reproduce
+Order424 byte-exact. `DocDtls` remains absent and both submission-readiness and
+authenticated-provider-sandbox certification remain false. Intentional-red,
+cross-child hostile/load-bearing proof and fresh independent Tier-3 approval are
+mandatory; no schema, database, document, provider, API/UI, runtime, local or Phase
+authority follows.
 
 ## Phase 8 — Statutory registration + ZATCA
 
