@@ -373,7 +373,9 @@ export function makeOrder419UnsupportedExportInput(): {
   readonly tenantId: string;
   readonly source: IndiaIrpAccommodationSourceResult;
 } {
-  const source = cloneOrder419(makeOrder419Source()) as unknown as MutableRecord;
+  // Keep the forged export numerically coherent so Order414 admits it and the
+  // Order415 ordinary-B2B gate is the control that must reject it.
+  const source = cloneOrder419(makeOrder419Source({ family: "cgst_sgst" })) as unknown as MutableRecord;
   source.supplyNatureAtTimeOfSupply.supplyNature = "export";
   source.componentFamily.supplyNature = "export";
   for (const key of ["supplyNatureAtTimeOfSupply", "componentFamily"] as const) {
