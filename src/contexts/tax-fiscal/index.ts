@@ -582,3 +582,13 @@ export type {
   IndiaGstAccommodationFinalComponentTaxSemanticRouteInput,
   IndiaGstAccommodationFinalComponentTaxSemanticRouteResult,
 } from "./india-gst-accommodation-final-component-tax-semantic-route";
+export {
+  IndiaIrpAccommodationFiscalActionReadinessConflictError,
+  IndiaIrpAccommodationFiscalActionReadinessNotFoundError,
+  IndiaIrpAccommodationFiscalActionReadinessService,
+  IndiaIrpAccommodationFiscalActionReadinessValidationError,
+} from "./india-irp-accommodation-fiscal-action-readiness";
+export type {
+  IndiaIrpAccommodationFiscalActionReadinessInput,
+  IndiaIrpAccommodationFiscalActionReadinessResult,
+} from "./india-irp-accommodation-fiscal-action-readiness";

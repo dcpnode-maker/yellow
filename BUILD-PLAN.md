@@ -2034,3 +2034,25 @@ freeze and tenant-hidden authority hashes pass. Orders413–422 pass56/0 plus7 e
 database skips; standing passes1389/0 plus1054 expected skips, with type/155-boundary/
 23-licence/audit0/image-pins/diff green. No schema/database/runtime/local or downstream
 fiscal authority is added; fresh Tier3 review remains mandatory.
+### Order 429 — India IRP fiscal-action readiness (implementation in progress)
+
+Order429 adds a migration-free read-only boundary over approved Orders413 and 426.
+It reruns the current tenant-scoped posted fiscal source on the caller transaction,
+composes exact validation-compatible pre-document evidence, independently validates
+child hashes/lineage/state, and returns only frozen false readiness with no actions
+and the explicit origin, legal-number-format, and series blockers. It has no
+document, numbering, series, provider, submission, IRN/QR, write, API/UI, or phase
+completion authority. Intentional-red, hostile pure, and real-PostgreSQL census
+proofs are required; fresh independent Tier-3 review remains mandatory. The initial
+no-source-only integration candidate was rejected; the permanent integration proof
+now reuses successful Order413 fixtures for the complete Order413→426 path across
+5/12/18 rates, every component family, multi-night and zero-tax cases. This order
+must not be marked built until configured PostgreSQL, schema/referee/standing gates
+and independent Tier-3 execution complete.
+
+D1297 records the first configured live finding: Order412 freezes validated
+PostgreSQL `jsonb` tax detail in database key order, while approved Order414 requires
+the canonical contract key order, so live Order413→426 composition rejects. Order429
+scope is amended only to canonicalize the already validated tax-detail records before
+Order412 freezes/hashes them, with no value, query, validation, authority or database
+change. Repair, live rerun and fresh Tier-3 review are mandatory.

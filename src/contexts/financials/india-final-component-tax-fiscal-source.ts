@@ -78,8 +78,24 @@ export class IndiaFinalComponentTaxFiscalSourceService {
   if(routeRows.length!==routeExpectations.length)throw new IndiaFinalComponentTaxFiscalSourceConflictError("canonical route set is incomplete");
   const actualRoutes=new Map(routeRows.map(row=>[String(row.id),row]));
   for(const expected of routeExpectations){const actual=actualRoutes.get(expected.mappingId);if(!actual||actual.semantic_kind!==expected.semanticKind||actual.semantic_code!==expected.semanticCode||actual.tx_code!==expected.txCode||actual.credit_account_id!==expected.creditAccountId||actual.account_role!==expected.accountRole)throw new IndiaFinalComponentTaxFiscalSourceConflictError("canonical route binding is inconsistent")}
+  // PostgreSQL jsonb does not preserve the producer's insertion order. Rebuild
+  // the already shape- and value-authenticated detail in the canonical order
+  // required by downstream exact-record consumers before freezing or hashing it.
+  const canonicalTaxDetail={
+    schemaVersion:detail.schemaVersion,
+    tax:{taxId:dTax.taxId,taxGeneration:dTax.taxGeneration,evidenceHash:dTax.evidenceHash},
+    valuation:{valuationId:dVal.valuationId,valuationGeneration:dVal.valuationGeneration,evidenceHash:dVal.evidenceHash},
+    applicability:{applicabilityId:dApp.applicabilityId,evidenceHash:dApp.evidenceHash},
+    posting:{propertyNode:dPosting.propertyNode,reservationId:dPosting.reservationId,folioId:dPosting.folioId,journalId:dPosting.journalId,currency:dPosting.currency},
+    totals:{transactionValueMinor:dTotals.transactionValueMinor,taxMinor:dTotals.taxMinor,grandTotalMinor:dTotals.grandTotalMinor},
+    componentFamily:detail.componentFamily,
+    jurisdiction:{extensionId:dJurisdiction.extensionId,ownerTenantId:dJurisdiction.ownerTenantId,key:dJurisdiction.key,version:dJurisdiction.version,contentHash:dJurisdiction.contentHash},
+    revenueRoute:{mappingId:dRevenue.mappingId,semanticCode:dRevenue.semanticCode,txCode:dRevenue.txCode,creditAccountId:dRevenue.creditAccountId},
+    components:dComponents.map((component)=>{const route=component.route as Row|null;return {componentIdentity:component.componentIdentity,semanticCode:component.semanticCode,amountMinor:component.amountMinor,route:route===null?null:{mappingId:route.mappingId,semanticCode:route.semanticCode,txCode:route.txCode,creditAccountId:route.creditAccountId}}}),
+  };
+  const canonicalLines=lines.map((line,index)=>index===0?{...line,taxDetail:canonicalTaxDetail}:line);
   const predecessors={section14:hash(r.section14_evidence_hash,"section14 hash"),levyComponentIdentity:hash(r.levy_component_identity_evidence_hash,"levy hash"),reservationLineage:hash(r.reservation_lineage_evidence_hash,"lineage hash"),attributionSnapshot:hash(r.attribution_snapshot_evidence_hash,"attribution hash")};
-  const body={state:"eligible_current_posted_source" as const,postingBindingId:id(r.posting_binding_id,"binding id"),journalId:journal,taxId,taxGeneration,taxEvidenceHash:taxHash,valuationId,valuationGeneration,finalValuationEvidenceHash:valuationHash,applicabilityId,applicabilityEvidenceHash:appHash,reservationId:reservation,folioId:folio,guestAccountId:guestAccount,propertyNode:property,businessDate:str(r.business_date,"business date"),currency:"INR" as const,transactionValueMinor:str(r.transaction_value_minor,"transaction value"),taxMinor:str(r.tax_minor,"tax total"),grandTotalMinor:str(r.grand_total_minor,"grand total"),componentFamily:family,predecessorHashes:predecessors,roomNights:nights,components:comps,journalLines:lines};
+  const body={state:"eligible_current_posted_source" as const,postingBindingId:id(r.posting_binding_id,"binding id"),journalId:journal,taxId,taxGeneration,taxEvidenceHash:taxHash,valuationId,valuationGeneration,finalValuationEvidenceHash:valuationHash,applicabilityId,applicabilityEvidenceHash:appHash,reservationId:reservation,folioId:folio,guestAccountId:guestAccount,propertyNode:property,businessDate:str(r.business_date,"business date"),currency:"INR" as const,transactionValueMinor:str(r.transaction_value_minor,"transaction value"),taxMinor:str(r.tax_minor,"tax total"),grandTotalMinor:str(r.grand_total_minor,"grand total"),componentFamily:family,predecessorHashes:predecessors,roomNights:nights,components:comps,journalLines:canonicalLines};
   return freeze({...body,sourceEvidenceHash:digest({tenantId:tenant,...body})});
  }
 }

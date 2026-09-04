@@ -1590,3 +1590,21 @@ all effects. Caller readiness, time, threshold, timezone, payload, queue, force,
 reopen and arbitrary database-error authority are excluded. No route, browser,
 automatic worker, batch, local-runtime promotion or Phase-5 completion authority is
 created.
+### Order 429 — fiscal-action readiness containment
+
+The India IRP fiscal-action readiness boundary is intentionally fail-closed. It
+accepts only the exact deeply frozen Order413 source input, uses one caller-owned
+tenant transaction for the live source lookup, and derives Order426 solely from
+that freshly resolved source. Returned source and pre-document evidence are
+revalidated for tenant-bound hashes, ancestry, current posted state, B2B/INR
+identity, item count/order, and the absence of `DocDtls`; tampered or mixed truth
+cannot be promoted by rebinding only an outer hash. Source not-found and conflict
+semantics remain distinct, while malformed child evidence becomes a readiness
+conflict.
+
+The public snapshot contains no tenant identifier. Its only state is blocked
+pending fiscal-document-origin policy, with no permitted actions and exact blockers
+for origin, legal number format, and document series. The boundary has no writer,
+document/series allocator, hash-chain advancement, provider/submission, IRN/QR,
+fact, outbox, idempotency, API, UI, or deployment authority; database census must
+remain byte/count unchanged.

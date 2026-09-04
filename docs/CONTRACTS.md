@@ -3162,3 +3162,20 @@ Both `submissionReady` and `authenticatedProviderSandboxCertified` are false, an
 complete payload, invoice, fiscal document, provider certification or submission; it
 allocates or issues nothing, persists nothing and exposes no database, API, UI,
 runtime, local or Phase-completion authority.
+### India IRP accommodation fiscal-action readiness (Order 429)
+
+`IndiaIrpAccommodationFiscalActionReadinessService.resolve(tx, input)` is a
+migration-free, read-only Tax-Fiscal boundary. It reruns the exact tenant-scoped
+Order413 posted-source resolver on the supplied transaction, then composes Order426
+from only `{ tenantId, source }`. Its fixed result is deeply frozen and contains
+`state = blocked_pending_fiscal_document_origin_policy`, `submissionReady = false`,
+no permitted actions, and the ordered blockers
+`FISCAL_DOCUMENT_ORIGIN_UNSELECTED`, `LEGAL_DOCUMENT_NUMBER_FORMAT_UNCONFIGURED`,
+and `DOCUMENT_SERIES_UNBOUND`.
+
+The boundary independently validates both child hashes, ancestry, state, B2B/INR
+and item topology before returning their hashes and the Order426 pre-document
+evidence. Tenant identity is used only in evidence-hash preimages. This contract
+does not choose document origin, configure legal numbering, bind or advance a
+series, emit `DocDtls` or a full invoice number, create a document, submit to IRP,
+or write any database, event, fact, idempotency, provider, API, or UI state.

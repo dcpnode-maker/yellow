@@ -1,6 +1,6 @@
 # Order 429 — India IRP fiscal-action readiness
 
-**Status:** ACTIVE — D1294
+**Status:** BUILT — AWAITING FRESH INDEPENDENT TIER-3 REVIEW — D1299
 **Phase:** 7 — Tax engine and India IRP
 **Branch:** `phase-7/persisted-india-final-component-tax-evidence`
 **Base:** independently approved Order428 coordination head `e3c4ebd`
@@ -62,6 +62,9 @@ returned objects and arrays.
 - new exact intentional-red, hostile pure and real-PostgreSQL integration tests;
 - existing Order413/426 tests only if an executable fixture compatibility correction
   is proved necessary; otherwise preserve them byte-exact;
+- `src/contexts/financials/india-final-component-tax-fiscal-source.ts` and its exact
+  focused tests only for D1297's proved canonical JSONB key-order compatibility
+  repair; no query, validation, authority, field or semantic change;
 - `docs/CONTRACTS.md`, `docs/SECURITY.md`, Phase 7 `BUILD-PLAN.md`, this order/review,
   `DECISIONS.log` and `handoff/LEDGER.md`.
 
@@ -91,3 +94,17 @@ document create/import/issue/status/hash-chain; no migration/schema/table/RLS/
 permission/write/entity/event/fact/outbox/idempotency; no provider/submission/IRN/QR;
 no API/UI/seed/runtime/local/Docker/deploy/merge/push, Phase7 or application-
 completion authority.
+
+## D1297 executable scope amendment
+
+The first configured live Order413→426→429 run exposed a real predecessor
+compatibility defect. PostgreSQL `jsonb` returns the already-validated canonical tax
+detail in database key order, and Order412 freezes that raw object into its public
+result. Order414 correctly requires canonical fixed key order and therefore rejects
+the live result even though the pure fixture uses the intended order. The smallest
+repair is to rebuild only that already exhaustively validated tax-detail object and
+its nested records in the existing canonical contract order before Order412 freezes
+and hashes its result. The amendment admits only the exact Financials source file and
+focused proof for that normalization. It must preserve every value, validation,
+query, result field, error, authority and database census; a fresh Tier-3 reviewer
+must execute the live proof.

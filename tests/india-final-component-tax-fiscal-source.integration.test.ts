@@ -254,6 +254,31 @@ live("Order412 live India fiscal-source eligibility", () => {
     }
   });
 
+  test("reconstructs PostgreSQL jsonb tax detail in canonical order and keeps it mutation-safe", async () => {
+    const root = roots[0]!;
+    const result = await read(root);
+    const detail = result.journalLines[0]!.taxDetail as Record<string, any>;
+    expect(Object.keys(detail)).toEqual([
+      "schemaVersion", "tax", "valuation", "applicability", "posting", "totals",
+      "componentFamily", "jurisdiction", "revenueRoute", "components",
+    ]);
+    expect(Object.keys(detail.tax)).toEqual(["taxId", "taxGeneration", "evidenceHash"]);
+    expect(Object.keys(detail.valuation)).toEqual(["valuationId", "valuationGeneration", "evidenceHash"]);
+    expect(Object.keys(detail.applicability)).toEqual(["applicabilityId", "evidenceHash"]);
+    expect(Object.keys(detail.posting)).toEqual(["propertyNode", "reservationId", "folioId", "journalId", "currency"]);
+    expect(Object.keys(detail.totals)).toEqual(["transactionValueMinor", "taxMinor", "grandTotalMinor"]);
+    expect(Object.keys(detail.jurisdiction)).toEqual(["extensionId", "ownerTenantId", "key", "version", "contentHash"]);
+    expect(Object.keys(detail.revenueRoute)).toEqual(["mappingId", "semanticCode", "txCode", "creditAccountId"]);
+    expect(detail.components.every((component: Record<string, any>) => {
+      if (Object.keys(component).join("\0") !== "componentIdentity\0semanticCode\0amountMinor\0route") return false;
+      return component.route === null || Object.keys(component.route).join("\0") === "mappingId\0semanticCode\0txCode\0creditAccountId";
+    })).toBeTrue();
+    expect(Object.isFrozen(detail)).toBeTrue();
+    const replay = JSON.stringify(result);
+    expect(() => { detail.tax = {}; }).toThrow();
+    expect(JSON.stringify(result)).toBe(replay);
+  });
+
   test("closed folio and guest account remain eligible without writes", async () => {
     const root = roots[0]!;
     await deploy`UPDATE folio SET status='closed' WHERE tenant_id=${root.tenant_id}::uuid AND id=${root.folio_id}::uuid`;

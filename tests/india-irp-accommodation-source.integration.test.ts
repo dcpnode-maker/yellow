@@ -25,7 +25,8 @@ if (process.env.YELLOW_REQUIRE_ORDER413_DATABASE === "1" && (!deployUrl || !runt
 const live = deployUrl && runtimeUrl ? describe.serial : describe.skip;
 type Mutable = Record<PropertyKey, any>;
 interface Root { tenant_id:string; property_node:string; reservation_id:string; folio_id:string; journal_id:string; valuation_id:string; buyer_party_id:string; guest_account_id:string; reservation_primary_party_id:string; original_account_party_id:string|null; primary_folio_status:string; primary_account_status:string; jurisdiction_extension_id:string; jurisdiction_owner_tenant_id:string|null; jurisdiction_key:string; jurisdiction_version:number; jurisdiction_content_hash:string; classification_id:string; supplier_service_location_id:string; supplier_sez_status_id:string; recipient_sez_status_id:string; reservation_lineage_id:string; attribution_id:string; service_provision_snapshot_id:string; payment_receipt_snapshot_id:string; invoice_issue_snapshot_id:string; service_provision_date:string; payment_receipt_date:string; invoice_issue_date:string; time_of_supply_date:string; lineage_binding_id:string; lineage_segment_id:string; lineage_origin_quote_hash:string; lineage_snapshot_hash:string; reservation_lineage_evidence_hash:string; attribution_snapshot_evidence_hash:string; family:"igst"|"cgst_sgst"|"cgst_utgst"; rates:number[]; nights:number; zeroes:number; business_date:string; grand_total_minor:string }
-interface Fixture extends Root { recipient_registration_id:string; classification_id:string; supplier_registration_id:string; extension_id:string; supplyInput:any; supplyResult:any }
+export interface Fixture extends Root { recipient_registration_id:string; classification_id:string; supplier_registration_id:string; extension_id:string; supplyInput:any; supplyResult:any }
+export const order413Fixtures: Fixture[] = [];
 const digest = (value:unknown) => new Bun.CryptoHasher("sha256").update(JSON.stringify(value)).digest("hex");
 const freeze = <T>(value:T, seen=new Set<object>()):T => { if (value && typeof value === "object" && !seen.has(value)) { seen.add(value); for (const key of Reflect.ownKeys(value)) freeze((value as Mutable)[key],seen); Object.freeze(value); } return value; };
 const uuid = (seed:string) => { const hex=digest(seed); return `${hex.slice(0,8)}-${hex.slice(8,12)}-4${hex.slice(13,16)}-a${hex.slice(17,20)}-${hex.slice(20,32)}`; };
@@ -47,7 +48,7 @@ live("Order413 live India accommodation statutory-envelope eligibility", () => {
   const deploy = new SQL(deployUrl!, { max:4, prepare:false });
   const database = Database.connect(runtimeUrl!, { maxConnections:8, prepare:false });
   const service = new IndiaIrpAccommodationSourceService();
-  let fixtures:Fixture[]=[];
+  const fixtures = order413Fixtures;
   let ineligibleRoots:Root[]=[];
 
   const selected = (x:Fixture) => freeze({ tenantId:x.tenant_id, propertyNode:x.property_node, reservationId:x.reservation_id, folioId:x.folio_id, journalId:x.journal_id, recipientPartyId:x.buyer_party_id, recipientRegistrationId:x.recipient_registration_id, classificationId:x.classification_id, supplyNatureAtTimeOfSupplyInput:x.supplyInput, supplyNatureAtTimeOfSupplyResult:x.supplyResult });
