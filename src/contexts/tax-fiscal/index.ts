@@ -117,6 +117,16 @@ export type {
   IndiaIrpBuyerDetailsV1,
 } from "./india-irp-buyer-details";
 export {
+  IndiaIrpAccommodationSourceConflictError,
+  IndiaIrpAccommodationSourceNotFoundError,
+  IndiaIrpAccommodationSourceService,
+  IndiaIrpAccommodationSourceValidationError,
+} from "./india-irp-accommodation-source";
+export type {
+  IndiaIrpAccommodationSourceInput,
+  IndiaIrpAccommodationSourceResult,
+} from "./india-irp-accommodation-source";
+export {
   IndiaGstFolioBuyerCandidateConflictError,
   IndiaGstFolioBuyerCandidateNotFoundError,
   IndiaGstFolioBuyerCandidateService,

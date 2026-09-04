@@ -2911,3 +2911,41 @@ This read allocates or reserves nothing and grants no issuance authority. A late
 issuer must rerun it inside that issuer's locked write transaction. It creates no
 document, invoice, credit/debit note, series number, hash-chain body, India `ItemList`,
 `Pos`, `SupTyp`, provider submission, IRN/QR, API/UI/local or Phase-completion surface.
+
+### India accommodation statutory-envelope eligibility (Order 413)
+
+`IndiaIrpAccommodationSourceService.resolve(tx,input)` is a migration-free, read-only
+Tax-Fiscal boundary. Its exact frozen input contains only `tenantId`, `propertyNode`,
+`reservationId`, `folioId`, `journalId`, `recipientPartyId`,
+`recipientRegistrationId`, `classificationId`, and the complete approved Order297
+`supplyNatureAtTimeOfSupplyInput` plus `supplyNatureAtTimeOfSupplyResult` replay pair.
+Both Order297 values are evidence that the service recomputes and byte-compares, not
+caller policy or authority. The caller cannot supply seller or buyer
+details, place of supply, SAC/service classification, time of supply, component
+family, monetary values, source hashes or fiscal eligibility as authority.
+
+Inside the caller's tenant transaction the service reruns the approved Order412
+Financials resolver through its public boundary, rereads the selected final
+valuation's explicit persisted `buyer_party_id`, and resolves the approved India
+seller, legal buyer, property `Pos`, accommodation SAC/`IsServc`, time-of-supply and
+supply-nature paths. It builds the existing `SellerDtls` and `BuyerDtls`, revalidates
+the complete Order297 result, derives the approved Order308 component family, and
+equality-binds every tenant-hidden identity, statutory date, jurisdiction coordinate,
+evidence hash, INR amount and predecessor source coordinate. Absence or RLS
+concealment is not-found; stale, reversed, foreign, mixed, malformed, duplicated or
+divergent evidence conflicts.
+
+The recursively frozen deterministic `eligible_irp_invoice_source` envelope retains
+the exact current unreversed posted fiscal source and its complete statutory ancestry,
+seller and explicit legal-buyer details, property place of supply, accommodation
+service classification, time and nature of supply, and component family. Its
+canonical SHA-256 binds but does not disclose the tenant. Repeated reads of unchanged
+truth are byte-equivalent, and the operation performs no write or lock.
+
+This envelope is eligibility evidence only. It does not construct IRP JSON, choose or
+infer `SupTyp`, SEZ treatment, reverse charge or `IgstOnIntra`; create `ItemList`,
+`DocDtls`, descriptions, serials, grouping, quantities, UQC, unit prices or residual
+allocation; issue or number a document; build a hash chain; call a provider; submit a
+fiscal record; obtain an IRN/QR; or expose an API/UI/local/deployment or Phase-7
+completion surface. A later issuer must rerun this source inside its own locked write
+transaction.

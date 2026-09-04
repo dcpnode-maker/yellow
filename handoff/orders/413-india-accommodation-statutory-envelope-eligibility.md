@@ -1,6 +1,6 @@
 # Order 413 — India accommodation statutory-envelope eligibility
 
-**Status:** ACTIVE — D1227
+**Status:** BUILT — AWAITING FRESH INDEPENDENT TIER-3 REVIEW — D1229
 **Phase:** 7 — Tax engine and India IRP
 **Branch:** `phase-7/persisted-india-final-component-tax-evidence`
 **Base:** independently approved Order412 coordination head `0317c5f`
@@ -30,14 +30,20 @@ entity, extension, event, state transition, migration or persistence is warrante
 
 `IndiaIrpAccommodationSourceService.resolve(tx,input)` accepts an exact frozen input
 containing only tenant/property/reservation/folio/journal, recipient Party and GST
-registration, accommodation classification identities, plus one complete approved
-Order297 supply-nature-at-time result. It must rerun Order412 through the Financials
+registration, accommodation classification identities, plus the complete approved
+Order297 input and result. It must rerun the Order297 composer and require byte-exact
+equality before further composition, then rerun Order412 through the Financials
 public index, reread the exact final valuation's persisted `buyer_party_id`, resolve
 the approved seller/buyer/Pos/classification paths, build existing `SellerDtls` and
 `BuyerDtls`, revalidate the complete Order297 envelope, derive Order308 component
 family, and equality-bind every identity, date, jurisdiction, hash, amount and INR
 source coordinate. Absence/RLS concealment is not-found; stale, reversed, foreign,
 mixed, malformed, duplicated or divergent truth conflicts.
+
+The exact public input keys are `tenantId`, `propertyNode`, `reservationId`, `folioId`,
+`journalId`, `recipientPartyId`, `recipientRegistrationId`, `classificationId`,
+`supplyNatureAtTimeOfSupplyInput` and `supplyNatureAtTimeOfSupplyResult`. The paired
+Order297 values are necessary replay evidence, not caller policy or authority.
 
 ## Exact scope
 
