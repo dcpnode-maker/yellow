@@ -1,6 +1,6 @@
 # Order 426 — India IRP accommodation validation-compatibility pre-document evidence assembly
 
-**Status:** BUILT — AWAITING FRESH INDEPENDENT TIER-3 REVIEW — D1282
+**Status:** CHANGES REQUIRED — PER-ITEM SOURCE PROOF FALSE-GREEN — D1283
 **Phase:** 7 — Tax engine and India IRP
 **Branch:** `phase-7/persisted-india-final-component-tax-evidence`
 **Base:** independently approved Order425 coordination head `e9d4ef1`
@@ -93,3 +93,12 @@ Phase7 or application-completion authority.
   in D1282 and the ledger after execution. No database/runtime/local state changed.
 - This implementation owner does not approve its own work. A fresh non-implementing
   Tier-3 reviewer must personally execute all proof before any downstream reliance.
+
+## Fresh Tier-3 finding — D1283
+
+The exact candidate is not approved. Removing only the per-item compatibility source
+backlink guard leaves the named compatibility-source test green because that probe
+also corrupts outer source fields caught earlier. Add an isolated coherently rehashed
+item-source-only projection, prove this guard mutation-red, rerun complete gates and
+obtain a different fresh independent Tier-3 review. Product source was restored
+byte-exact; no downstream authority exists.
