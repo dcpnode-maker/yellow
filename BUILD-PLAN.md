@@ -1842,3 +1842,7 @@ then derives only the notified ordinary registered non-SEZ IRP supply-type code 
 from the already-approved at-time supply-nature and party/classification evidence.
 SEZ, export, deemed-export, B2C/URP, reverse charge, TranDtls, ItemList, document,
 provider, API/UI/local and Phase completion remain separate and fail closed.
+The D1237 candidate implements that exact fixed four-field result and reuses Order414
+as its admission boundary. Genuine approved-base absence evidence preceded focused
+19/0(249); standing1366/0+1054 skips(20121), type/152-boundary/23-licence/image-pins/
+diff are green. Fresh non-implementing Tier3 executable review remains mandatory.

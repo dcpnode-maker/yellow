@@ -1,6 +1,6 @@
 # Order 415 — India IRP ordinary registered B2B supply type
 
-**Status:** ACTIVE — D1236
+**Status:** BUILT — AWAITING FRESH TIER-3 — D1237
 **Phase:** 7 — Tax engine and India IRP
 **Branch:** `phase-7/persisted-india-final-component-tax-evidence`
 **Base:** independently approved Order414 coordination head `1ee5b5f`

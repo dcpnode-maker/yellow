@@ -2980,3 +2980,27 @@ This is numeric source evidence for a later serializer only. It creates no `Item
 `DocDtls`, `TranDtls`, `SupTyp`, `RegRev`, `IgstOnIntra`, SEZ or reverse-charge
 decision. It issues, numbers and submits no document and exposes no provider, API, UI,
 runtime, local, deployment or Phase-completion surface.
+
+### India IRP ordinary registered B2B supply type (Order 415)
+
+`composeIndiaIrpOrdinaryRegisteredB2bSupplyType({tenantId,source})` is a pure,
+migration-free Tax-Fiscal boundary over the exact deeply frozen Order413 statutory
+source. It invokes the approved Order414 composer first, so the complete posted,
+numeric and statutory envelope is validated through one existing public boundary
+rather than copied into a second validator.
+
+The composer admits only an explicit registered legal buyer with matching BuyerDtls,
+domestic INR accommodation-service truth and Order297's ordinary registered state
+comparison with no SEZ direction. Same-state/UT truth must use `IGST_ACT_8_2` and its
+ordinary intra-State component family; different-state/UT truth must use
+`IGST_ACT_7_3` and IGST. It then returns only the recursively frozen state
+`eligible_irp_ordinary_registered_b2b_supply_type`, `supplyTypeCode: B2B`, the exact
+Order413 evidence hash and a deterministic tenant-bound evidence hash. The tenant is
+not returned and repeated unchanged composition is byte-equivalent.
+
+SEZ, export, deemed-export and B2C/URP are not fallback branches: they fail closed and
+require separate governed contracts. This result does not decide reverse charge,
+`RegRev`, `IgstOnIntra`, `EcmGstin`, `TranDtls`, `TaxSch`, items or values. It creates
+no `ItemList` or `DocDtls`, issues or numbers no document, calls no provider, submits
+nothing and exposes no database, API, UI, runtime, local, deployment or Phase-
+completion authority.

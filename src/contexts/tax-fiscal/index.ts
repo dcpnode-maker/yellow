@@ -136,6 +136,14 @@ export type {
   IndiaIrpAccommodationNumericRoomNightSource,
 } from "./india-irp-accommodation-numeric-item-source";
 export {
+  composeIndiaIrpOrdinaryRegisteredB2bSupplyType,
+  IndiaIrpOrdinaryRegisteredB2bSupplyTypeValidationError,
+} from "./india-irp-ordinary-registered-b2b-supply-type";
+export type {
+  IndiaIrpOrdinaryRegisteredB2bSupplyTypeInput,
+  IndiaIrpOrdinaryRegisteredB2bSupplyTypeResult,
+} from "./india-irp-ordinary-registered-b2b-supply-type";
+export {
   IndiaGstFolioBuyerCandidateConflictError,
   IndiaGstFolioBuyerCandidateNotFoundError,
   IndiaGstFolioBuyerCandidateService,
