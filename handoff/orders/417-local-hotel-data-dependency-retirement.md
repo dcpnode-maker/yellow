@@ -1,6 +1,6 @@
 # Order 417 — Local hotel-data dependency retirement
 
-**Status:** INDEPENDENT TIER-3 APPROVED FOR GUARDED RETIREMENT — D1242
+**Status:** GUARDED RETIREMENT WAITING ON HOST FILE ACTION — D1244
 **Phase:** Cross-phase local build hygiene
 **Risk tier:** 3 — destructive local data handling
 **Owner:** Codex implementation; fresh independent non-implementing Tier-3 reviewer required
@@ -56,4 +56,7 @@ No production/external data deletion; no application feature removal; no schema 
 
 - The stopped populated `yellow_order311_clean_pgdata` runtime and its sole PostgreSQL container were removed after D1242 approval, together with the empty orphan Order365 proof volume.
 - Docker now has zero volumes and no PostgreSQL container; the three stopped non-database components of the sole intended stack remain.
-- Filesystem policy blocked dump deletion before execution. Eight populated dumps (5,400,039 bytes) under `D:\Yellow\backups` and the 317,057-byte archived Order147 dump remain. This order is not closed until those exact files are removed and post-retirement absence/topology proof is recorded.
+- The archived Order147 database dump is absent; its 195-byte authentication/runtime authority file remains preserved.
+- Fresh independent recursive verification found seven populated nested dumps under `D:\Yellow\backups`, totaling 12,444,872 bytes. The earlier root-only check did not enumerate nested folders.
+- The execution environment blocked recursive host-file deletion before any file changed. Order417 remains open until the founder removes those seven approved dump targets and a fresh recursive absence/topology check is recorded.
+- Docker has zero volumes and no PostgreSQL container. Three stopped non-database components of the intended single stack remain, with no listeners on their configured ports.
