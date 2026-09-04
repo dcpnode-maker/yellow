@@ -1,6 +1,6 @@
 # Order 425 — India IRP accommodation service quantity/UQC compatibility candidate
 
-**Status:** ACTIVE — D1275
+**Status:** ACTIVE — OUTPUT CLARIFIED — D1276
 **Phase:** 7 — Tax engine and India IRP
 **Branch:** `phase-7/persisted-india-final-component-tax-evidence`
 **Base:** independently approved Order424 coordination head `d5b2aa5`
@@ -33,11 +33,24 @@ item per unchanged candidate with exact schema order: `SlNo`, `IsServc`, `HsnCd`
 `Qty`, `Unit`, `UnitPrice`, `TotAmt`, `AssAmt`, `GstRt`, applicable component fields,
 `TotItemVal`. `Qty` is exactly `1.000`; `Unit` exactly `OTH`.
 
-The fixed result must retain item count/order, Order419 source/evidence backlinks,
-component family and B2B/INR truth; use deterministic fixed-order JSON, tenant-bound
-hashing, recursive freeze and tenant concealment. It must reject any condition where
-the inherited `UnitPrice` and `TotAmt` differ, plus every hostile input Order419
-rejects. No child amount is recalculated.
+The fixed result has exact outer key order `state`, `supplyTypeCode`, `currency`,
+`items`, `lineage`, `sourceEvidenceHash`, `evidenceHash`; state is
+`eligible_irp_accommodation_service_quantity_uqc_compatibility_candidate`. Exact
+lineage key order is `itemCandidateEvidenceHash`, `sourceEvidenceHash`, `itemCount`,
+`componentFamily`. Every item retains exact `{irp,lineage}` order and byte-exact
+inherited Order419 lineage. The IRP key order is:
+
+- IGST: `SlNo`, `IsServc`, `HsnCd`, `Qty`, `Unit`, `UnitPrice`, `TotAmt`, `AssAmt`,
+  `GstRt`, `IgstAmt`, `TotItemVal`;
+- split family: the same prefix, then `CgstAmt`, `SgstAmt`, `TotItemVal`.
+
+The result retains item count/order, exact Order419 source/evidence backlinks,
+component family and B2B/INR truth; uses tenant-bound deterministic hashing, recursive
+freeze and tenant concealment. It must reject any condition where inherited
+`UnitPrice` and `TotAmt` differ. Because approved Order419 derives both from the same
+value, that defense-in-depth guard is exercised only through a controlled child/
+projection mutation, never misrepresented as a valid public-input path. No child
+amount is recalculated.
 
 ## Exact scope
 
@@ -57,7 +70,8 @@ Any other path requires a recorded scope amendment before edit.
 3. Structural field-order/absence proof shows no other optional item field is added;
    callers cannot supply quantity/UQC.
 4. Order419 remains demonstrably load-bearing under its coherent unsupported-supply
-   mutation; inherited lineage/hash/count/family/currency/B2B mismatches reject.
+   mutation; inherited lineage/hash/count/family/currency/B2B mismatches reject;
+   controlled mutation proves the otherwise unreachable UnitPrice/TotAmt guard.
 5. Input remains unchanged; replay is byte-equivalent; output is deeply frozen and
    tenant-hidden; removal of compatibility fields turns permanent 2238/2239 coverage
    red.
