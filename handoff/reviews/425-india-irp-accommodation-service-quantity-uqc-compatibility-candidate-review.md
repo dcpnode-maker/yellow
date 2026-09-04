@@ -1,8 +1,9 @@
 # Order 425 — Fresh independent non-implementing Tier-3 review
 
-**Verdict:** CHANGES REQUIRED — D1278
+**Verdict:** APPROVED AFTER REPAIR — D1280; original D1278 rejection retained below
 
-**Candidate:** `8ba86b9` over approved base `b39c64c`
+**Current approved candidate:** repaired candidate `34984aa` over approved base
+`b39c64c`; the original rejected candidate `8ba86b9` is retained below.
 
 **Reviewer:** `/root/order425_fresh_tier3`, fresh independent non-implementing Tier-3
 
@@ -68,3 +69,70 @@ composition `89/0` plus 7 expected database skips (895), and standing `1422/0` p
 This is implementation evidence, not approval. A different fresh independent
 non-implementing Tier-3 reviewer must personally rerun the mutation audit and complete
 gates before changing the verdict.
+
+---
+
+## D1280 — Different fresh independent Tier-3 rereview after repair
+
+**Verdict:** APPROVED — exact repaired candidate only
+
+**Reviewed candidate:** `34984aa40daa88bf3f5b58c7ad9ad2695baf6593`
+
+**Rejection commit:** `bcef856`
+
+**Original base:** `b39c64c`
+
+**Reviewer:** `/root/order425_repair_tier3`, different fresh independent
+non-implementing Tier-3 reviewer
+
+### Reviewer-executed mutation proof
+
+The repaired exact-class/exact-message subprocess probes pass `9/0`. I independently
+removed each corresponding production guard one at a time. Amount, count, component
+family, item order, currency, B2B supply, outer source, per-item source and Order419
+evidence-hash guard removals each made only its named permanent test red `0/1`; the
+probe received exit `1` instead of the required exact-rejection exit `0`. Thus none
+can pass on the unrelated generic malformed-evidence error that caused D1278.
+
+I separately changed `Qty` from `1.000` to `2.000`, removed `Qty`, changed `Unit`
+from `OTH` to `NOS`, and removed `Unit`. Each independent mutation made the exact
+field/order proof red `0/1`. Bypassing only Order419's ordinary-B2B composer while
+retaining its numeric source made the coherently tenant-rehashed CGST+SGST export
+fixture return a full candidate instead of rejecting; the permanent Order425 test
+became red `0/1`. This proves the approved Order419 child and its B2B admission are
+load-bearing. All product mutations were restored before each next probe. Final
+candidate and Order419 child Git blob identities equal `10b96eedf04d88a9431478702b1dc2f97ef32f08`
+and `3946f92fcbfca347ad6b1b6afd250f0c9736e075` respectively.
+
+### Exact contract and clean gates
+
+A reviewer-direct runtime census across IGST, CGST+SGST and CGST+UTGST confirms exact
+outer keys, lineage keys and family-specific item order; two items each carry only
+`Qty:"1.000"` and `Unit:"OTH"` as enrichment. Removing those fields reproduces the
+Order419 items byte-exact, all source/evidence backlinks and counts match, the result
+is recursively frozen, and tenant identity is absent from output.
+
+- Focused plus intentional red: `16 pass, 0 fail`, 99 assertions.
+- Orders413–425 composition: `89 pass, 7 expected database skips, 0 fail`, 895
+  assertions across 18 files.
+- Complete standing suite: `1,422 pass, 1,054 expected database skips, 0 fail`,
+  20,570 assertions across 2,476 tests / 460 files.
+- Strict TypeScript: green; import boundaries: 158 files; dependency licences: 23
+  packages; `bun audit --audit-level=high`: no vulnerabilities.
+- Container image validator and tests: exact pins; `4/0`, 7 assertions.
+- `git diff --check b39c64c..34984aa`: green. Exact range contains only the ten
+  Order425-authorized files. `migrations/`, `tests/schema/expected.sql`, `package.json`
+  and `bun.lock` are byte-identical to the original base; approved Order424 ancestry
+  and the D1278 rejection/repair ancestry are present.
+
+No database, Docker, local app or `.yellow` state was started or mutated. During the
+review, C: reached zero free bytes because six newly regenerated WSL crash dumps
+occupied about 5.07 GiB. The transient source write was immediately restored from
+the exact reviewed commit and hash-verified. The six crash dumps were moved—not
+copied—to recoverable `D:\Yellow\wsl-crash-quarantine`; C: ended with about 5.06 GiB
+free. This operational recovery changes no repository or reviewed product evidence.
+
+Approval is strictly bounded to the pure compatibility candidate. `OTH` is not
+provider-certified and the result is not submission-ready. This grants no DocDtls,
+fiscal issue, provider payload/submission, IRN/QR, API/UI/runtime/local, deployment,
+merge, push, Phase 7 or application-completion authority.

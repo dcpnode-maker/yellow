@@ -1,6 +1,6 @@
 # Order 425 — India IRP accommodation service quantity/UQC compatibility candidate
 
-**Status:** REPAIRED — AWAITING DIFFERENT FRESH INDEPENDENT TIER-3 — D1279
+**Status:** INDEPENDENTLY APPROVED AND CLOSED — D1280
 **Phase:** 7 — Tax engine and India IRP
 **Branch:** `phase-7/persisted-india-final-component-tax-evidence`
 **Base:** independently approved Order424 coordination head `d5b2aa5`
@@ -118,3 +118,26 @@ personally observed to turn the intended permanent case red; restored focused pr
 skips (895 assertions); standing is `1422/0` plus 1,054 expected database skips
 (20,570 assertions; 2,476 tests/460 files). TypeScript, 158 boundaries, 23 licences,
 audit zero, image pins and diff are green. A different fresh Tier-3 review is mandatory.
+
+## D1280 different fresh independent Tier-3 approval
+
+Different fresh reviewer `/root/order425_repair_tier3` independently approves exact
+repaired candidate `34984aa`. Each of the nine named production guards was removed
+separately and its exact-message permanent test turned red: amount, count, component
+family, order, currency, B2B supply, outer source, per-item source and Order419
+evidence hash. Changing and removing each of `Qty` and `Unit` independently turned
+the exact fixed-field proof red. Bypassing only Order419's ordinary-B2B child made the
+coherently rehashed export fixture falsely eligible, proving that approved child gate
+is load-bearing. Every mutation was restored to exact Git blob identity.
+
+Restored focused proof is `16/0` (99 assertions), Orders413–425 composition is
+`89/0` plus 7 expected database skips (895 assertions), and standing is `1422/0`
+plus 1,054 expected database skips (20,570 assertions; 2,476 tests/460 files).
+Reviewer-direct inspection confirms exact outer/lineage/item order across all three
+component families, `Qty:"1.000"`, `Unit:"OTH"`, byte-exact child values and lineage,
+source/hash/count binding, recursive freeze and tenant hiding. TypeScript, 158 import
+boundaries, 23-package licence policy, audit zero, image pins, exact ten-file scope,
+protected-path identity and diff hygiene are green. Migrations/schema/referee inputs
+remain byte-identical to the approved base; no database, Docker or local app was
+started or mutated. Approval remains compatibility-only and grants none of the
+forbidden provider, document, submission, API/UI/runtime/local or Phase authority.
