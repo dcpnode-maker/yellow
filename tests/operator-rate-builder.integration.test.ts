@@ -263,16 +263,18 @@ beforeAll(async () => {
     new TaxJurisdictionResolutionService(new ExtensionRegistry(resolutionPool)),
   );
 
-  const inventory = await admin<Array<{ unit_type_id: string; sellable_unit_id: string }>>`
-    SELECT unit.id AS unit_type_id, sellable.id AS sellable_unit_id
-    FROM unit_type AS unit
-    JOIN sellable_unit AS sellable ON sellable.unit_type_id = unit.id AND sellable.tenant_id = unit.tenant_id
-    WHERE unit.tenant_id = ${SEED_TENANT.id}::uuid AND unit.property_node = ${SEED_PROPERTY.id}::uuid
-    ORDER BY unit.code, sellable.id
-    LIMIT 1
-  `;
-  unitTypeId = inventory[0]!.unit_type_id;
-  sellableUnitId = inventory[0]!.sellable_unit_id;
+  const bookableFixtures = await database.withTenantTransaction(SEED_TENANT.id, (tx) =>
+    new AvailabilityService().search(tx, {
+      propertyNode: SEED_PROPERTY.id,
+      from: new Date(`${STAY_START_DATE}T15:00:00.000Z`),
+      to: new Date(`${STAY_END_DATE}T11:00:00.000Z`),
+      partySize: 2,
+    }),
+  );
+  const fixture = bookableFixtures.find((option) => option.bookable && option.availableCount > 0);
+  if (!fixture) throw new Error("Order 071 disposable quote fixture has no canonical bookable sellable");
+  unitTypeId = fixture.unitTypeId;
+  sellableUnitId = fixture.sellableUnitId;
   await admin`
     INSERT INTO policy (id, tenant_id, kind, name, content)
     VALUES
