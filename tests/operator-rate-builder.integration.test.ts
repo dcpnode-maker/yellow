@@ -28,19 +28,10 @@ const PASSWORD = process.env.YELLOW_OPERATOR_RATE_BUILDER_PASSWORD;
 const APPROVER_PASSWORD = PASSWORD ? `${PASSWORD}-approver` : undefined;
 const REQUIRE_DATABASE = process.env.YELLOW_REQUIRE_OPERATOR_RATE_BUILDER === "1";
 const SECRET = "yellow-order-071-test-token-secret-exactly-long-enough";
-const FIXTURE_TODAY = new Date();
-FIXTURE_TODAY.setUTCHours(0, 0, 0, 0);
-
-function futureDate(days: number): string {
-  const date = new Date(FIXTURE_TODAY);
-  date.setUTCDate(date.getUTCDate() + days);
-  return date.toISOString().slice(0, 10);
-}
-
-const BOOKING_DATE = futureDate(0);
-const STAY_START_DATE = futureDate(9);
-const STAY_END_DATE = futureDate(10);
-const TAX_ASSIGNMENT_END_DATE = futureDate(30);
+let BOOKING_DATE = "";
+let STAY_START_DATE = "";
+let STAY_END_DATE = "";
+let TAX_ASSIGNMENT_END_DATE = "";
 const FOREIGN_PROPERTY = "00000000-0000-0000-0000-000000007191";
 const POLICY = Object.freeze({
   cancellation: "00000000-0000-0000-0000-000000007161",
@@ -237,6 +228,28 @@ beforeAll(async () => {
   eventPool = new SQL(DATABASE_URL, { max: 8 });
   extensionPool = new SQL(DATABASE_URL, { max: 8 });
   resolutionPool = new SQL(RUNTIME_DATABASE_URL!, { max: 8 });
+  const fixtureDates = await admin<Array<{
+    booking_date: string;
+    stay_start_date: string;
+    stay_end_date: string;
+    tax_assignment_end_date: string;
+  }>>`
+    SELECT
+      to_char((transaction_timestamp() AT TIME ZONE timezone)::date, 'YYYY-MM-DD') AS booking_date,
+      to_char((transaction_timestamp() AT TIME ZONE timezone)::date + 9, 'YYYY-MM-DD') AS stay_start_date,
+      to_char((transaction_timestamp() AT TIME ZONE timezone)::date + 10, 'YYYY-MM-DD') AS stay_end_date,
+      to_char((transaction_timestamp() AT TIME ZONE timezone)::date + 30, 'YYYY-MM-DD') AS tax_assignment_end_date
+    FROM org_node
+    WHERE id = ${SEED_PROPERTY.id}::uuid
+      AND tenant_id = ${SEED_TENANT.id}::uuid
+      AND kind = 'property'
+  `;
+  const fixtureClock = fixtureDates[0];
+  if (!fixtureClock) throw new Error("Order 071 property-local fixture clock was not found once");
+  BOOKING_DATE = fixtureClock.booking_date;
+  STAY_START_DATE = fixtureClock.stay_start_date;
+  STAY_END_DATE = fixtureClock.stay_end_date;
+  TAX_ASSIGNMENT_END_DATE = fixtureClock.tax_assignment_end_date;
   database = Database.connect(DATABASE_URL, { maxConnections: 24 });
   tokens = new Hs256TokenSigner(SECRET);
   const events = new PostgresEventBus(eventPool);
@@ -609,7 +622,12 @@ databaseDescribe("Order 071 operator universal rate builder", () => {
     expect(quoteBody.taxAssignments).toEqual([
       expect.objectContaining({ nightDate: STAY_START_DATE, jurisdictionKey: "ae-vat" }),
     ]);
-    expect((quoteBody.result as Record<string, unknown>).preTaxSubtotalMinor).toBe("12500");
+    expect(quoteBody.result).toMatchObject({
+      state: "quoted",
+      reason: null,
+      roomAmountMinor: "12500",
+      preTaxSubtotalMinor: "12500",
+    });
 
     const undo = await request(builderPath(PLANS.main, `/releases/${mainReleaseId}/undo`), {
       method: "POST", headers: headers(approverToken, "order071-undo"), body: "{}",
