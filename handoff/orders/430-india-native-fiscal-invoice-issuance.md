@@ -16,7 +16,9 @@ grouping, rounding and actor policy is binding; Order430 is ACTIVE.
 ## Outcome after activation
 
 Add one complete Yellow-native India ordinary registered B2B accommodation invoice
-issue path. It consumes a freshly resolved exact approved Order429 readiness source,
+issue path. It consumes a freshly resolved exact approved Order429 blocked-readiness
+source and discharges only its three recorded policy/configuration blockers through
+D1302 plus one exact configured fiscal series,
 derives and allocates one legal supplier-registration/FY-bound number, creates final
 `DocDtls` and the complete canonical invoice content, inserts one immutable issued
 document and origin binding, advances the fiscal hash chain, records one fact and one
@@ -84,8 +86,12 @@ it must:
 3. acquire Order408's exact original-journal reversal advisory-lock key first, then
    the canonical tenant/reservation/folio fiscal lock, business-day lock, series row
    and document-chain tail in a single documented order; rerun Order429 after locks;
-4. require the exact current unreversed Order429 source, state and hashes and reject
-   stale, reversed, mixed, already-issued or non-ready evidence;
+4. require the exact current unreversed Order429 source and hashes plus its exact
+   `blocked_pending_fiscal_document_origin_policy` state, false readiness, empty
+   actions and three ordered blockers. D1302 statically discharges origin/format
+   policy and the locked configured series discharges series binding; any different,
+   stale, reversed, mixed or already-issued evidence fails closed. Order430 must not
+   relabel or mutate the Order429 result or claim that Order429 itself became ready;
 5. derive the property-local transaction issue date and Indian FY; require exactly
    one canonical invoice series for the exact supplier registration and FY;
 6. allocate the next counter under lock, format a Rule-46-valid reference no longer
