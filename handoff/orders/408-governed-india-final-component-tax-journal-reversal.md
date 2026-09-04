@@ -1,6 +1,6 @@
 # Order 408 — Governed India final component-tax journal reversal
 
-**Status:** REPAIRED BY ORDER409 — AWAITING DIFFERENT FRESH TIER-3 REVIEW
+**Status:** APPROVED — CLOSED D1215
 **Phase:** 7 — Tax engine and India IRP
 **Branch:** `phase-7/persisted-india-final-component-tax-evidence`
 **Base:** independently approved Order407 coordination head `907ef6d`
@@ -116,3 +116,16 @@ fails because `tests/schema/expected.sql` hard-codes Ubuntu package suffixes in 
 two informational dump-header lines. The schema body is otherwise byte-equivalent.
 Correct only those two snapshot header lines from an exact accepted dump, then use a
 different fresh reviewer for the complete proof. No production change is requested.
+
+## Different fresh independent rereview — D1215
+
+Order409's two-header repair and the complete Order408 candidate are independently
+approved at `bec262e`. A different fresh Tier-3 reviewer personally executed the
+complete proof on a new SCRAM-authenticated official upstream PostgreSQL 16.15
+server with `pg_stat_statements` preloaded. Migrations 1–72, the exact
+72/124/114/114/23/2 catalogue, canonical-only seed acceptance 23/0, raw normalized
+schema byte equality, Order408 10/0 (106), referee 11/11 and compatible-frontier
+Orders266 8/0, 367 18/0, 406 11/0 and 407 18/0 all pass. Standing 1328/0 plus 1036
+expected skips and every static/security gate pass. D1213 is discharged. Stable,
+default, local port3000 and `.yellow` were untouched; no document, IRP, API/UI/local,
+deployment, merge, Phase or application-completion authority is granted.

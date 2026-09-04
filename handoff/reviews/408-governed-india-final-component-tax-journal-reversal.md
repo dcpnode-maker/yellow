@@ -1,10 +1,61 @@
 # Order 408 — Fresh independent Tier-3 review
 
-**Verdict:** CHANGES-REQUIRED-D1213
+**Verdict:** APPROVED-CLOSED-D1215 (supersedes the historical D1213 finding below)
 
-**Reviewed candidate:** `3830282`
+**Reviewed candidate:** `bec262e`
 
 **Approved base:** `907ef6d`
+
+## Different fresh Tier-3 rereview — D1215
+
+**Reviewer:** `/root/order409_different_tier3`, different fresh independent
+non-implementing Tier 3
+
+**Verdict:** APPROVED. Order409 contains exactly the admitted two informational
+schema-header replacements plus governance; no schema body, product, migration,
+test, authority or runtime byte changed. D1213 is fully discharged.
+
+### Reviewer-personal execution
+
+I created a new isolated data directory and databases using the exact official
+upstream PostgreSQL 16.15 binaries at
+`E:\yellow\toolchains\postgresql-16.15\pgsql\bin`, SCRAM authentication and
+`pg_stat_statements` preload. The E: drive had insufficient room for a fresh data
+directory, so only this review's new data lived under its unique D: proof path; the
+accepted binaries remained the exact E: toolchain. Personal results:
+
+- fresh migrations 1–72 and catalogue **72 migrations / 124 public tables / 114
+  RLS tables / 114 policies / 23 forced-RLS tables / 2 views**;
+- canonical seed and database acceptance **23/0 (65 expectations)**, including
+  exact 16.15, preload, authority and canonical-only tenant/property truth;
+- raw upstream `pg_dump` normalized against the committed snapshot is byte-exact
+  (**887,413 bytes**), proving the two-line Order409 repair;
+- Order408 intentional-red plus complete live matrix **10/0 (106 expectations)**;
+- compatible fresh databases prove Order266 at its approved migration46 repair
+  frontier **8/0 (68)**, Order367 at migration70 **18/0 (694)**, Order406 at the
+  current frontier **11/0 (122)** and Order407 **18/0 (150)**;
+- a separately migrated and fixture-loaded database passes the referee **11 passed,
+  0 failed of 11**;
+- standing **1,328 passed / 1,036 expected skips / 0 failed / 19,652 expectations
+  across 437 files**; strict TypeScript, **148-file** boundaries, **23-package**
+  licence policy, exact container-image pins, `git diff --check` and `bun audit {}`
+  all pass;
+- migration0072 SHA-256 is
+  `2407d1433672e5f5a958af39acf96406b41ca0e190d1d8987100cd59c5b0f22d`.
+
+For complete provenance, an initial Order266 execution against migration45 exposed
+its already-approved migration46 posting-ordinal prerequisite; the fresh compatible
+migration46 rerun passed 8/0. One standing run observed the Order330 browser geometry
+canary fail under concurrent proof load; that exact canary then passed twice alone,
+and the complete clean rerun passed 1328/0. Neither was a product or Order408 finding.
+
+Stable/default databases, local port3000, retained proof directories and the
+pre-existing `.yellow/` directory were not accessed or changed. This approval grants
+only the exact immutable Order408 reversal and Order409 schema-header repair. It does
+not grant partial/replacement correction, credit note, document/number, IRP/provider,
+API/UI/local, deployment, merge, Phase or application completion authority.
+
+## Historical D1213 review (superseded)
 
 **Reviewer:** `/root/order408_fresh_tier3`, fresh independent non-implementing Tier 3
 
