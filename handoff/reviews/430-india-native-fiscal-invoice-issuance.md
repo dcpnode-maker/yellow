@@ -1,65 +1,76 @@
 # Order 430 — India native fiscal invoice issuance
 
-**Verdict:** CHANGES REQUIRED — D1306
-**Candidate:** uncommitted Order430 candidate over `2fa3e78`
-**Reviewer:** `/root/order430_fresh_tier3`, fresh non-implementing Tier-3 reviewer
+**Verdict:** CHANGES REQUIRED — D1316
+**Candidate:** exact `4e56f74093984432bdfe5193276a810e34b0549b` over approved Order429 base `25d1db3`
+**Reviewer:** `/root/order430_final_tier3`, fresh independent non-implementing Tier-3 reviewer
 
-## Blocking product findings
+## Blocking product finding
 
-The candidate cannot consume the exact approved Order426 evidence it must issue.
-`commit_india_native_fiscal_invoice` accepts only a pre-document whose sorted keys
-are `BuyerDtls`, `ItemList`, `TranDtls`, `ValDtls`, and `Version`. Approved Order426
-always emits those keys plus mandatory `SellerDtls`. Every genuine Order429 →
-Order430 request therefore fails with `India native fiscal pre-document shape is
-invalid` before a legal invoice can be issued.
+`commit_india_native_fiscal_invoice` does not bind its caller-supplied
+`preDocumentJson`, `sourceEvidenceHash`, `preDocumentEvidenceHash`, or
+`readinessEvidenceHash` to the genuine Order429 evidence that the TypeScript service
+resolved. The capability re-resolves persisted supplier/recipient identities and
+integer totals, but it checks `SellerDtls` only for JSON object shape and checks the
+three evidence hashes only for 64-character hexadecimal shape.
 
-The configuration capability also checks only the supplier registration's property,
-scheme and currency; it does not resolve and require the exact active
-supplier-registration-status evidence required by Order430.
+I proved the bypass through the exact governed `yellow_runtime -> SET LOCAL ROLE
+app_role` path on a genuine persisted source and configured series. I changed the
+approved seller GSTIN from `27ABCDE5751F1ZM` to `29ABCDE1234F1Z5`, changed the legal
+name to `FORGED SELLER PRIVATE LIMITED`, and supplied unrelated hashes consisting of
+64 zeroes, ones, and twos. The database capability returned one issued document and
+persisted all forged values and all three unrelated hashes. The stored document hash
+correctly authenticates the forged body; it does not authenticate that the body is
+the exact approved Order426/429 body.
 
-## Missing permanent high-risk proof
+This violates D1304 and Order430's trust boundary: the internal capability must
+independently bind buyer/supplier identity before trusting frozen composer evidence,
+accept only the service's exact Order429 hashes/body, and preserve exact Order426
+party evidence. The fact that the TypeScript service normally supplies honest input
+does not repair the owner capability's independently required validation.
 
-The permanent Order430 database suite has only two database cases: catalogue
-frontier/function shape and rejection of an ungoverned caller. It has no successful
-native issuance fixture and therefore does not execute or prove:
-
-- 100-way native issuance, exact `1..100`, rollback/no-reuse, or same-origin convergence;
-- exact replay, changed-key conflict, or failure atomicity;
-- native document/origin immutability and tenant/property/registration isolation;
-- property-local date/FY boundaries and the 16-character reference ceiling;
-- canonical content/previous-hash chain and exact fact/outbox inventory;
-- reversal-versus-issue or seal-versus-issue races;
-- hostile actor, source, supplier, buyer, item, totals, series, origin, and evidence mutations.
-
-Repair must add a genuine live Order413→426→429→430 issuance path plus load-bearing
-permanent cases for every Order430 required-proof item. A different fresh
-non-implementing Tier-3 reviewer must execute the repaired proof.
+Repair must make any changed SellerDtls/party evidence or any substituted Order429
+hash fail before number allocation and leave the counter, document, origin, fact,
+outbox, and idempotency inventories unchanged. Permanent PostgreSQL hostility proof
+must execute that negative case through the governed runtime/app-role capability; a
+shape-only/static assertion is insufficient. A different fresh Tier-3 reviewer must
+repeat the complete proof.
 
 ## Reviewer-executed evidence
 
-I initialized a separate native PostgreSQL 16.15 cluster on port 55496, provisioned
-the governed deployment/runtime roles, and applied all 74 migrations. The database
-reported 125 public tables. Current focused tests passed **9/0**, 55 assertions, but
-only the limited cases above.
+A fresh native PostgreSQL 16.15 cluster applied all 74 migrations and reported 125
+public tables. The exact repaired suite passed **13/13 with 568 assertions**, including
+100 distinct governed sources in one tenant/property/series, exact numbers `1..100`,
+counter `101`, exact 100 document/origin/fact/event/completed-key inventories, and a
+recomputed complete genesis-to-tail hash chain. Replay/rollback/no-reuse,
+immutability, RLS, hostility, reversal-first, issue-first, seal-first, and
+issue-first-then-seal cases passed.
 
-A native schema-only dump normalized byte-for-byte against
-`tests/schema/expected.sql`: **930,144 bytes**, SHA-256
-`ae13d18c09adcfdca3171545d8e1a75093edbd040c119d837f8da4574dd6989d`.
-A separately created, freshly migrated and fixture-loaded database passed referee
-**11/11** with 125 public tables. Standing gates passed **1,469 pass, 1,061 expected
-environment skips, 0 fail**, 20,712 assertions across 2,530 tests/469 files. Strict
-TypeScript passed; import boundaries scanned 161 files successfully.
+After resetting the populated database, Order408 plus audited-seal compatibility
+passed **15/15 with 161 assertions**. Native unit/static proof passed **12/12 with 75
+assertions**; SECURITY DEFINER containment passed **3/3 with 210 assertions**. The
+normalized native schema dump matched `tests/schema/expected.sql` byte-for-byte:
+**933,734 bytes**, SHA-256
+`a5cd39c835bcc29480d4848aca69b1a109776eb9113cb9c797bc6ee26a18b948`.
+A separately fresh migrated and fixture-loaded database passed referee **11/11**.
 
-No product, test, migration, schema snapshot, stable local, Docker, `.yellow`, commit,
-push, merge, or deployment state was changed by this reviewer.
+Standing proof passed **1,473 tests, 1,067 expected environment skips, 0 failures,
+20,733 assertions** across 2,540 tests/469 files. TypeScript, 161-file import
+boundaries, 23-package licences, dependency audit, and diff check passed. Migration
+0074 SHA-256 remained
+`449bf89b617a9e520450b8268f1368943044f2937df62a516a18d1d01f53e931`.
 
-## Cleanup state
+One first adjacent-suite run reused the populated native database and was discarded
+after fixture collisions; its clean reset produced the reported 15/15 result. One
+first referee invocation hit only Windows console encoding; that database was
+discarded, recreated, migrated, reseeded, and the exact referee passed 11/11.
 
-The review server is stopped and port **55496 is closed**. Tool policy blocked
-recursive deletion. Exact stopped disposable artifacts retained are:
+The shared branch advanced after review began only by later Order432 governance/test
+changes. `git diff 4e56f74..HEAD` was empty for migration 0074, the Order430 service,
+factory, and native tests; all Order430 proof covered the requested candidate.
 
-- `D:\Yellow\temp\order430-tier3-review` — 111,548,550 bytes;
-- `D:\Yellow\temp\order430-tier3-schema.sql` — 930,328 bytes.
+## Authority and cleanup
 
-Order430 remains active and unapproved. No document, numbering, series, provider,
-IRP, API/UI, local-runtime, Phase7, push, merge, or deployment authority is granted.
+Order430 remains active and unapproved. No document, numbering, series, IRP/provider,
+API/UI, local-runtime, Phase-7, merge, push, or deployment authority is granted.
+The disposable PostgreSQL server, databases, credentials, and cluster directory were
+removed after review.

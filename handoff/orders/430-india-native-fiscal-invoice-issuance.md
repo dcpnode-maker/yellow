@@ -1,6 +1,6 @@
 # Order 430 — India native fiscal invoice issuance
 
-**Status:** REPAIRED — AWAITING DIFFERENT FRESH TIER-3 REVIEW — D1314
+**Status:** CHANGES REQUIRED — D1316
 **Phase:** 7 — Tax engine and India IRP
 **Branch:** `phase-7/india-native-fiscal-invoice-issuance`
 **Base:** independently approved Order429/D1300 at `25d1db3`
