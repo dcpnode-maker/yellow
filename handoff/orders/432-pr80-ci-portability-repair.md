@@ -1,6 +1,6 @@
 # Order 432 — PR80 CI portability repair
 
-**Status:** REPAIRED — AWAITING THIRTEENTH GITHUB CI — D1324
+**Status:** REPAIRED — AWAITING FOURTEENTH GITHUB CI — D1325
 **Phase:** Delivery infrastructure
 **Branch:** `phase-7/persisted-india-final-component-tax-evidence`
 **Risk tier:** 1 — test harness and CI portability only
@@ -37,6 +37,8 @@ path, browser launch assumptions and shallow Git history.
   login-scope assertion to the current authorized review-permission source;
 - `tests/operator-rate-pricing.integration.test.ts` only to bind its login-scope
   assertion to that same current authorized review-permission source;
+- `tests/financial-postings.integration.test.ts` only to align its exact table-count
+  assertion with the current 125-table migration catalogue (including schema_migration);
 - one existing/new test-only executable/browser helper if needed;
 - focused tests for the helper/launcher behavior;
 - this order, `DECISIONS.log`, and `handoff/LEDGER.md`.
