@@ -330,11 +330,15 @@ Implemented financial foundation: `FolioService.openPrimary(tx, input)` accepts 
 `tenantId`, `reservationId`, `idempotencyKey`, and the audit envelope. It locks and
 derives the eligible reservation's property, primary Party, and currency; reuses the
 exact open guest account keyed by tenant/property/Party/currency; and creates reservation
-window 1 with a locked non-fiscal `document_series(kind='folio')` reference. Account,
-folio, counter increment, minimized `folio.opened` fact/outbox event, and durable
-idempotency are one transaction. An exact existing open window is returned unchanged.
-This slice does not post money or implement extra windows, settlement, payments,
-tax/fiscal behavior, cashiering, day close, or AR.
+window 1 with a governed non-fiscal `document_series(kind='folio')` reference. The
+runtime cannot update counters directly: `allocate_non_fiscal_folio_reference(uuid,
+uuid)` binds the transaction tenant and exact property, requires exactly one
+non-fiscal folio series, locks it and returns its formatted reference while advancing
+the counter in the caller transaction. Account, folio, allocation, minimized
+`folio.opened` fact/outbox event, and durable idempotency are one transaction. An exact
+existing open window is returned unchanged. This capability cannot allocate a fiscal
+series or create/update/delete `document`. This slice does not post money or implement
+settlement, payments, tax/fiscal document behavior, cashiering, day close, or AR.
 
 The operator exposes that existing command only as
 `POST /api/v1/properties/{property}/reservations/{reservationId}/primary-folio` under
@@ -385,6 +389,9 @@ envelope. It serializes the same reservation/account family, derives the next wi
 number and non-fiscal folio reference, and creates at most 20 open presentation windows
 over the same guest account, reservation, property and currency. The existing
 `financials.folios:open` property grant authorizes this command.
+Additional-window allocation uses the same bounded owner capability as primary
+opening; exact replay is write-free and any later fact/event/idempotency failure rolls
+the counter increment back with the folio.
 
 `FolioTransferService.preview/transfer` accepts one source folio, one existing sibling
 or one new-window name, 1–50 opaque server group ids, a visible bounded reason,

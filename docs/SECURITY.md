@@ -680,9 +680,18 @@ numbering, provider submission and fiscal finality remain separate guarded comma
 Named residual capability debt remains for approval decisions, extension
 publication/retirement, hold transitions, inventory-policy and projection
 replacement, operational-block updates, reservation/segment/guest lifecycle,
-folio numbering, journal/posting transitions beyond this structural lock, and future task/fiscal/statutory or
-document mutation. Extension publication/retirement remains separate debt; the
-registration exception from D-417 is closed by migration 0018.
+journal/posting transitions beyond this structural lock, and future task/fiscal/
+statutory or document mutation. Extension publication/retirement remains separate
+debt; the registration exception from D-417 is closed by migration 0018.
+
+Migration0073 closes the raw folio-numbering portion of that debt. `app_role` cannot
+update any `document_series` counter and cannot insert, update or delete `document`.
+Its sole allocator is a fixed-search-path `yellow_owner` function that additionally
+requires the `yellow_runtime` session, effective app role and transaction-local tenant;
+it accepts only the exact tenant/property's unique non-fiscal folio series. PUBLIC and
+direct runtime/deployment execution remain denied. Advisory and row locking serialize
+allocation, and the caller transaction makes replay and rollback gap-free. This grants
+no fiscal number, issuance, hash-chain or statutory submission authority.
 
 ### Governed housekeeping transition containment (migration 0026)
 

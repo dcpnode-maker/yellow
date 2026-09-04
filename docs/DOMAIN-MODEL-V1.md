@@ -410,9 +410,11 @@ projection of postings; settlement/closure is guarded; corrections do not edit h
 Implemented foundation: a tenant-coherent reservation link can open exactly one primary
 window on an open property/Party/currency guest account. The account is reused only on
 that exact key. PostgreSQL composite foreign keys prevent cross-tenant ownership, and a
-locked non-fiscal property series allocates the human folio reference in the same
-transaction as the folio and minimized evidence. No balance or economic effect exists
-until a later balanced-posting command creates immutable journal lines.
+single governed owner capability locks and advances the property's unique non-fiscal
+folio series in the same transaction as the folio and minimized evidence. Runtime has
+no raw counter-update or document-mutation authority; fiscal series are ineligible and
+allocator failure or downstream rollback consumes no reference. No balance or economic
+effect exists until a later balanced-posting command creates immutable journal lines.
 
 Implemented statement query: one tenant/property-scoped PostgreSQL snapshot projects
 the account-owned folio's immutable guest-side lines, signed server balance and

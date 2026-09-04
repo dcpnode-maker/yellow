@@ -50,7 +50,6 @@ const INSERT_COLUMNS = Object.freeze({
 const UPDATE_COLUMNS = Object.freeze({
   api_idempotency: ["completed_at", "created_at", "expires_at", "request_hash", "response_body", "response_status"],
   approval_request: ["decided_at", "decided_by", "status"],
-  document_series: ["next_no"],
   extension: ["status"],
   hold: ["status"],
   ooo_oos: ["period"],
@@ -71,7 +70,6 @@ const CALLER_SOURCES = Object.freeze<Record<string, string>>({
   "availability_projection:INSERT": "src/contexts/inventory/availability-projection.ts",
   "contact_point:INSERT": "src/contexts/crm/parties.ts",
   "deposit_application:INSERT": "src/contexts/financials/hosted-deposits.ts",
-  "document_series:UPDATE": "src/contexts/financials/folios.ts",
   "extension:INSERT": "src/kernel/extension.ts",
   "extension:UPDATE": "src/contexts/rates/publication.ts",
   "fact_log:INSERT": "src/kernel/fact-log.ts",
@@ -111,7 +109,7 @@ const CALLER_SOURCES = Object.freeze<Record<string, string>>({
 const RESIDUAL_CAPABILITY_OWNERS = Object.freeze({
   approval_decision: ["approval_request:UPDATE"],
   extension_lifecycle: ["extension:UPDATE"],
-  financial_folio_opening: ["account:INSERT", "document_series:UPDATE", "folio:INSERT"],
+  financial_folio_opening: ["account:INSERT", "folio:INSERT"],
   financial_posting: ["journal:INSERT", "posting_line:INSERT"],
   hold_lifecycle: ["hold:UPDATE"],
   inventory_policy_and_projection: ["availability_projection:DELETE", "availability_projection:INSERT", "org_node:UPDATE"],
@@ -175,7 +173,6 @@ describe("Order 150 committed production caller map", () => {
       "approval_request:UPDATE",
       "availability_projection:DELETE",
       "availability_projection:INSERT",
-      "document_series:UPDATE",
       "extension:UPDATE",
       "folio:INSERT",
       "hold:UPDATE",

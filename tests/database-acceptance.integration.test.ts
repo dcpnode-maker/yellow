@@ -365,6 +365,11 @@ const EXPECTED_MIGRATIONS = [
     filename: "0072_governed_india_final_component_tax_correction.sql",
     checksum_sha256: "2407d1433672e5f5a958af39acf96406b41ca0e190d1d8987100cd59c5b0f22d",
   },
+  {
+    version: 73,
+    filename: "0073_document_series_runtime_authority_containment.sql",
+    checksum_sha256: "d5cef790f3f75f902de457d22e21f272530a77257f65daac1bb5e6e51f1688aa",
+  },
 ];
 
 if (REQUIRE_DATABASE && !DATABASE_URL) {
@@ -443,7 +448,7 @@ databaseDescribe("fresh deployment database acceptance", () => {
             AND class.relforcerowsecurity) AS "forceRlsTables"
     `;
     expect(catalogue).toEqual([{
-      migrations: 72, tables: 124, rlsTables: 114, policies: 114, forceRlsTables: 23,
+      migrations: 73, tables: 124, rlsTables: 114, policies: 114, forceRlsTables: 23,
       permissions: 9, permissionGrants: 0,
     }]);
   });

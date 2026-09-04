@@ -93,13 +93,34 @@ interface FolioRow {
   readonly status: string;
 }
 
-interface SeriesRow {
-  readonly id: string;
-  readonly next_no: number | bigint;
+interface AllocatedSeriesRow {
+  readonly folio_reference: string;
 }
 
-interface AllocatedSeriesRow {
-  readonly folio_no: string;
+async function allocateNonFiscalFolioReference(
+  tx: Tx,
+  tenantId: string,
+  propertyNode: string,
+): Promise<string> {
+  try {
+    const allocated = await tx<AllocatedSeriesRow[]>`
+      SELECT folio_reference
+      FROM allocate_non_fiscal_folio_reference(${tenantId}::uuid,${propertyNode}::uuid)
+    `;
+    const reference = allocated[0]?.folio_reference;
+    if (allocated.length !== 1 || !reference) {
+      throw new FolioConflictError("PostgreSQL did not allocate the folio reference");
+    }
+    return reference;
+  } catch (error) {
+    if (error instanceof FolioConflictError) throw error;
+    const state = String((error as { errno?: string; code?: string }).errno ??
+      (error as { code?: string }).code ?? "");
+    if (["22023", "40001", "55000"].includes(state)) {
+      throw new FolioConflictError("Property must have one valid non-fiscal folio series");
+    }
+    throw error;
+  }
 }
 
 interface OpenPrimaryBody extends Readonly<Record<string, JsonValue>> {
@@ -447,37 +468,9 @@ export class FolioService {
         return { status: 200, body: storedFolio(existing, account.id) };
       }
 
-      const series = await commandTx<SeriesRow[]>`
-        SELECT id, next_no
-        FROM document_series
-        WHERE tenant_id = ${normalized.tenantId}::uuid
-          AND tenant_id = current_setting('app.tenant_id', true)::uuid
-          AND property_node = ${reservation.property_node}::uuid
-          AND kind = 'folio'
-          AND fiscal = false
-        ORDER BY id
-        FOR UPDATE
-      `;
-      if (series.length !== 1) {
-        throw new FolioConflictError("Property must have exactly one non-fiscal folio series");
-      }
-      const folioSeries = series[0];
-      if (!folioSeries || BigInt(folioSeries.next_no) < 1n) {
-        throw new FolioConflictError("Folio series counter is invalid");
-      }
-      const allocated = await commandTx<AllocatedSeriesRow[]>`
-        UPDATE document_series
-        SET next_no = next_no + 1
-        WHERE id = ${folioSeries.id}::uuid
-          AND tenant_id = ${normalized.tenantId}::uuid
-          AND tenant_id = current_setting('app.tenant_id', true)::uuid
-          AND property_node = ${reservation.property_node}::uuid
-          AND kind = 'folio'
-          AND fiscal = false
-        RETURNING prefix || (next_no - 1)::text AS folio_no
-      `;
-      const folioNo = allocated[0]?.folio_no;
-      if (!folioNo) throw new Error("PostgreSQL did not allocate the folio reference");
+      const folioNo = await allocateNonFiscalFolioReference(
+        commandTx, normalized.tenantId, reservation.property_node,
+      );
 
       const folios = await commandTx<FolioRow[]>`
         INSERT INTO folio (
@@ -627,26 +620,9 @@ export class FolioService {
         throw new FolioConflictError("Folio window sequence changed during allocation");
       }
 
-      const series = await commandTx<SeriesRow[]>`
-        SELECT id, next_no FROM document_series
-        WHERE tenant_id=${normalized.tenantId}::uuid
-          AND tenant_id=current_setting('app.tenant_id', true)::uuid
-          AND property_node=${source.property_node}::uuid AND kind='folio' AND fiscal=false
-        ORDER BY id FOR UPDATE
-      `;
-      if (series.length !== 1 || !series[0] || BigInt(series[0].next_no) < 1n) {
-        throw new FolioConflictError("Property must have one valid non-fiscal folio series");
-      }
-      const allocated = await commandTx<AllocatedSeriesRow[]>`
-        UPDATE document_series SET next_no=next_no+1
-        WHERE tenant_id=${normalized.tenantId}::uuid
-          AND tenant_id=current_setting('app.tenant_id', true)::uuid
-          AND id=${series[0].id}::uuid AND property_node=${source.property_node}::uuid
-          AND kind='folio' AND fiscal=false
-        RETURNING prefix || (next_no - 1)::text AS folio_no
-      `;
-      const folioNo = allocated[0]?.folio_no;
-      if (!folioNo) throw new Error("PostgreSQL did not allocate the folio reference");
+      const folioNo = await allocateNonFiscalFolioReference(
+        commandTx, normalized.tenantId, source.property_node,
+      );
       const created = await commandTx<FolioFamilyRow[]>`
         INSERT INTO folio (tenant_id, account_id, reservation_id, folio_no, window_no, name, status)
         VALUES (${normalized.tenantId}::uuid, ${source.account_id}::uuid,

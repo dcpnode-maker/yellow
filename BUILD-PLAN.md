@@ -1786,3 +1786,14 @@ census/hostility/contention/rollback/ACL proof, adjacent Orders266/367/406/407 g
 and fresh independent Tier3 review are mandatory. Refund, replacement, payment,
 settlement, document, credit note, IRP/return amendment, API/UI/local, deployment and
 Phase7 completion remain outside this order.
+
+Order410 contains the pre-existing runtime authority used to allocate human folio
+references. Migration0073 removes `app_role`'s raw `document_series.next_no` update
+grant and replaces both primary and additional-window call sites with one fixed-path,
+owner-mediated allocator. The capability accepts only the transaction tenant and an
+exact property, then locks and advances exactly one non-fiscal `kind='folio'` series;
+missing, ambiguous, fiscal-only, foreign, malformed and signed-int64-overflow truth
+fails before mutation. It creates no `document` and grants no fiscal numbering,
+invoice, hash-chain, India payload, submission, API/UI/local or Phase7-completion
+authority. Fresh live ACL, rollback, replay, two-tenant and 100-way gap-free proof plus
+independent Tier3 review remain mandatory before approval.
