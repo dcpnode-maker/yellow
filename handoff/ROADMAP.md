@@ -129,7 +129,7 @@ sequencing, not authority to skip work.
 ## Current status — D1305
 
 Order 429 is independently approved and closed under D1300 as a read-only India IRP
-fiscal-action readiness boundary. Order 430 is repaired under D1321 and awaits a different fresh Tier-3 under D1302/D1304 for
+fiscal-action readiness boundary. Order 430 requires the D1323 complete canonical-provenance repair under D1302/D1304 for
 Yellow-native India fiscal invoice issuance; its builder proof and fresh independent
 Tier-3 review remain pending. Order 431 reconciles the current project snapshot to the
 18-phase roadmap without changing historical evidence or claiming Phase-7 completion.

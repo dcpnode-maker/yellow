@@ -2072,12 +2072,12 @@ Order412 freezes/hashes them, with no value, query, validation, authority or dat
 change. The repair and live rerun were covered by the independent approval; no document,
 provider, IRP, local, or Phase-7 completion authority is implied.
 
-### Order 430 — Yellow-native India fiscal invoice issuance (repaired, fresh review pending — D1321)
+### Order 430 — Yellow-native India fiscal invoice issuance (changes required — D1323)
 
-Order430's D1316 trust-boundary repair is builder-proven under D1321: exact Order413,
-Order426 and Order429 preimages/hashes and the complete legal body are rederived and
-bound to current persisted truth inside the database before allocation, while a
-self-consistent forged descendant evidence chain is rejected with zero artifacts.
-A different fresh independent Tier-3 review remains mandatory. The current project
-snapshot must not mark it independently approved, provider-ready, IRP-complete,
-locally refreshed, or Phase-7 complete.
+Order430's D1316 legal-body repair is builder-proven under D1321, but fresh independent
+review D1323 finds its canonical provenance authentication incomplete. Three Order426
+child hashes and material Order413 persisted predecessor/source lineage are not yet
+bound inside the database; digest consistency of supplied bytes is insufficient.
+Repair, isolated lineage-only zero-artifact hostility and another different fresh
+Tier-3 review remain mandatory. It is not independently approved, provider-ready,
+IRP-complete, locally refreshed, or Phase-7 complete.

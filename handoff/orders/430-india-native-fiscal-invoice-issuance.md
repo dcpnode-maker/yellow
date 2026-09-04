@@ -1,6 +1,6 @@
 # Order 430 — India native fiscal invoice issuance
 
-**Status:** REPAIRED — AWAITING DIFFERENT FRESH TIER-3 — D1321
+**Status:** CHANGES REQUIRED — D1323
 **Phase:** 7 — Tax engine and India IRP
 **Branch:** `phase-7/india-native-fiscal-invoice-issuance`
 **Base:** independently approved Order429/D1300 at `25d1db3`
@@ -60,6 +60,19 @@ Order408 plus audited seal 18/18 (167); SECURITY DEFINER 3/3 (210); focused stat
 `DevToolsActivePort` EBUSY failure tracked by active Order432. This remains builder
 evidence: a different fresh non-implementing Tier-3 must personally reproduce the
 high-risk proof before Order430 can close.
+
+## Independent review result — D1323
+
+The fresh non-implementing Tier-3 review rejects candidate `794bb8a`. Although the
+legal body and supplied UTF-8 hash chain are now internally consistent and the
+governed forged-seller case is correctly rejected, the database capability does not
+yet authenticate the complete canonical predecessor graph. It omits three Order426
+child-lineage hashes and material Order413 supply-nature, financial predecessor,
+room-night, journal-line, nested source, applicability and valuation lineage. Hashing
+caller-supplied bytes proves consistency, not equality with the approved persisted
+composer result. Repair requires exact canonical DB-root binding plus isolated
+lineage-only zero-artifact hostility cases, followed by another different fresh
+Tier-3 review.
 
 ## Natural-Solution Test
 
