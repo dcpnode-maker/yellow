@@ -1261,3 +1261,4 @@
 2026-09-04 | Order421 | BUILT-AWAITING-FRESH-TIER2-D1258 | Exact priority occurs once per authoritative plan and dependency sequence matches twice;diff green. Governance rereview pending.
 2026-09-04 | Order420 | INDEPENDENTLY-APPROVED-CLOSED-D1259 | Fresh Tier3 approves exact b682186 after full1382/0,focused/composition/static and exact Order419-removal mutation proof. Final provider14,2 limit remains later;no downstream/local/Phase authority.
 2026-09-04 | Order421 | INDEPENDENTLY-APPROVED-CLOSED-D1260 | Fresh Tier2 approves exact4523a2d priority11→13→17 and matching dependency-preserving executable sequence in both authoritative plans.
+2026-09-04 | Order422 | ACTIVE-D1261 | Compose approved Order413 seller,buyer and property-POS truth into exact pure IRP SellerDtls+BuyerDtls(Pos) intermediate candidate. Permanent hostile/load-bearing proof and fresh Tier3 required;no transaction/items/values/document/provider/API/UI/local/Phase authority.
