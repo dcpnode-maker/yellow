@@ -174,6 +174,7 @@ describe("India native fiscal invoice policy helpers", () => {
     for (const field of [
       "readinessState", "submissionReady", "permittedActions", "blockers", "recipientRegistrationId",
       "sourceEvidenceHash", "preDocumentEvidenceHash", "readinessEvidenceHash", "preDocumentJson",
+      "sourceEvidencePreimage", "preDocumentEvidencePreimage", "readinessEvidencePreimage",
     ]) expect(payload).toContain(`${field}:`);
     for (const forbidden of ["tenantId:", "propertyNode:", "actorId:", "reservationId:", "folioId:", "journalId:"]) {
       expect(payload).not.toContain(forbidden);
@@ -259,6 +260,7 @@ describe("India native fiscal invoice policy helpers", () => {
     }) as never;
     const service = new IndiaNativeFiscalInvoiceIssuanceService({
       readiness: { resolve: async () => readiness } as never,
+      source: { resolve: async () => source } as never,
     });
     const result = await service.issue(tx, issueInput as never);
     expect(result.documentKind).toBe("invoice");
@@ -266,10 +268,14 @@ describe("India native fiscal invoice policy helpers", () => {
     expect(frozenPayload && Object.keys(frozenPayload)).toEqual([
       "readinessState", "submissionReady", "permittedActions", "blockers",
       "recipientRegistrationId", "sourceEvidenceHash", "preDocumentEvidenceHash",
-      "readinessEvidenceHash", "preDocumentJson",
+      "readinessEvidenceHash", "preDocumentJson", "sourceEvidencePreimage",
+      "preDocumentEvidencePreimage", "readinessEvidencePreimage",
     ]);
     const sections = JSON.parse(String(frozenPayload?.preDocumentJson)) as Record<string, unknown>;
     expect(Object.keys(sections)).toEqual(["Version", "TranDtls", "SellerDtls", "BuyerDtls", "ItemList", "ValDtls"]);
     expect(sections.SellerDtls).toEqual(source.sellerDetails.payload.SellerDtls);
+    expect(digest(JSON.parse(String(frozenPayload?.sourceEvidencePreimage)))).toBe(source.evidenceHash);
+    expect(digest(JSON.parse(String(frozenPayload?.preDocumentEvidencePreimage)))).toBe(preDocumentEvidence.evidenceHash);
+    expect(digest(JSON.parse(String(frozenPayload?.readinessEvidencePreimage)))).toBe(readiness.evidenceHash);
   });
 });

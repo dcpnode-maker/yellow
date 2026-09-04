@@ -1118,6 +1118,9 @@ CREATE FUNCTION public.commit_india_native_fiscal_invoice(p_tenant_id uuid, p_pr
     AS $_$
 DECLARE
   v_context_tenant uuid; v_source_hash text; v_pre_hash text; v_readiness_hash text; v_sections jsonb;
+  v_source_preimage_text text; v_pre_preimage_text text; v_readiness_preimage_text text;
+  v_source_preimage jsonb; v_pre_preimage jsonb; v_readiness_preimage jsonb; v_pre_complete jsonb;
+  v_expected_seller jsonb; v_expected_buyer jsonb; v_expected_items jsonb; v_expected_values jsonb; v_expected_sections jsonb;
   v_recipient_registration_id uuid; v_tax record; v_series public.document_series%ROWTYPE;
   v_date date; v_fy date; v_doc_no text; v_document_id uuid:=pg_catalog.gen_random_uuid();
   v_origin_key text; v_prev_hash text; v_content jsonb; v_hash text; v_issued_at timestamptz:=pg_catalog.transaction_timestamp();
@@ -1132,7 +1135,7 @@ BEGIN
   IF p_tenant_id IS NULL OR p_property_node IS NULL OR p_actor_id IS NULL OR p_reservation_id IS NULL OR p_folio_id IS NULL OR p_journal_id IS NULL OR p_correlation_id IS NULL
      OR p_idempotency_key IS NULL OR p_idempotency_key !~ '^[!-~]{8,200}$'
      OR v_context_tenant IS NULL OR v_context_tenant<>p_tenant_id OR p_frozen_evidence IS NULL OR pg_catalog.jsonb_typeof(p_frozen_evidence)<>'object'
-     OR (SELECT pg_catalog.array_agg(k ORDER BY k) FROM pg_catalog.jsonb_object_keys(p_frozen_evidence) k) IS DISTINCT FROM ARRAY['blockers','permittedActions','preDocumentEvidenceHash','preDocumentJson','readinessEvidenceHash','readinessState','recipientRegistrationId','sourceEvidenceHash','submissionReady']::text[] THEN
+     OR (SELECT pg_catalog.array_agg(k ORDER BY k) FROM pg_catalog.jsonb_object_keys(p_frozen_evidence) k) IS DISTINCT FROM ARRAY['blockers','permittedActions','preDocumentEvidenceHash','preDocumentEvidencePreimage','preDocumentJson','readinessEvidenceHash','readinessEvidencePreimage','readinessState','recipientRegistrationId','sourceEvidenceHash','sourceEvidencePreimage','submissionReady']::text[] THEN
     RAISE EXCEPTION USING ERRCODE='22023',MESSAGE='India native fiscal issue input is invalid';
   END IF;
   IF p_frozen_evidence->>'readinessState'<>'blocked_pending_fiscal_document_origin_policy'
@@ -1153,6 +1156,22 @@ BEGIN
   END IF;
   BEGIN v_sections:=(p_frozen_evidence->>'preDocumentJson')::jsonb;
   EXCEPTION WHEN others THEN RAISE EXCEPTION USING ERRCODE='22023',MESSAGE='India native fiscal pre-document JSON is invalid'; END;
+  v_source_preimage_text:=p_frozen_evidence->>'sourceEvidencePreimage';
+  v_pre_preimage_text:=p_frozen_evidence->>'preDocumentEvidencePreimage';
+  v_readiness_preimage_text:=p_frozen_evidence->>'readinessEvidencePreimage';
+  BEGIN
+    v_source_preimage:=v_source_preimage_text::jsonb;
+    v_pre_preimage:=v_pre_preimage_text::jsonb;
+    v_readiness_preimage:=v_readiness_preimage_text::jsonb;
+  EXCEPTION WHEN others THEN
+    RAISE EXCEPTION USING ERRCODE='22023',MESSAGE='India native fiscal evidence preimages are invalid';
+  END;
+  IF v_source_preimage_text IS NULL OR v_pre_preimage_text IS NULL OR v_readiness_preimage_text IS NULL
+     OR pg_catalog.encode(public.digest(pg_catalog.convert_to(v_source_preimage_text,'UTF8'),'sha256'),'hex') IS DISTINCT FROM v_source_hash
+     OR pg_catalog.encode(public.digest(pg_catalog.convert_to(v_pre_preimage_text,'UTF8'),'sha256'),'hex') IS DISTINCT FROM v_pre_hash
+     OR pg_catalog.encode(public.digest(pg_catalog.convert_to(v_readiness_preimage_text,'UTF8'),'sha256'),'hex') IS DISTINCT FROM v_readiness_hash THEN
+    RAISE EXCEPTION USING ERRCODE='55000',MESSAGE='India native fiscal evidence hashes do not match their exact preimages';
+  END IF;
   IF pg_catalog.jsonb_typeof(v_sections)<>'object'
      -- Exact approved Order426 section body: SellerDtls is mandatory and the
      -- capability rejects both omission and caller-added sections.
@@ -1162,6 +1181,35 @@ BEGIN
      OR pg_catalog.jsonb_typeof(v_sections->'ItemList')<>'array' OR pg_catalog.jsonb_array_length(v_sections->'ItemList')<1
      OR EXISTS(SELECT 1 FROM pg_catalog.jsonb_array_elements(v_sections->'ItemList') item WHERE item->>'Qty'<>'1.000' OR item->>'Unit'<>'OTH') THEN
     RAISE EXCEPTION USING ERRCODE='22023',MESSAGE='India native fiscal pre-document shape is invalid';
+  END IF;
+  v_pre_complete:=(v_pre_preimage-'tenantId')||pg_catalog.jsonb_build_object('evidenceHash',v_pre_hash);
+  IF pg_catalog.jsonb_typeof(v_source_preimage) IS DISTINCT FROM 'object'
+     OR (SELECT pg_catalog.array_agg(k ORDER BY k) FROM pg_catalog.jsonb_object_keys(v_source_preimage) k) IS DISTINCT FROM ARRAY['buyerDetails','classification','componentFamily','financialSource','legalBuyerPartyId','placeOfSupply','recipientRegistration','sellerDetails','sellerRegistration','state','supplyNatureAtTimeOfSupply','tenantId']::text[]
+     OR v_source_preimage->>'tenantId' IS DISTINCT FROM p_tenant_id::text
+     OR v_source_preimage->>'state' IS DISTINCT FROM 'eligible_irp_invoice_source'
+     OR pg_catalog.jsonb_typeof(v_pre_preimage) IS DISTINCT FROM 'object'
+     OR (SELECT pg_catalog.array_agg(k ORDER BY k) FROM pg_catalog.jsonb_object_keys(v_pre_preimage) k) IS DISTINCT FROM ARRAY['authenticatedProviderSandboxCertified','explicitlyExcludedEvidence','format','lineage','sections','sectionsJson','sourceEvidenceHash','state','submissionReady','tenantId']::text[]
+     OR v_pre_preimage->>'tenantId' IS DISTINCT FROM p_tenant_id::text
+     OR v_pre_preimage->>'state' IS DISTINCT FROM 'incomplete_non_submit_ready_irp_accommodation_validation_compatibility_pre_document_evidence'
+     OR v_pre_preimage->>'format' IS DISTINCT FROM 'irp_json_1_1'
+     OR v_pre_preimage->'submissionReady' IS DISTINCT FROM 'false'::jsonb
+     OR v_pre_preimage->'authenticatedProviderSandboxCertified' IS DISTINCT FROM 'false'::jsonb
+     OR v_pre_preimage->'explicitlyExcludedEvidence' IS DISTINCT FROM '["DocDtls"]'::jsonb
+     OR v_pre_preimage->'sections' IS DISTINCT FROM v_sections
+     OR v_pre_preimage->>'sectionsJson' IS DISTINCT FROM p_frozen_evidence->>'preDocumentJson'
+     OR v_pre_preimage->>'sourceEvidenceHash' IS DISTINCT FROM v_source_hash
+     OR v_pre_preimage->'lineage'->>'sourceEvidenceHash' IS DISTINCT FROM v_source_hash
+     OR pg_catalog.jsonb_typeof(v_readiness_preimage) IS DISTINCT FROM 'object'
+     OR (SELECT pg_catalog.array_agg(k ORDER BY k) FROM pg_catalog.jsonb_object_keys(v_readiness_preimage) k) IS DISTINCT FROM ARRAY['blockers','permittedActions','preDocumentEvidence','preDocumentEvidenceHash','sourceEvidenceHash','state','submissionReady','tenantId']::text[]
+     OR v_readiness_preimage->>'tenantId' IS DISTINCT FROM p_tenant_id::text
+     OR v_readiness_preimage->>'state' IS DISTINCT FROM p_frozen_evidence->>'readinessState'
+     OR v_readiness_preimage->'submissionReady' IS DISTINCT FROM p_frozen_evidence->'submissionReady'
+     OR v_readiness_preimage->'permittedActions' IS DISTINCT FROM p_frozen_evidence->'permittedActions'
+     OR v_readiness_preimage->'blockers' IS DISTINCT FROM p_frozen_evidence->'blockers'
+     OR v_readiness_preimage->>'sourceEvidenceHash' IS DISTINCT FROM v_source_hash
+     OR v_readiness_preimage->>'preDocumentEvidenceHash' IS DISTINCT FROM v_pre_hash
+     OR v_readiness_preimage->'preDocumentEvidence' IS DISTINCT FROM v_pre_complete THEN
+    RAISE EXCEPTION USING ERRCODE='55000',MESSAGE='Order413, Order426 and Order429 evidence binding is not exact';
   END IF;
   -- The first lock is intentionally byte-for-byte the Order408 shared
   -- correction/issue arbitration key for this original journal.
@@ -1210,8 +1258,18 @@ BEGIN
    WHERE actor.tenant_id=p_tenant_id AND actor.id=p_actor_id AND actor.status='active';
   IF NOT FOUND THEN RAISE EXCEPTION USING ERRCODE='42501',MESSAGE='actor lacks property fiscal-issue authority'; END IF;
   SELECT binding.id AS binding_id,tax.id AS tax_id,tax.transaction_value_minor,tax.tax_minor,tax.grand_total_minor,tax.component_family,
-         binding.business_date,binding.reservation_id,binding.folio_id,binding.journal_id,
-         supplier.supplier_registration_id,recipient.id AS recipient_registration_id,
+          binding.business_date,binding.reservation_id,binding.folio_id,binding.journal_id,
+          valuation.buyer_party_id,applicability.classification_id,
+          supplier.supplier_registration_id,recipient.id AS recipient_registration_id,
+          supplier_registration.registration_number AS seller_gstin,supplier_registration.region_code AS seller_state_code,
+          supplier_registration.legal_name AS seller_legal_name,supplier_registration.trade_name AS seller_trade_name,
+          supplier_registration.address_line AS seller_address,supplier_registration.locality AS seller_locality,
+          supplier_registration.postal_code AS seller_pin,
+          recipient.registration_number AS buyer_gstin,recipient.region_code AS buyer_state_code,
+          recipient.legal_name AS buyer_legal_name,recipient.trade_name AS buyer_trade_name,
+          recipient.address_line1 AS buyer_address,recipient.locality AS buyer_locality,recipient.pin AS buyer_pin,
+          fiscal_location.state_code AS place_of_supply_state_code,
+          classification.classification_code,
          (SELECT COALESCE(pg_catalog.sum(component.tax_amount_minor),0)::bigint
             FROM public.india_gst_accommodation_final_component_tax_component component
            WHERE component.tenant_id=tax.tenant_id AND component.tax_id=tax.id AND component.currency='INR') AS component_total,
@@ -1230,6 +1288,21 @@ BEGIN
     JOIN public.india_gst_accommodation_final_valuation valuation ON valuation.tenant_id=binding.tenant_id AND valuation.id=binding.valuation_id
     JOIN public.india_gst_accommodation_quoted_rate_applicability applicability ON applicability.tenant_id=tax.tenant_id AND applicability.id=tax.applicability_id
     JOIN public.india_gst_supplier_service_location supplier ON supplier.tenant_id=applicability.tenant_id AND supplier.id=applicability.supplier_service_location_id
+    JOIN public.property_fiscal_registration supplier_registration
+      ON supplier_registration.tenant_id=supplier.tenant_id
+     AND supplier_registration.id=supplier.supplier_registration_id
+     AND supplier_registration.property_node=p_property_node
+     AND supplier_registration.scheme='in-gstin' AND supplier_registration.currency='INR'
+    JOIN public.property_fiscal_location fiscal_location
+      ON fiscal_location.tenant_id=applicability.tenant_id
+     AND fiscal_location.property_node=p_property_node
+     AND fiscal_location.country_code='IN'
+    JOIN public.india_gst_item_classification classification
+      ON classification.tenant_id=applicability.tenant_id
+     AND classification.id=applicability.classification_id
+     AND classification.property_node=p_property_node
+     AND classification.classification_system='SAC'
+     AND classification.is_service_code='Y'
     -- Registration activity is an independently changeable Order289 root, not
     -- a property-registration attribute.  Re-resolve its exact dated evidence
     -- under the same source lock before a legal number can be allocated.
@@ -1249,11 +1322,110 @@ BEGIN
      AND NOT EXISTS(SELECT 1 FROM public.india_gst_final_component_tax_journal_reversal_binding reversal WHERE reversal.tenant_id=binding.tenant_id AND reversal.original_journal_id=binding.journal_id)
      AND NOT EXISTS(SELECT 1 FROM public.india_gst_accommodation_final_component_tax successor WHERE successor.tenant_id=tax.tenant_id AND successor.supersedes_tax_id=tax.id)
      AND NOT EXISTS(SELECT 1 FROM public.india_gst_accommodation_final_valuation successor WHERE successor.tenant_id=valuation.tenant_id AND successor.supersedes_valuation_id=valuation.id)
-   FOR KEY SHARE OF binding,tax,valuation,applicability,supplier,supplier_registration_status,supplier_status,recipient_status,recipient,journal;
+    FOR KEY SHARE OF binding,tax,valuation,applicability,supplier,supplier_registration,supplier_registration_status,
+      supplier_status,recipient_status,recipient,fiscal_location,classification,journal;
   IF NOT FOUND THEN RAISE EXCEPTION USING ERRCODE='55000',MESSAGE='current unreversed India fiscal source is unavailable'; END IF;
   v_recipient_registration_id:=v_tax.recipient_registration_id;
   IF v_recipient_registration_id::text<>p_frozen_evidence->>'recipientRegistrationId' THEN
     RAISE EXCEPTION USING ERRCODE='55000',MESSAGE='India native fiscal recipient registration is stale or forged';
+  END IF;
+  v_expected_seller:=pg_catalog.jsonb_build_object(
+    'Gstin',v_tax.seller_gstin,'LglNm',v_tax.seller_legal_name,
+    'Addr1',v_tax.seller_address,'Loc',v_tax.seller_locality,
+    'Pin',v_tax.seller_pin::integer,'Stcd',v_tax.seller_state_code
+  )||CASE WHEN v_tax.seller_trade_name IS NULL THEN '{}'::jsonb
+          ELSE pg_catalog.jsonb_build_object('TrdNm',v_tax.seller_trade_name) END;
+  v_expected_buyer:=pg_catalog.jsonb_build_object(
+    'Gstin',v_tax.buyer_gstin,'LglNm',v_tax.buyer_legal_name,
+    'Addr1',v_tax.buyer_address,'Loc',v_tax.buyer_locality,
+    'Pin',v_tax.buyer_pin::integer,'Stcd',v_tax.buyer_state_code,
+    'Pos',v_tax.place_of_supply_state_code
+  )||CASE WHEN v_tax.buyer_trade_name IS NULL THEN '{}'::jsonb
+          ELSE pg_catalog.jsonb_build_object('TrdNm',v_tax.buyer_trade_name) END;
+  SELECT pg_catalog.jsonb_agg(
+    pg_catalog.jsonb_build_object(
+      'SlNo',(night.ordinal+1)::text,'IsServc','Y','HsnCd',v_tax.classification_code,
+      'Qty','1.000','Unit','OTH',
+      'UnitPrice',(night.final_value_minor/100)::text||'.'||pg_catalog.lpad((night.final_value_minor%100)::text,2,'0'),
+      'TotAmt',(night.final_value_minor/100)::text||'.'||pg_catalog.lpad((night.final_value_minor%100)::text,2,'0'),
+      'AssAmt',(night.final_value_minor/100)::text||'.'||pg_catalog.lpad((night.final_value_minor%100)::text,2,'0'),
+      'GstRt',(night.aggregate_rate_basis_points/100)::text||'.'||pg_catalog.lpad((night.aggregate_rate_basis_points%100)::text,2,'0'),
+      'TotItemVal',((night.final_value_minor+night.tax_minor)/100)::text||'.'||pg_catalog.lpad(((night.final_value_minor+night.tax_minor)%100)::text,2,'0')
+    )||CASE WHEN v_tax.component_family='igst' THEN pg_catalog.jsonb_build_object(
+      'IgstAmt',(component.igst_amount/100)::text||'.'||pg_catalog.lpad((component.igst_amount%100)::text,2,'0')
+    ) ELSE pg_catalog.jsonb_build_object(
+      'CgstAmt',(component.cgst_amount/100)::text||'.'||pg_catalog.lpad((component.cgst_amount%100)::text,2,'0'),
+      'SgstAmt',(component.state_amount/100)::text||'.'||pg_catalog.lpad((component.state_amount%100)::text,2,'0')
+    ) END ORDER BY night.ordinal
+  ) INTO v_expected_items
+  FROM public.india_gst_accommodation_final_component_tax_room_night night
+  CROSS JOIN LATERAL (
+    SELECT
+      (pg_catalog.sum(c.tax_amount_minor) FILTER(WHERE c.component_identity='igst'))::bigint AS igst_amount,
+      (pg_catalog.sum(c.tax_amount_minor) FILTER(WHERE c.component_identity='cgst'))::bigint AS cgst_amount,
+      (pg_catalog.sum(c.tax_amount_minor) FILTER(WHERE c.component_identity IN ('sgst','utgst')))::bigint AS state_amount,
+      pg_catalog.count(*) AS component_count
+    FROM public.india_gst_accommodation_final_component_tax_component c
+    WHERE c.tenant_id=night.tenant_id AND c.tax_id=night.tax_id AND c.room_night_ordinal=night.ordinal
+  ) component
+  WHERE night.tenant_id=p_tenant_id AND night.tax_id=v_tax.tax_id
+    AND ((v_tax.component_family='igst' AND component.component_count=1 AND component.igst_amount IS NOT NULL)
+      OR (v_tax.component_family IN ('cgst_sgst','cgst_utgst') AND component.component_count=2
+        AND component.cgst_amount IS NOT NULL AND component.state_amount IS NOT NULL));
+  v_expected_values:=CASE WHEN v_tax.component_family='igst' THEN pg_catalog.jsonb_build_object(
+    'AssVal',(v_tax.transaction_value_minor/100)::text||'.'||pg_catalog.lpad((v_tax.transaction_value_minor%100)::text,2,'0'),
+    'IgstVal',(v_tax.igst_total/100)::text||'.'||pg_catalog.lpad((v_tax.igst_total%100)::text,2,'0'),
+    'TotInvVal',(v_tax.grand_total_minor/100)::text||'.'||pg_catalog.lpad((v_tax.grand_total_minor%100)::text,2,'0')
+  ) ELSE pg_catalog.jsonb_build_object(
+    'AssVal',(v_tax.transaction_value_minor/100)::text||'.'||pg_catalog.lpad((v_tax.transaction_value_minor%100)::text,2,'0'),
+    'CgstVal',(v_tax.cgst_total/100)::text||'.'||pg_catalog.lpad((v_tax.cgst_total%100)::text,2,'0'),
+    'SgstVal',(v_tax.state_total/100)::text||'.'||pg_catalog.lpad((v_tax.state_total%100)::text,2,'0'),
+    'TotInvVal',(v_tax.grand_total_minor/100)::text||'.'||pg_catalog.lpad((v_tax.grand_total_minor%100)::text,2,'0')
+  ) END;
+  v_expected_sections:=pg_catalog.jsonb_build_object(
+    'Version','1.1','TranDtls',pg_catalog.jsonb_build_object('TaxSch','GST','SupTyp','B2B'),
+    'SellerDtls',v_expected_seller,'BuyerDtls',v_expected_buyer,
+    'ItemList',v_expected_items,'ValDtls',v_expected_values
+  );
+  IF v_expected_items IS NULL OR v_sections IS DISTINCT FROM v_expected_sections THEN
+    RAISE EXCEPTION USING ERRCODE='55000',MESSAGE='India native fiscal legal body is stale or forged';
+  END IF;
+  IF v_source_preimage->>'legalBuyerPartyId' IS DISTINCT FROM v_tax.buyer_party_id::text
+     OR v_source_preimage->'financialSource'->>'propertyNode' IS DISTINCT FROM p_property_node::text
+     OR v_source_preimage->'financialSource'->>'reservationId' IS DISTINCT FROM p_reservation_id::text
+     OR v_source_preimage->'financialSource'->>'folioId' IS DISTINCT FROM p_folio_id::text
+     OR v_source_preimage->'financialSource'->>'journalId' IS DISTINCT FROM p_journal_id::text
+     OR v_source_preimage->'financialSource'->>'taxId' IS DISTINCT FROM v_tax.tax_id::text
+     OR v_source_preimage->'financialSource'->>'currency' IS DISTINCT FROM 'INR'
+     OR v_source_preimage->'financialSource'->>'transactionValueMinor' IS DISTINCT FROM v_tax.transaction_value_minor::text
+     OR v_source_preimage->'financialSource'->>'taxMinor' IS DISTINCT FROM v_tax.tax_minor::text
+     OR v_source_preimage->'financialSource'->>'grandTotalMinor' IS DISTINCT FROM v_tax.grand_total_minor::text
+     OR v_source_preimage->'financialSource'->>'componentFamily' IS DISTINCT FROM v_tax.component_family
+     OR v_source_preimage->'sellerRegistration'->>'registrationId' IS DISTINCT FROM v_tax.supplier_registration_id::text
+     OR v_source_preimage->'sellerRegistration'->>'propertyNode' IS DISTINCT FROM p_property_node::text
+     OR v_source_preimage->'sellerRegistration'->>'gstin' IS DISTINCT FROM v_tax.seller_gstin
+     OR v_source_preimage->'sellerRegistration'->>'stateCode' IS DISTINCT FROM v_tax.seller_state_code
+     OR v_source_preimage->'sellerRegistration'->>'legalName' IS DISTINCT FROM v_tax.seller_legal_name
+     OR v_source_preimage->'sellerRegistration'->'tradeName' IS DISTINCT FROM COALESCE(pg_catalog.to_jsonb(v_tax.seller_trade_name),'null'::jsonb)
+     OR v_source_preimage->'sellerRegistration'->>'addressLine' IS DISTINCT FROM v_tax.seller_address
+     OR v_source_preimage->'sellerRegistration'->>'locality' IS DISTINCT FROM v_tax.seller_locality
+     OR v_source_preimage->'sellerRegistration'->>'postalCode' IS DISTINCT FROM v_tax.seller_pin
+     OR v_source_preimage->'recipientRegistration'->>'registrationId' IS DISTINCT FROM v_tax.recipient_registration_id::text
+     OR v_source_preimage->'recipientRegistration'->>'partyId' IS DISTINCT FROM v_tax.buyer_party_id::text
+     OR v_source_preimage->'recipientRegistration'->>'gstin' IS DISTINCT FROM v_tax.buyer_gstin
+     OR v_source_preimage->'recipientRegistration'->>'stateCode' IS DISTINCT FROM v_tax.buyer_state_code
+     OR v_source_preimage->'recipientRegistration'->>'legalName' IS DISTINCT FROM v_tax.buyer_legal_name
+     OR v_source_preimage->'recipientRegistration'->'tradeName' IS DISTINCT FROM COALESCE(pg_catalog.to_jsonb(v_tax.buyer_trade_name),'null'::jsonb)
+     OR v_source_preimage->'recipientRegistration'->>'addressLine1' IS DISTINCT FROM v_tax.buyer_address
+     OR v_source_preimage->'recipientRegistration'->>'locality' IS DISTINCT FROM v_tax.buyer_locality
+     OR v_source_preimage->'recipientRegistration'->>'pin' IS DISTINCT FROM v_tax.buyer_pin
+     OR v_source_preimage->'sellerDetails'->'payload'->'SellerDtls' IS DISTINCT FROM v_expected_seller
+     OR v_source_preimage->'buyerDetails'->'payload'->'BuyerDtls' IS DISTINCT FROM (v_expected_buyer-'Pos')
+     OR v_source_preimage->'placeOfSupply'->>'pos' IS DISTINCT FROM v_tax.place_of_supply_state_code
+     OR v_source_preimage->'classification'->>'classificationId' IS DISTINCT FROM v_tax.classification_id::text
+     OR v_source_preimage->'classification'->>'classificationCode' IS DISTINCT FROM v_tax.classification_code
+     OR v_source_preimage->'componentFamily'->>'componentFamily' IS DISTINCT FROM v_tax.component_family THEN
+    RAISE EXCEPTION USING ERRCODE='55000',MESSAGE='India native fiscal provenance is stale or forged';
   END IF;
   IF (v_sections->'ValDtls'->>'AssVal') !~ '^[0-9]+\.[0-9]{2}$'
      OR (v_sections->'ValDtls'->>'TotInvVal') !~ '^[0-9]+\.[0-9]{2}$' THEN

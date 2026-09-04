@@ -1,6 +1,6 @@
 # Order 430 — India native fiscal invoice issuance
 
-**Status:** CHANGES REQUIRED — D1316
+**Status:** REPAIRED — AWAITING DIFFERENT FRESH TIER-3 — D1321
 **Phase:** 7 — Tax engine and India IRP
 **Branch:** `phase-7/india-native-fiscal-invoice-issuance`
 **Base:** independently approved Order429/D1300 at `25d1db3`
@@ -38,6 +38,28 @@ all preserve exact atomic outcomes. Unit/static gates passed 12/12 (75 assertion
 SECURITY DEFINER containment 3/3 (210 assertions), schema snapshot byte identity,
 typecheck, boundaries, licences and diff checks. This is builder evidence only; a
 different fresh Tier-3 reviewer must personally re-execute the proof before approval.
+
+## Trust-boundary repair evidence — D1321
+
+The D1316 legal-party/evidence-forgery finding is repaired in the database trust
+boundary. The owner capability now authenticates the exact UTF-8 Order413, Order426
+and Order429 preimages and hashes, proves their nested lineage, reconstructs exact
+seller, buyer, transaction, room-night item and value sections from current persisted
+roots, and requires complete equality before any fiscal lock or number allocation.
+The permanent governed `yellow_runtime` to `app_role` hostility case supplies a
+self-consistent rehashed forged seller and descendant evidence chain; it is rejected
+with the counter unchanged and zero document, origin, fact, outbox or idempotency
+artifacts.
+
+A fresh PostgreSQL 17.2 database applied all 74 migrations and passed Order430/413
+14/14 (570 assertions), including the 100-source contiguous 1–100/hash-chain proof;
+Order408 plus audited seal 18/18 (167); SECURITY DEFINER 3/3 (210); focused static
+28/28 (202); exact schema snapshot; and a separately reset referee 11/11. Typecheck,
+161 boundaries, 23 licences, audit and diff checks pass. The full standing run is
+1,473 pass and 1,068 environment skips with one unrelated Order195 Windows Chromium
+`DevToolsActivePort` EBUSY failure tracked by active Order432. This remains builder
+evidence: a different fresh non-implementing Tier-3 must personally reproduce the
+high-risk proof before Order430 can close.
 
 ## Natural-Solution Test
 

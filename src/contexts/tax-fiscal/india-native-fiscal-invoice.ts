@@ -10,6 +10,10 @@ import {
   type IndiaIrpAccommodationFiscalActionReadinessInput,
   type IndiaIrpAccommodationFiscalActionReadinessResult,
 } from "./india-irp-accommodation-fiscal-action-readiness";
+import {
+  IndiaIrpAccommodationSourceService,
+  type IndiaIrpAccommodationSourceResult,
+} from "./india-irp-accommodation-source";
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 const HASH = /^[0-9a-f]{64}$/;
@@ -328,7 +332,16 @@ function expectedReadiness(readiness: IndiaIrpAccommodationFiscalActionReadiness
   }
 }
 
-function commitPayload(input: IndiaNativeFiscalInvoiceIssueInput, readiness: IndiaIrpAccommodationFiscalActionReadinessResult): JsonValue {
+function hashPreimage(value: Readonly<Record<string, unknown>>, tenantId: string, field: string): string {
+  const { [field]: _ignored, ...body } = value;
+  return JSON.stringify({ tenantId, ...body });
+}
+
+function commitPayload(
+  input: IndiaNativeFiscalInvoiceIssueInput,
+  readiness: IndiaIrpAccommodationFiscalActionReadinessResult,
+  source: IndiaIrpAccommodationSourceResult,
+): JsonValue {
   // The DB capability derives the legal document body and all financial values. This
   // payload carries only the exact frozen Order429 state/evidence. Typed selectors
   // are separate SQL arguments; legal date, number, tax and hash-chain authority
@@ -342,7 +355,19 @@ function commitPayload(input: IndiaNativeFiscalInvoiceIssueInput, readiness: Ind
     sourceEvidenceHash: readiness.sourceEvidenceHash,
     preDocumentEvidenceHash: readiness.preDocumentEvidenceHash,
     readinessEvidenceHash: readiness.evidenceHash,
-    preDocumentJson: readiness.preDocumentEvidence.sectionsJson });
+    preDocumentJson: readiness.preDocumentEvidence.sectionsJson,
+    sourceEvidencePreimage: hashPreimage(source as unknown as Readonly<Record<string, unknown>>, input.tenantId, "evidenceHash"),
+    preDocumentEvidencePreimage: hashPreimage(
+      readiness.preDocumentEvidence as unknown as Readonly<Record<string, unknown>>,
+      input.tenantId,
+      "evidenceHash",
+    ),
+    readinessEvidencePreimage: hashPreimage(
+      readiness as unknown as Readonly<Record<string, unknown>>,
+      input.tenantId,
+      "evidenceHash",
+    ),
+  });
 }
 
 export function deriveIndiaFinancialYearStart(value: string): string {
@@ -401,13 +426,16 @@ export class IndiaNativeFiscalSeriesConfigurationService {
 
 export interface IndiaNativeFiscalInvoiceServiceOptions {
   readonly readiness?: IndiaIrpAccommodationFiscalActionReadinessService;
+  readonly source?: IndiaIrpAccommodationSourceService;
 }
 
 export class IndiaNativeFiscalInvoiceIssuanceService {
   readonly #readiness: IndiaIrpAccommodationFiscalActionReadinessService;
+  readonly #source: IndiaIrpAccommodationSourceService;
 
   constructor(options: IndiaNativeFiscalInvoiceServiceOptions = {}) {
     this.#readiness = options.readiness ?? new IndiaIrpAccommodationFiscalActionReadinessService();
+    this.#source = options.source ?? new IndiaIrpAccommodationSourceService();
   }
 
   async issue(tx: Tx, rawInput: IndiaNativeFiscalInvoiceIssueInput): Promise<IndiaNativeFiscalInvoiceReceipt> {
@@ -420,9 +448,14 @@ export class IndiaNativeFiscalInvoiceIssuanceService {
     if (!context || context.tenant_id !== input.tenantId || context.current_user !== "app_role" || context.current_role !== "app_role") {
       throw new IndiaNativeFiscalInvoiceAuthorizationError("native fiscal issue requires the governed tenant app role");
     }
-    const readiness = await this.#readiness.resolve(tx, readinessInput(input));
+    const selectors = readinessInput(input);
+    const readiness = await this.#readiness.resolve(tx, selectors);
     expectedReadiness(readiness);
-    const payload = commitPayload(input, readiness);
+    const source = await this.#source.resolve(tx, selectors);
+    if (source.evidenceHash !== readiness.sourceEvidenceHash) {
+      throw new IndiaNativeFiscalInvoiceConflictError("Order413 source changed during native fiscal issuance");
+    }
+    const payload = commitPayload(input, readiness, source);
     const rows = await tx<CommitRow[]>`
         SELECT document_id, document_kind, series_id, doc_no, property_node,
                reservation_id, folio_id, supplier_registration_id,

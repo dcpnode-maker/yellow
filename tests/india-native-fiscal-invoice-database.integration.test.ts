@@ -6,6 +6,8 @@ import {
   IndiaFinalComponentTaxCorrectionService,
 } from "../src/contexts/financials";
 import {
+  IndiaIrpAccommodationFiscalActionReadinessService,
+  IndiaIrpAccommodationSourceService,
   IndiaNativeFiscalInvoiceIssuanceService,
   IndiaNativeFiscalSeriesConfigurationService,
 } from "../src/contexts/tax-fiscal";
@@ -55,6 +57,15 @@ function selected(fixture: SelectedFixture) {
     supplyNatureAtTimeOfSupplyInput: fixture.supplyInput,
     supplyNatureAtTimeOfSupplyResult: fixture.supplyResult,
   };
+}
+
+function evidencePreimage(value: Readonly<Record<string, unknown>>, tenantId: string): string {
+  const { evidenceHash: _ignored, ...body } = value;
+  return JSON.stringify({ tenantId, ...body });
+}
+
+function evidenceHash(value: unknown): string {
+  return new Bun.CryptoHasher("sha256").update(JSON.stringify(value)).digest("hex");
 }
 
 function envelope(fixture: Fixture, operation: string, actorId = ACTOR) {
@@ -184,6 +195,83 @@ databaseDescribe("Order430 India native fiscal database authority", () => {
         (SELECT count(*)::int FROM public.document) AS documents,
         (SELECT count(*)::int FROM public.india_gst_native_fiscal_document_origin) AS origins,
         (SELECT count(*)::int FROM public.api_idempotency) AS keys`).toEqual(before);
+  });
+
+  test("P0: governed runtime rejects a self-consistent forged legal body and leaves zero issuance artifacts", async () => {
+    const factory = await PersistedIndiaFiscalSourceFactory.create(deploy!, RUNTIME_URL!);
+    try {
+      const [fixture] = await factory.createMany(1);
+      if (!fixture) throw new Error("Order430 forged-evidence source is unavailable");
+      const configured = await database!.withTenantTransaction(factory.tenantId, (tx) =>
+        new IndiaNativeFiscalSeriesConfigurationService().configure(tx, {
+          tenantId: factory.tenantId, propertyNode: factory.propertyNode,
+          supplierRegistrationId: factory.supplierRegistrationId, documentKind: "invoice", prefix: "I/2627/",
+          envelope: createAuditEnvelope({ tenantId: factory.tenantId, propertyNode: factory.propertyNode,
+            actorId: factory.actorId, operation: "document.series.configured", requestId: crypto.randomUUID() }),
+        }));
+
+      await expect(database!.withTenantTransaction(factory.tenantId, async (tx) => {
+        const selectors = Object.freeze(selected(fixture));
+        const source = await new IndiaIrpAccommodationSourceService().resolve(tx, selectors);
+        const readiness = await new IndiaIrpAccommodationFiscalActionReadinessService().resolve(tx, selectors);
+        const forgedSeller = { ...source.sellerDetails.payload.SellerDtls,
+          Gstin: "29ABCDE1234F1Z5", LglNm: "FORGED SELLER PRIVATE LIMITED" };
+        const forgedSourceBody = { ...source,
+          sellerDetails: { ...source.sellerDetails, payload: { SellerDtls: forgedSeller } } } as Record<string, unknown>;
+        delete forgedSourceBody.evidenceHash;
+        const forgedSourcePreimage = { tenantId: factory.tenantId, ...forgedSourceBody };
+        const forgedSourceHash = evidenceHash(forgedSourcePreimage);
+
+        const forgedSections = { ...readiness.preDocumentEvidence.sections, SellerDtls: forgedSeller };
+        const forgedSectionsJson = JSON.stringify(forgedSections);
+        const forgedPreBody = { ...readiness.preDocumentEvidence, sections: forgedSections,
+          sectionsJson: forgedSectionsJson, sourceEvidenceHash: forgedSourceHash,
+          lineage: { ...readiness.preDocumentEvidence.lineage, sourceEvidenceHash: forgedSourceHash } } as Record<string, unknown>;
+        delete forgedPreBody.evidenceHash;
+        const forgedPrePreimage = { tenantId: factory.tenantId, ...forgedPreBody };
+        const forgedPreHash = evidenceHash(forgedPrePreimage);
+        const forgedPreComplete = { ...forgedPreBody, evidenceHash: forgedPreHash };
+
+        const forgedReadinessBody = { ...readiness, sourceEvidenceHash: forgedSourceHash,
+          preDocumentEvidenceHash: forgedPreHash, preDocumentEvidence: forgedPreComplete } as Record<string, unknown>;
+        delete forgedReadinessBody.evidenceHash;
+        const forgedReadinessPreimage = { tenantId: factory.tenantId, ...forgedReadinessBody };
+        const forgedReadinessHash = evidenceHash(forgedReadinessPreimage);
+        const frozen = {
+          readinessState: readiness.state, submissionReady: readiness.submissionReady,
+          permittedActions: readiness.permittedActions, blockers: readiness.blockers,
+          recipientRegistrationId: source.recipientRegistration.registrationId,
+          sourceEvidenceHash: forgedSourceHash, preDocumentEvidenceHash: forgedPreHash,
+          readinessEvidenceHash: forgedReadinessHash, preDocumentJson: forgedSectionsJson,
+          sourceEvidencePreimage: JSON.stringify(forgedSourcePreimage),
+          preDocumentEvidencePreimage: JSON.stringify(forgedPrePreimage),
+          readinessEvidencePreimage: JSON.stringify(forgedReadinessPreimage),
+        };
+        await tx`SELECT * FROM public.commit_india_native_fiscal_invoice(
+          ${factory.tenantId}::uuid,${factory.propertyNode}::uuid,${factory.actorId}::uuid,
+          ${fixture.reservation_id}::uuid,${fixture.folio_id}::uuid,${fixture.journal_id}::uuid,
+          ${`order430-forged-${fixture.journal_id}`},${JSON.stringify(frozen)}::jsonb,${crypto.randomUUID()}::uuid)`;
+      })).rejects.toThrow(/stale or forged/);
+
+      expect(await deploy!<Array<{ next_no: string; documents: number; origins: number;
+        facts: number; events: number; keys: number }>>`SELECT
+          (SELECT next_no::text FROM document_series WHERE tenant_id=${factory.tenantId}::uuid
+            AND id=${configured.seriesId}::uuid) next_no,
+          (SELECT count(*)::int FROM document WHERE tenant_id=${factory.tenantId}::uuid
+            AND series_id=${configured.seriesId}::uuid) documents,
+          (SELECT count(*)::int FROM india_gst_native_fiscal_document_origin
+            WHERE tenant_id=${factory.tenantId}::uuid) origins,
+          (SELECT count(*)::int FROM fact_log WHERE tenant_id=${factory.tenantId}::uuid
+            AND entity_type='document' AND fact_type='issued') facts,
+          (SELECT count(*)::int FROM outbox WHERE tenant_id=${factory.tenantId}::uuid
+            AND event_type='document.issued') events,
+          (SELECT count(*)::int FROM api_idempotency WHERE tenant_id=${factory.tenantId}::uuid
+            AND operation='document.issued') keys`).toEqual([{
+              next_no: "1", documents: 0, origins: 0, facts: 0, events: 0, keys: 0,
+            }]);
+    } finally {
+      await factory.close();
+    }
   });
 
   test("P0: a genuine approved Order429 source configures an active dated registration and issues once", async () => {
