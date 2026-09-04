@@ -1,6 +1,6 @@
 # Order 239 — Attributable rate-quote tax preview
 
-**Status:** CHANGES REQUIRED — D1288
+**Status:** REPAIRED-AWAITING-DIFFERENT-FRESH-TIER3 — D1291
 **Phase:** 7 — Tax engine and India IRP
 **Branch:** `phase-7/quote-tax-preview`
 **Base:** `537f2c1` (built-unreviewed Order238)
@@ -100,12 +100,14 @@ room-tax preview bound into the quote hash and exposed through the existing offe
 - [x] Unsupported, conflicting and hostile cases fail without fabricated totals.
 - [x] Focused, adjacent and standing totals are transcribed.
 
-Fresh independent Tier-3 review under D1288 retains this order as unapproved. Three
-required permanent proofs are false-green: changing the maximum from 366 to 365
-nights, removing the resolver property/business-date scope checks, or removing the
-explicit package-evidence attribution guard leaves the complete focused suite green.
-Repair each with an isolated mutation-sensitive case and obtain a different fresh
-Tier-3 rereview.
+Order428/D1291 repairs the four false-green proofs without a product-source change.
+The exact 366-night case calculates while only `> 366` admits it; separately forged
+property and business-date resolver results remain valid through earlier checks and
+require their exact `RateQuoteConflictError` scope message. A coherent zero-value
+package keeps all other package values/counts at zero but remains unavailable because
+package evidence is present. Removing each corresponding production guard makes only
+its named proof red; all source bytes were restored. A different fresh Tier-3 reviewer
+must personally repeat the load-bearing proof before approval.
 
 ## Built evidence
 

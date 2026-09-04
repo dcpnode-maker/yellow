@@ -1,6 +1,6 @@
 # Order 428 — Effective tax resolution and quote-preview proof repair
 
-**Status:** ACTIVE — D1290
+**Status:** BUILT-AWAITING-DIFFERENT-FRESH-TIER3 — D1291
 **Phase:** 7 — Tax engine and India IRP
 **Branch:** `phase-7/persisted-india-final-component-tax-evidence`
 **Base:** independently approved Order426 coordination head `e2b4ac7`
@@ -62,3 +62,25 @@ semantics; no migration/schema/table/RLS/permission/event/fact/outbox/product AP
 no persistent database, Docker stack, second local app, seed/demo data, provider,
 document/submission/certification, deploy/merge/push or Phase7/application-completion
 claim. Never reuse invalid local credentials as proof and never alter the stable local.
+
+## Build evidence — D1291
+
+- No isolated case exposed a product defect; `src/contexts/tax-fiscal/resolution.ts`
+  and `src/contexts/rates/quote.ts` are byte-exact to the admitted candidate.
+- The restored focused proof is `27 pass, 6 expected database skips, 0 fail` with
+  141 expectations. The exact 366-night, property-scope, business-date-scope,
+  package-evidence and assignment-containment production-only mutations each made its
+  own named probe red, then each source file was restored byte-exact.
+- One disposable native PostgreSQL 17.2 cluster on port 55491 applied all 73
+  migrations. With a SCRAM-authenticated `yellow_runtime` role confirmed
+  `NOSUPERUSER NOBYPASSRLS` and transaction-local tenant context, all six formerly
+  skipped Order238 database cases passed (`15 pass, 0 fail`, 80 expectations).
+- The test fixture conditionally registers the prerequisite `tax_jurisdiction`
+  extension type only if absent in the isolated database and removes only that created
+  row. The cluster, port, data directory and generated credentials were removed.
+  Docker, WSL, a second Yellow app, stable local, migrations and `.yellow` were not
+  touched.
+- Standing proof is `1,458 pass, 1,054 expected environment skips, 0 fail` with
+  20,651 expectations across 2,512 tests/462 files.
+- Fresh non-implementing Tier-3 review remains mandatory. This builder evidence is not
+  a review or approval.

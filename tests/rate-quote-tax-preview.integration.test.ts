@@ -54,8 +54,8 @@ const INCLUSIVE_VAT = {
   }],
 } as const;
 
-type PackageMode = "none" | "included" | "extra";
-type ResolutionMode = "resolved" | "unassigned" | "partial" | "mixed" | "foreign";
+type PackageMode = "none" | "included" | "extra" | "zero";
+type ResolutionMode = "resolved" | "unassigned" | "partial" | "mixed" | "foreign" | "property_mismatch" | "date_mismatch";
 
 interface HarnessOptions {
   readonly nightlyAmounts?: readonly bigint[];
@@ -122,7 +122,7 @@ function compositionSpec(currency: string, packageMode: PackageMode, promotion: 
         kind: "meal",
         code: "BREAKFAST",
         rhythm: "per_stay",
-        amountMinor: 100n,
+        amountMinor: packageMode === "zero" ? 0n : 100n,
         currency,
       }],
     },
@@ -148,24 +148,32 @@ function compositionSpec(currency: string, packageMode: PackageMode, promotion: 
 function resolvedJurisdiction(
   businessDate: string,
   taxContent: Readonly<Record<string, unknown>>,
-  overrides: Readonly<{ tenantId?: string; version?: number; contentHash?: string }> = {},
+  overrides: Readonly<{
+    tenantId?: string;
+    propertyNode?: string;
+    businessDate?: string;
+    version?: number;
+    contentHash?: string;
+  }> = {},
 ): TaxJurisdictionResolutionResult {
   const tenantId = overrides.tenantId ?? TENANT;
+  const propertyNode = overrides.propertyNode ?? PROPERTY;
+  const resolvedBusinessDate = overrides.businessDate ?? businessDate;
   const version = overrides.version ?? 7;
   const contentHash = overrides.contentHash ?? "a".repeat(64);
   return deepFreeze({
     state: "resolved",
     tenantId,
-    propertyNode: PROPERTY,
-    businessDate,
+    propertyNode,
+    businessDate: resolvedBusinessDate,
     propertyTimezone: "UTC",
-    businessDayFromInstant: `${businessDate}T00:00:00.000000Z`,
+    businessDayFromInstant: `${resolvedBusinessDate}T00:00:00.000000Z`,
     businessDayToInstant: "2026-07-02T00:00:00.000000Z",
     assignment: {
       jurisdictionKey: "in-gst-lodging",
       effectiveFrom: "2026-01-01",
       effectiveTo: null,
-      evidenceRef: `tax-assignment:${businessDate}`,
+      evidenceRef: `tax-assignment:${resolvedBusinessDate}`,
     },
     jurisdiction: {
       extensionId: EXTENSION,
@@ -292,6 +300,16 @@ function harness(options: HarnessOptions = {}) {
       if (resolutionMode === "foreign") {
         return resolvedJurisdiction(input.businessDate, taxContent, { tenantId: FOREIGN_TENANT });
       }
+      if (resolutionMode === "property_mismatch") {
+        return resolvedJurisdiction(input.businessDate, taxContent, {
+          propertyNode: "00000000-0000-0000-0000-000000023910",
+        });
+      }
+      if (resolutionMode === "date_mismatch") {
+        return resolvedJurisdiction(input.businessDate, taxContent, {
+          businessDate: "2026-09-30",
+        });
+      }
       return resolvedJurisdiction(input.businessDate, taxContent, { contentHash });
     },
   };
@@ -321,6 +339,20 @@ function harness(options: HarnessOptions = {}) {
 }
 
 describe("Order 239 attributable rate-quote tax preview", () => {
+  async function expectExactConflict(operation: Promise<unknown>, message: string): Promise<void> {
+    try {
+      await operation;
+      throw new Error("expected quote-scope rejection");
+    } catch (error) {
+      expect(error).toBeInstanceOf(RateQuoteConflictError);
+      expect((error as { readonly constructor?: unknown }).constructor).toBe(RateQuoteConflictError);
+      expect(error).toMatchObject({
+        name: "RateQuoteConflictError",
+        message,
+      });
+    }
+  }
+
   test("P1: mixed 99,900/100,100 room nights use the 5% value band per night, never by stay average", async () => {
     const result = await harness({
       taxContent: {
@@ -451,6 +483,63 @@ describe("Order 239 attributable rate-quote tax preview", () => {
     }).resolve();
     expect(longStay.taxPreview).toMatchObject({ state: "unavailable", reason: "stay_too_long" });
     expect("evaluation" in longStay.taxPreview).toBe(false);
+  });
+
+  test("D1288: exactly 366 attributable room nights calculate while 367 is refused", async () => {
+    const accepted = await harness({
+      nightlyAmounts: Array.from({ length: 366 }, () => 100_000n),
+    }).resolve();
+    expect(accepted.taxPreview).toMatchObject({
+      state: "calculated",
+      reason: null,
+      evaluation: { inputTotalMinor: 36_600_000n },
+    });
+
+    const refused = await harness({
+      nightlyAmounts: Array.from({ length: 367 }, () => 100_000n),
+    }).resolve();
+    expect(refused.taxPreview).toEqual({
+      state: "unavailable",
+      reason: "stay_too_long",
+      assignments: refused.taxAssignments,
+    });
+  }, 20_000);
+
+  test("D1288: a coherent zero-value package remains unavailable because package evidence is present", async () => {
+    const result = await harness({ packageMode: "zero" }).resolve();
+    expect(result.result).toMatchObject({
+      state: "quoted",
+      packageEvidence: {
+        key: "breakfast",
+        includedInRate: false,
+        elements: [{ quantity: 1, totalMinor: 0n }],
+      },
+      includedAllocationMinor: 0n,
+      packageExtraMinor: 0n,
+      promotionDiscountMinor: 0n,
+      appliedPromotionCodes: [],
+      roomAmountMinor: 200_000n,
+      preTaxSubtotalMinor: 200_000n,
+    });
+    expect(result.taxPreview).toEqual({
+      state: "unavailable",
+      reason: "unsupported_attribution",
+      assignments: result.taxAssignments,
+    });
+  });
+
+  test("D1288: resolver property result mismatch reaches only the quote-scope guard", async () => {
+    await expectExactConflict(
+      harness({ resolutionMode: "property_mismatch" }).resolve(),
+      "Tax jurisdiction resolver returned mismatched quote scope",
+    );
+  });
+
+  test("D1288: resolver business-date result mismatch reaches only the quote-scope guard", async () => {
+    await expectExactConflict(
+      harness({ resolutionMode: "date_mismatch" }).resolve(),
+      "Tax jurisdiction resolver returned mismatched quote scope",
+    );
   });
 
   test("P5: blocked quote state bypasses the tax evaluator", async () => {

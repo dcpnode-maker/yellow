@@ -1,6 +1,6 @@
 # Order 238 — Effective tax-jurisdiction resolution
 
-**Status:** CHANGES REQUIRED — D1288
+**Status:** REPAIRED-AWAITING-DIFFERENT-FRESH-TIER3 — D1291
 **Phase:** 7 — Tax engine and India IRP
 **Branch:** `phase-7/effective-tax-jurisdiction-resolution`
 **Base:** `e764ed2` (built-unreviewed Order237)
@@ -107,12 +107,16 @@ jurisdiction:{ extensionId,ownerTenantId,key,version,content,contentHash,evidenc
 - [x] Canonical content hash, deep freeze, isolation and zero-write evidence execute.
 - [x] Focused, adjacent and standing totals are transcribed.
 
-Fresh independent Tier-3 review under D1288 retains this order as unapproved. The
-effective assignment-date guard is not load-bearing in the permanent non-database
-suite, and the required PostgreSQL proof could not authenticate against the currently
-running PostgreSQL service with the approved local authority file. Repair must add an
-isolated permanent assignment-containment probe and obtain current authenticated
-PostgreSQL proof before a different fresh Tier-3 rereview.
+Order428/D1291 repairs the containment proof without a product-source change. A
+query-selected fixture row whose stored bounds exclude the requested date now reaches
+only the normalization containment guard and requires its exact `Error` message;
+removing that guard makes the named proof red. One disposable native PostgreSQL 17.2
+cluster applied all 73 migrations and ran all six formerly skipped Order238 cases
+(`15 pass, 0 fail`) under SCRAM-authenticated `yellow_runtime` (`NOSUPERUSER`,
+`NOBYPASSRLS`) with transaction-local tenant context. The test fixture registered a
+missing `tax_jurisdiction` type only when it created it and removed it afterward. The
+cluster, port, data and credentials were removed. A different fresh Tier-3 reviewer
+must personally repeat the load-bearing proof before approval.
 
 ## Built evidence
 

@@ -563,11 +563,14 @@ runtime-extension authority. Missing/overlapping assignments and missing/ambiguo
 versions fail closed. No precedence, migration, mutation, quote, posting, document,
 provider, HTTP or UI behavior is admitted.
 
-Current pure/static/standing gates are green, but removing assignment-date containment
-leaves the permanent non-database suite green and the approved local authority secret
-does not authenticate to the currently running PostgreSQL service. Current PostgreSQL
-containment proof plus an isolated mutation-sensitive assignment-date test and a
-different fresh Tier-3 rereview are mandatory.
+Order428/D1291 repairs the assignment-containment oracle without a product-source
+change: a query-selected row with bounds excluding the requested date reaches only the
+normalization containment guard and requires its exact message; removing that guard
+makes the named probe red. One disposable native PostgreSQL 17.2 cluster applied all
+73 migrations and ran all six formerly skipped Order238 cases (`15 pass, 0 fail`) as
+SCRAM `yellow_runtime` confirmed `NOSUPERUSER NOBYPASSRLS` with transaction-local
+tenant context. The conditionally created fixture type, cluster, port, data and
+credentials were removed. Fresh non-implementing Tier-3 reproduction remains required.
 
 Order239 is ready under D-628. It composes effective nightly resolution and the pure
 evaluator into one exact room-only quote tax preview, binds the frozen evidence before
@@ -576,13 +579,17 @@ jurisdiction, unsupported package/promotion allocation, over-366-night calculati
 and rate-plan/display disagreement. No price mutation, folio/posting/document/fiscal
 authority, migration or new endpoint is admitted.
 
-Order239 remains changes-required under D1288. Current focused, composition, standing
-and static gates are green, and currency/India exact-money mutations are caught. The
-permanent proof is nevertheless false-green when the 366-night admission becomes 365,
-when resolver property/business-date scope checks are removed, and when the explicit
-package-evidence attribution guard is removed. Isolated mutation-sensitive repairs and
-a different fresh Tier-3 rereview are mandatory; folio attribution, posting, document
-and fiscal authority remain later.
+Order428/D1291 repairs the four false-green Order239 proofs without a product-source
+change: an exact 366-night calculated case, distinct property/date resolver scope
+cases with exact `RateQuoteConflictError` messages, and a coherent zero-value package
+with present evidence each turn red when only its respective production guard is
+removed. Restored source bytes and focused/composition/static gates are green. Fresh
+non-implementing Tier-3 reproduction remains required; folio attribution, posting,
+document and fiscal authority remain later.
+
+Order428 standing proof is `1,458 pass, 1,054 expected environment skips, 0 fail`
+(20,651 expectations across 2,512 tests/462 files). This does not replace the required
+fresh Tier-3 database and mutation reproduction.
 
 Order240 is ready under D-630. It creates the missing pure canonical positive-origin
 tax-attribution snapshot: exact Order239 quote/night/jurisdiction/evaluator evidence

@@ -333,6 +333,24 @@ describe("Order 238 effective tax-jurisdiction resolver pure contract", () => {
     }
   });
 
+  test("D1288: a query-selected assignment whose stored bounds exclude the requested date fails at containment", async () => {
+    const service = serviceWith([extension()]);
+    try {
+      await service.resolve(
+        fakeTx({ assignmentRows: [assignment({ effective_from: "2026-01-02" })] }).tx,
+        { propertyNode: PROPERTY_A, businessDate: "2026-01-01" },
+      );
+      throw new Error("expected stored-assignment containment rejection");
+    } catch (error) {
+      expect(error).toBeInstanceOf(Error);
+      expect((error as { readonly constructor?: unknown }).constructor).toBe(Error);
+      expect(error).toMatchObject({
+        name: "Error",
+        message: "Tax jurisdiction resolution failed: stored assignment bounds do not contain the business date",
+      });
+    }
+  });
+
   test("Order300 P3/P4: malformed property-day rows fail closed and the envelope changes evidence", async () => {
     const badRows = [
       { tenant_id: TENANT_A, property_timezone: "", business_day_from_instant: "2026-01-01T00:00:00.000000Z", business_day_to_instant: "2026-01-02T00:00:00.000000Z" },
@@ -386,6 +404,7 @@ let admin: SQL | undefined;
 let runtimePool: SQL | undefined;
 let database: Database | undefined;
 let databaseService: TaxJurisdictionResolutionService | undefined;
+let createdTaxJurisdictionType = false;
 
 async function cleanDatabaseFixture(): Promise<void> {
   if (!admin) return;
@@ -465,6 +484,13 @@ beforeAll(async () => {
     new ExtensionRegistry(runtimePool),
   );
 
+  const registered = await admin<{ inserted: boolean }[]>`
+    INSERT INTO extension_type (type, json_schema)
+    VALUES ('tax_jurisdiction', '{"type":"object"}'::jsonb)
+    ON CONFLICT (type) DO NOTHING
+    RETURNING true AS inserted
+  `;
+  createdTaxJurisdictionType = registered[0]?.inserted === true;
   await cleanDatabaseFixture();
   await admin`
     INSERT INTO tenant (id, slug, name, tier, status)
@@ -503,6 +529,9 @@ beforeAll(async () => {
 
 afterAll(async () => {
   await cleanDatabaseFixture();
+  if (createdTaxJurisdictionType) {
+    await admin?.unsafe("DELETE FROM extension_type WHERE type = 'tax_jurisdiction'");
+  }
   await database?.close();
   await runtimePool?.close();
   await admin?.close();
