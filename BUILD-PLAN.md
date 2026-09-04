@@ -1812,3 +1812,11 @@ implementation; complete PostgreSQL hostility/read-only proof and fresh independ
 Tier3 execution remain mandatory. This order allocates and issues nothing and grants
 no document, number, hash-chain, India ItemList/provider, API/UI/local or Phase7-
 completion authority.
+
+Order413 admits the next migration-free statutory composition after independently
+approved Order412. One Tax-Fiscal resolver binds that exact current unreversed posted
+source to the approved seller, explicit legal buyer, BuyerDtls, property-derived Pos,
+accommodation SAC/service flag, time-of-supply/supply-nature and component-family
+evidence, returning only frozen `eligible_irp_invoice_source` truth. It allocates or
+issues nothing: ItemList, supply-type/SEZ policy, document series/hash chain, provider,
+submission, API/UI/local and Phase7 completion remain separate.
