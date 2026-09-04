@@ -1820,3 +1820,11 @@ accommodation SAC/service flag, time-of-supply/supply-nature and component-famil
 evidence, returning only frozen `eligible_irp_invoice_source` truth. It allocates or
 issues nothing: ItemList, supply-type/SEZ policy, document series/hash chain, provider,
 submission, API/UI/local and Phase7 completion remain separate.
+
+Order414 admits the next policy-independent migration-free pure composition after
+independently approved Order413. It revalidates that complete frozen envelope, groups
+only its already-persisted component records by the existing dense room-night ordinal,
+and proves exact signed-int64 INR transaction/tax/grand-total and rate/component-family
+reconciliation. It returns only frozen tenant-hidden numeric item-source evidence for
+a later serializer. It does not emit ItemList or choose SlNo/description/quantity/UQC,
+grouping, supply type, document identity, provider, API/UI/local or Phase completion.
