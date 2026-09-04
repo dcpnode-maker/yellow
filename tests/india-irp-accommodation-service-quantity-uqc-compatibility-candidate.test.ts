@@ -44,43 +44,78 @@ function rebuilt(mutator: (source: Mutable) => void, options: FixtureOptions = {
   return freeze({ tenantId: TENANT, source: rehashOrder419Source(freeze(source) as never) });
 }
 
-function childProjectionProbe(mutation: string): ReturnType<typeof Bun.spawnSync> {
-  const childPath = "./src/contexts/tax-fiscal/india-irp-accommodation-room-night-item-candidate.ts";
+function childProjectionProbe(
+  mutation: "amount" | "count" | "family" | "currency" | "supply" | "source" | "itemSource" | "order" | "evidence",
+  expectedMessage: string,
+): ReturnType<typeof Bun.spawnSync> {
+  const childPath = new URL(
+    "../src/contexts/tax-fiscal/india-irp-accommodation-room-night-item-candidate.ts",
+    import.meta.url,
+  ).href;
+  const targetPath = new URL(
+    "../src/contexts/tax-fiscal/india-irp-accommodation-service-quantity-uqc-compatibility-candidate.ts",
+    import.meta.url,
+  ).href;
+  const fixturePath = new URL("./fixtures/india-irp-order419-fixture.ts", import.meta.url).href;
   const script = `
     import { mock } from "bun:test";
     const child = await import(${JSON.stringify(childPath)});
+    const original = child.composeIndiaIrpAccommodationRoomNightItemCandidates;
     mock.module(${JSON.stringify(childPath)}, () => ({
       ...child,
       composeIndiaIrpAccommodationRoomNightItemCandidates: (input) => {
-        const result = child.composeIndiaIrpAccommodationRoomNightItemCandidates(input);
+        const result = original(input);
         const [first, ...rest] = result.items;
+        const bind = (candidate) => {
+          const { evidenceHash: _old, ...body } = candidate;
+          return { ...body, evidenceHash: new Bun.CryptoHasher("sha256")
+            .update(JSON.stringify({ tenantId: input.tenantId, ...body })).digest("hex") };
+        };
         const mutations = {
           amount: () => ({ ...result, items: [{ ...first, irp: { ...first.irp, TotAmt: "99.99" } }, ...rest] }),
-          count: () => ({ ...result, items: [] }),
-          family: () => ({ ...result, items: [{ ...first, lineage: { ...first.lineage, componentFamily: "cgst_sgst" } }, ...rest] }),
+          count: () => ({ ...result, items: [first] }),
+          family: () => ({ ...result, items: [first, { ...rest[0], lineage: { ...rest[0].lineage, componentFamily: "cgst_sgst" } }, ...rest.slice(1)] }),
           currency: () => ({ ...result, currency: "USD" }),
           supply: () => ({ ...result, supplyTypeCode: "SEZWP" }),
-          source: () => ({ ...result, sourceEvidenceHash: "0".repeat(64) }),
+          source: () => ({ ...result, sourceEvidenceHash: "0".repeat(64), items: result.items.map((item) => ({ ...item, lineage: { ...item.lineage, sourceEvidenceHash: "0".repeat(64) } })) }),
+          itemSource: () => ({ ...result, items: [{ ...first, lineage: { ...first.lineage, sourceEvidenceHash: "0".repeat(64) } }, ...rest] }),
+          order: () => ({ ...result, items: [first, { ...rest[0], lineage: { ...rest[0].lineage, roomNightOrdinal: "9" } }, ...rest.slice(1)] }),
+          evidence: () => ({ ...result, evidenceHash: "0".repeat(64) }),
         };
-        return mutations[${JSON.stringify(mutation)}]();
+        const changed = mutations[${JSON.stringify(mutation)}]();
+        return ${JSON.stringify(mutation)} === "evidence" ? changed : bind(changed);
       },
     }));
-    const target = await import(
-      "./src/contexts/tax-fiscal/india-irp-accommodation-service-quantity-uqc-compatibility-candidate.ts?" +
-      ${JSON.stringify(mutation)}
-    );
-    const fixture = await import("./tests/fixtures/india-irp-order419-fixture.ts");
+    const target = await import(${JSON.stringify(targetPath)} + "?" + ${JSON.stringify(mutation)});
+    const fixture = await import(${JSON.stringify(fixturePath)});
     try {
-      target.composeIndiaIrpAccommodationServiceQuantityUqcCompatibilityCandidate(fixture.makeOrder419Input());
+      target.composeIndiaIrpAccommodationServiceQuantityUqcCompatibilityCandidate(
+        fixture.makeOrder419Input({ nights: ${["count", "family", "order"].includes(mutation) ? 2 : 1} }),
+      );
       process.exit(1);
-    } catch {
-      process.exit(0);
+    } catch (error) {
+      const exact = error?.name === "IndiaIrpAccommodationServiceQuantityUqcCompatibilityCandidateValidationError" &&
+        error?.message === ${JSON.stringify(expectedMessage)};
+      if (!exact) console.error(error?.name, error?.message);
+      process.exit(exact ? 0 : 2);
     }
   `;
   return Bun.spawnSync([process.execPath, "-e", script], {
     cwd: new URL("..", import.meta.url).pathname.slice(1), stdout: "pipe", stderr: "pipe",
   });
 }
+
+const CHILD_PROJECTION_CASES = [
+  ["amount", "inherited UnitPrice and TotAmt must be identical"],
+  ["count", "inherited item-candidate evidence is inconsistent"],
+  ["family", "inherited item order, lineage or component family is inconsistent"],
+  ["currency", "inherited item-candidate evidence is inconsistent"],
+  ["supply", "inherited item-candidate evidence is inconsistent"],
+  ["source", "inherited item-candidate evidence is inconsistent"],
+  ["itemSource", "inherited item order, lineage or component family is inconsistent"],
+  ["order", "inherited item order, lineage or component family is inconsistent"],
+  ["evidence", "inherited item-candidate evidence hash is inconsistent"],
+] as const;
 
 describe("Order425 India IRP service quantity/UQC compatibility candidate", () => {
   test("adds only exact compatibility fields in exact IRP schema order across every family", () => {
@@ -181,10 +216,10 @@ describe("Order425 India IRP service quantity/UQC compatibility candidate", () =
     rejected(freeze(cycle));
   });
 
-  test("rejects controlled inherited amount, count, family, currency, B2B and source mismatches", () => {
-    for (const mutation of ["amount", "count", "family", "currency", "supply", "source"]) {
-      const probe = childProjectionProbe(mutation);
+  for (const [mutation, message] of CHILD_PROJECTION_CASES) {
+    test(`rejects the exact controlled inherited ${mutation} mismatch`, () => {
+      const probe = childProjectionProbe(mutation, message);
       expect(probe.exitCode).toBe(0);
-    }
-  });
+    });
+  }
 });

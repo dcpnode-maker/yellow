@@ -1,6 +1,6 @@
 # Order 425 — India IRP accommodation service quantity/UQC compatibility candidate
 
-**Status:** CHANGES REQUIRED — CONTROLLED-CHILD PROOF FALSE-GREEN — D1278
+**Status:** REPAIRED — AWAITING DIFFERENT FRESH INDEPENDENT TIER-3 — D1279
 **Phase:** 7 — Tax engine and India IRP
 **Branch:** `phase-7/persisted-india-final-component-tax-evidence`
 **Base:** independently approved Order424 coordination head `d5b2aa5`
@@ -101,3 +101,20 @@ expected database skips (20,567 assertions; 2,468 tests/460 files). Strict TypeS
 158 import boundaries, 23 dependency licences, audit zero, image pins and diff checks
 pass. Unchanged schema/referee proof and fresh independent Tier-3 review remain
 mandatory before approval.
+
+## D1279 proof repair
+
+Every controlled child projection now retains an unmocked original Order419 composer,
+uses normalized module identity, recomputes the mutated child's exact tenant-bound
+evidence hash, and accepts only the named Order425 validation class and exact guard
+message. Amount, count, family, order, currency, B2B, outer source, per-item source and
+evidence-hash mutations are separate permanent tests, so unrelated exceptions cannot
+produce green evidence. Production additionally binds inherited count to the approved
+source room-night count and independently revalidates the Order419 evidence hash.
+
+Removing each amount, B2B, count, family/order, currency, source or evidence guard was
+personally observed to turn the intended permanent case red; restored focused proof is
+`16/0` (99 assertions). Orders413–425 composition is `89/0` plus 7 expected database
+skips (895 assertions); standing is `1422/0` plus 1,054 expected database skips
+(20,570 assertions; 2,476 tests/460 files). TypeScript, 158 boundaries, 23 licences,
+audit zero, image pins and diff are green. A different fresh Tier-3 review is mandatory.

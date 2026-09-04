@@ -104,7 +104,8 @@ function composeValidated(
   if (inherited.supplyTypeCode !== "B2B" || inherited.currency !== "INR" ||
       inherited.sourceEvidenceHash !== input.source.evidenceHash ||
       !SHA256.test(inherited.sourceEvidenceHash) || !SHA256.test(inherited.evidenceHash) ||
-      inherited.items.length === 0) {
+      inherited.items.length === 0 ||
+      inherited.items.length !== input.source.financialSource.roomNights.length) {
     return fail("inherited item-candidate evidence is inconsistent");
   }
   const componentFamily = inherited.items[0]!.lineage.componentFamily;
@@ -120,6 +121,10 @@ function composeValidated(
     }
     return { irp: projectIrp(item.irp, componentFamily), lineage: item.lineage };
   });
+  const { evidenceHash: inheritedEvidenceHash, ...inheritedBody } = inherited;
+  if (inheritedEvidenceHash !== digest({ tenantId: input.tenantId, ...inheritedBody })) {
+    return fail("inherited item-candidate evidence hash is inconsistent");
+  }
   const lineage = {
     itemCandidateEvidenceHash: inherited.evidenceHash,
     sourceEvidenceHash: inherited.sourceEvidenceHash,

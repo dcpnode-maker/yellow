@@ -3125,7 +3125,9 @@ B2B/INR truth, source backlink, evidence backlink and byte-exact item lineage.
 Each projected `irp` record inserts only `Qty:"1.000"` and `Unit:"OTH"` immediately
 after `HsnCd`; every inherited field retains its exact value and notified schema order.
 The fixed lineage contains only the Order419 evidence hash, common source hash, item
-count and component family. Inherited `UnitPrice` and `TotAmt` must remain identical.
+count and component family. The item count must equal the approved source room-night
+count, and the inherited Order419 tenant-bound evidence hash is revalidated. Inherited
+`UnitPrice` and `TotAmt` must remain identical.
 Replay is byte-equivalent and the deterministic tenant-bound result is recursively
 frozen without returning the tenant.
 

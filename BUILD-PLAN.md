@@ -1100,6 +1100,13 @@ skips, standing `1414/0` plus 1,054 expected database skips and all non-database
 gates pass. This compatibility candidate is not provider-certified or submission-ready;
 it adds no document, number, provider, API/UI, runtime, local or Phase authority.
 
+D1279 repairs the D1278 false-green review proof: each coherently tenant-rehashed
+child mutation now has its own exact-class/exact-message oracle, inherited count is
+bound to source room nights, and the Order419 evidence hash is independently
+revalidated. Guard-removal mutations are red; restored focused `16/0`, composition
+`89/0` plus 7 expected database skips, standing `1422/0` plus 1,054 expected skips
+and static gates are green. Different fresh Tier-3 approval remains mandatory.
+
 ## Phase 8 — Statutory registration + ZATCA
 
 Statutory scheduler consuming check-in events; adapters: it-alloggiati (168-char),

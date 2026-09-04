@@ -51,3 +51,20 @@ on an unrelated exception: retain an unmocked original child reference, assert t
 exact expected validation outcome for each named projection, and make each production
 guard removal independently turn a permanent test red. Then rerun the complete gates
 and obtain a different fresh non-implementing Tier-3 review.
+
+## D1279 repair awaiting different fresh Tier-3
+
+The controlled-child harness now retains the unmocked original child, resolves the
+same normalized child module identity, coherently recomputes every mutated Order419
+tenant-bound evidence hash, and succeeds only for the exact Order425 validation class
+and guard-specific message. Nine named mismatch projections are separately executable.
+
+The implementer removed the amount, B2B, count, family/order, currency, source and
+evidence guards independently and observed the corresponding intended test turn red;
+all production was restored before final proof. Restored focused passes `16/0` (99),
+composition `89/0` plus 7 expected database skips (895), and standing `1422/0` plus
+1,054 expected skips (20,570; 2,476 tests/460 files). Static gates remain green.
+
+This is implementation evidence, not approval. A different fresh independent
+non-implementing Tier-3 reviewer must personally rerun the mutation audit and complete
+gates before changing the verdict.
