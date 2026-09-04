@@ -1151,6 +1151,16 @@ guard now turns only its corresponding exact-message test red, while restored pr
 remains byte-exact to the original Order426 candidate. Another different fresh Tier-3
 rereview is mandatory.
 
+Order426 is independently approved and closed under D1289. Another different fresh
+Tier-3 reviewer personally made both repaired count guards, the per-item source repair,
+each separated child source/evidence/family boundary, fixed Qty/Unit and shared
+Order419 ancestry mutation-red, then restored the exact product and test blobs.
+Focused `31/0`, India-IRP composition `138/0` plus seven expected database skips,
+standing `1,453/0` plus 1,054 expected skips with zero failures, and all static/scope/
+protected-input gates pass. Approval remains only for an incomplete, non-submit-ready,
+non-certified pure assembly with `DocDtls` absent; it grants no downstream document,
+provider, runtime, local, Phase-7 or application-completion authority.
+
 ## Phase 8 — Statutory registration + ZATCA
 
 Statutory scheduler consuming check-in events; adapters: it-alloggiati (168-char),

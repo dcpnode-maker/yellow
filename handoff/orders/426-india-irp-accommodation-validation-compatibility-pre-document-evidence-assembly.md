@@ -1,6 +1,6 @@
 # Order 426 — India IRP accommodation validation-compatibility pre-document evidence assembly
 
-**Status:** REPAIRED — AWAITING ANOTHER DIFFERENT FRESH TIER-3 REVIEW — D1287
+**Status:** INDEPENDENTLY APPROVED — CLOSED — D1289
 **Phase:** 7 — Tax engine and India IRP
 **Branch:** `phase-7/persisted-india-final-component-tax-evidence`
 **Base:** independently approved Order425 coordination head `e9d4ef1`
@@ -157,3 +157,28 @@ expected DB skips with one unrelated Order330 Chromium cleanup failure; immediat
 isolated rerun passes `1/0` (4 assertions), matching the same transient previously
 recorded by D1283. TypeScript, 159 boundaries, 23 licences, audit zero, image pins,
 protected/product bytes and diff checks are green.
+
+## D1289 another different fresh Tier-3 approval
+
+Another different fresh independent non-implementing Tier-3 reviewer personally
+removed only the actual compatibility-child-versus-pre-document count guard: the
+exact named count probe became red `0/1` and surfaced the distinct later item-
+preservation error. Removing only the declared-lineage-count guard independently
+made its named probe red `0/1`; exact restoration returned the pair to `2/0`.
+
+The reviewer separately made the repaired per-item source backlink, all four outer/
+nested child-source fields, both child evidence hashes, child/per-item family,
+`Qty`, `Unit`, and the shared Order419 ancestry gate mutation-red. These probes use
+coherently tenant-rehashed children and exact error-class/message oracles, so no
+unrelated or same-message rejection can satisfy the tested boundary. Exact Order424
+and Order425 product inputs remain unchanged.
+
+Restored proof passes focused `31/0` (68 assertions), all India-IRP composition
+`138/0` plus seven expected database skips (1,182 assertions), and standing `1,453/0`
+plus 1,054 expected database skips (20,638 assertions; 2,507 tests / 462 files) with
+zero failures. Strict TypeScript, 159 import boundaries, 23 dependency licences,
+audit zero, exact image pins, scope, protected-input and diff checks pass. Product
+blob `2c41436f` and repaired test blob `d3ecb6d` are restored exact. Approval is
+strictly bounded to this pure, false-readiness, non-certified assembly; it grants no
+`DocDtls`, document issue, provider submission, IRN/QR, database/runtime/local,
+Phase-7 or application-completion authority.

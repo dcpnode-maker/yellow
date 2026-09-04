@@ -135,3 +135,57 @@ Restored complete execution passes focused `31/0` (68), India-IRP composition
 expected DB skips with one unrelated Order330 Chromium cleanup failure; that exact
 test immediately passes in isolation `1/0` (4), consistent with D1283's recorded host
 cleanup flake. Static, protected/product-byte, scope and diff checks are green.
+
+## Another different fresh Tier-3 final rereview — D1289
+
+**Verdict:** APPROVED — CLOSED
+
+**Reviewed repaired candidate:** `01a802684d933f5d6d7f832d28ab57eabc053f5f`
+
+**Rejection base:** `54ce83b`; **original product candidate:** `602f4ae`
+
+**Reviewer:** `/root/order426_count_tier3`, another different fresh independent
+non-implementing Tier-3
+
+D1286's actual-versus-declared count defect is repaired. I removed only
+`compatibility.items.length !== preDocument.sections.ItemList.length`; the exact
+`compatibility count` test became red `0/1` because it reached the distinct later
+`compatibility enrichment does not preserve pre-document items` error. I restored
+that line, removed only
+`compatibility.lineage.itemCount !== compatibility.items.length`, and the exact
+`compatibility lineageCount` test became red `0/1` because the composer incorrectly
+accepted the declared-only mutation. Exact restoration returned both tests to green
+`2/0` and restored product blob `2c41436f`.
+
+I also independently removed and restored the repaired per-item source guard, all
+four separately projected child outer/nested source guards, each child evidence-hash
+guard, the item-family and outer-family gates, fixed `Qty` and `Unit`, and the shared
+Order419 item-candidate ancestry gate. Every corresponding named exact-message probe
+turned red when its production protection was absent. The ancestry removal made both
+pre-document and compatibility ancestry probes red, proving both approved children
+contribute independently to the shared lineage. The current child harness separates
+outer source, nested source, per-item source, actual count, declared count, child
+family, per-item family, tax scheme, format, readiness and compatibility state; every
+non-evidence mutation recomputes its tenant-bound child hash, and each probe requires
+the exact Order426 error class and message. No catch-any-error masking remains.
+
+Reviewer-personal restored evidence:
+
+- focused `31/0` (68 assertions);
+- all India-IRP composition `138/0` plus seven expected database skips (1,182
+  assertions);
+- standing `1,453/0` plus 1,054 expected database skips, zero failures (20,638
+  assertions; 2,507 tests / 462 files);
+- strict TypeScript, 159 import boundaries, 23-package licence policy, zero
+  vulnerabilities, exact container-image pins and diff hygiene all pass;
+- Order424/425 protected product files are byte-exact to approved head `e9d4ef1`;
+  Order426 product blob is `2c41436f`, repaired test blob is `d3ecb6d`, and only the
+  pre-existing untracked `.yellow/` remains.
+
+The fixed contract is exact: only Order424 `ItemList` is replaced with Order425's
+ordered `Qty:"1.000"` / `Unit:"OTH"` projection; stripping those fields reproduces
+the pre-document items byte-exact; all other sections and key order are retained;
+`DocDtls` is absent; both readiness/certification flags remain false; output is
+tenant-hidden, deterministic and recursively frozen. No database, Docker, runtime,
+local app or `.yellow` state was used or mutated. Approval grants no document,
+provider, submission, IRN/QR, Phase-7 or application-completion authority.
