@@ -1,6 +1,6 @@
 # Order 417 — Local hotel-data dependency retirement
 
-**Status:** BUILT — AWAITING FRESH INDEPENDENT TIER-3 REVIEW — D1241
+**Status:** INDEPENDENT TIER-3 APPROVED FOR GUARDED RETIREMENT — D1242
 **Phase:** Cross-phase local build hygiene
 **Risk tier:** 3 — destructive local data handling
 **Owner:** Codex implementation; fresh independent non-implementing Tier-3 reviewer required
