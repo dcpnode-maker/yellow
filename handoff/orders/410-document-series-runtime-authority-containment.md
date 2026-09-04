@@ -1,6 +1,6 @@
 # Order 410 — Document-series runtime authority containment
 
-**Status:** BUILT — AWAITING FRESH INDEPENDENT TIER-3 REVIEW — D1217
+**Status:** APPROVED — CLOSED — D1218
 **Phase:** 7 — Tax engine and India IRP
 **Branch:** `phase-7/persisted-india-final-component-tax-evidence`
 **Base:** independently approved Orders408/409 coordination head `abbf7e3`
@@ -76,4 +76,15 @@ During integration, the existing primary-folio live harness was correctly separa
 into deploy fixture and runtime command URLs, and SQLSTATE22023/40001/55000 from the
 bounded allocator was mapped back to the established `FolioConflictError` contract.
 Stable/default databases, local port3000 and retained `.yellow` were untouched.
-Fresh non-implementing Tier-3 execution remains mandatory before approval.
+Fresh non-implementing Tier-3 execution was mandatory and is satisfied by D1218.
+
+## Fresh independent Tier-3 approval — D1218
+
+Fresh non-implementing reviewer `/root/order410_fresh_tier3` approves exact
+candidate `acee3cc`. Personal official upstream PostgreSQL16.15 execution passes
+migrations1–73, exact catalogue and raw normalized schema, focused6/0 including the
+two-tenant 100-way gap-free proof, preserved folio/transfer/runtime/Order408
+adjacencies, referee11/11, standing1330/0 and all available static gates. The bounded
+registry audit transport was unavailable twice; Order410 changes no dependency or
+lock file and no audit pass is claimed. Full evidence is recorded in
+`handoff/reviews/410-document-series-runtime-authority-containment.md`.
