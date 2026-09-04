@@ -1109,10 +1109,13 @@ dry-run import of 1k-reservation fixture reconciles to the rupee/fils.
 ## Post-v1 delivery priority
 
 Phase numbers below are stable scope identities, not a numeric execution dependency.
-After the Phase-12 exit gate, the founder-directed delivery sequence is exactly
-`[13, 17, 14, 15, 16]`. Every phase still requires its declared prerequisites,
-bounded orders, executable exit proof and independent review. This neither skips
-unfinished Phases 0–12 nor grants implementation authority from roadmap prose.
+The founder's highlighted feature priority is exactly `[11, 13, 17]`, followed by
+Phases 14–16. Dependency gates remain mandatory: Phase 11 follows Phases 8–10; Phase
+12 must close between Phase 11 and Phase 13; Phase 17 follows Phase 13. Thus the
+executable path from active Phase 7 is `7 → 8 → 9 → 10 → 11 → 12 → 13 → 17 → 14 →
+15 → 16`. Every phase still requires bounded orders, executable exit proof and
+independent review. Priority neither skips prerequisites nor grants implementation
+authority from roadmap prose.
 
 ## Phase 13 — Voice and Conversational Command Layer
 

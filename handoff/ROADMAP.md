@@ -119,10 +119,12 @@ proof** — not a description, a command with output. The phase exit review chec
 proofs and nothing else; per-order reviews already covered the code.
 
 No Phase 0–12 phase starts before the previous phase's exit review passes and its
-integration PR is on `main`. After Phase 12, stable phase numbers identify scope while
-the explicit founder priority controls execution: `[13, 17, 14, 15, 16]`. Phase 17
-therefore follows Phase 13, then Phases 14–16 resume. Every declared prerequisite and
-exit gate still applies; this is sequencing, not authority to skip work.
+integration PR is on `main`. The explicit founder feature priority is `[11, 13, 17]`,
+then Phases 14–16. Phase 11 therefore follows required Phases 8–10; Phase 12 remains
+the mandatory gate between Phase 11 and Phase 13; Phase 17 follows Phase 13. The
+executable sequence from active Phase 7 is `7 → 8 → 9 → 10 → 11 → 12 → 13 → 17 → 14
+→ 15 → 16`. Every declared prerequisite and exit gate still applies; this is
+sequencing, not authority to skip work.
 
 ## Order budget and gate map
 
