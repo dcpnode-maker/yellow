@@ -1,6 +1,6 @@
 # Order 432 — PR80 CI portability repair
 
-**Status:** REPAIRED — AWAITING FIFTH GITHUB CI — D1315
+**Status:** REPAIRED — AWAITING SIXTH GITHUB CI — D1317
 **Phase:** Delivery infrastructure
 **Branch:** `phase-7/persisted-india-final-component-tax-evidence`
 **Risk tier:** 1 — test harness and CI portability only
@@ -28,6 +28,10 @@ path, browser launch assumptions and shallow Git history.
 - `tests/operator-rate-builder.integration.test.ts` only to derive its aged quote
   fixture from the same bounded future-date pattern and bind jurisdiction resolution
   to the already-provisioned runtime role;
+- `tests/founder-status.integration.test.ts` only to make its response-privacy oracle
+  distinguish credential keys and secret-bearing values from legitimate recorded
+  project-status prose while retaining exact credential, database URL and internal-path
+  leak detection;
 - one existing/new test-only executable/browser helper if needed;
 - focused tests for the helper/launcher behavior;
 - this order, `DECISIONS.log`, and `handoff/LEDGER.md`.
@@ -53,6 +57,10 @@ path, browser launch assumptions and shallow Git history.
    the runtime-only effective-period capability through the runtime role. Its
    tax-inclusive USD plan uses the existing tax-inclusive launch jurisdiction rather
    than an incompatible tax-exclusive fixture.
+8. The founder-status proof rejects password, secret, token and database-URL keys;
+   known runtime credential values; credential-shaped string values; Postgres URLs;
+   and local, Git and handoff paths without treating domain prose such as
+   `token-only payment foundation` as a credential leak.
 
 ## Excluded
 

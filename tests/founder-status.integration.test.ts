@@ -87,6 +87,94 @@ function manifestRows(source: string): Array<{ order: number; status: string }> 
   });
 }
 
+const FOUNDER_STATUS_SENSITIVE_VALUE_PATTERNS = [
+  ["credential assignment", /\b(?:password|secret|token)\b\s*(?:=|:)\s*\S+/i],
+  ["database environment", /\bDATABASE_URL\b/i],
+  ["Postgres URL", /postgres(?:ql)?:\/\//i],
+  ["bearer credential", /\bBearer\s+[A-Za-z0-9._~+/-]+=*/i],
+  ["JWT credential", /\beyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\b/],
+  ["Unix home path", /\/home\//i],
+  ["Windows absolute path", /\b[A-Za-z]:\\/],
+  ["Git internals", /\.git/i],
+  ["handoff internals", /handoff[\\/]/i],
+] as const;
+
+function founderStatusPrivacyLeaks(
+  value: unknown,
+  exactSensitiveValues: readonly (string | undefined)[] = [],
+): string[] {
+  const leaks: string[] = [];
+  const exactValues = exactSensitiveValues.filter((candidate): candidate is string => Boolean(candidate));
+
+  const visit = (candidate: unknown, path: string): void => {
+    if (typeof candidate === "string") {
+      for (const exactValue of exactValues) {
+        if (candidate.includes(exactValue)) leaks.push(`${path}: exact sensitive value`);
+      }
+      for (const [label, pattern] of FOUNDER_STATUS_SENSITIVE_VALUE_PATTERNS) {
+        if (pattern.test(candidate)) leaks.push(`${path}: ${label}`);
+      }
+      return;
+    }
+    if (Array.isArray(candidate)) {
+      candidate.forEach((entry, index) => visit(entry, `${path}[${index}]`));
+      return;
+    }
+    if (!candidate || typeof candidate !== "object") return;
+    for (const [key, entry] of Object.entries(candidate)) {
+      const normalizedKey = key.replace(/[^a-z0-9]/gi, "").toLowerCase();
+      if (["password", "secret", "token", "databaseurl"].some((part) => normalizedKey.includes(part))) {
+        leaks.push(`${path}.${key}: sensitive key`);
+      }
+      visit(entry, `${path}.${key}`);
+    }
+  };
+
+  visit(value, "$");
+  return leaks;
+}
+
+describe("Order 432 founder-status privacy oracle", () => {
+  test("permits domain prose while rejecting credential data and internal paths", () => {
+    expect(founderStatusPrivacyLeaks({
+      summary: "Order 192 independently approved the token-only payment foundation.",
+      remaining: "Password and secret-management requirements remain documented.",
+    })).toEqual([]);
+
+    const hostileCases: ReadonlyArray<{
+      readonly label: string;
+      readonly value: unknown;
+      readonly exactValues?: readonly string[];
+    }> = [
+      { label: "password key", value: { password: "redacted" } },
+      { label: "camel-case token key", value: { accessToken: "redacted" } },
+      { label: "snake-case secret key", value: { client_secret: "redacted" } },
+      { label: "database URL key", value: { DATABASE_URL: "redacted" } },
+      { label: "password assignment", value: { detail: "password=not-for-clients" } },
+      { label: "secret assignment", value: { detail: "secret: not-for-clients" } },
+      { label: "token assignment", value: { detail: "token=not-for-clients" } },
+      { label: "database environment", value: { detail: "DATABASE_URL is configured" } },
+      { label: "Postgres URL", value: { detail: "postgres://yellow:password@database/yellow" } },
+      { label: "bearer credential", value: { detail: "Bearer opaque-access-credential" } },
+      { label: "JWT credential", value: { detail: "eyJheader12345.payload12345.signature12345" } },
+      { label: "Unix home path", value: { detail: "/home/runner/work/yellow" } },
+      { label: "Windows path", value: { detail: "C:\\Users\\runner\\yellow" } },
+      { label: "Git internals", value: { detail: ".git/config" } },
+      { label: "handoff internals", value: { detail: "handoff/orders/432.md" } },
+      {
+        label: "known opaque credential",
+        value: { detail: "known-opaque-credential" },
+        exactValues: ["known-opaque-credential"],
+      },
+    ];
+
+    for (const hostile of hostileCases) {
+      expect({ label: hostile.label, leaked: founderStatusPrivacyLeaks(hostile.value, hostile.exactValues).length > 0 })
+        .toEqual({ label: hostile.label, leaked: true });
+    }
+  });
+});
+
 function reviewSource({
   title = "045-091 wave test",
   reviewer = "OpenAI Codex independent non-implementing reviewer",
@@ -646,8 +734,7 @@ databaseDescribe("Order 064 authenticated founder status", () => {
       state: "not_connected",
       detail: "External CI is not queried by the local runtime; use the linked GitHub pull request evidence.",
     });
-    const serialized = JSON.stringify(body);
-    expect(serialized).not.toMatch(/password|secret|token|DATABASE_URL|postgres:\/\/|\/home\/|C:\\\\|\.git|handoff\//i);
+    expect(founderStatusPrivacyLeaks(body, [PASSWORD, SECRET, DATABASE_URL, token])).toEqual([]);
   });
 
   test("P2: authentication, scope, property and database failures stay generic", async () => {
