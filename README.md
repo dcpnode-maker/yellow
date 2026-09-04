@@ -13,7 +13,7 @@ The thinking is done; this package is the thinking, made executable.
 | `EVENTS.md` | Event envelope, subject scheme, full catalogue v1, consumer registry. | repo `docs/` |
 | `CONTRACTS.md` | API conventions, THE availability contract, module surfaces, provider ports. | repo `docs/` |
 | `EXTENSIONS.md` | JSON Schemas + launch instances for all extension registry content (verticals, tax incl. India GST slabs, policies, statutory, fiscal, automation actions). | repo `docs/` + Phase-1 seed |
-| `BUILD-PLAN.md` | 13 phases with definition-of-done each, session ritual. | repo root |
+| `BUILD-PLAN.md` | 18 phases (numbered 0–17) with a definition of done for each, plus the session ritual. | repo root |
 | `UI-SPEC.md` | The seven surfaces: three-tier model, screen inventory, keyboard grammar, offline. | repo `docs/` |
 | `SECURITY.md` | Threat model & controls: auth, RLS layers, PII/token handling, incident basics. | repo `docs/` |
 | `DEPENDENCIES.md` | Vendor risk register: Class A/B/C, OSS replacements, licence policy, CI gates. | repo `docs/` |

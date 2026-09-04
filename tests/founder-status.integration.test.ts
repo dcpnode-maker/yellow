@@ -165,11 +165,11 @@ describe("Order 064 recorded build snapshot", () => {
     const reviewCoverage = await deriveIndependentReviewCoverage();
     const rows = manifestRows(manifest);
     expect(rows.length).toBeGreaterThan(0);
-    expect(PROJECT_BUILD_SNAPSHOT.recordedAt).toBe("2026-09-04");
-    expect(PROJECT_BUILD_SNAPSHOT.roadmap.latestBuiltOrder).toBe(410);
+    expect(PROJECT_BUILD_SNAPSHOT.recordedAt).toBe("2026-09-05");
+    expect(PROJECT_BUILD_SNAPSHOT.roadmap.latestBuiltOrder).toBe(429);
     expect(PROJECT_BUILD_SNAPSHOT.review.gate3Debt).toBe(0);
     expect(PROJECT_BUILD_SNAPSHOT.review.state).toBe("built_unverified");
-    expect(PROJECT_BUILD_SNAPSHOT.roadmap.currentOrder).toBe(411);
+    expect(PROJECT_BUILD_SNAPSHOT.roadmap.currentOrder).toBe(431);
     expect(PROJECT_BUILD_SNAPSHOT.roadmap.activePhase).toBe(7);
     expect(PROJECT_BUILD_SNAPSHOT.roadmap.phaseCount).toBe(18);
     expect(reviewCoverage.throughOrder).toBe(91);
@@ -433,13 +433,25 @@ describe("Order 064 recorded build snapshot", () => {
         summary: "Orders 384–396 independently approved the Phase-5 business-day readiness, discrepancy carry, audited seal, and owner-trust operator delivery.",
         remaining: "These operator journeys are integrated and were reflected in the sole founder local by approved Orders 398–399; no public or production deployment, later financial expansion, or application completion is claimed.",
       },
+      {
+        order: 429,
+        state: "independently_approved",
+        summary: "Order 429 independently approved and closed (D1300) the read-only India IRP fiscal-action readiness boundary.",
+        remaining: "Approval returns frozen false readiness only; document origin, numbering, series, provider submission, and Phase-7 completion remain separate.",
+      },
+      {
+        order: 430,
+        state: "proof_in_progress",
+        summary: "Order 430 is active under D1302/D1304 for Yellow-native India fiscal invoice issuance.",
+        remaining: "Builder implementation and fresh independent Tier-3 review remain pending; no built, provider, IRP, local, or Phase-7 completion claim is made.",
+      },
     ]);
     const recordedOrders = PROJECT_BUILD_SNAPSHOT.recordedWork.map(({ order }) => Number(order));
     expect(recordedOrders).toEqual([
       126, 127, 148, 154, 155, 156, 160, 161, 162, 163, 164,
       165, 166, 168, 169, 170, 171, 173, 174, 175, 176, 177, 178,
       179, 180, 181, 182, 183, 184, 185, 186, 188, 189,
-      190, 191, 192, 193, 195, 199, 236, 310, 396,
+      190, 191, 192, 193, 195, 199, 236, 310, 396, 429, 430,
     ]);
     expect(recordedOrders).not.toContain(167);
     expect(recordedOrders).not.toContain(172);
@@ -448,7 +460,8 @@ describe("Order 064 recorded build snapshot", () => {
     expect(PROJECT_BUILD_SNAPSHOT.recordedWork.filter(({ order }) => Number(order) >= 190 && Number(order) <= 195)
       .filter(({ state }) => state === "independently_approved").map(({ order }) => Number(order)))
       .toEqual([190, 191, 192, 193, 195]);
-    expect(PROJECT_BUILD_SNAPSHOT.recordedWork.every(({ state }) => state === "independently_approved")).toBeTrue();
+    expect(PROJECT_BUILD_SNAPSHOT.recordedWork.slice(0, -1).every(({ state }) => state === "independently_approved")).toBeTrue();
+    expect(PROJECT_BUILD_SNAPSHOT.recordedWork.at(-1)?.state).toBe("proof_in_progress");
     expect(PROJECT_BUILD_SNAPSHOT.recordedWork.find(({ order }) => order === 199)?.summary).toMatch(/196–199/);
     expect(PROJECT_BUILD_SNAPSHOT.recordedWork.find(({ order }) => order === 199)?.state).toBe("independently_approved");
     const order236: { readonly state: string; readonly summary: string; readonly remaining?: string } | undefined =
@@ -540,6 +553,9 @@ describe("Order 064 recorded build snapshot", () => {
     expect(html).toContain('data-view="status"');
     expect(html).toContain('id="status-view"');
     expect(html).toContain('id="roadmap-progress"');
+    expect(html).toContain('<progress id="roadmap-progress" max="18" value="0">0 of 18 phases reached</progress>');
+    expect(html).toContain("Position is measured against 18 named BUILD-PLAN phases");
+    expect(html).not.toContain("13 named BUILD-PLAN phases");
     expect(html).toContain('id="review-progress"');
     expect(html).toContain('id="status-reviewed"');
     expect(html).toContain('id="status-current-work"');

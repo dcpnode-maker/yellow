@@ -15,7 +15,7 @@ export interface ProjectRecordedWorkSnapshot {
     | 126 | 127 | 148 | 154 | 155 | 156 | 160 | 161 | 162 | 163 | 164
     | 165 | 166 | 168 | 169 | 170 | 171 | 173 | 174 | 175 | 176 | 177 | 178
     | 179 | 180 | 181 | 182 | 183 | 184 | 185 | 186 | 188 | 189
-    | 190 | 191 | 192 | 193 | 195 | 199 | 236 | 310 | 396;
+    | 190 | 191 | 192 | 193 | 195 | 199 | 236 | 310 | 396 | 429 | 430;
   readonly state: ProjectRecordedWorkState;
   readonly summary: string;
   readonly remaining?: string;
@@ -45,12 +45,12 @@ export const DEFAULT_OPERATOR_RUNTIME_STATUS: OperatorRuntimeStatus = Object.fre
 
 export const PROJECT_BUILD_SNAPSHOT = Object.freeze({
   schemaVersion: 1,
-  recordedAt: "2026-09-04",
+  recordedAt: "2026-09-05",
   label: "Recorded build snapshot",
   roadmap: Object.freeze({
     phaseCount: 18,
-    latestBuiltOrder: 410,
-    currentOrder: 411,
+    latestBuiltOrder: 429,
+    currentOrder: 431,
     activePhase: 7,
   }),
   review: Object.freeze({
@@ -309,6 +309,18 @@ export const PROJECT_BUILD_SNAPSHOT = Object.freeze({
       state: "independently_approved" as const,
       summary: "Orders 384–396 independently approved the Phase-5 business-day readiness, discrepancy carry, audited seal, and owner-trust operator delivery.",
       remaining: "These operator journeys are integrated and were reflected in the sole founder local by approved Orders 398–399; no public or production deployment, later financial expansion, or application completion is claimed.",
+    }),
+    Object.freeze({
+      order: 429,
+      state: "independently_approved" as const,
+      summary: "Order 429 independently approved and closed (D1300) the read-only India IRP fiscal-action readiness boundary.",
+      remaining: "Approval returns frozen false readiness only; document origin, numbering, series, provider submission, and Phase-7 completion remain separate.",
+    }),
+    Object.freeze({
+      order: 430,
+      state: "proof_in_progress" as const,
+      summary: "Order 430 is active under D1302/D1304 for Yellow-native India fiscal invoice issuance.",
+      remaining: "Builder implementation and fresh independent Tier-3 review remain pending; no built, provider, IRP, local, or Phase-7 completion claim is made.",
     }),
   ] satisfies readonly ProjectRecordedWorkSnapshot[]),
   phases: Object.freeze([

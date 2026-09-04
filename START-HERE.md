@@ -160,7 +160,7 @@ the schema-drift check (dump vs `migrations/0001_init.sql`) is empty.
 | `docs/MERGE-PLAN.md` | Combining Yellow with your existing PMS. |
 | `USAGE.md` | Operating manual: daily loop, rules, troubleshooting. |
 | `CLAUDE.md` | The constitution Claude Code reads every session — invariants, boundaries, model policy. |
-| `BUILD-PLAN.md` | 13 phases, each with a Definition of Done and decision gates. |
+| `BUILD-PLAN.md` | 18 phases (0–17), each with a Definition of Done and decision gates. |
 | `DECISIONS.log` | 44 locked decisions with rejected alternatives. Append forever. |
 | `README.md` | Package map and the honest statement of what's not built yet. |
 | `setup.sh` | One-command setup; `--db-only` to rebuild and retest. |

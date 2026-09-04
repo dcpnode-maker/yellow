@@ -1,8 +1,8 @@
 # Phase 7 — Tax engine and India IRP
 
-**Status:** active; governed positive-tax posting and complete correction approved through Order266
-**Entry point:** built-unreviewed Phase-6 composition through Order 236
-**Current order:** Order287 exact India accommodation supply-nature evidence is ready under D-755
+**Status:** active; Orders 237–429 are recorded through their explicit review states; Order430 is active and proof_in_progress under D1302/D1304
+**Entry point:** approved Phase-6 and Phase-7 dependencies as recorded in BUILD-PLAN.md and handoff/ROADMAP.md
+**Current order:** Order431 current-status reconciliation; Order430 is the active India fiscal-invoice issuance implementation
 
 ## Outcome
 
@@ -20,10 +20,10 @@ without giving a browser, provider or mutable configuration a second financial t
 6. provider-neutral fiscal submission state machine and India IRP payload adapter;
 7. deliberate operator document/IRP journey with receipts, retry and failure visibility.
 
-Independent review is deferred under the founder's build-first direction. Tax,
-financial posting, document numbering, fiscal chains and submission work may therefore
-finish only as built-unreviewed until the required non-implementing executable reviews
-are performed. No Phase-7 or app completion is claimed by opening this plan.
+Independent review remains required for each high-risk slice and for the Phase-7 exit.
+Order429 is independently approved and closed; Order430 remains proof_in_progress
+pending builder gates and a fresh non-implementing Tier-3 review. No Phase-7 or app
+completion is claimed by opening this plan.
 
 ## Order 237 boundary
 

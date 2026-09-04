@@ -85,7 +85,7 @@ failures. Check in, answer questions, let it work.
 ```
 yellow/
 ├── CLAUDE.md              constitution + model policy — read every session
-├── BUILD-PLAN.md          13 phases, each with a Definition of Done
+├── BUILD-PLAN.md          18 phases (0–17), each with a Definition of Done
 ├── DECISIONS.log          43 locked decisions; append forever
 ├── setup.sh               one-command setup / --db-only rebuild
 ├── docker-compose.yml     app/PostgreSQL/Valkey, isolated by Compose project
@@ -115,7 +115,7 @@ in sync with what the build has actually settled.
 
 ## 7. What isn't done yet
 
-Application code — all of it. Phases 0–12 derive it from these specs. Also yours to
+Application code — all of it. Phases 0–17 derive it from these specs. Also yours to
 start now, because they run on calendar time rather than build time: Booking.com and
 Expedia partner certification, ZATCA sandbox onboarding, India IRP access, and a UAE
 ASP vendor. Those gate Phases 8, 9, and 12.

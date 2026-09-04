@@ -118,13 +118,21 @@ A phase is complete when its `BUILD-PLAN.md` DoD lines each have a **named execu
 proof** — not a description, a command with output. The phase exit review checks those
 proofs and nothing else; per-order reviews already covered the code.
 
-No Phase 0–12 phase starts before the previous phase's exit review passes and its
-integration PR is on `main`. The explicit founder feature priority is `[11, 13, 17]`,
+No phase starts before the previous phase's exit review passes and its integration PR is
+on `main`. The explicit founder feature priority is `[11, 13, 17]`,
 then Phases 14–16. Phase 11 therefore follows required Phases 8–10; Phase 12 remains
 the mandatory gate between Phase 11 and Phase 13; Phase 17 follows Phase 13. The
 executable sequence from active Phase 7 is `7 → 8 → 9 → 10 → 11 → 12 → 13 → 17 → 14
 → 15 → 16`. Every declared prerequisite and exit gate still applies; this is
 sequencing, not authority to skip work.
+
+## Current status — D1305
+
+Order 429 is independently approved and closed under D1300 as a read-only India IRP
+fiscal-action readiness boundary. Order 430 is active under D1302/D1304 for
+Yellow-native India fiscal invoice issuance; its builder proof and fresh independent
+Tier-3 review remain pending. Order 431 reconciles the current project snapshot to the
+18-phase roadmap without changing historical evidence or claiming Phase-7 completion.
 
 ## Order budget and gate map
 

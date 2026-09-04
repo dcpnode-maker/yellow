@@ -133,7 +133,7 @@ say only whether their explicit runtime flags are configured. Valkey and externa
 `not_connected` until governed application integrations exist, so the page never guesses.
 
 “Recorded build snapshot” is committed build evidence, not a network query. Its roadmap
-denominator is the 13 named BUILD-PLAN phases, and its independent-review bar distinguishes
+denominator is the 18 named BUILD-PLAN phases (0–17), and its independent-review bar distinguishes
 reviewed Orders 001–044 from later builder-green Gate-3 debt. Read current GitHub Actions on
 the pull request itself; the localhost runtime intentionally carries no GitHub token and does
 not scrape external CI.
