@@ -1846,3 +1846,10 @@ The D1237 candidate implements that exact fixed four-field result and reuses Ord
 as its admission boundary. Genuine approved-base absence evidence preceded focused
 19/0(249); standing1366/0+1054 skips(20121), type/152-boundary/23-licence/image-pins/
 diff are green. Fresh non-implementing Tier3 executable review remains mandatory.
+The D1239 repair explicitly rejects every runtime supply nature except exact
+`intra_state` or `inter_state`; a reviewer-equivalent correctly rehashed `export`
+mutation is now permanent and fails closed. Focused20/0(250), restarted standing
+1367/0+1054 skips(20122), type/152-boundary/23-licence/image-pins/diff are green. One
+resource-pressure Chromium timing run was discarded only after the unchanged test
+passed alone and the complete top-of-gate restart passed. Different fresh Tier3
+rereview remains mandatory.

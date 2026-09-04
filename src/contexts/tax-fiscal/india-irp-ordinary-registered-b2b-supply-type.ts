@@ -45,7 +45,8 @@ function validateOrdinaryRegisteredB2b(source: IndiaIrpAccommodationSourceResult
       atTime.determinationBasis !== "ordinary_registered_state_comparison" ||
       atTime.sezDirection !== "none" || family.determinationBasis !== atTime.determinationBasis ||
       family.sezDirection !== atTime.sezDirection || family.supplyNature !== atTime.supplyNature ||
-      family.legalSources.supplyNature !== atTime.legalRule) {
+      family.legalSources.supplyNature !== atTime.legalRule ||
+      (atTime.supplyNature !== "intra_state" && atTime.supplyNature !== "inter_state")) {
     return fail("source is not an ordinary registered Indian B2B accommodation supply");
   }
 

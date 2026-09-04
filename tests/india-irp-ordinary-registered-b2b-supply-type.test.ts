@@ -852,6 +852,19 @@ describe("Order 415 India IRP ordinary registered B2B supply-type composition", 
     for (const [mutate, nested] of cases) expectB2bRejected(rehashNestedAndSource(mutate, nested));
   });
 
+  test("correctly rehashed unsupported export supply nature fails closed", () => {
+    const source = clone(makeSource()) as unknown as MutableRecord;
+    source.supplyNatureAtTimeOfSupply.supplyNature = "export";
+    source.componentFamily.supplyNature = "export";
+    for (const key of ["supplyNatureAtTimeOfSupply", "componentFamily"] as const) {
+      const { evidenceHash: _old, ...body } = source[key];
+      source[key] = { ...body, evidenceHash: digest({ tenantId: TENANT, ...body }) };
+    }
+    expectB2bRejected(b2bInput(
+      rehashSource(deepFreeze(source) as IndiaIrpAccommodationSourceResult),
+    ));
+  });
+
   test("exact Order414 validation remains the admission gate for hostile graph and hash drift", () => {
     expectB2bRejected({ tenantId: TENANT, source: makeSource() });
     expectB2bRejected(deepFreeze({ tenantId: TENANT, source: new Proxy(makeSource(), {}) }));
