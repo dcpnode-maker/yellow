@@ -1,6 +1,6 @@
 # Order 422 — India IRP accommodation party-details candidate
 
-**Status:** ACTIVE — D1261
+**Status:** ACTIVE — INPUT CLARIFIED — D1262
 **Phase:** 7 — Tax engine and India IRP
 **Branch:** `phase-7/persisted-india-final-component-tax-evidence`
 **Base:** independently approved Order420 coordination head `ea97120`
@@ -25,8 +25,11 @@ reservation display data and caller-supplied POS are not alternative sources.
 ## Exact contract
 
 `composeIndiaIrpAccommodationPartyDetailsCandidate(input)` accepts only the exact
-deeply frozen canonical tenant UUID and Order413 source input. It must invoke the
-approved Order413 resolver and derive:
+deeply frozen canonical tenant UUID and Order413 source result using the same pure
+input shape already approved for Order414. It must invoke the approved Order414
+numeric-source composer as a validation-only descendant, require its
+`sourceEvidenceHash` to equal the supplied Order413 evidence hash, discard all numeric
+output, and derive:
 
 - exact approved `SellerDtls` without alteration;
 - exact approved `BuyerDtls` identity/address fields plus `Pos` equal to the approved
@@ -56,8 +59,8 @@ Any other path requires a recorded scope amendment before edit.
 2. Trade-name present/absent fixtures prove exact field order and no optional-field
    invention beyond each approved source.
 3. `BuyerDtls.Pos` equals approved property POS and cannot be caller-controlled.
-4. Order413 validation is demonstrably load-bearing under a permanent coherently
-   rehashed hostile source mutation.
+4. Order414's complete pure revalidation of Order413 is demonstrably load-bearing
+   under a permanent coherently rehashed party-specific hostile source mutation.
 5. Input remains byte-unchanged; replay is byte-equivalent; output is deeply frozen;
    tenant affects only the evidence-hash preimage and is absent from output.
 6. Orders413–420, schema/catalogue/referee, standing and static gates remain green;
