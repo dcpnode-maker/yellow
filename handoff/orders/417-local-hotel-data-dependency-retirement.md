@@ -51,3 +51,9 @@ No production/external data deletion; no application feature removal; no schema 
 - Standing suite: 1,368 passed, 1,054 skipped, 0 failed, 20,127 assertions.
 - Type check, 152 import boundaries, 23-package licence policy and dependency audit are green.
 - No hotel row, dump, volume, credential, container or local application was deleted by the builder. Fresh non-implementing Tier-3 review remains mandatory before retirement.
+
+## Guarded retirement progress
+
+- The stopped populated `yellow_order311_clean_pgdata` runtime and its sole PostgreSQL container were removed after D1242 approval, together with the empty orphan Order365 proof volume.
+- Docker now has zero volumes and no PostgreSQL container; the three stopped non-database components of the sole intended stack remain.
+- Filesystem policy blocked dump deletion before execution. Eight populated dumps (5,400,039 bytes) under `D:\Yellow\backups` and the 317,057-byte archived Order147 dump remain. This order is not closed until those exact files are removed and post-retirement absence/topology proof is recorded.
