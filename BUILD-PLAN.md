@@ -601,14 +601,19 @@ exact same-shell removal; the coordinator verified the 78,769,906-byte path
 non-product condition is discharged, so Orders238, 239 and 428 are independently
 approved and closed with their recorded product and proof evidence unchanged.
 
-Order429 is active under D1294 as the smallest policy-neutral next fiscal boundary.
+Order429 is independently approved and closed under D1300 as the smallest
+policy-neutral fiscal boundary.
 It reruns approved Order413 from live tenant-scoped PostgreSQL, composes exact
 approved Order426 pre-document evidence, and returns only a frozen false-readiness
 snapshot with no permitted action and exact blockers for unresolved document origin,
 legal number format and series binding. It cannot emit `DocDtls`, choose native issue
 versus external adoption, allocate a number, touch a series, issue/import a document,
-write state or call a provider. Intentional-red, live hostile proof and fresh
-non-implementing Tier-3 review are mandatory.
+write state or call a provider. Fresh non-implementing Tier-3 review passed the real
+Order413→426→429 bridge 7/0 (292 assertions), the D1297 live source proof 6/0 (204),
+native byte-exact schema, referee 11/11, two reviewer mutations and all standing/
+static gates. The disposable cluster was stopped and removed. Document origin,
+legal number format and series binding remain unresolved product/legal policy and
+no downstream issuance or Phase7 authority is implied.
 
 Order240 is ready under D-630. It creates the missing pure canonical positive-origin
 tax-attribution snapshot: exact Order239 quote/night/jurisdiction/evaluator evidence

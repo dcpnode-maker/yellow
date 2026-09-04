@@ -1,6 +1,6 @@
 # Order 429 — India IRP fiscal-action readiness
 
-**Status:** BUILT — AWAITING FRESH INDEPENDENT TIER-3 REVIEW — D1299
+**Status:** INDEPENDENTLY APPROVED AND CLOSED — D1300
 **Phase:** 7 — Tax engine and India IRP
 **Branch:** `phase-7/persisted-india-final-component-tax-evidence`
 **Base:** independently approved Order428 coordination head `e3c4ebd`
@@ -108,3 +108,20 @@ and hashes its result. The amendment admits only the exact Financials source fil
 focused proof for that normalization. It must preserve every value, validation,
 query, result field, error, authority and database census; a fresh Tier-3 reviewer
 must execute the live proof.
+
+## D1300 independent Tier-3 disposition
+
+Fresh non-implementing Tier-3 review approves and closes Order429 at candidate
+`a91400b`. A separate native PostgreSQL 16.15 cluster applied all 73 migrations;
+runtime SCRAM identity was non-superuser/non-bypass with transaction-local tenant
+context. The real Order413→426→429 bridge passed 7/0 with 292 assertions and the
+D1297 live source proof passed 6/0 with 204 assertions. A native normalized schema
+dump matched the 891,689-byte repository snapshot exactly, and a separately reset,
+migrated and fixture-loaded database passed the unchanged referee 11/11 with 124
+public tables. Blocker-order and raw-JSONB reviewer mutations each made their named
+proof red; both sources restored byte-exact. Focused 34/0 plus 19 expected database
+skips, standing 1,462/0 plus 1,059 expected environment skips, typecheck,
+160-file boundaries, 23-package licence policy, zero-vulnerability audit and diff
+hygiene pass. The server stopped, port 55495 closed and the exact 168,999,966-byte
+review directory was removed. No document/series/provider/API/UI/local/Phase
+authority is added; see `handoff/reviews/429-india-irp-fiscal-action-readiness.md`.
