@@ -1,37 +1,38 @@
 # Order 412 — Fresh independent Tier-3 review
 
-**Verdict:** CHANGES-REQUIRED-D1224
+**Verdict:** APPROVED-CLOSED-D1226
 
-**Reviewed candidate:** `250b522`
+**Reviewed candidate:** `4ccc910`
 
 **Approved base:** `0ce9033`
 
-**Reviewer:** `/root/order412_fresh_tier3`, fresh independent non-implementing
-Tier-3 reviewer
+**Reviewer:** `/root/order412_d1225_tier3`, different fresh independent
+non-implementing Tier-3 reviewer
 
-## Finding
+## Verdict
 
-Approval is withheld. On a fresh isolated official PostgreSQL 16.15 database, the
-reviewer swapped only the guest-root `tax_detail.revenueRoute.mappingId` and first
-positive component `route.mappingId`, leaving each semantic code, transaction code,
-credit account and every persisted route row unchanged. Production returned
-`eligible_current_posted_source`.
-
-The resolver validates each displayed semantic/transaction/account tuple, but then
-checks the collected mapping identities as an unordered valid same-jurisdiction set.
-It therefore fails to prove that each mapping identity owns the corresponding tuple.
-Bind every mapping identity to its exact semantic code, transaction code and credit
-account, add this real-database hostility with a complete unchanged census, produce a
-new candidate and restart a different fresh Tier-3 review.
+Approved with no finding. The D1225 repair removes D1224's unordered-ID-set gap:
+every unique embedded mapping identity is resolved through PostgreSQL and compared
+to its exact semantic kind/code, transaction code, credit account and role, property,
+INR currency, and selected jurisdiction identity/version/content hash. The reviewer
+personally reproduced both exact attack forms: swapping only revenue/component IDs
+and duplicating the revenue ID into a component slot while preserving surrounding
+tuples and durable routes. Both now conflict and preserve the complete tenant census.
 
 ## Reviewer-personal execution
 
-- fresh official PostgreSQL 16.15, migrations 1–73;
-- permanent Order412 live suite **5/5 (185 assertions)**;
-- intentional-red **2/2**;
-- separate targeted swapped-route-identity attack: **incorrectly accepted**.
+- repository-pinned official PostgreSQL 16.15 container, isolated port 55942,
+  migrations 1–73: Order412 **5/5 (192 assertions)** and intentional-red **2/2**;
+- exact-frontier databases: Order367 **17/17 (693)** at migration 70, Order406
+  **10/10 (117)** at 70, Order407 **15/15 (144)** at 71, Order408 **7/7 (92)** at 72;
+- database acceptance **23/23**, catalogue **73/124/114/114/23/2**, normalized schema
+  byte-exact at **891689 bytes**, and invariant referee **11/11**;
+- standing **1332 passed, 1047 skipped, 0 failed (19670 assertions)**; typecheck,
+  149-file boundaries, 23-package licence policy, image pins and diff check green;
+- dependency audit transport returned no result within 30 seconds and is not counted;
+  dependency manifests and lock bytes are unchanged.
 
-Sentinel canonicalization is test-only and production component-tax byte replay
-remained strict. The isolated database was stopped and removed. Stable/default
-databases, local port3000 and `.yellow/` were untouched. No approval or downstream
-document/IRP/API/UI/local/deploy/Phase authority follows.
+Sentinel canonicalization remained test-only and production byte replay stayed strict.
+Isolated resources were removed. Stable/default databases, local port3000 and
+`.yellow/` were untouched. Approval closes only Order412; no downstream document,
+IRP, API, UI, local, deploy, merge or Phase authority follows.

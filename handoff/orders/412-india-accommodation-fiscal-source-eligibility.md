@@ -1,6 +1,6 @@
 # Order 412 — India accommodation fiscal-source eligibility
 
-**Status:** REPAIRED — AWAITING DIFFERENT FRESH INDEPENDENT TIER-3 REVIEW — D1225
+**Status:** APPROVED — CLOSED — D1226
 **Phase:** 7 — Tax engine and India IRP
 **Branch:** `phase-7/persisted-india-final-component-tax-evidence`
 **Base:** independently approved Order411 coordination head `0ce9033`
@@ -113,3 +113,14 @@ and proves conflict with a complete unchanged census. A fresh builder database a
 migrations 1–73 passes the repaired live suite 5/5 with 192 assertions; typecheck,
 intentional-red 2/0 and diff checks remain green. A different fresh reviewer must
 restart the complete Tier-3 proof.
+
+## Different fresh Tier-3 approval — D1226
+
+Different fresh independent non-implementing reviewer `/root/order412_d1225_tier3`
+approved exact candidate `4ccc910` over `0ce9033` with no finding. Personal proof on
+the repository-pinned official PostgreSQL 16.15 image passed migrations 1–73,
+Order412 5/5 (192 assertions), intentional-red 2/2, the exact swap and duplicate-ID
+hostility with complete unchanged censuses, database acceptance 23/23, exact schema
+and catalogue, referee 11/11, compatible-frontier Orders367/406/407/408, standing,
+type, boundary, licence, image-pin and diff gates. Order412 is closed without any
+downstream document, IRP, API, UI, local, deploy, merge or Phase authority.
