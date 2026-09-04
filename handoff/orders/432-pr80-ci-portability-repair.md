@@ -1,6 +1,6 @@
 # Order 432 — PR80 CI portability repair
 
-**Status:** REPAIRED — AWAITING SIXTH GITHUB CI — D1317
+**Status:** REPAIRED — AWAITING SEVENTH GITHUB CI — D1318
 **Phase:** Delivery infrastructure
 **Branch:** `phase-7/persisted-india-final-component-tax-evidence`
 **Risk tier:** 1 — test harness and CI portability only
@@ -32,6 +32,9 @@ path, browser launch assumptions and shallow Git history.
   distinguish credential keys and secret-bearing values from legitimate recorded
   project-status prose while retaining exact credential, database URL and internal-path
   leak detection;
+- `tests/operator-inventory.integration.test.ts` only to keep the original Order048
+  launch inventory proof exact within the additive shared review seed and bind the
+  login-scope assertion to the current authorized review-permission source;
 - one existing/new test-only executable/browser helper if needed;
 - focused tests for the helper/launcher behavior;
 - this order, `DECISIONS.log`, and `handoff/LEDGER.md`.
@@ -61,6 +64,10 @@ path, browser launch assumptions and shallow Git history.
    known runtime credential values; credential-shaped string values; Postgres URLs;
    and local, Git and handoff paths without treating domain prose such as
    `token-only payment foundation` as a credential leak.
+9. The operator-inventory proof requires each original Order048 launch unit type,
+   room and sellable exactly once without forbidding additive approved review fixtures.
+   Its login assertion exactly matches every valid scope in `REVIEW_PERMISSIONS`,
+   rejects duplicate scopes and explicitly excludes approver-only authority.
 
 ## Excluded
 

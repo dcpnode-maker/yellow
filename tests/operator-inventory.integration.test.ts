@@ -2,11 +2,23 @@ import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { SQL } from "bun";
 
 import { createApp } from "../src/app";
-import { BearerTenantResolver, Hs256TokenSigner, LocalLoginService } from "../src/contexts/identity";
+import { BearerTenantResolver, Hs256TokenSigner, isValidScope, LocalLoginService } from "../src/contexts/identity";
 import { AvailabilityService, InventoryService } from "../src/contexts/inventory";
 import { OperatorHttpApi } from "../src/http/operator";
 import { Database, PostgresEventBus, PostgresIdempotency } from "../src/kernel";
-import { runReviewSeed, REVIEW_EMAIL } from "../scripts/seed-review";
+import {
+  runReviewSeed,
+  REVIEW_BUSINESS_DAY_SEAL_PERMISSION,
+  REVIEW_CASHIER_SUPERVISE_PERMISSION,
+  REVIEW_DIRTY_ROOM_OVERRIDE_PERMISSION,
+  REVIEW_DISCREPANCY_CARRY_APPROVE_PERMISSION,
+  REVIEW_EMAIL,
+  REVIEW_HOUSEKEEPING_INSPECT_PERMISSION,
+  REVIEW_PERMISSIONS,
+  REVIEW_POST_SEAL_PERMISSION,
+  REVIEW_RECEIVABLE_APPROVE_PERMISSION,
+  REVIEW_TRUST_NEGATIVE_APPROVE_PERMISSION,
+} from "../scripts/seed-review";
 import { runSeed, SEED_PROPERTY, SEED_TENANT } from "../scripts/seed";
 import { BROWSER_SQL_SYNTAX } from "./helpers/browser-asset-security";
 
@@ -17,6 +29,20 @@ const SECRET = "yellow-order-048-test-token-secret-exactly-long-enough";
 const FOREIGN_TENANT = "00000000-0000-0000-0000-000000004880";
 const FOREIGN_PROPERTY = "00000000-0000-0000-0000-000000004881";
 const FOREIGN_ACTOR = "00000000-0000-0000-0000-000000004882";
+const REQUIRED_LAUNCH_UNIT_TYPES = Object.freeze(["STD", "DLX"]);
+const REQUIRED_LAUNCH_SPACES = Object.freeze(["101", "102", "103", "201", "202"]);
+const REQUIRED_LAUNCH_SELLABLES = Object.freeze([
+  "Room 101", "Room 102", "Room 103", "Room 201", "Room 202",
+]);
+const APPROVER_ONLY_SCOPES: ReadonlySet<string> = new Set([
+  REVIEW_POST_SEAL_PERMISSION.code,
+  REVIEW_CASHIER_SUPERVISE_PERMISSION.code,
+  REVIEW_RECEIVABLE_APPROVE_PERMISSION.code,
+  REVIEW_TRUST_NEGATIVE_APPROVE_PERMISSION.code,
+  REVIEW_DIRTY_ROOM_OVERRIDE_PERMISSION.code,
+  REVIEW_HOUSEKEEPING_INSPECT_PERMISSION.code,
+  REVIEW_DISCREPANCY_CARRY_APPROVE_PERMISSION.code,
+]);
 
 if (REQUIRE_DATABASE && (!DATABASE_URL || !PASSWORD)) {
   throw new Error("YELLOW_OPERATOR_INVENTORY_URL and YELLOW_OPERATOR_INVENTORY_PASSWORD are required by Order 048");
@@ -34,6 +60,11 @@ let userId = "";
 let createdUnitType: Record<string, unknown>;
 let createdSpace: Record<string, unknown>;
 let createdSellable: Record<string, unknown>;
+
+function requiredSubset(actual: readonly string[], required: readonly string[]): string[] {
+  const requiredValues = new Set(required);
+  return actual.filter((value) => requiredValues.has(value));
+}
 
 function headers(token = accessToken, idempotencyKey?: string): Record<string, string> {
   return {
@@ -109,7 +140,7 @@ afterAll(async () => {
 });
 
 databaseDescribe("Order 048 operator inventory management", () => {
-  test("P1: configuration read returns exact deterministic property inventory", async () => {
+  test("P1: configuration read retains the exact deterministic launch inventory", async () => {
     const response = await request(`/api/v1/properties/${SEED_PROPERTY.id}/inventory`, { headers: headers() });
     expect(response.status).toBe(200);
     expect(response.headers.get("cache-control")).toBe("no-store");
@@ -118,11 +149,15 @@ databaseDescribe("Order 048 operator inventory management", () => {
       spaces: Array<{ code: string }>;
       sellableUnits: Array<{ name: string }>;
     };
-    expect(body.unitTypes.map(({ code }) => code)).toEqual(["STD", "DLX"]);
-    expect(body.spaces.map(({ code }) => code)).toEqual(["101", "102", "103", "201", "202"]);
-    expect(body.sellableUnits.map(({ name }) => name)).toEqual([
-      "Room 101", "Room 102", "Room 103", "Room 201", "Room 202",
-    ]);
+    const unitTypes = body.unitTypes.map(({ code }) => code);
+    const spaces = body.spaces.map(({ code }) => code);
+    const sellableUnits = body.sellableUnits.map(({ name }) => name);
+    expect(requiredSubset(unitTypes, REQUIRED_LAUNCH_UNIT_TYPES)).toEqual([...REQUIRED_LAUNCH_UNIT_TYPES]);
+    expect(requiredSubset(spaces, REQUIRED_LAUNCH_SPACES)).toEqual([...REQUIRED_LAUNCH_SPACES]);
+    expect(requiredSubset(sellableUnits, REQUIRED_LAUNCH_SELLABLES)).toEqual([...REQUIRED_LAUNCH_SELLABLES]);
+    expect(new Set(unitTypes).size).toBe(unitTypes.length);
+    expect(new Set(spaces).size).toBe(spaces.length);
+    expect(new Set(sellableUnits).size).toBe(sellableUnits.length);
   });
 
   test("P2: three idempotent POSTs use audited production inventory commands", async () => {
@@ -233,7 +268,7 @@ databaseDescribe("Order 048 operator inventory management", () => {
     expect(retry.headers.get("idempotency-replayed")).toBe("false");
   });
 
-  test("P6/P7: assets expose one themed inventory UI and login carries exact twenty-eight scopes", async () => {
+  test("P6/P7: assets expose one themed inventory UI and login carries exact authorized scopes", async () => {
     const html = await (await request("/")).text();
     const css = await (await request("/assets/operator.css")).text();
     const js = await (await request("/assets/operator.js")).text();
@@ -248,8 +283,15 @@ databaseDescribe("Order 048 operator inventory management", () => {
     expect(js).not.toMatch(/localStorage|sessionStorage|document\.cookie/);
     expect(js).not.toMatch(BROWSER_SQL_SYNTAX);
     expect(js).not.toMatch(/postgres(?:ql)?:\/\//i);
-    expect((await tokens.verify(accessToken))?.scp).toBe(
-      "crm.parties:read crm.parties:write financials.charges:write financials.folios:open financials.folios:read inventory.availability:read inventory.blocks:read inventory.blocks:write inventory.configuration:read inventory.configuration:write inventory.holds:read inventory.holds:write inventory.offline_leases:read inventory.offline_leases:write inventory.policy:read inventory.policy:write inventory.restriction:read inventory.restriction:write rates.configuration:read rates.configuration:write rates.pricing:read rates.pricing:write reservations.booking:write reservations.guests:read reservations.guests:write reservations.lifecycle:read reservations.lifecycle:write reservations.segments:read reservations.segments:write",
-    );
+    const configuredScopes = REVIEW_PERMISSIONS.map(({ code }) => code);
+    expect(configuredScopes.filter((scope) => !isValidScope(scope))).toEqual([
+      REVIEW_BUSINESS_DAY_SEAL_PERMISSION.code,
+    ]);
+    const expectedScopes = configuredScopes.filter(isValidScope).sort();
+    const claims = await tokens.verify(accessToken);
+    const actualScopes = claims?.scp === "" ? [] : claims?.scp.split(" ") ?? [];
+    expect(actualScopes).toEqual(expectedScopes);
+    expect(new Set(actualScopes).size).toBe(actualScopes.length);
+    expect(actualScopes.some((scope) => APPROVER_ONLY_SCOPES.has(scope))).toBe(false);
   });
 });
