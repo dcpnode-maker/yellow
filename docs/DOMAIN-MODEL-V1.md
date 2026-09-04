@@ -1767,6 +1767,20 @@ working-day evidence. Its branch is either ordinary earlier-of within the four-d
 boundary or bank-credit substitution strictly after it. It is not a rate-applicability
 matrix, tax calculation, posting, correction, fiscal document, or IRP aggregate.
 
+### India final component-tax journal reversal (Order 408)
+
+The forced-RLS, insert-only
+`india_gst_final_component_tax_journal_reversal_binding` is the single immutable
+relationship between an Order407 posting binding, its original charge journal and one
+complete adjustment journal. Its tenant-leading foreign keys retain the tax,
+reservation, primary folio, property, actor, currency and current posting-date
+identities; uniqueness on both original and reversal journals prevents forks.
+
+The adjustment is ordinary ledger truth: every original line has exactly one
+same-sequence, same-account, same-quantity contra line with the negated integer amount,
+and the root keeps the exact canonical India component-tax detail. The binding is not
+a refund, credit note, amended tax calculation, document, payment or settlement.
+
 ### India GST Section 14 six-case rate-version selection (Order 340)
 
 The selection value composes exactly one governed accommodation service root, invoice

@@ -1774,3 +1774,15 @@ ACTIVE admission only: intentional-red, complete PostgreSQL hostility/contention
 rollback/ACL/census proof and fresh independent Tier3 review remain required. India
 correction, reversal, refund, payment, settlement, transfer, document, invoice, IRP,
 API/UI/local, deployment and Phase7 completion remain outside this order.
+
+Order408 admits the bounded full financial reversal of exactly one governed Order407
+India final component-tax journal. An authorized property-scoped actor supplies only
+the original identity, bounded reason, idempotency and audit envelope; PostgreSQL and
+the service derive and lock every journal, tax, folio, account, day and line fact.
+Exactly one current-open-day adjustment sign-negates the complete original line set,
+preserves root statutory detail and appends a forced-RLS immutable reversal binding.
+Post-seal originals require the separate post-seal scope. Intentional-red, complete
+census/hostility/contention/rollback/ACL proof, adjacent Orders266/367/406/407 gates
+and fresh independent Tier3 review are mandatory. Refund, replacement, payment,
+settlement, document, credit note, IRP/return amendment, API/UI/local, deployment and
+Phase7 completion remain outside this order.

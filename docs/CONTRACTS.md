@@ -2854,3 +2854,27 @@ receipt and both required fact/outbox pairs commit atomically. This initial post
 contract grants no correction, reversal, refund, payment, settlement, transfer,
 document, invoice number, IRP/provider submission, HTTP/API/UI, local deployment or
 Phase-completion authority.
+
+### Governed India final component-tax reversal (Order 408)
+
+`IndiaFinalComponentTaxCorrectionService.reverse(tx,{tenantId,propertyNode,
+originalJournalId,reason,idempotencyKey,envelope})` accepts identity, a bounded audit
+reason, idempotency and authenticated audit authority only. It reloads an exact
+Order407 journal and its current Order367 tax root, requires property-scoped
+`financials.adjustments:write`, and additionally requires
+`financials.adjustments:post-seal` when the original business day is sealed.
+
+The service locks the complete ordered account, folio, original-journal and original/
+current business-day truth and then rechecks it. It appends one current-open-day INR
+adjustment that sign-negates every original posting line, preserving sequence,
+quantity and the root tax detail, and records one forced-RLS insert-only reversal
+binding. No amount, account, folio, date, tax, route, line, component or post-seal
+decision is caller authority. It never updates or deletes financial evidence and does
+not recompute, reround, partially reverse or reroute tax.
+
+Same-key replay is write-free, changed-key content conflicts, and different keys or
+concurrent requests for one original converge through database uniqueness. Journal,
+complete contra lines, binding, receipt and both minimized fact/outbox pairs commit
+atomically. This contract grants no refund, replacement posting, document, credit
+note, IRP/return amendment, payment, settlement, transfer, API/UI, local deployment
+or Phase-completion authority.

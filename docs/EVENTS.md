@@ -242,6 +242,17 @@ amendment, settlement or submission.
 
 **kernel** · extension.activated {type,key,version} · automation.fired {automation_id,action,result} · approval.requested/.decided
 
+Order408 emits `journal.posted` and
+`india_gst.accommodation_final_component_tax_journal_reversed` only after one
+current-open-day adjustment has exactly sign-negated every line of one governed
+Order407 journal and PostgreSQL has appended its immutable reversal binding. The
+India event carries only reversal/posting binding, tax, original/reversal journal,
+reservation and folio identities, INR currency and `effect:'full_reversal'`; it
+contains no guest/Party data, full tax detail, amounts, routes or document/provider
+content. Replay and a losing concurrent contender emit neither pair. Consumers may
+net the named financial posting, but must not infer a cash refund, replacement
+invoice, credit note, tax-return amendment, payment, settlement or submission.
+
 ## Consumer registry (who must exist by launch)
 
 projection-rebuilder (availability, stats_daily, folio_balance cache) · valkey-invalidator ·

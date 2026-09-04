@@ -1,6 +1,6 @@
 # Order 408 — Governed India final component-tax journal reversal
 
-**Status:** ACTIVE
+**Status:** BUILT — AWAITING FRESH INDEPENDENT TIER-3 REVIEW
 **Phase:** 7 — Tax engine and India IRP
 **Branch:** `phase-7/persisted-india-final-component-tax-evidence`
 **Base:** independently approved Order407 coordination head `907ef6d`
@@ -25,8 +25,11 @@ transaction code, description, quantity, currency and tax-detail lineage while
 negating every amount exactly and preserving sequence.
 
 Migration0072 adds one insert-only tenant-leading forced-RLS binding from original
-Order407 journal/tax root to its sole contra journal. One fixed-search-path owner
-capability validates the complete already-inserted contra set and appends the binding.
+Order407 journal/tax root to its sole contra journal. A narrow fixed-search-path
+owner header capability creates only the server-derived adjustment header because
+`app_role` remains correctly denied direct journal INSERT. A second fixed-search-path
+owner capability validates the complete already-inserted contra set, inserts the
+root line and appends the binding.
 `journal.posted` and
 `india_gst.accommodation_final_component_tax_journal_reversed` fact/outbox evidence
 and the idempotency receipt commit atomically.
@@ -82,3 +85,25 @@ No partial or replacement correction, recomputation, rerouting, edit/delete, ref
 payment, settlement, transfer, credit note, invoice/document/series/number, IRP/
 provider/submission, API/UI/seed/local promotion/deploy/merge/push or Phase/application
 completion authority.
+
+## Builder evidence — D1212
+
+Candidate implementation is complete in the exact scope. An isolated native
+PostgreSQL 16.15 cluster provided the Docker-independent proof path: migrations
+1–72 applied; catalogue is 72 migrations, 124 public tables, 114 RLS tables,
+114 policies, 23 forced-RLS tables and 2 views; the normalized schema snapshot was
+regenerated from that database. The permanent Order408 intentional-red plus live
+suite passes 10/10 (106 expectations), including exact full contra entries,
+IGST/CGST+SGST/CGST+UTGST, zero/multi-night/int64 boundaries, current-day/post-seal
+authority, tenant/actor/replay/rollback census and advisory-lock convergence.
+Typecheck, diff check, schema normalization/catalogue oracles and standing tests
+pass (1328 passed, 1036 database-gated skips, 0 failed; 19,652 expectations).
+
+The native cluster does not claim Docker-specific acceptance: its Ubuntu version
+banner and empty `shared_preload_libraries` differ from the pinned Docker image,
+its local proof authentication was trust-scoped, and the feature database contained
+Order407 fixtures rather than only the canonical demo tenant. Those environment
+assertions are excluded from builder evidence and remain mandatory for the fresh
+reviewer's pinned disposable environment. Stable/default databases, local port3000
+and retained `.yellow` were untouched. Fresh non-implementing Tier-3 execution is
+mandatory before approval.

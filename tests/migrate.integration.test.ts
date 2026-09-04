@@ -516,7 +516,7 @@ databaseDescribe("Bun SQL migration runner", () => {
         const tableCount = await sql<{ count: number }[]>`
           SELECT count(*)::int AS count FROM pg_catalog.pg_tables WHERE schemaname = 'public'
         `;
-        expect(tableCount).toEqual([{ count: 123 }]);
+        expect(tableCount).toEqual([{ count: 124 }]);
       });
     },
     60_000,
@@ -701,7 +701,7 @@ databaseDescribe("Bun SQL migration runner", () => {
                   'open_cashier_session', 'append_cashier_count', 'close_cashier_session'
                 )) AS functions
         `;
-        expect(shape).toEqual([{ tables: 123, policies: 113, functions: 3 }]);
+        expect(shape).toEqual([{ tables: 124, policies: 114, functions: 3 }]);
       });
     },
     60_000,
@@ -748,7 +748,7 @@ databaseDescribe("Bun SQL migration runner", () => {
               WHERE table_schema = 'public' AND table_name = 'journal'
                 AND column_name = 'approval_request_id') AS "approvalColumns"
         `;
-        expect(shape).toEqual([{ tables: 123, policies: 113, functions: 1, approvalColumns: 1 }]);
+        expect(shape).toEqual([{ tables: 124, policies: 114, functions: 1, approvalColumns: 1 }]);
       });
     },
     60_000,
@@ -791,7 +791,7 @@ databaseDescribe("Bun SQL migration runner", () => {
               WHERE namespace.nspname = 'public'
                 AND procedure.proname = 'transition_housekeeping_task') AS functions
         `;
-        expect(shape).toEqual([{ tables: 123, policies: 113, functions: 1 }]);
+        expect(shape).toEqual([{ tables: 124, policies: 114, functions: 1 }]);
       });
     },
     60_000,
@@ -1562,8 +1562,8 @@ databaseDescribe("Bun SQL migration runner", () => {
          WHERE class.oid = 'public.tax_semantic_route'::regclass
         `;
         expect(relation).toEqual([{
-          tables: 123,
-          policies: 113,
+          tables: 124,
+          policies: 114,
           owner: "yellow_owner",
           rls: true,
           appSelect: true,
@@ -1649,6 +1649,7 @@ databaseDescribe("Bun SQL migration runner", () => {
           "0069_india_gst_accommodation_quoted_rate_applicability.sql",
           "0070_india_gst_accommodation_final_component_tax.sql",
           "0071_governed_india_final_component_tax_posting.sql",
+          "0072_governed_india_final_component_tax_correction.sql",
         ]);
 
         const preservedLedger = await sql<Array<{
@@ -1674,7 +1675,7 @@ databaseDescribe("Bun SQL migration runner", () => {
             FROM public.schema_migration
            ORDER BY version
         `;
-        expect(upgradedLedger).toHaveLength(70);
+        expect(upgradedLedger).toHaveLength(72);
 
         const noOpLog: string[] = [];
         const noOp = await runMigrations({
@@ -1683,7 +1684,7 @@ databaseDescribe("Bun SQL migration runner", () => {
           logger: (message) => noOpLog.push(message),
         });
         expect(noOp.appliedFiles).toEqual([]);
-        expect(noOp.discoveredFiles).toBe(70);
+        expect(noOp.discoveredFiles).toBe(72);
         expect(noOp.transactionBackendPids).toEqual([]);
         expect(noOpLog).toHaveLength(1);
         expect(noOpLog[0]).toContain("applied=0 status=no-op");
@@ -1705,7 +1706,7 @@ databaseDescribe("Bun SQL migration runner", () => {
         }>>`
           SELECT version, filename, checksum_sha256
             FROM public.schema_migration
-           WHERE version IN (44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70)
+           WHERE version IN (44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72)
            ORDER BY version
         `;
         expect(ledger.map((row) => ({ ...row, version: Number(row.version) }))).toEqual([
@@ -1849,6 +1850,11 @@ databaseDescribe("Bun SQL migration runner", () => {
             filename: "0071_governed_india_final_component_tax_posting.sql",
             checksum_sha256: "e0c377b9d881403a2b88742c7d2e09e3723526e76cedb52a465ef57f530919c5",
           },
+          {
+            version: 72,
+            filename: "0072_governed_india_final_component_tax_correction.sql",
+            checksum_sha256: "2407d1433672e5f5a958af39acf96406b41ca0e190d1d8987100cd59c5b0f22d",
+          },
         ]);
 
         const authority = await sql<Array<{
@@ -1909,7 +1915,7 @@ databaseDescribe("Bun SQL migration runner", () => {
                 AND class.relforcerowsecurity) AS "forceRlsTables"
         `;
         expect(counts).toEqual([{
-          tables: 123, rlsTables: 113, policies: 113, forceRlsTables: 22,
+          tables: 124, rlsTables: 114, policies: 114, forceRlsTables: 23,
         }]);
 
         const registration = await sql<Array<{
@@ -2387,7 +2393,7 @@ databaseDescribe("Bun SQL migration runner", () => {
         const tableCount = await sql<{ count: number }[]>`
           SELECT count(*)::int AS count FROM pg_tables WHERE schemaname = 'public'
         `;
-        expect(tableCount).toEqual([{ count: 123 }]);
+        expect(tableCount).toEqual([{ count: 124 }]);
 
         const privileges = await sql<{
           route_rls: boolean;
