@@ -3095,9 +3095,9 @@ authority.
 `composeIndiaIrpAccommodationPreDocumentEvidenceAssembly({tenantId,source})` is a
 pure, migration-free Tax-Fiscal integration boundary over the exact deeply frozen
 Order413 source. It independently invokes approved Orders423, 422, 419 and 420 and
-fails closed unless their source hashes, formatted-child versions, ordinary-B2B code,
-INR currency, item count, per-item component family/source backlinks and Order420-to-
-Order419 evidence backlink agree at their approved locations.
+fails closed unless their outer and nested source hashes, formatted-child versions,
+ordinary-B2B code, INR currency, item count, per-item component family/source backlinks
+and Order420-to-Order419 evidence backlink agree at their approved locations.
 
 The fixed-order `sections` projection contains only `Version`, `TranDtls`,
 `SellerDtls`, `BuyerDtls`, `ItemList` and `ValDtls`; it copies child evidence without

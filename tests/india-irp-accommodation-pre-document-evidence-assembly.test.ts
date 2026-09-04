@@ -45,6 +45,41 @@ function structuralKeys(value: unknown, keys = new Set<string>(), seen = new Set
   return keys;
 }
 
+function nestedLineageCorruptionProbe(
+  modulePath: string,
+  exportName: string,
+  mutationId: string,
+): ReturnType<typeof Bun.spawnSync> {
+  const script = `
+    import { mock } from "bun:test";
+    const child = await import(${JSON.stringify(modulePath)});
+    const original = child[${JSON.stringify(exportName)}];
+    mock.module(${JSON.stringify(modulePath)}, () => ({
+      ...child,
+      [${JSON.stringify(exportName)}]: (input) => {
+        const result = original(input);
+        return { ...result, lineage: { ...result.lineage, sourceEvidenceHash: "0".repeat(64) } };
+      },
+    }));
+    const assembly = await import(
+      "./src/contexts/tax-fiscal/india-irp-accommodation-pre-document-evidence-assembly.ts?" +
+      ${JSON.stringify(mutationId)}
+    );
+    const fixture = await import("./tests/fixtures/india-irp-order419-fixture.ts");
+    try {
+      assembly.composeIndiaIrpAccommodationPreDocumentEvidenceAssembly(fixture.makeOrder419Input());
+      process.exit(1);
+    } catch {
+      process.exit(0);
+    }
+  `;
+  return Bun.spawnSync([process.execPath, "-e", script], {
+    cwd: new URL("..", import.meta.url).pathname.slice(1),
+    stdout: "pipe",
+    stderr: "pipe",
+  });
+}
+
 describe("Order424 India IRP accommodation pre-document evidence assembly", () => {
   test("projects exact fixed-order approved child sections and stays explicitly non-submit-ready", () => {
     const input = makeOrder419Input({ family: "cgst_utgst", nights: 2 });
@@ -163,12 +198,42 @@ describe("Order424 India IRP accommodation pre-document evidence assembly", () =
       "parties.sourceEvidenceHash !== sourceEvidenceHash",
       "items.sourceEvidenceHash !== sourceEvidenceHash",
       "values.sourceEvidenceHash !== sourceEvidenceHash",
+      "transaction.lineage.sourceEvidenceHash !== sourceEvidenceHash",
+      "parties.lineage.sourceEvidenceHash !== sourceEvidenceHash",
+      "values.lineage.sourceEvidenceHash !== sourceEvidenceHash",
       "values.lineage.itemCandidateEvidenceHash !== items.evidenceHash",
       "values.lineage.itemCount !== items.items.length",
       "transaction.payload.TranDtls.SupTyp !== items.supplyTypeCode",
       "items.supplyTypeCode !== values.supplyTypeCode",
       "items.currency !== values.currency",
     ]) expect(source).toContain(guard);
+  });
+
+  test("rejects Order423 nested source lineage corruption with its outer source hash correct", () => {
+    const probe = nestedLineageCorruptionProbe(
+      "./src/contexts/tax-fiscal/india-irp-ordinary-b2b-transaction-details-candidate.ts",
+      "composeIndiaIrpOrdinaryB2bTransactionDetailsCandidate",
+      "nested-423",
+    );
+    expect(probe.exitCode).toBe(0);
+  });
+
+  test("rejects Order422 nested source lineage corruption with its outer source hash correct", () => {
+    const probe = nestedLineageCorruptionProbe(
+      "./src/contexts/tax-fiscal/india-irp-accommodation-party-details-candidate.ts",
+      "composeIndiaIrpAccommodationPartyDetailsCandidate",
+      "nested-422",
+    );
+    expect(probe.exitCode).toBe(0);
+  });
+
+  test("rejects Order420 nested source lineage corruption with its outer source hash correct", () => {
+    const probe = nestedLineageCorruptionProbe(
+      "./src/contexts/tax-fiscal/india-irp-accommodation-invoice-value-candidate.ts",
+      "composeIndiaIrpAccommodationInvoiceValueCandidate",
+      "nested-420",
+    );
+    expect(probe.exitCode).toBe(0);
   });
 
   test("rejects unsupported transaction ancestry and hostile input graphs", () => {

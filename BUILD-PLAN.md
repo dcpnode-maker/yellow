@@ -1066,7 +1066,7 @@ image-pins/diff are green. No schema, database, runtime or local state changed.
 `RegRev`, `IgstOnIntra`, `EcmGstin` and every downstream fiscal section remain absent;
 fresh Tier-3 approval is mandatory before use.
 
-Order424 is built awaiting fresh independent Tier-3 review under D1271. Its pure
+Order424 is repaired awaiting a different fresh independent Tier-3 review under D1273. Its pure
 composer independently invokes approved Orders423/422/419/420, validates exact common
 source, format, B2B, INR, item-count, component-family and item-lineage coherence, then
 copies their approved sections into one fixed canonical pre-document assembly without
@@ -1074,9 +1074,14 @@ recalculation or defaulting. The result remains explicitly `submissionReady:fals
 identifies `DocDtls`, `ItemList[].Qty` and `ItemList[].Unit` as known governed omissions.
 Genuine intentional red0/1 preceded focused7/0(70), IRP composition88/0 plus7 expected
 database skips(1009), standing1403/0 plus1054 expected skips(20465;2457 tests/458
-files), type/157-boundary/23-licence/audit0/image-pins/diff green. No schema, database,
-document, provider, API, UI, runtime or local state changed; fresh Tier-3 approval is
-mandatory before downstream use.
+files), type/157-boundary/23-licence/audit0/image-pins/diff green preceded review
+rejection D1272: three independently corrupted nested child source hashes failed open.
+D1273 adds exact production checks and subprocess-isolated permanent probes for each
+nested Order423/422/420 backlink while retaining the existing per-item Order419 check;
+repaired focused10/0(76), IRP composition91/0 plus7 expected database skips(1015),
+standing1406/0 plus1054 expected skips(20471;2460/458), type/157-boundary/23-
+licence/audit0/image-pins/diff are green. No schema, database, document, provider, API,
+UI, runtime or local state changed; different fresh Tier-3 approval is mandatory.
 
 ## Phase 8 — Statutory registration + ZATCA
 

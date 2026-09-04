@@ -1,6 +1,6 @@
 # Order 424 — India IRP accommodation pre-document evidence assembly
 
-**Status:** REVIEW REJECTED — CHILD LINEAGE COHERENCE REPAIR REQUIRED — D1272
+**Status:** REPAIRED — AWAITING DIFFERENT FRESH INDEPENDENT TIER-3 REVIEW — D1273
 **Phase:** 7 — Tax engine and India IRP
 **Branch:** `phase-7/persisted-india-final-component-tax-evidence`
 **Base:** independently approved Order423 coordination head `e729666`
@@ -84,3 +84,16 @@ fact/outbox/idempotency; no submission-ready or provider-payload claim; no DocDt
 Qty/UQC decision, optional-field inference, tax/rate/value recalculation, document/
 series/number/hash-chain/issue, provider/submission/IRN/QR, API/UI/seed/runtime/local/
 deploy/merge/push, Phase7 or application-completion authority.
+
+## D1273 repair evidence
+
+The three D1272 nested-lineage corruptions were first preserved as subprocess-isolated
+permanent probes and failed independently (`6 passed, 3 failed`). Production now checks
+the Order423 transaction, Order422 party and Order420 value nested source hashes against
+the common Order413 source while retaining every Order419 item-source backlink.
+
+After repair: focused `10/0` (76 assertions), IRP composition `91/0` plus 7 expected
+database skips (1,015 assertions), standing `1406/0` plus 1,054 expected skips (20,471
+assertions; 2,460 tests/458 files), typecheck, 157 boundaries, 23 licences, audit zero,
+image pins and diff are green. A different fresh non-implementing Tier-3 reviewer must
+still execute the complete proof.

@@ -57,6 +57,11 @@ function validateCoherence(
       items.sourceEvidenceHash !== sourceEvidenceHash || values.sourceEvidenceHash !== sourceEvidenceHash) {
     return fail("child source evidence hashes are inconsistent");
   }
+  if (transaction.lineage.sourceEvidenceHash !== sourceEvidenceHash ||
+      parties.lineage.sourceEvidenceHash !== sourceEvidenceHash ||
+      values.lineage.sourceEvidenceHash !== sourceEvidenceHash) {
+    return fail("nested child source lineage is inconsistent");
+  }
   if (transaction.format !== "irp_json_1_1" || parties.format !== "irp_json_1_1") return fail("formatted child evidence is inconsistent");
   if (items.items.length === 0 || values.lineage.itemCount !== items.items.length ||
       values.lineage.itemCandidateEvidenceHash !== items.evidenceHash) return fail("item and invoice-value evidence is inconsistent");
