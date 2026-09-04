@@ -189,6 +189,16 @@ export type {
 export { composeIndiaIrpAccommodationPreDocumentEvidenceAssembly, IndiaIrpAccommodationPreDocumentEvidenceAssemblyValidationError } from "./india-irp-accommodation-pre-document-evidence-assembly";
 export type { IndiaIrpAccommodationPreDocumentEvidenceAssembly, IndiaIrpAccommodationPreDocumentEvidenceAssemblyInput, IndiaIrpAccommodationPreDocumentEvidenceLineage, IndiaIrpAccommodationPreDocumentEvidenceSections } from "./india-irp-accommodation-pre-document-evidence-assembly";
 export {
+  composeIndiaIrpAccommodationValidationCompatibilityPreDocumentEvidenceAssembly,
+  IndiaIrpAccommodationValidationCompatibilityPreDocumentEvidenceAssemblyValidationError,
+} from "./india-irp-accommodation-validation-compatibility-pre-document-evidence-assembly";
+export type {
+  IndiaIrpAccommodationValidationCompatibilityPreDocumentEvidenceAssembly,
+  IndiaIrpAccommodationValidationCompatibilityPreDocumentEvidenceAssemblyInput,
+  IndiaIrpAccommodationValidationCompatibilityPreDocumentEvidenceLineage,
+  IndiaIrpAccommodationValidationCompatibilityPreDocumentEvidenceSections,
+} from "./india-irp-accommodation-validation-compatibility-pre-document-evidence-assembly";
+export {
   composeIndiaIrpAccommodationPartyDetailsCandidate,
   IndiaIrpAccommodationPartyDetailsCandidateValidationError,
 } from "./india-irp-accommodation-party-details-candidate";

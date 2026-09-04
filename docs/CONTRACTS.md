@@ -3136,3 +3136,29 @@ and 2239, not configurable commercial quantity, provider certification or submis
 readiness. The boundary recalculates no amount or rate, infers no other optional item
 field, and creates no document, number, hash chain, provider call, submission, IRN/QR,
 database operation, API, UI, runtime, local or Phase-completion authority.
+
+### India IRP accommodation validation-compatibility pre-document evidence assembly (Order 426)
+
+`composeIndiaIrpAccommodationValidationCompatibilityPreDocumentEvidenceAssembly({tenantId,source})`
+is a pure, migration-free Tax-Fiscal boundary over the shared exact deeply frozen
+Order413 input. It independently invokes approved Orders424 and 425, revalidates each
+tenant-bound child evidence hash and their common source, and requires exact agreement
+on item count and order, component family, INR/B2B truth and the inherited Order419
+item-candidate evidence hash.
+
+The fixed-order `sections` projection preserves Order424 `Version`, `TranDtls`,
+`SellerDtls`, `BuyerDtls` and `ValDtls` byte-exact. Only `ItemList` is replaced by the
+exact ordered Order425 projection. Every enriched item must contain exactly
+`Qty:"1.000"` and `Unit:"OTH"`; stripping only those two fields must reproduce the
+corresponding Order424 item byte-exact. No amount, rate, tax or quantity is recalculated.
+The fixed lineage contains the common source hash, both child evidence hashes and the
+shared Order419 item-candidate hash. Canonical `sectionsJson`, deterministic tenant-
+bound evidence, recursive freeze and tenant concealment are preserved.
+
+The state remains explicitly
+`incomplete_non_submit_ready_irp_accommodation_validation_compatibility_pre_document_evidence`.
+Both `submissionReady` and `authenticatedProviderSandboxCertified` are false, and
+`explicitlyExcludedEvidence` is the known non-exhaustive `["DocDtls"]`. This is not a
+complete payload, invoice, fiscal document, provider certification or submission; it
+allocates or issues nothing, persists nothing and exposes no database, API, UI,
+runtime, local or Phase-completion authority.

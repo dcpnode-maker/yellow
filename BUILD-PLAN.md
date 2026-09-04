@@ -1119,6 +1119,17 @@ cross-child hostile/load-bearing proof and fresh independent Tier-3 approval are
 mandatory; no schema, database, document, provider, API/UI, runtime, local or Phase
 authority follows.
 
+Order426 implementation is complete and awaiting fresh independent Tier-3 review
+under D1282. The new pure composer invokes both approved children independently,
+revalidates their tenant-bound hashes and exact common source/item ancestry, preserves
+all Order424 sections except `ItemList`, and substitutes the exact Order425
+Qty1.000/Unit OTH items. Coherently rebound child mutations now fail closed for source,
+count/order, component family, INR/B2B truth, item ancestry, enriched values and child
+hashes. Both readiness flags remain false and `DocDtls` remains absent. Intentional red
+preceded implementation; complete focused/composition/standing/static evidence is
+recorded in Order426. Fresh non-implementing Tier-3 approval remains mandatory, and no
+schema, database, document, provider, API/UI, runtime, local or Phase authority follows.
+
 ## Phase 8 — Statutory registration + ZATCA
 
 Statutory scheduler consuming check-in events; adapters: it-alloggiati (168-char),

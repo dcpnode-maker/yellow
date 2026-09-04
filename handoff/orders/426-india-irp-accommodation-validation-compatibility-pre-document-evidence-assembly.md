@@ -1,6 +1,6 @@
 # Order 426 — India IRP accommodation validation-compatibility pre-document evidence assembly
 
-**Status:** ACTIVE — D1281
+**Status:** BUILT — AWAITING FRESH INDEPENDENT TIER-3 REVIEW — D1282
 **Phase:** 7 — Tax engine and India IRP
 **Branch:** `phase-7/persisted-india-final-component-tax-evidence`
 **Base:** independently approved Order425 coordination head `e9d4ef1`
@@ -77,3 +77,19 @@ fact/outbox/idempotency; no amount/rate/tax/quantity recalculation; no alternate
 no `DocDtls`, document/series/number/hash-chain/issue, complete/submission-ready claim,
 provider certification/submission/IRN/QR, API/UI/seed/runtime/local/deploy/merge/push,
 Phase7 or application-completion authority.
+
+## Implementation evidence — D1282
+
+- Genuine intentional red: the exact public composer export was absent and the
+  dedicated test failed `0 pass, 1 fail` before any product implementation.
+- Added the pure composer/export, exact fixed output/section/lineage order, independent
+  Order424/425 composition, child-hash/source/count/order/family/INR/B2B/Order419-
+  ancestry coherence, byte-exact compatibility stripping, canonical JSON, tenant-bound
+  deterministic evidence, recursive freeze and tenant concealment.
+- Permanent proof uses separately and coherently tenant-rehashed child mutations and
+  requires the exact Order426 error class/message; it covers both children, source,
+  count/order, family, currency, B2B, item ancestry/content, Qty, Unit and evidence hash.
+- Focused, Orders413–426 composition, standing/static/preservation gates are recorded
+  in D1282 and the ledger after execution. No database/runtime/local state changed.
+- This implementation owner does not approve its own work. A fresh non-implementing
+  Tier-3 reviewer must personally execute all proof before any downstream reliance.
