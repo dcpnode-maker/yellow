@@ -17,6 +17,11 @@ const rehashed = (mutate: (source: Mutable) => void): unknown => {
   return freeze({ tenantId: TENANT, source: rehashOrder419Source(freeze(source) as never) });
 };
 const rejected = (value: unknown): void => expect(() => composeIndiaIrpAccommodationInvoiceValueCandidate(value as never)).toThrow();
+const allFrozen = (value: unknown, seen = new Set<object>()): boolean => {
+  if (value === null || typeof value !== "object" || seen.has(value)) return true;
+  seen.add(value);
+  return Object.isFrozen(value) && Object.values(value as Mutable).every((child) => allFrozen(child, seen));
+};
 
 describe("Order 420 India IRP invoice values", () => {
   test("aggregates every component family with exact two-decimal values", () => {
@@ -42,7 +47,7 @@ describe("Order 420 India IRP invoice values", () => {
       expect(first).toEqual(second);
       expect(first.valDtls).toEqual({ AssVal: `${(10001n * BigInt(nights) / 100n).toString()}.${String((10001n * BigInt(nights)) % 100n).padStart(2, "0")}`, IgstVal: "0.00", TotInvVal: `${(10001n * BigInt(nights) / 100n).toString()}.${String((10001n * BigInt(nights)) % 100n).padStart(2, "0")}` });
       expect(JSON.stringify(raw)).toBe(before);
-      expect(Object.isFrozen(first)).toBeTrue();
+      expect(allFrozen(first)).toBeTrue();
       expect(JSON.stringify(first)).not.toContain(TENANT);
     }
   });
@@ -50,9 +55,28 @@ describe("Order 420 India IRP invoice values", () => {
   test("keeps lineage fixed and excludes forbidden optional fields", () => {
     const result = composeIndiaIrpAccommodationInvoiceValueCandidate(makeOrder419Input({ family: "cgst_utgst", componentTaxes: [["0", "0"]] }));
     expect(result.lineage).toEqual({ itemCandidateEvidenceHash: result.lineage.itemCandidateEvidenceHash, sourceEvidenceHash: result.sourceEvidenceHash, itemCount: 1, componentFamily: "cgst_utgst" });
-    expect(Object.keys(result.valDtls)).not.toContain("Discount");
-    expect(Object.keys(result.valDtls)).not.toContain("CesVal");
+    for (const forbidden of ["Discount", "CesVal", "StCesVal", "OthChrg", "RndOffAmt"]) {
+      expect(Object.keys(result.valDtls)).not.toContain(forbidden);
+    }
     expect(Object.values(result).some((value) => JSON.stringify(value).includes(TENANT))).toBeFalse();
+  });
+
+  test("accepts the exact signed-int64 ceiling and keeps tenant authority hash-only", () => {
+    const ceiling = composeIndiaIrpAccommodationInvoiceValueCandidate(makeOrder419Input({
+      transactionValues: ["9223372036854775807"], componentTaxes: [["0"]],
+    }));
+    expect(ceiling.valDtls).toEqual({
+      AssVal: "92233720368547758.07", IgstVal: "0.00", TotInvVal: "92233720368547758.07",
+    });
+
+    const otherTenant = "20000000-0000-4000-8000-000000000002";
+    const first = composeIndiaIrpAccommodationInvoiceValueCandidate(makeOrder419Input({}, TENANT));
+    const second = composeIndiaIrpAccommodationInvoiceValueCandidate(makeOrder419Input({}, otherTenant));
+    expect(second.valDtls).toEqual(first.valDtls);
+    expect(second.supplyTypeCode).toBe(first.supplyTypeCode);
+    expect(second.currency).toBe(first.currency);
+    expect(second.evidenceHash).not.toBe(first.evidenceHash);
+    expect(JSON.stringify(second)).not.toContain(otherTenant);
   });
 
   test("rejects malformed, noncanonical, overflow and arithmetic-inconsistent sources", () => {
@@ -76,5 +100,28 @@ describe("Order 420 India IRP invoice values", () => {
         source[key] = { ...body, evidenceHash: new Bun.CryptoHasher("sha256").update(JSON.stringify({ tenantId: TENANT, ...body })).digest("hex") };
       }
     }));
+  });
+
+  test("rejects mutable, proxy, accessor, symbol, sparse and cyclic input graphs", () => {
+    const valid = makeOrder419Input();
+    rejected({ ...valid });
+    rejected(Object.freeze({ ...valid, source: new Proxy(valid.source, {}) }));
+
+    const accessor = { tenantId: TENANT } as Mutable;
+    Object.defineProperty(accessor, "source", { enumerable: true, get: () => valid.source });
+    Object.freeze(accessor);
+    rejected(accessor);
+
+    const symbol = cloneOrder419(valid) as unknown as Mutable;
+    Object.defineProperty(symbol, Symbol("authority"), { enumerable: true, value: "B2B" });
+    rejected(freeze(symbol));
+
+    const sparse = cloneOrder419(valid) as unknown as Mutable;
+    sparse.source.financialSource.roomNights.length = 2;
+    rejected(freeze(sparse));
+
+    const cycle = cloneOrder419(valid) as unknown as Mutable;
+    cycle.source.loop = cycle.source;
+    rejected(freeze(cycle));
   });
 });
