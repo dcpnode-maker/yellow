@@ -1,6 +1,6 @@
 # Order 426 — India IRP accommodation validation-compatibility pre-document evidence assembly
 
-**Status:** REPAIRED — AWAITING DIFFERENT FRESH INDEPENDENT TIER-3 REVIEW — D1284
+**Status:** CHANGES REQUIRED — D1286
 **Phase:** 7 — Tax engine and India IRP
 **Branch:** `phase-7/persisted-india-final-component-tax-evidence`
 **Base:** independently approved Order425 coordination head `e9d4ef1`
@@ -121,3 +121,14 @@ plus seven expected DB skips (1,182 assertions), standing `1,453/0` plus 1,054 e
 DB skips (20,638 assertions; 2,507 tests / 462 files), strict TypeScript, 159 import
 boundaries, 23 licences, audit zero, image pins, protected inputs and diff green. A
 different fresh non-implementing Tier-3 reviewer remains mandatory.
+
+## Different fresh Tier-3 finding — D1286
+
+D1283's per-item-source proof is repaired and mutation-red, but approval remains
+withheld. Removing only the actual child-versus-pre-document item-count guard leaves
+the named `compatibility count` test green because that mutation leaves the declared
+count unchanged and the declared-count guard rejects it with the same expected
+message. Add a coherently rehashed count mutation that changes both actual items and
+declared count while preserving the pre-document count, prove the actual-count guard
+red independently, rerun complete gates and obtain another different fresh Tier-3
+review. Product source was restored byte-exact; no downstream authority exists.

@@ -76,3 +76,40 @@ diff checks pass. Product source remains byte-exact to `602f4ae`.
 
 This is implementer evidence, not approval. A different fresh non-implementing Tier-3
 reviewer must personally challenge the repaired probes and approve an exact candidate.
+
+## Different fresh Tier-3 rereview — D1286
+
+**Verdict:** CHANGES REQUIRED
+
+**Reviewed repaired candidate:** `5db5f6001c30ab2da60f6ed57ab32909135d829d`
+
+**Rejection base:** `11731e5`; **original base:** `7cce6b5`
+
+**Reviewer:** `/root/order426_repair_tier3`, different fresh independent
+non-implementing Tier-3
+
+The D1283 per-item-source defect is repaired: its child projection now changes only
+the per-item source backlink, recomputes the child hash, requires the exact Order426
+class/message, and removing only the matching production guard makes that named test
+red `0/1`. Separate outer/nested source, child/per-item family, tax-scheme, format,
+readiness, state and declared-count guard removals likewise make their named probes
+red.
+
+Approval is still withheld because the claimed separation of actual and declared item
+count is false-green. The `compatibility count` child mutation removes items while
+leaving `lineage.itemCount` unchanged. When only the production
+`compatibility.items.length !== preDocument.sections.ItemList.length` guard is removed,
+the named test remains green `1/0`: the later declared-count guard rejects the same
+mutation with the same expected class/message. The actual child-versus-pre-document
+count guard is therefore not proven load-bearing. Add a coherently tenant-rehashed
+actual-count projection that changes both `items` and `lineage.itemCount` together,
+while preserving the pre-document child, so only the actual count mismatch remains;
+removing only the actual-count guard must then turn that exact-message test red.
+
+Restored evidence: focused `30/0` (67 assertions), strict TypeScript, 159 import
+boundaries, 23 licences, candidate scope/diff and protected product/test blobs green;
+only pre-existing `.yellow/` is untracked. No product mutation remains. The current
+shared head advanced to Order427 while this review ran, but the reviewed product and
+test blobs remain byte-exact to `5db5f60`. No database, Docker, runtime, local app or
+`.yellow` state was used or mutated. This rejection grants no downstream, document,
+provider, submission, IRN/QR, Phase 7 or application-completion authority.
