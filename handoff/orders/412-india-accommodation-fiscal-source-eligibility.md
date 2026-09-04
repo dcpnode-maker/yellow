@@ -1,6 +1,6 @@
 # Order 412 — India accommodation fiscal-source eligibility
 
-**Status:** ACTIVE — D1222
+**Status:** BUILT — AWAITING FRESH INDEPENDENT TIER-3 REVIEW — D1223
 **Phase:** 7 — Tax engine and India IRP
 **Branch:** `phase-7/persisted-india-final-component-tax-evidence`
 **Base:** independently approved Order411 coordination head `0ce9033`
@@ -85,3 +85,20 @@ series/counter/number allocation, document/invoice/credit/debit note, hash-chain
 India `ItemList`, `Pos`, `SupTyp`, quantity/UQC/unit price, document residual or
 rounding, provider/submission/IRN/QR, API/UI/seed/runtime/local/deploy/merge/push,
 Phase7 or application-completion authority.
+
+## Builder evidence — D1223
+
+The exact migration-free resolver and Financials export are implemented. A fresh
+official PostgreSQL 16.15 database with migrations 1–73 passed the permanent live
+suite 5/5 with 185 assertions across 5%, 12% and 18%, all three component families,
+multi-night and zero-component evidence, closed folio/account reads, RLS and foreign
+selectors, hostile ancestry/posting/account/route mutations, successor generations,
+Order408 reversal, deterministic deep freezing and complete unchanged censuses.
+
+The reused Order407 fixture intentionally carried sentinel hashes; the live harness
+canonically replays migration0070's persisted room-night/component evidence and
+atomically repairs only those disposable test hashes before the Order412 assertions.
+Production byte validation remains strict. Intentional-red is 2/0, typecheck,
+149-file import-boundary, 23-package licence and diff checks are green. This is
+builder evidence only; fresh non-implementing Tier-3 inspection and personal proof
+remain mandatory before approval.

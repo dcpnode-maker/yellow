@@ -1799,3 +1799,16 @@ fails before mutation. It creates no `document` and grants no fiscal numbering,
 invoice, hash-chain, India payload, submission, API/UI/local or Phase7-completion
 authority. Fresh live ACL, rollback, replay, two-tenant and 100-way gap-free proof plus
 independent Tier3 review remain mandatory before approval.
+
+Order412 admits the migration-free, read-only Financials fiscal-source eligibility
+boundary after the approved Order407 posting, Order408 reversal and Order410 authority
+containment foundations. It accepts only exact tenant/property/reservation/folio/
+journal selectors, reloads and byte-checks complete current Order367 ancestry plus the
+unique balanced Order407 topology, and returns recursively frozen tenant-hidden
+`eligible_current_posted_source` evidence. Reversal, later valuation/tax generation,
+foreign, stale, forked, duplicate, malformed or divergent truth fails closed; closure
+of the exact folio/account alone does not. Intentional red is recorded before
+implementation; complete PostgreSQL hostility/read-only proof and fresh independent
+Tier3 execution remain mandatory. This order allocates and issues nothing and grants
+no document, number, hash-chain, India ItemList/provider, API/UI/local or Phase7-
+completion authority.

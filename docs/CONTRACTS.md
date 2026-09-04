@@ -2885,3 +2885,29 @@ complete contra lines, binding, receipt and both minimized fact/outbox pairs com
 atomically. This contract grants no refund, replacement posting, document, credit
 note, IRP/return amendment, payment, settlement, transfer, API/UI, local deployment
 or Phase-completion authority.
+
+### India accommodation fiscal-source eligibility (Order 412)
+
+`IndiaFinalComponentTaxFiscalSourceService.resolve(tx,{tenantId,propertyNode,
+reservationId,folioId,journalId})` is a migration-free, read-only Financials boundary.
+It proves that the selected Order407 posting remains the exact current and unreversed
+fiscal source for the caller's tenant, property, reservation and folio. The resolver
+reloads and byte-checks the current persisted Order367 component-tax root, its complete
+final-valuation and applicability ancestry, the unique posting binding, root-only tax
+detail, balanced journal topology, ordered lines, account roles and folio ownership.
+Later valuation or tax generations, an Order408 reversal, or any stale, forked,
+duplicated, malformed, unbalanced, foreign or byte-divergent evidence conflicts;
+absence and RLS concealment are not-found.
+
+The recursively frozen `eligible_current_posted_source` result retains the exact
+posting, journal, tax, valuation, applicability, reservation, folio and guest-account
+identities; generations and evidence hashes; business date; INR totals; component
+family; and canonical ordered room nights, statutory components and journal lines.
+Its canonical SHA-256 binds but does not disclose the tenant. Folio or guest-account
+closure alone does not disqualify otherwise exact immutable evidence because fiscal
+consumption may follow checkout.
+
+This read allocates or reserves nothing and grants no issuance authority. A later
+issuer must rerun it inside that issuer's locked write transaction. It creates no
+document, invoice, credit/debit note, series number, hash-chain body, India `ItemList`,
+`Pos`, `SupTyp`, provider submission, IRN/QR, API/UI/local or Phase-completion surface.

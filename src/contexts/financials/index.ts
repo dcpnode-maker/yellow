@@ -275,6 +275,20 @@ export type {
 } from "./india-final-component-tax-corrections";
 
 export {
+  IndiaFinalComponentTaxFiscalSourceConflictError,
+  IndiaFinalComponentTaxFiscalSourceNotFoundError,
+  IndiaFinalComponentTaxFiscalSourceService,
+  IndiaFinalComponentTaxFiscalSourceValidationError,
+} from "./india-final-component-tax-fiscal-source";
+export type {
+  IndiaFinalComponentTaxFiscalSourceComponent,
+  IndiaFinalComponentTaxFiscalSourceInput,
+  IndiaFinalComponentTaxFiscalSourceJournalLine,
+  IndiaFinalComponentTaxFiscalSourceResult,
+  IndiaFinalComponentTaxFiscalSourceRoomNight,
+} from "./india-final-component-tax-fiscal-source";
+
+export {
   PositiveTaxCorrectionAuthorizationError,
   PositiveTaxCorrectionConflictError,
   PositiveTaxCorrectionNotFoundError,
