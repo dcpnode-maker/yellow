@@ -68,3 +68,70 @@ and candidate. No PostgreSQL, Docker, WSL or local app was started or mutated;
 This rejection makes no finding against the separately approved child composers. It
 grants no document, provider, API/UI, local, deployment, merge, push, Phase 7 or
 application-completion authority.
+
+---
+
+## D1274 — Different fresh independent Tier-3 rereview after repair
+
+**Verdict:** APPROVED — exact repaired candidate only
+
+**Reviewed candidate:** `e4618d100155ead39e3700623f9b2d0f54da9444`
+
+**Rejection base:** `7fd1f77a28c6f95da30710844ec55ab0c85d86b0`
+
+**Original base:** `89c5889fa56acb138d2b15c5466abf73b8a5fc7e`
+
+**Reviewer:** `/root/order424_repair_tier3`, different fresh independent
+non-implementing Tier-3 reviewer
+
+### Reviewer-executed repair proof
+
+I independently mocked each actual approved child source-lineage location while
+preserving the corresponding child outer `sourceEvidenceHash`. Each isolated probe
+was rejected: Order423 `transaction.lineage`, Order422 `parties.lineage`, Order420
+`values.lineage`, and the first Order419 per-item lineage: **4 passed, 0 failed**.
+
+I then removed the three D1273 production guards together. The permanent focused test
+was red **5 passed, 4 failed**: its structural guard census and all three isolated
+nested-lineage probes failed. After byte-exact restoration, focused plus intentional
+proof passed **10/0 (76 assertions)**. Git blob identity matched candidate
+`c190f4d1c53a55ea1e3315a185a2caaf013b6d1a` before and after all mutations.
+
+### Independent child-projection mutations
+
+I separately changed each production section projection and personally observed the
+focused suite turn red:
+
+- Order423 transaction `SupTyp` projection: **8 passed, 1 failed**;
+- Order422 party projection (buyer substituted for seller): **8 passed, 1 failed**;
+- Order419 item projection (`SlNo` corruption): **7 passed, 2 failed**;
+- Order420 value projection (`TotInvVal` corruption): **7 passed, 2 failed**.
+
+Each mutation was restored before the next probe. Final Git status contains only the
+pre-existing untracked `.yellow/`; no reviewer probe or production mutation remains.
+
+### Exact contract and gates
+
+The restored focused proof confirms exact outer/section/lineage order, canonical
+`sectionsJson`, exact 5/12/18-percent bytes over IGST, CGST+SGST and CGST+UTGST for
+1/2/366 nights, all child hashes/counts/families/currency/B2B coherence, recursive
+freeze, replay/input preservation and tenant hiding. It keeps
+`submissionReady:false`, the exact known omissions `DocDtls`, `ItemList[].Qty` and
+`ItemList[].Unit`, and structurally excludes those and uninvented transaction fields.
+
+Reviewer-executed adjacent composition passed **81/0 plus 7 expected database skips
+(967 assertions)**, and the ten corresponding intentional-red files passed **11/0
+(49 assertions)**. Complete standing proof passed **1,406/0 plus 1,054 expected skips
+(20,471 assertions; 2,460 tests/458 files)**. Strict TypeScript, **157** import
+boundaries, **23** dependency licences, audit zero, container image pins, schema drift,
+current-catalogue oracle and `git diff --check 89c5889..e4618d1` are green.
+
+The exact range changes only Order424 governance/docs, one pure Tax-Fiscal module,
+its bounded-context export and two tests. `migrations/`, `tests/schema/expected.sql`,
+`package.json` and `bun.lock` are byte-identical to the original base. No database,
+Docker, WSL, local app or `.yellow/` state was started or mutated.
+
+Approval grants only the exact pure incomplete pre-document evidence assembly. It
+grants no `DocDtls`, Qty/UQC policy, fiscal document, provider payload, submission,
+IRN/QR, API/UI/local/runtime, deployment, merge, push, Phase 7 or application
+completion authority.

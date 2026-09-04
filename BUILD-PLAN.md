@@ -1066,7 +1066,7 @@ image-pins/diff are green. No schema, database, runtime or local state changed.
 `RegRev`, `IgstOnIntra`, `EcmGstin` and every downstream fiscal section remain absent;
 fresh Tier-3 approval is mandatory before use.
 
-Order424 is repaired awaiting a different fresh independent Tier-3 review under D1273. Its pure
+Order424 is independently approved and closed under D1274. Its pure
 composer independently invokes approved Orders423/422/419/420, validates exact common
 source, format, B2B, INR, item-count, component-family and item-lineage coherence, then
 copies their approved sections into one fixed canonical pre-document assembly without
@@ -1081,7 +1081,13 @@ nested Order423/422/420 backlink while retaining the existing per-item Order419 
 repaired focused10/0(76), IRP composition91/0 plus7 expected database skips(1015),
 standing1406/0 plus1054 expected skips(20471;2460/458), type/157-boundary/23-
 licence/audit0/image-pins/diff are green. No schema, database, document, provider, API,
-UI, runtime or local state changed; different fresh Tier-3 approval is mandatory.
+UI, runtime or local state changed. The different fresh reviewer independently made
+all four actual nested child source-lineage locations reject with each outer hash held
+correct, made the permanent proof red `5/4` by removing the repair, and made the four
+section projections independently red `8/1`, `8/1`, `7/2`, `7/2`. Byte-exact restored
+focused `10/0`, standing `1406/0` plus 1,054 expected skips and every static/scope/diff
+gate pass. Approval remains limited to the explicitly incomplete false-readiness
+pre-document evidence assembly.
 
 ## Phase 8 — Statutory registration + ZATCA
 

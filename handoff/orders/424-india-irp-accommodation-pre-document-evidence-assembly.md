@@ -1,6 +1,6 @@
 # Order 424 — India IRP accommodation pre-document evidence assembly
 
-**Status:** REPAIRED — AWAITING DIFFERENT FRESH INDEPENDENT TIER-3 REVIEW — D1273
+**Status:** INDEPENDENTLY APPROVED — CLOSED — D1274
 **Phase:** 7 — Tax engine and India IRP
 **Branch:** `phase-7/persisted-india-final-component-tax-evidence`
 **Base:** independently approved Order423 coordination head `e729666`
@@ -97,3 +97,15 @@ database skips (1,015 assertions), standing `1406/0` plus 1,054 expected skips (
 assertions; 2,460 tests/458 files), typecheck, 157 boundaries, 23 licences, audit zero,
 image pins and diff are green. A different fresh non-implementing Tier-3 reviewer must
 still execute the complete proof.
+
+## D1274 independent rereview
+
+A different fresh non-implementing Tier-3 reviewer approves exact repaired candidate
+`e4618d1`. The reviewer independently corrupted all four actual nested source-lineage
+locations while preserving each child outer source hash; Order423 transaction,
+Order422 parties, Order420 values and one Order419 item each rejected. Removing the
+three repaired guards made the permanent focused proof red `5/4`; byte-exact restored
+production passed focused `10/0`. Separate transaction, party, item and value projection
+mutants were red `8/1`, `8/1`, `7/2` and `7/2`. Standing `1406/0` plus 1,054 expected
+skips and all required static, preservation, scope and diff gates pass. Approval is
+strictly bounded to this incomplete, false-readiness pure evidence assembly.
