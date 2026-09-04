@@ -596,32 +596,60 @@ databaseDescribe("Order407 real governed service journeys", () => {
   });
 
   test("post-resolve folio, account, route, tax and day drift is rejected after ordered lock barriers", async () => {
-    const pause = () => new Promise<void>((resolve) => setTimeout(resolve, 250));
+    async function waitForRuntimeLock(outcome: Promise<{ ok: boolean; error?: unknown }>): Promise<void> {
+      for (let attempt = 0; attempt < 400; attempt++) {
+        const [blocked] = await deploy<Array<{ blocked: boolean }>>`SELECT EXISTS(
+          SELECT 1 FROM pg_stat_activity activity
+          JOIN pg_locks waiting ON waiting.pid=activity.pid AND NOT waiting.granted
+          WHERE activity.usename='yellow_runtime' AND activity.datname=current_database()
+            AND activity.state='active' AND activity.wait_event_type='Lock'
+        ) blocked`;
+        if (blocked?.blocked) return;
+        const settled = await Promise.race([
+          outcome.then(() => true),
+          new Promise<false>((resolve) => setTimeout(() => resolve(false), 10)),
+        ]);
+        if (settled) throw new Error("Order407 drift call settled before reaching the observable lock barrier");
+      }
+      throw new Error("Order407 runtime did not reach the observable PostgreSQL lock barrier");
+    }
+
     async function barrierCase(
       label: string,
       lock: (tx: SQL, journey: Journey) => Promise<void>,
       mutate: (tx: SQL, journey: Journey) => Promise<void>,
     ): Promise<void> {
       const journey = await seedJourney("igst", [18000n]);
-      const before = await census(journey.tenant);
       let release!: () => void;
       let announce!: () => void;
       const released = new Promise<void>((resolve) => { release = resolve; });
       const announced = new Promise<void>((resolve) => { announce = resolve; });
       const blocker = deploy.begin(async (tx) => {
         await lock(tx, journey);
-        announce();
-        await released;
         await tx`SET LOCAL session_replication_role=replica`;
         await mutate(tx, journey);
+        announce();
+        await released;
       });
       await announced;
-      const attempt = post(journey, `o407-after-lock-${label}-${crypto.randomUUID()}`);
-      await pause();
-      release();
+      const outcome = post(journey, `o407-after-lock-${label}-${crypto.randomUUID()}`).then(
+        () => ({ ok: true as const }),
+        (error: unknown) => ({ ok: false as const, error }),
+      );
+      let barrierError: unknown;
+      try {
+        await waitForRuntimeLock(outcome);
+      } catch (error) {
+        barrierError = error;
+      } finally {
+        release();
+      }
       await blocker;
-      await expect(attempt).rejects.toThrow();
-      const after = await census(journey.tenant);
+      if (barrierError) throw barrierError;
+      const result = await outcome;
+      expect(result.ok, label).toBeFalse();
+      if (result.ok) throw new Error(`Order407 ${label} drift unexpectedly posted`);
+      expect(result.error, label).toBeInstanceOf(Error);
       // The hostile fixture mutation is the only permitted delta: prove all posting
       // artifacts remain absent even though the authoritative row changed mid-call.
       const [effects] = await deploy<Array<{ journals: number; lines: number; bindings: number; facts: number; events: number; keys: number; documents: number; submissions: number }>>`SELECT
@@ -633,7 +661,7 @@ databaseDescribe("Order407 real governed service journeys", () => {
         (SELECT count(*)::int FROM api_idempotency WHERE tenant_id=${journey.tenant}::uuid) keys,
         (SELECT count(*)::int FROM document WHERE tenant_id=${journey.tenant}::uuid) documents,
         (SELECT count(*)::int FROM fiscal_submission WHERE tenant_id=${journey.tenant}::uuid) submissions`;
-      expect(effects, `${label}:${before.length}:${after.length}`).toEqual({ journals: 0, lines: 0, bindings: 0, facts: 0, events: 0, keys: 0, documents: 0, submissions: 0 });
+      expect(effects, label).toEqual({ journals: 0, lines: 0, bindings: 0, facts: 0, events: 0, keys: 0, documents: 0, submissions: 0 });
     }
 
     await barrierCase("folio", (tx, j) => tx`SELECT id FROM folio WHERE id=${j.folio}::uuid FOR UPDATE`, (tx, j) => tx`UPDATE folio SET status='closed' WHERE id=${j.folio}::uuid`);
