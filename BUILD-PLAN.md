@@ -1873,3 +1873,13 @@ fresh Tier3 D1253 approves exact candidate623faea after the removal mutant fails
 the restored candidate passes6/0, combined proof passes40/0, standing passes1374/0
 plus1054 expected skips and every static gate is green. Order419 is closed. Live IRP
 Qty/UQC validation remains a separately governed full-provider-payload decision.
+
+Order420 is the next migration-free pure IRP `ValDtls` candidate after approved
+Order419. It invokes Order419, aggregates only canonical item `AssAmt`, applicable
+component amounts and `TotItemVal` with exact integer minor-unit arithmetic, and emits
+only `AssVal`, `IgstVal` or `CgstVal` plus `SgstVal`, and `TotInvVal`, with fixed
+tenant-hidden lineage. Empty, mixed, malformed, stale, foreign, noncanonical,
+overflowing or inconsistent evidence fails closed. Discount, cess, other-charge,
+round-off, quantity/UQC, document, provider, API/UI/local and Phase-completion
+authority remain forbidden. Intentional-red, permanent load-bearing Order419 proof
+and fresh independent Tier3 review are mandatory.

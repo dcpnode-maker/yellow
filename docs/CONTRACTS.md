@@ -3030,3 +3030,21 @@ deterministic and tenant-hidden except for the evidence-hash preimage. This boun
 does not group nights or infer description, quantity/UQC, discounts, cess, other
 charges or document residuals. It allocates no document identity, persists nothing,
 contacts no provider and exposes no API/UI/runtime authority.
+
+### India IRP accommodation invoice-value candidate (Order 420)
+
+`composeIndiaIrpAccommodationInvoiceValueCandidate({tenantId,source})` is a pure,
+migration-free Tax-Fiscal boundary over the exact approved Order419 room-night item
+candidates. It invokes Order419 as the sole admission boundary, then aggregates the
+already serialized canonical item fields with signed-int64-safe integer minor-unit
+arithmetic. `valDtls` contains only `AssVal`, `TotInvVal`, and either `IgstVal` or
+`CgstVal` plus `SgstVal`; the latter is also the notified IRP slot for UTGST.
+
+The result is recursively frozen and tenant-hidden, with fixed lineage containing the
+Order419 candidate evidence hash, source evidence hash, item count and component family,
+plus a deterministic tenant-bound evidence hash. Empty, non-dense, mixed-family,
+foreign, stale, malformed, noncanonical, overflowing or arithmetic-inconsistent source
+evidence fails closed. Optional discount, cess, state cess, other-charge and round-off
+fields are never inferred or emitted. This intermediate candidate is not an invoice,
+complete IRP payload, document, number, provider call, submission, API, UI or runtime
+authority.

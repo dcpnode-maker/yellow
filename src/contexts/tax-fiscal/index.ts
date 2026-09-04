@@ -156,6 +156,16 @@ export type {
   IndiaIrpAccommodationRoomNightItemLineage,
 } from "./india-irp-accommodation-room-night-item-candidate";
 export {
+  composeIndiaIrpAccommodationInvoiceValueCandidate,
+  IndiaIrpAccommodationInvoiceValueCandidateValidationError,
+} from "./india-irp-accommodation-invoice-value-candidate";
+export type {
+  IndiaIrpAccommodationInvoiceValueCandidateInput,
+  IndiaIrpAccommodationInvoiceValueCandidate,
+  IndiaIrpAccommodationInvoiceValueCandidateLineage,
+  IndiaIrpAccommodationInvoiceValueIrpFields,
+} from "./india-irp-accommodation-invoice-value-candidate";
+export {
   IndiaGstFolioBuyerCandidateConflictError,
   IndiaGstFolioBuyerCandidateNotFoundError,
   IndiaGstFolioBuyerCandidateService,
