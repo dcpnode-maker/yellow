@@ -1,6 +1,6 @@
 # Order 428 — Effective tax resolution and quote-preview proof repair
 
-**Status:** PRODUCT-PROOF-APPROVED; CLOSURE-WITHHELD-PENDING-SAFE-CLEANUP — D1292
+**Status:** INDEPENDENTLY APPROVED AND CLOSED — D1293
 **Phase:** 7 — Tax engine and India IRP
 **Branch:** `phase-7/persisted-india-final-component-tax-evidence`
 **Base:** independently approved Order426 coordination head `e2b4ac7`

@@ -556,7 +556,7 @@ database skips, standing `788/788` plus 704 environment skips and all required s
 gates are green. The current focused and standing gates remain green as recorded in
 D1288.
 
-Order238 remains changes-required under D1288 as the read-only authority slice. It binds
+Order238 is independently approved and closed under D1293 as the read-only authority slice. It binds
 one exact active-tenant property/business-date assignment to exactly one active visible
 `tax_jurisdiction` extension id/version/content hash through existing PostgreSQL and
 runtime-extension authority. Missing/overlapping assignments and missing/ambiguous
@@ -570,9 +570,10 @@ makes the named probe red. One disposable native PostgreSQL 17.2 cluster applied
 73 migrations and ran all six formerly skipped Order238 cases (`15 pass, 0 fail`) as
 SCRAM `yellow_runtime` confirmed `NOSUPERUSER NOBYPASSRLS` with transaction-local
 tenant context. The conditionally created fixture type, cluster, port, data and
-credentials were removed. Fresh non-implementing Tier-3 reproduction remains required.
+credentials were removed. The required fresh non-implementing Tier-3 reproduction
+completed under D1292 and its sole cleanup condition was discharged under D1293.
 
-Order239 is ready under D-628. It composes effective nightly resolution and the pure
+Order239 is independently approved and closed under D1293. It composes effective nightly resolution and the pure
 evaluator into one exact room-only quote tax preview, binds the frozen evidence before
 quote hashing and exposes it through existing offer JSON. It refuses partial/mixed
 jurisdiction, unsupported package/promotion allocation, over-366-night calculation
@@ -584,21 +585,21 @@ change: an exact 366-night calculated case, distinct property/date resolver scop
 cases with exact `RateQuoteConflictError` messages, and a coherent zero-value package
 with present evidence each turn red when only its respective production guard is
 removed. Restored source bytes and focused/composition/static gates are green. Fresh
-non-implementing Tier-3 reproduction remains required; folio attribution, posting,
-document and fiscal authority remain later.
+non-implementing Tier-3 reproduction completed under D1292 and closure completed
+under D1293; folio attribution, posting, document and fiscal authority remain later.
 
 Order428 standing proof is `1,458 pass, 1,054 expected environment skips, 0 fail`
-(20,651 expectations across 2,512 tests/462 files). This does not replace the required
-fresh Tier-3 database and mutation reproduction.
+(20,651 expectations across 2,512 tests/462 files). The fresh Tier-3 database and
+mutation reproduction is recorded under D1292.
 
-Order428/D1292 fresh Tier-3 review independently approves the product proof after
+Order428/D1292 fresh Tier-3 review independently approved the product proof after
 personally making all five exact-message guards red, authenticating a non-bypass
 runtime role, running all PostgreSQL cases `15/0`, the unchanged referee `11/11`,
-exact schema and every standing/static gate. Only order closure remains withheld:
-the stopped disposable cluster's exact 78,769,906-byte directory remains at
-`E:\yellow\temp\order428-tier3-review` after PowerShell deletion was blocked by tool
-policy; port 55493 is closed. Safe same-shell removal and one recorded cleanup receipt
-are the sole remaining Order238/239/428 gate.
+exact schema and every standing/static gate. Under D1293 the founder completed the
+exact same-shell removal; the coordinator verified the 78,769,906-byte path
+`E:\yellow\temp\order428-tier3-review` absent and port 55493 closed. The sole
+non-product condition is discharged, so Orders238, 239 and 428 are independently
+approved and closed with their recorded product and proof evidence unchanged.
 
 Order240 is ready under D-630. It creates the missing pure canonical positive-origin
 tax-attribution snapshot: exact Order239 quote/night/jurisdiction/evaluator evidence

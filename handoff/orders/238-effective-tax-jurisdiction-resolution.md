@@ -1,6 +1,6 @@
 # Order 238 — Effective tax-jurisdiction resolution
 
-**Status:** PRODUCT-PROOF-APPROVED; ORDER428-CLEANUP-PENDING — D1292
+**Status:** INDEPENDENTLY APPROVED AND CLOSED — D1293
 **Phase:** 7 — Tax engine and India IRP
 **Branch:** `phase-7/effective-tax-jurisdiction-resolution`
 **Base:** `e764ed2` (built-unreviewed Order237)
