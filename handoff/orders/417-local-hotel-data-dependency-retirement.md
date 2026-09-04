@@ -1,6 +1,6 @@
 # Order 417 — Local hotel-data dependency retirement
 
-**Status:** GUARDED RETIREMENT WAITING ON HOST FILE ACTION — D1244
+**Status:** APPROVED — CLOSED D1245
 **Phase:** Cross-phase local build hygiene
 **Risk tier:** 3 — destructive local data handling
 **Owner:** Codex implementation; fresh independent non-implementing Tier-3 reviewer required
@@ -60,3 +60,12 @@ No production/external data deletion; no application feature removal; no schema 
 - Fresh independent recursive verification found seven populated nested dumps under `D:\Yellow\backups`, totaling 12,444,872 bytes. The earlier root-only check did not enumerate nested folders.
 - The execution environment blocked recursive host-file deletion before any file changed. Order417 remains open until the founder removes those seven approved dump targets and a fresh recursive absence/topology check is recorded.
 - Docker has zero volumes and no PostgreSQL container. Three stopped non-database components of the intended single stack remain, with no listeners on their configured ports.
+
+## Final independent closure evidence
+
+- Recursive verification finds zero `*.dump` files under `D:\Yellow`, the canonical `.yellow` archive, and the active worktree `.yellow` directory.
+- The empty orphan Order365 Compose network was removed only after validating its exact project label and zero attached containers.
+- Docker contains zero volumes and zero PostgreSQL containers. Only built-in networks plus intended empty `yellow_order311_local` remain.
+- Exactly three intended stopped non-database components remain, with no mounts and no listeners on Yellow ports.
+- The D1242 isolated PostgreSQL 16.15 acceptance 23/23, exact migrations/catalogue/schema, referee 11/11, unseeded-zero and disposable `yellow_test` absence proofs remain valid.
+- Fresh independent non-implementing Tier-3 review approves closure. No retained or silently reseeded hotel-data authority and no second topology remain.
