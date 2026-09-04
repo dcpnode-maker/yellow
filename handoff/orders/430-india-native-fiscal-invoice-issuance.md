@@ -1,6 +1,6 @@
 # Order 430 — India native fiscal invoice issuance
 
-**Status:** ACTIVE — D1302
+**Status:** REPAIRED — AWAITING DIFFERENT FRESH TIER-3 REVIEW — D1314
 **Phase:** 7 — Tax engine and India IRP
 **Branch:** `phase-7/india-native-fiscal-invoice-issuance`
 **Base:** independently approved Order429/D1300 at `25d1db3`
@@ -24,6 +24,20 @@ derives and allocates one legal supplier-registration/FY-bound number, creates f
 document and origin binding, advances the fiscal hash chain, records one fact and one
 outbox event, and commits the replay receipt atomically. IRP remains the downstream
 registration authority and never originates Yellow's document number.
+
+## Repaired builder evidence — D1314
+
+The D1306 findings are repaired at the candidate commit recorded in the ledger. A
+fresh PostgreSQL 16.15 database applied all 74 migrations and proved 13/13 native
+issuance cases with 568 assertions, including 100 distinct governed sources under one
+tenant/property/series, unique contiguous numbers 1–100, counter 101, exact document,
+origin, fact, event and completed-idempotency inventories, and a recomputed complete
+hash chain. Order408 and audited-seal compatibility passed 15/15 with 161 assertions;
+deterministic reversal-first, issue-first, seal-first and issue-first-then-seal paths
+all preserve exact atomic outcomes. Unit/static gates passed 12/12 (75 assertions),
+SECURITY DEFINER containment 3/3 (210 assertions), schema snapshot byte identity,
+typecheck, boundaries, licences and diff checks. This is builder evidence only; a
+different fresh Tier-3 reviewer must personally re-execute the proof before approval.
 
 ## Natural-Solution Test
 

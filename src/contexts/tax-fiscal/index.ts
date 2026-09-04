@@ -592,3 +592,27 @@ export type {
   IndiaIrpAccommodationFiscalActionReadinessInput,
   IndiaIrpAccommodationFiscalActionReadinessResult,
 } from "./india-irp-accommodation-fiscal-action-readiness";
+export {
+  IndiaNativeFiscalInvoiceAuthorizationError,
+  IndiaNativeFiscalInvoiceConflictError,
+  IndiaNativeFiscalInvoiceIssuanceService,
+  IndiaNativeFiscalInvoiceService,
+  IndiaNativeFiscalInvoiceNotFoundError,
+  IndiaNativeFiscalInvoiceValidationError,
+  IndiaNativeFiscalSeriesAuthorizationError,
+  IndiaNativeFiscalSeriesConfigurationService,
+  IndiaNativeFiscalSeriesConflictError,
+  IndiaNativeFiscalSeriesNotFoundError,
+  IndiaNativeFiscalSeriesValidationError,
+  createIndiaNativeFiscalSeries,
+  configureIndiaNativeFiscalSeries,
+  deriveIndiaFinancialYearStart,
+  validateIndiaNativeFiscalPrefix,
+} from "./india-native-fiscal-invoice";
+export type {
+  IndiaNativeFiscalInvoiceIssueInput,
+  IndiaNativeFiscalInvoiceReceipt,
+  IndiaNativeFiscalInvoiceServiceOptions,
+  IndiaNativeFiscalSeriesConfigurationInput,
+  IndiaNativeFiscalSeriesConfigurationResult,
+} from "./india-native-fiscal-invoice";
