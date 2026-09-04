@@ -5,6 +5,12 @@
 **Risk tier:** 3 — destructive host artifact handling
 **Owner:** Codex inventory/coordination; fresh independent non-operating Tier-3 reviewer required before deletion or global Docker compaction
 
+The first founder filesystem execution stopped safely during preflight because its
+elevated PowerShell did not inherit Git on `PATH`. D1249 independently approves the
+narrow repair: pin the existing Codex-runtime Git 2.53.0 executable, fail closed if
+it is absent, and retain the byte-identical target block and every registered-
+worktree guard. That failed run deleted none of the 49 approved targets.
+
 ## Objective
 
 Recover space from obsolete Yellow proof, review, database-cluster, diagnostic and Docker artifacts across C:, D: and E: while preserving one authoritative repository, its one active worktree, all committed history/evidence, required build toolchains, and intentionally retained local AI models.

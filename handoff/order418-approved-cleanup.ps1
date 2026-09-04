@@ -2,6 +2,10 @@ $ErrorActionPreference = 'Stop'
 
 $canonical = 'C:\Users\astha\Documents\Codex\2026-08-14\cl\outputs\yellow'
 $active = 'C:\Users\astha\Documents\Codex\2026-08-14\cl\outputs\yellow-order175-folio-responsive-containment'
+$gitExe = 'C:\Users\astha\.cache\codex-runtimes\codex-primary-runtime\dependencies\native\git\cmd\git.exe'
+if (-not (Test-Path -LiteralPath $gitExe -PathType Leaf)) {
+    throw "Required reviewed Git executable is absent: $gitExe"
+}
 $preserved = @(
     $canonical,
     $active,
@@ -67,7 +71,7 @@ $targets = @(
     'E:\yellow\order396-f30a742.tar'
 )
 
-$registered = @(git -C $canonical worktree list --porcelain |
+$registered = @(& $gitExe -C $canonical worktree list --porcelain |
     Where-Object { $_ -like 'worktree *' } |
     ForEach-Object { [IO.Path]::GetFullPath($_.Substring(9)).TrimEnd('\') })
 
