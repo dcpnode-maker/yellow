@@ -601,6 +601,15 @@ exact same-shell removal; the coordinator verified the 78,769,906-byte path
 non-product condition is discharged, so Orders238, 239 and 428 are independently
 approved and closed with their recorded product and proof evidence unchanged.
 
+Order429 is active under D1294 as the smallest policy-neutral next fiscal boundary.
+It reruns approved Order413 from live tenant-scoped PostgreSQL, composes exact
+approved Order426 pre-document evidence, and returns only a frozen false-readiness
+snapshot with no permitted action and exact blockers for unresolved document origin,
+legal number format and series binding. It cannot emit `DocDtls`, choose native issue
+versus external adoption, allocate a number, touch a series, issue/import a document,
+write state or call a provider. Intentional-red, live hostile proof and fresh
+non-implementing Tier-3 review are mandatory.
+
 Order240 is ready under D-630. It creates the missing pure canonical positive-origin
 tax-attribution snapshot: exact Order239 quote/night/jurisdiction/evaluator evidence
 becomes deeply frozen JSON-safe decimal-string truth with strict reconciliation and a
