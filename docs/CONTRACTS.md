@@ -3004,3 +3004,29 @@ require separate governed contracts. This result does not decide reverse charge,
 no `ItemList` or `DocDtls`, issues or numbers no document, calls no provider, submits
 nothing and exposes no database, API, UI, runtime, local, deployment or Phase-
 completion authority.
+
+### India IRP accommodation room-night item candidates (Order 419)
+
+`composeIndiaIrpAccommodationRoomNightItemCandidates({tenantId,source})` is a pure,
+migration-free Tax-Fiscal boundary over the exact deeply frozen Order413 source. It
+invokes both approved Order414 numeric validation and Order415 ordinary registered
+B2B admission before emitting any item field. No caller-provided item, serial,
+description, quantity, unit, money, rate, tax or supply-type value is accepted.
+
+The result preserves exactly one candidate per existing dense room-night. Each
+candidate contains a provider-facing `irp` record with only `SlNo`, `IsServc`,
+`HsnCd`, `UnitPrice`, `TotAmt`, `AssAmt`, `GstRt`, the applicable persisted tax
+amount field or fields, and `TotItemVal`. `SlNo` is the one-based source ordinal;
+`IsServc` and `HsnCd` are the approved service/SAC classification. `UnitPrice`,
+`TotAmt` and `AssAmt` are the exact final room-night transaction value, and
+`TotItemVal` is that value plus its exact persisted tax. IGST emits `IgstAmt`;
+CGST+SGST and CGST+UTGST emit `CgstAmt` plus `SgstAmt`, the notified portal's
+SGST/UTGST slot. Money and basis points are serialized to canonical two-decimal
+strings without floating point, recalculation or rerounding.
+
+Provider-neutral lineage retains the source room-night ordinal/date, component family
+and exact persisted component evidence. The complete result is recursively frozen,
+deterministic and tenant-hidden except for the evidence-hash preimage. This boundary
+does not group nights or infer description, quantity/UQC, discounts, cess, other
+charges or document residuals. It allocates no document identity, persists nothing,
+contacts no provider and exposes no API/UI/runtime authority.

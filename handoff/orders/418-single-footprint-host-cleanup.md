@@ -1,6 +1,6 @@
 # Order 418 — Single-footprint host cleanup
 
-**Status:** GUARDED EXECUTION PARTIAL — DOCKER APPROVED/CLEAN, FILESYSTEM PENDING
+**Status:** FILESYSTEM APPROVED/CLOSED — DOCKER CLEAN — VHD COMPACTION PENDING
 **Phase:** Cross-phase build hygiene
 **Risk tier:** 3 — destructive host artifact handling
 **Owner:** Codex inventory/coordination; fresh independent non-operating Tier-3 reviewer required before deletion or global Docker compaction
@@ -10,6 +10,13 @@ elevated PowerShell did not inherit Git on `PATH`. D1249 independently approves 
 narrow repair: pin the existing Codex-runtime Git 2.53.0 executable, fail closed if
 it is absent, and retain the byte-identical target block and every registered-
 worktree guard. That failed run deleted none of the 49 approved targets.
+
+D1250 independently closes the filesystem stage after founder execution: all 49
+approved targets are absent, canonical and active registered worktrees remain intact,
+Git connectivity has no missing/corrupt reachable object, auth/model/toolchain/Docker
+preservation checks pass, and only the three intended top-level `E:\yellow` roots
+remain. Order418 stays open solely because VHD compaction requires a separately
+approved full Docker/WSL shutdown and compaction sequence.
 
 ## Objective
 

@@ -1861,3 +1861,9 @@ minor units and basis points serialize to two-decimal strings without float,
 recalculation, rerounding, aggregation or residual allocation. Quantity/UQC,
 description, discount, cess, other charges, document identity, provider, API/UI/local
 and Phase completion remain separate.
+The D1251 candidate implements that exact boundary. Genuine module/export absence
+preceded production; focused6/0 and the combined Orders414/415/419 suite38/0 with539
+assertions prove every5/12/18-percent component family,1/2/366 nights,zero components,
+canonical decimals/serials/totals,optional-field absence,deep freeze,deterministic
+replay,input preservation and correctly rehashed unsupported/topology/lineage
+hostility. Standing/static gates and fresh independent Tier3 remain mandatory.
