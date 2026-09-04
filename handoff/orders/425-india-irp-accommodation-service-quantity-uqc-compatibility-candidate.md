@@ -1,6 +1,6 @@
 # Order 425 — India IRP accommodation service quantity/UQC compatibility candidate
 
-**Status:** ACTIVE — OUTPUT CLARIFIED — D1276
+**Status:** BUILT — AWAITING FRESH INDEPENDENT TIER-3 — D1277
 **Phase:** 7 — Tax engine and India IRP
 **Branch:** `phase-7/persisted-india-final-component-tax-evidence`
 **Base:** independently approved Order424 coordination head `d5b2aa5`
@@ -86,3 +86,18 @@ counts; no UQC alternative/configuration or claim that `OTH` is provider-certifi
 no amount/rate/tax recalculation/rerounding; no complete/submission-ready payload,
 DocDtls, document/series/number/hash-chain/issue, provider/submission/IRN/QR, API/UI/
 seed/runtime/local/deploy/merge/push, Phase7 or application-completion authority.
+
+## D1277 implementation evidence
+
+Genuine intentional red `0/1` preceded the exact module and export. The pure composer
+now invokes approved Order419, validates its source/evidence/count/family/currency/B2B
+coherence, rejects inherited `UnitPrice != TotAmt`, and inserts only exact fixed-order
+`Qty:"1.000"` and `Unit:"OTH"` while preserving all child values and item lineage.
+Focused proof passes `8/0` (96 assertions), including every family, 1/2/366 nights,
+structural exclusion, recursive freeze, tenant binding/hiding, hostile input and six
+controlled child mismatch projections. Orders413–425 composition passes `81/0` plus
+7 expected database skips (892 assertions); standing passes `1414/0` plus 1,054
+expected database skips (20,567 assertions; 2,468 tests/460 files). Strict TypeScript,
+158 import boundaries, 23 dependency licences, audit zero, image pins and diff checks
+pass. Unchanged schema/referee proof and fresh independent Tier-3 review remain
+mandatory before approval.

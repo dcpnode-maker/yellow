@@ -1089,6 +1089,17 @@ focused `10/0`, standing `1406/0` plus 1,054 expected skips and every static/sco
 gate pass. Approval remains limited to the explicitly incomplete false-readiness
 pre-document evidence assembly.
 
+Order425 is built awaiting fresh Tier-3 review under D1277. Its pure composer invokes
+approved Order419 and inserts only compatibility constants `Qty:"1.000"` and
+`Unit:"OTH"` into each exact one-item-per-room-night service projection, preserving
+all inherited values, count/order, lineage, component family and B2B/INR evidence.
+Exact structural, hostile, tenant-binding and controlled child-projection proof guards
+the otherwise unreachable `UnitPrice === TotAmt` invariant and all inherited
+backlinks. Focused `8/0`, Orders413–425 composition `81/0` plus 7 expected database
+skips, standing `1414/0` plus 1,054 expected database skips and all non-database static
+gates pass. This compatibility candidate is not provider-certified or submission-ready;
+it adds no document, number, provider, API/UI, runtime, local or Phase authority.
+
 ## Phase 8 — Statutory registration + ZATCA
 
 Statutory scheduler consuming check-in events; adapters: it-alloggiati (168-char),

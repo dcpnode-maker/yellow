@@ -3113,3 +3113,24 @@ and `ItemList[].Unit`. Those omissions are not an exhaustive provider-validation
 result. This internal evidence assembly is not an invoice, fiscal document or provider
 payload; it issues or numbers nothing, persists nothing, submits nothing and exposes no
 database, provider, API, UI, runtime, local or Phase-completion authority.
+
+### India IRP accommodation service quantity/UQC compatibility candidate (Order 425)
+
+`composeIndiaIrpAccommodationServiceQuantityUqcCompatibilityCandidate({tenantId,source})`
+is a pure, migration-free Tax-Fiscal boundary over the exact deeply frozen Order413
+input accepted by approved Order419. It invokes Order419 as the sole admission boundary
+and preserves its exact one-item-per-room-night count, order, values, component family,
+B2B/INR truth, source backlink, evidence backlink and byte-exact item lineage.
+
+Each projected `irp` record inserts only `Qty:"1.000"` and `Unit:"OTH"` immediately
+after `HsnCd`; every inherited field retains its exact value and notified schema order.
+The fixed lineage contains only the Order419 evidence hash, common source hash, item
+count and component family. Inherited `UnitPrice` and `TotAmt` must remain identical.
+Replay is byte-equivalent and the deterministic tenant-bound result is recursively
+frozen without returning the tenant.
+
+These two constants are compatibility evidence for current IRP validation errors 2238
+and 2239, not configurable commercial quantity, provider certification or submission
+readiness. The boundary recalculates no amount or rate, infers no other optional item
+field, and creates no document, number, hash chain, provider call, submission, IRN/QR,
+database operation, API, UI, runtime, local or Phase-completion authority.
