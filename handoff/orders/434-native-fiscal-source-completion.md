@@ -622,6 +622,7 @@ src/contexts/tax-fiscal/india-gst-accommodation-service-provision-date.ts
 src/contexts/tax-fiscal/india-gst-accommodation-payment-receipt-date.ts
 src/contexts/tax-fiscal/india-gst-accommodation-invoice-timeliness.ts
 src/contexts/tax-fiscal/india-gst-accommodation-time-of-supply.ts
+src/contexts/tax-fiscal/india-gst-section14-rate-selection.ts
 src/contexts/tax-fiscal/india-gst-registration-at-time-of-supply.ts
 src/contexts/tax-fiscal/india-gst-recipient-registration-at-time-of-supply.ts
 src/contexts/tax-fiscal/india-gst-accommodation-supply-nature-at-time-of-supply.ts
@@ -865,3 +866,25 @@ by this draft. Any concrete contradiction found while implementing requires an
 explicit amendment; no missing file, source shape, guard, event or exceptional
 regime may be added silently. Do not deliver another miniature envelope while
 leaving the first native invoice impossible.
+
+## Explicit shared timing-core implementation amendment — 2026-09-05
+
+The existing Section14 service rereads an external invoice and cannot derive native
+timing as-is. Admit the exact existing `india-gst-section14-rate-selection.ts`
+path above for an origin-independent evidence calculation core, reused by both
+the existing external service and the new native adapter. The already scoped
+`india-gst-accommodation-time-of-supply.ts` may expose its exact ordinary date
+calculation for reuse. Preserve external root agreement, result shapes, canonical
+preimages and hashes byte-for-byte; do not accept a prebuilt Section14 result as
+native authority or duplicate the six-case classifier. Pure calculation exports
+do not authenticate persisted evidence; SQL reconstruction remains mandatory.
+No other previously read-only source is admitted by this amendment.
+
+Governed intake SQL signatures use server-derived actor-bound request hashes,
+not a caller hash argument. Their final argument is a bounded idempotency key;
+every call (including replay) validates current actor/property authority before
+returning a permanent root. Reuse0056/0057 with nullable legacy-compatible recording
+metadata and exact discriminator constraints; no third evidence table. Original
+request/recording actor and server evidence hashes are immutable. These details
+implement the already-admitted source-recording/replay requirements, not a new
+legal regime or a product-completion claim.
