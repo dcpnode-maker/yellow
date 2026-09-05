@@ -1,6 +1,6 @@
 # Order 432 — PR80 CI portability repair
 
-**Status:** REPAIRED — AWAITING SIXTEENTH GITHUB CI — D1329
+**Status:** REPAIRED — AWAITING SEVENTEENTH GITHUB CI — D1331
 **Phase:** Delivery infrastructure
 **Branch:** `phase-7/persisted-india-final-component-tax-evidence`
 **Risk tier:** 1 — test harness and CI portability only
@@ -45,7 +45,9 @@ path, browser launch assumptions and shallow Git history.
   all role, grant, session, function and tenant-boundary assertions;
 - `tests/migrate.integration.test.ts` only to add the existing 0074 migration to its
   exact ordered catalogue and align current full-schema table/policy counts; preserve
-  historical partial-migration counts, checksums, rollback and migration behavior;
+  historical partial-migration counts, checksums, rollback and migration behavior.
+  Its supplier-registration current constraint count also includes the existing
+  0074 tenant/property/id composite unique constraint, with its identity verified;
 - `tests/database-acceptance.integration.test.ts` only to include existing migration
   0074 and its verified immutable checksum, and align current migration/table/RLS/
   policy/FORCE-RLS/permission catalogue counts; preserve all schema, grants and runtime checks;
@@ -108,6 +110,15 @@ catalogue checks were audited without additional findings. Full GitHub DB proof
 remains required; neither skipped cases nor catalogue repair approve native issuance.
 
 ## Excluded operations
+
+Sixteenth run `33933162737` on `591ace8` again passed quality, Windows-state and
+container smoke. Its migration suite exposed the supplier-registration constraint
+count still expecting 18 rather than 19. The additional constraint is the existing
+0074 `property_fiscal_registration_tenant_property_id_uq` on tenant/property/id;
+the assertion now includes it without modifying schema or any substantive role,
+lineage or mutation check. Root reran native Windows focused tests: 2 passed,
+65 unavailable-DB skips, 0 failed, 9 assertions; typecheck passed. Full database
+verification remains pending on the exact newly published commit.
 
 No production behavior, Phase7 fiscal implementation, schema, database policy,
 runtime/local, `.yellow`, dependency upgrade, merge, force push or historical-proof

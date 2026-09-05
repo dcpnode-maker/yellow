@@ -1967,7 +1967,7 @@ databaseDescribe("Bun SQL migration runner", () => {
         expect(registration).toEqual([{
           owner: "yellow_owner", rls: true, policies: 1,
           appSelect: true, appMutation: false, runtimePrivileges: 0,
-          constraintCount: 18, tenantLeadingLookup: true,
+          constraintCount: 19, tenantLeadingLookup: true,
         }]);
 
         const propertyLocation = await sql<Array<{
