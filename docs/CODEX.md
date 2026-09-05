@@ -1,94 +1,80 @@
-# CODEX.md — running Yellow with OpenAI Codex CLI
+# Codex ownership and operating model
 
-Short answer: **yes, and almost everything transfers as-is.** The immutable
-`migrations/0001_init.sql` baseline, the test
-battery, Docker Compose, and every doc in this repo are plain files with no
-Claude-specific content — DEPENDENCIES.md's "nothing revocable in the critical path"
-doctrine applies to tooling too. The only real work is bridging two config dialects.
+Codex is Yellow's sole development and coordination owner under the founder's
+2026-09-05 directive. It owns the authoritative task, repository lineage, integration
+sequence and release record. Codex may use multiple internal models for bounded build,
+research and independent review work. Those workers do not create a second roadmap,
+project state or release path.
 
-## What's already bridged in this repo
+## Start every session
 
-| Claude Code | Codex | Status |
-|---|---|---|
-| `CLAUDE.md` | `AGENTS.md` | Written — trimmed mirror, same invariants/boundaries/never-do list |
-| `.mcp.json` | `.codex/config.toml` | Written — mirrored empty MCP configurations; no auto-launched servers |
-| `.claude/skills/yellow-*/` | *(no equivalent loader)* | Plain Markdown — Codex can read the files directly, just not auto-load them the way Claude Code does |
-| `DECISIONS.log` | `DECISIONS.log` | **Same file, on purpose** — see rule below |
-| `tests/run_invariants.py`, `docker-compose.yml`, `migrations/` | *(identical)* | Zero changes — these are Postgres/Docker, not Claude |
+1. Read `PROJECT.md` and `docs/PROJECT-STATUS.md`.
+2. Read `AGENTS.md`, the current order and the relevant phase section of
+   `BUILD-PLAN.md`.
+3. Run `./state.sh` (or `state.ps1` on native Windows).
+4. Inspect the exact branch, head and dirty files before modifying anything.
+5. Search `DECISIONS.log` for the topic and inspect the existing code and tests.
 
-## First thing Codex must read
+`PROJECT-STATUS.md` is the current-state source. Orders, reviews, decisions and the
+ledger preserve history. A legacy order without a `MERGED` heading is not automatically
+current work.
 
-`AGENTS.md` is a thin adapter; **`PROJECT.md` is the canonical constitution** (Ten
-Invariants, boundaries, standards, session ritual) and `./state.sh` prints ground
-truth. Both are agent-neutral by design. Roles and review tiers: `handoff/ROSTER.md`.
+## Internal delegation
 
-## Install Codex (inside WSL/Ubuntu, same as Claude Code)
+Codex chooses a model for each bounded lane by consequence, uncertainty and cost:
 
-```bash
-npm install -g @openai/codex
-codex          # first run prompts for ChatGPT sign-in or an API key
+| Work | Default routing |
+|---|---|
+| Architecture, migrations, tenancy/RLS, occupancy, money, fiscal chains and hard diagnosis | Strongest available reasoning model |
+| Scoped implementation, tests, adapters and refactors | Capable implementation model |
+| Documentation, inventory, static analysis and research extraction | Faster model when the scope is mechanical |
+| Independent high-risk review | A model that did not implement the change and personally executes the registered proof |
+
+One coordinator assigns non-overlapping files, integrates results and owns the final
+diff. Model identity does not grant permission to approve its own implementation,
+merge a PR, spend money, create accounts, use credentials or claim deployment.
+
+## Repository and release flow
+
+```text
+current status → bounded order → branch → implementation → proof → independent review
+→ pull request → integration → immutable build → configured cloud target → receipt
 ```
 
-Sign in with your ChatGPT account to use your existing plan/credits rather than
-metered API billing — API access is priced per token and gets expensive fast on
-agentic loops; a subscription plan is the Codex equivalent of what Max/Pro is for
-Claude Code.
+Use `phase-N/slug` branches and `[codex]` commit prefixes. Main changes only through a
+reviewed PR. Keep code, tests, safe configuration examples and release provenance in
+Git. Keep credentials, guest/hotel data, protected local authority, model weights,
+database volumes and machine caches outside Git.
 
-## The one rule that matters: DECISIONS.log is shared, not per-agent
+Local speed comes from the same source and build inputs used by CI. A local process is
+current only when its health and build receipt name the serving commit. A Git push does
+not refresh a local process, and a merged commit does not prove cloud deployment.
+`docs/RELEASE.md` owns the exact build, local and cloud commands for the consolidated
+baseline. `./scripts/local-review.sh` accepts `start`, `status` or `stop`; do not
+recreate its seed, credential or Compose sequence manually. A valid readiness receipt
+names the exact Git SHA, `yellow_runtime_database` target and expected migration
+frontier 75.
 
-Both agents read and append to the **same** `DECISIONS.log`. This is what stops
-Codex re-deciding something Claude Code already settled (or vice versa) and burning
-a session's worth of tokens/credits re-litigating it. Before either agent makes a
-schema, ledger, occupancy, or fiscal decision, it should grep this file first.
+## Proof and review
 
-```bash
-grep -i "occupancy\|folio\|RLS" DECISIONS.log   # check before deciding, not after
-```
+Run focused checks during implementation. Before a reviewable PR, run the order's full
+gate, including real PostgreSQL and `./setup.sh --db-only` when required. The canonical
+referee must report `11 passed, 0 failed of 11`; skipped database tests stay skips.
 
-## Suggested split (this is what actually saves money)
+High-risk changes require an independent non-implementer to inspect the diff and
+execute relevant proof personally. The reviewer records commands, environment, exact
+commit, assertions, skips, findings and verdict. Never soften an assertion, grant or
+catalogue check to manufacture green output.
 
-Given your constraint — Claude tokens cost real money, Codex is free to you right
-now — the efficient split is:
+## Tool and credential boundary
 
-- **Codex**: the high-volume, well-specified work. Once BUILD-PLAN.md's Definition
-  of Done is written for a phase, executing against it is mostly mechanical —
-  exactly what a free/cheap model handles well when the spec removes ambiguity.
-  Scaffolding, CRUD handlers, adapters, tests-from-spec, docs.
-- **Claude (Fable/Opus)**: the ambiguous 20% — schema changes, occupancy claim
-  logic, ledger/journal correctness, fiscal chain design, RLS, and any moment either
-  agent hits a genuine judgment call. This mirrors the Fable-escalation rule already
-  in CLAUDE.md/AGENTS.md, just spread across two tools instead of two models.
+Project configuration intentionally launches no third-party MCP server. Use repository
+scripts, local database tools and the configured Git/GitHub connection. New tools need
+exact provenance, a permissive licence, a bounded credential scope and a reviewed order.
+Deployment authority and runtime authority stay separate; the app never receives the
+deployment DSN as a fallback. See `docs/TOOLING.md`.
 
-Run `./setup.sh` once (it doesn't care which agent runs afterward), then point
-either agent at the same repo. `tests/run_invariants.py` is the referee: whichever
-agent touched the code, the battery must still print `11 passed, 0 failed`.
-Project MCP launchers are intentionally disabled; use local `psql`/repository
-scripts, `git`/`gh`, and built-in documentation tools. A future MCP requires a
-separate reviewed order with exact package provenance and credential scope.
-
-## What does NOT transfer automatically
-
-- **Skills as auto-loaded context.** Claude Code's `.claude/skills/` mechanism
-  (description-triggered loading) has no direct Codex equivalent as of this
-  writing. Workaround: reference them explicitly — e.g. tell Codex
-  *"Read .claude/skills/yellow-postgres-patterns/SKILL.md before writing SQL."*
-  Since AGENTS.md already points at them, a well-configured Codex session should
-  pick this up from project instructions, but verify rather than assume.
-- **Hooks.** `.claude/settings.json`'s PostToolUse format-check hook is Claude
-  Code's own mechanism. Codex has its own hook system with its own config surface —
-  not wired here; add it later if the duplication becomes annoying.
-- **Model-name specifics.** AGENTS.md deliberately does NOT name Codex models,
-  since that roster moves independently of Claude's. Set your default model in
-  `~/.codex/config.toml`, and apply the escalation *principle*, not a copy-pasted
-  model name.
-
-## Verify the bridge before trusting it
-
-```bash
-codex
-# then inside the session, confirm it has read AGENTS.md.
-```
-
-There are no project MCP servers expected to show connected. Docker is still used
-by the database and application workflows, but no MCP package is fetched or
-started by this repository configuration.
+Install or authenticate Codex through the user's approved environment. Do not place
+tokens in tracked files, prompts, shell history examples or model conversations. No
+subscription, provider or model is treated as permanently free; measure cost per
+correctly completed task and keep adapters replaceable.

@@ -10,18 +10,21 @@ than speculative rewrites or a separate app fork for every country.
 ## Start with the actual project
 
 Read [PROJECT.md](PROJECT.md), your [role adapter](AGENTS.md), then
+[current project status](docs/PROJECT-STATUS.md) and
 [the project map](docs/PROJECT-MAP.md). The [feature register](docs/FEATURE-REGISTER.md)
 maps the founder's current requirements to phases, design, existing source and
 remaining acceptance work. [START-HERE.md](START-HERE.md),
 [Windows setup](START-HERE-WINDOWS.md) and [USAGE.md](USAGE.md) describe working on
 this existing repository—not creating another package or database.
 
-**Publication checkpoint: 2026-09-05.** The latest development is on
-[the Phase-7 branch](https://github.com/dcpnode-maker/yellow/tree/phase-7/persisted-india-final-component-tax-evidence)
-and [PR #80](https://github.com/dcpnode-maker/yellow/pull/80). GitHub's default
-`main` still represents the older integrated baseline. A development commit, green
-CI, independent approval, merge and local app refresh are separate events. This README
-does not assert that unmerged work is present on `main` or in a running local app.
+**Consolidated baseline: 2026-09-05.** Orders438/439 bring the operational application,
+current project records and repeatable local setup into one Codex-owned release in
+[PR #82](https://github.com/dcpnode-maker/yellow/pull/82). Independent reviewers verified
+all five CI jobs, including the real database and complete local launcher. All 62 PRs
+in the original audit have recorded closure and source-preservation evidence.
+Use reviewed `main` for the app and [RELEASE](docs/RELEASE.md) to start or update it.
+[PROJECT-STATUS](docs/PROJECT-STATUS.md) distinguishes source acceptance, merge, the
+user's local runtime and cloud deployment. No cloud host is connected yet.
 
 ## Current build snapshot
 
@@ -35,8 +38,9 @@ The roadmap has **18 phases, numbered 0–17**:
 | 8–17 | Planned |
 
 Order430 was rejected for incomplete canonical provenance (D1323).
-[Order434](handoff/orders/434-native-fiscal-source-completion.md) is the active complete
-repair—not a completed or approved invoice-issuance result. Founder priority is
+[Order434](handoff/orders/434-native-fiscal-source-completion.md) preserves substantial
+native-fiscal work but remains unfinished and unreleased. The current release task
+contains that capability with forward migration0075. Founder priority is
 **11 → 13 → 17**, subject to mandatory dependencies. From the active phase:
 `7 → 8 → 9 → 10 → 11 → 12 → 13 → 17 → 14 → 15 → 16`.
 
@@ -100,8 +104,8 @@ merely to make a demo available.
 
 ## Implementation and external boundaries
 
-Codex owns implementation and coordination. Use bounded parallel workers and choose
-models by risk, cost and capability. High-risk changes require a qualified
+Codex is the sole implementation and coordination owner. It may use bounded internal
+models selected by risk, cost and capability. High-risk changes require a qualified
 non-implementer to execute proof personally; implementers do not self-review or
 self-merge. See [workflow](docs/WORKFLOW.md) and [roster](handoff/ROSTER.md).
 

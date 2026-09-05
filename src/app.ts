@@ -6,7 +6,9 @@ import { ExtensionHttpApi } from "./http/extensions";
 import { operatorAssets, type OperatorHttpApi, type OperatorLocalReviewCredentials } from "./http/operator";
 import { hostedDepositAssets, type HostedDepositProviderHttpApi } from "./http/provider";
 import {
+  type BuildInfo,
   Database,
+  UNKNOWN_BUILD_INFO,
   type ExtensionRegistry,
   failClosedTenantResolver,
   TenantContextMiddleware,
@@ -34,6 +36,9 @@ export function localLoginSourceKey(peer: LoginPeerAddress | null | undefined): 
 }
 
 export interface AppOptions {
+  readonly buildInfo?: BuildInfo;
+  readonly readinessProbe?: () => Promise<void>;
+  readonly readinessTarget?: "yellow_runtime_database" | "synthetic_provider";
   readonly database?: Database;
   readonly tenantResolver?: TenantResolver;
   readonly extensionRegistry?: ExtensionRegistry;
@@ -49,6 +54,7 @@ export function createApp(options: AppOptions = {}) {
     options.database ?? new Database(unavailablePool),
   );
   const providerCsp = options.hostedDepositRoutes?.providerContentSecurityPolicy();
+  const buildInfo = options.buildInfo ?? UNKNOWN_BUILD_INFO;
 
   const app = new Elysia()
     .decorate("tenantContext", tenantContext)
@@ -62,7 +68,42 @@ export function createApp(options: AppOptions = {}) {
         set.headers[name] = value;
       }
     })
-    .get("/health", () => ({ status: "ok" as const }));
+    .get("/health", () => ({ status: "ok" as const }))
+    .get("/ready", async ({ set }) => {
+      set.headers["Cache-Control"] = "no-store";
+      if (buildInfo.revision === null) {
+        set.status = 503;
+        return {
+          status: "not_ready" as const,
+          reason: "build_revision_unavailable" as const,
+          build: buildInfo,
+        };
+      }
+      if (!options.readinessProbe || !options.readinessTarget) {
+        set.status = 503;
+        return {
+          status: "not_ready" as const,
+          reason: "runtime_not_configured" as const,
+          build: buildInfo,
+        };
+      }
+      try {
+        await options.readinessProbe();
+        return {
+          status: "ready" as const,
+          target: options.readinessTarget,
+          build: buildInfo,
+        };
+      } catch {
+        set.status = 503;
+        return {
+          status: "not_ready" as const,
+          reason: "runtime_dependency_unavailable" as const,
+          target: options.readinessTarget,
+          build: buildInfo,
+        };
+      }
+    });
 
   if (options.extensionRegistry) {
     const extensions = new ExtensionHttpApi(options.extensionRegistry);

@@ -6,7 +6,14 @@ permit; no worker may silently widen an order. A phase is DONE only when its DoD
 checks pass in CI. Every session starts with the ritual below; no phase may modify
 a prior phase's public surface without a written note in `DECISIONS.log`.
 
-## Current implementation status — 2026-09-06, Order434/435
+## Current implementation status — 2026-09-05, Orders438/439
+
+[PROJECT-STATUS](docs/PROJECT-STATUS.md) is the canonical current-state record.
+Orders438/439 form the Codex-owned Phase-7 consolidated operational baseline through
+PR82. Both have independent acceptance at bb3b8f9 and all five required CI jobs passed,
+including real database invariants and the complete local launcher. Main integration,
+image publication and each deployed runtime retain separate receipts. Historical milestones below preserve the
+evidence available when written and do not compete with PROJECT-STATUS.
 
 The plan retains **18 phases (0–17)** and the existing **13 bounded contexts**.
 Phases 0–3, 5 and 6 are reviewed; Phase 4 is built pending final integration and review;
@@ -15,9 +22,9 @@ founder priority 11 → 13 → 17 below are unchanged.
 
 [Order430](handoff/orders/430-india-native-fiscal-invoice-issuance.md) was rejected
 by independent review D1323. [Order434](handoff/orders/434-native-fiscal-source-completion.md)
-is the active complete repair under D1330: the first native invoice without an
+is a preserved, unfinished and unreleased repair under D1330: the first native invoice without an
 external-invoice prerequisite, with persisted provenance, actual-date atomic
-issuance and no duplicate revenue. The complete order is not built or independently approved.
+issuance and no duplicate revenue. The complete order is not independently approved or released.
 Its runtime now issues ordinary, rounded-zero and genuine rate-change invoices.
 Earlier bounded independent proof also verifies permanent replay after payment,
 folio and day closure, and 100 distinct invoices sharing one series: 11 passed,
@@ -689,7 +696,7 @@ gapless series, Rule-46-valid default/reset, immutable unreclaimed numbers, sepa
 numbered corrections, folio-window/legal-payer invoice splitting, approved integer
 component totals without new residual, property-local issue date and server-owned
 actor authority. Independent review D1323 rejected Order430's incomplete canonical
-provenance authentication. Order434 is the active complete repair under D1330:
+provenance authentication. Order434 is the preserved unfinished repair under D1330:
 persist the original ordinary/source evidence, remove the external-invoice
 prerequisite, bind the actual issue date and complete graph in one transaction,
 and add only incremental tax accounting before immutable native issuance. The
@@ -2144,14 +2151,14 @@ Order412 freezes/hashes them, with no value, query, validation, authority or dat
 change. The repair and live rerun were covered by the independent approval; no document,
 provider, IRP, local, or Phase-7 completion authority is implied.
 
-### Current native issuance — Order430 rejected; Order434 active repair
+### Native issuance source history — Order430 rejected; Order434 unfinished
 
 Order430's D1316 legal-body repair was builder-proven under D1321, but fresh independent
 review D1323 rejected its incomplete canonical provenance authentication. Three Order426
 child hashes and material Order413 persisted predecessor/source lineage are not yet
 bound inside the database; digest consistency of supplied bytes is insufficient.
 [Order434](handoff/orders/434-native-fiscal-source-completion.md), admitted by D1330,
-is the active complete repair for first native issuance without an external invoice,
+is the preserved unfinished repair for first native issuance without an external invoice,
 with governed persisted evidence, actual-date atomic completion and no second revenue
 posting. Implementation, permanent defensive behavior/access proof and another
 different fresh Tier3 review remain required. Order434 is not built or approved;
@@ -2164,7 +2171,7 @@ and genuine rate-change cases. A non-implementer executed9 dynamic cases, includ
 current permission checks, partial-COMMIT rollback,100 identical-key requests
 and replay after exact temporary receipt/event removal.
 Full source/race/closed-state coverage,0076 migration integration and complete Tier3
-acceptance remain open; this is not Phase7 completion. All draft fragments stay
+acceptance remain open; this is not Phase7 completion or current release authority. All draft fragments stay
 outside the migration runner; the18-phase scope and dependency-gated11→13→17
 priority are unchanged. The retained local app is not promoted by these proofs.
 

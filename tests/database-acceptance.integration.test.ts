@@ -375,6 +375,11 @@ const EXPECTED_MIGRATIONS = [
     filename: "0074_india_native_fiscal_invoice_authority.sql",
     checksum_sha256: "58cb493c86aeb13a697f6e882656a49b5b7617d185c5cf0746de8bf2eaa4c43c",
   },
+  {
+    version: 75,
+    filename: "0075_contain_unapproved_native_fiscal_issuance.sql",
+    checksum_sha256: "db8b8758e65e41e232663648708616dfa7f071476eda660a7869be5cb1590dee",
+  },
 ];
 
 if (REQUIRE_DATABASE && !DATABASE_URL) {
@@ -453,7 +458,7 @@ databaseDescribe("fresh deployment database acceptance", () => {
             AND class.relforcerowsecurity) AS "forceRlsTables"
     `;
     expect(catalogue).toEqual([{
-      migrations: 74, tables: 125, rlsTables: 115, policies: 115, forceRlsTables: 24,
+      migrations: 75, tables: 125, rlsTables: 115, policies: 115, forceRlsTables: 24,
       permissions: 11, permissionGrants: 0,
     }]);
   });

@@ -1,6 +1,6 @@
 import { SQL } from "bun";
 
-import { app, createApp } from "./app";
+import { createApp } from "./app";
 import { BearerTenantResolver, Hs256TokenSigner, LocalLoginGuard, LocalLoginService } from "./contexts/identity";
 import { PartyProfileService } from "./contexts/crm";
 import { BusinessDayDiscrepancyCarryOperatorService, BusinessDayRollService, BusinessDayRollWorker, BusinessDaySealService, CashierService, ChargeCorrectionService, ChargeService, FolioService, FolioSettlementService, FolioStatementService, FolioTransferService, HostedDepositService, LocalPaymentProvider, OwnerTrustExpenseWorkbenchService, PaymentService, ReceivableService } from "./contexts/financials";
@@ -21,7 +21,15 @@ import {
 import { TaxJurisdictionResolutionService } from "./contexts/tax-fiscal";
 import { OperatorHttpApi, type OperatorLocalReviewCredentials } from "./http/operator";
 import { HostedDepositProviderHttpApi } from "./http/provider";
-import { ApprovalService, Database, ExtensionRegistry, PostgresEventBus, PostgresIdempotency } from "./kernel";
+import {
+  ApprovalService,
+  assertRuntimeReleaseReadiness,
+  buildInfoFromEnvironment,
+  Database,
+  ExtensionRegistry,
+  PostgresEventBus,
+  PostgresIdempotency,
+} from "./kernel";
 import type { OperatorRuntimeStatus } from "./project-status";
 import { PostgresDueArrivalScopeSource } from "./workers/postgres-due-arrival-scopes";
 import { PostgresDueDepartureScopeSource } from "./workers/postgres-due-departure-scopes";
@@ -40,6 +48,7 @@ const reservationDepartureRollEnabled = workbenchEnabled && Bun.env.YELLOW_RESER
 const businessDayRollEnabled = workbenchEnabled && Bun.env.YELLOW_BUSINESS_DAY_ROLL_WORKER === "1";
 const maxRequestBodySize = 16 * 1024;
 const processStartedAt = new Date().toISOString();
+const buildInfo = buildInfoFromEnvironment(Bun.env);
 
 function runtimeHostname(): string {
   const requested = Bun.env.HOST;
@@ -87,7 +96,7 @@ function registrarDatabaseUrl(): string {
 }
 
 function runtimeApp() {
-  if (!workbenchEnabled && !hostedProviderOnly) return app;
+  if (!workbenchEnabled && !hostedProviderOnly) return createApp({ buildInfo });
   if (hostedProviderOnly) {
     const routes = new HostedDepositProviderHttpApi({
       callbackSecret: required("YELLOW_HOSTED_DEPOSIT_CALLBACK_SECRET"),
@@ -95,11 +104,19 @@ function runtimeApp() {
       guestOrigin: Bun.env.YELLOW_HOSTED_GUEST_ORIGIN ?? "http://127.0.0.1:3000",
       callbackOrigin: Bun.env.YELLOW_HOSTED_CALLBACK_ORIGIN,
     });
-    return createApp({ hostedDepositRoutes: routes, hostedDepositSurface: "provider" });
+    return createApp({
+      buildInfo,
+      readinessProbe: async () => undefined,
+      readinessTarget: "synthetic_provider",
+      hostedDepositRoutes: routes,
+      hostedDepositSurface: "provider",
+    });
   }
   const databaseUrl = required("YELLOW_RUNTIME_DATABASE_URL");
   const database = Database.connect(databaseUrl, { maxConnections: 12, prepare: false });
   const eventPool = new SQL(databaseUrl, { max: 4, prepare: false });
+  const readinessPool = new SQL(databaseUrl, { max: 1, prepare: false });
+  const readinessProbe = (): Promise<void> => assertRuntimeReleaseReadiness(readinessPool);
   const events = new PostgresEventBus(eventPool);
   const hostedRuntime = hostedDepositEnabled ? (() => {
     const paymentProvider = new LocalPaymentProvider({ decide: (request) =>
@@ -217,6 +234,7 @@ function runtimeApp() {
   };
   const reservationOffers = new ReservationOfferSearchService(rates, rateBuilder.quote, availability);
   const runtimeStatus: OperatorRuntimeStatus = {
+    build: buildInfo,
     workbenchEnabled,
     holdExpiryWorkerEnabled: holdExpiryEnabled,
     availabilityProjectionWorkerEnabled: projectionWorkerEnabled,
@@ -295,6 +313,9 @@ function runtimeApp() {
     }).catch(() => console.error("business-day roll worker stopped unexpectedly"));
   }
   return createApp({
+    buildInfo,
+    readinessProbe,
+    readinessTarget: "yellow_runtime_database",
     database,
     tenantResolver: new BearerTenantResolver(tokens),
     operatorApi: new OperatorHttpApi(login, availability, inventory, new PostgresIdempotency(), restrictions, rates, pricing, blocks, policy, holds, projection, runtimeStatus, rateBuilder, reservations, reservationOffers, reservationGuests, reservationLifecycle, reservationSegments, parties, folioStatements, charges, new ReservationBoardService(), new ReservationDetailService(), folios, chargeCorrections, folioTransfers, hostedRuntime?.hostedDeposits, folioSettlements, cashiers, receivables, checkIns, housekeeping, housekeepingSheets, checkoutReadiness, checkouts, vehicleRegister, reservationTravel, pickupTaskDispatch, arrivalRoomCleaning, housekeepingDiscrepancies, vehicleParking, undefined, undefined, businessDayCarry, businessDaySeal, ownerTrustExpenses),

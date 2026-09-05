@@ -2,16 +2,19 @@ import { expect, test } from "bun:test";
 
 import { PROJECT_BUILD_SNAPSHOT } from "../src/project-status";
 
-test("Order 431 intentional red: management demo status reflects approved Order429 and active Order430", () => {
+test("Order 438 status records the independently approved baseline without claiming Phase 7 completion", () => {
+  expect(PROJECT_BUILD_SNAPSHOT.schemaVersion).toBe(2);
   expect(PROJECT_BUILD_SNAPSHOT.recordedAt).toBe("2026-09-05");
-  expect(PROJECT_BUILD_SNAPSHOT.roadmap.latestBuiltOrder).toBe(429);
-  expect(PROJECT_BUILD_SNAPSHOT.roadmap.currentOrder).toBe(431);
+  expect(PROJECT_BUILD_SNAPSHOT.roadmap.latestBuiltOrder).toBe(438);
+  expect(PROJECT_BUILD_SNAPSHOT.roadmap.currentOrder).toBe(438);
   expect(PROJECT_BUILD_SNAPSHOT.review.independentlyReviewedThroughOrder).toBe(91);
   expect(PROJECT_BUILD_SNAPSHOT.roadmap.activePhase).toBe(7);
-  expect(PROJECT_BUILD_SNAPSHOT.recordedWork.at(-2)?.order).toBe(429);
-  expect(PROJECT_BUILD_SNAPSHOT.recordedWork.at(-2)?.state).toBe("independently_approved");
-  expect(PROJECT_BUILD_SNAPSHOT.recordedWork.at(-1)?.order).toBe(430);
-  expect(PROJECT_BUILD_SNAPSHOT.recordedWork.at(-1)?.state).toBe("proof_in_progress");
+  const currentDelivery: { readonly order: number; readonly state: string; readonly remaining?: string } | undefined =
+    PROJECT_BUILD_SNAPSHOT.recordedWork.at(-1);
+  expect(currentDelivery?.order).toBe(438);
+  expect(currentDelivery?.state).toBe("independently_approved");
+  expect(currentDelivery?.remaining).toMatch(/native issuance remains unreleased/i);
+  expect(currentDelivery?.remaining).toMatch(/Phase 7 is not complete/i);
   expect(PROJECT_BUILD_SNAPSHOT.phases.map(({ state }) => state)).toEqual([
     "reviewed", "reviewed", "reviewed", "reviewed", "built_unverified",
     "reviewed", "reviewed", "active", "planned", "planned", "planned", "planned", "planned",

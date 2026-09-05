@@ -5,6 +5,10 @@ implementation order.
 **Precedence:** `PROJECT.md` → `DECISIONS.log` → executable schema/contracts → this
 document → historical research/blueprints.
 
+**Current-state pointer:** `docs/PROJECT-STATUS.md` owns the active task, source and
+release lifecycle. This document preserves the architecture destination and does not
+declare planned capability shipped.
+
 ## Architecture decision summary
 
 Yellow remains a **TypeScript/Bun/Elysia modular monolith backed by PostgreSQL 16**.

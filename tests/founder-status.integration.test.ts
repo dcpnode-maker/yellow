@@ -9,7 +9,7 @@ import { createApp } from "../src/app";
 import { BearerTenantResolver, Hs256TokenSigner, LocalLoginService } from "../src/contexts/identity";
 import { AvailabilityService } from "../src/contexts/inventory";
 import { OperatorHttpApi } from "../src/http/operator";
-import { Database, PostgresIdempotency } from "../src/kernel";
+import { buildInfoFromEnvironment, Database, PostgresIdempotency } from "../src/kernel";
 import { PROJECT_BUILD_SNAPSHOT, type OperatorRuntimeStatus } from "../src/project-status";
 import { APPROVED_REVIEW_FILES, INDEPENDENTLY_REVIEWED_THROUGH_ORDER } from "../src/generated/review-coverage";
 import { deriveIndependentReviewCoverage, parseApprovedOrders } from "../scripts/derive-review-coverage";
@@ -20,7 +20,11 @@ const DATABASE_URL = process.env.YELLOW_FOUNDER_STATUS_URL;
 const REQUIRE_DATABASE = process.env.YELLOW_REQUIRE_FOUNDER_STATUS === "1";
 const SECRET = "yellow-order-064-founder-status-secret-long-enough";
 const PASSWORD = "YellowLocal2026!";
+const TEST_BUILD = buildInfoFromEnvironment({
+  YELLOW_BUILD_SHA: "0123456789abcdef0123456789abcdef01234567",
+});
 const RUNTIME_STATUS: OperatorRuntimeStatus = Object.freeze({
+  build: TEST_BUILD,
   workbenchEnabled: true,
   holdExpiryWorkerEnabled: true,
   availabilityProjectionWorkerEnabled: false,
@@ -253,11 +257,13 @@ describe("Order 064 recorded build snapshot", () => {
     const reviewCoverage = await deriveIndependentReviewCoverage();
     const rows = manifestRows(manifest);
     expect(rows.length).toBeGreaterThan(0);
+    expect(PROJECT_BUILD_SNAPSHOT.schemaVersion).toBe(2);
+    expect(PROJECT_BUILD_SNAPSHOT.label).toBe("Consolidated operational baseline");
     expect(PROJECT_BUILD_SNAPSHOT.recordedAt).toBe("2026-09-05");
-    expect(PROJECT_BUILD_SNAPSHOT.roadmap.latestBuiltOrder).toBe(429);
+    expect(PROJECT_BUILD_SNAPSHOT.roadmap.latestBuiltOrder).toBe(438);
     expect(PROJECT_BUILD_SNAPSHOT.review.gate3Debt).toBe(0);
     expect(PROJECT_BUILD_SNAPSHOT.review.state).toBe("built_unverified");
-    expect(PROJECT_BUILD_SNAPSHOT.roadmap.currentOrder).toBe(431);
+    expect(PROJECT_BUILD_SNAPSHOT.roadmap.currentOrder).toBe(438);
     expect(PROJECT_BUILD_SNAPSHOT.roadmap.activePhase).toBe(7);
     expect(PROJECT_BUILD_SNAPSHOT.roadmap.phaseCount).toBe(18);
     expect(reviewCoverage.throughOrder).toBe(91);
@@ -285,19 +291,19 @@ describe("Order 064 recorded build snapshot", () => {
         order: 148,
         state: "independently_approved",
         summary: "Order 148 independently approved (D-412).",
-        remaining: "PR #78 is open and unmerged; no deployment is claimed.",
+        remaining: "Historical approval was limited to this source scope; current integration and release truth is carried by Order 438 evidence.",
       },
       {
         order: 154,
         state: "independently_approved",
         summary: "Order 154 reviewed runtime-DML union independently approved.",
-        remaining: "The reviewed union is unmerged; no deployment is claimed.",
+        remaining: "Historical review was limited to the runtime-DML union; current integration and release truth is carried by Order 438 evidence.",
       },
       {
         order: 155,
         state: "independently_approved",
         summary: "Order 155 resolved-question normalization independently checked.",
-        remaining: "The governance-only order is unmerged.",
+        remaining: "This remains historical governance evidence; current integration and release truth is carried by Order 438.",
       },
       {
         order: 156,
@@ -528,10 +534,10 @@ describe("Order 064 recorded build snapshot", () => {
         remaining: "Approval returns frozen false readiness only; document origin, numbering, series, provider submission, and Phase-7 completion remain separate.",
       },
       {
-        order: 430,
-        state: "proof_in_progress",
-        summary: "Order 430 is active under D1302/D1304 for Yellow-native India fiscal invoice issuance.",
-        remaining: "Builder implementation and fresh independent Tier-3 review remain pending; no built, provider, IRP, local, or Phase-7 completion claim is made.",
+        order: 438,
+        state: "independently_approved",
+        summary: "Orders 438/439 independently approved the consolidated operational baseline at bb3b8f9. All five CI jobs passed, including real database invariants and the full local launcher; migration 75 contains the unapproved legacy native-fiscal issue capability.",
+        remaining: "Order 434 has substantial bounded invoice/replay and concurrency proof but native issuance remains unreleased pending its full acceptance, 0076/0077 assembly and fresh Tier-3 review. PR82 records final source integration; each local/cloud runtime needs its own serving-revision receipt. No cloud host is connected; Phase 7 is not complete.",
       },
     ]);
     const recordedOrders = PROJECT_BUILD_SNAPSHOT.recordedWork.map(({ order }) => Number(order));
@@ -539,7 +545,7 @@ describe("Order 064 recorded build snapshot", () => {
       126, 127, 148, 154, 155, 156, 160, 161, 162, 163, 164,
       165, 166, 168, 169, 170, 171, 173, 174, 175, 176, 177, 178,
       179, 180, 181, 182, 183, 184, 185, 186, 188, 189,
-      190, 191, 192, 193, 195, 199, 236, 310, 396, 429, 430,
+      190, 191, 192, 193, 195, 199, 236, 310, 396, 429, 438,
     ]);
     expect(recordedOrders).not.toContain(167);
     expect(recordedOrders).not.toContain(172);
@@ -549,7 +555,7 @@ describe("Order 064 recorded build snapshot", () => {
       .filter(({ state }) => state === "independently_approved").map(({ order }) => Number(order)))
       .toEqual([190, 191, 192, 193, 195]);
     expect(PROJECT_BUILD_SNAPSHOT.recordedWork.slice(0, -1).every(({ state }) => state === "independently_approved")).toBeTrue();
-    expect(PROJECT_BUILD_SNAPSHOT.recordedWork.at(-1)?.state).toBe("proof_in_progress");
+    expect(PROJECT_BUILD_SNAPSHOT.recordedWork.at(-1)?.state).toBe("independently_approved");
     expect(PROJECT_BUILD_SNAPSHOT.recordedWork.find(({ order }) => order === 199)?.summary).toMatch(/196–199/);
     expect(PROJECT_BUILD_SNAPSHOT.recordedWork.find(({ order }) => order === 199)?.state).toBe("independently_approved");
     const order236: { readonly state: string; readonly summary: string; readonly remaining?: string } | undefined =
@@ -700,7 +706,7 @@ databaseDescribe("Order 064 authenticated founder status", () => {
     const body = await response.json() as {
       snapshot: typeof PROJECT_BUILD_SNAPSHOT;
       live: {
-        app: { state: string; checkedAt: string; processStartedAt: string };
+        app: { state: string; checkedAt: string; processStartedAt: string; build: typeof TEST_BUILD };
         database: { state: string; checkedAt: string; tenantContext: boolean; database: string };
         workers: { holdExpiry: string; availabilityProjection: string; arrivalPickupTask: string;
           reservationArrivalRoll: string; reservationDepartureRoll: string; businessDayRoll: string };
@@ -713,6 +719,7 @@ databaseDescribe("Order 064 authenticated founder status", () => {
       state: "operational",
       checkedAt: expect.any(String),
       processStartedAt: RUNTIME_STATUS.processStartedAt,
+      build: TEST_BUILD,
     });
     expect(Number.isFinite(Date.parse(body.live.app.checkedAt))).toBe(true);
     expect(body.live.database).toEqual({

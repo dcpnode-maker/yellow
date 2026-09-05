@@ -233,7 +233,7 @@ databaseDescribe("Order 400 fresh PostgreSQL catalogue and authority", () => {
   const runtimeDb = new SQL(runtimeDatabaseUrl!, { max: 2, prepare: false });
   afterAll(async () => { await runtimeDb.close(); await db.close(); });
 
-  test("fresh catalogue is exactly 70/122/112/112/21/2", async () => {
+  test("fresh catalogue is exactly 75/125/115/115/24/2", async () => {
     const rows = await db<Array<{ migrations:number; tables:number; rls:number; policies:number; forced:number; views:number }>>`
       SELECT
         (SELECT count(*)::int FROM schema_migration) migrations,
@@ -245,7 +245,7 @@ databaseDescribe("Order 400 fresh PostgreSQL catalogue and authority", () => {
           WHERE n.nspname='public' AND c.relkind='r' AND c.relforcerowsecurity) forced,
         (SELECT count(*)::int FROM pg_views WHERE schemaname='public') views
     `;
-    expect(rows).toEqual([{ migrations:70, tables:122, rls:112, policies:112, forced:21, views:2 }]);
+    expect(rows).toEqual([{ migrations:75, tables:125, rls:115, policies:115, forced:24, views:2 }]);
   });
 
   test("all three tables are forced-RLS, tenant-leading and app-role SELECT-only", async () => {
