@@ -17,9 +17,15 @@ import { IndiaGstAccommodationServiceProvisionDateService, type IndiaGstAccommod
 import { IndiaGstAccommodationPaymentReceiptDateService, type IndiaGstAccommodationPaymentReceiptDateResult } from "../src/contexts/tax-fiscal/india-gst-accommodation-payment-receipt-date";
 import { IndiaGstAccommodationHistoricalResolutionService, type IndiaGstAccommodationHistoricalResolutionResult } from "../src/contexts/tax-fiscal/india-gst-accommodation-historical-resolution";
 import { deriveIndiaGstAccommodationNativeInvoiceSource, type IndiaGstAccommodationNativeInvoiceSourceInput, type IndiaGstAccommodationNativeInvoiceSourceResult } from "../src/contexts/tax-fiscal/india-gst-accommodation-invoice-source";
+import { deriveIndiaGstAccommodationComponentFamily, type IndiaGstAccommodationComponentFamilyResult } from "../src/contexts/tax-fiscal/india-gst-accommodation-component-family";
+import { deriveIndiaGstAccommodationLevyInputBundle, type IndiaGstAccommodationLevyInputBundleResult } from "../src/contexts/tax-fiscal/india-gst-accommodation-levy-input-bundle";
+import { deriveIndiaGstAccommodationLevyComponentIdentity, type IndiaGstAccommodationLevyComponentIdentityResult } from "../src/contexts/tax-fiscal/india-gst-accommodation-levy-component-identity";
+import type { IndiaGstAccommodationNativeQuotedRateApplicabilityResult } from "../src/contexts/tax-fiscal/india-gst-accommodation-quoted-rate-applicability";
+import type { IndiaGstAccommodationNativeFinalComponentTaxResult } from "../src/contexts/tax-fiscal/india-gst-accommodation-final-component-tax";
 import { deriveIndiaGstSection14RateSelectionFromEvidence } from "../src/contexts/tax-fiscal/india-gst-section14-rate-selection";
 import { createAuditEnvelope, Database, ExtensionRegistry, PostgresEventBus, PostgresIdempotency, type Tx } from "../src/kernel";
 import {
+  createNativeStatutoryFixture,
   createNativeSourceFixture,
   type NativeSourceFixture,
 } from "./fixtures/india-native-fiscal-source-completion-fixture";
@@ -93,6 +99,23 @@ interface NativeTimingSource {
   readonly invoiceSourceResultCanonicalJson: string;
 }
 
+interface NativeQuotedTaxComposition {
+  readonly componentFamilyCanonicalJson: string;
+  readonly levyInputBundleCanonicalJson: string;
+  readonly levyComponentIdentityCanonicalJson: string;
+  readonly quotedApplicabilityCanonicalJson: string;
+  readonly finalTaxCanonicalJson: string;
+  readonly taxPreview: NativeTaxPreview;
+}
+
+type NativeStatutoryFixture = Awaited<ReturnType<typeof createNativeStatutoryFixture>>;
+type NativeStatutorySelectors = Readonly<
+  Pick<NativeStatutoryFixture, "location" | "supplierStatusId" | "recipient" | "classificationId" | "jurisdiction"
+    | "serviceSupplier" | "serviceRecipient">
+  & { readonly supplierSez: Readonly<{ readonly supplierSezStatusId: string }>;
+    readonly recipientSez: Readonly<{ readonly recipientSezStatusId: string }> }
+>;
+
 function freezeGraph<T>(value: T): T {
   if (value && typeof value === "object") {
     for (const item of Object.values(value)) freezeGraph(item);
@@ -147,6 +170,10 @@ function canonicalEvidence(value: unknown): string {
   if (Array.isArray(value)) return `[${value.map(canonicalEvidence).join(",")}]`;
   const record = value as Record<string, unknown>;
   return `{${Object.keys(record).sort().map(key => `${JSON.stringify(key)}:${canonicalEvidence(record[key])}`).join(",")}}`;
+}
+
+function insertionHash(value: unknown): string {
+  return new Bun.CryptoHasher("sha256").update(JSON.stringify(value)).digest("hex");
 }
 
 function valuationInput(
@@ -635,6 +662,57 @@ databaseDescribe("Order434 live private native-tax preview and accounting metada
     });
   }
 
+  async function privateQuotedTax(
+    fixture: NativeSourceFixture,
+    finalValuation: IndiaGstAccommodationNativeFinalValuationResult,
+    statutory: NativeStatutorySelectors,
+    calendar: TimingCalendar | null = null,
+    mutateInput?: (input: Mutable) => Mutable,
+  ) {
+    const timingId = crypto.randomUUID();
+    const documentId = crypto.randomUUID();
+    return deploy.begin(async tx => {
+      await tx`SELECT set_config('app.tenant_id',${fixture.tenant},true)`;
+      await tx`SET LOCAL ROLE yellow_owner`;
+      const [timingRow] = await tx<Array<{ evidence: NativeTimingSource }>>`
+        SELECT public.read_india_native_invoice_timing_source(
+          ${fixture.tenant}::uuid,${fixture.property}::uuid,${fixture.reservation}::uuid,
+          ${fixture.serviceResult.serviceProvision.serviceProvisionSnapshotId}::uuid,
+          ${fixture.paymentResult.paymentReceipt.paymentReceiptSnapshotId}::uuid,
+          ${fixture.ordinaryResult.ordinaryRegimeEvidenceId}::uuid,
+          ${timingId}::uuid,${documentId}::uuid,${calendar?.authority ?? null}::text,
+          ${calendar?.sourceHash ?? null}::text,${calendar?.through ?? null}::date,
+          ${`{${calendar?.dates.join(",") ?? ""}}`}::date[],
+          ${`{${calendar?.states.join(",") ?? ""}}`}::text[]) AS evidence`;
+      if (!timingRow) throw new Error("Native quoted-tax timing source missing");
+      const [statutoryRow] = await tx<Array<{
+        prepared_source_json: string;
+        service_supply_nature_json: string;
+        service_supplier_sez_status_id: string;
+        service_recipient_sez_status_id: string;
+      }>>`
+        SELECT * FROM public.read_india_native_statutory_root_graph(
+          ${fixture.tenant}::uuid,${fixture.property}::uuid,${fixture.reservation}::uuid,
+          ${fixture.folio}::uuid,${finalValuation.valuationId}::uuid,
+          ${statutory.location.supplierServiceLocationId}::uuid,
+          ${statutory.supplierStatusId}::uuid,${statutory.supplierSez.supplierSezStatusId}::uuid,
+          ${statutory.recipient.registrationId}::uuid,${statutory.recipientSez.recipientSezStatusId}::uuid,
+          ${statutory.classificationId}::uuid,${timingRow.evidence.invoiceSourceResultCanonicalJson},
+          ${JSON.stringify(statutory.jurisdiction)})`;
+      if (!statutoryRow) throw new Error("Native quoted-tax statutory source missing");
+      const originalInput = JSON.parse(timingRow.evidence.invoiceSourceInputCanonicalJson) as Mutable;
+      const inputJson = JSON.stringify(mutateInput ? mutateInput(originalInput) : originalInput);
+      const [compositionRow] = await tx<Array<{ evidence: NativeQuotedTaxComposition }>>`
+        SELECT public.compose_india_native_quoted_tax_source(
+          ${fixture.tenant}::uuid,${fixture.property}::uuid,${fixture.reservation}::uuid,
+          ${fixture.folio}::uuid,${finalValuation.valuationId}::uuid,
+          ${inputJson},${timingRow.evidence.invoiceSourceResultCanonicalJson},
+          ${statutoryRow.service_supply_nature_json}) AS evidence`;
+      if (!compositionRow) throw new Error("Native quoted-tax composition missing");
+      return { evidence: compositionRow.evidence, timing: timingRow.evidence, statutory: statutoryRow };
+    });
+  }
+
   function assertTimingParity(actual: NativeTimingSource, fixture: NativeSourceFixture) {
     const input = freezeGraph(JSON.parse(actual.invoiceSourceInputCanonicalJson) as IndiaGstAccommodationNativeInvoiceSourceInput);
     const result = freezeGraph(JSON.parse(actual.invoiceSourceResultCanonicalJson) as IndiaGstAccommodationNativeInvoiceSourceResult);
@@ -1117,5 +1195,121 @@ databaseDescribe("Order434 live private native-tax preview and accounting metada
       grandTotalMinor: "8052",
     });
     expect(JSON.parse(preview.roomNightsCanonicalJson)).toEqual(preview.roomNights);
+  }, 30_000);
+
+  test("private quoted-tax composer is owner-only, write-free, lock-free, and explicitly not full preparation", async () => {
+    const [fn] = await deploy<Array<{ owner: string; volatility: string; arguments: string; result: string;
+      app: boolean; runtime: boolean; public: boolean; definition: string }>>`
+      SELECT pg_get_userbyid(p.proowner) AS owner,p.provolatile::text AS volatility,
+        oidvectortypes(p.proargtypes) AS arguments,pg_get_function_result(p.oid) AS result,
+        has_function_privilege('app_role',p.oid,'EXECUTE') AS app,
+        has_function_privilege('yellow_runtime',p.oid,'EXECUTE') AS runtime,
+        has_function_privilege('public',p.oid,'EXECUTE') AS public,
+        pg_get_functiondef(p.oid) AS definition
+      FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace
+      WHERE n.nspname='public' AND p.proname='compose_india_native_quoted_tax_source'`;
+    expect(fn).toMatchObject({ owner: "yellow_owner", volatility: "v",
+      arguments: "uuid, uuid, uuid, uuid, uuid, text, text, text", result: "jsonb",
+      app: false, runtime: false, public: false });
+    expect(fn!.definition).toContain("not complete preparation authenticity");
+    expect(fn!.definition).not.toMatch(/\b(?:INSERT|UPDATE|DELETE|MERGE|CALL)\b|pg_advisory|FOR\s+(?:UPDATE|SHARE)/i);
+  });
+
+  test("private ordinary quoted-tax composition byte-matches pure family and levy replay plus TS source hashes", async () => {
+    const fixture = await createNativeSourceFixture(deploy, runtime, { label: "private-compose-ordinary" });
+    const finalValuation = await finalize(fixture, "10000", "private-compose-ordinary");
+    const statutory = await createNativeStatutoryFixture(deploy, fixture);
+    const before = await census(fixture.tenant);
+    const actual = await privateQuotedTax(fixture, finalValuation, statutory);
+    const serviceNature = deepFreeze(JSON.parse(actual.statutory.service_supply_nature_json));
+    const family = deriveIndiaGstAccommodationComponentFamily(deepFreeze({
+      tenantId: fixture.tenant, supplyNature: serviceNature,
+    })) as IndiaGstAccommodationComponentFamilyResult;
+    const history = deepFreeze((await privateHistory(fixture, fixture.serviceResult.serviceProvision.serviceProvisionDate)).evidence);
+    const levy = deriveIndiaGstAccommodationLevyInputBundle(deepFreeze({
+      tenantId: fixture.tenant, historicalResolution: history, supplyNature: serviceNature, componentFamily: family,
+    })) as IndiaGstAccommodationLevyInputBundleResult;
+    const identity = deriveIndiaGstAccommodationLevyComponentIdentity(deepFreeze({
+      tenantId: fixture.tenant, historicalResolution: history, supplyNature: serviceNature,
+      componentFamily: family, levyInputBundle: levy,
+    })) as IndiaGstAccommodationLevyComponentIdentityResult;
+    expect(actual.evidence.componentFamilyCanonicalJson).toBe(JSON.stringify(family));
+    expect(actual.evidence.levyInputBundleCanonicalJson).toBe(JSON.stringify(levy));
+    expect(actual.evidence.levyComponentIdentityCanonicalJson).toBe(JSON.stringify(identity));
+    expect(identity.componentFamily).toBe("cgst_sgst");
+
+    const quoted = JSON.parse(actual.evidence.quotedApplicabilityCanonicalJson) as IndiaGstAccommodationNativeQuotedRateApplicabilityResult;
+    const { evidenceHash: quotedHash, ...quotedBody } = quoted;
+    expect(quotedHash).toBe(insertionHash({ tenantId: fixture.tenant, propertyNode: fixture.property,
+      reservationId: fixture.reservation, folioId: fixture.folio, ...quotedBody }));
+    expect(quoted.rateSelection.kind).toBe("ordinary_section13_single_version");
+    expect(quoted.predecessorHashes.levyComponentIdentity).toBe(identity.evidenceHash);
+    expect(quoted.predecessorHashes.nativeTiming).toBe(actual.timing.invoiceSourceResult.timing.evidenceHash);
+    expect(quoted.predecessorHashes.nativeTiming).not.toBe(actual.timing.nativeTiming.evidenceHash);
+
+    const tax = JSON.parse(actual.evidence.finalTaxCanonicalJson) as IndiaGstAccommodationNativeFinalComponentTaxResult;
+    const { evidenceHash: taxHash, ...taxBody } = tax;
+    expect(taxHash).toBe(insertionHash({ tenant: fixture.tenant, property: fixture.property,
+      reservation: fixture.reservation, folio: fixture.folio, ...taxBody }));
+    expect(tax).toMatchObject({ nativeTimingId: quoted.nativeTiming.nativeTimingId,
+      valuationId: finalValuation.valuationId, rateSelectionKind: "ordinary_section13_single_version",
+      taxMinor: "500", grandTotalMinor: "10500" });
+    expect(tax.predecessorHashes.quotedRateApplicability).toBe(quoted.evidenceHash);
+    expect(actual.evidence.taxPreview.roomNightsCanonicalJson).toBe(JSON.stringify(tax.roomNights));
+    expect(await census(fixture.tenant)).toEqual(before);
+
+    await expectSqlState(privateQuotedTax(fixture, finalValuation, statutory, null, input => ({
+      ...input,
+      section14PaymentEvidence: { kind: "safe_ordinary_receipt", paymentProvisoEvidence: { forged: true } },
+    })), "55000");
+  }, 30_000);
+
+  test("private genuine composition keeps compatible service-day levy and TOS-selected rate as distinct real graphs", async () => {
+    const calendar: TimingCalendar = {
+      authority: "ORDER434_SYNTHETIC_CALENDAR", sourceHash: "b".repeat(64), through: "2025-09-26",
+      dates: ["2025-09-23", "2025-09-24", "2025-09-25", "2025-09-26"],
+      states: ["working", "working", "working", "working"],
+    };
+    const fixture = await createNativeSourceFixture(deploy, runtime, { label: "private-compose-genuine",
+      serviceProvisionDate: "2025-09-20", supplierBooksEntryDate: "2025-09-25",
+      supplierBankCreditDate: "2025-09-26" });
+    const finalValuation = await finalize(fixture, "10000", "private-compose-genuine");
+    const preparedStatutory = await createNativeStatutoryFixture(deploy, fixture);
+    const timingSupplierStatusId = crypto.randomUUID();
+    await deploy`INSERT INTO public.india_gst_supplier_registration_status_snapshot(
+      tenant_id,id,supplier_registration_id,supplier_registration_evidence_hash,status_as_of,
+      gst_registration_status,gst_taxpayer_type,gst_status_source,gst_status_evidence_sha256,legal_rule)
+      VALUES(${fixture.tenant}::uuid,${timingSupplierStatusId}::uuid,${preparedStatutory.seller.registrationId}::uuid,
+        ${preparedStatutory.seller.evidenceHash},${fixture.serviceResult.serviceProvision.serviceProvisionDate}::date,
+        'active','regular','gst_common_portal',${preparedStatutory.gst.evidenceSha256},
+        'CGST_ACT_25_29_30_AND_RULE_21A_REGISTRATION_STATUS')`;
+    const statutory = Object.freeze({ ...preparedStatutory, supplierStatusId: timingSupplierStatusId,
+      supplierSez: preparedStatutory.serviceSupplier, recipientSez: preparedStatutory.serviceRecipient });
+    const before = await census(fixture.tenant);
+    const actual = await privateQuotedTax(fixture, finalValuation, statutory, calendar);
+    const family = JSON.parse(actual.evidence.componentFamilyCanonicalJson) as IndiaGstAccommodationComponentFamilyResult;
+    const identity = JSON.parse(actual.evidence.levyComponentIdentityCanonicalJson) as IndiaGstAccommodationLevyComponentIdentityResult;
+    const quoted = JSON.parse(actual.evidence.quotedApplicabilityCanonicalJson) as IndiaGstAccommodationNativeQuotedRateApplicabilityResult;
+    const tax = JSON.parse(actual.evidence.finalTaxCanonicalJson) as IndiaGstAccommodationNativeFinalComponentTaxResult;
+    expect(family).toMatchObject({ supplyDate: "2025-09-20", componentFamily: "cgst_sgst" });
+    expect(identity.selectedVersion).toMatchObject({ extensionId: PREDECESSOR, version: 1 });
+    expect(quoted.rateSelection).toMatchObject({ kind: "genuine_section14_rate_change",
+      timeOfSupplyDate: "2025-09-25", selectedVersionSide: "successor",
+      selectedVersion: { extensionId: SUCCESSOR, version: 2 } });
+    expect(quoted.nativeTiming.timeOfSupplyDate).toBe("2025-09-20");
+    expect(quoted.nativeTiming.timeOfSupplyDate).not.toBe(quoted.rateSelection.timeOfSupplyDate);
+    expect(quoted.predecessorHashes.levyComponentIdentity).toBe(identity.evidenceHash);
+    expect(actual.statutory.service_supplier_sez_status_id).toBe(statutory.serviceSupplier.supplierSezStatusId);
+    expect(actual.statutory.service_supplier_sez_status_id).not.toBe(preparedStatutory.supplierSez.supplierSezStatusId);
+    expect(tax).toMatchObject({ rateSelectionKind: "genuine_section14_rate_change",
+      taxMinor: "500", grandTotalMinor: "10500" });
+    expect(actual.evidence.taxPreview.selectedExtensionId).toBe(SUCCESSOR);
+    expect(insertionHash({ tenantId: fixture.tenant, propertyNode: fixture.property,
+      reservationId: fixture.reservation, folioId: fixture.folio,
+      ...Object.fromEntries(Object.entries(quoted).filter(([key]) => key !== "evidenceHash")) })).toBe(quoted.evidenceHash);
+    expect(insertionHash({ tenant: fixture.tenant, property: fixture.property,
+      reservation: fixture.reservation, folio: fixture.folio,
+      ...Object.fromEntries(Object.entries(tax).filter(([key]) => key !== "evidenceHash")) })).toBe(tax.evidenceHash);
+    expect(await census(fixture.tenant)).toEqual(before);
   }, 30_000);
 });

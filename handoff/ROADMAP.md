@@ -148,9 +148,10 @@ actual-date atomic issuance, immutable accounting and no duplicate revenue.
 It is not built or independently approved; fresh implementation/proof and a
 different non-implementing Tier3 review remain required.
 
-Latest implementation evidence is [Order434/D1353](orders/434-native-fiscal-source-completion.md#native-command-actual-clock-timing-and-distinct-statutory-roots--d1353):
-the one-Tx native command, actual-clock historical timing reader and separate
-supplier GST/SEZ evidence binding. Complete SQL preparation/authentication,
+Latest implementation evidence is [Order434/D1357](orders/434-native-fiscal-source-completion.md#private-statutory-and-quoted-tax-reconstruction--d1357):
+private dual-date statutory sources and quoted/final-tax reconstruction, added
+to the one-Tx command and actual-clock historical reader. These fragments remain
+outside the migration runner. Complete SQL preparation/authentication,
 accounting/commit and final acceptance are still outstanding; these are building
 blocks, not a new completed phase.
 

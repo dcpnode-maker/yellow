@@ -4,9 +4,9 @@
 **Phase:** 7 · YF-008, YF-009, YF-023
 **Implementation base:** `591ace8` (includes the complete Order432 current-catalogue repair)
 
-**Latest implementation checkpoint:** [D1353 — native command, actual-clock timing and distinct statutory roots](#native-command-actual-clock-timing-and-distinct-statutory-roots--d1353).
-The one-transaction command is wired, the private timing/rate reader is database-
-proven, and native composition now keeps supplier GST and SEZ evidence distinct.
+**Latest implementation checkpoint:** [D1357 — private statutory and quoted-tax reconstruction](#private-statutory-and-quoted-tax-reconstruction--d1357).
+The one-transaction command is wired; private timing, dual-date statutory and
+quoted/final-tax reconstruction have bounded executable database proof.
 Complete SQL preparation/authentication, actual accounting/commit and final
 independent acceptance remain unfinished. This checkpoint is not enabled in the
 retained local app.
@@ -1388,6 +1388,110 @@ authentication, actual native accounting/commit and durable replay, complete
 fresh independent Tier3 acceptance. D1351 verifies only published0fad631 CI; it
 does not certify this later checkpoint. No main merge, local refresh, Order434
 completion or Phase7 completion is claimed.
+
+## Private statutory and quoted-tax reconstruction — D1357
+
+Implemented after D1353, within the same incomplete Order434 outcome:
+
+- The private statutory root graph reconstructs genuine seller, buyer,
+  registration, location, classification and dated GST/SEZ evidence. It returns
+  the unchanged eight-key prepared-source text plus the separate service-day
+  supply-nature graph and its two status identities. Exact insertion-sensitive
+  SQL/TypeScript parity includes native295/296/297. UTF16 length, Unicode trim,
+  NFC and GSTIN checksum validation retain the existing contracts.
+- The private quoted-tax leaf reproduces service-day family/levy preimages and
+  ordinary or genuine-change quote/final-tax evidence from actual persisted
+  consideration, valuation and timing roots. The existing shared preview owns
+  integer/component rounding. No DML, locks, grants or public endpoint were added.
+- A genuine-change fixture initially supplied registration evidence at the
+  payment date. The real timing reader exposed the error. The corrected fixture
+  creates a genuine registration-status row at native statutory timing date
+  2025-09-20, while the Section14 rate selection remains 2025-09-25. Both positive
+  graphs retain CGST/SGST. This is an existing-contract distinction, not a new
+  tax policy or permission to re-date evidence.
+
+Executed proof on the existing isolated PG16.15 database:
+
+| Executor and proof | Result | Limit |
+|---|---|---|
+| Non-implementer `/root/native_timing_selector`: full source/statutory suite |19 passed,0 failed,177 assertions | Private root reconstruction and existing valuation behavior; not complete issuance. |
+| Root, independent of quoted-tax implementation: full accounting/private-composition suite |23 passed,0 failed,362 assertions,9.13 seconds | Pure family/levy byte parity and ordinary/genuine quote/tax preimages; persisted-timing TS service acceptance remains unexecuted. |
+| Non-implementing standing worker: whole no-DB suite |1523 passed,1114 explicit environment skips,0 failed,21174 assertions;2637 tests/474 files | Skips are not database acceptance. Typecheck,167 boundaries,23-package licence check,audit and diff checks also passed. |
+
+The complete composer has positive CGST/SGST cases; IGST and CGST/UTGST are
+covered by the shared numeric preview, not yet full composer acceptance. The
+service-day/TOS SEZ distinction is independently proven by the statutory leaf.
+No fabricated issued timing, disabled completion constraints or stub source
+authenticator were used. The final schema/referee remains a future76-migration
+proof; this isolated database still had75 migration records and127 public tables.
+
+Exact SHA256 values:
+
+- Preparation: `ac1bf551205f9167724e52c42981013272f7c3cb642ce45a0e4e68999fbb294d`.
+- Statutory: `d8858481113cca64d1731ccf4ad9e371d55f0c8c2cb1a9a7b2be1374186fb16c`.
+- Unchanged draft75: `d550b41cd405aea2da2b84e75fd3632ae2a6aca3b24b5cd12697394405d29869`.
+- Unchanged accounting fragment: `e6c30d972c12c4dd2999c2d5f269f0ac07944ea8e8431831244919654c7ef754`.
+
+All74 runnable migrations remain unchanged. Root stopped the one owned synthetic
+PostgreSQL cluster and verified port55502 closed after all database workers
+released it. No retained app, hotel data, Docker runtime or local port3000 was
+changed. Development publication preserves this work; it is not a main merge,
+completed native invoice, final Tier3 acceptance or Phase7 completion.
+
+Next required integration is full preparation locking and reconstruction,
+an explicitly defined acyclic native-source-basis preimage and real shared
+authenticator, followed by same-transaction event/accounting, final commit,
+durable authorized replay and complete issuance/schema/concurrency proof.
+
+### Dual-date statutory source closure — D1355
+
+The service-provision date and actual time of supply can differ. Keep the
+explicit command-selected supplier286/recipient285/registration289 records at
+TOS for native295/296/297 and the existing applicability status columns. The
+service-day levy graph needs its own actual supplier286/recipient285 records:
+resolve by tenant, authenticated registration ID/evidence hash and exact service
+date using the existing0052/0053 uniqueness constraints. Missing or ambiguous
+evidence fails; never copy a TOS record and replace its date. No second service-
+date289 registration-status record is required by that existing graph.
+
+The internal statutory root reader shares seller, buyer, classification and
+place reconstruction, returning four columns: prepared_source_json,
+service_supply_nature_json, service_supplier_sez_status_id and
+service_recipient_sez_status_id. The existing13-argument prepared-source helper
+projects only its unchanged eight-key text. Service-day Order287 feeds the
+separate family/levy/applicability ancestry, while413 keeps its TOS family result;
+their family names must still agree. These are separate dated evidence graphs,
+not a reason to fabricate status dates or widen the public input.
+
+Preparation must lock both status pairs during its deterministic pre-outbox
+configuration/source phase, then rerun both graphs. These status tables are
+app-read-only and uniquely constrained, not trigger-immutable. Full source-basis
+and final commit authentication must bind/rederive the service-day graph as well
+as the TOS graph. This selected implementation is not yet complete issuance proof.
+
+### Private quoted-applicability and final-tax reconstruction — D1356
+
+Within this order's existing preparation draft, add only the private
+`compose_india_native_quoted_tax_source(uuid,uuid,uuid,uuid,uuid,text,text,text)`
+leaf. Its UUIDs identify tenant, property, reservation, folio and valuation.
+The three texts preserve the exact internally reconstructed invoice-source
+input, invoice-source result and service-day supply-nature serialization. They
+are not a public source of fiscal authority. The full preparation boundary must
+authenticate and lock their original persisted sources before using the leaf.
+
+Reconstruct actual valuation, attribution and reservation lineage. Preserve the
+distinct service-day family/levy graph and selected time-of-supply rate graph,
+all recording/projection/timing hash domains, and existing integer rounding.
+Return exactly these six keys: `componentFamilyCanonicalJson`,
+`levyInputBundleCanonicalJson`, `levyComponentIdentityCanonicalJson`,
+`quotedApplicabilityCanonicalJson`, `finalTaxCanonicalJson`, and `taxPreview`.
+No DML, lock, grant, public command change or runnable migration is admitted.
+
+Use genuine SQL source roots and executable pure-calculation/preimage parity.
+Do not fabricate an issued timing row, disable deferred completion constraints,
+or install a stub authenticator to make the existing persisted-source TypeScript
+calculators run. Full preparation, source-basis authentication, same-transaction
+accounting, commit/replay and complete issuance proof are still required.
 
 ## Authenticated financial source and native composition checkpoint — D1350
 

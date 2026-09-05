@@ -12,9 +12,17 @@ import {
 import { IndiaGstAccommodationPaymentReceiptDateService } from "../src/contexts/tax-fiscal/india-gst-accommodation-payment-receipt-date";
 import { IndiaGstAccommodationServiceProvisionDateService } from "../src/contexts/tax-fiscal/india-gst-accommodation-service-provision-date";
 import { allocateSignedLargestRemainder } from "../src/contexts/tax-fiscal/signed-largest-remainder";
+import type { IndiaNativeFiscalSourceInput } from "../src/contexts/tax-fiscal/india-native-fiscal-source";
+import type { IndiaGstAccommodationNativeInvoiceSourceResult } from "../src/contexts/tax-fiscal/india-gst-accommodation-invoice-source";
+import { composeIndiaGstRegistrationAtNativeTimeOfSupply } from "../src/contexts/tax-fiscal/india-gst-registration-at-time-of-supply";
+import { composeIndiaGstRecipientRegistrationAtNativeTimeOfSupply } from "../src/contexts/tax-fiscal/india-gst-recipient-registration-at-time-of-supply";
+import { composeIndiaGstAccommodationNativeSupplyNatureAtTimeOfSupply } from "../src/contexts/tax-fiscal/india-gst-accommodation-supply-nature-at-time-of-supply";
+import { buildIndiaGstAccommodationRegisteredStateComparison } from "../src/contexts/tax-fiscal/india-gst-accommodation-registered-state-comparison";
+import { buildIndiaGstAccommodationSupplyNature } from "../src/contexts/tax-fiscal/india-gst-accommodation-supply-nature";
 import { createAuditEnvelope, Database, PostgresEventBus, PostgresIdempotency } from "../src/kernel";
 import {
   createNativeSourceFixture,
+  createNativeStatutoryFixture,
   type NativeSourceFixture,
 } from "./fixtures/india-native-fiscal-source-completion-fixture";
 
@@ -26,6 +34,14 @@ if (process.env.YELLOW_REQUIRE_ORDER434_DATABASE === "1" && (!deployUrl || !runt
 }
 const databaseDescribe = deployUrl && runtimeUrl ? describe.serial : describe.skip;
 type NativeSource = IndiaGstAccommodationNativeFinalValuationInput["sources"][number];
+type PreparedStatutorySource = Omit<IndiaNativeFiscalSourceInput,"financialSource">;
+function frozenStatutory<T>(value: T): T {
+  if (value && typeof value === "object") {
+    for (const nested of Object.values(value)) frozenStatutory(nested);
+    Object.freeze(value);
+  }
+  return value;
+}
 const SUCCESSOR_EXTENSION = "0b21daf2-ea6e-5568-9c21-69e4d4424574";
 const D99_PUBLICATION_LOCK = "6441674055002974568";
 
@@ -274,6 +290,151 @@ databaseDescribe("Order434 native valuation from governed consideration", () => 
     if (!row) throw new Error("Missing native valuation census");
     return row;
   }
+
+  const seedStatutoryRoots = (fixture: NativeSourceFixture, serviceSez = false, includeServicePair = true) =>
+    createNativeStatutoryFixture(deploy, fixture, { serviceSez, includeServicePair });
+
+  async function readStatutory(fixture: NativeSourceFixture, valuationId: string, roots: Awaited<ReturnType<typeof seedStatutoryRoots>>,
+    classificationId = roots.classificationId) {
+    return deploy.begin(async tx => {
+      await tx`SELECT set_config('app.tenant_id',${fixture.tenant},true)`;
+      await tx`SET LOCAL ROLE yellow_owner`;
+      const [timing] = await tx<Array<{ source: { invoiceSourceResultCanonicalJson: string } }>>`
+        SELECT public.read_india_native_invoice_timing_source(${fixture.tenant}::uuid,${fixture.property}::uuid,${fixture.reservation}::uuid,
+          ${fixture.serviceResult.serviceProvision.serviceProvisionSnapshotId}::uuid,${fixture.paymentResult.paymentReceipt.paymentReceiptSnapshotId}::uuid,
+          ${fixture.ordinaryResult.ordinaryRegimeEvidenceId}::uuid,${crypto.randomUUID()}::uuid,${crypto.randomUUID()}::uuid,
+          NULL,NULL,NULL,'{}'::date[],'{}'::text[]) AS source`;
+      if (!timing) throw new Error("Native timing unavailable");
+      const nativeSource = timing.source.invoiceSourceResultCanonicalJson;
+      const read = async () => tx<Array<{ prepared_source_json: string; service_supply_nature_json: string;
+        service_supplier_sez_status_id: string; service_recipient_sez_status_id: string }>>`
+        SELECT * FROM public.read_india_native_statutory_root_graph(${fixture.tenant}::uuid,${fixture.property}::uuid,${fixture.reservation}::uuid,
+          ${fixture.folio}::uuid,${valuationId}::uuid,${roots.location.supplierServiceLocationId}::uuid,${roots.supplierStatusId}::uuid,
+          ${roots.supplierSez.supplierSezStatusId}::uuid,${roots.recipient.registrationId}::uuid,${roots.recipientSez.recipientSezStatusId}::uuid,
+          ${classificationId}::uuid,${nativeSource},${JSON.stringify(roots.jurisdiction)})`;
+      const [first] = await read();
+      if (!first) throw new Error("Native statutory graph unavailable");
+      await tx`SET LOCAL TIME ZONE 'Asia/Calcutta'`;
+      expect((await read())[0]).toEqual(first);
+      const [wrapper] = await tx<Array<{ value: string }>>`SELECT public.read_india_native_prepared_statutory_source(
+        ${fixture.tenant}::uuid,${fixture.property}::uuid,${fixture.reservation}::uuid,${fixture.folio}::uuid,${valuationId}::uuid,
+        ${roots.location.supplierServiceLocationId}::uuid,${roots.supplierStatusId}::uuid,${roots.supplierSez.supplierSezStatusId}::uuid,
+        ${roots.recipient.registrationId}::uuid,${roots.recipientSez.recipientSezStatusId}::uuid,${classificationId}::uuid,
+        ${nativeSource},${JSON.stringify(roots.jurisdiction)}) AS value`;
+      expect(wrapper?.value).toBe(first.prepared_source_json);
+      return { ...first, nativeSource: frozenStatutory(JSON.parse(nativeSource) as IndiaGstAccommodationNativeInvoiceSourceResult),
+        prepared: frozenStatutory(JSON.parse(first.prepared_source_json) as PreparedStatutorySource) };
+    });
+  }
+
+  test("native statutory graph stays private STABLE and preserves ECMAScript text validation", async () => {
+    const rows = await deploy<Array<{ name: string; volatility: string; app: boolean; runtime: boolean; owner: string; definition: string }>>`
+      SELECT p.proname name,p.provolatile::text volatility,pg_get_userbyid(p.proowner) owner,
+        has_function_privilege('app_role',p.oid,'EXECUTE') app,has_function_privilege('yellow_runtime',p.oid,'EXECUTE') runtime,
+        pg_get_functiondef(p.oid) definition
+      FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace WHERE n.nspname='public'
+        AND p.proname IN ('read_india_native_statutory_root_graph','read_india_native_prepared_statutory_source')`;
+    expect(rows).toHaveLength(2);
+    for (const row of rows) {
+      expect(row.volatility).toBe("s");expect(row.owner).toBe("yellow_owner");
+      expect(row.app).toBe(false);expect(row.runtime).toBe(false);
+      expect(row.definition).not.toMatch(/\b(?:INSERT|UPDATE|DELETE)\s+(?:INTO|FROM|public\.)/i);
+      expect(row.definition).not.toContain("pg_advisory");
+      expect(row.definition).not.toMatch(/FOR\s+(?:UPDATE|SHARE)/i);
+    }
+    const checkText = (value: string, max: number) => deploy.begin(async tx => {
+      await tx`SET LOCAL ROLE yellow_owner`;
+      return tx<Array<{ value: string }>>`SELECT public.india_native_statutory_text(${value},${max}) AS value`;
+    });
+    expect((await checkText("A😀",3))[0]?.value).toBe("A😀");
+    await expectSqlState(() => checkText("A😀",2),"55000");
+    for (const value of ["\u00a0Name", "Name\ufeff", "\u2003Name", "e\u0301", "Name\u007f"]) {
+      await expectSqlState(() => checkText(value,100),"55000");
+    }
+    expect((await checkText("Name\u00a0Inside",100))[0]?.value).toBe("Name\u00a0Inside");
+  });
+
+  test("native statutory graph reconstructs real roots and exact 295 296 297 insertion preimages", async () => {
+    const fixture = await createNativeSourceFixture(deploy,database,{label:"statutory-ordinary"});
+    const charge = await fixture.postCharge("10000","statutory-ordinary-charge");
+    const finalized = await finalize(request(fixture,[source(charge.postingRootId)],"statutory-ordinary-valuation"));
+    const roots = await seedStatutoryRoots(fixture);
+    const before = await census(fixture);
+    const actual = await readStatutory(fixture,finalized.valuationId,roots);
+    const prepared = actual.prepared;
+    expect(Object.keys(prepared)).toEqual(["tenantId","legalBuyerPartyId","sellerRegistration","recipientRegistration",
+      "placeOfSupply","classification","supplyNatureAtTimeOfSupplyInput","supplyNatureAtTimeOfSupplyResult"]);
+    expect(prepared.legalBuyerPartyId).toBe(fixture.party);
+    expect(prepared.sellerRegistration).toEqual(roots.seller);
+    expect(prepared.recipientRegistration).toEqual(roots.recipient);
+    const supplierRegistrationAtTimeOfSupply = composeIndiaGstRegistrationAtNativeTimeOfSupply(frozenStatutory({
+      tenantId:fixture.tenant,invoiceSource:actual.nativeSource,supplierRegistrationStatus:{
+        supplierRegistrationId:roots.seller.registrationId,supplierGstRegistrationStatusId:roots.supplierStatusId,
+        supplierServiceLocationId:roots.location.supplierServiceLocationId,propertyNode:fixture.property,statusAsOf:roots.tos,
+        supplierServiceLocation:{id:roots.location.supplierServiceLocationId,evidenceHash:roots.location.evidenceHash},
+        supplier:{registrationId:roots.seller.registrationId,evidenceHash:roots.seller.evidenceHash},gstRegistration:roots.gst,
+        supplierRegistrationStatusEvidenceHash:roots.supplierStatusHash,registrationLegalRule:"CGST_ACT_25_29_30_AND_RULE_21A_REGISTRATION_STATUS" as const,
+      },
+    }));
+    const recipientRegistrationAtTimeOfSupply = composeIndiaGstRecipientRegistrationAtNativeTimeOfSupply(frozenStatutory({
+      tenantId:fixture.tenant,invoiceSource:actual.nativeSource,recipientRegistrationStatus:{
+        recipientPartyId:fixture.party,recipientRegistrationId:roots.recipient.registrationId,
+        recipientSezStatusId:roots.recipientSez.recipientSezStatusId,statusAsOf:roots.tos,
+        recipient:{registrationId:roots.recipient.registrationId,evidenceHash:roots.recipient.evidenceHash},gstRegistration:roots.gst,
+        sezStatus:"affirmatively_non_sez_regular" as const,approval:null,recipientRegistrationStatusEvidenceHash:roots.recipientSez.evidenceHash,
+        recipientRegistrationLegalRule:"IGST_ACT_7_5_B_AND_8_2_RECIPIENT_STATUS" as const,
+      },
+    }));
+    const comparison = buildIndiaGstAccommodationRegisteredStateComparison(frozenStatutory({
+      tenantId:fixture.tenant,supplier:roots.seller,placeOfSupply:prepared.placeOfSupply,
+    }));
+    const nature = buildIndiaGstAccommodationSupplyNature(frozenStatutory({tenantId:fixture.tenant,supplyDate:roots.tos,
+      registeredStateComparison:comparison,supplierServiceLocation:roots.location,supplierSezStatus:roots.supplierSez,recipientSezStatus:roots.recipientSez}));
+    const expectedInput = frozenStatutory({tenantId:fixture.tenant,supplyNature:nature,supplierRegistrationAtTimeOfSupply,
+      supplierSezStatus:roots.supplierSez,recipientRegistrationAtTimeOfSupply});
+    expect(JSON.stringify(prepared.supplyNatureAtTimeOfSupplyInput)).toBe(JSON.stringify(expectedInput));
+    expect(JSON.stringify(prepared.supplyNatureAtTimeOfSupplyResult)).toBe(JSON.stringify(composeIndiaGstAccommodationNativeSupplyNatureAtTimeOfSupply(expectedInput)));
+    expect(prepared.supplyNatureAtTimeOfSupplyResult.supplierGstRegistrationStatusId).not.toBe(prepared.supplyNatureAtTimeOfSupplyResult.supplierSezStatusId);
+    expect(prepared.supplyNatureAtTimeOfSupplyResult.supplierRegistrationStatusEvidenceHash).not.toBe(prepared.supplyNatureAtTimeOfSupplyResult.supplierSezStatusEvidenceHash);
+    expect(prepared.supplyNatureAtTimeOfSupplyResult.supplierTimeOfSupplyEvidenceHash).not.toBe(prepared.supplyNatureAtTimeOfSupplyResult.recipientTimeOfSupplyEvidenceHash);
+    expect(prepared.supplyNatureAtTimeOfSupplyResult.nativeTimingEvidenceHash).toBe(actual.nativeSource.timing.evidenceHash);
+    expect(prepared.supplyNatureAtTimeOfSupplyResult.nativeTimingEvidenceHash).not.toBe(actual.nativeSource.timing.predecessorHashes.nativeTiming);
+    expect(actual.service_supply_nature_json).toBe(JSON.stringify(nature));
+    await expectSqlState(() => readStatutory(fixture,finalized.valuationId,roots,crypto.randomUUID()),"55000");
+    expect(await census(fixture)).toEqual(before);
+  },30_000);
+
+  test("native statutory graph keeps genuine different service and time-of-supply SEZ roots distinct", async () => {
+    const fixture = await createNativeSourceFixture(deploy,database,{label:"statutory-dual-date",
+      serviceProvisionDate:"2025-09-20",supplierBooksEntryDate:"2025-09-19",supplierBankCreditDate:"2025-09-21"});
+    const charge = await fixture.postCharge("10000","statutory-dual-date-charge");
+    const finalized = await finalize(request(fixture,[source(charge.postingRootId)],"statutory-dual-date-valuation"));
+    const roots = await seedStatutoryRoots(fixture,true);
+    const before = await census(fixture);
+    const actual = await readStatutory(fixture,finalized.valuationId,roots);
+    const comparison = buildIndiaGstAccommodationRegisteredStateComparison(frozenStatutory({
+      tenantId:fixture.tenant,supplier:roots.seller,placeOfSupply:actual.prepared.placeOfSupply,
+    }));
+    const serviceNature = buildIndiaGstAccommodationSupplyNature(frozenStatutory({tenantId:fixture.tenant,supplyDate:"2025-09-20",
+      registeredStateComparison:comparison,supplierServiceLocation:roots.location,supplierSezStatus:roots.serviceSupplier,recipientSezStatus:roots.serviceRecipient}));
+    expect(actual.service_supply_nature_json).toBe(JSON.stringify(serviceNature));
+    expect(actual.service_supplier_sez_status_id).toBe(roots.serviceSupplier.supplierSezStatusId);
+    expect(actual.service_recipient_sez_status_id).toBe(roots.serviceRecipient.recipientSezStatusId);
+    expect(serviceNature.supplyNature).toBe("inter_state");expect(serviceNature.sezDirection).toBe("by_sez");
+    expect(actual.prepared.supplyNatureAtTimeOfSupplyResult.supplyDate).toBe("2025-09-19");
+    expect(actual.prepared.supplyNatureAtTimeOfSupplyResult.supplyNature).toBe("intra_state");
+    expect(actual.prepared.supplyNatureAtTimeOfSupplyResult.supplierSezStatusId).not.toBe(actual.service_supplier_sez_status_id);
+    expect(actual.prepared.supplyNatureAtTimeOfSupplyResult.recipientSezStatusId).not.toBe(actual.service_recipient_sez_status_id);
+    expect(await census(fixture)).toEqual(before);
+    const missing = await createNativeSourceFixture(deploy,database,{label:"statutory-service-missing",
+      serviceProvisionDate:"2025-09-20",supplierBooksEntryDate:"2025-09-19",supplierBankCreditDate:"2025-09-21"});
+    const missingCharge = await missing.postCharge("10000","statutory-missing-charge");
+    const missingValue = await finalize(request(missing,[source(missingCharge.postingRootId)],"statutory-missing-valuation"));
+    const missingRoots = await seedStatutoryRoots(missing,false,false);
+    const missingBefore = await census(missing);
+    await expectSqlState(() => readStatutory(missing,missingValue.valuationId,missingRoots),"55000");
+    expect(await census(missing)).toEqual(missingBefore);
+  },30_000);
 
   test("installs private consumed-source guards at every admitted financial and fiscal boundary", async () => {
     const guards = await deploy<Array<{ relation: string; function_name: string; trigger_type: number;

@@ -1,4 +1,6 @@
 import { SQL } from "bun";
+import type { IndiaGstSupplierServiceLocationResult } from "../../src/contexts/tax-fiscal/india-gst-supplier-service-location";
+import type { IndiaGstRecipientSezStatusResult } from "../../src/contexts/tax-fiscal/india-gst-recipient-sez-status";
 
 import { ChargeService, type PostChargeResult } from "../../src/contexts/financials";
 import { createPositiveTaxAttributionSnapshot } from "../../src/contexts/tax-fiscal/attribution";
@@ -474,4 +476,141 @@ export async function createNativeSourceFixture(
     ordinaryResult: recorded.ordinaryResult,
     postCharge,
   });
+}
+
+export interface NativeStatutoryFixtureOptions {
+  readonly serviceSez?: boolean;
+  readonly includeServicePair?: boolean;
+}
+function freezeStatutoryFixture<T>(value: T): T {
+  if (value && typeof value === "object") {
+    for (const nested of Object.values(value)) freezeStatutoryFixture(nested);
+    Object.freeze(value);
+  }
+  return value;
+}
+function fixtureStatutoryHash(value: unknown): string {
+  return new Bun.CryptoHasher("sha256").update(JSON.stringify(value)).digest("hex");
+}
+function fixtureStatutoryGstin(state: string, body = "ABCDE1234F1Z"): string {
+  const alphabet = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ", prefix = state + body;
+  let factor = 2, sum = 0;
+  for (let i = prefix.length - 1; i >= 0; i--) {
+    const addend = factor * alphabet.indexOf(prefix[i]!);
+    sum += Math.floor(addend / 36) + addend % 36;
+    factor = factor === 2 ? 1 : 2;
+  }
+  return prefix + alphabet[(36 - sum % 36) % 36];
+}
+
+/** Adds synthetic statutory configuration and dated official-evidence prerequisites
+ * to an actual native source fixture; creates no timing, tax, binding or document. */
+export async function createNativeStatutoryFixture(deploy: SQL, fixture: NativeSourceFixture,
+  options: NativeStatutoryFixtureOptions = {}) {
+  const serviceSez = options.serviceSez ?? false;
+  const includeServicePair = options.includeServicePair ?? true;
+  const sellerId = crypto.randomUUID(), recipientId = crypto.randomUUID(), locationId = crypto.randomUUID();
+  const supplierStatusId = crypto.randomUUID(), supplierSezId = crypto.randomUUID(), recipientSezId = crypto.randomUUID();
+  const classificationId = crypto.randomUUID();
+  const serviceDate = fixture.serviceResult.serviceProvision.serviceProvisionDate;
+  const tos = fixture.paymentResult.paymentReceipt.paymentReceiptDate;
+  if (serviceSez && serviceDate === tos) throw new Error("Distinct service-day SEZ fixture requires different service/TOS dates");
+  await deploy`INSERT INTO public.tax_assignment(tenant_id,property_node,jurisdiction_key,effective)
+    VALUES(${fixture.tenant}::uuid,${fixture.property}::uuid,'in-gst-lodging',daterange(NULL,NULL,'[)'))`;
+  const [history] = await deploy.begin(async tx => {
+    await tx`SELECT set_config('app.tenant_id',${fixture.tenant},true)`;
+    await tx`SET LOCAL ROLE yellow_owner`;
+    return tx<Array<{ member: { extensionId: string; key: string; version: number; contentHash: string } }>>`
+      SELECT public.read_india_native_rate_history_day(${fixture.tenant}::uuid,${fixture.property}::uuid,${serviceDate}::date)->'selectedExtension' AS member`;
+  });
+  if (!history) throw new Error("Statutory service-day history unavailable");
+  const jurisdiction = { extensionId: history.member.extensionId, ownerTenantId: null,
+    key: history.member.key, version: String(history.member.version), contentHash: history.member.contentHash };
+  const sellerBody = { registrationId: sellerId, propertyNode: fixture.property, scheme: "in-gstin" as const, currency: "INR" as const,
+    jurisdiction, gstin: fixtureStatutoryGstin("29"), stateCode: "29", legalName: "Synthetic Native Seller", tradeName: null,
+    addressLine: "1 Synthetic Road", locality: "Bengaluru", postalCode: "560001" };
+  const { registrationId: _sellerId, ...sellerTail } = sellerBody;
+  const seller = freezeStatutoryFixture({ ...sellerBody, evidenceHash: fixtureStatutoryHash({ registrationId: sellerId, tenantId: fixture.tenant, ...sellerTail }) });
+  const recipientBody = { registrationId: recipientId, partyId: fixture.party, scheme: "in-gstin" as const,
+    gstin: fixtureStatutoryGstin("29", "FGHIJ5678K1Z"), stateCode: "29", legalName: "Synthetic Native Buyer", tradeName: "Buyer Trade",
+    addressLine1: "2 Synthetic Road", locality: "Bengaluru", pin: "560002" };
+  const { registrationId: _recipientId, ...recipientTail } = recipientBody;
+  const recipient = freezeStatutoryFixture({ ...recipientBody,
+    evidenceHash: fixtureStatutoryHash({ registrationId: recipientId, tenantId: fixture.tenant, ...recipientTail }) });
+  const supplierRef = { registrationId: sellerId, evidenceHash: seller.evidenceHash };
+  const recipientRef = { partyId: fixture.party, registrationId: recipientId, evidenceHash: recipient.evidenceHash };
+  const locationBody = { supplierServiceLocationId: locationId, propertyNode: fixture.property, jurisdiction, supplier: supplierRef,
+    serviceScope: "lodging_accommodation" as const, registeredPlace: { kind: "principal_place_of_business" as const,
+      stateCode: "29", addressLine: seller.addressLine, locality: seller.locality, postalCode: seller.postalCode },
+    locationBasis: "supply_made_from_registered_place_of_business" as const, legalRule: "IGST_ACT_2_15_A" as const };
+  const location: IndiaGstSupplierServiceLocationResult = freezeStatutoryFixture({ ...locationBody,
+    evidenceHash: fixtureStatutoryHash({ tenantId: fixture.tenant, ...locationBody }) });
+  const locationRef = { id: locationId, evidenceHash: location.evidenceHash };
+  const gst = { status: "active" as const, taxpayerType: "regular" as const, source: "gst_common_portal" as const, evidenceSha256: "c".repeat(64) };
+  const supplierStatusBody = { supplierGstRegistrationStatusId: supplierStatusId, propertyNode: fixture.property,
+    supplierServiceLocation: locationRef, supplier: supplierRef, statusAsOf: tos, gstRegistration: gst,
+    legalRule: "CGST_ACT_25_29_30_AND_RULE_21A_REGISTRATION_STATUS" as const };
+  const supplierStatusHash = fixtureStatutoryHash({ tenantId: fixture.tenant, ...supplierStatusBody });
+  const supplierSezBody = { supplierSezStatusId: supplierSezId, propertyNode: fixture.property,
+    supplierServiceLocation: locationRef, supplier: supplierRef, statusAsOf: tos, gstRegistration: gst,
+    sezStatus: "affirmatively_non_sez_regular" as const, approval: null, legalRule: "IGST_ACT_7_5_B_AND_8_2_SUPPLIER_STATUS" as const };
+  const supplierSez = freezeStatutoryFixture({ ...supplierSezBody, evidenceHash: fixtureStatutoryHash({ tenantId: fixture.tenant, ...supplierSezBody }) });
+  const recipientSezBody = { recipientSezStatusId: recipientSezId, recipient: recipientRef, statusAsOf: tos, gstRegistration: gst,
+    sezStatus: "affirmatively_non_sez_regular" as const, approval: null, legalRule: "IGST_ACT_7_5_B_AND_8_2_RECIPIENT_STATUS" as const };
+  const recipientSez: IndiaGstRecipientSezStatusResult = freezeStatutoryFixture({ ...recipientSezBody,
+    evidenceHash: fixtureStatutoryHash({ tenantId: fixture.tenant, ...recipientSezBody }) });
+  const serviceSupplierId = serviceDate === tos ? supplierSezId : crypto.randomUUID();
+  const serviceRecipientId = serviceDate === tos ? recipientSezId : crypto.randomUUID();
+  const serviceSupplierBody = { ...supplierSezBody, supplierSezStatusId: serviceSupplierId, statusAsOf: serviceDate,
+    gstRegistration: { ...gst, taxpayerType: serviceSez ? "sez_unit" as const : "regular" as const },
+    sezStatus: serviceSez ? "sez_unit" as const : "affirmatively_non_sez_regular" as const,
+    approval: serviceSez ? { form: "sez_rules_form_g" as const, reference: "SYNTHETIC-LOA-434",
+      validity: { fromInclusive: "2025-01-01", toExclusive: "2027-01-01" }, status: "in_force" as const, evidenceSha256: "d".repeat(64) } : null };
+  const serviceSupplier = freezeStatutoryFixture({ ...serviceSupplierBody,
+    evidenceHash: fixtureStatutoryHash({ tenantId: fixture.tenant, ...serviceSupplierBody }) });
+  const serviceRecipientBody = { ...recipientSezBody, recipientSezStatusId: serviceRecipientId, statusAsOf: serviceDate };
+  const serviceRecipient = freezeStatutoryFixture({ ...serviceRecipientBody,
+    evidenceHash: fixtureStatutoryHash({ tenantId: fixture.tenant, ...serviceRecipientBody }) });
+  await deploy.begin(async tx => {
+    await tx`INSERT INTO public.property_fiscal_registration(tenant_id,id,property_node,scheme,currency,
+      jurisdiction_extension_id,jurisdiction_owner_tenant_id,jurisdiction_key,jurisdiction_version,jurisdiction_content_hash,
+      registration_number,region_code,legal_name,trade_name,address_line,locality,postal_code)
+      VALUES(${fixture.tenant}::uuid,${sellerId}::uuid,${fixture.property}::uuid,'in-gstin','INR',${jurisdiction.extensionId}::uuid,
+        NULL,${jurisdiction.key},${Number(jurisdiction.version)},${jurisdiction.contentHash},${seller.gstin},'29',${seller.legalName},NULL,
+        ${seller.addressLine},${seller.locality},${seller.postalCode})`;
+    await tx`INSERT INTO public.party_fiscal_registration(tenant_id,id,party_id,scheme,registration_number,region_code,legal_name,trade_name,address_line1,locality,pin)
+      VALUES(${fixture.tenant}::uuid,${recipientId}::uuid,${fixture.party}::uuid,'in-gstin',${recipient.gstin},'29',${recipient.legalName},${recipient.tradeName},
+        ${recipient.addressLine1},${recipient.locality},${recipient.pin})`;
+    await tx`INSERT INTO public.india_gst_supplier_service_location(tenant_id,id,supplier_registration_id,supplier_evidence_hash,service_scope,registered_place_kind,location_basis,legal_rule)
+      VALUES(${fixture.tenant}::uuid,${locationId}::uuid,${sellerId}::uuid,${seller.evidenceHash},'lodging_accommodation',
+        'principal_place_of_business','supply_made_from_registered_place_of_business','IGST_ACT_2_15_A')`;
+    await tx`INSERT INTO public.india_gst_supplier_registration_status_snapshot(tenant_id,id,supplier_registration_id,supplier_registration_evidence_hash,
+      status_as_of,gst_registration_status,gst_taxpayer_type,gst_status_source,gst_status_evidence_sha256,legal_rule)
+      VALUES(${fixture.tenant}::uuid,${supplierStatusId}::uuid,${sellerId}::uuid,${seller.evidenceHash},${tos}::date,'active','regular','gst_common_portal',
+        ${gst.evidenceSha256},'CGST_ACT_25_29_30_AND_RULE_21A_REGISTRATION_STATUS')`;
+    for (const status of [supplierSez, ...(includeServicePair && serviceDate !== tos ? [serviceSupplier] : [])]) {
+      await tx`INSERT INTO public.india_gst_supplier_sez_status(tenant_id,id,supplier_registration_id,supplier_registration_evidence_hash,
+        status_as_of,gst_registration_status,gst_taxpayer_type,gst_status_source,gst_status_evidence_sha256,
+        approval_form,approval_reference,approval_validity,approval_status,approval_evidence_sha256,legal_rule)
+        VALUES(${fixture.tenant}::uuid,${status.supplierSezStatusId}::uuid,${sellerId}::uuid,${seller.evidenceHash},${status.statusAsOf}::date,
+          'active',${status.gstRegistration.taxpayerType},'gst_common_portal',${status.gstRegistration.evidenceSha256},
+          ${status.approval?.form ?? null},${status.approval?.reference ?? null},
+          ${status.approval ? `[${status.approval.validity.fromInclusive},${status.approval.validity.toExclusive})` : null}::daterange,
+          ${status.approval?.status ?? null},${status.approval?.evidenceSha256 ?? null},'IGST_ACT_7_5_B_AND_8_2_SUPPLIER_STATUS')`;
+    }
+    for (const status of [recipientSez, ...(includeServicePair && serviceDate !== tos ? [serviceRecipient] : [])]) {
+      await tx`INSERT INTO public.india_gst_recipient_sez_status(tenant_id,id,recipient_registration_id,recipient_registration_evidence_hash,
+        status_as_of,gst_registration_status,gst_taxpayer_type,gst_status_source,gst_status_evidence_sha256,legal_rule)
+        VALUES(${fixture.tenant}::uuid,${status.recipientSezStatusId}::uuid,${recipientId}::uuid,${recipient.evidenceHash},${status.statusAsOf}::date,
+          'active','regular','gst_common_portal',${gst.evidenceSha256},'IGST_ACT_7_5_B_AND_8_2_RECIPIENT_STATUS')`;
+    }
+    await tx`INSERT INTO public.property_fiscal_location(tenant_id,property_node,country_code,state_code,address_line1,locality,pin)
+      VALUES(${fixture.tenant}::uuid,${fixture.property}::uuid,'IN','29','3 Property Road','Bengaluru','560003')`;
+    await tx`INSERT INTO public.india_gst_item_classification(tenant_id,id,property_node,jurisdiction_extension_id,jurisdiction_owner_tenant_id,
+      jurisdiction_key,jurisdiction_version,jurisdiction_content_hash,country_code,line_id,revenue_group,classification_system,classification_code,is_service_code)
+      VALUES(${fixture.tenant}::uuid,${classificationId}::uuid,${fixture.property}::uuid,${jurisdiction.extensionId}::uuid,NULL,
+        ${jurisdiction.key},${Number(jurisdiction.version)},${jurisdiction.contentHash},'IN','room','room_revenue','SAC','996311','Y')`;
+  });
+  return { seller, recipient, location, supplierStatusId, supplierStatusHash, supplierSez, recipientSez,
+    serviceSupplier, serviceRecipient, classificationId, jurisdiction, gst, tos };
 }
