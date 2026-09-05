@@ -20,8 +20,9 @@ the active task, values and authorization but may use different responsive compo
 The older requirement for identical DOM/layout across every experience is not the
 new product intent. Material authenticity needs actual visual/interaction evidence.
 
-The older five-appearance, three-detail-mode and 98,304-byte criteria below belong
-to the historical Order195 contract. They are not the new desired design ceiling.
+Order195 defined six appearances and retired the prior 98,304-byte cap through
+D-526. Its three-detail-mode and cap criteria below are historical evidence, not the
+new desired design ceiling.
 Future implementation must explicitly reconcile the affected executable tests and
 budgets in its own scope: measure first-use bytes, frame/interaction latency, memory
 and accessibility; load optional 3D, voice and locale assets on demand. Do not silently
@@ -34,11 +35,13 @@ This documentation does not change the running UI or existing executable gates.
 **Catalogue:** Apple iOS · Android 17 / native Pixel · Windows 95/98 ·
 Glassmorphism · Neomorphism · Enterprise ERP
 **Default:** Apple iOS  
-**Applies to:** the same authenticated Yellow application, server truth and ordered
-semantic DOM in every appearance.
+**Historical constraints:** the same authenticated Yellow application, server truth,
+ordered semantic DOM and global detail selector in every appearance. These are
+retained for existing review evidence only; they are not the new desired UX.
 
 This document turns the founder's visual references into implementable rules. It is
-not a mood board and it does not authorize five colour palettes over one ERP layout.
+not a mood board and it does not authorize one shared layout with superficial skins
+over six dedicated appearances.
 Each appearance is a complete composition, control, depth, state and motion system.
 The workflows, values, permissions, URLs, focus order, idempotency and financial truth
 remain identical.
@@ -379,7 +382,7 @@ source. Depth communicates affordance and state; shadows never replace semantics
 A restrained, information-dense hotel command system for users who prefer conventional
 enterprise scanning speed. It combines a compact dark module rail, a narrow command
 bar, dense evidence tables and clear analytic summaries without becoming the shared
-layout underneath the other five appearances.
+layout underneath the other dedicated appearances.
 
 ### Composition
 
@@ -454,7 +457,11 @@ Every appearance must have intentional rendering for:
 
 No appearance may hide a state because its material treatment is inconvenient.
 
-## Accessibility and performance acceptance
+## Historical accessibility and performance acceptance
+
+The following Order195 acceptance bullets preserve existing review evidence and
+executable gates. They do not require the new contextual-disclosure UX to use one
+global selector or identical semantic DOM/layout across all appearances.
 
 - One ordered semantic DOM; visual reordering never changes reading or focus order.
 - WCAG text/non-text contrast, visible focus, landmark/name/state correctness and live
@@ -464,15 +471,16 @@ No appearance may hide a state because its material treatment is inconvenient.
 - Exact route/property/window/draft/selection/destination/preview/idempotency/focus
   preservation across appearance changes.
 - Zero runtime/console/request errors during the authenticated founder journey.
-- Five appearances × Simple/Advanced/Expert settled screenshots plus recorded active
+- Six appearances × the historical Simple/Advanced/Expert settled screenshots plus recorded active
   transitions, reduced motion, forced colours and no-backdrop proof.
-- Combined operator HTML/CSS/JavaScript gzip remains at or below 98,304 bytes.
+- D-526's combined operator HTML/CSS/JavaScript gzip cap of 98,304 bytes is RETIRED
+  for the new direction; any replacement budget must be measured and separately approved.
 - No dependency, external font, external icon pack, telemetry or copied media.
 
 ## Implementation review checklist
 
 - [ ] Each appearance changes composition, controls, depth, state and motion.
-- [ ] Greyscale structural-signature test passes five out of five.
+- [ ] Greyscale structural-signature test passes six out of six.
 - [ ] The 3D folio flow operates on exact semantic elements, not a mock overlay.
 - [ ] Financial values remain server-rendered strings; no optimistic money math.
 - [ ] Every transition is interruptible and state-preserving.

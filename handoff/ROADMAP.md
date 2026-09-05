@@ -1,9 +1,15 @@
 # ROADMAP — how Yellow gets built, and how it gets reviewed
 
-**Written by:** Claude (architect role) · **Date:** 2026-08-15 · **Decisions:** D-87, D-83
+**Historical authorship:** Claude (architect role) · 2026-08-15 · D-87, D-83
 
-`BUILD-PLAN.md` says *what* each phase contains. This file says *how the two agents get
-through it without the founder relaying every cycle by hand.*
+**Current coordination:** Codex under PROJECT and the applicable agent adapter.
+
+**Status reconciled:** 2026-09-05 · Order435 · active fiscal repair Order434/D1330.
+
+[BUILD-PLAN.md](../BUILD-PLAN.md) says what each phase contains. This file records
+delivery/review practice and its historical milestones. Current authority is
+[PROJECT.md](../PROJECT.md), [AGENTS.md](../AGENTS.md) and the active scoped order;
+older cadence text cannot waive required independent high-risk proof.
 
 ---
 
@@ -19,7 +25,11 @@ been wrong. F1, F6 and F8 were all the same shape: correct-looking code that not
 exercised, on a surface that mattered. None of them were caught by reviewing routine work
 more often.
 
-## The cadence rule (D-92 — supersedes D-87's batching)
+## Historical cadence rationale — D-92 superseded D-87's batching
+
+The following records the D-92 build-first cadence at that checkpoint. Read it
+alongside the current review protocol and active order, not as permission to omit
+Order434's fresh independent Tier3 review or to claim unverified completion.
 
 **Codex implements an entire phase without stopping**, then requests one review at the
 phase exit gate.
@@ -126,19 +136,32 @@ executable sequence from active Phase 7 is `7 → 8 → 9 → 10 → 11 → 12 �
 → 15 → 16`. Every declared prerequisite and exit gate still applies; this is
 sequencing, not authority to skip work.
 
-## Current status — D1305
+## Current status — Order434/D1330, reconciled by Order435
 
 Order 429 is independently approved and closed under D1300 as a read-only India IRP
-fiscal-action readiness boundary. Order 430 requires the D1323 complete canonical-provenance repair under D1302/D1304 for
-Yellow-native India fiscal invoice issuance; its builder proof and fresh independent
-Tier-3 review remain pending. Order 431 reconciles the current project snapshot to the
-18-phase roadmap without changing historical evidence or claiming Phase-7 completion.
+fiscal-action readiness boundary. Independent review D1323 **rejected Order430**:
+its complete canonical database provenance was not authenticated.
+[Order434](orders/434-native-fiscal-source-completion.md) is the active complete
+repair under D1330 and the unchanged D1302/D1304 policy. Its outcome is the first
+native invoice without a prior external invoice, with governed original evidence,
+actual-date atomic issuance, immutable accounting and no duplicate revenue.
+It is not built or independently approved; fresh implementation/proof and a
+different non-implementing Tier3 review remain required.
 
-## Order budget and gate map
+The existing 18-phase vector is unchanged: 0–3, 5 and 6 reviewed; 4 built pending final
+integration/review; 7 active; 8–17 planned. The 13 bounded contexts and all phase
+dependencies remain unchanged. Order435 reconciles living documentation; it does
+not approve native issuance, complete a phase, merge development into main or
+refresh the local application. [The project map](../docs/PROJECT-MAP.md) distinguishes
+those separate evidence states and the state script's parsing limitations.
 
-Counts are estimates for planning, not commitments. What is *not* an estimate is which
-items are Tier 3 — those are solo gates by the nature of the surface, and that column is
-the load-bearing part of this table.
+## Historical order-budget estimates and gate map
+
+The counts and batch estimates below are retained planning history, not today's
+completed/remaining order counts or a delivery forecast. The Phase0–12 figures
+come from the early roadmap; Phase13–17 placeholders were added later. Their
+high-risk surfaces remain relevant, while current proof requirements come from
+PROJECT, the adapter and each active order.
 
 | Phase | Orders (est.) | Batches | Tier-3 solo gates |
 |---|---:|---:|---|
@@ -194,13 +217,16 @@ replay-safe adapter ports; UI and integrated exit proof. Reuse Phase11 group/blo
 do not duplicate it. Provider protocols, credentials, retention and certification remain
 separate decisions.
 
-The original Phase0–12 estimate remains roughly 88 orders and ~33 review gates. The
-post-v1 Phase13–17 rows add 39 planning-order placeholders; their batch and final review
-counts are deliberately deferred until prerequisites are approved. Phases 2 and 5 are
-where current review effort concentrates, and they should — that is where money and
-double-bookings live.
+The historical Phase 0–12 estimate was roughly 88 orders and 33 review gates. The
+later Phase 13–17 rows added 39 planning-order placeholders; these are not a count
+of outstanding work. The earlier emphasis on Phases 2 and 5 recorded the risk in
+occupancy and money, not the location of today's active review queue.
 
-## Detail level, and why it stops where it does
+## Historical decomposition rationale
+
+These notes describe the planning granularity at their original checkpoints, not
+the current completion state of Phases1–12. Use the current status above and the
+named phase/order evidence for present work.
 
 - **Phase 1 is decomposed** in `handoff/PHASE-1-PLAN.md` — orders 019–026, with tiers,
   dependencies, and three decisions deliberately deferred to just before their order.
@@ -233,12 +259,19 @@ review request that is boring to read because every claim in it has a command at
 The interesting reviews should be the Tier-3 ones. If routine batches start generating
 findings, the orders are underspecified and that is the architect's fault, not the
 builder's.
-# Current Phase 7 build
+
+# Historical implementation chronology — Phase7 and its dependencies
+
+The entries below preserve successive order checkpoints, including then-current
+product, review, catalogue and local-promotion observations. “Current,” “next,”
+“pending” and “built-unreviewed” in this chronology are relative to the cited
+order/decision, not today's status or a new runtime receipt. For present work use
+the Order434/D1330 current-status section above and the latest decision/ledger.
 
 Order252 has independently approved exact quoted-tax hold-to-reservation/segment lineage.
 
-Order253 is the current bounded status-only slice; it preserves the unfinished Phase7
-state while making approved Order252 visible to the founder after a separate promotion.
+At the Order253 checkpoint, the bounded status-only slice preserved unfinished
+Phase7 while making approved Order252 visible after a separate promotion.
 
 Order254 independently approved exact applied migration0041 lineage restoration plus
 forward-only migration0042. Sole-local promotion is the next bounded operational step;
@@ -273,7 +306,7 @@ with atomic evidence. Order263/D-683 makes that exact truth founder-visible, and
 Order265/D-690 closes the sole-local credential incident with logging-safe independent
 approval while preserving both hotels and the complete database.
 
-Order266/D-691 is the active next financial boundary: one exact complete immutable
+At D-691, Order266 was the active next financial boundary: one exact complete immutable
 contra journal may reverse an Order262 posting with database-derived full-reversal
 tax lineage and verified post-seal authority. Partial/India/negative-tax correction,
 refund/payment, fiscal document/IRP and Phase7 completion remain later work.
@@ -320,7 +353,7 @@ PostgreSQL, Valkey, network, volume, credentials and all97 prior table counts ar
 preserved; sole healthy loopback3000 serves exact272/273/review91/active7. Fresh
 non-operating verification reproduced the complete read-only proof with no finding.
 
-Order275/D-719 is the independently approved current product slice. It may project only the exact
+At D-719, Order275 was the independently approved product slice. Its scope projects only the exact
 approved Order272 supplier-registration result into notified IRP 1.1 `SellerDtls`,
 with strict field/checksum/state/PIN validation, null-only trade-name omission,
 fixed-order deterministic JSON/SHA-256, isolated registration/evidence lineage and

@@ -10,6 +10,31 @@ This model reconciles the Yellow product destination with the repository that ex
 It does not authorize a migration, status, event, or command. Target additions are
 explicitly labelled and require their own reviewed decision/order.
 
+## Current direction and status navigation
+
+Yellow has **13 canonical bounded contexts** and an **18-phase delivery plan (0–17)**;
+these are different classifications and neither replaces the other. This document
+describes stable concepts and ownership. For current requirements and implementation
+evidence use the [feature register](FEATURE-REGISTER.md), [project map](PROJECT-MAP.md),
+[executable contracts](CONTRACTS.md), exact orders/reviews and the recorded status
+model. A requirement or target aggregate is not executable merely because it appears
+here.
+
+Hotel, hostel, serviced-apartment and STR properties share this domain core, while
+their staff journeys and workspace composition may differ. The
+[staff-journey specification](design/STAFF-JOURNEYS.md) owns that experience split;
+`vertical_profile` and typed property configuration express terminology and governed
+behavior without forking reservation, occupancy, financial or audit truth. The
+[regional-pack proposal](architecture/REGIONAL-PACKS.md) is likewise a future
+configuration boundary, not a new context or an implemented schema.
+
+Voice, automation and AI are ingress paths to the same authorized queries and typed
+commands used by staff; they never receive repositories, arbitrary SQL or parallel
+state authority. Owner/trust accounting, guest folios, outlets and future STR owner
+statements use distinct account roles and evidence within the canonical ledger, never
+a second money system. See the [voice/RMS proposal](architecture/VOICE-RMS-PLAN.md)
+for planned evaluation and delivery boundaries.
+
 ## Modeling principles
 
 1. Hospitality is a connected model, not a set of isolated SaaS modules.
@@ -43,21 +68,21 @@ Owns capabilities for:
 
 ### Canonical bounded contexts
 
-| # | Context | Primary responsibility | Current executable behavior |
+| # | Context | Primary responsibility | Stable boundary and navigation |
 |---:|---|---|---|
-| 1 | Identity | tenant/org/user/role/permission/auth | Password/JWT/resolver/hierarchy reads |
-| 2 | Inventory | spaces, unit types, sellable units, physical claims, holds, restrictions | SQL choke point/proofs only |
-| 3 | Rates | rate plans/prices/packages/promotions/policies | Schema only |
-| 4 | Reservations | reservation lifecycle, segments, guests, waitlist | Schema/contracts only |
-| 5 | Stay Operations | arrival/check-in/out, travel, vehicles, queues/messages | Schema/contracts only |
-| 6 | Housekeeping | conditions, task sheets, discrepancies | Schema/contracts only |
-| 7 | Financials | accounts, folios, journals, payments, day close, AR | Schema/invariant proofs only |
-| 8 | CRM | party identity, contacts, preferences, consent | Schema only |
-| 9 | Groups | linked/share/block/allotment semantics | Schema/contracts only |
-| 10 | Distribution | channels, mapping, inbound, ARI cursors | Schema only |
-| 11 | Tax/Fiscal | tax rules, documents, fiscal submission | Schema/invariant proofs only |
-| 12 | Statutory/Privacy | guest reporting and erasure | Schema only |
-| 13 | Reporting | operational/statistical projections | Schema only |
+| 1 | Identity | tenant/org/user/role/permission/auth | Verified identity establishes tenant/property authority; see current executable surfaces in `CONTRACTS.md`. |
+| 2 | Inventory | spaces, unit types, sellable units, physical claims, holds, restrictions | PostgreSQL occupancy choke points remain the sole sellability authority. |
+| 3 | Rates | rate plans/prices/packages/promotions/policies | Versioned authoring, approval and publication preserve insert-only price history. |
+| 4 | Reservations | reservation lifecycle, segments, guests, waitlist | Commands compose inventory arbitration; channel or voice ingress cannot bypass them. |
+| 5 | Stay Operations | arrival/check-in/out, travel, vehicles, queues/messages | Operational journeys use explicit state and property-local evidence. |
+| 6 | Housekeeping | conditions, task sheets, discrepancies | Conditions and tasks remain distinct; UI labels never invent readiness. |
+| 7 | Financials | accounts, folios, journals, payments, day close, AR | One balanced insert-only ledger, with distinct account roles and governed business-day commands. |
+| 8 | CRM | party identity, contacts, preferences, consent | Party roles are reused; consent and purpose remain explicit capability boundaries. |
+| 9 | Groups | linked/share/block/allotment semantics | Group status controls allotment behavior; it does not create alternate house inventory. |
+| 10 | Distribution | channels, mapping, inbound, ARI cursors | Provider models map to canonical Yellow commands with idempotent reconciliation. |
+| 11 | Tax/Fiscal | tax rules, documents, fiscal submission | Effective evidence, immutable documents and provider submission are separately governed. |
+| 12 | Statutory/Privacy | guest reporting and erasure | Country adapters cannot weaken identity, retention or tenant boundaries. |
+| 13 | Reporting | operational/statistical projections | Projections are rebuildable and never become transaction authority. |
 
 Owner/asset management is a **target extension/context decision**, not an existing
 canonical context. It may reuse identity/org/space and finance events, but owner
@@ -104,7 +129,9 @@ Types should be branded at application boundaries when implemented.
 - hierarchy queries include tenant equality;
 - reparenting, when introduced, is an explicit versioned command, never raw path update.
 
-**Current commands/queries:** hierarchy reads only.
+**Documented boundary:** hierarchy behavior and any executable mutations must be
+confirmed in `CONTRACTS.md` and current order/review evidence; this conceptual model
+is not an implementation census.
 **Target commands:** create/rename/reparent property/brand/region/outlet, subject to
 future orders and events.
 
@@ -121,7 +148,9 @@ future orders and events.
 - role assignment cannot exceed grantor authority;
 - sensitive actions require explicit scope/policy and audit.
 
-**Current behavior:** password/JWT primitives and bearer resolution.
+**Documented boundary:** password/JWT primitives and bearer resolution are part of
+the implemented lineage; current executable behavior and remaining gaps are tracked
+outside this conceptual model.
 **Target:** login/session/revocation/MFA and role administration.
 
 ### Configuration aggregate — Kernel
@@ -1055,9 +1084,10 @@ watermark, and reconciliation proof. Reports never become a second transaction s
 
 Potential roots: Owner, UnitOwnership, ManagementAgreement, OwnerStatement,
 PayoutInstruction.
-Non-negotiable boundary: guest folios and owner accounting are separate ledgers/claims.
-Agreement and payout rules are effective-dated, consented/approved, and survive
-reservation cancellation as explicit adjustments. No schema is authorized by this model.
+Non-negotiable boundary: guest folios and owner accounting are separate account roles,
+claims and statement views within Yellow's one canonical ledger. Agreement and payout
+rules are effective-dated, consented/approved, and survive reservation cancellation as
+explicit adjustments. No parallel ledger or schema is authorized by this model.
 
 ### Market Observation and Revenue Decision aggregates — target
 
@@ -1104,12 +1134,17 @@ Automation / Integration / AI ──> authorized Command ──> same aggregates
 
 ## State machines
 
-### Canonical now
+### Canonical state vocabulary
+
+These are modeled state families, not a statement that every transition is wired in
+the current application. `STATE-MACHINES.md`, `CONTRACTS.md` and executable proof
+determine the implemented subset.
 
 - Reservation: `STATE-MACHINES.md` `1.
 - Folio: open → settled → closed.
 - Business day: open → sealed.
-- Task: documented lifecycle, but application implementation is absent.
+- Task: documented lifecycle with bounded executable housekeeping and operational
+  slices; `CONTRACTS.md` and exact order evidence define the implemented subset.
 - Block: configured statuses with `deducts` semantics.
 - Hold: active → consumed | expired | released.
 - Payment: authorization/capture/refund lifecycle.
@@ -1157,20 +1192,19 @@ AI and automation do not get a `Tx` or repository directly.
 
 ## Command catalogue
 
-### Existing documented commands
+### Documented command vocabulary
 
 Use `docs/CONTRACTS.md` names for availability, reservations, financials, inventory,
 rates, stay/housekeeping, profiles, distribution, compliance, and kernel capabilities.
 
-### Existing executable commands/services
+### Executable commands/services
 
-- tenant-scoped transaction handling;
-- extension type registration and instance creation/list;
-- approval request/decision;
-- fact recording;
-- outbox publish/consume/acknowledge/prune;
-- org hierarchy queries;
-- migration and seed operations.
+This conceptual model intentionally does not duplicate the changing executable
+catalogue. Use `CONTRACTS.md`, exported context surfaces, migrations and exact
+order/review proof for current behavior. The kernel foundations include tenant-scoped
+transactions, governed extension registration/instances, approvals, fact/outbox
+handling, hierarchy queries and migration/seed operations, but that list is neither
+an implementation ceiling nor evidence that a target above has shipped.
 
 ### Candidate future commands
 

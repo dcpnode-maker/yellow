@@ -1,16 +1,43 @@
-# BUILD-PLAN.md — phased delivery for Claude Code
+# BUILD-PLAN.md — phased delivery for Yellow
 
-Rules of engagement: one phase at a time · a phase is DONE only when its DoD checks
-pass in CI · every session starts with the ritual below · no phase may modify a prior
-phase's public surface without a written note in `DECISIONS.log`.
+Rules of engagement: one scoped order per worker, coordinated through one
+authoritative plan. Bounded tasks may run in parallel when their dependency gates
+permit; no worker may silently widen an order. A phase is DONE only when its DoD
+checks pass in CI. Every session starts with the ritual below; no phase may modify
+a prior phase's public surface without a written note in `DECISIONS.log`.
 
-## Session ritual (every Claude Code session)
+## Current implementation status — 2026-09-05, Order435
 
-1. Read `CLAUDE.md`, then this file's current phase section only.
+The plan retains **18 phases (0–17)** and the existing **13 bounded contexts**.
+Phases 0–3, 5 and 6 are reviewed; Phase 4 is built pending final integration and review;
+Phase 7 is active; Phases 8–17 remain planned. Definitions, dependencies and the
+founder priority 11 → 13 → 17 below are unchanged.
+
+[Order430](handoff/orders/430-india-native-fiscal-invoice-issuance.md) was rejected
+by independent review D1323. [Order434](handoff/orders/434-native-fiscal-source-completion.md)
+is the active complete repair under D1330: the first native invoice without an
+external-invoice prerequisite, with persisted provenance, actual-date atomic
+issuance and no duplicate revenue. It is not built or independently approved.
+This status does not claim IRP completion, Phase 7 completion or a local promotion.
+See [the project map](docs/PROJECT-MAP.md) for the separate development, main, CI
+and runtime evidence states. Older order milestones below retain their historical
+checkpoint meaning; they are not a second current-status source.
+
+## Session ritual (every implementation or review session)
+
+1. Read `PROJECT.md`, then the applicable agent adapter (`AGENTS.md` for Codex),
+   then this file's current phase section only.
 2. `git log --oneline -10` + read `DECISIONS.log` tail — know what changed.
-3. State the session goal in one sentence. If it spans phases, stop and re-scope.
+3. State the scoped order and intended outcome in one sentence. Coordinate
+   cross-phase work through admitted, dependency-gated tasks under the same
+   authoritative plan; stop for an order amendment if a worker's scope must expand.
 4. Work. Tests alongside code, not after.
 5. End: update `DECISIONS.log` if anything was decided; leave the tree green.
+
+Historical bootstrap references to `.claude/` and `CLAUDE.md` below describe that
+phase's original tooling; they do not require a particular agent for current work.
+Current ownership and independent-review requirements come from PROJECT and the
+applicable adapter.
 
 ## Phase 0 — Bootstrap (repo that proves the loop)
 
@@ -611,18 +638,23 @@ versus external adoption, allocate a number, touch a series, issue/import a docu
 write state or call a provider. Fresh non-implementing Tier-3 review passed the real
 Order413→426→429 bridge 7/0 (292 assertions), the D1297 live source proof 6/0 (204),
 native byte-exact schema, referee 11/11, two reviewer mutations and all standing/
-static gates. The disposable cluster was stopped and removed. Document origin,
-legal number format and series binding remain unresolved product/legal policy and
-no downstream issuance or Phase7 authority is implied.
+static gates. The disposable cluster was stopped and removed. The approved result
+retains its original origin/format/series blockers. D1302 subsequently resolved the
+founder policy; this does not relabel Order429 as ready or grant downstream issuance
+or Phase7 completion authority.
 
-Question187 is resolved and Order430 is active under D1302. The founder approved
+Question187 was resolved under D1302. The founder approved
 Yellow-native India invoice origin, supplier-GST-registration/property/kind/FY-bound
 gapless series, Rule-46-valid default/reset, immutable unreclaimed numbers, separately
 numbered corrections, folio-window/legal-payer invoice splitting, approved integer
 component totals without new residual, property-local issue date and server-owned
-actor authority. Order430 may implement the complete atomic number + `DocDtls` +
-canonical hash-chain + document/origin/fact/outbox/idempotency transaction. IRP
-provider submission, IRN/QR and Phase7 completion remain later gated work.
+actor authority. Independent review D1323 rejected Order430's incomplete canonical
+provenance authentication. Order434 is the active complete repair under D1330:
+persist the original ordinary/source evidence, remove the external-invoice
+prerequisite, bind the actual issue date and complete graph in one transaction,
+and add only incremental tax accounting before immutable native issuance. The
+repair is not built or independently approved. IRP provider submission, IRN/QR,
+local promotion and Phase7 completion remain separately gated work.
 
 Order240 is ready under D-630. It creates the missing pure canonical positive-origin
 tax-attribution snapshot: exact Order239 quote/night/jurisdiction/evaluator evidence
@@ -2072,15 +2104,19 @@ Order412 freezes/hashes them, with no value, query, validation, authority or dat
 change. The repair and live rerun were covered by the independent approval; no document,
 provider, IRP, local, or Phase-7 completion authority is implied.
 
-### Order 430 — Yellow-native India fiscal invoice issuance (changes required — D1323)
+### Current native issuance — Order430 rejected; Order434 active repair
 
-Order430's D1316 legal-body repair is builder-proven under D1321, but fresh independent
-review D1323 finds its canonical provenance authentication incomplete. Three Order426
+Order430's D1316 legal-body repair was builder-proven under D1321, but fresh independent
+review D1323 rejected its incomplete canonical provenance authentication. Three Order426
 child hashes and material Order413 persisted predecessor/source lineage are not yet
 bound inside the database; digest consistency of supplied bytes is insufficient.
-Repair, isolated lineage-only zero-artifact hostility and another different fresh
-Tier-3 review remain mandatory. It is not independently approved, provider-ready,
-IRP-complete, locally refreshed, or Phase-7 complete.
+[Order434](handoff/orders/434-native-fiscal-source-completion.md), admitted by D1330,
+is the active complete repair for first native issuance without an external invoice,
+with governed persisted evidence, actual-date atomic completion and no second revenue
+posting. Implementation, permanent defensive behavior/access proof and another
+different fresh Tier3 review remain required. Order434 is not built or approved;
+neither order establishes provider readiness, IRP completion, a local refresh or
+Phase7 completion.
 
 ## Current cross-phase requirements index — Order433, 2026-09-05
 

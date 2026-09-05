@@ -3,6 +3,9 @@
 **Status:** provider foundation implemented by Order 090; agent platform, property knowledge,
 training and adaptive revenue intelligence remain planned or research-required.  
 **Precedence:** `PROJECT.md` → `DECISIONS.log` → executable domain contracts → this document.
+**Model neutrality:** no model, provider or AI vendor owns a capability; implementation
+ownership follows an approved order and its independent proof. See the proposed
+[voice and RMS plan](architecture/VOICE-RMS-PLAN.md) for the bounded future workflow.
 
 ## 1. Principle
 
@@ -203,10 +206,13 @@ values, upside/downside, confidence, channel compatibility, guardrails, approval
 outcome. PostgreSQL remains sellability authority; price history stays insert-only/bitemporal;
 distribution uses outbox/push cursors; property-local dates, tenancy and consent remain mandatory.
 
-## 7. Conflict with the current phase plan
+## 7. Historical Phase-4 conflict; current RMS ownership is Phase 14
 
-Phase 4 owns reservation correctness: search, hold, commit, lifecycle, segments, guests and its
-review workbench. The adaptive RMS needs prerequisites that Phase 4 does not own:
+Earlier planning drafts placed some RMS prerequisites beside Phase 4. That placement is
+historical and superseded: Phase 4 owns reservation correctness—search, hold, commit,
+lifecycle, segments, guests and its review workbench—while the adaptive RMS is owned by
+Phase 14, with supporting work in the phases recorded by the feature register. The RMS
+prerequisites below remain outside Phase 4:
 
 - canonical revenue metric/data contracts and data-readiness evidence;
 - versioned model/backtest/evaluation contracts;
@@ -222,7 +228,8 @@ them as **planned/research-required**. Likely future order boundaries are: metri
 model/backtester; channel capability/campaign economics; net-ARR/bid-price optimizer; explanation
 and approval UX; distribution preflight/publish; causal measurement; group displacement workbench;
 and champion/challenger monitoring. Schema, events, states, RLS, cross-property learning and pricing
-history changes each require their own architect-approved order and executable proof.
+history changes each require their own scoped approved order, current owner and
+executable proof.
 
 ## 8. Phase 13 governed voice and conversational destination
 

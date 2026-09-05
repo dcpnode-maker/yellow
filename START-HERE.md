@@ -1,199 +1,145 @@
-# START-HERE.md — from zip to Phase 0
+# Start here — working on the existing Yellow project
 
-Nine steps, about 30 minutes, most of it waiting on installers. `USAGE.md` is the
-ongoing operating manual; this file is day one only.
+Yellow is an active hospitality ERP implementation, not a Phase-0 starter package.
+This guide is for a developer or AI joining the existing repository. For daily work,
+use [USAGE.md](USAGE.md); Windows users should read
+[the Windows guide](START-HERE-WINDOWS.md) before running shell commands.
 
-Legend: **[you]** = something only you can do · **[auto]** = `setup.sh` handles it.
+## 1. Establish which source you are reading
 
----
-
-## Step 1 — Install the tools **[you]**
-
-On macOS, with [Homebrew](https://brew.sh):
+Open the existing checkout. Do not unzip another copy, initialize another repository
+or create a second database merely to resume work.
 
 ```bash
-brew install git node python3 gh
-brew install --cask docker          # or: brew install colima docker
-curl -fsSL https://bun.sh/install | bash
+git status --short --branch
+git log -1 --oneline
+git remote -v
 ```
 
-Why each: **git** version control · **node** runs the three MCP servers via `npx` ·
-**python3** runs the invariant battery · **gh** creates and pushes the GitHub repo ·
-**Docker** runs PostgreSQL and Valkey · **bun** is the runtime from Phase 0 onward.
-
-Then **start Docker** (open Docker Desktop, or `colima start`). Verify:
+For a genuinely new machine without a checkout:
 
 ```bash
-git --version && node -v && python3 -V && bun -v && docker info | head -3
-```
-
-## Step 2 — Get a GitHub token **[you]**
-
-github.com → Settings → Developer settings → Personal access tokens → **Fine-grained
-tokens** → Generate new token. Scope it to *only* the repo you're about to create,
-with Contents + Issues + Pull requests read/write. Then:
-
-```bash
-echo 'export GITHUB_TOKEN=github_pat_...' >> ~/.zshrc
-source ~/.zshrc
-```
-
-This is what the `github` MCP server authenticates with. Least scope, revocable.
-
-## Step 3 — Unzip Yellow **[you]**
-
-```bash
-cd ~/projects            # or wherever you keep code
-unzip ~/Downloads/yellow.zip
+git clone https://github.com/dcpnode-maker/yellow.git
 cd yellow
-ls                       # you should see CLAUDE.md, setup.sh, migrations/, tests/
 ```
 
-## Step 4 — Run setup **[auto]**
+**Publication checkpoint, 2026-09-05:** GitHub's default `main` still holds the older
+integrated baseline. Current development is on
+[the Phase-7 branch](https://github.com/dcpnode-maker/yellow/tree/phase-7/persisted-india-final-component-tax-evidence)
+and [PR #80](https://github.com/dcpnode-maker/yellow/pull/80).
+A clone of `main` does not contain every development feature. Select the task's
+source ref only after checking its order and preserving existing uncommitted work.
+Do not reset, replace the default branch or merge unapproved code to hide the gap.
 
-```bash
-chmod +x setup.sh bootstrap.sh    # if you get "Permission denied"
-./setup.sh                        # or: bash setup.sh
-```
+## 2. Read the canonical entry points
 
-It will, in order: check prerequisites → start PostgreSQL and Valkey → migrate and
-seed `yellow_dev` → recreate `yellow_test` through the production runner → load only
-the two-tenant fixture → run the invariant battery → verify application health.
+1. [PROJECT.md](PROJECT.md): constitution, invariants and boundaries.
+2. Your role adapter: [AGENTS.md](AGENTS.md) or [CLAUDE.md](CLAUDE.md).
+3. [Project map](docs/PROJECT-MAP.md) and [feature register](docs/FEATURE-REGISTER.md).
+4. The current phase in [BUILD-PLAN.md](BUILD-PLAN.md), scoped
+   [order](handoff/orders), recent [decisions](DECISIONS.log) and
+   [ledger](handoff/LEDGER.md).
 
-Option: `--db-only` runs the database path without starting/verifying the app.
-
-## Step 5 — Confirm the gate **[you]**
-
-The run must end with:
-
-```
-RESULT: 11 passed, 0 failed of 11
-✔ All invariants green on this machine
-```
-
-**Do not continue if this is red.** Those eleven tests are the floor: no
-double-booking under concurrency, an unbreakable ledger, sealed days, gapless
-invoice numbers, tenant isolation through both tables and views. If they fail here,
-they'll fail louder in production.
-
-## Step 6 — Sanity-check the database **[you]**
-
-```bash
-docker compose exec postgres psql -U yellow -d yellow_test \
-  -c "SELECT count(*) FROM pg_tables WHERE schemaname='public';"
-```
-
-Expect **81**: 80 immutable baseline tables plus `schema_migration`.
-
-For a second worktree, select a distinct Compose project and host-port triplet:
-
-```bash
-COMPOSE_PROJECT_NAME=yellow-review YELLOW_APP_PORT=3100 \
-YELLOW_POSTGRES_PORT=5542 YELLOW_VALKEY_PORT=6489 ./setup.sh --db-only
-```
-
-## Step 7 — Open Claude Code **[you]**
-
-```bash
-claude
-```
-
-from inside `yellow/`. Then:
-
-```
-/mcp
-```
-
-All three should read **connected**: `postgres` (reads your real schema while
-coding), `github` (issues and PRs), `context7` (live library docs, so it doesn't
-call a Bun method that was removed two releases ago).
-
-If `postgres` is down → containers aren't running (`docker compose up -d`).
-If `github` is down → `GITHUB_TOKEN` isn't exported in *this* shell.
-
-## Step 8 — Set the model **[you]**
-
-```
-/model
-```
-
-Choose **Fable 5** for the Phase 0 kickoff — it's a schema-and-foundations phase, and
-`CLAUDE.md` routes those to Fable. After the scaffold is up, switch to Opus 5 for
-implementation work and Sonnet 5 for tests and docs. The escalation rule in
-`CLAUDE.md` governs when to switch back up.
-
-## Step 9 — Start the current ordered work **[you]**
-
-First, see where you stand — this is the command every agent runs at the start of
-every session, and it prints the same ground truth for all of them:
+Run the session inventory in the supported shell:
 
 ```bash
 ./state.sh
 ```
 
+At this documentation checkpoint the historical-open-order parser can report an
+inflated count and the highest phase mentioned in an old order. Reconcile it with
+the latest decision and current order; that one number is not a completion oracle.
+On Windows, use the native report described in the Windows guide.
 
-Paste exactly this:
+The roadmap has **18 phases (0–17)**. The architecture still has **13 bounded
+contexts**. The first migration's 80 tables plus migration ledger are an immutable
+historical baseline, not the current schema census.
 
+## 3. Verify the existing toolchain
+
+Use versions pinned by [Dockerfile](Dockerfile), [bun.lock](bun.lock),
+[package.json](package.json) and [requirements-ci.txt](requirements-ci.txt): Bun,
+TypeScript, PostgreSQL 16 and Python for the invariant referee. Docker Compose runs
+the retained development services when required. Node supports configured tools,
+not a replacement application runtime. Read [dependencies](docs/DEPENDENCIES.md)
+and [tooling](docs/TOOLING.md) before adding software.
+
+```bash
+git --version
+bun --version
+python3 --version
+docker compose version
 ```
-Read PROJECT.md, then your role adapter and BUILD-PLAN.md. Run ./state.sh and work
-only from the current reviewed order. Keep the invariant battery green.
+
+Do not reinstall working tools or download models for ordinary edits. Authenticate
+GitHub through the configured credential manager or approved CLI flow. Never put real
+tokens in tracked files, shell startup scripts, README examples or chat.
+
+## 4. Know what setup changes before running it
+
+On an approved development machine with the intended Compose project selected:
+
+```bash
+./setup.sh --db-only
 ```
 
-Phase 0 is done when: `bun test` is green in CI · a fresh clone can
-`docker compose up` → migrate → seed → return 200 on health · the RLS smoke test
-proves cross-tenant reads return zero rows **through views as well as tables** · and
-the schema-drift check (dump vs `migrations/0001_init.sql`) is empty.
+The current Unix setup checks prerequisites, provisions protected local database
+authority, starts configured PostgreSQL/Valkey services, applies the migration runner
+to `yellow_dev`, **drops and recreates disposable `yellow_test`**, loads its
+invariant fixture, runs the referee and removes the successful proof database.
+It is not a read-only check. Never point it at records to preserve. Full founder
+review hotel data is a separate, explicitly scoped synthetic-data workflow.
 
----
+Without `--db-only`, setup also starts/verifies the app. It does not synchronize
+GitHub or establish that the founder's retained app serves this commit. The exact
+migration frontier belongs to the catalogue and CI, not a copied old table count.
 
-## What each file is for
+Required invariant result:
 
-| File | Role |
+```text
+RESULT: 11 passed, 0 failed of 11
+```
+
+Record command, source commit, environment and output with the order. Database-skipped
+tests are not database proof. An old green receipt is not verification of a new revision.
+
+## 5. Work from an order, with bounded parallelism
+
+Codex owns implementation and coordination. Use capable models for foundations and
+high-risk work, and faster/cheaper models for bounded routine tasks. This guide does
+not mandate a vendor-specific model. Delegate non-overlapping files or read-only
+analysis, retain one authoritative plan and integrate the results.
+
+High-risk changes require a qualified non-implementer to execute relevant proof;
+the implementer does not approve or merge its own change. Routine technical work
+continues without founder intervention. Credentials, spending, legal/business policy,
+irreversible external actions and genuinely missing intent remain founder decisions.
+See [workflow](docs/WORKFLOW.md), [roster](handoff/ROSTER.md) and PROJECT.
+
+## 6. Review the app at its verified runtime
+
+The desired single founder-review endpoint is `http://127.0.0.1:3000`, but a written
+URL is not evidence that a server is running or current. Check its serving-source
+receipt, health, authentication and migration frontier first. Read
+[local review](docs/LOCAL-REVIEW.md) alongside the current runtime order; its historical
+multi-port and seed examples are not instructions to create duplicate stacks.
+
+Local login prefill is explicitly configured and must match the actual synthetic
+account. A missing protected file must not be replaced with invented credentials.
+Do not commit local credentials or send them to another model.
+
+## Where to go next
+
+| Need | Source |
 |---|---|
-| `START-HERE.md` | This checklist. Day one only. |
-| `PROJECT.md` | **The canonical constitution — every agent reads this first.** Invariants, boundaries, standards, session ritual. |
-| `state.sh` | Ground truth for any agent: phase, last decisions, open work, service status. |
-| `AGENTS.md` | Adapter for Codex (builder role). `CLAUDE.md` is the Claude adapter (architect/reviewer). |
-| `handoff/` | How the agents talk: orders, reviews, questions, LEDGER, ROSTER. |
-| `docs/WORKFLOW.md` | Build→review loop and git conventions. |
-| `docs/CODEX.md` | Running Codex alongside Claude Code. |
-| `docs/MERGE-PLAN.md` | Combining Yellow with your existing PMS. |
-| `USAGE.md` | Operating manual: daily loop, rules, troubleshooting. |
-| `CLAUDE.md` | The constitution Claude Code reads every session — invariants, boundaries, model policy. |
-| `BUILD-PLAN.md` | 18 phases (0–17), each with a Definition of Done and decision gates. |
-| `DECISIONS.log` | 44 locked decisions with rejected alternatives. Append forever. |
-| `README.md` | Package map and the honest statement of what's not built yet. |
-| `setup.sh` | One-command setup; `--db-only` to rebuild and retest. |
-| `bootstrap.sh` | Git + GitHub only (subset of setup.sh). |
-| `docker-compose.yml` | App/PostgreSQL/Valkey with configurable host ports and Compose-project isolation. |
-| `.mcp.json` | postgres + github + context7 for Claude Code. |
-| `.claude/settings.json` | PostToolUse hook: format and typecheck after edits. |
-| `.claude/skills/yellow-*` | Three project skills, shared via git so both founders get identical behaviour. |
-| `.env.example` | Copy to `.env` and fill. Never committed. |
-| `migrations/0001_init.sql` | The validated schema — 80 tables, RLS, choke points. **Never edit; add new migrations.** |
-| `docs/CONTRACTS.md` | API conventions and the availability contract. |
-| `docs/STATE-MACHINES.md` | Every legal status transition and its guards. |
-| `docs/EVENTS.md` | Event envelope, subjects, catalogue, consumers. |
-| `docs/EXTENSIONS.md` | JSON Schemas for verticals, tax, policies, statutory, fiscal. |
-| `docs/UI-SPEC.md` | Surface model, 12 screens, keyboard grammar, budgets. |
-| `docs/SECURITY.md` | Threat model and controls. |
-| `docs/DEPENDENCIES.md` | Vendor risk register and licence policy. |
-| `docs/TOOLING.md` | MCP servers, what to add later, marketplace vetting rule. |
-| `docs/PACKAGE-AND-COST.html` | Package summary and cost strategy. |
-| `docs/mockups/ui-v1.html` | Five UI screens rendered from fixture data. |
-| `tests/run_invariants.py` | The battery. Must stay green. |
-| `tests/PMS_QA_Test_Suite.md` | 56 test cases across the guest journey. |
-| `tests/seed_fixture.sql` | Two tenants, 16 spaces, rates, accounts, business days. |
-| `tests/occupancy-stress.test.ts` | TypeScript port for the Bun suite (Phase 2). |
-| `tests/RUN-RESULTS.md` | Evidence record of the 11/11 run. |
-| `prototype/` | The stress test that found the double-sell, and its results. |
+| Scope and phase status | [BUILD-PLAN](BUILD-PLAN.md), [roadmap](handoff/ROADMAP.md) |
+| Current requirements | [Feature register](docs/FEATURE-REGISTER.md) |
+| Staff/STR journeys | [UI specification](docs/UI-SPEC.md), [staff journeys](docs/design/STAFF-JOURNEYS.md) |
+| Domain, API and events | [Domain model](docs/DOMAIN-MODEL-V1.md), [contracts](docs/CONTRACTS.md), [events](docs/EVENTS.md) |
+| AI, voice and RMS | [AI architecture](docs/AI-ARCHITECTURE.md), [voice/RMS plan](docs/architecture/VOICE-RMS-PLAN.md) |
+| Regional and OTA design | [Extensions](docs/EXTENSIONS.md), [regional packs](docs/architecture/REGIONAL-PACKS.md), [OTA plan](docs/integrations/OTA-CONNECTIVITY.md) |
+| Decisions and proof | [Decisions](DECISIONS.log), [orders](handoff/orders), [reviews](handoff/reviews), [ledger](handoff/LEDGER.md) |
 
----
-
-## In parallel — start these today, they run on calendar time
-
-Certifications gate Phases 8, 9, and 12, and none of them move faster because you're
-ready: **Booking.com** and **Expedia** partner programmes, **ZATCA** sandbox
-onboarding (Saudi), **India IRP/GSP** access, and choosing a **UAE ASP** vendor.
-Also worth doing while installers run: the Claude for Startups application and AWS
-Activate. See `USAGE.md` §7.
+Partner onboarding can be prepared in parallel but needs appropriate external
+authority. A public API page does not establish approved OTA, IRP/GSP, ZATCA or UAE
+ASP access. No documentation milestone is a feature, certification or release receipt.

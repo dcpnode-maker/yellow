@@ -1,4 +1,26 @@
-# UI-SPEC.md — the seven surfaces, one PWA
+# UI-SPEC.md — operator journeys, surfaces and PWA contracts
+
+## Current direction — Order433/435
+
+Yellow has one governed domain core but separate hotel and STR workspaces. Hotel
+staff work from shift queues—arrivals, departures, in-house, room readiness,
+housekeeping and cashier exceptions—while STR operators work from listing
+portfolios—multi-calendar, turnovers, messages, owners/statements, pricing and
+channel exceptions. These are different journeys, not labels or colour skins; the
+same property, role and jurisdiction rules still govern both. See [staff
+journeys](design/STAFF-JOURNEYS.md), the [feature register](FEATURE-REGISTER.md)
+and the [design atlas](DESIGN.md).
+
+The six dedicated appearances are Apple, Android/Pixel, Win95/98, Glass, Neo and
+ERP. They may compose the same authorized journey differently while preserving
+truth, accessibility, focus and confirmation semantics. The existing global
+Simple/Advanced/Expert selector is a historical executable contract pending a
+scoped UI replacement; it is not the desired final UX and this document does not
+claim that replacement is implemented.
+
+PEEK, DRAWER and WORKBENCH below are interaction surfaces and navigation depth,
+not global detail modes. Contextual progressive disclosure and role-aware next
+actions decide what detail appears within a surface.
 
 ## Operator owner-trust expense workbench
 
@@ -27,12 +49,13 @@ and desktop widths in all six approved appearances.
 
 The Day-close discrepancy-carry extension presents a deliberate in-app reason dialog beside authoritative candidates and a separate minimized approval inbox. A different checker may Approve or Reject; the original maker may Carry only after approval. Cancel closes without a request. Ambiguous failures retain the action idempotency key for exact retry, while success clears it and refreshes the whole workbench. Property, view and generation changes suppress stale inbox responses. Dialog, action and retry focus are keyboard-visible; controls are at least 44px and stack without overflow at narrow widths in all approved appearances.
 
-OPERA loses users at the interface: nested modal stacks, mouse-dependent flows,
-state lost on navigation. This spec is the displacement weapon. Phase 10 implements
-it; every earlier phase's API must make these surfaces possible (deep links, diffs,
-idempotency).
+This design targets faster, state-preserving operator work by avoiding nested modal
+stacks, mouse-dependent flows and state loss on navigation. Phase 10 implements it;
+every earlier phase's API must make these surfaces possible (deep links, diffs,
+idempotency). It is a design target, not a claim about another vendor's users or
+implementation.
 
-## 1. The three-tier surface model (replaces modal stacks)
+## 1. Three interaction surfaces (not global detail modes)
 
 - **PEEK** — hover/focus card. Read-only glance: reservation summary, folio balance,
   room state. Appears in 150 ms, dismisses on blur, never traps focus.
@@ -81,6 +104,11 @@ tenant scope or executes raw SQL. Ambiguity asks for clarification; unavailable 
 model or network falls back to text/manual operation. Raw audio is not retained by
 default. Multilingual voice and text must converge to the same validated intent, result
 and confirmation behavior, with keyboard, screen-reader and reduced-motion equivalents.
+For example, “What is blocking room 204’s check-in?” becomes a bounded typed query;
+an ambiguous room or guest asks for clarification, while an authorized “check in
+Mr Sharma after showing me the booking” reads the cited booking, proposes only
+server-eligible next steps, and requires the same confirmation and domain receipt
+as text. See the [voice and RMS plan](architecture/VOICE-RMS-PLAN.md).
 
 ## 5. Screen inventory (v1, in build order)
 
@@ -95,10 +123,12 @@ and confirmation behavior, with keyboard, screen-reader and reduced-motion equiv
    server-owned Business, Personal, Corrections or custom windows. Statement, Add
    charge and Separate charges are inline tasks. Separate charges selects whole server groups,
    one sibling destination, reason, server preview and acknowledgement before a new
-   balanced transfer is appended. Drag in Advanced/Expert only populates that review;
-   keyboard/buttons are complete equivalents. Correction is contextual from an
-   eligible row and appends a contra; a corrected pair moves only as one group. Simple
-   presents View bill, Separate charges and Correct a wrong charge. One global live
+   balanced transfer is appended. Under the historical Simple/Advanced/Expert
+   contract, drag in Advanced/Expert only populates that review; keyboard/buttons
+   are complete equivalents. Correction is contextual from an eligible row and
+   appends a contra; a corrected pair moves only as one group. Under that same
+   historical contract, Simple presents View bill, Separate charges and Correct a
+   wrong charge. One global live
    region reports completion after hidden panels change. No browser money arithmetic,
    invoice/print claim or editable financial history.
 5. **Availability & rates workbench** — calendar per unit_type: price, restrictions,
@@ -135,14 +165,18 @@ and confirmation behavior, with keyboard, screen-reader and reduced-motion equiv
     Corporate accounts assignable org-wide. A property should be enterable in
     under an hour without support.
 
-### Existing-workspace discoverability
+### Existing-workspace discoverability and pending detail-mode replacement
 
-The safe Simple detail level keeps progressive disclosure, but it must not make
-already-built domains look absent. Before the secondary-workspace disclosure is
-opened, compact noninteractive copy names Room outages, Housekeeping, Vehicle register,
-Inventory setup, Restrictions, Rates and Project status. The disclosure references
-that copy for assistive technology. Advanced and Expert show the real controls
-directly and suppress the preview; no workspace control or route is duplicated.
+The current implementation's Simple/Advanced/Expert detail contract remains
+pending a scoped UI replacement. It must not make already-built domains look
+absent, but it is a legacy global selector rather than the target UX. Under that
+historical contract, the safe Simple level uses progressive disclosure: before the
+secondary-workspace disclosure is opened, compact noninteractive copy names Room
+outages, Housekeeping, Vehicle register, Inventory setup, Restrictions, Rates and
+Project status. The disclosure references that copy for assistive technology;
+Advanced and Expert show the real controls directly and suppress the preview. The
+replacement must reveal the relevant detail in context and preserve role access,
+without duplicating workspace controls or routes.
 
 ### Management journey index
 
@@ -163,10 +197,12 @@ server truth or adding another history entry.
 
 The index is not another navigation system. Its controls reuse the same route, dirty
 exit, history, loading and focus settlement as the canonical workspace controls. In
-Simple, a completed journey navigation closes the temporary secondary-workspace
-overlay and focuses the destination heading; Advanced and Expert keep their direct
-workspace controls. A cancelled dirty exit leaves the current route, overlay and
-focus unchanged. Explicit deep links continue to win over the Today default.
+the historical detail-mode contract, a completed journey navigation from Simple
+closes the temporary secondary-workspace overlay and focuses the destination
+heading; Advanced and Expert keep their direct workspace controls. A cancelled
+dirty exit leaves the current route, overlay and focus unchanged. The scoped
+replacement will use contextual next actions. Explicit deep links continue to win
+over the Today default.
 
 The empty Folios lookup also provides one quiet **Find via reservation** bridge for
 operators who do not know a folio reference. Its eligibility-qualified copy directs

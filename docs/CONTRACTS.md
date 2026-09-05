@@ -1,5 +1,22 @@
 # CONTRACTS.md — API conventions + the interfaces that must not drift
 
+**Status and precedence:** this is the cumulative contract catalogue, not a phase-status
+dashboard. `PROJECT.md` has constitutional precedence; exact sections below define
+interfaces, while source and executable proof establish which interfaces are currently
+implemented. The [feature register](FEATURE-REGISTER.md) and
+[project map](PROJECT-MAP.md) locate current requirements and evidence. Text explicitly
+marked proposed or target is not an implemented endpoint, permission or provider
+integration.
+
+Hotel and STR workspaces may compose these capabilities differently, but they share
+the same tenant/property authorization, idempotency, state, money and audit contracts.
+Regional presentation/configuration and multilingual voice remain ordinary typed
+configuration and ingress boundaries: voice may select only a fixed authorized query
+or an existing command and never gains arbitrary SQL or database authority. See the
+[staff journeys](design/STAFF-JOURNEYS.md), [regional-pack proposal](architecture/REGIONAL-PACKS.md)
+and [voice/RMS proposal](architecture/VOICE-RMS-PLAN.md). Those specifications create
+no API by themselves.
+
 ## Operator audited business-day seal
 
 `POST /api/v1/properties/{property}/business-days/{businessDate}/seal` accepts exactly
@@ -85,12 +102,13 @@ returns false for an exact replay, and rejects divergent schema. It grants no ge
 registrar transaction or direct table-write contract; runtime and `app_role` retain
 only instance/read authority.
 
-Residual protected transitions are not generalized by this catalogue: approval
-decisions, extension publication, hold state changes, inventory-policy/projection
-replacement, operational-block lifecycle, reservation/segment/guest lifecycle,
-folio numbering, financial posting, and future task/fiscal/statutory/document
-commands require later bounded capabilities. Extension publication/retirement remains
-separate from the now-bounded type-registration command.
+Protected transitions are never generalized by this catalogue. Approval decisions,
+extension publication, holds, inventory policy/projections, operational blocks,
+reservation/segment/guest lifecycle, folio numbering, financial posting, tasks and
+fiscal/statutory/documents may mutate only through the exact separately documented
+capabilities that exist for them. Absence of such a contract means absence of runtime
+authority; a later section does not broaden an earlier capability. Extension
+publication/retirement remains separate from type registration.
 
 ## 2. THE availability contract (the interface everything hangs off)
 
@@ -160,16 +178,21 @@ visible or durable.
 Database choke points use signature-specific `SECURITY DEFINER` authority. Their
 fixed search path is exactly `pg_catalog, public, pg_temp`, all Yellow relations
 and helper calls are schema-qualified, and `PUBLIC` has no execute privilege.
-The application role can only record/release occupancy. Business-day sealing,
-outbox pruning, legacy hold expiry, and the day-open assertion are owner-only.
-Owner-only sealing is a temporary least-privilege containment boundary, not an
-application contract or completed continuous day-close product. A future close path
-must introduce an authorized, audited domain command with server-derived actor
-evidence before receiving narrowly scoped execution authority. Negative outbox
-retention fails with SQLSTATE `22023`. This containment does not replace
-tenant-authority validation or RLS.
+The application role records/releases occupancy and invokes only other explicitly
+granted owner-mediated capabilities. Business-day sealing now has the audited operator
+contract at the start of this file: the service and database capability revalidate
+server-derived actor/property/readiness evidence and retain narrowly scoped execution
+authority. This does not grant reopen, force, batch or generic business-day mutation.
+Outbox pruning, legacy hold expiry and day-open enforcement retain their own exact
+capabilities; negative outbox retention fails with SQLSTATE `22023`. No definer
+function replaces tenant-authority validation or RLS.
 
-## 3. Module surfaces (names are the contract; bodies follow §1 shapes)
+## 3. Module surface vocabulary (implemented subsets are specified below)
+
+The following names describe the stable context vocabulary and destination surface.
+They are not a claim that every verb is executable. A verb is implemented only when
+this file gives it an exact boundary backed by source and proof; planned hotel/STR,
+voice, regional, OTA or RMS requirements cannot infer a missing mutation.
 
 **reservations**: create/commit · get · modify (diff-based) · cancel · reinstate ·
 check_in {segment,space?,keys?} · check_out {settlements[]} · move {to_space} ·
@@ -357,9 +380,10 @@ property, currency, local calendar business date and read-only `tx_code_route`, 
 atomically posts one debit-positive guest/folio line and equal credit-negative revenue
 line. Journal, immutable lines, minimized `journal.posted` fact/outbox and idempotency
 share one transaction; the business-day latch serializes against sealing. This amount is
-explicitly untaxed and quantity is descriptive, never multiplied. Tax allocation,
-scheduled/nightly charges, route authoring, transfers, payments,
-settlement and fiscal behavior remain planned.
+explicitly untaxed and quantity is descriptive, never multiplied. This command
+performs no tax allocation, scheduled/nightly charging, route authoring, transfer,
+payment, settlement or fiscal behavior; separately documented capabilities for any of
+those concerns neither widen nor run through `postCharge` implicitly.
 
 Implemented immutable correction slice: `ChargeCorrectionService.reverseCharge(tx,
 input)` accepts only server-derived tenant/property/actor authority, an exact open folio,

@@ -1,5 +1,12 @@
 # EXTENSIONS.md — Extension Registry content schemas
 
+**Status and precedence:** this file defines configuration schemas and documented
+instances; it is not a catalogue of every currently installed row. `PROJECT.md`,
+applied migrations, `scripts/seed.ts` and executable tests govern implementation.
+The [feature register](FEATURE-REGISTER.md) records current requirements, while a
+specified regional or workspace preference is not registered or live until its own
+bounded implementation and proof exist.
+
 Extensible configuration types and instances live in `extension` rows, validated
 against the JSON Schema registered in `extension_type.json_schema`. **One lifecycle for
 extension config** (draft → active → retired, bitemporal via fact_log). Adding a
@@ -10,6 +17,17 @@ Core property runtime choices that are attributes of the property itself remain 
 typed `org_node.config` envelope and are changed only through audited domain commands;
 they are not plugin instances. Inventory currently defines
 `inventory.oos_sellability` as `blocked | allowed`, defaulting to `blocked` when absent.
+
+Hotel, hostel, serviced-apartment and STR behavior begins with the shared
+`vertical_profile`, but profile choice does not require identical staff workspaces.
+The [staff journeys](design/STAFF-JOURNEYS.md) describe the desired experience split.
+Locale, direction, density and lightweight regional presentation preferences belong
+in a future typed property configuration envelope described by the
+[regional-pack proposal](architecture/REGIONAL-PACKS.md); they do not create another
+bounded context, duplicate tax/statutory rules or authorize an extension row today.
+Voice and RMS adapters likewise consume authorized configuration and ordinary domain
+contracts; configuration never gives a model arbitrary SQL, pricing, financial or
+fiscal authority. See the [voice/RMS proposal](architecture/VOICE-RMS-PLAN.md).
 
 Rate authoring uses three related tenant extensions. `rate_plan_model` records the selected guided,
 expert or AI-authored model family; `rate_plan_target` records physical and commercial applicability;
@@ -27,8 +45,11 @@ content is immutable. Reverting means copying a prior active or retired snapshot
 that follows the same approval path. The release does not own availability, restrictions, OOO/OOS,
 tax, fiscal or journal truth, so hotel-selectable pricing cannot disable those controls.
 
-Schemas below are the launch set. Claude Code: when implementing, load these into
-`extension_type` in the Phase-1 seed migration, exactly as written.
+Schemas below define the launch set. The implemented seed catalogue lives in
+`scripts/seed.ts` and is checked by executable extension/seed tests; later migrations
+append governed history without rewriting the immutable baseline. Do not infer that a
+schema shown here is installed in a particular database without running the current
+seed/migration proof.
 
 ---
 
@@ -53,7 +74,7 @@ Schemas below are the launch set. Claude Code: when implementing, load these int
   } }
 ```
 
-Launch instances (seed these four):
+Documented launch instances (the executable seed owns their installed form):
 
 ```json
 { "key":"hotel", "content": { "terminology":{"space":"Room","unit_type":"Room Type"},

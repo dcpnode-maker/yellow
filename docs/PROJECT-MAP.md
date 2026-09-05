@@ -1,18 +1,32 @@
 # Start here: Yellow for developers and AI agents
 
-**Updated:** 2026-09-05 · Order433. This is a navigation guide, not a second constitution.
+**Updated:** 2026-09-05 · Order435 status reconciliation; Order433 requirements.
+This is a navigation guide, not a second constitution.
 
 Yellow is a modular hospitality ERP built with strict TypeScript, Bun, Elysia and
 PostgreSQL. Keep one domain core with distinct hotel and STR experiences, optional
 regional packs and integrations. Do not rewrite the core or invent a programming
 language just to claim speed: profile first and improve the measured bottleneck.
 
+The existing architecture has 13 bounded contexts; the delivery plan has 18 phases
+(0–17). The immutable 80-table baseline and the current additive migration catalogue
+are different counts. None of these numbers alone measures product completion.
+
+Current fiscal work is [Order434](../handoff/orders/434-native-fiscal-source-completion.md),
+the active complete native-invoice repair admitted by D1330 after independent
+review D1323 rejected Order430. It must deliver first issuance without an external
+invoice prerequisite, with persisted provenance, actual-date atomic completion and
+no duplicate revenue. It is not built or independently approved; no IRP, Phase7
+completion or updated local application is claimed.
+
 ## First ten minutes
 
 1. Read [PROJECT.md](../PROJECT.md), then the applicable [AGENTS.md](../AGENTS.md).
 2. Run `git status --short`, `git branch --show-current`, `git worktree list` and
-   `./state.sh`. On Windows use the configured Bash for the shell script. Do not
-   print environment files or credentials to diagnose configuration.
+   the native state report: `.\state.ps1` on Windows, `./state.sh` in the configured
+   POSIX environment. Use native Windows tools while the documented WSL Bun
+   crash-dump recurrence is unresolved. Do not print environment files or credentials
+   to diagnose configuration; interpret the report with the caveat below.
 3. Read the relevant phase in [BUILD-PLAN.md](../BUILD-PLAN.md), the current scoped
    order in [handoff/orders](../handoff/orders/), and recent decisions/ledger entries.
    Search `rg -n -i "topic" DECISIONS.log` before making a new decision.
@@ -21,6 +35,19 @@ language just to claim speed: profile first and improve the measured bottleneck.
    test log to work on one bounded task.
 5. Establish a baseline with the relevant commands below. Record skipped database
    tests as skipped, not as successful integration verification.
+
+### State-report parsing caveat
+
+[state.ps1](../state.ps1) is a diagnostic inventory, not the phase/backlog authority.
+Its phase is the **maximum numeric `Phase` field found across order files**, not
+the active phase. Its open-order list counts files lacking an exact `## MERGED`
+heading, so independently closed orders with another status format can remain in
+that list. The observed `Phase: 13` / `302 open orders` reading is therefore a
+parser result, not proof that Phase 13 is active or 302 implementation orders remain.
+The count can also change when a new order is added. The script is unchanged by
+Order435. Use [BUILD-PLAN](../BUILD-PLAN.md), active orders, decisions and actual
+review evidence; the recorded status model is a projection, not an automatic
+replacement for newer admission/review decisions.
 
 ## Authoritative map
 
@@ -117,14 +144,23 @@ Store benchmark commands and results beside the implementing order so future mod
 can reproduce them. Do not lower a failing budget or soften a test without a separately
 recorded, evidence-backed decision.
 
-## Git, main checkout and the local app are different states
+## Main, development, CI and local runtime are separate states
 
 There is one GitHub repository: `dcpnode-maker/yellow`. At this checkpoint the current
-development branch is `phase-7/persisted-india-final-component-tax-evidence`, published
-through [PR80](https://github.com/dcpnode-maker/yellow/pull/80). `main` is not yet that
-branch. A worktree shares Git history; it is not a separate product/repository. Do not
+development line is `phase-7/persisted-india-final-component-tax-evidence`, tracked
+through [PR80](https://github.com/dcpnode-maker/yellow/pull/80). Check the PR's exact
+published commit; a local HEAD or documentation edit is not proof of a push or merge.
+`main` is not yet that development line. A worktree shares Git history; it is not a
+separate product/repository. Do not
 copy files between checkouts to simulate a merge, force-reset a dirty checkout, or
 delete an unintegrated worktree to make folders appear consolidated.
+
+| State | What establishes it | What it does not establish |
+|---|---|---|
+| Main/default-branch contents | Exact main commit and reviewed integration | Every development feature is present, even if a main README links to it |
+| Development work | Exact branch/worktree commit, scoped diff and order status | Independent approval, successful CI or deployment |
+| CI | Named workflow run and its exact tested commit/results | A different commit is green, a fiscal review passed, or a local app was refreshed |
+| Local runtime | Separately authorized promotion and verified commit/runtime receipt | Automatic equality with main, development, a document or a passing CI run |
 
 The founder's normal `yellow` folder is the `main` checkout; active changes currently
 live in its linked `yellow-order175-folio-responsive-containment` worktree. After
