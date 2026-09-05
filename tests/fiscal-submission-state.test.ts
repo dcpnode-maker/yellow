@@ -31,6 +31,12 @@ function transition(state: FiscalSubmissionState, input: ReturnType<typeof event
   return reduceFiscalSubmission(state, input);
 }
 
+function revokedProxy(): unknown {
+  const revocable = Proxy.revocable({}, {});
+  revocable.revoke();
+  return revocable.proxy;
+}
+
 function value(result: ReturnType<typeof transition>): FiscalSubmissionState {
   if (!result.ok) throw new Error(result.error.message);
   return result.value;
@@ -234,6 +240,27 @@ describe("Order440 pure fiscal submission lifecycle", () => {
     expect(reads).toBe(0);
     const hostile = new Proxy({}, { ownKeys() { throw new Error("must stay contained"); } });
     expect(createFiscalSubmissionState(hostile)).toMatchObject({ ok: false, error: { code: "invalid_input" } });
+  });
+
+  test("contains a revoked proxy at create input as frozen invalid input", () => {
+    const result = createFiscalSubmissionState(revokedProxy());
+    expect(result).toMatchObject({ ok: false, error: { code: "invalid_input" } });
+    expect(Object.isFrozen(result)).toBeTrue();
+    if (!result.ok) expect(Object.isFrozen(result.error)).toBeTrue();
+  });
+
+  test("contains a revoked proxy at reducer state input as frozen invalid input", () => {
+    const result = reduceFiscalSubmission(revokedProxy(), event("transport_started"));
+    expect(result).toMatchObject({ ok: false, error: { code: "invalid_input" } });
+    expect(Object.isFrozen(result)).toBeTrue();
+    if (!result.ok) expect(Object.isFrozen(result.error)).toBeTrue();
+  });
+
+  test("contains a revoked proxy at reducer event input as frozen invalid input", () => {
+    const result = reduceFiscalSubmission(initial(), revokedProxy());
+    expect(result).toMatchObject({ ok: false, error: { code: "invalid_input" } });
+    expect(Object.isFrozen(result)).toBeTrue();
+    if (!result.ok) expect(Object.isFrozen(result.error)).toBeTrue();
   });
 
   test("reduces only descriptor snapshots and never reads validated proxies again", () => {

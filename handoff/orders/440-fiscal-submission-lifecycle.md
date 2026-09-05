@@ -171,6 +171,12 @@ authenticity. Production readers/writers remain a subsequent admission. Unit and
 genuine-issued integration proof are both required; this candidate is not certified
 by an authority and may not be sent to a live provider by this private module.
 
+[Question199](../questions/199-durable-fiscal-submission-admission.md) now admits the
+complete durable foundation draft, private repository/worker and executable proof.
+It preserves legacy rows and the audited-seal policy, reuses runtime-login capability
+authority, and requires protected immutable receipt history. Canonical migration and
+provider/runtime activation remain outside this draft admission.
+
 After434 acceptance, coordinator must inspect the actual issued document source and
 existing fiscal_submission privileges, then record exact paths/DDL/signatures before
 starting durable request/attempt/receipt persistence, the claim/reconciliation worker,

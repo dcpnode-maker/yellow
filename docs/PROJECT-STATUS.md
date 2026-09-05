@@ -26,7 +26,7 @@ base tables, including the runner ledger; [SCHEMA-GUIDE](SCHEMA-GUIDE.md) explai
 the immutable80-table baseline and historical125-table frontier.
 
 **Order440 fiscal submission** continues the durable request/delivery/reconciliation
-implementation. Its private state contract passes14 tests; the new private issued-wire
+implementation. Its private state contract passes17 tests; the new private issued-wire
 candidate independently passes10 unit tests and4 genuine-issued PostgreSQL tests.
 Those prove the supported GST component combinations, two-tenant source isolation and
 unchanged financial rows. The source hash remains distinct from the deterministic
@@ -46,10 +46,12 @@ disambiguates the concurrent Order440/Question196 identifiers without losing his
 
 Prior fiscal/research checkpoint13737a7 passed all five jobs inCI33996041604 and
 PR85 CI33996882192. PR85 then required integration because main advanced through
-PR84. The combined source passes1597 local standing tests with1195 explicit database
-skips, typecheck and independent status-preservation proof. Its newly wired required
-issued-wire CI proof still needs exact-head execution; previous green checks do not
-approve a changed revision.
+PR84. Combined candidate4ecee0b failed quality inCI33998572070 because a test matcher
+mutated shared status text; Windows/local and CodeQL passed, database/container did
+not execute. Root reproduced and repaired that test-order defect, plus a private
+revoked-proxy input exception. The repaired source passes1600 local standing tests
+with1195 explicit database skips, types and independent narrow proof. Complete new
+exact-head CI, including the required issued-wire database proof, remains mandatory.
 No retained hotel database or founder-local app was refreshed by this work.
 
 Earlier failure CI33992123191 at6bb7ba6 remains evidence: migration41/41,

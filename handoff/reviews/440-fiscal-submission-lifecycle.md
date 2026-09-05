@@ -129,3 +129,38 @@ workflow contract test and direct YAML block/indentation inspection passed. A
 PowerShell YAML parser was unavailable on this host, so no claim of a full parser
 library validation is made. No CI dispatch, database, runtime, or file outside
 the admitted review receipt was used.
+
+## Q197 Lane A revoked-proxy regression receipt
+
+Reviewer: `/root/native_migration_assembly` (independent), 2026-09-06.
+Scope: the private fiscal submission reducer/provider and its unit tests only.
+This review does not approve a database writer, provider activation, network
+submission, durable persistence, or Order 440 completion.
+
+The repaired reducer moves the `Array.isArray` check inside the existing guarded
+record validation. This preserves the invalid-input result and frozen output while
+ensuring revoked proxies cannot throw before the reducer's typed `Result` boundary.
+No state transition, terminal/replay rule, mode validation, provider binding, or
+source authority behavior was weakened or changed. The added tests cover revoked
+proxy inputs at initial creation, hydrated state, and event boundaries.
+
+Personally executed:
+
+```text
+bun test tests/fiscal-submission-state.test.ts tests/project-status.test.ts tests/current-management-demo-status.intentional-red.test.ts
+bun run typecheck
+```
+
+Results: 22 passed, 0 failed, 134 expectations; `tsc --noEmit` passed.
+No database, runtime, migration, grant, or network access was used.
+
+Frozen source hashes (SHA-256):
+
+```text
+src/contexts/tax-fiscal/fiscal-provider.ts
+  7B1A0610B314A9EBF694F542B3AF7F6ED0DA10E38FC24ED58B7E3CD641F9BE60
+src/contexts/tax-fiscal/fiscal-submission-state.ts
+  D5A72B07F215DB2FD605848CA105D52E7566ACB9ACFAEDE8EC1D22DE8140DAA4
+tests/fiscal-submission-state.test.ts
+  D8DA387F7DDF3533C52726732AFDD27AC20FAA05F29F13ED74DF9FC61A9D1DC6
+```

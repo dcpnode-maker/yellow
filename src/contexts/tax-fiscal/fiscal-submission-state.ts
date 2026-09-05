@@ -79,8 +79,9 @@ function success(value: FiscalSubmissionState, replayed = false): FiscalSubmissi
 }
 
 function record(value: unknown): Record<string, unknown> | null {
-  if (typeof value !== "object" || value === null || Array.isArray(value)) return null;
+  if (typeof value !== "object" || value === null) return null;
   try {
+    if (Array.isArray(value)) return null;
     const prototype = Object.getPrototypeOf(value);
     if (prototype !== Object.prototype && prototype !== null) return null;
     const keys = Reflect.ownKeys(value);

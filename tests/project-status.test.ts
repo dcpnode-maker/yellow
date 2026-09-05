@@ -24,6 +24,7 @@ function parseStatus(status: string): Readonly<Record<string, string>> {
 
 describe("canonical project status", () => {
   test("records the accepted native closure and current durable-submission work", () => {
+    const originalSnapshot = JSON.stringify(PROJECT_BUILD_SNAPSHOT);
     expect(PROJECT_BUILD_SNAPSHOT.recordedAt).toBe("2026-09-06");
     expect(PROJECT_BUILD_SNAPSHOT.roadmap).toMatchObject({
       phaseCount: 18,
@@ -34,14 +35,12 @@ describe("canonical project status", () => {
     expect(PROJECT_BUILD_SNAPSHOT.review.independentlyReviewedThroughOrder).toBeGreaterThanOrEqual(91);
 
     const byOrder = new Map(PROJECT_BUILD_SNAPSHOT.recordedWork.map((work) => [work.order, work]));
-    expect(byOrder.get(434)).toMatchObject({
-      state: "independently_approved",
-      summary: expect.stringContaining("native"),
-    });
-    expect(byOrder.get(440)).toMatchObject({
-      state: "proof_in_progress",
-      summary: expect.stringContaining("durable fiscal submission"),
-    });
+    // Bun 1.3.14 nested asymmetric matching mutates actual objects. Check scalar
+    // values so this test cannot replace shared snapshot text with matcher objects.
+    expect(byOrder.get(434)?.state).toBe("independently_approved");
+    expect(byOrder.get(434)?.summary).toContain("native");
+    expect(byOrder.get(440)?.state).toBe("proof_in_progress");
+    expect(byOrder.get(440)?.summary).toContain("durable fiscal submission");
 
     expect(PROJECT_BUILD_SNAPSHOT.phases).toHaveLength(18);
     expect(PROJECT_BUILD_SNAPSHOT.phases.map(({ number, state }) => [number, state])).toEqual([
@@ -51,6 +50,7 @@ describe("canonical project status", () => {
       [12, "planned"], [13, "planned"], [14, "planned"], [15, "planned"],
       [16, "planned"], [17, "planned"],
     ]);
+    expect(JSON.stringify(PROJECT_BUILD_SNAPSHOT)).toBe(originalSnapshot);
   });
 
   test("drives the Unix report from valid metadata and real current orders", async () => {

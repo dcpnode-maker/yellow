@@ -83,3 +83,22 @@ misleading claim was found. It made no edits and exercised no database/runtime.
 
 Publish this combined revision for its own mandatory CI, including Q197's newly
 required genuine-issued proof. Old13737a7 green checks do not approve the new head.
+
+## Exact-head CI failure and repair
+
+CI33998572070 at4ecee0bb30d96818f604c3f1020edc3407915858 passed Windows/local checks
+but failed quality before database/container jobs. CodeQL passed. Root reproduced
+the cause: Bun1.3.14 nested `toMatchObject`/`expect.stringContaining` replaced shared
+snapshot text with matcher objects. The current-demo test then failed depending on
+file order. A permanent whole-snapshot unchanged assertion failed0/1 before repair;
+scalar assertions now preserve the same state/text requirements without mutation.
+
+Root also reproduced a private LaneA revoked-proxy exception. A bounded non-root
+builder moved Array.isArray inside the existing try/catch after three regression
+failures; all three input boundaries now return frozen invalid_input results. Final
+LaneA17/0(75), combined state/status28/0+2DBskips(264), whole1600/0+1195DBskips
+(21797;2795tests/488files;82.37s) and types pass. Non-implementing
+native_migration_assembly personally reran22/0(134) and types; its exact hash receipt
+is appended to review440. These repairs do not alter lifecycle or database authority.
+Publish the repaired revision for a new complete exact-head CI execution; failed
+4ecee0b is not accepted or merged.
