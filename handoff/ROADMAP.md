@@ -4,10 +4,11 @@
 
 **Current coordination:** Codex under PROJECT and the applicable agent adapter.
 
-**Status reconciled:** 2026-09-06 · Orders438/439 are the merged operational baseline.
-Order434 native acceptance passes under D1375; final corrected-head CI remains
-required before closure and native issuance is unreleased. Historical sections below
-retain their original evidence; PROJECT-STATUS is the current record.
+**Status reconciled:** 2026-09-06 · Order434 native acceptance passed PR83 CI
+33993977811 and merged; Order440 is the current durable fiscal submission work.
+Its private provider-neutral Lane A is accepted, while durable integration remains in
+progress and native issuance is unreleased. Historical sections below retain their
+original evidence; PROJECT-STATUS is the current record.
 
 [PROJECT-STATUS](../docs/PROJECT-STATUS.md) records what is current now.
 [BUILD-PLAN.md](../BUILD-PLAN.md) says what each phase contains. This file records

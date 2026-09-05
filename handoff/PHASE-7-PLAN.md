@@ -1,16 +1,17 @@
 # Phase 7 — Tax engine and India IRP
 
-**Status:** active; Orders438/439 are the merged operational baseline. Orders237–429
-retain their recorded review states. Order430 was rejected under D1323; Order434's
-replacement is in native-fiscal acceptance and remains unreleased.
+**Status:** active; Order434 native acceptance passed PR83 CI33993977811 and merged.
+Orders237–429 retain their recorded review states. Order430 was rejected under D1323;
+Order440 is the current durable fiscal submission work and native issuance remains
+unreleased.
 **Entry point:** approved Phase-6 and Phase-7 dependencies as recorded in BUILD-PLAN.md and handoff/ROADMAP.md
-**Current task:** [Order434](orders/434-native-fiscal-source-completion.md), integrating
-native issuance through canonical migrations 0076/0077 without changing the
-released 0075 containment boundary.
+**Current task:** [Order440](orders/440-fiscal-submission-lifecycle.md), integrating
+provider-neutral durable submission and reconciliation after accepted native issuance,
+without changing the released 0075 containment boundary.
 [PROJECT-STATUS](../docs/PROJECT-STATUS.md) distinguishes candidate, main, local and
-cloud state. [Order434](orders/434-native-fiscal-source-completion.md) retains its
-exact checkpoints, exclusions and remaining acceptance work. Current development
-must not be confused with the released operational app.
+cloud state. [Order440](orders/440-fiscal-submission-lifecycle.md) retains its exact
+scope, exclusions and remaining integration proof. Current development must not be
+confused with the released operational app.
 
 ## Outcome
 

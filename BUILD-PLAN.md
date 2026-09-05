@@ -6,16 +6,16 @@ permit; no worker may silently widen an order. A phase is DONE only when its DoD
 checks pass in CI. Every session starts with the ritual below; no phase may modify
 a prior phase's public surface without a written note in `DECISIONS.log`.
 
-## Current implementation status — 2026-09-06, Order434 after Orders438/439
+## Current implementation status — 2026-09-06, Order440 after accepted Order434
 
 [PROJECT-STATUS](docs/PROJECT-STATUS.md) is the canonical current-state record.
-Orders438/439 form the Codex-owned Phase-7 consolidated operational baseline through
-PR82. Both have independent acceptance at bb3b8f9 and all five required CI jobs passed,
-including real database invariants and the complete local launcher. Main integration,
-image publication and each deployed runtime retain separate receipts. PR82 has now
-merged as main5879e2b7; its five main CI jobs and image publication succeeded.
-Order434 continues on the integrated development branch with preserved D1373 tests.
-Question195 reserves evidence0076 and completion0077 after immutable containment0075.
+Orders438/439 form the Codex-owned Phase-7 consolidated operational baseline. Order434's
+exact candidate92346674c784b552356934e168d60e4b9650497a passed PR83 CI33993977811 and
+merged as443e3826b47025106d1829fcbb406ce6302fbbba. Main integration, image publication
+and each deployed runtime retain separate receipts. Order440 is now the current work,
+with private provider-neutral Lane A accepted and durable submission integration still
+in progress. Question195 reserves evidence0076 and completion0077 after immutable
+containment0075.
 Historical milestones below preserve the
 evidence available when written and do not compete with PROJECT-STATUS.
 
@@ -29,8 +29,8 @@ by independent review D1323. [Order434](handoff/orders/434-native-fiscal-source-
 implements the first native invoice without an external-invoice prerequisite, with
 persisted provenance, actual-date atomic issuance and no duplicate revenue. D1375
 records independent native116/116, migration41/41, catalogue23/23, exact schema and
-referee11/11. Consolidated Tier-3 has no unresolved finding; approval is conditional
-on green CI for the final corrected catalogue expectations. Issuance is unreleased.
+referee11/11. D1377 closes Order434 after green PR83 CI and independent acceptance;
+the source is merged, but no retained local refresh or live IRP registration is claimed.
 The following checkpoints preserve earlier bounded evidence, not current blockers.
 Earlier bounded independent proof also verifies permanent replay after payment,
 folio and day closure, and 100 distinct invoices sharing one series: 11 passed,

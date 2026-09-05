@@ -12,6 +12,21 @@ this file says what an assignment may approve.
 | **Internal builder** | `AGENTS.md` or thin optional adapter | Bounded implementation, test, documentation or research lane | Its routine lane only | Match capability to scope |
 | **Internal independent reviewer** | `AGENTS.md` or thin optional adapter | Non-implementer review and personal proof execution | Tier 1–3 for the assigned review | Strongest needed for risk |
 
+## RMS algorithm research model — founder assignment, 2026-09-06
+
+Use **GPT-6 Astra with Ultra reasoning** (`gpt-6-astra`, `ultra`) for finding,
+designing and challenging RMS algorithms, including demand forecasting, price
+response, contribution/displacement optimization and channel-visibility evidence.
+[Order 441](orders/441-astra-ultra-rms-algorithm-research.md) bounds the first research
+lane. The coordinator retains implementation ownership; routine scaffolding and
+reproducible implementation may use cheaper workers suited to the task.
+
+This assigns the development/research model, not the production pricing runtime.
+Prefer measurable low-cost algorithms and deterministic guarded execution in the
+app. Proposed inventions must outperform declared baselines on appropriate evidence;
+neither model capability nor research completion establishes revenue uplift. Preserve
+Phase 14 ownership and the founder's dependency-gated 11 → 13 → 17 priorities.
+
 ## Review tiers — how much scrutiny a change needs
 
 Tier is a property of the **change**, not of who wrote it.

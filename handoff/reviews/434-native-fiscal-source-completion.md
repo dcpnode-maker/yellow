@@ -1,8 +1,21 @@
-# Order434 — bounded implementation checks, NOT final acceptance
+# Order434 — independent native acceptance and historical implementation checks
 
-**Status:** INCOMPLETE; no Order434/Phase7 approval.
-**Recorded by:** root from the named agents' personally executed reports.
-**Date:** 2026-09-05 · D1350, D1353.
+**Current status:** APPROVED — exact92346674c784b552356934e168d60e4b9650497a;
+CI33993977811 passed all five jobs and PR83 merged as443e3826b47025106d1829fcbb406ce6302fbbba.
+**Final reviewer:** `/root/native_closed_review`, a non-implementer who personally
+executed the native acceptance and read the final CI logs.
+**Recorded by:** root from named reviewer proof and verified GitHub state.
+**Current receipt date:** 2026-09-06 · D1377.
+
+Native116/116, migrations41/41, catalogue23/23, compatibility89/89,
+containment/readiness7/7, exact schema and genuine referee11/11 passed. The final
+11-file catalogue/documentation delta introduced no migration/product/ACL/native-test
+change, and the reviewer found no unresolved issue. The conditional CI requirement
+is discharged. Normal GitHub PR merge-ref launcher coverage is not source drift.
+This approves Order434 only: no complete Phase7, live provider, cloud serving target
+or refreshed retained local is claimed. Subsequent Order440 has separate scope.
+
+## Historical starting checkpoint — 2026-09-05, D1350/D1353
 
 These checks cover implementation fragments only. The one-Tx TypeScript command
 is wired at D1353, but full SQL prepare/authentication/accounting/commit and the

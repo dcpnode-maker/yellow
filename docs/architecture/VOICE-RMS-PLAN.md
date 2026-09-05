@@ -144,6 +144,13 @@ untrained baseline. This order neither trains a model nor uploads hotel data.
 
 ## 3. RMS: evidence before optimization
 
+**Research assignment, 2026-09-06:** the founder selects GPT-6 Astra with Ultra
+reasoning for RMS algorithm discovery and invention. [Order 441](../../handoff/orders/441-astra-ultra-rms-algorithm-research.md)
+tracks this bounded research lane alongside the build. This does not select the
+hotel's runtime model, authorize live pricing or change Phase 14 ownership and the
+11 → 13 → 17 implementation priority. Candidate methods must earn adoption through
+baseline comparisons, calibrated uncertainty and measured contribution outcomes.
+
 Yellow should own the canonical operational and financial evidence used to explain
 a recommendation. A future RMS snapshot is property-local and versioned by
 observation time, stay date, booking date, currency, room type/rate plan, channel,
