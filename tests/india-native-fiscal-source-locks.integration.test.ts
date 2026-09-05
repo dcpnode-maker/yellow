@@ -3,7 +3,7 @@ import { SQL } from "bun";
 import { issueIndiaNativeFiscalInvoice } from "../src/commands/issue-india-native-fiscal-invoice";
 import type { IndiaNativeFiscalInvoiceReceipt } from "../src/contexts/tax-fiscal";
 import { Database } from "../src/kernel";
-import { createNativeIssuanceFixture } from "./fixtures/india-native-fiscal-source-completion-fixture";
+import { createNativeIssuanceCohort, createNativeIssuanceFixture } from "./fixtures/india-native-fiscal-source-completion-fixture";
 
 const preparationUrl = new URL(
   "../handoff/drafts/order434/0076-native-preparation.sql",
@@ -295,7 +295,8 @@ databaseDescribe("Order434 installed private native source-lock metadata", () =>
         pg_get_function_result(p.oid) AS result,
         has_function_privilege('app_role',p.oid,'EXECUTE') AS app,
         has_function_privilege('yellow_runtime',p.oid,'EXECUTE') AS runtime,
-        has_function_privilege('public',p.oid,'EXECUTE') AS public,
+        EXISTS (SELECT 1 FROM aclexplode(coalesce(p.proacl,acldefault('f',p.proowner))) acl
+          WHERE acl.grantee=0 AND acl.privilege_type='EXECUTE') AS public,
         pg_get_functiondef(p.oid) AS definition
       FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace
       WHERE n.nspname='public' AND p.proname='lock_india_native_source_configuration_graph'`;
@@ -411,4 +412,99 @@ issuanceDescribe("Order434 authorized native issuance concurrency", () => {
       winner,
     );
   }, 120_000);
+
+  test("100 distinct authentic sources share one gapless invoice series and recomputable chain", async () => {
+    const candidates = await createNativeIssuanceCohort(deploy, runtime, {
+      count: 100, label: "native-distinct-series", roomNightAmounts: ["10000"],
+    });
+    expect(candidates).toHaveLength(100);
+    const first = candidates[0]!;
+    for (const selector of [
+      (candidate: typeof first) => candidate.fixture.tenant,
+      (candidate: typeof first) => candidate.fixture.property,
+      (candidate: typeof first) => candidate.fixture.actor,
+      (candidate: typeof first) => candidate.statutory.seller.registrationId,
+      (candidate: typeof first) => candidate.series.seriesId,
+    ]) expect(new Set(candidates.map(selector)).size).toBe(1);
+    for (const selector of [
+      (candidate: typeof first) => candidate.fixture.party,
+      (candidate: typeof first) => candidate.fixture.reservation,
+      (candidate: typeof first) => candidate.fixture.folio,
+      (candidate: typeof first) => candidate.valuation.valuationId,
+      (candidate: typeof first) => candidate.request.serviceProvisionSnapshotId,
+      (candidate: typeof first) => candidate.request.paymentReceiptSnapshotId,
+      (candidate: typeof first) => candidate.request.ordinaryRegimeEvidenceId,
+      (candidate: typeof first) => candidate.request.idempotencyKey,
+    ]) expect(new Set(candidates.map(selector)).size).toBe(100);
+    const before = await issuanceCensus(deploy, first.fixture.tenant, first.series.seriesId);
+    expectUnissuedFixture(before, "1");
+    expect(before.journals).toBe(100);
+    expect(before.lines).toBe(200);
+
+    // Schedule all application requests together through the bounded six-connection
+    // runtime pool. No retry wrapper or owner-issued document is involved.
+    const outcomes = await Promise.allSettled(candidates.map(candidate =>
+      issueIndiaNativeFiscalInvoice(runtime, candidate.request)));
+    const failures = outcomes.filter((outcome): outcome is PromiseRejectedResult => outcome.status === "rejected");
+    if (failures.length) throw new AggregateError(failures.map(failure => failure.reason),
+      `${failures.length} distinct-source native invoice requests failed`);
+    const receipts = outcomes.map(outcome => (outcome as PromiseFulfilledResult<IndiaNativeFiscalInvoiceReceipt>).value);
+    expect(receipts.every(receipt => !receipt.replayed)).toBe(true);
+    expect(new Set(receipts.map(receipt => receipt.documentId)).size).toBe(100);
+    expect(new Set(receipts.map(receipt => receipt.docNo))).toEqual(
+      new Set(Array.from({ length: 100 }, (_, index) => `${first.series.prefix}${index + 1}`)));
+    for (let index = 0; index < candidates.length; index++) {
+      expect(receipts[index]).toMatchObject({
+        seriesId: first.series.seriesId, propertyNode: first.fixture.property,
+        reservationId: candidates[index]!.fixture.reservation,
+        folioId: candidates[index]!.fixture.folio, status: "issued", replayed: false,
+      });
+    }
+    const chain = await deploy<Array<{
+      serial: number; id: string; sha256: string; prev_hash: string | null;
+      content_text: string; folio_id: string; reservation_id: string;
+      invoice_facts: number; invoice_events: number; completed_receipts: number;
+    }>>`SELECT substring(d.doc_no from '[0-9]+$')::integer AS serial,
+        d.id::text,d.sha256,d.prev_hash,d.content::text AS content_text,
+        o.folio_id::text,o.reservation_id::text,
+        (SELECT count(*)::integer FROM public.fact_log f WHERE f.tenant_id=d.tenant_id
+          AND f.entity_type='document' AND f.entity_id=d.id AND f.fact_type='issued') AS invoice_facts,
+        (SELECT count(*)::integer FROM public.outbox e WHERE e.tenant_id=d.tenant_id
+          AND e.aggregate_id=d.id AND e.event_type='document.issued') AS invoice_events,
+        (SELECT count(*)::integer FROM public.api_idempotency i WHERE i.tenant_id=d.tenant_id
+          AND i.operation='document.issued' AND i.response_status=201 AND i.completed_at IS NOT NULL
+          AND i.response_body @> jsonb_build_object('documentId',d.id::text)) AS completed_receipts
+      FROM public.document d JOIN public.india_gst_native_fiscal_document_origin o
+        ON o.tenant_id=d.tenant_id AND o.document_id=d.id
+      WHERE d.tenant_id=${first.fixture.tenant}::uuid AND d.series_id=${first.series.seriesId}::uuid
+      ORDER BY serial`;
+    expect(chain).toHaveLength(100);
+    const receiptsById = new Map(receipts.map(receipt => [receipt.documentId, receipt]));
+    for (let index = 0; index < chain.length; index++) {
+      const row = chain[index]!;
+      expect(row.serial).toBe(index + 1);
+      expect(row.prev_hash).toBe(index === 0 ? null : chain[index - 1]!.sha256);
+      expect(new Bun.CryptoHasher("sha256").update(row.content_text).digest("hex")).toBe(row.sha256);
+      expect(row).toMatchObject({ invoice_facts: 1, invoice_events: 1, completed_receipts: 1 });
+      expect(receiptsById.get(row.id)).toMatchObject({
+        sha256: row.sha256, folioId: row.folio_id, reservationId: row.reservation_id,
+      });
+    }
+    const after = await issuanceCensus(deploy, first.fixture.tenant, first.series.seriesId);
+    expect(after).toEqual({
+      documents: 100, origins: 100, timings: 100, applicability: 100,
+      applicability_nights: 100, taxes: 100, tax_nights: 100, components: 200,
+      bindings: 100, journals: before.journals + 100, lines: before.lines + 400,
+      facts: before.facts + 300, events: before.events + 400, receipts: 100,
+      next_no: "101", last_doc_hash: chain[99]!.sha256,
+    });
+    const replays = await Promise.all(candidates.map(candidate => issueIndiaNativeFiscalInvoice(runtime, {
+      ...candidate.request,
+      envelope: { ...candidate.request.envelope, requestId: crypto.randomUUID() },
+    })));
+    for (let index = 0; index < replays.length; index++) {
+      expect(replays[index]).toEqual({ ...receipts[index]!, replayed: true });
+    }
+    expect(await issuanceCensus(deploy, first.fixture.tenant, first.series.seriesId)).toEqual(after);
+  }, 240_000);
 });

@@ -153,8 +153,11 @@ the real runtime now commits charge-to-invoice accounting without duplicate reve
 and permanently replays the receipt. Ordinary, rounded-zero and genuine rate-change
 cases pass, along with current authority, partial-COMMIT rollback,100 same-key
 requests and replay after temporary receipt/event removal. Independent bounded
-proof is9/0,164 assertions. Full source/race/closed-state
-coverage,0076 migration integration and complete Tier3 acceptance remain outstanding.
+proof is now11/0,897 assertions: real payment/settle/close/audited-seal replay and
+100 distinct sources on one series add to the preceding cases. All100 invoices
+have contiguous1..100 numbers, counter101, a recomputable chain and effect-free
+replays. Remaining source-family/bounds/winner-schedule coverage,0076 migration
+integration and complete Tier3 acceptance remain outstanding.
 Fragments remain outside the migration runner; no new phase, main integration or
 local-app promotion is claimed.
 

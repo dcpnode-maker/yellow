@@ -17,7 +17,11 @@ founder priority 11 → 13 → 17 below are unchanged.
 by independent review D1323. [Order434](handoff/orders/434-native-fiscal-source-completion.md)
 is the active complete repair under D1330: the first native invoice without an
 external-invoice prerequisite, with persisted provenance, actual-date atomic
-issuance and no duplicate revenue. It is not built or independently approved.
+issuance and no duplicate revenue. The complete order is not built or independently approved.
+Its runtime now issues ordinary, rounded-zero and genuine rate-change invoices.
+The latest bounded independent proof also verifies permanent replay after payment,
+folio and day closure, and 100 distinct invoices sharing one series: 11 passed,
+0 failed,897 assertions. Order434 records the remaining acceptance conditions.
 This status does not claim IRP completion, Phase 7 completion or a local promotion.
 See [the project map](docs/PROJECT-MAP.md) for the separate development, main, CI
 and runtime evidence states. Older order milestones below retain their historical

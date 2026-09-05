@@ -4,7 +4,18 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 
 import { IssueIndiaNativeFiscalInvoiceCommand } from "../src/commands/issue-india-native-fiscal-invoice";
-import { createAuditEnvelope, Database } from "../src/kernel";
+import {
+  BusinessDaySealService,
+  FolioSettlementService,
+  LocalPaymentProvider,
+  PaymentService,
+} from "../src/contexts/financials";
+import {
+  createAuditEnvelope,
+  Database,
+  PostgresEventBus,
+  PostgresIdempotency,
+} from "../src/kernel";
 import {
   createNativeIssuanceFixture,
   NATIVE_ISSUANCE_TEST_CUTOVER_CALENDAR,
@@ -160,6 +171,7 @@ interface CandidateCensus {
   readonly accountingBindings: number;
   readonly facts: number;
   readonly events: number;
+  readonly idempotencyRows: number;
   readonly issueReceipts: number;
   readonly nextNo: string;
 }
@@ -167,7 +179,7 @@ interface CandidateCensus {
 async function candidateCensus(deploy: SQL, tenantId: string, seriesId: string): Promise<CandidateCensus> {
   const [row] = await deploy<Array<{
     journals: number; lines: number; documents: number; origins: number; accounting_bindings: number;
-    facts: number; events: number; issue_receipts: number; next_no: string;
+    facts: number; events: number; idempotency_rows: number; issue_receipts: number; next_no: string;
   }>>`SELECT
     (SELECT count(*)::integer FROM public.journal WHERE tenant_id=${tenantId}::uuid) AS journals,
     (SELECT count(*)::integer FROM public.posting_line WHERE tenant_id=${tenantId}::uuid) AS lines,
@@ -179,13 +191,15 @@ async function candidateCensus(deploy: SQL, tenantId: string, seriesId: string):
     (SELECT count(*)::integer FROM public.fact_log WHERE tenant_id=${tenantId}::uuid) AS facts,
     (SELECT count(*)::integer FROM public.outbox WHERE tenant_id=${tenantId}::uuid) AS events,
     (SELECT count(*)::integer FROM public.api_idempotency
+      WHERE tenant_id=${tenantId}::uuid) AS idempotency_rows,
+    (SELECT count(*)::integer FROM public.api_idempotency
       WHERE tenant_id=${tenantId}::uuid AND operation='document.issued') AS issue_receipts,
     (SELECT next_no::text FROM public.document_series
       WHERE tenant_id=${tenantId}::uuid AND id=${seriesId}::uuid) AS next_no`;
   if (!row) throw new Error("Native completion census is unavailable");
   const { next_no: nextNo, accounting_bindings: accountingBindings,
-    issue_receipts: issueReceipts, ...counts } = row;
-  return Object.freeze({ ...counts, accountingBindings, issueReceipts, nextNo });
+    idempotency_rows: idempotencyRows, issue_receipts: issueReceipts, ...counts } = row;
+  return Object.freeze({ ...counts, accountingBindings, idempotencyRows, issueReceipts, nextNo });
 }
 
 function replayRequest<T extends {
@@ -209,10 +223,12 @@ function replayRequest<T extends {
 candidateDescribe("Order434 native completion real candidate variants", () => {
   let deploy: SQL;
   let runtime: Database;
+  let runtimeEvents: SQL;
 
   beforeAll(async () => {
     deploy = new SQL(deployUrl!, { max: 2, prepare: false });
     runtime = Database.connect(runtimeUrl!, { maxConnections: 3, prepare: false });
+    runtimeEvents = new SQL(runtimeUrl!, { max: 2, prepare: false });
     const [installed] = await deploy<Array<{ available: boolean }>>`
       SELECT count(*)=4 AND bool_and(has_function_privilege('app_role',p.oid,'EXECUTE')) AS available
       FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace
@@ -226,6 +242,7 @@ candidateDescribe("Order434 native completion real candidate variants", () => {
 
   afterAll(async () => {
     await runtime?.close();
+    await runtimeEvents?.close({ timeout: 0 });
     await deploy?.close();
   });
 
@@ -428,11 +445,239 @@ candidateDescribe("Order434 native completion real candidate variants", () => {
     expect(afterRetention).toEqual({
       ...afterIssue,
       events: afterIssue.events - 2,
+      idempotencyRows: afterIssue.idempotencyRows - 1,
       issueReceipts: afterIssue.issueReceipts - 1,
     });
     const replay = await command.execute(replayRequest(candidate.request));
     expect(replay).toEqual({ ...issued, replayed: true });
     expect(await candidateCensus(deploy, candidate.fixture.tenant, candidate.series.seriesId))
       .toEqual(afterRetention);
+  }, 60_000);
+
+  test("permanently replays the original receipt after the real folio settlement workflow closes its window", async () => {
+    const candidate = await createNativeIssuanceFixture(deploy, runtime, {
+      label: "native-closed-replay",
+      roomNightAmounts: ["10000"],
+    });
+    const command = new IssueIndiaNativeFiscalInvoiceCommand(runtime);
+    const issued = await command.execute(candidate.request);
+    const afterIssue = await candidateCensus(deploy, candidate.fixture.tenant, candidate.series.seriesId);
+    const instrumentId = crypto.randomUUID();
+    const clearingAccountId = crypto.randomUUID();
+    const paymentCode = "CARD_PAYMENT";
+    const sealRoleId = crypto.randomUUID();
+    await deploy.begin(async tx => {
+      await tx`INSERT INTO public.account(id,tenant_id,property_node,role,name,currency,status)
+        VALUES(${clearingAccountId}::uuid,${candidate.fixture.tenant}::uuid,
+          ${candidate.fixture.property}::uuid,'card_clearing','Native replay clearing','INR','open')`;
+      await tx`INSERT INTO public.tx_code(code,name,grp,usali_line,default_dr,default_cr)
+        VALUES(${paymentCode},'Card payment','payment',NULL,'card_clearing','guest')
+        ON CONFLICT DO NOTHING`;
+      await tx`INSERT INTO public.tx_code_route(
+          tenant_id,property_node,currency,tx_code,debit_account_id)
+        VALUES(${candidate.fixture.tenant}::uuid,${candidate.fixture.property}::uuid,
+          'INR',${paymentCode},${clearingAccountId}::uuid)`;
+      await tx`INSERT INTO public.payment_instrument(
+          id,tenant_id,party_id,kind,token,brand,last4,expiry,psp,status)
+        VALUES(${instrumentId}::uuid,${candidate.fixture.tenant}::uuid,
+          ${candidate.fixture.party}::uuid,'card_network_token',
+          ${`tok_${crypto.randomUUID().replaceAll("-", "")}`},'Test','0434','12/99','local','active')`;
+      await tx`INSERT INTO public.permission(code,description)
+        VALUES('business_day.seal','Seal a ready business day') ON CONFLICT DO NOTHING`;
+      await tx`INSERT INTO public.role(id,tenant_id,name)
+        VALUES(${sealRoleId}::uuid,${candidate.fixture.tenant}::uuid,'Order434 audited seal actor')`;
+      await tx`INSERT INTO public.role_permission(role_id,permission_code)
+        VALUES(${sealRoleId}::uuid,'business_day.seal')`;
+      await tx`INSERT INTO public.user_role(tenant_id,user_id,role_id,scope_node)
+        VALUES(${candidate.fixture.tenant}::uuid,${candidate.fixture.actor}::uuid,
+          ${sealRoleId}::uuid,${candidate.fixture.property}::uuid)`;
+    });
+    const payments = new PaymentService({
+      database: runtime,
+      events: new PostgresEventBus(runtimeEvents),
+      provider: new LocalPaymentProvider(),
+    });
+    const [balance] = await deploy<Array<{ amount: string }>>`
+      SELECT COALESCE(sum(amount_minor),0)::text AS amount
+      FROM public.posting_line
+      WHERE tenant_id=${candidate.fixture.tenant}::uuid
+        AND folio_id=${candidate.fixture.folio}::uuid`;
+    if (!balance || BigInt(balance.amount) <= 0n) {
+      throw new Error("Native closed-replay folio has no payable balance");
+    }
+    const authorization = await payments.authorize({
+      tenantId: candidate.fixture.tenant,
+      folioId: candidate.fixture.folio,
+      instrumentId,
+      amountMinor: balance.amount,
+      idempotencyKey: "native-closed-replay-authorize",
+      envelope: createAuditEnvelope({
+        tenantId: candidate.fixture.tenant,
+        propertyNode: candidate.fixture.property,
+        actorId: candidate.fixture.actor,
+        requestId: crypto.randomUUID(),
+        operation: "payment.authorized",
+      }),
+    });
+    const captured = await payments.capture({
+      tenantId: candidate.fixture.tenant,
+      operationId: authorization.operationId,
+      amountMinor: balance.amount,
+      idempotencyKey: "native-closed-replay-capture",
+      envelope: createAuditEnvelope({
+        tenantId: candidate.fixture.tenant,
+        propertyNode: candidate.fixture.property,
+        actorId: candidate.fixture.actor,
+        requestId: crypto.randomUUID(),
+        operation: "payment.captured",
+      }),
+    });
+    expect(captured).toMatchObject({
+      phase: "capture",
+      outcome: "approved",
+      amountMinor: balance.amount,
+      journalId: expect.any(String),
+      replayed: false,
+    });
+    const settlements = new FolioSettlementService({
+      database: runtime,
+      events: new PostgresEventBus(runtimeEvents),
+      idempotency: new PostgresIdempotency(),
+    });
+    const settled = await settlements.settle({
+      tenantId: candidate.fixture.tenant,
+      folioId: candidate.fixture.folio,
+      idempotencyKey: "native-closed-replay-settle",
+      envelope: createAuditEnvelope({
+        tenantId: candidate.fixture.tenant,
+        propertyNode: candidate.fixture.property,
+        actorId: candidate.fixture.actor,
+        requestId: crypto.randomUUID(),
+        operation: "folio.settled",
+      }),
+    });
+    expect(settled).toMatchObject({
+      folioId: candidate.fixture.folio,
+      previousStatus: "open",
+      status: "settled",
+      balanceMinor: "0",
+      replayed: false,
+    });
+    const closed = await settlements.close({
+      tenantId: candidate.fixture.tenant,
+      folioId: candidate.fixture.folio,
+      idempotencyKey: "native-closed-replay-close",
+      envelope: createAuditEnvelope({
+        tenantId: candidate.fixture.tenant,
+        propertyNode: candidate.fixture.property,
+        actorId: candidate.fixture.actor,
+        requestId: crypto.randomUUID(),
+        operation: "folio.closed",
+      }),
+    });
+    expect(closed).toMatchObject({
+      folioId: candidate.fixture.folio,
+      previousStatus: "settled",
+      status: "closed",
+      balanceMinor: "0",
+      replayed: false,
+    });
+    const [day] = await deploy<Array<{ business_date: string }>>`
+      SELECT business_date::text FROM public.business_day
+      WHERE tenant_id=${candidate.fixture.tenant}::uuid
+        AND property_node=${candidate.fixture.property}::uuid`;
+    if (!day) throw new Error("Native closed-replay business day is unavailable");
+    const sealService = new BusinessDaySealService({
+      events: new PostgresEventBus(runtimeEvents),
+      idempotency: new PostgresIdempotency(),
+    });
+    const sealInput = {
+      tenantId: candidate.fixture.tenant,
+      propertyNode: candidate.fixture.property,
+      businessDate: day.business_date,
+      actorId: candidate.fixture.actor,
+      idempotencyKey: "native-closed-replay-seal",
+      envelope: createAuditEnvelope({
+        tenantId: candidate.fixture.tenant,
+        propertyNode: candidate.fixture.property,
+        actorId: candidate.fixture.actor,
+        requestId: crypto.randomUUID(),
+        operation: "business_day.sealed",
+      }),
+    } as const;
+    const sealed = await runtime.withTenantTransaction(candidate.fixture.tenant,
+      tx => sealService.seal(tx, sealInput));
+    expect(sealed).toMatchObject({
+      tenantId: candidate.fixture.tenant,
+      propertyNode: candidate.fixture.property,
+      businessDate: day.business_date,
+      actorId: candidate.fixture.actor,
+      replayed: false,
+    });
+    const sealReplay = await runtime.withTenantTransaction(candidate.fixture.tenant,
+      tx => sealService.seal(tx, sealInput));
+    expect(sealReplay).toEqual({ ...sealed, replayed: true });
+    const [permanentBeforeReplay] = await deploy<Array<{
+      folio_status: string; document_sha256: string; document_number: string;
+      source_hash: string; pre_document_hash: string; readiness_hash: string;
+      source_basis_hash: string; accounting_binding_id: string; business_day_sealed: boolean;
+    }>>`SELECT folio.status AS folio_status,document.sha256 AS document_sha256,
+        document.doc_no AS document_number,origin.source_evidence_hash AS source_hash,
+        origin.pre_document_evidence_hash AS pre_document_hash,
+        origin.readiness_evidence_hash AS readiness_hash,
+        origin.native_source_basis_hash AS source_basis_hash,
+        origin.native_accounting_binding_id::text AS accounting_binding_id,
+        EXISTS (SELECT 1 FROM public.business_day day WHERE day.tenant_id=document.tenant_id
+          AND day.property_node=document.property_node AND day.business_date=document.business_date
+          AND day.sealed_at IS NOT NULL) AS business_day_sealed
+      FROM public.india_gst_native_fiscal_document_origin origin
+      JOIN public.document document
+        ON document.tenant_id=origin.tenant_id AND document.id=origin.document_id
+      JOIN public.folio folio
+        ON folio.tenant_id=origin.tenant_id AND folio.id=origin.folio_id
+      WHERE origin.tenant_id=${candidate.fixture.tenant}::uuid
+        AND origin.document_id=${issued.documentId}::uuid`;
+    if (!permanentBeforeReplay) throw new Error("Closed-folio native permanent projection is unavailable");
+    expect(permanentBeforeReplay).toMatchObject({
+      folio_status: "closed",
+      document_sha256: issued.sha256,
+      document_number: issued.docNo,
+      business_day_sealed: true,
+    });
+    const afterClose = await candidateCensus(deploy, candidate.fixture.tenant, candidate.series.seriesId);
+    expect(afterClose).toMatchObject({
+      journals: afterIssue.journals + 1,
+      lines: afterIssue.lines + 2,
+      documents: afterIssue.documents,
+      origins: afterIssue.origins,
+      accountingBindings: afterIssue.accountingBindings,
+      facts: afterIssue.facts + 6,
+      events: afterIssue.events + 6,
+      idempotencyRows: afterIssue.idempotencyRows + 3,
+      issueReceipts: afterIssue.issueReceipts,
+      nextNo: afterIssue.nextNo,
+    });
+    const replay = await command.execute(replayRequest(candidate.request));
+    expect(replay).toEqual({ ...issued, replayed: true });
+    expect(await candidateCensus(deploy, candidate.fixture.tenant, candidate.series.seriesId))
+      .toEqual(afterClose);
+    const [permanentAfterReplay] = await deploy<Array<typeof permanentBeforeReplay>>`
+      SELECT folio.status AS folio_status,document.sha256 AS document_sha256,
+        document.doc_no AS document_number,origin.source_evidence_hash AS source_hash,
+        origin.pre_document_evidence_hash AS pre_document_hash,
+        origin.readiness_evidence_hash AS readiness_hash,
+        origin.native_source_basis_hash AS source_basis_hash,
+        origin.native_accounting_binding_id::text AS accounting_binding_id,
+        EXISTS (SELECT 1 FROM public.business_day day WHERE day.tenant_id=document.tenant_id
+          AND day.property_node=document.property_node AND day.business_date=document.business_date
+          AND day.sealed_at IS NOT NULL) AS business_day_sealed
+      FROM public.india_gst_native_fiscal_document_origin origin
+      JOIN public.document document
+        ON document.tenant_id=origin.tenant_id AND document.id=origin.document_id
+      JOIN public.folio folio
+        ON folio.tenant_id=origin.tenant_id AND folio.id=origin.folio_id
+      WHERE origin.tenant_id=${candidate.fixture.tenant}::uuid
+        AND origin.document_id=${issued.documentId}::uuid`;
+    expect(permanentAfterReplay).toEqual(permanentBeforeReplay);
   }, 60_000);
 });

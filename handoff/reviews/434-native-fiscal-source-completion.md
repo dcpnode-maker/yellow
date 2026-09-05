@@ -335,3 +335,137 @@ zero other database sessions remained. The final completion-test SHA256 was
 
 This addendum remains bounded proof only and does not approve Order434, Phase7,
 production retention, local promotion, merge or deployment.
+
+## Independent closed-folio and audited-day replay proof — 2026-09-05
+
+Reviewer: Codex `/root/native_closed_review`, a non-implementer of the reviewed
+change. Scope was limited to the uncommitted diff of
+`tests/india-native-fiscal-completion.integration.test.ts` against `bccdaa4` and
+personal execution of the genuine preparation and real-candidate variants. The
+reviewer read PROJECT/AGENTS, Order434, Question192 and the three mandatory Yellow
+compliance/entity/PostgreSQL skills. No production, fixture or test source was
+edited by this reviewer.
+
+The diff uses the real `PaymentService` authorize/capture path, then the real
+`FolioSettlementService` settle/close path and `BusinessDaySealService` audited
+seal path before replaying the original native invoice. It asserts closed folio
+state, immutable document/source/readiness/basis/accounting identities, exact
+non-fiscal settlement/seal census changes, unchanged document/origin/accounting/
+number state, and a completely effect-free exact replay. The bounded static scan
+found no actionable defect or scope violation.
+
+The authoritative stable-fixture execution used PostgreSQL16.15 at
+`127.0.0.1:55502/yellow_order434_timing`, deploy URL
+`postgres://yellow_deploy@127.0.0.1:55502/yellow_order434_timing`, analogous
+`yellow_runtime`, Bun `C:\Users\astha\.bun\bin\bun.exe`, native psql under
+`E:\yellow\toolchains\postgresql-16.15\pgsql\bin`, and `TEMP`/`TMP` at
+`D:\Yellow\temp`. Inside PowerShell `try/finally`, only Question192's exact four
+signatures were granted to `app_role`, and all four were revoked in `finally`:
+
+```powershell
+bun test tests/india-native-fiscal-preparation.integration.test.ts `
+  tests/india-native-fiscal-completion.integration.test.ts `
+  --test-name-pattern 'genuine native invoice transaction|real candidate variants'
+```
+
+Result: **8 passed, 0 failed, 21 filtered, 63 assertions**, 15.69 seconds. This
+includes the new real payment-to-settlement-to-close-to-audited-seal boundary and
+exact immutable replay, plus zero-tax, mismatched-payment rejection, genuine
+Section14, retained-ephemeral-artifact replay, ordinary real charge, current
+authority and deferred-partial-commit recovery cases.
+
+The shared fixture was being expanded concurrently. An earlier passing 8/8 run is
+not treated as authoritative because its fixture hash moved from `e3932735...` to
+`c66d33eb...` during execution. A subsequent attempt aborted before any grant when
+the hash moved again. The final run pinned and rechecked the exact fixture SHA256
+before and after execution; both were
+`9fe8a833f8ddbf18839c31c4ff1bfea2f49f49bfb19ae1a9ed1196c7fe4e89f0`.
+The reviewed completion-test SHA256 was
+`9d32b055a0f0e4ef9031c2f893b35e24e16dd90d6deeb6dc5ad462300b403a48`.
+
+After execution, a direct default-aware ACL audit using
+`aclexplode(coalesce(proacl,acldefault('f',proowner)))`, including grantee `0`,
+proved PUBLIC, `app_role` and `yellow_runtime` EXECUTE false for all four exact
+functions. Zero other sessions remained in the database. No wrapper, flag bypass,
+direct derived fiscal record, additional grant, database lifecycle action, commit,
+push or retained-local change was used.
+
+This is bounded executable proof of the new closed-folio/sealed-day replay test and
+the selected existing candidate variants only. It does not approve Order434 as a
+whole, Phase7, migration promotion, production retention, local refresh, merge or
+deployment, and it does not cover the order's remaining acceptance matrix.
+
+## Independent 100-source series and strengthened sealed-day proof — 2026-09-05
+
+The same non-implementing reviewer `/root/native_closed_review` subsequently
+inspected the frozen additions to `createNativeIssuanceCohort`, the 100-distinct-
+source concurrency case, the source-lock PUBLIC ACL metadata correction and the
+closed-folio test's direct persisted `business_day.sealed_at` assertions. The
+reviewer did not edit any of those files.
+
+The cohort gives each member distinct reservation, folio, attribution/lineage,
+charge/posting, governed service/payment/ordinary roots, final valuation, recipient
+registration/SEZ-status evidence and request identity while deliberately sharing
+the tenant, property, authorized actor, statutory configuration and one configured
+fiscal series. The test rejects identity collapse before issuance, sends all 100
+real application commands through the bounded six-connection pool, requires 100
+unique documents and serials1..100, recomputes every document SHA256 and every
+`prev_hash`, checks exactly one fact/event/completed receipt per invoice, requires
+`next_no=101`, and proves 100 new-request replays cause no census change. The
+fixture uses the existing canonical statutory hash helper rather than inventing an
+extension digest. The strengthened completion query proves the actual matching
+business-day row remains sealed both before and after immutable replay. No bounded
+static defect was found.
+
+Because installed owner-private metadata assertions are incompatible with the
+temporary application proof grants, they were executed first, outside the grant
+window:
+
+```powershell
+bun test tests/india-native-fiscal-source-locks.integration.test.ts `
+  --test-name-pattern 'installed private native source-lock metadata'
+```
+
+Result: **1 passed, 0 failed, 3 assertions**. This directly checked the installed
+source/configuration lock helper's owner, invoker security, volatility, exact
+arguments/result, absence of application/runtime/PUBLIC EXECUTE via default-aware
+PUBLIC ACL inspection, and absence of state-changing SQL/advisory locking.
+
+The reviewer then used the same isolated PostgreSQL16.15 database and deploy/runtime
+URLs, native psql/Bun binaries and `D:\Yellow\temp` TEMP/TMP described above.
+Question192's exact four functions alone were granted to `app_role` inside a
+PowerShell `try/finally`, and the following command ran before unconditional revoke:
+
+```powershell
+bun test tests/india-native-fiscal-preparation.integration.test.ts `
+  tests/india-native-fiscal-source-locks.integration.test.ts `
+  tests/india-native-fiscal-completion.integration.test.ts `
+  --test-name-pattern 'genuine native invoice transaction|authorized native issuance concurrency|real candidate variants'
+```
+
+Result: **11 passed, 0 failed, 28 filtered, 897 assertions**, 157.86 seconds. The
+100-distinct-source case took136.27 seconds. It produced exactly invoices1..100 in
+one shared series, `next_no=101`, a recomputable 100-document chain and 100
+effect-free replays. The run also covered the earlier identical-key and two-key
+winner schedules, genuine preparation variants, retained-artifact replay, and the
+real payment/settlement/close/audited-seal replay with direct persisted seal proof.
+
+All four frozen inputs were hashed immediately before and after the run and were
+unchanged:
+
+- fixture: `4857628dbb592fea4bb47d70b6b415f3268464cac3a03cc8b27bbe3d3d9ebae9`
+- source-lock test: `dc9d0d0e6ca6e147047cd609fb963b9e860567184cbee282f80804cb56c04296`
+- completion test: `7fe178626369a53780a3128a4a05912b13373c9291a2623e02cb60c168635127`
+- preparation test: `932af4c10083832d29b9f191755d2bfec1effd9680fb0dea5202a0bc05a38ac2`
+
+A post-run direct catalogue audit again used
+`aclexplode(coalesce(proacl,acldefault('f',proowner)))`, including grantee `0`, and
+proved PUBLIC, `app_role` and `yellow_runtime` EXECUTE false for all four exact
+candidate capabilities. Zero other database sessions remained. No additional
+grant, owner wrapper, flag bypass, direct derived fiscal record, lifecycle action,
+commit, push or retained-local change was used.
+
+This addendum independently proves only the reviewed cohort/series race, selected
+dynamic candidate variants, source-lock metadata and strengthened sealed-day replay.
+It does not approve Order434 or Phase7, migration integration, the remaining fiscal
+matrix, local refresh, merge, deployment or any production retention mechanism.

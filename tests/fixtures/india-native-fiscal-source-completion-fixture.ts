@@ -755,3 +755,250 @@ export async function createNativeIssuanceFixture(
   });
   return Object.freeze({ fixture, valuation, statutory, series, request, payableIds: Object.freeze(payableIds) });
 }
+
+export interface NativeIssuanceCohortOptions extends Pick<NativeIssuanceFixtureOptions,
+  "label" | "roomNightAmounts" | "quotedTaxRounding"> {
+  readonly count: number;
+}
+
+type NativeIssuanceCandidate = Awaited<ReturnType<typeof createNativeIssuanceFixture>>;
+
+interface SharedSourceTemplateRow {
+  readonly unit_type_id: string;
+  readonly sellable_unit_id: string;
+  readonly rate_plan_id: string;
+  readonly revenue_account_id: string;
+  readonly tx_code: string;
+  readonly business_date: string;
+}
+
+async function createSharedNativeSourceMember(
+  deploy: SQL,
+  runtime: Database,
+  original: NativeIssuanceCandidate,
+  options: NativeIssuanceCohortOptions,
+  label: string,
+): Promise<NativeSourceFixture> {
+  const amounts = canonicalAmounts(options.roomNightAmounts, options.quotedTaxRounding);
+  const fixture = original.fixture;
+  const [template] = await deploy<SharedSourceTemplateRow[]>`
+    SELECT ut.id::text AS unit_type_id, su.id::text AS sellable_unit_id,
+      rp.id::text AS rate_plan_id, tr.credit_account_id::text AS revenue_account_id,
+      tr.tx_code,
+      (transaction_timestamp() AT TIME ZONE p.timezone)::date::text AS business_date
+    FROM public.org_node p
+    JOIN public.unit_type ut ON ut.tenant_id=p.tenant_id AND ut.property_node=p.id
+    JOIN public.sellable_unit su ON su.tenant_id=ut.tenant_id AND su.unit_type_id=ut.id
+    JOIN public.rate_plan rp ON rp.tenant_id=p.tenant_id AND rp.property_node=p.id
+    JOIN public.tx_code_route tr ON tr.tenant_id=p.tenant_id AND tr.property_node=p.id
+    WHERE p.tenant_id=${fixture.tenant}::uuid AND p.id=${fixture.property}::uuid
+      AND tr.credit_account_id=${fixture.revenueAccount}::uuid
+    ORDER BY tr.tx_code
+    LIMIT 1`;
+  if (!template) throw new Error("Native issuance cohort shared source template is unavailable");
+
+  const marker = `${label}-${crypto.randomUUID().replaceAll("-", "").slice(0, 12)}`;
+  const pathMarker = marker.replaceAll("-", "").toLowerCase();
+  const party = crypto.randomUUID(), reservation = crypto.randomUUID(), segment = crypto.randomUUID();
+  const hold = crypto.randomUUID(), holdBinding = crypto.randomUUID(), attribution = crypto.randomUUID();
+  const lineage = crypto.randomUUID(), guestAccount = crypto.randomUUID(), folio = crypto.randomUUID();
+  const completionDate = template.business_date;
+  const firstNightDate = new Date(`${completionDate}T00:00:00Z`);
+  firstNightDate.setUTCDate(firstNightDate.getUTCDate() - amounts.values.length);
+  const firstNight = firstNightDate.toISOString().slice(0, 10);
+  const roomNights = amounts.values.map((nightAmount, index) => {
+    const date = new Date(`${firstNight}T00:00:00Z`);
+    date.setUTCDate(date.getUTCDate() + index);
+    return Object.freeze({ businessDate: date.toISOString().slice(0, 10), amountMinor: BigInt(nightAmount) });
+  });
+  const period = `[${firstNight}T00:00:00Z,${completionDate}T00:00:00Z)`;
+  const quoteHash = sha256(`order434:synthetic-quote:${marker}`);
+  const snapshot = createPositiveTaxAttributionSnapshot({
+    origin: { kind: "rate_quote", quoteHash }, currency: "INR",
+    line: { lineId: "room", revenueGroup: "room_revenue", amountMinor: amounts.base,
+      nights: amounts.values.length, personNights: amounts.values.length * 2, roomNights },
+    assignments: roomNights.map(({ businessDate }) => Object.freeze({ businessDate,
+      jurisdictionKey: original.statutory.jurisdiction.key,
+      evidenceRef: `tax-assignment:${sha256(`order434:assignment:${marker}:${businessDate}`)}` })),
+    jurisdiction: { extensionId: original.statutory.jurisdiction.extensionId, ownerTenantId: null,
+      key: original.statutory.jurisdiction.key, version: Number(original.statutory.jurisdiction.version),
+      contentHash: original.statutory.jurisdiction.contentHash,
+      evidenceRef: `tax-jurisdiction:${sha256(`order434:jurisdiction:${marker}`)}` },
+    evaluation: { schemaVersion: 1, jurisdictionKey: original.statutory.jurisdiction.key, country: "IN",
+      priceDisplay: "tax_exclusive", rounding: "line", inputTotalMinor: amounts.base,
+      baseTotalMinor: amounts.base, taxTotalMinor: amounts.tax, grandTotalMinor: amounts.payment,
+      taxes: [{ code: "GST_ROOM", name: "Synthetic quoted GST evidence", taxMinor: amounts.tax,
+        components: [{ lineId: "room", revenueGroup: "room_revenue", baseMinor: amounts.base,
+          taxMinor: amounts.tax, rateBasisPoints: 500 }] }] },
+  });
+
+  await deploy.begin(async tx => {
+    await tx`INSERT INTO public.party(id,tenant_id,kind,display_name,status)
+      VALUES(${party}::uuid,${fixture.tenant}::uuid,'person','Order434 cohort guest','active')`;
+    await tx`INSERT INTO public.party_role(tenant_id,party_id,role)
+      VALUES(${fixture.tenant}::uuid,${party}::uuid,'guest')`;
+    await tx`INSERT INTO public.reservation(id,tenant_id,property_node,confirmation_no,status,primary_party,channel_code,currency)
+      VALUES(${reservation}::uuid,${fixture.tenant}::uuid,${fixture.property}::uuid,${`O434-${pathMarker}`},
+        'checked_out',${party}::uuid,'direct','INR')`;
+    await tx`INSERT INTO public.reservation_segment(id,tenant_id,reservation_id,seq,unit_type_id,sellable_unit_id,
+      period,adults,children,rate_plan_id,status)
+      VALUES(${segment}::uuid,${fixture.tenant}::uuid,${reservation}::uuid,1,${template.unit_type_id}::uuid,
+        ${template.sellable_unit_id}::uuid,${period}::tstzrange,2,'[]',${template.rate_plan_id}::uuid,'booked')`;
+    await tx`INSERT INTO public.hold(id,tenant_id,property_node,sellable_unit_id,period,kind,holder,expires_at,status)
+      VALUES(${hold}::uuid,${fixture.tenant}::uuid,${fixture.property}::uuid,${template.sellable_unit_id}::uuid,
+        ${period}::tstzrange,'cart','{}',${completionDate}::date,'consumed')`;
+    await tx`INSERT INTO public.tax_attribution_snapshot(tenant_id,id,property_node,actor_id,schema_version,
+      origin_kind,origin_quote_hash,snapshot_hash,currency,snapshot)
+      VALUES(${fixture.tenant}::uuid,${attribution}::uuid,${fixture.property}::uuid,${fixture.actor}::uuid,1,
+        'rate_quote',${quoteHash},${snapshot.snapshotHash},'INR',${JSON.stringify(snapshot)}::jsonb)`;
+    await tx`INSERT INTO public.tax_attribution_hold_binding(tenant_id,id,property_node,bound_by,hold_id,
+      attribution_id,sellable_unit_id,period,origin_quote_hash,snapshot_hash,currency)
+      VALUES(${fixture.tenant}::uuid,${holdBinding}::uuid,${fixture.property}::uuid,${fixture.actor}::uuid,
+        ${hold}::uuid,${attribution}::uuid,${template.sellable_unit_id}::uuid,${period}::tstzrange,
+        ${quoteHash},${snapshot.snapshotHash},'INR')`;
+    await tx`INSERT INTO public.tax_attribution_reservation_binding(tenant_id,id,property_node,linked_by,binding_id,
+      hold_id,attribution_id,reservation_id,segment_id,sellable_unit_id,period,origin_quote_hash,snapshot_hash,currency)
+      VALUES(${fixture.tenant}::uuid,${lineage}::uuid,${fixture.property}::uuid,${fixture.actor}::uuid,
+        ${holdBinding}::uuid,${hold}::uuid,${attribution}::uuid,${reservation}::uuid,${segment}::uuid,
+        ${template.sellable_unit_id}::uuid,${period}::tstzrange,${quoteHash},${snapshot.snapshotHash},'INR')`;
+    await tx`INSERT INTO public.account(id,tenant_id,property_node,role,party_id,name,currency,status)
+      VALUES(${guestAccount}::uuid,${fixture.tenant}::uuid,${fixture.property}::uuid,'guest',${party}::uuid,
+        'Guest account','INR','open')`;
+    await tx`INSERT INTO public.folio(id,tenant_id,account_id,reservation_id,folio_no,window_no,name,status)
+      VALUES(${folio}::uuid,${fixture.tenant}::uuid,${guestAccount}::uuid,${reservation}::uuid,
+        ${`O434-F-${pathMarker}`},1,'Primary','open')`;
+  });
+
+  const sourceIntake = new IndiaGstAccommodationSourceIntakeService();
+  const ordinaryEvidence = new IndiaGstAccommodationOrdinaryRegimeEvidenceService();
+  const recorded = await runtime.withTenantTransaction(fixture.tenant, async tx => {
+    const serviceResult = await sourceIntake.recordServiceProvision(tx, freezeStatutoryFixture({
+      tenantId: fixture.tenant, propertyNode: fixture.property, reservationId: reservation,
+      reservationLineageId: lineage, serviceProvisionDate: completionDate,
+      serviceProvisionSource: "governed_service_provision_record", legalRule: "CGST_ACT_13_2_B_SERVICE_PROVISION_DATE_INPUT_ONLY",
+      serviceProvisionEvidenceSha256: sha256(`order434:test-only-service-source:${marker}`),
+      idempotencyKey: `o434-service-${marker}`, envelope: createAuditEnvelope({ actorId: fixture.actor,
+        tenantId: fixture.tenant, propertyNode: fixture.property, requestId: crypto.randomUUID(), operation: SERVICE_EVENT }),
+    }));
+    const paymentResult = await sourceIntake.recordPaymentReceipt(tx, freezeStatutoryFixture({
+      tenantId: fixture.tenant, propertyNode: fixture.property, reservationId: reservation,
+      serviceProvisionSnapshotId: serviceResult.serviceProvision.serviceProvisionSnapshotId,
+      amountMinor: amounts.payment.toString(), currency: "INR", coverageScope: "full_attribution",
+      supplierBooksEntryDate: completionDate,
+      supplierBankCreditDate: completionDate,
+      paymentReceiptSource: "governed_supplier_payment_receipt_record",
+      paymentReceiptEvidenceSha256: sha256(`order434:test-only-payment-source:${marker}`),
+      legalRule: "CGST_ACT_13_2_EXPLANATION_II_PAYMENT_RECEIPT_DATE_INPUT_ONLY", idempotencyKey: `o434-payment-${marker}`,
+      envelope: createAuditEnvelope({ actorId: fixture.actor, tenantId: fixture.tenant, propertyNode: fixture.property,
+        requestId: crypto.randomUUID(), operation: PAYMENT_EVENT }),
+    }));
+    const ordinaryResult = await ordinaryEvidence.record(tx, freezeStatutoryFixture({
+      tenantId: fixture.tenant, propertyNode: fixture.property, reservationId: reservation,
+      serviceProvisionSnapshotId: serviceResult.serviceProvision.serviceProvisionSnapshotId,
+      regime: "ordinary_rule47_30_day", ordinaryRegimeSource: "governed_rule47_ordinary_regime_record",
+      legalBasis: "CGST_RULE_47_ORDINARY_SERVICE_INVOICE_30_DAY_INPUT",
+      ordinaryRegimeEvidenceSha256: sha256(`order434:test-only-ordinary-assertion:${marker}`),
+      idempotencyKey: `o434-ordinary-${marker}`, envelope: createAuditEnvelope({ actorId: fixture.actor,
+        tenantId: fixture.tenant, propertyNode: fixture.property, requestId: crypto.randomUUID(), operation: ORDINARY_EVENT }),
+    }));
+    return Object.freeze({ serviceResult, paymentResult, ordinaryResult });
+  });
+
+  const charges = new ChargeService({ events: fixtureEventBus(), idempotency: new PostgresIdempotency() });
+  const postCharge = Object.freeze(async (amountMinor: string, key = `o434-charge-${crypto.randomUUID()}`,
+    revenueAccountIndex = 0): Promise<NativeSourceCharge> => {
+    if (revenueAccountIndex !== 0) throw new Error("Native issuance cohort exposes one shared revenue route");
+    return runtime.withTenantTransaction(fixture.tenant, async tx => {
+      const result = await charges.postCharge(tx, freezeStatutoryFixture({ tenantId: fixture.tenant, folioId: folio,
+        txCode: template.tx_code, amountMinor, idempotencyKey: key,
+        envelope: createAuditEnvelope({ actorId: fixture.actor, tenantId: fixture.tenant,
+          propertyNode: fixture.property, requestId: crypto.randomUUID(), operation: "journal.posted" }) }));
+      const rows = await tx<Array<{ id: string }>>`SELECT id::text FROM public.posting_line
+        WHERE tenant_id=${fixture.tenant}::uuid AND journal_id=${result.journalId}::uuid
+          AND folio_id=${folio}::uuid AND account_id=${guestAccount}::uuid AND seq=1`;
+      if (rows.length !== 1 || !rows[0]) throw new Error("Native issuance cohort charge lacks one canonical posting root");
+      return Object.freeze({ result, postingRootId: rows[0].id });
+    });
+  });
+  return Object.freeze({ tenant: fixture.tenant, property: fixture.property, actor: fixture.actor,
+    unauthorizedActor: fixture.unauthorizedActor, party, reservation, lineage, attribution, folio, guestAccount,
+    revenueAccount: template.revenue_account_id, revenueAccounts: Object.freeze([template.revenue_account_id]),
+    serviceResult: recorded.serviceResult, paymentResult: recorded.paymentResult,
+    ordinaryResult: recorded.ordinaryResult, postCharge });
+}
+
+/** Creates distinct authentic native sources under one configured fiscal series. */
+export async function createNativeIssuanceCohort(
+  deploy: SQL,
+  runtime: Database,
+  options: NativeIssuanceCohortOptions,
+): Promise<readonly Awaited<ReturnType<typeof createNativeIssuanceFixture>>[]> {
+  if (!Number.isSafeInteger(options.count) || options.count < 1 || options.count > 100) {
+    throw new Error("Native issuance cohort count must be an integer between one and 100");
+  }
+  const baseLabel = fixtureLabel(options.label ?? "native-cohort");
+  const firstLabel = `${baseLabel.slice(0, 27)}-1`;
+  const original = await createNativeIssuanceFixture(deploy, runtime, { ...options, label: firstLabel });
+  const candidates: NativeIssuanceCandidate[] = [original];
+  const valuationService = new IndiaGstAccommodationFinalValuationService({ idempotency: new PostgresIdempotency() });
+  for (let index = 2; index <= options.count; index++) {
+    const label = `${baseLabel.slice(0, 27)}-${index}`;
+    const member = await createSharedNativeSourceMember(deploy, runtime, original, options, label);
+    const amount = canonicalAmounts(options.roomNightAmounts, options.quotedTaxRounding).base.toString();
+    const charge = await member.postCharge(amount, `${label}-charge`);
+    const valuation = await runtime.withTenantTransaction(member.tenant, tx => valuationService.finalizeNative(tx,
+      freezeStatutoryFixture({ tenantId: member.tenant, propertyNode: member.property, reservationId: member.reservation,
+        folioId: member.folio, buyerPartyId: member.party,
+        serviceProvisionSnapshotId: member.serviceResult.serviceProvision.serviceProvisionSnapshotId,
+        sources: [{ postingRootId: charge.postingRootId, sourceKind: "room_consideration", additionSubtype: null,
+          discountEligibility: null, evidenceSource: "operator_attestation", evidenceReference: `${label}-charge` }],
+        ordinaryAttestation: { relationshipConclusion: "unrelated_not_distinct", considerationConclusion: "money_only",
+          section152Conclusion: "all_additions_enumerated", section153Conclusion: "all_discounts_eligible",
+          sourceCompletenessConclusion: "all_sources_classified", evidenceSource: "operator_attestation",
+          evidenceReference: `${label}-section15` }, expectedCurrentValuationId: null,
+        expectedCurrentEvidenceHash: null, approvalRequestId: null, idempotencyKey: `${label}-valuation`,
+        envelope: createAuditEnvelope({ tenantId: member.tenant, propertyNode: member.property, actorId: member.actor,
+          requestId: crypto.randomUUID(), operation: "india_gst.accommodation_final_valuation_recorded" }) })));
+    const recipientId = crypto.randomUUID(), recipientSezId = crypto.randomUUID();
+    const recipientBody = { registrationId: recipientId, partyId: member.party, scheme: "in-gstin" as const,
+      gstin: fixtureStatutoryGstin("29", `FGHIJ${String(index).padStart(4, "0")}K1Z`), stateCode: "29",
+      legalName: original.statutory.recipient.legalName, tradeName: original.statutory.recipient.tradeName,
+      addressLine1: original.statutory.recipient.addressLine1, locality: original.statutory.recipient.locality,
+      pin: original.statutory.recipient.pin };
+    const { registrationId: _recipientId, ...recipientTail } = recipientBody;
+    const recipientEvidenceHash = fixtureStatutoryHash({ registrationId: recipientId, tenantId: member.tenant,
+      ...recipientTail });
+    const finalRecipient = freezeStatutoryFixture({ ...recipientBody, evidenceHash: recipientEvidenceHash });
+    const recipientSezBody = { ...original.statutory.recipientSez, recipientSezStatusId: recipientSezId,
+      recipient: { partyId: member.party, registrationId: recipientId, evidenceHash: recipientEvidenceHash },
+      gstRegistration: { ...original.statutory.recipientSez.gstRegistration, taxpayerType: "regular" as const },
+      sezStatus: "affirmatively_non_sez_regular" as const, approval: null };
+    const finalRecipientSez = freezeStatutoryFixture({ ...recipientSezBody,
+      evidenceHash: fixtureStatutoryHash({ tenantId: member.tenant,
+        ...Object.fromEntries(Object.entries(recipientSezBody).filter(([key]) => key !== "evidenceHash")) }) });
+    await deploy.begin(async tx => {
+      await tx`INSERT INTO public.party_fiscal_registration(tenant_id,id,party_id,scheme,registration_number,region_code,
+        legal_name,trade_name,address_line1,locality,pin) VALUES(${member.tenant}::uuid,${recipientId}::uuid,${member.party}::uuid,
+        'in-gstin',${finalRecipient.gstin},'29',${finalRecipient.legalName},${finalRecipient.tradeName},
+        ${finalRecipient.addressLine1},${finalRecipient.locality},${finalRecipient.pin})`;
+      await tx`INSERT INTO public.india_gst_recipient_sez_status(tenant_id,id,recipient_registration_id,
+        recipient_registration_evidence_hash,status_as_of,gst_registration_status,gst_taxpayer_type,gst_status_source,
+        gst_status_evidence_sha256,legal_rule) VALUES(${member.tenant}::uuid,${recipientSezId}::uuid,${recipientId}::uuid,
+        ${recipientEvidenceHash},${finalRecipientSez.statusAsOf}::date,'active','regular','gst_common_portal',
+        ${finalRecipientSez.gstRegistration.evidenceSha256},'IGST_ACT_7_5_B_AND_8_2_RECIPIENT_STATUS')`;
+    });
+    const statutory = freezeStatutoryFixture({ ...original.statutory, recipient: finalRecipient,
+      recipientSez: finalRecipientSez, serviceRecipient: finalRecipientSez });
+    const request: IndiaNativeFiscalInvoiceIssueNativeInput = freezeStatutoryFixture({ ...original.request,
+      reservationId: member.reservation, folioId: member.folio, valuationId: valuation.valuationId,
+      serviceProvisionSnapshotId: member.serviceResult.serviceProvision.serviceProvisionSnapshotId,
+      paymentReceiptSnapshotId: member.paymentResult.paymentReceipt.paymentReceiptSnapshotId,
+      ordinaryRegimeEvidenceId: member.ordinaryResult.ordinaryRegimeEvidenceId,
+      recipientRegistrationId: recipientId, recipientSezStatusId: recipientSezId,
+      idempotencyKey: `${label}-first-invoice`, envelope: createAuditEnvelope({ tenantId: member.tenant,
+        propertyNode: member.property, actorId: member.actor, requestId: crypto.randomUUID(), operation: "document.issued" }) });
+    candidates.push(Object.freeze({ fixture: member, valuation, statutory, series: original.series,
+      request, payableIds: original.payableIds }));
+  }
+  return Object.freeze(candidates);
+}

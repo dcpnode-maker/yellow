@@ -4,14 +4,15 @@
 **Phase:** 7 · YF-008, YF-009, YF-023
 **Implementation base:** `591ace8` (includes the complete Order432 current-catalogue repair)
 
-**Latest implementation checkpoint:** [Genuine native invoice execution](#genuine-native-invoice-execution--d1363).
+**Latest implementation checkpoint:** [Closed-state replay and distinct-source series](#closed-state-replay-and-distinct-source-series--d1365).
 The actual runtime command now commits an ordinary, rounded-zero-tax or genuine
 rate-change invoice from real charge, intake and valuation sources, without
 reposting revenue. Source locks, preparation authentication, accounting and final
 document/receipt commit execute together. A non-implementer personally passed
-nine runtime cases, including current permission checks, partial-COMMIT rollback,
-100 identical-key requests, two-key arbitration and replay after ephemeral
-receipt/event removal. This is bounded proof, not
+eleven runtime cases, including current permission checks, partial-COMMIT rollback,
+100 identical-key requests, two-key arbitration, replay after ephemeral
+receipt/event removal, genuine payment/folio/day closure, and 100 distinct sources
+sharing a gapless invoice series. This is bounded proof, not
 complete Order434 acceptance. Remaining acceptance and migration integration are
 listed below. The retained local app is unchanged.
 
@@ -1730,3 +1731,54 @@ database paths are not counted as proof. All four temporary privileges were
 independently verified revoked using default-aware ACL inspection; zero other
 database sessions remained. The single existing isolated75-record/127-table
 test database is retained for further acceptance, separate from the local app.
+
+## Closed-state replay and distinct-source series — D1365
+
+The actual payment authorization/capture path posts one balanced payment journal;
+the real settlement and closure services then close the folio, and the audited
+business-day service seals its day. Persisted closed status and non-null day seal
+are checked directly. A new-request-UUID invoice replay returns the original
+receipt, document and complete permanent source hashes without any further
+posting, fact, event, receipt, document or number effect. Payment evidence alone
+was correctly insufficient to settle the folio; no flag or ledger shortcut was used.
+
+A bounded reusable fixture now creates100 distinct guests, reservations, folios,
+governed source triples and actual charge-to-valuation records under one original
+tenant/property/actor/supplier/series. Its scope is current ordinary source data;
+it does not pretend to support historical calendars or multi-route cohorts.
+Base configuration and booking prerequisites alone are seeded. No derived timing,
+tax, accounting binding or document is owner-inserted. Existing fixture defaults
+and the74 runnable migrations remain unchanged.
+
+Root scheduled100 different application requests together through the existing
+six-connection runtime pool:100 fresh receipts, invoice numbers1..100, counter101,
+exact origin/timing/tax/accounting/fact/event/completed-key deltas and recomputed
+genesis-to-tail document hashes. All100 new-request replays were effect-free.
+Root's result was1 passed,0 failed,723 assertions,139.54s including fixture creation,
+issuance, chain checks and replay; this is not a request-latency benchmark. The
+first setup attempt failed on a nonexistent extension `content_hash` column,
+before cohort issuance. The fixture now uses the already authenticated canonical
+jurisdiction identity/hash; no schema change or protection was used to hide it.
+
+Independent non-implementer `/root/native_closed_review` inspected the final diff
+and personally executed the frozen three-file dynamic pattern: **11 passed,
+0 failed,28 filtered,897 assertions**,157.86s. The distinct-source case took136.27s.
+Separately, the private source-lock metadata check passed1/0,3 assertions. Its
+PUBLIC check uses default-aware ACL expansion, not a fictitious PUBLIC role.
+All reviewed file hashes were stable. All four temporary Question192 capabilities
+were revoked in finally; PUBLIC/app_role/yellow_runtime EXECUTE remained false,
+and zero other database sessions remained. Exact commands/hashes and earlier
+bounded run limitations are appended to the review record, not overwritten.
+
+General regression: **1,551 passed,1,150 explicit environment/database skips,
+0 failed,21,510 assertions**,2,701 tests/478 files,72.96s. Skips are not proof.
+Typecheck,167-file import boundaries,23-package licence check,audit and diff checks
+pass. Draft75 retains SHA256
+`d550b41cd405aea2da2b84e75fd3632ae2a6aca3b24b5cd12697394405d29869`;
+all four0076 SQL fragments remain unchanged and outside the runner.
+
+Still required: the full tax-family/source-bound matrix, deterministic correction/
+transfer/seal winner schedules and authority races, generic approval creation,
+complete0076 assembly, fresh/upgrade schema/referee and legacy integration, and
+complete independent Tier3 acceptance. No Order434/Phase7 completion, main merge,
+retained-local promotion, IRP/provider activation or new phase is claimed.
