@@ -7,8 +7,16 @@ import {
   type IndiaNativeFiscalInvoiceCalendarEvidence,
   type IndiaNativeFiscalInvoiceIssueNativeInput,
 } from "../../src/contexts/tax-fiscal";
+import type { IndiaGstAccommodationNativeFinalValuationInput } from "../../src/contexts/tax-fiscal/india-gst-accommodation-final-valuation";
 
-import { ChargeService, type PostChargeResult } from "../../src/contexts/financials";
+import {
+  ChargeCorrectionService,
+  ChargeService,
+  FolioService,
+  FolioTransferService,
+  type FolioTransferInput,
+  type PostChargeResult,
+} from "../../src/contexts/financials";
 import { createPositiveTaxAttributionSnapshot } from "../../src/contexts/tax-fiscal/attribution";
 import {
   IndiaGstAccommodationOrdinaryRegimeEvidenceService,
@@ -681,13 +689,27 @@ export async function createNativeIssuanceFixture(
   }
   const fixture = await createNativeSourceFixture(deploy, runtime, { ...options, label });
   const charge = await fixture.postCharge(amount, `${label}-charge`);
+  return completeNativeIssuanceFixture(deploy, runtime, options, label, fixture, fixture.folio, [{
+    postingRootId: charge.postingRootId, sourceKind: "room_consideration", additionSubtype: null,
+    discountEligibility: null, evidenceSource: "operator_attestation", evidenceReference: `${label}-charge`,
+  }]);
+}
+
+async function completeNativeIssuanceFixture(
+  deploy: SQL,
+  runtime: Database,
+  options: NativeIssuanceFixtureOptions,
+  label: string,
+  fixture: NativeSourceFixture,
+  folioId: string,
+  sources: IndiaGstAccommodationNativeFinalValuationInput["sources"],
+) {
   const valuationService = new IndiaGstAccommodationFinalValuationService({ idempotency: new PostgresIdempotency() });
   const valuation = await runtime.withTenantTransaction(fixture.tenant, tx => valuationService.finalizeNative(tx, freezeStatutoryFixture({
     tenantId: fixture.tenant, propertyNode: fixture.property, reservationId: fixture.reservation,
-    folioId: fixture.folio, buyerPartyId: fixture.party,
+    folioId, buyerPartyId: fixture.party,
     serviceProvisionSnapshotId: fixture.serviceResult.serviceProvision.serviceProvisionSnapshotId,
-    sources: [{ postingRootId: charge.postingRootId, sourceKind: "room_consideration", additionSubtype: null,
-      discountEligibility: null, evidenceSource: "operator_attestation", evidenceReference: `${label}-charge` }],
+    sources,
     ordinaryAttestation: { relationshipConclusion: "unrelated_not_distinct", considerationConclusion: "money_only",
       section152Conclusion: "all_additions_enumerated", section153Conclusion: "all_discounts_eligible",
       sourceCompletenessConclusion: "all_sources_classified", evidenceSource: "operator_attestation",
@@ -771,7 +793,7 @@ export async function createNativeIssuanceFixture(
   }));
   const request: IndiaNativeFiscalInvoiceIssueNativeInput = freezeStatutoryFixture({
     tenantId: fixture.tenant, propertyNode: fixture.property, actorId: fixture.actor,
-    reservationId: fixture.reservation, folioId: fixture.folio, valuationId: valuation.valuationId,
+    reservationId: fixture.reservation, folioId, valuationId: valuation.valuationId,
     serviceProvisionSnapshotId: fixture.serviceResult.serviceProvision.serviceProvisionSnapshotId,
     paymentReceiptSnapshotId: fixture.paymentResult.paymentReceipt.paymentReceiptSnapshotId,
     ordinaryRegimeEvidenceId: fixture.ordinaryResult.ordinaryRegimeEvidenceId,
@@ -784,6 +806,133 @@ export async function createNativeIssuanceFixture(
       requestId: crypto.randomUUID(), operation: "document.issued" }),
   });
   return Object.freeze({ fixture, valuation, statutory, series, request, payableIds: Object.freeze(payableIds) });
+}
+
+function valuationSource(postingRootId: string, label: string, negative = false) {
+  return Object.freeze({
+    postingRootId,
+    sourceKind: negative ? "promotion_discount" : "room_consideration",
+    additionSubtype: null,
+    discountEligibility: null,
+    evidenceSource: "operator_attestation",
+    evidenceReference: `${label}:${postingRootId}`,
+  });
+}
+
+/** Commits a real erroneous charge and reversal before genuine native valuation. */
+export async function createNativeCorrectionFirstIssuanceFixture(
+  deploy: SQL,
+  runtime: Database,
+  options: NativeIssuanceFixtureOptions = {},
+) {
+  const label = fixtureLabel(options.label ?? "native-correction-first");
+  const amount = options.chargeAmountMinor
+    ?? canonicalAmounts(options.roomNightAmounts, options.quotedTaxRounding).base.toString();
+  if (!/^[1-9][0-9]*$/.test(amount) || BigInt(amount) > MAX_INT64) {
+    throw new Error("Native correction-first final consideration must be a positive int64 minor-unit string");
+  }
+  const fixture = await createNativeSourceFixture(deploy, runtime, { ...options, label });
+  const stay = await fixture.postCharge(amount, `${label}-stay`);
+  const erroneous = await fixture.postCharge("1", `${label}-error`);
+  const corrections = new ChargeCorrectionService({
+    events: fixtureEventBus(), idempotency: new PostgresIdempotency(),
+  });
+  const corrected = await runtime.withTenantTransaction(fixture.tenant, async tx => {
+    const result = await corrections.reverseCharge(tx, {
+      tenantId: fixture.tenant, folioId: fixture.folio, reversesJournalId: erroneous.result.journalId,
+      reason: "Correct erroneous pre-invoice accommodation charge", postSealAuthorized: false,
+      idempotencyKey: `${label}-reverse`, envelope: createAuditEnvelope({ tenantId: fixture.tenant,
+        propertyNode: fixture.property, actorId: fixture.actor, requestId: crypto.randomUUID(),
+        operation: "journal.posted" }),
+    });
+    const rows = await tx<Array<{ id: string }>>`
+      SELECT id::text FROM public.posting_line WHERE tenant_id=${fixture.tenant}::uuid
+        AND journal_id=${result.journalId}::uuid AND account_id=${fixture.guestAccount}::uuid
+      ORDER BY seq`;
+    if (rows.length !== 1 || !rows[0]) throw new Error("Native correction-first contra root is unavailable");
+    return Object.freeze({ result, postingRootId: rows[0].id });
+  });
+  const candidate = await completeNativeIssuanceFixture(deploy, runtime, options, label, fixture,
+    fixture.folio, [valuationSource(stay.postingRootId, `${label}-stay`),
+      valuationSource(erroneous.postingRootId, `${label}-error`),
+      valuationSource(corrected.postingRootId, `${label}-reverse`, true)]);
+  return Object.freeze({ ...candidate, preparation: Object.freeze({ stay, erroneous, corrected }) });
+}
+
+/** Commits a governed sibling-folio transfer before genuine native valuation. */
+export async function createNativeTransferFirstIssuanceFixture(
+  deploy: SQL,
+  runtime: Database,
+  options: NativeIssuanceFixtureOptions = {},
+) {
+  const label = fixtureLabel(options.label ?? "native-transfer-first");
+  const amount = options.chargeAmountMinor
+    ?? canonicalAmounts(options.roomNightAmounts, options.quotedTaxRounding).base.toString();
+  if (!/^[1-9][0-9]*$/.test(amount) || BigInt(amount) > MAX_INT64) {
+    throw new Error("Native transfer-first final consideration must be a positive int64 minor-unit string");
+  }
+  const fixture = await createNativeSourceFixture(deploy, runtime, { ...options, label });
+  const charge = await fixture.postCharge(amount, `${label}-charge`);
+  const folioPrefix = `NT-${crypto.randomUUID().replaceAll("-", "").slice(0, 8)}-`;
+  await deploy`INSERT INTO public.document_series(tenant_id,property_node,kind,prefix,next_no,fiscal)
+    VALUES(${fixture.tenant}::uuid,${fixture.property}::uuid,'folio',${folioPrefix},1,false)`;
+  const folios = new FolioService({ events: fixtureEventBus(), idempotency: new PostgresIdempotency() });
+  const destination = await runtime.withTenantTransaction(fixture.tenant, tx => folios.openAdditional(tx, {
+    tenantId: fixture.tenant, reservationId: fixture.reservation, sourceFolioId: fixture.folio,
+    name: "Transferred accommodation", idempotencyKey: `${label}-destination`,
+    envelope: createAuditEnvelope({ tenantId: fixture.tenant, propertyNode: fixture.property,
+      actorId: fixture.actor, requestId: crypto.randomUUID(), operation: "folio.opened" }),
+  }));
+  const family = await runtime.withTenantTransaction(fixture.tenant, tx => tx<Array<{
+    id: string; window_no: number; balance_minor: string;
+  }>>`SELECT folio.id::text,folio.window_no,COALESCE(balance.balance_minor,0)::text AS balance_minor
+    FROM public.folio folio LEFT JOIN public.folio_balance balance
+      ON balance.tenant_id=folio.tenant_id AND balance.folio_id=folio.id
+    WHERE folio.tenant_id=${fixture.tenant}::uuid AND folio.reservation_id=${fixture.reservation}::uuid
+    ORDER BY folio.window_no,folio.id`);
+  const generation = new Bun.CryptoHasher("md5").update(family
+    .map(row => `${row.id}:${row.window_no}:${row.balance_minor}`).join("|")).digest("hex");
+  const transfers = new FolioTransferService({
+    events: fixtureEventBus(), idempotency: new PostgresIdempotency(), folios,
+  });
+  const input: FolioTransferInput = {
+    tenantId: fixture.tenant, sourceFolioId: fixture.folio, destinationFolioId: destination.folioId,
+    groupIds: [charge.result.journalId], reason: "Route accommodation to legal invoice window",
+    generation, previewRevision: "", idempotencyKey: `${label}-transfer`,
+    envelope: createAuditEnvelope({ tenantId: fixture.tenant, propertyNode: fixture.property,
+      actorId: fixture.actor, requestId: crypto.randomUUID(), operation: "journal.posted" }),
+  };
+  const preview = await runtime.withTenantTransaction(fixture.tenant, tx => transfers.preview(tx, input));
+  const transfer = await runtime.withTenantTransaction(fixture.tenant,
+    tx => transfers.transfer(tx, Object.freeze({ ...input, previewRevision: preview.previewRevision })));
+  const candidate = await completeNativeIssuanceFixture(deploy, runtime, options, label, fixture,
+    destination.folioId, [valuationSource(charge.postingRootId, `${label}-charge`)]);
+  return Object.freeze({ ...candidate, preparation: Object.freeze({ charge, destination, transfer }) });
+}
+
+const MAXIMUM_NATIVE_ROOM_NIGHTS = Object.freeze(Array.from({ length: 366 }, () => "10000"));
+
+/** Builds the admitted 366-night/500-source/500-revenue-account native boundary. */
+export async function createNativeMaximumBoundIssuanceFixture(
+  deploy: SQL,
+  runtime: Database,
+  options: Pick<NativeIssuanceFixtureOptions, "label"> = {},
+) {
+  const label = fixtureLabel(options.label ?? "native-maximum-bound");
+  const fixtureOptions: NativeIssuanceFixtureOptions = Object.freeze({
+    label,
+    roomNightAmounts: MAXIMUM_NATIVE_ROOM_NIGHTS,
+    revenueAccountCount: 500,
+  });
+  const fixture = await createNativeSourceFixture(deploy, runtime, fixtureOptions);
+  const charges: NativeSourceCharge[] = [];
+  for (let index = 0; index < 500; index++) {
+    charges.push(await fixture.postCharge("7320", `${label}-charge-${index + 1}`, index));
+  }
+  const candidate = await completeNativeIssuanceFixture(deploy, runtime, fixtureOptions, label, fixture,
+    fixture.folio, charges.map((charge, index) => valuationSource(charge.postingRootId,
+      `${label}-charge-${index + 1}`)));
+  return Object.freeze({ ...candidate, preparation: Object.freeze({ charges: Object.freeze(charges) }) });
 }
 
 export interface NativeIssuanceCohortOptions extends Pick<NativeIssuanceFixtureOptions,

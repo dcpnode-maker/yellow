@@ -8,7 +8,7 @@ import {
   FolioService,
   FolioTransferService,
 } from "../src/contexts/financials";
-import { createAuditEnvelope, Database, PostgresEventBus, PostgresIdempotency } from "../src/kernel";
+import { createAuditEnvelope, Database, PostgresEventBus, PostgresIdempotency, type Tx } from "../src/kernel";
 import { createNativeIssuanceCohort, createNativeIssuanceFixture } from "./fixtures/india-native-fiscal-source-completion-fixture";
 
 const preparationUrl = new URL(
@@ -108,6 +108,61 @@ async function rejected(operation: Promise<unknown>): Promise<unknown> {
     return error;
   }
   throw new Error("Expected committed-loser operation to reject");
+}
+
+/** Holds a real command transaction after its last write, without altering SQL or authority. */
+function beforeCommitBarrier(databaseUrl: string) {
+  const reached = Promise.withResolvers<number>();
+  const release = Promise.withResolvers<void>();
+  const pool = new SQL(databaseUrl, { max: 1, prepare: false });
+  const database = new class extends Database {
+    override async withTenantTransaction<T>(tenantId: string, operation: (tx: Tx) => Promise<T>): Promise<T> {
+      try {
+        return await super.withTenantTransaction(tenantId, async tx => {
+          const result = await operation(tx);
+          const [backend] = await tx<Array<{ pid: number }>>`SELECT pg_backend_pid() AS pid`;
+          if (!backend) throw new Error("Native commit barrier backend is unavailable");
+          reached.resolve(backend.pid);
+          await release.promise;
+          return result;
+        });
+      } catch (error) {
+        reached.reject(error);
+        throw error;
+      }
+    }
+  }(pool);
+  return { database, reached: reached.promise, release: () => release.resolve(),
+    close: () => pool.close({ timeout: 0 }) };
+}
+
+async function within<T>(promise: Promise<T>, description: string): Promise<T> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  try {
+    return await Promise.race([promise, new Promise<never>((_resolve, reject) => {
+      timer = setTimeout(() => reject(new Error(`Timed out observing ${description}`)), 15_000);
+    })]);
+  } finally {
+    if (timer !== undefined) clearTimeout(timer);
+  }
+}
+
+async function observeBlockedBackend(deploy: SQL, waiter: number, holder: number) {
+  const deadline = performance.now() + 10_000;
+  while (performance.now() < deadline) {
+    const [state] = await deploy<Array<{
+      blockers: number[]; holder_blockers: number[]; waiting: boolean; holds_publication: boolean;
+    }>>`SELECT pg_blocking_pids(${waiter}) AS blockers,
+      pg_blocking_pids(${holder}) AS holder_blockers,
+      EXISTS(SELECT 1 FROM pg_locks WHERE pid=${waiter} AND NOT granted) AS waiting,
+      EXISTS(SELECT 1 FROM pg_locks WHERE pid=${waiter} AND locktype='advisory' AND granted
+        AND objsubid=1 AND classid=((6441674055002974568::bigint>>32)&4294967295)::oid
+        AND objid=(6441674055002974568::bigint&4294967295)::oid) AS holds_publication`;
+    if (state?.blockers.includes(holder)) return state;
+    // Observation only: neither application operation is retried or restarted.
+    await Bun.sleep(25);
+  }
+  throw new Error("Concurrent financial operation never waited behind the native issuer");
 }
 
 async function issuanceCensus(
@@ -527,6 +582,88 @@ issuanceDescribe("Order434 authorized native issuance concurrency", () => {
       });
       expect(replay).toEqual({ ...issued, replayed: true });
       expect(await issuanceCensus(deploy, candidate.fixture.tenant, candidate.series.seriesId)).toEqual(afterIssue);
+    }
+  }, 120_000);
+
+  test("concurrent correction waits behind an uncommitted invoice then rejects without effects", async () => {
+    for (const taxCase of [
+      { label: "positive", roomNightAmounts: ["10000"] as const,
+        quotedTaxRounding: "exact_5_percent" as const, taxJournals: 1, taxLines: 4 },
+      { label: "zero", roomNightAmounts: ["1"] as const,
+        quotedTaxRounding: "component_half_up" as const, taxJournals: 0, taxLines: 0 },
+    ]) {
+      const candidate = await createNativeIssuanceFixture(deploy, runtime, {
+        label: `race-correction-${taxCase.label}`, roomNightAmounts: taxCase.roomNightAmounts,
+        quotedTaxRounding: taxCase.quotedTaxRounding,
+      });
+      const root = await originalChargeRoot(deploy, candidate.fixture.tenant,
+        candidate.fixture.folio, candidate.fixture.guestAccount);
+      const before = await issuanceCensus(deploy, candidate.fixture.tenant, candidate.series.seriesId);
+      const financialBefore = await winnerFinancialCensus(deploy, candidate.fixture.tenant,
+        candidate.fixture.property, root);
+      const barrier = beforeCommitBarrier(issuanceRuntimeUrl!);
+      const issuer = issueIndiaNativeFiscalInvoice(barrier.database, candidate.request)
+        .then(value => ({ ok: true as const, value }), error => ({ ok: false as const, error }));
+      const waiter = Promise.withResolvers<number>();
+      let correction: Promise<{ ok: boolean; error?: unknown }> | undefined;
+      try {
+        const issuerPid = await within(barrier.reached, "native invoice pending COMMIT");
+        // A separate connection must still see the complete pre-issue baseline.
+        expect(await issuanceCensus(deploy, candidate.fixture.tenant, candidate.series.seriesId)).toEqual(before);
+        const corrections = new ChargeCorrectionService({
+          events: new PostgresEventBus(runtimeEvents), idempotency: new PostgresIdempotency(),
+        });
+        correction = runtime.withTenantTransaction(candidate.fixture.tenant, async tx => {
+          const [backend] = await tx<Array<{ pid: number }>>`SELECT pg_backend_pid() AS pid`;
+          if (!backend) throw new Error("Concurrent correction backend is unavailable");
+          waiter.resolve(backend.pid);
+          return corrections.reverseCharge(tx, {
+            tenantId: candidate.fixture.tenant, folioId: candidate.fixture.folio,
+            reversesJournalId: root.journal_id, reason: "Concurrent correction of accommodation charge",
+            postSealAuthorized: false, idempotencyKey: `concurrent-correction-${taxCase.label}`,
+            envelope: createAuditEnvelope({ tenantId: candidate.fixture.tenant,
+              propertyNode: candidate.fixture.property, actorId: candidate.fixture.actor,
+              requestId: crypto.randomUUID(), operation: "journal.posted" }),
+          });
+        }).then(() => ({ ok: true }), error => ({ ok: false, error }));
+        const waiterPid = await within(waiter.promise, "concurrent correction backend");
+        expect(waiterPid).not.toBe(issuerPid);
+        const blocked = await observeBlockedBackend(deploy, waiterPid, issuerPid);
+        expect(blocked.blockers).toContain(issuerPid);
+        expect(blocked).toMatchObject({ holder_blockers: [], waiting: true, holds_publication: false });
+        expect(await winnerFinancialCensus(deploy, candidate.fixture.tenant,
+          candidate.fixture.property, root)).toEqual(financialBefore);
+      } finally {
+        barrier.release();
+        // Always settle both original operations, including assertion failures.
+        await Promise.all([issuer, correction]);
+        await barrier.close();
+      }
+      const issued = await issuer;
+      if (!issued.ok) throw issued.error;
+      const corrected = await correction;
+      if (!corrected || corrected.ok) throw new Error("Concurrent issued-source correction did not reject");
+      expect(sqlState(corrected.error)).toBe("55000");
+      expect((corrected.error as Error).message).toContain(
+        "issued India native fiscal consideration requires a numbered correction document");
+      const after = await issuanceCensus(deploy, candidate.fixture.tenant, candidate.series.seriesId);
+      expect(after).toEqual({ ...before,
+        documents: before.documents + 1, origins: before.origins + 1, timings: before.timings + 1,
+        applicability: before.applicability + 1, applicability_nights: before.applicability_nights + 1,
+        taxes: before.taxes + 1, tax_nights: before.tax_nights + 1, components: before.components + 2,
+        bindings: before.bindings + 1, journals: before.journals + taxCase.taxJournals,
+        lines: before.lines + taxCase.taxLines, facts: before.facts + (taxCase.taxJournals ? 3 : 2),
+        events: before.events + (taxCase.taxJournals ? 4 : 3), receipts: before.receipts + 1,
+        next_no: (BigInt(before.next_no) + 1n).toString(), last_doc_hash: issued.value.sha256,
+      });
+      expect(await winnerFinancialCensus(deploy, candidate.fixture.tenant,
+        candidate.fixture.property, root)).toEqual({ ...financialBefore,
+        journals: financialBefore.journals + taxCase.taxJournals,
+        lines: financialBefore.lines + taxCase.taxLines });
+      expect(await issueIndiaNativeFiscalInvoice(runtime, {
+        ...candidate.request, envelope: { ...candidate.request.envelope, requestId: crypto.randomUUID() },
+      })).toEqual({ ...issued.value, replayed: true });
+      expect(await issuanceCensus(deploy, candidate.fixture.tenant, candidate.series.seriesId)).toEqual(after);
     }
   }, 120_000);
 

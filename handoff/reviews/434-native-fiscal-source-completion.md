@@ -577,6 +577,124 @@ This is bounded independent evidence for Question193's approval creation extensi
 and its native consumer path only. It does not approve Order434 or Phase7, migration
 integration, a browser/API approval workflow, local refresh, merge or deployment.
 
+## Independent correction-first and transfer-first issuance proof — 2026-09-05
+
+Non-implementer `/root/native_closed_review` inspected the frozen fixture and
+completion integration additions only; the concurrently changing source-lock test was
+not inspected or executed in this review. The fixture uses the real
+`ChargeCorrectionService`, `FolioService` and `FolioTransferService`, then the existing
+governed native valuation and issuance paths. It does not seed timing, component-tax,
+accounting-binding or document rows. Extracting the shared completion helper preserves
+the default fixture's original source/folio behavior, and the existing cohort still
+enters through that unchanged default behavior.
+
+The correction-first proof commits an ordinary stay charge, an erroneous charge and
+its genuine reversal before valuation; it binds all three exact posting roots and
+asserts the net guest/revenue money, reversal, document/reservation/folio/window
+lineage, retained exact source set, incremental tax lines and replay. The transfer-
+first proof uses a real additional folio plus preview/transfer, asserts the source and
+destination signed fragments, account/root/transfer-journal and reservation/window
+lineage, balances and revenue, then issues the legal document against destination
+window2 with exact incremental tax lines and replay. Both paths cover positive and
+genuine rounded-zero tax. The earlier bounded evidence gaps were repaired; no further
+actionable finding was found.
+
+Using the same isolated PostgreSQL16.15 database and local deploy/runtime roles, the
+reviewer required the exact frozen hashes, granted only Question192's four candidate
+entry points inside PowerShell `try/finally`, and personally executed the complete
+file:
+
+```powershell
+bun test tests/india-native-fiscal-completion.integration.test.ts
+```
+
+Result: **15 passed, 0 failed, 145 assertions**, 18.57 seconds. This includes all
+seven static completion-contract checks and all eight real candidate variants:
+zero-tax, three positive component families, correction-first, transfer-first,
+mismatched-payment rejection, genuine Section14, retained-ephemeral-artifact replay,
+and real payment/settlement/close/audited-seal replay.
+
+Both reviewed hashes were identical before and after execution:
+
+- fixture: `c3f4c80488175ddb2c67b6067a13dc5a2420d5a1b004e9e7bb3fa8535957b085`
+- completion test: `e05a35b7ddaa9d14b5fd95d92578b435f7bc5452e30b3f64150d59875aa91abd`
+
+The four temporary grants were unconditionally revoked from PUBLIC, `app_role` and
+`yellow_runtime`. A subsequent default-aware
+`aclexplode(coalesce(proacl,acldefault('f',proowner)))` audit proved those three
+grantees have no EXECUTE on any of the four invoice functions. The Question193
+approval helper remained private throughout and also audited false for all three.
+Zero other database sessions remained. No lifecycle action, source-lock claim,
+implementation edit, commit, push, local refresh or production change occurred.
+
+This is bounded independent evidence for the frozen correction-first/transfer-first
+candidate and the current completion file only. It does not approve Order434 or
+Phase7, the concurrently changing source-lock work, migration integration, merge or
+deployment.
+
+## Independent D1369 source and concurrent-correction proof — 2026-09-05
+
+Non-implementer `/root/native_closed_review` inspected D1369's two forward function
+replacements. The deferred conservation trigger retains its installed trigger timing,
+native-basis gate, tenant context, complete source/night counts and sums, actor/time
+binding and exact signed-largest-remainder semantics. Its materialized expected/actual
+full join removes repeated per-source allocation scans while preserving sparse omitted
+zero allocations and detecting extra rows. The preparation reader similarly compares
+the complete allocation relation once, explicitly retaining INR/native-basis checks;
+the subsequent loop still validates every source's classification, sign, evidence,
+actor/time, hashing and night totals. The repaired `allocation_source` alias avoids the
+PL/pgSQL record-name collision without changing those semantics. No static defect was
+found.
+
+With only the private Question193 approval helper temporarily granted to `app_role`,
+the reviewer personally ran the complete native source suite:
+
+```powershell
+bun test tests/india-native-fiscal-source-completion.integration.test.ts
+```
+
+Result: **22 passed, 0 failed, 263 assertions**, 18.33 seconds. This includes all366
+canonical room nights and a 500-real-root/501-account valuation plus over-bound
+rejection, as well as statutory, authority, hashing, allocation, correction, transfer,
+success, replay and rollback source coverage. This is source/valuation evidence; it is
+not an independent execution of the separate combined maximum issuance case. The
+approval grant was revoked from PUBLIC, `app_role` and `yellow_runtime` in `finally`.
+
+The reviewer then granted only Question192's exact four invoice entry points inside a
+separate PowerShell `try/finally` and ran:
+
+```powershell
+bun test tests/india-native-fiscal-source-locks.integration.test.ts `
+  --test-name-pattern 'concurrent correction waits|committed .* winner'
+```
+
+Result: **5 passed, 0 failed, 10 filtered, 74 assertions**, 20.60 seconds. The new
+case proves, for positive and rounded-zero tax, that a real correction transaction
+waits behind the exact uncommitted issuer backend, the issuer itself has no blocker,
+the waiter has not acquired D99, and a separate session sees the full pre-issue
+baseline. After release commit the correction fails with exact `55000`, leaves only the
+expected invoice/tax effects, and permanent replay is effect-free. The four previously
+bounded sequential committed-winner schedules also passed. This proves the
+invoice-pre-COMMIT-first ordering only, not its inverse or arbitrary scheduling.
+
+Files were stable before and after their respective executions:
+
+- source integration: `c5a66f625516098d4292f3b547af3858b4e7c34545a1fa1f5969f32ef7f68fcf`
+- source-lock integration: `8caf6e60ffdf1c7991c2db4914d6d9e4f0453b2e3535c37b8ba64c2b490b39c6`
+- shared fixture during concurrency run: `ce1131e62f613f6698d8e6b3abae5e7df1b72394e64e3cc105b0cc5b940d55fa`
+- completion D1369 SQL: `0a0c7c972a903f402fae83d110f7c7ce39bc9ad18a6ec0123dbb7c1ecfd39e6f`
+- preparation D1369 SQL: `90aa77a7d1501fb560705a5edef5c84c0f5582d5df4808eacf0cffe9b9ae770a`
+
+Both grant windows revoked unconditionally. A final default-aware
+`aclexplode(coalesce(proacl,acldefault('f',proowner)))` audit proved PUBLIC,
+`app_role` and `yellow_runtime` EXECUTE false for the approval helper and all four
+invoice functions. Zero other sessions remained. No lifecycle action, implementation
+edit, commit, push, local refresh or production change occurred.
+
+This is bounded independent D1369 source/preparation and concurrent-correction
+evidence only. It does not independently prove the combined maximum issuance case,
+approve Order434 or Phase7, or authorize migration promotion, merge or deployment.
+
 ## Independent positive component-family execution — 2026-09-05
 
 Non-implementer `/root/native_closed_review` inspected the later frozen fixture and
@@ -626,3 +744,67 @@ This is bounded evidence for the three supported positive component families and
 the selected completion variants only. It does not approve Order434/Phase7, complete
 the remaining acceptance matrix, promote migration0076, refresh local, merge or
 deploy.
+
+## Independent full completion and combined maximum execution — 2026-09-05
+
+Non-implementer `/root/native_closed_review` inspected the frozen D1370 completion
+change and personally executed the complete completion integration file against the
+isolated PostgreSQL16.15 `yellow_order434_timing` database. D1370 preserves the
+existing ordinal query, per-item IRP and lineage objects, exact insertion serializer,
+1..366 guard and downstream JSON consumers, but serializes each item once into
+ordered `text[]` accumulators and constructs the two arrays once after the loop. No
+bounded semantic-equivalence finding was found.
+
+For audit completeness, earlier independent attempts were not suppressed. The
+pre-D1370 candidate first failed PostgreSQL `42703` on two test-only references to
+`timing.selected_extension_id`; after their repair, the full file reached the maximum
+case but failed its unchanged 300-second test timeout at 300002.72ms. A later launch
+in this session passed a positional database URL before the `psql` switches; `psql`
+explicitly ignored the following arguments, so no grant reached the database and the
+candidate availability guard failed after nine static tests. That was reviewer command
+construction error and no candidate database proof. A default-aware audit confirmed
+the ACL remained owner-only before the corrected run.
+
+The corrected run used the mandatory native issuance flag, matching deploy/runtime
+URLs, native Bun and PostgreSQL binaries, and `D:\Yellow\temp`. Only Question192's
+exact four candidate functions were temporarily granted to `app_role` inside a
+PowerShell `try/finally`; the Question193 approval helper stayed private. The reviewer
+personally ran:
+
+```powershell
+bun test tests/india-native-fiscal-completion.integration.test.ts
+```
+
+Result: **18 passed, 0 failed, 169 assertions**, 296.83 seconds. The authentic
+combined maximum case passed in 276788.87ms. Its emitted stages were fixture setup
+40045ms, prefix assertions 498ms, issue 233912ms, exact account/totals assertions
+55ms, replay 2214ms and final census 9ms. These measurements establish bounded test
+completion, not a production latency SLO.
+
+The maximum's actual exact-union query and equality assertion passed with exactly
+503 account IDs: one source guest account, 500 distinct source revenue accounts and
+two routed tax-payable accounts. It also returned 500 immutable sources, 366 room
+nights, 732 tax components, transaction value `3660000`, tax `183000`, total
+`3843000`, guest `3843000`, revenue `-3660000`, payables `183000`, four tax-journal
+lines and journal balance `0`. Permanent replay and the final effect census passed.
+The same full run also passed zero-tax, every positive component family,
+correction-first, transfer-first, impossible one-minor attribution, Section14,
+retained-away ephemeral evidence and closed-window/audited-seal permanent replay.
+
+Files were stable at execution/audit:
+
+- completion test: `cdfd083202cc88517fd345177525d4233bcfe9f89053339d4c85d88e4547a0de`
+- shared fixture: `ce1131e62f613f6698d8e6b3abae5e7df1b72394e64e3cc105b0cc5b940d55fa`
+- D1370 completion SQL: `75219b4a9315ade112538f6a8981f66260becdd4a0adc79b789126b6edb3a09b`
+- D1369 preparation SQL: `90aa77a7d1501fb560705a5edef5c84c0f5582d5df4808eacf0cffe9b9ae770a`
+
+The four temporary grants were revoked unconditionally. A final
+`aclexplode(coalesce(proacl,acldefault('f',proowner)))` audit, including grantee `0`,
+proved PUBLIC, `app_role` and `yellow_runtime` EXECUTE false for all four invoice
+functions and `create_approval_request_with_options`. Zero other sessions remained.
+No database lifecycle action, wrapper, extra grant, implementation/test/SQL edit,
+direct derived record, commit, push, merge or deployment was performed.
+
+This is bounded independent proof of the current completion integration suite and
+combined 500-root/366-night maximum only. It does not approve all of Order434 or
+Phase7, promote migration0076, refresh local, merge or deploy.

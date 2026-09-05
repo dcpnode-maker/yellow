@@ -17,13 +17,24 @@ import {
   PostgresIdempotency,
 } from "../src/kernel";
 import {
+  createNativeCorrectionFirstIssuanceFixture,
   createNativeIssuanceFixture,
+  createNativeMaximumBoundIssuanceFixture,
+  createNativeTransferFirstIssuanceFixture,
   NATIVE_ISSUANCE_TEST_CUTOVER_CALENDAR,
 } from "./fixtures/india-native-fiscal-source-completion-fixture";
 
 const ROOT = join(import.meta.dir, "..");
 const completion = readFileSync(
   join(ROOT, "handoff", "drafts", "order434", "0076-native-completion.sql"),
+  "utf8",
+);
+const preparation = readFileSync(
+  join(ROOT, "handoff", "drafts", "order434", "0076-native-preparation.sql"),
+  "utf8",
+);
+const sourceEvidence = readFileSync(
+  join(ROOT, "handoff", "drafts", "order434", "0075_india_native_fiscal_source_evidence.sql"),
   "utf8",
 );
 const service = readFileSync(
@@ -139,6 +150,34 @@ describe("Order434 native fiscal completion draft integration contract", () => {
       expect(completion).toContain(`REVOKE ALL ON FUNCTION public.${signature}`);
       expect(completion).not.toContain(`GRANT EXECUTE ON FUNCTION public.${signature}`);
     }
+  });
+
+  test("keeps forward conservation private on the existing deferred trigger and rechecks the bounded prefix", () => {
+    const conservation = body("assert_native_valuation_conservation");
+    expect(conservation).toContain("WITH expected AS MATERIALIZED");
+    expect(conservation).toContain("FULL JOIN actual a");
+    expect(completion).toContain(
+      "REVOKE ALL ON FUNCTION public.assert_native_valuation_conservation() FROM PUBLIC,app_role,yellow_runtime",
+    );
+    expect(completion).not.toMatch(/CREATE\s+(?:CONSTRAINT\s+)?TRIGGER\s+native_valuation_conservation/i);
+    expect(sourceEvidence).toMatch(
+      /CREATE CONSTRAINT TRIGGER native_valuation_conservation[\s\S]*?DEFERRABLE INITIALLY DEFERRED/,
+    );
+    expect(preparation).toContain("a.id=ANY(v_accounts) AND a.property_node=p_property AND a.currency='INR'");
+    expect(preparation).toContain("v_source IS DISTINCT FROM public.read_india_native_valuation_source_closure(");
+    expect(preparation).toContain("OR v_preview IS DISTINCT FROM public.read_india_native_tax_preview(");
+    expect(preparation).toContain("OR v_routes IS DISTINCT FROM v_current_routes");
+  });
+
+  test("serializes each fiscal item once without rewriting the preceding items", () => {
+    const composer = body("compose_india_native_fiscal_completion_evidence");
+    expect(composer).toContain("v_item_texts:=pg_catalog.array_append(v_item_texts,");
+    expect(composer).toContain("v_compat_item_texts:=pg_catalog.array_append(v_compat_item_texts,");
+    expect(composer).toContain("pg_catalog.array_to_string(v_item_texts,',')");
+    expect(composer).toContain("pg_catalog.array_to_string(v_compat_item_texts,',')");
+    expect(composer).not.toContain("public.india_native_insertion_json(v_items)");
+    expect(composer).not.toContain("public.india_native_insertion_json(v_compat_items)");
+    expect(composer).toContain("v_item_count NOT BETWEEN 1 AND 366");
   });
 
   test("projects replay only from permanent immutable artifacts", () => {
@@ -404,6 +443,421 @@ candidateDescribe("Order434 native completion real candidate variants", () => {
       expect(await candidateCensus(deploy, candidate.fixture.tenant, candidate.series.seriesId)).toEqual(afterIssue);
     }
   }, 120_000);
+
+  test("issues after a committed genuine charge correction with complete source closure", async () => {
+    for (const taxCase of [
+      { label: "positive", amounts: ["10000"] as const, rounding: "exact_5_percent" as const,
+        tax: "500", total: "10500", addedJournals: 1, addedLines: 4 },
+      { label: "rounded-zero", amounts: ["1"] as const, rounding: "component_half_up" as const,
+        tax: "0", total: "1", addedJournals: 0, addedLines: 0 },
+    ]) {
+      const candidate = await createNativeCorrectionFirstIssuanceFixture(deploy, runtime, {
+        label: `correct-first-${taxCase.label}`, roomNightAmounts: taxCase.amounts,
+        quotedTaxRounding: taxCase.rounding,
+      });
+      const before = await candidateCensus(deploy, candidate.fixture.tenant, candidate.series.seriesId);
+      expect(before).toMatchObject({ journals: 3, lines: 6, documents: 0, nextNo: candidate.series.nextNo });
+      const [sourceBefore] = await deploy<Array<{
+        guest: string; revenue: string; valuation_sources: number; correction_journals: number;
+        source_ids: string[];
+      }>>`SELECT
+          (SELECT sum(amount_minor)::text FROM public.posting_line
+            WHERE tenant_id=${candidate.fixture.tenant}::uuid AND account_id=${candidate.fixture.guestAccount}::uuid) AS guest,
+          (SELECT sum(line.amount_minor)::text FROM public.posting_line line JOIN public.account account
+            ON account.tenant_id=line.tenant_id AND account.id=line.account_id
+            WHERE line.tenant_id=${candidate.fixture.tenant}::uuid AND account.role='revenue') AS revenue,
+          (SELECT count(*)::integer FROM public.india_gst_accommodation_valuation_source
+            WHERE tenant_id=${candidate.fixture.tenant}::uuid AND valuation_id=${candidate.valuation.valuationId}::uuid) AS valuation_sources,
+          (SELECT count(*)::integer FROM public.journal WHERE tenant_id=${candidate.fixture.tenant}::uuid
+            AND reverses=${candidate.preparation.erroneous.result.journalId}::uuid) AS correction_journals,
+          (SELECT array_agg(posting_root_id::text ORDER BY posting_root_id) FROM public.india_gst_accommodation_valuation_source
+            WHERE tenant_id=${candidate.fixture.tenant}::uuid AND valuation_id=${candidate.valuation.valuationId}::uuid) AS source_ids`;
+      if (!sourceBefore) throw new Error("Correction-first source closure is unavailable");
+      expect(sourceBefore).toEqual({
+        guest: taxCase.amounts[0], revenue: (-BigInt(taxCase.amounts[0])).toString(),
+        valuation_sources: 3, correction_journals: 1,
+        source_ids: [candidate.preparation.stay.postingRootId,
+          candidate.preparation.erroneous.postingRootId,
+          candidate.preparation.corrected.postingRootId].sort(),
+      });
+      const command = new IssueIndiaNativeFiscalInvoiceCommand(runtime);
+      const issued = await command.execute(candidate.request);
+      const afterIssue = await candidateCensus(deploy, candidate.fixture.tenant, candidate.series.seriesId);
+      expect(afterIssue).toEqual({ ...before, journals: before.journals + taxCase.addedJournals,
+        lines: before.lines + taxCase.addedLines, documents: before.documents + 1,
+        origins: before.origins + 1, accountingBindings: before.accountingBindings + 1,
+        facts: before.facts + (taxCase.addedJournals ? 3 : 2),
+        events: before.events + (taxCase.addedJournals ? 4 : 3),
+        idempotencyRows: before.idempotencyRows + 1, issueReceipts: before.issueReceipts + 1,
+        nextNo: (BigInt(before.nextNo) + 1n).toString() });
+      const [document] = await deploy<Array<{
+        document_id: string; document_number: string; document_kind: string; document_status: string;
+        folio_id: string; reservation_id: string; window_no: number; value: string; tax: string;
+        total: string; source_count: number; source_ids: string[]; guest_after: string; revenue_after: string;
+        tax_lines: Array<{ seq: number; account: string; folio: string | null; amount: string }>;
+      }>>`
+        SELECT document.id::text AS document_id,document.doc_no AS document_number,
+          document.kind AS document_kind,document.status AS document_status,
+          origin.folio_id::text,origin.reservation_id::text,folio.window_no,
+          tax.transaction_value_minor::text AS value,tax.tax_minor::text AS tax,
+          tax.grand_total_minor::text AS total,
+          (SELECT count(*)::integer FROM public.india_gst_accommodation_valuation_source source
+            WHERE source.tenant_id=tax.tenant_id AND source.valuation_id=tax.valuation_id) AS source_count,
+          (SELECT array_agg(source.posting_root_id::text ORDER BY source.posting_root_id)
+            FROM public.india_gst_accommodation_valuation_source source
+            WHERE source.tenant_id=tax.tenant_id AND source.valuation_id=tax.valuation_id) AS source_ids,
+          (SELECT COALESCE(sum(line.amount_minor),0)::text FROM public.posting_line line
+            WHERE line.tenant_id=origin.tenant_id AND line.account_id=${candidate.fixture.guestAccount}::uuid) AS guest_after,
+          (SELECT COALESCE(sum(line.amount_minor),0)::text FROM public.posting_line line JOIN public.account account
+            ON account.tenant_id=line.tenant_id AND account.id=line.account_id
+            WHERE line.tenant_id=origin.tenant_id AND account.role='revenue') AS revenue_after,
+          COALESCE((SELECT jsonb_agg(jsonb_build_object('seq',line.seq,'account',line.account_id::text,
+              'folio',line.folio_id::text,'amount',line.amount_minor::text) ORDER BY line.seq)
+            FROM public.posting_line line WHERE line.tenant_id=binding.tenant_id
+              AND line.journal_id=binding.journal_id),'[]'::jsonb) AS tax_lines
+        FROM public.india_gst_native_invoice_timing timing
+        JOIN public.india_gst_native_fiscal_document_origin origin
+          ON origin.tenant_id=timing.tenant_id AND origin.native_timing_id=timing.id
+        JOIN public.document document ON document.tenant_id=origin.tenant_id AND document.id=origin.document_id
+        JOIN public.folio folio ON folio.tenant_id=origin.tenant_id AND folio.id=origin.folio_id
+        JOIN public.india_gst_accommodation_final_component_tax tax
+          ON tax.tenant_id=timing.tenant_id AND tax.id=timing.tax_id
+        JOIN public.india_gst_accommodation_final_component_tax_journal_binding binding
+          ON binding.tenant_id=timing.tenant_id AND binding.id=timing.accounting_binding_id
+        WHERE timing.tenant_id=${candidate.fixture.tenant}::uuid
+          AND timing.prospective_document_id=${issued.documentId}::uuid`;
+      const halfTax = (BigInt(taxCase.tax) / 2n).toString();
+      const taxLines = taxCase.addedLines ? [
+        { seq: 1, account: candidate.fixture.guestAccount, folio: candidate.fixture.folio, amount: halfTax },
+        { seq: 2, account: candidate.payableIds[0]!, folio: null, amount: `-${halfTax}` },
+        { seq: 3, account: candidate.fixture.guestAccount, folio: candidate.fixture.folio, amount: halfTax },
+        { seq: 4, account: candidate.payableIds[1]!, folio: null, amount: `-${halfTax}` },
+      ] : [];
+      expect(document).toEqual({ document_id: issued.documentId, document_number: issued.docNo,
+        document_kind: "invoice", document_status: "issued", folio_id: candidate.fixture.folio,
+        reservation_id: candidate.fixture.reservation, window_no: 1, value: taxCase.amounts[0], tax: taxCase.tax,
+        total: taxCase.total, source_count: 3, source_ids: [candidate.preparation.stay.postingRootId,
+          candidate.preparation.erroneous.postingRootId, candidate.preparation.corrected.postingRootId].sort(),
+        guest_after: (BigInt(taxCase.amounts[0]) + BigInt(taxCase.tax)).toString(),
+        revenue_after: (-BigInt(taxCase.amounts[0])).toString(), tax_lines: taxLines });
+      const replay = await command.execute(replayRequest(candidate.request));
+      expect(replay).toEqual({ ...issued, replayed: true });
+      expect(await candidateCensus(deploy, candidate.fixture.tenant, candidate.series.seriesId)).toEqual(afterIssue);
+    }
+  }, 120_000);
+
+  test("issues against the governed destination after a committed complete folio transfer", async () => {
+    for (const taxCase of [
+      { label: "positive", amounts: ["10000"] as const, rounding: "exact_5_percent" as const,
+        tax: "500", total: "10500", addedJournals: 1, addedLines: 4 },
+      { label: "rounded-zero", amounts: ["1"] as const, rounding: "component_half_up" as const,
+        tax: "0", total: "1", addedJournals: 0, addedLines: 0 },
+    ]) {
+      const candidate = await createNativeTransferFirstIssuanceFixture(deploy, runtime, {
+        label: `transfer-first-${taxCase.label}`, roomNightAmounts: taxCase.amounts,
+        quotedTaxRounding: taxCase.rounding,
+      });
+      expect(candidate.request.folioId).toBe(candidate.preparation.destination.folioId);
+      const before = await candidateCensus(deploy, candidate.fixture.tenant, candidate.series.seriesId);
+      expect(before).toMatchObject({ journals: 2, lines: 4, documents: 0, nextNo: candidate.series.nextNo });
+      const balances = await deploy<Array<{ id: string; amount: string }>>`
+        SELECT folio.id::text,COALESCE(balance.balance_minor,0)::text AS amount
+        FROM public.folio folio LEFT JOIN public.folio_balance balance
+          ON balance.tenant_id=folio.tenant_id AND balance.folio_id=folio.id
+        WHERE folio.tenant_id=${candidate.fixture.tenant}::uuid
+          AND folio.reservation_id=${candidate.fixture.reservation}::uuid ORDER BY folio.window_no`;
+      expect(balances).toEqual([
+        { id: candidate.fixture.folio, amount: "0" },
+        { id: candidate.preparation.destination.folioId, amount: taxCase.amounts[0] },
+      ]);
+      const fragments = await deploy<Array<{
+        folio_id: string; window_no: number; reservation_id: string; amount: string;
+        account_id: string; root_id: string; journal_id: string;
+      }>>`SELECT line.folio_id::text,folio.window_no,folio.reservation_id::text,
+          line.amount_minor::text AS amount,line.account_id::text,line.folio_transfer_root_line_id::text AS root_id,
+          line.journal_id::text
+        FROM public.posting_line line JOIN public.folio folio
+          ON folio.tenant_id=line.tenant_id AND folio.id=line.folio_id
+        WHERE line.tenant_id=${candidate.fixture.tenant}::uuid
+          AND line.folio_transfer_root_line_id=${candidate.preparation.charge.postingRootId}::uuid
+        ORDER BY folio.window_no`;
+      expect(fragments).toEqual([
+        { folio_id: candidate.fixture.folio, window_no: 1, reservation_id: candidate.fixture.reservation,
+          amount: `-${taxCase.amounts[0]}`, account_id: candidate.fixture.guestAccount,
+          root_id: candidate.preparation.charge.postingRootId, journal_id: candidate.preparation.transfer.journalId },
+        { folio_id: candidate.preparation.destination.folioId, window_no: 2,
+          reservation_id: candidate.fixture.reservation, amount: taxCase.amounts[0],
+          account_id: candidate.fixture.guestAccount, root_id: candidate.preparation.charge.postingRootId,
+          journal_id: candidate.preparation.transfer.journalId },
+      ]);
+      const [closure] = await deploy<Array<{
+        transfer_journals: number; transfer_fragments: number; valuation_sources: number;
+        guest: string; revenue: string;
+      }>>`SELECT
+          (SELECT count(DISTINCT journal_id)::integer FROM public.posting_line
+            WHERE tenant_id=${candidate.fixture.tenant}::uuid AND folio_transfer_root_line_id IS NOT NULL) AS transfer_journals,
+          (SELECT count(*)::integer FROM public.posting_line WHERE tenant_id=${candidate.fixture.tenant}::uuid
+            AND folio_transfer_root_line_id=${candidate.preparation.charge.postingRootId}::uuid) AS transfer_fragments,
+          (SELECT count(*)::integer FROM public.india_gst_accommodation_valuation_source
+            WHERE tenant_id=${candidate.fixture.tenant}::uuid AND valuation_id=${candidate.valuation.valuationId}::uuid) AS valuation_sources,
+          (SELECT sum(line.amount_minor)::text FROM public.posting_line line JOIN public.account account
+            ON account.tenant_id=line.tenant_id AND account.id=line.account_id
+            WHERE line.tenant_id=${candidate.fixture.tenant}::uuid AND account.role='guest') AS guest,
+          (SELECT sum(line.amount_minor)::text FROM public.posting_line line JOIN public.account account
+            ON account.tenant_id=line.tenant_id AND account.id=line.account_id
+            WHERE line.tenant_id=${candidate.fixture.tenant}::uuid AND account.role='revenue') AS revenue`;
+      expect(closure).toEqual({ transfer_journals: 1, transfer_fragments: 2, valuation_sources: 1,
+        guest: taxCase.amounts[0], revenue: (-BigInt(taxCase.amounts[0])).toString() });
+      const command = new IssueIndiaNativeFiscalInvoiceCommand(runtime);
+      const issued = await command.execute(candidate.request);
+      const afterIssue = await candidateCensus(deploy, candidate.fixture.tenant, candidate.series.seriesId);
+      expect(afterIssue).toEqual({ ...before, journals: before.journals + taxCase.addedJournals,
+        lines: before.lines + taxCase.addedLines, documents: before.documents + 1,
+        origins: before.origins + 1, accountingBindings: before.accountingBindings + 1,
+        facts: before.facts + (taxCase.addedJournals ? 3 : 2),
+        events: before.events + (taxCase.addedJournals ? 4 : 3),
+        idempotencyRows: before.idempotencyRows + 1, issueReceipts: before.issueReceipts + 1,
+        nextNo: (BigInt(before.nextNo) + 1n).toString() });
+      const [document] = await deploy<Array<{
+        document_id: string; document_number: string; document_kind: string; document_status: string;
+        folio_id: string; reservation_id: string; window_no: number; value: string; tax: string; total: string;
+        guest_after: string; revenue_after: string;
+        tax_lines: Array<{ seq: number; account: string; folio: string | null; amount: string }>;
+      }>>`
+        SELECT document.id::text AS document_id,document.doc_no AS document_number,
+          document.kind AS document_kind,document.status AS document_status,
+          origin.folio_id::text,origin.reservation_id::text,folio.window_no,
+          tax.transaction_value_minor::text AS value,
+          tax.tax_minor::text AS tax,tax.grand_total_minor::text AS total
+          ,(SELECT COALESCE(sum(line.amount_minor),0)::text FROM public.posting_line line
+            WHERE line.tenant_id=origin.tenant_id AND line.account_id=${candidate.fixture.guestAccount}::uuid) AS guest_after
+          ,(SELECT COALESCE(sum(line.amount_minor),0)::text FROM public.posting_line line JOIN public.account account
+            ON account.tenant_id=line.tenant_id AND account.id=line.account_id
+            WHERE line.tenant_id=origin.tenant_id AND account.role='revenue') AS revenue_after
+          ,COALESCE((SELECT jsonb_agg(jsonb_build_object('seq',line.seq,'account',line.account_id::text,
+              'folio',line.folio_id::text,'amount',line.amount_minor::text) ORDER BY line.seq)
+            FROM public.posting_line line WHERE line.tenant_id=binding.tenant_id
+              AND line.journal_id=binding.journal_id),'[]'::jsonb) AS tax_lines
+        FROM public.india_gst_native_fiscal_document_origin origin
+        JOIN public.document document ON document.tenant_id=origin.tenant_id AND document.id=origin.document_id
+        JOIN public.folio folio ON folio.tenant_id=origin.tenant_id AND folio.id=origin.folio_id
+        JOIN public.india_gst_native_invoice_timing timing
+          ON timing.tenant_id=origin.tenant_id AND timing.id=origin.native_timing_id
+        JOIN public.india_gst_accommodation_final_component_tax tax
+          ON tax.tenant_id=timing.tenant_id AND tax.id=timing.tax_id
+        JOIN public.india_gst_accommodation_final_component_tax_journal_binding binding
+          ON binding.tenant_id=timing.tenant_id AND binding.id=timing.accounting_binding_id
+        WHERE origin.tenant_id=${candidate.fixture.tenant}::uuid AND origin.document_id=${issued.documentId}::uuid`;
+      const halfTax = (BigInt(taxCase.tax) / 2n).toString();
+      const taxLines = taxCase.addedLines ? [
+        { seq: 1, account: candidate.fixture.guestAccount,
+          folio: candidate.preparation.destination.folioId, amount: halfTax },
+        { seq: 2, account: candidate.payableIds[0]!, folio: null, amount: `-${halfTax}` },
+        { seq: 3, account: candidate.fixture.guestAccount,
+          folio: candidate.preparation.destination.folioId, amount: halfTax },
+        { seq: 4, account: candidate.payableIds[1]!, folio: null, amount: `-${halfTax}` },
+      ] : [];
+      expect(document).toEqual({ document_id: issued.documentId, document_number: issued.docNo,
+        document_kind: "invoice", document_status: "issued",
+        folio_id: candidate.preparation.destination.folioId, reservation_id: candidate.fixture.reservation,
+        window_no: 2, value: taxCase.amounts[0], tax: taxCase.tax, total: taxCase.total,
+        guest_after: (BigInt(taxCase.amounts[0]) + BigInt(taxCase.tax)).toString(),
+        revenue_after: (-BigInt(taxCase.amounts[0])).toString(), tax_lines: taxLines });
+      const replay = await command.execute(replayRequest(candidate.request));
+      expect(replay).toEqual({ ...issued, replayed: true });
+      expect(await candidateCensus(deploy, candidate.fixture.tenant, candidate.series.seriesId)).toEqual(afterIssue);
+    }
+  }, 120_000);
+
+  test("issues and permanently replays the authentic 500-root 366-night native boundary", async () => {
+    const stage = async <T>(label: string, run: () => T | Promise<T>): Promise<T> => {
+      const started = performance.now();
+      try {
+        return await run();
+      } finally {
+        console.info(`[Order434 maximum] ${label}: ${Math.round(performance.now() - started)}ms`);
+      }
+    };
+    const candidate = await stage("fixture setup", () => createNativeMaximumBoundIssuanceFixture(deploy, runtime, {
+      label: "native-maximum-bound",
+    }));
+    const roots = candidate.preparation.charges.map(charge => charge.postingRootId).sort();
+    expect(new Set(roots).size).toBe(500);
+    expect(new Set(candidate.fixture.revenueAccounts).size).toBe(500);
+    await stage("prefix assertions", async () => {
+      const [prefix] = await deploy<Array<{
+      source_count: number; distinct_roots: number; source_total: string; allocation_count: number;
+      allocation_roots: number; allocation_nights: number; allocation_total: string;
+      minimum_allocation: string; maximum_allocation: string; night_count: number; night_total: string;
+      consideration_journals: number; consideration_lines: number; revenue_accounts: number;
+      duplicate_revenue_accounts: number; guest_before: string; revenue_before: string;
+      stored_roots: string[];
+    }>>`WITH source AS (
+          SELECT * FROM public.india_gst_accommodation_valuation_source
+          WHERE tenant_id=${candidate.fixture.tenant}::uuid AND valuation_id=${candidate.valuation.valuationId}::uuid
+        ), allocation AS (
+          SELECT * FROM public.india_gst_accommodation_valuation_allocation
+          WHERE tenant_id=${candidate.fixture.tenant}::uuid AND valuation_id=${candidate.valuation.valuationId}::uuid
+        ), night AS (
+          SELECT * FROM public.india_gst_accommodation_valuation_room_night
+          WHERE tenant_id=${candidate.fixture.tenant}::uuid AND valuation_id=${candidate.valuation.valuationId}::uuid
+        ), revenue_use AS (
+          SELECT line.account_id,count(*)::integer AS uses FROM public.posting_line line
+          JOIN public.account account ON account.tenant_id=line.tenant_id AND account.id=line.account_id
+          WHERE line.tenant_id=${candidate.fixture.tenant}::uuid AND account.role='revenue'
+          GROUP BY line.account_id
+        ) SELECT
+          (SELECT count(*)::integer FROM source) AS source_count,
+          (SELECT count(DISTINCT posting_root_id)::integer FROM source) AS distinct_roots,
+          (SELECT sum(current_amount_minor)::text FROM source) AS source_total,
+          (SELECT count(*)::integer FROM allocation) AS allocation_count,
+          (SELECT count(DISTINCT posting_root_id)::integer FROM allocation) AS allocation_roots,
+          (SELECT count(DISTINCT ordinal)::integer FROM allocation) AS allocation_nights,
+          (SELECT sum(amount_minor)::text FROM allocation) AS allocation_total,
+          (SELECT min(amount_minor)::text FROM allocation) AS minimum_allocation,
+          (SELECT max(amount_minor)::text FROM allocation) AS maximum_allocation,
+          (SELECT count(*)::integer FROM night) AS night_count,
+          (SELECT sum(transaction_value_minor)::text FROM night) AS night_total,
+          (SELECT count(DISTINCT journal_id)::integer FROM public.posting_line
+            WHERE tenant_id=${candidate.fixture.tenant}::uuid) AS consideration_journals,
+          (SELECT count(*)::integer FROM public.posting_line
+            WHERE tenant_id=${candidate.fixture.tenant}::uuid) AS consideration_lines,
+          (SELECT count(*)::integer FROM revenue_use) AS revenue_accounts,
+          (SELECT count(*)::integer FROM revenue_use WHERE uses<>1) AS duplicate_revenue_accounts,
+          (SELECT sum(amount_minor)::text FROM public.posting_line
+            WHERE tenant_id=${candidate.fixture.tenant}::uuid AND account_id=${candidate.fixture.guestAccount}::uuid) AS guest_before,
+          (SELECT sum(line.amount_minor)::text FROM public.posting_line line JOIN public.account account
+            ON account.tenant_id=line.tenant_id AND account.id=line.account_id
+            WHERE line.tenant_id=${candidate.fixture.tenant}::uuid AND account.role='revenue') AS revenue_before,
+          (SELECT array_agg(posting_root_id::text ORDER BY posting_root_id) FROM source) AS stored_roots`;
+      if (!prefix) throw new Error("Maximum native financial prefix is unavailable");
+      expect(prefix).toEqual({ source_count: 500, distinct_roots: 500, source_total: "3660000",
+        allocation_count: 183000, allocation_roots: 500, allocation_nights: 366,
+        allocation_total: "3660000", minimum_allocation: "20", maximum_allocation: "20",
+        night_count: 366, night_total: "3660000", consideration_journals: 500,
+        consideration_lines: 1000, revenue_accounts: 500, duplicate_revenue_accounts: 0,
+        guest_before: "3660000", revenue_before: "-3660000", stored_roots: roots });
+    });
+    const before = await candidateCensus(deploy, candidate.fixture.tenant, candidate.series.seriesId);
+    expect(before).toMatchObject({ journals: 500, lines: 1000, documents: 0, nextNo: candidate.series.nextNo });
+    const command = new IssueIndiaNativeFiscalInvoiceCommand(runtime);
+    const issued = await stage("issue", () => command.execute(candidate.request));
+    const afterIssue = await candidateCensus(deploy, candidate.fixture.tenant, candidate.series.seriesId);
+    expect(afterIssue).toEqual({ ...before, journals: before.journals + 1, lines: before.lines + 4,
+      documents: before.documents + 1, origins: before.origins + 1,
+      accountingBindings: before.accountingBindings + 1, facts: before.facts + 3,
+      events: before.events + 4, idempotencyRows: before.idempotencyRows + 1,
+      issueReceipts: before.issueReceipts + 1, nextNo: (BigInt(before.nextNo) + 1n).toString() });
+    await stage("exact account and totals assertions", async () => {
+      const [result] = await deploy<Array<{
+      document_id: string; document_number: string; series_id: string; origin_folio: string;
+      origin_reservation: string; tax_journal_id: string; tax_journal_lines: number;
+      source_count: number; night_count: number;
+      component_count: number; transaction_value: string; tax: string; total: string;
+      guest_after: string; revenue_after: string; payable_after: string; tax_journal_balance: string;
+      exact_account_ids: string[]; source_guest_accounts: number; source_revenue_accounts: number;
+      routed_payable_accounts: number;
+      }>>`SELECT document.id::text AS document_id,document.doc_no AS document_number,
+        document.series_id::text,origin.folio_id::text AS origin_folio,
+        origin.reservation_id::text AS origin_reservation,binding.journal_id::text AS tax_journal_id,
+        (SELECT count(*)::integer FROM public.posting_line line
+          WHERE line.tenant_id=binding.tenant_id AND line.journal_id=binding.journal_id) AS tax_journal_lines,
+        (SELECT count(*)::integer FROM public.india_gst_accommodation_valuation_source source
+          WHERE source.tenant_id=tax.tenant_id AND source.valuation_id=tax.valuation_id) AS source_count,
+        (SELECT count(*)::integer FROM public.india_gst_accommodation_final_component_tax_room_night night
+          WHERE night.tenant_id=tax.tenant_id AND night.tax_id=tax.id) AS night_count,
+        (SELECT count(*)::integer FROM public.india_gst_accommodation_final_component_tax_component component
+          WHERE component.tenant_id=tax.tenant_id AND component.tax_id=tax.id) AS component_count,
+        tax.transaction_value_minor::text AS transaction_value,tax.tax_minor::text AS tax,
+        tax.grand_total_minor::text AS total,
+        (SELECT sum(amount_minor)::text FROM public.posting_line line
+          WHERE line.tenant_id=origin.tenant_id AND line.account_id=${candidate.fixture.guestAccount}::uuid) AS guest_after,
+        (SELECT sum(line.amount_minor)::text FROM public.posting_line line JOIN public.account account
+          ON account.tenant_id=line.tenant_id AND account.id=line.account_id
+          WHERE line.tenant_id=origin.tenant_id AND account.role='revenue') AS revenue_after,
+        (SELECT (-sum(line.amount_minor))::text FROM public.posting_line line JOIN public.account account
+          ON account.tenant_id=line.tenant_id AND account.id=line.account_id
+          WHERE line.tenant_id=origin.tenant_id AND account.role='tax_payable') AS payable_after,
+        (SELECT sum(line.amount_minor)::text FROM public.posting_line line
+          WHERE line.tenant_id=binding.tenant_id AND line.journal_id=binding.journal_id) AS tax_journal_balance,
+        (SELECT array_agg(account_id ORDER BY account_id) FROM (
+          SELECT DISTINCT root.account_id::text AS account_id
+          FROM public.india_gst_accommodation_valuation_source source
+          JOIN public.posting_line root ON root.tenant_id=source.tenant_id AND root.id=source.posting_root_id
+          WHERE source.tenant_id=tax.tenant_id AND source.valuation_id=tax.valuation_id
+          UNION
+          SELECT DISTINCT peer.account_id::text
+          FROM public.india_gst_accommodation_valuation_source source
+          JOIN public.posting_line root ON root.tenant_id=source.tenant_id AND root.id=source.posting_root_id
+          JOIN public.posting_line peer ON peer.tenant_id=root.tenant_id AND peer.journal_id=root.journal_id
+          JOIN public.account account ON account.tenant_id=peer.tenant_id AND account.id=peer.account_id
+          WHERE source.tenant_id=tax.tenant_id AND source.valuation_id=tax.valuation_id AND account.role='revenue'
+          UNION
+          SELECT DISTINCT route.credit_account_id::text
+          FROM public.tax_semantic_route mapping
+          JOIN public.tx_code_route route ON route.tenant_id=mapping.tenant_id
+            AND route.property_node=mapping.property_node AND route.currency=mapping.currency
+            AND route.tx_code=mapping.tx_code
+          JOIN public.account account ON account.tenant_id=route.tenant_id AND account.id=route.credit_account_id
+          WHERE mapping.tenant_id=tax.tenant_id AND mapping.property_node=origin.property_node
+            AND mapping.currency='INR' AND mapping.jurisdiction_extension_id=tax.selected_extension_id
+            AND mapping.semantic_kind='tax' AND account.role='tax_payable'
+            AND lower(mapping.semantic_code) IN (SELECT DISTINCT component.component_identity
+              FROM public.india_gst_accommodation_final_component_tax_component component
+              WHERE component.tenant_id=tax.tenant_id AND component.tax_id=tax.id)
+        ) exact_accounts) AS exact_account_ids,
+        (SELECT count(DISTINCT root.account_id)::integer
+          FROM public.india_gst_accommodation_valuation_source source
+          JOIN public.posting_line root ON root.tenant_id=source.tenant_id AND root.id=source.posting_root_id
+          JOIN public.account account ON account.tenant_id=root.tenant_id AND account.id=root.account_id
+          WHERE source.tenant_id=tax.tenant_id AND source.valuation_id=tax.valuation_id
+            AND account.role='guest') AS source_guest_accounts,
+        (SELECT count(DISTINCT peer.account_id)::integer
+          FROM public.india_gst_accommodation_valuation_source source
+          JOIN public.posting_line root ON root.tenant_id=source.tenant_id AND root.id=source.posting_root_id
+          JOIN public.posting_line peer ON peer.tenant_id=root.tenant_id AND peer.journal_id=root.journal_id
+          JOIN public.account account ON account.tenant_id=peer.tenant_id AND account.id=peer.account_id
+          WHERE source.tenant_id=tax.tenant_id AND source.valuation_id=tax.valuation_id
+            AND account.role='revenue') AS source_revenue_accounts,
+        (SELECT count(DISTINCT route.credit_account_id)::integer FROM public.tax_semantic_route mapping
+          JOIN public.tx_code_route route ON route.tenant_id=mapping.tenant_id
+            AND route.property_node=mapping.property_node AND route.currency=mapping.currency
+            AND route.tx_code=mapping.tx_code
+          JOIN public.account account ON account.tenant_id=route.tenant_id AND account.id=route.credit_account_id
+          WHERE mapping.tenant_id=tax.tenant_id AND mapping.property_node=origin.property_node
+            AND mapping.currency='INR' AND mapping.jurisdiction_extension_id=tax.selected_extension_id
+            AND mapping.semantic_kind='tax' AND account.role='tax_payable'
+            AND lower(mapping.semantic_code) IN (SELECT DISTINCT component.component_identity
+              FROM public.india_gst_accommodation_final_component_tax_component component
+              WHERE component.tenant_id=tax.tenant_id AND component.tax_id=tax.id)) AS routed_payable_accounts
+      FROM public.india_gst_native_fiscal_document_origin origin
+      JOIN public.document document ON document.tenant_id=origin.tenant_id AND document.id=origin.document_id
+      JOIN public.india_gst_native_invoice_timing timing
+        ON timing.tenant_id=origin.tenant_id AND timing.id=origin.native_timing_id
+      JOIN public.india_gst_accommodation_final_component_tax tax
+        ON tax.tenant_id=timing.tenant_id AND tax.id=timing.tax_id
+      JOIN public.india_gst_accommodation_final_component_tax_journal_binding binding
+        ON binding.tenant_id=timing.tenant_id AND binding.id=timing.accounting_binding_id
+      WHERE origin.tenant_id=${candidate.fixture.tenant}::uuid AND origin.document_id=${issued.documentId}::uuid`;
+      expect(result).toEqual({ document_id: issued.documentId, document_number: issued.docNo,
+        series_id: candidate.series.seriesId, origin_folio: candidate.fixture.folio,
+        origin_reservation: candidate.fixture.reservation, tax_journal_id: expect.any(String), tax_journal_lines: 4,
+        source_count: 500, night_count: 366, component_count: 732,
+        transaction_value: "3660000", tax: "183000", total: "3843000",
+        guest_after: "3843000", revenue_after: "-3660000", payable_after: "183000",
+        tax_journal_balance: "0",
+        exact_account_ids: [candidate.fixture.guestAccount, ...candidate.fixture.revenueAccounts,
+          ...candidate.payableIds].sort(),
+        source_guest_accounts: 1, source_revenue_accounts: 500, routed_payable_accounts: 2 });
+    });
+    await stage("replay", async () => {
+      const replay = await command.execute(replayRequest(candidate.request));
+      expect(replay).toEqual({ ...issued, replayed: true });
+    });
+    await stage("final census", async () => {
+      expect(await candidateCensus(deploy, candidate.fixture.tenant, candidate.series.seriesId)).toEqual(afterIssue);
+    });
+  }, 300_000);
 
   test("rejects a one-minor valuation that cannot match the immutable fully-attributed payment root", async () => {
     const candidate = await createNativeIssuanceFixture(deploy, runtime, {

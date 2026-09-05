@@ -51,7 +51,8 @@ DECLARE
   v_source_body json;v_source json;v_source_preimage json;v_source_hash text;
   v_predecessors json;v_accounts json;v_roots json;v_sources json;v_nights json;v_components json;v_lines json;
   v_item record;v_irp json;v_compat_irp json;v_lineage json;v_component_lineage json;
-  v_items json:='[]'::json;v_compat_items json:='[]'::json;v_item_count integer:=0;
+  v_items json:='[]'::json;v_compat_items json:='[]'::json;
+  v_item_texts text[]:='{}'::text[];v_compat_item_texts text[]:='{}'::text[];v_item_count integer:=0;
   v_tax_component bigint;v_state_component bigint;v_total bigint;
   v_supply_body json;v_supply_hash text;v_transaction_payload json;v_transaction_body json;v_transaction_hash text;
   v_party_payload json;v_party_body json;v_party_hash text;
@@ -389,17 +390,17 @@ BEGIN
     v_lineage:=pg_catalog.json_build_object('roomNightOrdinal',v_item.ordinal::text,
       'businessDate',v_item.business_date::text,'sourceEvidenceHash',v_source_hash,
       'componentFamily',v_family,'components',v_component_lineage);
-    v_items:=(pg_catalog.left(public.india_native_insertion_json(v_items),-1)
-      ||CASE WHEN v_item_count=0 THEN '' ELSE ',' END
-      ||public.india_native_insertion_json(pg_catalog.json_build_object('irp',v_irp,'lineage',v_lineage))||']')::json;
-    v_compat_items:=(pg_catalog.left(public.india_native_insertion_json(v_compat_items),-1)
-      ||CASE WHEN v_item_count=0 THEN '' ELSE ',' END
-      ||public.india_native_insertion_json(pg_catalog.json_build_object('irp',v_compat_irp,'lineage',v_lineage))||']')::json;
+    v_item_texts:=pg_catalog.array_append(v_item_texts,
+      public.india_native_insertion_json(pg_catalog.json_build_object('irp',v_irp,'lineage',v_lineage)));
+    v_compat_item_texts:=pg_catalog.array_append(v_compat_item_texts,
+      public.india_native_insertion_json(pg_catalog.json_build_object('irp',v_compat_irp,'lineage',v_lineage)));
     v_item_count:=v_item_count+1;
   END LOOP;
   IF v_item_count NOT BETWEEN 1 AND 366 THEN
     RAISE EXCEPTION USING ERRCODE='55000',MESSAGE='native completion item set is incomplete';
   END IF;
+  v_items:=('['||pg_catalog.array_to_string(v_item_texts,',')||']')::json;
+  v_compat_items:=('['||pg_catalog.array_to_string(v_compat_item_texts,',')||']')::json;
   v_item_body:=pg_catalog.json_build_object('state','eligible_irp_accommodation_room_night_item_candidates',
     'supplyTypeCode','B2B','currency','INR','items',v_items,'sourceEvidenceHash',v_source_hash);
   v_item_hash:=public.india_native_completion_json_hash(pg_catalog.json_build_object('tenantId',p_tenant,
@@ -835,3 +836,63 @@ ALTER FUNCTION public.create_approval_request_with_options(uuid,uuid,uuid,uuid,t
   OWNER TO yellow_owner;
 REVOKE ALL ON FUNCTION public.create_approval_request_with_options(uuid,uuid,uuid,uuid,text,text,uuid,jsonb,timestamptz)
   FROM PUBLIC,app_role,yellow_runtime;
+
+-- D1369: forward replacement; the installed0075 trigger and its timing stay intact.
+-- Read the complete allocation set once per comparison, not once per source/night.
+CREATE OR REPLACE FUNCTION public.assert_native_valuation_conservation()
+RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER
+SET search_path=pg_catalog,public AS $$
+DECLARE v_weights bigint[]; v_count integer;
+BEGIN
+  IF NEW.basis_kind<>'native_consideration' THEN RETURN NULL; END IF;
+  PERFORM pg_catalog.set_config('app.tenant_id',NEW.tenant_id::text,true);
+  IF (SELECT pg_catalog.count(*) FROM public.india_gst_accommodation_valuation_source s
+      WHERE s.tenant_id=NEW.tenant_id AND s.valuation_id=NEW.id)<>NEW.native_source_count
+    OR (SELECT pg_catalog.sum(s.current_amount_minor::numeric)
+      FROM public.india_gst_accommodation_valuation_source s
+      WHERE s.tenant_id=NEW.tenant_id AND s.valuation_id=NEW.id) IS DISTINCT FROM NEW.transaction_value_minor::numeric
+    OR (SELECT pg_catalog.sum(n.transaction_value_minor::numeric)
+      FROM public.india_gst_accommodation_valuation_room_night n
+      WHERE n.tenant_id=NEW.tenant_id AND n.valuation_id=NEW.id) IS DISTINCT FROM NEW.transaction_value_minor::numeric
+    OR EXISTS(SELECT 1 FROM public.india_gst_accommodation_valuation_source s
+      WHERE s.tenant_id=NEW.tenant_id AND s.valuation_id=NEW.id
+        AND (s.attested_by<>NEW.actor_id OR s.attested_at<>NEW.recorded_at)) THEN
+    RAISE EXCEPTION USING ERRCODE='55000',MESSAGE='native valuation source conservation or actor binding failed';
+  END IF;
+  SELECT pg_catalog.count(*),pg_catalog.array_agg(n.quoted_weight_minor ORDER BY n.ordinal)
+    INTO v_count,v_weights FROM public.india_gst_accommodation_valuation_room_night n
+    WHERE n.tenant_id=NEW.tenant_id AND n.valuation_id=NEW.id;
+  IF v_count<>NEW.native_room_night_count OR EXISTS(
+    WITH totals AS MATERIALIZED (
+      SELECT a.ordinal,pg_catalog.sum(a.amount_minor::numeric) AS amount
+      FROM public.india_gst_accommodation_valuation_allocation a
+      WHERE a.tenant_id=NEW.tenant_id AND a.valuation_id=NEW.id GROUP BY a.ordinal
+    )
+    SELECT 1 FROM public.india_gst_accommodation_valuation_room_night n
+    LEFT JOIN totals a ON a.ordinal=n.ordinal
+    WHERE n.tenant_id=NEW.tenant_id AND n.valuation_id=NEW.id
+      AND (n.ordinal>=v_count OR n.transaction_value_minor IS NULL OR n.transaction_value_minor<=0
+        OR n.transaction_value_minor::numeric IS DISTINCT FROM COALESCE(a.amount,0))
+  ) THEN RAISE EXCEPTION USING ERRCODE='55000',MESSAGE='native valuation room-night conservation failed'; END IF;
+  IF EXISTS(
+    WITH expected AS MATERIALIZED (
+      SELECT s.posting_root_id,(allocation.ordinal-1)::integer AS ordinal,allocation.amount
+      FROM public.india_gst_accommodation_valuation_source s
+      CROSS JOIN LATERAL pg_catalog.unnest(
+        public.india_native_signed_allocations(s.current_amount_minor,v_weights)
+      ) WITH ORDINALITY allocation(amount,ordinal)
+      WHERE s.tenant_id=NEW.tenant_id AND s.valuation_id=NEW.id
+    ), actual AS MATERIALIZED (
+      SELECT a.posting_root_id,a.ordinal,a.amount_minor AS amount
+      FROM public.india_gst_accommodation_valuation_allocation a
+      WHERE a.tenant_id=NEW.tenant_id AND a.valuation_id=NEW.id
+    )
+    SELECT 1 FROM expected e FULL JOIN actual a
+      ON a.posting_root_id=e.posting_root_id AND a.ordinal=e.ordinal
+    WHERE COALESCE(a.amount,0) IS DISTINCT FROM e.amount
+  ) THEN RAISE EXCEPTION USING ERRCODE='55000',MESSAGE='native valuation signed-largest-remainder proof failed'; END IF;
+  RETURN NULL;
+END;
+$$;
+ALTER FUNCTION public.assert_native_valuation_conservation() OWNER TO yellow_owner;
+REVOKE ALL ON FUNCTION public.assert_native_valuation_conservation() FROM PUBLIC,app_role,yellow_runtime;

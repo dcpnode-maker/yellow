@@ -779,7 +779,7 @@ DECLARE
   v_approval public.approval_request%ROWTYPE;v_reservation public.reservation%ROWTYPE;
   v_intake jsonb;v_closure jsonb;v_ordinary jsonb;v_request_sources jsonb:='[]'::jsonb;
   v_sources jsonb:='[]'::jsonb;v_nights jsonb:='[]'::jsonb;v_tuple jsonb;v_basis jsonb;
-  v_weights bigint[]:='{}'::bigint[];v_allocation bigint[];v_actual bigint[];
+  v_weights bigint[]:='{}'::bigint[];v_allocation bigint[];
   v_night_totals numeric[];v_dates date[]:='{}'::date[];v_ids uuid[]:='{}'::uuid[];
   v_candidates uuid[];v_group_party uuid;v_account_party uuid;
   v_relationship_hash text;v_request_hash text;v_approval_basis_hash text;v_approval_hash text;
@@ -846,6 +846,30 @@ BEGIN
       OR v_weight_total::text IS DISTINCT FROM v_intake->'attributionSnapshot'->'evaluation'->>'inputTotalMinor' THEN
     RAISE EXCEPTION USING ERRCODE='55000',MESSAGE='native valuation complete quoted weight total is inconsistent';
   END IF;
+  -- D1369: validate the complete persisted allocation relation once. Sparse zero
+  -- allocations remain equivalent to the old per-source LEFT JOIN, while extra
+  -- rows are visible instead of being silently omitted from the comparison.
+  IF EXISTS(
+    WITH expected AS MATERIALIZED (
+      SELECT allocation_source.posting_root_id,(allocation.ordinal-1)::integer AS ordinal,allocation.amount
+      FROM public.india_gst_accommodation_valuation_source allocation_source
+      CROSS JOIN LATERAL pg_catalog.unnest(
+        public.india_native_signed_allocations(allocation_source.current_amount_minor,v_weights)
+      ) WITH ORDINALITY allocation(amount,ordinal)
+      WHERE allocation_source.tenant_id=p_tenant AND allocation_source.valuation_id=p_valuation
+    ), actual AS MATERIALIZED (
+      SELECT a.posting_root_id,a.ordinal,a.amount_minor AS amount,a.currency,a.basis_kind
+      FROM public.india_gst_accommodation_valuation_allocation a
+      WHERE a.tenant_id=p_tenant AND a.valuation_id=p_valuation
+    )
+    SELECT 1 FROM expected e FULL JOIN actual a
+      ON a.posting_root_id=e.posting_root_id AND a.ordinal=e.ordinal
+    WHERE COALESCE(a.amount,0) IS DISTINCT FROM e.amount
+       OR (a.posting_root_id IS NOT NULL AND (
+         a.currency IS DISTINCT FROM 'INR' OR a.basis_kind IS DISTINCT FROM 'native_consideration'))
+  ) THEN
+    RAISE EXCEPTION USING ERRCODE='55000',MESSAGE='native valuation allocation differs from signed-largest-remainder result';
+  END IF;
   v_night_totals:=pg_catalog.array_fill(0::numeric,ARRAY[v_count]);
   FOR s IN SELECT source.* FROM public.india_gst_accommodation_valuation_source source
       WHERE source.tenant_id=p_tenant AND source.valuation_id=p_valuation ORDER BY source.posting_root_id LOOP
@@ -883,15 +907,6 @@ BEGIN
       RAISE EXCEPTION USING ERRCODE='55000',MESSAGE='native valuation successor reclassified an existing root';
     END IF;
     v_allocation:=public.india_native_signed_allocations(s.current_amount_minor,v_weights);
-    SELECT pg_catalog.array_agg(COALESCE(a.amount_minor,0) ORDER BY night.ordinal) INTO v_actual
-      FROM public.india_gst_accommodation_valuation_room_night night
-      LEFT JOIN public.india_gst_accommodation_valuation_allocation a
-        ON a.tenant_id=night.tenant_id AND a.valuation_id=night.valuation_id AND a.ordinal=night.ordinal
-          AND a.posting_root_id=s.posting_root_id AND a.currency='INR' AND a.basis_kind='native_consideration'
-      WHERE night.tenant_id=p_tenant AND night.valuation_id=p_valuation;
-    IF v_actual IS DISTINCT FROM v_allocation THEN
-      RAISE EXCEPTION USING ERRCODE='55000',MESSAGE='native valuation allocation differs from signed-largest-remainder result';
-    END IF;
     FOR v_j IN 1..v_count LOOP
       v_night_totals[v_j]:=v_night_totals[v_j]+v_allocation[v_j];
       IF v_allocation[v_j]<>0 THEN v_allocation_count:=v_allocation_count+1; END IF;

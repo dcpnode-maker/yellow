@@ -26,8 +26,22 @@ The D1368 checkpoint additionally proves two-night CGST/SGST, CGST/UTGST and
 IGST issuance, sequential correction/transfer/seal winner behavior for positive
 and rounded-zero tax, and real expiring approval request → different-user decision
 → native valuation. The original approval-table INSERT column restrictions remain
-unchanged. These are bounded additions; full first-winner concurrency, remaining
-complete-issuance bounds/rate cases and migration0076 integration remain open.
+unchanged. The later Order434 work adds genuine correction-first and transferred-
+folio issuance, plus an observed concurrent correction waiting behind an invoice
+before COMMIT. A combined 500-root/366-night invoice fixture exercises 183,000 real
+allocations and the exact 503-account source/route set. It exposed repeated database
+scans, repaired forward in the non-runnable0076 fragments without changing0075.
+The final independent completion run passed18/0 with169 assertions in296.83s;
+the maximum case took276788.87ms (fixture40045ms, prefix498ms, issue233912ms,
+exact-result query55ms, replay2214ms, final census9ms). The exact account union is
+identity evidence for one guest,500 revenue and two payable accounts, not a claim
+that503 individual locks were observed. Earlier runs retain their diagnostic value:
+one account-query attempt failed42703, and its corrected successor timed out at
+300002.72ms after16 passes/162 assertions. D1370 made item serialization linear
+without weakening the deadline or assertions; root's final optimized maximum-only
+proof passed1/0 with8 assertions in283.61s.
+These are bounded additions, not full acceptance: remaining simultaneous winner/
+authority schedules, rate/history cases and migration0076 integration remain open.
 This status does not claim IRP completion, Phase 7 completion or a local promotion.
 See [the project map](docs/PROJECT-MAP.md) for the separate development, main, CI
 and runtime evidence states. Older order milestones below retain their historical

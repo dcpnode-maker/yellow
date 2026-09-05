@@ -4,7 +4,7 @@
 **Phase:** 7 · YF-008, YF-009, YF-023
 **Implementation base:** `591ace8` (includes the complete Order432 current-catalogue repair)
 
-**Latest implementation checkpoint:** [Component families, committed winners and actual approval creation](#component-families-committed-winners-and-actual-approval-creation--d1368).
+**Latest implementation work:** [Corrected/transferred source issuance and the combined maximum](#correctedtransferred-source-issuance-and-the-combined-maximum).
 The actual runtime command now commits an ordinary, rounded-zero-tax or genuine
 rate-change invoice from real charge, intake and valuation sources, without
 reposting revenue. Source locks, preparation authentication, accounting and final
@@ -819,6 +819,25 @@ assignment. Do not push over an active CI run. Native Windows tools only while
 WSL Bun crash dumps are recurring; do not start the retained local app or database.
 
 ## Acceptance phases — all must complete for the single outcome
+
+**D1369 performance repair:** the first combined500-source/366-night native
+valuation exceeded the300-second test limit at COMMIT. The existing0076 completion
+fragment may forward-replace `assert_native_valuation_conservation` with a complete
+set-based equivalent before new application valuations run. Keep installed0075,
+the trigger's deferred timing/authority, all source/night/actor checks, signed
+largest-remainder arithmetic and sparse-zero representation unchanged. This is
+not permission to reduce limits, disable constraints, seed derived rows or count
+a timeout as success. Any corresponding preparation scan optimization stays in
+its existing admitted fragment. Record the failed run and execute the same maximum
+case and regressions after repair; full independent acceptance remains outstanding.
+
+**D1370 serialization repair:** the existing completion composer may collect each
+exact insertion-ordered ordinary/compatibility item as text and assemble each JSON
+array once after its unchanged1..366 count guard. The former loop reserialized all
+preceding items on every iteration. No new helper, signature, cache or grant is
+introduced; object/key/item order, scalar lexical forms, hashes and every full
+source/authenticity recheck must remain identical. Stage timing in the maximum test
+is diagnostic only; its300-second limit and substantive assertions remain unchanged.
 
 ### Phase A: persisted original facts and native valuation
 
@@ -1848,3 +1867,83 @@ bounds, additional folio issuance, correction/transfer-first success, simultaneo
 winner and authority schedules, full76 assembly/fresh/upgrade/schema/referee and
 fresh complete Tier3 acceptance. This checkpoint does not add an approval UI/API,
 IRP submission, local promotion, main integration or Phase7/order completion.
+
+## Corrected/transferred source issuance and the combined maximum
+
+The same genuine charge/intake/valuation fixture now supports correction-first
+and transfer-first issuance. The correction case records a stay charge, an erroneous
+one-minor charge and its actual reversal, then consumes all three canonical roots.
+The transfer case opens an additional folio through the existing service and moves
+the real charge through the governed transfer path. Both positive and rounded-zero
+tax cases verify the exact resulting invoice window, financial source identities,
+unchanged consideration revenue, incremental tax and effect-free permanent replay.
+
+A second real runtime connection now races a correction against an invoice held
+after its writes but before COMMIT. The test observes the exact PostgreSQL blocker/
+waiter pair and unchanged externally visible baseline, releases the invoice, then
+requires correction denial with no effects. This proves only that concurrent
+issue-first schedule, not inverse, transfer, seal or authority races.
+
+The dedicated maximum fixture creates 500 real charge journals against distinct
+revenue accounts, 366 room nights and 183,000 signed allocations. It verifies the
+exact canonical-source and semantic-payable-route union (one guest,500 revenue,
+two payable accounts), then issues and permanently replays the real invoice.
+The union assertion is identity evidence, not observation of503 individual locks.
+The financial result is consideration3660000,tax183000,total3843000 minor INR,
+with exactly one incremental balanced four-line tax journal and no extra revenue.
+
+D1369 repair history is retained: the first maximum run exceeded300 seconds at
+valuation COMMIT; replacing repeated conservation scans exposed a second300-second
+timeout in preparation. Each harness had terminated before its exact orphaned
+backend was identified and cancelled; no database restart was used. The preparation
+set comparison then exposed42702 from a PL/pgSQL record/SQL-alias name collision,
+fixed by naming the SQL source alias allocation_source. The unchanged300-second
+test subsequently passed:1 passed/0 failed,8 assertions,272.89 seconds. That time
+includes genuine fixture construction and is not a low-latency benchmark.
+
+The later full-suite maximum execution retained that deadline and every assertion.
+One run first failed42703 after issuance because the strengthened identity query
+referenced a nonexistent timing column. After it was corrected to the actual final-
+tax selected-extension identity, the next run timed out at300002.72ms with16 passes,
+one failure and162 assertions. D1370 replaced quadratic per-item serialization with
+linear serialization; it did not weaken source validation, the deadline or any test
+oracle. Root's optimized maximum-only proof then passed1/0 with8 assertions in
+283.61 seconds.
+
+Both forward functions preserve signed-largest-remainder arithmetic, complete
+source/night/actor conservation and sparse-zero behavior. Preparation additionally
+retains currency/basis validation and all existing lineage, permission, account,
+route and source rechecks. Existing0075 and its DEFERRABLE INITIALLY DEFERRED trigger
+remain unchanged; there is no new runtime capability or runnable migration.
+
+Independent regression on the same isolated database passed22 source cases/263
+assertions and5 concurrent/committed-winner cases/74 assertions. Final independent
+completion passed18/0 with169 assertions in296.83 seconds. The maximum case took
+276788.87ms: fixture setup40045ms, prefix assertions498ms, issuance233912ms,
+exact account/totals query55ms, replay2214ms and final census9ms. It proved all500
+canonical roots, all366 nights,183,000 allocations, tax183000, grand total3843000,
+balanced tax accounting, exact document/origin/binding/series effects and effect-free
+replay. Its exact503-ID union comprises one guest,500 distinct revenue and two
+selected semantic payable accounts; it is readable source/route identity evidence,
+not an assertion that503 individual account locks were observed. The earlier
+correction/transfer checkpoint passed15 completion cases/145 assertions before the
+maximum fixture and forward optimizations were added.
+
+The current complete environment-cleared regression passed1560 tests,1161 explicit
+environment/database skips,0 failures and21543 assertions across2721 tests/479 files
+in79.90 seconds. Skips are not database proof. The immediately prior checkpoint was
+1559/0 with21536 assertions in76.13 seconds; it is retained only as history.
+Typecheck,167 import boundaries,23-package licence policy,audit and diff checks
+also pass. All74 runnable migrations,expected schema and dependency files remain
+unchanged.
+
+Every one of the five temporary proof capabilities was finally revoked. Default-aware
+ACL inspection showed PUBLIC,app_role and yellow_runtime EXECUTE false for all five,
+and zero other database sessions remained. Draft fragments are still not runnable
+migrations: there is no local/main promotion, migration integration or phase/order
+completion in this checkpoint.
+
+Order434 remains active. Remaining work includes further rate/history and invalid-
+bound cases, inverse and other simultaneous winner/authority schedules, full0076
+assembly with fresh/upgrade/schema/referee/legacy proof, and complete Tier3 acceptance.
+No local refresh, main merge, IRP/provider activation or phase completion is claimed.
