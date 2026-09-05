@@ -253,10 +253,11 @@ content. Replay and a losing concurrent contender emit neither pair. Consumers m
 net the named financial posting, but must not infer a cash refund, replacement
 invoice, credit note, tax-return amendment, payment, settlement or submission.
 
-## Order434 native fiscal source events — current development contract
+## Order434 native fiscal source events — merged source contract
 
 These version1 events extend the existing envelope. This section documents the
-current development path, not a released provider or deployment claim. Source
+source path merged through PR83; provider activation and deployment retain separate
+evidence. Source
 recorders derive tenant/property/actor/business date and canonical hashes on the
 trusted boundary. No event accepts guest profiles, card data, caller-selected money
 or a legal body.

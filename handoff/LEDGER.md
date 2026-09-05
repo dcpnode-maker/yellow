@@ -1375,3 +1375,36 @@ Independent non-implementers approved operational candidate bb3b8f933ce344f93254
 2026-09-06 | Order434 | CANONICAL77-DEVELOPMENT-CHECKPOINT-D1374 | Reviewed operational source integrated at96b808d; main5879e2b7 remains the released75 baseline. Q195 maps unchanged approved drafts to76/77, exact five entry grants and derived127-table schema. Migration41/0(233) passed before subsequent pg_dump transport extension; exact revised execution remains required. Independent ordinary4/0/source22/0 after canonical registry prerequisite; accounting25/2 stale expectations repaired, broader rerun pending. Builder ceiling/two-tenant2/0(16), no SQL-overflow claim for fixture rejection. Standing1570/0+1189 explicit skips(21646),type/boundaries168/licences23/audit pass. Windows readiness process crashes remain failures, not green assertions. Development publication and mandatory CI execution only; no reviewable PR/main/local/Order434/Phase7 promotion.
 
 2026-09-06 | Order434 | NATIVE-ACCEPTANCE-CATALOGUE-REPAIR-D1375 | Independent six native files116/0(2350),migration41/0(233),referee11/11,canonical-seed catalogue23/0(65),full native normalized schema exact; consolidated Tier3 no unresolved finding,conditional finalCI. Published6bb7ba6 CI33992123191 4/5green including local launcher; database native/migration/seed/readiness7/7/compatibility89/89 pass then four stale catalogue assertions19/4. Exact added fields/constraints/indexes repaired with permission11/0 unchanged; root and independent23/0 verify. Preserve wrong-seed17/6 and runtime-interferedmigration32/9 failures. Extra external source5/0,correction9/0,transfer10/0;standing1570/0+1189explicit skips(21646),static/licence/audit green. Original contracts/events and canonical phase/current status updated. Next exact corrected-headCI; no main/local/provider/order/phase promotion.
+
+## Order440 — hotel journey study and reviewed schema frontier (2026-09-05)
+
+Root Codex integrates independently researched department journeys,16 synthetic cases,
+14 playable fictional scenarios across16 department views, the workbench contract,
+and current schema/startup guidance. Baseline80 remains immutable; earlier main5879
+was75/125; independently approved PR83 merged92346674 as main443e3826 with77/127.
+CI17833993977811 and post-mergeCI17933994717854 passed all5 jobs; root read main
+DBjob101383330884: catalogue23/23, exactschema,referee11/11, authenticated runtime.
+Image publication33995471357 passed; no connected cloud host is claimed.
+
+Root checks: typecheck, boundaries168files, focusedstatus/setup/release8pass/0fail
+(83assertions), shell/JSsyntax and diff pass. Browser personally completed six-step
+FO→HK→inspection→FO flow; independent reviewer found and re-executed the repaired
+exact-payer outlet scenario and BEO acknowledgements. Actual desktop/phone-layout
+screenshots are preserved. Full source-image comparison remains blocked: no selected
+workbench reference image and attempted cloud source page was policy-denied without
+workaround. User requested a laptop-session handoff and is arranging its connection;
+prepared instructions do not claim dispatch. Exact final-candidate CI and independent
+review/merge are still required for this Order440 change.
+
+Order440 continuation: the founder expands UI/UX benchmarking and asks for naming
+proposals. Six hospitality vendors plus Linear/Carbon/Fluent/W3C inform the scoped
+research and UIUX-DIRECTION. Seven preliminary names are screened; no brand rename,
+domain purchase or third-party asset import occurred. Question196 additionally
+reconciles current local guides, source-contract headings and the app's recorded
+status. Root intentional status test failed0/1 before metadata correction; exact
+snapshot then passed7/0 with2explicit database skips(143assertions). Typecheck exposed
+an omitted434 union literal, which was corrected; final typecheck/boundaries168 and
+combinedstatus/release/setup15/0 with2explicit database skips(226assertions) pass.
+Comparator numeric proof2/2 passes; its cloud page was blocked before load, without
+retry. Founder reports a laptop remote connection, but no callable laptop surface
+appears here; dispatch/execution remain unverified.

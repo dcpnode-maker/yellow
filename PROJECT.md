@@ -21,9 +21,16 @@ modular monolith**. Zero-cost doctrine: runs on free/OSS infrastructure.
 **Current state:** read [docs/PROJECT-STATUS.md](docs/PROJECT-STATUS.md) before using
 a branch, local app or deployment. The immutable 80-table migration is the baseline;
 the runner adds `schema_migration`, and forward migrations expand that catalogue.
+Reviewed `main` at `443e3826b47025106d1829fcbb406ce6302fbbba` has 77 applied
+migrations and 127 public base tables including that ledger. PR83 merged the
+independently approved Order434 source after all five CI jobs passed at
+`92346674c784b552356934e168d60e4b9650497a`. Migration76 adds two tables and
+migration77 adds none. The earlier main5879e2b7 frontier was 75 migrations / 125 tables;
+that is historical release evidence, not today's setup oracle.
 The exact source and migration frontier must come from current release evidence, not
-the historical 81-table Phase-0 count. Deterministic seed, schema drift, health and
-the 11/11 invariant battery remain required gates.
+the historical 81-table Phase-0 count. [SCHEMA-GUIDE](docs/SCHEMA-GUIDE.md) defines
+these scopes and safe inspection. Deterministic seed, schema drift, health and the
+11/11 invariant battery remain required gates.
 
 ## The Ten Invariants (violating any is never acceptable)
 
@@ -102,7 +109,7 @@ invariants 4 or 7; hand-write availability math outside the projection rebuilder
 | Question | File |
 |---|---|
 | What are the rules? | **this file** |
-| What's the data model? | `migrations/0001_init.sql` |
+| What's the data model? | immutable baseline `migrations/0001_init.sql`, ordered `migrations/`, and [schema guide](docs/SCHEMA-GUIDE.md) |
 | What are the API/module contracts? | `docs/CONTRACTS.md` |
 | What state transitions are legal? | `docs/STATE-MACHINES.md` |
 | What events exist? | `docs/EVENTS.md` |

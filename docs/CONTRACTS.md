@@ -3187,7 +3187,7 @@ complete payload, invoice, fiscal document, provider certification or submission
 allocates or issues nothing, persists nothing and exposes no database, API, UI,
 runtime, local or Phase-completion authority.
 
-### India native fiscal invoice issuance (Order434, current development)
+### India native fiscal invoice issuance (Order434, merged source contract)
 
 The executable developer entry is
 [`IssueIndiaNativeFiscalInvoiceCommand.execute(input)`](../src/commands/issue-india-native-fiscal-invoice.ts),

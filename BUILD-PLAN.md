@@ -6,7 +6,7 @@ permit; no worker may silently widen an order. A phase is DONE only when its DoD
 checks pass in CI. Every session starts with the ritual below; no phase may modify
 a prior phase's public surface without a written note in `DECISIONS.log`.
 
-## Current implementation status — 2026-09-06, Order434 after Orders438/439
+## Current implementation status — 2026-09-05, Codex Yellow after PR83
 
 [PROJECT-STATUS](docs/PROJECT-STATUS.md) is the canonical current-state record.
 Orders438/439 form the Codex-owned Phase-7 consolidated operational baseline through
@@ -14,8 +14,10 @@ PR82. Both have independent acceptance at bb3b8f9 and all five required CI jobs 
 including real database invariants and the complete local launcher. Main integration,
 image publication and each deployed runtime retain separate receipts. PR82 has now
 merged as main5879e2b7; its five main CI jobs and image publication succeeded.
-Order434 continues on the integrated development branch with preserved D1373 tests.
-Question195 reserves evidence0076 and completion0077 after immutable containment0075.
+Order434 subsequently passed independent whole-candidate review and all five CI178
+jobs at92346674, then merged through PR83 as main443e3826. Main has77 migrations
+and127 public tables. Question195 preserves the0076/0077 numbering after immutable
+containment0075. The current follow-up is Order440 hotel journeys and design review.
 Historical milestones below preserve the
 evidence available when written and do not compete with PROJECT-STATUS.
 
@@ -24,17 +26,25 @@ Phases 0–3, 5 and 6 are reviewed; Phase 4 is built pending final integration a
 Phase 7 is active; Phases 8–17 remain planned. Definitions, dependencies and the
 founder priority 11 → 13 → 17 below are unchanged.
 
+[Order440](handoff/orders/440-hotel-journeys-and-schema-guide.md) adds the founder's
+cross-department guest/staff journey research to this same Codex task. The
+[workbench contract](docs/design/STAFF-WORKBENCH-SPEC.md),
+[casebook](docs/design/HOTEL-CASEBOOK.md) and [schema guide](docs/SCHEMA-GUIDE.md)
+are current design/acceptance inputs. A 14-case interactive study is locally viewable
+with fictional data; it adds no production department or fiscal authority.
+
 [Order430](handoff/orders/430-india-native-fiscal-invoice-issuance.md) was rejected
 by independent review D1323. [Order434](handoff/orders/434-native-fiscal-source-completion.md)
 implements the first native invoice without an external-invoice prerequisite, with
 persisted provenance, actual-date atomic issuance and no duplicate revenue. D1375
 records independent native116/116, migration41/41, catalogue23/23, exact schema and
-referee11/11. Consolidated Tier-3 has no unresolved finding; approval is conditional
-on green CI for the final corrected catalogue expectations. Issuance is unreleased.
+referee11/11. Consolidated Tier-3 had no unresolved finding; CI33993977811 on
+92346674 satisfied its final condition. PR83 merged the approved source. This does
+not activate an IRP provider or refresh a retained hotel runtime.
 The following checkpoints preserve earlier bounded evidence, not current blockers.
 Earlier bounded independent proof also verifies permanent replay after payment,
 folio and day closure, and 100 distinct invoices sharing one series: 11 passed,
-0 failed,897 assertions. Order434 records the remaining acceptance conditions.
+0 failed,897 assertions. Order434 preserves the dated acceptance history.
 The D1368 checkpoint additionally proves two-night CGST/SGST, CGST/UTGST and
 IGST issuance, sequential correction/transfer/seal winner behavior for positive
 and rounded-zero tax, and real expiring approval request → different-user decision
@@ -69,7 +79,7 @@ covers six unchanged-hash cases plus the final repaired seal case (52 assertions
 The final full suite is1560 passed,1172 explicit database/environment skips,0 failed.
 Those were bounded additions, not full acceptance at D1373. D1375 now closes native
 and migration execution on assembled0076/0077; the actual CI runtime and legacy
-regressions pass. Final corrected-head CI remains the acceptance condition.
+regressions pass. CI178 discharged the final corrected-head condition before PR83 merged.
 This status does not claim IRP completion, Phase 7 completion or a local promotion.
 See [the project map](docs/PROJECT-MAP.md) for the separate development, main, CI
 and runtime evidence states. Older order milestones below retain their historical
@@ -701,12 +711,12 @@ gapless series, Rule-46-valid default/reset, immutable unreclaimed numbers, sepa
 numbered corrections, folio-window/legal-payer invoice splitting, approved integer
 component totals without new residual, property-local issue date and server-owned
 actor authority. Independent review D1323 rejected Order430's incomplete canonical
-provenance authentication. Order434 is the preserved unfinished repair under D1330:
+provenance authentication. Order434 is the independently approved repair under D1330:
 persist the original ordinary/source evidence, remove the external-invoice
 prerequisite, bind the actual issue date and complete graph in one transaction,
 and add only incremental tax accounting before immutable native issuance. The
-repair is implemented with independent native acceptance under D1375; final exact-head
-CI remains required before closure. IRP provider submission, IRN/QR,
+repair passed independent native acceptance under D1375 and exact CI178, then merged
+through PR83 as main443e3826. IRP provider submission, IRN/QR,
 local promotion and Phase7 completion remain separately gated work.
 
 Order240 is ready under D-630. It creates the missing pure canonical positive-origin
@@ -1306,6 +1316,12 @@ inbound message is a no-op.
 
 ## Phase 10 — PWA (seven surfaces, one codebase)
 
+Order440 acceptance input: [guest/staff journeys](docs/design/STAFF-JOURNEYS.md)
+and [workbench contract](docs/design/STAFF-WORKBENCH-SPEC.md). Implement context,
+owner, acknowledgement, evidence time, narrow-screen task focus and explicit
+uncertain outcomes through the existing governed commands. The design study is not
+this phase's exit proof.
+
 Front desk workbench (peek/drawer/workbench tiers, keyboard-first, deep links);
 reports screen (v1 set incl. Security/Vehicles, server-rendered PDF); property setup
 workbench with bulk room create (range+prefix+zero-pad OR pasted list); property
@@ -1321,6 +1337,9 @@ for staff notifications (HK task assigned, arrival alerts) — free, PWA-native,
 works on installed iOS PWAs, replaces any paid push service.
 
 ## Phase 11 — Groups & Blocks
+
+Use Order440 casesYC-09/10 to distinguish contract, live allocation and pickup,
+with explicit commercial-to-operational ownership. BEO execution belongs to Phase17.
 
 reservation_group kinds linked/block/share end-to-end; block_status_def deducts
 config; allotment pickup/release/wash; rooming list bulk import; group billing
@@ -1427,6 +1446,11 @@ exports preserve filters, provenance and rounding · stale/incomplete evidence i
 visible rather than silently imputed.
 
 ## Phase 17 — Events, Outlets and Hotel Interfaces
+
+Order440's [department journeys](docs/design/STAFF-JOURNEYS.md) and
+[casesYC-09–16](docs/design/HOTEL-CASEBOOK.md) define BEO revision acknowledgement,
+production/supply exceptions, outlet reconciliation, spa prerequisites and receiving
+handoffs. These remain design inputs until their domain and integration proofs pass.
 
 Activate existing clean-room Groups/Events/Banquets and Ancillary Operations research
 without duplicating Phase 11. Cover function-space inventory and setup/teardown buffers;
@@ -2157,7 +2181,11 @@ Order412 freezes/hashes them, with no value, query, validation, authority or dat
 change. The repair and live rerun were covered by the independent approval; no document,
 provider, IRP, local, or Phase-7 completion authority is implied.
 
-### Native issuance source history — Order430 rejected; Order434 unfinished
+### Native issuance source history — earlier Order430/434 checkpoints
+
+The following dated checkpoints preserve earlier evidence. Order434 subsequently
+passed full native/migration/Tier-3 proof and CI178 and merged through PR83; see the
+current implementation status above. Earlier open conditions below are historical.
 
 Order430's D1316 legal-body repair was builder-proven under D1321, but fresh independent
 review D1323 rejected its incomplete canonical provenance authentication. Three Order426

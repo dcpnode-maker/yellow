@@ -263,7 +263,7 @@ describe("Order 064 recorded build snapshot", () => {
     expect(PROJECT_BUILD_SNAPSHOT.roadmap.latestBuiltOrder).toBe(438);
     expect(PROJECT_BUILD_SNAPSHOT.review.gate3Debt).toBe(0);
     expect(PROJECT_BUILD_SNAPSHOT.review.state).toBe("built_unverified");
-    expect(PROJECT_BUILD_SNAPSHOT.roadmap.currentOrder).toBe(438);
+    expect(PROJECT_BUILD_SNAPSHOT.roadmap.currentOrder).toBe(440);
     expect(PROJECT_BUILD_SNAPSHOT.roadmap.activePhase).toBe(7);
     expect(PROJECT_BUILD_SNAPSHOT.roadmap.phaseCount).toBe(18);
     expect(reviewCoverage.throughOrder).toBe(91);
@@ -537,7 +537,13 @@ describe("Order 064 recorded build snapshot", () => {
         order: 438,
         state: "independently_approved",
         summary: "Orders 438/439 independently approved the consolidated operational baseline at bb3b8f9. All five CI jobs passed, including real database invariants and the full local launcher; migration 75 contains the unapproved legacy native-fiscal issue capability.",
-        remaining: "Order 434 has substantial bounded invoice/replay and concurrency proof but native issuance remains unreleased pending its full acceptance, 0076/0077 assembly and fresh Tier-3 review. PR82 records final source integration; each local/cloud runtime needs its own serving-revision receipt. No cloud host is connected; Phase 7 is not complete.",
+        remaining: "PR82 records operational source integration. The subsequent Order 434 receipt records native fiscal source approval. Each local/cloud runtime needs its own serving-revision receipt; Phase 7 is not complete.",
+      },
+      {
+        order: 434,
+        state: "independently_approved",
+        summary: "Order 434 passed independent whole-candidate Tier-3 review and all five CI178 jobs at 92346674. PR83 merged it as main443e3826 with 77 migrations and 127 public tables. Post-merge CI179 passed, including catalogue 23/23, exact schema and referee 11/11; immutable image publication also succeeded.",
+        remaining: "IRP provider activation and operator invoice UI remain separate. Order 440 supplies hotel journeys and a fictional design study; it does not release future departments. Each local/cloud runtime still needs its exact serving-revision receipt. No cloud host is connected; Phase 7 is not complete.",
       },
     ]);
     const recordedOrders = PROJECT_BUILD_SNAPSHOT.recordedWork.map(({ order }) => Number(order));
@@ -545,7 +551,7 @@ describe("Order 064 recorded build snapshot", () => {
       126, 127, 148, 154, 155, 156, 160, 161, 162, 163, 164,
       165, 166, 168, 169, 170, 171, 173, 174, 175, 176, 177, 178,
       179, 180, 181, 182, 183, 184, 185, 186, 188, 189,
-      190, 191, 192, 193, 195, 199, 236, 310, 396, 429, 438,
+      190, 191, 192, 193, 195, 199, 236, 310, 396, 429, 438, 434,
     ]);
     expect(recordedOrders).not.toContain(167);
     expect(recordedOrders).not.toContain(172);
