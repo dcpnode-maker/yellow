@@ -788,7 +788,7 @@ databaseDescribe("fresh deployment database acceptance", () => {
       runtimePrivileges: 0,
       policyCount: 1,
       policyUsesNullifContext: true,
-      constraintCount: 18,
+      constraintCount: 19,
       requiredConstraints: 18,
       identityNullsNotDistinct: true,
       tenantLeadingLookup: true,

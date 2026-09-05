@@ -1,6 +1,6 @@
 # Order 432 — PR80 CI portability repair
 
-**Status:** REPAIRED — AWAITING SEVENTEENTH GITHUB CI — D1331
+**Status:** REPAIRED — AWAITING NINETEENTH GITHUB CI — D1335
 **Phase:** Delivery infrastructure
 **Branch:** `phase-7/persisted-india-final-component-tax-evidence`
 **Risk tier:** 1 — test harness and CI portability only
@@ -50,7 +50,9 @@ path, browser launch assumptions and shallow Git history.
   0074 tenant/property/id composite unique constraint, with its identity verified;
 - `tests/database-acceptance.integration.test.ts` only to include existing migration
   0074 and its verified immutable checksum, and align current migration/table/RLS/
-  policy/FORCE-RLS/permission catalogue counts; preserve all schema, grants and runtime checks;
+  policy/FORCE-RLS/permission catalogue counts; preserve all schema, grants and runtime checks.
+  Its supplier-registration total constraint count also includes the existing 0074
+  tenant/property/id unique constraint; keep its original 18-name required subset exact;
 - one existing/new test-only executable/browser helper if needed;
 - focused tests for the helper/launcher behavior;
 - this order, `DECISIONS.log`, and `handoff/LEDGER.md`.
@@ -109,8 +111,6 @@ Root native-Windows focused run: 2 passed, 65 unavailable-DB skips, 0 failed,
 catalogue checks were audited without additional findings. Full GitHub DB proof
 remains required; neither skipped cases nor catalogue repair approve native issuance.
 
-## Excluded operations
-
 Sixteenth run `33933162737` on `591ace8` again passed quality, Windows-state and
 container smoke. Its migration suite exposed the supplier-registration constraint
 count still expecting 18 rather than 19. The additional constraint is the existing
@@ -119,6 +119,21 @@ the assertion now includes it without modifying schema or any substantive role,
 lineage or mutation check. Root reran native Windows focused tests: 2 passed,
 65 unavailable-DB skips, 0 failed, 9 assertions; typecheck passed. Full database
 verification remains pending on the exact newly published commit.
+
+Seventeenth run `33935495750` on `dc407e2` stopped in quality at the historical AI
+heading assertion; Order435 restored that quoted historical label without changing
+the assertion. Eighteenth run `33935898217` on `61dbeea` passed quality, Windows-state
+and container smoke, and progressed through migration proof. Deployment acceptance
+then exposed the sibling supplier constraint count, still 18 rather than 19.
+The earlier catalogue audit had missed this second assertion. It now includes
+0074's existing `property_fiscal_registration_tenant_property_id_uq` without changing
+schema or its original 18 required named constraints. Root inspected the exact
+one-line diff and ran the acceptance suite: 25 explicit unavailable-DB skips,
+0 failed; no local database success is claimed. Typecheck and diff checks pass.
+Full GitHub database proof is still required. PR81's separately green main-only
+CI does not establish PR80's database result or approve native issuance.
+
+## Excluded operations
 
 No production behavior, Phase7 fiscal implementation, schema, database policy,
 runtime/local, `.yellow`, dependency upgrade, merge, force push or historical-proof
