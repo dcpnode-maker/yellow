@@ -4,6 +4,8 @@ import {
   IndiaGstAccommodationQuotedRateApplicabilityService,
   type IndiaGstAccommodationQuotedRateApplicabilityInput,
   type IndiaGstAccommodationQuotedRateApplicabilityResult,
+  type IndiaGstAccommodationNativeQuotedRateApplicabilityInput,
+  type IndiaGstAccommodationNativeQuotedRateApplicabilityResult,
 } from "./india-gst-accommodation-quoted-rate-applicability";
 import { deriveIndiaGstAccommodationComponentRateSlabs } from "./india-gst-accommodation-levy-component-rate-schedule";
 
@@ -12,6 +14,7 @@ const HASH = /^[0-9a-f]{64}$/;
 const INTEGER = /^(?:0|[1-9][0-9]*)$/;
 const MAX = 9223372036854775807n;
 const INPUT_KEYS = ["tenantId", "propertyNode", "reservationId", "folioId", "quotedRateApplicabilityInput"] as const;
+const NATIVE_INPUT_KEYS = ["tenantId", "propertyNode", "reservationId", "folioId", "nativeQuotedRateApplicabilityInput"] as const;
 
 type AnyRecord = Record<string, unknown>;
 type ComponentIdentity = "igst" | "cgst" | "sgst" | "utgst";
@@ -22,6 +25,14 @@ export interface IndiaGstAccommodationFinalComponentTaxInput {
   readonly reservationId: string;
   readonly folioId: string;
   readonly quotedRateApplicabilityInput: IndiaGstAccommodationQuotedRateApplicabilityInput;
+}
+
+export interface IndiaGstAccommodationNativeFinalComponentTaxInput {
+  readonly tenantId: string;
+  readonly propertyNode: string;
+  readonly reservationId: string;
+  readonly folioId: string;
+  readonly nativeQuotedRateApplicabilityInput: IndiaGstAccommodationNativeQuotedRateApplicabilityInput;
 }
 
 interface PersistedValuation {
@@ -36,6 +47,11 @@ interface PersistedRoomNight {
   readonly ordinal: number;
   readonly business_date: string;
   readonly transaction_value_minor: string | null;
+}
+
+interface PersistedNativeValuation extends Omit<PersistedValuation, "order341_evidence_hash"> {
+  readonly native_consideration_basis_hash: string;
+  readonly timing_projection_evidence_hash: string;
 }
 
 export interface IndiaGstAccommodationFinalComponentTaxResult extends Readonly<Record<string, unknown>> {
@@ -66,6 +82,25 @@ export interface IndiaGstAccommodationFinalComponentTaxResult extends Readonly<R
     readonly reservationLineage: string;
     readonly attributionSnapshot: string;
   }>;
+  readonly evidenceHash: string;
+}
+
+export interface IndiaGstAccommodationNativeFinalComponentTaxResult {
+  readonly kind: "native_current_transaction";
+  readonly nativeTimingId: string;
+  readonly valuationId: string;
+  readonly generation: number;
+  readonly rateSelectionKind: IndiaGstAccommodationNativeQuotedRateApplicabilityResult["rateSelection"]["kind"];
+  readonly roomNights: IndiaGstAccommodationFinalComponentTaxResult["roomNights"];
+  readonly taxMinor: string;
+  readonly grandTotalMinor: string;
+  readonly predecessorHashes: Readonly<
+    IndiaGstAccommodationNativeQuotedRateApplicabilityResult["predecessorHashes"] & {
+      readonly finalValuation: string;
+      readonly quotedRateApplicability: string;
+      readonly nativeConsiderationBasis: string;
+    }
+  >;
   readonly evidenceHash: string;
 }
 
@@ -123,7 +158,7 @@ function halfUp(numerator: bigint, denominator: bigint, subject: string): bigint
   return result;
 }
 
-function validateRoomNights(rows: readonly PersistedRoomNight[], replay: IndiaGstAccommodationQuotedRateApplicabilityResult): readonly bigint[] {
+function validateRoomNights(rows: readonly PersistedRoomNight[], replay: Pick<IndiaGstAccommodationQuotedRateApplicabilityResult, "components">): readonly bigint[] {
   if (rows.length === 0 || rows.length !== replay.components.length || rows.length > 366) return fail("final room-night evidence is incomplete");
   const values: bigint[] = [];
   for (const [index, night] of rows.entries()) {
@@ -132,6 +167,23 @@ function validateRoomNights(rows: readonly PersistedRoomNight[], replay: IndiaGs
     values.push(value);
   }
   return Object.freeze(values);
+}
+
+// One component-first integer calculation for both origins. The callers bind
+// distinct provenance; sharing arithmetic must not relabel native rows as legacy.
+function calculateRoomNightTax(
+  quotedNights: IndiaGstAccommodationQuotedRateApplicabilityResult["components"],
+  values: readonly bigint[],
+  slabs: ReturnType<typeof deriveIndiaGstAccommodationComponentRateSlabs>,
+): IndiaGstAccommodationFinalComponentTaxResult["roomNights"] {
+  return Object.freeze(quotedNights.map((component, index) => {
+    const value = values[index]!;
+    const slab = slabs.find((candidate) => candidate.uptoMinor === null || value <= BigInt(candidate.uptoMinor));
+    if (!slab) return fail("final value has no applicable approved GST slab");
+    const components = Object.freeze(slab.components.map((rate) => Object.freeze({ identity: rate.identity, rateBasisPoints: rate.rateBasisPoints, taxMinor: halfUp(value * BigInt(rate.rateBasisPoints), 10_000n, "component tax").toString() })));
+    const tax = components.reduce((sum, rate) => add(sum, BigInt(rate.taxMinor), "room-night tax"), 0n);
+    return Object.freeze({ ordinal: component.ordinal, businessDate: component.businessDate, transactionValueMinor: value.toString(), slab: Object.freeze({ uptoMinor: slab.uptoMinor, aggregateRateBasisPoints: slab.aggregateRateBasisPoints, components }), taxMinor: tax.toString() });
+  }));
 }
 
 function calculate(input: IndiaGstAccommodationFinalComponentTaxInput, replay: IndiaGstAccommodationQuotedRateApplicabilityResult, valuation: PersistedValuation, persistedNights: readonly PersistedRoomNight[]): IndiaGstAccommodationFinalComponentTaxResult {
@@ -150,14 +202,7 @@ function calculate(input: IndiaGstAccommodationFinalComponentTaxInput, replay: I
   if (total !== valuationValue) return fail("room-night values do not reconcile to final valuation");
   const selectedVersion = replay.section14.selectedVersionSide === "predecessor" ? input.quotedRateApplicabilityInput.section14Input.rateVersionPair.predecessor : input.quotedRateApplicabilityInput.section14Input.rateVersionPair.successor;
   const slabs = deriveIndiaGstAccommodationComponentRateSlabs(input.quotedRateApplicabilityInput.componentIdentityResult.componentIdentities, selectedVersion.gstRoomSlabs);
-  const roomNights = Object.freeze(replay.components.map((component, index) => {
-    const value = values[index]!;
-    const slab = slabs.find((candidate) => candidate.uptoMinor === null || value <= BigInt(candidate.uptoMinor));
-    if (!slab) return fail("final value has no applicable approved GST slab");
-    const components = Object.freeze(slab.components.map((rate) => Object.freeze({ identity: rate.identity, rateBasisPoints: rate.rateBasisPoints, taxMinor: halfUp(value * BigInt(rate.rateBasisPoints), 10_000n, "component tax").toString() })));
-    const tax = components.reduce((sum, rate) => add(sum, BigInt(rate.taxMinor), "room-night tax"), 0n);
-    return Object.freeze({ ordinal: component.ordinal, businessDate: component.businessDate, transactionValueMinor: value.toString(), slab: Object.freeze({ uptoMinor: slab.uptoMinor, aggregateRateBasisPoints: slab.aggregateRateBasisPoints, components }), taxMinor: tax.toString() });
-  }));
+  const roomNights = calculateRoomNightTax(replay.components, values, slabs);
   const tax = roomNights.reduce((sum, night) => add(sum, BigInt(night.taxMinor), "valuation tax"), 0n);
   const grand = add(total, tax, "grand total");
   const predecessorHashes = Object.freeze({ finalValuation: valuationHash, quotedRateApplicability: replay.evidenceHash, ...replay.predecessorHashes });
@@ -166,6 +211,87 @@ function calculate(input: IndiaGstAccommodationFinalComponentTaxInput, replay: I
 }
 
 export class IndiaGstAccommodationFinalComponentTaxService {
+  /** Read-only composition inside the dedicated native issue Tx; no tax posting. */
+  async calculateNative(
+    tx: Tx, raw: IndiaGstAccommodationNativeFinalComponentTaxInput,
+  ): Promise<IndiaGstAccommodationNativeFinalComponentTaxResult> {
+    frozen(raw);
+    exact(raw, NATIVE_INPUT_KEYS, "native final component-tax input");
+    const tenant = uuid(raw.tenantId, "tenantId"), property = uuid(raw.propertyNode, "propertyNode"),
+      reservation = uuid(raw.reservationId, "reservationId"), folio = uuid(raw.folioId, "folioId");
+    const input = raw.nativeQuotedRateApplicabilityInput;
+    if (typeof input !== "object" || input === null) return fail("native applicability input is required");
+    if (input.tenantId !== tenant || input.propertyNode !== property
+        || input.reservationId !== reservation || input.folioId !== folio) {
+      return fail("native applicability input scope does not match final valuation scope");
+    }
+    const replay = await new IndiaGstAccommodationQuotedRateApplicabilityService().resolveNative(tx, input);
+    const timing = input.nativeInvoiceSourceInput.nativeTiming;
+    const nativeTimingId = uuid(timing.nativeTimingId, "native timing id");
+    const rows = await tx<PersistedNativeValuation[]>`
+      SELECT v.id::text AS valuation_id,v.generation,v.transaction_value_minor::text,
+        v.evidence_hash,v.native_consideration_basis_hash,t.evidence_hash AS timing_projection_evidence_hash
+      FROM india_gst_native_invoice_timing t
+      JOIN india_gst_accommodation_final_valuation v ON v.tenant_id=t.tenant_id AND v.id=t.valuation_id
+        AND v.generation=t.valuation_generation AND v.evidence_hash=t.valuation_evidence_hash
+        AND v.native_consideration_basis_hash=t.native_consideration_basis_hash
+        AND v.property_node=t.property_node AND v.reservation_id=t.reservation_id
+        AND v.folio_id=t.folio_id AND v.buyer_party_id=t.buyer_party_id
+        AND v.native_service_provision_snapshot_id=t.service_provision_snapshot_id
+        AND v.native_lineage_id=t.reservation_lineage_id
+      WHERE t.tenant_id=${tenant}::uuid
+        AND t.tenant_id=NULLIF(current_setting('app.tenant_id',true),'')::uuid
+        AND t.id=${nativeTimingId}::uuid AND t.property_node=${property}::uuid
+        AND t.reservation_id=${reservation}::uuid AND t.folio_id=${folio}::uuid
+        AND t.reservation_lineage_id=${input.reservationLineageId}::uuid
+        AND t.prospective_document_id=${timing.prospectiveDocumentId}::uuid
+        AND t.issuing_transaction_id=pg_current_xact_id()
+        AND t.transaction_timestamp=transaction_timestamp()
+        AND t.invoice_issue_date=(transaction_timestamp() AT TIME ZONE t.property_timezone)::date
+        AND v.basis_kind='native_consideration' AND v.order341_evidence_hash IS NULL
+        AND v.disposition='ordinary_final' AND v.currency='INR' AND v.transaction_value_minor>0
+        AND NOT EXISTS(SELECT 1 FROM india_gst_accommodation_final_valuation next
+          WHERE next.tenant_id=v.tenant_id AND next.supersedes_valuation_id=v.id)
+    `;
+    if (rows.length !== 1) return fail("one current native valuation bound to this issuing transaction is required");
+    const valuation = rows[0]!;
+    const valuationId = uuid(valuation.valuation_id, "native valuation id");
+    if (!Number.isSafeInteger(valuation.generation) || valuation.generation < 0) return fail("native valuation generation is invalid");
+    if (hash(valuation.timing_projection_evidence_hash, "persisted native timing hash") !== timing.evidenceHash) {
+      return fail("native timing projection differs from persisted timing evidence");
+    }
+    const valuationHash = hash(valuation.evidence_hash, "native valuation evidence hash");
+    const basisHash = hash(valuation.native_consideration_basis_hash, "native consideration basis hash");
+    const persistedNights = await tx<PersistedRoomNight[]>`
+      SELECT ordinal,business_date::text,transaction_value_minor::text
+      FROM india_gst_accommodation_valuation_room_night
+      WHERE tenant_id=${tenant}::uuid AND valuation_id=${valuationId}::uuid
+        AND basis_kind='native_consideration'
+      ORDER BY ordinal
+    `;
+    const values = validateRoomNights(persistedNights, replay);
+    const total = values.reduce((sum, value) => add(sum, value, "native valuation total"), 0n);
+    if (total <= 0n || total !== integer(valuation.transaction_value_minor, "native transaction value")) {
+      return fail("native room-night values do not reconcile to recorded consideration");
+    }
+    const slabs = deriveIndiaGstAccommodationComponentRateSlabs(
+      input.componentIdentityResult.componentIdentities, replay.rateSelection.selectedVersion.gstRoomSlabs,
+    );
+    const roomNights = calculateRoomNightTax(replay.components, values, slabs);
+    const tax = roomNights.reduce((sum, night) => add(sum, BigInt(night.taxMinor), "native valuation tax"), 0n);
+    const grand = add(total, tax, "native grand total");
+    if (input.nativeInvoiceSourceInput.paymentReceipt.currency !== "INR"
+        || input.nativeInvoiceSourceInput.paymentReceipt.amountMinor !== grand.toString()) {
+      return fail("native payment evidence does not cover the exact final grand total");
+    }
+    const predecessorHashes = Object.freeze({ finalValuation: valuationHash,
+      quotedRateApplicability: replay.evidenceHash,nativeConsiderationBasis: basisHash,...replay.predecessorHashes });
+    const body = Object.freeze({ kind: "native_current_transaction" as const,nativeTimingId,valuationId,
+      generation: valuation.generation,rateSelectionKind: replay.rateSelection.kind,roomNights,
+      taxMinor: tax.toString(),grandTotalMinor: grand.toString(),predecessorHashes });
+    return Object.freeze({ ...body,evidenceHash: digest({ tenant,property,reservation,folio,...body }) });
+  }
+
   async calculate(tx: Tx, raw: IndiaGstAccommodationFinalComponentTaxInput): Promise<IndiaGstAccommodationFinalComponentTaxResult> {
     frozen(raw);
     exact(raw, INPUT_KEYS, "final component-tax input");

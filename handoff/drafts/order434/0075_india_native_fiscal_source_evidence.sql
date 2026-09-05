@@ -1,7 +1,7 @@
 -- Order434 source-intake expansion (WORK IN PROGRESS).
--- This file is not the complete 0075 candidate: dependent timing and the exact
--- native valuation/applicability/tax/accounting/origin unions must be appended
--- before publication. 0076 must finish the source graph before issue is granted.
+-- Source/valuation and dependent timing/union persistence are a draft checkpoint,
+-- not the complete issuance candidate. 0076 must finish canonical source-graph
+-- authentication, accounting, correction guards and completion before issue is granted.
 -- Preserve every legacy source column, preimage and externally supplied digest.
 REVOKE ALL ON FUNCTION public.commit_india_native_fiscal_invoice(
   uuid,uuid,uuid,uuid,uuid,uuid,text,jsonb,uuid
@@ -1504,3 +1504,732 @@ REVOKE ALL ON FUNCTION public.assert_native_valuation_conservation() FROM PUBLIC
 CREATE CONSTRAINT TRIGGER native_valuation_conservation AFTER INSERT
   ON public.india_gst_accommodation_final_valuation DEFERRABLE INITIALLY DEFERRED
   FOR EACH ROW EXECUTE FUNCTION public.assert_native_valuation_conservation();
+
+-- Order434 Phase B: dependent persistence ONLY. This is not native issuance
+-- authority. The canonical prepare/accounting/commit capabilities and monetary
+-- correction guards remain required in 0076; no new executable entry is granted.
+-- The recorders above already pin UTC/ISO for timestamptz hash serialization.
+-- Pin this private lineage reader independently as well, without changing the
+-- explicit property-local business-date calculation or any external writer.
+ALTER FUNCTION public.lock_india_native_intake_lineage(uuid,uuid,uuid,uuid)
+  SET timezone='UTC';
+ALTER FUNCTION public.lock_india_native_intake_lineage(uuid,uuid,uuid,uuid)
+  SET datestyle='ISO,YMD';
+
+-- As in 0018 and the valuation expansion above, normal validated all-tenant
+-- DDL requires the checked direct deployment session when referenced tables
+-- FORCE RLS. No dummy tenant, NOT VALID constraint, or policy change is used.
+RESET ROLE;
+DO $native_timing_ddl_authority$
+BEGIN
+  IF session_user<>'yellow_deploy' OR current_user<>'yellow_deploy'
+     OR NOT EXISTS(SELECT 1 FROM pg_catalog.pg_roles r
+       WHERE r.rolname='yellow_deploy' AND r.rolcanlogin AND r.rolsuper) THEN
+    RAISE EXCEPTION USING ERRCODE='42501',
+      MESSAGE='native timing constraint validation requires the direct deployment session';
+  END IF;
+  IF EXISTS(SELECT 1 FROM pg_catalog.pg_class c WHERE c.oid=ANY(ARRAY[
+      'public.reservation'::regclass,'public.folio'::regclass,
+      'public.document'::regclass,'public.document_series'::regclass,
+      'public.party_fiscal_registration'::regclass,
+      'public.india_gst_supplier_registration_status_snapshot'::regclass,
+      'public.india_gst_accommodation_service_provision_snapshot'::regclass,
+      'public.india_gst_accommodation_payment_receipt_snapshot'::regclass,
+      'public.india_gst_accommodation_ordinary_regime_evidence'::regclass,
+      'public.india_gst_accommodation_final_valuation'::regclass,
+      'public.india_gst_accommodation_quoted_rate_applicability'::regclass,
+      'public.india_gst_accommodation_final_component_tax'::regclass,
+      'public.india_gst_accommodation_final_component_tax_journal_binding'::regclass,
+      'public.india_gst_native_fiscal_document_origin'::regclass])
+      AND c.relowner<>pg_catalog.to_regrole('yellow_owner')) THEN
+    RAISE EXCEPTION USING ERRCODE='55000',MESSAGE='native timing table ownership is inconsistent';
+  END IF;
+END $native_timing_ddl_authority$;
+
+ALTER TABLE public.reservation ADD CONSTRAINT india_native_reservation_scope_uq
+  UNIQUE (tenant_id,id,property_node);
+ALTER TABLE public.folio ADD CONSTRAINT india_native_folio_identity_uq
+  UNIQUE (tenant_id,id,reservation_id,account_id,window_no);
+ALTER TABLE public.party_fiscal_registration ADD CONSTRAINT india_native_recipient_party_uq
+  UNIQUE (tenant_id,id,party_id);
+ALTER TABLE public.india_gst_supplier_registration_status_snapshot
+  ADD CONSTRAINT india_native_supplier_status_identity_uq
+    UNIQUE (tenant_id,id,supplier_registration_id);
+ALTER TABLE public.document_series ADD CONSTRAINT india_native_series_supplier_uq
+  UNIQUE (tenant_id,id,property_node,supplier_registration_id);
+ALTER TABLE public.document ADD CONSTRAINT india_native_document_timing_uq
+  UNIQUE (tenant_id,id,property_node,series_id,business_date,issued_at);
+ALTER TABLE public.india_gst_accommodation_service_provision_snapshot
+  ADD CONSTRAINT india_native_timing_service_uq UNIQUE
+    (tenant_id,id,property_node,reservation_id,reservation_lineage_id,attribution_id,evidence_hash);
+ALTER TABLE public.india_gst_accommodation_payment_receipt_snapshot
+  ADD CONSTRAINT india_native_timing_payment_uq UNIQUE
+    (tenant_id,id,service_provision_snapshot_id,evidence_hash);
+ALTER TABLE public.india_gst_accommodation_ordinary_regime_evidence
+  ADD CONSTRAINT india_native_timing_ordinary_uq UNIQUE
+    (tenant_id,id,property_node,reservation_id,service_provision_snapshot_id,
+     reservation_lineage_id,attribution_id,service_evidence_hash,evidence_hash);
+ALTER TABLE public.india_gst_accommodation_final_valuation
+  ADD CONSTRAINT india_native_timing_valuation_uq UNIQUE
+    (tenant_id,id,generation,property_node,reservation_id,folio_id,folio_account_id,
+     window_no,buyer_party_id,attribution_id,native_service_provision_snapshot_id,
+     native_lineage_id,native_consideration_basis_hash,evidence_hash);
+
+CREATE TABLE public.india_gst_native_invoice_timing (
+  tenant_id uuid NOT NULL,
+  id uuid NOT NULL DEFAULT pg_catalog.gen_random_uuid(),
+  property_node uuid NOT NULL,
+  reservation_id uuid NOT NULL,
+  folio_id uuid NOT NULL,
+  folio_account_id uuid NOT NULL,
+  window_no smallint NOT NULL CHECK (window_no>0),
+  buyer_party_id uuid NOT NULL,
+  reservation_lineage_id uuid NOT NULL,
+  attribution_id uuid NOT NULL,
+  service_provision_snapshot_id uuid NOT NULL,
+  service_provision_evidence_hash text NOT NULL CHECK (service_provision_evidence_hash ~ '^[0-9a-f]{64}$'),
+  payment_receipt_snapshot_id uuid NOT NULL,
+  payment_receipt_evidence_hash text NOT NULL CHECK (payment_receipt_evidence_hash ~ '^[0-9a-f]{64}$'),
+  ordinary_regime_evidence_id uuid NOT NULL,
+  ordinary_regime_evidence_hash text NOT NULL CHECK (ordinary_regime_evidence_hash ~ '^[0-9a-f]{64}$'),
+  valuation_id uuid NOT NULL,
+  valuation_generation integer NOT NULL CHECK (valuation_generation>=0),
+  valuation_evidence_hash text NOT NULL CHECK (valuation_evidence_hash ~ '^[0-9a-f]{64}$'),
+  native_consideration_basis_hash text NOT NULL CHECK (native_consideration_basis_hash ~ '^[0-9a-f]{64}$'),
+  prospective_document_id uuid NOT NULL,
+  series_id uuid NOT NULL,
+  supplier_registration_id uuid NOT NULL,
+  supplier_registration_status_id uuid NOT NULL,
+  -- This branch is the existing admitted registered-B2B graph, not a new
+  -- universal rule for future B2C/unregistered-recipient document variants.
+  recipient_registration_id uuid NOT NULL,
+  applicability_id uuid NOT NULL,
+  tax_id uuid NOT NULL,
+  accounting_binding_id uuid NOT NULL,
+  issuing_transaction_id xid8 NOT NULL DEFAULT pg_catalog.pg_current_xact_id(),
+  transaction_timestamp timestamptz NOT NULL DEFAULT pg_catalog.transaction_timestamp()
+    CHECK (pg_catalog.isfinite(transaction_timestamp)),
+  property_timezone text NOT NULL CHECK (pg_catalog.length(property_timezone)>0),
+  invoice_issue_date date NOT NULL CHECK (pg_catalog.isfinite(invoice_issue_date)),
+  actor_id uuid NOT NULL,
+  request_id uuid NOT NULL,
+  request_key_hash text NOT NULL CHECK (request_key_hash ~ '^[0-9a-f]{64}$'),
+  request_hash text NOT NULL CHECK (request_hash ~ '^[0-9a-f]{64}$'),
+  evidence_hash text NOT NULL CHECK (evidence_hash ~ '^[0-9a-f]{64}$'),
+  native_source_basis_hash text NOT NULL CHECK (native_source_basis_hash ~ '^[0-9a-f]{64}$'),
+  request_event_seq bigint NOT NULL CHECK (request_event_seq>0),
+  request_event_id uuid NOT NULL,
+  request_event_payload_hash text NOT NULL CHECK (request_event_payload_hash ~ '^[0-9a-f]{64}$'),
+  CONSTRAINT india_native_timing_pk PRIMARY KEY (tenant_id,id),
+  CONSTRAINT india_native_timing_document_uq UNIQUE (tenant_id,prospective_document_id),
+  CONSTRAINT india_native_timing_key_uq UNIQUE (tenant_id,request_key_hash),
+  CONSTRAINT india_native_timing_scope_uq UNIQUE (tenant_id,property_node,reservation_id,folio_id),
+  CONSTRAINT india_native_timing_app_uq UNIQUE (tenant_id,applicability_id),
+  CONSTRAINT india_native_timing_tax_uq UNIQUE (tenant_id,tax_id),
+  CONSTRAINT india_native_timing_binding_uq UNIQUE (tenant_id,accounting_binding_id),
+  CONSTRAINT india_native_timing_event_uq UNIQUE (tenant_id,request_event_seq),
+  CONSTRAINT india_native_timing_event_id_uq UNIQUE (tenant_id,request_event_id),
+  CONSTRAINT india_native_timing_date_ck CHECK
+    (invoice_issue_date=(transaction_timestamp AT TIME ZONE property_timezone)::date),
+  CONSTRAINT india_native_timing_reservation_fk FOREIGN KEY (tenant_id,reservation_id,property_node)
+    REFERENCES public.reservation(tenant_id,id,property_node),
+  CONSTRAINT india_native_timing_folio_fk FOREIGN KEY
+    (tenant_id,folio_id,reservation_id,folio_account_id,window_no)
+    REFERENCES public.folio(tenant_id,id,reservation_id,account_id,window_no),
+  CONSTRAINT india_native_timing_actor_fk FOREIGN KEY (tenant_id,actor_id)
+    REFERENCES public.app_user(tenant_id,id),
+  CONSTRAINT india_native_timing_service_fk FOREIGN KEY
+    (tenant_id,service_provision_snapshot_id,property_node,reservation_id,
+     reservation_lineage_id,attribution_id,service_provision_evidence_hash)
+    REFERENCES public.india_gst_accommodation_service_provision_snapshot
+    (tenant_id,id,property_node,reservation_id,reservation_lineage_id,attribution_id,evidence_hash),
+  CONSTRAINT india_native_timing_payment_fk FOREIGN KEY
+    (tenant_id,payment_receipt_snapshot_id,service_provision_snapshot_id,payment_receipt_evidence_hash)
+    REFERENCES public.india_gst_accommodation_payment_receipt_snapshot
+    (tenant_id,id,service_provision_snapshot_id,evidence_hash),
+  CONSTRAINT india_native_timing_ordinary_fk FOREIGN KEY
+    (tenant_id,ordinary_regime_evidence_id,property_node,reservation_id,
+     service_provision_snapshot_id,reservation_lineage_id,attribution_id,
+     service_provision_evidence_hash,ordinary_regime_evidence_hash)
+    REFERENCES public.india_gst_accommodation_ordinary_regime_evidence
+    (tenant_id,id,property_node,reservation_id,service_provision_snapshot_id,
+     reservation_lineage_id,attribution_id,service_evidence_hash,evidence_hash),
+  CONSTRAINT india_native_timing_valuation_fk FOREIGN KEY
+    (tenant_id,valuation_id,valuation_generation,property_node,reservation_id,folio_id,
+     folio_account_id,window_no,buyer_party_id,attribution_id,service_provision_snapshot_id,
+     reservation_lineage_id,native_consideration_basis_hash,valuation_evidence_hash)
+    REFERENCES public.india_gst_accommodation_final_valuation
+    (tenant_id,id,generation,property_node,reservation_id,folio_id,folio_account_id,
+     window_no,buyer_party_id,attribution_id,native_service_provision_snapshot_id,
+     native_lineage_id,native_consideration_basis_hash,evidence_hash),
+  CONSTRAINT india_native_timing_series_fk FOREIGN KEY
+    (tenant_id,series_id,property_node,supplier_registration_id)
+    REFERENCES public.document_series(tenant_id,id,property_node,supplier_registration_id),
+  CONSTRAINT india_native_timing_supplier_fk FOREIGN KEY (tenant_id,property_node,supplier_registration_id)
+    REFERENCES public.property_fiscal_registration(tenant_id,property_node,id),
+  CONSTRAINT india_native_timing_supplier_status_fk FOREIGN KEY
+    (tenant_id,supplier_registration_status_id,supplier_registration_id)
+    REFERENCES public.india_gst_supplier_registration_status_snapshot(tenant_id,id,supplier_registration_id),
+  CONSTRAINT india_native_timing_recipient_fk FOREIGN KEY (tenant_id,recipient_registration_id,buyer_party_id)
+    REFERENCES public.party_fiscal_registration(tenant_id,id,party_id),
+  CONSTRAINT india_native_timing_document_fk FOREIGN KEY
+    (tenant_id,prospective_document_id,property_node,series_id,invoice_issue_date,transaction_timestamp)
+    REFERENCES public.document(tenant_id,id,property_node,series_id,business_date,issued_at)
+    DEFERRABLE INITIALLY DEFERRED,
+  CONSTRAINT india_native_timing_app_identity_uq UNIQUE
+    (tenant_id,id,applicability_id,property_node,reservation_id,folio_id,valuation_id,
+     reservation_lineage_id,attribution_id,service_provision_snapshot_id,payment_receipt_snapshot_id,
+     ordinary_regime_evidence_id,ordinary_regime_evidence_hash,buyer_party_id,
+     invoice_issue_date,actor_id,request_id,transaction_timestamp,evidence_hash,native_consideration_basis_hash),
+  CONSTRAINT india_native_timing_tax_identity_uq UNIQUE
+    (tenant_id,id,tax_id,applicability_id,valuation_id,valuation_generation,
+     property_node,reservation_id,folio_id,actor_id,request_id,transaction_timestamp,
+     valuation_evidence_hash,evidence_hash,native_consideration_basis_hash),
+  CONSTRAINT india_native_timing_binding_identity_uq UNIQUE
+    (tenant_id,id,accounting_binding_id,tax_id,applicability_id,valuation_id,
+     valuation_generation,property_node,reservation_id,folio_id,folio_account_id,
+     actor_id,invoice_issue_date,transaction_timestamp,native_source_basis_hash,
+     native_consideration_basis_hash,request_event_seq,request_event_id,request_event_payload_hash),
+  CONSTRAINT india_native_timing_origin_identity_uq UNIQUE
+    (tenant_id,id,prospective_document_id,accounting_binding_id,property_node,
+     reservation_id,folio_id,supplier_registration_id,recipient_registration_id,
+     invoice_issue_date,transaction_timestamp,native_source_basis_hash)
+);
+ALTER TABLE public.india_gst_native_invoice_timing OWNER TO yellow_owner;
+ALTER TABLE public.india_gst_native_invoice_timing ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.india_gst_native_invoice_timing FORCE ROW LEVEL SECURITY;
+CREATE POLICY tenant_isolation ON public.india_gst_native_invoice_timing
+  USING (tenant_id=NULLIF(pg_catalog.current_setting('app.tenant_id',true),'')::uuid)
+  WITH CHECK (tenant_id=NULLIF(pg_catalog.current_setting('app.tenant_id',true),'')::uuid);
+REVOKE ALL ON TABLE public.india_gst_native_invoice_timing FROM PUBLIC,app_role,yellow_runtime;
+GRANT SELECT ON TABLE public.india_gst_native_invoice_timing TO app_role;
+
+-- Retain every existing value/hash CHECK and FK. The removed NOT NULL flags
+-- are replaced by the exhaustive branch CHECK; ordinary native is deliberately
+-- absent from the Section14-only columns rather than carrying sentinel values.
+ALTER TABLE public.india_gst_accommodation_quoted_rate_applicability
+  ALTER COLUMN invoice_issue_snapshot_id DROP NOT NULL,
+  ALTER COLUMN section14_case DROP NOT NULL,
+  ALTER COLUMN rate_change_date DROP NOT NULL,
+  ALTER COLUMN selected_version_side DROP NOT NULL,
+  ALTER COLUMN section14_evidence_hash DROP NOT NULL,
+  ADD COLUMN invoice_source_kind text NOT NULL DEFAULT 'external_issued_invoice',
+  ADD COLUMN rate_selection_kind text NOT NULL DEFAULT 'genuine_section14_rate_change',
+  ADD COLUMN valuation_basis_kind text NOT NULL DEFAULT 'external_quoted_applicability',
+  ADD COLUMN native_timing_id uuid,
+  ADD COLUMN native_timing_evidence_hash text,
+  ADD COLUMN ordinary_regime_evidence_id uuid,
+  ADD COLUMN ordinary_regime_evidence_hash text,
+  ADD COLUMN native_consideration_basis_hash text,
+  ADD COLUMN native_rate_selection_evidence_hash text,
+  ADD CONSTRAINT india_native_app_branch_ck CHECK (
+    (invoice_source_kind='external_issued_invoice'
+      AND valuation_basis_kind='external_quoted_applicability'
+      AND rate_selection_kind='genuine_section14_rate_change'
+      AND pg_catalog.num_nonnulls(invoice_issue_snapshot_id,section14_case,rate_change_date,
+        selected_version_side,section14_evidence_hash)=5
+      AND pg_catalog.num_nonnulls(native_timing_id,native_timing_evidence_hash,
+        ordinary_regime_evidence_id,ordinary_regime_evidence_hash,
+        native_consideration_basis_hash,native_rate_selection_evidence_hash)=0)
+    OR (invoice_source_kind='native_current_transaction' AND valuation_basis_kind='native_consideration'
+      AND invoice_issue_snapshot_id IS NULL
+      AND pg_catalog.num_nonnulls(native_timing_id,native_timing_evidence_hash,
+        ordinary_regime_evidence_id,ordinary_regime_evidence_hash,
+        native_consideration_basis_hash,native_rate_selection_evidence_hash)=6
+      AND native_timing_evidence_hash ~ '^[0-9a-f]{64}$'
+      AND ordinary_regime_evidence_hash ~ '^[0-9a-f]{64}$'
+      AND native_consideration_basis_hash ~ '^[0-9a-f]{64}$'
+      AND native_rate_selection_evidence_hash ~ '^[0-9a-f]{64}$'
+      AND ((rate_selection_kind='ordinary_section13_single_version'
+        AND pg_catalog.num_nonnulls(section14_case,rate_change_date,selected_version_side,section14_evidence_hash)=0
+        AND calendar_authority_id IS NULL AND calendar_source_digest_sha256 IS NULL
+        AND calendar_through_date IS NULL AND pg_catalog.cardinality(calendar_dates)=0
+        AND pg_catalog.cardinality(calendar_states)=0)
+      OR (rate_selection_kind='genuine_section14_rate_change'
+        AND pg_catalog.num_nonnulls(section14_case,rate_change_date,selected_version_side,section14_evidence_hash)=4)))
+  ),
+  ADD CONSTRAINT india_native_app_valuation_basis_fk FOREIGN KEY (tenant_id,final_valuation_id,valuation_basis_kind)
+    REFERENCES public.india_gst_accommodation_final_valuation(tenant_id,id,basis_kind),
+  ADD CONSTRAINT india_native_app_timing_fk FOREIGN KEY
+    (tenant_id,native_timing_id,id,property_node,reservation_id,folio_id,final_valuation_id,
+     reservation_lineage_id,attribution_id,service_provision_snapshot_id,payment_receipt_snapshot_id,
+     ordinary_regime_evidence_id,ordinary_regime_evidence_hash,recipient_party_id,
+     invoice_issue_date,actor_id,request_id,recorded_at,native_timing_evidence_hash,native_consideration_basis_hash)
+    REFERENCES public.india_gst_native_invoice_timing
+    (tenant_id,id,applicability_id,property_node,reservation_id,folio_id,valuation_id,
+     reservation_lineage_id,attribution_id,service_provision_snapshot_id,payment_receipt_snapshot_id,
+     ordinary_regime_evidence_id,ordinary_regime_evidence_hash,buyer_party_id,
+     invoice_issue_date,actor_id,request_id,transaction_timestamp,evidence_hash,native_consideration_basis_hash),
+  ADD CONSTRAINT india_native_app_tax_identity_uq UNIQUE
+    (tenant_id,id,invoice_source_kind,rate_selection_kind,valuation_basis_kind,
+     property_node,reservation_id,folio_id,evidence_hash),
+  ADD CONSTRAINT india_native_app_hash_identity_uq UNIQUE
+    (tenant_id,id,native_timing_id,native_timing_evidence_hash,
+     native_rate_selection_evidence_hash,native_consideration_basis_hash),
+  ADD CONSTRAINT india_native_app_timing_identity_uq UNIQUE (tenant_id,id,native_timing_id);
+
+ALTER TABLE public.india_gst_accommodation_final_component_tax
+  ALTER COLUMN section14_evidence_hash DROP NOT NULL,
+  ALTER COLUMN selected_version_side DROP NOT NULL,
+  ADD COLUMN invoice_source_kind text NOT NULL DEFAULT 'external_issued_invoice',
+  ADD COLUMN rate_selection_kind text NOT NULL DEFAULT 'genuine_section14_rate_change',
+  ADD COLUMN valuation_basis_kind text NOT NULL DEFAULT 'external_quoted_applicability',
+  ADD COLUMN native_timing_id uuid,
+  ADD COLUMN native_timing_evidence_hash text,
+  ADD COLUMN native_rate_selection_evidence_hash text,
+  ADD COLUMN native_consideration_basis_hash text,
+  ADD CONSTRAINT india_native_tax_branch_ck CHECK (
+    (invoice_source_kind='external_issued_invoice'
+      AND rate_selection_kind='genuine_section14_rate_change'
+      AND valuation_basis_kind='external_quoted_applicability'
+      AND section14_evidence_hash IS NOT NULL AND selected_version_side IS NOT NULL
+      AND pg_catalog.num_nonnulls(native_timing_id,native_timing_evidence_hash,
+        native_rate_selection_evidence_hash,native_consideration_basis_hash)=0)
+    OR (invoice_source_kind='native_current_transaction' AND valuation_basis_kind='native_consideration'
+      AND pg_catalog.num_nonnulls(native_timing_id,native_timing_evidence_hash,
+        native_rate_selection_evidence_hash,native_consideration_basis_hash)=4
+      AND native_timing_evidence_hash ~ '^[0-9a-f]{64}$'
+      AND native_rate_selection_evidence_hash ~ '^[0-9a-f]{64}$'
+      AND native_consideration_basis_hash ~ '^[0-9a-f]{64}$'
+      AND ((rate_selection_kind='ordinary_section13_single_version'
+        AND section14_evidence_hash IS NULL AND selected_version_side IS NULL)
+      OR (rate_selection_kind='genuine_section14_rate_change'
+        AND section14_evidence_hash IS NOT NULL AND selected_version_side IS NOT NULL)))
+  ),
+  ADD CONSTRAINT india_native_tax_app_branch_fk FOREIGN KEY
+    (tenant_id,applicability_id,invoice_source_kind,rate_selection_kind,valuation_basis_kind,
+     property_node,reservation_id,folio_id,quoted_rate_applicability_evidence_hash)
+    REFERENCES public.india_gst_accommodation_quoted_rate_applicability
+    (tenant_id,id,invoice_source_kind,rate_selection_kind,valuation_basis_kind,
+     property_node,reservation_id,folio_id,evidence_hash),
+  -- Legacy0070 may use a current valuation successor rather than the original
+  -- applicability.final_valuation_id. Preserve that contract: only the native
+  -- timing tuple below requires exact valuation equality across these artifacts.
+  ADD CONSTRAINT india_native_tax_app_hash_fk FOREIGN KEY
+    (tenant_id,applicability_id,native_timing_id,native_timing_evidence_hash,
+     native_rate_selection_evidence_hash,native_consideration_basis_hash)
+    REFERENCES public.india_gst_accommodation_quoted_rate_applicability
+    (tenant_id,id,native_timing_id,native_timing_evidence_hash,
+     native_rate_selection_evidence_hash,native_consideration_basis_hash),
+  ADD CONSTRAINT india_native_tax_valuation_basis_fk FOREIGN KEY (tenant_id,valuation_id,valuation_basis_kind)
+    REFERENCES public.india_gst_accommodation_final_valuation(tenant_id,id,basis_kind),
+  ADD CONSTRAINT india_native_tax_branch_identity_uq UNIQUE (tenant_id,id,invoice_source_kind,rate_selection_kind),
+  ADD CONSTRAINT india_native_tax_source_identity_uq UNIQUE (tenant_id,id,invoice_source_kind),
+  ADD CONSTRAINT india_native_tax_predecessor_branch_fk FOREIGN KEY
+    (tenant_id,supersedes_tax_id,invoice_source_kind,rate_selection_kind)
+    REFERENCES public.india_gst_accommodation_final_component_tax(tenant_id,id,invoice_source_kind,rate_selection_kind),
+  ADD CONSTRAINT india_native_tax_timing_fk FOREIGN KEY
+    (tenant_id,native_timing_id,id,applicability_id,valuation_id,valuation_generation,
+     property_node,reservation_id,folio_id,actor_id,request_id,recorded_at,
+     final_valuation_evidence_hash,native_timing_evidence_hash,native_consideration_basis_hash)
+    REFERENCES public.india_gst_native_invoice_timing
+    (tenant_id,id,tax_id,applicability_id,valuation_id,valuation_generation,
+     property_node,reservation_id,folio_id,actor_id,request_id,transaction_timestamp,
+     valuation_evidence_hash,evidence_hash,native_consideration_basis_hash),
+  ADD CONSTRAINT india_native_tax_amount_identity_uq UNIQUE (tenant_id,id,native_timing_id,tax_minor),
+  ADD CONSTRAINT india_native_tax_timing_identity_uq UNIQUE (tenant_id,id,native_timing_id);
+
+ALTER TABLE public.india_gst_accommodation_final_component_tax_journal_binding
+  ALTER COLUMN journal_id DROP NOT NULL,
+  ADD COLUMN accounting_kind text NOT NULL DEFAULT 'legacy_full_gross',
+  ADD COLUMN invoice_source_kind text NOT NULL DEFAULT 'external_issued_invoice',
+  ADD COLUMN native_timing_id uuid,
+  ADD COLUMN native_source_basis_hash text,
+  ADD COLUMN native_consideration_basis_hash text,
+  ADD COLUMN native_tax_minor bigint,
+  ADD COLUMN request_event_seq bigint,
+  ADD COLUMN request_event_id uuid,
+  ADD COLUMN request_event_payload_hash text,
+  ADD COLUMN native_route_evidence_hash text,
+  ADD COLUMN evidence_hash text,
+  ADD CONSTRAINT india_native_binding_branch_ck CHECK (
+    (accounting_kind='legacy_full_gross' AND invoice_source_kind='external_issued_invoice' AND journal_id IS NOT NULL
+      AND pg_catalog.num_nonnulls(native_timing_id,native_source_basis_hash,native_consideration_basis_hash,
+        native_tax_minor,request_event_seq,request_event_id,request_event_payload_hash,
+        native_route_evidence_hash,evidence_hash)=0)
+    OR (accounting_kind='native_component_tax_delta' AND invoice_source_kind='native_current_transaction'
+      AND pg_catalog.num_nonnulls(native_timing_id,native_source_basis_hash,native_consideration_basis_hash,
+        native_tax_minor,request_event_seq,request_event_id,request_event_payload_hash,
+        native_route_evidence_hash,evidence_hash)=9
+      AND native_source_basis_hash ~ '^[0-9a-f]{64}$'
+      AND native_consideration_basis_hash ~ '^[0-9a-f]{64}$'
+      AND request_event_payload_hash ~ '^[0-9a-f]{64}$'
+      AND native_route_evidence_hash ~ '^[0-9a-f]{64}$' AND evidence_hash ~ '^[0-9a-f]{64}$'
+      AND request_event_seq>0
+      AND ((native_tax_minor=0 AND journal_id IS NULL) OR (native_tax_minor>0 AND journal_id IS NOT NULL)))
+  ),
+  ADD CONSTRAINT india_native_binding_timing_uq UNIQUE (tenant_id,native_timing_id),
+  ADD CONSTRAINT india_native_binding_event_uq UNIQUE (tenant_id,request_event_seq),
+  ADD CONSTRAINT india_native_binding_source_fk FOREIGN KEY (tenant_id,tax_id,invoice_source_kind)
+    REFERENCES public.india_gst_accommodation_final_component_tax(tenant_id,id,invoice_source_kind),
+  ADD CONSTRAINT india_native_binding_amount_fk FOREIGN KEY (tenant_id,tax_id,native_timing_id,native_tax_minor)
+    REFERENCES public.india_gst_accommodation_final_component_tax(tenant_id,id,native_timing_id,tax_minor),
+  ADD CONSTRAINT india_native_binding_timing_fk FOREIGN KEY
+    (tenant_id,native_timing_id,id,tax_id,applicability_id,valuation_id,
+     valuation_generation,property_node,reservation_id,folio_id,guest_account_id,
+     posted_by,business_date,posted_at,native_source_basis_hash,native_consideration_basis_hash,
+     request_event_seq,request_event_id,request_event_payload_hash)
+    REFERENCES public.india_gst_native_invoice_timing
+    (tenant_id,id,accounting_binding_id,tax_id,applicability_id,valuation_id,
+     valuation_generation,property_node,reservation_id,folio_id,folio_account_id,
+     actor_id,invoice_issue_date,transaction_timestamp,native_source_basis_hash,native_consideration_basis_hash,
+     request_event_seq,request_event_id,request_event_payload_hash),
+  ADD CONSTRAINT india_native_binding_identity_uq UNIQUE (tenant_id,id,native_timing_id);
+
+ALTER TABLE public.india_gst_native_fiscal_document_origin
+  ALTER COLUMN source_journal_id DROP NOT NULL,
+  ADD COLUMN source_kind text NOT NULL DEFAULT 'legacy_external_snapshot_graph',
+  ADD COLUMN source_version smallint NOT NULL DEFAULT 1,
+  ADD COLUMN native_timing_id uuid,
+  ADD COLUMN native_accounting_binding_id uuid,
+  ADD COLUMN native_source_basis_hash text,
+  ADD CONSTRAINT india_native_origin_branch_ck CHECK (
+    (source_kind='legacy_external_snapshot_graph' AND source_version=1 AND source_journal_id IS NOT NULL
+      AND pg_catalog.num_nonnulls(native_timing_id,native_accounting_binding_id,native_source_basis_hash)=0)
+    OR (source_kind='native_current_transaction_graph' AND source_version=2
+      AND pg_catalog.num_nonnulls(native_timing_id,native_accounting_binding_id,native_source_basis_hash)=3
+      AND native_source_basis_hash ~ '^[0-9a-f]{64}$')
+  ),
+  ADD CONSTRAINT india_native_origin_timing_uq UNIQUE (tenant_id,native_timing_id),
+  ADD CONSTRAINT india_native_origin_timing_fk FOREIGN KEY
+    (tenant_id,native_timing_id,document_id,native_accounting_binding_id,property_node,
+     reservation_id,folio_id,supplier_registration_id,recipient_registration_id,
+     issue_date,created_at,native_source_basis_hash)
+    REFERENCES public.india_gst_native_invoice_timing
+    (tenant_id,id,prospective_document_id,accounting_binding_id,property_node,
+     reservation_id,folio_id,supplier_registration_id,recipient_registration_id,
+     invoice_issue_date,transaction_timestamp,native_source_basis_hash),
+  ADD CONSTRAINT india_native_origin_binding_fk FOREIGN KEY (tenant_id,native_accounting_binding_id,native_timing_id)
+    REFERENCES public.india_gst_accommodation_final_component_tax_journal_binding(tenant_id,id,native_timing_id);
+
+-- All three cyclic links are initially deferred: preparation cannot commit
+-- without these exact artifacts, but its single INSERT precedes their creation.
+ALTER TABLE public.india_gst_native_invoice_timing
+  ADD CONSTRAINT india_native_timing_app_fk FOREIGN KEY (tenant_id,applicability_id,id)
+    REFERENCES public.india_gst_accommodation_quoted_rate_applicability(tenant_id,id,native_timing_id)
+    DEFERRABLE INITIALLY DEFERRED,
+  ADD CONSTRAINT india_native_timing_tax_fk FOREIGN KEY (tenant_id,tax_id,id)
+    REFERENCES public.india_gst_accommodation_final_component_tax(tenant_id,id,native_timing_id)
+    DEFERRABLE INITIALLY DEFERRED,
+  ADD CONSTRAINT india_native_timing_binding_fk FOREIGN KEY (tenant_id,accounting_binding_id,id)
+    REFERENCES public.india_gst_accommodation_final_component_tax_journal_binding(tenant_id,id,native_timing_id)
+    DEFERRABLE INITIALLY DEFERRED;
+SET LOCAL ROLE yellow_owner;
+
+CREATE FUNCTION public.guard_india_native_timing_insert()
+RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER
+SET search_path=pg_catalog,public SET timezone='UTC' SET datestyle='ISO,YMD' AS $$
+DECLARE v_timezone text; v_previous_tenant text:=pg_catalog.current_setting('app.tenant_id',true);
+BEGIN
+  -- The trigger's actual row supplies RLS scope, not caller authorization.
+  -- Use 0074's runtime row-bound set_config pattern, not CREATE FUNCTION SET
+  -- on an unregistered custom parameter. Restore the entry value on every exit;
+  -- NULL resets an originally absent setting. No parameter privilege is added.
+  PERFORM pg_catalog.set_config('app.tenant_id',NEW.tenant_id::text,true);
+  SELECT p.timezone INTO v_timezone FROM public.org_node p
+    WHERE p.tenant_id=NEW.tenant_id AND p.id=NEW.property_node AND p.kind='property';
+  IF NOT FOUND OR v_timezone IS NULL
+     OR NEW.issuing_transaction_id IS DISTINCT FROM pg_catalog.pg_current_xact_id()
+     OR NEW.transaction_timestamp IS DISTINCT FROM pg_catalog.transaction_timestamp()
+     OR NEW.property_timezone IS DISTINCT FROM v_timezone
+     OR NEW.invoice_issue_date IS DISTINCT FROM
+       (pg_catalog.transaction_timestamp() AT TIME ZONE v_timezone)::date THEN
+    RAISE EXCEPTION USING ERRCODE='55000',MESSAGE='native timing requires this transaction and the actual property-local clock';
+  END IF;
+  -- Native valuation is a previously committed source, not an earlier publishing
+  -- write in the dedicated issuance transaction. FK validation supplies scope.
+  IF NOT EXISTS(SELECT 1 FROM public.india_gst_accommodation_final_valuation v
+      WHERE v.tenant_id=NEW.tenant_id AND v.id=NEW.valuation_id
+        AND v.basis_kind='native_consideration'
+        AND v.native_recording_xid<>NEW.issuing_transaction_id
+        AND v.recorded_at<=NEW.transaction_timestamp) THEN
+    RAISE EXCEPTION USING ERRCODE='55000',MESSAGE='native timing requires previously recorded native valuation';
+  END IF;
+  PERFORM pg_catalog.set_config('app.tenant_id',v_previous_tenant,true);
+  RETURN NEW;
+EXCEPTION WHEN OTHERS THEN
+  PERFORM pg_catalog.set_config('app.tenant_id',v_previous_tenant,true);
+  RAISE;
+END;
+$$;
+ALTER FUNCTION public.guard_india_native_timing_insert() OWNER TO yellow_owner;
+REVOKE ALL ON FUNCTION public.guard_india_native_timing_insert() FROM PUBLIC,app_role,yellow_runtime;
+CREATE TRIGGER india_native_timing_actual_clock BEFORE INSERT
+  ON public.india_gst_native_invoice_timing FOR EACH ROW
+  EXECUTE FUNCTION public.guard_india_native_timing_insert();
+CREATE TRIGGER india_native_timing_immutable BEFORE UPDATE OR DELETE
+  ON public.india_gst_native_invoice_timing FOR EACH ROW
+  EXECUTE FUNCTION public.prevent_india_native_intake_mutation();
+
+-- Native aggregate children may be inserted only in their preparation's actual
+-- transaction. Legacy aggregate/child behavior is unchanged. These guards take
+-- no new resource locks: 0076 must obtain the full ordered prefix before D99.
+CREATE FUNCTION public.guard_india_native_dependent_artifact()
+RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER
+SET search_path=pg_catalog,public SET timezone='UTC' SET datestyle='ISO,YMD' AS $$
+DECLARE v_old_timing uuid; v_new_timing uuid; v_tenant uuid;
+  v_previous_tenant text:=pg_catalog.current_setting('app.tenant_id',true);
+BEGIN
+  IF TG_TABLE_NAME IN ('india_gst_accommodation_quoted_rate_applicability',
+      'india_gst_accommodation_final_component_tax',
+      'india_gst_accommodation_final_component_tax_journal_binding',
+      'india_gst_native_fiscal_document_origin') THEN
+    IF TG_OP<>'INSERT' THEN v_old_timing:=OLD.native_timing_id; END IF;
+    IF TG_OP<>'DELETE' THEN v_new_timing:=NEW.native_timing_id; v_tenant:=NEW.tenant_id; END IF;
+  ELSIF TG_TABLE_NAME IN ('india_gst_accommodation_quoted_rate_applicability_room_night',
+      'india_gst_accommodation_quoted_rate_component') THEN
+    IF TG_OP<>'INSERT' THEN
+      PERFORM pg_catalog.set_config('app.tenant_id',OLD.tenant_id::text,true);
+      SELECT a.native_timing_id INTO v_old_timing
+        FROM public.india_gst_accommodation_quoted_rate_applicability a
+        WHERE a.tenant_id=OLD.tenant_id AND a.id=OLD.applicability_id;
+    END IF;
+    IF TG_OP<>'DELETE' THEN
+      PERFORM pg_catalog.set_config('app.tenant_id',NEW.tenant_id::text,true);
+      SELECT a.native_timing_id INTO v_new_timing
+        FROM public.india_gst_accommodation_quoted_rate_applicability a
+        WHERE a.tenant_id=NEW.tenant_id AND a.id=NEW.applicability_id;
+      v_tenant:=NEW.tenant_id;
+    END IF;
+  ELSIF TG_TABLE_NAME IN ('india_gst_accommodation_final_component_tax_room_night',
+      'india_gst_accommodation_final_component_tax_component') THEN
+    IF TG_OP<>'INSERT' THEN
+      PERFORM pg_catalog.set_config('app.tenant_id',OLD.tenant_id::text,true);
+      SELECT t.native_timing_id INTO v_old_timing
+        FROM public.india_gst_accommodation_final_component_tax t
+        WHERE t.tenant_id=OLD.tenant_id AND t.id=OLD.tax_id;
+    END IF;
+    IF TG_OP<>'DELETE' THEN
+      PERFORM pg_catalog.set_config('app.tenant_id',NEW.tenant_id::text,true);
+      SELECT t.native_timing_id INTO v_new_timing
+        FROM public.india_gst_accommodation_final_component_tax t
+        WHERE t.tenant_id=NEW.tenant_id AND t.id=NEW.tax_id;
+      v_tenant:=NEW.tenant_id;
+    END IF;
+  ELSE
+    RAISE EXCEPTION USING ERRCODE='55000',MESSAGE='unsupported native dependent artifact table';
+  END IF;
+  IF TG_OP<>'INSERT' AND (v_old_timing IS NOT NULL OR v_new_timing IS NOT NULL) THEN
+    RAISE EXCEPTION USING ERRCODE='55000',MESSAGE='native fiscal dependent evidence is immutable';
+  END IF;
+  IF TG_OP='INSERT' AND v_new_timing IS NOT NULL THEN
+    PERFORM pg_catalog.set_config('app.tenant_id',v_tenant::text,true);
+    IF NOT EXISTS(SELECT 1 FROM public.india_gst_native_invoice_timing n
+        WHERE n.tenant_id=v_tenant AND n.id=v_new_timing
+          AND n.issuing_transaction_id=pg_catalog.pg_current_xact_id()
+          AND n.transaction_timestamp=pg_catalog.transaction_timestamp()) THEN
+      RAISE EXCEPTION USING ERRCODE='55000',MESSAGE='native fiscal artifact requires its preparing transaction';
+    END IF;
+  END IF;
+  PERFORM pg_catalog.set_config('app.tenant_id',v_previous_tenant,true);
+  IF TG_OP='DELETE' THEN RETURN OLD; END IF;
+  RETURN NEW;
+EXCEPTION WHEN OTHERS THEN
+  PERFORM pg_catalog.set_config('app.tenant_id',v_previous_tenant,true);
+  RAISE;
+END;
+$$;
+ALTER FUNCTION public.guard_india_native_dependent_artifact() OWNER TO yellow_owner;
+REVOKE ALL ON FUNCTION public.guard_india_native_dependent_artifact() FROM PUBLIC,app_role,yellow_runtime;
+DO $native_dependent_guards$
+DECLARE t text; short_name text;
+BEGIN
+  FOR t,short_name IN SELECT * FROM (VALUES
+    ('india_gst_accommodation_quoted_rate_applicability','app'),
+    ('india_gst_accommodation_quoted_rate_applicability_room_night','app_night'),
+    ('india_gst_accommodation_quoted_rate_component','app_component'),
+    ('india_gst_accommodation_final_component_tax','tax'),
+    ('india_gst_accommodation_final_component_tax_room_night','tax_night'),
+    ('india_gst_accommodation_final_component_tax_component','tax_component'),
+    ('india_gst_accommodation_final_component_tax_journal_binding','binding'),
+    ('india_gst_native_fiscal_document_origin','origin')
+  ) names(table_name,short_name) LOOP
+    EXECUTE pg_catalog.format('CREATE TRIGGER %I BEFORE INSERT OR UPDATE OR DELETE ON public.%I
+      FOR EACH ROW EXECUTE FUNCTION public.guard_india_native_dependent_artifact()',
+      'india_native_'||short_name||'_dependent_guard',t);
+  END LOOP;
+END $native_dependent_guards$;
+
+-- Structural completion, NOT canonical source authentication. The future
+-- capabilities must independently reconstruct timing/rate/routing and the
+-- complete 413/426/429 graph before any legal number is allocated. A set of
+-- matching hash columns is not proof of their preimages. This trigger ensures
+-- that no native preparation or child set can commit as an orphan meanwhile.
+CREATE FUNCTION public.assert_india_native_timing_complete()
+RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER
+SET search_path=pg_catalog,public SET timezone='UTC' SET datestyle='ISO,YMD' AS $$
+DECLARE
+  v_previous_tenant text:=pg_catalog.current_setting('app.tenant_id',true);
+  v_app public.india_gst_accommodation_quoted_rate_applicability%ROWTYPE;
+  v_tax public.india_gst_accommodation_final_component_tax%ROWTYPE;
+  v_binding public.india_gst_accommodation_final_component_tax_journal_binding%ROWTYPE;
+  v_origin public.india_gst_native_fiscal_document_origin%ROWTYPE;
+  v_document public.document%ROWTYPE;
+  v_valuation public.india_gst_accommodation_final_valuation%ROWTYPE;
+  v_service public.india_gst_accommodation_service_provision_snapshot%ROWTYPE;
+  v_payment public.india_gst_accommodation_payment_receipt_snapshot%ROWTYPE;
+  v_event public.outbox%ROWTYPE;
+  v_expected_payload jsonb; v_count bigint; v_nights integer; v_identities text[];
+BEGIN
+  PERFORM pg_catalog.set_config('app.tenant_id',NEW.tenant_id::text,true);
+  IF NEW.issuing_transaction_id IS DISTINCT FROM pg_catalog.pg_current_xact_id()
+     OR NEW.transaction_timestamp IS DISTINCT FROM pg_catalog.transaction_timestamp() THEN
+    RAISE EXCEPTION USING ERRCODE='55000',MESSAGE='native timing completion requires its actual preparing transaction';
+  END IF;
+  SELECT * INTO v_app FROM public.india_gst_accommodation_quoted_rate_applicability a
+    WHERE a.tenant_id=NEW.tenant_id AND a.id=NEW.applicability_id AND a.native_timing_id=NEW.id;
+  IF NOT FOUND THEN RAISE EXCEPTION USING ERRCODE='55000',MESSAGE='native preparation lacks exact applicability'; END IF;
+  SELECT * INTO v_tax FROM public.india_gst_accommodation_final_component_tax t
+    WHERE t.tenant_id=NEW.tenant_id AND t.id=NEW.tax_id AND t.native_timing_id=NEW.id;
+  IF NOT FOUND THEN RAISE EXCEPTION USING ERRCODE='55000',MESSAGE='native preparation lacks exact tax'; END IF;
+  SELECT * INTO v_binding FROM public.india_gst_accommodation_final_component_tax_journal_binding b
+    WHERE b.tenant_id=NEW.tenant_id AND b.id=NEW.accounting_binding_id AND b.native_timing_id=NEW.id;
+  IF NOT FOUND THEN RAISE EXCEPTION USING ERRCODE='55000',MESSAGE='native preparation lacks exact accounting binding'; END IF;
+  SELECT * INTO v_origin FROM public.india_gst_native_fiscal_document_origin o
+    WHERE o.tenant_id=NEW.tenant_id AND o.document_id=NEW.prospective_document_id AND o.native_timing_id=NEW.id;
+  IF NOT FOUND THEN RAISE EXCEPTION USING ERRCODE='55000',MESSAGE='native preparation lacks exact document origin'; END IF;
+  SELECT * INTO v_document FROM public.document d
+    WHERE d.tenant_id=NEW.tenant_id AND d.id=NEW.prospective_document_id;
+  IF NOT FOUND OR v_document.kind<>'invoice' OR v_document.status<>'issued'
+     OR v_document.subject_type IS DISTINCT FROM 'folio' OR v_document.subject_id IS DISTINCT FROM NEW.folio_id
+     OR v_document.doc_no IS NULL OR v_document.sha256 IS NULL
+     OR v_document.sha256 !~ '^[0-9a-f]{64}$'
+     OR v_origin.source_journal_id IS DISTINCT FROM v_binding.journal_id THEN
+    RAISE EXCEPTION USING ERRCODE='55000',MESSAGE='native preparation requires its issued document and exact optional tax journal';
+  END IF;
+  IF NOT EXISTS(SELECT 1 FROM public.document_series s
+      WHERE s.tenant_id=NEW.tenant_id AND s.id=NEW.series_id AND s.fiscal AND s.kind='invoice'
+        AND s.financial_year_start=pg_catalog.make_date(
+          pg_catalog.date_part('year',NEW.invoice_issue_date)::integer
+            - CASE WHEN pg_catalog.date_part('month',NEW.invoice_issue_date)<4 THEN 1 ELSE 0 END,4,1)) THEN
+    RAISE EXCEPTION USING ERRCODE='55000',MESSAGE='native document series does not cover its actual fiscal year';
+  END IF;
+  SELECT * INTO v_valuation FROM public.india_gst_accommodation_final_valuation v
+    WHERE v.tenant_id=NEW.tenant_id AND v.id=NEW.valuation_id;
+  SELECT * INTO v_service FROM public.india_gst_accommodation_service_provision_snapshot s
+    WHERE s.tenant_id=NEW.tenant_id AND s.id=NEW.service_provision_snapshot_id;
+  SELECT * INTO v_payment FROM public.india_gst_accommodation_payment_receipt_snapshot p
+    WHERE p.tenant_id=NEW.tenant_id AND p.id=NEW.payment_receipt_snapshot_id;
+  IF v_tax.transaction_value_minor IS DISTINCT FROM v_valuation.transaction_value_minor
+     OR v_tax.grand_total_minor IS DISTINCT FROM v_payment.amount_minor
+     OR v_payment.currency IS DISTINCT FROM 'INR' OR v_service.currency IS DISTINCT FROM 'INR'
+     OR v_app.service_provision_date IS DISTINCT FROM v_service.service_provision_date
+     OR v_tax.component_family IS DISTINCT FROM v_app.component_family
+     OR v_tax.selected_extension_id IS DISTINCT FROM v_app.selected_extension_id
+     OR v_tax.selected_extension_version IS DISTINCT FROM v_app.selected_extension_version
+     OR v_tax.selected_version_side IS DISTINCT FROM v_app.selected_version_side
+     OR v_tax.section14_evidence_hash IS DISTINCT FROM v_app.section14_evidence_hash
+     OR v_tax.levy_component_identity_evidence_hash IS DISTINCT FROM v_app.levy_component_identity_evidence_hash
+     OR v_tax.reservation_lineage_evidence_hash IS DISTINCT FROM v_app.reservation_lineage_evidence_hash
+     OR v_tax.attribution_snapshot_evidence_hash IS DISTINCT FROM v_app.attribution_snapshot_evidence_hash
+     OR (v_app.rate_selection_kind='ordinary_section13_single_version'
+         AND v_app.payment_receipt_date IS DISTINCT FROM v_payment.payment_receipt_date) THEN
+    RAISE EXCEPTION USING ERRCODE='55000',MESSAGE='native dependent tax, payment or source columns disagree';
+  END IF;
+  -- Registration IDs remain typed. The existing admitted B2B recipient is the
+  -- valuation buyer, and all selected status evidence is for the actual TOS.
+  IF NOT EXISTS(SELECT 1 FROM public.india_gst_supplier_registration_status_snapshot s
+      JOIN public.india_gst_supplier_service_location l ON l.tenant_id=s.tenant_id
+        AND l.id=v_app.supplier_service_location_id AND l.supplier_registration_id=s.supplier_registration_id
+      JOIN public.india_gst_supplier_sez_status z ON z.tenant_id=s.tenant_id
+        AND z.id=v_app.supplier_sez_status_id AND z.supplier_registration_id=s.supplier_registration_id
+      JOIN public.india_gst_recipient_sez_status r ON r.tenant_id=s.tenant_id
+        AND r.id=v_app.recipient_sez_status_id AND r.recipient_registration_id=NEW.recipient_registration_id
+      WHERE s.tenant_id=NEW.tenant_id AND s.id=NEW.supplier_registration_status_id
+        AND s.status_as_of=v_app.time_of_supply_date AND z.status_as_of=v_app.time_of_supply_date
+        AND r.status_as_of=v_app.time_of_supply_date) THEN
+    RAISE EXCEPTION USING ERRCODE='55000',MESSAGE='native timing requires exact supplier and registered-recipient status selectors';
+  END IF;
+
+  v_nights:=v_valuation.native_room_night_count;
+  v_identities:=CASE v_tax.component_family WHEN 'igst' THEN ARRAY['igst']
+    WHEN 'cgst_sgst' THEN ARRAY['cgst','sgst'] WHEN 'cgst_utgst' THEN ARRAY['cgst','utgst'] END;
+  IF (SELECT pg_catalog.count(*) FROM public.india_gst_accommodation_quoted_rate_applicability_room_night n
+      WHERE n.tenant_id=NEW.tenant_id AND n.applicability_id=NEW.applicability_id)<>v_nights
+    OR (SELECT pg_catalog.count(*) FROM public.india_gst_accommodation_final_component_tax_room_night n
+      WHERE n.tenant_id=NEW.tenant_id AND n.tax_id=NEW.tax_id)<>v_nights
+    OR EXISTS(SELECT 1 FROM public.india_gst_accommodation_quoted_rate_applicability_room_night n
+      LEFT JOIN public.india_gst_accommodation_valuation_room_night v
+        ON v.tenant_id=n.tenant_id AND v.valuation_id=NEW.valuation_id AND v.ordinal=n.ordinal
+      WHERE n.tenant_id=NEW.tenant_id AND n.applicability_id=NEW.applicability_id
+        AND (v.ordinal IS NULL OR n.business_date<>v.business_date OR n.quoted_amount_minor<>v.quoted_weight_minor))
+    OR EXISTS(SELECT 1 FROM public.india_gst_accommodation_final_component_tax_room_night n
+      LEFT JOIN public.india_gst_accommodation_valuation_room_night v
+        ON v.tenant_id=n.tenant_id AND v.valuation_id=NEW.valuation_id AND v.ordinal=n.ordinal
+      WHERE n.tenant_id=NEW.tenant_id AND n.tax_id=NEW.tax_id
+        AND (v.ordinal IS NULL OR n.business_date<>v.business_date OR n.final_value_minor IS DISTINCT FROM v.transaction_value_minor))
+    OR (SELECT pg_catalog.sum(n.tax_minor) FROM public.india_gst_accommodation_final_component_tax_room_night n
+      WHERE n.tenant_id=NEW.tenant_id AND n.tax_id=NEW.tax_id) IS DISTINCT FROM v_tax.tax_minor::numeric THEN
+    RAISE EXCEPTION USING ERRCODE='55000',MESSAGE='native dependent room-night sets are incomplete or do not conserve';
+  END IF;
+  IF EXISTS(SELECT 1 FROM public.india_gst_accommodation_quoted_rate_component c
+      WHERE c.tenant_id=NEW.tenant_id AND c.applicability_id=NEW.applicability_id
+        AND c.component_identity IS DISTINCT FROM v_identities[c.component_ordinal+1])
+    OR EXISTS(SELECT 1 FROM public.india_gst_accommodation_final_component_tax_component c
+      WHERE c.tenant_id=NEW.tenant_id AND c.tax_id=NEW.tax_id
+        AND c.component_identity IS DISTINCT FROM v_identities[c.component_ordinal+1])
+    OR EXISTS(SELECT 1 FROM public.india_gst_accommodation_quoted_rate_applicability_room_night n
+      WHERE n.tenant_id=NEW.tenant_id AND n.applicability_id=NEW.applicability_id AND (
+        (SELECT pg_catalog.array_agg(c.component_identity ORDER BY c.component_ordinal)
+          FROM public.india_gst_accommodation_quoted_rate_component c
+          WHERE c.tenant_id=n.tenant_id AND c.applicability_id=n.applicability_id AND c.room_night_ordinal=n.ordinal)
+          IS DISTINCT FROM v_identities
+        OR (SELECT pg_catalog.sum(c.rate_basis_points) FROM public.india_gst_accommodation_quoted_rate_component c
+          WHERE c.tenant_id=n.tenant_id AND c.applicability_id=n.applicability_id AND c.room_night_ordinal=n.ordinal)
+          IS DISTINCT FROM n.aggregate_rate_basis_points::bigint))
+    OR EXISTS(SELECT 1 FROM public.india_gst_accommodation_final_component_tax_room_night n
+      WHERE n.tenant_id=NEW.tenant_id AND n.tax_id=NEW.tax_id AND (
+        (SELECT pg_catalog.array_agg(c.component_identity ORDER BY c.component_ordinal)
+          FROM public.india_gst_accommodation_final_component_tax_component c
+          WHERE c.tenant_id=n.tenant_id AND c.tax_id=n.tax_id AND c.room_night_ordinal=n.ordinal)
+          IS DISTINCT FROM v_identities
+        OR (SELECT pg_catalog.sum(c.rate_basis_points) FROM public.india_gst_accommodation_final_component_tax_component c
+          WHERE c.tenant_id=n.tenant_id AND c.tax_id=n.tax_id AND c.room_night_ordinal=n.ordinal)
+          IS DISTINCT FROM n.aggregate_rate_basis_points::bigint
+        OR (SELECT pg_catalog.sum(c.tax_amount_minor) FROM public.india_gst_accommodation_final_component_tax_component c
+          WHERE c.tenant_id=n.tenant_id AND c.tax_id=n.tax_id AND c.room_night_ordinal=n.ordinal)
+          IS DISTINCT FROM n.tax_minor::numeric)) THEN
+    RAISE EXCEPTION USING ERRCODE='55000',MESSAGE='native dependent component sets are incomplete or do not conserve';
+  END IF;
+
+  -- A prunable event is checked only while the issuing transaction completes.
+  -- There is deliberately no lasting outbox or api_idempotency FK. Later exact
+  -- replay must authenticate permanent timing/binding/origin in 0076 instead.
+  SELECT pg_catalog.count(*) INTO v_count FROM public.outbox e
+    WHERE e.tenant_id=NEW.tenant_id AND e.id=NEW.request_event_id;
+  SELECT * INTO v_event FROM public.outbox e
+    WHERE e.tenant_id=NEW.tenant_id AND e.seq=NEW.request_event_seq AND e.id=NEW.request_event_id;
+  v_expected_payload:=pg_catalog.jsonb_build_object(
+    'nativeTimingId',NEW.id::text,'documentId',NEW.prospective_document_id::text,
+    'taxId',NEW.tax_id::text,'applicabilityId',NEW.applicability_id::text,
+    'valuationId',NEW.valuation_id::text,'reservationId',NEW.reservation_id::text,
+    'folioId',NEW.folio_id::text,'sourceBasisHash',NEW.native_source_basis_hash);
+  IF v_count<>1 OR v_event.seq IS NULL
+     OR v_event.event_type<>'india_gst.native_accommodation_accounting_requested' OR v_event.event_version<>1
+     OR v_event.aggregate_type<>'india_gst_native_invoice_timing' OR v_event.aggregate_id<>NEW.id
+     OR v_event.actor_id IS DISTINCT FROM NEW.actor_id OR v_event.property_node IS DISTINCT FROM NEW.property_node
+     OR v_event.business_date<>NEW.invoice_issue_date OR v_event.correlation_id<>NEW.request_id
+     OR v_event.created_at<>NEW.transaction_timestamp OR v_event.payload<>v_expected_payload
+     OR public.india_native_source_hash(v_event.payload)<>NEW.request_event_payload_hash THEN
+    RAISE EXCEPTION USING ERRCODE='55000',MESSAGE='native preparation lacks its exact same-transaction request event';
+  END IF;
+  IF NOT EXISTS(SELECT 1 FROM public.api_idempotency r
+      WHERE r.tenant_id=NEW.tenant_id AND r.operation='document.issued'
+        AND r.key_hash=NEW.request_key_hash AND r.request_hash=NEW.request_hash
+        AND r.response_status=201 AND r.completed_at=NEW.transaction_timestamp
+        AND r.response_body=pg_catalog.jsonb_build_object('documentId',NEW.prospective_document_id::text,
+          'docNo',v_document.doc_no,'sha256',v_document.sha256)) THEN
+    RAISE EXCEPTION USING ERRCODE='55000',MESSAGE='native preparation lacks its completed actor-bound issue receipt';
+  END IF;
+  PERFORM pg_catalog.set_config('app.tenant_id',v_previous_tenant,true);
+  RETURN NULL;
+EXCEPTION WHEN OTHERS THEN
+  PERFORM pg_catalog.set_config('app.tenant_id',v_previous_tenant,true);
+  RAISE;
+END;
+$$;
+ALTER FUNCTION public.assert_india_native_timing_complete() OWNER TO yellow_owner;
+REVOKE ALL ON FUNCTION public.assert_india_native_timing_complete() FROM PUBLIC,app_role,yellow_runtime;
+CREATE CONSTRAINT TRIGGER india_native_timing_complete AFTER INSERT
+  ON public.india_gst_native_invoice_timing DEFERRABLE INITIALLY DEFERRED
+  FOR EACH ROW EXECUTE FUNCTION public.assert_india_native_timing_complete();

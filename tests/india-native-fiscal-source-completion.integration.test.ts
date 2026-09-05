@@ -9,6 +9,8 @@ import {
   IndiaGstAccommodationFinalValuationService,
   type IndiaGstAccommodationNativeFinalValuationInput,
 } from "../src/contexts/tax-fiscal/india-gst-accommodation-final-valuation";
+import { IndiaGstAccommodationPaymentReceiptDateService } from "../src/contexts/tax-fiscal/india-gst-accommodation-payment-receipt-date";
+import { IndiaGstAccommodationServiceProvisionDateService } from "../src/contexts/tax-fiscal/india-gst-accommodation-service-provision-date";
 import { allocateSignedLargestRemainder } from "../src/contexts/tax-fiscal/signed-largest-remainder";
 import { createAuditEnvelope, Database, PostgresEventBus, PostgresIdempotency } from "../src/kernel";
 import {
@@ -80,6 +82,131 @@ interface Census {
   facts: number; events: number; guest: string; revenue: string;
 }
 
+type BuyerApprovalState = "approved_current" | "approved_expired" | "pending";
+
+interface BuyerApprovalSeed {
+  readonly approvalId: string;
+  readonly input: IndiaGstAccommodationNativeFinalValuationInput;
+  readonly requestHash: string;
+  readonly approvalBasisHash: string;
+}
+
+async function seedExactBuyerOverride(
+  deploy: SQL,
+  fixture: NativeSourceFixture,
+  buyerPartyId: string,
+  deciderId: string,
+  sources: readonly NativeSource[],
+  state: BuyerApprovalState,
+): Promise<BuyerApprovalSeed> {
+  const approvalId = crypto.randomUUID();
+  const input = request(fixture, sources, `native-buyer-${state}-${approvalId}`, {
+    buyerPartyId,
+    approvalRequestId: approvalId,
+  });
+  const requestSources = [...input.sources]
+    .sort((left, right) => left.postingRootId.localeCompare(right.postingRootId))
+    .map(item => Object.freeze({
+      postingRootId: item.postingRootId,
+      sourceKind: item.sourceKind,
+      additionSubtype: item.additionSubtype,
+      discountEligibility: item.discountEligibility,
+      evidenceSource: item.evidenceSource,
+      evidenceReference: item.evidenceReference,
+    }));
+  const [basis] = await deploy<Array<{
+    window_no: number;
+    relationship_hash: string;
+    request_hash: string;
+    approval_basis_hash: string;
+  }>>`WITH live AS (
+      SELECT reservation.primary_party,reservation.booker_party,account.party_id,
+             reservation_group.account_party,folio.window_no,
+             service.id service_id,service.evidence_hash service_hash,lineage.snapshot_hash
+      FROM reservation
+      JOIN folio ON folio.tenant_id=reservation.tenant_id
+        AND folio.id=${fixture.folio}::uuid AND folio.reservation_id=reservation.id
+      JOIN account ON account.tenant_id=folio.tenant_id AND account.id=folio.account_id
+      LEFT JOIN reservation_group ON reservation_group.tenant_id=reservation.tenant_id
+        AND reservation_group.id=reservation.group_id
+      JOIN india_gst_accommodation_service_provision_snapshot service
+        ON service.tenant_id=reservation.tenant_id
+        AND service.id=${fixture.serviceResult.serviceProvision.serviceProvisionSnapshotId}::uuid
+      JOIN tax_attribution_reservation_binding lineage
+        ON lineage.tenant_id=reservation.tenant_id AND lineage.id=service.reservation_lineage_id
+      WHERE reservation.tenant_id=${fixture.tenant}::uuid
+        AND reservation.id=${fixture.reservation}::uuid
+        AND reservation.property_node=${fixture.property}::uuid
+    ), relationship AS (
+      SELECT live.*,(SELECT encode(digest(coalesce(string_agg(candidate::text,',' ORDER BY candidate),''),'sha256'),'hex')
+        FROM (SELECT DISTINCT candidate FROM unnest(ARRAY[
+          live.primary_party,live.booker_party,live.party_id,live.account_party
+        ]) candidate WHERE candidate IS NOT NULL) candidates) relationship_hash
+      FROM live
+    ), request_basis AS (
+      SELECT relationship.*,public.india_native_source_hash(jsonb_build_object(
+        'kind','india-native-valuation-request-v1','tenantId',${fixture.tenant}::uuid,
+        'propertyNode',${fixture.property}::uuid,'reservationId',${fixture.reservation}::uuid,
+        'folioId',${fixture.folio}::uuid,'buyerPartyId',${buyerPartyId}::uuid,
+        'serviceProvisionSnapshotId',service_id,'actorId',${fixture.actor}::uuid,
+        'expectedCurrentValuationId',NULL,'expectedCurrentEvidenceHash',NULL,
+        'approvalRequestId',${approvalId}::uuid,'sources',${JSON.stringify(requestSources)}::jsonb,
+        'ordinaryAttestation',${JSON.stringify(input.ordinaryAttestation)}::jsonb
+      )) request_hash
+      FROM relationship
+    )
+    SELECT window_no,relationship_hash,request_hash,
+      public.india_native_source_hash(jsonb_build_array(
+        'india-native-valuation-approval-basis-v1',${fixture.tenant}::uuid,
+        ${fixture.property}::uuid,${fixture.reservation}::uuid,${fixture.folio}::uuid,
+        ${buyerPartyId}::uuid,service_id,service_hash,snapshot_hash,request_hash,relationship_hash
+      )) approval_basis_hash
+    FROM request_basis`;
+  if (!basis) throw new Error("Could not derive the exact native buyer approval basis");
+  const payload = Object.freeze({
+    propertyNode: fixture.property,
+    reservationId: fixture.reservation,
+    folioId: fixture.folio,
+    windowNo: basis.window_no,
+    buyerPartyId,
+    relationshipSetHash: basis.relationship_hash,
+    requestHash: basis.request_hash,
+    basisKind: "native_consideration",
+    serviceProvisionSnapshotId: fixture.serviceResult.serviceProvision.serviceProvisionSnapshotId,
+    nativeApprovalBasisHash: basis.approval_basis_hash,
+  });
+  if (state === "approved_current") {
+    await deploy`INSERT INTO approval_request(
+        id,tenant_id,kind,subject_type,subject_id,requested_by,payload,status,
+        decided_by,decided_at,created_at,valid_until)
+      VALUES(${approvalId}::uuid,${fixture.tenant}::uuid,'india_gst_legal_buyer_override',
+        'folio',${fixture.folio}::uuid,${fixture.actor}::uuid,${JSON.stringify(payload)}::jsonb,'approved',
+        ${deciderId}::uuid,transaction_timestamp()-interval '5 minutes',
+        transaction_timestamp()-interval '10 minutes',transaction_timestamp()+interval '1 hour')`;
+  } else if (state === "approved_expired") {
+    await deploy`INSERT INTO approval_request(
+        id,tenant_id,kind,subject_type,subject_id,requested_by,payload,status,
+        decided_by,decided_at,created_at,valid_until)
+      VALUES(${approvalId}::uuid,${fixture.tenant}::uuid,'india_gst_legal_buyer_override',
+        'folio',${fixture.folio}::uuid,${fixture.actor}::uuid,${JSON.stringify(payload)}::jsonb,'approved',
+        ${deciderId}::uuid,transaction_timestamp()-interval '2 hours',
+        transaction_timestamp()-interval '3 hours',transaction_timestamp()-interval '1 hour')`;
+  } else {
+    await deploy`INSERT INTO approval_request(
+        id,tenant_id,kind,subject_type,subject_id,requested_by,payload,status,
+        decided_by,decided_at,created_at,valid_until)
+      VALUES(${approvalId}::uuid,${fixture.tenant}::uuid,'india_gst_legal_buyer_override',
+        'folio',${fixture.folio}::uuid,${fixture.actor}::uuid,${JSON.stringify(payload)}::jsonb,'pending',
+        NULL,NULL,transaction_timestamp()-interval '10 minutes',transaction_timestamp()+interval '1 hour')`;
+  }
+  return Object.freeze({
+    approvalId,
+    input,
+    requestHash: basis.request_hash,
+    approvalBasisHash: basis.approval_basis_hash,
+  });
+}
+
 // This is a source-to-valuation proof. It must not be described as an issued
 // native invoice: dependent timing, tax/accounting and completion remain separate.
 databaseDescribe("Order434 native valuation from governed consideration", () => {
@@ -129,6 +256,60 @@ databaseDescribe("Order434 native valuation from governed consideration", () => 
     return row;
   }
 
+  test("keeps source recording hashes distinct from freshly resolved date projections", async () => {
+    const fixture = await createNativeSourceFixture(deploy, database, { label: "native-source-hashes" });
+    const [persisted] = await deploy<Array<{
+      service_hash: string;
+      payment_hash: string;
+      ordinary_hash: string;
+    }>>`SELECT
+      (SELECT evidence_hash FROM india_gst_accommodation_service_provision_snapshot
+        WHERE tenant_id=${fixture.tenant}::uuid
+          AND id=${fixture.serviceResult.serviceProvision.serviceProvisionSnapshotId}::uuid) service_hash,
+      (SELECT evidence_hash FROM india_gst_accommodation_payment_receipt_snapshot
+        WHERE tenant_id=${fixture.tenant}::uuid
+          AND id=${fixture.paymentResult.paymentReceipt.paymentReceiptSnapshotId}::uuid) payment_hash,
+      (SELECT evidence_hash FROM india_gst_accommodation_ordinary_regime_evidence
+        WHERE tenant_id=${fixture.tenant}::uuid
+          AND id=${fixture.ordinaryResult.ordinaryRegimeEvidenceId}::uuid) ordinary_hash`;
+    if (!persisted) throw new Error("Recorded native source evidence disappeared");
+    expect(persisted).toEqual({
+      service_hash: fixture.serviceResult.evidenceHash,
+      payment_hash: fixture.paymentResult.evidenceHash,
+      ordinary_hash: fixture.ordinaryResult.evidenceHash,
+    });
+
+    const fresh = await database.withTenantTransaction(fixture.tenant, async tx => {
+      const service = await new IndiaGstAccommodationServiceProvisionDateService().resolve(
+        tx,
+        Object.freeze({
+          tenantId: fixture.tenant,
+          propertyNode: fixture.property,
+          reservationId: fixture.reservation,
+          serviceProvisionSnapshotId: fixture.serviceResult.serviceProvision.serviceProvisionSnapshotId,
+          serviceProvisionDate: fixture.serviceResult.serviceProvision.serviceProvisionDate,
+        }),
+      );
+      const payment = await new IndiaGstAccommodationPaymentReceiptDateService().resolve(
+        tx,
+        Object.freeze({
+          tenantId: fixture.tenant,
+          propertyNode: fixture.property,
+          reservationId: fixture.reservation,
+          serviceProvisionSnapshotId: fixture.serviceResult.serviceProvision.serviceProvisionSnapshotId,
+          paymentReceiptSnapshotId: fixture.paymentResult.paymentReceipt.paymentReceiptSnapshotId,
+          paymentReceiptDate: fixture.paymentResult.paymentReceipt.paymentReceiptDate,
+        }),
+      );
+      return Object.freeze({ service, payment });
+    });
+    expect(fresh.service).toEqual(fixture.serviceResult.serviceProvision);
+    expect(fresh.payment).toEqual(fixture.paymentResult.paymentReceipt);
+    expect(fresh.service.evidenceHash).not.toBe(fixture.serviceResult.evidenceHash);
+    expect(fresh.payment.evidenceHash).not.toBe(fixture.paymentResult.evidenceHash);
+    expect(fixture.ordinaryResult.evidenceHash).toBe(persisted.ordinary_hash);
+  });
+
   test("records the real charge basis without any external invoice or duplicate money", async () => {
     const fixture = await createNativeSourceFixture(deploy, database, { label: "native-basic" });
     const charge = await fixture.postCharge("10000");
@@ -151,6 +332,110 @@ databaseDescribe("Order434 native valuation from governed consideration", () => 
       actor_id: fixture.actor, attested_by: fixture.actor,
     });
     expect(await census(fixture)).toEqual({ ...before, valuations: 1, sources: 1, nights: 1, allocations: 1, facts: before.facts + 1, events: before.events + 1 });
+  });
+
+  test("retains an exact active different-decider buyer override and rejects unavailable approval evidence atomically", async () => {
+    const fixture = await createNativeSourceFixture(deploy, database, { label: "native-buyer" });
+    const charge = await fixture.postCharge("10000");
+    const sources = Object.freeze([source(charge.postingRootId)]);
+    const buyerPartyId = crypto.randomUUID();
+    const deciderId = crypto.randomUUID();
+    await deploy.begin(async tx => {
+      await tx`INSERT INTO party(id,tenant_id,kind,display_name,status)
+        VALUES(${buyerPartyId}::uuid,${fixture.tenant}::uuid,'org','Order434 legal buyer','active')`;
+      await tx`INSERT INTO party_role(tenant_id,party_id,role)
+        VALUES(${fixture.tenant}::uuid,${buyerPartyId}::uuid,'company')`;
+      await tx`INSERT INTO app_user(id,tenant_id,email,display_name,status)
+        VALUES(${deciderId}::uuid,${fixture.tenant}::uuid,
+          ${`buyer-decider-${deciderId}@order434.local`},'Order434 buyer decider','active')`;
+    });
+
+    // Kernel ApprovalService cannot supply 0062's required valid_until field, so
+    // these are owner-seeded prerequisite approvals. The published SQL
+    // canonicalizer derives every request/payload hash from the live fixture.
+    const expired = await seedExactBuyerOverride(
+      deploy, fixture, buyerPartyId, deciderId, sources, "approved_expired",
+    );
+    const pending = await seedExactBuyerOverride(
+      deploy, fixture, buyerPartyId, deciderId, sources, "pending",
+    );
+    const approved = await seedExactBuyerOverride(
+      deploy, fixture, buyerPartyId, deciderId, sources, "approved_current",
+    );
+    const before = await census(fixture);
+    for (const unavailable of [expired.input, pending.input]) {
+      await expect(finalize(unavailable))
+        .rejects.toBeInstanceOf(IndiaGstAccommodationFinalValuationConflictError);
+      expect(await census(fixture)).toEqual(before);
+    }
+
+    await deploy`UPDATE app_user SET status='inactive'
+      WHERE tenant_id=${fixture.tenant}::uuid AND id=${deciderId}::uuid`;
+    await expect(finalize(approved.input))
+      .rejects.toBeInstanceOf(IndiaGstAccommodationFinalValuationConflictError);
+    expect(await census(fixture)).toEqual(before);
+    await deploy`UPDATE app_user SET status='active'
+      WHERE tenant_id=${fixture.tenant}::uuid AND id=${deciderId}::uuid`;
+
+    const [approvalBefore] = await deploy<Array<{
+      row_json: string;
+      decided_at: string;
+      valid_until: string;
+    }>>`
+      SELECT to_jsonb(approval_request)::text row_json,decided_at::text,valid_until::text
+      FROM approval_request
+      WHERE tenant_id=${fixture.tenant}::uuid AND id=${approved.approvalId}::uuid`;
+    if (!approvalBefore) throw new Error("Current native buyer approval disappeared");
+    const result = await finalize(approved.input);
+    expect(result).toMatchObject({
+      generation: 0,
+      disposition: "ordinary_final",
+      transactionValueMinor: "10000",
+      replayed: false,
+    });
+    const [retained] = await deploy<Array<{
+      approval_request_id: string;
+      native_approval_basis_hash: string;
+      native_approval_actor_id: string;
+      native_approval_decided_at: string;
+      native_approval_valid_until: string;
+      native_approval_evidence_hash: string;
+      request_hash: string;
+      approval_decided_at: string;
+      approval_valid_until: string;
+      approval_row_json: string;
+    }>>`SELECT valuation.approval_request_id::text,
+        valuation.native_approval_basis_hash,valuation.native_approval_actor_id::text,
+        valuation.native_approval_decided_at::text,valuation.native_approval_valid_until::text,
+        valuation.native_approval_evidence_hash,valuation.request_hash,
+        approval.decided_at::text approval_decided_at,
+        approval.valid_until::text approval_valid_until,
+        to_jsonb(approval)::text approval_row_json
+      FROM india_gst_accommodation_final_valuation valuation
+      JOIN approval_request approval ON approval.tenant_id=valuation.tenant_id
+        AND approval.id=valuation.approval_request_id
+      WHERE valuation.tenant_id=${fixture.tenant}::uuid AND valuation.id=${result.valuationId}::uuid`;
+    expect(retained).toMatchObject({
+      approval_request_id: approved.approvalId,
+      native_approval_basis_hash: approved.approvalBasisHash,
+      native_approval_actor_id: deciderId,
+      request_hash: approved.requestHash,
+      native_approval_decided_at: approvalBefore.decided_at,
+      native_approval_valid_until: approvalBefore.valid_until,
+      approval_decided_at: approvalBefore.decided_at,
+      approval_valid_until: approvalBefore.valid_until,
+      approval_row_json: approvalBefore.row_json,
+    });
+    expect(retained?.native_approval_evidence_hash).toMatch(/^[0-9a-f]{64}$/);
+    expect(await census(fixture)).toEqual({
+      ...before,
+      valuations: 1,
+      sources: 1,
+      nights: 1,
+      allocations: 1,
+      facts: before.facts + 1,
+      events: before.events + 1,
+    });
   });
 
   test("SQL allocations match the shared integer allocator, including ordinal remainder ties", async () => {
@@ -185,6 +470,67 @@ databaseDescribe("Order434 native valuation from governed consideration", () => 
     } finally {
       await deploy`UPDATE app_user SET status='active' WHERE tenant_id=${fixture.tenant}::uuid AND id=${fixture.actor}::uuid`;
     }
+  });
+
+  test("pins canonical writer settings and replays one request identically across caller time zones", async () => {
+    const configurations = await deploy<Array<{ proname: string; proconfig: string[] }>>`
+      SELECT procedure.proname,procedure.proconfig
+      FROM pg_catalog.pg_proc procedure
+      JOIN pg_catalog.pg_namespace namespace ON namespace.oid=procedure.pronamespace
+      WHERE namespace.nspname='public' AND procedure.proname IN (
+        'record_india_gst_accommodation_service_provision',
+        'record_india_gst_accommodation_payment_receipt',
+        'record_india_gst_accommodation_ordinary_regime_evidence',
+        'lock_india_native_valuation_sources',
+        'record_india_gst_native_accommodation_valuation'
+      )
+      ORDER BY procedure.proname`;
+    expect(configurations).toHaveLength(5);
+    for (const configuration of configurations) {
+      expect(configuration.proconfig).toContain("TimeZone=UTC");
+      expect(configuration.proconfig).toContain("DateStyle=ISO,YMD");
+    }
+
+    const fixture = await createNativeSourceFixture(deploy, database, { label: "native-timezone" });
+    const charge = await fixture.postCharge("10000");
+    const input = request(fixture, [source(charge.postingRootId)], "native-timezone-finalize");
+    async function invoke(callerTimeZone: "UTC" | "Asia/Calcutta") {
+      return database.withTenantTransaction(fixture.tenant, async tx => {
+        await tx.unsafe(callerTimeZone === "UTC"
+          ? "SET LOCAL TIME ZONE 'UTC'"
+          : "SET LOCAL TIME ZONE 'Asia/Calcutta'");
+        const [before] = await tx<Array<{ timezone: string }>>`
+          SELECT current_setting('TimeZone') timezone`;
+        const result = await valuation.finalizeNative(tx, input);
+        const [after] = await tx<Array<{ timezone: string }>>`
+          SELECT current_setting('TimeZone') timezone`;
+        return Object.freeze({ result, before: before?.timezone, after: after?.timezone });
+      });
+    }
+
+    const calcutta = await invoke("Asia/Calcutta");
+    expect(calcutta.before).toBe("Asia/Calcutta");
+    expect(calcutta.after).toBe("Asia/Calcutta");
+    expect(calcutta.result.replayed).toBeFalse();
+    const recorded = await census(fixture);
+    const utc = await invoke("UTC");
+    expect(utc.before).toBe("UTC");
+    expect(utc.after).toBe("UTC");
+    expect(utc.result).toEqual({ ...calcutta.result, replayed: true });
+    expect(await census(fixture)).toEqual(recorded);
+    const rows = await deploy<Array<{
+      valuation_id: string;
+      evidence_hash: string;
+      native_consideration_basis_hash: string;
+    }>>`SELECT id::text valuation_id,evidence_hash,native_consideration_basis_hash
+      FROM india_gst_accommodation_final_valuation
+      WHERE tenant_id=${fixture.tenant}::uuid
+        AND native_request_key_hash=encode(digest(${input.idempotencyKey},'sha256'),'hex')`;
+    expect(rows).toEqual([{
+      valuation_id: calcutta.result.valuationId,
+      evidence_hash: calcutta.result.evidenceHash,
+      native_consideration_basis_hash: calcutta.result.nativeConsiderationBasisHash,
+    }]);
   });
 
   test("an omitted real charge fails atomically and complete data succeeds afterward", async () => {

@@ -8,6 +8,14 @@ import {
   type IndiaGstAccommodationNativeInvoiceSourceInput,
 } from "../src/contexts/tax-fiscal/india-gst-accommodation-invoice-source";
 import { deriveIndiaGstAccommodationOrdinaryTimeOfSupplyDates } from "../src/contexts/tax-fiscal/india-gst-accommodation-time-of-supply";
+import { createPositiveTaxAttributionSnapshot } from "../src/contexts/tax-fiscal/attribution";
+import { buildIndiaGstAccommodationSupplyNature } from "../src/contexts/tax-fiscal/india-gst-accommodation-supply-nature";
+import { deriveIndiaGstAccommodationComponentFamily } from "../src/contexts/tax-fiscal/india-gst-accommodation-component-family";
+import { deriveIndiaGstAccommodationLevyInputBundle } from "../src/contexts/tax-fiscal/india-gst-accommodation-levy-input-bundle";
+import { deriveIndiaGstAccommodationLevyComponentIdentity } from "../src/contexts/tax-fiscal/india-gst-accommodation-levy-component-identity";
+import { IndiaGstAccommodationQuotedRateApplicabilityService } from "../src/contexts/tax-fiscal/india-gst-accommodation-quoted-rate-applicability";
+import { IndiaGstAccommodationFinalComponentTaxService } from "../src/contexts/tax-fiscal/india-gst-accommodation-final-component-tax";
+import type { Tx } from "../src/kernel";
 import { composeIndiaGstRegistrationAtNativeTimeOfSupply } from "../src/contexts/tax-fiscal/india-gst-registration-at-time-of-supply";
 import { composeIndiaGstRecipientRegistrationAtNativeTimeOfSupply } from "../src/contexts/tax-fiscal/india-gst-recipient-registration-at-time-of-supply";
 import { composeIndiaGstAccommodationNativeSupplyNatureAtTimeOfSupply } from "../src/contexts/tax-fiscal/india-gst-accommodation-supply-nature-at-time-of-supply";
@@ -51,6 +59,9 @@ const RECIPIENT_REGISTRATION = id(43419);
 const RECIPIENT_STATUS = id(43420);
 const JURISDICTION = id(43421);
 const CLASSIFICATION = id(43422);
+const SELLABLE = id(43423);
+const VALUATION = id(43424);
+const PERIOD = "[\"2026-01-01 00:00:00+00\",\"2026-01-03 00:00:00+00\")";
 const PREDECESSOR = "a806f516-fed6-5768-b310-94aa03286adb";
 const SUCCESSOR = "0b21daf2-ea6e-5568-9c21-69e4d4424574";
 const PRE_FROM = "2022-07-17T18:30:00.000000Z";
@@ -59,6 +70,8 @@ const SOURCE20 = "ee920c82c30ed88d9bb515d7d79b975cc2ed599c6dad411d04d8b7fcd5a869
 const SOURCE04 = "c6d264f1906375e93466dd97b2c60bb9b21c0dec34b93900b15237b4a98b7716" as const;
 const SOURCE15 = "46c9447579017d8bf1fefd75b6e6a48856dab7b23e44c7e06babfdc99ae9d289" as const;
 const HASH = (character: string): string => character.repeat(64);
+const SERVICE_RECORDING_HASH = HASH("9");
+const PAYMENT_RECORDING_HASH = HASH("0");
 
 function stable(value: unknown): string {
   if (value === null || typeof value !== "object") return JSON.stringify(value);
@@ -193,7 +206,19 @@ function history(
   return freeze({ ...body, evidenceHash: canonicalHash({ tenantId: TENANT, ...body }) });
 }
 
+function quotedAttributionSnapshot(serviceDate: string) {
+  return createPositiveTaxAttributionSnapshot({
+    origin: { kind: "rate_quote", quoteHash: HASH("a") },
+    currency: "INR",
+    line: { lineId: "room", revenueGroup: "room_revenue", amountMinor: 10000n, nights: 1, personNights: 1, roomNights: [{ businessDate: serviceDate, amountMinor: 10000n }] },
+    assignments: [{ businessDate: serviceDate, jurisdictionKey: "in.order434.gst", evidenceRef: `tax-assignment:${HASH("4")}` }],
+    jurisdiction: { extensionId: PREDECESSOR, ownerTenantId: TENANT, key: "in.order434.gst", version: 1, contentHash: HASH("5"), evidenceRef: `tax-jurisdiction:${HASH("6")}` },
+    evaluation: { schemaVersion: 1, jurisdictionKey: "in.order434.gst", country: "IN", priceDisplay: "tax_exclusive", rounding: "line", inputTotalMinor: 10000n, baseTotalMinor: 10000n, taxTotalMinor: 500n, grandTotalMinor: 10500n, taxes: [{ code: "GST_ROOM", name: "GST", taxMinor: 500n, components: [{ lineId: "room", revenueGroup: "room_revenue", baseMinor: 10000n, taxMinor: 500n, rateBasisPoints: 500 }] }] },
+  });
+}
+
 function evidenceRoots(serviceDate: string, booksDate: string, bankDate: string) {
+  const attributionSnapshot = quotedAttributionSnapshot(serviceDate);
   const reservationLineage = freeze({
     lineageId: LINEAGE,
     holdBindingId: HOLD,
@@ -201,7 +226,7 @@ function evidenceRoots(serviceDate: string, booksDate: string, bankDate: string)
     reservationId: RESERVATION,
     segmentId: SEGMENT,
     originQuoteHash: HASH("a"),
-    snapshotHash: HASH("b"),
+    snapshotHash: attributionSnapshot.snapshotHash,
     currency: "INR",
   });
   const attribution = freeze({
@@ -209,7 +234,7 @@ function evidenceRoots(serviceDate: string, booksDate: string, bankDate: string)
     lineId: "room" as const,
     revenueGroup: "room_revenue" as const,
   });
-  const service = freeze({
+  const serviceProjection = {
     serviceProvisionSnapshotId: SERVICE,
     propertyNode: PROPERTY,
     reservationLineage,
@@ -218,8 +243,8 @@ function evidenceRoots(serviceDate: string, booksDate: string, bankDate: string)
     serviceProvisionSource: "governed_service_provision_record" as const,
     serviceProvisionEvidenceSha256: HASH("c"),
     legalRule: "CGST_ACT_13_2_B_SERVICE_PROVISION_DATE_INPUT_ONLY" as const,
-    evidenceHash: HASH("d"),
-  });
+  };
+  const service = freeze({ ...serviceProjection, evidenceHash: insertionHash({ tenantId: TENANT, ...serviceProjection }) });
   const serviceProvision = freeze({
     serviceProvisionSnapshotId: SERVICE,
     serviceProvisionDate: serviceDate,
@@ -230,7 +255,7 @@ function evidenceRoots(serviceDate: string, booksDate: string, bankDate: string)
     attribution,
   });
   const paymentReceiptDate = booksDate < bankDate ? booksDate : bankDate;
-  const payment = freeze({
+  const paymentProjection = {
     paymentReceiptSnapshotId: PAYMENT,
     propertyNode: PROPERTY,
     serviceProvision,
@@ -243,9 +268,9 @@ function evidenceRoots(serviceDate: string, booksDate: string, bankDate: string)
     paymentReceiptSource: "governed_supplier_payment_receipt_record" as const,
     paymentReceiptEvidenceSha256: HASH("e"),
     legalRule: "CGST_ACT_13_2_EXPLANATION_II_PAYMENT_RECEIPT_DATE_INPUT_ONLY" as const,
-    evidenceHash: HASH("f"),
-  });
-  return { service, payment };
+  };
+  const payment = freeze({ ...paymentProjection, evidenceHash: insertionHash({ tenantId: TENANT, ...paymentProjection }) });
+  return { service, payment, attributionSnapshot };
 }
 
 function paymentEvidence(
@@ -463,6 +488,73 @@ function nativeRegistrationComposition(source: ReturnType<typeof deriveIndiaGstA
   const supplyNature = freeze({ ...supplyHead, candidateJson, candidateHash: insertionHash({ tenantId: TENANT, candidate: supplyHead }) });
   const composed = composeIndiaGstAccommodationNativeSupplyNatureAtTimeOfSupply({ tenantId: TENANT, supplyNature, supplierRegistrationAtTimeOfSupply: supplier, recipientRegistrationAtTimeOfSupply: recipient });
   return { source, supplier, recipient, supplyNature, composed };
+}
+
+function quotedComponentIdentity(historicalResolution: IndiaGstAccommodationHistoricalResolutionResult, family: "igst" | "cgst_sgst" | "cgst_utgst" = "cgst_sgst") {
+  const selected = historicalResolution.selectedExtension;
+  const stateCode = family === "cgst_utgst" ? "04" : "29", placeState = family === "igst" ? "27" : stateCode;
+  const jurisdiction = () => freeze({ extensionId: selected.extensionId, ownerTenantId: TENANT, key: selected.key, version: String(selected.version), contentHash: selected.contentHash });
+  const recipientStatusBody = { recipientSezStatusId: RECIPIENT_STATUS, recipient: freeze({ partyId: RECIPIENT_PARTY, registrationId: RECIPIENT_REGISTRATION, evidenceHash: HASH("7") }), statusAsOf: historicalResolution.businessDay.businessDate, gstRegistration: freeze({ status: "active", taxpayerType: "regular", source: "gst_common_portal", evidenceSha256: HASH("8") }), sezStatus: "affirmatively_non_sez_regular", approval: null, legalRule: "IGST_ACT_7_5_B_AND_8_2_RECIPIENT_STATUS" };
+  const recipientSezStatus = freeze({ ...recipientStatusBody, evidenceHash: insertionHash({ tenantId: TENANT, ...recipientStatusBody }) });
+  const comparisonBody = freeze({ propertyNode: PROPERTY, reservationId: RESERVATION, folioId: FOLIO, jurisdiction: jurisdiction(), supplier: freeze({ registrationId: SUPPLIER_REGISTRATION, evidenceHash: HASH("5"), stateCode }), recipient: freeze({ partyId: RECIPIENT_PARTY, registrationId: RECIPIENT_REGISTRATION, evidenceHash: HASH("7") }), buyerAssociation: freeze({ associationHash: HASH("a"), payloadHash: HASH("b") }), classification: freeze({ classificationId: CLASSIFICATION, evidenceHash: HASH("c") }), placeOfSupply: freeze({ candidateHash: HASH("d"), legalRule: "IGST_ACT_12_3_B", pos: placeState }), comparisonRule: "SUPPLIER_REGISTERED_STATE_VS_ACCOMMODATION_POS", stateRelationship: family === "igst" ? "different_state_or_union_territory" : "same_state_or_union_territory" });
+  const comparison = freeze({ ...comparisonBody, candidateJson: JSON.stringify(comparisonBody), candidateHash: insertionHash({ tenantId: TENANT, candidate: comparisonBody }) });
+  const serviceLocationBody = { supplierServiceLocationId: SUPPLIER_LOCATION, propertyNode: PROPERTY, jurisdiction: jurisdiction(), supplier: freeze({ registrationId: SUPPLIER_REGISTRATION, evidenceHash: HASH("5") }), serviceScope: "lodging_accommodation", registeredPlace: freeze({ kind: "principal_place_of_business", stateCode, addressLine: "1 Residency Road", locality: "Bengaluru", postalCode: "560001" }), locationBasis: "supply_made_from_registered_place_of_business", legalRule: "IGST_ACT_2_15_A" };
+  const supplierServiceLocation = freeze({ ...serviceLocationBody, evidenceHash: insertionHash({ tenantId: TENANT, ...serviceLocationBody }) });
+  const supplierStatusBody = { supplierSezStatusId: SUPPLIER_STATUS, propertyNode: PROPERTY, supplierServiceLocation: freeze({ id: SUPPLIER_LOCATION, evidenceHash: supplierServiceLocation.evidenceHash }), supplier: freeze({ registrationId: SUPPLIER_REGISTRATION, evidenceHash: HASH("5") }), statusAsOf: historicalResolution.businessDay.businessDate, gstRegistration: freeze({ status: "active", taxpayerType: "regular", source: "gst_common_portal", evidenceSha256: HASH("6") }), sezStatus: "affirmatively_non_sez_regular", approval: null, legalRule: "IGST_ACT_7_5_B_AND_8_2_SUPPLIER_STATUS" };
+  const supplierSezStatus = freeze({ ...supplierStatusBody, evidenceHash: insertionHash({ tenantId: TENANT, ...supplierStatusBody }) });
+  const supplyNature = buildIndiaGstAccommodationSupplyNature({ tenantId: TENANT, supplyDate: historicalResolution.businessDay.businessDate, registeredStateComparison: comparison, supplierServiceLocation, recipientSezStatus, supplierSezStatus } as never);
+  const componentFamily = deriveIndiaGstAccommodationComponentFamily({ tenantId: TENANT, supplyNature } as never);
+  const ancestry = { tenantId: TENANT, historicalResolution, supplyNature, componentFamily };
+  const levyInputBundle = deriveIndiaGstAccommodationLevyInputBundle(ancestry as never);
+  const input = { ...ancestry, levyInputBundle };
+  return { input, result: deriveIndiaGstAccommodationLevyComponentIdentity(input as never) };
+}
+
+function quotedPersistedRow(attributionSnapshot: ReturnType<typeof createPositiveTaxAttributionSnapshot>) {
+  return { tenant_id: TENANT, lineage_id: LINEAGE, property_node: PROPERTY, hold_binding_id: HOLD, hold_id: HOLD, attribution_id: ATTRIBUTION, reservation_id: RESERVATION, segment_id: SEGMENT, sellable_unit_id: SELLABLE, folio_id: FOLIO, origin_quote_hash: HASH("a"), snapshot_hash: attributionSnapshot.snapshotHash, currency: "INR", snapshot: attributionSnapshot, binding_row_id: HOLD, binding_hold_id: HOLD, hold_row_id: HOLD, binding_sellable_unit_id: SELLABLE, hold_sellable_unit_id: SELLABLE, segment_sellable_unit_id: SELLABLE, lineage_period: PERIOD, binding_period: PERIOD, hold_period: PERIOD, segment_period: PERIOD, binding_attribution_id: ATTRIBUTION, attribution_row_id: ATTRIBUTION, binding_origin_quote_hash: HASH("a"), binding_snapshot_hash: attributionSnapshot.snapshotHash, binding_currency: "INR" };
+}
+
+function nativePersistedRootRow(input: IndiaGstAccommodationNativeInvoiceSourceInput) {
+  const source = deriveIndiaGstAccommodationNativeInvoiceSource(input);
+  return { tenant_id: TENANT, property_node: PROPERTY, reservation_id: RESERVATION, lineage_id: LINEAGE, attribution_id: ATTRIBUTION, service_id: SERVICE, payment_id: PAYMENT, ordinary_id: ORDINARY, service_date: source.timing.serviceProvisionDate, books_date: source.timing.supplierBooksEntryDate, bank_date: source.timing.supplierBankCreditDate, receipt_date: source.timing.paymentReceiptDate, amount_minor: source.timing.amountMinor, currency: "INR", service_external_hash: input.serviceProvision.serviceProvisionEvidenceSha256, payment_external_hash: input.paymentReceipt.paymentReceiptEvidenceSha256, ordinary_external_hash: input.ordinaryRegime.ordinaryRegimeEvidenceSha256, ordinary_regime: input.ordinaryRegime.regime, ordinary_source: input.ordinaryRegime.ordinaryRegimeSource, ordinary_legal_basis: input.ordinaryRegime.legalBasis, ordinary_service_hash: SERVICE_RECORDING_HASH, service_hash: SERVICE_RECORDING_HASH, payment_hash: PAYMENT_RECORDING_HASH, ordinary_hash: input.ordinaryRegime.evidenceHash, timing_id: TIMING, timing_folio_id: FOLIO, prospective_document_id: DOCUMENT, timing_service_id: SERVICE, timing_service_hash: SERVICE_RECORDING_HASH, timing_payment_id: PAYMENT, timing_payment_hash: PAYMENT_RECORDING_HASH, timing_ordinary_id: ORDINARY, timing_ordinary_hash: input.ordinaryRegime.evidenceHash, timing_invoice_date: source.timing.invoiceIssueDate, timing_hash: input.nativeTiming.evidenceHash, issuing_transaction_id: "434", transaction_timestamp: "2026-09-05 12:00:00+05:30", property_timezone: "Asia/Kolkata" };
+}
+
+function nativeServiceProjectionRow(input: IndiaGstAccommodationNativeInvoiceSourceInput, snapshot: unknown) {
+  const service = input.serviceProvision, lineage = service.reservationLineage;
+  return { tenant_id: TENANT, id: SERVICE, property_node: PROPERTY, reservation_lineage_id: lineage.lineageId, hold_binding_id: lineage.holdBindingId, attribution_id: lineage.attributionId, reservation_id: lineage.reservationId, segment_id: lineage.segmentId, origin_quote_hash: lineage.originQuoteHash, snapshot_hash: lineage.snapshotHash, currency: lineage.currency, service_provision_date: service.serviceProvisionDate, service_provision_source: service.serviceProvisionSource, service_provision_evidence_sha256: service.serviceProvisionEvidenceSha256, legal_rule: service.legalRule, lineage_id: lineage.lineageId, lineage_property_node: PROPERTY, lineage_hold_binding_id: lineage.holdBindingId, lineage_attribution_id: lineage.attributionId, lineage_reservation_id: lineage.reservationId, lineage_segment_id: lineage.segmentId, lineage_origin_quote_hash: lineage.originQuoteHash, lineage_snapshot_hash: lineage.snapshotHash, lineage_currency: lineage.currency, attribution_snapshot: snapshot };
+}
+
+function nativePaymentProjectionRow(input: IndiaGstAccommodationNativeInvoiceSourceInput, snapshot: unknown) {
+  const payment = input.paymentReceipt, service = payment.serviceProvision, lineage = service.reservationLineage;
+  return { tenant_id: TENANT, id: PAYMENT, service_provision_snapshot_id: SERVICE, currency: payment.currency, amount_minor: payment.amountMinor, coverage_scope: payment.coverageScope, supplier_books_entry_date: payment.supplierBooksEntryDate, supplier_bank_credit_date: payment.supplierBankCreditDate, payment_receipt_date: payment.paymentReceiptDate, payment_receipt_source: payment.paymentReceiptSource, payment_receipt_evidence_sha256: payment.paymentReceiptEvidenceSha256, legal_rule: payment.legalRule, service_tenant_id: TENANT, service_id: SERVICE, property_node: PROPERTY, reservation_lineage_id: lineage.lineageId, hold_binding_id: lineage.holdBindingId, attribution_id: lineage.attributionId, reservation_id: lineage.reservationId, segment_id: lineage.segmentId, origin_quote_hash: lineage.originQuoteHash, snapshot_hash: lineage.snapshotHash, service_currency: lineage.currency, service_provision_date: service.serviceProvisionDate, service_provision_source: service.serviceProvisionSource, service_provision_evidence_sha256: service.serviceProvisionEvidenceSha256, service_legal_rule: service.legalRule, lineage_id: lineage.lineageId, lineage_property_node: PROPERTY, lineage_hold_binding_id: lineage.holdBindingId, lineage_attribution_id: lineage.attributionId, lineage_reservation_id: lineage.reservationId, lineage_segment_id: lineage.segmentId, lineage_origin_quote_hash: lineage.originQuoteHash, lineage_snapshot_hash: lineage.snapshotHash, lineage_currency: lineage.currency, attribution_snapshot: snapshot };
+}
+
+function nativeQuotedTx(
+  row: ReturnType<typeof quotedPersistedRow>,
+  sourceInput: IndiaGstAccommodationNativeInvoiceSourceInput,
+  calls: string[] = [],
+  finalRows?: Readonly<{ valuation: readonly Mutable[]; nights: readonly Mutable[] }>,
+  nativeRootOverride?: Mutable,
+): Tx {
+  return (async (strings: TemplateStringsArray) => {
+    const sql = strings.join("?"); calls.push(sql);
+    if (sql.includes("india_gst_accommodation_ordinary_regime_evidence")) return [nativeRootOverride ?? nativePersistedRootRow(sourceInput)];
+    if (sql.includes("FROM public.india_gst_accommodation_payment_receipt_snapshot")) return [nativePaymentProjectionRow(sourceInput, row.snapshot)];
+    if (sql.includes("FROM public.india_gst_accommodation_service_provision_snapshot")) return [nativeServiceProjectionRow(sourceInput, row.snapshot)];
+    if (sql.includes("tax_attribution_hold_binding")) return [row];
+    if (sql.includes("JOIN india_gst_accommodation_final_valuation")) return finalRows?.valuation ?? [];
+    if (sql.includes("india_gst_accommodation_valuation_room_night")) return finalRows?.nights ?? [];
+    throw new Error(`unexpected native quoted applicability SQL: ${sql}`);
+  }) as unknown as Tx;
+}
+
+function nativeQuotedInput(input: IndiaGstAccommodationNativeInvoiceSourceInput, family: "igst" | "cgst_sgst" | "cgst_utgst" = "cgst_sgst") {
+  const component = quotedComponentIdentity(input.historicalResolutions.serviceProvision, family);
+  return freeze(JSON.parse(JSON.stringify({ tenantId: TENANT, propertyNode: PROPERTY, reservationId: RESERVATION, folioId: FOLIO, reservationLineageId: LINEAGE, attributionId: ATTRIBUTION, nativeInvoiceSourceInput: input, componentIdentityInput: component.input, componentIdentityResult: component.result })));
+}
+
+function nativeFinalRows(sourceInput: IndiaGstAccommodationNativeInvoiceSourceInput, nightValue = "10000") {
+  return { valuation: [{ valuation_id: VALUATION, generation: 1, transaction_value_minor: nightValue, evidence_hash: HASH("f"), native_consideration_basis_hash: HASH("1"), timing_projection_evidence_hash: sourceInput.nativeTiming.evidenceHash }], nights: [{ ordinal: 0, business_date: sourceInput.serviceProvision.serviceProvisionDate, transaction_value_minor: nightValue }] };
 }
 
 describe("Order 434 native/external invoice timing and rate source", () => {
@@ -770,6 +862,109 @@ describe("Order 434 native/external invoice timing and rate source", () => {
       supplyNature: first.supplyNature,
       supplierRegistrationAtTimeOfSupply: first.supplier,
     } as never)).toThrow(/shape is invalid/);
+  });
+
+  test("resolves ordinary native quoted applicability without fabricating Section14 fields", async () => {
+    const sourceInput = nativeInput("2026-01-01", "2026-01-03", "2026-01-04", "2026-01-02");
+    const input = nativeQuotedInput(sourceInput), calls: string[] = [];
+    const actual = await new IndiaGstAccommodationQuotedRateApplicabilityService().resolveNative(
+      nativeQuotedTx(quotedPersistedRow(quotedAttributionSnapshot("2026-01-01")), sourceInput, calls),
+      input,
+    );
+    expect(actual.kind).toBe("native_current_transaction");
+    expect(actual.rateSelection.kind).toBe("ordinary_section13_single_version");
+    expect(actual.rateSelection).not.toHaveProperty("case");
+    expect(actual.rateSelection).not.toHaveProperty("selectedVersionSide");
+    expect(actual.rateSelection).not.toHaveProperty("section14EvidenceHash");
+    expect(actual.rateSelection.selectedVersion.gstRoomSlabs[0]).toMatchObject({ rate: 0.05, itcEligible: false });
+    expect(actual.nativeTiming).toMatchObject({ nativeTimingId: TIMING, prospectiveDocumentId: DOCUMENT, serviceProvisionSnapshotId: SERVICE, paymentReceiptSnapshotId: PAYMENT, ordinaryRegimeEvidenceId: ORDINARY, timeOfSupplyDate: "2026-01-02" });
+    expect(actual.components[0]).toMatchObject({ ordinal: "0", quotedAmountMinor: "10000", slab: { uptoMinor: 750000, aggregateRateBasisPoints: 500 } });
+    expect(actual.predecessorHashes).toMatchObject({ nativeTiming: actual.nativeTiming.evidenceHash, serviceProvisionRecording: SERVICE_RECORDING_HASH, paymentReceiptRecording: PAYMENT_RECORDING_HASH, ordinaryRegimeRecording: sourceInput.ordinaryRegime.evidenceHash, serviceProvisionProjection: sourceInput.serviceProvision.evidenceHash, paymentReceiptProjection: sourceInput.paymentReceipt.evidenceHash });
+    expect(actual.predecessorHashes.serviceProvisionRecording).not.toBe(actual.predecessorHashes.serviceProvisionProjection);
+    expect(actual.predecessorHashes.paymentReceiptRecording).not.toBe(actual.predecessorHashes.paymentReceiptProjection);
+    const { evidenceHash, ...body } = actual;
+    expect(evidenceHash).toBe(insertionHash({ tenantId: TENANT, propertyNode: PROPERTY, reservationId: RESERVATION, folioId: FOLIO, ...body }));
+    expect(calls).toHaveLength(4);
+    expect(Object.isFrozen(actual)).toBeTrue();
+  });
+
+  test("resolves a genuine-change native quoted rate from the full rederived source", async () => {
+    const sourceInput = nativeInput("2025-09-21", "2025-09-23", "2025-09-24", "2025-09-23", "2025-09-23");
+    const actual = await new IndiaGstAccommodationQuotedRateApplicabilityService().resolveNative(
+      nativeQuotedTx(quotedPersistedRow(quotedAttributionSnapshot("2025-09-21")), sourceInput),
+      nativeQuotedInput(sourceInput),
+    );
+    expect(actual.rateSelection).toMatchObject({ kind: "genuine_section14_rate_change", case: "supply_before_invoice_after_payment_after", selectedVersionSide: "successor", timeOfSupplyDate: "2025-09-23" });
+    expect(actual.rateSelection.selectedVersion.gstRoomSlabs[0]).toMatchObject({ rate: 0.05, itcEligible: false });
+    expect(actual.predecessorHashes.rateSource).toMatch(/^[0-9a-f]{64}$/);
+    expect(actual.predecessorHashes.nativeInvoiceSource).toMatch(/^[0-9a-f]{64}$/);
+  });
+
+  test("rejects malformed and cross-scope native quoted applicability inputs", async () => {
+    const sourceInput = nativeInput("2026-01-01", "2026-01-03", "2026-01-04", "2026-01-02"), service = new IndiaGstAccommodationQuotedRateApplicabilityService(), tx = nativeQuotedTx(quotedPersistedRow(quotedAttributionSnapshot("2026-01-01")), sourceInput);
+    const valid = nativeQuotedInput(sourceInput);
+    const missing = structuredClone(valid) as Mutable; delete missing.componentIdentityResult; freeze(missing);
+    await expect(service.resolveNative(tx, missing as never)).rejects.toThrow(/shape is invalid/);
+    const surplus = structuredClone(valid) as Mutable; surplus.surplus = true; freeze(surplus);
+    await expect(service.resolveNative(tx, surplus as never)).rejects.toThrow(/shape is invalid/);
+    const crossed = structuredClone(valid) as Mutable; crossed.propertyNode = id(43998); freeze(crossed);
+    await expect(service.resolveNative(tx, crossed as never)).rejects.toThrow(/predecessor identity conflicts/);
+    const wrongPersistedTiming = { ...nativePersistedRootRow(sourceInput), timing_hash: HASH("0") };
+    await expect(service.resolveNative(
+      nativeQuotedTx(quotedPersistedRow(quotedAttributionSnapshot("2026-01-01")), sourceInput, [], undefined, wrongPersistedTiming),
+      valid,
+    )).rejects.toThrow(/persisted native source roots conflict/);
+    const wrongProjection = structuredClone(sourceInput) as Mutable;
+    wrongProjection.serviceProvision.evidenceHash = HASH("d");
+    freeze(wrongProjection);
+    await expect(service.resolveNative(
+      nativeQuotedTx(quotedPersistedRow(quotedAttributionSnapshot("2026-01-01")), wrongProjection as IndiaGstAccommodationNativeInvoiceSourceInput),
+      nativeQuotedInput(wrongProjection as IndiaGstAccommodationNativeInvoiceSourceInput),
+    )).rejects.toThrow(/service-provision date projection does not byte-match/);
+    const projectionUsedAsRecordingRoot = { ...nativePersistedRootRow(sourceInput), timing_service_hash: sourceInput.serviceProvision.evidenceHash };
+    await expect(service.resolveNative(
+      nativeQuotedTx(quotedPersistedRow(quotedAttributionSnapshot("2026-01-01")), sourceInput, [], undefined, projectionUsedAsRecordingRoot),
+      valid,
+    )).rejects.toThrow(/persisted native source roots conflict/);
+  });
+
+  test("calculates ordinary native final component tax for every component family", async () => {
+    for (const family of ["igst", "cgst_sgst", "cgst_utgst"] as const) {
+      const sourceInput = nativeInput("2026-01-01", "2026-01-03", "2026-01-04", "2026-01-02"), applicabilityInput = nativeQuotedInput(sourceInput, family), calls: string[] = [];
+      const finalInput = freeze({ tenantId: TENANT, propertyNode: PROPERTY, reservationId: RESERVATION, folioId: FOLIO, nativeQuotedRateApplicabilityInput: applicabilityInput });
+      const actual = await new IndiaGstAccommodationFinalComponentTaxService().calculateNative(
+        nativeQuotedTx(quotedPersistedRow(quotedAttributionSnapshot("2026-01-01")), sourceInput, calls, nativeFinalRows(sourceInput)),
+        finalInput,
+      );
+      expect(actual).toMatchObject({ kind: "native_current_transaction", nativeTimingId: TIMING, valuationId: VALUATION, generation: 1, rateSelectionKind: "ordinary_section13_single_version", taxMinor: "500", grandTotalMinor: "10500" });
+      expect(actual.roomNights[0]!.slab.components.map((component) => component.identity)).toEqual(family === "igst" ? ["igst"] : family === "cgst_sgst" ? ["cgst", "sgst"] : ["cgst", "utgst"]);
+      expect(actual.predecessorHashes).not.toHaveProperty("section14");
+      expect(actual.predecessorHashes).toMatchObject({ finalValuation: HASH("f"), nativeConsiderationBasis: HASH("1") });
+      expect(calls).toHaveLength(6);
+      expect(Object.isFrozen(actual)).toBeTrue();
+    }
+  });
+
+  test("calculates genuine-change native final component tax from its selected full version", async () => {
+    const sourceInput = nativeInput("2025-09-21", "2025-09-23", "2025-09-24", "2025-09-23", "2025-09-23"), applicabilityInput = nativeQuotedInput(sourceInput, "igst");
+    const actual = await new IndiaGstAccommodationFinalComponentTaxService().calculateNative(
+      nativeQuotedTx(quotedPersistedRow(quotedAttributionSnapshot("2025-09-21")), sourceInput, [], nativeFinalRows(sourceInput)),
+      freeze({ tenantId: TENANT, propertyNode: PROPERTY, reservationId: RESERVATION, folioId: FOLIO, nativeQuotedRateApplicabilityInput: applicabilityInput }),
+    );
+    expect(actual).toMatchObject({ rateSelectionKind: "genuine_section14_rate_change", taxMinor: "500", grandTotalMinor: "10500" });
+    expect(actual.predecessorHashes).toHaveProperty("rateSource");
+  });
+
+  test("rejects missing native valuation, mismatched night totals, and uncovered payment totals", async () => {
+    const sourceInput = nativeInput("2026-01-01", "2026-01-03", "2026-01-04", "2026-01-02"), applicabilityInput = nativeQuotedInput(sourceInput), finalInput = freeze({ tenantId: TENANT, propertyNode: PROPERTY, reservationId: RESERVATION, folioId: FOLIO, nativeQuotedRateApplicabilityInput: applicabilityInput }), service = new IndiaGstAccommodationFinalComponentTaxService(), row = quotedPersistedRow(quotedAttributionSnapshot("2026-01-01"));
+    await expect(service.calculateNative(nativeQuotedTx(row, sourceInput, [], { valuation: [], nights: [] }), finalInput)).rejects.toThrow(/one current native valuation/);
+    await expect(service.calculateNative(nativeQuotedTx(row, sourceInput, [], { valuation: nativeFinalRows(sourceInput).valuation, nights: nativeFinalRows(sourceInput, "9999").nights }), finalInput)).rejects.toThrow(/do not reconcile/);
+    const uncovered = structuredClone(sourceInput) as Mutable; uncovered.paymentReceipt.amountMinor = "10501"; freeze(uncovered);
+    const uncoveredInput = nativeQuotedInput(uncovered as IndiaGstAccommodationNativeInvoiceSourceInput);
+    await expect(service.calculateNative(
+      nativeQuotedTx(row, uncovered as IndiaGstAccommodationNativeInvoiceSourceInput, [], nativeFinalRows(uncovered as IndiaGstAccommodationNativeInvoiceSourceInput)),
+      freeze({ tenantId: TENANT, propertyNode: PROPERTY, reservationId: RESERVATION, folioId: FOLIO, nativeQuotedRateApplicabilityInput: uncoveredInput }),
+    )).rejects.toThrow(/ancestry|reconcile|cover/);
   });
 
   test("the adapter is pure and the shared cores add no persistence, clock, or external-invoice fiction", async () => {

@@ -217,6 +217,12 @@ describe("Order 341: India GST accommodation quoted-rate applicability", () => {
   });
 
   test("retains static scope pins only as supplemental guards", async () => {
+    const built = await fixture("igst", "2025-09-21", "2025-09-23", "2025-09-24", "2025-09-24");
+    const legacy = await new IndiaGstAccommodationQuotedRateApplicabilityService().resolve(txFor(built.rows), built.input);
+    expect(legacy).not.toHaveProperty("kind");
+    expect(legacy).not.toHaveProperty("nativeTiming");
+    expect(legacy).not.toHaveProperty("rateSelection");
+    expect(legacy).not.toHaveProperty("prospectiveDocumentId");
     const source = await Bun.file(new URL("../src/contexts/tax-fiscal/india-gst-accommodation-quoted-rate-applicability.ts", import.meta.url)).text();
     expect(source).toContain("componentIdentity.supplyDate !== section14.serviceProvisionDate");
     expect(source).toContain("const section14 = await this.#section14.resolve(tx, input.section14Input)");
@@ -232,6 +238,7 @@ describe("Order 341: India GST accommodation quoted-rate applicability", () => {
     expect(source).toContain("row.currency !== \"INR\"");
     expect(source).toContain("digest({ tenantId, propertyNode, reservationId, folioId, ...body })");
     expect(source).toContain("deriveIndiaGstAccommodationComponentRateSlabs(componentIdentity.componentIdentities, selectedPairMember.gstRoomSlabs)");
-    expect(source).not.toMatch(/INSERT\s+INTO|UPDATE\s+\S+\s+SET|DELETE\s+FROM|taxableValue|taxAmount|rounding|posting|document|irp/i);
+    expect(source).not.toMatch(/INSERT\s+INTO|UPDATE\s+\S+\s+SET|DELETE\s+FROM|taxableValue|taxAmount|rounding|posting|irp/i);
+    expect(source).not.toMatch(/(?:INSERT\s+INTO|UPDATE\s+\S+\s+SET|DELETE\s+FROM)[^;]*document|next_document|allocate[^;]*(?:number|document)/i);
   });
 });

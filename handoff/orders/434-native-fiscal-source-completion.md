@@ -4,6 +4,11 @@
 **Phase:** 7 · YF-008, YF-009, YF-023
 **Implementation base:** `591ace8` (includes the complete Order432 current-catalogue repair)
 
+**Latest implementation checkpoint:** [D1345 — dependent timing and native tax composition](#dependent-timing-and-native-tax-composition-checkpoint--d1345).
+The isolated database migration and source/valuation regressions pass. Native
+prepare, incremental accounting and final issuance are still unfinished; this
+checkpoint is not enabled in the retained local app.
+
 **Date:** 2026-09-05
 
 **Risk:** Tier3 — fiscal chains, new persisted evidence, migrations, accounting, numbering and RLS
@@ -668,6 +673,7 @@ tests/india-native-fiscal-invoice-database.integration.test.ts
 tests/india-native-fiscal-invoice-database.intentional-red.test.ts
 tests/india-gst-accommodation-final-valuation.test.ts
 tests/india-gst-accommodation-final-valuation-migration.integration.test.ts
+tests/india-gst-accommodation-quoted-rate-applicability.test.ts
 tests/india-gst-accommodation-quoted-rate-applicability-recording.integration.test.ts
 tests/india-gst-accommodation-final-component-tax-recording.integration.test.ts
 tests/india-final-component-tax-fiscal-source.integration.test.ts
@@ -700,6 +706,11 @@ Order432's complete catalogue repair is committed at implementation base591ace8.
 Root owns all later catalogue updates; serialize them after exact schema derivation.
 Preserve its portable runner repairs and every grant/session/RLS
 assertion. No broad unrelated test rewrite or lowered expected result is allowed.
+
+Question189/D1343 admits the quoted-applicability unit test solely to replace its
+obsolete whole-module `document` substring ban with explicit no-write/no-allocation
+checks and external-result identity assertions. The new native branch must carry
+a prospective document identity; all substantive legacy assertions remain intact.
 
 ### Future documentation/status paths, only at the appropriate evidence stage
 
@@ -1081,3 +1092,84 @@ component-only accounting and zero-tax binding; full database-root canonical
 issuance; all final races/referee/schema gates and fresh independent Tier3
 acceptance. Order434 and Phase7 remain active. Publishing this checkpoint is
 source preservation, not deployment, main integration or phase completion.
+
+## Dependent timing and native tax composition checkpoint — D1345
+
+The draft now contains the second new table, `india_gst_native_invoice_timing`,
+and explicit native/external variants in the existing applicability, tax,
+accounting-binding and document-origin records. Typed tenant-leading links bind
+the valuation, source snapshots, actor, property-local transaction date,
+prospective document and eventual accounting artifacts. The document,
+applicability, tax and binding back-links are initially deferred. Native
+artifacts are immutable and transaction-bound. A zero-tax binding requires no
+journal; positive incremental tax requires one. This is structural persistence,
+not a completed canonical issuance capability or a new public write grant.
+
+`resolveNative` rederives the complete native source and component identity,
+reads the real service/payment date projections on the same transaction, and
+authenticates persisted timing and recording roots. Ordinary results have no
+fabricated Section14 case/side/hash; genuine changes retain the existing
+six-case selection. `calculateNative` binds the current native valuation and
+its exact ordered nights, then shares the unchanged component-first integer
+rounding calculation with the external branch. It checks exact payment
+coverage and returns evidence only; it does not post money or issue a document.
+
+The implementation exposed a real distinction hidden by the first unit mocks:
+service/payment SQL recording hashes are not their canonical date-projection
+hashes. Native predecessor names now distinguish `serviceProvisionRecording`,
+`paymentReceiptRecording`, `ordinaryRegimeRecording`,
+`serviceProvisionProjection` and `paymentReceiptProjection`. Database joins
+retain the recording roots; fresh date-service reads authenticate projections.
+A real-PostgreSQL regression confirms these distinct hashes using source
+recording capabilities, with no invented hash fixtures.
+
+The buyer-override regression now covers exact active different-decider approval
+consumption and atomic rejection of expired, pending or inactive-decider
+evidence. It retains the original approval row and hashes. Approval
+prerequisites are owner-seeded like the existing0062 fixture: the generic kernel
+approval request API cannot yet supply the required `valid_until`. Thus this
+proves consumption/revalidation, not an end-to-end approval-creation screen.
+Kernel API work is outside this order's admitted write scope.
+
+The timezone regression proves the same request creates under an
+Asia/Calcutta caller and replays under UTC with identical evidence, while the
+caller timezone is restored. The existing writers already pinned UTC/ISO;
+an initial ambient-hash comparison was not a writer defect. Separately, fresh
+draft application rejected the new trigger-definition `SET app.tenant_id`
+clauses with42501. Their repair uses the existing0074 row-bound runtime context
+pattern with explicit restoration on success/error, without granting parameter
+authority or weakening RLS.
+
+Root personally executed the following against draft SHA256
+`d550b41cd405aea2da2b84e75fd3632ae2a6aca3b24b5cd12697394405d29869`:
+
+- Actual migration runner: unchanged0001–0074 plus draft0075,75 ledger rows and
+  127 tables. Both new tables are `yellow_owner`-owned and ENABLE/FORCE RLS;
+  all15 timing FKs are validated. The three new trigger helpers have fixed
+  search paths and UTC/ISO settings, with no app/runtime execute grant.
+- Source/native-valuation PostgreSQL suites:18 passed,0 failed,121 assertions,
+  including approval, timezone and real hash-layer regressions alongside
+  correction, multi-window transfer, replay, rollback and bound coverage.
+- Six selected legacy persistence/role checks passed across isolated databases,
+  including quoted-bundle recording/replay/rollback and final-tax
+  recording/replay/correction. An initial combined run collided on the legacy
+  suites' shared fixed tenant ID; using a separate fresh proof database fixed
+  test isolation without changing product code or historical-frontier oracles.
+- Native/quoted/final-tax unit suites:23 passed,0 failed,733 assertions. Native
+  applicability/tax cases still use controlled transaction mocks: no full
+  PostgreSQL native-issuance proof is claimed.
+- Final standing suite:1503 passed,1090 explicitly environment-skipped,0 failed,
+  21025 assertions across473 files. Typecheck, boundaries164, licence policy23,
+  dependency audit and diff checks passed. All74 runnable migrations remain
+  byte-identical to5fbd936; the draft is still outside the production runner.
+
+The single isolated PostgreSQL cluster was stopped and port55502 verified
+closed. Its retained test directory is188,775,001 bytes; no cleanup workaround,
+new Docker instance, local app change or retained hotel-data mutation occurred.
+
+Still required: complete server-root canonical preparation, same-transaction
+event-driven incremental accounting and zero-tax binding, final issuance and
+immutable consumed-source guards, then all76-migration/schema/concurrency/
+referee proofs and a fresh non-implementing Tier3 acceptance. D1344's green
+published5fbd936 CI certifies that checkpoint only. Publication of this next
+scoped checkpoint is not main integration, local promotion or phase completion.
