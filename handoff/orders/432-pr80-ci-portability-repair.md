@@ -1,6 +1,6 @@
 # Order 432 — PR80 CI portability repair
 
-**Status:** REPAIRED — AWAITING NINETEENTH GITHUB CI — D1335
+**Status:** COMPLETE — exact development CI and database referee passed — D1338
 **Phase:** Delivery infrastructure
 **Branch:** `phase-7/persisted-india-final-component-tax-evidence`
 **Risk tier:** 1 — test harness and CI portability only
@@ -133,7 +133,19 @@ one-line diff and ran the acceptance suite: 25 explicit unavailable-DB skips,
 Full GitHub database proof is still required. PR81's separately green main-only
 CI does not establish PR80's database result or approve native issuance.
 
-## Excluded operations
+## Verified publication receipt — 2026-09-05
+
+After Order437 reconciled the independently updated main ancestry, development
+commit `cb4d5d9fa544d63083bf47e2ab31bb2a94c94a1e` completed
+[GitHub run 33937609924](https://github.com/dcpnode-maker/yellow/actions/runs/33937609924)
+successfully. Root personally checked the exact head and all four successful jobs:
+quality, windows-state, container-smoke and database. The database job's canonical
+referee log reports **11 passed, 0 failed of 11**. PR80 is OPEN and MERGEABLE/CLEAN.
+This closes the CI-portability repair at that revision, not PR80 product approval,
+Order430/434, any phase, or a local application refresh. Later commits require their
+own CI; this receipt must not be reused as their result.
+
+## Excluded operations (unchanged)
 
 No production behavior, Phase7 fiscal implementation, schema, database policy,
 runtime/local, `.yellow`, dependency upgrade, merge, force push or historical-proof

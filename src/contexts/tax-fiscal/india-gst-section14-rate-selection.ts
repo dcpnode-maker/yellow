@@ -43,6 +43,11 @@ const INPUT_KEYS = [
   "paymentReceiptInput", "paymentReceiptResult",
   "invoiceIssueInput", "invoiceIssueResult", "paymentEvidence",
 ] as const;
+const EVIDENCE_INPUT_KEYS = [
+  "tenantId", "propertyNode", "reservationId", "rateVersionPair",
+  "rateChangeDateEvidence", "serviceProvisionResult", "paymentReceiptResult",
+  "invoiceTiming", "paymentEvidence",
+] as const;
 const SAFE_KEYS = ["kind", "paymentProvisoEvidence"] as const;
 const CALENDAR_KEYS = [
   "kind", "paymentProvisoEvidence", "throughDate", "calendarEvidence",
@@ -77,6 +82,33 @@ export interface IndiaGstSection14RateSelectionInput {
   readonly paymentReceiptResult: IndiaGstAccommodationPaymentReceiptDateResult;
   readonly invoiceIssueInput: IndiaGstAccommodationInvoiceIssueDateInput;
   readonly invoiceIssueResult: IndiaGstAccommodationInvoiceIssueDateResult;
+  readonly paymentEvidence: IndiaGstSection14PaymentEvidence;
+}
+
+/**
+ * Origin-independent invoice timing used only by the pure Section 14
+ * calculation. The evidence hash must come from the governing external invoice
+ * result or native dependent timing projection; this shape does not authenticate
+ * either origin.
+ */
+export interface IndiaGstSection14InvoiceTimingEvidence {
+  readonly propertyNode: string;
+  readonly serviceProvision: IndiaGstAccommodationInvoiceIssueDateResult["serviceProvision"];
+  readonly invoiceIssueDate: string;
+  readonly amountMinor: string;
+  readonly currency: string;
+  readonly evidenceHash: string;
+}
+
+export interface IndiaGstSection14RateSelectionEvidenceInput {
+  readonly tenantId: string;
+  readonly propertyNode: string;
+  readonly reservationId: string;
+  readonly rateVersionPair: IndiaGstAccommodationRateVersionPairResult;
+  readonly rateChangeDateEvidence: IndiaGstAccommodationRateChangeDateResult;
+  readonly serviceProvisionResult: IndiaGstAccommodationServiceProvisionDateResult;
+  readonly paymentReceiptResult: IndiaGstAccommodationPaymentReceiptDateResult;
+  readonly invoiceTiming: IndiaGstSection14InvoiceTimingEvidence;
   readonly paymentEvidence: IndiaGstSection14PaymentEvidence;
 }
 
@@ -236,7 +268,7 @@ function rootsAgree(
   reservationId: string,
   service: IndiaGstAccommodationServiceProvisionDateResult,
   payment: IndiaGstAccommodationPaymentReceiptDateResult,
-  invoice: IndiaGstAccommodationInvoiceIssueDateResult,
+  invoice: IndiaGstSection14InvoiceTimingEvidence,
 ): void {
   if (service.propertyNode !== propertyNode || payment.propertyNode !== propertyNode || invoice.propertyNode !== propertyNode
       || service.reservationLineage.reservationId !== reservationId
@@ -266,6 +298,140 @@ function rootsAgree(
   if (!UUID.test(tenantId)) fail("tenantId must be a canonical UUID");
 }
 
+/**
+ * Origin-independent Section 14 calculation over already-resolved evidence.
+ *
+ * The existing external service and the native invoice-source adapter both use
+ * this function. It is deliberately non-authoritative: callers must first
+ * authenticate and lock the persisted roots that produced these frozen values.
+ */
+export function deriveIndiaGstSection14RateSelectionFromEvidence(
+  raw: IndiaGstSection14RateSelectionEvidenceInput,
+): IndiaGstSection14RateSelectionResult {
+  const input = exact(raw, EVIDENCE_INPUT_KEYS, "section14 evidence input");
+  const tenantId = uuid(input.tenantId, "tenantId");
+  const propertyNode = uuid(input.propertyNode, "propertyNode");
+  const reservationId = uuid(input.reservationId, "reservationId");
+  try {
+    deeplyFrozen(input.rateVersionPair);
+    deeplyFrozen(input.serviceProvisionResult);
+    deeplyFrozen(input.paymentReceiptResult);
+    deeplyFrozen(input.invoiceTiming);
+    const rateVersionPair = input.rateVersionPair as IndiaGstAccommodationRateVersionPairResult;
+    const rateDate = replay(
+      input.rateChangeDateEvidence,
+      deriveIndiaGstAccommodationRateChangeDate({ tenantId, rateVersionPair }),
+      "rate-change-date result",
+    );
+    const service = input.serviceProvisionResult as IndiaGstAccommodationServiceProvisionDateResult;
+    const payment = input.paymentReceiptResult as IndiaGstAccommodationPaymentReceiptDateResult;
+    const invoice = input.invoiceTiming as IndiaGstSection14InvoiceTimingEvidence;
+    if (rateVersionPair.propertyNode !== propertyNode) {
+      fail("rate-version pair property does not match governed roots");
+    }
+    rootsAgree(tenantId, propertyNode, reservationId, service, payment, invoice);
+
+    const evidence = paymentEvidenceRecord(input.paymentEvidence);
+    let paymentReceiptDate: string;
+    let proviso: IndiaGstSection14PaymentProvisoResult;
+    let workingDayHash: string | null = null;
+    let governedReceiptHash: string | null = null;
+    try {
+      proviso = resolveIndiaGstSection14PaymentProviso({
+        supplierBooksEntryDate: payment.supplierBooksEntryDate,
+        supplierBankCreditDate: payment.supplierBankCreditDate,
+        rateChangeDate: rateDate.rateChangeDate,
+      });
+      replay(evidence.paymentProvisoEvidence, proviso, "payment-proviso result");
+      if (evidence.kind === "safe_ordinary_receipt") {
+        if (proviso.state !== "proviso_not_triggered_on_recorded_dates"
+            || proviso.paymentReceiptDate !== payment.paymentReceiptDate) {
+          fail("safe payment evidence does not equal the governed ordinary receipt");
+        }
+        paymentReceiptDate = proviso.paymentReceiptDate;
+      } else if (evidence.kind === "calendar_governed_receipt") {
+        if (proviso.state !== "working_day_calendar_required") {
+          fail("calendar payment evidence requires the governed calendar branch");
+        }
+        const calendar = deriveIndiaGstSection14WorkingDayCalendarEvidence({
+          tenantId,
+          rateChangeDate: rateDate.rateChangeDate,
+          throughDate: evidence.throughDate as string,
+          calendarEvidence: evidence.calendarEvidence as IndiaGstSection14WorkingDayCalendarEvidenceInput["calendarEvidence"],
+        });
+        replay(evidence.workingDayEvidence, calendar, "working-day-calendar result");
+        const governed = deriveIndiaGstSection14PaymentReceiptDate({
+          tenantId,
+          rateVersionPair,
+          rateChangeDateEvidence: rateDate,
+          supplierBooksEntryDate: payment.supplierBooksEntryDate,
+          supplierBankCreditDate: payment.supplierBankCreditDate,
+          paymentProvisoEvidence: proviso,
+          throughDate: evidence.throughDate as string,
+          calendarEvidence: evidence.calendarEvidence as IndiaGstSection14WorkingDayCalendarEvidenceInput["calendarEvidence"],
+          workingDayEvidence: calendar,
+        });
+        replay(evidence.paymentReceiptEvidence, governed, "governed payment-receipt result");
+        paymentReceiptDate = governed.paymentReceiptDate;
+        workingDayHash = calendar.evidenceHash;
+        governedReceiptHash = governed.evidenceHash;
+      } else {
+        fail("section14 payment evidence kind is invalid");
+      }
+    } catch (error) {
+      if (error instanceof IndiaGstSection14RateSelectionValidationError) throw error;
+      return fail("section14 payment evidence ancestry is invalid");
+    }
+
+    const selected = classify(
+      service.serviceProvisionDate,
+      invoice.invoiceIssueDate,
+      paymentReceiptDate,
+      rateDate.rateChangeDate,
+    );
+    const version = selected.selectedVersionSide === "predecessor"
+      ? rateVersionPair.predecessor
+      : rateVersionPair.successor;
+    const selectedVersion = Object.freeze({
+      extensionId: version.extensionId,
+      version: version.version,
+      status: version.status,
+      contentHash: version.contentHash,
+      effectiveFromInstant: version.effectiveFromInstant,
+      effectiveToInstant: version.effectiveToInstant,
+    });
+    const predecessorHashes = Object.freeze({
+      rateVersionPair: rateVersionPair.evidenceHash,
+      rateChangeDate: rateDate.evidenceHash,
+      serviceProvision: service.evidenceHash,
+      paymentReceipt: payment.evidenceHash,
+      invoiceIssue: invoice.evidenceHash,
+      paymentProviso: proviso.evidenceHash,
+      workingDayCalendar: workingDayHash,
+      governedPaymentReceipt: governedReceiptHash,
+    });
+    const body = Object.freeze({
+      case: selected.case,
+      serviceProvisionDate: service.serviceProvisionDate,
+      invoiceIssueDate: invoice.invoiceIssueDate,
+      paymentReceiptDate,
+      rateChangeDate: rateDate.rateChangeDate,
+      timeOfSupplyDate: selected.timeOfSupplyDate,
+      selectedVersionSide: selected.selectedVersionSide,
+      selectedVersion,
+      legalRule: "CGST_ACT_14_CHANGE_IN_RATE_SIX_CASE_RATE_VERSION_SELECTION" as const,
+      predecessorHashes,
+    });
+    return Object.freeze({
+      ...body,
+      evidenceHash: digest({ tenantId, propertyNode, reservationId, ...body }),
+    });
+  } catch (error) {
+    if (error instanceof IndiaGstSection14RateSelectionValidationError) throw error;
+    return fail("complete governed section14 ancestry is invalid");
+  }
+}
+
 export class IndiaGstSection14RateSelectionService {
   readonly #service = new IndiaGstAccommodationServiceProvisionDateService();
   readonly #payment = new IndiaGstAccommodationPaymentReceiptDateService();
@@ -285,43 +451,17 @@ export class IndiaGstSection14RateSelectionService {
       const invoice = replay(input.invoiceIssueResult, await this.#invoice.resolve(tx, input.invoiceIssueInput as IndiaGstAccommodationInvoiceIssueDateInput), "invoice-issue result");
       if (input.rateVersionPair && (input.rateVersionPair as IndiaGstAccommodationRateVersionPairResult).propertyNode !== propertyNode) fail("rate-version pair property does not match governed roots");
       rootsAgree(tenantId, propertyNode, reservationId, service, payment, invoice);
-
-      const evidence = paymentEvidenceRecord(input.paymentEvidence);
-      let paymentReceiptDate: string;
-      let proviso: IndiaGstSection14PaymentProvisoResult;
-      let workingDayHash: string | null = null;
-      let governedReceiptHash: string | null = null;
-      try {
-        proviso = resolveIndiaGstSection14PaymentProviso({ supplierBooksEntryDate: payment.supplierBooksEntryDate, supplierBankCreditDate: payment.supplierBankCreditDate, rateChangeDate: rateDate.rateChangeDate });
-        replay(evidence.paymentProvisoEvidence, proviso, "payment-proviso result");
-        if (evidence.kind === "safe_ordinary_receipt") {
-          if (proviso.state !== "proviso_not_triggered_on_recorded_dates" || proviso.paymentReceiptDate !== payment.paymentReceiptDate) {
-            fail("safe payment evidence does not equal the governed ordinary receipt");
-          }
-          paymentReceiptDate = proviso.paymentReceiptDate;
-        } else if (evidence.kind === "calendar_governed_receipt") {
-          if (proviso.state !== "working_day_calendar_required") fail("calendar payment evidence requires the governed calendar branch");
-          const calendar = deriveIndiaGstSection14WorkingDayCalendarEvidence({ tenantId, rateChangeDate: rateDate.rateChangeDate, throughDate: evidence.throughDate as string, calendarEvidence: evidence.calendarEvidence as IndiaGstSection14WorkingDayCalendarEvidenceInput["calendarEvidence"] });
-          replay(evidence.workingDayEvidence, calendar, "working-day-calendar result");
-          const governed = deriveIndiaGstSection14PaymentReceiptDate({ tenantId, rateVersionPair: input.rateVersionPair as IndiaGstAccommodationRateVersionPairResult, rateChangeDateEvidence: rateDate, supplierBooksEntryDate: payment.supplierBooksEntryDate, supplierBankCreditDate: payment.supplierBankCreditDate, paymentProvisoEvidence: proviso, throughDate: evidence.throughDate as string, calendarEvidence: evidence.calendarEvidence as IndiaGstSection14WorkingDayCalendarEvidenceInput["calendarEvidence"], workingDayEvidence: calendar });
-          replay(evidence.paymentReceiptEvidence, governed, "governed payment-receipt result");
-          paymentReceiptDate = governed.paymentReceiptDate;
-          workingDayHash = calendar.evidenceHash;
-          governedReceiptHash = governed.evidenceHash;
-        } else {
-          fail("section14 payment evidence kind is invalid");
-        }
-      } catch (error) {
-        if (error instanceof IndiaGstSection14RateSelectionValidationError) throw error;
-        return fail("section14 payment evidence ancestry is invalid");
-      }
-
-      const selected = classify(service.serviceProvisionDate, invoice.invoiceIssueDate, paymentReceiptDate, rateDate.rateChangeDate);
-      const version = selected.selectedVersionSide === "predecessor" ? (input.rateVersionPair as IndiaGstAccommodationRateVersionPairResult).predecessor : (input.rateVersionPair as IndiaGstAccommodationRateVersionPairResult).successor;
-      const selectedVersion = Object.freeze({ extensionId: version.extensionId, version: version.version, status: version.status, contentHash: version.contentHash, effectiveFromInstant: version.effectiveFromInstant, effectiveToInstant: version.effectiveToInstant });
-      const predecessorHashes = Object.freeze({ rateVersionPair: (input.rateVersionPair as IndiaGstAccommodationRateVersionPairResult).evidenceHash, rateChangeDate: rateDate.evidenceHash, serviceProvision: service.evidenceHash, paymentReceipt: payment.evidenceHash, invoiceIssue: invoice.evidenceHash, paymentProviso: proviso.evidenceHash, workingDayCalendar: workingDayHash, governedPaymentReceipt: governedReceiptHash });
-      const body = Object.freeze({ case: selected.case, serviceProvisionDate: service.serviceProvisionDate, invoiceIssueDate: invoice.invoiceIssueDate, paymentReceiptDate, rateChangeDate: rateDate.rateChangeDate, timeOfSupplyDate: selected.timeOfSupplyDate, selectedVersionSide: selected.selectedVersionSide, selectedVersion, legalRule: "CGST_ACT_14_CHANGE_IN_RATE_SIX_CASE_RATE_VERSION_SELECTION" as const, predecessorHashes });
-      return Object.freeze({ ...body, evidenceHash: digest({ tenantId, propertyNode, reservationId, ...body }) });
+      return deriveIndiaGstSection14RateSelectionFromEvidence({
+        tenantId,
+        propertyNode,
+        reservationId,
+        rateVersionPair: input.rateVersionPair as IndiaGstAccommodationRateVersionPairResult,
+        rateChangeDateEvidence: rateDate,
+        serviceProvisionResult: service,
+        paymentReceiptResult: payment,
+        invoiceTiming: invoice,
+        paymentEvidence: input.paymentEvidence as IndiaGstSection14PaymentEvidence,
+      });
     } catch (error) {
       if (error instanceof IndiaGstSection14RateSelectionValidationError) throw error;
       return fail("complete governed section14 ancestry is invalid");

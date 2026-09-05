@@ -888,3 +888,76 @@ metadata and exact discriminator constraints; no third evidence table. Original
 request/recording actor and server evidence hashes are immutable. These details
 implement the already-admitted source-recording/replay requirements, not a new
 legal regime or a product-completion claim.
+
+## Explicit work-in-progress publication amendment — 2026-09-05
+
+The founder requires implemented work to be visible on GitHub, while incomplete
+schema changes must not become automatically runnable migrations. Admit exactly
+`handoff/drafts/order434/0075_india_native_fiscal_source_evidence.sql` as the
+temporary, non-runnable location of the reserved0075 draft. Move the current draft
+there without duplicating its bytes. This is source preservation, not an extra
+migration, a deployment, or acceptance of0075. Its opening warning still applies
+to publication into the runnable migration sequence. The migration runner must
+continue discovering only the unchanged0001–0074 until the complete0075/0076
+candidate and catalogue changes are ready. No new automatic draft runner is added.
+
+The new TypeScript contracts, shared timing calculations and focused tests may be
+published as an explicitly incomplete development checkpoint. Do not expose the
+new source services through the public context index, add an operator/API action,
+claim first-native-invoice success or reuse this checkpoint as independent review.
+The exact new integration suite remains mandatory when explicitly requested; its
+absence of database configuration must be recorded separately from a pass.
+
+### Executed source-intake checkpoint (not Order434 completion)
+
+Root applied the original0001–0074 plus the draft0075 only to a disposable native
+PostgreSQL16.15 database, outside the retained local app. An initial setup attempt
+correctly stopped at0018 because the disposable registrar role was absent; after
+provisioning that existing constrained role, migration application completed.
+The fixture census was75 migration records and126 public tables. Draft SQL SHA256:
+`4f856fcc2b6afc7368f4ab9ce4187e8220f1e6b08bd0b05001421878d36db367`.
+No retained database or hotel data was used or changed.
+
+The first real database run found that Bun's `errno` was not mapped to the intended
+typed domain error. Both source services now normalize `errno`, then `sqlState`,
+then `code`; realistic Bun42501 and23505 unit regressions preserve exact errors.
+Root personally reran these eight suites with the required real-database flag:
+
+```text
+bun test tests/india-gst-accommodation-ordinary-regime-evidence.integration.test.ts
+  tests/india-native-fiscal-source-completion.test.ts
+  tests/india-gst-accommodation-source-intake.test.ts
+  tests/india-gst-accommodation-time-of-supply.test.ts
+  tests/india-gst-section14-rate-selection.test.ts
+  tests/india-gst-accommodation-historical-resolution.test.ts
+  tests/india-gst-accommodation-quoted-rate-applicability.test.ts
+  tests/india-gst-accommodation-final-component-tax.test.ts
+```
+
+Result: **54 passed,0 failed,1173 assertions**, including4 real PostgreSQL cases.
+These prove source recording, exact replay/current authorization, tenant separation,
+unchanged financial artifact counts, native timing selection and external regressions.
+They do not prove genuine native valuation, dependent transaction timing persistence,
+incremental accounting, complete canonical issuance, the final schema, concurrency,
+or the required fresh non-implementing review. Those remain active Order434 work.
+
+The subsequent defensive error-handling refinement rethrows null/undefined and
+non-SQL errors unchanged, with exact-identity regressions; source-intake unit proof
+is10 passed,0 failed,76 assertions. Typecheck, import boundaries(164 files),
+dependency licences(23 packages) and diff checks pass. The earlier54-case database
+receipt is tied to the preceding candidate and is not represented as a rerun of
+this final guard-only refinement.
+
+Root's final standing `bun test` at this checkpoint passed1490 tests with1074
+explicit environment-dependent skips,0 failures and20895 assertions across472
+files. The four new database cases are among those skips in the standing run;
+their separately configured earlier PostgreSQL proof is recorded above. No skipped
+database case is counted as a passing database proof. The final executable migration
+directory contains74 files and is byte-identical to published `cb4d5d9`.
+
+Root stopped the sole disposable cluster and verified port55502 was closed. The
+verified76,372,039-byte test directory at
+`D:\Yellow\temp\order434-source-intake-20260905` remains stopped because the tool's
+execution policy rejected its exact-target cleanup command. No alternative deletion
+method was attempted. No retained hotel database was touched; this small leftover
+does not block implementation or require founder action now.

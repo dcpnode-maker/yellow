@@ -1,6 +1,6 @@
 # Order437 — Reconcile updated main into the development branch
 
-**Status:** BRANCH RECONCILED — publication/CI pending; no main product merge
+**Status:** COMPLETE — development publication and exact CI verified; no main product merge — D1338
 **Date:** 2026-09-05
 **Phase:** Delivery infrastructure; no phase advancement
 **Authority:** D1334, D1335, founder's current GitHub and continuous-build requests
@@ -69,3 +69,17 @@ parents are ancestors. Worker typecheck passed; quote/provider tests8 passed,
 checked active worktree overlap and fast-forwarded it without overwriting worker
 files. Normal development publication and exact GitHub CI remain next; main and
 the local app are unchanged.
+
+## Published reconciliation receipt — 2026-09-05
+
+Root verified normal publication through development commit
+`cb4d5d9fa544d63083bf47e2ab31bb2a94c94a1e` and
+[CI run 33937609924](https://github.com/dcpnode-maker/yellow/actions/runs/33937609924):
+quality, windows-state, container-smoke and database all succeeded, with the actual
+database referee reporting **11 passed, 0 failed of 11**. PR80 is OPEN,
+MERGEABLE/CLEAN. This order's ancestry/publication work is complete; it does not
+approve or merge PR80's application changes. Remote main remains
+`2e55b88488300b1d4efb551f8ec79698dbb52dad`, containing PR81's 20 updated original
+documents and bounded quote-test repair. Main's README explicitly links the
+development branch and discloses its older executable baseline. The dirty
+canonical checkout and retained local runtime are preserved.
