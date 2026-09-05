@@ -1,5 +1,6 @@
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { SQL } from "bun";
+import { existsSync } from "node:fs";
 import { ChargeCorrectionService } from "../src/contexts/financials";
 
 import {
@@ -33,6 +34,9 @@ import {
 const id = (suffix: number): string =>
   `00000000-0000-0000-0000-${String(suffix).padStart(12, "0")}`;
 const TENANT = id(434701);
+const canonicalCompletionInstalled = existsSync(new URL(
+  "../migrations/0077_india_native_fiscal_source_completion.sql", import.meta.url,
+));
 const EVENT = id(434702);
 const HASH = "a".repeat(64);
 const PREDECESSOR = "a806f516-fed6-5768-b310-94aa03286adb";
@@ -398,7 +402,7 @@ databaseDescribe("Order434 live private native-tax preview and accounting metada
     await deploy?.close({ timeout: 0 });
   });
 
-  test("keeps the exact two-UUID draft consumer capability withheld pending full authentication", async () => {
+  test("matches the exact two-UUID consumer authority at the current migration stage", async () => {
     const [fn] = await deploy<Array<Record<string, unknown>>>`
       SELECT pg_get_userbyid(proc.proowner) AS owner,
              proc.prosecdef AS security_definer,
@@ -417,7 +421,7 @@ databaseDescribe("Order434 live private native-tax preview and accounting metada
       owner: "yellow_owner",
       security_definer: true,
       arguments: "uuid, uuid",
-      app_execute: false,
+      app_execute: canonicalCompletionInstalled,
       runtime_execute: false,
       public_execute: false,
     });
@@ -430,7 +434,7 @@ databaseDescribe("Order434 live private native-tax preview and accounting metada
     ]) expect(resultType).toContain(field);
   });
 
-  test("keeps the authenticated accounting-source bridge private and read-only", async () => {
+  test("keeps the authenticated accounting-source bridge read-only with exact staged authority", async () => {
     const [fn] = await deploy<Array<Record<string, unknown>>>`
       SELECT pg_get_userbyid(proc.proowner) AS owner,
              proc.prosecdef AS security_definer,proc.provolatile AS volatility,
@@ -444,7 +448,7 @@ databaseDescribe("Order434 live private native-tax preview and accounting metada
        WHERE namespace.nspname='public' AND proc.proname='read_india_native_accounting_source_closure'
     `;
     expect(fn).toMatchObject({ owner: "yellow_owner", security_definer: true,
-      volatility: "v", arguments: "uuid, uuid", app_execute: false,
+      volatility: "v", arguments: "uuid, uuid", app_execute: canonicalCompletionInstalled,
       runtime_execute: false, public_execute: false });
     expect(fn!.config).toEqual(expect.arrayContaining([
       expect.stringContaining("search_path="),expect.stringContaining("TimeZone=UTC"),

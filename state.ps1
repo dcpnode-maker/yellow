@@ -3,6 +3,9 @@ param()
 
 $ErrorActionPreference = 'Continue'
 Set-Location $PSScriptRoot
+$utf8NoBom = New-Object System.Text.UTF8Encoding($false)
+[Console]::OutputEncoding = $utf8NoBom
+$OutputEncoding = $utf8NoBom
 $folderName = (Split-Path $PSScriptRoot -Leaf).ToLowerInvariant()
 $defaultProject = ($folderName -replace '[^a-z0-9_-]', '-')
 $projectName = if ($env:COMPOSE_PROJECT_NAME) { $env:COMPOSE_PROJECT_NAME } else { $defaultProject }
@@ -11,18 +14,18 @@ $env:COMPOSE_PROJECT_NAME = $projectName
 $reportComplete = $false
 
 try {
-    Write-Host "YELLOW state · Compose project $projectName"
+    Write-Host "YELLOW state $([char]0x00B7) Compose project $projectName"
     $branch = git branch --show-current 2>$null
     $head = git log -1 --pretty='%h %s' 2>$null
     $dirty = @(git status --porcelain 2>$null).Count
-    Write-Host "Git: $branch · $head · $(if ($dirty) { "$dirty uncommitted" } else { 'clean' })"
+    Write-Host "Git: $branch $([char]0x00B7) $head $([char]0x00B7) $(if ($dirty) { "$dirty uncommitted" } else { 'clean' })"
 
     $orderFiles = @(Get-ChildItem 'handoff/orders' -Filter '*.md' -File -ErrorAction SilentlyContinue | Sort-Object Name)
     $reviewFiles = @(Get-ChildItem 'handoff/reviews' -Filter '*.md' -File -ErrorAction SilentlyContinue | Sort-Object Name)
     $questionFiles = @(Get-ChildItem 'handoff/questions' -Filter '*.md' -File -ErrorAction SilentlyContinue | Sort-Object Name)
     $historicalUnclosed = @($orderFiles | Where-Object { -not (Select-String -Path $_.FullName -Pattern '^## MERGED' -Quiet) })
     $statusPath = if ($env:YELLOW_PROJECT_STATUS_FILE) { $env:YELLOW_PROJECT_STATUS_FILE } else { 'docs/PROJECT-STATUS.md' }
-    $statusText = Get-Content -LiteralPath $statusPath -Raw
+    $statusText = [System.IO.File]::ReadAllText((Resolve-Path -LiteralPath $statusPath).Path, $utf8NoBom)
     function Read-StatusField([string]$Name) {
         $match = [regex]::Match($statusText, "(?m)^<!-- $([regex]::Escape($Name)): (.*) -->$")
         if (-not $match.Success) { throw "Missing project status field: $Name" }
@@ -70,7 +73,7 @@ try {
         if ($LASTEXITCODE -eq 0) { Write-Host "yellow_test public tables: $($tables.Trim()) (validate against the PROJECT-STATUS migration frontier)" }
     }
 
-    Write-Host "Phase: $currentPhase · $currentLifecycle"
+    Write-Host "Phase: $currentPhase $([char]0x00B7) $currentLifecycle"
     Write-Host 'Reading: PROJECT.md -> AGENTS.md -> BUILD-PLAN.md -> handoff/ROSTER.md -> docs/WORKFLOW.md'
     Write-Host 'Referee: .\setup.ps1 -DbOnly -> 11 passed, 0 failed of 11'
     $reportComplete = $true

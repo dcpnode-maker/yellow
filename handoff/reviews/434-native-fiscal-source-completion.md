@@ -855,6 +855,186 @@ This is bounded evidence for the invoice-before-COMMIT concurrent folio-transfer
 schedule only. It does not characterize arbitrary simultaneous races, approve the
 whole order or phase, or authorize migration promotion.
 
+## Independent inverse concurrent-winner execution — 2026-09-06
+
+Non-implementer `/root/native_closed_review` inspected frozen source-lock integration
+SHA-256 `50c9aa7c0b4d6ea89616b8878f71766d577ae5b357bd4571a37c7b44d6886d7a`.
+The added inverse cases exercise positive and rounded-zero tax for both a real charge
+correction and real folio transfer held after their application command but before
+COMMIT. Only then is the real native issuer started. Database observation requires a
+distinct issuer backend, exactly the held financial backend in its blocker list, a
+non-granted issuer lock, and no acquired D99 publication lock. Observation polling
+does not retry either application operation.
+
+While the winner is uncommitted, separate-session fiscal and financial censuses and
+root identity remain at baseline. After release, the financial operation must commit
+successfully and the stale issuer must reject with exact SQLSTATE `55000` and message
+`native consideration root membership differs from recorded valuation`. Exact
+postconditions admit only the correction winner's reversal effects or transfer
+winner's fragment effects; they require no fiscal document, timing, tax, binding,
+number, receipt or fiscal-event effects. Root identity, expected folio balances and
+effect-free winner replay are also checked. Both original promises and the barrier
+are settled in `finally`. No bounded inspection finding was found.
+
+With mandatory native database flags and only Question192's exact four functions
+temporarily granted to `app_role` inside a PowerShell `try/finally`, the reviewer
+personally ran:
+
+```powershell
+bun test tests/india-native-fiscal-source-locks.integration.test.ts `
+  --test-name-pattern 'concurrent stale invoice'
+```
+
+Result: **2 passed, 0 failed, 16 filtered, 60 assertions**, 3.65 seconds. The
+correction-first test body took 1915.61ms and transfer-first 1488.58ms. The file hash
+remained identical after execution.
+
+The four grants were revoked unconditionally. A final default-aware
+`aclexplode(coalesce(proacl,acldefault('f',proowner)))` audit, including grantee `0`,
+proved PUBLIC, `app_role` and `yellow_runtime` EXECUTE false for all four invoice
+functions and the Question193 approval helper. Zero other database sessions remained.
+No lifecycle action, implementation edit, wrapper, extra grant, direct derived row,
+commit, push, merge or deployment occurred.
+
+This is bounded executable evidence for the two explicit financial-before-COMMIT
+inverse schedules only. It does not characterize every possible race, approve all of
+Order434 or Phase7, or authorize migration promotion.
+
+## Independent production migration boundary proof — 2026-09-06
+
+Non-implementer `/root/native_closed_review` read Question195 and inspected the
+frozen Phase E migration proof and candidate directory
+`D:\Yellow\temp\order434-production-candidate-20260906`. The candidate contains
+exactly migrations 0001–0077. The test byte-compares repository predecessors
+0001–0075, requires exact terminal filenames 0075 containment, 0076 evidence and
+0077 completion, and refuses protected admin database names. Candidate 0076 SHA-256
+`d550b41cd405aea2da2b84e75fd3632ae2a6aca3b24b5cd12697394405d29869`
+is byte-identical to the historical evidence draft.
+
+The upgrade case creates an ephemeral database, applies exact production 1–75,
+captures the byte-level immutable ledger, proves legacy issuance denied, applies 76
+alone and proves all five final capabilities still denied, then records the normalized
+76 schema and ledger. It appends an intentional `55000` failure to genuine 77 and
+requires transactional rollback, reusable connection, identical ledger and identical
+schema. It then restores exact 77, requires one migration backend, unchanged 1–75
+ledger, exact 77 filename/checksum, exactly five `app_role` capabilities, no direct
+`yellow_runtime` or PUBLIC execution and continued legacy denial. Finally it proves
+no-op identity and checksum-drift rejection without ledger/schema change. The second
+ephemeral database applies fresh 1–77 and exact-compares normalized schema and ledger
+bytes, excluding only application timestamps, with the upgraded database. Ephemeral
+database cleanup is unconditional. No bounded finding was found.
+
+The reviewer used fresh native PostgreSQL16.15 on port55503, the separately configured
+deploy/runtime URLs, absolute candidate and `pg_dump` paths, the mandatory Order434
+database flag and `D:\Yellow\temp`, and personally ran:
+
+```powershell
+bun test tests/migrate.integration.test.ts `
+  --test-name-pattern 'upgrades exact production 75|fresh 77 is schema-identical'
+```
+
+Result: **2 passed, 0 failed, 39 filtered, 42 assertions**, 11.58 seconds. The upgrade
+case took 7347.67ms and fresh-equivalence case 4021.75ms. Frozen hashes remained:
+
+- migration test: `08e4077f6ee543be77870ef50806bafd94ebe8f86e4b67a4da1011eba84474e3`
+- candidate 0076: `d550b41cd405aea2da2b84e75fd3632ae2a6aca3b24b5cd12697394405d29869`
+- candidate 0077: `c4023a323ac70dc17e17a1a4bf092c9d35225cf7eef3b094fc31c2b5df28b41b`
+
+After execution, no `yellow_migrate_%` child database and no client session remained;
+the five listed server processes were PostgreSQL's checkpointer, background writer,
+walwriter, autovacuum launcher and logical replication launcher only. The reserved
+`yellow_order434_production` database was not mutated by this reviewer. No extra grant,
+source/test/SQL edit, production lifecycle action, commit, push, merge or publication
+occurred.
+
+This is bounded independent proof of Question195's candidate migration lineage,
+atomicity and fresh/upgrade schema equivalence only. It does not approve all of
+Order434 or Phase7, validate the complete native runtime acceptance matrix on the
+promoted schema, or authorize merge, deployment or local promotion.
+
+## Independent publication, authority, direct-bill and seal schedules — 2026-09-06
+
+Non-implementer `/root/native_closed_review` inspected the frozen concurrency tests.
+The preparation publication schedule uses the real event publisher to hold D99, then
+starts the actual issuer. Database observations require the distinct issuer to wait
+only behind that publisher without holding D99. Three further distinct deploy probe
+backends then demonstrate that the waiting issuer already retains its financial
+account, business-day and document-series locks; the probes wait only behind the
+issuer and introduce no reverse dependency. After publisher COMMIT, the same issuer
+reaches its pre-COMMIT barrier while retaining those resources, then commits one
+invoice after release. Exact event ordering/delta, complete fiscal census, original
+charge hash, guest/revenue/payable totals, balanced journals and replay are checked
+for positive and rounded-zero tax.
+
+The authority schedule covers both committed winners for both tax variants. Removal
+uses deploy-only configuration DML because no application grant-revoke command exists,
+selects and deletes every qualifying role tuple for one required permission, and
+restores the exact tuples. Remove-first makes the issuer wait without D99 and then
+reject with exact `55000` / `native issue role-permission lock set changed`, with no
+fiscal effect. Issue-first makes the remover wait behind the issuer, commits exactly
+one invoice, then proves revoked permanent replay rejects with exact `42501` /
+`native issuer requires both property issue and valuation authority`; restoration
+permits an effect-free permanent replay.
+
+The source-lock tests use the real `ReceivableService` for both orderings and tax
+variants. Exact backend/blocker/no-inversion observations and invisible baselines
+precede release. Both operations commit: invoice-first direct bill moves consideration
+plus the newly posted tax; bill-first moves original consideration and leaves only
+later tax on the guest folio. Exact receivable exposure, transfer journal/lines,
+fact/event identities, guest/receivable balances, full fiscal census, original-root
+identity and both permanent replays are asserted. The two previously reviewed inverse
+stale-invoice schedules also remained selected and passed.
+
+The reviewer personally ran these six tests as part of the three-file focused command:
+
+```powershell
+bun test tests/india-native-fiscal-preparation.integration.test.ts `
+  tests/india-native-fiscal-completion.integration.test.ts `
+  tests/india-native-fiscal-source-locks.integration.test.ts `
+  --test-name-pattern 'publication wait|concurrent authority|uncommitted .*direct bill|seal-first and issue-first schedules|concurrent stale invoice'
+```
+
+The unchanged preparation/source-lock tests passed: publication 5284.70ms, authority
+7516.60ms, inverse correction 2436.27ms, inverse transfer 2088.13ms, invoice-first
+direct bill 6502.58ms and direct-bill-first 6638.48ms. The seal result from that first
+command is deliberately not accepted here because a lifecycle review gap was reported
+after execution. The six valid files remained frozen at preparation SHA-256
+`1be3ae5faa36cff8a21ba3823c353c5c53a97580492bfb00e445f41455feb91e`
+and source-lock SHA-256
+`c791445d190421af8a043e9c0d1caae5117ca55b81f2059c26dcae8827848008`.
+
+The repaired seal test moves every barrier wait inside a `finally`-protected lifetime,
+uses a 15-second observation bound and tagged outcomes, and snapshots the complete
+candidate census, exact original charge-line hash, guest/revenue/payable balances,
+balanced journals and day seal state. Seal-first requires the actual seal to commit,
+the blocked invoice to fail exact `P0011` / `native fiscal issue business date is
+sealed`, only seal audit effects, unchanged money and seal replay. Issue-first requires
+the actual invoice then seal to commit in order, exact invoice/tax/seal deltas and
+money, and effect-free invoice and seal replays. No generic-error or partial-success
+outcome is accepted. The reviewer then personally ran:
+
+```powershell
+bun test tests/india-native-fiscal-completion.integration.test.ts `
+  --test-name-pattern 'seal-first and issue-first schedules'
+```
+
+Result: **1 passed, 0 failed, 19 filtered, 52 assertions**, 6.84 seconds (test body
+6666.00ms), covering seal-first and issue-first for both positive and rounded-zero
+tax. The repaired completion test remained byte-stable at SHA-256
+`47f3cb2d9044283c246d4764e4e0d9e37111e9213b185909b2c4a6c5e6a6f273`.
+No bounded inspection or executable finding remained.
+
+Each run used mandatory native database flags and only Question192's exact four
+temporary `app_role` grants inside PowerShell `try/finally`. All grants were revoked.
+A final default-aware `aclexplode(coalesce(proacl,acldefault('f',proowner)))` audit,
+including grantee `0`, proved PUBLIC, `app_role` and `yellow_runtime` EXECUTE false for
+all four invoice functions and the Question193 approval helper. Zero other sessions
+remained. No lifecycle action, SQL/product/test edit, wrapper, extra grant, direct
+derived record, commit, push, merge or deployment occurred.
+
+This is bounded evidence for the named schedules only. It does not approve all of
+Order434 or Phase7, characterize arbitrary concurrency, or authorize promotion.
+
 ## Independent focused timing, rate and regression execution — 2026-09-06
 
 Non-implementer `/root/native_closed_review` inspected the later frozen native
@@ -913,3 +1093,278 @@ commit, push, merge or deployment occurred.
 This is bounded independent evidence for the seven selected cases only. It does not
 approve Order434 or Phase7, replace the earlier maximum proof, or authorize migration
 promotion.
+
+## 2026-09-06 — canonical 0077 full-native attempt stopped on source failure
+
+The independent reviewer began the requested serial six-file acceptance against
+fresh, unseeded databases cloned from the retained
+`yellow_order434_production` template on native PostgreSQL 16.15 at port 55503. Each
+test process used `yellow_deploy` for deployment reads and `yellow_runtime` for the
+runtime path, with the applicable mandatory Order434 environment gate. No temporary
+function grant or derived-row restoration was used.
+
+The ordinary-regime evidence file
+`fe9860ac01c85a2beabc2144a6ae4b29dd1a7caaa2dcbcf01e475af63fdb28c7`
+completed with **4 passed, 0 failed, 29 assertions**, process exit 0, in 879 ms.
+
+The next process, full
+`tests/india-native-fiscal-source-completion.integration.test.ts` at
+`c5a66f625516098d4292f3b547af3858b4e7c34545a1fa1f5969f32ef7f68fcf`,
+against canonical 0077
+`c4023a323ac70dc17e17a1a4bf092c9d35225cf7eef3b094fc31c2b5df28b41b`,
+terminated with exit 1: **18 passed, 4 failed, 186 assertions**, 17.59 seconds.
+Three failures (real statutory roots, ordered statutory locks, and distinct
+service/time-of-supply SEZ roots) raised SQLSTATE `55000`, `native historical-rate
+approved registry member is inconsistent`, from
+`read_india_native_rate_history_day` line 65. The private one-minor source-prefix
+case raised SQLSTATE `55000`, `native tax preview registry member is inconsistent`,
+from `read_india_native_tax_preview` line 71 via
+`lock_india_native_invoice_source_prefix`.
+
+The reviewer stopped at that genuine database failure; the remaining four files were
+not run and are not claimed as passing. Both exact ephemeral clones were dropped in
+`finally`. A final catalogue check found zero `order434_review_*` databases and zero
+matching client sessions. This failed bounded attempt is not Order434 acceptance.
+
+## 2026-09-06 — repaired fixture rerun stopped on stale accounting ACL assertions
+
+The reviewer inspected the fixture-only repair at
+`3f6ca16e56547a934b4fef37f191c34f44ffd70338a03a9dd1350cff558f8488`.
+It derives the two approved registry members and deterministic UUIDs from canonical
+seed exports, inserts only missing base `extension_type`/`extension` rows, and
+exact-compares every field after `ON CONFLICT DO NOTHING`; an ID or natural-key
+collision cannot silently substitute different configuration. It inserts no native
+valuation, tax projection, accounting binding, or document artifact.
+
+With a separate fresh unseeded template clone for each process and no temporary
+grants, the reviewer obtained:
+
+- ordinary-regime evidence: **4 passed, 0 failed, 29 assertions**, exit 0, 845 ms;
+- source completion: **22 passed, 0 failed, 263 assertions**, exit 0, 20.47 seconds;
+- native accounting: **25 passed, 2 failed, 383 assertions**, exit 1, 8.25 seconds.
+
+The two accounting failures are exact metadata expectation drift, not generic SQL
+errors. The tests at lines 416 and 446 expect `app_execute=false` for
+`consume_india_native_fiscal_accounting_event(uuid,uuid)` and
+`read_india_native_accounting_source_closure(uuid,uuid)`, while canonical 0077
+intentionally grants both among its five exact `app_role` capabilities. PostgreSQL
+observed `app_execute=true`; PUBLIC and `yellow_runtime` remained false.
+
+Execution stopped at that terminal failure, so preparation and source-locks were not
+run. All three clone databases were dropped and the final catalogue check found zero
+`order434_review_*` databases and zero matching sessions. This is bounded failure
+evidence and is not full Order434 acceptance.
+
+## 2026-09-06 — canonical 0077 independent native completion and referee proof
+
+After the fixture registry repair and accounting ACL-expectation correction, the
+non-implementing reviewer ran each remaining file as its own native Bun process
+against a separate pristine, unseeded database cloned from
+`yellow_order434_production` on PostgreSQL 16.15 port 55503. Mandatory accounting and
+issuance gates were enabled as applicable; deploy and runtime URLs used their actual
+`yellow_deploy` and `yellow_runtime` roles. No temporary grant, legacy grant,
+derived-row restoration, or shared seeded database was used.
+
+Personally observed process results:
+
+- accounting `13c5002b0ea98e5a987450266a898749cbfd15a7a595f882197dae730935c1a9`:
+  **27 passed, 0 failed, 401 assertions**, exit 0, 8.09 seconds;
+- preparation `cb87bcd028a856daba7b6c36585c7282b707a2f0c15be18f2f2bf0b2f61a2b22`:
+  **21 passed, 0 failed, 262 assertions**, exit 0, 30.09 seconds;
+- source locks `3b942c5f5b1c1ac03c6ee85b2c6fe677de87ad4b52c7c26766b0ce3daee37770`:
+  **20 passed, 0 failed, 1,148 assertions**, exit 0, 203.58 seconds. The genuine
+  100-distinct-source case itself took 161.46 seconds;
+- completion `40733b7046710efb89b2ce544ee09926d64dd67ebe73ad0ae9ff0ca4b2b284dd`:
+  **22 passed, 0 failed, 247 assertions**, exit 0, 317.24 seconds. The authentic
+  500-root/366-night case passed in 276.17 seconds (fixture 49.09 seconds, prefix
+  0.48 seconds, issue 224.99 seconds, exact account/totals 0.08 seconds, replay 1.48
+  seconds, final census 0.003 seconds). The int64-safe upper-slab boundary and genuine
+  two-tenant denial/isolation cases also passed.
+
+Before that final run, the implementer's focused form of the two new completion tests
+had first failed because it built a wrong-tenant request with a stale audit envelope,
+expected non-canonical SQL messages, and computed the total oracle as a constant.
+The frozen test instead uses genuinely bound replay requests, independently derived
+canonical denial messages, and reads the persisted `tax.grand_total_minor`; the
+reviewer did not suppress those earlier test failures.
+
+For the standalone referee, the reviewer confirmed zero other client sessions,
+restarted only `D:\Yellow\temp\order434-production-cluster-20260906` with its existing
+loopback port, 32 MB shared buffers, 32/128 MB WAL bounds, SCRAM and
+`pg_stat_statements` preload while raising `max_connections` from 40 to 200, then
+created another pristine clone and loaded only `tests/seed_fixture.sql`. Using
+`C:\Users\astha\AppData\Local\Programs\Python\Python313\python.exe`, psycopg2 2.9.12,
+UTF-8 output and the local deploy DSN, `tests/run_invariants.py` passed **11 of 11**,
+including 100 gapless concurrent invoice numbers and 117/117 RLS/policy coverage;
+process exit was 0.
+
+The shared fixture remained
+`3f6ca16e56547a934b4fef37f191c34f44ffd70338a03a9dd1350cff558f8488`;
+the referee and seed hashes were respectively
+`2afa95bb7c02cd9637ffc9c3df00d1ddf7cfc5d8d31c4fd8fad29b950c1a418d`
+and `f8e8147800bc3ee24ba5020b70f95ad77a987c698d3c63dd664ed8d4cba1a409`.
+All reviewer clones were dropped. The final catalogue audit found zero
+`order434_review_*` databases and zero other client sessions; the retained template
+still had exactly migration 77 and zero native registry seed rows.
+
+Readiness was not rerun because the known Windows Bun `afterAll` crash is not native
+acceptance evidence. The earlier readiness concerns are not blockers: the migration
+ledger is intentionally deployment-only, and exhaustive private-helper ACL auditing
+belongs migration/security proof rather than every runtime readiness request. This
+section is bounded independent native evidence; it does not approve the whole order,
+PR, release, or deployment.
+
+## 2026-09-06 — migration transport green; database-acceptance contract stale
+
+The reviewer ran the complete current migration integration file
+`64e1ffc6a53a1ccbd89c2022484a2e07eebb87d120f009acf4003e4034ba2b7f`
+with mandatory Order434 Phase E enabled, the exact candidate directory
+`D:\Yellow\temp\order434-production-candidate-20260906`, genuine SCRAM roles and
+native PostgreSQL 16.15 `pg_dump`. A first attempt passed the two Phase-E cases but
+finished **32 passed, 9 failed** because root's parallel compatibility tests held
+cluster-global `yellow_runtime` sessions and migration 0012 correctly failed closed.
+This was recorded as a coordination error, not a product defect or reason to weaken
+the guard. After root drained its work, the reviewer verified zero client sessions
+and reran the identical command: **41 passed, 0 failed, 233 assertions**, exit 0,
+197.14 seconds.
+
+The subsequent database-acceptance attempt used a separate pristine migration-77
+clone and current test
+`99829a3a4dee31cf9ae1d190c424ae25db46e19f92ba06eb0abbdc18cece55d6`.
+It stopped at **17 passed, 6 failed, 56 assertions**, exit 1. One failure was the
+reviewer's fixture selection: `tests/seed_fixture.sql` creates Acme/Rival tenants,
+whereas the last acceptance case expects the canonical demo seed. Five further
+failures are independent stale catalog expectations against canonical 0076/0077:
+
+- expected permission/grant counts 11/0, observed 15/8;
+- supplier-registration expected 9 constraints and 2 indexes, observed 10/3;
+- service-provision expected the pre-0076 15-column shape, 10 constraints and 2
+  indexes, observed the six recording fields plus 16 constraints and 6 indexes;
+- party fiscal registration expected 12 constraints and 3 indexes, observed 13/4;
+- payment receipt expected the pre-0076 12-column shape, observed the six recording
+  fields appended by the canonical migration.
+
+The normalized full-dump acceptance was not claimed after this terminal failure.
+All `yellow_migrate_*` and `order434_review_*` databases were dropped, and a final
+audit found zero other client sessions. This bounded section preserves both the
+interfered migration run and the acceptance failure; it is not Order434 approval.
+
+## 2026-09-06 — corrected canonical-seed database acceptance and native snapshot
+
+Root correctly identified that the preceding 15-permission/8-grant and tenant
+observations were side effects of the reviewer's use of `tests/seed_fixture.sql`, not
+canonical schema findings. The reviewer preserved that failed run, created a new
+pristine migration-77 clone, and this time ran `bun scripts/seed.ts` with the actual
+deploy role. The canonical seed inserted exactly the Yellow Demo tenant and property.
+
+Against database-acceptance test
+`4207a53151d57f8a3a986b9ad33dce8ded9f301c8ddc47ef544e4fe297c4c1ba`,
+the reviewer personally observed **23 passed, 0 failed, 65 assertions**, process exit
+0, 668 ms. The narrow test correction covers only the four previously observed
+canonical additions: supplier native identity constraint/index; the six nullable
+service recorder fields with their named constraints/indexes; party native recipient
+identity constraint/index; and the six payment recorder fields plus recording-shape
+check. The permission oracle remains 11 permissions and zero grants.
+
+The reviewer then invoked native PostgreSQL 16.15 `pg_dump` directly against that
+same clone with `--schema-only --no-owner --no-comments`, passed the complete output
+through `normalizeSchemaDump(output,true)`, and exact-compared it with snapshot
+`e7dab1576e1ac72dcc70ca3c57902051ac5306b5c07db76bc1bae750b27c00be`.
+Result: exact match, normalized size 1,546,113 bytes, process exit 0. The clone was
+dropped; final audit found zero assigned-prefix databases and zero other client
+sessions.
+
+This closes the executable migration/database/snapshot evidence in this review. It
+does not alone close Order434: final acceptance still needs the exact published CI
+run to finish green and a consolidated independent whole-diff/Tier-3 inspection of
+the canonical 0076/0077 boundary (plus governance recording) if that inspection has
+not already been completed elsewhere. The reviewer has deeply inspected and executed
+the changed paths in bounded slices, but does not claim a single end-to-end reread of
+every line of both large canonical migrations in this section.
+
+## 2026-09-06 — consolidated whole-candidate Tier-3 review
+
+Reviewer: Codex `/root/native_closed_review`, independent of implementation. Review
+base: released main `5879e2b7`; candidate content through `6bb7ba6` plus the frozen
+database-acceptance catalogue corrections described above. The reviewer inspected
+the full 38-path candidate inventory, Question195's superseding scope, the remaining
+release/readiness/setup/status adaptations, canonical migration assembly, all public
+capability call sites, and the accumulated personally executed receipts in this
+document. Generated `tests/schema/expected.sql` was assessed through its exact native
+normalized-dump equality rather than by treating its 1.5 MB text as an independent
+handwritten specification.
+
+Assembly was independently recomputed from bytes:
+
+- canonical 0076 is byte-for-byte equal to historical draft source evidence, both
+  SHA-256 `d550b41cd405aea2da2b84e75fd3632ae2a6aca3b24b5cd12697394405d29869`;
+- canonical 0077 contains each historical fragment body exactly once and in required
+  dependency order: accounting
+  `e6c30d972c12c4dd2999c2d5f269f0ac07944ea8e8431831244919654c7ef754`,
+  preparation `90aa77a7d1501fb560705a5edef5c84c0f5582d5df4808eacf0cffe9b9ae770a`,
+  statutory `367f83ffe459af5d5099186aa67b0ee207f6614b9e879d8a376046b9ffbddf79`,
+  and completion `75219b4a9315ade112538f6a8981f66260becdd4a0adc79b789126b6edb3a09b`;
+- the only assembled public entry authority is the exact five `app_role` grants for
+  prepare-v2, accounting consumption, authenticated accounting closure, commit-v2
+  and approval-with-options. Textual inventory found four pre-existing governed
+  recorder/valuation grants in 0076, five final grants in 0077, no grant to PUBLIC or
+  `yellow_runtime`, no default-privilege mutation and no dynamic SQL execution.
+
+The reviewer traced the complete TypeScript/SQL coupling. `issueNative` passes the
+22 preparation arguments in signature order, validates the exact four-field result,
+consumes the persisted request event in the same transaction, authenticates the
+returned accounting binding through the two-argument closure capability, reconstructs
+and compares the fiscal source/readiness hashes, then passes the exact seven commit
+arguments and validates the 20-column permanent receipt. The Financials handler owns
+only tenant/event input; the closure adapter rechecks binding, scope, topology,
+currency, generations, hashes, totals and immutable source sets. Approval keeps the
+unchanged six-column legacy INSERT when no options are supplied and uses the exact
+nine-argument governed helper only for identity/expiry options. No caller supplies
+derived money, accounts, dates, hashes or document numbers.
+
+The remaining diff inspection found the readiness frontier and exact-five authority
+check consistent with the release-77 contract while preserving legacy-issue denial,
+direct `yellow_runtime` identity, default-aware PUBLIC denial and deployment-login
+rejection. CI uses one freshly migrated unseeded template and a separate clone for
+each of the six native files with mandatory gates; its trap covers both active and
+already-dropped clone names. Historical release-containment tests now construct exact
+74/75 directories and separately prove current-77 legacy denial. Setup/catalogue
+changes are limited to the derived 77/127 counts, platform-correct state output and
+the matching release frontier. No scope escape or new product authority was found.
+
+Finding disposition: **no unresolved Tier-3 code, SQL, financial-invariant, migration,
+ACL, isolation, replay or lifecycle finding** after the recorded repairs. The earlier
+registry, stale ACL expectation, wrong request envelope/message, constant total
+oracle, parallel migration-session interference, wrong seed and stale catalogue
+failures remain preserved above and were not reclassified as initial successes.
+
+Tier-3 conclusion: **approved conditionally on the exact final published candidate CI
+finishing green and governance recording that exact SHA/result**. This review does
+not pre-approve a later diff, waive a failed/skipped CI database proof, merge the
+branch, publish a release, or authorize deployment. If final CI is green on the exact
+reviewed content with only the narrow catalogue/test-governance repairs already
+described, no further native database repetition is required for Order434.
+
+## Supported-service reachability rationale for malformed journal shapes
+
+This is a static reachability rationale, not an executed database proof of the inner
+malformed-state exceptions. The only supported operation that creates an original
+native consideration journal with the required
+`{"interface":"financials.charge.post"}` provenance is `ChargeService.postCharge`.
+That operation constructs exactly two balanced lines: the folio guest debit followed
+by the routed property-currency revenue credit. `ChargeCorrectionService` constructs
+the corresponding exact two-line reversal. `FolioTransferService` constructs paired
+transfer fragments for each governed source root, including every pair in a
+multi-root transfer journal.
+
+Other legitimate financial posting operations carry different source provenance and
+are rejected as unsupported native sources before the original-journal or transfer-
+pair shape checks. Consequently, no supported service can produce a three-line
+`financials.charge.post` journal or an incomplete transfer pair. Reaching the literal
+`native source must contain exactly two balanced guest/revenue lines` or
+`native source transfer journal has incomplete or unsupported pairs` branches would
+require direct fabrication or corruption of insert-only financial rows. No such
+contrived seeding is claimed or admitted. Existing executable evidence covers the
+supported two-line charge, exact correction companion closure, paired folio transfer,
+and multi-root transfer paths; it does not claim that either inner malformed-state
+message was executed.

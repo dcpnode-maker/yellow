@@ -1,10 +1,16 @@
 # Order 434 — Complete the first native fiscal invoice source
 
-**Status:** ACTIVE — implementation in progress; no completion or review approval — D1330
+**Status:** ACTIVE — implementation and independent native proofs complete; Tier-3 approval conditional on final exact-head CI — D1375
 **Phase:** 7 · YF-008, YF-009, YF-023
 **Implementation base:** `591ace8` (includes the complete Order432 current-catalogue repair)
 
-**Latest implementation work:** [Transfer concurrency, rate histories and durable accounting delivery](#transfer-concurrency-rate-histories-and-durable-accounting-delivery).
+**Latest implementation work:** [Canonical 76/77 integration on the released containment baseline](#current-integration-continuation--question195).
+The complete candidate and its derived schema are now in the development runner.
+The full migration suite passes 41/41 and independent native acceptance passes116/116;
+final corrected-candidate CI remains pending. See the D1375 receipt below.
+Question195 supersedes historical draft migration numbers throughout this order.
+
+**Earlier command checkpoint:**
 The actual runtime command now commits an ordinary, rounded-zero-tax or genuine
 rate-change invoice from real charge, intake and valuation sources, without
 reposting revenue. Source locks, preparation authentication, accounting and final
@@ -1997,10 +2003,97 @@ CI33984192939. Root personally read database101354795615's11 passed,0 failed of1
 at2026-09-05T18:34:24.2521160Z. That certifies its74-runnable-migration checkpoint,
 not the unassembled76-migration candidate or this subsequent test-only work.
 
-Order434 remains active: inverse/authority/publication/direct-bill schedules,
-remaining bounds/calendar acceptance, full0076 assembly and fresh/upgrade/schema/
+Order434 remains active: remaining bounds/calendar acceptance, full0076 assembly
+and fresh/upgrade/schema/
 referee/legacy proof and complete Tier3 acceptance are still required. There is
 no main merge, local app refresh, IRP activation or phase/order completion.
+
+## Concurrent financial, authority, publication and seal checkpoint — D1373
+
+The remaining named simultaneous schedules are implemented in the existing three
+integration suites. These are deterministic, observed interleavings of real
+commands, not sequential operations described as concurrency:
+
+- Correction-first and folio-transfer-first: hold the real financial command after
+  writes and before COMMIT, observe the stale issuer waiting without D99, commit
+  the winner, then require exact55000 root-membership rejection with no native
+  fiscal artifacts or lost number. Original account/folio/root identities and
+  winner-only money/fact/event/idempotency deltas remain exact.
+- Direct billing in both orders: use the unchanged0025 `ReceivableService` and
+  sorted account prefix. Both commands commit. Invoice-first transfers consideration
+  plus tax to receivables; bill-first transfers consideration and leaves the newly
+  posted tax on the guest account. Direct billing is settlement, not prohibited
+  rewriting of source consideration. Both permanent replays are effect-free.
+- Authority in both orders: only synthetic configuration tuples are removed by
+  deployment because no runtime grant/revoke command exists. Revoke-first makes
+  the waiting issuer reject55000 `native issue role-permission lock set changed`.
+  Issue-first commits once; after removal its replay rejects42501 with the exact
+  dual-authority message. Exact tuple restoration permits unchanged replay.
+- Publication ordering: a real kernel event publisher holds D99; a distinct native
+  issuer waits behind it while three distinct read-only probes wait on its account,
+  day and series locks. The publisher has no reverse dependency. After publication
+  commits the same issuer reaches its pre-COMMIT barrier and retains all three
+  resources. Exact event order, financial effects, chain advance and replay follow.
+- Audited day close in both orders: seal-first makes the waiting invoice reject
+  exactP0011 `native fiscal issue business date is sealed`; issue-first permits
+  the waiting seal to commit. Original charge-line identity, guest/revenue/payable
+  totals, balanced journals, actual sealed state, number and both applicable
+  permanent replays are asserted.
+
+Every schedule includes positive and rounded-zero tax. Barriers have bounded
+observations and unconditional release, promise settlement and connection closure;
+no business command retries, fake clock, SQL override or runtime grant broadening
+is introduced. The synthetic publication probe is a test event, not a new product
+event contract. Production SQL and the source fixture remain unchanged.
+
+Builder proof: inverse2/0(60), direct-bill2/0(52), publication/authority2/0(74),
+final seal1/0(52). Initial inverse oracle expected a later ancestry guard; actual
+55000 root-membership rejection was made exact. Root's first publication/authority
+run0/2 counted new tax charge journals as original charge lines; the census now
+filters exact `financials.charge.post` provenance while separately checking all
+incremental journals and guest/revenue/payable totals. Seal implementation was
+repaired for actual Bun `errno`, positive/zero/idempotency deltas, finally-protected
+waits, precise money/source/day snapshots and typed outcomes. None changes product
+guards or hides the unsuccessful attempts.
+
+Independent `/root/native_closed_review` personally executed the unchanged six
+inverse/direct-bill/publication/authority cases within a7/0,220-assertion run in
+38.62s. Its stale34-assertion seal result is explicitly excluded. After root's
+repair, the reviewer inspected and personally executed the current seal case:
+1/0,19 filtered,52 assertions,6.84s. Frozen hashes:
+
+- preparation test: `1be3ae5faa36cff8a21ba3823c353c5c53a97580492bfb00e445f41455feb91e`
+- source-lock test: `c791445d190421af8a043e9c0d1caae5117ca55b81f2059c26dcae8827848008`
+- final completion test: `47f3cb2d9044283c246d4764e4e0d9e37111e9213b185909b2c4a6c5e6a6f273`
+
+The initial, superseded worker seal run temporarily granted all five capabilities,
+including the separately admitted Question193 helper, then revoked all five.
+Root and the final independent seal proof used only Question192's four grants.
+Question192's four exact temporary capabilities were revoked after execution;
+default-aware ACL audits cover those four plus the Question193 helper, with no
+PUBLIC/app_role/yellow_runtime access and zero other sessions. The one retained
+synthetic75-ledger/127-table cluster is still available for acceptance. No retained
+hotel database or local app was changed.
+
+Root's final environment-cleared standing suite: **1560 passed,1172 explicitly
+skipped,0 failed,21543 assertions**,2732 tests/479 files,69.04s. Two preceding full
+runs each failed the unchanged Order328 responsive-folio browser test; the isolated
+test passed1/0(3), and the final full run passed without UI/harness modification.
+The filtered earlier logs do not establish its underlying cause; no browser fix
+or unconditional reliability claim is made. Typecheck,167 import boundaries,
+23-package licence check, audit and diff checks pass.
+
+Root verified published6a7cd8a CI33985487983: all four jobs succeeded; actual
+database101358280536 logs report11 passed,0 failed of11 at
+2026-09-05T18:58:48.1473296Z. This remains a74-runnable-migration checkpoint,
+not acceptance of the unassembled76 migration.
+
+Next implementation is complete0076 assembly and least-privilege final entry
+grants, schema/catalogue reconciliation, fresh74→75→76/partial-deployment proof,
+native plus legacy acceptance and the independent full outcome check. Preserve
+all1–74 checksums and installed75. Reconcile the remaining bounds/calendar matrix
+against the actual tests; do not silently treat selected races as whole-order
+acceptance. No founder decision or external authorization is currently needed.
 
 ## Order438/439 integration boundary — 2026-09-05
 
@@ -2011,3 +2104,132 @@ identifiers; future assembled evidence/completion migrations are reserved as0076
 No draft is copied to the runner, and no temporary proof grant is production authority.
 This operational consolidation does not close Order434 or Phase7 or activate native
 issuance; remaining acceptance continues from D1371 and later preserved checkpoints.
+
+## Current integration continuation — Question195
+
+The active development branch integrates reviewed operational candidate791e416
+and D1373 checkpoint7249b27 at96b808d. PR82's cutoff remains unchanged; this local
+integration is not a main merge or accepted full candidate. Both append-only
+histories and the three D1373 test files are preserved.
+
+Question195 explicitly substitutes reserved canonical0076 evidence and0077
+completion for the original0075/0076 names. Keep runnable0001–0075 immutable.
+Until the complete77 candidate and derived catalogue are ready, the normal runner
+continues to discover75 migrations. Fresh acceptance must use production75
+containment, not the historical draft75 installed in the earlier synthetic cluster.
+All full outcome and independent executable acceptance obligations still apply.
+
+### Candidate assembly and current acceptance evidence
+
+The complete candidate was first applied in an isolated directory and its schema
+was derived from real PostgreSQL 16.15. Only then were canonical migrations 76/77
+and the derived catalogue promoted together into the development runner. The
+released main branch still ends at containment migration 75; no retained hotel
+database or local operator app has been migrated.
+
+- Evidence 76 preserves the historical draft bytes: SHA-256
+  `d550b41cd405aea2da2b84e75fd3632ae2a6aca3b24b5cd12697394405d29869`.
+- Completion 77 preserves accounting, preparation, statutory and completion
+  fragment bodies in dependency order, followed by the exact five admitted
+  `app_role` entry grants: SHA-256
+  `c4023a323ac70dc17e17a1a4bf092c9d35225cf7eef3b094fc31c2b5df28b41b`.
+- Fresh catalogue: 127 public tables, 117 RLS tables/policies, 26 forced-RLS
+  tables, 376 indexes, one sequence and two views. The complete normalized
+  schema dump matches `tests/schema/expected.sql` exactly.
+- Builder's full migration suite: **41 passed, 0 failed, 233 assertions**,
+  178.34 seconds, with mandatory flags and genuine SCRAM authentication.
+  Upgrade, intermediate denial, actual completion rollback, unchanged predecessor
+  ledger, exact checksums, no-op, concurrent runners and fresh equivalence passed.
+  An earlier run had nine failures: outdated catalogue/pre-promotion assertions,
+  a trust-authentication test environment and an undersized connection budget.
+  Those failures remain evidence; neither authentication nor concurrency
+  assertions were weakened. The dump transport is subsequently extended for
+  pinned Compose CI and still needs execution on that exact revision.
+- Standing suite at this intermediate revision: 1,569 passed, 1,187 explicit
+  database/environment skips, zero failures; 21,626 assertions in 99.67 seconds.
+  Skips are not database acceptance. Later fixture/release changes require a
+  fresh final standing run.
+
+Unsuccessful acceptance is explicit. Windows Bun 1.3.14 repeatedly crashed in
+the readiness test lifecycle. A standalone repeated runtime/deployment/role-switch
+matrix exits zero, and a later test run prints all four expected assertions before
+crashing; neither result is a process-green test-suite receipt. CI must execute the
+same genuine readiness cases successfully. Test lifecycle changes do not broaden
+runtime authority or grant access to the deployment-only migration ledger.
+
+The first independent full native run on a fresh unseeded clone passed ordinary
+evidence 4/4, then stopped at source completion 18 passed / 4 failed. The exact
+registry guards rejected missing approved global tax-registry seed data. This is
+being repaired as an explicit canonical base-configuration fixture prerequisite,
+not by weakening SQL validation or inserting derived fiscal records. The remaining
+four native files were not executed by that stopped run. All isolated failed-run
+databases were removed only after their sessions ended; the unseeded source
+template and retained hotel data remain untouched.
+
+The canonical registry prerequisite is now repaired and independently rerun:
+ordinary evidence 4/4 and source completion 22/22 pass without temporary grants.
+The subsequent accounting run stopped at two stale metadata expectations for the
+exact approved 0077 capabilities; those test expectations now target canonical77,
+while PUBLIC and direct-runtime denial stay unchanged. A full rerun is underway.
+
+Builder's focused monetary-bound and genuine two-tenant cases now pass 2/2 with
+16 assertions. The maximum total is read from persisted tax/accounting artifacts.
+The next-value rejection is explicitly fixture input validation, not a claim of
+executing the SQL overflow branch. Initial tenant tests had a mismatched audit
+envelope and incorrect expected SQL messages; the corrected requests use genuine
+matching envelopes and assert the actual folio/property authority denials, unchanged
+per-tenant effects and subsequent successful issuance for both tenants.
+
+Latest dependency-free standing run: 1,570 passed, 1,189 explicit environment skips,
+zero failures, 21,646 assertions (97.41 seconds). Typecheck, 168-file import boundaries,
+23-package licence check and dependency audit pass. This remains an unapproved
+development checkpoint for real CI execution, not a main merge or local refresh.
+
+CI33991882050 at bcc6df3 passed quality, Windows state, container smoke and the
+complete local launcher. Its actual setup log reports migrations1–77/127 tables
+and the genuine referee **11 passed, 0 failed**. The database job stopped at one
+remaining historical table-count expectation in the financial-posting proof:
+125 expected versus actual127. The other nine posting cases passed, including
+500 charges and 1,000 balanced immutable lines. That exact count is corrected
+under the existing catalogue scope; no posting, ACL, money or race assertion changes.
+Later database steps were not reached and remain pending the next CI run.
+
+### D1375 — independent native acceptance and final catalogue repair
+
+All six native files now pass on separate pristine canonical77 clones without
+temporary grants: ordinary4/4, source22/22, accounting27/27, preparation21/21,
+source locks20/20 and completion22/22 — **116 passed, 0 failed, 2,350 assertions**.
+The same non-implementer personally passed the current full migration41/41(233),
+genuine PostgreSQL referee11/11 and canonical-seed database acceptance23/23(65).
+Its full native PostgreSQL16.15 schema dump exactly matches the derived snapshot.
+The 500-root/366-night/183,000-allocation proof stays within the original300-second
+case deadline; the monetary ceiling and genuine two-tenant denials are included.
+
+CI33992123191 at6bb7ba6 passed quality, Windows state, container smoke and the actual
+local launcher. The database job passed migration41/41, seed10/10, native116/116,
+containment/readiness7/7(43) and isolated operational/tax compatibility89/89(2,384).
+The Windows readiness process crash is not relabelled green: the unchanged actual
+readiness suite now has a successful Linux CI process receipt. Deployment catalogue
+acceptance then failed19/4(57), before schema/referee/API steps in that job.
+
+The four stale assertions now include the exact native supplier/recipient identity
+constraints and indexes, six nullable service/payment recording fields, and their
+named recording constraints. Permission/grant expectations remain11/0. Root first
+reproduced19/4 with the canonical seed, then passed23/23(65); the independent rerun
+also passed23/23(65) and exact schema comparison. The earlier reviewer17/6 run used
+the wrong seed, and the earlier migration32/9 run collided with root's runtime
+sessions; both remain preserved as errors, not initial successes.
+
+Root additionally passed existing external accommodation source5/5(213), financial
+corrections9/9(53), and receivable transfers10/10(45) in separate synthetic clones.
+All assigned clones were dropped after sessions ended; the pristine template and
+retained hotel/local data were untouched. Final standing checks:1,570 passed,
+1,189 explicit database/environment skips,0 failed,21,646 assertions,103.11seconds;
+typecheck,168-file boundaries,23-package licence check and audit pass.
+
+The non-implementer consolidated the whole candidate's Tier-3 inspection, exact
+historical-body migration assembly, command/SQL transaction coupling and release
+boundary. No unresolved finding remains. Approval is conditional on green CI for
+the exact final corrected candidate and recording that SHA/result. No additional
+founder decision is needed. This receipt does not merge or deploy source, refresh
+the local app, enable a provider, or complete all Phase7 work.

@@ -1,6 +1,6 @@
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { SQL } from "bun";
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 
 import { IssueIndiaNativeFiscalInvoiceCommand } from "../src/commands/issue-india-native-fiscal-invoice";
@@ -15,6 +15,7 @@ import {
   Database,
   PostgresEventBus,
   PostgresIdempotency,
+  type Tx,
 } from "../src/kernel";
 import {
   createNativeCorrectionFirstIssuanceFixture,
@@ -25,18 +26,19 @@ import {
 } from "./fixtures/india-native-fiscal-source-completion-fixture";
 
 const ROOT = join(import.meta.dir, "..");
-const completion = readFileSync(
-  join(ROOT, "handoff", "drafts", "order434", "0076-native-completion.sql"),
-  "utf8",
-);
-const preparation = readFileSync(
-  join(ROOT, "handoff", "drafts", "order434", "0076-native-preparation.sql"),
-  "utf8",
-);
-const sourceEvidence = readFileSync(
-  join(ROOT, "handoff", "drafts", "order434", "0075_india_native_fiscal_source_evidence.sql"),
-  "utf8",
-);
+const canonicalCompletionInstalled = existsSync(join(ROOT, "migrations", "0077_india_native_fiscal_source_completion.sql"));
+const completionPath = canonicalCompletionInstalled
+  ? join(ROOT, "migrations", "0077_india_native_fiscal_source_completion.sql")
+  : join(ROOT, "handoff", "drafts", "order434", "0076-native-completion.sql");
+const preparationPath = canonicalCompletionInstalled
+  ? join(ROOT, "migrations", "0077_india_native_fiscal_source_completion.sql")
+  : join(ROOT, "handoff", "drafts", "order434", "0076-native-preparation.sql");
+const sourceEvidencePath = existsSync(join(ROOT, "migrations", "0076_india_native_fiscal_source_evidence.sql"))
+  ? join(ROOT, "migrations", "0076_india_native_fiscal_source_evidence.sql")
+  : join(ROOT, "handoff", "drafts", "order434", "0075_india_native_fiscal_source_evidence.sql");
+const completion = readFileSync(completionPath, "utf8");
+const preparation = readFileSync(preparationPath, "utf8");
+const sourceEvidence = readFileSync(sourceEvidencePath, "utf8");
 const service = readFileSync(
   join(ROOT, "src", "contexts", "tax-fiscal", "india-native-fiscal-invoice.ts"),
   "utf8",
@@ -142,14 +144,25 @@ describe("Order434 native fiscal completion draft integration contract", () => {
     expect(commit).toContain("'documentId',n.prospective_document_id::text");
   });
 
-  test("keeps both completion entry points owner-private", () => {
-    for (const signature of [
+  test("keeps completion ACLs at the exact five-capability boundary", () => {
+    const commit = "commit_india_native_fiscal_invoice_v2(uuid,uuid,uuid,uuid,text,jsonb,uuid)";
+    const receipt = "read_india_native_completed_receipt(uuid,uuid)";
+    const approval = "create_approval_request_with_options(uuid,uuid,uuid,uuid,text,text,uuid,jsonb,timestamptz)";
+    const grants = [...completion.matchAll(/GRANT\s+EXECUTE\s+ON\s+FUNCTION\s+public\.([a-z0-9_]+\([\s\S]*?\))\s+TO\s+app_role\s*;/gi)]
+      .map(match => match[1]!.replace(/\s+/g, " ").replace(/\( /g, "(").trim()).sort();
+    const expectedGrants = [
       "commit_india_native_fiscal_invoice_v2(uuid,uuid,uuid,uuid,text,jsonb,uuid)",
-      "read_india_native_completed_receipt(uuid,uuid)",
-    ]) {
-      expect(completion).toContain(`REVOKE ALL ON FUNCTION public.${signature}`);
+      "consume_india_native_fiscal_accounting_event(uuid,uuid)",
+      "create_approval_request_with_options(uuid,uuid,uuid,uuid,text,text,uuid,jsonb,timestamptz)",
+      "prepare_india_native_fiscal_invoice_v2(uuid,uuid,uuid,uuid,uuid,uuid,uuid,uuid,uuid,uuid,uuid,uuid,uuid,uuid,uuid,text,text,date,date[],text[],text,uuid)",
+      "read_india_native_accounting_source_closure(uuid,uuid)",
+    ].sort();
+    if (canonicalCompletionInstalled) expect(grants).toEqual(expectedGrants);
+    else expect(grants).toEqual([]);
+    for (const signature of [receipt, "assert_native_valuation_conservation()"])
       expect(completion).not.toContain(`GRANT EXECUTE ON FUNCTION public.${signature}`);
-    }
+    for (const signature of [commit, receipt, approval])
+      expect(completion).toContain(`REVOKE ALL ON FUNCTION public.${signature}`);
   });
 
   test("keeps forward conservation private on the existing deferred trigger and rechecks the bounded prefix", () => {
@@ -254,6 +267,66 @@ function replayRequest<T extends {
       operation: "document.issued",
     }),
   }) as T;
+}
+
+/** Holds one real transaction after its writes and exposes its backend PID. */
+function beforeCommitBarrier(databaseUrl: string) {
+  const reached = Promise.withResolvers<number>();
+  const release = Promise.withResolvers<void>();
+  const pool = new SQL(databaseUrl, { max: 1, prepare: false });
+  const database = new class extends Database {
+    override async withTenantTransaction<T>(tenantId: string, operation: (tx: Tx) => Promise<T>): Promise<T> {
+      try {
+        return await super.withTenantTransaction(tenantId, async tx => {
+          const result = await operation(tx);
+          const [backend] = await tx<Array<{ pid: number }>>`SELECT pg_backend_pid() AS pid`;
+          if (!backend) throw new Error("Native completion barrier backend is unavailable");
+          reached.resolve(backend.pid);
+          await release.promise;
+          return result;
+        });
+      } catch (error) {
+        reached.reject(error);
+        throw error;
+      }
+    }
+  }(pool);
+  return { database, reached: reached.promise, release: () => release.resolve(),
+    close: () => pool.close({ timeout: 0 }) };
+}
+
+async function observeBlocked(deploy: SQL, holder: number): Promise<{
+  pid: number; blockers: number[]; holderBlockers: number[]; waiting: boolean; holdsPublication: boolean;
+}> {
+  const deadline = performance.now() + 10_000;
+  while (performance.now() < deadline) {
+    const [row] = await deploy<Array<{
+      pid: number; blockers: number[]; holder_blockers: number[]; waiting: boolean; holds_publication: boolean;
+    }>>`
+      SELECT activity.pid,pg_blocking_pids(activity.pid) AS blockers,
+        pg_blocking_pids(${holder}) AS holder_blockers,
+        EXISTS(SELECT 1 FROM pg_locks WHERE pid=activity.pid AND NOT granted) AS waiting,
+        EXISTS(SELECT 1 FROM pg_locks WHERE pid=activity.pid AND locktype='advisory' AND granted
+          AND objsubid=1 AND classid=((6441674055002974568::bigint>>32)&4294967295)::oid
+          AND objid=(6441674055002974568::bigint&4294967295)::oid) AS holds_publication
+      FROM pg_stat_activity activity
+      WHERE activity.datname=current_database() AND activity.pid<>pg_backend_pid()
+        AND ${holder}=ANY(pg_blocking_pids(activity.pid))
+      ORDER BY activity.pid`;
+    if (row?.blockers.includes(holder) && row.waiting) return {
+      pid: row.pid, blockers: row.blockers, holderBlockers: row.holder_blockers,
+      waiting: row.waiting, holdsPublication: row.holds_publication,
+    };
+    await Bun.sleep(25);
+  }
+  throw new Error("Concurrent native completion operation never waited behind holder");
+}
+
+function sqlState(error: unknown): string | undefined {
+  if (!error || typeof error !== "object") return undefined;
+  const candidate = error as { readonly errno?: unknown; readonly code?: unknown };
+  if (typeof candidate.errno === "string") return candidate.errno;
+  return typeof candidate.code === "string" ? candidate.code : undefined;
 }
 
 // These cases use the actual four candidate capabilities installed by the
@@ -871,6 +944,72 @@ candidateDescribe("Order434 native completion real candidate variants", () => {
     expect(await candidateCensus(deploy, candidate.fixture.tenant, candidate.series.seriesId)).toEqual(before);
   }, 60_000);
 
+  test("accepts the exact int64-safe upper-slab total and rejects the next monetary value without effects", async () => {
+    const candidate = await createNativeIssuanceFixture(deploy, runtime, {
+      label: "native-completion-int64-boundary",
+      roomNightAmounts: ["7816416980385403227"],
+      quotedTaxRateBasisPoints: 1800,
+      quotedTaxRounding: "component_half_up",
+    });
+    const command = new IssueIndiaNativeFiscalInvoiceCommand(runtime);
+    const before = await candidateCensus(deploy, candidate.fixture.tenant, candidate.series.seriesId);
+    const issued = await command.execute(candidate.request);
+    const afterIssue = await candidateCensus(deploy, candidate.fixture.tenant, candidate.series.seriesId);
+    expect(issued.replayed).toBeFalse();
+    expect(afterIssue.documents).toBe(before.documents + 1);
+    expect(afterIssue.nextNo).toBe((BigInt(before.nextNo) + 1n).toString());
+    const [totals] = await deploy<Array<{ guest: string; revenue: string; tax: string; total: string }>>`SELECT
+      (SELECT COALESCE(sum(line.amount_minor),0)::text FROM public.posting_line line
+        WHERE line.tenant_id=${candidate.fixture.tenant}::uuid AND line.account_id=${candidate.fixture.guestAccount}::uuid) AS guest,
+      (SELECT COALESCE(sum(line.amount_minor),0)::text FROM public.posting_line line
+        WHERE line.tenant_id=${candidate.fixture.tenant}::uuid AND line.account_id=${candidate.fixture.revenueAccount}::uuid) AS revenue,
+      (SELECT COALESCE(sum(component.tax_amount_minor),0)::text FROM public.india_gst_accommodation_final_component_tax_component component
+        JOIN public.india_gst_accommodation_final_component_tax tax ON tax.tenant_id=component.tenant_id AND tax.id=component.tax_id
+        JOIN public.india_gst_native_invoice_timing timing ON timing.tenant_id=tax.tenant_id AND timing.tax_id=tax.id
+        JOIN public.india_gst_native_fiscal_document_origin origin ON origin.tenant_id=timing.tenant_id AND origin.native_timing_id=timing.id
+        WHERE origin.tenant_id=${candidate.fixture.tenant}::uuid AND origin.document_id=${issued.documentId}::uuid) AS tax,
+      (SELECT tax.grand_total_minor::text FROM public.india_gst_accommodation_final_component_tax tax
+        JOIN public.india_gst_native_invoice_timing timing ON timing.tenant_id=tax.tenant_id AND timing.tax_id=tax.id
+        JOIN public.india_gst_native_fiscal_document_origin origin ON origin.tenant_id=timing.tenant_id AND origin.native_timing_id=timing.id
+        WHERE origin.tenant_id=${candidate.fixture.tenant}::uuid AND origin.document_id=${issued.documentId}::uuid) AS total`;
+    expect(totals).toEqual({ guest: "9223372036854775807", revenue: "-7816416980385403227", tax: "1406955056469372580", total: "9223372036854775807" });
+    const overflowBefore = await candidateCensus(deploy, candidate.fixture.tenant, candidate.series.seriesId);
+    await expect(createNativeIssuanceFixture(deploy, runtime, {
+      label: "native-completion-int64-overflow",
+      roomNightAmounts: ["7816416980385403228"],
+      quotedTaxRateBasisPoints: 1800,
+      quotedTaxRounding: "component_half_up",
+    })).rejects.toThrow("Native source fixture quoted-tax total is outside admitted int64 bounds");
+    expect(await candidateCensus(deploy, candidate.fixture.tenant, candidate.series.seriesId)).toEqual(overflowBefore);
+  }, 120_000);
+
+  test("isolates native issue commands across two genuine tenants and preserves both series on denial", async () => {
+    const first = await createNativeIssuanceFixture(deploy, runtime, { label: "native-completion-tenant-a" });
+    const second = await createNativeIssuanceFixture(deploy, runtime, { label: "native-completion-tenant-b" });
+    const command = new IssueIndiaNativeFiscalInvoiceCommand(runtime);
+    const firstBefore = await candidateCensus(deploy, first.fixture.tenant, first.series.seriesId);
+    const secondBefore = await candidateCensus(deploy, second.fixture.tenant, second.series.seriesId);
+    // Bind a genuine second-tenant audit envelope so the database, not the
+    // envelope's mismatch guard, must reject the first tenant's source IDs.
+    const wrongTenant = replayRequest({ ...first.request, tenantId: second.fixture.tenant,
+      propertyNode: second.fixture.property, actorId: second.fixture.actor });
+    await expect(command.execute(wrongTenant)).rejects.toThrow("native issue folio/property scope unavailable");
+    expect(await candidateCensus(deploy, first.fixture.tenant, first.series.seriesId)).toEqual(firstBefore);
+    expect(await candidateCensus(deploy, second.fixture.tenant, second.series.seriesId)).toEqual(secondBefore);
+    const wrongProperty = replayRequest({ ...first.request, propertyNode: second.fixture.property });
+    await expect(command.execute(wrongProperty)).rejects.toThrow("native property authority unavailable");
+    expect(await candidateCensus(deploy, first.fixture.tenant, first.series.seriesId)).toEqual(firstBefore);
+    expect(await candidateCensus(deploy, second.fixture.tenant, second.series.seriesId)).toEqual(secondBefore);
+    const firstIssued = await command.execute(first.request);
+    const secondIssued = await command.execute(second.request);
+    expect(firstIssued.replayed).toBeFalse();
+    expect(secondIssued.replayed).toBeFalse();
+    expect((await candidateCensus(deploy, first.fixture.tenant, first.series.seriesId)).documents)
+      .toBe(firstBefore.documents + 1);
+    expect((await candidateCensus(deploy, second.fixture.tenant, second.series.seriesId)).documents)
+      .toBe(secondBefore.documents + 1);
+  }, 120_000);
+
   test("issues and permanently replays a genuine Section14 invoice across distinct supply and rate-selection dates", async () => {
     const candidate = await createNativeIssuanceFixture(deploy, runtime, {
       label: "native-completion-genuine",
@@ -1004,6 +1143,134 @@ candidateDescribe("Order434 native completion real candidate variants", () => {
       await expect(new IssueIndiaNativeFiscalInvoiceCommand(runtime).execute(replayRequest(candidate.request)))
         .resolves.toEqual({ ...issued, replayed: true });
       expect(await candidateCensus(deploy, candidate.fixture.tenant, candidate.series.seriesId)).toEqual(afterIssue);
+    }
+  }, 120_000);
+
+  test("seal-first and issue-first schedules preserve the committed winner for positive and rounded-zero tax", async () => {
+    type Result = Awaited<ReturnType<BusinessDaySealService["seal"]>> |
+      Awaited<ReturnType<IssueIndiaNativeFiscalInvoiceCommand["execute"]>>;
+    type Outcome<T> = { ok: true; value: T } | { ok: false; error: unknown };
+    const capture = <T>(promise: Promise<T>): Promise<Outcome<T>> =>
+      promise.then(value => ({ ok: true as const, value }), error => ({ ok: false as const, error }));
+    const observeStage = async <T>(promise: Promise<T>): Promise<T> => {
+      let timer: ReturnType<typeof setTimeout> | undefined;
+      try {
+        return await Promise.race([promise, new Promise<never>((_resolve, reject) => {
+          timer = setTimeout(() => reject(new Error("Native seal schedule stage did not complete")), 15_000);
+        })]);
+      } finally { if (timer !== undefined) clearTimeout(timer); }
+    };
+    for (const first of ["seal", "issue"] as const) for (const positive of [true, false]) {
+      const candidate = await createNativeIssuanceFixture(deploy, runtime, {
+        label: `simultaneous-${first}-${positive}`, roomNightAmounts: [positive ? "10000" : "1"],
+        quotedTaxRounding: positive ? "exact_5_percent" : "component_half_up",
+      });
+      const { fixture, series, request } = candidate;
+      const [day] = await deploy<Array<{ business_date: string }>>`SELECT business_date::text
+        FROM public.business_day WHERE tenant_id=${fixture.tenant}::uuid AND property_node=${fixture.property}::uuid`;
+      if (!day) throw new Error("Native simultaneous business day is unavailable");
+      const roleId = crypto.randomUUID();
+      await deploy.begin(async tx => {
+        await tx`INSERT INTO public.permission(code,description) VALUES('business_day.seal','Seal a ready business day')
+          ON CONFLICT DO NOTHING`;
+        await tx`INSERT INTO public.role(id,tenant_id,name)
+          VALUES(${roleId}::uuid,${fixture.tenant}::uuid,${`Order434 seal race ${first} ${positive}`})`;
+        await tx`INSERT INTO public.role_permission(role_id,permission_code) VALUES(${roleId}::uuid,'business_day.seal')`;
+        await tx`INSERT INTO public.user_role(tenant_id,user_id,role_id,scope_node)
+          VALUES(${fixture.tenant}::uuid,${fixture.actor}::uuid,${roleId}::uuid,${fixture.property}::uuid)`;
+      });
+      const financialState = async () => {
+        const [row] = await deploy`SELECT
+          (SELECT coalesce(sum(p.amount_minor),0)::text FROM public.posting_line p JOIN public.account a
+            ON a.tenant_id=p.tenant_id AND a.id=p.account_id
+            WHERE p.tenant_id=${fixture.tenant}::uuid AND a.role='guest') AS guest,
+          (SELECT coalesce(sum(p.amount_minor),0)::text FROM public.posting_line p JOIN public.account a
+            ON a.tenant_id=p.tenant_id AND a.id=p.account_id
+            WHERE p.tenant_id=${fixture.tenant}::uuid AND a.role='revenue') AS revenue,
+          (SELECT coalesce(sum(p.amount_minor),0)::text FROM public.posting_line p JOIN public.account a
+            ON a.tenant_id=p.tenant_id AND a.id=p.account_id
+            WHERE p.tenant_id=${fixture.tenant}::uuid AND a.role='tax_payable') AS payables,
+          (SELECT md5(string_agg(row_to_json(original)::text,'|' ORDER BY original.id)) FROM
+            (SELECT p.* FROM public.posting_line p JOIN public.journal j ON j.tenant_id=p.tenant_id AND j.id=p.journal_id
+              WHERE p.tenant_id=${fixture.tenant}::uuid AND j.source='{"interface":"financials.charge.post"}'::jsonb
+                AND j.kind='charge') original) AS original_lines,
+          (SELECT count(*)::integer FROM (SELECT journal_id FROM public.posting_line WHERE tenant_id=${fixture.tenant}::uuid
+            GROUP BY journal_id HAVING sum(amount_minor)<>0) unbalanced) AS unbalanced,
+          sealed_at IS NOT NULL AS sealed FROM public.business_day
+          WHERE tenant_id=${fixture.tenant}::uuid AND property_node=${fixture.property}::uuid
+            AND business_date=${day.business_date}::date`;
+        if (!row) throw new Error("Native seal financial snapshot is unavailable");
+        return row;
+      };
+      const seals = new BusinessDaySealService({
+        events: new PostgresEventBus(runtimeEvents), idempotency: new PostgresIdempotency(),
+      });
+      const sealInput = {
+        tenantId: fixture.tenant, propertyNode: fixture.property, businessDate: day.business_date, actorId: fixture.actor,
+        idempotencyKey: `simultaneous-seal-${first}-${positive}`,
+        envelope: createAuditEnvelope({ tenantId: fixture.tenant, propertyNode: fixture.property, actorId: fixture.actor,
+          requestId: crypto.randomUUID(), operation: "business_day.sealed" }),
+      } as const;
+      const before = await candidateCensus(deploy, fixture.tenant, series.seriesId);
+      const moneyBefore = await financialState();
+      expect(moneyBefore).toMatchObject({ guest: positive ? "10000" : "1", revenue: positive ? "-10000" : "-1",
+        payables: "0", unbalanced: 0, sealed: false });
+      const barrier = beforeCommitBarrier(runtimeUrl!);
+      const winner = capture<Result>(first === "seal"
+        ? barrier.database.withTenantTransaction(fixture.tenant, tx => seals.seal(tx, sealInput))
+        : new IssueIndiaNativeFiscalInvoiceCommand(barrier.database).execute(request));
+      const pending: Promise<unknown>[] = [winner];
+      try {
+        const winnerPid = await observeStage(barrier.reached);
+        const loser = capture<Result>(first === "seal"
+          ? new IssueIndiaNativeFiscalInvoiceCommand(runtime).execute(request)
+          : runtime.withTenantTransaction(fixture.tenant, tx => seals.seal(tx, sealInput)));
+        pending.push(loser);
+        const blocked = await observeBlocked(deploy, winnerPid);
+        expect(blocked.pid).not.toBe(winnerPid);
+        expect(blocked.blockers).toEqual([winnerPid]);
+        expect(blocked).toMatchObject({ holderBlockers: [], waiting: true, holdsPublication: false });
+        expect(await candidateCensus(deploy, fixture.tenant, series.seriesId)).toEqual(before);
+        expect(await financialState()).toEqual(moneyBefore);
+        barrier.release();
+        const won = await observeStage(winner);
+        const followed = await observeStage(loser);
+        if (!won.ok) throw won.error;
+        const after = await candidateCensus(deploy, fixture.tenant, series.seriesId);
+        if (first === "seal") {
+          expect(won.value).toMatchObject({ state: "sealed", replayed: false });
+          if (followed.ok) throw new Error("Invoice unexpectedly committed after the concurrent seal");
+          expect(sqlState(followed.error)).toBe("P0011");
+          expect((followed.error as Error).message).toBe("native fiscal issue business date is sealed");
+          expect(after).toEqual({ ...before, facts: before.facts + 1, events: before.events + 1,
+            idempotencyRows: before.idempotencyRows + 1 });
+          expect(await financialState()).toEqual({ ...moneyBefore, sealed: true });
+          expect<Result>(await runtime.withTenantTransaction(fixture.tenant, tx => seals.seal(tx, sealInput)))
+            .toEqual({ ...won.value, replayed: true });
+        } else {
+          if (!followed.ok) throw followed.error;
+          expect(won.value).toMatchObject({ replayed: false, docNo: "INV/1" });
+          expect(followed.value).toMatchObject({ state: "sealed", replayed: false });
+          expect(after).toEqual({ ...before,
+            documents: before.documents + 1, origins: before.origins + 1, accountingBindings: before.accountingBindings + 1,
+            journals: before.journals + (positive ? 1 : 0), lines: before.lines + (positive ? 4 : 0),
+            facts: before.facts + (positive ? 4 : 3), events: before.events + (positive ? 5 : 4),
+            idempotencyRows: before.idempotencyRows + 2, issueReceipts: before.issueReceipts + 1,
+            nextNo: (BigInt(before.nextNo) + 1n).toString(),
+          });
+          expect(await financialState()).toEqual({ ...moneyBefore, sealed: true,
+            guest: positive ? "10500" : "1", payables: positive ? "-500" : "0" });
+          expect<Result>(await new IssueIndiaNativeFiscalInvoiceCommand(runtime).execute(replayRequest(request)))
+            .toEqual({ ...won.value, replayed: true });
+          expect<Result>(await runtime.withTenantTransaction(fixture.tenant, tx => seals.seal(tx, sealInput)))
+            .toEqual({ ...followed.value, replayed: true });
+        }
+        expect(await candidateCensus(deploy, fixture.tenant, series.seriesId)).toEqual(after);
+      } finally {
+        barrier.release();
+        await Promise.allSettled(pending);
+        await barrier.close();
+      }
     }
   }, 120_000);
 

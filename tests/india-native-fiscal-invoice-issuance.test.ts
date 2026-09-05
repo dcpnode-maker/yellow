@@ -1,12 +1,17 @@
 import { describe, expect, test } from "bun:test";
 
 const preparationUrl = new URL(
+  "../migrations/0077_india_native_fiscal_source_completion.sql",
+  import.meta.url,
+);
+const historicalPreparationUrl = new URL(
   "../handoff/drafts/order434/0076-native-preparation.sql",
   import.meta.url,
 );
+const sourceUrl = (await Bun.file(preparationUrl).exists() ? preparationUrl : historicalPreparationUrl);
 
 async function documentContextSource(): Promise<{ source: string; complete: string }> {
-  const complete = await Bun.file(preparationUrl).text();
+  const complete = await Bun.file(sourceUrl).text();
   const start = complete.indexOf(
     "CREATE OR REPLACE FUNCTION public.lock_india_native_document_context(",
   );
@@ -22,7 +27,7 @@ async function documentContextSource(): Promise<{ source: string; complete: stri
 }
 
 async function issueAuthorityLockSource(): Promise<{ source: string; complete: string }> {
-  const complete = await Bun.file(preparationUrl).text();
+  const complete = await Bun.file(sourceUrl).text();
   const start = complete.indexOf(
     "CREATE OR REPLACE FUNCTION public.lock_india_native_issue_authority(",
   );

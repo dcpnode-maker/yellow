@@ -92,7 +92,7 @@ jobs:
         shell: bash
         env:
           RELEASE_SHA: ${{ github.event.workflow_run.head_sha }}
-          MIGRATION_FRONTIER: '75'
+          MIGRATION_FRONTIER: '77'
           IMAGE: ghcr.io/${{ github.repository }}
         run: |
           set -euo pipefail

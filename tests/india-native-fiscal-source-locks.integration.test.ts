@@ -7,14 +7,20 @@ import {
   ChargeCorrectionService,
   FolioService,
   FolioTransferService,
+  ReceivableService,
 } from "../src/contexts/financials";
 import { createAuditEnvelope, Database, PostgresEventBus, PostgresIdempotency, type Tx } from "../src/kernel";
 import { createNativeIssuanceCohort, createNativeIssuanceFixture } from "./fixtures/india-native-fiscal-source-completion-fixture";
 
 const preparationUrl = new URL(
+  "../migrations/0077_india_native_fiscal_source_completion.sql",
+  import.meta.url,
+);
+const historicalPreparationUrl = new URL(
   "../handoff/drafts/order434/0076-native-preparation.sql",
   import.meta.url,
 );
+const preparationSourceUrl = (await Bun.file(preparationUrl).exists() ? preparationUrl : historicalPreparationUrl);
 const deployUrl = process.env.YELLOW_ORDER434_NATIVE_ACCOUNTING_DEPLOY_DATABASE_URL;
 if (process.env.YELLOW_REQUIRE_ORDER434_NATIVE_ACCOUNTING_DATABASE === "1" && !deployUrl) {
   throw new Error("Order434 native source-lock metadata proof requires the explicit synthetic deploy database URL");
@@ -165,6 +171,115 @@ async function observeBlockedBackend(deploy: SQL, waiter: number, holder: number
   throw new Error("Concurrent financial operation never waited behind the native issuer");
 }
 
+async function observeIssuerBehindHolder(deploy: SQL, holder: number) {
+  const deadline = performance.now() + 10_000;
+  while (performance.now() < deadline) {
+    const states = await deploy<Array<{
+      pid: number; blockers: number[]; holder_blockers: number[]; waiting: boolean; holds_publication: boolean;
+    }>>`SELECT activity.pid,pg_blocking_pids(activity.pid) AS blockers,
+      pg_blocking_pids(${holder}) AS holder_blockers,
+      EXISTS(SELECT 1 FROM pg_locks WHERE pid=activity.pid AND NOT granted) AS waiting,
+      EXISTS(SELECT 1 FROM pg_locks WHERE pid=activity.pid AND locktype='advisory' AND granted
+        AND objsubid=1 AND classid=((6441674055002974568::bigint>>32)&4294967295)::oid
+        AND objid=(6441674055002974568::bigint&4294967295)::oid) AS holds_publication
+      FROM pg_stat_activity activity
+      WHERE activity.datname=current_database() AND activity.pid<>pg_backend_pid()
+        AND ${holder}=ANY(pg_blocking_pids(activity.pid)) ORDER BY activity.pid`;
+    if (states.length === 1 && states[0]) return states[0];
+    await Bun.sleep(25);
+  }
+  throw new Error("Native issuer never waited behind the concurrent financial winner");
+}
+
+async function winnerIdentity(deploy: SQL, tenantId: string, rootId: string) {
+  const [identity] = await deploy<Array<{ folios: string; accounts: string; root: string }>>`
+    SELECT
+      (SELECT md5(string_agg(row_to_json(snapshot)::text,'|' ORDER BY snapshot.id)) FROM
+        (SELECT id,account_id,reservation_id,folio_no,window_no,name,status FROM public.folio
+          WHERE tenant_id=${tenantId}::uuid) snapshot) AS folios,
+      (SELECT md5(string_agg(row_to_json(snapshot)::text,'|' ORDER BY snapshot.id)) FROM
+        (SELECT id,property_node,role,party_id,name,currency,status FROM public.account
+          WHERE tenant_id=${tenantId}::uuid) snapshot) AS accounts,
+      (SELECT md5(row_to_json(snapshot)::text) FROM
+        (SELECT id,journal_id,seq,account_id,folio_id,tx_code,description,amount_minor,quantity,
+            business_date,currency,folio_transfer_root_line_id FROM public.posting_line
+          WHERE tenant_id=${tenantId}::uuid AND id=${rootId}::uuid) snapshot) AS root`;
+  if (!identity) throw new Error("Concurrent financial winner identity is unavailable");
+  return identity;
+}
+
+async function createReceivableTarget(deploy: SQL, tenantId: string, propertyId: string, label: string) {
+  const partyId = crypto.randomUUID();
+  const accountId = crypto.randomUUID();
+  await deploy.begin(async tx => {
+    await tx`INSERT INTO public.party(id,tenant_id,kind,display_name,status)
+      VALUES(${partyId}::uuid,${tenantId}::uuid,'org',${`Direct bill ${label}`} ,'active')`;
+    await tx`INSERT INTO public.party_role(tenant_id,party_id,role)
+      VALUES(${tenantId}::uuid,${partyId}::uuid,'company')`;
+    await tx`INSERT INTO public.account(
+        id,tenant_id,property_node,role,party_id,name,currency,credit_limit_minor,status
+      ) VALUES(
+        ${accountId}::uuid,${tenantId}::uuid,${propertyId}::uuid,'company',${partyId}::uuid,
+        ${`Direct bill ${label}`} ,'INR',1000000,'open')`;
+  });
+  return { partyId, accountId } as const;
+}
+
+interface ReceivableRaceTruth {
+  readonly folio_balance: string;
+  readonly exposure: string;
+  readonly transfer_journals: number;
+  readonly transfer_lines: number;
+  readonly transfer_facts: number;
+  readonly transfer_events: number;
+  readonly journal_ids: string[];
+  readonly fact_entities: string[];
+  readonly event_aggregates: string[];
+  readonly guest_amount: string | null;
+  readonly receivable_amount: string | null;
+}
+
+async function receivableRaceTruth(deploy: SQL, tenantId: string, folioId: string,
+  receivableAccountId: string): Promise<ReceivableRaceTruth> {
+  const [truth] = await deploy<ReceivableRaceTruth[]>`
+    SELECT
+      (SELECT COALESCE(balance_minor,0)::text FROM public.folio_balance
+        WHERE tenant_id=${tenantId}::uuid AND folio_id=${folioId}::uuid) AS folio_balance,
+      (SELECT COALESCE(sum(amount_minor),0)::text FROM public.posting_line
+        WHERE tenant_id=${tenantId}::uuid AND account_id=${receivableAccountId}::uuid) AS exposure,
+      (SELECT count(*)::integer FROM public.journal WHERE tenant_id=${tenantId}::uuid
+        AND source='{"interface":"financials.receivable.transfer"}'::jsonb) AS transfer_journals,
+      (SELECT count(*)::integer FROM public.posting_line line JOIN public.journal journal
+        ON journal.tenant_id=line.tenant_id AND journal.id=line.journal_id
+        WHERE journal.tenant_id=${tenantId}::uuid
+          AND journal.source='{"interface":"financials.receivable.transfer"}'::jsonb) AS transfer_lines,
+      (SELECT count(*)::integer FROM public.fact_log WHERE tenant_id=${tenantId}::uuid
+        AND entity_type='journal' AND payload->>'receivable_account_id'=${receivableAccountId}) AS transfer_facts,
+      (SELECT count(*)::integer FROM public.outbox WHERE tenant_id=${tenantId}::uuid
+        AND aggregate_type='journal' AND payload->>'receivable_account_id'=${receivableAccountId}) AS transfer_events,
+      (SELECT COALESCE(array_agg(id::text ORDER BY id),'{}'::text[]) FROM public.journal
+        WHERE tenant_id=${tenantId}::uuid
+          AND source='{"interface":"financials.receivable.transfer"}'::jsonb) AS journal_ids,
+      (SELECT COALESCE(array_agg(entity_id::text ORDER BY entity_id),'{}'::text[]) FROM public.fact_log
+        WHERE tenant_id=${tenantId}::uuid AND entity_type='journal'
+          AND payload->>'receivable_account_id'=${receivableAccountId}) AS fact_entities,
+      (SELECT COALESCE(array_agg(aggregate_id::text ORDER BY aggregate_id),'{}'::text[]) FROM public.outbox
+        WHERE tenant_id=${tenantId}::uuid AND aggregate_type='journal'
+          AND payload->>'receivable_account_id'=${receivableAccountId}) AS event_aggregates,
+      (SELECT sum(line.amount_minor)::text FROM public.posting_line line JOIN public.journal journal
+        ON journal.tenant_id=line.tenant_id AND journal.id=line.journal_id
+        WHERE journal.tenant_id=${tenantId}::uuid
+          AND journal.source='{"interface":"financials.receivable.transfer"}'::jsonb
+          AND line.folio_id=${folioId}::uuid) AS guest_amount,
+      (SELECT sum(line.amount_minor)::text FROM public.posting_line line JOIN public.journal journal
+        ON journal.tenant_id=line.tenant_id AND journal.id=line.journal_id
+        WHERE journal.tenant_id=${tenantId}::uuid
+          AND journal.source='{"interface":"financials.receivable.transfer"}'::jsonb
+          AND line.account_id=${receivableAccountId}::uuid) AS receivable_amount`;
+  if (!truth) throw new Error("Concurrent receivable truth is unavailable");
+  return truth;
+}
+
 async function issuanceCensus(
   deploy: SQL,
   tenantId: string,
@@ -257,7 +372,7 @@ function expectSingleIssuanceDelta(
 }
 
 async function sourceConfigurationLockSource(): Promise<{ source: string; complete: string }> {
-  const complete = await Bun.file(preparationUrl).text();
+  const complete = await Bun.file(preparationSourceUrl).text();
   const start = complete.indexOf(
     "CREATE OR REPLACE FUNCTION public.lock_india_native_source_configuration_graph(",
   );
@@ -811,6 +926,371 @@ issuanceDescribe("Order434 authorized native issuance concurrency", () => {
       expect(await issueIndiaNativeFiscalInvoice(runtime, {
         ...candidate.request, envelope: { ...candidate.request.envelope, requestId: crypto.randomUUID() },
       })).toEqual({ ...issued.value, replayed: true });
+      expect(await issuanceCensus(deploy, candidate.fixture.tenant, candidate.series.seriesId)).toEqual(after);
+    }
+  }, 120_000);
+
+  test("concurrent stale invoice waits behind an uncommitted correction winner without fiscal effects", async () => {
+    for (const taxCase of [
+      { label: "positive", roomNightAmounts: ["10000"] as const, quotedTaxRounding: "exact_5_percent" as const },
+      { label: "zero", roomNightAmounts: ["1"] as const, quotedTaxRounding: "component_half_up" as const },
+    ]) {
+      const candidate = await createNativeIssuanceFixture(deploy, runtime, {
+        label: `race-correct-first-${taxCase.label}`, roomNightAmounts: taxCase.roomNightAmounts,
+        quotedTaxRounding: taxCase.quotedTaxRounding,
+      });
+      const root = await originalChargeRoot(deploy, candidate.fixture.tenant,
+        candidate.fixture.folio, candidate.fixture.guestAccount);
+      const before = await issuanceCensus(deploy, candidate.fixture.tenant, candidate.series.seriesId);
+      const financialBefore = await winnerFinancialCensus(deploy, candidate.fixture.tenant,
+        candidate.fixture.property, root);
+      const identityBefore = await winnerIdentity(deploy, candidate.fixture.tenant, root.root_id);
+      const corrections = new ChargeCorrectionService({
+        events: new PostgresEventBus(runtimeEvents), idempotency: new PostgresIdempotency(),
+      });
+      const correctionInput = {
+        tenantId: candidate.fixture.tenant, folioId: candidate.fixture.folio,
+        reversesJournalId: root.journal_id, reason: "Correct accommodation before native invoice",
+        postSealAuthorized: false, idempotencyKey: `concurrent-correction-first-${taxCase.label}`,
+        envelope: createAuditEnvelope({ tenantId: candidate.fixture.tenant,
+          propertyNode: candidate.fixture.property, actorId: candidate.fixture.actor,
+          requestId: crypto.randomUUID(), operation: "journal.posted" }),
+      } as const;
+      const barrier = beforeCommitBarrier(issuanceRuntimeUrl!);
+      const correction = barrier.database.withTenantTransaction(candidate.fixture.tenant,
+        tx => corrections.reverseCharge(tx, correctionInput))
+        .then(value => ({ ok: true as const, value }), error => ({ ok: false as const, error }));
+      let issuer: Promise<{ ok: boolean; value?: IndiaNativeFiscalInvoiceReceipt; error?: unknown }> | undefined;
+      try {
+        const holderPid = await within(barrier.reached, "native correction pending COMMIT");
+        expect(await issuanceCensus(deploy, candidate.fixture.tenant, candidate.series.seriesId)).toEqual(before);
+        expect(await winnerFinancialCensus(deploy, candidate.fixture.tenant,
+          candidate.fixture.property, root)).toEqual(financialBefore);
+        expect(await winnerIdentity(deploy, candidate.fixture.tenant, root.root_id)).toEqual(identityBefore);
+        issuer = issueIndiaNativeFiscalInvoice(runtime, candidate.request)
+          .then(value => ({ ok: true as const, value }), error => ({ ok: false as const, error }));
+        const blocked = await observeIssuerBehindHolder(deploy, holderPid);
+        expect(blocked.pid).not.toBe(holderPid);
+        expect(blocked.blockers).toEqual([holderPid]);
+        expect(blocked).toMatchObject({ waiting: true, holds_publication: false });
+        expect(await issuanceCensus(deploy, candidate.fixture.tenant, candidate.series.seriesId)).toEqual(before);
+        expect(await winnerFinancialCensus(deploy, candidate.fixture.tenant,
+          candidate.fixture.property, root)).toEqual(financialBefore);
+      } finally {
+        barrier.release();
+        await Promise.all([correction, issuer]);
+        await barrier.close();
+      }
+      const corrected = await correction;
+      if (!corrected.ok) throw corrected.error;
+      const issued = await issuer;
+      if (!issued || issued.ok) throw new Error("Stale native invoice did not reject after correction won");
+      expect(sqlState(issued.error)).toBe("55000");
+      expect((issued.error as Error).message).toContain(
+        "native consideration root membership differs from recorded valuation");
+      expect(await issuanceCensus(deploy, candidate.fixture.tenant, candidate.series.seriesId)).toEqual({
+        ...before, journals: before.journals + 1, lines: before.lines + 2,
+        facts: before.facts + 1, events: before.events + 1,
+      });
+      expect(await winnerFinancialCensus(deploy, candidate.fixture.tenant,
+        candidate.fixture.property, root)).toEqual({ ...financialBefore,
+        journals: financialBefore.journals + 1, lines: financialBefore.lines + 2, reversals: 1 });
+      expect(await winnerIdentity(deploy, candidate.fixture.tenant, root.root_id)).toEqual(identityBefore);
+      const balances = await deploy<Array<{ id: string; amount: string }>>`
+        SELECT folio.id::text,COALESCE(balance.balance_minor,0)::text AS amount
+        FROM public.folio folio LEFT JOIN public.folio_balance balance
+          ON balance.tenant_id=folio.tenant_id AND balance.folio_id=folio.id
+        WHERE folio.tenant_id=${candidate.fixture.tenant}::uuid
+          AND folio.reservation_id=${candidate.fixture.reservation}::uuid ORDER BY folio.window_no`;
+      expect(balances).toEqual([{ id: candidate.fixture.folio, amount: "0" }]);
+      expect(await runtime.withTenantTransaction(candidate.fixture.tenant,
+        tx => corrections.reverseCharge(tx, correctionInput))).toEqual({ ...corrected.value, replayed: true });
+    }
+  }, 120_000);
+
+  test("concurrent stale invoice waits behind an uncommitted transfer winner without fiscal effects", async () => {
+    for (const taxCase of [
+      { label: "positive", roomNightAmounts: ["10000"] as const, quotedTaxRounding: "exact_5_percent" as const },
+      { label: "zero", roomNightAmounts: ["1"] as const, quotedTaxRounding: "component_half_up" as const },
+    ]) {
+      const candidate = await createNativeIssuanceFixture(deploy, runtime, {
+        label: `race-transfer-first-${taxCase.label}`, roomNightAmounts: taxCase.roomNightAmounts,
+        quotedTaxRounding: taxCase.quotedTaxRounding,
+      });
+      const root = await originalChargeRoot(deploy, candidate.fixture.tenant,
+        candidate.fixture.folio, candidate.fixture.guestAccount);
+      await deploy`INSERT INTO public.document_series(tenant_id,property_node,kind,prefix,next_no,fiscal)
+        VALUES(${candidate.fixture.tenant}::uuid,${candidate.fixture.property}::uuid,'folio',
+          ${`FIRST-${taxCase.label.toUpperCase()}-`},1,false)`;
+      const folios = new FolioService({
+        events: new PostgresEventBus(runtimeEvents), idempotency: new PostgresIdempotency(),
+      });
+      const destination = await runtime.withTenantTransaction(candidate.fixture.tenant, tx =>
+        folios.openAdditional(tx, {
+          tenantId: candidate.fixture.tenant, reservationId: candidate.fixture.reservation,
+          sourceFolioId: candidate.fixture.folio, name: `Transfer winner ${taxCase.label}`,
+          idempotencyKey: `concurrent-transfer-first-destination-${taxCase.label}`,
+          envelope: createAuditEnvelope({ tenantId: candidate.fixture.tenant,
+            propertyNode: candidate.fixture.property, actorId: candidate.fixture.actor,
+            requestId: crypto.randomUUID(), operation: "folio.opened" }),
+        }));
+      const family = await runtime.withTenantTransaction(candidate.fixture.tenant, tx =>
+        tx<Array<{ id: string; window_no: number; balance_minor: string }>>`
+          SELECT folio.id::text,folio.window_no,COALESCE(balance.balance_minor,0)::text AS balance_minor
+          FROM public.folio folio LEFT JOIN public.folio_balance balance
+            ON balance.tenant_id=folio.tenant_id AND balance.folio_id=folio.id
+          WHERE folio.tenant_id=${candidate.fixture.tenant}::uuid
+            AND folio.reservation_id=${candidate.fixture.reservation}::uuid
+          ORDER BY folio.window_no,folio.id`);
+      const generation = new Bun.CryptoHasher("md5").update(family
+        .map(row => `${row.id}:${row.window_no}:${row.balance_minor}`).join("|")).digest("hex");
+      const transfers = new FolioTransferService({
+        events: new PostgresEventBus(runtimeEvents), idempotency: new PostgresIdempotency(), folios,
+      });
+      const transferInput = {
+        tenantId: candidate.fixture.tenant, sourceFolioId: candidate.fixture.folio,
+        destinationFolioId: destination.folioId, groupIds: [root.journal_id],
+        reason: "Transfer accommodation before native invoice", generation, previewRevision: "",
+        idempotencyKey: `concurrent-transfer-first-${taxCase.label}`,
+        envelope: createAuditEnvelope({ tenantId: candidate.fixture.tenant,
+          propertyNode: candidate.fixture.property, actorId: candidate.fixture.actor,
+          requestId: crypto.randomUUID(), operation: "journal.posted" }),
+      } as const;
+      const preview = await runtime.withTenantTransaction(candidate.fixture.tenant,
+        tx => transfers.preview(tx, transferInput));
+      const complete = Object.freeze({ ...transferInput, previewRevision: preview.previewRevision });
+      const before = await issuanceCensus(deploy, candidate.fixture.tenant, candidate.series.seriesId);
+      const financialBefore = await winnerFinancialCensus(deploy, candidate.fixture.tenant,
+        candidate.fixture.property, root);
+      const identityBefore = await winnerIdentity(deploy, candidate.fixture.tenant, root.root_id);
+      const barrier = beforeCommitBarrier(issuanceRuntimeUrl!);
+      const transfer = barrier.database.withTenantTransaction(candidate.fixture.tenant,
+        tx => transfers.transfer(tx, complete))
+        .then(value => ({ ok: true as const, value }), error => ({ ok: false as const, error }));
+      let issuer: Promise<{ ok: boolean; value?: IndiaNativeFiscalInvoiceReceipt; error?: unknown }> | undefined;
+      try {
+        const holderPid = await within(barrier.reached, "native transfer pending COMMIT");
+        expect(await issuanceCensus(deploy, candidate.fixture.tenant, candidate.series.seriesId)).toEqual(before);
+        expect(await winnerFinancialCensus(deploy, candidate.fixture.tenant,
+          candidate.fixture.property, root)).toEqual(financialBefore);
+        expect(await winnerIdentity(deploy, candidate.fixture.tenant, root.root_id)).toEqual(identityBefore);
+        issuer = issueIndiaNativeFiscalInvoice(runtime, candidate.request)
+          .then(value => ({ ok: true as const, value }), error => ({ ok: false as const, error }));
+        const blocked = await observeIssuerBehindHolder(deploy, holderPid);
+        expect(blocked.pid).not.toBe(holderPid);
+        expect(blocked.blockers).toEqual([holderPid]);
+        expect(blocked).toMatchObject({ waiting: true, holds_publication: false });
+        expect(await issuanceCensus(deploy, candidate.fixture.tenant, candidate.series.seriesId)).toEqual(before);
+        expect(await winnerFinancialCensus(deploy, candidate.fixture.tenant,
+          candidate.fixture.property, root)).toEqual(financialBefore);
+      } finally {
+        barrier.release();
+        await Promise.all([transfer, issuer]);
+        await barrier.close();
+      }
+      const transferred = await transfer;
+      if (!transferred.ok) throw transferred.error;
+      const issued = await issuer;
+      if (!issued || issued.ok) throw new Error("Stale native invoice did not reject after transfer won");
+      expect(sqlState(issued.error)).toBe("55000");
+      expect((issued.error as Error).message).toContain(
+        "native consideration root membership differs from recorded valuation");
+      expect(await issuanceCensus(deploy, candidate.fixture.tenant, candidate.series.seriesId)).toEqual({
+        ...before, journals: before.journals + 1, lines: before.lines + 2,
+        facts: before.facts + 1, events: before.events + 1,
+      });
+      expect(await winnerFinancialCensus(deploy, candidate.fixture.tenant,
+        candidate.fixture.property, root)).toEqual({ ...financialBefore,
+        journals: financialBefore.journals + 1, lines: financialBefore.lines + 2,
+        transfer_fragments: 2, root_fragments: 3 });
+      expect(await winnerIdentity(deploy, candidate.fixture.tenant, root.root_id)).toEqual(identityBefore);
+      const balances = await deploy<Array<{ id: string; amount: string }>>`
+        SELECT folio.id::text,COALESCE(balance.balance_minor,0)::text AS amount
+        FROM public.folio folio LEFT JOIN public.folio_balance balance
+          ON balance.tenant_id=folio.tenant_id AND balance.folio_id=folio.id
+        WHERE folio.tenant_id=${candidate.fixture.tenant}::uuid
+          AND folio.reservation_id=${candidate.fixture.reservation}::uuid ORDER BY folio.window_no`;
+      expect(balances).toEqual([
+        { id: candidate.fixture.folio, amount: "0" },
+        { id: destination.folioId, amount: taxCase.roomNightAmounts[0] },
+      ]);
+      expect(await runtime.withTenantTransaction(candidate.fixture.tenant,
+        tx => transfers.transfer(tx, complete))).toEqual({ ...transferred.value, replayed: true });
+    }
+  }, 120_000);
+
+  test("uncommitted native issue serializes a later direct bill and both commit", async () => {
+    for (const taxCase of [
+      { label: "positive", amount: "10000", rounding: "exact_5_percent" as const,
+        tax: "500", taxJournals: 1, taxLines: 4 },
+      { label: "zero", amount: "1", rounding: "component_half_up" as const,
+        tax: "0", taxJournals: 0, taxLines: 0 },
+    ]) {
+      const candidate = await createNativeIssuanceFixture(deploy, runtime, {
+        label: `race-bill-after-${taxCase.label}`, roomNightAmounts: [taxCase.amount],
+        quotedTaxRounding: taxCase.rounding,
+      });
+      const root = await originalChargeRoot(deploy, candidate.fixture.tenant,
+        candidate.fixture.folio, candidate.fixture.guestAccount);
+      const target = await createReceivableTarget(deploy, candidate.fixture.tenant,
+        candidate.fixture.property, `after ${taxCase.label}`);
+      const before = await issuanceCensus(deploy, candidate.fixture.tenant, candidate.series.seriesId);
+      const financialBefore = await winnerFinancialCensus(deploy, candidate.fixture.tenant,
+        candidate.fixture.property, root);
+      const identityBefore = await winnerIdentity(deploy, candidate.fixture.tenant, root.root_id);
+      const receivableBefore = await receivableRaceTruth(deploy, candidate.fixture.tenant,
+        candidate.fixture.folio, target.accountId);
+      const transferInput = {
+        tenantId: candidate.fixture.tenant, folioId: candidate.fixture.folio,
+        receivableAccountId: target.accountId, reason: "Direct bill after native invoice",
+        idempotencyKey: `concurrent-direct-bill-after-${taxCase.label}`,
+        envelope: createAuditEnvelope({ tenantId: candidate.fixture.tenant,
+          propertyNode: candidate.fixture.property, actorId: candidate.fixture.actor,
+          requestId: crypto.randomUUID(), operation: "journal.posted" }),
+      } as const;
+      const barrier = beforeCommitBarrier(issuanceRuntimeUrl!);
+      const issuer = issueIndiaNativeFiscalInvoice(barrier.database, candidate.request)
+        .then(value => ({ ok: true as const, value }), error => ({ ok: false as const, error }));
+      let directBill: ReturnType<ReceivableService["transfer"]> | undefined;
+      try {
+        const holderPid = await within(barrier.reached, "native invoice pending before direct bill");
+        const receivables = new ReceivableService({ database: runtime,
+          events: new PostgresEventBus(runtimeEvents), idempotency: new PostgresIdempotency() });
+        directBill = receivables.transfer(transferInput);
+        const blocked = await observeIssuerBehindHolder(deploy, holderPid);
+        expect(blocked.pid).not.toBe(holderPid);
+        expect(blocked.blockers).toEqual([holderPid]);
+        expect(blocked).toMatchObject({ holder_blockers: [], waiting: true, holds_publication: false });
+        expect(await issuanceCensus(deploy, candidate.fixture.tenant, candidate.series.seriesId)).toEqual(before);
+        expect(await winnerFinancialCensus(deploy, candidate.fixture.tenant,
+          candidate.fixture.property, root)).toEqual(financialBefore);
+        expect(await receivableRaceTruth(deploy, candidate.fixture.tenant,
+          candidate.fixture.folio, target.accountId)).toEqual(receivableBefore);
+      } finally {
+        barrier.release();
+        await Promise.allSettled([issuer, directBill]);
+        await barrier.close();
+      }
+      const issued = await issuer;
+      if (!issued.ok) throw issued.error;
+      if (!directBill) throw new Error("Concurrent direct bill was not started");
+      const transferred = await directBill;
+      const billedAmount = (BigInt(taxCase.amount) + BigInt(taxCase.tax)).toString();
+      expect(transferred).toMatchObject({ replayed: false, folioId: candidate.fixture.folio,
+        receivableAccountId: target.accountId, partyId: target.partyId, partyRole: "company",
+        currency: "INR", amountMinor: billedAmount, exposureMinor: "0",
+        projectedExposureMinor: billedAmount, requiresApproval: false, approvalId: null });
+      expect(await receivableRaceTruth(deploy, candidate.fixture.tenant,
+        candidate.fixture.folio, target.accountId)).toEqual({ folio_balance: "0", exposure: billedAmount,
+        transfer_journals: 1, transfer_lines: 2, transfer_facts: 1, transfer_events: 1,
+        journal_ids: [transferred.journalId], fact_entities: [transferred.journalId],
+        event_aggregates: [transferred.journalId],
+        guest_amount: `-${billedAmount}`, receivable_amount: billedAmount });
+      const after = await issuanceCensus(deploy, candidate.fixture.tenant, candidate.series.seriesId);
+      expect(after).toEqual({ ...before,
+        documents: before.documents + 1, origins: before.origins + 1, timings: before.timings + 1,
+        applicability: before.applicability + 1, applicability_nights: before.applicability_nights + 1,
+        taxes: before.taxes + 1, tax_nights: before.tax_nights + 1, components: before.components + 2,
+        bindings: before.bindings + 1, journals: before.journals + taxCase.taxJournals + 1,
+        lines: before.lines + taxCase.taxLines + 2, facts: before.facts + (taxCase.taxJournals ? 4 : 3),
+        events: before.events + (taxCase.taxJournals ? 5 : 4), receipts: before.receipts + 1,
+        next_no: (BigInt(before.next_no) + 1n).toString(), last_doc_hash: issued.value.sha256 });
+      expect(await winnerIdentity(deploy, candidate.fixture.tenant, root.root_id)).toEqual(identityBefore);
+      expect(await issueIndiaNativeFiscalInvoice(runtime, { ...candidate.request,
+        envelope: { ...candidate.request.envelope, requestId: crypto.randomUUID() } }))
+        .toEqual({ ...issued.value, replayed: true });
+      expect(await new ReceivableService({ database: runtime, events: new PostgresEventBus(runtimeEvents),
+        idempotency: new PostgresIdempotency() }).transfer({ ...transferInput,
+        envelope: { ...transferInput.envelope, requestId: crypto.randomUUID() } }))
+        .toEqual({ ...transferred, replayed: true });
+      expect(await issuanceCensus(deploy, candidate.fixture.tenant, candidate.series.seriesId)).toEqual(after);
+    }
+  }, 120_000);
+
+  test("uncommitted direct bill serializes a later native issue and both commit", async () => {
+    for (const taxCase of [
+      { label: "positive", amount: "10000", rounding: "exact_5_percent" as const,
+        tax: "500", taxJournals: 1, taxLines: 4 },
+      { label: "zero", amount: "1", rounding: "component_half_up" as const,
+        tax: "0", taxJournals: 0, taxLines: 0 },
+    ]) {
+      const candidate = await createNativeIssuanceFixture(deploy, runtime, {
+        label: `race-bill-first-${taxCase.label}`, roomNightAmounts: [taxCase.amount],
+        quotedTaxRounding: taxCase.rounding,
+      });
+      const root = await originalChargeRoot(deploy, candidate.fixture.tenant,
+        candidate.fixture.folio, candidate.fixture.guestAccount);
+      const target = await createReceivableTarget(deploy, candidate.fixture.tenant,
+        candidate.fixture.property, `first ${taxCase.label}`);
+      const before = await issuanceCensus(deploy, candidate.fixture.tenant, candidate.series.seriesId);
+      const financialBefore = await winnerFinancialCensus(deploy, candidate.fixture.tenant,
+        candidate.fixture.property, root);
+      const identityBefore = await winnerIdentity(deploy, candidate.fixture.tenant, root.root_id);
+      const receivableBefore = await receivableRaceTruth(deploy, candidate.fixture.tenant,
+        candidate.fixture.folio, target.accountId);
+      const transferInput = {
+        tenantId: candidate.fixture.tenant, folioId: candidate.fixture.folio,
+        receivableAccountId: target.accountId, reason: "Direct bill before native invoice",
+        idempotencyKey: `concurrent-direct-bill-first-${taxCase.label}`,
+        envelope: createAuditEnvelope({ tenantId: candidate.fixture.tenant,
+          propertyNode: candidate.fixture.property, actorId: candidate.fixture.actor,
+          requestId: crypto.randomUUID(), operation: "journal.posted" }),
+      } as const;
+      const barrier = beforeCommitBarrier(issuanceRuntimeUrl!);
+      const receivables = new ReceivableService({ database: barrier.database,
+        events: new PostgresEventBus(runtimeEvents), idempotency: new PostgresIdempotency() });
+      const directBill = receivables.transfer(transferInput)
+        .then(value => ({ ok: true as const, value }), error => ({ ok: false as const, error }));
+      let issuer: ReturnType<typeof issueIndiaNativeFiscalInvoice> | undefined;
+      try {
+        const holderPid = await within(barrier.reached, "direct bill pending before native invoice");
+        issuer = issueIndiaNativeFiscalInvoice(runtime, candidate.request);
+        const blocked = await observeIssuerBehindHolder(deploy, holderPid);
+        expect(blocked.pid).not.toBe(holderPid);
+        expect(blocked.blockers).toEqual([holderPid]);
+        expect(blocked).toMatchObject({ holder_blockers: [], waiting: true, holds_publication: false });
+        expect(await issuanceCensus(deploy, candidate.fixture.tenant, candidate.series.seriesId)).toEqual(before);
+        expect(await winnerFinancialCensus(deploy, candidate.fixture.tenant,
+          candidate.fixture.property, root)).toEqual(financialBefore);
+        expect(await receivableRaceTruth(deploy, candidate.fixture.tenant,
+          candidate.fixture.folio, target.accountId)).toEqual(receivableBefore);
+      } finally {
+        barrier.release();
+        await Promise.allSettled([directBill, issuer]);
+        await barrier.close();
+      }
+      const transferred = await directBill;
+      if (!transferred.ok) throw transferred.error;
+      if (!issuer) throw new Error("Concurrent native invoice was not started");
+      const issued = await issuer;
+      expect(transferred.value).toMatchObject({ replayed: false, folioId: candidate.fixture.folio,
+        receivableAccountId: target.accountId, partyId: target.partyId, partyRole: "company",
+        currency: "INR", amountMinor: taxCase.amount, exposureMinor: "0",
+        projectedExposureMinor: taxCase.amount, requiresApproval: false, approvalId: null });
+      expect(await receivableRaceTruth(deploy, candidate.fixture.tenant,
+        candidate.fixture.folio, target.accountId)).toEqual({ folio_balance: taxCase.tax,
+        exposure: taxCase.amount, transfer_journals: 1, transfer_lines: 2,
+        transfer_facts: 1, transfer_events: 1, journal_ids: [transferred.value.journalId],
+        fact_entities: [transferred.value.journalId], event_aggregates: [transferred.value.journalId],
+        guest_amount: `-${taxCase.amount}`,
+        receivable_amount: taxCase.amount });
+      const after = await issuanceCensus(deploy, candidate.fixture.tenant, candidate.series.seriesId);
+      expect(after).toEqual({ ...before,
+        documents: before.documents + 1, origins: before.origins + 1, timings: before.timings + 1,
+        applicability: before.applicability + 1, applicability_nights: before.applicability_nights + 1,
+        taxes: before.taxes + 1, tax_nights: before.tax_nights + 1, components: before.components + 2,
+        bindings: before.bindings + 1, journals: before.journals + taxCase.taxJournals + 1,
+        lines: before.lines + taxCase.taxLines + 2, facts: before.facts + (taxCase.taxJournals ? 4 : 3),
+        events: before.events + (taxCase.taxJournals ? 5 : 4), receipts: before.receipts + 1,
+        next_no: (BigInt(before.next_no) + 1n).toString(), last_doc_hash: issued.sha256 });
+      expect(await winnerIdentity(deploy, candidate.fixture.tenant, root.root_id)).toEqual(identityBefore);
+      expect(await issueIndiaNativeFiscalInvoice(runtime, { ...candidate.request,
+        envelope: { ...candidate.request.envelope, requestId: crypto.randomUUID() } }))
+        .toEqual({ ...issued, replayed: true });
+      expect(await new ReceivableService({ database: runtime, events: new PostgresEventBus(runtimeEvents),
+        idempotency: new PostgresIdempotency() }).transfer({ ...transferInput,
+        envelope: { ...transferInput.envelope, requestId: crypto.randomUUID() } }))
+        .toEqual({ ...transferred.value, replayed: true });
       expect(await issuanceCensus(deploy, candidate.fixture.tenant, candidate.series.seriesId)).toEqual(after);
     }
   }, 120_000);
