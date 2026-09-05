@@ -1,6 +1,6 @@
 # Order 432 — PR80 CI portability repair
 
-**Status:** REPAIRED — AWAITING FOURTEENTH GITHUB CI — D1325
+**Status:** REPAIRED — AWAITING FIFTEENTH GITHUB CI — D1327
 **Phase:** Delivery infrastructure
 **Branch:** `phase-7/persisted-india-final-component-tax-evidence`
 **Risk tier:** 1 — test harness and CI portability only
@@ -39,6 +39,10 @@ path, browser launch assumptions and shallow Git history.
   assertion to that same current authorized review-permission source;
 - `tests/financial-postings.integration.test.ts` only to align its exact table-count
   assertion with the current 125-table migration catalogue (including schema_migration);
+- `tests/app-role-nonlogin.integration.test.ts` and
+  `tests/runtime-database-authority.integration.test.ts` only to align exact whole-schema
+  table/RLS/policy/FORCE-RLS counts with the current migration catalogue, preserving
+  all role, grant, session, function and tenant-boundary assertions;
 - one existing/new test-only executable/browser helper if needed;
 - focused tests for the helper/launcher behavior;
 - this order, `DECISIONS.log`, and `handoff/LEDGER.md`.
@@ -73,7 +77,18 @@ path, browser launch assumptions and shallow Git history.
    Its login assertion exactly matches every valid scope in `REVIEW_PERMISSIONS`,
    rejects duplicate scopes and explicitly excludes approver-only authority.
 
-## Excluded
+## Latest verification — 2026-09-05
+
+Fourteenth CI on `8bd24d2` passed quality, Windows-state and container smoke but
+failed the app-role catalogue's stale 124/114/114 expectation. Current schema has
+exactly 125 tables, 115 RLS-enabled tables, 24 FORCE-RLS tables and 115 policies.
+The runtime-authority suite's later 123/113/22/113 expectation was also stale;
+both are updated together. Role, grant, function, session and tenant assertions
+are unchanged. Root reran focused tests: 3 passed, 14 expected database skips,
+0 failed, 24 assertions; typecheck and diff check passed. GitHub database proof
+remains pending; no runtime/database success is inferred from skipped cases.
+
+## Excluded operations
 
 No production behavior, Phase7 fiscal implementation, schema, database policy,
 runtime/local, `.yellow`, dependency upgrade, merge, force push or historical-proof
