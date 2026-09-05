@@ -1,7 +1,7 @@
 import type { ReservedSQL, SQL } from "bun";
 
 const GIT_SHA = /^[0-9a-f]{40}$/;
-export const CURRENT_MIGRATION_FRONTIER = 75 as const;
+export const CURRENT_MIGRATION_FRONTIER = 77 as const;
 
 export interface BuildInfo {
   readonly schemaVersion: 1;
@@ -46,6 +46,8 @@ export async function assertRuntimeReleaseReadiness(
   const rows = await sql<Array<{
     runtimeIdentity: boolean;
     coreSchemaPresent: boolean;
+    nativeSourceSchemaPresent: boolean;
+    nativeEntryAuthorityExact: boolean;
     issueFunctionPresent: boolean;
     publicIssueDenied: boolean;
     appIssueDenied: boolean;
@@ -55,6 +57,31 @@ export async function assertRuntimeReleaseReadiness(
       SELECT pg_catalog.to_regprocedure(
         'public.commit_india_native_fiscal_invoice(uuid,uuid,uuid,uuid,uuid,uuid,text,jsonb,uuid)'
       ) AS function_oid
+    ), native_entry(signature) AS (VALUES
+      ('public.prepare_india_native_fiscal_invoice_v2(uuid,uuid,uuid,uuid,uuid,uuid,uuid,uuid,uuid,uuid,uuid,uuid,uuid,uuid,uuid,text,text,date,date[],text[],text,uuid)'),
+      ('public.consume_india_native_fiscal_accounting_event(uuid,uuid)'),
+      ('public.read_india_native_accounting_source_closure(uuid,uuid)'),
+      ('public.commit_india_native_fiscal_invoice_v2(uuid,uuid,uuid,uuid,text,jsonb,uuid)'),
+      ('public.create_approval_request_with_options(uuid,uuid,uuid,uuid,text,text,uuid,jsonb,timestamptz)')
+    ), native_source_schema AS (
+      SELECT count(*)=2 AS exact FROM pg_catalog.pg_class relation
+      JOIN pg_catalog.pg_namespace namespace ON namespace.oid=relation.relnamespace
+      WHERE namespace.nspname='public' AND relation.relkind='r'
+        AND relation.relname IN (
+          'india_gst_accommodation_ordinary_regime_evidence','india_gst_native_invoice_timing'
+        )
+    ), native_authority AS (
+      SELECT count(procedure.oid)=5
+        AND bool_and(pg_catalog.has_function_privilege('app_role',procedure.oid,'EXECUTE'))
+        AND bool_and(NOT pg_catalog.has_function_privilege('yellow_runtime',procedure.oid,'EXECUTE'))
+        AND bool_and(NOT EXISTS(
+          SELECT 1 FROM pg_catalog.aclexplode(COALESCE(
+            procedure.proacl,pg_catalog.acldefault('f',procedure.proowner)
+          )) privilege WHERE privilege.grantee=0 AND privilege.privilege_type='EXECUTE'
+        )) AS exact
+      FROM native_entry
+      LEFT JOIN pg_catalog.pg_proc procedure
+        ON procedure.oid=pg_catalog.to_regprocedure(native_entry.signature)
     )
     SELECT
       session_user = 'yellow_runtime' AND current_user = 'yellow_runtime'
@@ -64,6 +91,8 @@ export async function assertRuntimeReleaseReadiness(
         AND pg_catalog.to_regclass('public.outbox') IS NOT NULL
         AND pg_catalog.to_regclass('public.schema_migration') IS NOT NULL
         AS "coreSchemaPresent",
+      source_schema.exact AS "nativeSourceSchemaPresent",
+      authority.exact AS "nativeEntryAuthorityExact",
       target.function_oid IS NOT NULL AS "issueFunctionPresent",
       NOT EXISTS (
         SELECT 1
@@ -86,7 +115,8 @@ export async function assertRuntimeReleaseReadiness(
         NOT pg_catalog.has_function_privilege('yellow_runtime', target.function_oid, 'EXECUTE'),
         false
       ) AS "runtimeIssueDenied"
-    FROM release_target target
+    FROM release_target target CROSS JOIN native_source_schema source_schema
+      CROSS JOIN native_authority authority
   `;
   const proof = rows[0];
   if (rows.length !== 1 || !proof || Object.values(proof).some((value) => value !== true)) {

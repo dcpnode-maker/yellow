@@ -360,10 +360,63 @@ jobs:
             bun run test:phase3-gate
 
       - name: Run migration integration suite
-        run: bun run test:db:migrate
+        shell: bash
+        run: |
+          set -euo pipefail
+          YELLOW_DEPLOY_DATABASE_URL="$ADMIN_URL" \
+          YELLOW_RUNTIME_DATABASE_URL="postgres://yellow_runtime:${YELLOW_RUNTIME_DATABASE_PASSWORD}@${POSTGRES_ADDRESS}/postgres" \
+          YELLOW_REQUIRE_MIGRATION_DB=1 \
+          YELLOW_REQUIRE_ORDER434_DATABASE=1 \
+          YELLOW_ORDER434_MIGRATIONS_DIR="$GITHUB_WORKSPACE/migrations" \
+          YELLOW_ORDER434_PG_DUMP_COMPOSE=1 \
+            bun test tests/migrate.integration.test.ts
 
       - name: Run seed integration suite
         run: bun run test:db:seed
+
+      - name: Prove Order434 native fiscal suite on a fresh migrated 77 database
+        shell: bash
+        timeout-minutes: 35
+        run: |
+          set -euo pipefail
+          native_template="yellow_ci_order434_native_template"
+          native_clones=()
+          trap 'for native_clone in "${native_clones[@]}"; do docker compose exec -T postgres psql --username yellow_deploy --dbname postgres --set ON_ERROR_STOP=1 --command "DROP DATABASE IF EXISTS ${native_clone} WITH (FORCE)"; done; docker compose exec -T postgres psql --username yellow_deploy --dbname postgres --set ON_ERROR_STOP=1 --command "DROP DATABASE IF EXISTS ${native_template} WITH (FORCE)"' EXIT
+          docker compose exec -T postgres psql --username yellow_deploy --dbname postgres --set ON_ERROR_STOP=1 \
+            --command "DROP DATABASE IF EXISTS ${native_template} WITH (FORCE)"
+          docker compose exec -T postgres psql --username yellow_deploy --dbname postgres --set ON_ERROR_STOP=1 \
+            --command "CREATE DATABASE ${native_template}"
+          export YELLOW_REQUIRE_ORDER434_DATABASE=1
+          export YELLOW_REQUIRE_ORDER434_NATIVE_ACCOUNTING_DATABASE=1
+          export YELLOW_REQUIRE_ORDER434_NATIVE_ISSUANCE_DATABASE=1
+          export YELLOW_ORDER434_MIGRATIONS_DIR="$GITHUB_WORKSPACE/migrations"
+          export YELLOW_ORDER434_PG_DUMP_COMPOSE=1
+          YELLOW_DEPLOY_DATABASE_URL="postgres://yellow_deploy:${YELLOW_DEPLOY_DATABASE_PASSWORD}@${POSTGRES_ADDRESS}/${native_template}" \
+          YELLOW_RUNTIME_DATABASE_URL="postgres://yellow_runtime:${YELLOW_RUNTIME_DATABASE_PASSWORD}@${POSTGRES_ADDRESS}/${native_template}" \
+            bun run db:migrate
+          clone_index=0
+          for proof_file in \
+            tests/india-gst-accommodation-ordinary-regime-evidence.integration.test.ts \
+            tests/india-native-fiscal-source-completion.integration.test.ts \
+            tests/india-native-fiscal-accounting.integration.test.ts \
+            tests/india-native-fiscal-preparation.integration.test.ts \
+            tests/india-native-fiscal-source-locks.integration.test.ts \
+            tests/india-native-fiscal-completion.integration.test.ts; do
+            clone_index=$((clone_index + 1))
+            native_clone="yellow_ci_order434_native_${clone_index}"
+            native_clones+=("$native_clone")
+            docker compose exec -T postgres psql --username yellow_deploy --dbname postgres --set ON_ERROR_STOP=1 \
+              --command "CREATE DATABASE ${native_clone} TEMPLATE ${native_template}"
+            export YELLOW_ORDER434_DEPLOY_DATABASE_URL="postgres://yellow_deploy:${YELLOW_DEPLOY_DATABASE_PASSWORD}@${POSTGRES_ADDRESS}/${native_clone}"
+            export YELLOW_ORDER434_RUNTIME_DATABASE_URL="postgres://yellow_runtime:${YELLOW_RUNTIME_DATABASE_PASSWORD}@${POSTGRES_ADDRESS}/${native_clone}"
+            export YELLOW_ORDER434_NATIVE_ACCOUNTING_DEPLOY_DATABASE_URL="$YELLOW_ORDER434_DEPLOY_DATABASE_URL"
+            export YELLOW_ORDER434_NATIVE_ACCOUNTING_RUNTIME_DATABASE_URL="$YELLOW_ORDER434_RUNTIME_DATABASE_URL"
+            export YELLOW_ORDER434_NATIVE_ISSUANCE_RUNTIME_DATABASE_URL="$YELLOW_ORDER434_RUNTIME_DATABASE_URL"
+            printf 'Order434 native proof: %s\n' "$proof_file"
+            bun test "$proof_file"
+            docker compose exec -T postgres psql --username yellow_deploy --dbname postgres --set ON_ERROR_STOP=1 \
+              --command "DROP DATABASE IF EXISTS ${native_clone} WITH (FORCE)"
+          done
 
       - name: Prove native fiscal release containment on fresh and upgraded databases
         shell: bash
@@ -519,7 +572,7 @@ jobs:
           READY_FILE="$proof_directory/readiness.json" bun -e '
             const body = await Bun.file(process.env.READY_FILE!).json();
             if (body.status !== "ready" || body.build?.revision !== process.env.YELLOW_BUILD_SHA
-                || body.build?.expectedMigrationFrontier !== 75
+                || body.build?.expectedMigrationFrontier !== 77
                 || body.target !== "yellow_runtime_database") process.exit(1);
           '
 

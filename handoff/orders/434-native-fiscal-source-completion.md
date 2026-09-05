@@ -4,7 +4,12 @@
 **Phase:** 7 · YF-008, YF-009, YF-023
 **Implementation base:** `591ace8` (includes the complete Order432 current-catalogue repair)
 
-**Latest implementation work:** [Transfer concurrency, rate histories and durable accounting delivery](#transfer-concurrency-rate-histories-and-durable-accounting-delivery).
+**Latest implementation work:** [Canonical 76/77 integration on the released containment baseline](#current-integration-continuation--question195).
+The complete candidate and its derived schema are now in the development runner.
+The full migration suite passes 41/41; whole native acceptance is still in progress.
+Question195 supersedes historical draft migration numbers throughout this order.
+
+**Earlier command checkpoint:**
 The actual runtime command now commits an ordinary, rounded-zero-tax or genuine
 rate-change invoice from real charge, intake and valuation sources, without
 reposting revenue. Source locks, preparation authentication, accounting and final
@@ -2098,3 +2103,83 @@ identifiers; future assembled evidence/completion migrations are reserved as0076
 No draft is copied to the runner, and no temporary proof grant is production authority.
 This operational consolidation does not close Order434 or Phase7 or activate native
 issuance; remaining acceptance continues from D1371 and later preserved checkpoints.
+
+## Current integration continuation — Question195
+
+The active development branch integrates reviewed operational candidate791e416
+and D1373 checkpoint7249b27 at96b808d. PR82's cutoff remains unchanged; this local
+integration is not a main merge or accepted full candidate. Both append-only
+histories and the three D1373 test files are preserved.
+
+Question195 explicitly substitutes reserved canonical0076 evidence and0077
+completion for the original0075/0076 names. Keep runnable0001–0075 immutable.
+Until the complete77 candidate and derived catalogue are ready, the normal runner
+continues to discover75 migrations. Fresh acceptance must use production75
+containment, not the historical draft75 installed in the earlier synthetic cluster.
+All full outcome and independent executable acceptance obligations still apply.
+
+### Candidate assembly and current acceptance evidence
+
+The complete candidate was first applied in an isolated directory and its schema
+was derived from real PostgreSQL 16.15. Only then were canonical migrations 76/77
+and the derived catalogue promoted together into the development runner. The
+released main branch still ends at containment migration 75; no retained hotel
+database or local operator app has been migrated.
+
+- Evidence 76 preserves the historical draft bytes: SHA-256
+  `d550b41cd405aea2da2b84e75fd3632ae2a6aca3b24b5cd12697394405d29869`.
+- Completion 77 preserves accounting, preparation, statutory and completion
+  fragment bodies in dependency order, followed by the exact five admitted
+  `app_role` entry grants: SHA-256
+  `c4023a323ac70dc17e17a1a4bf092c9d35225cf7eef3b094fc31c2b5df28b41b`.
+- Fresh catalogue: 127 public tables, 117 RLS tables/policies, 26 forced-RLS
+  tables, 376 indexes, one sequence and two views. The complete normalized
+  schema dump matches `tests/schema/expected.sql` exactly.
+- Builder's full migration suite: **41 passed, 0 failed, 233 assertions**,
+  178.34 seconds, with mandatory flags and genuine SCRAM authentication.
+  Upgrade, intermediate denial, actual completion rollback, unchanged predecessor
+  ledger, exact checksums, no-op, concurrent runners and fresh equivalence passed.
+  An earlier run had nine failures: outdated catalogue/pre-promotion assertions,
+  a trust-authentication test environment and an undersized connection budget.
+  Those failures remain evidence; neither authentication nor concurrency
+  assertions were weakened. The dump transport is subsequently extended for
+  pinned Compose CI and still needs execution on that exact revision.
+- Standing suite at this intermediate revision: 1,569 passed, 1,187 explicit
+  database/environment skips, zero failures; 21,626 assertions in 99.67 seconds.
+  Skips are not database acceptance. Later fixture/release changes require a
+  fresh final standing run.
+
+Unsuccessful acceptance is explicit. Windows Bun 1.3.14 repeatedly crashed in
+the readiness test lifecycle. A standalone repeated runtime/deployment/role-switch
+matrix exits zero, and a later test run prints all four expected assertions before
+crashing; neither result is a process-green test-suite receipt. CI must execute the
+same genuine readiness cases successfully. Test lifecycle changes do not broaden
+runtime authority or grant access to the deployment-only migration ledger.
+
+The first independent full native run on a fresh unseeded clone passed ordinary
+evidence 4/4, then stopped at source completion 18 passed / 4 failed. The exact
+registry guards rejected missing approved global tax-registry seed data. This is
+being repaired as an explicit canonical base-configuration fixture prerequisite,
+not by weakening SQL validation or inserting derived fiscal records. The remaining
+four native files were not executed by that stopped run. All isolated failed-run
+databases were removed only after their sessions ended; the unseeded source
+template and retained hotel data remain untouched.
+
+The canonical registry prerequisite is now repaired and independently rerun:
+ordinary evidence 4/4 and source completion 22/22 pass without temporary grants.
+The subsequent accounting run stopped at two stale metadata expectations for the
+exact approved 0077 capabilities; those test expectations now target canonical77,
+while PUBLIC and direct-runtime denial stay unchanged. A full rerun is underway.
+
+Builder's focused monetary-bound and genuine two-tenant cases now pass 2/2 with
+16 assertions. The maximum total is read from persisted tax/accounting artifacts.
+The next-value rejection is explicitly fixture input validation, not a claim of
+executing the SQL overflow branch. Initial tenant tests had a mismatched audit
+envelope and incorrect expected SQL messages; the corrected requests use genuine
+matching envelopes and assert the actual folio/property authority denials, unchanged
+per-tenant effects and subsequent successful issuance for both tenants.
+
+Latest dependency-free standing run: 1,570 passed, 1,189 explicit environment skips,
+zero failures, 21,646 assertions (97.41 seconds). Typecheck, 168-file import boundaries,
+23-package licence check and dependency audit pass. This remains an unapproved
+development checkpoint for real CI execution, not a main merge or local refresh.

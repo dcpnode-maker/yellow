@@ -6,7 +6,9 @@ import { IndiaNativeFiscalAccountingEventHandler } from "../src/contexts/financi
 import { createAuditEnvelope, Database, PostgresEventBus, PostgresIdempotency, type Tx } from "../src/kernel";
 import { createNativeIssuanceFixture, createNativeSourceFixture, createNativeStatutoryFixture } from "./fixtures/india-native-fiscal-source-completion-fixture";
 
-const draft = new URL("../handoff/drafts/order434/0076-native-preparation.sql", import.meta.url);
+const canonicalPath = new URL("../migrations/0077_india_native_fiscal_source_completion.sql", import.meta.url);
+const draftPath = new URL("../handoff/drafts/order434/0076-native-preparation.sql", import.meta.url);
+const preparationSource = (await Bun.file(canonicalPath).exists() ? canonicalPath : draftPath);
 const deployUrl = process.env.YELLOW_ORDER434_NATIVE_ACCOUNTING_DEPLOY_DATABASE_URL;
 if (process.env.YELLOW_REQUIRE_ORDER434_NATIVE_ACCOUNTING_DATABASE === "1" && !deployUrl) {
   throw new Error("Order434 preparation proof requires the explicit synthetic deploy database URL");
@@ -17,6 +19,13 @@ if (process.env.YELLOW_REQUIRE_ORDER434_NATIVE_ISSUANCE_DATABASE === "1" && (!de
   throw new Error("Native issuance proof requires explicit synthetic deploy and real runtime database URLs");
 }
 const issuanceDescribe = deployUrl && issueRuntimeUrl ? describe.serial : describe.skip;
+function boundedPreparationFunction(sql: string): string {
+  const start = sql.indexOf("CREATE OR REPLACE FUNCTION public.prepare_india_native_fiscal_invoice_v2(");
+  const endMarker = "FROM PUBLIC,app_role,yellow_runtime;";
+  const end = sql.indexOf(endMarker, start);
+  if (start < 0 || end < 0) throw new Error("native preparation function boundary is unavailable");
+  return sql.slice(start, end + endMarker.length);
+}
 type ObjectValue = Record<string, unknown>;
 type BasisParts = {
   context: ObjectValue;
@@ -733,10 +742,8 @@ issuanceDescribe("Order434 genuine native invoice transaction", () => {
 
 describe("Order434 preparation source basis contract", () => {
   test("outer preparation preserves the exact wire and locks before its event-first write tail", async () => {
-    const complete = await Bun.file(draft).text();
-    const start = complete.indexOf("CREATE OR REPLACE FUNCTION public.prepare_india_native_fiscal_invoice_v2(");
-    expect(start).toBeGreaterThan(0);
-    const source = complete.slice(start);
+    const complete = await Bun.file(preparationSource).text();
+    const source = boundedPreparationFunction(complete);
     expect(source).toContain("RETURNS TABLE(native_timing_id uuid,request_event_id uuid,posting_binding_id uuid,");
     expect(source).toContain("prepared_source_json text,completed_receipt jsonb)");
     expect(source).toContain("LANGUAGE plpgsql VOLATILE SECURITY DEFINER");
@@ -771,8 +778,8 @@ describe("Order434 preparation source basis contract", () => {
   });
 
   test("permanent replay precedes fresh source checks and returns no prepared source or new audit effects", async () => {
-    const complete = await Bun.file(draft).text();
-    const source = complete.slice(complete.indexOf("CREATE OR REPLACE FUNCTION public.prepare_india_native_fiscal_invoice_v2("));
+    const complete = await Bun.file(preparationSource).text();
+    const source = boundedPreparationFunction(complete);
     const replayStart = source.indexOf("SELECT n.* INTO v_existing");
     const replayEnd = source.indexOf("v_timing_id:=pg_catalog.gen_random_uuid()");
     expect(replayStart).toBeGreaterThan(0);
@@ -789,8 +796,8 @@ describe("Order434 preparation source basis contract", () => {
   });
 
   test("fresh preparation compares source snapshots and publishes only the eight bound event fields", async () => {
-    const complete = await Bun.file(draft).text();
-    const source = complete.slice(complete.indexOf("CREATE OR REPLACE FUNCTION public.prepare_india_native_fiscal_invoice_v2("));
+    const complete = await Bun.file(preparationSource).text();
+    const source = boundedPreparationFunction(complete);
     for (const snapshot of [
       "v_locked->'valuationEvidence' IS DISTINCT FROM v_valuation",
       "v_locked->'quotedTaxComposition' IS DISTINCT FROM v_composition",
@@ -809,7 +816,7 @@ describe("Order434 preparation source basis contract", () => {
   });
 
   test("stays private, pure and separate from the real source authenticator", async () => {
-    const complete = await Bun.file(draft).text();
+    const complete = await Bun.file(preparationSource).text();
     const start = complete.indexOf("CREATE OR REPLACE FUNCTION public.india_native_preparation_source_basis(");
     expect(start).toBeGreaterThan(0);
     const end = complete.indexOf("FROM PUBLIC,app_role,yellow_runtime;", start);
@@ -823,7 +830,7 @@ describe("Order434 preparation source basis contract", () => {
   });
 
   test("current-transaction authenticator reconstructs records before comparing the persisted projection", async () => {
-    const complete = await Bun.file(draft).text();
+    const complete = await Bun.file(preparationSource).text();
     const start = complete.indexOf("CREATE OR REPLACE FUNCTION public.assert_india_native_preparation_authenticity(");
     expect(start).toBeGreaterThan(0);
     const end = complete.indexOf("FROM PUBLIC,app_role,yellow_runtime;", start);

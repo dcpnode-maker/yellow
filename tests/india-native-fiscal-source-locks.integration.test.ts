@@ -13,9 +13,14 @@ import { createAuditEnvelope, Database, PostgresEventBus, PostgresIdempotency, t
 import { createNativeIssuanceCohort, createNativeIssuanceFixture } from "./fixtures/india-native-fiscal-source-completion-fixture";
 
 const preparationUrl = new URL(
+  "../migrations/0077_india_native_fiscal_source_completion.sql",
+  import.meta.url,
+);
+const historicalPreparationUrl = new URL(
   "../handoff/drafts/order434/0076-native-preparation.sql",
   import.meta.url,
 );
+const preparationSourceUrl = (await Bun.file(preparationUrl).exists() ? preparationUrl : historicalPreparationUrl);
 const deployUrl = process.env.YELLOW_ORDER434_NATIVE_ACCOUNTING_DEPLOY_DATABASE_URL;
 if (process.env.YELLOW_REQUIRE_ORDER434_NATIVE_ACCOUNTING_DATABASE === "1" && !deployUrl) {
   throw new Error("Order434 native source-lock metadata proof requires the explicit synthetic deploy database URL");
@@ -367,7 +372,7 @@ function expectSingleIssuanceDelta(
 }
 
 async function sourceConfigurationLockSource(): Promise<{ source: string; complete: string }> {
-  const complete = await Bun.file(preparationUrl).text();
+  const complete = await Bun.file(preparationSourceUrl).text();
   const start = complete.indexOf(
     "CREATE OR REPLACE FUNCTION public.lock_india_native_source_configuration_graph(",
   );

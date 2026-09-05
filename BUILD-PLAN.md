@@ -6,13 +6,17 @@ permit; no worker may silently widen an order. A phase is DONE only when its DoD
 checks pass in CI. Every session starts with the ritual below; no phase may modify
 a prior phase's public surface without a written note in `DECISIONS.log`.
 
-## Current implementation status — 2026-09-05, Orders438/439
+## Current implementation status — 2026-09-06, Order434 after Orders438/439
 
 [PROJECT-STATUS](docs/PROJECT-STATUS.md) is the canonical current-state record.
 Orders438/439 form the Codex-owned Phase-7 consolidated operational baseline through
 PR82. Both have independent acceptance at bb3b8f9 and all five required CI jobs passed,
 including real database invariants and the complete local launcher. Main integration,
-image publication and each deployed runtime retain separate receipts. Historical milestones below preserve the
+image publication and each deployed runtime retain separate receipts. PR82 has now
+merged as main5879e2b7; its five main CI jobs and image publication succeeded.
+Order434 continues on the integrated development branch with preserved D1373 tests.
+Question195 reserves evidence0076 and completion0077 after immutable containment0075.
+Historical milestones below preserve the
 evidence available when written and do not compete with PROJECT-STATUS.
 
 The plan retains **18 phases (0–17)** and the existing **13 bounded contexts**.
@@ -61,7 +65,7 @@ held, and audited seal/issue winner schedules. Positive and rounded-zero paths u
 real commands, exact balances and effect-free permanent replay. Independent proof
 covers six unchanged-hash cases plus the final repaired seal case (52 assertions).
 The final full suite is1560 passed,1172 explicit database/environment skips,0 failed.
-These are bounded additions, not full acceptance. Complete0076 assembly, fresh/
+These are bounded additions, not full acceptance. Complete0076/0077 integration, fresh/
 upgrade/partial-deployment/schema/referee and full native/legacy acceptance remain
 open; any remaining boundary/calendar requirements must be reconciled against the
 executed matrix, not silently dropped or replaced by these selected races.

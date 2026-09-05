@@ -22,7 +22,7 @@ async function withDatabase(run: (url: string, sql: SQL, runtimeUrl: string) => 
   const runtimeUrl = new URL(RUNTIME_URL!);
   deployUrl.pathname = runtimeUrl.pathname = `/${name}`;
   await admin!.unsafe(`CREATE DATABASE "${name}"`);
-  const sql = new SQL(deployUrl.toString());
+  const sql = new SQL(deployUrl.toString(), { max: 1, prepare: false });
   try {
     await run(deployUrl.toString(), sql, runtimeUrl.toString());
   } finally {
@@ -41,6 +41,19 @@ async function authority(sql: SQL) {
       pg_catalog.has_function_privilege('app_role', p.oid, 'EXECUTE') AS "appExecute",
       pg_catalog.has_function_privilege('yellow_runtime', p.oid, 'EXECUTE') AS "runtimeExecute"
     FROM pg_catalog.pg_proc p WHERE p.oid = ${SIGNATURE}::regprocedure`;
+}
+
+async function withHistoricalMigrations(frontier: number, run: (directory: string) => Promise<void>) {
+  const directory = await mkdtemp(join(tmpdir(), `yellow-containment-${frontier}-`));
+  try {
+    const names = (await readdir(MIGRATIONS)).filter(filename =>
+      /^\d{4}_.+\.sql$/.test(filename) && Number(filename.slice(0, 4)) <= frontier);
+    expect(names).toHaveLength(frontier);
+    for (const filename of names) {
+      await writeFile(join(directory, filename), await readFile(join(MIGRATIONS, filename)));
+    }
+    await run(directory);
+  } finally { await rm(directory, { recursive: true, force: true }); }
 }
 
 async function assertContained(sql: SQL, runtimeUrl: string) {
@@ -84,46 +97,53 @@ async function census(sql: SQL) {
 }
 
 databaseDescribe("Order439 released native fiscal authority is contained", () => {
-  beforeAll(() => { admin = new SQL(ADMIN_URL!); });
+  beforeAll(() => { admin = new SQL(ADMIN_URL!, { max: 1, prepare: false }); });
   afterAll(async () => { await admin?.close(); });
 
   test("fresh75 denies both runtime identities before the rejected function body", async () => {
-    await withDatabase(async (url, sql, runtimeUrl) => {
-      const migration = await runMigrations({ databaseUrl: url, logger: () => undefined });
+    await withHistoricalMigrations(75, async historical => withDatabase(async (url, sql, runtimeUrl) => {
+      const migration = await runMigrations({ databaseUrl: url, migrationsDirectory: historical, logger: () => undefined });
       expect(migration.appliedFiles).toHaveLength(75);
       const before = await census(sql);
       expect(before[0]?.tables).toBe(125);
       await assertContained(sql, runtimeUrl);
       expect(await census(sql)).toEqual(before);
-    });
+    }));
   }, 120_000);
 
   test("74→75 revokes authority without changing prior ledger or business rows; replay is a no-op", async () => {
-    const historical = await mkdtemp(join(tmpdir(), "yellow-migrations74-"));
-    try {
-      for (const filename of await readdir(MIGRATIONS)) {
-        if (/^\d{4}_.+\.sql$/.test(filename) && Number(filename.slice(0, 4)) <= 74) {
-          await writeFile(join(historical, filename), await readFile(join(MIGRATIONS, filename)));
-        }
-      }
+    await withHistoricalMigrations(74, async historical => {
       await withDatabase(async (url, sql, runtimeUrl) => {
         const predecessor = await runMigrations({ databaseUrl: url, migrationsDirectory: historical, logger: () => undefined });
         expect(predecessor.appliedFiles).toHaveLength(74);
         expect((await authority(sql))[0]?.appExecute).toBe(true);
         const priorLedger = await sql`SELECT row_to_json(m)::text AS row FROM public.schema_migration m ORDER BY version`;
         const before = await census(sql);
-        const upgrade = await runMigrations({ databaseUrl: url, logger: () => undefined });
+        const containmentFile = "0075_contain_unapproved_native_fiscal_issuance.sql";
+        await writeFile(join(historical, containmentFile), await readFile(join(MIGRATIONS, containmentFile)));
+        const upgrade = await runMigrations({ databaseUrl: url, migrationsDirectory: historical, logger: () => undefined });
         expect(upgrade.appliedFiles).toEqual(["0075_contain_unapproved_native_fiscal_issuance.sql"]);
         expect(await sql`SELECT row_to_json(m)::text AS row FROM public.schema_migration m WHERE version <= 74 ORDER BY version`).toEqual(priorLedger);
         await assertContained(sql, runtimeUrl);
         expect(await census(sql)).toEqual(before);
         const upgradedLedger = await sql`SELECT row_to_json(m)::text AS row FROM public.schema_migration m ORDER BY version`;
         expect(upgradedLedger).toHaveLength(75);
-        const noOp = await runMigrations({ databaseUrl: url, logger: () => undefined });
+        const noOp = await runMigrations({ databaseUrl: url, migrationsDirectory: historical, logger: () => undefined });
         expect(noOp.appliedFiles).toEqual([]);
         expect(noOp.discoveredFiles).toBe(75);
         expect(await sql`SELECT row_to_json(m)::text AS row FROM public.schema_migration m ORDER BY version`).toEqual(upgradedLedger);
       });
-    } finally { await rm(historical, { recursive: true, force: true }); }
+    });
+  }, 120_000);
+
+  test("fresh77 retains legacy denial under both runtime identities without business side effects", async () => {
+    await withDatabase(async (url, sql, runtimeUrl) => {
+      const migration = await runMigrations({ databaseUrl: url, logger: () => undefined });
+      expect(migration.appliedFiles).toHaveLength(77);
+      const before = await census(sql);
+      expect(before[0]?.tables).toBe(127);
+      await assertContained(sql, runtimeUrl);
+      expect(await census(sql)).toEqual(before);
+    });
   }, 120_000);
 });

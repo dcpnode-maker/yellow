@@ -900,6 +900,58 @@ This is bounded executable evidence for the two explicit financial-before-COMMIT
 inverse schedules only. It does not characterize every possible race, approve all of
 Order434 or Phase7, or authorize migration promotion.
 
+## Independent production migration boundary proof — 2026-09-06
+
+Non-implementer `/root/native_closed_review` read Question195 and inspected the
+frozen Phase E migration proof and candidate directory
+`D:\Yellow\temp\order434-production-candidate-20260906`. The candidate contains
+exactly migrations 0001–0077. The test byte-compares repository predecessors
+0001–0075, requires exact terminal filenames 0075 containment, 0076 evidence and
+0077 completion, and refuses protected admin database names. Candidate 0076 SHA-256
+`d550b41cd405aea2da2b84e75fd3632ae2a6aca3b24b5cd12697394405d29869`
+is byte-identical to the historical evidence draft.
+
+The upgrade case creates an ephemeral database, applies exact production 1–75,
+captures the byte-level immutable ledger, proves legacy issuance denied, applies 76
+alone and proves all five final capabilities still denied, then records the normalized
+76 schema and ledger. It appends an intentional `55000` failure to genuine 77 and
+requires transactional rollback, reusable connection, identical ledger and identical
+schema. It then restores exact 77, requires one migration backend, unchanged 1–75
+ledger, exact 77 filename/checksum, exactly five `app_role` capabilities, no direct
+`yellow_runtime` or PUBLIC execution and continued legacy denial. Finally it proves
+no-op identity and checksum-drift rejection without ledger/schema change. The second
+ephemeral database applies fresh 1–77 and exact-compares normalized schema and ledger
+bytes, excluding only application timestamps, with the upgraded database. Ephemeral
+database cleanup is unconditional. No bounded finding was found.
+
+The reviewer used fresh native PostgreSQL16.15 on port55503, the separately configured
+deploy/runtime URLs, absolute candidate and `pg_dump` paths, the mandatory Order434
+database flag and `D:\Yellow\temp`, and personally ran:
+
+```powershell
+bun test tests/migrate.integration.test.ts `
+  --test-name-pattern 'upgrades exact production 75|fresh 77 is schema-identical'
+```
+
+Result: **2 passed, 0 failed, 39 filtered, 42 assertions**, 11.58 seconds. The upgrade
+case took 7347.67ms and fresh-equivalence case 4021.75ms. Frozen hashes remained:
+
+- migration test: `08e4077f6ee543be77870ef50806bafd94ebe8f86e4b67a4da1011eba84474e3`
+- candidate 0076: `d550b41cd405aea2da2b84e75fd3632ae2a6aca3b24b5cd12697394405d29869`
+- candidate 0077: `c4023a323ac70dc17e17a1a4bf092c9d35225cf7eef3b094fc31c2b5df28b41b`
+
+After execution, no `yellow_migrate_%` child database and no client session remained;
+the five listed server processes were PostgreSQL's checkpointer, background writer,
+walwriter, autovacuum launcher and logical replication launcher only. The reserved
+`yellow_order434_production` database was not mutated by this reviewer. No extra grant,
+source/test/SQL edit, production lifecycle action, commit, push, merge or publication
+occurred.
+
+This is bounded independent proof of Question195's candidate migration lineage,
+atomicity and fresh/upgrade schema equivalence only. It does not approve all of
+Order434 or Phase7, validate the complete native runtime acceptance matrix on the
+promoted schema, or authorize merge, deployment or local promotion.
+
 ## Independent publication, authority, direct-bill and seal schedules — 2026-09-06
 
 Non-implementer `/root/native_closed_review` inspected the frozen concurrency tests.
@@ -1041,3 +1093,88 @@ commit, push, merge or deployment occurred.
 This is bounded independent evidence for the seven selected cases only. It does not
 approve Order434 or Phase7, replace the earlier maximum proof, or authorize migration
 promotion.
+
+## 2026-09-06 — canonical 0077 full-native attempt stopped on source failure
+
+The independent reviewer began the requested serial six-file acceptance against
+fresh, unseeded databases cloned from the retained
+`yellow_order434_production` template on native PostgreSQL 16.15 at port 55503. Each
+test process used `yellow_deploy` for deployment reads and `yellow_runtime` for the
+runtime path, with the applicable mandatory Order434 environment gate. No temporary
+function grant or derived-row restoration was used.
+
+The ordinary-regime evidence file
+`fe9860ac01c85a2beabc2144a6ae4b29dd1a7caaa2dcbcf01e475af63fdb28c7`
+completed with **4 passed, 0 failed, 29 assertions**, process exit 0, in 879 ms.
+
+The next process, full
+`tests/india-native-fiscal-source-completion.integration.test.ts` at
+`c5a66f625516098d4292f3b547af3858b4e7c34545a1fa1f5969f32ef7f68fcf`,
+against canonical 0077
+`c4023a323ac70dc17e17a1a4bf092c9d35225cf7eef3b094fc31c2b5df28b41b`,
+terminated with exit 1: **18 passed, 4 failed, 186 assertions**, 17.59 seconds.
+Three failures (real statutory roots, ordered statutory locks, and distinct
+service/time-of-supply SEZ roots) raised SQLSTATE `55000`, `native historical-rate
+approved registry member is inconsistent`, from
+`read_india_native_rate_history_day` line 65. The private one-minor source-prefix
+case raised SQLSTATE `55000`, `native tax preview registry member is inconsistent`,
+from `read_india_native_tax_preview` line 71 via
+`lock_india_native_invoice_source_prefix`.
+
+The reviewer stopped at that genuine database failure; the remaining four files were
+not run and are not claimed as passing. Both exact ephemeral clones were dropped in
+`finally`. A final catalogue check found zero `order434_review_*` databases and zero
+matching client sessions. This failed bounded attempt is not Order434 acceptance.
+
+## 2026-09-06 — repaired fixture rerun stopped on stale accounting ACL assertions
+
+The reviewer inspected the fixture-only repair at
+`3f6ca16e56547a934b4fef37f191c34f44ffd70338a03a9dd1350cff558f8488`.
+It derives the two approved registry members and deterministic UUIDs from canonical
+seed exports, inserts only missing base `extension_type`/`extension` rows, and
+exact-compares every field after `ON CONFLICT DO NOTHING`; an ID or natural-key
+collision cannot silently substitute different configuration. It inserts no native
+valuation, tax projection, accounting binding, or document artifact.
+
+With a separate fresh unseeded template clone for each process and no temporary
+grants, the reviewer obtained:
+
+- ordinary-regime evidence: **4 passed, 0 failed, 29 assertions**, exit 0, 845 ms;
+- source completion: **22 passed, 0 failed, 263 assertions**, exit 0, 20.47 seconds;
+- native accounting: **25 passed, 2 failed, 383 assertions**, exit 1, 8.25 seconds.
+
+The two accounting failures are exact metadata expectation drift, not generic SQL
+errors. The tests at lines 416 and 446 expect `app_execute=false` for
+`consume_india_native_fiscal_accounting_event(uuid,uuid)` and
+`read_india_native_accounting_source_closure(uuid,uuid)`, while canonical 0077
+intentionally grants both among its five exact `app_role` capabilities. PostgreSQL
+observed `app_execute=true`; PUBLIC and `yellow_runtime` remained false.
+
+Execution stopped at that terminal failure, so preparation and source-locks were not
+run. All three clone databases were dropped and the final catalogue check found zero
+`order434_review_*` databases and zero matching sessions. This is bounded failure
+evidence and is not full Order434 acceptance.
+
+## Supported-service reachability rationale for malformed journal shapes
+
+This is a static reachability rationale, not an executed database proof of the inner
+malformed-state exceptions. The only supported operation that creates an original
+native consideration journal with the required
+`{"interface":"financials.charge.post"}` provenance is `ChargeService.postCharge`.
+That operation constructs exactly two balanced lines: the folio guest debit followed
+by the routed property-currency revenue credit. `ChargeCorrectionService` constructs
+the corresponding exact two-line reversal. `FolioTransferService` constructs paired
+transfer fragments for each governed source root, including every pair in a
+multi-root transfer journal.
+
+Other legitimate financial posting operations carry different source provenance and
+are rejected as unsupported native sources before the original-journal or transfer-
+pair shape checks. Consequently, no supported service can produce a three-line
+`financials.charge.post` journal or an incomplete transfer pair. Reaching the literal
+`native source must contain exactly two balanced guest/revenue lines` or
+`native source transfer journal has incomplete or unsupported pairs` branches would
+require direct fabrication or corruption of insert-only financial rows. No such
+contrived seeding is claimed or admitted. Existing executable evidence covers the
+supported two-line charge, exact correction companion closure, paired folio transfer,
+and multi-root transfer paths; it does not claim that either inner malformed-state
+message was executed.

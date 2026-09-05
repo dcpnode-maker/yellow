@@ -1,6 +1,6 @@
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { SQL } from "bun";
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 
 import { IssueIndiaNativeFiscalInvoiceCommand } from "../src/commands/issue-india-native-fiscal-invoice";
@@ -26,18 +26,19 @@ import {
 } from "./fixtures/india-native-fiscal-source-completion-fixture";
 
 const ROOT = join(import.meta.dir, "..");
-const completion = readFileSync(
-  join(ROOT, "handoff", "drafts", "order434", "0076-native-completion.sql"),
-  "utf8",
-);
-const preparation = readFileSync(
-  join(ROOT, "handoff", "drafts", "order434", "0076-native-preparation.sql"),
-  "utf8",
-);
-const sourceEvidence = readFileSync(
-  join(ROOT, "handoff", "drafts", "order434", "0075_india_native_fiscal_source_evidence.sql"),
-  "utf8",
-);
+const canonicalCompletionInstalled = existsSync(join(ROOT, "migrations", "0077_india_native_fiscal_source_completion.sql"));
+const completionPath = canonicalCompletionInstalled
+  ? join(ROOT, "migrations", "0077_india_native_fiscal_source_completion.sql")
+  : join(ROOT, "handoff", "drafts", "order434", "0076-native-completion.sql");
+const preparationPath = canonicalCompletionInstalled
+  ? join(ROOT, "migrations", "0077_india_native_fiscal_source_completion.sql")
+  : join(ROOT, "handoff", "drafts", "order434", "0076-native-preparation.sql");
+const sourceEvidencePath = existsSync(join(ROOT, "migrations", "0076_india_native_fiscal_source_evidence.sql"))
+  ? join(ROOT, "migrations", "0076_india_native_fiscal_source_evidence.sql")
+  : join(ROOT, "handoff", "drafts", "order434", "0075_india_native_fiscal_source_evidence.sql");
+const completion = readFileSync(completionPath, "utf8");
+const preparation = readFileSync(preparationPath, "utf8");
+const sourceEvidence = readFileSync(sourceEvidencePath, "utf8");
 const service = readFileSync(
   join(ROOT, "src", "contexts", "tax-fiscal", "india-native-fiscal-invoice.ts"),
   "utf8",
@@ -143,14 +144,25 @@ describe("Order434 native fiscal completion draft integration contract", () => {
     expect(commit).toContain("'documentId',n.prospective_document_id::text");
   });
 
-  test("keeps both completion entry points owner-private", () => {
-    for (const signature of [
+  test("keeps completion ACLs at the exact five-capability boundary", () => {
+    const commit = "commit_india_native_fiscal_invoice_v2(uuid,uuid,uuid,uuid,text,jsonb,uuid)";
+    const receipt = "read_india_native_completed_receipt(uuid,uuid)";
+    const approval = "create_approval_request_with_options(uuid,uuid,uuid,uuid,text,text,uuid,jsonb,timestamptz)";
+    const grants = [...completion.matchAll(/GRANT\s+EXECUTE\s+ON\s+FUNCTION\s+public\.([a-z0-9_]+\([\s\S]*?\))\s+TO\s+app_role\s*;/gi)]
+      .map(match => match[1]!.replace(/\s+/g, " ").replace(/\( /g, "(").trim()).sort();
+    const expectedGrants = [
       "commit_india_native_fiscal_invoice_v2(uuid,uuid,uuid,uuid,text,jsonb,uuid)",
-      "read_india_native_completed_receipt(uuid,uuid)",
-    ]) {
-      expect(completion).toContain(`REVOKE ALL ON FUNCTION public.${signature}`);
+      "consume_india_native_fiscal_accounting_event(uuid,uuid)",
+      "create_approval_request_with_options(uuid,uuid,uuid,uuid,text,text,uuid,jsonb,timestamptz)",
+      "prepare_india_native_fiscal_invoice_v2(uuid,uuid,uuid,uuid,uuid,uuid,uuid,uuid,uuid,uuid,uuid,uuid,uuid,uuid,uuid,text,text,date,date[],text[],text,uuid)",
+      "read_india_native_accounting_source_closure(uuid,uuid)",
+    ].sort();
+    if (canonicalCompletionInstalled) expect(grants).toEqual(expectedGrants);
+    else expect(grants).toEqual([]);
+    for (const signature of [receipt, "assert_native_valuation_conservation()"])
       expect(completion).not.toContain(`GRANT EXECUTE ON FUNCTION public.${signature}`);
-    }
+    for (const signature of [commit, receipt, approval])
+      expect(completion).toContain(`REVOKE ALL ON FUNCTION public.${signature}`);
   });
 
   test("keeps forward conservation private on the existing deferred trigger and rechecks the bounded prefix", () => {
@@ -931,6 +943,72 @@ candidateDescribe("Order434 native completion real candidate variants", () => {
       .rejects.toThrow("native final tax preview conflicts with selected rate or consideration");
     expect(await candidateCensus(deploy, candidate.fixture.tenant, candidate.series.seriesId)).toEqual(before);
   }, 60_000);
+
+  test("accepts the exact int64-safe upper-slab total and rejects the next monetary value without effects", async () => {
+    const candidate = await createNativeIssuanceFixture(deploy, runtime, {
+      label: "native-completion-int64-boundary",
+      roomNightAmounts: ["7816416980385403227"],
+      quotedTaxRateBasisPoints: 1800,
+      quotedTaxRounding: "component_half_up",
+    });
+    const command = new IssueIndiaNativeFiscalInvoiceCommand(runtime);
+    const before = await candidateCensus(deploy, candidate.fixture.tenant, candidate.series.seriesId);
+    const issued = await command.execute(candidate.request);
+    const afterIssue = await candidateCensus(deploy, candidate.fixture.tenant, candidate.series.seriesId);
+    expect(issued.replayed).toBeFalse();
+    expect(afterIssue.documents).toBe(before.documents + 1);
+    expect(afterIssue.nextNo).toBe((BigInt(before.nextNo) + 1n).toString());
+    const [totals] = await deploy<Array<{ guest: string; revenue: string; tax: string; total: string }>>`SELECT
+      (SELECT COALESCE(sum(line.amount_minor),0)::text FROM public.posting_line line
+        WHERE line.tenant_id=${candidate.fixture.tenant}::uuid AND line.account_id=${candidate.fixture.guestAccount}::uuid) AS guest,
+      (SELECT COALESCE(sum(line.amount_minor),0)::text FROM public.posting_line line
+        WHERE line.tenant_id=${candidate.fixture.tenant}::uuid AND line.account_id=${candidate.fixture.revenueAccount}::uuid) AS revenue,
+      (SELECT COALESCE(sum(component.tax_amount_minor),0)::text FROM public.india_gst_accommodation_final_component_tax_component component
+        JOIN public.india_gst_accommodation_final_component_tax tax ON tax.tenant_id=component.tenant_id AND tax.id=component.tax_id
+        JOIN public.india_gst_native_invoice_timing timing ON timing.tenant_id=tax.tenant_id AND timing.tax_id=tax.id
+        JOIN public.india_gst_native_fiscal_document_origin origin ON origin.tenant_id=timing.tenant_id AND origin.native_timing_id=timing.id
+        WHERE origin.tenant_id=${candidate.fixture.tenant}::uuid AND origin.document_id=${issued.documentId}::uuid) AS tax,
+      (SELECT tax.grand_total_minor::text FROM public.india_gst_accommodation_final_component_tax tax
+        JOIN public.india_gst_native_invoice_timing timing ON timing.tenant_id=tax.tenant_id AND timing.tax_id=tax.id
+        JOIN public.india_gst_native_fiscal_document_origin origin ON origin.tenant_id=timing.tenant_id AND origin.native_timing_id=timing.id
+        WHERE origin.tenant_id=${candidate.fixture.tenant}::uuid AND origin.document_id=${issued.documentId}::uuid) AS total`;
+    expect(totals).toEqual({ guest: "9223372036854775807", revenue: "-7816416980385403227", tax: "1406955056469372580", total: "9223372036854775807" });
+    const overflowBefore = await candidateCensus(deploy, candidate.fixture.tenant, candidate.series.seriesId);
+    await expect(createNativeIssuanceFixture(deploy, runtime, {
+      label: "native-completion-int64-overflow",
+      roomNightAmounts: ["7816416980385403228"],
+      quotedTaxRateBasisPoints: 1800,
+      quotedTaxRounding: "component_half_up",
+    })).rejects.toThrow("Native source fixture quoted-tax total is outside admitted int64 bounds");
+    expect(await candidateCensus(deploy, candidate.fixture.tenant, candidate.series.seriesId)).toEqual(overflowBefore);
+  }, 120_000);
+
+  test("isolates native issue commands across two genuine tenants and preserves both series on denial", async () => {
+    const first = await createNativeIssuanceFixture(deploy, runtime, { label: "native-completion-tenant-a" });
+    const second = await createNativeIssuanceFixture(deploy, runtime, { label: "native-completion-tenant-b" });
+    const command = new IssueIndiaNativeFiscalInvoiceCommand(runtime);
+    const firstBefore = await candidateCensus(deploy, first.fixture.tenant, first.series.seriesId);
+    const secondBefore = await candidateCensus(deploy, second.fixture.tenant, second.series.seriesId);
+    // Bind a genuine second-tenant audit envelope so the database, not the
+    // envelope's mismatch guard, must reject the first tenant's source IDs.
+    const wrongTenant = replayRequest({ ...first.request, tenantId: second.fixture.tenant,
+      propertyNode: second.fixture.property, actorId: second.fixture.actor });
+    await expect(command.execute(wrongTenant)).rejects.toThrow("native issue folio/property scope unavailable");
+    expect(await candidateCensus(deploy, first.fixture.tenant, first.series.seriesId)).toEqual(firstBefore);
+    expect(await candidateCensus(deploy, second.fixture.tenant, second.series.seriesId)).toEqual(secondBefore);
+    const wrongProperty = replayRequest({ ...first.request, propertyNode: second.fixture.property });
+    await expect(command.execute(wrongProperty)).rejects.toThrow("native property authority unavailable");
+    expect(await candidateCensus(deploy, first.fixture.tenant, first.series.seriesId)).toEqual(firstBefore);
+    expect(await candidateCensus(deploy, second.fixture.tenant, second.series.seriesId)).toEqual(secondBefore);
+    const firstIssued = await command.execute(first.request);
+    const secondIssued = await command.execute(second.request);
+    expect(firstIssued.replayed).toBeFalse();
+    expect(secondIssued.replayed).toBeFalse();
+    expect((await candidateCensus(deploy, first.fixture.tenant, first.series.seriesId)).documents)
+      .toBe(firstBefore.documents + 1);
+    expect((await candidateCensus(deploy, second.fixture.tenant, second.series.seriesId)).documents)
+      .toBe(secondBefore.documents + 1);
+  }, 120_000);
 
   test("issues and permanently replays a genuine Section14 invoice across distinct supply and rate-selection dates", async () => {
     const candidate = await createNativeIssuanceFixture(deploy, runtime, {

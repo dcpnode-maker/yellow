@@ -2,8 +2,16 @@ import { describe, expect, test } from "bun:test";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { fileURLToPath } from "node:url";
 
-const root = new URL("..", import.meta.url).pathname;
+const root = fileURLToPath(new URL("..", import.meta.url));
+
+function runState(environment?: NodeJS.ProcessEnv) {
+  const command = process.platform === "win32"
+    ? ["powershell.exe", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", join(root, "state.ps1")]
+    : ["bash", join(root, "state.sh")];
+  return Bun.spawnSync(command, { cwd: root, env: environment ?? process.env });
+}
 
 function parseStatus(status: string): Readonly<Record<string, string>> {
   return Object.freeze(
@@ -36,9 +44,9 @@ describe("canonical project status", () => {
       expect(await Bun.file(`${root}/${file}`).exists()).toBe(true);
     }
 
-    const report = Bun.spawnSync(["bash", "state.sh"], { cwd: root });
+    const report = runState();
     expect(report.exitCode).toBe(0);
-    const output = report.stdout.toString();
+    const output = new TextDecoder("utf-8").decode(report.stdout);
     expect(output).toContain(`Current task: ${task}`);
     expect(output).toContain(`Lifecycle: ${lifecycle}`);
     expect(output).toContain(`Phase: ${phase} · ${lifecycle}`);
@@ -60,12 +68,11 @@ describe("canonical project status", () => {
           "<!-- current-order-files: handoff/orders/438-codex-consolidated-release.md -->",
         ].join("\n"),
       );
-      const report = Bun.spawnSync(["bash", "state.sh"], {
-        cwd: root,
-        env: { ...process.env, YELLOW_PROJECT_STATUS_FILE: invalidStatus },
-      });
+      const report = runState({ ...process.env, YELLOW_PROJECT_STATUS_FILE: invalidStatus });
       expect(report.exitCode).not.toBe(0);
-      expect(report.stderr.toString()).toContain("invalid docs/PROJECT-STATUS.md metadata");
+      const errorOutput = `${new TextDecoder("utf-8").decode(report.stderr)}${new TextDecoder("utf-8").decode(report.stdout)}`;
+      if (process.platform === "win32") expect(errorOutput).toMatch(/YELLOW\s+state report failed/);
+      else expect(errorOutput).toContain("invalid docs/PROJECT-STATUS.md metadata");
       expect(report.stdout.toString()).not.toContain("Referee:");
     } finally {
       await rm(directory, { recursive: true, force: true });

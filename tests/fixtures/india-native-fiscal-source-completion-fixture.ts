@@ -34,6 +34,8 @@ import {
   createAuditEnvelope,
   type ConnectionPool,
 } from "../../src/kernel";
+import { LAUNCH_EXTENSIONS, LAUNCH_EXTENSION_TYPES, URL_NAMESPACE_UUID } from "../../scripts/seed";
+import { uuidV5 } from "../../scripts/lib/uuid-v5";
 
 const SERVICE_EVENT = "india_gst.accommodation_service_provision_recorded";
 const PAYMENT_EVENT = "india_gst.accommodation_payment_receipt_recorded";
@@ -93,6 +95,64 @@ interface DateRow {
 
 function sha256(value: string): string {
   return new Bun.CryptoHasher("sha256").update(value).digest("hex");
+}
+
+async function ensureApprovedNativeRateRegistry(deploy: SQL): Promise<void> {
+  const definition = LAUNCH_EXTENSION_TYPES.find(entry => entry.type === "tax_jurisdiction");
+  const members = LAUNCH_EXTENSIONS.filter(entry => entry.type === "tax_jurisdiction"
+    && entry.key === "in-gst-lodging").map(entry => {
+    if (!("version" in entry) || (entry.version !== 1 && entry.version !== 2)
+      || !("effectiveFromInstant" in entry) || typeof entry.effectiveFromInstant !== "string"
+      || !("effectiveToInstant" in entry)
+      || (entry.effectiveToInstant !== null && typeof entry.effectiveToInstant !== "string")
+      || !("status" in entry) || (entry.status !== "active" && entry.status !== "retired")) {
+      throw new Error("Canonical native rate registry source is inconsistent");
+    }
+    return {
+      type: entry.type,
+      key: entry.key,
+      version: entry.version,
+      effectiveFromInstant: entry.effectiveFromInstant,
+      effectiveToInstant: entry.effectiveToInstant,
+      content: entry.content,
+      status: entry.status,
+    };
+  }).sort((left, right) => left.version - right.version);
+  if (!definition || members.length !== 2) throw new Error("Canonical native rate registry source is unavailable");
+  const schema = JSON.stringify(definition.jsonSchema);
+  await deploy.begin(async tx => {
+    await tx`INSERT INTO public.extension_type(type,json_schema)
+      VALUES('tax_jurisdiction',${schema}::text::jsonb) ON CONFLICT (type) DO NOTHING`;
+    const types = await tx<Array<{ exact: boolean }>>`
+      SELECT json_schema=${schema}::text::jsonb AS exact FROM public.extension_type
+      WHERE type='tax_jurisdiction'`;
+    if (types.length !== 1 || !types[0]?.exact) {
+      throw new Error("Canonical native rate extension type is inconsistent");
+    }
+    for (const member of members) {
+      const version = member.version;
+      const id = await uuidV5(URL_NAMESPACE_UUID,
+        `https://yellow.local/extension/${member.type}/${member.key}/${version}`);
+      const content = JSON.stringify(member.content);
+      const from = member.effectiveFromInstant;
+      const to = member.effectiveToInstant;
+      await tx`INSERT INTO public.extension(id,tenant_id,type,key,version,effective,content,status)
+        VALUES(${id}::uuid,NULL,${member.type},${member.key},${version},
+          tstzrange(${from}::timestamptz,${to}::timestamptz,'[)'),${content}::text::jsonb,${member.status})
+        ON CONFLICT DO NOTHING`;
+      const matches = await tx<Array<{ exact: boolean }>>`
+        SELECT id=${id}::uuid AND tenant_id IS NULL AND type=${member.type} AND key=${member.key}
+          AND version=${version} AND lower(effective)=${from}::timestamptz
+          AND upper(effective) IS NOT DISTINCT FROM ${to}::timestamptz
+          AND lower_inc(effective) AND NOT upper_inc(effective)
+          AND content=${content}::text::jsonb AND status=${member.status} AS exact
+        FROM public.extension WHERE id=${id}::uuid OR
+          (tenant_id IS NULL AND type=${member.type} AND key=${member.key} AND version=${version})`;
+      if (matches.length !== 1 || !matches[0]?.exact) {
+        throw new Error(`Canonical native rate registry version ${version} is inconsistent`);
+      }
+    }
+  });
 }
 
 function fixtureLabel(value: string | undefined): string {
@@ -192,6 +252,7 @@ export async function createNativeSourceFixture(
   const timezone = fixtureTimezone(options.timezone);
   const amounts = canonicalAmounts(options.roomNightAmounts, options.quotedTaxRounding, options.quotedTaxRateBasisPoints);
   const configuredRevenueAccountCount = revenueAccountCount(options.revenueAccountCount);
+  await ensureApprovedNativeRateRegistry(deploy);
   const marker = `${label}-${crypto.randomUUID().replaceAll("-", "").slice(0, 12)}`;
   const pathMarker = marker.replaceAll("-", "").toLowerCase();
   const tenant = crypto.randomUUID();
