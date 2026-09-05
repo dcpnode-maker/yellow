@@ -4,7 +4,7 @@
 **Phase:** 7 · YF-008, YF-009, YF-023
 **Implementation base:** `591ace8` (includes the complete Order432 current-catalogue repair)
 
-**Latest implementation checkpoint:** [Closed-state replay and distinct-source series](#closed-state-replay-and-distinct-source-series--d1365).
+**Latest implementation checkpoint:** [Component families, committed winners and actual approval creation](#component-families-committed-winners-and-actual-approval-creation--d1368).
 The actual runtime command now commits an ordinary, rounded-zero-tax or genuine
 rate-change invoice from real charge, intake and valuation sources, without
 reposting revenue. Source locks, preparation authentication, accounting and final
@@ -685,6 +685,18 @@ grant, policy or production migration is added. Root owns integration and the
 complete outcome; fragments remain non-runnable WIP, not separate deliverables.
 
 ### Existing product paths: native union/composition only
+
+Question193/D1366 additionally admits `src/kernel/approval.ts` and
+`tests/approval-request-options.test.ts` solely for optional internal approval
+identity and explicit expiry on the existing request primitive. Preserve its
+legacy path, responses, decisions and audit behavior; no inferred lifetime,
+permission or HTTP field. The existing native source integration suite must
+prove actual request → different-user decision → native valuation, with all
+existing complete-payload and current-authority consumption checks unchanged.
+Executed42501 under0016 additionally admits D1367's private owner-mediated
+`create_approval_request_with_options` in the completion fragment. Only its exact
+signature may receive a temporary synthetic test grant, with unconditional
+revocation. Preserve all existing direct-DML column grants and the legacy path.
 
 ```text
 src/contexts/tax-fiscal/index.ts
@@ -1782,3 +1794,57 @@ transfer/seal winner schedules and authority races, generic approval creation,
 complete0076 assembly, fresh/upgrade schema/referee and legacy integration, and
 complete independent Tier3 acceptance. No Order434/Phase7 completion, main merge,
 retained-local promotion, IRP/provider activation or new phase is claimed.
+## Component families, committed winners and actual approval creation — D1368
+
+This checkpoint adds working behavior and bounded proof without closing the order.
+
+- Original supplier/property statutory locations drive real two-night CGST/SGST,
+  CGST/UTGST and IGST invoices. Tests reconcile every night/component, unchanged
+  consideration revenue, incremental guest/payable tax, balanced journal, document
+  totals, sequence advancement and effect-free replay.
+- Positive-tax and rounded-zero cases exercise sequential committed winners:
+  issue then ordinary correction denied; issue then folio transfer denied; sealed
+  day then issue denied without fiscal artifacts; issue then audited seal succeeds
+  and permanent replay remains unchanged. These are explicitly not simultaneous
+  races and do not replace the still-required correction/transfer-first successes.
+- Question193's actual kernel request now accepts an internal preallocated identity
+  and explicit expiry, uses a private pending-only owner operation, then preserves
+  existing fact/outbox publication and different-user decisions. Original0016
+  direct-INSERT columns remain exactly the same six. No expiry policy or duration
+  is inferred. The native consumer still recomputes the complete approval basis.
+  The positive integration creates and decides the approval as runtime, not owner
+  INSERT, before real native valuation and replay. Historical expired fixture
+  approvals remain only for labelled deterministic consumption regressions.
+
+The first actual extended request exposed Date22007, fixed by canonical ISO text,
+then42501, traced to the exact existing column grants. D1367 supplies the narrower
+owner operation; it does not widen direct DML. Root also corrected a test oracle
+to include recordFact's existing request_id, keeping exact payload equality.
+Overlong winner fixture labels failed before product execution and were shortened;
+the original32-character bound and substantive assertions were preserved.
+
+Executed proof on the same isolated PostgreSQL16.15 source cluster:
+
+- Independent completion variants:6 passed/0 failed,41 assertions (13.73s).
+- Independent committed-winner cases:4 passed/0 failed,52 assertions (13.15s).
+- Independent approval units:7 passed/0 failed,17 assertions.
+- Independent approval/consumer integration:3 passed/0 failed,45 assertions (1.99s).
+- Root complete native source integration:22 passed/0 failed,263 assertions (19.02s).
+- Root full environment-cleared suite:1558 passed,1157 explicit environment/database
+  skips,0 failed,21527 assertions across479 files (73.15s). Skips are not DB proof.
+- Typecheck,167 import boundaries,23 dependency licences,audit and diff checks pass.
+
+The reviewer pinned matching before/after hashes; exact evidence is in review434.
+Approval helper plus the four invoice entry points were finally revoked and audited
+with default-aware PUBLIC/app_role/yellow_runtime checks. No tables or applied
+migrations changed. The updated completion fragment SHA256 is
+71009cac3cd57aa35ee49ef8a82907d4d61fe4cebd1168d660caa5b8e8e4c34e.
+Runnable migrations remain0001–0074; draft0075 is unchanged. The isolated database
+has75 migration records/127 public tables with draft completion functions installed
+for controlled proof; this is not a complete76-migration deployment.
+
+Still required: remaining rate/history and complete-issuance source/night/account
+bounds, additional folio issuance, correction/transfer-first success, simultaneous
+winner and authority schedules, full76 assembly/fresh/upgrade/schema/referee and
+fresh complete Tier3 acceptance. This checkpoint does not add an approval UI/API,
+IRP submission, local promotion, main integration or Phase7/order completion.

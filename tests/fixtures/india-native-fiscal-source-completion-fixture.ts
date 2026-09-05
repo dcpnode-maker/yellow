@@ -497,6 +497,24 @@ export interface NativeStatutoryFixtureOptions {
   readonly includeServicePair?: boolean;
   /** Date of synthetic base registration evidence, not an issue-clock override. */
   readonly statusAsOfDate?: string;
+  /** Original statutory locations; the production rules derive the component family. */
+  readonly originalConfiguration?: NativeStatutoryOriginalConfiguration;
+}
+
+export type NativeStatutoryOriginalConfiguration =
+  | "karnataka_supplier_karnataka_property"
+  | "chandigarh_supplier_chandigarh_property"
+  | "maharashtra_supplier_karnataka_property";
+
+function statutoryStateConfiguration(configuration: NativeStatutoryOriginalConfiguration | undefined) {
+  switch (configuration ?? "karnataka_supplier_karnataka_property") {
+    case "karnataka_supplier_karnataka_property":
+      return Object.freeze({ supplier: "29", property: "29", recipient: "29" });
+    case "chandigarh_supplier_chandigarh_property":
+      return Object.freeze({ supplier: "04", property: "04", recipient: "04" });
+    case "maharashtra_supplier_karnataka_property":
+      return Object.freeze({ supplier: "27", property: "29", recipient: "29" });
+  }
 }
 function freezeStatutoryFixture<T>(value: T): T {
   if (value && typeof value === "object") {
@@ -525,6 +543,7 @@ export async function createNativeStatutoryFixture(deploy: SQL, fixture: NativeS
   options: NativeStatutoryFixtureOptions = {}) {
   const serviceSez = options.serviceSez ?? false;
   const includeServicePair = options.includeServicePair ?? true;
+  const state = statutoryStateConfiguration(options.originalConfiguration);
   const sellerId = crypto.randomUUID(), recipientId = crypto.randomUUID(), locationId = crypto.randomUUID();
   const supplierStatusId = crypto.randomUUID(), supplierSezId = crypto.randomUUID(), recipientSezId = crypto.randomUUID();
   const classificationId = crypto.randomUUID();
@@ -544,12 +563,12 @@ export async function createNativeStatutoryFixture(deploy: SQL, fixture: NativeS
   const jurisdiction = { extensionId: history.member.extensionId, ownerTenantId: null,
     key: history.member.key, version: String(history.member.version), contentHash: history.member.contentHash };
   const sellerBody = { registrationId: sellerId, propertyNode: fixture.property, scheme: "in-gstin" as const, currency: "INR" as const,
-    jurisdiction, gstin: fixtureStatutoryGstin("29"), stateCode: "29", legalName: "Synthetic Native Seller", tradeName: null,
+    jurisdiction, gstin: fixtureStatutoryGstin(state.supplier), stateCode: state.supplier, legalName: "Synthetic Native Seller", tradeName: null,
     addressLine: "1 Synthetic Road", locality: "Bengaluru", postalCode: "560001" };
   const { registrationId: _sellerId, ...sellerTail } = sellerBody;
   const seller = freezeStatutoryFixture({ ...sellerBody, evidenceHash: fixtureStatutoryHash({ registrationId: sellerId, tenantId: fixture.tenant, ...sellerTail }) });
   const recipientBody = { registrationId: recipientId, partyId: fixture.party, scheme: "in-gstin" as const,
-    gstin: fixtureStatutoryGstin("29", "FGHIJ5678K1Z"), stateCode: "29", legalName: "Synthetic Native Buyer", tradeName: "Buyer Trade",
+    gstin: fixtureStatutoryGstin(state.recipient, "FGHIJ5678K1Z"), stateCode: state.recipient, legalName: "Synthetic Native Buyer", tradeName: "Buyer Trade",
     addressLine1: "2 Synthetic Road", locality: "Bengaluru", pin: "560002" };
   const { registrationId: _recipientId, ...recipientTail } = recipientBody;
   const recipient = freezeStatutoryFixture({ ...recipientBody,
@@ -558,7 +577,7 @@ export async function createNativeStatutoryFixture(deploy: SQL, fixture: NativeS
   const recipientRef = { partyId: fixture.party, registrationId: recipientId, evidenceHash: recipient.evidenceHash };
   const locationBody = { supplierServiceLocationId: locationId, propertyNode: fixture.property, jurisdiction, supplier: supplierRef,
     serviceScope: "lodging_accommodation" as const, registeredPlace: { kind: "principal_place_of_business" as const,
-      stateCode: "29", addressLine: seller.addressLine, locality: seller.locality, postalCode: seller.postalCode },
+      stateCode: state.supplier, addressLine: seller.addressLine, locality: seller.locality, postalCode: seller.postalCode },
     locationBasis: "supply_made_from_registered_place_of_business" as const, legalRule: "IGST_ACT_2_15_A" as const };
   const location: IndiaGstSupplierServiceLocationResult = freezeStatutoryFixture({ ...locationBody,
     evidenceHash: fixtureStatutoryHash({ tenantId: fixture.tenant, ...locationBody }) });
@@ -593,10 +612,10 @@ export async function createNativeStatutoryFixture(deploy: SQL, fixture: NativeS
       jurisdiction_extension_id,jurisdiction_owner_tenant_id,jurisdiction_key,jurisdiction_version,jurisdiction_content_hash,
       registration_number,region_code,legal_name,trade_name,address_line,locality,postal_code)
       VALUES(${fixture.tenant}::uuid,${sellerId}::uuid,${fixture.property}::uuid,'in-gstin','INR',${jurisdiction.extensionId}::uuid,
-        NULL,${jurisdiction.key},${Number(jurisdiction.version)},${jurisdiction.contentHash},${seller.gstin},'29',${seller.legalName},NULL,
+        NULL,${jurisdiction.key},${Number(jurisdiction.version)},${jurisdiction.contentHash},${seller.gstin},${state.supplier},${seller.legalName},NULL,
         ${seller.addressLine},${seller.locality},${seller.postalCode})`;
     await tx`INSERT INTO public.party_fiscal_registration(tenant_id,id,party_id,scheme,registration_number,region_code,legal_name,trade_name,address_line1,locality,pin)
-      VALUES(${fixture.tenant}::uuid,${recipientId}::uuid,${fixture.party}::uuid,'in-gstin',${recipient.gstin},'29',${recipient.legalName},${recipient.tradeName},
+      VALUES(${fixture.tenant}::uuid,${recipientId}::uuid,${fixture.party}::uuid,'in-gstin',${recipient.gstin},${state.recipient},${recipient.legalName},${recipient.tradeName},
         ${recipient.addressLine1},${recipient.locality},${recipient.pin})`;
     await tx`INSERT INTO public.india_gst_supplier_service_location(tenant_id,id,supplier_registration_id,supplier_evidence_hash,service_scope,registered_place_kind,location_basis,legal_rule)
       VALUES(${fixture.tenant}::uuid,${locationId}::uuid,${sellerId}::uuid,${seller.evidenceHash},'lodging_accommodation',
@@ -622,7 +641,7 @@ export async function createNativeStatutoryFixture(deploy: SQL, fixture: NativeS
           'active','regular','gst_common_portal',${gst.evidenceSha256},'IGST_ACT_7_5_B_AND_8_2_RECIPIENT_STATUS')`;
     }
     await tx`INSERT INTO public.property_fiscal_location(tenant_id,property_node,country_code,state_code,address_line1,locality,pin)
-      VALUES(${fixture.tenant}::uuid,${fixture.property}::uuid,'IN','29','3 Property Road','Bengaluru','560003')`;
+      VALUES(${fixture.tenant}::uuid,${fixture.property}::uuid,'IN',${state.property},'3 Property Road','Bengaluru','560003')`;
     await tx`INSERT INTO public.india_gst_item_classification(tenant_id,id,property_node,jurisdiction_extension_id,jurisdiction_owner_tenant_id,
       jurisdiction_key,jurisdiction_version,jurisdiction_content_hash,country_code,line_id,revenue_group,classification_system,classification_code,is_service_code)
       VALUES(${fixture.tenant}::uuid,${classificationId}::uuid,${fixture.property}::uuid,${jurisdiction.extensionId}::uuid,NULL,
@@ -636,6 +655,7 @@ export interface NativeIssuanceFixtureOptions extends NativeSourceFixtureOptions
   /** Final consideration may differ from the original booked quote. */
   readonly chargeAmountMinor?: string;
   readonly calendarEvidence?: IndiaNativeFiscalInvoiceCalendarEvidence | null;
+  readonly statutoryOriginalConfiguration?: NativeStatutoryOriginalConfiguration;
 }
 
 /** Explicit synthetic calendar, never a production holiday-policy assertion. */
@@ -688,7 +708,10 @@ export async function createNativeIssuanceFixture(
       (transaction_timestamp() AT TIME ZONE p.timezone)::date::text AS issue_date
     FROM public.org_node p WHERE p.tenant_id=${fixture.tenant}::uuid AND p.id=${fixture.property}::uuid`;
   if (!clock) throw new Error("Native issuance fixture property clock is unavailable");
-  const statutory = await createNativeStatutoryFixture(deploy, fixture, { statusAsOfDate: clock.status_date });
+  const statutory = await createNativeStatutoryFixture(deploy, fixture, {
+    statusAsOfDate: clock.status_date,
+    originalConfiguration: options.statutoryOriginalConfiguration,
+  });
   if (clock.issue_date !== clock.status_date) {
     // Series configuration independently requires current official registration
     // evidence; the invoice request retains its historical statutory/TOS row.
@@ -714,7 +737,14 @@ export async function createNativeIssuanceFixture(
       FROM (VALUES (${serviceDate}::date),(${receiptDate}::date),(${clock.issue_date}::date)) AS d(day)`;
   });
   const payableIds: string[] = [];
-  for (const component of ["CGST", "SGST"] as const) {
+  const routeComponents = statutory.seller.stateCode !== statutory.location.registeredPlace.stateCode
+    ? (() => { throw new Error("Native statutory seller and service-location states are inconsistent"); })()
+    : statutory.seller.stateCode !== statutoryStateConfiguration(options.statutoryOriginalConfiguration).property
+      ? ["IGST"] as const
+      : new Set(["04", "26", "31", "35", "38"]).has(statutory.seller.stateCode)
+        ? ["CGST", "UTGST"] as const
+        : ["CGST", "SGST"] as const;
+  for (const component of routeComponents) {
     const account = crypto.randomUUID();
     const code = `N434_${component}_${crypto.randomUUID().replaceAll("-", "").slice(0, 10)}`;
     payableIds.push(account);
@@ -961,7 +991,7 @@ export async function createNativeIssuanceCohort(
           requestId: crypto.randomUUID(), operation: "india_gst.accommodation_final_valuation_recorded" }) })));
     const recipientId = crypto.randomUUID(), recipientSezId = crypto.randomUUID();
     const recipientBody = { registrationId: recipientId, partyId: member.party, scheme: "in-gstin" as const,
-      gstin: fixtureStatutoryGstin("29", `FGHIJ${String(index).padStart(4, "0")}K1Z`), stateCode: "29",
+      gstin: fixtureStatutoryGstin("29", `FGHIJ${String(index).padStart(4, "0")}K1Z`), stateCode: "29" as const,
       legalName: original.statutory.recipient.legalName, tradeName: original.statutory.recipient.tradeName,
       addressLine1: original.statutory.recipient.addressLine1, locality: original.statutory.recipient.locality,
       pin: original.statutory.recipient.pin };

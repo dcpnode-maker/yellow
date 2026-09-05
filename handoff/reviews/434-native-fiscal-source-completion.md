@@ -469,3 +469,160 @@ This addendum independently proves only the reviewed cohort/series race, selecte
 dynamic candidate variants, source-lock metadata and strengthened sealed-day replay.
 It does not approve Order434 or Phase7, migration integration, the remaining fiscal
 matrix, local refresh, merge, deployment or any production retention mechanism.
+
+## Independent deterministic committed-winner proof — 2026-09-05
+
+Non-implementer `/root/native_closed_review` inspected and personally executed the
+four later source-lock integration cases covering committed winner/loser orderings.
+Each case uses both a positive-tax source and a genuine one-minor rounded-zero-tax
+source. The cases preserve the real governed source/valuation/issuance paths and
+assert the original charge root plus complete financial and issuance censuses around
+the losing operation and subsequent replay where applicable. No approval service is
+used by these cases, and no product, fixture or test file was edited by the reviewer.
+
+Using the same isolated PostgreSQL16.15 database, roles, binaries and TEMP/TMP paths
+as the preceding addenda, only Question192's exact four entry points were temporarily
+granted to `app_role` inside PowerShell `try/finally`. The reviewer ran:
+
+```powershell
+bun test tests/india-native-fiscal-source-locks.integration.test.ts `
+  --test-name-pattern 'committed .* winner'
+```
+
+Result: **4 passed, 0 failed, 10 filtered, 52 assertions**, 13.15 seconds. The
+executed schedules prove: a committed native issue blocks a later ordinary charge
+correction; a committed native issue blocks a later folio transfer of its posting
+ancestry; a committed audited seal blocks later native issue; and a committed native
+issue permits a later audited seal followed by exact permanent replay. Every schedule
+passed for both positive and rounded-zero tax.
+
+These are sequential committed-winner checks. They are not simultaneous races and do
+not prove correction-first or transfer-first successful issuance schedules. The
+reviewed source-lock test and shared fixture hashes were stable before and after:
+
+- source-lock test: `06780abc60281b64079275067a7785b787570069a2022ed3d7fd3ad6b6c5c6fa`
+- fixture: `7262b2bb7965a39b3d6c052e79fb8c46541ea0b00ed740a0ebd3f3b278169009`
+
+All four grants were revoked in `finally`. A subsequent default-aware audit using
+`aclexplode(coalesce(proacl,acldefault('f',proowner)))`, including PUBLIC grantee `0`,
+proved PUBLIC, `app_role` and `yellow_runtime` EXECUTE false for every exact candidate
+capability. Zero other sessions remained. No lifecycle action, wrapper, extra grant,
+production edit, commit, push or retained-local change occurred.
+
+This is bounded execution evidence only; it does not approve Order434 or Phase7,
+concurrent winner behavior beyond separately recorded tests, correction/transfer-first
+success, migration integration, local refresh, merge or deployment.
+
+## Independent approval-options capability proof — 2026-09-05
+
+Non-implementer `/root/native_closed_review` read Question193/D1366–D1367 and
+inspected the changes to `src/kernel/approval.ts`, its unit test, the governed native
+valuation integration proof and the private completion draft helper. The option-free
+kernel branch preserves the original direct INSERT of exactly tenant, kind, subject,
+requester and payload columns and preserves the old fact shape. Only a preallocated
+identity and/or explicit expiry selects the new owner-mediated function.
+
+The private function authenticates the governed runtime/app-role call shape,
+transaction-local tenant, active tenant/actor/property and stable identifiers/object
+payload. Expiry must be finite and later than PostgreSQL transaction time; status,
+decision and creation time remain server-owned defaults. The native buyer kind also
+requires existing valuation authority and a matching live reservation/folio. Request
+creation does not replace the final valuation consumer's current decider, expiry,
+request, service, relationship or approval-basis checks. No direct DML grant or
+decision authority was added.
+
+The reviewer first personally ran:
+
+```powershell
+bun test tests/approval-request-options.test.ts
+```
+
+Result: **7 passed, 0 failed, 17 assertions**. This covers the unchanged legacy SQL,
+identity+expiry, server-generated identity+expiry, identity-only, invalid UUID/date
+pre-SQL rejection, and PostgreSQL expiry rejection paths.
+
+Using the same isolated PostgreSQL16.15 database and local roles, the reviewer then
+pinned all four files and temporarily granted only
+`create_approval_request_with_options(uuid,uuid,uuid,uuid,text,text,uuid,jsonb,timestamptz)`
+to `app_role` inside PowerShell `try/finally`. None of Question192's four invoice
+functions was granted. The executed integration command was:
+
+```powershell
+bun test tests/india-native-fiscal-source-completion.integration.test.ts `
+  --test-name-pattern 'real .*approval|different-decider buyer override'
+```
+
+The pattern honestly matched three cases. Result: **3 passed, 0 failed, 19 filtered,
+45 assertions**, 1.99 seconds. It proves real legacy, identity-only and expiry-only
+creation; real expiring buyer request, self-approval denial, different-user decision,
+native valuation and replay; and the existing exact different-decider consumer
+retention/unavailable-evidence checks. The capability grant was unconditionally
+revoked from PUBLIC, `app_role` and `yellow_runtime` in `finally`.
+
+All four file hashes were identical before and after execution:
+
+- kernel approval: `5a63d324b8f9d476ad2da2c25e7c3ad40a9505a998f0cd5c28c1c79667ce3937`
+- unit test: `586683f4654a03514d490540b1cc05167105908ed334f5c26366f6dfb747a56f`
+- integration test: `c5a66f625516098d4292f3b547af3858b4e7c34545a1fa1f5969f32ef7f68fcf`
+- completion draft: `71009cac3cd57aa35ee49ef8a82907d4d61fe4cebd1168d660caa5b8e8e4c34e`
+
+A default-aware `aclexplode(coalesce(proacl,acldefault('f',proowner)))` audit proved
+PUBLIC, `app_role` and `yellow_runtime` EXECUTE false for the new helper and all four
+invoice functions. `information_schema.column_privileges` showed `app_role` retains
+INSERT on exactly the original six approval columns: `tenant_id`, `kind`,
+`subject_type`, `subject_id`, `requested_by`, and `payload`; PUBLIC and
+`yellow_runtime` have none. Zero other database sessions remained.
+
+This is bounded independent evidence for Question193's approval creation extension
+and its native consumer path only. It does not approve Order434 or Phase7, migration
+integration, a browser/API approval workflow, local refresh, merge or deployment.
+
+## Independent positive component-family execution — 2026-09-05
+
+Non-implementer `/root/native_closed_review` inspected the later frozen fixture and
+completion-test diff that adds original statutory-location configurations and the
+positive CGST/SGST, CGST/UTGST and IGST family matrix. The fixture persists original
+supplier GST registration/service-location state and property fiscal-location state,
+then configures only the matching semantic payable routes. The real preparation,
+statutory composition, component-tax projection, accounting and completion command
+derive the resulting family. Neither changed file inserts or updates native timing,
+final component-tax, tax-component or accounting-binding derived rows, supplies a
+family override, or fabricates an issued document.
+
+The three cases are Karnataka supplier/Karnataka property (CGST/SGST), Chandigarh
+supplier/Chandigarh property (CGST/UTGST), and Maharashtra supplier/Karnataka
+property (IGST). The test checks per-night component identities and amounts, total
+tax, balanced incremental journal, guest/payable equality, distinct payable-account
+count, unchanged original revenue, IRP `ValDtls` family fields and total, exact replay
+and unchanged post-replay census. No bounded static finding was found.
+
+Using the same isolated PostgreSQL16.15 database, roles, native binaries and temp
+directory as the preceding addenda, the reviewer pinned both files, temporarily
+granted only Question192's exact four candidate entry points to `app_role` in a
+PowerShell `try/finally`, and personally ran:
+
+```powershell
+bun test tests/india-native-fiscal-completion.integration.test.ts `
+  --test-name-pattern 'real candidate variants'
+```
+
+Result: **6 passed, 0 failed, 7 filtered, 41 assertions**, 13.73 seconds. The new
+three-family case passed in4.61 seconds together with the zero-tax, mismatched-source,
+genuine Section14, retained-artifact and closed-folio/audited-seal replay cases.
+
+Before/after hashes were identical:
+
+- fixture: `7262b2bb7965a39b3d6c052e79fb8c46541ea0b00ed740a0ebd3f3b278169009`
+- completion test: `d7fe0eae4611986c8f1ae65b11f314abdb99a663a6f7628c4093aa9f07665408`
+
+All four grants were revoked in `finally`. A subsequent direct audit with
+`aclexplode(coalesce(proacl,acldefault('f',proowner)))`, including grantee `0`,
+proved PUBLIC, `app_role` and `yellow_runtime` EXECUTE false for every exact entry
+point. Zero other database sessions remained. No database lifecycle action,
+production/test/source edit, wrapper, extra grant, direct derived record, commit or
+push was used by the reviewer.
+
+This is bounded evidence for the three supported positive component families and
+the selected completion variants only. It does not approve Order434/Phase7, complete
+the remaining acceptance matrix, promote migration0076, refresh local, merge or
+deploy.

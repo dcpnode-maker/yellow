@@ -748,3 +748,90 @@ $$;
 ALTER FUNCTION public.read_india_native_completed_receipt(uuid,uuid) OWNER TO yellow_owner;
 REVOKE ALL ON FUNCTION public.read_india_native_completed_receipt(uuid,uuid)
   FROM PUBLIC,app_role,yellow_runtime;
+
+-- Q193/D1367: an extended pending approval request, not decision or fiscal
+-- authority. Kernel still records the fact and outbox in this same transaction.
+-- Preserve0016's exact direct-INSERT column grants.
+CREATE OR REPLACE FUNCTION public.create_approval_request_with_options(
+  p_tenant uuid,p_property uuid,p_actor uuid,p_id uuid,p_kind text,
+  p_subject_type text,p_subject_id uuid,p_payload jsonb,p_valid_until timestamptz
+) RETURNS SETOF public.approval_request
+LANGUAGE plpgsql VOLATILE SECURITY DEFINER
+SET search_path=pg_catalog,public
+AS $$
+DECLARE v_context uuid; v_id uuid:=COALESCE(p_id,pg_catalog.gen_random_uuid());
+  v_reservation uuid;
+BEGIN
+  IF session_user<>'yellow_runtime'
+     OR pg_catalog.current_setting('role',true) IS DISTINCT FROM 'app_role'
+     OR current_user<>'yellow_owner' THEN
+    RAISE EXCEPTION USING ERRCODE='42501',MESSAGE='approval request requires governed runtime authority';
+  END IF;
+  BEGIN
+    v_context:=NULLIF(pg_catalog.current_setting('app.tenant_id',true),'')::uuid;
+  EXCEPTION WHEN invalid_text_representation THEN
+    RAISE EXCEPTION USING ERRCODE='42501',MESSAGE='approval request tenant context is invalid';
+  END;
+  IF p_tenant IS NULL OR v_context IS NULL OR v_context<>p_tenant THEN
+    RAISE EXCEPTION USING ERRCODE='42501',MESSAGE='approval request tenant context is invalid';
+  END IF;
+  IF p_property IS NULL OR p_actor IS NULL OR p_subject_id IS NULL
+     OR p_kind IS NULL OR p_kind COLLATE "C" !~ '^[a-z][a-z0-9_.-]*$'
+     OR p_subject_type IS NULL OR p_subject_type COLLATE "C" !~ '^[a-z][a-z0-9_.-]*$'
+     OR pg_catalog.jsonb_typeof(p_payload) IS DISTINCT FROM 'object' THEN
+    RAISE EXCEPTION USING ERRCODE='22023',MESSAGE='approval request identity or proposal is invalid';
+  END IF;
+  IF p_valid_until IS NOT NULL AND
+      (NOT pg_catalog.isfinite(p_valid_until) OR p_valid_until<=pg_catalog.transaction_timestamp()) THEN
+    RAISE EXCEPTION USING ERRCODE='22023',
+      MESSAGE='approval validUntil must be later than the PostgreSQL transaction timestamp';
+  END IF;
+  IF EXISTS(SELECT 1 FROM pg_catalog.pg_locks l WHERE l.pid=pg_catalog.pg_backend_pid()
+    AND l.locktype='advisory' AND l.granted AND l.objsubid=1
+    AND l.classid=((6441674055002974568::bigint>>32)&4294967295)::oid
+    AND l.objid=(6441674055002974568::bigint&4294967295)::oid) THEN
+    RAISE EXCEPTION USING ERRCODE='55000',MESSAGE='extended approval requires a transaction without prior publication';
+  END IF;
+  IF p_kind='india_gst_legal_buyer_override' THEN
+    BEGIN
+      v_reservation:=(p_payload->>'reservationId')::uuid;
+    EXCEPTION WHEN invalid_text_representation THEN
+      RAISE EXCEPTION USING ERRCODE='22023',MESSAGE='native buyer approval reservation is invalid';
+    END;
+    IF p_subject_type<>'folio' OR v_reservation IS NULL OR p_valid_until IS NULL
+       OR p_payload->>'propertyNode' IS DISTINCT FROM p_property::text
+       OR p_payload->>'folioId' IS DISTINCT FROM p_subject_id::text THEN
+      RAISE EXCEPTION USING ERRCODE='22023',MESSAGE='native buyer approval scope or expiry is invalid';
+    END IF;
+    PERFORM public.lock_india_native_intake_authority(p_tenant,p_property,
+      v_reservation,v_id,p_actor,'approval-request:'||v_id::text,'valuation');
+    PERFORM 1 FROM public.reservation r JOIN public.folio f
+      ON f.tenant_id=r.tenant_id AND f.reservation_id=r.id
+      WHERE r.tenant_id=p_tenant AND r.id=v_reservation
+        AND r.property_node=p_property AND f.id=p_subject_id
+      FOR SHARE OF r,f;
+    IF NOT FOUND THEN
+      RAISE EXCEPTION USING ERRCODE='55000',MESSAGE='native buyer approval reservation and folio are unavailable';
+    END IF;
+  END IF;
+  PERFORM 1 FROM public.tenant t WHERE t.id=p_tenant AND t.status='active' FOR SHARE;
+  IF NOT FOUND THEN
+    RAISE EXCEPTION USING ERRCODE='42501',MESSAGE='approval request tenant is unavailable';
+  END IF;
+  PERFORM 1 FROM public.app_user actor JOIN public.org_node property
+    ON property.tenant_id=actor.tenant_id AND property.id=p_property AND property.kind='property'
+    WHERE actor.tenant_id=p_tenant AND actor.id=p_actor AND actor.status='active'
+    FOR SHARE OF actor,property;
+  IF NOT FOUND THEN
+    RAISE EXCEPTION USING ERRCODE='42501',MESSAGE='approval request actor or property is unavailable';
+  END IF;
+  RETURN QUERY INSERT INTO public.approval_request AS approval(
+    id,tenant_id,kind,subject_type,subject_id,requested_by,payload,valid_until)
+    VALUES(v_id,p_tenant,p_kind,p_subject_type,p_subject_id,p_actor,p_payload,p_valid_until)
+    RETURNING approval.*;
+END;
+$$;
+ALTER FUNCTION public.create_approval_request_with_options(uuid,uuid,uuid,uuid,text,text,uuid,jsonb,timestamptz)
+  OWNER TO yellow_owner;
+REVOKE ALL ON FUNCTION public.create_approval_request_with_options(uuid,uuid,uuid,uuid,text,text,uuid,jsonb,timestamptz)
+  FROM PUBLIC,app_role,yellow_runtime;

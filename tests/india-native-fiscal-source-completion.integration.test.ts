@@ -19,7 +19,7 @@ import { composeIndiaGstRecipientRegistrationAtNativeTimeOfSupply } from "../src
 import { composeIndiaGstAccommodationNativeSupplyNatureAtTimeOfSupply } from "../src/contexts/tax-fiscal/india-gst-accommodation-supply-nature-at-time-of-supply";
 import { buildIndiaGstAccommodationRegisteredStateComparison } from "../src/contexts/tax-fiscal/india-gst-accommodation-registered-state-comparison";
 import { buildIndiaGstAccommodationSupplyNature } from "../src/contexts/tax-fiscal/india-gst-accommodation-supply-nature";
-import { createAuditEnvelope, Database, PostgresEventBus, PostgresIdempotency } from "../src/kernel";
+import { ApprovalConflictError, ApprovalService, createAuditEnvelope, Database, PostgresEventBus, PostgresIdempotency } from "../src/kernel";
 import {
   createNativeSourceFixture,
   createNativeStatutoryFixture,
@@ -132,16 +132,15 @@ interface BuyerApprovalSeed {
   readonly approvalBasisHash: string;
 }
 
-async function seedExactBuyerOverride(
+async function prepareExactBuyerOverride(
   deploy: SQL,
   fixture: NativeSourceFixture,
   buyerPartyId: string,
-  deciderId: string,
   sources: readonly NativeSource[],
-  state: BuyerApprovalState,
-): Promise<BuyerApprovalSeed> {
+  label: string,
+): Promise<BuyerApprovalSeed & { readonly payload: Readonly<Record<string, unknown>> }> {
   const approvalId = crypto.randomUUID();
-  const input = request(fixture, sources, `native-buyer-${state}-${approvalId}`, {
+  const input = request(fixture, sources, `native-buyer-${label}-${approvalId}`, {
     buyerPartyId,
     approvalRequestId: approvalId,
   });
@@ -216,6 +215,20 @@ async function seedExactBuyerOverride(
     serviceProvisionSnapshotId: fixture.serviceResult.serviceProvision.serviceProvisionSnapshotId,
     nativeApprovalBasisHash: basis.approval_basis_hash,
   });
+  return Object.freeze({ approvalId, input, payload,
+    requestHash: basis.request_hash, approvalBasisHash: basis.approval_basis_hash });
+}
+
+async function seedExactBuyerOverride(
+  deploy: SQL,
+  fixture: NativeSourceFixture,
+  buyerPartyId: string,
+  deciderId: string,
+  sources: readonly NativeSource[],
+  state: BuyerApprovalState,
+): Promise<BuyerApprovalSeed> {
+  const proposed = await prepareExactBuyerOverride(deploy, fixture, buyerPartyId, sources, state);
+  const { approvalId, payload } = proposed;
   if (state === "approved_current") {
     await deploy`INSERT INTO approval_request(
         id,tenant_id,kind,subject_type,subject_id,requested_by,payload,status,
@@ -240,12 +253,7 @@ async function seedExactBuyerOverride(
         'folio',${fixture.folio}::uuid,${fixture.actor}::uuid,${JSON.stringify(payload)}::jsonb,'pending',
         NULL,NULL,transaction_timestamp()-interval '10 minutes',transaction_timestamp()+interval '1 hour')`;
   }
-  return Object.freeze({
-    approvalId,
-    input,
-    requestHash: basis.request_hash,
-    approvalBasisHash: basis.approval_basis_hash,
-  });
+  return proposed;
 }
 
 // This is a source-to-valuation proof. It must not be described as an issued
@@ -641,6 +649,126 @@ databaseDescribe("Order434 native valuation from governed consideration", () => 
     expect(await census(fixture)).toEqual({ ...before, valuations: 1, sources: 1, nights: 1, allocations: 1, facts: before.facts + 1, events: before.events + 1 });
   });
 
+  test("preserves real legacy approval creation and supports identity-only or expiry-only requests", async () => {
+    const fixture = await createNativeSourceFixture(deploy, database, { label: "native-approval-options" });
+    const approvals = new ApprovalService(new PostgresEventBus(runtimeEvents));
+    const [clock] = await deploy<Array<{ future: Date; past: Date }>>`
+      SELECT transaction_timestamp()+interval '1 hour' AS future,
+        transaction_timestamp()-interval '1 hour' AS past`;
+    if (!clock) throw new Error("Synthetic approval timestamp is unavailable");
+    const payload = Object.freeze({ reason: "Original proposal", valid_until: "proposal field is not metadata" });
+    const approvalInput = () => ({ kind: "order434_approval_probe", subjectType: "folio",
+      subjectId: fixture.folio, requestedBy: fixture.actor, payload,
+      envelope: createAuditEnvelope({ tenantId: fixture.tenant, propertyNode: fixture.property,
+        actorId: fixture.actor, requestId: crypto.randomUUID(), operation: "approval.requested" }) });
+    const chosenId = crypto.randomUUID();
+    const cases = [{}, { approvalId: chosenId }, { validUntil: clock.future }];
+    const before = await census(fixture);
+    for (const options of cases) {
+      const input = approvalInput();
+      const result = await database.withTenantTransaction(fixture.tenant,
+        tx => approvals.request(tx, { ...input, ...options }));
+      expect(result.id).toMatch(/^[0-9a-f-]{36}$/);
+      if (options.approvalId) expect(result.id).toBe(options.approvalId);
+      expect(Object.keys(result).sort()).toEqual(["id", "tenantId", "kind", "subjectType", "subjectId",
+        "requestedBy", "payload", "status", "decidedBy", "decidedAt", "createdAt"].sort());
+      expect(result.payload).toEqual(payload);
+      const [row] = await deploy<Array<{ payload: unknown; valid_until: Date | null; fact_payload: unknown }>>`
+        SELECT ar.payload,ar.valid_until,fact.payload AS fact_payload
+        FROM approval_request ar JOIN fact_log fact ON fact.tenant_id=ar.tenant_id
+          AND fact.entity_type='approval_request' AND fact.entity_id=ar.id
+        WHERE ar.tenant_id=${fixture.tenant}::uuid AND ar.id=${result.id}::uuid`;
+      expect(row?.payload).toEqual(payload);
+      expect(row?.valid_until?.toISOString() ?? null).toBe(options.validUntil?.toISOString() ?? null);
+      expect(row?.fact_payload).toEqual({ approval_id: result.id, kind: "order434_approval_probe",
+        subject_type: "folio", subject_id: fixture.folio, requested_by: fixture.actor,
+        status: "pending", payload, request_id: input.envelope.requestId,
+        ...(options.validUntil ? { valid_until: options.validUntil.toISOString() } : {}) });
+    }
+    const after = await census(fixture);
+    expect(after).toEqual({ ...before, facts: before.facts + 3, events: before.events + 3 });
+    await expect(database.withTenantTransaction(fixture.tenant,
+      tx => approvals.request(tx, { ...approvalInput(), validUntil: clock.past })))
+      .rejects.toThrow("approval validUntil must be later than the PostgreSQL transaction timestamp");
+    expect(await census(fixture)).toEqual(after);
+    const [count] = await deploy<Array<{ count: number }>>`
+      SELECT count(*)::integer AS count FROM approval_request WHERE tenant_id=${fixture.tenant}::uuid`;
+    expect(count?.count).toBe(3);
+  }, 30_000);
+
+  test("creates a real expiring buyer approval, requires a different-user decision, then finalizes native valuation", async () => {
+    const fixture = await createNativeSourceFixture(deploy, database, { label: "native-approval-request" });
+    const charge = await fixture.postCharge("10000");
+    const buyerPartyId = crypto.randomUUID(), deciderId = crypto.randomUUID();
+    await deploy.begin(async tx => {
+      await tx`INSERT INTO party(id,tenant_id,kind,display_name,status)
+        VALUES(${buyerPartyId}::uuid,${fixture.tenant}::uuid,'org','Synthetic approval buyer','active')`;
+      await tx`INSERT INTO party_role(tenant_id,party_id,role)
+        VALUES(${fixture.tenant}::uuid,${buyerPartyId}::uuid,'company')`;
+      await tx`INSERT INTO app_user(id,tenant_id,email,display_name,status)
+        VALUES(${deciderId}::uuid,${fixture.tenant}::uuid,
+          ${`approval-decider-${deciderId}@order434.local`},'Synthetic approval decider','active')`;
+    });
+    // Only original configuration and the proposal's canonical read are fixture
+    // setup. Both approval writes below use the real kernel as runtime authority.
+    const proposed = await prepareExactBuyerOverride(deploy, fixture, buyerPartyId,
+      Object.freeze([source(charge.postingRootId)]), "runtime");
+    const [clock] = await deploy<Array<{ valid_until: Date }>>`
+      SELECT transaction_timestamp()+interval '1 hour' AS valid_until`;
+    if (!clock) throw new Error("Synthetic approval expiry is unavailable");
+    const approvals = new ApprovalService(new PostgresEventBus(runtimeEvents));
+    const audit = (actorId: string, operation: string) => createAuditEnvelope({
+      tenantId: fixture.tenant, propertyNode: fixture.property, actorId,
+      requestId: crypto.randomUUID(), operation,
+    });
+    const before = await census(fixture);
+    const pending = await database.withTenantTransaction(fixture.tenant, tx => approvals.request(tx, {
+      approvalId: proposed.approvalId, validUntil: clock.valid_until,
+      kind: "india_gst_legal_buyer_override", subjectType: "folio", subjectId: fixture.folio,
+      requestedBy: fixture.actor, payload: proposed.payload,
+      envelope: audit(fixture.actor, "approval.requested"),
+    }));
+    expect(pending).toMatchObject({ id: proposed.approvalId, status: "pending",
+      requestedBy: fixture.actor, decidedBy: null, decidedAt: null, payload: proposed.payload });
+    const afterRequest = await census(fixture);
+    expect(afterRequest).toEqual({ ...before, facts: before.facts + 1, events: before.events + 1 });
+    await expect(finalize(proposed.input)).rejects.toBeInstanceOf(IndiaGstAccommodationFinalValuationConflictError);
+    await expect(database.withTenantTransaction(fixture.tenant, tx => approvals.decide(tx, {
+      approvalId: pending.id, decision: "approved", decidedBy: fixture.actor,
+      envelope: audit(fixture.actor, "approval.decided"),
+    }))).rejects.toBeInstanceOf(ApprovalConflictError);
+    expect(await census(fixture)).toEqual(afterRequest);
+    const approved = await database.withTenantTransaction(fixture.tenant, tx => approvals.decide(tx, {
+      approvalId: pending.id, decision: "approved", decidedBy: deciderId,
+      envelope: audit(deciderId, "approval.decided"),
+    }));
+    expect(approved).toMatchObject({ id: pending.id, status: "approved", decidedBy: deciderId });
+    const [approvalBefore] = await deploy<Array<{ row_json: string; valid_until: Date }>>`
+      SELECT to_jsonb(ar)::text AS row_json,ar.valid_until FROM approval_request ar
+      WHERE ar.tenant_id=${fixture.tenant}::uuid AND ar.id=${pending.id}::uuid`;
+    if (!approvalBefore) throw new Error("Runtime-created approval disappeared");
+    expect(approvalBefore.valid_until.toISOString()).toBe(clock.valid_until.toISOString());
+    const result = await finalize(proposed.input);
+    expect(result).toMatchObject({ generation: 0, disposition: "ordinary_final",
+      transactionValueMinor: "10000", replayed: false });
+    const [retained] = await deploy<Array<{ approval_id: string; actor_id: string; basis_hash: string;
+      request_hash: string; row_json: string }>>`
+      SELECT val.approval_request_id::text AS approval_id,val.native_approval_actor_id::text AS actor_id,
+        val.native_approval_basis_hash AS basis_hash,val.request_hash,to_jsonb(ar)::text AS row_json
+      FROM india_gst_accommodation_final_valuation val JOIN approval_request ar
+        ON ar.tenant_id=val.tenant_id AND ar.id=val.approval_request_id
+      WHERE val.tenant_id=${fixture.tenant}::uuid AND val.id=${result.valuationId}::uuid`;
+    expect(retained).toEqual({ approval_id: pending.id, actor_id: deciderId,
+      basis_hash: proposed.approvalBasisHash, request_hash: proposed.requestHash,
+      row_json: approvalBefore.row_json });
+    const after = await census(fixture);
+    expect(after).toEqual({ ...before, valuations: before.valuations + 1, sources: before.sources + 1,
+      nights: before.nights + 1, allocations: before.allocations + 1,
+      facts: before.facts + 3, events: before.events + 3 });
+    expect(await finalize(proposed.input)).toEqual({ ...result, replayed: true });
+    expect(await census(fixture)).toEqual(after);
+  }, 30_000);
+
   test("retains an exact active different-decider buyer override and rejects unavailable approval evidence atomically", async () => {
     const fixture = await createNativeSourceFixture(deploy, database, { label: "native-buyer" });
     const charge = await fixture.postCharge("10000");
@@ -657,9 +785,9 @@ databaseDescribe("Order434 native valuation from governed consideration", () => 
           ${`buyer-decider-${deciderId}@order434.local`},'Order434 buyer decider','active')`;
     });
 
-    // Kernel ApprovalService cannot supply 0062's required valid_until field, so
-    // these are owner-seeded prerequisite approvals. The published SQL
-    // canonicalizer derives every request/payload hash from the live fixture.
+    // These owner-seeded prerequisites retain deterministic expired/historical
+    // consumption regressions. The preceding test separately proves actual
+    // kernel request and different-user decision with explicit expiry.
     const expired = await seedExactBuyerOverride(
       deploy, fixture, buyerPartyId, deciderId, sources, "approved_expired",
     );

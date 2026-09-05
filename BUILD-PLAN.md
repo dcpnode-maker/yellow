@@ -22,6 +22,12 @@ Its runtime now issues ordinary, rounded-zero and genuine rate-change invoices.
 The latest bounded independent proof also verifies permanent replay after payment,
 folio and day closure, and 100 distinct invoices sharing one series: 11 passed,
 0 failed,897 assertions. Order434 records the remaining acceptance conditions.
+The D1368 checkpoint additionally proves two-night CGST/SGST, CGST/UTGST and
+IGST issuance, sequential correction/transfer/seal winner behavior for positive
+and rounded-zero tax, and real expiring approval request → different-user decision
+→ native valuation. The original approval-table INSERT column restrictions remain
+unchanged. These are bounded additions; full first-winner concurrency, remaining
+complete-issuance bounds/rate cases and migration0076 integration remain open.
 This status does not claim IRP completion, Phase 7 completion or a local promotion.
 See [the project map](docs/PROJECT-MAP.md) for the separate development, main, CI
 and runtime evidence states. Older order milestones below retain their historical

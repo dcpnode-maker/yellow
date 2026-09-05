@@ -2,7 +2,13 @@ import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { SQL } from "bun";
 import { issueIndiaNativeFiscalInvoice } from "../src/commands/issue-india-native-fiscal-invoice";
 import type { IndiaNativeFiscalInvoiceReceipt } from "../src/contexts/tax-fiscal";
-import { Database } from "../src/kernel";
+import {
+  BusinessDaySealService,
+  ChargeCorrectionService,
+  FolioService,
+  FolioTransferService,
+} from "../src/contexts/financials";
+import { createAuditEnvelope, Database, PostgresEventBus, PostgresIdempotency } from "../src/kernel";
 import { createNativeIssuanceCohort, createNativeIssuanceFixture } from "./fixtures/india-native-fiscal-source-completion-fixture";
 
 const preparationUrl = new URL(
@@ -38,6 +44,70 @@ interface IssuanceCensus {
   readonly receipts: number;
   readonly next_no: string;
   readonly last_doc_hash: string | null;
+}
+
+interface OriginalChargeRoot {
+  readonly journal_id: string;
+  readonly root_id: string;
+  readonly amount_minor: string;
+}
+
+async function originalChargeRoot(deploy: SQL, tenantId: string, folioId: string,
+  guestAccountId: string): Promise<OriginalChargeRoot> {
+  const rows = await deploy<OriginalChargeRoot[]>`
+    SELECT journal.id::text AS journal_id,line.id::text AS root_id,line.amount_minor::text
+    FROM public.journal journal
+    JOIN public.posting_line line ON line.tenant_id=journal.tenant_id AND line.journal_id=journal.id
+    WHERE journal.tenant_id=${tenantId}::uuid AND journal.kind='charge'
+      AND journal.reverses IS NULL AND journal.source='{"interface":"financials.charge.post"}'::jsonb
+      AND line.seq=1 AND line.folio_id=${folioId}::uuid AND line.account_id=${guestAccountId}::uuid
+    ORDER BY journal.id`;
+  if (rows.length !== 1 || !rows[0]) throw new Error("Native issuance fixture original charge is ambiguous");
+  return rows[0];
+}
+
+interface WinnerFinancialCensus {
+  readonly journals: number;
+  readonly lines: number;
+  readonly reversals: number;
+  readonly transfer_fragments: number;
+  readonly root_amount: string;
+  readonly root_fragments: number;
+  readonly day_sealed: boolean;
+}
+
+async function winnerFinancialCensus(deploy: SQL, tenantId: string, propertyId: string,
+  root: OriginalChargeRoot): Promise<WinnerFinancialCensus> {
+  const [row] = await deploy<WinnerFinancialCensus[]>`
+    SELECT
+      (SELECT count(*)::integer FROM public.journal WHERE tenant_id=${tenantId}::uuid) AS journals,
+      (SELECT count(*)::integer FROM public.posting_line WHERE tenant_id=${tenantId}::uuid) AS lines,
+      (SELECT count(*)::integer FROM public.journal WHERE tenant_id=${tenantId}::uuid
+        AND reverses=${root.journal_id}::uuid) AS reversals,
+      (SELECT count(*)::integer FROM public.posting_line WHERE tenant_id=${tenantId}::uuid
+        AND folio_transfer_root_line_id IS NOT NULL) AS transfer_fragments,
+      (SELECT amount_minor::text FROM public.posting_line WHERE tenant_id=${tenantId}::uuid
+        AND id=${root.root_id}::uuid) AS root_amount,
+      (SELECT count(*)::integer FROM public.posting_line WHERE tenant_id=${tenantId}::uuid
+        AND COALESCE(folio_transfer_root_line_id,id)=${root.root_id}::uuid) AS root_fragments,
+      EXISTS(SELECT 1 FROM public.business_day WHERE tenant_id=${tenantId}::uuid
+        AND property_node=${propertyId}::uuid AND sealed_at IS NOT NULL) AS day_sealed`;
+  if (!row) throw new Error("Native committed-winner financial census is unavailable");
+  return row;
+}
+
+function sqlState(error: unknown): string | undefined {
+  const candidate = error as { errno?: unknown; code?: unknown };
+  return [candidate.errno, candidate.code].find((value): value is string => typeof value === "string");
+}
+
+async function rejected(operation: Promise<unknown>): Promise<unknown> {
+  try {
+    await operation;
+  } catch (error) {
+    return error;
+  }
+  throw new Error("Expected committed-loser operation to reject");
 }
 
 async function issuanceCensus(
@@ -316,10 +386,12 @@ databaseDescribe("Order434 installed private native source-lock metadata", () =>
 issuanceDescribe("Order434 authorized native issuance concurrency", () => {
   let deploy: SQL;
   let runtime: Database;
+  let runtimeEvents: SQL;
 
   beforeAll(async () => {
     deploy = new SQL(deployUrl!, { max: 2, prepare: false });
     runtime = Database.connect(issuanceRuntimeUrl!, { maxConnections: 6, prepare: false });
+    runtimeEvents = new SQL(issuanceRuntimeUrl!, { max: 2, prepare: false });
     const [installed] = await deploy<Array<{ available: boolean }>>`
       SELECT count(*)=4 AND bool_and(has_function_privilege('app_role',p.oid,'EXECUTE')) AS available
       FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace
@@ -335,6 +407,7 @@ issuanceDescribe("Order434 authorized native issuance concurrency", () => {
 
   afterAll(async () => {
     await runtime?.close();
+    await runtimeEvents?.close({ timeout: 0 });
     await deploy?.close();
   });
 
@@ -411,6 +484,235 @@ issuanceDescribe("Order434 authorized native issuance concurrency", () => {
       await issuanceCensus(deploy, fixture.tenant, series.seriesId),
       winner,
     );
+  }, 120_000);
+
+  test("committed issue winner blocks later ordinary correction for positive and rounded-zero tax", async () => {
+    for (const taxCase of [
+      { label: "positive", roomNightAmounts: ["10000"] as const, quotedTaxRounding: "exact_5_percent" as const },
+      { label: "rounded-zero", roomNightAmounts: ["1"] as const, quotedTaxRounding: "component_half_up" as const },
+    ]) {
+      const candidate = await createNativeIssuanceFixture(deploy, runtime, {
+        label: `win-correct-${taxCase.label}`,
+        roomNightAmounts: taxCase.roomNightAmounts,
+        quotedTaxRounding: taxCase.quotedTaxRounding,
+      });
+      const root = await originalChargeRoot(deploy, candidate.fixture.tenant,
+        candidate.fixture.folio, candidate.fixture.guestAccount);
+      expect(root.amount_minor).toBe(taxCase.roomNightAmounts[0]);
+      const issued = await issueIndiaNativeFiscalInvoice(runtime, candidate.request);
+      const afterIssue = await issuanceCensus(deploy, candidate.fixture.tenant, candidate.series.seriesId);
+      const financialAfterIssue = await winnerFinancialCensus(deploy, candidate.fixture.tenant,
+        candidate.fixture.property, root);
+      const corrections = new ChargeCorrectionService({
+        events: new PostgresEventBus(runtimeEvents), idempotency: new PostgresIdempotency(),
+      });
+      const error = await rejected(runtime.withTenantTransaction(candidate.fixture.tenant, tx =>
+        corrections.reverseCharge(tx, {
+          tenantId: candidate.fixture.tenant, folioId: candidate.fixture.folio,
+          reversesJournalId: root.journal_id, reason: "Attempt correction after committed native issue",
+          postSealAuthorized: false, idempotencyKey: `native-issue-correction-loser-${taxCase.label}`,
+          envelope: createAuditEnvelope({ tenantId: candidate.fixture.tenant,
+            propertyNode: candidate.fixture.property, actorId: candidate.fixture.actor,
+            requestId: crypto.randomUUID(), operation: "journal.posted" }),
+        })));
+      expect(sqlState(error)).toBe("55000");
+      expect((error as Error).message).toContain(
+        "issued India native fiscal consideration requires a numbered correction document",
+      );
+      expect(await winnerFinancialCensus(deploy, candidate.fixture.tenant,
+        candidate.fixture.property, root)).toEqual(financialAfterIssue);
+      expect(await issuanceCensus(deploy, candidate.fixture.tenant, candidate.series.seriesId)).toEqual(afterIssue);
+      const replay = await issueIndiaNativeFiscalInvoice(runtime, {
+        ...candidate.request, envelope: { ...candidate.request.envelope, requestId: crypto.randomUUID() },
+      });
+      expect(replay).toEqual({ ...issued, replayed: true });
+      expect(await issuanceCensus(deploy, candidate.fixture.tenant, candidate.series.seriesId)).toEqual(afterIssue);
+    }
+  }, 120_000);
+
+  test("committed issue winner blocks later folio transfer for positive and rounded-zero tax", async () => {
+    for (const taxCase of [
+      { label: "positive", roomNightAmounts: ["10000"] as const, quotedTaxRounding: "exact_5_percent" as const },
+      { label: "rounded-zero", roomNightAmounts: ["1"] as const, quotedTaxRounding: "component_half_up" as const },
+    ]) {
+      const candidate = await createNativeIssuanceFixture(deploy, runtime, {
+        label: `win-transfer-${taxCase.label}`,
+        roomNightAmounts: taxCase.roomNightAmounts,
+        quotedTaxRounding: taxCase.quotedTaxRounding,
+      });
+      const root = await originalChargeRoot(deploy, candidate.fixture.tenant,
+        candidate.fixture.folio, candidate.fixture.guestAccount);
+      const issued = await issueIndiaNativeFiscalInvoice(runtime, candidate.request);
+      await deploy`INSERT INTO public.document_series(tenant_id,property_node,kind,prefix,next_no,fiscal)
+        VALUES(${candidate.fixture.tenant}::uuid,${candidate.fixture.property}::uuid,'folio',
+          ${`WIN-${taxCase.label.toUpperCase()}-`},1,false)`;
+      const folios = new FolioService({
+        events: new PostgresEventBus(runtimeEvents), idempotency: new PostgresIdempotency(),
+      });
+      const destination = await runtime.withTenantTransaction(candidate.fixture.tenant, tx =>
+        folios.openAdditional(tx, {
+          tenantId: candidate.fixture.tenant, reservationId: candidate.fixture.reservation,
+          sourceFolioId: candidate.fixture.folio, name: `Committed loser ${taxCase.label}`,
+          idempotencyKey: `native-transfer-destination-${taxCase.label}`,
+          envelope: createAuditEnvelope({ tenantId: candidate.fixture.tenant,
+            propertyNode: candidate.fixture.property, actorId: candidate.fixture.actor,
+            requestId: crypto.randomUUID(), operation: "folio.opened" }),
+        }));
+      const family = await runtime.withTenantTransaction(candidate.fixture.tenant, tx =>
+        tx<Array<{ id: string; window_no: number; balance_minor: string }>>`
+          SELECT folio.id::text,folio.window_no,COALESCE(balance.balance_minor,0)::text AS balance_minor
+          FROM public.folio folio LEFT JOIN public.folio_balance balance
+            ON balance.tenant_id=folio.tenant_id AND balance.folio_id=folio.id
+          WHERE folio.tenant_id=${candidate.fixture.tenant}::uuid
+            AND folio.reservation_id=${candidate.fixture.reservation}::uuid
+          ORDER BY folio.window_no,folio.id`);
+      const generation = new Bun.CryptoHasher("md5").update(family
+        .map(row => `${row.id}:${row.window_no}:${row.balance_minor}`).join("|")).digest("hex");
+      const transfers = new FolioTransferService({
+        events: new PostgresEventBus(runtimeEvents), idempotency: new PostgresIdempotency(), folios,
+      });
+      const transferInput = {
+        tenantId: candidate.fixture.tenant, sourceFolioId: candidate.fixture.folio,
+        destinationFolioId: destination.folioId, groupIds: [root.journal_id],
+        reason: "Attempt transfer after committed native issue", generation, previewRevision: "",
+        idempotencyKey: `native-issue-transfer-loser-${taxCase.label}`,
+        envelope: createAuditEnvelope({ tenantId: candidate.fixture.tenant,
+          propertyNode: candidate.fixture.property, actorId: candidate.fixture.actor,
+          requestId: crypto.randomUUID(), operation: "journal.posted" }),
+      } as const;
+      const preview = await runtime.withTenantTransaction(candidate.fixture.tenant,
+        tx => transfers.preview(tx, transferInput));
+      const complete = Object.freeze({ ...transferInput, previewRevision: preview.previewRevision });
+      const afterSetup = await issuanceCensus(deploy, candidate.fixture.tenant, candidate.series.seriesId);
+      const financialAfterSetup = await winnerFinancialCensus(deploy, candidate.fixture.tenant,
+        candidate.fixture.property, root);
+      const error = await rejected(runtime.withTenantTransaction(candidate.fixture.tenant,
+        tx => transfers.transfer(tx, complete)));
+      expect(sqlState(error)).toBe("55000");
+      expect((error as Error).message).toContain(
+        "issued India native fiscal posting ancestry is immutable",
+      );
+      expect(await winnerFinancialCensus(deploy, candidate.fixture.tenant,
+        candidate.fixture.property, root)).toEqual(financialAfterSetup);
+      expect(await issuanceCensus(deploy, candidate.fixture.tenant, candidate.series.seriesId)).toEqual(afterSetup);
+      const replay = await issueIndiaNativeFiscalInvoice(runtime, {
+        ...candidate.request, envelope: { ...candidate.request.envelope, requestId: crypto.randomUUID() },
+      });
+      expect(replay).toEqual({ ...issued, replayed: true });
+      expect(await issuanceCensus(deploy, candidate.fixture.tenant, candidate.series.seriesId)).toEqual(afterSetup);
+    }
+  }, 120_000);
+
+  test("committed seal winner blocks later issue for positive and rounded-zero tax", async () => {
+    for (const taxCase of [
+      { label: "positive", roomNightAmounts: ["10000"] as const, quotedTaxRounding: "exact_5_percent" as const },
+      { label: "rounded-zero", roomNightAmounts: ["1"] as const, quotedTaxRounding: "component_half_up" as const },
+    ]) {
+      const candidate = await createNativeIssuanceFixture(deploy, runtime, {
+        label: `win-seal-${taxCase.label}`,
+        roomNightAmounts: taxCase.roomNightAmounts,
+        quotedTaxRounding: taxCase.quotedTaxRounding,
+      });
+      const root = await originalChargeRoot(deploy, candidate.fixture.tenant,
+        candidate.fixture.folio, candidate.fixture.guestAccount);
+      const roleId = crypto.randomUUID();
+      await deploy.begin(async tx => {
+        await tx`INSERT INTO public.permission(code,description) VALUES('business_day.seal',
+          'Seal a ready business day') ON CONFLICT DO NOTHING`;
+        await tx`INSERT INTO public.role(id,tenant_id,name) VALUES(${roleId}::uuid,
+          ${candidate.fixture.tenant}::uuid,${`Order434 committed seal ${taxCase.label}`})`;
+        await tx`INSERT INTO public.role_permission(role_id,permission_code)
+          VALUES(${roleId}::uuid,'business_day.seal')`;
+        await tx`INSERT INTO public.user_role(tenant_id,user_id,role_id,scope_node)
+          VALUES(${candidate.fixture.tenant}::uuid,${candidate.fixture.actor}::uuid,${roleId}::uuid,
+            ${candidate.fixture.property}::uuid)`;
+      });
+      const [day] = await deploy<Array<{ business_date: string }>>`
+        SELECT business_date::text FROM public.business_day WHERE tenant_id=${candidate.fixture.tenant}::uuid
+          AND property_node=${candidate.fixture.property}::uuid`;
+      if (!day) throw new Error("Native committed-winner business day is unavailable");
+      const seals = new BusinessDaySealService({
+        events: new PostgresEventBus(runtimeEvents), idempotency: new PostgresIdempotency(),
+      });
+      const sealed = await runtime.withTenantTransaction(candidate.fixture.tenant, tx => seals.seal(tx, {
+        tenantId: candidate.fixture.tenant, propertyNode: candidate.fixture.property,
+        businessDate: day.business_date, actorId: candidate.fixture.actor,
+        idempotencyKey: `native-seal-winner-${taxCase.label}`,
+        envelope: createAuditEnvelope({ tenantId: candidate.fixture.tenant,
+          propertyNode: candidate.fixture.property, actorId: candidate.fixture.actor,
+          requestId: crypto.randomUUID(), operation: "business_day.sealed" }),
+      }));
+      expect(sealed).toMatchObject({ state: "sealed", replayed: false });
+      const afterSeal = await issuanceCensus(deploy, candidate.fixture.tenant, candidate.series.seriesId);
+      const financialAfterSeal = await winnerFinancialCensus(deploy, candidate.fixture.tenant,
+        candidate.fixture.property, root);
+      expect(financialAfterSeal.day_sealed).toBe(true);
+      const error = await rejected(issueIndiaNativeFiscalInvoice(runtime, candidate.request));
+      expect(sqlState(error)).toBe("P0011");
+      expect((error as Error).message).toContain("native fiscal issue business date is sealed");
+      expect(await issuanceCensus(deploy, candidate.fixture.tenant, candidate.series.seriesId)).toEqual(afterSeal);
+      expect(await winnerFinancialCensus(deploy, candidate.fixture.tenant,
+        candidate.fixture.property, root)).toEqual(financialAfterSeal);
+      expectUnissuedFixture(afterSeal, candidate.series.nextNo);
+    }
+  }, 120_000);
+
+  test("committed issue winner permits later audited seal and permanent replay for positive and rounded-zero tax", async () => {
+    for (const taxCase of [
+      { label: "positive", roomNightAmounts: ["10000"] as const, quotedTaxRounding: "exact_5_percent" as const },
+      { label: "rounded-zero", roomNightAmounts: ["1"] as const, quotedTaxRounding: "component_half_up" as const },
+    ]) {
+      const candidate = await createNativeIssuanceFixture(deploy, runtime, {
+        label: `win-issue-seal-${taxCase.label}`,
+        roomNightAmounts: taxCase.roomNightAmounts,
+        quotedTaxRounding: taxCase.quotedTaxRounding,
+      });
+      const root = await originalChargeRoot(deploy, candidate.fixture.tenant,
+        candidate.fixture.folio, candidate.fixture.guestAccount);
+      const issued = await issueIndiaNativeFiscalInvoice(runtime, candidate.request);
+      const afterIssue = await issuanceCensus(deploy, candidate.fixture.tenant, candidate.series.seriesId);
+      const roleId = crypto.randomUUID();
+      await deploy.begin(async tx => {
+        await tx`INSERT INTO public.permission(code,description) VALUES('business_day.seal',
+          'Seal a ready business day') ON CONFLICT DO NOTHING`;
+        await tx`INSERT INTO public.role(id,tenant_id,name) VALUES(${roleId}::uuid,
+          ${candidate.fixture.tenant}::uuid,${`Order434 post-issue seal ${taxCase.label}`})`;
+        await tx`INSERT INTO public.role_permission(role_id,permission_code)
+          VALUES(${roleId}::uuid,'business_day.seal')`;
+        await tx`INSERT INTO public.user_role(tenant_id,user_id,role_id,scope_node)
+          VALUES(${candidate.fixture.tenant}::uuid,${candidate.fixture.actor}::uuid,${roleId}::uuid,
+            ${candidate.fixture.property}::uuid)`;
+      });
+      const [day] = await deploy<Array<{ business_date: string }>>`
+        SELECT business_date::text FROM public.business_day WHERE tenant_id=${candidate.fixture.tenant}::uuid
+          AND property_node=${candidate.fixture.property}::uuid`;
+      if (!day) throw new Error("Native post-issue business day is unavailable");
+      const seals = new BusinessDaySealService({
+        events: new PostgresEventBus(runtimeEvents), idempotency: new PostgresIdempotency(),
+      });
+      const sealInput = {
+        tenantId: candidate.fixture.tenant, propertyNode: candidate.fixture.property,
+        businessDate: day.business_date, actorId: candidate.fixture.actor,
+        idempotencyKey: `native-post-issue-seal-${taxCase.label}`,
+        envelope: createAuditEnvelope({ tenantId: candidate.fixture.tenant,
+          propertyNode: candidate.fixture.property, actorId: candidate.fixture.actor,
+          requestId: crypto.randomUUID(), operation: "business_day.sealed" }),
+      } as const;
+      const sealed = await runtime.withTenantTransaction(candidate.fixture.tenant, tx => seals.seal(tx, sealInput));
+      expect(sealed).toMatchObject({ state: "sealed", replayed: false });
+      const afterSeal = await issuanceCensus(deploy, candidate.fixture.tenant, candidate.series.seriesId);
+      expect(afterSeal).toEqual({ ...afterIssue, facts: afterIssue.facts + 1, events: afterIssue.events + 1 });
+      const financialAfterSeal = await winnerFinancialCensus(deploy, candidate.fixture.tenant,
+        candidate.fixture.property, root);
+      expect(financialAfterSeal.day_sealed).toBe(true);
+      const replay = await issueIndiaNativeFiscalInvoice(runtime, {
+        ...candidate.request, envelope: { ...candidate.request.envelope, requestId: crypto.randomUUID() },
+      });
+      expect(replay).toEqual({ ...issued, replayed: true });
+      expect(await issuanceCensus(deploy, candidate.fixture.tenant, candidate.series.seriesId)).toEqual(afterSeal);
+      expect(await winnerFinancialCensus(deploy, candidate.fixture.tenant,
+        candidate.fixture.property, root)).toEqual(financialAfterSeal);
+    }
   }, 120_000);
 
   test("100 distinct authentic sources share one gapless invoice series and recomputable chain", async () => {

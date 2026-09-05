@@ -290,6 +290,121 @@ candidateDescribe("Order434 native completion real candidate variants", () => {
     expect(await candidateCensus(deploy, candidate.fixture.tenant, candidate.series.seriesId)).toEqual(afterIssue);
   }, 60_000);
 
+  test("derives and issues every supported positive component family from original statutory locations", async () => {
+    const cases = [
+      {
+        label: "native-family-sgst",
+        configuration: "karnataka_supplier_karnataka_property" as const,
+        family: "cgst_sgst",
+        components: [{ identity: "cgst", amount: "250" }, { identity: "sgst", amount: "250" },
+          { identity: "cgst", amount: "500" }, { identity: "sgst", amount: "500" }],
+        igst: null, cgst: "7.50", sgst: "7.50", postingLines: 4, payableAccounts: 2,
+      },
+      {
+        label: "native-family-utgst",
+        configuration: "chandigarh_supplier_chandigarh_property" as const,
+        family: "cgst_utgst",
+        components: [{ identity: "cgst", amount: "250" }, { identity: "utgst", amount: "250" },
+          { identity: "cgst", amount: "500" }, { identity: "utgst", amount: "500" }],
+        igst: null, cgst: "7.50", sgst: "7.50", postingLines: 4, payableAccounts: 2,
+      },
+      {
+        label: "native-family-igst",
+        configuration: "maharashtra_supplier_karnataka_property" as const,
+        family: "igst",
+        components: [{ identity: "igst", amount: "500" }, { identity: "igst", amount: "1000" }],
+        igst: "15.00", cgst: null, sgst: null, postingLines: 2, payableAccounts: 1,
+      },
+    ] as const;
+    for (const expected of cases) {
+      const candidate = await createNativeIssuanceFixture(deploy, runtime, {
+        label: expected.label,
+        roomNightAmounts: ["10000", "20000"],
+        statutoryOriginalConfiguration: expected.configuration,
+      });
+      const command = new IssueIndiaNativeFiscalInvoiceCommand(runtime);
+      const before = await candidateCensus(deploy, candidate.fixture.tenant, candidate.series.seriesId);
+      const [considerationBefore] = await deploy<Array<{ amount: string }>>`
+        SELECT COALESCE(sum(line.amount_minor),0)::text AS amount
+        FROM public.posting_line line
+        JOIN public.account account ON account.tenant_id=line.tenant_id AND account.id=line.account_id
+        WHERE line.tenant_id=${candidate.fixture.tenant}::uuid AND account.role='revenue'`;
+      if (!considerationBefore) throw new Error("Native family consideration baseline is unavailable");
+      const issued = await command.execute(candidate.request);
+      const afterIssue = await candidateCensus(deploy, candidate.fixture.tenant, candidate.series.seriesId);
+      expect(afterIssue).toMatchObject({
+        journals: before.journals + 1,
+        lines: before.lines + expected.postingLines,
+        documents: before.documents + 1,
+        nextNo: (BigInt(before.nextNo) + 1n).toString(),
+      });
+      const [projection] = await deploy<Array<{
+        component_family: string; transaction_value_minor: string; tax_minor: string;
+        grand_total_minor: string; components: Array<{ identity: string; amount: string }>;
+        journal_balance: string; guest_tax: string; payable_tax: string; payable_accounts: number;
+        consideration_after: string; ass_val: string; igst_val: string | null; cgst_val: string | null;
+        sgst_val: string | null; total_val: string;
+      }>>`SELECT tax.component_family,tax.transaction_value_minor::text,tax.tax_minor::text,
+          tax.grand_total_minor::text,
+          (SELECT jsonb_agg(jsonb_build_object('identity',component.component_identity,
+              'amount',component.tax_amount_minor::text) ORDER BY component.room_night_ordinal,
+              component.component_ordinal)
+            FROM public.india_gst_accommodation_final_component_tax_component component
+            WHERE component.tenant_id=tax.tenant_id AND component.tax_id=tax.id) AS components,
+          (SELECT sum(line.amount_minor)::text FROM public.posting_line line
+            WHERE line.tenant_id=binding.tenant_id AND line.journal_id=binding.journal_id) AS journal_balance,
+          (SELECT sum(line.amount_minor)::text FROM public.posting_line line
+            WHERE line.tenant_id=binding.tenant_id AND line.journal_id=binding.journal_id
+              AND line.folio_id=origin.folio_id) AS guest_tax,
+          (SELECT (-sum(line.amount_minor))::text FROM public.posting_line line
+            JOIN public.account account ON account.tenant_id=line.tenant_id AND account.id=line.account_id
+            WHERE line.tenant_id=binding.tenant_id AND line.journal_id=binding.journal_id
+              AND account.role='tax_payable') AS payable_tax,
+          (SELECT count(DISTINCT line.account_id)::integer FROM public.posting_line line
+            JOIN public.account account ON account.tenant_id=line.tenant_id AND account.id=line.account_id
+            WHERE line.tenant_id=binding.tenant_id AND line.journal_id=binding.journal_id
+              AND account.role='tax_payable') AS payable_accounts,
+          (SELECT COALESCE(sum(line.amount_minor),0)::text FROM public.posting_line line
+            JOIN public.account account ON account.tenant_id=line.tenant_id AND account.id=line.account_id
+            WHERE line.tenant_id=origin.tenant_id AND account.role='revenue') AS consideration_after,
+          document.content#>>'{ValDtls,AssVal}' AS ass_val,
+          document.content#>>'{ValDtls,IgstVal}' AS igst_val,
+          document.content#>>'{ValDtls,CgstVal}' AS cgst_val,
+          document.content#>>'{ValDtls,SgstVal}' AS sgst_val,
+          document.content#>>'{ValDtls,TotInvVal}' AS total_val
+        FROM public.india_gst_native_fiscal_document_origin origin
+        JOIN public.document document ON document.tenant_id=origin.tenant_id AND document.id=origin.document_id
+        JOIN public.india_gst_native_invoice_timing timing
+          ON timing.tenant_id=origin.tenant_id AND timing.id=origin.native_timing_id
+        JOIN public.india_gst_accommodation_final_component_tax tax
+          ON tax.tenant_id=timing.tenant_id AND tax.id=timing.tax_id
+        JOIN public.india_gst_accommodation_final_component_tax_journal_binding binding
+          ON binding.tenant_id=timing.tenant_id AND binding.id=timing.accounting_binding_id
+        WHERE origin.tenant_id=${candidate.fixture.tenant}::uuid AND origin.document_id=${issued.documentId}::uuid`;
+      if (!projection) throw new Error("Native tax-family projection is unavailable");
+      expect(projection).toEqual({
+        component_family: expected.family,
+        transaction_value_minor: "30000",
+        tax_minor: "1500",
+        grand_total_minor: "31500",
+        components: [...expected.components],
+        journal_balance: "0",
+        guest_tax: "1500",
+        payable_tax: "1500",
+        payable_accounts: expected.payableAccounts,
+        consideration_after: considerationBefore.amount,
+        ass_val: "300.00",
+        igst_val: expected.igst,
+        cgst_val: expected.cgst,
+        sgst_val: expected.sgst,
+        total_val: "315.00",
+      });
+      const replay = await command.execute(replayRequest(candidate.request));
+      expect(replay).toEqual({ ...issued, replayed: true });
+      expect(await candidateCensus(deploy, candidate.fixture.tenant, candidate.series.seriesId)).toEqual(afterIssue);
+    }
+  }, 120_000);
+
   test("rejects a one-minor valuation that cannot match the immutable fully-attributed payment root", async () => {
     const candidate = await createNativeIssuanceFixture(deploy, runtime, {
       label: "native-completion-zero",
