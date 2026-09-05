@@ -370,6 +370,11 @@ const EXPECTED_MIGRATIONS = [
     filename: "0073_document_series_runtime_authority_containment.sql",
     checksum_sha256: "d5cef790f3f75f902de457d22e21f272530a77257f65daac1bb5e6e51f1688aa",
   },
+  {
+    version: 74,
+    filename: "0074_india_native_fiscal_invoice_authority.sql",
+    checksum_sha256: "58cb493c86aeb13a697f6e882656a49b5b7617d185c5cf0746de8bf2eaa4c43c",
+  },
 ];
 
 if (REQUIRE_DATABASE && !DATABASE_URL) {
@@ -448,8 +453,8 @@ databaseDescribe("fresh deployment database acceptance", () => {
             AND class.relforcerowsecurity) AS "forceRlsTables"
     `;
     expect(catalogue).toEqual([{
-      migrations: 73, tables: 124, rlsTables: 114, policies: 114, forceRlsTables: 23,
-      permissions: 9, permissionGrants: 0,
+      migrations: 74, tables: 125, rlsTables: 115, policies: 115, forceRlsTables: 24,
+      permissions: 11, permissionGrants: 0,
     }]);
   });
 
@@ -2565,7 +2570,7 @@ databaseDescribe("fresh deployment database acceptance", () => {
         (SELECT count(*)::int FROM pg_catalog.pg_tables WHERE schemaname = 'public') AS tables,
         (SELECT count(*)::int FROM pg_catalog.pg_policies WHERE schemaname = 'public') AS policies
     `;
-    expect(shape).toEqual([{ tables: 124, policies: 114 }]);
+    expect(shape).toEqual([{ tables: 125, policies: 115 }]);
 
     const relations = await sql!<Array<{
       relation: string;
@@ -2677,7 +2682,7 @@ databaseDescribe("fresh deployment database acceptance", () => {
         has_column_privilege('app_role','public.journal','approval_request_id','UPDATE') AS "appApprovalUpdate"
     `;
     expect(shape).toEqual([{
-      tables: 124, policies: 114, directBill: 1,
+      tables: 125, policies: 115, directBill: 1,
       approvalNullable: true, compositeFk: true, oneUseIndex: true,
       appApprovalInsert: false, appApprovalUpdate: false,
     }]);

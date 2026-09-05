@@ -1,6 +1,6 @@
 # Order 432 — PR80 CI portability repair
 
-**Status:** REPAIRED — AWAITING FIFTEENTH GITHUB CI — D1327
+**Status:** REPAIRED — AWAITING SIXTEENTH GITHUB CI — D1329
 **Phase:** Delivery infrastructure
 **Branch:** `phase-7/persisted-india-final-component-tax-evidence`
 **Risk tier:** 1 — test harness and CI portability only
@@ -43,6 +43,12 @@ path, browser launch assumptions and shallow Git history.
   `tests/runtime-database-authority.integration.test.ts` only to align exact whole-schema
   table/RLS/policy/FORCE-RLS counts with the current migration catalogue, preserving
   all role, grant, session, function and tenant-boundary assertions;
+- `tests/migrate.integration.test.ts` only to add the existing 0074 migration to its
+  exact ordered catalogue and align current full-schema table/policy counts; preserve
+  historical partial-migration counts, checksums, rollback and migration behavior;
+- `tests/database-acceptance.integration.test.ts` only to include existing migration
+  0074 and its verified immutable checksum, and align current migration/table/RLS/
+  policy/FORCE-RLS/permission catalogue counts; preserve all schema, grants and runtime checks;
 - one existing/new test-only executable/browser helper if needed;
 - focused tests for the helper/launcher behavior;
 - this order, `DECISIONS.log`, and `handoff/LEDGER.md`.
@@ -87,6 +93,19 @@ both are updated together. Role, grant, function, session and tenant assertions
 are unchanged. Root reran focused tests: 3 passed, 14 expected database skips,
 0 failed, 24 assertions; typecheck and diff check passed. GitHub database proof
 remains pending; no runtime/database success is inferred from skipped cases.
+
+Fifteenth run `33931957315` on `5695e61` passed quality, Windows-state and container
+smoke, then failed seven stale assertions in the migration suite. The complete
+current-frontier audit also found the next acceptance suite still omitted 0074.
+Both now require exactly 74 migrations, 125 tables, 115 RLS tables/policies, 24
+forced-RLS tables and 11 permission definitions (0074 adds two, with no role grants).
+Historical partial-migration frontiers are unchanged. All 74 filenames and prior
+1–73 hashes were verified; 0074 SHA256 is
+`58cb493c86aeb13a697f6e882656a49b5b7617d185c5cf0746de8bf2eaa4c43c`.
+Root native-Windows focused run: 2 passed, 65 unavailable-DB skips, 0 failed,
+9 assertions; typecheck and diff check pass. Seed and remaining Phase-3 current
+catalogue checks were audited without additional findings. Full GitHub DB proof
+remains required; neither skipped cases nor catalogue repair approve native issuance.
 
 ## Excluded operations
 
