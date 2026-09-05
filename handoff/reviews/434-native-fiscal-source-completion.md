@@ -129,7 +129,71 @@ passed. These results do not promote the incomplete Order434 to approved.
 
 ## Complete-order acceptance still outstanding
 
-Complete source/date/statutory authentication, actual native event/accounting and
-durable replay, final commit/command, all76-migration schema/referee and full real
+Governed positive source/date/statutory authentication, complete outer preparation,
+remaining source locks, actual native event/accounting and durable replay,
+final commit/command, all76-migration schema/referee and full real
 issuance/compatibility/concurrency proofs, followed by fresh independent Tier3
 acceptance. These notes must not be displayed as an approved Order434 review.
+
+## D1362 preparation and tax projection — bounded observations only
+
+`/root/native_source_sql` did not implement the root source-basis/authenticator or
+the composition worker's writer/projection checker. It inspected them and their
+real producers, then personally executed:
+
+```text
+bun test tests/india-native-fiscal-preparation.integration.test.ts tests/india-native-fiscal-accounting.integration.test.ts
+```
+
+With `YELLOW_REQUIRE_ORDER434_NATIVE_ACCOUNTING_DATABASE=1` and the explicit
+existing loopback deploy/runtime URLs: **36 passed, 0 failed, 449 assertions**,
+6.43s. It found no concrete bounded mismatch. In particular, valuation generation
+in the tax preimage differs intentionally from the new tax row's generation0;
+both existing TypeScript and the legacy contract confirm this distinction.
+
+The basis proof independently computes the complete preimage and SHA256, preserves
+original insertion-sensitive artifact text, binds generated identities and
+checks the property-local April1 boundary. The writer/projection proof creates
+ordinary and genuine tax graphs from recorded source roots within a transaction,
+compares every parent and four complete child sets, verifies that assertion is
+read-only, then intentionally rolls back before deferred full-issuance completion.
+It does not produce an issued invoice, accounting effect or durable receipt.
+
+Initial root pure-test rejection assertions used the wrong Bun SQLSTATE field and
+a one-connection pool; the run stalled at an idle BEGIN, not a database lock wait.
+After interruption, root adopted the existing errno/sqlState/code extraction and
+two-connection pool. SQL was unchanged and the full focused rerun passed. A
+projection test's PostgreSQL void result expectation was corrected to Bun's empty
+string representation; no product assertion or SQL behavior was weakened.
+
+The reviewer inspected installed authenticator metadata: owner-only, invoker,
+VOLATILE, fixed search path/UTC/ISO, no app/runtime EXECUTE. Its source genuinely
+rereads authority/intake/valuation/timing/statutory/composition/semantic request
+and compares the full basis and typed projections; matching digest shapes alone
+is not treated as authority. However, no positive governed authenticator call has
+run: the real outer preparation capability remains unfinished. No test-only
+authority wrapper or fabricated completion was introduced to conceal that gap.
+
+Root independently executed the source worker's real statutory locking proof:
+eight-table row-lock footprint,10 distinct dated rows, compatible SHARE and
+conflicting update-lock contention, release, exact graph readback and unchanged
+financial/audit census. The full final root focused run was **68/0,793 assertions**
+across four files. Issuer-authority/day-series helper behavior has static and
+installed-metadata checks only; positive full-flow locking is still unproved.
+
+Final preparation SHA:
+`8007fbd4b18e53001d0a4904640745d9303aa9bb71ac4b88d651397348f46511`.
+The reviewer's earlier inspected SHA was
+`1a714d9a26ec37d368722e072efacfdc47e1d03c67310dcf27fcb6fe9ba6fa4b`;
+root subsequently changed only the header's draft-authenticator description and
+removed an unused local variable, then reapplied/retested the final fragment.
+The two additional root tests assert dependency shape and installed private
+metadata, not a positive invoice flow. Complete-order acceptance above remains.
+
+Final standing: the first non-DB full run hit one Windows Chromium profile-file
+EBUSY (1,534 passed,1,130 skipped,1 failed). Root reran the unchanged full suite
+after releasing the synthetic database: **1,535 passed,1,130 explicit environment
+skips,0 failed,21,296 assertions**,2,665 tests/476 files,88.01s. No test was changed
+to clear the failure. Typecheck,boundaries167,licence policy23,audit and diff checks
+passed. These regression results do not prove the skipped database paths or
+constitute independent Tier3 acceptance of the unfinished invoice flow.

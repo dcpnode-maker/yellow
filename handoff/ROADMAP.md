@@ -148,12 +148,14 @@ actual-date atomic issuance, immutable accounting and no duplicate revenue.
 It is not built or independently approved; fresh implementation/proof and a
 different non-implementing Tier3 review remain required.
 
-Latest implementation evidence is [Order434/D1357](orders/434-native-fiscal-source-completion.md#private-statutory-and-quoted-tax-reconstruction--d1357):
-private dual-date statutory sources and quoted/final-tax reconstruction, added
-to the one-Tx command and actual-clock historical reader. These fragments remain
-outside the migration runner. Complete SQL preparation/authentication,
-accounting/commit and final acceptance are still outstanding; these are building
-blocks, not a new completed phase.
+Latest implementation evidence is [Order434/D1362](orders/434-native-fiscal-source-completion.md#preparation-locks-and-persisted-tax-projection--d1362):
+private statutory/authority/day-series locking, complete source-basis hashing,
+tax-row persistence and typed persisted-projection checking. Ordinary/genuine
+write sets pass rollback-only database proof. The private source authenticator
+is draft implementation, not yet a proved governed runtime call. Outer prepare,
+remaining source locks, accounting/commit/replay and final acceptance are still
+outstanding. These fragments remain outside the migration runner; no new phase,
+main integration or local-app promotion is claimed.
 
 The existing 18-phase vector is unchanged: 0–3, 5 and 6 reviewed; 4 built pending final
 integration/review; 7 active; 8–17 planned. The 13 bounded contexts and all phase

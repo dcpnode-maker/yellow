@@ -35,6 +35,12 @@ if (process.env.YELLOW_REQUIRE_ORDER434_DATABASE === "1" && (!deployUrl || !runt
 const databaseDescribe = deployUrl && runtimeUrl ? describe.serial : describe.skip;
 type NativeSource = IndiaGstAccommodationNativeFinalValuationInput["sources"][number];
 type PreparedStatutorySource = Omit<IndiaNativeFiscalSourceInput,"financialSource">;
+interface StatutoryGraphRow {
+  prepared_source_json: string;
+  service_supply_nature_json: string;
+  service_supplier_sez_status_id: string;
+  service_recipient_sez_status_id: string;
+}
 function frozenStatutory<T>(value: T): T {
   if (value && typeof value === "object") {
     for (const nested of Object.values(value)) frozenStatutory(nested);
@@ -295,7 +301,7 @@ databaseDescribe("Order434 native valuation from governed consideration", () => 
     createNativeStatutoryFixture(deploy, fixture, { serviceSez, includeServicePair });
 
   async function readStatutory(fixture: NativeSourceFixture, valuationId: string, roots: Awaited<ReturnType<typeof seedStatutoryRoots>>,
-    classificationId = roots.classificationId) {
+    classificationId = roots.classificationId, options: { lock?: boolean; afterLock?: () => Promise<void> } = {}) {
     return deploy.begin(async tx => {
       await tx`SELECT set_config('app.tenant_id',${fixture.tenant},true)`;
       await tx`SET LOCAL ROLE yellow_owner`;
@@ -306,14 +312,31 @@ databaseDescribe("Order434 native valuation from governed consideration", () => 
           NULL,NULL,NULL,'{}'::date[],'{}'::text[]) AS source`;
       if (!timing) throw new Error("Native timing unavailable");
       const nativeSource = timing.source.invoiceSourceResultCanonicalJson;
-      const read = async () => tx<Array<{ prepared_source_json: string; service_supply_nature_json: string;
-        service_supplier_sez_status_id: string; service_recipient_sez_status_id: string }>>`
+      const read = async () => tx<StatutoryGraphRow[]>`
         SELECT * FROM public.read_india_native_statutory_root_graph(${fixture.tenant}::uuid,${fixture.property}::uuid,${fixture.reservation}::uuid,
           ${fixture.folio}::uuid,${valuationId}::uuid,${roots.location.supplierServiceLocationId}::uuid,${roots.supplierStatusId}::uuid,
           ${roots.supplierSez.supplierSezStatusId}::uuid,${roots.recipient.registrationId}::uuid,${roots.recipientSez.recipientSezStatusId}::uuid,
           ${classificationId}::uuid,${nativeSource},${JSON.stringify(roots.jurisdiction)})`;
-      const [first] = await read();
+      const lock = async () => tx<StatutoryGraphRow[]>`
+          SELECT * FROM public.lock_india_native_statutory_source_graph(${fixture.tenant}::uuid,${fixture.property}::uuid,${fixture.reservation}::uuid,
+            ${fixture.folio}::uuid,${valuationId}::uuid,${roots.location.supplierServiceLocationId}::uuid,${roots.supplierStatusId}::uuid,
+            ${roots.supplierSez.supplierSezStatusId}::uuid,${roots.recipient.registrationId}::uuid,${roots.recipientSez.recipientSezStatusId}::uuid,
+            ${classificationId}::uuid,${nativeSource},${JSON.stringify(roots.jurisdiction)})`;
+      const [first] = await (options.lock ? lock() : read());
       if (!first) throw new Error("Native statutory graph unavailable");
+      if (options.lock) {
+        expect((await read())[0]).toEqual(first);
+        const held = await tx<Array<{ relation: string }>>`SELECT DISTINCT c.relname relation
+          FROM pg_locks l JOIN pg_class c ON c.oid=l.relation JOIN pg_namespace n ON n.oid=c.relnamespace
+          WHERE l.pid=pg_backend_pid() AND l.granted AND l.mode='RowShareLock' AND n.nspname='public'
+            AND c.relkind IN ('r','p') ORDER BY c.relname`;
+        expect(held.map(row => row.relation)).toEqual([
+          "india_gst_item_classification", "india_gst_recipient_sez_status", "india_gst_supplier_registration_status_snapshot",
+          "india_gst_supplier_service_location", "india_gst_supplier_sez_status", "party_fiscal_registration",
+          "property_fiscal_location", "property_fiscal_registration",
+        ]);
+        await options.afterLock?.();
+      }
       await tx`SET LOCAL TIME ZONE 'Asia/Calcutta'`;
       expect((await read())[0]).toEqual(first);
       const [wrapper] = await tx<Array<{ value: string }>>`SELECT public.read_india_native_prepared_statutory_source(
@@ -360,7 +383,7 @@ databaseDescribe("Order434 native valuation from governed consideration", () => 
     const finalized = await finalize(request(fixture,[source(charge.postingRootId)],"statutory-ordinary-valuation"));
     const roots = await seedStatutoryRoots(fixture);
     const before = await census(fixture);
-    const actual = await readStatutory(fixture,finalized.valuationId,roots);
+    const actual = await readStatutory(fixture,finalized.valuationId,roots,roots.classificationId,{lock:true});
     const prepared = actual.prepared;
     expect(Object.keys(prepared)).toEqual(["tenantId","legalBuyerPartyId","sellerRegistration","recipientRegistration",
       "placeOfSupply","classification","supplyNatureAtTimeOfSupplyInput","supplyNatureAtTimeOfSupplyResult"]);
@@ -402,6 +425,62 @@ databaseDescribe("Order434 native valuation from governed consideration", () => 
     expect(actual.service_supply_nature_json).toBe(JSON.stringify(nature));
     await expectSqlState(() => readStatutory(fixture,finalized.valuationId,roots,crypto.randomUUID()),"55000");
     expect(await census(fixture)).toEqual(before);
+  },30_000);
+
+  test("native statutory ordered lock stage preserves both dated graphs and holds only its exact source rows", async () => {
+    const [metadata] = await deploy<Array<{ volatility: string; owner: string; definer: boolean; app: boolean; runtime: boolean;
+      arguments: number; result: string; definition: string }>>`SELECT p.provolatile::text volatility,
+        pg_get_userbyid(p.proowner) owner,p.prosecdef definer,p.pronargs::integer arguments,
+        has_function_privilege('app_role',p.oid,'EXECUTE') app,has_function_privilege('yellow_runtime',p.oid,'EXECUTE') runtime,
+        pg_get_function_result(p.oid) result,pg_get_functiondef(p.oid) definition
+      FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace
+      WHERE n.nspname='public' AND p.proname='lock_india_native_statutory_source_graph'`;
+    expect(metadata).toBeDefined();
+    expect(metadata?.volatility).toBe("v");expect(metadata?.owner).toBe("yellow_owner");expect(metadata?.definer).toBe(false);
+    expect(metadata?.app).toBe(false);expect(metadata?.runtime).toBe(false);expect(metadata?.arguments).toBe(13);
+    expect(metadata?.result).toBe("TABLE(prepared_source_json text, service_supply_nature_json text, service_supplier_sez_status_id uuid, service_recipient_sez_status_id uuid)");
+    expect(metadata?.definition).not.toMatch(/\b(?:INSERT|UPDATE|DELETE)\s+(?:INTO|FROM|public\.)/i);
+    expect(metadata?.definition).not.toContain("pg_advisory");
+    expect(metadata?.definition).not.toMatch(/\bpublic\.(?:account|folio|journal|reservation|property_business_date|document_series)\s/i);
+    const fixture = await createNativeSourceFixture(deploy,database,{label:"statutory-ordered-lock",
+      serviceProvisionDate:"2025-09-20",supplierBooksEntryDate:"2025-09-19",supplierBankCreditDate:"2025-09-21"});
+    const charge = await fixture.postCharge("10000","statutory-lock-charge");
+    const finalized = await finalize(request(fixture,[source(charge.postingRootId)],"statutory-lock-valuation"));
+    const roots = await seedStatutoryRoots(fixture,true);
+    const before = await census(fixture);
+    // Normal read-only lock contention: no source row is changed or fabricated.
+    // These fixed table/column names come only from the owned stage contract.
+    const sourceRows = [
+      ["property_fiscal_registration","id",roots.seller.registrationId],
+      ["party_fiscal_registration","id",roots.recipient.registrationId],
+      ["india_gst_supplier_service_location","id",roots.location.supplierServiceLocationId],
+      ["india_gst_supplier_registration_status_snapshot","id",roots.supplierStatusId],
+      ...[roots.supplierSez.supplierSezStatusId,roots.serviceSupplier.supplierSezStatusId]
+        .sort().map(id => ["india_gst_supplier_sez_status","id",id]),
+      ...[roots.recipientSez.recipientSezStatusId,roots.serviceRecipient.recipientSezStatusId]
+        .sort().map(id => ["india_gst_recipient_sez_status","id",id]),
+      ["india_gst_item_classification","id",roots.classificationId],
+      ["property_fiscal_location","property_node",fixture.property],
+    ] as const;
+    const inspectRow = (row: readonly string[], strength: "SHARE" | "NO KEY UPDATE") => deploy.begin(async tx => {
+      const [table,column,id] = row;
+      await tx`SELECT set_config('app.tenant_id',${fixture.tenant},true)`;
+      await tx`SET LOCAL ROLE yellow_owner`;
+      return tx.unsafe(`SELECT ${column} FROM public.${table} WHERE tenant_id=$1::uuid AND ${column}=$2::uuid FOR ${strength} NOWAIT`,[fixture.tenant,id!]);
+    });
+    const actual = await readStatutory(fixture,finalized.valuationId,roots,roots.classificationId,{lock:true,afterLock:async () => {
+      for (const row of sourceRows) {
+        expect(await inspectRow(row,"SHARE")).toHaveLength(1);
+        await expectSqlState(() => inspectRow(row,"NO KEY UPDATE"),"55P03");
+      }
+    }});
+    expect(actual.service_supplier_sez_status_id).toBe(roots.serviceSupplier.supplierSezStatusId);
+    expect(actual.service_recipient_sez_status_id).toBe(roots.serviceRecipient.recipientSezStatusId);
+    // Transaction completion releases every row lock; the same read-only
+    // stronger lock now succeeds, without touching statutory source contents.
+    for (const row of sourceRows) expect(await inspectRow(row,"NO KEY UPDATE")).toHaveLength(1);
+    expect(await census(fixture)).toEqual(before);
+    await expectSqlState(() => readStatutory(fixture,finalized.valuationId,roots,crypto.randomUUID(),{lock:true}),"55000");
   },30_000);
 
   test("native statutory graph keeps genuine different service and time-of-supply SEZ roots distinct", async () => {

@@ -108,9 +108,25 @@ interface NativeQuotedTaxComposition {
   readonly taxPreview: NativeTaxPreview;
 }
 
+interface NativePreparationBasis {
+  readonly preimageCanonicalJson: string;
+  readonly sourceBasisHash: string;
+}
+
+interface NativeFiscalSeriesIdentity {
+  readonly tenantId: string;
+  readonly propertyNode: string;
+  readonly seriesId: string;
+  readonly supplierRegistrationId: string;
+  readonly kind: "invoice";
+  readonly fiscal: true;
+  readonly financialYearStart: string;
+  readonly prefix: string;
+}
+
 type NativeStatutoryFixture = Awaited<ReturnType<typeof createNativeStatutoryFixture>>;
 type NativeStatutorySelectors = Readonly<
-  Pick<NativeStatutoryFixture, "location" | "supplierStatusId" | "recipient" | "classificationId" | "jurisdiction"
+  Pick<NativeStatutoryFixture, "seller" | "location" | "supplierStatusId" | "recipient" | "classificationId" | "jurisdiction"
     | "serviceSupplier" | "serviceRecipient">
   & { readonly supplierSez: Readonly<{ readonly supplierSezStatusId: string }>;
     readonly recipientSez: Readonly<{ readonly recipientSezStatusId: string }> }
@@ -1214,6 +1230,336 @@ databaseDescribe("Order434 live private native-tax preview and accounting metada
     expect(fn!.definition).toContain("not complete preparation authenticity");
     expect(fn!.definition).not.toMatch(/\b(?:INSERT|UPDATE|DELETE|MERGE|CALL)\b|pg_advisory|FOR\s+(?:UPDATE|SHARE)/i);
   });
+
+  test("keeps quoted-tax persistence owner-private and bounded to reconstructed source rows", async () => {
+    const [fn] = await deploy<Array<{ owner: string; securityDefiner: boolean; volatility: string;
+      arguments: string; result: string; app: boolean; runtime: boolean; public: boolean; definition: string }>>`
+      SELECT pg_get_userbyid(p.proowner) AS owner,p.prosecdef AS "securityDefiner",
+        p.provolatile::text AS volatility,oidvectortypes(p.proargtypes) AS arguments,
+        pg_get_function_result(p.oid) AS result,
+        has_function_privilege('app_role',p.oid,'EXECUTE') AS app,
+        has_function_privilege('yellow_runtime',p.oid,'EXECUTE') AS runtime,
+        has_function_privilege('public',p.oid,'EXECUTE') AS public,
+        pg_get_functiondef(p.oid) AS definition
+      FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace
+      WHERE n.nspname='public' AND p.proname='persist_india_native_quoted_tax_source'`;
+    expect(fn).toMatchObject({ owner: "yellow_owner", securityDefiner: false, volatility: "v",
+      arguments: "uuid, uuid, uuid, uuid, uuid, uuid, uuid, uuid, uuid, uuid, uuid, bigint, uuid, text, text, text, text, text, text, text",
+      result: "jsonb", app: false, runtime: false, public: false });
+    expect(fn!.definition).toContain("india_native_preparation_source_basis");
+    expect(fn!.definition).toMatch(/v_basis\s*->>\s*'sourceBasisHash'(?:\:\:text)?\s+IS DISTINCT FROM p_native_source_basis_hash/);
+    for (const table of [
+      "india_gst_native_invoice_timing",
+      "india_gst_accommodation_quoted_rate_applicability",
+      "india_gst_accommodation_quoted_rate_applicability_room_night",
+      "india_gst_accommodation_quoted_rate_component",
+      "india_gst_accommodation_final_component_tax",
+      "india_gst_accommodation_final_component_tax_room_night",
+      "india_gst_accommodation_final_component_tax_component",
+    ]) expect(fn!.definition).toContain(`INSERT INTO public.${table}`);
+    expect(fn!.definition).not.toMatch(/INSERT\s+INTO\s+public\.(?:outbox|fact_log|document|india_gst_accommodation_final_component_tax_journal_binding)/i);
+    expect(fn!.definition).not.toMatch(/pg_advisory|FOR\s+(?:UPDATE|SHARE)/i);
+  });
+
+  test("keeps the persisted projection assertion private, stable, exact-set based, and read-only", async () => {
+    const [fn] = await deploy<Array<{ owner: string; securityDefiner: boolean; volatility: string;
+      arguments: string; result: string; app: boolean; runtime: boolean; public: boolean; definition: string }>>`
+      SELECT pg_get_userbyid(p.proowner) AS owner,p.prosecdef AS "securityDefiner",
+        p.provolatile::text AS volatility,oidvectortypes(p.proargtypes) AS arguments,
+        pg_get_function_result(p.oid) AS result,
+        has_function_privilege('app_role',p.oid,'EXECUTE') AS app,
+        has_function_privilege('yellow_runtime',p.oid,'EXECUTE') AS runtime,
+        has_function_privilege('public',p.oid,'EXECUTE') AS public,
+        pg_get_functiondef(p.oid) AS definition
+      FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace
+      WHERE n.nspname='public' AND p.proname='assert_india_native_persisted_tax_projection'`;
+    expect(fn).toMatchObject({ owner: "yellow_owner", securityDefiner: false, volatility: "s",
+      arguments: "uuid, uuid, text, text, jsonb, text, text, jsonb", result: "void",
+      app: false, runtime: false, public: false });
+    expect(fn!.definition).toContain("compose_india_native_quoted_tax_source");
+    expect(fn!.definition).toContain("read_india_native_valuation_evidence");
+    expect(fn!.definition.match(/EXCEPT ALL/g)).toHaveLength(8);
+    expect(fn!.definition).not.toMatch(/\b(?:INSERT|UPDATE|DELETE|MERGE|CALL)\b|pg_advisory|FOR\s+(?:UPDATE|SHARE)/i);
+  });
+
+  async function rollbackPersistedTaxProjection(
+    fixture: NativeSourceFixture,
+    finalValuation: IndiaGstAccommodationNativeFinalValuationResult,
+    statutory: NativeStatutorySelectors,
+    calendar: TimingCalendar | null,
+    expectedRateKind: "ordinary_section13_single_version" | "genuine_section14_rate_change",
+    proofLabel: string,
+  ): Promise<void> {
+    const seriesId = crypto.randomUUID();
+    const prefix = "N434P";
+    const [series] = await deploy.begin(async tx => {
+      await tx`SELECT set_config('app.tenant_id',${fixture.tenant},true)`;
+      await tx`SET LOCAL ROLE yellow_owner`;
+      return tx<Array<NativeFiscalSeriesIdentity>>`
+        INSERT INTO public.document_series(tenant_id,id,property_node,kind,prefix,next_no,fiscal,
+          supplier_registration_id,financial_year_start)
+        SELECT ${fixture.tenant}::uuid,${seriesId}::uuid,property.id,'invoice',${prefix},1,true,
+          ${statutory.seller.registrationId}::uuid,
+          make_date(date_part('year',local_clock.issue_date)::integer
+            -CASE WHEN date_part('month',local_clock.issue_date)<4 THEN 1 ELSE 0 END,4,1)
+        FROM public.org_node property
+        CROSS JOIN LATERAL (SELECT (transaction_timestamp() AT TIME ZONE property.timezone)::date AS issue_date) local_clock
+        WHERE property.tenant_id=${fixture.tenant}::uuid AND property.id=${fixture.property}::uuid
+        RETURNING tenant_id::text AS "tenantId",property_node::text AS "propertyNode",
+          id::text AS "seriesId",supplier_registration_id::text AS "supplierRegistrationId",
+          kind,prefix,fiscal,financial_year_start::text AS "financialYearStart"`;
+    });
+    if (!series) throw new Error("Native persistence proof fiscal series missing");
+    const before = await census(fixture.tenant);
+    const timingId = crypto.randomUUID();
+    const documentId = crypto.randomUUID();
+    const requestId = crypto.randomUUID();
+    const applicabilityId = crypto.randomUUID();
+    const taxId = crypto.randomUUID();
+    const bindingId = crypto.randomUUID();
+    const eventId = crypto.randomUUID();
+    const requestKeyHash = insertionHash(`${proofLabel}-key`);
+    const requestHash = insertionHash(`${proofLabel}-request`);
+    const rollback = "ORDER434_EXPECTED_QUOTED_TAX_PERSISTENCE_ROLLBACK";
+    let caught: unknown;
+    try {
+      await deploy.begin(async tx => {
+        await tx`SELECT set_config('app.tenant_id',${fixture.tenant},true)`;
+        await tx`SET LOCAL ROLE yellow_owner`;
+        const [timingRow] = await tx<Array<{ evidence: NativeTimingSource }>>`
+          SELECT public.read_india_native_invoice_timing_source(
+            ${fixture.tenant}::uuid,${fixture.property}::uuid,${fixture.reservation}::uuid,
+            ${fixture.serviceResult.serviceProvision.serviceProvisionSnapshotId}::uuid,
+            ${fixture.paymentResult.paymentReceipt.paymentReceiptSnapshotId}::uuid,
+            ${fixture.ordinaryResult.ordinaryRegimeEvidenceId}::uuid,
+            ${timingId}::uuid,${documentId}::uuid,${calendar?.authority ?? null}::text,
+            ${calendar?.sourceHash ?? null}::text,${calendar?.through ?? null}::date,
+            ${`{${calendar?.dates.join(",") ?? ""}}`}::date[],
+            ${`{${calendar?.states.join(",") ?? ""}}`}::text[]) AS evidence`;
+        if (!timingRow) throw new Error("Native persistence proof timing source missing");
+        const [statutoryRow] = await tx<Array<{ prepared_source_json: string; service_supply_nature_json: string }>>`
+          SELECT prepared_source_json,service_supply_nature_json
+          FROM public.read_india_native_statutory_root_graph(
+            ${fixture.tenant}::uuid,${fixture.property}::uuid,${fixture.reservation}::uuid,
+            ${fixture.folio}::uuid,${finalValuation.valuationId}::uuid,
+            ${statutory.location.supplierServiceLocationId}::uuid,
+            ${statutory.supplierStatusId}::uuid,${statutory.supplierSez.supplierSezStatusId}::uuid,
+            ${statutory.recipient.registrationId}::uuid,${statutory.recipientSez.recipientSezStatusId}::uuid,
+            ${statutory.classificationId}::uuid,${timingRow.evidence.invoiceSourceResultCanonicalJson},
+            ${JSON.stringify(statutory.jurisdiction)})`;
+        if (!statutoryRow) throw new Error("Native persistence proof statutory source missing");
+        const [compositionRow] = await tx<Array<{ evidence: NativeQuotedTaxComposition }>>`
+          SELECT public.compose_india_native_quoted_tax_source(
+            ${fixture.tenant}::uuid,${fixture.property}::uuid,${fixture.reservation}::uuid,
+            ${fixture.folio}::uuid,${finalValuation.valuationId}::uuid,
+            ${timingRow.evidence.invoiceSourceInputCanonicalJson},
+            ${timingRow.evidence.invoiceSourceResultCanonicalJson},
+            ${statutoryRow.service_supply_nature_json}) AS evidence`;
+        const [valuationRow] = await tx<Array<{ evidence: NativeValuationEvidence }>>`
+          SELECT public.read_india_native_valuation_evidence(
+            ${fixture.tenant}::uuid,${fixture.property}::uuid,${fixture.reservation}::uuid,
+            ${fixture.folio}::uuid,${finalValuation.valuationId}::uuid,
+            ${fixture.serviceResult.serviceProvision.serviceProvisionSnapshotId}::uuid,
+            ${fixture.paymentResult.paymentReceipt.paymentReceiptSnapshotId}::uuid,
+            ${fixture.ordinaryResult.ordinaryRegimeEvidenceId}::uuid) AS evidence`;
+        if (!compositionRow || !valuationRow) throw new Error("Native persistence proof composition missing");
+        const timing = timingRow.evidence.invoiceSourceResult.timing;
+        const context = {
+          tenantId: fixture.tenant, propertyNode: fixture.property, reservationId: fixture.reservation,
+          folioId: fixture.folio, actorId: fixture.actor, valuationId: finalValuation.valuationId,
+          nativeTimingId: timing.nativeTimingId, prospectiveDocumentId: timing.prospectiveDocumentId,
+          seriesId, applicabilityId, taxId, accountingBindingId: bindingId, requestId,
+          requestKeyHash, requestHash, requestEventId: eventId,
+          issuingTransactionId: timingRow.evidence.transactionContext.issuingTransactionId,
+          transactionTimestamp: timingRow.evidence.transactionContext.transactionTimestamp,
+          propertyTimezone: timingRow.evidence.transactionContext.propertyTimezone,
+          invoiceIssueDate: timingRow.evidence.transactionContext.invoiceIssueDate,
+        };
+        const [basisRow] = await tx<Array<{ evidence: NativePreparationBasis }>>`
+          SELECT public.india_native_preparation_source_basis(
+            ${JSON.stringify(context)}::jsonb,
+            ${timingRow.evidence.invoiceSourceInputCanonicalJson},
+            ${timingRow.evidence.invoiceSourceResultCanonicalJson},
+            ${JSON.stringify(valuationRow.evidence)}::jsonb,
+            ${statutoryRow.prepared_source_json},${statutoryRow.service_supply_nature_json},
+            ${JSON.stringify(compositionRow.evidence)}::jsonb,${JSON.stringify(series)}::jsonb) AS evidence`;
+        if (!basisRow) throw new Error("Native persistence proof source basis missing");
+        const [persisted] = await tx<Array<{ evidence: Readonly<{ nativeTimingId: string; applicabilityId: string;
+          taxId: string; requestEventPayloadHash: string; sourceBasisHash: string }> }>>`
+          SELECT public.persist_india_native_quoted_tax_source(
+            ${fixture.tenant}::uuid,${fixture.property}::uuid,${fixture.reservation}::uuid,
+            ${fixture.folio}::uuid,${finalValuation.valuationId}::uuid,${fixture.actor}::uuid,
+            ${requestId}::uuid,${seriesId}::uuid,${applicabilityId}::uuid,${taxId}::uuid,
+            ${bindingId}::uuid,43476001::bigint,${eventId}::uuid,${requestKeyHash},${requestHash},
+            ${basisRow.evidence.sourceBasisHash},${timingRow.evidence.invoiceSourceInputCanonicalJson},
+            ${timingRow.evidence.invoiceSourceResultCanonicalJson},${statutoryRow.prepared_source_json},
+            ${statutoryRow.service_supply_nature_json}) AS evidence`;
+        if (!persisted) throw new Error("Native persistence proof returned no row");
+        const readProjection = async (): Promise<Mutable> => {
+          const [row] = await tx<Array<{ evidence: Mutable }>>`
+            SELECT jsonb_build_object(
+              'app',to_jsonb(a),'tax',to_jsonb(t),
+              'appNights',COALESCE((SELECT jsonb_agg(to_jsonb(x) ORDER BY x.ordinal)
+                FROM india_gst_accommodation_quoted_rate_applicability_room_night x
+                WHERE x.tenant_id=n.tenant_id AND x.applicability_id=a.id),'[]'::jsonb),
+              'appComponents',COALESCE((SELECT jsonb_agg(to_jsonb(x) ORDER BY x.room_night_ordinal,x.component_ordinal)
+                FROM india_gst_accommodation_quoted_rate_component x
+                WHERE x.tenant_id=n.tenant_id AND x.applicability_id=a.id),'[]'::jsonb),
+              'taxNights',COALESCE((SELECT jsonb_agg(to_jsonb(x) ORDER BY x.ordinal)
+                FROM india_gst_accommodation_final_component_tax_room_night x
+                WHERE x.tenant_id=n.tenant_id AND x.tax_id=t.id),'[]'::jsonb),
+              'taxComponents',COALESCE((SELECT jsonb_agg(to_jsonb(x) ORDER BY x.room_night_ordinal,x.component_ordinal)
+                FROM india_gst_accommodation_final_component_tax_component x
+                WHERE x.tenant_id=n.tenant_id AND x.tax_id=t.id),'[]'::jsonb)) AS evidence
+            FROM india_gst_native_invoice_timing n
+            JOIN india_gst_accommodation_quoted_rate_applicability a
+              ON a.tenant_id=n.tenant_id AND a.id=n.applicability_id AND a.native_timing_id=n.id
+            JOIN india_gst_accommodation_final_component_tax t
+              ON t.tenant_id=n.tenant_id AND t.id=n.tax_id AND t.native_timing_id=n.id
+            WHERE n.tenant_id=${fixture.tenant}::uuid AND n.id=${timingId}::uuid`;
+          if (!row) throw new Error("Native persisted projection snapshot missing");
+          return row.evidence;
+        };
+        const beforeAssertion = await readProjection();
+        const [validated] = await tx<Array<{ validated: "" }>>`
+          SELECT public.assert_india_native_persisted_tax_projection(
+            ${fixture.tenant}::uuid,${timingId}::uuid,
+            ${timingRow.evidence.invoiceSourceInputCanonicalJson},
+            ${timingRow.evidence.invoiceSourceResultCanonicalJson},
+            ${JSON.stringify(valuationRow.evidence)}::jsonb,${statutoryRow.prepared_source_json},
+            ${statutoryRow.service_supply_nature_json},${JSON.stringify(compositionRow.evidence)}::jsonb) AS validated`;
+        // Bun's PostgreSQL codec exposes the successful void result as an empty
+        // string; the complete before/after row snapshots prove no side effect.
+        expect(validated).toEqual({ validated: "" });
+        expect(await readProjection()).toEqual(beforeAssertion);
+        const [graph] = await tx<Array<{ timingId: string; applicabilityId: string; taxId: string;
+          sourceBasisHash: string; timingEvidenceHash: string; rateKind: string; timeOfSupplyDate: string;
+          paymentReceiptDate: string; rateChangeDate: string | null; selectedVersionSide: string | null;
+          section14Case: string | null; calendarDays: number; appEvidenceHash: string; taxEvidenceHash: string;
+          transactionValueMinor: string; taxMinor: string; grandTotalMinor: string;
+          appNights: number; appComponents: number; taxNights: number; taxComponents: number;
+          appRecordedWithTiming: boolean; taxRecordedWithTiming: boolean }>>`
+          SELECT n.id::text AS "timingId",a.id::text AS "applicabilityId",t.id::text AS "taxId",
+            n.native_source_basis_hash AS "sourceBasisHash",n.evidence_hash AS "timingEvidenceHash",
+            a.rate_selection_kind AS "rateKind",a.time_of_supply_date::text AS "timeOfSupplyDate",
+            a.payment_receipt_date::text AS "paymentReceiptDate",a.rate_change_date::text AS "rateChangeDate",
+            a.selected_version_side AS "selectedVersionSide",a.section14_case AS "section14Case",
+            cardinality(a.calendar_dates)::int AS "calendarDays",a.evidence_hash AS "appEvidenceHash",
+            t.evidence_hash AS "taxEvidenceHash",t.transaction_value_minor::text AS "transactionValueMinor",
+            t.tax_minor::text AS "taxMinor",t.grand_total_minor::text AS "grandTotalMinor",
+            (SELECT count(*)::int FROM india_gst_accommodation_quoted_rate_applicability_room_night x
+              WHERE x.tenant_id=n.tenant_id AND x.applicability_id=a.id) AS "appNights",
+            (SELECT count(*)::int FROM india_gst_accommodation_quoted_rate_component x
+              WHERE x.tenant_id=n.tenant_id AND x.applicability_id=a.id) AS "appComponents",
+            (SELECT count(*)::int FROM india_gst_accommodation_final_component_tax_room_night x
+              WHERE x.tenant_id=n.tenant_id AND x.tax_id=t.id) AS "taxNights",
+            (SELECT count(*)::int FROM india_gst_accommodation_final_component_tax_component x
+              WHERE x.tenant_id=n.tenant_id AND x.tax_id=t.id) AS "taxComponents",
+            a.recorded_at=n.transaction_timestamp AS "appRecordedWithTiming",
+            t.recorded_at=n.transaction_timestamp AS "taxRecordedWithTiming"
+          FROM india_gst_native_invoice_timing n
+          JOIN india_gst_accommodation_quoted_rate_applicability a
+            ON a.tenant_id=n.tenant_id AND a.id=n.applicability_id AND a.native_timing_id=n.id
+          JOIN india_gst_accommodation_final_component_tax t
+            ON t.tenant_id=n.tenant_id AND t.id=n.tax_id AND t.applicability_id=a.id AND t.native_timing_id=n.id
+          WHERE n.tenant_id=${fixture.tenant}::uuid AND n.id=${timingId}::uuid`;
+        const quote = JSON.parse(compositionRow.evidence.quotedApplicabilityCanonicalJson) as IndiaGstAccommodationNativeQuotedRateApplicabilityResult;
+        const tax = JSON.parse(compositionRow.evidence.finalTaxCanonicalJson) as IndiaGstAccommodationNativeFinalComponentTaxResult;
+        const rateSource = timingRow.evidence.invoiceSourceResult.rateSource;
+        expect(rateSource.kind).toBe(expectedRateKind);
+        const branchProjection = rateSource.kind === "genuine_section14_rate_change" ? {
+          paymentReceiptDate: rateSource.section14.paymentReceiptDate,
+          rateChangeDate: rateSource.section14.rateChangeDate,
+          selectedVersionSide: rateSource.section14.selectedVersionSide,
+          section14Case: rateSource.section14.case,
+          calendarDays: calendar?.dates.length ?? 0,
+        } : {
+          paymentReceiptDate: timing.paymentReceiptDate,
+          rateChangeDate: null,
+          selectedVersionSide: null,
+          section14Case: null,
+          calendarDays: 0,
+        };
+        const basisPreimage = JSON.parse(basisRow.evidence.preimageCanonicalJson) as Mutable;
+        const expectedEventPayloadHash = new Bun.CryptoHasher("sha256").update(canonicalEvidence({
+          nativeTimingId: timingId, documentId, taxId, applicabilityId,
+          valuationId: finalValuation.valuationId, reservationId: fixture.reservation,
+          folioId: fixture.folio, sourceBasisHash: basisRow.evidence.sourceBasisHash,
+        })).digest("hex");
+        expect(persisted.evidence).toMatchObject({ nativeTimingId: timingId, applicabilityId, taxId,
+          requestEventPayloadHash: expectedEventPayloadHash, sourceBasisHash: basisRow.evidence.sourceBasisHash });
+        expect(basisRow.evidence.preimageCanonicalJson).toBe(canonicalEvidence(basisPreimage));
+        expect(new Bun.CryptoHasher("sha256").update(basisRow.evidence.preimageCanonicalJson).digest("hex"))
+          .toBe(basisRow.evidence.sourceBasisHash);
+        expect(basisPreimage).toMatchObject({ kind: "india-native-fiscal-preparation-source-v1",
+          context, seriesIdentity: series, valuationEvidence: valuationRow.evidence,
+          quotedTaxComposition: compositionRow.evidence });
+        expect(graph).toMatchObject({ timingId, applicabilityId, taxId,
+          sourceBasisHash: basisRow.evidence.sourceBasisHash,
+          timingEvidenceHash: timingRow.evidence.nativeTiming.evidenceHash,
+          rateKind: expectedRateKind,
+          timeOfSupplyDate: timing.timeOfSupplyDate,
+          ...branchProjection,
+          appEvidenceHash: quote.evidenceHash, taxEvidenceHash: tax.evidenceHash,
+          transactionValueMinor: "10000", taxMinor: "500", grandTotalMinor: "10500",
+          appNights: 2, appComponents: 4, taxNights: 2, taxComponents: 4,
+          appRecordedWithTiming: true, taxRecordedWithTiming: true });
+        throw new Error(rollback);
+      });
+    } catch (error) {
+      caught = error;
+    }
+    expect((caught as Error | undefined)?.message).toBe(rollback);
+    const [remaining] = await deploy<Array<{ timing: number; applicability: number; tax: number }>>`
+      SELECT (SELECT count(*)::int FROM india_gst_native_invoice_timing
+                WHERE tenant_id=${fixture.tenant}::uuid AND id=${timingId}::uuid) AS timing,
+             (SELECT count(*)::int FROM india_gst_accommodation_quoted_rate_applicability
+                WHERE tenant_id=${fixture.tenant}::uuid AND id=${applicabilityId}::uuid) AS applicability,
+             (SELECT count(*)::int FROM india_gst_accommodation_final_component_tax
+                WHERE tenant_id=${fixture.tenant}::uuid AND id=${taxId}::uuid) AS tax`;
+    expect(remaining).toEqual({ timing: 0, applicability: 0, tax: 0 });
+    expect(await census(fixture.tenant)).toEqual(before);
+  }
+
+  test("persists and exact-matches the reconstructed ordinary tax graph only inside a rollback proof", async () => {
+    const fixture = await createNativeSourceFixture(deploy, runtime, {
+      label: "private-persist-ordinary", roomNightAmounts: ["5000", "5000"],
+    });
+    // The fixture's actual payment root is 10,500 gross: 10,000 quoted
+    // consideration plus its exact synthetic 5% tax.
+    const finalValuation = await finalize(fixture, "10000", "private-persist-ordinary");
+    const statutory = await createNativeStatutoryFixture(deploy, fixture);
+    await rollbackPersistedTaxProjection(fixture, finalValuation, statutory, null,
+      "ordinary_section13_single_version", "private-persist-ordinary");
+  }, 30_000);
+
+  test("persists and exact-matches distinct genuine Section14 projections only inside a rollback proof", async () => {
+    const calendar: TimingCalendar = {
+      authority: "ORDER434_PERSIST_CALENDAR", sourceHash: "e".repeat(64), through: "2025-09-26",
+      dates: ["2025-09-23", "2025-09-24", "2025-09-25", "2025-09-26"],
+      states: ["working", "working", "working", "working"],
+    };
+    const fixture = await createNativeSourceFixture(deploy, runtime, {
+      label: "private-persist-genuine", roomNightAmounts: ["5000", "5000"],
+      serviceProvisionDate: "2025-09-20", supplierBooksEntryDate: "2025-09-25",
+      supplierBankCreditDate: "2025-09-26",
+    });
+    const finalValuation = await finalize(fixture, "10000", "private-persist-genuine");
+    const prepared = await createNativeStatutoryFixture(deploy, fixture);
+    const timingSupplierStatusId = crypto.randomUUID();
+    await deploy`INSERT INTO public.india_gst_supplier_registration_status_snapshot(
+      tenant_id,id,supplier_registration_id,supplier_registration_evidence_hash,status_as_of,
+      gst_registration_status,gst_taxpayer_type,gst_status_source,gst_status_evidence_sha256,legal_rule)
+      VALUES(${fixture.tenant}::uuid,${timingSupplierStatusId}::uuid,${prepared.seller.registrationId}::uuid,
+        ${prepared.seller.evidenceHash},${fixture.serviceResult.serviceProvision.serviceProvisionDate}::date,
+        'active','regular','gst_common_portal',${prepared.gst.evidenceSha256},
+        'CGST_ACT_25_29_30_AND_RULE_21A_REGISTRATION_STATUS')`;
+    const statutory: NativeStatutorySelectors = Object.freeze({ ...prepared,
+      supplierStatusId: timingSupplierStatusId,
+      supplierSez: prepared.serviceSupplier, recipientSez: prepared.serviceRecipient });
+    await rollbackPersistedTaxProjection(fixture, finalValuation, statutory, calendar,
+      "genuine_section14_rate_change", "private-persist-genuine");
+  }, 30_000);
 
   test("private ordinary quoted-tax composition byte-matches pure family and levy replay plus TS source hashes", async () => {
     const fixture = await createNativeSourceFixture(deploy, runtime, { label: "private-compose-ordinary" });

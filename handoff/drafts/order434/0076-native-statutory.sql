@@ -1,5 +1,5 @@
 -- Order434 / D1352 / Question191: non-runnable, private statutory source fragment.
--- No runtime capability, lock, writer, issue authority, or completed preparation.
+-- No runtime capability, writer, issue authority, or completed preparation.
 -- The final completion migration must include the authenticated timing/source
 -- preparation boundary before this leaf may be used by any issuing capability.
 
@@ -487,3 +487,72 @@ SET search_path=pg_catalog,public SET timezone='UTC' SET datestyle='ISO,YMD' AS 
 $$;
 ALTER FUNCTION public.read_india_native_prepared_statutory_source(uuid,uuid,uuid,uuid,uuid,uuid,uuid,uuid,uuid,uuid,uuid,text,text) OWNER TO yellow_owner;
 REVOKE ALL ON FUNCTION public.read_india_native_prepared_statutory_source(uuid,uuid,uuid,uuid,uuid,uuid,uuid,uuid,uuid,uuid,uuid,text,text) FROM PUBLIC,app_role,yellow_runtime;
+
+-- Stage4 statutory subset only. The enclosing preparation first locks the
+-- tenant/property/actor/grant graph, valuation/approval/buyer relationships and
+-- active legal-buyer party, intake/lineage/extensions, and Financials sources.
+-- It calls this stage before day/series locks and the D99 publication lock.
+-- No new source membership is chased after discovery: a changed graph fails.
+-- SHARE, rather than KEY SHARE, also stabilizes non-key configuration columns.
+CREATE OR REPLACE FUNCTION public.lock_india_native_statutory_source_graph(
+  p_tenant uuid,p_property uuid,p_reservation uuid,p_folio uuid,p_valuation uuid,
+  p_supplier_location uuid,p_supplier_status uuid,p_supplier_sez uuid,
+  p_recipient_registration uuid,p_recipient_sez uuid,p_classification uuid,
+  p_native_invoice_source text,p_family_jurisdiction text
+) RETURNS TABLE(prepared_source_json text,service_supply_nature_json text,
+  service_supplier_sez_status_id uuid,service_recipient_sez_status_id uuid) LANGUAGE plpgsql VOLATILE
+SET search_path=pg_catalog,public SET timezone='UTC' SET datestyle='ISO,YMD' AS $$
+DECLARE v_before record;v_after record;v_seller uuid;v_id uuid;
+BEGIN
+  SELECT g.* INTO STRICT v_before FROM public.read_india_native_statutory_root_graph(
+    p_tenant,p_property,p_reservation,p_folio,p_valuation,p_supplier_location,p_supplier_status,p_supplier_sez,
+    p_recipient_registration,p_recipient_sez,p_classification,p_native_invoice_source,p_family_jurisdiction) g;
+  v_seller:=(v_before.prepared_source_json::json#>>'{sellerRegistration,registrationId}')::uuid;
+
+  -- Each statement locks one exact row; the two dated sets use UUID order.
+  PERFORM 1 FROM public.property_fiscal_registration r
+    WHERE r.tenant_id=p_tenant AND r.id=v_seller FOR SHARE;
+  IF NOT FOUND THEN RAISE EXCEPTION USING ERRCODE='55000',MESSAGE='native statutory seller disappeared before lock'; END IF;
+  PERFORM 1 FROM public.party_fiscal_registration r
+    WHERE r.tenant_id=p_tenant AND r.id=p_recipient_registration FOR SHARE;
+  IF NOT FOUND THEN RAISE EXCEPTION USING ERRCODE='55000',MESSAGE='native statutory recipient disappeared before lock'; END IF;
+  PERFORM 1 FROM public.india_gst_supplier_service_location r
+    WHERE r.tenant_id=p_tenant AND r.id=p_supplier_location FOR SHARE;
+  IF NOT FOUND THEN RAISE EXCEPTION USING ERRCODE='55000',MESSAGE='native statutory service location disappeared before lock'; END IF;
+  PERFORM 1 FROM public.india_gst_supplier_registration_status_snapshot r
+    WHERE r.tenant_id=p_tenant AND r.id=p_supplier_status FOR SHARE;
+  IF NOT FOUND THEN RAISE EXCEPTION USING ERRCODE='55000',MESSAGE='native statutory supplier registration status disappeared before lock'; END IF;
+  FOR v_id IN SELECT DISTINCT s.id FROM pg_catalog.unnest(ARRAY[p_supplier_sez,v_before.service_supplier_sez_status_id]) s(id) ORDER BY s.id LOOP
+    PERFORM 1 FROM public.india_gst_supplier_sez_status r
+      WHERE r.tenant_id=p_tenant AND r.id=v_id FOR SHARE;
+    IF NOT FOUND THEN RAISE EXCEPTION USING ERRCODE='55000',MESSAGE='native statutory supplier SEZ status disappeared before lock'; END IF;
+  END LOOP;
+  FOR v_id IN SELECT DISTINCT s.id FROM pg_catalog.unnest(ARRAY[p_recipient_sez,v_before.service_recipient_sez_status_id]) s(id) ORDER BY s.id LOOP
+    PERFORM 1 FROM public.india_gst_recipient_sez_status r
+      WHERE r.tenant_id=p_tenant AND r.id=v_id FOR SHARE;
+    IF NOT FOUND THEN RAISE EXCEPTION USING ERRCODE='55000',MESSAGE='native statutory recipient SEZ status disappeared before lock'; END IF;
+  END LOOP;
+  PERFORM 1 FROM public.india_gst_item_classification r
+    WHERE r.tenant_id=p_tenant AND r.id=p_classification FOR SHARE;
+  IF NOT FOUND THEN RAISE EXCEPTION USING ERRCODE='55000',MESSAGE='native statutory classification disappeared before lock'; END IF;
+  PERFORM 1 FROM public.property_fiscal_location r
+    WHERE r.tenant_id=p_tenant AND r.property_node=p_property FOR SHARE;
+  IF NOT FOUND THEN RAISE EXCEPTION USING ERRCODE='55000',MESSAGE='native statutory property location disappeared before lock'; END IF;
+
+  -- Separate command in this VOLATILE wrapper obtains a fresh READ COMMITTED
+  -- snapshot after any wait. Exact transport bytes preserve insertion hashes.
+  SELECT g.* INTO STRICT v_after FROM public.read_india_native_statutory_root_graph(
+    p_tenant,p_property,p_reservation,p_folio,p_valuation,p_supplier_location,p_supplier_status,p_supplier_sez,
+    p_recipient_registration,p_recipient_sez,p_classification,p_native_invoice_source,p_family_jurisdiction) g;
+  IF v_before.prepared_source_json IS DISTINCT FROM v_after.prepared_source_json
+      OR v_before.service_supply_nature_json IS DISTINCT FROM v_after.service_supply_nature_json
+      OR v_before.service_supplier_sez_status_id IS DISTINCT FROM v_after.service_supplier_sez_status_id
+      OR v_before.service_recipient_sez_status_id IS DISTINCT FROM v_after.service_recipient_sez_status_id THEN
+    RAISE EXCEPTION USING ERRCODE='55000',MESSAGE='native statutory source graph changed during ordered locking';
+  END IF;
+  RETURN QUERY SELECT v_after.prepared_source_json,v_after.service_supply_nature_json,
+    v_after.service_supplier_sez_status_id,v_after.service_recipient_sez_status_id;
+END;
+$$;
+ALTER FUNCTION public.lock_india_native_statutory_source_graph(uuid,uuid,uuid,uuid,uuid,uuid,uuid,uuid,uuid,uuid,uuid,text,text) OWNER TO yellow_owner;
+REVOKE ALL ON FUNCTION public.lock_india_native_statutory_source_graph(uuid,uuid,uuid,uuid,uuid,uuid,uuid,uuid,uuid,uuid,uuid,text,text) FROM PUBLIC,app_role,yellow_runtime;

@@ -4,12 +4,13 @@
 **Phase:** 7 · YF-008, YF-009, YF-023
 **Implementation base:** `591ace8` (includes the complete Order432 current-catalogue repair)
 
-**Latest implementation checkpoint:** [D1357 — private statutory and quoted-tax reconstruction](#private-statutory-and-quoted-tax-reconstruction--d1357).
-The one-transaction command is wired; private timing, dual-date statutory and
-quoted/final-tax reconstruction have bounded executable database proof.
-Complete SQL preparation/authentication, actual accounting/commit and final
-independent acceptance remain unfinished. This checkpoint is not enabled in the
-retained local app.
+**Latest implementation checkpoint:** [D1362 — preparation locks and persisted tax projection](#preparation-locks-and-persisted-tax-projection--d1362).
+The one-transaction command is wired. Private timing/statutory readers, tax-row
+persistence and exact persisted-projection checks have bounded database proof.
+The current-transaction authenticator is now draft code, not positively proved
+through the governed runtime. Complete outer preparation, remaining source locks,
+actual accounting/commit/replay and final independent acceptance are unfinished.
+This checkpoint is not enabled in the retained local app.
 
 **Date:** 2026-09-05
 
@@ -20,6 +21,23 @@ retained local app.
 **Draft owner:** Codex `/root/order430_complete_provenance`
 
 **Independent reviewer:** a different non-implementing Tier3 agent, assigned after implementation
+
+**Current private integration contracts — D1361:** issuer authority locks stabilize
+the complete qualifying grant graph in deterministic table/key order; the private
+persisted-tax projection checker compares both parents and all four child sets
+against fresh canonical sources. The two-UUID preparation authenticator must
+reconstruct actual current-transaction roots, request, series and D1360 source
+basis; it is not a durable completed-receipt replay reader. These remain inside
+the already scoped preparation draft and admitted tests, with no runtime grant.
+
+For the native write branch, after all source/day/series locks, acquire D99 and
+publish the accounting-request event before inserting timing/applicability/tax.
+The timing row's event identity is non-null; its generated event UUID can be
+allocated before publication, but the event sequence is allocated under D99.
+D1360 excludes the sequence and payload hash, so this has no circular preimage.
+The financial handler and final document/receipt still share that transaction.
+This clarifies the earlier logical list of effects; it does not allow partial
+commit, additional public capability or a source-authentication placeholder.
 
 **Bounded technical checks:** completed against existing outbox, correction,
 transfer and catalogue sources on2026-09-05; decisions below are an implementation
@@ -623,6 +641,13 @@ The coordinator is the selected dedicated-Tx composition root, not a new generic
 command framework. No new table beyond the two named above is admitted without a
 scope amendment. Kernel event/consumer source is a read-only reuse target.
 
+Question192 explicitly adds the preparation integration and invoice-issuance
+test paths below for D1359/D1360. Separate workers own named functions in the
+shared preparation fragment: day/series and source writers insert before the
+existing quoted-tax composer; root appends source-basis/authentication helpers.
+Each uses targeted patches, never edits another worker's function body and
+never rewrites the whole file.
+
 D1346 / Question190 also admits two exclusive, non-runnable0076 implementation
 fragments: `handoff/drafts/order434/0076-native-preparation.sql` and
 `handoff/drafts/order434/0076-native-accounting.sql`. The D1350 checkpoint explicitly
@@ -678,6 +703,8 @@ proof targets; attach authoritative guards in the new migrations.
 ```text
 tests/india-native-fiscal-source-completion.test.ts
 tests/india-native-fiscal-source-completion.integration.test.ts
+tests/india-native-fiscal-preparation.integration.test.ts
+tests/india-native-fiscal-invoice-issuance.test.ts
 tests/india-gst-accommodation-ordinary-regime-evidence.integration.test.ts
 tests/india-gst-accommodation-source-intake.test.ts
 tests/india-native-fiscal-accounting.integration.test.ts
@@ -1560,3 +1587,58 @@ schema/referee and real issuance/concurrency/compatibility proofs, then fresh
 non-implementing Tier3 acceptance. D1349 certifies only the preceding1499faa
 published CI. This checkpoint is implementation progress, not Order434/Phase7
 completion, main integration or a refreshed local app.
+
+## Preparation locks and persisted tax projection — D1362
+
+Implemented in the existing private drafts, without runtime grants or promotion:
+
+- Dual-date statutory source locks: deterministic SHARE groups, both real dated
+  status pairs, drift rejection and actual row-lock contention/release proof.
+- Issuer-authority and day/series/tail lock helpers: existing strict runtime
+  authority, property-local clock/FY, deterministic source locking and no number
+  allocation. Installed metadata and static contracts pass; their live positive
+  flow must be exercised through the genuine outer preparation, not a test grant.
+- D1360 source basis: exact acyclic 20-key context, eight-key series identity and
+  complete source artifacts, independently verified canonical preimage/SHA256.
+- Native timing/applicability/tax writer plus typed parent and exact four-child-set
+  projection checker. Both ordinary and genuine rate-change cases use original
+  source records, compare complete rows, and deliberately roll back before the
+  unchanged deferred whole-issuance constraints. This proves the write set, not
+  an issued invoice or event/accounting commit.
+- Current-transaction authenticator: actual authority, timing, intake, valuation,
+  dual-date statutory source, semantic request and configured series are reread;
+  the complete basis and typed persisted projections are compared. This is draft
+  implementation with independent source inspection and private-metadata proof;
+  a successful governed runtime invocation is not yet claimed.
+
+Root personally applied the final preparation fragment atomically and ran the
+four focused files with both explicit require-database flags and the existing
+loopback deploy/runtime URLs: **68 passed, 0 failed, 793 assertions**, 40.85s.
+Non-implementer `/root/native_source_sql` personally ran the then-current basis
+and accounting/projection suites: **36 passed, 0 failed, 449 assertions**, 6.43s.
+The final root run adds two authenticator contract/metadata checks and includes
+the statutory/source and authority/day-series static suites. Results and exact
+limits are recorded in the review notes; none is final Tier3 acceptance.
+
+Final preparation SHA256:
+`8007fbd4b18e53001d0a4904640745d9303aa9bb71ac4b88d651397348f46511`.
+Statutory SHA256:
+`367f83ffe459af5d5099186aa67b0ee207f6614b9e879d8a376046b9ffbddf79`.
+All 74 runnable migrations, draft0075 and the accounting fragment are unchanged.
+The existing synthetic database remained 75 migration records / 127 public tables;
+root observed zero other sessions, stopped it and verified port55502 closed.
+No local app, real hotel data, Docker, dependency or new worktree was changed.
+
+Next: finish the remaining valuation/buyer/approval/intake/extension lock graph
+and outer prepare; prove the real authenticator under existing runtime authority;
+wire same-transaction event/accounting, final number/document/receipt commit and
+authorized permanent replay. Then complete all76-migration schema/referee and
+issuance/compatibility/concurrency proof plus independent Tier3 acceptance.
+The 18-phase scope and 11→13→17 priority remain unchanged.
+
+Final standing regression: **1,535 passed, 1,130 explicit environment skips,
+0 failed,21,296 assertions**,2,665 tests/476 files,88.01s. Typecheck,167-file import
+boundaries,23-package licence policy,audit and diff checks passed. The first full
+run hit one Windows Chromium `DevToolsActivePort` EBUSY (1,534 passes); root's
+unchanged complete rerun above passed. The failure remains disclosed, not counted
+as an initial green result. No browser test or assertion was weakened.
