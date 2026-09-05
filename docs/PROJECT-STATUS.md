@@ -26,8 +26,8 @@ person for ordinary development.
 | Surface | Current candidate truth | Required next evidence |
 |---|---|---|
 | GitHub `main` | Older integrated application at `2e55b884`; its newer status documentation points to development work | Reviewed merge commit and post-merge CI |
-| Consolidation branch | Based on PR80 development commit `ed6a07ee`; Orders438/439 are being applied here | Exact reviewed head, green required suites and reviewer verdict |
-| GitHub work queue | 57 superseded or archived PRs were closed during consolidation; PRs 75, 76, 78, 79 and 80 remain, with PR80 carrying the current candidate | Preserve distinct refs/evidence and reconcile the four non-current PRs without discarding unique work |
+| Consolidation branch | Preserves PR80 through `6a7cd8a4`; Orders438/439 are verified on `phase-7/codex-consolidated-release` | Exact reviewed head, green required suites and reviewer verdict; first CI found launcher/fixture setup failures, which remain recorded |
+| GitHub work queue | 57 superseded or archived PRs were closed during consolidation; PRs 75, 76, 78, 79 and 80 remain, with the consolidation branch carrying the candidate | Preserve distinct refs/evidence and reconcile the four non-current PRs without discarding unique work |
 | Database migrations | Candidate now includes proposed forward migration `0075`, which revokes the unapproved `0074` issue capability; the expected public-table census remains 125 | Fresh/upgrade/no-op proof, exact ACL denial, normalized schema and independent 125-table verification |
 | Local app | A desired endpoint and historical receipts exist; this workspace does not prove the founder's retained app serves the candidate | Serving commit/build receipt, health, authentication and usable synthetic journey |
 | Cloud app | No approved target, credential, immutable image digest, deployment receipt or public URL has been established | Green release workflow plus an explicitly configured target and deployment receipt |
@@ -42,7 +42,7 @@ container build, merge and deployment are separate events.
 | Phases 0–3, 5 and 6 | Independently reviewed | Recorded review exists for their accepted scopes; later changes still need regression proof |
 | Phase 4 | Built; integration review outstanding | Preserve the implementation and close its remaining integration evidence |
 | Phase 7 operational flows | Release candidate | PR80 contains substantial working PMS, stay, folio, payment, approval and fiscal-support flows; Orders438/439 determine release eligibility |
-| Order434 native fiscal issuance | Preserved, unfinished and unreleased | D1371 includes large invoice/replay and correction/transfer concurrency evidence; inverse schedules, other authority/history cases, full 0076/0077 assembly, fresh/upgrade proof and independent Tier-3 acceptance remain |
+| Order434 native fiscal issuance | Preserved, unfinished and unreleased | D1371 and the Order434 D1372 checkpoint include large invoice/replay, correction/transfer concurrency, tax-history and durable-delivery evidence; inverse schedules, other authority/history cases, full 0076/0077 assembly, fresh/upgrade proof and independent Tier-3 acceptance remain |
 | Phases 8–17 | Planned | Requirements and architecture are retained; documentation is not shipped behavior |
 
 The roadmap contains **18 phases, numbered 0–17**. The founder's highlighted feature

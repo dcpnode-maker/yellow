@@ -808,3 +808,108 @@ direct derived record, commit, push, merge or deployment was performed.
 This is bounded independent proof of the current completion integration suite and
 combined 500-root/366-night maximum only. It does not approve all of Order434 or
 Phase7, promote migration0076, refresh local, merge or deploy.
+
+## Independent concurrent invoice-first transfer execution — 2026-09-06
+
+Non-implementer `/root/native_closed_review` inspected frozen source-lock integration
+SHA-256 `daf3024cd16ea495af9b09fd8b1542717511c8824761cd0b039847be50d8b38b`.
+The added positive- and rounded-zero-tax cases run the actual native issuer and actual
+folio-transfer service on distinct PostgreSQL backends. A transaction barrier pauses
+the issuer after its real command but before COMMIT; `pg_blocking_pids` must name that
+exact issuer as the transfer waiter's sole blocker, while the issuer has no blocker,
+the waiter has a non-granted lock and has not acquired the D99 publication advisory
+lock. The polling loop observes database state only and does not retry or restart
+either application operation.
+
+Before release, separate-session censuses require the entire invoice and financial
+baseline to remain invisible. After issuer COMMIT, the transfer must reject with exact
+SQLSTATE `55000` and message ancestry `issued India native fiscal posting ancestry is
+immutable`. The test exact-compares the invoice effect census, financial census,
+folio/account/root identity hashes and both folio balances, then requires immutable
+invoice replay and an unchanged final census. Thus it does not accept a generic error,
+a successful loser or hidden transfer effects. Barrier and both original promises are
+settled in `finally`.
+
+The initially suggested shorthand pattern `concurrent transfer waits` matched zero
+tests; no database test ran and the four temporary grants were revoked. The reviewer
+then used the verified exact-name substring, with mandatory native database flags and
+only Question192's exact four functions temporarily granted to `app_role` in a
+PowerShell `try/finally`:
+
+```powershell
+bun test tests/india-native-fiscal-source-locks.integration.test.ts `
+  --test-name-pattern 'concurrent folio transfer waits'
+```
+
+Result: **1 passed, 0 failed, 15 filtered, 28 assertions**, 5.38 seconds (test body
+5149.77ms). The file hash remained identical after execution.
+
+All four grants were revoked unconditionally. A final default-aware
+`aclexplode(coalesce(proacl,acldefault('f',proowner)))` audit, including grantee `0`,
+proved PUBLIC, `app_role` and `yellow_runtime` EXECUTE false for those four functions
+and the Question193 approval helper. Zero other database sessions remained. No
+lifecycle action, SQL/product/test implementation edit, wrapper, extra grant, direct
+derived record, commit, push, merge or deployment occurred.
+
+This is bounded evidence for the invoice-before-COMMIT concurrent folio-transfer
+schedule only. It does not characterize arbitrary simultaneous races, approve the
+whole order or phase, or authorize migration promotion.
+
+## Independent focused timing, rate and regression execution — 2026-09-06
+
+Non-implementer `/root/native_closed_review` inspected the later frozen native
+preparation additions. The real inline-accounting case supplies an observation port
+that delegates both invocations to `IndiaNativeFiscalAccountingEventHandler`; it
+does not replace handler SQL or financial behavior. It proves the initial handler
+call and repeated delivery use the same connection and transaction ID, the binding
+exists before any document/origin or series consumption, and the repeated delivery
+is an effect-free handler replay. The committed outbox order is exact: request,
+binding, optional positive-tax journal, then document, with a common transaction
+clock and request causation. It then deletes only the exact synthetic request event
+after proving no consumer dependency and requires both permanent handler replay and
+invoice replay with an unchanged retained census.
+
+The 30/31-calendar-day case dates only original service/payment facts from the real
+property-local PostgreSQL clock. It leaves the invoice command clock untouched and
+exact-compares issue/document/clock/service/deadline/receipt/supply/statutory dates,
+timely status, timezone, current-transaction source kind, ordinary Section13 rate
+kind, monetary totals, financial balances, full effect census, number advance and
+effect-free permanent replay for both sides of the boundary. No bounded static
+finding was found.
+
+Using the isolated PostgreSQL16.15 database, mandatory native database flags and
+only Question192's exact four temporary `app_role` grants inside a PowerShell
+`try/finally`, the reviewer personally ran the three files with:
+
+```powershell
+bun test tests/india-native-fiscal-preparation.integration.test.ts `
+  tests/india-native-fiscal-completion.integration.test.ts `
+  tests/india-native-fiscal-source-locks.integration.test.ts `
+  --test-name-pattern 'real inline accounting replay|exact 30-calendar-day|approved predecessor 12%|every supported positive component family|issues after a committed genuine|issues against the governed destination|concurrent folio transfer waits'
+```
+
+Result: **7 passed, 0 failed, 47 filtered, 124 assertions**, 32.49 seconds. This
+personally covers the new real inline-handler/replay case, exact 30/31-day timing,
+authentic approved-predecessor 12% and upper-slab 18% history, all supported positive
+component families, committed correction-first and transfer-first issuance, and the
+separate two-backend invoice-before-COMMIT transfer rejection. The already-proved
+500-root/366-night maximum was intentionally not repeated for these test-only
+additions.
+
+All four files were byte-stable before and after execution:
+
+- preparation integration: `7e66a0b98c4733585b4025d80cb5d3013f0bdb4b4dc6e9b2e044cfd6aa4ecd7c`
+- completion integration: `f732a1400cbad5db5e7f31cef841e97aa24a002cdc6ce71be9194562d55f672`
+- shared fixture: `347e97e359684d9fc494952b46f8a67253d55a2a2ce5f9f6fd8ccb919ea481ad`
+- source-lock integration: `daf3024cd16ea495af9b09fd8b1542717511c8824761cd0b039847be50d8b38b`
+
+The grants were revoked unconditionally. A final default-aware
+`aclexplode(coalesce(proacl,acldefault('f',proowner)))` audit, including grantee `0`,
+proved PUBLIC, `app_role` and `yellow_runtime` EXECUTE false for the four invoice
+functions and Question193 helper. Zero other sessions remained. No database lifecycle
+action, production SQL/source edit, wrapper, extra grant, direct derived record,
+commit, push, merge or deployment occurred.
+
+This is bounded independent evidence for the seven selected cases only. It does not
+approve Order434 or Phase7, replace the earlier maximum proof, or authorize migration
+promotion.

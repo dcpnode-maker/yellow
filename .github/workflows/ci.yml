@@ -379,21 +379,19 @@ jobs:
         run: |
           set -euo pipefail
           docker compose exec -T postgres psql --username yellow_deploy --dbname postgres --set ON_ERROR_STOP=1 \
-            --command 'CREATE DATABASE yellow_ci_compatibility'
-          export YELLOW_DEPLOY_DATABASE_URL="postgres://yellow_deploy:${YELLOW_DEPLOY_DATABASE_PASSWORD}@${POSTGRES_ADDRESS}/yellow_ci_compatibility"
-          export YELLOW_RUNTIME_DATABASE_URL="postgres://yellow_runtime:${YELLOW_RUNTIME_DATABASE_PASSWORD}@${POSTGRES_ADDRESS}/yellow_ci_compatibility"
-          export YELLOW_FOLIO_TRANSFERS_URL="$YELLOW_RUNTIME_DATABASE_URL"
-          export YELLOW_ORDER400_DATABASE_URL="$YELLOW_DEPLOY_DATABASE_URL"
-          export YELLOW_ORDER400_RUNTIME_DATABASE_URL="$YELLOW_RUNTIME_DATABASE_URL"
-          export YELLOW_ORDER367_DATABASE_URL="$YELLOW_DEPLOY_DATABASE_URL"
-          export YELLOW_ORDER367_RUNTIME_DATABASE_URL="$YELLOW_RUNTIME_DATABASE_URL"
+            --command 'CREATE DATABASE yellow_ci_compatibility_unseeded'
+          export YELLOW_DEPLOY_DATABASE_URL="postgres://yellow_deploy:${YELLOW_DEPLOY_DATABASE_PASSWORD}@${POSTGRES_ADDRESS}/yellow_ci_compatibility_unseeded"
           export YELLOW_REQUIRE_PHASE5_JOURNEY=1 YELLOW_REQUIRE_FOLIO_TRANSFERS=1
           export YELLOW_REQUIRE_POSITIVE_TAX_CORRECTION=1 YELLOW_REQUIRE_ORDER408_DATABASE=1
           export YELLOW_REQUIRE_BUSINESS_DAY_SEAL=1 YELLOW_REQUIRE_STAY_CHECKIN=1
           export YELLOW_REQUIRE_CHECKOUT=1 YELLOW_REQUIRE_SECURITY_DEFINER=1
           bun run db:migrate
+          docker compose exec -T postgres psql --username yellow_deploy --dbname postgres --set ON_ERROR_STOP=1 \
+            --command 'CREATE DATABASE yellow_ci_compatibility TEMPLATE yellow_ci_compatibility_unseeded'
+          export YELLOW_DEPLOY_DATABASE_URL="postgres://yellow_deploy:${YELLOW_DEPLOY_DATABASE_PASSWORD}@${POSTGRES_ADDRESS}/yellow_ci_compatibility"
           bun run db:seed
-          bun test \
+          proof_index=0
+          for proof_file in \
             tests/phase-5-financial-journey.integration.test.ts \
             tests/financial-folio-transfers.integration.test.ts \
             tests/positive-tax-correction.integration.test.ts \
@@ -403,7 +401,28 @@ jobs:
             tests/stay-checkout.integration.test.ts \
             tests/security-definer-containment.integration.test.ts \
             tests/india-gst-accommodation-quoted-rate-applicability-recording.integration.test.ts \
-            tests/india-gst-accommodation-final-component-tax-recording.integration.test.ts
+            tests/india-gst-accommodation-final-component-tax-recording.integration.test.ts; do
+            proof_index=$((proof_index + 1))
+            proof_database="yellow_ci_compat_${proof_index}"
+            case "$proof_file" in
+              tests/india-gst-accommodation-quoted-rate-applicability-recording.integration.test.ts|tests/india-gst-accommodation-final-component-tax-recording.integration.test.ts)
+                proof_template=yellow_ci_compatibility_unseeded ;;
+              *) proof_template=yellow_ci_compatibility ;;
+            esac
+            docker compose exec -T postgres psql --username yellow_deploy --dbname postgres --set ON_ERROR_STOP=1 \
+              --command "CREATE DATABASE \"${proof_database}\" TEMPLATE \"${proof_template}\""
+            export YELLOW_DEPLOY_DATABASE_URL="postgres://yellow_deploy:${YELLOW_DEPLOY_DATABASE_PASSWORD}@${POSTGRES_ADDRESS}/${proof_database}"
+            export YELLOW_RUNTIME_DATABASE_URL="postgres://yellow_runtime:${YELLOW_RUNTIME_DATABASE_PASSWORD}@${POSTGRES_ADDRESS}/${proof_database}"
+            export YELLOW_FOLIO_TRANSFERS_URL="$YELLOW_RUNTIME_DATABASE_URL"
+            export YELLOW_ORDER400_DATABASE_URL="$YELLOW_DEPLOY_DATABASE_URL"
+            export YELLOW_ORDER400_RUNTIME_DATABASE_URL="$YELLOW_RUNTIME_DATABASE_URL"
+            export YELLOW_ORDER367_DATABASE_URL="$YELLOW_DEPLOY_DATABASE_URL"
+            export YELLOW_ORDER367_RUNTIME_DATABASE_URL="$YELLOW_RUNTIME_DATABASE_URL"
+            printf 'Isolated compatibility proof: %s\n' "$proof_file"
+            bun test "$proof_file"
+            docker compose exec -T postgres psql --username yellow_deploy --dbname postgres --set ON_ERROR_STOP=1 \
+              --command "DROP DATABASE \"${proof_database}\" WITH (FORCE)"
+          done
 
       - name: Create fresh acceptance databases
         shell: bash

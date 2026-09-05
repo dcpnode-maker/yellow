@@ -25,7 +25,7 @@ is a preserved, unfinished and unreleased repair under D1330: the first native i
 external-invoice prerequisite, with persisted provenance, actual-date atomic
 issuance and no duplicate revenue. The complete order is not independently approved or released.
 Its runtime now issues ordinary, rounded-zero and genuine rate-change invoices.
-The latest bounded independent proof also verifies permanent replay after payment,
+Earlier bounded independent proof also verifies permanent replay after payment,
 folio and day closure, and 100 distinct invoices sharing one series: 11 passed,
 0 failed,897 assertions. Order434 records the remaining acceptance conditions.
 The D1368 checkpoint additionally proves two-night CGST/SGST, CGST/UTGST and
@@ -46,6 +46,13 @@ one account-query attempt failed42703, and its corrected successor timed out at
 300002.72ms after16 passes/162 assertions. D1370 made item serialization linear
 without weakening the deadline or assertions; root's final optimized maximum-only
 proof passed1/0 with8 assertions in283.61s.
+The D1372 continuation proves actual invoice-first concurrent folio transfer,
+approved predecessor12% and upper-slab18% histories, exact30/31-calendar-day
+timeliness, and real same-transaction accounting-handler replay. Completed handler
+delivery and invoice replay remain effect-free after the exact synthetic original
+request event is retained away. Independent focused execution passed7/0 with124
+assertions; the complete environment-cleared suite passed1560/0 with1165 explicit
+database/environment skips. No production tax policy or clock was changed.
 These are bounded additions, not full acceptance: remaining simultaneous winner/
 authority schedules, rate/history cases and migration0076 integration remain open.
 This status does not claim IRP completion, Phase 7 completion or a local promotion.

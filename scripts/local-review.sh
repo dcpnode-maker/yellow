@@ -118,6 +118,8 @@ export YELLOW_RESERVATION_DEPARTURE_ROLL_WORKER=1
 export YELLOW_BUSINESS_DAY_ROLL_WORKER=1
 
 ./setup.sh --db-only
+compose --profile tools build seed
+compose --profile tools run --rm seed bun scripts/seed.ts
 compose --profile tools run --rm \
   -e YELLOW_REVIEW_PASSWORD -e YELLOW_REVIEW_APPROVER_PASSWORD \
   seed bun scripts/seed-review.ts

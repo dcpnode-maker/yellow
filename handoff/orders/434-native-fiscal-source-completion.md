@@ -4,7 +4,7 @@
 **Phase:** 7 · YF-008, YF-009, YF-023
 **Implementation base:** `591ace8` (includes the complete Order432 current-catalogue repair)
 
-**Latest implementation work:** [Corrected/transferred source issuance and the combined maximum](#correctedtransferred-source-issuance-and-the-combined-maximum).
+**Latest implementation work:** [Transfer concurrency, rate histories and durable accounting delivery](#transfer-concurrency-rate-histories-and-durable-accounting-delivery).
 The actual runtime command now commits an ordinary, rounded-zero-tax or genuine
 rate-change invoice from real charge, intake and valuation sources, without
 reposting revenue. Source locks, preparation authentication, accounting and final
@@ -16,7 +16,7 @@ sharing a gapless invoice series. This is bounded proof, not
 complete Order434 acceptance. Remaining acceptance and migration integration are
 listed below. The retained local app is unchanged.
 
-**Date:** 2026-09-05
+**Date:** 2026-09-06
 
 **Risk:** Tier3 — fiscal chains, new persisted evidence, migrations, accounting, numbering and RLS
 
@@ -1948,6 +1948,59 @@ bound cases, inverse and other simultaneous winner/authority schedules, full0076
 assembly with fresh/upgrade/schema/referee/legacy proof, and complete Tier3 acceptance.
 No local refresh, main merge, IRP/provider activation or phase completion is claimed.
 
+## Transfer concurrency, rate histories and durable accounting delivery
+
+D1372 adds four bounded integration cases using genuine existing services:
+
+- Invoice-first concurrent folio transfer for positive and rounded-zero tax.
+  Destination and preview precede the invoice. The separate transfer connection
+  waits behind the actual issuer, does not hold D99, then receives55000 immutable
+  posting-ancestry denial. Exact root/folio/account identities and winner-only
+  balances, events, documents and numbering remain intact. This does not prove
+  the inverse transfer-first race or a post-commit stale-preview schedule.
+- Existing predecessor12% history on2025-09-20 and the upper18% slab, using only
+  explicit synthetic booking-quote rates and actual governed charge/intake/
+  valuation/issuance. Production history remains authoritative. The predecessor
+  selects genuine Section14/predecessor; current ordinary18% correctly has a null
+  selected-version side. Exact components, totals, balances and replay are checked.
+  Omitted fixture options retain the existing5% behavior in every helper/cohort.
+- The exact30-calendar-day deadline and one day late, with original service and
+  payment facts dated relative to PostgreSQL's real property clock. The actual
+  invoice clock is not overridden. Persisted document/native issue dates, statutory
+  status dates, ordinary time-of-supply choice, totals, census and replay agree.
+- The real accounting handler executes twice on the same Tx/backend before the
+  document is written: the first creates its one binding, the second replays with
+  no effects. Actual request→binding→optional journal→document outbox order and
+  common transaction clock are checked. After COMMIT and after removing only the
+  synthetic original request event by its permanent timing/document linkage,
+  completed accounting delivery and invoice replay remain effect-free. No consumer
+  cursor, permission, financial record or immutable document is deleted or changed.
+
+Independent `/root/native_closed_review` inspected and personally ran the exact
+seven-case focused selection (these additions plus family/correction/transfer
+regressions):7 passed,0 failed,124 assertions,47 filtered,32.49s. Root timing1/0(8)
+and inline-delivery1/0(38) also pass; the rate implementer ran1/0(8). The earlier
+rate fixture was correctly rejected22023 for an unnecessary calendar on a safe
+receipt; removing only that incompatible input preserves the production guard.
+The ordinary-side test expectation and its nullable type were corrected from the
+actual stored contract. No production SQL or tax policy changed in this continuation.
+
+Final complete environment-cleared regression:1560 passed,1165 explicit database/
+environment skips,0 failed,21543 assertions across2725 tests/479 files,92.73s.
+Skips and filtered cases are not executed database proof. Typecheck,167 import
+boundaries,23-package licence policy,audit and diff checks pass. All five temporary
+capabilities are finally private from PUBLIC/app_role/yellow_runtime under default-
+aware ACL inspection; zero other sessions remained after the focused proof.
+
+Published predecessored6a07e was verified on GitHub with all four jobs green in
+CI33984192939. Root personally read database101354795615's11 passed,0 failed of11
+at2026-09-05T18:34:24.2521160Z. That certifies its74-runnable-migration checkpoint,
+not the unassembled76-migration candidate or this subsequent test-only work.
+
+Order434 remains active: inverse/authority/publication/direct-bill schedules,
+remaining bounds/calendar acceptance, full0076 assembly and fresh/upgrade/schema/
+referee/legacy proof and complete Tier3 acceptance are still required. There is
+no main merge, local app refresh, IRP activation or phase/order completion.
 
 ## Order438/439 integration boundary — 2026-09-05
 
