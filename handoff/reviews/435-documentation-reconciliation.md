@@ -85,3 +85,31 @@ the referee. Order436 now scopes their test-only repair. After the founder's fur
 clarification, Order435 explicitly extends main publication to 20 current Markdown
 documents with pinned development-provenance notices and correct source links.
 This supersedes the README-only publication plan above, not its historical receipt.
+
+## Independent default-branch integration completed — D1334
+
+- [PR81](https://github.com/dcpnode-maker/yellow/pull/81) merged normally at
+  2026-09-05 01:33:30 UTC; main is `2e55b88488300b1d4efb551f8ec79698dbb52dad`.
+- Exact candidate: `307ab0cfaf2e8f1685b8bd5f8b42f7283adb312d`; source for the
+  documentation snapshot: `61dbeea6f2e0eac764ff177d33d8a6f8ac36103e`.
+- Fresh non-implementing agent `/root/main_docs_integration` independently checked
+  the 20-document plus one-test-fixture allowlist, diff whitespace, 20/20 semantic
+  source matches after removing disclosure notices/link destinations, 137 local
+  and 114 pinned link targets with zero missing.
+- Personally executed native proof: 39 passed, 7 unavailable-DB skips, 0 failed,
+  377 assertions; typecheck passed and 63 boundaries passed.
+- [Exact-candidate CI33936329169](https://github.com/dcpnode-maker/yellow/actions/runs/33936329169)
+  passed all four jobs; the reviewer verified the complete DB transcript and
+  canonical referee result: 11 passed, 0 failed of 11. No skipped local case was
+  represented as database proof.
+- [Independent review receipt](https://github.com/dcpnode-maker/yellow/pull/81#issuecomment-5548440795).
+  Normal merge, no admin override, no self-review or self-merge.
+- Root independently queried PR81, remote `commits/main`, decoded main README and
+  inspected all 21 changed paths after the merge. The actual default branch now
+  contains the updated original project documents, not merely a development PR.
+
+This closes documentation publication and the main-only clock fixture. It does
+not integrate PR80 application code, approve Order430/434, advance Phase7 or
+refresh the local app. Dirty canonical main was preserved. A later full-code
+integration must reconcile the main snapshot disclosures against its actual
+integrated revision instead of silently retaining or removing stale notices.

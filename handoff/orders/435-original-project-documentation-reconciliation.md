@@ -1,6 +1,6 @@
 # Order 435 — Reconcile original project documentation and GitHub publication truth
 
-**Status:** ORIGINAL DOCUMENTATION RECONCILED — publication and main integration tracked separately
+**Status:** COMPLETE — 20 current documents independently merged into GitHub main through PR81 — D1334
 **Date:** 2026-09-05
 **Phase:** Cross-phase documentation supporting the existing 18-phase plan
 **Owner:** Codex primary coordinator with bounded documentation workers
@@ -105,3 +105,19 @@ Order436 separately admits the single expired quote-test fixture repair needed b
 main CI. The combined candidate is documentation plus a test fixture, never described
 as README-only or as current product-code integration. No default-branch swap,
 unapproved fiscal merge or independent-proof waiver is permitted.
+
+## Completed publication — 2026-09-05
+
+PR81 was independently merged at 01:33:30 UTC. Remote main is
+`2e55b88488300b1d4efb551f8ec79698dbb52dad`; its exact reviewed candidate was
+`307ab0cfaf2e8f1685b8bd5f8b42f7283adb312d`. All 20 original/current Markdown
+documents are now on the default branch, sourced from development `61dbeea` with
+visible source notices. The only non-document change is Order436's test fixture.
+All four CI jobs passed, including the canonical referee's 11 passed, 0 failed.
+The non-implementing integration agent personally executed focused checks and
+verified the full CI transcript before a normal, non-admin merge. Root then
+verified the remote main SHA, README contents and exact changed-file list.
+
+Application-code integration remains separate. Dirty local main and the local app
+were not modified. Earlier README-only and pending-publication statements above
+are historical checkpoints, superseded by this completed receipt.
