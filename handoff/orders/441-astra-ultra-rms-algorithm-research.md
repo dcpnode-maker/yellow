@@ -74,3 +74,36 @@ A delivered paper is a research checkpoint only. Algorithm implementation,
 benchmark results, paid/partner access and live pricing each require their own
 explicit scope and proof. The app remains incomplete until the build plan's actual
 functional gates pass; this order does not change that truth.
+
+## Independent research correction receipt — 2026-09-05 UTC
+
+The Codex coordinator ported a narrow correction onto PR85 base
+`fee23d5732b5dcceb9c29118f87a35199c9fda10`. The original portfolio and delivery hash
+above remain historical evidence. The corrected report SHA-256 is
+`bd7c8d707556d458aab475b3eb21c8dd4b7ca7b1918c5fdf955f035febd92126`.
+
+- B0 and H1 now explicitly share mature actual occupied room-nights as their target,
+  including no-shows and room/stay amendments. The cohort formula uses actual
+  occupied rooms per survivor, preserves joint dependence and prohibits future
+  labels from becoming prediction features.
+- The Gibbs–Candès citation supports sequential interval adaptation with observed
+  outcomes; the report does not transfer its guarantee to asynchronously maturing
+  hotel labels. The first experiment freezes calibration per prediction window.
+- Doubly robust evaluation may use known or estimated behavior probabilities.
+  Exact propensity logging is Yellow's proposed readiness rule, not a universal
+  requirement of the cited method; support and identification remain necessary.
+- The FTC/DOJ hotel-pricing example is explicitly US-scoped and does not establish
+  legal clearance or a legal conclusion for India or another launch market.
+
+Independent reviewer `commercial_staff_research` personally inspected the exact
+ported diff and hash, reopened the Gibbs–Candès abstract and full paper, the
+Dudík–Langford–Li paper and the FTC/DOJ statement, and approved the correction with
+no remaining material finding. The reviewer also checked dimensional consistency,
+label maturity and the absence of the withdrawn Order442/443 and unrelated
+Question198/199 references. The coordinator checked all six local document targets;
+none was missing. Both checked `git diff --check` successfully.
+
+This receipt covers research wording only. It changes no source, test, workflow,
+migration, current task or phase, and does not approve fiscal implementation or
+substitute for exact-head CI and independent integration. No experiment, hotel data,
+measured uplift, model training, provider activation or deployment occurred.

@@ -77,6 +77,11 @@ are separately labelled; zero occupancy yields an undefined ratio, not zero ADR.
 Compare contribution with the sum of nightly bid prices **or** subtract estimated
 displacement. Applying both to the same opportunity cost double counts it.
 
+The independent Order441 research review corrected the original report's B0/H1 target,
+delayed-feedback attribution and propensity wording below. The original Order441
+delivery hash remains historical evidence; these source-supported corrections do
+not represent a new experiment or a measured result.
+
 ## 3. Known methods worth comparing
 
 Let `N` be training cells/reservations, `p` features, `H` forecast dates, `A` allowed
@@ -85,7 +90,7 @@ Yellow performance; all candidates require tenant-local, versioned data.
 
 | Method | Concrete model and inputs | Cost, cold start and principal limitation |
 |---|---|---|
-| B0: seasonal/pace baseline | Current on-the-books nights plus mean historical net pickup at the same lead time, weekday and comparable season, with past-residual intervals; also retain seasonal-naive and unchanged operator pricing baselines. | Aggregation `O(N)`, lookup `O(H)`. Fall back to coarse property-season cells; no comparable history means labelled operator baseline. Prior closures or changed policy bias pickup. |
+| B0: seasonal/pace baseline | Current on-the-books room-nights plus the mean historical residual from that same-cutoff count to final actual occupied room-nights, at the same lead time, weekday and comparable season; intervals use those same matured residuals. The residual includes cancellations, no-shows and room/stay amendments. Also retain seasonal-naive and unchanged operator pricing baselines. | Aggregation `O(N)`, lookup `O(H)`. Fall back to coarse property-season cells; no comparable history means labelled operator baseline. Prior closures or changed policy bias pickup. |
 | K1: count forecast plus survival | Negative-binomial GLM for new bookings by booking-time/arrival-date/LOS/channel; partially pool sparse coefficients within authorized property data. Separate discrete-time cancellation hazard by booking age, remaining lead and refund-policy version; map surviving bookings across their nights. | Gradient fitting approximately `O(iterations × N × p)`; hazards cost reservation-time cells. Coarse priors support cold start but uncertainty stays wide. Event shocks, group dependence and unrecorded cancellations break naive calibration. |
 | K2: constrained price-response model | Monotone spline/logit on a bounded public offer-price grid; use displayed total stay price, policy, room/product attributes, choice set and exposure. Include outside/no-book choice and substitution among the property's offers. Optimize expected contribution. | Small models score about `O(Ap)` per context. No within-context price support means no elasticity-based recommendation. Monotonicity stabilizes estimates; it does not remove confounding or make observational elasticity causal. |
 | K3: network inventory value | Forecast future stay requests, solve a contribution LP over room-type × night capacities, then compare whole-stay contribution with consumed resources' dual prices. Replan over scenarios; retain feasible integer solutions for scarce inventory. | LP size grows with resources and stays; scenario work scales with `M`. Integer variants can grow exponentially: cap solve time and report bounds/gap. Weak demand history requires conservative scenarios. Hotel pooling helps; a unique STR listing violates large-capacity intuition. |
@@ -149,8 +154,12 @@ For new properties, use operator floors/base prices and coarse own-property prio
 borrow other owned-property information only under a separately authorized data
 contract. Independent competing hotels' confidential prices, future intentions and
 occupancy must not be shared or used for coordinated pricing. Permitted public
-comps may supply context, never a coordinated target. External weather, airport and
-event features need archived as-of forecasts, licence and expiry; missing feeds
+comps may supply context, never a coordinated target. Before admitting competitor-
+derived inputs, shared models or pricing feedback loops, obtain a review for the
+actual launch jurisdiction and design; public availability alone is not clearance.
+The US [FTC/DOJ hotel-pricing statement](https://www.ftc.gov/news-events/news/press-releases/2024/03/ftc-doj-file-statement-interest-hotel-room-algorithmic-price-fixing-case)
+illustrates this concern, not a legal conclusion for India or another market.
+External weather, airport and event features need archived as-of forecasts, licence and expiry; missing feeds
 trigger the documented fallback, not invented signals.
 
 ## 5. Three proposed combinations to falsify
@@ -162,20 +171,29 @@ not assertions of unique invention.
 
 For the first experiment, `newBookings` means future **accepted reservations before
 cancellation**, grouped by booking-time/arrival-date/LOS; it never means checked-in
-arrivals. Both B0 and H1 target final realized occupied room-nights under the
-observed booking policy. The decomposition is:
+arrivals. Both B0 and H1 target the same mature label: final actual occupied
+room-nights for stay date `d`, reconstructed from the property's governed stay
+evidence after cancellation, no-show and room/stay amendments have matured. Freeze
+the maturity rule and revision policy before fitting. A retained reservation is
+not itself evidence of occupancy. B0's historical residual ends at this label.
+The H1 decomposition must include actual occupancy after cancellation survival:
 
 ```text
-ExpectedOccupiedNights[d] = sum_active_i rooms[i,d] * P(i occupies d | history)
-  + sum_new_cohorts_j E[newBookings_j * survivalFraction_j] * rooms[j,d]
+ExpectedOccupiedNights[d] = sum_active_i E[actualOccupiedRooms_i[d] | history]
+  + sum_new_cohorts_j E[newBookings_j * survivalFraction_j
+                      * occupiedRoomsPerSurvivor_j[d] | history]
 Compare K1 and B0 on matured outcomes; calibrate intervals by lead bucket.
 If provenance, calibration or comparable-support checks fail: retain B0/abstain.
 ```
 
-Here each cohort has the same stay-night coverage and rooms per booking;
-`rooms[j,d]` is that **per-booking** room count covering night `d`, not the total
-rooms across the cohort. Survival is conditional on cohort/history and jointly
-modelled with booking counts.
+`occupiedRoomsPerSurvivor_j[d]` is the mean actual occupied-room contribution on
+night `d` per non-cancelled reservation in that cohort, defined as zero when none
+survive. It includes zero for no-shows and the effects of changed nights/room counts;
+it is not a cohort total. Existing bookings need the same effects. Counts, survival
+and conditional occupancy are jointly modelled; multiplying independent means is
+not justified. Features remain as-of observations, never future realized labels.
+If only cancellation labels can be reconstructed, this occupancy experiment is not
+data-ready; use a separately named reserved-night target and re-register both models.
 Capacity-inconsistent forecasts fail
 readiness rather than acquiring occupancy authority. Separately, replacing accepted
 bookings with unconstrained requests estimates latent retained demand, which can
@@ -185,10 +203,13 @@ censoring likelihood/sensitivity analysis; later feasible-sales scenarios requir
 the inventory owner's contract, without duplicating sellability calculations.
 
 This separates cancellation from new demand and prevents weak pace evidence from
-becoming a confident price recommendation. Delayed-label interval adaptation can
-follow [Gibbs and Candès (2021)](https://proceedings.nips.cc/paper_files/paper/2021/hash/0d441de75945e5acbc865406fc9a2559-Abstract.html).
-Long-run marginal coverage is not conditional coverage for tomorrow's event or a
-guarantee of narrow intervals. **Falsification:** ablate survival and pooling;
+becoming a confident price recommendation. [Gibbs and Candès (2021)](https://proceedings.nips.cc/paper_files/paper/2021/hash/0d441de75945e5acbc865406fc9a2559-Abstract.html)
+is a starting point for sequential interval adaptation with observed outcomes;
+its guarantee is not established here for asynchronously maturing hotel labels.
+The first experiment freezes calibration for each prediction window and scores only
+mature outcomes. Any later online adaptation needs an explicitly justified delayed-
+feedback method. Long-run marginal coverage is not conditional coverage for
+tomorrow's event or a guarantee of narrow intervals. **Falsification:** ablate survival and pooling;
 reject added complexity if untouched-window weighted interval score, bias and
 calibration do not improve over B0, especially on high-cancellation dates.
 
@@ -257,9 +278,13 @@ in a specified worst tail; report its level, uncertainty and sample size. It is 
 a loss guarantee.
 
 Historical replays cannot reveal bookings under unpublished prices. Off-policy
-[doubly robust evaluation](https://icml.cc/2011/papers/554_icmlpaper.pdf) needs logged
-action probabilities, support, valid causal assumptions and mature rewards; it
-does not cure hidden confounding or unsupported actions. Report effective sample
+[doubly robust evaluation](https://icml.cc/2011/papers/554_icmlpaper.pdf) combines
+reward and behavior-policy models, with known or estimated action probabilities.
+Reliability needs adequate action support, valid identification assumptions, mature
+rewards and sufficiently accurate reward or propensity modelling. Yellow proposes
+logging exact action probabilities as its own readiness rule; the cited method
+does not universally require exact logged propensities. It does not cure hidden
+confounding or unsupported actions. Report effective sample
 size and clipping sensitivity. Inventory-changing policies also need sequential
 evaluation; a one-step bandit estimator is insufficient.
 
