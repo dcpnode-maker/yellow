@@ -26,6 +26,8 @@ if (process.env.YELLOW_REQUIRE_ORDER434_DATABASE === "1" && (!deployUrl || !runt
 }
 const databaseDescribe = deployUrl && runtimeUrl ? describe.serial : describe.skip;
 type NativeSource = IndiaGstAccommodationNativeFinalValuationInput["sources"][number];
+const SUCCESSOR_EXTENSION = "0b21daf2-ea6e-5568-9c21-69e4d4424574";
+const D99_PUBLICATION_LOCK = "6441674055002974568";
 
 function source(postingRootId: string, negative = false): NativeSource {
   return Object.freeze({
@@ -74,6 +76,23 @@ function request(
     }),
     ...changes,
   });
+}
+
+function sqlState(error: unknown): string | undefined {
+  if (!error || typeof error !== "object") return undefined;
+  const candidate = error as { readonly errno?: unknown; readonly code?: unknown };
+  if (typeof candidate.errno === "string") return candidate.errno;
+  return typeof candidate.code === "string" ? candidate.code : undefined;
+}
+
+async function expectSqlState(operation: () => Promise<unknown>, expected: string): Promise<void> {
+  try {
+    await operation();
+  } catch (error) {
+    expect(sqlState(error)).toBe(expected);
+    return;
+  }
+  throw new Error(`Expected PostgreSQL SQLSTATE ${expected}`);
 }
 
 interface Census {
@@ -746,5 +765,155 @@ databaseDescribe("Order434 native valuation from governed consideration", () => 
     expect(await finalize(nextInput)).toEqual({ ...successor, replayed: true });
     expect(await census(fixture)).toEqual(completed);
     expect(completed).toMatchObject({ journals: 2, lines: 4, guest: "12000", revenue: "-12000", valuations: 2, sources: 3, nights: 2, allocations: 3, documents: 0, externalInvoices: 0 });
+  });
+
+  test("private source prefix locks the exact one-minor closure without publishing and rejects a later charge", async () => {
+    const fixture = await createNativeSourceFixture(deploy, database, {
+      label: "native-private-prefix",
+      roomNightAmounts: ["20"],
+    });
+    const charge = await fixture.postCharge("1", "native-private-prefix-charge");
+    const finalized = await finalize(request(
+      fixture,
+      [source(charge.postingRootId)],
+      "native-private-prefix-valuation",
+    ));
+    expect(finalized.transactionValueMinor).toBe("1");
+
+    const [recordedSource] = await deploy<Array<{
+      postingRootId: string;
+      journalId: string;
+      currentAmountMinor: string;
+      txCode: string;
+      currentFragmentSetHash: string;
+    }>>`SELECT source.posting_root_id::text AS "postingRootId",
+              root.journal_id::text AS "journalId",
+              source.current_amount_minor::text AS "currentAmountMinor",
+              source.tx_code AS "txCode",
+              source.current_fragment_set_hash AS "currentFragmentSetHash"
+         FROM india_gst_accommodation_valuation_source source
+         JOIN posting_line root
+           ON root.tenant_id=source.tenant_id AND root.id=source.posting_root_id
+        WHERE source.tenant_id=${fixture.tenant}::uuid
+          AND source.valuation_id=${finalized.valuationId}::uuid`;
+    if (!recordedSource) throw new Error("Missing persisted native valuation source");
+
+    const beforePrefix = await census(fixture);
+    const newTaxId = crypto.randomUUID();
+    const keyHash = new Bun.CryptoHasher("sha256")
+      .update("native-private-prefix-idempotency")
+      .digest("hex");
+    const positive = await deploy.begin(async tx => {
+      await tx`SELECT set_config('app.tenant_id',${fixture.tenant},true)`;
+      await tx`SET LOCAL ROLE yellow_owner`;
+      const [row] = await tx<Array<{ prefix: {
+        sourceClosure: {
+          accountId: string;
+          accountIds: string[];
+          rootIds: string[];
+          sources: Array<{
+            postingRootId: string;
+            journalId: string;
+            currentAmountMinor: string;
+            txCode: string;
+            currentFragmentSetHash: string;
+          }>;
+        };
+        taxPreview: {
+          transactionValueMinor: string;
+          taxMinor: string;
+          grandTotalMinor: string;
+          componentFamily: string;
+          componentAmountsMinor: string[];
+        };
+        routes: Array<{
+          component_ordinal: number;
+          component_identity: string;
+          amount_minor: number;
+          mapping_id: string | null;
+          tx_code: string | null;
+          credit_account_id: string | null;
+          route_evidence_hash: string | null;
+        }>;
+        lockedAccountIds: string[];
+        folioId: string;
+        newTaxId: string;
+      } }>>`SELECT public.lock_india_native_invoice_source_prefix(
+          ${fixture.tenant}::uuid,${fixture.property}::uuid,${fixture.reservation}::uuid,
+          ${fixture.folio}::uuid,${finalized.valuationId}::uuid,
+          ${SUCCESSOR_EXTENSION}::uuid,'cgst_sgst',${newTaxId}::uuid,${keyHash}
+        ) AS prefix`;
+      if (!row) throw new Error("Private native source prefix returned no row");
+      const [publication] = await tx<Array<{ count: number }>>`SELECT count(*)::int AS count
+        FROM pg_catalog.pg_locks lock
+        WHERE lock.pid=pg_catalog.pg_backend_pid()
+          AND lock.locktype='advisory' AND lock.granted AND lock.objsubid=1
+          AND lock.classid=((${D99_PUBLICATION_LOCK}::bigint>>32)&4294967295)::oid
+          AND lock.objid=(${D99_PUBLICATION_LOCK}::bigint&4294967295)::oid`;
+      return Object.freeze({ prefix: row.prefix, publicationLocks: publication?.count });
+    });
+
+    const expectedAccountIds = [fixture.guestAccount, fixture.revenueAccount].sort();
+    expect(positive.prefix.sourceClosure).toEqual({
+      accountId: fixture.guestAccount,
+      accountIds: expectedAccountIds,
+      rootIds: [charge.postingRootId],
+      sources: [recordedSource],
+    });
+    expect(positive.prefix).toMatchObject({
+      lockedAccountIds: expectedAccountIds,
+      folioId: fixture.folio,
+      newTaxId,
+      taxPreview: {
+        transactionValueMinor: "1",
+        taxMinor: "0",
+        grandTotalMinor: "1",
+        componentFamily: "cgst_sgst",
+        componentAmountsMinor: ["0", "0"],
+      },
+      routes: [
+        {
+          component_ordinal: 0,
+          component_identity: "cgst",
+          amount_minor: 0,
+          mapping_id: null,
+          tx_code: null,
+          credit_account_id: null,
+          route_evidence_hash: null,
+        },
+        {
+          component_ordinal: 1,
+          component_identity: "sgst",
+          amount_minor: 0,
+          mapping_id: null,
+          tx_code: null,
+          credit_account_id: null,
+          route_evidence_hash: null,
+        },
+      ],
+    });
+    expect(positive.publicationLocks).toBe(0);
+    expect(await census(fixture)).toEqual(beforePrefix);
+
+    await fixture.postCharge("1", "native-private-prefix-later-charge");
+    const afterLaterCharge = await census(fixture);
+    const staleClosure = () => deploy.begin(async tx => {
+      await tx`SELECT set_config('app.tenant_id',${fixture.tenant},true)`;
+      await tx`SET LOCAL ROLE yellow_owner`;
+      return tx`SELECT public.read_india_native_valuation_source_closure(
+        ${fixture.tenant}::uuid,${fixture.property}::uuid,${fixture.reservation}::uuid,
+        ${fixture.folio}::uuid,${finalized.valuationId}::uuid)`;
+    });
+    const stalePrefix = () => deploy.begin(async tx => {
+      await tx`SELECT set_config('app.tenant_id',${fixture.tenant},true)`;
+      await tx`SET LOCAL ROLE yellow_owner`;
+      return tx`SELECT public.lock_india_native_invoice_source_prefix(
+        ${fixture.tenant}::uuid,${fixture.property}::uuid,${fixture.reservation}::uuid,
+        ${fixture.folio}::uuid,${finalized.valuationId}::uuid,
+        ${SUCCESSOR_EXTENSION}::uuid,'cgst_sgst',${crypto.randomUUID()}::uuid,${keyHash})`;
+    });
+    await expectSqlState(staleClosure, "55000");
+    await expectSqlState(stalePrefix, "55000");
+    expect(await census(fixture)).toEqual(afterLaterCharge);
   });
 });

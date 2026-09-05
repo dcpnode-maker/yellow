@@ -619,6 +619,12 @@ The coordinator is the selected dedicated-Tx composition root, not a new generic
 command framework. No new table beyond the two named above is admitted without a
 scope amendment. Kernel event/consumer source is a read-only reuse target.
 
+D1346 / Question190 also admits two exclusive, non-runnable0076 implementation
+fragments: `handoff/drafts/order434/0076-native-preparation.sql` (coordinator) and
+`handoff/drafts/order434/0076-native-accounting.sql` (Financials SQL worker).
+They preserve work while the single complete0076 migration is unfinished; they
+do not enter the production runner or establish separate completion boundaries.
+
 ### Existing product paths: native union/composition only
 
 ```text
@@ -1173,3 +1179,70 @@ immutable consumed-source guards, then all76-migration/schema/concurrency/
 referee proofs and a fresh non-implementing Tier3 acceptance. D1344's green
 published5fbd936 CI certifies that checkpoint only. Publication of this next
 scoped checkpoint is not main integration, local promotion or phase completion.
+
+## Accounting and private preparation checkpoint — D1348
+
+The Financials-owned `IndiaNativeFiscalAccountingEventHandler` now accepts only
+the tenant ID and persisted request-event UUID on the caller's existing Tx. It
+validates the exact twelve-column SQL result, nullable zero-tax journal and
+replay disposition. It opens no connection, accepts no money/account/date/hash
+inputs and uses no consumer cursor. It is not yet exported through a public
+composition root.
+
+The two Question190 draft fragments now contain the shared integer rounding
+helper, complete no-lock consideration reread, component route discovery,
+persisted component checking, event/binding/journal verification and the native
+event-consuming operation. The preparation fragment derives room-night tax
+from the current recorded valuation and exact admitted registry members, with
+the existing component-first integer arithmetic and canonical TypeScript key
+order. Its financial lock prefix discovers the complete source/payable account
+set and takes the required account/folio/root/advisory locks before publication.
+It does not silently include the later fiscal/configuration/day/series locks.
+
+These are still private implementation pieces. Rate member and component-family
+arguments to the private preview are not fiscal policy authority: the eventual
+SQL preparation must derive them from the full native date/registration/source
+graph. The event consumer requires the real, still-unimplemented
+`assert_india_native_preparation_authenticity(uuid,uuid)`; no acceptance stub was
+introduced. Its EXECUTE grant is withheld from app_role, yellow_runtime and
+PUBLIC until the complete76-migration candidate is ready. Positive native
+journal posting, completed native replay and invoice issuance have therefore
+not been executable-proven by this checkpoint.
+
+Root applied all ten new functions atomically only to the existing synthetic
+75-migration proof database. The ledger remained75; this is not a run of the
+reserved76 migration. The first live preview test exposed a real preimage bug:
+the snapshot already embeds `snapshotHash`, and its recorder hashes the object
+with that field excluded. The preview now does the same, with a fixture-backed
+regression. Root then personally executed:
+
+- Financials handler/private-preview suite:11 passed,0 failed,91 assertions.
+  Live cases use ChargeService and `finalizeNative`, not owner-inserted derived
+  timing/tax/valuation rows. They cover both admitted rate versions and all
+  three component families, exact ordered room JSON, component sums, zero
+  rounding, a final-value slab crossing and366 nights. Read-only calls leave
+  financial/document/valuation/audit/event counts unchanged. Metadata confirms
+  the draft consumer is withheld and the preview owner-only.
+- Native source/valuation suite:15 passed,0 failed,100 assertions, including the
+  new private-prefix proof. A genuine one-minor valuation returns its exact
+  persisted account/root/journal/hash closure and zero-tax null routes without
+  D99 publication or data writes. A subsequent real charge makes both closure
+  and prefix reject the stale valuation atomically.
+- Standing suite snapshot:1509 passed,1097 explicit environment skips,0 failed,
+  21070 assertions across474 files. The newly added prefix case was then covered
+  by the full15-case PostgreSQL rerun above. Final typecheck, boundaries165,
+  licence policy23, dependency audit and diff checks passed.
+
+All74 runnable migrations and draft75 remain unchanged. Accounting fragment
+SHA256 is `c579263a2446ca84b6b13a3c6f72a6040bc9a6444e36288fa5f064fd339ef44c`;
+preparation fragment is
+`d175bf8188d07e84f2c474b248afd60f6c0ed4381a908c737e519b1e13aae5c7`.
+The same isolated PostgreSQL cluster was stopped and port55502 verified closed;
+its retained directory is181,075,772 bytes. No Docker, local-app, real-hotel-data
+or dependency change occurred.
+
+Still required: full canonical native source preparation/authentication,
+Financials native read-source/413–414–426–429 composition, final commit,
+consumed-source correction guards, and complete76-schema/concurrency/referee
+plus fresh independent Tier3 proof. Order434/Phase7 remain active. Publication
+preserves work on the development branch; it is not main/local promotion.
