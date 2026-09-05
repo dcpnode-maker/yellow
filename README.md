@@ -1,93 +1,81 @@
-# Yellow — hospitality ERP build package
+# Yellow — hospitality operating system
 
-Everything Claude Code needs to build the system without re-deciding anything.
-The thinking is done; this package is the thinking, made executable.
+Yellow is an actively developed hotel and short-term-rental ERP: PMS, bookkeeping,
+stay operations and compliance, with planned distribution, booking engine/CRS,
+CRM, multilingual voice, RMS and hotel interfaces. The domain core uses
+TypeScript/Bun/Elysia and PostgreSQL in a modular monolith.
 
-## What's here
+## Important: this default branch is not the latest development build
 
-| File | What it is | Where it goes |
-|---|---|---|
-| `migrations/0001_init.sql` | Immutable executable baseline: 80 tables, 13 contexts, RLS, choke points, hardening. The runner adds `schema_migration` for 81 public tables. |
-| `CLAUDE.md` | The constitution Claude Code reads every session: Ten Invariants, module boundaries, branded types, never-do list. | repo root |
-| `STATE-MACHINES.md` | Every status column's legal transitions + guards + emitted events. | repo `docs/` |
-| `EVENTS.md` | Event envelope, subject scheme, full catalogue v1, consumer registry. | repo `docs/` |
-| `CONTRACTS.md` | API conventions, THE availability contract, module surfaces, provider ports. | repo `docs/` |
-| `EXTENSIONS.md` | JSON Schemas + launch instances for all extension registry content (verticals, tax incl. India GST slabs, policies, statutory, fiscal, automation actions). | repo `docs/` + Phase-1 seed |
-| `BUILD-PLAN.md` | 13 phases with definition-of-done each, session ritual. | repo root |
-| `UI-SPEC.md` | The seven surfaces: three-tier model, screen inventory, keyboard grammar, offline. | repo `docs/` |
-| `SECURITY.md` | Threat model & controls: auth, RLS layers, PII/token handling, incident basics. | repo `docs/` |
-| `DEPENDENCIES.md` | Vendor risk register: Class A/B/C, OSS replacements, licence policy, CI gates. | repo `docs/` |
-| `docs/ARCHITECTURE-v3.html` | The zero-cost architecture: doctrines, primitives, cost model, spend triggers. |
-| `docs/research/` | The four analysis rounds behind every locked decision. |
-| `docs-mockups-ui-v1.html` | Five-screen UI mockups rendered from fixture data. | repo `docs/mockups/` |
-| `DECISIONS.log` | Seeded with every locked decision + rejected alternative. Append-only. | repo root |
-| `tests/` | 56-case QA suite (v1.1), repaired seed fixture, TS stress port, executable invariant battery + 11/11 run results. | repo `tests/` |
-| `skills/yellow-entity-patterns/` | Skill: how to add/extend entities without drift. | `~/.claude/skills/` |
-| `skills/yellow-postgres-patterns/` | Skill: claim-range occupancy, RLS under PgBouncer, insert-only, outbox. | `~/.claude/skills/` |
-| `skills/yellow-compliance-rules/` | Skill: fiscal chains, ZATCA/IRP/UAE-ASP, statutory, trust, GDPR. | `~/.claude/skills/` |
-| `prototype/` | The stress test that found P1 and proved the fix (1,409 commits/sec; 50-thread race → 1 winner). Re-run any time: needs local PG16. | keep for Phase-2 porting |
+**Publication checkpoint: 2026-09-05.** The code and many original files on `main`
+still belong to the older integrated baseline. Significant later work is published on
+[the development branch](https://github.com/dcpnode-maker/yellow/tree/phase-7/persisted-india-final-component-tax-evidence)
+and tracked by [PR #80](https://github.com/dcpnode-maker/yellow/pull/80).
 
-**New here?** macOS/Linux → `START-HERE.md` · Windows 11 → `docs/WALKTHROUGH-WINDOWS.html` (open in a browser — click-by-click with checkboxes) or `START-HERE-WINDOWS.md`.
-`USAGE.md` is the ongoing operating manual once you're set up.
+This README correction does **not** merge that code, update your local app or claim
+that every feature below exists on this branch. Its purpose is to make the real
+project and publication gap visible. Built, independently reviewed, merged and
+running locally are separate states.
 
-## Setup (one command)
+## Latest recorded project scope: 18 phases, not 13
 
-```bash
-unzip yellow.zip && cd yellow
-./setup.sh
-```
+| Phases | Recorded development state |
+|---|---|
+| 0–3, 5 and 6 | Independently reviewed |
+| 4 | Built; final integration/review outstanding |
+| 7 | Active; native fiscal issuance incomplete |
+| 8–17 | Planned |
 
-Checks prerequisites → starts PostgreSQL 16 + Valkey → runs the production migration
-and deterministic demo seed → builds a separate invariant database through the same
-runner → **runs the 11/11 battery on your machine**. Full setup also verifies health.
-It never creates accounts or repositories. `--db-only` runs the database path only.
+Order430 was rejected for incomplete canonical provenance (D1323).
+[Order434](https://github.com/dcpnode-maker/yellow/blob/phase-7/persisted-india-final-component-tax-evidence/handoff/orders/434-native-fiscal-source-completion.md)
+is the active complete repair, not a completed or approved invoice feature.
+Founder priority is **11 → 13 → 17**, subject to the existing dependencies.
 
-## Setup (manual, if you prefer)
+Read the development
+[BUILD-PLAN](https://github.com/dcpnode-maker/yellow/blob/phase-7/persisted-india-final-component-tax-evidence/BUILD-PLAN.md)
+and [ROADMAP](https://github.com/dcpnode-maker/yellow/blob/phase-7/persisted-india-final-component-tax-evidence/handoff/ROADMAP.md)
+for current definitions and later changes. **13 bounded contexts** remains the
+architecture; it is not the phase count. The first migration's 80 tables plus migration
+ledger describe the immutable baseline, not the current development schema census.
 
-1. `mkdir yellow && cd $_ && git init`
-2. Keep `PROJECT.md`, the role adapters, `BUILD-PLAN.md`, the immutable
-   `migrations/0001_init.sql`, and `docs/` together in the repository.
-3. Copy the three skill folders into `~/.claude/skills/`.
-4. MCP servers for Claude Code: **postgres** (point at the dev compose DB — lets
-   Claude inspect real schema/data while coding) and **github** (PRs, issues).
-5. `DECISIONS.log` ships seeded — keep appending.
-6. Run `./state.sh`, then open your agent on the current reviewed work order.
+## Current source of truth for developers and AI
 
-## What this package is NOT (the honest 30%)
+The following links deliberately point to the published development branch.
+Relative files on this older `main` may still contain historical startup guidance.
 
-- **Domain implementation.** Phase 0 supplies the health scaffold and verified
-  platform loop; the hospitality contexts are built in later phases.
-- **Credentials & certifications.** ZATCA sandbox onboarding, India IRP GSP access,
-  Booking.com/Expedia partner certification (start now — calendar-gated), UAE ASP
-  vendor selection. Only you can sign up.
-- **Design pixels.** The three-tier surface model is specified; visual design happens
-  in Phase 10.
-- **Judgement calls mid-build.** ~a dozen small decisions will surface (library picks,
-  edge semantics). That's what `DECISIONS.log` is for — decide once, write it down.
-- **Ops runbooks** beyond what Architecture v3 §12 defines — they get written as the
-  compose stack becomes real in Phase 0.
+| Need | Current development document |
+|---|---|
+| Constitution and ownership | [PROJECT](https://github.com/dcpnode-maker/yellow/blob/phase-7/persisted-india-final-component-tax-evidence/PROJECT.md), [AGENTS](https://github.com/dcpnode-maker/yellow/blob/phase-7/persisted-india-final-component-tax-evidence/AGENTS.md) |
+| Complete project navigation | [PROJECT-MAP](https://github.com/dcpnode-maker/yellow/blob/phase-7/persisted-india-final-component-tax-evidence/docs/PROJECT-MAP.md) |
+| Founder requirements mapped to phases, source and gaps | [FEATURE-REGISTER](https://github.com/dcpnode-maker/yellow/blob/phase-7/persisted-india-final-component-tax-evidence/docs/FEATURE-REGISTER.md) |
+| Existing-project setup and daily development | [START-HERE](https://github.com/dcpnode-maker/yellow/blob/phase-7/persisted-india-final-component-tax-evidence/START-HERE.md), [Windows](https://github.com/dcpnode-maker/yellow/blob/phase-7/persisted-india-final-component-tax-evidence/START-HERE-WINDOWS.md), [USAGE](https://github.com/dcpnode-maker/yellow/blob/phase-7/persisted-india-final-component-tax-evidence/USAGE.md) |
+| Hotel/STR journeys, distinct workspaces and design | [UI-SPEC](https://github.com/dcpnode-maker/yellow/blob/phase-7/persisted-india-final-component-tax-evidence/docs/UI-SPEC.md), [DESIGN](https://github.com/dcpnode-maker/yellow/blob/phase-7/persisted-india-final-component-tax-evidence/docs/DESIGN.md), [staff journeys](https://github.com/dcpnode-maker/yellow/blob/phase-7/persisted-india-final-component-tax-evidence/docs/design/STAFF-JOURNEYS.md) |
+| Domain, finance and configuration contracts | [DOMAIN-MODEL](https://github.com/dcpnode-maker/yellow/blob/phase-7/persisted-india-final-component-tax-evidence/docs/DOMAIN-MODEL-V1.md), [CONTRACTS](https://github.com/dcpnode-maker/yellow/blob/phase-7/persisted-india-final-component-tax-evidence/docs/CONTRACTS.md), [EXTENSIONS](https://github.com/dcpnode-maker/yellow/blob/phase-7/persisted-india-final-component-tax-evidence/docs/EXTENSIONS.md) |
+| Multilingual authorized voice and RMS | [AI-ARCHITECTURE](https://github.com/dcpnode-maker/yellow/blob/phase-7/persisted-india-final-component-tax-evidence/docs/AI-ARCHITECTURE.md), [voice/RMS plan](https://github.com/dcpnode-maker/yellow/blob/phase-7/persisted-india-final-component-tax-evidence/docs/architecture/VOICE-RMS-PLAN.md) |
+| Regional preferences and channel integrations | [Regional packs](https://github.com/dcpnode-maker/yellow/blob/phase-7/persisted-india-final-component-tax-evidence/docs/architecture/REGIONAL-PACKS.md), [OTA plan](https://github.com/dcpnode-maker/yellow/blob/phase-7/persisted-india-final-component-tax-evidence/docs/integrations/OTA-CONNECTIVITY.md) |
+| Decisions and exact work/proof history | [Decisions](https://github.com/dcpnode-maker/yellow/blob/phase-7/persisted-india-final-component-tax-evidence/DECISIONS.log), [orders](https://github.com/dcpnode-maker/yellow/tree/phase-7/persisted-india-final-component-tax-evidence/handoff/orders), [reviews](https://github.com/dcpnode-maker/yellow/tree/phase-7/persisted-india-final-component-tax-evidence/handoff/reviews), [ledger](https://github.com/dcpnode-maker/yellow/blob/phase-7/persisted-india-final-component-tax-evidence/handoff/LEDGER.md) |
 
-## Provenance
+Current requirements include rich progressive reservations; arrival/departure
+drill-downs; room readiness, housekeeping and checkout coordination; append-only
+financial corrections and split-payer folios; six dedicated Apple, Android/Pixel,
+Win95/98, glass, neo and ERP appearances; distinct hotel/STR workflows; regional
+preferences; authorized multilingual voice; RMS profit/value decisions and permitted
+OTA visibility/market signals. Requirements are not claims of complete implementation.
 
-Designed clean-room from USALI 12th, HTNG/OpenTravel, and public API docs of modern
-PMSs — no Oracle/OPERA materials were used. Four research rounds + a system stress
-test are archived in the project outputs (`differential-analysis-round-*.md`,
-`system-stress-test-round-4.md`).
+## Contribution and integration
 
-## The one number to remember
+Codex coordinates implementation with bounded parallel workers and model selection
+by risk, cost and capability. High-risk work needs a qualified non-implementer to
+execute proof personally. Implementers do not self-review or self-merge. Required
+CI and the invariant referee remain binding; a document change cannot approve
+unfinished fiscal code.
 
-The occupancy prototype's naive constraint design **failed** under concurrency
-(double-sold a private room over live bed sales). The claim-range redesign in
-`migrations/0001_init.sql` contains the fix, proven at 1,409 commits/sec with zero
-conflicts admitted.
-That failure cost one afternoon on paper. In production it would have cost the
-company. That is what this package is for.
+Do not overwrite dirty checkouts, rewrite historical reviews, alter applied
+migrations or touch files merely to make timestamps recent. Update living documents
+where their content changes and retain linked evidence. Do not duplicate the app
+or database to resume development.
 
-
-## Using Codex instead of (or alongside) Claude Code
-
-See `docs/CODEX.md` — `AGENTS.md` and `.codex/config.toml` are already wired.
-
-## Two agents, one repo
-`docs/WORKFLOW.md` — Codex builds, Claude Fable reviews. Handoff files in `handoff/`.
-`docs/CODEX.md` — Codex setup. `docs/MERGE-PLAN.md` — combining with the existing PMS.
+The desired single local review URL is `http://127.0.0.1:3000`, but verify the
+serving revision, health and real synthetic login before calling it current.
+Credentials and runtime authority stay out of Git. No provider integration,
+certification, production deployment or performance result is implied by this page.
