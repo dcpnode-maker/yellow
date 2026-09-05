@@ -27,6 +27,18 @@ comparison. Consolidated Tier-3 inspection has no unresolved findings and the re
 discharged its conditional approval against PR83. Question195 records the numbering,
 scope and strict separation from the retained hotel database.
 
+Order440's subsequent private issued-wire candidate is now independently verified:
+10 unit tests and4 genuine-issued PostgreSQL tests pass, including all three supported
+GST component combinations, two-tenant source isolation and exact unchanged financial
+rows. It verifies the immutable source hash and derives a distinct deterministic wire
+hash without floating-point money conversion. Canonical0077's issued content already
+includes the Qty1.000/UnitOTH compatibility pair; the ordinary intermediate candidate
+does not. Q197 corrects the earlier description and limits this work to a private,
+uncertified projection. Durable submission writers, delivery/reconciliation and live
+provider evidence remain unfinished. The new required CI proof is wired but has not
+yet run on this revision. The prior440/441 checkpoint13737a7 passed all five jobs in
+CI33996041604 and is under PR85; neither result refreshes the founder's local app.
+
 CI33992123191 at6bb7ba6 passed four of five jobs, including the real local launcher.
 Its database job passed migration41/41, native116/116, containment/readiness7/7 and
 operational/tax compatibility89/89 before four stale catalogue expectations failed.
@@ -66,7 +78,7 @@ container build, merge and deployment are separate events.
 | Phase 4 | Built; integration review outstanding | Preserve the implementation and close its remaining integration evidence |
 | Phase 7 operational flows | Consolidated and independently approved baseline | Working PMS, stay, folio, payment, approval and fiscal-support flows are preserved; source acceptance does not complete the entire phase |
 | Order434 native fiscal issuance | Native acceptance passed; merged and unreleased | Real source-to-invoice, tax-only accounting, immutable replay, concurrency, tenant isolation, maximum bounds and migration proofs pass; provider registration and runtime activation remain separate |
-| Order440 durable fiscal submission | Private Lane A accepted; durable integration in progress | Provider-neutral state and reducer proof is accepted; durable persistence, reconciliation, authenticated provider normalization, runtime activation and live sandbox evidence remain outstanding |
+| Order440 durable fiscal submission | Private state contract and issued-wire projection accepted; durable integration in progress | State reducer and genuine-issued projection proof pass; durable persistence, reconciliation, authenticated provider normalization, runtime activation and live sandbox evidence remain outstanding |
 | Phases 8–17 | Planned | Requirements and architecture are retained; documentation is not shipped behavior |
 
 The roadmap contains **18 phases, numbered 0–17**. The founder's highlighted feature

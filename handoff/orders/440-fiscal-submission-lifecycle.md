@@ -74,9 +74,12 @@ availability distinct. Do not infer taxpayer eligibility merely from a B2B paylo
 
 Canonical0077 stores the approved ordinary sections plus server-derived `DocDtls`,
 including `Version:1.1`, and hashes exact PostgreSQL `content::text` UTF-8 bytes.
-Amounts/rates are exact decimal strings. Ordinary stored items do not include the
-separate compatibility projection's Qty1.000/UnitOTH fields. Thus the provider wire
-payload needs an explicit validated projection; do not claim existing content is
+Amounts/rates are exact decimal strings. The ordinary intermediate item candidate
+omits Qty/Unit, but canonical0077's final `preDocumentJson` selects the compatibility
+items, so the issued document includes Qty1.000/UnitOTH. Root traced this through
+`compose_india_native_fiscal_completion_evidence` and the commit function on2026-09-06;
+the earlier statement that the issued items omitted these fields was incorrect.
+The provider wire payload still needs an explicit validated projection; do not claim existing content is
 already a certified provider request. Do not recalculate tax from mutable current
 configuration or convert arbitrary bigint amounts through a lossy JavaScript Number.
 
@@ -139,12 +142,45 @@ normalization remain future integration obligations.
 
 ## Subsequent integration admission (not yet a file-edit authorization)
 
+[Question197](../questions/197-issued-fiscal-wire-candidate-admission.md) now admits
+the exact private issued-source projection and genuine-issued fixture paths below.
+This first integration step distinguishes source bytes from transmitted bytes before
+admitting durable writers. It does not yet authorize DDL, database grants, provider
+activation or a network submission. No new Qty/Unit policy is inferred: the candidate
+preserves only the compatibility values already present in canonical0077's document.
+
+```text
+handoff/questions/197-issued-fiscal-wire-candidate-admission.md
+src/contexts/tax-fiscal/india-irp-issued-wire-candidate.ts
+tests/india-irp-issued-wire-candidate.test.ts
+tests/india-irp-issued-wire-candidate.integration.test.ts
+.github/workflows/ci.yml (required isolated Order440 proof step only)
+```
+
+The projection accepts the exact `document.content::text` bytes and stored SHA-256
+from a tenant-scoped, native-origin-authenticated reader. It verifies byte integrity,
+checks the fixed issued source shape, preserves fiscal identity and exact amounts,
+and serializes decimal strings as validated JSON numeric tokens without Number
+conversion. A matching caller-supplied hash proves byte integrity only, not database
+authenticity. Production readers/writers remain a subsequent admission. Unit and
+genuine-issued integration proof are both required; this candidate is not certified
+by an authority and may not be sent to a live provider by this private module.
+
 After434 acceptance, coordinator must inspect the actual issued document source and
 existing fiscal_submission privileges, then record exact paths/DDL/signatures before
 starting durable request/attempt/receipt persistence, the claim/reconciliation worker,
 canonical issued-IRP-payload assembly and HTTP/operator reads. Reuse existing source
 truth; do not create a second journal/document or assume caller-hashed payloads are
 database-authenticated. Do not widen Lane A silently.
+
+Q197 private projection checkpoint: root genuine-issued proof passed4/4 with230
+assertions; a non-implementer personally reran final unit10/10(52), genuine-issued
+4/4(230), typecheck, explicit missing-environment failure and honest absent-DB skip.
+The final projection also rejects revoked proxies and malformed Unicode and bounds
+input before byte-buffer allocation. Whole standing proof passes1595/0 with1195
+explicit DB skips(21771 assertions), and boundaries171/licences23/audit pass. The
+required CI proof is wired to an isolated clone; its new exact-revision execution is
+still pending. This is not durable submission, authenticated transport or full440.
 
 Full-order acceptance requires actual native-issued fixtures, tenant/property/actor
 denials, concurrent claims, crashes before/after transport, unknown/duplicate outcome
